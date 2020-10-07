@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: okt  7 2020 (11:58) 
+## Last-Updated: okt  7 2020 (16:47) 
 ##           By: Brice Ozenne
-##     Update #: 8
+##     Update #: 10
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -22,8 +22,10 @@
 ##'
 ##' @param object [lmm] output of the \code{lmm} function.
 ##' @param digit [integer,>0] number of digit used to display numeric values.
-##' @param conf.level [numeric,0-1] confidence level for the confidence intervals. 
-summary.lmm <- function(object, digit = 3, conf.level = 0.95){
+##' @param conf.level [numeric,0-1] confidence level for the confidence intervals.
+##' @param ... not used. For compatibility with the generic function.
+##' @export
+summary.lmm <- function(object, digit = 3, conf.level = 0.95, ...){
 
     ## ** welcome message
     if(!is.null(object$modelStruct$varStruct)){

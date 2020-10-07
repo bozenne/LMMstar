@@ -4,7 +4,7 @@
 <a href="http://www.gnu.org/licenses/gpl-3.0.html"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License"></a>
 #+END_HTML
 
-* handremn
+* handrem
 
 *handrem* is companion R package for the course "Statistical analysis
 of correlated and repeated measurements for health science
@@ -41,117 +41,100 @@ library(handrem)
 #+RESULTS:
 : handrem version 0.1.0
 
-
-[optional] Simulate some data using the =lava= package:
+** Data generation
+Simulate some data in the wide format:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-library(lava)
-m <- lvm(c(Y1,Y2,Y3,Y4) ~ age + gender)
-categorical(m, labels = c("male","female")) <- ~gender
-transform(m, id~gender) <- function(x){1:NROW(x)}
-distribution(m, ~age) <- gaussian.lvm(mean = 50, sd = 10)
-
-set.seed(10)
-dW <- lava::sim(m, 1e2)
+set.seed(10) ## ensure reproductibility
+dW <- sampleRem(1e2, n.times = 3, format = "wide")
 head(dW)
 #+END_SRC
 
 #+RESULTS:
-:         Y1       Y2       Y3       Y4      age gender id
-: 1 58.71350 57.93295 59.91026 60.19730 58.69475   male  1
-: 2 44.01565 44.61928 44.53078 44.79031 43.19990 female  2
-: 3 51.36081 51.69220 54.12242 52.10146 51.73215 female  3
-: 4 48.80645 50.11719 50.27767 50.19797 48.40562 female  4
-: 5 58.22954 57.30178 56.85418 58.06038 57.93499   male  5
-: 6 67.33330 67.50668 67.43933 67.26626 66.94350   male  6
+:   Id X1 X2 X3 X4 X5         X6         X7         X8         X9        X10         Y1         Y2         Y3
+: 1  1  1  0  1  1  0 -0.3665251  1.5338155 -1.8944253 1.72886647  0.9592499  0.7914440  1.7950955  3.5081372
+: 2  2  1  0  1  2  0 -0.4097541  2.0654127  1.7658413 0.76133482 -0.5630173  1.5001792  3.6821108  2.6168191
+: 3  3  0  0  2  1  0 -1.7198620 -0.1781015  2.3570828 1.96628919  1.2152654 -3.2076907 -4.1885439 -1.6972793
+: 4  4  0  0  0  1  0  0.9225563 -2.0885963  0.2334654 1.30674682 -0.9063326 -2.0621330 -0.5258805  0.3733653
+: 5  5  0  0  2  1  0  0.9870991  5.8799954  0.3848497 0.02778831  0.8199623  7.9626275  6.8833634  5.9071405
+: 6  6  0  0  1  1  2 -1.0754115  0.4788953  2.2020069 0.89987424 -0.7390384  0.1092696 -0.5264119  0.1166843
 
-and also create the long formal version:
+Simulate some data in the long format:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-name.varying <- paste0("Y",1:4)
-dL <- reshape(dW, direction  = "long",
-              idvar = c("id","age","gender"),
-              varying = name.varying,
-              v.names = "Y",
-              timevar = "visit")
-rownames(dL) <- NULL
-dL$visit <- factor(dL$visit,
-                   levels = 1:length(name.varying),
-                   labels = name.varying)
+set.seed(10) ## ensure reproductibility
+dL <- sampleRem(1e2, n.times = 3, format = "long")
 head(dL)
 #+END_SRC
 
 #+RESULTS:
-:        age gender id visit        Y
-: 1 58.69475   male  1    Y1 58.71350
-: 2 43.19990 female  2    Y1 44.01565
-: 3 51.73215 female  3    Y1 51.36081
-: 4 48.40562 female  4    Y1 48.80645
-: 5 57.93499   male  5    Y1 58.22954
-: 6 66.94350   male  6    Y1 67.33330
+:   Id visit        Y X1 X2 X3 X4 X5         X6       X7        X8        X9        X10
+: 1  1     1 0.791444  1  0  1  1  0 -0.3665251 1.533815 -1.894425 1.7288665  0.9592499
+: 2  1     2 1.795096  1  0  1  1  0 -0.3665251 1.533815 -1.894425 1.7288665  0.9592499
+: 3  1     3 3.508137  1  0  1  1  0 -0.3665251 1.533815 -1.894425 1.7288665  0.9592499
+: 4  2     1 1.500179  1  0  1  2  0 -0.4097541 2.065413  1.765841 0.7613348 -0.5630173
+: 5  2     2 3.682111  1  0  1  2  0 -0.4097541 2.065413  1.765841 0.7613348 -0.5630173
+: 6  2     3 2.616819  1  0  1  2  0 -0.4097541 2.065413  1.765841 0.7613348 -0.5630173
+
+** Descriptive tools
 
 Descriptive statistics using the =procSummary= function:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-procSummary(Y1+Y2 ~ gender, data = dW)
+procSummary(Y1+Y2 ~ X1, data = dW)
 #+END_SRC
 
 #+RESULTS:
-:   outcome gender observed missing     mean        sd      min   median      max
-: 1      Y1   male       58       0 51.28103 11.734087 24.92946 52.99877 84.58108
-: 2      Y1 female       42       0 50.56145  9.821041 26.12782 50.09818 69.96275
-: 3      Y2   male       58       0 51.41278 11.748875 24.71661 53.01328 85.93246
-: 4      Y2 female       42       0 50.47853 10.081425 25.93735 50.23454 68.98899
+:   outcome X1 observed missing       mean       sd       min     median      max
+: 1      Y1  0       45       0 -0.2802344 2.937848 -5.157106 -0.8118583 7.962627
+: 2      Y1  1       55       0  1.2891059 3.485595 -5.799078  0.8432615 8.940564
+: 3      Y2  0       45       0 -0.1339964 3.299294 -5.935869 -0.5097901 6.883363
+: 4      Y2  1       55       0  1.0683872 3.373441 -5.383865  1.2901854 7.593107
 
+** Modeling tools
 Fit a linear mixed model with unstructured covariance matrix:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-e.lmm <- lmm(Y ~ visit + age + gender, covariance = ~visit|id, data = dL)
+e.lmm <- lmm(Y ~ visit + X1 + X6, covariance = ~visit|Id, data = dL)
 summary(e.lmm)
 #+END_SRC
 
 #+RESULTS:
 #+begin_example
-Generalized least squares fit by REML
-  Model: Y ~ visit + age + gender 
-  Data: data 
-       AIC      BIC    logLik
-  1167.926 1231.547 -567.9628
+  Linear mixed effect model with an unstructured covariance matrix 
+  - fitted using Restricted Maximum Likelihood (REML) 
+  - likelihood :-608.1519 (df = 5)
+ 
+Dataset: data 
+ - 100 clusters 
+ - 300 observations 
+ - 3 maximum number of observations per cluster 
+ - levels of the categorical variables 
+$visit
+  2 3
+1 0 0
+2 1 0
+3 0 1
 
-Correlation Structure: General
- Formula: ~visit.index | id 
- Parameter estimate(s):
- Correlation: 
-  1      2      3     
-2 -0.051              
-3  0.008 -0.131       
-4  0.044  0.036 -0.006
-Variance function:
- Structure: Different standard deviations per stratum
- Formula: ~1 | visit 
- Parameter estimates:
-      Y1       Y2       Y3       Y4 
-1.000000 1.032857 1.030398 1.107789 
+ - reference level: visit=1 
+ 
+Correlation structure: nlme::corSymm(form = ~visit.index | Id) 
+      1     2     3
+1 1.000 0.893 0.885
+2 0.893 1.000 0.890
+3 0.885 0.890 1.000
 
-Coefficients:
-                  Value  Std.Error   t-value p-value
-(Intercept)  -0.1471751 0.24699398  -0.59587  0.5516
-visitY2       0.0415864 0.13898590   0.29921  0.7649
-visitY3       0.1653008 0.13485948   1.22573  0.2210
-visitY4       0.3353877 0.13762341   2.43700  0.0153
-age           0.9998180 0.00436729 228.93345  0.0000
-genderfemale  1.0472680 0.09658085  10.84343  0.0000
+Variance structure: nlme::varIdent(form = ~1 | visit) 
+                     1     2      3
+variance          10.4 10.56 10.304
+relative variance  1.0  1.01  0.987
 
- Correlation: 
-             (Intr) vistY2 vistY3 vistY4 age   
-visitY2      -0.273                            
-visitY3      -0.265  0.429                     
-visitY4      -0.249  0.486  0.448              
-age          -0.910  0.000  0.000  0.000       
-genderfemale -0.237  0.000  0.000  0.000  0.081
+Mean structure: Y ~ visit + X1 + X6 
+            estimate  lower  upper    se p-value  
+(Intercept)   -0.023 -0.964 -0.964 0.478  0.9617  
+visit2        -0.056 -0.351 -0.351  0.15  0.7115  
+visit3         0.079 -0.225 -0.225 0.155  0.6080  
+X1             1.308  0.075  0.075 0.627  0.0376 *
+X6             0.743    0.1    0.1 0.327  0.0237 *
 
-Standardized residuals:
-       Min         Q1        Med         Q3        Max 
--2.5176917 -0.7453180  0.0106393  0.7606955  2.5193225 
-
-Residual standard error: 0.9430367 
-Degrees of freedom: 400 total; 394 residual
+The columns lower and upper correspond to the 95% confidence interval of the estimated coefficient
+Note: p-value(s) and confidence interval(s) are not adjusted for multiple comparisons
 #+end_example
 
 Code used to fit the model
@@ -160,9 +143,9 @@ cat(attr(e.lmm,"code"))
 #+END_SRC
 
 #+RESULTS:
-: nlme::gls(model=Y~visit+age+gender,
+: nlme::gls(model=Y~visit+X1+X6,
 :     data=data,
-:     correlation=nlme::corSymm(form=~visit.index|id),
+:     correlation=nlme::corSymm(form=~visit.index|Id),
 :     weights=nlme::varIdent(form=~1|visit))
 
 Data used to fit the model
@@ -171,13 +154,13 @@ head(attr(e.lmm,"data"))
 #+END_SRC
 
 #+RESULTS:
-:        age gender id visit        Y visit.index
-: 1 58.69475   male  1    Y1 58.71350           1
-: 2 43.19990 female  2    Y1 44.01565           1
-: 3 51.73215 female  3    Y1 51.36081           1
-: 4 48.40562 female  4    Y1 48.80645           1
-: 5 57.93499   male  5    Y1 58.22954           1
-: 6 66.94350   male  6    Y1 67.33330           1
+:   Id visit        Y X1 X2 X3 X4 X5         X6       X7        X8        X9        X10 visit.index
+: 1  1     1 0.791444  1  0  1  1  0 -0.3665251 1.533815 -1.894425 1.7288665  0.9592499           1
+: 2  1     2 1.795096  1  0  1  1  0 -0.3665251 1.533815 -1.894425 1.7288665  0.9592499           2
+: 3  1     3 3.508137  1  0  1  1  0 -0.3665251 1.533815 -1.894425 1.7288665  0.9592499           3
+: 4  2     1 1.500179  1  0  1  2  0 -0.4097541 2.065413  1.765841 0.7613348 -0.5630173           1
+: 5  2     2 3.682111  1  0  1  2  0 -0.4097541 2.065413  1.765841 0.7613348 -0.5630173           2
+: 6  2     3 2.616819  1  0  1  2  0 -0.4097541 2.065413  1.765841 0.7613348 -0.5630173           3
 
 Summary based on the =nlme= package
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -186,49 +169,43 @@ summary(e.lmm)
 
 #+RESULTS:
 #+begin_example
-Generalized least squares fit by REML
-  Model: Y ~ visit + age + gender 
-  Data: data 
-       AIC      BIC    logLik
-  1167.926 1231.547 -567.9628
+  Linear mixed effect model with an unstructured covariance matrix 
+  - fitted using Restricted Maximum Likelihood (REML) 
+  - likelihood :-608.1519 (df = 5)
+ 
+Dataset: data 
+ - 100 clusters 
+ - 300 observations 
+ - 3 maximum number of observations per cluster 
+ - levels of the categorical variables 
+$visit
+  2 3
+1 0 0
+2 1 0
+3 0 1
 
-Correlation Structure: General
- Formula: ~visit.index | id 
- Parameter estimate(s):
- Correlation: 
-  1      2      3     
-2 -0.051              
-3  0.008 -0.131       
-4  0.044  0.036 -0.006
-Variance function:
- Structure: Different standard deviations per stratum
- Formula: ~1 | visit 
- Parameter estimates:
-      Y1       Y2       Y3       Y4 
-1.000000 1.032857 1.030398 1.107789 
+ - reference level: visit=1 
+ 
+Correlation structure: nlme::corSymm(form = ~visit.index | Id) 
+      1     2     3
+1 1.000 0.893 0.885
+2 0.893 1.000 0.890
+3 0.885 0.890 1.000
 
-Coefficients:
-                  Value  Std.Error   t-value p-value
-(Intercept)  -0.1471751 0.24699398  -0.59587  0.5516
-visitY2       0.0415864 0.13898590   0.29921  0.7649
-visitY3       0.1653008 0.13485948   1.22573  0.2210
-visitY4       0.3353877 0.13762341   2.43700  0.0153
-age           0.9998180 0.00436729 228.93345  0.0000
-genderfemale  1.0472680 0.09658085  10.84343  0.0000
+Variance structure: nlme::varIdent(form = ~1 | visit) 
+                     1     2      3
+variance          10.4 10.56 10.304
+relative variance  1.0  1.01  0.987
 
- Correlation: 
-             (Intr) vistY2 vistY3 vistY4 age   
-visitY2      -0.273                            
-visitY3      -0.265  0.429                     
-visitY4      -0.249  0.486  0.448              
-age          -0.910  0.000  0.000  0.000       
-genderfemale -0.237  0.000  0.000  0.000  0.081
+Mean structure: Y ~ visit + X1 + X6 
+            estimate  lower  upper    se p-value  
+(Intercept)   -0.023 -0.964 -0.964 0.478  0.9617  
+visit2        -0.056 -0.351 -0.351  0.15  0.7115  
+visit3         0.079 -0.225 -0.225 0.155  0.6080  
+X1             1.308  0.075  0.075 0.627  0.0376 *
+X6             0.743    0.1    0.1 0.327  0.0237 *
 
-Standardized residuals:
-       Min         Q1        Med         Q3        Max 
--2.5176917 -0.7453180  0.0106393  0.7606955  2.5193225 
-
-Residual standard error: 0.9430367 
-Degrees of freedom: 400 total; 394 residual
+The columns lower and upper correspond to the 95% confidence interval of the estimated coefficient
+Note: p-value(s) and confidence interval(s) are not adjusted for multiple comparisons
 #+end_example
 

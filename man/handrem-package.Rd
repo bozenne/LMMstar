@@ -3,7 +3,7 @@
 \docType{package}
 \name{handrem-package}
 \alias{handrem-package}
-\title{Helper functions for handling repeated measurements in R}
+\title{handrem package: Helper functions for handling repeated measurements in R}
 \description{
 Companion R package for the course "Statistical analysis
 of correlated and repeated measurements for health science
