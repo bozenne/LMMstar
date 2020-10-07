@@ -1,0 +1,4 @@
+.travis.yml
+README.org
+LICENSE
+^appveyor\.yml$
