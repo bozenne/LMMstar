@@ -28,7 +28,7 @@ install.packages("devtools")
 #+END_SRC
 and then run the following R code:
 #+BEGIN_SRC R :exports both :eval never
-devtools::install_github("bozenne/BuyseTest")
+devtools::install_github("bozenne/handrem")
 #+END_SRC
 
 * Functionalities 
