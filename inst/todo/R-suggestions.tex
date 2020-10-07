@@ -1,0 +1,102 @@
+\documentclass[a4paper,10pt]{article}
+
+\usepackage{times}
+\usepackage{mathptmx}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[danish]{babel}
+\usepackage{moreverb}
+\usepackage{epsf}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5\baselineskip}
+\setlength{\itemsep}{0pt}
+
+\topmargin       -7 mm
+\headheight       7.0 mm
+\headsep          5.0 mm
+\topskip          3.0 mm
+\oddsidemargin    0.7 mm
+\evensidemargin   0.7 mm
+\textwidth      160.0 mm
+\textheight     235.0 mm
+
+\title{Repeated measurements in R}
+
+\begin{document}
+\maketitle
+
+\section*{R-bugs and innoyments}
+
+\begin{itemize}
+\item Bug in getVarCov with inhomogeneous variances.
+\item Bug in normalized residuals.
+\item No small sample correction to degrees of freedom witth gls.
+\item Time variable in Cor-functions supplied to gls has to be 1, 2, 3, ...
+\item Code for summary statistics is lengthy/technical.
+\item Code for predictions is lengthy/technical.
+\item Code for baseline adjustment is lengthy/technical.
+\item Code for extracting results is lengthy/technical.
+\item No option for group-specific covariance parameters - ?
+\item Not possible to have random effects and residual correlation pattern at the same time - ?
+\item Need to supply starting value for continuous time correlation patterns.
+\item Code for multiple imputations is very lengthy and very technical.
+\end{itemize}
+
+\subsection*{... and what we can improve on}
+
+Make functions to:
+\begin{itemize}
+\item compute summary statistics.
+\item compute predicted values for covariate combinations.
+\item compute different kinds of residuals
+\item extract results in publish style.
+\item extract variance parameters.
+\item make a constrained interaction
+\end{itemize}
+
+If we have time for it, we could also make functions for plotting:
+\begin{itemize}
+\item to visualize correlation matrices (heatmap, ellipses)
+\item that mimics pairs.plot, only with nicer coloring etc.
+\item residuals against predicted, against covariates, and in qqplots.
+\end{itemize}
+
+\subsection*{Further ideas}
+Considering unbalanced longitudinal data, it would be nice to be able to:
+\begin{itemize}
+\item choose between more correlation patterns.
+\item make variograms and derive starting values for fitting the correlation patterns.
+\item plot cumulated residuals for diagnostics.
+\item make plots of estimated means and correlation over time.
+\end{itemize}
+But this is {\bf no way urgent} as most students have data from balanced designs....\\
+\\
+Some kind of wrapper for the multiple imputations would be nice too.
+
+\section*{Perspective: Why is PROC MIXED so nice?}
+\begin{itemize}
+\item Large and flexible selection of covariance patterns.
+\item The numerical optimisation seems to almost always work.
+\item DDFM option.
+\item The scaled residuals.
+\item LSMEANS including options to control FWER.
+\item ESTIMATE and CONTRAST statements.
+\item REF option to set the reference groups.
+\item Easy to save output with ODS.
+\item Easy to repeat analysis for subgroups or different outcomes with BY.
+ \end{itemize}
+
+\subsection*{...and what is innoying any way}
+\begin{itemize}
+\item Too much default output.
+\item How are the rows/columns in the estimated R-matrix ordered? Order of appearance in the data?!?
+\item Hard to make predicted values for covariate combinations that are not in the data.
+\item ... and the default predicted values have to be sorted before you plot them.
+\item No of the shelf options for visualizing estimated correlation.
+\item Post processing of segregated and redundant output data (impossible to avoid).
+\item No default plots of residuals against covariates (I forget to do them).
+\end{itemize}
+
+\end{document}
