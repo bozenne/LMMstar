@@ -8,7 +8,7 @@
 #' of Copenhagen. It provides functions for computing summary statistics
 #' and obtainign graphical displays of longitudinal data, as well as for
 #' statistical modeling and statistical inference using mixed models.
-#' 
+#'
 #' @importFrom lava latent<- distribution<- regression<- 
 NULL
 
