@@ -1,4 +1,4 @@
-### procSummary.R --- 
+### summarize.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
@@ -15,7 +15,7 @@
 ## 
 ### Code:
 
-## * procSummary (documentation)
+## * summarize (documentation)
 ##' @title Compute summary statistics
 ##' @description Compute summary statistics (similar to the SAS macro procmean).
 ##' This is essentially an interface to the \code{stats::aggregate} function.
@@ -32,7 +32,7 @@
 ##' \code{"missing"} (number of observations with a missing value), \code{"mean"}, \code{"sd"}, \code{"min"}, \code{"median"}, \code{"max"}.
 
 
-## * procSummary (examples)
+## * summarize (examples)
 ##' @examples
 ##' ## simulate data in the wide format
 ##' library(lava)
@@ -48,19 +48,19 @@
 ##' d2 <- d
 ##' d2[1,"Y2"] <- NA
 ##'
-##' ## run procSummary
-##' procSummary(Y1+Y2 ~ 1, data = d)
-##' procSummary(Y1+Y2 ~ gender, data = d)
+##' ## run summarize
+##' summarize(Y1+Y2 ~ 1, data = d)
+##' summarize(Y1+Y2 ~ gender, data = d)
 ##' 
-##' procSummary(Y1+Y2 ~ gender, data = d2)
-##' procSummary(Y1+Y2 ~ gender, data = d2, na.rm = TRUE)
+##' summarize(Y1+Y2 ~ gender, data = d2)
+##' summarize(Y1+Y2 ~ gender, data = d2, na.rm = TRUE)
 ##' 
 ##' ## End of examples
 
 
-## * procSummary (code)
+## * summarize (code)
 ##' @export
-procSummary <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE,
+summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE,
                      which = c("observed","missing","mean","sd","min","median","max")){
 
     ## ** check and normalize user imput
@@ -121,4 +121,4 @@ procSummary <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE
 
 
 ######################################################################
-### procSummary.R ends here
+### summarize.R ends here
