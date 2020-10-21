@@ -92,50 +92,9 @@ procSummary(Y1+Y2 ~ X1, data = dW)
 Fit a linear mixed model with unstructured covariance matrix:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 e.lmm <- lmm(Y ~ visit + X1 + X6, covariance = ~visit|Id, data = dL)
-summary(e.lmm)
 #+END_SRC
 
 #+RESULTS:
-#+begin_example
-  Linear mixed effect model with an unstructured covariance matrix 
-  - fitted using Restricted Maximum Likelihood (REML) 
-  - likelihood :-608.1519 (df = 5)
- 
-Dataset: data 
- - 100 clusters 
- - 300 observations 
- - 3 maximum number of observations per cluster 
- - levels of the categorical variables 
-$visit
-  2 3
-1 0 0
-2 1 0
-3 0 1
-
- - reference level: visit=1 
- 
-Correlation structure: nlme::corSymm(form = ~visit.index | Id) 
-      1     2     3
-1 1.000 0.893 0.885
-2 0.893 1.000 0.890
-3 0.885 0.890 1.000
-
-Variance structure: nlme::varIdent(form = ~1 | visit) 
-                     1     2      3
-variance          10.4 10.56 10.304
-relative variance  1.0  1.01  0.987
-
-Mean structure: Y ~ visit + X1 + X6 
-            estimate  lower  upper    se p-value  
-(Intercept)   -0.023 -0.964 -0.964 0.478  0.9617  
-visit2        -0.056 -0.351 -0.351  0.15  0.7115  
-visit3         0.079 -0.225 -0.225 0.155  0.6080  
-X1             1.308  0.075  0.075 0.627  0.0376 *
-X6             0.743    0.1    0.1 0.327  0.0237 *
-
-The columns lower and upper correspond to the 95% confidence interval of the estimated coefficient
-Note: p-value(s) and confidence interval(s) are not adjusted for multiple comparisons
-#+end_example
 
 Code used to fit the model
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -162,7 +121,7 @@ head(attr(e.lmm,"data"))
 : 5  2     2 3.682111  1  0  1  2  0 -0.4097541 2.065413  1.765841 0.7613348 -0.5630173           2
 : 6  2     3 2.616819  1  0  1  2  0 -0.4097541 2.065413  1.765841 0.7613348 -0.5630173           3
 
-Summary based on the =nlme= package
+** Summary function
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 summary(e.lmm)
 #+END_SRC
@@ -209,3 +168,122 @@ The columns lower and upper correspond to the 95% confidence interval of the est
 Note: p-value(s) and confidence interval(s) are not adjusted for multiple comparisons
 #+end_example
 
+
+Summary based on the =nlme= package
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+nlme:::summary.gls(e.lmm)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+Generalized least squares fit by REML
+  Model: Y ~ visit + X1 + X6 
+  Data: data 
+       AIC     BIC    logLik
+  1238.304 1278.86 -608.1519
+
+Correlation Structure: General
+ Formula: ~visit.index | Id 
+ Parameter estimate(s):
+ Correlation: 
+  1     2    
+2 0.893      
+3 0.885 0.890
+Variance function:
+ Structure: Different standard deviations per stratum
+ Formula: ~1 | visit 
+ Parameter estimates:
+       1        2        3 
+1.000000 1.005308 0.993266 
+
+Coefficients:
+                 Value Std.Error    t-value p-value
+(Intercept) -0.0229790 0.4780341 -0.0480698  0.9617
+visit2      -0.0555882 0.1501762 -0.3701535  0.7115
+visit3       0.0794218 0.1546546  0.5135433  0.6080
+X1           1.3084321 0.6265919  2.0881728  0.0376
+X6           0.7426808 0.3265267  2.2744869  0.0237
+
+ Correlation: 
+       (Intr) visit2 visit3 X1    
+visit2 -0.149                     
+visit3 -0.171  0.505              
+X1     -0.729  0.000  0.000       
+X6      0.163  0.000  0.000 -0.081
+
+Standardized residuals:
+        Min          Q1         Med          Q3         Max 
+-2.48379790 -0.69881899 -0.09778996  0.66079708  2.58255448 
+
+Residual standard error: 3.231714 
+Degrees of freedom: 300 total; 295 residual
+#+end_example
+
+** Extract model coefficients
+
+Only coefficients related to the mean:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+library(broom)
+tidy(e.lmm)
+#+END_SRC
+
+#+RESULTS:
+:   type        term    estimate std.error   statistic    p.value    conf.low conf.high
+: 1 mean (Intercept) -0.02297899 0.4780341 -0.04806976 0.96169317 -0.96376836 0.9178104
+: 2 mean      visit2 -0.05558823 0.1501762 -0.37015349 0.71153374 -0.35114063 0.2399642
+: 3 mean      visit3  0.07942183 0.1546546  0.51354325 0.60795577 -0.22494432 0.3837880
+: 4 mean          X1  1.30843210 0.6265919  2.08817276 0.03763967  0.07527539 2.5415888
+: 5 mean          X6  0.74268078 0.3265267  2.27448690 0.02365460  0.10006372 1.3852978
+
+All coefficients:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+tidy(e.lmm, effects = c("mean","variance"))
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+        type        term    estimate std.error   statistic    p.value    conf.low conf.high
+1       mean (Intercept) -0.02297899 0.4780341 -0.04806976 0.96169317 -0.96376836 0.9178104
+2       mean      visit2 -0.05558823 0.1501762 -0.37015349 0.71153374 -0.35114063 0.2399642
+3       mean      visit3  0.07942183 0.1546546  0.51354325 0.60795577 -0.22494432 0.3837880
+4       mean          X1  1.30843210 0.6265919  2.08817276 0.03763967  0.07527539 2.5415888
+5       mean          X6  0.74268078 0.3265267  2.27448690 0.02365460  0.10006372 1.3852978
+6  corStruct    cor(1,2)  0.89261332        NA          NA         NA  0.84451554 0.9264259
+7  corStruct    cor(1,3)  0.88474011        NA          NA         NA  0.83340358 0.9209395
+8  corStruct    cor(2,3)  0.88977643        NA          NA         NA  0.84045466 0.9244766
+9  varStruct           2  1.00530767        NA          NA         NA  0.91736928 1.1016758
+10 varStruct           3  0.99326602        NA          NA         NA  0.90487185 1.0902951
+11     sigma       sigma  3.23171420        NA          NA         NA  2.80683734 3.7209055
+#+end_example
+
+* Configuration 
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+sessionInfo()
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+R version 4.0.2 (2020-06-22)
+Platform: x86_64-w64-mingw32/x64 (64-bit)
+Running under: Windows 7 x64 (build 7601) Service Pack 1
+
+Matrix products: default
+
+locale:
+[1] LC_COLLATE=Danish_Denmark.1252  LC_CTYPE=Danish_Denmark.1252    LC_MONETARY=Danish_Denmark.1252
+[4] LC_NUMERIC=C                    LC_TIME=Danish_Denmark.1252    
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] broom_0.7.0    repeated_0.1.0
+
+loaded via a namespace (and not attached):
+ [1] Rcpp_1.0.5       magrittr_1.5     splines_4.0.2    tidyselect_1.1.0 lattice_0.20-41  R6_2.4.1         rlang_0.4.7     
+ [8] stringr_1.4.0    plyr_1.8.6       dplyr_1.0.2      tools_4.0.2      grid_4.0.2       nlme_3.1-148     ellipsis_0.3.1  
+[15] survival_3.1-12  tibble_3.0.3     lifecycle_0.2.0  crayon_1.3.4     Matrix_1.2-18    lava_1.6.7       purrr_0.3.4     
+[22] reshape2_1.4.4   tidyr_1.1.2      vctrs_0.3.4      glue_1.4.2       stringi_1.5.3    compiler_4.0.2   pillar_1.4.6    
+[29] generics_0.0.2   backports_1.1.10 pkgconfig_2.0.3
+#+end_example

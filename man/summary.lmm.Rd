@@ -4,7 +4,7 @@
 \alias{summary.lmm}
 \title{Summary Output for a Linear Mixed Model}
 \usage{
-\method{summary}{lmm}(object, digit = 3, conf.level = 0.95, ...)
+\method{summary}{lmm}(object, digit = 3, conf.level = 0.95, print = TRUE, ...)
 }
 \arguments{
 \item{object}{[lmm] output of the \code{lmm} function.}
@@ -12,6 +12,8 @@
 \item{digit}{[integer,>0] number of digit used to display numeric values.}
 
 \item{conf.level}{[numeric,0-1] confidence level for the confidence intervals.}
+
+\item{print}{[logical] should the output be printed in the console.}
 
 \item{...}{not used. For compatibility with the generic function.}
 }
