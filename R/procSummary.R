@@ -54,6 +54,8 @@
 ##' 
 ##' procSummary(Y1+Y2 ~ gender, data = d2)
 ##' procSummary(Y1+Y2 ~ gender, data = d2, na.rm = TRUE)
+##' 
+##' ## End of examples
 
 
 ## * procSummary (code)
