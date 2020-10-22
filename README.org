@@ -338,22 +338,20 @@ e.ufit[,c("visit","X1","X6","fit","lower","upper")]
 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 library(ggplot2)
-gg <- autoplot(e.ufit)
+gg <- autoplot(e.ufit) + theme(legend.position = "bottom",
+                               text = element_text(size=20))
 gg
 #+END_SRC
 
 #+RESULTS:
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
-ggsave(gg, filename = "c:/Users/hpl802/Documents/GitHub/repeated/inst/figures/gg-ufit.pdf")
 ggsave(gg, filename = "c:/Users/hpl802/Documents/GitHub/repeated/inst/figures/gg-ufit.png")
 #+END_SRC
 
 #+RESULTS:
 : Saving 7 x 7 in image
-: Saving 7 x 7 in image
 
-#+html: <p align="center"><img src="inst/figures/gg-ufit.pdf" /></p>
 #+html: <p align="center"><img src="inst/figures/gg-ufit.png" /></p>
 
 * Configuration 
