@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (14:23) 
 ## Version: 
-## Last-Updated: okt  7 2020 (17:03) 
+## Last-Updated: okt 22 2020 (11:11) 
 ##           By: Brice Ozenne
-##     Update #: 51
+##     Update #: 62
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,6 +25,7 @@
 ##' @param sigma [numeric vector,>0] standard error of the measurements at each visit (when all covariates are fixed to 0). Must have length \code{n.times}.
 ##' @param lambda [numeric vector] covariance between the measurement at each visit and the individual latent variable. Must have length \code{n.times}.
 ##' @param beta [numeric vector of length 10] regression coefficient between the covariates and the latent variable. 
+##' @param gamma [numeric matrix with n.times rows and 10 columns] regression coefficient specific to each timepoint (i.e. interaction with time). 
 ##' @param format [character] Return the data in the wide format (\code{"wide"}) or long format (\code{"long"})
 ##' @param latent [logical] Should the latent variable be output?
 ##'
@@ -45,10 +46,11 @@
 ## * sampleRem (code)
 ##' @export
 sampleRem <- function(n, n.times,
-                      mu = rep(0,n.times),
+                      mu = 1:n.times,
                       sigma = rep(1,n.times),
                       lambda = rep(1,n.times),
-                      beta = c(1,1,0,0,0,1,1,0,0,0),
+                      beta = c(2,1,0,0,0,1,1,0,0,0),
+                      gamma = matrix(0, nrow = n.times, ncol = 10),
                       format = "wide",
                       latent = FALSE){
 
@@ -88,23 +90,25 @@ sampleRem <- function(n, n.times,
     ## outcome
     for(iT in 1:n.times){ ## iT <- 1
         distribution(m,name.Y[iT]) <- lava::gaussian.lvm(mean = mu[iT], sd = sigma[iT])
+        regression(m, eta ~ X1+X2+X3+X4+X5+X6+X7+X8+X9+X10) <- beta
+        regression(m,stats::as.formula(paste0(name.Y[iT],"~X1+X2+X3+X4+X5+X6+X7+X8+X9+X10"))) <- gamma[iT,]
         regression(m,stats::as.formula(paste0(name.Y[iT],"~eta"))) <- lambda[iT]
     }
     
     ## ** generate data
     d <- lava::sim(m, n = n, latent = latent)
-    d <- cbind(Id = 1:n, d)
+    d <- cbind(id = 1:n, d)
     
     ## ** reshape
     if(format == "long"){
-        col.cst <- c("Id",paste0("X",1:10),if(latent){"eta"})
+        col.cst <- c("id",paste0("X",1:10),if(latent){"eta"})
         d <- reshape2::melt(d, direction  = "long",
                             idvar = col.cst,
                             measure.vars = name.Y,
                             value.name = "Y",
                             variable.name = "visit")
         d$visit <- factor(d$visit, levels = name.Y, labels = 1:n.times)
-        d <- d[order(d$Id,d$visit),c("Id","visit","Y",paste0("X",1:10),if(latent){"eta"})]
+        d <- d[order(d$id,d$visit),c("id","visit","Y",paste0("X",1:10),if(latent){"eta"})]
         rownames(d) <- NULL
     }
     

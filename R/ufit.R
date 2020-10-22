@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (15:47) 
 ## Version: 
-## Last-Updated: okt 21 2020 (17:37) 
+## Last-Updated: okt 22 2020 (11:06) 
 ##           By: Brice Ozenne
-##     Update #: 62
+##     Update #: 89
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,7 +29,6 @@
 ## * ufit (examples)
 #' @examples
 #' library(ggplot2)
-#' library(ggpubr)
 #' library(data.table)
 #'
 #' data(gastricbypassL, package = "repeated")
@@ -53,9 +52,11 @@
 #' e.lmm3 <- lmm(weight ~ time*baselineG + age, covariance = ~visit|id, data = gastricbypassL)
 #' e.ufit45 <- ufit(e.lmm3, c("age" = 30))
 #' e.ufit50 <- ufit(e.lmm3, c("age" = 60))
+#' if(require(ggpubr)){
 #' ggarrange(autoplot(e.ufit45, x = "visit") + coord_cartesian(ylim = c(80,150)),
 #'           autoplot(e.ufit50, x = "visit") + coord_cartesian(ylim = c(80,150)),
 #'           legend = "bottom")
+#' }
 
 ## * ufit (code)
 #' @export
@@ -70,25 +71,37 @@ ufit <- function(object, value = NULL, confint = TRUE, conf.quantile = stats::qn
         stop("Do not work when one of the variables in the model formula is called \"se\", \"lower\", or \"upper\". \n")
     }
 
-    ## ** extract data and find unique levels
+    ## ** Update dataset according to argument values (i.e. neutralize continuous variables)
     newdata <- as.data.frame(getData(object))
-
     X <- stats::model.matrix(stats::terms(object), data = newdata)
     test.factor <- colSums((X == 0)+(X == 1))==NROW(X)
-    if(any(test.factor==FALSE)){
-        name.contvar <- names(which(test.factor==FALSE))
-        if((length(value) != length(name.contvar)) || (sort(names(value)) != sort(name.contvar))){
+
+    name.contvar <- names(which(test.factor==FALSE))
+    if(any(names(value) %in% name.contvar == FALSE)){
+        stop("Incorrect variable in argument \'value\', must only contain values for the continuous covariates.\n",
+             "Incorrect variable in argument \'value\': \"",paste0(setdiff(names(value),name.contvar), collapse = "\" \""),"\"\n")
+    }
+    if(!is.null(value)){
+        if(is.null(names(value))){
+            stop("Argument \'value\' should be named using the covariate names \n")
+        }
+        for(iContVar in names(value)){
+            newdata[,iContVar] <- value[iContVar]
+        }
+        X <- stats::model.matrix(stats::terms(object), data = newdata)
+    }
+    test.continuous <- apply(X,2,function(x){length(unique(x))})
+    
+    if(any(test.continuous>2)){
+        if(is.null(value)){
             stop("In presence of continuous covariates, the argument \'value\' must be specified.\n",
                  "It must be a vector containing one value for each continuous covariate, named with the covariate names. \n")
-        }
-        for(iContVar in name.contvar){
-            X[,iContVar] <- value[iContVar]
-            newdata[,iContVar] <- value[iContVar]
+        }else{
+            stop("In presence of continuous covariates, the argument \'value\' must contain one value for each continuous covariate. \n",
+                 "Missing continuous variable in argument \'value\': \"",paste0(names(test.continuous[test.continuous>2]), collapse = "\" \""),"\"\n")
         }
     }
     UX <- unique(X)
-
-    
     Unewdata <- newdata[as.numeric(rownames(UX)),,drop=FALSE]
 
     ## ** compute predictions with confidence intervals
@@ -105,29 +118,33 @@ ufit <- function(object, value = NULL, confint = TRUE, conf.quantile = stats::qn
     ## ** find visit variable
     if(!is.null(object$modelStruct$corStruct)){
         cor.var <- all.vars(stats::formula(object$modelStruct$corStruct))
+        id.var <- utils::tail(all.vars(stats::formula(object$modelStruct$corStruct)),1)
         if(length(cor.var)==2){
-            attr(Unewdata,"time.var") <- cor.var[1]
+            time.var <- cor.var[1]
         }else{
-            id.var <- utils::tail(all.vars(stats::formula(object$modelStruct$corStruct)),1)
             Uid.var <- unique(newdata[[id.var]])
 
             if(!is.null(object$modelStruct$varStruct)){
                 possible.var <- rhs.vars(stats::formula(object$modelStruct$varStruct))
                 test.duplicated <- colSums(do.call(rbind,lapply(Uid.var, function(iId){apply(newdata[newdata[[id.var]]==iId,possible.var,drop=FALSE],2,duplicated)})))
                 if(sum(test.duplicated==0)==1){
-                    attr(Unewdata,"time.var") <- as.character(possible.var[test.duplicated==0])
+                    time.var <- as.character(possible.var[test.duplicated==0])
                 }else{
-                    attr(Unewdata,"time.var") <- NULL
+                    time.var <- NULL
                 }
             }
         }
     }else{
-        attr(Unewdata,"time.var") <- NULL
+        id.var <- NULL
+        time.var <- NULL
     }
     
     ## ** export
-    attr(Unewdata,"outcome") <- as.character(lhs.vars(ff))
+    outcome <- as.character(lhs.vars(ff))
+    Unewdata <- Unewdata[,setdiff(names(Unewdata), c(outcome, id.var))]
+    attr(Unewdata,"outcome") <- outcome
     attr(Unewdata,"covariates") <- as.character(rhs.vars(ff))
+    attr(Unewdata,"time.var") <- time.var
     attr(Unewdata,"confint") <- confint
     class(Unewdata) <- append("ufit",class(newdata))
     return(Unewdata)
@@ -142,10 +159,19 @@ ufit <- function(object, value = NULL, confint = TRUE, conf.quantile = stats::qn
 #' @param object output of the \code{ufit} function.
 #' @param x [character vector] time variable.
 #' @param sep.strata [character] symbol used to separate the strata values in the caption
+#' @param geom_confint [character] geometry used to display the confidence intervals.
+#' Can be \code{"none"} for no display, \code{"errorbar"} to use intervals, or \code{"ribbon"} to use a shaded area.
+#' @param alpha.ribbon [numeric 0-1] transparency parameter used to display the confidence intervals when using \code{geom_confint = "ribbon"}.
+#' @param size.point [numeric >0] size argument used in \code{geom_point} to display point estimates.
+#' @param size.line [numeric >0] size argument used in \code{geom_line} to connect point estimates belonging to the same strata.
+#' @param size.ci [numeric >0] size argument used in \code{geom_errorbar} to display the confidence intervals.
 #' @export
-autoplot.ufit <- function(object, x = NULL, sep.strata = ", "){
+autoplot.ufit <- function(object, x = NULL,
+                          sep.strata = ", ", geom_confint = "errorbar",
+                          size.point = 3, size.line = 1.75, size.ci = 1, alpha.ribbon = 0.5){
 
     name.cov <- attr(object,"covariates")
+    geom_confint <- match.arg(geom_confint, c("none","errorbar","ribbon"))
 
     ## ** find time variable
     if(is.null(x)){
@@ -191,16 +217,28 @@ autoplot.ufit <- function(object, x = NULL, sep.strata = ", "){
     
     ## ** display
     if(test.strata){
-        gg <- ggplot2::ggplot(object, ggplot2::aes_string(x = x, y = "fit", group = "strata", color = "strata"))
+        gg <- ggplot2::ggplot(object, ggplot2::aes_string(x = x, y = "fit", group = "strata"))
+        if(attr(object,"confint") && geom_confint != "none"){
+            if(geom_confint == "errorbar"){
+                gg <- gg + ggplot2::geom_errorbar(mapping = ggplot2::aes_string(ymin = "lower", ymax = "upper", color = "strata"), size = size.ci)
+            }else if(geom_confint == "ribbon"){
+                gg <- gg + ggplot2::geom_ribbon(mapping = ggplot2::aes_string(ymin = "lower", ymax = "upper", fill = "strata"), alpha = alpha.ribbon)
+            }
+        }
+        gg <- gg + ggplot2::geom_point(ggplot2::aes_string(color = "strata"), size = size.point) + ggplot2::geom_line(ggplot2::aes_string(color = "strata"), size = size.line)
     }else{
         gg <- ggplot2::ggplot(object, ggplot2::aes_string(x = x, y = "fit"))
+        if(attr(object,"confint") && geom_confint != "none"){
+            if(geom_confint == "errorbar"){
+                gg <- gg + ggplot2::geom_errorbar(mapping = ggplot2::aes_string(ymin = "lower", ymax = "upper"), size = size.ci)
+            }else if(geom_confint == "ribbon"){
+                gg <- gg + ggplot2::geom_ribbon(mapping = ggplot2::aes_string(ymin = "lower", ymax = "upper"), alpha = alpha.ribbon)
+            }
+        }
+        gg <- gg + ggplot2::geom_point(size = size.point) + ggplot2::geom_line(size = size.line)
     }
-    gg <- gg + ggplot2::geom_point() + ggplot2::geom_line()
     if(!is.null(level.x)){
         gg <- gg + ggplot2::scale_x_discrete(limits = level.x)
-    }
-    if(attr(object,"confint")){
-        gg <- gg + ggplot2::geom_errorbar(mapping = ggplot2::aes_string(ymin = "lower", ymax = "upper"))
     }
     gg <- gg + ggplot2::ylab(attr(object,"outcome"))
 

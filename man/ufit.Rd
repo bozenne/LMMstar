@@ -21,7 +21,6 @@ Continuous covariates are set to a single value.
 }
 \examples{
 library(ggplot2)
-library(ggpubr)
 library(data.table)
 
 data(gastricbypassL, package = "repeated")
@@ -45,7 +44,9 @@ autoplot(e.ufit2, x = "visit")
 e.lmm3 <- lmm(weight ~ time*baselineG + age, covariance = ~visit|id, data = gastricbypassL)
 e.ufit45 <- ufit(e.lmm3, c("age" = 30))
 e.ufit50 <- ufit(e.lmm3, c("age" = 60))
+if(require(ggpubr)){
 ggarrange(autoplot(e.ufit45, x = "visit") + coord_cartesian(ylim = c(80,150)),
           autoplot(e.ufit50, x = "visit") + coord_cartesian(ylim = c(80,150)),
           legend = "bottom")
+}
 }

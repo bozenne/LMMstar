@@ -7,10 +7,11 @@
 sampleRem(
   n,
   n.times,
-  mu = rep(0, n.times),
+  mu = 1:n.times,
   sigma = rep(1, n.times),
   lambda = rep(1, n.times),
-  beta = c(1, 1, 0, 0, 0, 1, 1, 0, 0, 0),
+  beta = c(2, 1, 0, 0, 0, 1, 1, 0, 0, 0),
+  gamma = matrix(0, nrow = n.times, ncol = 10),
   format = "wide",
   latent = FALSE
 )

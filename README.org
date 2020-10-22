@@ -4,6 +4,12 @@
 <a href="http://www.gnu.org/licenses/gpl-3.0.html"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License"></a>
 #+END_HTML
 
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+options(width = 100)
+#+END_SRC
+
+#+RESULTS:
+
 * repeated
 
 *repeated* is companion R package for the course "Statistical analysis
@@ -45,53 +51,67 @@ library(repeated)
 Simulate some data in the wide format:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 set.seed(10) ## ensure reproductibility
-dW <- sampleRem(1e2, n.times = 3, format = "wide")
+n.obs <- 2e2
+n.times <- 4
+mu <- rep(0,4)
+gamma <- matrix(0, nrow = n.times, ncol = 10) ## add interaction
+gamma[,6] <- c(0,1,1.5,1.5)
+dW <- sampleRem(n.obs, n.times = n.times, mu = mu, gamma = gamma, format = "wide")
 head(dW)
 #+END_SRC
 
 #+RESULTS:
-:   Id X1 X2 X3 X4 X5         X6         X7         X8         X9        X10         Y1         Y2         Y3
-: 1  1  1  0  1  1  0 -0.3665251  1.5338155 -1.8944253 1.72886647  0.9592499  0.7914440  1.7950955  3.5081372
-: 2  2  1  0  1  2  0 -0.4097541  2.0654127  1.7658413 0.76133482 -0.5630173  1.5001792  3.6821108  2.6168191
-: 3  3  0  0  2  1  0 -1.7198620 -0.1781015  2.3570828 1.96628919  1.2152654 -3.2076907 -4.1885439 -1.6972793
-: 4  4  0  0  0  1  0  0.9225563 -2.0885963  0.2334654 1.30674682 -0.9063326 -2.0621330 -0.5258805  0.3733653
-: 5  5  0  0  2  1  0  0.9870991  5.8799954  0.3848497 0.02778831  0.8199623  7.9626275  6.8833634  5.9071405
-: 6  6  0  0  1  1  2 -1.0754115  0.4788953  2.2020069 0.89987424 -0.7390384  0.1092696 -0.5264119  0.1166843
+#+begin_example
+  id X1 X2 X3 X4 X5          X6         X7         X8         X9        X10         Y1         Y2
+1  1  0  1  1  1  1 -0.72176278  0.6764573  2.9981272 0.44539376 -1.3437766  0.9472208  0.2599741
+2  2  1  0  0  3  2  0.50290773  1.6344982 -1.8952366 0.06364757 -0.4490553  3.3818255  4.9854603
+3  3  0  0  2  2  0 -1.37416464  3.5287522  2.8414745 0.82845357 -1.4472231 -1.0618197 -1.6150170
+4  4  1  0  2  0  1  0.03680003 -0.9407257  4.3469525 0.11419481 -1.0683588 -2.4557376  1.9963617
+5  5  0  0  1  1  0  0.58620091  1.5161301 -0.8924631 0.29580861  1.2474602  2.2220049  2.3856858
+6  6  1  0  2  1  0  0.68394351  4.6191039  1.2664976 0.05598329 -0.6581442  7.2223930  7.6470176
+          Y3         Y4
+1  0.5129387  0.2271818
+2  3.5199764  3.1350264
+3 -0.3434339 -1.7783007
+4 -0.1105485 -0.8434173
+5  4.8439699  3.5542949
+6  9.6872073  6.3529380
+#+end_example
 
 Simulate some data in the long format:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 set.seed(10) ## ensure reproductibility
-dL <- sampleRem(1e2, n.times = 3, format = "long")
+dL <- sampleRem(n.obs, n.times = n.times, mu = mu, gamma = gamma, format = "long")
 head(dL)
 #+END_SRC
 
 #+RESULTS:
-:   Id visit        Y X1 X2 X3 X4 X5         X6       X7        X8        X9        X10
-: 1  1     1 0.791444  1  0  1  1  0 -0.3665251 1.533815 -1.894425 1.7288665  0.9592499
-: 2  1     2 1.795096  1  0  1  1  0 -0.3665251 1.533815 -1.894425 1.7288665  0.9592499
-: 3  1     3 3.508137  1  0  1  1  0 -0.3665251 1.533815 -1.894425 1.7288665  0.9592499
-: 4  2     1 1.500179  1  0  1  2  0 -0.4097541 2.065413  1.765841 0.7613348 -0.5630173
-: 5  2     2 3.682111  1  0  1  2  0 -0.4097541 2.065413  1.765841 0.7613348 -0.5630173
-: 6  2     3 2.616819  1  0  1  2  0 -0.4097541 2.065413  1.765841 0.7613348 -0.5630173
+:   id visit         Y X1 X2 X3 X4 X5         X6        X7        X8         X9        X10
+: 1  1     1 0.9472208  0  1  1  1  1 -0.7217628 0.6764573  2.998127 0.44539376 -1.3437766
+: 2  1     2 0.2599741  0  1  1  1  1 -0.7217628 0.6764573  2.998127 0.44539376 -1.3437766
+: 3  1     3 0.5129387  0  1  1  1  1 -0.7217628 0.6764573  2.998127 0.44539376 -1.3437766
+: 4  1     4 0.2271818  0  1  1  1  1 -0.7217628 0.6764573  2.998127 0.44539376 -1.3437766
+: 5  2     1 3.3818255  1  0  0  3  2  0.5029077 1.6344982 -1.895237 0.06364757 -0.4490553
+: 6  2     2 4.9854603  1  0  0  3  2  0.5029077 1.6344982 -1.895237 0.06364757 -0.4490553
 
 ** Descriptive tools
 
 Descriptive statistics using the =procSummary= function:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-procSummary(Y1+Y2 ~ X1, data = dW)
+summarize(Y1+Y2 ~ X1, data = dW)
 #+END_SRC
 
 #+RESULTS:
-:   outcome X1 observed missing       mean       sd       min     median      max
-: 1      Y1  0       45       0 -0.2802344 2.937848 -5.157106 -0.8118583 7.962627
-: 2      Y1  1       55       0  1.2891059 3.485595 -5.799078  0.8432615 8.940564
-: 3      Y2  0       45       0 -0.1339964 3.299294 -5.935869 -0.5097901 6.883363
-: 4      Y2  1       55       0  1.0683872 3.373441 -5.383865  1.2901854 7.593107
+:   outcome X1 observed missing       mean       sd       min     median       max
+: 1      Y1  0       83       0 -0.2194734 3.170074 -6.764630 -0.2698166  7.568710
+: 2      Y1  1      117       0  1.9148989 3.537815 -7.120310  2.3023075 10.725209
+: 3      Y2  0       83       0 -0.3327662 3.527099 -7.521067 -0.9078663  9.006768
+: 4      Y2  1      117       0  1.9764969 3.909608 -8.163804  1.9963617 12.686033
 
 ** Modeling tools
 Fit a linear mixed model with unstructured covariance matrix:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-e.lmm <- lmm(Y ~ visit + X1 + X6, covariance = ~visit|Id, data = dL)
+e.lmm <- lmm(Y ~ visit * (X1 + X6), covariance = ~visit|id, data = dL)
 #+END_SRC
 
 #+RESULTS:
@@ -102,9 +122,9 @@ cat(attr(e.lmm,"code"))
 #+END_SRC
 
 #+RESULTS:
-: nlme::gls(model=Y~visit+X1+X6,
+: nlme::gls(model=Y~visit*(X1+X6),
 :     data=data,
-:     correlation=nlme::corSymm(form=~visit.index|Id),
+:     correlation=nlme::corSymm(form=~visit.index|id),
 :     weights=nlme::varIdent(form=~1|visit))
 
 Data used to fit the model
@@ -113,13 +133,22 @@ head(attr(e.lmm,"data"))
 #+END_SRC
 
 #+RESULTS:
-:   Id visit        Y X1 X2 X3 X4 X5         X6       X7        X8        X9        X10 visit.index
-: 1  1     1 0.791444  1  0  1  1  0 -0.3665251 1.533815 -1.894425 1.7288665  0.9592499           1
-: 2  1     2 1.795096  1  0  1  1  0 -0.3665251 1.533815 -1.894425 1.7288665  0.9592499           2
-: 3  1     3 3.508137  1  0  1  1  0 -0.3665251 1.533815 -1.894425 1.7288665  0.9592499           3
-: 4  2     1 1.500179  1  0  1  2  0 -0.4097541 2.065413  1.765841 0.7613348 -0.5630173           1
-: 5  2     2 3.682111  1  0  1  2  0 -0.4097541 2.065413  1.765841 0.7613348 -0.5630173           2
-: 6  2     3 2.616819  1  0  1  2  0 -0.4097541 2.065413  1.765841 0.7613348 -0.5630173           3
+#+begin_example
+  id visit         Y X1 X2 X3 X4 X5         X6        X7        X8         X9        X10
+1  1     1 0.9472208  0  1  1  1  1 -0.7217628 0.6764573  2.998127 0.44539376 -1.3437766
+2  1     2 0.2599741  0  1  1  1  1 -0.7217628 0.6764573  2.998127 0.44539376 -1.3437766
+3  1     3 0.5129387  0  1  1  1  1 -0.7217628 0.6764573  2.998127 0.44539376 -1.3437766
+4  1     4 0.2271818  0  1  1  1  1 -0.7217628 0.6764573  2.998127 0.44539376 -1.3437766
+5  2     1 3.3818255  1  0  0  3  2  0.5029077 1.6344982 -1.895237 0.06364757 -0.4490553
+6  2     2 4.9854603  1  0  0  3  2  0.5029077 1.6344982 -1.895237 0.06364757 -0.4490553
+  visit.index
+1           1
+2           2
+3           3
+4           4
+5           1
+6           2
+#+end_example
 
 ** Summary function
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -130,39 +159,48 @@ summary(e.lmm)
 #+begin_example
   Linear mixed effect model with an unstructured covariance matrix 
   - fitted using Restricted Maximum Likelihood (REML) 
-  - likelihood :-608.1519 (df = 5)
+  - likelihood :-1517.619 (df = 12)
  
 Dataset: data 
- - 100 clusters 
- - 300 observations 
- - 3 maximum number of observations per cluster 
+ - 200 clusters 
+ - 800 observations 
+ - 4 maximum number of observations per cluster 
  - levels of the categorical variables 
 $visit
-  2 3
-1 0 0
-2 1 0
-3 0 1
+  2 3 4
+1 0 0 0
+2 1 0 0
+3 0 1 0
+4 0 0 1
 
  - reference level: visit=1 
  
-Correlation structure: nlme::corSymm(form = ~visit.index | Id) 
-      1     2     3
-1 1.000 0.893 0.885
-2 0.893 1.000 0.890
-3 0.885 0.890 1.000
+Correlation structure: nlme::corSymm(form = ~visit.index | id) 
+      1     2     3     4
+1 1.000 0.910 0.904 0.912
+2 0.910 1.000 0.901 0.906
+3 0.904 0.901 1.000 0.901
+4 0.912 0.906 0.901 1.000
 
 Variance structure: nlme::varIdent(form = ~1 | visit) 
-                     1     2      3
-variance          10.4 10.56 10.304
-relative variance  1.0  1.01  0.987
+                     1      2      3     4
+variance          11.1 11.126 10.196 10.91
+relative variance  1.0  0.999  0.916  0.98
 
-Mean structure: Y ~ visit + X1 + X6 
-            estimate  lower  upper    se p-value  
-(Intercept)   -0.023 -0.964 -0.964 0.478  0.9617  
-visit2        -0.056 -0.351 -0.351  0.15  0.7115  
-visit3         0.079 -0.225 -0.225 0.155  0.6080  
-X1             1.308  0.075  0.075 0.627  0.0376 *
-X6             0.743    0.1    0.1 0.327  0.0237 *
+Mean structure: Y ~ visit * (X1 + X6) 
+            estimate  lower  upper    se p-value    
+(Intercept)   -0.235 -0.954 -0.954 0.366  0.5217    
+visit2         -0.14 -0.445 -0.445 0.156  0.3701    
+visit3         -0.09   -0.4   -0.4 0.158  0.5701    
+visit4        -0.026 -0.327 -0.327 0.153  0.8658    
+X1             2.149  1.209  1.209 0.479  <0.001 ***
+X6             0.635  0.176  0.176 0.234  0.0068  **
+visit2:X1      0.199   -0.2   -0.2 0.203  0.3270    
+visit3:X1      0.045 -0.361 -0.361 0.207  0.8270    
+visit4:X1      0.213  -0.18  -0.18   0.2  0.2887    
+visit2:X6      1.085   0.89   0.89 0.099  <0.001 ***
+visit3:X6      1.497  1.298  1.298 0.101  <0.001 ***
+visit4:X6      1.493  1.301  1.301 0.098  <0.001 ***
 
 The columns lower and upper correspond to the 95% confidence interval of the estimated coefficient
 Note: p-value(s) and confidence interval(s) are not adjusted for multiple comparisons
@@ -177,46 +215,61 @@ nlme:::summary.gls(e.lmm)
 #+RESULTS:
 #+begin_example
 Generalized least squares fit by REML
-  Model: Y ~ visit + X1 + X6 
+  Model: Y ~ visit * (X1 + X6) 
   Data: data 
-       AIC     BIC    logLik
-  1238.304 1278.86 -608.1519
+       AIC      BIC    logLik
+  3079.239 3181.968 -1517.619
 
 Correlation Structure: General
- Formula: ~visit.index | Id 
+ Formula: ~visit.index | id 
  Parameter estimate(s):
  Correlation: 
-  1     2    
-2 0.893      
-3 0.885 0.890
+  1     2     3    
+2 0.910            
+3 0.904 0.901      
+4 0.912 0.906 0.901
 Variance function:
  Structure: Different standard deviations per stratum
  Formula: ~1 | visit 
  Parameter estimates:
-       1        2        3 
-1.000000 1.005308 0.993266 
+        1         2         3         4 
+1.0000000 0.9995212 0.9568404 0.9897593 
 
 Coefficients:
-                 Value Std.Error    t-value p-value
-(Intercept) -0.0229790 0.4780341 -0.0480698  0.9617
-visit2      -0.0555882 0.1501762 -0.3701535  0.7115
-visit3       0.0794218 0.1546546  0.5135433  0.6080
-X1           1.3084321 0.6265919  2.0881728  0.0376
-X6           0.7426808 0.3265267  2.2744869  0.0237
+                 Value Std.Error   t-value p-value
+(Intercept) -0.2348317 0.3663433 -0.641015  0.5217
+visit2      -0.1395219 0.1555887 -0.896735  0.3701
+visit3      -0.0898541 0.1581675 -0.568095  0.5701
+visit4      -0.0258888 0.1531758 -0.169014  0.8658
+X1           2.1487775 0.4789445  4.486485  0.0000
+X6           0.6353559 0.2341198  2.713807  0.0068
+visit2:X1    0.1994922 0.2034112  0.980733  0.3270
+visit3:X1    0.0452032 0.2067827  0.218602  0.8270
+visit4:X1    0.2126218 0.2002567  1.061746  0.2887
+visit2:X6    1.0850683 0.0994324 10.912625  0.0000
+visit3:X6    1.4965879 0.1010804 14.805910  0.0000
+visit4:X6    1.4933931 0.0978904 15.255771  0.0000
 
  Correlation: 
-       (Intr) visit2 visit3 X1    
-visit2 -0.149                     
-visit3 -0.171  0.505              
-X1     -0.729  0.000  0.000       
-X6      0.163  0.000  0.000 -0.081
+          (Intr) visit2 visit3 visit4 X1     X6     vs2:X1 vs3:X1 vs4:X1 vs2:X6 vs3:X6
+visit2    -0.213                                                                      
+visit3    -0.314  0.480                                                               
+visit4    -0.233  0.474  0.477                                                        
+X1        -0.765  0.163  0.240  0.179                                                 
+X6        -0.015  0.003  0.005  0.004  0.011                                          
+visit2:X1  0.163 -0.765 -0.367 -0.363 -0.213 -0.002                                   
+visit3:X1  0.240 -0.367 -0.765 -0.365 -0.314 -0.003  0.480                            
+visit4:X1  0.179 -0.363 -0.365 -0.765 -0.233 -0.003  0.474  0.477                     
+visit2:X6  0.003 -0.015 -0.007 -0.007 -0.002 -0.213  0.011  0.005  0.005              
+visit3:X6  0.005 -0.007 -0.015 -0.007 -0.003 -0.314  0.005  0.011  0.005  0.480       
+visit4:X6  0.004 -0.007 -0.007 -0.015 -0.003 -0.233  0.005  0.005  0.011  0.474  0.477
 
 Standardized residuals:
-        Min          Q1         Med          Q3         Max 
--2.48379790 -0.69881899 -0.09778996  0.66079708  2.58255448 
+         Min           Q1          Med           Q3          Max 
+-3.424885913 -0.704085800 -0.004493345  0.698214920  2.839159577 
 
-Residual standard error: 3.231714 
-Degrees of freedom: 300 total; 295 residual
+Residual standard error: 3.337148 
+Degrees of freedom: 800 total; 788 residual
 #+end_example
 
 ** Extract model coefficients
@@ -228,33 +281,81 @@ tidy(e.lmm)
 #+END_SRC
 
 #+RESULTS:
-:   type        term    estimate std.error   statistic    p.value    conf.low conf.high
-: 1 mean (Intercept) -0.02297899 0.4780341 -0.04806976 0.96169317 -0.96376836 0.9178104
-: 2 mean      visit2 -0.05558823 0.1501762 -0.37015349 0.71153374 -0.35114063 0.2399642
-: 3 mean      visit3  0.07942183 0.1546546  0.51354325 0.60795577 -0.22494432 0.3837880
-: 4 mean          X1  1.30843210 0.6265919  2.08817276 0.03763967  0.07527539 2.5415888
-: 5 mean          X6  0.74268078 0.3265267  2.27448690 0.02365460  0.10006372 1.3852978
+#+begin_example
+   type        term    estimate  std.error  statistic      p.value   conf.low conf.high
+1  mean (Intercept) -0.23483166 0.36634334 -0.6410152 5.216992e-01 -0.9539560 0.4842926
+2  mean      visit2 -0.13952188 0.15558870 -0.8967353 3.701340e-01 -0.4449392 0.1658955
+3  mean      visit3 -0.08985413 0.15816754 -0.5680946 5.701326e-01 -0.4003337 0.2206254
+4  mean      visit4 -0.02588880 0.15317582 -0.1690136 8.658293e-01 -0.3265697 0.2747921
+5  mean          X1  2.14877752 0.47894453  4.4864852 8.318704e-06  1.2086195 3.0889356
+6  mean          X6  0.63535588 0.23411977  2.7138070 6.796794e-03  0.1757837 1.0949281
+7  mean   visit2:X1  0.19949219 0.20341125  0.9807333 3.270253e-01 -0.1997998 0.5987842
+8  mean   visit3:X1  0.04520321 0.20678273  0.2186024 8.270164e-01 -0.3607070 0.4511134
+9  mean   visit4:X1  0.21262181 0.20025673  1.0617462 2.886762e-01 -0.1804779 0.6057216
+10 mean   visit2:X6  1.08506829 0.09943238 10.9126250 6.439027e-26  0.8898846 1.2802520
+11 mean   visit3:X6  1.49658795 0.10108045 14.8059097 6.080035e-44  1.2981692 1.6950067
+12 mean   visit4:X6  1.49339309 0.09789037 15.2557706 3.102650e-46  1.3012363 1.6855498
+#+end_example
 
-All coefficients:
+or only variance-covariance coefficients:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-tidy(e.lmm, effects = c("mean","variance"))
+tidy(e.lmm, effects = c("variance"))
 #+END_SRC
 
 #+RESULTS:
 #+begin_example
-        type        term    estimate std.error   statistic    p.value    conf.low conf.high
-1       mean (Intercept) -0.02297899 0.4780341 -0.04806976 0.96169317 -0.96376836 0.9178104
-2       mean      visit2 -0.05558823 0.1501762 -0.37015349 0.71153374 -0.35114063 0.2399642
-3       mean      visit3  0.07942183 0.1546546  0.51354325 0.60795577 -0.22494432 0.3837880
-4       mean          X1  1.30843210 0.6265919  2.08817276 0.03763967  0.07527539 2.5415888
-5       mean          X6  0.74268078 0.3265267  2.27448690 0.02365460  0.10006372 1.3852978
-6  corStruct    cor(1,2)  0.89261332        NA          NA         NA  0.84451554 0.9264259
-7  corStruct    cor(1,3)  0.88474011        NA          NA         NA  0.83340358 0.9209395
-8  corStruct    cor(2,3)  0.88977643        NA          NA         NA  0.84045466 0.9244766
-9  varStruct           2  1.00530767        NA          NA         NA  0.91736928 1.1016758
-10 varStruct           3  0.99326602        NA          NA         NA  0.90487185 1.0902951
-11     sigma       sigma  3.23171420        NA          NA         NA  2.80683734 3.7209055
+        type     term  estimate std.error statistic p.value  conf.low conf.high
+1  corStruct cor(1,2) 0.9097688        NA        NA      NA 0.8824279 0.9309847
+2  corStruct cor(1,3) 0.9035667        NA        NA      NA 0.8744735 0.9261826
+3  corStruct cor(1,4) 0.9117360        NA        NA      NA 0.8849552 0.9325058
+4  corStruct cor(2,3) 0.9012888        NA        NA      NA 0.8715746 0.9244055
+5  corStruct cor(2,4) 0.9056975        NA        NA      NA 0.8772191 0.9278244
+6  corStruct cor(3,4) 0.9007434        NA        NA      NA 0.8708749 0.9239837
+7  varStruct        2 0.9995212        NA        NA      NA 0.9431565 1.0592543
+8  varStruct        3 0.9568404        NA        NA      NA 0.9015721 1.0154968
+9  varStruct        4 0.9897593        NA        NA      NA 0.9349787 1.0477495
+10     sigma    sigma 3.3371484        NA        NA      NA 3.0232083 3.6836891
 #+end_example
+
+** Graphical display
+
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+e.ufit <- ufit(e.lmm, value = c("X6" = 1.25))
+e.ufit[,c("visit","X1","X6","fit","lower","upper")]
+#+END_SRC
+
+#+RESULTS:
+:   visit X1   X6       fit      lower    upper
+: 1     1  0 1.25 0.5593632 -0.3526814 1.471408
+: 2     2  0 1.25 1.7761767  0.8645688 2.687785
+: 3     3  0 1.25 2.3402440  1.4675629 3.212925
+: 4     4  0 1.25 2.4002157  1.4975112 3.302920
+: 5     1  1 1.25 2.7081407  1.8751613 3.541120
+: 6     2  1 1.25 4.1244464  3.2918658 4.957027
+: 7     3  1 1.25 4.5342247  3.7371964 5.331253
+: 8     4  1 1.25 4.7616151  3.9371660 5.586064
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+library(ggplot2)
+gg <- autoplot(e.ufit)
+gg
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+ggsave(gg, filename = "c:/Users/hpl802/Documents/GitHub/repeated/inst/figures/gg-ufit.pdf")
+#+END_SRC
+
+#+RESULTS:
+: Saving 7 x 7 in image
+
+
+#+ATTR_LaTeX: :width 1\textwidth :placement [!h]
+[[./inst/figures/gg-ufit.pdf]]
+
+
 
 * Configuration 
 

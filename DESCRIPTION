@@ -28,5 +28,6 @@ Imports:
 	reshape2
 Suggests:
     data.table,
+    ggpubr,
     testthat
 RoxygenNote: 7.1.1
