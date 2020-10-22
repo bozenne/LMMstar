@@ -344,7 +344,7 @@ gg
 
 #+RESULTS:
 
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
 ggsave(gg, filename = "c:/Users/hpl802/Documents/GitHub/repeated/inst/figures/gg-ufit.pdf")
 #+END_SRC
 
@@ -352,10 +352,7 @@ ggsave(gg, filename = "c:/Users/hpl802/Documents/GitHub/repeated/inst/figures/gg
 : Saving 7 x 7 in image
 
 
-#+ATTR_LaTeX: :width 1\textwidth :placement [!h]
-[[./inst/figures/gg-ufit.pdf]]
-
-
+<img src=figures/gg-ufit.pdf align="center" height="300">
 
 * Configuration 
 
