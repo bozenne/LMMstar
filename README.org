@@ -351,8 +351,7 @@ ggsave(gg, filename = "c:/Users/hpl802/Documents/GitHub/repeated/inst/figures/gg
 #+RESULTS:
 : Saving 7 x 7 in image
 
-#+ATTR_HTML: :style margin-left: auto; margin-right: auto;
-[[/inst/figures/gg-ufit.pdf]]
+#+html: <p align="center"><img src="inst/figures/gg-ufit.pdf" /></p>
 
 * Configuration 
 
