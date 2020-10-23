@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (14:23) 
 ## Version: 
-## Last-Updated: okt 22 2020 (11:11) 
+## Last-Updated: okt 23 2020 (12:33) 
 ##           By: Brice Ozenne
-##     Update #: 62
+##     Update #: 65
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -54,6 +54,7 @@ sampleRem <- function(n, n.times,
                       format = "wide",
                       latent = FALSE){
 
+    requireNamespace("lava")
     
     name.Y <- paste0("Y",1:n.times)
 
@@ -70,29 +71,29 @@ sampleRem <- function(n, n.times,
     }
     ## ** generative model
     m <- lava::lvm()
-    latent(m) <- ~eta
+    m <- lava::`latent<-`(m, value = ~eta)
     
     ## covariates
-    distribution(m,"X1") <- lava::binomial.lvm(size = 1, p = 0.5)
-    distribution(m,"X2") <- lava::binomial.lvm(size = 1, p = 0.1)
-    distribution(m,"X3") <- lava::binomial.lvm(size = 2, p = 0.5)
-    distribution(m,"X4") <- lava::binomial.lvm(size = 3, p = 0.5)
-    distribution(m,"X5") <- lava::poisson.lvm(lambda = 1)
+    m <- lava::`distribution<-`(m, "X1", value = lava::binomial.lvm(size = 1, p = 0.5))
+    m <- lava::`distribution<-`(m, "X2", value = lava::binomial.lvm(size = 1, p = 0.1))
+    m <- lava::`distribution<-`(m, "X3", value = lava::binomial.lvm(size = 2, p = 0.5))
+    m <- lava::`distribution<-`(m, "X4", value = lava::binomial.lvm(size = 3, p = 0.5))
+    m <- lava::`distribution<-`(m, "X5", value = lava::poisson.lvm(lambda = 1))
 
-    distribution(m,"X6") <- lava::gaussian.lvm()
-    distribution(m,"X7") <- lava::gaussian.lvm(sd = 3)
-    distribution(m,"X8") <- lava::gaussian.lvm(mean = 2, sd = 2)
-    distribution(m,"X9") <- lava::Gamma.lvm(shape = 1, rate = 1)
-    distribution(m,"X10") <- lava::beta.lvm()
+    m <- lava::`distribution<-`(m, "X6", value = lava::gaussian.lvm())
+    m <- lava::`distribution<-`(m, "X7", value = lava::gaussian.lvm(sd = 3))
+    m <- lava::`distribution<-`(m, "X8", value = lava::gaussian.lvm(mean = 2, sd = 2))
+    m <- lava::`distribution<-`(m, "X9", value = lava::Gamma.lvm(shape = 1, rate = 1))
+    m <- lava::`distribution<-`(m, "X10", value = lava::beta.lvm())
 
-    regression(m, eta ~ X1+X2+X3+X4+X5+X6+X7+X8+X9+X10) <- beta
+    m <- lava::`regression<-`(m, eta ~ X1+X2+X3+X4+X5+X6+X7+X8+X9+X10, value = beta)
 
     ## outcome
     for(iT in 1:n.times){ ## iT <- 1
-        distribution(m,name.Y[iT]) <- lava::gaussian.lvm(mean = mu[iT], sd = sigma[iT])
-        regression(m, eta ~ X1+X2+X3+X4+X5+X6+X7+X8+X9+X10) <- beta
-        regression(m,stats::as.formula(paste0(name.Y[iT],"~X1+X2+X3+X4+X5+X6+X7+X8+X9+X10"))) <- gamma[iT,]
-        regression(m,stats::as.formula(paste0(name.Y[iT],"~eta"))) <- lambda[iT]
+        m <- lava::`distribution<-`(m, name.Y[iT], value = lava::gaussian.lvm(mean = mu[iT], sd = sigma[iT]))
+        m <- lava::`regression<-`(m, eta ~ X1+X2+X3+X4+X5+X6+X7+X8+X9+X10, value = beta)
+        m <- lava::`regression<-`(m, stats::as.formula(paste0(name.Y[iT],"~X1+X2+X3+X4+X5+X6+X7+X8+X9+X10")), value = gamma[iT,])
+        m <- lava::`regression<-`(m, stats::as.formula(paste0(name.Y[iT],"~eta")), value =  lambda[iT])
     }
     
     ## ** generate data

@@ -2,7 +2,7 @@ Package: repeated
 Type: Package
 Title: Helper functions for handling repeated measurements in R
 Version: 0.1.0
-Date: 2020-10-22
+Date: 2020-10-23
 Authors@R: c(
     person("Brice", "Ozenne", role = c("aut", "cre"), email = "brice.mh.ozenne@gmail.com", comment = c(ORCID = "0000-0001-9694-2956")),
     person("Julie", "Forman", role = "aut")
@@ -20,14 +20,14 @@ BugReports: https://github.com/bozenne/repeated/issues
 Depends:
     R (>= 3.5.0),
 Imports:
-    AICcmodavg,
-	broom,
+    broom,
 	ggplot2,
-	lava,
 	nlme,
 	reshape2
 Suggests:
-    data.table,
+    AICcmodavg,
+	data.table,
     ggpubr,
-    testthat
+    lava,
+	testthat
 RoxygenNote: 7.1.1

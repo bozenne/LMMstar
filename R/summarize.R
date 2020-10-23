@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: okt 21 2020 (14:51) 
+## Last-Updated: okt 23 2020 (13:11) 
 ##           By: Brice Ozenne
-##     Update #: 9
+##     Update #: 11
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -35,14 +35,8 @@
 ## * summarize (examples)
 ##' @examples
 ##' ## simulate data in the wide format
-##' library(lava)
-##' m <- lvm(c(Y1,Y2,Y3,Y4) ~ age + gender)
-##' categorical(m, labels = c("male","female")) <- ~gender
-##' transform(m, id~gender) <- function(x){1:NROW(x)}
-##' distribution(m, ~age) <- gaussian.lvm(mean = 50, sd = 10)
-##'
 ##' set.seed(10)
-##' d <- lava::sim(m, 1e2)
+##' d <- sampleRem(1e2, n.times = 3)
 ##'
 ##' ## add a missing value
 ##' d2 <- d
@@ -50,10 +44,10 @@
 ##'
 ##' ## run summarize
 ##' summarize(Y1+Y2 ~ 1, data = d)
-##' summarize(Y1+Y2 ~ gender, data = d)
+##' summarize(Y1+Y2 ~ X1, data = d)
 ##' 
-##' summarize(Y1+Y2 ~ gender, data = d2)
-##' summarize(Y1+Y2 ~ gender, data = d2, na.rm = TRUE)
+##' summarize(Y1+Y2 ~ X1, data = d2)
+##' summarize(Y1+Y2 ~ X1, data = d2, na.rm = TRUE)
 ##' 
 ##' ## End of examples
 
@@ -110,9 +104,9 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE,
     }
 
     if(na.rm){
-        attr(out,"correlation") <- stats::cor(data[,name.Y], use = "pairwise")
+        attr(out,"correlation") <- stats::cor(data[,name.Y,drop=FALSE], use = "pairwise")
     }else{
-        attr(out,"correlation") <- stats::cor(data[,name.Y])
+        attr(out,"correlation") <- stats::cor(data[,name.Y,drop=FALSE])
     }
     
     ## ** export

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (15:47) 
 ## Version: 
-## Last-Updated: okt 22 2020 (11:06) 
+## Last-Updated: okt 23 2020 (12:21) 
 ##           By: Brice Ozenne
-##     Update #: 89
+##     Update #: 90
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -106,6 +106,7 @@ ufit <- function(object, value = NULL, confint = TRUE, conf.quantile = stats::qn
 
     ## ** compute predictions with confidence intervals
     if(confint){
+        requireNamespace("AICcmodavg")
         tempo <- AICcmodavg::predictSE.gls(object, newdata = Unewdata, se.fit = TRUE)
         Unewdata$fit <- tempo$fit
         Unewdata$se <- tempo$se.fit

@@ -9,10 +9,8 @@
 #' and obtainign graphical displays of longitudinal data, as well as for
 #' statistical modeling and statistical inference using mixed models.
 #'
-#' @importFrom AICcmodavg predictSE.gls
 #' @importFrom broom tidy
 #' @importFrom ggplot2 autoplot
-#' @importFrom lava latent<- distribution<- regression<- 
 #' @importFrom nlme getData intervals
 NULL
 

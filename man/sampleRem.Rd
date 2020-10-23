@@ -29,6 +29,8 @@ sampleRem(
 
 \item{beta}{[numeric vector of length 10] regression coefficient between the covariates and the latent variable.}
 
+\item{gamma}{[numeric matrix with n.times rows and 10 columns] regression coefficient specific to each timepoint (i.e. interaction with time).}
+
 \item{format}{[character] Return the data in the wide format (\code{"wide"}) or long format (\code{"long"})}
 
 \item{latent}{[logical] Should the latent variable be output?}
