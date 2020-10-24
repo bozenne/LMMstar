@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (15:47) 
 ## Version: 
-## Last-Updated: okt 23 2020 (12:21) 
+## Last-Updated: okt 24 2020 (14:47) 
 ##           By: Brice Ozenne
-##     Update #: 90
+##     Update #: 93
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -30,6 +30,7 @@
 #' @examples
 #' library(ggplot2)
 #' library(data.table)
+#' library(nlme)
 #'
 #' data(gastricbypassL, package = "repeated")
 #' ## generate covariates
@@ -41,6 +42,10 @@
 #' e.lmm1 <- lmm(weight ~ time, covariance = ~visit|id, data = gastricbypassL)
 #' e.ufit1 <- ufit(e.lmm1)
 #' autoplot(e.ufit1)
+#' 
+#' e.gls2 <- gls(glucagon ~ time, correlation = corSymm(form=~as.numeric(visit)|id), weights = varIdent(form=~1|visit), data = gastricbypassL, na.action = na.exclude)
+#' e.ufit2 <- ufit(e.gls2)
+#' e.ufit2
 #' 
 #' ## time per group
 #' e.lmm2 <- lmm(weight ~ time*baselineG, covariance = ~visit|id, data = gastricbypassL)
@@ -101,8 +106,8 @@ ufit <- function(object, value = NULL, confint = TRUE, conf.quantile = stats::qn
                  "Missing continuous variable in argument \'value\': \"",paste0(names(test.continuous[test.continuous>2]), collapse = "\" \""),"\"\n")
         }
     }
-    UX <- unique(X)
-    Unewdata <- newdata[as.numeric(rownames(UX)),,drop=FALSE]
+    index.unique <- which(!duplicated(X))
+    Unewdata <- newdata[index.unique,,drop=FALSE]
 
     ## ** compute predictions with confidence intervals
     if(confint){

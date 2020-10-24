@@ -22,6 +22,7 @@ Continuous covariates are set to a single value.
 \examples{
 library(ggplot2)
 library(data.table)
+library(nlme)
 
 data(gastricbypassL, package = "repeated")
 ## generate covariates
@@ -33,6 +34,10 @@ gastricbypassL[, age := round(rnorm(1, mean = 50, sd = 10)), by = "id"]
 e.lmm1 <- lmm(weight ~ time, covariance = ~visit|id, data = gastricbypassL)
 e.ufit1 <- ufit(e.lmm1)
 autoplot(e.ufit1)
+
+e.gls2 <- gls(glucagon ~ time, correlation = corSymm(form=~as.numeric(visit)|id), weights = varIdent(form=~1|visit), data = gastricbypassL, na.action = na.exclude)
+e.ufit2 <- ufit(e.gls2)
+e.ufit2
 
 ## time per group
 e.lmm2 <- lmm(weight ~ time*baselineG, covariance = ~visit|id, data = gastricbypassL)

@@ -45,7 +45,7 @@ library(repeated)
 #+END_SRC
 
 #+RESULTS:
-: repeated version 0.1.0
+: repeated version 0.1.2
 
 ** Data generation
 Simulate some data in the wide format:
@@ -62,6 +62,7 @@ head(dW)
 
 #+RESULTS:
 #+begin_example
+Loading required namespace: lava
   id X1 X2 X3 X4 X5          X6         X7         X8         X9        X10         Y1         Y2
 1  1  0  1  1  1  1 -0.72176278  0.6764573  2.9981272 0.44539376 -1.3437766  0.9472208  0.2599741
 2  2  1  0  0  3  2  0.50290773  1.6344982 -1.8952366 0.06364757 -0.4490553  3.3818255  4.9854603
@@ -276,8 +277,7 @@ Degrees of freedom: 800 total; 788 residual
 
 Only coefficients related to the mean:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-library(broom)
-tidy(e.lmm)
+allCoef(e.lmm)
 #+END_SRC
 
 #+RESULTS:
@@ -299,7 +299,7 @@ tidy(e.lmm)
 
 or only variance-covariance coefficients:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-tidy(e.lmm, effects = c("variance"))
+allCoef(e.lmm, effects = c("variance"))
 #+END_SRC
 
 #+RESULTS:

@@ -9,7 +9,6 @@
 #' and obtainign graphical displays of longitudinal data, as well as for
 #' statistical modeling and statistical inference using mixed models.
 #'
-#' @importFrom broom tidy
 #' @importFrom ggplot2 autoplot
 #' @importFrom nlme getData intervals
 NULL
