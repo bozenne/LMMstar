@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (15:47) 
 ## Version: 
-## Last-Updated: okt 24 2020 (14:47) 
+## Last-Updated: okt 26 2020 (09:32) 
 ##           By: Brice Ozenne
-##     Update #: 93
+##     Update #: 97
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -107,6 +107,9 @@ ufit <- function(object, value = NULL, confint = TRUE, conf.quantile = stats::qn
         }
     }
     index.unique <- which(!duplicated(X))
+    if(length(object$na.action)!=0){
+        index.unique <- (1:NROW(newdata))[-object$na.action][index.unique]
+    }
     Unewdata <- newdata[index.unique,,drop=FALSE]
 
     ## ** compute predictions with confidence intervals

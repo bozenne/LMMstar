@@ -2,7 +2,7 @@ Package: repeated
 Type: Package
 Title: Helper functions for handling repeated measurements in R
 Version: 0.1.2
-Date: 2020-10-24
+Date: 2020-10-26
 Authors@R: c(
     person("Brice", "Ozenne", role = c("aut", "cre"), email = "brice.mh.ozenne@gmail.com", comment = c(ORCID = "0000-0001-9694-2956")),
     person("Julie", "Forman", role = "aut")
