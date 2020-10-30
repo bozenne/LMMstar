@@ -4,7 +4,7 @@
 \alias{getCoef}
 \title{Extract Model Coefficients With Confidence Intervals}
 \usage{
-getCoef(object, conf.int, conf.level, effects, format, ...)
+getCoef(object, conf.int, conf.level, effects, format, add.type, ...)
 }
 \arguments{
 \item{object}{a \code{lm}, \code{gls}, \code{lme}, or \code{lmm} object.}
@@ -20,18 +20,29 @@ or to the variance-covariance structure of the residuals (\code{"variance"}).}
 \item{format}{[character] How the output should be shaped.
 Can be \code{"default"}, \code{"publish"}, or \code{"SAS"}.}
 
+\item{add.type}{[logical] Should the type of parameter be added.}
+
 \item{...}{argument passed to the \code{publish} function (when \code{format="publish"}).}
 }
 \description{
 Extract all model coefficients with confidence intervals.
 }
 \details{
-Arugment \bold{format}: \cr
+Argument \bold{format}: \cr
 Setting the argument to \code{"default"} outputs a data.frame with columns type (mean or covariance),
-term (name of the coefficient), estimate, std.error, statistic, p.value, conf.low, conf.high.
+term (name of the coefficient), estimate, std.error, t.value, p.value, lower, upper.
 
 Setting the argument to \code{"publish"} outputs a data.frame with columns Variable, Units Coefficients, CI, and p-value.
 Call the function \code{publish} from the \code{publish} package.
+                                    
+Argument \bold{add.type}: \cr
+When \code{TRUE}, there can be 4 types of parameters in the output: \itemize{
+\item \code{"mean"}: coefficients relative to the conditional mean of the outcome given the covariates. 
+\item \code{"std.residual"}: (reference) residual standard deviation.
+\item \code{"factor.std.residual"}: multiplicative factor to the residual standard deviation.
+\item \code{"correlation"}: correlation coefficient between the residuals.
+\item \code{"std.random"}: standard error of the random effects.
+}
 }
 \examples{
 data(gastricbypassL, package = "repeated")
@@ -42,6 +53,7 @@ library(nlme)
 e.lm <- lm(weight ~ time, data = gastricbypassL)
 
 getCoef(e.lm)
+getCoef(e.lm, format = "estimate")
 getCoef(e.lm, effects = "variance")
 getCoef(e.lm, effects = "variance", format = "estimate")
 if(require(Publish)){

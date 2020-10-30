@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (14:58) 
 ## Version: 
-## Last-Updated: okt 29 2020 (15:28) 
+## Last-Updated: okt 30 2020 (13:38) 
 ##           By: Brice Ozenne
-##     Update #: 159
+##     Update #: 169
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,17 +29,25 @@
 #' or to the variance-covariance structure of the residuals (\code{"variance"}).
 #' @param format [character] How the output should be shaped.
 #' Can be \code{"default"}, \code{"publish"}, or \code{"SAS"}.
+#' @param add.type [logical] Should the type of parameter be added.
 #' @param ... argument passed to the \code{publish} function (when \code{format="publish"}).
 #'
 #' 
-#' @details Arugment \bold{format}: \cr
+#' @details Argument \bold{format}: \cr
 #' Setting the argument to \code{"default"} outputs a data.frame with columns type (mean or covariance),
-#' term (name of the coefficient), estimate, std.error, statistic, p.value, conf.low, conf.high.
+#' term (name of the coefficient), estimate, std.error, t.value, p.value, lower, upper.
 #'
 #' Setting the argument to \code{"publish"} outputs a data.frame with columns Variable, Units Coefficients, CI, and p-value.
 #' Call the function \code{publish} from the \code{publish} package.
 #'                                     
-#'
+#' Argument \bold{add.type}: \cr
+#' When \code{TRUE}, there can be 4 types of parameters in the output: \itemize{
+#' \item \code{"mean"}: coefficients relative to the conditional mean of the outcome given the covariates. 
+#' \item \code{"std.residual"}: (reference) residual standard deviation.
+#' \item \code{"factor.std.residual"}: multiplicative factor to the residual standard deviation.
+#' \item \code{"correlation"}: correlation coefficient between the residuals.
+#' \item \code{"std.random"}: standard error of the random effects.
+#' }
 #' @examples
 #' data(gastricbypassL, package = "repeated")
 #' library(nlme)
@@ -49,6 +57,7 @@
 #' e.lm <- lm(weight ~ time, data = gastricbypassL)
 #' 
 #' getCoef(e.lm)
+#' getCoef(e.lm, format = "estimate")
 #' getCoef(e.lm, effects = "variance")
 #' getCoef(e.lm, effects = "variance", format = "estimate")
 #' if(require(Publish)){
@@ -95,12 +104,12 @@
 ## * getCoef (code)
 ##' @export
 `getCoef` <-
-    function(object, conf.int, conf.level, effects, format, ...) UseMethod("getCoef")
+    function(object, conf.int, conf.level, effects, format, add.type, ...) UseMethod("getCoef")
 
 ## * getCoef.lm (code)
 ##' @export
 getCoef.lm <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c("mean"),
-                       format = "default", ...){
+                       format = "default", add.type = FALSE, ...){
     
     format <- match.arg(format, c("default","estimate","publish", "SAS"))
     effects <- match.arg(effects, c("mean","variance"), several.ok = TRUE)
@@ -117,27 +126,27 @@ getCoef.lm <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c("
                                     term = rownames(objectS),
                                     estimate = as.double(objectS[,"Estimate"]),
                                     std.error = as.double(objectS[,"Std. Error"]),
-                                    statistic = as.double(objectS[,"t value"]),
+                                    t.value = as.double(objectS[,"t value"]),
                                     p.value = as.double(objectS[,"Pr(>|t|)"]),
-                                    conf.low = as.double(inter[,1]),
-                                    conf.high = as.double(inter[,2])
+                                    lower = as.double(inter[,1]),
+                                    upper = as.double(inter[,2])
                                     ))
     }
     if("variance" %in% effects){
         ddf <- stats::df.residual(object)
         alpha <- 1 - conf.level
 
-        out <- rbind(out,data.frame(type = "sigma",
+        out <- rbind(out,data.frame(type = "std.residual",
                                     term = "sigma",
                                     estimate = as.double(stats::sigma(object)),
                                     std.error = as.numeric(NA), ## sqrt(2*stats::sigma(object)^4/ddf),
-                                    statistic = as.numeric(NA),
+                                    t.value = as.numeric(NA),
                                     p.value = as.numeric(NA),
-                                    conf.low = sqrt(ddf)*stats::sigma(object)/sqrt(stats::qchisq(1 - alpha/2, ddf)),
-                                    conf.high = sqrt(ddf)*stats::sigma(object)/sqrt(stats::qchisq(alpha/2, ddf))
+                                    lower = sqrt(ddf)*stats::sigma(object)/sqrt(stats::qchisq(1 - alpha/2, ddf)),
+                                    upper = sqrt(ddf)*stats::sigma(object)/sqrt(stats::qchisq(alpha/2, ddf))
                                     ))
         if("mean" %in% effects == FALSE){
-            out <- out[, c("type","term","estimate","conf.low","conf.high"),drop=FALSE]
+            out <- out[, c("type","term","estimate","lower","upper"),drop=FALSE]
         }
     }
 
@@ -148,8 +157,11 @@ getCoef.lm <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c("
         X <- stats::model.matrix(object)
         return(.format2SAS(out, X = X, terms = object$terms))
     }else if(format == "estimate"){
-        return(out[, c("type","term","estimate"),drop=FALSE])
+        return(stats::setNames(out$estimate,out$term))
     }else{
+        if(add.type==FALSE){
+            out <- out[,setdiff(names(out),"type"),drop=FALSE]
+        }
         return(out)
     }
 }
@@ -157,7 +169,7 @@ getCoef.lm <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c("
 ## * getCoef.gls (code)
 ##' @export
 getCoef.gls <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c("mean"),
-                        format = "default", ...){
+                        format = "default", add.type = FALSE, ...){
 
     format <- match.arg(format, c("default","estimate","publish", "SAS"))
     effects <- match.arg(effects, c("mean","variance"), several.ok = TRUE)
@@ -175,47 +187,47 @@ getCoef.gls <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c(
                                     term = rownames(inter$coef),
                                     estimate = as.double(inter$coef[,"est."]),
                                     std.error = as.double(objectS[,"Std.Error"]),
-                                    statistic = as.double(objectS[,"t-value"]),
+                                    t.value = as.double(objectS[,"t-value"]),
                                     p.value = as.double(objectS[,"p-value"]),
-                                    conf.low = as.double(inter$coef[,"lower"]),
-                                    conf.high = as.double(inter$coef[,"upper"])
+                                    lower = as.double(inter$coef[,"lower"]),
+                                    upper = as.double(inter$coef[,"upper"])
                                     ))
         
     }
     if("variance" %in% effects){
         if(!is.null(object$modelStruct$corStruct)){
-            out <- rbind(out,data.frame(type = "corStruct",
+            out <- rbind(out,data.frame(type = "correlation",
                                         term = rownames(inter$corStruct),
                                         estimate = as.double(inter$corStruct[,"est."]),
                                         std.error = NA,
-                                        statistic = NA,
+                                        t.value = NA,
                                         p.value = NA,
-                                        conf.low = as.double(inter$corStruct[,"lower"]),
-                                        conf.high = as.double(inter$corStruct[,"upper"])
+                                        lower = as.double(inter$corStruct[,"lower"]),
+                                        upper = as.double(inter$corStruct[,"upper"])
                                         ))
         }
         if(!is.null(object$modelStruct$varStruct)){
-            out <- rbind(out,data.frame(type = "varStruct",
+            out <- rbind(out,data.frame(type = "factor.std.residual",
                                         term = rownames(inter$varStruct),
                                         estimate = as.double(inter$varStruct[,"est."]),
                                         std.error = NA,
-                                        statistic = NA,
+                                        t.value = NA,
                                         p.value = NA,
-                                        conf.low = as.double(inter$varStruct[,"lower"]),
-                                        conf.high = as.double(inter$varStruct[,"upper"])
+                                        lower = as.double(inter$varStruct[,"lower"]),
+                                        upper = as.double(inter$varStruct[,"upper"])
                                         ))
         }
-        out <- rbind(out,data.frame(type = "sigma",
+        out <- rbind(out,data.frame(type = "std.residual",
                                     term = "sigma",
                                     estimate = as.double(inter$sigma["est."]),
                                     std.error = NA,
-                                    statistic = NA,
+                                    t.value = NA,
                                     p.value = NA,
-                                    conf.low = as.double(inter$sigma["lower"]),
-                                    conf.high = as.double(inter$sigma["upper"])
+                                    lower = as.double(inter$sigma["lower"]),
+                                    upper = as.double(inter$sigma["upper"])
                                     ))
         if("mean" %in% effects == FALSE){
-            out <- out[, c("type","term","estimate","conf.low","conf.high"),drop=FALSE]
+            out <- out[, c("type","term","estimate","lower","upper"),drop=FALSE]
         }
     }
 
@@ -223,8 +235,11 @@ getCoef.gls <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c(
         X <- stats::model.matrix(object, nlme::getData(object))
         return(.format2SAS(out, X = X, terms = stats::terms(stats::formula(object))))
     }else if(format == "estimate"){
-        return(out[, c("type","term","estimate"),drop=FALSE])
+        return(stats::setNames(out$estimate,out$term))
     }else{
+        if(add.type==FALSE){
+            out <- out[,setdiff(names(out),"type"),drop=FALSE]
+        }
         return(out)
     }
 }
@@ -232,7 +247,7 @@ getCoef.gls <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c(
 ## * summarize.lme (code)
 ##' @export
 getCoef.lme <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c("mean"),
-                        format = "default", ...){
+                        format = "default", add.type = FALSE, ...){
 
     format <- match.arg(format, c("default","estimate","publish", "SAS"))
     effects <- match.arg(effects, c("mean","variance"), several.ok = TRUE)
@@ -250,60 +265,60 @@ getCoef.lme <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c(
                                     term = rownames(inter$fixed),
                                     estimate = as.double(inter$fixed[,"est."]),
                                     std.error = as.double(objectS[,"Std.Error"]),
-                                    statistic = as.double(objectS[,"t-value"]),
+                                    t.value = as.double(objectS[,"t-value"]),
                                     p.value = as.double(objectS[,"p-value"]),
-                                    conf.low = as.double(inter$fixed[,"lower"]),
-                                    conf.high = as.double(inter$fixed[,"upper"])
+                                    lower = as.double(inter$fixed[,"lower"]),
+                                    upper = as.double(inter$fixed[,"upper"])
                                     ))
         
     }
     if("variance" %in% effects){
         if(!is.null(object$modelStruct$corStruct)){
-            out <- rbind(out,data.frame(type = "corStruct",
+            out <- rbind(out,data.frame(type = "correlation",
                                         term = rownames(inter$corStruct),
                                         estimate = as.double(inter$corStruct[,"est."]),
                                         std.error = NA,
-                                        statistic = NA,
+                                        t.value = NA,
                                         p.value = NA,
-                                        conf.low = as.double(inter$corStruct[,"lower"]),
-                                        conf.high = as.double(inter$corStruct[,"upper"])
+                                        lower = as.double(inter$corStruct[,"lower"]),
+                                        upper = as.double(inter$corStruct[,"upper"])
                                         ))
         }
         if(!is.null(object$modelStruct$varStruct)){
-            out <- rbind(out,data.frame(type = "varStruct",
+            out <- rbind(out,data.frame(type = "factor.std.residual",
                                         term = rownames(inter$varStruct),
                                         estimate = as.double(inter$varStruct[,"est."]),
                                         std.error = NA,
-                                        statistic = NA,
+                                        t.value = NA,
                                         p.value = NA,
-                                        conf.low = as.double(inter$varStruct[,"lower"]),
-                                        conf.high = as.double(inter$varStruct[,"upper"])
+                                        lower = as.double(inter$varStruct[,"lower"]),
+                                        upper = as.double(inter$varStruct[,"upper"])
                                         ))
         }
         for(iTau in 1:length(inter$reStruct)){ ## iTau <- 1
             iNameTau <- names(inter$reStruct)[[iTau]]
-            out <- rbind(out,data.frame(type = "random",
+            out <- rbind(out,data.frame(type = "std.random",
                                         term = paste0(iNameTau,"_",rownames(inter$reStruct[[iTau]])),
                                         estimate = as.double(inter$reStruct[[iTau]]["est."]),
                                         std.error = NA,
-                                        statistic = NA,
+                                        t.value = NA,
                                         p.value = NA,
-                                        conf.low = as.double(inter$reStruct[[iTau]]["lower"]),
-                                        conf.high = as.double(inter$reStruct[[iTau]]["upper"])
+                                        lower = as.double(inter$reStruct[[iTau]]["lower"]),
+                                        upper = as.double(inter$reStruct[[iTau]]["upper"])
                                         ))
         }
-        out <- rbind(out,data.frame(type = "sigma",
+        out <- rbind(out,data.frame(type = "std.residual",
                                     term = "sigma",
                                     estimate = as.double(inter$sigma["est."]),
                                     std.error = NA,
-                                    statistic = NA,
+                                    t.value = NA,
                                     p.value = NA,
-                                    conf.low = as.double(inter$sigma["lower"]),
-                                    conf.high = as.double(inter$sigma["upper"])
+                                    lower = as.double(inter$sigma["lower"]),
+                                    upper = as.double(inter$sigma["upper"])
                                     ))
         
         if("mean" %in% effects == FALSE){
-            out <- out[, c("type","term","estimate","conf.low","conf.high"),drop=FALSE]
+            out <- out[, c("type","term","estimate","lower","upper"),drop=FALSE]
         }
     }
     
@@ -311,8 +326,11 @@ getCoef.lme <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c(
         X <- stats::model.matrix(object, nlme::getData(object))
         return(.format2SAS(out, X = X, terms = stats::terms(stats::formula(object))))
     }else if(format == "estimate"){
-        return(out[, c("type","term","estimate"),drop=FALSE])
+        return(stats::setNames(out$estimate,out$term))
     }else{
+        if(add.type==FALSE){
+            out <- out[,setdiff(names(out),"type"),drop=FALSE]
+        }
         return(out)
     }
 }
@@ -320,7 +338,7 @@ getCoef.lme <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c(
 ## * summarize.lmm (code)
 ##' @export
 getCoef.lmm <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c("mean"),
-                        format = "default", ...){
+                        format = "default", add.type = FALSE, ...){
 
     format <- match.arg(format, c("default","estimate","publish", "SAS"))
     effects <- match.arg(effects, c("mean","variance"), several.ok = TRUE)
@@ -339,47 +357,47 @@ getCoef.lmm <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c(
                                     term = rownames(inter$coef),
                                     estimate = as.double(inter$coef[,"est."]),
                                     std.error = as.double(objectS[,"se"]),
-                                    statistic = as.double(objectS[,"t-value"]),
+                                    t.value = as.double(objectS[,"t-value"]),
                                     p.value = as.double(objectS[,"p-value"]),
-                                    conf.low = as.double(inter$coef[,"lower"]),
-                                    conf.high = as.double(inter$coef[,"upper"])
+                                    lower = as.double(inter$coef[,"lower"]),
+                                    upper = as.double(inter$coef[,"upper"])
                                     ))
         
     }
     if("variance" %in% effects){
         if(!is.null(object$modelStruct$corStruct)){
-            out <- rbind(out,data.frame(type = "corStruct",
+            out <- rbind(out,data.frame(type = "correlation",
                                         term = rownames(inter$corStruct),
                                         estimate = as.double(inter$corStruct[,"est."]),
                                         std.error = NA,
-                                        statistic = NA,
+                                        t.value = NA,
                                         p.value = NA,
-                                        conf.low = as.double(inter$corStruct[,"lower"]),
-                                        conf.high = as.double(inter$corStruct[,"upper"])
+                                        lower = as.double(inter$corStruct[,"lower"]),
+                                        upper = as.double(inter$corStruct[,"upper"])
                                         ))
         }
         if(!is.null(object$modelStruct$varStruct)){
-            out <- rbind(out,data.frame(type = "varStruct",
+            out <- rbind(out,data.frame(type = "factor.std.residual",
                                         term = rownames(inter$varStruct),
                                         estimate = as.double(inter$varStruct[,"est."]),
                                         std.error = NA,
-                                        statistic = NA,
+                                        t.value = NA,
                                         p.value = NA,
-                                        conf.low = as.double(inter$varStruct[,"lower"]),
-                                        conf.high = as.double(inter$varStruct[,"upper"])
+                                        lower = as.double(inter$varStruct[,"lower"]),
+                                        upper = as.double(inter$varStruct[,"upper"])
                                         ))
         }
-        out <- rbind(out,data.frame(type = "sigma",
+        out <- rbind(out,data.frame(type = "std.residual",
                                     term = "sigma",
                                     estimate = as.double(inter$sigma["est."]),
                                     std.error = NA,
-                                    statistic = NA,
+                                    t.value = NA,
                                     p.value = NA,
-                                    conf.low = as.double(inter$sigma["lower"]),
-                                    conf.high = as.double(inter$sigma["upper"])
+                                    lower = as.double(inter$sigma["lower"]),
+                                    upper = as.double(inter$sigma["upper"])
                                     ))
         if("mean" %in% effects == FALSE){
-            out <- out[, c("type","term","estimate","conf.low","conf.high"),drop=FALSE]
+            out <- out[, c("type","term","estimate","lower","upper"),drop=FALSE]
         }
 
     }
@@ -388,11 +406,13 @@ getCoef.lmm <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c(
         X <- stats::model.matrix(object, attr(object,"data"))
         return(.format2SAS(out, X = X, terms = stats::terms(stats::formula(object))))
     }else if(format == "estimate"){
-        return(out[, c("type","term","estimate"),drop=FALSE])
+        return(stats::setNames(out$estimate,out$term))
     }else{
+        if(add.type==FALSE){
+            out <- out[,setdiff(names(out),"type"),drop=FALSE]
+        }
         return(out)
     }
-    return(out)
 }
 
 ## * .format2SAS
@@ -434,10 +454,10 @@ getCoef.lmm <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c(
     ## ** add estimates
     out$estimate <- object$estimate
     out$std.error <- object$std.error
-    out$statistic <- object$statistic
+    out$t.value <- object$t.value
     out$p.value <- object$p.value
-    out$conf.low <- object$conf.low
-    out$conf.high <- object$conf.high
+    out$lower <- object$lower
+    out$upper <- object$upper
     return(out)     
 }
 
