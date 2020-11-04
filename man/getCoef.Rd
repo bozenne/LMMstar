@@ -4,12 +4,10 @@
 \alias{getCoef}
 \title{Extract Model Coefficients With Confidence Intervals}
 \usage{
-getCoef(object, conf.int, conf.level, effects, format, add.type, ...)
+getCoef(object, conf.level, effects, format, add.type, ...)
 }
 \arguments{
 \item{object}{a \code{lm}, \code{gls}, \code{lme}, or \code{lmm} object.}
-
-\item{conf.int}{[logical] Should the confidence interval be output}
 
 \item{conf.level}{[numeric 0-1] Confidence level of the confidence intervals.}
 

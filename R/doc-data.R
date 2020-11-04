@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: okt 21 2020 (14:44) 
+## Last-Updated: nov  4 2020 (11:04) 
 ##           By: Brice Ozenne
-##     Update #: 10
+##     Update #: 22
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -74,6 +74,59 @@ NULL
 #' @docType data
 #' @usage data(gastricbypassL)
 #' @references The effect of Roux-en-Y gastric bypass surgery on the gut mucosal gene expression profile and circulating gut hormones. \url{https://easddistribute.m-anage.com/from.storage?image=4iBH9mRQm1kfeEHULC2CxovdlyCtA1EHeVDdoffnZrAUGG9SHTO-U4ItnLU078eVkF1ZUZgYTy7THlTW3KSgFA2}
+#' @keywords data
+NULL
+
+## * calciumW
+#' @title Data From The Calcium Supplements Study (Wide Format)
+#'
+#' @description  Data from a randomized study including 112 girls at age 11 investigate the effect of a calcium supplement (n=55) vs. placebo (n=57)
+#' on bone mineral density over a 2 year follow-up. The clinical question is: does a calcium supplement help to increase bone gain in adolescent women?
+#' This dataset is in the wide format (i.e. one line per patient).
+#'
+#' \itemize{
+#' \item girl. Patient identifier
+#' \item grp. Treatment group: calcium supplement (coded \code{C}) or placebo (coded \code{P})
+#' \item obstime1. Time after the start of the study at which the first visit took place (in years).
+#' \item obstime2. Time after the start of the study at which the second visit took place (in years).
+#' \item obstime3. Time after the start of the study at which the third visit took place (in years).
+#' \item obstime4. Time after the start of the study at which the fourth visit took place (in years).
+#' \item obstime5. Time after the start of the study at which the fifth visit took place (in years).
+#' \item bmd1. Bone mineral density measured at the first visit (in mg/cm3).
+#' \item bmd2. Bone mineral density measured at the second visit (in mg/cm3).
+#' \item bmd3. Bone mineral density measured at the third visit (in mg/cm3).
+#' \item bmd4. Bone mineral density measured at the fourth visit (in mg/cm3).
+#' \item bmd5. Bone mineral density measured at the fifth visit (in mg/cm3).
+#' }
+#' 
+#' @name calciumW
+#' @docType data
+#' @usage data(calciumW)
+#' @references TO ADD
+#' @keywords data
+NULL
+
+## * calciumL
+#' @title Data From The Calcium Supplements Study (Long Format)
+#'
+#' @description  Data from a randomized study including 112 girls at age 11 investigate the effect of a calcium supplement (n=55) vs. placebo (n=57)
+#' on bone mineral density over a 2 year follow-up. The clinical question is: does a calcium supplement help to increase bone gain in adolescent women?
+#' This dataset is in the long format (i.e. one line per measurement).
+#'
+#' \itemize{
+#' \item girl. Patient identifier
+#' \item grp. Treatment group: calcium supplement (coded \code{C}) or placebo (coded \code{P})
+#' \item visit. Visit index
+#' \item bmd. Bone mineral density (mg/cm3)
+#' \item time.obs. Visit time (in years)
+#' \item time.num. Scheduled visit time (numeric variable, in years)
+#' \item time.fac. Scheduled visit time (factor variable)
+#' }
+#' 
+#' @name calciumL
+#' @docType data
+#' @usage data(calciumL)
+#' @references TO ADD
 #' @keywords data
 NULL
 

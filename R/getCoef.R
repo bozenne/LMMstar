@@ -1,11 +1,11 @@
-### tidy.lmm.R --- 
+### getCoef.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (14:58) 
 ## Version: 
-## Last-Updated: okt 30 2020 (15:20) 
+## Last-Updated: nov  4 2020 (12:16) 
 ##           By: Brice Ozenne
-##     Update #: 177
+##     Update #: 216
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -22,7 +22,6 @@
 #' 
 #' @description Extract all model coefficients with confidence intervals.
 #' @param object a \code{lm}, \code{gls}, \code{lme}, or \code{lmm} object.
-#' @param conf.int [logical] Should the confidence interval be output
 #' @param conf.level [numeric 0-1] Confidence level of the confidence intervals.
 #' @param effects [character vector] Type of coefficient to be output.
 #' Can be coefficients relative to the expectation of the outcome (\code{"mean"})
@@ -104,11 +103,11 @@
 ## * getCoef (code)
 ##' @export
 `getCoef` <-
-    function(object, conf.int, conf.level, effects, format, add.type, ...) UseMethod("getCoef")
+    function(object, conf.level, effects, format, add.type, ...) UseMethod("getCoef")
 
 ## * getCoef.lm (code)
 ##' @export
-getCoef.lm <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c("mean"),
+getCoef.lm <- function(object, conf.level = 0.95, effects = c("mean"),
                        format = "default", add.type = FALSE, ...){
     
     format <- match.arg(format, c("default","estimate","publish", "SAS"))
@@ -119,6 +118,7 @@ getCoef.lm <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c("
     
     ## **  format=default
     inter <- stats::confint(object, level = conf.level)
+    
     out <- NULL
     if("mean" %in% effects){
         objectS <- summary(object, print = FALSE)$coef
@@ -173,7 +173,7 @@ getCoef.lm <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c("
 
 ## * getCoef.gls (code)
 ##' @export
-getCoef.gls <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c("mean"),
+getCoef.gls <- function(object, conf.level = 0.95, effects = c("mean"),
                         format = "default", add.type = FALSE, ...){
 
     format <- match.arg(format, c("default","estimate","publish", "SAS"))
@@ -183,12 +183,12 @@ getCoef.gls <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c(
     }
 
     ## **  format=default
-    inter <- intervals(object, level = conf.level)
+    inter <- .intervalsRobust(object, level = conf.level, effects = effects)
 
     out <- NULL
     if("mean" %in% effects){
         objectS <- summary(object, print = FALSE)$tTable
-
+        
         iDF <- data.frame(type = "mean",
                           estimate = as.double(inter$coef[,"est."]),
                           std.error = as.double(objectS[,"Std.Error"]),
@@ -259,7 +259,7 @@ getCoef.gls <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c(
 
 ## * summarize.lme (code)
 ##' @export
-getCoef.lme <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c("mean"),
+getCoef.lme <- function(object, conf.level = 0.95, effects = c("mean"),
                         format = "default", add.type = FALSE, ...){
 
     format <- match.arg(format, c("default","estimate","publish", "SAS"))
@@ -269,7 +269,7 @@ getCoef.lme <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c(
     }
 
     ## **  format=default
-    inter <- intervals(object, level = conf.level)
+    inter <- .intervalsRobust(object, level = conf.level, effects = effects)
 
     out <- NULL
     if("mean" %in% effects){
@@ -362,7 +362,7 @@ getCoef.lme <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c(
 
 ## * summarize.lmm (code)
 ##' @export
-getCoef.lmm <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c("mean"),
+getCoef.lmm <- function(object, conf.level = 0.95, effects = c("mean"),
                         format = "default", add.type = FALSE, ...){
 
     format <- match.arg(format, c("default","estimate","publish", "SAS"))
@@ -374,7 +374,8 @@ getCoef.lmm <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c(
     }
 
     ## **  format=default
-    inter <- intervals(object, level = conf.level)
+    inter <- .intervalsRobust(object, level = conf.level, effects = effects)
+
     out <- NULL
     if("mean" %in% effects){
         objectS <- summary(object, print = FALSE)[["mean"]]
@@ -492,5 +493,58 @@ getCoef.lmm <- function(object, conf.int = TRUE, conf.level = 0.95, effects = c(
     return(out)     
 }
 
+
+## * .intervalsRobust
+## intervals function but handle non-invertible vcov (i.e. only return point estimates)
+.intervalsRobust <- function(object, level, effects){
+    if(inherits(object,"gls")){
+        inter <- intervals(object, level = level, which = "coef")
+    }else if(inherits(object,"lme")){
+        inter <- intervals(object, level = level, which = "fixed")
+    }
+
+    if("variance" %in% effects){
+        tempo <- try(intervals(object, level = level, which = "var-cov"), silent = TRUE)
+
+        if(inherits(tempo,"try-error")){
+            if(inherits(object$modelStruct$corStruct,"corSymm") && length(object$modelStruct$reStruct)<=1){
+            tempo <- list()
+
+            if(!is.null(object$modelStruct$reStruct)){
+                plen <- names(attr(object$modelStruct$reStruct, "plen"))
+                ## undebug(nlme:::intervals.lme)
+                tempo$reStruct <- lapply(object$modelStruct$reStruct, function(iStruct){
+                    cbind(lower = NA, "est." = stats::coef(nlme::pdNatural(iStruct[[1]]), unconstrained = FALSE), "upper" = NA)
+                })
+                names(tempo$reStruct) <- names(object$modelStruct$reStruct)
+            }
+
+            
+            mC <- attr(object$modelStruct$corStruct,"maxCov")
+            M.index <- which(lower.tri(diag(mC)), arr.ind = TRUE)
+            tempo$corStruct <- cbind(lower = NA, "est." = stats::coef(object$modelStruct$corStruct, unconstrained = FALSE), "upper" = NA)
+            rownames(tempo$corStruct) <- paste0("cor(",M.index[,2],",",M.index[,1],")")
+
+            if(!is.null(object$modelStruct$varStruct)){
+                tempo$varStruct <- cbind(lower = NA, "est." = stats::coef(object$modelStruct$varStruct, unconstrained = FALSE), "upper" = NA)
+            }
+            
+            tempo$sigma <- c("lower" = NA,
+                             "est." = stats::sigma(object),
+                             "upper" = NA)
+
+
+            }else{
+                stop(tempo)
+            }
+        }
+        
+        inter <- c(inter,tempo)
+    }
+
+    return(inter)
+}
+
+
 ######################################################################
-### tidy.lmm.R ends here
+### getCoef.R ends here
