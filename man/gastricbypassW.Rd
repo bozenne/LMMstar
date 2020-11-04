@@ -13,15 +13,22 @@ where the bodyweight and serum glucagon (a gut hormone) were measured in 20 obes
 This dataset is in the wide format (i.e. one line per patient).
 
 \itemize{
-\item id. Patient identifier
-\item weight1. Bodyweight (in kg) 3 months before surgery.
-\item weight2. Bodyweight (in kg) 1 week before surgery.
-\item weight3. Bodyweight (in kg) 1 week after surgery.
-\item weight4. Bodyweight (in kg) 3 months after surgery.
-\item glucagonAUC1. Glucagon value 3 months before surgery.
-\item glucagonAUC2. Glucagon value 1 week before surgery.
-\item glucagonAUC3. Glucagon value 1 week after surgery.
-\item glucagonAUC4. Glucagon value 3 months after surgery.
+\item id Patient identifier
+\item weight1 Bodyweight (in kg) 3 months before surgery.
+\item weight2 Bodyweight (in kg) 1 week before surgery.
+\item weight3 Bodyweight (in kg) 1 week after surgery.
+\item weight4 Bodyweight (in kg) 3 months after surgery.
+\item glucagonAUC1 Glucagon value 3 months before surgery.
+\item glucagonAUC2 Glucagon value 1 week before surgery.
+\item glucagonAUC3 Glucagon value 1 week after surgery.
+\item glucagonAUC4 Glucagon value 3 months after surgery.
+}
+}
+\examples{
+\dontrun{
+gastricbypassW <- read.table("inst/dataTXT/gastricbypass.txt", header = TRUE, na.string = ".")
+gastricbypassW$id <- as.factor(gastricbypassW$id)
+save(gastricbypassW, file = "data/gastricbypassW.rda")
 }
 }
 \references{

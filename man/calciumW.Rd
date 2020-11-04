@@ -13,21 +13,31 @@ on bone mineral density over a 2 year follow-up. The clinical question is: does 
 This dataset is in the wide format (i.e. one line per patient).
 
 \itemize{
-\item girl. Patient identifier
-\item grp. Treatment group: calcium supplement (coded \code{C}) or placebo (coded \code{P})
-\item obstime1. Time after the start of the study at which the first visit took place (in years).
-\item obstime2. Time after the start of the study at which the second visit took place (in years).
-\item obstime3. Time after the start of the study at which the third visit took place (in years).
-\item obstime4. Time after the start of the study at which the fourth visit took place (in years).
-\item obstime5. Time after the start of the study at which the fifth visit took place (in years).
-\item bmd1. Bone mineral density measured at the first visit (in mg/cm3).
-\item bmd2. Bone mineral density measured at the second visit (in mg/cm3).
-\item bmd3. Bone mineral density measured at the third visit (in mg/cm3).
-\item bmd4. Bone mineral density measured at the fourth visit (in mg/cm3).
-\item bmd5. Bone mineral density measured at the fifth visit (in mg/cm3).
+\item girl Patient identifier
+\item grp Treatment group: calcium supplement (coded \code{C}) or placebo (coded \code{P})
+\item obstime1 Time after the start of the study at which the first visit took place (in years).
+\item obstime2 Time after the start of the study at which the second visit took place (in years).
+\item obstime3 Time after the start of the study at which the third visit took place (in years).
+\item obstime4 Time after the start of the study at which the fourth visit took place (in years).
+\item obstime5 Time after the start of the study at which the fifth visit took place (in years).
+\item bmd1 Bone mineral density measured at the first visit (in mg/cm3).
+\item bmd2 Bone mineral density measured at the second visit (in mg/cm3).
+\item bmd3 Bone mineral density measured at the third visit (in mg/cm3).
+\item bmd4 Bone mineral density measured at the fourth visit (in mg/cm3).
+\item bmd5 Bone mineral density measured at the fifth visit (in mg/cm3).
+}
+}
+\examples{
+\dontrun{
+calciumW <- read.table("inst/dataTXT/calcium1.txt", header = TRUE, na.string = ".")
+calciumW$obstime1 <- as.numeric(calciumW$obstime1)
+calciumW$dropout <- NULL
+calciumW$girl <- as.factor(calciumW$girl)
+calciumW$grp <- as.factor(calciumW$grp)
+save(calciumW, file = "data/calciumW.rda")
 }
 }
 \references{
-TO ADD
+Vonesh and Chinchilli 1997. Linear and Nonlinear models for the analysis of repeated measurement (Table 5.4.1 on page 228). New York: Marcel Dekker.
 }
 \keyword{data}

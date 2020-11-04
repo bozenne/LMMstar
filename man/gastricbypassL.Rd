@@ -13,11 +13,25 @@ where the bodyweight and serum glucagon (a gut hormone) were measured in 20 obes
 This dataset is in the long format (i.e. one line per measurement).
 
 \itemize{
-\item id. Patient identifier
-\item visit. The visit index.
-\item time. The time at which the visit took place.
-\item weight. Bodyweight (in kg) measured during the visit.
-\item glucagon. Glucagon measured during the visit.
+\item id Patient identifier
+\item visit The visit index.
+\item time The time at which the visit took place.
+\item weight Bodyweight (in kg) measured during the visit.
+\item glucagon Glucagon measured during the visit.
+}
+}
+\examples{
+\dontrun{
+data("gastricbypassW")
+dtW <- data.table::as.data.table(gastricbypassW)
+dtL <- data.table::melt(dtW, id.vars = "id",
+                        measure.vars = patterns("weight","glucagonAUC"),
+                        value.name = c("weight","glucagon"), variable.name = "time")
+gastricbypassL <- as.data.frame(dtL)
+gastricbypassL$visit <- gastricbypassL$time
+gastricbypassL$time <- factor(gastricbypassL$visit, levels = 1:4, labels = c("3 months before surgery","1 week before surgery","1 week after surgery","3 months after surgery"))
+gastricbypassL <- gastricbypassL[,c("id","visit","time","weight","glucagon")]
+save(gastricbypassL, file = "data/gastricbypassL.rda")
 }
 }
 \references{
