@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (15:47) 
 ## Version: 
-## Last-Updated: nov  9 2020 (11:27) 
+## Last-Updated: nov  9 2020 (11:43) 
 ##           By: Brice Ozenne
-##     Update #: 100
+##     Update #: 103
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -46,6 +46,10 @@
 #' e.gls2 <- gls(glucagon ~ time, correlation = corSymm(form=~as.numeric(visit)|id), weights = varIdent(form=~1|visit), data = gastricbypassL, na.action = na.exclude)
 #' e.ufit2 <- ufit(e.gls2)
 #' e.ufit2
+#' 
+#' e.gls3 <- gls(glucagon ~ time, correlation = corCompSymm(form=~1|id), data = gastricbypassL, na.action = na.exclude)
+#' e.ufit3 <- ufit(e.gls3)
+#' e.ufit3
 #' 
 #' ## time per group
 #' e.lmm2 <- lmm(weight ~ time*baselineG, covariance = ~visit|id, data = gastricbypassL)
@@ -115,7 +119,7 @@ ufit <- function(object, value = NULL, confint = TRUE, conf.quantile = stats::qn
     ## ** compute predictions with confidence intervals
     if(confint){
         requireNamespace("AICcmodavg")
-        tempo <- AICcmodavg::predictSE.gls(object, newdata = Unewdata, se.fit = TRUE)
+        tempo <- AICcmodavg::predictSE(object, newdata = Unewdata, se.fit = TRUE)
         Unewdata$fit <- tempo$fit
         Unewdata$se <- tempo$se.fit
         Unewdata$lower <- tempo$fit - conf.quantile * tempo$se.fit

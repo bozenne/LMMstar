@@ -39,6 +39,10 @@ e.gls2 <- gls(glucagon ~ time, correlation = corSymm(form=~as.numeric(visit)|id)
 e.ufit2 <- ufit(e.gls2)
 e.ufit2
 
+e.gls3 <- gls(glucagon ~ time, correlation = corCompSymm(form=~1|id), data = gastricbypassL, na.action = na.exclude)
+e.ufit3 <- ufit(e.gls3)
+e.ufit3
+
 ## time per group
 e.lmm2 <- lmm(weight ~ time*baselineG, covariance = ~visit|id, data = gastricbypassL)
 e.ufit2 <- ufit(e.lmm2)
