@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (15:47) 
 ## Version: 
-## Last-Updated: okt 26 2020 (09:32) 
+## Last-Updated: nov  9 2020 (11:27) 
 ##           By: Brice Ozenne
-##     Update #: 97
+##     Update #: 100
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -141,6 +141,8 @@ ufit <- function(object, value = NULL, confint = TRUE, conf.quantile = stats::qn
                 }else{
                     time.var <- NULL
                 }
+            }else{
+                time.var <- NULL
             }
         }
     }else{
