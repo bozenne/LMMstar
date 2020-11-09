@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: nov  4 2020 (16:13) 
+## Last-Updated: nov  9 2020 (10:49) 
 ##           By: Brice Ozenne
-##     Update #: 35
+##     Update #: 39
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,73 +15,30 @@
 ## 
 ### Code:
 
-## * gastricbypass
-
-## ** gastricbypassW
-#' @title Data From The Gastric Bypass Study (Wide Format)
+## * bloodpressure
+## ** bloodpressureL
+#' @title Data From The Blood Pressure Study (Long Format)
 #'
-#' @description  Data from the gastric bypass study
-#' where the bodyweight and serum glucagon (a gut hormone) were measured in 20 obese subjects prior and after gastric bypass surgery.
-#' This dataset is in the wide format (i.e. one line per patient).
-#'
-#' \itemize{
-#' \item id Patient identifier
-#' \item weight1 Bodyweight (in kg) 3 months before surgery.
-#' \item weight2 Bodyweight (in kg) 1 week before surgery.
-#' \item weight3 Bodyweight (in kg) 1 week after surgery.
-#' \item weight4 Bodyweight (in kg) 3 months after surgery.
-#' \item glucagonAUC1 Glucagon value 3 months before surgery.
-#' \item glucagonAUC2 Glucagon value 1 week before surgery.
-#' \item glucagonAUC3 Glucagon value 1 week after surgery.
-#' \item glucagonAUC4 Glucagon value 3 months after surgery.
-#' }
-#' 
-#' @name gastricbypassW
-#' @docType data
-#' @usage data(gastricbypassW)
-#' @references The effect of Roux-en-Y gastric bypass surgery on the gut mucosal gene expression profile and circulating gut hormones. \url{https://easddistribute.m-anage.com/from.storage?image=4iBH9mRQm1kfeEHULC2CxovdlyCtA1EHeVDdoffnZrAUGG9SHTO-U4ItnLU078eVkF1ZUZgYTy7THlTW3KSgFA2}
-#' @keywords data
-#' @examples
-#' \dontrun{
-#' gastricbypassW <- read.table("inst/dataTXT/gastricbypass.txt", header = TRUE, na.string = ".")
-#' gastricbypassW$id <- as.factor(gastricbypassW$id)
-#' save(gastricbypassW, file = "data/gastricbypassW.rda")
-#' }
-NULL
-
-## ** gastricbypassL
-#' @title Data From The Gastric Bypass Study (Long Format)
-#'
-#' @description  Data from the gastric bypass study
-#' where the bodyweight and serum glucagon (a gut hormone) were measured in 20 obese subjects prior and after gastric bypass surgery.
-#' This dataset is in the long format (i.e. one line per measurement).
+#' @description  Data from a cross-over trial comparing the impact of three formulations of a drug on the blood pressure.
+#' The study was conducted on 12 male volunteers randomly divided into tree groups
+#' and receiving each of the three formulations with a wash-out period of one week.
 #'
 #' \itemize{
 #' \item id Patient identifier
-#' \item visit The visit index.
-#' \item time The time at which the visit took place.
-#' \item weight Bodyweight (in kg) measured during the visit.
-#' \item glucagon Glucagon measured during the visit.
+#' \item sequence sequence of treatment 
+#' \item treatment Formulation of the treatment:
+#' A (50 mg tablet)
+#' B (100 mg tablet)
+#' C (sustained-release formulation capsule)
+#' \item period time period (in weeks)
+#' \item duration duration of the drug (in hours)
 #' }
 #' 
-#' @name gastricbypassL
+#' @name bloodpressureL
 #' @docType data
-#' @usage data(gastricbypassL)
-#' @references The effect of Roux-en-Y gastric bypass surgery on the gut mucosal gene expression profile and circulating gut hormones. \url{https://easddistribute.m-anage.com/from.storage?image=4iBH9mRQm1kfeEHULC2CxovdlyCtA1EHeVDdoffnZrAUGG9SHTO-U4ItnLU078eVkF1ZUZgYTy7THlTW3KSgFA2}
+#' @usage data(bloodpressureL)
+#' @references TO ADD
 #' @keywords data
-#' @examples
-#' \dontrun{
-#' data("gastricbypassW")
-#' dtW <- data.table::as.data.table(gastricbypassW)
-#' dtL <- data.table::melt(dtW, id.vars = "id",
-#'                         measure.vars = patterns("weight","glucagonAUC"),
-#'                         value.name = c("weight","glucagon"), variable.name = "time")
-#' gastricbypassL <- as.data.frame(dtL)
-#' gastricbypassL$visit <- gastricbypassL$time
-#' gastricbypassL$time <- factor(gastricbypassL$visit, levels = 1:4, labels = c("3 months before surgery","1 week before surgery","1 week after surgery","3 months after surgery"))
-#' gastricbypassL <- gastricbypassL[,c("id","visit","time","weight","glucagon")]
-#' save(gastricbypassL, file = "data/gastricbypassL.rda")
-#' }
 NULL
 
 ## * calcium
@@ -161,6 +118,75 @@ NULL
 #'                             "5" = 2.0)
 #' calciumL$time.fac <- factor(calciumL$visit, levels = 1:5, labels = c("0 years","0.5 years","1 years","1.5 years","2 years")) 
 #' save(calciumL, file = "data/gastricbypassL.rda")
+#' }
+NULL
+
+## * gastricbypass
+
+## ** gastricbypassW
+#' @title Data From The Gastric Bypass Study (Wide Format)
+#'
+#' @description  Data from the gastric bypass study
+#' where the bodyweight and serum glucagon (a gut hormone) were measured in 20 obese subjects prior and after gastric bypass surgery.
+#' This dataset is in the wide format (i.e. one line per patient).
+#'
+#' \itemize{
+#' \item id Patient identifier
+#' \item weight1 Bodyweight (in kg) 3 months before surgery.
+#' \item weight2 Bodyweight (in kg) 1 week before surgery.
+#' \item weight3 Bodyweight (in kg) 1 week after surgery.
+#' \item weight4 Bodyweight (in kg) 3 months after surgery.
+#' \item glucagonAUC1 Glucagon value 3 months before surgery.
+#' \item glucagonAUC2 Glucagon value 1 week before surgery.
+#' \item glucagonAUC3 Glucagon value 1 week after surgery.
+#' \item glucagonAUC4 Glucagon value 3 months after surgery.
+#' }
+#' 
+#' @name gastricbypassW
+#' @docType data
+#' @usage data(gastricbypassW)
+#' @references The effect of Roux-en-Y gastric bypass surgery on the gut mucosal gene expression profile and circulating gut hormones. \url{https://easddistribute.m-anage.com/from.storage?image=4iBH9mRQm1kfeEHULC2CxovdlyCtA1EHeVDdoffnZrAUGG9SHTO-U4ItnLU078eVkF1ZUZgYTy7THlTW3KSgFA2}
+#' @keywords data
+#' @examples
+#' \dontrun{
+#' gastricbypassW <- read.table("inst/dataTXT/gastricbypass.txt", header = TRUE, na.string = ".")
+#' gastricbypassW$id <- as.factor(gastricbypassW$id)
+#' save(gastricbypassW, file = "data/gastricbypassW.rda")
+#' }
+NULL
+
+## ** gastricbypassL
+#' @title Data From The Gastric Bypass Study (Long Format)
+#'
+#' @description  Data from the gastric bypass study
+#' where the bodyweight and serum glucagon (a gut hormone) were measured in 20 obese subjects prior and after gastric bypass surgery.
+#' This dataset is in the long format (i.e. one line per measurement).
+#'
+#' \itemize{
+#' \item id Patient identifier
+#' \item visit The visit index.
+#' \item time The time at which the visit took place.
+#' \item weight Bodyweight (in kg) measured during the visit.
+#' \item glucagon Glucagon measured during the visit.
+#' }
+#' 
+#' @name gastricbypassL
+#' @docType data
+#' @usage data(gastricbypassL)
+#' @references The effect of Roux-en-Y gastric bypass surgery on the gut mucosal gene expression profile and circulating gut hormones. \url{https://easddistribute.m-anage.com/from.storage?image=4iBH9mRQm1kfeEHULC2CxovdlyCtA1EHeVDdoffnZrAUGG9SHTO-U4ItnLU078eVkF1ZUZgYTy7THlTW3KSgFA2}
+#' @keywords data
+#' @examples
+#' \dontrun{
+#' data("gastricbypassW")
+#' dtW <- data.table::as.data.table(gastricbypassW)
+#' dtL <- data.table::melt(dtW, id.vars = "id",
+#'                         measure.vars = patterns("weight","glucagonAUC"),
+#'                         value.name = c("weight","glucagon"), variable.name = "time")
+#' gastricbypassL <- as.data.frame(dtL)
+#' gastricbypassL$visit <- gastricbypassL$time
+#' gastricbypassL$time <- factor(gastricbypassL$visit, levels = 1:4, labels = c("3 months before surgery","1 week before surgery","1 week after surgery","3 months after surgery"))
+#' gastricbypassL <- gastricbypassL[,c("id","visit","time","weight","glucagon")]
+#' save(gastricbypassL, file = "data/gastricbypassL.rda")
 #' }
 NULL
 
