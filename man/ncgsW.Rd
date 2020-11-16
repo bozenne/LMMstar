@@ -28,6 +28,8 @@ ncgsW <- read.table("inst/dataTXT/ncgs.txt", header = TRUE, na.string = ".")
 ncgsW$group <- as.factor(ncgsW$group)
 ncgsW$id <- as.factor(ncgsW$id)
 save(ncgsW, file = "data/ncgsW.rda")
+
+str(ncgsW)
 }
 }
 \references{

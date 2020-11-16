@@ -38,6 +38,8 @@ calciumL$time.num <- sapply(as.character(calciumL$visit), switch,
                             "5" = 2.0)
 calciumL$time.fac <- factor(calciumL$visit, levels = 1:5, labels = c("0 years","0.5 years","1 years","1.5 years","2 years")) 
 save(calciumL, file = "data/gastricbypassL.rda")
+
+str(calciumL)
 }
 }
 \references{

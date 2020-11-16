@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: nov  9 2020 (10:49) 
+## Last-Updated: nov 16 2020 (10:10) 
 ##           By: Brice Ozenne
-##     Update #: 39
+##     Update #: 55
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -14,6 +14,58 @@
 ##----------------------------------------------------------------------
 ## 
 ### Code:
+
+## * blandAltman
+## ** blandAltmanW
+#' @title Data From The Bland Altman Study (Wide Format)
+#'
+#' @description  Data From The Bland Altman Study where two methods to measure the peak expiratory flow rate (PEFR) where compared.
+#' This dataset is in the wide format (i.e. one line per patient).
+#'
+#' \itemize{
+#' \item id Patient identifier
+#' \item wright1 First measurement made with a Wright peak flow meter.
+#' \item wright2 Second measurement made with a Wright peak flow meter.
+#' \item mini1 First measurement made with a mini Wright peak flow meter.
+#' \item mini2 Second measurement made with a mini Wright peak flow meter.
+#' }
+#' 
+#' @name blandAltmanW
+#' @docType data
+#' @usage data(blandAltmanW)
+#' @references Bland & Altman, Statistical methods for assessing agreement between two methods of clinical measurement, Lancet, 1986; i: 307-310.
+#' @keywords data
+#' @examples
+#' \dontrun{
+#' data(blandAltmanW)
+#' str(blandAltmanW)
+#' }
+NULL
+
+## ** calciumL
+#' @title Data From The Bland Altman Study (Long Format)
+#'
+#' @description  Data From The Bland Altman Study where two methods to measure the peak expiratory flow rate (PEFR) where compared.
+#' This dataset is in the long format (i.e. one line per measurement).
+#'
+#' \itemize{
+#' \item id Patient identifier.
+#' \item replicate Index of the measurement (first or second).
+#' \item method Device used to make the measurement (Wright peak flow meter or mini Wright peak flow meter).
+#' \item pefr Measurement (peak expiratory flow rate).
+#' }
+#' 
+#' @name blandAltmanL
+#' @docType data
+#' @usage data(blandAltmanL)
+#' @references Bland & Altman, Statistical methods for assessing agreement between two methods of clinical measurement, Lancet, 1986; i: 307-310.
+#' @keywords data
+#' @examples
+#' \dontrun{
+#' data(blandAltmanL)
+#' str(blandAltmanL)
+#' }
+NULL
 
 ## * bloodpressure
 ## ** bloodpressureL
@@ -39,6 +91,10 @@
 #' @usage data(bloodpressureL)
 #' @references TO ADD
 #' @keywords data
+#'
+#' @examples
+#' data(bloodpressureL)
+#' str(bloodpressureL)
 NULL
 
 ## * calcium
@@ -77,6 +133,8 @@ NULL
 #' calciumW$girl <- as.factor(calciumW$girl)
 #' calciumW$grp <- as.factor(calciumW$grp)
 #' save(calciumW, file = "data/calciumW.rda")
+#'
+#' str(calciumW)
 #' }
 NULL
 
@@ -118,6 +176,8 @@ NULL
 #'                             "5" = 2.0)
 #' calciumL$time.fac <- factor(calciumL$visit, levels = 1:5, labels = c("0 years","0.5 years","1 years","1.5 years","2 years")) 
 #' save(calciumL, file = "data/gastricbypassL.rda")
+#'
+#' str(calciumL)
 #' }
 NULL
 
@@ -152,6 +212,8 @@ NULL
 #' gastricbypassW <- read.table("inst/dataTXT/gastricbypass.txt", header = TRUE, na.string = ".")
 #' gastricbypassW$id <- as.factor(gastricbypassW$id)
 #' save(gastricbypassW, file = "data/gastricbypassW.rda")
+#'
+#' str(gastricbypassW)
 #' }
 NULL
 
@@ -187,6 +249,8 @@ NULL
 #' gastricbypassL$time <- factor(gastricbypassL$visit, levels = 1:4, labels = c("3 months before surgery","1 week before surgery","1 week after surgery","3 months after surgery"))
 #' gastricbypassL <- gastricbypassL[,c("id","visit","time","weight","glucagon")]
 #' save(gastricbypassL, file = "data/gastricbypassL.rda")
+#'
+#' str(gastricbypassL)
 #' }
 NULL
 
@@ -219,6 +283,8 @@ NULL
 #' ncgsW$group <- as.factor(ncgsW$group)
 #' ncgsW$id <- as.factor(ncgsW$id)
 #' save(ncgsW, file = "data/ncgsW.rda")
+#'
+#' str(ncgsW)
 #' }
 NULL
 
@@ -257,6 +323,178 @@ NULL
 #'                             "4" = 18,
 #'                             "5" = 24)
 #' save(ncgsL, file = "data/ncgsL.rda")
+#'
+#' str(ncgsL)
+#' }
+NULL
+
+## * potassium
+## ** potassiumSingleW
+#' @title Data From The Potassium Intake Study (Wide Format)
+#'
+#' @description  Data from the potassium intake study,
+#' a randomized placebo-controlled crossover study where the effect of potassium supplement (90 mmol/day) on the renin-angiostensin-aldosteron system (RAAS) was assessed.
+#' This dataset is in the wide format (i.e. one line per patient).
+#'
+#' \itemize{
+#' \item id Patient identifier
+#' \item sequence Treatment group to which the patient has been randomized.
+#' \item treatment1 Treatment during the first time period.
+#' \item treatment2 Treatment during the second time period
+#' \item auc1 Area under the curve of ?? during the first time period
+#' \item auc2 Area under the curve of ?? during the second time period 
+#' \item bsauc1 ??
+#' \item aldo1 ??
+#' \item aldo2 ??
+#' }
+#' 
+#' @name potassiumSingleW
+#' @docType data
+#' @usage data(potassiumSingleW)
+#' @references Dreier et al. Effect of increased potassium intake on the reninangiotensinaldosterone system and subcutaneous resistance arteries: a randomized crossover study,
+#' Nephrol Dial Transplant (2020) 110. doi: 10.1093/ndt/gfaa114
+#' @keywords data
+#' @examples
+#' data(potassiumSingleW)
+#' str(potassiumSingleW)
+NULL
+
+## ** potassiumSingleL
+#' @title Data From The Potassium Intake Study (Long Format)
+#'
+#' @description  Data from the potassium intake study,
+#' a randomized placebo-controlled crossover study where the effect of potassium supplement (90 mmol/day) on the renin-angiostensin-aldosteron system (RAAS) was assessed.
+#' This dataset is in the long format (i.e. one line per measurement).
+#'
+#' \itemize{
+#' \item id Patient identifier
+#' \item sequence Treatment group to which the patient has been randomized.
+#' \item period Time period.
+#' \item treatment Treatment during the time period
+#' \item auc Area under the curve of ?? during the time period
+#' \item bsauc ??
+#' \item aldo ??
+#' }
+#' 
+#' @name potassiumSingleL
+#' @docType data
+#' @usage data(potassiumSingleL)
+#' @references Dreier et al. Effect of increased potassium intake on the reninangiotensinaldosterone system and subcutaneous resistance arteries: a randomized crossover study,
+#' Nephrol Dial Transplant (2020) 110. doi: 10.1093/ndt/gfaa114
+#' @keywords data
+#' @examples
+#' \dontrun{
+#' data("potassiumSingleL")
+#' str(potassiumSingleL)
+#' }
+NULL
+
+## ** potassiumSingleL
+#' @title Data From The Potassium Intake Study (Long Format with intermediate measurements)
+#'
+#' @description  Data from the potassium intake study,
+#' a randomized placebo-controlled crossover study where the effect of potassium supplement (90 mmol/day) on the renin-angiostensin-aldosteron system (RAAS) was assessed.
+#' This dataset is in the long format (i.e. one line per measurement) and contains measurement over 6 timepoints for each time period.
+#'
+#' \itemize{
+#' \item id Patient identifier
+#' \item sequence Treatment group to which the patient has been randomized.
+#' \item period Time period.
+#' \item treatment Treatment during the time period
+#' \item time Time within each period
+#' \item aldo ??
+#' }
+#' 
+#' @name potassiumRepeatedL
+#' @docType data
+#' @usage data(potassiumRepeatedL)
+#' @references Dreier et al. Effect of increased potassium intake on the reninangiotensinaldosterone system and subcutaneous resistance arteries: a randomized crossover study,
+#' Nephrol Dial Transplant (2020) 110. doi: 10.1093/ndt/gfaa114
+#' @keywords data
+#' @examples
+#' \dontrun{
+#' data("potassiumRepeatedL")
+#' str(potassiumRepeatedL)
+#' }
+NULL
+
+
+## * vasscores
+## ** vasscoresW
+#' @title Data From The VAS Study (Wide Format)
+#'
+#' @description  Data from the VAS Study,
+#' a randomized controlled clinial trial assessing the healing effect of topical zink sulfate on epidermal wound.
+#' The study includes 30 heatlhy volunteers with induced wounds on each buttock which where subsequently treated with a different treatment for each wound.
+#' Then the VAS-score (pain sensation on a 0-100mm visual analogue scale) was assessed after each treatment application and summarized by area under the curve.
+#' This dataset is in the wide format (i.e. one line per patient).
+#'
+#' \itemize{
+#' \item id Patient identifier.
+#' \item group Treatment group to which the patient has been randomized.
+#' \item vasA VAS-score when using a zink shower gel.
+#' \item vasB VAS-score when using a placebo treatment (shower gel without zink).
+#' \item vasC VAS-score when using a control treatment with demineralized water.
+#' }
+#' 
+#' @name vasscoresW
+#' @docType data
+#' @usage data(vasscoresW)
+#' @references TODO
+#' @keywords data
+#' @examples
+#' \dontrun{
+#' vasscoresW <- read.table("inst/dataTXT/vasscores.txt", header = TRUE, na.string = ".")
+#' vasscoresW$id <- factor(vasscoresW$id)
+#' vasscoresW$group <- factor(vasscoresW$group)
+#' save(vasscoresW, file = "data/vasscoresW.rda")
+#' }
+NULL
+
+## ** vasscoresL
+#' @title Data From The VAS Study (Long Format)
+#'
+#' @description  Data from the VAS Study,
+#' a randomized controlled clinial trial assessing the healing effect of topical zink sulfate on epidermal wound.
+#' The study includes 30 heatlhy volunteers with induced wounds on each buttock which where subsequently treated with a different treatment for each wound.
+#' Then the VAS-score (pain sensation on a 0-100mm visual analogue scale) was assessed after each treatment application and summarized by area under the curve.
+#' This dataset is in the long format (i.e. one line per measurement).
+#'
+#' \itemize{
+#' \item id Patient identifier.
+#' \item group Treatment group to which the patient has been randomized.
+#' \item treat.num 
+#' \item vas VAS-score relative to the wound.
+#' \item treatment Treatment used on the wound.
+#' A: active treatment (zink shower gel),
+#' B: placebo treatment (shower gel without zink),
+#' C: control treatment (demineralized water).
+#' }
+#' 
+#' @name vasscoresL
+#' @docType data
+#' @usage data(vasscoresL)
+#' @references TODO
+#' @keywords data
+#' @examples
+#' \dontrun{
+#' data("vasscoresW")
+#' ## transform to long format:
+#' vasscoresL <- reshape(vasscoresW, 
+#'                direction="long", 
+#'                idvar=c("id","group"), 
+#'                varying=c("vasA","vasB","vasC"),
+#'                v.names=c("vas"),
+#'                timevar="treat.num")
+#'
+#' ## Make a categorical version of the treatment variable:
+#' vasscoresL$treatment <- factor(vasscoresL$treat.num, labels=c('A','B','C'))
+#' ## Fix attributes
+#' rownames(vasscoresL) <- NULL
+#' attr(vasscoresL, "reshapeLong") <- NULL
+#' ## Export
+#' save(vasscoresL, file="data/vasscoresL.rda")
+#' str(vasscoresL)
 #' }
 NULL
 

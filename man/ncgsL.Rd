@@ -35,6 +35,8 @@ ncgsL$time <- sapply(as.character(ncgsL$visit), switch,
                             "4" = 18,
                             "5" = 24)
 save(ncgsL, file = "data/ncgsL.rda")
+
+str(ncgsL)
 }
 }
 \references{

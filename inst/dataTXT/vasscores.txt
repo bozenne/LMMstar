@@ -1,4 +1,5 @@
-id group vasaucA vasaucB vasaucC
+id group vasA vasB vasC
+
 1 AC 51 . 48.5
 2 AB 42 35 .
 3 AB 54 62 .

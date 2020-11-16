@@ -23,6 +23,10 @@ C (sustained-release formulation capsule)
 \item duration duration of the drug (in hours)
 }
 }
+\examples{
+data(bloodpressureL)
+str(bloodpressureL)
+}
 \references{
 TO ADD
 }

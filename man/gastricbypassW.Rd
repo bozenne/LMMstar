@@ -29,6 +29,8 @@ This dataset is in the wide format (i.e. one line per patient).
 gastricbypassW <- read.table("inst/dataTXT/gastricbypass.txt", header = TRUE, na.string = ".")
 gastricbypassW$id <- as.factor(gastricbypassW$id)
 save(gastricbypassW, file = "data/gastricbypassW.rda")
+
+str(gastricbypassW)
 }
 }
 \references{

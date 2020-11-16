@@ -35,6 +35,8 @@ calciumW$dropout <- NULL
 calciumW$girl <- as.factor(calciumW$girl)
 calciumW$grp <- as.factor(calciumW$grp)
 save(calciumW, file = "data/calciumW.rda")
+
+str(calciumW)
 }
 }
 \references{
