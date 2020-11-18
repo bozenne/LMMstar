@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: nov 16 2020 (10:10) 
+## Last-Updated: nov 18 2020 (15:06) 
 ##           By: Brice Ozenne
-##     Update #: 55
+##     Update #: 57
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -415,6 +415,72 @@ NULL
 #' \dontrun{
 #' data("potassiumRepeatedL")
 #' str(potassiumRepeatedL)
+#' }
+NULL
+
+## * swabs
+## ** swabsW
+#' @title Data From The SWABS Study (Wide Format)
+#'
+#' @description Data from the swabs study,
+#' where the pneumococcus was studied in 18 families with different space available for the household.
+#' This dataset is in the wide format (i.e. one line per patient).
+#'
+#' \itemize{
+#' \item crowding Space available in the household.
+#' \item family Family serial number
+#' \item mother number of times the swab measurement was positive for the mother.
+#' \item father number of times the swab measurement was positive for the father.
+#' \item child1 number of times the swab measurement was positive for the first child.
+#' \item child2 number of times the swab measurement was positive for the second child.
+#' \item child3 number of times the swab measurement was positive for the third child.
+#' }
+#' 
+#' @name swabsW
+#' @docType data
+#' @usage data(swabsW)
+#' @references Grundy SM, Lan SP, Lachin J. The effects of chenodiol on biliary lipids and their association with gallstone dissolution in the National Cooperative Gallstone Study (SWABS). J Clin Invest. 1984 Apr;73(4):1156-66. doi: 10.1172/JCI111301.  
+#' @keywords data
+#' @examples
+#' \dontrun{
+#' library(reshape2)
+#' data(swabsL)
+#' swabsW <- dcast(swabsL, formula = crowding+family~name, value.var = "swabs")
+#' save(swabsW, file = "data/swabsW.rda")
+#' str(swabsW)
+#' }
+NULL
+
+## ** swabsL
+#' @title Data From The SWABS Study (Long Format)
+#'
+#' @description  Data from the swabs study,
+#' where the pneumococcus was studied in 18 families with different space available for the household.
+#' This dataset is in the long format (i.e. one line per measurement).
+#'
+#' \itemize{
+#' \item crowding Space available in the household.
+#' \item family Family serial number
+#' \item name Type of family member.
+#' \item swabs number of times the swab measurement was positive.
+#' }
+#' 
+#' @name swabsL
+#' @docType data
+#' @usage data(swabsL)
+#' @references TODO
+#' @keywords data
+#' @examples
+#' \dontrun{
+#' swabsL <- read.table("inst/dataTXT/swabs.txt", header = TRUE, na.string = ".")
+#' swabsL$family <- as.factor(swabsL$family)
+#' swabsL$crowding <- factor(swabsL$crowding, 
+#'             levels = c("uncrow","crow","overcrow"))
+#' swabsL$name <- factor(swabsL$name,
+#'    levels = c("mother","father", "child1","child2","child3"))
+#' swabsL <- swabsL[order(swabsL$crowding,swabsL$family,swabsL$name),]
+#' save(swabsL, file = "data/swabsL.rda")
+#' str(swabsL)
 #' }
 NULL
 

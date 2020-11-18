@@ -27,10 +27,8 @@ interface.
 
 * Installation
 
-To install the package:
-
-- 1. :: make sure that the R version that you use is recent
-   (>=4.0.0). You can check that using:
+To install the package, you will need:
+- 1. :: A fairly recent R version (>=4.0.0). You can check that using:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 paste0(R.Version()[c("major","minor")], collapse = ".")
 #+END_SRC
@@ -38,9 +36,8 @@ paste0(R.Version()[c("major","minor")], collapse = ".")
 #+RESULTS:
 : [1] "4.0.2"
 
-- 2. :: Make sure that Rtools is installed (only for windows
-        users!). To check that, you can first install the R package
-        =pkgbuild=:
+- 2. :: Rtools (only for windows users!). To check whether Rtools is
+        installed, you can first install the R package =pkgbuild=:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 install.packages("pkgbuild")
 #+END_SRC
@@ -55,16 +52,19 @@ It should say =TRUE=. Otherwise go to
 https://cran.r-project.org/bin/windows/Rtools/, download and run the
 installer. Then try to run again =pkgbuild::find_rtools()=.
 
-- 3. :: Install the library =devtools=:
+- 3. :: the library =devtools= that you can install using:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 install.packages("devtools")
 #+END_SRC
-and install the =repeated= package using the following R code:
+
+
+The package can be installed/updated with the following line of code:
 #+BEGIN_SRC R :exports both :eval never
 devtools::install_github("bozenne/repeated")
 #+END_SRC
 
-- 4. :: Check that the package is working by loading it and running:
+Note: you can check that the package has been correctly installed by running
+the following lines of code:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 library(repeated)
 set.seed(10)
@@ -80,10 +80,6 @@ head(dW)
 : 4  4  1  0  1  1  2  1.0663764  1.517458 0.06469603 1.52246242 -1.1718628  6.211695  7.112620  7.935585
 : 5  5  1  0  2  1  1  1.2161258  2.359027 1.94236933 0.44388370 -0.9379801  6.107894  6.589544  8.388333
 : 6  6  1  0  2  1  1  0.7356907 -2.706636 2.46505031 2.75276387 -0.1233118  1.838225  3.547717  3.621731
-The code should run without error.
-
-
-
 
 * Functionalities 
 
