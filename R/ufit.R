@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (15:47) 
 ## Version: 
-## Last-Updated: nov  9 2020 (11:43) 
+## Last-Updated: jan 18 2021 (14:03) 
 ##           By: Brice Ozenne
-##     Update #: 103
+##     Update #: 104
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -32,7 +32,7 @@
 #' library(data.table)
 #' library(nlme)
 #'
-#' data(gastricbypassL, package = "repeated")
+#' data(gastricbypassL, package = "LMMstar")
 #' ## generate covariates
 #' gastricbypassL <- as.data.table(gastricbypassL)
 #' gastricbypassL[, baselineG := .SD$glucagon[1]<10000, by = "id"]

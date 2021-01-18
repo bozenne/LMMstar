@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: nov  4 2020 (12:14) 
+## Last-Updated: jan 18 2021 (14:04) 
 ##           By: Brice Ozenne
-##     Update #: 11
+##     Update #: 12
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,7 +17,7 @@
 
 if(FALSE){
     library(testthat)
-    library(repeated)
+    library(LMMstar)
     library(data.table)
 }
 library(nlme)

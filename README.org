@@ -1,6 +1,6 @@
 #+BEGIN_HTML
-<a href="https://travis-ci.org/bozenne/repeated"><img src="https://travis-ci.org/bozenne/repeated.svg?branch=master"></a>
-<a href="https://ci.appveyor.com/project/bozenne/repeated"><img src="https://ci.appveyor.com/api/projects/status/github/bozenne/repeated?svg=true" alt="Build status"></a>
+<a href="https://travis-ci.org/bozenne/LMMstar"><img src="https://travis-ci.org/bozenne/LMMstar.svg?branch=master"></a>
+<a href="https://ci.appveyor.com/project/bozenne/LMMstar"><img src="https://ci.appveyor.com/api/projects/status/github/bozenne/LMMstar?svg=true" alt="Build status"></a>
 <a href="http://www.gnu.org/licenses/gpl-3.0.html"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License"></a>
 #+END_HTML
 
@@ -10,9 +10,9 @@ options(width = 100)
 
 #+RESULTS:
 
-* repeated
+* LMMstar
 
-*repeated* is companion R package for the course "Statistical analysis
+*LMMstar* is companion R package for the course "Statistical analysis
 of correlated and repeated measurements for health science
 researchers" taught by the section of Biostatistics of the University
 of Copenhagen. It provides functions for computing summary statistics
@@ -60,13 +60,13 @@ install.packages("devtools")
 
 The package can be installed/updated with the following line of code:
 #+BEGIN_SRC R :exports both :eval never
-devtools::install_github("bozenne/repeated")
+devtools::install_github("bozenne/LMMstar")
 #+END_SRC
 
 Note: you can check that the package has been correctly installed by running
 the following lines of code:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-library(repeated)
+library(LMMstar)
 set.seed(10)
 dW <- sampleRem(10, n.times = 3)
 head(dW)
@@ -85,11 +85,11 @@ head(dW)
 
 Load the package:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-library(repeated)
+library(LMMstar)
 #+END_SRC
 
 #+RESULTS:
-: repeated version 0.1.6
+: LMMstar version 0.1.6
 
 ** Data generation
 Simulate some data in the wide format:
@@ -371,7 +371,7 @@ gg
 #+RESULTS:
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
-ggsave(gg, filename = "c:/Users/hpl802/Documents/GitHub/repeated/inst/figures/gg-ufit.png")
+ggsave(gg, filename = "c:/Users/hpl802/Documents/GitHub/LMMstar/inst/figures/gg-ufit.png")
 #+END_SRC
 
 #+RESULTS:
@@ -401,7 +401,7 @@ attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
-[1] broom_0.7.0    repeated_0.1.0
+[1] broom_0.7.0    LMMstar_0.1.0
 
 loaded via a namespace (and not attached):
  [1] Rcpp_1.0.5       magrittr_1.5     splines_4.0.2    tidyselect_1.1.0 lattice_0.20-41  R6_2.4.1         rlang_0.4.7     

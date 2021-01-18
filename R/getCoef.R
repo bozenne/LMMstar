@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (14:58) 
 ## Version: 
-## Last-Updated: nov  4 2020 (12:16) 
+## Last-Updated: jan 18 2021 (14:03) 
 ##           By: Brice Ozenne
-##     Update #: 216
+##     Update #: 217
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -48,7 +48,7 @@
 #' \item \code{"std.random"}: standard error of the random effects.
 #' }
 #' @examples
-#' data(gastricbypassL, package = "repeated")
+#' data(gastricbypassL, package = "LMMstar")
 #' library(nlme)
 #' 
 #' #### linear model ####

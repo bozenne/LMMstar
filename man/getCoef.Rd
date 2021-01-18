@@ -43,7 +43,7 @@ When \code{TRUE}, there can be 4 types of parameters in the output: \itemize{
 }
 }
 \examples{
-data(gastricbypassL, package = "repeated")
+data(gastricbypassL, package = "LMMstar")
 library(nlme)
 
 #### linear model ####

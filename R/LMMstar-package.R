@@ -1,6 +1,6 @@
 #' @docType package
-#' @title repeated package: Helper functions for handling repeated measurements in R
-#' @name repeated-package
+#' @title LMMstar package: Helper functions for handling repeated measurements in R
+#' @name LMMstar-package
 #' 
 #' @description Companion R package for the course "Statistical analysis
 #' of correlated and repeated measurements for health science

@@ -24,7 +24,7 @@ library(ggplot2)
 library(data.table)
 library(nlme)
 
-data(gastricbypassL, package = "repeated")
+data(gastricbypassL, package = "LMMstar")
 ## generate covariates
 gastricbypassL <- as.data.table(gastricbypassL)
 gastricbypassL[, baselineG := .SD$glucagon[1]<10000, by = "id"]
