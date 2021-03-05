@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: okt 21 2020 (15:32) 
+## Last-Updated: mar  5 2021 (13:27) 
 ##           By: Brice Ozenne
-##     Update #: 11
+##     Update #: 42
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -24,9 +24,14 @@
 ##' @param digit [integer,>0] number of digit used to display numeric values.
 ##' @param conf.level [numeric,0-1] confidence level for the confidence intervals.
 ##' @param print [logical] should the output be printed in the console.
+##' @param hide.fit [logical] should information about the model fit not be printed.
+##' @param hide.cor [logical] should information about the correlation structure not be printed.
+##' @param hide.var [logical] should information about the variance structure not be printed.
+##' @param hide.mean [logical] should information about the mean structure not be printed.
 ##' @param ... not used. For compatibility with the generic function.
 ##' @export
-summary.lmm <- function(object, digit = 3, conf.level = 0.95, print = TRUE, ...){
+summary.lmm <- function(object, digit = 3, conf.level = 0.95, print = TRUE,
+                        hide.fit = FALSE, hide.cor = FALSE, hide.var = FALSE, hide.sd = FALSE, hide.mean = FALSE, ...){
 
     ## ** welcome message
     if(print){
@@ -35,6 +40,11 @@ summary.lmm <- function(object, digit = 3, conf.level = 0.95, print = TRUE, ...)
         }else{
             cat("  Linear mixed effect model with a compound symmetry covariance matrix \n")
         }
+    }
+
+    
+    ## ** fit message
+    if(print && !hide.fit){
         if(object$dim$REML){
             cat("  - fitted using Restricted Maximum Likelihood (REML) \n")
         }else{
@@ -65,7 +75,7 @@ summary.lmm <- function(object, digit = 3, conf.level = 0.95, print = TRUE, ...)
     }
 
     ## ** correlation structure
-    if(print){
+    if(print && !hide.cor){
         cat("Correlation structure:",deparse(object$call$correlation),"\n")
     }
     vec.corcoef <- stats::coef(object$modelStruct$corStruct, unconstrained = FALSE)
@@ -81,17 +91,17 @@ summary.lmm <- function(object, digit = 3, conf.level = 0.95, print = TRUE, ...)
     M.corcoef[lower.tri(M.corcoef)] <- vec.corcoef
     M.corcoef[upper.tri(M.corcoef)] <- t(M.corcoef)[upper.tri(M.corcoef)]
     diag(M.corcoef) <- 1
-    if(print){
+    if(print && !hide.cor){
         print(M.corcoef, digit = digit)
         cat("\n")
     }
 
     ## ** variance structure
-    if(print){
+    if(print && !hide.var && !hide.sd){
         cat("Variance structure:",deparse(object$call$weights),"\n")
     }
     M.varcoef <- matrix(NA, nrow = 2, ncol = n.rep,
-                        dimnames = list(c("variance","relative variance"),name.rep))
+                        dimnames = list(c("variance","relative"),name.rep))
     if(!is.null(object$modelStruct$varStruct)){
         vec.varcoef <- stats::coef(object$modelStruct$varStruct, unconstrained = FALSE)^2
         M.varcoef[1,] <- stats::sigma(object)^2*c(1,vec.varcoef)
@@ -100,34 +110,59 @@ summary.lmm <- function(object, digit = 3, conf.level = 0.95, print = TRUE, ...)
         M.varcoef[1,] <- stats::sigma(object)^2
         M.varcoef[2,] <- 1
     }
+
+    M.sdcoef <- matrix(NA, nrow = 2, ncol = n.rep,
+                       dimnames = list(c("standard deviation","relative"),name.rep))
+    if(!is.null(object$modelStruct$varStruct)){
+        vec.sdcoef <- stats::coef(object$modelStruct$varStruct, unconstrained = FALSE)
+        M.sdcoef[1,] <- stats::sigma(object)*c(1,vec.varcoef)
+        M.sdcoef[2,] <- c(1,vec.sdcoef)
+    }else{
+        M.sdcoef[1,] <- stats::sigma(object)
+        M.sdcoef[2,] <- 1
+    }
     if(print){
-    print(M.varcoef, digit = digit)
-    cat("\n")
+        if(!hide.var && !hide.sd){
+            print(rbind(M.varcoef,M.sdcoef), digit = digit)
+            cat("\n")
+        }else if(!hide.var){
+            print(M.varcoef, digit = digit)
+            cat("\n")
+        }else if(!hide.sd){
+            print(M.sdcoef, digit = digit)
+            cat("\n")
+        }
     }
 
     ## ** mean structure
-    if(print){
+    if(print && !hide.mean){
         cat("Mean structure:",deparse(object$call$model),"\n")
     }
     object2 <- object
     class(object2) <- setdiff(class(object2),"lmm")
     tTable <- summary(object2, verbose=FALSE)$tTable
-    starSymbol <- stats::symnum(tTable[,4], corr = FALSE, na = FALSE,
+    tTable <- data.frame(estimate = tTable[,"Value"],
+                         se = tTable[,"Std.Error"],
+                         nlme::intervals(object, which = "coef", level = conf.level)$coef[,c("lower","upper")],
+                         t.value = tTable[,"t-value"],
+                         p.value = tTable[,"p-value"])
+    starSymbol <- stats::symnum(tTable[,"p.value"], corr = FALSE, na = FALSE,
                                 cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1),
                                 symbols = c("***", "**", "*", ".", " "))
-    tTable <- data.frame(tTable[,1], nlme::intervals(object, which = "coef", level = conf.level)$coef[,c("lower","upper")],tTable[,2:4],starSymbol)
-    names(tTable) <- c("estimate","lower","upper","se","t-value","p-value","")
-    tTable.print <- tTable[,-5]
-    tTable.print[["p-value"]] <- format.pval(tTable[["p-value"]], digits = digit, eps = 10^(-digit))
+    tTable.print <- cbind(tTable, starSymbol)
+    names(tTable.print)[7] <- ""
+    tTable.print[["p.value"]] <- format.pval(tTable[["p.value"]], digits = digit, eps = 10^(-digit))
     tTable.print[["estimate"]] <- as.character(round(tTable[["estimate"]], digits = digit))
     tTable.print[["lower"]] <- as.character(round(tTable[["lower"]], digits = digit))
     tTable.print[["upper"]] <- as.character(round(tTable[["lower"]], digits = digit))
     tTable.print[["se"]] <- as.character(round(tTable[["se"]], digits = digit))
-    if(print){
+    if(print && !hide.mean){
         print(tTable.print)
         cat("\n")
         cat("The columns lower and upper correspond to the ",100*conf.level,"% confidence interval of the estimated coefficient\n", sep = "")
-        cat("Note: p-value(s) and confidence interval(s) are not adjusted for multiple comparisons\n")
+        if(NROW(tTable.print)>1){
+            cat("Note: p-values and confidence intervals are not adjusted for multiple comparisons\n")
+        }
     }
     ## ** export
     return(invisible(list(correlation = M.corcoef,

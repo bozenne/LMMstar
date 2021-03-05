@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (14:58) 
 ## Version: 
-## Last-Updated: jan 18 2021 (14:03) 
+## Last-Updated: mar  5 2021 (21:32) 
 ##           By: Brice Ozenne
-##     Update #: 217
+##     Update #: 218
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -257,7 +257,7 @@ getCoef.gls <- function(object, conf.level = 0.95, effects = c("mean"),
     }
 }
 
-## * summarize.lme (code)
+## * getCoef.lme (code)
 ##' @export
 getCoef.lme <- function(object, conf.level = 0.95, effects = c("mean"),
                         format = "default", add.type = FALSE, ...){
@@ -360,7 +360,7 @@ getCoef.lme <- function(object, conf.level = 0.95, effects = c("mean"),
     }
 }
 
-## * summarize.lmm (code)
+## * getCoef.lmm (code)
 ##' @export
 getCoef.lmm <- function(object, conf.level = 0.95, effects = c("mean"),
                         format = "default", add.type = FALSE, ...){
