@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (14:58) 
 ## Version: 
-## Last-Updated: mar  5 2021 (21:32) 
+## Last-Updated: mar  6 2021 (23:40) 
 ##           By: Brice Ozenne
-##     Update #: 218
+##     Update #: 219
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -519,7 +519,7 @@ getCoef.lmm <- function(object, conf.level = 0.95, effects = c("mean"),
                 names(tempo$reStruct) <- names(object$modelStruct$reStruct)
             }
 
-            
+           
             mC <- attr(object$modelStruct$corStruct,"maxCov")
             M.index <- which(lower.tri(diag(mC)), arr.ind = TRUE)
             tempo$corStruct <- cbind(lower = NA, "est." = stats::coef(object$modelStruct$corStruct, unconstrained = FALSE), "upper" = NA)

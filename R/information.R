@@ -1,11 +1,11 @@
-### score.R --- 
+### information.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
-## Created: mar  5 2021 (12:59) 
+## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: mar 22 2021 (22:39) 
+## Last-Updated: mar 22 2021 (22:38) 
 ##           By: Brice Ozenne
-##     Update #: 37
+##     Update #: 7
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,12 +15,12 @@
 ## 
 ### Code:
 
-## * score.lmm (code)
+## * information.lmm (code)
 ##' @export
-score.lmm <- function(x, data = NULL, p = NULL, indiv = TRUE, ...){
+information.lmm <- function(x, data = NULL, p = NULL, ...){
 
     if(is.null(data) && is.null(p)){
-        out <- x$score
+        out <- x$information
     }else{
         if(!is.null(data)){
             ff.allvars <- c(all.vars(x$formula$mean), all.vars(x$formula$var))
@@ -37,13 +37,11 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = TRUE, ...){
                                         var.cluster = x$cluster$var,
                                         structure = x$structure
                                         )
-            Y <- design$Y
             X <- design$X.mean
             index.variance <- design$index.vargroup
             index.cluster <- design$index.cluster
             X.var <- design$X.var
         }else{
-            Y <- x$Y
             X <- x$design$X.mean
             index.variance <- x$design$index.vargroup
             index.cluster <- x$design$index.cluster
@@ -53,51 +51,19 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = TRUE, ...){
             if(any(names(x$param$type) %in% names(p) == FALSE)){
                 stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(x$param$type)[names(x$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
             }
-            beta <- p[names(x$param$mu)]
             Omega <- attr(X.var,"FUN.Omega")(object = X.var, sigma = p[names(x$param$sigma)], k = p[names(x$param$k)], rho = p[names(x$param$cor)])
             precision <- lapply(Omega, solve)
         }else{
-            beta <- x$param$mu
             precision <- x$OmegaM1
         }
-        out <- .score(X = X, residuals = Y - X %*% beta, precision = precision,
-                      index.variance = index.variance, index.cluster = index.cluster, indiv = TRUE, REML = out$method.fit=="REML")
-    }
-    if(indiv == FALSE){
-        out <- colSums(out)       
+        hess <- .hessian(X = X, precision = precision,
+                         index.variance = index.variance, index.cluster = index.cluster, indiv = TRUE, REML = out$method.fit=="REML")
+        out <- -apply(hess, FUN = sum, MARGIN = 2:3)
+        
     }
     return(out)
 }
 
-## * .score
-.score <- function(X, residuals, precision,
-                   index.variance, index.cluster, indiv, REML){
-
-    ## ** prepare
-    n.obs <- length(index.cluster)
-    n.cluster <- length(index.variance)
-    n.allcoef <- NCOL(X)
-    name.allcoef <- colnames(X)
-    Score <- matrix(NA, nrow = n.cluster, ncol = n.allcoef,
-                    dimnames = list(NULL, name.allcoef))
-    
-    ## ** compute score
-    for(iId in 1:n.cluster){ ## iId <- 7
-        iResidual <- residuals[index.cluster==iId,,drop=FALSE]
-        iX <- X[index.cluster==iId,,drop=FALSE]
-        iOmega <- precision[[index.variance[iId]]]
-        Score[iId,] <- t(iX) %*% iOmega %*% iResidual
-    }
-
-    ## ** export
-    if(indiv){
-        return(Score)
-    }else{
-        return(rowSums(Score))
-    }
-
-}
-
 
 ##----------------------------------------------------------------------
-### score.R ends here
+### information.R ends here

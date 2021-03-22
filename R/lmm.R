@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: mar  5 2021 (23:08) 
+## Last-Updated: mar 22 2021 (23:27) 
 ##           By: Brice Ozenne
-##     Update #: 297
+##     Update #: 460
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -23,7 +23,7 @@
 ##' @param formula [formula] Specify the model for the mean.
 ##' On the left hand side the outcome and on the right hand side the covariates affecting the mean value.
 ##' E.g. Y ~ Gender + Gene.
-##' @param covariance [formula] Specify the model for the covariance.
+##' @param variance [formula] Specify the model for the covariance.
 ##' On the right hand side the time/repetition variable and the grouping variable, e.g. ~ time|id.
 ##' On the left hand side, a possible stratification variable, e.g. group ~ time|id. In that case the mean structure should only be stratified on this variable using interactions.
 ##' @param structure [character] type of covariance structure, either \code{"CS"} (compound symmetry) or \code{"UN"} (unstructured).
@@ -57,27 +57,28 @@
 ##' head(dL)
 ##' 
 ##' ## fit mixed model
-##' eCS.lmm <- lmm(Y ~ visit + age + gender, covariance = ~visit|id, structure = "CS", data = dL, debug = 2)
-##' eCS.lmm <- lmm(Y ~ visit, covariance = ~visit|id, structure = "CS", data = dL, debug = 2)
+##' eCS.lmm <- lmm(Y ~ visit + age + gender, variance = ~visit|id, structure = "CS", data = dL, debug = 2)
+##' eCS.lmm <- lmm(Y ~ visit, variance = ~visit|id, structure = "CS", data = dL, debug = 2)
 ##' vcov(eCS.lmm, type = "lmm")
 ##' vcov(eCS.lmm, type = "gls")
 ##' 
 ##' 
-##' eUN.lmm <- lmm(Y ~ visit*gender + age* gender, covariance = ~visit|id, structure = "UN", data = dL, debug = 2)
+##' eUN.lmm <- lmm(Y ~ visit*gender + age* gender, variance = ~visit|id, structure = "UN", data = dL, debug = 2)
 ##' 
-##' eCSs.lmm <- lmm(Y ~ visit*gender + age* gender, covariance = gender~visit|id, structure = "CS", data = dL, debug = 2)
+##' eCSs.lmm <- lmm(Y ~ visit*gender + age* gender, variance = gender~visit|id, structure = "CS", data = dL, debug = 2)
 ##' summary(e0.lmm)
 ##' 
 ##'
-##' e.lmm <- lmm(Y ~ visit + age + gender, covariance = ~visit|id, data = dL)
+##' e.lmm <- lmm(Y ~ visit + age + gender, variance = ~visit|id, data = dL)
 ##' cat(attr(e.lmm,"code")) ## code used to fit the model
 ##' head(attr(e.lmm,"data")) ## data used to fit the model
 ##' summary(e.lmm)
 
 ## * lmm (code)
 ##' @export
-lmm <- function(formula, covariance, structure, data, df = FALSE, debug = FALSE, ...){
-
+lmm <- function(formula, variance, structure, data, df = FALSE, debug = FALSE, ...){
+    out <- list()
+    
     ## ** check and normalize user imput
     if(debug>=1){cat("1. check and normalize user imput \n")}
     
@@ -102,13 +103,14 @@ lmm <- function(formula, covariance, structure, data, df = FALSE, debug = FALSE,
     }
 
     if(debug>=2){cat("\n")}
-    ## *** covariance 
-    if(debug>=2){cat("- covariance ")}
-    if(!inherits(covariance,"formula")){
-        stop("Argument \'covariance\' must be of class formula, something like: ~ time|id or group ~ time|id. \n")
+    
+    ## *** variance 
+    if(debug>=2){cat("- variance ")}
+    if(!inherits(variance,"formula")){
+        stop("Argument \'variance\' must be of class formula, something like: ~ time|id or group ~ time|id. \n")
     }
 
-    name.vcov <- all.vars(covariance)
+    name.vcov <- all.vars(variance)
     if(any(name.vcov %in% names(data) == FALSE)){
         invalid <- name.vcov[name.vcov %in% names(data) == FALSE]
         stop("Argument \'formula\' is inconsistent with argument \'data\'. \n",
@@ -118,83 +120,101 @@ lmm <- function(formula, covariance, structure, data, df = FALSE, debug = FALSE,
 
     ## - right hand side
     if(debug>=2){cat(" (rhs ")}
-    if(length(rhs.vars(covariance))!=2){
-        stop("Incorrect specification of argument \'covariance\'. \n",
-             "There should be exactly two variables on the right hand side, something like: ~ time|id or group ~ time|id. \n")
-    }
 
-    if(!grepl("|",deparse(covariance),fixed = TRUE)){
-        stop("Incorrect specification of argument \'covariance\'. \n",
-             "No | symbol found so no grouping variable could be defined. \n",
-             "Shoud be something like: ~ time|id or group ~ time|id. \n")
-    }
+    if(length(all.vars(update(variance,0~.)))==0){ ## t-test
 
-    if(length(grepl("|",deparse(covariance),fixed = TRUE))>1){
-        stop("Incorrect specification of argument \'covariance\'. \n",
-             "The symbol | should only appear once, something like: ~ time|id or group ~ time|id. \n")
-    }
-    res.split <- strsplit(deparse(covariance),"|", fixed = TRUE)[[1]]
-    var.cluster <- trimws(res.split[2], which = "both")
-    var.time <- all.vars(update(stats::as.formula(res.split[1]),0~.))
-    if(length(var.time)!=1){
-        stop("Incorrect specification of argument \'covariance\'. \n",
-             "Should have exactly one variable before the grouping symbol (|), something like: ~ time|id or group ~ time|id. \n")
-    }
-    if(length(var.cluster)!=1){
-        stop("Incorrect specification of argument \'covariance\'. \n",
-             "Should have exactly one variable after the grouping symbol (|), something like: ~ time|id or group ~ time|id. \n")
-    }
-    test.duplicated <- tapply(data[[var.time]], data[[var.cluster]], function(iT){any(duplicated(iT))})
-    if(any(test.duplicated)){
-        stop("Incorrect time variable, it should contain unique values within clusters \n")
-    }
+        if("XXclusterXX" %in% names(data)){
+            stop("Incorrect specification of argument \'data\'. \n",
+                 "The variable \"XXclusterXX\" is used internally but already exists in \'data\' \n")
+        }
+        data$XXclusterXX <- 1:NROW(data)
+        if("XXtimeXX" %in% names(data)){
+            stop("Incorrect specification of argument \'data\'. \n",
+                 "The variable \"XXtimeXX\" is used internally but already exists in \'data\' \n")
+        }
+        data$XXtimeXX <- "1"
+        var.cluster <- "XXclusterXX"
+        formula.var <- ~XXtimeXX
+        var.time <- "XXtimeXX"
 
-    U.cluster <- sort(unique(data[[var.cluster]]))
-    n.cluster <- length(U.cluster)
-    U.time <- sort(unique(data[[var.time]]))
-    n.time <- length(U.time)
-    n.obspercluster <- tapply(data[[var.time]],data[[var.cluster]], length)
+    }else{
 
-    
+        if(!grepl("|",deparse(variance),fixed = TRUE)){
+            stop("Incorrect specification of argument \'variance\'. \n",
+                 "No | symbol found so no grouping variable could be defined. \n",
+                 "Shoud be something like: ~ time|id or group ~ time|id. \n")
+        }
+
+        if(length(grepl("|",deparse(variance),fixed = TRUE))>1){
+            stop("Incorrect specification of argument \'variance\'. \n",
+                 "The symbol | should only appear once, something like: ~ time|id or group ~ time|id. \n")
+        }
+        res.split <- strsplit(deparse(variance),"|", fixed = TRUE)[[1]]
+        var.cluster <- trimws(res.split[2], which = "both")
+        formula.var <- stats::as.formula(res.split[1])
+        var.time <- all.vars(update(formula.var,0~.))[1]
+
+        if(length(var.time)==0){
+            stop("Incorrect specification of argument \'variance\'. \n",
+                 "There should be at least one variable before the grouping symbol (|), something like: ~ time|id or group ~ time|id. \n")
+        }
+        if(length(var.cluster)!=1){
+            stop("Incorrect specification of argument \'variance\'. \n",
+                 "Should have exactly one variable after the grouping symbol (|), something like: ~ time|id or group ~ time|id. \n")
+        }
+
+        test.duplicated <- tapply(data[[var.time]], data[[var.cluster]], function(iT){any(duplicated(iT))})
+        if(any(test.duplicated)){
+            stop("Incorrect specification of argument \'variance\'. \n",
+                 "The time variable (first variable before |) should contain unique values within clusters \n")
+        }
+    }
 
     ## *** left hand side
     if(debug>=2){cat(" lhs) ")}
-    if(length(lhs.vars(covariance))==0){
+    if(length(lhs.vars(variance))==0){
         var.strata <- NULL
     }else{
-        if(length(lhs.vars(covariance))!=1){
-            stop("Incorrect specification of argument \'covariance\'. \n",
+        if(length(lhs.vars(variance))!=1){
+            stop("Incorrect specification of argument \'variance\'. \n",
                  "There should be at most one variable on the left hand side, something like: ~ time|id or group ~ time|id. \n")
         }else{
             var.strata <- name.vcov[1]
-            U.strata <- sort(unique(data[[var.strata]]))
+            U.strata <- as.character(sort(unique(data[[var.strata]])))
             n.strata <- length(U.strata)
             
             tocheck <- setdiff(var.X,var.strata)
 
             if(var.strata %in% var.X == FALSE){
-                stop("When a variable is used to stratify the covariance structure, it should also be use to stratify the mean structure. \n",
+                stop("When a variable is used to stratify the variance structure, it should also be use to stratify the mean structure. \n",
                      "Consider adding all interactions with \"",var.strata,"\" in the argument \'formula\'. \n")
             }
             
             if(any(rowSums(table(data[[var.cluster]],data[[var.strata]])>0)!=1)){
-                stop("When a variable is used to stratify the covariance structure, all observations belonging to each cluster must belong to a single strata. \n")
+                stop("When a variable is used to stratify the variance structure, all observations belonging to each cluster must belong to a single strata. \n")
             }
 
             sapply(tocheck, function(iX){ ## iX <- "age"
                 iCoef <- which(attr(formula.terms,"factors")[iX,]==1)
                 iInteraction <- attr(formula.terms,"factors")[var.strata,iCoef,drop=FALSE]
                 if(length(unique(iInteraction))!=n.strata){
-                    stop("When a variable is used to stratify the covariance structure, it should also be used to stratify the mean structure. \n",
+                    stop("When a variable is used to stratify the variance structure, it should also be used to stratify the mean structure. \n",
                          "Consider adding an interaction between \"",iX,"\" and \"",var.strata,"\" in the argument \'formula\'. \n")
                 }
             })
 
-            if(n.strata>max(5,n.cluster/10)){
-                warning("Large number of strata - ",n.strata," - may lead to optimization issue. \n")
+            test.unique <- tapply(data[[var.time]], data[[var.strata]], function(iT){list(sort(unique(iT)))})
+            
+            if(length(unique(sapply(test.unique,length)))>1){
+                stop("Incorrect specification of argument \'variance\'. \n",
+                    "The time variable should contain the same number of unique values in each strata \n")
             }
-
-
+            test.unique <- do.call(rbind,test.unique)
+            
+            if(any(apply(test.unique, MARGIN = 2, FUN = function(x){length(unique(x))})!=1)){
+                stop("Incorrect specification of argument \'variance\'. \n",
+                     "The time variable should contain the same unique values in each strata \n")
+            }
         }
     }
 
@@ -229,6 +249,12 @@ lmm <- function(formula, covariance, structure, data, df = FALSE, debug = FALSE,
              "The variable ",var.time.index," is used internally but already exists in \'data\' \n")
     }
     data[[var.time.index]] <- as.numeric(as.factor(data[[var.time]]))
+    U.time <- as.character(sort(unique(data[[var.time]])))
+
+    out$strata <- list(n = n.strata, levels = U.strata, var = var.strata)
+    out$time <- list(n = length(U.time), levels = U.time, var = var.time)
+    out$cluster <- list(var = var.cluster)
+    out$outcome <- list(var = var.outcome)
 
     if(debug>=2){cat("\n")}
 
@@ -241,271 +267,178 @@ lmm <- function(formula, covariance, structure, data, df = FALSE, debug = FALSE,
         txt.data <- paste0("data[data$",var.strata,"==\"",U.strata,"\",,drop=FALSE]")
     }
 
-    
-    if(n.strata>1 && var.strata %in% var.X){
+    if(n.strata>1){
         term.exclude <- c(var.strata,paste0(setdiff(var.X, var.strata),":",var.strata))
-        formula.mean <- update(formula, paste0(".~.-",paste0(term.exclude,collapse="-")))
+        formula.design <- update(formula, paste0(".~.-",paste0(term.exclude,collapse="-"))) ## no interaction with the strata variable
+        out$formula <- list(mean = formula, ## formula will contain all interactions with strata (cf check)
+                            mean.design = formula.design,
+                            var = variance,
+                            var.design = formula.var)
     }else{
-        formula.mean <- formula
+        formula.design <- formula
+        out$formula <- list(mean = formula,
+                            mean.design = formula.design,
+                            var = variance,
+                            var.design = formula.var)
     }
-
 
     if(debug>=2){cat("\n")}
 
-    ## ** fit mixed model
-    if(debug>=1){cat("2. fit mixed model")}
+    ## ** design matrices
+    if(debug>=1){cat("- extract design matrices")}
+    out$design <- .model.matrix.lmm(formula.mean = out$formula$mean.design,
+                                    formula.var = out$formula$var.design,
+                                    data = data, var.outcome = var.outcome,
+                                    var.strata = var.strata, U.strata = U.strata,
+                                    var.time = var.time, U.time = U.time,
+                                    var.cluster = var.cluster,
+                                    structure = structure
+                                    )
 
-    if(all(n.obspercluster==1)){
+    if(debug>=2){cat("\n")}
+    
+    ## ** Estimate model parameters
+    if(debug>=1){cat("2. estimate model parameters")}
+
+    if(max(out$design$cluster$nobs)==1){
         if(structure == "CS"){
-            txt.gls <- paste0("nlme::gls(",deparse(formula.mean),",
+            txt.gls <- paste0("nlme::gls(",deparse(formula.design),",
                                          data = ",txt.data,", ..., )")
         }else if(structure == "UN"){
             form.var <- stats::as.formula(paste0("~1|",var.time))
-            txt.gls <- paste0("nlme::gls(",deparse(formula.mean),",
+            txt.gls <- paste0("nlme::gls(",deparse(formula.design),",
                                          weights = nlme::varIdent(form = ",deparse(form.var),"),
                                          data = ",txt.data,", ...)")
         }
     }else{
         if(structure == "CS"){
             form.cor <- stats::as.formula(paste0("~1|",var.cluster))
-            txt.gls <- paste0("nlme::gls(",deparse(formula.mean),",
+            txt.gls <- paste0("nlme::gls(",deparse(formula.design),",
                                          correlation = nlme::corCompSymm(form = ",deparse(form.cor),"),
                                          data = ",txt.data,", ...)")
         }else if(structure == "UN"){
             form.var <- stats::as.formula(paste0("~1|",var.time))
             form.cor <- stats::as.formula(paste0("~",var.time.index,"|",var.cluster))
-            txt.gls <- paste0("nlme::gls(",deparse(formula.mean),",
+            txt.gls <- paste0("nlme::gls(",deparse(formula.design),",
                                           correlation = nlme::corSymm(form = ",deparse(form.cor),"),
                                           weights = nlme::varIdent(form = ",deparse(form.var),"),
                                           data = ",txt.data,", ...)")
         }
     }
-    e.gls <- setNames(lapply(txt.gls, function(iTxt){eval(parse(text = iTxt))}),
-                      U.strata)
-
-    if(debug>=1){cat("\n")}
-
-    ## ** convert to lmm object
-    if(debug>=1){cat("3. convert to lmm object \n")}
-
-    ## *** extract information from gls
-    if(debug>=2){cat("- extract information from gls")}
-    callGLS <- lapply(e.gls, function(iM){
+    out$gls <- setNames(lapply(txt.gls, function(iTxt){eval(parse(text = iTxt))}),
+                        U.strata)
+    out$gls.call <- lapply(out$gls, function(iM){
         paste0(gsub(",",",\n    ",gsub(" ","",paste(deparse(iM$call), collapse = ""))),"\n")
     })
-
+    out$data <- data
+    out$method.fit <- unique(sapply(out$gls, "[[", "method"))
+    out$structure <- structure
+    
     if(n.strata==1){
-        info <- .getInfoGLS(object = e.gls[[1]], data = data, strata = NULL,
-                            name.time = U.time, name.cluster = U.cluster, name.outcome = var.outcome)
-        M.beta <- rbind(names(info$coef$beta))
-        M.sigma <- rbind(names(info$coef$sigma))
-        M.k <- rbind(names(info$coef$k))
-        M.rho <- rbind(names(info$coef$rho))
-
-        X <- info$design
-        info.cluster <- info$cluster
-        info.time <- info$time
-
-        info.coef <- info$coef$all
-        info.type <- info$coef$type
-        info.df <- info$df
-        info.betavcov <- info$betavcov
-        info.score <- info$core
-        info.logLik <- info$logLik
-        
-        info.resvcov <- info$resvcov
+        out$param <- list(mu = coef(out$gls[[1]])[out$design$param$mu],
+                          sigma = setNames(sigma(out$gls[[1]]),out$design$param$sigma),
+                          k = setNames(coef(out$gls[[1]]$modelStruct$varStruct, unconstrained = FALSE),out$design$param$k),
+                          cor = setNames(coef(out$gls[[1]]$modelStruct$corStruct, unconstrained = FALSE),out$design$param$rho)
+                          )
+        out$param$strata <- rep(U.strata, length(unlist(out$param)))
     }else{
-        browser()
-        info <- lapply(U.strata, function(iStrata){
-            .getInfoGLS(object = e.gls[[iStrata]], data = data, strata = iStrata,
-                        name.time = U.time, name.outcome = var.outcome)
-        })
+        param.mu <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]) })
+        param.sigma <- lapply(U.strata, function(iS){ sigma(out$gls[[iS]]) })
+        param.k <- lapply(U.strata, function(iS){  coef(out$gls[[iS]]$modelStruct$varStruct, unconstrained = FALSE) })
+        param.cor <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]$modelStruct$corStruct, unconstrained = FALSE) })
+        out$param <- list(mu = setNames(unlist(param.mu),out$design$param$mu),
+                          sigma = setNames(unlist(param.sigma), out$design$param$sigma),
+                          k = setNames(unlist(param.k), out$design$param$k),
+                          cor = setNames(unlist(param.cor), out$design$param$rho)
+                          )
+
+        out$param$strata <- c(unlist(lapply(1:n.strata, function(iS){rep(U.strata[iS], times = length(param.mu[[iS]]))})),
+                              unlist(lapply(1:n.strata, function(iS){rep(U.strata[iS], times = length(param.sigma[[iS]]))})),
+                              unlist(lapply(1:n.strata, function(iS){rep(U.strata[iS], times = length(param.k[[iS]]))})),
+                              unlist(lapply(1:n.strata, function(iS){rep(U.strata[iS], times = length(param.cor[[iS]]))})))
     }
-    
-    if(debug>=2){cat("\n")}
-    
-    ## *** merge into lmm
-    if(debug>=2){cat("- merge into lmm")}
+    out$param$type <- c(rep("mu", length(out$param$mu)), rep("sigma", length(out$param$sigma)), rep("k", length(out$param$k)), rep("cor", length(out$param$cor)))
 
-    e.lmm <- list(call = match.call(),
-                  gls = e.gls,
-                  data = data,
-                  mean.structure = list(formula = formula, coef.beta = M.beta),
-                  variance.structure = list(formula = covariance, type = structure, coef.sigma = M.sigma, coef.k = M.k, coef.rho = M.rho),
-                  X = X,
-                  cluster = info.cluster,
-                  time = info.time,
-                  variable = list(outcome = var.outcome,
-                                  covariates = var.X,
-                                  strata = if(n.strata>1){var.strata}else{NULL},
-                                  time = var.time,
-                                  cluster = var.cluster),
-                  coef = info.coef,
-                  coeftype = info.type,
-                  df = info.df,
-                  betavcov = info.betavcov,
-                  logLik = info.logLik,
-                  score = info.score,
-                  resvcov = info.resvcov,
-                  code = callGLS
-                  )
-                
-    
-    if(debug>=2){cat("\n")}
+    param.allnames <- unlist(lapply(out$param[c("mu","sigma","k","cor")], names))
+    names(out$param$strata) <- param.allnames
+    names(out$param$type) <- param.allnames
+    if(debug>=1){cat("\n")}
 
-    ## ** export
-    class(e.lmm) <- append("lmm",class(e.lmm))
-    return(e.lmm)
-}
+    ## ** Compute likelihood derivatives and other useful quantities
+    if(debug>=1){cat("3. compute likelihood derivatives and other useful quantities \n")}
+    out$residuals <- out$design$Y - out$design$X.mean %*% out$param$mu
+    out$Omega <- attr(out$design$X.var,"FUN.Omega")(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$cor)
+    out$OmegaM1 <- lapply(out$Omega,solve)
+    out$logLik <- .logLik(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1,
+                          index.variance = out$design$index.vargroup, index.cluster = out$design$index.cluster, indiv = FALSE, REML = out$method.fit=="REML")
+    out$score <- .score(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1,
+                        index.variance = out$design$index.vargroup, index.cluster = out$design$index.cluster, indiv = TRUE, REML = out$method.fit=="REML")
+    out$hessian <- .hessian(X = out$design$X.mean, precision = out$OmegaM1,
+                            index.variance = out$design$index.vargroup, index.cluster = out$design$index.cluster, indiv = TRUE, REML = object$method.fit=="REML")
+    out$information <- -apply(out$hessian, FUN = sum, MARGIN = 2:3)
+    out$vcov <- solve(out$information)
+    out$df <- NULL
 
-## * .getInfoGLS
-.getInfoGLS <- function(object, data, strata, name.time, name.cluster, name.outcome){
-    data <- eval(object$call$data)
+    ## coef(out$gls[[1]])
+    ## getVarCov(out$gls[[1]])
+    ## head(out$design$X.mean)
+    ## intervals(out$gls[[2]])$cor[,"est."]
+    ## .logLik(Y = out$Y, X = out$design$X.mean, beta = out$param$mu, sigma = NULL, k = NULL, rho = NULL, precision = out$OmegaM1,
+    ##         index.variance = out$design$index.vargroup[out$design$index.vargroup==1], index.cluster = as.numeric(as.factor(out$design$index.cluster[out$design$index.vargroup==1])), indiv = FALSE, REML = out$method.fit=="REML")
 
-    ## ** extract correlation/variance structure according to data
-    if(!is.null(object$modelStruct$corStruct)){
-        corgroups <- object$groups
+    ## out <- list(coef = list(beta = beta, sigma = sigma, k = k, rho = rho,
+    ##                         all = c(beta,sigma,k,rho),
+    ##                         type = c(rep("mean",length(beta)),"sigma",rep("k",length(k)),rep("rho",length(rho)))),
+    ##             design = X,
+    ##             resvcov = list(n = length(Omega$variance.vargroup), full = Omega$variance.full, all = Omega$variance.vargroup, all.inverse = precision.vargroup, index = index.vargroup),
+    ##             cluster = list(n = n.cluster, name = name.cluster, index = data[index.cluster,"XXindexXX"]),
+    ##             time = list(n = length(name.time), name = name.time, index = timegroups),
+    ##             logLik = logLik,
+    ##             score = score,
+    ##             hessian = hessian,
+    ##             information = information,
+    ##             betavcov = solve(information),
+    ##             df = object$dim$N - object$dim$p * (object$method=="REML")
+    ##             )
+
+    ## ** Sanity checks
+    if(debug>=1){cat("4. sanity check vs. gls \n")}
+
+    test.logLik <- abs(out$logLik - sum(sapply(out$gls, logLik)))
+    if(test.logLik>1e-10){
+        warning("Mismatch between the gls and lmm log likelihood (largest difference ",test.logLik,"). \n",
+                "Consider contacting the package manager. \n")
     }
-    if(!is.null(object$modelStruct$varStruct)){
-        timegroups <- getGroups(object$modelStruct$varStruct)
-    }else if(!is.null(object$modelStruct$corStruct)){
-        timegroups <- corgroups
-        for(iCluster in unique(corgroups)){
-            timegroups[corgroups == iCluster] <- attr(object$modelStruct$corStruct, "covariate")[[iCluster]]
+
+    lmm.vcov.mu <- out$vcov[names(out$param$mu),names(out$param$mu),drop=FALSE]
+    ## lmm.vcov.Omega <- out$vcov[names(out$param$mu),names(out$param$mu),drop=FALSE]
+    if(out$method=="ML"){
+        if(n.strata==1){
+            GS.vcov.mu <- vcov(out$gls[[1]]) * (out$gls[[1]]$dim$N-out$gls[[1]]$dim$p) / out$gls[[1]]$dim$N
+        }else{
+            browser()
         }
-        timegroups <- droplevels(timegroups)
     }else{
-        timegroups <- rep(name.outcome, NROW(data))
+        ## sqrt(out$gls[[1]]$apVar["lSigma","lSigma"])*1.96
+        ## diff(log(intervals(out$gls[[1]])$sigma))
+        GS.vcov.mu <- as.matrix(Matrix::bdiag(lapply(out$gls,vcov)))
     }
-
-    ## ** number and position of the clusters among the observations
-    if(is.null(object$modelStruct$corStruct)){ ## no correlation structure
-        index.cluster <- 1:NROW(data)
-        n.cluster <- NROW(data)
-
-    }else{ ## correlation structure
-        index.cluster <- setNames(as.numeric(corgroups), corgroups)
-        n.cluster <- attr(object$modelStruct$corStruct,"Dim")$M
+    GS.vcov.Omega <- as.matrix(Matrix::bdiag(lapply(out$gls,function(iM){iM$apVar})))
+    if(max(abs(lmm.vcov.mu - GS.vcov.mu))>1e-10){
+        warning("Mismatch between the gls and lmm variance covariance matrix (mean, largest difference ",max(abs(lmm.vcov.mu - GS.vcov.mu)),"). \n",
+                "Consider contacting the package manager. \n")
     }
-
-    ## ** extract number and position of unique residual variance-covariance structures
-    if(is.null(object$modelStruct$varStruct)){ ## no variance structure
-        index.vargroup <- setNames(rep(1,n.cluster), sort(unique(names(index.cluster))))
-        n.vargroup <-  1
-        Sigma.pattern <- list(rep("sigma",length(name.time)))
-        
-    }else if(is.null(object$modelStruct$corStruct)){ ## no correlation structure
-        index.vargroup <- as.numeric(as.factor(timegroups))        
-        n.vargroup <-  max(index.vargroup)
-        Sigma.pattern <- as.list(levels(as.factor(timegroups)))
-        
-    }else{ ## variance and correlation structure
-        ## variance parameter within cluster
-        variance.per.cluster <- tapply(X = timegroups, INDEX = corgroups, FUN = function(iVec){list(iVec)}) ## WARNING MAY MESS UP THE ORDER
-        variance.per.cluster <- variance.per.cluster[levels(corgroups)] ## PROPERLY REORDER
-            
-        ## unique variance patterns
-        Sigma.pattern <- unique(variance.per.cluster)
-        names(Sigma.pattern) <- sapply(Sigma.pattern, paste, collapse = "|")
-        n.vargroup <- length(Sigma.pattern)
+    ## if(max(abs(lmm.vcov.Omega - GS.vcov.Omega))>1e-10){
+    ##     warning("Mismatch between the gls and lmm variance covariance matrix (variance, largest difference ",max(abs(lmm.vcov.Omega - GS.vcov.Omega)),"). \n",
+    ##             "Consider contacting the package manager. \n")
+    ## }
+     
     
-        ## associate each cluster to a variance structure
-        index.vargroup <- sapply(variance.per.cluster, function(x){
-            as.double(which(unlist(lapply(Sigma.pattern, identical, x))))
-        })
-
-    }
-    
-    Sigma.pattern.full <- Sigma.pattern[sapply(Sigma.pattern, length) == length(name.time)]
-    names(Sigma.pattern.full) <- sapply(Sigma.pattern.full, paste, collapse = "|")
-
-    ## ** coefficients
-    theta <- getCoef(object, effects = c("mean","variance"), add.type = TRUE)
-    beta <- setNames(theta[theta$type=="mean","estimate"],rownames(theta)[theta$type=="mean"])
-    sigma <- setNames(theta[theta$type=="std.residual","estimate"],rownames(theta)[theta$type=="std.residual"])
-    k <- setNames(theta[theta$type=="factor.std.residual","estimate"],rownames(theta)[theta$type=="factor.std.residual"])
-    rho <- setNames(theta[theta$type=="correlation","estimate"],rownames(theta)[theta$type=="correlation"])
-    
-    ## ** residual variance-covariance structure
-    Omega <- .getVarCov(object,
-                        sigma = sigma,
-                        k = k,
-                        rho = rho,
-                        name.time = name.time,
-                        Sigma.pattern = Sigma.pattern,
-                        Sigma.pattern.full = Sigma.pattern.full
-                        )
-    precision.vargroup <- lapply(Omega$variance.vargroup, solve)
-
-    ## ** Likelihood and derivatives
-    Y <- data[[name.outcome]]
-    X <- model.matrix(stats::formula(object), data) 
-    logLik <- .logLik(Y = Y, X = X, beta = beta, sigma = sigma, k = k, rho = rho, precision = precision.vargroup,
-                      index.variance = index.vargroup, index.cluster = index.cluster, indiv = FALSE, REML = object$method=="REML")
-    score <- .score(Y = Y, X = X, beta = beta, sigma = sigma, k = k, rho = rho, precision = precision.vargroup,
-                    index.variance = index.vargroup, index.cluster = index.cluster, indiv = TRUE, REML = object$method=="REML")
-    hessian <- .hessian(X = X, beta = beta, sigma = sigma, k = k, rho = rho, precision = precision.vargroup,
-                        index.variance = index.vargroup, index.cluster = index.cluster, indiv = TRUE, REML = object$method=="REML")
-    information <- -apply(hessian, FUN = sum, MARGIN = 2:3)
-
-    ## ** merge
-    if(!is.null(strata)){
-        names(sigma) <- paste0("sigma:",strata)
-        names(k) <- paste0(names(k),strata)
-        names(rho) <- paste0(names(rho),strata)
-        names(beta) <- paste0(names(beta),strata)
-    }else{
-        names(sigma) <- "sigma"
-    }
-    out <- list(coef = list(beta = beta, sigma = sigma, k = k, rho = rho,
-                            all = c(beta,sigma,k,rho),
-                            type = c(rep("mean",length(beta)),"sigma",rep("k",length(k)),rep("rho",length(rho)))),
-                design = X,
-                resvcov = list(n = length(Omega$variance.vargroup), full = Omega$variance.full, all = Omega$variance.vargroup, all.inverse = precision.vargroup, index = index.vargroup),
-                cluster = list(n = n.cluster, name = name.cluster, index = data[index.cluster,"XXindexXX"]),
-                time = list(n = length(name.time), name = name.time, index = timegroups),
-                logLik = logLik,
-                score = score,
-                hessian = hessian,
-                information = information,
-                betavcov = solve(information),
-                df = object$dim$N - object$dim$p * (object$method=="REML")
-                )
-
-    ## ** check
-    if(object$method=="ML"){
-        test.logLik <- abs(out$logLik - as.double(logLik(object)))
-        if(test.logLik>1e-10){
-            warning("Mismatch between the gls and lmm log likelihood (largest difference ",test.logLik,"). \n",
-                    "Consider contacting the package manager. \n")
-        }
-
-        test.vcov <- max(abs(vcov(object) * (object$dim$N-object$dim$p) / object$dim$N - out$betavcov))
-        if(test.vcov>1e-10){
-            warning("Mismatch between the gls and lmm variance covariance matrix (largest difference ",test.vcov,"). \n",
-                    "Consider contacting the package manager. \n")
-        }
-
-        
-        
-    }else{
-        test.logLik <- abs(out$logLik - as.double(logLik(object)))
-        if(test.logLik>1e-10){
-            warning("Mismatch between the gls and lmm log likelihood (largest difference ",test.logLik,"). \n",
-                    "Consider contacting the package manager. \n")
-        }
-        
-        logLikML - logLikREML
-        test.vcov <- max(abs(vcov(object) - out$betavcov))
-        if(test.vcov>1e-10){
-            warning("Mismatch between the gls and lmm variance covariance matrix (largest difference ",test.vcov,"). \n",
-                    "Consider contacting the package manager. \n")
-        }
-    }
-
-    ## ** export
+    ## ** convert to lmm and export
+    class(out) <- "lmm"
     return(out)
 }
+
 
 
 ######################################################################

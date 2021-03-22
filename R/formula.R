@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:53) 
 ## Version: 
-## Last-Updated: mar  5 2021 (21:55) 
+## Last-Updated: mar 22 2021 (22:07) 
 ##           By: Brice Ozenne
-##     Update #: 1
+##     Update #: 4
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,16 +18,18 @@
 ## * formula.lmm (code)
 ##' @export
 formula.lmm <- function(object, type = "lmm"){
+## 
     type <- match.arg(type, c("lmm","lmm-mean","lmm-variance","gls"))
+
     if(type=="lmm"){
-        return(list(mean = object$mean.structure$formula,
-                    variance = object$variance.structure$formula))
+        return(list(mean = object$formula$mean,
+                    variance = object$formula$var))
     }else if(type == "lmm-mean"){
-        return(object$mean.structure$formula)
-    }else if(type == "lmm-variance.structure"){
-        return(object$variance.structure$formula)
+        return(object$formula$mean)
+    }else if(type == "lmm-variance"){
+        return(object$formula$var)
     }else if(type=="gls"){
-        if(is.null(object$variable$strata)){
+        if(object$strata$n==1){
             return(stats::formula(object$gls[[1]]))
         }else{
             return(lapply(object$gls, stats::formula))

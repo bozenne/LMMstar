@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: mar  5 2021 (23:07) 
+## Last-Updated: mar 22 2021 (22:34) 
 ##           By: Brice Ozenne
-##     Update #: 34
+##     Update #: 37
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -31,7 +31,7 @@ logLik.lmm <- function(object, type = "lmm"){
 }
 
 ## * .logLik
-.logLik <- function(Y, X, beta, sigma, k, rho, precision,
+.logLik <- function(X, residuals, precision,
                     index.variance, index.cluster, indiv, REML){
 
     if(indiv && REML){
@@ -46,7 +46,6 @@ logLik.lmm <- function(object, type = "lmm"){
     name.allcoef <- colnames(X)
     ll <- rep(NA, n.cluster)
 
-    residuals <- Y - X %*% beta
     logidet.precision <- -log(sapply(precision, det))
     log2pi <- log(2*pi)
     REML.det <- 0

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (20:56) 
 ## Version: 
-## Last-Updated: mar  5 2021 (22:08) 
+## Last-Updated: mar 22 2021 (22:36) 
 ##           By: Brice Ozenne
-##     Update #: 16
+##     Update #: 24
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,8 +15,8 @@
 ## 
 ### Code:
 
-## * .score
-.hessian <- function(X, beta, sigma, k, rho, precision,
+## * .hessian
+.hessian <- function(X, precision,
                      index.variance, index.cluster, indiv, REML){
 
     ## ** prepare
