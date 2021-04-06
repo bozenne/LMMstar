@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: mar 22 2021 (23:27) 
+## Last-Updated: mar 27 2021 (00:00) 
 ##           By: Brice Ozenne
-##     Update #: 180
+##     Update #: 254
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -73,7 +73,8 @@ model.matrix.lmm <- function(object, data = NULL, type = "lmm-mean"){
 .model.matrix.lmm <- function(formula.mean, formula.var, data, var.outcome,
                               var.strata, U.strata,
                               var.time, U.time,
-                              var.cluster, structure){
+                              var.cluster,
+                              structure, transform){
     n.obs <- NROW(data)
     n.strata <- length(U.strata)
     n.time <- length(U.time)
@@ -159,6 +160,7 @@ model.matrix.lmm <- function(object, data = NULL, type = "lmm-mean"){
     }
          
     attr(X.var,"level") <- as.numeric(droplevels(interaction(as.data.frame(X.var))))
+    attr(X.var,"transform") <- transform ## should parameters be rescale (var: log transform, cor: atanh transform)
 
     ## **** rho
     if(n.time==1){
@@ -171,7 +173,7 @@ model.matrix.lmm <- function(object, data = NULL, type = "lmm-mean"){
             M.index <- cbind(index.lower = Mtempo[lower.tri(Mtempo)],
                              index.upper = tMtempo[lower.tri(Mtempo)])
         }else if(structure == "UN"){
-            M.index <- cbind(which(lower.tri(diag(1,n.time,n.time)), arr.ind = TRUE),
+            M.index <- cbind(which(lower.tri(diag(1, nrow = n.time, ncol = n.time)), arr.ind = TRUE),
                              index.lower = Mtempo[lower.tri(Mtempo)],
                              index.upper = tMtempo[lower.tri(Mtempo)])
             param.rho <- paste0("cor","(",M.index[,"row"],",",M.index[,"col"],")")
@@ -227,24 +229,205 @@ model.matrix.lmm <- function(object, data = NULL, type = "lmm-mean"){
     }
     index.vargroup <- setNames(match(attr(X.var,"pattern"),attr(X.var,"Upattern")),names(attr(X.var,"pattern")))
     
-    ## ** prepare variance matrices
+    ## ** prepare calculation of the variance matrices
     attr(X.var, "FUN.Omega") <- function(object, sigma, k, rho, keep.interim = FALSE){
         out <- lapply(1:attr(object,"nUpattern"), function(iP){
+
             iTime <- attr(object,"Upattern.time")[[iP]]
             iNtime <- length(iTime)
             Omega.var <- exp((attr(object,"UX.var")[[iP]] %*% log(c(sigma,k)))[,1])
             if(!is.null(rho)){
                 Omega.cor <- matrix(attr(object,"UX.cor")[[iP]] %*% rho, nrow = iNtime, ncol = iNtime, dimnames = list(iTime,iTime))
-                Omega <- diag(Omega.var^2) + Omega.cor * tcrossprod(Omega.var)
             }else{
-                Omega <- diag(Omega.var^2)
+                Omega.cor <- diag(0, nrow = iNtime, ncol = iNtime)
             }
+            Omega <- diag(Omega.var^2, nrow = iNtime, ncol = iNtime) + Omega.cor * tcrossprod(Omega.var)
             dimnames(Omega) <- list(iTime,iTime)
             if(keep.interim){
                 attr(Omega,"var") <- Omega.var
                 attr(Omega,"cor") <- Omega.cor
             }
             return(Omega)
+        })
+        return(setNames(out,attr(object,"Upattern")))
+    }
+
+    ## ** prepare calculation of the score
+    ## indicator of the effect of each parameter on each element of the covariance
+    attr(X.var, "indicator") <- setNames(lapply(1:attr(X.var,"nUpattern"), function(iP){ ## iP <- 1
+
+        iIndicator <- setNames(vector(mode = "list", length = length(c(param.sigma,param.k,param.rho))), c(param.sigma,param.k,param.rho))
+        iTime <- attr(X.var,"Upattern.time")[[iP]]
+        iNtime <- length(iTime)
+         
+        if(!is.null(param.sigma)){
+            for(iSigma in 1:length(param.sigma)){ ## iSigma <- 1
+                ## positions where the sigma-parameter appears in the matrix
+                dsigma <- rep(0,length(param.sigma))
+                dsigma[iSigma] <- 1
+                ind.var_dsigma <- attr(X.var,"UX.var")[[iP]] %*% c(dsigma,rep(0, length(param.k)))
+                iIndicator[[param.sigma[iSigma]]] <- tcrossprod(ind.var_dsigma)
+            }
+        }
+        if(!is.null(param.k)){
+            for(iK in 1:length(param.k)){ ## iK <- 1
+                ## positions where the k-parameter appears in the matrix
+                dk <- rep(0,length(param.k))
+                dk[iK] <- 1
+                ind.var_dk <- attr(X.var,"UX.var")[[iP]] %*% c(rep(0,length(sigma)),dk)
+                iIndicator[[param.k[iK]]] <- ((ind.var_dk %*% rep(1,iNtime)) + t(ind.var_dk %*% rep(1,iNtime))) > 0
+            }
+        }
+        if(!is.null(param.rho)){
+            for(iRho in 1:length(param.rho)){ ## iRho <- 1
+                ## positions where the rho-parameter appears in the matrix
+                iIndicator[[param.rho[iRho]]] <- matrix(attr(X.var,"UX.cor")[[iP]][,iRho] , nrow = iNtime, ncol = iNtime, dimnames = list(iTime,iTime))
+            }
+        }
+        return(iIndicator)
+    }), attr(X.var,"Upattern"))
+
+    attr(X.var, "FUN.dOmega") <- function(object, sigma, k, rho, Omega){
+        name.sigma <- names(sigma)
+        n.sigma <- length(sigma)
+        name.k <- names(k)
+        n.k <- length(k)
+        name.rho <- names(rho)
+        n.rho <- length(rho)
+        allCoef <- c(name.sigma, name.k, name.rho)
+        p <- length(allCoef)
+        transform <- attr(object,"transform")
+
+        out <- lapply(1:attr(object,"nUpattern"), function(iP){
+            iScore <- setNames(vector(mode = "list", length = p), allCoef)
+
+            iTime <- attr(object,"Upattern.time")[[iP]]
+            iNtime <- length(iTime)
+            iOmega.var <- attr(Omega[[iP]],"var")
+            iOmega.cor <- attr(Omega[[iP]],"cor")
+            iOmega <- Omega[[iP]] ; attr(iOmega,"var") <- NULL; attr(iOmega,"cor") <- NULL;
+
+            if(!is.null(sigma)){
+                for(iSigma in 1:n.sigma){ ## iSigma <- 1
+                    ## compute derivative
+                    idsigma <- sigma
+                    idsigma[iSigma] <- 1
+                    ## propagate
+                    idOmega.sigma <- exp((attr(object,"UX.var")[[iP]] %*% log(c(idsigma,k)))[,1])
+                    iScore[[name.sigma[iSigma]]] <- diag(2*idOmega.sigma*iOmega.var, nrow = iNtime, ncol = iNtime) + iOmega.cor * 2 * tcrossprod(idOmega.sigma, iOmega.var)
+                    ## log transform
+                    if(transform){ 
+                        iScore[[name.sigma[iSigma]]] <- iScore[[name.sigma[iSigma]]]/sigma[iSigma]
+                    }
+                    ## check
+                    ## iScore[[name.sigma[iSigma]]] - attr(object,"indicator")[[iP]][[name.sigma[iSigma]]] * iOmega * 2 / sigma[iSigma]
+                }
+            }
+            if(!is.null(k)){
+                for(iK in 1:n.k){ ## iSigma <- 1
+                    ## positions where the k-parameter appears in the matrix
+                    ind.dk <- attr(object,"indicator")[[iP]][[name.k[iK]]]
+                    ## compute derivative
+                    idk <- k
+                    idk[iK] <- 1
+                    ## propagate
+                    idOmega.k <- exp((attr(object,"UX.var")[[iP]] %*% log(c(sigma,idk)))[,1])
+                    tcrossprod(iOmega.var)
+                    ind.dk *tcrossprod(idOmega.k,iOmega.var) + ind.dk *tcrossprod(iOmega.var, idOmega.k)
+                    
+iScore[[name.sigma[iSigma]]] <- diag(2*idOmega.k*iOmega.var, nrow = iNtime, ncol = iNtime) + iOmega.cor * (tcrossprod(idOmega.k, ind.dk * iOmega.var) + tcrossprod(iOmega.var, idOmega.k))
+                    browser()
+                    ## dk^2 = 2k ; dk = k is obtained via (2k)/(2k)=1 and (2k)^2/(2k) = 2k
+                    k2 <- k
+                    k2[iK] <- 2*k[iK]
+                    iOmega.var2 <- exp((attr(object,"UX.var")[[iP]] %*% log(c(sigma,k2)))[,1])
+                    iScore[[name.k[iK]]] <- ind.dk * (diag(iOmega.var2^2, nrow = iNtime, ncol = iNtime) + iOmega.cor * tcrossprod(iOmega.var2)) / (2*k[iK])
+                    if(transform){ ## log transform
+                        iScore[[name.k[iK]]] <- iScore[[name.k[iK]]]/k[iK]
+                    }
+                }
+            }
+            if(!is.null(rho)){
+                for(iRho in 1:n.rho){ ## iRho <- 1
+                    ## positions where the rho-parameter appears in the matrix
+                    ind.drho <- attr(object,"indicator")[[iP]][[name.rho[iRho]]]
+                    ## derivative
+                    iScore[[name.rho[iRho]]] <- ind.drho * tcrossprod(iOmega.var)
+                    if(transform){ ## atanh transform
+                        iScore[[name.rho[iRho]]] <- iScore[[name.rho[iRho]]]/(1-rho[iRho]^2)
+                    }
+                }
+            }
+            return(iScore)
+        })
+        return(setNames(out,attr(object,"Upattern")))
+    }
+
+    ## ** prepare calculation of the df
+    attr(X.var, "FUN.d2Omega") <- function(object, sigma, k, rho, Omega){
+        browser()
+        name.sigma <- names(sigma)
+        n.sigma <- length(sigma)
+        name.k <- names(k)
+        n.k <- length(k)
+        name.rho <- names(rho)
+        n.rho <- length(rho)
+        allCoef <- c(name.sigma, name.k, name.rho)
+        p <- length(allCoef)
+        transform <- attr(object,"transform")
+        
+        out <- lapply(1:attr(object,"nUpattern"), function(iP){
+            pair.varcoef <- .unorderedPairs(c(name.sigma,name.k, name.rho))
+            npair.varcoef <- NCOL(pair.varcoef)
+            iHess <- vector(mode = "list", length = npair.varcoef)
+
+            iTime <- attr(object,"Upattern.time")[[iP]]
+            iNtime <- length(iTime)
+            iOmega.var <- attr(Omega[[iP]],"var")
+            iOmega.cor <- attr(Omega[[iP]],"cor")
+            iOmega <- Omega[[iP]] ; attr(iOmega,"var") <- NULL; attr(iOmega,"cor") <- NULL;
+
+            for(iPair in 1:n.pair){ ## iPair <- 1
+                ## name of parameters
+                iCoef1 <- pair.varcoef[1,iPair]
+                iCoef2 <- pair.varcoef[2,iPair]
+
+                ## type of parameters
+                iType1 <- c("sigma","k","rho")[which(c(iCoef1 %in% name.sigma,iCoef1 %in% name.k,iCoef1 %in% name.rho))]
+                iType2 <- c("sigma","k","rho")[which(c(iCoef2 %in% name.sigma,iCoef2 %in% name.k,iCoef2 %in% name.rho))]
+
+                ## positions where the parameters appears in the matrix
+                ind1 <- attr(object,"indicator")[[iP]][[iCoef1]]
+                ind2 <- attr(object,"indicator")[[iP]][[iCoef2]]
+                    
+                if(iType1 == "sigma"){
+                    if(iType2 == "sigma"){
+                        iHess[[iPair]] <- ind1 * ind2 * iOmega * 2 / (sigma[iCoef1] * sigma[iCoef2])
+                    }else if(iType2 == "k"){
+                        ## dk^2 = 2k ; dk = k is obtained via (2k)/(2k)=1 and (2k)^2/(2k) = 2k
+                        k2 <- k
+                        k2[iCoef2] <- 2*k[iCoef2]
+                        iOmega.var2 <- exp((attr(object,"UX.var")[[iP]] %*% log(c(sigma,k2)))[,1])
+                        iHess[[iPair]] <- ind1 * ind2 * (diag(iOmega.var2^2, nrow = iNtime, ncol = iNtime) + iOmega.cor * tcrossprod(iOmega.var2)) * 2 / (k[iCoef2] * sigma[iCoef1])
+                    }else if(iType2 == "rho"){
+                        iHess[[iPair]] <- ind1 * ind2 * tcrossprod(iOmega.var) * 2 / sigma[iCoef1]
+                    }
+                }else if(iType1 == "k"){
+                    if(iType2 == "k"){
+                        ## dk^2 = 2k ; dk = k is obtained via (2k)/(2k)=1 and (2k)^2/(2k) = 2k
+                        iHess[[iPair]] <- ind1 * ind2 * iOmega / (k[iCoef1] * k[iCoef2])
+                    }else if(iType2 == "rho"){
+                        ## dk^2 = 2k ; dk = k is obtained via (2k)/(2k)=1 and (2k)^2/(2k) = 2k
+                        k2 <- k
+                        k2[iCoef2] <- 2*k[iCoef2]
+                        iOmega.var2 <- exp((attr(object,"UX.var")[[iP]] %*% log(c(sigma,k2)))[,1])
+                        iHess[[iPair]] <- ind1 * ind2 * tcrossprod(iOmega.var2) / k[iCoef1]
+                    }
+                }else if(iType1 == "rho"){
+                    iHess[[iPair]] <- matrix(0, nrow = iNtime, ncol = iNtime, dimnames = list(U.time, U.time))
+                }
+            }
+            return(iHess)
         })
         return(setNames(out,attr(object,"Upattern")))
     }

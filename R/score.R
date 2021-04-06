@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: mar 22 2021 (22:39) 
+## Last-Updated: mar 23 2021 (12:01) 
 ##           By: Brice Ozenne
-##     Update #: 37
+##     Update #: 71
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,12 +17,12 @@
 
 ## * score.lmm (code)
 ##' @export
-score.lmm <- function(x, data = NULL, p = NULL, indiv = TRUE, ...){
+score.lmm <- function(x, data = NULL, p = NULL, transform = TRUE, indiv = FALSE, ...){
 
-    if(is.null(data) && is.null(p)){
+    if(is.null(data) && is.null(p) && indiv == FALSE && transform == TRUE){
         out <- x$score
     }else{
-        if(!is.null(data)){
+        if(!is.null(data) || transform == FALSE){
             ff.allvars <- c(all.vars(x$formula$mean), all.vars(x$formula$var))
             if(any(ff.allvars %in% names(data) == FALSE)){
                 stop("Incorrect argument \'data\': missing variable(s) \"",paste(ff.allvars[ff.allvars %in% names(data) == FALSE], collapse = "\" \""),"\".\n")
@@ -35,7 +35,8 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = TRUE, ...){
                                         var.strata = x$strata$var, U.strata = x$strata$levels,
                                         var.time = x$time$var, U.time = x$time$levels,
                                         var.cluster = x$cluster$var,
-                                        structure = x$structure
+                                        structure = x$structure,
+                                        transform = transform
                                         )
             Y <- design$Y
             X <- design$X.mean
@@ -61,39 +62,82 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = TRUE, ...){
             precision <- x$OmegaM1
         }
         out <- .score(X = X, residuals = Y - X %*% beta, precision = precision,
-                      index.variance = index.variance, index.cluster = index.cluster, indiv = TRUE, REML = out$method.fit=="REML")
+                      index.variance = index.variance, index.cluster = index.cluster,
+                      indiv = indiv, REML = object$method.fit=="REML")
     }
-    if(indiv == FALSE){
-        out <- colSums(out)       
-    }
+    
     return(out)
 }
 
 ## * .score
-.score <- function(X, residuals, precision,
-                   index.variance, index.cluster, indiv, REML){
+.score <- function(X, residuals, precision, dOmega,
+                   index.variance, index.cluster,
+                   indiv, REML){
+
+    if(indiv && REML){
+        stop("Not possible to compute individual score when using REML.\n")
+    }
 
     ## ** prepare
     n.obs <- length(index.cluster)
     n.cluster <- length(index.variance)
-    n.allcoef <- NCOL(X)
-    name.allcoef <- colnames(X)
+    name.mucoef <- colnames(X)
+    n.mucoef <- length(name.mucoef)
+    name.varcoef <- names(dOmega[[1]])
+    n.varcoef <- length(name.varcoef)
+    name.allcoef <- c(name.mucoef,name.varcoef)
+    n.allcoef <- length(name.allcoef)
+    var.pattern <- names(dOmega)
+
     Score <- matrix(NA, nrow = n.cluster, ncol = n.allcoef,
                     dimnames = list(NULL, name.allcoef))
+
+    ## precompute derivative for the variance
+    dOmega.precomputed <- setNames(lapply(var.pattern, function(iPattern){
+        iOut <- list(term1 = setNames(vector(mode = "list", length = n.varcoef), name.varcoef),
+                     term2 = setNames(vector(mode = "list", length = n.varcoef), name.varcoef)
+                     )
+        for(iVarcoef in name.varcoef){
+            iOut$term1[[iVarcoef]] <- -0.5 * tr(precision[[iPattern]] %*% dOmega[[iPattern]][[iVarcoef]])
+            iOut$term2[[iVarcoef]] <- 0.5 * precision[[iPattern]] %*% dOmega[[iPattern]][[iVarcoef]] %*% precision[[iPattern]]
+        }
+        return(iOut)
+    }), var.pattern)
+
+    REML.det <- setNames(lapply(name.varcoef, function(i){
+        list(numerator = matrix(0, nrow = n.mucoef, ncol = n.mucoef, dimnames = list(name.mucoef,name.mucoef)),
+             denominator = matrix(0, nrow = n.mucoef, ncol = n.mucoef, dimnames = list(name.mucoef,name.mucoef)))
+    }), name.varcoef)
     
     ## ** compute score
     for(iId in 1:n.cluster){ ## iId <- 7
-        iResidual <- residuals[index.cluster==iId,,drop=FALSE]
-        iX <- X[index.cluster==iId,,drop=FALSE]
-        iOmega <- precision[[index.variance[iId]]]
-        Score[iId,] <- t(iX) %*% iOmega %*% iResidual
-    }
+        iPattern <- index.variance[iId]
+        iIndex <- which(index.cluster==iId)
+        
+        iResidual <- residuals[iIndex,,drop=FALSE]
+        iX <- X[iIndex,,drop=FALSE]
 
+        Score[iId,name.mucoef] <- t(iX) %*% precision[[iPattern]] %*% iResidual
+        for(iVarcoef in name.varcoef){ ## iVarcoef <- name.varcoef[1]
+            Score[iId,iVarcoef] <- dOmega.precomputed[[iPattern]]$term1[[iVarcoef]] + t(iResidual) %*% dOmega.precomputed[[iPattern]]$term2[[iVarcoef]] %*% iResidual
+
+            ## Score[iId,iVarcoef] <- -0.5 * tr(precision[[iPattern]] %*% dOmega[[iPattern]][[iVarcoef]]) + 0.5 * t(iResidual) %*% precision[[iPattern]] %*% dOmega[[iPattern]][[iVarcoef]] %*% precision[[iPattern]] %*% iResidual
+            if(REML){
+                REML.det[[iVarcoef]]$numerator <- REML.det[[iVarcoef]]$numerator + t(iX) %*% (2*dOmega.precomputed[[iPattern]]$term2[[iVarcoef]]) %*% iX
+                REML.det[[iVarcoef]]$denominator <- REML.det[[iVarcoef]]$denominator + t(iX) %*% precision[[iPattern]] %*% iX
+            }
+        }
+    }
+    
     ## ** export
     if(indiv){
         return(Score)
     }else{
-        return(rowSums(Score))
+        Score <- colSums(Score)
+        if(REML){
+            Score[name.varcoef] <-  Score[name.varcoef] + 0.5 * sapply(REML.det, function(x){tr(solve(x$denominator) %*% x$numerator)})
+        }
+        return(Score)
     }
 
 }

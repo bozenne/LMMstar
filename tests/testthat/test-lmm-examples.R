@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: mar 22 2021 (23:27) 
+## Last-Updated: mar 27 2021 (00:00) 
 ##           By: Brice Ozenne
-##     Update #: 7
+##     Update #: 10
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -23,6 +23,28 @@ if(FALSE){
 
 context("Check lmm on a simple example")
 
+
+## * Linear regression
+## ** simulate data
+n <- 5e1
+p <- 3
+X.name <- paste0("X",1:p)
+link.lvm <- paste0("Y~",X.name)
+formula.lvm <- as.formula(paste0("Y~",paste0(X.name,collapse="+")))
+
+m <- lvm(formula.lvm)
+distribution(m,~Id) <- Sequence.lvm(0)
+set.seed(10)
+d <- lava::sim(m,n)
+d$id <- paste0("id",1:NROW(d))
+d$time <- "t1"
+
+
+## ** single variance parameter
+e.lmm <- lmm(Y ~ X1 + X2 + X3, variance = ~time|id, structure = "CS", data = d, debug = 2,
+             method = "REML")
+
+## ** multiple variance parameters
 
 ## * No missing values
 ## ** simulate data
@@ -47,7 +69,7 @@ dL$visit <- factor(dL$visit,
                    labels = name.varying)
  
 ## ** fit lmm
-eCS.lmm <- lmm(Y ~ visit + age + gender, variance = ~visit|id, structure = "CS", data = dL, debug = 2)
+eCS.lmm <- lmm(Y ~ visit + age + gender, variance = ~visit|id, structure = "CS", data = dL, debug = 2, method = "ML")
 eUN.lmm <- lmm(Y ~ visit + age + gender, variance = ~visit|id, structure = "UN", data = dL, debug = 2)
 
 eCSs.lmm <- lmm(Y ~ visit*gender + age*gender, variance = gender~visit|id, structure = "CS", data = dL, debug = 2)
@@ -94,11 +116,15 @@ score(eCS.lmm)
 score(eCS.lmm, data = dL, p = coef(eCS.lmm, effects = c("mean","variance")))
 score(eCS.lmm, type = "gls", strata = "1")
 
+## ** summary method
+summary(eCS.lmm)
+
 ## ** vcov method
 vcov(eCS.lmm)
 vcov(eCS.lmm, data = dL, p = coef(eCS.lmm, effects = c("mean","variance")))
 vcov(eCS.lmm, effects = c("mean","variance"))
 vcov(eCS.lmm, type = "gls", strata = "1")
+
 
 
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: mar 22 2021 (23:27) 
+## Last-Updated: mar 26 2021 (09:27) 
 ##           By: Brice Ozenne
-##     Update #: 460
+##     Update #: 497
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -23,12 +23,13 @@
 ##' @param formula [formula] Specify the model for the mean.
 ##' On the left hand side the outcome and on the right hand side the covariates affecting the mean value.
 ##' E.g. Y ~ Gender + Gene.
-##' @param variance [formula] Specify the model for the covariance.
+##' @param covariance [formula] Specify the model for the covariance.
 ##' On the right hand side the time/repetition variable and the grouping variable, e.g. ~ time|id.
 ##' On the left hand side, a possible stratification variable, e.g. group ~ time|id. In that case the mean structure should only be stratified on this variable using interactions.
 ##' @param structure [character] type of covariance structure, either \code{"CS"} (compound symmetry) or \code{"UN"} (unstructured).
 ##' @param data [data.frame] dataset (in the long format) containing the observations.
 ##' @param df [logical] Should the degree of freedom be computed using a Satterthwaite approximation?
+##' @param debug [interger, >0] Show the progress of the execution of the function.
 ##' @param ... passed to \code{nlme::gls}.
 
 ## * lmm (examples)
@@ -77,7 +78,7 @@
 ## * lmm (code)
 ##' @export
 lmm <- function(formula, variance, structure, data, df = FALSE, debug = FALSE, ...){
-    out <- list()
+    out <- list(call = match.call())
     
     ## ** check and normalize user imput
     if(debug>=1){cat("1. check and normalize user imput \n")}
@@ -292,7 +293,8 @@ lmm <- function(formula, variance, structure, data, df = FALSE, debug = FALSE, .
                                     var.strata = var.strata, U.strata = U.strata,
                                     var.time = var.time, U.time = U.time,
                                     var.cluster = var.cluster,
-                                    structure = structure
+                                    structure = structure,
+                                    transform = TRUE
                                     )
 
     if(debug>=2){cat("\n")}
@@ -303,7 +305,7 @@ lmm <- function(formula, variance, structure, data, df = FALSE, debug = FALSE, .
     if(max(out$design$cluster$nobs)==1){
         if(structure == "CS"){
             txt.gls <- paste0("nlme::gls(",deparse(formula.design),",
-                                         data = ",txt.data,", ..., )")
+                                         data = ",txt.data,", ... )")
         }else if(structure == "UN"){
             form.var <- stats::as.formula(paste0("~1|",var.time))
             txt.gls <- paste0("nlme::gls(",deparse(formula.design),",
@@ -367,39 +369,28 @@ lmm <- function(formula, variance, structure, data, df = FALSE, debug = FALSE, .
     ## ** Compute likelihood derivatives and other useful quantities
     if(debug>=1){cat("3. compute likelihood derivatives and other useful quantities \n")}
     out$residuals <- out$design$Y - out$design$X.mean %*% out$param$mu
-    out$Omega <- attr(out$design$X.var,"FUN.Omega")(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$cor)
+
+    out$Omega <- attr(out$design$X.var,"FUN.Omega")(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$cor, keep.interim = TRUE)
     out$OmegaM1 <- lapply(out$Omega,solve)
+    out$dOmega <- attr(out$design$X.var,"FUN.dOmega")(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$cor, Omega = out$Omega)
+    ## out$d2Omega <- attr(out$design$X.var,"FUN.d2Omega")(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$cor)
+
     out$logLik <- .logLik(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1,
-                          index.variance = out$design$index.vargroup, index.cluster = out$design$index.cluster, indiv = FALSE, REML = out$method.fit=="REML")
-    out$score <- .score(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1,
-                        index.variance = out$design$index.vargroup, index.cluster = out$design$index.cluster, indiv = TRUE, REML = out$method.fit=="REML")
-    out$hessian <- .hessian(X = out$design$X.mean, precision = out$OmegaM1,
-                            index.variance = out$design$index.vargroup, index.cluster = out$design$index.cluster, indiv = TRUE, REML = object$method.fit=="REML")
-    out$information <- -apply(out$hessian, FUN = sum, MARGIN = 2:3)
+                          index.variance = out$design$index.vargroup, index.cluster = out$design$index.cluster, 
+                          indiv = FALSE, REML = out$method.fit=="REML")
+
+    out$score <- .score(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega,
+                        index.variance = out$design$index.vargroup, index.cluster = out$design$index.cluster, 
+                        indiv = FALSE, REML = out$method.fit=="REML")
+
+    out$information <- .information(X = out$design$X.mean, precision = out$OmegaM1, dOmega = out$dOmega,
+                                    index.variance = out$design$index.vargroup, index.cluster = out$design$index.cluster, 
+                                    indiv = FALSE, REML = out$method.fit=="REML")
+    
     out$vcov <- solve(out$information)
-    out$df <- NULL
 
-    ## coef(out$gls[[1]])
-    ## getVarCov(out$gls[[1]])
-    ## head(out$design$X.mean)
-    ## intervals(out$gls[[2]])$cor[,"est."]
-    ## .logLik(Y = out$Y, X = out$design$X.mean, beta = out$param$mu, sigma = NULL, k = NULL, rho = NULL, precision = out$OmegaM1,
-    ##         index.variance = out$design$index.vargroup[out$design$index.vargroup==1], index.cluster = as.numeric(as.factor(out$design$index.cluster[out$design$index.vargroup==1])), indiv = FALSE, REML = out$method.fit=="REML")
+    ## attr(out$design$X.var,"transform")
 
-    ## out <- list(coef = list(beta = beta, sigma = sigma, k = k, rho = rho,
-    ##                         all = c(beta,sigma,k,rho),
-    ##                         type = c(rep("mean",length(beta)),"sigma",rep("k",length(k)),rep("rho",length(rho)))),
-    ##             design = X,
-    ##             resvcov = list(n = length(Omega$variance.vargroup), full = Omega$variance.full, all = Omega$variance.vargroup, all.inverse = precision.vargroup, index = index.vargroup),
-    ##             cluster = list(n = n.cluster, name = name.cluster, index = data[index.cluster,"XXindexXX"]),
-    ##             time = list(n = length(name.time), name = name.time, index = timegroups),
-    ##             logLik = logLik,
-    ##             score = score,
-    ##             hessian = hessian,
-    ##             information = information,
-    ##             betavcov = solve(information),
-    ##             df = object$dim$N - object$dim$p * (object$method=="REML")
-    ##             )
 
     ## ** Sanity checks
     if(debug>=1){cat("4. sanity check vs. gls \n")}
@@ -409,7 +400,7 @@ lmm <- function(formula, variance, structure, data, df = FALSE, debug = FALSE, .
         warning("Mismatch between the gls and lmm log likelihood (largest difference ",test.logLik,"). \n",
                 "Consider contacting the package manager. \n")
     }
-
+    
     lmm.vcov.mu <- out$vcov[names(out$param$mu),names(out$param$mu),drop=FALSE]
     ## lmm.vcov.Omega <- out$vcov[names(out$param$mu),names(out$param$mu),drop=FALSE]
     if(out$method=="ML"){
@@ -423,16 +414,23 @@ lmm <- function(formula, variance, structure, data, df = FALSE, debug = FALSE, .
         ## diff(log(intervals(out$gls[[1]])$sigma))
         GS.vcov.mu <- as.matrix(Matrix::bdiag(lapply(out$gls,vcov)))
     }
-    GS.vcov.Omega <- as.matrix(Matrix::bdiag(lapply(out$gls,function(iM){iM$apVar})))
     if(max(abs(lmm.vcov.mu - GS.vcov.mu))>1e-10){
         warning("Mismatch between the gls and lmm variance covariance matrix (mean, largest difference ",max(abs(lmm.vcov.mu - GS.vcov.mu)),"). \n",
                 "Consider contacting the package manager. \n")
     }
-    ## if(max(abs(lmm.vcov.Omega - GS.vcov.Omega))>1e-10){
-    ##     warning("Mismatch between the gls and lmm variance covariance matrix (variance, largest difference ",max(abs(lmm.vcov.Omega - GS.vcov.Omega)),"). \n",
-    ##             "Consider contacting the package manager. \n")
-    ## }
-     
+    if(all(sapply(lapply(out$gls,"[[","apVar"),length)>0)){
+        browser()
+        GS.vcov.Omega <- as.matrix(Matrix::bdiag(lapply(out$gls,function(iM){iM$apVar})))
+        
+        param.tempo <- setdiff(unlist(tapply(names(out$param$strata),out$param$strata,list)),names(out$param$mu))
+        lmm.vcov.Omega <- out$vcov[param.tempo,param.tempo,drop=FALSE]
+
+        lmm.vcov.Omega / GS.vcov.Omega
+        ## if(max(abs(lmm.vcov.Omega - GS.vcov.Omega))>1e-10){
+        ##     warning("Mismatch between the gls and lmm variance covariance matrix (variance, largest difference ",max(abs(lmm.vcov.Omega - GS.vcov.Omega)),"). \n",
+        ##             "Consider contacting the package manager. \n")
+        ## }
+    }
     
     ## ** convert to lmm and export
     class(out) <- "lmm"

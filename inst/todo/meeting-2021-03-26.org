@@ -1,0 +1,3 @@
+Suggestion from Julie:
+- for baseline adjustement use syntax like interaction(time,group, time = 3:5) so time 0:2 are constrained equal between groups (mean, variance, and correlation).
+- add structure =exp= via corExp (no variance structure)

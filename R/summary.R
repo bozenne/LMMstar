@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: mar  5 2021 (13:27) 
+## Last-Updated: mar 22 2021 (23:48) 
 ##           By: Brice Ozenne
-##     Update #: 42
+##     Update #: 51
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -35,35 +35,49 @@ summary.lmm <- function(object, digit = 3, conf.level = 0.95, print = TRUE,
 
     ## ** welcome message
     if(print){
-        if(!is.null(object$modelStruct$varStruct)){
-            cat("  Linear mixed effect model with an unstructured covariance matrix \n")
+        if(max(object$design$cluster$nobs)==1){
+            if(length(c(object$param$sigma,object$param$k))==1){
+                cat("  Linear model \n")
+            }else if(object$structure=="CS"){
+                cat("  Linear model with heterogeneous residual variance \n")
+            }
         }else{
-            cat("  Linear mixed effect model with a compound symmetry covariance matrix \n")
+            if(object$structure=="UN"){
+                cat("  Linear mixed effect model with an unstructured covariance matrix \n")
+            }else if(object$structure=="CS"){
+                cat("  Linear mixed effect model with a compound symmetry covariance matrix \n")
+            }
         }
     }
 
     
     ## ** fit message
     if(print && !hide.fit){
-        if(object$dim$REML){
+        if(object$method == "REML"){
             cat("  - fitted using Restricted Maximum Likelihood (REML) \n")
         }else{
-            cat("  - fitted using Maximum Likelihood (REML) \n")
+            cat("  - fitted using Maximum Likelihood (ML) \n")
         }
-        cat("  - likelihood :", as.double(object$logLik), " (df = ",object$dim$p,")\n",sep="")    
+        cat("  - likelihood :", as.double(object$logLik), " (df: mean = ",length(object$param$mu),", variance = ",length(object$param[c("sigma","k","cor")]),")\n",sep="")    
         cat(" \n")
 
         cat("Dataset:", deparse(object$call$data), "\n")
-        cat(" - ", attr(object$modelStruct$corStruct,"Dim")$M, " clusters \n" , sep = "")
-        cat(" - ", attr(object$modelStruct$corStruct,"Dim")$N, " observations \n",  sep = "")
-        cat(" - ", attr(object$modelStruct$corStruct,"Dim")$maxLen, " maximum number of observations per cluster \n", sep = "")
+        cat(" - ", object$design$cluster$n, " clusters \n" , sep = "")
+        cat(" - ", sum(object$design$cluster$nobs), " observations \n",  sep = "")
+        cat(" - ", max(object$design$cluster$nobs), " maximum number of observations per cluster \n", sep = "")
         if(length(object$contrasts)>0){
             cat(" - levels of the categorical variables \n", sep = "")
-            print(object$contrasts)
-        
-            if(attr(stats::terms(eval(object$call$model)),"intercept") == 1){
-                ref.level <- paste(unlist(lapply(names(object$contrasts), function(iC){
-                    paste0(iC,"=",rownames(object$contrasts[[iC]])[1])
+
+            data.X <- object$data[all.vars(delete.response(terms(object$formula$mean)))]
+            C <- lapply(data.X, function(iCol){
+                if(inherits(iCol,"factor")){contrasts(iCol)}else if(inherits(iCol,"character")){contrasts(as.factor(iCol))}
+            })
+            C <- C[!unlist(lapply(C, is.null))]
+            print(C)
+
+            if(attr(stats::terms(object$formula$mean),"intercept") == 1){
+                ref.level <- paste(unlist(lapply(names(C), function(iC){
+                    paste0(iC,"=",rownames(C[[iC]])[1])
                 })), collapse = " ; ")
                 cat(" - reference level: ",ref.level," \n", sep = "")
                 cat(" \n")
@@ -75,6 +89,7 @@ summary.lmm <- function(object, digit = 3, conf.level = 0.95, print = TRUE,
     }
 
     ## ** correlation structure
+    ## handle no correlation structure.
     if(print && !hide.cor){
         cat("Correlation structure:",deparse(object$call$correlation),"\n")
     }
