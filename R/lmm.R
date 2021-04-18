@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: mar 26 2021 (09:27) 
+## Last-Updated: Apr 16 2021 (18:03) 
 ##           By: Brice Ozenne
-##     Update #: 497
+##     Update #: 515
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -79,6 +79,7 @@
 ##' @export
 lmm <- function(formula, variance, structure, data, df = FALSE, debug = FALSE, ...){
     out <- list(call = match.call())
+    options <- LMMstar.options()
     
     ## ** check and normalize user imput
     if(debug>=1){cat("1. check and normalize user imput \n")}
@@ -261,7 +262,7 @@ lmm <- function(formula, variance, structure, data, df = FALSE, debug = FALSE, .
 
     ## *** structure
     if(debug>=2){cat("- structure")}
-    structure <- match.arg(toupper(structure), c("CS","UN"))
+    structure <- match.arg(toupper(structure), c("CS","UN","EXP"))
     if(n.strata==1){
         txt.data <- "data"
     }else{
@@ -294,7 +295,7 @@ lmm <- function(formula, variance, structure, data, df = FALSE, debug = FALSE, .
                                     var.time = var.time, U.time = U.time,
                                     var.cluster = var.cluster,
                                     structure = structure,
-                                    transform = TRUE
+                                    transform = options$transform.sigmaDeriv
                                     )
 
     if(debug>=2){cat("\n")}
@@ -318,6 +319,12 @@ lmm <- function(formula, variance, structure, data, df = FALSE, debug = FALSE, .
             txt.gls <- paste0("nlme::gls(",deparse(formula.design),",
                                          correlation = nlme::corCompSymm(form = ",deparse(form.cor),"),
                                          data = ",txt.data,", ...)")
+        }else if(structure == "EXP"){
+            form.var <- stats::as.formula(paste0("~1|",var.time))
+            form.cor <- stats::as.formula(paste0("~",var.time,"|",var.cluster))
+            txt.gls <- paste0("nlme::gls(",deparse(formula.design),",
+                                          correlation = nlme::corExp(form = ",deparse(form.cor),"),
+                                          data = ",txt.data,", ...)")
         }else if(structure == "UN"){
             form.var <- stats::as.formula(paste0("~1|",var.time))
             form.cor <- stats::as.formula(paste0("~",var.time.index,"|",var.cluster))
@@ -373,19 +380,19 @@ lmm <- function(formula, variance, structure, data, df = FALSE, debug = FALSE, .
     out$Omega <- attr(out$design$X.var,"FUN.Omega")(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$cor, keep.interim = TRUE)
     out$OmegaM1 <- lapply(out$Omega,solve)
     out$dOmega <- attr(out$design$X.var,"FUN.dOmega")(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$cor, Omega = out$Omega)
-    ## out$d2Omega <- attr(out$design$X.var,"FUN.d2Omega")(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$cor)
+    out$d2Omega <- attr(out$design$X.var,"FUN.d2Omega")(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$cor, Omega = out$Omega, dOmega = out$dOmega, pair = out$design$param$pair.varcoef)
 
     out$logLik <- .logLik(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1,
                           index.variance = out$design$index.vargroup, index.cluster = out$design$index.cluster, 
                           indiv = FALSE, REML = out$method.fit=="REML")
 
     out$score <- .score(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega,
-                        index.variance = out$design$index.vargroup, index.cluster = out$design$index.cluster, 
+                        index.variance = out$design$index.vargroup, time.variance = attr(out$design$X.var,"Upattern.time"), index.cluster = out$design$index.cluster, 
                         indiv = FALSE, REML = out$method.fit=="REML")
 
-    out$information <- .information(X = out$design$X.mean, precision = out$OmegaM1, dOmega = out$dOmega,
+    out$information <- .information(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega,
                                     index.variance = out$design$index.vargroup, index.cluster = out$design$index.cluster, 
-                                    indiv = FALSE, REML = out$method.fit=="REML")
+                                    pair.varcoef = out$design$param$pair.varcoef, indiv = FALSE, REML = out$method.fit=="REML", type = options$type.information)
     
     out$vcov <- solve(out$information)
 

@@ -3,6 +3,7 @@ library(testthat)
 library(LMMstar)
 
 library(lava)
+library(numDeriv)
 library(data.table)
 
 ## * run tests

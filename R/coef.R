@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: mar 22 2021 (10:48) 
+## Last-Updated: Apr 16 2021 (10:44) 
 ##           By: Brice Ozenne
-##     Update #: 23
+##     Update #: 25
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,10 +17,13 @@
 
 ## * coef.lmm (code)
 ##' @export
-coef.lmm <- function(object, effects = "mean", type = "lmm", strata = NULL){
+coef.lmm <- function(object, effects = "all", type = "lmm", strata = NULL){
     
     ## ** normalize user imput
     type <- match.arg(type, c("lmm","gls"))
+    if(identical(effects,"all")){
+        effects <- c("mean","variance")
+    }
     effects <- match.arg(effects, c("mean","variance"), several.ok = TRUE)
     if(!is.null(strata)){
         strata <- match.arg(strata, object$strata$levels, several.ok = TRUE)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: mar 23 2021 (11:51) 
+## Last-Updated: Apr 16 2021 (16:40) 
 ##           By: Brice Ozenne
-##     Update #: 59
+##     Update #: 93
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,45 +21,48 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type = "lmm", indiv = FALS
     ## ** normalize user input
     type <- match.arg(type, c("lmm","gls"))
 
+    ## ** extract or recompute log-likelihood
     if(type=="lmm"){
         if(is.null(data) && is.null(p) && indiv == FALSE){
-            out <- x$logLik
+            out <- object$logLik
         }else{
             if(!is.null(data)){
-                ff.allvars <- c(all.vars(x$formula$mean), all.vars(x$formula$var))
+                ff.allvars <- c(all.vars(object$formula$mean), all.vars(object$formula$var))
                 if(any(ff.allvars %in% names(data) == FALSE)){
                     stop("Incorrect argument \'data\': missing variable(s) \"",paste(ff.allvars[ff.allvars %in% names(data) == FALSE], collapse = "\" \""),"\".\n")
                 }
 
-                design <- .model.matrix.lmm(formula.mean = x$formula$mean.design,
-                                            formula.var = x$formula$var.design,
+                design <- .model.matrix.lmm(formula.mean = object$formula$mean.design,
+                                            formula.var = object$formula$var.design,
                                             data = data,
-                                            var.outcome = x$outcome$var,
-                                            var.strata = x$strata$var, U.strata = x$strata$levels,
-                                            var.time = x$time$var, U.time = x$time$levels,
-                                            var.cluster = x$cluster$var,
-                                            structure = x$structure
+                                            var.outcome = object$outcome$var,
+                                            var.strata = object$strata$var, U.strata = object$strata$levels,
+                                            var.time = object$time$var, U.time = object$time$levels,
+                                            var.cluster = object$cluster$var,
+                                            structure = object$structure
                                             )
+                Y <- design$Y
                 X <- design$X.mean
-                index.variance <- design$index.vargroup
+                index.vargroup <- design$index.vargroup
                 index.cluster <- design$index.cluster
                 X.var <- design$X.var
             }else{
-                X <- x$design$X.mean
-                index.variance <- x$design$index.vargroup
-                index.cluster <- x$design$index.cluster
-                X.var <- x$design$X.var
+                Y <- object$design$Y
+                X <- object$design$X.mean
+                index.vargroup <- object$design$index.vargroup
+                index.cluster <- object$design$index.cluster
+                X.var <- object$design$X.var
             }
             if(!is.null(p)){
-                if(any(names(x$param$type) %in% names(p) == FALSE)){
-                    stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(x$param$type)[names(x$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
+                if(any(names(object$param$type) %in% names(p) == FALSE)){
+                    stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param$type)[names(object$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
                 }
-                beta <- p[names(x$param$mu)]
-                Omega <- attr(X.var,"FUN.Omega")(object = X.var, sigma = p[names(x$param$sigma)], k = p[names(x$param$k)], rho = p[names(x$param$cor)])
+                beta <- p[names(object$param$mu)]
+                Omega <- attr(X.var,"FUN.Omega")(object = X.var, sigma = p[names(object$param$sigma)], k = p[names(object$param$k)], rho = p[names(object$param$cor)])
                 precision <- lapply(Omega, solve)
             }else{
-                beta <- x$param$mu
-                precision <- x$OmegaM1
+                beta <- object$param$mu
+                precision <- object$OmegaM1
             }
             out <- .logLik(X = X, residuals = Y - X %*% beta, precision = precision,
                            index.variance = index.vargroup, index.cluster = index.cluster, 
@@ -67,6 +70,13 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type = "lmm", indiv = FALS
         
         } ## end if data, p
     }else if(type=="gls"){
+        if(!is.null(data)){
+            stop("Cannot handle argument \'data\' when argument \'type\' is \"gls\". \n")
+        }
+        if(!is.null(p)){
+            stop("Cannot handle argument \'p\' when argument \'type\' is \"gls\". \n")
+        }
+
         if(is.null(object$variable$strata)){
             out <- logLik(object$gls[[1]])
         }else{
@@ -74,6 +84,7 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type = "lmm", indiv = FALS
         }
     }
 
+    ## ** export
     return(out)
 }
 
@@ -94,7 +105,7 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type = "lmm", indiv = FALS
     name.mucoef <- colnames(X)
     ll <- rep(NA, n.cluster)
 
-    logidet.precision <- -log(sapply(precision, det))
+    logidet.precision <- lapply(precision, function(iM){-log(det(iM))}) ## log(det(\Omega)) = - log(det(\Omega^-1))
     log2pi <- log(2*pi)
     REML.det <- matrix(0, nrow = n.mucoef, ncol = n.mucoef, dimnames = list(name.mucoef, name.mucoef))
     
@@ -102,8 +113,8 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type = "lmm", indiv = FALS
     for(iId in 1:n.cluster){ ## iId <- 7
         iResidual <- residuals[index.cluster==iId,,drop=FALSE]
         iX <- X[index.cluster==iId,,drop=FALSE]
-        iOmega <- precision[[index.variance[iId]]]        
-        ll[iId] <- - (NCOL(iOmega) * log2pi + logidet.precision[index.variance[iId]] + t(iResidual) %*% iOmega %*% iResidual)/2
+        iOmega <- precision[[index.variance[iId]]]
+        ll[iId] <- - (NCOL(iOmega) * log2pi + logidet.precision[[index.variance[iId]]] + t(iResidual) %*% iOmega %*% iResidual)/2
         if(REML){
             REML.det <- REML.det + t(iX) %*% iOmega %*% iX
         }
