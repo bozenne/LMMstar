@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: Apr 16 2021 (17:32) 
+## Last-Updated: Apr 20 2021 (22:46) 
 ##           By: Brice Ozenne
-##     Update #: 9
+##     Update #: 10
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -51,11 +51,15 @@ LMMstar.options <- function(..., reinitialise = FALSE){
                  "Available elements: \"",paste0(setdiff(names(object),names(args)), collapse = "\" \""),"\"\n")
         }
 
-          if(type %in% names(args)){
+          if("type" %in% names(args)){
               args$type <- match.arg(args$type, c("expected","observed"))
           }
-
-        object[names(args)] <- args
+          if(("transform" %in% names(args)) && (args$transform %in% 0:2 == FALSE)){
+              stop("Argument \'transform\' must be 0 (standard error parameters, correlation parameters), \n",
+                   "                               1 (log transformation of the standard error parameters, atanh transformation of the correlation parameters), \n",
+                   "                               2 (variance parameters, correlation parameters). \n")
+          }
+          object[names(args)] <- args
       
           assign(".LMMstar-options", 
                  object, 

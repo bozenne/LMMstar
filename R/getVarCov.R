@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: mar 22 2021 (16:56) 
+## Last-Updated: Apr 20 2021 (15:55) 
 ##           By: Brice Ozenne
-##     Update #: 33
+##     Update #: 34
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,10 +16,10 @@
 ### Code:
 
 ## * getVarCov.lmm
-getVarCov.lmm <- function(object, individual = NULL, type = c("lmm","gls"), simplifies = TRUE, strata = NULL){
+getVarCov.lmm <- function(object, individual = NULL, type.object = c("lmm","gls"), simplifies = TRUE, strata = NULL){
 
     ## ** normalize user imput
-    type <- match.arg(type, c("lmm","gls"))
+    type.object <- match.arg(type.object, c("lmm","gls"))
     if(!is.null(strata)){
         strata <- match.arg(strata, object$strata$levels, several.ok = TRUE)
     }
@@ -28,7 +28,7 @@ getVarCov.lmm <- function(object, individual = NULL, type = c("lmm","gls"), simp
         individual <- match.arg(individual, object$cluster$levels, several.ok = TRUE)
     }
 
-    if(type == "lmm"){
+    if(type.object == "lmm"){
     
         if(is.null(individual)){
             index.fulltime <- which(sapply(attr(object$design$X.var,"Upattern.time"),identical,as.character(object$time$levels)))
@@ -48,7 +48,7 @@ getVarCov.lmm <- function(object, individual = NULL, type = c("lmm","gls"), simp
             return(out)
         }
         
-    }else{
+    }else if(type.object == "gls"){
         if(object$strata$n==1){
             if(is.null(individual)){
                 return(getVarCov(object$gls[[1]]))

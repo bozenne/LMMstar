@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:41) 
 ## Version: 
-## Last-Updated: mar 22 2021 (22:18) 
+## Last-Updated: Apr 20 2021 (15:54) 
 ##           By: Brice Ozenne
-##     Update #: 8
+##     Update #: 10
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,20 +17,16 @@
 
 ## * nobs.lmm
 ##' @export
-nobs.lmm <- function(object, type = "lmm"){
+nobs.lmm <- function(object, type.object = "lmm"){
     
     ## ** normalize user imput
-    type <- match.arg(type, c("lmm","lmm-obs","lmm-cluster","gls"))
+    type.object <- match.arg(type.object, c("lmm","gls"))
 
     ## ** extract
-    if(type == "lmm"){
+    if(type.object == "lmm"){
         return(c(obs = sum(object$design$cluster$nobs),
                  cluster = object$design$cluster$n))
-    }else if(type == "lmm-obs"){
-        return(sum(object$design$cluster$nobs))
-    }else if(type == "lmm-cluster"){
-        return(object$design$cluster$n)
-    }else if(type == "gls"){
+    }else if(type.object == "gls"){
         if(object$strata$n==1){
             stats::nobs(object$gls[[1]])
         }else{

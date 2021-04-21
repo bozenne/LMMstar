@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: Apr 16 2021 (12:36) 
+## Last-Updated: Apr 20 2021 (15:53) 
 ##           By: Brice Ozenne
-##     Update #: 34
+##     Update #: 37
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,12 +17,12 @@
 
 ## * vcov.lmm
 ##' @export
-vcov.lmm <- function(object, effects = "all", type = "lmm", strata = NULL, data = NULL, p = NULL, transform = NULL){
+vcov.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL, data = NULL, p = NULL, transform = NULL, type.information = NULL){
     options <- LMMstar.options()
     x.transform <- attr(e.lmm$design$X.var, "transform")
 
     ## ** normalize user imput
-    type <- match.arg(type, c("lmm","gls"))
+    type.object <- match.arg(type.object, c("lmm","gls"))
     if(identical(effects,"all")){
         effects <- c("mean","variance")
     }
@@ -31,28 +31,29 @@ vcov.lmm <- function(object, effects = "all", type = "lmm", strata = NULL, data 
         strata <- match.arg(strata, object$strata$levels, several.ok = TRUE)
     }
     if(is.null(transform)){transform <- options$transform}
+    if(is.null(type.information)){type.information <- options$type.information}
 
     ## ** extract or recompute variance covariance matrix
-    if(type=="lmm"){
+    if(type.object=="lmm"){
 
         if(!is.null(data) || !is.null(p) || (transform == x.transform)){
-            vcov <- solve(information(object, data = data, p = p, transform = transform))
+            vcov <- solve(information(object, data = data, p = p, transform = transform, type.information = type.information))
         }else{
             vcov <- object$vcov
         }
 
-        keep.name <- names(coef(object, effects = effects, type = type, strata = strata))
+        keep.name <- names(coef(object, effects = effects, type.object = type.object, strata = strata))
         return(vcov[keep.name,keep.name,drop=FALSE])
 
-    }else if(type=="gls"){
+    }else if(type.object=="gls"){
         if(!is.null(data)){
-            stop("Cannot handle argument \'data\' when argument \'type\' is \"gls\". \n")
+            stop("Cannot handle argument \'data\' when argument \'type.object\' is \"gls\". \n")
         }
         if(!is.null(p)){
-            stop("Cannot handle argument \'p\' when argument \'type\' is \"gls\". \n")
+            stop("Cannot handle argument \'p\' when argument \'type.object\' is \"gls\". \n")
         }
         if(!is.null(transform)){
-            stop("Cannot handle argument \'transform\' when argument \'type\' is \"gls\". \n")
+            stop("Cannot handle argument \'transform\' when argument \'type.object\' is \"gls\". \n")
         }
         
         .getVcov <- function(oo, effects){

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (14:58) 
 ## Version: 
-## Last-Updated: mar  6 2021 (23:40) 
+## Last-Updated: Apr 20 2021 (17:11) 
 ##           By: Brice Ozenne
-##     Update #: 219
+##     Update #: 220
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -111,6 +111,9 @@ getCoef.lm <- function(object, conf.level = 0.95, effects = c("mean"),
                        format = "default", add.type = FALSE, ...){
     
     format <- match.arg(format, c("default","estimate","publish", "SAS"))
+    if(identical(effects,"all")){
+        effects <- c("mean","variance")
+    }
     effects <- match.arg(effects, c("mean","variance"), several.ok = TRUE)
     if(format=="publish"){
         return(Publish::publish(object, ...))

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Apr 16 2021 (18:03) 
+## Last-Updated: Apr 21 2021 (18:19) 
 ##           By: Brice Ozenne
-##     Update #: 515
+##     Update #: 540
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -263,6 +263,11 @@ lmm <- function(formula, variance, structure, data, df = FALSE, debug = FALSE, .
     ## *** structure
     if(debug>=2){cat("- structure")}
     structure <- match.arg(toupper(structure), c("CS","UN","EXP"))
+    if(length(out$time$levels)==1 && structure == "UN"){
+        warning("Argument \'structure\' has been set to \"UN\" while there is only a single timepoint. \n",
+                "Will be change to \"CS\". \n")
+        structure  <- "CS"
+    }
     if(n.strata==1){
         txt.data <- "data"
     }else{
@@ -377,22 +382,22 @@ lmm <- function(formula, variance, structure, data, df = FALSE, debug = FALSE, .
     if(debug>=1){cat("3. compute likelihood derivatives and other useful quantities \n")}
     out$residuals <- out$design$Y - out$design$X.mean %*% out$param$mu
 
-    out$Omega <- attr(out$design$X.var,"FUN.Omega")(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$cor, keep.interim = TRUE)
+    out$Omega <- .calc_Omega(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$cor, keep.interim = TRUE)
     out$OmegaM1 <- lapply(out$Omega,solve)
-    out$dOmega <- attr(out$design$X.var,"FUN.dOmega")(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$cor, Omega = out$Omega)
-    out$d2Omega <- attr(out$design$X.var,"FUN.d2Omega")(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$cor, Omega = out$Omega, dOmega = out$dOmega, pair = out$design$param$pair.varcoef)
+    out$dOmega <- .calc_dOmega(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$cor, Omega = out$Omega)
+    out$d2Omega <- .calc_d2Omega(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$cor, Omega = out$Omega, dOmega = out$dOmega, pair = out$design$param$pair.varcoef)
 
     out$logLik <- .logLik(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1,
-                          index.variance = out$design$index.vargroup, index.cluster = out$design$index.cluster, 
+                          index.variance = out$design$index.vargroup, time.variance = out$design$index.time, index.cluster = out$design$index.cluster, 
                           indiv = FALSE, REML = out$method.fit=="REML")
 
     out$score <- .score(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega,
-                        index.variance = out$design$index.vargroup, time.variance = attr(out$design$X.var,"Upattern.time"), index.cluster = out$design$index.cluster, 
+                        index.variance = out$design$index.vargroup, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,  ## attr(out$design$X.var,"Upattern.index.time")
                         indiv = FALSE, REML = out$method.fit=="REML")
 
     out$information <- .information(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega,
-                                    index.variance = out$design$index.vargroup, index.cluster = out$design$index.cluster, 
-                                    pair.varcoef = out$design$param$pair.varcoef, indiv = FALSE, REML = out$method.fit=="REML", type = options$type.information)
+                                    index.variance = out$design$index.vargroup, time.variance = out$design$index.time, index.cluster = out$design$index.cluster, ## attr(out$design$X.var,"Upattern.index.time")
+                                    pair.varcoef = out$design$param$pair.varcoef, indiv = FALSE, REML = out$method.fit=="REML", type.information = options$type.information)
     
     out$vcov <- solve(out$information)
 
@@ -404,7 +409,7 @@ lmm <- function(formula, variance, structure, data, df = FALSE, debug = FALSE, .
 
     test.logLik <- abs(out$logLik - sum(sapply(out$gls, logLik)))
     if(test.logLik>1e-10){
-        warning("Mismatch between the gls and lmm log likelihood (largest difference ",test.logLik,"). \n",
+        warning("Mismatch between the gls and lmm log likelihood (difference ",test.logLik,"). \n",
                 "Consider contacting the package manager. \n")
     }
     
@@ -426,7 +431,6 @@ lmm <- function(formula, variance, structure, data, df = FALSE, debug = FALSE, .
                 "Consider contacting the package manager. \n")
     }
     if(all(sapply(lapply(out$gls,"[[","apVar"),length)>0)){
-        browser()
         GS.vcov.Omega <- as.matrix(Matrix::bdiag(lapply(out$gls,function(iM){iM$apVar})))
         
         param.tempo <- setdiff(unlist(tapply(names(out$param$strata),out$param$strata,list)),names(out$param$mu))

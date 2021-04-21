@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: Apr 16 2021 (16:40) 
+## Last-Updated: Apr 21 2021 (18:19) 
 ##           By: Brice Ozenne
-##     Update #: 93
+##     Update #: 109
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,13 +16,13 @@
 ### Code:
 
 ## * logLik
-logLik.lmm <- function(object, data = NULL, p = NULL, type = "lmm", indiv = FALSE, ...){
+logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv = FALSE, ...){
 
     ## ** normalize user input
-    type <- match.arg(type, c("lmm","gls"))
+    type.object <- match.arg(type.object, c("lmm","gls"))
 
     ## ** extract or recompute log-likelihood
-    if(type=="lmm"){
+    if(type.object=="lmm"){
         if(is.null(data) && is.null(p) && indiv == FALSE){
             out <- object$logLik
         }else{
@@ -45,12 +45,14 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type = "lmm", indiv = FALS
                 X <- design$X.mean
                 index.vargroup <- design$index.vargroup
                 index.cluster <- design$index.cluster
+                index.time <- design$index.time
                 X.var <- design$X.var
             }else{
                 Y <- object$design$Y
                 X <- object$design$X.mean
                 index.vargroup <- object$design$index.vargroup
                 index.cluster <- object$design$index.cluster
+                index.time <- object$design$index.time
                 X.var <- object$design$X.var
             }
             if(!is.null(p)){
@@ -58,23 +60,23 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type = "lmm", indiv = FALS
                     stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param$type)[names(object$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
                 }
                 beta <- p[names(object$param$mu)]
-                Omega <- attr(X.var,"FUN.Omega")(object = X.var, sigma = p[names(object$param$sigma)], k = p[names(object$param$k)], rho = p[names(object$param$cor)])
+                Omega <- .calc_Omega(object = X.var, sigma = p[names(object$param$sigma)], k = p[names(object$param$k)], rho = p[names(object$param$cor)])
                 precision <- lapply(Omega, solve)
             }else{
                 beta <- object$param$mu
                 precision <- object$OmegaM1
             }
             out <- .logLik(X = X, residuals = Y - X %*% beta, precision = precision,
-                           index.variance = index.vargroup, index.cluster = index.cluster, 
+                           index.variance = index.vargroup, time.variance = index.time, index.cluster = index.cluster, 
                            indiv = indiv, REML = object$method.fit=="REML")
         
         } ## end if data, p
-    }else if(type=="gls"){
+    }else if(type.object=="gls"){
         if(!is.null(data)){
-            stop("Cannot handle argument \'data\' when argument \'type\' is \"gls\". \n")
+            stop("Cannot handle argument \'data\' when argument \'type.object\' is \"gls\". \n")
         }
         if(!is.null(p)){
-            stop("Cannot handle argument \'p\' when argument \'type\' is \"gls\". \n")
+            stop("Cannot handle argument \'p\' when argument \'type.object\' is \"gls\". \n")
         }
 
         if(is.null(object$variable$strata)){
@@ -90,7 +92,7 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type = "lmm", indiv = FALS
 
 ## * .logLik
 .logLik <- function(X, residuals, precision,
-                    index.variance, index.cluster,
+                    index.variance, time.variance, index.cluster,
                     indiv, REML){
 
     if(indiv && REML){
@@ -111,8 +113,12 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type = "lmm", indiv = FALS
     
     ## ** compute score
     for(iId in 1:n.cluster){ ## iId <- 7
-        iResidual <- residuals[index.cluster==iId,,drop=FALSE]
-        iX <- X[index.cluster==iId,,drop=FALSE]
+
+        iIndex <- which(index.cluster==iId)
+        iIndex <- iIndex[order(time.variance[iIndex])] ## re-order observations according to the variance-covariance matrix
+
+        iResidual <- residuals[iIndex,,drop=FALSE]
+        iX <- X[iIndex,,drop=FALSE]
         iOmega <- precision[[index.variance[iId]]]
         ll[iId] <- - (NCOL(iOmega) * log2pi + logidet.precision[[index.variance[iId]]] + t(iResidual) %*% iOmega %*% iResidual)/2
         if(REML){

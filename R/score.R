@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: Apr 16 2021 (18:04) 
+## Last-Updated: Apr 21 2021 (18:19) 
 ##           By: Brice Ozenne
-##     Update #: 107
+##     Update #: 124
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -50,12 +50,14 @@ score.lmm <- function(x, data = NULL, p = NULL, transform = NULL, indiv = FALSE,
             X <- design$X.mean
             index.vargroup <- design$index.vargroup
             index.cluster <- design$index.cluster
+            index.time <- design$index.time
             X.var <- design$X.var
         }else{
             Y <- x$design$Y
             X <- x$design$X.mean
             index.vargroup <- x$design$index.vargroup
             index.cluster <- x$design$index.cluster
+            index.time <- x$design$index.time
             X.var <- x$design$X.var
         }
         if(!is.null(p)){
@@ -63,8 +65,8 @@ score.lmm <- function(x, data = NULL, p = NULL, transform = NULL, indiv = FALSE,
                 stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(x$param$type)[names(x$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
             }
             beta <- p[names(x$param$mu)]
-            Omega <- attr(X.var,"FUN.Omega")(object = X.var, sigma = p[names(x$param$sigma)], k = p[names(x$param$k)], rho = p[names(x$param$cor)], keep.interim = TRUE)
-            dOmega <- attr(X.var,"FUN.dOmega")(object = X.var, sigma = p[names(x$param$sigma)], k = p[names(x$param$k)], rho = p[names(x$param$cor)], Omega = Omega)
+            Omega <- .calc_Omega(object = X.var, sigma = p[names(x$param$sigma)], k = p[names(x$param$k)], rho = p[names(x$param$cor)], keep.interim = TRUE)
+            dOmega <- .calc_dOmega(object = X.var, sigma = p[names(x$param$sigma)], k = p[names(x$param$k)], rho = p[names(x$param$cor)], Omega = Omega)
             precision <- lapply(Omega, solve)
         }else{
             beta <- x$param$mu
@@ -73,7 +75,7 @@ score.lmm <- function(x, data = NULL, p = NULL, transform = NULL, indiv = FALSE,
         }
 
         out <- .score(X = X, residuals = Y - X %*% beta, precision = precision, dOmega = dOmega,
-                      index.variance = index.vargroup, time.variance = attr(X.var, "Upattern.time"), index.cluster = index.cluster,
+                      index.variance = index.vargroup, time.variance = index.time, index.cluster = index.cluster, ## attr(X.var,"Upattern.index.time")
                       indiv = indiv, REML = x$method.fit=="REML")
     }
 
@@ -120,13 +122,14 @@ score.lmm <- function(x, data = NULL, p = NULL, transform = NULL, indiv = FALSE,
         matrix(0, nrow = n.mucoef, ncol = n.mucoef, dimnames = list(name.mucoef,name.mucoef))
     }), name.varcoef)
     REML.denom <- matrix(0, nrow = n.mucoef, ncol = n.mucoef, dimnames = list(name.mucoef, name.mucoef))
-    
+
     ## ** compute score
     for(iId in 1:n.cluster){ ## iId <- 7
         iPattern <- index.variance[iId]
         iIndex <- which(index.cluster==iId)
-        browser()
-        iResidual <- residuals[iIndex,which(time.variance[[iPattern]] %in% name.time), drop=FALSE]
+        iIndex <- iIndex[order(time.variance[iIndex])] ## re-order observations according to the variance-covariance matrix
+
+        iResidual <- residuals[iIndex,,drop=FALSE]
         iX <- X[iIndex,,drop=FALSE]
 
         Score[iId,name.mucoef] <- t(iX) %*% precision[[iPattern]] %*% iResidual

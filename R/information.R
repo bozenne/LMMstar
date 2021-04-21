@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: Apr 16 2021 (17:58) 
+## Last-Updated: Apr 21 2021 (18:20) 
 ##           By: Brice Ozenne
-##     Update #: 154
+##     Update #: 179
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,16 +17,16 @@
 
 ## * information.lmm (code)
 ##' @export
-information.lmm <- function(x, data = NULL, p = NULL, transform = NULL, indiv = FALSE, type = NULL, ...){
+information.lmm <- function(x, data = NULL, p = NULL, transform = NULL, indiv = FALSE, type.information = NULL, ...){
     options <- LMMstar.options()
     x.transform <- attr(e.lmm$design$X.var, "transform")
 
     ## ** normalize user input
     if(is.null(transform)){transform <- options$transform}
-    if(is.null(type)){
-        type <- options$type.information
+    if(is.null(type.information)){
+        type.information <- options$type.information
     }else{
-        type <- match.arg(type, c("expected","observed"))
+        type.information <- match.arg(type.information, c("expected","observed"))
     }
 
     ## ** extract or recompute information
@@ -57,6 +57,7 @@ information.lmm <- function(x, data = NULL, p = NULL, transform = NULL, indiv = 
             X <- design$X.mean
             index.vargroup <- design$index.vargroup
             index.cluster <- design$index.cluster
+            index.time <- design$index.time
             X.var <- design$X.var
             pair.varcoef  <- design$param$pair.varcoef
         }else{
@@ -64,6 +65,7 @@ information.lmm <- function(x, data = NULL, p = NULL, transform = NULL, indiv = 
             X <- x$design$X.mean
             index.vargroup <- x$design$index.vargroup
             index.cluster <- x$design$index.cluster
+            index.time <- x$design$index.time
             X.var <- x$design$X.var
             pair.varcoef  <- x$design$param$pair.varcoef
         }
@@ -72,10 +74,12 @@ information.lmm <- function(x, data = NULL, p = NULL, transform = NULL, indiv = 
                 stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(x$param$type)[names(x$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
             }
             beta <- p[names(x$param$mu)]
-            Omega <- attr(X.var,"FUN.Omega")(object = X.var, sigma = p[names(x$param$sigma)], k = p[names(x$param$k)], rho = p[names(x$param$cor)], keep.interim = TRUE)
-            dOmega <- attr(X.var,"FUN.dOmega")(object = X.var, sigma = p[names(x$param$sigma)], k = p[names(x$param$k)], rho = p[names(x$param$cor)], Omega = Omega)
-            if(REML || type == "observed"){
-                d2Omega <- attr(X.var,"FUN.d2Omega")(object = X.var, sigma = p[names(x$param$sigma)], k = p[names(x$param$k)], rho = p[names(x$param$cor)], Omega = Omega, dOmega = dOmega, pair = pair.varcoef)
+            Omega <- .calc_Omega(object = X.var, sigma = p[names(x$param$sigma)], k = p[names(x$param$k)], rho = p[names(x$param$cor)], keep.interim = TRUE)
+            dOmega <- .calc_dOmega(object = X.var, sigma = p[names(x$param$sigma)], k = p[names(x$param$k)], rho = p[names(x$param$cor)], Omega = Omega)
+            if(REML || type.information == "observed"){
+                d2Omega <- .calc_d2Omega(object = X.var, sigma = p[names(x$param$sigma)], k = p[names(x$param$k)], rho = p[names(x$param$cor)], Omega = Omega, dOmega = dOmega, pair = pair.varcoef)
+            }else{
+                d2Omega <- NULL
             }
             precision <- lapply(Omega, solve)
         }else{
@@ -85,8 +89,8 @@ information.lmm <- function(x, data = NULL, p = NULL, transform = NULL, indiv = 
             d2Omega <- x$d2Omega
         }
         out <- .information(X = X, residuals = Y - X %*% beta, precision = precision, dOmega = dOmega, d2Omega = d2Omega,
-                            index.variance = index.vargroup, index.cluster = index.cluster,
-                            pair.varcoef = pair.varcoef, indiv = indiv, REML = REML, type = type)
+                            index.variance = index.vargroup, time.variance = index.time, index.cluster = index.cluster, ## attr(X.var,"Upattern.index.time")
+                            pair.varcoef = pair.varcoef, indiv = indiv, REML = REML, type.information = type.information)
         
     }
     return(out)
@@ -98,8 +102,8 @@ information.lmm <- function(x, data = NULL, p = NULL, transform = NULL, indiv = 
 ##                                                                 - 0.5 tr[ (X \OmegaM1 X)^{-1} (X \OmegaM1 d'\Omega \OmegaM1 d\Omega \OmegaM1 X) + (X \OmegaM1 X)^{-1} (X \OmegaM1 d\Omega \OmegaM1 d'\Omega \OmegaM1 X) ]
 ##                                                                 + 0.5 tr[ (X \OmegaM1 X)^{-1} (X \OmegaM1 d2\Omega \OmegaM1 X) ]
 .information <- function(X, residuals, precision, dOmega, d2Omega,
-                         index.variance, index.cluster,
-                         pair.varcoef, indiv, REML, type){
+                         index.variance, time.variance, index.cluster,
+                         pair.varcoef, indiv, REML, type.information){
 
     if(indiv && REML){
         stop("Not possible to compute individual information when using REML.\n")
@@ -130,13 +134,14 @@ information.lmm <- function(x, data = NULL, p = NULL, transform = NULL, indiv = 
 
     dOmega.precomputed <- setNames(lapply(var.pattern, function(iPattern){
         iOut <- vector(mode = "list", length = npair.varcoef)
-
-        iResiduals <- residuals[index.variance==iPattern,,drop=FALSE]
-        obsVSexp <- diag(1, NCOL(iResiduals), NCOL(iResiduals)) -  precision[[iPattern]] %*% crossprod(iResiduals)/NROW(iResiduals)
-
+        if(type.information == "observed"){
+            iResiduals <- residuals[index.variance==iPattern,,drop=FALSE]
+            iResidualsW <- reshape2::dcast(data.frame(id = index.cluster[index.variance == iPattern], res = iResiduals, time =  time.variance[index.variance==iPattern]), formula = id~time, value.var = "res")[,-1,drop=FALSE]
+            obsVSexp <- diag(1, NCOL(iResiduals), NCOL(iResiduals)) -  precision[[iPattern]] %*% crossprod(as.matrix(iResidualsW))/NROW(iResidualsW)
+        }
         for(iPair in 1:npair.varcoef){
             iOut[[iPair]] <- tr(precision[[iPattern]] %*% dOmega[[iPattern]][[pair.varcoef[1,iPair]]] %*% precision[[iPattern]] %*% dOmega[[iPattern]][[pair.varcoef[2,iPair]]])
-            if(type == "observed"){
+            if(type.information == "observed"){
                 iOut[[iPair]] <- iOut[[iPair]] - tr(precision[[iPattern]] %*% d2Omega[[iPattern]][[iPair]] %*% obsVSexp)
             }
         }
@@ -173,10 +178,10 @@ information.lmm <- function(x, data = NULL, p = NULL, transform = NULL, indiv = 
     for(iId in 1:n.cluster){ ## iId <- 7
         iPattern <- index.variance[iId]
         iIndex <- which(index.cluster==iId)
+        iIndex <- iIndex[order(time.variance[iIndex])] ## re-order observations according to the variance-covariance matrix
 
         iX <- X[iIndex,,drop=FALSE]
         iOmegaM1 <- precision[[iPattern]]
-                              
         if(indiv){
             info[iId,name.mucoef,name.mucoef] <- t(iX) %*% iOmegaM1 %*% iX
         }else{
@@ -215,7 +220,6 @@ information.lmm <- function(x, data = NULL, p = NULL, transform = NULL, indiv = 
             term1 <- tr(REML.denom %*% REML.num[[iPair]]$numerator1a %*% REML.denom %*% REML.num[[iPair]]$numerator1b)
             term2 <- tr(- 2 * REML.denom %*% REML.num[[iPair]]$numerator2)
             term3 <- tr(REML.denom %*% REML.num[[iPair]]$numerator3)
-            print(c(info[pair.varcoef[1,iPair],pair.varcoef[2,iPair]],term1,term2,term3))
             info[pair.varcoef[1,iPair],pair.varcoef[2,iPair]] <- info[pair.varcoef[1,iPair],pair.varcoef[2,iPair]] + 0.5 * (term1 + term2 + term3) 
             if(pair.varcoef[1,iPair] != pair.varcoef[2,iPair]){
                 info[pair.varcoef[2,iPair],pair.varcoef[1,iPair]] <- info[pair.varcoef[2,iPair],pair.varcoef[1,iPair]] + 0.5 * (term1 + term2 + term3) 

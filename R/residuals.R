@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: mar 22 2021 (23:00) 
+## Last-Updated: Apr 20 2021 (15:54) 
 ##           By: Brice Ozenne
-##     Update #: 46
+##     Update #: 47
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,15 +17,15 @@
 
 ## * residuals.lmm (code)
 ##' @export
-residuals.lmm <- function(object, data = NULL, p = NULL, type = "lmm", type.residual = "response", format = "wide"){
+residuals.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", type.residual = "response", format = "wide"){
     
     ## ** normalize user imput
-    type <- match.arg(type, c("lmm","gls"))
+    type.object <- match.arg(type.object, c("lmm","gls"))
     format <- match.arg(format, c("wide","long"))
     type.residuals <- match.arg(type.residual, c("response","pearson","normalized"))
 
     ## ** extract
-    if(type=="lmm"){
+    if(type.object == "lmm"){
 
         if(!is.null(data)){
             ff.allvars <- c(all.vars(object$formula$mean), all.vars(object$formula$var))
@@ -103,7 +103,7 @@ residuals.lmm <- function(object, data = NULL, p = NULL, type = "lmm", type.resi
         }
         return(res)
 
-    }else if(type=="gls"){
+    }else if(type.object == "gls"){
         if(object$strata$n == 1){
             return(residuals(object$gls, type = type.residual))
         }else {
