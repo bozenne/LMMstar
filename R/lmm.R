@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Apr 21 2021 (18:19) 
+## Last-Updated: Apr 22 2021 (18:09) 
 ##           By: Brice Ozenne
-##     Update #: 540
+##     Update #: 577
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -28,6 +28,7 @@
 ##' On the left hand side, a possible stratification variable, e.g. group ~ time|id. In that case the mean structure should only be stratified on this variable using interactions.
 ##' @param structure [character] type of covariance structure, either \code{"CS"} (compound symmetry) or \code{"UN"} (unstructured).
 ##' @param data [data.frame] dataset (in the long format) containing the observations.
+##' @param method.fit [character] Should Restricted Maximum Likelihoood (\code{"REML"}) or Maximum Likelihoood (\code{"ML"}) be used to estimate the model parameters?
 ##' @param df [logical] Should the degree of freedom be computed using a Satterthwaite approximation?
 ##' @param debug [interger, >0] Show the progress of the execution of the function.
 ##' @param ... passed to \code{nlme::gls}.
@@ -77,7 +78,7 @@
 
 ## * lmm (code)
 ##' @export
-lmm <- function(formula, variance, structure, data, df = FALSE, debug = FALSE, ...){
+lmm <- function(formula, variance, structure, data, method.fit = "REML", df = FALSE, debug = FALSE, ...){
     out <- list(call = match.call())
     options <- LMMstar.options()
     
@@ -257,7 +258,8 @@ lmm <- function(formula, variance, structure, data, df = FALSE, debug = FALSE, .
     out$time <- list(n = length(U.time), levels = U.time, var = var.time)
     out$cluster <- list(var = var.cluster)
     out$outcome <- list(var = var.outcome)
-
+    out$transform  <-  options$transform.sigmaDeriv
+    
     if(debug>=2){cat("\n")}
 
     ## *** structure
@@ -289,6 +291,8 @@ lmm <- function(formula, variance, structure, data, df = FALSE, debug = FALSE, .
                             var.design = formula.var)
     }
 
+    ## *** type.information
+    type.information <- options$type.information
     if(debug>=2){cat("\n")}
 
     ## ** design matrices
@@ -299,8 +303,7 @@ lmm <- function(formula, variance, structure, data, df = FALSE, debug = FALSE, .
                                     var.strata = var.strata, U.strata = U.strata,
                                     var.time = var.time, U.time = U.time,
                                     var.cluster = var.cluster,
-                                    structure = structure,
-                                    transform = options$transform.sigmaDeriv
+                                    structure = structure
                                     )
 
     if(debug>=2){cat("\n")}
@@ -311,11 +314,13 @@ lmm <- function(formula, variance, structure, data, df = FALSE, debug = FALSE, .
     if(max(out$design$cluster$nobs)==1){
         if(structure == "CS"){
             txt.gls <- paste0("nlme::gls(",deparse(formula.design),",
+                                         method = ",deparse(method.fit),",
                                          data = ",txt.data,", ... )")
         }else if(structure == "UN"){
             form.var <- stats::as.formula(paste0("~1|",var.time))
             txt.gls <- paste0("nlme::gls(",deparse(formula.design),",
                                          weights = nlme::varIdent(form = ",deparse(form.var),"),
+                                         method = ",deparse(method.fit),",
                                          data = ",txt.data,", ...)")
         }
     }else{
@@ -323,12 +328,14 @@ lmm <- function(formula, variance, structure, data, df = FALSE, debug = FALSE, .
             form.cor <- stats::as.formula(paste0("~1|",var.cluster))
             txt.gls <- paste0("nlme::gls(",deparse(formula.design),",
                                          correlation = nlme::corCompSymm(form = ",deparse(form.cor),"),
+                                         method = ",deparse(method.fit),",
                                          data = ",txt.data,", ...)")
         }else if(structure == "EXP"){
             form.var <- stats::as.formula(paste0("~1|",var.time))
             form.cor <- stats::as.formula(paste0("~",var.time,"|",var.cluster))
             txt.gls <- paste0("nlme::gls(",deparse(formula.design),",
                                           correlation = nlme::corExp(form = ",deparse(form.cor),"),
+                                          method = ",deparse(method.fit),",
                                           data = ",txt.data,", ...)")
         }else if(structure == "UN"){
             form.var <- stats::as.formula(paste0("~1|",var.time))
@@ -336,6 +343,7 @@ lmm <- function(formula, variance, structure, data, df = FALSE, debug = FALSE, .
             txt.gls <- paste0("nlme::gls(",deparse(formula.design),",
                                           correlation = nlme::corSymm(form = ",deparse(form.cor),"),
                                           weights = nlme::varIdent(form = ",deparse(form.var),"),
+                                          method = ",deparse(method.fit),",
                                           data = ",txt.data,", ...)")
         }
     }
@@ -345,35 +353,35 @@ lmm <- function(formula, variance, structure, data, df = FALSE, debug = FALSE, .
         paste0(gsub(",",",\n    ",gsub(" ","",paste(deparse(iM$call), collapse = ""))),"\n")
     })
     out$data <- data
-    out$method.fit <- unique(sapply(out$gls, "[[", "method"))
+    out$method.fit <- method.fit
     out$structure <- structure
     
     if(n.strata==1){
         out$param <- list(mu = coef(out$gls[[1]])[out$design$param$mu],
                           sigma = setNames(sigma(out$gls[[1]]),out$design$param$sigma),
                           k = setNames(coef(out$gls[[1]]$modelStruct$varStruct, unconstrained = FALSE),out$design$param$k),
-                          cor = setNames(coef(out$gls[[1]]$modelStruct$corStruct, unconstrained = FALSE),out$design$param$rho)
+                          rho = setNames(coef(out$gls[[1]]$modelStruct$corStruct, unconstrained = FALSE),out$design$param$rho)
                           )
         out$param$strata <- rep(U.strata, length(unlist(out$param)))
     }else{
         param.mu <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]) })
         param.sigma <- lapply(U.strata, function(iS){ sigma(out$gls[[iS]]) })
         param.k <- lapply(U.strata, function(iS){  coef(out$gls[[iS]]$modelStruct$varStruct, unconstrained = FALSE) })
-        param.cor <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]$modelStruct$corStruct, unconstrained = FALSE) })
+        param.rho <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]$modelStruct$corStruct, unconstrained = FALSE) })
         out$param <- list(mu = setNames(unlist(param.mu),out$design$param$mu),
                           sigma = setNames(unlist(param.sigma), out$design$param$sigma),
                           k = setNames(unlist(param.k), out$design$param$k),
-                          cor = setNames(unlist(param.cor), out$design$param$rho)
+                          rho = setNames(unlist(param.rho), out$design$param$rho)
                           )
 
         out$param$strata <- c(unlist(lapply(1:n.strata, function(iS){rep(U.strata[iS], times = length(param.mu[[iS]]))})),
                               unlist(lapply(1:n.strata, function(iS){rep(U.strata[iS], times = length(param.sigma[[iS]]))})),
                               unlist(lapply(1:n.strata, function(iS){rep(U.strata[iS], times = length(param.k[[iS]]))})),
-                              unlist(lapply(1:n.strata, function(iS){rep(U.strata[iS], times = length(param.cor[[iS]]))})))
+                              unlist(lapply(1:n.strata, function(iS){rep(U.strata[iS], times = length(param.rho[[iS]]))})))
     }
-    out$param$type <- c(rep("mu", length(out$param$mu)), rep("sigma", length(out$param$sigma)), rep("k", length(out$param$k)), rep("cor", length(out$param$cor)))
+    out$param$type <- c(rep("mu", length(out$param$mu)), rep("sigma", length(out$param$sigma)), rep("k", length(out$param$k)), rep("rho", length(out$param$rho)))
 
-    param.allnames <- unlist(lapply(out$param[c("mu","sigma","k","cor")], names))
+    param.allnames <- unlist(lapply(out$param[c("mu","sigma","k","rho")], names))
     names(out$param$strata) <- param.allnames
     names(out$param$type) <- param.allnames
     if(debug>=1){cat("\n")}
@@ -382,27 +390,29 @@ lmm <- function(formula, variance, structure, data, df = FALSE, debug = FALSE, .
     if(debug>=1){cat("3. compute likelihood derivatives and other useful quantities \n")}
     out$residuals <- out$design$Y - out$design$X.mean %*% out$param$mu
 
-    out$Omega <- .calc_Omega(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$cor, keep.interim = TRUE)
+    out$Omega <- .calc_Omega(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$rho, keep.interim = TRUE)
     out$OmegaM1 <- lapply(out$Omega,solve)
-    out$dOmega <- .calc_dOmega(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$cor, Omega = out$Omega)
-    out$d2Omega <- .calc_d2Omega(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$cor, Omega = out$Omega, dOmega = out$dOmega, pair = out$design$param$pair.varcoef)
+    out$dOmega <- .calc_dOmega(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$rho, Omega = out$Omega, transform = out$transform)
+    out$d2Omega <- .calc_d2Omega(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$rho, Omega = out$Omega, dOmega = out$dOmega, pair = out$design$param$pair.varcoef, transform = out$transform)
 
     out$logLik <- .logLik(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1,
                           index.variance = out$design$index.vargroup, time.variance = out$design$index.time, index.cluster = out$design$index.cluster, 
-                          indiv = FALSE, REML = out$method.fit=="REML")
+                          indiv = FALSE, REML = method.fit=="REML")
 
     out$score <- .score(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega,
                         index.variance = out$design$index.vargroup, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,  ## attr(out$design$X.var,"Upattern.index.time")
-                        indiv = FALSE, REML = out$method.fit=="REML")
+                        indiv = FALSE, REML = method.fit=="REML")
 
     out$information <- .information(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega,
                                     index.variance = out$design$index.vargroup, time.variance = out$design$index.time, index.cluster = out$design$index.cluster, ## attr(out$design$X.var,"Upattern.index.time")
-                                    pair.varcoef = out$design$param$pair.varcoef, indiv = FALSE, REML = out$method.fit=="REML", type.information = options$type.information)
+                                    pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef,
+                                    indiv = FALSE, REML = method.fit=="REML", type.information = type.information)
     
     out$vcov <- solve(out$information)
-
-    ## attr(out$design$X.var,"transform")
-
+    out$df <- .df(param = out$param, Y = out$design$Y, X.mean = out$design$X.mean, X.var = out$design$X.var,
+                  index.variance = out$design$index.vargroup, time.variance = out$design$index.time, index.cluster = out$design$index.cluster, 
+                  pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef, REML = method.fit=="REML", type.information = type.information,
+                  transform = out$transform, object.transform = out$transform, vcov = out$vcov, diag = TRUE)
 
     ## ** Sanity checks
     if(debug>=1){cat("4. sanity check vs. gls \n")}

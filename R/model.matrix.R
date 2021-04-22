@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Apr 21 2021 (19:31) 
+## Last-Updated: Apr 22 2021 (11:40) 
 ##           By: Brice Ozenne
-##     Update #: 438
+##     Update #: 446
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,10 +18,16 @@
 
 ## * model.matrix.lmm (code)
 ##' @export
-model.matrix.lmm <- function(object, data = NULL, type = "lmm-mean"){
+model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object = "lmm"){
 
     ## ** normalize user imput
-    type <- match.arg(type, c("lmm","lmm-mean","lmm-variance","gls"))
+    type.object <- match.arg(type.object, c("lmm","gls"))
+    if(identical(effects,"all")){
+        effects <- c("mean","variance")
+    }
+    effects <- match.arg(effects, c("mean","variance"), several.ok = TRUE)
+
+    ## ** update design matrix with new dataset
     if(!is.null(data)){
         ff.allvars <- c(all.vars(x$formula$mean), all.vars(x$formula$var))
         if(any(ff.allvars %in% names(data) == FALSE)){
@@ -37,30 +43,21 @@ model.matrix.lmm <- function(object, data = NULL, type = "lmm-mean"){
                                     var.cluster = x$cluster$var,
                                     structure = x$structure
                                     )
+    }else{
+        design <- object$design
     }
     
-    if(type == "lmm"){
-        if(is.null(data)){
-            return(list(mean = object$design$X.mean,
-                        variance = object$design$X.var))
-        }else{
-            
+    ## ** update design matrix with new dataset
+    if(type.object == "lmm"){
+        if("mean" %in% effects && "variance" %in% effects){
             return(list(mean = design$X.mean,
                         variance = design$X.var))
-        }
-    }else if(type == "lmm-mean"){
-        if(is.null(data)){
-            return(object$design$X.mean)
-        }else{
+        }else if("mean" %in% effects){
             return(design$X.mean)
-        }
-    }else if(type == "lmm-variance"){
-        if(is.null(data)){
-            return(object$design$X.var)
-        }else{
+        }else if("variance" %in% effects){
             return(design$X.var)
         }
-    }else if(type=="gls"){
+    }else if(type.object == "gls"){
         if(object$strata$n==1){
             return(model.matrix(object$gls[[1]], data = data))
         }else{
@@ -74,7 +71,7 @@ model.matrix.lmm <- function(object, data = NULL, type = "lmm-mean"){
                               var.strata, U.strata,
                               var.time, U.time,
                               var.cluster,
-                              structure, transform){
+                              structure){
     n.obs <- NROW(data)
     n.strata <- length(U.strata)
     n.time <- length(U.time)
@@ -165,7 +162,6 @@ model.matrix.lmm <- function(object, data = NULL, type = "lmm-mean"){
     }
 
     attr(X.var,"level") <- as.numeric(droplevels(interaction(as.data.frame(X.var))))
-    attr(X.var,"transform") <- transform ## should parameters be rescaled (0: sd, cor | 1 sd(log transform), cor(atanh transform), 2: var, cor)
     attr(X.var,"pattern") <- tapply(attr(X.var,"level"), index.cluster, paste, collapse=".") ## automatic re-ordering of the result
     attr(X.var,"Upattern") <- unname(sort(unique(attr(X.var,"pattern"))))
     attr(X.var,"nUpattern") <- length(attr(X.var,"Upattern"))
@@ -286,7 +282,9 @@ model.matrix.lmm <- function(object, data = NULL, type = "lmm-mean"){
                 index.strata = tapply(data[[var.strata]],data[[var.cluster]],unique),
                 index.time = as.numeric(data[[var.time]]),
                 cluster = list(n = n.cluster, levels = U.cluster, nobs = table(index.cluster)),
-                param = list(mu = colnames(X.mean), sigma = param.sigma, k = param.k, rho = param.rho, pair.varcoef = .unorderedPairs(c(param.sigma,param.k,param.rho)))))
+                param = list(mu = colnames(X.mean), sigma = param.sigma, k = param.k, rho = param.rho,
+                             pair.meanvarcoef = unname(t(expand.grid(colnames(X.mean),c(param.sigma,param.k,param.rho)))),
+                             pair.varcoef = .unorderedPairs(c(param.sigma,param.k,param.rho)))))
 }
 
 ## * .unorderedPairs
@@ -297,6 +295,8 @@ model.matrix.lmm <- function(object, data = NULL, type = "lmm-mean"){
     out <- array(unlist(ls), dim = c(2, n * (n + 1)/2))
     return(out)
 }
+
+
 
 ##----------------------------------------------------------------------
 ### model.matrix.R ends here

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: Apr 20 2021 (15:54) 
+## Last-Updated: Apr 22 2021 (17:26) 
 ##           By: Brice Ozenne
-##     Update #: 47
+##     Update #: 60
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,9 +17,15 @@
 
 ## * residuals.lmm (code)
 ##' @export
-residuals.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", type.residual = "response", format = "wide"){
-    
+residuals.lmm <- function(object, type.residual = "response", format = "wide",
+                          data = NULL, p = NULL, type.object = "lmm", ...){
+    options <- LMMstar.options()
+
     ## ** normalize user imput
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
     type.object <- match.arg(type.object, c("lmm","gls"))
     format <- match.arg(format, c("wide","long"))
     type.residuals <- match.arg(type.residual, c("response","pearson","normalized"))
@@ -60,12 +66,15 @@ residuals.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", ty
         }
 
         if(!is.null(p)){
-            if(any(names(object$param$mu) %in% names(p) == FALSE)){
-                stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param$mu)[names(object$param$mu) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
+            if(any(duplicated(names(p)))){
+                stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
+            }
+            if(any(names(object$param$type) %in% names(p) == FALSE)){
+                stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param$type)[names(object$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
             }
             beta <- p[names(object$param$mu)]
             if(type.residuals %in% c("pearson","normalized")){
-                Omega <- attr(X.var,"FUN.Omega")(object = X.var, sigma = p[names(object$param$sigma)], k = p[names(object$param$k)], rho = p[names(object$param$cor)])
+                Omega <- .calc_Omega(object = X.var, sigma = p[names(object$param$sigma)], k = p[names(object$param$k)], rho = p[names(object$param$cor)])
                 precision <- lapply(Omega, solve)
             }
         }else{
@@ -76,7 +85,7 @@ residuals.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", ty
             }
         }
         if(!is.null(data) || !is.null(p)){
-            res <-  Y - X.mean %*% mu
+            res <-  Y - X %*% beta
         }else{
             res <- object$residuals
         }
@@ -85,14 +94,14 @@ residuals.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", ty
         if(type.residuals %in% c("pearson","normalized")){
             for(iId in 1:n.cluster){ ## iId <- 7
                 iIndex <- which(index.cluster==iId)
-                iOrder <- order(object$design$index.time[iIndex])
-                iResidual <- res[iIndex,,drop=FALSE][iOrder]
+                iOrder <- order(index.time[iIndex])
+                iResidual <- res[iIndex[iOrder],,drop=FALSE]
                 if(type.residuals == "pearson"){
                     resnorm <- res[index.cluster==iId]/sqrt(diag(Omega[[index.variance[iId]]]))
                 }else if(type.residuals == "normalized"){
                     resnorm <- as.double(res[index.cluster==iId] %*% precision[[index.variance[iId]]])
                 }
-                res[index.cluster==iId] <- resnorm[sort(iOrder)]
+                res[iIndex] <- resnorm[order(iOrder)]
             }
         }
 
@@ -104,6 +113,12 @@ residuals.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", ty
         return(res)
 
     }else if(type.object == "gls"){
+        if(!is.null(data)){
+            stop("Cannot handle argument \'data\' when argument \'type.object\' is \"gls\". \n")
+        }
+        if(!is.null(p)){
+            stop("Cannot handle argument \'p\' when argument \'type.object\' is \"gls\". \n")
+        }
         if(object$strata$n == 1){
             return(residuals(object$gls, type = type.residual))
         }else {

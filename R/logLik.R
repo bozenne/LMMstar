@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: Apr 21 2021 (18:19) 
+## Last-Updated: Apr 22 2021 (17:21) 
 ##           By: Brice Ozenne
-##     Update #: 109
+##     Update #: 120
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,7 +15,33 @@
 ## 
 ### Code:
 
+## * score.lmm (documentation)
+##' @title Extract The Log-Likelihood From a Linear Mixed Model
+##' @description Extract or compute the log-likelihood of a linear mixed model.
+##' @name logLik
+##' 
+##' @param object a \code{lmm} object.
+##' @param data [data.frame] dataset relative to which the log-likelihood should be computed. Only relevant if differs from the dataset used to fit the model.
+##' @param indiv [logical] Should the contribution of each cluster to the log-likelihood be output? Otherwise output the sum of all clusters of the derivatives. 
+##' @param type.object [character] Set this argument to \code{"gls"} to obtain the output from the gls object and related method.
+##' @param p [numeric vector] value of the model coefficients at which to evaluate the log-likelihood. Only relevant if differs from the fitted values.
+##' @param ... Not used. For compatibility with the generic method.
+##'
+##' @details \bold{transform}: \cr
+##' \itemize{
+##' \item 0 means no transformation i.e. ouput stanrdard error, ratio of standard errors, and correlations.
+##' \item 1 means log/atanh transformation i.e. ouput log(stanrdard error), log(ratio of standard errors), and atanh(correlations).
+##' \item 2 ouput variance coefficients and correlations.
+##' }
+##'
+##' @details \bold{indiv}: only relevant when using maximum likelihood. Must be \code{FALSE} when using restricted maximum likelihood.
+##' 
+##' @return A numeric value
+##' 
+
 ## * logLik
+##' @rdname logLik
+##' @export
 logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv = FALSE, ...){
 
     ## ** normalize user input
@@ -56,11 +82,14 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
                 X.var <- object$design$X.var
             }
             if(!is.null(p)){
+                if(any(duplicated(names(p)))){
+                    stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
+                }
                 if(any(names(object$param$type) %in% names(p) == FALSE)){
                     stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param$type)[names(object$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
                 }
                 beta <- p[names(object$param$mu)]
-                Omega <- .calc_Omega(object = X.var, sigma = p[names(object$param$sigma)], k = p[names(object$param$k)], rho = p[names(object$param$cor)])
+                Omega <- .calc_Omega(object = X.var, sigma = p[names(object$param$sigma)], k = p[names(object$param$k)], rho = p[names(object$param$rho)])
                 precision <- lapply(Omega, solve)
             }else{
                 beta <- object$param$mu

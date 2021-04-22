@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: Apr 21 2021 (19:55) 
+## Last-Updated: Apr 22 2021 (10:29) 
 ##           By: Brice Ozenne
-##     Update #: 60
+##     Update #: 67
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -47,7 +47,7 @@
 }
 
 ## * .calc_dOmega
-.calc_dOmega <-  function(object, sigma, k, rho, Omega){
+.calc_dOmega <-  function(object, sigma, k, rho, Omega, transform){
 
     ## ** prepare
     name.sigma <- names(sigma)
@@ -58,13 +58,18 @@
     n.rho <- length(rho)
     allCoef <- c(name.sigma, name.k, name.rho)
     p <- length(allCoef)
-    transform <- attr(object,"transform")
+
+    Upattern <- attr(object,"Upattern")
     Upattern.param <- attr(object,"Upattern.param")
+    nUpattern <- attr(object,"nUpattern")
+    Upattern.time <- attr(object,"Upattern.time")
+    UX.var <- attr(object,"UX.var")
+    indicator <- attr(object,"indicator")
     
     ## ** loop over covariance patterns
-    out <- lapply(1:attr(object,"nUpattern"), function(iP){ ## iP <- 1
+    out <- lapply(1:nUpattern, function(iP){ ## iP <- 1
         iScore <- setNames(vector(mode = "list", length = p), allCoef)
-        iTime <- attr(object,"Upattern.time")[[iP]]
+        iTime <- Upattern.time[[iP]]
         iNtime <- length(iTime)
         iOmega.sd <- attr(Omega[[iP]],"sd")
         iOmega.cor <- attr(Omega[[iP]],"cor")
@@ -73,12 +78,12 @@
         if(length(sigma)>0){
             for(iSigma in 1:n.sigma){ ## iSigma <- 1
                 ## positions where the k-parameter appears
-                ind.dsigma <- attr(object,"UX.var")[[iP]][,name.sigma[iSigma]]
+                ind.dsigma <- UX.var[[iP]][,name.sigma[iSigma]]
                 ## compute derivative
                 idsigma <- sigma
                 idsigma[name.sigma[iSigma]] <- 1
                 ## propagate
-                idOmega.sigma <- exp((attr(object,"UX.var")[[iP]] %*% log(c(idsigma,k)))[,1]) * ind.dsigma
+                idOmega.sigma <- exp((UX.var[[iP]] %*% log(c(idsigma,k)))[,1]) * ind.dsigma
                 iScore[[name.sigma[iSigma]]] <- diag(2*idOmega.sigma*iOmega.sd, nrow = iNtime, ncol = iNtime) + iOmega.cor * (idOmega.sigma %*% t(iOmega.sd) + iOmega.sd %*% t(idOmega.sigma))
                 ## iScore[[name.sigma[iSigma]]] - 2*iOmega/sigma
             }
@@ -86,12 +91,12 @@
         if(length(k)>0){
             for(iK in 1:n.k){ ## iK <- 1
                 ## position where the k-parameter appears
-                ind.dk <- attr(object,"UX.var")[[iP]][,name.k[iK]]
+                ind.dk <- UX.var[[iP]][,name.k[iK]]
                 ## compute derivative
                 idk <- k
                 idk[name.k[iK]] <- 1
                 ## propagate
-                idOmega.k <- exp((attr(object,"UX.var")[[iP]] %*% log(c(sigma,idk)))[,1]) * ind.dk
+                idOmega.k <- exp((UX.var[[iP]] %*% log(c(sigma,idk)))[,1]) * ind.dk
                 iScore[[name.k[iK]]] <- diag(2*idOmega.k*iOmega.sd, nrow = iNtime, ncol = iNtime) + iOmega.cor * (idOmega.k %*% t(iOmega.sd) + iOmega.sd %*% t(idOmega.k))
                 ## iScore[[name.k[iK]]] - (tcrossprod(ind.dk,rep(1,4))+tcrossprod(rep(1,4),ind.dk)) * iOmega/k[name.k[iK]]
             }
@@ -99,7 +104,7 @@
         if(length(rho)>0){
             for(iRho in 1:n.rho){ ## iRho <- 1
                 ## positions where the rho-parameter appears
-                ind.drho <- attr(object,"indicator")[[iP]][[name.rho[iRho]]]
+                ind.drho <- indicator[[iP]][[name.rho[iRho]]]
                 ## derivative
                 iScore[[name.rho[iRho]]] <- ind.drho * tcrossprod(iOmega.sd)
                 ## iOmega/iOmega.corn
@@ -113,12 +118,12 @@
         }
         return(iScore)
     })
-    return(setNames(out,attr(object,"Upattern")))
+    return(setNames(out,Upattern))
 }
 
 
 ## * .calc_d2Omega
-.calc_d2Omega <- function(object, sigma, k, rho, Omega, dOmega, pair){
+.calc_d2Omega <- function(object, sigma, k, rho, Omega, dOmega, pair, transform){
 
     ## ** prepare
     name.sigma <- names(sigma)
@@ -129,14 +134,20 @@
     n.rho <- length(rho)
     allCoef <- c(name.sigma, name.k, name.rho)
     p <- length(allCoef)
-    transform <- attr(object,"transform")
     n.pair  <- NCOL(pair)
         
+    Upattern <- attr(object,"Upattern")
+    Upattern.param <- attr(object,"Upattern.param")
+    nUpattern <- attr(object,"nUpattern")
+    Upattern.time <- attr(object,"Upattern.time")
+    UX.var <- attr(object,"UX.var")
+    indicator <- attr(object,"indicator")
+
     ## ** loop over covariance patterns
-    out <- lapply(1:attr(object,"nUpattern"), function(iP){
+    out <- lapply(1:nUpattern, function(iP){
         iHess <- vector(mode = "list", length = n.pair)
 
-        iTime <- attr(object,"Upattern.time")[[iP]]
+        iTime <- Upattern.time[[iP]]
         iNtime <- length(iTime)
         iOmega.sd <- attr(Omega[[iP]],"sd")
         iOmega.cor <- attr(Omega[[iP]],"cor")
@@ -153,8 +164,8 @@
             iType2 <- c("sigma","k","rho")[which(c(iCoef2 %in% name.sigma,iCoef2 %in% name.k,iCoef2 %in% name.rho))]
 
             ## positions where the parameters appears in the matrix
-            ind1 <- attr(object,"indicator")[[iP]][[iCoef1]]
-            ind2 <- attr(object,"indicator")[[iP]][[iCoef2]]
+            ind1 <- indicator[[iP]][[iCoef1]]
+            ind2 <- indicator[[iP]][[iCoef2]]
                     
             if(iType1 == "sigma"){
                 if(iType2 == "sigma"){
@@ -177,12 +188,12 @@
                     }
                 }else if(iType2 == "k"){
                     ## position where the parameters appear
-                    ind.dksigma <- attr(object,"UX.var")[[iP]][,iCoef1] * attr(object,"UX.var")[[iP]][,iCoef2]
+                    ind.dksigma <- UX.var[[iP]][,iCoef1] * UX.var[[iP]][,iCoef2]
                     ## compute derivative
                     idsigma <- sigma; idsigma[iCoef1] <- 1
                     idk <- k; idk[iCoef2] <- 1
                     ## propagate
-                    idOmega.k <- exp((attr(object,"UX.var")[[iP]] %*% log(c(idsigma,idk)))[,1]) * ind.dksigma
+                    idOmega.k <- exp((UX.var[[iP]] %*% log(c(idsigma,idk)))[,1]) * ind.dksigma
                     iHess[[iPair]] <- diag(4*idOmega.k*iOmega.sd, nrow = iNtime, ncol = iNtime) + iOmega.cor * (iOmega.sd %*% t(idOmega.k) + iOmega.sd %*% t(idOmega.k))
                         
                         ## transformation
@@ -212,14 +223,14 @@
             }else if(iType1 == "k"){                    
                 if(iType2 == "k"){
                     ## position where the parameter appear
-                    ind.dk1 <- attr(object,"UX.var")[[iP]][,iCoef1]
-                    ind.dk2 <- attr(object,"UX.var")[[iP]][,iCoef2]
+                    ind.dk1 <- UX.var[[iP]][,iCoef1]
+                    ind.dk2 <- UX.var[[iP]][,iCoef2]
                     ## compute derivative
                     idk1 <- k ; idk1[iCoef1] <- 1
                     idk2 <- k ; idk2[iCoef2] <- 1
                     ## propagate
-                    idOmega.k1 <- exp((attr(object,"UX.var")[[iP]] %*% log(c(sigma,idk1)))[,1]) * ind.dk1
-                    idOmega.k2 <- exp((attr(object,"UX.var")[[iP]] %*% log(c(sigma,idk2)))[,1]) * ind.dk2
+                    idOmega.k1 <- exp((UX.var[[iP]] %*% log(c(sigma,idk1)))[,1]) * ind.dk1
+                    idOmega.k2 <- exp((UX.var[[iP]] %*% log(c(sigma,idk2)))[,1]) * ind.dk2
                     iHess[[iPair]] <- diag(2*idOmega.k1*idOmega.k2, nrow = iNtime, ncol = iNtime) + iOmega.cor * (idOmega.k1 %*% t(idOmega.k2) + idOmega.k2 %*% t(idOmega.k1))
                         
                     ## transformation
@@ -227,18 +238,18 @@
                     ## d2 exp(2 k)  or d exp(k) d exp(k') =  2 k^2 or k k'
                     ## d2 d (sigma2 k2) or d (sigma2 k2) d (sigma2' k2') = ????
                     if(transform == 1){ 
-                        iHess[[iPair]] <- iHess[[iPair]] * (1+iCoef1==iCoef2) * k[iCoef1] * k[iCoef2]
+                        iHess[[iPair]] <- iHess[[iPair]] * (1+(iCoef1==iCoef2)) * k[iCoef1] * k[iCoef2]
                     }else if(transform == 2){
                         browser()
                     }
                     
                     }else if(iType2 == "rho"){
                         ## position where the parameters appear
-                        ind.dk <- attr(object,"UX.var")[[iP]][,iCoef1]
+                        ind.dk <- UX.var[[iP]][,iCoef1]
                         ## compute derivative
                         idk <- k; idk[iCoef1] <- 1
                         ## propagate
-                        idOmega.k <- exp((attr(object,"UX.var")[[iP]] %*% log(c(sigma,idk)))[,1]) * ind.dk
+                        idOmega.k <- exp((UX.var[[iP]] %*% log(c(sigma,idk)))[,1]) * ind.dk
                         iHess[[iPair]] <- ind.2 * (idOmega.k %*% t(iOmega.sd) + iOmega.sd %*% t(idOmega.k))
 
                         ## transformation
@@ -257,7 +268,7 @@
         }
         return(iHess)
     })
-    return(setNames(out,attr(object,"Upattern")))
+    return(setNames(out,Upattern))
 } 
 
 

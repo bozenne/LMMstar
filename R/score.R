@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: Apr 21 2021 (18:19) 
+## Last-Updated: Apr 22 2021 (18:11) 
 ##           By: Brice Ozenne
-##     Update #: 124
+##     Update #: 171
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,24 +15,52 @@
 ## 
 ### Code:
 
+## * score.lmm (documentation)
+##' @title Extract The Score From a Linear Mixed Model
+##' @description Extract or compute the first derivative of the log-likelihood of a linear mixed model.
+##' @name score
+##' 
+##' @param object a \code{lmm} object.
+##' @param data [data.frame] dataset relative to which the score should be computed. Only relevant if differs from the dataset used to fit the model.
+##' @param indiv [logical] Should the contribution of each cluster to the score be output? Otherwise output the sum of all clusters of the derivatives.
+##' @param p [numeric vector] value of the model coefficients at which to evaluate the score. Only relevant if differs from the fitted values.
+##' @param transform [0,1,2] Transformation used on the variance coefficient. See details.
+##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
+##' @param ... Not used. For compatibility with the generic method.
+##'
+##' @details \bold{transform}: \cr
+##' \itemize{
+##' \item 0 means no transformation i.e. ouput stanrdard error, ratio of standard errors, and correlations.
+##' \item 1 means log/atanh transformation i.e. ouput log(stanrdard error), log(ratio of standard errors), and atanh(correlations).
+##' \item 2 ouput variance coefficients and correlations.
+##' }
+##'
+##' @return
+##' When argument indiv is \code{FALSE}, a vector with the value of the score relative to each coefficient.
+##' When argument indiv is \code{FALSE}, a matrix with the value of the score relative to each coefficient (in columns) and each cluster (in rows).
+##' 
+
 ## * score.lmm (code)
+##' @rdname score
 ##' @export
-score.lmm <- function(x, data = NULL, p = NULL, transform = NULL, indiv = FALSE, ...){
+score.lmm <- function(x, data = NULL, p = NULL, transform = NULL, indiv = FALSE, transform.names = TRUE, ...){
     options <- LMMstar.options()
-    x.transform <- attr(e.lmm$design$X.var, "transform")
+    x.transform <- x$transform
 
     ## ** normalize user input
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
     if(is.null(transform)){transform <- options$transform}
 
     ## ** extract or recompute score
     if(is.null(data) && is.null(p) && (indiv == FALSE) && (transform == x.transform)){
         out <- x$score
     }else{
-        if(!is.null(data) || (transform != x.transform)){
+        if(!is.null(data)){
             ff.allvars <- c(all.vars(x$formula$mean), all.vars(x$formula$var))
-            if(is.null(data)){
-                data <- x$data
-            }else if(any(ff.allvars %in% names(data) == FALSE)){
+            if(any(ff.allvars %in% names(data) == FALSE)){
                 stop("Incorrect argument \'data\': missing variable(s) \"",paste(ff.allvars[ff.allvars %in% names(data) == FALSE], collapse = "\" \""),"\".\n")
             }
 
@@ -60,23 +88,39 @@ score.lmm <- function(x, data = NULL, p = NULL, transform = NULL, indiv = FALSE,
             index.time <- x$design$index.time
             X.var <- x$design$X.var
         }
-        if(!is.null(p)){
-            if(any(names(x$param$type) %in% names(p) == FALSE)){
-                stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(x$param$type)[names(x$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
+        if(!is.null(p) || (transform != x.transform)){
+            if(!is.null(p)){
+                if(any(duplicated(names(p)))){
+                    stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
+                }
+                if(any(names(x$param$type) %in% names(p) == FALSE)){
+                    stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(x$param$type)[names(x$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
+                }
+            }else{
+                p <- c(x$param$mu,x$param$sigma,x$param$k,x$param$rho)
             }
+            
             beta <- p[names(x$param$mu)]
-            Omega <- .calc_Omega(object = X.var, sigma = p[names(x$param$sigma)], k = p[names(x$param$k)], rho = p[names(x$param$cor)], keep.interim = TRUE)
-            dOmega <- .calc_dOmega(object = X.var, sigma = p[names(x$param$sigma)], k = p[names(x$param$k)], rho = p[names(x$param$cor)], Omega = Omega)
+            Omega <- .calc_Omega(object = X.var, sigma = p[names(x$param$sigma)], k = p[names(x$param$k)], rho = p[names(x$param$rho)], keep.interim = TRUE)
+            dOmega <- .calc_dOmega(object = X.var, sigma = p[names(x$param$sigma)], k = p[names(x$param$k)], rho = p[names(x$param$rho)], Omega = Omega, transform = transform)
             precision <- lapply(Omega, solve)
         }else{
             beta <- x$param$mu
             precision <- x$OmegaM1
             dOmega <- x$dOmega
-        }
-
+        }        
         out <- .score(X = X, residuals = Y - X %*% beta, precision = precision, dOmega = dOmega,
                       index.variance = index.vargroup, time.variance = index.time, index.cluster = index.cluster, ## attr(X.var,"Upattern.index.time")
                       indiv = indiv, REML = x$method.fit=="REML")
+
+        if(transform>0 && transform.names){
+            if(indiv){
+                colnames(out) <- names(coef(e.lmm, transform = transform, effects = "all", transform.names = transform.names))
+            }else{
+                names(out) <- names(coef(e.lmm, transform = transform, effects = "all", transform.names = transform.names))
+            }
+        }
+
     }
 
     ## ** export
@@ -139,7 +183,7 @@ score.lmm <- function(x, data = NULL, p = NULL, transform = NULL, indiv = FALSE,
 
         for(iVarcoef in name.varcoef){ ## iVarcoef <- name.varcoef[1]
             Score[iId,iVarcoef] <- -0.5 * dOmega.precomputed[[iPattern]]$term1[[iVarcoef]] + 0.5 * t(iResidual) %*% dOmega.precomputed[[iPattern]]$term2[[iVarcoef]] %*% iResidual
-            ## Score[iId,iVarcoef] <- -0.5 * tr(precision[[iPattern]] %*% dOmega[[iPattern]][[iVarcoef]]) + 0.5 * t(iResidual) %*% precision[[iPattern]] %*% dOmega[[iPattern]][[iVarcoef]] %*% precision[[iPattern]] %*% iResidual
+            ## Score[iId,iVarcoef] <- 0*Score[iId,iVarcoef]
 
             if(REML){
                 REML.num[[iVarcoef]] <- REML.num[[iVarcoef]] + t(iX) %*% dOmega.precomputed[[iPattern]]$term2[[iVarcoef]] %*% iX
