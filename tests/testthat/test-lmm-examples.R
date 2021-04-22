@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: Apr 22 2021 (18:39) 
+## Last-Updated: Apr 22 2021 (22:40) 
 ##           By: Brice Ozenne
-##     Update #: 51
+##     Update #: 53
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -250,10 +250,61 @@ jacobian(FCT_TRANS, c(x,y))
 1/(2*a); -b/(2*a^2); 1/(2*a^2*b)
 1/(2*sqrt(x)); -sqrt(y)/(2*x^(3/2)); 1/(2*sqrt(x)*sqrt(y))
 
+FCT_TRANS <- function(p){
+    p[c("sigma", "k.0")]  <- c(sqrt(p["sigma"]), sqrt(p["k.0"]/p["sigma"]))
+    return(p)
+}
 
 
 
+scoreGS <- -jacobian(func = function(p){logLik(e.lmm, p = p, transform = FALSE)}, x = coef(e.lmm))
+scoreGS.trans <- -jacobian(func = function(p){logLik(e.lmm, p = FCT_TRANS(p), transform = FALSE)}, x = coef(e.lmm, transform = 2, transform.names = FALSE))
+## GS.trans <- -jacobian(func = function(p){p[c("sigma","k.0")]<- c(sqrt(p["sigma"]), sqrt(p["k.0"]/p["sigma"]));logLik(e.lmm, p = p, transform = FALSE)}, x = coef(e.lmm, transform = 2, transform.names = FALSE))
 
+matrix(jacobian(FCT_3,point) %*% FCT_1(point), 6, 6)
+matrix(FCT_1(point) %*% t(jacobian(FCT_3,point)), 6, 6)
+
+array(jacobian(FCT_3,point) %*% FCT_1(point), c(6, 6, 6))
+
+infoGS.trans + t(FCT_2(point)) %*% jacobian(func = function(p){FCT_1(p)}, x = point) 
+
+
+infoGS <- -hessian(func = function(p){logLik(e.lmm, p = p, transform = FALSE)}, x = coef(e.lmm))
+infoGS.trans <- -hessian(func = function(p){logLik(e.lmm, p = FCT_TRANS(p), transform = FALSE)}, x = coef(e.lmm, transform = 2, transform.names = FALSE))
+
+FCT_1 <- function(p){score(e.lmm, p = FCT_TRANS(p))}
+FCT_2 <- function(p){jacobian(func = FCT_TRANS, x = p)}
+FCT_3 <- function(p){as.double(jacobian(func = FCT_TRANS, x = p))}
+point <- coef(e.lmm, transform = 2, transform.names = FALSE)
+infoGS.trans2 <- -jacobian(func = function(p){FCT_1(p) %*% FCT_2(p)}, x = point)
+
+infoGS.trans2 <- -jacobian(func = function(p){FCT_1(p)}, x = point) %*% t(FCT_2(point))
+
+-3.774442e+00 * 0.7909782
+-3.774442e+00 * 0.7829036
+[5,]    0    0    0    0  0.6272681 0.0000000
+[6,]    0    0    0    0 -0.7829036 0.7909782
+
+
+
+round(infoGS.trans - infoGS.trans2,2)
+
+term1 <- -jacobian(func = function(p){score(e.lmm, p = FCT_TRANS(p))}, x = coef(e.lmm, transform = 2, transform.names = FALSE)) %*% jacobian(func = FCT_TRANS, x = coef(e.lmm, transform = 2, transform.names = FALSE))
+term2 <- score(e.lmm, p = coef(e.lmm, transform = 0, transform.names = FALSE))
+
+
+infoGS.trans3 <-  -jacobian(func = function(p){ %*% jacobian(func = FCT_TRANS, x = p)}, x = coef(e.lmm, transform = 2, transform.names = FALSE))
+
+
+M.d2Trans <- jacobian(func = function(p){as.double(jacobian(func = FCT_TRANS, x = p))}, x = coef(e.lmm))
+A.d2Trans <- array(NA, dim = rep(length(coef(e.lmm)),3), dimnames = list(names(coef(e.lmm)),names(coef(e.lmm)),names(coef(e.lmm))))
+for(iP in 1:length(coef(e.lmm))){
+    A.d2Trans[,,iP] <- M.d2Trans[,iP]
+}
+GS[,1] %*% A.d2Trans[1,1,]
+GS-GS.trans
+
+infoGS %*% jacobian(func = FCT_TRANS, x = coef(e.lmm)) 
 
 test <- information(e.lmm, p = coef(e.lmm, transform = FALSE), transform = 2) ## using sigma^2
 GS <- -hessian(func = function(p){p["sigma"]<-sqrt(p["sigma"]);logLik(e.lmm, p = p, transform = FALSE)}, x = coef(e.lmm, transform = 2))

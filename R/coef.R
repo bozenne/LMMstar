@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: Apr 22 2021 (17:19) 
+## Last-Updated: Apr 22 2021 (21:57) 
 ##           By: Brice Ozenne
-##     Update #: 97
+##     Update #: 104
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -158,7 +158,7 @@ coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL
                 iType <- strata.type[strata.index==iStrata]
                 iName.sigma <- names(iType[iType=="sigma"])
                 iName.k <- names(iType[iType=="k"])
-                iOut.k <- sigma[iName.sigma]^2*c(1,k[iName.k]^2)
+                iOut.k <- setNames(sigma[iName.sigma]^2*c(1,k[iName.k]^2), c(iName.sigma, iName.k))
                 if(transform.names){
                     rename <- c(rename,setNames(paste0(iName.sigma,"^2:",time.var,time.levels),names(iOut.k)))
                 }
@@ -196,7 +196,6 @@ coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL
         }
         out <- c(out, out.rho)
     }
-
     ## ** export
     if(transform>0 && transform.names){
         attr(out,"rename") <- rename
