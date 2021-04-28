@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Apr 22 2021 (11:40) 
+## Last-Updated: Apr 24 2021 (22:47) 
 ##           By: Brice Ozenne
-##     Update #: 446
+##     Update #: 447
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -129,9 +129,6 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
     }else if(structure == "UN"){
         data.relevel <- as.data.frame(data)
         if(n.strata==1){
-            for(iVar in all.vars(formula.var)){ ## iVar <- "Gender"
-                data.relevel[[iVar]] <- factor(data.relevel[[iVar]], levels = unique(data.relevel[[iVar]])) ## to match with gls which chooses the reference level according to the ordering
-            }
             X.var <- model.matrix(formula.var, data.relevel)
             param.k <- colnames(X.var)[-1]
             for(iTime in 1:n.time){ ## iTime <- 2

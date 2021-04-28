@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Apr 22 2021 (18:09) 
+## Last-Updated: Apr 26 2021 (23:19) 
 ##           By: Brice Ozenne
-##     Update #: 577
+##     Update #: 585
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -155,11 +155,11 @@ lmm <- function(formula, variance, structure, data, method.fit = "REML", df = FA
         res.split <- strsplit(deparse(variance),"|", fixed = TRUE)[[1]]
         var.cluster <- trimws(res.split[2], which = "both")
         formula.var <- stats::as.formula(res.split[1])
-        var.time <- all.vars(update(formula.var,0~.))[1]
+        var.time <- all.vars(update(formula.var,0~.))
 
-        if(length(var.time)==0){
+        if(length(var.time)!=1){
             stop("Incorrect specification of argument \'variance\'. \n",
-                 "There should be at least one variable before the grouping symbol (|), something like: ~ time|id or group ~ time|id. \n")
+                 "There should be exactly one variable before the grouping symbol (|), something like: ~ time|id or group ~ time|id. \n")
         }
         if(length(var.cluster)!=1){
             stop("Incorrect specification of argument \'variance\'. \n",
@@ -206,17 +206,24 @@ lmm <- function(formula, variance, structure, data, method.fit = "REML", df = FA
                 }
             })
 
-            test.unique <- tapply(data[[var.time]], data[[var.strata]], function(iT){list(sort(unique(iT)))})
+            test.length <- tapply(data[[var.time]], data[[var.strata]], function(iT){list(unique(iT))})
             
-            if(length(unique(sapply(test.unique,length)))>1){
+            if(length(unique(sapply(test.length,length)))>1){
                 stop("Incorrect specification of argument \'variance\'. \n",
                     "The time variable should contain the same number of unique values in each strata \n")
             }
-            test.unique <- do.call(rbind,test.unique)
+            test.unique <- do.call(rbind,lapply(test.length, sort))
             
             if(any(apply(test.unique, MARGIN = 2, FUN = function(x){length(unique(x))})!=1)){
                 stop("Incorrect specification of argument \'variance\'. \n",
                      "The time variable should contain the same unique values in each strata \n")
+            }
+
+            test.order <- do.call(rbind,test.length)
+            
+            if(any(apply(test.order, MARGIN = 2, FUN = function(x){length(unique(x))})!=1)){
+                stop("Incorrect specification of argument \'variance\'. \n",
+                     "The order of the unique values in the time variable should be the same in each strata \n")
             }
         }
     }
@@ -251,8 +258,10 @@ lmm <- function(formula, variance, structure, data, method.fit = "REML", df = FA
         stop("Incorrect specification of argument \'data\'. \n",
              "The variable ",var.time.index," is used internally but already exists in \'data\' \n")
     }
-    data[[var.time.index]] <- as.numeric(as.factor(data[[var.time]]))
-    U.time <- as.character(sort(unique(data[[var.time]])))
+    data[[var.time.index]] <- factor(data[[var.time]], levels = unique(data[[var.time]]))  ## to match with gls which chooses the reference level according to the ordering
+    ## not not modify var.time in data as it could be also used in the mean structure and that would mess up the ordering 
+    U.time <- levels(data[[var.time.index]])
+    data[[var.time.index]] <- as.numeric(data[[var.time.index]])
 
     out$strata <- list(n = n.strata, levels = U.strata, var = var.strata)
     out$time <- list(n = length(U.time), levels = U.time, var = var.time)
@@ -389,6 +398,7 @@ lmm <- function(formula, variance, structure, data, method.fit = "REML", df = FA
     ## ** Compute likelihood derivatives and other useful quantities
     if(debug>=1){cat("3. compute likelihood derivatives and other useful quantities \n")}
     out$residuals <- out$design$Y - out$design$X.mean %*% out$param$mu
+    browser() ## add .reparameterize
 
     out$Omega <- .calc_Omega(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$rho, keep.interim = TRUE)
     out$OmegaM1 <- lapply(out$Omega,solve)

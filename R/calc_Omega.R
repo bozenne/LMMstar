@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: Apr 22 2021 (10:29) 
+## Last-Updated: Apr 26 2021 (23:20) 
 ##           By: Brice Ozenne
-##     Update #: 67
+##     Update #: 68
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -272,62 +272,6 @@
 } 
 
 
-## * .transformDeriv
-.transformDeriv <- function(transform, sigma, k, rho, pattern.param){
-    n.sigma <- length(sigma)
-    n.k <- length(k)
-    n.rho <- length(rho)
-
-    sigma.pattern <- names(sigma)[names(sigma) %in% pattern.param]
-    k.pattern <- names(k)[names(k) %in% pattern.param]
-    rho.pattern <- names(rho)[names(rho) %in% pattern.param]
-    n.sigma.pattern <- length(sigma.pattern)
-    n.k.pattern <- length(k.pattern)
-    n.rho.pattern <- length(rho.pattern)
-    
-    M.transform <- matrix(0, nrow = n.sigma+n.k+n.rho, ncol = n.sigma+n.k+n.rho,
-                          dimnames = list(c(names(sigma),names(k),names(rho)),c(names(sigma),names(k),names(rho)))
-                          )
-    if(transform==1){
-        ## \sigma = \exp(logsigma) so d\exp(logsigma) = \exp(logsigma) = \sigma
-        M.transform[sigma.pattern,sigma.pattern] <- sigma[sigma.pattern]
-        if(n.k.pattern>0){
-            ## k = \exp(logk) so d\exp(logk) = \exp(logk) = k
-            for(iK in k.pattern){
-                M.transform[iK,iK] <- k[iK]
-            }
-        }
-        if(n.rho.pattern>0){
-            ## \rho = \tanh(atanhrho) so d\tanh(atanhrho) = (1-\tanh(atanhrho)^2) =  1-\rho^2
-            for(iRho in rho.pattern){
-                M.transform[iRho,iRho] <- 1-rho[iRho]^2
-            }
-        }
-    }else if(transform==2){
-        ## sqrt(\sigma1), sqrt(\sigma2/\sigma1), ...   so  1/(2 sqrt(\sigma1)) \sqrt(\sigma2)/(2 \sigma1^(3/2))       
-        ##                                                      0              1 / (2*\sqrt(\sigma2)\sqrt(\sigma1))
-        ##                            
-
-        M.transform[sigma.pattern,sigma.pattern] <- 1/(2*sigma[sigma.pattern])
-        if(n.k.pattern>0){
-            M.transform[k.pattern,sigma.pattern] <- -k[k.pattern]/(2*sigma[sigma.pattern]^2)
-            for(iK in k.pattern){
-                M.transform[iK,iK] <- 1/(2*sigma[sigma.pattern]^2*k[iK])
-            }
-        }
-    }else{
-        stop("Unknown transformation. Should be 0, 1, or 2. \n")
-    }
-    return(M.transform)
-}
-
-## FCT_TRANS <- function(p){
-##     c(sqrt(p[1]), sqrt(p[2]/p[1]))
-## }
-## x <- 2; y  <- 5; a <- sqrt(x); b <- sqrt(y/x)
-## jacobian(FCT_TRANS, c(x,y))
-## 1/(2*a); -b/(2*a^2); 1/(2*a^2*b)
-## 1/(2*sqrt(x)); -sqrt(y)/(2*x^(3/2)); 1/(2*sqrt(x)*sqrt(y))
 
 
 ##----------------------------------------------------------------------

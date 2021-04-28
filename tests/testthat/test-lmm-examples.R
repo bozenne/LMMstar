@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: Apr 22 2021 (22:40) 
+## Last-Updated: Apr 25 2021 (11:54) 
 ##           By: Brice Ozenne
-##     Update #: 53
+##     Update #: 56
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -23,7 +23,7 @@ if(FALSE){
     library(LMMstar)
 }
 
-context("Check lmm on a simple example")
+context("Check lmm on simple examples")
 
 
 ## * Linear regression
@@ -224,7 +224,7 @@ expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 ## jacobian(FCT_TRANS, newp.2[c("sigma","k.0")])
 ## c(1/(2*sqrt(newp.2["sigma"])),-sqrt(newp.2["k.0"])/(2*newp.2["sigma"]^(3/2)), 1/(2*sqrt(newp.2["sigma"])*sqrt(newp.2["k.0"])))
 
-## *** variance-covariance
+## *** information
 test0 <- information(e.lmm, p = coef(e.lmm, transform = FALSE), transform = FALSE, type.information = "expected") ## using sigma
 test <- information(e.lmm, p = coef(e.lmm, transform = FALSE), transform = FALSE, type.information = "observed") ## using sigma
 GS <- -hessian(func = function(p){logLik(e.lmm, p = p)}, x = coef(e.lmm, transform = FALSE))
@@ -241,10 +241,85 @@ GS <- -hessian(func = function(p){p["sigma"]<-exp(p["sigma"]);p["k.0"]<-exp(p["k
 expect_equal(as.double(test[1:4,1:4]), as.double(GS[1:4,1:4]), tol = 1e-6)
 expect_equal(as.double(test[5:6,5:6]), as.double(GS[5:6,5:6]), tol = 1e-6)
 
-
+## *** debug
+FCT_OMEGA <- function(p, transform, vectorize){
+    rho <- 0.5
+    if(transform){
+        out <- matrix(c(p[1],rho*sqrt(p[1]*p[2]), rho*sqrt(p[1]*p[2]),p[2]),2,2)
+    }else{
+        out <- p[1]^2*matrix(c(1,rho*p[2], rho*p[2],p[2]^2),2,2)
+    }
+    if(vectorize){
+        return(as.vector(out))
+    }else{
+        out
+    }
+}
+FCT_dOMEGA <- function(p, transform, vectorize){
+    rho <- 0.5
+    if(transform){
+        out <- unname(cbind(c(1,rho*sqrt(p[2]/p[1])/2, rho*sqrt(p[2]/p[1])/2,0),
+                            c(0,rho*sqrt(p[1]/p[2])/2, rho*sqrt(p[1]/p[2])/2,1)))
+    }else{
+        out <- unname(cbind(2*p[1]*c(1,rho*p[2], rho*p[2],p[2]^2),
+                            p[1]^2*c(0,rho, rho,2*p[2])))
+    }
+    if(vectorize){
+        return(as.vector(out))
+    }else{
+        out
+    }
+}
 FCT_TRANS <- function(p){
     c(sqrt(p[1]), sqrt(p[2]/p[1]))
 }
+FCT_dTRANS <- function(p, vectorize){
+    out <- matrix(c(1/(2*sqrt(p[1])), -sqrt(p[2])/(2*p[1]^{3/2}), 0, 1/(2*sqrt(p[2]*p[1]))),2,2) ## c(1/(2*p[1]), -p[2]/(2*p[1]^{2}), 0, p[1]/(2*p[2]))
+    if(vectorize){
+        return(as.vector(out))
+    }else{
+        out
+    }
+}
+FCT_ddTRANS <- function(p){
+    ## out <- cbind(c(-1/(4*p[1]^(3/2)), 3*sqrt(p[2])/(2*p[1]^{5/2}), 0, -1/(4*sqrt(p[2])*p[1]^(3/2))),
+    ##              c(0, -1/(4*sqrt(p[2])*p[1]^{3/2}), 0, -1/(4*sqrt(p[1])*p[2]^(3/2))))
+    out <- cbind(c(1/(4*p[1]^2), -p[2]/(2*p[1]^{2}), 0, p[1]/(2*p[2])),
+                 c(1/(2*sqrt(p[1])), -sqrt(p[2])/(2*p[1]^{3/2}), 0, 1/(2*sqrt(p[2]*p[1]))))
+    out
+}
+FCT_OMEGA(coef(e.lmm, effects = "variance"), transform = FALSE, vectorize=FALSE)
+FCT_OMEGA(coef(e.lmm, transform = 2, effects = "variance"), transform = TRUE, vectorize=FALSE)
+
+FCT_dOMEGA(coef(e.lmm, effects = "variance"), transform = FALSE, vectorize=FALSE)
+GS0 <- jacobian(function(p){FCT_OMEGA(p, transform = FALSE, vectorize = TRUE)}, coef(e.lmm, effects = "variance"))
+FCT_dOMEGA(coef(e.lmm, transform = 2, effects = "variance"), transform = TRUE, vectorize=FALSE)
+GS1 <- jacobian(function(p){FCT_OMEGA(p, transform = TRUE, vectorize = TRUE)}, coef(e.lmm, transform = 2, effects = "variance"))
+FCT_dTRANS(coef(e.lmm, transform = 2, effects = "variance"), vectorize = FALSE)
+jac <- jacobian(FCT_TRANS, coef(e.lmm, transform = 2, effects = "variance"))
+
+GS0 %*% jac - GS1
+GS0[1,,drop=FALSE] %*% jac[,1,drop=FALSE] - GS1[1,1]
+
+dGS0 <- jacobian(function(p){FCT_dOMEGA(p, transform = FALSE, vectorize = TRUE)}, coef(e.lmm, effects = "variance"))
+dGS1 <- jacobian(function(p){FCT_dOMEGA(p, transform = TRUE, vectorize = TRUE)}, coef(e.lmm, transform = 2, effects = "variance"))
+djac <- jacobian(function(p){FCT_dTRANS(p, vectorize = TRUE)}, coef(e.lmm, transform = 2, effects = "variance"))
+
+dGS00 <- jacobian(function(p){FCT_dOMEGA(p, transform = FALSE, vectorize = FALSE)[1,,drop=FALSE]}, coef(e.lmm, effects = "variance"))
+djac00 <- jacobian(function(p){FCT_dTRANS(p, vectorize = FALSE)[,1,drop=FALSE]}, coef(e.lmm, transform = 2, effects = "variance"))
+dGS10 <- jacobian(function(p){FCT_dOMEGA(p, transform = TRUE, vectorize = FALSE)[1,1]}, coef(e.lmm, transform = 2, effects = "variance"))
+
+
+
+t(dGS00 %*% jac[,1,drop=FALSE]) + GS0[1,,drop=FALSE] %*% FCT_ddTRANS(coef(e.lmm, transform = 0, effects = "variance")) - dGS10
+2/(2*sqrt(coef(e.lmm, transform = 2, effects = "variance")[1])) - 2*coef(e.lmm, effects = "variance")[1] * 1/(2*coef(e.lmm, transform = 2, effects = "variance")[1])
+
+2*sqrt(coef(e.lmm, transform = 2, effects = "variance")[1])
+1/(2*sqrt(coef(e.lmm, transform = 2, effects = "variance")[1]))
+
+2
+-1/(2*coef(e.lmm, transform = 2, effects = "variance")[1])
+
 x <- 2; y  <- 5; a <- sqrt(x); b <- sqrt(y/x)
 jacobian(FCT_TRANS, c(x,y))
 1/(2*a); -b/(2*a^2); 1/(2*a^2*b)
@@ -323,6 +398,7 @@ GS <- -hessian(func = function(p){logLik(e.lmm, p = p)}, x = newp)
 test <- information(e.lmm, p = newp, transform = FALSE)
 expect_equal(as.double(test[1:4,1:4]), as.double(GS[1:4,1:4]), tol = 1e-6) ## does not match as some terms do not cancel
 
+## *** variance-covariance
 
 ## * Mixed model
 ## ** simulate data

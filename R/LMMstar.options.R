@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: Apr 20 2021 (22:46) 
+## Last-Updated: Apr 25 2021 (11:32) 
 ##           By: Brice Ozenne
-##     Update #: 10
+##     Update #: 13
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -31,7 +31,9 @@ LMMstar.options <- function(..., reinitialise = FALSE){
   
   if (reinitialise == TRUE) {
         assign(".LMMstar-options", 
-               list(transform.sigmaDeriv = FALSE,
+               list(transform.sigma = "none",
+                    transform.k = "none",
+                    transform.rho = "none",
                     type.information = "expected"), 
                envir = LMMstar.env)
     
@@ -46,19 +48,24 @@ LMMstar.options <- function(..., reinitialise = FALSE){
           return(object)
       }else if (!is.null(names(args))) { ## write
 
-        if(any(names(args) %in% names(object) == FALSE)){
-            stop("Incorrect element selected: \"",paste0(names(args)[names(args) %in% names(object) == FALSE], collapse = "\" \""),"\"\n",
-                 "Available elements: \"",paste0(setdiff(names(object),names(args)), collapse = "\" \""),"\"\n")
-        }
+          if(any(names(args) %in% names(object) == FALSE)){
+              stop("Incorrect element selected: \"",paste0(names(args)[names(args) %in% names(object) == FALSE], collapse = "\" \""),"\"\n",
+                   "Available elements: \"",paste0(setdiff(names(object),names(args)), collapse = "\" \""),"\"\n")
+          }
 
           if("type" %in% names(args)){
               args$type <- match.arg(args$type, c("expected","observed"))
           }
-          if(("transform" %in% names(args)) && (args$transform %in% 0:2 == FALSE)){
-              stop("Argument \'transform\' must be 0 (standard error parameters, correlation parameters), \n",
-                   "                               1 (log transformation of the standard error parameters, atanh transformation of the correlation parameters), \n",
-                   "                               2 (variance parameters, correlation parameters). \n")
+          if("transform.sigma" %in% names(args)){
+              args$transform.sigma <- match.args(args$transform.sigma, c("none","log","square"))
           }
+          if("transform.k" %in% names(args)){
+              args$transform.k <- match.args(args$transform.k, c("none","sd"))
+          }
+          if("transform.rho" %in% names(args)){
+              args$transform.rho <- match.args(args$transform.rho, c("none","atanh"))
+          }
+
           object[names(args)] <- args
       
           assign(".LMMstar-options", 

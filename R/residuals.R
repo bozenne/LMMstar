@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: Apr 22 2021 (17:26) 
+## Last-Updated: Apr 28 2021 (19:07) 
 ##           By: Brice Ozenne
-##     Update #: 60
+##     Update #: 62
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -84,6 +84,12 @@ residuals.lmm <- function(object, type.residual = "response", format = "wide",
                 precision <- object$OmegaM1
             }
         }
+        if(type.residuals == "pearson"){
+           sqrtPrecision <- lapply(precision,function(iM){sqrt(diag(iM))})
+        }else{
+            sqrtPrecision <- lapply(precision,chol)
+        }
+
         if(!is.null(data) || !is.null(p)){
             res <-  Y - X %*% beta
         }else{
@@ -97,9 +103,9 @@ residuals.lmm <- function(object, type.residual = "response", format = "wide",
                 iOrder <- order(index.time[iIndex])
                 iResidual <- res[iIndex[iOrder],,drop=FALSE]
                 if(type.residuals == "pearson"){
-                    resnorm <- res[index.cluster==iId]/sqrt(diag(Omega[[index.variance[iId]]]))
+                    resnorm <- res[index.cluster==iId] * sqrtPrecision[[index.variance[iId]]]
                 }else if(type.residuals == "normalized"){
-                    resnorm <- as.double(res[index.cluster==iId] %*% precision[[index.variance[iId]]])
+                    resnorm <- as.double(res[index.cluster==iId] %*% sqrtPrecision[[index.variance[iId]]])
                 }
                 res[iIndex] <- resnorm[order(iOrder)]
             }
