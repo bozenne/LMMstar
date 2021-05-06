@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Apr 26 2021 (23:19) 
+## Last-Updated: May  4 2021 (10:55) 
 ##           By: Brice Ozenne
-##     Update #: 585
+##     Update #: 625
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -83,7 +83,7 @@ lmm <- function(formula, variance, structure, data, method.fit = "REML", df = FA
     options <- LMMstar.options()
     
     ## ** check and normalize user imput
-    if(debug>=1){cat("1. check and normalize user imput \n")}
+    if(debug>=1){cat("1. Check and normalize user imput \n")}
     
     ## *** formula
     if(debug>=2){cat("- formula")}
@@ -267,7 +267,6 @@ lmm <- function(formula, variance, structure, data, method.fit = "REML", df = FA
     out$time <- list(n = length(U.time), levels = U.time, var = var.time)
     out$cluster <- list(var = var.cluster)
     out$outcome <- list(var = var.outcome)
-    out$transform  <-  options$transform.sigmaDeriv
     
     if(debug>=2){cat("\n")}
 
@@ -318,7 +317,7 @@ lmm <- function(formula, variance, structure, data, method.fit = "REML", df = FA
     if(debug>=2){cat("\n")}
     
     ## ** Estimate model parameters
-    if(debug>=1){cat("2. estimate model parameters")}
+    if(debug>=1){cat("2. Estimate model parameters")}
 
     if(max(out$design$cluster$nobs)==1){
         if(structure == "CS"){
@@ -395,15 +394,36 @@ lmm <- function(formula, variance, structure, data, method.fit = "REML", df = FA
     names(out$param$type) <- param.allnames
     if(debug>=1){cat("\n")}
 
-    ## ** Compute likelihood derivatives and other useful quantities
-    if(debug>=1){cat("3. compute likelihood derivatives and other useful quantities \n")}
-    out$residuals <- out$design$Y - out$design$X.mean %*% out$param$mu
-    browser() ## add .reparameterize
+    ## ** Reparametrisation
+    if(debug>=1){cat("3. Reparametrization \n")}
+    pVar <- c(out$param$sigma,out$param$k,out$param$rho)
+    out$reparametrize <- .reparametrize(p = pVar, type = out$param$type[match(pVar,names(out$param$type))], strata = out$param$strata[match(pVar,names(out$param$type))], time.levels = out$time$levels,
+                                        Jacobian = TRUE, dJacobian = TRUE, inverse = FALSE,
+                                        transform.sigma = options$transform.sigma,
+                                        transform.k = options$transform.k,
+                                        transform.rho = options$transform.rho,
+                                        transform.names = TRUE)
 
+    if(out$reparametrize$transform==FALSE){
+        out$reparametrize$newname <- NULL
+        out$reparametrize$Jacobian <- NULL
+        out$reparametrize$dJacobian <- NULL
+    }
+
+    ## ** Compute partial derivatives regarding the mean and the variance
+    if(debug>=1){cat("4. Compute partial derivatives regarding the mean and the variance \n")}
+    out$residuals <- out$design$Y - out$design$X.mean %*% out$param$mu
+    
     out$Omega <- .calc_Omega(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$rho, keep.interim = TRUE)
     out$OmegaM1 <- lapply(out$Omega,solve)
-    out$dOmega <- .calc_dOmega(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$rho, Omega = out$Omega, transform = out$transform)
-    out$d2Omega <- .calc_d2Omega(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$rho, Omega = out$Omega, dOmega = out$dOmega, pair = out$design$param$pair.varcoef, transform = out$transform)
+
+    out$dOmega <- .calc_dOmega(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$rho, Omega = out$Omega, Jacobian = out$reparametrize$Jacobian)
+
+    out$d2Omega <- .calc_d2Omega(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$rho, Omega = out$Omega, dOmega = out$dOmega, pair = out$design$param$pair.varcoef,
+                                 Jacobian = out$reparametrize$Jacobian, dJacobian = out$reparametrize$dJacobian)
+
+    ## ** Compute likelihood derivatives
+    if(debug>=1){cat("5. Compute likelihood derivatives \n")}
 
     out$logLik <- .logLik(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1,
                           index.variance = out$design$index.vargroup, time.variance = out$design$index.time, index.cluster = out$design$index.cluster, 
@@ -417,15 +437,17 @@ lmm <- function(formula, variance, structure, data, method.fit = "REML", df = FA
                                     index.variance = out$design$index.vargroup, time.variance = out$design$index.time, index.cluster = out$design$index.cluster, ## attr(out$design$X.var,"Upattern.index.time")
                                     pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef,
                                     indiv = FALSE, REML = method.fit=="REML", type.information = type.information)
-    
     out$vcov <- solve(out$information)
-    out$df <- .df(param = out$param, Y = out$design$Y, X.mean = out$design$X.mean, X.var = out$design$X.var,
+
+    out$df <- .df(param = out$param, reparametrize = out$reparametrize, Y = out$design$Y, X.mean = out$design$X.mean, X.var = out$design$X.var,
                   index.variance = out$design$index.vargroup, time.variance = out$design$index.time, index.cluster = out$design$index.cluster, 
                   pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef, REML = method.fit=="REML", type.information = type.information,
-                  transform = out$transform, object.transform = out$transform, vcov = out$vcov, diag = TRUE)
+                  type = out$param$type, strata = out$param$strata,
+                  transform.sigma = out$reparametrize$transform.sigma, transform.k = out$reparametrize$transform.k, transform.rho = out$reparametrize$transform.rho,
+                  vcov = out$vcov, diag = TRUE)
 
     ## ** Sanity checks
-    if(debug>=1){cat("4. sanity check vs. gls \n")}
+    if(debug>=1){cat("6. Sanity check vs. gls \n")}
 
     test.logLik <- abs(out$logLik - sum(sapply(out$gls, logLik)))
     if(test.logLik>1e-10){

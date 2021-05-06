@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: Apr 25 2021 (11:54) 
+## Last-Updated: May  4 2021 (23:47) 
 ##           By: Brice Ozenne
-##     Update #: 56
+##     Update #: 64
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -52,75 +52,79 @@ e.lava <- estimate(lvm(Y~X1+X2+X3),data = d)
 
 ## *** coef
 expect_equal(coef(e.lmm, effects = "mean"), coef(e.gls), tol = 1e-6)
-expect_equal(unname(coef(e.lmm, transform = 2)), unname(coef(e.lava)), tol = 1e-6)
-## coef(e.lmm, transform = 0)
-## coef(e.lmm, transform = 1)
-## coef(e.lmm, transform = 2)
+expect_equal(unname(coef(e.lmm, transform.sigma = "square")), unname(coef(e.lava)), tol = 1e-6)
+
 
 ## *** logLikelihood
 expect_equal(logLik(e.lmm), as.double(logLik(e.gls)), tol = 1e-6)
+## coef(e.lmm, transform.sigma = "log")
+## coef(e.lmm, transform.sigma = "square")
+## coef(e.lmm, transform.sigma = "logsquare")
 
 ## no transformation
-newp <- coef(e.lmm, transform = FALSE)+1
+newp <- coef(e.lmm)+1
 newp.lava <- coef(e.lava) + 1 ; newp.lava["Y~~Y"] <- (sqrt(newp.lava["Y~~Y"]-1)+1)^2
 expect_equal(logLik(e.lmm, p = newp), as.double(logLik(e.lava, p = newp.lava)), tol = 1e-6)
 
 ## *** score
 expect_true(all(abs(score(e.lmm)) < 1e-6))
-## score(e.lmm, transform = 0)
-## score(e.lmm, transform = 1)
-## score(e.lmm, transform = 2)
+## score(e.lmm, transform.sigma = "log")
+## score(e.lmm, transform.sigma = "square")
+## score(e.lmm, transform.sigma = "logsquare")
 
 ## no transformation
-newp <- coef(e.lmm, transform = FALSE)+1
+newp <- coef(e.lmm, transform.sigma = "none")+1
 GS <- jacobian(func = function(p){logLik(e.lmm, p = p)}, x = newp)
-test <- score(e.lmm, p = newp, transform = FALSE)
+test <- score(e.lmm, p = newp, transform.sigma = "none")
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## log transformation
 newp.log <- newp; newp.log["sigma"] <- log(newp["sigma"])
 GS <- jacobian(func = function(p){p["sigma"] <- exp(p["sigma"]); logLik(e.lmm, p = p)}, x = newp.log)
-test <- score(e.lmm, p = newp, transform = TRUE)
+test <- score(e.lmm, p = newp, transform.sigma = "log")
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## lava transformation
 newp.2 <- newp; newp.2["sigma"] <- newp["sigma"]^2
 GS <- jacobian(func = function(p){p["sigma"] <- sqrt(p["sigma"]); logLik(e.lmm, p = p)}, x = newp.2)
 GS0 <- score(e.lava, p = newp.2)
-test <- score(e.lmm, p = newp, transform = 2)
+test <- score(e.lmm, p = newp, transform.sigma = "square")
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 expect_equal(as.double(GS0), as.double(GS), tol = 1e-6)
 
 ## *** information
-test <- information(e.lmm, p = coef(e.lmm, transform = FALSE), transform = FALSE) ## using sigma
-GS <- -hessian(func = function(p){logLik(e.lmm, p = p)}, x = coef(e.lmm, transform = FALSE))
+test <- information(e.lmm, p = coef(e.lmm, transform.sigma = "none"), transform.sigma = "none")
+GS <- -hessian(func = function(p){logLik(e.lmm, p = p)}, x = coef(e.lmm, transform.sigma = "none"))
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
-test <- information(e.lmm, p = coef(e.lmm, transform = FALSE), transform = TRUE) ## using log(sigma)
-GS <- -hessian(func = function(p){p["sigma"]<-exp(p["sigma"]);logLik(e.lmm, p = p)}, x = coef(e.lmm, transform = TRUE, transform.names = FALSE))
+test <- information(e.lmm, p = coef(e.lmm, transform.sigma = "none"), transform.sigma = "log")
+GS <- -hessian(func = function(p){p["sigma"]<-exp(p["sigma"]);logLik(e.lmm, p = p)}, x = coef(e.lmm, transform.sigma = "log", transform.names = FALSE))
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
-test <- information(e.lmm, p = coef(e.lmm, transform = FALSE), transform = 2) ## using sigma^2
-GS <- -hessian(func = function(p){p["sigma"]<-sqrt(p["sigma"]);logLik(e.lmm, p = p)}, x = coef(e.lmm, transform = 2, transform.names = FALSE))
+test <- information(e.lmm, p = coef(e.lmm, transform.sigma = "none"), transform.sigma = "square") 
+GS <- -hessian(func = function(p){p["sigma"]<-sqrt(p["sigma"]);logLik(e.lmm, p = p)}, x = coef(e.lmm, transform.sigma = "square", transform.names = FALSE))
 GS0 <- -hessian(func = function(p){logLik(e.lava, p = p)}, x = coef(e.lava))
-expect_equal(as.double(test["sigma^2","sigma^2"]), as.double(nobs(e.lmm)[1]/(2*coef(e.lmm, effect = "variance", transform = 2)^2)), tol = 1e-6)
+expect_equal(as.double(test["sigma^2","sigma^2"]), as.double(nobs(e.lmm)[1]/(2*coef(e.lmm, effect = "variance", transform.sigma = "square")^2)), tol = 1e-6)
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 expect_equal(as.double(GS0), as.double(GS), tol = 1e-6)
 
 ## no transformation 
-newp <- coef(e.lmm,transform = FALSE)+1
+newp <- coef(e.lmm, transform.sigma = "none")+1
 GS <- -hessian(func = function(p){logLik(e.lmm, p = p)}, x = newp)
-test <- information(e.lmm, p = newp, transform = FALSE)
+test <- information(e.lmm, p = newp, transform.sigma = "none")
 expect_equal(as.double(test[1:4,1:4]), as.double(GS[1:4,1:4]), tol = 1e-6) ## does not match as some terms do not cancel
 
 ## *** variance-covariance
-test <- vcov(e.lmm, p = coef(e.lmm, transform = FALSE), transform = FALSE) ## using sigma
-GS <- solve(-hessian(func = function(p){logLik(e.lmm, p = p)}, x = coef(e.lmm, transform = FALSE)))
+test <- vcov(e.lmm, p = coef(e.lmm, transform.sigma = "none"), transform.sigma = "none")
+GS <- solve(-hessian(func = function(p){logLik(e.lmm, p = p)}, x = coef(e.lmm, transform.sigma = "none")))
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
-test <- attr(vcov(e.lmm, df = TRUE, transform = 2),"df")
+test <- vcov(e.lmm, p = coef(e.lmm, transform.sigma = "none"), transform.sigma = "square", df = TRUE) 
+GS <- solve(-hessian(func = function(p){p["sigma"] <- sqrt(p["sigma"]);logLik(e.lmm, p = p)}, x = coef(e.lmm, transform.sigma = "square", transform.names = FALSE)))
+expect_equal(as.double(test), as.double(GS), tol = 1e-6)
+
 GS <- c(rep(nobs(e.lmm)[1],sum(e.lmm$param$type=="mu")), nobs(e.lmm)[1]/4)
-expect_equal(unname(test), unname(GS))
+expect_equal(unname(attr(test,"df")), unname(GS))
 
 ## ** single variance parameter (REML)
 e.lmm <- lmm(Y ~ X1 + X2 + X3, variance = ~time|id, structure = "CS", data = d, debug = 2,
@@ -139,32 +143,32 @@ expect_true(all(abs(score(e.lmm)) < 1e-6))
 ## no transformation
 newp <- coef(e.lmm)+1
 GS <- jacobian(func = function(p){logLik(e.lmm, p = p)}, x = newp)
-test <- score(e.lmm, p = newp, transform = FALSE)
+test <- score(e.lmm, p = newp, transform.sigma = "none")
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## transformation
 newp.log <- newp; newp.log["sigma"] <- log(newp.log["sigma"])
 GS <- jacobian(func = function(p){p["sigma"] <- exp(p["sigma"]); logLik(e.lmm, p = p)}, x = newp.log)
-test <- score(e.lmm, p = newp, transform = TRUE)
+test <- score(e.lmm, p = newp, transform.sigma = "log")
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## *** information
-test1 <- information(e.lmm, p = coef(e.lmm), transform = FALSE, type = "observed") ## using sigma
-test2 <- information(e.lmm, p = coef(e.lmm), transform = FALSE, type = "expected") ## using sigma
+test1 <- information(e.lmm, p = coef(e.lmm), transform.sigma = "none", type = "observed")
+test2 <- information(e.lmm, p = coef(e.lmm), transform.sigma = "none", type = "expected")
 ## difference: in one case (information)  : n / sigma^2
 ##             in the other case (hessian): n / sigma^2 - 3 * sum(residuals^2)/sigma^4
 ## which are equal when sum(residuals^2)/n = sigma^2
-GS <- -hessian(func = function(p){logLik(e.lmm, p = p)}, x = coef(e.lmm, transform = FALSE))
+GS <- -hessian(func = function(p){logLik(e.lmm, p = p)}, x = coef(e.lmm, transform.sigma = "none"))
 expect_equal(as.double(test1), as.double(GS), tol = 1e-6)
 
-test1 <- information(e.lmm, p = coef(e.lmm), transform = TRUE, type = "observed") ## using log(sigma)
-test2 <- information(e.lmm, p = coef(e.lmm), transform = TRUE, type = "expected") ## using log(sigma)
-GS <- -hessian(func = function(p){p["sigma"] <- exp(p["sigma"]); logLik(e.lmm, p = p)}, x = coef(e.lmm, transform = TRUE, transform.names = FALSE))
+test1 <- information(e.lmm, p = coef(e.lmm), transform.sigma = "log", type = "observed")
+test2 <- information(e.lmm, p = coef(e.lmm), transform.sigma = "log", type = "expected")
+GS <- -hessian(func = function(p){p["sigma"] <- exp(p["sigma"]); logLik(e.lmm, p = p)}, x = coef(e.lmm, transform.sigma = "log", transform.names = FALSE))
 expect_equal(as.double(test1), as.double(GS), tol = 1e-6)
 
-test1 <- information(e.lmm, p = coef(e.lmm), transform = 2, type = "observed") ## using sigma^2
-test2 <- information(e.lmm, p = coef(e.lmm), transform = 2, type = "expected") ## using sigma^2
-GS <- -hessian(func = function(p){p["sigma"] <- sqrt(p["sigma"]); logLik(e.lmm, p = p)}, x = coef(e.lmm, transform = 2, transform.names = FALSE))
+test1 <- information(e.lmm, p = coef(e.lmm), transform.sigma = "square", type = "observed")
+test2 <- information(e.lmm, p = coef(e.lmm), transform.sigma = "square", type = "expected")
+GS <- -hessian(func = function(p){p["sigma"] <- sqrt(p["sigma"]); logLik(e.lmm, p = p)}, x = coef(e.lmm, transform.sigma = "square", transform.names = FALSE))
 expect_equal(as.double(test1), as.double(GS), tol = 1e-6)
 expect_equal(as.double(test1["sigma^2","sigma^2"]), as.double((nobs(e.lmm)[1]-length(coef(e.lmm, effect = "mean")))/(2*coef(e.lmm, effect = "variance", transform = 2)^2)), tol = 1e-6)
 
@@ -191,23 +195,23 @@ expect_equal(coef(e.lmm, effects = "mean"), coef(e.gls), tol = 1e-6)
 
 ## *** logLikelihood
 expect_equal(logLik(e.lmm), as.double(logLik(e.gls)), tol = 1e-6)
-## coef(e.lmm, transform = 0)
-## coef(e.lmm, transform = 1)
-## coef(e.lmm, transform = 2)
+## coef(e.lmm, transform.sigma = "log", transform.k = "log")
+## coef(e.lmm, transform.sigma = "square", transform.k = "square")
+## coef(e.lmm, transform.sigma = "logsquare", transform.k = "logsquare")
 
 ## *** score
-expect_true(all(abs(score(e.lmm, transform = FALSE)) < 1e-4))
+expect_true(all(abs(score(e.lmm, transform.sigma = "none", transform.k = "none")) < 1e-4))
 
 ## no transformation
-newp <- coef(e.lmm, transform = FALSE)+1
+newp <- coef(e.lmm, transform.sigma = "none", transform.k = "none")+1
 GS <- jacobian(func = function(p){logLik(e.lmm, p = p)}, x = newp)
-test <- score(e.lmm, p = newp, transform = FALSE)
+test <- score(e.lmm, p = newp, transform.sigma = "none", transform.k = "none")
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## log transformation
 newp.log <- newp; newp.log["sigma"] <- log(newp["sigma"]); newp.log["k.0"] <- log(newp["k.0"])
 GS <- jacobian(func = function(p){p["sigma"] <- exp(p["sigma"]); p["k.0"] <- exp(p["k.0"]); logLik(e.lmm, p = p)}, x = newp.log)
-test <- score(e.lmm, p = newp, transform = TRUE)
+test <- score(e.lmm, p = newp, transform.sigma = "log", transform.k = "log")
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## lava transformation
@@ -230,8 +234,8 @@ test <- information(e.lmm, p = coef(e.lmm, transform = FALSE), transform = FALSE
 GS <- -hessian(func = function(p){logLik(e.lmm, p = p)}, x = coef(e.lmm, transform = FALSE))
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
-test0 <- information(e.lmm, p = coef(e.lmm, transform = FALSE), transform = TRUE, type.information = "expected") ## using log(sigma) and log(k)
-test <- information(e.lmm, p = coef(e.lmm, transform = FALSE), transform = TRUE, type.information = "observed") ## using log(sigma) and log(k)
+test0 <- information(e.lmm, p = coef(e.lmm, transform.sigma = "none"), transform.sigma = "log", type.information = "expected") ## using log(sigma) and log(k)
+test <- information(e.lmm, p = coef(e.lmm, transform.sigma = "none"), transform.sigma = "log", type.information = "observed") ## using log(sigma) and log(k)
 GS <- -hessian(func = function(p){p["sigma"]<-exp(p["sigma"]);p["k.0"]<-exp(p["k.0"]);logLik(e.lmm, p = p, transform = FALSE)}, x = coef(e.lmm, transform = TRUE, transform.names = FALSE))
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
@@ -289,7 +293,7 @@ FCT_ddTRANS <- function(p){
     out
 }
 FCT_OMEGA(coef(e.lmm, effects = "variance"), transform = FALSE, vectorize=FALSE)
-FCT_OMEGA(coef(e.lmm, transform = 2, effects = "variance"), transform = TRUE, vectorize=FALSE)
+FCT_OMEGA(coef(e.lmm, transform.sigma = "square", effects = "variance"), transform.sigma = "square", vectorize=FALSE)
 
 FCT_dOMEGA(coef(e.lmm, effects = "variance"), transform = FALSE, vectorize=FALSE)
 GS0 <- jacobian(function(p){FCT_OMEGA(p, transform = FALSE, vectorize = TRUE)}, coef(e.lmm, effects = "variance"))

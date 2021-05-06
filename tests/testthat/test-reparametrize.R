@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:54) 
 ## Version: 
-## Last-Updated: Apr 26 2021 (23:19) 
+## Last-Updated: May  2 2021 (22:54) 
 ##           By: Brice Ozenne
-##     Update #: 26
+##     Update #: 27
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -85,7 +85,7 @@ testB.sp1 <- .reparametrize(p = setNames(as.double(test.sp1),names(p)), type = t
                transform.k = "square",
                transform.rho = "atanh",
                transform.names = FALSE)
-expect_equal(testB.sp1, p)
+expect_equal(testB.sp1$p, p)
 
 ## ** logsquare
 GS.sp2 <- reparametrize(p = p, type = type, strata = strata, time.level = time.level,
@@ -119,7 +119,7 @@ testB.sp2 <- .reparametrize(p = setNames(as.double(test.sp2),names(p)), type = t
                transform.k = "logsquare",
                transform.rho = "atanh",
                transform.names = FALSE)
-expect_equal(testB.sp2, p)
+expect_equal(testB.sp2$p, p)
 
 
 ## * transformation involving multiple parameters
@@ -149,7 +149,7 @@ testB.mp1 <- .reparametrize(p = setNames(as.double(test.mp1),names(p)), type = t
                transform.k = "sd",
                transform.rho = "none",
                transform.names = FALSE)
-expect_equal(testB.mp1, p)
+expect_equal(testB.mp1$p, p)
 
 ## ** logsd
 GS.mp2 <- reparametrize(p = p, type = type, strata = strata, time.level = time.level,
@@ -178,7 +178,7 @@ testB.mp2 <- .reparametrize(p = setNames(as.double(test.mp2),names(p)), type = t
                        transform.k = "logsd",
                        transform.rho = "none",
                        transform.names = FALSE)
-expect_equal(testB.mp2, p)
+expect_equal(testB.mp2$p, p)
 
 ## ** var / cov
 GS.mp3 <- reparametrize(p = p, type = type, strata = strata, time.level = time.level,
@@ -206,7 +206,7 @@ testB.mp3 <- .reparametrize(p = setNames(as.double(test.mp3),names(p)), type = t
                transform.k = "var",
                transform.rho = "none",
                transform.names = FALSE)
-expect_equal(testB.mp3, p)
+expect_equal(testB.mp3$p, p)
 
 ## ** logvar / logcov
 GS.mp4 <- reparametrize(p = p, type = type, strata = strata, time.level = time.level,
@@ -234,7 +234,7 @@ testB.mp4 <- .reparametrize(p = setNames(as.double(test.mp4),names(p)), type = t
                             transform.k = "logvar",
                             transform.rho = "none",
                             transform.names = FALSE)
-expect_equal(testB.mp4, p)
+expect_equal(testB.mp4$p, p)
 
 
 
@@ -268,7 +268,7 @@ testB.mp5 <- .reparametrize(p = setNames(as.double(test.mp5),names(p.bis)), type
                             transform.k = "none",
                             transform.rho = "cov",
                             transform.names = FALSE)
-expect_equal(testB.mp5, p.bis)
+expect_equal(testB.mp5$p, p.bis)
 
 ##----------------------------------------------------------------------
 ### test-reparametrize.R ends here

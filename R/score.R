@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: Apr 22 2021 (18:11) 
+## Last-Updated: May  4 2021 (09:35) 
 ##           By: Brice Ozenne
-##     Update #: 171
+##     Update #: 203
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -24,16 +24,13 @@
 ##' @param data [data.frame] dataset relative to which the score should be computed. Only relevant if differs from the dataset used to fit the model.
 ##' @param indiv [logical] Should the contribution of each cluster to the score be output? Otherwise output the sum of all clusters of the derivatives.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the score. Only relevant if differs from the fitted values.
-##' @param transform [0,1,2] Transformation used on the variance coefficient. See details.
+##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
+##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
+##' @param transform.rho [character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"} - see details.
 ##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
-##' @details \bold{transform}: \cr
-##' \itemize{
-##' \item 0 means no transformation i.e. ouput stanrdard error, ratio of standard errors, and correlations.
-##' \item 1 means log/atanh transformation i.e. ouput log(stanrdard error), log(ratio of standard errors), and atanh(correlations).
-##' \item 2 ouput variance coefficients and correlations.
-##' }
+##' @details For details about the arguments \bold{transform.sigma}, \bold{transform.k}, \bold{transform.rho}, see the documentation of the \link[LMMstar]{coef} function.
 ##'
 ##' @return
 ##' When argument indiv is \code{FALSE}, a vector with the value of the score relative to each coefficient.
@@ -43,19 +40,39 @@
 ## * score.lmm (code)
 ##' @rdname score
 ##' @export
-score.lmm <- function(x, data = NULL, p = NULL, transform = NULL, indiv = FALSE, transform.names = TRUE, ...){
+score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
     options <- LMMstar.options()
-    x.transform <- x$transform
+    x.transform.sigma <- x$reparametrize$transform.sigma
+    x.transform.k <- x$reparametrize$transform.k
+    x.transform.rho <- x$reparametrize$transform.rho
 
     ## ** normalize user input
     dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
-    if(is.null(transform)){transform <- options$transform}
+
+    if(is.null(transform.sigma)){
+        transform.sigma <- options$transform.sigma
+    }else{
+        transform.sigma <- match.arg(transform.sigma, c("none","log","square","logsquare"))
+    }
+
+    if(is.null(transform.k)){
+        transform.k <- options$transform.k
+    }else{
+        transform.k <- match.arg(transform.k, c("none","log","square","logsquare","sd","logsd","var","logvar"))
+    }
+
+    if(is.null(transform.rho)){
+        transform.rho <- options$transform.rho
+    }else{
+        transform.rho <- match.arg(transform.rho, c("none","atanh","cov"))
+    }
+    test.notransform <- (transform.sigma==x.transform.sigma) && (transform.k==x.transform.k) && (transform.rho==x.transform.rho)
 
     ## ** extract or recompute score
-    if(is.null(data) && is.null(p) && (indiv == FALSE) && (transform == x.transform)){
+    if(is.null(data) && is.null(p) && (indiv == FALSE) && test.notransform){
         out <- x$score
     }else{
         if(!is.null(data)){
@@ -88,7 +105,7 @@ score.lmm <- function(x, data = NULL, p = NULL, transform = NULL, indiv = FALSE,
             index.time <- x$design$index.time
             X.var <- x$design$X.var
         }
-        if(!is.null(p) || (transform != x.transform)){
+        if(!is.null(p) || (test.notransform == FALSE)){
             if(!is.null(p)){
                 if(any(duplicated(names(p)))){
                     stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
@@ -99,12 +116,26 @@ score.lmm <- function(x, data = NULL, p = NULL, transform = NULL, indiv = FALSE,
             }else{
                 p <- c(x$param$mu,x$param$sigma,x$param$k,x$param$rho)
             }
-            
             beta <- p[names(x$param$mu)]
+            name.pVar <- c(names(x$param$sigma),names(x$param$k),names(x$param$rho))
+            reparametrize <- .reparametrize(p = p[name.pVar], type = x$param$type[name.pVar], strata = x$param$strata[name.pVar], time.levels = out$time$levels,
+                                            Jacobian = TRUE, dJacobian = FALSE, inverse = FALSE,
+                                            transform.sigma = transform.sigma,
+                                            transform.k = transform.k,
+                                            transform.rho = transform.rho,
+                                            transform.names = TRUE)
+            if(reparametrize$transform==FALSE){
+                reparametrize$newname <- NULL
+                reparametrize$Jacobian <- NULL
+                reparametrize$dJacobian <- NULL
+            }
+            newname <- reparametrize$newname
             Omega <- .calc_Omega(object = X.var, sigma = p[names(x$param$sigma)], k = p[names(x$param$k)], rho = p[names(x$param$rho)], keep.interim = TRUE)
-            dOmega <- .calc_dOmega(object = X.var, sigma = p[names(x$param$sigma)], k = p[names(x$param$k)], rho = p[names(x$param$rho)], Omega = Omega, transform = transform)
+            dOmega <- .calc_dOmega(object = X.var, sigma = p[names(x$param$sigma)], k = p[names(x$param$k)], rho = p[names(x$param$rho)], Omega = Omega, Jacobian = reparametrize$Jacobian)
             precision <- lapply(Omega, solve)
         }else{
+            newname <- x$reparametrize$newname
+            name.pVar <- c(names(x$param$sigma),names(x$param$k),names(x$param$rho))
             beta <- x$param$mu
             precision <- x$OmegaM1
             dOmega <- x$dOmega
@@ -113,11 +144,11 @@ score.lmm <- function(x, data = NULL, p = NULL, transform = NULL, indiv = FALSE,
                       index.variance = index.vargroup, time.variance = index.time, index.cluster = index.cluster, ## attr(X.var,"Upattern.index.time")
                       indiv = indiv, REML = x$method.fit=="REML")
 
-        if(transform>0 && transform.names){
+        if(length(newname)>0){
             if(indiv){
-                colnames(out) <- names(coef(e.lmm, transform = transform, effects = "all", transform.names = transform.names))
+                colnames(out)[match(name.pVar,colnames(out))] <- newname
             }else{
-                names(out) <- names(coef(e.lmm, transform = transform, effects = "all", transform.names = transform.names))
+                names(out)[match(name.pVar,names(out))] <- newname
             }
         }
 

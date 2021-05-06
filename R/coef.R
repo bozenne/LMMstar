@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: Apr 25 2021 (18:34) 
+## Last-Updated: May  4 2021 (09:43) 
 ##           By: Brice Ozenne
-##     Update #: 107
+##     Update #: 144
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,16 +25,38 @@
 ##' or only coefficients relative to the variance-covariance structure (\code{"variance"}) be output, or both (\code{all}).
 ##' @param type.object [character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.
 ##' @param strata [character vector] When not \code{NULL}, only output coefficient relative to specific levels of the variable used to stratify the mean and covariance structure.
-##' @param transform [0,1,2] Transformation used on the variance coefficient. See details.
+##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
+##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
+##' @param transform.rho [character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"} - see details.
 ##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
 ##' @param ... Not used. For compatibility with the generic method.
 ##' 
 ##'
-##' @details \bold{transform}: \cr
+##' @details \bold{transform.sigma}: \cr
 ##' \itemize{
-##' \item 0 means no transformation i.e. ouput stanrdard error, ratio of standard errors, and correlations.
-##' \item 1 means log/atanh transformation i.e. ouput log(stanrdard error), log(ratio of standard errors), and atanh(correlations).
-##' \item 2 ouput variance coefficients and correlations.
+##' \item \code{"none"} ouput residual standard error.
+##' \item \code{"log"} ouput log-transformed residual standard error.
+##' \item \code{"square"} ouput residual variance.
+##' \item \code{"logsquare"} ouput log-transformed residual variance.
+##' }
+##'
+##'  \bold{transform.k}: \cr
+##' \itemize{
+##' \item \code{"none"} ouput ratio between the residual standard error of the current level and the reference level.
+##' \item \code{"log"} ouput log-transformed ratio between the residual standard errors.
+##' \item \code{"square"} ouput ratio between the residual variances.
+##' \item \code{"logsquare"} ouput log-transformed ratio between the residual variances.
+##' \item \code{"sd"} ouput residual standard error of the current level.
+##' \item \code{"logsd"} ouput residual log-transformed standard error of the current level.
+##' \item \code{"var"} ouput residual variance of the current level.
+##' \item \code{"logvar"} ouput residual log-transformed variance of the current level.
+##' }
+##' 
+##'  \bold{transform.rho}: \cr
+##' \itemize{
+##' \item \code{"none"} ouput correlation coefficient.
+##' \item \code{"atanh"} ouput correlation coefficient after tangent hyperbolic transformation.
+##' \item \code{"cov"} ouput covariance coefficient.
 ##' }
 ##'
 ##' @return A vector with the value of the model coefficients.
@@ -42,9 +64,14 @@
 ## * coef.lmm (code)
 ##' @rdname coef
 ##' @export
-coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL, transform = NULL, transform.names = TRUE, ...){
+coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL,
+                     transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
+
     options <- LMMstar.options()
-        
+    x.transform.sigma <- object$reparametrize$transform.sigma
+    x.transform.k <- object$reparametrize$transform.k
+    x.transform.rho <- object$reparametrize$transform.rho
+    
     ## ** normalize user imput
     dots <- list(...)
     if(length(dots)>0){
@@ -60,6 +87,25 @@ coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL
         strata <- match.arg(strata, object$strata$levels, several.ok = TRUE)
     }
     
+    if(is.null(transform.sigma)){
+        transform.sigma <- options$transform.sigma
+    }else{
+        transform.sigma <- match.arg(transform.sigma, c("none","log","square","logsquare"))
+    }
+
+    if(is.null(transform.k)){
+        transform.k <- options$transform.k
+    }else{
+        transform.k <- match.arg(transform.k, c("none","log","square","logsquare","sd","logsd","var","logvar"))
+    }
+
+    if(is.null(transform.rho)){
+        transform.rho <- options$transform.rho
+    }else{
+        transform.rho <- match.arg(transform.rho, c("none","atanh","cov"))
+    }
+    test.notransform <- (transform.sigma==x.transform.sigma) && (transform.k==x.transform.k) && (transform.rho==x.transform.rho)
+
     ## ** extract
     if(type.object=="lmm"){
 
@@ -67,23 +113,40 @@ coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL
         if("mean" %in% effects){
             out <- c(out, object$param$mu)
         }
+
         if("variance" %in% effects){
-            outVar <- do.call(reparametrize,
-                               args = c(list(p = c(object$param$sigma, object$param$k, object$param$rho),
-                                             param.type = object$param$type, param.strata = object$param$strata, time.levels = object$time$levels,
-                                             Jacobian = FALSE, dJacobian = FALSE), transform))
+            pVar <- c(object$param$sigma, object$param$k, object$param$rho)
+            if(test.notransform){
+                outVar <- object$reparametrize$p[names(pVar)]
+                if(!is.null(object$reparametrize$newname)){
+                    newname <- setNames(object$reparametrize$newname[match(names(pVar),names(object$reparametrize$p))], names(pVar))
+                }else{
+                    newname <- NULL
+                }
+            }else{                
+                ls.reparam <- .reparametrize(p = pVar,
+                                             type = object$param$type[names(pVar)], strata = object$param$strata[names(pVar)], time.levels = object$time$levels,
+                                             Jacobian = FALSE, dJacobian = FALSE, inverse = FALSE,
+                                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+                outVar <- ls.reparam$p
+                if(ls.reparam$transform){
+                    newname <- setNames(ls.reparam$newname,pVar)
+                }else{
+                    newname <- NULL
+                }
+            }
             out <- c(out,outVar)
-            rename <- attr(outVar, "rename")
+
         }else{
-            rename <- NULL
+            newname <- NULL
         }
 
         ## post process
         if(!is.null(strata)){
             out <- out[object$param$strata[names(out)] %in% strata]
         }
-        if(length(rename)>0){
-            names(out)[match(names(rename),names(out))] <- as.character(rename)
+        if(length(newname)>0){
+            names(out)[match(names(outVar),names(out))] <- as.character(newname)
         }
 
         return(out)

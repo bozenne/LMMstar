@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: Apr 22 2021 (18:12) 
+## Last-Updated: May  4 2021 (10:59) 
 ##           By: Brice Ozenne
-##     Update #: 292
+##     Update #: 315
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -24,17 +24,14 @@
 ##' @param data [data.frame] dataset relative to which the information should be computed. Only relevant if differs from the dataset used to fit the model.
 ##' @param indiv [logical] Should the contribution of each cluster to the information be output? Otherwise output the sum of all clusters of the derivatives.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the information. Only relevant if differs from the fitted values.
-##' @param transform [0,1,2] Transformation used on the variance coefficient. See details.
-##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
 ##' @param type.information [character] Should the expected information be computed  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
+##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
+##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
+##' @param transform.rho [character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"} - see details.
+##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
-##' @details \bold{transform}: \cr
-##' \itemize{
-##' \item 0 means no transformation i.e. ouput stanrdard error, ratio of standard errors, and correlations.
-##' \item 1 means log/atanh transformation i.e. ouput log(stanrdard error), log(ratio of standard errors), and atanh(correlations).
-##' \item 2 ouput variance coefficients and correlations.
-##' }
+##' @details For details about the arguments \bold{transform.sigma}, \bold{transform.k}, \bold{transform.rho}, see the documentation of the \link[LMMstar]{coef} function.
 ##'
 ##' @return
 ##' When argument indiv is \code{FALSE}, a matrix with the value of the infroamtion relative to each pair of coefficient (in rows and columns) and each cluster (in rows).
@@ -44,16 +41,19 @@
 ## * information.lmm (code)
 ##' @rdname information
 ##' @export
-information.lmm <- function(x, data = NULL, p = NULL, transform = NULL, transform.names = TRUE, indiv = FALSE, type.information = NULL, ...){
+information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.information = NULL,
+                            transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
     options <- LMMstar.options()
-    x.transform <- x$transform
+    x.transform.sigma <- x$reparametrize$transform.sigma
+    x.transform.k <- x$reparametrize$transform.k
+    x.transform.rho <- x$reparametrize$transform.rho
 
     ## ** normalize user input
     dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
-    if(is.null(transform)){transform <- options$transform}
+
     if(is.null(type.information)){
         type.information <- options$type.information
         test.detail <- FALSE
@@ -62,8 +62,27 @@ information.lmm <- function(x, data = NULL, p = NULL, transform = NULL, transfor
         type.information <- match.arg(type.information, c("expected","observed"))
     }
 
+    if(is.null(transform.sigma)){
+        transform.sigma <- options$transform.sigma
+    }else{
+        transform.sigma <- match.arg(transform.sigma, c("none","log","square","logsquare"))
+    }
+
+    if(is.null(transform.k)){
+        transform.k <- options$transform.k
+    }else{
+        transform.k <- match.arg(transform.k, c("none","log","square","logsquare","sd","logsd","var","logvar"))
+    }
+
+    if(is.null(transform.rho)){
+        transform.rho <- options$transform.rho
+    }else{
+        transform.rho <- match.arg(transform.rho, c("none","atanh","cov"))
+    }
+    test.notransform <- (transform.sigma==x.transform.sigma) && (transform.k==x.transform.k) && (transform.rho==x.transform.rho)
+
     ## ** extract or recompute information
-    if(is.null(data) && is.null(p) && (indiv == FALSE) && (transform == x.transform)){
+    if(is.null(data) && is.null(p) && (indiv == FALSE) && test.notransform){
         out <- x$information
     }else{
         REML <- x$method.fit == "REML"
@@ -102,7 +121,7 @@ information.lmm <- function(x, data = NULL, p = NULL, transform = NULL, transfor
             pair.varcoef  <- x$design$param$pair.varcoef
             pair.meanvarcoef  <- x$design$param$pair.meanvarcoef
         }
-        if(!is.null(p) || (transform != x.transform)){
+        if(!is.null(p) || (test.notransform == FALSE)){
             if(!is.null(p)){
                 if(any(duplicated(names(p)))){
                     stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
@@ -115,18 +134,38 @@ information.lmm <- function(x, data = NULL, p = NULL, transform = NULL, transfor
             }
 
             beta <- p[names(x$param$mu)]
+            name.pVar <- c(names(x$param$sigma),names(x$param$k),names(x$param$rho))
+
+            reparametrize <- .reparametrize(p = p[name.pVar], type = x$param$type[name.pVar], strata = x$param$strata[name.pVar], time.levels = out$time$levels,
+                                            Jacobian = TRUE, dJacobian = (REML || type.information == "observed"), inverse = FALSE,
+                                            transform.sigma = transform.sigma,
+                                            transform.k = transform.k,
+                                            transform.rho = transform.rho,
+                                            transform.names = TRUE)
+
+            if(reparametrize$transform==FALSE){
+                reparametrize$newname <- NULL
+                reparametrize$Jacobian <- NULL
+                reparametrize$dJacobian <- NULL
+            }
+
             Omega <- .calc_Omega(object = X.var, sigma = p[names(x$param$sigma)], k = p[names(x$param$k)], rho = p[names(x$param$rho)], keep.interim = TRUE)
-            dOmega <- .calc_dOmega(object = X.var, sigma = p[names(x$param$sigma)], k = p[names(x$param$k)], rho = p[names(x$param$rho)], Omega = Omega, transform = transform)
+            precision <- lapply(Omega, solve)
+            dOmega <- .calc_dOmega(object = X.var, sigma = p[names(x$param$sigma)], k = p[names(x$param$k)], rho = p[names(x$param$rho)], Omega = Omega, Jacobian = reparametrize$Jacobian)
             if(REML || type.information == "observed"){
                 d2Omega <- .calc_d2Omega(object = X.var, sigma = p[names(x$param$sigma)], k = p[names(x$param$k)], rho = p[names(x$param$rho)],
-                                         Omega = Omega, dOmega = dOmega, pair = pair.varcoef, transform = transform)
+                                         Omega = Omega, dOmega = dOmega, pair = pair.varcoef,
+                                         Jacobian = reparametrize$Jacobian, dJacobian = reparametrize$dJacobian)
             }else{
                 d2Omega <- NULL
             }
-            precision <- lapply(Omega, solve)
         }else{
             beta <- x$param$mu
             p <- c(beta,x$param$sigma,x$param$k,x$param$rho)
+            name.pVar <- c(names(x$param$sigma),names(x$param$k),names(x$param$rho))
+
+            reparametrize <- x$reparametrize
+
             precision <- x$OmegaM1
             dOmega <- x$dOmega
             d2Omega <- x$d2Omega
@@ -136,21 +175,22 @@ information.lmm <- function(x, data = NULL, p = NULL, transform = NULL, transfor
                             pair.meanvarcoef = pair.meanvarcoef, pair.varcoef = pair.varcoef, indiv = indiv, REML = REML, type.information = type.information)
 
         if(test.detail){
-            attr(out,"detail") <- list(param = p, Y = Y, X.mean = X, X.var = X.var,
+            attr(out,"detail") <- list(param = p, reparametrize = reparametrize, Y = Y, X.mean = X, X.var = X.var,
                                        index.variance = index.vargroup, time.variance = index.time, index.cluster = index.cluster,
                                        pair.meanvarcoef = pair.meanvarcoef, pair.varcoef = pair.varcoef,
-                                       REML = REML, transform = transform)
+                                       REML = REML,
+                                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
         }
 
-        if(transform>0 && transform.names){
-            newnames <- names(coef(e.lmm, transform = transform, effects = "all", transform.names = transform.names))
+        if(length(reparametrize$newname)>0){
+            allnewname <- names(p)
+            allnewname[match(name.pVar,colnames(out))] <- reparametrize$newname
             if(indiv){
-                dimnames(out) <- list(NULL,newnames,newnames)
+                dimnames(out) <- list(NULL,allnewname,allnewname)
             }else{
-                dimnames(out) <- list(newnames,newnames)
+                dimnames(out) <- list(allnewname,allnewname)
             }
         }
-
     }
     return(out)
 }

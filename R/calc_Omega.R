@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: Apr 26 2021 (23:20) 
+## Last-Updated: May  4 2021 (23:47) 
 ##           By: Brice Ozenne
-##     Update #: 68
+##     Update #: 105
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -47,7 +47,7 @@
 }
 
 ## * .calc_dOmega
-.calc_dOmega <-  function(object, sigma, k, rho, Omega, transform){
+.calc_dOmega <-  function(object, sigma, k, rho, Omega, Jacobian){
 
     ## ** prepare
     name.sigma <- names(sigma)
@@ -111,19 +111,21 @@
             }
         }
 
-        if(transform>0){
-            M.transform <- .transformDeriv(transform, sigma = sigma, k = k, rho = rho, pattern.param = Upattern.param[[iP]])
-            M.iScore <- do.call(cbind,lapply(iScore,as.double)) %*% M.transform
+        ## apply transformation
+        if(!is.null(Jacobian)){
+            M.iScore <- do.call(cbind,lapply(iScore,as.double)) %*% Jacobian
             iScore <- setNames(lapply(1:NCOL(M.iScore), function(iCol){matrix(M.iScore[,iCol], nrow = iNtime, ncol = iNtime, byrow = FALSE)}),allCoef)
         }
         return(iScore)
     })
+
+    ## ** export
     return(setNames(out,Upattern))
 }
 
 
 ## * .calc_d2Omega
-.calc_d2Omega <- function(object, sigma, k, rho, Omega, dOmega, pair, transform){
+.calc_d2Omega <- function(object, sigma, k, rho, Omega, dOmega, pair, Jacobian, dJacobian){
 
     ## ** prepare
     name.sigma <- names(sigma)
@@ -135,6 +137,13 @@
     allCoef <- c(name.sigma, name.k, name.rho)
     p <- length(allCoef)
     n.pair  <- NCOL(pair)
+
+    ## id of the coefficients associated to each column
+    ## First coef: columns containing 1:p, second coef: columns containing p + (1:p), ...
+    Mindex.pair <- do.call(cbind,lapply(1:NCOL(pair), function(iCol){
+        iMatch <- match(pair[,iCol],allCoef)
+        return(c(p*(iMatch[1]-1)+iMatch[2],p*(iMatch[2]-1)+iMatch[1]))
+    }))
         
     Upattern <- attr(object,"Upattern")
     Upattern.param <- attr(object,"Upattern.param")
@@ -143,6 +152,10 @@
     UX.var <- attr(object,"UX.var")
     indicator <- attr(object,"indicator")
 
+    if(!is.null(Jacobian)){
+        JacobianM1 <- solve(Jacobian)
+    }
+    
     ## ** loop over covariance patterns
     out <- lapply(1:nUpattern, function(iP){
         iHess <- vector(mode = "list", length = n.pair)
@@ -153,6 +166,11 @@
         iOmega.cor <- attr(Omega[[iP]],"cor")
         iOmega <- Omega[[iP]] ; attr(iOmega,"sd") <- NULL; attr(iOmega,"cor") <- NULL; attr(iOmega,"time") <- NULL;
         idOmega <- dOmega[[iP]]
+
+        if(!is.null(Jacobian)){
+            M.iScore <- do.call(cbind,lapply(dOmega,as.double)) %*% JacobianM1
+            iScore <- setNames(lapply(1:NCOL(M.iScore), function(iCol){matrix(M.iScore[,iCol], nrow = iNtime, ncol = iNtime, byrow = FALSE)}),allCoef)
+        }
 
         for(iPair in 1:n.pair){ ## iPair <- 1
             ## name of parameters
@@ -170,17 +188,7 @@
             if(iType1 == "sigma"){
                 if(iType2 == "sigma"){
                     if(iCoef1==iCoef2){
-                        ## transformation
-                        ## d2 sigma^2         -> 2 --> sigma^2 too much while 2 missing                                
-                        ## d2 exp(2 logsigma) -> 4 exp(2 logsigma) = 4 sigma^2 --> 4 missing
-                        ## d2 sigma2          -> 0
-                        if(transform == 0){
                             iHess[[iPair]] <- 2 * ind1 * iOmega / sigma[iCoef1]^2
-                        }else if(transform == 1){ 
-                            iHess[[iPair]] <- 4 * ind1 * iOmega
-                        }else if(transform == 2){ 
-                            iHess[[iPair]] <- 0 * iOmega
-                        }
                     }else if(all(abs(ind1 * ind2)<1e-6)){
                         iHess[[iPair]] <- 0*iOmega
                     }else{
@@ -195,31 +203,10 @@
                     ## propagate
                     idOmega.k <- exp((UX.var[[iP]] %*% log(c(idsigma,idk)))[,1]) * ind.dksigma
                     iHess[[iPair]] <- diag(4*idOmega.k*iOmega.sd, nrow = iNtime, ncol = iNtime) + iOmega.cor * (iOmega.sd %*% t(idOmega.k) + iOmega.sd %*% t(idOmega.k))
-                        
-                        ## transformation
-                        ## d sigma^2 d k^1or2 or d sigma^2 k   -> 4or2 sigma k^1or0         --> sigma k too much while 4/2 missing                                
-                        ## d exp(2 logsigma) d exp(1or2 logk) -> 4or2 sigma^2 k^2or1     --> 4/2 missing
-                        ## d (sigma2 k2) or sqrt(k2)         -> 1 or 1/(2 k)               --> sigma^2 k^2 too much while nothing or 1/(2k) missing
-                        if(transform == 1){
-                            iHess[[iPair]] <- iHess[[iPair]] * sigma[iCoef1] * k[iCoef2]
-                        }else if(transform == 2){
-                            browser()
-                            iHess[[iPair]] <- iHess[[iPair]] / (4 * sigma[iCoef1] * k[iCoef2])
-                        }
-                        
-                    }else if(iType2 == "rho"){
-                        
-                        ## transformation
-                        ## d sigma^2 d rho                -> 2 sigma                                              --> sigma rho too much while 2 missing                                
-                        ## d exp(2 logsigma) d atanh(rho) -> 2 exp(2 logsigma) (1-rho^2) = 2 sigma^2 * (1-rho^2) --> rho too much while 2*(1-rho^2) missing                                
-                        ## d sigma2 d rho                -> 1                                                     --> sigma^2 too much
-                        iHess[[iPair]] <- 2 * ind1 * ind2 * iOmega / (sigma[iCoef1] * rho[iCoef2])
-                        if(transform == 1){ ## exp(2*logsigma) * \Omega
-                            iHess[[iPair]] <- iHess[[iPair]] * sigma[iCoef1] * (1-rho[iCoef2]^2)
-                        }else if(transform == 2){ ## sigma2 * \Omega
-                            iHess[[iPair]] <- iHess[[iPair]] / (2 * sigma[iCoef1])
-                        }
-                    }
+                                                
+                }else if(iType2 == "rho"){
+                    iHess[[iPair]] <- 2 * ind1 * ind2 * iOmega / (sigma[iCoef1] * rho[iCoef2])
+                }
             }else if(iType1 == "k"){                    
                 if(iType2 == "k"){
                     ## position where the parameter appear
@@ -232,42 +219,62 @@
                     idOmega.k1 <- exp((UX.var[[iP]] %*% log(c(sigma,idk1)))[,1]) * ind.dk1
                     idOmega.k2 <- exp((UX.var[[iP]] %*% log(c(sigma,idk2)))[,1]) * ind.dk2
                     iHess[[iPair]] <- diag(2*idOmega.k1*idOmega.k2, nrow = iNtime, ncol = iNtime) + iOmega.cor * (idOmega.k1 %*% t(idOmega.k2) + idOmega.k2 %*% t(idOmega.k1))
-                        
-                    ## transformation
-                    ## d2 k^2  or d k d k'       = 2 k or 1
-                    ## d2 exp(2 k)  or d exp(k) d exp(k') =  2 k^2 or k k'
-                    ## d2 d (sigma2 k2) or d (sigma2 k2) d (sigma2' k2') = ????
-                    if(transform == 1){ 
-                        iHess[[iPair]] <- iHess[[iPair]] * (1+(iCoef1==iCoef2)) * k[iCoef1] * k[iCoef2]
-                    }else if(transform == 2){
-                        browser()
-                    }
-                    
-                    }else if(iType2 == "rho"){
-                        ## position where the parameters appear
-                        ind.dk <- UX.var[[iP]][,iCoef1]
-                        ## compute derivative
-                        idk <- k; idk[iCoef1] <- 1
-                        ## propagate
-                        idOmega.k <- exp((UX.var[[iP]] %*% log(c(sigma,idk)))[,1]) * ind.dk
-                        iHess[[iPair]] <- ind.2 * (idOmega.k %*% t(iOmega.sd) + iOmega.sd %*% t(idOmega.k))
 
-                        ## transformation
-                        ## d k^2or1 d rho                -> 2or1 k^1or0                      
-                        ## d exp(2or1 logk) d atanh(rho) -> 2or1 exp(2or1 logk) (1-rho^2) = 2or1 k^2or1 * (1-rho^2) --> missing k and 1-rho^2
-                        ## d sigma2 k or sqrt(k)  d rho  -> ?????
-                        if(transform == 1){ 
-                            iHess[[iPair]] <- iHess[[iPair]] * k[iCoef1] * (1-rho[iCoef2]^2)
-                        }else if(transform == 2){
-                            browser()
-                        }
-                    }
+                }else if(iType2 == "rho"){
+                    ## position where the parameters appear
+                    ind.dk <- UX.var[[iP]][,iCoef1]
+                    ## compute derivative
+                    idk <- k; idk[iCoef1] <- 1
+                    ## propagate
+                    idOmega.k <- exp((UX.var[[iP]] %*% log(c(sigma,idk)))[,1]) * ind.dk
+                    iHess[[iPair]] <- ind.2 * (idOmega.k %*% t(iOmega.sd) + iOmega.sd %*% t(idOmega.k))
+
+                }
             }else if(iType1 == "rho"){
                 iHess[[iPair]] <- matrix(0, nrow = iNtime, ncol = iNtime, dimnames = list(U.time, U.time))
             }
+
         }
+
+        ## apply transformation
+        if(!is.null(Jacobian) || !is.null(dJacobian)){
+
+            M.iScore <- do.call(cbind,lapply(dOmega[[iP]],as.double)) %*% JacobianM1
+            iHess2 <- vector(mode = "list", length = n.pair)
+                
+            for(iC in 1:p){ ## iC <- 1
+                iCoef <- allCoef[iC]
+                iIndex.pairCoef <- which(colSums(apply(Mindex.pair, 2, `%in%`, p*(iC-1)+(1:p)))>0)
+                iCoef.pairCoef <- apply(pair[,iIndex.pairCoef], 2, function(iCol){
+                    iOut <- setdiff(iCol,iCoef)
+                    if(length(iOut)==0){iCoef}else{iOut}
+                })
+                browser()
+                iIndex.pairCoef <- iIndex.pairCoef[match(iCoef.pairCoef, allCoef)]
+
+                iHess[iIndex.pairCoef]
+                M.iHess2 <- Jacobian + iScore %*% dJacobian[,,iCoef]
+            }
+            
+            iScore[,iCoef1] %*% dJacobian[,iCoef1,iCoef2]
+            M.iHess <- do.call(cbind,lapply(iHess,as.double))
+            
+            M.iHess %*% Jacobian + iHess[[iPair]] * Jacobian
+            browser()
+            iScore <- setNames(lapply(1:NCOL(M.iScore), function(iCol){matrix(M.iScore[,iCol], nrow = iNtime, ncol = iNtime, byrow = FALSE)}),allCoef)
+
+            Hessian
+            dOmega
+
+            }
+        if(!is.null(Jacobian)){
+            
+        }
+
         return(iHess)
     })
+
+    ## ** export
     return(setNames(out,Upattern))
 } 
 
