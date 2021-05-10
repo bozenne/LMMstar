@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: May  4 2021 (10:59) 
+## Last-Updated: May 10 2021 (16:00) 
 ##           By: Brice Ozenne
-##     Update #: 198
+##     Update #: 204
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,8 +21,10 @@
 ##' @name vcov
 ##' 
 ##' @param object a \code{lmm} object.
-##' @param effects [character] Should only variance/covariance relative to mean parameters (\code{"mean"})
-##' or only relative to parameters for the variance-covariance structure (\code{"variance"}) be output, or both (\code{all}).
+##' @param effects [character] Should the variance-covariance matrix for all coefficients be output (\code{"all"}),
+##' or only for coefficients relative to the mean (\code{"mean"}),
+##' or only for coefficients relative to the variance structure (\code{"variance"}),
+##' or only for coefficients relative to the correlation structure (\code{"correlation"}).
 ##' @param df [logical] Should degree of freedom, computed using Satterthwaite approximation, for the model parameters be output.
 ##' @param data [data.frame] dataset relative to which the information should be computed. Only relevant if differs from the dataset used to fit the model.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the information. Only relevant if differs from the fitted values.
@@ -51,14 +53,16 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
 
     ## ** normalize user imput
     dots <- list(...)
+    dots$complete <- NULL ## for multcomp which passes an argument complete when calling vcov
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
     type.object <- match.arg(type.object, c("lmm","gls"))
     if(identical(effects,"all")){
-        effects <- c("mean","variance")
+        effects <- c("mean","variance","correlation")
     }
-    effects <- match.arg(effects, c("mean","variance"), several.ok = TRUE)
+    effects <- match.arg(effects, c("mean","variance","correlation"), several.ok = TRUE)
+
     if(!is.null(strata)){
         strata <- match.arg(strata, object$strata$levels, several.ok = TRUE)
     }
@@ -142,7 +146,7 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
         .getVcov <- function(oo, effects){
             if(identical(effects,"mean")){
                 return(vcov(oo))
-            }else if(identical(effects,"variance")){
+            }else if("mean" %in% effects == FALSE){
                 return(oo$apVar)
             }else{
                 out.names <- c(colnames(vcov(oo)),colnames(oo$apVar))
@@ -203,7 +207,7 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
 
         ## get jacobian
         newp <- .reparametrize(p = c(sigma,k,rho), type = type[param.nameVar], strata = strata[param.nameVar], 
-                               Jacobian = TRUE, dJacobian = (REML || type.information == "observed"), inverse = FALSE,
+                               Jacobian = TRUE, dJacobian = 2*(REML || type.information == "observed"), inverse = FALSE,
                                transform.sigma = transform.sigma,
                                transform.k = transform.k,
                                transform.rho = transform.rho,
@@ -211,7 +215,7 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
 
         if(newp$transform){
             Jacobian <- newp$Jacobian
-            dJacobian <- newp$Jacobian
+            dJacobian <- newp$dJacobian
         }else{
             Jacobian <- NULL
             dJacobian <- NULL

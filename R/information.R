@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: May  4 2021 (10:59) 
+## Last-Updated: May  9 2021 (12:11) 
 ##           By: Brice Ozenne
-##     Update #: 315
+##     Update #: 321
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -136,8 +136,8 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
             beta <- p[names(x$param$mu)]
             name.pVar <- c(names(x$param$sigma),names(x$param$k),names(x$param$rho))
 
-            reparametrize <- .reparametrize(p = p[name.pVar], type = x$param$type[name.pVar], strata = x$param$strata[name.pVar], time.levels = out$time$levels,
-                                            Jacobian = TRUE, dJacobian = (REML || type.information == "observed"), inverse = FALSE,
+            reparametrize <- .reparametrize(p = p[name.pVar], type = x$param$type[name.pVar], strata = x$param$strata[name.pVar], time.levels = x$time$levels,
+                                            Jacobian = TRUE, dJacobian = 2*(REML || type.information == "observed"), inverse = FALSE,
                                             transform.sigma = transform.sigma,
                                             transform.k = transform.k,
                                             transform.rho = transform.rho,

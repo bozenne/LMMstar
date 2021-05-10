@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: May  4 2021 (09:35) 
+## Last-Updated: May 10 2021 (11:59) 
 ##           By: Brice Ozenne
-##     Update #: 203
+##     Update #: 208
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -34,7 +34,7 @@
 ##'
 ##' @return
 ##' When argument indiv is \code{FALSE}, a vector with the value of the score relative to each coefficient.
-##' When argument indiv is \code{FALSE}, a matrix with the value of the score relative to each coefficient (in columns) and each cluster (in rows).
+##' When argument indiv is \code{TRUE}, a matrix with the value of the score relative to each coefficient (in columns) and each cluster (in rows).
 ##' 
 
 ## * score.lmm (code)
@@ -118,7 +118,7 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
             }
             beta <- p[names(x$param$mu)]
             name.pVar <- c(names(x$param$sigma),names(x$param$k),names(x$param$rho))
-            reparametrize <- .reparametrize(p = p[name.pVar], type = x$param$type[name.pVar], strata = x$param$strata[name.pVar], time.levels = out$time$levels,
+            reparametrize <- .reparametrize(p = p[name.pVar], type = x$param$type[name.pVar], strata = x$param$strata[name.pVar], time.levels = x$time$levels,
                                             Jacobian = TRUE, dJacobian = FALSE, inverse = FALSE,
                                             transform.sigma = transform.sigma,
                                             transform.k = transform.k,
@@ -139,7 +139,7 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
             beta <- x$param$mu
             precision <- x$OmegaM1
             dOmega <- x$dOmega
-        }        
+        }
         out <- .score(X = X, residuals = Y - X %*% beta, precision = precision, dOmega = dOmega,
                       index.variance = index.vargroup, time.variance = index.time, index.cluster = index.cluster, ## attr(X.var,"Upattern.index.time")
                       indiv = indiv, REML = x$method.fit=="REML")

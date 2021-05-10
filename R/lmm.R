@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: May  4 2021 (10:55) 
+## Last-Updated: May 10 2021 (11:51) 
 ##           By: Brice Ozenne
-##     Update #: 625
+##     Update #: 628
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -124,53 +124,34 @@ lmm <- function(formula, variance, structure, data, method.fit = "REML", df = FA
     ## - right hand side
     if(debug>=2){cat(" (rhs ")}
 
-    if(length(all.vars(update(variance,0~.)))==0){ ## t-test
+    if(!grepl("|",deparse(variance),fixed = TRUE)){
+        stop("Incorrect specification of argument \'variance\'. \n",
+             "No | symbol found so no grouping variable could be defined. \n",
+             "Shoud be something like: ~ time|id or group ~ time|id. \n")
+    }
 
-        if("XXclusterXX" %in% names(data)){
-            stop("Incorrect specification of argument \'data\'. \n",
-                 "The variable \"XXclusterXX\" is used internally but already exists in \'data\' \n")
-        }
-        data$XXclusterXX <- 1:NROW(data)
-        if("XXtimeXX" %in% names(data)){
-            stop("Incorrect specification of argument \'data\'. \n",
-                 "The variable \"XXtimeXX\" is used internally but already exists in \'data\' \n")
-        }
-        data$XXtimeXX <- "1"
-        var.cluster <- "XXclusterXX"
-        formula.var <- ~XXtimeXX
-        var.time <- "XXtimeXX"
+    if(length(grepl("|",deparse(variance),fixed = TRUE))>1){
+        stop("Incorrect specification of argument \'variance\'. \n",
+             "The symbol | should only appear once, something like: ~ time|id or group ~ time|id. \n")
+    }
+    res.split <- strsplit(deparse(variance),"|", fixed = TRUE)[[1]]
+    var.cluster <- trimws(res.split[2], which = "both")
+    formula.var <- stats::as.formula(res.split[1])
+    var.time <- all.vars(update(formula.var,0~.))
 
-    }else{
+    if(length(var.time)!=1){
+        stop("Incorrect specification of argument \'variance\'. \n",
+             "There should be exactly one variable before the grouping symbol (|), something like: ~ time|id or group ~ time|id. \n")
+    }
+    if(length(var.cluster)!=1){
+        stop("Incorrect specification of argument \'variance\'. \n",
+             "Should have exactly one variable after the grouping symbol (|), something like: ~ time|id or group ~ time|id. \n")
+    }
 
-        if(!grepl("|",deparse(variance),fixed = TRUE)){
-            stop("Incorrect specification of argument \'variance\'. \n",
-                 "No | symbol found so no grouping variable could be defined. \n",
-                 "Shoud be something like: ~ time|id or group ~ time|id. \n")
-        }
-
-        if(length(grepl("|",deparse(variance),fixed = TRUE))>1){
-            stop("Incorrect specification of argument \'variance\'. \n",
-                 "The symbol | should only appear once, something like: ~ time|id or group ~ time|id. \n")
-        }
-        res.split <- strsplit(deparse(variance),"|", fixed = TRUE)[[1]]
-        var.cluster <- trimws(res.split[2], which = "both")
-        formula.var <- stats::as.formula(res.split[1])
-        var.time <- all.vars(update(formula.var,0~.))
-
-        if(length(var.time)!=1){
-            stop("Incorrect specification of argument \'variance\'. \n",
-                 "There should be exactly one variable before the grouping symbol (|), something like: ~ time|id or group ~ time|id. \n")
-        }
-        if(length(var.cluster)!=1){
-            stop("Incorrect specification of argument \'variance\'. \n",
-                 "Should have exactly one variable after the grouping symbol (|), something like: ~ time|id or group ~ time|id. \n")
-        }
-
-        test.duplicated <- tapply(data[[var.time]], data[[var.cluster]], function(iT){any(duplicated(iT))})
-        if(any(test.duplicated)){
-            stop("Incorrect specification of argument \'variance\'. \n",
-                 "The time variable (first variable before |) should contain unique values within clusters \n")
-        }
+    test.duplicated <- tapply(data[[var.time]], data[[var.cluster]], function(iT){any(duplicated(iT))})
+    if(any(test.duplicated)){
+        stop("Incorrect specification of argument \'variance\'. \n",
+             "The time variable (first variable before |) should contain unique values within clusters \n")
     }
 
     ## *** left hand side
@@ -398,7 +379,7 @@ lmm <- function(formula, variance, structure, data, method.fit = "REML", df = FA
     if(debug>=1){cat("3. Reparametrization \n")}
     pVar <- c(out$param$sigma,out$param$k,out$param$rho)
     out$reparametrize <- .reparametrize(p = pVar, type = out$param$type[match(pVar,names(out$param$type))], strata = out$param$strata[match(pVar,names(out$param$type))], time.levels = out$time$levels,
-                                        Jacobian = TRUE, dJacobian = TRUE, inverse = FALSE,
+                                        Jacobian = TRUE, dJacobian = 2, inverse = FALSE,
                                         transform.sigma = options$transform.sigma,
                                         transform.k = options$transform.k,
                                         transform.rho = options$transform.rho,
@@ -461,7 +442,7 @@ lmm <- function(formula, variance, structure, data, method.fit = "REML", df = FA
         if(n.strata==1){
             GS.vcov.mu <- vcov(out$gls[[1]]) * (out$gls[[1]]$dim$N-out$gls[[1]]$dim$p) / out$gls[[1]]$dim$N
         }else{
-            browser()
+            GS.vcov.mu <- as.matrix(Matrix::bdiag(lapply(out$gls,function(iM){vcov(iM) * (iM$dim$N-iM$dim$p) / iM$dim$N})))
         }
     }else{
         ## sqrt(out$gls[[1]]$apVar["lSigma","lSigma"])*1.96

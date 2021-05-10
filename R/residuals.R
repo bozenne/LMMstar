@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: Apr 28 2021 (19:07) 
+## Last-Updated: May 10 2021 (12:20) 
 ##           By: Brice Ozenne
-##     Update #: 62
+##     Update #: 82
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,9 +15,36 @@
 ## 
 ### Code:
 
+## * residuals.lmm (documentation)
+##' @title Extract The Residuals From a Linear Mixed Model
+##' @description Extract or compute the residuals of a linear mixed model.
+##' @name residuals
+##' 
+##' @param object a \code{lmm} object.
+##' @param type.residual [character] Should the raw residuals be output (\code{"response"}), or the Pearson residuals (\code{"pearson"}),  or normalized residuals (\code{"normalized"} or \code{"tnormalized"}).
+##' @param format [character] Should the residuals be output relative as a vector (\code{"long"}), or as a matrix with in row the clusters and in columns the outcomes (\code{"wide"}).
+##' @param data [data.frame] dataset relative to which the residuals should be computed. Only relevant if differs from the dataset used to fit the model.
+##' @param p [numeric vector] value of the model coefficients at which to evaluate the residuals. Only relevant if differs from the fitted values.
+##' @param type.object [character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.
+##' @param ... Not used. For compatibility with the generic method.
+##'
+##' @details \itemize{
+##' \item \code{"raw"}: observed outcome minus fitted value.
+##' \item \code{"pearson"}: each raw residual is divided by its modeled standard deviation.
+##' \item \code{"normalized"}: raw residuals are multiplied, within clusters, by the inverse of the (lower) Cholesky factor.
+##' \item \code{"tnormalized"}: raw residuals are multiplied, within clusters, by the inverse of the (upper) Cholesky factor.
+##' }
+##'
+##' @return
+##' When argument format is \code{"long"} and type.oobject is \code{"lmm"}, a vector containing the value of the residual realtive to each observation.
+##' When argument format is \code{"wide"} and type.oobject is \code{"lmm"}, a data.frame with the value of the residual relative to each cluster (in rows) at each timepoint (in columns).
+##' 
+
+
 ## * residuals.lmm (code)
+##' @rdname residuals
 ##' @export
-residuals.lmm <- function(object, type.residual = "response", format = "wide",
+residuals.lmm <- function(object, type.residual = "response", format = "long",
                           data = NULL, p = NULL, type.object = "lmm", ...){
     options <- LMMstar.options()
 
@@ -28,7 +55,7 @@ residuals.lmm <- function(object, type.residual = "response", format = "wide",
     }
     type.object <- match.arg(type.object, c("lmm","gls"))
     format <- match.arg(format, c("wide","long"))
-    type.residuals <- match.arg(type.residual, c("response","pearson","normalized"))
+    type.residuals <- match.arg(type.residual, c("response","pearson","normalized","tnormalized"))
 
     ## ** extract
     if(type.object == "lmm"){
@@ -73,20 +100,22 @@ residuals.lmm <- function(object, type.residual = "response", format = "wide",
                 stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param$type)[names(object$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
             }
             beta <- p[names(object$param$mu)]
-            if(type.residuals %in% c("pearson","normalized")){
+            if(type.residuals %in% c("pearson","normalized","tnormalized")){
                 Omega <- .calc_Omega(object = X.var, sigma = p[names(object$param$sigma)], k = p[names(object$param$k)], rho = p[names(object$param$cor)])
                 precision <- lapply(Omega, solve)
             }
         }else{
             beta <- object$param$mu
-            if(type.residuals %in% c("pearson","normalized")){
+            if(type.residuals %in% c("pearson","normalized","tnormalized")){
                 Omega <- object$Omega
                 precision <- object$OmegaM1
             }
         }
         if(type.residuals == "pearson"){
-           sqrtPrecision <- lapply(precision,function(iM){sqrt(diag(iM))})
-        }else{
+            sqrtPrecision <- lapply(precision,function(iM){sqrt(diag(iM))})
+        }else if(type.residuals == "normalized"){
+            sqrtPrecision <- lapply(precision,function(iP){t(chol(iP))})
+        }else if(type.residuals == "tnormalized"){
             sqrtPrecision <- lapply(precision,chol)
         }
 
@@ -97,24 +126,26 @@ residuals.lmm <- function(object, type.residual = "response", format = "wide",
         }
 
         ## normalization
-        if(type.residuals %in% c("pearson","normalized")){
+        if(type.residuals %in% c("pearson","normalized","tnormalized")){
             for(iId in 1:n.cluster){ ## iId <- 7
                 iIndex <- which(index.cluster==iId)
                 iOrder <- order(index.time[iIndex])
                 iResidual <- res[iIndex[iOrder],,drop=FALSE]
                 if(type.residuals == "pearson"){
                     resnorm <- res[index.cluster==iId] * sqrtPrecision[[index.variance[iId]]]
-                }else if(type.residuals == "normalized"){
+                }else if(type.residuals %in% c("normalized","tnormalized")){
                     resnorm <- as.double(res[index.cluster==iId] %*% sqrtPrecision[[index.variance[iId]]])
                 }
                 res[iIndex] <- resnorm[order(iOrder)]
             }
         }
 
-        if(format=="long"){
+        if(format=="wide"){
             res <- reshape2::dcast(data = data.frame(residuals = res, cluster = index.cluster, time = index.time),
                                    formula = cluster~time, value.var = "residuals")
             names(res) <- c(object$cluster$var, object$time$levels)
+        }else{
+            res <- as.vector(res)
         }
         return(res)
 

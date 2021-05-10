@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: May  4 2021 (09:43) 
+## Last-Updated: May 10 2021 (15:42) 
 ##           By: Brice Ozenne
-##     Update #: 144
+##     Update #: 165
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,8 +21,10 @@
 ##' @name coef
 ##'
 ##' @param object a \code{lmm} object.
-##' @param effects [character] Should only coefficients relative to the mean (\code{"mean"})
-##' or only coefficients relative to the variance-covariance structure (\code{"variance"}) be output, or both (\code{all}).
+##' @param effects [character] Should all coefficients be output (\code{"all"}),
+##' or only coefficients relative to the mean (\code{"mean"}),
+##' or only coefficients relative to the variance structure (\code{"variance"}),
+##' or only coefficients relative to the correlation structure (\code{"correlation"}).
 ##' @param type.object [character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.
 ##' @param strata [character vector] When not \code{NULL}, only output coefficient relative to specific levels of the variable used to stratify the mean and covariance structure.
 ##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
@@ -80,32 +82,41 @@ coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL
     
     type.object <- match.arg(type.object, c("lmm","gls"))
     if(identical(effects,"all")){
-        effects <- c("mean","variance")
+        effects <- c("mean","variance","correlation")
     }
-    effects <- match.arg(effects, c("mean","variance"), several.ok = TRUE)
+    effects <- match.arg(effects, c("mean","variance","correlation"), several.ok = TRUE)
     if(!is.null(strata)){
         strata <- match.arg(strata, object$strata$levels, several.ok = TRUE)
     }
     
     if(is.null(transform.sigma)){
         transform.sigma <- options$transform.sigma
-    }else{
-        transform.sigma <- match.arg(transform.sigma, c("none","log","square","logsquare"))
+    }else if(!is.function(transform.sigma)){
+        transform.sigma <- match.arg(transform.sigma, c("none","one","log","square","logsquare"))
     }
 
     if(is.null(transform.k)){
         transform.k <- options$transform.k
-    }else{
+    }else if(!is.function(transform.k)){
         transform.k <- match.arg(transform.k, c("none","log","square","logsquare","sd","logsd","var","logvar"))
     }
 
     if(is.null(transform.rho)){
         transform.rho <- options$transform.rho
-    }else{
+    }else if(!is.function(transform.rho)){
         transform.rho <- match.arg(transform.rho, c("none","atanh","cov"))
     }
-    test.notransform <- (transform.sigma==x.transform.sigma) && (transform.k==x.transform.k) && (transform.rho==x.transform.rho)
 
+    if(is.function(transform.sigma) || is.function(transform.k) || is.function(transform.rho)){
+        test.notransform <- FALSE
+    }else{
+        test.notransform <- (transform.sigma==x.transform.sigma) && (transform.k==x.transform.k) && (transform.rho==x.transform.rho)
+    }
+
+    if(transform.rho == "cov" && ("variance" %in% effects == FALSE || "correlation" %in% effects == FALSE)){
+        stop("Cannot use the argument \'transform.rho\' set to \"cov\" when \"variance\" or \"correlation\" is not in argument \'effect\'. \n")
+    }
+    
     ## ** extract
     if(type.object=="lmm"){
 
@@ -114,8 +125,13 @@ coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL
             out <- c(out, object$param$mu)
         }
 
-        if("variance" %in% effects){
-            pVar <- c(object$param$sigma, object$param$k, object$param$rho)
+        if(any(c("variance","correlation") %in% effects)){
+            pVar <- NULL
+            if("variance" %in% effects){
+                pVar <- c(pVar,object$param$sigma, object$param$k)
+            }else if("correlation" %in% effects){
+                pVar <- c(pVar,object$param$rho)
+            }
             if(test.notransform){
                 outVar <- object$reparametrize$p[names(pVar)]
                 if(!is.null(object$reparametrize$newname)){
@@ -123,7 +139,7 @@ coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL
                 }else{
                     newname <- NULL
                 }
-            }else{                
+            }else{
                 ls.reparam <- .reparametrize(p = pVar,
                                              type = object$param$type[names(pVar)], strata = object$param$strata[names(pVar)], time.levels = object$time$levels,
                                              Jacobian = FALSE, dJacobian = FALSE, inverse = FALSE,

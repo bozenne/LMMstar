@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: May  4 2021 (23:47) 
+## Last-Updated: May 10 2021 (11:24) 
 ##           By: Brice Ozenne
-##     Update #: 105
+##     Update #: 133
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -113,6 +113,9 @@
 
         ## apply transformation
         if(!is.null(Jacobian)){
+            ## [dOmega_[11]/d theta_1] ... [dOmega_[11]/d theta_p] %*% Jacobian
+            ## [dOmega_[ij]/d theta_1] ... [dOmega_[ij]/d theta_p] %*% Jacobian
+            ## [dOmega_[mm]/d theta_1] ... [dOmega_[mm]/d theta_p] %*% Jacobian
             M.iScore <- do.call(cbind,lapply(iScore,as.double)) %*% Jacobian
             iScore <- setNames(lapply(1:NCOL(M.iScore), function(iCol){matrix(M.iScore[,iCol], nrow = iNtime, ncol = iNtime, byrow = FALSE)}),allCoef)
         }
@@ -166,11 +169,6 @@
         iOmega.cor <- attr(Omega[[iP]],"cor")
         iOmega <- Omega[[iP]] ; attr(iOmega,"sd") <- NULL; attr(iOmega,"cor") <- NULL; attr(iOmega,"time") <- NULL;
         idOmega <- dOmega[[iP]]
-
-        if(!is.null(Jacobian)){
-            M.iScore <- do.call(cbind,lapply(dOmega,as.double)) %*% JacobianM1
-            iScore <- setNames(lapply(1:NCOL(M.iScore), function(iCol){matrix(M.iScore[,iCol], nrow = iNtime, ncol = iNtime, byrow = FALSE)}),allCoef)
-        }
 
         for(iPair in 1:n.pair){ ## iPair <- 1
             ## name of parameters
@@ -240,38 +238,28 @@
         if(!is.null(Jacobian) || !is.null(dJacobian)){
 
             M.iScore <- do.call(cbind,lapply(dOmega[[iP]],as.double)) %*% JacobianM1
+            iScore <- setNames(lapply(1:NCOL(M.iScore), function(iCol){matrix(M.iScore[,iCol], nrow = iNtime, ncol = iNtime, byrow = FALSE)}),allCoef)
+
             iHess2 <- vector(mode = "list", length = n.pair)
                 
-            for(iC in 1:p){ ## iC <- 1
+            for(iC in 1:p){ ## iC <- 2
+                ##  [dOmega_[11]/d2 theta_1] ... [dOmega_[11]/d theta_1 d theta_p] %*% Jacobian + [dOmega_[11]/d theta_1] ... [dOmega_[11]/d theta_p] %*% dJacobian/d theta_1
+                ##  [dOmega_[ij]/d2 theta_1] ... [dOmega_[ij]/d theta_1 d theta_p] %*% Jacobian + [dOmega_[ij]/d theta_1] ... [dOmega_[ij]/d theta_p] %*% dJacobian/d theta_1
+                ##  [dOmega_[mm]/d2 theta_1] ... [dOmega_[mm]/d theta_1 d theta_p] %*% Jacobian + [dOmega_[mm]/d theta_1] ... [dOmega_[mm]/d theta_p] %*% dJacobian/d theta_1
                 iCoef <- allCoef[iC]
                 iIndex.pairCoef <- which(colSums(apply(Mindex.pair, 2, `%in%`, p*(iC-1)+(1:p)))>0)
-                iCoef.pairCoef <- apply(pair[,iIndex.pairCoef], 2, function(iCol){
+                iCoef.pairCoef <- apply(pair[,iIndex.pairCoef,drop=FALSE], 2, function(iCol){
                     iOut <- setdiff(iCol,iCoef)
                     if(length(iOut)==0){iCoef}else{iOut}
                 })
-                browser()
                 iIndex.pairCoef <- iIndex.pairCoef[match(iCoef.pairCoef, allCoef)]
-
-                iHess[iIndex.pairCoef]
-                M.iHess2 <- Jacobian + iScore %*% dJacobian[,,iCoef]
+                M.iHess2 <- (do.call(cbind,lapply(iHess[iIndex.pairCoef],as.double)) %*% Jacobian + M.iScore %*% dJacobian[,,iCoef]) * Jacobian[iC,iC]
+                iHess2[iIndex.pairCoef] <- lapply(1:NCOL(M.iScore), function(iCol){matrix(M.iHess2[,iCol], nrow = iNtime, ncol = iNtime, byrow = FALSE)})
             }
-            
-            iScore[,iCoef1] %*% dJacobian[,iCoef1,iCoef2]
-            M.iHess <- do.call(cbind,lapply(iHess,as.double))
-            
-            M.iHess %*% Jacobian + iHess[[iPair]] * Jacobian
-            browser()
-            iScore <- setNames(lapply(1:NCOL(M.iScore), function(iCol){matrix(M.iScore[,iCol], nrow = iNtime, ncol = iNtime, byrow = FALSE)}),allCoef)
-
-            Hessian
-            dOmega
-
-            }
-        if(!is.null(Jacobian)){
-            
+            return(iHess2)
+        }else{
+            return(iHess)
         }
-
-        return(iHess)
     })
 
     ## ** export

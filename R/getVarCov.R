@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: Apr 20 2021 (15:55) 
+## Last-Updated: May 10 2021 (12:26) 
 ##           By: Brice Ozenne
-##     Update #: 34
+##     Update #: 49
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,10 +15,31 @@
 ## 
 ### Code:
 
+## * getVarCov.lmm (documentation)
+##' @title Extract The Residuals Variance-Covariance Matrix From a Linear Mixed Model
+##' @description Extract the unique set of residuals variance-covariance matrices or the one relative to specific clusters.
+##' @name getVarCov
+##' 
+##' @param object a \code{lmm} object.
+##' @param individual [character] identifier of the cluster for which to extract the residual variance-covariance matrix.
+##' @param type.object [character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.
+##' @param strata [character vector] When not \code{NULL} and argument \code{individual} is not specified, only output the residual variance-covariance matrix relative to specific levels of the variable used to stratify the mean and covariance structure.
+##' @param simplifies [logical] When there is only one variance-covariance matrix, output a matrix instead of a list of matrices.
+##' @param ... Not used. For compatibility with the generic method.
+##'
+##'
+##' @return A list where each element contains a residual variance-covariance matrix.
+##' 
+
 ## * getVarCov.lmm
-getVarCov.lmm <- function(object, individual = NULL, type.object = c("lmm","gls"), simplifies = TRUE, strata = NULL){
+getVarCov.lmm <- function(object, individual = NULL, type.object = c("lmm","gls"), simplifies = TRUE, strata = NULL, ...){
 
     ## ** normalize user imput
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
     type.object <- match.arg(type.object, c("lmm","gls"))
     if(!is.null(strata)){
         strata <- match.arg(strata, object$strata$levels, several.ok = TRUE)
@@ -31,7 +52,8 @@ getVarCov.lmm <- function(object, individual = NULL, type.object = c("lmm","gls"
     if(type.object == "lmm"){
     
         if(is.null(individual)){
-            index.fulltime <- which(sapply(attr(object$design$X.var,"Upattern.time"),identical,as.character(object$time$levels)))
+            n.timePattern <- unlist(lapply(attr(object$design$X.var,"Upattern.time"),length))
+            index.fulltime <- which(n.timePattern==max(n.timePattern))
             if(!is.null(strata)){
                 index.strata <- which(attr(object$design$X.var,"UX.strata") %in% strata)
             }else{
@@ -41,6 +63,12 @@ getVarCov.lmm <- function(object, individual = NULL, type.object = c("lmm","gls"
             out <- setNames(object$Omega[intersect(index.fulltime,index.strata)],strata)
         }else{
             out <- object$Omega[object$design$index.vargroup[individual]]
+        }
+        for(iO in 1:length(out)){
+            dimnames(out[[iO]]) <- list(attr(out[[iO]],"time"),attr(out[[iO]],"time"))
+            attr(out[[iO]],"time") <- NULL
+            attr(out[[iO]],"sd") <- NULL
+            attr(out[[iO]],"cor") <- NULL
         }
         if(is.list(out) && length(out)==1 && simplifies){
             return(out[[1]])

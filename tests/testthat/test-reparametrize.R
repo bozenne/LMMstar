@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:54) 
 ## Version: 
-## Last-Updated: May  2 2021 (22:54) 
+## Last-Updated: May  9 2021 (12:03) 
 ##           By: Brice Ozenne
-##     Update #: 27
+##     Update #: 28
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -64,7 +64,7 @@ GS.sp1 <- reparametrize(p = p, type = type, strata = strata, time.level = time.l
 
                             return(p)
                         }, transform.names = FALSE)
-test.sp1 <- reparametrize(p = p, type = type, strata = strata, time.level = time.level,
+test.sp1 <- reparametrize(p = p, type = type, strata = strata, time.level = time.level,                          
                           transform.sigma = "log",
                           transform.k = "square",
                           transform.rho = "atanh",

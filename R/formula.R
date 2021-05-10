@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:53) 
 ## Version: 
-## Last-Updated: Apr 20 2021 (17:13) 
+## Last-Updated: May 10 2021 (19:10) 
 ##           By: Brice Ozenne
-##     Update #: 9
+##     Update #: 13
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -19,7 +19,7 @@
 ##' @export
 formula.lmm <- function(object, type.object = "lmm", effects = "mean"){
     ## 
-    type <- match.arg(type, c("lmm","lmm-mean","lmm-variance","gls"))
+    type.object <- match.arg(type.object, c("lmm","lmm-mean","lmm-variance","gls"))
     if(identical(effects,"all")){
         effects <- c("mean","variance")
     }
