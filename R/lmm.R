@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: May 10 2021 (11:51) 
+## Last-Updated: May 14 2021 (17:38) 
 ##           By: Brice Ozenne
-##     Update #: 628
+##     Update #: 647
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -78,12 +78,19 @@
 
 ## * lmm (code)
 ##' @export
-lmm <- function(formula, variance, structure, data, method.fit = "REML", df = FALSE, debug = FALSE, ...){
+lmm <- function(formula, variance, structure, data, method.fit = "REML", df = FALSE, type.information = NULL, debug = FALSE, ...){
     out <- list(call = match.call())
     options <- LMMstar.options()
     
     ## ** check and normalize user imput
     if(debug>=1){cat("1. Check and normalize user imput \n")}
+
+    ## *** type of information
+    if(is.null(type.information)){
+        type.information <- options$type.information
+    }else{
+        type.information <- match.arg(type.information, c("expected","observed"))
+    }
     
     ## *** formula
     if(debug>=2){cat("- formula")}
@@ -211,7 +218,7 @@ lmm <- function(formula, variance, structure, data, method.fit = "REML", df = FA
 
 
     if(debug>=2){cat("\n")}
-
+    
     ## *** data
     if(debug>=2){cat("- data")}
     data <- as.data.frame(data)
@@ -250,7 +257,7 @@ lmm <- function(formula, variance, structure, data, method.fit = "REML", df = FA
     out$outcome <- list(var = var.outcome)
     
     if(debug>=2){cat("\n")}
-
+    
     ## *** structure
     if(debug>=2){cat("- structure")}
     structure <- match.arg(toupper(structure), c("CS","UN","EXP"))
@@ -258,6 +265,23 @@ lmm <- function(formula, variance, structure, data, method.fit = "REML", df = FA
         warning("Argument \'structure\' has been set to \"UN\" while there is only a single timepoint. \n",
                 "Will be change to \"CS\". \n")
         structure  <- "CS"
+    }
+    if(structure=="UN"){
+        formula.cor <- variance
+        if(n.strata==1){
+            formula.var  <- formula.var
+        }else{
+            terms.var <- delete.response(terms(formula.var))
+            formula2.var <- update(terms.var, paste0("~0+",var.strata,"+",var.strata,":.")) ## using ".:var.strata" does not work (it gives the same formula - does not invert . var.strata around the : symbol)
+        }
+    }else if(structure=="CS"){
+        if(n.strata>1){
+            formula.var <- as.formula(paste0("~0+",var.strata))
+            formula.cor <- as.formula(paste0(var.strata,"~1|",var.cluster))
+        }else{
+            formula.var <- ~1
+            formula.cor <- as.formula(paste0("~1|",var.cluster))
+        }
     }
     if(n.strata==1){
         txt.data <- "data"
@@ -271,17 +295,18 @@ lmm <- function(formula, variance, structure, data, method.fit = "REML", df = FA
         out$formula <- list(mean = formula, ## formula will contain all interactions with strata (cf check)
                             mean.design = formula.design,
                             var = variance,
-                            var.design = formula.var)
+                            var.design = formula.var,
+                            cor = formula.cor)
     }else{
         formula.design <- formula
         out$formula <- list(mean = formula,
                             mean.design = formula.design,
                             var = variance,
-                            var.design = formula.var)
+                            var.design = formula.var,
+                            cor = formula.cor)
     }
 
     ## *** type.information
-    type.information <- options$type.information
     if(debug>=2){cat("\n")}
 
     ## ** design matrices
@@ -295,6 +320,8 @@ lmm <- function(formula, variance, structure, data, method.fit = "REML", df = FA
                                     structure = structure
                                     )
 
+    out$xfactor <- unique(c(.getXlevels(terms(out$formula$mean.design),data),
+                            .getXlevels(terms(out$formula$var.design),data)))
     if(debug>=2){cat("\n")}
     
     ## ** Estimate model parameters
@@ -418,15 +445,18 @@ lmm <- function(formula, variance, structure, data, method.fit = "REML", df = FA
                                     index.variance = out$design$index.vargroup, time.variance = out$design$index.time, index.cluster = out$design$index.cluster, ## attr(out$design$X.var,"Upattern.index.time")
                                     pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef,
                                     indiv = FALSE, REML = method.fit=="REML", type.information = type.information)
+    attr(out$information, "type.information") <- type.information
     out$vcov <- solve(out$information)
 
-    out$df <- .df(param = out$param, reparametrize = out$reparametrize, Y = out$design$Y, X.mean = out$design$X.mean, X.var = out$design$X.var,
-                  index.variance = out$design$index.vargroup, time.variance = out$design$index.time, index.cluster = out$design$index.cluster, 
-                  pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef, REML = method.fit=="REML", type.information = type.information,
-                  type = out$param$type, strata = out$param$strata,
-                  transform.sigma = out$reparametrize$transform.sigma, transform.k = out$reparametrize$transform.k, transform.rho = out$reparametrize$transform.rho,
-                  vcov = out$vcov, diag = TRUE)
-
+    if(df){
+        out$df <- .df(param = out$param, reparametrize = out$reparametrize, Y = out$design$Y, X.mean = out$design$X.mean, X.var = out$design$X.var,
+                      index.variance = out$design$index.vargroup, time.variance = out$design$index.time, index.cluster = out$design$index.cluster, 
+                      pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef, REML = method.fit=="REML", type.information = type.information,
+                      type = out$param$type, strata = out$param$strata,
+                      transform.sigma = out$reparametrize$transform.sigma, transform.k = out$reparametrize$transform.k, transform.rho = out$reparametrize$transform.rho,
+                      vcov = out$vcov, diag = TRUE)
+    }
+    
     ## ** Sanity checks
     if(debug>=1){cat("6. Sanity check vs. gls \n")}
 

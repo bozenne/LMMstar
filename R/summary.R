@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: May 10 2021 (19:27) 
+## Last-Updated: May 14 2021 (17:10) 
 ##           By: Brice Ozenne
-##     Update #: 76
+##     Update #: 172
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,6 +25,7 @@
 ##' @param digit [integer,>0] number of digit used to display numeric values.
 ##' @param level [numeric,0-1] confidence level for the confidence intervals.
 ##' @param print [logical] should the output be printed in the console.
+##' @param ci [logical] should the confidence intervals be displayed.
 ##' @param hide.fit [logical] should information about the model fit not be printed.
 ##' @param hide.cor [logical] should information about the correlation structure not be printed.
 ##' @param hide.var [logical] should information about the variance structure not be printed.
@@ -34,8 +35,8 @@
 ## * summary.lmm (code)
 ##' @rdname summary
 ##' @export
-summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE,
-                        hide.fit = FALSE, hide.cor = FALSE, hide.var = FALSE, hide.sd = FALSE, hide.mean = FALSE, ...){
+summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = FALSE,
+                        hide.fit = FALSE, hide.cor = FALSE, hide.var = TRUE, hide.sd = FALSE, hide.mean = FALSE, ...){
 
     ## ** welcome message
     if(print){
@@ -89,55 +90,118 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE,
     }
 
     ## ** correlation structure
-    ## handle no correlation structure.
     if(any("rho" %in% object$param$type)){
         if(print && !hide.cor){
-            cat("Correlation structure:",deparse(object$call$correlation),"\n")
+            cat("Correlation structure:",deparse(object$formula$cor),"\n")
         }
         vec.corcoef <- object$param$rho
-        browser()
-        ## TOFIX
-        n.rep <- attr(object$modelStruct$corStruct,"Dim")$maxLen
-        if(!is.null(object$modelStruct$varStruct)){
-            name.rep <- attr(object$modelStruct$varStruct,"groupNames")
-        }else{
-            name.rep <- NULL
+        table.cor <- lapply(getVarCov(object, simplifies = FALSE),cov2cor)
+        if(length(table.cor)==1){
+            table.cor <- table.cor[[1]]
         }
-        M.corcoef <- matrix(NA, nrow = n.rep, ncol = n.rep,
-                            dimnames = list(name.rep,name.rep))
-        M.corcoef[lower.tri(M.corcoef)] <- vec.corcoef
-        M.corcoef[upper.tri(M.corcoef)] <- t(M.corcoef)[upper.tri(M.corcoef)]
-        diag(M.corcoef) <- 1
         if(print && !hide.cor){
-            print(M.corcoef, digit = digit)
+            print(table.cor, digit = digit)
             cat("\n")
         }
     }else{
-        M.corcoef <- NULL
+        table.cor <- NULL
     }
     
 
     ## ** variance structure
-    if(print && !hide.var && !hide.sd){
+    if(print && (!hide.var || !hide.sd)){
         cat("Variance structure:",deparse(object$formula$var.design),"\n")
+        name.sigma <- names(coef(object, transform.k = "sd", effects = "variance"))
+        index.ref <- which(names(coef(object, effects = "variance", transform.names = FALSE)) %in% names(object$param$sigma))
     }
 
-    M.varcoef <- rbind("variance" = stats::coef(object, effects = "variance", transform.k = "sd"),
-                       "relative" = stats::coef(object, effects = "variance", transform.sigma = "one", transform.k = "none"))
+    if(!hide.var){
+        M.varcoef <- confint(object, level = level, df = ci, transform.k = "var", effects = "variance")
+        M.varcoefRe <- confint(object, level = level, df = ci, transform.sigma = "none", transform.k = "square", effects = "variance", transform.names = FALSE)
+        M.varcoefRe[index.ref,c("estimate","lower","upper")] <- 1
+        M.varcoefRe[index.ref,c("se","sd")] <- NA
 
-    M.sdcoef <- rbind("standard deviation" = stats::coef(object, effects = "variance", transform.k = "var"), ## implicit transformation of sigma parameters when using var for the k parameters
-                       "relative" = stats::coef(object, effects = "variance", transform.sigma = "one", transform.k = "square"))
+        if(ci){
+            table.var <- data.frame(estimate = M.varcoef[,"estimate"], lower = M.varcoef[,"lower"], upper = M.varcoef[,"upper"],
+                                    estimate.ratio = M.varcoefRe[,"estimate"], lower.ratio = M.varcoefRe[,"lower"], upper.ratio = M.varcoefRe[,"upper"])
+        }else{
+            table.var <- data.frame(estimate = M.varcoef[,"estimate"], estimate.ratio = M.varcoefRe[,"estimate"])
+        }
+        rownames(table.var) <- name.sigma
+        test.k <- NROW(table.var) > length(index.ref)
+    }else{
+        table.var <- NULL
+    }
+    if(!hide.sd){
+        M.sdcoef <- confint(object, level = level, df = ci, transform.k = "sd", effects = "variance")
+        M.sdcoefRe <- confint(object, level = level, df = ci, transform.sigma = "none", transform.k = "none", effects = "variance", transform.names = FALSE)
+        M.sdcoefRe[index.ref,c("estimate","lower","upper")] <- 1
+        M.sdcoefRe[index.ref,c("se","sd")] <- NA
 
-    if(print){
-        if(!hide.var && !hide.sd){
-            print(rbind(M.varcoef,M.sdcoef), digit = digit)
+        if(ci){
+            table.sd <- data.frame(estimate = M.sdcoef[,"estimate"], lower = M.sdcoef[,"lower"], upper = M.sdcoef[,"upper"],
+                                   estimate.ratio = M.sdcoefRe[,"estimate"], lower.ratio = M.sdcoefRe[,"lower"], upper.ratio = M.sdcoefRe[,"upper"])
+        }else{
+            table.sd <- data.frame(estimate = M.sdcoef[,"estimate"], estimate.ratio = M.sdcoefRe[,"estimate"])
+        }
+        rownames(table.sd) <- name.sigma
+        test.k <- NROW(table.sd) > length(index.ref)
+    }else{
+        table.sd <- NULL
+    }
+    
+    if(print && (!hide.var || !hide.sd)){
+        if(!ci){
+            printtable <- matrix(NA, ncol = 0, nrow = length(name.sigma))
+            if(!hide.var){
+                printtable <- cbind(printtable, data.frame(variance = unname(table.var[,"estimate"])))
+                if(test.k){
+                    printtable <- cbind(printtable, data.frame(ratio = unname(table.var[,"estimate.ratio"])))
+                }
+            }
+            if(!hide.sd){
+                printtable <- cbind(printtable, data.frame("standard deviation" = unname(table.sd[,"estimate"])))
+                if(test.k){
+                    printtable <- cbind(printtable, data.frame(ratio = unname(table.sd[,"estimate.ratio"])))
+                }
+            }
+
+            rownames(printtable) <- name.sigma
+            print(printtable, digit = digit)
             cat("\n")
-        }else if(!hide.var){
-            print(M.varcoef, digit = digit)
-            cat("\n")
-        }else if(!hide.sd){
-            print(M.sdcoef, digit = digit)
-            cat("\n")
+        }else{
+            if(!hide.var){
+                printtable.var <- table.var
+                printtable.var <- apply(printtable.var, 2, round, digit = digit)
+                if(test.k){
+                    cat("Variance estimates (relative to reference): \n")
+                    printtable.var[index.ref,"estimate.ratio"] <- "reference"
+                    printtable.var[index.ref,c("lower.ratio","upper.ratio")] <- ""
+                    printtable.var[-index.ref,"estimate"] <- paste0(printtable.var[-index.ref,"estimate"], " (",printtable.var[-index.ref,"estimate.ratio"],")")
+                    printtable.var[-index.ref,"lower"] <- paste0(printtable.var[-index.ref,"lower"], " (",printtable.var[-index.ref,"lower.ratio"],")")
+                    printtable.var[-index.ref,"upper"] <- paste0(printtable.var[-index.ref,"upper"], " (",printtable.var[-index.ref,"upper.ratio"],")")
+                }else{
+                    cat("Variance estimates: \n")
+                }
+                print(printtable.var[,c("estimate","lower","upper")], quote = FALSE)
+                cat("\n")
+            }
+            if(!hide.sd){
+                printtable.sd <- table.sd
+                printtable.sd <- apply(printtable.sd,2,round,digit=digit)
+                if(test.k){
+                    cat("Standard deviation estimates (relative to reference): \n")
+                    printtable.sd[index.ref,"estimate.ratio"] <- "reference"
+                    printtable.sd[index.ref,c("lower.ratio","upper.ratio")] <- ""
+                    printtable.sd[-index.ref,"estimate"] <- paste0(printtable.sd[-index.ref,"estimate"], " (",printtable.sd[-index.ref,"estimate.ratio"],")")
+                    printtable.sd[-index.ref,"lower"] <- paste0(printtable.sd[-index.ref,"lower"], " (",printtable.sd[-index.ref,"lower.ratio"],")")
+                    printtable.sd[-index.ref,"upper"] <- paste0(printtable.sd[-index.ref,"upper"], " (",printtable.sd[-index.ref,"upper.ratio"],")")
+                }else{
+                    cat("Standard deviation estimates: \n")
+                }
+                print(printtable.sd[,c("estimate","lower","upper")], quote = FALSE)
+                cat("\n")
+            }
         }
     }
 
@@ -145,30 +209,43 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE,
     if(print && !hide.mean){
         cat("Mean structure:",deparse(object$call$formula),"\n")
     }
-    tTable <- confint(object, level = level, effects = "mean")[,c("estimate","se","df","lower","upper","p.value")]
-    starSymbol <- stats::symnum(tTable[,"p.value"], corr = FALSE, na = FALSE,
+    table.mean <- confint(object, level = level, effects = "mean")[,c("estimate","se","df","lower","upper","statistic","p.value")]
+    starSymbol <- stats::symnum(table.mean[,"p.value"], corr = FALSE, na = FALSE,
                                 cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1),
                                 symbols = c("***", "**", "*", ".", " "))
-    tTable.print <- cbind(tTable, starSymbol)
-    names(tTable.print)[7] <- ""
-    tTable.print[["p.value"]] <- format.pval(tTable[["p.value"]], digits = digit, eps = 10^(-digit))
-    tTable.print[["estimate"]] <- as.character(round(tTable[["estimate"]], digits = digit))
-    tTable.print[["df"]] <- as.character(round(tTable[["df"]], digits = digit))
-    tTable.print[["lower"]] <- as.character(round(tTable[["lower"]], digits = digit))
-    tTable.print[["upper"]] <- as.character(round(tTable[["lower"]], digits = digit))
-    tTable.print[["se"]] <- as.character(round(tTable[["se"]], digits = digit))
+    printtable.mean <- cbind(table.mean, starSymbol)
+    names(printtable.mean)[8] <- ""
+    printtable.mean[["estimate"]] <- as.character(round(table.mean[["estimate"]], digits = digit))
+    printtable.mean[["se"]] <- as.character(round(table.mean[["se"]], digits = digit))
+    printtable.mean[["df"]] <- as.character(round(table.mean[["df"]], digits = digit))
+    printtable.mean[["lower"]] <- as.character(round(table.mean[["lower"]], digits = digit))
+    printtable.mean[["upper"]] <- as.character(round(table.mean[["lower"]], digits = digit))
+    printtable.mean[["statistic"]] <- as.character(round(table.mean[["statistic"]], digits = digit))
+    printtable.mean[["p.value"]] <- format.pval(table.mean[["p.value"]], digits = digit, eps = 10^(-digit))
     if(print && !hide.mean){
-        print(tTable.print)
-        cat("\n")
-        cat("The columns lower and upper correspond to the ",100*level,"% confidence interval of the estimated coefficient\n", sep = "")
-        if(NROW(tTable.print)>1){
-            cat("Note: p-values and confidence intervals are not adjusted for multiple comparisons\n")
+        if(ci){
+            printtable.mean$statistic <- NULL
+            print(printtable.mean)
+            cat("\n")
+            cat("The columns lower and upper correspond to the ",100*level,"% confidence interval of the estimated coefficient\n", sep = "")
+            if(NROW(printtable.mean)>1){
+                cat("Note: p-values and confidence intervals are not adjusted for multiple comparisons\n")
+            }
+        }else{
+            printtable.mean$lower <- NULL
+            printtable.mean$upper <- NULL
+            print(printtable.mean)
+            cat("\n")
+            if(NROW(printtable.mean)>1){
+                cat("Note: p-values are not adjusted for multiple comparisons\n")
+            }
         }
     }
     ## ** export
-    return(invisible(list(correlation = M.corcoef,
-                          variance = M.varcoef,
-                          mean = tTable)))
+    return(invisible(list(correlation = table.cor,
+                          variance = table.var,
+                          sd = table.sd,
+                          mean = table.mean)))
 }
 
 

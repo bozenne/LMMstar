@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: May 10 2021 (16:09) 
+## Last-Updated: May 14 2021 (17:29) 
 ##           By: Brice Ozenne
-##     Update #: 56
+##     Update #: 70
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -52,7 +52,7 @@
 ## * confint.lmm (code)
 ##' @export
 confint.lmm <- function (object, parm = NULL, effects = "all", level = 0.95, null = NULL, type.object = "lmm", strata = NULL, 
-                         df = TRUE, type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE,
+                         df = !is.null(object$df), type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE,
                          backtransform.mu = NULL, backtransform.sigma = NULL, backtransform.k = NULL, backtransform.rho = NULL, ...){
 
     options <- LMMstar.options()
@@ -87,7 +87,12 @@ confint.lmm <- function (object, parm = NULL, effects = "all", level = 0.95, nul
     }else{ 
         transform.k <- match.arg(transform.k, c("none","log","square","logsquare","sd","logsd","var","logvar"))
     }
-    
+    if(is.null(type.information)){
+        type.information <- options$type.information
+    }else{
+        type.information <- match.arg(type.information, c("expected","observed"))
+    }
+
     ## ** get estimate
     beta <- coef(object, effects = effects, type.object = "lmm", strata = strata,
                  transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
@@ -97,12 +102,17 @@ confint.lmm <- function (object, parm = NULL, effects = "all", level = 0.95, nul
     ## ** get uncertainty 
     vcov.beta <- vcov(object, effects = effects, df = df, type.object = "lmm", strata = strata,
                       type.information = type.information, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+
     if(df){
         df <- attr(vcov.beta,"df")
         attr(vcov.beta,"df") <- NULL
+        if((type.information != "observed") && ("mean" %in% effects)){
+            warning("when using REML with expected information, the degree of freedom of the mean parameters may depend on the parametrisation of the variance parameters. \n")
+        }
     }else{
         df <- setNames(rep(Inf,p),names(beta))
     }
+    
     ## ** get null
     if(is.null(null)){
         if(transform.k %in% c("sd","logsd","var","logvar")){
@@ -132,7 +142,7 @@ confint.lmm <- function (object, parm = NULL, effects = "all", level = 0.95, nul
         }
         null <- null[names(beta)]
     }
-    
+
     ## ** combine
     out <- data.frame(estimate = beta, se = sqrt(diag(vcov.beta)), statistic = as.numeric(NA), df = df, lower = as.numeric(NA), upper = as.numeric(NA), null = null, p.value = as.numeric(NA))
     out$statistic <- (out$estimate-null)/out$se

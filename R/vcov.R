@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: May 10 2021 (16:00) 
+## Last-Updated: May 14 2021 (17:30) 
 ##           By: Brice Ozenne
-##     Update #: 204
+##     Update #: 215
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -97,8 +97,8 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
         keep.name <- setNames(names(coef(object, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.name = TRUE)),
                               names(coef(object, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.name = TRUE)))
         
-        if(is.null(data) && is.null(p) && test.notransform){
-            vcov <- object$vcov[keep.name,keep.name]
+        if(is.null(data) && is.null(p) && test.notransform && (df == FALSE || !is.null(object$df))){
+            vcov <- object$vcov[keep.name,keep.name,drop=FALSE]
             if(df){
                 attr(vcov,"df") <- object$df[keep.name]
             }
@@ -110,7 +110,7 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
                                     transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.name = TRUE)
             detail <- attr(infoFull,"detail")
             vcovFull <- solve(infoFull)
-            vcov <- vcovFull[keep.name,keep.name]
+            vcov <- vcovFull[keep.name,keep.name,drop=FALSE]
             if(df){
                 param <- object$param
                 param$mu <- detail$param[param$type=="mu"]

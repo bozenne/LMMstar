@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: May  9 2021 (12:11) 
+## Last-Updated: May 14 2021 (16:54) 
 ##           By: Brice Ozenne
-##     Update #: 321
+##     Update #: 333
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -100,9 +100,7 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
                                         var.strata = x$strata$var, U.strata = x$strata$levels,
                                         var.time = x$time$var, U.time = x$time$levels,
                                         var.cluster = x$cluster$var,
-                                        structure = x$structure,
-                                        transform = transform
-                                        )
+                                        structure = x$structure)
             Y <- design$Y
             X <- design$X.mean
             index.vargroup <- design$index.vargroup
@@ -173,7 +171,6 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
         out <- .information(X = X, residuals = Y - X %*% beta, precision = precision, dOmega = dOmega, d2Omega = d2Omega,
                             index.variance = index.vargroup, time.variance = index.time, index.cluster = index.cluster, ## attr(X.var,"Upattern.index.time")
                             pair.meanvarcoef = pair.meanvarcoef, pair.varcoef = pair.varcoef, indiv = indiv, REML = REML, type.information = type.information)
-
         if(test.detail){
             attr(out,"detail") <- list(param = p, reparametrize = reparametrize, Y = Y, X.mean = X, X.var = X.var,
                                        index.variance = index.vargroup, time.variance = index.time, index.cluster = index.cluster,
@@ -238,12 +235,12 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
         iOut <- list(tr = vector(mode = "list", length = npair.varcoef))
 
         if(type.information == "observed"){
-            iClusters <- which(index.variance==iPattern)
+            iClusters <- which(var.pattern[index.variance]==iPattern)
             iIndex <- which(index.cluster %in% iClusters)
-            iResidualsW <- reshape2::dcast(data.frame(id = index.cluster[iIndex],
-                                                      res = residuals[iIndex,,drop=FALSE],
-                                                      time =  time.variance[iIndex]),
-                                           formula = id~time, value.var = "res")[,-1,drop=FALSE]
+            iDF <- data.frame(id = index.cluster[iIndex],
+                              res = residuals[iIndex,,drop=FALSE],
+                              time =  time.variance[iIndex])
+            iResidualsW <- reshape2::dcast(iDF, formula = id~time, value.var = "res")[,-1,drop=FALSE]
 
             iMisfit <- diag(1, NCOL(iResidualsW), NCOL(iResidualsW)) -  precision[[iPattern]] %*% crossprod(as.matrix(iResidualsW))/NROW(iResidualsW)
         }
@@ -336,11 +333,11 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
                 iCoef1 <- pair.meanvarcoef[1,iPair]
                 iCoef2 <- pair.meanvarcoef[2,iPair]
                 if(indiv){
-                    info[iId,iCoef1,iCoef2] <- info[iId,iCoef1,iCoef2] + X[iIndex,iCoef1,drop=FALSE] %*% dOmega.precomputed[[iPattern]]$cross[[iCoef2]] %*% iResidual
-                    info[iId,iCoef2,iCoef1] <- info[iId,iCoef2,iCoef1] + X[iIndex,iCoef1,drop=FALSE] %*% dOmega.precomputed[[iPattern]]$cross[[iCoef2]] %*% iResidual
+                    info[iId,iCoef1,iCoef2] <- info[iId,iCoef1,iCoef2] + t(X[iIndex,iCoef1,drop=FALSE]) %*% dOmega.precomputed[[iPattern]]$cross[[iCoef2]] %*% iResidual
+                    info[iId,iCoef2,iCoef1] <- info[iId,iCoef2,iCoef1] + t(X[iIndex,iCoef1,drop=FALSE]) %*% dOmega.precomputed[[iPattern]]$cross[[iCoef2]] %*% iResidual
                 }else{
-                    info[iCoef1,iCoef2] <- info[iCoef1,iCoef2] + X[iIndex,iCoef1,drop=FALSE] %*% dOmega.precomputed[[iPattern]]$cross[[iCoef2]] %*% iResidual
-                    info[iCoef2,iCoef1] <- info[iCoef2,iCoef1] + X[iIndex,iCoef1,drop=FALSE] %*% dOmega.precomputed[[iPattern]]$cross[[iCoef2]] %*% iResidual
+                    info[iCoef1,iCoef2] <- info[iCoef1,iCoef2] + t(X[iIndex,iCoef1,drop=FALSE]) %*% dOmega.precomputed[[iPattern]]$cross[[iCoef2]] %*% iResidual
+                    info[iCoef2,iCoef1] <- info[iCoef2,iCoef1] + t(X[iIndex,iCoef1,drop=FALSE]) %*% dOmega.precomputed[[iPattern]]$cross[[iCoef2]] %*% iResidual
                 }
             }
 

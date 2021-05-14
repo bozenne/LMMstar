@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: May 10 2021 (11:24) 
+## Last-Updated: May 14 2021 (17:25) 
 ##           By: Brice Ozenne
-##     Update #: 133
+##     Update #: 137
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -225,11 +225,11 @@
                     idk <- k; idk[iCoef1] <- 1
                     ## propagate
                     idOmega.k <- exp((UX.var[[iP]] %*% log(c(sigma,idk)))[,1]) * ind.dk
-                    iHess[[iPair]] <- ind.2 * (idOmega.k %*% t(iOmega.sd) + iOmega.sd %*% t(idOmega.k))
+                    iHess[[iPair]] <- ind2 * (idOmega.k %*% t(iOmega.sd) + iOmega.sd %*% t(idOmega.k))
 
                 }
             }else if(iType1 == "rho"){
-                iHess[[iPair]] <- matrix(0, nrow = iNtime, ncol = iNtime, dimnames = list(U.time, U.time))
+                iHess[[iPair]] <- matrix(0, nrow = iNtime, ncol = iNtime, dimnames = list(iTime, iTime))
             }
 
         }

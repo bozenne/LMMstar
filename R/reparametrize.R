@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: May 10 2021 (15:25) 
+## Last-Updated: May 14 2021 (12:14) 
 ##           By: Brice Ozenne
-##     Update #: 258
+##     Update #: 261
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -157,13 +157,23 @@ reparametrize <- function(p, type, strata, time.levels,
     if(transform.rho %in% c("cov") && any(type=="rho") && transform.sigma != "none"){
         warning("Argument \'transform.sigma\' ignored when argument \'transform.rho\' set to \"cov\". \n")
     }
-    if(transform.k %in% c("sd","logsd","var","logvar") && any(type=="k") && transform.sigma != "none"){
-        warning("Argument \'transform.sigma\' ignored when argument \'transform.k\' set to \"sd\", \"logsd\", \"var\", or \"logvar\". \n")
+    if(transform.k %in% c("sd","logsd","var","logvar")){
+        if(transform.sigma != "none"){
+            warning("Argument \'transform.sigma\' ignored when argument \'transform.k\' set to \"sd\", \"logsd\", \"var\", or \"logvar\". \n")
+        }
+        if(sum(type=="k")==0){
+            transform.sigma  <- switch(transform.k,
+                                       "var" = "square",
+                                       "logvar" = "logsquare",
+                                       "sd" = "none",
+                                       "logsd" = "log")
+                                       
+        }
     }
-    if(transform.sigma == "none" && (Jacobian || dJacobian)){
+    if(transform.sigma == "remove" && (Jacobian || dJacobian)){
         stop("When argument \'transform.sigma\' is set to \"none\", arguments \'Jacobian\' and \'dJacobian\' should be set to FALSE. \n")
     }
-    if(transform.sigma %in% "none" && inverse){
+    if(transform.sigma %in% "remove" && inverse){
         stop("When argument \'transform.sigma\' is set to \"none\", argument \'inverse\' should be set to FALSE. \n")
     }
 

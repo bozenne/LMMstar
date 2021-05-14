@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: Apr 25 2021 (11:32) 
+## Last-Updated: May 14 2021 (14:41) 
 ##           By: Brice Ozenne
-##     Update #: 13
+##     Update #: 14
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -34,7 +34,7 @@ LMMstar.options <- function(..., reinitialise = FALSE){
                list(transform.sigma = "none",
                     transform.k = "none",
                     transform.rho = "none",
-                    type.information = "expected"), 
+                    type.information = "observed"), 
                envir = LMMstar.env)
     
     return(invisible(get(".LMMstar-options", envir = LMMstar.env)))

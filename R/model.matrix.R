@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Apr 24 2021 (22:47) 
+## Last-Updated: May 14 2021 (17:22) 
 ##           By: Brice Ozenne
-##     Update #: 447
+##     Update #: 450
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -118,13 +118,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
 
     ## **** k
     if(structure %in% c("CS","EXP")){
-        if(n.strata==1){
-            X.var <- model.matrix(~1, data)
-            colnames(X.var) <- param.sigma            
-        }else{
-            X.var <- model.matrix(as.formula(paste0("~0+",var.strata)), data)
-            colnames(X.var) <- param.sigma
-        }
+        X.var <- model.matrix(formula.var, data)
         param.k <- NULL
     }else if(structure == "UN"){
         data.relevel <- as.data.frame(data)
@@ -137,9 +131,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
             param.k <- paste("k",param.k,sep=".")
             colnames(X.var) <- c(param.sigma,param.k)
         }else{
-            terms.var <- delete.response(terms(formula.var))
-            formula2.var <- update(terms.var, paste0("~0+",var.strata,"+",var.strata,":.")) ## using ".:var.strata" does not work (it gives the same formula - does not invert . var.strata around the : sympbol)
-            X.var <- model.matrix(formula2.var, data)
+            X.var <- model.matrix(formula.var, data)
             index.tempo <- lapply(1:n.strata,function(iS){
                 grep(paste0(paste0("^",var.strata,U.strata[iS],":")), colnames(X.var))
             })
@@ -208,7 +200,6 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
                 X.cor[[iStrata]][as.double(M.index[,c("index.lower","index.upper")]),param.rho[iStrata]] <- 1
             }else if(structure == "UN"){
                 for(iParam in 1:length(param.rho.save)){ ## iParam <- 2
-                    browser()
                     if(n.strata==1){
                         X.cor[[iStrata]][M.index[iParam,c("index.lower","index.upper")],param.rho[iParam]] <- 1
                     }else{

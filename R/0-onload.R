@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (11:59) 
 ## Version: 
-## Last-Updated: Apr 16 2021 (12:15) 
+## Last-Updated: May 13 2021 (23:37) 
 ##           By: Brice Ozenne
-##     Update #: 5
+##     Update #: 6
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -23,6 +23,7 @@ LMMstar.env <- new.env() # create a specific environment for the package
     LMMstar.options(reinitialise = TRUE) # generate .LMMstar-options when loading the package   
 }
 
+.getXlevels <- get(".getXlevels", envir = asNamespace("stats"), inherits = FALSE)
 
 ##----------------------------------------------------------------------
 ### 0onload.R ends here

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: May 10 2021 (15:42) 
+## Last-Updated: May 14 2021 (16:56) 
 ##           By: Brice Ozenne
-##     Update #: 165
+##     Update #: 167
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -129,7 +129,8 @@ coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL
             pVar <- NULL
             if("variance" %in% effects){
                 pVar <- c(pVar,object$param$sigma, object$param$k)
-            }else if("correlation" %in% effects){
+            }
+            if("correlation" %in% effects){
                 pVar <- c(pVar,object$param$rho)
             }
             if(test.notransform){
