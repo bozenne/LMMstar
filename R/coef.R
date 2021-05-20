@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: May 14 2021 (16:56) 
+## Last-Updated: May 19 2021 (14:57) 
 ##           By: Brice Ozenne
-##     Update #: 167
+##     Update #: 172
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -89,29 +89,12 @@ coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL
         strata <- match.arg(strata, object$strata$levels, several.ok = TRUE)
     }
     
-    if(is.null(transform.sigma)){
-        transform.sigma <- options$transform.sigma
-    }else if(!is.function(transform.sigma)){
-        transform.sigma <- match.arg(transform.sigma, c("none","one","log","square","logsquare"))
-    }
-
-    if(is.null(transform.k)){
-        transform.k <- options$transform.k
-    }else if(!is.function(transform.k)){
-        transform.k <- match.arg(transform.k, c("none","log","square","logsquare","sd","logsd","var","logvar"))
-    }
-
-    if(is.null(transform.rho)){
-        transform.rho <- options$transform.rho
-    }else if(!is.function(transform.rho)){
-        transform.rho <- match.arg(transform.rho, c("none","atanh","cov"))
-    }
-
-    if(is.function(transform.sigma) || is.function(transform.k) || is.function(transform.rho)){
-        test.notransform <- FALSE
-    }else{
-        test.notransform <- (transform.sigma==x.transform.sigma) && (transform.k==x.transform.k) && (transform.rho==x.transform.rho)
-    }
+    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
+                            x.transform.sigma = x.transform.sigma, x.transform.k = x.transform.k, x.transform.rho = x.transform.rho)
+    transform.sigma <- init$transform.sigma
+    transform.k <- init$transform.k
+    transform.rho <- init$transform.rho
+    test.notransform <- init$test.notransform
 
     if(transform.rho == "cov" && ("variance" %in% effects == FALSE || "correlation" %in% effects == FALSE)){
         stop("Cannot use the argument \'transform.rho\' set to \"cov\" when \"variance\" or \"correlation\" is not in argument \'effect\'. \n")
@@ -143,11 +126,12 @@ coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL
             }else{
                 ls.reparam <- .reparametrize(p = pVar,
                                              type = object$param$type[names(pVar)], strata = object$param$strata[names(pVar)], time.levels = object$time$levels,
+                                             time.k = object$design$param$time.k, time.rho = object$design$param$time.rho,
                                              Jacobian = FALSE, dJacobian = FALSE, inverse = FALSE,
                                              transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
                 outVar <- ls.reparam$p
                 if(ls.reparam$transform){
-                    newname <- setNames(ls.reparam$newname,pVar)
+                    newname <- setNames(ls.reparam$newname,names(pVar))
                 }else{
                     newname <- NULL
                 }
@@ -163,7 +147,7 @@ coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL
             out <- out[object$param$strata[names(out)] %in% strata]
         }
         if(length(newname)>0){
-            names(out)[match(names(outVar),names(out))] <- as.character(newname)
+            names(out)[match(names(newname),names(out))] <- as.character(newname)
         }
 
         return(out)

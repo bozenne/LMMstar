@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: May 14 2021 (16:48) 
+## Last-Updated: May 20 2021 (12:28) 
 ##           By: Brice Ozenne
-##     Update #: 93
+##     Update #: 97
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,7 +26,7 @@ if(FALSE){
 }
 
 context("Check lmm on examples of linear regression")
-
+LMMstar.options(method.numDeriv = "Richardson")
 
 ## * simulate data
 n <- 5e1
@@ -59,7 +59,6 @@ e.lava <- estimate(lvm(Y~X1+X2+Gene),data = d)
 ## ** coef
 expect_equal(coef(e.lmm, effects = "mean"), coef(e.gls), tol = 1e-6)
 expect_equal(unname(coef(e.lmm, transform.sigma = "square")), unname(coef(e.lava)), tol = 1e-6)
-
 
 ## ** logLikelihood
 expect_equal(logLik(e.lmm), as.double(logLik(e.gls)), tol = 1e-6)
@@ -130,26 +129,28 @@ GS <- solve(-hessian(func = function(p){p["sigma"] <- sqrt(p["sigma"]);logLik(e.
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## ** degree of freedom
-GS <- c(rep(nobs(e.lmm)[1],sum(e.lmm$param$type=="mu")), nobs(e.lmm)[1]/4)
-test <- confint(e.lmm, transform.sigma = "square")$df
-expect_equal(test, unname(GS))
+## GS <- c(rep(nobs(e.lmm)[1],sum(e.lmm$param$type=="mu")), nobs(e.lmm)[1]/4)
+## test <- confint(e.lmm, transform.sigma = "square")$df
+GS <- rep(nobs(e.lmm)[1],sum(e.lmm$param$type=="mu"))
+test <- confint(e.lmm, effects = "mean", transform.sigma = "square")$df
+expect_equal(test, unname(GS), tol = 1e-6)
 
-## numerical derivative with appropriate transformation
-FF <- function(p){p["sigma"] <- sqrt(p["sigma"]);diag(vcov(e.lmm, p = p, transform.sigma = "square"))}
-GG <- jacobian(func = FF, x = coef(e.lmm, transform.sigma = "square", transform.names = FALSE))
-VV <- vcov(e.lmm, p = coef(e.lmm), transform.sigma = "square")
-test2 <- sapply(1:NROW(GG),function(gg){2*VV[gg,gg]^2/ (GG[gg,,drop=FALSE] %*% VV %*% t(GG[gg,,drop=FALSE]))})
-expect_equal(unname(test2), unname(GS))
+## ## numerical derivative with appropriate transformation
+## FF <- function(p){p["sigma"] <- sqrt(p["sigma"]);diag(vcov(e.lmm, p = p, transform.sigma = "square"))}
+## GG <- jacobian(func = FF, x = coef(e.lmm, transform.sigma = "square", transform.names = FALSE))
+## VV <- vcov(e.lmm, p = coef(e.lmm), transform.sigma = "square")
+## test2 <- sapply(1:NROW(GG),function(gg){2*VV[gg,gg]^2/ (GG[gg,,drop=FALSE] %*% VV %*% t(GG[gg,,drop=FALSE]))})
+## expect_equal(unname(test2), unname(GS))
 
-## numerical derivative on another scale
-FF.bis <- function(p){diag(vcov(e.lmm, p = p, transform.sigma = "none"))}
-GG.bis <- jacobian(func = FF.bis, x = coef(e.lmm, transform.sigma = "none"))
-VV.bis <- vcov(e.lmm, p = coef(e.lmm), transform.sigma = "none")
-test2 <- sapply(1:NROW(GG.bis),function(gg){2*VV.bis[gg,gg]^2/ (GG.bis[gg,,drop=FALSE] %*% VV.bis %*% t(GG.bis[gg,,drop=FALSE]))})
+## ## numerical derivative on another scale
+## FF.bis <- function(p){diag(vcov(e.lmm, p = p, transform.sigma = "none"))}
+## GG.bis <- jacobian(func = FF.bis, x = coef(e.lmm, transform.sigma = "none"))
+## VV.bis <- vcov(e.lmm, p = coef(e.lmm), transform.sigma = "none")
+## test2 <- sapply(1:NROW(GG.bis),function(gg){2*VV.bis[gg,gg]^2/ (GG.bis[gg,,drop=FALSE] %*% VV.bis %*% t(GG.bis[gg,,drop=FALSE]))})
 
 ## ** anova
 test <- anova(e.lmm, print = FALSE)
-expect_equal(test$mean["Gene","statistic"],
+expect_equal(test$mean["Gene","statistic"]*test$mean["Gene","df.num"],
              unname(lava::compare(e.lava, par = c("Y~GeneLA","Y~GeneAA"))$statistic), tol = 1e-6)
 expect_equal(test$mean["Gene","df.denom"], NROW(d))
 
@@ -159,7 +160,7 @@ anova(e.lmm, effect = c("GeneLA=0","GeneAA=0"),print.null=FALSE)
 ## * single variance parameter (REML)
 ## ** fit
 e.lmm <- lmm(Y ~ X1 + X2 + Gene, variance = ~time|id, structure = "CS", data = d, debug = 2,
-             method = "REML")
+             method = "REML", df = TRUE)
 e.gls <- gls(Y ~ X1 + X2 + Gene, data = d, method = "REML")
 
 ## ** coef
@@ -191,6 +192,9 @@ test2 <- information(e.lmm, p = coef(e.lmm), transform.sigma = "none", type = "e
 ## which are equal when sum(residuals^2)/n = sigma^2
 GS <- -hessian(func = function(p){logLik(e.lmm, p = p)}, x = coef(e.lmm, transform.sigma = "none"))
 expect_equal(as.double(test1), as.double(GS), tol = 1e-6)
+## test1
+## test2 - (NROW(d)-5)*2/coef(e.lmm)["sigma"]^2
+## 1/coef(e.lmm)["sigma"]^2
 
 test1 <- information(e.lmm, p = coef(e.lmm), transform.sigma = "log", type = "observed")
 test2 <- information(e.lmm, p = coef(e.lmm), transform.sigma = "log", type = "expected")

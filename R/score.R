@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: May 10 2021 (11:59) 
+## Last-Updated: May 20 2021 (12:26) 
 ##           By: Brice Ozenne
-##     Update #: 208
+##     Update #: 224
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -51,25 +51,12 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
-
-    if(is.null(transform.sigma)){
-        transform.sigma <- options$transform.sigma
-    }else{
-        transform.sigma <- match.arg(transform.sigma, c("none","log","square","logsquare"))
-    }
-
-    if(is.null(transform.k)){
-        transform.k <- options$transform.k
-    }else{
-        transform.k <- match.arg(transform.k, c("none","log","square","logsquare","sd","logsd","var","logvar"))
-    }
-
-    if(is.null(transform.rho)){
-        transform.rho <- options$transform.rho
-    }else{
-        transform.rho <- match.arg(transform.rho, c("none","atanh","cov"))
-    }
-    test.notransform <- (transform.sigma==x.transform.sigma) && (transform.k==x.transform.k) && (transform.rho==x.transform.rho)
+    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
+                            x.transform.sigma = x.transform.sigma, x.transform.k = x.transform.k, x.transform.rho = x.transform.rho)
+    transform.sigma <- init$transform.sigma
+    transform.k <- init$transform.k
+    transform.rho <- init$transform.rho
+    test.notransform <- init$test.notransform
 
     ## ** extract or recompute score
     if(is.null(data) && is.null(p) && (indiv == FALSE) && test.notransform){
@@ -119,6 +106,7 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
             beta <- p[names(x$param$mu)]
             name.pVar <- c(names(x$param$sigma),names(x$param$k),names(x$param$rho))
             reparametrize <- .reparametrize(p = p[name.pVar], type = x$param$type[name.pVar], strata = x$param$strata[name.pVar], time.levels = x$time$levels,
+                                            time.k = x$design$param$time.k, time.rho = x$design$param$time.rho,
                                             Jacobian = TRUE, dJacobian = FALSE, inverse = FALSE,
                                             transform.sigma = transform.sigma,
                                             transform.k = transform.k,
@@ -144,7 +132,7 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
                       index.variance = index.vargroup, time.variance = index.time, index.cluster = index.cluster, ## attr(X.var,"Upattern.index.time")
                       indiv = indiv, REML = x$method.fit=="REML")
 
-        if(length(newname)>0){
+        if(transform.names && length(newname)>0){
             if(indiv){
                 colnames(out)[match(name.pVar,colnames(out))] <- newname
             }else{
@@ -201,23 +189,24 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
     ## ** compute score
     for(iId in 1:n.cluster){ ## iId <- 7
         iPattern <- index.variance[iId]
-        iIndex <- which(index.cluster==iId)
-        iIndex <- iIndex[order(time.variance[iIndex])] ## re-order observations according to the variance-covariance matrix
+        iIndex <- attr(index.cluster,"sorted")[[iId]]
+        ## iIndex <- which(index.cluster==iId)
+        ## iIndex <- iIndex[order(time.variance[iIndex])] ## re-order observations according to the variance-covariance matrix
 
         iResidual <- residuals[iIndex,,drop=FALSE]
         iX <- X[iIndex,,drop=FALSE]
+        tiX <- t(iX)
 
-        Score[iId,name.mucoef] <- t(iX) %*% precision[[iPattern]] %*% iResidual
+        Score[iId,name.mucoef] <- tiX %*% precision[[iPattern]] %*% iResidual
         if(REML){
-            REML.denom <- REML.denom + t(iX) %*% precision[[iPattern]] %*% iX
+            REML.denom <- REML.denom + tiX %*% precision[[iPattern]] %*% iX
         }
 
         for(iVarcoef in name.varcoef){ ## iVarcoef <- name.varcoef[1]
             Score[iId,iVarcoef] <- -0.5 * dOmega.precomputed[[iPattern]]$term1[[iVarcoef]] + 0.5 * t(iResidual) %*% dOmega.precomputed[[iPattern]]$term2[[iVarcoef]] %*% iResidual
-            ## Score[iId,iVarcoef] <- 0*Score[iId,iVarcoef]
 
             if(REML){
-                REML.num[[iVarcoef]] <- REML.num[[iVarcoef]] + t(iX) %*% dOmega.precomputed[[iPattern]]$term2[[iVarcoef]] %*% iX
+                REML.num[[iVarcoef]] <- REML.num[[iVarcoef]] + tiX %*% dOmega.precomputed[[iPattern]]$term2[[iVarcoef]] %*% iX
             }
         }
     }

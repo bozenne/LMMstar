@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: Apr 22 2021 (17:21) 
+## Last-Updated: May 20 2021 (12:19) 
 ##           By: Brice Ozenne
-##     Update #: 120
+##     Update #: 127
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -142,9 +142,9 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
     
     ## ** compute score
     for(iId in 1:n.cluster){ ## iId <- 7
-
-        iIndex <- which(index.cluster==iId)
-        iIndex <- iIndex[order(time.variance[iIndex])] ## re-order observations according to the variance-covariance matrix
+        iIndex <- attr(index.cluster,"sorted")[[iId]]
+        ## iIndex <- which(index.cluster==iId)
+        ## iIndex <- iIndex[order(time.variance[iIndex])] ## re-order observations according to the variance-covariance matrix
 
         iResidual <- residuals[iIndex,,drop=FALSE]
         iX <- X[iIndex,,drop=FALSE]

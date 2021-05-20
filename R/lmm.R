@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: May 14 2021 (17:38) 
+## Last-Updated: May 20 2021 (09:05) 
 ##           By: Brice Ozenne
-##     Update #: 647
+##     Update #: 669
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -78,13 +78,27 @@
 
 ## * lmm (code)
 ##' @export
-lmm <- function(formula, variance, structure, data, method.fit = "REML", df = FALSE, type.information = NULL, debug = FALSE, ...){
+lmm <- function(formula, variance, structure, data, method.fit = NULL, df = NULL, type.information = NULL, debug = FALSE, ...){
     out <- list(call = match.call())
     options <- LMMstar.options()
     
     ## ** check and normalize user imput
     if(debug>=1){cat("1. Check and normalize user imput \n")}
 
+    ## *** objective function
+    if(is.null(method.fit)){
+        method.fit <- options$method.fit
+    }else{
+        method.fit <- match.arg(method.fit, choices = c("ML","REML"))
+    }
+
+    ## *** degrees of freedom
+    if(is.null(df)){
+        df <- options$df
+    }else if(!is.logical(df)){
+        stop("Argument \'df\' should be TRUE or FALSE. \n")
+    }
+    
     ## *** type of information
     if(is.null(type.information)){
         type.information <- options$type.information
@@ -406,6 +420,7 @@ lmm <- function(formula, variance, structure, data, method.fit = "REML", df = FA
     if(debug>=1){cat("3. Reparametrization \n")}
     pVar <- c(out$param$sigma,out$param$k,out$param$rho)
     out$reparametrize <- .reparametrize(p = pVar, type = out$param$type[match(pVar,names(out$param$type))], strata = out$param$strata[match(pVar,names(out$param$type))], time.levels = out$time$levels,
+                                        time.k = out$design$param$time.k, time.rho = out$design$param$time.rho,
                                         Jacobian = TRUE, dJacobian = 2, inverse = FALSE,
                                         transform.sigma = options$transform.sigma,
                                         transform.k = options$transform.k,
@@ -416,6 +431,8 @@ lmm <- function(formula, variance, structure, data, method.fit = "REML", df = FA
         out$reparametrize$newname <- NULL
         out$reparametrize$Jacobian <- NULL
         out$reparametrize$dJacobian <- NULL
+    }else{
+        newname <- names(out$reparametrize$p)
     }
 
     ## ** Compute partial derivatives regarding the mean and the variance
@@ -432,69 +449,46 @@ lmm <- function(formula, variance, structure, data, method.fit = "REML", df = FA
 
     ## ** Compute likelihood derivatives
     if(debug>=1){cat("5. Compute likelihood derivatives \n")}
-
+    if(debug>=2){cat("- log-likelihood \n")}
     out$logLik <- .logLik(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1,
                           index.variance = out$design$index.vargroup, time.variance = out$design$index.time, index.cluster = out$design$index.cluster, 
                           indiv = FALSE, REML = method.fit=="REML")
 
+    if(debug>=2){cat("- score \n")}
     out$score <- .score(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega,
                         index.variance = out$design$index.vargroup, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,  ## attr(out$design$X.var,"Upattern.index.time")
                         indiv = FALSE, REML = method.fit=="REML")
-
+    if(out$reparametrize$transform){
+        colnames(out$score) <- newname
+    }
+    if(debug>=2){cat("- information \n")}
     out$information <- .information(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega,
                                     index.variance = out$design$index.vargroup, time.variance = out$design$index.time, index.cluster = out$design$index.cluster, ## attr(out$design$X.var,"Upattern.index.time")
                                     pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef,
                                     indiv = FALSE, REML = method.fit=="REML", type.information = type.information)
     attr(out$information, "type.information") <- type.information
+    if(out$reparametrize$transform){
+        dimnames(out$information) <- list(newname,newname)
+    }
+    if(debug>=2){cat("- variance-covariance \n")}
     out$vcov <- solve(out$information)
 
     if(df){
+        if(debug>=2){cat("- degrees of freedom \n")}
         out$df <- .df(param = out$param, reparametrize = out$reparametrize, Y = out$design$Y, X.mean = out$design$X.mean, X.var = out$design$X.var,
-                      index.variance = out$design$index.vargroup, time.variance = out$design$index.time, index.cluster = out$design$index.cluster, 
+                      index.variance = out$design$index.vargroup, time.variance = out$design$index.time, index.cluster = out$design$index.cluster, time.k = out$design$param$time.k, time.rho = out$design$param$time.rho,
                       pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef, REML = method.fit=="REML", type.information = type.information,
                       type = out$param$type, strata = out$param$strata,
                       transform.sigma = out$reparametrize$transform.sigma, transform.k = out$reparametrize$transform.k, transform.rho = out$reparametrize$transform.rho,
-                      vcov = out$vcov, diag = TRUE)
-    }
-    
-    ## ** Sanity checks
-    if(debug>=1){cat("6. Sanity check vs. gls \n")}
-
-    test.logLik <- abs(out$logLik - sum(sapply(out$gls, logLik)))
-    if(test.logLik>1e-10){
-        warning("Mismatch between the gls and lmm log likelihood (difference ",test.logLik,"). \n",
-                "Consider contacting the package manager. \n")
-    }
-    
-    lmm.vcov.mu <- out$vcov[names(out$param$mu),names(out$param$mu),drop=FALSE]
-    ## lmm.vcov.Omega <- out$vcov[names(out$param$mu),names(out$param$mu),drop=FALSE]
-    if(out$method=="ML"){
-        if(n.strata==1){
-            GS.vcov.mu <- vcov(out$gls[[1]]) * (out$gls[[1]]$dim$N-out$gls[[1]]$dim$p) / out$gls[[1]]$dim$N
-        }else{
-            GS.vcov.mu <- as.matrix(Matrix::bdiag(lapply(out$gls,function(iM){vcov(iM) * (iM$dim$N-iM$dim$p) / iM$dim$N})))
-        }
-    }else{
-        ## sqrt(out$gls[[1]]$apVar["lSigma","lSigma"])*1.96
-        ## diff(log(intervals(out$gls[[1]])$sigma))
-        GS.vcov.mu <- as.matrix(Matrix::bdiag(lapply(out$gls,vcov)))
-    }
-    if(max(abs(lmm.vcov.mu - GS.vcov.mu))>1e-10){
-        warning("Mismatch between the gls and lmm variance covariance matrix (mean, largest difference ",max(abs(lmm.vcov.mu - GS.vcov.mu)),"). \n",
-                "Consider contacting the package manager. \n")
-    }
-    if(all(sapply(lapply(out$gls,"[[","apVar"),length)>0)){
-        GS.vcov.Omega <- as.matrix(Matrix::bdiag(lapply(out$gls,function(iM){iM$apVar})))
+                      vcov = out$vcov, diag = TRUE, method.numDeriv = options$method.numDeriv)
+        out$dVcov <- attr(out$df,"dVcov")
+        attr(out$df,"dVcov") <- NULL
         
-        param.tempo <- setdiff(unlist(tapply(names(out$param$strata),out$param$strata,list)),names(out$param$mu))
-        lmm.vcov.Omega <- out$vcov[param.tempo,param.tempo,drop=FALSE]
-
-        lmm.vcov.Omega / GS.vcov.Omega
-        ## if(max(abs(lmm.vcov.Omega - GS.vcov.Omega))>1e-10){
-        ##     warning("Mismatch between the gls and lmm variance covariance matrix (variance, largest difference ",max(abs(lmm.vcov.Omega - GS.vcov.Omega)),"). \n",
-        ##             "Consider contacting the package manager. \n")
-        ## }
-    }
+        if(out$reparametrize$transform){
+            names(out$df) <- newname
+            dimmnames(ou$dVcov) <- list(newname,newname,newname)
+        }
+    }    
     
     ## ** convert to lmm and export
     class(out) <- "lmm"

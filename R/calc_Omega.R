@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: May 14 2021 (17:25) 
+## Last-Updated: May 20 2021 (11:31) 
 ##           By: Brice Ozenne
-##     Update #: 137
+##     Update #: 179
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -123,7 +123,8 @@
     })
 
     ## ** export
-    return(setNames(out,Upattern))
+    out <- setNames(out,Upattern)
+    return(out)
 }
 
 
@@ -161,7 +162,6 @@
     
     ## ** loop over covariance patterns
     out <- lapply(1:nUpattern, function(iP){
-        iHess <- vector(mode = "list", length = n.pair)
 
         iTime <- Upattern.time[[iP]]
         iNtime <- length(iTime)
@@ -170,7 +170,11 @@
         iOmega <- Omega[[iP]] ; attr(iOmega,"sd") <- NULL; attr(iOmega,"cor") <- NULL; attr(iOmega,"time") <- NULL;
         idOmega <- dOmega[[iP]]
 
-        for(iPair in 1:n.pair){ ## iPair <- 1
+        iHess <- lapply(1:n.pair, function(iPair){
+            matrix(0, nrow = iNtime, ncol = iNtime, dimnames = list(iTime, iTime))
+        })
+
+        for(iPair in attr(pair,"index.hessian")){ ## iPair <- 1
             ## name of parameters
             iCoef1 <- pair[1,iPair]
             iCoef2 <- pair[2,iPair]
@@ -186,7 +190,7 @@
             if(iType1 == "sigma"){
                 if(iType2 == "sigma"){
                     if(iCoef1==iCoef2){
-                            iHess[[iPair]] <- 2 * ind1 * iOmega / sigma[iCoef1]^2
+                        iHess[[iPair]] <- 2 * ind1 * iOmega / sigma[iCoef1]^2
                     }else if(all(abs(ind1 * ind2)<1e-6)){
                         iHess[[iPair]] <- 0*iOmega
                     }else{
@@ -200,8 +204,9 @@
                     idk <- k; idk[iCoef2] <- 1
                     ## propagate
                     idOmega.k <- exp((UX.var[[iP]] %*% log(c(idsigma,idk)))[,1]) * ind.dksigma
-                    iHess[[iPair]] <- diag(4*idOmega.k*iOmega.sd, nrow = iNtime, ncol = iNtime) + iOmega.cor * (iOmega.sd %*% t(idOmega.k) + iOmega.sd %*% t(idOmega.k))
-                                                
+                    iHess[[iPair]] <- diag(4*idOmega.k*iOmega.sd, nrow = iNtime, ncol = iNtime) + 2 * iOmega.cor * (idOmega.k %*% t(iOmega.sd) + iOmega.sd %*% t(idOmega.k))
+                    ## 4 * sigma * k["k.Y2"]
+                    ## 2 * sigma * c(rho["cor(Y2,Y1)"],k["k.Y3"]*rho["cor(Y3,Y2)"],k["k.Y4"]*rho["cor(Y4,Y2)"])
                 }else if(iType2 == "rho"){
                     iHess[[iPair]] <- 2 * ind1 * ind2 * iOmega / (sigma[iCoef1] * rho[iCoef2])
                 }
@@ -228,15 +233,11 @@
                     iHess[[iPair]] <- ind2 * (idOmega.k %*% t(iOmega.sd) + iOmega.sd %*% t(idOmega.k))
 
                 }
-            }else if(iType1 == "rho"){
-                iHess[[iPair]] <- matrix(0, nrow = iNtime, ncol = iNtime, dimnames = list(iTime, iTime))
             }
-
         }
 
         ## apply transformation
         if(!is.null(Jacobian) || !is.null(dJacobian)){
-
             M.iScore <- do.call(cbind,lapply(dOmega[[iP]],as.double)) %*% JacobianM1
             iScore <- setNames(lapply(1:NCOL(M.iScore), function(iCol){matrix(M.iScore[,iCol], nrow = iNtime, ncol = iNtime, byrow = FALSE)}),allCoef)
 
@@ -263,7 +264,11 @@
     })
 
     ## ** export
-    return(setNames(out,Upattern))
+    out <- setNames(out,Upattern)
+    ## test <- unlist(lapply(out[[1]],function(i){all(abs(i)<1e-5)}))==FALSE
+    ## out.print <- out[[1]][test]
+    ## print(setNames(out.print,interaction(pair[1,test],pair[2,test])))
+    return(out)
 } 
 
 

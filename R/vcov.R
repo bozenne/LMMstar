@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: May 14 2021 (17:30) 
+## Last-Updated: May 19 2021 (15:23) 
 ##           By: Brice Ozenne
-##     Update #: 215
+##     Update #: 243
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -73,60 +73,63 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
         type.information <- match.arg(type.information, c("expected","observed"))
     }
 
-    if(is.null(transform.sigma)){
-        transform.sigma <- options$transform.sigma
-    }else{
-        transform.sigma <- match.arg(transform.sigma, c("none","log","square","logsquare"))
-    }
-
-    if(is.null(transform.k)){
-        transform.k <- options$transform.k
-    }else{
-        transform.k <- match.arg(transform.k, c("none","log","square","logsquare","sd","logsd","var","logvar"))
-    }
-
-    if(is.null(transform.rho)){
-        transform.rho <- options$transform.rho
-    }else{
-        transform.rho <- match.arg(transform.rho, c("none","atanh","cov"))
-    }
-    test.notransform <- (transform.sigma==x.transform.sigma) && (transform.k==x.transform.k) && (transform.rho==x.transform.rho)
+    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
+                            x.transform.sigma = x.transform.sigma, x.transform.k = x.transform.k, x.transform.rho = x.transform.rho)
+    transform.sigma <- init$transform.sigma
+    transform.k <- init$transform.k
+    transform.rho <- init$transform.rho
+    test.notransform <- init$test.notransform
 
     ## ** extract or recompute variance covariance matrix
     if(type.object=="lmm"){
-        keep.name <- setNames(names(coef(object, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.name = TRUE)),
-                              names(coef(object, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.name = TRUE)))
-        
+        keep.name <- setNames(names(coef(object, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)),
+                              names(coef(object, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE)))
+
         if(is.null(data) && is.null(p) && test.notransform && (df == FALSE || !is.null(object$df))){
             vcov <- object$vcov[keep.name,keep.name,drop=FALSE]
-            if(df){
+            if(transform.names == FALSE){
+                dimnames(vcov) <- list(names(keep.name),names(keep.name))
+            }
+            if(df>0){
                 attr(vcov,"df") <- object$df[keep.name]
+                if(transform.names == FALSE){
+                    names(attr(vcov,"df")) <- names(keep.name)
+                }
+            }
+            if(df>1){
+                attr(vcov,"dVcov") <- object$dVcov[keep.name,keep.name,keep.name,drop=FALSE]
+                if(transform.names == FALSE){
+                    dimnames(attr(vcov,"dVcov")) <- list(names(keep.name),names(keep.name),names(keep.name))
+                }
             }
         }else{
-            if(df){
+            if(df>0){
                 attr(type.information,"detail") <- TRUE
             }
             infoFull <- information(object, data = data, p = p, type.information = type.information,
-                                    transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.name = TRUE)
+                                    transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
             detail <- attr(infoFull,"detail")
             vcovFull <- solve(infoFull)
             vcov <- vcovFull[keep.name,keep.name,drop=FALSE]
-            if(df){
+            if(df>0){
                 param <- object$param
                 param$mu <- detail$param[param$type=="mu"]
                 param$sigma <- detail$param[param$type=="sigma"]
                 param$k <- detail$param[param$type=="k"]
                 param$rho <- detail$param[param$type=="rho"]
-                df <- .df(param = param, reparametrize = detail$reparametrize, Y = detail$Y, X.mean = detail$X.mean, X.var = detail$X.var,
-                          index.variance = detail$index.variance, time.variance = detail$time.variance, index.cluster = detail$index.cluster, 
-                          pair.meanvarcoef = detail$pair.meanvarcoef, pair.varcoef = detail$pair.varcoef,
-                          REML = detail$REML, type.information = type.information,
-                          type = object$param$type, strata = object$param$strata, transform.sigma = detail$transform.sigma, transform.k = detail$transform.k, transform.rho = detail$transform.rho, 
-                          vcov = vcovFull, diag = TRUE)
-                attr(vcov,"df") <- setNames(df[names(keep.name)],keep.name)
+                outdf <- .df(param = param, reparametrize = detail$reparametrize, Y = detail$Y, X.mean = detail$X.mean, X.var = detail$X.var,
+                             index.variance = detail$index.variance, time.variance = detail$time.variance, index.cluster = detail$index.cluster, time.k = object$design$param$time.k, time.rho = object$design$param$time.rho,
+                             pair.meanvarcoef = detail$pair.meanvarcoef, pair.varcoef = detail$pair.varcoef,
+                             REML = detail$REML, type.information = type.information,
+                             type = object$param$type, strata = object$param$strata, transform.sigma = detail$transform.sigma, transform.k = detail$transform.k, transform.rho = detail$transform.rho, 
+                             vcov = vcovFull, diag = TRUE, method.numDeriv = options$method.numDeriv)
+                attr(vcov,"df") <- setNames(outdf[names(keep.name)],keep.name)
+                if(df>1){
+                    dimnames(attr(outdf,"dVcov")) <- list(keep.name,keep.name,keep.name)
+                    attr(vcov,"dVcov") <- attr(outdf,"dVcov")[keep.name,keep.name,keep.name]
+                }
             }
         }
-
         return(vcov)
 
     }else if(type.object=="gls"){
@@ -167,10 +170,10 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
 
 ## * .dinformation
 .df <- function(param, reparametrize, Y, X.mean, X.var,
-                index.variance, time.variance, index.cluster, 
+                index.variance, time.variance, index.cluster, time.k, time.rho,
                 pair.meanvarcoef, pair.varcoef, REML, type.information,
                 type, strata, transform.sigma, transform.k, transform.rho, 
-                vcov, diag){
+                vcov, diag, method.numDeriv){
 
     ## ** prepare vector of parameters
     param.type <- param$type
@@ -207,6 +210,7 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
 
         ## get jacobian
         newp <- .reparametrize(p = c(sigma,k,rho), type = type[param.nameVar], strata = strata[param.nameVar], 
+                               time.k = time.k, time.rho = time.rho,
                                Jacobian = TRUE, dJacobian = 2*(REML || type.information == "observed"), inverse = FALSE,
                                transform.sigma = transform.sigma,
                                transform.k = transform.k,
@@ -246,10 +250,10 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
     ## ** derivative of the information using numerical derivative
     ## matrix(FUN_information(param.trans.value), nrow = sqrt(n.param), ncol = sqrt(n.param))
     if(type.information == "observed"){
-        M.dInfo <- numDeriv::jacobian(func = FUN_information, x = param.trans.value)
+        M.dInfo <- numDeriv::jacobian(func = FUN_information, x = param.trans.value, method = method.numDeriv)
         colnames(M.dInfo) <- name.param
     }else{
-        M.dInfo <- numDeriv::jacobian(func = function(p){FUN_information(c(param.trans.value[param.namemu],p))}, x = param.trans.value[c(param.namesigma,param.namek,param.namerho)])
+        M.dInfo <- numDeriv::jacobian(func = function(p){FUN_information(c(param.trans.value[param.namemu],p))}, x = param.trans.value[c(param.namesigma,param.namek,param.namerho)], method = method.numDeriv)
         colnames(M.dInfo) <- c(param.namesigma,param.namek,param.namerho)
     }
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: May 14 2021 (12:14) 
+## Last-Updated: May 19 2021 (16:05) 
 ##           By: Brice Ozenne
-##     Update #: 261
+##     Update #: 311
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -106,27 +106,14 @@ reparametrize <- function(p, type, strata, time.levels,
         }
 
     }else{
-        if(is.null(transform.sigma)){
-            transform.sigma <- options$transform.sigma
-        }else{
-            transform.sigma <- match.arg(transform.sigma, c("none","one","log","square","logsquare","remove"))
-        }
-        if(is.null(transform.k)){
-            transform.k <- options$transform.k
-        }else{
-            transform.k <- match.arg(transform.k, c("none","log","square","logsquare","sd","logsd","var","logvar","remove"))
-        }
-        if(is.null(transform.rho)){
-            transform.rho <- options$transform.rho
-        }else{
-            transform.rho <- match.arg(transform.rho, c("none","atanh", "cov","remove"))
-        }
-
+        init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
+                                x.transform.sigma = NULL, x.transform.k = NULL, x.transform.rho = NULL)
+            
         ls.out <- .reparametrize(p = p, type = type, strata = strata, time.levels = time.levels,
                                  Jacobian = Jacobian, dJacobian = dJacobian, inverse = FALSE,
-                                 transform.sigma = transform.sigma,
-                                 transform.k = transform.k,
-                                 transform.rho = transform.rho,
+                                 transform.sigma = init$transform.sigma,
+                                 transform.k = init$transform.k,
+                                 transform.rho = init$transform.rho,
                                  transform.names = transform.names)
 
         p.trans <- ls.out$p
@@ -148,26 +135,31 @@ reparametrize <- function(p, type, strata, time.levels,
 ## * .reparametrize
 ## TODO: - extend transform.rho="cov" to UN pattern (i.e. find k corresponding to rho)
 .reparametrize <- function(p, type, strata, time.levels,
+                           time.k, time.rho,
                            Jacobian, dJacobian, inverse,
                            transform.sigma,
                            transform.k,
                            transform.rho,
                            transform.names){
     
-    if(transform.rho %in% c("cov") && any(type=="rho") && transform.sigma != "none"){
-        warning("Argument \'transform.sigma\' ignored when argument \'transform.rho\' set to \"cov\". \n")
-    }
-    if(transform.k %in% c("sd","logsd","var","logvar")){
-        if(transform.sigma != "none"){
-            warning("Argument \'transform.sigma\' ignored when argument \'transform.k\' set to \"sd\", \"logsd\", \"var\", or \"logvar\". \n")
+    if(transform.k %in% c("sd","logsd","var","logvar") && any("k" %in% type)){
+        transform.sigma  <- switch(transform.k,
+                                   "var" = "square",
+                                   "logvar" = "logsquare",
+                                   "sd" = "none",
+                                   "logsd" = "log")
+        if(!is.null(attr(transform.k,"arg")) && attr(transform.k,"arg")!=transform.sigma){
+            warning("Argument \'transform.sigma\' ignored when argument \'transform.k\' is \"",transform.k,"\". \n")
         }
-        if(sum(type=="k")==0){
-            transform.sigma  <- switch(transform.k,
-                                       "var" = "square",
-                                       "logvar" = "logsquare",
-                                       "sd" = "none",
-                                       "logsd" = "log")
-                                       
+    }
+    if(transform.rho %in% "cov" && any("rho" %in% type)){
+        transform.sigma <- "square"
+        transform.k <- "var"
+        if(!is.null(attr(transform.sigma,"arg")) && attr(transform.sigma,"arg")!=transform.sigma){
+            warning("Argument \'transform.sigma\' ignored when argument \'transform.rho\' is \"cov\". \n")
+        }
+        if(!is.null(attr(transform.k,"arg")) && attr(transform.k,"arg")!=transform.k){
+            warning("Argument \'transform.k\' ignored when argument \'transform.rho\' is \"cov\". \n")
         }
     }
     if(transform.sigma == "remove" && (Jacobian || dJacobian)){
@@ -198,9 +190,7 @@ reparametrize <- function(p, type, strata, time.levels,
     }
 
     ## *** sigma
-    ntest.k <- (transform.k %in% c("sd","logsd","var","logvar") == FALSE) || (length(index.k) == 0)
-    ntest.rho <- (transform.rho %in% c("cov") == FALSE) || (length(index.rho) == 0)
-    if(ntest.k && ntest.rho && length(index.sigma)>0){
+    if(length(index.sigma)>0){
         if(transform.sigma == "one"){
             out$p[index.sigma] <- 1
             if(transform.names){
@@ -215,12 +205,18 @@ reparametrize <- function(p, type, strata, time.levels,
                     out$newname[index.sigma] <- paste0("log(",name.p[index.sigma],")")
                 }
                 if(Jacobian){
-                    out$Jacobian[index.sigma,index.sigma] <- p[index.sigma] ## exp(x) where x=log(sigma)
+                    for(iSigma in index.sigma){
+                        out$Jacobian[iSigma,iSigma] <- p[iSigma] ## exp(x) where x=log(sigma)
+                    }
                 }
                 if(dJacobian==1){
-                    out$dJacobian[index.sigma,index.sigma,index.sigma] <- p[index.sigma]
+                    for(iSigma in index.sigma){
+                        out$dJacobian[iSigma,iSigma,iSigma] <- p[iSigma]
+                    }
                 }else if(dJacobian==2){
-                    out$dJacobian[index.sigma,index.sigma,index.sigma] <- 1
+                    for(iSigma in index.sigma){
+                        out$dJacobian[iSigma,iSigma,iSigma] <- 1
+                    }
                 }
             }
         }else if(transform.sigma == "square"){
@@ -232,12 +228,18 @@ reparametrize <- function(p, type, strata, time.levels,
                     out$newname[index.sigma] <- paste0(name.p[index.sigma],"^2")
                 }
                 if(Jacobian){
-                    out$Jacobian[index.sigma,index.sigma] <- 1/(2*p[index.sigma]) ## 1/(2*sqrt(x)) where x=sigma^2
+                    for(iSigma in index.sigma){
+                        out$Jacobian[iSigma,iSigma] <- 1/(2*p[iSigma]) ## 1/(2*sqrt(x)) where x=sigma^2
+                    }
                 }
                 if(dJacobian == 1){
-                    out$dJacobian[index.sigma,index.sigma,index.sigma] <- -1/(4*p[index.sigma]^3)
+                    for(iSigma in index.sigma){
+                        out$dJacobian[iSigma,iSigma,iSigma] <- -1/(4*p[iSigma]^3)
+                    }
                 }else if(dJacobian == 2){
-                    out$dJacobian[index.sigma,index.sigma,index.sigma] <- -1/(2*p[index.sigma]^2)
+                    for(iSigma in index.sigma){
+                        out$dJacobian[iSigma,iSigma,iSigma] <- -1/(2*p[iSigma]^2)
+                    }
                 }
             }
         }else if(transform.sigma == "logsquare"){
@@ -249,12 +251,18 @@ reparametrize <- function(p, type, strata, time.levels,
                     out$newname[index.sigma] <- paste0("log(",name.p[index.sigma],"^2)")
                 }
                 if(Jacobian){
-                    out$Jacobian[index.sigma,index.sigma] <- p[index.sigma]/2 ## exp(x/2)/2 where x=log(sigma^2)=2log(sigma)
+                    for(iSigma in index.sigma){
+                        out$Jacobian[iSigma,iSigma] <- p[iSigma]/2 ## exp(x/2)/2 where x=log(sigma^2)=2log(sigma)
+                    }
                 }
                 if(dJacobian == 1){
-                    out$dJacobian[index.sigma,index.sigma,index.sigma] <- p[index.sigma]/4
+                    for(iSigma in index.sigma){
+                        out$dJacobian[iSigma,iSigma,iSigma] <- p[iSigma]/4
+                    }
                 }else if(dJacobian == 2){
-                    out$dJacobian[index.sigma,index.sigma,index.sigma] <- 1/2
+                    for(iSigma in index.sigma){
+                        out$dJacobian[iSigma,iSigma,iSigma] <- 1/2
+                    }
                 }
             }
         }
@@ -271,12 +279,18 @@ reparametrize <- function(p, type, strata, time.levels,
                     out$newname[index.k] <- paste0("log(",name.p[index.k],")")
                 }
                 if(Jacobian){
-                    out$Jacobian[index.k,index.k] <- p[index.k] ## exp(x) where x=log(k)
+                    for(iK in index.k){
+                        out$Jacobian[iK,iK] <- p[iK] ## exp(x) where x=log(k)
+                    }
                 }
                 if(dJacobian == 1){
-                    out$dJacobian[index.k,index.k,index.k] <- p[index.k]
+                    for(iK in index.k){
+                        out$dJacobian[iK,iK,iK] <- p[iK]
+                    }
                 }else if(dJacobian == 2){
-                    out$dJacobian[index.k,index.k,index.k] <- 1
+                    for(iK in index.k){
+                        out$dJacobian[iK,iK,iK] <- 1
+                    }
                 }
 
             }
@@ -289,12 +303,18 @@ reparametrize <- function(p, type, strata, time.levels,
                     out$newname[index.k] <- paste0(name.p[index.k],"^2")
                 }
                 if(Jacobian){
-                    out$Jacobian[index.k,index.k] <- 1/(2*p[index.k]) ## 1/(2*sqrt(x)) where x=k^2
+                    for(iK in index.k){
+                        out$Jacobian[iK,iK] <- 1/(2*p[iK]) ## 1/(2*sqrt(x)) where x=k^2
+                    }
                 }
                 if(dJacobian == 1){
-                    out$dJacobian[index.k,index.k,index.k] <- -1/(4*p[index.k]^3)
+                    for(iK in index.k){
+                        out$dJacobian[iK,iK,iK] <- -1/(4*p[iK]^3)
+                    }
                 }else if(dJacobian == 2){
-                    out$dJacobian[index.k,index.k,index.k] <- -1/(2*p[index.k]^2)
+                    for(iK in index.k){
+                        out$dJacobian[iK,iK,iK] <- -1/(2*p[iK]^2)
+                    }
                 }
             }
         }else if(transform.k == "logsquare"){
@@ -306,12 +326,18 @@ reparametrize <- function(p, type, strata, time.levels,
                     out$newname[index.k] <- paste0("log(",name.p[index.k],"^2)")
                 }
                 if(Jacobian){
-                    out$Jacobian[index.k,index.k] <- p[index.k]/2 ## exp(x/2)/2 where x=log(k^2)=2log(k)
+                    for(iK in index.k){
+                        out$Jacobian[iK,iK] <- p[iK]/2 ## exp(x/2)/2 where x=log(k^2)=2log(k)
+                    }
                 }
                 if(dJacobian == 1){
-                    out$dJacobian[index.k,index.k,index.k] <- p[index.k]/4
+                    for(iK in index.k){
+                        out$dJacobian[iK,iK,iK] <- p[iK]/4
+                    }
                 }else if(dJacobian == 2){
-                    out$dJacobian[index.k,index.k,index.k] <- 1/2
+                    for(iK in index.k){
+                        out$dJacobian[iK,iK,iK] <- 1/2
+                    }
                 }
             }
         }else if(transform.k %in% c("sd","logsd","var","logvar")){
@@ -374,10 +400,8 @@ reparametrize <- function(p, type, strata, time.levels,
                     }
                 }else if(transform.k == "logsd"){
                     if(inverse){
-                        out$p[iName.sigma] <- exp(p[iName.sigma])
                         out$p[iName.k] <- exp(p[iName.k]-p[iName.sigma])
                     }else{
-                        out$p[iName.sigma] <- log(p[iName.sigma])
                         out$p[iName.k] <- log(p[iName.k]*p[iName.sigma])
                         if(transform.names){
                             out$newname[match(c(iName.sigma,iName.k),name.p)] <- paste0("log(",iName.sigma,"):",time.levels)
@@ -386,7 +410,6 @@ reparametrize <- function(p, type, strata, time.levels,
                             ## \exp(\sigma1), \exp(\sigma2 - \sigma1), ...   so  \exp(\sigma1) -\exp(\sigma2 - \sigma1)
                             ##                                                      0           \exp(\sigma2 - \sigma1)
                             ## WARNING we plug-in \exp(\sigma1) and \exp(\sigma2-\sigma1)
-                            out$Jacobian[iName.sigma,iName.sigma] <- p[iName.sigma]
                             out$Jacobian[iName.k,iName.sigma] <- -p[iName.k]
                             for(iK in iName.k){
                                 out$Jacobian[iK,iK] <- p[iK]
@@ -396,7 +419,6 @@ reparametrize <- function(p, type, strata, time.levels,
                             ## exp(\sigma1), exp(\sigma2-\sigma1), ...   so  \exp(\sigma) exp(\sigma2-\sigma1)    0 -exp(\sigma2-\sigma1) 
                             ##                                                         0  -exp(\sigma2-\sigma1)   0 exp(\sigma2-\sigma1) 
                             ## WARNING we plug-in exp(\sigma1) and exp(\sigma2-\sigma1)
-                            out$dJacobian[iName.sigma,iName.sigma,iName.sigma] <- p[iName.sigma]
                             out$dJacobian[iName.k,iName.sigma,iName.sigma] <- p[iName.k]
                             for(iK in iName.k){
                                 out$dJacobian[iK,iName.sigma,iK] <- -p[iK]
@@ -404,7 +426,6 @@ reparametrize <- function(p, type, strata, time.levels,
                                 out$dJacobian[iK,iK,iK] <- p[iK]
                             }
                         }else if(dJacobian == 2){
-                            out$dJacobian[iName.sigma,iName.sigma,iName.sigma] <- 1
                             for(iK in iName.k){
                                 out$dJacobian[iK,iName.sigma,iK] <- -1
                                 out$dJacobian[iK,iK,iK] <- 1
@@ -414,10 +435,8 @@ reparametrize <- function(p, type, strata, time.levels,
                     }
                 }else if(transform.k == "var"){
                     if(inverse){
-                        out$p[iName.sigma] <- sqrt(p[iName.sigma])
                         out$p[iName.k] <- sqrt(p[iName.k]/p[iName.sigma])
                     }else{
-                        out$p[iName.sigma] <- p[iName.sigma]^2
                         out$p[iName.k] <- p[iName.sigma]^2*p[iName.k]^2
                         if(transform.names){
                             out$newname[match(c(iName.sigma,iName.k),name.p)] <- paste0(iName.sigma,"^2:",time.levels)
@@ -426,7 +445,6 @@ reparametrize <- function(p, type, strata, time.levels,
                             ## sqrt(\sigma1), sqrt(\sigma2/\sigma1), ...   so  1/(2 sqrt(\sigma1)) -\sqrt(\sigma2)/(2 \sigma1^(3/2))       
                             ##                                                      0              1 / (2*\sqrt(\sigma2)\sqrt(\sigma1))
                             ## WARNING we plug-in sqrt(\sigma1) and sqrt(\sigma2/\sigma1)
-                            out$Jacobian[iName.sigma,iName.sigma] <- 1/(2*p[iName.sigma])
                             out$Jacobian[iName.k,iName.sigma] <- -p[iName.k]/(2*p[iName.sigma]^2)
                             for(iK in iName.k){
                                 out$Jacobian[iK,iK] <- 1/(2*p[iName.sigma]^2*p[iK])
@@ -436,7 +454,6 @@ reparametrize <- function(p, type, strata, time.levels,
                             ## sqrt(\sigma1), sqrt(\sigma2/\sigma1), ...   so  -1/(4 \sigma1^(3/2)) 3\sqrt(\sigma2)/(4 \sigma1^(5/2))      0 -1/(4 \sqrt(\sigma2) \sigma1^(3/2))        
                             ##                                                      0              - 1 / (4*\sqrt(\sigma2)\sigma1^(3/2))   0 -1 / (4*\sigma2^(3/2)\sqrt(\sigma1))
                             ## WARNING we plug-in sqrt(\sigma1) and sqrt(\sigma2/\sigma1)
-                            out$dJacobian[iName.sigma,iName.sigma,iName.sigma] <- -1/(4*p[iName.sigma]^3)
                             out$dJacobian[iName.k,iName.sigma,iName.sigma] <- 3*p[iName.k]/(4*p[iName.sigma]^4)
                             for(iK in iName.k){
                                 out$dJacobian[iK,iName.sigma,iK] <- -1/(4*p[iName.sigma]^4*p[iK])
@@ -444,7 +461,6 @@ reparametrize <- function(p, type, strata, time.levels,
                                 out$dJacobian[iK,iK,iK] <- -1/(4*p[iName.sigma]^4*p[iK]^3)
                             }
                         }else if(dJacobian == 2){
-                            out$dJacobian[iName.sigma,iName.sigma,iName.sigma] <- -1/(2*p[iName.sigma]^2)
                             out$dJacobian[iName.k,iName.sigma,iName.sigma] <- p[iName.k]/p[iName.sigma]^3
                             for(iK in iName.k){
                                 out$dJacobian[iK,iName.sigma,iK] <- -1/(2*p[iName.sigma]^2)
@@ -456,19 +472,16 @@ reparametrize <- function(p, type, strata, time.levels,
                     }
                 }else if(transform.k == "logvar"){
                     if(inverse){
-                        out$p[iName.sigma] <- exp(p[iName.sigma]/2)
                         out$p[iName.k] <- exp(p[iName.k]/2-p[iName.sigma]/2)
                     }else{
-                        out$p[iName.sigma] <- 2*log(p[iName.sigma])
                         out$p[iName.k] <- 2*log(p[iName.k]*p[iName.sigma])
                         if(transform.names){
                             out$newname[match(c(iName.sigma,iName.k),name.p)] <- paste0("log(",iName.sigma,"):",time.levels)
                         }
                         if(Jacobian){
-n                            ## \exp(\sigma1/2), \exp(\sigma2/2 - \sigma1/2), ...   so  \exp(\sigma1/2)/2 -\exp(\sigma2/2 - \sigma1/2)/2
+                            ## \exp(\sigma1/2), \exp(\sigma2/2 - \sigma1/2), ...   so  \exp(\sigma1/2)/2 -\exp(\sigma2/2 - \sigma1/2)/2
                             ##                                                          0                 \exp(\sigma2/2 - \sigma1/2)/2
                             ## WARNING we plug-in \exp(\sigma1/2) and \exp(\sigma2/2-\sigma1/2)
-                            out$Jacobian[iName.sigma,iName.sigma] <- p[iName.sigma]/2
                             out$Jacobian[iName.k,iName.sigma] <- -p[iName.k]/2
                             for(iK in iName.k){
                                 out$Jacobian[iK,iK] <- p[iK]/2
@@ -478,7 +491,6 @@ n                            ## \exp(\sigma1/2), \exp(\sigma2/2 - \sigma1/2), ..
                             ## \exp(\sigma1/2), \exp(\sigma2/2 - \sigma1/2), ...   so  \exp(\sigma1/2)/4  \exp(\sigma2/2 - \sigma1/2)/4    0  -\exp(\sigma2/2 - \sigma1/2)/4
                             ##                                                          0                 -\exp(\sigma2/2 - \sigma1/2)/4   0  \exp(\sigma2/2 - \sigma1/2)/4
                             ## WARNING we plug-in \exp(\sigma1/2) and \exp(\sigma2/2-\sigma1/2)
-                            out$dJacobian[iName.sigma,iName.sigma,iName.sigma] <- p[iName.sigma]/4
                             out$dJacobian[iName.k,iName.sigma,iName.sigma] <- p[iName.k]/4
                             for(iK in iName.k){
                                 out$dJacobian[iK,iName.sigma,iK] <- -p[iK]/4
@@ -486,7 +498,6 @@ n                            ## \exp(\sigma1/2), \exp(\sigma2/2 - \sigma1/2), ..
                                 out$dJacobian[iK,iK,iK] <- p[iK]/4
                             }
                         }else if(dJacobian == 2){
-                            out$dJacobian[iName.sigma,iName.sigma,iName.sigma] <- 1/2
                             for(iK in iName.k){
                                 out$dJacobian[iK,iName.sigma,iK] <- -1/2
                                 out$dJacobian[iK,iK,iK] <- 1/2
@@ -510,12 +521,18 @@ n                            ## \exp(\sigma1/2), \exp(\sigma2/2 - \sigma1/2), ..
                     out$newname[index.rho] <- paste0("atanh(",name.p[index.rho],")")
                 }
                 if(Jacobian){
-                    out$Jacobian[index.rho,index.rho] <- (1-p[index.rho]^2) ## (1-tanh(x)^2) where x=atanh(rho)
+                    for(iRho in index.rho){
+                        out$Jacobian[iRho,iRho] <- (1-p[iRho]^2) ## (1-tanh(x)^2) where x=atanh(rho)
+                    }
                 }
                 if(dJacobian == 1){
-                    out$dJacobian[index.rho,index.rho,index.rho] <- -2*p[index.rho]*(1-p[index.rho]^2)
+                    for(iRho in index.rho){
+                        out$dJacobian[iRho,iRho,iRho] <- -2*p[iRho]*(1-p[iRho]^2)
+                    }
                 }else if(dJacobian == 2){
-                    out$dJacobian[index.rho,index.rho,index.rho] <- -2*p[index.rho]
+                    for(iRho in index.rho){
+                        out$dJacobian[iRho,iRho,iRho] <- -2*p[iRho]
+                    }
                 }
             }
         }else if(transform.rho == "cov"){
@@ -535,20 +552,16 @@ n                            ## \exp(\sigma1/2), \exp(\sigma2/2 - \sigma1/2), ..
 
                 if(length(index.k)==0){
                     if(inverse){
-                        out$p[iName.sigma] <- sqrt(p[iName.sigma])
                         out$p[iName.rho] <- p[iName.rho]/p[iName.sigma]
                     }else{
-                        out$p[iName.sigma] <- p[iName.sigma]^2
                         out$p[iName.rho] <- p[iName.rho]*p[iName.sigma]^2
                         if(transform.names){
-                            out$newname[iName.sigma] <- paste0(name.p[iName.sigma],"^2")
-                            out$newname[iName.rho] <- gsub(pattern = "^Rho|^cor",replacement = "cov",name.p[iName.rho],")")
+                            out$newname[match(iName.sigma,name.p)] <- paste0(iName.sigma,"^2")
+                            out$newname[match(iName.rho,name.p)] <- gsub(pattern = "^Rho|^cor",replacement = "cov",iName.rho,")")
                         }
                         if(Jacobian){
-                            ## sqrt(\sigma) \rho/\sigma, ...   so  1/(2\sqrt(\sigma))  -\rho/\sigma^2
-                            ##                                     0                    1/\sigma
+                            ##  \rho/\sigma leads to -\rho/\sigma^2 and 1/\sigma
                             ## WARNING we plug-in \sigma^2 and \rho*\sigma^2,
-                            out$Jacobian[iName.sigma,iName.sigma] <- 1/(2*p[iName.sigma])
                             out$Jacobian[iName.rho,iName.sigma] <- -p[iName.rho]/p[iName.sigma]^2
                             for(iRho in iName.rho){
                                 out$Jacobian[iRho,iRho] <- 1/p[iName.sigma]^2
@@ -558,14 +571,12 @@ n                            ## \exp(\sigma1/2), \exp(\sigma2/2 - \sigma1/2), ..
                             ## sqrt(\sigma) \rho/\sigma, ...   so  -1/(4\sigma^(3/2))  2\rho/\sigma^3   0    -1/\sigma^2
                             ##                                     0                   -1/\sigma^2      0     0
                             ## WARNING we plug-in \sigma^2 and \rho*\sigma^2,
-                            out$dJacobian[iName.sigma,iName.sigma,iName.sigma] <- -1/(4*p[iName.sigma]^3)
                             out$dJacobian[iName.rho,iName.sigma,iName.sigma] <- 2*p[iName.rho]/p[iName.sigma]^(4)
                             for(iRho in iName.rho){
                                 out$dJacobian[iRho,iName.sigma,iRho] <- -1/p[iName.sigma]^4
                                 out$dJacobian[iRho,iRho,iName.sigma] <- -1/p[iName.sigma]^4
                             }
                         }else if(dJacobian == 2){
-                            out$dJacobian[iName.sigma,iName.sigma,iName.sigma] <- -1/(p[iName.sigma]^2)
                             out$dJacobian[iName.rho,iName.sigma,iName.sigma] <- 2*p[iName.rho]/p[iName.sigma]^3
                             for(iRho in iName.rho){
                                 out$dJacobian[iRho,iName.sigma,iRho] <- -1/p[iName.sigma]^2
@@ -573,8 +584,70 @@ n                            ## \exp(\sigma1/2), \exp(\sigma2/2 - \sigma1/2), ..
                             }
                         }
                     }
+                }else if(is.null(time.rho)){
+                    stop("Not implemented in presence of multiple variance parameters. \n")
                 }else{
-                    stop("Not yet implemented in presence of multiple variance parameters. \n")
+                    if(inverse){
+                        out$p[iName.rho] <- sapply(iName.rho, function(iRho){ ## iRho <- iName.rho[2]
+                            iName.sigma1 <- c(names(which(time.k==time.rho[1,iRho])),iName.sigma)[1]
+                            iName.sigma2 <- c(names(which(time.k==time.rho[2,iRho])),iName.sigma)[1]
+                            return(p[iRho]/sqrt(p[iName.sigma1]*p[iName.sigma2]))
+                        })
+                    }else{
+                        out$p[iName.rho] <- sapply(iName.rho, function(iRho){ ## iRho <- iName.rho[1]
+                            iName.sigma1 <- names(which(time.k==time.rho[1,iRho]))
+                            iName.sigma2 <- names(which(time.k==time.rho[2,iRho]))
+                            if(length(iName.sigma1)>0){
+                                iSigma1 <- p[iName.sigma1]
+                            }else{
+                                iSigma1 <- 1
+                            }
+                            if(length(iName.sigma2)>0){
+                                iSigma2 <- p[iName.sigma2]
+                            }else{
+                                iSigma2 <- 1
+                            }
+                            return(p[iRho]*iSigma1*iSigma2*p[iName.sigma]^2)
+                        })
+                        if(transform.names){
+                            out$newname[match(iName.rho,name.p)] <- gsub(pattern = "^Rho|^cor",replacement = "cov",iName.rho,")")
+                        }
+                        if(Jacobian){
+                            stop("Not implemented in presence of multiple variance parameters. \n")
+                            ## \rho/(\sigma1 \sigma2)  leads to  -\rho/(\sigma1^2 \sigma2) and -\rho/(\sigma1 \sigma2^2) and 1/(\sigma1 \sigma2)
+                            ## WARNING we plug-in k1^2 sigma^2, k2^2 sigma^2, k1^2 k2^2 sigma^2 rho
+                            factor.tempo <- matrix(1, nrow = 2, ncol = length(iName.rho),
+                                                   dimnames = list(NULL, iName.rho))
+                            index.tempo <- match(time.rho[,iName.rho,drop=FALSE], time.k[,iName.k])
+                            factor.tempo[which(!is.na(index.tempo))] <- p[names(time.k)[na.omit(index.tempo)]]
+
+                            out$Jacobian[iName.rho,iName.sigma] <- x
+                            for(iRho in iName.rho){ ## iRho <- iName.rho[1]
+                                iK <- names(time.k[iName.k])[time.k[iName.k] %in% time.rho[,iRho]]
+                                out$Jacobian[iRho,iName.sigma] <- - p[iRho]/(2*p[iName.sigma]^2)
+                                out$Jacobian[iRho,iK] <- - p[iRho]/(2*p[iName.sigma]^2*p[iK]^2)
+                                out$Jacobian[iRho,iRho] <- 1/(p[iName.sigma]^2*prod(factor.tempo[,iRho]))
+                            }
+                            
+                            
+                                
+                            ## ##  \rho/\sigma leads to -\rho/\sigma^2 and 1/\sigma
+                            ## ## WARNING we plug-in \sigma^2 and \rho*\sigma^2,
+                            ## out$Jacobian[iName.rho,iName.sigma] <- -p[iName.rho]/p[iName.sigma]^2
+                            ## for(iRho in iName.rho){
+                            ##     out$Jacobian[iRho,iRho] <- 1/p[iName.sigma]^2
+                            ## }
+                        }
+                        if(dJacobian == 1){
+                            ## only off-diagonal elements (sigma,k,rho)
+                            stop("Not implemented in presence of multiple variance parameters. \n")
+                        }else if(dJacobian == 2){
+                            ## diagonal elements
+                            ## only off-diagonal elements (sigma,k,rho)
+                            stop("Not implemented in presence of multiple variance parameters. \n")
+                        }
+
+                    }
                 }
             }
         }
@@ -582,6 +655,53 @@ n                            ## \exp(\sigma1/2), \exp(\sigma2/2 - \sigma1/2), ..
 
     ## ** export
     return(out)
+}
+
+## * .init_transform
+.init_transform <- function(transform.sigma, transform.k, transform.rho, options,
+                            x.transform.sigma, x.transform.k, x.transform.rho){
+
+    ## ** check and initialize
+    if(is.null(transform.sigma)){
+        transform.sigma.save <- transform.sigma
+        transform.sigma <- options$transform.sigma
+        attr(transform.sigma,"arg") <- transform.sigma.save
+    }else{
+        transform.sigma <- match.arg(transform.sigma, c("none","one","log","square","logsquare","remove"))
+        attr(transform.sigma,"arg") <- NULL
+    }
+    if(is.null(transform.k)){
+        transform.k.save <- transform.k
+        transform.k <- options$transform.k
+        attr(transform.k,"arg") <- transform.k.save
+    }else{
+        transform.k <- match.arg(transform.k, c("none","log","square","logsquare","sd","logsd","var","logvar","remove"))
+        attr(transform.k,"arg") <- NULL
+    }
+    if(is.null(transform.rho)){
+        transform.rho.save <- transform.rho
+        transform.rho <- options$transform.rho
+        attr(transform.rho,"arg") <- transform.rho.save
+    }else{
+        transform.rho <- match.arg(transform.rho, c("none","atanh", "cov","remove"))
+        attr(transform.rho,"arg") <- NULL
+    }
+
+    if(!is.null(x.transform.sigma) && !is.null(x.transform.k) && !is.null(x.transform.rho)){
+        if(is.function(transform.sigma) || is.function(transform.k) || is.function(transform.rho)){
+            test.notransform <- FALSE
+        }else{
+            test.notransform <- (transform.sigma==x.transform.sigma) && (transform.k==x.transform.k) && (transform.rho==x.transform.rho)
+        }
+    }else{
+        test.notransform <- NULL
+    }
+
+    ## ** export
+    return(list(transform.sigma = transform.sigma,
+                transform.k = transform.k,
+                transform.rho = transform.rho,
+                test.notransform = test.notransform))
 }
 
 ##----------------------------------------------------------------------

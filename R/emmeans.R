@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 10 2021 (16:08) 
 ## Version: 
-## Last-Updated: May 10 2021 (19:35) 
+## Last-Updated: May 19 2021 (12:36) 
 ##           By: Brice Ozenne
-##     Update #: 31
+##     Update #: 32
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -49,7 +49,7 @@ emm_basis.lmm <- function(object, trms, xlev, grid, ...){
     out$dffun <- function(k,dfargs){
         do.call(dfargs$FUN, args = list(X.beta = k, vcov.param = dfargs$vcov.param, dVcov.param = dfargs$dVcov.param))
     }
-    out$dfargs <- list(FUN = .dfX , vcov.param = vcov(object, effects = "all"), dVcov.param = attr(object$df,"dVcov"))
+    out$dfargs <- list(FUN = .dfX , vcov.param = vcov(object, effects = "all"), dVcov.param = object$dVcov)
 
     return(out)
 }

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: May 10 2021 (12:26) 
+## Last-Updated: May 20 2021 (09:44) 
 ##           By: Brice Ozenne
-##     Update #: 49
+##     Update #: 52
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -22,6 +22,7 @@
 ##' 
 ##' @param object a \code{lmm} object.
 ##' @param individual [character] identifier of the cluster for which to extract the residual variance-covariance matrix.
+##' @param p [numeric vector] value of the model coefficients at which to evaluate the residual variance-covariance matrix. Only relevant if differs from the fitted values.
 ##' @param type.object [character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.
 ##' @param strata [character vector] When not \code{NULL} and argument \code{individual} is not specified, only output the residual variance-covariance matrix relative to specific levels of the variable used to stratify the mean and covariance structure.
 ##' @param simplifies [logical] When there is only one variance-covariance matrix, output a matrix instead of a list of matrices.
@@ -32,14 +33,17 @@
 ##' 
 
 ## * getVarCov.lmm
-getVarCov.lmm <- function(object, individual = NULL, type.object = c("lmm","gls"), simplifies = TRUE, strata = NULL, ...){
+getVarCov.lmm <- function(object, individual = NULL, p = NULL, type.object = c("lmm","gls"), simplifies = TRUE, strata = NULL, ...){
 
     ## ** normalize user imput
     dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
-
+    if(!is.null(p) && any(names(c(object$param$sigma,object$param$k,object$param$rho)) %in% names(p) == FALSE)){
+        stop("Incorrect argument \'p\' - it should be a vector with names containing all variance and correlation parameters. \n")
+    }
+    
     type.object <- match.arg(type.object, c("lmm","gls"))
     if(!is.null(strata)){
         strata <- match.arg(strata, object$strata$levels, several.ok = TRUE)
@@ -50,7 +54,17 @@ getVarCov.lmm <- function(object, individual = NULL, type.object = c("lmm","gls"
     }
 
     if(type.object == "lmm"){
-    
+
+        if(!is.null(p)){
+            Omega <- .calc_Omega(object = object$design$X.var,
+                                 sigma = p[names(which(object$param$type=="sigma"))],
+                                 k = p[names(which(object$param$type=="k"))],
+                                 rho = p[names(which(object$param$type=="rho"))],
+                                 keep.interim = FALSE)
+        }else{
+            Omega <- object$Omega
+        }
+        
         if(is.null(individual)){
             n.timePattern <- unlist(lapply(attr(object$design$X.var,"Upattern.time"),length))
             index.fulltime <- which(n.timePattern==max(n.timePattern))
@@ -60,9 +74,9 @@ getVarCov.lmm <- function(object, individual = NULL, type.object = c("lmm","gls"
                 index.strata <- 1:attr(object$design$X.var,"nUpattern")
                 strata <- attr(object$design$X.var,"UX.strata")
             }
-            out <- setNames(object$Omega[intersect(index.fulltime,index.strata)],strata)
+            out <- setNames(Omega[intersect(index.fulltime,index.strata)],strata)
         }else{
-            out <- object$Omega[object$design$index.vargroup[individual]]
+            out <- Omega[object$design$index.vargroup[individual]]
         }
         for(iO in 1:length(out)){
             dimnames(out[[iO]]) <- list(attr(out[[iO]],"time"),attr(out[[iO]],"time"))

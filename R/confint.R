@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: May 14 2021 (17:29) 
+## Last-Updated: May 15 2021 (19:04) 
 ##           By: Brice Ozenne
-##     Update #: 70
+##     Update #: 71
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -174,7 +174,7 @@ confint.lmm <- function (object, parm = NULL, effects = "all", level = 0.95, nul
             }
             iIndex.type <- which(object$param$type[nameNoTransform.beta]==iType)
             out$estimate[iIndex.type] <- sapply(out$estimate[iIndex.type],backtransform.sigma)
-            ## out$se[iIndex.type] <- sapply(iIndex.type,function(iBeta){numDeriv::jacobian(func = backtransform.sigma, x = out$estimate[iBeta])*out$se[iBeta]})
+n            ## out$se[iIndex.type] <- sapply(iIndex.type,function(iBeta){numDeriv::jacobian(func = backtransform.sigma, x = out$estimate[iBeta])*out$se[iBeta]})
             out$lower[iIndex.type] <- sapply(out$lower[iIndex.type],backtransform.sigma)
             out$upper[iIndex.type] <- sapply(out$upper[iIndex.type],backtransform.sigma)
         }

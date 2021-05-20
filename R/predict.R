@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: May 10 2021 (19:32) 
+## Last-Updated: May 19 2021 (12:36) 
 ##           By: Brice Ozenne
-##     Update #: 61
+##     Update #: 62
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -38,7 +38,7 @@ predict.lmm <- function(object, newdata, level = 0.95, df = TRUE, ...){
     
     ## ** df
     if(df){
-        prediction.df <- .dfX(X = X.beta, vcov.param = vcov(object, effects = "all"), dVcov.param = attr(object$df,"dVcov"))
+        prediction.df <- .dfX(X = X.beta, vcov.param = vcov(object, effects = "all"), dVcov.param = object$dVcov)
     }else{
         prediction.df <- rep(Inf,n.obs)
     }

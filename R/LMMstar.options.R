@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: May 14 2021 (14:41) 
+## Last-Updated: May 19 2021 (15:00) 
 ##           By: Brice Ozenne
-##     Update #: 14
+##     Update #: 22
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,12 +29,15 @@
 #' @export
 LMMstar.options <- function(..., reinitialise = FALSE){
   
-  if (reinitialise == TRUE) {
+    if (reinitialise == TRUE) {
         assign(".LMMstar-options", 
-               list(transform.sigma = "none",
+               list(df = TRUE,
+                    method.fit = "REML",
+                    method.numDeriv = "simple", 
+                    transform.sigma = "none",
                     transform.k = "none",
                     transform.rho = "none",
-                    type.information = "observed"), 
+                    type.information = "observed"),
                envir = LMMstar.env)
     
     return(invisible(get(".LMMstar-options", envir = LMMstar.env)))
@@ -53,19 +56,27 @@ LMMstar.options <- function(..., reinitialise = FALSE){
                    "Available elements: \"",paste0(setdiff(names(object),names(args)), collapse = "\" \""),"\"\n")
           }
 
-          if("type" %in% names(args)){
-              args$type <- match.arg(args$type, c("expected","observed"))
+          if("df" %in% names(args) && !is.logical(args$df)){
+              stop("Argument \'df\' must be of type logical. \n")
+          }
+          if("method.fit" %in% names(args)){
+              args$method.fit <- match.arg(args$method.fit, c("ML","REML"))
+          }
+          if("method.numDeriv" %in% names(args)){
+              args$method.numDeriv <- match.arg(args$method.numDeriv, c("simple","Richardson","complex"))
           }
           if("transform.sigma" %in% names(args)){
-              args$transform.sigma <- match.args(args$transform.sigma, c("none","log","square"))
+              args$transform.sigma <- match.arg(args$transform.sigma, c("none","log","square","logsquare"))
           }
           if("transform.k" %in% names(args)){
-              args$transform.k <- match.args(args$transform.k, c("none","sd"))
+              args$transform.k <- match.arg(args$transform.k, c("none","log","square","logsquare","sd","logsd","var","logvar"))
           }
           if("transform.rho" %in% names(args)){
-              args$transform.rho <- match.args(args$transform.rho, c("none","atanh"))
+              args$transform.rho <- match.arg(args$transform.rho, c("none","atanh","cov"))
           }
-
+          if("type.information" %in% names(args)){
+              args$type.information <- match.arg(args$type.information, c("expected","observed"))
+          }
           object[names(args)] <- args
       
           assign(".LMMstar-options", 

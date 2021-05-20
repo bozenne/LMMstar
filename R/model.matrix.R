@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: May 14 2021 (17:22) 
+## Last-Updated: May 20 2021 (11:32) 
 ##           By: Brice Ozenne
-##     Update #: 450
+##     Update #: 485
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -104,10 +104,16 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
     U.cluster <- sort(unique(data[[var.cluster]]))
     n.cluster <- length(U.cluster)
     index.cluster <- match(data[[var.cluster]], U.cluster) ## ‘match’ returns a vector of the positions of (first) matches of its first argument in its second.
-    
+
     ## ** variance
     data[[var.time]] <- factor(data[[var.time]], levels = U.time)
+    index.time <- as.numeric(data[[var.time]])
 
+    attr(index.cluster,"sorted") <- lapply(1:n.cluster, function(iId){
+        iIndex <- which(index.cluster==iId)
+        return(iIndex[order(index.time[iIndex])]) ## re-order observations according to the variance-covariance matrix
+    })
+    
     ## *** parametrisation
     ## **** sigma
     if(n.strata==1){
@@ -119,37 +125,45 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
     ## **** k
     if(structure %in% c("CS","EXP")){
         X.var <- model.matrix(formula.var, data)
+        colnames(X.var) <- param.sigma
         param.k <- NULL
+        time.k <- NULL
     }else if(structure == "UN"){
         data.relevel <- as.data.frame(data)
         if(n.strata==1){
             X.var <- model.matrix(formula.var, data.relevel)
             param.k <- colnames(X.var)[-1]
+            time.k <- rep(as.character(NA), length(param.k))
             for(iTime in 1:n.time){ ## iTime <- 2
-                param.k <- gsub(pattern = paste0("^",var.time,U.time[iTime]), replacement = paste0(U.time[iTime]), x = param.k)
+                time.k[grepl(pattern = paste0("^",var.time,U.time[iTime]), param.k)] <- U.time[iTime]
+                param.k <- gsub(pattern = paste0("^",var.time,U.time[iTime]), replacement = U.time[iTime], x = param.k)
             }
             param.k <- paste("k",param.k,sep=".")
             colnames(X.var) <- c(param.sigma,param.k)
+            names(time.k) <- param.k
         }else{
             X.var <- model.matrix(formula.var, data)
             index.tempo <- lapply(1:n.strata,function(iS){
                 grep(paste0(paste0("^",var.strata,U.strata[iS],":")), colnames(X.var))
             })
             param.k <- colnames(X.var)[-(1:n.strata)]
+            time.k <- rep(as.character(NA), length(param.k))
             for(iStrata in 1:n.strata){ ## iStrata <- 1
                 param.k <- sapply(strsplit(x = param.k, split = paste0("^",var.strata,U.strata[iStrata],":")), function(iVec){
                     if(length(iVec)==2){paste0(iVec[2],":",U.strata[iStrata])}else{iVec}
                 })
             }
             for(iTime in 1:n.time){ ## iTime <- 2
-                param.k <- gsub(pattern = paste0("^",var.time,U.time[iTime]), replacement = paste0(U.time[iTime]), x = param.k)
+                time.k[grepl(pattern = paste0("^",var.time,U.time[iTime]), param.k)] <- U.time[iTime]
+                param.k <- gsub(pattern = paste0("^",var.time,U.time[iTime]), replacement = U.time[iTime], x = param.k)
             }
+            names(time.k) <- param.k
             colnames(X.var) <- c(param.sigma, param.k)
             X.var[,sort(unlist(index.tempo))] <- X.var[,unlist(index.tempo)]
             param.k <- setdiff(colnames(X.var), param.sigma)
+            time.k <- time.k[param.k]
         }
     }
-
     attr(X.var,"level") <- as.numeric(droplevels(interaction(as.data.frame(X.var))))
     attr(X.var,"pattern") <- tapply(attr(X.var,"level"), index.cluster, paste, collapse=".") ## automatic re-ordering of the result
     attr(X.var,"Upattern") <- unname(sort(unique(attr(X.var,"pattern"))))
@@ -170,25 +184,33 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
     ## **** rho
     if(n.time==1 || all(unlist(lapply(attr(X.var,"Upattern.time"),length))==1)){
         param.rho <- NULL
+        time.rho <- NULL
     }else{
-        Mtempo <- matrix(1:16,4,4)
+        Mtempo <- matrix(1:n.time^2, nrow = n.time, ncol = n.time,
+                         dimnames = list(U.time,U.time))
         tMtempo <- t(Mtempo)
         if(structure == "CS"){
             param.rho <- "Rho"
+            time.rho <- NULL
             M.index <- cbind(index.lower = Mtempo[lower.tri(Mtempo)],
                              index.upper = tMtempo[lower.tri(Mtempo)])
         }else if(structure == "EXP"){
             param.rho <- "range"
+            time.rho <- NULL
             browser()
         }else if(structure == "UN"){
             M.index <- cbind(which(lower.tri(diag(1, nrow = n.time, ncol = n.time)), arr.ind = TRUE),
                              index.lower = Mtempo[lower.tri(Mtempo)],
                              index.upper = tMtempo[lower.tri(Mtempo)])
-            param.rho <- paste0("cor","(",M.index[,"row"],",",M.index[,"col"],")")
+            param.rho <- paste0("cor","(",U.time[M.index[,"row"]],",",U.time[M.index[,"col"]],")")
+            time.rho <- rbind(U.time[M.index[,"row"]],U.time[M.index[,"col"]])
+            colnames(time.rho) <- param.rho
         }
         param.rho.save <- param.rho
         if(n.strata>1){
             param.rho <- unlist(lapply(U.strata, function(iS){paste(param.rho.save, iS, sep = ":")}))
+            time.rho <- do.call(cbind,lapply(U.strata, function(iS){time.rho}), recursive = FALSE)
+            colnames(time.rho) <- param.rho
         }
         
         M.indexAlltimes <- which(matrix(1,n.time, n.time)==1, arr.ind = TRUE)
@@ -261,6 +283,15 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
         names(which(sapply(iP,any)))
     }), attr(X.var,"Upattern"))
 
+    ## ** pairs
+    pair.meanvarcoef <- unname(t(expand.grid(colnames(X.mean),c(param.sigma,param.k,param.rho))))
+    pair.varcoef <- .unorderedPairs(c(param.sigma,param.k,param.rho))
+    if(length(param.rho)>0){
+        attr(pair.varcoef,"index.hessian") <- which(colSums(apply(pair.varcoef, 2, `%in%`, param.rho))!=2)
+    }else{
+        attr(pair.varcoef,"index.hessian") <- 1:NCOL(pair.varcoef)
+    }
+    
     ## ** export
     return(list(X.mean = X.mean,
                 X.var = X.var,
@@ -268,11 +299,13 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
                 index.cluster = index.cluster,
                 index.vargroup = index.vargroup,
                 index.strata = tapply(data[[var.strata]],data[[var.cluster]],unique),
-                index.time = as.numeric(data[[var.time]]),
+                index.time = index.time,
                 cluster = list(n = n.cluster, levels = U.cluster, nobs = table(index.cluster)),
                 param = list(mu = colnames(X.mean), sigma = param.sigma, k = param.k, rho = param.rho,
-                             pair.meanvarcoef = unname(t(expand.grid(colnames(X.mean),c(param.sigma,param.k,param.rho)))),
-                             pair.varcoef = .unorderedPairs(c(param.sigma,param.k,param.rho)))))
+                             time.k = time.k, time.rho = time.rho,
+                             pair.meanvarcoef = pair.meanvarcoef,
+                             pair.varcoef = pair.varcoef)
+                ))
 }
 
 ## * .unorderedPairs

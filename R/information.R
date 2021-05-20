@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: May 14 2021 (16:54) 
+## Last-Updated: May 20 2021 (12:25) 
 ##           By: Brice Ozenne
-##     Update #: 333
+##     Update #: 404
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -62,24 +62,12 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
         type.information <- match.arg(type.information, c("expected","observed"))
     }
 
-    if(is.null(transform.sigma)){
-        transform.sigma <- options$transform.sigma
-    }else{
-        transform.sigma <- match.arg(transform.sigma, c("none","log","square","logsquare"))
-    }
-
-    if(is.null(transform.k)){
-        transform.k <- options$transform.k
-    }else{
-        transform.k <- match.arg(transform.k, c("none","log","square","logsquare","sd","logsd","var","logvar"))
-    }
-
-    if(is.null(transform.rho)){
-        transform.rho <- options$transform.rho
-    }else{
-        transform.rho <- match.arg(transform.rho, c("none","atanh","cov"))
-    }
-    test.notransform <- (transform.sigma==x.transform.sigma) && (transform.k==x.transform.k) && (transform.rho==x.transform.rho)
+    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
+                            x.transform.sigma = x.transform.sigma, x.transform.k = x.transform.k, x.transform.rho = x.transform.rho)
+    transform.sigma <- init$transform.sigma
+    transform.k <- init$transform.k
+    transform.rho <- init$transform.rho
+    test.notransform <- init$test.notransform
 
     ## ** extract or recompute information
     if(is.null(data) && is.null(p) && (indiv == FALSE) && test.notransform){
@@ -135,6 +123,7 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
             name.pVar <- c(names(x$param$sigma),names(x$param$k),names(x$param$rho))
 
             reparametrize <- .reparametrize(p = p[name.pVar], type = x$param$type[name.pVar], strata = x$param$strata[name.pVar], time.levels = x$time$levels,
+                                            time.k = x$design$param$time.k, time.rho = x$design$param$time.rho,
                                             Jacobian = TRUE, dJacobian = 2*(REML || type.information == "observed"), inverse = FALSE,
                                             transform.sigma = transform.sigma,
                                             transform.k = transform.k,
@@ -179,7 +168,7 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
                                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
         }
 
-        if(length(reparametrize$newname)>0){
+        if(transform.names && length(reparametrize$newname)>0){
             allnewname <- names(p)
             allnewname[match(name.pVar,colnames(out))] <- reparametrize$newname
             if(indiv){
@@ -232,23 +221,22 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
 
     ## precompute derivative for the variance
     dOmega.precomputed <- setNames(lapply(var.pattern, function(iPattern){
-        iOut <- list(tr = vector(mode = "list", length = npair.varcoef))
-
-        if(type.information == "observed"){
-            iClusters <- which(var.pattern[index.variance]==iPattern)
-            iIndex <- which(index.cluster %in% iClusters)
-            iDF <- data.frame(id = index.cluster[iIndex],
-                              res = residuals[iIndex,,drop=FALSE],
-                              time =  time.variance[iIndex])
-            iResidualsW <- reshape2::dcast(iDF, formula = id~time, value.var = "res")[,-1,drop=FALSE]
-
-            iMisfit <- diag(1, NCOL(iResidualsW), NCOL(iResidualsW)) -  precision[[iPattern]] %*% crossprod(as.matrix(iResidualsW))/NROW(iResidualsW)
-        }
+        iOut <- list(tr = vector(mode = "list", length = npair.varcoef),
+                     last2terms = vector(mode = "list", length = npair.varcoef))
 
         for(iPair in 1:npair.varcoef){
-            iOut$tr[[iPair]] <- tr(precision[[iPattern]] %*% dOmega[[iPattern]][[pair.varcoef[1,iPair]]] %*% precision[[iPattern]] %*% dOmega[[iPattern]][[pair.varcoef[2,iPair]]])
-            if(type.information == "observed"){
-                iOut$tr[[iPair]] <- iOut$tr[[iPair]] - tr(precision[[iPattern]] %*% d2Omega[[iPattern]][[iPair]] %*% iMisfit)
+            iCoef1 <- pair.varcoef[1,iPair]
+            iCoef2 <- pair.varcoef[2,iPair]
+                
+            term <- precision[[iPattern]] %*% dOmega[[iPattern]][[iCoef1]] %*% precision[[iPattern]] %*% dOmega[[iPattern]][[iCoef2]]
+            if(type.information == "expected"){
+                iOut$tr[[iPair]] <- 0.5 * tr(term)
+            }else if(type.information == "observed"){
+                iOut$tr[[iPair]] <- - 0.5 * tr(term)
+                if(!is.null(d2Omega[[iPattern]][[iPair]])){
+                    iOut$tr[[iPair]] <- iOut$tr[[iPair]] + 0.5 * tr(precision[[iPattern]] %*% d2Omega[[iPattern]][[iPair]])
+                }
+                iOut$last2terms[[iPair]] <- precision[[iPattern]] %*% (dOmega[[iPattern]][[iCoef1]] %*% precision[[iPattern]] %*% dOmega[[iPattern]][[iCoef2]] - 0.5 * d2Omega[[iPattern]][[iPair]]) %*% precision[[iPattern]]
             }
         }
 
@@ -276,7 +264,9 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
 
             for(iPair in 1:npair.varcoef){
                 iOut$term2[[iPair]] <- precision[[iPattern]] %*% dOmega[[iPattern]][[pair.varcoef[1,iPair]]] %*% precision[[iPattern]] %*% dOmega[[iPattern]][[pair.varcoef[2,iPair]]] %*% precision[[iPattern]]
-                iOut$term3[[iPair]] <- precision[[iPattern]] %*% d2Omega[[iPattern]][[iPair]] %*% precision[[iPattern]]
+                if(!is.null(d2Omega[[iPattern]][[iPair]])){
+                    iOut$term3[[iPair]] <- precision[[iPattern]] %*% d2Omega[[iPattern]][[iPair]] %*% precision[[iPattern]]
+                }
             }
             return(iOut)
         }), var.pattern)
@@ -285,21 +275,26 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
     ## ** compute information
     for(iId in 1:n.cluster){ ## iId <- 7
         iPattern <- index.variance[iId]
-        iIndex <- which(index.cluster==iId)
-        iIndex <- iIndex[order(time.variance[iIndex])] ## re-order observations according to the variance-covariance matrix
+        iIndex <- attr(index.cluster,"sorted")[[iId]]
+        ## iIndex <- which(index.cluster==iId)
+        ## iIndex <- iIndex[order(time.variance[iIndex])] ## re-order observations according to the variance-covariance matrix
 
         iX <- X[iIndex,,drop=FALSE]
+        tiX <- t(iX)
         iOmegaM1 <- precision[[iPattern]]
-
-        ## *** mean,mean
-        if(indiv){
-            info[iId,name.mucoef,name.mucoef] <- t(iX) %*% iOmegaM1 %*% iX
-        }else{
-            info[name.mucoef,name.mucoef] <- info[name.mucoef,name.mucoef] + t(iX) %*% iOmegaM1 %*% iX
+        if(type.information == "observed"){
+            iResidual <- residuals[iIndex,,drop=FALSE]
         }
-
+        
+        ## *** mean,mean
+        iValue <- tiX %*% iOmegaM1 %*% iX
+        if(indiv){
+            info[iId,name.mucoef,name.mucoef] <- iValue
+        }else{
+            info[name.mucoef,name.mucoef] <- info[name.mucoef,name.mucoef] + iValue
+        }
         if(REML){
-            REML.denom <- REML.denom + t(iX) %*% iOmegaM1 %*% iX
+            REML.denom <- REML.denom + iValue
         }
 
         ## *** var,var
@@ -307,37 +302,45 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
             iCoef1 <- pair.varcoef[1,iPair]
             iCoef2 <- pair.varcoef[2,iPair]
 
+            iValue <- dOmega.precomputed[[iPattern]]$tr[[iPair]]
+            if(type.information == "observed"){
+                iValue <- iValue + t(iResidual)%*% dOmega.precomputed[[iPattern]]$last2terms[[iPair]] %*% iResidual
+            }
             if(indiv){
-                info[iId,iCoef1,iCoef2] <- 0.5 * dOmega.precomputed[[iPattern]]$tr[[iPair]]
+                info[iId,iCoef1,iCoef2] <- iValue
                 if(iCoef1 != iCoef2){
-                    info[iId,iCoef2,iCoef1] <- 0.5 * dOmega.precomputed[[iPattern]]$tr[[iPair]]
+                    info[iId,iCoef2,iCoef1] <- iValue
                 }
             }else{
-                info[iCoef1,iCoef2] <- info[iCoef1,iCoef2] + 0.5 * dOmega.precomputed[[iPattern]]$tr[[iPair]]
+                info[iCoef1,iCoef2] <- info[iCoef1,iCoef2] + iValue
                 if(iCoef1 != iCoef2){
-                    info[iCoef2,iCoef1] <- info[iCoef2,iCoef1] + 0.5 * dOmega.precomputed[[iPattern]]$tr[[iPair]]
+                    info[iCoef2,iCoef1] <- info[iCoef2,iCoef1] + iValue
                 }
-                if(REML){
-                    REML.num[[iPair]]$numerator1a <- REML.num[[iPair]]$numerator1a + t(iX) %*% (dOmega.precomputed[[iPattern]]$cross[[iCoef1]]) %*% iX
-                    REML.num[[iPair]]$numerator1b <- REML.num[[iPair]]$numerator1b + t(iX) %*% (dOmega.precomputed[[iPattern]]$cross[[iCoef2]]) %*% iX
-                    REML.num[[iPair]]$numerator2 <- REML.num[[iPair]]$numerator2 + t(iX) %*% (REML.num.precomputed[[iPattern]]$term2[[iPair]]) %*% iX
-                    REML.num[[iPair]]$numerator3 <- REML.num[[iPair]]$numerator3 + t(iX) %*% (REML.num.precomputed[[iPattern]]$term3[[iPair]]) %*% iX
+            }
+            if(REML){
+                REML.num[[iPair]]$numerator1a <- REML.num[[iPair]]$numerator1a + tiX %*% (dOmega.precomputed[[iPattern]]$cross[[iCoef1]]) %*% iX
+                REML.num[[iPair]]$numerator1b <- REML.num[[iPair]]$numerator1b + tiX %*% (dOmega.precomputed[[iPattern]]$cross[[iCoef2]]) %*% iX
+                REML.num[[iPair]]$numerator2 <- REML.num[[iPair]]$numerator2 + tiX %*% (REML.num.precomputed[[iPattern]]$term2[[iPair]]) %*% iX
+                if(!is.null(REML.num.precomputed[[iPattern]]$term3[[iPair]])){
+                    REML.num[[iPair]]$numerator3 <- REML.num[[iPair]]$numerator3 + tiX %*% (REML.num.precomputed[[iPattern]]$term3[[iPair]]) %*% iX
                 }
             }
         }
+
         ## *** mean,var
         if(type.information == "observed"){
-            iResidual <- residuals[iIndex,,drop=FALSE]
 
             for(iPair in 1:npair.meanvarcoef){ ## iPair <- 1
                 iCoef1 <- pair.meanvarcoef[1,iPair]
                 iCoef2 <- pair.meanvarcoef[2,iPair]
+
+                iValue <- tiX[iCoef1,,drop=FALSE] %*% dOmega.precomputed[[iPattern]]$cross[[iCoef2]] %*% iResidual 
                 if(indiv){
-                    info[iId,iCoef1,iCoef2] <- info[iId,iCoef1,iCoef2] + t(X[iIndex,iCoef1,drop=FALSE]) %*% dOmega.precomputed[[iPattern]]$cross[[iCoef2]] %*% iResidual
-                    info[iId,iCoef2,iCoef1] <- info[iId,iCoef2,iCoef1] + t(X[iIndex,iCoef1,drop=FALSE]) %*% dOmega.precomputed[[iPattern]]$cross[[iCoef2]] %*% iResidual
+                    info[iId,iCoef1,iCoef2] <- iValue
+                    info[iId,iCoef2,iCoef1] <- iValue
                 }else{
-                    info[iCoef1,iCoef2] <- info[iCoef1,iCoef2] + t(X[iIndex,iCoef1,drop=FALSE]) %*% dOmega.precomputed[[iPattern]]$cross[[iCoef2]] %*% iResidual
-                    info[iCoef2,iCoef1] <- info[iCoef2,iCoef1] + t(X[iIndex,iCoef1,drop=FALSE]) %*% dOmega.precomputed[[iPattern]]$cross[[iCoef2]] %*% iResidual
+                    info[iCoef1,iCoef2] <- info[iCoef1,iCoef2] + iValue
+                    info[iCoef2,iCoef1] <- info[iCoef2,iCoef1] + iValue
                 }
             }
 
@@ -348,12 +351,14 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
     if(REML){
         REML.denom <- solve(REML.denom)
         for(iPair in 1:npair.varcoef){ ## iPair <- 1
-            term1 <- tr(REML.denom %*% REML.num[[iPair]]$numerator1a %*% REML.denom %*% REML.num[[iPair]]$numerator1b)
-            term2 <- tr(- 2 * REML.denom %*% REML.num[[iPair]]$numerator2)
-            term3 <- tr(REML.denom %*% REML.num[[iPair]]$numerator3)
-            info[pair.varcoef[1,iPair],pair.varcoef[2,iPair]] <- info[pair.varcoef[1,iPair],pair.varcoef[2,iPair]] + 0.5 * (term1 + term2 + term3) 
+            term1 <- -tr(REML.denom %*% REML.num[[iPair]]$numerator1a %*% REML.denom %*% REML.num[[iPair]]$numerator1b)
+            term2 <- tr(2 * REML.denom %*% REML.num[[iPair]]$numerator2)
+            term3 <- -tr(REML.denom %*% REML.num[[iPair]]$numerator3)
+
+            iValue <- 0.5 * (term1 + term2 + term3) 
+            info[pair.varcoef[1,iPair],pair.varcoef[2,iPair]] <- info[pair.varcoef[1,iPair],pair.varcoef[2,iPair]] + iValue
             if(pair.varcoef[1,iPair] != pair.varcoef[2,iPair]){
-                info[pair.varcoef[2,iPair],pair.varcoef[1,iPair]] <- info[pair.varcoef[2,iPair],pair.varcoef[1,iPair]] + 0.5 * (term1 + term2 + term3) 
+                info[pair.varcoef[2,iPair],pair.varcoef[1,iPair]] <- info[pair.varcoef[2,iPair],pair.varcoef[1,iPair]] + iValue
             }
         }
     }
