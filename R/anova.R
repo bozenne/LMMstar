@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: May 19 2021 (12:44) 
+## Last-Updated: May 21 2021 (11:14) 
 ##           By: Brice Ozenne
-##     Update #: 158
+##     Update #: 164
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -86,7 +86,8 @@ anova.lmm <- function(object, effects = "all", df = TRUE, print = TRUE, print.nu
     for(iType in type){
 
         ## skip empty type
-        if(length(ls.nameTerms.num[[iType]])==0){ next }
+        if(length(ls.nameTerms.num[[iType]])==0 || (is.null(ls.contrast[[iType]]) && all(ls.assign[[iType]]==0))){ next }
+
         iParam <- coef(object, effects = iType,
                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
         name.iParam <- names(iParam)

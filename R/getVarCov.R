@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: May 20 2021 (09:44) 
+## Last-Updated: May 24 2021 (09:06) 
 ##           By: Brice Ozenne
-##     Update #: 52
+##     Update #: 54
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -57,9 +57,9 @@ getVarCov.lmm <- function(object, individual = NULL, p = NULL, type.object = c("
 
         if(!is.null(p)){
             Omega <- .calc_Omega(object = object$design$X.var,
-                                 sigma = p[names(which(object$param$type=="sigma"))],
-                                 k = p[names(which(object$param$type=="k"))],
-                                 rho = p[names(which(object$param$type=="rho"))],
+                                 param = p,
+                                 type = object$param$type,
+                                 strata = object$param$strata,
                                  keep.interim = FALSE)
         }else{
             Omega <- object$Omega
@@ -76,7 +76,7 @@ getVarCov.lmm <- function(object, individual = NULL, p = NULL, type.object = c("
             }
             out <- setNames(Omega[intersect(index.fulltime,index.strata)],strata)
         }else{
-            out <- Omega[object$design$index.vargroup[individual]]
+            out <- Omega[object$design$X.var$cluster[individual]]
         }
         for(iO in 1:length(out)){
             dimnames(out[[iO]]) <- list(attr(out[[iO]],"time"),attr(out[[iO]],"time"))

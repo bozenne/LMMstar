@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: May 19 2021 (14:57) 
+## Last-Updated: May 24 2021 (09:07) 
 ##           By: Brice Ozenne
-##     Update #: 172
+##     Update #: 173
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -105,16 +105,16 @@ coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL
 
         out <- NULL
         if("mean" %in% effects){
-            out <- c(out, object$param$mu)
+            out <- c(out, object$param$value[object$param$type=="mu"])
         }
 
         if(any(c("variance","correlation") %in% effects)){
             pVar <- NULL
             if("variance" %in% effects){
-                pVar <- c(pVar,object$param$sigma, object$param$k)
+                pVar <- c(pVar, object$param$value[object$param$type %in% c("sigma","k")])
             }
             if("correlation" %in% effects){
-                pVar <- c(pVar,object$param$rho)
+                pVar <- c(pVar, object$param$value[object$param$type %in% c("rho")])
             }
             if(test.notransform){
                 outVar <- object$reparametrize$p[names(pVar)]

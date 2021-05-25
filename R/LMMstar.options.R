@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: May 19 2021 (15:00) 
+## Last-Updated: May 21 2021 (09:58) 
 ##           By: Brice Ozenne
-##     Update #: 22
+##     Update #: 23
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -19,7 +19,7 @@
 ## * Documentation - BuyseTest.options
 #' @title Global options for LMMstar package
 #' @name LMMstar.options
-#' @include 0-onLoad.R
+#' @include 0-onload.R
 #'
 #' @description Update or select global options for the LMMstar package.
 #'

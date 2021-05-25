@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: May 10 2021 (12:20) 
+## Last-Updated: May 24 2021 (09:05) 
 ##           By: Brice Ozenne
-##     Update #: 82
+##     Update #: 84
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -80,7 +80,7 @@ residuals.lmm <- function(object, type.residual = "response", format = "long",
             X.var <- design$X.var
             n.cluster <- design$cluster$n
             index.cluster <- design$index.cluster
-            index.variance <- design$index.vargroup
+            index.variance <- design$X.var$cluster
             index.time <- design$index.time
         }else{
             Y <- object$design$Y
@@ -88,7 +88,7 @@ residuals.lmm <- function(object, type.residual = "response", format = "long",
             X.var <- object$design$X.var
             n.cluster <- object$design$cluster$n
             index.cluster <- object$design$index.cluster
-            index.variance <- object$design$index.vargroup
+            index.variance <- object$design$X.var$cluster
             index.time <- object$design$index.time
         }
 
@@ -101,7 +101,7 @@ residuals.lmm <- function(object, type.residual = "response", format = "long",
             }
             beta <- p[names(object$param$mu)]
             if(type.residuals %in% c("pearson","normalized","tnormalized")){
-                Omega <- .calc_Omega(object = X.var, sigma = p[names(object$param$sigma)], k = p[names(object$param$k)], rho = p[names(object$param$cor)])
+                Omega <- .calc_Omega(object = X.var, param = p, type = object$param$type, strata = object$param$strata)
                 precision <- lapply(Omega, solve)
             }
         }else{

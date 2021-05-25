@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: May 20 2021 (12:26) 
+## Last-Updated: May 24 2021 (23:13) 
 ##           By: Brice Ozenne
-##     Update #: 224
+##     Update #: 264
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -80,18 +80,22 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
                                         )
             Y <- design$Y
             X <- design$X.mean
-            index.vargroup <- design$index.vargroup
+            index.vargroup <- design$X.var$cluster
             index.cluster <- design$index.cluster
             index.time <- design$index.time
             X.var <- design$X.var
         }else{
             Y <- x$design$Y
             X <- x$design$X.mean
-            index.vargroup <- x$design$index.vargroup
+            index.vargroup <- x$design$X.var$cluster
             index.cluster <- x$design$index.cluster
             index.time <- x$design$index.time
             X.var <- x$design$X.var
+            name.varcoef <- x$design$X.var$param
         }
+        name.allcoef <- names(x$param$value)
+        index.var <- x$param$type %in% c("sigma","k","rho")
+
         if(!is.null(p) || (test.notransform == FALSE)){
             if(!is.null(p)){
                 if(any(duplicated(names(p)))){
@@ -101,11 +105,10 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
                     stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(x$param$type)[names(x$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
                 }
             }else{
-                p <- c(x$param$mu,x$param$sigma,x$param$k,x$param$rho)
+                p <- x$param$value
             }
-            beta <- p[names(x$param$mu)]
-            name.pVar <- c(names(x$param$sigma),names(x$param$k),names(x$param$rho))
-            reparametrize <- .reparametrize(p = p[name.pVar], type = x$param$type[name.pVar], strata = x$param$strata[name.pVar], time.levels = x$time$levels,
+            beta <- p[x$param$type=="mu"]
+            reparametrize <- .reparametrize(p = p[index.var], type = x$param$type[index.var], strata = x$param$strata[index.var], time.levels = x$time$levels,
                                             time.k = x$design$param$time.k, time.rho = x$design$param$time.rho,
                                             Jacobian = TRUE, dJacobian = FALSE, inverse = FALSE,
                                             transform.sigma = transform.sigma,
@@ -117,26 +120,25 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
                 reparametrize$Jacobian <- NULL
                 reparametrize$dJacobian <- NULL
             }
-            newname <- reparametrize$newname
-            Omega <- .calc_Omega(object = X.var, sigma = p[names(x$param$sigma)], k = p[names(x$param$k)], rho = p[names(x$param$rho)], keep.interim = TRUE)
-            dOmega <- .calc_dOmega(object = X.var, sigma = p[names(x$param$sigma)], k = p[names(x$param$k)], rho = p[names(x$param$rho)], Omega = Omega, Jacobian = reparametrize$Jacobian)
+            newname.allcoef <- reparametrize$newname
+            Omega <- .calc_Omega(object = X.var, param = p, keep.interim = TRUE)
+            dOmega <- .calc_dOmega(object = X.var, param = p, type = x$param$type, Omega = Omega, Jacobian = reparametrize$Jacobian)
             precision <- lapply(Omega, solve)
         }else{
-            newname <- x$reparametrize$newname
-            name.pVar <- c(names(x$param$sigma),names(x$param$k),names(x$param$rho))
-            beta <- x$param$mu
+            newname.allcoef <- x$reparametrize$newname
+            beta <- x$param$value[x$param$type=="mu"]
             precision <- x$OmegaM1
             dOmega <- x$dOmega
         }
         out <- .score(X = X, residuals = Y - X %*% beta, precision = precision, dOmega = dOmega,
-                      index.variance = index.vargroup, time.variance = index.time, index.cluster = index.cluster, ## attr(X.var,"Upattern.index.time")
+                      index.variance = index.vargroup, time.variance = index.time, index.cluster = index.cluster, name.varcoef = name.varcoef, name.allcoef = name.allcoef,
                       indiv = indiv, REML = x$method.fit=="REML")
 
-        if(transform.names && length(newname)>0){
+        if(transform.names && length(newname.allcoef)>0){
             if(indiv){
-                colnames(out)[match(name.pVar,colnames(out))] <- newname
+                colnames(out)[index.var] <- newname.allcoef
             }else{
-                names(out)[match(name.pVar,names(out))] <- newname
+                names(out)[index.var] <- newname.allcoef
             }
         }
 
@@ -148,7 +150,7 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
 
 ## * .score
 .score <- function(X, residuals, precision, dOmega,
-                   index.variance, time.variance, index.cluster, 
+                   index.variance, time.variance, index.cluster, name.varcoef, name.allcoef,
                    indiv, REML){
 
     if(indiv && REML){
@@ -160,30 +162,30 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
     n.cluster <- length(index.variance)
     name.mucoef <- colnames(X)
     n.mucoef <- length(name.mucoef)
-    name.varcoef <- names(dOmega[[1]])
-    n.varcoef <- length(name.varcoef)
-    name.allcoef <- c(name.mucoef,name.varcoef)
+    n.varcoef <- lapply(name.varcoef, length)
+    name.allvarcoef <- unlist(name.varcoef)
     n.allcoef <- length(name.allcoef)
-    var.pattern <- names(dOmega)
+    U.pattern <- names(dOmega)
 
-    Score <- matrix(NA, nrow = n.cluster, ncol = n.allcoef,
+    Score <- matrix(0, nrow = n.cluster, ncol = n.allcoef,
                     dimnames = list(NULL, name.allcoef))
 
     ## precompute derivative for the variance
-    dOmega.precomputed <- setNames(lapply(var.pattern, function(iPattern){
-        iOut <- list(term1 = setNames(vector(mode = "list", length = n.varcoef), name.varcoef),
-                     term2 = setNames(vector(mode = "list", length = n.varcoef), name.varcoef)
+    dOmega.precomputed <- setNames(lapply(U.pattern, function(iPattern){
+        iOut <- list(term1 = setNames(vector(mode = "list", length = n.varcoef[[iPattern]]), name.varcoef[[iPattern]]),
+                     term2 = setNames(vector(mode = "list", length = n.varcoef[[iPattern]]), name.varcoef[[iPattern]])
                      )
-        for(iVarcoef in name.varcoef){
+
+        for(iVarcoef in name.varcoef[[iPattern]]){ ## iVarcoef <- name.varcoef[[iPattern]][1]
             iOut$term1[[iVarcoef]] <- tr(precision[[iPattern]] %*% dOmega[[iPattern]][[iVarcoef]])
             iOut$term2[[iVarcoef]] <- precision[[iPattern]] %*% dOmega[[iPattern]][[iVarcoef]] %*% precision[[iPattern]]
         }
         return(iOut)
-    }), var.pattern)
+    }), U.pattern)
 
-    REML.num <- setNames(lapply(name.varcoef, function(i){
+    REML.num <- setNames(lapply(name.allvarcoef, function(i){
         matrix(0, nrow = n.mucoef, ncol = n.mucoef, dimnames = list(name.mucoef,name.mucoef))
-    }), name.varcoef)
+    }), name.allvarcoef)
     REML.denom <- matrix(0, nrow = n.mucoef, ncol = n.mucoef, dimnames = list(name.mucoef, name.mucoef))
 
     ## ** compute score
@@ -202,7 +204,7 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
             REML.denom <- REML.denom + tiX %*% precision[[iPattern]] %*% iX
         }
 
-        for(iVarcoef in name.varcoef){ ## iVarcoef <- name.varcoef[1]
+        for(iVarcoef in name.varcoef[[iPattern]]){ ## iVarcoef <- name.varcoef[1]
             Score[iId,iVarcoef] <- -0.5 * dOmega.precomputed[[iPattern]]$term1[[iVarcoef]] + 0.5 * t(iResidual) %*% dOmega.precomputed[[iPattern]]$term2[[iVarcoef]] %*% iResidual
 
             if(REML){
@@ -210,7 +212,7 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
             }
         }
     }
-    
+
     ## ** export
     if(indiv){
         return(Score)
@@ -218,7 +220,7 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
         Score <- colSums(Score)
         if(REML){
             REML.denom <- solve(REML.denom)
-            Score[name.varcoef] <-  Score[name.varcoef] + 0.5 * sapply(REML.num, function(x){tr(REML.denom %*% x)})
+            Score[name.allvarcoef] <-  Score[name.allvarcoef] + 0.5 * sapply(REML.num, function(x){tr(REML.denom %*% x)})
             ## 0.5 tr((X\OmegaM1X)^-1 (X\OmegaM1 d\Omega \OmegaM1 X))
         }
         return(Score)

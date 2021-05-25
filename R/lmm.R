@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: May 20 2021 (09:05) 
+## Last-Updated: May 24 2021 (23:13) 
 ##           By: Brice Ozenne
-##     Update #: 669
+##     Update #: 726
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -334,8 +334,8 @@ lmm <- function(formula, variance, structure, data, method.fit = NULL, df = NULL
                                     structure = structure
                                     )
 
-    out$xfactor <- unique(c(.getXlevels(terms(out$formula$mean.design),data),
-                            .getXlevels(terms(out$formula$var.design),data)))
+    out$xfactor <- unique(c(stats::.getXlevels(terms(out$formula$mean.design),data),
+                            stats::.getXlevels(terms(out$formula$var.design),data)))
     if(debug>=2){cat("\n")}
     
     ## ** Estimate model parameters
@@ -385,41 +385,40 @@ lmm <- function(formula, variance, structure, data, method.fit = NULL, df = NULL
     out$data <- data
     out$method.fit <- method.fit
     out$structure <- structure
+
+    ## collect parameters
+    param.mu <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]) })
+    param.sigma <- lapply(U.strata, function(iS){ sigma(out$gls[[iS]]) })
+    param.k <- lapply(U.strata, function(iS){  coef(out$gls[[iS]]$modelStruct$varStruct, unconstrained = FALSE) })
+    param.rho <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]$modelStruct$corStruct, unconstrained = FALSE) })
+
+    out$param$value <- c(setNames(unlist(param.mu),out$design$param$mu),
+                         setNames(unlist(param.sigma), out$design$param$sigma),
+                         setNames(unlist(param.k), out$design$param$k),
+                         setNames(unlist(param.rho), out$design$param$rho)
+                         )
+
+    out$param$strata <- c(unlist(lapply(1:n.strata, function(iS){rep(U.strata[iS], times = length(param.mu[[iS]]))})),
+                          unlist(lapply(1:n.strata, function(iS){rep(U.strata[iS], times = length(param.sigma[[iS]]))})),
+                          unlist(lapply(1:n.strata, function(iS){rep(U.strata[iS], times = length(param.k[[iS]]))})),
+                          unlist(lapply(1:n.strata, function(iS){rep(U.strata[iS], times = length(param.rho[[iS]]))})))
+
+    out$param$type <- c(rep("mu", length(unlist(param.mu))),
+                        rep("sigma", length(unlist(param.sigma))),
+                        rep("k", length(unlist(param.k))),
+                        rep("rho", length(unlist(param.rho))))
     
-    if(n.strata==1){
-        out$param <- list(mu = coef(out$gls[[1]])[out$design$param$mu],
-                          sigma = setNames(sigma(out$gls[[1]]),out$design$param$sigma),
-                          k = setNames(coef(out$gls[[1]]$modelStruct$varStruct, unconstrained = FALSE),out$design$param$k),
-                          rho = setNames(coef(out$gls[[1]]$modelStruct$corStruct, unconstrained = FALSE),out$design$param$rho)
-                          )
-        out$param$strata <- rep(U.strata, length(unlist(out$param)))
-    }else{
-        param.mu <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]) })
-        param.sigma <- lapply(U.strata, function(iS){ sigma(out$gls[[iS]]) })
-        param.k <- lapply(U.strata, function(iS){  coef(out$gls[[iS]]$modelStruct$varStruct, unconstrained = FALSE) })
-        param.rho <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]$modelStruct$corStruct, unconstrained = FALSE) })
-        out$param <- list(mu = setNames(unlist(param.mu),out$design$param$mu),
-                          sigma = setNames(unlist(param.sigma), out$design$param$sigma),
-                          k = setNames(unlist(param.k), out$design$param$k),
-                          rho = setNames(unlist(param.rho), out$design$param$rho)
-                          )
+    names(out$param$strata) <- names(out$param$value)
+    names(out$param$type) <- names(out$param$value)
 
-        out$param$strata <- c(unlist(lapply(1:n.strata, function(iS){rep(U.strata[iS], times = length(param.mu[[iS]]))})),
-                              unlist(lapply(1:n.strata, function(iS){rep(U.strata[iS], times = length(param.sigma[[iS]]))})),
-                              unlist(lapply(1:n.strata, function(iS){rep(U.strata[iS], times = length(param.k[[iS]]))})),
-                              unlist(lapply(1:n.strata, function(iS){rep(U.strata[iS], times = length(param.rho[[iS]]))})))
-    }
-    out$param$type <- c(rep("mu", length(out$param$mu)), rep("sigma", length(out$param$sigma)), rep("k", length(out$param$k)), rep("rho", length(out$param$rho)))
-
-    param.allnames <- unlist(lapply(out$param[c("mu","sigma","k","rho")], names))
-    names(out$param$strata) <- param.allnames
-    names(out$param$type) <- param.allnames
     if(debug>=1){cat("\n")}
 
     ## ** Reparametrisation
     if(debug>=1){cat("3. Reparametrization \n")}
-    pVar <- c(out$param$sigma,out$param$k,out$param$rho)
-    out$reparametrize <- .reparametrize(p = pVar, type = out$param$type[match(pVar,names(out$param$type))], strata = out$param$strata[match(pVar,names(out$param$type))], time.levels = out$time$levels,
+    name.allcoef <- names(out$param$value)
+    
+    index.var <- which(out$param$type %in% c("sigma","k","rho"))
+    out$reparametrize <- .reparametrize(p = out$param$value[index.var], type = out$param$type[index.var], strata = out$param$strata[index.var], time.levels = out$time$levels,
                                         time.k = out$design$param$time.k, time.rho = out$design$param$time.rho,
                                         Jacobian = TRUE, dJacobian = 2, inverse = FALSE,
                                         transform.sigma = options$transform.sigma,
@@ -432,64 +431,77 @@ lmm <- function(formula, variance, structure, data, method.fit = NULL, df = NULL
         out$reparametrize$Jacobian <- NULL
         out$reparametrize$dJacobian <- NULL
     }else{
-        newname <- names(out$reparametrize$p)
+        newname.allcoef <- names(out$reparametrize$p)
     }
 
     ## ** Compute partial derivatives regarding the mean and the variance
     if(debug>=1){cat("4. Compute partial derivatives regarding the mean and the variance \n")}
-    out$residuals <- out$design$Y - out$design$X.mean %*% out$param$mu
+
+    if(debug>=2){cat("- residuals \n")}
+    out$residuals <- out$design$Y - out$design$X.mean %*% out$param$value[colnames(out$design$X.mean)]
     
-    out$Omega <- .calc_Omega(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$rho, keep.interim = TRUE)
+    if(debug>=2){cat("- Omega \n")}
+    out$Omega <- .calc_Omega(object = out$design$X.var, param = out$param$value, keep.interim = TRUE)
     out$OmegaM1 <- lapply(out$Omega,solve)
+    
+    if(debug>=2){cat("- dOmega \n")}
+    out$dOmega <- .calc_dOmega(object = out$design$X.var, param = out$param$value, type = out$param$type, Omega = out$Omega,
+                               Jacobian = out$reparametrize$Jacobian)
 
-    out$dOmega <- .calc_dOmega(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$rho, Omega = out$Omega, Jacobian = out$reparametrize$Jacobian)
-
-    out$d2Omega <- .calc_d2Omega(object = out$design$X.var, sigma = out$param$sigma, k = out$param$k, rho = out$param$rho, Omega = out$Omega, dOmega = out$dOmega, pair = out$design$param$pair.varcoef,
+    if(debug>=2){cat("- d2Omega \n")}
+    out$d2Omega <- .calc_d2Omega(object = out$design$X.var, param = out$param$value, type = out$param$type,
+                                 Omega = out$Omega, dOmega = out$dOmega, pair = out$design$param$pair.varcoef,
                                  Jacobian = out$reparametrize$Jacobian, dJacobian = out$reparametrize$dJacobian)
 
     ## ** Compute likelihood derivatives
     if(debug>=1){cat("5. Compute likelihood derivatives \n")}
+
     if(debug>=2){cat("- log-likelihood \n")}
     out$logLik <- .logLik(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1,
-                          index.variance = out$design$index.vargroup, time.variance = out$design$index.time, index.cluster = out$design$index.cluster, 
+                          index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster, 
                           indiv = FALSE, REML = method.fit=="REML")
 
     if(debug>=2){cat("- score \n")}
     out$score <- .score(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega,
-                        index.variance = out$design$index.vargroup, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,  ## attr(out$design$X.var,"Upattern.index.time")
+                        index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
+                        name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
                         indiv = FALSE, REML = method.fit=="REML")
     if(out$reparametrize$transform){
-        colnames(out$score) <- newname
+        colnames(out$score) <- newname.allcoef
     }
+
     if(debug>=2){cat("- information \n")}
     out$information <- .information(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega,
-                                    index.variance = out$design$index.vargroup, time.variance = out$design$index.time, index.cluster = out$design$index.cluster, ## attr(out$design$X.var,"Upattern.index.time")
+                                    index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
+                                    name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
                                     pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef,
                                     indiv = FALSE, REML = method.fit=="REML", type.information = type.information)
     attr(out$information, "type.information") <- type.information
     if(out$reparametrize$transform){
-        dimnames(out$information) <- list(newname,newname)
+        dimnames(out$information) <- list(newname.allcoef,newname.allcoef)
     }
+
     if(debug>=2){cat("- variance-covariance \n")}
     out$vcov <- solve(out$information)
 
     if(df){
         if(debug>=2){cat("- degrees of freedom \n")}
         out$df <- .df(param = out$param, reparametrize = out$reparametrize, Y = out$design$Y, X.mean = out$design$X.mean, X.var = out$design$X.var,
-                      index.variance = out$design$index.vargroup, time.variance = out$design$index.time, index.cluster = out$design$index.cluster, time.k = out$design$param$time.k, time.rho = out$design$param$time.rho,
+                      index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
+                      name.varcoef = out$design$X.var$param, 
+                      time.k = out$design$param$time.k, time.rho = out$design$param$time.rho,
                       pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef, REML = method.fit=="REML", type.information = type.information,
-                      type = out$param$type, strata = out$param$strata,
                       transform.sigma = out$reparametrize$transform.sigma, transform.k = out$reparametrize$transform.k, transform.rho = out$reparametrize$transform.rho,
                       vcov = out$vcov, diag = TRUE, method.numDeriv = options$method.numDeriv)
         out$dVcov <- attr(out$df,"dVcov")
         attr(out$df,"dVcov") <- NULL
         
         if(out$reparametrize$transform){
-            names(out$df) <- newname
-            dimmnames(ou$dVcov) <- list(newname,newname,newname)
+            names(out$df) <- newname.allcoef
+            dimmnames(ou$dVcov) <- list(newname.allcoef, newname.allcoef, newname.allcoef)
         }
     }    
-    
+
     ## ** convert to lmm and export
     class(out) <- "lmm"
     return(out)

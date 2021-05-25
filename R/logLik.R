@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: May 20 2021 (12:19) 
+## Last-Updated: May 24 2021 (10:56) 
 ##           By: Brice Ozenne
-##     Update #: 127
+##     Update #: 130
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,7 +15,7 @@
 ## 
 ### Code:
 
-## * score.lmm (documentation)
+## * logLik.lmm (documentation)
 ##' @title Extract The Log-Likelihood From a Linear Mixed Model
 ##' @description Extract or compute the log-likelihood of a linear mixed model.
 ##' @name logLik
@@ -69,14 +69,14 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
                                             )
                 Y <- design$Y
                 X <- design$X.mean
-                index.vargroup <- design$index.vargroup
+                index.vargroup <- design$X.var$cluster
                 index.cluster <- design$index.cluster
                 index.time <- design$index.time
                 X.var <- design$X.var
             }else{
                 Y <- object$design$Y
                 X <- object$design$X.mean
-                index.vargroup <- object$design$index.vargroup
+                index.vargroup <- object$design$X.var$cluster
                 index.cluster <- object$design$index.cluster
                 index.time <- object$design$index.time
                 X.var <- object$design$X.var
@@ -89,7 +89,7 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
                     stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param$type)[names(object$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
                 }
                 beta <- p[names(object$param$mu)]
-                Omega <- .calc_Omega(object = X.var, sigma = p[names(object$param$sigma)], k = p[names(object$param$k)], rho = p[names(object$param$rho)])
+                Omega <- .calc_Omega(object = X.var, param = p, type = object$param$type, strata = object$param$strata)
                 precision <- lapply(Omega, solve)
             }else{
                 beta <- object$param$mu

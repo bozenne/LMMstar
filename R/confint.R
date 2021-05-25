@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: May 15 2021 (19:04) 
+## Last-Updated: May 21 2021 (09:55) 
 ##           By: Brice Ozenne
-##     Update #: 71
+##     Update #: 72
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -36,6 +36,7 @@
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @seealso the function \code{multcomp::glht} to perform inference about linear combinations of coefficients and adjust for multiple comparisons.
+##'
 ##' 
 ##' @return A data.frame containing for each coefficient (in rows): \itemize{
 ##' \item column estimate: the estimate.

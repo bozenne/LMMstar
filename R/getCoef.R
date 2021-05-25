@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (14:58) 
 ## Version: 
-## Last-Updated: Apr 20 2021 (17:11) 
+## Last-Updated: May 21 2021 (09:57) 
 ##           By: Brice Ozenne
-##     Update #: 220
+##     Update #: 221
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -352,93 +352,6 @@ getCoef.lme <- function(object, conf.level = 0.95, effects = c("mean"),
     
     if(format == "SAS"){
         X <- stats::model.matrix(object, nlme::getData(object))
-        return(.format2SAS(out, X = X, terms = stats::terms(stats::formula(object))))
-    }else if(format == "estimate"){
-        return(stats::setNames(as.double(out$estimate),rownames(out)))
-    }else{
-        if(add.type==FALSE){
-            out <- out[,setdiff(names(out),"type"),drop=FALSE]
-        }
-        return(out)
-    }
-}
-
-## * getCoef.lmm (code)
-##' @export
-getCoef.lmm <- function(object, conf.level = 0.95, effects = c("mean"),
-                        format = "default", add.type = FALSE, ...){
-
-    format <- match.arg(format, c("default","estimate","publish", "SAS"))
-    effects <- match.arg(effects, c("mean","variance"), several.ok = TRUE)
-    if(format=="publish"){
-        object2 <- object
-        class(object2) <- setdiff(class(object),"lmm")
-        return(Publish::publish(object2, ...))
-    }
-
-    ## **  format=default
-    inter <- .intervalsRobust(object, level = conf.level, effects = effects)
-
-    out <- NULL
-    if("mean" %in% effects){
-        objectS <- summary(object, print = FALSE)[["mean"]]
-        iDF <- data.frame(type = "mean",
-                          estimate = as.double(inter$coef[,"est."]),
-                          std.error = as.double(objectS[,"se"]),
-                          t.value = as.double(objectS[,"t-value"]),
-                          p.value = as.double(objectS[,"p-value"]),
-                          lower = as.double(inter$coef[,"lower"]),
-                          upper = as.double(inter$coef[,"upper"])
-                          )
-        rownames(iDF) <- rownames(inter$coef)
-        
-        out <- rbind(out,iDF)
-    }
-    if("variance" %in% effects){
-        if(!is.null(object$modelStruct$corStruct)){
-            iDF <- data.frame(type = "correlation",
-                              estimate = as.double(inter$corStruct[,"est."]),
-                              std.error = NA,
-                              t.value = NA,
-                              p.value = NA,
-                              lower = as.double(inter$corStruct[,"lower"]),
-                              upper = as.double(inter$corStruct[,"upper"])
-                              )
-            rownames(iDF) <- rownames(inter$corStruct)
-            
-            out <- rbind(out,iDF)
-        }
-        if(!is.null(object$modelStruct$varStruct)){
-            iDF <- data.frame(type = "factor.std.residual",
-                              estimate = as.double(inter$varStruct[,"est."]),
-                              std.error = NA,
-                              t.value = NA,
-                              p.value = NA,
-                              lower = as.double(inter$varStruct[,"lower"]),
-                              upper = as.double(inter$varStruct[,"upper"])
-                              )
-            rownames(iDF) <- rownames(inter$varStruct)
-            
-            out <- rbind(out,iDF)
-        }
-        iDF <- data.frame(type = "std.residual",
-                          estimate = as.double(inter$sigma["est."]),
-                          std.error = NA,
-                          t.value = NA,
-                          p.value = NA,
-                          lower = as.double(inter$sigma["lower"]),
-                          upper = as.double(inter$sigma["upper"])
-                          )
-        rownames(iDF) <- "sigma"
-        out <- rbind(out,iDF)
-        if("mean" %in% effects == FALSE){
-            out <- out[, c("type","estimate","lower","upper"),drop=FALSE]
-        }
-
-    }
-    
-    if(format == "SAS"){
-        X <- stats::model.matrix(object, attr(object,"data"))
         return(.format2SAS(out, X = X, terms = stats::terms(stats::formula(object))))
     }else if(format == "estimate"){
         return(stats::setNames(as.double(out$estimate),rownames(out)))

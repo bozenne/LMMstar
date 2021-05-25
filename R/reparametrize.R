@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: May 19 2021 (16:05) 
+## Last-Updated: May 21 2021 (12:13) 
 ##           By: Brice Ozenne
-##     Update #: 311
+##     Update #: 317
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -202,7 +202,7 @@ reparametrize <- function(p, type, strata, time.levels,
             }else{
                 out$p[index.sigma] <- log(p[index.sigma])
                 if(transform.names){
-                    out$newname[index.sigma] <- paste0("log(",name.p[index.sigma],")")
+                    out$newname[index.sigma] <- gsub("^sigma","log(sigma)",name.p[index.sigma])
                 }
                 if(Jacobian){
                     for(iSigma in index.sigma){
@@ -225,7 +225,7 @@ reparametrize <- function(p, type, strata, time.levels,
             }else{
                 out$p[index.sigma] <- p[index.sigma]^2
                 if(transform.names){
-                    out$newname[index.sigma] <- paste0(name.p[index.sigma],"^2")
+                    out$newname[index.sigma] <- gsub("^sigma","sigma^2",name.p[index.sigma])
                 }
                 if(Jacobian){
                     for(iSigma in index.sigma){
@@ -248,7 +248,7 @@ reparametrize <- function(p, type, strata, time.levels,
             }else{
                 out$p[index.sigma] <- log(p[index.sigma]^2)
                 if(transform.names){
-                    out$newname[index.sigma] <- paste0("log(",name.p[index.sigma],"^2)")
+                    out$newname[index.sigma] <- gsub("^sigma","log(sigma^2)",name.p[index.sigma])
                 }
                 if(Jacobian){
                     for(iSigma in index.sigma){
@@ -276,7 +276,7 @@ reparametrize <- function(p, type, strata, time.levels,
             }else{
                 out$p[index.k] <- log(p[index.k])
                 if(transform.names){
-                    out$newname[index.k] <- paste0("log(",name.p[index.k],")")
+                    out$newname[index.k] <- gsub("^k","log(k)",name.p[index.k])
                 }
                 if(Jacobian){
                     for(iK in index.k){
@@ -300,7 +300,7 @@ reparametrize <- function(p, type, strata, time.levels,
             }else{
                 out$p[index.k] <- p[index.k]^2
                 if(transform.names){
-                    out$newname[index.k] <- paste0(name.p[index.k],"^2")
+                    out$newname[index.k] <- gsub("^k","k^2",name.p[index.k])
                 }
                 if(Jacobian){
                     for(iK in index.k){
@@ -323,7 +323,7 @@ reparametrize <- function(p, type, strata, time.levels,
             }else{
                 out$p[index.k] <- log(p[index.k]^2)
                 if(transform.names){
-                    out$newname[index.k] <- paste0("log(",name.p[index.k],"^2)")
+                    out$newname[index.k] <- gsub("^k","log(k^2)",name.p[index.k])
                 }
                 if(Jacobian){
                     for(iK in index.k){
@@ -585,7 +585,7 @@ reparametrize <- function(p, type, strata, time.levels,
                         }
                     }
                 }else if(is.null(time.rho)){
-                    stop("Not implemented in presence of multiple variance parameters. \n")
+                    stop("Missing \'time.rho\' values. \n")
                 }else{
                     if(inverse){
                         out$p[iName.rho] <- sapply(iName.rho, function(iRho){ ## iRho <- iName.rho[2]

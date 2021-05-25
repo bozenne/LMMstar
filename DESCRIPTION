@@ -2,7 +2,7 @@ Package: LMMstar
 Type: Package
 Title: Helper functions for handling repeated measurements in R
 Version: 0.1.11
-Date: 2021-04-16
+Date: 2021-05-21
 Authors@R: c(
     person("Brice", "Ozenne", role = c("aut", "cre"), email = "brice.mh.ozenne@gmail.com", comment = c(ORCID = "0000-0001-9694-2956")),
     person("Julie", "Forman", role = "ctb")
@@ -34,13 +34,14 @@ RoxygenNote: 7.1.1
 Collate: 
     '0-onload.R'
     'LMMstar-package.R'
-    '0-onLoad.R'
     'LMMstar.options.R'
     'anova.R'
     'autoplot.R'
+    'calc_Omega.R'
     'coef.R'
     'confint.R'
     'doc-data.R'
+    'emmeans.R'
     'formula.R'
     'getCoef.R'
     'getVarCov.R'
@@ -48,15 +49,15 @@ Collate:
     'lmm.R'
     'logLik.R'
     'model.matrix.R'
+    'multcomp.R'
     'nobs.R'
     'predict.R'
     'print.R'
+    'reparametrize.R'
     'residuals.R'
     'sampleRem.R'
     'score.R'
     'summarize.R'
     'summary.R'
-    'ufit.R'
-    'update.R'
     'utils-formula.R'
     'vcov.R'

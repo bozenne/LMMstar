@@ -4,23 +4,38 @@
 \alias{lmm}
 \title{Linear mixed model}
 \usage{
-lmm(formula, covariance, data, df = FALSE, ...)
+lmm(
+  formula,
+  variance,
+  structure,
+  data,
+  method.fit = NULL,
+  df = NULL,
+  type.information = NULL,
+  debug = FALSE,
+  ...
+)
 }
 \arguments{
 \item{formula}{[formula] Specify the model for the mean.
 On the left hand side the outcome and on the right hand side the covariates affecting the mean value.
 E.g. Y ~ Gender + Gene.}
 
-\item{covariance}{[formula] Specify the model for the covariance.
-No left hand side. On the right hand side,
-either only the grouping variable (when specifying a compound symmetry structure), e.g. ~1|id,
-or the time/repetition variable and the grouping variable, e.g. ~ time|id.}
+\item{structure}{[character] type of covariance structure, either \code{"CS"} (compound symmetry) or \code{"UN"} (unstructured).}
 
 \item{data}{[data.frame] dataset (in the long format) containing the observations.}
 
+\item{method.fit}{[character] Should Restricted Maximum Likelihoood (\code{"REML"}) or Maximum Likelihoood (\code{"ML"}) be used to estimate the model parameters?}
+
 \item{df}{[logical] Should the degree of freedom be computed using a Satterthwaite approximation?}
 
+\item{debug}{[interger, >0] Show the progress of the execution of the function.}
+
 \item{...}{passed to \code{nlme::gls}.}
+
+\item{covariance}{[formula] Specify the model for the covariance.
+On the right hand side the time/repetition variable and the grouping variable, e.g. ~ time|id.
+On the left hand side, a possible stratification variable, e.g. group ~ time|id. In that case the mean structure should only be stratified on this variable using interactions.}
 }
 \description{
 Fit a linear mixed model using either a compound symmetry structure or an unstructured covariance matrix.
@@ -51,11 +66,19 @@ dL$visit <- factor(dL$visit,
 head(dL)
 
 ## fit mixed model
-e0.lmm <- lmm(Y ~ visit + age + gender, covariance = ~1|id, data = dL)
-summary(e0.lmm)
-nlme:::summary.gls(e0.lmm)
+eCS.lmm <- lmm(Y ~ visit + age + gender, variance = ~visit|id, structure = "CS", data = dL, debug = 2)
+eCS.lmm <- lmm(Y ~ visit, variance = ~visit|id, structure = "CS", data = dL, debug = 2)
+vcov(eCS.lmm, type = "lmm")
+vcov(eCS.lmm, type = "gls")
 
-e.lmm <- lmm(Y ~ visit + age + gender, covariance = ~visit|id, data = dL)
+
+eUN.lmm <- lmm(Y ~ visit*gender + age* gender, variance = ~visit|id, structure = "UN", data = dL, debug = 2)
+
+eCSs.lmm <- lmm(Y ~ visit*gender + age* gender, variance = gender~visit|id, structure = "CS", data = dL, debug = 2)
+summary(e0.lmm)
+
+
+e.lmm <- lmm(Y ~ visit + age + gender, variance = ~visit|id, data = dL)
 cat(attr(e.lmm,"code")) ## code used to fit the model
 head(attr(e.lmm,"data")) ## data used to fit the model
 summary(e.lmm)
