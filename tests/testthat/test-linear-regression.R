@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: May 27 2021 (11:25) 
+## Last-Updated: May 27 2021 (21:49) 
 ##           By: Brice Ozenne
-##     Update #: 108
+##     Update #: 115
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,6 +21,7 @@ if(FALSE){
     library(lava)
     library(multcomp)
     library(emmeans)
+    library(nlme)
 
     library(LMMstar)
 }
@@ -50,9 +51,9 @@ d$time <- "t1"
 
 ## * single variance parameter (ML)
 ## ** fit
-e.lmm <- lmm(Y ~ X1 + X2 + Gene, variance = ~time|id, structure = "CS", data = d, debug = 2,
+e.lmm <- lmm(Y ~ X1 + X2 + Gene, repetition = ~time|id, structure = "CS", data = d, debug = 2,
              method = "ML")
-expect_warning(lmm(Y ~ X1 + X2 + Gene, variance = ~time|id, structure = "UN", data = d))
+expect_warning(lmm(Y ~ X1 + X2 + Gene, repetition = ~time|id, structure = "UN", data = d))
 e.gls <- gls(Y ~ X1 + X2 + Gene, data = d, method = "ML")
 e.lava <- estimate(lvm(Y~X1+X2+Gene),data = d)
 
@@ -73,12 +74,12 @@ expect_equal(logLik(e.lmm), as.double(logLik(e.gls)), tol = 1e-6)
 ## coef(e.lmm, transform.sigma = "logsquare")
 
 ## no transformation
-newp <- coef(e.lmm)+1
+newp <- coef(e.lmm, transform.sigma = "none")+1
 newp.lava <- coef(e.lava) + 1 ; newp.lava["Y~~Y"] <- (sqrt(newp.lava["Y~~Y"]-1)+1)^2
 expect_equal(logLik(e.lmm, p = newp), as.double(logLik(e.lava, p = newp.lava)), tol = 1e-6)
 
 ## ** score
-expect_true(all(abs(score(e.lmm)) < 1e-6))
+expect_true(all(abs(lava::score(e.lmm)) < 1e-6))
 ## score(e.lmm, transform.sigma = "log")
 ## score(e.lmm, transform.sigma = "square")
 ## score(e.lmm, transform.sigma = "logsquare")
@@ -108,8 +109,8 @@ test <- information(e.lmm, p = coef(e.lmm, transform.sigma = "none"), transform.
 testE <- information(e.lmm, p = coef(e.lmm, transform.sigma = "none"), transform.sigma = "none", type.information = "expected")
 testE2 <- information(e.lmm, p = coef(e.lmm, transform.sigma = "none"), transform.sigma = "square", type.information = "expected")
 expect_equal(as.double(test),as.double(testE), tol = 1e-6)
-expect_equal(unname(testE["sigma","sigma"]),unname(2*n.obs/coef(e.lmm)["sigma"]^2), tol = 1e-6)
-expect_equal(unname(testE2["sigma^2","sigma^2"]),unname(n.obs/(2*coef(e.lmm)["sigma"]^4)), tol = 1e-6)
+expect_equal(unname(testE["sigma","sigma"]),unname(2*n.obs/coef(e.lmm, transform.sigma = "none")["sigma"]^2), tol = 1e-6)
+expect_equal(unname(testE2["sigma^2","sigma^2"]),unname(n.obs/(2*coef(e.lmm, transform.sigma = "none")["sigma"]^4)), tol = 1e-6)
 
 GS <- -hessian(func = function(p){logLik(e.lmm, p = p)}, x = coef(e.lmm, transform.sigma = "none"))
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
@@ -166,12 +167,13 @@ expect_equal(test$mean["Gene","statistic"]*test$mean["Gene","df.num"],
              unname(lava::compare(e.lava, par = c("Y~GeneLA","Y~GeneAA"))$statistic), tol = 1e-6)
 expect_equal(test$mean["Gene","df.denom"], NROW(d))
 
+
 anova(e.lmm, effect = c("GeneLA=0","GeneAA=0"))
 anova(e.lmm, effect = c("GeneLA=0","GeneAA=0"), print.null=TRUE)
 
 ## * single variance parameter (REML)
 ## ** fit
-e.lmm <- lmm(Y ~ X1 + X2 + Gene, variance = ~time|id, structure = "CS", data = d, debug = 2,
+e.lmm <- lmm(Y ~ X1 + X2 + Gene, repetition = ~time|id, structure = "CS", data = d, debug = 2,
              method = "REML", df = TRUE)
 e.gls <- gls(Y ~ X1 + X2 + Gene, data = d, method = "REML")
 
@@ -190,7 +192,7 @@ expect_equal(logLik(e.lmm), as.double(logLik(e.gls)), tol = 1e-6)
 expect_true(all(abs(score(e.lmm)) < 1e-6))
 
 ## no transformation
-newp <- coef(e.lmm)+1
+newp <- coef(e.lmm, transform.sigma = "none")+1
 GS <- jacobian(func = function(p){logLik(e.lmm, p = p)}, x = newp)
 test <- score(e.lmm, p = newp, transform.sigma = "none")
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
@@ -205,7 +207,7 @@ expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 test <- information(e.lmm, p = coef(e.lmm, transform.sigma = "none"), transform.sigma = "none", type.information = "observed")
 GS <- -hessian(func = function(p){logLik(e.lmm, p = p)}, x = coef(e.lmm, transform.sigma = "none"))
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
-expect_equal(unname(test["sigma","sigma"]),unname(2*(n.obs-n.mu)/coef(e.lmm)["sigma"]^2), tol = 1e-6)
+expect_equal(unname(test["sigma","sigma"]),unname(2*(n.obs-n.mu)/coef(e.lmm, transform.sigma = "none")["sigma"]^2), tol = 1e-6)
 
 testE <- information(e.lmm, p = coef(e.lmm, transform.sigma = "none"), transform.sigma = "none", type.information = "expected")
 ## difference: in one case (information)  : n / sigma^2
@@ -213,15 +215,15 @@ testE <- information(e.lmm, p = coef(e.lmm, transform.sigma = "none"), transform
 ## which are equal when sum(residuals^2)/n = sigma^2
 
 test2 <- information(e.lmm, p = coef(e.lmm, transform.sigma = "none"), transform.sigma = "square", type.information = "observed")
-expect_equal(unname(test2["sigma^2","sigma^2"]),unname((n.obs-n.mu)/(2*coef(e.lmm)["sigma"]^4)), tol = 1e-6)
+expect_equal(unname(test2["sigma^2","sigma^2"]),unname((n.obs-n.mu)/(2*coef(e.lmm, transform.sigma = "none")["sigma"]^4)), tol = 1e-6)
 
-test1 <- information(e.lmm, p = coef(e.lmm), transform.sigma = "log", type = "observed")
-test2 <- information(e.lmm, p = coef(e.lmm), transform.sigma = "log", type = "expected")
+test1 <- information(e.lmm, p = coef(e.lmm, transform.sigma = "none"), transform.sigma = "log", type = "observed")
+test2 <- information(e.lmm, p = coef(e.lmm, transform.sigma = "none"), transform.sigma = "log", type = "expected")
 GS <- -hessian(func = function(p){p["sigma"] <- exp(p["sigma"]); logLik(e.lmm, p = p)}, x = coef(e.lmm, transform.sigma = "log", transform.names = FALSE))
 expect_equal(as.double(test1), as.double(GS), tol = 1e-6)
 
-test1 <- information(e.lmm, p = coef(e.lmm), transform.sigma = "square", type = "observed")
-test2 <- information(e.lmm, p = coef(e.lmm), transform.sigma = "square", type = "expected")
+test1 <- information(e.lmm, p = coef(e.lmm, transform.sigma = "none"), transform.sigma = "square", type = "observed")
+test2 <- information(e.lmm, p = coef(e.lmm, transform.sigma = "none"), transform.sigma = "square", type = "expected")
 GS <- -hessian(func = function(p){p["sigma"] <- sqrt(p["sigma"]); logLik(e.lmm, p = p)}, x = coef(e.lmm, transform.sigma = "square", transform.names = FALSE))
 expect_equal(as.double(test1), as.double(GS), tol = 1e-6)
 expect_equal(as.double(test1["sigma^2","sigma^2"]), as.double((nobs(e.lmm)[1]-length(coef(e.lmm, effect = "mean")))/(2*coef(e.lmm, effect = "variance", transform.sigma = "square")^2)), tol = 1e-6)
@@ -233,24 +235,30 @@ test <- information(e.lmm, p = newp, transform.sigma = "none")
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## ** degree of freedom
+e.lmm <- lmm(Y ~ 1, repetition = ~time|id, structure = "CS", data = d, debug = 2,
+             method = "REML", df = TRUE)
+
 test <- confint(e.lmm, transform.sigma = "log", type.information = "observed")$df
 expect_equal(test, rep(n.obs-n.mu,n.param), tol = 1e-6)
 
-## confint(e.lmm, transform.sigma = "square", type.information = "expected")
+## numerical derivative
+test <- confint(e.lmm, transform.sigma = "log", type.information = "observed")$df
+FF.bis <- function(p){p["sigma"] <- exp(p["sigma"])   ; diag(vcov(e.lmm, p = p, transform.sigma = "log", type.information = "observed"))}
+GG.bis <- jacobian(func = FF.bis, x = coef(e.lmm, transform.sigma = "log", transform.names = FALSE), method = LMMstar.options()$method.numDeriv)
+VV.bis <- vcov(e.lmm, transform.sigma = "log", type.information = "observed")
+GS <- sapply(1:NROW(GG.bis),function(gg){2*VV.bis[gg,gg]^2/ (GG.bis[gg,,drop=FALSE] %*% VV.bis %*% t(GG.bis[gg,,drop=FALSE]))})
+expect_equal(unname(test), unname(GS), tol = 1e-6)
 
-## numerical derivative with appropriate transformation
-test2 <- confint(e.lmm, transform.sigma = "square", type.information = "observed")$df
-FF <- function(p){p["sigma"] <- sqrt(p["sigma"]);diag(vcov(e.lmm, p = p, transform.sigma = "square", type.information = "observed"))}
-GG <- jacobian(func = FF, x = coef(e.lmm, transform.sigma = "square", transform.names = FALSE))
-VV <- vcov(e.lmm, p = coef(e.lmm), transform.sigma = "square", type.information = "observed")
-GS <- sapply(1:NROW(GG),function(gg){2*VV[gg,gg]^2/ (GG[gg,,drop=FALSE] %*% VV %*% t(GG[gg,,drop=FALSE]))})
-expect_equal(unname(test2), unname(GS), tol = 1e-6)
+## test <- vcov(e.lmm, df = 2, transform.sigma = "log", type.information = "observed")
+## all(abs(test-VV.bis)<1e-10)
+## apply(attr(test,"dVcov"),3,diag)
+## GG.bis
 
 ## numerical derivative on another scale
-test <- confint(e.lmm, transform.sigma = "none", type.information = "observed")$df
-FF.bis <- function(p){diag(vcov(e.lmm, p = p, transform.sigma = "none", type.information = "observed"))}
-GG.bis <- jacobian(func = FF.bis, x = coef(e.lmm, transform.sigma = "none"))
-VV.bis <- vcov(e.lmm, p = coef(e.lmm), transform.sigma = "none", type.information = "observed")
+test <- confint(e.lmm, transform.sigma = "square", type.information = "observed")$df
+FF.bis <- function(p){p["sigma"] <- sqrt(p["sigma"]); diag(vcov(e.lmm, p = p, transform.sigma = "square", type.information = "observed"))}
+GG.bis <- jacobian(func = FF.bis, x = coef(e.lmm, transform.sigma = "square", transform.names = FALSE), method = LMMstar.options()$method.numDeriv)
+VV.bis <- vcov(e.lmm, transform.sigma = "square", type.information = "observed")
 GS <- sapply(1:NROW(GG.bis),function(gg){2*VV.bis[gg,gg]^2/ (GG.bis[gg,,drop=FALSE] %*% VV.bis %*% t(GG.bis[gg,,drop=FALSE]))})
 expect_equal(unname(test), unname(GS), tol = 1e-6)
 
@@ -262,10 +270,10 @@ expect_equal(test$mean$p.value,GS[["p-value"]][-1], tol = 1e-6)
 
 ## * multiple variance parameters (ML)
 ## ** fit
-e.lmm <- lmm(Y ~ -1 + Gender + (X1 + X2 + Gene):Gender, variance = ~Gender|id, structure = "UN", data = d, debug = 2,
+e.lmm <- lmm(Y ~ -1 + Gender + (X1 + X2 + Gene):Gender, repetition = ~Gender|id, structure = "UN", data = d, debug = 2,
              method = "ML")
 e.gls <- gls(Y ~ -1 + Gender + (X1 + X2 + Gene):Gender, data = d, weights = varIdent(form=~1|Gender), method = "ML")
-e.lmm2 <- lmm(Y ~(X1 + X2 + Gene)*Gender, variance = Gender~time|id, structure = "CS", data = d, debug = 2,
+e.lmm2 <- lmm(Y ~(X1 + X2 + Gene)*Gender, repetition = Gender~time|id, structure = "CS", data = d, debug = 2,
              method = "ML")
 
 n.obs <- unname(nobs(e.lmm)[1])
@@ -380,7 +388,7 @@ emmeans(e.lmm, specs = ~Gender)
 
 ## * multiple variance parameters (REML)
 ## ** fit
-e.lmm <- lmm(Y ~ -1 + Gender + (X1 + X2 + Gene):Gender, variance = ~Gender|id, structure = "UN", data = d, debug = 2,
+e.lmm <- lmm(Y ~ -1 + Gender + (X1 + X2 + Gene):Gender, repetition = ~Gender|id, structure = "UN", data = d, debug = 2,
              method = "REML")
 e.gls <- gls(Y ~ -1 + Gender + (X1 + X2 + Gene):Gender, data = d, weights = varIdent(form=~1|Gender), method = "REML")
 

@@ -8,8 +8,8 @@
 \method{confint}{lmm}(
   object,
   parm = NULL,
-  effects = "all",
   level = 0.95,
+  effects = "all",
   null = NULL,
   type.object = "lmm",
   strata = NULL,
@@ -29,12 +29,14 @@
 \arguments{
 \item{object}{a \code{lmm} object.}
 
+\item{parm}{Not used. For compatibility with the generic method.}
+
+\item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
+
 \item{effects}{[character] Should the CIs/p-values for all coefficients be output (\code{"all"}),
 or only for mean coefficients (\code{"mean"}),
 or only for variance coefficients (\code{"variance"}),
 or only for correlation coefficients (\code{"correlation"}).}
-
-\item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
 
 \item{null}{[numeric vector] the value of the null hypothesis relative to each coefficient.}
 
@@ -44,13 +46,11 @@ or only for correlation coefficients (\code{"correlation"}).}
 
 \item{df}{[logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.}
 
-\item{type.information, transform.sigma, transform.k, transform.rho, transform.names}{are passed to the \code{vcov} method.}
+\item{type.information, transform.sigma, transform.k, transform.rho, transform.names}{are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.}
 
 \item{backtransform.mu, backtransform.sigma, backtransform.k, backtransform.rho}{[function] possible backtransformation for the estimate, lower and upper bounds of the confidence interval.}
 
 \item{...}{Not used. For compatibility with the generic method.}
-
-\item{param}{Not used. For compatibility with the generic method.}
 }
 \value{
 A data.frame containing for each coefficient (in rows): \itemize{
@@ -66,6 +66,24 @@ A data.frame containing for each coefficient (in rows): \itemize{
 }
 \description{
 Compute confidence intervals (CIs) and p-values for the coefficients of a linear mixed model.
+}
+\examples{
+## simulate data in the long format
+set.seed(10)
+dL <- sampleRem(100, n.times = 3, format = "long")
+
+## fit mixed model
+eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
+
+## based on normal distribution with transformation
+confint(eUN.lmm)
+## based on normal distribution without transformation
+confint(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none")
+## based on Student's t-distribution with transformation
+\dontrun{
+confint(eUN.lmm, df = TRUE)
+}
+
 }
 \seealso{
 the function \code{multcomp::glht} to perform inference about linear combinations of coefficients and adjust for multiple comparisons.

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:41) 
 ## Version: 
-## Last-Updated: Apr 20 2021 (15:54) 
+## Last-Updated: May 27 2021 (12:11) 
 ##           By: Brice Ozenne
-##     Update #: 10
+##     Update #: 11
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,9 +17,13 @@
 
 ## * nobs.lmm
 ##' @export
-nobs.lmm <- function(object, type.object = "lmm"){
+nobs.lmm <- function(object, type.object = "lmm", ...){
     
     ## ** normalize user imput
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
     type.object <- match.arg(type.object, c("lmm","gls"))
 
     ## ** extract

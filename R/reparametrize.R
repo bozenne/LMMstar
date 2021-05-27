@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: May 21 2021 (12:13) 
+## Last-Updated: May 27 2021 (15:10) 
 ##           By: Brice Ozenne
-##     Update #: 317
+##     Update #: 323
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -107,7 +107,8 @@ reparametrize <- function(p, type, strata, time.levels,
 
     }else{
         init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
-                                x.transform.sigma = NULL, x.transform.k = NULL, x.transform.rho = NULL)
+                                x.transform.sigma = NULL, x.transform.k = NULL, x.transform.rho = NULL,
+                                backtransform.sigma = NULL, backtransform.k = NULL, backtransform.rho = NULL)
             
         ls.out <- .reparametrize(p = p, type = type, strata = strata, time.levels = time.levels,
                                  Jacobian = Jacobian, dJacobian = dJacobian, inverse = FALSE,
@@ -659,9 +660,10 @@ reparametrize <- function(p, type, strata, time.levels,
 
 ## * .init_transform
 .init_transform <- function(transform.sigma, transform.k, transform.rho, options,
-                            x.transform.sigma, x.transform.k, x.transform.rho){
+                            x.transform.sigma, x.transform.k, x.transform.rho,
+                            backtransform.sigma, backtransform.k, backtransform.rho){
 
-    ## ** check and initialize
+    ## ** transform
     if(is.null(transform.sigma)){
         transform.sigma.save <- transform.sigma
         transform.sigma <- options$transform.sigma
@@ -687,6 +689,7 @@ reparametrize <- function(p, type, strata, time.levels,
         attr(transform.rho,"arg") <- NULL
     }
 
+    ## ** x.transform
     if(!is.null(x.transform.sigma) && !is.null(x.transform.k) && !is.null(x.transform.rho)){
         if(is.function(transform.sigma) || is.function(transform.k) || is.function(transform.rho)){
             test.notransform <- FALSE
@@ -697,11 +700,52 @@ reparametrize <- function(p, type, strata, time.levels,
         test.notransform <- NULL
     }
 
+    ## ** back.transform
+    if(is.null(backtransform.sigma)){
+        backtransform.sigma <- options$backtransform.sigma
+    }
+    if(identical(as.logical(backtransform.sigma),TRUE)){
+        backtransform.sigma <- switch(transform.sigma,
+                                      "none" = "none",
+                                      "log" = "exp",
+                                      "square" = "none",
+                                      "logsquare" = "exp")
+    }
+
+    if(is.null(backtransform.k)){
+        backtransform.k <- options$backtransform.k
+    }
+    if(identical(as.logical(backtransform.k),TRUE)){
+        backtransform.k <- switch(transform.k,
+                                  "none" = "none",
+                                  "log" = "exp",
+                                  "square" = "none",
+                                  "logsquare" = "exp",
+                                  "sd" = "none",
+                                  "logsd" = "exp",
+                                  "var" = "none",
+                                  "logvar" = "exp")
+        backtransform.sigma <- backtransform.k
+    }
+
+    if(is.null(backtransform.rho)){
+        backtransform.rho <- options$backtransform.rho
+    }
+    if(identical(as.logical(backtransform.rho),TRUE)){
+        backtransform.rho <- switch(transform.rho,
+                                    "none" = "none",
+                                    "atanh" = "tanh",
+                                    "cov" = "cov")
+    }
+
     ## ** export
     return(list(transform.sigma = transform.sigma,
                 transform.k = transform.k,
                 transform.rho = transform.rho,
-                test.notransform = test.notransform))
+                test.notransform = test.notransform,
+                backtransform.sigma = backtransform.sigma,
+                backtransform.k = backtransform.k,
+                backtransform.rho = backtransform.rho))
 }
 
 ##----------------------------------------------------------------------

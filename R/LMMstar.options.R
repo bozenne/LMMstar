@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: May 21 2021 (09:58) 
+## Last-Updated: May 27 2021 (14:39) 
 ##           By: Brice Ozenne
-##     Update #: 23
+##     Update #: 25
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -34,9 +34,12 @@ LMMstar.options <- function(..., reinitialise = FALSE){
                list(df = TRUE,
                     method.fit = "REML",
                     method.numDeriv = "simple", 
-                    transform.sigma = "none",
-                    transform.k = "none",
-                    transform.rho = "none",
+                    transform.sigma = "log",
+                    transform.k = "log",
+                    transform.rho = "atanh",
+                    backtransform.sigma = TRUE,
+                    backtransform.k = TRUE,
+                    backtransform.rho = TRUE,
                     type.information = "observed"),
                envir = LMMstar.env)
     

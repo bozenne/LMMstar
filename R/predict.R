@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: May 19 2021 (12:36) 
+## Last-Updated: May 27 2021 (16:12) 
 ##           By: Brice Ozenne
-##     Update #: 62
+##     Update #: 70
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -14,9 +14,42 @@
 ##----------------------------------------------------------------------
 ## 
 ### Code:
+## * predict.lmm (documentation)
+##' @title Predicted Mean Value For Linear Mixed Models
+##'
+##' @param object a \code{lmm} object.
+##' @param newdata [data.frame] the covariate values for each cluster.
+##' @param level [numeric,0-1] the confidence level of the confidence intervals.
+##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the predicted mean. Otherwise a normal distribution is used.
+##' @param ... Not used. For compatibility with the generic method.
+##'
+##' @return A data.frame with 5 columns:\itemize{
+##' \item \code{estimate}: predicted mean.
+##' \item \code{se}: uncertainty about the predicted mean.
+##' \item \code{df}: degree of freedom
+##' \item \code{lower}: lower bound of the confidence interval of the predicted mean
+##' \item \code{upper}: upper bound of the confidence interval of the predicted mean
+##' }
+##'
+##' @examples
+##' ## simulate data in the long format
+##' set.seed(10)
+##' dL <- sampleRem(100, n.times = 3, format = "long")
+##' 
+##' ## fit mixed model
+##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
+##'
+##' ## prediction
+##' predict(eUN.lmm, newdata = data.frame(X1 = 1, X2 = 2, X5 = 3))
+##'
+##' ## with Student's t-distribution
+##' \dontrun{
+##' predict(eUN.lmm, newdata = data.frame(X1 = 1, X2 = 2, X5 = 3), df = TRUE)
+##' }
+
 ## * predict.lmm (code)
 ##' @export
-predict.lmm <- function(object, newdata, level = 0.95, df = TRUE, ...){
+predict.lmm <- function(object, newdata, level = 0.95, df = !is.null(object$df), ...){
     
     ## ** normalize user imput
     dots <- list(...)
@@ -25,7 +58,8 @@ predict.lmm <- function(object, newdata, level = 0.95, df = TRUE, ...){
     }
 
     ## ** compute predictions
-    X.beta <- model.matrix(object, effects = "mean")
+    ff.mean <- stats::formula(object, effects = "mean")
+    X.beta <- model.matrix(delete.response(terms(ff.mean)), newdata)
     n.obs <- NROW(X.beta)
     beta <- coef(object, effects = "mean")
     n.beta <- length(beta)
@@ -35,10 +69,14 @@ predict.lmm <- function(object, newdata, level = 0.95, df = TRUE, ...){
     prediction <- X.beta %*% beta
     prediction.vcov <- X.beta %*% vcov.beta %*% t(X.beta)
     prediction.se <- sqrt(diag(prediction.vcov))
-    
+
     ## ** df
     if(df){
-        prediction.df <- .dfX(X = X.beta, vcov.param = vcov(object, effects = "all"), dVcov.param = object$dVcov)
+        vcov.param <- vcov(object, effects = "all", df = 2, transform.names = FALSE)
+        dVcov <- attr(vcov.param,"dVcov")
+        attr(vcov.param, "df") <- NULL
+        attr(vcov.param, "dVcov") <- NULL
+        prediction.df <- .dfX(X = X.beta, vcov.param = vcov.param, dVcov.param = dVcov)
     }else{
         prediction.df <- rep(Inf,n.obs)
     }

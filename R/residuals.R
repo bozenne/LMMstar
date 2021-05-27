@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: May 27 2021 (09:38) 
+## Last-Updated: May 27 2021 (16:32) 
 ##           By: Brice Ozenne
-##     Update #: 86
+##     Update #: 88
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -39,6 +39,17 @@
 ##' When argument format is \code{"long"} and type.oobject is \code{"lmm"}, a vector containing the value of the residual realtive to each observation.
 ##' When argument format is \code{"wide"} and type.oobject is \code{"lmm"}, a data.frame with the value of the residual relative to each cluster (in rows) at each timepoint (in columns).
 ##' 
+##' @examples
+##' ## simulate data in the long format
+##' set.seed(10)
+##' dL <- sampleRem(100, n.times = 3, format = "long")
+##' 
+##' ## fit mixed model
+##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
+##'
+##' ## prediction
+##' residuals(eUN.lmm, format = "wide")
+##' residuals(eUN.lmm, format = "wide", type.residual = "normalized")
 
 
 ## * residuals.lmm (code)
@@ -101,7 +112,7 @@ residuals.lmm <- function(object, type.residual = "response", format = "long",
             }
             beta <- p[names(object$param$type=="mu")]
             if(type.residuals %in% c("pearson","normalized","tnormalized")){
-                Omega <- .calc_Omega(object = X.var, param = p, type = object$param$type, strata = object$param$strata)
+                Omega <- .calc_Omega(object = X.var, param = p)
                 precision <- lapply(Omega, solve)
             }
         }else{

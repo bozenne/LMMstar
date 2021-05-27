@@ -33,6 +33,8 @@ or only for coefficients relative to the correlation structure (\code{"correlati
 
 \item{type.object}{[character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.}
 
+\item{strata}{[character vector] When not \code{NULL}, only output the variance-covariance matrix for the estimated parameters relative to specific levels of the variable used to stratify the mean and covariance structure.}
+
 \item{data}{[data.frame] dataset relative to which the information should be computed. Only relevant if differs from the dataset used to fit the model.}
 
 \item{p}{[numeric vector] value of the model coefficients at which to evaluate the information. Only relevant if differs from the fitted values.}

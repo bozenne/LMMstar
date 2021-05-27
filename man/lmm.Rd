@@ -6,7 +6,7 @@
 \usage{
 lmm(
   formula,
-  variance,
+  repetition,
   structure,
   data,
   method.fit = NULL,
@@ -21,6 +21,10 @@ lmm(
 On the left hand side the outcome and on the right hand side the covariates affecting the mean value.
 E.g. Y ~ Gender + Gene.}
 
+\item{repetition}{[formula] Specify the model for the covariance.
+On the right hand side the time/repetition variable and the grouping variable, e.g. ~ time|id.
+On the left hand side, a possible stratification variable, e.g. group ~ time|id. In that case the mean structure should only be stratified on this variable using interactions.}
+
 \item{structure}{[character] type of covariance structure, either \code{"CS"} (compound symmetry) or \code{"UN"} (unstructured).}
 
 \item{data}{[data.frame] dataset (in the long format) containing the observations.}
@@ -29,57 +33,26 @@ E.g. Y ~ Gender + Gene.}
 
 \item{df}{[logical] Should the degree of freedom be computed using a Satterthwaite approximation?}
 
+\item{type.information}{[character] Should the expected information be computed  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).}
+
 \item{debug}{[interger, >0] Show the progress of the execution of the function.}
 
 \item{...}{passed to \code{nlme::gls}.}
-
-\item{covariance}{[formula] Specify the model for the covariance.
-On the right hand side the time/repetition variable and the grouping variable, e.g. ~ time|id.
-On the left hand side, a possible stratification variable, e.g. group ~ time|id. In that case the mean structure should only be stratified on this variable using interactions.}
 }
 \description{
 Fit a linear mixed model using either a compound symmetry structure or an unstructured covariance matrix.
 This is essentially an interface to the \code{nlme::gls} function.
 }
 \examples{
-## simulate data in the wide format
-library(lava)
-m <- lvm(c(Y1,Y2,Y3,Y4) ~ age + gender)
-categorical(m, labels = c("male","female")) <- ~gender
-transform(m, id~gender) <- function(x){1:NROW(x)}
-distribution(m, ~age) <- gaussian.lvm(mean = 50, sd = 10)
-
+## simulate data in the long format
 set.seed(10)
-dW <- lava::sim(m, 1e2)
-
-## move to the long format
-name.varying <- paste0("Y",1:4)
-dL <- reshape(dW, direction  = "long",
-              idvar = c("id","age","gender"),
-              varying = name.varying,
-              v.names = "Y",
-              timevar = "visit")
-rownames(dL) <- NULL
-dL$visit <- factor(dL$visit,
-                   levels = 1:length(name.varying),
-                   labels = name.varying)
-head(dL)
+dL <- sampleRem(100, n.times = 3, format = "long")
 
 ## fit mixed model
-eCS.lmm <- lmm(Y ~ visit + age + gender, variance = ~visit|id, structure = "CS", data = dL, debug = 2)
-eCS.lmm <- lmm(Y ~ visit, variance = ~visit|id, structure = "CS", data = dL, debug = 2)
-vcov(eCS.lmm, type = "lmm")
-vcov(eCS.lmm, type = "gls")
+eCS.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "CS", data = dL)
 
-
-eUN.lmm <- lmm(Y ~ visit*gender + age* gender, variance = ~visit|id, structure = "UN", data = dL, debug = 2)
-
-eCSs.lmm <- lmm(Y ~ visit*gender + age* gender, variance = gender~visit|id, structure = "CS", data = dL, debug = 2)
-summary(e0.lmm)
-
-
-e.lmm <- lmm(Y ~ visit + age + gender, variance = ~visit|id, data = dL)
-cat(attr(e.lmm,"code")) ## code used to fit the model
-head(attr(e.lmm,"data")) ## data used to fit the model
-summary(e.lmm)
+## output
+eCS.lmm
+summary(eCS.lmm)
+summary(eCS.lmm, ci = TRUE)
 }

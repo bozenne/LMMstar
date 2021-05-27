@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: May 27 2021 (11:07) 
+## Last-Updated: May 27 2021 (17:01) 
 ##           By: Brice Ozenne
-##     Update #: 731
+##     Update #: 749
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -23,62 +23,33 @@
 ##' @param formula [formula] Specify the model for the mean.
 ##' On the left hand side the outcome and on the right hand side the covariates affecting the mean value.
 ##' E.g. Y ~ Gender + Gene.
-##' @param covariance [formula] Specify the model for the covariance.
+##' @param repetition [formula] Specify the model for the covariance.
 ##' On the right hand side the time/repetition variable and the grouping variable, e.g. ~ time|id.
 ##' On the left hand side, a possible stratification variable, e.g. group ~ time|id. In that case the mean structure should only be stratified on this variable using interactions.
 ##' @param structure [character] type of covariance structure, either \code{"CS"} (compound symmetry) or \code{"UN"} (unstructured).
 ##' @param data [data.frame] dataset (in the long format) containing the observations.
 ##' @param method.fit [character] Should Restricted Maximum Likelihoood (\code{"REML"}) or Maximum Likelihoood (\code{"ML"}) be used to estimate the model parameters?
+##' @param type.information [character] Should the expected information be computed  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
 ##' @param df [logical] Should the degree of freedom be computed using a Satterthwaite approximation?
 ##' @param debug [interger, >0] Show the progress of the execution of the function.
 ##' @param ... passed to \code{nlme::gls}.
 
 ## * lmm (examples)
 ##' @examples
-##' ## simulate data in the wide format
-##' library(lava)
-##' m <- lvm(c(Y1,Y2,Y3,Y4) ~ age + gender)
-##' categorical(m, labels = c("male","female")) <- ~gender
-##' transform(m, id~gender) <- function(x){1:NROW(x)}
-##' distribution(m, ~age) <- gaussian.lvm(mean = 50, sd = 10)
-##'
+##' ## simulate data in the long format
 ##' set.seed(10)
-##' dW <- lava::sim(m, 1e2)
-##'
-##' ## move to the long format
-##' name.varying <- paste0("Y",1:4)
-##' dL <- reshape(dW, direction  = "long",
-##'               idvar = c("id","age","gender"),
-##'               varying = name.varying,
-##'               v.names = "Y",
-##'               timevar = "visit")
-##' rownames(dL) <- NULL
-##' dL$visit <- factor(dL$visit,
-##'                    levels = 1:length(name.varying),
-##'                    labels = name.varying)
-##' head(dL)
+##' dL <- sampleRem(100, n.times = 3, format = "long")
 ##' 
 ##' ## fit mixed model
-##' eCS.lmm <- lmm(Y ~ visit + age + gender, variance = ~visit|id, structure = "CS", data = dL, debug = 2)
-##' eCS.lmm <- lmm(Y ~ visit, variance = ~visit|id, structure = "CS", data = dL, debug = 2)
-##' vcov(eCS.lmm, type = "lmm")
-##' vcov(eCS.lmm, type = "gls")
-##' 
-##' 
-##' eUN.lmm <- lmm(Y ~ visit*gender + age* gender, variance = ~visit|id, structure = "UN", data = dL, debug = 2)
-##' 
-##' eCSs.lmm <- lmm(Y ~ visit*gender + age* gender, variance = gender~visit|id, structure = "CS", data = dL, debug = 2)
-##' summary(e0.lmm)
-##' 
+##' eCS.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "CS", data = dL)
 ##'
-##' e.lmm <- lmm(Y ~ visit + age + gender, variance = ~visit|id, data = dL)
-##' cat(attr(e.lmm,"code")) ## code used to fit the model
-##' head(attr(e.lmm,"data")) ## data used to fit the model
-##' summary(e.lmm)
-
+##' ## output
+##' eCS.lmm
+##' summary(eCS.lmm)
+##' summary(eCS.lmm, ci = TRUE)
 ## * lmm (code)
 ##' @export
-lmm <- function(formula, variance, structure, data, method.fit = NULL, df = NULL, type.information = NULL, debug = FALSE, ...){
+lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NULL, type.information = NULL, debug = FALSE, ...){
     out <- list(call = match.call())
     options <- LMMstar.options()
     
@@ -128,13 +99,13 @@ lmm <- function(formula, variance, structure, data, method.fit = NULL, df = NULL
 
     if(debug>=2){cat("\n")}
     
-    ## *** variance 
-    if(debug>=2){cat("- variance ")}
-    if(!inherits(variance,"formula")){
-        stop("Argument \'variance\' must be of class formula, something like: ~ time|id or group ~ time|id. \n")
+    ## *** repetition 
+    if(debug>=2){cat("- repetition ")}
+    if(!inherits(repetition,"formula")){
+        stop("Argument \'repetition\' must be of class formula, something like: ~ time|id or group ~ time|id. \n")
     }
 
-    name.vcov <- all.vars(variance)
+    name.vcov <- all.vars(repetition)
     if(any(name.vcov %in% names(data) == FALSE)){
         invalid <- name.vcov[name.vcov %in% names(data) == FALSE]
         stop("Argument \'formula\' is inconsistent with argument \'data\'. \n",
@@ -145,43 +116,43 @@ lmm <- function(formula, variance, structure, data, method.fit = NULL, df = NULL
     ## - right hand side
     if(debug>=2){cat(" (rhs ")}
 
-    if(!grepl("|",deparse(variance),fixed = TRUE)){
-        stop("Incorrect specification of argument \'variance\'. \n",
+    if(!grepl("|",deparse(repetition),fixed = TRUE)){
+        stop("Incorrect specification of argument \'repetition\'. \n",
              "No | symbol found so no grouping variable could be defined. \n",
              "Shoud be something like: ~ time|id or group ~ time|id. \n")
     }
 
-    if(length(grepl("|",deparse(variance),fixed = TRUE))>1){
-        stop("Incorrect specification of argument \'variance\'. \n",
+    if(length(grepl("|",deparse(repetition),fixed = TRUE))>1){
+        stop("Incorrect specification of argument \'repetition\'. \n",
              "The symbol | should only appear once, something like: ~ time|id or group ~ time|id. \n")
     }
-    res.split <- strsplit(deparse(variance),"|", fixed = TRUE)[[1]]
+    res.split <- strsplit(deparse(repetition),"|", fixed = TRUE)[[1]]
     var.cluster <- trimws(res.split[2], which = "both")
     formula.var <- stats::as.formula(res.split[1])
     var.time <- all.vars(update(formula.var,0~.))
 
     if(length(var.time)!=1){
-        stop("Incorrect specification of argument \'variance\'. \n",
+        stop("Incorrect specification of argument \'repetition\'. \n",
              "There should be exactly one variable before the grouping symbol (|), something like: ~ time|id or group ~ time|id. \n")
     }
     if(length(var.cluster)!=1){
-        stop("Incorrect specification of argument \'variance\'. \n",
+        stop("Incorrect specification of argument \'repetition\'. \n",
              "Should have exactly one variable after the grouping symbol (|), something like: ~ time|id or group ~ time|id. \n")
     }
 
     test.duplicated <- tapply(data[[var.time]], data[[var.cluster]], function(iT){any(duplicated(iT))})
     if(any(test.duplicated)){
-        stop("Incorrect specification of argument \'variance\'. \n",
+        stop("Incorrect specification of argument \'repetition\'. \n",
              "The time variable (first variable before |) should contain unique values within clusters \n")
     }
 
     ## *** left hand side
     if(debug>=2){cat(" lhs) ")}
-    if(length(lhs.vars(variance))==0){
+    if(length(lhs.vars(repetition))==0){
         var.strata <- NULL
     }else{
-        if(length(lhs.vars(variance))!=1){
-            stop("Incorrect specification of argument \'variance\'. \n",
+        if(length(lhs.vars(repetition))!=1){
+            stop("Incorrect specification of argument \'repetition\'. \n",
                  "There should be at most one variable on the left hand side, something like: ~ time|id or group ~ time|id. \n")
         }else{
             var.strata <- name.vcov[1]
@@ -280,7 +251,7 @@ lmm <- function(formula, variance, structure, data, method.fit = NULL, df = NULL
         structure  <- "CS"
     }
     if(structure=="UN"){
-        formula.cor <- variance
+        formula.cor <- repetition
         if(n.strata==1){
             formula.var  <- formula.var
         }else{
@@ -307,14 +278,14 @@ lmm <- function(formula, variance, structure, data, method.fit = NULL, df = NULL
         formula.design <- update(formula, paste0(".~.-",paste0(term.exclude,collapse="-"))) ## no interaction with the strata variable
         out$formula <- list(mean = formula, ## formula will contain all interactions with strata (cf check)
                             mean.design = formula.design,
-                            var = variance,
+                            var = repetition,
                             var.design = formula.var,
                             cor = formula.cor)
     }else{
         formula.design <- formula
         out$formula <- list(mean = formula,
                             mean.design = formula.design,
-                            var = variance,
+                            var = repetition,
                             var.design = formula.var,
                             cor = formula.cor)
     }
@@ -430,7 +401,8 @@ lmm <- function(formula, variance, structure, data, method.fit = NULL, df = NULL
         out$reparametrize$Jacobian <- NULL
         out$reparametrize$dJacobian <- NULL
     }else{
-        newname.allcoef <- names(out$reparametrize$p)
+        newname.allcoef <- name.allcoef
+        newname.allcoef[match(names(out$reparametrize$p),name.allcoef)] <- out$reparametrize$newname
     }
 
     ## ** Compute partial derivatives regarding the mean and the variance
@@ -465,9 +437,6 @@ lmm <- function(formula, variance, structure, data, method.fit = NULL, df = NULL
                         index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
                         name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
                         indiv = FALSE, REML = method.fit=="REML")
-    if(out$reparametrize$transform){
-        colnames(out$score) <- newname.allcoef
-    }
 
     if(debug>=2){cat("- information \n")}
     out$information <- .information(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega,
@@ -476,9 +445,6 @@ lmm <- function(formula, variance, structure, data, method.fit = NULL, df = NULL
                                     pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef,
                                     indiv = FALSE, REML = method.fit=="REML", type.information = type.information)
     attr(out$information, "type.information") <- type.information
-    if(out$reparametrize$transform){
-        dimnames(out$information) <- list(newname.allcoef,newname.allcoef)
-    }
 
     if(debug>=2){cat("- variance-covariance \n")}
     out$vcov <- solve(out$information)
@@ -489,16 +455,11 @@ lmm <- function(formula, variance, structure, data, method.fit = NULL, df = NULL
                       index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
                       name.varcoef = out$design$X.var$param, 
                       time.k = out$design$param$time.k, time.rho = out$design$param$time.rho,
-                      pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef, REML = method.fit=="REML", type.information = type.information,
+                      pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef, REML = (method.fit=="REML"), type.information = type.information,
                       transform.sigma = out$reparametrize$transform.sigma, transform.k = out$reparametrize$transform.k, transform.rho = out$reparametrize$transform.rho,
                       vcov = out$vcov, diag = TRUE, method.numDeriv = options$method.numDeriv)
         out$dVcov <- attr(out$df,"dVcov")
         attr(out$df,"dVcov") <- NULL
-        
-        if(out$reparametrize$transform){
-            names(out$df) <- newname.allcoef
-            dimmnames(ou$dVcov) <- list(newname.allcoef, newname.allcoef, newname.allcoef)
-        }
     }    
 
     ## ** convert to lmm and export

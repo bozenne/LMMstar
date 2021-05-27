@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: May 24 2021 (09:07) 
+## Last-Updated: May 27 2021 (15:57) 
 ##           By: Brice Ozenne
-##     Update #: 173
+##     Update #: 184
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -62,6 +62,19 @@
 ##' }
 ##'
 ##' @return A vector with the value of the model coefficients.
+##' 
+##' @examples
+##' ## simulate data in the long format
+##' set.seed(10)
+##' dL <- sampleRem(100, n.times = 3, format = "long")
+##' 
+##' ## fit mixed model
+##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
+##'
+##' ## output coefficients
+##' coef(eUN.lmm)
+##' coef(eUN.lmm, effects = "mean")
+##' coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none")
 
 ## * coef.lmm (code)
 ##' @rdname coef
@@ -90,7 +103,8 @@ coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL
     }
     
     init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
-                            x.transform.sigma = x.transform.sigma, x.transform.k = x.transform.k, x.transform.rho = x.transform.rho)
+                            x.transform.sigma = x.transform.sigma, x.transform.k = x.transform.k, x.transform.rho = x.transform.rho,
+                            backtransform.sigma = NULL, backtransform.k = NULL, backtransform.rho = NULL)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
     transform.rho <- init$transform.rho
@@ -111,19 +125,30 @@ coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL
         if(any(c("variance","correlation") %in% effects)){
             pVar <- NULL
             if("variance" %in% effects){
-                pVar <- c(pVar, object$param$value[object$param$type %in% c("sigma","k")])
+                if(test.notransform){
+                    index.sigmak <- names(object$param$type)[object$param$type %in% c("sigma","k")]
+                    if(transform.names){
+                        pVar <- c(pVar, setNames(object$reparametrize$p[index.sigmak],object$reparametrize$newname[match(index.sigmak,names(object$reparametrize$p))]))
+                    }else{
+                        pVar <- c(pVar, object$reparametrize$p[index.sigmak])
+                    }                    
+                }else{
+                    pVar <- c(pVar, object$param$value[object$param$type %in% c("sigma","k")])
+                }
             }
             if("correlation" %in% effects){
-                pVar <- c(pVar, object$param$value[object$param$type %in% c("rho")])
-            }
-            if(test.notransform){
-                outVar <- object$reparametrize$p[names(pVar)]
-                if(!is.null(object$reparametrize$newname)){
-                    newname <- setNames(object$reparametrize$newname[match(names(pVar),names(object$reparametrize$p))], names(pVar))
+                if(test.notransform){
+                    index.rho <- names(object$param$type)[object$param$type %in% c("rho")]
+                    if(transform.names){
+                        pVar <- c(pVar, setNames(object$reparametrize$p[index.rho],object$reparametrize$newname[match(index.rho,names(object$reparametrize$p))]))
+                    }else{
+                        pVar <- c(pVar, object$reparametrize$p[index.rho])
+                    }                    
                 }else{
-                    newname <- NULL
+                    pVar <- c(pVar, object$param$value[object$param$type %in% c("rho")])
                 }
-            }else{
+            }
+            if(!test.notransform){
                 ls.reparam <- .reparametrize(p = pVar,
                                              type = object$param$type[names(pVar)], strata = object$param$strata[names(pVar)], time.levels = object$time$levels,
                                              time.k = object$design$param$time.k, time.rho = object$design$param$time.rho,
@@ -135,6 +160,9 @@ coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL
                 }else{
                     newname <- NULL
                 }
+            }else{
+                outVar <- pVar
+                newname <- NULL
             }
             out <- c(out,outVar)
 

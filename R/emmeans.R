@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 10 2021 (16:08) 
 ## Version: 
-## Last-Updated: May 19 2021 (12:36) 
+## Last-Updated: May 27 2021 (17:29) 
 ##           By: Brice Ozenne
-##     Update #: 32
+##     Update #: 40
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,6 +16,18 @@
 ### Code:
 
 ## * recover_data.lmm (code)
+##' @title Link to emmeans package
+##' @description Link to emmeans package. For internal use.
+##' 
+##' @name LMMstar2emmeans
+##' 
+##' @param object a \code{lmm} object.
+##' @param trms see \code{emmeans::emm_basis} documentation 
+##' @param xlev see \code{emmeans::emm_basis} documentation 
+##' @param grid see \code{emmeans::emm_basis} documentation 
+##' @param ... Not used. For compatibility with the generic method.
+##' 
+##' @method recover_data lmm
 ##' @export
 recover_data.lmm <- function(object, ...){
     fcall <- object$call
@@ -28,15 +40,8 @@ recover_data.lmm <- function(object, ...){
 }
 
 ## * emm_basis.lmm (code)
-## The function must obtain six things and return them in a named list. They are the:
-## - matrix X of linear functions for each point in the reference grid
-## - the regression coefficients bhat;
-## - the variance-covariance matrix V;
-## - a matrix nbasis for non-estimable functions;
-## - a function dffun(k,dfargs) for computing degrees of freedom for the linear function sum(k*bhat);
-## - and a list dfargs of arguments to pass to dffun.
-##  - Optionally, the returned list may include a model.matrix element (the model matrix for the data or a compact version thereof obtained via .cmpMM()), which, if included, enables the submodel option.
-## emmeans:::emm_basis.lm
+##' @rdname LMMstar2emmeans
+##' @method emm_basis lmm
 ##' @export
 emm_basis.lmm <- function(object, trms, xlev, grid, ...){
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: May 27 2021 (12:00) 
+## Last-Updated: May 27 2021 (12:27) 
 ##           By: Brice Ozenne
-##     Update #: 31
+##     Update #: 34
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -30,6 +30,7 @@ if(FALSE){
 context("Check lmm on examples of mixed model")
 LMMstar.options(method.numDeriv = "simple")
 ## LMMstar.options(method.numDeriv = "Richardson")
+level.test <- 1
 
 ## * Simulate data
 m <- lvm(c(Y1,Y2,Y3,Y4) ~ age + gender)
@@ -55,9 +56,9 @@ dL$visit <- factor(dL$visit,
 
 ## * Random intercept model / Compound symmetry structure
 ## ** fit
-## eCS.lmm <- lmm(Y ~ visit + age + gender, variance = ~visit|id, structure = "CS", data = dL, debug = 2, method = "ML")
+## eCS.lmm <- lmm(Y ~ visit + age + gender, repetition = ~visit|id, structure = "CS", data = dL, debug = 2, method = "ML")
 ## eCS.gls <- gls(Y ~ visit + age + gender, correlation = corCompSymm(form=~1|id), data = dL, method = "ML")
-eCS.lmm <- lmm(Y ~ visit + age + gender, variance = ~visit|id, structure = "CS", data = dL, debug = 2, method = "REML")
+eCS.lmm <- lmm(Y ~ visit + age + gender, repetition = ~visit|id, structure = "CS", data = dL, debug = 2, method = "REML")
 eCS.gls <- gls(Y ~ visit + age + gender, correlation = corCompSymm(form=~1|id), data = dL, method = "REML")
 
 ## ** coef
@@ -134,8 +135,8 @@ getVarCov(eCS.lmm)
 
 ## * Unstructed covariance matrix
 ## ** fit
-eUNexp.lmm <- lmm(Y ~ visit + age + gender, variance = ~visit|id, structure = "UN", data = dL, debug = 2, method = "REML", type.information = "expected")
-eUN.lmm <- lmm(Y ~ visit + age + gender, variance = ~visit|id, structure = "UN", data = dL, debug = 2, method = "REML", type.information = "observed")
+eUNexp.lmm <- lmm(Y ~ visit + age + gender, repetition = ~visit|id, structure = "UN", data = dL, debug = 2, method = "REML", type.information = "expected", df = level.test)
+eUN.lmm <- lmm(Y ~ visit + age + gender, repetition = ~visit|id, structure = "UN", data = dL, debug = 2, method = "REML", type.information = "observed")
 eUN.gls <- gls(Y ~ visit + age + gender, correlation = corSymm(form=~1|id), weights = varIdent(form=~1|visit), data = dL, method = "REML")
 
 ## ** coef
@@ -215,7 +216,7 @@ getVarCov(eUN.lmm)
 
 ## * Stratified random intercept model / Compound symmetry structure
 ## ** fit
-eCS.lmm <- lmm(Y ~ (visit + age)*gender, variance = gender~visit|id, structure = "CS", data = dL, debug = 2, method = "REML")
+eCS.lmm <- lmm(Y ~ (visit + age)*gender, repetition = gender~visit|id, structure = "CS", data = dL, debug = 2, method = "REML")
 eCS.gls <- list(male=gls(Y ~ visit + age, correlation = corCompSymm(form=~1|id), data = dL[dL$gender=="male",], method = "REML"),
                 female=gls(Y ~ visit + age, correlation = corCompSymm(form=~1|id), data = dL[dL$gender=="female",], method = "REML"))
 
@@ -292,7 +293,7 @@ getVarCov(eCS.lmm)
 
 ## * Stratified unstructed covariance matrix
 ## ** fit
-eUN.lmm <- lmm(Y ~ (visit + age)*gender, variance = gender~visit|id, structure = "UN", data = dL, debug = 2, method = "REML")
+eUN.lmm <- lmm(Y ~ (visit + age)*gender, repetition = gender~visit|id, structure = "UN", data = dL, debug = 2, method = "REML")
 eUN.gls <- list(male=gls(Y ~ visit + age, correlation = corSymm(form=~1|id), weights = varIdent(form=~1|visit), data = dL[dL$gender=="male",], method = "REML"),
                 female=gls(Y ~ visit + age, correlation = corSymm(form=~1|id), weights = varIdent(form=~1|visit), data = dL[dL$gender=="female",], method = "REML"))
 summary(eUN.lmm)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: May 27 2021 (09:51) 
+## Last-Updated: May 27 2021 (21:48) 
 ##           By: Brice Ozenne
-##     Update #: 285
+##     Update #: 335
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,9 +26,10 @@
 ##' or only for coefficients relative to the variance structure (\code{"variance"}),
 ##' or only for coefficients relative to the correlation structure (\code{"correlation"}).
 ##' @param df [logical] Should degree of freedom, computed using Satterthwaite approximation, for the model parameters be output.
+##' @param type.object [character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.
 ##' @param data [data.frame] dataset relative to which the information should be computed. Only relevant if differs from the dataset used to fit the model.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the information. Only relevant if differs from the fitted values.
-##' @param type.object [character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.
+##' @param strata [character vector] When not \code{NULL}, only output the variance-covariance matrix for the estimated parameters relative to specific levels of the variable used to stratify the mean and covariance structure.
 ##' @param type.information [character] Should the expected information be used  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
 ##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
 ##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
@@ -74,7 +75,8 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
     }
 
     init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
-                            x.transform.sigma = x.transform.sigma, x.transform.k = x.transform.k, x.transform.rho = x.transform.rho)
+                            x.transform.sigma = x.transform.sigma, x.transform.k = x.transform.k, x.transform.rho = x.transform.rho,
+                            backtransform.sigma = NULL, backtransform.k = NULL, backtransform.rho = NULL)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
     transform.rho <- init$transform.rho
@@ -82,23 +84,24 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
 
     ## ** extract or recompute variance covariance matrix
     if(type.object=="lmm"){
-        keep.name <- setNames(names(coef(object, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)),
-                              names(coef(object, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE)))
+
+        keep.name <- setNames(names(coef(object, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE)),
+                              names(coef(object, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)))
 
         if(is.null(data) && is.null(p) && test.notransform && (df == FALSE || !is.null(object$df))){
             vcov <- object$vcov[keep.name,keep.name,drop=FALSE]
-            if(transform.names == FALSE){
+            if(transform.names){
                 dimnames(vcov) <- list(names(keep.name),names(keep.name))
             }
             if(df>0){
                 attr(vcov,"df") <- object$df[keep.name]
-                if(transform.names == FALSE){
+                if(transform.names){
                     names(attr(vcov,"df")) <- names(keep.name)
                 }
             }
             if(df>1){
                 attr(vcov,"dVcov") <- object$dVcov[keep.name,keep.name,keep.name,drop=FALSE]
-                if(transform.names == FALSE){
+                if(transform.names){
                     dimnames(attr(vcov,"dVcov")) <- list(names(keep.name),names(keep.name),names(keep.name))
                 }
             }
@@ -106,23 +109,26 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
             if(df>0){
                 attr(type.information,"detail") <- TRUE
             }
-            infoFull <- information(object, data = data, p = p, type.information = type.information,
-                                    transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+            infoFull <- lava::information(object, data = data, p = p, type.information = type.information,
+                                          transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
             detail <- attr(infoFull,"detail")
             vcovFull <- solve(infoFull)
             vcov <- vcovFull[keep.name,keep.name,drop=FALSE]
+            if(transform.names){
+                dimnames(vcov) <- list(names(keep.name), names(keep.name))
+            }
             if(df>0){
                 outdf <- .df(param = detail$param, reparametrize = detail$reparametrize, Y = detail$Y, X.mean = detail$X.mean, X.var = detail$X.var,
                              index.variance = detail$index.variance, time.variance = detail$time.variance, index.cluster = detail$index.cluster, name.varcoef = detail$name.varcoef,
                              time.k = object$design$param$time.k, time.rho = object$design$param$time.rho,
                              pair.meanvarcoef = detail$pair.meanvarcoef, pair.varcoef = detail$pair.varcoef,
-                             REML = detail$REML, type.information = type.information,
+                             REML = detail$REML, type.information = as.vector(type.information),
                              transform.sigma = detail$transform.sigma, transform.k = detail$transform.k, transform.rho = detail$transform.rho, 
                              vcov = vcovFull, diag = TRUE, method.numDeriv = options$method.numDeriv)
-                attr(vcov,"df") <- setNames(outdf[names(keep.name)],keep.name)
+                attr(vcov,"df") <- setNames(outdf[keep.name],names(keep.name))
                 if(df>1){
-                    dimnames(attr(outdf,"dVcov")) <- list(keep.name,keep.name,keep.name)
                     attr(vcov,"dVcov") <- attr(outdf,"dVcov")[keep.name,keep.name,keep.name]
+                    dimnames(attr(vcov,"dVcov")) <- list(names(keep.name),names(keep.name),names(keep.name))
                 }
             }
         }
@@ -184,7 +190,7 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
     test.transform <- (transform.sigma != "none") || (transform.k != "none") || (transform.rho != "none")
 
     param.trans.value <- c(param$value[param.nameMean],reparametrize$p)[name.allcoef]
-    
+
     ## ** warper for computing information
     FUN_information <- function(p){
 
@@ -240,7 +246,7 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
     }
 
     ## ** derivative of the information using numerical derivative
-    ## matrix(FUN_information(param.trans.value), nrow = sqrt(n.param), ncol = sqrt(n.param))
+    ## matrix(FUN_information(param.trans.value), nrow = n.allcoef, ncol = n.allcoef)
     if(type.information == "observed"){
         M.dInfo <- numDeriv::jacobian(func = FUN_information, x = param.trans.value, method = method.numDeriv)
         colnames(M.dInfo) <- name.allcoef
@@ -248,7 +254,7 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
         M.dInfo <- numDeriv::jacobian(func = function(p){FUN_information(c(param$value[param.nameMean],p)[name.allcoef])}, x = param.trans.value[param.nameVar], method = method.numDeriv)
         colnames(M.dInfo) <- param.nameVar
     }
-
+    
     A.dVcov <- array(0, dim = rep(n.allcoef,3), dimnames = list(name.allcoef,name.allcoef,name.allcoef))
     for(iParam in 1:NCOL(M.dInfo)){
         iName <- colnames(M.dInfo)[iParam]
@@ -256,7 +262,7 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
         A.dVcov[,,iName] <- - vcov %*% A.dVcov[,,iName] %*% vcov
     }
     ## solve(crossprod(model.matrix(e.lmm, effects = "mean")))
-    ## 4*coef(e.lmm)["sigma"]^2/nobs(e.lmm)[1]
+    ## 4*coef(e.lmm)["sigma"]^2/stats::nobs(e.lmm)[1]
     ## ** degrees of freedom
     if(diag){
         df <- setNames(sapply(1:n.allcoef, function(iP){

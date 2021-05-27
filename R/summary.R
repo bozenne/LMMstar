@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: May 27 2021 (11:43) 
+## Last-Updated: May 27 2021 (17:06) 
 ##           By: Brice Ozenne
-##     Update #: 182
+##     Update #: 195
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -28,7 +28,8 @@
 ##' @param ci [logical] should the confidence intervals be displayed.
 ##' @param hide.fit [logical] should information about the model fit not be printed.
 ##' @param hide.cor [logical] should information about the correlation structure not be printed.
-##' @param hide.var [logical] should information about the variance structure not be printed.
+##' @param hide.sd [logical] should information about the standard deviation not be printed.
+##' @param hide.var [logical] should information about the variance not be printed.
 ##' @param hide.mean [logical] should information about the mean structure not be printed.
 ##' @param ... not used. For compatibility with the generic function.
 
@@ -51,6 +52,7 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = FALS
     nobsByCluster <- object$design$cluster$nobs
     formula <- object$formula
     Omega <- getVarCov(object, simplifies = FALSE)
+    df <- !is.null(object$df)
     
     ## ** welcome message
     if(print){
@@ -129,8 +131,8 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = FALS
     }
 
     if(!hide.var){
-        M.varcoef <- confint(object, level = level, df = ci, transform.k = "var", effects = "variance")
-        M.varcoefRe <- confint(object, level = level, df = ci, transform.sigma = "none", transform.k = "square", effects = "variance", transform.names = FALSE)
+        M.varcoef <- confint(object, level = level, df = df, transform.k = "var", effects = "variance")
+        M.varcoefRe <- confint(object, level = level, df = df, transform.sigma = "none", transform.k = "square", effects = "variance", transform.names = FALSE)
         M.varcoefRe[index.ref,c("estimate","lower","upper")] <- 1
         M.varcoefRe[index.ref,c("se","sd")] <- NA
 
@@ -146,10 +148,11 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = FALS
         table.var <- NULL
     }
     if(!hide.sd){
-        M.sdcoef <- confint(object, level = level, df = ci, transform.k = "sd", effects = "variance")
-        M.sdcoefRe <- confint(object, level = level, df = ci, transform.sigma = "none", transform.k = "none", effects = "variance", transform.names = FALSE)
+        M.sdcoef <- confint(object, level = level, df = df, transform.k = "logsd", effects = "variance")
+        M.sdcoefRe <- confint(object, level = level, df = df, transform.sigma = "log", effects = "variance", transform.names = FALSE)
+
         M.sdcoefRe[index.ref,c("estimate","lower","upper")] <- 1
-        M.sdcoefRe[index.ref,c("se","sd")] <- NA
+        M.sdcoefRe[index.ref,c("se")] <- NA
 
         if(ci){
             table.sd <- data.frame(estimate = M.sdcoef[,"estimate"], lower = M.sdcoef[,"lower"], upper = M.sdcoef[,"upper"],
@@ -201,7 +204,8 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = FALS
             }
             if(!hide.sd){
                 printtable.sd <- table.sd
-                printtable.sd <- apply(printtable.sd,2,round,digit=digit)
+                for(iCol in 1:NCOL(printtable.sd))
+                    printtable.sd[,iCol] <- round(printtable.sd[,iCol], digits = digit)
                 if(test.k){
                     cat("Standard deviation estimates (relative to reference): \n")
                     printtable.sd[index.ref,"estimate.ratio"] <- "reference"
@@ -213,6 +217,9 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = FALS
                     cat("Standard deviation estimates: \n")
                 }
                 print(printtable.sd[,c("estimate","lower","upper")], quote = FALSE)
+                if(object$reparametrize$transform.sigma=="log" && (all(object$param$type!="k") || (object$reparametrize$transform.k=="log"))){
+                    cat("\n Note: confidence intervals have been computed on the log-scale and then back-transformed.\n",sep="")
+                }
                 cat("\n")
             }
         }

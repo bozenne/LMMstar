@@ -73,3 +73,16 @@ Extract coefficients from a linear mixed model.
 \item \code{"cov"} ouput covariance coefficient.
 }
 }
+\examples{
+## simulate data in the long format
+set.seed(10)
+dL <- sampleRem(100, n.times = 3, format = "long")
+
+## fit mixed model
+eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
+
+## output coefficients
+coef(eUN.lmm)
+coef(eUN.lmm, effects = "mean")
+coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none")
+}

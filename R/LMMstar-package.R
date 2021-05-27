@@ -11,6 +11,10 @@
 #'
 #' @importFrom ggplot2 autoplot
 #' @importFrom nlme getData intervals
+#' @importFrom stats nobs
+#' @importFrom lava score information
+#' @importFrom sandwich estfun
+#' @importFrom emmeans emm_basis recover_data 
 NULL
 
 

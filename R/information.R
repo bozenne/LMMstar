@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: May 27 2021 (11:24) 
+## Last-Updated: May 27 2021 (21:49) 
 ##           By: Brice Ozenne
-##     Update #: 472
+##     Update #: 483
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,7 +18,7 @@
 ## * information.lmm (documentation)
 ##' @title Extract The Information From a Linear Mixed Model
 ##' @description Extract or compute the (expected) second derivative of the log-likelihood of a linear mixed model.
-##' @name score
+##' @name information
 ##' 
 ##' @param object a \code{lmm} object.
 ##' @param data [data.frame] dataset relative to which the information should be computed. Only relevant if differs from the dataset used to fit the model.
@@ -63,7 +63,8 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
     }
 
     init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
-                            x.transform.sigma = x.transform.sigma, x.transform.k = x.transform.k, x.transform.rho = x.transform.rho)
+                            x.transform.sigma = x.transform.sigma, x.transform.k = x.transform.k, x.transform.rho = x.transform.rho,
+                            backtransform.sigma = NULL, backtransform.k = NULL, backtransform.rho = NULL)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
     transform.rho <- init$transform.rho
@@ -72,6 +73,20 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
     ## ** extract or recompute information
     if(is.null(data) && is.null(p) && (indiv == FALSE) && test.notransform){
         out <- x$information
+        if(transform.names){
+            colnames(out)[match(names(x$reparametrize$p),colnames(out))] <- x$reparametrize$newname
+            rownames(out)[match(names(x$reparametrize$p),rownames(out))] <- x$reparametrize$newname
+        }
+        if(test.detail){
+            param <- x$param
+            param$value[names(x$reparametrize$p)] <- x$reparametrize$p
+            attr(out,"detail") <- list(param = param, reparametrize = x$reparametrize, Y = x$design$Y, X.mean = x$design$X.mean, X.var = x$design$X.var,
+                                       index.variance = x$design$X.var$cluster, time.variance = x$design$index.time, index.cluster = x$design$index.cluster, name.varcoef = x$design$X.var$param,
+                                       pair.meanvarcoef = x$design$param$pair.meanvarcoef, pair.varcoef = x$design$param$pair.varcoef,
+                                       REML = (x$method.fit=="REML"),
+                                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
+        }
+
     }else{
         REML <- x$method.fit == "REML"
 

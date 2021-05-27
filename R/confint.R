@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: May 21 2021 (09:55) 
+## Last-Updated: May 27 2021 (17:12) 
 ##           By: Brice Ozenne
-##     Update #: 72
+##     Update #: 126
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,17 +21,17 @@
 ##' @name confint
 ##' 
 ##' @param object a \code{lmm} object.
-##' @param param Not used. For compatibility with the generic method.
+##' @param parm Not used. For compatibility with the generic method.
+##' @param level [numeric,0-1] the confidence level of the confidence intervals.
 ##' @param effects [character] Should the CIs/p-values for all coefficients be output (\code{"all"}),
 ##' or only for mean coefficients (\code{"mean"}),
 ##' or only for variance coefficients (\code{"variance"}),
 ##' or only for correlation coefficients (\code{"correlation"}).
-##' @param level [numeric,0-1] the confidence level of the confidence intervals.
 ##' @param null [numeric vector] the value of the null hypothesis relative to each coefficient.
 ##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.
 ##' @param type.object [character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.
 ##' @param strata [character vector] When not \code{NULL}, only output coefficient relative to specific levels of the variable used to stratify the mean and covariance structure.
-##' @param type.information,transform.sigma,transform.k,transform.rho,transform.names are passed to the \code{vcov} method.
+##' @param type.information,transform.sigma,transform.k,transform.rho,transform.names are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.
 ##' @param backtransform.mu,backtransform.sigma,backtransform.k,backtransform.rho [function] possible backtransformation for the estimate, lower and upper bounds of the confidence interval.
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
@@ -49,10 +49,27 @@
 ##' \item column p.value: the p-value relative to the null hypothesis.
 ##' }
 ##' 
+##' @examples
+##' ## simulate data in the long format
+##' set.seed(10)
+##' dL <- sampleRem(100, n.times = 3, format = "long")
+##' 
+##' ## fit mixed model
+##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
+##' 
+##' ## based on normal distribution with transformation
+##' confint(eUN.lmm)
+##' ## based on normal distribution without transformation
+##' confint(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none")
+##' ## based on Student's t-distribution with transformation
+##' \dontrun{
+##' confint(eUN.lmm, df = TRUE)
+##' }
+##' 
 
 ## * confint.lmm (code)
 ##' @export
-confint.lmm <- function (object, parm = NULL, effects = "all", level = 0.95, null = NULL, type.object = "lmm", strata = NULL, 
+confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", null = NULL, type.object = "lmm", strata = NULL, 
                          df = !is.null(object$df), type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE,
                          backtransform.mu = NULL, backtransform.sigma = NULL, backtransform.k = NULL, backtransform.rho = NULL, ...){
 
@@ -82,11 +99,24 @@ confint.lmm <- function (object, parm = NULL, effects = "all", level = 0.95, nul
             return(lapply(object$gls, intervals))
         }
     }
-    ## used to decide on the null hypothesis of k parameters 
-    if(is.null(transform.k)){
-        transform.k <- options$transform.k
-    }else{ 
-        transform.k <- match.arg(transform.k, c("none","log","square","logsquare","sd","logsd","var","logvar"))
+    ## used to decide on the null hypothesis of k parameters
+    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
+                            x.transform.sigma = NULL, x.transform.k = NULL, x.transform.rho = NULL,
+                            backtransform.sigma = backtransform.sigma, backtransform.k = backtransform.k, backtransform.rho = backtransform.rho)
+    
+    transform.sigma <- init$transform.sigma
+    transform.k <- init$transform.k
+    transform.rho <- init$transform.rho
+    transform <- init$transform
+    backtransform <- list(sigma = init$backtransform.sigma,
+                          k = init$backtransform.k,
+                          rho = init$backtransform.rho)
+    if(is.null(match.call()$transform.names)){
+        if(all(unlist(lapply(backtransform, is.null))*unlist(lapply(backtransform, identical, "none"))==1)){
+            transform.names <- TRUE
+        }else{
+            transform.names <- FALSE
+        }
     }
     if(is.null(type.information)){
         type.information <- options$type.information
@@ -103,7 +133,6 @@ confint.lmm <- function (object, parm = NULL, effects = "all", level = 0.95, nul
     ## ** get uncertainty 
     vcov.beta <- vcov(object, effects = effects, df = df, type.object = "lmm", strata = strata,
                       type.information = type.information, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
-
     if(df){
         df <- attr(vcov.beta,"df")
         attr(vcov.beta,"df") <- NULL
@@ -117,17 +146,17 @@ confint.lmm <- function (object, parm = NULL, effects = "all", level = 0.95, nul
     ## ** get null
     if(is.null(null)){
         if(transform.k %in% c("sd","logsd","var","logvar")){
-            null <- sapply(object$param$type[nameNoTransform.beta],switch,
+            null <- setNames(sapply(object$param$type[names(beta)],switch,
                            "mu" = 0,
                            "sigma" = NA,
                            "k" = NA,
-                           "rho" = 0)
+                           "rho" = 0),nameNoTransform.beta)
         }else{
-            null <- sapply(object$param$type[nameNoTransform.beta],switch,
+            null <- setNames(sapply(object$param$type[names(beta)],switch,
                            "mu" = 0,
                            "sigma" = NA,
                            "k" = 1,
-                           "rho" = 0)
+                           "rho" = 0), nameNoTransform.beta)
         }
                
     }else{
@@ -154,36 +183,51 @@ confint.lmm <- function (object, parm = NULL, effects = "all", level = 0.95, nul
     out$upper <- out$estimate + stats::qt(1-alpha/2, df = out$df) * out$se
 
     ## ** back-transform
-    backtransform <- list(mu = backtransform.mu,
-                          sigma = backtransform.sigma,
-                          k = backtransform.k,
-                          rho = backtransform.rho)
-
     for(iType in names(backtransform)){
 
-        if(!is.null(backtransform[[iType]])){
+        if(!is.null(backtransform[[iType]]) && !identical(backtransform[[iType]],"none") && !identical(backtransform[[iType]],FALSE)){
             if(identical("exp",backtransform[[iType]])){
-                backtransform[[iType]] <- "exp"
+                backtransform[[iType]] <- exp
             }else if(identical("log",backtransform[[iType]])){
-                backtransform[[iType]] <- "log"
+                backtransform[[iType]] <- log
             }else if(identical("tanh",backtransform[[iType]])){
-                backtransform[[iType]] <- "tanh"
+                backtransform[[iType]] <- tanh
             }else if(identical("atanh",backtransform[[iType]])){
-                backtransform[[iType]] <- "atanh"
+                backtransform[[iType]] <- atanh
             }else if(is.function(backtransform.sigma)==FALSE){
                 stop("Argument \'backtransform.sigma\' must be a function. \n")
             }
-            iIndex.type <- which(object$param$type[nameNoTransform.beta]==iType)
-            out$estimate[iIndex.type] <- sapply(out$estimate[iIndex.type],backtransform.sigma)
-n            ## out$se[iIndex.type] <- sapply(iIndex.type,function(iBeta){numDeriv::jacobian(func = backtransform.sigma, x = out$estimate[iBeta])*out$se[iBeta]})
-            out$lower[iIndex.type] <- sapply(out$lower[iIndex.type],backtransform.sigma)
-            out$upper[iIndex.type] <- sapply(out$upper[iIndex.type],backtransform.sigma)
+            iIndex.type <- which(object$param$type[names(beta)]==iType)
+            if(length(iIndex.type)>0){
+                out$estimate[iIndex.type] <- sapply(out$estimate[iIndex.type],backtransform[[iType]])
+                ## out$se[iIndex.type] <- sapply(iIndex.type,function(iBeta){numDeriv::jacobian(func = backtransform.sigma, x = out$estimate[iBeta])*out$se[iBeta]})
+                out$lower[iIndex.type] <- sapply(out$lower[iIndex.type],backtransform[[iType]])
+                out$upper[iIndex.type] <- sapply(out$upper[iIndex.type],backtransform[[iType]])
+            }else{
+                backtransform[[iType]] <- NULL
+            }
         }
         
     }
     
     ## ** export
+    class(out) <- append("confint_lmm", class(out))
+    attr(out, "backtransform") <- backtransform
     return(out)
+}
+
+## * print.confint_lmm
+##' @export
+print.confint_lmm <- function(x, ...){
+    print(as.data.frame(x))
+    backtransform <- attr(x,"backtransform")
+
+    test.fct <- sapply(backtransform,is.function)
+    if(any(test.fct)){
+        cat("\n Note: confidence intervals and p-values for the \"",paste(names(test.fct)[test.fct], collapse = "\", \""),"\" coefficients have been computed after transformation and then back-transformed.\n",
+            "       The transformation used in the attribute \"backtransform\" of the object. \n",sep="")
+    }
+    return(NULL)
 }
 
 ##----------------------------------------------------------------------

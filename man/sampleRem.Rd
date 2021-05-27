@@ -47,7 +47,7 @@ The latent variable is related to the covariates (\eqn{X_1,\ldots,X_(10)}):
 }
 \examples{
 set.seed(10)
-dW <- sampleRem(100, n.times = 3)
+dW <- sampleRem(100, n.times = 3, format = "wide")
 set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
 }

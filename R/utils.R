@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: mar 23 2021 (09:41) 
+## Last-Updated: May 27 2021 (16:34) 
 ##           By: Brice Ozenne
-##     Update #: 1
+##     Update #: 2
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -55,6 +55,11 @@ rhs.vars <- function(formula){
 ##' @export
 lhs.vars <- function(formula){
     setdiff(all.vars(formula),rhs.vars(formula))
+}
+
+## * tr
+tr <- function(object){
+    sum(diag(object))
 }
 
 ##----------------------------------------------------------------------

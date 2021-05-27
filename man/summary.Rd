@@ -34,7 +34,9 @@
 
 \item{hide.cor}{[logical] should information about the correlation structure not be printed.}
 
-\item{hide.var}{[logical] should information about the variance structure not be printed.}
+\item{hide.var}{[logical] should information about the variance not be printed.}
+
+\item{hide.sd}{[logical] should information about the standard deviation not be printed.}
 
 \item{hide.mean}{[logical] should information about the mean structure not be printed.}
 

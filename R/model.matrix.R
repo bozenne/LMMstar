@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: May 27 2021 (11:42) 
+## Last-Updated: May 27 2021 (15:46) 
 ##           By: Brice Ozenne
-##     Update #: 649
+##     Update #: 653
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,7 +18,7 @@
 
 ## * model.matrix.lmm (code)
 ##' @export
-model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object = "lmm"){
+model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object = "lmm", ...){
 
     ## ** normalize user imput
     type.object <- match.arg(type.object, c("lmm","gls"))
@@ -26,6 +26,10 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
         effects <- c("mean","variance")
     }
     effects <- match.arg(effects, c("mean","variance"), several.ok = TRUE)
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
 
     ## ** update design matrix with new dataset
     if(!is.null(data)){
@@ -326,6 +330,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
                  "Contact the package manager with a reproducible example generating this error message. \n")
         }
     }), Upattern)
+    attr(X.Upattern,"assign") <- attr(X.var,"assign")
 
     ## ** pairs
     pair.meanvarcoef <- setNames(lapply(Upattern, function(iPattern){ ## iPattern <- Upattern[1]

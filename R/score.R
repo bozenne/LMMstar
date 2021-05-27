@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: May 27 2021 (11:23) 
+## Last-Updated: May 27 2021 (17:22) 
 ##           By: Brice Ozenne
-##     Update #: 269
+##     Update #: 282
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,7 +20,7 @@
 ##' @description Extract or compute the first derivative of the log-likelihood of a linear mixed model.
 ##' @name score
 ##' 
-##' @param object a \code{lmm} object.
+##' @param x a \code{lmm} object.
 ##' @param data [data.frame] dataset relative to which the score should be computed. Only relevant if differs from the dataset used to fit the model.
 ##' @param indiv [logical] Should the contribution of each cluster to the score be output? Otherwise output the sum of all clusters of the derivatives.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the score. Only relevant if differs from the fitted values.
@@ -52,7 +52,8 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
     init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
-                            x.transform.sigma = x.transform.sigma, x.transform.k = x.transform.k, x.transform.rho = x.transform.rho)
+                            x.transform.sigma = x.transform.sigma, x.transform.k = x.transform.k, x.transform.rho = x.transform.rho,
+                            backtransform.sigma = NULL, backtransform.k = NULL, backtransform.rho = NULL)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
     transform.rho <- init$transform.rho
@@ -61,6 +62,9 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
     ## ** extract or recompute score
     if(is.null(data) && is.null(p) && (indiv == FALSE) && test.notransform){
         out <- x$score
+        if(transform.names){
+            names(out)[match(names(x$reparametrize$p),names(out))] <- x$reparametrize$newname
+        }
     }else{
         if(!is.null(data)){
             ff.allvars <- c(all.vars(x$formula$mean), all.vars(x$formula$var))
@@ -75,8 +79,7 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
                                         var.strata = x$strata$var, U.strata = x$strata$levels,
                                         var.time = x$time$var, U.time = x$time$levels,
                                         var.cluster = x$cluster$var,
-                                        structure = x$structure,
-                                        transform = transform
+                                        structure = x$structure
                                         )
             Y <- design$Y
             X <- design$X.mean

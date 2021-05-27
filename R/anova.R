@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: May 27 2021 (09:56) 
+## Last-Updated: May 27 2021 (16:32) 
 ##           By: Brice Ozenne
-##     Update #: 172
+##     Update #: 217
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,17 +15,73 @@
 ## 
 ### Code:
 
+## * anova.lmm (documentation)
+##' @title Multivariate Wald Tests For Linear Mixed Models
+##' @description Perform a Wald test testing simultaneously several null hypotheses corresponding to linear combinations of the model paramaters. 
+##' @name anova
+##' 
+##' @param object a \code{lmm} object.
+##' @param effects [character] Should the Wald test be computed for all variables (\code{"all"}),
+##' or only variables relative to the mean (\code{"mean"}),
+##' or only variables relative to the variance structure (\code{"variance"}),
+##' or only variables relative to the correlation structure (\code{"correlation"}).
+##' Can also be use to specify linear combinations of coefficients, similarly to the \code{linfct} argument of the \code{multcomp::glht} function.
+##' @param type.object [character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.
+##' @param df [logical] Should a F-distribution be used to model the distribution of the Wald statistic. Otherwise a chi-squared distribution is used.
+##' @param print [logical] should the output be printed in the console.
+##' @param print.null [logical] should the null hypotheses be printed in the console.
+##' @param type.information,transform.sigma,transform.k,transform.rho,transform.names are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.
+##' @param ... Not used. For compatibility with the generic method.
+##'
+##' @return A list of matrices containing the following columns:\itemize{
+##' \item \code{null}: null hypothesis
+##' \item \code{statistic}: value of the test statistic
+##' \item \code{df.num}: degrees of freedom for the numerator (i.e. number of hypotheses)
+##' \item \code{df.denom}: degrees of freedom for the denominator (i.e. Satterthwaite approximation)
+##' \item \code{p.value}: p-value.
+##' }
+##' as well as an attribute contrast containing the contrast matrix encoding the linear combinations of coefficients (in columns) for each hypothesis (in rows).
+##'
+##' @examples
+##' ## simulate data in the long format
+##' set.seed(10)
+##' dL <- sampleRem(100, n.times = 3, format = "long")
+##' 
+##' ## fit mixed model
+##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
+##' 
+##' ## chi-2 test
+##' anova(eUN.lmm)
+##' 
+##' anova(eUN.lmm, effects = c("X1=0","X2+X5=0"))
+##' 
+##' ## F-test
+##' \dontrun{
+##' anova(eUN.lmm, df = TRUE)
+##' }
+##' 
+
 ## * anova.lmm (code)
-anova.lmm <- function(object, effects = "all", df = TRUE, print = TRUE, print.null = FALSE,
-                      transform.sigma = "log", transform.k = "log", transform.rho = "atanh", transform.names = TRUE, ...){
+##' @export
+anova.lmm <- function(object, effects = "all", df = !is.null(object$df), print = TRUE, print.null = FALSE, type.object = "lmm",
+                      transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
     
-    
+    options <- LMMstar.options()
 
     ## ** normalized user input    
     if(identical(effects,"all")){
         effects <- c("mean","variance","correlation")
     }
-    if(all(tolower(effects) %in% c("mean","variance","correlation"))){
+
+    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
+                            x.transform.sigma = NULL, x.transform.k = NULL, x.transform.rho = NULL,
+                            backtransform.sigma = NULL, backtransform.k = NULL, backtransform.rho = NULL)
+    
+    transform.sigma <- init$transform.sigma
+    transform.k <- init$transform.k
+    transform.rho <- init$transform.rho
+
+    if(all(tolower(effects) %in% c("mean","variance","correlation"))){        
         if(transform.k %in% c("sd","var","logsd","logvar")){
             stop("Cannot use \'transform.rho\' equal \"sd\", \"var\", \"logsd\", or \"logvar\". \n",
                  "anova does not handle tests where the null hypothesis is at a boundary of the support of a random variable. \n")
@@ -40,7 +96,7 @@ anova.lmm <- function(object, effects = "all", df = TRUE, print = TRUE, print.nu
                     variance=NULL,
                     correlation=NULL)
         ls.assign <- list(mean = attr(object$design$X.mean,"assign"),
-                          variance = attr(object$design$X.var,"assign"))
+                          variance = attr(object$design$X.var$var,"assign"))
         ls.nameTerms <- list(mean = attr(terms(object$formula$mean.design),"term.labels"),
                              variance = if(!is.null(object$formula$var.design)){attr(terms(object$formula$var.design),"term.labels")}else{NULL})
         ls.nameTerms.num <- lapply(ls.nameTerms, function(iName){as.numeric(factor(iName, levels = iName))})
@@ -70,15 +126,26 @@ anova.lmm <- function(object, effects = "all", df = TRUE, print = TRUE, print.nu
         
     }
     type.information <- attr(object$information,"type.information")    
+    type.object <- match.arg(type.object, c("lmm","gls"))
 
     ## ** prepare
+    if(type.object=="gls"){
+        if(length(object$gls)==1){
+            return(anova(object$gls))
+        }else{
+            return(lapply(object$gls, anova))
+        }
+    }
+    
+
     param <- coef(object, effects = "all",
-                  transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+                  transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
+    newname <- names(coef(object, effects = "all",
+                          transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names))
     name.param <- names(param)
     n.param <- length(param)
-
     vcov.param <- vcov(object, df = df*2, effects = "all",
-                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
     dVcov.param <- attr(vcov.param,"dVcov")
     if(type.information != "observed"){
         warning("when using REML with expected information, the degree of freedom of the F-statistic may depend on the parametrisation of the variance parameters. \n")
@@ -95,14 +162,14 @@ anova.lmm <- function(object, effects = "all", df = TRUE, print = TRUE, print.nu
                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
         name.iParam <- names(iParam)
 
-        iLs <- lapply(ls.nameTerms.num[[iType]], function(iTerm){
+        iLs <- lapply(ls.nameTerms.num[[iType]], function(iTerm){ ## iTerm <- 1
             ## *** contrast matrix
             if(is.null(ls.contrast[[iType]])){
                 iIndex.param <- which(ls.assign[[iType]]==iTerm)
                 iN.hypo <- length(iIndex.param)
                 iNull <- rep(ls.null[[iType]][iTerm],iN.hypo)
                 iName.hypo <- paste(paste0(name.iParam[iIndex.param],"==",iNull), collapse = ", ")
-                iC <- matrix(0, nrow = iN.hypo, ncol = n.param, dimnames = list(name.iParam[iIndex.param], name.param))
+                iC <- matrix(0, nrow = iN.hypo, ncol = n.param, dimnames = list(name.iParam[iIndex.param], newname))
                 if(length(iIndex.param)==1){
                     iC[name.iParam[iIndex.param],name.iParam[iIndex.param]] <- 1
                 }else{
@@ -127,8 +194,10 @@ anova.lmm <- function(object, effects = "all", df = TRUE, print = TRUE, print.nu
                 svd.tempo <- eigen(iC.vcov.C_M1)
                 D.svd <- diag(svd.tempo$values, nrow = iN.hypo, ncol = iN.hypo)
                 P.svd <- svd.tempo$vectors
-
-                iNu_m <- dfSigma(contrast = sqrt(D.svd) %*% t(P.svd) %*% iC,
+                contrast.svd <- sqrt(D.svd) %*% t(P.svd) %*% iC
+                colnames(contrast.svd) <- name.param
+                
+                iNu_m <- dfSigma(contrast = contrast.svd,
                                  vcov = vcov.param,
                                  dVcov = dVcov.param,
                                  keep.param = name.param)
@@ -159,11 +228,12 @@ anova.lmm <- function(object, effects = "all", df = TRUE, print = TRUE, print.nu
             if(!print.null){
                 printout[[iType]][["null"]] <- NULL
             }
+            txt.test <- ifelse(df>0,"F-test","Chi-square test")
             if(iType == "all"){
-                cat("F-test for user-specified linear hypotheses \n", sep="")
+                cat(txt.test," for user-specified linear hypotheses \n", sep="")
                 print(printout[[iType]], row.names = FALSE)
             }else{
-                cat("F-test for the ",iType," coefficients \n", sep="")
+                cat(txt.test," for the ",iType," coefficients \n", sep="")
                 print(printout[[iType]])
             }
             cat("\n")

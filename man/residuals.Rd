@@ -45,3 +45,15 @@ Extract or compute the residuals of a linear mixed model.
 \item \code{"tnormalized"}: raw residuals are multiplied, within clusters, by the inverse of the (upper) Cholesky factor.
 }
 }
+\examples{
+## simulate data in the long format
+set.seed(10)
+dL <- sampleRem(100, n.times = 3, format = "long")
+
+## fit mixed model
+eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
+
+## prediction
+residuals(eUN.lmm, format = "wide")
+residuals(eUN.lmm, format = "wide", type.residual = "normalized")
+}

@@ -5,7 +5,7 @@
 \alias{score.lmm}
 \title{Extract The Score From a Linear Mixed Model}
 \usage{
-score.lmm(
+\method{score}{lmm}(
   x,
   data = NULL,
   p = NULL,
@@ -18,6 +18,8 @@ score.lmm(
 )
 }
 \arguments{
+\item{x}{a \code{lmm} object.}
+
 \item{data}{[data.frame] dataset relative to which the score should be computed. Only relevant if differs from the dataset used to fit the model.}
 
 \item{p}{[numeric vector] value of the model coefficients at which to evaluate the score. Only relevant if differs from the fitted values.}
@@ -33,8 +35,6 @@ score.lmm(
 \item{transform.names}{[logical] Should the name of the coefficients be updated to reflect the transformation that has been used?}
 
 \item{...}{Not used. For compatibility with the generic method.}
-
-\item{object}{a \code{lmm} object.}
 }
 \value{
 When argument indiv is \code{FALSE}, a vector with the value of the score relative to each coefficient.
