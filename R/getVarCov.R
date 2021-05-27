@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: May 24 2021 (09:06) 
+## Last-Updated: May 27 2021 (11:15) 
 ##           By: Brice Ozenne
-##     Update #: 54
+##     Update #: 73
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -40,7 +40,7 @@ getVarCov.lmm <- function(object, individual = NULL, p = NULL, type.object = c("
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
-    if(!is.null(p) && any(names(c(object$param$sigma,object$param$k,object$param$rho)) %in% names(p) == FALSE)){
+    if(!is.null(p) && any(names(which(object$param$type %in% c("sigma","k","rho"))) %in% names(p) == FALSE)){
         stop("Incorrect argument \'p\' - it should be a vector with names containing all variance and correlation parameters. \n")
     }
     
@@ -48,9 +48,8 @@ getVarCov.lmm <- function(object, individual = NULL, p = NULL, type.object = c("
     if(!is.null(strata)){
         strata <- match.arg(strata, object$strata$levels, several.ok = TRUE)
     }
-
     if(!is.null(individual)){
-        individual <- match.arg(individual, object$cluster$levels, several.ok = TRUE)
+        individual <- match.arg(individual, object$design$cluster$levels, several.ok = TRUE)
     }
 
     if(type.object == "lmm"){
@@ -58,25 +57,25 @@ getVarCov.lmm <- function(object, individual = NULL, p = NULL, type.object = c("
         if(!is.null(p)){
             Omega <- .calc_Omega(object = object$design$X.var,
                                  param = p,
-                                 type = object$param$type,
-                                 strata = object$param$strata,
                                  keep.interim = FALSE)
         }else{
             Omega <- object$Omega
         }
         
         if(is.null(individual)){
-            n.timePattern <- unlist(lapply(attr(object$design$X.var,"Upattern.time"),length))
+            Omega.strata <- object$design$X.var$strata
+            Omega.time <- object$design$X.var$index.time
+            
+            n.timePattern <- unlist(lapply(Omega.time, length))
             index.fulltime <- which(n.timePattern==max(n.timePattern))
             if(!is.null(strata)){
-                index.strata <- which(attr(object$design$X.var,"UX.strata") %in% strata)
+                index.strata <- which(Omega.strata %in% strata)
+                out <- setNames(Omega,Omega.strata)[intersect(index.fulltime,index.strata)]
             }else{
-                index.strata <- 1:attr(object$design$X.var,"nUpattern")
-                strata <- attr(object$design$X.var,"UX.strata")
+                out <- setNames(Omega,Omega.strata)[index.fulltime]
             }
-            out <- setNames(Omega[intersect(index.fulltime,index.strata)],strata)
         }else{
-            out <- Omega[object$design$X.var$cluster[individual]]
+            out <- Omega[setNames(object$design$X.var$cluster,object$design$cluster$levels)[individual]]
         }
         for(iO in 1:length(out)){
             dimnames(out[[iO]]) <- list(attr(out[[iO]],"time"),attr(out[[iO]],"time"))

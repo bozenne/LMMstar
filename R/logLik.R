@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: May 24 2021 (10:56) 
+## Last-Updated: May 27 2021 (11:14) 
 ##           By: Brice Ozenne
-##     Update #: 130
+##     Update #: 141
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -88,13 +88,14 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
                 if(any(names(object$param$type) %in% names(p) == FALSE)){
                     stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param$type)[names(object$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
                 }
-                beta <- p[names(object$param$mu)]
-                Omega <- .calc_Omega(object = X.var, param = p, type = object$param$type, strata = object$param$strata)
+                beta <- p[object$param$type=="mu"]
+                Omega <- .calc_Omega(object = X.var, param = p)
                 precision <- lapply(Omega, solve)
             }else{
-                beta <- object$param$mu
+                beta <- object$param$value[object$param$type=="mu"]
                 precision <- object$OmegaM1
             }
+
             out <- .logLik(X = X, residuals = Y - X %*% beta, precision = precision,
                            index.variance = index.vargroup, time.variance = index.time, index.cluster = index.cluster, 
                            indiv = indiv, REML = object$method.fit=="REML")

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: May 14 2021 (17:10) 
+## Last-Updated: May 27 2021 (11:43) 
 ##           By: Brice Ozenne
-##     Update #: 172
+##     Update #: 182
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -38,18 +38,32 @@
 summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = FALSE,
                         hide.fit = FALSE, hide.cor = FALSE, hide.var = TRUE, hide.sd = FALSE, hide.mean = FALSE, ...){
 
+    param.mu <- object$param$value[object$param$type=="mu"]
+    param.sigma <- object$param$value[object$param$type=="sigma"]
+    param.k <- object$param$value[object$param$type=="k"]
+    param.rho <- object$param$value[object$param$type=="rho"]
+    data <- object$data
+    call <- object$call
+    structure <- object$structure
+    logLik <- stats::logLik(object)
+    nobs <- stats::nobs(object)
+    method.fit <- object$method
+    nobsByCluster <- object$design$cluster$nobs
+    formula <- object$formula
+    Omega <- getVarCov(object, simplifies = FALSE)
+    
     ## ** welcome message
     if(print){
-        if(length(object$param$rho) > 0){
-            if(length(c(object$param$sigma,object$param$k))==1){
+        if(length(param.rho) > 0){
+            if(length(c(param.sigma,param.k))==1){
                 cat("  Linear model \n")
             }else{
                 cat("  Linear model with heterogeneous residual variance \n")
             }
         }else{
-            if(object$structure=="UN"){
+            if(structure=="UN"){
                 cat("  Linear mixed effect model with an unstructured covariance matrix \n")
-            }else if(object$structure=="CS"){
+            }else if(structure=="CS"){
                 cat("  Linear mixed effect model with a compound symmetry covariance matrix \n")
             }
         }
@@ -58,27 +72,27 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = FALS
     
     ## ** fit message
     if(print && !hide.fit){
-        if(object$method == "REML"){
+        if(method.fit == "REML"){
             cat("  - fitted using Restricted Maximum Likelihood (REML) \n")
         }else{
             cat("  - fitted using Maximum Likelihood (ML) \n")
         }
-        cat("  - log-likelihood :", as.double(object$logLik), " (parameters: mean = ",length(object$param$mu),", variance = ",length(object$param[c("sigma","k")]),", correlation = ",length(object$param[c("rho")]),")\n",sep="")    
+        cat("  - log-likelihood :", as.double(logLik), " (parameters: mean = ",length(param.mu),", variance = ",length(c(param.sigma,param.k)),", correlation = ",length(param.rho),")\n",sep="")    
         cat(" \n")
 
-        cat("Dataset:", deparse(object$call$data), "\n")
-        cat(" - ", object$design$cluster$n, " clusters \n" , sep = "")
-        cat(" - ", sum(object$design$cluster$nobs), " observations \n",  sep = "")
-        cat(" - ", max(object$design$cluster$nobs), " maximum number of observations per cluster \n", sep = "")
-        
-        data.X <- object$data[all.vars(delete.response(terms(object$formula$mean)))]
+        cat("Dataset:", deparse(call$data), "\n")
+        cat(" - ", nobs["cluster"], " clusters \n" , sep = "")
+        cat(" - ", sum(nobsByCluster), " observations \n",  sep = "")
+        cat(" - ", max(nobsByCluster), " maximum number of observations per cluster \n", sep = "")
+
+        data.X <- data[all.vars(delete.response(terms(formula$mean)))]
         C <- lapply(data.X, function(iCol){
             if(inherits(iCol,"factor")){contrasts(iCol)}else if(inherits(iCol,"character")){contrasts(as.factor(iCol))}
         })
         C <- C[!unlist(lapply(C, is.null))]
         if(length(C)>0){
             cat(" - levels of the categorical variables \n", sep = "")
-            if(attr(stats::terms(object$formula$mean),"intercept") == 1){
+            if(attr(stats::terms(formula$mean),"intercept") == 1){
                 ref.level <- paste(unlist(lapply(names(C), function(iC){
                     paste0(iC,"=",rownames(C[[iC]])[1])
                 })), collapse = " ; ")
@@ -90,12 +104,11 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = FALS
     }
 
     ## ** correlation structure
-    if(any("rho" %in% object$param$type)){
+    if(length(param.rho)>0){
         if(print && !hide.cor){
-            cat("Correlation structure:",deparse(object$formula$cor),"\n")
+            cat("Correlation structure:",deparse(formula$cor),"\n")
         }
-        vec.corcoef <- object$param$rho
-        table.cor <- lapply(getVarCov(object, simplifies = FALSE),cov2cor)
+        table.cor <- lapply(Omega,cov2cor)
         if(length(table.cor)==1){
             table.cor <- table.cor[[1]]
         }
@@ -110,9 +123,9 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = FALS
 
     ## ** variance structure
     if(print && (!hide.var || !hide.sd)){
-        cat("Variance structure:",deparse(object$formula$var.design),"\n")
+        cat("Variance structure:",deparse(formula$var.design),"\n")
         name.sigma <- names(coef(object, transform.k = "sd", effects = "variance"))
-        index.ref <- which(names(coef(object, effects = "variance", transform.names = FALSE)) %in% names(object$param$sigma))
+        index.ref <- which(names(coef(object, effects = "variance", transform.names = FALSE)) %in% names(param.sigma))
     }
 
     if(!hide.var){
@@ -207,7 +220,7 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = FALS
 
     ## ** mean structure
     if(print && !hide.mean){
-        cat("Mean structure:",deparse(object$call$formula),"\n")
+        cat("Mean structure:",deparse(call$formula),"\n")
     }
     table.mean <- confint(object, level = level, effects = "mean")[,c("estimate","se","df","lower","upper","statistic","p.value")]
     starSymbol <- stats::symnum(table.mean[,"p.value"], corr = FALSE, na = FALSE,

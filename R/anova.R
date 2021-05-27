@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: May 21 2021 (11:14) 
+## Last-Updated: May 27 2021 (09:56) 
 ##           By: Brice Ozenne
-##     Update #: 164
+##     Update #: 172
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -53,11 +53,14 @@ anova.lmm <- function(object, effects = "all", df = TRUE, print = TRUE, print.nu
                                 "log" = 0,
                                 "logsquare" = 0)
         ls.null  <- list(mean = rep(null.mean,length(ls.nameTerms$mean)), variance = rep(null.variance,length(ls.nameTerms$variance)))
+    }else if(all(grepl("=",effects)==FALSE)){
+        stop("Incorrect argument \'effects\': can be \"mean\", \"variance\", \"correlation\", \"all\", \n",
+             "or something compatible with the argument \'linfct\' of multcomp::glht. \n ")
     }else{
-        out.glht <- try(glht(object, linfct = effects), silent = TRUE)
+        out.glht <- try(multcomp::glht(object, linfct = effects), silent = TRUE)
         if(inherits(out.glht,"try-error")){
-            stop("Incorrect argument \'effects\': can be \"mean\", \"variance\", \"correlation\", \"all\", \n",
-                 "or something compatible with the argument \'linfct\' of multcomp::glht. \n ")
+            stop("Possible mispecification of the argument \'effects\' as running mulcomp::glht lead to the following error: \n",
+                 out.glht)
         }
         out <- list(all = NULL)
         ls.nameTerms <- list(all = NULL)

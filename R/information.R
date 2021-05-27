@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: May 24 2021 (23:13) 
+## Last-Updated: May 27 2021 (11:24) 
 ##           By: Brice Ozenne
-##     Update #: 467
+##     Update #: 472
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -163,7 +163,9 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
                             pair.meanvarcoef = pair.meanvarcoef, pair.varcoef = pair.varcoef, indiv = indiv, REML = REML, type.information = type.information)
         
         if(test.detail){
-            attr(out,"detail") <- list(param = p, reparametrize = reparametrize, Y = Y, X.mean = X, X.var = X.var,
+            param <- x$param
+            param$value <- p[names(param$type)]
+            attr(out,"detail") <- list(param = param, reparametrize = reparametrize, Y = Y, X.mean = X, X.var = X.var,
                                        index.variance = index.vargroup, time.variance = index.time, index.cluster = index.cluster, name.varcoef = name.varcoef,
                                        pair.meanvarcoef = pair.meanvarcoef, pair.varcoef = pair.varcoef,
                                        REML = REML,
@@ -203,7 +205,6 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
     name.mucoef <- colnames(X)
     n.mucoef <- length(name.mucoef)
     n.varcoef <- lapply(name.varcoef, length)
-    name.allvarcoef <- unlist(name.varcoef)
     n.allcoef <- length(name.allcoef)
 
     npair.meanvarcoef <- lapply(pair.meanvarcoef, NCOL)

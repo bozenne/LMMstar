@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: May 24 2021 (09:05) 
+## Last-Updated: May 27 2021 (09:38) 
 ##           By: Brice Ozenne
-##     Update #: 84
+##     Update #: 86
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -99,13 +99,13 @@ residuals.lmm <- function(object, type.residual = "response", format = "long",
             if(any(names(object$param$type) %in% names(p) == FALSE)){
                 stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param$type)[names(object$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
             }
-            beta <- p[names(object$param$mu)]
+            beta <- p[names(object$param$type=="mu")]
             if(type.residuals %in% c("pearson","normalized","tnormalized")){
                 Omega <- .calc_Omega(object = X.var, param = p, type = object$param$type, strata = object$param$strata)
                 precision <- lapply(Omega, solve)
             }
         }else{
-            beta <- object$param$mu
+            beta <- object$param$value[object$param$type=="mu"]
             if(type.residuals %in% c("pearson","normalized","tnormalized")){
                 Omega <- object$Omega
                 precision <- object$OmegaM1

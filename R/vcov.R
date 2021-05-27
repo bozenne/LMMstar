@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: May 24 2021 (12:08) 
+## Last-Updated: May 27 2021 (09:51) 
 ##           By: Brice Ozenne
-##     Update #: 273
+##     Update #: 285
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -112,9 +112,7 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
             vcovFull <- solve(infoFull)
             vcov <- vcovFull[keep.name,keep.name,drop=FALSE]
             if(df>0){
-                param <- object$param
-                param$value <- detail$param$value
-                outdf <- .df(param = param, reparametrize = detail$reparametrize, Y = detail$Y, X.mean = detail$X.mean, X.var = detail$X.var,
+                outdf <- .df(param = detail$param, reparametrize = detail$reparametrize, Y = detail$Y, X.mean = detail$X.mean, X.var = detail$X.var,
                              index.variance = detail$index.variance, time.variance = detail$time.variance, index.cluster = detail$index.cluster, name.varcoef = detail$name.varcoef,
                              time.k = object$design$param$time.k, time.rho = object$design$param$time.rho,
                              pair.meanvarcoef = detail$pair.meanvarcoef, pair.varcoef = detail$pair.varcoef,
@@ -191,6 +189,7 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
     FUN_information <- function(p){
 
         paramVar <- p[param.nameVar]
+        paramMean <- p[param.nameMean]
 
         if(test.transform){ ## back-transform
             backp <- .reparametrize(p = paramVar, type = param.type[param.nameVar], strata = param.strata[param.nameVar], 
@@ -199,6 +198,7 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
                                     transform.k = transform.k,
                                     transform.rho = transform.rho,
                                     transform.names = FALSE)
+            paramVar <- backp$p
         }
 
         ## get jacobian
@@ -218,18 +218,17 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
             dJacobian <- NULL
         }
 
-        Omega <- .calc_Omega(object = X.var, param = p, keep.interim = TRUE)
+        Omega <- .calc_Omega(object = X.var, param = paramVar, keep.interim = TRUE)
         OmegaM1 <- lapply(Omega,solve)
-        dOmega <- .calc_dOmega(object = X.var, param = p, type = param.type[names(p)], Omega = Omega, Jacobian = Jacobian)
+        dOmega <- .calc_dOmega(object = X.var, param = paramVar, type = param.type[names(paramVar)], Omega = Omega, Jacobian = Jacobian)
 
         if(type.information == "observed"){
-            mu <- p[param.nameMean]
-            residuals <- Y - X.mean %*% mu
+            residuals <- Y - X.mean %*% paramMean
         }else{
             residuals <- NULL
         }
         if(REML || type.information == "observed"){
-            d2Omega <- .calc_d2Omega(object = X.var, param = p, type = param.type[names(p)], Omega = Omega, dOmega = dOmega, pair = pair.varcoef, Jacobian = Jacobian, dJacobian = dJacobian)
+            d2Omega <- .calc_d2Omega(object = X.var, param = paramVar, type = param.type[names(paramVar)], Omega = Omega, dOmega = dOmega, pair = pair.varcoef, Jacobian = Jacobian, dJacobian = dJacobian)
         }else{
             d2Omega <- NULL
         }

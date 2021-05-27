@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: May 24 2021 (23:13) 
+## Last-Updated: May 27 2021 (11:07) 
 ##           By: Brice Ozenne
-##     Update #: 726
+##     Update #: 731
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -269,7 +269,6 @@ lmm <- function(formula, variance, structure, data, method.fit = NULL, df = NULL
     out$time <- list(n = length(U.time), levels = U.time, var = var.time)
     out$cluster <- list(var = var.cluster)
     out$outcome <- list(var = var.outcome)
-    
     if(debug>=2){cat("\n")}
     
     ## *** structure

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: May 24 2021 (23:13) 
+## Last-Updated: May 27 2021 (11:23) 
 ##           By: Brice Ozenne
-##     Update #: 264
+##     Update #: 269
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -163,7 +163,7 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
     name.mucoef <- colnames(X)
     n.mucoef <- length(name.mucoef)
     n.varcoef <- lapply(name.varcoef, length)
-    name.allvarcoef <- unlist(name.varcoef)
+    name.allvarcoef <- unique(unlist(name.varcoef))
     n.allcoef <- length(name.allcoef)
     U.pattern <- names(dOmega)
 

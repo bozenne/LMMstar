@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: May 24 2021 (23:33) 
+## Last-Updated: May 27 2021 (12:00) 
 ##           By: Brice Ozenne
-##     Update #: 28
+##     Update #: 31
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -55,8 +55,9 @@ dL$visit <- factor(dL$visit,
 
 ## * Random intercept model / Compound symmetry structure
 ## ** fit
+## eCS.lmm <- lmm(Y ~ visit + age + gender, variance = ~visit|id, structure = "CS", data = dL, debug = 2, method = "ML")
+## eCS.gls <- gls(Y ~ visit + age + gender, correlation = corCompSymm(form=~1|id), data = dL, method = "ML")
 eCS.lmm <- lmm(Y ~ visit + age + gender, variance = ~visit|id, structure = "CS", data = dL, debug = 2, method = "REML")
-information(eCS.lmm, transform.k = "sd")
 eCS.gls <- gls(Y ~ visit + age + gender, correlation = corCompSymm(form=~1|id), data = dL, method = "REML")
 
 ## ** coef
@@ -68,7 +69,10 @@ coef(eCS.lmm, transform.sigma = "square")
 expect_equal(logLik(eCS.lmm), as.double(logLik(eCS.gls)), tol = 1e-6)
 
 ## ** score
-expect_true(all(abs(score(eCS.lmm)) < 1e-5))
+GS <- jacobian(func = function(p){logLik(eCS.lmm, p = p)}, x = coef(eCS.lmm))
+test <- score(eCS.lmm)
+expect_true(all(abs(test) < 1e-5))
+expect_equal(as.double(GS), as.double(test), tol = 1e-5)
 
 ## no transformation
 newp <- coef(eCS.lmm, transform.sigma = "none")+0.1
@@ -143,8 +147,10 @@ expect_equal(logLik(eUN.lmm), as.double(logLik(eUN.gls)), tol = 1e-6)
 expect_equal(logLik(eUNexp.lmm), as.double(logLik(eUN.gls)), tol = 1e-6)
 
 ## ** score
-## expect_true(all(abs(score(eUN.lmm)) < 1e-5))
-## expect_true(all(abs(score(eUN.lmm, transform.sigma = "log", transform.k = "log", transform.rho = "atanh")) < 1e-5))
+test <- score(eUN.lmm)
+GS <- jacobian(func = function(p){logLik(eUN.lmm, p = p)}, x = coef(eUN.lmm))
+## expect_true(all(abs(test) < 1e-3))
+expect_equal(as.double(GS), as.double(test), tol = 1e-5)
 
 ## no transformation
 newp <- coef(eUN.lmm, transform.sigma = "none")+0.1
@@ -223,7 +229,10 @@ coef(eCS.lmm, transform.sigma = "square")
 expect_equal(logLik(eCS.lmm), as.double(logLik(eCS.gls$male)+logLik(eCS.gls$female)), tol = 1e-6)
 
 ## ** score
-expect_true(all(abs(score(eCS.lmm)) < 1e-3))
+test <- score(eCS.lmm)
+GS <- jacobian(func = function(p){logLik(eCS.lmm, p = p)}, x = coef(eCS.lmm))
+expect_true(all(abs(test) < 1e-3))
+expect_equal(as.double(GS), as.double(test), tol = 1e-5)
 
 ## no transformation
 newp <- coef(eCS.lmm, transform.sigma = "none")+0.1
@@ -294,14 +303,30 @@ expect_equal(unname(coef(eUN.lmm, effects = "mean", strata = "female")), unname(
 coef(eUN.lmm, transform.rho = "cov")
 coef(eUN.lmm, transform.k = "var")
 coef(eUN.lmm, transform.k = "log")
-coef(eUN.lmm, transform.sigma = "square")
+
+## lava trans
+fct.trans <- function(p, inverse = FALSE){
+    newp <- p
+    if(inverse){
+        newp[c("sigma:male","k.Y2:male","k.Y3:male","k.Y4:male")] <- c(sqrt(newp["sigma:male"]), sqrt(newp[c("k.Y2:male","k.Y3:male","k.Y4:male")]/newp["sigma:male"]));
+        newp[c("sigma:female","k.Y2:female","k.Y3:female","k.Y4:female")] <- c(sqrt(newp["sigma:female"]), sqrt(newp[c("k.Y2:female","k.Y3:female","k.Y4:female")]/newp["sigma:female"]));
+    }else{
+        newp[c("sigma:male","k.Y2:male","k.Y3:male","k.Y4:male")] <- p["sigma:male"]^2 * c(1,p[c("k.Y2:male","k.Y3:male","k.Y4:male")]^2);
+        newp[c("sigma:female","k.Y2:female","k.Y3:female","k.Y4:female")] <- p["sigma:female"]^2 * c(1,p[c("k.Y2:female","k.Y3:female","k.Y4:female")]^2);
+    }
+    return(newp)
+}
+expect_equal(fct.trans(coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none")),
+             coef(eUN.lmm, transform.k = "var", transform.names=FALSE))
 
 ## ** logLikelihood
 expect_equal(logLik(eUN.lmm), as.double(logLik(eUN.gls$male)+logLik(eUN.gls$female)), tol = 1e-6)
 
 ## ** score
-## expect_true(all(abs(score(eUN.lmm)) < 1e-5))
-## expect_true(all(abs(score(eUN.lmm, transform.sigma = "log", transform.k = "log", transform.rho = "atanh")) < 1e-5))
+test <- score(eUN.lmm)
+GS <- jacobian(func = function(p){logLik(eUN.lmm, p = p)}, x = coef(eUN.lmm))
+expect_true(all(abs(test) < 1e-3))
+expect_equal(as.double(GS), as.double(test), tol = 1e-5)
 
 ## no transformation
 newp <- coef(eUN.lmm, transform.sigma = "none")+0.1
@@ -310,15 +335,15 @@ test <- score(eUN.lmm, p = newp, transform.sigma = "none")
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## log transformation
-newp.log <- newp; newp.log["sigma"] <- log(newp["sigma"])
-GS <- jacobian(func = function(p){p["sigma"] <- exp(p["sigma"]); logLik(eUN.lmm, p = p)}, x = newp.log)
+newp.log <- newp; newp.log[eUN.lmm$param$type %in% "sigma"] <- log(newp[eUN.lmm$param$type %in% "sigma"])
+GS <- jacobian(func = function(p){p[eUN.lmm$param$type %in% "sigma"] <- exp(p[eUN.lmm$param$type %in% "sigma"]); logLik(eUN.lmm, p = p)}, x = newp.log)
 test <- score(eUN.lmm, p = newp, transform.sigma = "log")
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## lava transformation
-newp.2 <- newp; newp.2["sigma"] <- newp["sigma"]^2
-GS <- jacobian(func = function(p){p["sigma"] <- sqrt(p["sigma"]); logLik(eUN.lmm, p = p)}, x = newp.2)
-test <- score(eUN.lmm, p = newp, transform.sigma = "square")
+newp.2 <- fct.trans(newp); 
+GS <- jacobian(func = function(p){logLik(eUN.lmm, p = fct.trans(p,inverse = TRUE))}, x = newp.2)
+test <- score(eUN.lmm, p = newp, transform.k = "var")
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## cov transformation
@@ -335,11 +360,11 @@ GS <- -hessian(func = function(p){logLik(eUN.lmm, p = p)}, x = coef(eUN.lmm, tra
 expect_equal(unname(test),GS, tol = 1e-5)
 
 test <- information(eUN.lmm, p = coef(eUN.lmm, transform.sigma = "none"), transform.sigma = "log")
-GS <- -hessian(func = function(p){p["sigma"]<-exp(p["sigma"]);logLik(eUN.lmm, p = p)}, x = coef(eUN.lmm, transform.sigma = "log", transform.names = FALSE))
+GS <- -hessian(func = function(p){p[eUN.lmm$param$type %in% "sigma"]<-exp(p[eUN.lmm$param$type %in% "sigma"]);logLik(eUN.lmm, p = p)}, x = coef(eUN.lmm, transform.sigma = "log", transform.names = FALSE))
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
-test <- information(eUN.lmm, p = coef(eUN.lmm, transform.sigma = "none"), transform.sigma = "square") 
-GS <- -hessian(func = function(p){p["sigma"]<-sqrt(p["sigma"]);logLik(eUN.lmm, p = p)}, x = coef(eUN.lmm, transform.sigma = "square", transform.names = FALSE))
+test <- information(eUN.lmm, p = coef(eUN.lmm, transform.k = "none"), transform.k = "var") 
+GS <- -hessian(func = function(p){logLik(eUN.lmm, p = fct.trans(p,inverse = TRUE))}, x = coef(eUN.lmm, transform.k = "var", transform.names = FALSE))
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## test <- information(eUN.lmm, p = coef(eUN.lmm, transform.sigma = "none"), transform.rho = "cov") 
@@ -359,7 +384,6 @@ test <- confint(eUN.lmm)[,"df", drop=FALSE]
 
 ## ** anova
 anova(eUN.lmm, print.null = TRUE)
-
 
 ## ** getVarCov
 getVarCov(eUN.lmm)

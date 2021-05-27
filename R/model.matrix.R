@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: May 24 2021 (10:53) 
+## Last-Updated: May 27 2021 (11:42) 
 ##           By: Brice Ozenne
-##     Update #: 636
+##     Update #: 649
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -216,21 +216,18 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
         strata.rho <- NULL
         X.cor <- NULL
     }else{
-        Mtempo <- matrix(1:n.time^2, nrow = n.time, ncol = n.time,
-                         dimnames = list(U.time,U.time))
-        tMtempo <- t(Mtempo)
         if(structure == "CS"){
             param.rho <- "Rho"
             time.rho <- rbind(U.time[1],U.time[2])
-            M.index <- cbind(index.lower = Mtempo[lower.tri(Mtempo)],
-                             index.upper = tMtempo[lower.tri(Mtempo)])
         }else if(structure == "EXP"){
             param.rho <- "range"
             time.rho <- NULL
         }else if(structure == "UN"){
+            Mtempo <- matrix(1:n.time^2, nrow = n.time, ncol = n.time,
+                             dimnames = list(U.time,U.time))
             M.index <- cbind(which(lower.tri(diag(1, nrow = n.time, ncol = n.time)), arr.ind = TRUE),
                              index.lower = Mtempo[lower.tri(Mtempo)],
-                             index.upper = tMtempo[lower.tri(Mtempo)])
+                             index.upper = t(Mtempo)[lower.tri(Mtempo)])
             param.rho <- paste0("cor","(",U.time[M.index[,"row"]],",",U.time[M.index[,"col"]],")")
             time.rho <- rbind(U.time[M.index[,"row"]],U.time[M.index[,"col"]])
             colnames(time.rho) <- param.rho
@@ -257,7 +254,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
             iM.indexAlltimes <-  M.indexAlltimes[(M.indexAlltimes[,"row"] %in% indexTime.Upattern[[iPattern]])*(M.indexAlltimes[,"col"] %in% indexTime.Upattern[[iPattern]])>0,,drop=FALSE]
             
             if(structure == "CS"){
-                X.cor[[iPattern]] <- matrix(1, nrow = iN.time^2, ncol = length(iParam.rho),
+                X.cor[[iPattern]] <- matrix(as.numeric(iM.indexAlltimes[,"row"] != iM.indexAlltimes[,"col"]), nrow = iN.time^2, ncol = length(iParam.rho),
                                             dimnames = list(paste0("(",iM.indexAlltimes[,"row"],",",iM.indexAlltimes[,"col"],")"), iParam.rho))
             }else if(structure == "UN"){
                 X.cor[[iPattern]] <- matrix(0, nrow = iN.time^2, ncol = length(iParam.rho),
@@ -314,6 +311,20 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
     ## which parameters are involved in the patterm    
     param.Upattern <- setNames(lapply(indicator.param, function(iP){ ## iP <- 1
         names(which(sapply(iP,any)))
+    }), Upattern)
+
+    X.Upattern <- setNames(lapply(Upattern, function(iPattern){ ## iPattern <- Upattern[1]
+        iParam <- intersect(param.Upattern[[iPattern]], c(param.sigma, param.k))
+        iXname <- colnames(X.Upattern[[iPattern]])
+        iExtraName <- iXname[iXname %in% iParam == FALSE]
+        if(identical(iParam, iXname)){
+            return(X.Upattern[[iPattern]])
+        }else if(all(iParam %in% iXname) && all(X.Upattern[[iPattern]][,iExtraName]==0) ){
+            return(X.Upattern[[iPattern]][,iParam,drop=FALSE])
+        }else{
+            stop("Something went wrong when creating the design matrix for the variable parameters. \n",
+                 "Contact the package manager with a reproducible example generating this error message. \n")
+        }
     }), Upattern)
 
     ## ** pairs
