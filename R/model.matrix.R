@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: May 27 2021 (15:46) 
+## Last-Updated: jun  1 2021 (16:26) 
 ##           By: Brice Ozenne
-##     Update #: 653
+##     Update #: 662
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -94,7 +94,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
     ## ** mean
     if(n.strata==1){
         X.mean <- model.matrix(formula.mean, data)
-        strata.mu <- setNames(rep(1,NCOL(X.mean)), colnames(X.mean))
+        strata.mu <- stats::setNames(rep(1,NCOL(X.mean)), colnames(X.mean))
     }else{
         ls.X.mean <- lapply(U.strata, function(iS){ ## iS <- U.strata[1]
             iX <- model.matrix(formula.mean, data[data[[var.strata]]==iS,])
@@ -107,7 +107,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
         colnames(X.mean) <- unlist(lapply(ls.X.mean,colnames))
         attr(X.mean, "assign") <- as.vector(do.call(cbind,lapply(ls.X.mean,attr,"assign")))
 
-        strata.mu <- unlist(lapply(1:n.strata, function(iStrata){setNames(rep(iStrata, NCOL(ls.X.mean[[iStrata]])),colnames(ls.X.mean[[iStrata]]))}))
+        strata.mu <- unlist(lapply(1:n.strata, function(iStrata){stats::setNames(rep(iStrata, NCOL(ls.X.mean[[iStrata]])),colnames(ls.X.mean[[iStrata]]))}))
     }
 
     ## ** cluster
@@ -128,10 +128,10 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
     ## **** sigma
     if(n.strata==1){
         param.sigma <- "sigma"
-        strata.sigma <- setNames(1,param.sigma)
+        strata.sigma <- stats::setNames(1,param.sigma)
     }else{
         param.sigma <- paste0("sigma",":",U.strata)
-        strata.sigma <- setNames(1:n.strata,param.sigma)
+        strata.sigma <- stats::setNames(1:n.strata,param.sigma)
     }
     ## **** k
     if(structure %in% c("CS","EXP")){
@@ -144,7 +144,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
     }else if(structure == "UN"){
         data.relevel <- as.data.frame(data)
         if(n.strata>1){
-            formula.var <- as.formula(paste0("~-1+",var.time,":",var.strata,"+",var.strata))
+            formula.var <- stats::as.formula(paste0("~-1+",var.time,":",var.strata,"+",var.strata))
         }
         X.var <- model.matrix(formula.var, data.relevel)
 
@@ -181,12 +181,14 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
         param.k <- colnames(X.var)[index.k]
 
         if(n.strata>1){ ## re-order such that the coef for strata 1 appear first then those of strata 2
-            strata.k <- unlist(lapply(1:n.strata, function(iStrata){setNames(rep(iStrata, length(ls.order.strata[[iStrata]])),colnames(X.var)[ls.order.strata[[iStrata]]])}))
+            strata.k <- unlist(lapply(1:n.strata, function(iStrata){stats::setNames(rep(iStrata, length(ls.order.strata[[iStrata]])),colnames(X.var)[ls.order.strata[[iStrata]]])}))
             strata.k <- strata.k[names(strata.k) %in% param.sigma == FALSE]
+            tempo <- attr(X.var,"assign")-1
             X.var <- X.var[,order.strata,drop=FALSE]
+            attr(X.var,"assign") <- tempo
             param.k <- colnames(X.var)[colnames(X.var) %in% param.k]
         }else{
-            strata.k <- setNames(rep(1,length(param.k)),param.k)
+            strata.k <- stats::setNames(rep(1,length(param.k)),param.k)
         }
 
     }
@@ -202,8 +204,8 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
     indexCluster.tempo <- names(sort(pattern[indexPattern.tempo])) ## corresponding cluster
     indexObs.tempo <- lapply(indexCluster.tempo, function(iCluster){which(index.cluster==iCluster)})
 
-    strata.Upattern <- setNames(sapply(indexObs.tempo, function(iObs){unique(data[iObs,var.strata])}), Upattern) ## strata associated to each unique pattern
-    X.Upattern <- setNames(lapply(indexObs.tempo, function(iObs){ ## extract design matrix
+    strata.Upattern <- stats::setNames(sapply(indexObs.tempo, function(iObs){unique(data[iObs,var.strata])}), Upattern) ## strata associated to each unique pattern
+    X.Upattern <- stats::setNames(lapply(indexObs.tempo, function(iObs){ ## extract design matrix
         iStrata <- which(U.strata %in% data[[var.strata]][iObs])
         iKeep.param <- c(names(strata.sigma)[strata.sigma==iStrata],names(strata.k)[strata.k==iStrata])
         iM <- X.var[iObs,iKeep.param,drop=FALSE]
@@ -237,19 +239,19 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
             colnames(time.rho) <- param.rho
         }
         param.rho.save <- param.rho
-        strata.rho <- setNames(rep(1,length(param.rho)),param.rho)
+        strata.rho <- stats::setNames(rep(1,length(param.rho)),param.rho)
 
         if(n.strata>1){
             ls.param.rho <- lapply(U.strata, function(iS){paste(param.rho.save, iS, sep = ":")})
             param.rho <- unlist(ls.param.rho)
-            strata.rho <- unlist(lapply(1:n.strata, function(iS){setNames(rep(iS,length(ls.param.rho[[iS]])),ls.param.rho[[iS]])}))
+            strata.rho <- unlist(lapply(1:n.strata, function(iS){stats::setNames(rep(iS,length(ls.param.rho[[iS]])),ls.param.rho[[iS]])}))
             time.rho <- do.call(cbind,lapply(U.strata, function(iS){time.rho}))
             colnames(time.rho) <- param.rho
         }
         
         M.indexAlltimes <- which(matrix(1,n.time, n.time)==1, arr.ind = TRUE)
         
-        X.cor <- setNames(vector(mode = "list", length = n.pattern), Upattern)
+        X.cor <- stats::setNames(vector(mode = "list", length = n.pattern), Upattern)
         for(iPattern in Upattern){ ## iPattern <- Upattern[1]
             iStrata <- strata.Upattern[[iPattern]]
             iTime <- time.Upattern[[iPattern]]
@@ -269,11 +271,12 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
                 }
             }
         }
+        attr(X.cor,"assign") <- rep(1,length(param.rho))
     }
 
     ## ** prepare calculation of the score
     ## indicator of the effect of each parameter on each element of the covariance
-    indicator.param <- setNames(lapply(Upattern, function(iP){ ## iP <- 1
+    indicator.param <- stats::setNames(lapply(Upattern, function(iP){ ## iP <- 1
 
         iStrata <- which(U.strata == strata.Upattern[iP])
         iParam.sigma <- names(strata.sigma)[strata.sigma==iStrata]
@@ -285,7 +288,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
         n.iParam.rho <- length(iParam.rho)
         n.iParam.all <- length(iParam.all)
         
-        iIndicator <- setNames(vector(mode = "list", length = n.iParam.all), iParam.all)
+        iIndicator <- stats::setNames(vector(mode = "list", length = n.iParam.all), iParam.all)
         iTime <- time.Upattern[[iP]]
         iNtime <- length(iTime)
 
@@ -313,11 +316,11 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
     }), Upattern)
 
     ## which parameters are involved in the patterm    
-    param.Upattern <- setNames(lapply(indicator.param, function(iP){ ## iP <- 1
+    param.Upattern <- stats::setNames(lapply(indicator.param, function(iP){ ## iP <- 1
         names(which(sapply(iP,any)))
     }), Upattern)
 
-    X.Upattern <- setNames(lapply(Upattern, function(iPattern){ ## iPattern <- Upattern[1]
+    X.Upattern <- stats::setNames(lapply(Upattern, function(iPattern){ ## iPattern <- Upattern[1]
         iParam <- intersect(param.Upattern[[iPattern]], c(param.sigma, param.k))
         iXname <- colnames(X.Upattern[[iPattern]])
         iExtraName <- iXname[iXname %in% iParam == FALSE]
@@ -333,18 +336,18 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
     attr(X.Upattern,"assign") <- attr(X.var,"assign")
 
     ## ** pairs
-    pair.meanvarcoef <- setNames(lapply(Upattern, function(iPattern){ ## iPattern <- Upattern[1]
+    pair.meanvarcoef <- stats::setNames(lapply(Upattern, function(iPattern){ ## iPattern <- Upattern[1]
         unname(t(expand.grid(names(strata.mu)[U.strata[strata.mu]==strata.Upattern[[iPattern]]], param.Upattern[[iPattern]])))
     }), Upattern)
 
-    pair.varcoef <- setNames(lapply(Upattern, function(iPattern){## ## iPattern <- Upattern[1]
+    pair.varcoef <- stats::setNames(lapply(Upattern, function(iPattern){## ## iPattern <- Upattern[1]
         .unorderedPairs(param.Upattern[[iPattern]])
     }),Upattern)
 
     if(length(param.rho)>0){
-        attr(pair.varcoef,"test.hessian") <- setNames(lapply(pair.varcoef, function(iM){colSums(apply(iM, 2, `%in%`, param.rho))!=2}), Upattern)
+        attr(pair.varcoef,"test.hessian") <- stats::setNames(lapply(pair.varcoef, function(iM){colSums(apply(iM, 2, `%in%`, param.rho))!=2}), Upattern)
     }else{
-        attr(pair.varcoef,"test.hessian") <- setNames(lapply(pair.varcoef, function(iM){rep(TRUE,NCOL(iM))}), Upattern)
+        attr(pair.varcoef,"test.hessian") <- stats::setNames(lapply(pair.varcoef, function(iM){rep(TRUE,NCOL(iM))}), Upattern)
     }
 
     ## ** gather and export
@@ -354,7 +357,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
                              pattern = Upattern,
                              strata =  strata.Upattern,
                              index.time = indexTime.Upattern,
-                             cluster = setNames(match(pattern,Upattern),names(pattern)),
+                             cluster = stats::setNames(match(pattern,Upattern),names(pattern)),
                              param =  param.Upattern,
                              indicator = indicator.param),
                 Y = data[[var.outcome]],

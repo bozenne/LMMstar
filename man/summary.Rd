@@ -10,7 +10,7 @@
   digit = 3,
   level = 0.95,
   print = TRUE,
-  ci = FALSE,
+  ci = TRUE,
   hide.fit = FALSE,
   hide.cor = FALSE,
   hide.var = TRUE,

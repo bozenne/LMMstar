@@ -19,10 +19,6 @@
   transform.k = NULL,
   transform.rho = NULL,
   transform.names = TRUE,
-  backtransform.mu = NULL,
-  backtransform.sigma = NULL,
-  backtransform.k = NULL,
-  backtransform.rho = NULL,
   ...
 )
 }
@@ -47,8 +43,6 @@ or only for correlation coefficients (\code{"correlation"}).}
 \item{df}{[logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.}
 
 \item{type.information, transform.sigma, transform.k, transform.rho, transform.names}{are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.}
-
-\item{backtransform.mu, backtransform.sigma, backtransform.k, backtransform.rho}{[function] possible backtransformation for the estimate, lower and upper bounds of the confidence interval.}
 
 \item{...}{Not used. For compatibility with the generic method.}
 }

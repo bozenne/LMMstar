@@ -11,7 +11,7 @@
 #'
 #' @importFrom ggplot2 autoplot
 #' @importFrom nlme getData intervals
-#' @importFrom stats nobs
+#' @importFrom stats anova coef confint nobs model.matrix vcov
 #' @importFrom lava score information
 #' @importFrom sandwich estfun
 #' @importFrom emmeans emm_basis recover_data 

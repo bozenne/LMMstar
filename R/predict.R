@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: May 31 2021 (19:28) 
+## Last-Updated: jun  1 2021 (16:28) 
 ##           By: Brice Ozenne
-##     Update #: 111
+##     Update #: 113
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -59,7 +59,7 @@ predict.lmm <- function(object, newdata, level = 0.95, df = !is.null(object$df),
 
     ## ** compute predictions
     ff.mean <- stats::formula(object, effects = "mean")
-    X.beta <- model.matrix(delete.response(terms(ff.mean)), newdata)
+    X.beta <- model.matrix(delete.response(stats::terms(ff.mean)), newdata)
     n.obs <- NROW(X.beta)
     beta <- coef(object, effects = "mean")
     n.beta <- length(beta)
@@ -76,7 +76,7 @@ predict.lmm <- function(object, newdata, level = 0.95, df = !is.null(object$df),
         dVcov <- attr(vcov.param,"dVcov")
         attr(vcov.param, "df") <- NULL
         attr(vcov.param, "dVcov") <- NULL
-        prediction.df <- .dfX(X = X.beta, vcov.param = vcov.param, dVcov.param = dVcov)
+        prediction.df <- .dfX(X.beta = X.beta, vcov.param = vcov.param, dVcov.param = dVcov)
     }else{
         prediction.df <- rep(Inf,n.obs)
     }

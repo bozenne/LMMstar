@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: Jun  1 2021 (12:16) 
+## Last-Updated: jun  1 2021 (16:32) 
 ##           By: Brice Ozenne
-##     Update #: 340
+##     Update #: 354
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -106,11 +106,13 @@ anova.lmm <- function(object, effects = "all", df = !is.null(object$df), ci = FA
                     variance=NULL,
                     correlation=NULL)
         ls.assign <- list(mean = attr(object$design$X.mean,"assign"),
-                          variance = attr(object$design$X.var$var,"assign"))
-        ls.nameTerms <- list(mean = attr(terms(object$formula$mean.design),"term.labels"),
-                             variance = if(!is.null(object$formula$var.design)){attr(terms(object$formula$var.design),"term.labels")}else{NULL})
+                          variance = attr(object$design$X.var$var,"assign"),
+                          correlation = attr(object$design$X.var$cor,"assign"))
+        ls.nameTerms <- list(mean = attr(stats::terms(object$formula$mean.design),"term.labels"),
+                             variance = if(!is.null(object$formula$var.design)){attr(stats::terms(object$formula$var.design),"term.labels")}else{NULL},
+                             correlation = if(!is.null(ls.assign$correlation)){object$time$var}else{NULL})
         ls.nameTerms.num <- lapply(ls.nameTerms, function(iName){as.numeric(factor(iName, levels = iName))})
-        ls.contrast  <- list(mean = NULL, variance = NULL)
+        ls.contrast  <- list(mean = NULL, variance = NULL, correlation = NULL)
 
         null.mean <- 0
         null.variance <- switch(transform.k,
@@ -118,7 +120,13 @@ anova.lmm <- function(object, effects = "all", df = !is.null(object$df), ci = FA
                                 "square" = 1,
                                 "log" = 0,
                                 "logsquare" = 0)
-        ls.null  <- list(mean = rep(null.mean,length(ls.nameTerms$mean)), variance = rep(null.variance,length(ls.nameTerms$variance)))
+        null.correlation <- switch(transform.rho,
+                                   "none" = 0,
+                                   "atanh" = 0,
+                                   "cov" = 0)
+        ls.null  <- list(mean = rep(null.mean,length(ls.nameTerms$mean)),
+                         variance = rep(null.variance,length(ls.nameTerms$variance)),
+                         correlation = rep(null.correlation,length(ls.nameTerms$correlation)))
     }else if(all(grepl("=",effects)==FALSE)){
         stop("Incorrect argument \'effects\': can be \"mean\", \"variance\", \"correlation\", \"all\", \n",
              "or something compatible with the argument \'linfct\' of multcomp::glht. \n ")
@@ -179,7 +187,7 @@ anova.lmm <- function(object, effects = "all", df = !is.null(object$df), ci = FA
                 iN.hypo <- length(iIndex.param)
                 iNull <- rep(ls.null[[iType]][iTerm],iN.hypo)
                 iName.hypo <- paste(paste0(name.iParam[iIndex.param],"==",iNull), collapse = ", ")
-                iC <- matrix(0, nrow = iN.hypo, ncol = n.param, dimnames = list(name.iParam[iIndex.param], newname))                
+                iC <- matrix(0, nrow = iN.hypo, ncol = n.param, dimnames = list(name.iParam[iIndex.param], newname))
                 if(length(iIndex.param)==1){
                     iC[name.iParam[iIndex.param],name.iParam[iIndex.param]] <- 1
                 }else{
@@ -252,7 +260,7 @@ anova.lmm <- function(object, effects = "all", df = !is.null(object$df), ci = FA
                                "statistic" = iStat/iN.hypo,
                                "df.num" = iN.hypo,
                                "df.denom" = iDf,
-                               "p.value" = 1 - pf(iStat/iN.hypo, df1 = iN.hypo, df2 = iDf))
+                               "p.value" = 1 - stats::pf(iStat/iN.hypo, df1 = iN.hypo, df2 = iDf))
             attr(iRes, "contrast") <- iC
             attr(iRes, "CI") <- CI
             attr(iRes, "glht") <- CI.glht
@@ -292,10 +300,10 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = "single-step"
     ## ** extract info and compute CI
     out <- lapply(object, function(iO){ ## iO <- object[[1]]
         iTable <- attr(iO,"CI")
-        if(is.null(iTable)){return(NULL)}
-        iOut <- setNames(vector(mode = "list", length = length(iTable)),names(iTable))
-        
-        for(iTest in 1:length(iTable)){ ## iTest <- "visit"
+        if(is.null(iTable) || all(sapply(iTable,is.null))){return(NULL)}
+        iOut <- stats::setNames(vector(mode = "list", length = length(iTable)),names(iTable))
+
+        for(iTest in 1:length(iTable)){ ## iTest <- 1
             iOut[[iTest]] <- iTable[[iTest]]
             
             if(method == "single-step"){
@@ -308,7 +316,7 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = "single-step"
             }else if(method == "none"){
                 iOut[[iTest]]$lower <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * qt(alpha/2, df = iOut[[iTest]]$df)
                 iOut[[iTest]]$upper <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * qt(1-alpha/2, df = iOut[[iTest]]$df)
-                iOut[[iTest]]$p.value <- 2*(1-pt( abs((iOut[[iTest]]$estimate-iOut[[iTest]]$null) / iOut[[iTest]]$se), df = iOut[[iTest]]$df))
+                iOut[[iTest]]$p.value <- 2*(1-stats::pt( abs((iOut[[iTest]]$estimate-iOut[[iTest]]$null) / iOut[[iTest]]$se), df = iOut[[iTest]]$df))
             }else if(method == "bonferroni"){
                 p <- NROW(iOut[[iTest]])
                 iOut[[iTest]]$lower <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * qt(alpha/(2*p), df = iOut[[iTest]]$df)

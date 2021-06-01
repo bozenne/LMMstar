@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: May 27 2021 (16:00) 
+## Last-Updated: jun  1 2021 (16:24) 
 ##           By: Brice Ozenne
-##     Update #: 74
+##     Update #: 75
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -81,12 +81,12 @@ getVarCov.lmm <- function(object, individual = NULL, p = NULL, type.object = c("
             index.fulltime <- which(n.timePattern==max(n.timePattern))
             if(!is.null(strata)){
                 index.strata <- which(Omega.strata %in% strata)
-                out <- setNames(Omega,Omega.strata)[intersect(index.fulltime,index.strata)]
+                out <- stats::setNames(Omega,Omega.strata)[intersect(index.fulltime,index.strata)]
             }else{
-                out <- setNames(Omega,Omega.strata)[index.fulltime]
+                out <- stats::setNames(Omega,Omega.strata)[index.fulltime]
             }
         }else{
-            out <- Omega[setNames(object$design$X.var$cluster,object$design$cluster$levels)[individual]]
+            out <- Omega[stats::setNames(object$design$X.var$cluster,object$design$cluster$levels)[individual]]
         }
         for(iO in 1:length(out)){
             dimnames(out[[iO]]) <- list(attr(out[[iO]],"time"),attr(out[[iO]],"time"))
@@ -111,7 +111,7 @@ getVarCov.lmm <- function(object, individual = NULL, p = NULL, type.object = c("
             if(is.null(individual)){
                 return(lapply(object$gls, getVarCov))
             }else{
-                out <- setNames(vector(mode = "list", length = length(individual)),individual)
+                out <- stats::setNames(vector(mode = "list", length = length(individual)),individual)
                 for(iStrata in 1:object$strata$n){ ## iStrata <- 1
                     iIndiv <- intersect(individual,names(object$design$index.strata[object$design$index.strata==iStrata]))
                     if(length(iIndiv)>0){

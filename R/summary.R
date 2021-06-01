@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: Jun  1 2021 (11:14) 
+## Last-Updated: jun  1 2021 (16:28) 
 ##           By: Brice Ozenne
-##     Update #: 206
+##     Update #: 207
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -87,7 +87,7 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = TRUE
         cat(" - ", sum(nobsByCluster), " observations \n",  sep = "")
         cat(" - ", max(nobsByCluster), " maximum number of observations per cluster \n", sep = "")
 
-        data.X <- data[all.vars(delete.response(terms(formula$mean)))]
+        data.X <- data[all.vars(delete.response(stats::terms(formula$mean)))]
         C <- lapply(data.X, function(iCol){
             if(inherits(iCol,"factor")){contrasts(iCol)}else if(inherits(iCol,"character")){contrasts(as.factor(iCol))}
         })

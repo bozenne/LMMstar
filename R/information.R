@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: May 31 2021 (13:53) 
+## Last-Updated: jun  1 2021 (16:24) 
 ##           By: Brice Ozenne
-##     Update #: 484
+##     Update #: 485
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -241,9 +241,9 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
     }    
 
     ## ** precompute
-    dOmega.precomputed <- setNames(vector(mode = "list", length = n.pattern), U.pattern)
+    dOmega.precomputed <- stats::setNames(vector(mode = "list", length = n.pattern), U.pattern)
     if(REML){
-        REML.num <- setNames(lapply(U.pattern, function(iPattern){ ## iPattern <- U.pattern[1]
+        REML.num <- stats::setNames(lapply(U.pattern, function(iPattern){ ## iPattern <- U.pattern[1]
             lapply(1:npair.varcoef[[iPattern]], function(iPair){
                 list(numerator1a = matrix(0, nrow = n.mucoef, ncol = n.mucoef, dimnames = list(name.mucoef,name.mucoef)),
                      numerator1b = matrix(0, nrow = n.mucoef, ncol = n.mucoef, dimnames = list(name.mucoef,name.mucoef)),
@@ -252,13 +252,13 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
             })
         }), U.pattern)
         REML.denom <- matrix(0, nrow = n.mucoef, ncol = n.mucoef, dimnames = list(name.mucoef, name.mucoef))
-        REML.num.precomputed <- setNames(vector(mode = "list", length = n.pattern), U.pattern)
+        REML.num.precomputed <- stats::setNames(vector(mode = "list", length = n.pattern), U.pattern)
     }     
 
     for(iPattern in U.pattern){
         dOmega.precomputed[[iPattern]] <- list(tr = vector(mode = "list", length = npair.varcoef[[iPattern]]),
                                                last2terms = vector(mode = "list", length = npair.varcoef[[iPattern]]),
-                                               cross = setNames(lapply(1:n.varcoef[[iPattern]], function(iCoef){            
+                                               cross = stats::setNames(lapply(1:n.varcoef[[iPattern]], function(iCoef){            
                                                    precision[[iPattern]] %*% dOmega[[iPattern]][[name.varcoef[[iPattern]][iCoef]]] %*% precision[[iPattern]] 
                                                }), name.varcoef[[iPattern]]))
 

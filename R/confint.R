@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: May 31 2021 (15:10) 
+## Last-Updated: jun  1 2021 (16:24) 
 ##           By: Brice Ozenne
-##     Update #: 224
+##     Update #: 225
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -132,19 +132,19 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", nul
             warning("when using REML with expected information, the degree of freedom of the mean parameters may depend on the parametrisation of the variance parameters. \n")
         }
     }else{
-        df <- setNames(rep(Inf,p),names(beta))
+        df <- stats::setNames(rep(Inf,p),names(beta))
     }
     
     ## ** get null
     if(is.null(null)){
         if(transform.k %in% c("sd","logsd","var","logvar")){
-            null <- setNames(sapply(type.param[nameNoTransform.beta],switch,
+            null <- stats::setNames(sapply(type.param[nameNoTransform.beta],switch,
                            "mu" = 0,
                            "sigma" = NA,
                            "k" = NA,
                            "rho" = 0),nameNoTransform.beta)
         }else{
-            null <- setNames(sapply(type.param[nameNoTransform.beta],switch,
+            null <- stats::setNames(sapply(type.param[nameNoTransform.beta],switch,
                            "mu" = 0,
                            "sigma" = NA,
                            "k" = 1,
@@ -183,7 +183,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", nul
     if(transform.k %in% c("sd","var","logsd","logvar")){
         attr(out, "type")[attr(out, "type")=="sigma"] <- "k"
     }
-    attr(out, "old2new") <-  setNames(nameNoTransform.beta, rownames(out))
+    attr(out, "old2new") <-  stats::setNames(nameNoTransform.beta, rownames(out))
     attr(out, "backtransform.names") <- names(coef(object, effects = effects, type.object = "lmm", strata = strata,
                                                    transform.sigma = gsub("log","",transform.sigma), transform.k = gsub("log","",transform.k), transform.rho = gsub("atanh","",transform.rho), transform.names = transform.names))
 
@@ -203,7 +203,7 @@ print.confint_lmm <- function(x, ...){
         transform <- attr(x,"transform")
         type <- attr(x,"type")
 
-        missing.type <- setNames(c("sigma","k","rho") %in% type == FALSE,c("transform.sigma","transform.k","transform.rho"))
+        missing.type <- stats::setNames(c("sigma","k","rho") %in% type == FALSE,c("transform.sigma","transform.k","transform.rho"))
 
         transform2 <- unlist(transform[c("transform.sigma","transform.k","transform.rho")])
         transform2[names(missing.type)[missing.type]] <- "none"

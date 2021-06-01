@@ -9,8 +9,7 @@
   object,
   effects = "all",
   df = !is.null(object$df),
-  print = TRUE,
-  print.null = FALSE,
+  ci = FALSE,
   type.object = "lmm",
   transform.sigma = NULL,
   transform.k = NULL,
@@ -30,13 +29,13 @@ Can also be use to specify linear combinations of coefficients, similarly to the
 
 \item{df}{[logical] Should a F-distribution be used to model the distribution of the Wald statistic. Otherwise a chi-squared distribution is used.}
 
-\item{print}{[logical] should the output be printed in the console.}
-
-\item{print.null}{[logical] should the null hypotheses be printed in the console.}
+\item{ci}{[logical] Should a confidence interval be output for each hypothesis?}
 
 \item{type.object}{[character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.}
 
 \item{...}{Not used. For compatibility with the generic method.}
+
+\item{conf.level}{[numeric, 0-1] nominal coverage of the confidence intervals.}
 
 \item{type.information, transform.sigma, transform.k, transform.rho, transform.names}{are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.}
 }
@@ -53,6 +52,10 @@ as well as an attribute contrast containing the contrast matrix encoding the lin
 \description{
 Perform a Wald test testing simultaneously several null hypotheses corresponding to linear combinations of the model paramaters.
 }
+\details{
+By default confidence intervals and p-values are adjusted based on the distribution of the maximum-statistic.
+This is refered to as a single-step Dunnett multiple testing procedures in table II of Dmitrienko et al. (2013) and is performed using the multcomp package with the option \code{test = adjusted("single-step")}.
+}
 \examples{
 ## simulate data in the long format
 set.seed(10)
@@ -64,11 +67,14 @@ eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data 
 ## chi-2 test
 anova(eUN.lmm)
 
-anova(eUN.lmm, effects = c("X1=0","X2+X5=0"))
+anova(eUN.lmm, effects = c("X1=0","X2+X5=10"), ci = TRUE)
 
 ## F-test
 \dontrun{
 anova(eUN.lmm, df = TRUE)
 }
 
+}
+\references{
+Dmitrienko, A. and D'Agostino, R., Sr (2013), Traditional multiplicity adjustment methods in clinical trials. Statist. Med., 32: 5172-5218. https://doi.org/10.1002/sim.5990.
 }

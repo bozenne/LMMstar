@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: May 31 2021 (13:54) 
+## Last-Updated: jun  1 2021 (16:26) 
 ##           By: Brice Ozenne
-##     Update #: 337
+##     Update #: 338
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -616,18 +616,18 @@ reparametrize <- function(p, type, strata, time.levels,
                             stop("Not implemented in presence of multiple variance parameters. \n")
                             ## \rho/(\sigma1 \sigma2)  leads to  -\rho/(\sigma1^2 \sigma2) and -\rho/(\sigma1 \sigma2^2) and 1/(\sigma1 \sigma2)
                             ## WARNING we plug-in k1^2 sigma^2, k2^2 sigma^2, k1^2 k2^2 sigma^2 rho
-                            factor.tempo <- matrix(1, nrow = 2, ncol = length(iName.rho),
-                                                   dimnames = list(NULL, iName.rho))
-                            index.tempo <- match(time.rho[,iName.rho,drop=FALSE], time.k[,iName.k])
-                            factor.tempo[which(!is.na(index.tempo))] <- p[names(time.k)[na.omit(index.tempo)]]
+                            ## factor.tempo <- matrix(1, nrow = 2, ncol = length(iName.rho),
+                            ##                        dimnames = list(NULL, iName.rho))
+                            ## index.tempo <- match(time.rho[,iName.rho,drop=FALSE], time.k[,iName.k])
+                            ## factor.tempo[which(!is.na(index.tempo))] <- p[names(time.k)[stats::na.omit(index.tempo)]]
 
-                            out$Jacobian[iName.rho,iName.sigma] <- x
-                            for(iRho in iName.rho){ ## iRho <- iName.rho[1]
-                                iK <- names(time.k[iName.k])[time.k[iName.k] %in% time.rho[,iRho]]
-                                out$Jacobian[iRho,iName.sigma] <- - p[iRho]/(2*p[iName.sigma]^2)
-                                out$Jacobian[iRho,iK] <- - p[iRho]/(2*p[iName.sigma]^2*p[iK]^2)
-                                out$Jacobian[iRho,iRho] <- 1/(p[iName.sigma]^2*prod(factor.tempo[,iRho]))
-                            }
+                            ## out$Jacobian[iName.rho,iName.sigma] <- 
+                            ## for(iRho in iName.rho){ ## iRho <- iName.rho[1]
+                            ##     iK <- names(time.k[iName.k])[time.k[iName.k] %in% time.rho[,iRho]]
+                            ##     out$Jacobian[iRho,iName.sigma] <- - p[iRho]/(2*p[iName.sigma]^2)
+                            ##     out$Jacobian[iRho,iK] <- - p[iRho]/(2*p[iName.sigma]^2*p[iK]^2)
+                            ##     out$Jacobian[iRho,iRho] <- 1/(p[iName.sigma]^2*prod(factor.tempo[,iRho]))
+                            ## }
                             
                             
                                 

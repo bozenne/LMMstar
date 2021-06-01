@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: Jun  1 2021 (11:42) 
+## Last-Updated: jun  1 2021 (16:24) 
 ##           By: Brice Ozenne
-##     Update #: 286
+##     Update #: 287
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -173,9 +173,9 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
                     dimnames = list(NULL, name.allcoef))
 
     ## precompute derivative for the variance
-    dOmega.precomputed <- setNames(lapply(U.pattern, function(iPattern){
-        iOut <- list(term1 = setNames(vector(mode = "list", length = n.varcoef[[iPattern]]), name.varcoef[[iPattern]]),
-                     term2 = setNames(vector(mode = "list", length = n.varcoef[[iPattern]]), name.varcoef[[iPattern]])
+    dOmega.precomputed <- stats::setNames(lapply(U.pattern, function(iPattern){
+        iOut <- list(term1 = stats::setNames(vector(mode = "list", length = n.varcoef[[iPattern]]), name.varcoef[[iPattern]]),
+                     term2 = stats::setNames(vector(mode = "list", length = n.varcoef[[iPattern]]), name.varcoef[[iPattern]])
                      )
 
         for(iVarcoef in name.varcoef[[iPattern]]){ ## iVarcoef <- name.varcoef[[iPattern]][1]
@@ -185,7 +185,7 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
         return(iOut)
     }), U.pattern)
 
-    REML.num <- setNames(lapply(name.allvarcoef, function(i){
+    REML.num <- stats::setNames(lapply(name.allvarcoef, function(i){
         matrix(0, nrow = n.mucoef, ncol = n.mucoef, dimnames = list(name.mucoef,name.mucoef))
     }), name.allvarcoef)
     REML.denom <- matrix(0, nrow = n.mucoef, ncol = n.mucoef, dimnames = list(name.mucoef, name.mucoef))

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: Jun  1 2021 (11:22) 
+## Last-Updated: jun  1 2021 (16:24) 
 ##           By: Brice Ozenne
-##     Update #: 187
+##     Update #: 188
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -127,7 +127,7 @@ coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL
                 if(test.notransform){
                     index.sigmak <- names(object$param$type)[object$param$type %in% c("sigma","k")]
                     if(transform.names && !is.null(object$reparametrize$newname)){
-                        pVar <- c(pVar, setNames(object$reparametrize$p[index.sigmak],object$reparametrize$newname[match(index.sigmak,names(object$reparametrize$p))]))
+                        pVar <- c(pVar, stats::setNames(object$reparametrize$p[index.sigmak],object$reparametrize$newname[match(index.sigmak,names(object$reparametrize$p))]))
                     }else{
                         pVar <- c(pVar, object$reparametrize$p[index.sigmak])
                     }                    
@@ -139,7 +139,7 @@ coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL
                 if(test.notransform){
                     index.rho <- names(object$param$type)[object$param$type %in% c("rho")]
                     if(transform.names && !is.null(object$reparametrize$newname)){
-                        pVar <- c(pVar, setNames(object$reparametrize$p[index.rho],object$reparametrize$newname[match(index.rho,names(object$reparametrize$p))]))
+                        pVar <- c(pVar, stats::setNames(object$reparametrize$p[index.rho],object$reparametrize$newname[match(index.rho,names(object$reparametrize$p))]))
                     }else{
                         pVar <- c(pVar, object$reparametrize$p[index.rho])
                     }                    
@@ -155,7 +155,7 @@ coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL
                                              transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
                 outVar <- ls.reparam$p
                 if(ls.reparam$transform){
-                    newname <- setNames(ls.reparam$newname,names(pVar))
+                    newname <- stats::setNames(ls.reparam$newname,names(pVar))
                 }else{
                     newname <- NULL
                 }

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 10 2021 (16:08) 
 ## Version: 
-## Last-Updated: May 27 2021 (17:29) 
+## Last-Updated: jun  1 2021 (16:28) 
 ##           By: Brice Ozenne
-##     Update #: 40
+##     Update #: 41
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -34,7 +34,7 @@ recover_data.lmm <- function(object, ...){
     ff <- formula(object, effects = "mean")
     data <- object$data
     
-    oterms <- terms(model.frame(ff, data = data))
+    oterms <- stats::terms(model.frame(ff, data = data))
     out <- recover_data(fcall, trms = delete.response(oterms), na.action = NULL, frame = data)
     return(out)
 }

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: Jun  1 2021 (11:38) 
+## Last-Updated: jun  1 2021 (16:24) 
 ##           By: Brice Ozenne
-##     Update #: 345
+##     Update #: 347
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -53,7 +53,7 @@
     })
 
     ## ** export
-    return(setNames(out,Upattern))
+    return(stats::setNames(out,Upattern))
 }
 
 ## * .calc_dOmega
@@ -91,7 +91,7 @@
         n.iParam.rho <- length(iParam.rho)
         iParamVar <- intersect(name.param, c(iParam.sigma, iParam.k, iParam.rho))
         
-        iScore <- setNames(vector(mode = "list", length = length(iParamVar)), iParamVar)
+        iScore <- stats::setNames(vector(mode = "list", length = length(iParamVar)), iParamVar)
 
         if(n.iParam.sigma>0){
             for(iSigma in iParam.sigma){ ## iSigma <- iParam.sigma[1]
@@ -135,13 +135,13 @@
                      "Contact the package manager with a reproducible example generating this error message. \n")
             }
             M.iScore <- do.call(cbind,lapply(iScore,as.double)) %*% Jacobian[iParamVar,iParamVar,drop=FALSE]
-            iScore <- setNames(lapply(1:NCOL(M.iScore), function(iCol){matrix(M.iScore[,iCol], nrow = iNtime, ncol = iNtime, byrow = FALSE)}), iParamVar)
+            iScore <- stats::setNames(lapply(1:NCOL(M.iScore), function(iCol){matrix(M.iScore[,iCol], nrow = iNtime, ncol = iNtime, byrow = FALSE)}), iParamVar)
         }
         return(iScore)
     })
 
     ## ** export
-    out <- setNames(out,Upattern)
+    out <- stats::setNames(out,Upattern)
     return(out)
 }
 
@@ -293,7 +293,7 @@
     })
 
     ## ** export
-    out <- setNames(out,Upattern)
+    out <- stats::setNames(out,Upattern)
     return(out)
 } 
 

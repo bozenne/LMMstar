@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Jun  1 2021 (12:11) 
+## Last-Updated: jun  1 2021 (16:28) 
 ##           By: Brice Ozenne
-##     Update #: 770
+##     Update #: 773
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -93,7 +93,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     }
     var.outcome <- name.mean[1]
     var.X <- name.mean[-1]
-    formula.terms <- terms(formula)
+    formula.terms <- stats::terms(formula)
     if(any(attr(formula.terms,"order")>2)){
         stop("Cannot handle interaction involving more than two variables. \n")
     }
@@ -107,7 +107,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
             if(grepl("|",deparse(structure$formula), fixed = TRUE)){
                 repetition <- structure$formula
             }else{
-                repetition <-  as.formula(paste0("~",paste(all.vars(structure$formula),collapse="*")," | XXidXX"))
+                repetition <-  stats::as.formula(paste0("~",paste(all.vars(structure$formula),collapse="*")," | XXidXX"))
                 if("XXidXX" %in% names(data)){
                     stop("Argument \'data\' should not contain a column named \"XXtimeXX\" as this name is used by the lmm function when the argument \'repetition\' is missing. \n")
                 }
@@ -275,16 +275,16 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
         if(n.strata==1){
             formula.var  <- formula.var
         }else{
-            terms.var <- delete.response(terms(formula.var))
+            terms.var <- delete.response(stats::terms(formula.var))
             formula2.var <- update(terms.var, paste0("~0+",var.strata,"+",var.strata,":.")) ## using ".:var.strata" does not work (it gives the same formula - does not invert . var.strata around the : symbol)
         }
     }else if(structure=="CS"){
         if(n.strata>1){
-            formula.var <- as.formula(paste0("~0+",var.strata))
-            formula.cor <- as.formula(paste0(var.strata,"~1|",var.cluster))
+            formula.var <- stats::as.formula(paste0("~0+",var.strata))
+            formula.cor <- stats::as.formula(paste0(var.strata,"~1|",var.cluster))
         }else{
             formula.var <- ~1
-            formula.cor <- as.formula(paste0("~1|",var.cluster))
+            formula.cor <- stats::as.formula(paste0("~1|",var.cluster))
         }
     }
     if(n.strata==1){
@@ -324,8 +324,8 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                                     structure = structure
                                     )
 
-    out$xfactor <- unique(c(stats::.getXlevels(terms(out$formula$mean.design),data),
-                            stats::.getXlevels(terms(out$formula$var.design),data)))
+    out$xfactor <- unique(c(stats::.getXlevels(stats::terms(out$formula$mean.design),data),
+                            stats::.getXlevels(stats::terms(out$formula$var.design),data)))
     if(trace>=2){cat("\n")}
     
     ## ** Estimate model parameters
@@ -382,10 +382,10 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     param.k <- lapply(U.strata, function(iS){  coef(out$gls[[iS]]$modelStruct$varStruct, unconstrained = FALSE) })
     param.rho <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]$modelStruct$corStruct, unconstrained = FALSE) })
 
-    out$param$value <- c(setNames(unlist(param.mu),out$design$param$mu),
-                         setNames(unlist(param.sigma), out$design$param$sigma),
-                         setNames(unlist(param.k), out$design$param$k),
-                         setNames(unlist(param.rho), out$design$param$rho)
+    out$param$value <- c(stats::setNames(unlist(param.mu),out$design$param$mu),
+                         stats::setNames(unlist(param.sigma), out$design$param$sigma),
+                         stats::setNames(unlist(param.k), out$design$param$k),
+                         stats::setNames(unlist(param.rho), out$design$param$rho)
                          )
 
     out$param$strata <- c(unlist(lapply(1:n.strata, function(iS){rep(U.strata[iS], times = length(param.mu[[iS]]))})),

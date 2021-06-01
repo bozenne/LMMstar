@@ -12,7 +12,7 @@ lmm(
   method.fit = NULL,
   df = NULL,
   type.information = NULL,
-  debug = FALSE,
+  trace = FALSE,
   ...
 )
 }
@@ -35,7 +35,7 @@ On the left hand side, a possible stratification variable, e.g. group ~ time|id.
 
 \item{type.information}{[character] Should the expected information be computed  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).}
 
-\item{debug}{[interger, >0] Show the progress of the execution of the function.}
+\item{trace}{[interger, >0] Show the progress of the execution of the function.}
 
 \item{...}{passed to \code{nlme::gls}.}
 }

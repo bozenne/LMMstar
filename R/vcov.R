@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: May 31 2021 (13:53) 
+## Last-Updated: jun  1 2021 (16:24) 
 ##           By: Brice Ozenne
-##     Update #: 337
+##     Update #: 338
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -84,7 +84,7 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
     ## ** extract or recompute variance covariance matrix
     if(type.object=="lmm"){
 
-        keep.name <- setNames(names(coef(object, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE)),
+        keep.name <- stats::setNames(names(coef(object, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE)),
                               names(coef(object, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)))
 
         if(is.null(data) && is.null(p) && test.notransform && (df == FALSE || !is.null(object$df))){
@@ -124,7 +124,7 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
                              REML = detail$REML, type.information = as.vector(type.information),
                              transform.sigma = detail$transform.sigma, transform.k = detail$transform.k, transform.rho = detail$transform.rho, 
                              vcov = vcovFull, diag = TRUE, method.numDeriv = options$method.numDeriv)
-                attr(vcov,"df") <- setNames(outdf[keep.name],names(keep.name))
+                attr(vcov,"df") <- stats::setNames(outdf[keep.name],names(keep.name))
                 if(df>1){
                     attr(vcov,"dVcov") <- attr(outdf,"dVcov")[keep.name,keep.name,keep.name]
                     dimnames(attr(vcov,"dVcov")) <- list(names(keep.name),names(keep.name),names(keep.name))
@@ -264,7 +264,7 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
     ## 4*coef(e.lmm)["sigma"]^2/stats::nobs(e.lmm)[1]
     ## ** degrees of freedom
     if(diag){
-        df <- setNames(sapply(1:n.allcoef, function(iP){
+        df <- stats::setNames(sapply(1:n.allcoef, function(iP){
             2 * vcov[iP,iP]^2 / (A.dVcov[iP,iP,] %*% vcov %*% A.dVcov[iP,iP,])
         }), name.allcoef)
     }else{

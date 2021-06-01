@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: Jun  1 2021 (12:18) 
+## Last-Updated: jun  1 2021 (16:16) 
 ##           By: Brice Ozenne
-##     Update #: 44
+##     Update #: 46
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -402,6 +402,8 @@ test <- confint(eUN.lmm)[,"df", drop=FALSE]
 
 ## ** anova
 aa  <- anova(eUN.lmm)
+## print(aa, print.null = TRUE)
+
 ## ** getVarCov
 getVarCov(eUN.lmm)
 })
