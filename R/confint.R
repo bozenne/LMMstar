@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: May 27 2021 (17:12) 
+## Last-Updated: May 31 2021 (15:10) 
 ##           By: Brice Ozenne
-##     Update #: 126
+##     Update #: 224
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -32,7 +32,6 @@
 ##' @param type.object [character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.
 ##' @param strata [character vector] When not \code{NULL}, only output coefficient relative to specific levels of the variable used to stratify the mean and covariance structure.
 ##' @param type.information,transform.sigma,transform.k,transform.rho,transform.names are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.
-##' @param backtransform.mu,backtransform.sigma,backtransform.k,backtransform.rho [function] possible backtransformation for the estimate, lower and upper bounds of the confidence interval.
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @seealso the function \code{multcomp::glht} to perform inference about linear combinations of coefficients and adjust for multiple comparisons.
@@ -71,7 +70,7 @@
 ##' @export
 confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", null = NULL, type.object = "lmm", strata = NULL, 
                          df = !is.null(object$df), type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE,
-                         backtransform.mu = NULL, backtransform.sigma = NULL, backtransform.k = NULL, backtransform.rho = NULL, ...){
+                          ...){
 
     options <- LMMstar.options()
 
@@ -85,6 +84,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", nul
              "Use \'effects\' instead. \n")
     }
     type.object <- match.arg(type.object, c("lmm","gls"))
+    type.param <- object$param$type
     if(identical(effects,"all")){
         effects <- c("mean","variance","correlation")
     }
@@ -101,23 +101,13 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", nul
     }
     ## used to decide on the null hypothesis of k parameters
     init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
-                            x.transform.sigma = NULL, x.transform.k = NULL, x.transform.rho = NULL,
-                            backtransform.sigma = backtransform.sigma, backtransform.k = backtransform.k, backtransform.rho = backtransform.rho)
+                            x.transform.sigma = NULL, x.transform.k = NULL, x.transform.rho = NULL)
     
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
     transform.rho <- init$transform.rho
     transform <- init$transform
-    backtransform <- list(sigma = init$backtransform.sigma,
-                          k = init$backtransform.k,
-                          rho = init$backtransform.rho)
-    if(is.null(match.call()$transform.names)){
-        if(all(unlist(lapply(backtransform, is.null))*unlist(lapply(backtransform, identical, "none"))==1)){
-            transform.names <- TRUE
-        }else{
-            transform.names <- FALSE
-        }
-    }
+
     if(is.null(type.information)){
         type.information <- options$type.information
     }else{
@@ -128,11 +118,13 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", nul
     beta <- coef(object, effects = effects, type.object = "lmm", strata = strata,
                  transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
     p <- length(beta)
-    nameNoTransform.beta <- names(coef(object, effects = effects, type.object = "lmm", strata = strata))
-    
+    nameNoTransform.beta <- names(coef(object, effects = effects, type.object = "lmm", strata = strata,
+                                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE))
+   
     ## ** get uncertainty 
     vcov.beta <- vcov(object, effects = effects, df = df, type.object = "lmm", strata = strata,
                       type.information = type.information, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+
     if(df){
         df <- attr(vcov.beta,"df")
         attr(vcov.beta,"df") <- NULL
@@ -146,13 +138,13 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", nul
     ## ** get null
     if(is.null(null)){
         if(transform.k %in% c("sd","logsd","var","logvar")){
-            null <- setNames(sapply(object$param$type[names(beta)],switch,
+            null <- setNames(sapply(type.param[nameNoTransform.beta],switch,
                            "mu" = 0,
                            "sigma" = NA,
                            "k" = NA,
                            "rho" = 0),nameNoTransform.beta)
         }else{
-            null <- setNames(sapply(object$param$type[names(beta)],switch,
+            null <- setNames(sapply(type.param[nameNoTransform.beta],switch,
                            "mu" = 0,
                            "sigma" = NA,
                            "k" = 1,
@@ -170,7 +162,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", nul
                  "Incorrect name(s): \"",paste(names(null)[names(null) %in% names(beta) == FALSE], collapse ="\" \""),"\" \n",
                  "Missing name(s): \"",paste(names(beta)[names(beta) %in% names(null) == FALSE], collapse ="\" \""),"\" \n")
         }
-        null <- null[names(beta)]
+        null <- null[nameNoTransform.beta]
     }
 
     ## ** combine
@@ -182,53 +174,93 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", nul
     out$lower <- out$estimate + stats::qt(alpha/2, df = out$df) * out$se
     out$upper <- out$estimate + stats::qt(1-alpha/2, df = out$df) * out$se
 
-    ## ** back-transform
-    for(iType in names(backtransform)){
-
-        if(!is.null(backtransform[[iType]]) && !identical(backtransform[[iType]],"none") && !identical(backtransform[[iType]],FALSE)){
-            if(identical("exp",backtransform[[iType]])){
-                backtransform[[iType]] <- exp
-            }else if(identical("log",backtransform[[iType]])){
-                backtransform[[iType]] <- log
-            }else if(identical("tanh",backtransform[[iType]])){
-                backtransform[[iType]] <- tanh
-            }else if(identical("atanh",backtransform[[iType]])){
-                backtransform[[iType]] <- atanh
-            }else if(is.function(backtransform.sigma)==FALSE){
-                stop("Argument \'backtransform.sigma\' must be a function. \n")
-            }
-            iIndex.type <- which(object$param$type[names(beta)]==iType)
-            if(length(iIndex.type)>0){
-                out$estimate[iIndex.type] <- sapply(out$estimate[iIndex.type],backtransform[[iType]])
-                ## out$se[iIndex.type] <- sapply(iIndex.type,function(iBeta){numDeriv::jacobian(func = backtransform.sigma, x = out$estimate[iBeta])*out$se[iBeta]})
-                out$lower[iIndex.type] <- sapply(out$lower[iIndex.type],backtransform[[iType]])
-                out$upper[iIndex.type] <- sapply(out$upper[iIndex.type],backtransform[[iType]])
-            }else{
-                backtransform[[iType]] <- NULL
-            }
-        }
-        
-    }
     
     ## ** export
+    attr(out, "transform") <- list(sigma = transform.sigma,
+                                   k = transform.k,
+                                   rho = transform.rho)
+    attr(out, "type") <- type.param
+    if(transform.k %in% c("sd","var","logsd","logvar")){
+        attr(out, "type")[attr(out, "type")=="sigma"] <- "k"
+    }
+    attr(out, "old2new") <-  setNames(nameNoTransform.beta, rownames(out))
+    attr(out, "backtransform.names") <- names(coef(object, effects = effects, type.object = "lmm", strata = strata,
+                                                   transform.sigma = gsub("log","",transform.sigma), transform.k = gsub("log","",transform.k), transform.rho = gsub("atanh","",transform.rho), transform.names = transform.names))
+
+    attr(out, "backtransform") <-  FALSE
     class(out) <- append("confint_lmm", class(out))
-    attr(out, "backtransform") <- backtransform
     return(out)
 }
 
 ## * print.confint_lmm
 ##' @export
 print.confint_lmm <- function(x, ...){
-    print(as.data.frame(x))
-    backtransform <- attr(x,"backtransform")
 
-    test.fct <- sapply(backtransform,is.function)
-    if(any(test.fct)){
-        cat("\n Note: confidence intervals and p-values for the \"",paste(names(test.fct)[test.fct], collapse = "\", \""),"\" coefficients have been computed after transformation and then back-transformed.\n",
-            "       The transformation used in the attribute \"backtransform\" of the object. \n",sep="")
+    print(as.data.frame(x))
+
+    backtransform <- attr(x,"backtransform")
+    if(identical(backtransform, TRUE)){
+        transform <- attr(x,"transform")
+        type <- attr(x,"type")
+
+        missing.type <- setNames(c("sigma","k","rho") %in% type == FALSE,c("transform.sigma","transform.k","transform.rho"))
+
+        transform2 <- unlist(transform[c("transform.sigma","transform.k","transform.rho")])
+        transform2[names(missing.type)[missing.type]] <- "none"
+
+        cat("Note: estimates and confidence intervals for ",paste(names(transform)[transform!="none"], collapse = ", ")," have been back-transformed. \n",
+            "      standard errors are not back-transformed.\n", sep="")
     }
     return(NULL)
 }
 
+## * backtransform.confint_lmm
+##' @export
+backtransform <-   function(object,...) UseMethod("backtransform")
+
+##' @export
+backtransform.confint_lmm <- function(object, ...){
+
+    type.param <- attr(object,"type")
+    transform <- attr(object,"transform")
+    old2new <- attr(object,"old2new")
+    if(attr(object,"backtransform")){
+        message("Estimates and confidence intervals have already been backtransformed.")
+        return(object)
+    }
+
+    for(iType in names(transform)){ ## iType <- names(transform)[1]
+
+        if(transform[[iType]] %in%  c("log","logsd","logvar","logsquare")){
+            iBacktransform <- exp
+        }else if(identical("exp",transform[[iType]])){
+            iBacktransform <- log
+        }else if(identical("tanh",transform[[iType]])){
+            iBacktransform <- atanh
+        }else if(identical("atanh",transform[[iType]])){
+            iBacktransform <- tanh
+        }else if(transform[[iType]] %in% c("none","sd","var","square","cov")){
+            next
+        }else{
+            stop("Unknown transformation. \n")
+        }
+        iIndex.type <- which(type.param[old2new]==iType)
+        ## ** back-transform
+        if(length(iIndex.type)>0){
+            object$estimate[iIndex.type] <- sapply(object$estimate[iIndex.type],iBacktransform)
+            object$lower[iIndex.type] <- sapply(object$lower[iIndex.type],iBacktransform)
+            object$upper[iIndex.type] <- sapply(object$upper[iIndex.type],iBacktransform)
+        }
+    }
+        
+
+    ## ** rename
+    backtransform.names <- attr(object,"backtransform.names")
+    rownames(object) <- backtransform.names
+    
+    ## ** export
+    attr(object, "backtransform") <-  TRUE    
+    return(object)
+}
 ##----------------------------------------------------------------------
 ### confint.R ends here

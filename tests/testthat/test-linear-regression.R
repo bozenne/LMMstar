@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: May 27 2021 (21:49) 
+## Last-Updated: Jun  1 2021 (12:18) 
 ##           By: Brice Ozenne
-##     Update #: 115
+##     Update #: 132
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -50,8 +50,10 @@ d$time <- "t1"
 
 
 ## * single variance parameter (ML)
+
+test_that("single variance parameter (ML)",{
 ## ** fit
-e.lmm <- lmm(Y ~ X1 + X2 + Gene, repetition = ~time|id, structure = "CS", data = d, debug = 2,
+e.lmm <- lmm(Y ~ X1 + X2 + Gene, repetition = ~time|id, structure = "CS", data = d, trace = 0,
              method = "ML")
 expect_warning(lmm(Y ~ X1 + X2 + Gene, repetition = ~time|id, structure = "UN", data = d))
 e.gls <- gls(Y ~ X1 + X2 + Gene, data = d, method = "ML")
@@ -69,6 +71,7 @@ expect_equal(unname(coef(e.lmm, transform.sigma = "square")), unname(coef(e.lava
 
 ## ** logLikelihood
 expect_equal(logLik(e.lmm), as.double(logLik(e.gls)), tol = 1e-6)
+expect_equal(logLik(e.lmm), as.double(logLik(e.lava)), tol = 1e-6)
 ## coef(e.lmm, transform.sigma = "log")
 ## coef(e.lmm, transform.sigma = "square")
 ## coef(e.lmm, transform.sigma = "logsquare")
@@ -162,18 +165,19 @@ expect_equal(test, c(rep(n.obs,n.mu),n.obs/4), tol = 1e-6)
 ## test2 <- sapply(1:NROW(GG.bis),function(gg){2*VV.bis[gg,gg]^2/ (GG.bis[gg,,drop=FALSE] %*% VV.bis %*% t(GG.bis[gg,,drop=FALSE]))})
 
 ## ** anova
-test <- anova(e.lmm, print = FALSE)
+test <- anova(e.lmm)
 expect_equal(test$mean["Gene","statistic"]*test$mean["Gene","df.num"],
              unname(lava::compare(e.lava, par = c("Y~GeneLA","Y~GeneAA"))$statistic), tol = 1e-6)
 expect_equal(test$mean["Gene","df.denom"], NROW(d))
 
-
-anova(e.lmm, effect = c("GeneLA=0","GeneAA=0"))
-anova(e.lmm, effect = c("GeneLA=0","GeneAA=0"), print.null=TRUE)
+test <- anova(e.lmm, effect = c("GeneLA=0","GeneAA=0"))
+test2 <-  anova(e.lmm, effect = c("GeneLA=0","GeneAA=0"))
+})
 
 ## * single variance parameter (REML)
+test_that("single variance parameter (REML)",{
 ## ** fit
-e.lmm <- lmm(Y ~ X1 + X2 + Gene, repetition = ~time|id, structure = "CS", data = d, debug = 2,
+e.lmm <- lmm(Y ~ X1 + X2 + Gene, repetition = ~time|id, structure = "CS", data = d, trace = 0,
              method = "REML", df = TRUE)
 e.gls <- gls(Y ~ X1 + X2 + Gene, data = d, method = "REML")
 
@@ -235,9 +239,6 @@ test <- information(e.lmm, p = newp, transform.sigma = "none")
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## ** degree of freedom
-e.lmm <- lmm(Y ~ 1, repetition = ~time|id, structure = "CS", data = d, debug = 2,
-             method = "REML", df = TRUE)
-
 test <- confint(e.lmm, transform.sigma = "log", type.information = "observed")$df
 expect_equal(test, rep(n.obs-n.mu,n.param), tol = 1e-6)
 
@@ -267,13 +268,15 @@ test <- anova(e.lmm)
 GS <- anova(e.gls, type = "marginal")
 expect_equal(test$mean$statistic,GS[["F-value"]][-1], tol = 1e-6)
 expect_equal(test$mean$p.value,GS[["p-value"]][-1], tol = 1e-6)
+})
 
 ## * multiple variance parameters (ML)
+test_that("multiple variance parameter (ML)",{
 ## ** fit
-e.lmm <- lmm(Y ~ -1 + Gender + (X1 + X2 + Gene):Gender, repetition = ~Gender|id, structure = "UN", data = d, debug = 2,
+e.lmm <- lmm(Y ~ -1 + Gender + (X1 + X2 + Gene):Gender, repetition = ~Gender|id, structure = "UN", data = d, trace = 0,
              method = "ML")
 e.gls <- gls(Y ~ -1 + Gender + (X1 + X2 + Gene):Gender, data = d, weights = varIdent(form=~1|Gender), method = "ML")
-e.lmm2 <- lmm(Y ~(X1 + X2 + Gene)*Gender, repetition = Gender~time|id, structure = "CS", data = d, debug = 2,
+e.lmm2 <- lmm(Y ~(X1 + X2 + Gene)*Gender, repetition = Gender~time|id, structure = "CS", data = d, trace = 0,
              method = "ML")
 
 n.obs <- unname(nobs(e.lmm)[1])
@@ -295,7 +298,7 @@ expect_equal(logLik(e.lmm2),logLik(e.lmm))
 
 ## ** score
 test <- score(e.lmm, transform.sigma = "none", transform.k = "none")
-GS <- jacobian(func = function(p){logLik(e.lmm, p = p)}, x = coef(e.lmm))
+GS <- jacobian(func = function(p){logLik(e.lmm, p = p)}, x = coef(e.lmm, transform.sigma = "none", transform.k = "none"))
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 expect_true(all(abs(test) < 1e-4))
 
@@ -342,12 +345,12 @@ GS <- -hessian(func = function(p){p[c("sigma","k.M")] <- c(sqrt(p["sigma"]),sqrt
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## ** degree of freedom
-name.coefM <- grep(names(coef(e.lmm, transform.k = "logsd")),pattern="M",value=TRUE)
-name.coefF <- grep(names(coef(e.lmm, transform.k = "logsd")),pattern="F",value=TRUE)
+name.coefM <- grep(names(coef(e.lmm, transform.k = "sd")),pattern="M",value=TRUE)
+name.coefF <- grep(names(coef(e.lmm, transform.k = "sd")),pattern="F",value=TRUE)
 
-test <- confint(e.lmm, transform.k = "logsd", type.information = "observed")[,"df",drop=FALSE]
-expect_equal(test[name.coefM,], rep(sum(d$Gender=="M"),length(name.coefM)), tol = 1e-6)
-expect_equal(test[name.coefF,], rep(sum(d$Gender=="F"),length(name.coefM)), tol = 1e-6)
+test <- backtransform(confint(e.lmm, transform.k = "logsd", type.information = "observed"))[,"df",drop=FALSE]
+expect_equal(test[name.coefM,], rep(sum(d$Gender=="M"),length(name.coefM)), tol = 1e-3)
+expect_equal(test[name.coefF,], rep(sum(d$Gender=="F"),length(name.coefM)), tol = 1e-3)
 
 name.coefM <- grep(names(coef(e.lmm, transform.k = "var")),pattern="M",value=TRUE)
 name.coefF <- grep(names(coef(e.lmm, transform.k = "var")),pattern="F",value=TRUE)
@@ -368,27 +371,29 @@ residuals(e.lmm2)
 residuals(e.lmm, format = "wide", type.residual = "normalized")
 
 ## ** confidence interval
-confint(e.lmm, effects = "variance")
-confint(e.lmm, effects = "variance", transform.sigma = "log", backtransform.sigma = "exp")
-anova(e.lmm)
-anova(e.gls)
+expect_equal(confint(e.lmm, transform.k = "sd", effects = "variance")$estimate,
+             backtransform(confint(e.lmm, effects = "variance", transform.k = "logsd"))$estimate,
+             tol = 1e-6)
+## anova(e.lmm)
+## anova(e.gls)
 
 ## ** print and summary
-print(e.lmm)
-summary(e.lmm)
+capture.output(print(e.lmm))
+capture.output(summary(e.lmm))
 
 ## ** predictions
 predict(e.lmm, newdata = d)
 
 ## ** interface to other packages
 glht(e.lmm)
-summary(e.lmm, ci = FALSE, hide.var = FALSE)
-summary(e.lmm)
-emmeans(e.lmm, specs = ~Gender)
+capture.output(emmeans(e.lmm, specs = ~Gender))
+})
 
 ## * multiple variance parameters (REML)
+
+test_that("multiple variance parameters (REML)",{
 ## ** fit
-e.lmm <- lmm(Y ~ -1 + Gender + (X1 + X2 + Gene):Gender, repetition = ~Gender|id, structure = "UN", data = d, debug = 2,
+e.lmm <- lmm(Y ~ -1 + Gender + (X1 + X2 + Gene):Gender, repetition = ~Gender|id, structure = "UN", data = d, trace = 0,
              method = "REML")
 e.gls <- gls(Y ~ -1 + Gender + (X1 + X2 + Gene):Gender, data = d, weights = varIdent(form=~1|Gender), method = "REML")
 
@@ -410,7 +415,7 @@ expect_equal(logLik(e.lmm), as.double(logLik(e.gls)), tol = 1e-6)
 
 ## ** score
 test <- score(e.lmm, transform.sigma = "none", transform.k = "none")
-GS <- jacobian(func = function(p){logLik(e.lmm, p = p)}, x = coef(e.lmm))
+GS <- jacobian(func = function(p){logLik(e.lmm, p = p)}, x = coef(e.lmm, transform.sigma = "none", transform.k = "none"))
 expect_true(all(abs(test) < 1e-6))
 expect_equal(as.double(GS),as.double(test))
 
@@ -449,18 +454,18 @@ GS <- -hessian(func = function(p){p[c("sigma","k.M")] <- c(sqrt(p["sigma"]),sqrt
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## ** degree of freedom
-name.coefM <- grep(names(coef(e.lmm, transform.k = "logsd")),pattern="M",value=TRUE)
-name.coefF <- grep(names(coef(e.lmm, transform.k = "logsd")),pattern="F",value=TRUE)
+name.coefM <- grep(names(coef(e.lmm, transform.k = "sd")),pattern="M",value=TRUE)
+name.coefF <- grep(names(coef(e.lmm, transform.k = "sd")),pattern="F",value=TRUE)
 
-test <- confint(e.lmm, transform.k = "logsd", type.information = "observed")[,"df",drop=FALSE]
+test <- backtransform(confint(e.lmm, transform.k = "logsd", type.information = "observed"))[,"df",drop=FALSE]
 expect_equal(test[name.coefM,], rep(sum(d$Gender=="M")-length(name.coefM)+1,length(name.coefM)), tol = 1e-6)
 expect_equal(test[name.coefF,], rep(sum(d$Gender=="F")-length(name.coefM)+1,length(name.coefM)), tol = 1e-6)
 
 ## ** confidence interval
-summary(e.lmm)
-anova(e.lmm)
-anova(e.gls,type="marginal")
-
+capture.output(summary(e.lmm))
+capture.output(anova(e.lmm))
+## anova(e.gls,type="marginal")
+})
 
 
 

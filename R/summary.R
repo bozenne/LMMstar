@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: May 27 2021 (17:06) 
+## Last-Updated: Jun  1 2021 (11:14) 
 ##           By: Brice Ozenne
-##     Update #: 195
+##     Update #: 206
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -36,7 +36,7 @@
 ## * summary.lmm (code)
 ##' @rdname summary
 ##' @export
-summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = FALSE,
+summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = TRUE,
                         hide.fit = FALSE, hide.cor = FALSE, hide.var = TRUE, hide.sd = FALSE, hide.mean = FALSE, ...){
 
     param.mu <- object$param$value[object$param$type=="mu"]
@@ -91,20 +91,22 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = FALS
         C <- lapply(data.X, function(iCol){
             if(inherits(iCol,"factor")){contrasts(iCol)}else if(inherits(iCol,"character")){contrasts(as.factor(iCol))}
         })
-        C <- C[!unlist(lapply(C, is.null))]
         if(length(C)>0){
-            cat(" - levels of the categorical variables \n", sep = "")
-            if(attr(stats::terms(formula$mean),"intercept") == 1){
-                ref.level <- paste(unlist(lapply(names(C), function(iC){
-                    paste0(iC,"=",rownames(C[[iC]])[1])
-                })), collapse = " ; ")
-                cat(" - reference level: ",ref.level," \n", sep = "")
-                cat(" \n")
+            C <- C[!unlist(lapply(C, is.null))]
+            if(length(C)>0){
+                cat(" - levels of the categorical variables \n", sep = "")
+                if(attr(stats::terms(formula$mean),"intercept") == 1){
+                    ref.level <- paste(unlist(lapply(names(C), function(iC){
+                        paste0(iC,"=",rownames(C[[iC]])[1])
+                    })), collapse = " ; ")
+                    cat(" - reference level: ",ref.level," \n", sep = "")
+                    cat(" \n")
+                }
+                print(C)
             }
-            print(C)
         }
     }
-
+    
     ## ** correlation structure
     if(length(param.rho)>0){
         if(print && !hide.cor){
@@ -126,48 +128,29 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = FALS
     ## ** variance structure
     if(print && (!hide.var || !hide.sd)){
         cat("Variance structure:",deparse(formula$var.design),"\n")
-        name.sigma <- names(coef(object, transform.k = "sd", effects = "variance"))
+        name.sigma <- names(coef(object, transform.sigma = "none", transform.k = "sd", effects = "variance"))
         index.ref <- which(names(coef(object, effects = "variance", transform.names = FALSE)) %in% names(param.sigma))
     }
 
     if(!hide.var){
-        M.varcoef <- confint(object, level = level, df = df, transform.k = "var", effects = "variance")
-        M.varcoefRe <- confint(object, level = level, df = df, transform.sigma = "none", transform.k = "square", effects = "variance", transform.names = FALSE)
-        M.varcoefRe[index.ref,c("estimate","lower","upper")] <- 1
-        M.varcoefRe[index.ref,c("se","sd")] <- NA
-
-        if(ci){
-            table.var <- data.frame(estimate = M.varcoef[,"estimate"], lower = M.varcoef[,"lower"], upper = M.varcoef[,"upper"],
-                                    estimate.ratio = M.varcoefRe[,"estimate"], lower.ratio = M.varcoefRe[,"lower"], upper.ratio = M.varcoefRe[,"upper"])
-        }else{
-            table.var <- data.frame(estimate = M.varcoef[,"estimate"], estimate.ratio = M.varcoefRe[,"estimate"])
-        }
-        rownames(table.var) <- name.sigma
+        table.var <- cbind(estimate = coef(object, transform.sigma = "none", transform.k = "var", effects = "variance"),
+                           estimate.ratio = coef(object, transform.sigma = "none", transform.k = "square", effects = "variance", transform.names = FALSE))
+        table.var[index.ref,"estimate.ratio"] <- 1
         test.k <- NROW(table.var) > length(index.ref)
+        rownames(table.var) <- name.sigma
     }else{
         table.var <- NULL
     }
     if(!hide.sd){
-        M.sdcoef <- confint(object, level = level, df = df, transform.k = "logsd", effects = "variance")
-        M.sdcoefRe <- confint(object, level = level, df = df, transform.sigma = "log", effects = "variance", transform.names = FALSE)
-
-        M.sdcoefRe[index.ref,c("estimate","lower","upper")] <- 1
-        M.sdcoefRe[index.ref,c("se")] <- NA
-
-        if(ci){
-            table.sd <- data.frame(estimate = M.sdcoef[,"estimate"], lower = M.sdcoef[,"lower"], upper = M.sdcoef[,"upper"],
-                                   estimate.ratio = M.sdcoefRe[,"estimate"], lower.ratio = M.sdcoefRe[,"lower"], upper.ratio = M.sdcoefRe[,"upper"])
-        }else{
-            table.sd <- data.frame(estimate = M.sdcoef[,"estimate"], estimate.ratio = M.sdcoefRe[,"estimate"])
-        }
-        rownames(table.sd) <- name.sigma
+        table.sd <- cbind(estimate = coef(object, transform.sigma = "none", transform.k = "sd", effects = "variance"),
+                          estimate.ratio = coef(object, transform.sigma = "none", transform.k = "none", effects = "variance", transform.names = FALSE))
+        table.sd[index.ref,"estimate.ratio"] <- 1
         test.k <- NROW(table.sd) > length(index.ref)
+        rownames(table.sd) <- name.sigma
     }else{
         table.sd <- NULL
     }
-    
     if(print && (!hide.var || !hide.sd)){
-        if(!ci){
             printtable <- matrix(NA, ncol = 0, nrow = length(name.sigma))
             if(!hide.var){
                 printtable <- cbind(printtable, data.frame(variance = unname(table.var[,"estimate"])))
@@ -185,44 +168,6 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = FALS
             rownames(printtable) <- name.sigma
             print(printtable, digit = digit)
             cat("\n")
-        }else{
-            if(!hide.var){
-                printtable.var <- table.var
-                printtable.var <- apply(printtable.var, 2, round, digit = digit)
-                if(test.k){
-                    cat("Variance estimates (relative to reference): \n")
-                    printtable.var[index.ref,"estimate.ratio"] <- "reference"
-                    printtable.var[index.ref,c("lower.ratio","upper.ratio")] <- ""
-                    printtable.var[-index.ref,"estimate"] <- paste0(printtable.var[-index.ref,"estimate"], " (",printtable.var[-index.ref,"estimate.ratio"],")")
-                    printtable.var[-index.ref,"lower"] <- paste0(printtable.var[-index.ref,"lower"], " (",printtable.var[-index.ref,"lower.ratio"],")")
-                    printtable.var[-index.ref,"upper"] <- paste0(printtable.var[-index.ref,"upper"], " (",printtable.var[-index.ref,"upper.ratio"],")")
-                }else{
-                    cat("Variance estimates: \n")
-                }
-                print(printtable.var[,c("estimate","lower","upper")], quote = FALSE)
-                cat("\n")
-            }
-            if(!hide.sd){
-                printtable.sd <- table.sd
-                for(iCol in 1:NCOL(printtable.sd))
-                    printtable.sd[,iCol] <- round(printtable.sd[,iCol], digits = digit)
-                if(test.k){
-                    cat("Standard deviation estimates (relative to reference): \n")
-                    printtable.sd[index.ref,"estimate.ratio"] <- "reference"
-                    printtable.sd[index.ref,c("lower.ratio","upper.ratio")] <- ""
-                    printtable.sd[-index.ref,"estimate"] <- paste0(printtable.sd[-index.ref,"estimate"], " (",printtable.sd[-index.ref,"estimate.ratio"],")")
-                    printtable.sd[-index.ref,"lower"] <- paste0(printtable.sd[-index.ref,"lower"], " (",printtable.sd[-index.ref,"lower.ratio"],")")
-                    printtable.sd[-index.ref,"upper"] <- paste0(printtable.sd[-index.ref,"upper"], " (",printtable.sd[-index.ref,"upper.ratio"],")")
-                }else{
-                    cat("Standard deviation estimates: \n")
-                }
-                print(printtable.sd[,c("estimate","lower","upper")], quote = FALSE)
-                if(object$reparametrize$transform.sigma=="log" && (all(object$param$type!="k") || (object$reparametrize$transform.k=="log"))){
-                    cat("\n Note: confidence intervals have been computed on the log-scale and then back-transformed.\n",sep="")
-                }
-                cat("\n")
-            }
-        }
     }
 
     ## ** mean structure

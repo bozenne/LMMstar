@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: May 27 2021 (14:39) 
+## Last-Updated: May 31 2021 (14:27) 
 ##           By: Brice Ozenne
-##     Update #: 25
+##     Update #: 26
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -37,9 +37,7 @@ LMMstar.options <- function(..., reinitialise = FALSE){
                     transform.sigma = "log",
                     transform.k = "log",
                     transform.rho = "atanh",
-                    backtransform.sigma = TRUE,
-                    backtransform.k = TRUE,
-                    backtransform.rho = TRUE,
+                    backtransform.summary = TRUE,
                     type.information = "observed"),
                envir = LMMstar.env)
     

@@ -3,6 +3,8 @@ library(testthat)
 library(LMMstar)
 
 library(lava)
+library(nlme)
+library(emmeans)
 library(numDeriv)
 library(data.table)
 library(multcomp)

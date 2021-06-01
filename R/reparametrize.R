@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: May 27 2021 (15:10) 
+## Last-Updated: May 31 2021 (13:54) 
 ##           By: Brice Ozenne
-##     Update #: 323
+##     Update #: 337
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -107,8 +107,7 @@ reparametrize <- function(p, type, strata, time.levels,
 
     }else{
         init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
-                                x.transform.sigma = NULL, x.transform.k = NULL, x.transform.rho = NULL,
-                                backtransform.sigma = NULL, backtransform.k = NULL, backtransform.rho = NULL)
+                                x.transform.sigma = NULL, x.transform.k = NULL, x.transform.rho = NULL)
             
         ls.out <- .reparametrize(p = p, type = type, strata = strata, time.levels = time.levels,
                                  Jacobian = Jacobian, dJacobian = dJacobian, inverse = FALSE,
@@ -660,8 +659,7 @@ reparametrize <- function(p, type, strata, time.levels,
 
 ## * .init_transform
 .init_transform <- function(transform.sigma, transform.k, transform.rho, options,
-                            x.transform.sigma, x.transform.k, x.transform.rho,
-                            backtransform.sigma, backtransform.k, backtransform.rho){
+                            x.transform.sigma, x.transform.k, x.transform.rho){
 
     ## ** transform
     if(is.null(transform.sigma)){
@@ -669,6 +667,9 @@ reparametrize <- function(p, type, strata, time.levels,
         transform.sigma <- options$transform.sigma
         attr(transform.sigma,"arg") <- transform.sigma.save
     }else{
+        if(identical(transform.sigma,"")){
+            transform.sigma <- "none"
+        }
         transform.sigma <- match.arg(transform.sigma, c("none","one","log","square","logsquare","remove"))
         attr(transform.sigma,"arg") <- NULL
     }
@@ -677,6 +678,9 @@ reparametrize <- function(p, type, strata, time.levels,
         transform.k <- options$transform.k
         attr(transform.k,"arg") <- transform.k.save
     }else{
+        if(identical(transform.k,"")){
+            transform.k <- "none"
+        }
         transform.k <- match.arg(transform.k, c("none","log","square","logsquare","sd","logsd","var","logvar","remove"))
         attr(transform.k,"arg") <- NULL
     }
@@ -685,6 +689,9 @@ reparametrize <- function(p, type, strata, time.levels,
         transform.rho <- options$transform.rho
         attr(transform.rho,"arg") <- transform.rho.save
     }else{
+        if(identical(transform.rho,"")){
+            transform.rho <- "none"
+        }
         transform.rho <- match.arg(transform.rho, c("none","atanh", "cov","remove"))
         attr(transform.rho,"arg") <- NULL
     }
@@ -700,52 +707,11 @@ reparametrize <- function(p, type, strata, time.levels,
         test.notransform <- NULL
     }
 
-    ## ** back.transform
-    if(is.null(backtransform.sigma)){
-        backtransform.sigma <- options$backtransform.sigma
-    }
-    if(identical(as.logical(backtransform.sigma),TRUE)){
-        backtransform.sigma <- switch(transform.sigma,
-                                      "none" = "none",
-                                      "log" = "exp",
-                                      "square" = "none",
-                                      "logsquare" = "exp")
-    }
-
-    if(is.null(backtransform.k)){
-        backtransform.k <- options$backtransform.k
-    }
-    if(identical(as.logical(backtransform.k),TRUE)){
-        backtransform.k <- switch(transform.k,
-                                  "none" = "none",
-                                  "log" = "exp",
-                                  "square" = "none",
-                                  "logsquare" = "exp",
-                                  "sd" = "none",
-                                  "logsd" = "exp",
-                                  "var" = "none",
-                                  "logvar" = "exp")
-        backtransform.sigma <- backtransform.k
-    }
-
-    if(is.null(backtransform.rho)){
-        backtransform.rho <- options$backtransform.rho
-    }
-    if(identical(as.logical(backtransform.rho),TRUE)){
-        backtransform.rho <- switch(transform.rho,
-                                    "none" = "none",
-                                    "atanh" = "tanh",
-                                    "cov" = "cov")
-    }
-
     ## ** export
     return(list(transform.sigma = transform.sigma,
                 transform.k = transform.k,
                 transform.rho = transform.rho,
-                test.notransform = test.notransform,
-                backtransform.sigma = backtransform.sigma,
-                backtransform.k = backtransform.k,
-                backtransform.rho = backtransform.rho))
+                test.notransform = test.notransform))
 }
 
 ##----------------------------------------------------------------------

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: jan 18 2021 (14:04) 
+## Last-Updated: Jun  1 2021 (10:16) 
 ##           By: Brice Ozenne
-##     Update #: 12
+##     Update #: 15
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,16 +17,17 @@
 
 if(FALSE){
     library(testthat)
-    library(LMMstar)
     library(data.table)
+    library(nlme)
+
+    library(LMMstar)
 }
-library(nlme)
 
 context("Previous bug")
 
 ## * from: Julie Lyng Forman <jufo@sund.ku.dk> date: Fri, 23 Oct 2020 10:05:40 +0000
 data(gastricbypassL)
-test_that("AUC - BuyseTest vs pROC",{
+test_that("summarize - gastricbypass example",{
     g.summaries <- summarize(weight~time, data=gastricbypassL, na.rm=TRUE)
 })
 

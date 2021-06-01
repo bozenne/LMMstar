@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: May 27 2021 (17:22) 
+## Last-Updated: Jun  1 2021 (11:42) 
 ##           By: Brice Ozenne
-##     Update #: 282
+##     Update #: 286
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -52,8 +52,7 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
     init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
-                            x.transform.sigma = x.transform.sigma, x.transform.k = x.transform.k, x.transform.rho = x.transform.rho,
-                            backtransform.sigma = NULL, backtransform.k = NULL, backtransform.rho = NULL)
+                            x.transform.sigma = x.transform.sigma, x.transform.k = x.transform.k, x.transform.rho = x.transform.rho)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
     transform.rho <- init$transform.rho
@@ -62,7 +61,7 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
     ## ** extract or recompute score
     if(is.null(data) && is.null(p) && (indiv == FALSE) && test.notransform){
         out <- x$score
-        if(transform.names){
+        if(transform.names && !is.null(x$reparametrize$newname)){
             names(out)[match(names(x$reparametrize$p),names(out))] <- x$reparametrize$newname
         }
     }else{

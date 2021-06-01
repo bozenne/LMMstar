@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: May 27 2021 (17:01) 
+## Last-Updated: Jun  1 2021 (12:11) 
 ##           By: Brice Ozenne
-##     Update #: 749
+##     Update #: 770
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -31,7 +31,7 @@
 ##' @param method.fit [character] Should Restricted Maximum Likelihoood (\code{"REML"}) or Maximum Likelihoood (\code{"ML"}) be used to estimate the model parameters?
 ##' @param type.information [character] Should the expected information be computed  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
 ##' @param df [logical] Should the degree of freedom be computed using a Satterthwaite approximation?
-##' @param debug [interger, >0] Show the progress of the execution of the function.
+##' @param trace [interger, >0] Show the progress of the execution of the function.
 ##' @param ... passed to \code{nlme::gls}.
 
 ## * lmm (examples)
@@ -49,12 +49,13 @@
 ##' summary(eCS.lmm, ci = TRUE)
 ## * lmm (code)
 ##' @export
-lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NULL, type.information = NULL, debug = FALSE, ...){
+lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NULL, type.information = NULL, trace = FALSE, ...){
     out <- list(call = match.call())
     options <- LMMstar.options()
+    data <- as.data.frame(data)
     
     ## ** check and normalize user imput
-    if(debug>=1){cat("1. Check and normalize user imput \n")}
+    if(trace>=1){cat("1. Check and normalize user imput \n")}
 
     ## *** objective function
     if(is.null(method.fit)){
@@ -78,7 +79,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     }
     
     ## *** formula
-    if(debug>=2){cat("- formula")}
+    if(trace>=2){cat("- formula")}
     if(!inherits(formula,"formula")){
         stop("Argument \'formula\' must be of class formula \n",
              "Something like: outcome ~ fixedEffect1 + fixedEffect2 \n")
@@ -97,10 +98,25 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
         stop("Cannot handle interaction involving more than two variables. \n")
     }
 
-    if(debug>=2){cat("\n")}
+    if(trace>=2){cat("\n")}
     
     ## *** repetition 
-    if(debug>=2){cat("- repetition ")}
+    if(trace>=2){cat("- repetition ")}
+    if(missing(repetition)){
+        if(inherits(structure,"structure")){
+            if(grepl("|",deparse(structure$formula), fixed = TRUE)){
+                repetition <- structure$formula
+            }else{
+                repetition <-  as.formula(paste0("~",paste(all.vars(structure$formula),collapse="*")," | XXidXX"))
+                if("XXidXX" %in% names(data)){
+                    stop("Argument \'data\' should not contain a column named \"XXtimeXX\" as this name is used by the lmm function when the argument \'repetition\' is missing. \n")
+                }
+                data$XXidXX <- 1:NROW(data)
+            }
+        }else{
+            stop("Argument \'repetition\' is misisng. \n")
+        }
+    }
     if(!inherits(repetition,"formula")){
         stop("Argument \'repetition\' must be of class formula, something like: ~ time|id or group ~ time|id. \n")
     }
@@ -114,7 +130,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     }
 
     ## - right hand side
-    if(debug>=2){cat(" (rhs ")}
+    if(trace>=2){cat(" (rhs ")}
 
     if(!grepl("|",deparse(repetition),fixed = TRUE)){
         stop("Incorrect specification of argument \'repetition\'. \n",
@@ -147,7 +163,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     }
 
     ## *** left hand side
-    if(debug>=2){cat(" lhs) ")}
+    if(trace>=2){cat(" lhs) ")}
     if(length(lhs.vars(repetition))==0){
         var.strata <- NULL
     }else{
@@ -171,7 +187,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
             }
 
             sapply(tocheck, function(iX){ ## iX <- "age"
-                iCoef <- which(attr(formula.terms,"factors")[iX,]==1)
+                iCoef <- which(attr(formula.terms,"factors")[iX,]>=1)
                 iInteraction <- attr(formula.terms,"factors")[var.strata,iCoef,drop=FALSE]
                 if(length(unique(iInteraction))!=n.strata){
                     stop("When a variable is used to stratify the variance structure, it should also be used to stratify the mean structure. \n",
@@ -202,10 +218,10 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     }
 
 
-    if(debug>=2){cat("\n")}
+    if(trace>=2){cat("\n")}
     
     ## *** data
-    if(debug>=2){cat("- data")}
+    if(trace>=2){cat("- data")}
     data <- as.data.frame(data)
     if("XXindexXX" %in% names(data)){
         stop("Incorrect specification of argument \'data\'. \n",
@@ -240,11 +256,15 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     out$time <- list(n = length(U.time), levels = U.time, var = var.time)
     out$cluster <- list(var = var.cluster)
     out$outcome <- list(var = var.outcome)
-    if(debug>=2){cat("\n")}
+    if(trace>=2){cat("\n")}
     
     ## *** structure
-    if(debug>=2){cat("- structure")}
-    structure <- match.arg(toupper(structure), c("CS","UN","EXP"))
+    if(trace>=2){cat("- structure")}
+    if(inherits(structure,"structure")){
+        structure <- structure$type
+    }else{
+        structure <- match.arg(toupper(structure), c("CS","UN","EXP"))
+    }
     if(length(out$time$levels)==1 && structure == "UN"){
         warning("Argument \'structure\' has been set to \"UN\" while there is only a single timepoint. \n",
                 "Will be change to \"CS\". \n")
@@ -291,10 +311,10 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     }
 
     ## *** type.information
-    if(debug>=2){cat("\n")}
+    if(trace>=2){cat("\n")}
 
     ## ** design matrices
-    if(debug>=1){cat("- extract design matrices")}
+    if(trace>=1){cat("- extract design matrices")}
     out$design <- .model.matrix.lmm(formula.mean = out$formula$mean.design,
                                     formula.var = out$formula$var.design,
                                     data = data, var.outcome = var.outcome,
@@ -306,10 +326,10 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
 
     out$xfactor <- unique(c(stats::.getXlevels(terms(out$formula$mean.design),data),
                             stats::.getXlevels(terms(out$formula$var.design),data)))
-    if(debug>=2){cat("\n")}
+    if(trace>=2){cat("\n")}
     
     ## ** Estimate model parameters
-    if(debug>=1){cat("2. Estimate model parameters")}
+    if(trace>=1){cat("2. Estimate model parameters")}
 
     if(max(out$design$cluster$nobs)==1){
         if(structure == "CS"){
@@ -381,10 +401,10 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     names(out$param$strata) <- names(out$param$value)
     names(out$param$type) <- names(out$param$value)
 
-    if(debug>=1){cat("\n")}
+    if(trace>=1){cat("\n")}
 
     ## ** Reparametrisation
-    if(debug>=1){cat("3. Reparametrization \n")}
+    if(trace>=1){cat("3. Reparametrization \n")}
     name.allcoef <- names(out$param$value)
     
     index.var <- which(out$param$type %in% c("sigma","k","rho"))
@@ -406,39 +426,39 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     }
 
     ## ** Compute partial derivatives regarding the mean and the variance
-    if(debug>=1){cat("4. Compute partial derivatives regarding the mean and the variance \n")}
+    if(trace>=1){cat("4. Compute partial derivatives regarding the mean and the variance \n")}
 
-    if(debug>=2){cat("- residuals \n")}
+    if(trace>=2){cat("- residuals \n")}
     out$residuals <- out$design$Y - out$design$X.mean %*% out$param$value[colnames(out$design$X.mean)]
     
-    if(debug>=2){cat("- Omega \n")}
+    if(trace>=2){cat("- Omega \n")}
     out$Omega <- .calc_Omega(object = out$design$X.var, param = out$param$value, keep.interim = TRUE)
     out$OmegaM1 <- lapply(out$Omega,solve)
     
-    if(debug>=2){cat("- dOmega \n")}
+    if(trace>=2){cat("- dOmega \n")}
     out$dOmega <- .calc_dOmega(object = out$design$X.var, param = out$param$value, type = out$param$type, Omega = out$Omega,
                                Jacobian = out$reparametrize$Jacobian)
 
-    if(debug>=2){cat("- d2Omega \n")}
+    if(trace>=2){cat("- d2Omega \n")}
     out$d2Omega <- .calc_d2Omega(object = out$design$X.var, param = out$param$value, type = out$param$type,
                                  Omega = out$Omega, dOmega = out$dOmega, pair = out$design$param$pair.varcoef,
                                  Jacobian = out$reparametrize$Jacobian, dJacobian = out$reparametrize$dJacobian)
 
     ## ** Compute likelihood derivatives
-    if(debug>=1){cat("5. Compute likelihood derivatives \n")}
+    if(trace>=1){cat("5. Compute likelihood derivatives \n")}
 
-    if(debug>=2){cat("- log-likelihood \n")}
+    if(trace>=2){cat("- log-likelihood \n")}
     out$logLik <- .logLik(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1,
                           index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster, 
                           indiv = FALSE, REML = method.fit=="REML")
 
-    if(debug>=2){cat("- score \n")}
+    if(trace>=2){cat("- score \n")}
     out$score <- .score(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega,
                         index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
                         name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
                         indiv = FALSE, REML = method.fit=="REML")
 
-    if(debug>=2){cat("- information \n")}
+    if(trace>=2){cat("- information \n")}
     out$information <- .information(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega,
                                     index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
                                     name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
@@ -446,11 +466,11 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                                     indiv = FALSE, REML = method.fit=="REML", type.information = type.information)
     attr(out$information, "type.information") <- type.information
 
-    if(debug>=2){cat("- variance-covariance \n")}
+    if(trace>=2){cat("- variance-covariance \n")}
     out$vcov <- solve(out$information)
 
     if(df){
-        if(debug>=2){cat("- degrees of freedom \n")}
+        if(trace>=2){cat("- degrees of freedom \n")}
         out$df <- .df(param = out$param, reparametrize = out$reparametrize, Y = out$design$Y, X.mean = out$design$X.mean, X.var = out$design$X.var,
                       index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
                       name.varcoef = out$design$X.var$param, 

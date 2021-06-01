@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: May 27 2021 (21:48) 
+## Last-Updated: May 31 2021 (13:53) 
 ##           By: Brice Ozenne
-##     Update #: 335
+##     Update #: 337
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -75,8 +75,7 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
     }
 
     init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
-                            x.transform.sigma = x.transform.sigma, x.transform.k = x.transform.k, x.transform.rho = x.transform.rho,
-                            backtransform.sigma = NULL, backtransform.k = NULL, backtransform.rho = NULL)
+                            x.transform.sigma = x.transform.sigma, x.transform.k = x.transform.k, x.transform.rho = x.transform.rho)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
     transform.rho <- init$transform.rho

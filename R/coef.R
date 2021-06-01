@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: May 27 2021 (15:57) 
+## Last-Updated: Jun  1 2021 (11:22) 
 ##           By: Brice Ozenne
-##     Update #: 184
+##     Update #: 187
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -103,8 +103,7 @@ coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL
     }
     
     init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
-                            x.transform.sigma = x.transform.sigma, x.transform.k = x.transform.k, x.transform.rho = x.transform.rho,
-                            backtransform.sigma = NULL, backtransform.k = NULL, backtransform.rho = NULL)
+                            x.transform.sigma = x.transform.sigma, x.transform.k = x.transform.k, x.transform.rho = x.transform.rho)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
     transform.rho <- init$transform.rho
@@ -127,7 +126,7 @@ coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL
             if("variance" %in% effects){
                 if(test.notransform){
                     index.sigmak <- names(object$param$type)[object$param$type %in% c("sigma","k")]
-                    if(transform.names){
+                    if(transform.names && !is.null(object$reparametrize$newname)){
                         pVar <- c(pVar, setNames(object$reparametrize$p[index.sigmak],object$reparametrize$newname[match(index.sigmak,names(object$reparametrize$p))]))
                     }else{
                         pVar <- c(pVar, object$reparametrize$p[index.sigmak])
@@ -139,7 +138,7 @@ coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL
             if("correlation" %in% effects){
                 if(test.notransform){
                     index.rho <- names(object$param$type)[object$param$type %in% c("rho")]
-                    if(transform.names){
+                    if(transform.names && !is.null(object$reparametrize$newname)){
                         pVar <- c(pVar, setNames(object$reparametrize$p[index.rho],object$reparametrize$newname[match(index.rho,names(object$reparametrize$p))]))
                     }else{
                         pVar <- c(pVar, object$reparametrize$p[index.rho])

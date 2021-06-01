@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 10 2021 (15:57) 
 ## Version: 
-## Last-Updated: May 27 2021 (17:26) 
+## Last-Updated: May 31 2021 (18:01) 
 ##           By: Brice Ozenne
-##     Update #: 9
+##     Update #: 14
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -42,7 +42,6 @@ estfun.lmm <- function(x, ...){
     U <- lava::score(x, indiv = TRUE)
     return(U)
 }
-
 
 ##----------------------------------------------------------------------
 ### multcomp.R ends here
