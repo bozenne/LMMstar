@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: May 27 2021 (11:14) 
+## Last-Updated: Jun  4 2021 (09:37) 
 ##           By: Brice Ozenne
-##     Update #: 141
+##     Update #: 143
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,8 +16,8 @@
 ### Code:
 
 ## * logLik.lmm (documentation)
-##' @title Extract The Log-Likelihood From a Linear Mixed Model
-##' @description Extract or compute the log-likelihood of a linear mixed model.
+##' @title Extract The Log-Likelihood From a Multivariate Gaussian Model
+##' @description Extract or compute the log-likelihood of a multivariate gaussian model.
 ##' @name logLik
 ##' 
 ##' @param object a \code{lmm} object.
@@ -110,9 +110,9 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
         }
 
         if(is.null(object$variable$strata)){
-            out <- logLik(object$gls[[1]])
+            out <- stats::logLik(object$gls[[1]])
         }else{
-            out <- lapply(object$gls, logLik)
+            out <- lapply(object$gls, stats::logLik)
         }
     }
 

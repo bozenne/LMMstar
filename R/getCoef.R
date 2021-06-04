@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (14:58) 
 ## Version: 
-## Last-Updated: May 21 2021 (09:57) 
+## Last-Updated: Jun  4 2021 (09:18) 
 ##           By: Brice Ozenne
-##     Update #: 221
+##     Update #: 222
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -89,16 +89,6 @@
 #' getCoef(e.lme, format = "publish")
 #' }
 #' getCoef(e.lme, format = "SAS")
-#' 
-#' #### lmm model ####
-#' e.lmm <- lmm(weight ~ time, covariance = ~visit|id, data = gastricbypassL)
-#' getCoef(e.lmm)
-#' getCoef(e.lmm, effects = "variance")
-#' getCoef(e.lmm, effects = "variance", format = "estimate")
-#' if(require(Publish)){
-#' getCoef(e.lmm, format = "publish")
-#' }
-#' getCoef(e.lmm, format = "SAS")
 
 ## * getCoef (code)
 ##' @export

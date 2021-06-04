@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: jun  1 2021 (16:24) 
+## Last-Updated: Jun  4 2021 (09:33) 
 ##           By: Brice Ozenne
-##     Update #: 75
+##     Update #: 78
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,7 +16,7 @@
 ### Code:
 
 ## * getVarCov.lmm (documentation)
-##' @title Extract The Residuals Variance-Covariance Matrix From a Linear Mixed Model
+##' @title Extract The Residuals Variance-Covariance Matrix From a Multivariate Gaussian Model
 ##' @description Extract the unique set of residuals variance-covariance matrices or the one relative to specific clusters.
 ##' @name getVarCov
 ##' 
@@ -32,18 +32,22 @@
 ##' @return A list where each element contains a residual variance-covariance matrix.
 ##'
 ##' @examples
+##' if(require(nlme)){
 ##' ## simulate data in the long format
 ##' set.seed(10)
 ##' dL <- sampleRem(100, n.times = 3, format = "long")
 ##' 
-##' ## fit mixed model
+##' ## fit Multivariate Gaussian Model
 ##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
 ##'
 ##' ## extract residuals variance covariance matrix
 ##' getVarCov(eUN.lmm)
 ##' getVarCov(eUN.lmm, individual = c("1","5"))
+##' }
 
 ## * getVarCov.lmm
+##' @rdname getVarCov
+##' @export
 getVarCov.lmm <- function(object, individual = NULL, p = NULL, type.object = c("lmm","gls"), simplifies = TRUE, strata = NULL, ...){
 
     ## ** normalize user imput
@@ -103,19 +107,19 @@ getVarCov.lmm <- function(object, individual = NULL, p = NULL, type.object = c("
     }else if(type.object == "gls"){
         if(object$strata$n==1){
             if(is.null(individual)){
-                return(getVarCov(object$gls[[1]]))
+                return(nlme::getVarCov(object$gls[[1]]))
             }else{
-                return(getVarCov(object$gls[[1]], individual = individual))
+                return(nlme::getVarCov(object$gls[[1]], individual = individual))
             }
         }else{
             if(is.null(individual)){
-                return(lapply(object$gls, getVarCov))
+                return(lapply(object$gls, nlme::getVarCov))
             }else{
                 out <- stats::setNames(vector(mode = "list", length = length(individual)),individual)
                 for(iStrata in 1:object$strata$n){ ## iStrata <- 1
                     iIndiv <- intersect(individual,names(object$design$index.strata[object$design$index.strata==iStrata]))
                     if(length(iIndiv)>0){
-                        out[match(iIndiv,names(out))] <- getVarCov(object$gls[[iStrata]], individual = iIndiv)
+                        out[match(iIndiv,names(out))] <- nlme::getVarCov(object$gls[[iStrata]], individual = iIndiv)
                     }
                 }
                 return(out)

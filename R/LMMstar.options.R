@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: May 31 2021 (14:27) 
+## Last-Updated: Jun  4 2021 (10:04) 
 ##           By: Brice Ozenne
-##     Update #: 26
+##     Update #: 34
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,19 +25,31 @@
 #'
 #' @param ... options to be selected or updated
 #' @param reinitialise should all the global parameters be set to their default value
-#'         
+#'
+#' @details The options are: \itemize{
+#' \item backtransform.summary [logical]: should variance or correlation estimates be back-transformed when they are transformed on the log or atanh scale. Used by \code{summary} and \code{confint}.
+#' \item df [logical]: should approximate degrees of freedom be computed for Wald and F-tests. Used by \code{lmm}, \code{anova}, \code{predict}, and \code{confint}.
+#' \item method.fit [character]: objective function when fitting the multivariate Gaussian Model (REML or ML). Used by \code{lmm}.
+#' \item method.numDeriv [character]: type used to approximate the third derivative of the log-likelihood (when computing the degrees of freedom). Can be \code{"simple"} or \code{"Richardson"}. See \code{numDeriv::jacobian} for more details}. Used by \code{lmm}..
+#' \item trace [logical]: Should the progress of the execution of the \code{lmm} function be displayed?
+#' \item tranform.sigma, tranform.k, tranform.rho: transformation used to compute the confidence intervals/p-values for the variance and correlation parameters. See the detail section of the coef function for more information.
+#' Used by \code{lmm}, \code{anova} and \code{confint}.
+#' \item type.information [character]: Should the expected or observed information (\code{"expected"} or \code{"observed"}) be used to perform statistical inference? Used by \code{lmm}, \code{anova} and \code{confint}.
+#' 
+#' }
 #' @export
 LMMstar.options <- function(..., reinitialise = FALSE){
   
     if (reinitialise == TRUE) {
         assign(".LMMstar-options", 
-               list(df = TRUE,
+               list(backtransform.summary = TRUE,
+                    df = TRUE,
                     method.fit = "REML",
                     method.numDeriv = "simple", 
+                    trace = FALSE,
                     transform.sigma = "log",
                     transform.k = "log",
                     transform.rho = "atanh",
-                    backtransform.summary = TRUE,
                     type.information = "observed"),
                envir = LMMstar.env)
     

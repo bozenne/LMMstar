@@ -19,6 +19,8 @@
 )
 }
 \arguments{
+\item{x}{a \code{lmm} object.}
+
 \item{data}{[data.frame] dataset relative to which the information should be computed. Only relevant if differs from the dataset used to fit the model.}
 
 \item{p}{[numeric vector] value of the model coefficients at which to evaluate the information. Only relevant if differs from the fitted values.}
@@ -36,8 +38,6 @@
 \item{transform.names}{[logical] Should the name of the coefficients be updated to reflect the transformation that has been used?}
 
 \item{...}{Not used. For compatibility with the generic method.}
-
-\item{object}{a \code{lmm} object.}
 }
 \value{
 When argument indiv is \code{FALSE}, a matrix with the value of the infroamtion relative to each pair of coefficient (in rows and columns) and each cluster (in rows).

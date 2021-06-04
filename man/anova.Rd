@@ -3,6 +3,8 @@
 \name{anova}
 \alias{anova}
 \alias{anova.lmm}
+\alias{confint.anova_lmm}
+\alias{print.anova_lmm}
 \title{Multivariate Wald Tests For Linear Mixed Models}
 \usage{
 \method{anova}{lmm}(
@@ -17,9 +19,13 @@
   transform.names = TRUE,
   ...
 )
+
+\method{confint}{anova_lmm}(object, parm, level = 0.95, method = "single-step", ...)
+
+\method{print}{anova_lmm}(x, print.null = FALSE, ...)
 }
 \arguments{
-\item{object}{a \code{lmm} object.}
+\item{object}{a \code{lmm} object (anova function) or \code{anova_lmm} object (print and confint functions).}
 
 \item{effects}{[character] Should the Wald test be computed for all variables (\code{"all"}),
 or only variables relative to the mean (\code{"mean"}),
@@ -33,11 +39,18 @@ Can also be use to specify linear combinations of coefficients, similarly to the
 
 \item{type.object}{[character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.}
 
+\item{transform.sigma, transform.k, transform.rho, transform.names}{are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.}
+
 \item{...}{Not used. For compatibility with the generic method.}
 
-\item{conf.level}{[numeric, 0-1] nominal coverage of the confidence intervals.}
+\item{parm}{Not used. For compatibility with the generic method.}
 
-\item{type.information, transform.sigma, transform.k, transform.rho, transform.names}{are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.}
+\item{level}{[numeric, 0-1] nominal coverage of the confidence intervals.}
+
+\item{method}{[character] type of adjustment for multiple comparisons: one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}.
+Not relevant for the global test (F-test or Chi-square test) - only relevant when testing each hypothesis and adjusting for multiplicity.}
+
+\item{print.null}{[logical] should the null hypotheses be printed in the console?}
 }
 \value{
 A list of matrices containing the following columns:\itemize{

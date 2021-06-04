@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jun  1 2021 (16:32) 
+## Last-Updated: Jun  4 2021 (09:32) 
 ##           By: Brice Ozenne
-##     Update #: 354
+##     Update #: 365
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,21 +16,26 @@
 ### Code:
 
 ## * anova.lmm (documentation)
-##' @title Multivariate Wald Tests For Linear Mixed Models
+##' @title Multivariate Wald Tests For Multivariate Gaussian Models
 ##' @description Perform a Wald test testing simultaneously several null hypotheses corresponding to linear combinations of the model paramaters. 
 ##' @name anova
 ##' 
-##' @param object a \code{lmm} object.
+##' @param object a \code{lmm} object. Only relevant for the anova function.
+##' @param x an \code{anova_lmm} object. Only relevant for print and confint functions.
 ##' @param effects [character] Should the Wald test be computed for all variables (\code{"all"}),
 ##' or only variables relative to the mean (\code{"mean"}),
 ##' or only variables relative to the variance structure (\code{"variance"}),
 ##' or only variables relative to the correlation structure (\code{"correlation"}).
 ##' Can also be use to specify linear combinations of coefficients, similarly to the \code{linfct} argument of the \code{multcomp::glht} function.
 ##' @param ci [logical] Should a confidence interval be output for each hypothesis?
-##' @param conf.level [numeric, 0-1] nominal coverage of the confidence intervals.
+##' @param level [numeric, 0-1] nominal coverage of the confidence intervals.
 ##' @param type.object [character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.
+##' @param print.null [logical] should the null hypotheses be printed in the console?
 ##' @param df [logical] Should a F-distribution be used to model the distribution of the Wald statistic. Otherwise a chi-squared distribution is used.
-##' @param type.information,transform.sigma,transform.k,transform.rho,transform.names are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.
+##' @param method [character] type of adjustment for multiple comparisons: one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}.
+##' Not relevant for the global test (F-test or Chi-square test) - only relevant when testing each hypothesis and adjusting for multiplicity.
+##' @param transform.sigma,transform.k,transform.rho,transform.names are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.
+##' @param parm Not used. For compatibility with the generic method.
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @return A list of matrices containing the following columns:\itemize{
@@ -52,7 +57,7 @@
 ##' set.seed(10)
 ##' dL <- sampleRem(100, n.times = 3, format = "long")
 ##' 
-##' ## fit mixed model
+##' ## fit Multivariate Gaussian Model
 ##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
 ##' 
 ##' ## chi-2 test
@@ -283,6 +288,7 @@ anova.lmm <- function(object, effects = "all", df = !is.null(object$df), ci = FA
 }
 
 ## * confint.anova_lmm
+##' @rdname anova
 ##' @export
 confint.anova_lmm <- function(object, parm, level = 0.95, method = "single-step", ...){
 
@@ -311,17 +317,17 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = "single-step"
                 iCi <- confint(iGlht)
                 iOut[[iTest]]$lower <- iCi$confint[,"lwr"]
                 iOut[[iTest]]$upper <- iCi$confint[,"upr"]
-                iOut[[iTest]]$p.value <- summary(iGlht, test = adjusted("single-step"))$test$pvalues
+                iOut[[iTest]]$p.value <- summary(iGlht, test = multcomp::adjusted("single-step"))$test$pvalues
                 iOut[[iTest]]$df <- iGlht$df
             }else if(method == "none"){
-                iOut[[iTest]]$lower <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * qt(alpha/2, df = iOut[[iTest]]$df)
-                iOut[[iTest]]$upper <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * qt(1-alpha/2, df = iOut[[iTest]]$df)
+                iOut[[iTest]]$lower <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(alpha/2, df = iOut[[iTest]]$df)
+                iOut[[iTest]]$upper <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(1-alpha/2, df = iOut[[iTest]]$df)
                 iOut[[iTest]]$p.value <- 2*(1-stats::pt( abs((iOut[[iTest]]$estimate-iOut[[iTest]]$null) / iOut[[iTest]]$se), df = iOut[[iTest]]$df))
             }else if(method == "bonferroni"){
                 p <- NROW(iOut[[iTest]])
-                iOut[[iTest]]$lower <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * qt(alpha/(2*p), df = iOut[[iTest]]$df)
-                iOut[[iTest]]$upper <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * qt(1-alpha/(2*p), df = iOut[[iTest]]$df)
-                iOut[[iTest]]$p.value <- pmin(1,2*p*(1-pt( abs((iOut[[iTest]]$estimate-iOut[[iTest]]$null) / iOut[[iTest]]$se), df = iOut[[iTest]]$df)))
+                iOut[[iTest]]$lower <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(alpha/(2*p), df = iOut[[iTest]]$df)
+                iOut[[iTest]]$upper <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(1-alpha/(2*p), df = iOut[[iTest]]$df)
+                iOut[[iTest]]$p.value <- pmin(1,2*p*(1-stats::pt( abs((iOut[[iTest]]$estimate-iOut[[iTest]]$null) / iOut[[iTest]]$se), df = iOut[[iTest]]$df)))
             }
         }
     return(iOut)
@@ -330,11 +336,7 @@ return(out)
 }
 
 ## * print.anova_lmm
-##' @title Print Multivariate Wald Tests For Linear Mixed Models
-##' 
-##' @param x an object of class \code{anova_lmm}, i.e. output of anova function on a \code{lmm} object.
-##' @param print.null [logical] should the null hypotheses be printed in the console?
-##' 
+##' @rdname anova
 ##' @export
 print.anova_lmm <- function(x, print.null = FALSE, ...){
 

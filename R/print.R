@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: May 27 2021 (09:20) 
+## Last-Updated: Jun  4 2021 (09:39) 
 ##           By: Brice Ozenne
-##     Update #: 39
+##     Update #: 41
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -30,15 +30,15 @@ print.lmm <- function(x, ...){
     ## type of model
     if(length(param.rho) > 0){
         if(length(c(param.sigma,param.k))==1){
-            cat("  Linear model \n \n")
+            cat("  Univariate Gaussian Model \n \n")
         }else{
-            cat("  Linear model with heterogeneous residual variance \n \n")
+            cat("  Univariate Gaussian Model with heterogeneous residual variance \n \n")
         }
     }else{
         if(structure=="UN"){
-            cat("  Linear mixed effect model with an unstructured covariance matrix \n \n")
+            cat("  Multivariate Gaussian Model with an unstructured covariance matrix \n \n")
         }else if(structure=="CS"){
-            cat("  Linear mixed effect model with a compound symmetry covariance matrix \n \n")
+            cat("  Multivariate Gaussian Model with a compound symmetry covariance matrix \n \n")
         }
     }
 

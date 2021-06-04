@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: May 27 2021 (16:32) 
+## Last-Updated: Jun  4 2021 (09:37) 
 ##           By: Brice Ozenne
-##     Update #: 88
+##     Update #: 91
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,8 +16,8 @@
 ### Code:
 
 ## * residuals.lmm (documentation)
-##' @title Extract The Residuals From a Linear Mixed Model
-##' @description Extract or compute the residuals of a linear mixed model.
+##' @title Extract The Residuals From a Multivariate Gaussian Model
+##' @description Extract or compute the residuals of a multivariate gaussian model.
 ##' @name residuals
 ##' 
 ##' @param object a \code{lmm} object.
@@ -44,7 +44,7 @@
 ##' set.seed(10)
 ##' dL <- sampleRem(100, n.times = 3, format = "long")
 ##' 
-##' ## fit mixed model
+##' ## fit Multivariate Gaussian Model
 ##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
 ##'
 ##' ## prediction
@@ -168,7 +168,7 @@ residuals.lmm <- function(object, type.residual = "response", format = "long",
             stop("Cannot handle argument \'p\' when argument \'type.object\' is \"gls\". \n")
         }
         if(object$strata$n == 1){
-            return(residuals(object$gls, type = type.residual))
+            return(stats::residuals(object$gls, type = type.residual))
         }else {
             return(lapply(object$gls, residuals, type = type.residual))
         }

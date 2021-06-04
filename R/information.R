@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: jun  1 2021 (16:24) 
+## Last-Updated: Jun  4 2021 (10:40) 
 ##           By: Brice Ozenne
-##     Update #: 485
+##     Update #: 494
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,14 +16,17 @@
 ### Code:
 
 ## * information.lmm (documentation)
-##' @title Extract The Information From a Linear Mixed Model
-##' @description Extract or compute the (expected) second derivative of the log-likelihood of a linear mixed model.
+##' @title Extract The Information From a Multivariate Gaussian Model
+##' @description Extract or compute the (expected) second derivative of the log-likelihood of a multivariate gaussian model.
 ##' @name information
 ##' 
-##' @param object a \code{lmm} object.
+##' @param x a \code{lmm} object.
 ##' @param data [data.frame] dataset relative to which the information should be computed. Only relevant if differs from the dataset used to fit the model.
 ##' @param indiv [logical] Should the contribution of each cluster to the information be output? Otherwise output the sum of all clusters of the derivatives.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the information. Only relevant if differs from the fitted values.
+##' @param effects [character] Should the information relative to all coefficients be output (\code{"all"}),
+##' or only coefficients relative to the mean (\code{"mean"}),
+##' or only coefficients relative to the variance and correlation structure (\code{"variance"} or \code{"correlation"}).
 ##' @param type.information [character] Should the expected information be computed  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
 ##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
 ##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
@@ -41,7 +44,7 @@
 ## * information.lmm (code)
 ##' @rdname information
 ##' @export
-information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.information = NULL,
+information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = FALSE, type.information = NULL,
                             transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
     options <- LMMstar.options()
     x.transform.sigma <- x$reparametrize$transform.sigma
@@ -61,6 +64,7 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
         test.detail <- identical(attr(type.information,"detail"),TRUE)
         type.information <- match.arg(type.information, c("expected","observed"))
     }
+    effects <- match.arg(effects, c("mean","variance","correlation"), several.ok = TRUE)
 
     init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
                             x.transform.sigma = x.transform.sigma, x.transform.k = x.transform.k, x.transform.rho = x.transform.rho)
@@ -76,6 +80,11 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
             colnames(out)[match(names(x$reparametrize$p),colnames(out))] <- x$reparametrize$newname
             rownames(out)[match(names(x$reparametrize$p),rownames(out))] <- x$reparametrize$newname
         }
+        if("mean" %in% effects == FALSE){
+            out <- out[x$param$type!="mu",x$param$type!="mu",drop=FALSE]
+        }else if("variance" %in% effects == FALSE && "correlation" %in% effects == FALSE){
+            out <- out[x$param$type=="mu",x$param$type=="mu",drop=FALSE]
+        }
         if(test.detail){
             param <- x$param
             param$value[names(x$reparametrize$p)] <- x$reparametrize$p
@@ -85,7 +94,6 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
                                        REML = (x$method.fit=="REML"),
                                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
         }
-
     }else{
         REML <- x$method.fit == "REML"
 
@@ -174,7 +182,8 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
 
         out <- .information(X = X, residuals = Y - X %*% beta, precision = precision, dOmega = dOmega, d2Omega = d2Omega,
                             index.variance = index.vargroup, time.variance = index.time, index.cluster = index.cluster, name.varcoef = name.varcoef, name.allcoef = name.allcoef,
-                            pair.meanvarcoef = pair.meanvarcoef, pair.varcoef = pair.varcoef, indiv = indiv, REML = REML, type.information = type.information)
+                            pair.meanvarcoef = pair.meanvarcoef, pair.varcoef = pair.varcoef, indiv = indiv, REML = REML, type.information = type.information,
+                            effects = effects)
         
         if(test.detail){
             param <- x$param
@@ -206,11 +215,7 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
 ##                                                                 + 0.5 tr[ (X \OmegaM1 X)^{-1} (X \OmegaM1 d2\Omega \OmegaM1 X) ]
 .information <- function(X, residuals, precision, dOmega, d2Omega,
                          index.variance, time.variance, index.cluster, name.varcoef, name.allcoef,
-                         pair.meanvarcoef, pair.varcoef, indiv, REML, type.information){
-
-    if(indiv && REML){
-        stop("Not possible to compute individual information when using REML.\n")
-    }
+                         pair.meanvarcoef, pair.varcoef, indiv, REML, type.information, effects){
 
     ## ** prepare
     ## coefficients
@@ -231,16 +236,57 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
     n.pattern <- length(U.pattern)
 
     ## store results
-    if(indiv){
-        info <- array(0, dim = c(n.cluster, n.allcoef, n.allcoef),
-                     dimnames = list(NULL, name.allcoef, name.allcoef))
+    if("mean" %in% effects == FALSE){
+        if(indiv){
+            info <- array(0, dim = c(n.cluster, sum(n.varcoef), sum(n.varcoef)),
+                          dimnames = list(NULL, unlist(name.varcoef), unlist(name.varcoef)))
+            if(REML){
+                stop("Not possible to compute individual information for variance and/or correlation coefficients when using REML.\n")
+            }
+        }else{
+            info <- matrix(0, nrow = sum(n.varcoef), ncol = sum(n.varcoef),
+                           dimnames = list(unlist(name.varcoef), unlist(name.varcoef))
+                           )
+        }    
+        test.vcov <- TRUE
+        test.mean <- FALSE
+        if(indiv && REML){
+            stop("Not possible to compute individual information for variance and/or correlation coefficients when using REML.\n")
+        }
+    }else if("variance" %in% effects == FALSE && "correlation" %in% effects == FALSE){
+        if(indiv){
+            info <- array(0, dim = c(n.cluster, n.mucoef, n.mucoef),
+                          dimnames = list(NULL, name.mucoef, name.mucoef))
+            if(REML){
+                stop("Not possible to compute individual information for variance and/or correlation coefficients when using REML.\n")
+            }
+        }else{
+            info <- matrix(0, nrow = n.mucoef, ncol = n.mucoef,
+                           dimnames = list(name.mucoef, name.mucoef)
+                           )
+        }    
+        test.vcov <- FALSE
+        test.mean <- TRUE
     }else{
-        info <- matrix(0, nrow = n.allcoef, ncol = n.allcoef,
-                      dimnames = list(name.allcoef, name.allcoef)
-                      )
-    }    
+        if(indiv){
+            info <- array(0, dim = c(n.cluster, n.allcoef, n.allcoef),
+                          dimnames = list(NULL, name.allcoef, name.allcoef))
+            if(REML){
+                stop("Not possible to compute individual information for variance and/or correlation coefficients when using REML.\n")
+            }
+        }else{
+            info <- matrix(0, nrow = n.allcoef, ncol = n.allcoef,
+                           dimnames = list(name.allcoef, name.allcoef)
+                           )
+        }    
+        test.vcov <- TRUE
+        test.mean <- TRUE
+    }
+    
+
 
     ## ** precompute
+    if(test.vcov){
     dOmega.precomputed <- stats::setNames(vector(mode = "list", length = n.pattern), U.pattern)
     if(REML){
         REML.num <- stats::setNames(lapply(U.pattern, function(iPattern){ ## iPattern <- U.pattern[1]
@@ -298,6 +344,7 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
             }
         }
     }    
+    }
     
     ## ** compute information
     for(iId in 1:n.cluster){ ## iId <- 7
@@ -315,16 +362,19 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
         
         ## *** mean,mean
         iValue <- tiX %*% iOmegaM1 %*% iX
-        if(indiv){
-            info[iId,name.mucoef,name.mucoef] <- iValue
-        }else{
-            info[name.mucoef,name.mucoef] <- info[name.mucoef,name.mucoef] + iValue
+        if(test.mean){
+            if(indiv){
+                info[iId,name.mucoef,name.mucoef] <- iValue
+            }else{
+                info[name.mucoef,name.mucoef] <- info[name.mucoef,name.mucoef] + iValue
+            }
         }
-        if(REML){
+        if(REML && test.vcov){
             REML.denom <- REML.denom + iValue
         }
 
         ## *** var,var
+        if(test.vcov){
         for(iPair in 1:npair.varcoef[[iPattern]]){ ## iPair <- 1
             iCoef1 <- pair.varcoef[[iPattern]][1,iPair]
             iCoef2 <- pair.varcoef[[iPattern]][2,iPair]
@@ -356,10 +406,10 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
                 }
             }
         }
-
+        }
 
         ## *** mean,var
-        if(type.information == "observed"){
+        if(type.information == "observed" && test.mean && test.vcov){
 
             for(iPair in 1:npair.meanvarcoef[[iPattern]]){ ## iPair <- 1
                 iCoef1 <- pair.meanvarcoef[[iPattern]][1,iPair]
@@ -380,7 +430,7 @@ information.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, type.inform
     }
 
     ## ** export
-    if(REML){
+    if(REML && test.vcov){
         REML.denom <- solve(REML.denom)
         for(iPattern in U.pattern){
             for(iPair in 1:npair.varcoef[[iPattern]]){ ## iPair <- 1

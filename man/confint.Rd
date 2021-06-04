@@ -3,6 +3,8 @@
 \name{confint}
 \alias{confint}
 \alias{confint.lmm}
+\alias{backtransform}
+\alias{backtransform.confint_lmm}
 \title{Statistical Inference for Linear Mixed Model.}
 \usage{
 \method{confint}{lmm}(
@@ -21,9 +23,13 @@
   transform.names = TRUE,
   ...
 )
+
+backtransform(object, ...)
+
+\method{backtransform}{confint_lmm}(object, ...)
 }
 \arguments{
-\item{object}{a \code{lmm} object.}
+\item{object}{a \code{confint_lmm} object, i.e. the output of the confint function applied to a \code{lmm} object.}
 
 \item{parm}{Not used. For compatibility with the generic method.}
 
@@ -60,6 +66,14 @@ A data.frame containing for each coefficient (in rows): \itemize{
 }
 \description{
 Compute confidence intervals (CIs) and p-values for the coefficients of a linear mixed model.
+
+Back-transform estimates and  confidence intervals (CIs).
+}
+\details{
+if the option \code{transform.sigma} and/or  \code{transform.k} is one of \code{"log"}, \code{"logsd"}, \code{"logvar"}, \code{"logsqaure"},
+the estimate and CIs are transformed back to the original scale by applying the exponential function.
+
+If the option \code{transform.rho} is \code{"atanh"}, the estimate and CIs are transformed back to the original scale by applying the tangent hyperbolic function.
 }
 \examples{
 ## simulate data in the long format

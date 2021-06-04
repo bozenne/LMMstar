@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: jun  1 2021 (16:24) 
+## Last-Updated: Jun  4 2021 (10:35) 
 ##           By: Brice Ozenne
-##     Update #: 287
+##     Update #: 306
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,13 +16,16 @@
 ### Code:
 
 ## * score.lmm (documentation)
-##' @title Extract The Score From a Linear Mixed Model
-##' @description Extract or compute the first derivative of the log-likelihood of a linear mixed model.
+##' @title Extract The Score From a Multivariate Gaussian Model
+##' @description Extract or compute the first derivative of the log-likelihood of a multivariate gaussian model.
 ##' @name score
 ##' 
 ##' @param x a \code{lmm} object.
 ##' @param data [data.frame] dataset relative to which the score should be computed. Only relevant if differs from the dataset used to fit the model.
 ##' @param indiv [logical] Should the contribution of each cluster to the score be output? Otherwise output the sum of all clusters of the derivatives.
+##' @param effects [character] Should the score relative to all coefficients be output (\code{"all"}),
+##' or only coefficients relative to the mean (\code{"mean"}),
+##' or only coefficients relative to the variance and correlation structure (\code{"variance"} or \code{"correlation"}).
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the score. Only relevant if differs from the fitted values.
 ##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
 ##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
@@ -40,7 +43,7 @@
 ## * score.lmm (code)
 ##' @rdname score
 ##' @export
-score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
+score.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = FALSE, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
     options <- LMMstar.options()
     x.transform.sigma <- x$reparametrize$transform.sigma
     x.transform.k <- x$reparametrize$transform.k
@@ -51,6 +54,11 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
+    if(identical(effects,"all")){
+        effects <- c("mean","variance","correlation")
+    }
+    effects <- match.arg(effects, c("mean","variance","correlation"), several.ok = TRUE)
+
     init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
                             x.transform.sigma = x.transform.sigma, x.transform.k = x.transform.k, x.transform.rho = x.transform.rho)
     transform.sigma <- init$transform.sigma
@@ -63,6 +71,11 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
         out <- x$score
         if(transform.names && !is.null(x$reparametrize$newname)){
             names(out)[match(names(x$reparametrize$p),names(out))] <- x$reparametrize$newname
+        }
+        if("mean" %in% effects == FALSE){
+            out <- out[x$param$type!="mu"]
+        }else if("variance" %in% effects == FALSE && "correlation" %in% effects == FALSE){
+            out <- out[x$param$type=="mu"]
         }
     }else{
         if(!is.null(data)){
@@ -134,13 +147,15 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
         }
         out <- .score(X = X, residuals = Y - X %*% beta, precision = precision, dOmega = dOmega,
                       index.variance = index.vargroup, time.variance = index.time, index.cluster = index.cluster, name.varcoef = name.varcoef, name.allcoef = name.allcoef,
-                      indiv = indiv, REML = x$method.fit=="REML")
+                      indiv = indiv, REML = x$method.fit=="REML", effects = effects)
 
-        if(transform.names && length(newname.allcoef)>0){
+        if(transform.names && length(newname.allcoef)>0 && ("variance" %in% effects || "correlation" %in% effects)){
             if(indiv){
-                colnames(out)[index.var] <- newname.allcoef
+                index.var2 <- match(name.allcoef[index.var], colnames(out))
+                colnames(out)[na.omit(index.var2)] <- newname.allcoef[!is.na(index.var2)]
             }else{
-                names(out)[index.var] <- newname.allcoef
+                index.var2 <- match(name.allcoef[index.var], names(out))
+                names(out)[na.omit(index.var2)] <- newname.allcoef[!is.na(index.var2)]
             }
         }
 
@@ -153,11 +168,8 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
 ## * .score
 .score <- function(X, residuals, precision, dOmega,
                    index.variance, time.variance, index.cluster, name.varcoef, name.allcoef,
-                   indiv, REML){
+                   indiv, REML, effects){
 
-    if(indiv && REML){
-        stop("Not possible to compute individual score when using REML.\n")
-    }
 
     ## ** prepare
     n.obs <- length(index.cluster)
@@ -169,10 +181,31 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
     n.allcoef <- length(name.allcoef)
     U.pattern <- names(dOmega)
 
-    Score <- matrix(0, nrow = n.cluster, ncol = n.allcoef,
-                    dimnames = list(NULL, name.allcoef))
+    if("mean" %in% effects == FALSE){
+        Score <- matrix(0, nrow = n.cluster, ncol = length(name.allvarcoef),
+                        dimnames = list(NULL, name.allvarcoef))
+        test.vcov <- TRUE
+        test.mean <- FALSE
+        if(indiv && REML){
+            stop("Not possible to compute individual score for variance and/or correlation coefficients when using REML.\n")
+        }
+    }else if("variance" %in% effects == FALSE && "correlation" %in% effects == FALSE){
+        Score <- matrix(0, nrow = n.cluster, ncol = n.mucoef,
+                        dimnames = list(NULL, name.mucoef))
+        test.vcov <- FALSE
+        test.mean <- TRUE
+    }else{
+        Score <- matrix(0, nrow = n.cluster, ncol = n.allcoef,
+                        dimnames = list(NULL, name.allcoef))
+        test.vcov <- TRUE
+        test.mean <- TRUE
+        if(indiv && REML){
+            stop("Not possible to compute individual score for variance and/or correlation coefficients when using REML.\n")
+        }
+    }
 
     ## precompute derivative for the variance
+    if(test.vcov){
     dOmega.precomputed <- stats::setNames(lapply(U.pattern, function(iPattern){
         iOut <- list(term1 = stats::setNames(vector(mode = "list", length = n.varcoef[[iPattern]]), name.varcoef[[iPattern]]),
                      term2 = stats::setNames(vector(mode = "list", length = n.varcoef[[iPattern]]), name.varcoef[[iPattern]])
@@ -189,6 +222,7 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
         matrix(0, nrow = n.mucoef, ncol = n.mucoef, dimnames = list(name.mucoef,name.mucoef))
     }), name.allvarcoef)
     REML.denom <- matrix(0, nrow = n.mucoef, ncol = n.mucoef, dimnames = list(name.mucoef, name.mucoef))
+    }
 
     ## ** compute score
     for(iId in 1:n.cluster){ ## iId <- 7
@@ -201,16 +235,21 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
         iX <- X[iIndex,,drop=FALSE]
         tiX <- t(iX)
 
-        Score[iId,name.mucoef] <- tiX %*% precision[[iPattern]] %*% iResidual
-        if(REML){
-            REML.denom <- REML.denom + tiX %*% precision[[iPattern]] %*% iX
+        if(test.mean){
+            Score[iId,name.mucoef] <- tiX %*% precision[[iPattern]] %*% iResidual
         }
 
-        for(iVarcoef in name.varcoef[[iPattern]]){ ## iVarcoef <- name.varcoef[1]
-            Score[iId,iVarcoef] <- -0.5 * dOmega.precomputed[[iPattern]]$term1[[iVarcoef]] + 0.5 * t(iResidual) %*% dOmega.precomputed[[iPattern]]$term2[[iVarcoef]] %*% iResidual
-
+        if(test.vcov){
             if(REML){
-                REML.num[[iVarcoef]] <- REML.num[[iVarcoef]] + tiX %*% dOmega.precomputed[[iPattern]]$term2[[iVarcoef]] %*% iX
+                REML.denom <- REML.denom + tiX %*% precision[[iPattern]] %*% iX
+            }
+
+            for(iVarcoef in name.varcoef[[iPattern]]){ ## iVarcoef <- name.varcoef[1]
+                Score[iId,iVarcoef] <- -0.5 * dOmega.precomputed[[iPattern]]$term1[[iVarcoef]] + 0.5 * t(iResidual) %*% dOmega.precomputed[[iPattern]]$term2[[iVarcoef]] %*% iResidual
+
+                if(REML){
+                    REML.num[[iVarcoef]] <- REML.num[[iVarcoef]] + tiX %*% dOmega.precomputed[[iPattern]]$term2[[iVarcoef]] %*% iX
+                }
             }
         }
     }
@@ -220,7 +259,7 @@ score.lmm <- function(x, data = NULL, p = NULL, indiv = FALSE, transform.sigma =
         return(Score)
     }else{
         Score <- colSums(Score)
-        if(REML){
+        if(REML && test.vcov){
             REML.denom <- solve(REML.denom)
             Score[name.allvarcoef] <-  Score[name.allvarcoef] + 0.5 * sapply(REML.num, function(x){tr(REML.denom %*% x)})
             ## 0.5 tr((X\OmegaM1X)^-1 (X\OmegaM1 d\Omega \OmegaM1 X))

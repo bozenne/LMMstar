@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: jun  1 2021 (16:24) 
+## Last-Updated: Jun  4 2021 (11:03) 
 ##           By: Brice Ozenne
-##     Update #: 338
+##     Update #: 344
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,8 +16,8 @@
 ### Code:
 
 ## * vcov.lmm (documentation)
-##' @title Extract The Variance-Covariance Matrix From a Linear Mixed Model
-##' @description Extract the variance-covariance matrix of the model coefficients of a linear mixed model
+##' @title Extract The Variance-Covariance Matrix From a Multivariate Gaussian Model
+##' @description Extract the variance-covariance matrix of the model coefficients of a multivariate gaussian model.
 ##' @name vcov
 ##' 
 ##' @param object a \code{lmm} object.
@@ -121,7 +121,7 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
                              index.variance = detail$index.variance, time.variance = detail$time.variance, index.cluster = detail$index.cluster, name.varcoef = detail$name.varcoef,
                              time.k = object$design$param$time.k, time.rho = object$design$param$time.rho,
                              pair.meanvarcoef = detail$pair.meanvarcoef, pair.varcoef = detail$pair.varcoef,
-                             REML = detail$REML, type.information = as.vector(type.information),
+                             REML = detail$REML, type.information = as.vector(type.information), effects = effects,
                              transform.sigma = detail$transform.sigma, transform.k = detail$transform.k, transform.rho = detail$transform.rho, 
                              vcov = vcovFull, diag = TRUE, method.numDeriv = options$method.numDeriv)
                 attr(vcov,"df") <- stats::setNames(outdf[keep.name],names(keep.name))
@@ -173,7 +173,7 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
 .df <- function(param, reparametrize, Y, X.mean, X.var,
                 index.variance, time.variance, index.cluster, name.varcoef, 
                 time.k, time.rho,
-                pair.meanvarcoef, pair.varcoef, REML, type.information,
+                pair.meanvarcoef, pair.varcoef, REML, type.information, effects,
                 transform.sigma, transform.k, transform.rho, 
                 vcov, diag, method.numDeriv){
 
@@ -240,7 +240,7 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
 
         info <- .information(X = X.mean, residuals = residuals, precision = OmegaM1, dOmega = dOmega, d2Omega = d2Omega,
                              index.variance = index.variance, time.variance = time.variance, index.cluster = index.cluster, name.varcoef = name.varcoef, name.allcoef = name.allcoef,
-                             pair.meanvarcoef = pair.meanvarcoef, pair.varcoef = pair.varcoef, indiv = FALSE, REML = REML, type.information = type.information)
+                             pair.meanvarcoef = pair.meanvarcoef, pair.varcoef = pair.varcoef, indiv = FALSE, REML = REML, type.information = type.information, effects = effects)
         return(as.double(info))
     }
 

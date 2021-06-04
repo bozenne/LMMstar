@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jun  1 2021 (16:28) 
+## Last-Updated: Jun  4 2021 (13:23) 
 ##           By: Brice Ozenne
-##     Update #: 773
+##     Update #: 786
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,8 +16,8 @@
 ### Code:
 
 ## * lmm (documentation)
-##' @title Linear mixed model
-##' @description Fit a linear mixed model using either a compound symmetry structure or an unstructured covariance matrix.
+##' @title Fit Multivariate Gaussian Model
+##' @description Fit a multivariate gaussian model using either a compound symmetry structure or an unstructured covariance matrix.
 ##' This is essentially an interface to the \code{nlme::gls} function.
 ##'
 ##' @param formula [formula] Specify the model for the mean.
@@ -33,6 +33,10 @@
 ##' @param df [logical] Should the degree of freedom be computed using a Satterthwaite approximation?
 ##' @param trace [interger, >0] Show the progress of the execution of the function.
 ##' @param ... passed to \code{nlme::gls}.
+##'
+##' @details \bold{Computation time} the \code{lmm} has not been developped to be a fast function as, by default, it uses REML estimation with the observed information matrix and uses a Satterthwaite approximation to compute degrees of freedom (this require to compute the third derivative of the log-likelihood which is done by numerical differentiation). The computation time can be substantially reduced by using ML estimation with the expected information matrix and no calculation of degrees of freedom: arguments \code{method.fit="ML"}, \code{type.information="expected"}, \code{df=FALSE}. This will, however, lead to less accurate p-values and confidence intervals in small samples.
+##' \cr
+
 
 ## * lmm (examples)
 ##' @examples
@@ -40,7 +44,7 @@
 ##' set.seed(10)
 ##' dL <- sampleRem(100, n.times = 3, format = "long")
 ##' 
-##' ## fit mixed model
+##' ## fit Multivariate Gaussian Model
 ##' eCS.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "CS", data = dL)
 ##'
 ##' ## output
@@ -49,12 +53,15 @@
 ##' summary(eCS.lmm, ci = TRUE)
 ## * lmm (code)
 ##' @export
-lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NULL, type.information = NULL, trace = FALSE, ...){
+lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NULL, type.information = NULL, trace = NULL, ...){
     out <- list(call = match.call())
     options <- LMMstar.options()
     data <- as.data.frame(data)
     
     ## ** check and normalize user imput
+    if(is.null(trace)){
+        trace <- options$trace
+    }
     if(trace>=1){cat("1. Check and normalize user imput \n")}
 
     ## *** objective function
@@ -145,7 +152,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     res.split <- strsplit(deparse(repetition),"|", fixed = TRUE)[[1]]
     var.cluster <- trimws(res.split[2], which = "both")
     formula.var <- stats::as.formula(res.split[1])
-    var.time <- all.vars(update(formula.var,0~.))
+    var.time <- all.vars(stats::update(formula.var,0~.))
 
     if(length(var.time)!=1){
         stop("Incorrect specification of argument \'repetition\'. \n",
@@ -275,8 +282,8 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
         if(n.strata==1){
             formula.var  <- formula.var
         }else{
-            terms.var <- delete.response(stats::terms(formula.var))
-            formula2.var <- update(terms.var, paste0("~0+",var.strata,"+",var.strata,":.")) ## using ".:var.strata" does not work (it gives the same formula - does not invert . var.strata around the : symbol)
+            terms.var <- stats::delete.response(stats::terms(formula.var))
+            formula2.var <- stats::update(terms.var, paste0("~0+",var.strata,"+",var.strata,":.")) ## using ".:var.strata" does not work (it gives the same formula - does not invert . var.strata around the : symbol)
         }
     }else if(structure=="CS"){
         if(n.strata>1){
@@ -295,7 +302,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
 
     if(n.strata>1){
         term.exclude <- c(var.strata,paste0(setdiff(var.X, var.strata),":",var.strata))
-        formula.design <- update(formula, paste0(".~.-",paste0(term.exclude,collapse="-"))) ## no interaction with the strata variable
+        formula.design <- stats::update(formula, paste0(".~.-",paste0(term.exclude,collapse="-"))) ## no interaction with the strata variable
         out$formula <- list(mean = formula, ## formula will contain all interactions with strata (cf check)
                             mean.design = formula.design,
                             var = repetition,
@@ -323,7 +330,10 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                                     var.cluster = var.cluster,
                                     structure = structure
                                     )
+##     colSums(abs(out$design$X.mean)>1e-12)
 
+##     eigen(var(out$design$X.mean))
+## browser()
     out$xfactor <- unique(c(stats::.getXlevels(stats::terms(out$formula$mean.design),data),
                             stats::.getXlevels(stats::terms(out$formula$var.design),data)))
     if(trace>=2){cat("\n")}
@@ -367,7 +377,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                                           data = ",txt.data,", ...)")
         }
     }
-    out$gls <- setNames(lapply(txt.gls, function(iTxt){eval(parse(text = iTxt))}),
+    out$gls <- stats::setNames(lapply(txt.gls, function(iTxt){eval(parse(text = iTxt))}),
                         U.strata)
     out$gls.call <- lapply(out$gls, function(iM){
         paste0(gsub(",",",\n    ",gsub(" ","",paste(deparse(iM$call), collapse = ""))),"\n")
@@ -378,7 +388,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
 
     ## collect parameters
     param.mu <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]) })
-    param.sigma <- lapply(U.strata, function(iS){ sigma(out$gls[[iS]]) })
+    param.sigma <- lapply(U.strata, function(iS){ stats::sigma(out$gls[[iS]]) })
     param.k <- lapply(U.strata, function(iS){  coef(out$gls[[iS]]$modelStruct$varStruct, unconstrained = FALSE) })
     param.rho <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]$modelStruct$corStruct, unconstrained = FALSE) })
 
@@ -456,14 +466,14 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     out$score <- .score(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega,
                         index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
                         name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
-                        indiv = FALSE, REML = method.fit=="REML")
+                        indiv = FALSE, REML = method.fit=="REML", effects = c("mean","variance","correlation"))
 
     if(trace>=2){cat("- information \n")}
     out$information <- .information(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega,
                                     index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
                                     name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
                                     pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef,
-                                    indiv = FALSE, REML = method.fit=="REML", type.information = type.information)
+                                    indiv = FALSE, REML = method.fit=="REML", type.information = type.information, effects = c("mean","variance","correlation"))
     attr(out$information, "type.information") <- type.information
 
     if(trace>=2){cat("- variance-covariance \n")}
@@ -475,7 +485,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                       index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
                       name.varcoef = out$design$X.var$param, 
                       time.k = out$design$param$time.k, time.rho = out$design$param$time.rho,
-                      pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef, REML = (method.fit=="REML"), type.information = type.information,
+                      pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef, REML = (method.fit=="REML"), type.information = type.information, effects = c("mean","variance","correlation"),
                       transform.sigma = out$reparametrize$transform.sigma, transform.k = out$reparametrize$transform.k, transform.rho = out$reparametrize$transform.rho,
                       vcov = out$vcov, diag = TRUE, method.numDeriv = options$method.numDeriv)
         out$dVcov <- attr(out$df,"dVcov")

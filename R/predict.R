@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jun  1 2021 (16:28) 
+## Last-Updated: Jun  4 2021 (09:37) 
 ##           By: Brice Ozenne
-##     Update #: 113
+##     Update #: 116
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,7 +15,7 @@
 ## 
 ### Code:
 ## * predict.lmm (documentation)
-##' @title Predicted Mean Value For Linear Mixed Models
+##' @title Predicted Mean Value For Multivariate Gaussian Model
 ##'
 ##' @param object a \code{lmm} object.
 ##' @param newdata [data.frame] the covariate values for each cluster.
@@ -36,7 +36,7 @@
 ##' set.seed(10)
 ##' dL <- sampleRem(100, n.times = 3, format = "long")
 ##' 
-##' ## fit mixed model
+##' ## fit Multivariate Gaussian Model
 ##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
 ##'
 ##' ## prediction
@@ -59,7 +59,7 @@ predict.lmm <- function(object, newdata, level = 0.95, df = !is.null(object$df),
 
     ## ** compute predictions
     ff.mean <- stats::formula(object, effects = "mean")
-    X.beta <- model.matrix(delete.response(stats::terms(ff.mean)), newdata)
+    X.beta <- model.matrix(stats::delete.response(stats::terms(ff.mean)), newdata)
     n.obs <- NROW(X.beta)
     beta <- coef(object, effects = "mean")
     n.beta <- length(beta)

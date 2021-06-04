@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: jun  1 2021 (16:26) 
+## Last-Updated: Jun  4 2021 (09:04) 
 ##           By: Brice Ozenne
-##     Update #: 662
+##     Update #: 663
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -33,19 +33,19 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
 
     ## ** update design matrix with new dataset
     if(!is.null(data)){
-        ff.allvars <- c(all.vars(x$formula$mean), all.vars(x$formula$var))
+        ff.allvars <- c(all.vars(object$formula$mean), all.vars(object$formula$var))
         if(any(ff.allvars %in% names(data) == FALSE)){
             stop("Incorrect argument \'data\': missing variable(s) \"",paste(ff.allvars[ff.allvars %in% names(data) == FALSE], collapse = "\" \""),"\".\n")
         }
 
-        design <- .model.matrix.lmm(formula.mean = x$formula$mean.design,
-                                    formula.var = x$formula$var.design,
+        design <- .model.matrix.lmm(formula.mean = object$formula$mean.design,
+                                    formula.var = object$formula$var.design,
                                     data = data,
-                                    var.outcome = x$outcome$var,
-                                    var.strata = x$strata$var, U.strata = x$strata$levels,
-                                    var.time = x$time$var, U.time = x$time$levels,
-                                    var.cluster = x$cluster$var,
-                                    structure = x$structure
+                                    var.outcome = object$outcome$var,
+                                    var.strata = object$strata$var, U.strata = object$strata$levels,
+                                    var.time = object$time$var, U.time = object$time$levels,
+                                    var.cluster = object$cluster$var,
+                                    structure = object$structure
                                     )
     }else{
         design <- object$design

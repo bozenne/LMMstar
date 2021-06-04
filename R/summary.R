@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jun  1 2021 (16:28) 
+## Last-Updated: Jun  4 2021 (09:40) 
 ##           By: Brice Ozenne
-##     Update #: 207
+##     Update #: 212
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,8 +16,8 @@
 ### Code:
 
 ## * summary.lmm (documentation)
-##' @title Summary Output for a Linear Mixed Model 
-##' @description Summary output for a linear mixed model fitted with \code{lmm}.
+##' @title Summary Output for a Multivariate Gaussian Model
+##' @description Summary output for a  multivariate gaussian model fitted with \code{lmm}.
 ##' This is a modified version of the \code{nlme::summary.gls} function.
 ##' @name summary
 ##'
@@ -51,22 +51,22 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = TRUE
     method.fit <- object$method
     nobsByCluster <- object$design$cluster$nobs
     formula <- object$formula
-    Omega <- getVarCov(object, simplifies = FALSE)
+    Omega <- nlme::getVarCov(object, simplifies = FALSE)
     df <- !is.null(object$df)
     
     ## ** welcome message
     if(print){
         if(length(param.rho) > 0){
             if(length(c(param.sigma,param.k))==1){
-                cat("  Linear model \n")
+                cat("  Univariate Gaussian Model \n")
             }else{
-                cat("  Linear model with heterogeneous residual variance \n")
+                cat("  Univariate Gaussian Model with heterogeneous residual variance \n")
             }
         }else{
             if(structure=="UN"){
-                cat("  Linear mixed effect model with an unstructured covariance matrix \n")
+                cat("  Multivariate Gaussian Model with an unstructured covariance matrix \n")
             }else if(structure=="CS"){
-                cat("  Linear mixed effect model with a compound symmetry covariance matrix \n")
+                cat("  Multivariate Gaussian Model with a compound symmetry covariance matrix \n")
             }
         }
     }
@@ -87,9 +87,9 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = TRUE
         cat(" - ", sum(nobsByCluster), " observations \n",  sep = "")
         cat(" - ", max(nobsByCluster), " maximum number of observations per cluster \n", sep = "")
 
-        data.X <- data[all.vars(delete.response(stats::terms(formula$mean)))]
+        data.X <- data[all.vars(stats::delete.response(stats::terms(formula$mean)))]
         C <- lapply(data.X, function(iCol){
-            if(inherits(iCol,"factor")){contrasts(iCol)}else if(inherits(iCol,"character")){contrasts(as.factor(iCol))}
+            if(inherits(iCol,"factor")){stats::contrasts(iCol)}else if(inherits(iCol,"character")){stats::contrasts(as.factor(iCol))}
         })
         if(length(C)>0){
             C <- C[!unlist(lapply(C, is.null))]
@@ -112,7 +112,7 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = TRUE
         if(print && !hide.cor){
             cat("Correlation structure:",deparse(formula$cor),"\n")
         }
-        table.cor <- lapply(Omega,cov2cor)
+        table.cor <- lapply(Omega,stats::cov2cor)
         if(length(table.cor)==1){
             table.cor <- table.cor[[1]]
         }

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 10 2021 (16:08) 
 ## Version: 
-## Last-Updated: jun  1 2021 (16:28) 
+## Last-Updated: Jun  4 2021 (09:08) 
 ##           By: Brice Ozenne
-##     Update #: 41
+##     Update #: 45
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -31,11 +31,11 @@
 ##' @export
 recover_data.lmm <- function(object, ...){
     fcall <- object$call
-    ff <- formula(object, effects = "mean")
+    ff <- stats::formula(object, effects = "mean")
     data <- object$data
     
-    oterms <- stats::terms(model.frame(ff, data = data))
-    out <- recover_data(fcall, trms = delete.response(oterms), na.action = NULL, frame = data)
+    oterms <- stats::terms(stats::model.frame(ff, data = data))
+    out <- recover_data(fcall, trms = stats::delete.response(oterms), na.action = NULL, frame = data)
     return(out)
 }
 
@@ -46,11 +46,11 @@ recover_data.lmm <- function(object, ...){
 emm_basis.lmm <- function(object, trms, xlev, grid, ...){
 
     out <- list()
-    m  <-  model.frame(trms, grid, na.action = na.pass, xlev = xlev)    
-    out$X  <-  model.matrix(trms, m, contrasts.arg = object$contrasts) 
-    out$bhat  <- coef(object, effects = "mean")
+    m  <-  stats::model.frame(trms, grid, na.action = stats::na.pass, xlev = xlev)    
+    out$X  <-  stats::model.matrix(trms, m, contrasts.arg = object$contrasts) 
+    out$bhat  <- stats::coef(object, effects = "mean")
     out$nbasis  <-  matrix(NA)  ## no rank deficiency
-    out$V  <- vcov(object, effects = "mean")
+    out$V  <- stats::vcov(object, effects = "mean")
     out$dffun <- function(k,dfargs){
         do.call(dfargs$FUN, args = list(X.beta = k, vcov.param = dfargs$vcov.param, dVcov.param = dfargs$dVcov.param))
     }

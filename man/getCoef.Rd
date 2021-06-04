@@ -84,14 +84,4 @@ if(require(Publish)){
 getCoef(e.lme, format = "publish")
 }
 getCoef(e.lme, format = "SAS")
-
-#### lmm model ####
-e.lmm <- lmm(weight ~ time, covariance = ~visit|id, data = gastricbypassL)
-getCoef(e.lmm)
-getCoef(e.lmm, effects = "variance")
-getCoef(e.lmm, effects = "variance", format = "estimate")
-if(require(Publish)){
-getCoef(e.lmm, format = "publish")
-}
-getCoef(e.lmm, format = "SAS")
 }

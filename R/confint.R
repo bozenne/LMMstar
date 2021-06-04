@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jun  1 2021 (16:24) 
+## Last-Updated: Jun  4 2021 (09:32) 
 ##           By: Brice Ozenne
-##     Update #: 225
+##     Update #: 231
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,8 +16,8 @@
 ### Code:
 
 ## * confint.lmm (documentation)
-##' @title Statistical Inference for Linear Mixed Model.
-##' @description Compute confidence intervals (CIs) and p-values for the coefficients of a linear mixed model.
+##' @title Statistical Inference for Multivariate Gaussian Models.
+##' @description Compute confidence intervals (CIs) and p-values for the coefficients of a multivariate gaussian model.
 ##' @name confint
 ##' 
 ##' @param object a \code{lmm} object.
@@ -53,7 +53,7 @@
 ##' set.seed(10)
 ##' dL <- sampleRem(100, n.times = 3, format = "long")
 ##' 
-##' ## fit mixed model
+##' ## fit Multivariate Gaussian Model
 ##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
 ##' 
 ##' ## based on normal distribution with transformation
@@ -215,9 +215,21 @@ print.confint_lmm <- function(x, ...){
 }
 
 ## * backtransform.confint_lmm
+##' @title BackTransformation for Outputs from Multivariate Gaussian Models.
+##' @description Back-transform estimates and confidence intervals (CIs).
+##' @name confint
+##' 
+##' @param object a \code{confint_lmm} object, i.e. the output of the confint function applied to a \code{lmm} object.
+##'
+##' @details if the option \code{transform.sigma} and/or  \code{transform.k} is one of \code{"log"}, \code{"logsd"}, \code{"logvar"}, \code{"logsqaure"},
+##' the estimate and CIs are transformed back to the original scale by applying the exponential function.
+##' 
+##' If the option \code{transform.rho} is \code{"atanh"}, the estimate and CIs are transformed back to the original scale by applying the tangent hyperbolic function.
+##' 
 ##' @export
 backtransform <-   function(object,...) UseMethod("backtransform")
 
+##' @rdname confint
 ##' @export
 backtransform.confint_lmm <- function(object, ...){
 
