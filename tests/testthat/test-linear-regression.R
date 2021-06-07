@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (12:12) 
+## Last-Updated: Jun  7 2021 (12:59) 
 ##           By: Brice Ozenne
-##     Update #: 135
+##     Update #: 141
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -143,6 +143,10 @@ expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 test <- vcov(e.lmm, p = coef(e.lmm, transform.sigma = "none"), transform.sigma = "square", df = TRUE)
 GS <- solve(-hessian(func = function(p){p["sigma"] <- sqrt(p["sigma"]);logLik(e.lmm, p = p)}, x = coef(e.lmm, transform.sigma = "square", transform.names = FALSE)))
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
+
+
+expect_equal(unname(sqrt(diag(vcov(e.lmm,transform.sigma="square",robust=TRUE)))), unname(estimate(e.lava, robust = TRUE)$coefmat[,"Std.Err"]),
+             tol = 1e-4)
 
 ## ** degree of freedom
 test <- confint(e.lmm, transform.sigma = "log", type.information = "observed")$df

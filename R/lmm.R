@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (12:01) 
+## Last-Updated: Jun  7 2021 (12:27) 
 ##           By: Brice Ozenne
-##     Update #: 831
+##     Update #: 833
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -498,7 +498,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                         indiv = FALSE, REML = method.fit=="REML", effects = c("mean","variance","correlation"))
 
     if(trace>=2){cat("- information \n")}
-    out$information <- .information(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega,
+    out$information <- .information(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega, robust = FALSE,
                                     index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
                                     name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
                                     pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef,
@@ -516,7 +516,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                       time.k = out$design$param$time.k, time.rho = out$design$param$time.rho,
                       pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef, REML = (method.fit=="REML"), type.information = type.information, effects = c("mean","variance","correlation"),
                       transform.sigma = out$reparametrize$transform.sigma, transform.k = out$reparametrize$transform.k, transform.rho = out$reparametrize$transform.rho,
-                      vcov = out$vcov, diag = TRUE, method.numDeriv = options$method.numDeriv)
+                      vcov = out$vcov, diag = TRUE, method.numDeriv = options$method.numDeriv, robust = FALSE)
         out$dVcov <- attr(out$df,"dVcov")
         attr(out$df,"dVcov") <- NULL
     }    

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (12:08) 
+## Last-Updated: Jun  7 2021 (12:43) 
 ##           By: Brice Ozenne
-##     Update #: 234
+##     Update #: 235
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -27,6 +27,7 @@
 ##' or only for mean coefficients (\code{"mean"}),
 ##' or only for variance coefficients (\code{"variance"}),
 ##' or only for correlation coefficients (\code{"correlation"}).
+##' @param robust [logical] Should robust standard error (aka sandwich estimator) be output instead of the model-based standard errors. Not feasible for variance or correlation coefficients estimated by REML.
 ##' @param null [numeric vector] the value of the null hypothesis relative to each coefficient.
 ##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.
 ##' @param type.object [character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.
@@ -68,7 +69,7 @@
 
 ## * confint.lmm (code)
 ##' @export
-confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", null = NULL, type.object = "lmm", strata = NULL, 
+confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", robust = FALSE, null = NULL, type.object = "lmm", strata = NULL, 
                          df = !is.null(object$df), type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE,
                           ...){
 
@@ -122,7 +123,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", nul
                                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE))
    
     ## ** get uncertainty
-    vcov.beta <- vcov(object, effects = effects, df = df, type.object = "lmm", strata = strata,
+    vcov.beta <- vcov(object, effects = effects, df = df, type.object = "lmm", strata = strata, robust = robust,
                       type.information = type.information, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
 
     if(df){

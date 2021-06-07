@@ -12,6 +12,7 @@
   parm = NULL,
   level = 0.95,
   effects = "all",
+  robust = FALSE,
   null = NULL,
   type.object = "lmm",
   strata = NULL,
@@ -39,6 +40,8 @@ backtransform(object, ...)
 or only for mean coefficients (\code{"mean"}),
 or only for variance coefficients (\code{"variance"}),
 or only for correlation coefficients (\code{"correlation"}).}
+
+\item{robust}{[logical] Should robust standard error (aka sandwich estimator) be output instead of the model-based standard errors. Not feasible for variance or correlation coefficients estimated by REML.}
 
 \item{null}{[numeric vector] the value of the null hypothesis relative to each coefficient.}
 

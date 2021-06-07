@@ -8,6 +8,7 @@
 \method{vcov}{lmm}(
   object,
   effects = "all",
+  robust = FALSE,
   df = FALSE,
   type.object = "lmm",
   strata = NULL,
@@ -28,6 +29,8 @@
 or only for coefficients relative to the mean (\code{"mean"}),
 or only for coefficients relative to the variance structure (\code{"variance"}),
 or only for coefficients relative to the correlation structure (\code{"correlation"}).}
+
+\item{robust}{[logical] Should robust standard error (aka sandwich estimator) be output instead of the model-based standard errors. Not feasible for variance or correlation coefficients estimated by REML.}
 
 \item{df}{[logical] Should degree of freedom, computed using Satterthwaite approximation, for the model parameters be output.}
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (12:11) 
+## Last-Updated: Jun  7 2021 (12:59) 
 ##           By: Brice Ozenne
-##     Update #: 348
+##     Update #: 375
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,6 +25,7 @@
 ##' or only for coefficients relative to the mean (\code{"mean"}),
 ##' or only for coefficients relative to the variance structure (\code{"variance"}),
 ##' or only for coefficients relative to the correlation structure (\code{"correlation"}).
+##' @param robust [logical] Should robust standard error (aka sandwich estimator) be output instead of the model-based standard errors. Not feasible for variance or correlation coefficients estimated by REML.
 ##' @param df [logical] Should degree of freedom, computed using Satterthwaite approximation, for the model parameters be output.
 ##' @param type.object [character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.
 ##' @param data [data.frame] dataset relative to which the information should be computed. Only relevant if differs from the dataset used to fit the model.
@@ -45,7 +46,7 @@
 ## * vcov.lmm (code)
 ##' @rdname vcov
 ##' @export
-vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", strata = NULL, data = NULL, p = NULL,
+vcov.lmm <- function(object, effects = "all", robust = FALSE, df = FALSE, type.object = "lmm", strata = NULL, data = NULL, p = NULL,
                      type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
     options <- LMMstar.options()
     x.transform.sigma <- object$reparametrize$transform.sigma
@@ -87,7 +88,7 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
         keep.name <- stats::setNames(names(coef(object, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE)),
                               names(coef(object, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)))
 
-        if(is.null(data) && is.null(p) && test.notransform && (df == FALSE || !is.null(object$df))){
+        if(is.null(data) && is.null(p) && test.notransform && (df == FALSE || !is.null(object$df)) && (robust == FALSE)){
             vcov <- object$vcov[keep.name,keep.name,drop=FALSE]
             if(transform.names){
                 dimnames(vcov) <- list(names(keep.name),names(keep.name))
@@ -105,6 +106,7 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
                 }
             }
         }else{
+            attr(type.information,"robust") <- robust
             if(df>0){
                 attr(type.information,"detail") <- TRUE
             }
@@ -123,7 +125,7 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
                              pair.meanvarcoef = detail$pair.meanvarcoef, pair.varcoef = detail$pair.varcoef,
                              REML = detail$REML, type.information = as.vector(type.information), effects = effects,
                              transform.sigma = detail$transform.sigma, transform.k = detail$transform.k, transform.rho = detail$transform.rho, 
-                             vcov = vcovFull, diag = TRUE, method.numDeriv = options$method.numDeriv)
+                             vcov = vcovFull, diag = TRUE, method.numDeriv = options$method.numDeriv, robust = robust)
                 attr(vcov,"df") <- stats::setNames(outdf[keep.name],names(keep.name))
                 if(df>1){
                     attr(vcov,"dVcov") <- attr(outdf,"dVcov")[keep.name,keep.name,keep.name]
@@ -175,13 +177,13 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
                 time.k, time.rho,
                 pair.meanvarcoef, pair.varcoef, REML, type.information, effects,
                 transform.sigma, transform.k, transform.rho, 
-                vcov, diag, method.numDeriv){
+                vcov, diag, method.numDeriv, robust){
 
     ## ** prepare vector of parameters
     param.type <- param$type
     param.strata <- param$strata
     name.allcoef <- names(param$value)
-    n.allcoef <- length(param$value)
+    n.allcoef <- length(param$type)
 
     param.nameVar <- name.allcoef[param$type %in% c("sigma","k","rho")]
     param.nameMean <- name.allcoef[param$type %in% c("mu")]
@@ -238,9 +240,10 @@ vcov.lmm <- function(object, effects = "all", df = FALSE, type.object = "lmm", s
             d2Omega <- NULL
         }
 
-        info <- .information(X = X.mean, residuals = residuals, precision = OmegaM1, dOmega = dOmega, d2Omega = d2Omega,
+        info <- .information(X = X.mean, residuals = residuals, precision = OmegaM1, dOmega = dOmega, d2Omega = d2Omega, robust = robust,
                              index.variance = index.variance, time.variance = time.variance, index.cluster = index.cluster, name.varcoef = name.varcoef, name.allcoef = name.allcoef,
                              pair.meanvarcoef = pair.meanvarcoef, pair.varcoef = pair.varcoef, indiv = FALSE, REML = REML, type.information = type.information, effects = effects)
+        
         return(as.double(info))
     }
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (12:12) 
+## Last-Updated: Jun  7 2021 (12:49) 
 ##           By: Brice Ozenne
-##     Update #: 497
+##     Update #: 518
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -56,12 +56,13 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
-
     if(is.null(type.information)){
         type.information <- options$type.information
         test.detail <- FALSE
+        robust <- FALSE
     }else{
         test.detail <- identical(attr(type.information,"detail"),TRUE)
+        robust <- identical(attr(type.information,"robust"),TRUE)
         type.information <- match.arg(type.information, c("expected","observed"))
     }
     if(identical(effects,"all")){
@@ -77,7 +78,7 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
     test.notransform <- init$test.notransform
 
     ## ** extract or recompute information
-    if(is.null(data) && is.null(p) && (indiv == FALSE) && test.notransform){
+    if(is.null(data) && is.null(p) && (indiv == FALSE) && test.notransform && (robust==FALSE)){
         out <- x$information
         if(transform.names){
             colnames(out)[match(names(x$reparametrize$p),colnames(out))] <- x$reparametrize$newname
@@ -136,7 +137,7 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
         }
         name.allcoef <- names(x$param$value)
         index.var <- x$param$type %in% c("sigma","k","rho")
-        
+
         if(!is.null(p) || (test.notransform == FALSE)){
             if(!is.null(p)){
                 if(any(duplicated(names(p)))){
@@ -148,8 +149,6 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
             }else{
                 p <- x$param$value
             }
-
-            beta <- p[x$param$type=="mu"]
 
             reparametrize <- .reparametrize(p = p[index.var], type = x$param$type[index.var], strata = x$param$strata[index.var], time.levels = x$time$levels,
                                             time.k = x$design$param$time.k, time.rho = x$design$param$time.rho,
@@ -176,18 +175,18 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
                 d2Omega <- NULL
             }
         }else{
-            beta <- x$param$value[x$param$type=="mu"]
+            p <- x$param$value
             reparametrize <- x$reparametrize
             precision <- x$OmegaM1
             dOmega <- x$dOmega
             d2Omega <- x$d2Omega
         }
 
-        out <- .information(X = X, residuals = Y - X %*% beta, precision = precision, dOmega = dOmega, d2Omega = d2Omega,
+        out <- .information(X = X, residuals = Y - X %*% p[x$param$type=="mu"], precision = precision, dOmega = dOmega, d2Omega = d2Omega, robust = robust,
                             index.variance = index.vargroup, time.variance = index.time, index.cluster = index.cluster, name.varcoef = name.varcoef, name.allcoef = name.allcoef,
                             pair.meanvarcoef = pair.meanvarcoef, pair.varcoef = pair.varcoef, indiv = indiv, REML = REML, type.information = type.information,
                             effects = effects)
-        
+
         if(test.detail){
             param <- x$param
             param$value <- p[names(param$type)]
@@ -216,7 +215,7 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
 ## d 0.5 tr[(X \OmegaM1 X)^{-1} (X \OmegaM1 d\Omega \OmegaM1 X)] = 0.5 tr[ (X \OmegaM1 d'\Omega \OmegaM1 X) (X \OmegaM1 X)^{-2} (X \OmegaM1 d\Omega \OmegaM1 X) ]
 ##                                                                 - 0.5 tr[ (X \OmegaM1 X)^{-1} (X \OmegaM1 d'\Omega \OmegaM1 d\Omega \OmegaM1 X) + (X \OmegaM1 X)^{-1} (X \OmegaM1 d\Omega \OmegaM1 d'\Omega \OmegaM1 X) ]
 ##                                                                 + 0.5 tr[ (X \OmegaM1 X)^{-1} (X \OmegaM1 d2\Omega \OmegaM1 X) ]
-.information <- function(X, residuals, precision, dOmega, d2Omega,
+.information <- function(X, residuals, precision, dOmega, d2Omega, robust,
                          index.variance, time.variance, index.cluster, name.varcoef, name.allcoef,
                          pair.meanvarcoef, pair.varcoef, indiv, REML, type.information, effects){
 
@@ -452,7 +451,12 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
             }
         }
     }
-
+    if(robust){
+        attr.info <- info
+        attr.bread <- crossprod(.score(X = X, residuals = residuals, precision = precision, dOmega = dOmega, index.variance = index.variance, time.variance = time.variance, 
+                                       index.cluster = index.cluster, name.varcoef = name.varcoef, name.allcoef = name.allcoef, indiv = TRUE, REML = REML, effects = effects) )
+        info <- attr.info %*% solve(attr.bread) %*% attr.info
+    }
     return(info)
 
 }
