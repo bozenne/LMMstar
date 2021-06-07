@@ -5,7 +5,7 @@
 \alias{anova.lmm}
 \alias{confint.anova_lmm}
 \alias{print.anova_lmm}
-\title{Multivariate Wald Tests For Linear Mixed Models}
+\title{Multivariate Wald Tests For Multivariate Gaussian Models}
 \usage{
 \method{anova}{lmm}(
   object,
@@ -25,7 +25,7 @@
 \method{print}{anova_lmm}(x, print.null = FALSE, ...)
 }
 \arguments{
-\item{object}{a \code{lmm} object (anova function) or \code{anova_lmm} object (print and confint functions).}
+\item{object}{a \code{lmm} object. Only relevant for the anova function.}
 
 \item{effects}{[character] Should the Wald test be computed for all variables (\code{"all"}),
 or only variables relative to the mean (\code{"mean"}),
@@ -49,6 +49,8 @@ Can also be use to specify linear combinations of coefficients, similarly to the
 
 \item{method}{[character] type of adjustment for multiple comparisons: one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}.
 Not relevant for the global test (F-test or Chi-square test) - only relevant when testing each hypothesis and adjusting for multiplicity.}
+
+\item{x}{an \code{anova_lmm} object. Only relevant for print and confint functions.}
 
 \item{print.null}{[logical] should the null hypotheses be printed in the console?}
 }
@@ -74,7 +76,7 @@ This is refered to as a single-step Dunnett multiple testing procedures in table
 set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
 
-## fit mixed model
+## fit Multivariate Gaussian Model
 eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
 
 ## chi-2 test

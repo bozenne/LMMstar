@@ -3,7 +3,7 @@
 \name{logLik}
 \alias{logLik}
 \alias{logLik.lmm}
-\title{Extract The Log-Likelihood From a Linear Mixed Model}
+\title{Extract The Log-Likelihood From a Multivariate Gaussian Model}
 \usage{
 \method{logLik}{lmm}(object, data = NULL, p = NULL, type.object = "lmm", indiv = FALSE, ...)
 }
@@ -24,7 +24,7 @@
 A numeric value
 }
 \description{
-Extract or compute the log-likelihood of a linear mixed model.
+Extract or compute the log-likelihood of a multivariate gaussian model.
 }
 \details{
 \bold{transform}: \cr

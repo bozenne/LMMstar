@@ -3,10 +3,11 @@
 \name{score}
 \alias{score}
 \alias{score.lmm}
-\title{Extract The Score From a Linear Mixed Model}
+\title{Extract The Score From a Multivariate Gaussian Model}
 \usage{
 \method{score}{lmm}(
   x,
+  effects = "all",
   data = NULL,
   p = NULL,
   indiv = FALSE,
@@ -19,6 +20,10 @@
 }
 \arguments{
 \item{x}{a \code{lmm} object.}
+
+\item{effects}{[character] Should the score relative to all coefficients be output (\code{"all"}),
+or only coefficients relative to the mean (\code{"mean"}),
+or only coefficients relative to the variance and correlation structure (\code{"variance"} or \code{"correlation"}).}
 
 \item{data}{[data.frame] dataset relative to which the score should be computed. Only relevant if differs from the dataset used to fit the model.}
 
@@ -41,7 +46,7 @@ When argument indiv is \code{FALSE}, a vector with the value of the score relati
 When argument indiv is \code{TRUE}, a matrix with the value of the score relative to each coefficient (in columns) and each cluster (in rows).
 }
 \description{
-Extract or compute the first derivative of the log-likelihood of a linear mixed model.
+Extract or compute the first derivative of the log-likelihood of a multivariate gaussian model.
 }
 \details{
 For details about the arguments \bold{transform.sigma}, \bold{transform.k}, \bold{transform.rho}, see the documentation of the \link[LMMstar]{coef} function.

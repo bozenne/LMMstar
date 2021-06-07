@@ -3,7 +3,7 @@
 \name{summary}
 \alias{summary}
 \alias{summary.lmm}
-\title{Summary Output for a Linear Mixed Model}
+\title{Summary Output for a Multivariate Gaussian Model}
 \usage{
 \method{summary}{lmm}(
   object,
@@ -43,6 +43,6 @@
 \item{...}{not used. For compatibility with the generic function.}
 }
 \description{
-Summary output for a linear mixed model fitted with \code{lmm}.
+Summary output for a  multivariate gaussian model fitted with \code{lmm}.
 This is a modified version of the \code{nlme::summary.gls} function.
 }

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: Jun  4 2021 (10:35) 
+## Last-Updated: Jun  7 2021 (12:17) 
 ##           By: Brice Ozenne
-##     Update #: 306
+##     Update #: 307
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -152,10 +152,10 @@ score.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = FALSE, 
         if(transform.names && length(newname.allcoef)>0 && ("variance" %in% effects || "correlation" %in% effects)){
             if(indiv){
                 index.var2 <- match(name.allcoef[index.var], colnames(out))
-                colnames(out)[na.omit(index.var2)] <- newname.allcoef[!is.na(index.var2)]
+                colnames(out)[stats::na.omit(index.var2)] <- newname.allcoef[!is.na(index.var2)]
             }else{
                 index.var2 <- match(name.allcoef[index.var], names(out))
-                names(out)[na.omit(index.var2)] <- newname.allcoef[!is.na(index.var2)]
+                names(out)[stats::na.omit(index.var2)] <- newname.allcoef[!is.na(index.var2)]
             }
         }
 

@@ -3,7 +3,7 @@
 \name{getVarCov}
 \alias{getVarCov}
 \alias{getVarCov.lmm}
-\title{Extract The Residuals Variance-Covariance Matrix From a Linear Mixed Model}
+\title{Extract The Residuals Variance-Covariance Matrix From a Multivariate Gaussian Model}
 \usage{
 \method{getVarCov}{lmm}(
   object,
@@ -42,7 +42,7 @@ if(require(nlme)){
 set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
 
-## fit mixed model
+## fit Multivariate Gaussian Model
 eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
 
 ## extract residuals variance covariance matrix

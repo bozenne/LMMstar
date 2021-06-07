@@ -3,7 +3,7 @@
 \name{residuals}
 \alias{residuals}
 \alias{residuals.lmm}
-\title{Extract The Residuals From a Linear Mixed Model}
+\title{Extract The Residuals From a Multivariate Gaussian Model}
 \usage{
 \method{residuals}{lmm}(
   object,
@@ -35,7 +35,7 @@ When argument format is \code{"long"} and type.oobject is \code{"lmm"}, a vector
 When argument format is \code{"wide"} and type.oobject is \code{"lmm"}, a data.frame with the value of the residual relative to each cluster (in rows) at each timepoint (in columns).
 }
 \description{
-Extract or compute the residuals of a linear mixed model.
+Extract or compute the residuals of a multivariate gaussian model.
 }
 \details{
 \itemize{
@@ -50,7 +50,7 @@ Extract or compute the residuals of a linear mixed model.
 set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
 
-## fit mixed model
+## fit Multivariate Gaussian Model
 eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
 
 ## prediction

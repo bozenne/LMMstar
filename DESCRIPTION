@@ -2,7 +2,7 @@ Package: LMMstar
 Type: Package
 Title: Repeated measurement models for discrete times
 Version: 0.2
-Date: 2021-06-04
+Date: 2021-06-07
 Authors@R: c(
     person("Brice", "Ozenne", role = c("aut", "cre"), email = "brice.mh.ozenne@gmail.com", comment = c(ORCID = "0000-0001-9694-2956")),
     person("Julie", "Forman", role = "ctb")
@@ -47,6 +47,7 @@ Collate:
     'formula.R'
     'getCoef.R'
     'getVarCov.R'
+    'iid.R'
     'information.R'
     'lmm.R'
     'logLik.R'

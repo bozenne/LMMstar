@@ -3,10 +3,11 @@
 \name{information}
 \alias{information}
 \alias{information.lmm}
-\title{Extract The Information From a Linear Mixed Model}
+\title{Extract The Information From a Multivariate Gaussian Model}
 \usage{
 \method{information}{lmm}(
   x,
+  effects = "all",
   data = NULL,
   p = NULL,
   indiv = FALSE,
@@ -20,6 +21,10 @@
 }
 \arguments{
 \item{x}{a \code{lmm} object.}
+
+\item{effects}{[character] Should the information relative to all coefficients be output (\code{"all"}),
+or only coefficients relative to the mean (\code{"mean"}),
+or only coefficients relative to the variance and correlation structure (\code{"variance"} or \code{"correlation"}).}
 
 \item{data}{[data.frame] dataset relative to which the information should be computed. Only relevant if differs from the dataset used to fit the model.}
 
@@ -44,7 +49,7 @@ When argument indiv is \code{FALSE}, a matrix with the value of the infroamtion 
 When argument indiv is \code{TRUE}, a 3-dimensional array with the value of the information relative to each pair of coefficient (dimension 2 and 3) and each cluster (dimension 1).
 }
 \description{
-Extract or compute the (expected) second derivative of the log-likelihood of a linear mixed model.
+Extract or compute the (expected) second derivative of the log-likelihood of a multivariate gaussian model.
 }
 \details{
 For details about the arguments \bold{transform.sigma}, \bold{transform.k}, \bold{transform.rho}, see the documentation of the \link[LMMstar]{coef} function.

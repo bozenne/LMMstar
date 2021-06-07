@@ -2,7 +2,7 @@
 % Please edit documentation in R/lmm.R
 \name{lmm}
 \alias{lmm}
-\title{Linear mixed model}
+\title{Fit Multivariate Gaussian Model}
 \usage{
 lmm(
   formula,
@@ -12,7 +12,7 @@ lmm(
   method.fit = NULL,
   df = NULL,
   type.information = NULL,
-  trace = FALSE,
+  trace = NULL,
   ...
 )
 }
@@ -40,15 +40,19 @@ On the left hand side, a possible stratification variable, e.g. group ~ time|id.
 \item{...}{passed to \code{nlme::gls}.}
 }
 \description{
-Fit a linear mixed model using either a compound symmetry structure or an unstructured covariance matrix.
+Fit a multivariate gaussian model using either a compound symmetry structure or an unstructured covariance matrix.
 This is essentially an interface to the \code{nlme::gls} function.
+}
+\details{
+\bold{Computation time} the \code{lmm} has not been developped to be a fast function as, by default, it uses REML estimation with the observed information matrix and uses a Satterthwaite approximation to compute degrees of freedom (this require to compute the third derivative of the log-likelihood which is done by numerical differentiation). The computation time can be substantially reduced by using ML estimation with the expected information matrix and no calculation of degrees of freedom: arguments \code{method.fit="ML"}, \code{type.information="expected"}, \code{df=FALSE}. This will, however, lead to less accurate p-values and confidence intervals in small samples.
+\cr
 }
 \examples{
 ## simulate data in the long format
 set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
 
-## fit mixed model
+## fit Multivariate Gaussian Model
 eCS.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "CS", data = dL)
 
 ## output

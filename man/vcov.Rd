@@ -3,7 +3,7 @@
 \name{vcov}
 \alias{vcov}
 \alias{vcov.lmm}
-\title{Extract The Variance-Covariance Matrix From a Linear Mixed Model}
+\title{Extract The Variance-Covariance Matrix From a Multivariate Gaussian Model}
 \usage{
 \method{vcov}{lmm}(
   object,
@@ -55,7 +55,7 @@ or only for coefficients relative to the correlation structure (\code{"correlati
 A matrix with an attribute \code{"df"} when argument df is set to \code{TRUE}.
 }
 \description{
-Extract the variance-covariance matrix of the model coefficients of a linear mixed model
+Extract the variance-covariance matrix of the model coefficients of a multivariate gaussian model.
 }
 \details{
 For details about the arguments \bold{transform.sigma}, \bold{transform.k}, \bold{transform.rho}, see the documentation of the \link[LMMstar]{coef} function.

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (12:13) 
+## Last-Updated: Jun  7 2021 (12:17) 
 ##           By: Brice Ozenne
-##     Update #: 715
+##     Update #: 716
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -431,7 +431,7 @@ model.matrix_regularize <- function(formula, data){
     ## vec.interactionName <- apply(M.interactionName, MARGIN = 1, FUN = function(iRow){paste(na.omit(iRow), collapse = ":")})
 
     ## ** test 2: form interaction and identify columns of the design matrix that are constant
-    ls.rmX <- setNames(lapply(which(tt.order>1), function(iInteraction){ ## iInteraction <- 4
+    ls.rmX <- stats::setNames(lapply(which(tt.order>1), function(iInteraction){ ## iInteraction <- 4
         ## variables involved in the interactions
         iVar <- names(which(tt.factors[,iInteraction]>0)) 
         ## identify coefficient relative to this interaction 
@@ -491,7 +491,7 @@ model.matrix_regularize <- function(formula, data){
     
     ## ** identify factors and reference level
     all.variable <- all.vars(formula.terms)
-    contrast.variable <- setNames(lapply(all.variable, function(iVar){
+    contrast.variable <- stats::setNames(lapply(all.variable, function(iVar){
         if(is.character(data[[iVar]])){
             out <- stats::contrasts(as.factor(data[[iVar]]))
             if(any(colSums(abs(out)>1e-12)>1)){
@@ -508,7 +508,7 @@ model.matrix_regularize <- function(formula, data){
         return(out)
     }),all.variable)
 
-    ls.reference <- setNames(lapply(contrast.variable, function(iRef){
+    ls.reference <- stats::setNames(lapply(contrast.variable, function(iRef){
         if(!is.null(iRef)){
             return(rownames(iRef)[rowSums(abs(iRef)>0)==0])
         }else{
@@ -524,8 +524,8 @@ model.matrix_regularize <- function(formula, data){
     X.assign <- attr(X,"assign")
     X.order <- c(0,attr(formula.terms,"order"))[X.assign+1]
     X.term <- c("(Intercept)",attr(formula.terms,"term.labels"))[X.assign+1]
-    X.level <- setNames(vector(mode = "list", length = p), X.names)
-    X.level2 <- setNames(lapply(X.names, function(iName){reference2}), X.names)
+    X.level <- stats::setNames(vector(mode = "list", length = p), X.names)
+    X.level2 <- stats::setNames(lapply(X.names, function(iName){reference2}), X.names)
 
     ## ** loop for each element of the design matrix and identify the right level
     for(iCol in 1:p){ ## iCol <- 5
@@ -543,13 +543,13 @@ model.matrix_regularize <- function(formula, data){
             
             if(!is.null(iContrast) && length(iContrast)>0){
                 ## re-create all possible names and identify the one matching the column name 
-                iLs.factor <- setNames(lapply(iVar,function(iName){rownames(iContrast[[iName]])}), iVar)
-                iLs.name <- setNames(lapply(iVar,function(iName){paste0(iName,iLs.factor[[iName]])}), iVar)
+                iLs.factor <- stats::setNames(lapply(iVar,function(iName){rownames(iContrast[[iName]])}), iVar)
+                iLs.name <- stats::setNames(lapply(iVar,function(iName){paste0(iName,iLs.factor[[iName]])}), iVar)
                 iIndex  <- which(X.names[iCol] == interaction(iLs.name, sep=":"))
                 ## deduce the factor variable
                 iLs.index <- lapply(iVar,function(iName){if(is.null(iContrast[[iName]])){0}else{1:NROW(iContrast[[iName]])}})
-                iIndex2 <- setNames(as.numeric(unlist(strsplit(as.character(interaction(iLs.index, sep=":")[iIndex]), split = ":", fixed = TRUE))), iVar)
-                X.level[[iCol]] <- as.data.frame(setNames(lapply(iVar, function(iName){if(is.null(iLs.factor[[iName]])){as.numeric(NA)}else{iLs.factor[[iName]][iIndex2[[iName]]]}}), iVar))                
+                iIndex2 <- stats::setNames(as.numeric(unlist(strsplit(as.character(interaction(iLs.index, sep=":")[iIndex]), split = ":", fixed = TRUE))), iVar)
+                X.level[[iCol]] <- as.data.frame(stats::setNames(lapply(iVar, function(iName){if(is.null(iLs.factor[[iName]])){as.numeric(NA)}else{iLs.factor[[iName]][iIndex2[[iName]]]}}), iVar))                
                 X.level2[[iCol]][,names(X.level[[iCol]])] <- X.level[[iCol]]
                 if(any(is.na(X.level[[iCol]]))){
                     X.level2[[iCol]][,is.na(X.level[[iCol]])] <- TRUE

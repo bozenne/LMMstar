@@ -14,3 +14,16 @@ LMMstar.options(..., reinitialise = FALSE)
 \description{
 Update or select global options for the LMMstar package.
 }
+\details{
+The options are: \itemize{
+\item backtransform.summary [logical]: should variance or correlation estimates be back-transformed when they are transformed on the log or atanh scale. Used by \code{summary} and \code{confint}.
+\item df [logical]: should approximate degrees of freedom be computed for Wald and F-tests. Used by \code{lmm}, \code{anova}, \code{predict}, and \code{confint}.
+\item drop.X [logical]: should columns causing non-identifiability of the model coefficients be dropped from the design matrix. Used by \code{lmm}.
+\item method.fit [character]: objective function when fitting the multivariate Gaussian Model (REML or ML). Used by \code{lmm}.
+\item method.numDeriv [character]: type used to approximate the third derivative of the log-likelihood (when computing the degrees of freedom). Can be \code{"simple"} or \code{"Richardson"}. See \code{numDeriv::jacobian} for more details. Used by \code{lmm}.
+\item trace [logical]: Should the progress of the execution of the \code{lmm} function be displayed?
+\item tranform.sigma, tranform.k, tranform.rho: transformation used to compute the confidence intervals/p-values for the variance and correlation parameters. See the detail section of the coef function for more information.
+Used by \code{lmm}, \code{anova} and \code{confint}.
+\item type.information [character]: Should the expected or observed information (\code{"expected"} or \code{"observed"}) be used to perform statistical inference? Used by \code{lmm}, \code{anova} and \code{confint}.
+}
+}

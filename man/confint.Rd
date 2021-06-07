@@ -5,7 +5,7 @@
 \alias{confint.lmm}
 \alias{backtransform}
 \alias{backtransform.confint_lmm}
-\title{Statistical Inference for Linear Mixed Model.}
+\title{Statistical Inference for Multivariate Gaussian Models.}
 \usage{
 \method{confint}{lmm}(
   object,
@@ -65,9 +65,9 @@ A data.frame containing for each coefficient (in rows): \itemize{
 }
 }
 \description{
-Compute confidence intervals (CIs) and p-values for the coefficients of a linear mixed model.
+Compute confidence intervals (CIs) and p-values for the coefficients of a multivariate gaussian model.
 
-Back-transform estimates and  confidence intervals (CIs).
+Back-transform estimates and confidence intervals (CIs).
 }
 \details{
 if the option \code{transform.sigma} and/or  \code{transform.k} is one of \code{"log"}, \code{"logsd"}, \code{"logvar"}, \code{"logsqaure"},
@@ -80,7 +80,7 @@ If the option \code{transform.rho} is \code{"atanh"}, the estimate and CIs are t
 set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
 
-## fit mixed model
+## fit Multivariate Gaussian Model
 eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
 
 ## based on normal distribution with transformation

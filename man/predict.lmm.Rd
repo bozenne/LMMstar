@@ -2,7 +2,7 @@
 % Please edit documentation in R/predict.R
 \name{predict.lmm}
 \alias{predict.lmm}
-\title{Predicted Mean Value For Linear Mixed Models}
+\title{Predicted Mean Value For Multivariate Gaussian Model}
 \usage{
 \method{predict}{lmm}(object, newdata, level = 0.95, df = !is.null(object$df), ...)
 }
@@ -27,14 +27,14 @@ A data.frame with 5 columns:\itemize{
 }
 }
 \description{
-Predicted Mean Value For Linear Mixed Models
+Predicted Mean Value For Multivariate Gaussian Model
 }
 \examples{
 ## simulate data in the long format
 set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
 
-## fit mixed model
+## fit Multivariate Gaussian Model
 eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
 
 ## prediction
