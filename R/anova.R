@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (14:22) 
+## Last-Updated: Jun  7 2021 (20:57) 
 ##           By: Brice Ozenne
-##     Update #: 400
+##     Update #: 402
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -383,18 +383,17 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = "single-step"
 
         for(iTest in 1:length(iTable)){ ## iTest <- 1
             iOut[[iTest]] <- iTable[[iTest]]
-            
-            if(method == "single-step"){
+            if(method == "none" || NROW(iOut[[iTest]])==1){
+                iOut[[iTest]]$lower <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(alpha/2, df = iOut[[iTest]]$df)
+                iOut[[iTest]]$upper <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(1-alpha/2, df = iOut[[iTest]]$df)
+                iOut[[iTest]]$p.value <- 2*(1-stats::pt( abs((iOut[[iTest]]$estimate-iOut[[iTest]]$null) / iOut[[iTest]]$se), df = iOut[[iTest]]$df))
+            }else if(method == "single-step"){
                 iGlht <- attr(iO,"glht")[[iTest]]
                 iCi <- confint(iGlht)
                 iOut[[iTest]]$lower <- iCi$confint[,"lwr"]
                 iOut[[iTest]]$upper <- iCi$confint[,"upr"]
                 iOut[[iTest]]$p.value <- summary(iGlht, test = multcomp::adjusted("single-step"))$test$pvalues
                 iOut[[iTest]]$df <- iGlht$df
-            }else if(method == "none"){
-                iOut[[iTest]]$lower <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(alpha/2, df = iOut[[iTest]]$df)
-                iOut[[iTest]]$upper <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(1-alpha/2, df = iOut[[iTest]]$df)
-                iOut[[iTest]]$p.value <- 2*(1-stats::pt( abs((iOut[[iTest]]$estimate-iOut[[iTest]]$null) / iOut[[iTest]]$se), df = iOut[[iTest]]$df))
             }else if(method == "bonferroni"){
                 p <- NROW(iOut[[iTest]])
                 iOut[[iTest]]$lower <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(alpha/(2*p), df = iOut[[iTest]]$df)

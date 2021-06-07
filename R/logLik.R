@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (16:56) 
+## Last-Updated: Jun  7 2021 (17:29) 
 ##           By: Brice Ozenne
-##     Update #: 158
+##     Update #: 160
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -153,7 +153,6 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
         iIndex <- attr(index.cluster,"sorted")[[iId]]
         ## iIndex <- which(index.cluster==iId)
         ## iIndex <- iIndex[order(time.variance[iIndex])] ## re-order observations according to the variance-covariance matrix
-
         iResidual <- residuals[iIndex,,drop=FALSE]
         iX <- X[iIndex,,drop=FALSE]
         iOmega <- precision[[index.variance[iId]]]

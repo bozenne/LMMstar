@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: Jun  4 2021 (09:37) 
+## Last-Updated: Jun  8 2021 (00:04) 
 ##           By: Brice Ozenne
-##     Update #: 116
+##     Update #: 119
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -58,13 +58,26 @@ predict.lmm <- function(object, newdata, level = 0.95, df = !is.null(object$df),
     }
 
     ## ** compute predictions
-    ff.mean <- stats::formula(object, effects = "mean")
-    X.beta <- model.matrix(stats::delete.response(stats::terms(ff.mean)), newdata)
-    n.obs <- NROW(X.beta)
+    ## extract coefficients
     beta <- coef(object, effects = "mean")
     n.beta <- length(beta)
     name.beta <- names(beta)
     vcov.beta <- vcov(object, effects = "mean")
+
+    ## design matrix
+    if(is.matrix(newdata)){
+        if(all(name.beta == colnames(newdata))){
+            X.beta <- newdata
+        }else{
+            stop("Argument \'newdata\' should contain a column relative to each coefficient when a matrix. \n")
+        }
+    }else if(is.data.frame(newdata)){
+        ff.mean <- stats::formula(object, effects = "mean")
+        X.beta <- model.matrix(stats::delete.response(stats::terms(ff.mean)), newdata)[,colnames(model.matrix(object, effects = "mean")),drop=FALSE]
+    }else{
+        stop("Argument \'newdata\' should be a data.frame or a design matrix. \n")
+    }
+    n.obs <- NROW(X.beta)
     
     prediction <- X.beta %*% beta
     prediction.vcov <- X.beta %*% vcov.beta %*% t(X.beta)

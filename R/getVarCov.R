@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: Jun  4 2021 (09:33) 
+## Last-Updated: Jun  7 2021 (17:31) 
 ##           By: Brice Ozenne
-##     Update #: 78
+##     Update #: 83
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -64,7 +64,11 @@ getVarCov.lmm <- function(object, individual = NULL, p = NULL, type.object = c("
         strata <- match.arg(strata, object$strata$levels, several.ok = TRUE)
     }
     if(!is.null(individual)){
-        individual <- match.arg(individual, object$design$cluster$levels, several.ok = TRUE)
+        if(is.character(object$design$cluster$levels)){
+            individual <- match.arg(as.character(individual), object$design$cluster$levels, several.ok = TRUE)
+        }else if(any(individual %in% object$design$cluster$levels == FALSE) ){
+            stop("Unknown values for argument \'individual\'. Should correspond to cluster id from the training dataset. \n")
+        }
     }
 
     if(type.object == "lmm"){

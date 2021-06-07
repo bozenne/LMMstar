@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (12:55) 
+## Last-Updated: Jun  7 2021 (17:33) 
 ##           By: Brice Ozenne
-##     Update #: 351
+##     Update #: 353
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -43,7 +43,7 @@
         }
         ## assemble
         Omega <- diag(as.double(Omega.sd)^2, nrow = iNtime, ncol = iNtime) + Omega.cor * tcrossprod(Omega.sd)
-        
+
         if(keep.interim){
             attr(Omega,"time") <- iTime
             attr(Omega,"sd") <- Omega.sd

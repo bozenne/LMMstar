@@ -13,6 +13,7 @@ lmm(
   df = NULL,
   type.information = NULL,
   trace = NULL,
+  control = NULL,
   ...
 )
 }
@@ -36,6 +37,8 @@ On the left hand side, a possible stratification variable, e.g. group ~ time|id.
 \item{type.information}{[character] Should the expected information be computed  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).}
 
 \item{trace}{[interger, >0] Show the progress of the execution of the function.}
+
+\item{control}{[glsControl] Control values for gls fit. Passed to gls.}
 
 \item{...}{passed to \code{nlme::gls}.}
 }

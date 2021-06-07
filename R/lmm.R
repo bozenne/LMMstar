@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (15:19) 
+## Last-Updated: Jun  7 2021 (18:04) 
 ##           By: Brice Ozenne
-##     Update #: 843
+##     Update #: 848
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -32,6 +32,7 @@
 ##' @param type.information [character] Should the expected information be computed  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
 ##' @param df [logical] Should the degree of freedom be computed using a Satterthwaite approximation?
 ##' @param trace [interger, >0] Show the progress of the execution of the function.
+##' @param control [glsControl] Control values for gls fit. Passed to gls.
 ##' @param ... passed to \code{nlme::gls}.
 ##'
 ##' @details \bold{Computation time} the \code{lmm} has not been developped to be a fast function as, by default, it uses REML estimation with the observed information matrix and uses a Satterthwaite approximation to compute degrees of freedom (this require to compute the third derivative of the log-likelihood which is done by numerical differentiation). The computation time can be substantially reduced by using ML estimation with the expected information matrix and no calculation of degrees of freedom: arguments \code{method.fit="ML"}, \code{type.information="expected"}, \code{df=FALSE}. This will, however, lead to less accurate p-values and confidence intervals in small samples.
@@ -53,7 +54,7 @@
 ##' summary(eCS.lmm, ci = TRUE)
 ## * lmm (code)
 ##' @export
-lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NULL, type.information = NULL, trace = NULL, ...){
+lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NULL, type.information = NULL, trace = NULL, control = NULL, ...){
     out <- list(call = match.call(), data.original = data)
     options <- LMMstar.options()
     data <- as.data.frame(data)
@@ -180,7 +181,9 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
         stop("Incorrect specification of argument \'repetition\'. \n",
              "Should have exactly one variable after the grouping symbol (|), something like: ~ time|id or group ~ time|id. \n")
     }
-
+    if(is.factor(data[[var.cluster]])){
+        data[[var.cluster]] <- droplevels(data[[var.cluster]])
+    }
     test.duplicated <- tapply(data[[var.time]], data[[var.cluster]], function(iT){any(duplicated(iT))})
     if(any(test.duplicated)){
         stop("Incorrect specification of argument \'repetition\'. \n",
@@ -363,9 +366,9 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
 
     ## move from design matrix to dataset + update formula (useful when doing baseline adjustment)
     data.fit <- as.data.frame(out$design$X.mean[,colnames(out$design$X.mean),drop=FALSE])
-    colnames(data.fit) <- gsub("(Intercept)","Intercept",gsub(":","_",colnames(data.fit), fixed = TRUE), fixed = TRUE)
+    colnames(data.fit) <- gsub(" ","_",gsub("(Intercept)","Intercept",gsub(":","_",colnames(data.fit), fixed = TRUE), fixed = TRUE))
     
-    txt.formula <- tapply(gsub("(Intercept)","Intercept",gsub(":","_",names(out$design$param$strata.mu), fixed = TRUE), fixed = TRUE),out$design$param$strata.mu, function(iStrata){
+    txt.formula <- tapply(gsub(" ","_",gsub("(Intercept)","Intercept",gsub(":","_",names(out$design$param$strata.mu), fixed = TRUE), fixed = TRUE)),out$design$param$strata.mu, function(iStrata){
         paste0(var.outcome, "~ 0 + ",  paste(iStrata, collapse = " + "))
     })
 
@@ -385,13 +388,13 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
         if(structure == "CS"){
             txt.gls <- paste0("nlme::gls(",txt.formula,",
                                          method = ",deparse(method.fit),",
-                                         data = ",txt.data,", ...)")
+                                         data = ",txt.data,", control = control)")
         }else if(structure == "UN"){
             form.var <- stats::as.formula(paste0("~1|",var.time))
             txt.gls <- paste0("nlme::gls(",txt.formula,",
                                          weights = nlme::varIdent(form = ",deparse(form.var),"),
                                          method = ",deparse(method.fit),",
-                                         data = ",txt.data,", ...)")
+                                         data = ",txt.data,", control = control)")
         }
     }else{
         if(structure == "CS"){
@@ -399,7 +402,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
             txt.gls <- paste0("nlme::gls(",txt.formula,",
                                          correlation = nlme::corCompSymm(form = ",deparse(form.cor),"),
                                          method = ",deparse(method.fit),",
-                                         data = ",txt.data,", ...)")
+                                         data = ",txt.data,", control = control)")
 
         }else if(structure == "EXP"){
             form.var <- stats::as.formula(paste0("~1|",var.time))
@@ -407,7 +410,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
             txt.gls <- paste0("nlme::gls(",txt.formula,",
                                           correlation = nlme::corExp(form = ",deparse(form.cor),"),
                                           method = ",deparse(method.fit),",
-                                          data = ",txt.data,", ...)")
+                                          data = ",txt.data,", control = control)")
         }else if(structure == "UN"){
             form.var <- stats::as.formula(paste0("~1|",var.time))
             form.cor <- stats::as.formula(paste0("~",var.time.index,"|",var.cluster))
@@ -415,7 +418,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                                           correlation = nlme::corSymm(form = ",deparse(form.cor),"),
                                           weights = nlme::varIdent(form = ",deparse(form.var),"),
                                           method = ",deparse(method.fit),",
-                                          data = ",txt.data,", ...)")
+                                          data = ",txt.data,", control = control)")
         }
     }
     out$gls <- stats::setNames(lapply(txt.gls, function(iTxt){eval(parse(text = iTxt))}),

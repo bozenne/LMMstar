@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (17:01) 
+## Last-Updated: Jun  7 2021 (18:00) 
 ##           By: Brice Ozenne
-##     Update #: 128
+##     Update #: 130
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -153,10 +153,10 @@ residuals.lmm <- function(object, type.residual = "response", format = "long",
             res[-object$index.na,] <- res.save
 
             level.cluster <- inflateNA$level.cluster
-            level.time <- inflateNA$level.time
+            level.time <- factor(inflateNA$level.time, object$time$levels)
         }else{
             level.cluster <- object$design$cluster$levels[index.cluster]
-            level.time <- object$time$levels[index.time]
+            level.time <- factor(object$time$levels[index.time], object$time$levels)
         }
 
         ## 

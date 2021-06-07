@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (15:18) 
+## Last-Updated: Jun  7 2021 (23:51) 
 ##           By: Brice Ozenne
-##     Update #: 720
+##     Update #: 746
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -112,6 +112,9 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
 
     ## ** cluster
     U.cluster <- sort(unique(data[[var.cluster]]))
+    if(is.factor(U.cluster)){
+        U.cluster <- as.character(U.cluster)
+    }
     n.cluster <- length(U.cluster)
     index.cluster <- match(data[[var.cluster]], U.cluster) ## ‘match’ returns a vector of the positions of (first) matches of its first argument in its second.
 
@@ -265,9 +268,10 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
             }else if(structure == "UN"){
                 X.cor[[iPattern]] <- matrix(0, nrow = iN.time^2, ncol = length(iParam.rho),
                                             dimnames = list(paste0("(",iM.indexAlltimes[,"row"],",",iM.indexAlltimes[,"col"],")"), iParam.rho))
-                for(iParam in iParam.rho){ ## iParam <- iParam.rho[1]
-                    X.cor[[iStrata]][paste0("(",paste(which(U.time %in% time.rho[,iParam]),collapse=","),")"),iParam] <- 1
-                    X.cor[[iStrata]][paste0("(",paste(rev(which(U.time %in% time.rho[,iParam])),collapse=","),")"),iParam] <- 1
+                test.iParam.rho <- apply(time.rho[,iParam.rho], MARGIN = 2, function(iRhoTime){all(iRhoTime %in% iTime)})
+                for(iParam in iParam.rho[test.iParam.rho]){ ## iParam <- iParam.rho[1]
+                    X.cor[[iPattern]][paste0("(",paste(which(U.time %in% time.rho[,iParam]),collapse=","),")"),iParam] <- 1
+                    X.cor[[iPattern]][paste0("(",paste(rev(which(U.time %in% time.rho[,iParam])),collapse=","),")"),iParam] <- 1
                 }
             }
         }
@@ -528,8 +532,8 @@ model.matrix_regularize <- function(formula, data){
     X.level2 <- stats::setNames(lapply(X.names, function(iName){reference2}), X.names)
 
     ## ** loop for each element of the design matrix and identify the right level
-    for(iCol in 1:p){ ## iCol <- 5
-        
+    for(iCol in 1:p){ ## iCol <- 9
+
         if(X.order[iCol]==0){
             ## reference level for intercept
             X.level[[iCol]] <- data.frame(reference)
@@ -540,16 +544,16 @@ model.matrix_regularize <- function(formula, data){
             ## contrast for all factor/character variables involved
             iContrast <- contrast.variable[iVar]
             iContrast <- iContrast[!sapply(iContrast,is.null)]
-            
+
             if(!is.null(iContrast) && length(iContrast)>0){
                 ## re-create all possible names and identify the one matching the column name 
                 iLs.factor <- stats::setNames(lapply(iVar,function(iName){rownames(iContrast[[iName]])}), iVar)
-                iLs.name <- stats::setNames(lapply(iVar,function(iName){paste0(iName,iLs.factor[[iName]])}), iVar)
-                iIndex  <- which(X.names[iCol] == interaction(iLs.name, sep=":"))
+                iLs.grid <- expand.grid(iLs.factor)
+                iLs.allnameInteraction <- interaction(stats::setNames(lapply(iVar,function(iName){paste0(iName,iLs.grid[[iName]])}), iVar), sep = ":")
+                iIndex  <- which(X.names[iCol] == iLs.allnameInteraction)
                 ## deduce the factor variable
-                iLs.index <- lapply(iVar,function(iName){if(is.null(iContrast[[iName]])){0}else{1:NROW(iContrast[[iName]])}})
-                iIndex2 <- stats::setNames(as.numeric(unlist(strsplit(as.character(interaction(iLs.index, sep=":")[iIndex]), split = ":", fixed = TRUE))), iVar)
-                X.level[[iCol]] <- as.data.frame(stats::setNames(lapply(iVar, function(iName){if(is.null(iLs.factor[[iName]])){as.numeric(NA)}else{iLs.factor[[iName]][iIndex2[[iName]]]}}), iVar))                
+                iValue.factor <- iLs.grid[iIndex,,drop=FALSE]
+                X.level[[iCol]] <- as.data.frame(stats::setNames(lapply(iVar, function(iName){if(is.null(iValue.factor[[iName]])){as.numeric(NA)}else{iValue.factor[1,iName]}}), iVar))                
                 X.level2[[iCol]][,names(X.level[[iCol]])] <- X.level[[iCol]]
                 if(any(is.na(X.level[[iCol]]))){
                     X.level2[[iCol]][,is.na(X.level[[iCol]])] <- TRUE
@@ -560,6 +564,7 @@ model.matrix_regularize <- function(formula, data){
             }
         }
     }
+
     ## ** export
     attr(X,"term.labels") <- X.term
     attr(X,"order") <- X.order
