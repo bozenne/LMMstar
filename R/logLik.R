@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: Jun  4 2021 (09:37) 
+## Last-Updated: Jun  7 2021 (16:56) 
 ##           By: Brice Ozenne
-##     Update #: 143
+##     Update #: 158
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -50,6 +50,7 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
     ## ** extract or recompute log-likelihood
     if(type.object=="lmm"){
         if(is.null(data) && is.null(p) && indiv == FALSE){
+            design <- object$design ## useful in case of NA
             out <- object$logLik
         }else{
             if(!is.null(data)){
@@ -67,20 +68,16 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
                                             var.cluster = object$cluster$var,
                                             structure = object$structure
                                             )
-                Y <- design$Y
-                X <- design$X.mean
-                index.vargroup <- design$X.var$cluster
-                index.cluster <- design$index.cluster
-                index.time <- design$index.time
-                X.var <- design$X.var
             }else{
-                Y <- object$design$Y
-                X <- object$design$X.mean
-                index.vargroup <- object$design$X.var$cluster
-                index.cluster <- object$design$index.cluster
-                index.time <- object$design$index.time
-                X.var <- object$design$X.var
+                design <- object$design
             }
+            Y <- design$Y
+            X <- design$X.mean
+            index.vargroup <- design$X.var$cluster
+            index.cluster <- design$index.cluster
+            index.time <- design$index.time
+            X.var <- design$X.var
+
             if(!is.null(p)){
                 if(any(duplicated(names(p)))){
                     stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
@@ -113,6 +110,16 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
             out <- stats::logLik(object$gls[[1]])
         }else{
             out <- lapply(object$gls, stats::logLik)
+        }
+    }
+
+    ## ** restaure NAs
+    if(length(object$index.na)>0 && indiv){ 
+        iAdd <- .addNA(index.na = object$index.na, design = design, time = object$time)
+        if(length(iAdd$missing.cluster)>0){
+            out.save <- out
+            out <- rep(NA, length = iAdd$n.allcluster)
+            out[match(design$cluster$levels, iAdd$allcluster)] <- out.save
         }
     }
 

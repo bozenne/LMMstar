@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (12:17) 
+## Last-Updated: Jun  7 2021 (15:18) 
 ##           By: Brice Ozenne
-##     Update #: 716
+##     Update #: 720
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -463,7 +463,7 @@ model.matrix_regularize <- function(formula, data){
         X.old <- X
         test.keep <- colnames(X.old) %in% setdiff(colnames(X.old),rmX)
         X <- X.old[,test.keep]
-        attr(X,"assign") <- as.numeric(as.factor(attr(X.old,"assign")[test.keep])) - "(Intercept)" %in% colnames(X)
+        attr(X,"assign") <- attr(X.old,"assign")[test.keep] ## as.numeric(as.factor(attr(X.old,"assign")[test.keep])) - "(Intercept)" %in% colnames(X)
         attr(X,"contr.treatment") <- attr(X.old,"contr.treatment")
     }else{
         attr(X,"term.labels") <- NULL

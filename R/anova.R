@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: Jun  4 2021 (09:32) 
+## Last-Updated: Jun  7 2021 (14:22) 
 ##           By: Brice Ozenne
-##     Update #: 365
+##     Update #: 400
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -78,13 +78,34 @@ anova.lmm <- function(object, effects = "all", df = !is.null(object$df), ci = FA
                       type.object = "lmm",
                       transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
     
-    options <- LMMstar.options()
-
+    
     ## ** normalized user input    
     dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
+
+    if(inherits(effects,"lmm")){ ## likelihood ratio test
+        out <- .anova_LRT(object1 = object, object2 = effects)
+    }else{ ## Wald test
+        out <- .anova_Wald(object, effects = effects, df = df, ci = ci, 
+                           type.object = type.object,
+                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+    }
+    
+    ## ** export
+    class(out) <- append("anova_lmm",class(out))
+    return(out)
+}
+
+## * .anova_Wald
+.anova_Wald <- function(object, effects, df, ci, 
+                        type.object,
+                        transform.sigma, transform.k, transform.rho, transform.names){
+    
+    options <- LMMstar.options()
+
+    ## ** normalized user input    
     if(identical(effects,"all")){
         effects <- c("mean","variance","correlation")
     }
@@ -188,6 +209,7 @@ anova.lmm <- function(object, effects = "all", df = !is.null(object$df), ci = FA
         iLs <- lapply(ls.nameTerms.num[[iType]], function(iTerm){ ## iTerm <- 1
             ## *** contrast matrix
             if(is.null(ls.contrast[[iType]])){
+                if(all(ls.assign[[iType]]!=iTerm)){return(NULL)}
                 iIndex.param <- which(ls.assign[[iType]]==iTerm)
                 iN.hypo <- length(iIndex.param)
                 iNull <- rep(ls.null[[iType]][iTerm],iN.hypo)
@@ -281,9 +303,55 @@ anova.lmm <- function(object, effects = "all", df = !is.null(object$df), ci = FA
         attr(out[[iType]], "glht") <- lapply(iLs,attr,"glht")
         
     }
-    
+
     ## ** export
-    class(out) <- append("anova_lmm",class(out))
+    attr(out, "test") <- "Wald"
+    return(out)
+}
+
+## * .anova_LRT
+.anova_LRT <- function(object1,object2){
+
+    ## ** normalize user input
+    if(all(names(coef(object1)) %in% names(coef(object2)))){
+        objectH1 <- object2
+        objectH0 <- object1
+    }else if(all(names(coef(object2)) %in% names(coef(object1)))){
+        objectH1 <- object1
+        objectH0 <- object2
+    }else{
+        stop("One model must be nest in the other model to perform a likelihood ratio test. \n")
+    }
+
+    paramH1 <-  names(objectH1$param$type)
+    typeH1 <-  objectH1$param$type
+    paramH0 <-  names(objectH0$param$type)
+    typeH0 <-  objectH0$param$type
+    test.X <- identical(objectH0$design$X.mean[,paramH0[typeH0=="mu"],drop=FALSE], objectH1$design$X.mean[,paramH0[typeH0=="mu"],drop=FALSE])
+    if(test.X==FALSE){
+        stop("Mismatch between the design matrices for the mean of the two models - one should be nested in the other. \n")
+    }
+
+    paramTest <- setdiff(paramH1,paramH0)
+    if(objectH1$method.fit!=objectH1$method.fit){
+        stop("The two models should use the same type of objective function for the likelihood ratio test to be valid. \n")
+    }
+    if(objectH1$method.fit=="REML" && any(typeH1[paramTest]=="mu")){
+        stop("Cannot test mean parameters when the objective function is REML. \n")
+    }
+
+    ## ** LRT
+    out <- data.frame(null = paste(paste0(paramTest,"==0"), collapse = ", "),
+                      logLikH1 = stats::logLik(objectH1),
+                      logLikH0 = stats::logLik(objectH0),
+                      statistic = NA,
+                      df = length(paramTest),
+                      p.value = NA)
+    out$statistic <- 2*(out$logLikH1 - out$logLikH0)
+    out$p.value <- 1 - stats::pchisq(out$statistic, df = out$df)
+               
+    ## ** export
+    attr(out, "test") <- "LRT"
     return(out)
 }
 
@@ -293,6 +361,10 @@ anova.lmm <- function(object, effects = "all", df = !is.null(object$df), ci = FA
 confint.anova_lmm <- function(object, parm, level = 0.95, method = "single-step", ...){
 
     ## ** normalize user input
+    if(attr(object,"test") == "LRT"){
+        message("No confidence interval available for likelihood ratio tests.")
+        return(NULL)
+    }
     if(!missing(parm)){
         stop("Argument \'parm\' is not used - only there for compatibility with the generic method. \n")
     }
@@ -340,6 +412,7 @@ return(out)
 ##' @export
 print.anova_lmm <- function(x, print.null = FALSE, ...){
 
+    if(attr(x,"test")=="Wald"){    
     type <- names(x)
     ci <- confint(x)
     cat("\n")
@@ -366,6 +439,12 @@ print.anova_lmm <- function(x, print.null = FALSE, ...){
             print(do.call(rbind,unname(ci[[iType]])))
         }
         cat("\n")
+    }
+    }else if(attr(x,"test")=="LRT"){
+        cat(" - Likelihood ratio test \n")
+        x.print <- as.data.frame(x)
+        if(print.null==FALSE){x.print[["null"]] <- NULL}
+        print(x.print)
     }
 
     return(invisible(NULL))

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: Jun  4 2021 (09:37) 
+## Last-Updated: Jun  7 2021 (17:01) 
 ##           By: Brice Ozenne
-##     Update #: 91
+##     Update #: 128
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -86,22 +86,16 @@ residuals.lmm <- function(object, type.residual = "response", format = "long",
                                         var.cluster = object$cluster$var,
                                         structure = object$structure
                                         )
-            Y <- design$Y
-            X <- design$X.mean
-            X.var <- design$X.var
-            n.cluster <- design$cluster$n
-            index.cluster <- design$index.cluster
-            index.variance <- design$X.var$cluster
-            index.time <- design$index.time
         }else{
-            Y <- object$design$Y
-            X <- object$design$X.mean
-            X.var <- object$design$X.var
-            n.cluster <- object$design$cluster$n
-            index.cluster <- object$design$index.cluster
-            index.variance <- object$design$X.var$cluster
-            index.time <- object$design$index.time
+            design <- object$design
         }
+        Y <- design$Y
+        X <- design$X.mean
+        X.var <- design$X.var
+        n.cluster <- design$cluster$n
+        index.cluster <- design$index.cluster
+        index.variance <- design$X.var$cluster
+        index.time <- design$index.time
 
         if(!is.null(p)){
             if(any(duplicated(names(p)))){
@@ -151,10 +145,24 @@ residuals.lmm <- function(object, type.residual = "response", format = "long",
             }
         }
 
+        ## add NA
+        if(is.null(data) && length(object$index.na)>0){
+            inflateNA <-  .addNA(index.na = object$index.na, design = design, time = object$time)
+            res.save <- res
+            res <- matrix(NA, nrow = inflateNA$n.allobs, ncol = 1)
+            res[-object$index.na,] <- res.save
+
+            level.cluster <- inflateNA$level.cluster
+            level.time <- inflateNA$level.time
+        }else{
+            level.cluster <- object$design$cluster$levels[index.cluster]
+            level.time <- object$time$levels[index.time]
+        }
+
+        ## 
         if(format=="wide"){
-            res <- reshape2::dcast(data = data.frame(residuals = res, cluster = index.cluster, time = index.time),
+            res <- reshape2::dcast(data = data.frame(residuals = res, cluster = level.cluster, time = level.time),
                                    formula = cluster~time, value.var = "residuals")
-            names(res) <- c(object$cluster$var, object$time$levels)
         }else{
             res <- as.vector(res)
         }
@@ -176,5 +184,43 @@ residuals.lmm <- function(object, type.residual = "response", format = "long",
 
 }
 
+## * .addNA
+.addNA <- function(index.na, design, time){
+
+    attr.cluster <- attr(index.na,"cluster")
+    attr.time <- attr(index.na,"time")
+
+    ## ** if no missing value or missing information about cluster or time returns nothing
+    if(length(index.na)==0 || any(is.na(attr.cluster)) || any(is.na(attr.time))){
+        return(NULL)
+    }
+
+    ## ** identify all clusters
+    allcluster <- sort(union(design$cluster$levels, attr.cluster))
+    n.allcluster <- length(allcluster)
+
+    n.allobs <- length(design$index.cluster)+length(index.na)
+    
+    ## ** identify missing clusters
+    missing.cluster <- setdiff(attr.cluster, design$cluster$levels)
+
+    ## ** create extended vector of observations
+    level.cluster <- rep(NA, n.allobs)
+    level.cluster[-index.na] <- design$cluster$levels[design$index.cluster]
+    level.cluster[index.na] <- attr.cluster
+
+    level.time <- rep(NA, n.allobs)
+    level.time[-index.na] <- time$levels[design$index.time]
+    level.time[index.na] <- time$levels[attr.time]
+
+    ## ** export
+    return(list(allcluster = allcluster,
+                missing.cluster = missing.cluster,
+                n.allcluster = length(allcluster),
+                n.allobs = length(level.cluster),
+                level.cluster = level.cluster,
+                level.time = level.time))
+    
+}
 ##----------------------------------------------------------------------
 ### residuals.R ends here

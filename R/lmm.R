@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (12:27) 
+## Last-Updated: Jun  7 2021 (15:19) 
 ##           By: Brice Ozenne
-##     Update #: 833
+##     Update #: 843
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -54,7 +54,7 @@
 ## * lmm (code)
 ##' @export
 lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NULL, type.information = NULL, trace = NULL, ...){
-    out <- list(call = match.call())
+    out <- list(call = match.call(), data.original = data)
     options <- LMMstar.options()
     data <- as.data.frame(data)
     
@@ -281,6 +281,18 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     out$time <- list(n = length(U.time), levels = U.time, var = var.time)
     out$cluster <- list(var = var.cluster)
     out$outcome <- list(var = var.outcome)
+    
+    ## *** missing values
+    var.all <- unname(unique(c(var.strata,var.outcome,var.X,var.time,var.cluster,all.vars(formula.var))))
+    index.na <- which(rowSums(is.na(data[,var.all]))>0)
+    if(length(index.na)>0){
+        out$index.na <- index.na
+        attr(out$index.na, "cluster") <- data[[var.cluster]][out$index.na]
+        attr(out$index.na, "time") <- data[[var.time]][out$index.na]
+        data <- data[-out$index.na,, drop=FALSE]
+    }else{
+        out$index.na <- NULL
+    }
     if(trace>=2){cat("\n")}
     
     ## *** structure

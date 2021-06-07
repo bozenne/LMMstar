@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (12:17) 
+## Last-Updated: Jun  7 2021 (16:44) 
 ##           By: Brice Ozenne
-##     Update #: 307
+##     Update #: 318
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -68,6 +68,7 @@ score.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = FALSE, 
 
     ## ** extract or recompute score
     if(is.null(data) && is.null(p) && (indiv == FALSE) && test.notransform){
+        design <- x$design ## useful in case of NA
         out <- x$score
         if(transform.names && !is.null(x$reparametrize$newname)){
             names(out)[match(names(x$reparametrize$p),names(out))] <- x$reparametrize$newname
@@ -93,22 +94,17 @@ score.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = FALSE, 
                                         var.cluster = x$cluster$var,
                                         structure = x$structure
                                         )
-            Y <- design$Y
-            X <- design$X.mean
-            index.vargroup <- design$X.var$cluster
-            index.cluster <- design$index.cluster
-            index.time <- design$index.time
-            X.var <- design$X.var
         }else{
-            Y <- x$design$Y
-            X <- x$design$X.mean
-            index.vargroup <- x$design$X.var$cluster
-            index.cluster <- x$design$index.cluster
-            index.time <- x$design$index.time
-            X.var <- x$design$X.var
-            name.varcoef <- x$design$X.var$param
+            design <- x$design
+            name.allcoef <- names(x$param$value)
         }
-        name.allcoef <- names(x$param$value)
+        Y <- design$Y
+        X <- design$X.mean
+        index.vargroup <- design$X.var$cluster
+        index.cluster <- design$index.cluster
+        index.time <- design$index.time
+        X.var <- design$X.var
+        name.varcoef <- design$X.var$param
         index.var <- x$param$type %in% c("sigma","k","rho")
 
         if(!is.null(p) || (test.notransform == FALSE)){
@@ -145,6 +141,7 @@ score.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = FALSE, 
             precision <- x$OmegaM1
             dOmega <- x$dOmega
         }
+        
         out <- .score(X = X, residuals = Y - X %*% beta, precision = precision, dOmega = dOmega,
                       index.variance = index.vargroup, time.variance = index.time, index.cluster = index.cluster, name.varcoef = name.varcoef, name.allcoef = name.allcoef,
                       indiv = indiv, REML = x$method.fit=="REML", effects = effects)
@@ -161,6 +158,17 @@ score.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = FALSE, 
 
     }
 
+    ## ** restaure NA
+    if(length(x$index.na)>0 && indiv){ 
+        iAdd <- .addNA(index.na = x$index.na, design = design, time = x$time)
+        if(length(iAdd$missing.cluster)>0){
+            out.save <- out
+            out <- matrix(NA, nrow = iAdd$n.allcluster, ncol = NCOL(out.save),
+                          dimnames = list(NULL, colnames(out.save)))
+            out[match(design$cluster$levels, iAdd$allcluster),] <- out.save
+        }
+    }
+
     ## ** export
     return(out)
 }
@@ -169,7 +177,6 @@ score.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = FALSE, 
 .score <- function(X, residuals, precision, dOmega,
                    index.variance, time.variance, index.cluster, name.varcoef, name.allcoef,
                    indiv, REML, effects){
-
 
     ## ** prepare
     n.obs <- length(index.cluster)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  4 2021 (10:04) 
 ## Version: 
-## Last-Updated: Jun  4 2021 (10:45) 
+## Last-Updated: Jun  7 2021 (14:34) 
 ##           By: Brice Ozenne
-##     Update #: 12
+##     Update #: 14
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -53,7 +53,8 @@ iid.lmm <- function(object, effects = "all", type.information = NULL, transform.
                                 transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
 
     ## ** compute iid
-    return(object.score %*% object.vcov)
+    out <- object.score %*% object.vcov
+    return(out)
 }
 ##----------------------------------------------------------------------
 ### iid.R ends here

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:41) 
 ## Version: 
-## Last-Updated: May 27 2021 (12:11) 
+## Last-Updated: Jun  7 2021 (14:56) 
 ##           By: Brice Ozenne
-##     Update #: 11
+##     Update #: 12
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,7 +29,8 @@ nobs.lmm <- function(object, type.object = "lmm", ...){
     ## ** extract
     if(type.object == "lmm"){
         return(c(obs = sum(object$design$cluster$nobs),
-                 cluster = object$design$cluster$n))
+                 cluster = object$design$cluster$n,
+                 missing = length(object$index.na)))
     }else if(type.object == "gls"){
         if(object$strata$n==1){
             stats::nobs(object$gls[[1]])

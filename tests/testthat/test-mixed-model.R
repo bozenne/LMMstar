@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: jun  1 2021 (16:16) 
+## Last-Updated: Jun  7 2021 (16:57) 
 ##           By: Brice Ozenne
-##     Update #: 46
+##     Update #: 49
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -408,6 +408,29 @@ aa  <- anova(eUN.lmm)
 getVarCov(eUN.lmm)
 })
 
+## * Missing data
+test_that("missing values",{
 
+## ** full cluster missing
+    dL$Ymiss <- dL$Y
+    dL$Ymiss[dL$id==1] <- NA
+
+    eCS.lmm <- lmm(Ymiss ~ visit + age + gender, repetition = ~visit|id, structure = "CS", data = dL, trace = 0, method.fit = "ML")
+    eCS2.lmm <- lmm(Ymiss ~ visit + age + gender, repetition = ~visit|id, structure = "CS", data = dL[dL$id!=1,], trace = 0, method.fit = "ML")
+    expect_equal(logLik(eCS2.lmm), logLik(eCS.lmm))
+    
+    ## logLik(eCS.lmm, indiv = TRUE)
+    ## score(eCS.lmm, indiv = TRUE)
+    ## information(eCS.lmm, indiv = TRUE)
+    
+## ** only part of the cluster is missing
+    set.seed(11)
+    dL$Ymiss <- dL$Y
+    dL$Ymiss[which(rbinom(NROW(dL), size = 1, prob = 0.1)==1)] <- NA
+
+    eCS.lmm <- lmm(Ymiss ~ visit + age + gender, repetition = ~visit|id, structure = "CS", data = dL, trace = 0, method.fit = "ML")
+    eCS.gls <- gls(Ymiss ~ visit + age + gender, correlation = corCompSymm(form=~1|id), data = dL, method = "ML", na.action = na.omit)
+    expect_equal(as.double(logLik(eCS.lmm)), as.double(logLik(eCS.gls)))
+})
 ##----------------------------------------------------------------------
 ### test-mixed-model.R ends here

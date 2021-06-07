@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (12:59) 
+## Last-Updated: Jun  7 2021 (15:14) 
 ##           By: Brice Ozenne
-##     Update #: 141
+##     Update #: 143
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -274,6 +274,7 @@ expect_equal(test$mean$statistic,GS[["F-value"]][-1], tol = 1e-6)
 expect_equal(test$mean$p.value,GS[["p-value"]][-1], tol = 1e-6)
 })
 
+
 ## * multiple variance parameters (ML)
 test_that("multiple variance parameter (ML)",{
 ## ** fit
@@ -471,6 +472,18 @@ capture.output(anova(e.lmm))
 ## anova(e.gls,type="marginal")
 })
 
+## * missing values
+test_that("missing values",{
+    set.seed(11)
+    d$Ymiss <- d$Y
+    d$Ymiss[which(rbinom(NROW(d), size = 1, prob = 0.1)==1)] <- NA
+    
+    ## ** fit
+    e.lmm <- lmm(Ymiss ~ X1 + X2 + Gene, repetition = ~time|id, structure = "CS", data = d, trace = 0,
+                 method = "ML", df = TRUE)
+    e.gls <- gls(Ymiss ~ X1 + X2 + Gene, data = d, method = "ML", na.action = na.omit)
+    expect_equal(logLik(e.lmm), as.double(logLik(e.gls)), tol = 1e-6)
+})
 
 
 ##----------------------------------------------------------------------

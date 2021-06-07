@@ -51,6 +51,7 @@ Collate:
     'information.R'
     'lmm.R'
     'logLik.R'
+    'model.frame.R'
     'model.matrix.R'
     'multcomp.R'
     'nobs.R'

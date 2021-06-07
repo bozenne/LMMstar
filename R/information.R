@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (12:49) 
+## Last-Updated: Jun  7 2021 (16:58) 
 ##           By: Brice Ozenne
-##     Update #: 518
+##     Update #: 532
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -79,6 +79,7 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
 
     ## ** extract or recompute information
     if(is.null(data) && is.null(p) && (indiv == FALSE) && test.notransform && (robust==FALSE)){
+        design <- x$design ## useful in case of NA
         out <- x$information
         if(transform.names){
             colnames(out)[match(names(x$reparametrize$p),colnames(out))] <- x$reparametrize$newname
@@ -115,26 +116,19 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
                                         var.time = x$time$var, U.time = x$time$levels,
                                         var.cluster = x$cluster$var,
                                         structure = x$structure)
-            Y <- design$Y
-            X <- design$X.mean
-            index.vargroup <- design$X.var$cluster
-            index.cluster <- design$index.cluster
-            index.time <- design$index.time
-            X.var <- design$X.var
-            name.varcoef  <- design$X.var$param
-            pair.varcoef  <- design$param$pair.varcoef
-            pair.meanvarcoef  <- design$param$pair.meanvarcoef
         }else{
-            Y <- x$design$Y
-            X <- x$design$X.mean
-            index.vargroup <- x$design$X.var$cluster
-            index.cluster <- x$design$index.cluster
-            index.time <- x$design$index.time
-            X.var <- x$design$X.var
-            name.varcoef  <- x$design$X.var$param
-            pair.varcoef  <- x$design$param$pair.varcoef
-            pair.meanvarcoef  <- x$design$param$pair.meanvarcoef
+            design <- x$design
         }
+
+        Y <- design$Y
+        X <- design$X.mean
+        index.vargroup <- design$X.var$cluster
+        index.cluster <- design$index.cluster
+        index.time <- design$index.time
+        X.var <- design$X.var
+        name.varcoef  <- design$X.var$param
+        pair.varcoef  <- design$param$pair.varcoef
+        pair.meanvarcoef  <- design$param$pair.meanvarcoef
         name.allcoef <- names(x$param$value)
         index.var <- x$param$type %in% c("sigma","k","rho")
 
@@ -198,15 +192,29 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
         }
 
         if(transform.names && length(reparametrize$newname)>0){
-            allnewname <- name.allcoef
+            allnewname <- stats::setNames(name.allcoef,name.allcoef)
             allnewname[index.var] <- reparametrize$newname
+            names(allnewname)[match(names(reparametrize$p), names(allnewname))] <- names(reparametrize$p)
             if(indiv){
-                dimnames(out) <- list(NULL,allnewname,allnewname)
+                dimnames(out) <- list(NULL,allnewname[dimnames(out)[[2]]],allnewname[dimnames(out)[[3]]])
             }else{
-                dimnames(out) <- list(allnewname,allnewname)
+                dimnames(out) <- list(allnewname[dimnames(out)[[1]]],allnewname[dimnames(out)[[2]]])
             }
         }
     }
+    
+    ## ** restaure NA
+    if(length(x$index.na)>0 && indiv){ 
+        iAdd <- .addNA(index.na = x$index.na, design = design, time = x$time)
+        if(length(iAdd$missing.cluster)>0){
+            out.save <- out
+            out <- array(NA, dim = c(iAdd$n.allcluster, dim(out.save)[2:3]),
+                         dimnames = c(list(NULL), dimnames(out.save)[2:3]))
+            out[match(design$cluster$levels, iAdd$allcluster),,] <- out.save
+        }
+    }
+
+    ## ** export
     return(out)
 }
 
