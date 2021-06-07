@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Jun  4 2021 (13:23) 
+## Last-Updated: Jun  7 2021 (12:01) 
 ##           By: Brice Ozenne
-##     Update #: 786
+##     Update #: 831
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -98,8 +98,18 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
              "Variable(s) \"",paste(invalid, collapse = "\" \""),"\" could not be found in the dataset. \n",
              sep = "")
     }
-    var.outcome <- name.mean[1]
-    var.X <- name.mean[-1]
+    
+    var.outcome <- lhs.vars(formula)
+    if(length(var.outcome)!=1){
+        stop("Argument \'formula\' must be contain exactly one outcome variable \n")
+    }
+    var.X <- rhs.vars(formula)
+    if(any(grepl("Intercept",var.X))){
+        stop("Argument \'formula\' should not contain a variable called \"Intercept\". \n")
+    }
+    if(any(grepl(":",var.X,fixed=TRUE))){
+        stop("Argument \'formula\' should not contain a variable whose name contain \":\". \n")
+    }
     formula.terms <- stats::terms(formula)
     if(any(attr(formula.terms,"order")>2)){
         stop("Cannot handle interaction involving more than two variables. \n")
@@ -114,9 +124,17 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
             if(grepl("|",deparse(structure$formula), fixed = TRUE)){
                 repetition <- structure$formula
             }else{
-                repetition <-  stats::as.formula(paste0("~",paste(all.vars(structure$formula),collapse="*")," | XXidXX"))
+                if(is.null(structure$formula)){
+                    if("XXtimeXX" %in% names(data)){
+                        stop("Argument \'data\' should not contain a column named \"XXtimeXX\" as this name is used by the lmm function when the argument \'repetition\' is missing. \n")
+                    }                    
+                    data$XXtimeXX <- "t1"
+                    repetition <-  ~XXtimeXX | XXidXX
+                }else{
+                    repetition <-  stats::as.formula(paste0("~",paste(all.vars(structure$formula),collapse="*")," | XXidXX"))
+                }
                 if("XXidXX" %in% names(data)){
-                    stop("Argument \'data\' should not contain a column named \"XXtimeXX\" as this name is used by the lmm function when the argument \'repetition\' is missing. \n")
+                    stop("Argument \'data\' should not contain a column named \"XXidXX\" as this name is used by the lmm function when the argument \'repetition\' is missing. \n")
                 }
                 data$XXidXX <- 1:NROW(data)
             }
@@ -295,9 +313,9 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
         }
     }
     if(n.strata==1){
-        txt.data <- "data"
+        txt.data <- "data.fit"
     }else{
-        txt.data <- paste0("data[data$",var.strata,"==\"",U.strata,"\",,drop=FALSE]")
+        txt.data <- paste0("data.fit[data.fit$",var.strata,"==\"",U.strata,"\",,drop=FALSE]")
     }
 
     if(n.strata>1){
@@ -330,25 +348,35 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                                     var.cluster = var.cluster,
                                     structure = structure
                                     )
-##     colSums(abs(out$design$X.mean)>1e-12)
 
-##     eigen(var(out$design$X.mean))
-## browser()
+    ## move from design matrix to dataset + update formula (useful when doing baseline adjustment)
+    data.fit <- as.data.frame(out$design$X.mean[,colnames(out$design$X.mean),drop=FALSE])
+    colnames(data.fit) <- gsub("(Intercept)","Intercept",gsub(":","_",colnames(data.fit), fixed = TRUE), fixed = TRUE)
+    
+    txt.formula <- tapply(gsub("(Intercept)","Intercept",gsub(":","_",names(out$design$param$strata.mu), fixed = TRUE), fixed = TRUE),out$design$param$strata.mu, function(iStrata){
+        paste0(var.outcome, "~ 0 + ",  paste(iStrata, collapse = " + "))
+    })
+
+    ## add outcome,strata,time,id to the dataset
+    add.col <- unique(c(var.outcome, var.strata, var.time, var.time.index, var.cluster, all.vars(out$formula$vars)))
+    if(any(add.col %in% names(data.fit) == FALSE)){
+        data.fit <- cbind(data.fit, data[,add.col[add.col %in% names(data.fit) == FALSE],drop=FALSE])
+    }
     out$xfactor <- unique(c(stats::.getXlevels(stats::terms(out$formula$mean.design),data),
                             stats::.getXlevels(stats::terms(out$formula$var.design),data)))
     if(trace>=2){cat("\n")}
-    
+
     ## ** Estimate model parameters
     if(trace>=1){cat("2. Estimate model parameters")}
 
     if(max(out$design$cluster$nobs)==1){
         if(structure == "CS"){
-            txt.gls <- paste0("nlme::gls(",deparse(formula.design),",
+            txt.gls <- paste0("nlme::gls(",txt.formula,",
                                          method = ",deparse(method.fit),",
-                                         data = ",txt.data,", ... )")
+                                         data = ",txt.data,", ...)")
         }else if(structure == "UN"){
             form.var <- stats::as.formula(paste0("~1|",var.time))
-            txt.gls <- paste0("nlme::gls(",deparse(formula.design),",
+            txt.gls <- paste0("nlme::gls(",txt.formula,",
                                          weights = nlme::varIdent(form = ",deparse(form.var),"),
                                          method = ",deparse(method.fit),",
                                          data = ",txt.data,", ...)")
@@ -356,21 +384,22 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     }else{
         if(structure == "CS"){
             form.cor <- stats::as.formula(paste0("~1|",var.cluster))
-            txt.gls <- paste0("nlme::gls(",deparse(formula.design),",
+            txt.gls <- paste0("nlme::gls(",txt.formula,",
                                          correlation = nlme::corCompSymm(form = ",deparse(form.cor),"),
                                          method = ",deparse(method.fit),",
                                          data = ",txt.data,", ...)")
+
         }else if(structure == "EXP"){
             form.var <- stats::as.formula(paste0("~1|",var.time))
             form.cor <- stats::as.formula(paste0("~",var.time,"|",var.cluster))
-            txt.gls <- paste0("nlme::gls(",deparse(formula.design),",
+            txt.gls <- paste0("nlme::gls(",txt.formula,",
                                           correlation = nlme::corExp(form = ",deparse(form.cor),"),
                                           method = ",deparse(method.fit),",
                                           data = ",txt.data,", ...)")
         }else if(structure == "UN"){
             form.var <- stats::as.formula(paste0("~1|",var.time))
             form.cor <- stats::as.formula(paste0("~",var.time.index,"|",var.cluster))
-            txt.gls <- paste0("nlme::gls(",deparse(formula.design),",
+            txt.gls <- paste0("nlme::gls(",txt.formula,",
                                           correlation = nlme::corSymm(form = ",deparse(form.cor),"),
                                           weights = nlme::varIdent(form = ",deparse(form.var),"),
                                           method = ",deparse(method.fit),",

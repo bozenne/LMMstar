@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: May 31 2021 (15:52) 
+## Last-Updated: Jun  7 2021 (11:07) 
 ##           By: Brice Ozenne
-##     Update #: 10
+##     Update #: 11
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -39,6 +39,7 @@ UN <- function(formula){
 ##' 
 ## @export
 CS <- function(formula){
+    if(missing(formula)){formula <- NULL}
     out <- list(formula = formula,
                 type = "CS")
     class(out) <- append("structure",class(out))

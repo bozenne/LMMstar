@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: Jun  4 2021 (10:40) 
+## Last-Updated: Jun  7 2021 (12:12) 
 ##           By: Brice Ozenne
-##     Update #: 494
+##     Update #: 497
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -63,6 +63,9 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
     }else{
         test.detail <- identical(attr(type.information,"detail"),TRUE)
         type.information <- match.arg(type.information, c("expected","observed"))
+    }
+    if(identical(effects,"all")){
+        effects <- c("mean","variance","correlation")
     }
     effects <- match.arg(effects, c("mean","variance","correlation"), several.ok = TRUE)
 
@@ -238,13 +241,13 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
     ## store results
     if("mean" %in% effects == FALSE){
         if(indiv){
-            info <- array(0, dim = c(n.cluster, sum(n.varcoef), sum(n.varcoef)),
+            info <- array(0, dim = c(n.cluster, sum(unlist(n.varcoef)), sum(unlist(n.varcoef))),
                           dimnames = list(NULL, unlist(name.varcoef), unlist(name.varcoef)))
             if(REML){
                 stop("Not possible to compute individual information for variance and/or correlation coefficients when using REML.\n")
             }
         }else{
-            info <- matrix(0, nrow = sum(n.varcoef), ncol = sum(n.varcoef),
+            info <- matrix(0, nrow = sum(unlist(n.varcoef)), ncol = sum(unlist(n.varcoef)),
                            dimnames = list(unlist(name.varcoef), unlist(name.varcoef))
                            )
         }    

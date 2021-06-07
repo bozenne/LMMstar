@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: Jun  4 2021 (10:04) 
+## Last-Updated: Jun  7 2021 (11:02) 
 ##           By: Brice Ozenne
-##     Update #: 34
+##     Update #: 38
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,6 +29,7 @@
 #' @details The options are: \itemize{
 #' \item backtransform.summary [logical]: should variance or correlation estimates be back-transformed when they are transformed on the log or atanh scale. Used by \code{summary} and \code{confint}.
 #' \item df [logical]: should approximate degrees of freedom be computed for Wald and F-tests. Used by \code{lmm}, \code{anova}, \code{predict}, and \code{confint}.
+#' \item drop.X [logical]: should columns causing non-identifiability of the model coefficients be dropped from the design matrix. Used by \code{lmm}.
 #' \item method.fit [character]: objective function when fitting the multivariate Gaussian Model (REML or ML). Used by \code{lmm}.
 #' \item method.numDeriv [character]: type used to approximate the third derivative of the log-likelihood (when computing the degrees of freedom). Can be \code{"simple"} or \code{"Richardson"}. See \code{numDeriv::jacobian} for more details}. Used by \code{lmm}..
 #' \item trace [logical]: Should the progress of the execution of the \code{lmm} function be displayed?
@@ -44,6 +45,7 @@ LMMstar.options <- function(..., reinitialise = FALSE){
         assign(".LMMstar-options", 
                list(backtransform.summary = TRUE,
                     df = TRUE,
+                    drop.X = TRUE,
                     method.fit = "REML",
                     method.numDeriv = "simple", 
                     trace = FALSE,
@@ -71,6 +73,9 @@ LMMstar.options <- function(..., reinitialise = FALSE){
 
           if("df" %in% names(args) && !is.logical(args$df)){
               stop("Argument \'df\' must be of type logical. \n")
+          }
+          if("drop.X" %in% names(args) && !is.logical(args$drop.X)){
+              stop("Argument \'drop.X\' must be of type logical. \n")
           }
           if("method.fit" %in% names(args)){
               args$method.fit <- match.arg(args$method.fit, c("ML","REML"))

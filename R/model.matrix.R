@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Jun  4 2021 (09:04) 
+## Last-Updated: Jun  7 2021 (12:13) 
 ##           By: Brice Ozenne
-##     Update #: 663
+##     Update #: 715
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -93,11 +93,11 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
     
     ## ** mean
     if(n.strata==1){
-        X.mean <- model.matrix(formula.mean, data)
+        X.mean <- model.matrix_regularize(formula.mean, data)
         strata.mu <- stats::setNames(rep(1,NCOL(X.mean)), colnames(X.mean))
     }else{
         ls.X.mean <- lapply(U.strata, function(iS){ ## iS <- U.strata[1]
-            iX <- model.matrix(formula.mean, data[data[[var.strata]]==iS,])
+            iX <- model.matrix_regularize(formula.mean, data[data[[var.strata]]==iS,])
             colnames(iX) <- paste0(colnames(iX),":",iS)
             attr(iX,"index") <- data[data[[var.strata]]==iS,"XXindexXX"]
             return(iX)
@@ -374,6 +374,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
 
 ## * .unorderedPairs
 ## adapted from RecordLinkage package
+## form all combinations
 .unorderedPairs <- function(x){
     n <- length(x)
     ls <- lapply(1:n, function(k){ rbind(x[k], x[k:n])})
@@ -381,6 +382,192 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
     return(out)
 }
 
+## * model.matrix_regularize
+## remove un-identifiable columns from the design matrix 
+model.matrix_regularize <- function(formula, data){
+
+    ## ** identify if there is an identifiability problem
+    X <- stats::model.matrix(formula, data)
+    X.qr <- qr(X)
+    if(X.qr$rank==NCOL(X.qr$qr)){
+        return(X)
+    }else if(LMMstar.options()$drop.X==FALSE){
+        stop("The design matrix does not have full rank according to the QR decomposition. \n")
+    }
+    
+    ## ** prepare
+    tt <- stats::delete.response(stats::terms(formula))
+    tt.factors <- attr(tt,"factors")
+    tt.term.labels <- attr(tt,"term.labels")
+    tt.order <- attr(tt,"order")
+
+    name.var <- all.vars(tt)
+    test.factor <- sapply(name.var, function(iVar){is.character(data[[iVar]]) || is.factor(data[[iVar]])})
+    var.factor <- name.var[test.factor]
+    var.numeric <- name.var[!test.factor]
+    name.factor <- name.var[sapply(name.var,function(iVar){is.factor(data[[iVar]])})]
+
+    ## ** test 1: remove factor with empty level
+    if(length(name.factor)>0){
+        test.factor <- sapply(name.factor, function(iVar){all(levels(data[[iVar]]) %in% data[[iVar]])})
+        if(any(test.factor==FALSE)){
+            warning("Factor variable(s) with empty level: \"",paste(name.factor[test.factor==FALSE], collapse = "\" \""),"\"\n ",
+                    "The empty level(s) will be remove internally. Consider applying droplevels to avoid this warning. \n")
+            factor.drop <- name.factor[test.factor==FALSE]
+            for(iFactor in factor.drop){
+                data[[iFactor]] <- droplevels(data[[iFactor]])
+            }
+        }
+    }
+
+    ## ** create "naive" design matrix
+    X <- .augmodel.matrix(tt,data)
+    X.names <- colnames(X)
+    X.assign <- tt.term.labels[attr(X,"assign")]
+    X.Mlevel <- attr(X,"M.level")
+    X.lslevel <- attr(X,"ls.level")
+    X.reference <- attr(X,"reference")
+    ## M.interactionName <- do.call(cbind,lapply(name.var, function(iVar){if(is.logical(X.Mlevel[,iVar])){return(c(NA,iVar)[X.Mlevel[,iVar]+1])}else{return(paste0(iVar,X.Mlevel[,iVar]))}}))
+    ## vec.interactionName <- apply(M.interactionName, MARGIN = 1, FUN = function(iRow){paste(na.omit(iRow), collapse = ":")})
+
+    ## ** test 2: form interaction and identify columns of the design matrix that are constant
+    ls.rmX <- setNames(lapply(which(tt.order>1), function(iInteraction){ ## iInteraction <- 4
+        ## variables involved in the interactions
+        iVar <- names(which(tt.factors[,iInteraction]>0)) 
+        ## identify coefficient relative to this interaction 
+        iNoVar <- setdiff(name.var,iVar)
+        if(length(iNoVar)>0){ ## remove coefficients relative to other covariates
+            iMlevel <- X.Mlevel[apply(X.Mlevel[,iNoVar,drop=FALSE],1,function(iParam){all(iParam==X.reference[iNoVar])}),,drop=FALSE]
+        }else{
+            iMlevel <- X.Mlevel
+        }
+
+        test.constant <- sapply(1:NROW(iMlevel), FUN = function(iParam){ ## iParam <- 1 
+            iNumeric <- intersect(iVar, var.numeric)
+            
+            iValue <- do.call(cbind,lapply(var.factor, function(iFactor){data[[iFactor]]==iMlevel[iParam,iFactor]}))
+            if(length(iNumeric)>0){
+                iLs.ValueNum <- lapply(iNumeric, function(iN){if(iMlevel[iParam,iN]){data[[iN]]*iMlevel[iParam,iN]}else{rep(1,NROW(data))}})
+                iValue <- cbind(iValue,do.call(cbind,iLs.ValueNum))
+            }
+            return(length(unique(apply(iValue, MARGIN = 1, prod)))<2)
+        })
+        return(rownames(iMlevel)[which(test.constant)])
+    }), tt.term.labels[which(tt.order>1)])
+
+    rmX <- unlist(ls.rmX)
+    if(length(rmX)>0){
+        warning("Constant values in the design matrix for interactions \"",paste(names(rmX), collapse = "\" \""),"\"\n ",
+                "Coefficients \"",paste(rmX, collapse = "\" \""),"\" will be removed from the design matrix. \n",
+                "Consider defining manually the interaction, e.g. via droplevels(interaction(.,.)) to avoid this warning. \n")
+        X.old <- X
+        test.keep <- colnames(X.old) %in% setdiff(colnames(X.old),rmX)
+        X <- X.old[,test.keep]
+        attr(X,"assign") <- as.numeric(as.factor(attr(X.old,"assign")[test.keep])) - "(Intercept)" %in% colnames(X)
+        attr(X,"contr.treatment") <- attr(X.old,"contr.treatment")
+    }else{
+        attr(X,"term.labels") <- NULL
+        attr(X,"order") <- NULL
+        attr(X,"ls.level") <- NULL
+        attr(X,"M.level") <- NULL
+        attr(X,"reference.level") <- NULL
+    }
+    
+    ## ** export
+    return(X)
+}
+
+## * .aumodel.matrix_match
+## add more information about which variable contribute to which column in the design matrix
+.augmodel.matrix <- function(formula, data){
+
+    ## ** normalize formula
+    formula.terms <- stats::delete.response(stats::terms(formula))
+    var2term <- attr(formula.terms, "factors")
+    
+    ## ** create design matrix
+    X <- stats::model.matrix(formula,data)
+    p <- NCOL(X)
+    
+    ## ** identify factors and reference level
+    all.variable <- all.vars(formula.terms)
+    contrast.variable <- setNames(lapply(all.variable, function(iVar){
+        if(is.character(data[[iVar]])){
+            out <- stats::contrasts(as.factor(data[[iVar]]))
+            if(any(colSums(abs(out)>1e-12)>1)){
+                stop("Cannot handle contrasts involving simultaneously several levels. \n")
+            }
+        }else if(is.factor(data[[iVar]])){
+            out <- stats::contrasts(data[[iVar]])
+            if(any(colSums(abs(out)>1e-12)>1)){
+                stop("Cannot handle contrasts involving simultaneously several levels. \n")
+            }
+        }else{
+            out <- NULL
+        }
+        return(out)
+    }),all.variable)
+
+    ls.reference <- setNames(lapply(contrast.variable, function(iRef){
+        if(!is.null(iRef)){
+            return(rownames(iRef)[rowSums(abs(iRef)>0)==0])
+        }else{
+            return(NULL)
+        }
+    }),all.variable)
+    reference <- unlist(ls.reference[!sapply(ls.reference,is.null)])
+    reference2 <- data.frame(matrix(FALSE, nrow = 1, ncol = length(rownames(var2term)), dimnames = list(NULL, rownames(var2term))))
+    reference2[,names(reference)] <- reference
+
+    ## ** addtional informations
+    X.names <- colnames(X)
+    X.assign <- attr(X,"assign")
+    X.order <- c(0,attr(formula.terms,"order"))[X.assign+1]
+    X.term <- c("(Intercept)",attr(formula.terms,"term.labels"))[X.assign+1]
+    X.level <- setNames(vector(mode = "list", length = p), X.names)
+    X.level2 <- setNames(lapply(X.names, function(iName){reference2}), X.names)
+
+    ## ** loop for each element of the design matrix and identify the right level
+    for(iCol in 1:p){ ## iCol <- 5
+        
+        if(X.order[iCol]==0){
+            ## reference level for intercept
+            X.level[[iCol]] <- data.frame(reference)
+            rownames(X.level[[iCol]]) <- NULL
+        }else if(X.order[iCol]>0){
+            ## variables involved
+            iVar <- rownames(var2term)[var2term[,X.term[iCol]]==1]
+            ## contrast for all factor/character variables involved
+            iContrast <- contrast.variable[iVar]
+            iContrast <- iContrast[!sapply(iContrast,is.null)]
+            
+            if(!is.null(iContrast) && length(iContrast)>0){
+                ## re-create all possible names and identify the one matching the column name 
+                iLs.factor <- setNames(lapply(iVar,function(iName){rownames(iContrast[[iName]])}), iVar)
+                iLs.name <- setNames(lapply(iVar,function(iName){paste0(iName,iLs.factor[[iName]])}), iVar)
+                iIndex  <- which(X.names[iCol] == interaction(iLs.name, sep=":"))
+                ## deduce the factor variable
+                iLs.index <- lapply(iVar,function(iName){if(is.null(iContrast[[iName]])){0}else{1:NROW(iContrast[[iName]])}})
+                iIndex2 <- setNames(as.numeric(unlist(strsplit(as.character(interaction(iLs.index, sep=":")[iIndex]), split = ":", fixed = TRUE))), iVar)
+                X.level[[iCol]] <- as.data.frame(setNames(lapply(iVar, function(iName){if(is.null(iLs.factor[[iName]])){as.numeric(NA)}else{iLs.factor[[iName]][iIndex2[[iName]]]}}), iVar))                
+                X.level2[[iCol]][,names(X.level[[iCol]])] <- X.level[[iCol]]
+                if(any(is.na(X.level[[iCol]]))){
+                    X.level2[[iCol]][,is.na(X.level[[iCol]])] <- TRUE
+                }
+            }else{
+                X.level[[iCol]] <- data.frame(matrix(as.numeric(NA), nrow = 1, ncol = length(iVar), dimnames = list(NULL, iVar)))
+                X.level2[[iCol]][,iVar] <- TRUE
+            }
+        }
+    }
+    ## ** export
+    attr(X,"term.labels") <- X.term
+    attr(X,"order") <- X.order
+    attr(X,"ls.level") <- X.level
+    attr(X,"M.level") <- do.call(rbind,X.level2)
+    attr(X,"reference.level") <- reference2
+    return(X)
+}
 
 
 ##----------------------------------------------------------------------

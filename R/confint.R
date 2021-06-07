@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: Jun  4 2021 (09:32) 
+## Last-Updated: Jun  7 2021 (12:08) 
 ##           By: Brice Ozenne
-##     Update #: 231
+##     Update #: 234
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -121,7 +121,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", nul
     nameNoTransform.beta <- names(coef(object, effects = effects, type.object = "lmm", strata = strata,
                                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE))
    
-    ## ** get uncertainty 
+    ## ** get uncertainty
     vcov.beta <- vcov(object, effects = effects, df = df, type.object = "lmm", strata = strata,
                       type.information = type.information, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
 
