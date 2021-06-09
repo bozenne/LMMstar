@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (12:59) 
+## Last-Updated: Jun  8 2021 (12:15) 
 ##           By: Brice Ozenne
-##     Update #: 343
+##     Update #: 345
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -23,11 +23,11 @@ reparametrize <- function(p, type, strata, time.levels,
                           transform.k = NULL,
                           transform.rho = NULL,
                           transform.names = TRUE){
-    options <- LMMstar.options()
 
     n.p <- length(p)
     name.p <- names(p)
-
+    options <- LMMstar.options()
+        
     ## ** normalize user arguments
     if(!is.null(FUN)){
         if(is.function(FUN)==FALSE){
@@ -106,8 +106,8 @@ reparametrize <- function(p, type, strata, time.levels,
         }
 
     }else{
-        init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
-                                x.transform.sigma = NULL, x.transform.k = NULL, x.transform.rho = NULL)
+        init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
+                                x.transform.sigma = options$transform.sigma, x.transform.k = options$transform.k, x.transform.rho = options$transform.rho)
             
         ls.out <- .reparametrize(p = p, type = type, strata = strata, time.levels = time.levels,
                                  Jacobian = Jacobian, dJacobian = dJacobian, inverse = FALSE,
@@ -658,13 +658,13 @@ reparametrize <- function(p, type, strata, time.levels,
 }
 
 ## * .init_transform
-.init_transform <- function(transform.sigma, transform.k, transform.rho, options,
+.init_transform <- function(transform.sigma, transform.k, transform.rho, 
                             x.transform.sigma, x.transform.k, x.transform.rho){
 
     ## ** transform
     if(is.null(transform.sigma)){
         transform.sigma.save <- transform.sigma
-        transform.sigma <- options$transform.sigma
+        transform.sigma <- x.transform.sigma
         attr(transform.sigma,"arg") <- transform.sigma.save
     }else{
         if(identical(transform.sigma,"")){
@@ -675,7 +675,7 @@ reparametrize <- function(p, type, strata, time.levels,
     }
     if(is.null(transform.k)){
         transform.k.save <- transform.k
-        transform.k <- options$transform.k
+        transform.k <- x.transform.k
         attr(transform.k,"arg") <- transform.k.save
     }else{
         if(identical(transform.k,"")){
@@ -686,7 +686,7 @@ reparametrize <- function(p, type, strata, time.levels,
     }
     if(is.null(transform.rho)){
         transform.rho.save <- transform.rho
-        transform.rho <- options$transform.rho
+        transform.rho <- x.transform.rho
         attr(transform.rho,"arg") <- transform.rho.save
     }else{
         if(identical(transform.rho,"")){

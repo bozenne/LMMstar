@@ -57,6 +57,8 @@ dL <- sampleRem(100, n.times = 3, format = "long")
 
 ## fit Multivariate Gaussian Model
 eCS.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "CS", data = dL)
+## same as
+eCS.lmm.bis <- lmm(Y ~ X1 + X2 + X5, structure = CS(~visit|id), data = dL)
 
 ## output
 eCS.lmm

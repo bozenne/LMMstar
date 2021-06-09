@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (11:07) 
+## Last-Updated: Jun  8 2021 (09:59) 
 ##           By: Brice Ozenne
-##     Update #: 11
+##     Update #: 12
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -22,7 +22,7 @@
 ##'
 ##' @details A typical formula would be \code{~time} or \code{~time|id}, indicating a time-specific variance parameter and a correlation parameter specific to each pair of times.
 ##' 
-## @export
+##' @export
 UN <- function(formula){
     out <- list(formula = formula,
                 type = "UN")
@@ -37,7 +37,7 @@ UN <- function(formula){
 ##'
 ##' @details A typical formula would be \code{~time|id}, indicating a variance constant over time and the same correlation between all pairs of times.
 ##' 
-## @export
+##' @export
 CS <- function(formula){
     if(missing(formula)){formula <- NULL}
     out <- list(formula = formula,

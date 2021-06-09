@@ -7,6 +7,7 @@
 \usage{
 \method{autoplot}{lmm}(
   object,
+  at = NULL,
   color = object$cluster$var,
   ci = TRUE,
   alpha = NA,
@@ -20,6 +21,8 @@
 \arguments{
 \item{object}{a \code{lmm} object.}
 
+\item{at}{[data.frame] values for the covariates at which to evaluate the fitted values.}
+
 \item{color}{[character] name of the variable in the dataset used to color the curve.}
 
 \item{ci}{[logical] should confidence intervals be displayed?}
@@ -32,9 +35,9 @@
 
 \item{size.line}{[numeric, >0] the size of the line on the plot.}
 
-\item{...}{Not used. For compatibility with the generic method.}
+\item{position.errorbar}{[character] relative position of the errorbars.}
 
-\item{position.error}{[character] relative position of the errorbars.}
+\item{...}{Not used. For compatibility with the generic method.}
 }
 \description{
 Graphical Display For Multivariate Gaussian Model

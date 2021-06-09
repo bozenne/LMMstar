@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (17:31) 
+## Last-Updated: Jun  8 2021 (09:20) 
 ##           By: Brice Ozenne
-##     Update #: 83
+##     Update #: 85
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -97,7 +97,7 @@ getVarCov.lmm <- function(object, individual = NULL, p = NULL, type.object = c("
             out <- Omega[stats::setNames(object$design$X.var$cluster,object$design$cluster$levels)[individual]]
         }
         for(iO in 1:length(out)){
-            dimnames(out[[iO]]) <- list(attr(out[[iO]],"time"),attr(out[[iO]],"time"))
+            dimnames(out[[iO]]) <- list(object$time$levels[attr(out[[iO]],"time")],object$time$levels[attr(out[[iO]],"time")])
             attr(out[[iO]],"time") <- NULL
             attr(out[[iO]],"sd") <- NULL
             attr(out[[iO]],"cor") <- NULL

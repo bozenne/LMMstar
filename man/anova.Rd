@@ -10,6 +10,7 @@
 \method{anova}{lmm}(
   object,
   effects = "all",
+  rhs = NULL,
   df = !is.null(object$df),
   ci = FALSE,
   type.object = "lmm",
@@ -22,7 +23,7 @@
 
 \method{confint}{anova_lmm}(object, parm, level = 0.95, method = "single-step", ...)
 
-\method{print}{anova_lmm}(x, print.null = FALSE, ...)
+\method{print}{anova_lmm}(x, level = 0.95, method = "single-step", print.null = FALSE, ...)
 }
 \arguments{
 \item{object}{a \code{lmm} object. Only relevant for the anova function.}
@@ -32,6 +33,8 @@ or only variables relative to the mean (\code{"mean"}),
 or only variables relative to the variance structure (\code{"variance"}),
 or only variables relative to the correlation structure (\code{"correlation"}).
 Can also be use to specify linear combinations of coefficients, similarly to the \code{linfct} argument of the \code{multcomp::glht} function.}
+
+\item{rhs}{[numeric vector] the right hand side of the hypothesis. Only used when the argument effects is a matrix.}
 
 \item{df}{[logical] Should a F-distribution be used to model the distribution of the Wald statistic. Otherwise a chi-squared distribution is used.}
 

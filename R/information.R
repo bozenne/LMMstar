@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (16:58) 
+## Last-Updated: Jun  9 2021 (10:11) 
 ##           By: Brice Ozenne
-##     Update #: 532
+##     Update #: 540
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -46,10 +46,6 @@
 ##' @export
 information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = FALSE, type.information = NULL,
                             transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
-    options <- LMMstar.options()
-    x.transform.sigma <- x$reparametrize$transform.sigma
-    x.transform.k <- x$reparametrize$transform.k
-    x.transform.rho <- x$reparametrize$transform.rho
 
     ## ** normalize user input
     dots <- list(...)
@@ -57,7 +53,7 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
     if(is.null(type.information)){
-        type.information <- options$type.information
+        type.information <- attr(x$information,"type.information")
         test.detail <- FALSE
         robust <- FALSE
     }else{
@@ -70,8 +66,8 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
     }
     effects <- match.arg(effects, c("mean","variance","correlation"), several.ok = TRUE)
 
-    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
-                            x.transform.sigma = x.transform.sigma, x.transform.k = x.transform.k, x.transform.rho = x.transform.rho)
+    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
+                            x.transform.sigma = x$reparametrize$transform.sigma, x.transform.k = x$reparametrize$transform.k, x.transform.rho = x$reparametrize$transform.rho)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
     transform.rho <- init$transform.rho
@@ -247,15 +243,17 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
 
     ## store results
     if("mean" %in% effects == FALSE){
+        name.allvarcoef <- unique(unlist(name.varcoef))
+        n.allvarcoef <- length(name.allvarcoef)
         if(indiv){
-            info <- array(0, dim = c(n.cluster, sum(unlist(n.varcoef)), sum(unlist(n.varcoef))),
-                          dimnames = list(NULL, unlist(name.varcoef), unlist(name.varcoef)))
+            info <- array(0, dim = c(n.cluster, n.allvarcoef, n.allvarcoef),
+                          dimnames = list(NULL, name.allvarcoef, name.allvarcoef))
             if(REML){
                 stop("Not possible to compute individual information for variance and/or correlation coefficients when using REML.\n")
             }
         }else{
-            info <- matrix(0, nrow = sum(unlist(n.varcoef)), ncol = sum(unlist(n.varcoef)),
-                           dimnames = list(unlist(name.varcoef), unlist(name.varcoef))
+            info <- matrix(0, nrow = n.allvarcoef, ncol = n.allvarcoef,
+                           dimnames = list(name.allvarcoef, name.allvarcoef)
                            )
         }    
         test.vcov <- TRUE

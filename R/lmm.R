@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (18:04) 
+## Last-Updated: Jun  9 2021 (12:06) 
 ##           By: Brice Ozenne
-##     Update #: 848
+##     Update #: 855
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -47,6 +47,8 @@
 ##' 
 ##' ## fit Multivariate Gaussian Model
 ##' eCS.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "CS", data = dL)
+##' ## same as
+##' eCS.lmm.bis <- lmm(Y ~ X1 + X2 + X5, structure = CS(~visit|id), data = dL)
 ##'
 ##' ## output
 ##' eCS.lmm
@@ -276,7 +278,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
              "The variable ",var.time.index," is used internally but already exists in \'data\' \n")
     }
     data[[var.time.index]] <- factor(data[[var.time]], levels = unique(data[[var.time]]))  ## to match with gls which chooses the reference level according to the ordering
-    ## not not modify var.time in data as it could be also used in the mean structure and that would mess up the ordering 
+    ## not not modify var.time in data as it could be also used in the mean structure and that would mess up the ordering
     U.time <- levels(data[[var.time.index]])
     data[[var.time.index]] <- as.numeric(data[[var.time.index]])
 
@@ -529,7 +531,8 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                       index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
                       name.varcoef = out$design$X.var$param, 
                       time.k = out$design$param$time.k, time.rho = out$design$param$time.rho,
-                      pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef, REML = (method.fit=="REML"), type.information = type.information, effects = c("mean","variance","correlation"),
+                      pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef, REML = (method.fit=="REML"), type.information = type.information,
+                      effects = c("mean","variance","correlation"), 
                       transform.sigma = out$reparametrize$transform.sigma, transform.k = out$reparametrize$transform.k, transform.rho = out$reparametrize$transform.rho,
                       vcov = out$vcov, diag = TRUE, method.numDeriv = options$method.numDeriv, robust = FALSE)
         out$dVcov <- attr(out$df,"dVcov")

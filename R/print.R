@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: Jun  4 2021 (09:39) 
+## Last-Updated: Jun  8 2021 (10:04) 
 ##           By: Brice Ozenne
-##     Update #: 41
+##     Update #: 42
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -28,7 +28,7 @@ print.lmm <- function(x, ...){
     nobs <- stats::nobs(x)
     
     ## type of model
-    if(length(param.rho) > 0){
+    if(length(param.rho) == 0){
         if(length(c(param.sigma,param.k))==1){
             cat("  Univariate Gaussian Model \n \n")
         }else{

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: Jun  4 2021 (10:31) 
+## Last-Updated: Jun  8 2021 (12:17) 
 ##           By: Brice Ozenne
-##     Update #: 192
+##     Update #: 196
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -82,11 +82,6 @@
 coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL,
                      transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
 
-    options <- LMMstar.options()
-    x.transform.sigma <- object$reparametrize$transform.sigma
-    x.transform.k <- object$reparametrize$transform.k
-    x.transform.rho <- object$reparametrize$transform.rho
-    
     ## ** normalize user imput
     dots <- list(...)
     if(length(dots)>0){
@@ -102,8 +97,8 @@ coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL
         strata <- match.arg(strata, object$strata$levels, several.ok = TRUE)
     }
     
-    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
-                            x.transform.sigma = x.transform.sigma, x.transform.k = x.transform.k, x.transform.rho = x.transform.rho)
+    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
+                            x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
     transform.rho <- init$transform.rho

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (12:43) 
+## Last-Updated: Jun  8 2021 (12:16) 
 ##           By: Brice Ozenne
-##     Update #: 235
+##     Update #: 237
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -73,8 +73,6 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", rob
                          df = !is.null(object$df), type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE,
                           ...){
 
-    options <- LMMstar.options()
-
     ## ** normalize user imput
     dots <- list(...)
     if(length(dots)>0){
@@ -101,8 +99,8 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", rob
         }
     }
     ## used to decide on the null hypothesis of k parameters
-    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
-                            x.transform.sigma = NULL, x.transform.k = NULL, x.transform.rho = NULL)
+    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
+                            x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho)
     
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
@@ -110,7 +108,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", rob
     transform <- init$transform
 
     if(is.null(type.information)){
-        type.information <- options$type.information
+        type.information <- attr(object$information,"type.information")
     }else{
         type.information <- match.arg(type.information, c("expected","observed"))
     }

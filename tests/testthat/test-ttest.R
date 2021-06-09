@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (18:11) 
+## Last-Updated: Jun  9 2021 (11:12) 
 ##           By: Brice Ozenne
-##     Update #: 13
+##     Update #: 14
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -99,7 +99,7 @@ test_that("multiple t-test",{
                                      "gender:Y2"="visitY2:male - visitY2:female = 0",
                                      "gender:Y3"="visitY3:male - visitY3:female = 0",
                                      "gender:Y4"="visitY4:male - visitY4:female = 0"), ci = TRUE)
-
+    ## print(e.lh, method = "none")
     expect_equal(confint(e.lh)$all[[1]]$se, sapply(ls.ttest,"[[","stderr"), tol = 1e-5)
     expect_equal(as.double(unlist(confint(e.lh, method = "none")$all[[1]][,c("lower","upper")])),
                  as.double(do.call(rbind,lapply(ls.ttest,"[[","conf.int"))), tol = 1e-3)

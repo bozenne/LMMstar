@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (16:44) 
+## Last-Updated: Jun  8 2021 (12:12) 
 ##           By: Brice Ozenne
-##     Update #: 318
+##     Update #: 320
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -44,10 +44,6 @@
 ##' @rdname score
 ##' @export
 score.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = FALSE, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
-    options <- LMMstar.options()
-    x.transform.sigma <- x$reparametrize$transform.sigma
-    x.transform.k <- x$reparametrize$transform.k
-    x.transform.rho <- x$reparametrize$transform.rho
 
     ## ** normalize user input
     dots <- list(...)
@@ -59,8 +55,8 @@ score.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = FALSE, 
     }
     effects <- match.arg(effects, c("mean","variance","correlation"), several.ok = TRUE)
 
-    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
-                            x.transform.sigma = x.transform.sigma, x.transform.k = x.transform.k, x.transform.rho = x.transform.rho)
+    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
+                            x.transform.sigma = x$reparametrize$transform.sigma, x.transform.k = x$reparametrize$transform.k, x.transform.rho = x$reparametrize$transform.rho)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
     transform.rho <- init$transform.rho

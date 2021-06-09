@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (12:59) 
+## Last-Updated: Jun  9 2021 (11:43) 
 ##           By: Brice Ozenne
-##     Update #: 375
+##     Update #: 401
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -48,10 +48,8 @@
 ##' @export
 vcov.lmm <- function(object, effects = "all", robust = FALSE, df = FALSE, type.object = "lmm", strata = NULL, data = NULL, p = NULL,
                      type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
+    
     options <- LMMstar.options()
-    x.transform.sigma <- object$reparametrize$transform.sigma
-    x.transform.k <- object$reparametrize$transform.k
-    x.transform.rho <- object$reparametrize$transform.rho
 
     ## ** normalize user imput
     dots <- list(...)
@@ -70,13 +68,13 @@ vcov.lmm <- function(object, effects = "all", robust = FALSE, df = FALSE, type.o
     }
 
     if(is.null(type.information)){
-        type.information <- options$type.information
+        type.information <- attr(object$information,"type.information")
     }else{
         type.information <- match.arg(type.information, c("expected","observed"))
     }
 
-    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
-                            x.transform.sigma = x.transform.sigma, x.transform.k = x.transform.k, x.transform.rho = x.transform.rho)
+    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
+                            x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
     transform.rho <- init$transform.rho
@@ -123,7 +121,7 @@ vcov.lmm <- function(object, effects = "all", robust = FALSE, df = FALSE, type.o
                              index.variance = detail$index.variance, time.variance = detail$time.variance, index.cluster = detail$index.cluster, name.varcoef = detail$name.varcoef,
                              time.k = object$design$param$time.k, time.rho = object$design$param$time.rho,
                              pair.meanvarcoef = detail$pair.meanvarcoef, pair.varcoef = detail$pair.varcoef,
-                             REML = detail$REML, type.information = as.vector(type.information), effects = effects,
+                             REML = detail$REML, type.information = as.vector(type.information), effects = effects, 
                              transform.sigma = detail$transform.sigma, transform.k = detail$transform.k, transform.rho = detail$transform.rho, 
                              vcov = vcovFull, diag = TRUE, method.numDeriv = options$method.numDeriv, robust = robust)
                 attr(vcov,"df") <- stats::setNames(outdf[keep.name],names(keep.name))
@@ -175,7 +173,7 @@ vcov.lmm <- function(object, effects = "all", robust = FALSE, df = FALSE, type.o
 .df <- function(param, reparametrize, Y, X.mean, X.var,
                 index.variance, time.variance, index.cluster, name.varcoef, 
                 time.k, time.rho,
-                pair.meanvarcoef, pair.varcoef, REML, type.information, effects,
+                pair.meanvarcoef, pair.varcoef, REML, type.information, effects, 
                 transform.sigma, transform.k, transform.rho, 
                 vcov, diag, method.numDeriv, robust){
 
@@ -193,7 +191,7 @@ vcov.lmm <- function(object, effects = "all", robust = FALSE, df = FALSE, type.o
     param.trans.value <- c(param$value[param.nameMean],reparametrize$p)[name.allcoef]
 
     ## ** warper for computing information
-    FUN_information <- function(p){
+    FUN_information <- function(p, as.double){
 
         paramVar <- p[param.nameVar]
         paramMean <- p[param.nameMean]
@@ -239,28 +237,31 @@ vcov.lmm <- function(object, effects = "all", robust = FALSE, df = FALSE, type.o
         }else{
             d2Omega <- NULL
         }
-
         info <- .information(X = X.mean, residuals = residuals, precision = OmegaM1, dOmega = dOmega, d2Omega = d2Omega, robust = robust,
                              index.variance = index.variance, time.variance = time.variance, index.cluster = index.cluster, name.varcoef = name.varcoef, name.allcoef = name.allcoef,
                              pair.meanvarcoef = pair.meanvarcoef, pair.varcoef = pair.varcoef, indiv = FALSE, REML = REML, type.information = type.information, effects = effects)
-        
-        return(as.double(info))
+
+        if(as.double){
+            return(as.double(info))
+        }else{
+            return(info)
+        }
     }
 
     ## ** derivative of the information using numerical derivative
-    ## matrix(FUN_information(param.trans.value), nrow = n.allcoef, ncol = n.allcoef)
+    ## matrix(FUN_information(param.trans.value, as.double = TRUE), nrow = n.allcoef, ncol = n.allcoef)
+    name.effects <- colnames(FUN_information(param.trans.value, as.double = FALSE))
     if(type.information == "observed"){
-        M.dInfo <- numDeriv::jacobian(func = FUN_information, x = param.trans.value, method = method.numDeriv)
+        M.dInfo <- numDeriv::jacobian(func = function(p){FUN_information(p,as.double = TRUE)}, x = param.trans.value, method = method.numDeriv)
         colnames(M.dInfo) <- name.allcoef
     }else{
-        M.dInfo <- numDeriv::jacobian(func = function(p){FUN_information(c(param$value[param.nameMean],p)[name.allcoef])}, x = param.trans.value[param.nameVar], method = method.numDeriv)
+        M.dInfo <- numDeriv::jacobian(func = function(p){FUN_information(c(param$value[param.nameMean],p)[name.allcoef], as.double = TRUE)}, x = param.trans.value[param.nameVar], method = method.numDeriv)
         colnames(M.dInfo) <- param.nameVar
     }
-    
     A.dVcov <- array(0, dim = rep(n.allcoef,3), dimnames = list(name.allcoef,name.allcoef,name.allcoef))
-    for(iParam in 1:NCOL(M.dInfo)){
+    for(iParam in 1:NCOL(M.dInfo)){ ## iParam <- 1
         iName <- colnames(M.dInfo)[iParam]
-        A.dVcov[,,iName] <- M.dInfo[,iName]
+        A.dVcov[name.effects,name.effects,iName] <- M.dInfo[,iName]
         A.dVcov[,,iName] <- - vcov %*% A.dVcov[,,iName] %*% vcov
     }
     ## solve(crossprod(model.matrix(e.lmm, effects = "mean")))

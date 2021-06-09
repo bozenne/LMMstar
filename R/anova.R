@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (20:57) 
+## Last-Updated: Jun  9 2021 (11:57) 
 ##           By: Brice Ozenne
-##     Update #: 402
+##     Update #: 445
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -27,6 +27,7 @@
 ##' or only variables relative to the variance structure (\code{"variance"}),
 ##' or only variables relative to the correlation structure (\code{"correlation"}).
 ##' Can also be use to specify linear combinations of coefficients, similarly to the \code{linfct} argument of the \code{multcomp::glht} function.
+##' @param rhs [numeric vector] the right hand side of the hypothesis. Only used when the argument effects is a matrix.
 ##' @param ci [logical] Should a confidence interval be output for each hypothesis?
 ##' @param level [numeric, 0-1] nominal coverage of the confidence intervals.
 ##' @param type.object [character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.
@@ -74,7 +75,7 @@
 ## * anova.lmm (code)
 ##' @rdname anova
 ##' @export
-anova.lmm <- function(object, effects = "all", df = !is.null(object$df), ci = FALSE, 
+anova.lmm <- function(object, effects = "all", rhs = NULL, df = !is.null(object$df), ci = FALSE, 
                       type.object = "lmm",
                       transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
     
@@ -88,7 +89,7 @@ anova.lmm <- function(object, effects = "all", df = !is.null(object$df), ci = FA
     if(inherits(effects,"lmm")){ ## likelihood ratio test
         out <- .anova_LRT(object1 = object, object2 = effects)
     }else{ ## Wald test
-        out <- .anova_Wald(object, effects = effects, df = df, ci = ci, 
+        out <- .anova_Wald(object, effects = effects, rhs = rhs, df = df, ci = ci, 
                            type.object = type.object,
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
     }
@@ -99,25 +100,55 @@ anova.lmm <- function(object, effects = "all", df = !is.null(object$df), ci = FA
 }
 
 ## * .anova_Wald
-.anova_Wald <- function(object, effects, df, ci, 
+.anova_Wald <- function(object, effects, rhs, df, ci, 
                         type.object,
                         transform.sigma, transform.k, transform.rho, transform.names){
     
-    options <- LMMstar.options()
-
     ## ** normalized user input    
     if(identical(effects,"all")){
         effects <- c("mean","variance","correlation")
     }
 
-    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options,
-                            x.transform.sigma = NULL, x.transform.k = NULL, x.transform.rho = NULL)
+    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
+                            x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho)
     
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
     transform.rho <- init$transform.rho
 
-    if(all(tolower(effects) %in% c("mean","variance","correlation"))){        
+    if(is.matrix(effects)){
+        ## try to re-size the matrix if necessary
+        name.coef <- names(stats::coef(object))
+        if(NCOL(effects)!=length(name.coef)){
+            if(is.null(colnames(effects))){
+                stop("Argument \'effect\' should have column names when a matrix. \n")
+            }
+            if(any(duplicated(colnames(effects)))){
+                stop("Argument \'effect\' should not have duplicated column names when a matrix. \n")
+            }
+            if(any(colnames(effects) %in% name.coef == FALSE)){
+                stop("Argument \'effect\' should not have column names matching the coefficient names when a matrix. \n")
+            }
+            effects.save <- effects
+            effects <- matrix(0, nrow = NROW(effects.save), ncol = length(name.coef), dimnames = list(rownames(effects.save),name.coef))
+            effects[,colnames(effects.save)] <- effects.save
+        }
+        if(is.null(rhs)){
+            rhs <- rep(0, NROW(effects))
+        }
+        ## run glht
+        out.glht <- try(multcomp::glht(object, linfct = effects, rhs = rhs), silent = TRUE)
+        if(inherits(out.glht,"try-error")){
+            stop("Possible mispecification of the argument \'effects\' as running mulcomp::glht lead to the following error: \n",
+                 out.glht)
+        }
+        out <- list(all = NULL)
+        ls.nameTerms <- list(all = NULL)
+        ls.nameTerms.num <- list(all = 1)
+        ls.contrast <- list(all = out.glht$linfct)
+        ls.null  <- list(all = out.glht$rhs)        
+
+    }else if(all(tolower(effects) %in% c("mean","variance","correlation"))){        
         if(transform.k %in% c("sd","var","logsd","logvar")){
             stop("Cannot use \'transform.rho\' equal \"sd\", \"var\", \"logsd\", or \"logvar\". \n",
                  "anova does not handle tests where the null hypothesis is at a boundary of the support of a random variable. \n")
@@ -157,17 +188,47 @@ anova.lmm <- function(object, effects = "all", df = !is.null(object$df), ci = FA
         stop("Incorrect argument \'effects\': can be \"mean\", \"variance\", \"correlation\", \"all\", \n",
              "or something compatible with the argument \'linfct\' of multcomp::glht. \n ")
     }else{
+        
+        ## run glht
         out.glht <- try(multcomp::glht(object, linfct = effects), silent = TRUE)
+        
         if(inherits(out.glht,"try-error")){
-            stop("Possible mispecification of the argument \'effects\' as running mulcomp::glht lead to the following error: \n",
-                 out.glht)
+            test.reparametrize <- grepl("log", c(object$reparametrize$transform.sigma,object$reparametrize$transform.k)) || grep("atanh", object$reparametrize$transform.rho)
+            
+            ## restaure untransformed parametrization (glht does not handle log(k). or atanh(cor))
+            if(test.reparametrize){
+                object2 <- object
+                index.var <- which(object$param$type %in% c("sigma","k","rho"))
+                object2$reparametrize <- .reparametrize(p = object$param$value[index.var], type = object$param$type[index.var], strata = object$param$strata[index.var], time.levels = object$time$levels,
+                                                        time.k = object$design$param$time.k, time.rho = object$design$param$time.rho,
+                                                        Jacobian = FALSE, dJacobian = FALSE, inverse = FALSE,
+                                                        transform.sigma = "none",
+                                                        transform.k = "none",
+                                                        transform.rho = "none",
+                                                        transform.names = TRUE)
+                out.glht <- try(multcomp::glht(object2, linfct = effects), silent = TRUE)
+                if(inherits(out.glht,"try-error")){
+                    stop("Possible mispecification of the argument \'effects\' as running mulcomp::glht lead to the following error: \n",
+                         out.glht)
+                }
+                oldname.coef <- colnames(out.glht$linfct)
+                newname.coef <- names(stats::coef(object))
+                newname.hypo <- rownames(out.glht$linfct)
+                for(iSub in 1:length(oldname.coef)){
+                    newname.hypo <- gsub(pattern = oldname.coef[iSub], replacement = newname.coef[iSub], x = newname.hypo, fixed = TRUE)
+                }
+                dimnames(out.glht$linfct) <- list(newname.hypo,newname.coef)
+                message("The coefficient names have been transformed but not the null hypotheses. \n")
+            }else{
+                stop("Possible mispecification of the argument \'effects\' as running mulcomp::glht lead to the following error: \n",
+                     out.glht)
+            }
         }
         out <- list(all = NULL)
         ls.nameTerms <- list(all = NULL)
         ls.nameTerms.num <- list(all = 1)
         ls.contrast <- list(all = out.glht$linfct)
-        ls.null  <- list(all = out.glht$rhs)
-        
+        ls.null  <- list(all = out.glht$rhs)        
     }
     type.information <- attr(object$information,"type.information")    
     type.object <- match.arg(type.object, c("lmm","gls"))
@@ -181,7 +242,6 @@ anova.lmm <- function(object, effects = "all", df = !is.null(object$df), ci = FA
         }
     }
     
-
     param <- coef(object, effects = "all",
                   transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
     newname <- names(coef(object, effects = "all",
@@ -409,11 +469,11 @@ return(out)
 ## * print.anova_lmm
 ##' @rdname anova
 ##' @export
-print.anova_lmm <- function(x, print.null = FALSE, ...){
+print.anova_lmm <- function(x, level = 0.95, method = "single-step", print.null = FALSE, ...){
 
     if(attr(x,"test")=="Wald"){    
     type <- names(x)
-    ci <- confint(x)
+    ci <- stats::confint(x, level = level, method = method)
     cat("\n")
     for(iType in type){
 

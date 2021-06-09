@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (23:51) 
+## Last-Updated: Jun  9 2021 (12:26) 
 ##           By: Brice Ozenne
-##     Update #: 746
+##     Update #: 753
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -198,7 +198,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
 
     ## uniaue variance levels
     level.variance <- as.numeric(droplevels(interaction(as.data.frame(X.var))))
-    pattern <- tapply(level.variance, index.cluster, paste, collapse=".") ## automatic re-ordering of the result
+    pattern <- tapply(level.variance, index.cluster, function(iLevel){paste(sort(iLevel), collapse=".")}) ## automatic re-ordering of the result
     ## characterize each level
     Upattern <- unname(sort(unique(pattern)))
     n.pattern <- length(Upattern)
@@ -461,7 +461,7 @@ model.matrix_regularize <- function(formula, data){
 
     rmX <- unlist(ls.rmX)
     if(length(rmX)>0){
-        warning("Constant values in the design matrix for interactions \"",paste(names(rmX), collapse = "\" \""),"\"\n ",
+        warning("Constant values in the design matrix in interactions \"",paste(names(ls.rmX), collapse = "\" \""),"\"\n ",
                 "Coefficients \"",paste(rmX, collapse = "\" \""),"\" will be removed from the design matrix. \n",
                 "Consider defining manually the interaction, e.g. via droplevels(interaction(.,.)) to avoid this warning. \n")
         X.old <- X

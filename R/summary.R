@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: Jun  4 2021 (09:40) 
+## Last-Updated: Jun  8 2021 (10:04) 
 ##           By: Brice Ozenne
-##     Update #: 212
+##     Update #: 223
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -56,7 +56,7 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = TRUE
     
     ## ** welcome message
     if(print){
-        if(length(param.rho) > 0){
+        if(length(param.rho) == 0){
             if(length(c(param.sigma,param.k))==1){
                 cat("  Univariate Gaussian Model \n")
             }else{
@@ -81,10 +81,20 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = TRUE
         }
         cat("  - log-likelihood :", as.double(logLik), " (parameters: mean = ",length(param.mu),", variance = ",length(c(param.sigma,param.k)),", correlation = ",length(param.rho),")\n",sep="")    
         cat(" \n")
-
         cat("Dataset:", deparse(call$data), "\n")
-        cat(" - ", nobs["cluster"], " clusters \n" , sep = "")
-        cat(" - ", sum(nobsByCluster), " observations \n",  sep = "")
+
+        if(nobs["missing"]>0){
+            missing.cluster <- .addNA(object$index.na, design = object$design, time = object$time)$missing.cluster
+            if(length(missing.cluster)>0){
+                cat(" - ", nobs["cluster"], " clusters were analyzed, ",length(missing.cluster)," were excluded because of missing vlaues \n" , sep = "")
+            }else{
+                cat(" - ", nobs["cluster"], " clusters \n" , sep = "")
+            }
+            cat(" - ", sum(nobsByCluster), " observations were analyzed, ",nobs["missing"]," were excluded because of missing values \n",  sep = "")
+        }else{
+            cat(" - ", nobs["cluster"], " clusters \n" , sep = "")
+            cat(" - ", sum(nobsByCluster), " observations \n",  sep = "")
+        }
         cat(" - ", max(nobsByCluster), " maximum number of observations per cluster \n", sep = "")
 
         data.X <- data[all.vars(stats::delete.response(stats::terms(formula$mean)))]
