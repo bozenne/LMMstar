@@ -84,6 +84,6 @@ head(round(dW,3))
 : 6  6  1  0  2  1  1  0.736 -2.707 2.465 2.753 -0.123  1.838  3.548  3.622
 
 * Functionalities
-See the vignette "Overview of the package BuyseTest" in [[./vignettes/overview.pdf]]
+See the vignette "Overview of the package LMMstar" in [[./vignettes/overview.pdf]]
 
 
