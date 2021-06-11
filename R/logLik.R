@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (17:29) 
+## Last-Updated: Jun 11 2021 (12:31) 
 ##           By: Brice Ozenne
-##     Update #: 160
+##     Update #: 177
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -130,48 +130,73 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
 ## * .logLik
 .logLik <- function(X, residuals, precision,
                     index.variance, time.variance, index.cluster,
-                    indiv, REML){
+                    indiv, REML, precompute){
 
-    if(indiv && REML){
-        #  https://towardsdatascience.com/maximum-likelihood-ml-vs-reml-78cf79bef2cf
+    ## ** extract information
+    if(indiv && REML){##  https://towardsdatascience.com/maximum-likelihood-ml-vs-reml-78cf79bef2cf
         stop("Cannot compute individual likelihood contribution with REML. \n")
     }
-    
-    ## ** prepare
+    test.loopIndiv <- indiv || is.null(precompute)
+
     n.obs <- length(index.cluster)
     n.cluster <- length(index.variance)
     n.mucoef <- NCOL(X)
     name.mucoef <- colnames(X)
-    ll <- rep(NA, n.cluster)
-
-    logidet.precision <- lapply(precision, function(iM){-log(det(iM))}) ## log(det(\Omega)) = - log(det(\Omega^-1))
     log2pi <- log(2*pi)
     REML.det <- matrix(0, nrow = n.mucoef, ncol = n.mucoef, dimnames = list(name.mucoef, name.mucoef))
+
+    ## ** prepare output
+    if(test.loopIndiv){
+        ll <- rep(NA, n.cluster)
+    }else{
+        ll <- 0
+    }
     
-    ## ** compute score
-    for(iId in 1:n.cluster){ ## iId <- 7
-        iIndex <- attr(index.cluster,"sorted")[[iId]]
-        ## iIndex <- which(index.cluster==iId)
-        ## iIndex <- iIndex[order(time.variance[iIndex])] ## re-order observations according to the variance-covariance matrix
-        iResidual <- residuals[iIndex,,drop=FALSE]
-        iX <- X[iIndex,,drop=FALSE]
-        iOmega <- precision[[index.variance[iId]]]
-        ll[iId] <- - (NCOL(iOmega) * log2pi + logidet.precision[[index.variance[iId]]] + t(iResidual) %*% iOmega %*% iResidual)/2
-        if(REML){
-            REML.det <- REML.det + t(iX) %*% iOmega %*% iX
+
+    ## ** compute log-likelihood
+    ## *** looping over individuals
+    if(test.loopIndiv){
+        ## precompute
+        logidet.precision <- lapply(precision, function(iM) {-log(base::det(iM))})
+
+        ## loop
+        for (iId in 1:n.cluster) {
+            iIndex <- attr(index.cluster, "sorted")[[iId]]
+            iResidual <- residuals[iIndex, , drop = FALSE]
+            iX <- X[iIndex, , drop = FALSE]
+            iOmega <- precision[[index.variance[iId]]]
+            ll[iId] <- -(NCOL(iOmega) * log2pi + logidet.precision[[index.variance[iId]]] + t(iResidual) %*% iOmega %*% iResidual)/2
+            if (REML) {
+                REML.det <- REML.det + t(iX) %*% iOmega %*% iX
+            }
+        }
+        if(!indiv){
+            ll <- sum(ll)
+        }
+    }
+    
+    ## *** looping over covariance patterns
+    if(!test.loopIndiv){
+        ## precompute
+        ncluster.pattern <- sapply(attr(index.variance,"index.byPattern"),length)
+        name.pattern <- names(ncluster.pattern)
+
+        ## loop
+        for (iPattern in name.pattern) { ## iPattern <- name.pattern[1]
+            iOmega <- precision[[iPattern]]
+            iLogDet.Omega <- log(base::det(iOmega))
+            ll <- ll - 0.5 * ncluster.pattern[iPattern] * (NCOL(iOmega) * log2pi - iLogDet.Omega) - 0.5 * sum(precompute$RR[[iPattern]] * iOmega)
+            if (REML) {
+                REML.det <- REML.det + apply(precompute$XX$pattern[[iPattern]], MARGIN = 3, FUN = function(iM){sum(iM * iOmega)})[as.vector(precompute$XX$key)]
+            }
         }
     }
 
     ## ** export
-    if(indiv){
-        return(ll)
-    }else{
-        ll <- sum(ll)
-        if(REML){
-            ll <- ll - log(det(REML.det))/2 + n.mucoef * log2pi/2
-        }
-        return(ll)
+    if(REML){
+        ll <- ll - log(det(REML.det))/2 + n.mucoef * log2pi/2
     }
+    return(ll)
 }
 
 

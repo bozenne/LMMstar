@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Jun  9 2021 (12:06) 
+## Last-Updated: Jun 11 2021 (11:40) 
 ##           By: Brice Ozenne
-##     Update #: 855
+##     Update #: 872
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -363,7 +363,8 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                                     var.strata = var.strata, U.strata = U.strata,
                                     var.time = var.time, U.time = U.time,
                                     var.cluster = var.cluster,
-                                    structure = structure
+                                    structure = structure,
+                                    precompute.moments = options$precompute.moments
                                     )
 
     ## move from design matrix to dataset + update formula (useful when doing baseline adjustment)
@@ -486,7 +487,18 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
 
     if(trace>=2){cat("- residuals \n")}
     out$residuals <- out$design$Y - out$design$X.mean %*% out$param$value[colnames(out$design$X.mean)]
-    
+    if(options$precompute.moments){
+        precompute <- list(XX = out$design$precompute.XX,
+                           RR = .precomputeRR(residuals = out$residuals, pattern = out$design$X.var$pattern,
+                                              pattern.time = out$design$X.var$index.time, pattern.cluster = attr(out$design$X.var$cluster, "index.byPattern"), index.cluster = attr(out$design$index.cluster,"sorted")),
+                           XR = .precomputeXR(X = out$design$X.mean, residuals = out$residuals, pattern = out$design$X.var$pattern,
+                                              pattern.time = out$design$X.var$index.time, pattern.cluster = attr(out$design$X.var$cluster, "index.byPattern"), index.cluster = attr(out$design$index.cluster,"sorted"))
+                           )
+
+    }else{
+        precompute <- NULL
+    }
+
     if(trace>=2){cat("- Omega \n")}
     out$Omega <- .calc_Omega(object = out$design$X.var, param = out$param$value, keep.interim = TRUE)
     out$OmegaM1 <- lapply(out$Omega,solve)
@@ -506,20 +518,20 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     if(trace>=2){cat("- log-likelihood \n")}
     out$logLik <- .logLik(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1,
                           index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster, 
-                          indiv = FALSE, REML = method.fit=="REML")
+                          indiv = FALSE, REML = method.fit=="REML", precompute = precompute)
 
     if(trace>=2){cat("- score \n")}
     out$score <- .score(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega,
                         index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
                         name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
-                        indiv = FALSE, REML = method.fit=="REML", effects = c("mean","variance","correlation"))
-
+                        indiv = FALSE, REML = method.fit=="REML", effects = c("mean","variance","correlation"), precompute = precompute)
+browser()
     if(trace>=2){cat("- information \n")}
     out$information <- .information(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega, robust = FALSE,
                                     index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
                                     name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
                                     pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef,
-                                    indiv = FALSE, REML = method.fit=="REML", type.information = type.information, effects = c("mean","variance","correlation"))
+                                    indiv = FALSE, REML = method.fit=="REML", type.information = type.information, effects = c("mean","variance","correlation"), precompute = precompute)
     attr(out$information, "type.information") <- type.information
 
     if(trace>=2){cat("- variance-covariance \n")}

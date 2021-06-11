@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Jun  9 2021 (12:26) 
+## Last-Updated: Jun 11 2021 (11:55) 
 ##           By: Brice Ozenne
-##     Update #: 753
+##     Update #: 799
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -75,7 +75,8 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
                               var.strata, U.strata,
                               var.time, U.time,
                               var.cluster,
-                              structure){
+                              structure,
+                              precompute.moments){
     n.obs <- NROW(data)
     n.strata <- length(U.strata)
     n.time <- length(U.time)
@@ -338,7 +339,15 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
         }
     }), Upattern)
     attr(X.Upattern,"assign") <- attr(X.var,"assign")
-
+    pattern.cluster <- stats::setNames(match(pattern,Upattern),names(pattern))
+    if(precompute.moments){
+        attr(pattern.cluster,"index.byPattern") <- setNames(tapply(1:length(pattern.cluster),pattern.cluster, function(iCluster){iCluster}), Upattern)
+        precompute.XX <-  .precomputeXX(X = X.mean, pattern = Upattern,
+                                        pattern.time = indexTime.Upattern, pattern.cluster = attr(pattern.cluster, "index.byPattern"), index.cluster = attr(index.cluster,"sorted"))
+    }else{
+        precompute.XX <- NULL
+    }
+    
     ## ** pairs
     pair.meanvarcoef <- stats::setNames(lapply(Upattern, function(iPattern){ ## iPattern <- Upattern[1]
         unname(t(expand.grid(names(strata.mu)[U.strata[strata.mu]==strata.Upattern[[iPattern]]], param.Upattern[[iPattern]])))
@@ -355,16 +364,17 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
     }
 
     ## ** gather and export
-    return(list(X.mean = X.mean,
+    out <- list(X.mean = X.mean,
                 X.var = list(var = X.Upattern,
                              cor = X.cor,
                              pattern = Upattern,
                              strata =  strata.Upattern,
                              index.time = indexTime.Upattern,
-                             cluster = stats::setNames(match(pattern,Upattern),names(pattern)),
+                             cluster = pattern.cluster,
                              param =  param.Upattern,
                              indicator = indicator.param),
                 Y = data[[var.outcome]],
+                precompute.XX = precompute.XX,
                 index.cluster = index.cluster,
                 index.time = index.time,
                 cluster = list(n = n.cluster, levels = U.cluster, nobs = table(index.cluster)),
@@ -373,7 +383,8 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
                              time.k = time.k, time.rho = time.rho,
                              pair.meanvarcoef = pair.meanvarcoef,
                              pair.varcoef = pair.varcoef)
-                ))
+                )
+    return(out)
 }
 
 ## * .unorderedPairs
@@ -574,6 +585,66 @@ model.matrix_regularize <- function(formula, data){
     return(X)
 }
 
+## * .precompute
+## ** .precomputeXX
+.precomputeXX <- function(X, pattern, pattern.time, pattern.cluster, index.cluster){
+    p <- NCOL(X)
+    n.pattern <- length(pattern)
+    n.time <- lapply(pattern.time,length)
+
+    out <- list(pattern = setNames(lapply(pattern, function(iPattern){array(0, dim = c(n.time[[iPattern]],n.time[[iPattern]],p*(p+1)/2))}), pattern),
+                key = matrix(as.numeric(NA),nrow=p,ncol=p,dimnames=list(colnames(X),colnames(X))))
+
+    key <- 0
+    for(iCol1 in 1:p){ ## iCol1 <- 1
+        for(iCol2 in 1:iCol1){ ## iCol2 <- 2
+            key <- key+1
+            out$key[iCol1,iCol2] <- key
+            out$key[iCol2,iCol1] <- key
+            for(iPattern in pattern){ ## iPattern <- pattern[1]
+                for(iId in pattern.cluster[[iPattern]]){
+                    out$pattern[[iPattern]][,,out$key[iCol1,iCol2]] <- out$pattern[[iPattern]][,,out$key[iCol1,iCol2]] + tcrossprod(X[index.cluster[[iId]],iCol1,drop=FALSE],X[index.cluster[[iId]],iCol2,drop=FALSE])
+                }
+            }
+        }
+    }
+
+    return(out)
+}
+
+## ** .precomputeXR
+.precomputeXR <- function(X, residuals, pattern, pattern.time, pattern.cluster, index.cluster){
+    p <- NCOL(X)
+    n.pattern <- length(pattern)
+    n.time <- lapply(pattern.time,length)
+
+    out <- setNames(lapply(pattern, function(iPattern){array(0, dim = c(n.time[[iPattern]], n.time[[iPattern]], ncol = p))}), pattern)
+
+    for(iCol in 1:p){ ## iCol1 <- 1
+        for(iPattern in pattern){ ## iPattern <- pattern[1]
+            for(iId in pattern.cluster[[iPattern]]){
+                out$pattern[[iPattern]][,,iCol] <- out$pattern[[iPattern]][,,iCol] + tcrossprod(X[index.cluster[[iId]],iCol,drop=FALSE],residuals[index.cluster[[iId]],,drop=FALSE])
+            }
+        }
+    }
+
+    return(out)
+}
+
+## ** .precomputeRR
+.precomputeRR <- function(residuals, pattern.time, pattern, pattern.cluster, index.cluster){
+
+    n.pattern <- length(pattern)
+    n.time <- setNames(lapply(pattern.time,length), pattern)
+    out <- setNames(lapply(pattern, function(iPattern){matrix(0, nrow = n.time[[iPattern]], ncol = n.time[[iPattern]])}), pattern)
+
+    for(iPattern in pattern){ ## iPattern <- pattern[1]
+        for(iId in pattern.cluster[[iPattern]]){
+            out[[iPattern]] <- out[[iPattern]] + tcrossprod(residuals[index.cluster[[iId]],,drop=FALSE])
+        }
+    }
+    return(out)
+}
 
 ##----------------------------------------------------------------------
 ### model.matrix.R ends here
