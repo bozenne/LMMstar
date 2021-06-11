@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Jun 11 2021 (11:40) 
+## Last-Updated: jun 11 2021 (18:08) 
 ##           By: Brice Ozenne
-##     Update #: 872
+##     Update #: 876
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -525,7 +525,26 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                         index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
                         name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
                         indiv = FALSE, REML = method.fit=="REML", effects = c("mean","variance","correlation"), precompute = precompute)
-browser()
+
+    ## microbenchmark(test = .score(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega,
+    ##                              index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
+    ##                              name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
+    ##                              indiv = FALSE, REML = method.fit=="REML", effects = c("mean","variance","correlation"), precompute = precompute),
+    ##                GS = .score(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega,
+    ##                            index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
+    ##                            name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
+    ##                            indiv = FALSE, REML = method.fit=="REML", effects = c("mean","variance","correlation"), precompute = NULL)
+    ## )
+    ## test = .score(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega,
+    ##               index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
+    ##               name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
+    ##               indiv = FALSE, REML = method.fit=="REML", effects = c("mean","variance","correlation"), precompute = precompute)
+    ## GS = .score(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega,
+    ##             index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
+    ##             name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
+    ##             indiv = FALSE, REML = method.fit=="REML", effects = c("mean","variance","correlation"), precompute = NULL)
+    ## print(test-GS)
+    ## browser()
     if(trace>=2){cat("- information \n")}
     out$information <- .information(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega, robust = FALSE,
                                     index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
