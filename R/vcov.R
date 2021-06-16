@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: Jun  9 2021 (11:43) 
+## Last-Updated: Jun 16 2021 (16:01) 
 ##           By: Brice Ozenne
-##     Update #: 401
+##     Update #: 409
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -123,7 +123,7 @@ vcov.lmm <- function(object, effects = "all", robust = FALSE, df = FALSE, type.o
                              pair.meanvarcoef = detail$pair.meanvarcoef, pair.varcoef = detail$pair.varcoef,
                              REML = detail$REML, type.information = as.vector(type.information), effects = effects, 
                              transform.sigma = detail$transform.sigma, transform.k = detail$transform.k, transform.rho = detail$transform.rho, 
-                             vcov = vcovFull, diag = TRUE, method.numDeriv = options$method.numDeriv, robust = robust)
+                             vcov = vcovFull, diag = TRUE, method.numDeriv = options$method.numDeriv, robust = robust, precompute = detail$precompute)
                 attr(vcov,"df") <- stats::setNames(outdf[keep.name],names(keep.name))
                 if(df>1){
                     attr(vcov,"dVcov") <- attr(outdf,"dVcov")[keep.name,keep.name,keep.name]
@@ -175,7 +175,7 @@ vcov.lmm <- function(object, effects = "all", robust = FALSE, df = FALSE, type.o
                 time.k, time.rho,
                 pair.meanvarcoef, pair.varcoef, REML, type.information, effects, 
                 transform.sigma, transform.k, transform.rho, 
-                vcov, diag, method.numDeriv, robust){
+                vcov, diag, method.numDeriv, robust, precompute){
 
     ## ** prepare vector of parameters
     param.type <- param$type
@@ -232,6 +232,14 @@ vcov.lmm <- function(object, effects = "all", robust = FALSE, df = FALSE, type.o
         }else{
             residuals <- NULL
         }
+        if(!is.null(precompute)){
+            precompute <- list(XX = precompute$XX,
+                               RR = .precomputeRR(residuals = residuals, pattern = X.var$pattern,
+                                                  pattern.time = X.var$index.time, pattern.cluster = attr(X.var$cluster, "index.byPattern"), index.cluster = attr(index.cluster,"sorted")),
+                               XR = .precomputeXR(X = X.mean, residuals = residuals, pattern = X.var$pattern,
+                                                  pattern.time = X.var$index.time, pattern.cluster = attr(X.var$cluster, "index.byPattern"), index.cluster = attr(index.cluster,"sorted"))
+                               )
+        }
         if(REML || type.information == "observed"){
             d2Omega <- .calc_d2Omega(object = X.var, param = paramVar, type = param.type[names(paramVar)], Omega = Omega, dOmega = dOmega, pair = pair.varcoef, Jacobian = Jacobian, dJacobian = dJacobian)
         }else{
@@ -239,7 +247,7 @@ vcov.lmm <- function(object, effects = "all", robust = FALSE, df = FALSE, type.o
         }
         info <- .information(X = X.mean, residuals = residuals, precision = OmegaM1, dOmega = dOmega, d2Omega = d2Omega, robust = robust,
                              index.variance = index.variance, time.variance = time.variance, index.cluster = index.cluster, name.varcoef = name.varcoef, name.allcoef = name.allcoef,
-                             pair.meanvarcoef = pair.meanvarcoef, pair.varcoef = pair.varcoef, indiv = FALSE, REML = REML, type.information = type.information, effects = effects)
+                             pair.meanvarcoef = pair.meanvarcoef, pair.varcoef = pair.varcoef, indiv = FALSE, REML = REML, type.information = type.information, effects = effects, precompute = precompute)
 
         if(as.double){
             return(as.double(info))

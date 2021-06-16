@@ -669,8 +669,132 @@ bibliographystyle:apalike
 \endgroup
 #+END_EXPORT
 
+\clearpage
 
-* CONFIG :noexport:
+#+BEGIN_EXPORT LaTeX
+\appendix
+\titleformat{\section}
+{\normalfont\Large\bfseries}{Appendix~\thesection}{1em}{}
+
+\renewcommand{\thefigure}{\Alph{figure}}
+\renewcommand{\thetable}{\Alph{table}}
+\renewcommand{\theequation}{\Alph{equation}}
+
+\setcounter{figure}{0}    
+\setcounter{table}{0}    
+\setcounter{equation}{0}    
+#+END_EXPORT
+
+* Likelihood in a multivariate Gaussian models
+:PROPERTIES:
+:CUSTOM_ID: SM:likelihood
+:END:
+
+** Log-likelihood
+
+Denote by \(\VY\) a vector of \(m\) outcomes, \(\VX\) a vector of
+\(p\) covariates, \(\mu(\Vparam,\VX)\) the modeled mean, and
+\(\Omega(\Vparam,\VX)\) the modeled residual variance-covariance. The
+restricted log-likelihood in a linear Gaussian model can then be
+written:
+ #+BEGIN_EXPORT LaTeX
+\begin{align*}
+\Likelihood(\Vparam|\VY,\VX) =& \textcolor{\darkred}{ \frac{p}{2} \log(2\pi)-\frac{1}{2} \log\left(\left|\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i\right|\right)} \\
+& + \sum_{i=1}^{n} \left(\textcolor{\darkblue}{-\frac{m}{2} \log(2\pi) - \frac{1}{2} \log\left|\Omega_i(\Vparam)\right| - \frac{1}{2} (\VY_i-\mu(\Vparam,\VX_i)) \Omega_i(\Vparam)^{-1} \trans{(\VY_i-\mu(\Vparam,\VX_i))}} \right) 
+\end{align*}
+ #+END_EXPORT
+ 
+ This is what the =logLik= method is computing for the REML
+ criteria. The red term is specific to the REML criteria and prevents
+ from computing individual contributions to the likelihood[fn::The REML is the
+ likelihood of the observations divided by the prior on the estimated
+ mean parameters \(\VparamHat_{\mu} \sim \Gaus(\mu,\left(\VX
+ \Omega^{-1}(\Vparam) \trans{\VX}\right)^{-1})\). This corresponds to
+ \(\frac{1}{\sqrt{2\pi}^p \left|\left(\sum_{i=1}^n \VX_i
+ \Omega_i^{-1}(\Vparam) \trans{\VX}_i\right)^{-1}\right|}
+ \exp\left(-(\VparamHat_{\mu}-\mu)\left(2\sum_{i=1}^n \VX_i
+ \Omega_i^{-1}(\Vparam)
+ \trans{\VX}_i\right)^{-1})\trans{(\VparamHat_{\mu}-\mu)}\right)\)
+ Since \(\mu\) will be estimated to be \(\Vparam_{\mu}\), the
+ exponential term equals 1 and thus does not contribute to the
+ log-likelihood. One divided by the other term gives \(\sqrt{2\pi}^p
+ \left(\left|\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam)
+ \trans{\VX}_i\right|\right)^{-1}\). The log of this term equals the red
+ term]. The blue term is what =logLik= outputs for the ML criteria
+ when setting the argument =indiv= to =TRUE=.
+
+\bigskip
+ 
+** Score
+
+ Using that \(\partial \log(\det(X))=tr(X^{-1}\partial(X))\), the
+score is obtained by derivating once the log-likelihood, i.e., for
+\(\theta \in \Vparam\):
+#+BEGIN_EXPORT LaTeX
+\begin{align*}
+   \Score(\theta) =& \dpartial[\Likelihood(\Vparam|\VY,\VX)][\theta]
+= \textcolor{\darkred}{ \frac{1}{2} tr \left( \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i\right)^{-1} \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right)  \right) } \\
+&+ \sum_{i=1}^n \left( \textcolor{\darkblue}{ -\frac{1}{2} tr\left(\Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta]\right) + \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \trans{(\VY_i-\mu(\Vparam,\VX_i))} } \right. \\
+ & \qquad \qquad \left. \textcolor{\darkblue}{ + \frac{1}{2} (\VY_i-\mu(\Vparam,\VX_i)) \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{(\VY_i-\mu(\Vparam,\VX_i))} } \right).
+\end{align*}
+#+END_EXPORT
+
+ This is what the =score= method is computing for the REML
+ criteria. The red term is specific to the REML criteria and prevents
+ from computing the score relative to each cluster. The blue term is
+ what =score= outputs for the ML criteria when setting the argument
+ =indiv= to =TRUE=.
+
+\bigskip
+
+\clearpage
+
+** Hessian
+
+Derivating a second time the log-likelihood gives the hessian, \(\Hessian(\Vparam)\), with element[fn::if one is relative to the mean and the other to the variance then they are respectively \(\theta\) and \(\theta'\)]:
+#+BEGIN_EXPORT LaTeX
+\begin{align*}
+& \Hessian(\theta,\theta^{\prime}) = \ddpartial[\Likelihood(\Vparam|\VY,\VX)][\theta][\theta^{\prime}] = \dpartial[\Score(\theta)][\theta^{\prime}] \\
+=& \textcolor{\darkred}{\frac{1}{2} tr \left( \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i\right)^{-1} \left\{ \sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \left(\ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] - 2 \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}]\right)\Omega_i(\Vparam)^{-1} \trans{\VX}_i \right.  \right.}  \\
+& \textcolor{\darkred}{ \left. \left. \qquad + \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \left(\sum_{i=1}^n \VX_i\Omega_i^{-1}(\Vparam) \trans{\VX}_i \right) \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \right\} \right) } \\
+& +\sum_{i=1}^n \left( \textcolor{\darkblue}{ \frac{1}{2} tr\left(\Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta] - \Omega_i(\Vparam)^{-1} \ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] \right) } \right.\\
+& \qquad \qquad \textcolor{\darkblue}{ -  \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)^{-1}][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \trans{(\VY_i-\mu(\Vparam,\VX_i))} - \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \trans{\dpartial[\mu(\Vparam,\VX_i)][\theta^{\prime}]} } \\
+& \qquad \qquad \left. \textcolor{\darkblue}{ + \frac{1}{2} (\VY_i-\mu(\Vparam,\VX_i)) \Omega_i(\Vparam)^{-1} \left(\ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] - 2\dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta] \right) \Omega_i(\Vparam)^{-1} \trans{(\VY_i-\mu(\Vparam,\VX_i))} } \right).
+\end{align*}
+#+END_EXPORT
+
+The =information= method will (by default) return the (observed)
+information which is the opposite of the hessian. So multiplying the
+previous formula by -1 gives what =inforamtion= output for the REML
+criteria. The red term is specific to the REML criteria and prevents
+from computing the information relative to each cluster. The blue term
+is what =information= outputs for the ML criteria (up to a factor -1)
+when setting the argument =indiv= to =TRUE=.
+
+\bigskip
+
+A possible simplification is to use the expected hessian. Indeed for
+any deterministic matrix \(A\):
+- \(\Esp[A \trans{(\VY_i-\mu(\Vparam,\VX_i))}|\VX_i] = 0\)
+- \(\Esp[(\VY_i-\mu(\Vparam,\VX_i)) A \trans{(\VY_i-\mu(\Vparam,\VX_i))}||\VX_i] = tr(A \Var(\VY_i-\mu(\Vparam,\VX_i)))\)
+Leading to:
+#+BEGIN_EXPORT LaTeX
+\begin{align*}
+ & \Esp[\Hessian(\theta,\theta^{\prime})|\VX] \\
+ &= \textcolor{\darkred}{ \frac{1}{2} tr \left( \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i\right)^{-1}  \left\{ \sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \left( \ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] - 2 \dpartial[\Omega_i(\Vparam)][\theta]  \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}]\right) \Omega_i(\Vparam)^{-1} \trans{\VX}_i \right.  \right.}  \\
+ & \textcolor{\darkred}{ \left. \left. \qquad +  \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i \right) \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \right\} \right) } \\
+ & + \sum_{i=1}^n \left( \textcolor{\darkblue}{
+- \frac{1}{2} tr\left(\Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta]\right)
+ - \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \trans{\dpartial[\mu(\Vparam,\VX_i)][\theta^{\prime}]}
+ } \right) \\
+\end{align*}
+#+END_EXPORT
+
+This is what =information= output when the argument =type.information=
+is set to ="expected"= (up to a factor -1).
+
+  
+* CONFIG                                                           :noexport:
 #+LANGUAGE:  en
 #+LaTeX_CLASS: org-article
 #+LaTeX_CLASS_OPTIONS: [12pt]
@@ -736,7 +860,7 @@ bibliographystyle:apalike
 #+LATEX_HEADER: \newcommand\Rlogo{\textbf{\textsf{R}}\xspace} % 
 ** Code
 :PROPERTIES:
-:ID:       2ec77c4b-f83d-4612-9a89-a96ba1b7bf70
+:ID: 2ec77c4b-f83d-4612-9a89-a96ba1b7bf70
 :END:
 # Documentation at https://org-babel.readthedocs.io/en/latest/header-args/#results
 # :tangle (yes/no/filename) extract source code with org-babel-tangle-file, see http://orgmode.org/manual/Extracting-source-code.html 
@@ -816,6 +940,7 @@ bibliographystyle:apalike
 #+LATEX_HEADER: \newcommandx\Likelihood[2][1=,2=]{\defOperator{#1}{#2}{L}{}{(}{)}{\mathcal}}
 #+LATEX_HEADER: \newcommandx\logLikelihood[2][1=,2=]{\defOperator{#1}{#2}{\ell}{}{(}{)}{}}
 #+LATEX_HEADER: \newcommandx\Information[2][1=,2=]{\defOperator{#1}{#2}{I}{}{(}{)}{\mathcal}}
+#+LATEX_HEADER: \newcommandx\Hessian[2][1=,2=]{\defOperator{#1}{#2}{H}{}{(}{)}{\mathcal}}
 #+LATEX_HEADER: \newcommandx\Score[2][1=,2=]{\defOperator{#1}{#2}{S}{}{(}{)}{\mathcal}}
 **** Operators
 #+LATEX_HEADER: \newcommandx\Vois[2][1=,2=]{\defOperator{#1}{#2}{V}{}{(}{)}{\mathcal}}
@@ -862,8 +987,29 @@ bibliographystyle:apalike
 #+LaTeX_HEADER: \newcommand\normMax[1]{\left|\left|#1\right|\right|_{max}}
 #+LaTeX_HEADER: \newcommand\normTwo[1]{\left|\left|#1\right|\right|_{2}}
 #+LATEX_HEADER: \newcommand\Veta{\boldsymbol{\eta}}
-#+LATEX_HEADER: \newcommand\VX{\mathbf{X}}
+
 ** Notations
 
+#+LaTeX_HEADER:\newcommand{\Model}{\mathcal{M}}
+#+LaTeX_HEADER:\newcommand{\ModelHat}{\widehat{\mathcal{M}}}
+
+#+LaTeX_HEADER:\newcommand{\param}{\Theta}
+#+LaTeX_HEADER:\newcommand{\paramHat}{\widehat{\param}}
+#+LaTeX_HEADER:\newcommand{\paramCon}{\widetilde{\param}}
+
+#+LaTeX_HEADER:\newcommand{\Vparam}{\boldsymbol{\param}}
+#+LaTeX_HEADER:\newcommand{\VparamT}{\Vparam_0}
+#+LaTeX_HEADER:\newcommand{\VparamHat}{\boldsymbol{\paramHat}}
+#+LaTeX_HEADER:\newcommand{\VparamCon}{\boldsymbol{\paramCon}}
+
+#+LaTeX_HEADER:\newcommand{\X}{X}
+#+LaTeX_HEADER:\newcommand{\x}{x}
+#+LaTeX_HEADER:\newcommand{\VX}{\boldsymbol{X}}
+#+LaTeX_HEADER:\newcommand{\Vx}{\boldsymbol{x}}
+
+#+LaTeX_HEADER:\newcommand{\Y}{Y}
+#+LaTeX_HEADER:\newcommand{\y}{y}
+#+LaTeX_HEADER:\newcommand{\VY}{\boldsymbol{Y}}
+#+LaTeX_HEADER:\newcommand{\Vy}{\boldsymbol{y}}
 
 

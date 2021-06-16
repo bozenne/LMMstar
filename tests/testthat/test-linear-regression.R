@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (15:14) 
+## Last-Updated: Jun 16 2021 (16:59) 
 ##           By: Brice Ozenne
-##     Update #: 143
+##     Update #: 146
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -27,7 +27,7 @@ if(FALSE){
 }
 
 context("Check lmm on examples of linear regression")
-LMMstar.options(method.numDeriv = "Richardson")
+LMMstar.options(method.numDeriv = "Richardson", precompute.moments = TRUE)
 
 ## * simulate data
 n <- 5e1
@@ -144,7 +144,6 @@ test <- vcov(e.lmm, p = coef(e.lmm, transform.sigma = "none"), transform.sigma =
 GS <- solve(-hessian(func = function(p){p["sigma"] <- sqrt(p["sigma"]);logLik(e.lmm, p = p)}, x = coef(e.lmm, transform.sigma = "square", transform.names = FALSE)))
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
-
 expect_equal(unname(sqrt(diag(vcov(e.lmm,transform.sigma="square",robust=TRUE)))), unname(estimate(e.lava, robust = TRUE)$coefmat[,"Std.Err"]),
              tol = 1e-4)
 
@@ -214,6 +213,7 @@ expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 ## ** information
 test <- information(e.lmm, p = coef(e.lmm, transform.sigma = "none"), transform.sigma = "none", type.information = "observed")
 GS <- -hessian(func = function(p){logLik(e.lmm, p = p)}, x = coef(e.lmm, transform.sigma = "none"))
+
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 expect_equal(unname(test["sigma","sigma"]),unname(2*(n.obs-n.mu)/coef(e.lmm, transform.sigma = "none")["sigma"]^2), tol = 1e-6)
 

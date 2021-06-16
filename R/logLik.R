@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: jun 11 2021 (13:41) 
+## Last-Updated: Jun 14 2021 (19:22) 
 ##           By: Brice Ozenne
-##     Update #: 179
+##     Update #: 190
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -53,6 +53,9 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
             design <- object$design ## useful in case of NA
             out <- object$logLik
         }else{
+
+            test.precompute <- !is.null(object$design$precompute.XX) && !indiv
+            
             if(!is.null(data)){
                 ff.allvars <- c(all.vars(object$formula$mean), all.vars(object$formula$var))
                 if(any(ff.allvars %in% names(data) == FALSE)){
@@ -66,8 +69,8 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
                                             var.strata = object$strata$var, U.strata = object$strata$levels,
                                             var.time = object$time$var, U.time = object$time$levels,
                                             var.cluster = object$cluster$var,
-                                            structure = object$structure
-                                            )
+                                            structure = object$structure,
+                                            precompute.moments = test.precompute)
             }else{
                 design <- object$design
             }
@@ -77,6 +80,7 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
             index.cluster <- design$index.cluster
             index.time <- design$index.time
             X.var <- design$X.var
+            precompute <- design$precompute.XX
 
             if(!is.null(p)){
                 if(any(duplicated(names(p)))){
@@ -95,7 +99,7 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
 
             out <- .logLik(X = X, residuals = Y - X %*% beta, precision = precision,
                            index.variance = index.vargroup, time.variance = index.time, index.cluster = index.cluster, 
-                           indiv = indiv, REML = object$method.fit=="REML")
+                           indiv = indiv, REML = object$method.fit=="REML", precompute = precompute, X.var = X.var)
         
         } ## end if data, p
     }else if(type.object=="gls"){
@@ -130,7 +134,7 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
 ## * .logLik
 .logLik <- function(X, residuals, precision,
                     index.variance, time.variance, index.cluster,
-                    indiv, REML, precompute){
+                    indiv, REML, precompute, X.var){
 
     ## ** extract information
     if(indiv && REML){##  https://towardsdatascience.com/maximum-likelihood-ml-vs-reml-78cf79bef2cf
@@ -145,6 +149,11 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
     log2pi <- log(2*pi)
     REML.det <- matrix(0, nrow = n.mucoef, ncol = n.mucoef, dimnames = list(name.mucoef, name.mucoef))
 
+    if(!is.null(precompute) && "RR" %in% names(precompute) == FALSE){
+        precompute$RR <-  .precomputeRR(residuals = residuals, pattern = X.var$pattern,
+                                        pattern.time = X.var$index.time, pattern.cluster = attr(X.var$cluster, "index.byPattern"), index.cluster = attr(index.cluster,"sorted"))
+    }
+    
     ## ** prepare output
     if(test.loopIndiv){
         ll <- rep(NA, n.cluster)

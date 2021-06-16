@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (17:33) 
+## Last-Updated: Jun 14 2021 (14:59) 
 ##           By: Brice Ozenne
-##     Update #: 353
+##     Update #: 354
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -163,8 +163,6 @@
     Upattern.param <- object$param
     indicator <- object$indicator
     index.time <- object$index.time
-    test.hessian <- attr(pair,"test.hessian")
-    index.hessian <- lapply(test.hessian, which)
         
     if(!is.null(Jacobian)){
         JacobianM1 <- solve(Jacobian)
@@ -192,7 +190,7 @@
 
         iHess <- vector(mode = "list", length = n.iPair)
 
-        for(iiPair in index.hessian[[iPattern]]){ ## iiPair <- 1
+        for(iiPair in n.iPair){ ## iiPair <- 1
 
             ## name of parameters
             iCoef1 <- iPair[1,iiPair]

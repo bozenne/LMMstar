@@ -1,4 +1,4 @@
-% Created 2021-06-09 Wed 12:41
+% Created 2021-06-14 Mon 17:14
 % Intended LaTeX compiler: pdflatex
 \documentclass[12pt]{article}
 
@@ -146,6 +146,7 @@ linkcolor=[rgb]{0,0,0.5},
 \newcommandx\Likelihood[2][1=,2=]{\defOperator{#1}{#2}{L}{}{(}{)}{\mathcal}}
 \newcommandx\logLikelihood[2][1=,2=]{\defOperator{#1}{#2}{\ell}{}{(}{)}{}}
 \newcommandx\Information[2][1=,2=]{\defOperator{#1}{#2}{I}{}{(}{)}{\mathcal}}
+\newcommandx\Hessian[2][1=,2=]{\defOperator{#1}{#2}{H}{}{(}{)}{\mathcal}}
 \newcommandx\Score[2][1=,2=]{\defOperator{#1}{#2}{S}{}{(}{)}{\mathcal}}
 \newcommandx\Vois[2][1=,2=]{\defOperator{#1}{#2}{V}{}{(}{)}{\mathcal}}
 \newcommandx\IF[2][1=,2=]{\defOperator{#1}{#2}{IF}{}{(}{)}{\mathcal}}
@@ -190,7 +191,23 @@ linkcolor=[rgb]{0,0,0.5},
 \newcommand\normMax[1]{\left|\left|#1\right|\right|_{max}}
 \newcommand\normTwo[1]{\left|\left|#1\right|\right|_{2}}
 \newcommand\Veta{\boldsymbol{\eta}}
-\newcommand\VX{\mathbf{X}}
+\newcommand{\Model}{\mathcal{M}}
+\newcommand{\ModelHat}{\widehat{\mathcal{M}}}
+\newcommand{\param}{\Theta}
+\newcommand{\paramHat}{\widehat{\param}}
+\newcommand{\paramCon}{\widetilde{\param}}
+\newcommand{\Vparam}{\boldsymbol{\param}}
+\newcommand{\VparamT}{\Vparam_0}
+\newcommand{\VparamHat}{\boldsymbol{\paramHat}}
+\newcommand{\VparamCon}{\boldsymbol{\paramCon}}
+\newcommand{\X}{X}
+\newcommand{\x}{x}
+\newcommand{\VX}{\boldsymbol{X}}
+\newcommand{\Vx}{\boldsymbol{x}}
+\newcommand{\Y}{Y}
+\newcommand{\y}{y}
+\newcommand{\VY}{\boldsymbol{Y}}
+\newcommand{\Vy}{\boldsymbol{y}}
 \author{Brice Ozenne}
 \date{\today}
 \title{Overview of the package LMMstar}
@@ -200,7 +217,7 @@ linkcolor=[rgb]{0,0,0.5},
  pdftitle={Overview of the package LMMstar},
  pdfkeywords={},
  pdfsubject={},
- pdfcreator={Emacs 26.3 (Org mode 9.4.5)},
+ pdfcreator={Emacs 26.3 (Org mode 9.4.6)},
  pdflang={English}
  }
 \begin{document}
@@ -299,7 +316,7 @@ utils::packageVersion("LMMstar")
 \clearpage
 
 \section{Descriptive statistics}
-\label{sec:orgfb509c1}
+\label{sec:orgca24ee1}
 Mean, standard deviation, and other summary statistic can be computed
 with respect to a categorical variable (typically time) using the
 \texttt{summarize} function:
@@ -325,9 +342,9 @@ print(sss, digits = 3)
 \clearpage
 
 \section{Multivariate Gaussian model}
-\label{sec:org862d2cd}
+\label{sec:org078485b}
 \subsection{Modeling tools}
-\label{sec:orga74a122}
+\label{sec:org0f45373}
 Fit a multivariate Gaussian model with \textbf{compound symmetry} structure:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -377,7 +394,7 @@ calling \texttt{lmm} should lead to a more reasonnable computation time.
 \clearpage
 
 \subsection{Model output}
-\label{sec:org4259ec8}
+\label{sec:org4acedcc}
 
 The \texttt{summary} method can be used to display the main information
 relative to the model fit:
@@ -431,7 +448,7 @@ Note: p-values and confidence intervals are not adjusted for multiple comparison
 \clearpage
 
 \subsection{Extract estimated coefficients}
-\label{sec:orgbe92b07}
+\label{sec:orgbe29889}
 The value of the estimated coefficients can be output using \texttt{coef}:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -458,7 +475,7 @@ sigma:B3_months   sigma:B1_week   sigma:A1_week sigma:A3_months
 \end{verbatim}
 
 \subsection{Extract estimated residual variance-covariance structure}
-\label{sec:org01d395f}
+\label{sec:org47c66a2}
 
 The method \texttt{getVarCov} can be used to output the covariance structure of the residuals:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -492,7 +509,7 @@ A3_months  344.6236 344.6236  355.3062
 \clearpage
 
 \subsection{Model diagnostic}
-\label{sec:org558d2e9}
+\label{sec:org375a966}
 The method \texttt{residuals} can be used to output the normalized residuals in a wide format:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -544,7 +561,7 @@ qqtest(na.omit(gastricbypassL$residualsN_CS))
 \end{center}
 
 \subsection{Model fit}
-\label{sec:org3796c8b}
+\label{sec:org845e703}
 
 The fitted values can be displayed via the \texttt{emmeans} package or using the \texttt{autoplot} method:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -576,10 +593,10 @@ autoplot(eCS.lmm, at = data.frame(glucagon = 10), color = "glucagon")
 \end{lstlisting}
 
 \subsection{Statistical inference}
-\label{sec:org750a7a5}
+\label{sec:org231266b}
 
 \subsubsection{Model coefficients}
-\label{sec:org3b45be7}
+\label{sec:org697ab96}
 
 The estimated coefficients with their confidence intervals can be accessed via the \texttt{confint} method:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -641,7 +658,7 @@ sigma 18.84957 2.979077        NA 1.626596 2.754492 34.94464   NA      NA
 \end{verbatim}
 
 \subsubsection{Linear combination of the model coefficients}
-\label{sec:org4728f36}
+\label{sec:orgd22128a}
 
 The \texttt{anova} method can be use to test one or several linear
 combinations of the model coefficients using Wald tests. For instance
@@ -710,7 +727,7 @@ statistic df.num df.denom     p.value
 \clearpage
 
 \subsection{Baseline adjustment}
-\label{sec:org2ef3f06}
+\label{sec:org654df86}
 
 The \texttt{lmm} contains an "experimental" feature to drop non-identifiable
 effects from the model. For instance, let us define two (artifical) groups of
@@ -798,7 +815,7 @@ autoplot(eC.lmm, color = "group", ci = FALSE)
 
 \clearpage
 \section{Data generation}
-\label{sec:orgb6a9357}
+\label{sec:org69cf3dc}
 Simulate some data in the wide format:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -845,7 +862,7 @@ head(dL)
 \clearpage
 
 \section{Modifying default options}
-\label{sec:orgf90e1fa}
+\label{sec:org1614551}
 The \texttt{LMMstar.options} method enable to get and set the default options
 used by the package. For instance, the default option for the information matrix is:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -874,7 +891,7 @@ LMMstar.options(reinitialise = TRUE)
 \clearpage
 
 \section{R session}
-\label{sec:orgdb3f180}
+\label{sec:org1e9539c}
 Details of the R session used to generate this document:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -920,7 +937,7 @@ loaded via a namespace (and not attached):
 \clearpage
 
 \section*{References}
-\label{sec:org4bf9f5e}
+\label{sec:org039d43e}
 \begingroup
 \renewcommand{\section}[2]{}
 
@@ -928,4 +945,120 @@ loaded via a namespace (and not attached):
 \bibliography{bibliography}
 
 \endgroup
+
+\clearpage
+
+\appendix
+\titleformat{\section}
+{\normalfont\Large\bfseries}{Appendix~\thesection}{1em}{}
+
+\renewcommand{\thefigure}{\Alph{figure}}
+\renewcommand{\thetable}{\Alph{table}}
+\renewcommand{\theequation}{\Alph{equation}}
+
+\setcounter{figure}{0}    
+\setcounter{table}{0}    
+\setcounter{equation}{0}    
+
+\section{Likelihood in a multivariate Gaussian models}
+\label{SM:likelihood}
+\subsection{Log-likelihood}
+\label{sec:org7918dac}
+
+Denote by \(\VY\) a vector of \(m\) outcomes, \(\VX\) a vector of
+\(p\) covariates, \(\mu(\Vparam,\VX)\) the modeled mean, and
+\(\Omega(\Vparam,\VX)\) the modeled residual variance-covariance. The
+restricted log-likelihood in a linear Gaussian model can then be
+written:
+\begin{align*}
+\Likelihood(\Vparam|\VY,\VX) =& \textcolor{\darkred}{ \frac{p}{2} \log(2\pi)-\frac{1}{2} \log\left(\left|\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i\right|\right)} \\
+& + \sum_{i=1}^{n} \left(\textcolor{\darkblue}{-\frac{m}{2} \log(2\pi) - \frac{1}{2} \log\left|\Omega_i(\Vparam)\right| - \frac{1}{2} (\VY_i-\mu(\Vparam,\VX_i)) \Omega_i(\Vparam)^{-1} \trans{(\VY_i-\mu(\Vparam,\VX_i))}} \right) 
+\end{align*}
+
+This is what the \texttt{logLik} method is computing for the REML
+criteria. The red term is specific to the REML criteria and prevents
+from computing individual contributions to the likelihood\footnote{The REML is the
+likelihood of the observations divided by the prior on the estimated
+mean parameters \(\VparamHat_{\mu} \sim \Gaus(\mu,\left(\VX
+ \Omega^{-1}(\Vparam) \trans{\VX}\right)^{-1})\). This corresponds to
+\(\frac{1}{\sqrt{2\pi}^p \left|\left(\sum_{i=1}^n \VX_i
+ \Omega_i^{-1}(\Vparam) \trans{\VX}_i\right)^{-1}\right|}
+ \exp\left(-(\VparamHat_{\mu}-\mu)\left(2\sum_{i=1}^n \VX_i
+ \Omega_i^{-1}(\Vparam)
+ \trans{\VX}_i\right)^{-1})\trans{(\VparamHat_{\mu}-\mu)}\right)\)
+Since \(\mu\) will be estimated to be \(\Vparam_{\mu}\), the
+exponential term equals 1 and thus does not contribute to the
+log-likelihood. One divided by the other term gives \(\sqrt{2\pi}^p
+ \left(\left|\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam)
+ \trans{\VX}_i\right|\right)^{-1}\). The log of this term equals the red
+term}. The blue term is what \texttt{logLik} outputs for the ML criteria
+when setting the argument \texttt{indiv} to \texttt{TRUE}.
+
+\bigskip
+
+\subsection{Score}
+\label{sec:org4e4d0e2}
+
+ Using that \(\partial \log(\det(X))=tr(X^{-1}\partial(X))\), the
+score is obtained by derivating once the log-likelihood, i.e., for
+\(\theta \in \Vparam\):
+\begin{align*}
+   \Score(\theta) =& \dpartial[\Likelihood(\Vparam|\VY,\VX)][\theta]
+= \textcolor{\darkred}{ \frac{1}{2} tr \left( \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i\right)^{-1} \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right)  \right) } \\
+&+ \sum_{i=1}^n \left( \textcolor{\darkblue}{ -\frac{1}{2} tr\left(\Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta]\right) + \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \trans{(\VY_i-\mu(\Vparam,\VX_i))} } \right. \\
+ & \qquad \qquad \left. \textcolor{\darkblue}{ + \frac{1}{2} (\VY_i-\mu(\Vparam,\VX_i)) \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{(\VY_i-\mu(\Vparam,\VX_i))} } \right).
+\end{align*}
+
+This is what the \texttt{score} method is computing for the REML
+criteria. The red term is specific to the REML criteria and prevents
+from computing the score relative to each cluster. The blue term is
+what \texttt{score} outputs for the ML criteria when setting the argument
+\texttt{indiv} to \texttt{TRUE}.
+
+\bigskip
+
+\clearpage
+
+\subsection{Hessian}
+\label{sec:org14c62f1}
+
+Derivating a second time the log-likelihood gives the hessian, \(\Hessian(\Vparam)\), with element\footnote{if one is relative to the mean and the other to the variance then they are respectively \(\theta\) and \(\theta'\)}:
+\begin{align*}
+& \Hessian(\theta,\theta^{\prime}) = \ddpartial[\Likelihood(\Vparam|\VY,\VX)][\theta][\theta^{\prime}] = \dpartial[\Score(\theta)][\theta^{\prime}] \\
+=& \textcolor{\darkred}{\frac{1}{2} tr \left( \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i\right)^{-1} \left\{ \sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \left(\ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] - 2 \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}]\right)\Omega_i(\Vparam)^{-1} \trans{\VX}_i \right.  \right.}  \\
+& \textcolor{\darkred}{ \left. \left. \qquad + \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \left(\sum_{i=1}^n \VX_i\Omega_i^{-1}(\Vparam) \trans{\VX}_i \right) \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \right\} \right) } \\
+& +\sum_{i=1}^n \left( \textcolor{\darkblue}{ \frac{1}{2} tr\left(\Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta] - \Omega_i(\Vparam)^{-1} \ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] \right) } \right.\\
+& \qquad \qquad \textcolor{\darkblue}{ -  \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)^{-1}][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \trans{(\VY_i-\mu(\Vparam,\VX_i))} - \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \trans{\dpartial[\mu(\Vparam,\VX_i)][\theta^{\prime}]} } \\
+& \qquad \qquad \left. \textcolor{\darkblue}{ + \frac{1}{2} (\VY_i-\mu(\Vparam,\VX_i)) \Omega_i(\Vparam)^{-1} \left(\ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] - 2\dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta] \right) \Omega_i(\Vparam)^{-1} \trans{(\VY_i-\mu(\Vparam,\VX_i))} } \right).
+\end{align*}
+
+The \texttt{information} method will (by default) return the (observed)
+information which is the opposite of the hessian. So multiplying the
+previous formula by -1 gives what \texttt{inforamtion} output for the REML
+criteria. The red term is specific to the REML criteria and prevents
+from computing the information relative to each cluster. The blue term
+is what \texttt{information} outputs for the ML criteria (up to a factor -1)
+when setting the argument \texttt{indiv} to \texttt{TRUE}.
+
+\bigskip
+
+A possible simplification is to use the expected hessian. Indeed for
+any deterministic matrix \(A\):
+\begin{itemize}
+\item \(\Esp[A \trans{(\VY_i-\mu(\Vparam,\VX_i))}|\VX_i] = 0\)
+\item \(\Esp[(\VY_i-\mu(\Vparam,\VX_i)) A \trans{(\VY_i-\mu(\Vparam,\VX_i))}||\VX_i] = tr(A \Var(\VY_i-\mu(\Vparam,\VX_i)))\)
+\end{itemize}
+Leading to:
+\begin{align*}
+ & \Esp[\Hessian(\theta,\theta^{\prime})|\VX] \\
+ &= \textcolor{\darkred}{ \frac{1}{2} tr \left( \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i\right)^{-1}  \left\{ \sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \left( \ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] - 2 \dpartial[\Omega_i(\Vparam)][\theta]  \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}]\right) \Omega_i(\Vparam)^{-1} \trans{\VX}_i \right.  \right.}  \\
+ & \textcolor{\darkred}{ \left. \left. \qquad +  \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i \right) \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \right\} \right) } \\
+ & + \sum_{i=1}^n \left( \textcolor{\darkblue}{
+- \frac{1}{2} tr\left(\Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta]\right)
+ - \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \trans{\dpartial[\mu(\Vparam,\VX_i)][\theta^{\prime}]}
+ } \right) \\
+\end{align*}
+
+This is what \texttt{information} output when the argument \texttt{type.information}
+is set to \texttt{"expected"} (up to a factor -1).
 \end{document}

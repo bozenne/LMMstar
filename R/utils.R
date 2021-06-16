@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: Jun  7 2021 (11:03) 
+## Last-Updated: Jun 14 2021 (13:08) 
 ##           By: Brice Ozenne
-##     Update #: 69
+##     Update #: 70
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -58,8 +58,16 @@ lhs.vars <- function(formula){
 }
 
 ## * tr
+## compute the trace
 tr <- function(object){
     sum(diag(object))
+}
+
+## * tblock
+## transpose by block (depend on the dimension of the matrix)
+tblock <- function(M){
+    out <- matrix(t(M), nrow=nrow(M), byrow = FALSE)[, c(matrix(1:ncol(M), nrow(M), byrow=T)) ]
+    return(out)
 }
 
 ##----------------------------------------------------------------------
