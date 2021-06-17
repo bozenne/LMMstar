@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: Jun 17 2021 (11:03) 
+## Last-Updated: Jun 17 2021 (16:19) 
 ##           By: Brice Ozenne
-##     Update #: 737
+##     Update #: 821
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -129,7 +129,11 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
         pair.meanvarcoef  <- design$param$pair.meanvarcoef
         name.allcoef <- names(x$param$value)
         index.var <- x$param$type %in% c("sigma","k","rho")
-        precompute <- design$precompute.XX
+        if(test.precompute){
+            precompute <- list(XX = design$precompute.XX)
+        }else{
+            precompute <- NULL
+        }
 
         if(!is.null(p) || (test.notransform == FALSE)){
             if(!is.null(p)){
@@ -248,7 +252,7 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
                                         pattern.time = X.var$index.time, pattern.cluster = attr(X.var$cluster, "index.byPattern"), index.cluster = attr(index.cluster,"sorted"))
     }
     if(!is.null(precompute) && "XR" %in% names(precompute) == FALSE){
-        precompute$XR <-  .precomputeRR(residuals = residuals, pattern = X.var$pattern,
+        precompute$XR <-  .precomputeXR(X = X, residuals = residuals, pattern = X.var$pattern,
                                         pattern.time = X.var$index.time, pattern.cluster = attr(X.var$cluster, "index.byPattern"), index.cluster = attr(index.cluster,"sorted"))
     }
     
@@ -325,7 +329,7 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
                 OmegaM1_dOmega_OmegaM1[[iPattern]] <- stats::setNames(lapply(name.varcoef[[iPattern]], FUN = function(iVarcoef){iOmega %*% idOmega[[iVarcoef]] %*% iOmega}), name.varcoef[[iPattern]])
 
                 ## loop over all pairs
-                for(iPair in 1:npair.varcoef[[iPattern]]){ ## iPair <- 1
+                for(iPair in 1:npair.varcoef[[iPattern]]){ ## iPair <- 4
                     iCoef1 <- pair.varcoef[[iPattern]][1,iPair]
                     iCoef2 <- pair.varcoef[[iPattern]][2,iPair]
 
@@ -341,11 +345,10 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
                         iTerm12 <- OmegaM1_dOmega_OmegaM1[[iPattern]][[iCoef1]] %*% idOmega[[iCoef2]]
                         OmegaM1_d2OmegaAndCo_OmegaM1[[iPattern]][,,iPair] <- iOmega %*% d2Omega[[iPattern]][[iPair]] %*% iOmega - (iTerm12 + iTerm21) %*% iOmega
                     }
-                    
                 }
             }
         }
-            
+        
         ## loop
         for(iId in 1:n.cluster){ ## iId <- 7
             iPattern <- index.variance[iId]
@@ -446,7 +449,7 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
             iX <- matrix(unlist(precompute$XX$pattern[[iPattern]]), nrow = iTime2, ncol = dim(precompute$XX$pattern[[iPattern]])[3], byrow = FALSE)
                     
             ## **** mean,mean
-            iValue <- (as.double(iOmega) %*% iX)[precompute$XX$key]
+            iValue <- (as.double(iOmega) %*% iX)[as.double(precompute$XX$key)]
             if(test.mean){
                 info[name.mucoef,name.mucoef] <- info[name.mucoef,name.mucoef] + iValue
             }
@@ -458,18 +461,24 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
                 iMat <- tblock(t(do.call(rbind, dOmega[[iPattern]]) %*% iOmega))
                 dOmega_OmegaM1 <- matrix(iMat,
                                          nrow = iTime2, ncol = iN.varcoef, dimnames = list(NULL,iName.varcoef), byrow = FALSE)
+                tdOmega_OmegaM1 <- matrix(tblock(iMat),
+                                          nrow = iTime2, ncol = iN.varcoef, dimnames = list(NULL,iName.varcoef), byrow = FALSE)
                 iOmegaM1_dOmega_OmegaM1 <- matrix(iOmega %*% iMat,
                                                   nrow = iTime2, ncol = iN.varcoef, dimnames = list(NULL,iName.varcoef), byrow = FALSE)
-                iOmegaM1_d2Omega_OmegaM1 <- matrix(iOmega %*% tblock(t(do.call(rbind, d2Omega[[iPattern]]) %*% iOmega)),
-                                                   nrow = iTime2, ncol = npair.varcoef[[iPattern]], byrow = FALSE)
-                iOmegaM1_dOmega1_OmegaM1_dOmega2_OmegaM1 <- do.call(cbind,lapply(1:npair.varcoef[[iPattern]], function(iPair){ ## iPair <- 2
-                    iCoef1 <- pair.varcoef[[iPattern]][1,iPair]
-                    iCoef2 <- pair.varcoef[[iPattern]][2,iPair]
-                    out <- matrix(dOmega_OmegaM1[,iCoef1], nrow = iTime, ncol = iTime) %*% matrix(iOmegaM1_dOmega_OmegaM1[,iCoef2], nrow = iTime, ncol = iTime)
-                    return(as.double(out))
-                }))
-
+                if(REML || type.information == "observed"){
+                    iOmegaM1_d2Omega_OmegaM1 <- matrix(iOmega %*% tblock(t(do.call(rbind, d2Omega[[iPattern]]) %*% iOmega)),
+                                                       nrow = iTime2, ncol = npair.varcoef[[iPattern]], byrow = FALSE)
+                    iOmegaM1_dOmega1_OmegaM1_dOmega2_OmegaM1 <- do.call(cbind,lapply(1:npair.varcoef[[iPattern]], function(iPair){ ## iPair <- 4
+                        iCoef1 <- pair.varcoef[[iPattern]][1,iPair]
+                        iCoef2 <- pair.varcoef[[iPattern]][2,iPair]
+                        out <- matrix(tdOmega_OmegaM1[,iCoef1], nrow = iTime, ncol = iTime) %*% matrix(iOmegaM1_dOmega_OmegaM1[,iCoef2], nrow = iTime, ncol = iTime) + matrix(tdOmega_OmegaM1[,iCoef2], nrow = iTime, ncol = iTime) %*% matrix(iOmegaM1_dOmega_OmegaM1[,iCoef1], nrow = iTime, ncol = iTime)
+                        return(as.double(out))
+                    }))
+                    iOmegaM1_d2OmegaAndCo_OmegaM1 <- iOmegaM1_d2Omega_OmegaM1 - iOmegaM1_dOmega1_OmegaM1_dOmega2_OmegaM1
+                    ## iOmega %*% d2Omega[[iPattern]][[iPair]] %*% iOmega - 2 * iOmega %*% dOmega[[iPattern]][[iCoef1]] %*% iOmega %*% dOmega[[iPattern]][[iCoef2]] %*% iOmega
+                }
                 if(REML){
+                    
                     iDouble2Mat <- as.vector(precompute$XX$key)
                     ## denominator
                     REML.denom <- REML.denom + (as.double(iOmega) %*% iX)[iDouble2Mat]
@@ -479,27 +488,31 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
                         REML.numerator1[,,iVarcoef] <- REML.numerator1[,,iVarcoef] + iX_OmegaM1_dOmega_OmegaM1_X[iDouble2Mat,iVarcoef]
                     }
                     ## numerator 2
-                    iX_OmegaM1_dOmega1_OmegaM1_dOmega2_OmegaM1_X <- t(iX) %*% iOmegaM1_dOmega1_OmegaM1_dOmega2_OmegaM1
+                    iX_OmegaM1_d2OmegaAndCo_OmegaM1_X <- t(iX) %*% iOmegaM1_d2OmegaAndCo_OmegaM1
                     for(iPair in 1:npair.varcoef[[iPattern]]){ ## iPair <- 1
-                        REML.numerator2[,,iPair] <- REML.numerator2[,,iPair] + iX_OmegaM1_dOmega1_OmegaM1_dOmega2_OmegaM1_X[iDouble2Mat,iPair]
+                        iCoef1 <- pair.varcoef[[iPattern]][1,iPair]
+                        iCoef2 <- pair.varcoef[[iPattern]][2,iPair]
+                        REML.numerator2[,,REML.key[iCoef1,iCoef2]] <- REML.numerator2[,,REML.key[iCoef1,iCoef2]] + iX_OmegaM1_d2OmegaAndCo_OmegaM1_X[iDouble2Mat,iPair]
                     }
+                    
                 }
 
                 ## compute contribution
-                id2Omega <- matrix(unlist(d2Omega[[iPattern]]), nrow = iTime2, ncol = npair.varcoef[[iPattern]])
-                iTrace_d2Omega <- colSums(sweep(id2Omega, MARGIN = 1, FUN = "*", STATS = as.double(precision[[iPattern]])))
                 iTrace_O_dO_O_dO <- sapply(1:npair.varcoef[[iPattern]], function(iPair){ ## iPair <- 2
-                    return(crossprod(dOmega_OmegaM1[,pair.varcoef[[iPattern]][1,iPair]], dOmega_OmegaM1[,pair.varcoef[[iPattern]][2,iPair]]))
+                    return(crossprod(dOmega_OmegaM1[,pair.varcoef[[iPattern]][1,iPair]], tdOmega_OmegaM1[,pair.varcoef[[iPattern]][2,iPair]]))
                 })
                 ## - 0.5 * tr(iOmega %*% dOmega[[iPattern]][[1]] %*% iOmega %*% dOmega[[iPattern]][[2]] - iOmega %*% d2Omega[[iPattern]][[iPair]])
                 if(type.information == "expected"){
-                    iValue <- 0.5 * iTrace_O_dO_O_dO
+                    iValue <- 0.5 * ncluster.pattern[[iPattern]] * iTrace_O_dO_O_dO
                 }else if(type.information == "observed"){
-                    iValue <- - 0.5 * iTrace_O_dO_O_dO + 0.5 * iTrace_d2Omega - 0.5 * as.double(as.double(precompute$RR[[iPattern]]) %*% iOmegaM1_dOmega1_OmegaM1_dOmega2_OmegaM1)
+                    id2Omega <- matrix(unlist(d2Omega[[iPattern]]), nrow = iTime2, ncol = npair.varcoef[[iPattern]])
+                    iTrace_d2Omega <- colSums(sweep(id2Omega, MARGIN = 1, FUN = "*", STATS = as.double(precision[[iPattern]])))
+                    iValue <- - 0.5 * ncluster.pattern[[iPattern]] * (iTrace_O_dO_O_dO - iTrace_d2Omega) - 0.5 * as.double(as.double(precompute$RR[[iPattern]]) %*% iOmegaM1_d2OmegaAndCo_OmegaM1)
+                    
                 }
-
+                
                 ## store
-                info[iName.varcoef,iName.varcoef]  <- iValue[attr(pair.varcoef[[iPattern]],"key")]
+                info[iName.varcoef,iName.varcoef]  <- info[iName.varcoef,iName.varcoef] + iValue[as.double(attr(pair.varcoef[[iPattern]],"key"))]
             }
 
             ## **** mean,var
@@ -509,8 +522,8 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
                 iValue <- t(iOmegaM1_dOmega_OmegaM1) %*% matrix(precompute$XR[[iPattern]], nrow = iTime2, ncol = n.mucoef, dimnames = list(NULL,name.mucoef))
 
                 ## store
-                info[iName.varcoef,name.mucoef] <- iValue
-                info[name.mucoef,iName.varcoef] <- t(iValue)
+                info[iName.varcoef,name.mucoef] <- info[iName.varcoef,name.mucoef] + iValue
+                info[name.mucoef,iName.varcoef] <- info[name.mucoef,iName.varcoef] + t(iValue)
             }
         }
 
@@ -520,6 +533,7 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
     if(REML && test.vcov){
         REML.denomM1 <- solve(REML.denom)
         REML.numerator1.bis <- 0*REML.numerator2
+
         for(iKey in 1:maxkey){ ## iKey <- 1
             iIndex <- which(REML.key == iKey, arr.ind = TRUE)
             iCoef1 <- name.allvarcoef[iIndex[1,1]]
@@ -537,8 +551,8 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
                                        index.cluster = index.cluster, name.varcoef = name.varcoef, name.allcoef = name.allcoef, indiv = TRUE, REML = REML, effects = effects, precompute = precompute) )
         info <- attr.info %*% solve(attr.bread) %*% attr.info
     }
-    return(info)
 
+    return(info)
 }
 
 ##----------------------------------------------------------------------

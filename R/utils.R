@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: Jun 14 2021 (13:08) 
+## Last-Updated: Jun 17 2021 (16:34) 
 ##           By: Brice Ozenne
-##     Update #: 70
+##     Update #: 76
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -66,8 +66,12 @@ tr <- function(object){
 ## * tblock
 ## transpose by block (depend on the dimension of the matrix)
 tblock <- function(M){
-    out <- matrix(t(M), nrow=nrow(M), byrow = FALSE)[, c(matrix(1:ncol(M), nrow(M), byrow=T)) ]
-    return(out)
+    if(NROW(M)==1){
+        return(M)
+    }else{
+        out <- matrix(t(M), nrow=nrow(M), byrow = FALSE)[, c(matrix(1:ncol(M), nrow(M), byrow=T)) ]
+        return(out)
+    }
 }
 
 ##----------------------------------------------------------------------

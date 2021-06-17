@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: Jun 17 2021 (09:53) 
+## Last-Updated: Jun 17 2021 (16:48) 
 ##           By: Brice Ozenne
-##     Update #: 53
+##     Update #: 64
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,9 +26,7 @@ if(FALSE){
 }
 
 context("Check lmm on examples of mixed model")
-LMMstar.options(method.numDeriv = "simple", precompute.moments = FALSE)
-## LMMstar.options(method.numDeriv = "Richardson")
-test.df <- TRUE
+LMMstar.options(method.numDeriv = "simple", precompute.moments = TRUE) # "Richardson"
 
 ## * Simulate data
 m <- lvm(c(Y1,Y2,Y3,Y4) ~ 0.05*age + gender)
@@ -133,7 +131,9 @@ expect_equal(test[c("visitY2","visitY3","visitY4"),"df"], rep(297,3), tol = 1e-3
 expect_equal(test[c("age","genderfemale"),"df"], rep(97,2), tol = 1e-3)
 
 ## ** anova
-ee <- anova(eCS.lmm)
+eCS.lmm_anova <- anova(eCS.lmm)
+expect_equal(eCS.lmm_anova$mean$df.denom, c(297.03106,  97.05084,  97.05084), tol = 1e-1)
+expect_equal(eCS.lmm_anova$correlation$df.denom, c(14.7493), tol = 1e-1)
 
 ## ** getVarCov
 getVarCov(eCS.lmm)
@@ -143,8 +143,8 @@ getVarCov(eCS.lmm)
 test_that("Unstructured covariance matrix (REML)",{
 
 ## ** fit
-eUNexp.lmm <- lmm(Y ~ visit + age + gender, repetition = ~visit|id, structure = "UN", data = dL, trace = 0, method = "REML", type.information = "expected", df = test.df)
-eUN.lmm <- lmm(Y ~ visit + age + gender, repetition = ~visit|id, structure = "UN", data = dL, trace = 0, method = "REML", type.information = "observed", df = test.df)
+eUNexp.lmm <- lmm(Y ~ visit + age + gender, repetition = ~visit|id, structure = "UN", data = dL, trace = 0, method = "REML", type.information = "expected")
+eUN.lmm <- lmm(Y ~ visit + age + gender, repetition = ~visit|id, structure = "UN", data = dL, trace = 0, method = "REML", type.information = "observed")
 eUN.gls <- gls(Y ~ visit + age + gender, correlation = corSymm(form=~1|id), weights = varIdent(form=~1|visit), data = dL, method = "REML")
 
 ## ** coef
@@ -216,7 +216,11 @@ expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## ** degree of freedom and anova checked in test-ttest.R (section multiple t-test)
 ## anova(eUN.lmm, ci = TRUE)
-anova(eUN.lmm,ci=TRUE)
+
+eUN.lmm_anova <- anova(eUN.lmm,ci=TRUE)
+expect_equal(eUN.lmm_anova$mean$df.denom, c(99.00144, 96.18348, 94.17755), tol = 1e-1)
+expect_equal(eUN.lmm_anova$variance$df.denom, c(189.236), tol = 1e-1)
+expect_equal(eUN.lmm_anova$correlation$df.denom, c(20.66968), tol = 1e-1)
 
 ## ** getVarCov
 getVarCov(eUN.lmm)
@@ -297,7 +301,9 @@ expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 test <- confint(eCS.lmm, transform.sigma = "none")[,"df",drop=FALSE]
 
 ## ** anova
-aa <- anova(eCS.lmm)
+eCS.lmm_anova <- anova(eCS.lmm)
+expect_equal(eCS.lmm_anova$mean$df.denom, c(143.04097,  46.63249), tol = 1e-1)
+expect_equal(eCS.lmm_anova$correlation$df.denom, c(7.450136), tol = 1e-1)
 
 ## ** getVarCov
 getVarCov(eCS.lmm)
@@ -307,7 +313,7 @@ getVarCov(eCS.lmm)
 test_that("Stratified unstructured (REML)",{
 
 ## ** fit
-eUN.lmm <- lmm(Y ~ (visit + age)*gender, repetition = gender~visit|id, structure = "UN", data = dL, trace = 0, method = "REML", df = test.df)
+eUN.lmm <- lmm(Y ~ (visit + age)*gender, repetition = gender~visit|id, structure = "UN", data = dL, trace = 0, method = "REML")
 eUN.gls <- list(male=gls(Y ~ visit + age, correlation = corSymm(form=~1|id), weights = varIdent(form=~1|visit), data = dL[dL$gender=="male",], method = "REML"),
                 female=gls(Y ~ visit + age, correlation = corSymm(form=~1|id), weights = varIdent(form=~1|visit), data = dL[dL$gender=="female",], method = "REML"))
 capture.output(summary(eUN.lmm))
@@ -399,8 +405,11 @@ test <- confint(eUN.lmm)[,"df", drop=FALSE]
 ## anova(eUN.gls)
 
 ## ** anova
-aa  <- anova(eUN.lmm)
-## print(aa, print.null = TRUE)
+eUN.lmm_anova <- anova(eUN.lmm,ci=TRUE)
+expect_equal(eUN.lmm_anova$mean$df.denom, c(47.63744, 42.53266), tol = 1e-1)
+expect_equal(eUN.lmm_anova$variance$df.denom, c(86.07826), tol = 1e-1)
+expect_equal(eUN.lmm_anova$correlation$df.denom, c(9.100919), tol = 1e-1)
+
 
 ## ** getVarCov
 getVarCov(eUN.lmm)

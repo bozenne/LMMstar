@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: Jun 14 2021 (19:22) 
+## Last-Updated: Jun 17 2021 (12:15) 
 ##           By: Brice Ozenne
-##     Update #: 190
+##     Update #: 201
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -80,7 +80,11 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
             index.cluster <- design$index.cluster
             index.time <- design$index.time
             X.var <- design$X.var
-            precompute <- design$precompute.XX
+            if(test.precompute){
+                precompute <- list(XX = design$precompute.XX)
+            }else{
+                precompute <- NULL
+            }
 
             if(!is.null(p)){
                 if(any(duplicated(names(p)))){
@@ -188,13 +192,13 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
     if(!test.loopIndiv){
         ## precompute
         ncluster.pattern <- sapply(attr(index.variance,"index.byPattern"),length)
-        name.pattern <- names(ncluster.pattern)
+        n.pattern <- length(ncluster.pattern)
 
         ## loop
-        for (iPattern in name.pattern) { ## iPattern <- name.pattern[1]
+        for (iPattern in 1:n.pattern) { ## iPattern <- 1
             iOmega <- precision[[iPattern]]
             iLogDet.Omega <- log(base::det(iOmega))
-            ll <- ll - 0.5 * ncluster.pattern[iPattern] * (NCOL(iOmega) * log2pi - iLogDet.Omega) - 0.5 * sum(precompute$RR[[iPattern]] * iOmega)
+            ll <- ll - 0.5 * unname(ncluster.pattern[iPattern]) * (NCOL(iOmega) * log2pi - iLogDet.Omega) - 0.5 * sum(precompute$RR[[iPattern]] * iOmega)
             if (REML) {
                 ## compute (unique contribution, i.e. only lower part of the matrix)
                 ## iContribution <- apply(precompute$XX$pattern[[iPattern]], MARGIN = 3, FUN = function(iM){sum(iM * iOmega)})

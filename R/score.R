@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: Jun 17 2021 (11:04) 
+## Last-Updated: Jun 17 2021 (12:50) 
 ##           By: Brice Ozenne
-##     Update #: 398
+##     Update #: 408
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -105,7 +105,11 @@ score.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = FALSE, 
         X.var <- design$X.var
         name.varcoef <- design$X.var$param
         index.var <- x$param$type %in% c("sigma","k","rho")
-        precompute <- design$precompute.XX
+        if(test.precompute){
+            precompute <- list(XX = design$precompute.XX)
+        }else{
+            precompute <- NULL
+        }
 
         if(!is.null(p) || (test.notransform == FALSE)){
             if(!is.null(p)){
@@ -195,7 +199,7 @@ score.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = FALSE, 
                                         pattern.time = X.var$index.time, pattern.cluster = attr(X.var$cluster, "index.byPattern"), index.cluster = attr(index.cluster,"sorted"))
     }
     if(!is.null(precompute) && "XR" %in% names(precompute) == FALSE){
-        precompute$XR <-  .precomputeRR(residuals = residuals, pattern = X.var$pattern,
+        precompute$XR <-  .precomputeXR(X = X, residuals = residuals, pattern = X.var$pattern,
                                         pattern.time = X.var$index.time, pattern.cluster = attr(X.var$cluster, "index.byPattern"), index.cluster = attr(index.cluster,"sorted"))
     }
 

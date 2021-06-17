@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: Jun 17 2021 (09:16) 
+## Last-Updated: Jun 17 2021 (12:51) 
 ##           By: Brice Ozenne
-##     Update #: 148
+##     Update #: 151
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -27,7 +27,7 @@ if(FALSE){
 }
 
 context("Check lmm on examples of linear regression")
-LMMstar.options(method.numDeriv = "Richardson", precompute.moments = FALSE)
+LMMstar.options(method.numDeriv = "Richardson", precompute.moments = TRUE)
 
 ## * simulate data
 n <- 5e1
@@ -98,6 +98,7 @@ newp.log <- newp; newp.log["sigma"] <- log(newp["sigma"])
 GS <- jacobian(func = function(p){p["sigma"] <- exp(p["sigma"]); logLik(e.lmm, p = p)}, x = newp.log)
 test <- score(e.lmm, p = newp, transform.sigma = "log")
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
+
 
 ## lava transformation
 newp.2 <- newp; newp.2["sigma"] <- newp["sigma"]^2

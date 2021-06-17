@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: Jun  9 2021 (11:57) 
+## Last-Updated: Jun 17 2021 (15:23) 
 ##           By: Brice Ozenne
-##     Update #: 445
+##     Update #: 448
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -301,7 +301,7 @@ anova.lmm <- function(object, effects = "all", rhs = NULL, df = !is.null(object$
                 P.svd <- svd.tempo$vectors
                 contrast.svd <- sqrt(D.svd) %*% t(P.svd) %*% iC
                 colnames(contrast.svd) <- name.param
-                
+
                 iNu_m <- dfSigma(contrast = contrast.svd,
                                  vcov = vcov.param,
                                  dVcov = dVcov.param,

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: Jun 16 2021 (16:01) 
+## Last-Updated: Jun 17 2021 (12:57) 
 ##           By: Brice Ozenne
-##     Update #: 409
+##     Update #: 419
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -227,7 +227,7 @@ vcov.lmm <- function(object, effects = "all", robust = FALSE, df = FALSE, type.o
         OmegaM1 <- lapply(Omega,solve)
         dOmega <- .calc_dOmega(object = X.var, param = paramVar, type = param.type[names(paramVar)], Omega = Omega, Jacobian = Jacobian)
 
-        if(type.information == "observed"){
+        if(!is.null(precompute) || (type.information == "observed")){
             residuals <- Y - X.mean %*% paramMean
         }else{
             residuals <- NULL
@@ -240,6 +240,7 @@ vcov.lmm <- function(object, effects = "all", robust = FALSE, df = FALSE, type.o
                                                   pattern.time = X.var$index.time, pattern.cluster = attr(X.var$cluster, "index.byPattern"), index.cluster = attr(index.cluster,"sorted"))
                                )
         }
+        
         if(REML || type.information == "observed"){
             d2Omega <- .calc_d2Omega(object = X.var, param = paramVar, type = param.type[names(paramVar)], Omega = Omega, dOmega = dOmega, pair = pair.varcoef, Jacobian = Jacobian, dJacobian = dJacobian)
         }else{

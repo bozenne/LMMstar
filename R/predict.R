@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: Jun  8 2021 (00:04) 
+## Last-Updated: Jun 17 2021 (16:04) 
 ##           By: Brice Ozenne
-##     Update #: 119
+##     Update #: 128
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -126,27 +126,14 @@ predict.lmm <- function(object, newdata, level = 0.95, df = !is.null(object$df),
     Mname.beta2 <- expand.grid(name.beta,name.beta)
     name.beta2 <- interaction(Mname.beta2)
     
-    vcov.vcovbeta <- matrix(0, nrow = n.beta2, ncol = n.beta2, dimnames = list(name.beta2,name.beta2))
-    index.n0 <- which(apply(Mname.beta2,1,function(iP){any(abs(dVcov.param[iP[1],iP[2],])>1e-10)}))
-    
-    for(iP in index.n0){ ## iP <- index.n0[2]
-        iParam <- name.beta2[iP]
-        iProd <- as.double(dVcov.param[Mname.beta2[iP,1],Mname.beta2[iP,2],] %*% vcov.param)
-        iIndex.n0 <- which(abs(iProd)>1e-10)
-
-        for(iiP in index.n0[index.n0<=iP]){ ## iiP <- 2
-            iiParam <-  name.beta2[iiP]
-            vcov.vcovbeta[iParam,iiParam] <- sum(iProd[iIndex.n0] * dVcov.param[Mname.beta2[iiP,1],Mname.beta2[iiP,2],iIndex.n0])
-            ## if(iParam != iiParam){
-            ##     vcov.vcovbeta[iiParam,iParam] <- vcov.vcovbeta[iParam,iiParam]
-            ## }
-        }
-    }
-    vcov.vcovbeta[upper.tri(vcov.vcovbeta)]  <-  t(vcov.vcovbeta)[upper.tri(vcov.vcovbeta)]
+    Mpair_dVcov.param <- do.call(rbind,lapply(1:n.beta2, function(iIndex){dVcov.param[Mname.beta2[iIndex,1],Mname.beta2[iIndex,2],]})) ## iIndex <- 240
+    vcov.vcovbeta <- Mpair_dVcov.param %*% vcov.param %*% t(Mpair_dVcov.param)
+    rownames(vcov.vcovbeta)  <-  name.beta2
+    colnames(vcov.vcovbeta)  <-  name.beta2
     
     ## GS <- matrix(0, nrow = n.beta2, ncol = n.beta2, dimnames = list(name.beta2,name.beta2))
-    ## for(iP in 1:n.beta2){ ## iP <- 1
-    ##     for(iiP in 1:iP){ ## iiP <- 1
+    ## for(iP in 1:n.beta2){ ## iP <- 15
+    ##     for(iiP in 1:iP){ ## iiP <- 29
     ##         iParam <-  name.beta2[iP]
     ##         iiParam <-  name.beta2[iiP]
     ##         GS[iParam,iiParam] <- dVcov.param[Mname.beta2[iP,1],Mname.beta2[iP,2],] %*% vcov.param %*% dVcov.param[Mname.beta2[iiP,1],Mname.beta2[iiP,2],]
@@ -155,15 +142,21 @@ predict.lmm <- function(object, newdata, level = 0.95, df = !is.null(object$df),
     ##         }
     ##     }
     ## }
+    ## GS[iP,iiP] - vcov.vcovbeta[iP,iiP]
 
     ## ** gradient of the variance of the predictions relative to the variance of the mean parameters
     ## d(X\Sigma t(X))_ij is computed by X\delta_ij t(X)
     dXTX.dT <- matrix(NA, nrow = n.obs, ncol = n.beta2, dimnames = list(NULL,name.beta2))
-        
-    for(iP in 1:n.beta2){
-        iDelta <- matrix(0, nrow = n.beta, ncol = n.beta, dimnames = list(name.beta,name.beta))
-        iDelta[Mname.beta2[iP,1],Mname.beta2[iP,2]] <- 1
-        dXTX.dT[,iP] <- diag(X.beta %*% iDelta %*% t(X.beta))
+
+    ## matrix cookbook: A_ki B_lj = (A \delta_ij \trans{B})_kl
+    ## so               A_ki A_kj = (A \delta_ij \trans{A})_kk
+    ## so               t(A)_ik A_kj = (A \delta_ij \trans{A})_kk
+    
+    for(iP in 1:n.beta2){ ## iP <- 35
+        ## iDelta <- matrix(0, nrow = n.beta, ncol = n.beta, dimnames = list(name.beta,name.beta))
+        ## iDelta[Mname.beta2[iP,1],Mname.beta2[iP,2]] <- 1
+        ## dXTX.dT[,iP] <- diag(X.beta %*% iDelta %*% t(X.beta))
+        dXTX.dT[,iP] <- (X.beta[,Mname.beta2[iP,1]] * X.beta[,Mname.beta2[iP,2]])
     }
 
     ## ** Satterthwaite approximation of the degrees of freedom

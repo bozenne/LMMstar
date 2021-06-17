@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (17:03) 
 ## Version: 
-## Last-Updated: Jun 17 2021 (11:01) 
+## Last-Updated: Jun 17 2021 (16:41) 
 ##           By: Brice Ozenne
-##     Update #: 33
+##     Update #: 34
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,7 +29,7 @@ if(FALSE){
 }
 
 context("Check lmm on the example from the course with Julie")
-LMMstar.options(method.numDeriv = "Richardson", precompute.moments = FALSE)
+LMMstar.options(method.numDeriv = "Richardson", precompute.moments = TRUE)
 
 test.practical <- FALSE
 
@@ -109,7 +109,8 @@ test_that("practical 1 - gastricbypass",{
     cor(residuals(eUN.lmm, type.residual = "normalized", format = "wide")[,-1], use = "pairwise")
     qqtest(na.omit(residuals(eUN.lmm, type.residual = "normalized")))
 
-    anova(eUN.lmm, effects = c("timew1A-timew1B=0"), ci = TRUE)
+    eUN.lmm_anova <- anova(eUN.lmm, effects = c("timew1A-timew1B=0"), ci = TRUE)
+    expect_equal(eUN.lmm_anova$all$df.denom, 19.24699, tol = 1e-1)
     }
 })
 
@@ -134,23 +135,26 @@ test_that("practical 2 - ncgs",{
                  na.action=na.exclude,
                  control=glsControl(opt='optim'))
 
+    e.lmm <- lmm(cholest~time+highdose.time,
+                 data=ncgsL,
+                 structure = UN(~time|id),
+                 control=glsControl(opt='optim'),
+                 df = FALSE)
+    
     system.time({
-        e.lmm <- lmm(cholest~time+highdose.time,
-                     data=ncgsL,
-                     structure = UN(~time|id),
-                     control=glsControl(opt='optim'))
+        e2.lmm <- suppressWarnings(lmm(cholest~treatment*time,
+                                       data=ncgsL,
+                                       structure = UN(~time|id),
+                                       control=glsControl(opt='optim')))
     })
-    e2.lmm <-suppressWarnings(lmm(cholest~treatment*time,
-                                  data=ncgsL,
-                                  structure = UN(~time|id),
-                                  control=glsControl(opt='optim')))
-
+    
     expect_equal(as.double(logLik(e.gls)), as.double(logLik(e.lmm)), tol = 1e-6)
     expect_equal(as.double(logLik(e.gls)), as.double(logLik(e2.lmm)), tol = 1e-6)
     
     ## ** extract information
     backtransform(confint(e2.lmm))[,c("estimate","lower","upper")]
-    anova(e2.lmm, effects = c("treatmenthighdose:time6-treatmentplacebo:time6=0","treatmenthighdose:time12-treatmentplacebo:time12=0"), ci = TRUE)
+    e2.lmm_anova <- anova(e2.lmm, effects = c("treatmenthighdose:time6-treatmentplacebo:time6=0","treatmenthighdose:time12-treatmentplacebo:time12=0"), ci = TRUE)
+    expect_equal(e2.lmm_anova$all$df.denom, 100.0411, tol = 1e-1)
     autoplot(e2.lmm, color = "group") 
     autoplot(e2.lmm, color = "group", alpha = 0.25)
     }
@@ -195,7 +199,9 @@ test_that("practical 2 - vitamin",{
     autoplot(e.lmm, color = "group")
     qqtest(residuals(e.lmm))
     confint(e.lmm)
-    anova(e.lmm, effects = "treatmentvitamin:visit6 - treatmentcontrol:visit6 = 0", ci = TRUE)
+    e.lmm_anova <- anova(e.lmm, effects = "treatmentvitamin:visit6 - treatmentcontrol:visit6 = 0", ci = TRUE)
+    expect_equal(e.lmm_anova$all$df.denom, 0.4972829, tol = 1e-1)
+   
     }
 })
 

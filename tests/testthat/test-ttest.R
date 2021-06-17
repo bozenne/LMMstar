@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: Jun 17 2021 (10:47) 
+## Last-Updated: Jun 17 2021 (16:34) 
 ##           By: Brice Ozenne
-##     Update #: 15
+##     Update #: 17
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,7 +25,7 @@ if(FALSE){
 }
 
 context("Check lmm on examples of t-tests")
-LMMstar.options(method.numDeriv = "Richardson", precompute.moments = FALSE)
+LMMstar.options(method.numDeriv = "Richardson", precompute.moments = TRUE)
 
 ## * single t-test
 ## ** simulate data

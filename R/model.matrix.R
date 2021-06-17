@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Jun 17 2021 (11:04) 
+## Last-Updated: Jun 17 2021 (14:14) 
 ##           By: Brice Ozenne
-##     Update #: 833
+##     Update #: 845
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -269,7 +269,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
             }else if(structure == "UN"){
                 X.cor[[iPattern]] <- matrix(0, nrow = iN.time^2, ncol = length(iParam.rho),
                                             dimnames = list(paste0("(",iM.indexAlltimes[,"row"],",",iM.indexAlltimes[,"col"],")"), iParam.rho))
-                test.iParam.rho <- apply(time.rho[,iParam.rho], MARGIN = 2, function(iRhoTime){all(iRhoTime %in% iTime)})
+                test.iParam.rho <- apply(time.rho[,iParam.rho,drop=FALSE], MARGIN = 2, function(iRhoTime){all(iRhoTime %in% iTime)})
                 for(iParam in iParam.rho[test.iParam.rho]){ ## iParam <- iParam.rho[1]
                     X.cor[[iPattern]][paste0("(",paste(which(U.time %in% time.rho[,iParam]),collapse=","),")"),iParam] <- 1
                     X.cor[[iPattern]][paste0("(",paste(rev(which(U.time %in% time.rho[,iParam])),collapse=","),")"),iParam] <- 1
@@ -607,20 +607,26 @@ model.matrix_regularize <- function(formula, data){
     ## fill matrix
     for(iPattern in pattern){ ## iPattern <- pattern[1]
         iTime <- length(pattern.time[[iPattern]])
-        
-        iX <- array(unlist(lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){X[iIndex,,drop=FALSE]})),
-                    dim = c(iTime,NCOL(X),length(index.cluster[pattern.cluster[[iPattern]]])))
-        
-        for(iCol1 in 1:p){ ## iCol1 <- 1
-            for(iCol2 in 1:iCol1){ ## iCol2 <- 2
-                ## for(iId in pattern.cluster[[iPattern]]){
-                ##     out$pattern[[iPattern]][,,out$key[iCol1,iCol2]] <- out$pattern[[iPattern]][,,out$key[iCol1,iCol2]] + tcrossprod(X[index.cluster[[iId]],iCol1,drop=FALSE],X[index.cluster[[iId]],iCol2,drop=FALSE])
-                ## }
-                out$pattern[[iPattern]][,,out$key[iCol1,iCol2]] <- tcrossprod(iX[,iCol1,],iX[,iCol2,])
+
+        if(iTime==1){
+            iX <- do.call(rbind,lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){X[iIndex,,drop=FALSE]}))
+            iX.summary <- crossprod(iX)
+            ## out$key[lower.tri(out$key,diag = TRUE)]
+            out$pattern[[iPattern]][1,1,] <- iX.summary[lower.tri(iX.summary, diag = TRUE)]
+        }else{
+            iX <- array(unlist(lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){X[iIndex,,drop=FALSE]})),
+                        dim = c(iTime,NCOL(X),length(index.cluster[pattern.cluster[[iPattern]]])))
+
+            for(iCol1 in 1:p){ ## iCol1 <- 1
+                for(iCol2 in 1:iCol1){ ## iCol2 <- 2
+                    ## for(iId in pattern.cluster[[iPattern]]){
+                    ##     out$pattern[[iPattern]][,,out$key[iCol1,iCol2]] <- out$pattern[[iPattern]][,,out$key[iCol1,iCol2]] + tcrossprod(X[index.cluster[[iId]],iCol1,drop=FALSE],X[index.cluster[[iId]],iCol2,drop=FALSE])
+                    ## }
+                    out$pattern[[iPattern]][,,out$key[iCol1,iCol2]] <- tcrossprod(iX[,iCol1,],iX[,iCol2,])
+                }
             }
         }
     }
-
     return(out)
 }
 
@@ -636,14 +642,20 @@ model.matrix_regularize <- function(formula, data){
     for(iPattern in pattern){ ## iPattern <- pattern[1]
         iTime <- length(pattern.time[[iPattern]])
         iResiduals <- do.call(cbind, lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){residuals[iIndex,,drop=FALSE]}))
-        iX <- array(unlist(lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){X[iIndex,,drop=FALSE]})),
-                    dim = c(iTime,p,length(index.cluster[pattern.cluster[[iPattern]]])))
+
+        if(iTime == 1){
+            iX <- do.call(rbind,lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){X[iIndex,,drop=FALSE]}))
+            out[[iPattern]][1,1,] <- iResiduals %*% iX
+        }else{
+            iX <- array(unlist(lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){X[iIndex,,drop=FALSE]})),
+                        dim = c(iTime,p,length(index.cluster[pattern.cluster[[iPattern]]])))
         
-        for(iCol in 1:p){ ## iCol1 <- 1
-            ## for(iId in 1:length(pattern.cluster[[iPattern]])){ ## iId <- 1
-            ##     out[[iPattern]][,,iCol] <- out[[iPattern]][,,iCol] + tcrossprod(iX[[iId]][,iCol,drop=FALSE],iResiduals[[iId]])
-            ## }
-            out[[iPattern]][,,iCol] <- tcrossprod(iX[,iCol,], iResiduals)
+            for(iCol in 1:p){ ## iCol1 <- 1
+                ## for(iId in 1:length(pattern.cluster[[iPattern]])){ ## iId <- 1
+                ##     out[[iPattern]][,,iCol] <- out[[iPattern]][,,iCol] + tcrossprod(iX[[iId]][,iCol,drop=FALSE],iResiduals[[iId]])
+                ## }
+                out[[iPattern]][,,iCol] <- tcrossprod(iX[,iCol,], iResiduals)
+            }
         }
     }
 

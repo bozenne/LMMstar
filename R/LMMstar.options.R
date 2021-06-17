@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: Jun 11 2021 (12:31) 
+## Last-Updated: Jun 17 2021 (16:52) 
 ##           By: Brice Ozenne
-##     Update #: 42
+##     Update #: 43
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -46,7 +46,7 @@ LMMstar.options <- function(..., reinitialise = FALSE){
                list(backtransform.summary = TRUE,
                     df = TRUE,
                     drop.X = TRUE,
-                    precompute.moments = FALSE,
+                    precompute.moments = TRUE,
                     method.fit = "REML",
                     method.numDeriv = "simple", 
                     trace = FALSE,
