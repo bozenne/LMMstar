@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: Jun 16 2021 (16:59) 
+## Last-Updated: Jun 17 2021 (09:16) 
 ##           By: Brice Ozenne
-##     Update #: 146
+##     Update #: 148
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -27,7 +27,7 @@ if(FALSE){
 }
 
 context("Check lmm on examples of linear regression")
-LMMstar.options(method.numDeriv = "Richardson", precompute.moments = TRUE)
+LMMstar.options(method.numDeriv = "Richardson", precompute.moments = FALSE)
 
 ## * simulate data
 n <- 5e1

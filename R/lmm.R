@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Jun 16 2021 (16:04) 
+## Last-Updated: Jun 17 2021 (11:05) 
 ##           By: Brice Ozenne
-##     Update #: 893
+##     Update #: 911
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -206,7 +206,6 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
             n.strata <- length(U.strata)
             
             tocheck <- setdiff(var.X,var.strata)
-
             if(var.strata %in% var.X == FALSE){
                 stop("When a variable is used to stratify the variance structure, it should also be use to stratify the mean structure. \n",
                      "Consider adding all interactions with \"",var.strata,"\" in the argument \'formula\'. \n")
@@ -219,7 +218,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
             sapply(tocheck, function(iX){ ## iX <- "age"
                 iCoef <- which(attr(formula.terms,"factors")[iX,]>=1)
                 iInteraction <- attr(formula.terms,"factors")[var.strata,iCoef,drop=FALSE]
-                if(length(unique(iInteraction))!=n.strata){
+                if(all(iInteraction==0)){
                     stop("When a variable is used to stratify the variance structure, it should also be used to stratify the mean structure. \n",
                          "Consider adding an interaction between \"",iX,"\" and \"",var.strata,"\" in the argument \'formula\'. \n")
                 }
@@ -336,8 +335,18 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     }
 
     if(n.strata>1){
-        term.exclude <- c(var.strata,paste0(setdiff(var.X, var.strata),":",var.strata))
-        formula.design <- stats::update(formula, paste0(".~.-",paste0(term.exclude,collapse="-"))) ## no interaction with the strata variable
+        var.X.withinStrata <- setdiff(var.X, var.strata)
+        if(length(var.X.withinStrata)==0){
+            formula.design <- stats::update(formula, paste0(".~1")) ## no interaction with the strata variable
+        }else{
+            terms.mean <- stats::terms(formula)
+            newterm.labels <- gsub(paste0("\\:",var.strata,"$"),"",gsub(paste0("^",var.strata,"\\:"),"",setdiff(attr(terms.mean,"term.labels"),var.strata)))  ## no interaction or main effect with the strata variable
+            if(attr(terms.mean,"intercept")>0){
+                formula.design <- stats::update(formula, paste0(".~",paste0(unique(newterm.labels),collapse=" + ")))
+            }else{
+                formula.design <- stats::update(formula, paste0(".~-1+",paste0(unique(newterm.labels),collapse=" + ")))
+            }
+        }
         out$formula <- list(mean = formula, ## formula will contain all interactions with strata (cf check)
                             mean.design = formula.design,
                             var = repetition,
@@ -544,16 +553,16 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                                     pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef,
                                     indiv = FALSE, REML = method.fit=="REML", type.information = type.information, effects = c("mean","variance","correlation"), precompute = precompute)
 
-    GS <- .information(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega, robust = FALSE,
-                       index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
-                       name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
-                       pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef,
-                       indiv = FALSE, REML = method.fit=="REML", type.information = type.information, effects = c("mean","variance","correlation"), precompute = NULL)
-    test <- .information(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega, robust = FALSE,
-                         index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
-                         name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
-                         pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef,
-                         indiv = FALSE, REML = method.fit=="REML", type.information = type.information, effects = c("mean","variance","correlation"), precompute = precompute)
+    ## GS <- .information(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega, robust = FALSE,
+    ##                    index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
+    ##                    name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
+    ##                    pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef,
+    ##                    indiv = FALSE, REML = method.fit=="REML", type.information = type.information, effects = c("mean","variance","correlation"), precompute = NULL)
+    ## test <- .information(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega, robust = FALSE,
+    ##                      index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
+    ##                      name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
+    ##                      pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef,
+    ##                      indiv = FALSE, REML = method.fit=="REML", type.information = type.information, effects = c("mean","variance","correlation"), precompute = precompute)
 
     ## microbenchmark(GS = .information(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega, robust = FALSE,
     ##                                  index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,

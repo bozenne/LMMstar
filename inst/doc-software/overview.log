@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2021.4.9)  14 JUN 2021 17:14
+This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2021.4.9)  17 JUN 2021 11:11
 entering extended mode
  \write18 enabled.
  %&-line parsing enabled.
@@ -1406,10 +1406,10 @@ LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 1064.
  ) 
 Here is how much of TeX's memory you used:
- 27295 strings out of 483107
- 486434 string characters out of 5964631
+ 27297 strings out of 483107
+ 486452 string characters out of 5964631
  981920 words of memory out of 5000000
- 41508 multiletter control sequences out of 15000+600000
+ 41510 multiletter control sequences out of 15000+600000
  628912 words of font info for 119 fonts, out of 8000000 for 9000
  59 hyphenation exceptions out of 8191
  76i,17n,96p,889b,1816s stack positions out of 5000i,500n,10000p,200000b,80000s
@@ -1442,7 +1442,7 @@ fb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pf
 b></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/symbols/msam5.pfb>
 </usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/symbols/msam7.pfb></
 usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on overview.pdf (18 pages, 402342 bytes).
+Output written on overview.pdf (18 pages, 402346 bytes).
 PDF statistics:
  516 PDF objects out of 1000 (max. 8388607)
  437 compressed objects within 5 object streams

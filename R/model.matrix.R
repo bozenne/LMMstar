@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Jun 14 2021 (18:55) 
+## Last-Updated: Jun 17 2021 (11:04) 
 ##           By: Brice Ozenne
-##     Update #: 825
+##     Update #: 833
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -341,7 +341,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
     attr(X.Upattern,"assign") <- attr(X.var,"assign")
     pattern.cluster <- stats::setNames(match(pattern,Upattern),names(pattern))
     if(precompute.moments){
-        attr(pattern.cluster,"index.byPattern") <- setNames(tapply(1:length(pattern.cluster),pattern.cluster, function(iCluster){iCluster}), Upattern)
+        attr(pattern.cluster,"index.byPattern") <- stats::setNames(tapply(1:length(pattern.cluster),pattern.cluster, function(iCluster){iCluster}), Upattern)
         precompute.XX <-  .precomputeXX(X = X.mean, pattern = Upattern,
                                         pattern.time = indexTime.Upattern, pattern.cluster = attr(pattern.cluster, "index.byPattern"), index.cluster = attr(index.cluster,"sorted"))
     }else{
@@ -358,7 +358,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
     
     pair.varcoef <- stats::setNames(lapply(Upattern, function(iPattern){## ## iPattern <- Upattern[1]
         iParam <- param.Upattern[[iPattern]]
-        
+
         iOut <- .unorderedPairs(iParam)
         attr(iOut, "key") <- matrix(NA, nrow = length(iParam), ncol = length(iParam), dimnames = list(iParam,iParam))
         for(iCol in 1:NCOL(iOut)){
@@ -597,7 +597,7 @@ model.matrix_regularize <- function(formula, data){
     n.pattern <- length(pattern)
     n.time <- lapply(pattern.time,length)
 
-    out <- list(pattern = setNames(lapply(pattern, function(iPattern){array(0, dim = c(n.time[[iPattern]],n.time[[iPattern]],p*(p+1)/2))}), pattern),
+    out <- list(pattern = stats::setNames(lapply(pattern, function(iPattern){array(0, dim = c(n.time[[iPattern]],n.time[[iPattern]],p*(p+1)/2))}), pattern),
                 key = matrix(as.numeric(NA),nrow=p,ncol=p,dimnames=list(colnames(X),colnames(X))))
 
     ## key
@@ -631,7 +631,7 @@ model.matrix_regularize <- function(formula, data){
     n.pattern <- length(pattern)
     n.time <- lapply(pattern.time,length)
 
-    out <- setNames(lapply(pattern, function(iPattern){array(0, dim = c(n.time[[iPattern]], n.time[[iPattern]], ncol = p), dimnames = list(NULL,NULL,name.mucoef))}), pattern)
+    out <- stats::setNames(lapply(pattern, function(iPattern){array(0, dim = c(n.time[[iPattern]], n.time[[iPattern]], ncol = p), dimnames = list(NULL,NULL,name.mucoef))}), pattern)
 
     for(iPattern in pattern){ ## iPattern <- pattern[1]
         iTime <- length(pattern.time[[iPattern]])
@@ -654,8 +654,8 @@ model.matrix_regularize <- function(formula, data){
 .precomputeRR <- function(residuals, pattern.time, pattern, pattern.cluster, index.cluster){
 
     n.pattern <- length(pattern)
-    n.time <- setNames(lapply(pattern.time,length), pattern)
-    out <- setNames(lapply(pattern, function(iPattern){matrix(0, nrow = n.time[[iPattern]], ncol = n.time[[iPattern]])}), pattern)
+    n.time <- stats::setNames(lapply(pattern.time,length), pattern)
+    out <- stats::setNames(lapply(pattern, function(iPattern){matrix(0, nrow = n.time[[iPattern]], ncol = n.time[[iPattern]])}), pattern)
 
     for(iPattern in pattern){ ## iPattern <- pattern[1]
         

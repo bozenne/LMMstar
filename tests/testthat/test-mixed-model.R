@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: Jun  9 2021 (10:36) 
+## Last-Updated: Jun 17 2021 (09:53) 
 ##           By: Brice Ozenne
-##     Update #: 52
+##     Update #: 53
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,7 +26,7 @@ if(FALSE){
 }
 
 context("Check lmm on examples of mixed model")
-LMMstar.options(method.numDeriv = "simple")
+LMMstar.options(method.numDeriv = "simple", precompute.moments = FALSE)
 ## LMMstar.options(method.numDeriv = "Richardson")
 test.df <- TRUE
 
@@ -58,9 +58,6 @@ test_that("Compound symmetry structure (REML)",{
 ## ** fit
 eCS.lmm <- lmm(Y ~ visit + age + gender, repetition = ~visit|id, structure = "CS", data = dL, trace = 0, method = "REML")
 eCS.gls <- gls(Y ~ visit + age + gender, correlation = corCompSymm(form=~1|id), data = dL, method = "REML")
-
-logLik(eCS.lmm)
-logLik(eCS.gls)
 
 ## ** coef
 expect_equal(coef(eCS.lmm, effects = "mean"), coef(eCS.gls), tol = 1e-6)
@@ -229,6 +226,7 @@ getVarCov(eUN.lmm)
 test_that("Stratified compound symmetry structure (REML)",{
 
 ## ** fit
+eCS0.lmm <- lmm(Y ~ gender, repetition = gender~visit|id, structure = "CS", data = dL, trace = 0, method = "REML") ## just to check that it runs
 eCS.lmm <- lmm(Y ~ (visit + age)*gender, repetition = gender~visit|id, structure = "CS", data = dL, trace = 0, method = "REML")
 eCS.gls <- list(male=gls(Y ~ visit + age, correlation = corCompSymm(form=~1|id), data = dL[dL$gender=="male",], method = "REML"),
                 female=gls(Y ~ visit + age, correlation = corCompSymm(form=~1|id), data = dL[dL$gender=="female",], method = "REML"))

@@ -1,4 +1,4 @@
-% Created 2021-06-14 Mon 17:14
+% Created 2021-06-17 Thu 11:11
 % Intended LaTeX compiler: pdflatex
 \documentclass[12pt]{article}
 
@@ -309,14 +309,14 @@ utils::packageVersion("LMMstar")
 \end{lstlisting}
 
 \begin{verbatim}
-[1] ‘0.2’
+[1] ‘0.2.1’
 \end{verbatim}
 
 
 \clearpage
 
 \section{Descriptive statistics}
-\label{sec:orgca24ee1}
+\label{sec:org6de7648}
 Mean, standard deviation, and other summary statistic can be computed
 with respect to a categorical variable (typically time) using the
 \texttt{summarize} function:
@@ -342,9 +342,9 @@ print(sss, digits = 3)
 \clearpage
 
 \section{Multivariate Gaussian model}
-\label{sec:org078485b}
+\label{sec:org9f26fc7}
 \subsection{Modeling tools}
-\label{sec:org0f45373}
+\label{sec:orgfaeca84}
 Fit a multivariate Gaussian model with \textbf{compound symmetry} structure:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -394,7 +394,7 @@ calling \texttt{lmm} should lead to a more reasonnable computation time.
 \clearpage
 
 \subsection{Model output}
-\label{sec:org4acedcc}
+\label{sec:org24704eb}
 
 The \texttt{summary} method can be used to display the main information
 relative to the model fit:
@@ -435,11 +435,11 @@ sigma           18.84957
 
 Mean structure: weight ~ time + glucagon 
               estimate    se     df   lower   upper p.value    
-(Intercept)    129.369 4.226 20.224 120.561 120.561  <0.001 ***
-timeB1_week     -7.619 1.054 54.431  -9.732  -9.732  <0.001 ***
-timeA1_week    -14.495 1.428  53.73 -17.358 -17.358  <0.001 ***
-timeA3_months  -27.051 1.087 54.286 -29.231 -29.231  <0.001 ***
-glucagon         0.822  0.62 53.053  -0.422  -0.422   0.191    
+(Intercept)    129.369 4.226 20.034 120.556 120.556  <0.001 ***
+timeB1_week     -7.619 1.054 53.968  -9.732  -9.732  <0.001 ***
+timeA1_week    -14.495 1.428 53.879 -17.358 -17.358  <0.001 ***
+timeA3_months  -27.051 1.087 53.943 -29.231 -29.231  <0.001 ***
+glucagon         0.822  0.62  53.81  -0.421  -0.421   0.191    
 
 The columns lower and upper correspond to the 95% confidence interval of the estimated coefficient
 Note: p-values and confidence intervals are not adjusted for multiple comparisons
@@ -448,7 +448,7 @@ Note: p-values and confidence intervals are not adjusted for multiple comparison
 \clearpage
 
 \subsection{Extract estimated coefficients}
-\label{sec:orgbe29889}
+\label{sec:org83fdac5}
 The value of the estimated coefficients can be output using \texttt{coef}:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -475,12 +475,12 @@ sigma:B3_months   sigma:B1_week   sigma:A1_week sigma:A3_months
 \end{verbatim}
 
 \subsection{Extract estimated residual variance-covariance structure}
-\label{sec:org47c66a2}
+\label{sec:orga477af4}
 
 The method \texttt{getVarCov} can be used to output the covariance structure of the residuals:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-getVarCov(eCS.lmm)
+nlme::getVarCov(eCS.lmm)
 \end{lstlisting}
 
 \begin{verbatim}
@@ -495,7 +495,7 @@ A3_months  344.6236 344.6236 344.6236  355.3062
 It can also be specific to an individual:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-getVarCov(eCS.lmm, individual = 5)
+nlme::getVarCov(eCS.lmm, individual = 5)
 \end{lstlisting}
 
 \begin{verbatim}
@@ -509,7 +509,7 @@ A3_months  344.6236 344.6236  355.3062
 \clearpage
 
 \subsection{Model diagnostic}
-\label{sec:org375a966}
+\label{sec:org33a350f}
 The method \texttt{residuals} can be used to output the normalized residuals in a wide format:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -561,7 +561,7 @@ qqtest(na.omit(gastricbypassL$residualsN_CS))
 \end{center}
 
 \subsection{Model fit}
-\label{sec:org845e703}
+\label{sec:org755ae27}
 
 The fitted values can be displayed via the \texttt{emmeans} package or using the \texttt{autoplot} method:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -593,10 +593,10 @@ autoplot(eCS.lmm, at = data.frame(glucagon = 10), color = "glucagon")
 \end{lstlisting}
 
 \subsection{Statistical inference}
-\label{sec:org231266b}
+\label{sec:org90f6b13}
 
 \subsubsection{Model coefficients}
-\label{sec:org697ab96}
+\label{sec:org901443e}
 
 The estimated coefficients with their confidence intervals can be accessed via the \texttt{confint} method:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -605,14 +605,14 @@ confint(eCS.lmm)
 \end{lstlisting}
 
 \begin{verbatim}
-                 estimate        se  statistic        df       lower      upper null      p.value
-(Intercept)   129.3690995 4.2256315  30.615329 20.223686 120.5608325 138.177367    0 0.000000e+00
-timeB1_week    -7.6194918 1.0538287  -7.230294 54.431370  -9.7319078  -5.507076    0 1.670235e-09
-timeA1_week   -14.4951323 1.4279420 -10.151066 53.729569 -17.3583136 -11.631951    0 4.263256e-14
-timeA3_months -27.0514694 1.0870635 -24.884902 54.286480 -29.2306372 -24.872302    0 0.000000e+00
-glucagon        0.8217879 0.6199594   1.325551 53.053075  -0.4216641   2.065240    0 1.906683e-01
-log(sigma)      2.9364900 0.1580448         NA  5.518946   2.5414485   3.331532   NA           NA
-atanh(Rho)      2.0911816 0.1866252  11.205249  3.251184   1.5223905   2.659973    0 1.044455e-03
+                 estimate        se  statistic       df       lower      upper null      p.value
+(Intercept)   129.3690995 4.2256318  30.615327 20.03432 120.5555539 138.182645    0 0.000000e+00
+timeB1_week    -7.6194918 1.0538287  -7.230294 53.96824  -9.7323197  -5.506664    0 1.746652e-09
+timeA1_week   -14.4951323 1.4279524 -10.150991 53.87927 -17.3581515 -11.632113    0 4.130030e-14
+timeA3_months -27.0514694 1.0870651 -24.884866 53.94292 -29.2309565 -24.871982    0 0.000000e+00
+glucagon        0.8217879 0.6199685   1.325532 53.80984  -0.4212748   2.064851    0 1.905952e-01
+log(sigma)      2.9364900 0.1587900         NA 16.79510   2.6011608   3.271819   NA           NA
+atanh(Rho)      2.0911816 0.1874830  11.153979 29.43362   1.7079810   2.474382    0 4.330536e-12
 \end{verbatim}
 
 
@@ -625,8 +625,8 @@ confint(eCS.lmm, effects = "variance")
 \end{lstlisting}
 
 \begin{verbatim}
-           estimate        se statistic       df    lower    upper null p.value
-log(sigma)  2.93649 0.1580448        NA 5.518946 2.541448 3.331532   NA      NA
+           estimate      se statistic      df    lower    upper null p.value
+log(sigma)  2.93649 0.15879        NA 16.7951 2.601161 3.271819   NA      NA
 \end{verbatim}
 
 
@@ -638,8 +638,8 @@ backtransform(confint(eCS.lmm, effects = "variance"))
 \end{lstlisting}
 
 \begin{verbatim}
-      estimate        se statistic       df    lower    upper null p.value
-sigma 18.84957 0.1580448        NA 5.518946 12.69805 27.98116   NA      NA
+      estimate      se statistic      df    lower    upper null p.value
+sigma 18.84957 0.15879        NA 16.7951 13.47938 26.35925   NA      NA
 Note: estimates and confidence intervals for sigma, k, rho have been back-transformed. 
       standard errors are not back-transformed.
 \end{verbatim}
@@ -654,11 +654,11 @@ table
 
 \begin{verbatim}
       estimate       se statistic       df    lower    upper null p.value
-sigma 18.84957 2.979077        NA 1.626596 2.754492 34.94464   NA      NA
+sigma 18.84957 2.993123        NA 2.695584 8.685673 29.01346   NA      NA
 \end{verbatim}
 
 \subsubsection{Linear combination of the model coefficients}
-\label{sec:orgd22128a}
+\label{sec:org9c10cb7}
 
 The \texttt{anova} method can be use to test one or several linear
 combinations of the model coefficients using Wald tests. For instance
@@ -674,13 +674,13 @@ anova(eUN.lmm, effects = c("timeA1_week-timeB1_week=0"), ci = TRUE)
                      ** User-specified hypotheses ** 
  - F-test
  statistic df.num df.denom      p.value
-  43.15392      1 17.78688 3.808793e-06
+  43.14145      1 17.87461 3.723244e-06
 
  - P-values and confidence interval (adjusted for multiplicity within each global test) 
                            estimate        se       df statistic     lower     upper null
-timeA1_week - timeB1_week -3.905721 0.5945537 17.78688 -6.569165 -5.155906 -2.655536    0
+timeA1_week - timeB1_week -3.905721 0.5946396 17.87461 -6.568215 -5.155641 -2.655801    0
                                p.value
-timeA1_week - timeB1_week 3.808793e-06
+timeA1_week - timeB1_week 3.723244e-06
 \end{verbatim}
 
 When testing transformed variance or correlation parameters,
@@ -719,7 +719,7 @@ anova(eUN.lmm, effects = C)
                     ** User-specified hypotheses ** 
 - F-test
 statistic df.num df.denom     p.value
- 6.234317      3 18.02975 0.004307772
+ 6.203176      3 17.99457 0.004417066
 \end{verbatim}
 
 
@@ -727,7 +727,7 @@ statistic df.num df.denom     p.value
 \clearpage
 
 \subsection{Baseline adjustment}
-\label{sec:org654df86}
+\label{sec:orgaac249a}
 
 The \texttt{lmm} contains an "experimental" feature to drop non-identifiable
 effects from the model. For instance, let us define two (artifical) groups of
@@ -815,7 +815,7 @@ autoplot(eC.lmm, color = "group", ci = FALSE)
 
 \clearpage
 \section{Data generation}
-\label{sec:org69cf3dc}
+\label{sec:orgd4f4171}
 Simulate some data in the wide format:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -862,7 +862,7 @@ head(dL)
 \clearpage
 
 \section{Modifying default options}
-\label{sec:org1614551}
+\label{sec:org17cd05c}
 The \texttt{LMMstar.options} method enable to get and set the default options
 used by the package. For instance, the default option for the information matrix is:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -891,7 +891,7 @@ LMMstar.options(reinitialise = TRUE)
 \clearpage
 
 \section{R session}
-\label{sec:org1e9539c}
+\label{sec:orgb838700}
 Details of the R session used to generate this document:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -937,7 +937,7 @@ loaded via a namespace (and not attached):
 \clearpage
 
 \section*{References}
-\label{sec:org039d43e}
+\label{sec:org9b2df39}
 \begingroup
 \renewcommand{\section}[2]{}
 
@@ -963,7 +963,7 @@ loaded via a namespace (and not attached):
 \section{Likelihood in a multivariate Gaussian models}
 \label{SM:likelihood}
 \subsection{Log-likelihood}
-\label{sec:org7918dac}
+\label{sec:org195527c}
 
 Denote by \(\VY\) a vector of \(m\) outcomes, \(\VX\) a vector of
 \(p\) covariates, \(\mu(\Vparam,\VX)\) the modeled mean, and
@@ -997,7 +997,7 @@ when setting the argument \texttt{indiv} to \texttt{TRUE}.
 \bigskip
 
 \subsection{Score}
-\label{sec:org4e4d0e2}
+\label{sec:org4c2b214}
 
  Using that \(\partial \log(\det(X))=tr(X^{-1}\partial(X))\), the
 score is obtained by derivating once the log-likelihood, i.e., for
@@ -1020,7 +1020,7 @@ what \texttt{score} outputs for the ML criteria when setting the argument
 \clearpage
 
 \subsection{Hessian}
-\label{sec:org14c62f1}
+\label{sec:orgc88124b}
 
 Derivating a second time the log-likelihood gives the hessian, \(\Hessian(\Vparam)\), with element\footnote{if one is relative to the mean and the other to the variance then they are respectively \(\theta\) and \(\theta'\)}:
 \begin{align*}

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: Jun  9 2021 (11:12) 
+## Last-Updated: Jun 17 2021 (10:47) 
 ##           By: Brice Ozenne
-##     Update #: 14
+##     Update #: 15
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,7 +25,7 @@ if(FALSE){
 }
 
 context("Check lmm on examples of t-tests")
-LMMstar.options(method.numDeriv = "Richardson")
+LMMstar.options(method.numDeriv = "Richardson", precompute.moments = FALSE)
 
 ## * single t-test
 ## ** simulate data
@@ -90,15 +90,17 @@ test_that("multiple t-test",{
     ## profvis::profvis(e.lmm <- lmm(Y ~ visit + gender:visit - 1, structure = UN(gender~visit|id), data = dL, trace = 0))
     e.lmm <- lmm(Y ~ visit + gender:visit - 1, structure = UN(gender~visit|id), data = dL, trace = 0)
     e2.lmm <- lmm(Y ~ visit + gender:visit - 1, repetition = gender~visit|id, structure = "UN", data = dL, trace = 0, df = FALSE)
+    expect_equal(logLik(e.lmm), logLik(e2.lmm))
+    e.lh <- anova(e.lmm, effects = c("gender:Y1"="visitY1:male - visitY1:female = 0",
+                                     "gender:Y2"="visitY2:male - visitY2:female = 0",
+                                     "gender:Y3"="visitY3:male - visitY3:female = 0",
+                                     "gender:Y4"="visitY4:male - visitY4:female = 0"), ci = TRUE)
+    
     e.gls <- gls(Y ~ visit + gender:visit, correlation = corSymm(form=~1|id), weights = varIdent(form=~1|visit), data = dL)
     ls.ttest <- list(t.test(Y1~gender, data = dW),
                      t.test(Y2~gender, data = dW),
                      t.test(Y3~gender, data = dW),
                      t.test(Y4~gender, data = dW))
-    e.lh <- anova(e.lmm, effects = c("gender:Y1"="visitY1:male - visitY1:female = 0",
-                                     "gender:Y2"="visitY2:male - visitY2:female = 0",
-                                     "gender:Y3"="visitY3:male - visitY3:female = 0",
-                                     "gender:Y4"="visitY4:male - visitY4:female = 0"), ci = TRUE)
     ## print(e.lh, method = "none")
     expect_equal(confint(e.lh)$all[[1]]$se, sapply(ls.ttest,"[[","stderr"), tol = 1e-5)
     expect_equal(as.double(unlist(confint(e.lh, method = "none")$all[[1]][,c("lower","upper")])),

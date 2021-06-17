@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (17:03) 
 ## Version: 
-## Last-Updated: Jun  9 2021 (11:30) 
+## Last-Updated: Jun 17 2021 (11:01) 
 ##           By: Brice Ozenne
-##     Update #: 30
+##     Update #: 33
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,7 +29,7 @@ if(FALSE){
 }
 
 context("Check lmm on the example from the course with Julie")
-LMMstar.options(method.numDeriv = "Richardson")
+LMMstar.options(method.numDeriv = "Richardson", precompute.moments = FALSE)
 
 test.practical <- FALSE
 
@@ -89,8 +89,15 @@ test_that("practical 1 - gastricbypass",{
                    control=glsControl(opt="optim"),
                    structure = UN(~time|id),
                    method.fit = "REML", trace = 0)
-    
+
+    ## check moments
     expect_equal(as.double(logLik(eUN.gls)), as.double(logLik(eUN.lmm)), tol = 1e-6)
+    
+    GS <- jacobian(func = function(p){logLik(eUN.lmm, p = p, transform.sigma = "none", transform.k = "none", transform.rho = "none")}, x = coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none"))
+    expect_equal(as.double(GS), as.double(score(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none")), tol = 1e-6)
+
+    GS <- -jacobian(func = function(p){score(eUN.lmm, p = p, transform.sigma = "none", transform.k = "none", transform.rho = "none")}, x = coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none"))
+    expect_equal(as.double(GS), as.double(information(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none")), tol = 1e-6)
 
     ## ** extract information
     backtransform(confint(eUN.lmm))[,c("estimate","lower","upper")]

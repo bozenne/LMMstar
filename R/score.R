@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: Jun 16 2021 (15:38) 
+## Last-Updated: Jun 17 2021 (11:04) 
 ##           By: Brice Ozenne
-##     Update #: 394
+##     Update #: 398
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -195,7 +195,7 @@ score.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = FALSE, 
                                         pattern.time = X.var$index.time, pattern.cluster = attr(X.var$cluster, "index.byPattern"), index.cluster = attr(index.cluster,"sorted"))
     }
     if(!is.null(precompute) && "XR" %in% names(precompute) == FALSE){
-        precompute$XR <-  .precomputeRR(X = X, residuals = residuals, pattern = X.var$pattern,
+        precompute$XR <-  .precomputeRR(residuals = residuals, pattern = X.var$pattern,
                                         pattern.time = X.var$index.time, pattern.cluster = attr(X.var$cluster, "index.byPattern"), index.cluster = attr(index.cluster,"sorted"))
     }
 
@@ -205,7 +205,7 @@ score.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = FALSE, 
             Score <- matrix(0, nrow = n.cluster, ncol = length(name.allvarcoef),
                             dimnames = list(NULL, name.allvarcoef))
         }else{
-            Score <- setNames(rep(0, length(name.allvarcoef)), name.allvarcoef)
+            Score <- stats::setNames(rep(0, length(name.allvarcoef)), name.allvarcoef)
         }
         test.vcov <- TRUE
         test.mean <- FALSE
@@ -217,7 +217,7 @@ score.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = FALSE, 
             Score <- matrix(0, nrow = n.cluster, ncol = n.mucoef,
                             dimnames = list(NULL, name.mucoef))
         }else{
-            Score <- setNames(rep(0, n.mucoef), name.mucoef)
+            Score <- stats::setNames(rep(0, n.mucoef), name.mucoef)
         }
         test.vcov <- FALSE
         test.mean <- TRUE
@@ -226,7 +226,7 @@ score.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = FALSE, 
             Score <- matrix(0, nrow = n.cluster, ncol = n.allcoef,
                             dimnames = list(NULL, name.allcoef))
         }else{
-            Score <- setNames(rep(0, n.allcoef), name.allcoef)
+            Score <- stats::setNames(rep(0, n.allcoef), name.allcoef)
         }
         test.vcov <- TRUE
         test.mean <- TRUE

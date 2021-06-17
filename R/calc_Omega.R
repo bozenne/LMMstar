@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: Jun 14 2021 (14:59) 
+## Last-Updated: Jun 17 2021 (09:50) 
 ##           By: Brice Ozenne
-##     Update #: 354
+##     Update #: 358
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -188,9 +188,9 @@
         iPair <- pair[[iPattern]]
         n.iPair <- NCOL(iPair)
 
-        iHess <- vector(mode = "list", length = n.iPair)
+        iHess <- lapply(1:n.iPair, function(iPair){matrix(0, nrow = iNtime, ncol = iNtime)})
 
-        for(iiPair in n.iPair){ ## iiPair <- 1
+        for(iiPair in 1:n.iPair){ ## iiPair <- 1
 
             ## name of parameters
             iCoef1 <- iPair[1,iiPair]
@@ -259,7 +259,6 @@
             }
             M.iScore <- do.call(cbind,lapply(dOmega[[iPattern]],as.double)) %*% JacobianM1[iParamVar,iParamVar,drop=FALSE]
             iHess2 <- vector(mode = "list", length = n.iPair)
-            iHess <- lapply(iHess, function(iM){if(is.null(iM)){matrix(0, nrow = iNtime, ncol = iNtime)}else{iM}})
 
             for(iP in 1:n.iParamVar){ ## iP <- 2
                 ## d/d theta_1 = 
