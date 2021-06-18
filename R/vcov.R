@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: Jun 17 2021 (12:57) 
+## Last-Updated: Jun 18 2021 (12:14) 
 ##           By: Brice Ozenne
-##     Update #: 419
+##     Update #: 442
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -83,10 +83,10 @@ vcov.lmm <- function(object, effects = "all", robust = FALSE, df = FALSE, type.o
     ## ** extract or recompute variance covariance matrix
     if(type.object=="lmm"){
 
-        keep.name <- stats::setNames(names(coef(object, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE)),
-                              names(coef(object, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)))
-
         if(is.null(data) && is.null(p) && test.notransform && (df == FALSE || !is.null(object$df)) && (robust == FALSE)){
+            keep.name <- stats::setNames(names(coef(object, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE)),
+                                         names(coef(object, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)))
+
             vcov <- object$vcov[keep.name,keep.name,drop=FALSE]
             if(transform.names){
                 dimnames(vcov) <- list(names(keep.name),names(keep.name))
@@ -104,32 +104,51 @@ vcov.lmm <- function(object, effects = "all", robust = FALSE, df = FALSE, type.o
                 }
             }
         }else{
-            attr(type.information,"robust") <- robust
-            if(df>0){
-                attr(type.information,"detail") <- TRUE
-            }
-            infoFull <- lava::information(object, data = data, p = p, type.information = type.information,
-                                          transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
-            detail <- attr(infoFull,"detail")
-            vcovFull <- solve(infoFull)
-            vcov <- vcovFull[keep.name,keep.name,drop=FALSE]
-            if(transform.names){
-                dimnames(vcov) <- list(names(keep.name), names(keep.name))
-            }
-            if(df>0){
-                outdf <- .df(param = detail$param, reparametrize = detail$reparametrize, Y = detail$Y, X.mean = detail$X.mean, X.var = detail$X.var,
-                             index.variance = detail$index.variance, time.variance = detail$time.variance, index.cluster = detail$index.cluster, name.varcoef = detail$name.varcoef,
-                             time.k = object$design$param$time.k, time.rho = object$design$param$time.rho,
-                             pair.meanvarcoef = detail$pair.meanvarcoef, pair.varcoef = detail$pair.varcoef,
-                             REML = detail$REML, type.information = as.vector(type.information), effects = effects, 
-                             transform.sigma = detail$transform.sigma, transform.k = detail$transform.k, transform.rho = detail$transform.rho, 
-                             vcov = vcovFull, diag = TRUE, method.numDeriv = options$method.numDeriv, robust = robust, precompute = detail$precompute)
-                attr(vcov,"df") <- stats::setNames(outdf[keep.name],names(keep.name))
-                if(df>1){
-                    attr(vcov,"dVcov") <- attr(outdf,"dVcov")[keep.name,keep.name,keep.name]
-                    dimnames(attr(vcov,"dVcov")) <- list(names(keep.name),names(keep.name),names(keep.name))
+            test.precompute <- !is.null(object$design$precompute.XX)
+         
+            if(!is.null(data)){
+                ff.allvars <- c(all.vars(object$formula$mean), all.vars(object$formula$var))
+                if(any(ff.allvars %in% names(data) == FALSE)){
+                    stop("Incorrect argument \'data\': missing variable(s) \"",paste(ff.allvars[ff.allvars %in% names(data) == FALSE], collapse = "\" \""),"\".\n")
                 }
+
+                design <- .model.matrix.lmm(formula.mean = object$formula$mean.design,
+                                            formula.var = object$formula$var.design,
+                                            data = data,
+                                            var.outcome = object$outcome$var,
+                                            var.strata = object$strata$var, U.strata = object$strata$levels,
+                                            var.time = object$time$var, U.time = object$time$levels,
+                                            var.cluster = object$cluster$var,
+                                            structure = object$structure,
+                                            precompute.moments = test.precompute)
+            }else{
+                design <- object$design
             }
+
+            newparam <- object$param
+            if(!is.null(p)){
+                if(any(duplicated(names(p)))){
+                    stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
+                }
+                if(any(names(object$param$type) %in% names(p) == FALSE)){
+                    stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param$type)[names(object$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
+                }
+                newparam$value <- p[names(newparam$value)]
+            }
+
+            outMoments <- .moments.lmm(param = newparam, design = design, time = object$time, method.fit = object$method.fit, type.information = type.information,
+                                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                                       logLik = FALSE, score = FALSE, information = FALSE, vcov = TRUE, df = df, indiv = FALSE, effects = effects, robust = robust,
+                                       trace = FALSE, precompute.moments = test.precompute, method.numDeriv = options$method.numDeriv, transform.names = transform.names)
+
+            vcov <- outMoments$vcov
+            if(df>0){
+                attr(vcov,"df") <- outMoments$df
+            }
+            if(df>1){
+                attr(vcov,"dVcov") <- outMoments$dVcov
+            }
+
         }
         return(vcov)
 
@@ -169,132 +188,6 @@ vcov.lmm <- function(object, effects = "all", robust = FALSE, df = FALSE, type.o
     }
 }
 
-## * .dinformation
-.df <- function(param, reparametrize, Y, X.mean, X.var,
-                index.variance, time.variance, index.cluster, name.varcoef, 
-                time.k, time.rho,
-                pair.meanvarcoef, pair.varcoef, REML, type.information, effects, 
-                transform.sigma, transform.k, transform.rho, 
-                vcov, diag, method.numDeriv, robust, precompute){
 
-    ## ** prepare vector of parameters
-    param.type <- param$type
-    param.strata <- param$strata
-    name.allcoef <- names(param$value)
-    n.allcoef <- length(param$type)
-
-    param.nameVar <- name.allcoef[param$type %in% c("sigma","k","rho")]
-    param.nameMean <- name.allcoef[param$type %in% c("mu")]
-
-    test.transform <- (transform.sigma != "none") || (transform.k != "none") || (transform.rho != "none")
-
-    param.trans.value <- c(param$value[param.nameMean],reparametrize$p)[name.allcoef]
-
-    ## ** warper for computing information
-    FUN_information <- function(p, as.double){
-
-        paramVar <- p[param.nameVar]
-        paramMean <- p[param.nameMean]
-
-        if(test.transform){ ## back-transform
-            backp <- .reparametrize(p = paramVar, type = param.type[param.nameVar], strata = param.strata[param.nameVar], 
-                                    Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
-                                    transform.sigma = transform.sigma,
-                                    transform.k = transform.k,
-                                    transform.rho = transform.rho,
-                                    transform.names = FALSE)
-            paramVar <- backp$p
-        }
-
-        ## get jacobian
-        newp <- .reparametrize(p = paramVar, type = param.type[param.nameVar], strata = param.strata[param.nameVar], 
-                               time.k = time.k, time.rho = time.rho,
-                               Jacobian = TRUE, dJacobian = 2*(REML || type.information == "observed"), inverse = FALSE,
-                               transform.sigma = transform.sigma,
-                               transform.k = transform.k,
-                               transform.rho = transform.rho,
-                               transform.names = FALSE)
-
-        if(newp$transform){
-            Jacobian <- newp$Jacobian
-            dJacobian <- newp$dJacobian
-        }else{
-            Jacobian <- NULL
-            dJacobian <- NULL
-        }
-
-        Omega <- .calc_Omega(object = X.var, param = paramVar, keep.interim = TRUE)
-        OmegaM1 <- lapply(Omega,solve)
-        dOmega <- .calc_dOmega(object = X.var, param = paramVar, type = param.type[names(paramVar)], Omega = Omega, Jacobian = Jacobian)
-
-        if(!is.null(precompute) || (type.information == "observed")){
-            residuals <- Y - X.mean %*% paramMean
-        }else{
-            residuals <- NULL
-        }
-        if(!is.null(precompute)){
-            precompute <- list(XX = precompute$XX,
-                               RR = .precomputeRR(residuals = residuals, pattern = X.var$pattern,
-                                                  pattern.time = X.var$index.time, pattern.cluster = attr(X.var$cluster, "index.byPattern"), index.cluster = attr(index.cluster,"sorted")),
-                               XR = .precomputeXR(X = X.mean, residuals = residuals, pattern = X.var$pattern,
-                                                  pattern.time = X.var$index.time, pattern.cluster = attr(X.var$cluster, "index.byPattern"), index.cluster = attr(index.cluster,"sorted"))
-                               )
-        }
-        
-        if(REML || type.information == "observed"){
-            d2Omega <- .calc_d2Omega(object = X.var, param = paramVar, type = param.type[names(paramVar)], Omega = Omega, dOmega = dOmega, pair = pair.varcoef, Jacobian = Jacobian, dJacobian = dJacobian)
-        }else{
-            d2Omega <- NULL
-        }
-        info <- .information(X = X.mean, residuals = residuals, precision = OmegaM1, dOmega = dOmega, d2Omega = d2Omega, robust = robust,
-                             index.variance = index.variance, time.variance = time.variance, index.cluster = index.cluster, name.varcoef = name.varcoef, name.allcoef = name.allcoef,
-                             pair.meanvarcoef = pair.meanvarcoef, pair.varcoef = pair.varcoef, indiv = FALSE, REML = REML, type.information = type.information, effects = effects, precompute = precompute)
-
-        if(as.double){
-            return(as.double(info))
-        }else{
-            return(info)
-        }
-    }
-
-    ## ** derivative of the information using numerical derivative
-    ## matrix(FUN_information(param.trans.value, as.double = TRUE), nrow = n.allcoef, ncol = n.allcoef)
-    name.effects <- colnames(FUN_information(param.trans.value, as.double = FALSE))
-    if(type.information == "observed"){
-        M.dInfo <- numDeriv::jacobian(func = function(p){FUN_information(p,as.double = TRUE)}, x = param.trans.value, method = method.numDeriv)
-        colnames(M.dInfo) <- name.allcoef
-    }else{
-        M.dInfo <- numDeriv::jacobian(func = function(p){FUN_information(c(param$value[param.nameMean],p)[name.allcoef], as.double = TRUE)}, x = param.trans.value[param.nameVar], method = method.numDeriv)
-        colnames(M.dInfo) <- param.nameVar
-    }
-    A.dVcov <- array(0, dim = rep(n.allcoef,3), dimnames = list(name.allcoef,name.allcoef,name.allcoef))
-    for(iParam in 1:NCOL(M.dInfo)){ ## iParam <- 1
-        iName <- colnames(M.dInfo)[iParam]
-        A.dVcov[name.effects,name.effects,iName] <- M.dInfo[,iName]
-        A.dVcov[,,iName] <- - vcov %*% A.dVcov[,,iName] %*% vcov
-    }
-    ## solve(crossprod(model.matrix(e.lmm, effects = "mean")))
-    ## 4*coef(e.lmm)["sigma"]^2/stats::nobs(e.lmm)[1]
-    ## ** degrees of freedom
-    if(diag){
-        df <- stats::setNames(sapply(1:n.allcoef, function(iP){
-            2 * vcov[iP,iP]^2 / (A.dVcov[iP,iP,] %*% vcov %*% A.dVcov[iP,iP,])
-        }), name.allcoef)
-    }else{
-        df <- matrix(NA, nrow = n.allcoef, ncol = n.allcoef, dimnames = list(name.allcoef, name.allcoef))
-        for(iParam in 1:n.allcoef){
-            for(iiParam in 1:iParam){
-                df[iParam,iiParam] <- 2 * vcov[iParam,iiParam]^2 / (A.dVcov[iParam,iiParam,] %*% vcov %*% A.dVcov[iiParam,iParam,])
-                if(iParam != iiParam){
-                    df[iiParam,iParam] <- df[iParam,iiParam]
-                }
-            }
-        }
-    }
-    
-    ## ** export
-    attr(df,"dVcov") <- A.dVcov
-    return(df)
-}
 ##----------------------------------------------------------------------
 ### vcov.R ends here

@@ -10,9 +10,9 @@
   effects = "all",
   type.object = "lmm",
   strata = NULL,
-  transform.sigma = NULL,
-  transform.k = NULL,
-  transform.rho = NULL,
+  transform.sigma = "none",
+  transform.k = "none",
+  transform.rho = "none",
   transform.names = TRUE,
   ...
 )

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: Jun 17 2021 (12:50) 
+## Last-Updated: Jun 18 2021 (10:20) 
 ##           By: Brice Ozenne
-##     Update #: 408
+##     Update #: 416
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -95,75 +95,27 @@ score.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = FALSE, 
                                         precompute.moments = test.precompute)
         }else{
             design <- x$design
-            name.allcoef <- names(x$param$value)
-        }
-        Y <- design$Y
-        X <- design$X.mean
-        index.vargroup <- design$X.var$cluster
-        index.cluster <- design$index.cluster
-        index.time <- design$index.time
-        X.var <- design$X.var
-        name.varcoef <- design$X.var$param
-        index.var <- x$param$type %in% c("sigma","k","rho")
-        if(test.precompute){
-            precompute <- list(XX = design$precompute.XX)
-        }else{
-            precompute <- NULL
         }
 
-        if(!is.null(p) || (test.notransform == FALSE)){
-            if(!is.null(p)){
-                if(any(duplicated(names(p)))){
-                    stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
-                }
-                if(any(names(x$param$type) %in% names(p) == FALSE)){
-                    stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(x$param$type)[names(x$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
-                }
-            }else{
-                p <- x$param$value
+        newparam <- x$param
+        if(!is.null(p)){
+            if(any(duplicated(names(p)))){
+                stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
             }
-            beta <- p[x$param$type=="mu"]
-            reparametrize <- .reparametrize(p = p[index.var], type = x$param$type[index.var], strata = x$param$strata[index.var], time.levels = x$time$levels,
-                                            time.k = x$design$param$time.k, time.rho = x$design$param$time.rho,
-                                            Jacobian = TRUE, dJacobian = FALSE, inverse = FALSE,
-                                            transform.sigma = transform.sigma,
-                                            transform.k = transform.k,
-                                            transform.rho = transform.rho,
-                                            transform.names = TRUE)
-            if(reparametrize$transform==FALSE){
-                reparametrize$newname <- NULL
-                reparametrize$Jacobian <- NULL
-                reparametrize$dJacobian <- NULL
+            if(any(names(x$param$type) %in% names(p) == FALSE)){
+                stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(x$param$type)[names(x$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
             }
-            newname.allcoef <- reparametrize$newname
-            Omega <- .calc_Omega(object = X.var, param = p, keep.interim = TRUE)
-            dOmega <- .calc_dOmega(object = X.var, param = p, type = x$param$type, Omega = Omega, Jacobian = reparametrize$Jacobian)
-            precision <- lapply(Omega, solve)
-        }else{
-            newname.allcoef <- x$reparametrize$newname
-            beta <- x$param$value[x$param$type=="mu"]
-            precision <- x$OmegaM1
-            dOmega <- x$dOmega
+            newparam$value <- p[names(newparam$value)]
         }
         
-        out <- .score(X = X, residuals = Y - X %*% beta, precision = precision, dOmega = dOmega,
-                      index.variance = index.vargroup, time.variance = index.time, index.cluster = index.cluster, name.varcoef = name.varcoef, name.allcoef = name.allcoef,
-                      indiv = indiv, REML = x$method.fit=="REML", effects = effects, precompute = precompute, X.var = X.var)
-
-        if(transform.names && length(newname.allcoef)>0 && ("variance" %in% effects || "correlation" %in% effects)){
-            if(indiv){
-                index.var2 <- match(name.allcoef[index.var], colnames(out))
-                colnames(out)[stats::na.omit(index.var2)] <- newname.allcoef[!is.na(index.var2)]
-            }else{
-                index.var2 <- match(name.allcoef[index.var], names(out))
-                names(out)[stats::na.omit(index.var2)] <- newname.allcoef[!is.na(index.var2)]
-            }
-        }
-
+        out <- .moments.lmm(param = newparam, design = design, time = x$time, method.fit = x$method.fit,
+                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                            logLik = FALSE, score = TRUE, information = FALSE, vcov = FALSE, df = FALSE, indiv = indiv, effects = effects,
+                            trace = FALSE, precompute.moments = test.precompute, transform.names = transform.names)$score
     }
 
     ## ** restaure NA
-    if(length(x$index.na)>0 && indiv){ 
+    if(length(x$index.na)>0 && indiv && is.null(data)){ 
         iAdd <- .addNA(index.na = x$index.na, design = design, time = x$time)
         if(length(iAdd$missing.cluster)>0){
             out.save <- out
@@ -180,7 +132,8 @@ score.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = FALSE, 
 ## * .score
 .score <- function(X, residuals, precision, dOmega,
                    index.variance, time.variance, index.cluster, name.varcoef, name.allcoef,
-                   indiv, REML, effects, precompute, X.var){
+                   indiv, REML, effects,
+                   precompute){
 
     ## ** extract information
     test.loopIndiv <- indiv || is.null(precompute)
@@ -193,15 +146,6 @@ score.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = FALSE, 
     n.allcoef <- length(name.allcoef)
     U.pattern <- names(dOmega)
     n.pattern <- length(U.pattern)
-
-    if(!is.null(precompute) && "RR" %in% names(precompute) == FALSE){
-        precompute$RR <-  .precomputeRR(residuals = residuals, pattern = X.var$pattern,
-                                        pattern.time = X.var$index.time, pattern.cluster = attr(X.var$cluster, "index.byPattern"), index.cluster = attr(index.cluster,"sorted"))
-    }
-    if(!is.null(precompute) && "XR" %in% names(precompute) == FALSE){
-        precompute$XR <-  .precomputeXR(X = X, residuals = residuals, pattern = X.var$pattern,
-                                        pattern.time = X.var$index.time, pattern.cluster = attr(X.var$cluster, "index.byPattern"), index.cluster = attr(index.cluster,"sorted"))
-    }
 
     ## ** prepare output
     if("mean" %in% effects == FALSE){ ## compute information only for variance - correlation parameters

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: Jun 17 2021 (16:48) 
+## Last-Updated: Jun 18 2021 (12:34) 
 ##           By: Brice Ozenne
-##     Update #: 64
+##     Update #: 65
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -378,7 +378,7 @@ expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 test <- information(eUN.lmm, p = coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none"), transform.sigma = "none", transform.k = "none", transform.rho = "none")
 GS <- -hessian(func = function(p){logLik(eUN.lmm, p = p, transform.sigma = "none", transform.k = "none", transform.rho = "none")}, x = coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none"))
-expect_equal(unname(test),GS, tol = 1e-5)
+expect_equal(as.double(test),as.double(GS), tol = 1e-5)
 
 test <- information(eUN.lmm, p = coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none"), transform.sigma = "log", transform.k = "none", transform.rho = "none")
 GS <- -hessian(func = function(p){p[eUN.lmm$param$type %in% "sigma"]<-exp(p[eUN.lmm$param$type %in% "sigma"]);logLik(eUN.lmm, p = p, transform.sigma = "none", transform.k = "none", transform.rho = "none")},

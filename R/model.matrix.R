@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Jun 17 2021 (14:14) 
+## Last-Updated: Jun 18 2021 (16:53) 
 ##           By: Brice Ozenne
-##     Update #: 845
+##     Update #: 862
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,7 +18,7 @@
 
 ## * model.matrix.lmm (code)
 ##' @export
-model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object = "lmm", ...){
+model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object = "lmm", ...){
 
     ## ** normalize user imput
     type.object <- match.arg(type.object, c("lmm","gls"))
@@ -50,7 +50,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "all", type.object =
     }else{
         design <- object$design
     }
-    
+
     ## ** update design matrix with new dataset
     if(type.object == "lmm"){
         if("mean" %in% effects && "variance" %in% effects){
@@ -598,7 +598,8 @@ model.matrix_regularize <- function(formula, data){
     n.time <- lapply(pattern.time,length)
 
     out <- list(pattern = stats::setNames(lapply(pattern, function(iPattern){array(0, dim = c(n.time[[iPattern]],n.time[[iPattern]],p*(p+1)/2))}), pattern),
-                key = matrix(as.numeric(NA),nrow=p,ncol=p,dimnames=list(colnames(X),colnames(X))))
+                key = matrix(as.numeric(NA),nrow=p,ncol=p,dimnames=list(colnames(X),colnames(X))),
+                Xpattern = stats::setNames(vector(mode = "list", length = n.pattern),pattern))
 
     ## key
     out$key[lower.tri(out$key,diag = TRUE)] <- 1:sum(lower.tri(out$key,diag = TRUE))
@@ -609,20 +610,20 @@ model.matrix_regularize <- function(formula, data){
         iTime <- length(pattern.time[[iPattern]])
 
         if(iTime==1){
-            iX <- do.call(rbind,lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){X[iIndex,,drop=FALSE]}))
-            iX.summary <- crossprod(iX)
+            out$Xpattern[[iPattern]] <- do.call(rbind,lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){X[iIndex,,drop=FALSE]}))
+            iX.summary <- crossprod(out$Xpattern[[iPattern]])
             ## out$key[lower.tri(out$key,diag = TRUE)]
             out$pattern[[iPattern]][1,1,] <- iX.summary[lower.tri(iX.summary, diag = TRUE)]
         }else{
-            iX <- array(unlist(lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){X[iIndex,,drop=FALSE]})),
-                        dim = c(iTime,NCOL(X),length(index.cluster[pattern.cluster[[iPattern]]])))
+            out$Xpattern[[iPattern]] <- array(unlist(lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){X[iIndex,,drop=FALSE]})),
+                                              dim = c(iTime,NCOL(X),length(index.cluster[pattern.cluster[[iPattern]]])))
 
             for(iCol1 in 1:p){ ## iCol1 <- 1
                 for(iCol2 in 1:iCol1){ ## iCol2 <- 2
                     ## for(iId in pattern.cluster[[iPattern]]){
                     ##     out$pattern[[iPattern]][,,out$key[iCol1,iCol2]] <- out$pattern[[iPattern]][,,out$key[iCol1,iCol2]] + tcrossprod(X[index.cluster[[iId]],iCol1,drop=FALSE],X[index.cluster[[iId]],iCol2,drop=FALSE])
                     ## }
-                    out$pattern[[iPattern]][,,out$key[iCol1,iCol2]] <- tcrossprod(iX[,iCol1,],iX[,iCol2,])
+                    out$pattern[[iPattern]][,,out$key[iCol1,iCol2]] <- tcrossprod(out$Xpattern[[iPattern]][,iCol1,],out$Xpattern[[iPattern]][,iCol2,])
                 }
             }
         }
@@ -632,7 +633,7 @@ model.matrix_regularize <- function(formula, data){
 
 ## ** .precomputeXR
 .precomputeXR <- function(X, residuals, pattern, pattern.time, pattern.cluster, index.cluster){
-    p <- NCOL(X)
+    p <- NCOL(X[[1]])
     name.mucoef <- colnames(X)
     n.pattern <- length(pattern)
     n.time <- lapply(pattern.time,length)
@@ -640,16 +641,14 @@ model.matrix_regularize <- function(formula, data){
     out <- stats::setNames(lapply(pattern, function(iPattern){array(0, dim = c(n.time[[iPattern]], n.time[[iPattern]], ncol = p), dimnames = list(NULL,NULL,name.mucoef))}), pattern)
 
     for(iPattern in pattern){ ## iPattern <- pattern[1]
+
         iTime <- length(pattern.time[[iPattern]])
         iResiduals <- do.call(cbind, lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){residuals[iIndex,,drop=FALSE]}))
+        iX <- X[[iPattern]]
 
         if(iTime == 1){
-            iX <- do.call(rbind,lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){X[iIndex,,drop=FALSE]}))
             out[[iPattern]][1,1,] <- iResiduals %*% iX
         }else{
-            iX <- array(unlist(lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){X[iIndex,,drop=FALSE]})),
-                        dim = c(iTime,p,length(index.cluster[pattern.cluster[[iPattern]]])))
-        
             for(iCol in 1:p){ ## iCol1 <- 1
                 ## for(iId in 1:length(pattern.cluster[[iPattern]])){ ## iId <- 1
                 ##     out[[iPattern]][,,iCol] <- out[[iPattern]][,,iCol] + tcrossprod(iX[[iId]][,iCol,drop=FALSE],iResiduals[[iId]])

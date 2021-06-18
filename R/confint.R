@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: Jun  8 2021 (12:16) 
+## Last-Updated: Jun 18 2021 (16:07) 
 ##           By: Brice Ozenne
-##     Update #: 237
+##     Update #: 241
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -165,7 +165,9 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", rob
     }
 
     ## ** combine
-    out <- data.frame(estimate = beta, se = sqrt(diag(vcov.beta)), statistic = as.numeric(NA), df = df, lower = as.numeric(NA), upper = as.numeric(NA), null = null, p.value = as.numeric(NA))
+    name.beta <- names(beta)
+    out <- data.frame(estimate = beta, se = sqrt(diag(vcov.beta[name.beta,name.beta,drop=FALSE])),
+                      statistic = as.numeric(NA), df = df[name.beta], lower = as.numeric(NA), upper = as.numeric(NA), null = null, p.value = as.numeric(NA))
     out$statistic <- (out$estimate-null)/out$se
     out$p.value <- 2*(1-stats::pt(abs(out$statistic), df = out$df))
 

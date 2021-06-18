@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: Jun 17 2021 (12:15) 
+## Last-Updated: Jun 18 2021 (10:04) 
 ##           By: Brice Ozenne
-##     Update #: 201
+##     Update #: 211
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -53,7 +53,6 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
             design <- object$design ## useful in case of NA
             out <- object$logLik
         }else{
-
             test.precompute <- !is.null(object$design$precompute.XX) && !indiv
             
             if(!is.null(data)){
@@ -74,18 +73,8 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
             }else{
                 design <- object$design
             }
-            Y <- design$Y
-            X <- design$X.mean
-            index.vargroup <- design$X.var$cluster
-            index.cluster <- design$index.cluster
-            index.time <- design$index.time
-            X.var <- design$X.var
-            if(test.precompute){
-                precompute <- list(XX = design$precompute.XX)
-            }else{
-                precompute <- NULL
-            }
-
+          
+            newparam <- object$param
             if(!is.null(p)){
                 if(any(duplicated(names(p)))){
                     stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
@@ -93,19 +82,13 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
                 if(any(names(object$param$type) %in% names(p) == FALSE)){
                     stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param$type)[names(object$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
                 }
-                beta <- p[object$param$type=="mu"]
-                Omega <- .calc_Omega(object = X.var, param = p)
-                precision <- lapply(Omega, solve)
-            }else{
-                beta <- object$param$value[object$param$type=="mu"]
-                precision <- object$OmegaM1
+                newparam$value <- p[names(newparam$value)]
             }
-
-            out <- .logLik(X = X, residuals = Y - X %*% beta, precision = precision,
-                           index.variance = index.vargroup, time.variance = index.time, index.cluster = index.cluster, 
-                           indiv = indiv, REML = object$method.fit=="REML", precompute = precompute, X.var = X.var)
-        
-        } ## end if data, p
+            out <- .moments.lmm(param = newparam, design = design, time = object$time, method.fit = object$method.fit,
+                                transform.sigma = "none", transform.k = "none", transform.rho = "none",
+                                logLik = TRUE, score = FALSE, information = FALSE, vcov = FALSE, df = FALSE, indiv = indiv, 
+                                trace = FALSE, precompute.moments = test.precompute)$logLik
+        } 
     }else if(type.object=="gls"){
         if(!is.null(data)){
             stop("Cannot handle argument \'data\' when argument \'type.object\' is \"gls\". \n")
@@ -138,7 +121,7 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
 ## * .logLik
 .logLik <- function(X, residuals, precision,
                     index.variance, time.variance, index.cluster,
-                    indiv, REML, precompute, X.var){
+                    indiv, REML, precompute){
 
     ## ** extract information
     if(indiv && REML){##  https://towardsdatascience.com/maximum-likelihood-ml-vs-reml-78cf79bef2cf
@@ -152,11 +135,6 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
     name.mucoef <- colnames(X)
     log2pi <- log(2*pi)
     REML.det <- matrix(0, nrow = n.mucoef, ncol = n.mucoef, dimnames = list(name.mucoef, name.mucoef))
-
-    if(!is.null(precompute) && "RR" %in% names(precompute) == FALSE){
-        precompute$RR <-  .precomputeRR(residuals = residuals, pattern = X.var$pattern,
-                                        pattern.time = X.var$index.time, pattern.cluster = attr(X.var$cluster, "index.byPattern"), index.cluster = attr(index.cluster,"sorted"))
-    }
     
     ## ** prepare output
     if(test.loopIndiv){

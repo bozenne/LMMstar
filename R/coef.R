@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: Jun  8 2021 (12:17) 
+## Last-Updated: Jun 18 2021 (14:53) 
 ##           By: Brice Ozenne
-##     Update #: 196
+##     Update #: 197
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -80,7 +80,7 @@
 ##' @rdname coef
 ##' @export
 coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL,
-                     transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
+                     transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE, ...){
 
     ## ** normalize user imput
     dots <- list(...)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: Jun 17 2021 (16:34) 
+## Last-Updated: Jun 18 2021 (11:39) 
 ##           By: Brice Ozenne
-##     Update #: 17
+##     Update #: 18
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -51,6 +51,7 @@ d$time <- "t1"
 test_that("single t-test",{
     e.lmm <- lmm(Y ~ Gender-1, structure = UN(~Gender), data = d, trace = 0)
     e2.lmm <- lmm(Y ~ Gender-1, repetition = ~Gender|id, structure = "UN", data = d, trace = 0, df = FALSE)
+
     ## e3.lmm <- lmm(Y ~ Gender, repetition = ~Gender|id, structure = "UN", data = d, trace = 0)
     e.gls <- gls(Y ~ Gender, weights = varIdent(form=~1|Gender), data = d)
     e.ttest <- t.test(Y~Gender, data = d)

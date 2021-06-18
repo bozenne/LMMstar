@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 10 2021 (16:08) 
 ## Version: 
-## Last-Updated: Jun  4 2021 (09:08) 
+## Last-Updated: Jun 18 2021 (17:06) 
 ##           By: Brice Ozenne
-##     Update #: 45
+##     Update #: 48
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -44,10 +44,13 @@ recover_data.lmm <- function(object, ...){
 ##' @method emm_basis lmm
 ##' @export
 emm_basis.lmm <- function(object, trms, xlev, grid, ...){
-
     out <- list()
     m  <-  stats::model.frame(trms, grid, na.action = stats::na.pass, xlev = xlev)    
-    out$X  <-  stats::model.matrix(trms, m, contrasts.arg = object$contrasts) 
+    out$X  <-  stats::model.matrix(trms, m, contrasts.arg = object$contrasts)
+    ## additional for baseline adjustment
+    keep.col <- colnames(stats::model.matrix(object, effects = "mean"))
+    out$X <- out$X[,keep.col,drop=FALSE]
+    
     out$bhat  <- stats::coef(object, effects = "mean")
     out$nbasis  <-  matrix(NA)  ## no rank deficiency
     out$V  <- stats::vcov(object, effects = "mean")

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: Jun 17 2021 (12:51) 
+## Last-Updated: Jun 18 2021 (12:33) 
 ##           By: Brice Ozenne
-##     Update #: 151
+##     Update #: 152
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -380,6 +380,8 @@ residuals(e.lmm, format = "wide", type.residual = "normalized")
 expect_equal(confint(e.lmm, transform.k = "sd", effects = "variance")$estimate,
              backtransform(confint(e.lmm, effects = "variance", transform.k = "logsd"))$estimate,
              tol = 1e-6)
+vcov(e.lmm, effects = "variance", df = TRUE, p = coef(e.lmm, transform.sigma = "none", transform.k = "none"))
+
 ## anova(e.lmm)
 ## anova(e.gls)
 

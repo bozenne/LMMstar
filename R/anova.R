@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: Jun 17 2021 (15:23) 
+## Last-Updated: Jun 18 2021 (17:18) 
 ##           By: Brice Ozenne
-##     Update #: 448
+##     Update #: 454
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -280,8 +280,11 @@ anova.lmm <- function(object, effects = "all", rhs = NULL, df = !is.null(object$
                 }else{
                     diag(iC[name.iParam[iIndex.param],name.iParam[iIndex.param]]) <- 1
                 }
+                iC2 <- iC
+                colnames(iC2) <- name.param[match(colnames(iC),newname)]
             }else{
                 iC <- ls.contrast[[iType]]
+                iC2 <- iC
                 iN.hypo <- NROW(iC)
                 iNull <- ls.null[[iType]]
                 iName.hypo  <- paste(paste0(rownames(iC),"==",iNull),collapse=", ")
@@ -316,8 +319,6 @@ anova.lmm <- function(object, effects = "all", rhs = NULL, df = !is.null(object$
             ## *** confidence interval
             if(ci){
                 if(df){
-                    iC2 <- iC
-                    colnames(iC2) <- name.param[match(colnames(iC),newname)]
                     ci.df <-  .dfX(X.beta = iC2, vcov.param = vcov.param, dVcov.param = dVcov.param)
                 }else{
                     ci.df <- Inf

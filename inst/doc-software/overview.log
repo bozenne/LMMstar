@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2021.4.9)  17 JUN 2021 16:51
+This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2021.4.9)  18 JUN 2021 17:43
 entering extended mode
  \write18 enabled.
  %&-line parsing enabled.
@@ -1301,7 +1301,7 @@ LaTeX Font Info:    External font `lmex10' loaded for size
 ] [6
 
 ]
-<./figures/diag-cov.pdf, id=178, 504.88625pt x 504.88625pt>
+<./figures/diag-cov.pdf, id=186, 504.88625pt x 504.88625pt>
 File: ./figures/diag-cov.pdf Graphic file (type pdf)
 <use ./figures/diag-cov.pdf>
 Package pdftex.def Info: ./figures/diag-cov.pdf  used on input line 549.
@@ -1309,19 +1309,19 @@ Package pdftex.def Info: ./figures/diag-cov.pdf  used on input line 549.
  [7
 
  <./figures/diag-cov.pdf>]
-<./figures/diag-qqplot.pdf, id=202, 505.89pt x 505.89pt>
+<./figures/diag-qqplot.pdf, id=210, 505.89pt x 505.89pt>
 File: ./figures/diag-qqplot.pdf Graphic file (type pdf)
 <use ./figures/diag-qqplot.pdf>
 Package pdftex.def Info: ./figures/diag-qqplot.pdf  used on input line 561.
 (pdftex.def)             Requested size: 270.3012pt x 270.30496pt.
-<./figures/fit-emmip.pdf, id=203, 504.88625pt x 504.88625pt>
+<./figures/fit-emmip.pdf, id=211, 504.88625pt x 504.88625pt>
 File: ./figures/fit-emmip.pdf Graphic file (type pdf)
 <use ./figures/fit-emmip.pdf>
 Package pdftex.def Info: ./figures/fit-emmip.pdf  used on input line 578.
 (pdftex.def)             Requested size: 243.26941pt x 243.2671pt.
 LaTeX Font Info:    External font `lmex10' loaded for size
 (Font)              <12> on input line 580.
-<./figures/fit-autoplot.pdf, id=204, 505.89pt x 505.89pt>
+<./figures/fit-autoplot.pdf, id=212, 505.89pt x 505.89pt>
 File: ./figures/fit-autoplot.pdf Graphic file (type pdf)
 <use ./figures/fit-autoplot.pdf>
 Package pdftex.def Info: ./figures/fit-autoplot.pdf  used on input line 583.
@@ -1329,90 +1329,93 @@ Package pdftex.def Info: ./figures/fit-autoplot.pdf  used on input line 583.
  [8
 
  <./figures/diag-qqplot.pdf> <./figures/fit-emmip.pdf> <./figures/fit-autoplot.
-pdf>] [9] [10]
-<./figures/gg-baseAdj.pdf, id=276, 504.88625pt x 504.88625pt>
+pdf>] [9] [10] [11
+
+]
+<./figures/gg-baseAdj.pdf, id=300, 504.88625pt x 504.88625pt>
 File: ./figures/gg-baseAdj.pdf Graphic file (type pdf)
 <use ./figures/gg-baseAdj.pdf>
-Package pdftex.def Info: ./figures/gg-baseAdj.pdf  used on input line 814.
+Package pdftex.def Info: ./figures/gg-baseAdj.pdf  used on input line 823.
 (pdftex.def)             Requested size: 270.3012pt x 270.3002pt.
- [11
+ [12 <./figures/gg-baseAdj.pdf>] [13] [14] [15] [16
 
-] [12 <./figures/gg-baseAdj.pdf>] [13
+] [17
 
-] [14
-
-] [15
+] [18
 
 ] (./overview.bbl
 
 Package natbib Warning: Empty `thebibliography' environment on input line 3.
 
-) [16
+) [19
 
 ]
 
 LaTeX Font Warning: Font shape `U/stmry/b/n' undefined
-(Font)              using `U/stmry/m/n' instead on input line 969.
+(Font)              using `U/stmry/m/n' instead on input line 1195.
 
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <5> on input line 995.
+(Font)              <5> on input line 1221.
 
-Underfull \hbox (badness 10000) in paragraph at lines 995--995
+Underfull \hbox (badness 10000) in paragraph at lines 1221--1221
 [][]\T1/lmr/m/n/10 The REML is the like-li-hood of the ob-ser-va-tions di-vided
  by the prior on the es-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 995--995
+Underfull \hbox (badness 10000) in paragraph at lines 1221--1221
 \T1/lmr/m/n/10 ti-mated mean pa-ram-e-ters $[][] \OMS/lmsy/m/n/10 ^^X N\OT1/lmr
 /m/n/10 (\OML/lmm/m/it/10 ^^V; [][]\OT1/lmr/m/n/10 )$\T1/lmr/m/n/10 . This cor-
 re-sponds to
  []
 
 
-Underfull \hbox (badness 2591) in paragraph at lines 995--995
+Underfull \hbox (badness 2591) in paragraph at lines 1221--1221
 [] [] []$ \T1/lmr/m/n/10 Since $\OML/lmm/m/it/10 ^^V$ \T1/lmr/m/n/10 will be es
 -ti-mated to be
  []
 
-[17
+[20
 
 ]
-Overfull \hbox (19.98886pt too wide) detected at line 1034
+Overfull \hbox (19.98886pt too wide) detected at line 1260
 []
  []
 
+[21
+
+]
 \Changes@OutFile=\write6
 \openout6 = `overview.soc'.
 
 \tf@loc=\write7
 \openout7 = `overview.loc'.
 
-[18
+ [22
 
 ]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 1068.
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 1068.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 1318.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 1318.
  (./overview.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 1068.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 1068.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 1318.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 1318.
 
 Package rerunfilecheck Info: File `overview.out' has not changed.
-(rerunfilecheck)             Checksum: ECA1430E29F7152BC3BB2559CD2B571C;1288.
+(rerunfilecheck)             Checksum: 0FB3BD0BA4F0D4E6F0FA172999236645;1421.
 
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 1068.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 1318.
  ) 
 Here is how much of TeX's memory you used:
- 27298 strings out of 483107
- 486463 string characters out of 5964631
- 981926 words of memory out of 5000000
- 41511 multiletter control sequences out of 15000+600000
+ 27395 strings out of 483107
+ 487672 string characters out of 5964631
+ 981020 words of memory out of 5000000
+ 41566 multiletter control sequences out of 15000+600000
  628912 words of font info for 119 fonts, out of 8000000 for 9000
  59 hyphenation exceptions out of 8191
- 76i,17n,96p,889b,1816s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 76i,17n,96p,889b,1868s stack positions out of 5000i,500n,10000p,200000b,80000s
 pdfTeX warning (dest): name{Hfootnote.2} has been referenced but does not exi
 st, replaced by a fixed one
 
@@ -1425,27 +1428,28 @@ re/texmf/fonts/enc/dvips/lm/lm-ec.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-m
 athex.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-ts1.enc}</usr/share/texmf/fon
 ts/type1/public/lm/lmbx10.pfb></usr/share/texmf/fonts/type1/public/lm/lmbx12.pf
 b></usr/share/texmf/fonts/type1/public/lm/lmbx7.pfb></usr/share/texmf/fonts/typ
-e1/public/lm/lmex10.pfb></usr/share/texmf/fonts/type1/public/lm/lmmi10.pfb></us
-r/share/texmf/fonts/type1/public/lm/lmmi12.pfb></usr/share/texmf/fonts/type1/pu
-blic/lm/lmmi5.pfb></usr/share/texmf/fonts/type1/public/lm/lmmi7.pfb></usr/share
-/texmf/fonts/type1/public/lm/lmmi8.pfb></usr/share/texmf/fonts/type1/public/lm/
-lmmib10.pfb></usr/share/texmf/fonts/type1/public/lm/lmmib7.pfb></usr/share/texm
-f/fonts/type1/public/lm/lmr10.pfb></usr/share/texmf/fonts/type1/public/lm/lmr12
-.pfb></usr/share/texmf/fonts/type1/public/lm/lmr17.pfb></usr/share/texmf/fonts/
-type1/public/lm/lmr5.pfb></usr/share/texmf/fonts/type1/public/lm/lmr7.pfb></usr
-/share/texmf/fonts/type1/public/lm/lmr8.pfb></usr/share/texmf/fonts/type1/publi
-c/lm/lmri12.pfb></usr/share/texmf/fonts/type1/public/lm/lmsy10.pfb></usr/share/
-texmf/fonts/type1/public/lm/lmsy5.pfb></usr/share/texmf/fonts/type1/public/lm/l
-msy7.pfb></usr/share/texmf/fonts/type1/public/lm/lmsy8.pfb></usr/share/texmf/fo
-nts/type1/public/lm/lmtt10.pfb></usr/share/texmf/fonts/type1/public/lm/lmtt12.p
-fb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pf
-b></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/symbols/msam5.pfb>
-</usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/symbols/msam7.pfb></
-usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on overview.pdf (18 pages, 403436 bytes).
+e1/public/lm/lmbx8.pfb></usr/share/texmf/fonts/type1/public/lm/lmex10.pfb></usr
+/share/texmf/fonts/type1/public/lm/lmmi10.pfb></usr/share/texmf/fonts/type1/pub
+lic/lm/lmmi12.pfb></usr/share/texmf/fonts/type1/public/lm/lmmi5.pfb></usr/share
+/texmf/fonts/type1/public/lm/lmmi7.pfb></usr/share/texmf/fonts/type1/public/lm/
+lmmi8.pfb></usr/share/texmf/fonts/type1/public/lm/lmmib10.pfb></usr/share/texmf
+/fonts/type1/public/lm/lmmib7.pfb></usr/share/texmf/fonts/type1/public/lm/lmr10
+.pfb></usr/share/texmf/fonts/type1/public/lm/lmr12.pfb></usr/share/texmf/fonts/
+type1/public/lm/lmr17.pfb></usr/share/texmf/fonts/type1/public/lm/lmr5.pfb></us
+r/share/texmf/fonts/type1/public/lm/lmr7.pfb></usr/share/texmf/fonts/type1/publ
+ic/lm/lmr8.pfb></usr/share/texmf/fonts/type1/public/lm/lmri12.pfb></usr/share/t
+exmf/fonts/type1/public/lm/lmsy10.pfb></usr/share/texmf/fonts/type1/public/lm/l
+msy5.pfb></usr/share/texmf/fonts/type1/public/lm/lmsy7.pfb></usr/share/texmf/fo
+nts/type1/public/lm/lmsy8.pfb></usr/share/texmf/fonts/type1/public/lm/lmtt10.pf
+b></usr/share/texmf/fonts/type1/public/lm/lmtt12.pfb></usr/share/texlive/texmf-
+dist/fonts/type1/public/amsfonts/symbols/msam10.pfb></usr/share/texlive/texmf-d
+ist/fonts/type1/public/amsfonts/symbols/msam5.pfb></usr/share/texlive/texmf-dis
+t/fonts/type1/public/amsfonts/symbols/msam7.pfb></usr/share/texlive/texmf-dist/
+fonts/type1/public/amsfonts/symbols/msbm10.pfb>
+Output written on overview.pdf (22 pages, 432627 bytes).
 PDF statistics:
- 516 PDF objects out of 1000 (max. 8388607)
- 437 compressed objects within 5 object streams
- 155 named destinations out of 1000 (max. 500000)
- 286 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 590 PDF objects out of 1000 (max. 8388607)
+ 505 compressed objects within 6 object streams
+ 197 named destinations out of 1000 (max. 500000)
+ 302 words of extra memory for PDF output out of 10000 (max. 10000000)
 

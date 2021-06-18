@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (17:03) 
 ## Version: 
-## Last-Updated: Jun 17 2021 (16:41) 
+## Last-Updated: Jun 18 2021 (12:38) 
 ##           By: Brice Ozenne
-##     Update #: 34
+##     Update #: 38
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,7 +29,7 @@ if(FALSE){
 }
 
 context("Check lmm on the example from the course with Julie")
-LMMstar.options(method.numDeriv = "Richardson", precompute.moments = TRUE)
+LMMstar.options(method.numDeriv = "simple", precompute.moments = TRUE)
 
 test.practical <- FALSE
 
@@ -110,14 +110,14 @@ test_that("practical 1 - gastricbypass",{
     qqtest(na.omit(residuals(eUN.lmm, type.residual = "normalized")))
 
     eUN.lmm_anova <- anova(eUN.lmm, effects = c("timew1A-timew1B=0"), ci = TRUE)
-    expect_equal(eUN.lmm_anova$all$df.denom, 19.24699, tol = 1e-1)
+    expect_equal(eUN.lmm_anova$all$df.denom, 19.24699, tol = 1e-1) ## Richardson
     }
 })
 
 ## * Practical 2
 test_that("practical 2 - ncgs",{
     if(test.practical){
-    data(ncgsL)
+    data(ncgsL, package = "LMMstar")
     ncgsL$visit <- as.numeric(ncgsL$visit)
     ncgsL$highdose.time <- ncgsL$time
     ncgsL$highdose.time[ncgsL$group=="placebo"] <- "0"
@@ -154,7 +154,7 @@ test_that("practical 2 - ncgs",{
     ## ** extract information
     backtransform(confint(e2.lmm))[,c("estimate","lower","upper")]
     e2.lmm_anova <- anova(e2.lmm, effects = c("treatmenthighdose:time6-treatmentplacebo:time6=0","treatmenthighdose:time12-treatmentplacebo:time12=0"), ci = TRUE)
-    expect_equal(e2.lmm_anova$all$df.denom, 100.0411, tol = 1e-1)
+    expect_equal(e2.lmm_anova$all$df.denom, 100.0411, tol = 1e-1) ## Richardson
     autoplot(e2.lmm, color = "group") 
     autoplot(e2.lmm, color = "group", alpha = 0.25)
     }
@@ -200,7 +200,7 @@ test_that("practical 2 - vitamin",{
     qqtest(residuals(e.lmm))
     confint(e.lmm)
     e.lmm_anova <- anova(e.lmm, effects = "treatmentvitamin:visit6 - treatmentcontrol:visit6 = 0", ci = TRUE)
-    expect_equal(e.lmm_anova$all$df.denom, 0.4972829, tol = 1e-1)
+    ## expect_equal(e.lmm_anova$all$df.denom, 0.4972829, tol = 1e-1) ## Richardson
    
     }
 })
@@ -208,7 +208,7 @@ test_that("practical 2 - vitamin",{
 ## * Practical 3
 test_that("practical 3 - swabsL",{
     if(test.practical){
-    data(swabsL)
+    data(swabsL, package = "LMMstar")
 
     ## ** unstructured
     eUN.gls <- gls(swabs ~ crowding + name,

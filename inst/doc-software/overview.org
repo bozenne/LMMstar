@@ -50,7 +50,7 @@ library(LMMstar)
 To illustrate the functionalities of the package, we will use the
 =veteran= dataset:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-data(gastricbypassL)
+data(gastricbypassL, package = "LMMstar")
 head(gastricbypassL)
 #+END_SRC
 
@@ -218,8 +218,8 @@ coef(eCS.lmm)
 #+end_src
 
 #+RESULTS:
-:   (Intercept)   timeB1_week   timeA1_week timeA3_months      glucagon    log(sigma)    atanh(Rho) 
-:   129.3690995    -7.6194918   -14.4951323   -27.0514694     0.8217879     2.9364900     2.0911816
+:   (Intercept)   timeB1_week   timeA1_week timeA3_months      glucagon         sigma           Rho 
+:   129.3690995    -7.6194918   -14.4951323   -27.0514694     0.8217879    18.8495684     0.9699341
 
 It is possible to apply specific transformation on the variance
 coefficients, for instance to obtain the residual variance relative to
@@ -479,43 +479,55 @@ We would like to model group differences only after baseline
 treatment variable being the group variable except before baseline where
 it is ="none"=:
 #+begin_src R :exports both :results output :session *R* :cache no
-gastricbypassL$treatment <- factor(gastricbypassL$group, c("none","1","2"))
-gastricbypassL$treatment[gastricbypassL$time %in% c("B3_months","B1_week")] <- "none"
-table(gastricbypassL$treatment, gastricbypassL$time)
+gastricbypassL$treat <- baselineAdjustment(gastricbypassL, variable = "group",
+                                           repetition = ~time|id, constrain = c("B3_months","B1_week"),
+                                           new.level = "none")
+table(treat = gastricbypassL$treat, time = gastricbypassL$time, group = gastricbypassL$group)
 #+end_src
 
 #+RESULTS:
-:       
-:        B3_months B1_week A1_week A3_months
-:   none        20      20       0         0
-:   1            0       0      14        14
-:   2            0       0       6         6
+#+begin_example
+, , group = 1
+
+      time
+treat  B3_months B1_week A1_week A3_months
+  none        14      14       0         0
+  1            0       0      14        14
+  2            0       0       0         0
+
+, , group = 2
+
+      time
+treat  B3_months B1_week A1_week A3_months
+  none         6       6       0         0
+  1            0       0       0         0
+  2            0       0       6         6
+#+end_example
 
 Here we will be able to estimate a total of 6 means and therefore can
 at most identify 6 effects. However the design matrix for the
 interaction model:
 #+begin_src R :exports both :results output :session *R* :cache no
-colnames(model.matrix(weight ~ treatment*time, data = gastricbypassL))
+colnames(model.matrix(weight ~ treat*time, data = gastricbypassL))
 #+end_src
 
 #+RESULTS:
-:  [1] "(Intercept)"              "treatment1"               "treatment2"              
-:  [4] "timeB1_week"              "timeA1_week"              "timeA3_months"           
-:  [7] "treatment1:timeB1_week"   "treatment2:timeB1_week"   "treatment1:timeA1_week"  
-: [10] "treatment2:timeA1_week"   "treatment1:timeA3_months" "treatment2:timeA3_months"
+:  [1] "(Intercept)"          "treat1"               "treat2"               "timeB1_week"         
+:  [5] "timeA1_week"          "timeA3_months"        "treat1:timeB1_week"   "treat2:timeB1_week"  
+:  [9] "treat1:timeA1_week"   "treat2:timeA1_week"   "treat1:timeA3_months" "treat2:timeA3_months"
 
 contains 12 parameters (i.e. 6 too many). The =lmm= function will
 internally remove the one that cannot be identified and fit a
 simplified model:
 #+begin_src R :exports both :results output :session *R* :cache no
-eC.lmm <- lmm(weight ~ treatment*time, data = gastricbypassL, structure = UN(~time|id))
+eC.lmm <- lmm(weight ~ treat*time, data = gastricbypassL, structure = UN(~time|id))
 #+end_src
 
 #+RESULTS:
 : Warning message:
 : In model.matrix_regularize(formula.mean, data) :
-:   Constant values in the design matrix in interactions "treatment:time"
-:  Coefficients "treatment1" "treatment2" "timeA1_week" "timeA3_months" "treatment1:timeB1_week" "treatment2:timeB1_week" will be removed from the design matrix. 
+:   Constant values in the design matrix in interactions "treat:time"
+:  Coefficients "treat1" "treat2" "timeA1_week" "timeA3_months" "treat1:timeB1_week" "treat2:timeB1_week" will be removed from the design matrix. 
 : Consider defining manually the interaction, e.g. via droplevels(interaction(.,.)) to avoid this warning.
 
 with the following coefficients:
@@ -524,10 +536,10 @@ coef(eC.lmm, effects = "mean")
 #+end_src
 
 #+RESULTS:
-:              (Intercept)              timeB1_week   treatment1:timeA1_week   treatment2:timeA1_week 
-:                128.97000                 -7.73000                -12.83949                -14.27452 
-: treatment1:timeA3_months treatment2:timeA3_months 
-:                -27.07620                -25.50553
+:          (Intercept)          timeB1_week   treat1:timeA1_week   treat2:timeA1_week 
+:            128.97000             -7.73000            -12.83949            -14.27452 
+: treat1:timeA3_months treat2:timeA3_months 
+:            -27.07620            -25.50553
 
 One can vizualize the baseline adjustment via the =autoplot= function:
 #+begin_src R :exports both :results output :session *R* :cache no
@@ -541,7 +553,205 @@ autoplot(eC.lmm, color = "group", ci = FALSE)
 
 # ## ggsave(autoplot(eC.lmm, color = "group", ci = FALSE, plot = FALSE)$plot + theme(text = element_text(size=20)), filename = "figures/gg-baseAdj.pdf")
 
+To more easily compare the two groups, one could set the baseline
+treatment to the treatment in the control arm by omitting the argument
+=new.level=:
+#+begin_src R :exports both :results output :session *R* :cache no
+gastricbypassL$treat2 <- baselineAdjustment(gastricbypassL, variable = "group",
+                                            repetition = ~time|id, constrain = c("B3_months","B1_week"))
+table(treat = gastricbypassL$treat2, time = gastricbypassL$time, group = gastricbypassL$group)
+#+end_src
+
+#+RESULTS:
+#+begin_example
+, , group = 1
+
+     time
+treat B3_months B1_week A1_week A3_months
+    1        14      14      14        14
+    2         0       0       0         0
+
+, , group = 2
+
+     time
+treat B3_months B1_week A1_week A3_months
+    1         6       6       0         0
+    2         0       0       6         6
+#+end_example
+
+Fitting the model
+#+begin_src R :exports both :results output :session *R* :cache no
+eC2.lmm <- suppressWarnings(lmm(weight ~ treat2*time, data = gastricbypassL, structure = UN(~time|id)))
+#+end_src
+
+#+RESULTS:
+
+will directly output group differences:
+#+begin_src R :exports both :results output :session *R* :cache no
+confint(eC2.lmm, effects = "mean")[5:6,]
+#+end_src
+#+RESULTS:
+:                        estimate       se  statistic       df     lower      upper null   p.value
+: treat22:timeA1_week   -1.435033 0.621046 -2.3106717 16.25085 -2.749942 -0.1201245    0 0.0342893
+: treat22:timeA3_months  1.570675 2.462555  0.6378233 16.28753 -3.642229  6.7835794    0 0.5324540
+
+** Marginal means
+
+The =lmm= function can be used in conjonction with the =emmeans=
+package to compute marginal means. Consider the following model:
+#+begin_src R :exports both :results output :session *R* :cache no
+e.group <- lmm(weight ~ time*group, data = gastricbypassL, structure = UN(~time|id))
+#+end_src
+
+#+RESULTS:
+
+We can for instance compute the average value over time /assuming balanced groups/:
+#+begin_src R :exports both :results output :session *R* :cache no
+library(emmeans)
+emmeans(e.group, specs=~time)
+#+end_src
+
+#+RESULTS:
+: NOTE: Results may be misleading due to involvement in interactions
+:  time      emmean   SE   df lower.CL upper.CL
+:  B3_months    130 5.05 18.0    119.3      141
+:  B1_week      122 4.69 18.0    112.5      132
+:  A1_week      117 4.55 18.0    107.0      126
+:  A3_months    104 4.20 18.1     94.9      113
+: 
+: Results are averaged over the levels of: group 
+: Confidence level used: 0.95
+
+This differs from the average value over time over the whole sample:
+#+begin_src R :exports both :results output :session *R* :cache no
+df.pred <- cbind(gastricbypassL, predict(e.group, newdata = gastricbypassL))
+summarize(formula = estimate~time, data = df.pred)
+#+end_src
+
+#+RESULTS:
+:    outcome      time observed missing    mean       sd      min   median    max
+: 1 estimate B3_months       20       0 128.970 2.270212 127.5214 127.5214 132.35
+: 2 estimate   B1_week       20       0 121.240 2.726942 119.5000 119.5000 125.30
+: 3 estimate   A1_week       20       0 115.700 2.014981 114.4143 114.4143 118.70
+: 4 estimate A3_months       20       0 102.365 3.146729 100.3571 100.3571 107.05
+
+as the groups are not balanced and with this approach more "weight" is
+given to the expected value group 1 as it contains more indiviuals.
+#+begin_src R :exports both :results output :session *R* :cache no
+table(group = gastricbypassL$group, time = gastricbypassL$time)
+#+end_src
+
+#+RESULTS:
+:      time
+: group B3_months B1_week A1_week A3_months
+:     1        14      14      14        14
+:     2         6       6       6         6
+
+By hand:
+#+begin_src R :exports both :results output :session *R* :cache no
+mu.group1 <-  as.double(coef(e.group)["(Intercept)"])
+mu.group2 <-  as.double(coef(e.group)["(Intercept)"] + coef(e.group)["group2"])
+p.group1 <- 14/20
+p.group2 <- 6/20
+c(emmeans = (mu.group1+mu.group2)/2,
+  predict = mu.group1 * p.group1 + mu.group2 * p.group2)
+#+end_src
+
+#+RESULTS:
+:  emmeans  predict 
+: 129.9357 128.9700
+
+which one is relevant depends on the application. The =emmeans=
+function can also be used to display expected value in each group over
+time:
+#+begin_src R :exports both :results output :session *R* :cache no
+emmeans.group <- emmeans(e.group, specs = ~group|time)
+emmeans.group
+#+end_src
+
+#+RESULTS:
+#+begin_example
+time = B3_months:
+ group emmean   SE   df lower.CL upper.CL
+ 1        128 5.53 18.0    115.9      139
+ 2        132 8.45 18.0    114.6      150
+
+time = B1_week:
+ group emmean   SE   df lower.CL upper.CL
+ 1        120 5.14 18.0    108.7      130
+ 2        125 7.85 18.0    108.8      142
+
+time = A1_week:
+ group emmean   SE   df lower.CL upper.CL
+ 1        114 4.99 18.0    103.9      125
+ 2        119 7.62 18.0    102.7      135
+
+time = A3_months:
+ group emmean   SE   df lower.CL upper.CL
+ 1        100 4.60 18.1     90.7      110
+ 2        107 7.03 18.1     92.3      122
+
+Confidence level used: 0.95
+#+end_example
+
+Using the =pair= function displays the differences:
+#+begin_src R :exports both :results output :session *R* :cache no
+  epairs.group <- pairs(emmeans.group, reverse = TRUE)
+  epairs.group
+#+end_src
+
+#+RESULTS:
+#+begin_example
+time = B3_months:
+ contrast estimate    SE   df t.ratio p.value
+ 2 - 1        4.83 10.10 18.0 0.478   0.6383 
+
+time = B1_week:
+ contrast estimate    SE   df t.ratio p.value
+ 2 - 1        5.80  9.38 18.0 0.618   0.5441 
+
+time = A1_week:
+ contrast estimate    SE   df t.ratio p.value
+ 2 - 1        4.29  9.11 18.0 0.471   0.6435 
+
+time = A3_months:
+ contrast estimate    SE   df t.ratio p.value
+ 2 - 1        6.69  8.40 18.1 0.797   0.4361
+#+end_example
+
+One can adjust for multiple comparison via the =adjust= argument and
+display confidence intervals setting the argument =infer= to =TRUE=:
+#+begin_src R :exports both :results output :session *R* :cache no
+summary(epairs.group, by = NULL, adjust = "mvt", infer = TRUE)
+#+end_src
+
+#+RESULTS:
+:  contrast time      estimate    SE   df lower.CL upper.CL t.ratio p.value
+:  2 - 1    B3_months     4.83 10.10 18.0    -18.0     27.6 0.478   0.7499 
+:  2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0 0.618   0.6484 
+:  2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.9 0.471   0.7555 
+:  2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.7 0.797   0.5285 
+: 
+: Confidence level used: 0.95 
+: Conf-level adjustment: mvt method for 4 estimates 
+: P value adjustment: mvt method for 4 tests
+
+This should also work when doing baseline adjustment (because of
+baseline adjustment no difference is expected at the first two
+timepoints):
+#+begin_src R :exports both :results output :session *R* :cache no
+summary(pairs(emmeans(eC2.lmm , specs = ~treat2|time), reverse = TRUE), by = NULL)
+#+end_src
+
+#+RESULTS:
+:  contrast time      estimate    SE   df t.ratio p.value
+:  2 - 1    B3_months     0.00 0.000  NaN    NaN     NaN 
+:  2 - 1    B1_week       0.00 0.000  NaN    NaN     NaN 
+:  2 - 1    A1_week      -1.44 0.621 16.2 -2.311  0.0345 
+:  2 - 1    A3_months     1.57 2.463 16.3  0.638  0.5326
+
 \clearpage
+
 * Data generation
 Simulate some data in the wide format:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -796,6 +1006,32 @@ Leading to:
 This is what =information= output when the argument =type.information=
 is set to ="expected"= (up to a factor -1).
 
+\clearpage
+
+** Degrees of freedom
+
+Degrees of freedom are computed using a Satterthwaite approximation,
+i.e. for an estimate coefficient \(\widehat{\beta}\in\widehat{\Vparam}\) with standard
+error \(\sigma_{\widehat{beta}}\), the degree of freedom is:
+#+begin_export latex
+\begin{align*}
+df\left(\sigma_{\widehat{\beta}}\right) = \frac{2 \sigma_{\widehat{\beta}}}{\Var[\widehat{\sigma}_{\widehat{\beta}}]}
+\end{align*}
+#+end_export
+Using a first order Taylor expansion we can approximate the variance term as:
+#+begin_export latex
+\begin{align*}
+\Var[\widehat{\sigma}_{\widehat{\beta}}] & \approx \dpartial[\widehat{\sigma}_{\widehat{\beta}}][\Vparam] \Sigma_{\Vparam}  \trans{\dpartial[\widehat{\sigma}_{\widehat{\beta}}][\Vparam]} \\
+& \approx c_{\beta} \left(\widehat{\Information}_{\widehat{\Vparam}}\right)^{-1} \dpartial[\widehat{\Information}_{\widehat{\Vparam}}][\Vparam] \left(\widehat{\Information}_{\widehat{\Vparam}}\right)^{-1} \trans{c_{\beta}} \Sigma_{\Vparam} \trans{c_{\beta}} \left(\widehat{\Information}_{\widehat{\Vparam}}\right)^{-1} \trans{\dpartial[\widehat{\Information}_{\widehat{\Vparam}}][\Vparam]} \left(\widehat{\Information}_{\widehat{\Vparam}}\right)^{-1} c_{\beta}
+\end{align*}
+#+end_export
+
+  where \(\Sigma_{\Vparam}\) is the variance-covariance matrix of all
+  model coefficients, \(\Information_{\Vparam}\) the information
+  matrix for all model coefficients, \(c_{\beta}\) a matrix used to
+  select the element relative to \(\beta\) in the first derivative of
+  the information matrix, and \(\dpartial[.][\Vparam]\) denotes the
+  vector of derivatives with respect to all model coefficients.
   
 * CONFIG                                                           :noexport:
 #+LANGUAGE:  en

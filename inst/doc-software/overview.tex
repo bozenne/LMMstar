@@ -1,4 +1,4 @@
-% Created 2021-06-17 Thu 16:51
+% Created 2021-06-18 Fri 17:43
 % Intended LaTeX compiler: pdflatex
 \documentclass[12pt]{article}
 
@@ -270,7 +270,7 @@ To illustrate the functionalities of the package, we will use the
 \texttt{veteran} dataset:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-data(gastricbypassL)
+data(gastricbypassL, package = "LMMstar")
 head(gastricbypassL)
 \end{lstlisting}
 
@@ -317,7 +317,7 @@ utils::packageVersion("LMMstar")
 \clearpage
 
 \section{Descriptive statistics}
-\label{sec:org3474069}
+\label{sec:org45b0f15}
 Mean, standard deviation, and other summary statistic can be computed
 with respect to a categorical variable (typically time) using the
 \texttt{summarize} function:
@@ -343,9 +343,9 @@ print(sss, digits = 3)
 \clearpage
 
 \section{Multivariate Gaussian model}
-\label{sec:orgc80b072}
+\label{sec:org94bf494}
 \subsection{Modeling tools}
-\label{sec:org4b4d009}
+\label{sec:org92281d2}
 Fit a multivariate Gaussian model with \textbf{compound symmetry} structure:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -395,7 +395,7 @@ calling \texttt{lmm} should lead to a more reasonnable computation time.
 \clearpage
 
 \subsection{Model output}
-\label{sec:org501a0ef}
+\label{sec:orga7d78c9}
 
 The \texttt{summary} method can be used to display the main information
 relative to the model fit:
@@ -449,7 +449,7 @@ Note: p-values and confidence intervals are not adjusted for multiple comparison
 \clearpage
 
 \subsection{Extract estimated coefficients}
-\label{sec:org49af62c}
+\label{sec:orgad8f777}
 The value of the estimated coefficients can be output using \texttt{coef}:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -457,8 +457,8 @@ coef(eCS.lmm)
 \end{lstlisting}
 
 \begin{verbatim}
-(Intercept)   timeB1_week   timeA1_week timeA3_months      glucagon    log(sigma)    atanh(Rho) 
-129.3690995    -7.6194918   -14.4951323   -27.0514694     0.8217879     2.9364900     2.0911816
+(Intercept)   timeB1_week   timeA1_week timeA3_months      glucagon         sigma           Rho 
+129.3690995    -7.6194918   -14.4951323   -27.0514694     0.8217879    18.8495684     0.9699341
 \end{verbatim}
 
 
@@ -476,7 +476,7 @@ sigma:B3_months   sigma:B1_week   sigma:A1_week sigma:A3_months
 \end{verbatim}
 
 \subsection{Extract estimated residual variance-covariance structure}
-\label{sec:org8140751}
+\label{sec:org43abc58}
 
 The method \texttt{getVarCov} can be used to output the covariance structure of the residuals:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -510,7 +510,7 @@ A3_months  344.6236 344.6236  355.3062
 \clearpage
 
 \subsection{Model diagnostic}
-\label{sec:orgc7fb791}
+\label{sec:orgdec1967}
 The method \texttt{residuals} can be used to output the normalized residuals in a wide format:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -562,7 +562,7 @@ qqtest(na.omit(gastricbypassL$residualsN_CS))
 \end{center}
 
 \subsection{Model fit}
-\label{sec:orgeeceabf}
+\label{sec:orge4ef748}
 
 The fitted values can be displayed via the \texttt{emmeans} package or using the \texttt{autoplot} method:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -594,10 +594,10 @@ autoplot(eCS.lmm, at = data.frame(glucagon = 10), color = "glucagon")
 \end{lstlisting}
 
 \subsection{Statistical inference}
-\label{sec:org4c6fa60}
+\label{sec:orgf7991a8}
 
 \subsubsection{Model coefficients}
-\label{sec:orgf7c1b38}
+\label{sec:orgabec51c}
 
 The estimated coefficients with their confidence intervals can be accessed via the \texttt{confint} method:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -659,7 +659,7 @@ sigma 18.84957 2.993123        NA 2.695584 8.685673 29.01346   NA      NA
 \end{verbatim}
 
 \subsubsection{Linear combination of the model coefficients}
-\label{sec:org40785f5}
+\label{sec:org08c9da0}
 
 The \texttt{anova} method can be use to test one or several linear
 combinations of the model coefficients using Wald tests. For instance
@@ -728,7 +728,7 @@ statistic df.num df.denom     p.value
 \clearpage
 
 \subsection{Baseline adjustment}
-\label{sec:org7f818fa}
+\label{sec:orgef08719}
 
 The \texttt{lmm} contains an "experimental" feature to drop non-identifiable
 effects from the model. For instance, let us define two (artifical) groups of
@@ -743,33 +743,42 @@ treatment variable being the group variable except before baseline where
 it is \texttt{"none"}:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-gastricbypassL$treatment <- factor(gastricbypassL$group, c("none","1","2"))
-gastricbypassL$treatment[gastricbypassL$time %in% c("B3_months","B1_week")] <- "none"
-table(gastricbypassL$treatment, gastricbypassL$time)
+gastricbypassL$treat <- baselineAdjustment(gastricbypassL, variable = "group",
+					   repetition = ~time|id, constrain = c("B3_months","B1_week"),
+					   new.level = "none")
+table(treat = gastricbypassL$treat, time = gastricbypassL$time, group = gastricbypassL$group)
 \end{lstlisting}
 
 \begin{verbatim}
+, , group = 1
 
-     B3_months B1_week A1_week A3_months
-none        20      20       0         0
-1            0       0      14        14
-2            0       0       6         6
+      time
+treat  B3_months B1_week A1_week A3_months
+  none        14      14       0         0
+  1            0       0      14        14
+  2            0       0       0         0
+
+, , group = 2
+
+      time
+treat  B3_months B1_week A1_week A3_months
+  none         6       6       0         0
+  1            0       0       0         0
+  2            0       0       6         6
 \end{verbatim}
-
 
 Here we will be able to estimate a total of 6 means and therefore can
 at most identify 6 effects. However the design matrix for the
 interaction model:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-colnames(model.matrix(weight ~ treatment*time, data = gastricbypassL))
+colnames(model.matrix(weight ~ treat*time, data = gastricbypassL))
 \end{lstlisting}
 
 \begin{verbatim}
- [1] "(Intercept)"              "treatment1"               "treatment2"              
- [4] "timeB1_week"              "timeA1_week"              "timeA3_months"           
- [7] "treatment1:timeB1_week"   "treatment2:timeB1_week"   "treatment1:timeA1_week"  
-[10] "treatment2:timeA1_week"   "treatment1:timeA3_months" "treatment2:timeA3_months"
+[1] "(Intercept)"          "treat1"               "treat2"               "timeB1_week"         
+[5] "timeA1_week"          "timeA3_months"        "treat1:timeB1_week"   "treat2:timeB1_week"  
+[9] "treat1:timeA1_week"   "treat2:timeA1_week"   "treat1:timeA3_months" "treat2:timeA3_months"
 \end{verbatim}
 
 
@@ -778,14 +787,14 @@ internally remove the one that cannot be identified and fit a
 simplified model:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-eC.lmm <- lmm(weight ~ treatment*time, data = gastricbypassL, structure = UN(~time|id))
+eC.lmm <- lmm(weight ~ treat*time, data = gastricbypassL, structure = UN(~time|id))
 \end{lstlisting}
 
 \begin{verbatim}
 Warning message:
 In model.matrix_regularize(formula.mean, data) :
-  Constant values in the design matrix in interactions "treatment:time"
- Coefficients "treatment1" "treatment2" "timeA1_week" "timeA3_months" "treatment1:timeB1_week" "treatment2:timeB1_week" will be removed from the design matrix. 
+  Constant values in the design matrix in interactions "treat:time"
+ Coefficients "treat1" "treat2" "timeA1_week" "timeA3_months" "treat1:timeB1_week" "treat2:timeB1_week" will be removed from the design matrix. 
 Consider defining manually the interaction, e.g. via droplevels(interaction(.,.)) to avoid this warning.
 \end{verbatim}
 
@@ -797,10 +806,10 @@ coef(eC.lmm, effects = "mean")
 \end{lstlisting}
 
 \begin{verbatim}
-             (Intercept)              timeB1_week   treatment1:timeA1_week   treatment2:timeA1_week 
-               128.97000                 -7.73000                -12.83949                -14.27452 
-treatment1:timeA3_months treatment2:timeA3_months 
-               -27.07620                -25.50553
+         (Intercept)          timeB1_week   treat1:timeA1_week   treat2:timeA1_week 
+           128.97000             -7.73000            -12.83949            -14.27452 
+treat1:timeA3_months treat2:timeA3_months 
+           -27.07620            -25.50553
 \end{verbatim}
 
 
@@ -814,9 +823,226 @@ autoplot(eC.lmm, color = "group", ci = FALSE)
 \includegraphics[width=0.5\textwidth]{./figures/gg-baseAdj.pdf}
 \end{center}
 
+To more easily compare the two groups, one could set the baseline
+treatment to the treatment in the control arm by omitting the argument
+\texttt{new.level}:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+gastricbypassL$treat2 <- baselineAdjustment(gastricbypassL, variable = "group",
+					    repetition = ~time|id, constrain = c("B3_months","B1_week"))
+table(treat = gastricbypassL$treat2, time = gastricbypassL$time, group = gastricbypassL$group)
+\end{lstlisting}
+
+\begin{verbatim}
+, , group = 1
+
+     time
+treat B3_months B1_week A1_week A3_months
+    1        14      14      14        14
+    2         0       0       0         0
+
+, , group = 2
+
+     time
+treat B3_months B1_week A1_week A3_months
+    1         6       6       0         0
+    2         0       0       6         6
+\end{verbatim}
+
+Fitting the model
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+eC2.lmm <- suppressWarnings(lmm(weight ~ treat2*time, data = gastricbypassL, structure = UN(~time|id)))
+\end{lstlisting}
+
+will directly output group differences:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+confint(eC2.lmm, effects = "mean")[5:6,]
+\end{lstlisting}
+\begin{verbatim}
+                       estimate       se  statistic       df     lower      upper null   p.value
+treat22:timeA1_week   -1.435033 0.621046 -2.3106717 16.25085 -2.749942 -0.1201245    0 0.0342893
+treat22:timeA3_months  1.570675 2.462555  0.6378233 16.28753 -3.642229  6.7835794    0 0.5324540
+\end{verbatim}
+
+\subsection{Marginal means}
+\label{sec:org85453a6}
+
+The \texttt{lmm} function can be used in conjonction with the \texttt{emmeans}
+package to compute marginal means. Consider the following model:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+e.group <- lmm(weight ~ time*group, data = gastricbypassL, structure = UN(~time|id))
+\end{lstlisting}
+
+We can for instance compute the average value over time \emph{assuming balanced groups}:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+library(emmeans)
+emmeans(e.group, specs=~time)
+\end{lstlisting}
+
+\begin{verbatim}
+NOTE: Results may be misleading due to involvement in interactions
+ time      emmean   SE   df lower.CL upper.CL
+ B3_months    130 5.05 18.0    119.3      141
+ B1_week      122 4.69 18.0    112.5      132
+ A1_week      117 4.55 18.0    107.0      126
+ A3_months    104 4.20 18.1     94.9      113
+
+Results are averaged over the levels of: group 
+Confidence level used: 0.95
+\end{verbatim}
+
+
+This differs from the average value over time over the whole sample:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+df.pred <- cbind(gastricbypassL, predict(e.group, newdata = gastricbypassL))
+summarize(formula = estimate~time, data = df.pred)
+\end{lstlisting}
+
+\begin{verbatim}
+   outcome      time observed missing    mean       sd      min   median    max
+1 estimate B3_months       20       0 128.970 2.270212 127.5214 127.5214 132.35
+2 estimate   B1_week       20       0 121.240 2.726942 119.5000 119.5000 125.30
+3 estimate   A1_week       20       0 115.700 2.014981 114.4143 114.4143 118.70
+4 estimate A3_months       20       0 102.365 3.146729 100.3571 100.3571 107.05
+\end{verbatim}
+
+
+as the groups are not balanced and with this approach more "weight" is
+given to the expected value group 1 as it contains more indiviuals.
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+table(group = gastricbypassL$group, time = gastricbypassL$time)
+\end{lstlisting}
+
+\begin{verbatim}
+     time
+group B3_months B1_week A1_week A3_months
+    1        14      14      14        14
+    2         6       6       6         6
+\end{verbatim}
+
+
+By hand:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+mu.group1 <-  as.double(coef(e.group)["(Intercept)"])
+mu.group2 <-  as.double(coef(e.group)["(Intercept)"] + coef(e.group)["group2"])
+p.group1 <- 14/20
+p.group2 <- 6/20
+c(emmeans = (mu.group1+mu.group2)/2,
+  predict = mu.group1 * p.group1 + mu.group2 * p.group2)
+\end{lstlisting}
+
+\begin{verbatim}
+ emmeans  predict 
+129.9357 128.9700
+\end{verbatim}
+
+
+which one is relevant depends on the application. The \texttt{emmeans}
+function can also be used to display expected value in each group over
+time:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+emmeans.group <- emmeans(e.group, specs = ~group|time)
+emmeans.group
+\end{lstlisting}
+
+\begin{verbatim}
+time = B3_months:
+ group emmean   SE   df lower.CL upper.CL
+ 1        128 5.53 18.0    115.9      139
+ 2        132 8.45 18.0    114.6      150
+
+time = B1_week:
+ group emmean   SE   df lower.CL upper.CL
+ 1        120 5.14 18.0    108.7      130
+ 2        125 7.85 18.0    108.8      142
+
+time = A1_week:
+ group emmean   SE   df lower.CL upper.CL
+ 1        114 4.99 18.0    103.9      125
+ 2        119 7.62 18.0    102.7      135
+
+time = A3_months:
+ group emmean   SE   df lower.CL upper.CL
+ 1        100 4.60 18.1     90.7      110
+ 2        107 7.03 18.1     92.3      122
+
+Confidence level used: 0.95
+\end{verbatim}
+
+Using the \texttt{pair} function displays the differences:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+epairs.group <- pairs(emmeans.group, reverse = TRUE)
+epairs.group
+\end{lstlisting}
+
+\begin{verbatim}
+time = B3_months:
+ contrast estimate    SE   df t.ratio p.value
+ 2 - 1        4.83 10.10 18.0 0.478   0.6383 
+
+time = B1_week:
+ contrast estimate    SE   df t.ratio p.value
+ 2 - 1        5.80  9.38 18.0 0.618   0.5441 
+
+time = A1_week:
+ contrast estimate    SE   df t.ratio p.value
+ 2 - 1        4.29  9.11 18.0 0.471   0.6435 
+
+time = A3_months:
+ contrast estimate    SE   df t.ratio p.value
+ 2 - 1        6.69  8.40 18.1 0.797   0.4361
+\end{verbatim}
+
+One can adjust for multiple comparison via the \texttt{adjust} argument and
+display confidence intervals setting the argument \texttt{infer} to \texttt{TRUE}:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+summary(epairs.group, by = NULL, adjust = "mvt", infer = TRUE)
+\end{lstlisting}
+
+\begin{verbatim}
+ contrast time      estimate    SE   df lower.CL upper.CL t.ratio p.value
+ 2 - 1    B3_months     4.83 10.10 18.0    -18.0     27.6 0.478   0.7499 
+ 2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0 0.618   0.6484 
+ 2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.9 0.471   0.7555 
+ 2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.7 0.797   0.5285 
+
+Confidence level used: 0.95 
+Conf-level adjustment: mvt method for 4 estimates 
+P value adjustment: mvt method for 4 tests
+\end{verbatim}
+
+
+This should also work when doing baseline adjustment (because of
+baseline adjustment no difference is expected at the first two
+timepoints):
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+summary(pairs(emmeans(eC2.lmm , specs = ~treat2|time), reverse = TRUE), by = NULL)
+\end{lstlisting}
+
+\begin{verbatim}
+contrast time      estimate    SE   df t.ratio p.value
+2 - 1    B3_months     0.00 0.000  NaN    NaN     NaN 
+2 - 1    B1_week       0.00 0.000  NaN    NaN     NaN 
+2 - 1    A1_week      -1.44 0.621 16.2 -2.311  0.0345 
+2 - 1    A3_months     1.57 2.463 16.3  0.638  0.5326
+\end{verbatim}
+
+
 \clearpage
+
 \section{Data generation}
-\label{sec:orgba3e818}
+\label{sec:org699bfe3}
 Simulate some data in the wide format:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -863,7 +1089,7 @@ head(dL)
 \clearpage
 
 \section{Modifying default options}
-\label{sec:org983d5c5}
+\label{sec:org9b0a019}
 The \texttt{LMMstar.options} method enable to get and set the default options
 used by the package. For instance, the default option for the information matrix is:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -892,7 +1118,7 @@ LMMstar.options(reinitialise = TRUE)
 \clearpage
 
 \section{R session}
-\label{sec:orgb5129e3}
+\label{sec:orgec99938}
 Details of the R session used to generate this document:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -938,7 +1164,7 @@ loaded via a namespace (and not attached):
 \clearpage
 
 \section*{References}
-\label{sec:org40a7b5c}
+\label{sec:org0ff64db}
 \begingroup
 \renewcommand{\section}[2]{}
 
@@ -964,7 +1190,7 @@ loaded via a namespace (and not attached):
 \section{Likelihood in a multivariate Gaussian models}
 \label{SM:likelihood}
 \subsection{Log-likelihood}
-\label{sec:org3bf87ef}
+\label{sec:org94a64ba}
 
 Denote by \(\VY\) a vector of \(m\) outcomes, \(\VX\) a vector of
 \(p\) covariates, \(\mu(\Vparam,\VX)\) the modeled mean, and
@@ -998,7 +1224,7 @@ when setting the argument \texttt{indiv} to \texttt{TRUE}.
 \bigskip
 
 \subsection{Score}
-\label{sec:org34aa2a9}
+\label{sec:org54259cf}
 
  Using that \(\partial \log(\det(X))=tr(X^{-1}\partial(X))\), the
 score is obtained by derivating once the log-likelihood, i.e., for
@@ -1021,7 +1247,7 @@ what \texttt{score} outputs for the ML criteria when setting the argument
 \clearpage
 
 \subsection{Hessian}
-\label{sec:orgd8c39b1}
+\label{sec:org425143b}
 
 Derivating a second time the log-likelihood gives the hessian, \(\Hessian(\Vparam)\), with element\footnote{if one is relative to the mean and the other to the variance then they are respectively \(\theta\) and \(\theta'\)}:
 \begin{align*}
@@ -1065,4 +1291,28 @@ Leading to:
 
 This is what \texttt{information} output when the argument \texttt{type.information}
 is set to \texttt{"expected"} (up to a factor -1).
+
+\clearpage
+
+\subsection{Degrees of freedom}
+\label{sec:org4aec8db}
+
+Degrees of freedom are computed using a Satterthwaite approximation,
+i.e. for an estimate coefficient \(\widehat{\beta}\in\widehat{\Vparam}\) with standard
+error \(\sigma_{\widehat{beta}}\), the degree of freedom is:
+\begin{align*}
+df\left(\sigma_{\widehat{\beta}}\right) = \frac{2 \sigma_{\widehat{\beta}}}{\Var[\widehat{\sigma}_{\widehat{\beta}}]}
+\end{align*}
+Using a first order Taylor expansion we can approximate the variance term as:
+\begin{align*}
+\Var[\widehat{\sigma}_{\widehat{\beta}}] & \approx \dpartial[\widehat{\sigma}_{\widehat{\beta}}][\Vparam] \Sigma_{\Vparam}  \trans{\dpartial[\widehat{\sigma}_{\widehat{\beta}}][\Vparam]} \\
+& \approx c_{\beta} \left(\widehat{\Information}_{\widehat{\Vparam}}\right)^{-1} \dpartial[\widehat{\Information}_{\widehat{\Vparam}}][\Vparam] \left(\widehat{\Information}_{\widehat{\Vparam}}\right)^{-1} \trans{c_{\beta}} \Sigma_{\Vparam} \trans{c_{\beta}} \left(\widehat{\Information}_{\widehat{\Vparam}}\right)^{-1} \trans{\dpartial[\widehat{\Information}_{\widehat{\Vparam}}][\Vparam]} \left(\widehat{\Information}_{\widehat{\Vparam}}\right)^{-1} c_{\beta}
+\end{align*}
+
+where \(\Sigma_{\Vparam}\) is the variance-covariance matrix of all
+model coefficients, \(\Information_{\Vparam}\) the information
+matrix for all model coefficients, \(c_{\beta}\) a matrix used to
+select the element relative to \(\beta\) in the first derivative of
+the information matrix, and \(\dpartial[.][\Vparam]\) denotes the
+vector of derivatives with respect to all model coefficients.
 \end{document}

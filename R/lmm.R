@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Jun 17 2021 (11:05) 
+## Last-Updated: Jun 18 2021 (14:11) 
 ##           By: Brice Ozenne
-##     Update #: 911
+##     Update #: 930
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -378,9 +378,10 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
 
     ## move from design matrix to dataset + update formula (useful when doing baseline adjustment)
     data.fit <- as.data.frame(out$design$X.mean[,colnames(out$design$X.mean),drop=FALSE])
-    colnames(data.fit) <- gsub(" ","_",gsub("(Intercept)","Intercept",gsub(":","_",colnames(data.fit), fixed = TRUE), fixed = TRUE))
+    ## colnames(data.fit) <- gsub(" ","_",gsub("(Intercept)","Intercept",gsub(":","_",colnames(data.fit), fixed = TRUE), fixed = TRUE))
+    colnames(data.fit) <- paste0("p",1:NCOL(data.fit))
     
-    txt.formula <- tapply(gsub(" ","_",gsub("(Intercept)","Intercept",gsub(":","_",names(out$design$param$strata.mu), fixed = TRUE), fixed = TRUE)),out$design$param$strata.mu, function(iStrata){
+    txt.formula <- tapply(paste0("p",1:NCOL(data.fit)),out$design$param$strata.mu, function(iStrata){
         paste0(var.outcome, "~ 0 + ",  paste(iStrata, collapse = " + "))
     })
 
@@ -469,135 +470,15 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
 
     if(trace>=1){cat("\n")}
 
-    ## ** Reparametrisation
-    if(trace>=1){cat("3. Reparametrization \n")}
-    name.allcoef <- names(out$param$value)
-    
-    index.var <- which(out$param$type %in% c("sigma","k","rho"))
-    out$reparametrize <- .reparametrize(p = out$param$value[index.var], type = out$param$type[index.var], strata = out$param$strata[index.var], time.levels = out$time$levels,
-                                        time.k = out$design$param$time.k, time.rho = out$design$param$time.rho,
-                                        Jacobian = TRUE, dJacobian = 2, inverse = FALSE,
-                                        transform.sigma = options$transform.sigma,
-                                        transform.k = options$transform.k,
-                                        transform.rho = options$transform.rho,
-                                        transform.names = TRUE)
-
-    if(out$reparametrize$transform==FALSE){
-        out$reparametrize$newname <- NULL
-        out$reparametrize$Jacobian <- NULL
-        out$reparametrize$dJacobian <- NULL
-    }else{
-        newname.allcoef <- name.allcoef
-        newname.allcoef[match(names(out$reparametrize$p),name.allcoef)] <- out$reparametrize$newname
-    }
-
-    ## ** Compute partial derivatives regarding the mean and the variance
-    if(trace>=1){cat("4. Compute partial derivatives regarding the mean and the variance \n")}
-
-    if(trace>=2){cat("- residuals \n")}
-    out$residuals <- out$design$Y - out$design$X.mean %*% out$param$value[colnames(out$design$X.mean)]
-    if(options$precompute.moments){
-        precompute <- list(XX = out$design$precompute.XX,
-                           RR = .precomputeRR(residuals = out$residuals, pattern = out$design$X.var$pattern,
-                                              pattern.time = out$design$X.var$index.time, pattern.cluster = attr(out$design$X.var$cluster, "index.byPattern"), index.cluster = attr(out$design$index.cluster,"sorted")),
-                           XR = .precomputeXR(X = out$design$X.mean, residuals = out$residuals, pattern = out$design$X.var$pattern,
-                                              pattern.time = out$design$X.var$index.time, pattern.cluster = attr(out$design$X.var$cluster, "index.byPattern"), index.cluster = attr(out$design$index.cluster,"sorted"))
-                           )
-
-    }else{
-        precompute <- NULL
-    }
-
-    if(trace>=2){cat("- Omega \n")}
-    out$Omega <- .calc_Omega(object = out$design$X.var, param = out$param$value, keep.interim = TRUE)
-    out$OmegaM1 <- lapply(out$Omega,solve)
-    
-    if(trace>=2){cat("- dOmega \n")}
-    out$dOmega <- .calc_dOmega(object = out$design$X.var, param = out$param$value, type = out$param$type, Omega = out$Omega,
-                               Jacobian = out$reparametrize$Jacobian)
-
-    if(trace>=2){cat("- d2Omega \n")}
-    out$d2Omega <- .calc_d2Omega(object = out$design$X.var, param = out$param$value, type = out$param$type,
-                                 Omega = out$Omega, dOmega = out$dOmega, pair = out$design$param$pair.varcoef,
-                                 Jacobian = out$reparametrize$Jacobian, dJacobian = out$reparametrize$dJacobian)
-
     ## ** Compute likelihood derivatives
-    if(trace>=1){cat("5. Compute likelihood derivatives \n")}
+    if(trace>=1){cat("3. Compute likelihood derivatives \n")}
+    outMoments <- .moments.lmm(param = out$param, design = out$design, time = out$time, method.fit = method.fit, type.information = type.information,
+                               transform.sigma = options$transform.sigma, transform.k = options$transform.k, transform.rho = options$transform.rho,
+                               logLik = TRUE, score = TRUE, information = TRUE, vcov = TRUE, df = df, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
+                               trace = trace>=2, precompute.moments = options$precompute.moments, method.numDeriv = options$method.numDeriv, transform.names = FALSE)
 
-    if(trace>=2){cat("- log-likelihood \n")}
-    out$logLik <- .logLik(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1,
-                          index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster, 
-                          indiv = FALSE, REML = method.fit=="REML", precompute = precompute)
-
-    if(trace>=2){cat("- score \n")}
-    out$score <- .score(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega,
-                        index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
-                        name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
-                        indiv = FALSE, REML = method.fit=="REML", effects = c("mean","variance","correlation"), precompute = precompute)
-
-    ## microbenchmark::microbenchmark(test = .score(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega,
-    ##                                              index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
-    ##                                              name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
-    ##                                              indiv = FALSE, REML = method.fit=="REML", effects = c("mean","variance","correlation"), precompute = precompute),
-    ##                                GS = .score(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega,
-    ##                                            index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
-    ##                                            name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
-    ##                                            indiv = FALSE, REML = method.fit=="REML", effects = c("mean","variance","correlation"), precompute = NULL),
-    ##                                )
-
-
-    if(trace>=2){cat("- information \n")}
-    out$information <- .information(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega, robust = FALSE,
-                                    index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
-                                    name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
-                                    pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef,
-                                    indiv = FALSE, REML = method.fit=="REML", type.information = type.information, effects = c("mean","variance","correlation"), precompute = precompute)
-
-    ## GS <- .information(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega, robust = FALSE,
-    ##                    index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
-    ##                    name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
-    ##                    pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef,
-    ##                    indiv = FALSE, REML = method.fit=="REML", type.information = type.information, effects = c("mean","variance","correlation"), precompute = NULL)
-    ## test <- .information(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega, robust = FALSE,
-    ##                      index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
-    ##                      name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
-    ##                      pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef,
-    ##                      indiv = FALSE, REML = method.fit=="REML", type.information = type.information, effects = c("mean","variance","correlation"), precompute = precompute)
-
-    ## microbenchmark(GS = .information(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega, robust = FALSE,
-    ##                                  index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
-    ##                                  name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
-    ##                                  pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef,
-    ##                                  indiv = FALSE, REML = method.fit=="REML", type.information = type.information, effects = c("mean","variance","correlation"), precompute = NULL),
-    ##                test =  .information(X = out$design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega, robust = FALSE,
-    ##                                     index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
-    ##                                     name.varcoef = out$design$X.var$param, name.allcoef = name.allcoef,
-    ##                                     pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef,
-    ##                                     indiv = FALSE, REML = method.fit=="REML", type.information = type.information, effects = c("mean","variance","correlation"), precompute = precompute),
-    ##                precompute = list(XX = out$design$precompute.XX,
-    ##                                  RR = .precomputeRR(residuals = out$residuals, pattern = out$design$X.var$pattern,
-    ##                                                     pattern.time = out$design$X.var$index.time, pattern.cluster = attr(out$design$X.var$cluster, "index.byPattern"), index.cluster = attr(out$design$index.cluster,"sorted")),
-    ##                                  XR = .precomputeXR(X = out$design$X.mean, residuals = out$residuals, pattern = out$design$X.var$pattern,
-    ##                                                     pattern.time = out$design$X.var$index.time, pattern.cluster = attr(out$design$X.var$cluster, "index.byPattern"), index.cluster = attr(out$design$index.cluster,"sorted"))
-    ##                                  ))
-
-    attr(out$information, "type.information") <- type.information
-    if(trace>=2){cat("- variance-covariance \n")}
-    out$vcov <- solve(out$information)
-
-    if(df){
-        if(trace>=2){cat("- degrees of freedom \n")}
-        out$df <- .df(param = out$param, reparametrize = out$reparametrize, Y = out$design$Y, X.mean = out$design$X.mean, X.var = out$design$X.var,
-                      index.variance = out$design$X.var$cluster, time.variance = out$design$index.time, index.cluster = out$design$index.cluster,
-                      name.varcoef = out$design$X.var$param, 
-                      time.k = out$design$param$time.k, time.rho = out$design$param$time.rho,
-                      pair.meanvarcoef = out$design$param$pair.meanvarcoef, pair.varcoef = out$design$param$pair.varcoef, REML = (method.fit=="REML"), type.information = type.information,
-                      effects = c("mean","variance","correlation"), 
-                      transform.sigma = out$reparametrize$transform.sigma, transform.k = out$reparametrize$transform.k, transform.rho = out$reparametrize$transform.rho,
-                      vcov = out$vcov, diag = TRUE, method.numDeriv = options$method.numDeriv, robust = FALSE, precompute = precompute)
-        out$dVcov <- attr(out$df,"dVcov")
-        attr(out$df,"dVcov") <- NULL
-    }    
+    out[names(outMoments)] <- outMoments
+    if(trace>=1){cat("\n")}
 
     ## ** convert to lmm and export
     class(out) <- "lmm"
