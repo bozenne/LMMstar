@@ -19,11 +19,11 @@ of Copenhagen. It provides functions for computing summary statistics
 and obtainign graphical displays of longitudinal data, as well as for
 statistical modeling and statistical inference using mixed models.
 
-This package does not implement any new methods. Instead it builds on
-existing methods and softwares, e.g.: 
+This package builds on existing methods and softwares, e.g.:
+- =emmeans= for computing marginal means
+- =lava= for simulating data
 - =nlme= for fitting mixed model
 - =multcomp= for adjusting for multiple comparisons
-- =lava= for simulating data
 The main feature of the package is to provide a convenient user
 interface.
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: Jun 18 2021 (10:51) 
+## Last-Updated: Jun 20 2021 (15:13) 
 ##           By: Brice Ozenne
-##     Update #: 833
+##     Update #: 854
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -406,9 +406,7 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
                 }
 
                 ## compute contribution
-                iTrace_O_dO_O_dO <- sapply(1:npair.varcoef[[iPattern]], function(iPair){ ## iPair <- 2
-                    return(crossprod(dOmega_OmegaM1[,pair.varcoef[[iPattern]][1,iPair]], tdOmega_OmegaM1[,pair.varcoef[[iPattern]][2,iPair]]))
-                })
+                iTrace_O_dO_O_dO <- colSums(dOmega_OmegaM1[,pair.varcoef[[iPattern]][1,],drop=FALSE] * tdOmega_OmegaM1[,pair.varcoef[[iPattern]][2,],drop=FALSE])
                 ## - 0.5 * tr(iOmega %*% dOmega[[iPattern]][[1]] %*% iOmega %*% dOmega[[iPattern]][[2]] - iOmega %*% d2Omega[[iPattern]][[iPair]])
                 if(type.information == "expected"){
                     iValue <- 0.5 * ncluster.pattern[[iPattern]] * iTrace_O_dO_O_dO
@@ -440,15 +438,14 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
     ## ** export
     if(REML && test.vcov){
         REML.denomM1 <- solve(REML.denom)
-        REML.numerator1.bis <- 0*REML.numerator2
-
+        REML.numerator2.bis <- array(NA, dim = dim(REML.numerator2), dimnames = dimnames(REML.numerator2))
+        ls.REML.numerator1.denomM1 <- apply(REML.numerator1, MARGIN = 3, FUN = function(iM){iM %*% REML.denomM1}, simplify = FALSE)
         for(iKey in 1:maxkey){ ## iKey <- 1
             iIndex <- which(REML.key == iKey, arr.ind = TRUE)
-            iCoef1 <- name.allvarcoef[iIndex[1,1]]
-            iCoef2 <- name.allvarcoef[iIndex[1,2]]
-            REML.numerator1.bis[,,iKey] <-  REML.numerator1[,,iCoef1] %*% REML.denomM1 %*% REML.numerator1[,,iCoef2]
+            REML.numerator2.bis[,,iKey] <-  ls.REML.numerator1.denomM1[[name.allvarcoef[iIndex[1,1]]]] %*% REML.numerator1[,,name.allvarcoef[iIndex[1,2]]]
         }
-        REML.all <- as.double(REML.denomM1) %*% matrix(REML.numerator1.bis + REML.numerator2, nrow = prod(dim(REML.numerator2)[1:2]), ncol = dim(REML.numerator2)[3], byrow = FALSE)
+
+        REML.all <- as.double(REML.denomM1) %*% matrix(REML.numerator2.bis + REML.numerator2, nrow = prod(dim(REML.numerator2)[1:2]), ncol = dim(REML.numerator2)[3], byrow = FALSE)
         info[name.allvarcoef,name.allvarcoef] <- info[name.allvarcoef,name.allvarcoef] - 0.5 * REML.all[as.double(REML.key)]
         
     }
@@ -466,3 +463,4 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
 
 ##----------------------------------------------------------------------
 ### information.R ends here
+

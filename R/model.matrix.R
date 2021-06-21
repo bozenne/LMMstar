@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Jun 18 2021 (16:53) 
+## Last-Updated: Jun 20 2021 (15:30) 
 ##           By: Brice Ozenne
-##     Update #: 862
+##     Update #: 875
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -344,8 +344,11 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
         attr(pattern.cluster,"index.byPattern") <- stats::setNames(tapply(1:length(pattern.cluster),pattern.cluster, function(iCluster){iCluster}), Upattern)
         precompute.XX <-  .precomputeXX(X = X.mean, pattern = Upattern,
                                         pattern.time = indexTime.Upattern, pattern.cluster = attr(pattern.cluster, "index.byPattern"), index.cluster = attr(index.cluster,"sorted"))
+        precompute.XY <-  .precomputeXR(X = precompute.XX$Xpattern, residuals = cbind(data[[var.outcome]]), pattern = Upattern,
+                                        pattern.time = indexTime.Upattern, pattern.cluster = attr(pattern.cluster, "index.byPattern"), index.cluster = attr(index.cluster,"sorted"))
     }else{
         precompute.XX <- NULL
+        precompute.XY <- NULL
     }
     
     ## ** pairs
@@ -380,6 +383,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
                              indicator = indicator.param),
                 Y = data[[var.outcome]],
                 precompute.XX = precompute.XX,
+                precompute.XY = precompute.XY,
                 index.cluster = index.cluster,
                 index.time = index.time,
                 cluster = list(n = n.cluster, levels = U.cluster, nobs = table(index.cluster)),

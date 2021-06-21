@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: Jun 18 2021 (15:55) 
+## Last-Updated: Jun 20 2021 (23:56) 
 ##           By: Brice Ozenne
-##     Update #: 61
+##     Update #: 66
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -55,14 +55,13 @@
     ## ** 2- compute partial derivatives regarding the mean and the variance
     if(trace>=1){cat("- residuals \n")}
     out$residuals <- design$Y - design$X.mean %*% param$value[colnames(design$X.mean)]
-
     if(precompute.moments){
         precompute <- list(XX = design$precompute.XX,
                            RR = .precomputeRR(residuals = out$residuals, pattern = design$X.var$pattern,
                                               pattern.time = design$X.var$index.time, pattern.cluster = attr(design$X.var$cluster, "index.byPattern"), index.cluster = attr(design$index.cluster,"sorted"))                           
                            )
         if(score || information || vcov || df){
-            precompute$XR  <-  .precomputeXR(X = design$precompute$Xpattern, residuals = out$residuals, pattern = design$X.var$pattern,
+            precompute$XR  <-  .precomputeXR(X = design$precompute.XX$Xpattern, residuals = out$residuals, pattern = design$X.var$pattern,
                                              pattern.time = design$X.var$index.time, pattern.cluster = attr(design$X.var$cluster, "index.byPattern"), index.cluster = attr(design$index.cluster,"sorted"))
         }
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Jun 18 2021 (14:11) 
+## Last-Updated: Jun 21 2021 (21:45) 
 ##           By: Brice Ozenne
-##     Update #: 930
+##     Update #: 963
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -443,6 +443,10 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     out$method.fit <- method.fit
     out$structure <- structure
 
+    ## outEstimate <- .estimate(param = out$param, design = out$design, time = out$time, method.fit = method.fit, type.information = type.information,
+    ##                          transform.sigma = options$transform.sigma, transform.k = options$transform.k, transform.rho = options$transform.rho,
+    ##                          precompute.moments = options$precompute.moments, init = NULL, n.iter = 100, tol = 1e-5)
+
     ## collect parameters
     param.mu <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]) })
     param.sigma <- lapply(U.strata, function(iS){ stats::sigma(out$gls[[iS]]) })
@@ -467,17 +471,23 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     
     names(out$param$strata) <- names(out$param$value)
     names(out$param$type) <- names(out$param$value)
-
+    
     if(trace>=1){cat("\n")}
 
     ## ** Compute likelihood derivatives
     if(trace>=1){cat("3. Compute likelihood derivatives \n")}
+
     outMoments <- .moments.lmm(param = out$param, design = out$design, time = out$time, method.fit = method.fit, type.information = type.information,
                                transform.sigma = options$transform.sigma, transform.k = options$transform.k, transform.rho = options$transform.rho,
                                logLik = TRUE, score = TRUE, information = TRUE, vcov = TRUE, df = df, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
                                trace = trace>=2, precompute.moments = options$precompute.moments, method.numDeriv = options$method.numDeriv, transform.names = FALSE)
 
     out[names(outMoments)] <- outMoments
+
+
+    
+    
+
     if(trace>=1){cat("\n")}
 
     ## ** convert to lmm and export

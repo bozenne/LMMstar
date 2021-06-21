@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: Jun 18 2021 (11:39) 
+## Last-Updated: Jun 21 2021 (21:57) 
 ##           By: Brice Ozenne
-##     Update #: 18
+##     Update #: 19
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -57,6 +57,7 @@ test_that("single t-test",{
     e.ttest <- t.test(Y~Gender, data = d)
     
     expect_equal(logLik(e.lmm),logLik(e2.lmm))
+    expect_equal(as.double(logLik(e.lmm)),as.double(logLik(e.gls)))
     expect_equal(unname(e.ttest$estimate), unname(coef(e.lmm, effects = "mean")))
     expect_equal(e.ttest$p.value, anova(e.lmm, effects = c("GenderM-GenderF=0"))$all$p.value, tol = 1e-5)
     ## summary(e.gls)$tTable
@@ -97,12 +98,24 @@ test_that("multiple t-test",{
                                      "gender:Y3"="visitY3:male - visitY3:female = 0",
                                      "gender:Y4"="visitY4:male - visitY4:female = 0"), ci = TRUE)
     
+    ## check likelihood and score
+    expect_equal(logLik(e.lmm), -240.1934, tol = 1e-5)
+    GS <- numDeriv::jacobian(func = function(p){ ## p <- coef(e.lmm, transform.sigma = "log", transform.k = "log", transform.rho = "atanh")
+        name.log <- names(e.lmm$param$type)[e.lmm$param$type %in% c("sigma","k")]
+        name.atanh <- names(e.lmm$param$type)[e.lmm$param$type %in% c("rho")]
+        p[name.log] <- exp(p[name.log])
+        p[name.atanh] <- tanh(p[name.atanh])
+        logLik(e.lmm, p = p)
+    }, x = coef(e.lmm, transform.sigma = "log", transform.k = "log", transform.rho = "atanh", transform.names = FALSE))
+    expect_equal(as.double(score(e.lmm)), as.double(GS), tol = 1e-5)
+
     e.gls <- gls(Y ~ visit + gender:visit, correlation = corSymm(form=~1|id), weights = varIdent(form=~1|visit), data = dL)
     ls.ttest <- list(t.test(Y1~gender, data = dW),
                      t.test(Y2~gender, data = dW),
                      t.test(Y3~gender, data = dW),
                      t.test(Y4~gender, data = dW))
     ## print(e.lh, method = "none")
+
     expect_equal(confint(e.lh)$all[[1]]$se, sapply(ls.ttest,"[[","stderr"), tol = 1e-5)
     expect_equal(as.double(unlist(confint(e.lh, method = "none")$all[[1]][,c("lower","upper")])),
                  as.double(do.call(rbind,lapply(ls.ttest,"[[","conf.int"))), tol = 1e-3)
