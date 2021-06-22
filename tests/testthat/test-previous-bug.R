@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: Jun 18 2021 (16:10) 
+## Last-Updated: jun 22 2021 (10:57) 
 ##           By: Brice Ozenne
-##     Update #: 21
+##     Update #: 23
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -63,7 +63,13 @@ test_that("lmm - error due to minus sign in levels of a categorical variable",{
                    control=glsControl(opt="optim"),
                    data=gastricbypassL,
                    structure = CS(~time|id))
-    expect_equal(names(coef(eCS.lmm, effects = "mean")), c("(Intercept)", "time1 week before surgery", "time1 week after surgery", "time3 months after surgery"))
+    e.gls <- gls(glucagon~time,
+                 control=glsControl(opt="optim"),
+                 data=gastricbypassL,
+                 na.action = na.omit,
+                 correlation = corCompSymm(form=~time|id))
+    ## expect_equal(names(coef(eCS.lmm, effects = "mean")), c("(Intercept)", "time1 week before surgery", "time1 week after surgery", "time3 months after surgery"))
+    expect_equal(coef(e.gls), coef(eCS.lmm, effects = "mean"), tol = 1e-5)
 
     ## previously a bug when asking the confindence interval for sd and only for variance effects
     eUN.lmm <- lmm(glucagon~time,
