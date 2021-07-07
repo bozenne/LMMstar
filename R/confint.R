@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: Jun 18 2021 (16:07) 
+## Last-Updated: jul  7 2021 (18:10) 
 ##           By: Brice Ozenne
-##     Update #: 241
+##     Update #: 264
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,15 +16,15 @@
 ### Code:
 
 ## * confint.lmm (documentation)
-##' @title Statistical Inference for Multivariate Gaussian Models.
-##' @description Compute confidence intervals (CIs) and p-values for the coefficients of a multivariate gaussian model.
+##' @title Statistical Inference for Linear Mixed Model
+##' @description Compute confidence intervals (CIs) and p-values for the coefficients of a multivariate gaussian model. 
 ##' @name confint
 ##' 
 ##' @param object a \code{lmm} object.
 ##' @param parm Not used. For compatibility with the generic method.
 ##' @param level [numeric,0-1] the confidence level of the confidence intervals.
 ##' @param effects [character] Should the CIs/p-values for all coefficients be output (\code{"all"}),
-##' or only for mean coefficients (\code{"mean"}),
+##' or only for mean coefficients (\code{"mean"} or \code{"fixed"}),
 ##' or only for variance coefficients (\code{"variance"}),
 ##' or only for correlation coefficients (\code{"correlation"}).
 ##' @param robust [logical] Should robust standard error (aka sandwich estimator) be output instead of the model-based standard errors. Not feasible for variance or correlation coefficients estimated by REML.
@@ -33,6 +33,7 @@
 ##' @param type.object [character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.
 ##' @param strata [character vector] When not \code{NULL}, only output coefficient relative to specific levels of the variable used to stratify the mean and covariance structure.
 ##' @param type.information,transform.sigma,transform.k,transform.rho,transform.names are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.
+##' @param backtransform [logical] should the variance/covariance/correlation coefficient be backtransformed?
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @seealso the function \code{multcomp::glht} to perform inference about linear combinations of coefficients and adjust for multiple comparisons.
@@ -54,7 +55,7 @@
 ##' set.seed(10)
 ##' dL <- sampleRem(100, n.times = 3, format = "long")
 ##' 
-##' ## fit Multivariate Gaussian Model
+##' ## fit Linear Mixed Model
 ##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
 ##' 
 ##' ## based on normal distribution with transformation
@@ -70,11 +71,13 @@
 ## * confint.lmm (code)
 ##' @export
 confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", robust = FALSE, null = NULL, type.object = "lmm", strata = NULL, 
-                         df = !is.null(object$df), type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE,
-                          ...){
+                         df = NULL, type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE,
+                         backtransform = NULL, ...){
 
     ## ** normalize user imput
     dots <- list(...)
+    options <- LMMstar.options()
+    
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
@@ -87,7 +90,8 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", rob
     if(identical(effects,"all")){
         effects <- c("mean","variance","correlation")
     }
-    effects <- match.arg(effects, c("mean","variance","correlation"), several.ok = TRUE)
+    effects <- match.arg(effects, c("mean","fixed","variance","correlation"), several.ok = TRUE)
+    effects[effects== "fixed"] <- "mean"
     if(!is.null(strata)){
         strata <- match.arg(strata, object$strata$levels, several.ok = TRUE)
     }
@@ -97,6 +101,12 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", rob
         }else{
             return(lapply(object$gls, intervals))
         }
+    }
+    if(is.null(df)){
+        df <- (!is.null(object$df)) && (robust==FALSE)
+    }
+    if(is.null(backtransform)){
+        backtransform <- options$backtransform.confint
     }
     ## used to decide on the null hypothesis of k parameters
     init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
@@ -174,7 +184,6 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", rob
     alpha <- 1-level
     out$lower <- out$estimate + stats::qt(alpha/2, df = out$df) * out$se
     out$upper <- out$estimate + stats::qt(1-alpha/2, df = out$df) * out$se
-
     
     ## ** export
     attr(out, "transform") <- list(sigma = transform.sigma,
@@ -190,33 +199,43 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", rob
 
     attr(out, "backtransform") <-  FALSE
     class(out) <- append("confint_lmm", class(out))
+    if(backtransform){
+        out <- backtransform(out)
+    }
     return(out)
 }
 
 ## * print.confint_lmm
 ##' @export
-print.confint_lmm <- function(x, ...){
+print.confint_lmm <- function(x, columns = NULL, ...){
+    options <- LMMstar.options()
+    if(!is.null(columns)){
+        columns  <- match.args(columns, c("estimate","se","statistic","df","lower","upper","null","p.value"), several.ok = TRUE)
+    }else{
+        columns <- options$columns.confint
+    }
 
-    print(as.data.frame(x))
+    print(as.data.frame(x)[,columns,drop=FALSE])
 
     backtransform <- attr(x,"backtransform")
     if(identical(backtransform, TRUE)){
         transform <- attr(x,"transform")
         type <- attr(x,"type")
 
-        missing.type <- stats::setNames(c("sigma","k","rho") %in% type == FALSE,c("transform.sigma","transform.k","transform.rho"))
-
-        transform2 <- unlist(transform[c("transform.sigma","transform.k","transform.rho")])
-        transform2[names(missing.type)[missing.type]] <- "none"
-
-        cat("Note: estimates and confidence intervals for ",paste(names(transform)[transform!="none"], collapse = ", ")," have been back-transformed. \n",
-            "      standard errors are not back-transformed.\n", sep="")
+        transform2 <- unlist(transform[c("sigma","k","rho")])
+        ## missing.type <- stats::setNames(c("sigma","k","rho") %in% type == FALSE,c("transform.sigma","transform.k","transform.rho"))
+        ## transform2[names(missing.type)[missing.type]] <- "none"
+        iType <- attr(x,"type")[rownames(x)]
+        if(length(intersect(iType,names(transform2)))>0){
+            cat("Note: estimates and confidence intervals for ",paste(intersect(iType,names(transform2)), collapse = ", ")," have been back-transformed. \n",
+                "      standard errors are not back-transformed.\n", sep="")
+        }
     }
     return(NULL)
 }
 
 ## * backtransform.confint_lmm
-##' @title BackTransformation for Outputs from Multivariate Gaussian Models.
+##' @title BackTransformation for Outputs from Linear Mixed Models
 ##' @description Back-transform estimates and confidence intervals (CIs).
 ##' @name confint
 ##' 

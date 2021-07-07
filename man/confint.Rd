@@ -5,7 +5,7 @@
 \alias{confint.lmm}
 \alias{backtransform}
 \alias{backtransform.confint_lmm}
-\title{Statistical Inference for Multivariate Gaussian Models.}
+\title{Statistical Inference for Linear Mixed Model}
 \usage{
 \method{confint}{lmm}(
   object,
@@ -16,12 +16,13 @@
   null = NULL,
   type.object = "lmm",
   strata = NULL,
-  df = !is.null(object$df),
+  df = NULL,
   type.information = NULL,
   transform.sigma = NULL,
   transform.k = NULL,
   transform.rho = NULL,
   transform.names = TRUE,
+  backtransform = NULL,
   ...
 )
 
@@ -37,7 +38,7 @@ backtransform(object, ...)
 \item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
 
 \item{effects}{[character] Should the CIs/p-values for all coefficients be output (\code{"all"}),
-or only for mean coefficients (\code{"mean"}),
+or only for mean coefficients (\code{"mean"} or \code{"fixed"}),
 or only for variance coefficients (\code{"variance"}),
 or only for correlation coefficients (\code{"correlation"}).}
 
@@ -52,6 +53,8 @@ or only for correlation coefficients (\code{"correlation"}).}
 \item{df}{[logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.}
 
 \item{type.information, transform.sigma, transform.k, transform.rho, transform.names}{are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.}
+
+\item{backtransform}{[logical] should the variance/covariance/correlation coefficient be backtransformed?}
 
 \item{...}{Not used. For compatibility with the generic method.}
 }
@@ -83,7 +86,7 @@ If the option \code{transform.rho} is \code{"atanh"}, the estimate and CIs are t
 set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
 
-## fit Multivariate Gaussian Model
+## fit Linear Mixed Model
 eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
 
 ## based on normal distribution with transformation

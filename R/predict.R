@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: Jun 17 2021 (16:04) 
+## Last-Updated: jul  7 2021 (18:21) 
 ##           By: Brice Ozenne
-##     Update #: 128
+##     Update #: 142
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,12 +15,13 @@
 ## 
 ### Code:
 ## * predict.lmm (documentation)
-##' @title Predicted Mean Value For Multivariate Gaussian Model
+##' @title Predicted Mean Value For Linear Mixed Model
 ##'
 ##' @param object a \code{lmm} object.
 ##' @param newdata [data.frame] the covariate values for each cluster.
 ##' @param level [numeric,0-1] the confidence level of the confidence intervals.
 ##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the predicted mean. Otherwise a normal distribution is used.
+##' @param keep.newdata [logical] Should the argument \code{newdata} be output along side the predicted values?
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @return A data.frame with 5 columns:\itemize{
@@ -36,11 +37,12 @@
 ##' set.seed(10)
 ##' dL <- sampleRem(100, n.times = 3, format = "long")
 ##' 
-##' ## fit Multivariate Gaussian Model
+##' ## fit Linear Mixed Model
 ##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
 ##'
 ##' ## prediction
 ##' predict(eUN.lmm, newdata = data.frame(X1 = 1, X2 = 2, X5 = 3))
+##' predict(eUN.lmm, newdata = data.frame(X1 = 1, X2 = 2, X5 = 3), keep.newdata = TRUE)
 ##'
 ##' ## with Student's t-distribution
 ##' \dontrun{
@@ -49,13 +51,14 @@
 
 ## * predict.lmm (code)
 ##' @export
-predict.lmm <- function(object, newdata, level = 0.95, df = !is.null(object$df), ...){
+predict.lmm <- function(object, newdata, level = 0.95, df = !is.null(object$df), keep.newdata = FALSE, ...){
     
     ## ** normalize user imput
     dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
+    
 
     ## ** compute predictions
     ## extract coefficients
@@ -73,7 +76,12 @@ predict.lmm <- function(object, newdata, level = 0.95, df = !is.null(object$df),
         }
     }else if(is.data.frame(newdata)){
         ff.mean <- stats::formula(object, effects = "mean")
-        X.beta <- model.matrix(stats::delete.response(stats::terms(ff.mean)), newdata)[,colnames(model.matrix(object, effects = "mean")),drop=FALSE]
+        ff.meanRHS <- stats::delete.response(stats::terms(ff.mean))
+
+        ## use model.frame to be able to specify the na.action behavior
+        ## use [,names(beta),] to make sure to only keep relevant columns (drop the columns drop when constraining baseline)
+        X.beta <- model.matrix(ff.meanRHS, model.frame(ff.meanRHS, newdata, na.action=na.pass))[,names(beta),drop=FALSE]
+        rownames(X.beta) <- NULL
     }else{
         stop("Argument \'newdata\' should be a data.frame or a design matrix. \n")
     }
@@ -100,7 +108,11 @@ predict.lmm <- function(object, newdata, level = 0.95, df = !is.null(object$df),
     out <- data.frame(estimate = prediction, se = prediction.se, df = prediction.df,
                       lower = prediction + stats::qt(alpha/2, df = prediction.df) *prediction.se,
                       upper = prediction + stats::qt(1-alpha/2, df = prediction.df)*prediction.se)
-    return(out)
+    if(keep.newdata){
+        return(cbind(newdata,out))
+    }else{
+        return(out)
+    }
     
 }
 

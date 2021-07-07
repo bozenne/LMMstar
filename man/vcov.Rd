@@ -3,7 +3,7 @@
 \name{vcov}
 \alias{vcov}
 \alias{vcov.lmm}
-\title{Extract The Variance-Covariance Matrix From a Multivariate Gaussian Model}
+\title{Extract The Variance-Covariance Matrix From a Linear Mixed Model}
 \usage{
 \method{vcov}{lmm}(
   object,
@@ -26,7 +26,7 @@
 \item{object}{a \code{lmm} object.}
 
 \item{effects}{[character] Should the variance-covariance matrix for all coefficients be output (\code{"all"}),
-or only for coefficients relative to the mean (\code{"mean"}),
+or only for coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 or only for coefficients relative to the variance structure (\code{"variance"}),
 or only for coefficients relative to the correlation structure (\code{"correlation"}).}
 

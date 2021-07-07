@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: Jun 18 2021 (12:14) 
+## Last-Updated: jul  7 2021 (17:33) 
 ##           By: Brice Ozenne
-##     Update #: 442
+##     Update #: 444
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,13 +16,13 @@
 ### Code:
 
 ## * vcov.lmm (documentation)
-##' @title Extract The Variance-Covariance Matrix From a Multivariate Gaussian Model
+##' @title Extract The Variance-Covariance Matrix From a Linear Mixed Model
 ##' @description Extract the variance-covariance matrix of the model coefficients of a multivariate gaussian model.
 ##' @name vcov
 ##' 
 ##' @param object a \code{lmm} object.
 ##' @param effects [character] Should the variance-covariance matrix for all coefficients be output (\code{"all"}),
-##' or only for coefficients relative to the mean (\code{"mean"}),
+##' or only for coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 ##' or only for coefficients relative to the variance structure (\code{"variance"}),
 ##' or only for coefficients relative to the correlation structure (\code{"correlation"}).
 ##' @param robust [logical] Should robust standard error (aka sandwich estimator) be output instead of the model-based standard errors. Not feasible for variance or correlation coefficients estimated by REML.
@@ -61,7 +61,8 @@ vcov.lmm <- function(object, effects = "all", robust = FALSE, df = FALSE, type.o
     if(identical(effects,"all")){
         effects <- c("mean","variance","correlation")
     }
-    effects <- match.arg(effects, c("mean","variance","correlation"), several.ok = TRUE)
+    effects <- match.arg(effects, c("mean","fixed","variance","correlation"), several.ok = TRUE)
+    effects[effects== "fixed"] <- "mean"
 
     if(!is.null(strata)){
         strata <- match.arg(strata, object$strata$levels, several.ok = TRUE)

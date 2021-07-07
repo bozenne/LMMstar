@@ -16,10 +16,12 @@ Update or select global options for the LMMstar package.
 }
 \details{
 The options are: \itemize{
-\item backtransform.summary [logical]: should variance or correlation estimates be back-transformed when they are transformed on the log or atanh scale. Used by \code{summary} and \code{confint}.
+\item backtransform.confint [logical]: should variance/covariance/correlation estimates be back-transformed when they are transformed on the log or atanh scale. Used by \code{confint}.
+\item columns.confint [character vector]: columns to ouput when displaying the model coefficients using \code{confint}.
+\item columns.summary [character vector]: columns to ouput when displaying the model coefficients using \code{summary}.
 \item df [logical]: should approximate degrees of freedom be computed for Wald and F-tests. Used by \code{lmm}, \code{anova}, \code{predict}, and \code{confint}.
 \item drop.X [logical]: should columns causing non-identifiability of the model coefficients be dropped from the design matrix. Used by \code{lmm}.
-\item method.fit [character]: objective function when fitting the multivariate Gaussian Model (REML or ML). Used by \code{lmm}.
+\item method.fit [character]: objective function when fitting the Linear Mixed Model (REML or ML). Used by \code{lmm}.
 \item method.numDeriv [character]: type used to approximate the third derivative of the log-likelihood (when computing the degrees of freedom). Can be \code{"simple"} or \code{"Richardson"}. See \code{numDeriv::jacobian} for more details. Used by \code{lmm}.
 \item precompute.moments [logical]: Should the cross terms between the residuals and design matrix be pre-computed. Useful when the number of subject is substantially larger than the number of mean paramters.
 \item trace [logical]: Should the progress of the execution of the \code{lmm} function be displayed?

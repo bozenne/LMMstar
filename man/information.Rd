@@ -3,7 +3,7 @@
 \name{information}
 \alias{information}
 \alias{information.lmm}
-\title{Extract The Information From a Multivariate Gaussian Model}
+\title{Extract The Information From a Linear Mixed Model}
 \usage{
 \method{information}{lmm}(
   x,
@@ -22,7 +22,7 @@
 \arguments{
 \item{x}{a \code{lmm} object.}
 
-\item{effects}{[character] Should the information relative to all coefficients be output (\code{"all"}),
+\item{effects}{[character] Should the information relative to all coefficients be output (\code{"all"} or \code{"fixed"}),
 or only coefficients relative to the mean (\code{"mean"}),
 or only coefficients relative to the variance and correlation structure (\code{"variance"} or \code{"correlation"}).}
 

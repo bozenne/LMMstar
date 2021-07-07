@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: Jun 18 2021 (17:18) 
+## Last-Updated: jul  7 2021 (17:34) 
 ##           By: Brice Ozenne
-##     Update #: 454
+##     Update #: 458
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,14 +16,14 @@
 ### Code:
 
 ## * anova.lmm (documentation)
-##' @title Multivariate Wald Tests For Multivariate Gaussian Models
+##' @title Multivariate Wald Tests For Linear Mixed Model
 ##' @description Perform a Wald test testing simultaneously several null hypotheses corresponding to linear combinations of the model paramaters. 
 ##' @name anova
 ##' 
 ##' @param object a \code{lmm} object. Only relevant for the anova function.
 ##' @param x an \code{anova_lmm} object. Only relevant for print and confint functions.
 ##' @param effects [character] Should the Wald test be computed for all variables (\code{"all"}),
-##' or only variables relative to the mean (\code{"mean"}),
+##' or only variables relative to the mean (\code{"mean"} or \code{"fixed"}),
 ##' or only variables relative to the variance structure (\code{"variance"}),
 ##' or only variables relative to the correlation structure (\code{"correlation"}).
 ##' Can also be use to specify linear combinations of coefficients, similarly to the \code{linfct} argument of the \code{multcomp::glht} function.
@@ -58,7 +58,7 @@
 ##' set.seed(10)
 ##' dL <- sampleRem(100, n.times = 3, format = "long")
 ##' 
-##' ## fit Multivariate Gaussian Model
+##' ## fit Linear Mixed Model
 ##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
 ##' 
 ##' ## chi-2 test
@@ -148,7 +148,8 @@ anova.lmm <- function(object, effects = "all", rhs = NULL, df = !is.null(object$
         ls.contrast <- list(all = out.glht$linfct)
         ls.null  <- list(all = out.glht$rhs)        
 
-    }else if(all(tolower(effects) %in% c("mean","variance","correlation"))){        
+    }else if(all(tolower(effects) %in% c("mean","fixed","variance","correlation"))){
+        
         if(transform.k %in% c("sd","var","logsd","logvar")){
             stop("Cannot use \'transform.rho\' equal \"sd\", \"var\", \"logsd\", or \"logvar\". \n",
                  "anova does not handle tests where the null hypothesis is at a boundary of the support of a random variable. \n")
@@ -158,7 +159,8 @@ anova.lmm <- function(object, effects = "all", rhs = NULL, df = !is.null(object$
                  "anova does not handle tests where the null hypothesis is at a boundary of the support of a random variable. \n")
         }
         
-        effects <- match.arg(effects, c("mean","variance","correlation"), several.ok = TRUE)
+        effects <- match.arg(effects, c("mean","fixed","variance","correlation"), several.ok = TRUE)
+        effects[effects=="fixed"] <- "mean"
         out <- list(mean=NULL,
                     variance=NULL,
                     correlation=NULL)

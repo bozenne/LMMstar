@@ -3,7 +3,7 @@
 \name{summary}
 \alias{summary}
 \alias{summary.lmm}
-\title{Summary Output for a Multivariate Gaussian Model}
+\title{Summary Output for a Linear Mixed Model}
 \usage{
 \method{summary}{lmm}(
   object,

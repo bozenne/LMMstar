@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: Jun  8 2021 (12:21) 
+## Last-Updated: jul  7 2021 (17:29) 
 ##           By: Brice Ozenne
-##     Update #: 41
+##     Update #: 43
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,7 +16,7 @@
 ### Code:
 
 ## * autoplot.lmm (documentation)
-##' @title Graphical Display For Multivariate Gaussian Model
+##' @title Graphical Display For Linear Mixed Models
 ##' @name autoplot
 ##'
 ##' @param object a \code{lmm} object.

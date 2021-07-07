@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 10 2021 (15:57) 
 ## Version: 
-## Last-Updated: Jun  4 2021 (09:37) 
+## Last-Updated: jul  7 2021 (17:26) 
 ##           By: Brice Ozenne
-##     Update #: 15
+##     Update #: 16
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,7 +29,7 @@
 ##' set.seed(10)
 ##' dL <- sampleRem(100, n.times = 3, format = "long")
 ##' 
-##' ## fit Multivariate Gaussian Model
+##' ## fit Linear Mixed Model
 ##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
 ##' 
 ##' ## test multiple linear hypotheses

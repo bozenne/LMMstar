@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: jun 22 2021 (10:57) 
+## Last-Updated: jul  7 2021 (12:11) 
 ##           By: Brice Ozenne
-##     Update #: 23
+##     Update #: 24
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -95,6 +95,11 @@ test_that("lmm - error due to minus sign in levels of a categorical variable",{
     
 })
 
-
+## * from: Julie Lyng Forman <jufo@sund.ku.dk> date: Wednesday, 07/07/21 11:00 PM
+test_that("lmm - error when predicting due to missing values in the covariates",{
+    data(gastricbypassL, package = "LMMstar")
+    e.lmm  <- lmm(weight ~ glucagon, repetition = ~ time|id , structure = "CS", data = gastricbypassL)
+    expect_equal(NROW(predict(e.lmm, newdata = gastricbypassL)),NROW(gastricbypassL))
+})
 ######################################################################
 ### test-previous-bug.R ends here

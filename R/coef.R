@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: Jun 18 2021 (14:53) 
+## Last-Updated: jul  7 2021 (17:32) 
 ##           By: Brice Ozenne
-##     Update #: 197
+##     Update #: 200
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,13 +16,13 @@
 ### Code:
 
 ## * coef.lmm (documentation)
-##' @title Extract Coefficients From a Multivariate Gaussian Models
+##' @title Extract Coefficients From a Linear Mixed Model
 ##' @description Extract coefficients from a multivariate gaussian model.
 ##' @name coef
 ##'
 ##' @param object a \code{lmm} object.
 ##' @param effects [character] Should all coefficients be output (\code{"all"}),
-##' or only coefficients relative to the mean (\code{"mean"}),
+##' or only coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 ##' or only coefficients relative to the variance structure (\code{"variance"}),
 ##' or only coefficients relative to the correlation structure (\code{"correlation"}).
 ##' @param type.object [character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.
@@ -92,7 +92,8 @@ coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL
     if(identical(effects,"all")){
         effects <- c("mean","variance","correlation")
     }
-    effects <- match.arg(effects, c("mean","variance","correlation"), several.ok = TRUE)
+    effects <- match.arg(effects, c("mean","fixed","variance","correlation"), several.ok = TRUE)
+    effects[effects== "fixed"] <- "mean"
     if(!is.null(strata)){
         strata <- match.arg(strata, object$strata$levels, several.ok = TRUE)
     }

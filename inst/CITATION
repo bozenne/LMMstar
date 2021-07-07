@@ -1,0 +1,19 @@
+year <- sub(".*(2[[:digit:]]{3})-.*", "\\1", meta$Date, perl = TRUE)
+vers <- paste("R package version", meta$Version)
+
+citHeader(paste("To cite the 'LMMstar' package in publications use the following text:",sep=""))
+
+
+
+citEntry(entry="Manual",
+         title = "LMMstar: Repeated measurement models for discrete times",
+         author = personList(as.person("Brice Ozenne"),
+                             as.person("Julie Forman")),
+         year = year,
+         note = vers,
+
+         textVersion =
+         paste("Brice Ozenne and Julie Forman (",
+               year,
+               "). LMMstar: Repeated measurement models for discrete times. ",
+               vers, ".", sep=""))

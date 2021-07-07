@@ -12,7 +12,7 @@ getCoef(object, conf.level, effects, format, add.type, ...)
 \item{conf.level}{[numeric 0-1] Confidence level of the confidence intervals.}
 
 \item{effects}{[character vector] Type of coefficient to be output.
-Can be coefficients relative to the expectation of the outcome (\code{"mean"})
+Can be coefficients relative to the expectation of the outcome (\code{"mean"} or \code{"fixed"})
 or to the variance-covariance structure of the residuals (\code{"variance"}).}
 
 \item{format}{[character] How the output should be shaped.
