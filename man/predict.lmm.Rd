@@ -2,9 +2,16 @@
 % Please edit documentation in R/predict.R
 \name{predict.lmm}
 \alias{predict.lmm}
-\title{Predicted Mean Value For Multivariate Gaussian Model}
+\title{Predicted Mean Value For Linear Mixed Model}
 \usage{
-\method{predict}{lmm}(object, newdata, level = 0.95, df = !is.null(object$df), ...)
+\method{predict}{lmm}(
+  object,
+  newdata,
+  level = 0.95,
+  df = !is.null(object$df),
+  keep.newdata = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{a \code{lmm} object.}
@@ -14,6 +21,8 @@
 \item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
 
 \item{df}{[logical] Should a Student's t-distribution be used to model the distribution of the predicted mean. Otherwise a normal distribution is used.}
+
+\item{keep.newdata}{[logical] Should the argument \code{newdata} be output along side the predicted values?}
 
 \item{...}{Not used. For compatibility with the generic method.}
 }
@@ -27,18 +36,19 @@ A data.frame with 5 columns:\itemize{
 }
 }
 \description{
-Predicted Mean Value For Multivariate Gaussian Model
+Predicted Mean Value For Linear Mixed Model
 }
 \examples{
 ## simulate data in the long format
 set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
 
-## fit Multivariate Gaussian Model
+## fit Linear Mixed Model
 eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
 
 ## prediction
 predict(eUN.lmm, newdata = data.frame(X1 = 1, X2 = 2, X5 = 3))
+predict(eUN.lmm, newdata = data.frame(X1 = 1, X2 = 2, X5 = 3), keep.newdata = TRUE)
 
 ## with Student's t-distribution
 \dontrun{

@@ -3,7 +3,7 @@
 \name{autoplot}
 \alias{autoplot}
 \alias{autoplot.lmm}
-\title{Graphical Display For Multivariate Gaussian Model}
+\title{Graphical Display For Linear Mixed Models}
 \usage{
 \method{autoplot}{lmm}(
   object,
@@ -40,5 +40,5 @@
 \item{...}{Not used. For compatibility with the generic method.}
 }
 \description{
-Graphical Display For Multivariate Gaussian Model
+Graphical Display For Linear Mixed Models
 }

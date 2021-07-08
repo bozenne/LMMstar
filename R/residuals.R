@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: Jun  8 2021 (09:26) 
+## Last-Updated: jul  7 2021 (18:26) 
 ##           By: Brice Ozenne
-##     Update #: 132
+##     Update #: 159
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,7 +16,7 @@
 ### Code:
 
 ## * residuals.lmm (documentation)
-##' @title Extract The Residuals From a Multivariate Gaussian Model
+##' @title Extract The Residuals From a Linear Mixed Model
 ##' @description Extract or compute the residuals of a multivariate gaussian model.
 ##' @name residuals
 ##' 
@@ -37,6 +37,7 @@
 ##'
 ##' @return
 ##' When argument format is \code{"long"} and type.oobject is \code{"lmm"}, a vector containing the value of the residual realtive to each observation.
+##' It is a matrix if the argument \code{type.residual} contains several values.
 ##' When argument format is \code{"wide"} and type.oobject is \code{"lmm"}, a data.frame with the value of the residual relative to each cluster (in rows) at each timepoint (in columns).
 ##' 
 ##' @examples
@@ -44,10 +45,11 @@
 ##' set.seed(10)
 ##' dL <- sampleRem(100, n.times = 3, format = "long")
 ##' 
-##' ## fit Multivariate Gaussian Model
+##' ## fit Linear Mixed Model
 ##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
 ##'
-##' ## prediction
+##' ## residuals
+##' residuals(eUN.lmm, format = "long", type.residual = c("normalized","pearson"))
 ##' residuals(eUN.lmm, format = "wide")
 ##' residuals(eUN.lmm, format = "wide", type.residual = "normalized")
 
@@ -56,7 +58,8 @@
 ##' @rdname residuals
 ##' @export
 residuals.lmm <- function(object, type.residual = "response", format = "long",
-                          data = NULL, p = NULL, type.object = "lmm", ...){
+                          data = NULL, p = NULL, type.object = "lmm",
+                          plot = FALSE, ...){
     options <- LMMstar.options()
 
     ## ** normalize user imput
@@ -66,7 +69,8 @@ residuals.lmm <- function(object, type.residual = "response", format = "long",
     }
     type.object <- match.arg(type.object, c("lmm","gls"))
     format <- match.arg(format, c("wide","long"))
-    type.residuals <- match.arg(type.residual, c("response","pearson","normalized","tnormalized"))
+    type.residual <- match.arg(type.residual, c("response","pearson","normalized","tnormalized"), several.ok = (format=="long"))
+    ## plot <- match(plot, c("qqplot","correlation",), several.ok = (format=="long"))
 
     ## ** extract
     if(type.object == "lmm"){
@@ -105,52 +109,69 @@ residuals.lmm <- function(object, type.residual = "response", format = "long",
                 stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param$type)[names(object$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
             }
             beta <- p[names(object$param$type=="mu")]
-            if(type.residuals %in% c("pearson","normalized","tnormalized")){
+            if(any(type.residual %in% c("pearson","normalized","tnormalized"))){
                 Omega <- .calc_Omega(object = X.var, param = p)
                 precision <- lapply(Omega, solve)
             }
         }else{
             beta <- object$param$value[object$param$type=="mu"]
-            if(type.residuals %in% c("pearson","normalized","tnormalized")){
+            if(any(type.residual %in% c("pearson","normalized","tnormalized"))){
                 Omega <- object$Omega
                 precision <- object$OmegaM1
             }
         }
-        if(type.residuals == "pearson"){
-            sqrtPrecision <- lapply(precision,function(iM){sqrt(diag(iM))})
-        }else if(type.residuals == "normalized"){
-            sqrtPrecision <- lapply(precision,function(iP){t(chol(iP))})
-        }else if(type.residuals == "tnormalized"){
-            sqrtPrecision <- lapply(precision,chol)
+        sqrtPrecision <- list()
+        if("pearson" %in% type.residual){
+            sqrtPrecision$pearson <- lapply(Omega,function(iM){1/sqrt(diag(iM))})
         }
-
+        if("normalized" %in% type.residual){
+            sqrtPrecision$normalized <- lapply(precision,function(iP){t(chol(iP))})
+        }
+        if("tnormalized" %in% type.residual){
+            sqrtPrecision$tnormalized <- lapply(precision,chol)
+        }
+        
         if(!is.null(data) || !is.null(p)){
-            res <-  Y - X %*% beta
+            res <-  as.vector(Y - X %*% beta)
+            M.res <- matrix(NA, nrow = NROW(X), ncol = length(type.residual), dimnames = list(NULL, type.residual))
         }else{
-            res <- object$residuals
+            res <- as.vector(object$residuals)
+            M.res <- matrix(NA, nrow = NROW(object$residuals), ncol = length(type.residual), dimnames = list(NULL, type.residual))
         }
 
         ## normalization
-        if(type.residuals %in% c("pearson","normalized","tnormalized")){
+        if ("response" %in% type.residual) {
+            M.res[,"response"] <- res
+        }
+        if (any(type.residual %in% c("pearson", "normalized", "tnormalized"))) {
             for(iId in 1:n.cluster){ ## iId <- 7
                 iIndex <- which(index.cluster==iId)
                 iOrder <- order(index.time[iIndex])
-                iResidual <- res[iIndex[iOrder],,drop=FALSE]
-                if(type.residuals == "pearson"){
-                    resnorm <- res[index.cluster==iId] * sqrtPrecision[[index.variance[iId]]]
-                }else if(type.residuals %in% c("normalized","tnormalized")){
-                    resnorm <- as.double(res[index.cluster==iId] %*% sqrtPrecision[[index.variance[iId]]])
+                iResidual <- res[iIndex[iOrder]]
+
+                for(iType in type.residual){
+                    if("pearson" %in% type.residual){
+                        resnorm <- iResidual * sqrtPrecision$pearson[[index.variance[iId]]]
+                        M.res[iIndex,"pearson"] <- resnorm[order(iOrder)]
+                    }
+                    if("normalized" %in% type.residual){
+                        resnorm <- as.double(iResidual %*% sqrtPrecision$normalized[[index.variance[iId]]])
+                        M.res[iIndex,"normalized"] <- resnorm[order(iOrder)]
+                    }
+                    if("tnormalized" %in% type.residual){
+                        resnorm <- as.double(iResidual %*% sqrtPrecision$tnormalized[[index.variance[iId]]])
+                        M.res[iIndex,"tnormalized"] <- resnorm[order(iOrder)]
+                    }
+                    
                 }
-                res[iIndex] <- resnorm[order(iOrder)]
             }
         }
-
         ## add NA
         if(is.null(data) && length(object$index.na)>0){
             inflateNA <-  .addNA(index.na = object$index.na, design = design, time = object$time)
-            res.save <- res
-            res <- matrix(NA, nrow = inflateNA$n.allobs, ncol = 1)
-            res[-object$index.na,] <- res.save
+            Msave.res <- M.res
+            M.res <- matrix(NA, nrow = inflateNA$n.allobs, ncol = length(type.residual), dimnames = list(NULL, type.residual))
+            M.res[-object$index.na,] <- M.res
 
             level.cluster <- inflateNA$level.cluster
             level.time <- factor(inflateNA$level.time, object$time$levels)
@@ -161,12 +182,17 @@ residuals.lmm <- function(object, type.residual = "response", format = "long",
 
         ## 
         if(format=="wide"){
-            res <- reshape2::dcast(data = data.frame(residuals = res, cluster = level.cluster, time = level.time),
-                                   formula = cluster~time, value.var = "residuals")
+            MW.res <- reshape2::dcast(data = data.frame(residuals = as.vector(M.res), cluster = level.cluster, time = level.time),
+                                     formula = cluster~time, value.var = "residuals")
+            return(MW.res)
         }else{
-            res <- as.vector(res)
+            if(length(type.residual)==1){
+                return(as.vector(M.res))
+            }else{
+                return(M.res)
+            }
         }
-        return(res)
+        
 
     }else if(type.object == "gls"){
         if(!is.null(data)){

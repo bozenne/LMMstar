@@ -3,7 +3,7 @@
 \name{score}
 \alias{score}
 \alias{score.lmm}
-\title{Extract The Score From a Multivariate Gaussian Model}
+\title{Extract The Score From a Linear Mixed Model}
 \usage{
 \method{score}{lmm}(
   x,
@@ -22,7 +22,7 @@
 \item{x}{a \code{lmm} object.}
 
 \item{effects}{[character] Should the score relative to all coefficients be output (\code{"all"}),
-or only coefficients relative to the mean (\code{"mean"}),
+or only coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 or only coefficients relative to the variance and correlation structure (\code{"variance"} or \code{"correlation"}).}
 
 \item{data}{[data.frame] dataset relative to which the score should be computed. Only relevant if differs from the dataset used to fit the model.}

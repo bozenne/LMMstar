@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (14:58) 
 ## Version: 
-## Last-Updated: Jun  4 2021 (09:18) 
+## Last-Updated: jul  7 2021 (17:32) 
 ##           By: Brice Ozenne
-##     Update #: 222
+##     Update #: 224
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -24,7 +24,7 @@
 #' @param object a \code{lm}, \code{gls}, \code{lme}, or \code{lmm} object.
 #' @param conf.level [numeric 0-1] Confidence level of the confidence intervals.
 #' @param effects [character vector] Type of coefficient to be output.
-#' Can be coefficients relative to the expectation of the outcome (\code{"mean"})
+#' Can be coefficients relative to the expectation of the outcome (\code{"mean"} or \code{"fixed"})
 #' or to the variance-covariance structure of the residuals (\code{"variance"}).
 #' @param format [character] How the output should be shaped.
 #' Can be \code{"default"}, \code{"publish"}, or \code{"SAS"}.
@@ -104,7 +104,8 @@ getCoef.lm <- function(object, conf.level = 0.95, effects = c("mean"),
     if(identical(effects,"all")){
         effects <- c("mean","variance")
     }
-    effects <- match.arg(effects, c("mean","variance"), several.ok = TRUE)
+    effects <- match.arg(effects, c("mean","fixed","variance"), several.ok = TRUE)
+    effects[effects== "fixed"] <- "mean"
     if(format=="publish"){
         return(Publish::publish(object, ...))
     }

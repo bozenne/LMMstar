@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: jun 22 2021 (10:05) 
+## Last-Updated: jul  7 2021 (17:32) 
 ##           By: Brice Ozenne
-##     Update #: 861
+##     Update #: 865
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,7 +16,7 @@
 ### Code:
 
 ## * information.lmm (documentation)
-##' @title Extract The Information From a Multivariate Gaussian Model
+##' @title Extract The Information From a Linear Mixed Model
 ##' @description Extract or compute the (expected) second derivative of the log-likelihood of a multivariate gaussian model.
 ##' @name information
 ##' 
@@ -24,7 +24,7 @@
 ##' @param data [data.frame] dataset relative to which the information should be computed. Only relevant if differs from the dataset used to fit the model.
 ##' @param indiv [logical] Should the contribution of each cluster to the information be output? Otherwise output the sum of all clusters of the derivatives.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the information. Only relevant if differs from the fitted values.
-##' @param effects [character] Should the information relative to all coefficients be output (\code{"all"}),
+##' @param effects [character] Should the information relative to all coefficients be output (\code{"all"} or \code{"fixed"}),
 ##' or only coefficients relative to the mean (\code{"mean"}),
 ##' or only coefficients relative to the variance and correlation structure (\code{"variance"} or \code{"correlation"}).
 ##' @param type.information [character] Should the expected information be computed  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
@@ -62,7 +62,8 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
     if(identical(effects,"all")){
         effects <- c("mean","variance","correlation")
     }
-    effects <- match.arg(effects, c("mean","variance","correlation"), several.ok = TRUE)
+    effects <- match.arg(effects, c("mean","fixed","variance","correlation"), several.ok = TRUE)
+    effects[effects== "fixed"] <- "mean"
 
     init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
                             x.transform.sigma = x$reparametrize$transform.sigma, x.transform.k = x$reparametrize$transform.k, x.transform.rho = x$reparametrize$transform.rho)

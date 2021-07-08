@@ -2,7 +2,7 @@
 % Please edit documentation in R/lmm.R
 \name{lmm}
 \alias{lmm}
-\title{Fit Multivariate Gaussian Model}
+\title{Fit Linear Mixed Model}
 \usage{
 lmm(
   formula,
@@ -55,7 +55,7 @@ This is essentially an interface to the \code{nlme::gls} function.
 set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
 
-## fit Multivariate Gaussian Model
+## fit Linear Mixed Model
 eCS.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "CS", data = dL)
 ## same as
 eCS.lmm.bis <- lmm(Y ~ X1 + X2 + X5, structure = CS(~visit|id), data = dL)

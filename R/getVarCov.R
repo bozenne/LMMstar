@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: Jun  8 2021 (09:20) 
+## Last-Updated: jul  7 2021 (17:26) 
 ##           By: Brice Ozenne
-##     Update #: 85
+##     Update #: 87
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,7 +16,7 @@
 ### Code:
 
 ## * getVarCov.lmm (documentation)
-##' @title Extract The Residuals Variance-Covariance Matrix From a Multivariate Gaussian Model
+##' @title Extract The Residuals Variance-Covariance Matrix From a Linear Mixed Model
 ##' @description Extract the unique set of residuals variance-covariance matrices or the one relative to specific clusters.
 ##' @name getVarCov
 ##' 
@@ -37,7 +37,7 @@
 ##' set.seed(10)
 ##' dL <- sampleRem(100, n.times = 3, format = "long")
 ##' 
-##' ## fit Multivariate Gaussian Model
+##' ## fit Linear Mixed Model
 ##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
 ##'
 ##' ## extract residuals variance covariance matrix

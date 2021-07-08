@@ -1,18 +1,18 @@
 Package: LMMstar
 Type: Package
 Title: Repeated measurement models for discrete times
-Version: 0.2.2
-Date: 2021-06-22
+Version: 0.2.3
+Date: 2021-07-07
 Authors@R: c(
     person("Brice", "Ozenne", role = c("aut", "cre"), email = "brice.mh.ozenne@gmail.com", comment = c(ORCID = "0000-0001-9694-2956")),
-    person("Julie", "Forman", role = "ctb")
+    person("Julie", "Forman", role = "aut", email = "jufo@sund.ku.dk", comment = c(ORCID = "0000-0001-7368-0869"))
 	)
 Description: Companion R package for the course "Statistical analysis
              of correlated and repeated measurements for health science
              researchers" taught by the section of Biostatistics of the University
              of Copenhagen. It provides functions for computing summary statistics
              and obtaining graphical displays of longitudinal data, as well as for
-             statistical modeling and statistical inference using multivariate Gaussian models.
+             statistical modeling and statistical inference using linear mixed model.
 License: GPL-3
 Encoding: UTF-8
 URL: https://github.com/bozenne/LMMstar

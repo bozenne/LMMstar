@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: Jun 17 2021 (16:52) 
+## Last-Updated: jul  7 2021 (18:02) 
 ##           By: Brice Ozenne
-##     Update #: 43
+##     Update #: 53
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -27,10 +27,12 @@
 #' @param reinitialise should all the global parameters be set to their default value
 #'
 #' @details The options are: \itemize{
-#' \item backtransform.summary [logical]: should variance or correlation estimates be back-transformed when they are transformed on the log or atanh scale. Used by \code{summary} and \code{confint}.
+#' \item backtransform.confint [logical]: should variance/covariance/correlation estimates be back-transformed when they are transformed on the log or atanh scale. Used by \code{confint}.
+#' \item columns.confint [character vector]: columns to ouput when displaying the model coefficients using \code{confint}.
+#' \item columns.summary [character vector]: columns to ouput when displaying the model coefficients using \code{summary}.
 #' \item df [logical]: should approximate degrees of freedom be computed for Wald and F-tests. Used by \code{lmm}, \code{anova}, \code{predict}, and \code{confint}.
 #' \item drop.X [logical]: should columns causing non-identifiability of the model coefficients be dropped from the design matrix. Used by \code{lmm}.
-#' \item method.fit [character]: objective function when fitting the multivariate Gaussian Model (REML or ML). Used by \code{lmm}.
+#' \item method.fit [character]: objective function when fitting the Linear Mixed Model (REML or ML). Used by \code{lmm}.
 #' \item method.numDeriv [character]: type used to approximate the third derivative of the log-likelihood (when computing the degrees of freedom). Can be \code{"simple"} or \code{"Richardson"}. See \code{numDeriv::jacobian} for more details. Used by \code{lmm}.
 #' \item precompute.moments [logical]: Should the cross terms between the residuals and design matrix be pre-computed. Useful when the number of subject is substantially larger than the number of mean paramters.
 #' \item trace [logical]: Should the progress of the execution of the \code{lmm} function be displayed?
@@ -43,7 +45,9 @@ LMMstar.options <- function(..., reinitialise = FALSE){
   
     if (reinitialise == TRUE) {
         assign(".LMMstar-options", 
-               list(backtransform.summary = TRUE,
+               list(backtransform.confint = TRUE,
+                    columns.confint = c("estimate","se","df","lower","upper","p.value"),
+                    columns.summary = c("estimate","se","df","lower","upper","p.value",""),
                     df = TRUE,
                     drop.X = TRUE,
                     precompute.moments = TRUE,
@@ -72,6 +76,13 @@ LMMstar.options <- function(..., reinitialise = FALSE){
                    "Available elements: \"",paste0(setdiff(names(object),names(args)), collapse = "\" \""),"\"\n")
           }
 
+          ok.column <- c("estimate","se","statistic","df","lower","upper","null","p.value")
+          if("columns.confint" %in% names(args) && any(args$columns.confint %in% ok.column == FALSE)){
+              stop("Argument \'columns.confint\' must be a character vector with values among \"",paste(ok.column, collapse = "\" \""),"\". \n")
+          }
+          if("columns.summary" %in% names(args) && any(args$columns.summary %in% c(ok.column,"") == FALSE)){
+              stop("Argument \'columns.summary\' must be a character vector with values among \"",paste(c(ok.column,""), collapse = "\" \""),"\". \n")
+          }
           if("df" %in% names(args) && !is.logical(args$df)){
               stop("Argument \'df\' must be of type logical. \n")
           }

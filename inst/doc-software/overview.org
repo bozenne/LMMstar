@@ -11,10 +11,10 @@ if(system("whoami",intern=TRUE)=="bozenne"){
 #+RESULTS:
 
 This vignette describes the main functionalities of the *LMMstar*
-package. This package implements specific types of multivariate
-Gaussian models mainly useful when having repeated observations over a
-discrete variable (e.g. time, brain region, ...). Key assumptions are
-that at the cluster level, observation are independent and identically
+package. This package implements specific types of linear mixed models
+mainly useful when having repeated observations over a discrete
+variable (e.g. time, brain region, ...). Key assumptions are that at
+the cluster level, observation are independent and identically
 distributed and that the mean and variance are driven by independent
 factors. In particular, in large samples the residuals do not have to
 be normally distributed.
@@ -23,8 +23,7 @@ be normally distributed.
 
 The *LMMstar* package contains four main functions:
 - the function =lmm= is the main function of the package which fits
-  multivariate Gaussian models. The user can interact with /lmm/
-  objects using:
+  linear mixed models. The user can interact with /lmm/ objects using:
     + =anova= to test combinations of coefficients (Wald test or Likelihood ratio tests)
     + =coef= to extract the estimates.
     + =confint= to extract estimates, confidence intervals, and p.values.
@@ -114,9 +113,9 @@ print(sss, digits = 3)
 
 \clearpage
 
-* Multivariate Gaussian model
+* Linear mixed model
 ** Modeling tools
-Fit a multivariate Gaussian model with *compound symmetry* structure:
+Fit a linear mixed model with *compound symmetry* structure:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 eCS.lmm <- lmm(weight ~ time + glucagon,
                structure = CS(~time|id),
@@ -134,7 +133,7 @@ eCS.lmm
 :                  1 correlation (Rho)
 
 
-\noindent Fit a multivariate Gaussian model with *unstructured* covariance matrix:
+\noindent Fit a linear mixed model with *unstructured* covariance matrix:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 eUN.lmm <- lmm(weight ~ time + glucagon,
                structure = UN(~time|id),
@@ -895,7 +894,7 @@ bibliographystyle:apalike
 \setcounter{equation}{0}    
 #+END_EXPORT
 
-* Likelihood in a multivariate Gaussian models
+* Likelihood in a linear mixed model
 :PROPERTIES:
 :CUSTOM_ID: SM:likelihood
 :END:
@@ -905,7 +904,7 @@ bibliographystyle:apalike
 Denote by \(\VY\) a vector of \(m\) outcomes, \(\VX\) a vector of
 \(p\) covariates, \(\mu(\Vparam,\VX)\) the modeled mean, and
 \(\Omega(\Vparam,\VX)\) the modeled residual variance-covariance. The
-restricted log-likelihood in a linear Gaussian model can then be
+restricted log-likelihood in a linear mixed model can then be
 written:
  #+BEGIN_EXPORT LaTeX
 \begin{align*}

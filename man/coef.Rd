@@ -3,7 +3,7 @@
 \name{coef}
 \alias{coef}
 \alias{coef.lmm}
-\title{Extract Coefficients From a Multivariate Gaussian Models}
+\title{Extract Coefficients From a Linear Mixed Model}
 \usage{
 \method{coef}{lmm}(
   object,
@@ -21,7 +21,7 @@
 \item{object}{a \code{lmm} object.}
 
 \item{effects}{[character] Should all coefficients be output (\code{"all"}),
-or only coefficients relative to the mean (\code{"mean"}),
+or only coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 or only coefficients relative to the variance structure (\code{"variance"}),
 or only coefficients relative to the correlation structure (\code{"correlation"}).}
 

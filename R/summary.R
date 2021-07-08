@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: Jun  8 2021 (10:04) 
+## Last-Updated: jul  7 2021 (17:51) 
 ##           By: Brice Ozenne
-##     Update #: 223
+##     Update #: 230
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,7 +16,7 @@
 ### Code:
 
 ## * summary.lmm (documentation)
-##' @title Summary Output for a Multivariate Gaussian Model
+##' @title Summary Output for a Linear Mixed Model
 ##' @description Summary output for a  multivariate gaussian model fitted with \code{lmm}.
 ##' This is a modified version of the \code{nlme::summary.gls} function.
 ##' @name summary
@@ -53,20 +53,21 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = TRUE
     formula <- object$formula
     Omega <- nlme::getVarCov(object, simplifies = FALSE)
     df <- !is.null(object$df)
-    
+    options <- LMMstar.options()
+
     ## ** welcome message
     if(print){
         if(length(param.rho) == 0){
             if(length(c(param.sigma,param.k))==1){
-                cat("  Univariate Gaussian Model \n")
+                cat("  Linear regression \n")
             }else{
-                cat("  Univariate Gaussian Model with heterogeneous residual variance \n")
+                cat("  Linear regression with heterogeneous residual variance \n")
             }
         }else{
             if(structure=="UN"){
-                cat("  Multivariate Gaussian Model with an unstructured covariance matrix \n")
+                cat("  Linear Mixed Model with an unstructured covariance matrix \n")
             }else if(structure=="CS"){
-                cat("  Multivariate Gaussian Model with a compound symmetry covariance matrix \n")
+                cat("  Linear Mixed Model with a compound symmetry covariance matrix \n")
             }
         }
     }
@@ -197,6 +198,10 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = TRUE
     printtable.mean[["upper"]] <- as.character(round(table.mean[["lower"]], digits = digit))
     printtable.mean[["statistic"]] <- as.character(round(table.mean[["statistic"]], digits = digit))
     printtable.mean[["p.value"]] <- format.pval(table.mean[["p.value"]], digits = digit, eps = 10^(-digit))
+    if(any(names(printtable.mean) %in% options$columns.summary == FALSE)){
+        printtable.mean <- printtable.mean[,-which(names(printtable.mean) %in% options$columns.summary == FALSE),drop=FALSE]
+    }
+    
     if(print && !hide.mean){
         if(ci){
             printtable.mean$statistic <- NULL

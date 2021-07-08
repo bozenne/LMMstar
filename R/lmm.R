@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Jun 21 2021 (21:45) 
+## Last-Updated: jul  7 2021 (17:26) 
 ##           By: Brice Ozenne
-##     Update #: 963
+##     Update #: 965
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,7 +16,7 @@
 ### Code:
 
 ## * lmm (documentation)
-##' @title Fit Multivariate Gaussian Model
+##' @title Fit Linear Mixed Model
 ##' @description Fit a multivariate gaussian model using either a compound symmetry structure or an unstructured covariance matrix.
 ##' This is essentially an interface to the \code{nlme::gls} function.
 ##'
@@ -45,7 +45,7 @@
 ##' set.seed(10)
 ##' dL <- sampleRem(100, n.times = 3, format = "long")
 ##' 
-##' ## fit Multivariate Gaussian Model
+##' ## fit Linear Mixed Model
 ##' eCS.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "CS", data = dL)
 ##' ## same as
 ##' eCS.lmm.bis <- lmm(Y ~ X1 + X2 + X5, structure = CS(~visit|id), data = dL)

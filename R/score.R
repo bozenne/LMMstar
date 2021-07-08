@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: Jun 18 2021 (10:20) 
+## Last-Updated: jul  7 2021 (17:32) 
 ##           By: Brice Ozenne
-##     Update #: 416
+##     Update #: 420
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,7 +16,7 @@
 ### Code:
 
 ## * score.lmm (documentation)
-##' @title Extract The Score From a Multivariate Gaussian Model
+##' @title Extract The Score From a Linear Mixed Model
 ##' @description Extract or compute the first derivative of the log-likelihood of a multivariate gaussian model.
 ##' @name score
 ##' 
@@ -24,7 +24,7 @@
 ##' @param data [data.frame] dataset relative to which the score should be computed. Only relevant if differs from the dataset used to fit the model.
 ##' @param indiv [logical] Should the contribution of each cluster to the score be output? Otherwise output the sum of all clusters of the derivatives.
 ##' @param effects [character] Should the score relative to all coefficients be output (\code{"all"}),
-##' or only coefficients relative to the mean (\code{"mean"}),
+##' or only coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 ##' or only coefficients relative to the variance and correlation structure (\code{"variance"} or \code{"correlation"}).
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the score. Only relevant if differs from the fitted values.
 ##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
@@ -53,7 +53,8 @@ score.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = FALSE, 
     if(identical(effects,"all")){
         effects <- c("mean","variance","correlation")
     }
-    effects <- match.arg(effects, c("mean","variance","correlation"), several.ok = TRUE)
+    effects <- match.arg(effects, c("mean","fixed","variance","correlation"), several.ok = TRUE)
+    effects[effects== "fixed"] <- "mean"
 
     init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
                             x.transform.sigma = x$reparametrize$transform.sigma, x.transform.k = x$reparametrize$transform.k, x.transform.rho = x$reparametrize$transform.rho)

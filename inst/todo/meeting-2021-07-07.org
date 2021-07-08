@@ -1,0 +1,12 @@
+Fix bugs:
+- residuals
+- prediction in presence of missing values in the covariates
+- main effect in presence of baseline adjustment
+
+Features:
+- residual plot
+- exp structure
+- working independence structure
+- df for robust standard error should be inf
+- Credits | Done
+  
