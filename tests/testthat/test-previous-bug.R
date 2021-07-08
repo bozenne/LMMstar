@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: jun 22 2021 (10:57) 
+## Last-Updated: Jun 23 2021 (08:57) 
 ##           By: Brice Ozenne
-##     Update #: 23
+##     Update #: 24
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -72,7 +72,7 @@ test_that("lmm - error due to minus sign in levels of a categorical variable",{
     expect_equal(coef(e.gls), coef(eCS.lmm, effects = "mean"), tol = 1e-5)
 
     ## previously a bug when asking the confindence interval for sd and only for variance effects
-    eUN.lmm <- lmm(glucagon~time,
+    eUN.lmm <- lmm(glucagon~time2,
                    control=glsControl(opt="optim"),
                    data=gastricbypassL,
                    structure = UN(~time|id))
