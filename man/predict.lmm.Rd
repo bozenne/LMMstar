@@ -2,7 +2,7 @@
 % Please edit documentation in R/predict.R
 \name{predict.lmm}
 \alias{predict.lmm}
-\title{Predicted Mean Value For Linear Mixed Model}
+\title{Predicted Mean Value With Uncertainty For Linear Mixed Model}
 \usage{
 \method{predict}{lmm}(
   object,
@@ -36,7 +36,7 @@ A data.frame with 5 columns:\itemize{
 }
 }
 \description{
-Predicted Mean Value For Linear Mixed Model
+Predicted Mean Value With Uncertainty For Linear Mixed Model
 }
 \examples{
 ## simulate data in the long format

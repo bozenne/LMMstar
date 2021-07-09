@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 10 2021 (16:08) 
 ## Version: 
-## Last-Updated: Jun 18 2021 (17:06) 
+## Last-Updated: Jul  9 2021 (10:05) 
 ##           By: Brice Ozenne
-##     Update #: 48
+##     Update #: 51
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -45,11 +45,11 @@ recover_data.lmm <- function(object, ...){
 ##' @export
 emm_basis.lmm <- function(object, trms, xlev, grid, ...){
     out <- list()
-    m  <-  stats::model.frame(trms, grid, na.action = stats::na.pass, xlev = xlev)    
-    out$X  <-  stats::model.matrix(trms, m, contrasts.arg = object$contrasts)
-    ## additional for baseline adjustment
-    keep.col <- colnames(stats::model.matrix(object, effects = "mean"))
-    out$X <- out$X[,keep.col,drop=FALSE]
+    m  <-  stats::model.frame(trms, grid, na.action = stats::na.pass, xlev = xlev)
+    out$X <- .predict_model.matrix(object,
+                                   newdata = m,
+                                   name.beta = names(coef(object, effects = "mean")))
+    ## out$X  <-  stats::model.matrix(trms, m, contrasts.arg = object$contrasts)
     
     out$bhat  <- stats::coef(object, effects = "mean")
     out$nbasis  <-  matrix(NA)  ## no rank deficiency

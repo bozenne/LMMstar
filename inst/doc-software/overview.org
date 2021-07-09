@@ -87,7 +87,7 @@ utils::packageVersion("LMMstar")
 #+END_SRC
 
 #+RESULTS:
-: [1] ‘0.2.1’
+: [1] ‘0.2.3’
 
 \clearpage
 
@@ -124,7 +124,7 @@ eCS.lmm
 #+END_SRC
 
 #+RESULTS:
-:   Multivariate Gaussian Model with a compound symmetry covariance matrix 
+:   Linear Mixed Model with a compound symmetry covariance matrix 
 :  
 : data           : 78 observations and distributed in 20 clusters 
 : log-likelihood : -243.6005
@@ -142,7 +142,7 @@ eUN.lmm
 #+END_SRC
 
 #+RESULTS:
-:   Multivariate Gaussian Model with an unstructured covariance matrix 
+:   Linear Mixed Model with an unstructured covariance matrix 
 :  
 : data           : 78 observations and distributed in 20 clusters 
 : log-likelihood : -216.3189
@@ -167,7 +167,7 @@ summary(eCS.lmm, ci = TRUE)
 
 #+RESULTS:
 #+begin_example
-  Multivariate Gaussian Model with a compound symmetry covariance matrix 
+  Linear Mixed Model with a compound symmetry covariance matrix 
   - fitted using Restricted Maximum Likelihood (REML) 
   - log-likelihood :-243.6005 (parameters: mean = 5, variance = 1, correlation = 1)
  
@@ -259,74 +259,95 @@ nlme::getVarCov(eCS.lmm, individual = 5)
 \clearpage
 
 ** Model diagnostic
-The method =residuals= can be used to output the normalized residuals in a wide format:
+
+The method =residuals= can also be used to extract the residulas in
+the wide format:
 #+begin_src R :exports both :results output :session *R* :cache no
-eCS.diag <- residuals(eCS.lmm, type.residual = "normalized", format = "wide")
+eCS.diagW <- residuals(eCS.lmm, type.residual = "normalized", format = "wide")
+head(eCS.diagW)
 #+end_src
 
 #+RESULTS:
+:   cluster  B3_months      B1_week    A1_week  A3_months
+: 1       1 -0.8042448 -0.709908611 -1.4242831  0.3176640
+: 2       2  1.0863177 -0.133256804  1.1083627  1.5977042
+: 3       3 -0.4597852 -0.612727870 -0.6060136 -0.8589524
+: 4       4 -1.0103075  0.007471088  0.1309862  1.1428822
+: 5       5 -0.1258773           NA -0.3819184 -0.7874832
+: 6       6  3.5646225  2.333205076  2.8387204  0.3586263
 
-This can for instance be used to check the auto-correlation between the residuals:
+or in the long format:
 #+begin_src R :exports both :results output :session *R* :cache no
-cor(eCS.diag[,-1,drop=FALSE], use = "pairwise")
-#+end_src
-#+RESULTS:
-:           B3_months   B1_week   A1_week A3_months
-: B3_months 1.0000000 0.6819780 0.5924644 0.3844298
-: B1_week   0.6819780 1.0000000 0.7996891 0.2103374
-: A1_week   0.5924644 0.7996891 1.0000000 0.2533221
-: A3_months 0.3844298 0.2103374 0.2533221 1.0000000
-
-The long format:
-#+begin_src R :exports both :results output :session *R* :cache no
-gastricbypassL$residualsN_CS <- residuals(eCS.lmm, type.residual = "normalized",
-                                          format = "long")
+eCS.diagL <- residuals(eCS.lmm, type.residual = "normalized", format = "long")
+head(eCS.diagL)
 #+end_src
 
 #+RESULTS:
+: [1] -0.8042448  1.0863177 -0.4597852 -1.0103075 -0.1258773  3.5646225
 
- can be useful to investigate trends relative to a covariate:
-#+begin_src R :exports code :results output :session *R* :cache no
-library(ggplot2)
-ggplot(gastricbypassL, aes(x=glucagon,y=residualsN_CS)) + geom_point() + geom_smooth()
+Various type of residuals can be extract but the normalized one are
+recommanded when doing model checking. The method =residuals= can also
+be used to display diagnostic plots, e.g. about:
+- the distribution of the residuals across fitted values using a
+  scatterplot
+#+begin_src R :file ./figures/diag-scatterplot.pdf :results graphics file :session *R* :cache no
+residuals(eCS.lmm, type.residual = "normalized", plot = "scatterplot", size.text = 20)
 #+end_src
 
 #+RESULTS:
-: `geom_smooth()` using method = 'loess' and formula 'y ~ x'
-: Warning messages:
-: 1: Removed 2 rows containing non-finite values (stat_smooth). 
-: 2: Removed 2 rows containing missing values (geom_point).
+[[file:./figures/diag-scatterplot.pdf]]
 
-#+ATTR_LaTeX: :width 0.5\textwidth :placement [!h]
-[[./figures/diag-cov.pdf]]
-
-# ## ggsave(ggplot(gastricbypassL, aes(x=glucagon,y=residualsN_CS)) + geom_point() + geom_smooth() + theme(text = element_text(size=20)), filename = "figures/diag-cov.pdf")
+#+ATTR_LaTeX: :width 0.4\textwidth :placement [!h]
+[[./figures/diag-scatterplot.pdf]]
 
 \clearpage
 
-or to look at the distribution of the residuals via a qq-plot:
-#+begin_src R :exports both :results output :session *R* :cache no
-library(qqtest)
-qqtest(na.omit(gastricbypassL$residualsN_CS))
+- the "normality" of the residuals at each repetition using a
+  quantile-quantile plot [fn::see cite:oldford2016self for guidance
+  about how to read quantile-quantile plots.]:
+#+begin_src R :file ./figures/diag-qqplot.pdf :results graphics file :session *R* :cache no
+residuals(eCS.lmm, type.residual = "normalized", format = "wide",
+          plot = "qqplot", engine.qqplot = "qqtest")
+## Note: the qqtest package to be installed to use the argument engine.plot = "qqtest" 
 #+end_src
+
 #+RESULTS:
+[[file:./figures/diag-qqplot.pdf]]
 
 #+ATTR_LaTeX: :width 0.5\textwidth :placement [!h]
 [[./figures/diag-qqplot.pdf]]
 
-# ## pdf("figures/diag-qqplot.pdf"); qqtest(na.omit(gastricbypassL$residualsN_CS)) ; dev.off()
+- the residual correlation within cluster between the residuals:
+#+begin_src R :file ./figures/diag-correlation.pdf :results graphics file :session *R* :cache no :width 9
+  residuals(eCS.lmm, type.residual = "normalized", plot = "correlation", format = "wide",
+            size.text = 20)
+#+end_src
+
+#+RESULTS:
+[[file:./figures/diag-correlation.pdf]]
+
+#+ATTR_LaTeX: :width 0.5\textwidth :placement [!h]
+[[./figures/diag-correlation.pdf]]
+
 
 ** Model fit
 
 The fitted values can be displayed via the =emmeans= package or using the =autoplot= method:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+begin_src R :file ./figures/fit-emmip.pdf :results graphics file :session *R* :cache no
 library(emmeans) ## left panel
-emmip(eCS.lmm, ~time)
-library(ggplot2) ## right panel
-autoplot(eCS.lmm)
+emmip(eCS.lmm, ~time) + theme(text = element_text(size=20))
 #+end_src
 
 #+RESULTS:
+[[file:./figures/fit-emmip.pdf]]
+
+#+begin_src R :file ./figures/fit-autoplot.pdf :results graphics file :session *R* :cache no
+library(ggplot2) ## right panel
+autoplot(eCS.lmm, color = "id", size.text = 20)
+#+end_src
+
+#+RESULTS:
+[[file:./figures/fit-autoplot.pdf]]
 
 #+latex: \begin{minipage}{0.45\linewidth}
 #+ATTR_LaTeX: :width \textwidth :placement [!h]
@@ -338,7 +359,7 @@ autoplot(eCS.lmm)
 #+latex: \end{minipage}
 
 # ## ggsave(emmip(eCS.lmm, ~time) + theme(text = element_text(size=20)), filename = "figures/fit-emmip.pdf")
-# ## ggsave(autoplot(eCS.lmm, plot = FALSE)$plot + theme(text = element_text(size=20)), filename = "figures/fit-autoplot.pdf")
+# ## ggsave(autoplot(eCS.lmm, color = "id", plot = FALSE)$plot + theme(text = element_text(size=20)), filename = "figures/fit-autoplot.pdf")
 
 In the first case the average curve (over glucago values) is displayed
 while in the latter each possible curve is displayed. With the
@@ -360,47 +381,36 @@ confint(eCS.lmm)
 #+end_src
 
 #+RESULTS:
-:                  estimate        se  statistic       df       lower      upper null      p.value
-: (Intercept)   129.3690995 4.2256318  30.615327 20.03432 120.5555539 138.182645    0 0.000000e+00
-: timeB1_week    -7.6194918 1.0538287  -7.230294 53.96824  -9.7323197  -5.506664    0 1.746652e-09
-: timeA1_week   -14.4951323 1.4279524 -10.150991 53.87927 -17.3581515 -11.632113    0 4.130030e-14
-: timeA3_months -27.0514694 1.0870651 -24.884866 53.94292 -29.2309565 -24.871982    0 0.000000e+00
-: glucagon        0.8217879 0.6199685   1.325532 53.80984  -0.4212748   2.064851    0 1.905952e-01
-: log(sigma)      2.9364900 0.1587900         NA 16.79510   2.6011608   3.271819   NA           NA
-: atanh(Rho)      2.0911816 0.1874830  11.153979 29.43362   1.7079810   2.474382    0 4.330536e-12
+#+begin_example
+                 estimate        se       df       lower       upper      p.value
+(Intercept)   129.3690995 4.2256318 20.03432 120.5555539 138.1826451 0.000000e+00
+timeB1_week    -7.6194918 1.0538287 53.96824  -9.7323197  -5.5066639 1.746652e-09
+timeA1_week   -14.4951323 1.4279524 53.87927 -17.3581515 -11.6321131 4.130030e-14
+timeA3_months -27.0514694 1.0870651 53.94292 -29.2309565 -24.8719823 0.000000e+00
+glucagon        0.8217879 0.6199685 53.80984  -0.4212748   2.0648506 1.905952e-01
+sigma          18.8495684 0.1587900 16.79510  13.4793760  26.3592491           NA
+Rho             0.9699341 0.1874830 29.43362   0.9363994   0.9859156 4.330536e-12
+Note: estimates and confidence intervals for sigma, rho have been back-transformed. 
+      standard errors are not back-transformed.
+#+end_example
 
 The variance and correlation parameters being constrained parameters
 (e.g. strictly positive), they uncertainty is by default computed
-after transformation (e.g. =log=):
+after transformation (e.g. =log=) and then backtransformed. The
+transformed values can be displayed using:
 #+begin_src R :exports both :results output :session *R* :cache no
-confint(eCS.lmm, effects = "variance")
+confint(eCS.lmm, backtransform = FALSE)
 #+end_src
 
 #+RESULTS:
-:            estimate      se statistic      df    lower    upper null p.value
-: log(sigma)  2.93649 0.15879        NA 16.7951 2.601161 3.271819   NA      NA
-
-They can be backtransformed to the original scale using =backtransform=:
-
-#+begin_src R :exports both :results output :session *R* :cache no
-backtransform(confint(eCS.lmm, effects = "variance"))
-#+end_src
-
-#+RESULTS:
-:       estimate      se statistic      df    lower    upper null p.value
-: sigma 18.84957 0.15879        NA 16.7951 13.47938 26.35925   NA      NA
-: Note: estimates and confidence intervals for sigma, k, rho have been back-transformed. 
-:       standard errors are not back-transformed.
-
-While not recommanded, it is also possible to not use any transformation:
-#+begin_src R :exports both :results output :session *R* :cache no
-table <- confint(eCS.lmm, effects = "variance", transform.sigma = "none")
-table
-#+end_src
-
-#+RESULTS:
-:       estimate       se statistic       df    lower    upper null p.value
-: sigma 18.84957 2.993123        NA 2.695584 8.685673 29.01346   NA      NA
+:                  estimate        se       df       lower      upper      p.value
+: (Intercept)   129.3690995 4.2256318 20.03432 120.5555539 138.182645 0.000000e+00
+: timeB1_week    -7.6194918 1.0538287 53.96824  -9.7323197  -5.506664 1.746652e-09
+: timeA1_week   -14.4951323 1.4279524 53.87927 -17.3581515 -11.632113 4.130030e-14
+: timeA3_months -27.0514694 1.0870651 53.94292 -29.2309565 -24.871982 0.000000e+00
+: glucagon        0.8217879 0.6199685 53.80984  -0.4212748   2.064851 1.905952e-01
+: log(sigma)      2.9364900 0.1587900 16.79510   2.6011608   3.271819           NA
+: atanh(Rho)      2.0911816 0.1874830 29.43362   1.7079810   2.474382 4.330536e-12
 
 *** Linear combination of the model coefficients
 
@@ -413,19 +423,15 @@ anova(eUN.lmm, effects = c("timeA1_week-timeB1_week=0"), ci = TRUE)
 #+end_src
 
 #+RESULTS:
-#+begin_example
-
-                     ,** User-specified hypotheses ** 
- - F-test
- statistic df.num df.denom      p.value
-  43.14145      1 17.87461 3.723244e-06
-
- - P-values and confidence interval (adjusted for multiplicity within each global test) 
-                           estimate        se       df statistic     lower     upper null
-timeA1_week - timeB1_week -3.905721 0.5946396 17.87461 -6.568215 -5.155641 -2.655801    0
-                               p.value
-timeA1_week - timeB1_week 3.723244e-06
-#+end_example
+: 
+:                      ** User-specified hypotheses ** 
+:  - F-test
+:  statistic df.num df.denom      p.value
+:   43.14145      1 17.87461 3.723244e-06
+: 
+:  - P-values and confidence interval (adjusted for multiplicity within each global test) 
+:                            estimate        se       df     lower     upper      p.value
+: timeA1_week - timeB1_week -3.905721 0.5946396 17.87461 -5.155641 -2.655801 3.723244e-06
 
 When testing transformed variance or correlation parameters,
 parentheses (as in =log(k).B1_week=) cause problem for recognizing
@@ -444,9 +450,11 @@ try(
 : 1: log(k).B1_week
 :           ^
 
+\clearpage
+
 It is then advised to specify the null hypothesis via a contrast matrix, e.g.:
 #+begin_src R :exports both :results output :session *R* :cache no
-name.coef <- names(coef(eUN.lmm))
+name.coef <- rownames(confint(eUN.lmm, backtransform = FALSE))
 name.varcoef <- grep("log(k)",name.coef, value = TRUE, fixed = TRUE)
 C <- matrix(0, nrow = 3, ncol = length(name.coef), dimnames = list(name.varcoef, name.coef))
 diag(C[name.varcoef,name.varcoef]) <- 1
@@ -459,7 +467,7 @@ anova(eUN.lmm, effects = C)
 :                      ** User-specified hypotheses ** 
 :  - F-test
 :  statistic df.num df.denom     p.value
-:   6.203176      3 17.99457 0.004417066
+:   6.203176      3 17.99457 0.004417067
 
 
 \clearpage
@@ -541,16 +549,15 @@ coef(eC.lmm, effects = "mean")
 :            -27.07620            -25.50553
 
 One can vizualize the baseline adjustment via the =autoplot= function:
-#+begin_src R :exports both :results output :session *R* :cache no
-autoplot(eC.lmm, color = "group", ci = FALSE)
+#+begin_src R :file ./figures/gg-baseAdj.pdf :results graphics file :session *R* :cache no
+autoplot(eC.lmm, color = "group", ci = FALSE, size.text = 20)
 #+end_src
 
 #+RESULTS:
+[[file:./figures/gg-baseAdj.pdf]]
 
-#+ATTR_LaTeX: :width 0.5\textwidth :placement [!h]
+#+ATTR_LaTeX: :width 0.4\textwidth :placement [!h]
 [[./figures/gg-baseAdj.pdf]]
-
-# ## ggsave(autoplot(eC.lmm, color = "group", ci = FALSE, plot = FALSE)$plot + theme(text = element_text(size=20)), filename = "figures/gg-baseAdj.pdf")
 
 To more easily compare the two groups, one could set the baseline
 treatment to the treatment in the control arm by omitting the argument
@@ -590,9 +597,9 @@ will directly output group differences:
 confint(eC2.lmm, effects = "mean")[5:6,]
 #+end_src
 #+RESULTS:
-:                        estimate       se  statistic       df     lower      upper null   p.value
-: treat22:timeA1_week   -1.435033 0.621046 -2.3106717 16.25085 -2.749942 -0.1201245    0 0.0342893
-: treat22:timeA3_months  1.570675 2.462555  0.6378233 16.28753 -3.642229  6.7835794    0 0.5324540
+:                        estimate       se       df     lower      upper   p.value
+: treat22:timeA1_week   -1.435033 0.621046 16.25085 -2.749942 -0.1201245 0.0342893
+: treat22:timeA3_months  1.570675 2.462555 16.28753 -3.642229  6.7835794 0.5324540
 
 ** Marginal means
 
@@ -693,6 +700,8 @@ time = A3_months:
 Confidence level used: 0.95
 #+end_example
 
+\clearpage
+
 Using the =pair= function displays the differences:
 #+begin_src R :exports both :results output :session *R* :cache no
   epairs.group <- pairs(emmeans.group, reverse = TRUE)
@@ -726,10 +735,10 @@ summary(epairs.group, by = NULL, adjust = "mvt", infer = TRUE)
 
 #+RESULTS:
 :  contrast time      estimate    SE   df lower.CL upper.CL t.ratio p.value
-:  2 - 1    B3_months     4.83 10.10 18.0    -18.0     27.6 0.478   0.7499 
-:  2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0 0.618   0.6484 
-:  2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.9 0.471   0.7555 
-:  2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.7 0.797   0.5285 
+:  2 - 1    B3_months     4.83 10.10 18.0    -18.0     27.6 0.478   0.7496 
+:  2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0 0.618   0.6482 
+:  2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.9 0.471   0.7556 
+:  2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.7 0.797   0.5287 
 : 
 : Confidence level used: 0.95 
 : Conf-level adjustment: mvt method for 4 estimates 
@@ -807,6 +816,8 @@ To change the default option to "expected" (faster to compute but less accurate 
 LMMstar.options(type.information = "expected")
 #+END_SRC
 
+#+RESULTS:
+
 To restore the original default options do:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 LMMstar.options(reinitialise = TRUE)
@@ -842,21 +853,26 @@ attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
-[1] LMMstar_0.2
+ [1] sandwich_3.0-1      reshape2_1.4.4      numDeriv_2016.8-1.1 nlme_3.1-152       
+ [5] multcomp_1.4-17     TH.data_1.0-10      MASS_7.3-54         survival_3.2-11    
+ [9] mvtnorm_1.1-2       Matrix_1.3-4        lava_1.6.9          psych_2.1.3        
+[13] lattice_0.20-44     emmeans_1.6.0       qqtest_1.2.0        ggplot2_3.3.4      
+[17] LMMstar_0.2.3      
 
 loaded via a namespace (and not attached):
- [1] Rcpp_1.0.6          plyr_1.8.6          pillar_1.6.1        compiler_4.1.0     
- [5] tools_4.1.0         lifecycle_1.0.0     tibble_3.1.2        gtable_0.3.0       
- [9] nlme_3.1-152        lattice_0.20-44     pkgconfig_2.0.3     rlang_0.4.11       
-[13] Matrix_1.3-3        mvtnorm_1.1-1       coda_0.19-4         stringr_1.4.0      
-[17] dplyr_1.0.6         generics_0.1.0      vctrs_0.3.8         grid_4.1.0         
-[21] tidyselect_1.1.1    glue_1.4.2          R6_2.5.0            fansi_0.4.2        
-[25] survival_3.2-11     multcomp_1.4-17     lava_1.6.9          TH.data_1.0-10     
-[29] reshape2_1.4.4      ggplot2_3.3.3       purrr_0.3.4         magrittr_2.0.1     
-[33] scales_1.1.1        codetools_0.2-18    ellipsis_0.3.2      emmeans_1.6.0      
-[37] MASS_7.3-54         splines_4.1.0       xtable_1.8-4        colorspace_2.0-1   
-[41] numDeriv_2016.8-1.1 sandwich_3.0-1      utf8_1.2.1          stringi_1.6.2      
-[45] estimability_1.3    munsell_0.5.0       crayon_1.4.1        zoo_1.8-9
+ [1] Rcpp_1.0.6        prettyunits_1.1.1 ps_1.6.0          zoo_1.8-9         rprojroot_2.0.2  
+ [6] digest_0.6.27     utf8_1.2.1        R6_2.5.0          plyr_1.8.6        coda_0.19-4      
+[11] pillar_1.6.1      rlang_0.4.11      data.table_1.14.0 callr_3.7.0       desc_1.3.0       
+[16] labeling_0.4.2    devtools_2.4.1    splines_4.1.0     stringr_1.4.0     munsell_0.5.0    
+[21] compiler_4.1.0    pkgconfig_2.0.3   mnormt_2.0.2      pkgbuild_1.2.0    tmvnsim_1.0-2    
+[26] mgcv_1.8-36       tidyselect_1.1.1  tibble_3.1.2      codetools_0.2-18  fansi_0.5.0      
+[31] crayon_1.4.1      dplyr_1.0.6       withr_2.4.2       grid_4.1.0        butils.base_1.2  
+[36] xtable_1.8-4      gtable_0.3.0      lifecycle_1.0.0   magrittr_2.0.1    scales_1.1.1     
+[41] pbapply_1.4-3     estimability_1.3  cli_2.5.0         stringi_1.6.2     cachem_1.0.5     
+[46] farver_2.1.0      remotes_2.3.0     fs_1.5.0          testthat_3.0.2    ellipsis_0.3.2   
+[51] generics_0.1.0    vctrs_0.3.8       tools_4.1.0       glue_1.4.2        purrr_0.3.4      
+[56] pkgload_1.2.1     processx_3.5.2    parallel_4.1.0    fastmap_1.1.0     colorspace_2.0-1 
+[61] sessioninfo_1.1.1 memoise_2.0.0     usethis_2.0.1
 #+end_example
 
 \clearpage
@@ -907,10 +923,10 @@ Denote by \(\VY\) a vector of \(m\) outcomes, \(\VX\) a vector of
 restricted log-likelihood in a linear mixed model can then be
 written:
  #+BEGIN_EXPORT LaTeX
-\begin{align*}
-\Likelihood(\Vparam|\VY,\VX) =& \textcolor{\darkred}{ \frac{p}{2} \log(2\pi)-\frac{1}{2} \log\left(\left|\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i\right|\right)} \\
-& + \sum_{i=1}^{n} \left(\textcolor{\darkblue}{-\frac{m}{2} \log(2\pi) - \frac{1}{2} \log\left|\Omega_i(\Vparam)\right| - \frac{1}{2} (\VY_i-\mu(\Vparam,\VX_i)) \Omega_i(\Vparam)^{-1} \trans{(\VY_i-\mu(\Vparam,\VX_i))}} \right) 
-\end{align*}
+\begin{align}
+\Likelihood(\Vparam|\VY,\VX) =& \textcolor{\darkred}{ \frac{p}{2} \log(2\pi)-\frac{1}{2} \log\left(\left|\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i\right|\right)} \notag \\
+& + \sum_{i=1}^{n} \left(\textcolor{\darkblue}{-\frac{m}{2} \log(2\pi) - \frac{1}{2} \log\left|\Omega_i(\Vparam)\right| - \frac{1}{2} (\VY_i-\mu(\Vparam,\VX_i)) \Omega_i(\Vparam)^{-1} \trans{(\VY_i-\mu(\Vparam,\VX_i))}} \right)  \label{eq:log-likelihood}
+\end{align}
  #+END_EXPORT
  
  This is what the =logLik= method is computing for the REML
@@ -933,7 +949,7 @@ written:
  when setting the argument =indiv= to =TRUE=.
 
 \bigskip
- 
+
 ** Score
 
  Using that \(\partial \log(\det(X))=tr(X^{-1}\partial(X))\), the
@@ -1031,7 +1047,87 @@ Using a first order Taylor expansion we can approximate the variance term as:
   select the element relative to \(\beta\) in the first derivative of
   the information matrix, and \(\dpartial[.][\Vparam]\) denotes the
   vector of derivatives with respect to all model coefficients.
+
+\clearpage
   
+* Likelihood ratio test with the REML criterion
+:PROPERTIES:
+:CUSTOM_ID: SM:LRT-REML
+:END:
+
+The blue term of autoref:eq:log-likelihood in the log-likelihood is
+invariant to re-parameterisation while the red term is not. This means
+that a re-parametrisation of \(X\) into \(\tilde{X} = B X\) with \(B\)
+invertible would not change the likelihood when using ML but would
+decrease the log-likelihood by \(\log(|B|)\) when using REML.
+
+\bigskip
+
+Let's take an example:
+#+begin_src R :exports both :results output :session *R* :cache no
+## data(gastricbypassL, package = "LMMstar")
+dfTest <- gastricbypassL
+dfTest$glucagon2 <- dfTest$glucagon*2
+#+end_src
+
+#+RESULTS:
+
+where we multiply one column of the design matrix by 2. As mentionned
+previously this does not affect the log-likelihood when using ML:
+#+begin_src R :exports both :results output :session *R* :cache no
+logLik(lmm(weight ~ glucagon, data = dfTest, structure = UN(~time|id), method = "ML"))
+logLik(lmm(weight ~ glucagon2, data = dfTest, structure = UN(~time|id), method = "ML"))
+#+end_src
+
+#+RESULTS:
+: [1] -245.7909
+: [1] -245.7909
+
+but it does when using REML:
+#+begin_src R :exports both :results output :session *R* :cache no
+logLik(lmm(weight ~ glucagon, data = dfTest, structure = UN(~time|id), method = "REML"))
+logLik(lmm(weight ~ glucagon2, data = dfTest, structure = UN(~time|id), method = "REML"))
+log(2)
+#+end_src
+
+#+RESULTS:
+: [1] -245.0382
+: [1] -245.7313
+: [1] 0.6931472
+
+Therefore, when comparing models with different mean effects there is
+a risk that the difference (or part of it) in log-likelihood is due to
+a new parametrisation and no only to a difference in model fit. This
+would typically be the case when adding an interaction where we can
+have a smaller restricted log-likehood when considering a more complex
+model:
+
+#+begin_src R :exports both :results output :session *R* :cache no
+set.seed(10)
+dfTest$ff <- rbinom(NROW(dfTest), size = 1, prob = 0.5)
+logLik(lmm(weight ~ glucagon, data = dfTest, structure = UN(~time|id), method = "REML"))
+logLik(lmm(weight ~ glucagon*ff, data = dfTest, structure = UN(~time|id), method = "REML"))
+#+end_src
+
+#+RESULTS:
+: [1] -245.0382
+: [1] -239.2056
+
+This is quite counter-intuitive as more complex model should lead to
+better fit and would never happen when using ML:
+#+begin_src R :exports both :results output :session *R* :cache no
+logLik(lmm(weight ~ glucagon, data = dfTest, structure = UN(~time|id), method = "ML"))
+logLik(lmm(weight ~ glucagon*ff, data = dfTest, structure = UN(~time|id), method = "ML"))
+#+end_src
+
+#+RESULTS:
+: [1] -245.7909
+: [1] -237.3642
+
+This is why, unless one knows what he/she is doing, it is not
+recommanded to use likelihood ratio test to assess relevance of mean
+parameters in mixed models estimated with REML.
+
 * CONFIG                                                           :noexport:
 #+LANGUAGE:  en
 #+LaTeX_CLASS: org-article

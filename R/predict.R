@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jul  7 2021 (18:21) 
+## Last-Updated: Jul  9 2021 (10:05) 
 ##           By: Brice Ozenne
-##     Update #: 142
+##     Update #: 152
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,7 +15,7 @@
 ## 
 ### Code:
 ## * predict.lmm (documentation)
-##' @title Predicted Mean Value For Linear Mixed Model
+##' @title Predicted Mean Value With Uncertainty For Linear Mixed Model
 ##'
 ##' @param object a \code{lmm} object.
 ##' @param newdata [data.frame] the covariate values for each cluster.
@@ -67,24 +67,8 @@ predict.lmm <- function(object, newdata, level = 0.95, df = !is.null(object$df),
     name.beta <- names(beta)
     vcov.beta <- vcov(object, effects = "mean")
 
-    ## design matrix
-    if(is.matrix(newdata)){
-        if(all(name.beta == colnames(newdata))){
-            X.beta <- newdata
-        }else{
-            stop("Argument \'newdata\' should contain a column relative to each coefficient when a matrix. \n")
-        }
-    }else if(is.data.frame(newdata)){
-        ff.mean <- stats::formula(object, effects = "mean")
-        ff.meanRHS <- stats::delete.response(stats::terms(ff.mean))
-
-        ## use model.frame to be able to specify the na.action behavior
-        ## use [,names(beta),] to make sure to only keep relevant columns (drop the columns drop when constraining baseline)
-        X.beta <- model.matrix(ff.meanRHS, model.frame(ff.meanRHS, newdata, na.action=na.pass))[,names(beta),drop=FALSE]
-        rownames(X.beta) <- NULL
-    }else{
-        stop("Argument \'newdata\' should be a data.frame or a design matrix. \n")
-    }
+    ## extract design matrix
+    X.beta <- .predict_model.matrix(object, newdata = newdata, name.beta = name.beta)
     n.obs <- NROW(X.beta)
     
     prediction <- X.beta %*% beta
@@ -182,5 +166,39 @@ predict.lmm <- function(object, newdata, level = 0.95, df = !is.null(object$df),
     return(out)
 }
 
+## * .predict_model.matrix
+.predict_model.matrix <- function(object, newdata, name.beta){
+
+    if(is.matrix(newdata)){
+        if(all(name.beta == colnames(newdata))){
+            X.beta <- newdata
+        }else{
+            stop("Argument \'newdata\' should contain a column relative to each coefficient when a matrix. \n")
+        }
+    }else if(is.data.frame(newdata)){
+        ## use model.frame to be able to specify the na.action behavior
+        ## use [,name.beta,] to make sure to only keep relevant columns (drop the columns drop when constraining baseline)
+        if(object$strata$n==1){
+            ff.mean <- stats::formula(object, effects = "mean")
+            ff.meanRHS <- stats::delete.response(stats::terms(ff.mean))
+            X.beta <- stats::model.matrix(ff.meanRHS, stats::model.frame(ff.meanRHS, newdata, na.action = stats::na.pass))[,name.beta,drop=FALSE]
+        }else{
+            ff.mean <- object$formula$mean.design
+            ff.meanRHS <- stats::delete.response(stats::terms(ff.mean))
+            X.beta <- matrix(NA, nrow = NROW(newdata), ncol = length(name.beta), dimnames = list(NULL, name.beta))
+            for(iStrata in object$strata$levels){
+                iIndex <- which(newdata[[object$strata$var]]==iStrata)
+                iX.beta <- stats::model.matrix(ff.meanRHS, stats::model.frame(ff.meanRHS, newdata[iIndex,,drop=FALSE], na.action = stats::na.pass))
+                colnames(iX.beta) <- paste0(colnames(iX.beta),":",iStrata)
+                X.beta[iIndex,] <- 0
+                X.beta[iIndex,colnames(iX.beta)] <- iX.beta
+            }
+        }
+        rownames(X.beta) <- NULL
+    }else{
+        stop("Argument \'newdata\' should be a data.frame or a design matrix. \n")
+    }
+    return(X.beta)
+}
 ##----------------------------------------------------------------------
 ### predict.R ends here

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: Jun 20 2021 (23:56) 
+## Last-Updated: Jul  8 2021 (15:33) 
 ##           By: Brice Ozenne
-##     Update #: 66
+##     Update #: 67
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -54,7 +54,8 @@
 
     ## ** 2- compute partial derivatives regarding the mean and the variance
     if(trace>=1){cat("- residuals \n")}
-    out$residuals <- design$Y - design$X.mean %*% param$value[colnames(design$X.mean)]
+    out$fitted <- design$X.mean %*% param$value[colnames(design$X.mean)]
+    out$residuals <- design$Y - out$fitted
     if(precompute.moments){
         precompute <- list(XX = design$precompute.XX,
                            RR = .precomputeRR(residuals = out$residuals, pattern = design$X.var$pattern,

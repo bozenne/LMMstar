@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: jul  7 2021 (17:29) 
+## Last-Updated: Jul  9 2021 (12:46) 
 ##           By: Brice Ozenne
-##     Update #: 43
+##     Update #: 64
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -27,14 +27,15 @@
 ##' @param plot [logical] should the plot be displayed?
 ##' @param size.point [numeric, >0] the size of the point on the plot.
 ##' @param size.line [numeric, >0] the size of the line on the plot.
+##' @param size.text [numeric, >0] Size of the font used to displayed text when using ggplot2.
 ##' @param position.errorbar [character] relative position of the errorbars.
 ##' @param ... Not used. For compatibility with the generic method.
 
 ## * autoplot.lmm (code)
 ##' @rdname autplot
 ##' @export
-autoplot.lmm <- function(object, at = NULL, color = object$cluster$var, ci = TRUE, alpha = NA, plot = TRUE,
-                         size.point = 3, size.line = 1, position.errorbar = "identity", ...){
+autoplot.lmm <- function(object, at = NULL, color = TRUE, ci = TRUE, alpha = NA, plot = TRUE,
+                         size.point = 3, size.line = 1, size.text = 16, position.errorbar = "identity", ...){
 
     var.cluster <- object$cluster$var
     var.time <- object$time$var
@@ -59,13 +60,37 @@ autoplot.lmm <- function(object, at = NULL, color = object$cluster$var, ci = TRU
             data[[iCol]] <- at[[iCol]]
         }
     }
-    ff.mean <- stats::formula(object, effects = "mean")
-    X.name <- colnames(model.matrix(object, effects = "mean"))
-    X <- model.matrix(ff.mean, data)[,X.name,drop=FALSE]
-    test.duplicated <- duplicated(X)
+
+    ## design matrix
+    X.beta <- .predict_model.matrix(object,
+                                    newdata = data,
+                                    name.beta = names(coef(object, effects = "mean")))
+
+    ## only keep one representant per type of design matrix
+    test.duplicated <- duplicated(X.beta)
     keep.id <- unique(data[test.duplicated==FALSE,var.cluster])
     newdata <- data[data[[var.cluster]] %in% keep.id,,drop=FALSE]
 
+    if(identical(color,TRUE)){
+        mean.var <- all.vars(stats::delete.response(stats::terms(stats::formula(object, effects = "mean"))))
+        newdataRed <- newdata[order(newdata[[var.cluster]]),mean.var,drop=FALSE]
+        order.cluster <- droplevels(newdata[[var.cluster]][order(newdata[[var.cluster]])])
+
+        ## iCol <- newdataRed[,1]
+        M.duplicated <- apply(newdataRed, 2, function(iCol){unlist(tapply(iCol, order.cluster, function(iColCluster){duplicated(iColCluster)[-1]}))})
+        color <- names(which(colSums(M.duplicated)==NROW(M.duplicated)))
+        if(length(color)>1){
+            if(paste(color,collapse=".") %in% names(newdataRed)){
+                stop("Cannot use argument \'color\'=TRUE when the dataset contain a column ",paste(color,collapse="."),". \n",
+                     "This name is used internally. \n")
+            }
+            newdata[[paste(color,collapse=".")]] <- interaction(newdata[,color,drop=FALSE])
+            color <- paste(color,collapse=".")
+        }else if(length(color)==0){
+            color <-  NULL
+        }
+    }
+    
     ## ** compute fitted curve
     preddata <- cbind(newdata, stats::predict(object, newdata = newdata))
 
@@ -87,7 +112,7 @@ autoplot.lmm <- function(object, at = NULL, color = object$cluster$var, ci = TRU
     }else{
         gg <- gg + ggplot2::geom_point(size = size.point) + ggplot2::geom_line(size = size.line)
     }
-    gg  <- gg + ggplot2::ylab(object$outcome$var)
+    gg  <- gg + ggplot2::ylab(object$outcome$var) + ggplot2::theme(text = ggplot2::element_text(size=size.text))
 
 
     ## ** display
