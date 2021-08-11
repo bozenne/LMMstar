@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: aug 11 2021 (15:00) 
+## Last-Updated: aug 11 2021 (15:02) 
 ##           By: Brice Ozenne
-##     Update #: 301
+##     Update #: 302
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -98,7 +98,7 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, columns =
 
         cat("  - summary of the outcome and covariates: \n")
         data.XY <- data[all.vars(stats::terms(formula$mean))]
-        cat(paste0("   ",utils::capture.output(stats::str(data.XY))[-1],"\n"))
+        cat(paste0("   ",utils::capture.output(utils::str(data.XY))[-1],"\n"))
 
         data.X <- data[all.vars(stats::delete.response(stats::terms(formula$mean)))]
         C <- lapply(data.X, function(iCol){
