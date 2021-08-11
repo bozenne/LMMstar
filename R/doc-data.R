@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: nov 18 2020 (15:06) 
+## Last-Updated: Jul  8 2021 (09:40) 
 ##           By: Brice Ozenne
-##     Update #: 57
+##     Update #: 59
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -174,7 +174,8 @@ NULL
 #'                             "3" = 1.0,
 #'                             "4" = 1.5,
 #'                             "5" = 2.0)
-#' calciumL$time.fac <- factor(calciumL$visit, levels = 1:5, labels = c("0 years","0.5 years","1 years","1.5 years","2 years")) 
+#' calciumL$time.fac <- factor(calciumL$visit, levels = 1:5,
+#'                             labels = c("0 years","0.5 years","1 years","1.5 years","2 years")) 
 #' save(calciumL, file = "data/gastricbypassL.rda")
 #'
 #' str(calciumL)
@@ -246,7 +247,9 @@ NULL
 #'                         value.name = c("weight","glucagon"), variable.name = "time")
 #' gastricbypassL <- as.data.frame(dtL)
 #' gastricbypassL$visit <- gastricbypassL$time
-#' gastricbypassL$time <- factor(gastricbypassL$visit, levels = 1:4, labels = c("3 months before surgery","1 week before surgery","1 week after surgery","3 months after surgery"))
+#' gastricbypassL$time <- factor(gastricbypassL$visit, levels = 1:4,
+#'                               labels = c("3 months before surgery","1 week before surgery",
+#'                                          "1 week after surgery","3 months after surgery"))
 #' gastricbypassL <- gastricbypassL[,c("id","visit","time","weight","glucagon")]
 #' save(gastricbypassL, file = "data/gastricbypassL.rda")
 #'

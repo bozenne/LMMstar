@@ -29,7 +29,9 @@ dtL <- data.table::melt(dtW, id.vars = "id",
                         value.name = c("weight","glucagon"), variable.name = "time")
 gastricbypassL <- as.data.frame(dtL)
 gastricbypassL$visit <- gastricbypassL$time
-gastricbypassL$time <- factor(gastricbypassL$visit, levels = 1:4, labels = c("3 months before surgery","1 week before surgery","1 week after surgery","3 months after surgery"))
+gastricbypassL$time <- factor(gastricbypassL$visit, levels = 1:4,
+                              labels = c("3 months before surgery","1 week before surgery",
+                                         "1 week after surgery","3 months after surgery"))
 gastricbypassL <- gastricbypassL[,c("id","visit","time","weight","glucagon")]
 save(gastricbypassL, file = "data/gastricbypassL.rda")
 

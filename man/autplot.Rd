@@ -8,12 +8,13 @@
 \method{autoplot}{lmm}(
   object,
   at = NULL,
-  color = object$cluster$var,
+  color = TRUE,
   ci = TRUE,
   alpha = NA,
   plot = TRUE,
   size.point = 3,
   size.line = 1,
+  size.text = 16,
   position.errorbar = "identity",
   ...
 )
@@ -34,6 +35,8 @@
 \item{size.point}{[numeric, >0] the size of the point on the plot.}
 
 \item{size.line}{[numeric, >0] the size of the line on the plot.}
+
+\item{size.text}{[numeric, >0] Size of the font used to displayed text when using ggplot2.}
 
 \item{position.errorbar}{[character] relative position of the errorbars.}
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Jun 20 2021 (15:30) 
+## Last-Updated: Jul  8 2021 (15:12) 
 ##           By: Brice Ozenne
-##     Update #: 875
+##     Update #: 892
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -455,7 +455,7 @@ model.matrix_regularize <- function(formula, data){
     ## vec.interactionName <- apply(M.interactionName, MARGIN = 1, FUN = function(iRow){paste(na.omit(iRow), collapse = ":")})
 
     ## ** test 2: form interaction and identify columns of the design matrix that are constant
-    ls.rmX <- stats::setNames(lapply(which(tt.order>1), function(iInteraction){ ## iInteraction <- 4
+    ls.rmX <- stats::setNames(lapply(which(tt.order>1), function(iInteraction){ ## iInteraction <- 2 
         ## variables involved in the interactions
         iVar <- names(which(tt.factors[,iInteraction]>0)) 
         ## identify coefficient relative to this interaction 
@@ -560,7 +560,7 @@ model.matrix_regularize <- function(formula, data){
             rownames(X.level[[iCol]]) <- NULL
         }else if(X.order[iCol]>0){
             ## variables involved
-            iVar <- rownames(var2term)[var2term[,X.term[iCol]]==1]
+            iVar <- rownames(var2term)[var2term[,X.term[iCol]]>=1]
             ## contrast for all factor/character variables involved
             iContrast <- contrast.variable[iVar]
             iContrast <- iContrast[!sapply(iContrast,is.null)]

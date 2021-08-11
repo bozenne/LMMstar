@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jul  7 2021 (17:34) 
+## Last-Updated: Jul  9 2021 (09:58) 
 ##           By: Brice Ozenne
-##     Update #: 458
+##     Update #: 461
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -474,6 +474,7 @@ return(out)
 ##' @export
 print.anova_lmm <- function(x, level = 0.95, method = "single-step", print.null = FALSE, ...){
 
+    
     if(attr(x,"test")=="Wald"){    
     type <- names(x)
     ci <- stats::confint(x, level = level, method = method)
@@ -497,8 +498,10 @@ print.anova_lmm <- function(x, level = 0.95, method = "single-step", print.null 
             print(x[[iType]])
         }
         if(!is.null(ci[[iType]])){
+            options <- LMMstar.options()
+
             cat("\n - P-values and confidence interval (adjusted for multiplicity within each global test) \n", sep="")
-            print(do.call(rbind,unname(ci[[iType]])))
+            print(do.call(rbind,unname(ci[[iType]]))[,options$columns.confint])
         }
         cat("\n")
     }

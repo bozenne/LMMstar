@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jul  7 2021 (18:10) 
+## Last-Updated: Jul  8 2021 (09:44) 
 ##           By: Brice Ozenne
-##     Update #: 264
+##     Update #: 266
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -106,7 +106,11 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", rob
         df <- (!is.null(object$df)) && (robust==FALSE)
     }
     if(is.null(backtransform)){
-        backtransform <- options$backtransform.confint
+        if(is.null(transform.sigma) && is.null(transform.k) && is.null(transform.rho)){
+            backtransform <- options$backtransform.confint
+        }else{
+            backtransform <- FALSE
+        }
     }
     ## used to decide on the null hypothesis of k parameters
     init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
@@ -210,7 +214,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", rob
 print.confint_lmm <- function(x, columns = NULL, ...){
     options <- LMMstar.options()
     if(!is.null(columns)){
-        columns  <- match.args(columns, c("estimate","se","statistic","df","lower","upper","null","p.value"), several.ok = TRUE)
+        columns  <- match.arg(columns, c("estimate","se","statistic","df","lower","upper","null","p.value"), several.ok = TRUE)
     }else{
         columns <- options$columns.confint
     }

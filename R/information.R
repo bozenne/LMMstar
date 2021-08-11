@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: jul  7 2021 (17:32) 
+## Last-Updated: Jul  8 2021 (09:38) 
 ##           By: Brice Ozenne
-##     Update #: 865
+##     Update #: 866
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -440,7 +440,7 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
     if(REML && test.vcov){
         REML.denomM1 <- solve(REML.denom)
         REML.numerator2.bis <- array(NA, dim = dim(REML.numerator2), dimnames = dimnames(REML.numerator2))
-        ls.REML.numerator1.denomM1 <- setNames(lapply(1:dim(REML.numerator1)[3], FUN = function(iDim){REML.numerator1[,,iDim] %*% REML.denomM1}), dimnames(REML.numerator1)[[3]])
+        ls.REML.numerator1.denomM1 <- stats::setNames(lapply(1:dim(REML.numerator1)[3], FUN = function(iDim){REML.numerator1[,,iDim] %*% REML.denomM1}), dimnames(REML.numerator1)[[3]])
         ## ls.REML.numerator1.denomM1 <- apply(REML.numerator1, MARGIN = 3, FUN = function(iM){iM %*% REML.denomM1}, simplify = FALSE) ## only work on recent R versions
         for(iKey in 1:maxkey){ ## iKey <- 1
             iIndex <- which(REML.key == iKey, arr.ind = TRUE)

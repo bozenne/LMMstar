@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jul  7 2021 (17:51) 
+## Last-Updated: Jul  8 2021 (16:24) 
 ##           By: Brice Ozenne
-##     Update #: 230
+##     Update #: 231
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -137,10 +137,12 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = TRUE
     
 
     ## ** variance structure
-    if(print && (!hide.var || !hide.sd)){
-        cat("Variance structure:",deparse(formula$var.design),"\n")
+    if(!hide.var || !hide.sd){
         name.sigma <- names(coef(object, transform.sigma = "none", transform.k = "sd", effects = "variance"))
         index.ref <- which(names(coef(object, effects = "variance", transform.names = FALSE)) %in% names(param.sigma))
+        if(print){
+            cat("Variance structure:",deparse(formula$var.design),"\n")
+        }
     }
 
     if(!hide.var){
