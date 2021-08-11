@@ -6,7 +6,7 @@
 \title{Extract The Residuals Variance-Covariance Matrix From a Linear Mixed Model}
 \usage{
 \method{getVarCov}{lmm}(
-  object,
+  obj,
   individual = NULL,
   p = NULL,
   type.object = c("lmm", "gls"),
@@ -16,7 +16,7 @@
 )
 }
 \arguments{
-\item{object}{a \code{lmm} object.}
+\item{obj}{a \code{lmm} object.}
 
 \item{individual}{[character] identifier of the cluster for which to extract the residual variance-covariance matrix.}
 

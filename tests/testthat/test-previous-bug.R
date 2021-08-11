@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: Jul  8 2021 (16:25) 
+## Last-Updated: aug 11 2021 (14:55) 
 ##           By: Brice Ozenne
-##     Update #: 35
+##     Update #: 36
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -100,7 +100,7 @@ test_that("lmm - error when predicting due to missing values in the covariates",
     data(gastricbypassL, package = "LMMstar")
     e.lmm  <- lmm(weight ~ glucagon, repetition = ~ time|id , structure = "CS", data = gastricbypassL)
     summary(e.lmm, print = FALSE) ## was bugging at some point
-    summary(e.lmm, hide.fit = TRUE, hide.sd = TRUE, hide.cor = TRUE) ## was bugging at some point
+    capture.output(summary(e.lmm, hide.fit = TRUE, hide.sd = TRUE, hide.cor = TRUE)) ## was bugging at some point
     expect_equal(NROW(predict(e.lmm, newdata = gastricbypassL)),NROW(gastricbypassL))
 
 })

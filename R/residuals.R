@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: aug 11 2021 (12:06) 
+## Last-Updated: aug 11 2021 (13:00) 
 ##           By: Brice Ozenne
-##     Update #: 172
+##     Update #: 177
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -257,24 +257,25 @@ residuals.lmm <- function(object, type.residual = "response", format = "long",
                         M.res[iIndex,"normalized"] <- resnorm[order(iOrder)]
                     }
                     if("scaled" %in% type.residual){
-                        M.res[iIndex[1],"scaled"] <- iResidual[1]/attr(Omega[[index.variance[iId]]],"sd")[1]
+                        M.res[iIndex[iOrder][1],"scaled"] <- iResidual[1]/attr(Omega[[index.variance[iId]]],"sd")[1]
                         if(iN.time>1){
-                            for(iTime in 2:iN.time){
-                                iVar <- Omega[[index.variance[iId]]][iN.time,iN.time]
-                                iPrecision_kk <- solve(Omega[[index.variance[iId]]][1:(iN.time-1),1:(iN.time-1),drop=FALSE])
-                                iOmega_lk <- Omega[[index.variance[iId]]][iN.time,1:(iN.time-1),drop=FALSE]
-                                iOmega_kl <- Omega[[index.variance[iId]]][1:(iN.time-1),iN.time,drop=FALSE]
+                            for(iTime in 2:iN.time){ ## iTime <- 2
+                                iVar <- Omega[[index.variance[iId]]][iTime,iTime]
+                                iPrecision_kk <- solve(Omega[[index.variance[iId]]][1:(iTime-1),1:(iTime-1),drop=FALSE])
+                                iOmega_lk <- Omega[[index.variance[iId]]][iTime,1:(iTime-1),drop=FALSE]
+                                iOmega_kl <- Omega[[index.variance[iId]]][1:(iTime-1),iTime,drop=FALSE]
                                 
-                                num <- iResidual[iN.time] - iVar * as.double(iPrecision_kk %*% iResidual[1:(iN.time-1)])
+                                num <- iResidual[iTime] - iOmega_lk %*% as.double(iPrecision_kk %*% iResidual[1:(iTime-1)])
                                 denom <- iVar - as.double(iOmega_lk %*% iPrecision_kk %*% iOmega_kl)
-                                M.res[iIndex[2],"scaled"] <- num/sqrt(denom) ## issue in term of dimension
+                                M.res[iIndex[iOrder][iTime],"scaled"] <- num/sqrt(denom) ## issue in term of dimension
                             }
                         }
-                    if("normalized2" %in% type.residual){
-                        iX <- X[iIndex[iOrder],,drop=FALSE]
-                        iQ <- iX %*% tX.precision.X.M1 %*% t(iX)
-                        resnorm <- as.double(iResidual %*% t(chol(solve(Omega[[index.variance[iId]]] - iQ))))
-                        M.res[iIndex,"normalized2"] <- resnorm[order(iOrder)]
+                        if("normalized2" %in% type.residual){
+                            iX <- X[iIndex[iOrder],,drop=FALSE]
+                            iQ <- iX %*% tX.precision.X.M1 %*% t(iX)
+                            resnorm <- as.double(iResidual %*% t(chol(solve(Omega[[index.variance[iId]]] - iQ))))
+                            M.res[iIndex,"normalized2"] <- resnorm[order(iOrder)]
+                        }
                     }
                 }
             }

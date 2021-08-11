@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: jul  7 2021 (17:26) 
+## Last-Updated: aug 11 2021 (14:59) 
 ##           By: Brice Ozenne
-##     Update #: 87
+##     Update #: 88
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,7 +20,7 @@
 ##' @description Extract the unique set of residuals variance-covariance matrices or the one relative to specific clusters.
 ##' @name getVarCov
 ##' 
-##' @param object a \code{lmm} object.
+##' @param obj a \code{lmm} object.
 ##' @param individual [character] identifier of the cluster for which to extract the residual variance-covariance matrix.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the residual variance-covariance matrix. Only relevant if differs from the fitted values.
 ##' @param type.object [character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.
@@ -48,7 +48,8 @@
 ## * getVarCov.lmm
 ##' @rdname getVarCov
 ##' @export
-getVarCov.lmm <- function(object, individual = NULL, p = NULL, type.object = c("lmm","gls"), simplifies = TRUE, strata = NULL, ...){
+getVarCov.lmm <- function(obj, individual = NULL, p = NULL, type.object = c("lmm","gls"), simplifies = TRUE, strata = NULL, ...){
+    object <- obj
 
     ## ** normalize user imput
     dots <- list(...)

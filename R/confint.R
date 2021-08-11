@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: Jul  8 2021 (09:44) 
+## Last-Updated: aug 11 2021 (15:00) 
 ##           By: Brice Ozenne
-##     Update #: 266
+##     Update #: 304
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -32,6 +32,7 @@
 ##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.
 ##' @param type.object [character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.
 ##' @param strata [character vector] When not \code{NULL}, only output coefficient relative to specific levels of the variable used to stratify the mean and covariance structure.
+##' @param columns [character vector] Columns to be output. Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
 ##' @param type.information,transform.sigma,transform.k,transform.rho,transform.names are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.
 ##' @param backtransform [logical] should the variance/covariance/correlation coefficient be backtransformed?
 ##' @param ... Not used. For compatibility with the generic method.
@@ -70,7 +71,8 @@
 
 ## * confint.lmm (code)
 ##' @export
-confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", robust = FALSE, null = NULL, type.object = "lmm", strata = NULL, 
+confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "mean", robust = FALSE, null = NULL,
+                         type.object = "lmm", strata = NULL, columns = NULL,
                          df = NULL, type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE,
                          backtransform = NULL, ...){
 
@@ -111,6 +113,8 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", rob
         }else{
             backtransform <- FALSE
         }
+    }else if(is.character(backtransform)){
+        backtransform <-  eval(parse(text=backtransform))
     }
     ## used to decide on the null hypothesis of k parameters
     init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
@@ -125,6 +129,11 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", rob
         type.information <- attr(object$information,"type.information")
     }else{
         type.information <- match.arg(type.information, c("expected","observed"))
+    }
+    if(!is.null(columns)){
+        columns  <- match.arg(columns, c("estimate","se","statistic","df","lower","upper","null","p.value"), several.ok = TRUE)
+    }else{
+        columns <- options$columns.confint
     }
 
     ## ** get estimate
@@ -203,23 +212,24 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "all", rob
 
     attr(out, "backtransform") <-  FALSE
     class(out) <- append("confint_lmm", class(out))
-    if(backtransform){
+    if(is.function(backtransform)){
+        out.save <- out
+        out$estimate <- do.call(backtransform, list(out.save$estimate))
+        out$se  <- numDeriv::grad(func = exp, x = out.save$estimate) * out.save$se
+        out$lower <- do.call(backtransform, list(out.save$lower))
+        out$upper <- do.call(backtransform, list(out.save$upper))
+        attr(out, "backtransform") <-  2    
+    }else if(backtransform){
         out <- backtransform(out)
     }
+    out[names(out)[names(out) %in% columns == FALSE]] <- NULL
     return(out)
 }
 
 ## * print.confint_lmm
 ##' @export
-print.confint_lmm <- function(x, columns = NULL, ...){
-    options <- LMMstar.options()
-    if(!is.null(columns)){
-        columns  <- match.arg(columns, c("estimate","se","statistic","df","lower","upper","null","p.value"), several.ok = TRUE)
-    }else{
-        columns <- options$columns.confint
-    }
-
-    print(as.data.frame(x)[,columns,drop=FALSE])
+print.confint_lmm <- function(x, digit = 3, ...){
+    print(as.data.frame(x), digits = digit)
 
     backtransform <- attr(x,"backtransform")
     if(identical(backtransform, TRUE)){
@@ -234,6 +244,8 @@ print.confint_lmm <- function(x, columns = NULL, ...){
             cat("Note: estimates and confidence intervals for ",paste(intersect(iType,names(transform2)), collapse = ", ")," have been back-transformed. \n",
                 "      standard errors are not back-transformed.\n", sep="")
         }
+    }else if(identical(backtransform, 2)){
+        cat("Note: estimates, standard errors, and confidence intervals have been back-transformed. \n")
     }
     return(NULL)
 }

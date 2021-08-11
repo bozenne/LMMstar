@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Jul  8 2021 (15:33) 
+## Last-Updated: aug 11 2021 (14:41) 
 ##           By: Brice Ozenne
-##     Update #: 966
+##     Update #: 968
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -483,7 +483,6 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                                trace = trace>=2, precompute.moments = options$precompute.moments, method.numDeriv = options$method.numDeriv, transform.names = FALSE)
 
     out[names(outMoments)] <- outMoments
-
 
     
     

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: Jun 18 2021 (12:34) 
+## Last-Updated: aug 11 2021 (14:49) 
 ##           By: Brice Ozenne
-##     Update #: 65
+##     Update #: 70
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,7 +26,8 @@ if(FALSE){
 }
 
 context("Check lmm on examples of mixed model")
-LMMstar.options(method.numDeriv = "simple", precompute.moments = TRUE) # "Richardson"
+LMMstar.options(method.numDeriv = "simple", precompute.moments = TRUE, # "Richardson"
+                columns.confint = c("estimate","se","df","lower","upper","p.value"))
 
 ## * Simulate data
 m <- lvm(c(Y1,Y2,Y3,Y4) ~ 0.05*age + gender)
@@ -126,12 +127,12 @@ test <- information(eCS.lmm, p = newp, transform.sigma = "none", transform.k = "
 expect_equal(as.double(test), as.double(GS), tol = 1e-6) 
 
 ## ** degree of freedom
-test <- confint(eCS.lmm, transform.sigma = "none")[,"df",drop=FALSE]
+test <- confint(eCS.lmm, effects = "all", transform.sigma = "none")[,"df",drop=FALSE]
 expect_equal(test[c("visitY2","visitY3","visitY4"),"df"], rep(297,3), tol = 1e-3)
 expect_equal(test[c("age","genderfemale"),"df"], rep(97,2), tol = 1e-3)
 
 ## ** anova
-eCS.lmm_anova <- anova(eCS.lmm)
+eCS.lmm_anova <- anova(eCS.lmm, effects = "all")
 expect_equal(eCS.lmm_anova$mean$df.denom, c(297.03106,  97.05084,  97.05084), tol = 1e-1)
 expect_equal(eCS.lmm_anova$correlation$df.denom, c(14.7493), tol = 1e-1)
 
@@ -217,7 +218,7 @@ expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 ## ** degree of freedom and anova checked in test-ttest.R (section multiple t-test)
 ## anova(eUN.lmm, ci = TRUE)
 
-eUN.lmm_anova <- anova(eUN.lmm,ci=TRUE)
+eUN.lmm_anova <- anova(eUN.lmm, effects = "all", ci = TRUE)
 expect_equal(eUN.lmm_anova$mean$df.denom, c(99.00144, 96.18348, 94.17755), tol = 1e-1)
 expect_equal(eUN.lmm_anova$variance$df.denom, c(189.236), tol = 1e-1)
 expect_equal(eUN.lmm_anova$correlation$df.denom, c(20.66968), tol = 1e-1)
@@ -298,10 +299,10 @@ test <- information(eCS.lmm, p = newp, transform.sigma = "square", transform.k =
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## ** degree of freedom
-test <- confint(eCS.lmm, transform.sigma = "none")[,"df",drop=FALSE]
+test <- confint(eCS.lmm, effects = "all", transform.sigma = "none")[,"df",drop=FALSE]
 
 ## ** anova
-eCS.lmm_anova <- anova(eCS.lmm)
+eCS.lmm_anova <- anova(eCS.lmm, effects = "all")
 expect_equal(eCS.lmm_anova$mean$df.denom, c(143.04097,  46.63249), tol = 1e-1)
 expect_equal(eCS.lmm_anova$correlation$df.denom, c(7.450136), tol = 1e-1)
 
@@ -400,12 +401,12 @@ test <- information(eUN.lmm, p = newp, transform.sigma = "none", transform.k = "
 expect_equal(as.double(test), as.double(GS), tol = 1e-6) 
 
 ## ** degree of freedom
-test <- confint(eUN.lmm)[,"df", drop=FALSE]
+test <- confint(eUN.lmm, effects = "all")[,"df", drop=FALSE]
 ## anova(eUN.lmm)
 ## anova(eUN.gls)
 
 ## ** anova
-eUN.lmm_anova <- anova(eUN.lmm,ci=TRUE)
+eUN.lmm_anova <- anova(eUN.lmm, effects = "all", ci = TRUE)
 expect_equal(eUN.lmm_anova$mean$df.denom, c(47.63744, 42.53266), tol = 1e-1)
 expect_equal(eUN.lmm_anova$variance$df.denom, c(86.07826), tol = 1e-1)
 expect_equal(eUN.lmm_anova$correlation$df.denom, c(9.100919), tol = 1e-1)

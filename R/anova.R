@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: Jul  9 2021 (09:58) 
+## Last-Updated: aug 11 2021 (13:21) 
 ##           By: Brice Ozenne
-##     Update #: 461
+##     Update #: 472
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -63,6 +63,7 @@
 ##' 
 ##' ## chi-2 test
 ##' anova(eUN.lmm)
+##' anova(eUN.lmm, effects = "all")
 ##' 
 ##' anova(eUN.lmm, effects = c("X1=0","X2+X5=10"), ci = TRUE)
 ##' 
@@ -75,7 +76,7 @@
 ## * anova.lmm (code)
 ##' @rdname anova
 ##' @export
-anova.lmm <- function(object, effects = "all", rhs = NULL, df = !is.null(object$df), ci = FALSE, 
+anova.lmm <- function(object, effects = "mean", rhs = NULL, df = !is.null(object$df), ci = FALSE, 
                       type.object = "lmm",
                       transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
     
@@ -161,31 +162,44 @@ anova.lmm <- function(object, effects = "all", rhs = NULL, df = !is.null(object$
         
         effects <- match.arg(effects, c("mean","fixed","variance","correlation"), several.ok = TRUE)
         effects[effects=="fixed"] <- "mean"
-        out <- list(mean=NULL,
-                    variance=NULL,
-                    correlation=NULL)
-        ls.assign <- list(mean = attr(object$design$X.mean,"assign"),
-                          variance = attr(object$design$X.var$var,"assign"),
-                          correlation = attr(object$design$X.var$cor,"assign"))
-        ls.nameTerms <- list(mean = attr(stats::terms(object$formula$mean.design),"term.labels"),
-                             variance = if(!is.null(object$formula$var.design)){attr(stats::terms(object$formula$var.design),"term.labels")}else{NULL},
-                             correlation = if(!is.null(ls.assign$correlation)){object$time$var}else{NULL})
+        
+        out <- list()
+        ls.assign <- list()
+        ls.nameTerms <- list()
+        ls.contrast <- list()
+        ls.null <- list()
+        if("mean" %in% effects){
+            out <- c(out,list(mean = NULL))
+            ls.assign$mean <- attr(object$design$X.mean,"assign")
+            ls.nameTerms$mean <- attr(stats::terms(object$formula$mean.design),"term.labels")
+            ls.contrast <- c(ls.contrast,list(mean = NULL))
+            null.mean <- 0
+            ls.null$mean <- rep(null.mean,length(ls.nameTerms$mean))
+        }
+        if("variance" %in% effects){
+            out <- c(out,list(variance = NULL))
+            ls.assign$variance <- attr(object$design$X.var$var,"assign")
+            ls.nameTerms$variance <- if(!is.null(object$formula$var.design)){attr(stats::terms(object$formula$var.design),"term.labels")}else{NULL}
+            ls.contrast <- c(ls.contrast,list(variance = NULL))
+            null.variance <- switch(transform.k,
+                                    "none" = 1,
+                                    "square" = 1,
+                                    "log" = 0,
+                                    "logsquare" = 0)
+            ls.null$variance <- rep(null.variance,length(ls.nameTerms$variance))
+        }
+        if("correlation" %in% effects){
+            out <- c(out,list(correlation = NULL))
+            ls.assign$correlation <- attr(object$design$X.var$cor,"assign")
+            ls.nameTerms$correlation <- if(!is.null(ls.assign$correlation)){object$time$var}else{NULL}
+            ls.contrast <- c(ls.contrast,list(correlation = NULL))
+            null.correlation <- switch(transform.rho,
+                                       "none" = 0,
+                                       "atanh" = 0,
+                                       "cov" = 0)
+            ls.null$correlation <- rep(null.correlation,length(ls.nameTerms$correlation))
+        }
         ls.nameTerms.num <- lapply(ls.nameTerms, function(iName){as.numeric(factor(iName, levels = iName))})
-        ls.contrast  <- list(mean = NULL, variance = NULL, correlation = NULL)
-
-        null.mean <- 0
-        null.variance <- switch(transform.k,
-                                "none" = 1,
-                                "square" = 1,
-                                "log" = 0,
-                                "logsquare" = 0)
-        null.correlation <- switch(transform.rho,
-                                   "none" = 0,
-                                   "atanh" = 0,
-                                   "cov" = 0)
-        ls.null  <- list(mean = rep(null.mean,length(ls.nameTerms$mean)),
-                         variance = rep(null.variance,length(ls.nameTerms$variance)),
-                         correlation = rep(null.correlation,length(ls.nameTerms$correlation)))
     }else if(all(grepl("=",effects)==FALSE)){
         stop("Incorrect argument \'effects\': can be \"mean\", \"variance\", \"correlation\", \"all\", \n",
              "or something compatible with the argument \'linfct\' of multcomp::glht. \n ")

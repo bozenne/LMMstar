@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: Jun 18 2021 (12:33) 
+## Last-Updated: aug 11 2021 (15:00) 
 ##           By: Brice Ozenne
-##     Update #: 152
+##     Update #: 156
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -27,7 +27,8 @@ if(FALSE){
 }
 
 context("Check lmm on examples of linear regression")
-LMMstar.options(method.numDeriv = "Richardson", precompute.moments = TRUE)
+LMMstar.options(method.numDeriv = "Richardson", precompute.moments = TRUE,
+                columns.confint = c("estimate","se","df","lower","upper","p.value"))
 
 ## * simulate data
 n <- 5e1
@@ -149,10 +150,10 @@ expect_equal(unname(sqrt(diag(vcov(e.lmm,transform.sigma="square",robust=TRUE)))
              tol = 1e-4)
 
 ## ** degree of freedom
-test <- confint(e.lmm, transform.sigma = "log", type.information = "observed")$df
+test <- confint(e.lmm, effects = "all", transform.sigma = "log", type.information = "observed")$df
 expect_equal(test, rep(n.obs,n.param), tol = 1e-6)
 
-test <- suppressWarnings(confint(e.lmm, transform.sigma = "square", type.information = "expected")$df)
+test <- suppressWarnings(confint(e.lmm, effects = "all", transform.sigma = "square", type.information = "expected")$df)
 expect_equal(test, c(rep(n.obs,n.mu),n.obs/4), tol = 1e-6)
 
 ## ## numerical derivative with appropriate transformation
@@ -244,11 +245,11 @@ test <- information(e.lmm, p = newp, transform.sigma = "none")
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## ** degree of freedom
-test <- confint(e.lmm, transform.sigma = "log", type.information = "observed")$df
+test <- confint(e.lmm, effects = "all", transform.sigma = "log", type.information = "observed")$df
 expect_equal(test, rep(n.obs-n.mu,n.param), tol = 1e-6)
 
 ## numerical derivative
-test <- confint(e.lmm, transform.sigma = "log", type.information = "observed")$df
+test <- confint(e.lmm, effects = "all", transform.sigma = "log", type.information = "observed")$df
 FF.bis <- function(p){p["sigma"] <- exp(p["sigma"])   ; diag(vcov(e.lmm, p = p, transform.sigma = "log", type.information = "observed"))}
 GG.bis <- jacobian(func = FF.bis, x = coef(e.lmm, transform.sigma = "log", transform.names = FALSE), method = LMMstar.options()$method.numDeriv)
 VV.bis <- vcov(e.lmm, transform.sigma = "log", type.information = "observed")
@@ -261,7 +262,7 @@ expect_equal(unname(test), unname(GS), tol = 1e-6)
 ## GG.bis
 
 ## numerical derivative on another scale
-test <- confint(e.lmm, transform.sigma = "square", type.information = "observed")$df
+test <- confint(e.lmm, effects = "all", transform.sigma = "square", type.information = "observed")$df
 FF.bis <- function(p){p["sigma"] <- sqrt(p["sigma"]); diag(vcov(e.lmm, p = p, transform.sigma = "square", type.information = "observed"))}
 GG.bis <- jacobian(func = FF.bis, x = coef(e.lmm, transform.sigma = "square", transform.names = FALSE), method = LMMstar.options()$method.numDeriv)
 VV.bis <- vcov(e.lmm, transform.sigma = "square", type.information = "observed")
@@ -354,14 +355,14 @@ expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 name.coefM <- grep(names(coef(e.lmm, transform.k = "sd")),pattern="M",value=TRUE)
 name.coefF <- grep(names(coef(e.lmm, transform.k = "sd")),pattern="F",value=TRUE)
 
-test <- backtransform(confint(e.lmm, transform.k = "logsd", type.information = "observed"))[,"df",drop=FALSE]
+test <- backtransform(confint(e.lmm, effects = "all", transform.k = "logsd", type.information = "observed"))[,"df",drop=FALSE]
 expect_equal(test[name.coefM,], rep(sum(d$Gender=="M"),length(name.coefM)), tol = 1e-3)
 expect_equal(test[name.coefF,], rep(sum(d$Gender=="F"),length(name.coefM)), tol = 1e-3)
 
 name.coefM <- grep(names(coef(e.lmm, transform.k = "var")),pattern="M",value=TRUE)
 name.coefF <- grep(names(coef(e.lmm, transform.k = "var")),pattern="F",value=TRUE)
 
-test <- suppressWarnings(confint(e.lmm, transform.k = "var", type.information = "expected")[,"df",drop=FALSE])
+test <- suppressWarnings(confint(e.lmm, effects = "all", transform.k = "var", type.information = "expected")[,"df",drop=FALSE])
 expect_equal(test[name.coefM,], c(rep(sum(d$Gender=="M"),length(name.coefM)-1),sum(d$Gender=="M")/4), tol = 1e-6)
 expect_equal(test[name.coefF,], c(rep(sum(d$Gender=="F"),length(name.coefM)-1),sum(d$Gender=="F")/4), tol = 1e-6)
 
@@ -465,7 +466,7 @@ expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 name.coefM <- grep(names(coef(e.lmm, transform.k = "sd")),pattern="M",value=TRUE)
 name.coefF <- grep(names(coef(e.lmm, transform.k = "sd")),pattern="F",value=TRUE)
 
-test <- backtransform(confint(e.lmm, transform.k = "logsd", type.information = "observed"))[,"df",drop=FALSE]
+test <- backtransform(confint(e.lmm, effects = "all", transform.k = "logsd", type.information = "observed"))[,"df",drop=FALSE]
 expect_equal(test[name.coefM,], rep(sum(d$Gender=="M")-length(name.coefM)+1,length(name.coefM)), tol = 1e-6)
 expect_equal(test[name.coefF,], rep(sum(d$Gender=="F")-length(name.coefM)+1,length(name.coefM)), tol = 1e-6)
 

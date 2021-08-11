@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: Jul  8 2021 (16:24) 
+## Last-Updated: aug 11 2021 (15:00) 
 ##           By: Brice Ozenne
-##     Update #: 231
+##     Update #: 301
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,8 +25,9 @@
 ##' @param digit [integer,>0] number of digit used to display numeric values.
 ##' @param level [numeric,0-1] confidence level for the confidence intervals.
 ##' @param print [logical] should the output be printed in the console.
-##' @param ci [logical] should the confidence intervals be displayed.
+##' @param columns [character vector] Columns to be output for the fixed effects. Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
 ##' @param hide.fit [logical] should information about the model fit not be printed.
+##' @param hide.data [logical] should information about the dataset not be printed.
 ##' @param hide.cor [logical] should information about the correlation structure not be printed.
 ##' @param hide.sd [logical] should information about the standard deviation not be printed.
 ##' @param hide.var [logical] should information about the variance not be printed.
@@ -36,8 +37,8 @@
 ## * summary.lmm (code)
 ##' @rdname summary
 ##' @export
-summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = TRUE,
-                        hide.fit = FALSE, hide.cor = FALSE, hide.var = TRUE, hide.sd = FALSE, hide.mean = FALSE, ...){
+summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, columns = NULL,
+                        hide.fit = FALSE, hide.data = FALSE, hide.cor = FALSE, hide.var = TRUE, hide.sd = FALSE, hide.mean = FALSE, ...){
 
     param.mu <- object$param$value[object$param$type=="mu"]
     param.sigma <- object$param$value[object$param$type=="sigma"]
@@ -55,48 +56,49 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = TRUE
     df <- !is.null(object$df)
     options <- LMMstar.options()
 
+    if(!is.null(columns)){
+        columns  <- match.arg(columns, c("estimate","se","statistic","df","lower","upper","null","p.value",""), several.ok = TRUE)
+    }else{
+        columns <- options$columns.summary
+    }
+
+
     ## ** welcome message
     if(print){
         if(length(param.rho) == 0){
-            if(length(c(param.sigma,param.k))==1){
-                cat("  Linear regression \n")
-            }else{
-                cat("  Linear regression with heterogeneous residual variance \n")
-            }
+            cat("           Linear regression \n")
         }else{
-            if(structure=="UN"){
-                cat("  Linear Mixed Model with an unstructured covariance matrix \n")
-            }else if(structure=="CS"){
-                cat("  Linear Mixed Model with a compound symmetry covariance matrix \n")
-            }
+            cat("           Linear Mixed Model \n")
         }
+        cat(" \n")
     }
 
     
-    ## ** fit message
-    if(print && !hide.fit){
-        if(method.fit == "REML"){
-            cat("  - fitted using Restricted Maximum Likelihood (REML) \n")
-        }else{
-            cat("  - fitted using Maximum Likelihood (ML) \n")
-        }
-        cat("  - log-likelihood :", as.double(logLik), " (parameters: mean = ",length(param.mu),", variance = ",length(c(param.sigma,param.k)),", correlation = ",length(param.rho),")\n",sep="")    
-        cat(" \n")
+    ## ** data message    
+    if(print && !hide.data){
         cat("Dataset:", deparse(call$data), "\n")
 
         if(nobs["missing"]>0){
             missing.cluster <- .addNA(object$index.na, design = object$design, time = object$time)$missing.cluster
             if(length(missing.cluster)>0){
-                cat(" - ", nobs["cluster"], " clusters were analyzed, ",length(missing.cluster)," were excluded because of missing vlaues \n" , sep = "")
+                cat("  - ", nobs["cluster"], " clusters were analyzed, ",length(missing.cluster)," were excluded because of missing vlaues \n" , sep = "")
             }else{
-                cat(" - ", nobs["cluster"], " clusters \n" , sep = "")
+                cat("  - ", nobs["cluster"], " clusters \n" , sep = "")
             }
-            cat(" - ", sum(nobsByCluster), " observations were analyzed, ",nobs["missing"]," were excluded because of missing values \n",  sep = "")
+            cat("  - ", sum(nobsByCluster), " observations were analyzed, ",nobs["missing"]," were excluded because of missing values \n",  sep = "")
         }else{
-            cat(" - ", nobs["cluster"], " clusters \n" , sep = "")
-            cat(" - ", sum(nobsByCluster), " observations \n",  sep = "")
+            cat("  - ", nobs["cluster"], " clusters \n" , sep = "")
+            cat("  - ", sum(nobsByCluster), " observations \n",  sep = "")
         }
-        cat(" - ", max(nobsByCluster), " maximum number of observations per cluster \n", sep = "")
+        if(length(unique(nobsByCluster))==1){
+            cat("  - ", nobsByCluster[1], " observations per cluster \n", sep = "")
+        }else{
+            cat("  - between ", min(nobsByCluster), " and ",max(nobsByCluster)," observations per cluster \n", sep = "")
+        }
+
+        cat("  - summary of the outcome and covariates: \n")
+        data.XY <- data[all.vars(stats::terms(formula$mean))]
+        cat(paste0("   ",utils::capture.output(stats::str(data.XY))[-1],"\n"))
 
         data.X <- data[all.vars(stats::delete.response(stats::terms(formula$mean)))]
         C <- lapply(data.X, function(iCol){
@@ -105,46 +107,80 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = TRUE
         if(length(C)>0){
             C <- C[!unlist(lapply(C, is.null))]
             if(length(C)>0){
-                cat(" - levels of the categorical variables \n", sep = "")
                 if(attr(stats::terms(formula$mean),"intercept") == 1){
                     ref.level <- paste(unlist(lapply(names(C), function(iC){
                         paste0(iC,"=",rownames(C[[iC]])[1])
                     })), collapse = " ; ")
-                    cat(" - reference level: ",ref.level," \n", sep = "")
+                    cat("  - reference level: ",ref.level," \n", sep = "")
                     cat(" \n")
                 }
-                print(C)
+                ## print(C)
             }
         }
+        cat("\n")
     }
     
-    ## ** correlation structure
+    ## ** optim message    
+    if(print && !hide.fit){
+        cat("Estimation procedure \n")
+        if(method.fit == "REML"){
+            cat("  - Restricted Maximum Likelihood (REML) \n")
+        }else{
+            cat("  - Maximum Likelihood (ML) \n")
+        }
+        cat("  - log-likelihood :", as.double(logLik), "\n",sep="")
+        cat("  - parameters: mean = ",length(param.mu),", variance = ",length(c(param.sigma,param.k)),", correlation = ",length(param.rho),"\n", sep = "")
+        cat(" \n")
+    }
+
+    ## ** vcov structure
+    if(print && (!hide.cor || !hide.var || !hide.sd)){
+        cat("Residual variance-covariance: ")
+        if(length(param.rho)==0){
+            if(length(c(param.sigma,param.k))==1){
+                cat("identity \n")
+            }else{
+                cat("diagonal \n")
+            }
+        }else if(structure == "UN"){
+            cat("unstructured \n")
+        }else if(structure == "CS"){
+            cat("compound symmetry \n")
+        }
+    }
+    ## *** correlation 
     if(length(param.rho)>0){
         if(print && !hide.cor){
-            cat("Correlation structure:",deparse(formula$cor),"\n")
+            cat("  - correlation structure:",deparse(formula$cor),"\n")
         }
         table.cor <- lapply(Omega,stats::cov2cor)
         if(length(table.cor)==1){
             table.cor <- table.cor[[1]]
         }
         if(print && !hide.cor){
+            if(is.list(table.cor)){
+                table.cor  <- lapply(table.cor, function(iCor){
+                    rownames(iCor) <- paste0("    ",rownames(iCor))
+                    return(iCor)
+                })
+            }else{
+                rownames(table.cor) <- paste0("    ",rownames(table.cor))
+            }
             print(table.cor, digit = digit)
-            cat("\n")
         }
     }else{
         table.cor <- NULL
     }
     
 
-    ## ** variance structure
+    ## *** variance
     if(!hide.var || !hide.sd){
-        name.sigma <- names(coef(object, transform.sigma = "none", transform.k = "sd", effects = "variance"))
+        name.sigma <- gsub("sigma:","",names(coef(object, transform.sigma = "none", transform.k = "sd", effects = "variance")))
         index.ref <- which(names(coef(object, effects = "variance", transform.names = FALSE)) %in% names(param.sigma))
         if(print){
-            cat("Variance structure:",deparse(formula$var.design),"\n")
+            cat("  - variance structure:",deparse(formula$var.design),"\n")
         }
     }
-
     if(!hide.var){
         table.var <- cbind(estimate = coef(object, transform.sigma = "none", transform.k = "var", effects = "variance"),
                            estimate.ratio = coef(object, transform.sigma = "none", transform.k = "square", effects = "variance", transform.names = FALSE))
@@ -178,16 +214,18 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = TRUE
                 }
             }
 
-            rownames(printtable) <- name.sigma
+            rownames(printtable) <- paste0("    ",name.sigma)
             print(printtable, digit = digit)
-            cat("\n")
     }
-
+    if(print && (!hide.cor || !hide.var || !hide.sd)){
+        cat("\n")
+    }
+    
     ## ** mean structure
     if(print && !hide.mean){
-        cat("Mean structure:",deparse(call$formula),"\n")
+        cat("Fixed effects:",deparse(call$formula),"\n")
     }
-    table.mean <- confint(object, level = level, effects = "mean")[,c("estimate","se","df","lower","upper","statistic","p.value")]
+    table.mean <- confint(object, level = level, effects = "mean", columns = c("estimate","se","df","lower","upper","statistic","p.value"))
     starSymbol <- stats::symnum(table.mean[,"p.value"], corr = FALSE, na = FALSE,
                                 cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1),
                                 symbols = c("***", "**", "*", ".", " "))
@@ -200,28 +238,23 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, ci = TRUE
     printtable.mean[["upper"]] <- as.character(round(table.mean[["lower"]], digits = digit))
     printtable.mean[["statistic"]] <- as.character(round(table.mean[["statistic"]], digits = digit))
     printtable.mean[["p.value"]] <- format.pval(table.mean[["p.value"]], digits = digit, eps = 10^(-digit))
-    if(any(names(printtable.mean) %in% options$columns.summary == FALSE)){
-        printtable.mean <- printtable.mean[,-which(names(printtable.mean) %in% options$columns.summary == FALSE),drop=FALSE]
+    if(any(names(printtable.mean) %in% columns == FALSE)){
+        printtable.mean <- printtable.mean[,-which(names(printtable.mean) %in% columns == FALSE),drop=FALSE]
     }
     
     if(print && !hide.mean){
-        if(ci){
-            printtable.mean$statistic <- NULL
-            print(printtable.mean)
-            cat("\n")
-            cat("The columns lower and upper correspond to the ",100*level,"% confidence interval of the estimated coefficient\n", sep = "")
-            if(NROW(printtable.mean)>1){
-                cat("Note: p-values and confidence intervals are not adjusted for multiple comparisons\n")
-            }
-        }else{
-            printtable.mean$lower <- NULL
-            printtable.mean$upper <- NULL
-            print(printtable.mean)
-            cat("\n")
-            if(NROW(printtable.mean)>1){
-                cat("Note: p-values are not adjusted for multiple comparisons\n")
-            }
+        print(printtable.mean)
+        if("lower" %in% columns && "upper" %in% columns){
+            cat("The columns lower and upper correspond to the ",100*level,"% confidence interval\n", sep = "")
+        }else if("lower" %in% columns){
+            cat("The column lower corresponds to the ",100*level,"% confidence interval of the estimated coefficient\n", sep = "")
+        }else if("upper" %in% columns){
+            cat("The column upper corresponds to the ",100*level,"% confidence interval of the estimated coefficient\n", sep = "")
         }
+        if(!is.null(object$df)){
+            cat("Degrees of freedom were computed using a Satterthwaite approximation\n", sep = "")
+        }
+        cat("\n")
     }
     ## ** export
     return(invisible(list(correlation = table.cor,

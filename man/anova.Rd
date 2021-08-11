@@ -9,7 +9,7 @@
 \usage{
 \method{anova}{lmm}(
   object,
-  effects = "all",
+  effects = "mean",
   rhs = NULL,
   df = !is.null(object$df),
   ci = FALSE,
@@ -84,6 +84,7 @@ eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data 
 
 ## chi-2 test
 anova(eUN.lmm)
+anova(eUN.lmm, effects = "all")
 
 anova(eUN.lmm, effects = c("X1=0","X2+X5=10"), ci = TRUE)
 

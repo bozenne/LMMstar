@@ -23,7 +23,7 @@
 \arguments{
 \item{object}{a \code{lmm} object.}
 
-\item{type.residual}{[character] Should the raw residuals be output (\code{"response"}), the Pearson residuals (\code{"pearson"}), the studentized residuals (\code{"studentized"}), or normalized residuals (\code{"normalized"}).}
+\item{type.residual}{[character] Should the raw residuals be output (\code{"response"}), or the Pearson residuals (\code{"pearson"}),  or normalized residuals (\code{"normalized"} or \code{"scaled"}).}
 
 \item{format}{[character] Should the residuals be output relative as a vector (\code{"long"}), or as a matrix with in row the clusters and in columns the outcomes (\code{"wide"}).}
 
@@ -61,6 +61,7 @@ The argument \code{type.residual} defines how the residuals are computed:
 \item \code{"studentized"}: same as \code{"pearson"} but excluding the contribution of the cluster in the modeled standard deviation  \eqn{\varepsilon = \frac{Y_{ij} - X_{ij} \hat{\beta}}{\sqrt{\hat{\omega}_{ij}-\hat{q}_{ij}}}}.
 \item \code{"normalized"}: raw residuals are multiplied, within clusters, by the inverse of the (lower) Cholesky factor of the modeled residual variance covariance matrix \eqn{\varepsilon = ( Y_{i} - X_{i} \hat{\beta} )\hat{C}^{-1}}.
 \item \code{"normalized2"}: same as \code{"normalized"} but excluding the contribution of the cluster in the modeled residual variance covariance matrix \eqn{\varepsilon = ( Y_{i} - X_{i} \hat{\beta} ) \hat{D}_i^{-1}}.
+\item \code{"scaled"}: corresponds to the scaled scaled residuals of PROC MIXED in SAS.
 }
 where
 \itemize{
@@ -86,4 +87,5 @@ residuals(eUN.lmm, format = "long", type.residual = c("normalized","pearson"))
 residuals(eUN.lmm, format = "long", type.residual = "all", keep.data = TRUE)
 residuals(eUN.lmm, format = "wide", plot = "correlation")
 residuals(eUN.lmm, format = "wide", type.residual = "normalized")
+residuals(eUN.lmm, format = "wide", type.residual = "scaled")
 }

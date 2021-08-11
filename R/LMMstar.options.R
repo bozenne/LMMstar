@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: jul  7 2021 (18:02) 
+## Last-Updated: aug 11 2021 (13:58) 
 ##           By: Brice Ozenne
-##     Update #: 53
+##     Update #: 55
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -28,7 +28,7 @@
 #'
 #' @details The options are: \itemize{
 #' \item backtransform.confint [logical]: should variance/covariance/correlation estimates be back-transformed when they are transformed on the log or atanh scale. Used by \code{confint}.
-#' \item columns.confint [character vector]: columns to ouput when displaying the model coefficients using \code{confint}.
+#' \item columns.confint [character vector]: columns to ouput when using \code{confint}.
 #' \item columns.summary [character vector]: columns to ouput when displaying the model coefficients using \code{summary}.
 #' \item df [logical]: should approximate degrees of freedom be computed for Wald and F-tests. Used by \code{lmm}, \code{anova}, \code{predict}, and \code{confint}.
 #' \item drop.X [logical]: should columns causing non-identifiability of the model coefficients be dropped from the design matrix. Used by \code{lmm}.
@@ -46,7 +46,7 @@ LMMstar.options <- function(..., reinitialise = FALSE){
     if (reinitialise == TRUE) {
         assign(".LMMstar-options", 
                list(backtransform.confint = TRUE,
-                    columns.confint = c("estimate","se","df","lower","upper","p.value"),
+                    columns.confint = c("estimate","lower","upper"),
                     columns.summary = c("estimate","se","df","lower","upper","p.value",""),
                     df = TRUE,
                     drop.X = TRUE,

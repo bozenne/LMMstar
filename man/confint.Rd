@@ -11,11 +11,12 @@
   object,
   parm = NULL,
   level = 0.95,
-  effects = "all",
+  effects = "mean",
   robust = FALSE,
   null = NULL,
   type.object = "lmm",
   strata = NULL,
+  columns = NULL,
   df = NULL,
   type.information = NULL,
   transform.sigma = NULL,
@@ -49,6 +50,8 @@ or only for correlation coefficients (\code{"correlation"}).}
 \item{type.object}{[character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.}
 
 \item{strata}{[character vector] When not \code{NULL}, only output coefficient relative to specific levels of the variable used to stratify the mean and covariance structure.}
+
+\item{columns}{[character vector] Columns to be output. Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.}
 
 \item{df}{[logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.}
 
