@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (17:03) 
 ## Version: 
-## Last-Updated: aug 11 2021 (14:55) 
+## Last-Updated: aug 11 2021 (15:56) 
 ##           By: Brice Ozenne
-##     Update #: 39
+##     Update #: 41
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -105,9 +105,9 @@ test_that("practical 1 - gastricbypass",{
     emmeans(eUN.lmm, specs = ~time)
     emmip(eUN.lmm, ~time)
     autoplot(eUN.lmm)
-    apply(residuals(eUN.lmm, type.residual = "normalized", format = "wide"),2,sd,na.rm=TRUE)
-    cor(residuals(eUN.lmm, type.residual = "normalized", format = "wide")[,-1], use = "pairwise")
-    qqtest(na.omit(residuals(eUN.lmm, type.residual = "normalized")))
+    apply(residuals(eUN.lmm, type = "normalized", format = "wide"),2,sd,na.rm=TRUE)
+    cor(residuals(eUN.lmm, type = "normalized", format = "wide")[,-1], use = "pairwise")
+    qqtest(na.omit(residuals(eUN.lmm, type = "normalized")))
 
     eUN.lmm_anova <- anova(eUN.lmm, effects = c("timew1A-timew1B=0"), ci = TRUE)
     expect_equal(eUN.lmm_anova$all$df.denom, 19.24699, tol = 1e-1) ## Richardson

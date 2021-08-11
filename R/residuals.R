@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: aug 11 2021 (13:00) 
+## Last-Updated: aug 11 2021 (15:31) 
 ##           By: Brice Ozenne
-##     Update #: 177
+##     Update #: 178
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,7 +21,7 @@
 ##' @name residuals
 ##' 
 ##' @param object a \code{lmm} object.
-##' @param type.residual [character] Should the raw residuals be output (\code{"response"}), or the Pearson residuals (\code{"pearson"}),  or normalized residuals (\code{"normalized"} or \code{"scaled"}).
+##' @param type [character] Should the raw residuals be output (\code{"response"}), or the Pearson residuals (\code{"pearson"}),  or normalized residuals (\code{"normalized"} or \code{"scaled"}).
 ##' @param format [character] Should the residuals be output relative as a vector (\code{"long"}), or as a matrix with in row the clusters and in columns the outcomes (\code{"wide"}).
 ##' @param data [data.frame] dataset relative to which the residuals should be computed. Only relevant if differs from the dataset used to fit the model.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the residuals. Only relevant if differs from the fitted values.
@@ -33,7 +33,7 @@
 ##' @param type.object [character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
-##' @details The argument \code{type.residual} defines how the residuals are computed:
+##' @details The argument \code{type} defines how the residuals are computed:
 ##' \itemize{
 ##' \item \code{"raw"}: observed outcome minus fitted value \eqn{\varepsilon = Y_{ij} - X_{ij} \hat{\beta}}.
 ##' \item \code{"pearson"}: each raw residual is divided by its modeled standard deviation \eqn{\varepsilon = \frac{Y_{ij} - X_{ij} \hat{\beta}}{\sqrt{\hat{\omega}_{ij}}}}.
@@ -55,7 +55,7 @@
 ##'
 ##' @return
 ##' When argument format is \code{"long"} and type.oobject is \code{"lmm"}, a vector containing the value of the residual realtive to each observation.
-##' It is a matrix if the argument \code{type.residual} contains several values.
+##' It is a matrix if the argument \code{type} contains several values.
 ##' When argument format is \code{"wide"} and type.oobject is \code{"lmm"}, a data.frame with the value of the residual relative to each cluster (in rows) at each timepoint (in columns).
 ##' 
 ##' @examples
@@ -67,21 +67,22 @@
 ##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
 ##'
 ##' ## residuals
-##' residuals(eUN.lmm, format = "long", type.residual = c("normalized","pearson"))
-##' residuals(eUN.lmm, format = "long", type.residual = "all", keep.data = TRUE)
+##' residuals(eUN.lmm, format = "long", type = c("normalized","pearson"))
+##' residuals(eUN.lmm, format = "long", type = "all", keep.data = TRUE)
 ##' residuals(eUN.lmm, format = "wide", plot = "correlation")
-##' residuals(eUN.lmm, format = "wide", type.residual = "normalized")
-##' residuals(eUN.lmm, format = "wide", type.residual = "scaled")
+##' residuals(eUN.lmm, format = "wide", type = "normalized")
+##' residuals(eUN.lmm, format = "wide", type = "scaled")
 
 
 ## * residuals.lmm (code)
 ##' @rdname residuals
 ##' @export
-residuals.lmm <- function(object, type.residual = "response", format = "long",
+residuals.lmm <- function(object, type = "response", format = "long",
                           data = NULL, p = NULL, keep.data = FALSE,
                           plot = "none", engine.qqplot = "ggplot2", digit.cor = 2, size.text = 16,
                           type.object = "lmm", ...){
     options <- LMMstar.options()
+    type.residual <- type
 
     ## ** normalize user imput
     dots <- list(...)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: aug 11 2021 (15:00) 
+## Last-Updated: aug 11 2021 (15:56) 
 ##           By: Brice Ozenne
-##     Update #: 156
+##     Update #: 157
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -375,7 +375,7 @@ residuals(e.lmm, format = "long")
 residuals(e.lmm, format = "wide")
 residuals(e.lmm2)
 
-residuals(e.lmm, format = "wide", type.residual = "normalized")
+residuals(e.lmm, format = "wide", type = "normalized")
 
 ## ** confidence interval
 expect_equal(confint(e.lmm, transform.k = "sd", effects = "variance")$estimate,

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: aug 11 2021 (15:02) 
+## Last-Updated: aug 11 2021 (15:26) 
 ##           By: Brice Ozenne
-##     Update #: 302
+##     Update #: 314
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -76,7 +76,7 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, columns =
     
     ## ** data message    
     if(print && !hide.data){
-        cat("Dataset:", deparse(call$data), "\n")
+        cat("Dataset:", deparse(call$data), "\n\n")
 
         if(nobs["missing"]>0){
             missing.cluster <- .addNA(object$index.na, design = object$design, time = object$time)$missing.cluster
@@ -96,9 +96,11 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, columns =
             cat("  - between ", min(nobsByCluster), " and ",max(nobsByCluster)," observations per cluster \n", sep = "")
         }
 
-        cat("  - summary of the outcome and covariates: \n")
+        cat("\nSummary of the outcome and covariates: \n\n")
         data.XY <- data[all.vars(stats::terms(formula$mean))]
-        cat(paste0("   ",utils::capture.output(utils::str(data.XY))[-1],"\n"))
+        str.XY <- utils::capture.output(utils::str(data.XY))[-1]
+        str.XY[1] <- paste0(" ",str.XY[1])
+        cat(paste0("  ",str.XY,"\n"))
 
         data.X <- data[all.vars(stats::delete.response(stats::terms(formula$mean)))]
         C <- lapply(data.X, function(iCol){
@@ -111,8 +113,7 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, columns =
                     ref.level <- paste(unlist(lapply(names(C), function(iC){
                         paste0(iC,"=",rownames(C[[iC]])[1])
                     })), collapse = " ; ")
-                    cat("  - reference level: ",ref.level," \n", sep = "")
-                    cat(" \n")
+                    cat("    reference level: ",ref.level," \n", sep = "")
                 }
                 ## print(C)
             }
@@ -122,7 +123,7 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, columns =
     
     ## ** optim message    
     if(print && !hide.fit){
-        cat("Estimation procedure \n")
+        cat("Estimation procedure \n\n")
         if(method.fit == "REML"){
             cat("  - Restricted Maximum Likelihood (REML) \n")
         }else{
@@ -138,14 +139,14 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, columns =
         cat("Residual variance-covariance: ")
         if(length(param.rho)==0){
             if(length(c(param.sigma,param.k))==1){
-                cat("identity \n")
+                cat("identity \n\n")
             }else{
-                cat("diagonal \n")
+                cat("diagonal \n\n")
             }
         }else if(structure == "UN"){
-            cat("unstructured \n")
+            cat("unstructured \n\n")
         }else if(structure == "CS"){
-            cat("compound symmetry \n")
+            cat("compound symmetry \n\n")
         }
     }
     ## *** correlation 
@@ -167,6 +168,7 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, columns =
                 rownames(table.cor) <- paste0("    ",rownames(table.cor))
             }
             print(table.cor, digit = digit)
+            cat("\n")
         }
     }else{
         table.cor <- NULL
@@ -223,7 +225,7 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, columns =
     
     ## ** mean structure
     if(print && !hide.mean){
-        cat("Fixed effects:",deparse(call$formula),"\n")
+        cat("Fixed effects:",deparse(call$formula),"\n\n")
     }
     table.mean <- confint(object, level = level, effects = "mean", columns = c("estimate","se","df","lower","upper","statistic","p.value"))
     starSymbol <- stats::symnum(table.mean[,"p.value"], corr = FALSE, na = FALSE,
@@ -244,6 +246,7 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, columns =
     
     if(print && !hide.mean){
         print(printtable.mean)
+        cat("\n")
         if("lower" %in% columns && "upper" %in% columns){
             cat("The columns lower and upper correspond to the ",100*level,"% confidence interval\n", sep = "")
         }else if("lower" %in% columns){

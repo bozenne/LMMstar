@@ -4,8 +4,9 @@
 options(width = 100)
 if(system("whoami",intern=TRUE)=="bozenne"){  
   setwd("~/Documents/GitHub/LMMstar/inst/doc-software/")
+}else if(system("whoami",intern=TRUE)=="sund\\hpl802"){  
+  setwd("c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/")
 }
-
 #+END_SRC
 
 #+RESULTS:
@@ -87,7 +88,7 @@ utils::packageVersion("LMMstar")
 #+END_SRC
 
 #+RESULTS:
-: [1] ‘0.2.3’
+: [1] '0.2.4'
 
 \clearpage
 
@@ -167,36 +168,42 @@ summary(eCS.lmm, ci = TRUE)
 
 #+RESULTS:
 #+begin_example
-  Linear Mixed Model with a compound symmetry covariance matrix 
-  - fitted using Restricted Maximum Likelihood (REML) 
-  - log-likelihood :-243.6005 (parameters: mean = 5, variance = 1, correlation = 1)
+           Linear Mixed Model 
  
 Dataset: gastricbypassL 
- - 20 clusters 
- - 78 observations were analyzed, 2 were excluded because of missing values 
- - 4 maximum number of observations per cluster 
- - levels of the categorical variables 
- - reference level: time=B3_months 
+
+  - 20 clusters 
+  - 78 observations were analyzed, 2 were excluded because of missing values 
+  - between 3 and 4 observations per cluster 
+
+Summary of the outcome and covariates: 
+
+    $ weight  : num  127 165 110 146 113 ...
+    $ time    : Factor w/ 4 levels "B3_months","B1_week",..: 1 1 1 1 1 1 1 1 1 1 ...
+    $ glucagon: num  -0.9654 0.2408 -0.0682 -0.6837 -0.6163 ...
+    reference level: time=B3_months 
+
+Estimation procedure 
+
+  - Restricted Maximum Likelihood (REML) 
+  - log-likelihood :-243.6005
+  - parameters: mean = 5, variance = 1, correlation = 1
  
-$time
-          B1_week A1_week A3_months
-B3_months       0       0         0
-B1_week         1       0         0
-A1_week         0       1         0
-A3_months       0       0         1
+Residual variance-covariance: compound symmetry 
 
-Correlation structure: ~1 | id 
-          B3_months B1_week A1_week A3_months
-B3_months      1.00    0.97    0.97      0.97
-B1_week        0.97    1.00    0.97      0.97
-A1_week        0.97    0.97    1.00      0.97
-A3_months      0.97    0.97    0.97      1.00
+  - correlation structure: ~1 | id 
+              B3_months B1_week A1_week A3_months
+    B3_months      1.00    0.97    0.97      0.97
+    B1_week        0.97    1.00    0.97      0.97
+    A1_week        0.97    0.97    1.00      0.97
+    A3_months      0.97    0.97    0.97      1.00
 
-Variance structure: ~1 
-      standard.deviation
-sigma           18.84957
+  - variance structure: ~1 
+          standard.deviation
+    sigma           18.84957
 
-Mean structure: weight ~ time + glucagon 
+Fixed effects: weight ~ time + glucagon 
+
               estimate    se     df   lower   upper p.value    
 (Intercept)    129.369 4.226 20.034 120.556 120.556  <0.001 ***
 timeB1_week     -7.619 1.054 53.968  -9.732  -9.732  <0.001 ***
@@ -204,11 +211,9 @@ timeA1_week    -14.495 1.428 53.879 -17.358 -17.358  <0.001 ***
 timeA3_months  -27.051 1.087 53.943 -29.231 -29.231  <0.001 ***
 glucagon         0.822  0.62  53.81  -0.421  -0.421   0.191    
 
-The columns lower and upper correspond to the 95% confidence interval of the estimated coefficient
-Note: p-values and confidence intervals are not adjusted for multiple comparisons
+The columns lower and upper correspond to the 95% confidence interval
+Degrees of freedom were computed using a Satterthwaite approximation
 #+end_example
-
-\clearpage
 
 ** Extract estimated coefficients
 The value of the estimated coefficients can be output using =coef=:
@@ -263,7 +268,7 @@ nlme::getVarCov(eCS.lmm, individual = 5)
 The method =residuals= can also be used to extract the residulas in
 the wide format:
 #+begin_src R :exports both :results output :session *R* :cache no
-eCS.diagW <- residuals(eCS.lmm, type.residual = "normalized", format = "wide")
+eCS.diagW <- residuals(eCS.lmm, type = "normalized", format = "wide")
 head(eCS.diagW)
 #+end_src
 
@@ -278,7 +283,7 @@ head(eCS.diagW)
 
 or in the long format:
 #+begin_src R :exports both :results output :session *R* :cache no
-eCS.diagL <- residuals(eCS.lmm, type.residual = "normalized", format = "long")
+eCS.diagL <- residuals(eCS.lmm, type = "normalized", format = "long")
 head(eCS.diagL)
 #+end_src
 
@@ -291,7 +296,7 @@ be used to display diagnostic plots, e.g. about:
 - the distribution of the residuals across fitted values using a
   scatterplot
 #+begin_src R :file ./figures/diag-scatterplot.pdf :results graphics file :session *R* :cache no
-residuals(eCS.lmm, type.residual = "normalized", plot = "scatterplot", size.text = 20)
+residuals(eCS.lmm, type = "normalized", plot = "scatterplot", size.text = 20)
 #+end_src
 
 #+RESULTS:
@@ -306,7 +311,7 @@ residuals(eCS.lmm, type.residual = "normalized", plot = "scatterplot", size.text
   quantile-quantile plot [fn::see cite:oldford2016self for guidance
   about how to read quantile-quantile plots.]:
 #+begin_src R :file ./figures/diag-qqplot.pdf :results graphics file :session *R* :cache no
-residuals(eCS.lmm, type.residual = "normalized", format = "wide",
+residuals(eCS.lmm, type = "normalized", format = "wide",
           plot = "qqplot", engine.qqplot = "qqtest")
 ## Note: the qqtest package to be installed to use the argument engine.plot = "qqtest" 
 #+end_src
@@ -319,7 +324,7 @@ residuals(eCS.lmm, type.residual = "normalized", format = "wide",
 
 - the residual correlation within cluster between the residuals:
 #+begin_src R :file ./figures/diag-correlation.pdf :results graphics file :session *R* :cache no :width 9
-  residuals(eCS.lmm, type.residual = "normalized", plot = "correlation", format = "wide",
+  residuals(eCS.lmm, type = "normalized", plot = "correlation", format = "wide",
             size.text = 20)
 #+end_src
 
@@ -381,36 +386,37 @@ confint(eCS.lmm)
 #+end_src
 
 #+RESULTS:
+:               estimate   lower  upper
+: (Intercept)    129.369 120.556 138.18
+: timeB1_week     -7.619  -9.732  -5.51
+: timeA1_week    -14.495 -17.358 -11.63
+: timeA3_months  -27.051 -29.231 -24.87
+: glucagon         0.822  -0.421   2.06
+
+Confidence intervals for the variance and correlation parameters can
+be displayed too specifying =effect="all"=:
+#+begin_src R :exports both :results output :session *R* :cache no
+  confint(eCS.lmm, effect = "all", backtransform = TRUE,
+          columns = c("estimate","se","lower","upper"))
+#+end_src
+
+#+RESULTS:
 #+begin_example
-                 estimate        se       df       lower       upper      p.value
-(Intercept)   129.3690995 4.2256318 20.03432 120.5555539 138.1826451 0.000000e+00
-timeB1_week    -7.6194918 1.0538287 53.96824  -9.7323197  -5.5066639 1.746652e-09
-timeA1_week   -14.4951323 1.4279524 53.87927 -17.3581515 -11.6321131 4.130030e-14
-timeA3_months -27.0514694 1.0870651 53.94292 -29.2309565 -24.8719823 0.000000e+00
-glucagon        0.8217879 0.6199685 53.80984  -0.4212748   2.0648506 1.905952e-01
-sigma          18.8495684 0.1587900 16.79510  13.4793760  26.3592491           NA
-Rho             0.9699341 0.1874830 29.43362   0.9363994   0.9859156 4.330536e-12
+              estimate    se   lower   upper
+(Intercept)    129.369 4.226 120.556 138.183
+timeB1_week     -7.619 1.054  -9.732  -5.507
+timeA1_week    -14.495 1.428 -17.358 -11.632
+timeA3_months  -27.051 1.087 -29.231 -24.872
+glucagon         0.822 0.620  -0.421   2.065
+sigma           18.850 0.159  13.479  26.359
+Rho              0.970 0.187   0.936   0.986
 Note: estimates and confidence intervals for sigma, rho have been back-transformed. 
       standard errors are not back-transformed.
 #+end_example
 
-The variance and correlation parameters being constrained parameters
-(e.g. strictly positive), they uncertainty is by default computed
-after transformation (e.g. =log=) and then backtransformed. The
-transformed values can be displayed using:
-#+begin_src R :exports both :results output :session *R* :cache no
-confint(eCS.lmm, backtransform = FALSE)
-#+end_src
-
-#+RESULTS:
-:                  estimate        se       df       lower      upper      p.value
-: (Intercept)   129.3690995 4.2256318 20.03432 120.5555539 138.182645 0.000000e+00
-: timeB1_week    -7.6194918 1.0538287 53.96824  -9.7323197  -5.506664 1.746652e-09
-: timeA1_week   -14.4951323 1.4279524 53.87927 -17.3581515 -11.632113 4.130030e-14
-: timeA3_months -27.0514694 1.0870651 53.94292 -29.2309565 -24.871982 0.000000e+00
-: glucagon        0.8217879 0.6199685 53.80984  -0.4212748   2.064851 1.905952e-01
-: log(sigma)      2.9364900 0.1587900 16.79510   2.6011608   3.271819           NA
-: atanh(Rho)      2.0911816 0.1874830 29.43362   1.7079810   2.474382 4.330536e-12
+Because these parameters are constrained (e.g. strictly positive),
+they uncertainty is by default computed after transformation
+(e.g. =log=) and then backtransformed. 
 
 *** Linear combination of the model coefficients
 
@@ -430,8 +436,8 @@ anova(eUN.lmm, effects = c("timeA1_week-timeB1_week=0"), ci = TRUE)
 :   43.14145      1 17.87461 3.723244e-06
 : 
 :  - P-values and confidence interval (adjusted for multiplicity within each global test) 
-:                            estimate        se       df     lower     upper      p.value
-: timeA1_week - timeB1_week -3.905721 0.5946396 17.87461 -5.155641 -2.655801 3.723244e-06
+:                            estimate     lower     upper
+: timeA1_week - timeB1_week -3.905721 -5.155641 -2.655801
 
 When testing transformed variance or correlation parameters,
 parentheses (as in =log(k).B1_week=) cause problem for recognizing
@@ -446,7 +452,7 @@ try(
 #+RESULTS:
 : Error in .anova_Wald(object, effects = effects, rhs = rhs, df = df, ci = ci,  : 
 :   Possible mispecification of the argument 'effects' as running mulcomp::glht lead to the following error: 
-: Error in parse(text = ex[i]) : <text>:1:7: unexpected symbol
+: Error in parse(text = ex[i]) : <text>:1:7: uventet symbol
 : 1: log(k).B1_week
 :           ^
 
@@ -454,7 +460,7 @@ try(
 
 It is then advised to specify the null hypothesis via a contrast matrix, e.g.:
 #+begin_src R :exports both :results output :session *R* :cache no
-name.coef <- rownames(confint(eUN.lmm, backtransform = FALSE))
+name.coef <- rownames(confint(eUN.lmm, effects = "all", backtransform = FALSE))
 name.varcoef <- grep("log(k)",name.coef, value = TRUE, fixed = TRUE)
 C <- matrix(0, nrow = 3, ncol = length(name.coef), dimnames = list(name.varcoef, name.coef))
 diag(C[name.varcoef,name.varcoef]) <- 1
@@ -531,8 +537,8 @@ eC.lmm <- lmm(weight ~ treat*time, data = gastricbypassL, structure = UN(~time|i
 #+end_src
 
 #+RESULTS:
-: Warning message:
-: In model.matrix_regularize(formula.mean, data) :
+: Advarselsbesked:
+: I model.matrix_regularize(formula.mean, data) :
 :   Constant values in the design matrix in interactions "treat:time"
 :  Coefficients "treat1" "treat2" "timeA1_week" "timeA3_months" "treat1:timeB1_week" "treat2:timeB1_week" will be removed from the design matrix. 
 : Consider defining manually the interaction, e.g. via droplevels(interaction(.,.)) to avoid this warning.
@@ -594,12 +600,12 @@ eC2.lmm <- suppressWarnings(lmm(weight ~ treat2*time, data = gastricbypassL, str
 
 will directly output group differences:
 #+begin_src R :exports both :results output :session *R* :cache no
-confint(eC2.lmm, effects = "mean")[5:6,]
+confint(eC2.lmm, effects = "mean", columns = c("estimate","lower","upper","p.value"))[5:6,]
 #+end_src
 #+RESULTS:
-:                        estimate       se       df     lower      upper   p.value
-: treat22:timeA1_week   -1.435033 0.621046 16.25085 -2.749942 -0.1201245 0.0342893
-: treat22:timeA3_months  1.570675 2.462555 16.28753 -3.642229  6.7835794 0.5324540
+:                       estimate lower upper p.value
+: treat22:timeA1_week      -1.44 -2.75 -0.12  0.0343
+: treat22:timeA3_months     1.57 -3.64  6.78  0.5325
 
 ** Marginal means
 
@@ -752,11 +758,15 @@ summary(pairs(emmeans(eC2.lmm , specs = ~treat2|time), reverse = TRUE), by = NUL
 #+end_src
 
 #+RESULTS:
+: Note: adjust = "tukey" was changed to "sidak"
+: because "tukey" is only appropriate for one set of pairwise comparisons
 :  contrast time      estimate    SE   df t.ratio p.value
 :  2 - 1    B3_months     0.00 0.000  NaN    NaN     NaN 
 :  2 - 1    B1_week       0.00 0.000  NaN    NaN     NaN 
-:  2 - 1    A1_week      -1.44 0.621 16.2 -2.311  0.0345 
-:  2 - 1    A3_months     1.57 2.463 16.3  0.638  0.5326
+:  2 - 1    A1_week      -1.44 0.621 16.2 -2.311  0.1303 
+:  2 - 1    A3_months     1.57 2.463 16.3  0.638  0.9522 
+: 
+: P value adjustment: sidak method for 4 tests
 
 \clearpage
 
@@ -835,44 +845,36 @@ sessionInfo()
 
 #+RESULTS:
 #+begin_example
-R version 4.1.0 (2021-05-18)
-Platform: x86_64-pc-linux-gnu (64-bit)
-Running under: Ubuntu 20.04.2 LTS
+R version 4.0.3 (2020-10-10)
+Platform: x86_64-w64-mingw32/x64 (64-bit)
+Running under: Windows 10 x64 (build 19042)
 
 Matrix products: default
-BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.9.0
-LAPACK: /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.9.0
 
 locale:
- [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C               LC_TIME=en_US.UTF-8       
- [4] LC_COLLATE=en_US.UTF-8     LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
- [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                  LC_ADDRESS=C              
-[10] LC_TELEPHONE=C             LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+[1] LC_COLLATE=Danish_Denmark.1252  LC_CTYPE=Danish_Denmark.1252    LC_MONETARY=Danish_Denmark.1252
+[4] LC_NUMERIC=C                    LC_TIME=Danish_Denmark.1252    
 
 attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
- [1] sandwich_3.0-1      reshape2_1.4.4      numDeriv_2016.8-1.1 nlme_3.1-152       
- [5] multcomp_1.4-17     TH.data_1.0-10      MASS_7.3-54         survival_3.2-11    
- [9] mvtnorm_1.1-2       Matrix_1.3-4        lava_1.6.9          psych_2.1.3        
-[13] lattice_0.20-44     emmeans_1.6.0       qqtest_1.2.0        ggplot2_3.3.4      
-[17] LMMstar_0.2.3      
+[1] ggplot2_3.3.5 emmeans_1.6.1 LMMstar_0.2.4 nlme_3.1-149 
 
 loaded via a namespace (and not attached):
- [1] Rcpp_1.0.6        prettyunits_1.1.1 ps_1.6.0          zoo_1.8-9         rprojroot_2.0.2  
- [6] digest_0.6.27     utf8_1.2.1        R6_2.5.0          plyr_1.8.6        coda_0.19-4      
-[11] pillar_1.6.1      rlang_0.4.11      data.table_1.14.0 callr_3.7.0       desc_1.3.0       
-[16] labeling_0.4.2    devtools_2.4.1    splines_4.1.0     stringr_1.4.0     munsell_0.5.0    
-[21] compiler_4.1.0    pkgconfig_2.0.3   mnormt_2.0.2      pkgbuild_1.2.0    tmvnsim_1.0-2    
-[26] mgcv_1.8-36       tidyselect_1.1.1  tibble_3.1.2      codetools_0.2-18  fansi_0.5.0      
-[31] crayon_1.4.1      dplyr_1.0.6       withr_2.4.2       grid_4.1.0        butils.base_1.2  
-[36] xtable_1.8-4      gtable_0.3.0      lifecycle_1.0.0   magrittr_2.0.1    scales_1.1.1     
-[41] pbapply_1.4-3     estimability_1.3  cli_2.5.0         stringi_1.6.2     cachem_1.0.5     
-[46] farver_2.1.0      remotes_2.3.0     fs_1.5.0          testthat_3.0.2    ellipsis_0.3.2   
-[51] generics_0.1.0    vctrs_0.3.8       tools_4.1.0       glue_1.4.2        purrr_0.3.4      
-[56] pkgload_1.2.1     processx_3.5.2    parallel_4.1.0    fastmap_1.1.0     colorspace_2.0-1 
-[61] sessioninfo_1.1.1 memoise_2.0.0     usethis_2.0.1
+ [1] Rcpp_1.0.7          plyr_1.8.6          compiler_4.0.3      pillar_1.6.2       
+ [5] tools_4.0.3         digest_0.6.27       lifecycle_1.0.0     tibble_3.1.3       
+ [9] gtable_0.3.0        lattice_0.20-41     pkgconfig_2.0.3     rlang_0.4.11       
+[13] Matrix_1.2-18       mvtnorm_1.1-1       coda_0.19-4         withr_2.4.2        
+[17] stringr_1.4.0       dplyr_1.0.5         generics_0.1.0      vctrs_0.3.8        
+[21] qqtest_1.2.0        grid_4.0.3          tidyselect_1.1.0    glue_1.4.2         
+[25] R6_2.5.0            fansi_0.5.0         survival_3.2-10     multcomp_1.4-16    
+[29] lava_1.6.9          TH.data_1.0-10      farver_2.1.0        reshape2_1.4.4     
+[33] purrr_0.3.4         magrittr_2.0.1      scales_1.1.1        codetools_0.2-16   
+[37] ellipsis_0.3.2      MASS_7.3-53         splines_4.0.3       xtable_1.8-4       
+[41] colorspace_2.0-2    numDeriv_2016.8-1.1 labeling_0.4.2      sandwich_3.0-0     
+[45] utf8_1.2.2          stringi_1.5.3       estimability_1.3    munsell_0.5.0      
+[49] crayon_1.4.1        zoo_1.8-9
 #+end_example
 
 \clearpage

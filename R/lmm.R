@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: aug 11 2021 (14:41) 
+## Last-Updated: aug 11 2021 (15:05) 
 ##           By: Brice Ozenne
-##     Update #: 968
+##     Update #: 969
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -54,6 +54,7 @@
 ##' eCS.lmm
 ##' summary(eCS.lmm)
 ##' summary(eCS.lmm, ci = TRUE)
+
 ## * lmm (code)
 ##' @export
 lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NULL, type.information = NULL, trace = NULL, control = NULL, ...){
@@ -142,7 +143,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                 data$XXidXX <- 1:NROW(data)
             }
         }else{
-            stop("Argument \'repetition\' is misisng. \n")
+            stop("Argument \'repetition\' is missing. \n")
         }
     }
     if(!inherits(repetition,"formula")){
