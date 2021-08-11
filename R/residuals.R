@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: jul  7 2021 (18:26) 
+## Last-Updated: aug  9 2021 (14:20) 
 ##           By: Brice Ozenne
-##     Update #: 159
+##     Update #: 169
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,7 +21,7 @@
 ##' @name residuals
 ##' 
 ##' @param object a \code{lmm} object.
-##' @param type.residual [character] Should the raw residuals be output (\code{"response"}), or the Pearson residuals (\code{"pearson"}),  or normalized residuals (\code{"normalized"} or \code{"tnormalized"}).
+##' @param type.residual [character] Should the raw residuals be output (\code{"response"}), or the Pearson residuals (\code{"pearson"}),  or normalized residuals (\code{"normalized"} or \code{"scaled"}).
 ##' @param format [character] Should the residuals be output relative as a vector (\code{"long"}), or as a matrix with in row the clusters and in columns the outcomes (\code{"wide"}).
 ##' @param data [data.frame] dataset relative to which the residuals should be computed. Only relevant if differs from the dataset used to fit the model.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the residuals. Only relevant if differs from the fitted values.
@@ -32,7 +32,7 @@
 ##' \item \code{"raw"}: observed outcome minus fitted value.
 ##' \item \code{"pearson"}: each raw residual is divided by its modeled standard deviation.
 ##' \item \code{"normalized"}: raw residuals are multiplied, within clusters, by the inverse of the (lower) Cholesky factor.
-##' \item \code{"tnormalized"}: raw residuals are multiplied, within clusters, by the inverse of the (upper) Cholesky factor.
+##' \item \code{"scaled"}: corresponds to the scaled scaled residuals of PROC MIXED in SAS.
 ##' }
 ##'
 ##' @return
@@ -52,6 +52,7 @@
 ##' residuals(eUN.lmm, format = "long", type.residual = c("normalized","pearson"))
 ##' residuals(eUN.lmm, format = "wide")
 ##' residuals(eUN.lmm, format = "wide", type.residual = "normalized")
+##' residuals(eUN.lmm, format = "wide", type.residual = "scaled")
 
 
 ## * residuals.lmm (code)
@@ -69,7 +70,7 @@ residuals.lmm <- function(object, type.residual = "response", format = "long",
     }
     type.object <- match.arg(type.object, c("lmm","gls"))
     format <- match.arg(format, c("wide","long"))
-    type.residual <- match.arg(type.residual, c("response","pearson","normalized","tnormalized"), several.ok = (format=="long"))
+    type.residual <- match.arg(type.residual, c("response","pearson","normalized","scaled"), several.ok = (format=="long"))
     ## plot <- match(plot, c("qqplot","correlation",), several.ok = (format=="long"))
 
     ## ** extract
@@ -109,13 +110,13 @@ residuals.lmm <- function(object, type.residual = "response", format = "long",
                 stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param$type)[names(object$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
             }
             beta <- p[names(object$param$type=="mu")]
-            if(any(type.residual %in% c("pearson","normalized","tnormalized"))){
+            if(any(type.residual %in% c("pearson","normalized","scaled"))){
                 Omega <- .calc_Omega(object = X.var, param = p)
                 precision <- lapply(Omega, solve)
             }
         }else{
             beta <- object$param$value[object$param$type=="mu"]
-            if(any(type.residual %in% c("pearson","normalized","tnormalized"))){
+            if(any(type.residual %in% c("pearson","normalized","scaled"))){
                 Omega <- object$Omega
                 precision <- object$OmegaM1
             }
@@ -127,8 +128,7 @@ residuals.lmm <- function(object, type.residual = "response", format = "long",
         if("normalized" %in% type.residual){
             sqrtPrecision$normalized <- lapply(precision,function(iP){t(chol(iP))})
         }
-        if("tnormalized" %in% type.residual){
-            sqrtPrecision$tnormalized <- lapply(precision,chol)
+        if("normalized" %in% type.residual){
         }
         
         if(!is.null(data) || !is.null(p)){
@@ -143,12 +143,13 @@ residuals.lmm <- function(object, type.residual = "response", format = "long",
         if ("response" %in% type.residual) {
             M.res[,"response"] <- res
         }
-        if (any(type.residual %in% c("pearson", "normalized", "tnormalized"))) {
+        if (any(type.residual %in% c("pearson", "normalized", "scaled"))) {
             for(iId in 1:n.cluster){ ## iId <- 7
                 iIndex <- which(index.cluster==iId)
                 iOrder <- order(index.time[iIndex])
                 iResidual <- res[iIndex[iOrder]]
-
+                iN.time <- length(iIndex)
+                
                 for(iType in type.residual){
                     if("pearson" %in% type.residual){
                         resnorm <- iResidual * sqrtPrecision$pearson[[index.variance[iId]]]
@@ -158,9 +159,20 @@ residuals.lmm <- function(object, type.residual = "response", format = "long",
                         resnorm <- as.double(iResidual %*% sqrtPrecision$normalized[[index.variance[iId]]])
                         M.res[iIndex,"normalized"] <- resnorm[order(iOrder)]
                     }
-                    if("tnormalized" %in% type.residual){
-                        resnorm <- as.double(iResidual %*% sqrtPrecision$tnormalized[[index.variance[iId]]])
-                        M.res[iIndex,"tnormalized"] <- resnorm[order(iOrder)]
+                    if("scaled" %in% type.residual){
+                        M.res[iIndex[1],"scaled"] <- iResidual[1]/attr(Omega[[index.variance[iId]]],"sd")[1]
+                        if(iN.time>1){
+                            for(iTime in 2:iN.time){
+                                iVar <- Omega[[index.variance[iId]]][iN.time,iN.time]
+                                iPrecision_kk <- solve(Omega[[index.variance[iId]]][1:(iN.time-1),1:(iN.time-1),drop=FALSE])
+                                iOmega_lk <- Omega[[index.variance[iId]]][iN.time,1:(iN.time-1),drop=FALSE]
+                                iOmega_kl <- Omega[[index.variance[iId]]][1:(iN.time-1),iN.time,drop=FALSE]
+                                
+                                num <- iResidual[iN.time] - iVar * as.double(iPrecision_kk %*% iResidual[1:(iN.time-1)])
+                                denom <- iVar - as.double(iOmega_lk %*% iPrecision_kk %*% iOmega_kl)
+                                M.res[iIndex[2],"scaled"] <- num/sqrt(denom) ## issue in term of dimension
+                            }
+                        }
                     }
                     
                 }
