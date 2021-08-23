@@ -25,6 +25,9 @@ eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data 
 
 ## test multiple linear hypotheses
 if(require(multcomp)){
-multcomp::glht(eUN.lmm)
+LMMstar.options(effects = c("mean"))
+e.glht <- multcomp::glht(eUN.lmm)
+e.glht$linfct
 }
+
 }

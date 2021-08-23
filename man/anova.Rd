@@ -9,7 +9,7 @@
 \usage{
 \method{anova}{lmm}(
   object,
-  effects = "mean",
+  effects = NULL,
   rhs = NULL,
   df = !is.null(object$df),
   ci = FALSE,

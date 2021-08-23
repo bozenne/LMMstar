@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: Jul  8 2021 (09:38) 
+## Last-Updated: aug 23 2021 (16:15) 
 ##           By: Brice Ozenne
-##     Update #: 866
+##     Update #: 868
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -44,11 +44,12 @@
 ## * information.lmm (code)
 ##' @rdname information
 ##' @export
-information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = FALSE, type.information = NULL,
+information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FALSE, type.information = NULL,
                             transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
 
     ## ** normalize user input
     dots <- list(...)
+    options <- LMMstar.options()
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
@@ -59,7 +60,9 @@ information.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = F
         type.information <- match.arg(type.information, c("expected","observed"))
         robust <- identical(attr(type.information,"robust"),TRUE)
     }
-    if(identical(effects,"all")){
+    if(is.null(effects)){
+        effects <- options$effects
+    }else if(identical(effects,"all")){
         effects <- c("mean","variance","correlation")
     }
     effects <- match.arg(effects, c("mean","fixed","variance","correlation"), several.ok = TRUE)

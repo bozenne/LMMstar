@@ -7,7 +7,7 @@
 \usage{
 \method{information}{lmm}(
   x,
-  effects = "all",
+  effects = NULL,
   data = NULL,
   p = NULL,
   indiv = FALSE,

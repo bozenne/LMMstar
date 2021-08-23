@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 10 2021 (15:57) 
 ## Version: 
-## Last-Updated: jul  7 2021 (17:26) 
+## Last-Updated: aug 23 2021 (17:25) 
 ##           By: Brice Ozenne
-##     Update #: 16
+##     Update #: 19
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -34,8 +34,11 @@
 ##' 
 ##' ## test multiple linear hypotheses
 ##' if(require(multcomp)){
-##' multcomp::glht(eUN.lmm)
+##' LMMstar.options(effects = c("mean"))
+##' e.glht <- multcomp::glht(eUN.lmm)
+##' e.glht$linfct
 ##' }
+##' 
 #' @method estfun lmm
 #' @export
 estfun.lmm <- function(x, ...){

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: jul  7 2021 (17:33) 
+## Last-Updated: aug 23 2021 (16:18) 
 ##           By: Brice Ozenne
-##     Update #: 444
+##     Update #: 446
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -46,7 +46,7 @@
 ## * vcov.lmm (code)
 ##' @rdname vcov
 ##' @export
-vcov.lmm <- function(object, effects = "all", robust = FALSE, df = FALSE, type.object = "lmm", strata = NULL, data = NULL, p = NULL,
+vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, type.object = "lmm", strata = NULL, data = NULL, p = NULL,
                      type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
     
     options <- LMMstar.options()
@@ -58,7 +58,9 @@ vcov.lmm <- function(object, effects = "all", robust = FALSE, df = FALSE, type.o
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
     type.object <- match.arg(type.object, c("lmm","gls"))
-    if(identical(effects,"all")){
+    if(is.null(effects)){
+        effects <- options$effects
+    }else if(identical(effects,"all")){
         effects <- c("mean","variance","correlation")
     }
     effects <- match.arg(effects, c("mean","fixed","variance","correlation"), several.ok = TRUE)

@@ -11,7 +11,7 @@
   object,
   parm = NULL,
   level = 0.95,
-  effects = "mean",
+  effects = NULL,
   robust = FALSE,
   null = NULL,
   type.object = "lmm",
@@ -103,5 +103,5 @@ confint(eUN.lmm, df = TRUE)
 
 }
 \seealso{
-the function \code{multcomp::glht} to perform inference about linear combinations of coefficients and adjust for multiple comparisons.
+the function \code{anova} to perform inference about linear combinations of coefficients and adjust for multiple comparisons.
 }

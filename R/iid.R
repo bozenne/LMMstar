@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  4 2021 (10:04) 
 ## Version: 
-## Last-Updated: Jun  8 2021 (12:17) 
+## Last-Updated: aug 23 2021 (16:05) 
 ##           By: Brice Ozenne
-##     Update #: 16
+##     Update #: 17
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,7 +15,7 @@
 ## 
 ### Code:
 
-iid.lmm <- function(object, effects = "all", type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
+iid.lmm <- function(object, effects = "mean", type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
 
     ## ** normalize user imput
     dots <- list(...)

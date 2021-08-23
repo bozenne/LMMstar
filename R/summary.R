@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: aug 23 2021 (14:29) 
+## Last-Updated: aug 23 2021 (15:20) 
 ##           By: Brice Ozenne
-##     Update #: 315
+##     Update #: 316
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -81,7 +81,7 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, columns =
         if(nobs["missing"]>0){
             missing.cluster <- .addNA(object$index.na, design = object$design, time = object$time)$missing.cluster
             if(length(missing.cluster)>0){
-                cat("  - ", nobs["cluster"], " clusters were analyzed, ",length(missing.cluster)," were excluded because of missing vlaues \n" , sep = "")
+                cat("  - ", nobs["cluster"], " clusters were analyzed, ",length(missing.cluster)," were excluded because of missing values \n" , sep = "")
             }else{
                 cat("  - ", nobs["cluster"], " clusters \n" , sep = "")
             }

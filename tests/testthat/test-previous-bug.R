@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: aug 11 2021 (15:56) 
+## Last-Updated: aug 23 2021 (17:03) 
 ##           By: Brice Ozenne
-##     Update #: 40
+##     Update #: 41
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -204,6 +204,33 @@ test_that("lmm - constrain model",{
                      df=FALSE)
     ## summary(fit.clmm3)
     ## autoplot(fit.clmm3)
+
+})
+
+## * from: Brice 08/23/21 16:45:12
+test_that("glht - number of parameters",{
+    
+    set.seed(10)
+    dL <- sampleRem(100, n.times = 3, format = "long")
+ 
+    ## fit Linear Mixed Model
+    eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
+
+    LMMstar.options(effects = c("mean","variance","correlation"))
+    Mc <- matrix(0, nrow = 1, ncol = length(coef(eUN.lmm)), dimnames = list(NULL, names(coef(eUN.lmm))))
+    Mc[,2] <- 1
+
+    CI.glht <- multcomp::glht(eUN.lmm, linfct = Mc, rhs = 0, df = 10,
+                              coef. = function(iX){coef.lmm(iX, effects = "all")},
+                              vcov. = function(iX){vcov.lmm(iX, effects = "all")})
+    expect_equal(NCOL(CI.glht$linfct),length(coef(eUN.lmm)))
+
+    LMMstar.options(effects = c("mean"))
+    Mc <- matrix(0, nrow = 1, ncol = length(coef(eUN.lmm)), dimnames = list(NULL, names(coef(eUN.lmm))))
+    Mc[,2] <- 1
+
+    CI.glht <- multcomp::glht(eUN.lmm, linfct = Mc, rhs = 0, df = 10)
+    expect_equal(NCOL(CI.glht$linfct),length(coef(eUN.lmm)))
 
 })
 

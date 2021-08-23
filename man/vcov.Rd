@@ -7,7 +7,7 @@
 \usage{
 \method{vcov}{lmm}(
   object,
-  effects = "all",
+  effects = "mean",
   robust = FALSE,
   df = FALSE,
   type.object = "lmm",

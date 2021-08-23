@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: Jun 21 2021 (21:57) 
+## Last-Updated: aug 23 2021 (17:26) 
 ##           By: Brice Ozenne
-##     Update #: 19
+##     Update #: 20
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -107,7 +107,7 @@ test_that("multiple t-test",{
         p[name.atanh] <- tanh(p[name.atanh])
         logLik(e.lmm, p = p)
     }, x = coef(e.lmm, transform.sigma = "log", transform.k = "log", transform.rho = "atanh", transform.names = FALSE))
-    expect_equal(as.double(score(e.lmm)), as.double(GS), tol = 1e-5)
+    expect_equal(as.double(score(e.lmm, effects = "all")), as.double(GS), tol = 1e-5)
 
     e.gls <- gls(Y ~ visit + gender:visit, correlation = corSymm(form=~1|id), weights = varIdent(form=~1|visit), data = dL)
     ls.ttest <- list(t.test(Y1~gender, data = dW),

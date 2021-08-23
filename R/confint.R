@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: aug 11 2021 (18:25) 
+## Last-Updated: aug 23 2021 (16:55) 
 ##           By: Brice Ozenne
-##     Update #: 308
+##     Update #: 312
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -37,7 +37,7 @@
 ##' @param backtransform [logical] should the variance/covariance/correlation coefficient be backtransformed?
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
-##' @seealso the function \code{multcomp::glht} to perform inference about linear combinations of coefficients and adjust for multiple comparisons.
+##' @seealso the function \code{anova} to perform inference about linear combinations of coefficients and adjust for multiple comparisons.
 ##'
 ##' 
 ##' @return A data.frame containing for each coefficient (in rows): \itemize{
@@ -71,7 +71,7 @@
 
 ## * confint.lmm (code)
 ##' @export
-confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "mean", robust = FALSE, null = NULL,
+confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robust = FALSE, null = NULL,
                          type.object = "lmm", strata = NULL, columns = NULL,
                          df = NULL, type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE,
                          backtransform = NULL, ...){
@@ -89,7 +89,9 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "mean", ro
     }
     type.object <- match.arg(type.object, c("lmm","gls"))
     type.param <- object$param$type
-    if(identical(effects,"all")){
+    if(is.null(effects)){
+        effects <- options$effects
+    }else if(identical(effects,"all")){
         effects <- c("mean","variance","correlation")
     }
     effects <- match.arg(effects, c("mean","fixed","variance","correlation"), several.ok = TRUE)
@@ -148,7 +150,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = "mean", ro
                       type.information = type.information, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
 
     if(df){
-        df <- attr(vcov.beta,"df")
+        df <- pmax(attr(vcov.beta,"df"), options$min.df)
         attr(vcov.beta,"df") <- NULL
         if((type.information != "observed") && ("mean" %in% effects)){
             warning("when using REML with expected information, the degree of freedom of the mean parameters may depend on the parametrisation of the variance parameters. \n")

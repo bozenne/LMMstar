@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: aug 11 2021 (13:58) 
+## Last-Updated: aug 23 2021 (17:27) 
 ##           By: Brice Ozenne
-##     Update #: 55
+##     Update #: 59
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -32,6 +32,8 @@
 #' \item columns.summary [character vector]: columns to ouput when displaying the model coefficients using \code{summary}.
 #' \item df [logical]: should approximate degrees of freedom be computed for Wald and F-tests. Used by \code{lmm}, \code{anova}, \code{predict}, and \code{confint}.
 #' \item drop.X [logical]: should columns causing non-identifiability of the model coefficients be dropped from the design matrix. Used by \code{lmm}.
+#' \item effects [character]: parameters relative to which estimates, score, information should be output.
+#' \item min.df [integer]: minimum possible degree of freedom. Used by \code{confint}.
 #' \item method.fit [character]: objective function when fitting the Linear Mixed Model (REML or ML). Used by \code{lmm}.
 #' \item method.numDeriv [character]: type used to approximate the third derivative of the log-likelihood (when computing the degrees of freedom). Can be \code{"simple"} or \code{"Richardson"}. See \code{numDeriv::jacobian} for more details. Used by \code{lmm}.
 #' \item precompute.moments [logical]: Should the cross terms between the residuals and design matrix be pre-computed. Useful when the number of subject is substantially larger than the number of mean paramters.
@@ -49,10 +51,12 @@ LMMstar.options <- function(..., reinitialise = FALSE){
                     columns.confint = c("estimate","lower","upper"),
                     columns.summary = c("estimate","se","df","lower","upper","p.value",""),
                     df = TRUE,
+                    effects = "mean",
                     drop.X = TRUE,
                     precompute.moments = TRUE,
                     method.fit = "REML",
-                    method.numDeriv = "simple", 
+                    method.numDeriv = "simple",
+                    min.df = 1,
                     trace = FALSE,
                     transform.sigma = "log",
                     transform.k = "log",

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: jul  7 2021 (17:32) 
+## Last-Updated: aug 23 2021 (17:32) 
 ##           By: Brice Ozenne
-##     Update #: 200
+##     Update #: 206
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -79,17 +79,24 @@
 ## * coef.lmm (code)
 ##' @rdname coef
 ##' @export
-coef.lmm <- function(object, effects = "all", type.object = "lmm", strata = NULL,
+coef.lmm <- function(object, effects = NULL, type.object = "lmm", strata = NULL,
                      transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE, ...){
 
     ## ** normalize user imput
     dots <- list(...)
+    options <- LMMstar.options()
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
     
     type.object <- match.arg(type.object, c("lmm","gls"))
-    if(identical(effects,"all")){
+    if(is.null(effects)){
+        if(transform.sigma == "none" && transform.k == "none" && transform.rho == "none"){
+            effects <- options$effects
+        }else{
+            effects <- c("mean","variance","correlation")
+        }
+    }else if(identical(effects,"all")){
         effects <- c("mean","variance","correlation")
     }
     effects <- match.arg(effects, c("mean","fixed","variance","correlation"), several.ok = TRUE)

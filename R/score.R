@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: jul  7 2021 (17:32) 
+## Last-Updated: aug 23 2021 (16:18) 
 ##           By: Brice Ozenne
-##     Update #: 420
+##     Update #: 422
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -43,14 +43,17 @@
 ## * score.lmm (code)
 ##' @rdname score
 ##' @export
-score.lmm <- function(x, effects = "all", data = NULL, p = NULL, indiv = FALSE, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
+score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
 
     ## ** normalize user input
     dots <- list(...)
+    options <- LMMstar.options()
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
-    if(identical(effects,"all")){
+    if(is.null(effects)){
+        effects <- options$effects
+    }else if(identical(effects,"all")){
         effects <- c("mean","variance","correlation")
     }
     effects <- match.arg(effects, c("mean","fixed","variance","correlation"), several.ok = TRUE)

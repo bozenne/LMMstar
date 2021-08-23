@@ -7,7 +7,7 @@
 \usage{
 \method{score}{lmm}(
   x,
-  effects = "all",
+  effects = "mean",
   data = NULL,
   p = NULL,
   indiv = FALSE,

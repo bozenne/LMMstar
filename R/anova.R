@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: aug 11 2021 (13:21) 
+## Last-Updated: aug 23 2021 (17:02) 
 ##           By: Brice Ozenne
-##     Update #: 472
+##     Update #: 513
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -76,15 +76,19 @@
 ## * anova.lmm (code)
 ##' @rdname anova
 ##' @export
-anova.lmm <- function(object, effects = "mean", rhs = NULL, df = !is.null(object$df), ci = FALSE, 
+anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$df), ci = FALSE, 
                       type.object = "lmm",
                       transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
     
     
     ## ** normalized user input    
     dots <- list(...)
+    options <- LMMstar.options()
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+    if(is.null(effects)){
+        effects <- options$effects
     }
 
     if(inherits(effects,"lmm")){ ## likelihood ratio test
@@ -117,9 +121,9 @@ anova.lmm <- function(object, effects = "mean", rhs = NULL, df = !is.null(object
     transform.k <- init$transform.k
     transform.rho <- init$transform.rho
 
+    name.coef <- names(stats::coef(object, effects = "all"))
     if(is.matrix(effects)){
         ## try to re-size the matrix if necessary
-        name.coef <- names(stats::coef(object))
         if(NCOL(effects)!=length(name.coef)){
             if(is.null(colnames(effects))){
                 stop("Argument \'effect\' should have column names when a matrix. \n")
@@ -138,7 +142,10 @@ anova.lmm <- function(object, effects = "mean", rhs = NULL, df = !is.null(object
             rhs <- rep(0, NROW(effects))
         }
         ## run glht
-        out.glht <- try(multcomp::glht(object, linfct = effects, rhs = rhs), silent = TRUE)
+        out.glht <- try(multcomp::glht(object, linfct = effects, rhs = rhs,
+                                       coef. = function(iX){coef.lmm(iX, effects = "all")},
+                                       vcov. = function(iX){vcov.lmm(iX, effects = "all")}),
+                        silent = TRUE)
         if(inherits(out.glht,"try-error")){
             stop("Possible mispecification of the argument \'effects\' as running mulcomp::glht lead to the following error: \n",
                  out.glht)
@@ -206,7 +213,11 @@ anova.lmm <- function(object, effects = "mean", rhs = NULL, df = !is.null(object
     }else{
         
         ## run glht
-        out.glht <- try(multcomp::glht(object, linfct = effects), silent = TRUE)
+        out.glht <- try(multcomp::glht(object, linfct = effects,
+                                       coef. = function(iX){coef.lmm(iX, effects = "all")},
+                                       vcov. = function(iX){vcov.lmm(iX, effects = "all")}),
+                        silent = TRUE)
+        newname.coef <- names(stats::coef(object, effects = "all"))
         
         if(inherits(out.glht,"try-error")){
             test.reparametrize <- grepl("log", c(object$reparametrize$transform.sigma,object$reparametrize$transform.k)) || grep("atanh", object$reparametrize$transform.rho)
@@ -222,13 +233,14 @@ anova.lmm <- function(object, effects = "mean", rhs = NULL, df = !is.null(object
                                                         transform.k = "none",
                                                         transform.rho = "none",
                                                         transform.names = TRUE)
-                out.glht <- try(multcomp::glht(object2, linfct = effects), silent = TRUE)
+                out.glht <- try(multcomp::glht(object2, linfct = effects,
+                                               coef. = function(iX){coef.lmm(iX, effects = "all")},
+                                               vcov. = function(iX){vcov.lmm(iX, effects = "all")}), silent = TRUE)
                 if(inherits(out.glht,"try-error")){
                     stop("Possible mispecification of the argument \'effects\' as running mulcomp::glht lead to the following error: \n",
                          out.glht)
                 }
                 oldname.coef <- colnames(out.glht$linfct)
-                newname.coef <- names(stats::coef(object))
                 newname.hypo <- rownames(out.glht$linfct)
                 for(iSub in 1:length(oldname.coef)){
                     newname.hypo <- gsub(pattern = oldname.coef[iSub], replacement = newname.coef[iSub], x = newname.hypo, fixed = TRUE)
@@ -353,7 +365,9 @@ anova.lmm <- function(object, effects = "mean", rhs = NULL, df = !is.null(object
                     indexName <- intersect(which(names(effects)!=""),which(!is.na(names(effects))))
                     rownames(CI)[indexName] <- names(effects)[indexName]
                 }
-                CI.glht <- multcomp::glht(object, linfct = iC, rhs = iNull, df = ceiling(max(ci.df)))
+                CI.glht <- multcomp::glht(object, linfct = iC, rhs = iNull, df = ceiling(max(ci.df)),
+                                          coef. = function(iX){coef.lmm(iX, effects = "all")},
+                                          vcov. = function(iX){vcov.lmm(iX, effects = "all")})
             }else{
                 CI <- NULL
                 CI.glht <- NULL
@@ -446,6 +460,7 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = "single-step"
         stop("Argument \'parm\' is not used - only there for compatibility with the generic method. \n")
     }
     dots <- list(...)
+    options <- LMMstar.options()
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
@@ -460,6 +475,7 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = "single-step"
 
         for(iTest in 1:length(iTable)){ ## iTest <- 1
             iOut[[iTest]] <- iTable[[iTest]]
+            iOut[[iTest]]$df <- pmax(iOut[[iTest]]$df, options$min.df)
             if(method == "none" || NROW(iOut[[iTest]])==1){
                 iOut[[iTest]]$lower <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(alpha/2, df = iOut[[iTest]]$df)
                 iOut[[iTest]]$upper <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(1-alpha/2, df = iOut[[iTest]]$df)
@@ -478,9 +494,9 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = "single-step"
                 iOut[[iTest]]$p.value <- pmin(1,2*p*(1-stats::pt( abs((iOut[[iTest]]$estimate-iOut[[iTest]]$null) / iOut[[iTest]]$se), df = iOut[[iTest]]$df)))
             }
         }
-    return(iOut)
+        return(iOut)
     })
-return(out)
+    return(out)
 }
 
 ## * print.anova_lmm

@@ -7,7 +7,7 @@
 \usage{
 \method{coef}{lmm}(
   object,
-  effects = "all",
+  effects = NULL,
   type.object = "lmm",
   strata = NULL,
   transform.sigma = "none",
