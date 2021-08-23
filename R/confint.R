@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: aug 11 2021 (15:00) 
+## Last-Updated: aug 11 2021 (18:25) 
 ##           By: Brice Ozenne
-##     Update #: 304
+##     Update #: 308
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -240,12 +240,23 @@ print.confint_lmm <- function(x, digit = 3, ...){
         ## missing.type <- stats::setNames(c("sigma","k","rho") %in% type == FALSE,c("transform.sigma","transform.k","transform.rho"))
         ## transform2[names(missing.type)[missing.type]] <- "none"
         iType <- attr(x,"type")[rownames(x)]
+        
         if(length(intersect(iType,names(transform2)))>0){
-            cat("Note: estimates and confidence intervals for ",paste(intersect(iType,names(transform2)), collapse = ", ")," have been back-transformed. \n",
-                "      standard errors are not back-transformed.\n", sep="")
+            if(all(c("estimate","se","lower","upper") %in% names(x))){
+                cat("Note: estimates and confidence intervals for ",paste(intersect(iType,names(transform2)), collapse = ", ")," have been back-transformed. \n",
+                    "      standard errors are not back-transformed.\n", sep="")
+            }else if(all(c("estimate","lower","upper") %in% names(x))){
+                cat("Note: estimates and confidence intervals for ",paste(intersect(iType,names(transform2)), collapse = ", ")," have been back-transformed. \n", sep="")
+            }else if(all(c("estimate","se") %in% names(x))){
+                cat("Note: estimates for ",paste(intersect(iType,names(transform2)), collapse = ", ")," have been back-transformed. \n",
+                    "      standard errors are not back-transformed.\n", sep="")
+            }else if("estimate" %in% names(x)){
+                cat("Note: estimates for ",paste(intersect(iType,names(transform2)), collapse = ", ")," have been back-transformed. \n")
+            }
         }
     }else if(identical(backtransform, 2)){
-        cat("Note: estimates, standard errors, and confidence intervals have been back-transformed. \n")
+        txt <- unique(c("estimates","standard errors","confidence intervals","confidence intervals")[c("estimate","se","lower","upper") %in% names(x)])
+        cat("Note: ",paste(txt,collapse = ", ")," have been back-transformed. \n", sep ="")
     }
     return(NULL)
 }

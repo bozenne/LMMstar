@@ -1,4 +1,4 @@
-% Created 2021-08-11 on 18:09
+% Created 2021-08-23 ma 14:34
 % Intended LaTeX compiler: pdflatex
 \documentclass[12pt]{article}
 
@@ -309,14 +309,14 @@ utils::packageVersion("LMMstar")
 \end{lstlisting}
 
 \begin{verbatim}
-[1] '0.2.4'
+[1] '0.2.5'
 \end{verbatim}
 
 
 \clearpage
 
 \section{Descriptive statistics}
-\label{sec:org2c4e359}
+\label{sec:org311696f}
 Mean, standard deviation, and other summary statistic can be computed
 with respect to a categorical variable (typically time) using the
 \texttt{summarize} function:
@@ -342,9 +342,9 @@ print(sss, digits = 3)
 \clearpage
 
 \section{Linear mixed model}
-\label{sec:org8b3f321}
+\label{sec:orgeedf6c6}
 \subsection{Modeling tools}
-\label{sec:org14ff788}
+\label{sec:org43f3463}
 Fit a linear mixed model with \textbf{compound symmetry} structure:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -394,7 +394,7 @@ calling \texttt{lmm} should lead to a more reasonnable computation time.
 \clearpage
 
 \subsection{Model output}
-\label{sec:org8e7b357}
+\label{sec:orgf296028}
 
 The \texttt{summary} method can be used to display the main information
 relative to the model fit:
@@ -441,18 +441,18 @@ Residual variance-covariance: compound symmetry
 Fixed effects: weight ~ time + glucagon 
 
               estimate    se     df   lower   upper p.value    
-(Intercept)    129.369 4.226 20.034 120.556 120.556  <0.001 ***
-timeB1_week     -7.619 1.054 53.968  -9.732  -9.732  <0.001 ***
-timeA1_week    -14.495 1.428 53.879 -17.358 -17.358  <0.001 ***
-timeA3_months  -27.051 1.087 53.943 -29.231 -29.231  <0.001 ***
-glucagon         0.822  0.62  53.81  -0.421  -0.421   0.191    
+(Intercept)    129.369 4.226 20.034 120.556 138.183  <0.001 ***
+timeB1_week     -7.619 1.054 53.968  -9.732  -5.507  <0.001 ***
+timeA1_week    -14.495 1.428 53.879 -17.358 -11.632  <0.001 ***
+timeA3_months  -27.051 1.087 53.943 -29.231 -24.872  <0.001 ***
+glucagon         0.822  0.62  53.81  -0.421   2.065   0.191    
 
 The columns lower and upper correspond to the 95% confidence interval
 Degrees of freedom were computed using a Satterthwaite approximation
 \end{verbatim}
 
 \subsection{Extract estimated coefficients}
-\label{sec:org4a9a999}
+\label{sec:org49770f8}
 The value of the estimated coefficients can be output using \texttt{coef}:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -479,7 +479,7 @@ sigma:B3_months   sigma:B1_week   sigma:A1_week sigma:A3_months
 \end{verbatim}
 
 \subsection{Extract estimated residual variance-covariance structure}
-\label{sec:org0226515}
+\label{sec:orgad893ea}
 
 The method \texttt{getVarCov} can be used to output the covariance structure of the residuals:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -513,7 +513,7 @@ A3_months  344.6236 344.6236  355.3062
 \clearpage
 
 \subsection{Model diagnostic}
-\label{sec:org7c2e8d3}
+\label{sec:org2c368cb}
 
 The method \texttt{residuals} can also be used to extract the residulas in
 the wide format:
@@ -595,7 +595,7 @@ residuals(eCS.lmm, type = "normalized", plot = "correlation", format = "wide",
 
 
 \subsection{Model fit}
-\label{sec:org547dc96}
+\label{sec:orge045a75}
 
 The fitted values can be displayed via the \texttt{emmeans} package or using the \texttt{autoplot} method:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -631,10 +631,10 @@ autoplot(eCS.lmm, at = data.frame(glucagon = 10), color = "glucagon")
 \end{lstlisting}
 
 \subsection{Statistical inference}
-\label{sec:orgbabf78f}
+\label{sec:org26a90cd}
 
 \subsubsection{Model coefficients}
-\label{sec:org27dd15f}
+\label{sec:org67a1c3c}
 
 The estimated coefficients with their confidence intervals can be accessed via the \texttt{confint} method:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -678,7 +678,7 @@ they uncertainty is by default computed after transformation
 (e.g. \texttt{log}) and then backtransformed. 
 
 \subsubsection{Linear combination of the model coefficients}
-\label{sec:orgbd0613f}
+\label{sec:org0e5152e}
 
 The \texttt{anova} method can be use to test one or several linear
 combinations of the model coefficients using Wald tests. For instance
@@ -748,7 +748,7 @@ statistic df.num df.denom     p.value
 \clearpage
 
 \subsection{Baseline adjustment}
-\label{sec:org34a774b}
+\label{sec:orge8d1041}
 
 The \texttt{lmm} contains an "experimental" feature to drop non-identifiable
 effects from the model. For instance, let us define two (artifical) groups of
@@ -887,7 +887,7 @@ treat22:timeA3_months     1.57 -3.64  6.78  0.5325
 \end{verbatim}
 
 \subsection{Marginal means}
-\label{sec:org728c832}
+\label{sec:org012ea8a}
 
 The \texttt{lmm} function can be used in conjonction with the \texttt{emmeans}
 package to compute marginal means. Consider the following model:
@@ -1068,7 +1068,7 @@ P value adjustment: sidak method for 4 tests
 \clearpage
 
 \section{Data generation}
-\label{sec:org65d5e98}
+\label{sec:org0d18e1d}
 Simulate some data in the wide format:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -1115,7 +1115,7 @@ head(dL)
 \clearpage
 
 \section{Modifying default options}
-\label{sec:org76d20e5}
+\label{sec:org8142d73}
 The \texttt{LMMstar.options} method enable to get and set the default options
 used by the package. For instance, the default option for the information matrix is:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -1144,7 +1144,7 @@ LMMstar.options(reinitialise = TRUE)
 \clearpage
 
 \section{R session}
-\label{sec:orgad3b537}
+\label{sec:org1cd461d}
 Details of the R session used to generate this document:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -1166,28 +1166,34 @@ attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
-[1] ggplot2_3.3.5 emmeans_1.6.1 LMMstar_0.2.4 nlme_3.1-149 
+ [1] ggplot2_3.3.5     emmeans_1.6.1     LMMstar_0.2.5     nlme_3.1-152      spelling_2.2     
+ [6] roxygen2_7.1.1    butils.base_1.2   Rcpp_1.0.7        data.table_1.14.0 devtools_2.4.0   
+[11] usethis_2.0.1    
 
 loaded via a namespace (and not attached):
- [1] Rcpp_1.0.7          plyr_1.8.6          compiler_4.0.3      pillar_1.6.2       
- [5] tools_4.0.3         digest_0.6.27       lifecycle_1.0.0     tibble_3.1.3       
- [9] gtable_0.3.0        lattice_0.20-41     pkgconfig_2.0.3     rlang_0.4.11       
-[13] Matrix_1.2-18       mvtnorm_1.1-1       coda_0.19-4         withr_2.4.2        
-[17] stringr_1.4.0       dplyr_1.0.5         generics_0.1.0      vctrs_0.3.8        
-[21] qqtest_1.2.0        grid_4.0.3          tidyselect_1.1.0    glue_1.4.2         
-[25] R6_2.5.0            fansi_0.5.0         survival_3.2-10     multcomp_1.4-16    
-[29] lava_1.6.9          TH.data_1.0-10      farver_2.1.0        reshape2_1.4.4     
-[33] purrr_0.3.4         magrittr_2.0.1      scales_1.1.1        codetools_0.2-16   
-[37] ellipsis_0.3.2      MASS_7.3-53         splines_4.0.3       xtable_1.8-4       
-[41] colorspace_2.0-2    numDeriv_2016.8-1.1 labeling_0.4.2      sandwich_3.0-0     
-[45] utf8_1.2.2          stringi_1.5.3       estimability_1.3    munsell_0.5.0      
-[49] crayon_1.4.1        zoo_1.8-9
+ [1] mvtnorm_1.1-2       lattice_0.20-41     prettyunits_1.1.1   ps_1.6.0           
+ [5] zoo_1.8-9           digest_0.6.27       rprojroot_2.0.2     utf8_1.2.2         
+ [9] plyr_1.8.6          R6_2.5.0            coda_0.19-4         pillar_1.6.2       
+[13] rlang_0.4.11        multcomp_1.4-16     callr_3.7.0         Matrix_1.2-18      
+[17] labeling_0.4.2      desc_1.3.0          splines_4.0.3       qqtest_1.2.0       
+[21] stringr_1.4.0       munsell_0.5.0       numDeriv_2016.8-1.1 compiler_4.0.3     
+[25] xfun_0.22           pkgconfig_2.0.3     pkgbuild_1.2.0      tidyselect_1.1.0   
+[29] tibble_3.1.3        codetools_0.2-16    fansi_0.5.0         crayon_1.4.1       
+[33] dplyr_1.0.5         withr_2.4.2         MASS_7.3-53         grid_4.0.3         
+[37] xtable_1.8-4        gtable_0.3.0        lifecycle_1.0.0     magrittr_2.0.1     
+[41] scales_1.1.1        estimability_1.3    cli_3.0.1           stringi_1.5.3      
+[45] cachem_1.0.4        farver_2.1.0        reshape2_1.4.4      fs_1.5.0           
+[49] remotes_2.3.0       testthat_3.0.2      xml2_1.3.2          ellipsis_0.3.2     
+[53] vctrs_0.3.8         generics_0.1.0      sandwich_3.0-0      TH.data_1.0-10     
+[57] lava_1.6.9          tools_4.0.3         glue_1.4.2          purrr_0.3.4        
+[61] processx_3.5.1      pkgload_1.2.1       fastmap_1.1.0       survival_3.2-10    
+[65] colorspace_2.0-2    sessioninfo_1.1.1   memoise_2.0.0       knitr_1.33
 \end{verbatim}
 
 \clearpage
 
 \section*{References}
-\label{sec:org31b1420}
+\label{sec:org93c6df8}
 \begingroup
 \renewcommand{\section}[2]{}
 
@@ -1213,7 +1219,7 @@ loaded via a namespace (and not attached):
 \section{Likelihood in a linear mixed model}
 \label{SM:likelihood}
 \subsection{Log-likelihood}
-\label{sec:orgce0b15b}
+\label{sec:org8ce7584}
 
 Denote by \(\VY\) a vector of \(m\) outcomes, \(\VX\) a vector of
 \(p\) covariates, \(\mu(\Vparam,\VX)\) the modeled mean, and
@@ -1247,7 +1253,7 @@ when setting the argument \texttt{indiv} to \texttt{TRUE}.
 \bigskip
 
 \subsection{Score}
-\label{sec:org8b0ab8e}
+\label{sec:orgd39d14c}
 
  Using that \(\partial \log(\det(X))=tr(X^{-1}\partial(X))\), the
 score is obtained by derivating once the log-likelihood, i.e., for
@@ -1270,7 +1276,7 @@ what \texttt{score} outputs for the ML criteria when setting the argument
 \clearpage
 
 \subsection{Hessian}
-\label{sec:orgb671f74}
+\label{sec:orgaa97a1c}
 
 Derivating a second time the log-likelihood gives the hessian, \(\Hessian(\Vparam)\), with element\footnote{if one is relative to the mean and the other to the variance then they are respectively \(\theta\) and \(\theta'\)}:
 \begin{align*}
@@ -1318,7 +1324,7 @@ is set to \texttt{"expected"} (up to a factor -1).
 \clearpage
 
 \subsection{Degrees of freedom}
-\label{sec:orgeffbc86}
+\label{sec:org1a6bdf7}
 
 Degrees of freedom are computed using a Satterthwaite approximation,
 i.e. for an estimate coefficient \(\widehat{\beta}\in\widehat{\Vparam}\) with standard

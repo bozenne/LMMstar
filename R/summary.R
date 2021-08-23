@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: aug 11 2021 (15:26) 
+## Last-Updated: aug 23 2021 (14:29) 
 ##           By: Brice Ozenne
-##     Update #: 314
+##     Update #: 315
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -237,7 +237,7 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, columns =
     printtable.mean[["se"]] <- as.character(round(table.mean[["se"]], digits = digit))
     printtable.mean[["df"]] <- as.character(round(table.mean[["df"]], digits = digit))
     printtable.mean[["lower"]] <- as.character(round(table.mean[["lower"]], digits = digit))
-    printtable.mean[["upper"]] <- as.character(round(table.mean[["lower"]], digits = digit))
+    printtable.mean[["upper"]] <- as.character(round(table.mean[["upper"]], digits = digit))
     printtable.mean[["statistic"]] <- as.character(round(table.mean[["statistic"]], digits = digit))
     printtable.mean[["p.value"]] <- format.pval(table.mean[["p.value"]], digits = digit, eps = 10^(-digit))
     if(any(names(printtable.mean) %in% columns == FALSE)){

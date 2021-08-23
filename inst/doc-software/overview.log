@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.21 (MiKTeX 20.12) (preloaded format=pdflatex 2021.1.3)  11 AUG 2021 18:09
+This is pdfTeX, Version 3.14159265-2.6-1.40.21 (MiKTeX 20.12) (preloaded format=pdflatex 2021.1.3)  23 AUG 2021 14:34
 entering extended mode
 **./overview.tex
 (overview.tex
@@ -1405,23 +1405,23 @@ Package pdftex.def Info: ./figures/gg-baseAdj.pdf  used on input line 843.
 ]
 
 LaTeX Font Warning: Font shape `U/stmry/b/n' undefined
-(Font)              using `U/stmry/m/n' instead on input line 1218.
+(Font)              using `U/stmry/m/n' instead on input line 1224.
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1244--1244
+Underfull \hbox (badness 10000) in paragraph at lines 1250--1250
 [][]\T1/lmr/m/n/10 The REML is the like-li-hood of the ob-ser-va-tions di-vided
  by the prior on the es-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1244--1244
+Underfull \hbox (badness 10000) in paragraph at lines 1250--1250
 \T1/lmr/m/n/10 ti-mated mean pa-ram-e-ters $[][] \OMS/lmsy/m/n/10  N\OT1/lmr/m
 /n/10 (\OML/lmm/m/it/10 ; [][]\OT1/lmr/m/n/10 )$\T1/lmr/m/n/10 . This cor-re-s
 ponds to
  []
 
 
-Underfull \hbox (badness 2591) in paragraph at lines 1244--1244
+Underfull \hbox (badness 2591) in paragraph at lines 1250--1250
 [] [] []$ \T1/lmr/m/n/10 Since $\OML/lmm/m/it/10 $ \T1/lmr/m/n/10 will be es-t
 i-mated to be
  []
@@ -1429,7 +1429,7 @@ i-mated to be
 [21
 
 ]
-Overfull \hbox (19.98886pt too wide) detected at line 1283
+Overfull \hbox (19.98886pt too wide) detected at line 1289
 []
  []
 
@@ -1507,7 +1507,7 @@ symbols/msam10.pfb><C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/p
 ublic/amsfonts/symbols/msam5.pfb><C:/Users/hpl802/AppData/Local/Programs/MiKTeX
 /fonts/type1/public/amsfonts/symbols/msam7.pfb><C:/Users/hpl802/AppData/Local/P
 rograms/MiKTeX/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on overview.pdf (25 pages, 509479 bytes).
+Output written on overview.pdf (25 pages, 509739 bytes).
 PDF statistics:
  636 PDF objects out of 1000 (max. 8388607)
  222 named destinations out of 1000 (max. 500000)
