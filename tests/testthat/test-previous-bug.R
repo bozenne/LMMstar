@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: aug 23 2021 (17:03) 
+## Last-Updated: sep  6 2021 (11:23) 
 ##           By: Brice Ozenne
-##     Update #: 41
+##     Update #: 46
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,6 +29,7 @@ context("Previous bug")
 data(gastricbypassL, package = "LMMstar")
 test_that("summarize - gastricbypass example",{
     g.summaries <- summarize(weight~time, data=gastricbypassL, na.rm=TRUE)
+    expect_s3_class(g.summaries,"data.frame")
 })
 
 ## * from: Julie Lyng Forman <jufo@sund.ku.dk> date: Tuesday, Nov 3, 2020 12:13:07 PM
@@ -48,8 +49,16 @@ test_that("getCoef - Non-positive definite approximate variance-covariance",{
                  na.action = na.exclude,
                  control = glsControl(opt = 'optim'))
     ## intervals(e.gls)
-    getCoef(e.gls)
     getCoef(e.gls, effects = "variance")
+    expect_equivalent(getCoef(e.gls),
+                 data.frame("estimate" = c(480.4, 54.8, 91.1, 90.06463245, 57.41601691, 99.73654382, -12.3292649, 73.96796617, 55.72691236), 
+                            "std.error" = c(8.91159604, 9.07876221, 9.78750704, 15.79765582, 20.53007571, 18.68081963, 14.95122806, 18.19375468, 19.20870004), 
+                            "t.value" = c(53.9072909, 6.03606513, 9.30778385, 5.70113905, 2.79667828, 5.33898115, -0.82463225, 4.06556906, 2.90112877), 
+                            "p.value" = c(0, 1.8e-07, 0, 6e-07, 0.00726378, 2.18e-06, 0.41342073, 0.00016606, 0.00547614), 
+                            "lower" = c(462.50922443, 36.57362433, 71.45075971, 58.34951501, 16.20017011, 62.23323352, -42.3451077, 37.44247955, 17.16383791), 
+                            "upper" = c(498.29077557, 73.02637567, 110.74924029, 121.77974989, 98.63186372, 137.23985412, 17.68657789, 110.49345279, 94.28998681)),
+                 tol = 1e-6
+                 )
 })
 
 ## * from: Julie Lyng Forman <jufo@sund.ku.dk> date: Tuesday, 06/18/21 2:03 PM
@@ -85,7 +94,8 @@ test_that("lmm - error due to minus sign in levels of a categorical variable",{
                      "upper" = c(8.66088361, 8.43482139, 9.06214217, 8.74938861), 
                      "null" = c(NA, NA, NA, NA), 
                      "p.value" = c(NA, NA, NA, NA))
-    test <- confint(eUN.lmm, transform.k = "logsd", effects = "variance", backtransform = FALSE)
+    test <- confint(eUN.lmm, transform.k = "logsd", effects = "variance", backtransform = FALSE,
+                    columns = c("estimate","se","df","lower","upper"))
     
     expect_equal(test$estimate, GS$estimate, tol = 1e-5)
     expect_equal(test$se, GS$se, tol = 1e-5)
@@ -103,6 +113,11 @@ test_that("lmm - error when predicting due to missing values in the covariates",
     capture.output(summary(e.lmm, hide.fit = TRUE, hide.sd = TRUE, hide.cor = TRUE)) ## was bugging at some point
     expect_equal(NROW(predict(e.lmm, newdata = gastricbypassL)),NROW(gastricbypassL))
 
+    set.seed(10)
+    gastricbypassL$Gender <- factor(as.numeric(gastricbypassL$id) %% 2, levels = 0:1, labels = c("M","F"))
+    e2.lmm  <- lmm(weight ~ Gender*glucagon, repetition =Gender ~ time|id , structure = "CS", data = gastricbypassL)
+    getVarCov(e2.lmm)
+    summary(e2.lmm, print = FALSE)
 })
 
 ## * from: Julie Lyng Forman <jufo@sund.ku.dk> date: Wednesday, 07/07/21 11:00 PM (2/3)
@@ -117,7 +132,7 @@ test_that("lmm - studentized and normalized residuals",{
                     df=TRUE)
 
 
-    dfres.R$fitted <- predict(fit.main, dfres.R)$estimate
+    dfres.R$fitted <- predict(fit.main, newdata = dfres.R)$estimate
     dfres.R$residual <- residuals(fit.main, type = 'response')
     dfres.R$rpearson <- residuals(fit.main, type = 'pearson')
     dfres.R$rstudent <- residuals(fit.main, type = 'studentized')
@@ -197,13 +212,8 @@ test_that("lmm - constrain model",{
                                       df=FALSE))
     ## summary(fit.clmm2)
     
-    fit.clmm3 <- lmm(bmd~timefac+treat2,
-                     repetition=~visit|girl,
-                     structure="UN",
-                     data=calciumL,
-                     df=FALSE)
-    ## summary(fit.clmm3)
-    ## autoplot(fit.clmm3)
+    expect_equal(logLik(fit.clmm),logLik(fit.clmm.bis), tol = 1e-5)
+    expect_equal(logLik(fit.clmm),logLik(fit.clmm2), tol = 1e-5)
 
 })
 

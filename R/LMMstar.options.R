@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: aug 23 2021 (17:27) 
+## Last-Updated: sep  6 2021 (15:28) 
 ##           By: Brice Ozenne
-##     Update #: 59
+##     Update #: 61
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -28,6 +28,7 @@
 #'
 #' @details The options are: \itemize{
 #' \item backtransform.confint [logical]: should variance/covariance/correlation estimates be back-transformed when they are transformed on the log or atanh scale. Used by \code{confint}.
+#' \item columns.anova [character vector]: columns to ouput when using \code{anova} with argument \code{ci=TRUE}.
 #' \item columns.confint [character vector]: columns to ouput when using \code{confint}.
 #' \item columns.summary [character vector]: columns to ouput when displaying the model coefficients using \code{summary}.
 #' \item df [logical]: should approximate degrees of freedom be computed for Wald and F-tests. Used by \code{lmm}, \code{anova}, \code{predict}, and \code{confint}.
@@ -48,6 +49,7 @@ LMMstar.options <- function(..., reinitialise = FALSE){
     if (reinitialise == TRUE) {
         assign(".LMMstar-options", 
                list(backtransform.confint = TRUE,
+                    columns.anova = c("estimate","lower","upper","p.value"),
                     columns.confint = c("estimate","lower","upper"),
                     columns.summary = c("estimate","se","df","lower","upper","p.value",""),
                     df = TRUE,

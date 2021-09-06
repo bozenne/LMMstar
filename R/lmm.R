@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: aug 11 2021 (15:05) 
+## Last-Updated: sep  6 2021 (11:48) 
 ##           By: Brice Ozenne
-##     Update #: 969
+##     Update #: 972
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -53,7 +53,6 @@
 ##' ## output
 ##' eCS.lmm
 ##' summary(eCS.lmm)
-##' summary(eCS.lmm, ci = TRUE)
 
 ## * lmm (code)
 ##' @export
@@ -391,8 +390,9 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     if(any(add.col %in% names(data.fit) == FALSE)){
         data.fit <- cbind(data.fit, data[,add.col[add.col %in% names(data.fit) == FALSE],drop=FALSE])
     }
-    out$xfactor <- unique(c(stats::.getXlevels(stats::terms(out$formula$mean.design),data),
-                            stats::.getXlevels(stats::terms(out$formula$var.design),data)))
+    out$xfactor <- c(stats::.getXlevels(stats::terms(out$formula$mean.design),data),
+                     stats::.getXlevels(stats::terms(out$formula$var.design),data))
+    out$xfactor <- out$xfactor[duplicated(names(out$xfactor))==FALSE]
     if(trace>=2){cat("\n")}
 
     ## ** Estimate model parameters

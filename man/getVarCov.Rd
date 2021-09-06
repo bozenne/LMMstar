@@ -37,7 +37,6 @@ A list where each element contains a residual variance-covariance matrix.
 Extract the unique set of residuals variance-covariance matrices or the one relative to specific clusters.
 }
 \examples{
-if(require(nlme)){
 ## simulate data in the long format
 set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
@@ -48,5 +47,4 @@ eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data 
 ## extract residuals variance covariance matrix
 getVarCov(eUN.lmm)
 getVarCov(eUN.lmm, individual = c("1","5"))
-}
 }

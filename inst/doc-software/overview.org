@@ -88,7 +88,7 @@ utils::packageVersion("LMMstar")
 #+END_SRC
 
 #+RESULTS:
-: [1] '0.2.5'
+: [1] '0.2.6'
 
 \clearpage
 
@@ -126,12 +126,13 @@ eCS.lmm
 
 #+RESULTS:
 :   Linear Mixed Model with a compound symmetry covariance matrix 
-:  
-: data           : 78 observations and distributed in 20 clusters 
-: log-likelihood : -243.6005
-: parameters     : 5 mean ((Intercept) timeB1_week timeA1_week timeA3_months glucagon) 
-:                  1 variance (sigma) 
-:                  1 correlation (Rho)
+:                                                                                            
+:  outcome/cluster/time : weight/id/time                                                     
+:  data                 : 78 observations and distributed in 20 clusters                     
+:  parameters           : 5 mean ((Intercept) timeB1_week timeA1_week timeA3_months glucagon)
+:                         1 variance (sigma)                                                 
+:                         1 correlation (Rho)                                                
+:  log-likelihood       : -243.600523870252
 
 
 \noindent Fit a linear mixed model with *unstructured* covariance matrix:
@@ -163,7 +164,7 @@ calling =lmm= should lead to a more reasonnable computation time.
 The =summary= method can be used to display the main information
 relative to the model fit:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-summary(eCS.lmm, ci = TRUE)
+summary(eCS.lmm)
 #+END_SRC
 
 #+RESULTS:
@@ -393,26 +394,24 @@ confint(eCS.lmm)
 : timeA3_months  -27.051 -29.231 -24.87
 : glucagon         0.822  -0.421   2.06
 
+\clearpage
+
 Confidence intervals for the variance and correlation parameters can
-be displayed too specifying =effect="all"=:
+be displayed too specifying @@latex:\texttt{effect="all"}@@:
 #+begin_src R :exports both :results output :session *R* :cache no
-  confint(eCS.lmm, effect = "all", backtransform = TRUE,
-          columns = c("estimate","se","lower","upper"))
+confint(eCS.lmm, effect = "all", backtransform = TRUE)
 #+end_src
 
 #+RESULTS:
-#+begin_example
-              estimate    se   lower   upper
-(Intercept)    129.369 4.226 120.556 138.183
-timeB1_week     -7.619 1.054  -9.732  -5.507
-timeA1_week    -14.495 1.428 -17.358 -11.632
-timeA3_months  -27.051 1.087 -29.231 -24.872
-glucagon         0.822 0.620  -0.421   2.065
-sigma           18.850 0.159  13.479  26.359
-Rho              0.970 0.187   0.936   0.986
-Note: estimates and confidence intervals for sigma, rho have been back-transformed. 
-      standard errors are not back-transformed.
-#+end_example
+:               estimate   lower   upper
+: (Intercept)    129.369 120.556 138.183
+: timeB1_week     -7.619  -9.732  -5.507
+: timeA1_week    -14.495 -17.358 -11.632
+: timeA3_months  -27.051 -29.231 -24.872
+: glucagon         0.822  -0.421   2.065
+: sigma           18.850  13.479  26.359
+: Rho              0.970   0.936   0.986
+: Note: estimates and confidence intervals for sigma, rho have been back-transformed.
 
 Because these parameters are constrained (e.g. strictly positive),
 they uncertainty is by default computed after transformation
@@ -458,13 +457,42 @@ try(
 
 \clearpage
 
-It is then advised to specify the null hypothesis via a contrast matrix, e.g.:
+It is then advised to build a contrast matrix, e.g.:
 #+begin_src R :exports both :results output :session *R* :cache no
 name.coef <- rownames(confint(eUN.lmm, effects = "all", backtransform = FALSE))
 name.varcoef <- grep("log(k)",name.coef, value = TRUE, fixed = TRUE)
 C <- matrix(0, nrow = 3, ncol = length(name.coef), dimnames = list(name.varcoef, name.coef))
 diag(C[name.varcoef,name.varcoef]) <- 1
+C
+#+end_src
 
+#+RESULTS:
+#+begin_example
+                 (Intercept) timeB1_week timeA1_week timeA3_months glucagon log(sigma)
+log(k).B1_week             0           0           0             0        0          0
+log(k).A1_week             0           0           0             0        0          0
+log(k).A3_months           0           0           0             0        0          0
+                 log(k).B1_week log(k).A1_week log(k).A3_months atanh(cor(B1_week,B3_months))
+log(k).B1_week                1              0                0                             0
+log(k).A1_week                0              1                0                             0
+log(k).A3_months              0              0                1                             0
+                 atanh(cor(A1_week,B3_months)) atanh(cor(A3_months,B3_months))
+log(k).B1_week                               0                               0
+log(k).A1_week                               0                               0
+log(k).A3_months                             0                               0
+                 atanh(cor(A1_week,B1_week)) atanh(cor(A3_months,B1_week))
+log(k).B1_week                             0                             0
+log(k).A1_week                             0                             0
+log(k).A3_months                           0                             0
+                 atanh(cor(A3_months,A1_week))
+log(k).B1_week                               0
+log(k).A1_week                               0
+log(k).A3_months                             0
+#+end_example
+
+And then call the =anova= method specifying the null hypothesis via the
+contrast matrix:
+#+begin_src R :exports both :results output :session *R* :cache no
 anova(eUN.lmm, effects = C)
 #+end_src
 
@@ -474,7 +502,6 @@ anova(eUN.lmm, effects = C)
 :  - F-test
 :  statistic df.num df.denom     p.value
 :   6.203176      3 17.99457 0.004417067
-
 
 \clearpage
 
@@ -718,19 +745,19 @@ Using the =pair= function displays the differences:
 #+begin_example
 time = B3_months:
  contrast estimate    SE   df t.ratio p.value
- 2 - 1        4.83 10.10 18.0 0.478   0.6383 
+ 2 - 1        4.83 10.10 18.0   0.478  0.6383
 
 time = B1_week:
  contrast estimate    SE   df t.ratio p.value
- 2 - 1        5.80  9.38 18.0 0.618   0.5441 
+ 2 - 1        5.80  9.38 18.0   0.618  0.5441
 
 time = A1_week:
  contrast estimate    SE   df t.ratio p.value
- 2 - 1        4.29  9.11 18.0 0.471   0.6435 
+ 2 - 1        4.29  9.11 18.0   0.471  0.6435
 
 time = A3_months:
  contrast estimate    SE   df t.ratio p.value
- 2 - 1        6.69  8.40 18.1 0.797   0.4361
+ 2 - 1        6.69  8.40 18.1   0.797  0.4361
 #+end_example
 
 One can adjust for multiple comparison via the =adjust= argument and
@@ -741,10 +768,10 @@ summary(epairs.group, by = NULL, adjust = "mvt", infer = TRUE)
 
 #+RESULTS:
 :  contrast time      estimate    SE   df lower.CL upper.CL t.ratio p.value
-:  2 - 1    B3_months     4.83 10.10 18.0    -18.0     27.6 0.478   0.7496 
-:  2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0 0.618   0.6482 
-:  2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.9 0.471   0.7556 
-:  2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.7 0.797   0.5287 
+:  2 - 1    B3_months     4.83 10.10 18.0    -18.0     27.6   0.478  0.7496
+:  2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0   0.618  0.6480
+:  2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.9   0.471  0.7554
+:  2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.7   0.797  0.5285
 : 
 : Confidence level used: 0.95 
 : Conf-level adjustment: mvt method for 4 estimates 
@@ -761,13 +788,81 @@ summary(pairs(emmeans(eC2.lmm , specs = ~treat2|time), reverse = TRUE), by = NUL
 : Note: adjust = "tukey" was changed to "sidak"
 : because "tukey" is only appropriate for one set of pairwise comparisons
 :  contrast time      estimate    SE   df t.ratio p.value
-:  2 - 1    B3_months     0.00 0.000  NaN    NaN     NaN 
-:  2 - 1    B1_week       0.00 0.000  NaN    NaN     NaN 
-:  2 - 1    A1_week      -1.44 0.621 16.2 -2.311  0.1303 
-:  2 - 1    A3_months     1.57 2.463 16.3  0.638  0.9522 
+:  2 - 1    B3_months     0.00 0.000  NaN     NaN     NaN
+:  2 - 1    B1_week       0.00 0.000  NaN     NaN     NaN
+:  2 - 1    A1_week      -1.44 0.621 16.2  -2.311  0.1303
+:  2 - 1    A3_months     1.57 2.463 16.3   0.638  0.9522
 : 
 : P value adjustment: sidak method for 4 tests
 
+** Predictions
+
+Two types of predictions can be performed with the =predict= method:
+- *static predictions* that are only conditional on the covariates:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+news <- gastricbypassL[gastricbypassL$id==1,]
+news$glucagon <- 0
+predict(eCS.lmm, newdata = news)
+#+END_SRC
+
+#+RESULTS:
+:   estimate       se       df     lower    upper
+: 1 129.3691 4.225632 20.03432 120.55555 138.1826
+: 2 121.7496 4.235605 20.22155 112.92049 130.5787
+: 3 114.8740 4.271415 20.89949 105.98847 123.7595
+: 4 102.3176 4.215043 19.83701  93.52057 111.1147
+
+which can be computing by creating a design matrix:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+X.12 <- model.matrix(formula(eCS.lmm), news)
+X.12
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+   (Intercept) timeB1_week timeA1_week timeA3_months glucagon
+1            1           0           0             0        0
+21           1           1           0             0        0
+41           1           0           1             0        0
+61           1           0           0             1        0
+attr(,"assign")
+[1] 0 1 1 1 2
+attr(,"contrasts")
+attr(,"contrasts")$time
+[1] "contr.treatment"
+#+end_example
+
+and then multiplying it with the regression coefficients:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+X.12 %*% coef(eCS.lmm)
+#+END_SRC
+
+#+RESULTS:
+:        [,1]
+: 1  129.3691
+: 21 121.7496
+: 41 114.8740
+: 61 102.3176
+
+- *dynamic predictions* that are also conditional on the outcome
+  measured at other timepoints. Consider 
+  
+#+ATTR_LATEX: :options otherkeywords={}, deletekeywords={}
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+newd <- rbind(data.frame(id = 1, time = "B3_months", weight = coef(eCS.lmm)["(Intercept)"], glucagon = 0),
+              data.frame(id = 1, time = "B1_week", weight = NA, glucagon = news[1,"glucagon"]),
+              data.frame(id = 2, time = "B3_months", weight = 130, glucagon = 0),
+              data.frame(id = 2, time = "B1_week", weight = NA, glucagon = news[1,"glucagon"]))
+predict(eCS.lmm, newdata = newd, type = "dynamic", keep.newdata = TRUE)
+#+END_SRC
+
+#+RESULTS:
+:   id      time   weight glucagon estimate       se  df    lower    upper
+: 1  1 B3_months 129.3691        0       NA       NA  NA       NA       NA
+: 2  1   B1_week       NA        0 121.7496 1.046825 Inf 119.6979 123.8013
+: 3  2 B3_months 130.0000        0       NA       NA  NA       NA       NA
+: 4  2   B1_week       NA        0 122.3615 1.053642 Inf 120.2964 124.4266
+  
 \clearpage
 
 * Data generation
@@ -845,7 +940,7 @@ sessionInfo()
 
 #+RESULTS:
 #+begin_example
-R version 4.0.3 (2020-10-10)
+R version 4.1.1 (2021-08-10)
 Platform: x86_64-w64-mingw32/x64 (64-bit)
 Running under: Windows 10 x64 (build 19042)
 
@@ -859,22 +954,27 @@ attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
-[1] ggplot2_3.3.5 emmeans_1.6.1 LMMstar_0.2.5 nlme_3.1-152 
+ [1] emmeans_1.6.3     LMMstar_0.2.6     nlme_3.1-152      spelling_2.2      roxygen2_7.1.1   
+ [6] butils.base_1.2   Rcpp_1.0.7        data.table_1.14.0 devtools_2.4.2    usethis_2.0.1    
 
 loaded via a namespace (and not attached):
- [1] Rcpp_1.0.7          plyr_1.8.6          compiler_4.0.3      pillar_1.6.2       
- [5] tools_4.0.3         digest_0.6.27       lifecycle_1.0.0     tibble_3.1.3       
- [9] gtable_0.3.0        lattice_0.20-41     pkgconfig_2.0.3     rlang_0.4.11       
-[13] Matrix_1.2-18       mvtnorm_1.1-2       coda_0.19-4         withr_2.4.2        
-[17] stringr_1.4.0       dplyr_1.0.5         generics_0.1.0      vctrs_0.3.8        
-[21] qqtest_1.2.0        grid_4.0.3          tidyselect_1.1.0    glue_1.4.2         
-[25] R6_2.5.0            fansi_0.5.0         survival_3.2-10     multcomp_1.4-16    
-[29] lava_1.6.9          TH.data_1.0-10      farver_2.1.0        reshape2_1.4.4     
-[33] purrr_0.3.4         magrittr_2.0.1      scales_1.1.1        codetools_0.2-16   
-[37] ellipsis_0.3.2      MASS_7.3-53         splines_4.0.3       xtable_1.8-4       
-[41] colorspace_2.0-2    numDeriv_2016.8-1.1 labeling_0.4.2      sandwich_3.0-0     
-[45] utf8_1.2.2          stringi_1.5.3       estimability_1.3    munsell_0.5.0      
-[49] crayon_1.4.1        zoo_1.8-9
+ [1] mvtnorm_1.1-2       lattice_0.20-44     prettyunits_1.1.1   ps_1.6.0           
+ [5] zoo_1.8-9           digest_0.6.27       rprojroot_2.0.2     utf8_1.2.2         
+ [9] plyr_1.8.6          R6_2.5.1            coda_0.19-4         ggplot2_3.3.5      
+[13] pillar_1.6.2        rlang_0.4.11        multcomp_1.4-17     callr_3.7.0        
+[17] Matrix_1.3-4        labeling_0.4.2      desc_1.3.0          splines_4.1.1      
+[21] stringr_1.4.0       munsell_0.5.0       numDeriv_2016.8-1.1 compiler_4.1.1     
+[25] xfun_0.25           pkgconfig_2.0.3     pkgbuild_1.2.0      tidyselect_1.1.1   
+[29] tibble_3.1.4        codetools_0.2-18    fansi_0.5.0         crayon_1.4.1       
+[33] dplyr_1.0.7         withr_2.4.2         MASS_7.3-54         grid_4.1.1         
+[37] xtable_1.8-4        gtable_0.3.0        lifecycle_1.0.0     magrittr_2.0.1     
+[41] scales_1.1.1        estimability_1.3    cli_3.0.1           stringi_1.7.4      
+[45] cachem_1.0.6        farver_2.1.0        reshape2_1.4.4      fs_1.5.0           
+[49] remotes_2.4.0       testthat_3.0.4      xml2_1.3.2          ellipsis_0.3.2     
+[53] vctrs_0.3.8         generics_0.1.0      sandwich_3.0-1      TH.data_1.0-10     
+[57] lava_1.6.9          tools_4.1.1         glue_1.4.2          purrr_0.3.4        
+[61] processx_3.5.2      pkgload_1.2.1       fastmap_1.1.0       survival_3.2-11    
+[65] colorspace_2.0-2    sessioninfo_1.1.1   memoise_2.0.0       knitr_1.33
 #+end_example
 
 \clearpage

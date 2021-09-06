@@ -7,8 +7,10 @@
 \method{predict}{lmm}(
   object,
   newdata,
-  level = 0.95,
+  se = "estimation",
   df = !is.null(object$df),
+  type = "static",
+  level = 0.95,
   keep.newdata = FALSE,
   ...
 )
@@ -18,9 +20,14 @@
 
 \item{newdata}{[data.frame] the covariate values for each cluster.}
 
-\item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
+\item{se}{[character] Type of uncertainty to be accounted for: estimation of the regression parameters (\code{"estimation"}), residual variance (\code{"residual"}), or both (\code{"total"}).
+Can also be \code{NULL} to not compute standard error, p-values, and confidence intervals.}
 
 \item{df}{[logical] Should a Student's t-distribution be used to model the distribution of the predicted mean. Otherwise a normal distribution is used.}
+
+\item{type}{[character] Should prediction be made conditional on the covariates only (\code{"static"}) or also on outcome values at other timepoints (\code{"dynamic"}).}
+
+\item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
 
 \item{keep.newdata}{[logical] Should the argument \code{newdata} be output along side the predicted values?}
 
@@ -38,17 +45,33 @@ A data.frame with 5 columns:\itemize{
 \description{
 Predicted Mean Value With Uncertainty For Linear Mixed Model
 }
+\details{
+Static prediction are made using the linear predictor \eqn{X\beta} while dynamic prediction uses the conditional normal distribution of the missing outcome given the observed outcomes. So if outcome 1 is observed but not 2, prediction for outcome 2 is obtain by \eqn{X_2\beta + \sigma_{21}\sigma^{-1}_{22}(Y_1-X_1\beta)}. In that case, the uncertainty is computed as the sum of the conditional variance \eqn{\sigma_{22}-\sigma_{21}\sigma^{-1}_{22}\sigma_{12}} plus the uncertainty about the estimated conditional mean (obtained via delta method using numerical derivatives).
+}
 \examples{
 ## simulate data in the long format
 set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
 
 ## fit Linear Mixed Model
-eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
+eUN.lmm <- lmm(Y ~ visit + X1 + X2 + X5,
+               repetition = ~visit|id, structure = "UN", data = dL,
+               df = FALSE)
 
 ## prediction
-predict(eUN.lmm, newdata = data.frame(X1 = 1, X2 = 2, X5 = 3))
-predict(eUN.lmm, newdata = data.frame(X1 = 1, X2 = 2, X5 = 3), keep.newdata = TRUE)
+newd <- data.frame(X1 = 1, X2 = 2, X5 = 3, visit = factor(1:3, levels = 1:3))
+predict(eUN.lmm, newdata = newd)
+predict(eUN.lmm, newdata = newd, keep.newdata = TRUE)
+
+## dynamic prediction
+newd.d1 <- cbind(newd, Y = c(NA,NA,NA))
+predict(eUN.lmm, newdata = newd.d1, keep.newdata = TRUE, type = "dynamic")
+newd.d2 <- cbind(newd, Y = c(6.61,NA,NA))
+predict(eUN.lmm, newdata = newd.d2, keep.newdata = TRUE, type = "dynamic")
+newd.d3 <- cbind(newd, Y = c(1,NA,NA))
+predict(eUN.lmm, newdata = newd.d3, keep.newdata = TRUE, type = "dynamic")
+newd.d4 <- cbind(newd, Y = c(1,1,NA))
+predict(eUN.lmm, newdata = newd.d4, keep.newdata = TRUE, type = "dynamic")
 
 ## with Student's t-distribution
 \dontrun{

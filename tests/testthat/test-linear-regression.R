@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: aug 23 2021 (17:51) 
+## Last-Updated: sep  6 2021 (11:36) 
 ##           By: Brice Ozenne
-##     Update #: 162
+##     Update #: 172
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -22,6 +22,7 @@ if(FALSE){
     library(multcomp)
     library(emmeans)
     library(nlme)
+    library(AICcmodavg)
 
     library(LMMstar)
 }
@@ -187,6 +188,7 @@ test_that("single variance parameter (REML)",{
 e.lmm <- lmm(Y ~ X1 + X2 + Gene, repetition = ~time|id, structure = "CS", data = d, trace = 0,
              method = "REML", df = TRUE)
 e.gls <- gls(Y ~ X1 + X2 + Gene, data = d, method = "REML")
+e.lm <- lm(Y ~ X1 + X2 + Gene, data = d)
 
 n.obs <- unname(nobs(e.lmm)[1])
 n.mu <- length(coef(e.lmm, effects = "mean"))
@@ -276,6 +278,13 @@ test <- anova(e.lmm)
 GS <- anova(e.gls, type = "marginal")
 expect_equal(test$mean$statistic,GS[["F-value"]][-1], tol = 1e-6)
 expect_equal(test$mean$p.value,GS[["p-value"]][-1], tol = 1e-6)
+
+## ** predictions
+test <- predict(e.lmm, newdata = d)
+GS <- predict(e.lm, newdata = d, se = TRUE)
+expect_equal(test$estimate,as.double(GS$fit), tol = 1e-7)
+expect_equal(test$se,as.double(GS$se.fit), tol = 1e-7)
+expect_true(all(abs(test$df-GS$df) < 1e-7))
 })
 
 
@@ -398,9 +407,6 @@ vcov(e.lmm, effects = "variance", df = TRUE, p = coef(e.lmm, effects = "all", tr
 capture.output(print(e.lmm))
 capture.output(summary(e.lmm))
 
-## ** predictions
-predict(e.lmm, newdata = d)
-
 ## ** interface to other packages
 glht(e.lmm)
 capture.output(emmeans(e.lmm, specs = ~Gender))
@@ -413,7 +419,10 @@ test_that("multiple variance parameters (REML)",{
 ## ** fit
 e.lmm <- lmm(Y ~ -1 + Gender + (X1 + X2 + Gene):Gender, repetition = ~Gender|id, structure = "UN", data = d, trace = 0,
              method = "REML")
+e.lmm2 <- lmm(Y ~(X1 + X2 + Gene)*Gender, repetition = Gender~time|id, structure = "CS", data = d, trace = 0,
+             method = "REML")
 e.gls <- gls(Y ~ -1 + Gender + (X1 + X2 + Gene):Gender, data = d, weights = varIdent(form=~1|Gender), method = "REML")
+e.gls2 <- gls(Y ~ (X1 + X2 + Gene)*Gender, data = d, weights = varIdent(form=~1|Gender), method = "REML")
 
 n.obs <- unname(nobs(e.lmm)[1])
 n.mu <- length(coef(e.lmm, effects = "mean"))
@@ -427,6 +436,7 @@ expect_equal(coef(e.lmm, effects = "mean"), coef(e.gls), tol = 1e-6)
 
 ## ** logLikelihood
 expect_equal(logLik(e.lmm), as.double(logLik(e.gls)), tol = 1e-6)
+expect_equal(logLik(e.lmm2), as.double(logLik(e.lmm)), tol = 1e-6)
 ## coef(e.lmm, transform.sigma = "log", transform.k = "log")
 ## coef(e.lmm, transform.sigma = "square", transform.k = "square")
 ## coef(e.lmm, transform.sigma = "logsquare", transform.k p= "logsquare")
@@ -486,6 +496,21 @@ expect_equal(test[name.coefF,], rep(sum(d$Gender=="F")-length(name.coefM)+1,leng
 capture.output(summary(e.lmm))
 capture.output(anova(e.lmm))
 ## anova(e.gls,type="marginal")
+
+## ** predictions
+GS <- AICcmodavg::predictSE(e.gls2, newdata = d)
+pp1 <- predict(e.lmm, newdata = d)
+pp2 <- predict(e.lmm2, newdata = d)
+set.seed(10)
+index <- sample.int(NROW(d))
+pp3 <- predict(e.lmm, newdata = d[index,,drop=FALSE])
+expect_equivalent(pp1$estimate,GS$fit, tol = 1e-5)
+expect_equivalent(pp1$se,GS$se.fit, tol = 1e-5)
+expect_equal(pp1,pp2, tol = 1e-5)
+expect_equivalent(pp1[index,,drop=FALSE],pp3, tol = 1e-5) ## different rownames
+## .getUVarCov(e.lmm)
+
+
 })
 
 ## * missing values

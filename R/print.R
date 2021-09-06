@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jul  7 2021 (17:26) 
+## Last-Updated: sep  6 2021 (12:20) 
 ##           By: Brice Ozenne
-##     Update #: 43
+##     Update #: 58
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,34 +26,65 @@ print.lmm <- function(x, ...){
     structure <- x$structure
     logLik <- stats::logLik(x)
     nobs <- stats::nobs(x)
+
+    ## ** prepare
+    M.print <- NULL
     
-    ## type of model
+    ## ** type of model
     if(length(param.rho) == 0){
         if(length(c(param.sigma,param.k))==1){
             cat("  Linear regression \n \n")
         }else{
-            cat("  Linear regression with heterogeneous residual variance \n \n")
+            cat("  Linear regression with heterogeneous residual variance \n")
         }
     }else{
         if(structure=="UN"){
-            cat("  Linear Mixed Model with an unstructured covariance matrix \n \n")
+            cat("  Linear Mixed Model with an unstructured covariance matrix \n")
         }else if(structure=="CS"){
-            cat("  Linear Mixed Model with a compound symmetry covariance matrix \n \n")
+            cat("  Linear Mixed Model with a compound symmetry covariance matrix \n")
         }
     }
 
-    ## dataset
-    cat("data           : ",nobs["obs"], " observations and distributed in ", nobs["cluster"], " clusters \n",  sep = "")
-
-    ## log-likelihood
-    cat("log-likelihood : ", as.double(logLik),"\n",sep="")
-
-    ## parameters
-    cat( "parameters     : ",length(param.mu)," mean (",paste0(names(param.mu),collapse=" "),") \n",
-         "                 ",length(c(param.sigma,param.k))," variance (",paste0(names(c(param.sigma,param.k)),collapse=" "),") \n",sep="")
-    if(length(param.rho)>0){
-        cat("                 ",length(param.rho)," correlation (",paste0(names(param.rho),collapse=" "),") \n",sep="")
+    ## ** outcome/cluster/time
+    txt.var <- "outcome"
+    value.var <- x$outcome$var
+    if(!is.null(x$cluster$var)){
+        txt.var <- c(txt.var,"cluster")
+        value.var <- c(value.var,x$cluster$var)
     }
+    if(!is.null(x$time$var)){
+        txt.var <- c(txt.var,"time")
+        value.var <- c(value.var,x$time$var)
+    }
+    Ctxt.var <- paste(txt.var,collapse="/")
+
+    M.print <- rbind(M.print,
+                     cbind(Ctxt.var,":",paste(value.var, collapse="/")))
+
+    ## ** dataset
+    M.print <- rbind(M.print,
+                     cbind("data",":",paste(nobs["obs"], " observations and distributed in ", nobs["cluster"], " clusters",sep="")))
+
+    ## ** parameters
+    M.print <- rbind(M.print,
+                     cbind("parameters",":",paste(length(param.mu)," mean (",paste0(names(param.mu),collapse=" "),")", sep="")))
+    M.print <- rbind(M.print,
+                     cbind("","",paste(length(c(param.sigma,param.k))," variance (",paste0(names(c(param.sigma,param.k)),collapse=" "),")", sep="")))
+    if(length(param.rho)>0){
+    M.print <- rbind(M.print,
+                     cbind("","",paste(length(param.rho)," correlation (",paste0(names(param.rho),collapse=" "),")", sep="")))
+    }
+
+    ## ** log-likelihood
+    M.print <- rbind(M.print,
+                     cbind("log-likelihood",":",as.double(logLik)))
+
+    ## ** print
+    df.print <- as.data.frame(M.print)
+    names(df.print) <- NULL
+    print(df.print, row.names = FALSE, right = FALSE)
+    return(NULL)
+
 }
 
 

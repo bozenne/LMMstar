@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: aug 23 2021 (17:59) 
+## Last-Updated: sep  6 2021 (11:27) 
 ##           By: Brice Ozenne
-##     Update #: 79
+##     Update #: 84
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -141,6 +141,20 @@ expect_equal(eCS.lmm_anova$correlation$df.denom, c(14.7493), tol = 1e-1)
 
 ## ** getVarCov
 getVarCov(eCS.lmm)
+
+## ** prediction
+test <- predict(eCS.lmm, newdata = dL)
+index <- sample.int(NROW(dL))
+test2 <- predict(eCS.lmm, newdata = dL[index,,drop=FALSE])
+GS <- AICcmodavg::predictSE(eCS.gls, newdata = dL)
+expect_equivalent(test$estimate,GS$fit, tol = 1e-7)
+expect_equivalent(test$se,GS$se.fit, tol = 1e-7)
+expect_equivalent(test[index,,drop=FALSE],test2, tol = 1e-7)
+
+## ** ICC
+## eCS0.lmm <- lmm(Y ~ 1, repetition = ~visit|id, structure = "CS", data = dL[dL$visit %in% c("Y1","Y2"),], trace = 0, method = "REML")
+## psych::ICC(dW[,c("Y1","Y2")])$lme
+## confint(eCS0.lmm, effect = "correlation")
 })
 
 ## * Unstructed covariance matrix

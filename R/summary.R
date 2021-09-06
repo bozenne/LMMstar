@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: aug 23 2021 (15:20) 
+## Last-Updated: sep  6 2021 (11:44) 
 ##           By: Brice Ozenne
-##     Update #: 316
+##     Update #: 320
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -40,6 +40,7 @@
 summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, columns = NULL,
                         hide.fit = FALSE, hide.data = FALSE, hide.cor = FALSE, hide.var = TRUE, hide.sd = FALSE, hide.mean = FALSE, ...){
 
+    ## ** normalize user input
     param.mu <- object$param$value[object$param$type=="mu"]
     param.sigma <- object$param$value[object$param$type=="sigma"]
     param.k <- object$param$value[object$param$type=="k"]
@@ -55,6 +56,10 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, columns =
     Omega <- nlme::getVarCov(object, simplifies = FALSE)
     df <- !is.null(object$df)
     options <- LMMstar.options()
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
 
     if(!is.null(columns)){
         columns  <- match.arg(columns, c("estimate","se","statistic","df","lower","upper","null","p.value",""), several.ok = TRUE)

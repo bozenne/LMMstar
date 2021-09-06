@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: aug 11 2021 (15:31) 
+## Last-Updated: sep  4 2021 (12:54) 
 ##           By: Brice Ozenne
-##     Update #: 178
+##     Update #: 180
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -217,8 +217,6 @@ residuals.lmm <- function(object, type = "response", format = "long",
             ## B=chol(M) gives B'B = M 
             sqrtPrecision$normalized <- lapply(precision,function(iP){t(chol(iP))})
         }
-        if("normalized" %in% type.residual){
-        }
         
         if(!is.null(data) || !is.null(p)){
             fitted <- X %*% beta
@@ -257,6 +255,12 @@ residuals.lmm <- function(object, type = "response", format = "long",
                         resnorm <- as.double(iResidual %*% sqrtPrecision$normalized[[index.variance[iId]]])
                         M.res[iIndex,"normalized"] <- resnorm[order(iOrder)]
                     }
+                    if("normalized2" %in% type.residual){
+                        iX <- X[iIndex[iOrder],,drop=FALSE]
+                        iQ <- iX %*% tX.precision.X.M1 %*% t(iX)
+                        resnorm <- as.double(iResidual %*% t(chol(solve(Omega[[index.variance[iId]]] - iQ))))
+                        M.res[iIndex,"normalized2"] <- resnorm[order(iOrder)]
+                    }
                     if("scaled" %in% type.residual){
                         M.res[iIndex[iOrder][1],"scaled"] <- iResidual[1]/attr(Omega[[index.variance[iId]]],"sd")[1]
                         if(iN.time>1){
@@ -270,12 +274,6 @@ residuals.lmm <- function(object, type = "response", format = "long",
                                 denom <- iVar - as.double(iOmega_lk %*% iPrecision_kk %*% iOmega_kl)
                                 M.res[iIndex[iOrder][iTime],"scaled"] <- num/sqrt(denom) ## issue in term of dimension
                             }
-                        }
-                        if("normalized2" %in% type.residual){
-                            iX <- X[iIndex[iOrder],,drop=FALSE]
-                            iQ <- iX %*% tX.precision.X.M1 %*% t(iX)
-                            resnorm <- as.double(iResidual %*% t(chol(solve(Omega[[index.variance[iId]]] - iQ))))
-                            M.res[iIndex,"normalized2"] <- resnorm[order(iOrder)]
                         }
                     }
                 }

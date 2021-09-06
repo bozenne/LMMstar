@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: aug 23 2021 (17:02) 
+## Last-Updated: sep  6 2021 (15:28) 
 ##           By: Brice Ozenne
-##     Update #: 513
+##     Update #: 514
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -531,7 +531,7 @@ print.anova_lmm <- function(x, level = 0.95, method = "single-step", print.null 
             options <- LMMstar.options()
 
             cat("\n - P-values and confidence interval (adjusted for multiplicity within each global test) \n", sep="")
-            print(do.call(rbind,unname(ci[[iType]]))[,options$columns.confint])
+            print(do.call(rbind,unname(ci[[iType]]))[,options$columns.anova])
         }
         cat("\n")
     }

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: aug 11 2021 (14:59) 
+## Last-Updated: sep  6 2021 (12:33) 
 ##           By: Brice Ozenne
-##     Update #: 88
+##     Update #: 136
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -32,7 +32,6 @@
 ##' @return A list where each element contains a residual variance-covariance matrix.
 ##'
 ##' @examples
-##' if(require(nlme)){
 ##' ## simulate data in the long format
 ##' set.seed(10)
 ##' dL <- sampleRem(100, n.times = 3, format = "long")
@@ -43,7 +42,6 @@
 ##' ## extract residuals variance covariance matrix
 ##' getVarCov(eUN.lmm)
 ##' getVarCov(eUN.lmm, individual = c("1","5"))
-##' }
 
 ## * getVarCov.lmm
 ##' @rdname getVarCov
@@ -63,7 +61,11 @@ getVarCov.lmm <- function(obj, individual = NULL, p = NULL, type.object = c("lmm
     type.object <- match.arg(type.object, c("lmm","gls"))
     if(!is.null(strata)){
         strata <- match.arg(strata, object$strata$levels, several.ok = TRUE)
+    }else{
+        strata <- object$strata$levels
     }
+    n.strata <- length(strata)
+
     if(!is.null(individual)){
         if(is.character(object$design$cluster$levels)){
             individual <- match.arg(as.character(individual), object$design$cluster$levels, several.ok = TRUE)
@@ -77,31 +79,28 @@ getVarCov.lmm <- function(obj, individual = NULL, p = NULL, type.object = c("lmm
         if(!is.null(p)){
             Omega <- .calc_Omega(object = object$design$X.var,
                                  param = p,
-                                 keep.interim = FALSE)
+                                 keep.interim = TRUE)
         }else{
             Omega <- object$Omega
         }
         
         if(is.null(individual)){
-            Omega.strata <- object$design$X.var$strata
-            Omega.time <- object$design$X.var$index.time
-            
-            n.timePattern <- unlist(lapply(Omega.time, length))
-            index.fulltime <- which(n.timePattern==max(n.timePattern))
-            if(!is.null(strata)){
-                index.strata <- which(Omega.strata %in% strata)
-                out <- stats::setNames(Omega,Omega.strata)[intersect(index.fulltime,index.strata)]
+            if(object$strata$n==1){
+                out <- stats::setNames(list(.getUVarCov(object, Omega = Omega)),object$strata$levels)
             }else{
-                out <- stats::setNames(Omega,Omega.strata)[index.fulltime]
+                out <- stats::setNames(vector(mode = "list", length = n.strata),strata)
+                for(iStrata in 1:n.strata){ ## iStrata <- 1
+                    out[[iStrata]] <- .getUVarCov(object, Omega = Omega[object$design$X.var$strata==strata[iStrata]])
+                }
             }
         }else{
             out <- Omega[stats::setNames(object$design$X.var$cluster,object$design$cluster$levels)[individual]]
-        }
-        for(iO in 1:length(out)){
-            dimnames(out[[iO]]) <- list(object$time$levels[attr(out[[iO]],"time")],object$time$levels[attr(out[[iO]],"time")])
-            attr(out[[iO]],"time") <- NULL
-            attr(out[[iO]],"sd") <- NULL
-            attr(out[[iO]],"cor") <- NULL
+            for(iO in 1:length(out)){
+                dimnames(out[[iO]]) <- list(object$time$levels[attr(out[[iO]],"time")],object$time$levels[attr(out[[iO]],"time")])
+                attr(out[[iO]],"time") <- NULL
+                attr(out[[iO]],"sd") <- NULL
+                attr(out[[iO]],"cor") <- NULL
+            }
         }
         if(is.list(out) && length(out)==1 && simplifies){
             return(out[[1]])
@@ -135,5 +134,51 @@ getVarCov.lmm <- function(obj, individual = NULL, p = NULL, type.object = c("lmm
         
 }
 
+## * .getUVarPattern
+## get residual variance covariance matrix at all timepoints
+.getUVarCov <- function(object, Omega){
+    ntime <- object$time$n
+    time.level <- object$time$level
+    time.n <- object$time$n
+    index.time <- object$design$X.var$index.time[names(Omega)] ## subset when strata
+    varPattern.ntime <- sapply(index.time,length)
+    if(any(varPattern.ntime==ntime)){ ## one covariance structure cover all times
+        out <- Omega[[which(varPattern.ntime==ntime)]]
+        dimnames(out) <- list(time.level[attr(out,"time")],time.level[attr(out,"time")])
+        attr(out,"time") <- NULL
+        attr(out,"sd") <- NULL
+        attr(out,"cor") <- NULL
+    }else{
+        index.maxtime <- which(varPattern.ntime==max(varPattern.ntime))
+        M.patterns <- matrix(0, nrow = time.n, ncol = length(index.maxtime),
+                             dimnames = list(time.level, names(index.maxtime)))
+        iMindex <- 1
+        for(iPattern in index.maxtime){ ## iPattern <- 2
+            M.patterns[index.time[[iPattern]],iMindex] <- 1
+            iMindex <- iMindex+1
+        }
+        n.UvarPattern <- length(index.time)
+        if(any(rowSums(M.patterns)==0)){ ## all covariance structure with max timepoints do not cover all times - add remaining structures one by one if they do not overlap previous timepoints
+            for(iPattern in setdiff(1:n.UvarPattern,index.maxtime)){ ## iPattern <- 1
+                if(all(rowSums(M.patterns)[index.time[[iPattern]]]==0)){
+                    M.patterns <- cbind(M.patterns,NA)
+                    M.patterns[index.time[[iPattern]],iMindex] <- 1
+                    colnames(M.patterns)[iMindex] <- names(index.time)[iPattern]
+                    iMindex <- iMindex+1
+                }
+            }
+            if(any(rowSums(M.patterns)==0)){
+                stop("Something went wrong when trying to identify the residual variance-covariance matrix at all timepoints. \n")
+            }
+
+        }
+
+        out <- as.matrix(Matrix::bdiag(Omega[colnames(M.patterns)]))
+        dimnames(out) <- list(time.level[sapply(Omega[colnames(M.patterns)], attr, "time")],
+                              time.level[sapply(Omega[colnames(M.patterns)], attr, "time")])
+
+    }
+    return(out)
+}
 ##----------------------------------------------------------------------
 ### getVarCov.R ends here
