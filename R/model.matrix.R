@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Jul  8 2021 (15:12) 
+## Last-Updated: sep  7 2021 (17:07) 
 ##           By: Brice Ozenne
-##     Update #: 892
+##     Update #: 895
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -371,6 +371,23 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
         return(iOut)
     }),Upattern)
 
+    ## ** param
+    skeleton.param <- list(mu = colnames(X.mean), sigma = param.sigma, k = param.k, rho = param.rho,
+                           strata.mu = strata.mu, strata.sigma = strata.sigma, strata.k = strata.k, strata.rho = strata.rho,
+                           time.k = time.k, time.rho = time.rho,
+                           pair.meanvarcoef = pair.meanvarcoef,
+                           pair.varcoef = pair.varcoef)
+    name.param <- c(skeleton.param$mu,skeleton.param$sigma,skeleton.param$k,skeleton.param$rho)
+    skeleton.param$type <- setNames(c(rep("mu",length(skeleton.param$mu)),
+                                      rep("sigma",length(skeleton.param$sigma)),
+                                      rep("k",length(skeleton.param$k)),
+                                      rep("rho",length(skeleton.param$rho))),
+                                    name.param)
+    skeleton.param$strata <- setNames(c(skeleton.param$strata.mu,
+                                        skeleton.param$strata.sigma,
+                                        skeleton.param$strata.k,
+                                        skeleton.param$strata.rho), name.param)
+
     ## ** gather and export
     out <- list(X.mean = X.mean,
                 X.var = list(var = X.Upattern,
@@ -387,11 +404,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
                 index.cluster = index.cluster,
                 index.time = index.time,
                 cluster = list(n = n.cluster, levels = U.cluster, nobs = table(index.cluster)),
-                param = list(mu = colnames(X.mean), sigma = param.sigma, k = param.k, rho = param.rho,
-                             strata.mu = strata.mu, strata.sigma = strata.sigma, strata.k = strata.k, strata.rho = strata.rho,
-                             time.k = time.k, time.rho = time.rho,
-                             pair.meanvarcoef = pair.meanvarcoef,
-                             pair.varcoef = pair.varcoef)
+                param = skeleton.param
                 )
     return(out)
 }

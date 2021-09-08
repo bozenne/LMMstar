@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: aug 23 2021 (16:15) 
+## Last-Updated: sep  7 2021 (17:05) 
 ##           By: Brice Ozenne
-##     Update #: 868
+##     Update #: 870
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -110,7 +110,6 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
             design <- x$design
         }
 
-        newparam <- x$param
         if(!is.null(p)){
             if(any(duplicated(names(p)))){
                 stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
@@ -118,10 +117,12 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
             if(any(names(x$param$type) %in% names(p) == FALSE)){
                 stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(x$param$type)[names(x$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
             }
-            newparam$value <- p[names(newparam$value)]
+            p <- p[names(x$param$value)]
+        }else{
+            p <- x$param$value
         }
      
-        out <- .moments.lmm(param = newparam, design = design, time = x$time, method.fit = x$method.fit, type.information = type.information,
+        out <- .moments.lmm(value = p, design = design, time = x$time, method.fit = x$method.fit, type.information = type.information,
                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                             logLik = FALSE, score = FALSE, information = TRUE, vcov = FALSE, df = FALSE, indiv = indiv, effects = effects, robust = robust,
                             trace = FALSE, precompute.moments = test.precompute, transform.names = transform.names)$information

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: jul  7 2021 (17:26) 
+## Last-Updated: sep  7 2021 (17:08) 
 ##           By: Brice Ozenne
-##     Update #: 212
+##     Update #: 214
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -74,7 +74,6 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
                 design <- object$design
             }
           
-            newparam <- object$param
             if(!is.null(p)){
                 if(any(duplicated(names(p)))){
                     stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
@@ -82,9 +81,11 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
                 if(any(names(object$param$type) %in% names(p) == FALSE)){
                     stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param$type)[names(object$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
                 }
-                newparam$value <- p[names(newparam$value)]
+                p <- p[names(param$value)]
+            }else{
+                p <- object$param$value
             }
-            out <- .moments.lmm(param = newparam, design = design, time = object$time, method.fit = object$method.fit,
+            out <- .moments.lmm(value = p, design = design, time = object$time, method.fit = object$method.fit,
                                 transform.sigma = "none", transform.k = "none", transform.rho = "none",
                                 logLik = TRUE, score = FALSE, information = FALSE, vcov = FALSE, df = FALSE, indiv = indiv, 
                                 trace = FALSE, precompute.moments = test.precompute)$logLik

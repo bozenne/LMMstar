@@ -17,6 +17,7 @@ Update or select global options for the LMMstar package.
 \details{
 The options are: \itemize{
 \item backtransform.confint [logical]: should variance/covariance/correlation estimates be back-transformed when they are transformed on the log or atanh scale. Used by \code{confint}.
+\item columns.anova [character vector]: columns to ouput when using \code{anova} with argument \code{ci=TRUE}.
 \item columns.confint [character vector]: columns to ouput when using \code{confint}.
 \item columns.summary [character vector]: columns to ouput when displaying the model coefficients using \code{summary}.
 \item df [logical]: should approximate degrees of freedom be computed for Wald and F-tests. Used by \code{lmm}, \code{anova}, \code{predict}, and \code{confint}.

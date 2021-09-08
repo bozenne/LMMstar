@@ -63,5 +63,4 @@ eCS.lmm.bis <- lmm(Y ~ X1 + X2 + X5, structure = CS(~visit|id), data = dL)
 ## output
 eCS.lmm
 summary(eCS.lmm)
-summary(eCS.lmm, ci = TRUE)
 }

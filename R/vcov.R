@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: aug 23 2021 (16:18) 
+## Last-Updated: sep  7 2021 (17:06) 
 ##           By: Brice Ozenne
-##     Update #: 446
+##     Update #: 447
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -128,7 +128,6 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, type.
                 design <- object$design
             }
 
-            newparam <- object$param
             if(!is.null(p)){
                 if(any(duplicated(names(p)))){
                     stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
@@ -136,10 +135,12 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, type.
                 if(any(names(object$param$type) %in% names(p) == FALSE)){
                     stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param$type)[names(object$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
                 }
-                newparam$value <- p[names(newparam$value)]
+                param$value <- p[names(param$value)]
+            }else{
+                p <- object$param$value
             }
 
-            outMoments <- .moments.lmm(param = newparam, design = design, time = object$time, method.fit = object$method.fit, type.information = type.information,
+            outMoments <- .moments.lmm(value = p, design = design, time = object$time, method.fit = object$method.fit, type.information = type.information,
                                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                        logLik = FALSE, score = FALSE, information = FALSE, vcov = TRUE, df = df, indiv = FALSE, effects = effects, robust = robust,
                                        trace = FALSE, precompute.moments = test.precompute, method.numDeriv = options$method.numDeriv, transform.names = transform.names)

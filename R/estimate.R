@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: Jun 21 2021 (22:00) 
+## Last-Updated: sep  8 2021 (13:09) 
 ##           By: Brice Ozenne
-##     Update #: 51
+##     Update #: 117
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,108 +15,153 @@
 ## 
 ### Code:
 
-.estimate <- function(param, design, time, method.fit, type.information,
+.estimate <- function(design, time, method.fit, type.information,
                       transform.sigma, transform.k, transform.rho,
-                      precompute.moments, init, n.iter, tol){
+                      precompute.moments, init, n.iter, tol.score, tol.param, trace){
 
    
     if(!precompute.moments){
         stop("Only implemented when option \'precompute.moments\' is TRUE")
     }
+    options <- LMMstar.options()
+    if(is.null(n.iter)){
+        n.iter <- options$param.optimizer["n.iter"]
+    }
+    if(is.null(tol.score)){
+        tol.score <- options$param.optimizer["tol.score"]
+    }
+    if(is.null(tol.param)){
+        tol.param <- options$param.optimizer["tol.param"]
+    }
+    if(is.null(trace)){
+        trace <- FALSE
+    }
 
     ## ** prepare
-    param.name <- names(param$type)
+    param.mu <- design$param$mu
+    param.sigma <- design$param$sigma
+    param.k <- design$param$k
+    param.rho <- design$param$rho
+    param.Omega <- c(param.sigma,param.k,param.rho)
+    param.name <- c(param.mu,param.Omega)
     n.param <- length(param.name)
-    param.mu <- param.name[param$type == "mu"]
-    param.Omega <- param.name[param$type != "mu"]
     pattern <- design$X.var$pattern
     precompute.XY <- design$precompute.XY
     precompute.XX <- design$precompute.XX$pattern
     key.XX <- design$precompute.XX$key
     
     ## ** intialization
-    iEstimate <- stats::setNames(rep(NA, n.param), param.name)
     if(is.null(init)){
+        param.value <- setNames(rep(NA, n.param),param.name)
+
         start.OmegaM1 <- stats::setNames(lapply(pattern, function(iPattern){
             diag(1, nrow = length(design$X.var$index.time[[iPattern]]), ncol = length(design$X.var$index.time[[iPattern]]))
         }), pattern)
-        iEstimate[param.mu] <- .estimateGLS(OmegaM1 = start.OmegaM1, pattern = pattern, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX)
-        iResiduals.long <- design$Y - design$X.mean %*% iEstimate[param.mu]
+        param.value[param.mu] <- .estimateGLS(OmegaM1 = start.OmegaM1, pattern = pattern, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX)
+        iResiduals.long <- design$Y - design$X.mean %*% param.value[param.mu]
         iResiduals.wide <- reshape2::dcast(data = data.frame(residuals = iResiduals.long, cluster = design$index.cluster, time = design$index.time),
                                            formula = cluster~time, value.var = "residuals")
-        iRescor <- mean(stats::cor(iResiduals.wide[,-1,drop=FALSE], use = "pairwise"))
+        iM.rescor <- stats::cor(iResiduals.wide[,-1,drop=FALSE], use = "pairwise")
+        diag(iM.rescor) <- NA
+        iRescor <- mean(iM.rescor, na.rm = TRUE)
         iResvar <- mean(apply(iResiduals.wide[,-1,drop=FALSE], MARGIN = 2, FUN = stats::var, na.rm = TRUE))
-        
-        if(transform.sigma %in% c("none")){
-            iEstimate[param$type=="sigma"] <- sqrt(iResvar)
-        }else if(transform.sigma %in% c("square")){
-            iEstimate[param$type=="sigma"] <- iResvar
-        }else if(transform.sigma %in% c("log")){
-            iEstimate[param$type=="sigma"] <- log(sqrt(iResvar))
-        }else if(transform.sigma %in% c("logsquare")){
-            iEstimate[param$type=="sigma"] <- log(iResvar)
-        }else{
-            stop("No automatic initialization implemented for transform.sigma=",transform.sigma,".\n")
+
+        param.value[param.sigma] <- sqrt(iResvar)
+
+        if(length(param.k)>0){
+            param.value[param.k] <- 1
         }
 
-        if(transform.k %in% c("none","sd")){
-            iEstimate[param$type=="k"] <- 1
-        }else if(transform.k %in% c("square","var")){
-            iEstimate[param$type=="k"] <- 1
-        }else if(transform.k %in% c("log","logsd")){
-            iEstimate[param$type=="k"] <- 0
-        }else if(transform.k %in% c("logsquare","logvar")){
-            iEstimate[param$type=="k"] <- 0
-        }else{
-            stop("No automatic initialization implemented for transform.sigma=",transform.sigma,".\n")
+        if(length(param.rho)>0){
+            param.value[param.rho] <- iRescor
         }
 
-        if(transform.rho %in% c("none")){
-            iEstimate[param$type=="rho"] <- iRescor
-        }else if(transform.rho %in% c("atanh")){
-            iEstimate[param$type=="rho"] <- atanh(iRescor)
-        }else{
-            stop("No automatic initialization implemented for transform.rho=",transform.rho,".\n")
-        }
-
+    }else{
+        param.value <- init[param.name]
     }
     ## microbenchmark(test =     .estimateGLS(OmegaM1 = start.OmegaM1, pattern = pattern, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX),
     ##                lm.fit = lm.fit(y = ncgsL$cholest[!is.na(ncgsL$cholest)], x = model.matrix(~time+highdose.time, data=ncgsL)[!is.na(ncgsL$cholest),]),
     ##                lm = lm(cholest~time+highdose.time, data=ncgsL)
     ##                )
+
+
+    if(trace>1){
+        cat("\nInitialization:\n")
+        print(param.value)
+    }
+    
     ## ** loop
-    iParam <- param
     cv <- FALSE
-    print(iEstimate)
-        
+    param.valueM1 <- NULL
+    if(trace>1){
+        cat("\nLoop:\n")
+    }
+
     for(iIter in 1:n.iter){ ## iIter <- 1
+        param.valueM1 <- param.value
         
         ## *** moments
-        iParam$value <- iEstimate
-        outMoments <- .moments.lmm(param = iParam, design = design, time = time, method.fit = method.fit, type.information = type.information,
+        outMoments <- .moments.lmm(value = param.value, design = design, time = time, method.fit = method.fit, type.information = "expected",
                                    transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                    logLik = FALSE, score = TRUE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("variance","correlation"), robust = FALSE,
                                    trace = FALSE, precompute.moments = TRUE, transform.names = FALSE)
 
-        if(all(abs(outMoments$score)<tol)){
+        if(all(abs(outMoments$score)<tol.score) && (iIter==1 || all(abs(param.valueM1 - param.value)<tol.param))){
             cv <- TRUE
-            next
+            break
         }
-        
+
         ## *** variance estimate
-        iEstimate[param.Omega] <- .estimateOmega(param = iEstimate[param.Omega], score = outMoments$score, information = outMoments$information)
+        param.newvalue.trans <- outMoments$reparametrize$p + as.double(outMoments$score %*% solve(outMoments$information))
+        param.value[param.Omega] <- .reparametrize(param.newvalue.trans,
+                                                   type = design$param$type[names(param.newvalue.trans)],
+                                                   strata = design$param$strata[names(param.newvalue.trans)],
+                                                   time.levels = time$levels, time.k = design$param$time.k, time.rho = design$param$time.rho,
+                                                   Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
+                                                   transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)$p
+        
 
         ## *** mean estimate
-        iOmega <- .calc_Omega(object = design$X.var, param = iEstimate, keep.interim = TRUE)
-        iEstimate[param.mu] <- .estimateGLS(OmegaM1 = stats::setNames(lapply(iOmega, solve), names(iOmega)), pattern = pattern, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX)
+        iOmega <- .calc_Omega(object = design$X.var, param = param.value, keep.interim = TRUE)
+        param.value[param.mu] <- .estimateGLS(OmegaM1 = stats::setNames(lapply(iOmega, solve), names(iOmega)),
+                                              pattern = pattern, precompute.XY = precompute.XY, precompute.XX = precompute.XX,
+                                              key.XX = key.XX)
 
-        print(rbind(estimate = iEstimate,
-                    score = c(rep(NA, length(param.mu)),outMoments$score)))
+        
+        if(trace==1){
+            cat("*")
+        }else if(trace>1){
+            M.print <- rbind(estimate = param.value,
+                             diff = param.value - param.valueM1,
+                             score = c(rep(0, length(param.mu)),outMoments$score))
+            rownames(M.print) <- paste0(rownames(M.print),".",iIter)
+            print(M.print)
+        }
         
     }
 
+    if(trace==1){
+        cat("\n")
+    }else if(trace>1){
+        if(cv){
+            if(iIter==1){
+                cat("Convergence after ",iIter," iteration: max score=",max(abs(outMoments$score)),"\n", sep = "")
+            }else{
+                cat("Convergence after ",iIter," iterations: max score=",max(abs(outMoments$score))," | max change in coefficient=",max(abs(param.valueM1 - param.value)),"\n", sep = "")
+            }
+        }else{
+            if(iIter==1){
+                cat("No convergence after ",iIter," iteration: max score=",max(abs(outMoments$score)),"\n")
+            }else{
+                cat("No convergence after ",iIter," iterations: max score=",max(abs(outMoments$score))," | max change in coefficient= ",max(abs(param.valueM1 - param.value)),"\n", sep = "")
+            }
+        }
+    }
+
     ## ** export
-    return(list(estimate = iEstimate,
+    return(list(estimate = param.value,
+                previous.estimate = param.valueM1,
+                score = outMoments$score,
                 n.iter = iIter,
                 cv = cv))
 }
@@ -140,9 +185,6 @@
     return(stats::setNames(as.double(out), name.param))
 }
 
-.estimateOmega <- function(param, score, information){
-    return(param + score %*% solve(information))
-}
 
 ##----------------------------------------------------------------------
 ### estimate.R ends here

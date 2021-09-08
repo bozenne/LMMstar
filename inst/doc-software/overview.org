@@ -144,13 +144,23 @@ eUN.lmm
 #+END_SRC
 
 #+RESULTS:
-:   Linear Mixed Model with an unstructured covariance matrix 
-:  
-: data           : 78 observations and distributed in 20 clusters 
-: log-likelihood : -216.3189
-: parameters     : 5 mean ((Intercept) timeB1_week timeA1_week timeA3_months glucagon) 
-:                  4 variance (sigma k.B1_week k.A1_week k.A3_months) 
-:                  6 correlation (cor(B1_week,B3_months) cor(A1_week,B3_months) cor(A3_months,B3_months) cor(A1_week,B1_week) cor(A3_months,B1_week) cor(A3_months,A1_week))
+#+begin_example
+  Linear Mixed Model with an unstructured covariance matrix 
+                       
+ outcome/cluster/time :
+ data                 :
+ parameters           :
+                       
+                       
+ log-likelihood       :
+                                                                                                                                                          
+ weight/id/time                                                                                                                                           
+ 78 observations and distributed in 20 clusters                                                                                                           
+ 5 mean ((Intercept) timeB1_week timeA1_week timeA3_months glucagon)                                                                                      
+ 4 variance (sigma k.B1_week k.A1_week k.A3_months)                                                                                                       
+ 6 correlation (cor(B1_week,B3_months) cor(A1_week,B3_months) cor(A3_months,B3_months) cor(A1_week,B1_week) cor(A3_months,B1_week) cor(A3_months,A1_week))
+ -216.318937004502
+#+end_example
 
 _Note:_ the calculation of the degrees of freedom, especially when
 using the observed information can be quite slow. Setting the
@@ -435,8 +445,8 @@ anova(eUN.lmm, effects = c("timeA1_week-timeB1_week=0"), ci = TRUE)
 :   43.14145      1 17.87461 3.723244e-06
 : 
 :  - P-values and confidence interval (adjusted for multiplicity within each global test) 
-:                            estimate     lower     upper
-: timeA1_week - timeB1_week -3.905721 -5.155641 -2.655801
+:                            estimate     lower     upper      p.value
+: timeA1_week - timeB1_week -3.905721 -5.155641 -2.655801 3.723244e-06
 
 When testing transformed variance or correlation parameters,
 parentheses (as in =log(k).B1_week=) cause problem for recognizing
@@ -603,6 +613,8 @@ table(treat = gastricbypassL$treat2, time = gastricbypassL$time, group = gastric
 
 #+RESULTS:
 #+begin_example
+Fejl i pdf(file = "./figures/gg-baseAdj.pdf") : 
+  kan ikke åbne fil './figures/gg-baseAdj.pdf'
 , , group = 1
 
      time
@@ -769,9 +781,9 @@ summary(epairs.group, by = NULL, adjust = "mvt", infer = TRUE)
 #+RESULTS:
 :  contrast time      estimate    SE   df lower.CL upper.CL t.ratio p.value
 :  2 - 1    B3_months     4.83 10.10 18.0    -18.0     27.6   0.478  0.7496
-:  2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0   0.618  0.6480
-:  2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.9   0.471  0.7554
-:  2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.7   0.797  0.5285
+:  2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0   0.618  0.6482
+:  2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.9   0.471  0.7550
+:  2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.7   0.797  0.5281
 : 
 : Confidence level used: 0.95 
 : Conf-level adjustment: mvt method for 4 estimates 
@@ -844,25 +856,50 @@ X.12 %*% coef(eCS.lmm)
 : 41 114.8740
 : 61 102.3176
 
-- *dynamic predictions* that are also conditional on the outcome
-  measured at other timepoints. Consider 
+\clearpage
+
+- *dynamic predictions* that are conditional on the covariates and the
+  outcome measured at other timepoints. Consider two subjects for who
+  we would like to predict the weight 1 week before the intervention
+  based on the weight 3 months before the intervention:
   
 #+ATTR_LATEX: :options otherkeywords={}, deletekeywords={}
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-newd <- rbind(data.frame(id = 1, time = "B3_months", weight = coef(eCS.lmm)["(Intercept)"], glucagon = 0),
-              data.frame(id = 1, time = "B1_week", weight = NA, glucagon = news[1,"glucagon"]),
-              data.frame(id = 2, time = "B3_months", weight = 130, glucagon = 0),
-              data.frame(id = 2, time = "B1_week", weight = NA, glucagon = news[1,"glucagon"]))
+newd <- rbind(
+  data.frame(id = 1, time = "B3_months", weight = coef(eCS.lmm)["(Intercept)"], glucagon = 0),
+  data.frame(id = 1, time = "B1_week", weight = NA, glucagon = 0),
+  data.frame(id = 2, time = "B3_months", weight = 100, glucagon = 0),
+  data.frame(id = 2, time = "B1_week", weight = NA, glucagon = 0)
+)
 predict(eCS.lmm, newdata = newd, type = "dynamic", keep.newdata = TRUE)
 #+END_SRC
 
 #+RESULTS:
-:   id      time   weight glucagon estimate       se  df    lower    upper
-: 1  1 B3_months 129.3691        0       NA       NA  NA       NA       NA
-: 2  1   B1_week       NA        0 121.7496 1.046825 Inf 119.6979 123.8013
-: 3  2 B3_months 130.0000        0       NA       NA  NA       NA       NA
-: 4  2   B1_week       NA        0 122.3615 1.053642 Inf 120.2964 124.4266
+:   id      time   weight glucagon  estimate       se  df     lower    upper
+: 1  1 B3_months 129.3691        0        NA       NA  NA        NA       NA
+: 2  1   B1_week       NA        0 121.74961 1.046825 Inf 119.69787 123.8013
+: 3  2 B3_months 100.0000        0        NA       NA  NA        NA       NA
+: 4  2   B1_week       NA        0  93.26352 5.603475 Inf  82.28091 104.2461
   
+The first subjects has the average weight while the second has a much
+  lower weight. The predicted weight for the first subject is then the
+  average weight one week before while it is lower for the second
+  subject due to the positive correlation over time. The predicted
+  value is computed using the formula of the conditional mean for a
+  Gaussian vector:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+mu1 <- coef(eCS.lmm)[1]
+mu2 <- sum(coef(eCS.lmm)[1:2])
+Omega_11 <- getVarCov(eCS.lmm)["B3_months","B3_months"]
+Omega_21 <- getVarCov(eCS.lmm)["B1_week","B3_months"]
+mu2 + Omega_21 * (100 - mu1) / Omega_11
+#+END_SRC
+
+#+RESULTS:
+: (Intercept) 
+:    93.26352
+
+
 \clearpage
 
 * Data generation
@@ -954,27 +991,22 @@ attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
- [1] emmeans_1.6.3     LMMstar_0.2.6     nlme_3.1-152      spelling_2.2      roxygen2_7.1.1   
- [6] butils.base_1.2   Rcpp_1.0.7        data.table_1.14.0 devtools_2.4.2    usethis_2.0.1    
+[1] emmeans_1.6.3 LMMstar_0.2.6 nlme_3.1-152  ggplot2_3.3.5
 
 loaded via a namespace (and not attached):
- [1] mvtnorm_1.1-2       lattice_0.20-44     prettyunits_1.1.1   ps_1.6.0           
- [5] zoo_1.8-9           digest_0.6.27       rprojroot_2.0.2     utf8_1.2.2         
- [9] plyr_1.8.6          R6_2.5.1            coda_0.19-4         ggplot2_3.3.5      
-[13] pillar_1.6.2        rlang_0.4.11        multcomp_1.4-17     callr_3.7.0        
-[17] Matrix_1.3-4        labeling_0.4.2      desc_1.3.0          splines_4.1.1      
-[21] stringr_1.4.0       munsell_0.5.0       numDeriv_2016.8-1.1 compiler_4.1.1     
-[25] xfun_0.25           pkgconfig_2.0.3     pkgbuild_1.2.0      tidyselect_1.1.1   
-[29] tibble_3.1.4        codetools_0.2-18    fansi_0.5.0         crayon_1.4.1       
-[33] dplyr_1.0.7         withr_2.4.2         MASS_7.3-54         grid_4.1.1         
-[37] xtable_1.8-4        gtable_0.3.0        lifecycle_1.0.0     magrittr_2.0.1     
-[41] scales_1.1.1        estimability_1.3    cli_3.0.1           stringi_1.7.4      
-[45] cachem_1.0.6        farver_2.1.0        reshape2_1.4.4      fs_1.5.0           
-[49] remotes_2.4.0       testthat_3.0.4      xml2_1.3.2          ellipsis_0.3.2     
-[53] vctrs_0.3.8         generics_0.1.0      sandwich_3.0-1      TH.data_1.0-10     
-[57] lava_1.6.9          tools_4.1.1         glue_1.4.2          purrr_0.3.4        
-[61] processx_3.5.2      pkgload_1.2.1       fastmap_1.1.0       survival_3.2-11    
-[65] colorspace_2.0-2    sessioninfo_1.1.1   memoise_2.0.0       knitr_1.33
+ [1] Rcpp_1.0.7          plyr_1.8.6          pillar_1.6.2        compiler_4.1.1     
+ [5] tools_4.1.1         digest_0.6.27       lifecycle_1.0.0     tibble_3.1.4       
+ [9] gtable_0.3.0        lattice_0.20-44     pkgconfig_2.0.3     rlang_0.4.11       
+[13] Matrix_1.3-4        mvtnorm_1.1-2       coda_0.19-4         stringr_1.4.0      
+[17] withr_2.4.2         dplyr_1.0.7         generics_0.1.0      vctrs_0.3.8        
+[21] grid_4.1.1          tidyselect_1.1.1    glue_1.4.2          R6_2.5.1           
+[25] fansi_0.5.0         survival_3.2-11     multcomp_1.4-17     lava_1.6.9         
+[29] TH.data_1.0-10      farver_2.1.0        reshape2_1.4.4      purrr_0.3.4        
+[33] magrittr_2.0.1      scales_1.1.1        codetools_0.2-18    ellipsis_0.3.2     
+[37] splines_4.1.1       MASS_7.3-54         colorspace_2.0-2    xtable_1.8-4       
+[41] numDeriv_2016.8-1.1 labeling_0.4.2      sandwich_3.0-1      utf8_1.2.2         
+[45] stringi_1.7.4       estimability_1.3    munsell_0.5.0       crayon_1.4.1       
+[49] zoo_1.8-9
 #+end_example
 
 \clearpage

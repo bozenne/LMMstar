@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: sep  6 2021 (15:28) 
+## Last-Updated: sep  8 2021 (12:03) 
 ##           By: Brice Ozenne
-##     Update #: 61
+##     Update #: 65
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -55,6 +55,8 @@ LMMstar.options <- function(..., reinitialise = FALSE){
                     df = TRUE,
                     effects = "mean",
                     drop.X = TRUE,
+                    optimizer = "gls",
+                    param.optimizer = c(n.iter = 100, tol.score = 1e-7, tol.param = 1e-7),
                     precompute.moments = TRUE,
                     method.fit = "REML",
                     method.numDeriv = "simple",
@@ -83,6 +85,9 @@ LMMstar.options <- function(..., reinitialise = FALSE){
           }
 
           ok.column <- c("estimate","se","statistic","df","lower","upper","null","p.value")
+          if("columns.anova" %in% names(args) && any(args$columns.confint %in% ok.column == FALSE)){
+              stop("Argument \'columns.anova\' must be a character vector with values among \"",paste(ok.column, collapse = "\" \""),"\". \n")
+          }
           if("columns.confint" %in% names(args) && any(args$columns.confint %in% ok.column == FALSE)){
               stop("Argument \'columns.confint\' must be a character vector with values among \"",paste(ok.column, collapse = "\" \""),"\". \n")
           }
@@ -94,6 +99,20 @@ LMMstar.options <- function(..., reinitialise = FALSE){
           }
           if("drop.X" %in% names(args) && !is.logical(args$drop.X)){
               stop("Argument \'drop.X\' must be of type logical. \n")
+          }
+          if("optimizer" %in% names(args)){
+              args$optimizer <- match.arg(args$optimizer, c("gls","auto"))
+          }
+          if("param.optimizer" %in% names(args)){
+              if(!is.vector(args$param.optimizer)){
+                  stop("Argument \'param.optimizer\' should be a vector. \n")
+              }
+              if(length(args$param.optimizer)!=3){
+                  stop("Argument \'param.optimizer\' should have length 3. \n")
+              }
+              if(any(c("n.iter","tol.score","tol.param") %in% names(args$param.optimizer) == FALSE)){
+                  stop("Argument \'param.optimizer\' contain elements named \'n.iter\', \'tol.score\', and \'tol.param\'. \n")
+              }
           }
           if("method.fit" %in% names(args)){
               args$method.fit <- match.arg(args$method.fit, c("ML","REML"))

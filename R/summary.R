@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: sep  6 2021 (11:44) 
+## Last-Updated: sep  8 2021 (13:16) 
 ##           By: Brice Ozenne
-##     Update #: 320
+##     Update #: 327
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -136,6 +136,10 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, columns =
         }
         cat("  - log-likelihood :", as.double(logLik), "\n",sep="")
         cat("  - parameters: mean = ",length(param.mu),", variance = ",length(c(param.sigma,param.k)),", correlation = ",length(param.rho),"\n", sep = "")
+        if(!is.null(object$opt)){
+            index.score <- which.max(abs(object$score))
+            cat("  - convergence: ",object$opt$cv," (",object$opt$n.iter," iterations, largest |score|=",names(index.score),"=",object$score[index.score],")\n", sep = "")
+        }
         cat(" \n")
     }
 

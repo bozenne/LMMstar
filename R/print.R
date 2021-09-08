@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: sep  6 2021 (12:20) 
+## Last-Updated: sep  8 2021 (12:18) 
 ##           By: Brice Ozenne
-##     Update #: 58
+##     Update #: 75
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -33,15 +33,15 @@ print.lmm <- function(x, ...){
     ## ** type of model
     if(length(param.rho) == 0){
         if(length(c(param.sigma,param.k))==1){
-            cat("  Linear regression \n \n")
+            cat("     Linear regression \n \n")
         }else{
-            cat("  Linear regression with heterogeneous residual variance \n")
+            cat("     Linear regression with heterogeneous residual variance \n")
         }
     }else{
         if(structure=="UN"){
-            cat("  Linear Mixed Model with an unstructured covariance matrix \n")
+            cat("     Linear Mixed Model with an unstructured covariance matrix \n")
         }else if(structure=="CS"){
-            cat("  Linear Mixed Model with a compound symmetry covariance matrix \n")
+            cat("     Linear Mixed Model with a compound symmetry covariance matrix \n")
         }
     }
 
@@ -59,30 +59,39 @@ print.lmm <- function(x, ...){
     Ctxt.var <- paste(txt.var,collapse="/")
 
     M.print <- rbind(M.print,
-                     cbind(Ctxt.var,":",paste(value.var, collapse="/")))
+                     cbind(Ctxt.var,": ",paste(value.var, collapse="/")))
 
     ## ** dataset
     M.print <- rbind(M.print,
-                     cbind("data",":",paste(nobs["obs"], " observations and distributed in ", nobs["cluster"], " clusters",sep="")))
+                     cbind("data",": ",paste(nobs["obs"], " observations and distributed in ", nobs["cluster"], " clusters",sep="")))
 
     ## ** parameters
     M.print <- rbind(M.print,
-                     cbind("parameters",":",paste(length(param.mu)," mean (",paste0(names(param.mu),collapse=" "),")", sep="")))
+                     cbind("parameters",": ",paste(length(param.mu)," mean (",paste0(names(param.mu),collapse=" "),")", sep="")))
     M.print <- rbind(M.print,
-                     cbind("","",paste(length(c(param.sigma,param.k))," variance (",paste0(names(c(param.sigma,param.k)),collapse=" "),")", sep="")))
+                     cbind("","  ",paste(length(c(param.sigma,param.k))," variance (",paste0(names(c(param.sigma,param.k)),collapse=" "),")", sep="")))
     if(length(param.rho)>0){
     M.print <- rbind(M.print,
-                     cbind("","",paste(length(param.rho)," correlation (",paste0(names(param.rho),collapse=" "),")", sep="")))
+                     cbind("","  ",paste(length(param.rho)," correlation (",paste0(names(param.rho),collapse=" "),")", sep="")))
     }
 
     ## ** log-likelihood
     M.print <- rbind(M.print,
-                     cbind("log-likelihood",":",as.double(logLik)))
+                     cbind("log-likelihood",": ",as.double(logLik)))
+
+    ## ** optimisation
+    if(!is.null(x$opt)){
+        M.print <- rbind(M.print,
+                         cbind("convergence",": ",paste0(x$opt$cv," (",x$opt$n.iter," iterations)")))
+    }
 
     ## ** print
-    df.print <- as.data.frame(M.print)
-    names(df.print) <- NULL
-    print(df.print, row.names = FALSE, right = FALSE)
+    need.blank <- max(nchar(M.print[,1]))-nchar(M.print[,1])
+    add.blank <- sapply(need.blank, function(iN){paste(rep(" ",iN),collapse="")})
+    M.print[,1] <- paste0(M.print[,1],add.blank)
+    txt.print <- unname(sapply(apply(M.print,1,paste,collapse=""),paste,"\n"))
+    cat("\n ")
+    cat(txt.print)
     return(NULL)
 
 }

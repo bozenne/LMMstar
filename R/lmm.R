@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: sep  6 2021 (11:48) 
+## Last-Updated: sep  8 2021 (12:12) 
 ##           By: Brice Ozenne
-##     Update #: 972
+##     Update #: 982
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -57,6 +57,7 @@
 ## * lmm (code)
 ##' @export
 lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NULL, type.information = NULL, trace = NULL, control = NULL, ...){
+
     out <- list(call = match.call(), data.original = data)
     options <- LMMstar.options()
     data <- as.data.frame(data)
@@ -73,6 +74,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     }else{
         method.fit <- match.arg(method.fit, choices = c("ML","REML"))
     }
+    out$method.fit <- method.fit
 
     ## *** degrees of freedom
     if(is.null(df)){
@@ -251,7 +253,6 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     
     ## *** data
     if(trace>=2){cat("- data")}
-    data <- as.data.frame(data)
     if("XXindexXX" %in% names(data)){
         stop("Incorrect specification of argument \'data\'. \n",
              "The variable \"XXindexXX\" is used internally but already exists in \'data\' \n")
@@ -285,7 +286,8 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     out$time <- list(n = length(U.time), levels = U.time, var = var.time)
     out$cluster <- list(var = var.cluster)
     out$outcome <- list(var = var.outcome)
-    
+    out$data <- data
+
     ## *** missing values
     var.all <- unname(unique(c(var.strata,var.outcome,var.X,var.time,var.cluster,all.vars(formula.var))))
     index.na <- which(rowSums(is.na(data[,var.all]))>0)
@@ -311,6 +313,9 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                 "Will be change to \"CS\". \n")
         structure  <- "CS"
     }
+    out$structure <- structure
+
+    ## *** formula
     if(structure=="UN"){
         formula.cor <- repetition
         if(n.strata==1){
@@ -361,7 +366,6 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                             cor = formula.cor)
     }
 
-    ## *** type.information
     if(trace>=2){cat("\n")}
 
     ## ** design matrices
@@ -395,90 +399,86 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     out$xfactor <- out$xfactor[duplicated(names(out$xfactor))==FALSE]
     if(trace>=2){cat("\n")}
 
+
     ## ** Estimate model parameters
     if(trace>=1){cat("2. Estimate model parameters")}
 
-    if(max(out$design$cluster$nobs)==1){
-        if(structure == "CS"){
-            txt.gls <- paste0("nlme::gls(",txt.formula,",
+    if(options$optimizer=="gls"){
+        if(max(out$design$cluster$nobs)==1){
+            if(structure == "CS"){
+                txt.gls <- paste0("nlme::gls(",txt.formula,",
                                          method = ",deparse(method.fit),",
                                          data = ",txt.data,", control = control)")
-        }else if(structure == "UN"){
-            form.var <- stats::as.formula(paste0("~1|",var.time))
-            txt.gls <- paste0("nlme::gls(",txt.formula,",
+            }else if(structure == "UN"){
+                form.var <- stats::as.formula(paste0("~1|",var.time))
+                txt.gls <- paste0("nlme::gls(",txt.formula,",
                                          weights = nlme::varIdent(form = ",deparse(form.var),"),
                                          method = ",deparse(method.fit),",
                                          data = ",txt.data,", control = control)")
-        }
-    }else{
-        if(structure == "CS"){
-            form.cor <- stats::as.formula(paste0("~1|",var.cluster))
-            txt.gls <- paste0("nlme::gls(",txt.formula,",
+            }
+        }else{
+            if(structure == "CS"){
+                form.cor <- stats::as.formula(paste0("~1|",var.cluster))
+                txt.gls <- paste0("nlme::gls(",txt.formula,",
                                          correlation = nlme::corCompSymm(form = ",deparse(form.cor),"),
                                          method = ",deparse(method.fit),",
                                          data = ",txt.data,", control = control)")
 
-        }else if(structure == "EXP"){
-            form.var <- stats::as.formula(paste0("~1|",var.time))
-            form.cor <- stats::as.formula(paste0("~",var.time,"|",var.cluster))
-            txt.gls <- paste0("nlme::gls(",txt.formula,",
+            }else if(structure == "EXP"){
+                form.var <- stats::as.formula(paste0("~1|",var.time))
+                form.cor <- stats::as.formula(paste0("~",var.time,"|",var.cluster))
+                txt.gls <- paste0("nlme::gls(",txt.formula,",
                                           correlation = nlme::corExp(form = ",deparse(form.cor),"),
                                           method = ",deparse(method.fit),",
                                           data = ",txt.data,", control = control)")
-        }else if(structure == "UN"){
-            form.var <- stats::as.formula(paste0("~1|",var.time))
-            form.cor <- stats::as.formula(paste0("~",var.time.index,"|",var.cluster))
-            txt.gls <- paste0("nlme::gls(",txt.formula,",
+            }else if(structure == "UN"){
+                form.var <- stats::as.formula(paste0("~1|",var.time))
+                form.cor <- stats::as.formula(paste0("~",var.time.index,"|",var.cluster))
+                txt.gls <- paste0("nlme::gls(",txt.formula,",
                                           correlation = nlme::corSymm(form = ",deparse(form.cor),"),
                                           weights = nlme::varIdent(form = ",deparse(form.var),"),
                                           method = ",deparse(method.fit),",
                                           data = ",txt.data,", control = control)")
+            }
         }
-    }
-    out$gls <- stats::setNames(lapply(txt.gls, function(iTxt){eval(parse(text = iTxt))}),
-                        U.strata)
-    out$gls.call <- lapply(out$gls, function(iM){
-        paste0(gsub(",",",\n    ",gsub(" ","",paste(deparse(iM$call), collapse = ""))),"\n")
-    })
-    out$data <- data
-    out$method.fit <- method.fit
-    out$structure <- structure
+        out$gls <- stats::setNames(lapply(txt.gls, function(iTxt){eval(parse(text = iTxt))}),
+                                   U.strata)
+        out$gls.call <- lapply(out$gls, function(iM){
+            paste0(gsub(",",",\n    ",gsub(" ","",paste(deparse(iM$call), collapse = ""))),"\n")
+        })
 
-    ## outEstimate <- .estimate(param = out$param, design = out$design, time = out$time, method.fit = method.fit, type.information = type.information,
-    ##                          transform.sigma = options$transform.sigma, transform.k = options$transform.k, transform.rho = options$transform.rho,
-    ##                          precompute.moments = options$precompute.moments, init = NULL, n.iter = 100, tol = 1e-5)
+        param.mu <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]) })
+        param.sigma <- lapply(U.strata, function(iS){ stats::sigma(out$gls[[iS]]) })
+        param.k <- lapply(U.strata, function(iS){  coef(out$gls[[iS]]$modelStruct$varStruct, unconstrained = FALSE) })
+        param.rho <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]$modelStruct$corStruct, unconstrained = FALSE) })
 
-    ## collect parameters
-    param.mu <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]) })
-    param.sigma <- lapply(U.strata, function(iS){ stats::sigma(out$gls[[iS]]) })
-    param.k <- lapply(U.strata, function(iS){  coef(out$gls[[iS]]$modelStruct$varStruct, unconstrained = FALSE) })
-    param.rho <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]$modelStruct$corStruct, unconstrained = FALSE) })
-
-    out$param$value <- c(stats::setNames(unlist(param.mu),out$design$param$mu),
+        param.value <- c(stats::setNames(unlist(param.mu),out$design$param$mu),
                          stats::setNames(unlist(param.sigma), out$design$param$sigma),
                          stats::setNames(unlist(param.k), out$design$param$k),
                          stats::setNames(unlist(param.rho), out$design$param$rho)
                          )
 
-    out$param$strata <- c(unlist(lapply(1:n.strata, function(iS){rep(U.strata[iS], times = length(param.mu[[iS]]))})),
-                          unlist(lapply(1:n.strata, function(iS){rep(U.strata[iS], times = length(param.sigma[[iS]]))})),
-                          unlist(lapply(1:n.strata, function(iS){rep(U.strata[iS], times = length(param.k[[iS]]))})),
-                          unlist(lapply(1:n.strata, function(iS){rep(U.strata[iS], times = length(param.rho[[iS]]))})))
+    }else if(options$optimizer=="auto"){
 
-    out$param$type <- c(rep("mu", length(unlist(param.mu))),
-                        rep("sigma", length(unlist(param.sigma))),
-                        rep("k", length(unlist(param.k))),
-                        rep("rho", length(unlist(param.rho))))
-    
-    names(out$param$strata) <- names(out$param$value)
-    names(out$param$type) <- names(out$param$value)
-    
+        outEstimate <- .estimate(design = out$design, time = out$time, method.fit = method.fit, type.information = type.information,
+                                 transform.sigma = options$transform.sigma, transform.k = options$transform.k, transform.rho = options$transform.rho,
+                                 precompute.moments = options$precompute.moments,
+                                 init = control$init, n.iter = control$n.iter, tol.score = control$tol.score, tol.param = control$tol.param, trace = control$trace)
+        param.value <- outEstimate$estimate
+        out$opt <- outEstimate[c("cv","n.iter","score","previous.estimate")]
+        
+    }
+
+    out$param <- list(value = param.value,
+                      type = out$design$param$type,
+                      strata = out$design$param$strata)
+
     if(trace>=1){cat("\n")}
 
     ## ** Compute likelihood derivatives
     if(trace>=1){cat("3. Compute likelihood derivatives \n")}
 
-    outMoments <- .moments.lmm(param = out$param, design = out$design, time = out$time, method.fit = method.fit, type.information = type.information,
+    outMoments <- .moments.lmm(value = out$param$value, design = out$design, time = out$time, method.fit = method.fit, type.information = type.information,
                                transform.sigma = options$transform.sigma, transform.k = options$transform.k, transform.rho = options$transform.rho,
                                logLik = TRUE, score = TRUE, information = TRUE, vcov = TRUE, df = df, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
                                trace = trace>=2, precompute.moments = options$precompute.moments, method.numDeriv = options$method.numDeriv, transform.names = FALSE)

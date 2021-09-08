@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: Jul  8 2021 (15:33) 
+## Last-Updated: sep  8 2021 (11:34) 
 ##           By: Brice Ozenne
-##     Update #: 67
+##     Update #: 78
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,19 +15,22 @@
 ## 
 ### Code:
 
-.moments.lmm <- function(param, design, time, method.fit, type.information,
+.moments.lmm <- function(value, design, time, method.fit, type.information,
                          transform.sigma, transform.k, transform.rho,
                          logLik, score, information, vcov, df, indiv, effects, robust,
                          trace, precompute.moments, method.numDeriv, transform.names){
 
 
+    param.value <- value
+    param.type <- design$param$type
+    param.strata <- design$param$strata
     out <- list()
 
     ## ** 1- reparametrisation
     if(trace>=1){cat("- reparametrization \n")}
-    name.allcoef <- names(param$value)
+    name.allcoef <- names(param.value)
     
-    index.var <- which(param$type %in% c("sigma","k","rho"))
+    index.var <- which(param.type %in% c("sigma","k","rho"))
     if(df){
         test.d2Omega <- TRUE
     }else if(vcov || information){
@@ -35,7 +38,8 @@
     }else{
         test.d2Omega  <- FALSE
     }
-    out$reparametrize <- .reparametrize(p = param$value[index.var], type = param$type[index.var], strata = param$strata[index.var], time.levels = time$levels,
+
+    out$reparametrize <- .reparametrize(p = param.value[index.var], type = param.type[index.var], strata = param.strata[index.var], time.levels = time$levels,
                                         time.k = design$param$time.k, time.rho = design$param$time.rho,
                                         Jacobian = TRUE, dJacobian = 2*test.d2Omega, inverse = FALSE, ##  2 is necessary to export the right dJacobian
                                         transform.sigma = transform.sigma,
@@ -54,7 +58,7 @@
 
     ## ** 2- compute partial derivatives regarding the mean and the variance
     if(trace>=1){cat("- residuals \n")}
-    out$fitted <- design$X.mean %*% param$value[colnames(design$X.mean)]
+    out$fitted <- design$X.mean %*% param.value[colnames(design$X.mean)]
     out$residuals <- design$Y - out$fitted
     if(precompute.moments){
         precompute <- list(XX = design$precompute.XX,
@@ -71,18 +75,18 @@
     }
 
     if(trace>=1){cat("- Omega \n")}
-    out$Omega <- .calc_Omega(object = design$X.var, param = param$value, keep.interim = TRUE)
+    out$Omega <- .calc_Omega(object = design$X.var, param = param.value, keep.interim = TRUE)
     out$OmegaM1 <- lapply(out$Omega,solve)
     
     if(score || information || vcov || df){
         if(trace>=1){cat("- dOmega \n")}
-        out$dOmega <- .calc_dOmega(object = design$X.var, param = param$value, type = param$type, Omega = out$Omega,
+        out$dOmega <- .calc_dOmega(object = design$X.var, param = param.value, type = param.type, Omega = out$Omega,
                                    Jacobian = out$reparametrize$Jacobian)
     }
 
     if(test.d2Omega){
         if(trace>=1){cat("- d2Omega \n")}
-        out$d2Omega <- .calc_d2Omega(object = design$X.var, param = param$value, type = param$type,
+        out$d2Omega <- .calc_d2Omega(object = design$X.var, param = param.value, type = param.type,
                                      Omega = out$Omega, dOmega = out$dOmega, pair = design$param$pair.varcoef,
                                      Jacobian = out$reparametrize$Jacobian, dJacobian = out$reparametrize$dJacobian)
     }
@@ -139,9 +143,9 @@
 
     if(df){
         if(trace>=1){cat("- degrees of freedom \n")}
-        out$df <- .df(param = param, reparametrize = out$reparametrize,
-                      design, time, method.fit, type.information,
-                      transform.sigma, transform.k, transform.rho, effects, robust = robust, diag = TRUE,
+        out$df <- .df(value = param.value, reparametrize = out$reparametrize,
+                      design = design, time = time, method.fit = method.fit, type.information = type.information,
+                      transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, effects = effects, robust = robust, diag = TRUE,
                       precompute.moments = precompute.moments, method.numDeriv = method.numDeriv)
         out$dVcov <- attr(out$df,"dVcov")
         attr(out$df,"dVcov") <- NULL

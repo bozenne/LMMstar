@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: Jun 21 2021 (20:52) 
+## Last-Updated: sep  7 2021 (16:52) 
 ##           By: Brice Ozenne
-##     Update #: 362
+##     Update #: 364
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -167,7 +167,6 @@
     if(!is.null(Jacobian)){
         JacobianM1 <- solve(Jacobian)
     }
-    
     ## ** loop over covariance patterns
     out <- lapply(Upattern, function(iPattern){ ## iPattern <- Upattern[1]
 

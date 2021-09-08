@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (10:34) 
 ## Version: 
-## Last-Updated: Jun 18 2021 (12:31) 
+## Last-Updated: sep  7 2021 (17:11) 
 ##           By: Brice Ozenne
-##     Update #: 32
+##     Update #: 35
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,30 +16,28 @@
 ### Code:
 
 ## * .df
-.df <- function(param, reparametrize,
+.df <- function(value, reparametrize,
                 design, time, method.fit, type.information,
                 transform.sigma, transform.k, transform.rho, effects, robust, diag,
                 precompute.moments = precompute.moments, method.numDeriv = method.numDeriv){
 
     ## ** prepare vector of parameters
-    param.type <- param$type
-    param.strata <- param$strata
-    name.allcoef <- names(param$value)
-    n.allcoef <- length(param$type)
+    param.value <- value
+    param.type <- design$param$type
+    param.strata <- design$param$strata
+    name.allcoef <- names(param.type)
+    n.allcoef <- length(param.type)
 
-    param.nameVar <- name.allcoef[param$type %in% c("sigma","k","rho")]
-    param.nameMean <- name.allcoef[param$type %in% c("mu")]
+    param.nameVar <- name.allcoef[param.type %in% c("sigma","k","rho")]
+    param.nameMean <- name.allcoef[param.type %in% c("mu")]
 
     test.transform <- (transform.sigma != "none") || (transform.k != "none") || (transform.rho != "none")
 
-    param.trans.value <- c(param$value[param.nameMean],reparametrize$p)[name.allcoef]
+    param.trans.value <- c(param.value[param.nameMean],reparametrize$p)[name.allcoef]
 
     ## ** warper for computing information
     FUN_information <- function(p, effects, as.double){
 
-        newparam  <- param
-        newparam$value <- p
-        
         if(test.transform){ ## back-transform
             backp <- .reparametrize(p = p[param.nameVar], type = param.type[param.nameVar], strata = param.strata[param.nameVar], 
                                     Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
@@ -47,10 +45,10 @@
                                     transform.k = transform.k,
                                     transform.rho = transform.rho,
                                     transform.names = FALSE)
-            newparam$value[param.nameVar] <- backp$p
+            p[param.nameVar] <- backp$p
         }
 
-        iMoment <- .moments.lmm(newparam, design = design, time = time, method.fit = method.fit, type.information = type.information,
+        iMoment <- .moments.lmm(value = p, design = design, time = time, method.fit = method.fit, type.information = type.information,
                                 transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                 logLik = FALSE, score = FALSE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = effects, robust = robust,
                                 trace = FALSE, precompute.moments = precompute.moments, method.numDeriv = method.numDeriv, transform.names = FALSE)
@@ -79,7 +77,7 @@
         M.dInfo <- numDeriv::jacobian(func = function(p){FUN_information(p, effects = effects,as.double = TRUE)}, x = param.trans.value, method = method.numDeriv)
         colnames(M.dInfo) <- name.allcoef
     }else{
-        M.dInfo <- numDeriv::jacobian(func = function(p){FUN_information(c(param$value[param.nameMean],p)[name.allcoef], effects = effects, as.double = TRUE)}, x = param.trans.value[param.nameVar], method = method.numDeriv)
+        M.dInfo <- numDeriv::jacobian(func = function(p){FUN_information(c(param.value[param.nameMean],p)[name.allcoef], effects = effects, as.double = TRUE)}, x = param.trans.value[param.nameVar], method = method.numDeriv)
         colnames(M.dInfo) <- param.nameVar
     }
 
