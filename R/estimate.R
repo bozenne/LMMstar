@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: sep  8 2021 (13:09) 
+## Last-Updated: sep  8 2021 (13:28) 
 ##           By: Brice Ozenne
-##     Update #: 117
+##     Update #: 118
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -52,7 +52,7 @@
     
     ## ** intialization
     if(is.null(init)){
-        param.value <- setNames(rep(NA, n.param),param.name)
+        param.value <- stats::setNames(rep(NA, n.param),param.name)
 
         start.OmegaM1 <- stats::setNames(lapply(pattern, function(iPattern){
             diag(1, nrow = length(design$X.var$index.time[[iPattern]]), ncol = length(design$X.var$index.time[[iPattern]]))

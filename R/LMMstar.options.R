@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: sep  8 2021 (12:03) 
+## Last-Updated: sep  8 2021 (13:24) 
 ##           By: Brice Ozenne
-##     Update #: 65
+##     Update #: 68
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -37,6 +37,8 @@
 #' \item min.df [integer]: minimum possible degree of freedom. Used by \code{confint}.
 #' \item method.fit [character]: objective function when fitting the Linear Mixed Model (REML or ML). Used by \code{lmm}.
 #' \item method.numDeriv [character]: type used to approximate the third derivative of the log-likelihood (when computing the degrees of freedom). Can be \code{"simple"} or \code{"Richardson"}. See \code{numDeriv::jacobian} for more details. Used by \code{lmm}.
+#' \item optimizer [character]: method used to estimate the model parameters: can the \code{nlme::gls} (\code{"gls"}) or an algorithm combine fisher scoring for the variance parameters and generalized least squares for the mean parameters (\code{"FS"}).
+#' \item param.optimizer [numeric vector]: default option for the \code{FS} optimization routine: maximum number of iterations (\code{n.iter}), maximum acceptable score value (\code{tol.score}), maximum acceptable change in parameter value (\code{tol.param}).
 #' \item precompute.moments [logical]: Should the cross terms between the residuals and design matrix be pre-computed. Useful when the number of subject is substantially larger than the number of mean paramters.
 #' \item trace [logical]: Should the progress of the execution of the \code{lmm} function be displayed?
 #' \item tranform.sigma, tranform.k, tranform.rho: transformation used to compute the confidence intervals/p-values for the variance and correlation parameters. See the detail section of the coef function for more information.
@@ -53,14 +55,14 @@ LMMstar.options <- function(..., reinitialise = FALSE){
                     columns.confint = c("estimate","lower","upper"),
                     columns.summary = c("estimate","se","df","lower","upper","p.value",""),
                     df = TRUE,
-                    effects = "mean",
                     drop.X = TRUE,
+                    effects = "mean",
+                    min.df = 1,
+                    method.fit = "REML",
+                    method.numDeriv = "simple",
                     optimizer = "gls",
                     param.optimizer = c(n.iter = 100, tol.score = 1e-7, tol.param = 1e-7),
                     precompute.moments = TRUE,
-                    method.fit = "REML",
-                    method.numDeriv = "simple",
-                    min.df = 1,
                     trace = FALSE,
                     transform.sigma = "log",
                     transform.k = "log",
@@ -101,7 +103,7 @@ LMMstar.options <- function(..., reinitialise = FALSE){
               stop("Argument \'drop.X\' must be of type logical. \n")
           }
           if("optimizer" %in% names(args)){
-              args$optimizer <- match.arg(args$optimizer, c("gls","auto"))
+              args$optimizer <- match.arg(args$optimizer, c("gls"," FS")) ## FS = fisher scoring
           }
           if("param.optimizer" %in% names(args)){
               if(!is.vector(args$param.optimizer)){

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: sep  7 2021 (17:06) 
+## Last-Updated: sep  8 2021 (13:32) 
 ##           By: Brice Ozenne
-##     Update #: 423
+##     Update #: 424
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -108,7 +108,7 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
             if(any(names(x$param$type) %in% names(p) == FALSE)){
                 stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(x$param$type)[names(x$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
             }
-            p <- p[names(param$value)]
+            p <- p[names(x$param$value)]
         }else{
             p <- x$param$value
         }

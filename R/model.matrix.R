@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: sep  7 2021 (17:07) 
+## Last-Updated: sep  8 2021 (13:29) 
 ##           By: Brice Ozenne
-##     Update #: 895
+##     Update #: 896
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -378,15 +378,15 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
                            pair.meanvarcoef = pair.meanvarcoef,
                            pair.varcoef = pair.varcoef)
     name.param <- c(skeleton.param$mu,skeleton.param$sigma,skeleton.param$k,skeleton.param$rho)
-    skeleton.param$type <- setNames(c(rep("mu",length(skeleton.param$mu)),
-                                      rep("sigma",length(skeleton.param$sigma)),
-                                      rep("k",length(skeleton.param$k)),
-                                      rep("rho",length(skeleton.param$rho))),
-                                    name.param)
-    skeleton.param$strata <- setNames(c(skeleton.param$strata.mu,
-                                        skeleton.param$strata.sigma,
-                                        skeleton.param$strata.k,
-                                        skeleton.param$strata.rho), name.param)
+    skeleton.param$type <- stats::setNames(c(rep("mu",length(skeleton.param$mu)),
+                                             rep("sigma",length(skeleton.param$sigma)),
+                                             rep("k",length(skeleton.param$k)),
+                                             rep("rho",length(skeleton.param$rho))),
+                                           name.param)
+    skeleton.param$strata <- stats::setNames(c(skeleton.param$strata.mu,
+                                               skeleton.param$strata.sigma,
+                                               skeleton.param$strata.k,
+                                               skeleton.param$strata.rho), name.param)
 
     ## ** gather and export
     out <- list(X.mean = X.mean,

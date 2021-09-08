@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: sep  7 2021 (17:06) 
+## Last-Updated: sep  8 2021 (14:00) 
 ##           By: Brice Ozenne
-##     Update #: 447
+##     Update #: 449
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -135,7 +135,7 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, type.
                 if(any(names(object$param$type) %in% names(p) == FALSE)){
                     stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param$type)[names(object$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
                 }
-                param$value <- p[names(param$value)]
+                p <- p[names(object$param$value)]
             }else{
                 p <- object$param$value
             }

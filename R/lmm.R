@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: sep  8 2021 (12:12) 
+## Last-Updated: sep  8 2021 (13:58) 
 ##           By: Brice Ozenne
-##     Update #: 982
+##     Update #: 986
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -458,7 +458,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                          stats::setNames(unlist(param.rho), out$design$param$rho)
                          )
 
-    }else if(options$optimizer=="auto"){
+    }else if(options$optimizer=="FS"){
 
         outEstimate <- .estimate(design = out$design, time = out$time, method.fit = method.fit, type.information = type.information,
                                  transform.sigma = options$transform.sigma, transform.k = options$transform.k, transform.rho = options$transform.rho,
@@ -468,10 +468,9 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
         out$opt <- outEstimate[c("cv","n.iter","score","previous.estimate")]
         
     }
-
     out$param <- list(value = param.value,
                       type = out$design$param$type,
-                      strata = out$design$param$strata)
+                      strata = stats::setNames(out$strata$levels[out$design$param$strata],names(out$design$param$strata)))
 
     if(trace>=1){cat("\n")}
 

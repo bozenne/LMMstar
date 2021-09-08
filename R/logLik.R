@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: sep  7 2021 (17:08) 
+## Last-Updated: sep  8 2021 (13:32) 
 ##           By: Brice Ozenne
-##     Update #: 214
+##     Update #: 216
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -81,7 +81,7 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
                 if(any(names(object$param$type) %in% names(p) == FALSE)){
                     stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param$type)[names(object$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
                 }
-                p <- p[names(param$value)]
+                p <- p[names(object$param$value)]
             }else{
                 p <- object$param$value
             }
