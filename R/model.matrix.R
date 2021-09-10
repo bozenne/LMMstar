@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: sep  8 2021 (13:29) 
+## Last-Updated: sep  9 2021 (15:49) 
 ##           By: Brice Ozenne
-##     Update #: 896
+##     Update #: 912
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -71,17 +71,18 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
 }
 
 ## * .model.matrix.lmm
-.model.matrix.lmm <- function(formula.mean, formula.var, data, var.outcome,
+.model.matrix.lmm <- function(formula.mean, structure,
+                              data, var.outcome,
                               var.strata, U.strata,
                               var.time, U.time,
                               var.cluster,
-                              structure,
                               precompute.moments){
     n.obs <- NROW(data)
     n.strata <- length(U.strata)
     n.time <- length(U.time)
     
     ## ** normalize data
+    ## index
     if("XXindexXX" %in% names(data) == FALSE){
         data$XXindexXX <- 1:NROW(data)
     }
@@ -91,7 +92,23 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
         data[[var.strata]] <- factor(data[[var.strata]], levels = U.strata)
     }
     index.strata <- tapply(data[[var.strata]],data[[var.cluster]],unique)
-    
+
+    ## time
+    data[[var.time]] <- factor(data[[var.time]], levels = U.time)
+    index.time <- as.numeric(data[[var.time]])
+
+    ## cluster
+    U.cluster <- sort(unique(data[[var.cluster]]))
+    if(is.factor(U.cluster)){
+        U.cluster <- as.character(U.cluster)
+    }
+    n.cluster <- length(U.cluster)
+    index.cluster <- match(data[[var.cluster]], U.cluster) ## ‘match’ returns a vector of the positions of (first) matches of its first argument in its second.
+    attr(index.cluster,"sorted") <- lapply(1:n.cluster, function(iId){
+        iIndex <- which(index.cluster==iId)
+        return(iIndex[order(index.time[iIndex])]) ## re-order observations according to the variance-covariance matrix
+    })
+
     ## ** mean
     if(n.strata==1){
         X.mean <- model.matrix_regularize(formula.mean, data)
@@ -111,22 +128,8 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
         strata.mu <- unlist(lapply(1:n.strata, function(iStrata){stats::setNames(rep(iStrata, NCOL(ls.X.mean[[iStrata]])),colnames(ls.X.mean[[iStrata]]))}))
     }
 
-    ## ** cluster
-    U.cluster <- sort(unique(data[[var.cluster]]))
-    if(is.factor(U.cluster)){
-        U.cluster <- as.character(U.cluster)
-    }
-    n.cluster <- length(U.cluster)
-    index.cluster <- match(data[[var.cluster]], U.cluster) ## ‘match’ returns a vector of the positions of (first) matches of its first argument in its second.
 
     ## ** variance
-    data[[var.time]] <- factor(data[[var.time]], levels = U.time)
-    index.time <- as.numeric(data[[var.time]])
-
-    attr(index.cluster,"sorted") <- lapply(1:n.cluster, function(iId){
-        iIndex <- which(index.cluster==iId)
-        return(iIndex[order(index.time[iIndex])]) ## re-order observations according to the variance-covariance matrix
-    })
     
     ## *** parametrisation
     ## **** sigma
@@ -197,7 +200,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
 
     }
 
-    ## uniaue variance levels
+    ## unique variance levels
     level.variance <- as.numeric(droplevels(interaction(as.data.frame(X.var))))
     pattern <- tapply(level.variance, index.cluster, function(iLevel){paste(sort(iLevel), collapse=".")}) ## automatic re-ordering of the result
     ## characterize each level
@@ -409,16 +412,6 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
     return(out)
 }
 
-## * .unorderedPairs
-## adapted from RecordLinkage package
-## form all combinations
-.unorderedPairs <- function(x){
-    n <- length(x)
-    ls <- lapply(1:n, function(k){ rbind(x[k], x[k:n])})
-    out <- array(unlist(ls), dim = c(2, n * (n + 1)/2))
-    return(out)
-}
-
 ## * model.matrix_regularize
 ## remove un-identifiable columns from the design matrix 
 model.matrix_regularize <- function(formula, data){
@@ -514,6 +507,38 @@ model.matrix_regularize <- function(formula, data){
     return(X)
 }
 
+## * .model.matrix_noVarName
+## remove variable name from the column name (e.g. time1week becomes 1week)
+##' data(gastricbypassL, package = "LMMstar")
+##' gastricbypassL$gender <- c("M","F")[as.numeric(gastricbypassL$id) %% 2+1]
+##' .model.matrix_noVarName(~1,gastricbypassL[1:5,])
+##' .model.matrix_noVarName(~time*gender,gastricbypassL[1:5,])
+##' .model.matrix_noVarName(~time+gender,gastricbypassL[1:5,])
+##' .model.matrix_noVarName(~weight*gender,gastricbypassL[1:5,])
+##' 
+.model.matrix_noVarName <- function(formula, data, lastVar = NULL){
+    Xaug <- .augmodel.matrix(formula, data)
+    index.noIntercept <- which(attr(Xaug,"order")>0)
+    if(length(index.noIntercept)>0){
+        old2new <- unlist(lapply(attr(Xaug,"ls.level")[index.noIntercept], function(iL){
+            if(any(is.na(iL))){
+                iL[is.na(iL)] <- names(iL)[is.na(iL)]
+            }
+            if(!is.null(lastVar) && lastVar %in% colnames(iL) && NCOL(iL)>1){
+                iL2 <- iL[,c(setdiff(colnames(iL),lastVar),lastVar)]
+                return(as.character(interaction(iL2,sep=":")))
+            }else{
+                return(as.character(interaction(iL,sep=":")))
+            }
+        }))
+        if(!identical(colnames(Xaug)[index.noIntercept],names(old2new))){
+            stop("Something went wrong when trying to rename the columns. \n")
+        }
+        colnames(Xaug)[index.noIntercept] <- as.character(old2new)
+    }
+    return(Xaug)
+}
+
 ## * .aumodel.matrix_match
 ## add more information about which variable contribute to which column in the design matrix
 .augmodel.matrix <- function(formula, data){
@@ -605,6 +630,19 @@ model.matrix_regularize <- function(formula, data){
     attr(X,"M.level") <- do.call(rbind,X.level2)
     attr(X,"reference.level") <- reference2
     return(X)
+}
+
+## * .unorderedPairs
+## adapted from RecordLinkage package
+## form all combinations
+.unorderedPairs <- function(x, distinct = FALSE){
+    n <- length(x)
+    ls <- lapply(1:n, function(k){ rbind(x[k], x[k:n])})
+    out <- array(unlist(ls), dim = c(2, n * (n + 1)/2))
+    if(distinct){
+        out <- out[,apply(out,2,function(iCol){all(!duplicated(iCol))}),drop=FALSE]
+    }
+    return(out)
 }
 
 ## * .precompute

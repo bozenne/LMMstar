@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (14:58) 
 ## Version: 
-## Last-Updated: jul  7 2021 (17:32) 
+## Last-Updated: sep  8 2021 (17:57) 
 ##           By: Brice Ozenne
-##     Update #: 224
+##     Update #: 225
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -19,8 +19,8 @@
 
 ## * getCoef (documentation) 
 #' @title Extract Model Coefficients With Confidence Intervals
-#' 
 #' @description Extract all model coefficients with confidence intervals.
+#' 
 #' @param object a \code{lm}, \code{gls}, \code{lme}, or \code{lmm} object.
 #' @param conf.level [numeric 0-1] Confidence level of the confidence intervals.
 #' @param effects [character vector] Type of coefficient to be output.
