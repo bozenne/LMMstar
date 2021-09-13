@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: sep  9 2021 (15:49) 
+## Last-Updated: sep 13 2021 (17:04) 
 ##           By: Brice Ozenne
-##     Update #: 912
+##     Update #: 914
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -130,6 +130,12 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
 
 
     ## ** variance
+
+    browser()
+    structure$pattern <- .patternStructure(X.var = X.var, X.cor = X.cor, lpdiff.rho = lpdiff.rho, data = data,
+                                           index.clusterTime = index.clusterTime, order.clusterTime = order.clusterTime, U.time = U.time,
+                                           index.cluster = index.cluster, U.cluster = U.cluster,
+                                           strata.var = strata.var, strata.param = strata.param, U.strata = U.strata)
     
     ## *** parametrisation
     ## **** sigma
