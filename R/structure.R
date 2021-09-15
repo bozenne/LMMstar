@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: sep 13 2021 (17:39) 
+## Last-Updated: sep 14 2021 (10:33) 
 ##           By: Brice Ozenne
-##     Update #: 216
+##     Update #: 269
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -38,6 +38,7 @@
         }
         out <- list(cluster = init.formula.var$cluster,
                     strata = init.formula.var$strata,
+                    time.var = if(identical(init.formula.var$time.var,init.formula.cor$time.var)){init.formula.var$time.var}else{NULL},
                     X.var = init.formula.var$X.var,
                     X.cor = init.formula.cor$X.var,
                     formula.var = init.formula.var$formula.var,
@@ -45,6 +46,15 @@
         return(out)
     }else if(!inherits(formula,"formula")){
         stop("Incorrect argument \'formula\': should be a formula or a list of 2 formula (var, cor).\n")
+    }
+
+    ## ** left hand side
+    var.strata <- lhs.vars(formula)
+    if(length(var.strata)==0){
+        var.strata <- NULL
+    }else if(length(var.strata)!=1){
+        stop("Incorrect formula for the residual variance-covariance structure. \n",
+             "There should be at most one variable on the left hand side, something like: ~ time|id or group ~ time|id. \n")
     }
 
     ## ** right hand side
@@ -58,8 +68,25 @@
     if(!grepl("|",deparse(formula),fixed = TRUE)){
         if(missing.id.ok){
             var.cluster <- NULL
-            formula.var <- formula
-            var.time <- all.vars(stats::update(formula.var,0~.))
+            var.rhs <- rhs.vars(formula)
+            if(length(var.rhs)==0){
+                var.time <- NULL
+                formula.var <- ~1 ## no need to stratify on anything
+            }else if(length(var.rhs)==1){
+                var.time <- var.rhs
+                if(length(var.strata)==0){
+                    formula.var <- as.formula(paste("~",var.rhs))
+                }else{
+                    formula.var <- as.formula(paste(var.strata,"~",var.rhs))
+                }
+            }else{
+                var.time <- NULL
+                if(length(var.strata)==0){
+                    formula.var <- as.formula(paste("~",paste(var.rhs,collapse=":")))
+                }else{
+                    formula.var <- as.formula(paste(var.strata,"~",paste(var.rhs,collapse=":")))
+                }
+            }
         }else{
             stop("Incorrect formula for the residual variance-covariance structure. \n",
                  "No | symbol found so no grouping variable could be defined. \n",
@@ -73,9 +100,31 @@
         }
 
         formula.var <- stats::as.formula(res.split[1])
-        var.time <- all.vars(stats::update(formula.var,0~.))
-        if(length(var.time)>1){
+        terms.var <- terms(formula.var)
+        if(any(attr(terms.var,"order")>1)){
+            stop("Does not handle interactions in the formula. \n")
+        }
+
+        var.rhs <- rhs.vars(formula.var)
+        if(length(var.rhs)==0){
             var.time <- NULL
+            formula.var <- ~1 ## no need to stratify on anything
+        }else if(length(var.rhs)==1){
+            var.time <- var.rhs
+            if(length(var.strata)==0){
+                formula.var <- as.formula(paste("~",var.rhs))
+            }else{
+                formula.var <- as.formula(paste("~0+",var.strata,"+",var.rhs,":",var.strata))
+            }
+        }else{
+            var.time <- NULL
+            if(length(var.strata)==0){
+                formula.var <- as.formula(paste("~",paste(var.rhs,collapse=":")))
+            }else{
+                formula.var <- as.formula(paste("~0+",var.strata,"+",paste(paste(var.rhs,collapse=":"),var.strata,sep=":")))
+                ## stats::update(terms.var, paste0("~0+",out$name$strata,"+",out$name$strata,":."))
+                ## using ".:var.strata" does not work (it gives the same formula - does not invert . var.strata around the : symbol)
+            }
         }
     }
     
@@ -88,25 +137,13 @@
         }
     }
 
-    ## if(any(attr(terms(formula.var),"order")>1)){
-    ##     stop("Does not handle interactions in the formula. \n")
-    ## }
-
-    ## ** left hand side
-    var.strata <- lhs.vars(formula)
-    if(length(var.strata)==0){
-        var.strata <- NULL
-    }else if(length(lhs.vars(formula))!=1){
-        stop("Incorrect formula for the residual variance-covariance structure. \n",
-             "There should be at most one variable on the left hand side, something like: ~ time|id or group ~ time|id. \n")
-    }
-
     ## ** export
     out <- list(pattern = NULL,
                 cluster = var.cluster,
                 strata = var.strata,
-                X.var = var.time,
-                X.cor = var.time,
+                var.time = var.time,
+                X.var = all.vars(formula.var),
+                X.cor = all.vars(formula.var),
                 formula.var = formula.var,
                 formula.cor = formula.var
                 )
@@ -129,8 +166,8 @@
 ##' @examples
 ##' IND(~1)
 ##' IND(~time)
-##' IND(~time*gender)
-##' IND(~time*gender,time="time")
+##' IND(~time+gender)
+##' IND(~time+gender,var.time="time")
 ##' 
 ##' @export
 IND <- function(formula, var.time, ...){
@@ -138,17 +175,15 @@ IND <- function(formula, var.time, ...){
     if(!is.null(out0$strata)){
         stop("Cannot stratify when using structure IND. \n")
     }
-    out <- list(name = data.frame(cluster = if(!is.null(out0$cluster)){out0$cluster}else{NA},
+    out <- list(name = data.frame(cluster = if(length(out0$cluster)==1){out0$cluster}else{NA},
                                   strata = NA,
-                                  time = if(length(out0$X.var)==1){out0$X.var}else{NA},
-                                  var = if(!is.null(out0$X.var)){I(list(out0$X.var))}else{NA},
+                                  time = if(!missing(var.time)){var.time}else if(length(out0$var.time)==1){out0$var.time}else{NA},
+                                  var = if(length(out0$X.var)>0){I(list(out0$X.var))}else{NA},
                                   cor = NA),
                 formula = list(var = out0$formula.var,
                                cor = NULL),
                 type = "IND")
-    if(!missing(var.time)){
-        out$name$time <- var.time
-    }
+
 
     ## export
     class(out) <- append("structure",class(out))
@@ -182,28 +217,28 @@ CS <- function(formula, var.cluster, var.time, ...){
     if(!missing(var.cluster) && var.cluster!=out0$cluster){
         stop("Mismatch between cluster variables. \n")
     }
-    ## remove time variable that may have been propagated via the argument repetition
-    if(!missing(var.time) && !is.null(out0$X.var) && var.time!=out0$X.var){
+    if(!missing(var.time) && !is.null(out0$time.var) && var.time!=out0$time.var){
         stop("Mismatch between time variables for the variance structure. \n")
     }
-    if(!missing(var.time) && !is.null(out0$X.cor) && var.time!=out0$X.cor){
-        stop("Mismatch between time variables for the correlation structure. \n")
-    }
-    ##
-    if(length(out0$X.var)>1){
-        stop("Should be at most one covariate in the variance formula (which indicates time). \n")
-    }
+
     out <- list(name = data.frame(cluster = out0$cluster,
-                                 strata = if(!is.null(out0$strata)){out0$strata}else{NA},
-                                 time = if(!missing(var.time)){var.time}else if(length(out0$X.var)==1){out0$X.var}else{NA},
-                                 var = NA,
-                                 cor = NA),
+                                  strata = if(!is.null(out0$strata)){out0$strata}else{NA},
+                                  time = if(!missing(var.time)){var.time}else if(length(out0$var.time)==1){out0$var.time}else{NA},
+                                  var = NA,
+                                  cor = NA),
                 formula = list(var = NULL,
                                cor = NULL),
                 type = "CS")
 
+    ## check variable in formula
+    if(length(setdiff(out$X.var,c(out$var.time,out$strata)))>1){
+        stop("Should be at no covariate in the variance formula, except thoses indicating time and strata. \n")
+    }
+    if(length(setdiff(out$X.cor,c(out$var.time,out$strata)))>1){
+        stop("Should be at no covariate in the correlation formula, except thoses indicating time and strata. \n")
+    }
     ##  add strata to the formula (and possibly remove time effect)
-    if(is.null(out0$strata)){
+    if(is.na(out$name$strata)){
         out$formula$var <- ~1
         out$formula$cor <- ~1
     }else{
@@ -232,48 +267,40 @@ CS <- function(formula, var.cluster, var.time, ...){
 ##'
 ##' @examples
 ##' UN(~time|id)
+##' UN(~time+gender|id)
 ##' UN(group~time|id, var.cluster = "id")
+##' UN(group~time|id, var.cluster = "id", var.time = "time")
 ##' 
 ##' @export
-UN <- function(formula, var.cluster, ...){
+UN <- function(formula, var.cluster, var.time, ...){
     out0 <- .formulaStructure(formula, missing.time.ok = TRUE)
 
     ## check cluster
     if(!missing(var.cluster) && var.cluster!=out0$cluster){
         stop("Mismatch between cluster variables. \n")
     }
-    if(identical(out0$X.var,out0$X.cor) && length(out0$X.var)==1){
-        out0$time.var <- out0$X.var
+    if(!missing(var.time) && !is.null(out0$time.var) && var.time!=out0$time.var){
+        stop("Mismatch between time variables for the variance structure. \n")
     }
     out <- list(name = data.frame(cluster = out0$cluster,
-                                  strata = if(!is.null(out0$strata)){out0$strata}else{NA},
-                                  time = out0$time.var,
+                                  strata = if(length(out0$strata)==1){out0$strata}else{NA},
+                                  time = if(!missing(var.time)){var.time}else if(length(out0$var.time)==1){out0$var.time}else{NA},
                                   var = I(list(out0$X.var)),
                                   cor = I(list(out0$X.cor))),
                 formula = list(var = out0$formula.var,
                                cor = out0$formula.cor),
                 type = "UN")
 
-    ##  add strata to the formula
-    if(!is.null(out0$strata)){
+    ##  check covariates when stratifying
+    if(!is.na(out$name$strata)){
 
-        if(!identical(out$name$time,all.vars(update(out$formula$var,"0~.")))){
+        if(!identical(out$name$time,setdiff(out$name$var[[1]],out$name$strata))){
             stop("When using stratification with unstructured covariance pattern, the regressor in the variance formula must the time variable. \n")
         }
-
-        terms.var <- stats::delete.response(stats::terms(out$formula$var))
-        ## out$formula.var <- stats::update(terms.var, paste0("~0+",out$strata,"+",out$strata,":."))
-        out$formula$var <- stats::update(terms.var, paste0("~0+",out$name$strata,"+",out$name$strata,":."))
-        out$name$var[[1]] <- c(out$name$var[[1]],out$name$strata)
-        
-        terms.cor <- stats::delete.response(stats::terms(out$formula$cor))
-        if(any(attr(terms.cor,"order")>1)){
-            stop("Does not handle interactions in the correlation formula. \n")
+        if(!identical(out$name$time,setdiff(out$name$cor[[1]],out$name$strata))){
+            stop("When using stratification with unstructured covariance pattern, the regressor in the correlation formula must the time variable. \n")
         }
-        out$formula$cor <- stats::update(terms.cor, paste0("~0+",out$name$strata,"+",out$name$strata,":."))
-        out$name$cor[[1]] <- c(out$name$cor[[1]],out$name$strata)
-        
-        ## using ".:var.strata" does not work (it gives the same formula - does not invert . var.strata around the : symbol)
+
     }
  
     ## export

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: sep  8 2021 (11:34) 
+## Last-Updated: sep 15 2021 (19:00) 
 ##           By: Brice Ozenne
-##     Update #: 78
+##     Update #: 85
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -19,7 +19,6 @@
                          transform.sigma, transform.k, transform.rho,
                          logLik, score, information, vcov, df, indiv, effects, robust,
                          trace, precompute.moments, method.numDeriv, transform.names){
-
 
     param.value <- value
     param.type <- design$param$type
@@ -58,17 +57,17 @@
 
     ## ** 2- compute partial derivatives regarding the mean and the variance
     if(trace>=1){cat("- residuals \n")}
-    out$fitted <- design$X.mean %*% param.value[colnames(design$X.mean)]
+    out$fitted <- design$mean %*% param.value[colnames(design$mean)]
     out$residuals <- design$Y - out$fitted
+
     if(precompute.moments){
         precompute <- list(XX = design$precompute.XX,
-                           RR = .precomputeRR(residuals = out$residuals, pattern = design$X.var$pattern,
-                                              pattern.time = design$X.var$index.time, pattern.cluster = attr(design$X.var$cluster, "index.byPattern"), index.cluster = attr(design$index.cluster,"sorted"))                           
+                           RR = .precomputeRR(residuals = out$residuals, pattern = design$vcov$X$Upattern$name,
+                                              pattern.time = design$vcov$X$Upattern$time, pattern.cluster = design$vcov$X$Upattern$cluster, index.cluster = attr(design$index.cluster,"sorted"))                           
                            )
         if(score || information || vcov || df){
-            precompute$XR  <-  .precomputeXR(X = design$precompute.XX$Xpattern, residuals = out$residuals, pattern = design$X.var$pattern,
-                                             pattern.time = design$X.var$index.time, pattern.cluster = attr(design$X.var$cluster, "index.byPattern"), index.cluster = attr(design$index.cluster,"sorted"))
-        }
+            precompute$XR  <-  .precomputeXR(X = design$precompute.XX$Xpattern, residuals = out$residuals, pattern = design$vcov$X$Upattern$name,
+                                             pattern.time = design$vcov$X$Upattern$time, pattern.cluster = design$vcov$X$Upattern$cluster, index.cluster = attr(design$index.cluster,"sorted"))            }
 
     }else{
         precompute <- NULL
