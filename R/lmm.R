@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: sep 15 2021 (18:55) 
+## Last-Updated: sep 16 2021 (17:43) 
 ##           By: Brice Ozenne
-##     Update #: 1046
+##     Update #: 1063
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -50,6 +50,8 @@
 ##' ## same as
 ##' eCS.lmm.bis <- lmm(Y ~ X1 + X2 + X5, structure = CS(~visit|id), data = dL)
 ##'
+##' ## eID.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "ID", data = dL, trace = 5)
+##' ## eIND.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "IND", data = dL, trace = 5)
 ##' ## output
 ##' eCS.lmm
 ##' summary(eCS.lmm)
@@ -182,8 +184,13 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     if(inherits(structure,"structure")){
         type.sturcture <- structure$type
     }else if(inherits(structure,"character")){
-        type.structure <- match.arg(structure, c("IND","CS","UN"))
-        structure <- do.call(type.structure, list(formula = repetition, var.cluster = var.cluster, var.time = var.time))
+        type.structure <- match.arg(structure, c("ID","IND","CS","UN"))
+        if(structure=="ID"){
+            structure <- IND(formula = ~1, var.cluster = var.cluster, var.time = var.time)
+            type.structure <- "IND"
+        }else{
+            structure <- do.call(type.structure, list(formula = repetition, var.cluster = var.cluster, var.time = var.time))
+        }
     }else{        
         stop("Argument \'structure\' must either be a character or a structure object. \n")
     }
@@ -347,10 +354,12 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                                     var.cluster = var.cluster,
                                     precompute.moments = options$precompute.moments
                                     )
+
     out$xfactor <- c(stats::.getXlevels(stats::terms(out$formula$mean.design),data),
-                     stats::.getXlevels(stats::terms(out$formula$var.design),data),
-                     stats::.getXlevels(stats::terms(out$formula$cor.design),data)
-                     )
+                     stats::.getXlevels(stats::terms(out$formula$var.design),data))
+    if(!is.null(out$formula$cor.design)){
+        out$xfactor <- c(out$xfactor,stats::.getXlevels(stats::terms(out$formula$cor.design),data))
+    }
     out$xfactor <- out$xfactor[duplicated(names(out$xfactor))==FALSE]
 
     if(options$optimizer=="gls"){
@@ -385,12 +394,14 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
 
     if(options$optimizer=="gls"){
 
-        if(max(out$design$cluster$nobs)==1){
-            if(type.structure == "CS"){
+        if(max(out$design$cluster$nobs)==1 || type.structure == "IND"){
+            name.var <- na.omit(setdiff(structure$name$var,structure$name$strata))
+
+            if(type.structure == "CS" || length(name.var)==0){
                 txt.gls <- paste0("nlme::gls(",txt.formula,",
                                          method = ",deparse(method.fit),",
                                          data = ",txt.data,", control = control)")
-            }else if(type.structure == "UN"){
+            }else if(type.structure == "UN" || length(name.var)>0){
                 form.var <- stats::as.formula(paste0("~1|",var.time))
                 txt.gls <- paste0("nlme::gls(",txt.formula,",
                                          weights = nlme::varIdent(form = ",deparse(form.var),"),
@@ -430,14 +441,16 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
 
         param.mu <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]) })
         param.sigma <- lapply(U.strata, function(iS){ stats::sigma(out$gls[[iS]]) })
-        param.k <- lapply(U.strata, function(iS){  coef(out$gls[[iS]]$modelStruct$varStruct, unconstrained = FALSE) })
-        param.rho <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]$modelStruct$corStruct, unconstrained = FALSE) })
-
         param.value <- c(stats::setNames(unlist(param.mu),out$design$param$mu),
-                         stats::setNames(unlist(param.sigma), out$design$param$sigma),
-                         stats::setNames(unlist(param.k), out$design$param$k),
-                         stats::setNames(unlist(param.rho), out$design$param$rho)
-                         )
+                         stats::setNames(unlist(param.sigma), out$design$param$sigma))
+        if(length(out$design$param$k)>0){
+            param.k <- lapply(U.strata, function(iS){  coef(out$gls[[iS]]$modelStruct$varStruct, unconstrained = FALSE) })
+            param.value <- c(param.value,stats::setNames(unlist(param.k), out$design$param$k))
+        }
+        if(length(out$design$param$rho)>0){
+            param.rho <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]$modelStruct$corStruct, unconstrained = FALSE) })
+            param.value <- c(param.value,stats::setNames(unlist(param.rho), out$design$param$rho))
+        }        
 
     }else if(options$optimizer=="FS"){
 

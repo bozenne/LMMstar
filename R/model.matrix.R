@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: sep 15 2021 (18:48) 
+## Last-Updated: sep 16 2021 (17:40) 
 ##           By: Brice Ozenne
-##     Update #: 966
+##     Update #: 978
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -145,7 +145,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
     }else if(!identical(structure$name$cluster,var.cluster)){
         stop("The name of the cluster variable in the residual variance-covariance structure does not match the actual cluster variable. \n")
     }
-    structure <- skeletonStructure(structure, data = data)
+    structure <- .skeleton(structure, data = data)
     
     ## ** prepare calculation of the score
     if(precompute.moments){
@@ -157,7 +157,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
         precompute.XX <- NULL
         precompute.XY <- NULL
     }
-    
+
     ## ** pairs
     pair.meanvarcoef <- stats::setNames(lapply(structure$X$Upattern$name, function(iPattern){ ## iPattern <- structure$X$Upattern$name[1]
         iParamMu <- names(strata.mu)[U.strata[strata.mu]==structure$X$Upattern$strata[[iPattern]]]
@@ -165,23 +165,11 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
         iOut <- unname(t(expand.grid(iParamMu, iParamVar)))
         return(iOut)
     }), structure$X$Upattern$name)
-    
-    pair.varcoef <- stats::setNames(lapply(structure$X$Upattern$name, function(iPattern){## ## iPattern <- structure$X$Upattern$name[1]
-        iParam <- structure$X$Upattern$param[[iPattern]]
-
-        iOut <- .unorderedPairs(iParam)
-        attr(iOut, "key") <- matrix(NA, nrow = length(iParam), ncol = length(iParam), dimnames = list(iParam,iParam))
-        for(iCol in 1:NCOL(iOut)){
-            attr(iOut, "key")[iOut[1,iCol],iOut[2,iCol]] <- iCol
-            attr(iOut, "key")[iOut[2,iCol],iOut[1,iCol]] <- iCol
-        }
-        return(iOut)
-    }),structure$X$Upattern$name)
 
     ## ** param
     skeleton.param <- list(mu = colnames(X.mean),
                            sigma = structure$param[structure$param$type=="sigma","name"],
-                           k = structure$param[structure$param$type=="sigma","k"],
+                           k = structure$param[structure$param$type=="k","name"],
                            rho = structure$param[structure$param$type=="rho","name"],
                            strata.mu = strata.mu,
                            strata.sigma = structure$param[structure$param$type=="sigma","strata"],
@@ -190,8 +178,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
                            time.sigma = structure$param[structure$param$type=="sigma","time"],
                            time.k = structure$param[structure$param$type=="k","time"],
                            time.rho = structure$param[structure$param$type=="rho","time"],
-                           pair.meanvarcoef = pair.meanvarcoef,
-                           pair.varcoef = pair.varcoef)
+                           pair.meanvarcoef = pair.meanvarcoef)
     name.param <- c(skeleton.param$mu,skeleton.param$sigma,skeleton.param$k,skeleton.param$rho)
     skeleton.param$type <- stats::setNames(c(rep("mu",length(skeleton.param$mu)),
                                              rep("sigma",length(skeleton.param$sigma)),

@@ -1,11 +1,11 @@
-### skeletonStructure.R --- 
+### structure-skeleton.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: sep 15 2021 (18:40) 
+## Last-Updated: sep 16 2021 (17:36) 
 ##           By: Brice Ozenne
-##     Update #: 530
+##     Update #: 553
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,42 +16,45 @@
 ### Code:
 
 
-## * skeletonStructure
+## * skeleton
 ##' @title Parametrization of Covariance Structure
 ##' @description Parametrization of Covariance Structure
 ##'
-##' @param structure structure
-##' @param data dataset
+##' @param structure [structure]
+##' @param data [data.frame] dataset
 ##'
+##' @keywords internal
+##' 
 ##' @examples
+##' \dontrun{
 ##' data(gastricbypassL, package = "LMMstar")
 ##' gastricbypassL$gender <- c("M","F")[as.numeric(gastricbypassL$id) %% 2+1]
 ##' dd <- gastricbypassL[!duplicated(gastricbypassL[,c("time","gender")]),]
 ##' 
 ##' ## independence
-##' skeletonStructure(IND(~1, var.time = "time"), data = dd)
-##' skeletonStructure(IND(~time), data = dd)
-##' skeletonStructure(IND(~time|id), data = dd)
-##' skeletonStructure(IND(~time+gender|id, var.time = "time"), data = dd)
+##' .skeleton(IND(~1, var.time = "time"), data = dd)
+##' .skeleton(IND(~time), data = dd)
+##' .skeleton(IND(~time|id), data = dd)
+##' .skeleton(IND(~time+gender|id, var.time = "time"), data = dd)
 ##' 
 ##' ## compound symmetry
-##' skeletonStructure(CS(~1|id, var.time = "time"), data = gastricbypassL)
-##' skeletonStructure(CS(~time|id), data = gastricbypassL)
-##' skeletonStructure(CS(gender~time|id), data = gastricbypassL)
+##' .skeleton(CS(~1|id, var.time = "time"), data = gastricbypassL)
+##' .skeleton(CS(~time|id), data = gastricbypassL)
+##' .skeleton(CS(gender~time|id), data = gastricbypassL)
 ##' 
 ##' ## unstructured
-##' skeletonStructure(UN(~visit|id), data = gastricbypassL)
-##' skeletonStructure(UN(~time|id), data = gastricbypassL)
-##' skeletonStructure(UN(~visit+gender|id, var.time = "time"), data = gastricbypassL)
-##' skeletonStructure(UN(gender~visit|id), data = gastricbypassL)
-##' 
+##' .skeleton(UN(~visit|id), data = gastricbypassL)
+##' .skeleton(UN(~time|id), data = gastricbypassL)
+##' .skeleton(UN(~visit+gender|id, var.time = "time"), data = gastricbypassL)
+##' .skeleton(UN(gender~visit|id), data = gastricbypassL)
+##' }
 ##' @export
-`skeletonStructure` <-
-    function(structure, data) UseMethod("skeletonStructure")
+`.skeleton` <-
+    function(structure, data) UseMethod(".skeleton")
 
-## * skeletonStructure.IND
+## * skeleton.IND
 ##' @export
-skeletonStructure.IND <- function(structure, data){
+.skeleton.IND <- function(structure, data){
 
     ## ** prepare
     outInit <- .initSkeleton(data = data, structure = structure)
@@ -110,15 +113,16 @@ skeletonStructure.IND <- function(structure, data){
                         pattern.cluster = outPattern$pattern.cluster,
                         var = outPattern$X.var,
                         cor = outPattern$X.cor)
+    structure$pair.varcoef <- outPattern$pair.varcoef
 
     ## ** export
     return(structure)
 }
 
 
-## * skeletonStructure.CS
+## * skeleton.CS
 ##' @export
-skeletonStructure.CS <- function(structure, data){
+.skeleton.CS <- function(structure, data){
 
     ## ** prepare
     outInit <- .initSkeleton(data = data, structure = structure)
@@ -194,14 +198,15 @@ skeletonStructure.CS <- function(structure, data){
                         pattern.cluster = outPattern$pattern.cluster,
                         var = outPattern$X.var,
                         cor = outPattern$X.cor)
+    structure$pair.varcoef <- outPattern$pair.varcoef
 
     ## ** export
     return(structure)
 }
 
-## * skeletonStructure.UN
+## * skeleton.UN
 ##' @export
-skeletonStructure.UN <- function(structure, data){
+.skeleton.UN <- function(structure, data){
 
     ## ** prepare
     outInit <- .initSkeleton(data = data, structure = structure)
@@ -341,6 +346,7 @@ skeletonStructure.UN <- function(structure, data){
                         pattern.cluster = outPattern$pattern.cluster,
                         var = outPattern$X.var,
                         cor = outPattern$X.cor)
+    structure$pair.varcoef <- outPattern$pair.varcoef
 
     ## ** export
     return(structure)
@@ -465,14 +471,16 @@ skeletonStructure.UN <- function(structure, data){
     UpatternVar.cluster <- vec.patternVar.cluster[Uindex.patternVar.cluster]
     patternVar.cluster <- as.numeric(factor(vec.patternVar.cluster, levels = UpatternVar.cluster))
 
-    X.var2 <- setNames(lapply(Uindex.patternVar.cluster,function(iIndex){
-        X.var[index.cluster[[iIndex]],,drop=FALSE]
+    X.var2 <- setNames(lapply(Uindex.patternVar.cluster,function(iIndex){ ## iIndex <- Uindex.patternVar.cluster[1]
+        iX <- X.var[index.cluster[[iIndex]],,drop=FALSE]
+        attr(iX,"indicator.param") <- setNames(lapply(1:NCOL(iX),function(iCol){which(tcrossprod(iX[,iCol],rep(1,NROW(iX))) + t(tcrossprod(iX[,iCol],rep(1,NROW(iX)))) > 0)}),
+                                               colnames(iX))
+        return(iX)
     }),UpatternVar.cluster)
     
     for(iVar in colnames(X.var)){
         time.param[[iVar]] <- sort(match(unique(as.character(data[X.var[,iVar]==1,time.var])),U.time))[1]
     }
-
     ## *** find all correlation patterns
     if(is.null(X.cor)){
         UpatternCor.cluster <- "1"
@@ -511,6 +519,7 @@ skeletonStructure.UN <- function(structure, data){
 
             ## add index to build the matrix format and time
             attr(iZ,"index.vec2matrix") <- iPair.time[1,] + NROW(iX)*(iPair.time[2,]-1)
+            attr(iZ,"indicator.param") <- setNames(lapply(1:NCOL(iZ),function(iI){attr(iZ,"index.vec2matrix")[which(iZ[,iI]>0)]}),colnames(iZ))
             attr(iZ,"index.pairtime") <- iPair.time
             attr(iZ,"index.Utime") <- index.clusterTime[[iC]][order.clusterTime[[iC]]]
             if(!is.na(strata.var)){
@@ -540,6 +549,7 @@ skeletonStructure.UN <- function(structure, data){
             }
         }
     }
+
     
     ## ***  assemble variance and correlation patterns to identify unique patterns
     pattern.cluster <- paste(patternVar.cluster,patternCor.cluster,sep=".")
@@ -572,15 +582,29 @@ skeletonStructure.UN <- function(structure, data){
     names(Upattern$cluster) <- Upattern$name
     names(Upattern$param) <- Upattern$name
 
+    ## *** pair of variance-covariance coefficients
+    pair.varcoef <- stats::setNames(lapply(Upattern$name, function(iPattern){## ## iPattern <- structure$X$Upattern$name[1]
+        iParam <- Upattern$param[[iPattern]]
+
+        iOut <- .unorderedPairs(iParam)
+        attr(iOut, "key") <- matrix(NA, nrow = length(iParam), ncol = length(iParam), dimnames = list(iParam,iParam))
+        for(iCol in 1:NCOL(iOut)){
+            attr(iOut, "key")[iOut[1,iCol],iOut[2,iCol]] <- iCol
+            attr(iOut, "key")[iOut[2,iCol],iOut[1,iCol]] <- iCol
+        }
+        return(iOut)
+    }),Upattern$name)
+
     ## *** export
     out <- list(pattern.cluster = pattern.cluster,
                 Upattern = Upattern,
                 X.cor = X.cor2,
                 X.var = X.var2,
-                time.param = time.param)
+                time.param = time.param,
+                pair.varcoef = pair.varcoef)
     return(out)
 }
 
 
 ##----------------------------------------------------------------------
-### skeletonStructure.R ends here
+### structure-skeleton.R ends here

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: sep 15 2021 (19:00) 
+## Last-Updated: sep 16 2021 (19:01) 
 ##           By: Brice Ozenne
-##     Update #: 85
+##     Update #: 94
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -74,33 +74,32 @@
     }
 
     if(trace>=1){cat("- Omega \n")}
-    out$Omega <- .calc_Omega(object = design$X.var, param = param.value, keep.interim = TRUE)
+    out$Omega <- .calc_Omega(object = design$vcov, param = param.value, keep.interim = TRUE)
     out$OmegaM1 <- lapply(out$Omega,solve)
     
     if(score || information || vcov || df){
         if(trace>=1){cat("- dOmega \n")}
-        out$dOmega <- .calc_dOmega(object = design$X.var, param = param.value, type = param.type, Omega = out$Omega,
+        out$dOmega <- .calc_dOmega(object = design$vcov, param = param.value, Omega = out$Omega,
                                    Jacobian = out$reparametrize$Jacobian)
     }
 
     if(test.d2Omega){
         if(trace>=1){cat("- d2Omega \n")}
-        out$d2Omega <- .calc_d2Omega(object = design$X.var, param = param.value, type = param.type,
-                                     Omega = out$Omega, dOmega = out$dOmega, pair = design$param$pair.varcoef,
+        out$d2Omega <- .calc_d2Omega(object = design$vcov, param = param.value, Omega = out$Omega, dOmega = out$dOmega, 
                                      Jacobian = out$reparametrize$Jacobian, dJacobian = out$reparametrize$dJacobian)
     }
-
+browser()
     ## ** 3- compute likelihood derivatives
     if(logLik){
         if(trace>=1){cat("- log-likelihood \n")}
-        out$logLik <- .logLik(X = design$X.mean, residuals = out$residuals, precision = out$OmegaM1,
-                              index.variance = design$X.var$cluster, time.variance = design$index.time, index.cluster = design$index.cluster, 
+        out$logLik <- .logLik(X = design$mean, residuals = out$residuals, precision = out$OmegaM1,
+                              index.variance = design$vcov$X$pattern.cluster, time.variance = design$index.time, index.cluster = design$index.cluster, 
                               indiv = indiv, REML = method.fit=="REML", precompute = precompute)
     }
 
     if(score){
         if(trace>=1){cat("- score \n")}
-        out$score <- .score(X = design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega,
+        out$score <- .score(X = design$mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega,
                             index.variance = design$X.var$cluster, time.variance = design$index.time, index.cluster = design$index.cluster,
                             name.varcoef = design$X.var$param, name.allcoef = name.allcoef,
                             indiv = indiv, REML = method.fit=="REML", effects = effects, precompute = precompute)
@@ -116,7 +115,7 @@
 
     if(information || vcov){
         if(trace>=1){cat("- information \n")}
-        out$information <- .information(X = design$X.mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega, 
+        out$information <- .information(X = design$mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega, 
                                         index.variance = design$X.var$cluster, time.variance = design$index.time, index.cluster = design$index.cluster,
                                         name.varcoef = design$X.var$param, name.allcoef = name.allcoef,
                                         pair.meanvarcoef = design$param$pair.meanvarcoef, pair.varcoef = design$param$pair.varcoef,
