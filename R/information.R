@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: sep  7 2021 (17:05) 
+## Last-Updated: sep 17 2021 (09:48) 
 ##           By: Brice Ozenne
-##     Update #: 870
+##     Update #: 873
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -148,7 +148,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
 ## d 0.5 tr[(X \OmegaM1 X)^{-1} (X \OmegaM1 d\Omega \OmegaM1 X)] = 0.5 tr[ (X \OmegaM1 d'\Omega \OmegaM1 X) (X \OmegaM1 X)^{-2} (X \OmegaM1 d\Omega \OmegaM1 X) ]
 ##                                                                 - 0.5 tr[ (X \OmegaM1 X)^{-1} (X \OmegaM1 d'\Omega \OmegaM1 d\Omega \OmegaM1 X) + (X \OmegaM1 X)^{-1} (X \OmegaM1 d\Omega \OmegaM1 d'\Omega \OmegaM1 X) ]
 ##                                                                 + 0.5 tr[ (X \OmegaM1 X)^{-1} (X \OmegaM1 d2\Omega \OmegaM1 X) ]
-.information <- function(X, residuals, precision, dOmega, d2Omega, 
+.information <- function(X, residuals, precision, dOmega, d2Omega, Upattern.ncluster,
                          index.variance, time.variance, index.cluster, name.varcoef, name.allcoef,
                          pair.meanvarcoef, pair.varcoef, indiv, REML, type.information, effects, robust,
                          precompute){
@@ -347,12 +347,9 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
 
     ## *** looping over covariance patterns
     if(!test.loopIndiv){
-        ## precompute
-        ncluster.pattern <- sapply(attr(index.variance,"index.byPattern"),length)
-        name.pattern <- names(ncluster.pattern)
     
         ## loop
-        for (iPattern in name.pattern) { ## iPattern <- name.pattern[1]
+        for (iPattern in U.pattern) { ## iPattern <- name.pattern[1]
             iOmega <- precision[[iPattern]]
             iTime <- NCOL(iOmega)
             iTime2 <- length(iOmega)
@@ -414,11 +411,11 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
                 iTrace_O_dO_O_dO <- colSums(dOmega_OmegaM1[,pair.varcoef[[iPattern]][1,],drop=FALSE] * tdOmega_OmegaM1[,pair.varcoef[[iPattern]][2,],drop=FALSE])
                 ## - 0.5 * tr(iOmega %*% dOmega[[iPattern]][[1]] %*% iOmega %*% dOmega[[iPattern]][[2]] - iOmega %*% d2Omega[[iPattern]][[iPair]])
                 if(type.information == "expected"){
-                    iValue <- 0.5 * ncluster.pattern[[iPattern]] * iTrace_O_dO_O_dO
+                    iValue <- 0.5 * Upattern.ncluster[iPattern] * iTrace_O_dO_O_dO
                 }else if(type.information == "observed"){
                     id2Omega <- matrix(unlist(d2Omega[[iPattern]]), nrow = iTime2, ncol = npair.varcoef[[iPattern]])
                     iTrace_d2Omega <- colSums(sweep(id2Omega, MARGIN = 1, FUN = "*", STATS = as.double(precision[[iPattern]])))
-                    iValue <- - 0.5 * ncluster.pattern[[iPattern]] * (iTrace_O_dO_O_dO - iTrace_d2Omega) - 0.5 * as.double(as.double(precompute$RR[[iPattern]]) %*% iOmegaM1_d2OmegaAndCo_OmegaM1)
+                    iValue <- - 0.5 * Upattern.ncluster[iPattern] * (iTrace_O_dO_O_dO - iTrace_d2Omega) - 0.5 * as.double(as.double(precompute$RR[[iPattern]]) %*% iOmegaM1_d2OmegaAndCo_OmegaM1)
                     
                 }
                 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: sep  8 2021 (13:28) 
+## Last-Updated: sep 17 2021 (10:04) 
 ##           By: Brice Ozenne
-##     Update #: 118
+##     Update #: 120
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,6 +15,7 @@
 ## 
 ### Code:
 
+## * estimate
 .estimate <- function(design, time, method.fit, type.information,
                       transform.sigma, transform.k, transform.rho,
                       precompute.moments, init, n.iter, tol.score, tol.param, trace){
@@ -58,7 +59,7 @@
             diag(1, nrow = length(design$X.var$index.time[[iPattern]]), ncol = length(design$X.var$index.time[[iPattern]]))
         }), pattern)
         param.value[param.mu] <- .estimateGLS(OmegaM1 = start.OmegaM1, pattern = pattern, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX)
-        iResiduals.long <- design$Y - design$X.mean %*% param.value[param.mu]
+        iResiduals.long <- design$Y - design$mean %*% param.value[param.mu]
         iResiduals.wide <- reshape2::dcast(data = data.frame(residuals = iResiduals.long, cluster = design$index.cluster, time = design$index.time),
                                            formula = cluster~time, value.var = "residuals")
         iM.rescor <- stats::cor(iResiduals.wide[,-1,drop=FALSE], use = "pairwise")

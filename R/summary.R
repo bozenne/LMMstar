@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: sep  8 2021 (13:16) 
+## Last-Updated: sep 17 2021 (10:03) 
 ##           By: Brice Ozenne
-##     Update #: 327
+##     Update #: 330
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -152,9 +152,9 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, columns =
             }else{
                 cat("diagonal \n\n")
             }
-        }else if(structure == "UN"){
+        }else if(structure$type == "UN"){
             cat("unstructured \n\n")
-        }else if(structure == "CS"){
+        }else if(structure$type == "CS"){
             cat("compound symmetry \n\n")
         }
     }
@@ -257,11 +257,11 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, columns =
         print(printtable.mean)
         cat("\n")
         if("lower" %in% columns && "upper" %in% columns){
-            cat("The columns lower and upper correspond to the ",100*level,"% confidence interval\n", sep = "")
+            cat("The columns lower and upper indicate a ",100*level,"% confidence interval for each coefficient\n", sep = "")
         }else if("lower" %in% columns){
-            cat("The column lower corresponds to the ",100*level,"% confidence interval of the estimated coefficient\n", sep = "")
+            cat("The column lower indicates a ",100*level,"% confidence interval for each coefficient\n", sep = "")
         }else if("upper" %in% columns){
-            cat("The column upper corresponds to the ",100*level,"% confidence interval of the estimated coefficient\n", sep = "")
+            cat("The column upper indicate a ",100*level,"% confidence interval for each coefficient\n", sep = "")
         }
         if(!is.null(object$df)){
             cat("Degrees of freedom were computed using a Satterthwaite approximation\n", sep = "")

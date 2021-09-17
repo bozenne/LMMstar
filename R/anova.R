@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: sep  6 2021 (15:28) 
+## Last-Updated: sep 17 2021 (09:14) 
 ##           By: Brice Ozenne
-##     Update #: 514
+##     Update #: 515
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -177,7 +177,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
         ls.null <- list()
         if("mean" %in% effects){
             out <- c(out,list(mean = NULL))
-            ls.assign$mean <- attr(object$design$X.mean,"assign")
+            ls.assign$mean <- attr(object$design$mean,"assign")
             ls.nameTerms$mean <- attr(stats::terms(object$formula$mean.design),"term.labels")
             ls.contrast <- c(ls.contrast,list(mean = NULL))
             null.mean <- 0
@@ -418,7 +418,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
     typeH1 <-  objectH1$param$type
     paramH0 <-  names(objectH0$param$type)
     typeH0 <-  objectH0$param$type
-    test.X <- identical(objectH0$design$X.mean[,paramH0[typeH0=="mu"],drop=FALSE], objectH1$design$X.mean[,paramH0[typeH0=="mu"],drop=FALSE])
+    test.X <- identical(objectH0$design$mean[,paramH0[typeH0=="mu"],drop=FALSE], objectH1$design$mean[,paramH0[typeH0=="mu"],drop=FALSE])
     if(test.X==FALSE){
         stop("Mismatch between the design matrices for the mean of the two models - one should be nested in the other. \n")
     }

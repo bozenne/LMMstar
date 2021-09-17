@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: sep 16 2021 (17:40) 
+## Last-Updated: sep 17 2021 (10:25) 
 ##           By: Brice Ozenne
-##     Update #: 978
+##     Update #: 986
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -91,7 +91,6 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
     }else{
         data[[var.strata]] <- factor(data[[var.strata]], levels = U.strata)
     }
-    index.strata <- tapply(data[[var.strata]],data[[var.cluster]],unique)
 
     ## time
     data[[var.time]] <- factor(data[[var.time]], levels = U.time)
@@ -150,17 +149,18 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
     ## ** prepare calculation of the score
     if(precompute.moments){
         precompute.XX <-  .precomputeXX(X = X.mean, pattern = structure$X$Upattern$name,
-                                        pattern.time = structure$X$Upattern$time, pattern.cluster = structure$X$Upattern$cluster, index.cluster = attr(index.cluster,"sorted"))
+                                        pattern.time = structure$X$Upattern$time, pattern.cluster = structure$X$cluster.pattern, index.cluster = attr(index.cluster,"sorted"))
         precompute.XY <-  .precomputeXR(X = precompute.XX$Xpattern, residuals = cbind(data[[var.outcome]]), pattern = structure$X$Upattern$name,
-                                        pattern.time = structure$X$Upattern$time, pattern.cluster = structure$X$Upattern$cluster, index.cluster = attr(index.cluster,"sorted"))
+                                        pattern.time = structure$X$Upattern$time, pattern.cluster = structure$X$cluster.pattern, index.cluster = attr(index.cluster,"sorted"))
     }else{
         precompute.XX <- NULL
         precompute.XY <- NULL
     }
 
     ## ** pairs
+    Upattern.strata <- stats::setNames(structure$X$Upattern$strata,structure$X$Upattern$name)
     pair.meanvarcoef <- stats::setNames(lapply(structure$X$Upattern$name, function(iPattern){ ## iPattern <- structure$X$Upattern$name[1]
-        iParamMu <- names(strata.mu)[U.strata[strata.mu]==structure$X$Upattern$strata[[iPattern]]]
+        iParamMu <- names(strata.mu)[U.strata[strata.mu]==Upattern.strata[iPattern]]
         iParamVar <- structure$X$Upattern$param[[iPattern]]
         iOut <- unname(t(expand.grid(iParamMu, iParamVar)))
         return(iOut)

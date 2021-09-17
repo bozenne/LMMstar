@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: sep  8 2021 (13:32) 
+## Last-Updated: sep 17 2021 (09:43) 
 ##           By: Brice Ozenne
-##     Update #: 216
+##     Update #: 219
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -120,7 +120,7 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
 }
 
 ## * .logLik
-.logLik <- function(X, residuals, precision,
+.logLik <- function(X, residuals, precision, Upattern.ncluster,
                     index.variance, time.variance, index.cluster,
                     indiv, REML, precompute){
 
@@ -170,14 +170,13 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
     ## *** looping over covariance patterns
     if(!test.loopIndiv){
         ## precompute
-        ncluster.pattern <- sapply(attr(index.variance,"index.byPattern"),length)
-        n.pattern <- length(ncluster.pattern)
+        n.pattern <- length(Upattern.ncluster)
 
         ## loop
         for (iPattern in 1:n.pattern) { ## iPattern <- 1
             iOmega <- precision[[iPattern]]
             iLogDet.Omega <- log(base::det(iOmega))
-            ll <- ll - 0.5 * unname(ncluster.pattern[iPattern]) * (NCOL(iOmega) * log2pi - iLogDet.Omega) - 0.5 * sum(precompute$RR[[iPattern]] * iOmega)
+            ll <- ll - 0.5 * unname(Upattern.ncluster[iPattern]) * (NCOL(iOmega) * log2pi - iLogDet.Omega) - 0.5 * sum(precompute$RR[[iPattern]] * iOmega)
             if (REML) {
                 ## compute (unique contribution, i.e. only lower part of the matrix)
                 ## iContribution <- apply(precompute$XX$pattern[[iPattern]], MARGIN = 3, FUN = function(iM){sum(iM * iOmega)})

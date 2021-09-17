@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: sep  6 2021 (12:33) 
+## Last-Updated: sep 17 2021 (10:03) 
 ##           By: Brice Ozenne
-##     Update #: 136
+##     Update #: 147
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -77,24 +77,23 @@ getVarCov.lmm <- function(obj, individual = NULL, p = NULL, type.object = c("lmm
     if(type.object == "lmm"){
 
         if(!is.null(p)){
-            Omega <- .calc_Omega(object = object$design$X.var,
+            Omega <- .calc_Omega(object = object$design$vcov,
                                  param = p,
                                  keep.interim = TRUE)
         }else{
             Omega <- object$Omega
         }
-        
         if(is.null(individual)){
             if(object$strata$n==1){
                 out <- stats::setNames(list(.getUVarCov(object, Omega = Omega)),object$strata$levels)
             }else{
                 out <- stats::setNames(vector(mode = "list", length = n.strata),strata)
                 for(iStrata in 1:n.strata){ ## iStrata <- 1
-                    out[[iStrata]] <- .getUVarCov(object, Omega = Omega[object$design$X.var$strata==strata[iStrata]])
+                    out[[iStrata]] <- .getUVarCov(object, Omega = Omega[strata[bject$design$vcov$X$Upattern$strata]==strata[iStrata]])
                 }
             }
         }else{
-            out <- Omega[stats::setNames(object$design$X.var$cluster,object$design$cluster$levels)[individual]]
+            out <- Omega[stats::setNames(object$design$vcov$X$pattern.cluster,object$design$cluster$levels)[individual]]
             for(iO in 1:length(out)){
                 dimnames(out[[iO]]) <- list(object$time$levels[attr(out[[iO]],"time")],object$time$levels[attr(out[[iO]],"time")])
                 attr(out[[iO]],"time") <- NULL
@@ -140,7 +139,7 @@ getVarCov.lmm <- function(obj, individual = NULL, p = NULL, type.object = c("lmm
     ntime <- object$time$n
     time.level <- object$time$level
     time.n <- object$time$n
-    index.time <- object$design$X.var$index.time[names(Omega)] ## subset when strata
+    index.time <- object$design$vcov$X$Upattern$time[names(Omega)] ## subset when strata
     varPattern.ntime <- sapply(index.time,length)
     if(any(varPattern.ntime==ntime)){ ## one covariance structure cover all times
         out <- Omega[[which(varPattern.ntime==ntime)]]

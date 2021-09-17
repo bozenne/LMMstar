@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: sep  8 2021 (12:18) 
+## Last-Updated: sep 17 2021 (09:52) 
 ##           By: Brice Ozenne
-##     Update #: 75
+##     Update #: 79
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -38,9 +38,9 @@ print.lmm <- function(x, ...){
             cat("     Linear regression with heterogeneous residual variance \n")
         }
     }else{
-        if(structure=="UN"){
+        if(structure$type=="UN"){
             cat("     Linear Mixed Model with an unstructured covariance matrix \n")
-        }else if(structure=="CS"){
+        }else if(structure$type=="CS"){
             cat("     Linear Mixed Model with a compound symmetry covariance matrix \n")
         }
     }
@@ -92,8 +92,7 @@ print.lmm <- function(x, ...){
     txt.print <- unname(sapply(apply(M.print,1,paste,collapse=""),paste,"\n"))
     cat("\n ")
     cat(txt.print)
-    return(NULL)
-
+    return(invisible(NULL))
 }
 
 

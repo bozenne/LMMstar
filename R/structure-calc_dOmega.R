@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: sep 16 2021 (17:17) 
+## Last-Updated: sep 17 2021 (10:47) 
 ##           By: Brice Ozenne
-##     Update #: 43
+##     Update #: 45
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -33,11 +33,11 @@
 ##' dd <- gastricbypassL[!duplicated(gastricbypassL[,c("time","gender")]),]
 ##' 
 ##' ## independence
-##' Sid1 <- skeleton(IND(~1, var.time = "time"), data = dd)
-##' Sid4 <- skeleton(IND(~1|id, var.time = "time"), data = dd)
-##' Sdiag1 <- skeleton(IND(~visit), data = dd)
-##' Sdiag4 <- skeleton(IND(~visit|id), data = dd)
-##' Sdiag24 <- skeleton(IND(~visit+gender|id, var.time = "time"), data = dd)
+##' Sid1 <- .skeleton(IND(~1, var.time = "time"), data = dd)
+##' Sid4 <- .skeleton(IND(~1|id, var.time = "time"), data = dd)
+##' Sdiag1 <- .skeleton(IND(~visit), data = dd)
+##' Sdiag4 <- .skeleton(IND(~visit|id), data = dd)
+##' Sdiag24 <- .skeleton(IND(~visit+gender|id, var.time = "time"), data = dd)
 ##' param24 <- setNames(c(1,2,2,3,3,3,5,3),Sdiag24$param$name)
 ##'
 ##' .calc_dOmega(Sid4, param = c(sigma = 2))
@@ -46,8 +46,8 @@
 ##' .calc_dOmega(Sdiag24, param = param24)
 ##' 
 ##' ## compound symmetry
-##' Scs4 <- skeleton(CS(~1|id, var.time = "time"), data = gastricbypassL)
-##' Scs24 <- skeleton(CS(gender~time|id), data = gastricbypassL)
+##' Scs4 <- .skeleton(CS(~1|id, var.time = "time"), data = gastricbypassL)
+##' Scs24 <- .skeleton(CS(gender~time|id), data = gastricbypassL)
 ##' 
 ##' .calc_dOmega(Scs4, param = c(sigma = 1,rho=0.5))
 ##' .calc_dOmega(Scs4, param = c(sigma = 2,rho=0.5))
@@ -55,9 +55,9 @@
 ##'                             "rho:F"=0.5, "rho:M"=0.25))
 ##' 
 ##' ## unstructured
-##' Sun4 <- skeleton(UN(~visit|id), data = gastricbypassL)
+##' Sun4 <- .skeleton(UN(~visit|id), data = gastricbypassL)
 ##' param4 <- setNames(c(1,1.1,1.2,1.3,0.5,0.45,0.55,0.7,0.1,0.2),Sun4$param$name)
-##' Sun24 <- skeleton(UN(gender~visit|id), data = gastricbypassL)
+##' Sun24 <- .skeleton(UN(gender~visit|id), data = gastricbypassL)
 ##' param24 <- setNames(c(param4,param4*1.1),Sun24$param$name)
 ##' 
 ##' .calc_dOmega(Sun4, param = param4)
@@ -79,7 +79,7 @@
     param <- param[name.paramVar]
     name.param <- names(param)
     if(missing(Omega)){
-        Omega <- calc_Omega(object, param = param, keep.interim = TRUE)
+        Omega <- .calc_Omega(object, param = param, keep.interim = TRUE)
     }
     
     Upattern <- object$X$Upattern

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: sep 16 2021 (17:36) 
+## Last-Updated: sep 17 2021 (10:37) 
 ##           By: Brice Ozenne
-##     Update #: 553
+##     Update #: 570
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -111,6 +111,7 @@
     structure$param$time <- outPattern$time.param
     structure$X <- list(Upattern = outPattern$Upattern,
                         pattern.cluster = outPattern$pattern.cluster,
+                        cluster.pattern = outPattern$cluster.pattern,
                         var = outPattern$X.var,
                         cor = outPattern$X.cor)
     structure$pair.varcoef <- outPattern$pair.varcoef
@@ -196,6 +197,7 @@
     structure$param$time <- outPattern$time.param
     structure$X <- list(Upattern = outPattern$Upattern,
                         pattern.cluster = outPattern$pattern.cluster,
+                        cluster.pattern = outPattern$cluster.pattern,
                         var = outPattern$X.var,
                         cor = outPattern$X.cor)
     structure$pair.varcoef <- outPattern$pair.varcoef
@@ -344,6 +346,7 @@
     structure$param$time <- outPattern$time.param
     structure$X <- list(Upattern = outPattern$Upattern,
                         pattern.cluster = outPattern$pattern.cluster,
+                        cluster.pattern = outPattern$cluster.pattern,
                         var = outPattern$X.var,
                         cor = outPattern$X.cor)
     structure$pair.varcoef <- outPattern$pair.varcoef
@@ -559,7 +562,7 @@
                            cor = patternCor.cluster[test.duplicated==FALSE],
                            time = NA,
                            strata = NA,
-                           cluster = NA,
+                           ncluster = NA,
                            param = NA)
     attr(Upattern,"name.UpatternVar") <- UpatternVar.cluster
     attr(Upattern,"name.UpatternCor") <- UpatternCor.cluster
@@ -567,8 +570,9 @@
 
     ## *** strata and time associated to each unique pattern
     Upattern$time <- lapply(ls.patternVar.cluster[which(!duplicated(pattern.cluster))],attr,"index.alltime")
-    Upattern$strata <- lapply(ls.patternVar.cluster[which(!duplicated(pattern.cluster))],attr,"index.strata")
-    Upattern$cluster <- lapply(1:length(Upattern$name),function(iN){which(iN==pattern.cluster)})
+    Upattern$strata <- sapply(ls.patternVar.cluster[which(!duplicated(pattern.cluster))],attr,"index.strata")
+    Upattern$ncluster <- sapply(1:length(Upattern$name),function(iN){sum(iN==pattern.cluster)})
+    cluster.pattern <- lapply(1:length(Upattern$name),function(iN){which(iN==pattern.cluster)})
     Upattern$param <- lapply(1:length(Upattern$name),function(iN){
         iParam <- names(which(colSums(X.var2[[iN]])>0))
         if(!is.null(X.cor2)){
@@ -578,9 +582,23 @@
     })
 
     names(Upattern$time) <- Upattern$name
-    names(Upattern$strata) <- Upattern$name
-    names(Upattern$cluster) <- Upattern$name
+    names(cluster.pattern) <- Upattern$name
     names(Upattern$param) <- Upattern$name
+
+    for(iPatternVar in 1:length(X.var2)){## iPatternVar <- 1
+        attr(X.var2[[iPatternVar]],"index.cluster") <- unname(sort(unlist(cluster.pattern[which(Upattern$var==iPatternVar)])))        
+        attr(X.var2[[iPatternVar]],"index.obs") <- setNames(lapply(attr(X.var2[[iPatternVar]],"index.cluster"), function(iC){
+            index.cluster[[iC]][order.clusterTime[[iC]]]
+        }),U.cluster[attr(X.var2[[iPatternVar]],"index.cluster")])
+    }
+    if(!is.null(X.cor2)){
+        for(iPatternCor in 1:length(X.cor2)){## iPatternVar <- 1
+            attr(X.cor2[[iPatternCor]],"index.cluster") <- unname(sort(unlist(cluster.pattern[which(Upattern$cor==iPatternCor)])))        
+            attr(X.cor2[[iPatternCor]],"index.obs") <- setNames(lapply(attr(X.cor2[[iPatternCor]],"index.cluster"), function(iC){
+                index.cluster[[iC]][order.clusterTime[[iC]]]
+            }),U.cluster[attr(X.cor2[[iPatternCor]],"index.cluster")])
+        }
+    }
 
     ## *** pair of variance-covariance coefficients
     pair.varcoef <- stats::setNames(lapply(Upattern$name, function(iPattern){## ## iPattern <- structure$X$Upattern$name[1]
@@ -597,6 +615,7 @@
 
     ## *** export
     out <- list(pattern.cluster = pattern.cluster,
+                cluster.pattern = cluster.pattern,
                 Upattern = Upattern,
                 X.cor = X.cor2,
                 X.var = X.var2,

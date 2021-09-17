@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: sep  8 2021 (13:32) 
+## Last-Updated: sep 17 2021 (09:47) 
 ##           By: Brice Ozenne
-##     Update #: 424
+##     Update #: 425
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -135,7 +135,7 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
 }
 
 ## * .score
-.score <- function(X, residuals, precision, dOmega,
+.score <- function(X, residuals, precision, dOmega, Upattern.ncluster,
                    index.variance, time.variance, index.cluster, name.varcoef, name.allcoef,
                    indiv, REML, effects,
                    precompute){
@@ -243,12 +243,9 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
 
     ## *** looping over covariance patterns
     if(!test.loopIndiv){
-        ## precompute
-        ncluster.pattern <- sapply(attr(index.variance,"index.byPattern"),length)
-        name.pattern <- names(ncluster.pattern)
 
         ## loop
-        for (iPattern in name.pattern) { ## iPattern <- name.pattern[1]
+        for (iPattern in U.pattern) { ## iPattern <- U.pattern[1]
             iName.varcoef <- name.varcoef[[iPattern]]
             iOmega <- precision[[iPattern]]
             iTime2 <- length(iOmega)
@@ -268,7 +265,7 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
                 iOmegaM1_dOmega_OmegaM1 <- matrix(iOmega %*% tblock(t(do.call(rbind, dOmega[[iPattern]]) %*% iOmega)),
                                                   nrow = iTime2, ncol = length(name.varcoef[[iPattern]]), dimnames = list(NULL,name.varcoef[[iPattern]]), byrow = FALSE)
 
-                Score[iName.varcoef] <- Score[iName.varcoef] - 0.5 * ncluster.pattern[iPattern] * iTrace + 0.5 * as.double(precompute$RR[[iPattern]]) %*% iOmegaM1_dOmega_OmegaM1
+                Score[iName.varcoef] <- Score[iName.varcoef] - 0.5 * Upattern.ncluster[iPattern] * iTrace + 0.5 * as.double(precompute$RR[[iPattern]]) %*% iOmegaM1_dOmega_OmegaM1
                 
                 if(REML){
                     iX <- matrix(precompute$XX$pattern[[iPattern]], nrow = iTime2, ncol = dim(precompute$XX$pattern[[iPattern]])[3], byrow = FALSE)

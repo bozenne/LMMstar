@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: sep  4 2021 (12:54) 
+## Last-Updated: sep 17 2021 (09:15) 
 ##           By: Brice Ozenne
-##     Update #: 180
+##     Update #: 181
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -151,7 +151,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
             design <- object$design
         }
         Y <- design$Y
-        X <- design$X.mean
+        X <- design$mean
         X.var <- design$X.var
         n.cluster <- design$cluster$n
         index.cluster <- design$index.cluster
