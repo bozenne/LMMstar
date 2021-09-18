@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: sep 17 2021 (10:04) 
+## Last-Updated: sep 18 2021 (17:18) 
 ##           By: Brice Ozenne
-##     Update #: 120
+##     Update #: 121
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,7 +15,22 @@
 ## 
 ### Code:
 
-## * estimate
+## * estimate (documentation)
+##' @examples
+##' \dontrun{
+##' ## simulate data in the long format
+##' set.seed(10)
+##' dL <- sampleRem(100, n.times = 3, format = "long")
+##' 
+##' ## fit Linear Mixed Model
+##' LMMstar.options(optimizer = "gls")
+##' eUN.gls <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
+##' 
+##' LMMstar.options(optimizer = "FS")
+##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
+##' }
+
+## * estimate (code)
 .estimate <- function(design, time, method.fit, type.information,
                       transform.sigma, transform.k, transform.rho,
                       precompute.moments, init, n.iter, tol.score, tol.param, trace){

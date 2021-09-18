@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: sep 17 2021 (15:14) 
+## Last-Updated: sep 18 2021 (17:00) 
 ##           By: Brice Ozenne
-##     Update #: 50
+##     Update #: 64
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,6 +26,7 @@
 ##' 
 ##' @examples
 ##' \dontrun{
+##' data(gastricbypassW, package = "LMMstar")
 ##' data(gastricbypassL, package = "LMMstar")
 ##' gastricbypassL$gender <- c("M","F")[as.numeric(gastricbypassL$id) %% 2+1]
 ##' dd <- gastricbypassL[!duplicated(gastricbypassL[,c("time","gender")]),]
@@ -52,15 +53,15 @@
 ##' Scs24 <- .skeleton(CS(gender~time|id), data = gastricbypassL)
 ##' 
 ##' .initialize(Scs4, residuals = residuals(eGas.lm))
+##' ## cor(gastricbypassW[,c("weight1","weight2","weight3","weight4")])
+##' .initialize(Scs24, residuals = residuals(eGas.lm))
 ##' 
 ##' ## unstructured
-##' Sun4 <- skeleton(UN(~visit|id), data = gastricbypassL)
-##' param4 <- setNames(c(1,1.1,1.2,1.3,0.5,0.45,0.55,0.7,0.1,0.2),Sun4$param$name)
-##' Sun24 <- skeleton(UN(gender~visit|id), data = gastricbypassL)
-##' param24 <- setNames(c(param4,param4*1.1),Sun24$param$name)
+##' Sun4 <- .skeleton(UN(~visit|id), data = gastricbypassL)
+##' Sun24 <- .skeleton(UN(gender~visit|id), data = gastricbypassL)
 ##' 
-##' .calc_dOmega(Sun4, param = param4)
-##' .calc_dOmega(Sun24, param = param24)
+##' .initialize(Sun4, residuals = residuals(eGas.lm))
+##' .initialize(Sun24, residuals = residuals(eGas.lm))
 ##' }
 `.initialize` <-
     function(object, residuals, p, ssc) UseMethod(".initialize")
@@ -81,13 +82,13 @@
         attr(X.iPattern,"indicator.param") <- NULL
         attr(X.iPattern,"index.cluster") <- NULL
         attr(X.iPattern,"index.obs") <- NULL
-        iOut <- cbind(residuals = residuals[obs.iPattern], do.call(rbind,rep(list(X.iPattern),length(cluster.iPattern))))
+        iOut <- cbind(index = obs.iPattern, residuals = residuals[obs.iPattern], do.call(rbind,rep(list(X.iPattern),length(cluster.iPattern))))
         return(iOut)
     }))
 
     ## extract information
-    epsilon2 <- M.res[,1]^2
-    X <- M.res[,-1,drop=FALSE]
+    epsilon2 <- M.res[,"residuals"]^2
+    X <- M.res[,-(1:2),drop=FALSE]
     paramVar.type <- param.type[colnames(X)]
     paramVar.strata <- param.strata[colnames(X)]
     n.strata <- length(unique(paramVar.strata))
@@ -139,7 +140,8 @@
     ##  standardize residuals
     if(identical(attr(residuals,"studentized"),TRUE)){
         attr(residuals,"studentized") <- NULL
-        attr(out,"studentized") <- residuals/exp(X %*% log(out))
+        attr(out,"studentized") <- rep(NA,n.obs)
+        attr(out,"studentized")[M.res[,"index"]] <- M.res[,"residuals"]/exp(X %*% log(out))
     }
 
     ## export
@@ -148,6 +150,9 @@
 
 ## * initialize.CS
 .initialize.CS <- function(object, residuals, p = 1, ssc = TRUE){
+
+    out <- setNames(rep(NA, NROW(object$param)), object$param$name)
+
     ## extract information
     param.type <- setNames(object$param$type,object$param$name)
     param.strata <- setNames(object$param$strata,object$param$name)
@@ -159,37 +164,38 @@
     sigma <- .initialize.IND(object = object, residuals = residuals, p = p, ssc = ssc)
     residuals.studentized <- attr(sigma, "studentized")
     attr(sigma, "studentized") <- NULL
+    out[names(sigma)] <- sigma
 
     ## combine all residuals and all design matrices
-    M.res <- do.call(rbind,lapply(1:length(object$X$cor), function(iPattern){ ## iPattern <- 1
-        browser()
+    M.prodres <- do.call(rbind,lapply(1:length(object$X$cor), function(iPattern){ ## iPattern <- 1
+
         X.iPattern <- object$X$cor[[iPattern]]
         cluster.iPattern <- attr(X.iPattern,"index.cluster")
         obs.iPattern <- do.call(rbind,attr(X.iPattern,"index.obs"))
         iIndex.pairtime <- attr(X.iPattern,"index.pairtime")
 
-        obs.iPattern[,iIndex.pairtime[1,]]
-        pairobs.iPattern <- lapply(obs.iPattern, function(iC){
-            cbind(obs.iPattern[[iC]][],obs.iPattern[iIndex.pairtime[2,]])
-        })
-        
-        attr(X.iPattern,"index.vec2matrix") <- NULL
-        attr(X.iPattern,"indicator.param") <- NULL
-        attr(X.iPattern,"index.strata") <- NULL
-        attr(X.iPattern,"index.pairtime") <- NULL
-        attr(X.iPattern,"index.Utime") <- NULL
-        attr(X.iPattern,"index.cluster") <- NULL
-        attr(X.iPattern,"index.obs") <- NULL
-        iOut <- cbind(residuals1 = residuals[obs.iPattern], residuals1 = residuals[obs.iPattern],
-                      do.call(rbind,rep(list(X.iPattern),length(cluster.iPattern))))
+        iOut <- do.call(rbind,lapply(1:NCOL(iIndex.pairtime), function(iPair){ ## iPair <- 2
+            iIndex.pair <- iIndex.pairtime[,iPair]
+            cbind(prod = sum(residuals.studentized[obs.iPattern[,iIndex.pair[1]]]*residuals.studentized[obs.iPattern[,iIndex.pair[2]]]),
+                  n = NROW(obs.iPattern),
+                  X.iPattern[iPair,,drop=FALSE])
+        }))
         return(iOut)
     }))
 
+    ## estimate correlation 
+    param.rho <- names(param.type)[param.type=="rho"]
+    for(iRho in param.rho){ ## iRho <- param.rho[1]
+        iIndex <- which(M.prodres[,iRho]==1)
+        out[iRho] <- sum(M.prodres[iIndex,"prod"])/(sum(M.prodres[iIndex,"n"])-p)
+    }
+
+    ## export
+    return(out)
 }
 
-## * initialize.CS
-.initialize.UN <- function(object, residuals){
-}
+## * initialize.UN
+.initialize.UN <- .initialize.CS
 
 
 

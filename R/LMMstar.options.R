@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: sep  8 2021 (13:24) 
+## Last-Updated: sep 18 2021 (17:19) 
 ##           By: Brice Ozenne
-##     Update #: 68
+##     Update #: 69
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -103,7 +103,7 @@ LMMstar.options <- function(..., reinitialise = FALSE){
               stop("Argument \'drop.X\' must be of type logical. \n")
           }
           if("optimizer" %in% names(args)){
-              args$optimizer <- match.arg(args$optimizer, c("gls"," FS")) ## FS = fisher scoring
+              args$optimizer <- match.arg(args$optimizer, c("gls","FS")) ## FS = fisher scoring
           }
           if("param.optimizer" %in% names(args)){
               if(!is.vector(args$param.optimizer)){

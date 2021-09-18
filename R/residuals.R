@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: sep 17 2021 (09:15) 
+## Last-Updated: sep 18 2021 (17:06) 
 ##           By: Brice Ozenne
-##     Update #: 181
+##     Update #: 186
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -152,10 +152,10 @@ residuals.lmm <- function(object, type = "response", format = "long",
         }
         Y <- design$Y
         X <- design$mean
-        X.var <- design$X.var
+        structure <- design$vcov
         n.cluster <- design$cluster$n
         index.cluster <- design$index.cluster
-        index.variance <- design$X.var$cluster
+        index.variance <- structure$X$pattern.cluster
         index.time <- design$index.time
 
         if(!is.null(p)){
@@ -167,7 +167,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
             }
             beta <- p[names(object$param$type=="mu")]
             if(any(type.residual %in% c("studentized","pearson","normalized","normalized2","scaled"))){
-                Omega <- .calc_Omega(object = X.var, param = p)
+                Omega <- .calc_Omega(object = sturcutre, param = p)
                 precision <- lapply(Omega, solve)
             }
         }else{
@@ -185,8 +185,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
             tX.precision.X <- matrix(0, nrow = NCOL(X), ncol = NCOL(X), dimnames = list(colnames(X),colnames(X)))
 
             if(!is.null(design$precompute.XX)){
-                ncluster.pattern <- sapply(attr(index.variance,"index.byPattern"),length)
-                n.pattern <- length(ncluster.pattern)
+                n.pattern <- NROW(structure$X$Upattern)
 
                 for (iPattern in 1:n.pattern) { ## iPattern <- 1
                     iOmega <- precision[[iPattern]]

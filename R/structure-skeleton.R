@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: sep 17 2021 (10:37) 
+## Last-Updated: sep 18 2021 (17:11) 
 ##           By: Brice Ozenne
-##     Update #: 570
+##     Update #: 572
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -480,10 +480,12 @@
                                                colnames(iX))
         return(iX)
     }),UpatternVar.cluster)
+    attr(X.var2,"assign") <- attr(X.var,"assign")
     
     for(iVar in colnames(X.var)){
         time.param[[iVar]] <- sort(match(unique(as.character(data[X.var[,iVar]==1,time.var])),U.time))[1]
     }
+
     ## *** find all correlation patterns
     if(is.null(X.cor)){
         UpatternCor.cluster <- "1"
@@ -534,6 +536,7 @@
             return(iZ)            
         })
         names(X.cor2) <- UpatternCor.cluster
+        attr(X.cor2,"assign") <- attr(X.cor,"assign")
 
         for(iPattern in 1:length(X.cor2)){ ## iPattern <- 1
             for(iParam in colnames(X.cor2[[iPattern]])){ ## iParam <- "rho"

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: sep 17 2021 (09:14) 
+## Last-Updated: sep 18 2021 (17:13) 
 ##           By: Brice Ozenne
-##     Update #: 515
+##     Update #: 520
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -185,7 +185,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
         }
         if("variance" %in% effects){
             out <- c(out,list(variance = NULL))
-            ls.assign$variance <- attr(object$design$X.var$var,"assign")
+            ls.assign$variance <- attr(object$design$vcov$X$var,"assign")
             ls.nameTerms$variance <- if(!is.null(object$formula$var.design)){attr(stats::terms(object$formula$var.design),"term.labels")}else{NULL}
             ls.contrast <- c(ls.contrast,list(variance = NULL))
             null.variance <- switch(transform.k,
@@ -197,7 +197,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
         }
         if("correlation" %in% effects){
             out <- c(out,list(correlation = NULL))
-            ls.assign$correlation <- attr(object$design$X.var$cor,"assign")
+            ls.assign$correlation <- attr(object$design$vcov$X$cor,"assign")
             ls.nameTerms$correlation <- if(!is.null(ls.assign$correlation)){object$time$var}else{NULL}
             ls.contrast <- c(ls.contrast,list(correlation = NULL))
             null.correlation <- switch(transform.rho,
