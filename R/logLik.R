@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: sep 17 2021 (09:43) 
+## Last-Updated: sep 20 2021 (17:34) 
 ##           By: Brice Ozenne
-##     Update #: 219
+##     Update #: 223
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -62,13 +62,13 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
                 }
 
                 design <- .model.matrix.lmm(formula.mean = object$formula$mean.design,
-                                            formula.var = object$formula$var.design,
+                                            structure = object$design$vcov,
                                             data = data,
                                             var.outcome = object$outcome$var,
                                             var.strata = object$strata$var, U.strata = object$strata$levels,
                                             var.time = object$time$var, U.time = object$time$levels,
                                             var.cluster = object$cluster$var,
-                                            structure = object$structure,
+                                            optimizer = LMMstar.options()$optimizer,
                                             precompute.moments = test.precompute)
             }else{
                 design <- object$design

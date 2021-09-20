@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: sep  8 2021 (13:32) 
+## Last-Updated: sep 20 2021 (16:53) 
 ##           By: Brice Ozenne
-##     Update #: 21
+##     Update #: 23
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,7 +25,7 @@ if(FALSE){
 }
 
 context("Check lmm on examples of t-tests")
-LMMstar.options(method.numDeriv = "Richardson", precompute.moments = TRUE)
+LMMstar.options(optimizer = "gls", method.numDeriv = "Richardson", precompute.moments = TRUE)
 
 ## * single t-test
 ## ** simulate data
@@ -49,17 +49,18 @@ d$time <- "t1"
 
 ## ** test
 test_that("single t-test",{
-    e.lmm <- lmm(Y ~ Gender-1, structure = UN(~Gender), data = d, trace = 0)
-    e2.lmm <- lmm(Y ~ Gender-1, repetition = ~Gender|id, structure = "UN", data = d, trace = 0, df = FALSE)
+    e.lmm <- lmm(Y ~ Gender-1, repetition = ~Gender|id, structure = "UN", data = d, trace = 0, df = TRUE)
+    e2.lmm <- lmm(Y ~ Gender, repetition = ~Gender|id, structure = "UN", data = d, trace = 0, df = TRUE)
 
     ## e3.lmm <- lmm(Y ~ Gender, repetition = ~Gender|id, structure = "UN", data = d, trace = 0)
     e.gls <- gls(Y ~ Gender, weights = varIdent(form=~1|Gender), data = d)
     e.ttest <- t.test(Y~Gender, data = d)
     
-    expect_equal(logLik(e.lmm),logLik(e2.lmm))
     expect_equal(as.double(logLik(e.lmm)),as.double(logLik(e.gls)))
-    expect_equal(unname(e.ttest$estimate), unname(coef(e.lmm, effects = "mean")))
+    expect_equal(as.double(logLik(e2.lmm)),as.double(logLik(e.gls)))
+    expect_equal(sort(unname(e.ttest$estimate)), sort(unname(coef(e.lmm, effects = "mean"))))
     expect_equal(e.ttest$p.value, anova(e.lmm, effects = c("GenderM-GenderF=0"))$all$p.value, tol = 1e-5)
+    expect_equal(e.ttest$p.value, confint(e2.lmm)["GenderM","p.value"], tol = 1e-5)
     ## summary(e.gls)$tTable
 })
 ## confint(anova(e.lmm))
@@ -90,9 +91,7 @@ dL$visit <- factor(dL$visit,
 ## ** test
 test_that("multiple t-test",{
     ## profvis::profvis(e.lmm <- lmm(Y ~ visit + gender:visit - 1, structure = UN(gender~visit|id), data = dL, trace = 0))
-    e.lmm <- lmm(Y ~ visit + gender:visit - 1, structure = UN(gender~visit|id), data = dL, trace = 0)
-    e2.lmm <- lmm(Y ~ visit + gender:visit - 1, repetition = gender~visit|id, structure = "UN", data = dL, trace = 0, df = FALSE)
-    expect_equal(logLik(e.lmm), logLik(e2.lmm))
+    e.lmm <- lmm(Y ~ visit + gender:visit - 1, repetition = gender~visit|id, structure = "UN", data = dL, trace = 0, df = TRUE)
     e.lh <- anova(e.lmm, effects = c("gender:Y1"="visitY1:male - visitY1:female = 0",
                                      "gender:Y2"="visitY2:male - visitY2:female = 0",
                                      "gender:Y3"="visitY3:male - visitY3:female = 0",

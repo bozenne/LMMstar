@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (17:03) 
 ## Version: 
-## Last-Updated: aug 11 2021 (15:56) 
+## Last-Updated: sep 20 2021 (17:17) 
 ##           By: Brice Ozenne
-##     Update #: 41
+##     Update #: 44
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -52,7 +52,8 @@ test_that("practical 1 - gastricbypass",{
     eCS.lmm <- lmm(glucagon~time,
                    control=glsControl(opt="optim"),
                    data=gastricbypassL,
-                   structure = CS(~time|id))
+                   repetition = ~time|id,
+                   structure = "CS")
     
     expect_equal(as.double(logLik(eCS.gls)), as.double(logLik(eCS.lmm)), tol = 1e-6)
     
@@ -70,7 +71,8 @@ test_that("practical 1 - gastricbypass",{
     eUN.lmm <- lmm(glucagon~time,
                    data=gastricbypassL.full,
                    control=glsControl(opt="optim"),
-                   structure = UN(~time|id),
+                   repetition = ~time|id,
+                   structure = "UN",
                    method.fit = "REML", trace = 0)
     
     expect_equal(as.double(logLik(eUN.gls)), as.double(logLik(eUN.lmm)), tol = 1e-6)
@@ -87,17 +89,18 @@ test_that("practical 1 - gastricbypass",{
     eUN.lmm <- lmm(glucagon~time,
                    data=gastricbypassL,
                    control=glsControl(opt="optim"),
-                   structure = UN(~time|id),
+                   repetition = ~time|id,
+                   structure = "UN",
                    method.fit = "REML", trace = 0)
 
     ## check moments
     expect_equal(as.double(logLik(eUN.gls)), as.double(logLik(eUN.lmm)), tol = 1e-6)
     
-    GS <- jacobian(func = function(p){logLik(eUN.lmm, p = p, transform.sigma = "none", transform.k = "none", transform.rho = "none")}, x = coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none"))
-    expect_equal(as.double(GS), as.double(score(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none")), tol = 1e-6)
+    GS <- jacobian(func = function(p){logLik(eUN.lmm, p = p, transform.sigma = "none", transform.k = "none", transform.rho = "none")}, x = coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none", effects = "all"))
+    expect_equal(as.double(GS), as.double(score(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none", effects = "all")), tol = 1e-6)
 
-    GS <- -jacobian(func = function(p){score(eUN.lmm, p = p, transform.sigma = "none", transform.k = "none", transform.rho = "none")}, x = coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none"))
-    expect_equal(as.double(GS), as.double(information(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none")), tol = 1e-6)
+    GS <- -jacobian(func = function(p){score(eUN.lmm, p = p, transform.sigma = "none", transform.k = "none", transform.rho = "none",effects = "all")}, x = coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none", effects = "all"))
+    expect_equal(as.double(GS), as.double(information(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none", effects = "all")), tol = 1e-6)
 
     ## ** extract information
     backtransform(confint(eUN.lmm))[,c("estimate","lower","upper")]
@@ -137,14 +140,16 @@ test_that("practical 2 - ncgs",{
 
     e.lmm <- lmm(cholest~time+highdose.time,
                  data=ncgsL,
-                 structure = UN(~time|id),
+                 repetition = ~time|id,
+                 structure = "UN",
                  control=glsControl(opt='optim'),
                  df = FALSE)
     
     system.time({
         e2.lmm <- suppressWarnings(lmm(cholest~treatment*time,
                                        data=ncgsL,
-                                       structure = UN(~time|id),
+                                       repetition = ~time|id,
+                                       structure = "UN",
                                        control=glsControl(opt='optim')))
     })
     
@@ -185,12 +190,14 @@ test_that("practical 2 - vitamin",{
     e0.lmm <- lmm(weight~visit+vita.time,
                   data=vitaminL,
                   type.information = "expected",
-                  structure = UN(~visit|animal),
+                  repetition = ~visit|animal,
+                  structure = "UN",
                   control=glsControl(opt='optim'))
 
     e.lmm <-suppressWarnings(lmm(weight~treatment*visit,
                                  data=vitaminL,
-                                 structure = UN(~visit|animal),
+                                 repetition = ~visit|animal,
+                                 structure = "UN",
                                  control=glsControl(opt='optim')))
 
     expect_equal(as.double(logLik(e.gls)), as.double(logLik(e.lmm)), tol = 1e-6)
@@ -216,7 +223,7 @@ test_that("practical 3 - swabsL",{
                    correlation = corSymm(form = ~ as.numeric(name) | family),
                    weights = varIdent(form = ~ 1 | name)
                    )
-    eUN.lmm <- lmm(swabs ~ crowding + name, data = swabsL, structure = UN(~name|family))
+    eUN.lmm <- lmm(swabs ~ crowding + name, data = swabsL, structure = "UN", repetition = ~name|family)
     expect_equal(as.double(logLik(eUN.lmm)),as.double(logLik(eUN.gls)), tol = 1e-6)
     ## summary(eUN.lmm)
     getVarCov(eUN.lmm)
@@ -225,7 +232,7 @@ test_that("practical 3 - swabsL",{
     eCS.lme <- lme(swabs ~ crowding + name,
                    data = swabsL,
                    random =~ 1 | family)
-    eCS.lmm <- lmm(swabs ~ crowding + name, data = swabsL, structure = CS(~name|family))
+    eCS.lmm <- lmm(swabs ~ crowding + name, data = swabsL, structure = "CS", repetition = ~name|family)
     expect_equal(as.double(logLik(eCS.lmm)), as.double(logLik(eCS.lme)), tol = 1e-6)
 
     ## summary(eCS.lmm)
@@ -233,7 +240,7 @@ test_that("practical 3 - swabsL",{
     emmip(eCS.lmm, crowding~name)
 
     ## with interaction
-    eCSI.lmm <- lmm(swabs ~ crowding * name, data = swabsL, structure = CS(~name|family))
+    eCSI.lmm <- lmm(swabs ~ crowding * name, data = swabsL, structure = "CS", repetition = ~name|family)
     emmip(eCSI.lmm, crowding~name)
     }
 })
@@ -251,7 +258,7 @@ test_that("practical 4 - bloodpressureL",{
                        correlation = corCompSymm(form=~ 1 | id))
         eCS.lmm <- lmm(duration ~ period + treatment,
                        data = bloodpressureL,
-                       structure = CS(~ period | id))
+                       structure = "CS", repetition = ~ period | id)
         expect_equal(as.double(logLik(eCS.lmm)),as.double(logLik(eCS.gls)), tol = 1e-6)
         confint(eCS.gls)
         confint(eCS.lmm)
@@ -265,7 +272,7 @@ test_that("practical 4 - bloodpressureL",{
                         )
         eUNP.lmm <- lmm(duration ~ period + treatment,
                         data = bloodpressureL,
-                        structure = UN(~ period | id))
+                        structure = "UN", repetition = ~ period | id)
         expect_equal(as.double(logLik(eUNP.lmm)),as.double(logLik(eUNP.gls)), tol = 1e-6)
         
 
@@ -277,7 +284,7 @@ test_that("practical 4 - bloodpressureL",{
                        )
         eUNT.lmm <- lmm(duration ~ period + treatment,
                          data = bloodpressureL,
-                         structure = UN(~ treatment | id))
+                         structure = "UN", repetition = ~ treatment | id)
         expect_equal(as.double(logLik(eUNT.lmm)),as.double(logLik(eUNT.gls)), tol = 1e-6)
     }
 })

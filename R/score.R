@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: sep 17 2021 (09:47) 
+## Last-Updated: sep 20 2021 (17:36) 
 ##           By: Brice Ozenne
-##     Update #: 425
+##     Update #: 429
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -89,14 +89,14 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
             }
 
             design <- .model.matrix.lmm(formula.mean = x$formula$mean.design,
-                                        formula.var = x$formula$var.design,
+                                        structure = x$design$vcov,
                                         data = data,
                                         var.outcome = x$outcome$var,
                                         var.strata = x$strata$var, U.strata = x$strata$levels,
                                         var.time = x$time$var, U.time = x$time$levels,
                                         var.cluster = x$cluster$var,
-                                        structure = x$structure,
-                                        precompute.moments = test.precompute)
+                                        precompute.moments = test.precompute,
+                                        optimizer = options$optimizer)
         }else{
             design <- x$design
         }

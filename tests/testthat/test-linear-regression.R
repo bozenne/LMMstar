@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: sep  6 2021 (11:36) 
+## Last-Updated: sep 20 2021 (15:37) 
 ##           By: Brice Ozenne
-##     Update #: 172
+##     Update #: 178
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -28,7 +28,7 @@ if(FALSE){
 }
 
 context("Check lmm on examples of linear regression")
-LMMstar.options(method.numDeriv = "Richardson", precompute.moments = TRUE,
+LMMstar.options(optimizer = "gls", method.numDeriv = "Richardson", precompute.moments = TRUE,
                 columns.confint = c("estimate","se","df","lower","upper","p.value"))
 
 ## * simulate data
@@ -56,9 +56,7 @@ d$time <- "t1"
 test_that("single variance parameter (ML)",{
 
 ## ** fit
-e.lmm <- lmm(Y ~ X1 + X2 + Gene, repetition = ~time|id, structure = "CS", data = d, trace = 0,
-             method = "ML")
-expect_warning(lmm(Y ~ X1 + X2 + Gene, repetition = ~time|id, structure = "UN", data = d))
+e.lmm <- lmm(Y ~ X1 + X2 + Gene, repetition = ~time|id, data = d, trace = 0, method = "ML")
 e.gls <- gls(Y ~ X1 + X2 + Gene, data = d, method = "ML")
 e.lava <- estimate(lvm(Y~X1+X2+Gene),data = d)
 
@@ -185,8 +183,7 @@ test2 <-  anova(e.lmm, effect = c("GeneLA=0","GeneAA=0"))
 test_that("single variance parameter (REML)",{
 
 ## ** fit
-e.lmm <- lmm(Y ~ X1 + X2 + Gene, repetition = ~time|id, structure = "CS", data = d, trace = 0,
-             method = "REML", df = TRUE)
+e.lmm <- lmm(Y ~ X1 + X2 + Gene, repetition = ~time|id, data = d, trace = 0, method = "REML", df = TRUE)
 e.gls <- gls(Y ~ X1 + X2 + Gene, data = d, method = "REML")
 e.lm <- lm(Y ~ X1 + X2 + Gene, data = d)
 
@@ -304,7 +301,7 @@ n.sigma <- length(coef(e.lmm, effects = "variance"))
 n.param <- length(coef(e.lmm, effects = "all"))
 
 ## ** coef
-expect_equal(coef(e.lmm, effects = "mean"), coef(e.gls), tol = 1e-6)
+expect_equal(coef(e.lmm, effects = "mean")[names(coef(e.gls))], coef(e.gls), tol = 1e-6)
 ## coef(e.lmm, transform = 2)
 ## sigma(e.gls)^2
 
@@ -430,7 +427,7 @@ n.sigma <- length(coef(e.lmm, effects = "variance"))
 n.param <- length(coef(e.lmm, effects = "all"))
 
 ## ** coef
-expect_equal(coef(e.lmm, effects = "mean"), coef(e.gls), tol = 1e-6)
+expect_equal(coef(e.lmm, effects = "mean")[names(coef(e.gls))], coef(e.gls), tol = 1e-6)
 ## coef(e.lmm, transform = 2)
 ## sigma(e.gls)^2
 

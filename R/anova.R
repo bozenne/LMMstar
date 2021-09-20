@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: sep 18 2021 (17:13) 
+## Last-Updated: sep 20 2021 (16:08) 
 ##           By: Brice Ozenne
-##     Update #: 520
+##     Update #: 548
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -185,8 +185,11 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
         }
         if("variance" %in% effects){
             out <- c(out,list(variance = NULL))
-            ls.assign$variance <- attr(object$design$vcov$X$var,"assign")
-            ls.nameTerms$variance <- if(!is.null(object$formula$var.design)){attr(stats::terms(object$formula$var.design),"term.labels")}else{NULL}
+            ls.assign$variance <- attr(object$design$vcov$X$var,"assign")            
+            ls.nameTerms$variance <- attr(stats::terms(object$formula$var.design),"term.labels")
+            if(!is.na(object$design$vcov$name$strata)){
+                ls.assign$variance[ls.nameTerms$variance[ls.assign$variance]==object$design$vcov$name$strata] <- 0
+            }
             ls.contrast <- c(ls.contrast,list(variance = NULL))
             null.variance <- switch(transform.k,
                                     "none" = 1,
@@ -207,6 +210,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
             ls.null$correlation <- rep(null.correlation,length(ls.nameTerms$correlation))
         }
         ls.nameTerms.num <- lapply(ls.nameTerms, function(iName){as.numeric(factor(iName, levels = iName))})
+        
     }else if(all(grepl("=",effects)==FALSE)){
         stop("Incorrect argument \'effects\': can be \"mean\", \"variance\", \"correlation\", \"all\", \n",
              "or something compatible with the argument \'linfct\' of multcomp::glht. \n ")
@@ -269,7 +273,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
             return(lapply(object$gls, anova))
         }
     }
-    
+
     param <- coef(object, effects = "all",
                   transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
     newname <- names(coef(object, effects = "all",
@@ -285,8 +289,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
 
     ## ** F-tests
     type <- names(out)
-    for(iType in type){
-
+    for(iType in type){ ## iType <- "correlation"
         ## skip empty type
         if(length(ls.nameTerms.num[[iType]])==0 || (is.null(ls.contrast[[iType]]) && all(ls.assign[[iType]]==0))){ next }
 

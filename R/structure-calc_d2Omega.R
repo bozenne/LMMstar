@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: sep 16 2021 (17:17) 
+## Last-Updated: sep 20 2021 (17:23) 
 ##           By: Brice Ozenne
-##     Update #: 32
+##     Update #: 44
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -72,7 +72,7 @@
 .calc_d2Omega.UN <- function(object, param, Omega, dOmega, Jacobian = NULL, dJacobian = NULL){
 
     ## ** prepare
-    type <- setNames(object$param$type,object$param$name) 
+    type <- stats::setNames(object$param$type,object$param$name) 
     name.sigma <- object$param$name[type=="sigma"]
     name.k <- object$param$name[type=="k"]
     name.rho <- object$param$name[type=="rho"]
@@ -116,12 +116,13 @@
         iParam.rho <- intersect(name.rho, iName.param)
         n.iParam.rho <- length(iParam.rho)
         iParamVar <- c(iParam.sigma, iParam.k, iParam.rho)
-        
+
         iScore <- stats::setNames(vector(mode = "list", length = length(iParamVar)), iParamVar)
-        iX.var <- X.var[[iPattern]][,c(iParam.sigma,iParam.k),drop=FALSE]
-        iX.cor <- X.cor[[iPattern]][,c(iParam.rho),drop=FALSE]
-        iIndicator <- c(attr(X.var[[iPattern]],"indicator.param"),attr(X.cor[[iPattern]],"indicator.param"))
-        iPair <- object$pair.varcoef[[iPattern]]
+        iX.var <- X.var[[iPattern.var]][,c(iParam.sigma,iParam.k),drop=FALSE]
+        iX.cor <- X.cor[[iPattern.cor]][,c(iParam.rho),drop=FALSE]
+        iIndicator <- c(attr(X.var[[iPattern.var]],"indicator.param"),attr(X.cor[[iPattern.cor]],"indicator.param"))
+
+        iPair <- object$pair.varcoef[[Upattern[iPattern,"name"]]]
         n.iPair <- NCOL(iPair)
 
         iHess <- lapply(1:n.iPair, function(iPair){matrix(0, nrow = iNtime, ncol = iNtime)})
@@ -136,7 +137,7 @@
             iType2 <- type[iCoef2]
 
             ## indicator
-            iIndicator12 <- intersect(iIndicator[[iCoef1]],iIndicator[[iCoef1]])
+            iIndicator12 <- intersect(iIndicator[[iCoef1]],iIndicator[[iCoef2]])
             
             if(iType1 == "sigma"){
                 if(iType2 == "sigma"){
@@ -154,7 +155,7 @@
                     term1 <- diag(4*as.double(idOmega.k)*as.double(iOmega.sd), nrow = iNtime, ncol = iNtime)
                     term2 <- 2 * iOmega.cor * ((idOmega.k) %*% t(iOmega.sd) + iOmega.sd %*% t(idOmega.k*iX.var[,iCoef2]))
                     iHess[[iiPair]][iIndicator12] <- (term1 + term2)[iIndicator12]
-                    ## iHess[[iiPair]] - (2*tcrossprod(X.var[[iPattern]][,iCoef2]) + 2) * iOmega/ (param[iCoef1] * param[iCoef2]) * ind.ksigma
+                    ## iHess[[iiPair]] - (2*tcrossprod(X.var[[iPattern.var]][,iCoef2]) + 2) * iOmega/ (param[iCoef1] * param[iCoef2]) * ind.ksigma
                 
                 }else if(iType2 == "rho"){
                     iHess[[iiPair]][iIndicator12] <- 2 * iOmega[iIndicator12] / (param[iCoef1] * param[iCoef2])
@@ -222,7 +223,6 @@
         return(iHess)
         
     })
-
     ## ** export
     out <- stats::setNames(out,Upattern$name)
     return(out)

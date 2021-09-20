@@ -57,9 +57,9 @@ dL <- sampleRem(100, n.times = 3, format = "long")
 
 ## fit Linear Mixed Model
 eCS.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "CS", data = dL)
-## same as
-eCS.lmm.bis <- lmm(Y ~ X1 + X2 + X5, structure = CS(~visit|id), data = dL)
 
+## eID.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "ID", data = dL, trace = 5)
+## eIND.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "IND", data = dL, trace = 5)
 ## output
 eCS.lmm
 summary(eCS.lmm)

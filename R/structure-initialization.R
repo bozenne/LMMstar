@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: sep 18 2021 (17:00) 
+## Last-Updated: sep 20 2021 (17:31) 
 ##           By: Brice Ozenne
-##     Update #: 64
+##     Update #: 74
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -69,8 +69,8 @@
 ## * initialization.IND
 .initialize.IND <- function(object, residuals, p = 1, ssc = TRUE){
 
-    param.type <- setNames(object$param$type,object$param$name)
-    param.strata <- setNames(object$param$strata,object$param$name)
+    param.type <- stats::setNames(object$param$type,object$param$name)
+    param.strata <- stats::setNames(object$param$strata,object$param$name)
     Upattern.name <- object$X$Upattern$name
     cluster.pattern <- object$X$cluster.pattern
 
@@ -104,22 +104,22 @@
     }
 
     ## fit
-    e.res <- lm.fit(y=epsilon2.ssc,x=X) 
+    e.res <- stats::lm.fit(y=epsilon2.ssc,x=X) 
     if(all(paramVar.type=="sigma")){
         out <- sqrt(e.res$coef)
     }else{
         ## try to move from additive to full interaction model
-        ls.Z <- lapply(1:n.strata, function(iStrata){
+        ls.Z <- lapply(1:n.strata, function(iStrata){ ## iStrata <- 1
             iParamVar.type <- paramVar.type[paramVar.strata == iStrata]
             iX <- X[,paramVar.strata==iStrata,drop=FALSE]
             if(any("k" %in% iParamVar.type)){
-                iX[,iParamVar.type=="sigma"] <- iX[,iParamVar.type=="sigma"] - rowSums(iX[,iParamVar.type!="sigma"])
+                iX[,iParamVar.type=="sigma"] <- iX[,iParamVar.type=="sigma"] - rowSums(iX[,iParamVar.type!="sigma",drop=FALSE])
             }
             return(iX)
         })
         
         Z <- do.call(cbind,ls.Z)[,colnames(X)]
-        eTest.res <- lm.fit(y=epsilon2.ssc,x=Z)
+        eTest.res <- stats::lm.fit(y=epsilon2.ssc,x=Z)
 
         if(all(abs(e.res$fitted.value-eTest.res$fitted.value)<1e-8)){
             ls.out <- lapply(1:n.strata, function(iStrata){
@@ -132,7 +132,7 @@
             })
             out <- unlist(ls.out)[names(paramVar.type)]
         }else{ ## failure of the full interaction model. Use a log transform
-            e.res <- lm.fit(y=log(epsilon2*n.obs/(n.obs-p)),x=X)
+            e.res <- stats::lm.fit(y=log(epsilon2*n.obs/(n.obs-p)),x=X)
             out <- exp(0.5*e.res$coef)
         }
     }
@@ -151,11 +151,11 @@
 ## * initialize.CS
 .initialize.CS <- function(object, residuals, p = 1, ssc = TRUE){
 
-    out <- setNames(rep(NA, NROW(object$param)), object$param$name)
+    out <- stats::setNames(rep(NA, NROW(object$param)), object$param$name)
 
     ## extract information
-    param.type <- setNames(object$param$type,object$param$name)
-    param.strata <- setNames(object$param$strata,object$param$name)
+    param.type <- stats::setNames(object$param$type,object$param$name)
+    param.strata <- stats::setNames(object$param$strata,object$param$name)
     Upattern.name <- object$X$Upattern$name
     cluster.pattern <- object$X$cluster.pattern
 
@@ -166,6 +166,7 @@
     attr(sigma, "studentized") <- NULL
     out[names(sigma)] <- sigma
 
+    if(is.null(object$X$cor)){return(out)}
     ## combine all residuals and all design matrices
     M.prodres <- do.call(rbind,lapply(1:length(object$X$cor), function(iPattern){ ## iPattern <- 1
 
@@ -183,7 +184,7 @@
         return(iOut)
     }))
 
-    ## estimate correlation 
+    ## estimate correlation
     param.rho <- names(param.type)[param.type=="rho"]
     for(iRho in param.rho){ ## iRho <- param.rho[1]
         iIndex <- which(M.prodres[,iRho]==1)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (14:55) 
 ## Version: 
-## Last-Updated: Jun 18 2021 (15:56) 
+## Last-Updated: sep 20 2021 (17:46) 
 ##           By: Brice Ozenne
-##     Update #: 26
+##     Update #: 29
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -35,8 +35,8 @@
 ##' table(treat = ncgsL$treat, visit = ncgsL$visit, group = ncgsL$group)
 ##'
 ##' e1.lmm <- suppressWarnings(lmm(cholest~visit*treat,
-##'              data=ncgsL,
-##'              structure = CS(~visit|id)))
+##'              data=ncgsL, repetition= ~ visit|id,
+##'              structure = "CS"))
 ##' 
 ##' 
 ##' ## baseline adjustment 2
@@ -45,8 +45,8 @@
 ##' table(treat = ncgsL$treat2, visit = ncgsL$visit, group = ncgsL$group)
 ##'
 ##' e2.lmm <- suppressWarnings(lmm(cholest~visit*treat2,
-##'              data=ncgsL,
-##'              structure = CS(~visit|id)))
+##'              data=ncgsL, repetition= ~ visit|id,
+##'              structure = "CS"))
 ##' 
 ##' 
 ##' 

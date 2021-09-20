@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: sep 18 2021 (17:18) 
+## Last-Updated: sep 20 2021 (11:00) 
 ##           By: Brice Ozenne
-##     Update #: 121
+##     Update #: 157
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,6 +16,23 @@
 ### Code:
 
 ## * estimate (documentation)
+##' @title Optimizer for mixed models
+##' @description Optimization procedure for mixed model (REML or ML).
+##' Alternate between one step of gradient descent to update the variance parameters
+##' and a GLS estimation of the mean parameters.
+##'
+##' @param design [list] information about the mean and variance structure. Obtained using \code{.model.matrix.lmm}.
+##' @param time [list] information about the time variable (e.g. unique values)
+##' @param method.fit [character] Should Restricted Maximum Likelihoood (\code{"REML"}) or Maximum Likelihoood (\code{"ML"}) be used to estimate the model parameters?
+##' @param type.information [character] Should the expected information be computed  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
+##' @param transform.sigma,transform.k,transform.rho possible transformations for the variance parameters.
+##' @param precompute.moments [logical] have certain key quantities be pre-computed (e.g. \eqn{X'X}).
+##' @param init [numeric vector] values used to initialize the mean and parameters.
+##' @param n.iter [integer,>0] maximum number of iterations.
+##' @param tol.score [double,>0] convergence is not reached unless each element of the score is smaller (in absolute value) than this value. 
+##' @param tol.param [double,>0] convergence is not reached unless the change in parameter values between two iterations is smaller (in absolute value) than this value. 
+##' @param trace [1, 2, or 3] should each iteration be displayed?
+##' 
 ##' @examples
 ##' \dontrun{
 ##' ## simulate data in the long format
@@ -28,7 +45,10 @@
 ##' 
 ##' LMMstar.options(optimizer = "FS")
 ##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
+##' 
 ##' }
+##'
+##' @keywords internal
 
 ## * estimate (code)
 .estimate <- function(design, time, method.fit, type.information,
@@ -61,38 +81,32 @@
     param.Omega <- c(param.sigma,param.k,param.rho)
     param.name <- c(param.mu,param.Omega)
     n.param <- length(param.name)
-    pattern <- design$X.var$pattern
+    Upattern <- design$vcov$X$Upattern
+    n.Upattern <- NROW(Upattern)
     precompute.XY <- design$precompute.XY
     precompute.XX <- design$precompute.XX$pattern
     key.XX <- design$precompute.XX$key
-    
+
     ## ** intialization
     if(is.null(init)){
+
         param.value <- stats::setNames(rep(NA, n.param),param.name)
 
-        start.OmegaM1 <- stats::setNames(lapply(pattern, function(iPattern){
-            diag(1, nrow = length(design$X.var$index.time[[iPattern]]), ncol = length(design$X.var$index.time[[iPattern]]))
-        }), pattern)
-        param.value[param.mu] <- .estimateGLS(OmegaM1 = start.OmegaM1, pattern = pattern, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX)
+        ## mean value
+        start.OmegaM1 <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 2
+            diag(1, nrow = length(Upattern[iPattern,"time"][[1]]), ncol = length(Upattern[iPattern,"time"][[1]]))
+        }), Upattern$name)
+        param.value[param.mu] <- .estimateGLS(OmegaM1 = start.OmegaM1, pattern = Upattern$name, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX)
+        
+        ## vcov values
         iResiduals.long <- design$Y - design$mean %*% param.value[param.mu]
-        iResiduals.wide <- reshape2::dcast(data = data.frame(residuals = iResiduals.long, cluster = design$index.cluster, time = design$index.time),
-                                           formula = cluster~time, value.var = "residuals")
-        iM.rescor <- stats::cor(iResiduals.wide[,-1,drop=FALSE], use = "pairwise")
-        diag(iM.rescor) <- NA
-        iRescor <- mean(iM.rescor, na.rm = TRUE)
-        iResvar <- mean(apply(iResiduals.wide[,-1,drop=FALSE], MARGIN = 2, FUN = stats::var, na.rm = TRUE))
-
-        param.value[param.sigma] <- sqrt(iResvar)
-
-        if(length(param.k)>0){
-            param.value[param.k] <- 1
-        }
-
-        if(length(param.rho)>0){
-            param.value[param.rho] <- iRescor
-        }
-
+        outInit <- .initialize(design$vcov, residuals = iResiduals.long)
+        param.value[names(outInit)] <- outInit
     }else{
+        if(any(param.name %in% names(init) == FALSE)){
+            stop("Initialization does not contain value for all parameters. \n",
+                 "Missing parameters: \"",paste(param.name[param.name %in% names(init) == FALSE], collapse = "\" \""),"\". \n")
+        }
         param.value <- init[param.name]
     }
     ## microbenchmark(test =     .estimateGLS(OmegaM1 = start.OmegaM1, pattern = pattern, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX),
@@ -138,15 +152,15 @@
         
 
         ## *** mean estimate
-        iOmega <- .calc_Omega(object = design$X.var, param = param.value, keep.interim = TRUE)
+        iOmega <- .calc_Omega(object = design$vcov, param = param.value, keep.interim = TRUE)
         param.value[param.mu] <- .estimateGLS(OmegaM1 = stats::setNames(lapply(iOmega, solve), names(iOmega)),
-                                              pattern = pattern, precompute.XY = precompute.XY, precompute.XX = precompute.XX,
+                                              pattern = Upattern$name, precompute.XY = precompute.XY, precompute.XX = precompute.XX,
                                               key.XX = key.XX)
 
         
-        if(trace==1){
+        if(trace > 0 && trace < 3){
             cat("*")
-        }else if(trace>1){
+        }else if(trace>2){
             M.print <- rbind(estimate = param.value,
                              diff = param.value - param.valueM1,
                              score = c(rep(0, length(param.mu)),outMoments$score))
@@ -159,6 +173,10 @@
     if(trace==1){
         cat("\n")
     }else if(trace>1){
+        if(trace == 2){
+            cat("\n")
+            print(param.value)
+        }
         if(cv){
             if(iIter==1){
                 cat("Convergence after ",iIter," iteration: max score=",max(abs(outMoments$score)),"\n", sep = "")

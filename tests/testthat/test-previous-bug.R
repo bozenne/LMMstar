@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: Sep 19 2021 (17:09) 
+## Last-Updated: sep 20 2021 (17:11) 
 ##           By: Brice Ozenne
-##     Update #: 47
+##     Update #: 48
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -70,7 +70,8 @@ test_that("lmm - error due to minus sign in levels of a categorical variable",{
     eCS.lmm <- lmm(glucagon~time,
                    control=glsControl(opt="optim"),
                    data=gastricbypassL,
-                   structure = CS(~time|id))
+                   repetition = ~time|id,
+                   structure = "CS")
     e.gls <- gls(glucagon~time,
                  control=glsControl(opt="optim"),
                  data=gastricbypassL,
@@ -83,7 +84,8 @@ test_that("lmm - error due to minus sign in levels of a categorical variable",{
     eUN.lmm <- lmm(glucagon~time2,
                    control=glsControl(opt="optim"),
                    data=gastricbypassL,
-                   structure = UN(~time|id))
+                   repetition = ~time|id,
+                   structure = "UN")
 
     GS <- data.frame("estimate" = c(8.23783313, 8.07975612, 8.7153242, 8.40737066), 
                      "se" = c(0.16221473, 0.16264897, 0.16418598, 0.16223679), 
@@ -162,7 +164,7 @@ test_that("lmm - studentized and normalized residuals",{
 })
 
 ## * from: Julie Lyng Forman <jufo@sund.ku.dk> date: Wednesday, 07/07/21 11:00 PM (3/3)
-test_that("lmm - constrain model",{
+test_that("lmm - constrain model, cluster with 1 or several observations",{
 
     ## data
     data("calciumL", package = "LMMstar")
@@ -195,11 +197,13 @@ test_that("lmm - constrain model",{
                                      structure="UN",
                                      data=calciumL,
                                      df=FALSE))
-    fit.clmm.bis <- suppressWarnings(lmm(bmd~timefac+treat:timefac,
+    fit.clmm.bis <- suppressWarnings(lmm(bmd~0+treat:timefac,
                                          repetition=~visit|girl,
                                          structure="UN",
                                          data=calciumL,
                                          df=FALSE))
+    ## coef(fit.clmm)
+    ## coef(fit.clmm.bis)
     ## summary(fit.clmm)
     ## summary(fit.clmm.bis)
     ## autoplot(fit.clmm)
@@ -209,6 +213,7 @@ test_that("lmm - constrain model",{
                                       structure="UN",
                                       data=calciumL,
                                       df=FALSE))
+    ## coef(fit.clmm2)
     ## summary(fit.clmm2)
     
     expect_equal(logLik(fit.clmm),logLik(fit.clmm.bis), tol = 1e-5)

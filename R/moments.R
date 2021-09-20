@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: sep 17 2021 (09:50) 
+## Last-Updated: sep 20 2021 (17:42) 
 ##           By: Brice Ozenne
-##     Update #: 104
+##     Update #: 113
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -88,8 +88,23 @@
         out$d2Omega <- .calc_d2Omega(object = design$vcov, param = param.value, Omega = out$Omega, dOmega = out$dOmega, 
                                      Jacobian = out$reparametrize$Jacobian, dJacobian = out$reparametrize$dJacobian)
     }
+
+    ## param.value
+##     MM <- numDeriv::jacobian(func = function(iP){
+##         as.vector(.calc_Omega(object = design$vcov, param = iP)[[1]])
+##     }, x = param.value)
+##     matrix(MM[,7],4,4)
+##     matrix(MM[,8],4,4)
+
+    ## MM <- numDeriv::jacobian(func = function(iP){
+    ##     as.vector(.calc_dOmega(object = design$vcov, param = iP, 
+    ##                            Jacobian = out$reparametrize$Jacobian)[[1]]$sigma)
+    ## }, x = param.value)
+    ## matrix(MM[,7],4,4)
+    ## matrix(MM[,8],4,4)
+
     ## ** 3- compute likelihood derivatives
-    Upattern.ncluster <- setNames(design$vcov$X$Upattern$ncluster,design$vcov$X$Upattern$name)
+    Upattern.ncluster <- stats::setNames(design$vcov$X$Upattern$ncluster,design$vcov$X$Upattern$name)
     if(logLik){
         if(trace>=1){cat("- log-likelihood \n")}
         out$logLik <- .logLik(X = design$mean, residuals = out$residuals, precision = out$OmegaM1,

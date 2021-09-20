@@ -2,16 +2,30 @@
 % Please edit documentation in R/structure.R
 \name{CS}
 \alias{CS}
-\title{Compound Symmetry Covariance Matrix}
+\title{Compound Symmetry Structure}
 \usage{
-CS(formula)
+CS(formula, var.cluster, var.time, ...)
 }
 \arguments{
-\item{formula}{Time and cluster variables. The left hand side of the formula is ignored.}
+\item{formula}{formula indicating the cluster and a possible stratification.}
+
+\item{var.cluster}{[character] used to check the cluster variable in the formula.}
+
+\item{var.time}{[character] used to check the time variable in the formula.}
+
+\item{...}{not used.}
 }
 \description{
-Compound symmetry covariance matrix
+Variance-covariance structure where the residuals have constant variance and correlation.
+Can be stratified on a categorical variable.
 }
 \details{
-A typical formula would be \code{~time|id}, indicating a variance constant over time and the same correlation between all pairs of times.
+A typical formula would be \code{~1|id}, indicating a variance constant over time and the same correlation between all pairs of times.
+}
+\examples{
+CS(~1|id)
+CS(~1|id, var.time = "time", var.cluster = "id")
+CS(group~1|id)
+CS(group~time|id, var.time = "time", var.cluster = "id")
+
 }

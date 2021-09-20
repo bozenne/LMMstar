@@ -29,8 +29,8 @@ ncgsL$treat <- baselineAdjustment(ncgsL, variable = "group",
 table(treat = ncgsL$treat, visit = ncgsL$visit, group = ncgsL$group)
 
 e1.lmm <- suppressWarnings(lmm(cholest~visit*treat,
-             data=ncgsL,
-             structure = CS(~visit|id)))
+             data=ncgsL, repetition= ~ visit|id,
+             structure = "CS"))
 
 
 ## baseline adjustment 2
@@ -39,8 +39,8 @@ ncgsL$treat2 <- baselineAdjustment(ncgsL, variable = "group", new.level = "none"
 table(treat = ncgsL$treat2, visit = ncgsL$visit, group = ncgsL$group)
 
 e2.lmm <- suppressWarnings(lmm(cholest~visit*treat2,
-             data=ncgsL,
-             structure = CS(~visit|id)))
+             data=ncgsL, repetition= ~ visit|id,
+             structure = "CS"))
 
 
 

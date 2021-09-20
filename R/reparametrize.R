@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: Jun  8 2021 (12:15) 
+## Last-Updated: sep 20 2021 (14:53) 
 ##           By: Brice Ozenne
-##     Update #: 345
+##     Update #: 347
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -589,14 +589,16 @@ reparametrize <- function(p, type, strata, time.levels,
                 }else{
                     if(inverse){
                         out$p[iName.rho] <- sapply(iName.rho, function(iRho){ ## iRho <- iName.rho[2]
-                            iName.sigma1 <- c(names(which(time.k==time.rho[1,iRho])),iName.sigma)[1]
-                            iName.sigma2 <- c(names(which(time.k==time.rho[2,iRho])),iName.sigma)[1]
+                            iTime.k <- time.k[strata[names(time.k)] == strata[iRho]]
+                            iName.sigma1 <- c(names(which(iTime.k==time.rho[1,iRho])),iName.sigma)[1]
+                            iName.sigma2 <- c(names(which(iTime.k==time.rho[2,iRho])),iName.sigma)[1]
                             return(p[iRho]/sqrt(p[iName.sigma1]*p[iName.sigma2]))
                         })
                     }else{
                         out$p[iName.rho] <- sapply(iName.rho, function(iRho){ ## iRho <- iName.rho[1]
-                            iName.sigma1 <- names(which(time.k==time.rho[1,iRho]))
-                            iName.sigma2 <- names(which(time.k==time.rho[2,iRho]))
+                            iTime.k <- time.k[strata[names(time.k)] == strata[iRho]]
+                            iName.sigma1 <- names(which(iTime.k==time.rho[1,iRho]))
+                            iName.sigma2 <- names(which(iTime.k==time.rho[2,iRho]))
                             if(length(iName.sigma1)>0){
                                 iSigma1 <- p[iName.sigma1]
                             }else{

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: sep 17 2021 (10:25) 
+## Last-Updated: sep 20 2021 (17:38) 
 ##           By: Brice Ozenne
-##     Update #: 986
+##     Update #: 1025
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -39,13 +39,14 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
         }
 
         design <- .model.matrix.lmm(formula.mean = object$formula$mean.design,
-                                    formula.var = object$formula$var.design,
+                                    structure = object$structure,
                                     data = data,
                                     var.outcome = object$outcome$var,
                                     var.strata = object$strata$var, U.strata = object$strata$levels,
                                     var.time = object$time$var, U.time = object$time$levels,
                                     var.cluster = object$cluster$var,
-                                    structure = object$structure
+                                    precompute.moments = FALSE,
+                                    optimizer = LMMstar.options()$optimizer
                                     )
     }else{
         design <- object$design
@@ -76,7 +77,8 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
                               var.strata, U.strata,
                               var.time, U.time,
                               var.cluster,
-                              precompute.moments){
+                              precompute.moments,
+                              optimizer){
     n.obs <- NROW(data)
     n.strata <- length(U.strata)
     n.time <- length(U.time)
@@ -109,12 +111,12 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
     })
 
     ## ** mean
-    if(n.strata==1){
+    if(n.strata==1 || optimizer == "FS"){
         X.mean <- model.matrix_regularize(formula.mean, data)
         strata.mu <- stats::setNames(rep(1,NCOL(X.mean)), colnames(X.mean))
     }else{
         ls.X.mean <- lapply(U.strata, function(iS){ ## iS <- U.strata[1]
-            iX <- model.matrix_regularize(formula.mean, data[data[[var.strata]]==iS,])
+            iX <- model.matrix_regularize(formula.mean, data[data[[var.strata]]==iS,,drop=FALSE])
             colnames(iX) <- paste0(colnames(iX),":",iS)
             attr(iX,"index") <- data[data[[var.strata]]==iS,"XXindexXX"]
             return(iX)
@@ -145,7 +147,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
         stop("The name of the cluster variable in the residual variance-covariance structure does not match the actual cluster variable. \n")
     }
     structure <- .skeleton(structure, data = data)
-    
+
     ## ** prepare calculation of the score
     if(precompute.moments){
         precompute.XX <-  .precomputeXX(X = X.mean, pattern = structure$X$Upattern$name,
@@ -175,10 +177,13 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
                            strata.sigma = structure$param[structure$param$type=="sigma","strata"],
                            strata.k = structure$param[structure$param$type=="k","strata"],
                            strata.rho = structure$param[structure$param$type=="rho","strata"],
-                           time.sigma = structure$param[structure$param$type=="sigma","time"],
-                           time.k = structure$param[structure$param$type=="k","time"],
-                           time.rho = structure$param[structure$param$type=="rho","time"],
+                           time.sigma = unlist(structure$param[structure$param$type=="sigma","time"]),
+                           time.k = unlist(structure$param[structure$param$type=="k","time"]),
+                           time.rho = NULL,
                            pair.meanvarcoef = pair.meanvarcoef)
+    if(length(skeleton.param$rho)>0){
+        skeleton.param$time.rho <- base::t(do.call(rbind,structure$param[structure$param$type=="rho","time"]))
+    }
     name.param <- c(skeleton.param$mu,skeleton.param$sigma,skeleton.param$k,skeleton.param$rho)
     skeleton.param$type <- stats::setNames(c(rep("mu",length(skeleton.param$mu)),
                                              rep("sigma",length(skeleton.param$sigma)),
@@ -208,6 +213,12 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
 ## * model.matrix_regularize
 ## remove un-identifiable columns from the design matrix 
 model.matrix_regularize <- function(formula, data, augmodel = FALSE){
+
+    ## ** remove variable(s) with single factor in the formula
+    test.1value <- sapply(all.vars(formula),function(iVar){length(unique(data[[iVar]]))})
+    if(any(test.1value==1)){
+        formula <- stats::update(formula, stats::as.formula(paste0("~.-",paste(names(test.1value)[test.1value==1],collapse="-"))))
+    }
 
     ## ** identify if there is an identifiability problem
     X <- stats::model.matrix(formula, data)
@@ -391,7 +402,7 @@ model.matrix_regularize <- function(formula, data, augmodel = FALSE){
                 iIndex  <- which(X.names[iCol] == iLs.allnameInteraction)
                 ## deduce the factor variable
                 iValue.factor <- iLs.grid[iIndex,,drop=FALSE]
-                X.level[[iCol]] <- as.data.frame(stats::setNames(lapply(iVar, function(iName){if(is.null(iValue.factor[[iName]])){as.numeric(NA)}else{iValue.factor[1,iName]}}), iVar))                
+                X.level[[iCol]] <- as.data.frame(stats::setNames(lapply(iVar, function(iName){if(is.null(iValue.factor[[iName]])){as.numeric(NA)}else{as.character(iValue.factor[1,iName])}}), iVar))                
                 X.level2[[iCol]][,names(X.level[[iCol]])] <- X.level[[iCol]]
                 if(any(is.na(X.level[[iCol]]))){
                     X.level2[[iCol]][,is.na(X.level[[iCol]])] <- TRUE
@@ -403,12 +414,14 @@ model.matrix_regularize <- function(formula, data, augmodel = FALSE){
         }
     }
 
-    ## ** export
+    ## ** add attributes
     attr(X,"term.labels") <- X.term
     attr(X,"order") <- X.order
     attr(X,"ls.level") <- X.level
     attr(X,"M.level") <- do.call(rbind,X.level2)
     attr(X,"reference.level") <- reference2
+
+    ## ** export
     return(X)
 }
 

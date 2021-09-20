@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: sep 16 2021 (17:43) 
+## Last-Updated: sep 20 2021 (17:39) 
 ##           By: Brice Ozenne
-##     Update #: 1063
+##     Update #: 1103
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -47,8 +47,6 @@
 ##' 
 ##' ## fit Linear Mixed Model
 ##' eCS.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "CS", data = dL)
-##' ## same as
-##' eCS.lmm.bis <- lmm(Y ~ X1 + X2 + X5, structure = CS(~visit|id), data = dL)
 ##'
 ##' ## eID.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "ID", data = dL, trace = 5)
 ##' ## eIND.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "IND", data = dL, trace = 5)
@@ -63,7 +61,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     out <- list(call = match.call(), data.original = data)
     options <- LMMstar.options()
     data <- as.data.frame(data)
-    
+
     ## ** check and normalize user imput
     if(is.null(trace)){
         trace <- options$trace
@@ -120,14 +118,14 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                 stop("Argument \'data\' should not contain a column named \"XXtimeXX\" as this name is used by the lmm function when the argument \'repetition\' is missing. \n")
             }
             data$XXtimeXX <- "t1"
-            var.time <- XXtimeXX
+            var.time <- "XXtimeXX"
         }
         if(is.null(var.cluster)){
             if("XXidXX" %in% names(data)){
                 stop("Argument \'data\' should not contain a column named \"XXidXX\" as this name is used by the lmm function when the argument \'repetition\' is missing. \n")
             }
             data$XXidXX <- 1:NROW(data)
-            var.cluster <- XXidXX
+            var.cluster <- "XXidXX"
         }
             
         repetition <-  stats::as.formula(paste0("~",var.time," | ",var.cluster))            
@@ -181,20 +179,27 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     ## *** structure (residual variance-covariance structure)
     if(trace>=2){cat("- residual variance-covariance structure  ")}
 
+    if(missing(structure)){
+        structure <- "UN"
+    }
     if(inherits(structure,"structure")){
-        type.sturcture <- structure$type
+        if(options$optimizer=="gls"){
+            stop("When using \"gls\" optimizer, the structure should be specified as a character. \n",
+                 "Available structures: \"ID\",\"IND\",\"CS\",\"UN\". \n")
+        }
+        type.structure <- structure$type
     }else if(inherits(structure,"character")){
-        type.structure <- match.arg(structure, c("ID","IND","CS","UN"))
+         type.structure <- match.arg(structure, c("ID","IND","CS","UN"))
         if(structure=="ID"){
             structure <- IND(formula = ~1, var.cluster = var.cluster, var.time = var.time)
             type.structure <- "IND"
         }else{
             structure <- do.call(type.structure, list(formula = repetition, var.cluster = var.cluster, var.time = var.time))
         }
-    }else{        
+    }else{
         stop("Argument \'structure\' must either be a character or a structure object. \n")
     }
-    var.strata <- structure$strata
+    var.strata <- structure$name$strata
 
     ## *** formula (mean structure)
     if(trace>=2){cat("- mean structure")}
@@ -226,7 +231,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
         stop("Cannot handle interaction involving more than two variables. \n")
     }
 
-    if(!is.null(var.strata)){
+    if(!is.na(var.strata) && options$optimizer == "gls"){
         var.X.withinStrata <- setdiff(var.X, var.strata)
         if(length(var.X.withinStrata)==0){
             formula.design <- stats::update(formula, paste0(".~1")) ## no interaction with the strata variable
@@ -248,7 +253,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                         cor.design = structure$formula$cor)
     var.Z <- c(all.vars(out$formula$var.design),all.vars(out$formula$var.design))
     if(trace>=2){cat("\n")}
-    
+
     ## *** data
     if(trace>=2){cat("- data")}
     ## index
@@ -270,7 +275,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     data[[var.time.index]] <- as.numeric(data[[var.time.index]])
     
     ## strata
-    if(is.null(var.strata)){
+    if(is.na(var.strata)){
         var.strata <- "XXstrata.indexXX"
         U.strata <- 1
         n.strata <- 1
@@ -280,28 +285,38 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
         }
         data$XXstrata.indexXX <- 1
     }else{
-        data[[var.strata]] <- as.character(data[[var.strata]])
-        U.strata <- as.character(sort(unique(data[[var.strata]])))
-        n.strata <- length(U.strata)
-
-        tocheck <- setdiff(var.X,var.strata)
-        if(var.strata %in% var.X == FALSE){
-            stop("When a variable is used to stratify the variance structure, it should also be use to stratify the mean structure. \n",
-                 "Consider adding all interactions with \"",var.strata,"\" in the argument \'formula\'. \n")
+        if(is.factor(data[[var.strata]])){
+            U.strata <- levels(data[[var.strata]])
+            data[[var.strata]] <- as.character(data[[var.strata]])
+            n.strata <- length(U.strata)
+        }else{
+            data[[var.strata]] <- as.character(data[[var.strata]])
+            U.strata <- as.character(sort(unique(data[[var.strata]])))
+            n.strata <- length(U.strata)
         }
-            
+        
         if(any(rowSums(table(data[[var.cluster]],data[[var.strata]])>0)!=1)){
             stop("When a variable is used to stratify the variance structure, all observations belonging to each cluster must belong to a single strata. \n")
         }
 
-        sapply(tocheck, function(iX){ ## iX <- "age"
-            iCoef <- which(attr(formula.terms,"factors")[iX,]>=1)
-            iInteraction <- attr(formula.terms,"factors")[var.strata,iCoef,drop=FALSE]
-            if(all(iInteraction==0)){
-                stop("When a variable is used to stratify the variance structure, it should also be used to stratify the mean structure. \n",
-                     "Consider adding an interaction between \"",iX,"\" and \"",var.strata,"\" in the argument \'formula\'. \n")
+        if(options$optimizer=="gls"){
+            tocheck <- setdiff(var.X,var.strata)
+            if(var.strata %in% var.X == FALSE){
+                stop("When a variable is used to stratify the variance structure, it should also be use to stratify the mean structure. \n",
+                     "Consider adding all interactions with \"",var.strata,"\" in the argument \'formula\'. \n",
+                     "Or using \"FS\" optimizer (see LMMstar.options). \n")
             }
-        })
+            
+            sapply(tocheck, function(iX){ ## iX <- "age"
+                iCoef <- which(attr(formula.terms,"factors")[iX,]>=1)
+                iInteraction <- attr(formula.terms,"factors")[var.strata,iCoef,drop=FALSE]
+                if(all(iInteraction==0)){
+                    stop("When a variable is used to stratify the variance structure, it should also be used to stratify the mean structure. \n",
+                         "Consider adding an interaction between \"",iX,"\" and \"",var.strata,"\" in the argument \'formula\'. \n",
+                         "Or using \"FS\" optimizer (see LMMstar.options). \n")
+                }
+            })
+        }
 
         test.length <- tapply(data[[var.time]], data[[var.strata]], function(iT){list(unique(iT))})
             
@@ -352,8 +367,8 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                                     var.strata = var.strata, U.strata = U.strata,
                                     var.time = var.time, U.time = U.time,
                                     var.cluster = var.cluster,
-                                    precompute.moments = options$precompute.moments
-                                    )
+                                    precompute.moments = options$precompute.moments,
+                                    optimizer = options$optimizer)
 
     out$xfactor <- c(stats::.getXlevels(stats::terms(out$formula$mean.design),data),
                      stats::.getXlevels(stats::terms(out$formula$var.design),data))
@@ -395,7 +410,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     if(options$optimizer=="gls"){
 
         if(max(out$design$cluster$nobs)==1 || type.structure == "IND"){
-            name.var <- na.omit(setdiff(structure$name$var,structure$name$strata))
+            name.var <- stats::na.omit(setdiff(structure$name$var,structure$name$strata))
 
             if(type.structure == "CS" || length(name.var)==0){
                 txt.gls <- paste0("nlme::gls(",txt.formula,",
@@ -460,6 +475,10 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                                  init = control$init, n.iter = control$n.iter, tol.score = control$tol.score, tol.param = control$tol.param, trace = control$trace)
         param.value <- outEstimate$estimate
         out$opt <- outEstimate[c("cv","n.iter","score","previous.estimate")]
+
+        if(out$opt$cv==FALSE){
+            warning("Convergence issue: no stable solution has been found. \n")
+        }
         
     }
     out$param <- list(value = param.value,

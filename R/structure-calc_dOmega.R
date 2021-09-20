@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: sep 17 2021 (10:47) 
+## Last-Updated: sep 20 2021 (17:04) 
 ##           By: Brice Ozenne
-##     Update #: 45
+##     Update #: 49
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -110,9 +110,9 @@
         iParamVar <- c(iParam.sigma, iParam.k, iParam.rho)
         
         iScore <- stats::setNames(vector(mode = "list", length = length(iParamVar)), iParamVar)
-        iX.var <- X.var[[iPattern]][,c(iParam.sigma,iParam.k),drop=FALSE]
-        iX.cor <- X.cor[[iPattern]][,c(iParam.rho),drop=FALSE]
-        iIndicator <- attr(X.cor[[iPattern]],"indicator.param")
+        iX.var <- X.var[[iPattern.var]][,c(iParam.sigma,iParam.k),drop=FALSE]
+        iX.cor <- X.cor[[iPattern.cor]][,c(iParam.rho),drop=FALSE]
+        iIndicator <- attr(X.cor[[iPattern.cor]],"indicator.param")
 
         if(n.iParam.sigma==1){
             ## compute derivative
@@ -139,11 +139,10 @@
             idOmega.k <- exp(iX.var %*% log(iParam.dk)) * iX.var[,iParam.k]
             for(iK in iParam.k){ ## iK <- iParam.k[1]
                 iScore[[iK]] <- diag(2*as.double(idOmega.k[,iK])*as.double(iOmega.sd), nrow = iNtime, ncol = iNtime) + iOmega.cor * (idOmega.k[,iK] %*% t(iOmega.sd) + iOmega.sd %*% t(idOmega.k[,iK]))
-                ## iIndicator <- tcrossprod(X.var[[iPattern]][,iK], rep(1,NROW(X.var[[iPattern]][,iK]))) + t(tcrossprod(X.var[[iPattern]][,iK], rep(1,NROW(X.var[[iPattern]][,iK])))) > 0
-                ## iScore[[iK]] - iOmega/param[iK] * (iIndicator + tcrossprod(X.var[[iPattern]][,iK]))
+                ## iIndicator <- tcrossprod(X.var[[iPattern.var]][,iK], rep(1,NROW(X.var[[iPattern.var]][,iK]))) + t(tcrossprod(X.var[[iPattern.var]][,iK], rep(1,NROW(X.var[[iPattern.var]][,iK])))) > 0
+                ## iScore[[iK]] - iOmega/param[iK] * (iIndicator + tcrossprod(X.var[[iPattern.var]][,iK]))
             }
         }
-        
         if(n.iParam.rho>0){
             iOmega.var <- tcrossprod(iOmega.sd)
             

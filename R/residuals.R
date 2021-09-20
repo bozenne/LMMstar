@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: sep 18 2021 (17:06) 
+## Last-Updated: sep 20 2021 (17:37) 
 ##           By: Brice Ozenne
-##     Update #: 186
+##     Update #: 190
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -135,13 +135,14 @@ residuals.lmm <- function(object, type = "response", format = "long",
             }
 
             design <- .model.matrix.lmm(formula.mean = object$formula$mean.design,
-                                        formula.var = object$formula$var.design,
+                                        structure = object$design$vcov,
                                         data = data,
                                         var.outcome = object$outcome$var,
                                         var.strata = object$strata$var, U.strata = object$strata$levels,
                                         var.time = object$time$var, U.time = object$time$levels,
                                         var.cluster = object$cluster$var,
-                                        structure = object$structure
+                                        precompute.moments = FALSE,
+                                        optimizer = "FS"
                                         )
         }else{
             if(keep.data){
@@ -167,7 +168,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
             }
             beta <- p[names(object$param$type=="mu")]
             if(any(type.residual %in% c("studentized","pearson","normalized","normalized2","scaled"))){
-                Omega <- .calc_Omega(object = sturcutre, param = p)
+                Omega <- .calc_Omega(object = structure, param = p)
                 precision <- lapply(Omega, solve)
             }
         }else{

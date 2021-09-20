@@ -2,16 +2,30 @@
 % Please edit documentation in R/structure.R
 \name{UN}
 \alias{UN}
-\title{Unstructured Covariance Matrix}
+\title{Unstructured Structure}
 \usage{
-UN(formula)
+UN(formula, var.cluster, var.time, ...)
 }
 \arguments{
-\item{formula}{Time and cluster variables. The left hand side of the formula is ignored.}
+\item{formula}{formula indicating the cluster, factors influencing the variance and the correlation, and a possible stratification.}
+
+\item{var.cluster}{[character] used to check the cluster variable in the formula.}
+
+\item{var.time}{[character] used to check the time variable in the formula.}
+
+\item{...}{not used.}
 }
 \description{
-Unstructured covariance matrix
+Variance-covariance structure where the residuals have time-specific variance and correlation.
+Can be stratified on a categorical variable.
 }
 \details{
 A typical formula would be \code{~time} or \code{~time|id}, indicating a time-specific variance parameter and a correlation parameter specific to each pair of times.
+}
+\examples{
+UN(~time|id)
+UN(~time+gender|id)
+UN(group~time|id, var.cluster = "id")
+UN(group~time|id, var.cluster = "id", var.time = "time")
+
 }

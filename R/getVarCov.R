@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: sep 17 2021 (10:03) 
+## Last-Updated: sep 20 2021 (14:22) 
 ##           By: Brice Ozenne
-##     Update #: 147
+##     Update #: 150
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -89,7 +89,7 @@ getVarCov.lmm <- function(obj, individual = NULL, p = NULL, type.object = c("lmm
             }else{
                 out <- stats::setNames(vector(mode = "list", length = n.strata),strata)
                 for(iStrata in 1:n.strata){ ## iStrata <- 1
-                    out[[iStrata]] <- .getUVarCov(object, Omega = Omega[strata[bject$design$vcov$X$Upattern$strata]==strata[iStrata]])
+                    out[[iStrata]] <- .getUVarCov(object, Omega = Omega[strata[object$design$vcov$X$Upattern$strata]==strata[iStrata]])
                 }
             }
         }else{

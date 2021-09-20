@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: sep 17 2021 (10:03) 
+## Last-Updated: sep 20 2021 (09:50) 
 ##           By: Brice Ozenne
-##     Update #: 330
+##     Update #: 334
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -138,7 +138,7 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, columns =
         cat("  - parameters: mean = ",length(param.mu),", variance = ",length(c(param.sigma,param.k)),", correlation = ",length(param.rho),"\n", sep = "")
         if(!is.null(object$opt)){
             index.score <- which.max(abs(object$score))
-            cat("  - convergence: ",object$opt$cv," (",object$opt$n.iter," iterations, largest |score|=",names(index.score),"=",object$score[index.score],")\n", sep = "")
+            cat("  - convergence: ",object$opt$cv," (",object$opt$n.iter," iterations, largest |score|=",object$score[index.score]," is for ",names(index.score),")\n", sep = "")
         }
         cat(" \n")
     }
