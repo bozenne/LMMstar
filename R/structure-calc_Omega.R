@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: sep 20 2021 (17:23) 
+## Last-Updated: sep 22 2021 (13:33) 
 ##           By: Brice Ozenne
-##     Update #: 402
+##     Update #: 406
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -89,7 +89,7 @@
             Omega.cor[attr(X.cor[[iPattern.cor]],"index.vec2matrix")] <- X.cor[[iPattern.cor]] %*% param[colnames(X.cor[[iPattern.cor]])]
         }
         Omega <- diag(as.double(Omega.sd)^2, nrow = iNtime, ncol = iNtime) + Omega.cor * tcrossprod(Omega.sd)
-
+        
         if(keep.interim){
             attr(Omega,"time") <- iTime
             attr(Omega,"sd") <- Omega.sd

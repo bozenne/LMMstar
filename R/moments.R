@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: sep 20 2021 (17:42) 
+## Last-Updated: sep 22 2021 (13:28) 
 ##           By: Brice Ozenne
-##     Update #: 113
+##     Update #: 115
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -76,7 +76,7 @@
     if(trace>=1){cat("- Omega \n")}
     out$Omega <- .calc_Omega(object = design$vcov, param = param.value, keep.interim = TRUE)
     out$OmegaM1 <- lapply(out$Omega,solve)
-    
+
     if(score || information || vcov || df){
         if(trace>=1){cat("- dOmega \n")}
         out$dOmega <- .calc_dOmega(object = design$vcov, param = param.value, Omega = out$Omega,
@@ -90,11 +90,11 @@
     }
 
     ## param.value
-##     MM <- numDeriv::jacobian(func = function(iP){
-##         as.vector(.calc_Omega(object = design$vcov, param = iP)[[1]])
-##     }, x = param.value)
-##     matrix(MM[,7],4,4)
-##     matrix(MM[,8],4,4)
+    ##     MM <- numDeriv::jacobian(func = function(iP){
+    ##         as.vector(.calc_Omega(object = design$vcov, param = iP)[[1]])
+    ##     }, x = param.value)
+    ##     matrix(MM[,7],4,4)
+    ##     matrix(MM[,8],4,4)
 
     ## MM <- numDeriv::jacobian(func = function(iP){
     ##     as.vector(.calc_dOmega(object = design$vcov, param = iP, 

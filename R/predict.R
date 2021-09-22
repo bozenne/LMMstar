@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: sep 20 2021 (12:31) 
+## Last-Updated: sep 22 2021 (17:42) 
 ##           By: Brice Ozenne
-##     Update #: 412
+##     Update #: 437
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -85,7 +85,7 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
     }else{
         name.strata <- NULL
     }
-    level.time <- object$time$levels
+    U.time <- object$time$levels
     name.cluster <- object$cluster$var
     type.prediction <- match.arg(type, c("static","dynamic"))
     if(identical(se,FALSE)){
@@ -93,7 +93,6 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
     }else if(!is.null(se)){
         se <- match.arg(se, c("estimation","residual","total"))
     }
-    
     if(is.null(newdata[[name.cluster]])){
         if(type=="static"){
             newdata[[name.cluster]] <- as.character(1:NROW(newdata))
@@ -105,15 +104,20 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
                 newdata[[name.cluster]] <- as.character("1")
             }
         }
+    }else if(is.factor(newdata[[name.cluster]]) || is.numeric(newdata[[name.cluster]])){
+        newdata[[name.cluster]] <- as.character(newdata[[name.cluster]])
     }
     if(!is.null(name.strata)){
         if(name.strata %in% names(newdata) == FALSE){
             stop("The strata column ",name.time," in argument \'newdata\' is missing. \n")
         }
+        if(is.factor(newdata[[name.strata]]) || is.numeric(newdata[[name.strata]])){
+            newdata[[name.strata]] <- as.character(newdata[[name.strata]])
+        }
         if(any(newdata[[name.strata]] %in% object$strata$level == FALSE)){
             stop("The strata column ",name.time," in argument \'newdata\' contains unknown levels. \n")
         }
-    }
+    } 
     
     if(type.prediction == "dynamic"){
         if(name.time %in% names(newdata) == FALSE){
@@ -122,9 +126,12 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
         if(name.Y %in% names(newdata) == FALSE){
             stop("The outcome column ",name.Y," in argument \'newdata\' is missing and necessary when doing dynamic predictions. \n")
         }
-        if(any(newdata[[name.time]] %in% level.time == FALSE)){
+        if(is.factor(newdata[[name.time]]) || is.numeric(newdata[[name.time]])){
+            newdata[[name.time]] <- as.character(newdata[[name.time]])
+        }
+        if(any(newdata[[name.time]] %in% U.time == FALSE)){
             stop("The time column ",name.time," in argument \'newdata\' should match the existing times. \n",
-                 "Existing times: \"",paste0(level.time, collapse = "\" \""),"\".\n")
+                 "Existing times: \"",paste0(U.time, collapse = "\" \""),"\".\n")
         }
         test.duplicated <- tapply(newdata[[name.time]],newdata[[name.cluster]], function(iT){any(duplicated(iT))})
         if(any(test.duplicated)){
@@ -154,22 +161,16 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
     ## ** prepare id 
     seq.id <- unique(newdata[[name.cluster]])
     n.id <- length(seq.id)
-    
+
+    ## ** design matrix
+    newdesign <- model.matrix(object, data = newdata, effects = "all")
+
     ## ** identify variance patterns
-    Omega <- getVarCov(object, individual = NULL)
-    if(!is.null(name.strata)){
-        strata.time.names <- sapply(1:length(Omega),function(iO){
-            paste0(names(Omega)[iO],".",colnames(Omega[[iO]]))
-        })
-        Omega.strata <- as.matrix(Matrix::bdiag(Omega))
-        dimnames(Omega.strata) <- list(strata.time.names,strata.time.names)
-        newdata.time.strata <- paste0(newdata[[name.strata]],".",newdata[[name.time]])
-    }else{
-        Omega.strata <- Omega
-        newdata.time.strata <- as.character(newdata[[name.time]])
+    Omega <- object$Omega
+    for(iO in 1:length(Omega)){
+        dimnames(Omega[[iO]]) <- list(U.time[attr(Omega[[iO]],"time")],U.time[attr(Omega[[iO]],"time")])
     }
     
-
     ## ** compute predictions
     ## extract coefficients
     beta <- coef(object, effects = "mean")
@@ -207,7 +208,15 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
                 prediction.var <- prediction.var + rowSums((X %*% vcov.beta) *X)
             }
             if(factor.residual){
-                prediction.var <- prediction.var + diag(Omega.strata)[newdata.time.strata]
+                ## find variance corresponding to each observation
+                Omega.diag <- data.frame(value = unlist(lapply(Omega,diag)),
+                                         pattern = unlist(lapply(1:length(Omega),function(iO){rep(names(Omega)[[iO]],NCOL(Omega[[iO]]))})),
+                                         time = U.time[unlist(lapply(Omega,attr,"time"))])
+                data.Omega <- data.frame(pattern = newdesign$vcov$pattern.cluster[newdata[[name.cluster]]],
+                                         time = newdata[[name.time]])
+                index.value <- match(paste(data.Omega$pattern,data.Omega$time,sep="|"), paste(Omega.diag$pattern,Omega.diag$time,sep="|"))
+                
+                prediction.var <- prediction.var + Omega.diag$value[index.value]
             }
             out$se <- sqrt(prediction.var)
             out$df <- Inf
@@ -232,7 +241,7 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
 
             iX.con <- X[iNewdata$XXXindexXXX[iIndex.con],,drop=FALSE]
             iX.pred <- X[iPos.pred,,drop=FALSE]
-            iOmega.pred <- Omega[iLevels.pred,iLevels.pred,drop=FALSE]
+            iOmega.pred <- Omega[[newdesign$vcov$pattern.cluster[seq.id[iId]]]]
 
             if(length(iLevels.con)==0){ ## static prediction
                 prediction[iPos.pred] <- iX.pred %*% beta
@@ -244,9 +253,9 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
                     prediction.var[iPos.pred] <- prediction.var[iPos.pred] + diag(iOmega.pred)
                 }
             }else{ ## dynamic prediction
-                iOmegaM1.con <- solve(Omega[iLevels.con,iLevels.con,drop=FALSE])
-                iOmega.predcon <- Omega[iLevels.pred,iLevels.con,drop=FALSE]
-                iOmega.conpred <- Omega[iLevels.con,iLevels.pred,drop=FALSE]
+                iOmegaM1.con <- solve(iOmega.pred[iLevels.con,iLevels.con,drop=FALSE])
+                iOmega.predcon <- iOmega.pred[iLevels.pred,iLevels.con,drop=FALSE]
+                iOmega.conpred <- iOmega.pred[iLevels.con,iLevels.pred,drop=FALSE]
 
                 ## extract current outcome
                 iY <- iNewdata[iIndex.con,name.Y]
@@ -260,11 +269,8 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
                 }
                 if(factor.estimation){
                     calcPred <- function(x){ ## x <- param.all
-                        OO <- getVarCov(object, p = x)
-                        if(!is.null(name.strata)){
-                            OO <- as.matrix(Matrix::bdiag(OO))
-                            dimnames(OO) <- list(strata.time.names,strata.time.names)
-                        }
+                        OO <- .calc_Omega(object = object$design$vcov, param = x, keep.interim = TRUE)[[newdesign$vcov$pattern.cluster[seq.id[iId]]]]
+                        dimnames(OO) <- list(U.time[attr(OO,"time")],U.time[attr(OO,"time")])
                         rr <- solve(OO[iLevels.con,iLevels.con,drop=FALSE]) %*% (iY - iX.con %*% x[name.beta])
                         pp <- iX.pred %*% x[name.beta] + OO[iLevels.pred,iLevels.con,drop=FALSE] %*% rr
                         return(pp)

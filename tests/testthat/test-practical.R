@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (17:03) 
 ## Version: 
-## Last-Updated: sep 20 2021 (17:17) 
+## Last-Updated: sep 22 2021 (19:31) 
 ##           By: Brice Ozenne
-##     Update #: 44
+##     Update #: 46
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -36,7 +36,7 @@ test.practical <- FALSE
 ## * Practical 1
 test_that("practical 1 - gastricbypass",{
     if(test.practical){
-    data(gastricbypassL)
+    data(gastricbypassL, package = "LMMstar")
     gastricbypassL$time <- factor(gastricbypassL$time,
                                   levels = c("3 months before surgery", "1 week before surgery", "1 week after surgery", "3 months after surgery"),
                                   labels = c("m3B","w1B","w1A","m3A"))
@@ -167,7 +167,7 @@ test_that("practical 2 - ncgs",{
 
 test_that("practical 2 - vitamin",{
     if(test.practical){
-    data(vitaminL)
+    data(vitaminL, package = "LMMstar")
 
     vitaminL$visit.num <- as.numeric(vitaminL$visit)
     
@@ -194,11 +194,11 @@ test_that("practical 2 - vitamin",{
                   structure = "UN",
                   control=glsControl(opt='optim'))
 
-    e.lmm <-suppressWarnings(lmm(weight~treatment*visit,
-                                 data=vitaminL,
-                                 repetition = ~visit|animal,
-                                 structure = "UN",
-                                 control=glsControl(opt='optim')))
+    e.lmm <- suppressWarnings(lmm(weight~treatment*visit,
+                                  data=vitaminL,
+                                  repetition = ~visit|animal,
+                                  structure = "UN",
+                                  control=glsControl(opt='optim')))
 
     expect_equal(as.double(logLik(e.gls)), as.double(logLik(e.lmm)), tol = 1e-6)
     
@@ -248,7 +248,7 @@ test_that("practical 3 - swabsL",{
 ## * Practical 4
 test_that("practical 4 - bloodpressureL",{
     if(test.practical){
-        data(bloodpressureL)
+        data(bloodpressureL, package = "LMMstar")
         bloodpressureL$period.num <- as.numeric(bloodpressureL$period)
         bloodpressureL$treatment.num <- as.numeric(bloodpressureL$treatment)
             

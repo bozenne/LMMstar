@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: sep 20 2021 (17:31) 
+## Last-Updated: sep 22 2021 (14:00) 
 ##           By: Brice Ozenne
-##     Update #: 74
+##     Update #: 81
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -168,15 +168,18 @@
 
     if(is.null(object$X$cor)){return(out)}
     ## combine all residuals and all design matrices
-    M.prodres <- do.call(rbind,lapply(1:length(object$X$cor), function(iPattern){ ## iPattern <- 1
-
+    M.prodres <- do.call(rbind,lapply(1:length(object$X$cor), function(iPattern){ ## iPattern <- 9
         X.iPattern <- object$X$cor[[iPattern]]
+        if(is.null(X.iPattern)){return(NULL)}
         cluster.iPattern <- attr(X.iPattern,"index.cluster")
         obs.iPattern <- do.call(rbind,attr(X.iPattern,"index.obs"))
-        iIndex.pairtime <- attr(X.iPattern,"index.pairtime")
-
-        iOut <- do.call(rbind,lapply(1:NCOL(iIndex.pairtime), function(iPair){ ## iPair <- 2
-            iIndex.pair <- iIndex.pairtime[,iPair]
+        iIndex.pairtime <- attr(X.iPattern,"index.pairtime") ## index among all timepoints
+        iIndex.Utime <- attr(X.iPattern,"index.Utime") 
+        iIndex2.pairtime <- matrix(NA, nrow = 2, ncol = NCOL(iIndex.pairtime)) ## index among all possible timepoints for this pattern
+        iIndex2.pairtime[] <- as.numeric(factor(iIndex.pairtime, levels = iIndex.Utime, labels = 1:length(iIndex.Utime)))
+        
+        iOut <- do.call(rbind,lapply(1:NCOL(iIndex.pairtime), function(iPair){ ## iPair <- 3
+            iIndex.pair <- iIndex2.pairtime[,iPair]
             cbind(prod = sum(residuals.studentized[obs.iPattern[,iIndex.pair[1]]]*residuals.studentized[obs.iPattern[,iIndex.pair[2]]]),
                   n = NROW(obs.iPattern),
                   X.iPattern[iPair,,drop=FALSE])

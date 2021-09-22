@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: sep 20 2021 (17:38) 
+## Last-Updated: sep 22 2021 (17:28) 
 ##           By: Brice Ozenne
-##     Update #: 1025
+##     Update #: 1066
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -37,9 +37,8 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
         if(any(ff.allvars %in% names(data) == FALSE)){
             stop("Incorrect argument \'data\': missing variable(s) \"",paste(ff.allvars[ff.allvars %in% names(data) == FALSE], collapse = "\" \""),"\".\n")
         }
-
         design <- .model.matrix.lmm(formula.mean = object$formula$mean.design,
-                                    structure = object$structure,
+                                    structure = object$design$vcov,
                                     data = data,
                                     var.outcome = object$outcome$var,
                                     var.strata = object$strata$var, U.strata = object$strata$levels,
@@ -48,6 +47,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
                                     precompute.moments = FALSE,
                                     optimizer = LMMstar.options()$optimizer
                                     )
+    
     }else{
         design <- object$design
     }
@@ -56,7 +56,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
     if(type.object == "lmm"){
         if("mean" %in% effects && "variance" %in% effects){
             return(list(mean = design$mean,
-                        variance = design$vcov))
+                        vcov = design$vcov))
         }else if("mean" %in% effects){
             return(design$mean)
         }else if("variance" %in% effects){
@@ -125,10 +125,8 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
         X.mean <- as.matrix(Matrix::bdiag(ls.X.mean))[order(unlist(lapply(ls.X.mean, attr, "index"))),]
         colnames(X.mean) <- unlist(lapply(ls.X.mean,colnames))
         attr(X.mean, "assign") <- as.vector(do.call(cbind,lapply(ls.X.mean,attr,"assign")))
-
         strata.mu <- unlist(lapply(1:n.strata, function(iStrata){stats::setNames(rep(iStrata, NCOL(ls.X.mean[[iStrata]])),colnames(ls.X.mean[[iStrata]]))}))
     }
-
 
     ## ** variance
     if(is.na(structure$name$strata)){
@@ -146,7 +144,15 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
     }else if(!identical(structure$name$cluster,var.cluster)){
         stop("The name of the cluster variable in the residual variance-covariance structure does not match the actual cluster variable. \n")
     }
-    structure <- .skeleton(structure, data = data)
+    if(is.null(structure$param)){
+        structure <- .skeleton(structure, data = data)
+    }else{
+        out <- list(mean = X.mean,
+                    vcov =  .skeleton(structure, data = data))
+        out$vcov$var <- structure$X$var
+        out$vcov$cor <- structure$X$var
+        return(out)
+    }
 
     ## ** prepare calculation of the score
     if(precompute.moments){
@@ -214,7 +220,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
 ## remove un-identifiable columns from the design matrix 
 model.matrix_regularize <- function(formula, data, augmodel = FALSE){
 
-    ## ** remove variable(s) with single factor in the formula
+    ## ** test 0: remove variable(s) with single level in the formula
     test.1value <- sapply(all.vars(formula),function(iVar){length(unique(data[[iVar]]))})
     if(any(test.1value==1)){
         formula <- stats::update(formula, stats::as.formula(paste0("~.-",paste(names(test.1value)[test.1value==1],collapse="-"))))
@@ -438,93 +444,6 @@ model.matrix_regularize <- function(formula, data, augmodel = FALSE){
     return(out)
 }
 
-## * .precompute
-## ** .precomputeXX
-.precomputeXX <- function(X, pattern, pattern.time, pattern.cluster, index.cluster){
-    p <- NCOL(X)
-    n.pattern <- length(pattern)
-    n.time <- lapply(pattern.time,length)
-
-    out <- list(pattern = stats::setNames(lapply(pattern, function(iPattern){array(0, dim = c(n.time[[iPattern]],n.time[[iPattern]],p*(p+1)/2))}), pattern),
-                key = matrix(as.numeric(NA),nrow=p,ncol=p,dimnames=list(colnames(X),colnames(X))),
-                Xpattern = stats::setNames(vector(mode = "list", length = n.pattern),pattern))
-
-    ## key
-    out$key[lower.tri(out$key,diag = TRUE)] <- 1:sum(lower.tri(out$key,diag = TRUE))
-    out$key[upper.tri(out$key)] <- t(out$key)[upper.tri(out$key)]
-
-    ## fill matrix
-    for(iPattern in pattern){ ## iPattern <- pattern[1]
-        iTime <- length(pattern.time[[iPattern]])
-
-        if(iTime==1){
-            out$Xpattern[[iPattern]] <- do.call(rbind,lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){X[iIndex,,drop=FALSE]}))
-            iX.summary <- crossprod(out$Xpattern[[iPattern]])
-            ## out$key[lower.tri(out$key,diag = TRUE)]
-            out$pattern[[iPattern]][1,1,] <- iX.summary[lower.tri(iX.summary, diag = TRUE)]
-        }else{
-            out$Xpattern[[iPattern]] <- array(unlist(lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){X[iIndex,,drop=FALSE]})),
-                                              dim = c(iTime,NCOL(X),length(index.cluster[pattern.cluster[[iPattern]]])))
-
-            for(iCol1 in 1:p){ ## iCol1 <- 1
-                for(iCol2 in 1:iCol1){ ## iCol2 <- 2
-                    ## for(iId in pattern.cluster[[iPattern]]){
-                    ##     out$pattern[[iPattern]][,,out$key[iCol1,iCol2]] <- out$pattern[[iPattern]][,,out$key[iCol1,iCol2]] + tcrossprod(X[index.cluster[[iId]],iCol1,drop=FALSE],X[index.cluster[[iId]],iCol2,drop=FALSE])
-                    ## }
-                    out$pattern[[iPattern]][,,out$key[iCol1,iCol2]] <- tcrossprod(out$Xpattern[[iPattern]][,iCol1,],out$Xpattern[[iPattern]][,iCol2,])
-                }
-            }
-        }
-    }
-    return(out)
-}
-
-## ** .precomputeXR
-.precomputeXR <- function(X, residuals, pattern, pattern.time, pattern.cluster, index.cluster){
-    p <- NCOL(X[[1]])
-    name.mucoef <- colnames(X)
-    n.pattern <- length(pattern)
-    n.time <- lapply(pattern.time,length)
-
-    out <- stats::setNames(lapply(pattern, function(iPattern){array(0, dim = c(n.time[[iPattern]], n.time[[iPattern]], ncol = p), dimnames = list(NULL,NULL,name.mucoef))}), pattern)
-
-    for(iPattern in pattern){ ## iPattern <- pattern[1]
-
-        iTime <- length(pattern.time[[iPattern]])
-        iResiduals <- do.call(cbind, lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){residuals[iIndex,,drop=FALSE]}))
-        iX <- X[[iPattern]]
-
-        if(iTime == 1){
-            out[[iPattern]][1,1,] <- iResiduals %*% iX
-        }else{
-            for(iCol in 1:p){ ## iCol1 <- 1
-                ## for(iId in 1:length(pattern.cluster[[iPattern]])){ ## iId <- 1
-                ##     out[[iPattern]][,,iCol] <- out[[iPattern]][,,iCol] + tcrossprod(iX[[iId]][,iCol,drop=FALSE],iResiduals[[iId]])
-                ## }
-                out[[iPattern]][,,iCol] <- tcrossprod(iX[,iCol,], iResiduals)
-            }
-        }
-    }
-
-    return(out)
-}
-
-## ** .precomputeRR
-.precomputeRR <- function(residuals, pattern.time, pattern, pattern.cluster, index.cluster){
-
-    n.pattern <- length(pattern)
-    n.time <- stats::setNames(lapply(pattern.time,length), pattern)
-    out <- stats::setNames(lapply(pattern, function(iPattern){matrix(0, nrow = n.time[[iPattern]], ncol = n.time[[iPattern]])}), pattern)
-
-    for(iPattern in pattern){ ## iPattern <- pattern[1]
-        
-        ## for(iId in pattern.cluster[[iPattern]]){
-        ##     out[[iPattern]] <- out[[iPattern]] + tcrossprod(residuals[index.cluster[[iId]],,drop=FALSE])
-        ## }
-        out[[iPattern]] <- tcrossprod(do.call(cbind,lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){residuals[iIndex,,drop=FALSE]})))
-    }
-    return(out)
-}
 
 ##----------------------------------------------------------------------
 ### model.matrix.R ends here

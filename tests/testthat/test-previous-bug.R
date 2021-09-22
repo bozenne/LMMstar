@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: sep 20 2021 (17:11) 
+## Last-Updated: sep 22 2021 (19:31) 
 ##           By: Brice Ozenne
-##     Update #: 48
+##     Update #: 54
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -247,6 +247,50 @@ test_that("glht - number of parameters",{
     expect_equal(NCOL(CI.glht$linfct),length(coef(eUN.lmm)))
 
 })
+
+## * from: Brice 09/22/21 11:20 
+test_that("lmm - estimation with missing data",{
+    data(armd.wide, package = "nlmeU")
+
+    armd.long <- reshape2::melt(armd.wide, 
+                                id.var = c("subject","treat.f","lesion","miss.pat"),
+                                measure.vars = c("visual0","visual4","visual12","visual24","visual52"),
+                                variable.name = "week", 
+                                value.name = "visual")
+    armd.long <- armd.long[order(armd.long$subject),]
+    armd.long$week <- factor(armd.long$week, 
+                             level = c("visual0","visual4","visual12","visual24","visual52"), 
+                             labels = c(0,4,12,24,52))
+    rownames(armd.long) <- NULL
+
+    e.lmm <- lmm(visual ~ week + week:treat.f,
+                 repetition = ~ week | subject,
+                 structure = "UN",
+                 data = armd.long)
+    ## e.gls <- gls(visual ~ week + week:treat.f,
+    ##              correlation = corSymm(form =~ as.numeric(week) | subject),
+    ##              weights = varIdent(form =~1|week),
+    ##              na.action = na.omit,
+    ##              data = armd.long)
+
+    expect_equal(as.double(logLik(e.lmm)),as.double(logLik(e.lmm$gls[[1]])))
+
+    e2.lmm <- lmm(visual ~ 0 + week + week:treat.f,
+                  repetition = treat.f ~ week | subject,
+                  structure = "UN",
+                  data = armd.long)
+    expect_equal(logLik(e2.lmm),sum(sapply(e2.lmm$gls,logLik)), tol = 1e-3)
+    
+    ## LMMstar.options(optimizer = "FS")
+    ## e2.lmm <- lmm(visual ~ week + week:treat.f,
+    ##               repetition = ~ week | subject,
+    ##               structure = "UN",
+    ##               data = armd.long)
+    expect_equal(as.double(logLik(e2.lmm)),as.double(logLik(e.gls)), tol = 1e-2)
+
+
+})
+
 
 ######################################################################
 ### test-previous-bug.R ends here

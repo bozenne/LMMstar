@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: sep 20 2021 (17:39) 
+## Last-Updated: sep 22 2021 (15:03) 
 ##           By: Brice Ozenne
-##     Update #: 1103
+##     Update #: 1106
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -342,7 +342,6 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     out$cluster <- list(var = var.cluster)
     out$outcome <- list(var = var.outcome)
     out$data <- data
-    out$structure <- structure
 
     ## *** missing values
     var.all <- unname(unique(c(var.strata,var.outcome,var.X,var.time,var.cluster,var.Z)))

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: sep 17 2021 (09:52) 
+## Last-Updated: sep 22 2021 (16:45) 
 ##           By: Brice Ozenne
-##     Update #: 79
+##     Update #: 80
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -23,7 +23,7 @@ print.lmm <- function(x, ...){
     param.sigma <- x$param$value[x$param$type=="sigma"]
     param.k <- x$param$value[x$param$type=="k"]
     param.rho <- x$param$value[x$param$type=="rho"]
-    structure <- x$structure
+    structure <- x$design$vcov
     logLik <- stats::logLik(x)
     nobs <- stats::nobs(x)
 
