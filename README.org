@@ -69,29 +69,29 @@ It should say =TRUE=. Otherwise go to
 https://cran.r-project.org/bin/windows/Rtools/, download and run the
 installer. Then try to run again =pkgbuild::find_rtools()=.
 
-- 3. :: the library =devtools= that you can install using:
+- 3. :: The library =remotes= that you can install running:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-install.packages("devtools")
+install.packages("remotes")
 #+END_SRC
 
 #+RESULTS:
 #+begin_example
 Installing package into 'C:/Users/hpl802/Documents/R/win-library/4.1'
 (as 'lib' is unspecified)
-trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.1/devtools_2.4.2.zip'
-Content type 'application/zip' length 397428 bytes (388 KB)
-downloaded 388 KB
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.1/remotes_2.4.0.zip'
+Content type 'application/zip' length 395672 bytes (386 KB)
+downloaded 386 KB
 
-package 'devtools' successfully unpacked and MD5 sums checked
+package 'remotes' successfully unpacked and MD5 sums checked
 
 The downloaded binary packages are in
-	C:\Users\hpl802\AppData\Local\Temp\RtmpquounF\downloaded_packages
+	C:\Users\hpl802\AppData\Local\Temp\Rtmp44ARJ0\downloaded_packages
 #+end_example
 
 
-The package can be installed/updated with the following line of code:
+- 4. :: Run the following line of code to download and install the package:
 #+BEGIN_SRC R :exports both :eval never
-devtools::install_github("bozenne/LMMstar")
+remotes::install_github("bozenne/LMMstar")
 #+END_SRC
 
 Note: you can check that the package has been correctly installed by running

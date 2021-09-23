@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: sep 22 2021 (15:03) 
+## Last-Updated: sep 23 2021 (20:22) 
 ##           By: Brice Ozenne
-##     Update #: 1106
+##     Update #: 1145
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -163,9 +163,10 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                  sep = "")
         }
     }
-
     if(is.factor(data[[var.cluster]])){
         data[[var.cluster]] <- droplevels(data[[var.cluster]])
+    }else{
+        data[[var.cluster]] <- factor(data[[var.cluster]], levels = sort(unique(data[[var.cluster]])))
     }
     test.duplicated <- tapply(data[[var.time]], data[[var.cluster]], function(iT){any(duplicated(iT))})
     if(any(test.duplicated)){
@@ -234,20 +235,20 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     if(!is.na(var.strata) && options$optimizer == "gls"){
         var.X.withinStrata <- setdiff(var.X, var.strata)
         if(length(var.X.withinStrata)==0){
-            formula.design <- stats::update(formula, paste0(".~1")) ## no interaction with the strata variable
+            formula.design <- stats::as.formula(paste0(var.strata,"~1")) ## no covariate within strata
         }else{
             terms.mean <- stats::terms(formula)
-            newterm.labels <- gsub(paste0("\\:",var.strata,"$"),"",gsub(paste0("^",var.strata,"\\:"),"",setdiff(attr(terms.mean,"term.labels"),var.strata)))  ## no interaction or main effect with the strata variable
+            newterm.labels <- gsub(paste0("\\:",var.strata,"$"),"",gsub(paste0("^",var.strata,"\\:"),"",setdiff(attr(terms.mean,"term.labels"),var.strata)))  ## remove interaction or main effect with the strata variable
             if(attr(terms.mean,"intercept")>0){
-                formula.design <- stats::update(formula, paste0(".~",paste0(unique(newterm.labels),collapse=" + ")))
+                formula.design <- stats::update(formula, paste0(var.strata,"~",paste0(unique(newterm.labels),collapse=" + ")))
             }else{
-                formula.design <- stats::update(formula, paste0(".~-1+",paste0(unique(newterm.labels),collapse=" + ")))
+                formula.design <- stats::update(formula, paste0(var.strata,"~-1+",paste0(unique(newterm.labels),collapse=" + ")))
             }
         }
     }else{
-        formula.design <- formula
+        formula.design <- stats::as.formula(stats::delete.response(stats::terms(formula)))
     }
-    out$formula <- list(mean = formula, ## formula will contain all interactions with strata (cf check)
+    out$formula <- list(mean = formula,
                         mean.design = formula.design,
                         var.design = structure$formula$var,
                         cor.design = structure$formula$cor)
@@ -269,11 +270,14 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
         stop("Incorrect specification of argument \'data\'. \n",
              "The variable ",var.time.index," is used internally but already exists in \'data\' \n")
     }
-    data[[var.time.index]] <- factor(data[[var.time]], levels = unique(data[[var.time]]))  ## to match with gls which chooses the reference level according to the ordering
-    ## not not modify var.time in data as it could be also used in the mean structure and that would mess up the ordering
-    U.time <- levels(data[[var.time.index]])
-    data[[var.time.index]] <- as.numeric(data[[var.time.index]])
-    
+    if(is.factor(data[[var.time]])){
+        data[[var.time]] <- droplevels(data[[var.time]])
+    }else{
+        data[[var.time]] <- factor(data[[var.time]], levels = sort(unique(data[[var.time]])))
+    }
+    U.time <- levels(data[[var.time]])
+    data[[var.time.index]] <- as.numeric(data[[var.time]])
+
     ## strata
     if(is.na(var.strata)){
         var.strata <- "XXstrata.indexXX"
@@ -286,14 +290,12 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
         data$XXstrata.indexXX <- 1
     }else{
         if(is.factor(data[[var.strata]])){
-            U.strata <- levels(data[[var.strata]])
-            data[[var.strata]] <- as.character(data[[var.strata]])
-            n.strata <- length(U.strata)
+            data[[var.strata]] <- droplevels(data[[var.strata]])
         }else{
-            data[[var.strata]] <- as.character(data[[var.strata]])
-            U.strata <- as.character(sort(unique(data[[var.strata]])))
-            n.strata <- length(U.strata)
+            data[[var.strata]] <- factor(data[[var.strata]], levels = sort(unique(data[[var.strata]])))
         }
+        U.strata <- levels(data[[var.strata]])
+        n.strata <- length(U.strata)
         
         if(any(rowSums(table(data[[var.cluster]],data[[var.strata]])>0)!=1)){
             stop("When a variable is used to stratify the variance structure, all observations belonging to each cluster must belong to a single strata. \n")
@@ -366,8 +368,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                                     var.strata = var.strata, U.strata = U.strata,
                                     var.time = var.time, U.time = U.time,
                                     var.cluster = var.cluster,
-                                    precompute.moments = options$precompute.moments,
-                                    optimizer = options$optimizer)
+                                    precompute.moments = options$precompute.moments)
 
     out$xfactor <- c(stats::.getXlevels(stats::terms(out$formula$mean.design),data),
                      stats::.getXlevels(stats::terms(out$formula$var.design),data))
@@ -377,7 +378,6 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     out$xfactor <- out$xfactor[duplicated(names(out$xfactor))==FALSE]
 
     if(options$optimizer=="gls"){
-
         ## move from design matrix to dataset (useful when doing baseline adjustment)
         data.fit <- as.data.frame(out$design$mean)
         ## colnames(data.fit) <- gsub(" ","_",gsub("(Intercept)","Intercept",gsub(":","_",colnames(data.fit), fixed = TRUE), fixed = TRUE))
@@ -388,6 +388,8 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
         if(any(add.col %in% names(data.fit) == FALSE)){
             data.fit <- cbind(data.fit, data[,add.col[add.col %in% names(data.fit) == FALSE],drop=FALSE])
         }
+        ## order by strata, time, and cluster (strata, cluster, and time does not provide satisfactory results, mixing k-parameters)
+        data.fit <- data.fit[order(data[[var.strata]],data[[var.time]],data[[var.cluster]]),,drop=FALSE]
 
         if(n.strata==1){
             txt.data <- "data.fit"
@@ -452,7 +454,6 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
         out$gls.call <- lapply(out$gls, function(iM){
             paste0(gsub(",",",\n    ",gsub(" ","",paste(deparse(iM$call), collapse = ""))),"\n")
         })
-
         param.mu <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]) })
         param.sigma <- lapply(U.strata, function(iS){ stats::sigma(out$gls[[iS]]) })
         param.value <- c(stats::setNames(unlist(param.mu),out$design$param$mu),

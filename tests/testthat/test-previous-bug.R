@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: sep 22 2021 (19:31) 
+## Last-Updated: sep 23 2021 (20:55) 
 ##           By: Brice Ozenne
-##     Update #: 54
+##     Update #: 73
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -24,6 +24,8 @@ if(FALSE){
 }
 
 context("Previous bug")
+LMMstar.options(optimizer = "gls", method.numDeriv = "Richardson", precompute.moments = TRUE,
+                columns.confint = c("estimate","se","df","lower","upper","p.value"))
 
 ## * from: Julie Lyng Forman <jufo@sund.ku.dk> date: Fri, 23 Oct 2020 10:05:40 +0000
 data(gastricbypassL, package = "LMMstar")
@@ -122,16 +124,16 @@ test_that("lmm - error when predicting due to missing values in the covariates",
 })
 
 ## * from: Julie Lyng Forman <jufo@sund.ku.dk> date: Wednesday, 07/07/21 11:00 PM (2/3)
-test_that("lmm - studentized and normalized residuals",{
-    data("gastricbypassL", package = "LMMstar")
-    dfres.R <- gastricbypassL[order(gastricbypassL$id),]
+data("gastricbypassL", package = "LMMstar")
+dfres.R <- gastricbypassL[order(gastricbypassL$id),]
 
+test_that("lmm - studentized and normalized residuals",{
     fit.main <- lmm(weight~time, 
                     repetition=~visit|id,
                     structure="UN",
                     data=dfres.R,
                     df=TRUE)
-
+    
 
     dfres.R$fitted <- predict(fit.main, newdata = dfres.R)$estimate
     dfres.R$residual <- residuals(fit.main, type = 'response')
@@ -161,6 +163,56 @@ test_that("lmm - studentized and normalized residuals",{
     expect_equal(dfres.R$rpearson, dfres.SAS$PearsonResid, tol = 1e-4)
     expect_equal(dfres.R$rstudent, dfres.SAS$StudentResid, tol = 1e-4)
     expect_equal(dfres.R$rscaled, dfres.SAS$ScaledResid, tol = 1e-4)
+})
+
+test_that("lmm - predicted values",{
+    fit.main <- lmm(weight~time, 
+                    repetition=~visit|id,
+                    structure="UN",
+                    data=dfres.R,
+                    df=TRUE)
+    set.seed(11)
+    fit.main2 <- lmm(weight~time, 
+                     repetition=~visit|id,
+                     structure="UN",
+                     data=dfres.R[sample.int(NROW(dfres.R),replace = FALSE),,drop=FALSE],
+                     df=TRUE)
+    ## check sensitivity to ordering of the values
+    expect_equal(logLik(fit.main2),logLik(fit.main))
+
+    ## error due to wrong factor
+    expect_error(predict(fit.main, newdata = data.frame(time = "-1 week"), se = FALSE))
+    ## valid prediction
+    expect_equal(predict(fit.main, newdata = data.frame(time = "1 week before surgery"), se = FALSE)[[1]],
+                 sum(coef(fit.main)[1:2]))
+    expect_equal(predict(fit.main, newdata = data.frame(time = "1 week before surgery"), se = "estimation"),
+                 data.frame("estimate" = c(121.24), 
+                            "se" = c(4.22845441), 
+                            "df" = c(18.99992887), 
+                            "lower" = c(112.39029934), 
+                            "upper" = c(130.08970066)),
+                 tol = 1e-3)
+    expect_equal(predict(fit.main, newdata = data.frame(time = "1 week before surgery", visit = 1:4, id = c(1,1,2,2)), se = "total"),
+                 data.frame("estimate" = c(121.24, 121.24, 121.24, 121.24), 
+                            "se" = c(20.70577588, 19.37721241, 18.75815531, 17.57030289), 
+                            "df" = c(18.99992887, 18.99992887, 18.99992887, 18.99992887), 
+                            "lower" = c(77.90230205, 80.68301804, 81.97871976, 84.4649241), 
+                            "upper" = c(164.57769795, 161.79698196, 160.50128024, 158.0150759)),
+                 tol = 1e-3)
+
+    data("gastricbypassW", package = "LMMstar")
+    GS <- predict(lm(weight2 ~ weight1, data = gastricbypassW), newdata = data.frame(weight1 = 50), se = TRUE)
+    test <- predict(fit.main, newdata = data.frame(time = c("3 months before surgery","1 week before surgery"), visit = 1:2, weight = c(50,NA), id = c(1,1)),
+                    type = "dynamic", keep.newdata = FALSE)
+    expect_equivalent(test$estimate, GS$fit, tol = 1e-3)
+    expect_equivalent(test,
+                      data.frame("estimate" = c(48.3228695), 
+                                 "se" = c(17.10624779), 
+                                 "df" = c(Inf), 
+                                 "lower" = c(14.79523992), 
+                                 "upper" = c(81.85049907)),
+                      tol = 1e-3)
+    
 })
 
 ## * from: Julie Lyng Forman <jufo@sund.ku.dk> date: Wednesday, 07/07/21 11:00 PM (3/3)
@@ -266,7 +318,7 @@ test_that("lmm - estimation with missing data",{
     e.lmm <- lmm(visual ~ week + week:treat.f,
                  repetition = ~ week | subject,
                  structure = "UN",
-                 data = armd.long)
+                 data = armd.long, df = FALSE)
     ## e.gls <- gls(visual ~ week + week:treat.f,
     ##              correlation = corSymm(form =~ as.numeric(week) | subject),
     ##              weights = varIdent(form =~1|week),
@@ -278,15 +330,15 @@ test_that("lmm - estimation with missing data",{
     e2.lmm <- lmm(visual ~ 0 + week + week:treat.f,
                   repetition = treat.f ~ week | subject,
                   structure = "UN",
-                  data = armd.long)
+                  data = armd.long, df = FALSE)
     expect_equal(logLik(e2.lmm),sum(sapply(e2.lmm$gls,logLik)), tol = 1e-3)
     
     ## LMMstar.options(optimizer = "FS")
-    ## e2.lmm <- lmm(visual ~ week + week:treat.f,
+    ## e3.lmm <- lmm(visual ~ week + week:treat.f,
     ##               repetition = ~ week | subject,
     ##               structure = "UN",
     ##               data = armd.long)
-    expect_equal(as.double(logLik(e2.lmm)),as.double(logLik(e.gls)), tol = 1e-2)
+    ## expect_equal(as.double(logLik(e3.lmm)),as.double(logLik(e.lmm)), tol = 1e-2)
 
 
 })

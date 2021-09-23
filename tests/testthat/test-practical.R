@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (17:03) 
 ## Version: 
-## Last-Updated: sep 22 2021 (19:31) 
+## Last-Updated: sep 23 2021 (20:59) 
 ##           By: Brice Ozenne
-##     Update #: 46
+##     Update #: 50
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,7 +29,8 @@ if(FALSE){
 }
 
 context("Check lmm on the example from the course with Julie")
-LMMstar.options(method.numDeriv = "simple", precompute.moments = TRUE)
+LMMstar.options(optimizer = "gls", method.numDeriv = "simple", precompute.moments = TRUE,
+                columns.confint = c("estimate","se","df","lower","upper","p.value"))
 
 test.practical <- FALSE
 

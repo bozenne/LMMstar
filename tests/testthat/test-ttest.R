@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: sep 20 2021 (16:53) 
+## Last-Updated: sep 23 2021 (20:22) 
 ##           By: Brice Ozenne
-##     Update #: 23
+##     Update #: 27
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,7 +25,8 @@ if(FALSE){
 }
 
 context("Check lmm on examples of t-tests")
-LMMstar.options(optimizer = "gls", method.numDeriv = "Richardson", precompute.moments = TRUE)
+LMMstar.options(optimizer = "gls", method.numDeriv = "Richardson", precompute.moments = TRUE,
+                columns.confint = c("estimate","se","df","lower","upper","p.value"))
 
 ## * single t-test
 ## ** simulate data
@@ -60,7 +61,7 @@ test_that("single t-test",{
     expect_equal(as.double(logLik(e2.lmm)),as.double(logLik(e.gls)))
     expect_equal(sort(unname(e.ttest$estimate)), sort(unname(coef(e.lmm, effects = "mean"))))
     expect_equal(e.ttest$p.value, anova(e.lmm, effects = c("GenderM-GenderF=0"))$all$p.value, tol = 1e-5)
-    expect_equal(e.ttest$p.value, confint(e2.lmm)["GenderM","p.value"], tol = 1e-5)
+    expect_equal(e.ttest$p.value, confint(e2.lmm)["GenderF","p.value"], tol = 1e-5)
     ## summary(e.gls)$tTable
 })
 ## confint(anova(e.lmm))

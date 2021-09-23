@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: Jul  9 2021 (12:46) 
+## Last-Updated: sep 23 2021 (20:52) 
 ##           By: Brice Ozenne
-##     Update #: 64
+##     Update #: 66
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -62,9 +62,7 @@ autoplot.lmm <- function(object, at = NULL, color = TRUE, ci = TRUE, alpha = NA,
     }
 
     ## design matrix
-    X.beta <- .predict_model.matrix(object,
-                                    newdata = data,
-                                    name.beta = names(coef(object, effects = "mean")))
+    X.beta <- model.matrix(object, data = data, effects = "mean")
 
     ## only keep one representant per type of design matrix
     test.duplicated <- duplicated(X.beta)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: sep 20 2021 (09:50) 
+## Last-Updated: sep 23 2021 (09:33) 
 ##           By: Brice Ozenne
-##     Update #: 334
+##     Update #: 335
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -47,7 +47,7 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, columns =
     param.rho <- object$param$value[object$param$type=="rho"]
     data <- object$data
     call <- object$call
-    structure <- object$structure
+    structure <- object$design$vcov
     logLik <- stats::logLik(object)
     nobs <- stats::nobs(object)
     method.fit <- object$method

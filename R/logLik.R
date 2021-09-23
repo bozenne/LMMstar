@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: sep 22 2021 (13:25) 
+## Last-Updated: sep 23 2021 (20:49) 
 ##           By: Brice Ozenne
-##     Update #: 226
+##     Update #: 229
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -68,7 +68,6 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
                                             var.strata = object$strata$var, U.strata = object$strata$levels,
                                             var.time = object$time$var, U.time = object$time$levels,
                                             var.cluster = object$cluster$var,
-                                            optimizer = LMMstar.options()$optimizer,
                                             precompute.moments = test.precompute)
             }else{
                 design <- object$design

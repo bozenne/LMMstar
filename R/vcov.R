@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: sep 20 2021 (17:33) 
+## Last-Updated: sep 23 2021 (20:50) 
 ##           By: Brice Ozenne
-##     Update #: 452
+##     Update #: 453
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -122,8 +122,7 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, type.
                                             var.strata = object$strata$var, U.strata = object$strata$levels,
                                             var.time = object$time$var, U.time = object$time$levels,
                                             var.cluster = object$cluster$var,
-                                            precompute.moments = test.precompute,
-                                            optimizer = options$optimizer)
+                                            precompute.moments = test.precompute)
             }else{
                 design <- object$design
             }

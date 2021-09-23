@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: sep 22 2021 (17:29) 
+## Last-Updated: sep 23 2021 (20:02) 
 ##           By: Brice Ozenne
-##     Update #: 929
+##     Update #: 1052
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -58,7 +58,7 @@
 .skeleton.IND <- function(structure, data){
 
     ## ** prepare
-    outInit <- .initSkeleton(data = data, structure = structure)
+    outInit <- .extractIndexData(data = data, structure = structure)
     data <- outInit$data ## convert variables to factor 
     time.var <- outInit$time.var
     structure$U.time <- outInit$U.time
@@ -73,16 +73,14 @@
     order.clusterTime <- outInit$order.clusterTime ## list of index for re-ordering the observations within cluster 
     index.cluster <- outInit$index.cluster ## list of positions of the observation belonging to each cluster in the dataset
 
-    formula.var <- structure$formula$var
-    X.var <- .colnameOrder(model.matrix_regularize(formula.var, data = data, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
+    ## ** design matrix
+    outDesign <- .vcov.matrix.lmm(structure = structure, data = data, 
+                                  strata.var = strata.var, U.strata = structure$U.strata,
+                                  time.var = time.var, U.time = structure$U.time, 
+                                  cluster.var = cluster.var, index.cluster = index.cluster, index.clusterTime = index.clusterTime, order.clusterTime = order.clusterTime)
 
-    if(!is.null(structure$param)){
-        outPattern <- .findUpatterns(X.var = X.var, X.cor = X.cor, data = data, Upattern = structure$X$Upattern,
-                                     time.var = time.var, index.clusterTime = index.clusterTime, order.clusterTime = order.clusterTime, U.time = structure$U.time,
-                                     index.cluster = index.cluster, U.cluster = structure$U.cluster,
-                                     strata.var = strata.var, strata.param = stats::setNames(structure$param$strata,structure$param$name), U.strata = structure$U.strata)
-        return(outPattern)
-    }
+    X.var <- outDesign$var
+    X.cor <- outDesign$cor
 
     ## ** param
     ## *** sigma
@@ -131,7 +129,7 @@
             attr(X.var,"order") <- save.attr$order[order(strata.sigmak)]-1
             attr(X.var,"contrasts") <- save.attr$contrasts
             attr(X.var,"ls.level") <- save.attr$ls.level
-            attr(X.var,"reorder") <- order(strata.sigmak)
+            attr(X.var,"original.colnames") <- save.attr[order(strata.sigmak)]
             attr(X.var,"reference.level") <- save.attr$reference.level
             attr(X.var,"M.level") <- save.attr$M.level
             param.k <- param.k[order(strata.k)]
@@ -152,7 +150,7 @@
     rownames(structure$param) <- NULL
 
     ## ** pattern
-    outPattern <- .findUpatterns(X.var = X.var, X.cor = X.cor, lpdiff.rho = lpdiff.rho, data = data,
+    outPattern <- .findUpatterns(X.var = X.var, data = data,
                                   time.var = time.var, index.clusterTime = index.clusterTime, order.clusterTime = order.clusterTime, U.time = structure$U.time,
                                   index.cluster = index.cluster, U.cluster = structure$U.cluster,
                                   strata.var = strata.var, strata.param = stats::setNames(structure$param$strata,structure$param$name), U.strata = structure$U.strata)
@@ -174,7 +172,7 @@
 .skeleton.CS <- function(structure, data){
 
     ## ** prepare
-    outInit <- .initSkeleton(data = data, structure = structure)
+    outInit <- .extractIndexData(data = data, structure = structure)
     data <- outInit$data ## convert variables to factor 
     time.var <- outInit$time.var
     structure$U.time <- outInit$U.time
@@ -188,23 +186,14 @@
     order.clusterTime <- outInit$order.clusterTime ## list of index for re-ordering the observations within cluster 
     index.cluster <- outInit$index.cluster ## list of positions of the observation belonging to each cluster in the dataset
 
-    formula.var <- structure$formula$var
-    formula.cor <- structure$formula$cor
-    
-    X.var <- .colnameOrder(model.matrix_regularize(formula.var, data = data, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
-    if(n.time==1 || all(sapply(order.clusterTime,length)==1)){ ## only one timepoint per cluster so remove the correlation formula
-        X.cor <- NULL
-    }else{
-        X.cor <- .colnameOrder(model.matrix_regularize(formula.cor, data = data, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
-    }    
+    ## ** design matrix
+    outDesign <- .vcov.matrix.lmm(structure = structure, data = data, 
+                                 strata.var = strata.var, U.strata = structure$U.strata,
+                                 time.var = time.var, U.time = structure$U.time, 
+                                 cluster.var = cluster.var, index.cluster = index.cluster, index.clusterTime = index.clusterTime, order.clusterTime = order.clusterTime)
 
-    if(!is.null(structure$param)){
-        outPattern <- .findUpatterns(X.var = X.var, X.cor = X.cor, lpdiff.rho = attr(structure$param,"lpdiff.rho"), data = data, Upattern = structure$X$Upattern,
-                                     time.var = time.var, index.clusterTime = index.clusterTime, order.clusterTime = order.clusterTime, U.time = structure$U.time,
-                                     index.cluster = index.cluster, U.cluster = structure$U.cluster,
-                                     strata.var = strata.var, strata.param = stats::setNames(structure$param$strata,structure$param$name), U.strata = structure$U.strata)
-        return(outPattern)
-    }
+    X.var <- outDesign$var
+    X.cor <- outDesign$cor
 
     ## ** param
     ## *** sigma
@@ -269,9 +258,9 @@
 ## * skeleton.UN
 ##' @export
 .skeleton.UN <- function(structure, data){
-    
+
     ## ** prepare
-    outInit <- .initSkeleton(data = data, structure = structure)
+    outInit <- .extractIndexData(data = data, structure = structure)
     data <- outInit$data ## convert variables to factor 
     time.var <- outInit$time.var
     structure$U.time <- outInit$U.time
@@ -285,26 +274,14 @@
     order.clusterTime <- outInit$order.clusterTime ## list of index for re-ordering the observations within cluster 
     index.cluster <- outInit$index.cluster ## list of positions of the observation belonging to each cluster in the dataset
 
-    formula.var <- structure$formula$var
-    formula.cor <- structure$formula$cor
+    ## ** design matrix
+    outDesign <- .vcov.matrix.lmm(structure = structure, data = data, 
+                                 strata.var = strata.var, U.strata = structure$U.strata,
+                                 time.var = time.var, U.time = structure$U.time, 
+                                 cluster.var = cluster.var, index.cluster = index.cluster, index.clusterTime = index.clusterTime, order.clusterTime = order.clusterTime)
 
-    ## ** design matrix and cluster specific patterns
-    X.var <- .colnameOrder(model.matrix_regularize(formula.var, data = data, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
-
-    if(n.time==1 || all(sapply(order.clusterTime,length)==1)){  ## only one timepoint so remove time variable from the formula (and cor)
-        X.cor <- NULL
-    }else{
-        X.cor <- .colnameOrder(model.matrix_regularize(formula.cor, data = data, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
-    }
-
-    if(!is.null(structure$param)){
-        outPattern <- .findUpatterns(X.var = X.var[,attr(structure$X$var,"reorder"),drop=FALSE], X.cor = X.cor, lpdiff.rho = attr(structure$param,"lpdiff.rho"),
-                                     data = data, Upattern = structure$X$Upattern,
-                                     time.var = time.var, index.clusterTime = index.clusterTime, order.clusterTime = order.clusterTime, U.time = structure$U.time,
-                                     index.cluster = index.cluster, U.cluster = structure$U.cluster,
-                                     strata.var = strata.var, strata.param = stats::setNames(structure$param$strata,structure$param$name), U.strata = structure$U.strata)
-        return(outPattern)
-    }
+    X.var <- outDesign$var
+    X.cor <- outDesign$cor
 
     ## ** param
     ## *** sigma
@@ -322,6 +299,7 @@
         }
         colnames(X.var)[attr(X.var,"assign")==1] <- param.sigma
         strata.sigma <- stats::setNames(1:n.strata,param.sigma)
+
     }
 
     ## *** k
@@ -351,8 +329,8 @@
             attr(X.var,"order") <- save.attr$order[order(strata.sigmak)]-1
             attr(X.var,"contrasts") <- save.attr$contrasts
             attr(X.var,"ls.level") <- save.attr$ls.level
+            attr(X.var,"original.colnames") <- save.attr[order(strata.sigmak)]
             attr(X.var,"reference.level") <- save.attr$reference.level
-            attr(X.var,"reorder") <- order(strata.sigmak)
             attr(X.var,"M.level") <- save.attr$M.level
             param.k <- param.k[order(strata.k)]
             strata.k <- strata.k[param.k]
@@ -397,7 +375,7 @@
         param.rho <- names(lpdiff.rho)
         strata.rho <- stats::setNames(rep(1,length(param.rho)),param.rho)
         time.rho <- do.call(cbind,lapply(structure$U.cluster[indexCluster.cor], function(iC){
-            .unorderedPairs(index.clusterTime[[iC]], distinct = TRUE)
+            .unorderedPairs(index.clusterTime[[iC]][order.clusterTime[[iC]]], distinct = TRUE)
         }))[,test.duplicated==FALSE]
 
         reorder.rho <- order(time.rho[1,],time.rho[2,])
@@ -423,7 +401,7 @@
             return(iData)
         }))
 
-        UX.cor <- .colnameOrder(model.matrix_regularize(structure$formula$cor, data = Data.rho, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)[,colnames(X.cor),drop=FALSE]
+        UX.cor <- .colnameOrder(.model.matrix_regularize(structure$formula$cor, data = Data.rho, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)[,colnames(X.cor),drop=FALSE]
 
         lpdiff.rho <- stats::setNames(unlist(lapply(structure$U.strata, function(iS){ ## iS <- structure$U.strata[1]
             iUX.cor <- UX.cor[Data.rho[[strata.var]]==iS,,drop=FALSE]
@@ -460,155 +438,18 @@
 }
 
 ## * helpers
-## ** .initSkeleton
-.initSkeleton <- function(data, structure){
-    
-    ## *** find variable names
-    time.var <- structure$name$time
-    cluster.var <- structure$name$cluster
-    strata.var <- structure$name$strata
-    all.var <- stats::na.omit(c(time.var,cluster.var,strata.var,unlist(lapply(structure$formula,all.vars))))
-
-    if(length(all.var)>0){
-        for(iVar in all.var){
-            if(is.factor(data[[iVar]])){
-                data[[iVar]] <- droplevels(data[[iVar]])
-            }else{
-                data[[iVar]] <- as.factor(data[[iVar]])
-            }
-        }
-    }
-
-    ## *** find unique levels of each variable
-    if(!is.na(cluster.var)){
-        if(is.factor(data[[cluster.var]])){
-            U.cluster <- levels(data[[cluster.var]])
-        }else{
-            U.cluster <- as.character(unique(data[[cluster.var]]))
-        }
-    }else{
-        U.cluster <- paste0("id",1:NROW(data))
-    }
-    
-    if(!is.na(time.var)){
-        if(is.factor(data[[time.var]])){
-            U.time <- levels(data[[time.var]])
-        }else{
-            U.time <- as.character(unique(data[[time.var]]))
-        }
-    }else if(!is.na(cluster.var)){
-        U.time <- paste0("T",1:max(table(data[[cluster.var]])))
-    }else{
-        U.time <- "T1"
-    }
-
-    if(!is.na(strata.var)){
-        if(is.factor(data[[strata.var]])){
-            U.strata <- levels(data[[strata.var]])
-        }else{
-            U.strata <- as.character(unique(data[[strata.var]]))
-        }
-    }else{
-        U.strata <- "S1"
-    }
-
-    ## *** find position of each cluster
-    if(!is.na(cluster.var)){
-        index.cluster <- tapply(1:NROW(data),data[[cluster.var]],function(iI){iI})
-    }else{
-        index.cluster <- stats::setNames(as.list(1:NROW(data)),U.cluster)
-    }
-
-    ## *** find time corresponding to each cluster
-    if(is.na(cluster.var) && is.na(time.var)){
-        index.clusterTime <- stats::setNames(as.list(rep(1,NROW(data))),U.cluster)
-    }else if(!is.na(cluster.var) && !is.na(time.var)){
-        index.clusterTime <- tapply(data[[time.var]],data[[cluster.var]],function(iT){as.numeric(factor(iT,levels = U.time))})
-    }else if(!is.na(time.var)){
-        index.clusterTime <- stats::setNames(as.list(as.numeric(factor(data[[time.var]], levels = U.time))),U.cluster)
-    }else if(!is.na(cluster.var)){
-        index.clusterTime <- tapply(data[[cluster.var]],data[[cluster.var]],function(iT){1:length(iT)})
-    }
-    order.clusterTime <- lapply(index.clusterTime, order)
-    
-    ## *** export
-    out <- list(data = data,
-                time.var = time.var,
-                U.time = U.time,
-                cluster.var = cluster.var,
-                U.cluster = U.cluster,
-                strata.var = strata.var,
-                U.strata = U.strata,
-                index.cluster = index.cluster,
-                index.clusterTime = index.clusterTime,
-                order.clusterTime = order.clusterTime
-                )
-
-    return(out)
-}
-
-## ** .buildPatterns
-## convert design matrix into character string with associated strata and time
-.buildVarPatterns <- function(X.var, data, Upattern,
-                              U.cluster, index.cluster, index.clusterTime, order.clusterTime,
-                              U.strata, strata.var){
-
-    level.var <- interaction(as.data.frame(X.var),drop=TRUE)
-    if(!is.null(Upattern)){
-        level.var <- factor(level.var, levels = attr(Upattern,"levels.UpatternVar"))
-    }
-    Ulevel.var <- levels(level.var)
-    numlevel.var <- as.numeric(level.var)
-
-    out <- lapply(U.cluster, function(iC){ ## iC <- U.cluster[[1]]
-        iIndex.obs <- index.cluster[[iC]][order.clusterTime[[iC]]]
-        iLevel <- paste(numlevel.var[iIndex.obs], collapse=".")
-        attr(iLevel,"index.alltime") <- index.clusterTime[[iC]][order.clusterTime[[iC]]]
-        if(!is.na(strata.var)){
-            attr(iLevel,"index.strata") <- which(unique(data[index.cluster[[iC]],strata.var])==U.strata)
-        }else{
-            attr(iLevel,"index.strata") <- 1
-        }
-        return(iLevel)
-    })
-    attr(out,"levels") <- Ulevel.var
-    attr(out,"reorder") <- attr(X.var,"reorder")
-    return(out)
-    
-}
-
-.buildCorPatterns <- function(X.cor, Upattern,
-                              U.cluster, index.cluster, order.clusterTime){
-
-    level.cor <- interaction(as.data.frame(X.cor),drop=TRUE)
-    if(!is.null(Upattern)){
-        level.cor <- factor(level.cor, levels = attr(Upattern,"levels.UpatternCor"))
-    }
-    Ulevel.cor <- levels(level.cor)
-    numlevel.cor <- as.numeric(level.cor)
-    
-    out <- sapply(U.cluster, function(iC){
-        paste(numlevel.cor[index.cluster[[iC]][order.clusterTime[[iC]]]],collapse="|")
-    })
-    attr(out,"levels") <- Ulevel.cor
-    return(out)
-}
-
-
 ## ** .findUpatterns
 .findUpatterns <- function(X.var, X.cor, Upattern = NULL, lpdiff.rho, data,
                            time.var, index.clusterTime, order.clusterTime, U.time,
                            index.cluster, U.cluster,
                            strata.var, strata.param, U.strata){
 
-    ## re-order by strata
-    if(is.null(Upattern)){
-        strata.param <- sort(strata.param)
-        name.param <- names(strata.param)
-        time.param <- stats::setNames(vector(mode="list", length = length(strata.param)), name.param)
-        if(is.na(time.var)){
-            stop("Unknown time variable. \n")
-        }
+    ## *** re-order by strata
+    strata.param <- sort(strata.param)
+    name.param <- names(strata.param)
+    time.param <- stats::setNames(vector(mode="list", length = length(strata.param)), name.param)
+    if(is.na(time.var)){
+        stop("Unknown time variable. \n")
     }
 
     ## *** find all variance patterns
@@ -618,31 +459,24 @@
                                                U.strata = U.strata, strata.var = strata.var)
     patternVar.cluster <- unlist(ls.patternVar.cluster) 
     ## find unique patterns and order them
-    if(is.null(Upattern)){
-        out.orderUPatternVar <- .orderUpattern(pattern.cluster = patternVar.cluster, time.cluster = index.clusterTime, order.cluster = order.clusterTime, U.time = U.time) 
-        UpatternVar.cluster <- out.orderUPatternVar$name
-    }else{
-        UpatternVar.cluster <- attr(Upattern,"name.UpatternVar")
-    }
+    out.orderUPatternVar <- .orderUpattern(pattern.cluster = patternVar.cluster, time.cluster = index.clusterTime, order.cluster = order.clusterTime, U.time = U.time) 
+    UpatternVar.cluster <- out.orderUPatternVar$name
     ## update vector giving the index of the pattern corresponding to each cluster
     patternVar.cluster <- as.numeric(factor(patternVar.cluster, levels = UpatternVar.cluster))
     ## generate design matrix associated to each pattern
-    if(is.null(Upattern)){
-        X.var2 <- stats::setNames(lapply(out.orderUPatternVar$cluster,function(iIndex){ ## iIndex <- Uindex.patternVar.cluster[1]
-            iX <- X.var[index.cluster[[iIndex]],,drop=FALSE]
-            iIndex.param <- which(colSums(iX)!=0)
-            attr(iX,"indicator.param") <- stats::setNames(lapply(iIndex.param,function(iCol){which(tcrossprod(iX[,iCol],rep(1,NROW(iX))) + t(tcrossprod(iX[,iCol],rep(1,NROW(iX)))) > 0)}),
-                                                          names(iIndex.param))
-            return(iX)
-        }),UpatternVar.cluster)
-        attr(X.var2,"assign") <- attr(X.var,"assign")
-    }
+    X.var2 <- stats::setNames(lapply(out.orderUPatternVar$cluster,function(iIndex){ ## iIndex <- Uindex.patternVar.cluster[1]
+        iX <- X.var[index.cluster[[iIndex]][order.clusterTime[[iIndex]]],,drop=FALSE]
+        iIndex.param <- which(colSums(iX)!=0)
+        attr(iX,"indicator.param") <- stats::setNames(lapply(iIndex.param,function(iCol){which(tcrossprod(iX[,iCol],rep(1,NROW(iX))) + t(tcrossprod(iX[,iCol],rep(1,NROW(iX)))) > 0)}),
+                                                      names(iIndex.param))
+        return(iX)
+    }),UpatternVar.cluster)
+    attr(X.var2,"assign") <- attr(X.var,"assign")
     ## first timepoint where each variance parameter appear
-    if(is.null(Upattern)){
-        for(iVar in colnames(X.var)){
-            time.param[[iVar]] <- sort(match(unique(as.character(data[X.var[,iVar]==1,time.var])),U.time))[1]
-        }
+    for(iVar in colnames(X.var)){
+        time.param[[iVar]] <- sort(match(unique(as.character(data[X.var[,iVar]==1,time.var])),U.time))[1]
     }
+
     ## *** find all correlation patterns
     if(is.null(X.cor)){
         UpatternCor.cluster <- "1"
@@ -653,40 +487,35 @@
         ls.patternCor.cluster <- .buildCorPatterns(X.cor = X.cor, Upattern = Upattern,
                                                    U.cluster = U.cluster, index.cluster = index.cluster, order.clusterTime = order.clusterTime) 
         ## find unique patterns and order them
-        if(is.null(Upattern)){
-            out.orderUPatternCor <- .orderUpattern(pattern.cluster = ls.patternCor.cluster, time.cluster = index.clusterTime, order.cluster = order.clusterTime, U.time = U.time) 
-            UpatternCor.cluster <- out.orderUPatternCor$name
-        }else{
-            UpatternCor.cluster <- attr(Upattern,"name.UpatternCor")
-        }
+        out.orderUPatternCor <- .orderUpattern(pattern.cluster = ls.patternCor.cluster, time.cluster = index.clusterTime, order.cluster = order.clusterTime, U.time = U.time) 
+        UpatternCor.cluster <- out.orderUPatternCor$name
         ## update vector giving the index of the pattern corresponding to each cluster
         patternCor.cluster <- as.numeric(factor(ls.patternCor.cluster, levels = UpatternCor.cluster))
         ## generate design matrix associated to each pattern
-        if(is.null(Upattern)){
-            X.cor2 <- lapply(out.orderUPatternCor$cluster, function(iC){ ## iC <- 1
-                ## extract design
-                iX <- X.cor[index.cluster[[iC]][order.clusterTime[[iC]]],,drop=FALSE]
-                iTime <- index.clusterTime[[iC]][order.clusterTime[[iC]]]
-                if(NROW(iX)==1){return(NULL)}
-                ## generate all pairs for the matrix (including symmetric terms)
-                iPair.time <- cbind(.unorderedPairs(iTime, distinct = TRUE),.unorderedPairs(rev(iTime), distinct = TRUE))
-                ## compute difference in covariates to identify coefficient
-                iDiff <- as.character(interaction(as.data.frame(
-                    do.call(rbind,lapply(1:NCOL(iPair.time),function(iCol){ ## iCol <- 2
-                        iPair <- iPair.time[,iCol]
-                        iX1 <- iX[iTime == min(iPair),,drop=FALSE]
-                        iX2 <- iX[iTime == max(iPair),,drop=FALSE]
-                        if(all(iX1==iX2)){return(cbind(ref="R",iX1))}else{return(cbind(ref = "D",iX2-iX1))}                        
-                    }))
-                ), drop = TRUE))
-                ## generate design matrix relative to the coefficient
-                if(length(lpdiff.rho)==1 && all(iDiff==lpdiff.rho)){
-                    iZ <- matrix(1, nrow = length(iDiff), ncol = 1, dimnames = list(NULL,names(lpdiff.rho)))
-                }else{
-                    iZ <- model.matrix(~0+X,data.frame(X = factor(names(lpdiff.rho)[match(iDiff,lpdiff.rho)], levels = names(lpdiff.rho))))
-                    colnames(iZ) <- names(lpdiff.rho)
-                }
-                rownames(iZ) <- paste("(",iPair.time[1,],",",iPair.time[2,],")", sep = "")
+        X.cor2 <- lapply(out.orderUPatternCor$cluster, function(iC){ ## iC <- 1
+            ## extract design
+            iX <- X.cor[index.cluster[[iC]][order.clusterTime[[iC]]],,drop=FALSE]
+            iTime <- index.clusterTime[[iC]][order.clusterTime[[iC]]]
+            if(NROW(iX)==1){return(NULL)}
+            ## generate all pairs for the matrix (including symmetric terms)
+            iPair.time <- cbind(.unorderedPairs(iTime, distinct = TRUE),.unorderedPairs(rev(iTime), distinct = TRUE))
+            ## compute difference in covariates to identify coefficient
+            iDiff <- as.character(interaction(as.data.frame(
+                do.call(rbind,lapply(1:NCOL(iPair.time),function(iCol){ ## iCol <- 2
+                    iPair <- iPair.time[,iCol]
+                    iX1 <- iX[iTime == min(iPair),,drop=FALSE]
+                    iX2 <- iX[iTime == max(iPair),,drop=FALSE]
+                    if(all(iX1==iX2)){return(cbind(ref="R",iX1))}else{return(cbind(ref = "D",iX2-iX1))}                        
+                }))
+            ), drop = TRUE))
+            ## generate design matrix relative to the coefficient
+            if(length(lpdiff.rho)==1 && all(iDiff==lpdiff.rho)){
+                iZ <- matrix(1, nrow = length(iDiff), ncol = 1, dimnames = list(NULL,names(lpdiff.rho)))
+            }else{
+                iZ <- model.matrix(~0+X,data.frame(X = factor(names(lpdiff.rho)[match(iDiff,lpdiff.rho)], levels = names(lpdiff.rho))))
+                colnames(iZ) <- names(lpdiff.rho)
+            }
+            rownames(iZ) <- paste("(",iPair.time[1,],",",iPair.time[2,],")", sep = "")
 
             ## add index to build the matrix format and time
             iPair.index <- matrix(NA, nrow = 2, ncol = NCOL(iPair.time))
@@ -705,23 +534,20 @@
             return(iZ)            
         })
         names(X.cor2) <- UpatternCor.cluster
-        }
         ## first pair of timepoints where each correlation parameter appear
-        if(is.null(Upattern)){
-            for(iPattern in 1:length(X.cor2)){ ## iPattern <- 7
-                if(is.null(X.cor2[[iPattern]])){next}
-                for(iParam in colnames(X.cor2[[iPattern]])){ ## iParam <- "rho(0,52)"
-                    ## find all pair of times corresponding to the parameter
-                    iPairs <- attr(X.cor2[[iPattern]],"index.pairtime")[,which(as.logical(X.cor2[[iPattern]][,iParam])),drop=FALSE]
-                    if(length(iPairs)>0){ ## do not continue if the parameter belongs to another strata
-                        ## find the pairs with the earlier time corresponding to the parameter
-                        iPairs.min <- apply(iPairs,2,min)
-                        iPair.min <- sort(iPairs[,intersect(which(iPairs.min==min(iPairs.min)),which.min(colSums(iPairs)))])
-                        if(length(time.param[[iParam]])==0){
-                            time.param[[iParam]] <- c(iPair.min)
-                        }else if(min(time.param[[iParam]])>iPair.min[1] || min(time.param[[iParam]])==iPair.min[1] && sum(time.param[[iParam]])>sum(iPair.min)){
-                            time.param[[iParam]] <- c(iPair.min)
-                        }
+        for(iPattern in 1:length(X.cor2)){ ## iPattern <- 7
+            if(is.null(X.cor2[[iPattern]])){next}
+            for(iParam in colnames(X.cor2[[iPattern]])){ ## iParam <- "rho(0,52)"
+                ## find all pair of times corresponding to the parameter
+                iPairs <- attr(X.cor2[[iPattern]],"index.pairtime")[,which(as.logical(X.cor2[[iPattern]][,iParam])),drop=FALSE]
+                if(length(iPairs)>0){ ## do not continue if the parameter belongs to another strata
+                    ## find the pairs with the earlier time corresponding to the parameter
+                    iPairs.min <- apply(iPairs,2,min)
+                    iPair.min <- sort(iPairs[,intersect(which(iPairs.min==min(iPairs.min)),which.min(colSums(iPairs)))])
+                    if(length(time.param[[iParam]])==0){
+                        time.param[[iParam]] <- c(iPair.min)
+                    }else if(min(time.param[[iParam]])>iPair.min[1] || min(time.param[[iParam]])==iPair.min[1] && sum(time.param[[iParam]])>sum(iPair.min)){
+                        time.param[[iParam]] <- c(iPair.min)
                     }
                 }
             }
@@ -730,36 +556,28 @@
     
     ## ***  assemble variance and correlation patterns to identify unique patterns
     pattern.cluster <- paste(patternVar.cluster,patternCor.cluster,sep=".")
-    if(is.null(Upattern)){
-        index.Nduplicated <- which(duplicated(pattern.cluster)==FALSE)
-        index.Nduplicated2 <- index.Nduplicated[order(pattern.cluster[index.Nduplicated])]
-        Upattern <- data.frame(name = pattern.cluster[index.Nduplicated2],
-                               var = patternVar.cluster[index.Nduplicated2],
-                               cor = patternCor.cluster[index.Nduplicated2],
-                               time = NA,
-                               strata = NA,
-                               ncluster = NA,
-                               param = NA)
-        attr(Upattern,"name.UpatternVar") <- UpatternVar.cluster
+    index.Nduplicated <- which(duplicated(pattern.cluster)==FALSE)
+    index.Nduplicated2 <- index.Nduplicated[order(pattern.cluster[index.Nduplicated])]
+    Upattern <- data.frame(name = pattern.cluster[index.Nduplicated2],
+                           var = patternVar.cluster[index.Nduplicated2],
+                           cor = patternCor.cluster[index.Nduplicated2],
+                           time = NA,
+                           strata = NA,
+                           ncluster = NA,
+                           param = NA)
+    attr(Upattern,"name.UpatternVar") <- UpatternVar.cluster
+    attr(Upattern,"levels.UpatternVar") <- attr(ls.patternVar.cluster,"levels")
+    attr(X.var2,"original.colnames") <- attr(X.var,"original.colnames")
+    if(!is.null(X.cor)){
         attr(Upattern,"name.UpatternCor") <- UpatternCor.cluster
-        attr(Upattern,"levels.UpatternVar") <- attr(ls.patternVar.cluster,"levels")
-        attr(X.var2,"reorder") <- attr(ls.patternVar.cluster,"reorder")
         attr(Upattern,"levels.UpatternCor") <- attr(ls.patternCor.cluster,"levels")
-    }else{
-        pattern.cluster <- as.character(factor(pattern.cluster, levels = Upattern$name))
-        cluster.pattern <- stats::setNames(lapply(Upattern$name,function(iN){which(iN==pattern.cluster)}),Upattern$name)
-        out <- list(Upattern = Upattern,
-                    pattern.cluster = stats::setNames(pattern.cluster,U.cluster),
-                    cluster.pattern = cluster.pattern,
-                    cor = NULL,
-                    var = NULL)
-        return(out)
+        attr(X.cor2,"original.colnames") <- attr(X.cor,"original.colnames")
     }
     
     ## *** strata and time associated to each unique pattern
     Upattern$time <- lapply(ls.patternVar.cluster[index.Nduplicated2],attr,"index.alltime")
     Upattern$strata <- sapply(ls.patternVar.cluster[index.Nduplicated2],attr,"index.strata")
-    Upattern$ncluster <- sapply(1:length(Upattern$name),function(iN){sum(iN==pattern.cluster)})
+    Upattern$ncluster <- sapply(Upattern$name,function(iN){sum(iN==pattern.cluster)})
     cluster.pattern <- lapply(Upattern$name,function(iN){which(iN==pattern.cluster)})
     Upattern$param <- lapply(1:length(Upattern$name),function(iN){ ## iN <- 1
         iParam <- names(which(colSums(X.var2[[Upattern[iN,"var"]]])>0))
@@ -816,10 +634,11 @@
 }
 
 
-## ** colnameOrder
+## ** .colnameOrder
 ## reorder the variable in the column name
 .colnameOrder <- function(X, strata.var, n.strata){
 
+    attr(X,"original.colnames") <- colnames(X)
     if(n.strata>1){
         attr(X,"ls.level") <- lapply(attr(X,"ls.level"), function(iL){
             iL[,c(setdiff(names(iL),strata.var),strata.var),drop=FALSE]

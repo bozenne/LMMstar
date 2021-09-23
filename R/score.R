@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: sep 20 2021 (17:36) 
+## Last-Updated: sep 23 2021 (20:49) 
 ##           By: Brice Ozenne
-##     Update #: 429
+##     Update #: 430
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -95,8 +95,7 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
                                         var.strata = x$strata$var, U.strata = x$strata$levels,
                                         var.time = x$time$var, U.time = x$time$levels,
                                         var.cluster = x$cluster$var,
-                                        precompute.moments = test.precompute,
-                                        optimizer = options$optimizer)
+                                        precompute.moments = test.precompute)
         }else{
             design <- x$design
         }

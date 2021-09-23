@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 10 2021 (16:08) 
 ## Version: 
-## Last-Updated: Jul  9 2021 (10:05) 
+## Last-Updated: sep 23 2021 (20:53) 
 ##           By: Brice Ozenne
-##     Update #: 51
+##     Update #: 52
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -46,9 +46,7 @@ recover_data.lmm <- function(object, ...){
 emm_basis.lmm <- function(object, trms, xlev, grid, ...){
     out <- list()
     m  <-  stats::model.frame(trms, grid, na.action = stats::na.pass, xlev = xlev)
-    out$X <- .predict_model.matrix(object,
-                                   newdata = m,
-                                   name.beta = names(coef(object, effects = "mean")))
+    out$X <- model.matrix(object, data = m, effects = "mean")
     ## out$X  <-  stats::model.matrix(trms, m, contrasts.arg = object$contrasts)
     
     out$bhat  <- stats::coef(object, effects = "mean")

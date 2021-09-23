@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: sep 20 2021 (17:37) 
+## Last-Updated: sep 23 2021 (20:49) 
 ##           By: Brice Ozenne
-##     Update #: 190
+##     Update #: 191
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -141,8 +141,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
                                         var.strata = object$strata$var, U.strata = object$strata$levels,
                                         var.time = object$time$var, U.time = object$time$levels,
                                         var.cluster = object$cluster$var,
-                                        precompute.moments = FALSE,
-                                        optimizer = "FS"
+                                        precompute.moments = FALSE
                                         )
         }else{
             if(keep.data){

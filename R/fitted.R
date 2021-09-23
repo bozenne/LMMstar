@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul  8 2021 (17:09) 
 ## Version: 
-## Last-Updated: Jul  9 2021 (10:19) 
+## Last-Updated: sep 23 2021 (20:53) 
 ##           By: Brice Ozenne
-##     Update #: 11
+##     Update #: 12
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -65,9 +65,8 @@ fitted.lmm <- function(object, newdata = NULL, keep.newdata = FALSE, ...){
         name.beta <- names(beta)
 
         ## generate design matrix
-        X.beta <- .predict_model.matrix(object,
-                                        newdata = newdata,
-                                        name.beta = name.beta)
+        X.beta <- model.matrix(object, data = newdata, effects = "mean")
+
         ## compute predictions
         prediction <- X.beta %*% beta
     }

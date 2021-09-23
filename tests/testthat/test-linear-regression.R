@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: sep 20 2021 (15:37) 
+## Last-Updated: sep 23 2021 (20:15) 
 ##           By: Brice Ozenne
-##     Update #: 178
+##     Update #: 180
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -68,7 +68,6 @@ n.param <- length(coef(e.lmm, effects = "all"))
 ## ** coef
 expect_equal(coef(e.lmm, effects = "mean"), coef(e.gls), tol = 1e-6)
 expect_equal(unname(coef(e.lmm, transform.sigma = "square")), unname(coef(e.lava)), tol = 1e-6)
-
 
 ## ** logLikelihood
 expect_equal(logLik(e.lmm), as.double(logLik(e.gls)), tol = 1e-6)
@@ -177,6 +176,7 @@ expect_equal(test$mean["Gene","df.denom"], NROW(d))
 
 test <- anova(e.lmm, effect = c("GeneLA=0","GeneAA=0"))
 test2 <-  anova(e.lmm, effect = c("GeneLA=0","GeneAA=0"))
+
 })
 
 ## * single variance parameter (REML)
@@ -282,6 +282,7 @@ GS <- predict(e.lm, newdata = d, se = TRUE)
 expect_equal(test$estimate,as.double(GS$fit), tol = 1e-7)
 expect_equal(test$se,as.double(GS$se.fit), tol = 1e-7)
 expect_true(all(abs(test$df-GS$df) < 1e-7))
+
 })
 
 
@@ -325,14 +326,14 @@ test <- score(e.lmm, effects = "all", p = newp, transform.sigma = "none", transf
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## log transformation
-newp.log <- newp; newp.log["sigma"] <- log(newp["sigma"]); newp.log["k.M"] <- log(newp["k.M"])
-GS <- jacobian(func = function(p){p[c("sigma","k.M")] <- exp(p[c("sigma","k.M")]); logLik(e.lmm, p = p)}, x = newp.log)
+newp.log <- newp; newp.log["sigma"] <- log(newp["sigma"]); newp.log["k.F"] <- log(newp["k.F"])
+GS <- jacobian(func = function(p){p[c("sigma","k.F")] <- exp(p[c("sigma","k.F")]); logLik(e.lmm, p = p)}, x = newp.log)
 test <- score(e.lmm, effects = "all", p = newp, transform.sigma = "log", transform.k = "log")
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## lava transformation
-newp.2 <- newp; newp.2["sigma"] <- newp["sigma"]^2; newp.2["k.M"] <- newp["k.M"]^2*newp["sigma"]^2
-GS <- jacobian(func = function(p){p[c("sigma","k.M")] <- c(sqrt(p["sigma"]),sqrt(p["k.M"]/p["sigma"])); logLik(e.lmm, p = p, transform.sigma = "none")}, x = newp.2)
+newp.2 <- newp; newp.2["sigma"] <- newp["sigma"]^2; newp.2["k.F"] <- newp["k.F"]^2*newp["sigma"]^2
+GS <- jacobian(func = function(p){p[c("sigma","k.F")] <- c(sqrt(p["sigma"]),sqrt(p["k.F"]/p["sigma"])); logLik(e.lmm, p = p, transform.sigma = "none")}, x = newp.2)
 test <- score(e.lmm, effects = "all", p = newp, transform.k = "var")
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
@@ -357,12 +358,12 @@ test0 <- information(e.lmm, effects = "all",
 
 test0 <- information(e.lmm, effects = "all", p = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"), transform.sigma = "log", transform.k = "log", type.information = "expected") ## using log(sigma) and log(k)
 test <- information(e.lmm, effects = "all", p = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"), transform.sigma = "log", transform.k = "log", type.information = "observed") ## using log(sigma) and log(k)
-GS <- -hessian(func = function(p){p[c("sigma","k.M")] <- exp(p[c("sigma","k.M")]);logLik(e.lmm, p = p, transform.sigma = "none", transform.k = "none")}, x = coef(e.lmm, transform.sigma = "log", transform.k = "log", transform.names = FALSE))
+GS <- -hessian(func = function(p){p[c("sigma","k.F")] <- exp(p[c("sigma","k.F")]);logLik(e.lmm, p = p, transform.sigma = "none", transform.k = "none")}, x = coef(e.lmm, transform.sigma = "log", transform.k = "log", transform.names = FALSE))
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 test0 <- information(e.lmm, effects = "all", p = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"), transform.k = "var", type.information = "expected") ## using sigma^2 and sigma^2 k^2
 test <- information(e.lmm, effects = "all", p = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"), transform.k = "var", type.information = "observed") ## using sigma^2 and sigma^2 k^2
-GS <- -hessian(func = function(p){p[c("sigma","k.M")] <- c(sqrt(p["sigma"]),sqrt(p["k.M"]/p["sigma"]));logLik(e.lmm, p = p, transform.sigma = "none", transform.k = "none")}, x = coef(e.lmm, transform.k = "var", transform.names = FALSE))
+GS <- -hessian(func = function(p){p[c("sigma","k.F")] <- c(sqrt(p["sigma"]),sqrt(p["k.F"]/p["sigma"]));logLik(e.lmm, p = p, transform.sigma = "none", transform.k = "none")}, x = coef(e.lmm, transform.k = "var", transform.names = FALSE))
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## ** degree of freedom
@@ -451,14 +452,14 @@ test <- score(e.lmm, effects = "all", p = newp, transform.sigma = "none", transf
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## log transformation
-newp.log <- newp; newp.log["sigma"] <- log(newp["sigma"]); newp.log["k.M"] <- log(newp["k.M"])
-GS <- jacobian(func = function(p){p[c("sigma","k.M")] <- exp(p[c("sigma","k.M")]); logLik(e.lmm, p = p)}, x = newp.log)
+newp.log <- newp; newp.log["sigma"] <- log(newp["sigma"]); newp.log["k.F"] <- log(newp["k.F"])
+GS <- jacobian(func = function(p){p[c("sigma","k.F")] <- exp(p[c("sigma","k.F")]); logLik(e.lmm, p = p)}, x = newp.log)
 test <- score(e.lmm, effects = "all", p = newp, transform.sigma = "log", transform.k = "log")
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## lava transformation
-newp.2 <- newp; newp.2["sigma"] <- newp["sigma"]^2; newp.2["k.M"] <- newp["k.M"]^2*newp["sigma"]^2
-GS <- jacobian(func = function(p){p[c("sigma","k.M")] <- c(sqrt(p["sigma"]),sqrt(p["k.M"]/p["sigma"])); logLik(e.lmm, p = p, transform.sigma = "none")}, x = newp.2)
+newp.2 <- newp; newp.2["sigma"] <- newp["sigma"]^2; newp.2["k.F"] <- newp["k.F"]^2*newp["sigma"]^2
+GS <- jacobian(func = function(p){p[c("sigma","k.F")] <- c(sqrt(p["sigma"]),sqrt(p["k.F"]/p["sigma"])); logLik(e.lmm, p = p, transform.sigma = "none")}, x = newp.2)
 test <- score(e.lmm, effects = "all", p = newp, transform.k = "var")
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
@@ -473,12 +474,12 @@ expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 test0 <- information(e.lmm, effects = "all", p = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"), transform.sigma = "log", transform.k = "log", type.information = "expected") ## using log(sigma) and log(k)
 test <- information(e.lmm, effects = "all", p = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"), transform.sigma = "log", transform.k = "log", type.information = "observed") ## using log(sigma) and log(k)
-GS <- -hessian(func = function(p){p[c("sigma","k.M")] <- exp(p[c("sigma","k.M")]);logLik(e.lmm, p = p, transform.sigma = "none", transform.k = "none")}, x = coef(e.lmm, effects = "all", transform.sigma = "log", transform.k = "log", transform.names = FALSE))
+GS <- -hessian(func = function(p){p[c("sigma","k.F")] <- exp(p[c("sigma","k.F")]);logLik(e.lmm, p = p, transform.sigma = "none", transform.k = "none")}, x = coef(e.lmm, effects = "all", transform.sigma = "log", transform.k = "log", transform.names = FALSE))
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 test0 <- information(e.lmm, effects = "all", p = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"), transform.k = "var", type.information = "expected") ## using sigma^2 and sigma^2 k^2
 test <- information(e.lmm, effects = "all", p = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"), transform.k = "var", type.information = "observed") ## using sigma^2 and sigma^2 k^2
-GS <- -hessian(func = function(p){p[c("sigma","k.M")] <- c(sqrt(p["sigma"]),sqrt(p["k.M"]/p["sigma"]));logLik(e.lmm, p = p, transform.sigma = "none", transform.k = "none")}, x = coef(e.lmm, effects = "all", transform.k = "var", transform.names = FALSE))
+GS <- -hessian(func = function(p){p[c("sigma","k.F")] <- c(sqrt(p["sigma"]),sqrt(p["k.F"]/p["sigma"]));logLik(e.lmm, p = p, transform.sigma = "none", transform.k = "none")}, x = coef(e.lmm, effects = "all", transform.k = "var", transform.names = FALSE))
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## ** degree of freedom

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: sep 20 2021 (17:29) 
+## Last-Updated: sep 23 2021 (20:48) 
 ##           By: Brice Ozenne
-##     Update #: 282
+##     Update #: 283
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,6 +16,15 @@
 ### Code:
 
 ## * .formulaStructure
+
+##' @title Extract Variable From Formula For VCOV Structure
+##' @description Extract the variables from the variance and correlation formula to be used to initialize the variance-covariance structure.
+##'
+##' @param formula A formula or a list of two formulas.
+##' @param missing.time.ok [logical] If FALSE an error is triggered when the function could not identify the time variable. 
+##' @param missing.id.ok [logical] If FALSE an error is triggered when the function could not identify the cluster variable.
+##' 
+##' @keywords internal
 ##' @examples
 ##' \dontrun{
 ##' .formulaStructure(strata ~ time|id)
