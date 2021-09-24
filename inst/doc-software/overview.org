@@ -88,7 +88,16 @@ utils::packageVersion("LMMstar")
 #+END_SRC
 
 #+RESULTS:
-: [1] '0.2.6'
+: [1] '0.3.0'
+
+When estimating model coefficients, we will use the internal
+optimization routine of the *LMMstar* package (instead of relying on
+the =nlme::gls= function, which is the default option):
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+LMMstar.options(optimizer = "FS")
+#+END_SRC
+
+#+RESULTS:
 
 \clearpage
 
@@ -119,48 +128,42 @@ print(sss, digits = 3)
 Fit a linear mixed model with *compound symmetry* structure:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 eCS.lmm <- lmm(weight ~ time + glucagon,
-               structure = CS(~time|id),
+               repetition = ~time|id, structure = "CS",
                data = gastricbypassL)
 eCS.lmm
 #+END_SRC
 
 #+RESULTS:
-:   Linear Mixed Model with a compound symmetry covariance matrix 
-:                                                                                            
-:  outcome/cluster/time : weight/id/time                                                     
-:  data                 : 78 observations and distributed in 20 clusters                     
-:  parameters           : 5 mean ((Intercept) timeB1_week timeA1_week timeA3_months glucagon)
-:                         1 variance (sigma)                                                 
-:                         1 correlation (Rho)                                                
-:  log-likelihood       : -243.600523870252
+:      Linear Mixed Model with a compound symmetry covariance matrix 
+: 
+:  outcome/cluster/time: weight/id/time 
+:  data                : 78 observations and distributed in 20 clusters 
+:  parameters          : 5 mean ((Intercept) timeB1_week timeA1_week timeA3_months glucagon) 
+:                        1 variance (sigma) 
+:                        1 correlation (rho) 
+:  log-likelihood      : -243.600523870252 
+:  convergence         : TRUE (12 iterations)
 
 
 \noindent Fit a linear mixed model with *unstructured* covariance matrix:
+
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 eUN.lmm <- lmm(weight ~ time + glucagon,
-               structure = UN(~time|id),
+               repetition = ~time|id, structure = "UN",
                data = gastricbypassL)
 eUN.lmm
 #+END_SRC
 
 #+RESULTS:
-#+begin_example
-  Linear Mixed Model with an unstructured covariance matrix 
-                       
- outcome/cluster/time :
- data                 :
- parameters           :
-                       
-                       
- log-likelihood       :
-                                                                                                                                                          
- weight/id/time                                                                                                                                           
- 78 observations and distributed in 20 clusters                                                                                                           
- 5 mean ((Intercept) timeB1_week timeA1_week timeA3_months glucagon)                                                                                      
- 4 variance (sigma k.B1_week k.A1_week k.A3_months)                                                                                                       
- 6 correlation (cor(B1_week,B3_months) cor(A1_week,B3_months) cor(A3_months,B3_months) cor(A1_week,B1_week) cor(A3_months,B1_week) cor(A3_months,A1_week))
- -216.318937004502
-#+end_example
+:      Linear Mixed Model with an unstructured covariance matrix 
+: 
+:  outcome/cluster/time: weight/id/time 
+:  data                : 78 observations and distributed in 20 clusters 
+:  parameters          : 5 mean ((Intercept) timeB1_week timeA1_week timeA3_months glucagon) 
+:                        4 variance (sigma k.B1_week k.A1_week k.A3_months) 
+:                        6 correlation (rho(B3_months,B1_week) rho(B3_months,A1_week) rho(B3_months,A3_months) rho(B1_week,A1_week) rho(B1_week,A3_months) rho(A1_week,A3_months)) 
+:  log-likelihood      : -216.318937004304 
+:  convergence         : TRUE (32 iterations)
 
 _Note:_ the calculation of the degrees of freedom, especially when
 using the observed information can be quite slow. Setting the
@@ -199,10 +202,11 @@ Estimation procedure
   - Restricted Maximum Likelihood (REML) 
   - log-likelihood :-243.6005
   - parameters: mean = 5, variance = 1, correlation = 1
+  - convergence: TRUE (12 iterations, largest |score|=1.859951e-08 is for rho)
  
 Residual variance-covariance: compound symmetry 
 
-  - correlation structure: ~1 | id 
+  - correlation structure: ~1 
               B3_months B1_week A1_week A3_months
     B3_months      1.00    0.97    0.97      0.97
     B1_week        0.97    1.00    0.97      0.97
@@ -222,7 +226,7 @@ timeA1_week    -14.495 1.428 53.879 -17.358 -11.632  <0.001 ***
 timeA3_months  -27.051 1.087 53.943 -29.231 -24.872  <0.001 ***
 glucagon         0.822  0.62  53.81  -0.421   2.065   0.191    
 
-The columns lower and upper correspond to the 95% confidence interval
+The columns lower and upper indicate a 95% confidence interval for each coefficient
 Degrees of freedom were computed using a Satterthwaite approximation
 #+end_example
 
@@ -245,13 +249,13 @@ coef(eUN.lmm, effects = "variance", transform.k = "sd")
 
 #+RESULTS:
 : sigma:B3_months   sigma:B1_week   sigma:A1_week sigma:A3_months 
-:        20.28080        19.04553        17.65479        16.76104
+:        20.28081        19.04554        17.65480        16.76104
 
 ** Extract estimated residual variance-covariance structure
 
 The method =getVarCov= can be used to output the covariance structure of the residuals:
 #+begin_src R :exports both :results output :session *R* :cache no
-nlme::getVarCov(eCS.lmm)
+getVarCov(eCS.lmm)
 #+end_src
 
 #+RESULTS:
@@ -263,7 +267,7 @@ nlme::getVarCov(eCS.lmm)
 
 It can also be specific to an individual:
 #+begin_src R :exports both :results output :session *R* :cache no
-nlme::getVarCov(eCS.lmm, individual = 5)
+getVarCov(eCS.lmm, individual = 5)
 #+end_src
 
 #+RESULTS:
@@ -285,12 +289,12 @@ head(eCS.diagW)
 
 #+RESULTS:
 :   cluster  B3_months      B1_week    A1_week  A3_months
-: 1       1 -0.8042448 -0.709908611 -1.4242831  0.3176640
-: 2       2  1.0863177 -0.133256804  1.1083627  1.5977042
+: 1       1 -0.8042448 -0.709908615 -1.4242831  0.3176640
+: 2       2  1.0863177 -0.133256812  1.1083627  1.5977042
 : 3       3 -0.4597852 -0.612727870 -0.6060136 -0.8589524
-: 4       4 -1.0103075  0.007471088  0.1309862  1.1428822
+: 4       4 -1.0103075  0.007471084  0.1309862  1.1428822
 : 5       5 -0.1258773           NA -0.3819184 -0.7874832
-: 6       6  3.5646225  2.333205076  2.8387204  0.3586263
+: 6       6  3.5646225  2.333205086  2.8387204  0.3586263
 
 or in the long format:
 #+begin_src R :exports both :results output :session *R* :cache no
@@ -420,7 +424,7 @@ confint(eCS.lmm, effect = "all", backtransform = TRUE)
 : timeA3_months  -27.051 -29.231 -24.872
 : glucagon         0.822  -0.421   2.065
 : sigma           18.850  13.479  26.359
-: Rho              0.970   0.936   0.986
+: rho              0.970   0.936   0.986
 : Note: estimates and confidence intervals for sigma, rho have been back-transformed.
 
 Because these parameters are constrained (e.g. strictly positive),
@@ -438,15 +442,14 @@ anova(eUN.lmm, effects = c("timeA1_week-timeB1_week=0"), ci = TRUE)
 #+end_src
 
 #+RESULTS:
-: 
 :                      ** User-specified hypotheses ** 
 :  - F-test
 :  statistic df.num df.denom      p.value
-:   43.14145      1 17.87461 3.723244e-06
+:   43.14135      1 17.87455 3.723358e-06
 : 
-:  - P-values and confidence interval (adjusted for multiplicity within each global test) 
+:  - P-values and confidence interval 
 :                            estimate     lower     upper      p.value
-: timeA1_week - timeB1_week -3.905721 -5.155641 -2.655801 3.723244e-06
+: timeA1_week - timeB1_week -3.905721 -5.155643 -2.655799 3.723358e-06
 
 When testing transformed variance or correlation parameters,
 parentheses (as in =log(k).B1_week=) cause problem for recognizing
@@ -482,19 +485,19 @@ C
 log(k).B1_week             0           0           0             0        0          0
 log(k).A1_week             0           0           0             0        0          0
 log(k).A3_months           0           0           0             0        0          0
-                 log(k).B1_week log(k).A1_week log(k).A3_months atanh(cor(B1_week,B3_months))
+                 log(k).B1_week log(k).A1_week log(k).A3_months atanh(rho(B3_months,B1_week))
 log(k).B1_week                1              0                0                             0
 log(k).A1_week                0              1                0                             0
 log(k).A3_months              0              0                1                             0
-                 atanh(cor(A1_week,B3_months)) atanh(cor(A3_months,B3_months))
+                 atanh(rho(B3_months,A1_week)) atanh(rho(B3_months,A3_months))
 log(k).B1_week                               0                               0
 log(k).A1_week                               0                               0
 log(k).A3_months                             0                               0
-                 atanh(cor(A1_week,B1_week)) atanh(cor(A3_months,B1_week))
+                 atanh(rho(B1_week,A1_week)) atanh(rho(B1_week,A3_months))
 log(k).B1_week                             0                             0
 log(k).A1_week                             0                             0
 log(k).A3_months                           0                             0
-                 atanh(cor(A3_months,A1_week))
+                 atanh(rho(A1_week,A3_months))
 log(k).B1_week                               0
 log(k).A1_week                               0
 log(k).A3_months                             0
@@ -507,11 +510,10 @@ anova(eUN.lmm, effects = C)
 #+end_src
 
 #+RESULTS:
-: 
 :                      ** User-specified hypotheses ** 
 :  - F-test
 :  statistic df.num df.denom     p.value
-:   6.203176      3 17.99457 0.004417067
+:   6.203161      3 17.99456 0.004417118
 
 \clearpage
 
@@ -570,12 +572,13 @@ contains 12 parameters (i.e. 6 too many). The =lmm= function will
 internally remove the one that cannot be identified and fit a
 simplified model:
 #+begin_src R :exports both :results output :session *R* :cache no
-eC.lmm <- lmm(weight ~ treat*time, data = gastricbypassL, structure = UN(~time|id))
+  eC.lmm <- lmm(weight ~ treat*time, data = gastricbypassL,
+                repetition = ~time|id, structure = "UN")
 #+end_src
 
 #+RESULTS:
 : Advarselsbesked:
-: I model.matrix_regularize(formula.mean, data) :
+: I .model.matrix_regularize(formula, data) :
 :   Constant values in the design matrix in interactions "treat:time"
 :  Coefficients "treat1" "treat2" "timeA1_week" "timeA3_months" "treat1:timeB1_week" "treat2:timeB1_week" will be removed from the design matrix. 
 : Consider defining manually the interaction, e.g. via droplevels(interaction(.,.)) to avoid this warning.
@@ -613,8 +616,6 @@ table(treat = gastricbypassL$treat2, time = gastricbypassL$time, group = gastric
 
 #+RESULTS:
 #+begin_example
-Fejl i pdf(file = "./figures/gg-baseAdj.pdf") : 
-  kan ikke åbne fil './figures/gg-baseAdj.pdf'
 , , group = 1
 
      time
@@ -632,26 +633,65 @@ treat B3_months B1_week A1_week A3_months
 
 Fitting the model
 #+begin_src R :exports both :results output :session *R* :cache no
-eC2.lmm <- suppressWarnings(lmm(weight ~ treat2*time, data = gastricbypassL, structure = UN(~time|id)))
+eC2.lmm <- suppressWarnings(lmm(weight ~ treat2*time, data = gastricbypassL,
+                                repetition = ~time|id, structure = "UN"))
 #+end_src
 
 #+RESULTS:
 
-will directly output group differences:
+will directly output group differences (last two coefficients):
 #+begin_src R :exports both :results output :session *R* :cache no
-confint(eC2.lmm, effects = "mean", columns = c("estimate","lower","upper","p.value"))[5:6,]
+confint(eC2.lmm, effects = "mean", columns = c("estimate","lower","upper","p.value"))
 #+end_src
 #+RESULTS:
-:                       estimate lower upper p.value
-: treat22:timeA1_week      -1.44 -2.75 -0.12  0.0343
-: treat22:timeA3_months     1.57 -3.64  6.78  0.5325
+:                       estimate  lower  upper  p.value
+: (Intercept)             128.97 119.48 138.46 0.00e+00
+: timeB1_week              -7.73  -9.19  -6.27 1.00e-09
+: timeA1_week             -12.84 -14.64 -11.04 2.02e-12
+: timeA3_months           -27.08 -30.66 -23.50 3.20e-13
+: treat22:timeA1_week      -1.44  -2.75  -0.12 3.43e-02
+: treat22:timeA3_months     1.57  -3.64   6.78 5.32e-01
+
+It is also possible to get the estimated mean at each timepoint, using
+an equivalent mean structure:
+#+begin_src R :exports both :results output :session *R* :cache no
+eC3.lmm <- suppressWarnings(lmm(weight ~ 0+treat2:time, data = gastricbypassL,
+                                repetition = ~time|id, structure = "UN"))
+confint(eC3.lmm)
+#+end_src
+
+#+RESULTS:
+:                       estimate lower upper
+: treat21:timeB3_months      129 119.5   138
+: treat21:timeB1_week        121 112.4   130
+: treat21:timeA1_week        116 107.5   125
+: treat22:timeA1_week        115 106.1   123
+: treat21:timeA3_months      102  93.8   110
+: treat22:timeA3_months      103  94.9   112
+
+or the baseline mean and the change since baseline:
+#+begin_src R :exports both :results output :session *R* :cache no
+eC4.lmm <- suppressWarnings(lmm(weight ~ treat2:time, data = gastricbypassL,
+                                repetition = ~time|id, structure = "UN"))
+confint(eC4.lmm)
+#+end_src
+
+#+RESULTS:
+:                       estimate  lower  upper
+: (Intercept)             128.97 119.48 138.46
+: treat21:timeB1_week      -7.73  -9.19  -6.27
+: treat21:timeA1_week     -12.84 -14.64 -11.04
+: treat22:timeA1_week     -14.27 -16.23 -12.32
+: treat21:timeA3_months   -27.08 -30.66 -23.50
+: treat22:timeA3_months   -25.51 -30.32 -20.69
 
 ** Marginal means
 
 The =lmm= function can be used in conjonction with the =emmeans=
 package to compute marginal means. Consider the following model:
 #+begin_src R :exports both :results output :session *R* :cache no
-e.group <- lmm(weight ~ time*group, data = gastricbypassL, structure = UN(~time|id))
+  e.group <- lmm(weight ~ time*group, data = gastricbypassL,
+                 repetition = ~time|id, structure = "UN")
 #+end_src
 
 #+RESULTS:
@@ -686,8 +726,7 @@ summarize(formula = estimate~time, data = df.pred)
 : 3 estimate   A1_week       20       0 115.700 2.014981 114.4143 114.4143 118.70
 : 4 estimate A3_months       20       0 102.365 3.146729 100.3571 100.3571 107.05
 
-as the groups are not balanced and with this approach more "weight" is
-given to the expected value group 1 as it contains more indiviuals.
+as the groups are not balanced:
 #+begin_src R :exports both :results output :session *R* :cache no
 table(group = gastricbypassL$group, time = gastricbypassL$time)
 #+end_src
@@ -698,7 +737,8 @@ table(group = gastricbypassL$group, time = gastricbypassL$time)
 :     1        14      14      14        14
 :     2         6       6       6         6
 
-By hand:
+The "emmeans" approach gives equal "weight" to the expected value of
+both group 2 (instead of less weight for group 2). By hand:
 #+begin_src R :exports both :results output :session *R* :cache no
 mu.group1 <-  as.double(coef(e.group)["(Intercept)"])
 mu.group2 <-  as.double(coef(e.group)["(Intercept)"] + coef(e.group)["group2"])
@@ -712,7 +752,7 @@ c(emmeans = (mu.group1+mu.group2)/2,
 :  emmeans  predict 
 : 129.9357 128.9700
 
-which one is relevant depends on the application. The =emmeans=
+Which one is relevant depends on the application. The =emmeans=
 function can also be used to display expected value in each group over
 time:
 #+begin_src R :exports both :results output :session *R* :cache no

@@ -14,6 +14,7 @@
   transform.rho,
   precompute.moments,
   init,
+  n.warmUp,
   n.iter,
   tol.score,
   tol.param,

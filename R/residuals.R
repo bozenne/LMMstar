@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: sep 23 2021 (20:49) 
+## Last-Updated: sep 24 2021 (14:05) 
 ##           By: Brice Ozenne
-##     Update #: 191
+##     Update #: 194
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -278,8 +278,9 @@ residuals.lmm <- function(object, type = "response", format = "long",
                 }
             }
         }
+
         ## add NA
-        if(is.null(data) && length(object$index.na)>0){
+        if(is.null(match.call()$data) && length(object$index.na)>0){
             inflateNA <-  .addNA(index.na = object$index.na, design = design, time = object$time)
             Msave.res <- M.res
             M.res <- matrix(NA, nrow = inflateNA$n.allobs, ncol = length(type.residual), dimnames = list(NULL, type.residual))

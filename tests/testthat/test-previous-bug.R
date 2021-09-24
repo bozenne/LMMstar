@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: sep 23 2021 (20:55) 
+## Last-Updated: sep 24 2021 (14:07) 
 ##           By: Brice Ozenne
-##     Update #: 73
+##     Update #: 75
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -343,6 +343,25 @@ test_that("lmm - estimation with missing data",{
 
 })
 
+## * from: Brice 09/22/21 11:20 
+test_that("residuals.lmm - missing data",{
+    data(ckdL, package = "LMMstar")
+
+    ckdL$treat <- ckdL$allocation
+    ckdL$treat[ckdL$time==0] <- "A"
+    ckdL$treat <- relevel(ckdL$treat, ref="A")
+
+    fit.main <- suppressWarnings(lmm(aix~time+time:treat, 
+                                     repetition=~visit|id, 
+                                     structure='UN',
+                                     df=TRUE,
+                                     data=ckdL))
+    ## was leading to an error
+    res <- residuals(fit.main, type = "all", keep.data = TRUE)
+    GS <- as.character(unique(ckdL[rowSums(is.na(ckdL))>0,"id"]))
+    test <- as.character(unique(res[rowSums(is.na(res))>0,"id"]))
+    expect_equal(sort(GS),sort(test))
+})
 
 ######################################################################
 ### test-previous-bug.R ends here

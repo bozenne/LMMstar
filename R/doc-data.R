@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: Jul  8 2021 (09:40) 
+## Last-Updated: sep 24 2021 (13:58) 
 ##           By: Brice Ozenne
-##     Update #: 59
+##     Update #: 64
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -179,6 +179,64 @@ NULL
 #' save(calciumL, file = "data/gastricbypassL.rda")
 #'
 #' str(calciumL)
+#' }
+NULL
+
+## * ckd
+## ** ckdW
+#' @title CKD wide
+#'
+#' @description TODO
+#'
+#' \itemize{
+#' \item id Patient identifier
+#' \item allocation
+#' \item sex
+#' \item age
+#' \item pwv0
+#' \item pwv12
+#' \item pwv24
+#' \item aix0
+#' \item aix12
+#' \item aix24
+#' \item dropout
+#' }
+#' 
+#' @name ckdW
+#' @docType data
+#' @usage data(ckdW)
+#' @references TO ADD
+#' @keywords data
+#' @examples
+#' \dontrun{
+#' data("ckdW")
+#' }
+NULL
+
+## ** ckdL
+#' @title CKD long
+#'
+#' @description TODO
+#' 
+#' \itemize{
+#' \item id Patient identifier
+#' \item allocation
+#' \item sex
+#' \item age
+#' \item visit
+#' \item time
+#' \item pwv
+#' \item aix
+#' \item dropout
+#' }
+#' @name ckdL
+#' @docType data
+#' @usage data(ckdL)
+#' @references TO ADD
+#' @keywords data
+#' @examples
+#' \dontrun{
+#' data("ckdL")
 #' }
 NULL
 
@@ -392,7 +450,7 @@ NULL
 #' }
 NULL
 
-## ** potassiumSingleL
+## ** potassiumRepeatedL
 #' @title Data From The Potassium Intake Study (Long Format with intermediate measurements)
 #'
 #' @description  Data from the potassium intake study,

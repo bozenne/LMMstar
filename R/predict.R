@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: sep 23 2021 (20:36) 
+## Last-Updated: sep 24 2021 (15:21) 
 ##           By: Brice Ozenne
-##     Update #: 477
+##     Update #: 480
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -296,7 +296,8 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
                     prediction.var[iPos.pred] <- prediction.var[iPos.pred] + rowSums((iGrad %*% vcov.all)*iGrad)
                 }
                 if(factor.residual){
-                    prediction.var[iPos.pred] <- prediction.var[iPos.pred] + diag(iOmega.pred - iOmega.predcon %*% iOmegaM1.con %*% iOmega.conpred)
+                    browser()
+                    prediction.var[iPos.pred] <- prediction.var[iPos.pred] + diag(iOmega.pred[iLevels.pred,iLevels.pred,drop=FALSE] - iOmega.predcon %*% iOmegaM1.con %*% iOmega.conpred)
                 }
             }
 

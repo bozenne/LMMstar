@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: sep 23 2021 (20:02) 
+## Last-Updated: sep 23 2021 (21:22) 
 ##           By: Brice Ozenne
-##     Update #: 1052
+##     Update #: 1059
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -129,7 +129,7 @@
             attr(X.var,"order") <- save.attr$order[order(strata.sigmak)]-1
             attr(X.var,"contrasts") <- save.attr$contrasts
             attr(X.var,"ls.level") <- save.attr$ls.level
-            attr(X.var,"original.colnames") <- save.attr[order(strata.sigmak)]
+            attr(X.var,"original.colnames") <- save.attr$original.colnames[order(strata.sigmak)]
             attr(X.var,"reference.level") <- save.attr$reference.level
             attr(X.var,"M.level") <- save.attr$M.level
             param.k <- param.k[order(strata.k)]
@@ -329,7 +329,7 @@
             attr(X.var,"order") <- save.attr$order[order(strata.sigmak)]-1
             attr(X.var,"contrasts") <- save.attr$contrasts
             attr(X.var,"ls.level") <- save.attr$ls.level
-            attr(X.var,"original.colnames") <- save.attr[order(strata.sigmak)]
+            attr(X.var,"original.colnames") <- save.attr$original.colnames[order(strata.sigmak)]
             attr(X.var,"reference.level") <- save.attr$reference.level
             attr(X.var,"M.level") <- save.attr$M.level
             param.k <- param.k[order(strata.k)]
@@ -376,7 +376,7 @@
         strata.rho <- stats::setNames(rep(1,length(param.rho)),param.rho)
         time.rho <- do.call(cbind,lapply(structure$U.cluster[indexCluster.cor], function(iC){
             .unorderedPairs(index.clusterTime[[iC]][order.clusterTime[[iC]]], distinct = TRUE)
-        }))[,test.duplicated==FALSE]
+        }))[,test.duplicated==FALSE,drop=FALSE]
 
         reorder.rho <- order(time.rho[1,],time.rho[2,])
         time.rho <- time.rho[,reorder.rho,drop=FALSE]

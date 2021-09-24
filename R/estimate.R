@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: sep 20 2021 (11:00) 
+## Last-Updated: sep 24 2021 (15:07) 
 ##           By: Brice Ozenne
-##     Update #: 157
+##     Update #: 174
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -53,13 +53,16 @@
 ## * estimate (code)
 .estimate <- function(design, time, method.fit, type.information,
                       transform.sigma, transform.k, transform.rho,
-                      precompute.moments, init, n.iter, tol.score, tol.param, trace){
+                      precompute.moments, init, n.warmUp, n.iter, tol.score, tol.param, trace){
 
    
     if(!precompute.moments){
         stop("Only implemented when option \'precompute.moments\' is TRUE")
     }
     options <- LMMstar.options()
+    if(is.null(n.warmUp)){
+        n.warmUp <- options$param.optimizer["n.warmUp"]
+    }
     if(is.null(n.iter)){
         n.iter <- options$param.optimizer["n.iter"]
     }
@@ -91,6 +94,9 @@
     if(is.null(init)){
 
         param.value <- stats::setNames(rep(NA, n.param),param.name)
+        if(trace>1){
+            cat("\nInitialization:\n")
+        }
 
         ## mean value
         start.OmegaM1 <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 2
@@ -102,12 +108,49 @@
         iResiduals.long <- design$Y - design$mean %*% param.value[param.mu]
         outInit <- .initialize(design$vcov, residuals = iResiduals.long)
         param.value[names(outInit)] <- outInit
+
+        if(trace>1){
+            print(param.value)
+        }
+
+        if(trace>1){
+            cat("\nWarm-up:\n")
+        }
+        if(n.warmUp>0){
+            for(iWarmUp in 1:n.warmUp){
+                iOmega <- .calc_Omega(object = design$vcov, param = param.value)
+
+                ## mean value
+                param.value[param.mu] <- .estimateGLS(OmegaM1 = stats::setNames(lapply(iOmega, solve), names(iOmega)),
+                                                      pattern = Upattern$name, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX)
+
+                ## vcov values
+                iResiduals.long <- design$Y - design$mean %*% param.value[param.mu]
+                outInit <- .initialize(design$vcov, residuals = iResiduals.long)
+                param.value[names(outInit)] <- outInit
+
+                if(trace > 0 && trace < 3){
+                    cat("-")
+                }else if(trace>2){
+                    M.print <- rbind(estimate = param.value,
+                                     diff = param.value - param.valueM1,
+                                     score = c(rep(0, length(param.mu)),outMoments$score))
+                    rownames(M.print) <- paste0(rownames(M.print),".",iIter)
+                    print(M.print)
+                }
+            }
+        }
     }else{
         if(any(param.name %in% names(init) == FALSE)){
             stop("Initialization does not contain value for all parameters. \n",
                  "Missing parameters: \"",paste(param.name[param.name %in% names(init) == FALSE], collapse = "\" \""),"\". \n")
         }
         param.value <- init[param.name]
+
+        if(trace>1){
+            cat("\nInitialization:\n")
+            print(param.value)
+        }
     }
     ## microbenchmark(test =     .estimateGLS(OmegaM1 = start.OmegaM1, pattern = pattern, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX),
     ##                lm.fit = lm.fit(y = ncgsL$cholest[!is.na(ncgsL$cholest)], x = model.matrix(~time+highdose.time, data=ncgsL)[!is.na(ncgsL$cholest),]),
@@ -115,10 +158,6 @@
     ##                )
 
 
-    if(trace>1){
-        cat("\nInitialization:\n")
-        print(param.value)
-    }
     
     ## ** loop
     cv <- FALSE

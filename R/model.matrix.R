@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: sep 23 2021 (20:50) 
+## Last-Updated: sep 23 2021 (21:20) 
 ##           By: Brice Ozenne
-##     Update #: 1217
+##     Update #: 1230
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -125,16 +125,18 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
             if(is.null(colnames)){
                 iX <- .model.matrix_regularize(formula, data[data[[var.strata]]==iS,,drop=FALSE])
             }else{
-                iX <- stats::model.matrix(formula, stats::model.frame(formula, data[data[[var.strata]]==iS,,drop=FALSE], na.action = stats::na.pass))[,colnames,drop=FALSE]
+                iX <- stats::model.matrix(formula, stats::model.frame(formula, data[data[[var.strata]]==iS,,drop=FALSE], na.action = stats::na.pass))
             }
             colnames(iX) <- paste0(colnames(iX),":",iS)
             attr(iX,"index") <- data[data[[var.strata]]==iS,"XXindexXX"]
             return(iX)
         })
-
         ## *** assemble
-        X.mean <- as.matrix(Matrix::bdiag(ls.X.mean))[order(unlist(lapply(ls.X.mean, attr, "index"))),]
+        X.mean <- as.matrix(Matrix::bdiag(ls.X.mean))[order(unlist(lapply(ls.X.mean, attr, "index"))),,drop=FALSE]
         colnames(X.mean) <- unlist(lapply(ls.X.mean,colnames))
+        if(!is.null(colnames)){
+            X.mean <- X.mean[,colnames,drop=FALSE]
+        }
         attr(X.mean, "assign") <- as.vector(do.call(cbind,lapply(ls.X.mean,attr,"assign")))
         if(is.null(colnames)){
             strata.mu <- unlist(lapply(1:n.strata, function(iStrata){stats::setNames(rep(iStrata, NCOL(ls.X.mean[[iStrata]])),colnames(ls.X.mean[[iStrata]]))}))
@@ -329,6 +331,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
     ## ## ** test 0: remove variable(s) with single level in the formula
     test.1value <- sapply(all.vars(formula),function(iVar){length(unique(data[[iVar]]))})
     if(any(test.1value==1)){
+        ## no warning because this is normal behavior when stratifying
         formula <- stats::update(formula, stats::as.formula(paste0("~.-",paste(names(test.1value)[test.1value==1],collapse="-"))))
     }
 

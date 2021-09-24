@@ -2,7 +2,7 @@ Package: LMMstar
 Type: Package
 Title: Repeated measurement models for discrete times
 Version: 0.3.0
-Date: 2021-09-23
+Date: 2021-09-24
 Authors@R: c(
     person("Brice", "Ozenne", role = c("aut", "cre"), email = "brice.mh.ozenne@gmail.com", comment = c(ORCID = "0000-0001-9694-2956")),
     person("Julie", "Forman", role = "aut", email = "jufo@sund.ku.dk", comment = c(ORCID = "0000-0001-7368-0869"))

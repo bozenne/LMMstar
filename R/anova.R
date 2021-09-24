@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: sep 20 2021 (16:08) 
+## Last-Updated: sep 24 2021 (11:52) 
 ##           By: Brice Ozenne
-##     Update #: 548
+##     Update #: 576
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -109,9 +109,31 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
                         type.object,
                         transform.sigma, transform.k, transform.rho, transform.names){
     
-    ## ** normalized user input    
-    if(identical(effects,"all")){
-        effects <- c("mean","variance","correlation")
+    ## ** normalized user input
+    terms.mean <- attr(stats::terms(object$formula$mean.design),"term.labels")
+    subeffect <- NULL
+    if(length(effects)==1){
+        if(identical(effects,"all")){
+            effects <- c("mean","variance","correlation")
+        }else if(grepl("^mean_",effects)){
+            iLabels <- attr(stats::terms(object$formula$mean.design),"term.labels")
+            if(any(effects == paste0("mean_",iLabels))){
+                subeffect <- iLabels[effects == paste0("mean_",iLabels)]
+                effects <- "mean"
+            }
+        }else if(grepl("^variance_",effects) && !is.null(object$design$vcov$X$var)){
+            iLabels <- attr(stats::terms(object$formula$var.design),"term.labels")
+            if(any(effects == paste0("variance_",iLabels))){
+                subeffect <- iLabels[effects == paste0("variance_",iLabels)]
+                effects <- "variance"
+            }
+        }else if(grepl("^cor_",effects) && !is.null(object$design$vcov$X$cor)){
+            iLabels <- attr(stats::terms(object$formula$cor.design),"term.labels")
+            if(any(effects == paste0("correlation_",iLabels))){
+                subeffect <- iLabels[effects == paste0("correlation_",iLabels)]
+                effects <- "correlation"
+            }
+        }
     }
 
     init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
@@ -181,7 +203,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
             ls.nameTerms$mean <- attr(stats::terms(object$formula$mean.design),"term.labels")
             ls.contrast <- c(ls.contrast,list(mean = NULL))
             null.mean <- 0
-            ls.null$mean <- rep(null.mean,length(ls.nameTerms$mean))
+            ls.null$mean <- rep(null.mean,length(ls.nameTerms$mean))            
         }
         if("variance" %in% effects){
             out <- c(out,list(variance = NULL))
@@ -301,6 +323,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
             ## *** contrast matrix
             if(is.null(ls.contrast[[iType]])){
                 if(all(ls.assign[[iType]]!=iTerm)){return(NULL)}
+                if(!is.null(subeffect) && ls.nameTerms$mean[iTerm]!=subeffect){return(NULL)}
                 iIndex.param <- which(ls.assign[[iType]]==iTerm)
                 iN.hypo <- length(iIndex.param)
                 iNull <- rep(ls.null[[iType]][iTerm],iN.hypo)
@@ -388,9 +411,13 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
             return(iRes)
             
         })
-        if(!is.null(ls.nameTerms[[iType]])){
+        if(!is.null(subeffect)){
+            names(iLs) <- ls.nameTerms[[iType]]
+            iLs <- iLs[subeffect]
+        }else if(!is.null(ls.nameTerms[[iType]])){
             names(iLs) <- ls.nameTerms[[iType]]
         }
+
         out[[iType]] <- do.call(rbind, iLs)
         attr(out[[iType]], "contrast") <- lapply(iLs,attr,"contrast")
         attr(out[[iType]], "CI") <- lapply(iLs,attr,"CI")
@@ -509,35 +536,39 @@ print.anova_lmm <- function(x, level = 0.95, method = "single-step", print.null 
 
     
     if(attr(x,"test")=="Wald"){    
-    type <- names(x)
-    ci <- stats::confint(x, level = level, method = method)
-    cat("\n")
-    for(iType in type){
+        type <- names(x)
+        ci <- stats::confint(x, level = level, method = method)
+        for(iType in type){
 
-        if(is.null(x[[iType]])){next}
+            if(is.null(x[[iType]])){next}
 
-        if(!print.null){
-            x[[iType]][["null"]] <- NULL
+            if(!print.null){
+                x[[iType]][["null"]] <- NULL
+            }
+            iNoDf <- is.infinite(x[[iType]]$df.denom)
+            txt.test <- ifelse(all(iNoDf),"Chi-square test","F-test")
+            if(iType == "all"){
+                cat("                     ** User-specified hypotheses ** \n", sep="")
+                cat(" - ",txt.test,"\n", sep="")
+                print(x[[iType]], row.names = FALSE)
+            }else{
+                cat("                     ** ",iType," coefficients ** \n", sep="")
+                cat(" - ",txt.test,"\n",sep="")
+                print(x[[iType]])
+            }
+            if(!is.null(ci[[iType]])){
+                options <- LMMstar.options()
+                if(all(sapply(ci[[iType]],NROW)==1)){ ## always only one hypothesis in each global test
+                    cat("\n - P-values and confidence interval \n", sep="")
+                }else if(length(ci[[iType]])==1){ ## only one global test
+                    cat("\n - P-values and confidence interval (adjusted for multiplicity) \n", sep="")
+                }else{
+                    cat("\n - P-values and confidence interval (adjusted for multiplicity within each global test) \n", sep="")
+                }
+                print(do.call(rbind,unname(ci[[iType]]))[,options$columns.anova])
+            }
+            cat("\n")
         }
-        iNoDf <- is.infinite(x[[iType]]$df.denom)
-        txt.test <- ifelse(all(iNoDf),"Chi-square test","F-test")
-        if(iType == "all"){
-            cat("                     ** User-specified hypotheses ** \n", sep="")
-            cat(" - ",txt.test,"\n", sep="")
-            print(x[[iType]], row.names = FALSE)
-        }else{
-            cat("                     ** ",iType," coefficients ** \n", sep="")
-            cat(" - ",txt.test,"\n",sep="")
-            print(x[[iType]])
-        }
-        if(!is.null(ci[[iType]])){
-            options <- LMMstar.options()
-
-            cat("\n - P-values and confidence interval (adjusted for multiplicity within each global test) \n", sep="")
-            print(do.call(rbind,unname(ci[[iType]]))[,options$columns.anova])
-        }
-        cat("\n")
-    }
     }else if(attr(x,"test")=="LRT"){
         cat(" - Likelihood ratio test \n")
         x.print <- as.data.frame(x)

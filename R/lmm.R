@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: sep 23 2021 (20:22) 
+## Last-Updated: sep 24 2021 (15:02) 
 ##           By: Brice Ozenne
-##     Update #: 1145
+##     Update #: 1151
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -33,7 +33,6 @@
 ##' @param df [logical] Should the degree of freedom be computed using a Satterthwaite approximation?
 ##' @param trace [interger, >0] Show the progress of the execution of the function.
 ##' @param control [glsControl] Control values for gls fit. Passed to gls.
-##' @param ... passed to \code{nlme::gls}.
 ##'
 ##' @details \bold{Computation time} the \code{lmm} has not been developped to be a fast function as, by default, it uses REML estimation with the observed information matrix and uses a Satterthwaite approximation to compute degrees of freedom (this require to compute the third derivative of the log-likelihood which is done by numerical differentiation). The computation time can be substantially reduced by using ML estimation with the expected information matrix and no calculation of degrees of freedom: arguments \code{method.fit="ML"}, \code{type.information="expected"}, \code{df=FALSE}. This will, however, lead to less accurate p-values and confidence intervals in small samples.
 ##' \cr
@@ -56,7 +55,7 @@
 
 ## * lmm (code)
 ##' @export
-lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NULL, type.information = NULL, trace = NULL, control = NULL, ...){
+lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NULL, type.information = NULL, trace = NULL, control = NULL){
 
     out <- list(call = match.call(), data.original = data)
     options <- LMMstar.options()
@@ -95,9 +94,8 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     if(missing(repetition)){
 
         if(inherits(structure,"structure")){
-            
-            var.cluster <- structure$cluster
-            var.time <- structure$time.var
+            var.cluster <- structure$name$cluster
+            var.time <- structure$name$time
             if(is.null(var.time) && structure$type %in% c("CS","UN")){
                 stop("Could not identify the time variable based on the \'structure\' argument. \n",
                      "Consider specifying the \'repetition\' argument. \n")
@@ -468,11 +466,10 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
         }        
 
     }else if(options$optimizer=="FS"){
-
         outEstimate <- .estimate(design = out$design, time = out$time, method.fit = method.fit, type.information = type.information,
                                  transform.sigma = options$transform.sigma, transform.k = options$transform.k, transform.rho = options$transform.rho,
                                  precompute.moments = options$precompute.moments,
-                                 init = control$init, n.iter = control$n.iter, tol.score = control$tol.score, tol.param = control$tol.param, trace = control$trace)
+                                 init = control$init, n.warmUp = control$n.warmUp, n.iter = control$n.iter, tol.score = control$tol.score, tol.param = control$tol.param, trace = control$trace)
         param.value <- outEstimate$estimate
         out$opt <- outEstimate[c("cv","n.iter","score","previous.estimate")]
 

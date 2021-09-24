@@ -27,11 +27,13 @@ The options are: \itemize{
 \item method.fit [character]: objective function when fitting the Linear Mixed Model (REML or ML). Used by \code{lmm}.
 \item method.numDeriv [character]: type used to approximate the third derivative of the log-likelihood (when computing the degrees of freedom). Can be \code{"simple"} or \code{"Richardson"}. See \code{numDeriv::jacobian} for more details. Used by \code{lmm}.
 \item optimizer [character]: method used to estimate the model parameters: can the \code{nlme::gls} (\code{"gls"}) or an algorithm combine fisher scoring for the variance parameters and generalized least squares for the mean parameters (\code{"FS"}).
-\item param.optimizer [numeric vector]: default option for the \code{FS} optimization routine: maximum number of iterations (\code{n.iter}), maximum acceptable score value (\code{tol.score}), maximum acceptable change in parameter value (\code{tol.param}).
+\item param.optimizer [numeric vector]: default option for the \code{FS} optimization routine: maximum number of warm up iteration (\code{n.warmUp}), maximum number of gradient descent iterations (\code{n.iter}), maximum acceptable score value (\code{tol.score}), maximum acceptable change in parameter value (\code{tol.param}).
 \item precompute.moments [logical]: Should the cross terms between the residuals and design matrix be pre-computed. Useful when the number of subject is substantially larger than the number of mean paramters.
 \item trace [logical]: Should the progress of the execution of the \code{lmm} function be displayed?
 \item tranform.sigma, tranform.k, tranform.rho: transformation used to compute the confidence intervals/p-values for the variance and correlation parameters. See the detail section of the coef function for more information.
 Used by \code{lmm}, \code{anova} and \code{confint}.
 \item type.information [character]: Should the expected or observed information (\code{"expected"} or \code{"observed"}) be used to perform statistical inference? Used by \code{lmm}, \code{anova} and \code{confint}.
 }
+
+NOTE: warm-up and gradient descent iterations both use a Generalized Least Squares estimator for the mean parameter. Then, in the case of the warm-up, residuals are computed and the initalization method of the variance-covariance structure is used to estimate variance and correlation parameters. In the case of the gradient descent, a step of Fisher Scoring is performed.
 }
