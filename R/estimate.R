@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: sep 30 2021 (14:54) 
+## Last-Updated: sep 30 2021 (16:14) 
 ##           By: Brice Ozenne
-##     Update #: 304
+##     Update #: 305
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -175,7 +175,7 @@
             
             ## *** variance estimate
             param.valueM1 <- param.value
-            update.value <- setNames(as.double(score.value %*% solve(information.value)), names(outMoments$reparametrize$p))
+            update.value <- stats::setNames(as.double(score.value %*% solve(information.value)), names(outMoments$reparametrize$p))
             if(wolfe){
                 attr(param.value,"trans") <- outMoments$reparametrize$p
                 param.value[param.Omega] <- .wolfe(param.value = param.value, update.value = update.value, score.value = score.value, logLik.value = logLik.value, 
