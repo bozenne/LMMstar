@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: sep 20 2021 (17:23) 
+## Last-Updated: sep 30 2021 (13:23) 
 ##           By: Brice Ozenne
-##     Update #: 44
+##     Update #: 54
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -92,9 +92,16 @@
     pattern.cluster <- object$X$pattern.cluster
     X.var <- object$X$var
     X.cor <- object$X$cor
-        
     if(!is.null(Jacobian)){
-        JacobianM1 <- solve(Jacobian)
+        test.nooffdiag <- all(abs(c(Jacobian[lower.tri(Jacobian,diag=FALSE)],Jacobian[upper.tri(Jacobian,diag=FALSE)]))<1e-10)
+        if(test.nooffdiag){
+            JacobianM1 <- Jacobian
+            diag(JacobianM1) <- 1/diag(Jacobian)
+            ## range(JacobianM1 - solve(Jacobian))
+        }else{
+            JacobianM1 <- solve(Jacobian)
+        }
+        
     }
     ## ** loop over covariance patterns
     out <- lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1

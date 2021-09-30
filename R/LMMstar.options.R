@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: sep 24 2021 (15:06) 
+## Last-Updated: sep 30 2021 (15:48) 
 ##           By: Brice Ozenne
-##     Update #: 79
+##     Update #: 87
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -38,7 +38,7 @@
 #' \item method.fit [character]: objective function when fitting the Linear Mixed Model (REML or ML). Used by \code{lmm}.
 #' \item method.numDeriv [character]: type used to approximate the third derivative of the log-likelihood (when computing the degrees of freedom). Can be \code{"simple"} or \code{"Richardson"}. See \code{numDeriv::jacobian} for more details. Used by \code{lmm}.
 #' \item optimizer [character]: method used to estimate the model parameters: can the \code{nlme::gls} (\code{"gls"}) or an algorithm combine fisher scoring for the variance parameters and generalized least squares for the mean parameters (\code{"FS"}).
-#' \item param.optimizer [numeric vector]: default option for the \code{FS} optimization routine: maximum number of warm up iteration (\code{n.warmUp}), maximum number of gradient descent iterations (\code{n.iter}), maximum acceptable score value (\code{tol.score}), maximum acceptable change in parameter value (\code{tol.param}).
+#' \item param.optimizer [numeric vector]: default option for the \code{FS} optimization routine: maximum number of gradient descent iterations (\code{n.iter}), maximum acceptable score value (\code{tol.score}), maximum acceptable change in parameter value (\code{tol.param}).
 #' \item precompute.moments [logical]: Should the cross terms between the residuals and design matrix be pre-computed. Useful when the number of subject is substantially larger than the number of mean paramters.
 #' \item trace [logical]: Should the progress of the execution of the \code{lmm} function be displayed?
 #' \item tranform.sigma, tranform.k, tranform.rho: transformation used to compute the confidence intervals/p-values for the variance and correlation parameters. See the detail section of the coef function for more information.
@@ -46,7 +46,6 @@
 #' \item type.information [character]: Should the expected or observed information (\code{"expected"} or \code{"observed"}) be used to perform statistical inference? Used by \code{lmm}, \code{anova} and \code{confint}.
 #' }
 #'
-#' NOTE: warm-up and gradient descent iterations both use a Generalized Least Squares estimator for the mean parameter. Then, in the case of the warm-up, residuals are computed and the initalization method of the variance-covariance structure is used to estimate variance and correlation parameters. In the case of the gradient descent, a step of Fisher Scoring is performed.
 #' @export
 LMMstar.options <- function(..., reinitialise = FALSE){
   
@@ -63,7 +62,7 @@ LMMstar.options <- function(..., reinitialise = FALSE){
                     method.fit = "REML",
                     method.numDeriv = "simple",
                     optimizer = "gls",
-                    param.optimizer = c(n.warmUp = 0, n.iter = 1000, tol.score = 1e-7, tol.param = 1e-7),
+                    param.optimizer = c(n.iter = 1000, tol.score = 1e-5, tol.param = 1e-5),
                     precompute.moments = TRUE,
                     trace = FALSE,
                     transform.sigma = "log",
@@ -105,23 +104,24 @@ LMMstar.options <- function(..., reinitialise = FALSE){
               stop("Argument \'drop.X\' must be of type logical. \n")
           }
           if("optimizer" %in% names(args)){
-              args$optimizer <- match.arg(args$optimizer, c("gls","FS")) ## FS = fisher scoring
+              optimx.method <- c("BFGS", "CG", "Nelder-Mead", "nlminb", "bobyqa")
+              args$optimizer <- match.arg(args$optimizer, c("gls","FS",optimx.method)) ## FS = fisher scoring
+              if(args$optimizer %in% optimx.method){
+                  requireNamespace("optimx")
+              }
           }
           if("param.optimizer" %in% names(args)){
               if(!is.vector(args$param.optimizer)){
                   stop("Argument \'param.optimizer\' should be a vector. \n")
               }
-              if(length(args$param.optimizer)!=4){
+              if(length(args$param.optimizer)!=3){
                   stop("Argument \'param.optimizer\' should have length 4. \n")
               }
-              if(any(c("n.warmUp","n.iter","tol.score","tol.param") %in% names(args$param.optimizer) == FALSE)){
-                  stop("Argument \'param.optimizer\' contain elements named \'n.warmUp\', \'n.iter\', \'tol.score\', and \'tol.param\'. \n")
+              if(any(c("n.iter","tol.score","tol.param") %in% names(args$param.optimizer) == FALSE)){
+                  stop("Argument \'param.optimizer\' contain elements named \'n.iter\', \'tol.score\', and \'tol.param\'. \n")
               }
               if(args$param.optimizer["n.iter"]<=0){
                   stop("Element \"n.iter\" in argument \'param.optimizer\' should be strictly positive. \n")
-              }
-              if(args$param.optimizer["n.warmUp"]<0){
-                  stop("Element \"n.warmUp\" in argument \'param.optimizer\' should be positive or null. \n")
               }
           }
           if("method.fit" %in% names(args)){

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.23 (MiKTeX 21.8) (preloaded format=pdflatex 2021.8.26)  24 SEP 2021 15:09
+This is pdfTeX, Version 3.141592653-2.6-1.40.23 (MiKTeX 21.8) (preloaded format=pdflatex 2021.8.26)  30 SEP 2021 16:01
 entering extended mode
 **./overview.tex
 (overview.tex
@@ -1284,11 +1284,11 @@ File: lstlang3.sty 2020/03/24 1.8d listings language file
 
 ]
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10.95> on input line 333.
+(Font)              <10.95> on input line 334.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <8> on input line 333.
+(Font)              <8> on input line 334.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <6> on input line 333.
+(Font)              <6> on input line 334.
  [3
 
 ] [4
@@ -1296,103 +1296,107 @@ LaTeX Font Info:    External font `lmex10' loaded for size
 ]
 [5
 
-] [6]
-<./figures/diag-scatterplot.pdf, id=170, 505.89pt x 505.89pt>
+] [6
+
+] [7]
+<./figures/diag-scatterplot.pdf, id=189, 505.89pt x 505.89pt>
 File: ./figures/diag-scatterplot.pdf Graphic file (type pdf)
 <use ./figures/diag-scatterplot.pdf>
-Package pdftex.def Info: ./figures/diag-scatterplot.pdf  used on input line 576
+Package pdftex.def Info: ./figures/diag-scatterplot.pdf  used on input line 646
 .
 (pdftex.def)             Requested size: 216.23764pt x 216.23933pt.
- [7
+ [8
 
  <./figures/diag-scatterplot.pdf>]
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <12> on input line 583.
+(Font)              <12> on input line 653.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <5> on input line 584.
-<./figures/diag-qqplot.pdf, id=192, 505.89pt x 505.89pt>
+(Font)              <5> on input line 654.
+<./figures/diag-qqplot.pdf, id=210, 505.89pt x 505.89pt>
 File: ./figures/diag-qqplot.pdf Graphic file (type pdf)
 <use ./figures/diag-qqplot.pdf>
-Package pdftex.def Info: ./figures/diag-qqplot.pdf  used on input line 594.
+Package pdftex.def Info: ./figures/diag-qqplot.pdf  used on input line 664.
 (pdftex.def)             Requested size: 270.3012pt x 270.30496pt.
-<./figures/diag-correlation.pdf, id=193, 650.43pt x 505.89pt>
+<./figures/diag-correlation.pdf, id=211, 650.43pt x 505.89pt>
 File: ./figures/diag-correlation.pdf Graphic file (type pdf)
 <use ./figures/diag-correlation.pdf>
-Package pdftex.def Info: ./figures/diag-correlation.pdf  used on input line 607
+Package pdftex.def Info: ./figures/diag-correlation.pdf  used on input line 677
 .
 (pdftex.def)             Requested size: 270.3012pt x 210.23376pt.
- [8
+ [9
 
  <./figures/diag-qqplot.pdf> <./figures/diag-correlation.pdf>]
-<./figures/fit-emmip.pdf, id=232, 505.89pt x 505.89pt>
+<./figures/fit-emmip.pdf, id=250, 505.89pt x 505.89pt>
 File: ./figures/fit-emmip.pdf Graphic file (type pdf)
 <use ./figures/fit-emmip.pdf>
-Package pdftex.def Info: ./figures/fit-emmip.pdf  used on input line 629.
+Package pdftex.def Info: ./figures/fit-emmip.pdf  used on input line 699.
 (pdftex.def)             Requested size: 243.26941pt x 243.27214pt.
-<./figures/fit-autoplot.pdf, id=233, 505.89pt x 505.89pt>
+<./figures/fit-autoplot.pdf, id=251, 505.89pt x 505.89pt>
 File: ./figures/fit-autoplot.pdf Graphic file (type pdf)
 <use ./figures/fit-autoplot.pdf>
-Package pdftex.def Info: ./figures/fit-autoplot.pdf  used on input line 634.
+Package pdftex.def Info: ./figures/fit-autoplot.pdf  used on input line 704.
 (pdftex.def)             Requested size: 243.26941pt x 243.27214pt.
- [9 <./figures/fit-emmip.pdf> <./figures/fit-autoplot.pdf>] [10
-
-] [11
+ [10 <./figures/fit-emmip.pdf> <./figures/fit-autoplot.pdf>] [11
 
 ] [12
 
+] [13
+
 ]
-<./figures/gg-baseAdj.pdf, id=299, 505.89pt x 505.89pt>
+<./figures/gg-baseAdj.pdf, id=318, 505.89pt x 505.89pt>
 File: ./figures/gg-baseAdj.pdf Graphic file (type pdf)
 <use ./figures/gg-baseAdj.pdf>
-Package pdftex.def Info: ./figures/gg-baseAdj.pdf  used on input line 885.
+Package pdftex.def Info: ./figures/gg-baseAdj.pdf  used on input line 955.
 (pdftex.def)             Requested size: 216.23764pt x 216.23933pt.
- [13 <./figures/gg-baseAdj.pdf>] [14] [15] [16]
-[17
+ [14 <./figures/gg-baseAdj.pdf>] [15] [16]
+[17] [18
 
-] [18] [19
-
-] [20
+] [19] [20
 
 ] [21
 
 ] [22
 
-] (overview.bbl) [23
+] [23
+
+] (overview.bbl) [24
 
 ]
 
 LaTeX Font Warning: Font shape `U/stmry/b/n' undefined
-(Font)              using `U/stmry/m/n' instead on input line 1413.
+(Font)              using `U/stmry/m/n' instead on input line 1492.
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1439--1439
+Underfull \hbox (badness 10000) in paragraph at lines 1518--1518
 [][]\T1/lmr/m/n/10 The REML is the like-li-hood of the ob-ser-va-tions di-vided
  by the prior on the es-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1439--1439
+Underfull \hbox (badness 10000) in paragraph at lines 1518--1518
 \T1/lmr/m/n/10 ti-mated mean pa-ram-e-ters $[][] \OMS/lmsy/m/n/10  N\OT1/lmr/m
 /n/10 (\OML/lmm/m/it/10 ; [][]\OT1/lmr/m/n/10 )$\T1/lmr/m/n/10 . This cor-re-s
 ponds to
  []
 
 
-Underfull \hbox (badness 2591) in paragraph at lines 1439--1439
+Underfull \hbox (badness 2591) in paragraph at lines 1518--1518
 [] [] []$ \T1/lmr/m/n/10 Since $\OML/lmm/m/it/10 $ \T1/lmr/m/n/10 will be es-t
 i-mated to be
  []
 
-[24
+[25
 
 ]
-Overfull \hbox (19.98886pt too wide) detected at line 1478
+Overfull \hbox (19.98886pt too wide) detected at line 1557
 []
  []
 
-[25
+[26
 
-] [26
+] [27
+
+] [28
 
 ]
 \Changes@OutFile=\write6
@@ -1401,9 +1405,7 @@ Overfull \hbox (19.98886pt too wide) detected at line 1478
 \tf@loc=\write7
 \openout7 = `overview.loc'.
 
- [27
-
-] [28] (overview.aux)
+ [29] (overview.aux)
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
@@ -1411,10 +1413,10 @@ Package rerunfilecheck Info: File `overview.out' has not changed.
 (rerunfilecheck)             Checksum: E6C1B6062D4CFCF0D5E637D8374AAA37;3751.
  ) 
 Here is how much of TeX's memory you used:
- 30608 strings out of 478868
- 539038 string characters out of 2856724
- 1249745 words of memory out of 3000000
- 47612 multiletter control sequences out of 15000+600000
+ 30639 strings out of 478868
+ 539411 string characters out of 2856724
+ 1256748 words of memory out of 3000000
+ 47625 multiletter control sequences out of 15000+600000
  500004 words of font info for 122 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  114i,17n,117p,605b,1819s stack positions out of 5000i,500n,10000p,200000b,80000s
@@ -1455,9 +1457,9 @@ C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/symbols/msam10.pfb><C:/
 Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/symbols/msam5.pfb><C:/Prog
 ram Files/MiKTeX 2.9/fonts/type1/public/amsfonts/symbols/msam7.pfb><C:/Program 
 Files/MiKTeX 2.9/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on overview.pdf (28 pages, 551494 bytes).
+Output written on overview.pdf (29 pages, 557256 bytes).
 PDF statistics:
- 707 PDF objects out of 1000 (max. 8388607)
- 262 named destinations out of 1000 (max. 500000)
+ 731 PDF objects out of 1000 (max. 8388607)
+ 280 named destinations out of 1000 (max. 500000)
  227 words of extra memory for PDF output out of 10000 (max. 10000000)
 

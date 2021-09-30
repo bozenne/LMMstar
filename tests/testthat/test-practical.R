@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (17:03) 
 ## Version: 
-## Last-Updated: sep 23 2021 (20:59) 
+## Last-Updated: sep 30 2021 (15:29) 
 ##           By: Brice Ozenne
-##     Update #: 50
+##     Update #: 53
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -195,6 +195,7 @@ test_that("practical 2 - vitamin",{
                   structure = "UN",
                   control=glsControl(opt='optim'))
 
+    
     e.lmm <- suppressWarnings(lmm(weight~treatment*visit,
                                   data=vitaminL,
                                   repetition = ~visit|animal,

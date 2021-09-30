@@ -9,6 +9,7 @@
   object,
   digit = 3,
   level = 0.95,
+  robust = FALSE,
   print = TRUE,
   columns = NULL,
   hide.fit = FALSE,
@@ -26,6 +27,8 @@
 \item{digit}{[integer,>0] number of digit used to display numeric values.}
 
 \item{level}{[numeric,0-1] confidence level for the confidence intervals.}
+
+\item{robust}{[logical] Should robust standard error (aka sandwich estimator) be output instead of the model-based standard errors.}
 
 \item{print}{[logical] should the output be printed in the console.}
 

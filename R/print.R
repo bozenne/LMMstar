@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: sep 24 2021 (11:13) 
+## Last-Updated: sep 30 2021 (15:54) 
 ##           By: Brice Ozenne
-##     Update #: 84
+##     Update #: 85
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -33,7 +33,7 @@ print.lmm <- function(x, ...){
     ## ** type of model
     if(length(param.rho) == 0){
         if(length(c(param.sigma,param.k))==1){
-            cat("     Linear regression \n \n")
+            cat("     Linear regression \n")
         }else{
             cat("     Linear regression with heterogeneous residual variance \n")
         }

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: sep 23 2021 (21:20) 
+## Last-Updated: sep 30 2021 (12:00) 
 ##           By: Brice Ozenne
-##     Update #: 1230
+##     Update #: 1241
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -202,7 +202,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
     if(is.null(structure$param)){ ## structure
         out <- list(var = NULL, cor = NULL)
         out$var <- .colnameOrder(.model.matrix_regularize(formula.var, data = data, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
-        if(n.time>1 && any(sapply(order.clusterTime,length)>1)){  ## at least one individual with more than timepoint
+        if(!is.null(formula.cor) && n.time>1 && any(sapply(order.clusterTime,length)>1)){  ## at least one individual with more than timepoint
             out$cor <- .colnameOrder(.model.matrix_regularize(formula.cor, data = data, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
         }
     }else{ ## newdata
@@ -334,7 +334,6 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
         ## no warning because this is normal behavior when stratifying
         formula <- stats::update(formula, stats::as.formula(paste0("~.-",paste(names(test.1value)[test.1value==1],collapse="-"))))
     }
-
     ## ** identify if there is an identifiability problem
     X <- stats::model.matrix(formula, data)
     X.qr <- qr(X)

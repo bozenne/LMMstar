@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: sep 23 2021 (20:48) 
+## Last-Updated: sep 30 2021 (11:43) 
 ##           By: Brice Ozenne
-##     Update #: 283
+##     Update #: 289
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -160,6 +160,43 @@
 
 
 
+
+## * ID (identity)
+##' @title identity Structure
+##' @description Variance-covariance structure where the residuals are independent and identically distribution.
+##'
+##' @param formula formula indicating the time and cluster variables.
+##' @param var.time [character] name of the time variable.
+##' @param ... not used.
+##'
+##' @details A typical formula would be either \code{~1}.
+##'
+##' @examples
+##' ID(~1)
+##' ID(~time)
+##' ID(~time+gender)
+##' ID(~time+gender,var.time="time")
+##' ID(gender~time,var.time="time")
+##' 
+##' @export
+ID <- function(formula, var.time, ...){
+    out0 <- .formulaStructure(formula, missing.time.ok = TRUE, missing.id.ok = TRUE)
+    out <- list(call = match.call(),
+                name = data.frame(cluster = if(length(out0$cluster)==1){out0$cluster}else{NA},
+                                  strata = if(!is.null(out0$strata)){out0$strata}else{NA},
+                                  time = if(!missing(var.time)){var.time}else if(length(out0$var.time)==1){out0$var.time}else{NA},
+                                  var = NA,
+                                  cor = NA),
+                formula = list(var = ~1,
+                               cor = NULL),
+                type = "IND")
+
+
+    ## export
+    class(out) <- append("structure",class(out))
+    class(out) <- append("IND",class(out))
+    return(out)
+}
 
 ## * IND (independence)
 ##' @title Independence Structure

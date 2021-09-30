@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: sep 24 2021 (15:02) 
+## Last-Updated: sep 30 2021 (13:22) 
 ##           By: Brice Ozenne
-##     Update #: 1151
+##     Update #: 1167
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -32,7 +32,7 @@
 ##' @param type.information [character] Should the expected information be computed  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
 ##' @param df [logical] Should the degree of freedom be computed using a Satterthwaite approximation?
 ##' @param trace [interger, >0] Show the progress of the execution of the function.
-##' @param control [glsControl] Control values for gls fit. Passed to gls.
+##' @param control [list] Control values for the optimization method. The element \code{optimizer} indicates which optimizer to use and additional argument will be pass to the optimizer.
 ##'
 ##' @details \bold{Computation time} the \code{lmm} has not been developped to be a fast function as, by default, it uses REML estimation with the observed information matrix and uses a Satterthwaite approximation to compute degrees of freedom (this require to compute the third derivative of the log-likelihood which is done by numerical differentiation). The computation time can be substantially reduced by using ML estimation with the expected information matrix and no calculation of degrees of freedom: arguments \code{method.fit="ML"}, \code{type.information="expected"}, \code{df=FALSE}. This will, however, lead to less accurate p-values and confidence intervals in small samples.
 ##' \cr
@@ -89,6 +89,15 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
         type.information <- match.arg(type.information, c("expected","observed"))
     }
     
+    ## *** optimizer
+    if(is.null(control$optimizer)){
+        optimizer <- options$optimizer
+    }else{
+        optimx.method <- c("BFGS", "CG", "Nelder-Mead", "nlminb", "bobyqa")
+        optimizer <- match.arg(control$optimizer, c("gls","FS",optimx.method)) ## FS = fisher scoring
+        control$optimizer <- NULL
+    }
+
     ## *** repetition 
     if(trace>=2){cat("- repetition ")}
     if(missing(repetition)){
@@ -182,19 +191,14 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
         structure <- "UN"
     }
     if(inherits(structure,"structure")){
-        if(options$optimizer=="gls"){
+        if(optimizer=="gls"){
             stop("When using \"gls\" optimizer, the structure should be specified as a character. \n",
                  "Available structures: \"ID\",\"IND\",\"CS\",\"UN\". \n")
         }
         type.structure <- structure$type
     }else if(inherits(structure,"character")){
-         type.structure <- match.arg(structure, c("ID","IND","CS","UN"))
-        if(structure=="ID"){
-            structure <- IND(formula = ~1, var.cluster = var.cluster, var.time = var.time)
-            type.structure <- "IND"
-        }else{
-            structure <- do.call(type.structure, list(formula = repetition, var.cluster = var.cluster, var.time = var.time))
-        }
+        type.structure <- match.arg(structure, c("ID","IND","CS","UN"))
+        structure <- do.call(type.structure, list(formula = repetition, var.cluster = var.cluster, var.time = var.time))
     }else{
         stop("Argument \'structure\' must either be a character or a structure object. \n")
     }
@@ -230,7 +234,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
         stop("Cannot handle interaction involving more than two variables. \n")
     }
 
-    if(!is.na(var.strata) && options$optimizer == "gls"){
+    if(!is.na(var.strata) && optimizer == "gls"){
         var.X.withinStrata <- setdiff(var.X, var.strata)
         if(length(var.X.withinStrata)==0){
             formula.design <- stats::as.formula(paste0(var.strata,"~1")) ## no covariate within strata
@@ -299,12 +303,12 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
             stop("When a variable is used to stratify the variance structure, all observations belonging to each cluster must belong to a single strata. \n")
         }
 
-        if(options$optimizer=="gls"){
+        if(optimizer=="gls"){
             tocheck <- setdiff(var.X,var.strata)
             if(var.strata %in% var.X == FALSE){
                 stop("When a variable is used to stratify the variance structure, it should also be use to stratify the mean structure. \n",
                      "Consider adding all interactions with \"",var.strata,"\" in the argument \'formula\'. \n",
-                     "Or using \"FS\" optimizer (see LMMstar.options). \n")
+                     "Or using \"FS\" optimizer (see control argument). \n")
             }
             
             sapply(tocheck, function(iX){ ## iX <- "age"
@@ -313,7 +317,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                 if(all(iInteraction==0)){
                     stop("When a variable is used to stratify the variance structure, it should also be used to stratify the mean structure. \n",
                          "Consider adding an interaction between \"",iX,"\" and \"",var.strata,"\" in the argument \'formula\'. \n",
-                         "Or using \"FS\" optimizer (see LMMstar.options). \n")
+                         "Or using \"FS\" optimizer (see control argument). \n")
                 }
             })
         }
@@ -375,7 +379,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     }
     out$xfactor <- out$xfactor[duplicated(names(out$xfactor))==FALSE]
 
-    if(options$optimizer=="gls"){
+    if(optimizer=="gls"){
         ## move from design matrix to dataset (useful when doing baseline adjustment)
         data.fit <- as.data.frame(out$design$mean)
         ## colnames(data.fit) <- gsub(" ","_",gsub("(Intercept)","Intercept",gsub(":","_",colnames(data.fit), fixed = TRUE), fixed = TRUE))
@@ -406,7 +410,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     ## ** Estimate model parameters
     if(trace>=1){cat("2. Estimate model parameters")}
 
-    if(options$optimizer=="gls"){
+    if(optimizer=="gls"){
 
         if(max(out$design$cluster$nobs)==1 || type.structure == "IND"){
             name.var <- stats::na.omit(setdiff(structure$name$var,structure$name$strata))
@@ -465,11 +469,11 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
             param.value <- c(param.value,stats::setNames(unlist(param.rho), out$design$param$rho))
         }        
 
-    }else if(options$optimizer=="FS"){
+    }else{
         outEstimate <- .estimate(design = out$design, time = out$time, method.fit = method.fit, type.information = type.information,
                                  transform.sigma = options$transform.sigma, transform.k = options$transform.k, transform.rho = options$transform.rho,
                                  precompute.moments = options$precompute.moments,
-                                 init = control$init, n.warmUp = control$n.warmUp, n.iter = control$n.iter, tol.score = control$tol.score, tol.param = control$tol.param, trace = control$trace)
+                                 optimizer = optimizer, init = control$init, n.iter = control$n.iter, tol.score = control$tol.score, tol.param = control$tol.param, trace = control$trace)
         param.value <- outEstimate$estimate
         out$opt <- outEstimate[c("cv","n.iter","score","previous.estimate")]
 

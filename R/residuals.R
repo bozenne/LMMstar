@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: sep 24 2021 (14:05) 
+## Last-Updated: sep 27 2021 (21:05) 
 ##           By: Brice Ozenne
-##     Update #: 194
+##     Update #: 197
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -111,7 +111,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
     if(keep.data && format == "wide"){
         stop("Argument \'keep.data\' must be \"FALSE\" when using the wide format. \n")
     }
-    name.residual <- paste0("residual.",type.residual)
+    name.residual <- paste0("r.",type.residual)
     if(keep.data && any(colnames(data) %in% name.residual)){
         stop("Argument \'data\' should not contain a column named \"",paste(name.residual[name.residual %in% colnames(data)], collapse = "\" \""),"\". \n",
              "This name is used to export the residuals. \n")

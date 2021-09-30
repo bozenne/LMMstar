@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: sep 23 2021 (09:33) 
+## Last-Updated: sep 30 2021 (11:56) 
 ##           By: Brice Ozenne
-##     Update #: 335
+##     Update #: 345
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,6 +26,7 @@
 ##' @param level [numeric,0-1] confidence level for the confidence intervals.
 ##' @param print [logical] should the output be printed in the console.
 ##' @param columns [character vector] Columns to be output for the fixed effects. Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
+##' @param robust [logical] Should robust standard error (aka sandwich estimator) be output instead of the model-based standard errors. 
 ##' @param hide.fit [logical] should information about the model fit not be printed.
 ##' @param hide.data [logical] should information about the dataset not be printed.
 ##' @param hide.cor [logical] should information about the correlation structure not be printed.
@@ -37,7 +38,7 @@
 ## * summary.lmm (code)
 ##' @rdname summary
 ##' @export
-summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, columns = NULL,
+summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print = TRUE, columns = NULL,
                         hide.fit = FALSE, hide.data = FALSE, hide.cor = FALSE, hide.var = TRUE, hide.sd = FALSE, hide.mean = FALSE, ...){
 
     ## ** normalize user input
@@ -158,8 +159,8 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, columns =
             cat("compound symmetry \n\n")
         }
     }
-    ## *** correlation 
-    if(length(param.rho)>0){
+    ## *** correlation
+    if(object$time$n>1){
         if(print && !hide.cor){
             cat("  - correlation structure:",deparse(formula$cor),"\n")
         }
@@ -236,7 +237,7 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, columns =
     if(print && !hide.mean){
         cat("Fixed effects:",deparse(call$formula),"\n\n")
     }
-    table.mean <- confint(object, level = level, effects = "mean", columns = c("estimate","se","df","lower","upper","statistic","p.value"))
+    table.mean <- confint(object, level = level, robust = robust, effects = "mean", columns = c("estimate","se","df","lower","upper","statistic","p.value"))
     starSymbol <- stats::symnum(table.mean[,"p.value"], corr = FALSE, na = FALSE,
                                 cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1),
                                 symbols = c("***", "**", "*", ".", " "))
@@ -256,15 +257,20 @@ summary.lmm <- function(object, digit = 3, level = 0.95, print = TRUE, columns =
     if(print && !hide.mean){
         print(printtable.mean)
         cat("\n")
-        if("lower" %in% columns && "upper" %in% columns){
-            cat("The columns lower and upper indicate a ",100*level,"% confidence interval for each coefficient\n", sep = "")
-        }else if("lower" %in% columns){
-            cat("The column lower indicates a ",100*level,"% confidence interval for each coefficient\n", sep = "")
-        }else if("upper" %in% columns){
-            cat("The column upper indicate a ",100*level,"% confidence interval for each coefficient\n", sep = "")
+        if(robust){
+            cat("Uncertainty was quantified using robust standard errors (column se). \n", sep = "")
+        }else{
+            cat("Uncertainty was quantified using model-based standard errors (column se). \n", sep = "")
         }
         if(!is.null(object$df)){
-            cat("Degrees of freedom were computed using a Satterthwaite approximation\n", sep = "")
+            cat("Degrees of freedom were computed using a Satterthwaite approximation (column df). \n", sep = "")
+        }
+        if("lower" %in% columns && "upper" %in% columns){
+            cat("The columns lower and upper indicate a ",100*level,"% confidence interval for each coefficient.\n", sep = "")
+        }else if("lower" %in% columns){
+            cat("The column lower indicates a ",100*level,"% confidence interval for each coefficient.\n", sep = "")
+        }else if("upper" %in% columns){
+            cat("The column upper indicate a ",100*level,"% confidence interval for each coefficient.\n", sep = "")
         }
         cat("\n")
     }

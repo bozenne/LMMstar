@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: sep 23 2021 (21:22) 
+## Last-Updated: sep 30 2021 (11:40) 
 ##           By: Brice Ozenne
-##     Update #: 1059
+##     Update #: 1068
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -150,7 +150,7 @@
     rownames(structure$param) <- NULL
 
     ## ** pattern
-    outPattern <- .findUpatterns(X.var = X.var, data = data,
+    outPattern <- .findUpatterns(X.var = X.var, X.cor = NULL, data = data,
                                   time.var = time.var, index.clusterTime = index.clusterTime, order.clusterTime = order.clusterTime, U.time = structure$U.time,
                                   index.cluster = index.cluster, U.cluster = structure$U.cluster,
                                   strata.var = strata.var, strata.param = stats::setNames(structure$param$strata,structure$param$name), U.strata = structure$U.strata)
@@ -637,7 +637,6 @@
 ## ** .colnameOrder
 ## reorder the variable in the column name
 .colnameOrder <- function(X, strata.var, n.strata){
-
     attr(X,"original.colnames") <- colnames(X)
     if(n.strata>1){
         attr(X,"ls.level") <- lapply(attr(X,"ls.level"), function(iL){

@@ -4,7 +4,7 @@
 options(width = 100)
 if(system("whoami",intern=TRUE)=="bozenne"){  
   setwd("~/Documents/GitHub/LMMstar/inst/doc-software/")
-}else if(system("whoami",intern=TRUE)=="sund\\hpl802"){  
+}else if(system("whoami",intern=TRUE)=="unicph\\hpl802"){  
   setwd("c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/")
 }
 #+END_SRC
@@ -25,18 +25,19 @@ be normally distributed.
 The *LMMstar* package contains four main functions:
 - the function =lmm= is the main function of the package which fits
   linear mixed models. The user can interact with /lmm/ objects using:
-    + =anova= to test combinations of coefficients (Wald test or Likelihood ratio tests)
+    + =anova= to test combinations of coefficients (Wald test or Likelihood ratio tests).
+    + =autoplot= to obtain a graphical display of the fitted values.
     + =coef= to extract the estimates.
     + =confint= to extract estimates, confidence intervals, and p.values.
     + =getVarCov= to extract the modeled residual variance covariance matrix.
     + =logLik= to output the log-likelihood of the estimated model.
     + =predict= to compute the conditional mean for new observations.
     + =residuals= to extract the observed residuals of the fitted model.
-    + =summary= to obtain a summary of the results
+    + =summary= to obtain a summary of the results.
 - the =summarize= function to compute summary statistics stratified on a categorical variable (typically time).
 - the =sampleRem= function to simulate longitudinal data.
 - the =LMMstar.options= function enables the user to display the
-  default values used in the *LMMstar* package. function. The function
+  default values used in the *LMMstar* package. The function
   can also change the default values to better match the user needs.
 
 \clearpage
@@ -48,7 +49,7 @@ library(LMMstar)
 #+END_SRC
 
 To illustrate the functionalities of the package, we will use the
-=veteran= dataset:
+gastricbypass dataset:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 data(gastricbypassL, package = "LMMstar")
 head(gastricbypassL)
@@ -82,7 +83,7 @@ gastricbypassL$glucagon <- as.double(scale(gastricbypassL$glucagon))
 
 _Note:_ the *LMMstar* package is under active development. Newer
 package versions may include additional functionalities and fix
-previous bugs. The version of the package that is being is:
+previous bugs. The version of the package that is being used is:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 utils::packageVersion("LMMstar")
 #+END_SRC
@@ -125,24 +126,89 @@ print(sss, digits = 3)
 
 * Linear mixed model
 ** Modeling tools
+Fit a linear model with *identity* structure:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eId.lmm <- lmm(weight ~ time + glucagon,
+               repetition = ~time|id, structure = "ID",
+               data = gastricbypassL)
+eId.lmm
+cat(" covariance structure: \n");getVarCov(eId.lmm)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+     Linear regression 
+
+ outcome/cluster/time: weight/id/time 
+ data                : 78 observations and distributed in 20 clusters 
+ parameters          : 5 mean ((Intercept) timeB1_week timeA1_week timeA3_months glucagon) 
+                       1 variance (sigma) 
+ log-likelihood      : -323.086426918519 
+ convergence         : TRUE (6 iterations)
+ covariance structure: 
+          B3_months  B1_week  A1_week A3_months
+B3_months  330.0426   0.0000   0.0000    0.0000
+B1_week      0.0000 330.0426   0.0000    0.0000
+A1_week      0.0000   0.0000 330.0426    0.0000
+A3_months    0.0000   0.0000   0.0000  330.0426
+#+end_example
+
+Fit a linear model with *independence* structure:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eInd.lmm <- lmm(weight ~ time + glucagon,
+               repetition = ~time|id, structure = "IND",
+               data = gastricbypassL)
+eInd.lmm
+cat(" covariance structure: \n");getVarCov(eInd.lmm)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+     Linear regression with heterogeneous residual variance 
+
+ outcome/cluster/time: weight/id/time 
+ data                : 78 observations and distributed in 20 clusters 
+ parameters          : 5 mean ((Intercept) timeB1_week timeA1_week timeA3_months glucagon) 
+                       4 variance (sigma k.B1_week k.A1_week k.A3_months) 
+ log-likelihood      : -321.457830361849 
+ convergence         : TRUE (9 iterations)
+ covariance structure: 
+          B3_months  B1_week  A1_week A3_months
+B3_months  442.6475   0.0000   0.0000    0.0000
+B1_week      0.0000 418.9934   0.0000    0.0000
+A1_week      0.0000   0.0000 222.8463    0.0000
+A3_months    0.0000   0.0000   0.0000  237.2049
+#+end_example
+
+\clearpage
+
 Fit a linear mixed model with *compound symmetry* structure:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 eCS.lmm <- lmm(weight ~ time + glucagon,
                repetition = ~time|id, structure = "CS",
                data = gastricbypassL)
 eCS.lmm
+cat(" covariance structure: \n");getVarCov(eCS.lmm)
 #+END_SRC
 
 #+RESULTS:
-:      Linear Mixed Model with a compound symmetry covariance matrix 
-: 
-:  outcome/cluster/time: weight/id/time 
-:  data                : 78 observations and distributed in 20 clusters 
-:  parameters          : 5 mean ((Intercept) timeB1_week timeA1_week timeA3_months glucagon) 
-:                        1 variance (sigma) 
-:                        1 correlation (rho) 
-:  log-likelihood      : -243.600523870252 
-:  convergence         : TRUE (12 iterations)
+#+begin_example
+     Linear Mixed Model with a compound symmetry covariance matrix 
+
+ outcome/cluster/time: weight/id/time 
+ data                : 78 observations and distributed in 20 clusters 
+ parameters          : 5 mean ((Intercept) timeB1_week timeA1_week timeA3_months glucagon) 
+                       1 variance (sigma) 
+                       1 correlation (rho) 
+ log-likelihood      : -243.600523870253 
+ convergence         : TRUE (10 iterations)
+ covariance structure: 
+          B3_months  B1_week  A1_week A3_months
+B3_months  355.3062 344.6236 344.6236  344.6236
+B1_week    344.6236 355.3062 344.6236  344.6236
+A1_week    344.6236 344.6236 355.3062  344.6236
+A3_months  344.6236 344.6236 344.6236  355.3062
+#+end_example
 
 
 \noindent Fit a linear mixed model with *unstructured* covariance matrix:
@@ -152,23 +218,27 @@ eUN.lmm <- lmm(weight ~ time + glucagon,
                repetition = ~time|id, structure = "UN",
                data = gastricbypassL)
 eUN.lmm
+cat(" covariance structure: \n");getVarCov(eUN.lmm)
 #+END_SRC
 
 #+RESULTS:
-:      Linear Mixed Model with an unstructured covariance matrix 
-: 
-:  outcome/cluster/time: weight/id/time 
-:  data                : 78 observations and distributed in 20 clusters 
-:  parameters          : 5 mean ((Intercept) timeB1_week timeA1_week timeA3_months glucagon) 
-:                        4 variance (sigma k.B1_week k.A1_week k.A3_months) 
-:                        6 correlation (rho(B3_months,B1_week) rho(B3_months,A1_week) rho(B3_months,A3_months) rho(B1_week,A1_week) rho(B1_week,A3_months) rho(A1_week,A3_months)) 
-:  log-likelihood      : -216.318937004304 
-:  convergence         : TRUE (32 iterations)
+#+begin_example
+     Linear Mixed Model with an unstructured covariance matrix 
 
-_Note:_ the calculation of the degrees of freedom, especially when
-using the observed information can be quite slow. Setting the
-arguments =df= to =FALSE= and =type.information= to ="expected"= when
-calling =lmm= should lead to a more reasonnable computation time.
+ outcome/cluster/time: weight/id/time 
+ data                : 78 observations and distributed in 20 clusters 
+ parameters          : 5 mean ((Intercept) timeB1_week timeA1_week timeA3_months glucagon) 
+                       4 variance (sigma k.B1_week k.A1_week k.A3_months) 
+                       6 correlation (rho(B3_months,B1_week) rho(B3_months,A1_week) rho(B3_months,A3_months) rho(B1_week,A1_week) rho(B1_week,A3_months) rho(A1_week,A3_months)) 
+ log-likelihood      : -216.318937004305 
+ convergence         : TRUE (27 iterations)
+ covariance structure: 
+          B3_months  B1_week  A1_week A3_months
+B3_months  411.3114 381.9734 352.6400  318.8573
+B1_week    381.9734 362.7326 335.4649  304.6314
+A1_week    352.6400 335.4649 311.6921  285.8077
+A3_months  318.8573 304.6314 285.8077  280.9323
+#+end_example
 
 \clearpage
 
@@ -202,7 +272,7 @@ Estimation procedure
   - Restricted Maximum Likelihood (REML) 
   - log-likelihood :-243.6005
   - parameters: mean = 5, variance = 1, correlation = 1
-  - convergence: TRUE (12 iterations, largest |score|=1.859951e-08 is for rho)
+  - convergence: TRUE (10 iterations, largest |score|=3.641667e-06 is for rho)
  
 Residual variance-covariance: compound symmetry 
 
@@ -226,9 +296,15 @@ timeA1_week    -14.495 1.428 53.879 -17.358 -11.632  <0.001 ***
 timeA3_months  -27.051 1.087 53.943 -29.231 -24.872  <0.001 ***
 glucagon         0.822  0.62  53.81  -0.421   2.065   0.191    
 
-The columns lower and upper indicate a 95% confidence interval for each coefficient
-Degrees of freedom were computed using a Satterthwaite approximation
+Uncertainty was quantified using model-based standard errors (column se). 
+Degrees of freedom were computed using a Satterthwaite approximation (column df). 
+The columns lower and upper indicate a 95% confidence interval for each coefficient.
 #+end_example
+
+_Note:_ the calculation of the degrees of freedom, especially when
+using the observed information can be quite slow. Setting the
+arguments =df= to =FALSE= and =type.information= to ="expected"= when
+calling =lmm= should lead to a more reasonnable computation time.
 
 ** Extract estimated coefficients
 The value of the estimated coefficients can be output using =coef=:
@@ -289,12 +365,12 @@ head(eCS.diagW)
 
 #+RESULTS:
 :   cluster  B3_months      B1_week    A1_week  A3_months
-: 1       1 -0.8042448 -0.709908615 -1.4242831  0.3176640
-: 2       2  1.0863177 -0.133256812  1.1083627  1.5977042
-: 3       3 -0.4597852 -0.612727870 -0.6060136 -0.8589524
-: 4       4 -1.0103075  0.007471084  0.1309862  1.1428822
+: 1       1 -0.8042448 -0.709908591 -1.4242830  0.3176640
+: 2       2  1.0863177 -0.133256793  1.1083627  1.5977042
+: 3       3 -0.4597852 -0.612727857 -0.6060136 -0.8589524
+: 4       4 -1.0103075  0.007471092  0.1309862  1.1428822
 : 5       5 -0.1258773           NA -0.3819184 -0.7874832
-: 6       6  3.5646225  2.333205086  2.8387204  0.3586263
+: 6       6  3.5646224  2.333205013  2.8387203  0.3586263
 
 or in the long format:
 #+begin_src R :exports both :results output :session *R* :cache no
@@ -303,7 +379,7 @@ head(eCS.diagL)
 #+end_src
 
 #+RESULTS:
-: [1] -0.8042448  1.0863177 -0.4597852 -1.0103075 -0.1258773  3.5646225
+: [1] -0.8042448  1.0863177 -0.4597852 -1.0103075 -0.1258773  3.5646224
 
 Various type of residuals can be extract but the normalized one are
 recommanded when doing model checking. The method =residuals= can also
@@ -385,7 +461,7 @@ In the first case the average curve (over glucago values) is displayed
 while in the latter each possible curve is displayed. With the
 =autoplot= method, it is possible to display a curve specific to a
 glucagon value via the argument =at=:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+begin_src R :exports code :results output :session *R* :cache no
 autoplot(eCS.lmm, at = data.frame(glucagon = 10), color = "glucagon")
 #+end_src
 
@@ -513,7 +589,7 @@ anova(eUN.lmm, effects = C)
 :                      ** User-specified hypotheses ** 
 :  - F-test
 :  statistic df.num df.denom     p.value
-:   6.203161      3 17.99456 0.004417118
+:   6.203161      3 17.99456 0.004417117
 
 \clearpage
 
@@ -616,6 +692,8 @@ table(treat = gastricbypassL$treat2, time = gastricbypassL$time, group = gastric
 
 #+RESULTS:
 #+begin_example
+windows 
+      2
 , , group = 1
 
      time
@@ -820,10 +898,10 @@ summary(epairs.group, by = NULL, adjust = "mvt", infer = TRUE)
 
 #+RESULTS:
 :  contrast time      estimate    SE   df lower.CL upper.CL t.ratio p.value
-:  2 - 1    B3_months     4.83 10.10 18.0    -18.0     27.6   0.478  0.7496
-:  2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0   0.618  0.6482
-:  2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.9   0.471  0.7550
-:  2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.7   0.797  0.5281
+:  2 - 1    B3_months     4.83 10.10 18.0    -18.0     27.7   0.478  0.7498
+:  2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0   0.618  0.6488
+:  2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.9   0.471  0.7552
+:  2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.7   0.797  0.5284
 : 
 : Confidence level used: 0.95 
 : Conf-level adjustment: mvt method for 4 estimates 
@@ -932,12 +1010,11 @@ mu1 <- coef(eCS.lmm)[1]
 mu2 <- sum(coef(eCS.lmm)[1:2])
 Omega_11 <- getVarCov(eCS.lmm)["B3_months","B3_months"]
 Omega_21 <- getVarCov(eCS.lmm)["B1_week","B3_months"]
-mu2 + Omega_21 * (100 - mu1) / Omega_11
+as.double(mu2 + Omega_21 * (100 - mu1) / Omega_11)
 #+END_SRC
 
 #+RESULTS:
-: (Intercept) 
-:    93.26352
+: [1] 93.26352
 
 
 \clearpage
@@ -1031,22 +1108,30 @@ attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
-[1] emmeans_1.6.3 LMMstar_0.2.6 nlme_3.1-152  ggplot2_3.3.5
+ [1] emmeans_1.6.3     LMMstar_0.3.0     nlme_3.1-152      ggplot2_3.3.5     spelling_2.2     
+ [6] roxygen2_7.1.1    butils.base_1.2   Rcpp_1.0.7        data.table_1.14.0 devtools_2.4.2   
+[11] usethis_2.0.1    
 
 loaded via a namespace (and not attached):
- [1] Rcpp_1.0.7          plyr_1.8.6          pillar_1.6.2        compiler_4.1.1     
- [5] tools_4.1.1         digest_0.6.27       lifecycle_1.0.0     tibble_3.1.4       
- [9] gtable_0.3.0        lattice_0.20-44     pkgconfig_2.0.3     rlang_0.4.11       
-[13] Matrix_1.3-4        mvtnorm_1.1-2       coda_0.19-4         stringr_1.4.0      
-[17] withr_2.4.2         dplyr_1.0.7         generics_0.1.0      vctrs_0.3.8        
-[21] grid_4.1.1          tidyselect_1.1.1    glue_1.4.2          R6_2.5.1           
-[25] fansi_0.5.0         survival_3.2-11     multcomp_1.4-17     lava_1.6.9         
-[29] TH.data_1.0-10      farver_2.1.0        reshape2_1.4.4      purrr_0.3.4        
-[33] magrittr_2.0.1      scales_1.1.1        codetools_0.2-18    ellipsis_0.3.2     
-[37] splines_4.1.1       MASS_7.3-54         colorspace_2.0-2    xtable_1.8-4       
-[41] numDeriv_2016.8-1.1 labeling_0.4.2      sandwich_3.0-1      utf8_1.2.2         
-[45] stringi_1.7.4       estimability_1.3    munsell_0.5.0       crayon_1.4.1       
-[49] zoo_1.8-9
+ [1] pkgload_1.2.1       splines_4.1.1       remotes_2.4.0       sessioninfo_1.1.1  
+ [5] globals_0.14.0      numDeriv_2016.8-1.1 pillar_1.6.3        lattice_0.20-44    
+ [9] glue_1.4.2          digest_0.6.27       colorspace_2.0-2    sandwich_3.0-1     
+[13] qqtest_1.2.0        plyr_1.8.6          Matrix_1.3-4        pkgconfig_2.0.3    
+[17] listenv_0.8.0       purrr_0.3.4         xtable_1.8-4        mvtnorm_1.1-2      
+[21] scales_1.1.1        processx_3.5.2      lava_1.6.10         tibble_3.1.4       
+[25] farver_2.1.0        generics_0.1.0      ellipsis_0.3.2      TH.data_1.1-0      
+[29] cachem_1.0.6        withr_2.4.2         cli_3.0.1           survival_3.2-11    
+[33] magrittr_2.0.1      crayon_1.4.1        memoise_2.0.0       estimability_1.3   
+[37] ps_1.6.0            fs_1.5.0            fansi_0.5.0         future_1.22.1      
+[41] parallelly_1.28.1   MASS_7.3-54         xml2_1.3.2          pkgbuild_1.2.0     
+[45] tools_4.1.1         prettyunits_1.1.1   lifecycle_1.0.1     multcomp_1.4-17    
+[49] stringr_1.4.0       munsell_0.5.0       callr_3.7.0         compiler_4.1.1     
+[53] rlang_0.4.11        grid_4.1.1          labeling_0.4.2      testthat_3.0.4     
+[57] gtable_0.3.0        codetools_0.2-18    reshape2_1.4.4      R6_2.5.1           
+[61] zoo_1.8-9           knitr_1.33          dplyr_1.0.7         fastmap_1.1.0      
+[65] future.apply_1.8.1  utf8_1.2.2          rprojroot_2.0.2     desc_1.3.0         
+[69] stringi_1.7.4       parallel_4.1.1      vctrs_0.3.8         tidyselect_1.1.1   
+[73] xfun_0.25           coda_0.19-4
 #+end_example
 
 \clearpage
@@ -1233,7 +1318,13 @@ The blue term of autoref:eq:log-likelihood in the log-likelihood is
 invariant to re-parameterisation while the red term is not. This means
 that a re-parametrisation of \(X\) into \(\tilde{X} = B X\) with \(B\)
 invertible would not change the likelihood when using ML but would
-decrease the log-likelihood by \(\log(|B|)\) when using REML.
+decrease the log-likelihood by \(\log(|B|)\) when using REML. 
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+LMMstar.options(optimizer = "FS",
+                param.optimizer = c(n.iter = 1000, tol.score = 1e-3, tol.param = 1e-5))
+#+END_SRC
+
+#+RESULTS:
 
 \bigskip
 
