@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: sep 23 2021 (20:15) 
+## Last-Updated: sep 30 2021 (16:34) 
 ##           By: Brice Ozenne
-##     Update #: 180
+##     Update #: 182
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -407,7 +407,8 @@ capture.output(summary(e.lmm))
 
 ## ** interface to other packages
 glht(e.lmm)
-capture.output(emmeans(e.lmm, specs = ~Gender))
+## capture.output(emmeans(e.lmm, specs = ~Gender))
+
 })
 
 ## * multiple variance parameters (REML)

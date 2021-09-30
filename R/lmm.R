@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: sep 30 2021 (13:22) 
+## Last-Updated: sep 30 2021 (16:32) 
 ##           By: Brice Ozenne
-##     Update #: 1167
+##     Update #: 1168
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -46,10 +46,6 @@
 ##' 
 ##' ## fit Linear Mixed Model
 ##' eCS.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "CS", data = dL)
-##'
-##' ## eID.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "ID", data = dL, trace = 5)
-##' ## eIND.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "IND", data = dL, trace = 5)
-##' ## output
 ##' eCS.lmm
 ##' summary(eCS.lmm)
 
