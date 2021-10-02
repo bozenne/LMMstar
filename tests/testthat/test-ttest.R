@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: okt  2 2021 (17:56) 
+## Last-Updated: Oct  2 2021 (21:58) 
 ##           By: Brice Ozenne
-##     Update #: 32
+##     Update #: 36
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -76,9 +76,9 @@ armd.longCC <- reshape2::melt(armd.wideCC,
                               measure.vars = c("visual0","visual4","visual12","visual24","visual52"),
                               variable.name = "week", 
                               value.name = "visual")
-## armd.longCC$week <- factor(armd.longCC$week, 
-                         ## level = c("visual0","visual4","visual12","visual24","visual52"), 
-                         ## labels = c(0,4,12,24,52))
+armd.longCC$week <- factor(armd.longCC$week, 
+                         level = c("visual0","visual4","visual12","visual24","visual52"), 
+                         labels = c(0,4,12,24,52))
 rownames(armd.longCC) <- NULL
 
 test_that("paired t-test",{
@@ -86,8 +86,8 @@ test_that("paired t-test",{
     e.tt <- t.test(visual52-visual0 ~ treat.f, data = armd.wideCC)
     e.lmm <- lmm(visual ~ week*treat.f,
                  repetition = ~ week | subject, structure = "UN",
-                 data = armd.long[armd.long$week %in% c("0","52"),])
-    e.confintlmm <- confint(e2CC.lmm)
+                 data = armd.longCC[armd.longCC$week %in% c("0","52"),])
+    e.confintlmm <- confint(e.lmm)
     expect_equivalent(abs(diff(e.tt$estimate)), abs(e.confintlmm["week52:treat.fActive","estimate"]), tol = 1e-5)
     ## expect_equivalent(e.tt$stderr, e.confintlmm["week52:treat.fActive","se"], tol = 1e-5) ##  difference 0.01 (2.28 vs. 2.29)
     ## expect_equivalent(e.tt$parameter, e.confintlmm["week52:treat.fActive","df"], tol = 1e-5) ##  difference 1.5 (191.5 vs 193)
