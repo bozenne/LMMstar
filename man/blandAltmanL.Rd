@@ -18,12 +18,6 @@ This dataset is in the long format (i.e. one line per measurement).
 \item pefr Measurement (peak expiratory flow rate).
 }
 }
-\examples{
-\dontrun{
-data(blandAltmanL)
-str(blandAltmanL)
-}
-}
 \references{
 Bland & Altman, Statistical methods for assessing agreement between two methods of clinical measurement, Lancet, 1986; i: 307-310.
 }

@@ -80,7 +80,7 @@ set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
 
 ## fit Linear Mixed Model
-eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
+eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL)
 
 ## residuals
 residuals(eUN.lmm, format = "long", type = c("normalized","pearson"))

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: sep 30 2021 (16:14) 
+## Last-Updated: okt  2 2021 (14:38) 
 ##           By: Brice Ozenne
-##     Update #: 305
+##     Update #: 314
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,6 +20,7 @@
 ##' @description Optimization procedure for mixed model (REML or ML).
 ##' Alternate between one step of gradient descent to update the variance parameters
 ##' and a GLS estimation of the mean parameters.
+##' @noRd
 ##'
 ##' @param design [list] information about the mean and variance structure. Obtained using \code{.model.matrix.lmm}.
 ##' @param time [list] information about the time variable (e.g. unique values)
@@ -34,7 +35,6 @@
 ##' @param trace [1, 2, or 3] should each iteration be displayed?
 ##' 
 ##' @examples
-##' \dontrun{
 ##' ## simulate data in the long format
 ##' set.seed(10)
 ##' dL <- sampleRem(100, n.times = 3, format = "long")
@@ -45,8 +45,6 @@
 ##' 
 ##' LMMstar.options(optimizer = "FS")
 ##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
-##' 
-##' }
 ##'
 ##' @keywords internal
 
@@ -87,6 +85,8 @@
     precompute.XX <- design$precompute.XX$pattern
     key.XX <- design$precompute.XX$key
     wolfe <- FALSE
+
+    effects <- c("variance","correlation")
     
     ## ** intialization
     if(is.null(init)){
@@ -148,7 +148,7 @@
             ## *** moments
             outMoments <- .moments.lmm(value = param.value, design = design, time = time, method.fit = method.fit, type.information = type.information,
                                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                       logLik = TRUE, score = TRUE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("variance","correlation"), robust = FALSE,
+                                       logLik = TRUE, score = TRUE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = effects, robust = FALSE,
                                        trace = FALSE, precompute.moments = TRUE, transform.names = FALSE)
             logLik.value <- outMoments$logLik    
             score.value <- outMoments$score    
@@ -163,7 +163,7 @@
                     wolfe <- TRUE
                     outMoments <- .moments.lmm(value = param.valueM1, design = design, time = time, method.fit = method.fit, type.information = type.information,
                                                transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                               logLik = TRUE, score = TRUE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("variance","correlation"), robust = FALSE,
+                                               logLik = TRUE, score = TRUE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = effects, robust = FALSE,
                                                trace = FALSE, precompute.moments = TRUE, transform.names = FALSE)
                     logLik.value <- outMoments$logLik                    
                 }else{
@@ -179,7 +179,7 @@
             if(wolfe){
                 attr(param.value,"trans") <- outMoments$reparametrize$p
                 param.value[param.Omega] <- .wolfe(param.value = param.value, update.value = update.value, score.value = score.value, logLik.value = logLik.value, 
-                                                   design = design, time = time, method.fit = method.fit, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
+                                                   design = design, effects = effects, time = time, method.fit = method.fit, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
                 attr(param.value,"trans") <- NULL
             }else{
                 param.newvalue.trans <- outMoments$reparametrize$p + update.value
@@ -306,7 +306,7 @@
 
 ## * .wolfe
 .wolfe <- function(param.value, update.value, score.value, logLik.value, c1 = 1e-4, c2 = 0.9,
-                   design, time, method.fit, transform.sigma, transform.k, transform.rho){
+                   design, effects, time, method.fit, transform.sigma, transform.k, transform.rho){
     alpha <- 1
     test.i <- FALSE
     test.ii <- FALSE
@@ -326,15 +326,15 @@
 
         outMoments <- .moments.lmm(value = param.newvalue, design = design, time = time, method.fit = method.fit, 
                                    transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                   logLik = TRUE, score = TRUE, information = FALSE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("variance","correlation"), robust = FALSE,
+                                   logLik = TRUE, score = TRUE, information = FALSE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = effects, robust = FALSE,
                                    trace = FALSE, precompute.moments = TRUE, transform.names = FALSE)    
         logLik.newvalue <- outMoments$logLik
         score.newvalue <- outMoments$score
 
         ## ** test
         test.i <- as.vector( (-logLik.newvalue) <= (-logLik.value) + c1 * alpha * update.value %*% (-score.value) )
-        test.ii <- as.vector(update.value %*% (-score.newvalue) <= - c2 * update.value %*% (-score.value))
-        if(test.i && test.ii){
+        ## test.ii <- as.vector(update.value %*% (-score.newvalue) <= - c2 * update.value %*% (-score.value))
+        if(test.i){
             break
         }else{
             alpha <- alpha / 2

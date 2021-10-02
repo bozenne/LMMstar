@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: sep 30 2021 (11:56) 
+## Last-Updated: okt  1 2021 (17:12) 
 ##           By: Brice Ozenne
-##     Update #: 345
+##     Update #: 348
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -34,6 +34,13 @@
 ##' @param hide.var [logical] should information about the variance not be printed.
 ##' @param hide.mean [logical] should information about the mean structure not be printed.
 ##' @param ... not used. For compatibility with the generic function.
+##'
+##' @return A list containing elements displayed in the summary: \itemize{
+##' \item \code{correlation}: the correlation structure.
+##' \item \code{variance}: the variance structure.
+##' \item \code{sd}: the variance structure expressed in term of standard deviations.
+##' \item \code{mean}: the mean structure.
+##' }
 
 ## * summary.lmm (code)
 ##' @rdname summary

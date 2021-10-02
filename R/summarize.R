@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: okt 23 2020 (13:11) 
+## Last-Updated: okt  1 2021 (17:10) 
 ##           By: Brice Ozenne
-##     Update #: 11
+##     Update #: 13
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -30,6 +30,8 @@
 ##' @param which [character vector] name of the summary statistics to kept in the output.
 ##' Can be any of, or a combination of: \code{"observed"} (number of observations with a measurement),
 ##' \code{"missing"} (number of observations with a missing value), \code{"mean"}, \code{"sd"}, \code{"min"}, \code{"median"}, \code{"max"}.
+##'
+##' @return a data frame containing summary statistics (in columns) for each outcome and value of the grouping variables (rows).
 
 
 ## * summarize (examples)

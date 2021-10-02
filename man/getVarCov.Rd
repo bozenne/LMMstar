@@ -32,6 +32,7 @@
 }
 \value{
 A list where each element contains a residual variance-covariance matrix.
+Can also be directly a matrix when argument is \code{simplifies=TRUE} and there is a single residual variance-covariance matrix.
 }
 \description{
 Extract the unique set of residuals variance-covariance matrices or the one relative to specific clusters.

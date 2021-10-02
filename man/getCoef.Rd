@@ -16,11 +16,14 @@ Can be coefficients relative to the expectation of the outcome (\code{"mean"} or
 or to the variance-covariance structure of the residuals (\code{"variance"}).}
 
 \item{format}{[character] How the output should be shaped.
-Can be \code{"default"}, \code{"publish"}, or \code{"SAS"}.}
+Can be \code{"default"}, \code{"estimate"}, \code{"publish"}, or \code{"SAS"}.}
 
 \item{add.type}{[logical] Should the type of parameter be added.}
 
 \item{...}{argument passed to the \code{publish} function (when \code{format="publish"}).}
+}
+\value{
+A data.frame or a vector (see details section)
 }
 \description{
 Extract all model coefficients with confidence intervals.
@@ -32,6 +35,8 @@ term (name of the coefficient), estimate, std.error, t.value, p.value, lower, up
 
 Setting the argument to \code{"publish"} outputs a data.frame with columns Variable, Units Coefficients, CI, and p-value.
 Call the function \code{publish} from the \code{publish} package.
+
+Setting the argument to \code{"estimate"} outputs a vector containing the estimated parameter values.
                                     
 Argument \bold{add.type}: \cr
 When \code{TRUE}, there can be 4 types of parameters in the output: \itemize{

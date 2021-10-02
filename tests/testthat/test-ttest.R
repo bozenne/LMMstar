@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: sep 23 2021 (20:22) 
+## Last-Updated: okt  2 2021 (17:56) 
 ##           By: Brice Ozenne
-##     Update #: 27
+##     Update #: 32
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -66,6 +66,35 @@ test_that("single t-test",{
 })
 ## confint(anova(e.lmm))
 
+## * paired t-test
+
+data(armd.wide, package = "nlmeU")
+subjCC <- armd.wide[!is.na(armd.wide$visual0) & !is.na(armd.wide$visual52),"subject"]
+armd.wideCC <- armd.wide[armd.wide$subject %in% subjCC,]
+armd.longCC <- reshape2::melt(armd.wideCC, 
+                              id.var = c("subject","treat.f","lesion","miss.pat"),
+                              measure.vars = c("visual0","visual4","visual12","visual24","visual52"),
+                              variable.name = "week", 
+                              value.name = "visual")
+## armd.longCC$week <- factor(armd.longCC$week, 
+                         ## level = c("visual0","visual4","visual12","visual24","visual52"), 
+                         ## labels = c(0,4,12,24,52))
+rownames(armd.longCC) <- NULL
+
+test_that("paired t-test",{
+    ## LMMstar.options(optimizer = "FS")
+    e.tt <- t.test(visual52-visual0 ~ treat.f, data = armd.wideCC)
+    e.lmm <- lmm(visual ~ week*treat.f,
+                 repetition = ~ week | subject, structure = "UN",
+                 data = armd.long[armd.long$week %in% c("0","52"),])
+    e.confintlmm <- confint(e2CC.lmm)
+    expect_equivalent(abs(diff(e.tt$estimate)), abs(e.confintlmm["week52:treat.fActive","estimate"]), tol = 1e-5)
+    ## expect_equivalent(e.tt$stderr, e.confintlmm["week52:treat.fActive","se"], tol = 1e-5) ##  difference 0.01 (2.28 vs. 2.29)
+    ## expect_equivalent(e.tt$parameter, e.confintlmm["week52:treat.fActive","df"], tol = 1e-5) ##  difference 1.5 (191.5 vs 193)
+    
+})
+
+
 ## * multiple t-test
 ## ** simulate data
 m <- lvm(c(Y1,Y2,Y3,Y4) ~ age + gender)
@@ -117,9 +146,13 @@ test_that("multiple t-test",{
     ## print(e.lh, method = "none")
 
     expect_equal(confint(e.lh)$all[[1]]$se, sapply(ls.ttest,"[[","stderr"), tol = 1e-5)
+    expect_equal(as.double(unlist(confint(e.lh, method = "none")$all[[1]][,c("df")])),
+                 as.double(do.call(rbind,lapply(ls.ttest,"[[","parameter"))), tol = 1e-1)
     expect_equal(as.double(unlist(confint(e.lh, method = "none")$all[[1]][,c("lower","upper")])),
                  as.double(do.call(rbind,lapply(ls.ttest,"[[","conf.int"))), tol = 1e-3)
 })
+
+
 
 ##----------------------------------------------------------------------
 ### test-ttest.R ends here

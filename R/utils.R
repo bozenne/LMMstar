@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: Jun 17 2021 (16:34) 
+## Last-Updated: okt  1 2021 (17:13) 
 ##           By: Brice Ozenne
-##     Update #: 76
+##     Update #: 78
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,8 +17,11 @@
 
 ## * rhs.vars
 ##' @title Extract Variables in the Right Hand Side of a Formula
+##' @noRd
 ##' 
 ##' @param formula a formula
+##'
+##' @keywords internal
 ##' 
 ##' @examples
 ##' rhs.vars(~X)
@@ -29,7 +32,6 @@
 ##' rhs.vars(~1|id)
 ##' rhs.vars(Y~X|id)
 ##' rhs.vars(Y+Z~X|id)
-##' @export
 rhs.vars <- function(formula){
     group.var <- all.vars(nlme::getGroupsFormula(formula))
     other.var <- all.vars(nlme::getCovariateFormula(formula))
@@ -40,8 +42,11 @@ rhs.vars <- function(formula){
 
 ## * lhs.vars
 ##' @title Extract Variables in the Left Hand Side of a Formula
+##' @noRd
 ##' 
 ##' @param formula a formula
+##' 
+##' @keywords internal
 ##' 
 ##' @examples
 ##' lhs.vars(~X)
@@ -52,7 +57,6 @@ rhs.vars <- function(formula){
 ##' lhs.vars(~1|id)
 ##' lhs.vars(Y~X|id)
 ##' lhs.vars(Y+Z~X|id)
-##' @export
 lhs.vars <- function(formula){
     setdiff(all.vars(formula),rhs.vars(formula))
 }

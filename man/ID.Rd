@@ -13,6 +13,9 @@ ID(formula, var.time, ...)
 
 \item{...}{not used.}
 }
+\value{
+An object of class \code{IND} that can be passed to the argument \code{structure} of the \code{lmm} function.
+}
 \description{
 Variance-covariance structure where the residuals are independent and identically distribution.
 }

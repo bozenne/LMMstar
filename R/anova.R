@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: sep 24 2021 (11:52) 
+## Last-Updated: okt  1 2021 (17:22) 
 ##           By: Brice Ozenne
-##     Update #: 576
+##     Update #: 581
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -59,18 +59,15 @@
 ##' dL <- sampleRem(100, n.times = 3, format = "long")
 ##' 
 ##' ## fit Linear Mixed Model
-##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
+##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL)
 ##' 
 ##' ## chi-2 test
-##' anova(eUN.lmm)
-##' anova(eUN.lmm, effects = "all")
-##' 
-##' anova(eUN.lmm, effects = c("X1=0","X2+X5=10"), ci = TRUE)
+##' anova(eUN.lmm, df = FALSE)
 ##' 
 ##' ## F-test
-##' \dontrun{
-##' anova(eUN.lmm, df = TRUE)
-##' }
+##' anova(eUN.lmm)
+##' anova(eUN.lmm, effects = "all")
+##' anova(eUN.lmm, effects = c("X1=0","X2+X5=10"), ci = TRUE)
 ##' 
 
 ## * anova.lmm (code)
@@ -582,7 +579,8 @@ print.anova_lmm <- function(x, level = 0.95, method = "single-step", print.null 
 ##' @title Degree of Freedom for the Chi-Square Test
 ##' @description Computation of the degrees of freedom of the chi-squared distribution
 ##' relative to the model-based variance. Copied of lavaSearch2:::dfSigmaRobust.
-##'
+##' @noRd
+##' 
 ##' @param contrast [numeric vector] the linear combination of parameters to test
 ##' @param vcov [numeric matrix] the variance-covariance matrix of the parameters.
 ##' @param dVcov [numeric array] the first derivative of the variance-covariance matrix of the parameters.

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: sep 30 2021 (11:43) 
+## Last-Updated: okt  1 2021 (17:08) 
 ##           By: Brice Ozenne
-##     Update #: 289
+##     Update #: 293
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,9 +16,9 @@
 ### Code:
 
 ## * .formulaStructure
-
 ##' @title Extract Variable From Formula For VCOV Structure
 ##' @description Extract the variables from the variance and correlation formula to be used to initialize the variance-covariance structure.
+##' @noRd
 ##'
 ##' @param formula A formula or a list of two formulas.
 ##' @param missing.time.ok [logical] If FALSE an error is triggered when the function could not identify the time variable. 
@@ -26,14 +26,12 @@
 ##' 
 ##' @keywords internal
 ##' @examples
-##' \dontrun{
 ##' .formulaStructure(strata ~ time|id)
 ##' .formulaStructure( ~ time|id)
 ##' .formulaStructure(list( ~ gender+time|id,  ~ time|id))
 ##' .formulaStructure(strata ~ 1|id, missing.time.ok = TRUE)
 ##' .formulaStructure(strata ~ time, missing.id.ok = TRUE)
 ##' .formulaStructure( ~ time|id)
-##' }
 .formulaStructure <- function(formula, missing.time.ok = FALSE, missing.id.ok = FALSE){
     
     if(is.list(formula) && length(formula)==2 && all(sapply(formula,inherits,"formula"))){
@@ -171,6 +169,8 @@
 ##'
 ##' @details A typical formula would be either \code{~1}.
 ##'
+##' @return An object of class \code{IND} that can be passed to the argument \code{structure} of the \code{lmm} function.
+##'
 ##' @examples
 ##' ID(~1)
 ##' ID(~time)
@@ -208,6 +208,8 @@ ID <- function(formula, var.time, ...){
 ##'
 ##' @details A typical formula would be either \code{~1} indicating constant variance
 ##' or \code{~time} indicating a time dependent variance.
+##' 
+##' @return An object of class \code{IND} that can be passed to the argument \code{structure} of the \code{lmm} function.
 ##'
 ##' @examples
 ##' IND(~1)
@@ -249,6 +251,8 @@ IND <- function(formula, var.time, ...){
 ##'
 ##' @details A typical formula would be \code{~1|id}, indicating a variance constant over time and the same correlation between all pairs of times.
 ##'
+##' @return An object of class \code{CS} that can be passed to the argument \code{structure} of the \code{lmm} function.
+##' 
 ##' @examples
 ##' CS(~1|id)
 ##' CS(~1|id, var.time = "time", var.cluster = "id")
@@ -314,6 +318,8 @@ CS <- function(formula, var.cluster, var.time, ...){
 ##'
 ##' @details A typical formula would be \code{~time} or \code{~time|id}, indicating a time-specific variance parameter and a correlation parameter specific to each pair of times.
 ##'
+##' @return An object of class \code{UN} that can be passed to the argument \code{structure} of the \code{lmm} function.
+##' 
 ##' @examples
 ##' UN(~time|id)
 ##' UN(~time+gender|id)

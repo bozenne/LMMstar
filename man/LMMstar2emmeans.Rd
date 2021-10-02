@@ -21,6 +21,9 @@
 
 \item{grid}{see \code{emmeans::emm_basis} documentation}
 }
+\value{
+dataset or list used by the emmeans package.
+}
 \description{
-Link to emmeans package. For internal use.
+Link to emmeans package. Not meant for direct use.
 }

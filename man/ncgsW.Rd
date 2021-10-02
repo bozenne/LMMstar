@@ -22,16 +22,6 @@ This dataset is in the wide format (i.e. one line per patient).
 \item cholest5 cholesterol measurement at 24 months (after treatment).
 }
 }
-\examples{
-\dontrun{
-ncgsW <- read.table("inst/dataTXT/ncgs.txt", header = TRUE, na.string = ".")
-ncgsW$group <- as.factor(ncgsW$group)
-ncgsW$id <- as.factor(ncgsW$id)
-save(ncgsW, file = "data/ncgsW.rda")
-
-str(ncgsW)
-}
-}
 \references{
 Grundy SM, Lan SP, Lachin J. The effects of chenodiol on biliary lipids and their association with gallstone dissolution in the National Cooperative Gallstone Study (NCGS). J Clin Invest. 1984 Apr;73(4):1156-66. doi: 10.1172/JCI111301.
 }

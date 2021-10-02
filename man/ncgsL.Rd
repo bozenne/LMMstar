@@ -20,25 +20,6 @@ This dataset is in the long format (i.e. one line per measurement).
 \item time time after the start of the study at which the measurement has been done (in month). Treatment is given at 0+.
 }
 }
-\examples{
-\dontrun{
-data("ncgsW")
-ncgsL <- reshape2::melt(ncgsW, id.vars = c("group","id"),
-                        measure.vars = paste0("cholest",1:5),
-                        value.name = c("cholest"), variable.name = "visit")
-ncgsL$visit <- as.factor(sapply(ncgsL$visit, gsub,
-                      pattern = "cholest", replacement = ""))
-ncgsL$time <- sapply(as.character(ncgsL$visit), switch,
-                            "1" = 0,
-                            "2" = 6,
-                            "3" = 12,
-                            "4" = 18,
-                            "5" = 24)
-save(ncgsL, file = "data/ncgsL.rda")
-
-str(ncgsL)
-}
-}
 \references{
 Grundy SM, Lan SP, Lachin J. The effects of chenodiol on biliary lipids and their association with gallstone dissolution in the National Cooperative Gallstone Study (NCGS). J Clin Invest. 1984 Apr;73(4):1156-66. doi: 10.1172/JCI111301.
 }

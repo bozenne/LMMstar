@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: aug 23 2021 (16:55) 
+## Last-Updated: okt  1 2021 (17:24) 
 ##           By: Brice Ozenne
-##     Update #: 312
+##     Update #: 320
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -57,16 +57,14 @@
 ##' dL <- sampleRem(100, n.times = 3, format = "long")
 ##' 
 ##' ## fit Linear Mixed Model
-##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
+##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL)
 ##' 
-##' ## based on normal distribution with transformation
+##' ## based on a Student's t-distribution with transformation
 ##' confint(eUN.lmm)
-##' ## based on normal distribution without transformation
+##' ## based on a Student's t-distribution without transformation
 ##' confint(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none")
-##' ## based on Student's t-distribution with transformation
-##' \dontrun{
-##' confint(eUN.lmm, df = TRUE)
-##' }
+##' ## based on a Normal distribution with transformation
+##' confint(eUN.lmm, df = FALSE)
 ##' 
 
 ## * confint.lmm (code)
@@ -222,7 +220,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
         out$upper <- do.call(backtransform, list(out.save$upper))
         attr(out, "backtransform") <-  2    
     }else if(backtransform){
-        out <- backtransform(out)
+        out <- .backtransform(out)
     }
     out[names(out)[names(out) %in% columns == FALSE]] <- NULL
     return(out)
@@ -263,10 +261,10 @@ print.confint_lmm <- function(x, digit = 3, ...){
     return(NULL)
 }
 
-## * backtransform.confint_lmm
+## * backtransform
 ##' @title BackTransformation for Outputs from Linear Mixed Models
 ##' @description Back-transform estimates and confidence intervals (CIs).
-##' @name confint
+##' @noRd
 ##' 
 ##' @param object a \code{confint_lmm} object, i.e. the output of the confint function applied to a \code{lmm} object.
 ##'
@@ -274,13 +272,11 @@ print.confint_lmm <- function(x, digit = 3, ...){
 ##' the estimate and CIs are transformed back to the original scale by applying the exponential function.
 ##' 
 ##' If the option \code{transform.rho} is \code{"atanh"}, the estimate and CIs are transformed back to the original scale by applying the tangent hyperbolic function.
-##' 
-##' @export
-backtransform <-   function(object,...) UseMethod("backtransform")
+##'
+##' @keywords internal
+.backtransform <-   function(object,...) UseMethod(".backtransform")
 
-##' @rdname confint
-##' @export
-backtransform.confint_lmm <- function(object, ...){
+.backtransform.confint_lmm <- function(object, ...){
 
     type.param <- attr(object,"type")
     transform <- attr(object,"transform")

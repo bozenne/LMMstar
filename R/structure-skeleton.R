@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: sep 30 2021 (11:40) 
+## Last-Updated: okt  1 2021 (17:08) 
 ##           By: Brice Ozenne
-##     Update #: 1068
+##     Update #: 1070
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -19,6 +19,7 @@
 ## * skeleton
 ##' @title Parametrization of Covariance Structure
 ##' @description Parametrization of Covariance Structure
+##' @noRd
 ##'
 ##' @param structure [structure]
 ##' @param data [data.frame] dataset
@@ -26,7 +27,6 @@
 ##' @keywords internal
 ##' 
 ##' @examples
-##' \dontrun{
 ##' data(gastricbypassL, package = "LMMstar")
 ##' gastricbypassL$gender <- c("M","F")[as.numeric(gastricbypassL$id) %% 2+1]
 ##' dd <- gastricbypassL[!duplicated(gastricbypassL[,c("time","gender")]),]
@@ -48,13 +48,10 @@
 ##' .skeleton(UN(~time|id), data = gastricbypassL)
 ##' .skeleton(UN(~visit+gender|id, var.time = "time"), data = gastricbypassL)
 ##' .skeleton(UN(gender~visit|id), data = gastricbypassL)
-##' }
-##' @export
 `.skeleton` <-
     function(structure, data) UseMethod(".skeleton")
 
 ## * skeleton.IND
-##' @export
 .skeleton.IND <- function(structure, data){
 
     ## ** prepare
@@ -168,7 +165,6 @@
 
 
 ## * skeleton.CS
-##' @export
 .skeleton.CS <- function(structure, data){
 
     ## ** prepare
@@ -256,7 +252,6 @@
 }
 
 ## * skeleton.UN
-##' @export
 .skeleton.UN <- function(structure, data){
 
     ## ** prepare

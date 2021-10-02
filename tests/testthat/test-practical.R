@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (17:03) 
 ## Version: 
-## Last-Updated: sep 30 2021 (16:15) 
+## Last-Updated: okt  2 2021 (17:42) 
 ##           By: Brice Ozenne
-##     Update #: 57
+##     Update #: 63
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -104,7 +104,7 @@ test_that("practical 1 - gastricbypass",{
     expect_equal(as.double(GS), as.double(information(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none", effects = "all")), tol = 1e-6)
 
     ## ** extract information
-    backtransform(confint(eUN.lmm))[,c("estimate","lower","upper")]
+    confint(eUN.lmm, effects = "all", backtransform = TRUE)[,c("estimate","lower","upper")]
     coef(eUN.lmm, transform.k = "sd")
     emmeans(eUN.lmm, specs = ~time)
     emmip(eUN.lmm, ~time)
@@ -158,7 +158,7 @@ test_that("practical 2 - ncgs",{
     expect_equal(as.double(logLik(e.gls)), as.double(logLik(e2.lmm)), tol = 1e-6)
     
     ## ** extract information
-    backtransform(confint(e2.lmm))[,c("estimate","lower","upper")]
+    confint(e2.lmm, effects = "all", backtransform = TRUE)[,c("estimate","lower","upper")]
     e2.lmm_anova <- anova(e2.lmm, effects = c("treatmenthighdose:time6-treatmentplacebo:time6=0","treatmenthighdose:time12-treatmentplacebo:time12=0"), ci = TRUE)
     expect_equal(e2.lmm_anova$all$df.denom, 100.0411, tol = 1e-1) ## Richardson
     autoplot(e2.lmm, color = "group") 

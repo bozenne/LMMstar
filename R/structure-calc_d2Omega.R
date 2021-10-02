@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: sep 30 2021 (13:23) 
+## Last-Updated: okt  1 2021 (17:06) 
 ##           By: Brice Ozenne
-##     Update #: 54
+##     Update #: 57
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,6 +18,7 @@
 ## * calc_d2Omega
 ##' @title Second Derivative of the Residual Variance-Covariance Matrix
 ##' @description Second derivative of the residual variance-covariance matrix for given parameter values.
+##' @noRd
 ##'
 ##' @param structure [structure]
 ##' @param param [named numeric vector] values of the parameters.
@@ -29,7 +30,6 @@
 ##' @keywords internal
 ##' 
 ##' @examples
-##' \dontrun{
 ##' data(gastricbypassL, package = "LMMstar")
 ##' gastricbypassL$gender <- c("M","F")[as.numeric(gastricbypassL$id) %% 2+1]
 ##' dd <- gastricbypassL[!duplicated(gastricbypassL[,c("time","gender")]),]
@@ -64,11 +64,10 @@
 ##' 
 ##' .calc_d2Omega(Sun4, param = param4)
 ##' .calc_d2Omega(Sun24, param = param24)
-##' }
 `.calc_d2Omega` <-
     function(object, param, Omega, dOmega, Jacobian, dJacobian) UseMethod(".calc_d2Omega")
 
-## * calc_Omega.UN
+## * calc_d2Omega.UN
 .calc_d2Omega.UN <- function(object, param, Omega, dOmega, Jacobian = NULL, dJacobian = NULL){
 
     ## ** prepare
@@ -235,10 +234,10 @@
     return(out)
 } 
 
-## * calc_Omega.IND
+## * calc_d2Omega.IND
 .calc_d2Omega.IND <- .calc_d2Omega.UN
 
-## * calc_Omega.CS
+## * calc_d2Omega.CS
 .calc_d2Omega.CS <- .calc_d2Omega.UN
 
 

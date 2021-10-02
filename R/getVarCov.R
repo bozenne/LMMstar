@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: sep 22 2021 (19:31) 
+## Last-Updated: okt  1 2021 (16:53) 
 ##           By: Brice Ozenne
-##     Update #: 151
+##     Update #: 153
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -30,6 +30,7 @@
 ##'
 ##'
 ##' @return A list where each element contains a residual variance-covariance matrix.
+##' Can also be directly a matrix when argument is \code{simplifies=TRUE} and there is a single residual variance-covariance matrix. 
 ##'
 ##' @examples
 ##' ## simulate data in the long format

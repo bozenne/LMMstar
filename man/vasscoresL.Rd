@@ -25,27 +25,6 @@ B: placebo treatment (shower gel without zink),
 C: control treatment (demineralized water).
 }
 }
-\examples{
-\dontrun{
-data("vasscoresW")
-## transform to long format:
-vasscoresL <- reshape(vasscoresW, 
-               direction="long", 
-               idvar=c("id","group"), 
-               varying=c("vasA","vasB","vasC"),
-               v.names=c("vas"),
-               timevar="treat.num")
-
-## Make a categorical version of the treatment variable:
-vasscoresL$treatment <- factor(vasscoresL$treat.num, labels=c('A','B','C'))
-## Fix attributes
-rownames(vasscoresL) <- NULL
-attr(vasscoresL, "reshapeLong") <- NULL
-## Export
-save(vasscoresL, file="data/vasscoresL.rda")
-str(vasscoresL)
-}
-}
 \references{
 TODO
 }

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (14:55) 
 ## Version: 
-## Last-Updated: sep 20 2021 (17:46) 
+## Last-Updated: okt  1 2021 (16:35) 
 ##           By: Brice Ozenne
-##     Update #: 29
+##     Update #: 30
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,11 +20,13 @@
 ##' @description Create a new variable based on a time variable and a group variable where groups are constrained to be equal at specific timepoints.  
 ##' @name baselineAdjustment
 ##' 
-##' @param object [data.frame] data set
+##' @param object [data.frame] dataset
 ##' @param variable [character] Column in the dataset to be constrained at specific timepoints. 
 ##' @param repetition [formula] Time and cluster structure, typically \code{~time|id}. See examples below.
 ##' @param constrain [vector] Levels of the time variable at which the variable is constained.
 ##' @param new.level [character or numeric] Level used at the constraint. If \code{NULL}, then the first level of the variable argument is used.
+##' 
+##' @return A vector of length the number of rows of the dataset.
 ##' 
 ##' @examples
 ##' data(ncgsL, package = "LMMstar")

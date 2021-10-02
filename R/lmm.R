@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: sep 30 2021 (16:32) 
+## Last-Updated: okt  1 2021 (17:00) 
 ##           By: Brice Ozenne
-##     Update #: 1168
+##     Update #: 1173
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -35,7 +35,9 @@
 ##' @param control [list] Control values for the optimization method. The element \code{optimizer} indicates which optimizer to use and additional argument will be pass to the optimizer.
 ##'
 ##' @details \bold{Computation time} the \code{lmm} has not been developped to be a fast function as, by default, it uses REML estimation with the observed information matrix and uses a Satterthwaite approximation to compute degrees of freedom (this require to compute the third derivative of the log-likelihood which is done by numerical differentiation). The computation time can be substantially reduced by using ML estimation with the expected information matrix and no calculation of degrees of freedom: arguments \code{method.fit="ML"}, \code{type.information="expected"}, \code{df=FALSE}. This will, however, lead to less accurate p-values and confidence intervals in small samples.
-##' \cr
+##'
+##' @return an object of class \code{lmm} containing the estimated parameter values, the residuals, and relevant derivatives of the likelihood.
+##' Compatible with standard methods such as \code{summary}, \code{autoplot}, \code{confint}, \code{coef}, \code{anova}, \code{predict}, \code{residuals}.
 
 
 ## * lmm (examples)

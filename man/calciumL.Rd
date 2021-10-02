@@ -22,27 +22,6 @@ This dataset is in the long format (i.e. one line per measurement).
 \item time.fac Scheduled visit time (factor variable)
 }
 }
-\examples{
-\dontrun{
-data("calciumW")
-dtW <- data.table::as.data.table(calciumW)
-dtL <- data.table::melt(dtW, id.vars = c("girl","grp"),
-                        measure.vars = patterns("obstime","bmd1"),
-                        value.name = c("time.obs","bmd"), variable.name = "visit")
-calciumL <- as.data.frame(dtL)
-calciumL$time.num <- sapply(as.character(calciumL$visit), switch,
-                            "1" = 0.0,
-                            "2" = 0.5,
-                            "3" = 1.0,
-                            "4" = 1.5,
-                            "5" = 2.0)
-calciumL$time.fac <- factor(calciumL$visit, levels = 1:5,
-                            labels = c("0 years","0.5 years","1 years","1.5 years","2 years")) 
-save(calciumL, file = "data/gastricbypassL.rda")
-
-str(calciumL)
-}
-}
 \references{
 TO ADD
 }

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (14:23) 
 ## Version: 
-## Last-Updated: May 27 2021 (16:13) 
+## Last-Updated: okt  1 2021 (17:06) 
 ##           By: Brice Ozenne
-##     Update #: 66
+##     Update #: 67
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -35,6 +35,7 @@
 ##' \deqn{\eta = \alpha + \beta_1 X_1 + ... + \beta_{10} X_{10} + \xi}
 ##' \eqn{\epsilon_j} and \eqn{\xi} are independent random variables with standard normal distribution.
 ##'
+##' @return a data.frame
 
 ## * sampleRem (examples)
 ##' @examples

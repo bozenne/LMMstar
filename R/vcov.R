@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: sep 23 2021 (20:50) 
+## Last-Updated: okt  2 2021 (14:31) 
 ##           By: Brice Ozenne
-##     Update #: 453
+##     Update #: 462
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -86,9 +86,9 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, type.
     ## ** extract or recompute variance covariance matrix
     if(type.object=="lmm"){
 
-        if(is.null(data) && is.null(p) && test.notransform && (df == FALSE || !is.null(object$df)) && (robust == FALSE)){
+        if(is.null(data) && is.null(p) && test.notransform && (df == FALSE || !is.null(object$df)) && (robust == FALSE) && attr(object$information,"type.information")==type.information){
             keep.name <- stats::setNames(names(coef(object, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE)),
-                                         names(coef(object, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)))
+                                                     names(coef(object, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)))    
 
             vcov <- object$vcov[keep.name,keep.name,drop=FALSE]
             if(transform.names){

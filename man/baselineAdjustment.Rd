@@ -7,7 +7,7 @@
 baselineAdjustment(object, variable, repetition, constrain, new.level = NULL)
 }
 \arguments{
-\item{object}{[data.frame] data set}
+\item{object}{[data.frame] dataset}
 
 \item{variable}{[character] Column in the dataset to be constrained at specific timepoints.}
 
@@ -16,6 +16,9 @@ baselineAdjustment(object, variable, repetition, constrain, new.level = NULL)
 \item{constrain}{[vector] Levels of the time variable at which the variable is constained.}
 
 \item{new.level}{[character or numeric] Level used at the constraint. If \code{NULL}, then the first level of the variable argument is used.}
+}
+\value{
+A vector of length the number of rows of the dataset.
 }
 \description{
 Create a new variable based on a time variable and a group variable where groups are constrained to be equal at specific timepoints.

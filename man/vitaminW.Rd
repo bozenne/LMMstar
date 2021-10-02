@@ -24,14 +24,6 @@ This dataset is in the wide format (i.e. one line per patient).
 \item weigth7 weight (in g) of the pig at the end of week 7 (after treatment).
 }
 }
-\examples{
-\dontrun{
-vitaminW <- read.table("inst/dataTXT/vitamin.txt", header = TRUE, na.string = ".")
-vitaminW$group <- as.factor(vitaminW$group)
-vitaminW$animal <- as.factor(vitaminW$animal)
-save(vitaminW, file = "data/vitaminW.rda")
-}
-}
 \references{
 TODO
 }

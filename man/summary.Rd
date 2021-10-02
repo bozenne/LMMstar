@@ -48,6 +48,14 @@
 
 \item{...}{not used. For compatibility with the generic function.}
 }
+\value{
+A list containing elements displayed in the summary: \itemize{
+\item \code{correlation}: the correlation structure.
+\item \code{variance}: the variance structure.
+\item \code{sd}: the variance structure expressed in term of standard deviations.
+\item \code{mean}: the mean structure.
+}
+}
 \description{
 Summary output for a  multivariate gaussian model fitted with \code{lmm}.
 This is a modified version of the \code{nlme::summary.gls} function.

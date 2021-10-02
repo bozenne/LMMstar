@@ -11,6 +11,9 @@ LMMstar.options(..., reinitialise = FALSE)
 
 \item{reinitialise}{should all the global parameters be set to their default value}
 }
+\value{
+A list containing the default options.
+}
 \description{
 Update or select global options for the LMMstar package.
 }

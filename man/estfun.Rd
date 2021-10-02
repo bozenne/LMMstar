@@ -12,6 +12,9 @@
 
 \item{...}{Not used. For compatibility with the generic method.}
 }
+\value{
+A matrix containing the score function for each model parameter (columns) relative to each cluster (rows).
+}
 \description{
 Extract the Score Function for Multcomp. For internal use.
 }

@@ -19,12 +19,6 @@ This dataset is in the wide format (i.e. one line per patient).
 \item mini2 Second measurement made with a mini Wright peak flow meter.
 }
 }
-\examples{
-\dontrun{
-data(blandAltmanW)
-str(blandAltmanW)
-}
-}
 \references{
 Bland & Altman, Statistical methods for assessing agreement between two methods of clinical measurement, Lancet, 1986; i: 307-310.
 }

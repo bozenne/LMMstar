@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: sep 22 2021 (14:00) 
+## Last-Updated: okt  1 2021 (17:07) 
 ##           By: Brice Ozenne
-##     Update #: 81
+##     Update #: 83
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,6 +18,7 @@
 ## * initialization
 ##' @title Initialize Variance-Covariance Structure
 ##' @description Initialize the parameters of the variance-covariance structure using residual variance and correlations.
+##' @noRd
 ##'
 ##' @param structure [structure]
 ##' @param residuals [vector] vector of residuals.
@@ -25,7 +26,6 @@
 ##' @keywords internal
 ##' 
 ##' @examples
-##' \dontrun{
 ##' data(gastricbypassW, package = "LMMstar")
 ##' data(gastricbypassL, package = "LMMstar")
 ##' gastricbypassL$gender <- c("M","F")[as.numeric(gastricbypassL$id) %% 2+1]
@@ -62,7 +62,6 @@
 ##' 
 ##' .initialize(Sun4, residuals = residuals(eGas.lm))
 ##' .initialize(Sun24, residuals = residuals(eGas.lm))
-##' }
 `.initialize` <-
     function(object, residuals, p, ssc) UseMethod(".initialize")
 

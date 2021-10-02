@@ -28,6 +28,9 @@ Passed to the \code{stats::aggregate} function.}
 Can be any of, or a combination of: \code{"observed"} (number of observations with a measurement),
 \code{"missing"} (number of observations with a missing value), \code{"mean"}, \code{"sd"}, \code{"min"}, \code{"median"}, \code{"max"}.}
 }
+\value{
+a data frame containing summary statistics (in columns) for each outcome and value of the grouping variables (rows).
+}
 \description{
 Compute summary statistics (similar to the SAS macro procmean).
 This is essentially an interface to the \code{stats::aggregate} function.

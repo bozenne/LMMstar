@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: sep 27 2021 (20:19) 
+## Last-Updated: okt  2 2021 (17:32) 
 ##           By: Brice Ozenne
-##     Update #: 482
+##     Update #: 485
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -14,6 +14,7 @@
 ##----------------------------------------------------------------------
 ## 
 ### Code:
+
 ## * predict.lmm (documentation)
 ##' @title Predicted Mean Value With Uncertainty For Linear Mixed Model
 ##'
@@ -44,8 +45,7 @@
 ##' 
 ##' ## fit Linear Mixed Model
 ##' eUN.lmm <- lmm(Y ~ visit + X1 + X2 + X5,
-##'                repetition = ~visit|id, structure = "UN", data = dL,
-##'                df = FALSE)
+##'                repetition = ~visit|id, structure = "UN", data = dL)
 ##'
 ##' ## prediction
 ##' newd <- data.frame(X1 = 1, X2 = 2, X5 = 3, visit = factor(1:3, levels = 1:3))
@@ -61,11 +61,6 @@
 ##' predict(eUN.lmm, newdata = newd.d3, keep.newdata = TRUE, type = "dynamic")
 ##' newd.d4 <- cbind(newd, Y = c(1,1,NA))
 ##' predict(eUN.lmm, newdata = newd.d4, keep.newdata = TRUE, type = "dynamic")
-##' 
-##' ## with Student's t-distribution
-##' \dontrun{
-##' predict(eUN.lmm, newdata = data.frame(X1 = 1, X2 = 2, X5 = 3), df = TRUE)
-##' }
 
 ## * predict.lmm (code)
 ##' @export
@@ -341,7 +336,7 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
 
 ## * .dfX
 .dfX <- function(X.beta, vcov.param, dVcov.param){
-    
+
     if(!is.matrix(X.beta) && is.vector(X.beta)){
         X.beta <- rbind(X.beta)
     }

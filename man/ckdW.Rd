@@ -24,11 +24,6 @@ TODO
 \item dropout
 }
 }
-\examples{
-\dontrun{
-data("ckdW")
-}
-}
 \references{
 TO ADD
 }

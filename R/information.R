@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: sep 20 2021 (17:38) 
+## Last-Updated: okt  2 2021 (17:47) 
 ##           By: Brice Ozenne
-##     Update #: 876
+##     Update #: 917
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -74,19 +74,16 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
     transform.k <- init$transform.k
     transform.rho <- init$transform.rho
     test.notransform <- init$test.notransform
-
+    
     ## ** extract or recompute information
-    if(is.null(data) && is.null(p) && (indiv == FALSE) && test.notransform && (robust==FALSE)){
+    if(is.null(data) && is.null(p) && (indiv == FALSE) && test.notransform && (robust==FALSE) && attr(x$information,"type.information")==type.information){
+        keep.name <- stats::setNames(names(coef(x, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE)),
+                                     names(coef(x, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)))    
+
         design <- x$design ## useful in case of NA
-        out <- x$information
+        out <- x$information[keep.name,keep.name,drop=FALSE]
         if(transform.names){
-            colnames(out)[match(names(x$reparametrize$p),colnames(out))] <- x$reparametrize$newname
-            rownames(out)[match(names(x$reparametrize$p),rownames(out))] <- x$reparametrize$newname
-        }
-        if("mean" %in% effects == FALSE){
-            out <- out[x$param$type!="mu",x$param$type!="mu",drop=FALSE]
-        }else if("variance" %in% effects == FALSE && "correlation" %in% effects == FALSE){
-            out <- out[x$param$type=="mu",x$param$type=="mu",drop=FALSE]
+            dimnames(out) <- list(names(keep.name),names(keep.name))
         }
     }else{
         test.precompute <- !is.null(x$design$precompute.XX) && !indiv
@@ -164,52 +161,77 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
     n.allvarcoef <- length(name.allvarcoef)
     U.pattern <- names(dOmega)
     n.pattern <- length(U.pattern)
-
+        
     npair.meanvarcoef <- lapply(pair.meanvarcoef, NCOL)
     npair.varcoef <- lapply(pair.varcoef, NCOL)
-    
+
     ## ** prepare output
-    if("mean" %in% effects == FALSE){ ## compute information only for variance - correlation parameters
-        if(test.loopIndiv && indiv){
-            info <- array(0, dim = c(n.cluster, n.allvarcoef, n.allvarcoef),
-                          dimnames = list(NULL, name.allvarcoef, name.allvarcoef))
-        }else{
-            info <- matrix(0, nrow = n.allvarcoef, ncol = n.allvarcoef,
-                           dimnames = list(name.allvarcoef, name.allvarcoef)
-                           )
-        }    
-        test.vcov <- TRUE
-        test.mean <- FALSE
+    name.effects <- attr(effects,"original.names")
+    n.effects <- length(name.effects)
+    if(test.loopIndiv && indiv){
+        info <- array(0, dim = c(n.cluster, n.effects, n.effects),
+                      dimnames = list(NULL, name.effects, name.effects))
+    }else{
+        info <- matrix(0, nrow = n.effects, ncol = n.effects,
+                       dimnames = list(name.effects, name.effects)
+                       )
+    }    
+
+    ## restrict to relevant parameters
+    if(("variance" %in% effects == FALSE) && ("correlation" %in% effects == FALSE)){ ## compute hessian only for mean parameters
+        test.vcov <- FALSE
+        test.mean <- TRUE
+    }else{
         if(REML && indiv){
             stop("Not possible to compute individual hessian for variance and/or correlation coefficients when using REML.\n")
         }
-    }else if("variance" %in% effects == FALSE && "correlation" %in% effects == FALSE){ ## compute information only for mean parameters
-        if(test.loopIndiv && indiv){
-            info <- array(0, dim = c(n.cluster, n.mucoef, n.mucoef),
-                          dimnames = list(NULL, name.mucoef, name.mucoef))
-        }else{
-            info <- matrix(0, nrow = n.mucoef, ncol = n.mucoef,
-                           dimnames = list(name.mucoef, name.mucoef)
-                           )
-        }    
-        test.vcov <- FALSE
-        test.mean <- TRUE
-    }else{ ## compute information only for all parameters
-        if(test.loopIndiv && indiv){
-            info <- array(0, dim = c(n.cluster, n.allcoef, n.allcoef),
-                          dimnames = list(NULL, name.allcoef, name.allcoef))
-        }else{
-            info <- matrix(0, nrow = n.allcoef, ncol = n.allcoef,
-                           dimnames = list(name.allcoef, name.allcoef)
-                           )
-        }    
-        test.vcov <- TRUE
-        test.mean <- TRUE
-        if(REML && indiv){
-            stop("Not possible to compute individual hessian for variance and/or correlation coefficients when using REML.\n")
+        if(("variance" %in% effects == FALSE) || ("correlation" %in% effects == FALSE)){ ## subset variance parameters
+            name.varcoef <- stats::setNames(lapply(U.pattern,function(iPattern){intersect(name.effects,name.varcoef[[iPattern]])}),
+                                     U.pattern)
+
+            pair.meanvarcoef <- stats::setNames(lapply(U.pattern,function(iPattern){
+                test.in <- (pair.meanvarcoef[[iPattern]][1,] %in% name.effects)+(pair.meanvarcoef[[iPattern]][2,] %in% name.effects)
+                return(pair.meanvarcoef[[iPattern]][,test.in==2,drop=FALSE])
+            }), U.pattern)
+
+            pair.varcoef <- stats::setNames(lapply(U.pattern,function(iPattern){## iPattern <- 1
+                test.in <- (pair.varcoef[[iPattern]][1,] %in% name.effects)+(pair.varcoef[[iPattern]][2,] %in% name.effects)
+                iOut <- pair.varcoef[[iPattern]][,test.in==2,drop=FALSE]
+                attr(iOut,"subset") <- which(test.in==2)
+                attr(iOut,"key") <- matrix(NA, nrow = length(name.varcoef[[iPattern]]), ncol = length(name.varcoef[[iPattern]]), dimnames = list(name.varcoef[[iPattern]],name.varcoef[[iPattern]]))
+                for(iCol in 1:NCOL(iOut)){
+                    attr(iOut, "key")[iOut[1,iCol],iOut[2,iCol]] <- iCol
+                    attr(iOut, "key")[iOut[2,iCol],iOut[1,iCol]] <- iCol
+                }
+                return(iOut)
+            }), U.pattern)
+            d2Omega <- stats::setNames(lapply(U.pattern,function(iPattern){
+                
+                return(d2Omega[[iPattern]][attr(pair.varcoef[[iPattern]],"subset")])
+            }), U.pattern)
+
+            n.varcoef <- lapply(name.varcoef, length)
+            name.allvarcoef <- unique(unlist(name.varcoef))
+            n.allvarcoef <- length(name.allvarcoef)
+            npair.meanvarcoef <- lapply(pair.meanvarcoef, NCOL)
+            npair.varcoef <- lapply(pair.varcoef, NCOL)
+        }
+        if("mean" %in% effects == FALSE){ ## compute hessian only for variance and/or correlation parameters
+            if(REML && indiv){
+                stop("Not possible to compute individual hessian for variance and/or correlation coefficients when using REML.\n")
+            }
+
+            test.vcov <- TRUE
+            test.mean <- FALSE
+
+        }else{ ## compute hessian all parameters
+     
+            test.vcov <- TRUE
+            test.mean <- TRUE
         }
     }
 
+    ## prepare REML term
     if(test.vcov && REML){
         REML.key <- matrix(NA, nrow = n.allvarcoef, ncol = n.allvarcoef, dimnames = list(name.allvarcoef, name.allvarcoef))
         maxkey <- sum(lower.tri(REML.key, diag = TRUE))
@@ -300,6 +322,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
 
                     iValue <- 0.5 * tr_OmegaM1_d2OmegaAndCo[[iPattern]][iPair]
                     ## 0.5 * tr(iOmega %*% idOmega$sigma %*% iOmega %*% idOmega$sigma)
+
                     if(type.information == "observed"){
                         iValue <- iValue - 0.5 * t(iResidual) %*% OmegaM1_d2OmegaAndCo_OmegaM1[[iPattern]][,,iPair] %*% iResidual
                     }

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: sep 24 2021 (13:58) 
+## Last-Updated: okt  1 2021 (17:16) 
 ##           By: Brice Ozenne
-##     Update #: 64
+##     Update #: 74
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -35,11 +35,6 @@
 #' @usage data(blandAltmanW)
 #' @references Bland & Altman, Statistical methods for assessing agreement between two methods of clinical measurement, Lancet, 1986; i: 307-310.
 #' @keywords data
-#' @examples
-#' \dontrun{
-#' data(blandAltmanW)
-#' str(blandAltmanW)
-#' }
 NULL
 
 ## ** calciumL
@@ -60,11 +55,6 @@ NULL
 #' @usage data(blandAltmanL)
 #' @references Bland & Altman, Statistical methods for assessing agreement between two methods of clinical measurement, Lancet, 1986; i: 307-310.
 #' @keywords data
-#' @examples
-#' \dontrun{
-#' data(blandAltmanL)
-#' str(blandAltmanL)
-#' }
 NULL
 
 ## * bloodpressure
@@ -91,10 +81,6 @@ NULL
 #' @usage data(bloodpressureL)
 #' @references TO ADD
 #' @keywords data
-#'
-#' @examples
-#' data(bloodpressureL)
-#' str(bloodpressureL)
 NULL
 
 ## * calcium
@@ -125,18 +111,13 @@ NULL
 #' @usage data(calciumW)
 #' @references Vonesh and Chinchilli 1997. Linear and Nonlinear models for the analysis of repeated measurement (Table 5.4.1 on page 228). New York: Marcel Dekker.
 #' @keywords data
-#' @examples
-#' \dontrun{
-#' calciumW <- read.table("inst/dataTXT/calcium1.txt", header = TRUE, na.string = ".")
-#' calciumW$obstime1 <- as.numeric(calciumW$obstime1)
-#' calciumW$dropout <- NULL
-#' calciumW$girl <- as.factor(calciumW$girl)
-#' calciumW$grp <- as.factor(calciumW$grp)
-#' save(calciumW, file = "data/calciumW.rda")
-#'
-#' str(calciumW)
-#' }
 NULL
+## calciumW <- read.table("inst/dataTXT/calcium1.txt", header = TRUE, na.string = ".")
+## calciumW$obstime1 <- as.numeric(calciumW$obstime1)
+## calciumW$dropout <- NULL
+## calciumW$girl <- as.factor(calciumW$girl)
+## calciumW$grp <- as.factor(calciumW$grp)
+## save(calciumW, file = "data/calciumW.rda")
 
 ## ** calciumL
 #' @title Data From The Calcium Supplements Study (Long Format)
@@ -160,27 +141,24 @@ NULL
 #' @usage data(calciumL)
 #' @references TO ADD
 #' @keywords data
-#' @examples
-#' \dontrun{
-#' data("calciumW")
-#' dtW <- data.table::as.data.table(calciumW)
-#' dtL <- data.table::melt(dtW, id.vars = c("girl","grp"),
-#'                         measure.vars = patterns("obstime","bmd1"),
-#'                         value.name = c("time.obs","bmd"), variable.name = "visit")
-#' calciumL <- as.data.frame(dtL)
-#' calciumL$time.num <- sapply(as.character(calciumL$visit), switch,
-#'                             "1" = 0.0,
-#'                             "2" = 0.5,
-#'                             "3" = 1.0,
-#'                             "4" = 1.5,
-#'                             "5" = 2.0)
-#' calciumL$time.fac <- factor(calciumL$visit, levels = 1:5,
-#'                             labels = c("0 years","0.5 years","1 years","1.5 years","2 years")) 
-#' save(calciumL, file = "data/gastricbypassL.rda")
-#'
-#' str(calciumL)
-#' }
 NULL
+## data("calciumW")
+## dtW <- data.table::as.data.table(calciumW)
+## dtL <- data.table::melt(dtW, id.vars = c("girl","grp"),
+##                         measure.vars = patterns("obstime","bmd1"),
+##                         value.name = c("time.obs","bmd"), variable.name = "visit")
+## calciumL <- as.data.frame(dtL)
+## calciumL$time.num <- sapply(as.character(calciumL$visit), switch,
+##                             "1" = 0.0,
+##                             "2" = 0.5,
+##                             "3" = 1.0,
+##                             "4" = 1.5,
+##                             "5" = 2.0)
+## calciumL$time.fac <- factor(calciumL$visit, levels = 1:5,
+##                             labels = c("0 years","0.5 years","1 years","1.5 years","2 years")) 
+## save(calciumL, file = "data/gastricbypassL.rda")
+##
+## str(calciumL)
 
 ## * ckd
 ## ** ckdW
@@ -207,10 +185,6 @@ NULL
 #' @usage data(ckdW)
 #' @references TO ADD
 #' @keywords data
-#' @examples
-#' \dontrun{
-#' data("ckdW")
-#' }
 NULL
 
 ## ** ckdL
@@ -234,10 +208,6 @@ NULL
 #' @usage data(ckdL)
 #' @references TO ADD
 #' @keywords data
-#' @examples
-#' \dontrun{
-#' data("ckdL")
-#' }
 NULL
 
 ## * gastricbypass
@@ -266,14 +236,6 @@ NULL
 #' @usage data(gastricbypassW)
 #' @references The effect of Roux-en-Y gastric bypass surgery on the gut mucosal gene expression profile and circulating gut hormones. \url{https://easddistribute.m-anage.com/from.storage?image=4iBH9mRQm1kfeEHULC2CxovdlyCtA1EHeVDdoffnZrAUGG9SHTO-U4ItnLU078eVkF1ZUZgYTy7THlTW3KSgFA2}
 #' @keywords data
-#' @examples
-#' \dontrun{
-#' gastricbypassW <- read.table("inst/dataTXT/gastricbypass.txt", header = TRUE, na.string = ".")
-#' gastricbypassW$id <- as.factor(gastricbypassW$id)
-#' save(gastricbypassW, file = "data/gastricbypassW.rda")
-#'
-#' str(gastricbypassW)
-#' }
 NULL
 
 ## ** gastricbypassL
@@ -296,24 +258,21 @@ NULL
 #' @usage data(gastricbypassL)
 #' @references The effect of Roux-en-Y gastric bypass surgery on the gut mucosal gene expression profile and circulating gut hormones. \url{https://easddistribute.m-anage.com/from.storage?image=4iBH9mRQm1kfeEHULC2CxovdlyCtA1EHeVDdoffnZrAUGG9SHTO-U4ItnLU078eVkF1ZUZgYTy7THlTW3KSgFA2}
 #' @keywords data
-#' @examples
-#' \dontrun{
-#' data("gastricbypassW")
-#' dtW <- data.table::as.data.table(gastricbypassW)
-#' dtL <- data.table::melt(dtW, id.vars = "id",
-#'                         measure.vars = patterns("weight","glucagonAUC"),
-#'                         value.name = c("weight","glucagon"), variable.name = "time")
-#' gastricbypassL <- as.data.frame(dtL)
-#' gastricbypassL$visit <- gastricbypassL$time
-#' gastricbypassL$time <- factor(gastricbypassL$visit, levels = 1:4,
-#'                               labels = c("3 months before surgery","1 week before surgery",
-#'                                          "1 week after surgery","3 months after surgery"))
-#' gastricbypassL <- gastricbypassL[,c("id","visit","time","weight","glucagon")]
-#' save(gastricbypassL, file = "data/gastricbypassL.rda")
-#'
-#' str(gastricbypassL)
-#' }
 NULL
+## data("gastricbypassW")
+## dtW <- data.table::as.data.table(gastricbypassW)
+## dtL <- data.table::melt(dtW, id.vars = "id",
+##                         measure.vars = patterns("weight","glucagonAUC"),
+##                         value.name = c("weight","glucagon"), variable.name = "time")
+## gastricbypassL <- as.data.frame(dtL)
+## gastricbypassL$visit <- gastricbypassL$time
+## gastricbypassL$time <- factor(gastricbypassL$visit, levels = 1:4,
+##                               labels = c("3 months before surgery","1 week before surgery",
+##                                          "1 week after surgery","3 months after surgery"))
+## gastricbypassL <- gastricbypassL[,c("id","visit","time","weight","glucagon")]
+## save(gastricbypassL, file = "data/gastricbypassL.rda")
+##
+## str(gastricbypassL)
 
 ## * ncgs
 ## ** ncgsW
@@ -338,16 +297,13 @@ NULL
 #' @usage data(ncgsW)
 #' @references Grundy SM, Lan SP, Lachin J. The effects of chenodiol on biliary lipids and their association with gallstone dissolution in the National Cooperative Gallstone Study (NCGS). J Clin Invest. 1984 Apr;73(4):1156-66. doi: 10.1172/JCI111301.  
 #' @keywords data
-#' @examples
-#' \dontrun{
-#' ncgsW <- read.table("inst/dataTXT/ncgs.txt", header = TRUE, na.string = ".")
-#' ncgsW$group <- as.factor(ncgsW$group)
-#' ncgsW$id <- as.factor(ncgsW$id)
-#' save(ncgsW, file = "data/ncgsW.rda")
-#'
-#' str(ncgsW)
-#' }
 NULL
+## ncgsW <- read.table("inst/dataTXT/ncgs.txt", header = TRUE, na.string = ".")
+## ncgsW$group <- as.factor(ncgsW$group)
+## ncgsW$id <- as.factor(ncgsW$id)
+## save(ncgsW, file = "data/ncgsW.rda")
+##
+## str(ncgsW)
 
 ## ** ncgsL
 #' @title Data From National Cooperative Gallstone Study (Long Format)
@@ -369,25 +325,22 @@ NULL
 #' @usage data(ncgsL)
 #' @references Grundy SM, Lan SP, Lachin J. The effects of chenodiol on biliary lipids and their association with gallstone dissolution in the National Cooperative Gallstone Study (NCGS). J Clin Invest. 1984 Apr;73(4):1156-66. doi: 10.1172/JCI111301.  
 #' @keywords data
-#' @examples
-#' \dontrun{
-#' data("ncgsW")
-#' ncgsL <- reshape2::melt(ncgsW, id.vars = c("group","id"),
-#'                         measure.vars = paste0("cholest",1:5),
-#'                         value.name = c("cholest"), variable.name = "visit")
-#' ncgsL$visit <- as.factor(sapply(ncgsL$visit, gsub,
-#'                       pattern = "cholest", replacement = ""))
-#' ncgsL$time <- sapply(as.character(ncgsL$visit), switch,
-#'                             "1" = 0,
-#'                             "2" = 6,
-#'                             "3" = 12,
-#'                             "4" = 18,
-#'                             "5" = 24)
-#' save(ncgsL, file = "data/ncgsL.rda")
-#'
-#' str(ncgsL)
-#' }
 NULL
+## data("ncgsW")
+## ncgsL <- reshape2::melt(ncgsW, id.vars = c("group","id"),
+##                         measure.vars = paste0("cholest",1:5),
+##                         value.name = c("cholest"), variable.name = "visit")
+## ncgsL$visit <- as.factor(sapply(ncgsL$visit, gsub,
+##                       pattern = "cholest", replacement = ""))
+## ncgsL$time <- sapply(as.character(ncgsL$visit), switch,
+##                             "1" = 0,
+##                             "2" = 6,
+##                             "3" = 12,
+##                             "4" = 18,
+##                             "5" = 24)
+## save(ncgsL, file = "data/ncgsL.rda")
+##
+## str(ncgsL)
 
 ## * potassium
 ## ** potassiumSingleW
@@ -415,9 +368,6 @@ NULL
 #' @references Dreier et al. Effect of increased potassium intake on the reninangiotensinaldosterone system and subcutaneous resistance arteries: a randomized crossover study,
 #' Nephrol Dial Transplant (2020) 110. doi: 10.1093/ndt/gfaa114
 #' @keywords data
-#' @examples
-#' data(potassiumSingleW)
-#' str(potassiumSingleW)
 NULL
 
 ## ** potassiumSingleL
@@ -443,11 +393,6 @@ NULL
 #' @references Dreier et al. Effect of increased potassium intake on the reninangiotensinaldosterone system and subcutaneous resistance arteries: a randomized crossover study,
 #' Nephrol Dial Transplant (2020) 110. doi: 10.1093/ndt/gfaa114
 #' @keywords data
-#' @examples
-#' \dontrun{
-#' data("potassiumSingleL")
-#' str(potassiumSingleL)
-#' }
 NULL
 
 ## ** potassiumRepeatedL
@@ -472,11 +417,6 @@ NULL
 #' @references Dreier et al. Effect of increased potassium intake on the reninangiotensinaldosterone system and subcutaneous resistance arteries: a randomized crossover study,
 #' Nephrol Dial Transplant (2020) 110. doi: 10.1093/ndt/gfaa114
 #' @keywords data
-#' @examples
-#' \dontrun{
-#' data("potassiumRepeatedL")
-#' str(potassiumRepeatedL)
-#' }
 NULL
 
 ## * swabs
@@ -502,15 +442,12 @@ NULL
 #' @usage data(swabsW)
 #' @references Grundy SM, Lan SP, Lachin J. The effects of chenodiol on biliary lipids and their association with gallstone dissolution in the National Cooperative Gallstone Study (SWABS). J Clin Invest. 1984 Apr;73(4):1156-66. doi: 10.1172/JCI111301.  
 #' @keywords data
-#' @examples
-#' \dontrun{
-#' library(reshape2)
-#' data(swabsL)
-#' swabsW <- dcast(swabsL, formula = crowding+family~name, value.var = "swabs")
-#' save(swabsW, file = "data/swabsW.rda")
-#' str(swabsW)
-#' }
 NULL
+## library(reshape2)
+## data(swabsL)
+## swabsW <- dcast(swabsL, formula = crowding+family~name, value.var = "swabs")
+## save(swabsW, file = "data/swabsW.rda")
+## str(swabsW)
 
 ## ** swabsL
 #' @title Data From The SWABS Study (Long Format)
@@ -531,19 +468,16 @@ NULL
 #' @usage data(swabsL)
 #' @references TODO
 #' @keywords data
-#' @examples
-#' \dontrun{
-#' swabsL <- read.table("inst/dataTXT/swabs.txt", header = TRUE, na.string = ".")
-#' swabsL$family <- as.factor(swabsL$family)
-#' swabsL$crowding <- factor(swabsL$crowding, 
-#'             levels = c("uncrow","crow","overcrow"))
-#' swabsL$name <- factor(swabsL$name,
-#'    levels = c("mother","father", "child1","child2","child3"))
-#' swabsL <- swabsL[order(swabsL$crowding,swabsL$family,swabsL$name),]
-#' save(swabsL, file = "data/swabsL.rda")
-#' str(swabsL)
-#' }
 NULL
+## swabsL <- read.table("inst/dataTXT/swabs.txt", header = TRUE, na.string = ".")
+## swabsL$family <- as.factor(swabsL$family)
+## swabsL$crowding <- factor(swabsL$crowding, 
+##             levels = c("uncrow","crow","overcrow"))
+## swabsL$name <- factor(swabsL$name,
+##    levels = c("mother","father", "child1","child2","child3"))
+## swabsL <- swabsL[order(swabsL$crowding,swabsL$family,swabsL$name),]
+## save(swabsL, file = "data/swabsL.rda")
+## str(swabsL)
 
 
 ## * vasscores
@@ -569,14 +503,11 @@ NULL
 #' @usage data(vasscoresW)
 #' @references TODO
 #' @keywords data
-#' @examples
-#' \dontrun{
-#' vasscoresW <- read.table("inst/dataTXT/vasscores.txt", header = TRUE, na.string = ".")
-#' vasscoresW$id <- factor(vasscoresW$id)
-#' vasscoresW$group <- factor(vasscoresW$group)
-#' save(vasscoresW, file = "data/vasscoresW.rda")
-#' }
 NULL
+## vasscoresW <- read.table("inst/dataTXT/vasscores.txt", header = TRUE, na.string = ".")
+## vasscoresW$id <- factor(vasscoresW$id)
+## vasscoresW$group <- factor(vasscoresW$group)
+## save(vasscoresW, file = "data/vasscoresW.rda")
 
 ## ** vasscoresL
 #' @title Data From The VAS Study (Long Format)
@@ -603,27 +534,24 @@ NULL
 #' @usage data(vasscoresL)
 #' @references TODO
 #' @keywords data
-#' @examples
-#' \dontrun{
-#' data("vasscoresW")
-#' ## transform to long format:
-#' vasscoresL <- reshape(vasscoresW, 
-#'                direction="long", 
-#'                idvar=c("id","group"), 
-#'                varying=c("vasA","vasB","vasC"),
-#'                v.names=c("vas"),
-#'                timevar="treat.num")
-#'
-#' ## Make a categorical version of the treatment variable:
-#' vasscoresL$treatment <- factor(vasscoresL$treat.num, labels=c('A','B','C'))
-#' ## Fix attributes
-#' rownames(vasscoresL) <- NULL
-#' attr(vasscoresL, "reshapeLong") <- NULL
-#' ## Export
-#' save(vasscoresL, file="data/vasscoresL.rda")
-#' str(vasscoresL)
-#' }
 NULL
+## data("vasscoresW")
+## ## transform to long format:
+## vasscoresL <- reshape(vasscoresW, 
+##                direction="long", 
+##                idvar=c("id","group"), 
+##                varying=c("vasA","vasB","vasC"),
+##                v.names=c("vas"),
+##                timevar="treat.num")
+##
+## ## Make a categorical version of the treatment variable:
+## vasscoresL$treatment <- factor(vasscoresL$treat.num, labels=c('A','B','C'))
+## ## Fix attributes
+## rownames(vasscoresL) <- NULL
+## attr(vasscoresL, "reshapeLong") <- NULL
+## ## Export
+## save(vasscoresL, file="data/vasscoresL.rda")
+## str(vasscoresL)
 
 ## * vitamin
 ## ** vitaminW
@@ -650,14 +578,11 @@ NULL
 #' @usage data(vitaminW)
 #' @references TODO
 #' @keywords data
-#' @examples
-#' \dontrun{
-#' vitaminW <- read.table("inst/dataTXT/vitamin.txt", header = TRUE, na.string = ".")
-#' vitaminW$group <- as.factor(vitaminW$group)
-#' vitaminW$animal <- as.factor(vitaminW$animal)
-#' save(vitaminW, file = "data/vitaminW.rda")
-#' }
 NULL
+## vitaminW <- read.table("inst/dataTXT/vitamin.txt", header = TRUE, na.string = ".")
+## vitaminW$group <- as.factor(vitaminW$group)
+## vitaminW$animal <- as.factor(vitaminW$animal)
+## save(vitaminW, file = "data/vitaminW.rda")
 
 ## ** vitaminL
 #' @title Data From The Vitamin Study (Long Format)
@@ -683,24 +608,21 @@ NULL
 #' @usage data(vitaminL)
 #' @references Crowder and Hand (1990, p. 27) Analysis of Repeated Measures.
 #' @keywords data
-#' @examples
-#' \dontrun{
-#' data("vitaminW")
-#' vitaminL <- reshape2::melt(vitaminW, id.vars = c("group","animal"),
-#'                         measure.vars = paste0("weight",c(1,3:7)),
-#'                         value.name = c("weight"), variable.name = "visit")
-#' vitaminL$visit <- as.factor(as.numeric(as.factor(sapply(vitaminL$visit, gsub,
-#'                              pattern = "weight", replacement = ""))))
-#' vitaminL$time <- sapply(as.character(vitaminL$visit), switch,
-#'                             "1" = 1,
-#'                             "2" = 3,
-#'                             "3" = 4,
-#'                             "4" = 5,
-#'                             "5" = 6,
-#'                             "6" = 7)
-#' save(vitaminL, file = "data/vitaminL.rda")
-#' }
 NULL
+## data("vitaminW")
+## vitaminL <- reshape2::melt(vitaminW, id.vars = c("group","animal"),
+##                         measure.vars = paste0("weight",c(1,3:7)),
+##                         value.name = c("weight"), variable.name = "visit")
+## vitaminL$visit <- as.factor(as.numeric(as.factor(sapply(vitaminL$visit, gsub,
+##                              pattern = "weight", replacement = ""))))
+## vitaminL$time <- sapply(as.character(vitaminL$visit), switch,
+##                             "1" = 1,
+##                             "2" = 3,
+##                             "3" = 4,
+##                             "4" = 5,
+##                             "5" = 6,
+##                             "6" = 7)
+## save(vitaminL, file = "data/vitaminL.rda")
 
 
 ######################################################################

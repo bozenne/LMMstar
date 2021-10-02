@@ -27,18 +27,6 @@ This dataset is in the wide format (i.e. one line per patient).
 \item bmd5 Bone mineral density measured at the fifth visit (in mg/cm3).
 }
 }
-\examples{
-\dontrun{
-calciumW <- read.table("inst/dataTXT/calcium1.txt", header = TRUE, na.string = ".")
-calciumW$obstime1 <- as.numeric(calciumW$obstime1)
-calciumW$dropout <- NULL
-calciumW$girl <- as.factor(calciumW$girl)
-calciumW$grp <- as.factor(calciumW$grp)
-save(calciumW, file = "data/calciumW.rda")
-
-str(calciumW)
-}
-}
 \references{
 Vonesh and Chinchilli 1997. Linear and Nonlinear models for the analysis of repeated measurement (Table 5.4.1 on page 228). New York: Marcel Dekker.
 }

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: sep 23 2021 (19:28) 
+## Last-Updated: okt  1 2021 (17:07) 
 ##           By: Brice Ozenne
-##     Update #: 408
+##     Update #: 412
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,6 +18,7 @@
 ## * calc_Omega
 ##' @title Construct Residual Variance-Covariance Matrix
 ##' @description Construct residual variance-covariance matrix for given parameter values.
+##' @noRd
 ##'
 ##' @param structure [structure]
 ##' @param param [named numeric vector] values of the parameters.
@@ -26,7 +27,6 @@
 ##' @keywords internal
 ##'
 ##' @examples
-##' \dontrun{
 ##' data(gastricbypassL, package = "LMMstar")
 ##' gastricbypassL$gender <- c("M","F")[as.numeric(gastricbypassL$id) %% 2+1]
 ##' dd <- gastricbypassL[!duplicated(gastricbypassL[,c("time","gender")]),]
@@ -62,14 +62,11 @@
 ##' 
 ##' .calc_Omega(Sun4, param = param4)
 ##' .calc_Omega(Sun24, param = param24, keep.interim = TRUE)
-##' }
-##' @export
 `.calc_Omega` <-
     function(object, param, keep.interim) UseMethod(".calc_Omega")
 
 
 ## * calc_Omega.UN
-##' @export
 .calc_Omega.UN <- function(object, param, keep.interim = FALSE){
     Upattern <- object$X$Upattern
     n.Upattern <- NROW(Upattern)

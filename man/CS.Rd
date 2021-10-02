@@ -15,6 +15,9 @@ CS(formula, var.cluster, var.time, ...)
 
 \item{...}{not used.}
 }
+\value{
+An object of class \code{CS} that can be passed to the argument \code{structure} of the \code{lmm} function.
+}
 \description{
 Variance-covariance structure where the residuals have constant variance and correlation.
 Can be stratified on a categorical variable.

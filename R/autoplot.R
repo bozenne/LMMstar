@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: sep 23 2021 (20:52) 
+## Last-Updated: okt  1 2021 (16:29) 
 ##           By: Brice Ozenne
-##     Update #: 66
+##     Update #: 68
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -30,6 +30,12 @@
 ##' @param size.text [numeric, >0] Size of the font used to displayed text when using ggplot2.
 ##' @param position.errorbar [character] relative position of the errorbars.
 ##' @param ... Not used. For compatibility with the generic method.
+##'
+##' @return A list with two elements \itemize{
+##' \item \code{data}: data used to create the graphical display.
+##' \item \code{plot}: ggplot object.
+##' }
+
 
 ## * autoplot.lmm (code)
 ##' @rdname autplot

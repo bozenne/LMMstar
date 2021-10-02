@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: sep 30 2021 (15:48) 
+## Last-Updated: okt  1 2021 (17:01) 
 ##           By: Brice Ozenne
-##     Update #: 87
+##     Update #: 88
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -46,6 +46,8 @@
 #' \item type.information [character]: Should the expected or observed information (\code{"expected"} or \code{"observed"}) be used to perform statistical inference? Used by \code{lmm}, \code{anova} and \code{confint}.
 #' }
 #'
+#' @return A list containing the default options.
+#' 
 #' @export
 LMMstar.options <- function(..., reinitialise = FALSE){
   

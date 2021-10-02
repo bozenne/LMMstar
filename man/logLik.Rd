@@ -21,7 +21,7 @@
 \item{...}{Not used. For compatibility with the generic method.}
 }
 \value{
-A numeric value
+A numeric value (total logLikelihood) or a vector of numeric values, one for each cluster (cluster specific logLikelihood).
 }
 \description{
 Extract or compute the log-likelihood of a multivariate gaussian model.

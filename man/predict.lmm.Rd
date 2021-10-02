@@ -55,8 +55,7 @@ dL <- sampleRem(100, n.times = 3, format = "long")
 
 ## fit Linear Mixed Model
 eUN.lmm <- lmm(Y ~ visit + X1 + X2 + X5,
-               repetition = ~visit|id, structure = "UN", data = dL,
-               df = FALSE)
+               repetition = ~visit|id, structure = "UN", data = dL)
 
 ## prediction
 newd <- data.frame(X1 = 1, X2 = 2, X5 = 3, visit = factor(1:3, levels = 1:3))
@@ -72,9 +71,4 @@ newd.d3 <- cbind(newd, Y = c(1,NA,NA))
 predict(eUN.lmm, newdata = newd.d3, keep.newdata = TRUE, type = "dynamic")
 newd.d4 <- cbind(newd, Y = c(1,1,NA))
 predict(eUN.lmm, newdata = newd.d4, keep.newdata = TRUE, type = "dynamic")
-
-## with Student's t-distribution
-\dontrun{
-predict(eUN.lmm, newdata = data.frame(X1 = 1, X2 = 2, X5 = 3), df = TRUE)
-}
 }

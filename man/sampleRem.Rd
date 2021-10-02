@@ -35,6 +35,9 @@ sampleRem(
 
 \item{latent}{[logical] Should the latent variable be output?}
 }
+\value{
+a data.frame
+}
 \description{
 Sample longuitudinal data with covariates
 }

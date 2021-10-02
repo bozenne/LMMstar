@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: sep 30 2021 (12:32) 
+## Last-Updated: okt  2 2021 (17:47) 
 ##           By: Brice Ozenne
-##     Update #: 433
+##     Update #: 455
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -68,16 +68,14 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
 
     ## ** extract or recompute score
     if(is.null(data) && is.null(p) && (indiv == FALSE) && test.notransform){
-        design <- x$design ## useful in case of NA
-        out <- x$score
-        if(transform.names && !is.null(x$reparametrize$newname)){
-            names(out)[match(names(x$reparametrize$p),names(out))] <- x$reparametrize$newname
-        }
-        if("mean" %in% effects == FALSE){
-            out <- out[x$param$type!="mu"]
-        }else if("variance" %in% effects == FALSE && "correlation" %in% effects == FALSE){
-            out <- out[x$param$type=="mu"]
-        }
+            keep.name <- stats::setNames(names(coef(x, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE)),
+                                                     names(coef(x, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)))    
+
+            design <- x$design ## useful in case of NA
+            out <- x$score[keep.name]
+            if(transform.names){
+                names(out) <- names(keep.name)
+            }
     }else{
 
         test.precompute <- !is.null(x$design$precompute.XX) && !indiv
@@ -147,43 +145,45 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
     n.mucoef <- length(name.mucoef)
     n.varcoef <- lapply(name.varcoef, length)
     name.allvarcoef <- unique(unlist(name.varcoef))
-    n.allcoef <- length(name.allcoef)
     U.pattern <- names(dOmega)
     n.pattern <- length(U.pattern)
 
     ## ** prepare output
-    if("mean" %in% effects == FALSE){ ## compute information only for variance - correlation parameters
-        if(test.loopIndiv){
-            Score <- matrix(0, nrow = n.cluster, ncol = length(name.allvarcoef),
-                            dimnames = list(NULL, name.allvarcoef))
-        }else{
-            Score <- stats::setNames(rep(0, length(name.allvarcoef)), name.allvarcoef)
-        }
-        test.vcov <- TRUE
-        test.mean <- FALSE
-        if(REML && indiv){
-            stop("Not possible to compute individual score for variance and/or correlation coefficients when using REML.\n")
-        }
-    }else if("variance" %in% effects == FALSE && "correlation" %in% effects == FALSE){ ## compute information only for mean parameters
-        if(test.loopIndiv){
-            Score <- matrix(0, nrow = n.cluster, ncol = n.mucoef,
-                            dimnames = list(NULL, name.mucoef))
-        }else{
-            Score <- stats::setNames(rep(0, n.mucoef), name.mucoef)
-        }
+    name.effects <- attr(effects,"original.names")
+    n.effects <- length(name.effects)
+    if(test.loopIndiv){
+        Score <- matrix(0, nrow = n.cluster, ncol = n.effects,
+                        dimnames = list(NULL, name.effects))
+    }else{
+        Score <- stats::setNames(rep(0, n.effects), name.effects)
+    }
+
+    ## restrict to relevant parameters
+    if(("variance" %in% effects == FALSE) && ("correlation" %in% effects == FALSE)){ ## compute score only for mean parameters
         test.vcov <- FALSE
         test.mean <- TRUE
-    }else{ ## compute information only for all parameters
-        if(test.loopIndiv){
-            Score <- matrix(0, nrow = n.cluster, ncol = n.allcoef,
-                            dimnames = list(NULL, name.allcoef))
-        }else{
-            Score <- stats::setNames(rep(0, n.allcoef), name.allcoef)
-        }
-        test.vcov <- TRUE
-        test.mean <- TRUE
+    }else{
         if(REML && indiv){
             stop("Not possible to compute individual score for variance and/or correlation coefficients when using REML.\n")
+        }
+        if(("variance" %in% effects == FALSE) || ("correlation" %in% effects == FALSE)){
+            name.varcoef <- stats::setNames(lapply(U.pattern,function(iPattern){intersect(name.effects,name.varcoef[[iPattern]])}),
+                                     U.pattern)
+            n.varcoef <- lapply(name.varcoef, length)
+            name.allvarcoef <- unique(unlist(name.varcoef))
+        }
+        if("mean" %in% effects == FALSE){ ## compute score only for variance and/or correlation parameters
+            if(REML && indiv){
+                stop("Not possible to compute individual score for variance and/or correlation coefficients when using REML.\n")
+            }
+
+            test.vcov <- TRUE
+            test.mean <- FALSE
+
+        }else{ ## compute score all parameters
+     
+            test.vcov <- TRUE
+            test.mean <- TRUE
         }
     }
 

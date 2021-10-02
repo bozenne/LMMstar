@@ -42,6 +42,12 @@
 
 \item{...}{Not used. For compatibility with the generic method.}
 }
+\value{
+A list with two elements \itemize{
+\item \code{data}: data used to create the graphical display.
+\item \code{plot}: ggplot object.
+}
+}
 \description{
 Graphical Display For Linear Mixed Models
 }

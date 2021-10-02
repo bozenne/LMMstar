@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: sep 27 2021 (21:05) 
+## Last-Updated: okt  1 2021 (17:06) 
 ##           By: Brice Ozenne
-##     Update #: 197
+##     Update #: 198
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -64,7 +64,7 @@
 ##' dL <- sampleRem(100, n.times = 3, format = "long")
 ##' 
 ##' ## fit Linear Mixed Model
-##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
+##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL)
 ##'
 ##' ## residuals
 ##' residuals(eUN.lmm, format = "long", type = c("normalized","pearson"))

@@ -19,19 +19,6 @@ This dataset is in the long format (i.e. one line per measurement).
 \item swabs number of times the swab measurement was positive.
 }
 }
-\examples{
-\dontrun{
-swabsL <- read.table("inst/dataTXT/swabs.txt", header = TRUE, na.string = ".")
-swabsL$family <- as.factor(swabsL$family)
-swabsL$crowding <- factor(swabsL$crowding, 
-            levels = c("uncrow","crow","overcrow"))
-swabsL$name <- factor(swabsL$name,
-   levels = c("mother","father", "child1","child2","child3"))
-swabsL <- swabsL[order(swabsL$crowding,swabsL$family,swabsL$name),]
-save(swabsL, file = "data/swabsL.rda")
-str(swabsL)
-}
-}
 \references{
 TODO
 }

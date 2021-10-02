@@ -1260,21 +1260,21 @@ when setting the argument =indiv= to =TRUE=.
 
 \bigskip
 
-A possible simplification is to use the expected hessian. Indeed for
+A possible simplification is to use the expected hessian at the maximum likelihood. Indeed for
 any deterministic matrix \(A\):
 - \(\Esp[A \trans{(\VY_i-\mu(\Vparam,\VX_i))}|\VX_i] = 0\)
 - \(\Esp[(\VY_i-\mu(\Vparam,\VX_i)) A \trans{(\VY_i-\mu(\Vparam,\VX_i))}||\VX_i] = tr(A \Var(\VY_i-\mu(\Vparam,\VX_i)))\)
-Leading to:
+when \(\Esp[\VY_i-\mu(\Vparam,\VX_i)]=0\). This leads to:
 #+BEGIN_EXPORT LaTeX
-\begin{align*}
- & \Esp[\Hessian(\theta,\theta^{\prime})|\VX] \\
- &= \textcolor{\darkred}{ \frac{1}{2} tr \left( \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i\right)^{-1}  \left\{ \sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \left( \ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] - 2 \dpartial[\Omega_i(\Vparam)][\theta]  \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}]\right) \Omega_i(\Vparam)^{-1} \trans{\VX}_i \right.  \right.}  \\
- & \textcolor{\darkred}{ \left. \left. \qquad +  \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i \right) \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \right\} \right) } \\
+\begin{align}
+ & \Esp[\Hessian(\theta,\theta^{\prime})|\VX] \notag\\ 
+ &= \textcolor{\darkred}{ \frac{1}{2} tr \left( \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i\right)^{-1}  \left\{ \sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \left( \ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] - 2 \dpartial[\Omega_i(\Vparam)][\theta]  \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}]\right) \Omega_i(\Vparam)^{-1} \trans{\VX}_i \right.  \right.} \notag \\
+ & \textcolor{\darkred}{ \left. \left. \qquad +  \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i \right) \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \right\} \right) } \notag\\
  & + \sum_{i=1}^n \left( \textcolor{\darkblue}{
 - \frac{1}{2} tr\left(\Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta]\right)
  - \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \trans{\dpartial[\mu(\Vparam,\VX_i)][\theta^{\prime}]}
- } \right) \\
-\end{align*}
+ } \right) \label{eq:expectedInfo} 
+\end{align}
 #+END_EXPORT
 
 This is what =information= output when the argument =type.information=
@@ -1306,6 +1306,39 @@ Using a first order Taylor expansion we can approximate the variance term as:
   select the element relative to \(\beta\) in the first derivative of
   the information matrix, and \(\dpartial[.][\Vparam]\) denotes the
   vector of derivatives with respect to all model coefficients.
+
+\bigskip
+
+The derivative of the information matrix (i.e. negative hessian) can
+then be computed using numerical derivatives or using analytical
+formula. To simplify the derivation of the formula we will only derive
+them at the maximum likelihood, i.e. when
+\(\Esp\left[\dpartial[\Hessian(\theta,\theta^{\prime}|\VX)][\theta^{\prime\prime}]\right]=\frac{\partial
+\Esp[\Hessian(\theta,\theta^{\prime}|\VX)]}{\partial
+\theta^{\prime\prime}}\) where the expectation is taken over
+\(\VX\). We can therefore take the derivative of formula
+eqref:eq:expectedInfo. We first note that its derivative with respect
+to the mean parameters is 0. So we just need to compute the derivative
+with respect to a variance parameter \(\theta^{\prime\prime}\):
+#+BEGIN_EXPORT LaTeX
+\begin{align*}
+ & \frac{\partial\Esp[\Hessian(\theta,\theta^{\prime})|\VX]}{\partial \theta^{\prime\prime}} \notag\\ 
+% &= \textcolor{\darkred}{ \frac{1}{2} tr \left( \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i\right)^{-1}  \left\{ \sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \left( \ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] - 2 \dpartial[\Omega_i(\Vparam)][\theta]  \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}]\right) \Omega_i(\Vparam)^{-1} \trans{\VX}_i \right.  \right.} \notag \\
+% & \textcolor{\darkred}{ \left. \left. \qquad +  \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i \right) \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \right\} \right) } \notag\\
+ & + \sum_{i=1}^n \left( \textcolor{\darkblue}{
+- \frac{1}{2} tr\left(
+-2\Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta] \right. } \right. \\
+& \qquad \qquad \textcolor{\darkblue}{\left. + \Omega_i(\Vparam)^{-1} \ddpartial[\Omega_i(\Vparam)][\theta^{\prime}][\theta^{\prime\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta]
++ \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime\prime}]
+\right)} \\
+& \qquad \qquad  \textcolor{\darkblue}{\left. + \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime\prime}] \Omega_i(\Vparam)^{-1}   \trans{\dpartial[\mu(\Vparam,\VX_i)][\theta^{\prime}]}
+ \right)}
+\end{align*}
+#+END_EXPORT
+
+
+
+
 
 \clearpage
   

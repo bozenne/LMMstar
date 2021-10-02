@@ -22,12 +22,6 @@ This dataset is in the long format (i.e. one line per measurement).
 \item aldo ??
 }
 }
-\examples{
-\dontrun{
-data("potassiumSingleL")
-str(potassiumSingleL)
-}
-}
 \references{
 Dreier et al. Effect of increased potassium intake on the reninangiotensinaldosterone system and subcutaneous resistance arteries: a randomized crossover study,
 Nephrol Dial Transplant (2020) 110. doi: 10.1093/ndt/gfaa114

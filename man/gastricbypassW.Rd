@@ -24,15 +24,6 @@ This dataset is in the wide format (i.e. one line per patient).
 \item glucagonAUC4 Glucagon value 3 months after surgery.
 }
 }
-\examples{
-\dontrun{
-gastricbypassW <- read.table("inst/dataTXT/gastricbypass.txt", header = TRUE, na.string = ".")
-gastricbypassW$id <- as.factor(gastricbypassW$id)
-save(gastricbypassW, file = "data/gastricbypassW.rda")
-
-str(gastricbypassW)
-}
-}
 \references{
 The effect of Roux-en-Y gastric bypass surgery on the gut mucosal gene expression profile and circulating gut hormones. \url{https://easddistribute.m-anage.com/from.storage?image=4iBH9mRQm1kfeEHULC2CxovdlyCtA1EHeVDdoffnZrAUGG9SHTO-U4ItnLU078eVkF1ZUZgYTy7THlTW3KSgFA2}
 }

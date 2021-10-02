@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: sep 20 2021 (17:04) 
+## Last-Updated: okt  1 2021 (17:07) 
 ##           By: Brice Ozenne
-##     Update #: 49
+##     Update #: 53
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,6 +18,7 @@
 ## * calc_dOmega
 ##' @title First Derivative of the Residual Variance-Covariance Matrix
 ##' @description First derivative of the residual variance-covariance matrix for given parameter values.
+##' @noRd
 ##'
 ##' @param structure [structure]
 ##' @param param [named numeric vector] values of the parameters.
@@ -27,7 +28,6 @@
 ##' @keywords internal
 ##' 
 ##' @examples
-##' \dontrun{
 ##' data(gastricbypassL, package = "LMMstar")
 ##' gastricbypassL$gender <- c("M","F")[as.numeric(gastricbypassL$id) %% 2+1]
 ##' dd <- gastricbypassL[!duplicated(gastricbypassL[,c("time","gender")]),]
@@ -62,7 +62,6 @@
 ##' 
 ##' .calc_dOmega(Sun4, param = param4)
 ##' .calc_dOmega(Sun24, param = param24)
-##' }
 `.calc_dOmega` <-
     function(object, param, Omega, Jacobian) UseMethod(".calc_dOmega")
 

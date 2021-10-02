@@ -24,10 +24,6 @@ This dataset is in the wide format (i.e. one line per patient).
 \item aldo2 ??
 }
 }
-\examples{
-data(potassiumSingleW)
-str(potassiumSingleW)
-}
 \references{
 Dreier et al. Effect of increased potassium intake on the reninangiotensinaldosterone system and subcutaneous resistance arteries: a randomized crossover study,
 Nephrol Dial Transplant (2020) 110. doi: 10.1093/ndt/gfaa114

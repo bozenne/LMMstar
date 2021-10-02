@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 10 2021 (15:57) 
 ## Version: 
-## Last-Updated: aug 23 2021 (17:25) 
+## Last-Updated: okt  1 2021 (17:03) 
 ##           By: Brice Ozenne
-##     Update #: 19
+##     Update #: 20
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -23,7 +23,9 @@
 ##' @param ... Not used. For compatibility with the generic method.
 ##' 
 ##' @name estfun
-##'
+##' 
+##' @return A matrix containing the score function for each model parameter (columns) relative to each cluster (rows).
+##' 
 ##' @examples
 ##' ## simulate data in the long format
 ##' set.seed(10)

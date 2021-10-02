@@ -24,24 +24,6 @@ This dataset is in the long format (i.e. one line per measurement).
 \item weigth7 weight (in g) of the pig at the end of week 7 (after treatment).
 }
 }
-\examples{
-\dontrun{
-data("vitaminW")
-vitaminL <- reshape2::melt(vitaminW, id.vars = c("group","animal"),
-                        measure.vars = paste0("weight",c(1,3:7)),
-                        value.name = c("weight"), variable.name = "visit")
-vitaminL$visit <- as.factor(as.numeric(as.factor(sapply(vitaminL$visit, gsub,
-                             pattern = "weight", replacement = ""))))
-vitaminL$time <- sapply(as.character(vitaminL$visit), switch,
-                            "1" = 1,
-                            "2" = 3,
-                            "3" = 4,
-                            "4" = 5,
-                            "5" = 6,
-                            "6" = 7)
-save(vitaminL, file = "data/vitaminL.rda")
-}
-}
 \references{
 Crowder and Hand (1990, p. 27) Analysis of Repeated Measures.
 }

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (14:58) 
 ## Version: 
-## Last-Updated: sep  8 2021 (17:57) 
+## Last-Updated: okt  1 2021 (16:51) 
 ##           By: Brice Ozenne
-##     Update #: 225
+##     Update #: 229
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -27,10 +27,9 @@
 #' Can be coefficients relative to the expectation of the outcome (\code{"mean"} or \code{"fixed"})
 #' or to the variance-covariance structure of the residuals (\code{"variance"}).
 #' @param format [character] How the output should be shaped.
-#' Can be \code{"default"}, \code{"publish"}, or \code{"SAS"}.
+#' Can be \code{"default"}, \code{"estimate"}, \code{"publish"}, or \code{"SAS"}.
 #' @param add.type [logical] Should the type of parameter be added.
 #' @param ... argument passed to the \code{publish} function (when \code{format="publish"}).
-#'
 #' 
 #' @details Argument \bold{format}: \cr
 #' Setting the argument to \code{"default"} outputs a data.frame with columns type (mean or covariance),
@@ -38,6 +37,8 @@
 #'
 #' Setting the argument to \code{"publish"} outputs a data.frame with columns Variable, Units Coefficients, CI, and p-value.
 #' Call the function \code{publish} from the \code{publish} package.
+#' 
+#' Setting the argument to \code{"estimate"} outputs a vector containing the estimated parameter values.
 #'                                     
 #' Argument \bold{add.type}: \cr
 #' When \code{TRUE}, there can be 4 types of parameters in the output: \itemize{
@@ -47,6 +48,9 @@
 #' \item \code{"correlation"}: correlation coefficient between the residuals.
 #' \item \code{"std.random"}: standard error of the random effects.
 #' }
+#'
+#' @return A data.frame or a vector (see details section)
+#' 
 #' @examples
 #' data(gastricbypassL, package = "LMMstar")
 #' library(nlme)

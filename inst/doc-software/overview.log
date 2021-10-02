@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.23 (MiKTeX 21.8) (preloaded format=pdflatex 2021.8.26)  30 SEP 2021 16:01
+This is pdfTeX, Version 3.141592653-2.6-1.40.23 (MiKTeX 21.8) (preloaded format=pdflatex 2021.8.26)  30 SEP 2021 19:12
 entering extended mode
 **./overview.tex
 (overview.tex
@@ -1413,10 +1413,10 @@ Package rerunfilecheck Info: File `overview.out' has not changed.
 (rerunfilecheck)             Checksum: E6C1B6062D4CFCF0D5E637D8374AAA37;3751.
  ) 
 Here is how much of TeX's memory you used:
- 30639 strings out of 478868
- 539411 string characters out of 2856724
- 1256748 words of memory out of 3000000
- 47625 multiletter control sequences out of 15000+600000
+ 30641 strings out of 478868
+ 539440 string characters out of 2856724
+ 1256782 words of memory out of 3000000
+ 47626 multiletter control sequences out of 15000+600000
  500004 words of font info for 122 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  114i,17n,117p,605b,1819s stack positions out of 5000i,500n,10000p,200000b,80000s
@@ -1429,8 +1429,8 @@ pdfTeX warning (dest): name{Hfootnote.2} has been referenced but does not exist
 pdfTeX warning (dest): name{Hfootnote.1} has been referenced but does not exist
 , replaced by a fixed one
 
-{C:/Program Files/MiKTeX 2.9/fonts/enc/dvips/lm/lm-rm.enc}{C:/Program Files/MiK
-TeX 2.9/fonts/enc/dvips/lm/lm-mathsy.enc}{C:/Program Files/MiKTeX 2.9/fonts/enc
+{C:/Program Files/MiKTeX 2.9/fonts/enc/dvips/lm/lm-mathsy.enc}{C:/Program Files
+/MiKTeX 2.9/fonts/enc/dvips/lm/lm-rm.enc}{C:/Program Files/MiKTeX 2.9/fonts/enc
 /dvips/lm/lm-mathit.enc}{C:/Program Files/MiKTeX 2.9/fonts/enc/dvips/lm/lm-math
 ex.enc}{C:/Program Files/MiKTeX 2.9/fonts/enc/dvips/lm/lm-ec.enc}{C:/Program Fi
 les/MiKTeX 2.9/fonts/enc/dvips/lm/lm-ts1.enc}<C:/Program Files/MiKTeX 2.9/fonts
@@ -1450,16 +1450,17 @@ public/lm/lmr17.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmr5.pfb
 MiKTeX 2.9/fonts/type1/public/lm/lmr8.pfb><C:/Program Files/MiKTeX 2.9/fonts/ty
 pe1/public/lm/lmri12.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lms
 y10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmsy5.pfb><C:/Progra
-m Files/MiKTeX 2.9/fonts/type1/public/lm/lmsy7.pfb><C:/Program Files/MiKTeX 2.9
-/fonts/type1/public/lm/lmsy8.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/publi
-c/lm/lmtt10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmtt12.pfb><
-C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/symbols/msam10.pfb><C:/
-Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/symbols/msam5.pfb><C:/Prog
-ram Files/MiKTeX 2.9/fonts/type1/public/amsfonts/symbols/msam7.pfb><C:/Program 
-Files/MiKTeX 2.9/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on overview.pdf (29 pages, 557256 bytes).
+m Files/MiKTeX 2.9/fonts/type1/public/lm/lmsy6.pfb><C:/Program Files/MiKTeX 2.9
+/fonts/type1/public/lm/lmsy7.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/publi
+c/lm/lmsy8.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmtt10.pfb><C
+:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmtt12.pfb><C:/Program Files/M
+iKTeX 2.9/fonts/type1/public/amsfonts/symbols/msam10.pfb><C:/Program Files/MiKT
+eX 2.9/fonts/type1/public/amsfonts/symbols/msam5.pfb><C:/Program Files/MiKTeX 2
+.9/fonts/type1/public/amsfonts/symbols/msam7.pfb><C:/Program Files/MiKTeX 2.9/f
+onts/type1/public/amsfonts/symbols/msbm10.pfb>
+Output written on overview.pdf (29 pages, 564924 bytes).
 PDF statistics:
- 731 PDF objects out of 1000 (max. 8388607)
- 280 named destinations out of 1000 (max. 500000)
+ 738 PDF objects out of 1000 (max. 8388607)
+ 281 named destinations out of 1000 (max. 500000)
  227 words of extra memory for PDF output out of 10000 (max. 10000000)
 

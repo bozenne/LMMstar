@@ -22,14 +22,6 @@ This dataset is in the wide format (i.e. one line per patient).
 \item vasC VAS-score when using a control treatment with demineralized water.
 }
 }
-\examples{
-\dontrun{
-vasscoresW <- read.table("inst/dataTXT/vasscores.txt", header = TRUE, na.string = ".")
-vasscoresW$id <- factor(vasscoresW$id)
-vasscoresW$group <- factor(vasscoresW$group)
-save(vasscoresW, file = "data/vasscoresW.rda")
-}
-}
 \references{
 TODO
 }

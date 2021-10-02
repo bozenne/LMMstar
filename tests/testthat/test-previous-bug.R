@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: sep 24 2021 (14:07) 
+## Last-Updated: okt  2 2021 (17:10) 
 ##           By: Brice Ozenne
-##     Update #: 75
+##     Update #: 78
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -79,7 +79,7 @@ test_that("lmm - error due to minus sign in levels of a categorical variable",{
                  data=gastricbypassL,
                  na.action = na.omit,
                  correlation = corCompSymm(form=~time|id))
-    ## expect_equal(names(coef(eCS.lmm, effects = "mean")), c("(Intercept)", "time1 week before surgery", "time1 week after surgery", "time3 months after surgery"))
+    expect_equal(as.double(logLik(e.gls)), logLik(eCS.lmm), tol = 1e-5)
     expect_equal(coef(e.gls), coef(eCS.lmm, effects = "mean"), tol = 1e-5)
 
     ## previously a bug when asking the confindence interval for sd and only for variance effects
@@ -90,16 +90,17 @@ test_that("lmm - error due to minus sign in levels of a categorical variable",{
                    structure = "UN")
 
     GS <- data.frame("estimate" = c(8.23783313, 8.07975612, 8.7153242, 8.40737066), 
-                     "se" = c(0.16221473, 0.16264897, 0.16418598, 0.16223679), 
-                     "statistic" = c(NA, NA, NA, NA), 
-                     "df" = c(4.77200085, 11.7952058, 16.73655236, 17.1791855), 
-                     "lower" = c(7.81478265, 7.72469084, 8.36850623, 8.06535271), 
-                     "upper" = c(8.66088361, 8.43482139, 9.06214217, 8.74938861), 
-                     "null" = c(NA, NA, NA, NA), 
-                     "p.value" = c(NA, NA, NA, NA))
+                     "se" = c(0.16221473, 0.16265549, 0.16425097, 0.16223679), 
+                     "df" = c(4.77147491, 11.80714451, 16.73482229, 17.18382852), 
+                     "lower" = c(7.81476781, 7.72471717, 8.36836618, 8.06535968), 
+                     "upper" = c(8.66089845, 8.43479507, 9.06228223, 8.74938164))
+
+
     test <- confint(eUN.lmm, transform.k = "logsd", effects = "variance", backtransform = FALSE,
                     columns = c("estimate","se","df","lower","upper"))
-    
+    ## test2 <- confint(eUN.lmm, transform.k = "logsd", effects = "all", backtransform = FALSE,
+    ##                 columns = c("estimate","se","df","lower","upper"))
+
     expect_equal(test$estimate, GS$estimate, tol = 1e-5)
     expect_equal(test$se, GS$se, tol = 1e-5)
     expect_equal(test$df, GS$df, tol = 1e-1)

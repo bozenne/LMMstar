@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: sep 30 2021 (12:00) 
+## Last-Updated: sep 30 2021 (19:26) 
 ##           By: Brice Ozenne
-##     Update #: 1241
+##     Update #: 1247
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -733,15 +733,17 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
 ## ** .unorderedPairs
 ## adapted from RecordLinkage package
 ## form all combinations
+## .unorderedPairs(1:5)
 .unorderedPairs <- function(x, distinct = FALSE){
     n <- length(x)
     ls <- lapply(1:n, function(k){ rbind(x[k], x[k:n])})
-    out <- array(unlist(ls), dim = c(2, n * (n + 1)/2))
+    out <- do.call(cbind,ls)##array(unlist(ls), dim = c(2, n * (n + 1)/2))
     if(distinct){
         out <- out[,apply(out,2,function(iCol){all(!duplicated(iCol))}),drop=FALSE]
     }
     return(out)
 }
+
 
 
 ##----------------------------------------------------------------------

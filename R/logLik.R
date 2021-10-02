@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: sep 23 2021 (20:49) 
+## Last-Updated: okt  1 2021 (17:02) 
 ##           By: Brice Ozenne
-##     Update #: 229
+##     Update #: 232
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -36,7 +36,7 @@
 ##'
 ##' @details \bold{indiv}: only relevant when using maximum likelihood. Must be \code{FALSE} when using restricted maximum likelihood.
 ##' 
-##' @return A numeric value
+##' @return A numeric value (total logLikelihood) or a vector of numeric values, one for each cluster (cluster specific logLikelihood).
 ##' 
 
 ## * logLik

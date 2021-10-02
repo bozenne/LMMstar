@@ -22,15 +22,6 @@ This dataset is in the wide format (i.e. one line per patient).
 \item child3 number of times the swab measurement was positive for the third child.
 }
 }
-\examples{
-\dontrun{
-library(reshape2)
-data(swabsL)
-swabsW <- dcast(swabsL, formula = crowding+family~name, value.var = "swabs")
-save(swabsW, file = "data/swabsW.rda")
-str(swabsW)
-}
-}
 \references{
 Grundy SM, Lan SP, Lachin J. The effects of chenodiol on biliary lipids and their association with gallstone dissolution in the National Cooperative Gallstone Study (SWABS). J Clin Invest. 1984 Apr;73(4):1156-66. doi: 10.1172/JCI111301.
 }
