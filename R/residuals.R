@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: okt  1 2021 (17:06) 
+## Last-Updated: Oct  4 2021 (22:30) 
 ##           By: Brice Ozenne
-##     Update #: 198
+##     Update #: 200
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -309,7 +309,8 @@ residuals.lmm <- function(object, type = "response", format = "long",
                     m <- NCOL(MW.res)-1
                     sqrtm.round <- ceiling(sqrt(m))
                     sqrtm.round2 <- ceiling(m/sqrtm.round)
-                    
+                    oldpar <- graphics::par(no.readonly = TRUE)   
+                    on.exit(graphics::par(oldpar))            
                     graphics::par(mfrow = c(sqrtm.round,sqrtm.round2))
                     lapply(1:m,function(iCol){qqtest::qqtest(stats::na.omit(MW.res[,iCol+1]), main = paste0(object$time$var,": ",colnames(MW.res)[iCol+1]," (",label.residual,")"))})
                 }
