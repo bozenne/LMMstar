@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: okt  6 2021 (14:39) 
+## Last-Updated: okt  8 2021 (18:04) 
 ##           By: Brice Ozenne
-##     Update #: 206
+##     Update #: 201
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -312,10 +312,10 @@ residuals.lmm <- function(object, type = "response", format = "long",
                     sqrtm.round <- ceiling(sqrt(m))
                     sqrtm.round2 <- ceiling(m/sqrtm.round)
 
-                    oldpar <- graphics::par(no.readonly = TRUE)    ## make sure to not modify user default when exiting the function
+                    oldpar <- graphics::par(no.readonly = TRUE)   
                     on.exit(graphics::par(oldpar))            
-
                     graphics::par(mfrow = c(sqrtm.round,sqrtm.round2))
+
                     lapply(1:m,function(iCol){qqtest::qqtest(stats::na.omit(MW.res[,iCol+1]), main = paste0(object$time$var,": ",colnames(MW.res)[iCol+1]," (",label.residual,")"))})
                 }
             }else if(plot == "correlation"){
