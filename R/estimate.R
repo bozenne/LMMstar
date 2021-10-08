@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: okt  2 2021 (14:38) 
+## Last-Updated: okt  4 2021 (14:14) 
 ##           By: Brice Ozenne
-##     Update #: 314
+##     Update #: 315
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -334,7 +334,7 @@
         ## ** test
         test.i <- as.vector( (-logLik.newvalue) <= (-logLik.value) + c1 * alpha * update.value %*% (-score.value) )
         ## test.ii <- as.vector(update.value %*% (-score.newvalue) <= - c2 * update.value %*% (-score.value))
-        if(test.i){
+        if(!is.na(test.i) && test.i){
             break
         }else{
             alpha <- alpha / 2

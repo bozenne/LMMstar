@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: sep 30 2021 (19:26) 
+## Last-Updated: okt  6 2021 (14:39) 
 ##           By: Brice Ozenne
-##     Update #: 1247
+##     Update #: 1249
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -420,8 +420,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
     rmX <- unlist(ls.rmX)
     if(length(rmX)>0){
         warning("Constant values in the design matrix in interactions \"",paste(names(ls.rmX), collapse = "\" \""),"\"\n ",
-                "Coefficients \"",paste(rmX, collapse = "\" \""),"\" will be removed from the design matrix. \n",
-                "Consider defining manually the interaction, e.g. via droplevels(interaction(.,.)) to avoid this warning. \n")
+                "Coefficients \"",paste(rmX, collapse = "\" \""),"\" will be removed from the design matrix. \n")
         X.old <- X
         test.keep <- colnames(X.old) %in% setdiff(colnames(X.old),rmX)
         X <- X.old[,test.keep]

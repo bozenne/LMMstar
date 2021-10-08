@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: okt  1 2021 (17:06) 
+## Last-Updated: okt  6 2021 (14:39) 
 ##           By: Brice Ozenne
-##     Update #: 198
+##     Update #: 206
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -72,6 +72,7 @@
 ##' residuals(eUN.lmm, format = "wide", plot = "correlation")
 ##' residuals(eUN.lmm, format = "wide", type = "normalized")
 ##' residuals(eUN.lmm, format = "wide", type = "scaled")
+##' 
 
 
 ## * residuals.lmm (code)
@@ -220,16 +221,16 @@ residuals.lmm <- function(object, type = "response", format = "long",
         if(!is.null(data) || !is.null(p)){
             fitted <- X %*% beta
             res <-  as.vector(Y - fitted)
-            M.res <- matrix(NA, nrow = NROW(X), ncol = length(type.residual), dimnames = list(NULL, type.residual))
+            M.res <- matrix(NA, nrow = NROW(X), ncol = length(type.residual), dimnames = list(NULL, name.residual))
         }else{
             fitted <- fitted(object)
             res <- as.vector(object$residuals)
-            M.res <- matrix(NA, nrow = NROW(object$residuals), ncol = length(type.residual), dimnames = list(NULL, type.residual))
+            M.res <- matrix(NA, nrow = NROW(object$residuals), ncol = length(type.residual), dimnames = list(NULL, name.residual))
         }
 
         ## normalization
         if ("response" %in% type.residual) {
-            M.res[,"response"] <- res
+            M.res[,"r.response"] <- res
         }
         if (any(type.residual %in% c("studentized", "pearson", "normalized", "normalized2", "scaled"))) {
             for(iId in 1:n.cluster){ ## iId <- 7
@@ -241,27 +242,27 @@ residuals.lmm <- function(object, type = "response", format = "long",
                 for(iType in type.residual){
                     if("pearson" %in% type.residual){
                         resnorm <- iResidual * sqrtPrecision$pearson[[index.variance[iId]]]
-                        M.res[iIndex,"pearson"] <- resnorm[order(iOrder)]
+                        M.res[iIndex,"r.pearson"] <- resnorm[order(iOrder)]
                     }
                     if("studentized" %in% type.residual){
                         iX <- X[iIndex[iOrder],,drop=FALSE]
                         iQ <- iX %*% tX.precision.X.M1 %*% t(iX)
                         resnorm <- iResidual / sqrt(diag(Omega[[index.variance[iId]]] - iQ))
-                        M.res[iIndex,"studentized"] <- resnorm[order(iOrder)]
+                        M.res[iIndex,"r.studentized"] <- resnorm[order(iOrder)]
                     }
                     if("normalized" %in% type.residual){
                         ## resnorm <- as.double(sqrtPrecision$normalized[[index.variance[iId]]] %*% iResidual)
                         resnorm <- as.double(iResidual %*% sqrtPrecision$normalized[[index.variance[iId]]])
-                        M.res[iIndex,"normalized"] <- resnorm[order(iOrder)]
+                        M.res[iIndex,"r.normalized"] <- resnorm[order(iOrder)]
                     }
                     if("normalized2" %in% type.residual){
                         iX <- X[iIndex[iOrder],,drop=FALSE]
                         iQ <- iX %*% tX.precision.X.M1 %*% t(iX)
                         resnorm <- as.double(iResidual %*% t(chol(solve(Omega[[index.variance[iId]]] - iQ))))
-                        M.res[iIndex,"normalized2"] <- resnorm[order(iOrder)]
+                        M.res[iIndex,"r.normalized2"] <- resnorm[order(iOrder)]
                     }
                     if("scaled" %in% type.residual){
-                        M.res[iIndex[iOrder][1],"scaled"] <- iResidual[1]/attr(Omega[[index.variance[iId]]],"sd")[1]
+                        M.res[iIndex[iOrder][1],"r.scaled"] <- iResidual[1]/attr(Omega[[index.variance[iId]]],"sd")[1]
                         if(iN.time>1){
                             for(iTime in 2:iN.time){ ## iTime <- 2
                                 iVar <- Omega[[index.variance[iId]]][iTime,iTime]
@@ -271,7 +272,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
                                 
                                 num <- iResidual[iTime] - iOmega_lk %*% as.double(iPrecision_kk %*% iResidual[1:(iTime-1)])
                                 denom <- iVar - as.double(iOmega_lk %*% iPrecision_kk %*% iOmega_kl)
-                                M.res[iIndex[iOrder][iTime],"scaled"] <- num/sqrt(denom) ## issue in term of dimension
+                                M.res[iIndex[iOrder][iTime],"r.scaled"] <- num/sqrt(denom) ## issue in term of dimension
                             }
                         }
                     }
@@ -283,7 +284,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
         if(is.null(match.call()$data) && length(object$index.na)>0){
             inflateNA <-  .addNA(index.na = object$index.na, design = design, time = object$time)
             Msave.res <- M.res
-            M.res <- matrix(NA, nrow = inflateNA$n.allobs, ncol = length(type.residual), dimnames = list(NULL, type.residual))
+            M.res <- matrix(NA, nrow = inflateNA$n.allobs, ncol = length(type.residual), dimnames = list(NULL, name.residual))
             M.res[-object$index.na,] <- Msave.res
 
             level.cluster <- factor(inflateNA$level.cluster, levels = design$cluster$levels)
@@ -296,9 +297,10 @@ residuals.lmm <- function(object, type = "response", format = "long",
         ## plot
         ## 
         if(format=="wide"){
+            
             dfL.res <- data.frame(residuals = as.vector(M.res), cluster = level.cluster, time = level.time)
             MW.res <- reshape2::dcast(data = dfL.res,
-                                      formula = cluster~time, value.var = "residuals")
+                                      formula = cluster~time, value.var = "residuals")            
             if(plot=="qqplot"){
                 if(engine.qqplot=="ggplot2"){
                     dfL.res$time <- paste0(object$time$var,": ", dfL.res$time)
@@ -309,7 +311,10 @@ residuals.lmm <- function(object, type = "response", format = "long",
                     m <- NCOL(MW.res)-1
                     sqrtm.round <- ceiling(sqrt(m))
                     sqrtm.round2 <- ceiling(m/sqrtm.round)
-                    
+
+                    oldpar <- graphics::par(no.readonly = TRUE)    ## make sure to not modify user default when exiting the function
+                    on.exit(graphics::par(oldpar))            
+
                     graphics::par(mfrow = c(sqrtm.round,sqrtm.round2))
                     lapply(1:m,function(iCol){qqtest::qqtest(stats::na.omit(MW.res[,iCol+1]), main = paste0(object$time$var,": ",colnames(MW.res)[iCol+1]," (",label.residual,")"))})
                 }
@@ -337,6 +342,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
             }
 
             if(plot == "none"){
+                names(MW.res)[-1] <- paste0(name.residual,".",names(MW.res)[-1])
                 return(MW.res)
             }else{
                 return(invisible(MW.res))
@@ -360,7 +366,6 @@ residuals.lmm <- function(object, type = "response", format = "long",
             }
 
             if(keep.data){
-                colnames(M.res) <- name.residual
                 out <- cbind(data,M.res)
                 attr(out,"plot") <- attr(M.res,"plot")
             }else if(length(type.residual)==1){

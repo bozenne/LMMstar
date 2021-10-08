@@ -88,4 +88,5 @@ residuals(eUN.lmm, format = "long", type = "all", keep.data = TRUE)
 residuals(eUN.lmm, format = "wide", plot = "correlation")
 residuals(eUN.lmm, format = "wide", type = "normalized")
 residuals(eUN.lmm, format = "wide", type = "scaled")
+
 }
