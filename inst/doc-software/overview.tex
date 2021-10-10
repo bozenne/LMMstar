@@ -1,4 +1,4 @@
-% Created 2021-09-30 to 19:11
+% Created 2021-10-03 Sun 13:22
 % Intended LaTeX compiler: pdflatex
 \documentclass[12pt]{article}
 
@@ -218,7 +218,7 @@ linkcolor=[rgb]{0,0,0.5},
  pdftitle={Overview of the package LMMstar},
  pdfkeywords={},
  pdfsubject={},
- pdfcreator={Emacs 27.2 (Org mode 9.4.4)},
+ pdfcreator={Emacs 26.3 (Org mode 9.4.6)},
  pdflang={English}
  }
 \begin{document}
@@ -325,7 +325,7 @@ LMMstar.options(optimizer = "FS")
 \clearpage
 
 \section{Descriptive statistics}
-\label{sec:org834d55f}
+\label{sec:org2d858ab}
 Mean, standard deviation, and other summary statistic can be computed
 with respect to a categorical variable (typically time) using the
 \texttt{summarize} function:
@@ -351,9 +351,9 @@ print(sss, digits = 3)
 \clearpage
 
 \section{Linear mixed model}
-\label{sec:org7b22a42}
+\label{sec:orgd5a3e88}
 \subsection{Modeling tools}
-\label{sec:org8376f61}
+\label{sec:org163d95b}
 Fit a linear model with \textbf{identity} structure:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -471,7 +471,7 @@ A3_months  318.8573 304.6314 285.8077  280.9323
 \clearpage
 
 \subsection{Model output}
-\label{sec:org873aeb9}
+\label{sec:orgfe522da}
 
 The \texttt{summary} method can be used to display the main information
 relative to the model fit:
@@ -536,7 +536,7 @@ arguments \texttt{df} to \texttt{FALSE} and \texttt{type.information} to \texttt
 calling \texttt{lmm} should lead to a more reasonnable computation time.
 
 \subsection{Extract estimated coefficients}
-\label{sec:orgbdc51c1}
+\label{sec:org0aca142}
 The value of the estimated coefficients can be output using \texttt{coef}:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -563,7 +563,7 @@ sigma:B3_months   sigma:B1_week   sigma:A1_week sigma:A3_months
 \end{verbatim}
 
 \subsection{Extract estimated residual variance-covariance structure}
-\label{sec:org0a37d62}
+\label{sec:org12c90ce}
 
 The method \texttt{getVarCov} can be used to output the covariance structure of the residuals:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -597,7 +597,7 @@ A3_months  344.6236 344.6236  355.3062
 \clearpage
 
 \subsection{Model diagnostic}
-\label{sec:orge13b11b}
+\label{sec:orge289afa}
 
 The method \texttt{residuals} can also be used to extract the residulas in
 the wide format:
@@ -679,7 +679,7 @@ residuals(eCS.lmm, type = "normalized", plot = "correlation", format = "wide",
 
 
 \subsection{Model fit}
-\label{sec:org64bc467}
+\label{sec:orgacc06d9}
 
 The fitted values can be displayed via the \texttt{emmeans} package or using the \texttt{autoplot} method:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -715,10 +715,10 @@ autoplot(eCS.lmm, at = data.frame(glucagon = 10), color = "glucagon")
 \end{lstlisting}
 
 \subsection{Statistical inference}
-\label{sec:orgaaa0710}
+\label{sec:org2a69205}
 
 \subsubsection{Model coefficients}
-\label{sec:org32a8d44}
+\label{sec:org1b4d77d}
 
 The estimated coefficients with their confidence intervals can be accessed via the \texttt{confint} method:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -763,7 +763,7 @@ they uncertainty is by default computed after transformation
 (e.g. \texttt{log}) and then backtransformed. 
 
 \subsubsection{Linear combination of the model coefficients}
-\label{sec:orgc7c9969}
+\label{sec:orge630615}
 
 The \texttt{anova} method can be use to test one or several linear
 combinations of the model coefficients using Wald tests. For instance
@@ -859,7 +859,7 @@ statistic df.num df.denom     p.value
 \clearpage
 
 \subsection{Baseline adjustment}
-\label{sec:org23be3fe}
+\label{sec:orgd701341}
 
 The \texttt{lmm} contains an "experimental" feature to drop non-identifiable
 effects from the model. For instance, let us define two (artifical) groups of
@@ -1045,7 +1045,7 @@ treat22:timeA3_months   -25.51 -30.32 -20.69
 \end{verbatim}
 
 \subsection{Marginal means}
-\label{sec:org9bd340f}
+\label{sec:org11b2466}
 
 The \texttt{lmm} function can be used in conjonction with the \texttt{emmeans}
 package to compute marginal means. Consider the following model:
@@ -1224,7 +1224,7 @@ P value adjustment: sidak method for 4 tests
 \end{verbatim}
 
 \subsection{Predictions}
-\label{sec:orgbdcd763}
+\label{sec:org698cd27}
 
 Two types of predictions can be performed with the \texttt{predict} method:
 \begin{itemize}
@@ -1334,7 +1334,7 @@ as.double(mu2 + Omega_21 * (100 - mu1) / Omega_11)
 \clearpage
 
 \section{Data generation}
-\label{sec:orgd3f6fc5}
+\label{sec:orgf2fd9b3}
 Simulate some data in the wide format:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -1381,7 +1381,7 @@ head(dL)
 \clearpage
 
 \section{Modifying default options}
-\label{sec:org2421006}
+\label{sec:orgce19cfd}
 The \texttt{LMMstar.options} method enable to get and set the default options
 used by the package. For instance, the default option for the information matrix is:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -1410,7 +1410,7 @@ LMMstar.options(reinitialise = TRUE)
 \clearpage
 
 \section{R session}
-\label{sec:orge735119}
+\label{sec:org035d13a}
 Details of the R session used to generate this document:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -1461,7 +1461,7 @@ loaded via a namespace (and not attached):
 \clearpage
 
 \section*{References}
-\label{sec:org7add5eb}
+\label{sec:orgc40c62e}
 \begingroup
 \renewcommand{\section}[2]{}
 
@@ -1487,7 +1487,7 @@ loaded via a namespace (and not attached):
 \section{Likelihood in a linear mixed model}
 \label{SM:likelihood}
 \subsection{Log-likelihood}
-\label{sec:org5a0d187}
+\label{sec:orgd6538c4}
 
 Denote by \(\VY\) a vector of \(m\) outcomes, \(\VX\) a vector of
 \(p\) covariates, \(\mu(\Vparam,\VX)\) the modeled mean, and
@@ -1521,7 +1521,7 @@ when setting the argument \texttt{indiv} to \texttt{TRUE}.
 \bigskip
 
 \subsection{Score}
-\label{sec:orgaabd711}
+\label{sec:orgfc4f951}
 
  Using that \(\partial \log(\det(X))=tr(X^{-1}\partial(X))\), the
 score is obtained by derivating once the log-likelihood, i.e., for
@@ -1544,7 +1544,7 @@ what \texttt{score} outputs for the ML criteria when setting the argument
 \clearpage
 
 \subsection{Hessian}
-\label{sec:org84b3948}
+\label{sec:orgc68e530}
 
 Derivating a second time the log-likelihood gives the hessian, \(\Hessian(\Vparam)\), with element\footnote{if one is relative to the mean and the other to the variance then they are respectively \(\theta\) and \(\theta'\)}:
 \begin{align*}
@@ -1579,7 +1579,7 @@ when \(\Esp[\VY_i-\mu(\Vparam,\VX_i)]=0\). This leads to:
 \begin{align}
  & \Esp[\Hessian(\theta,\theta^{\prime})|\VX] \notag\\ 
  &= \textcolor{\darkred}{ \frac{1}{2} tr \left( \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i\right)^{-1}  \left\{ \sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \left( \ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] - 2 \dpartial[\Omega_i(\Vparam)][\theta]  \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}]\right) \Omega_i(\Vparam)^{-1} \trans{\VX}_i \right.  \right.} \notag \\
- & \textcolor{\darkred}{ \left. \left. \qquad +  \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i \right) \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \right\} \right) } \notag\\
+ & \textcolor{\darkred}{ \left. \left. \qquad +  \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i \right)^{-1} \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \right\} \right) } \notag\\
  & + \sum_{i=1}^n \left( \textcolor{\darkblue}{
 - \frac{1}{2} tr\left(\Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta]\right)
  - \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \trans{\dpartial[\mu(\Vparam,\VX_i)][\theta^{\prime}]}
@@ -1592,7 +1592,7 @@ is set to \texttt{"expected"} (up to a factor -1).
 \clearpage
 
 \subsection{Degrees of freedom}
-\label{sec:org22a812b}
+\label{sec:org2a17dea}
 
 Degrees of freedom are computed using a Satterthwaite approximation,
 i.e. for an estimate coefficient \(\widehat{\beta}\in\widehat{\Vparam}\) with standard
