@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: okt  8 2021 (18:04) 
+## Last-Updated: okt 15 2021 (16:09) 
 ##           By: Brice Ozenne
-##     Update #: 201
+##     Update #: 218
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -72,7 +72,9 @@
 ##' residuals(eUN.lmm, format = "wide", plot = "correlation")
 ##' residuals(eUN.lmm, format = "wide", type = "normalized")
 ##' residuals(eUN.lmm, format = "wide", type = "scaled")
-##' 
+##'
+##' ## residuals and predicted values
+##' residuals(eUN.lmm, data = fitted(eUN.lmm,keep.newdata=TRUE),keep.data=TRUE)
 
 
 ## * residuals.lmm (code)
@@ -126,23 +128,24 @@ residuals.lmm <- function(object, type = "response", format = "long",
                                  "normalized" = "Normalized residuals",
                                  "normalized2" = "Pearson Normalized residuals")
     }
-    ## ** extract
-    if(type.object == "lmm"){
 
+    if(type.object == "lmm"){
+        ## ** update design
         if(!is.null(data)){
             ff.allvars <- c(all.vars(object$formula$mean), all.vars(object$formula$var))
             if(any(ff.allvars %in% names(data) == FALSE)){
                 stop("Incorrect argument \'data\': missing variable(s) \"",paste(ff.allvars[ff.allvars %in% names(data) == FALSE], collapse = "\" \""),"\".\n")
             }
-
+            resdata <- as.data.frame(data)
+            attr(resdata,"original") <- object$data
             design <- .model.matrix.lmm(formula.mean = object$formula$mean.design,
                                         structure = object$design$vcov,
-                                        data = data,
+                                        data = resdata,
                                         var.outcome = object$outcome$var,
                                         var.strata = object$strata$var, U.strata = object$strata$levels,
                                         var.time = object$time$var, U.time = object$time$levels,
                                         var.cluster = object$cluster$var,
-                                        precompute.moments = FALSE
+                                        precompute.moments = !is.null(object$design$precompute.XX)
                                         )
         }else{
             if(keep.data){
@@ -155,10 +158,14 @@ residuals.lmm <- function(object, type = "response", format = "long",
         X <- design$mean
         structure <- design$vcov
         n.cluster <- design$cluster$n
+        precompute.XX <- design$precompute.XX
+        cluster.level <- design$cluster$levels
         index.cluster <- design$index.cluster
-        index.variance <- structure$X$pattern.cluster
         index.time <- design$index.time
-
+        index.variance <- structure$X$pattern.cluster
+        n.pattern <-  NROW(structure$X$Upattern)
+        
+        ## ** update Omega
         if(!is.null(p)){
             if(any(duplicated(names(p)))){
                 stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
@@ -178,6 +185,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
                 precision <- object$OmegaM1
             }
         }
+        ## ** pre-compute
         sqrtPrecision <- list()
         if("pearson" %in% type.residual){
             sqrtPrecision$pearson <- lapply(Omega,function(iM){1/sqrt(diag(iM))})
@@ -185,16 +193,15 @@ residuals.lmm <- function(object, type = "response", format = "long",
         if("studentized" %in% type.residual || "normalized2" %in% type.residual){
             tX.precision.X <- matrix(0, nrow = NCOL(X), ncol = NCOL(X), dimnames = list(colnames(X),colnames(X)))
 
-            if(!is.null(design$precompute.XX)){
-                n.pattern <- NROW(structure$X$Upattern)
+            if(!is.null(precompute.XX)){
 
                 for (iPattern in 1:n.pattern) { ## iPattern <- 1
                     iOmega <- precision[[iPattern]]
                     iTime <- NCOL(iOmega)
                     iTime2 <- length(iOmega)
 
-                    iX <- matrix(unlist(design$precompute.XX$pattern[[iPattern]]), nrow = iTime2, ncol = dim(design$precompute.XX$pattern[[iPattern]])[3], byrow = FALSE)
-                    tX.precision.X <- tX.precision.X + (as.double(iOmega) %*% iX)[as.double(design$precompute.XX$key)]
+                    iX <- matrix(unlist(precompute.XX$pattern[[iPattern]]), nrow = iTime2, ncol = dim(precompute.XX$pattern[[iPattern]])[3], byrow = FALSE)
+                    tX.precision.X <- tX.precision.X + (as.double(iOmega) %*% iX)[as.double(precompute.XX$key)]
                 }
             }else{
                 for(iId in 1:n.cluster){
@@ -218,6 +225,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
             sqrtPrecision$normalized <- lapply(precision,function(iP){t(chol(iP))})
         }
         
+        ## ** raw residuals
         if(!is.null(data) || !is.null(p)){
             fitted <- X %*% beta
             res <-  as.vector(Y - fitted)
@@ -228,7 +236,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
             M.res <- matrix(NA, nrow = NROW(object$residuals), ncol = length(type.residual), dimnames = list(NULL, name.residual))
         }
 
-        ## normalization
+        ## ** normalization
         if ("response" %in% type.residual) {
             M.res[,"r.response"] <- res
         }
@@ -280,17 +288,17 @@ residuals.lmm <- function(object, type = "response", format = "long",
             }
         }
 
-        ## add NA
+        ## ** add NA
         if(is.null(match.call()$data) && length(object$index.na)>0){
             inflateNA <-  .addNA(index.na = object$index.na, design = design, time = object$time)
             Msave.res <- M.res
             M.res <- matrix(NA, nrow = inflateNA$n.allobs, ncol = length(type.residual), dimnames = list(NULL, name.residual))
             M.res[-object$index.na,] <- Msave.res
 
-            level.cluster <- factor(inflateNA$level.cluster, levels = design$cluster$levels)
+            level.cluster <- factor(inflateNA$level.cluster, levels = cluster.level)
             level.time <- factor(inflateNA$level.time, object$time$levels)
         }else{
-            level.cluster <- factor(design$cluster$levels[index.cluster], levels = design$cluster$levels)
+            level.cluster <- factor(cluster.level[index.cluster], levels = cluster.level)
             level.time <- factor(object$time$levels[index.time], object$time$levels)
         }
 

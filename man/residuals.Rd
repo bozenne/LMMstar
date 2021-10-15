@@ -89,4 +89,6 @@ residuals(eUN.lmm, format = "wide", plot = "correlation")
 residuals(eUN.lmm, format = "wide", type = "normalized")
 residuals(eUN.lmm, format = "wide", type = "scaled")
 
+## residuals and predicted values
+residuals(eUN.lmm, data = fitted(eUN.lmm,keep.newdata=TRUE),keep.data=TRUE)
 }

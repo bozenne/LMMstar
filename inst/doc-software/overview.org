@@ -89,7 +89,7 @@ utils::packageVersion("LMMstar")
 #+END_SRC
 
 #+RESULTS:
-: [1] '0.3.0'
+: [1] '0.3.1'
 
 When estimating model coefficients, we will use the internal
 optimization routine of the *LMMstar* package (instead of relying on
@@ -242,6 +242,45 @@ A3_months  318.8573 304.6314 285.8077  280.9323
 
 \clearpage
 
+\noindent Fit a linear mixed model with *stratified unstructured* covariance matrix:
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+gastricbypassL$group <- as.numeric(gastricbypassL$id)%%2
+eSUN.lmm <- lmm(weight ~ time*group,
+                repetition = group~time|id, structure = "UN",
+                data = gastricbypassL)
+eSUN.lmm
+cat(" covariance structure: \n");getVarCov(eSUN.lmm)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+     Linear Mixed Model with an unstructured covariance matrix 
+
+ outcome/cluster/time: weight/id/time 
+ data                : 80 observations and distributed in 20 clusters 
+ parameters          : 8 mean ((Intercept) timeB1_week timeA1_week timeA3_months group1 timeB1_week:group1 timeA1_week:group1 timeA3_months:group1) 
+                       8 variance (sigma:0 sigma:1 k.B1_week:0 k.A1_week:0 k.A3_months:0 k.B1_week:1 k.A1_week:1 k.A3_months:1) 
+                       12 correlation (rho(B3_months,B1_week):0 rho(B3_months,A1_week):0 rho(B3_months,A3_months):0 rho(B1_week,A1_week):0 rho(B1_week,A3_months):0 rho(A1_week,A3_months):0 rho(B3_months,B1_week):1 rho(B3_months,A1_week):1 rho(B3_months,A3_months):1 rho(B1_week,A1_week):1 rho(B1_week,A3_months):1 rho(A1_week,A3_months):1) 
+ log-likelihood      : -205.26832084513 
+ convergence         : TRUE (15 iterations)
+ covariance structure: 
+$`0`
+          B3_months  B1_week  A1_week A3_months
+B3_months  421.2046 384.4930 373.1531  308.0198
+B1_week    384.4930 363.6010 353.4851  296.0184
+A1_week    373.1531 353.4851 346.9516  293.2727
+A3_months  308.0198 296.0184 293.2727  260.5560
+
+$`1`
+          B3_months  B1_week  A1_week A3_months
+B3_months  383.7179 360.4274 345.6647  354.9368
+B1_week    360.4274 341.1832 326.9782  332.8130
+A1_week    345.6647 326.9782 313.9293  319.7058
+A3_months  354.9368 332.8130 319.7058  341.7246
+#+end_example
+
+\clearpage
 ** Model output
 
 The =summary= method can be used to display the main information
