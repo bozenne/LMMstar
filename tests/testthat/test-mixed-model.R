@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: sep 20 2021 (16:31) 
+## Last-Updated: okt 15 2021 (17:35) 
 ##           By: Brice Ozenne
-##     Update #: 97
+##     Update #: 98
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -146,10 +146,12 @@ getVarCov(eCS.lmm)
 test <- predict(eCS.lmm, newdata = dL)
 index <- sample.int(NROW(dL))
 test2 <- predict(eCS.lmm, newdata = dL[index,,drop=FALSE])
-GS <- AICcmodavg::predictSE(eCS.gls, newdata = dL)
-expect_equivalent(test$estimate,GS$fit, tol = 1e-7)
-expect_equivalent(test$se,GS$se.fit, tol = 1e-7)
-expect_equivalent(test[index,,drop=FALSE],test2, tol = 1e-7)
+if(require(AICcmodavg)){
+    GS <- AICcmodavg::predictSE(eCS.gls, newdata = dL)
+    expect_equivalent(test$estimate,GS$fit, tol = 1e-7)
+    expect_equivalent(test$se,GS$se.fit, tol = 1e-7)
+    expect_equivalent(test[index,,drop=FALSE],test2, tol = 1e-7)
+}
 
 ## ** ICC
 ## eCS0.lmm <- lmm(Y ~ 1, repetition = ~visit|id, structure = "CS", data = dL[dL$visit %in% c("Y1","Y2"),], trace = 0, method = "REML")
