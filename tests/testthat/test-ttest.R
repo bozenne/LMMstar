@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: Oct  2 2021 (21:58) 
+## Last-Updated: okt  6 2021 (08:11) 
 ##           By: Brice Ozenne
-##     Update #: 36
+##     Update #: 39
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -129,14 +129,6 @@ test_that("multiple t-test",{
     
     ## check likelihood and score
     expect_equal(logLik(e.lmm), -240.1934, tol = 1e-5)
-    GS <- numDeriv::jacobian(func = function(p){ ## p <- coef(e.lmm, transform.sigma = "log", transform.k = "log", transform.rho = "atanh")
-        name.log <- names(e.lmm$param$type)[e.lmm$param$type %in% c("sigma","k")]
-        name.atanh <- names(e.lmm$param$type)[e.lmm$param$type %in% c("rho")]
-        p[name.log] <- exp(p[name.log])
-        p[name.atanh] <- tanh(p[name.atanh])
-        logLik(e.lmm, p = p)
-    }, x = coef(e.lmm, transform.sigma = "log", transform.k = "log", transform.rho = "atanh", transform.names = FALSE))
-    expect_equal(as.double(score(e.lmm, effects = "all")), as.double(GS), tol = 1e-5)
 
     e.gls <- gls(Y ~ visit + gender:visit, correlation = corSymm(form=~1|id), weights = varIdent(form=~1|visit), data = dL)
     ls.ttest <- list(t.test(Y1~gender, data = dW),

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: sep 30 2021 (19:26) 
+## Last-Updated: okt 15 2021 (16:12) 
 ##           By: Brice Ozenne
-##     Update #: 1247
+##     Update #: 1281
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -63,15 +63,14 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
         }
     
         ## variance
+                   
         if("variance" %in% effects){
             indexData <- .extractIndexData(data = data, structure = object$design$vcov)
-            design$vcov <- .vcov.matrix.lmm(structure = object$design$vcov, data = data,
-                                           strata.var = indexData$strata.var, U.strata = indexData$U.strata,
-                                           time.var = indexData$time.var, U.time = indexData$U.time,
-                                           cluster.var = indexData$cluster.var, U.cluster = indexData$U.cluster, index.cluster = indexData$index.cluster,
-                                           index.clusterTime = indexData$index.clusterTime, order.clusterTime = indexData$order.clusterTime)
-            design$vcov$X$cor <- object$design$vcov$X$cor
-            design$vcov$X$var <- object$design$vcov$X$var
+            design$vcov <- .vcov.matrix.lmm2(structure = object$design$vcov, data = data,
+                                             strata.var = indexData$strata.var, U.strata = indexData$U.strata,
+                                             time.var = indexData$time.var, U.time = indexData$U.time,
+                                             cluster.var = indexData$cluster.var, U.cluster = indexData$U.cluster, index.cluster = indexData$index.cluster,
+                                             index.clusterTime = indexData$index.clusterTime, order.clusterTime = indexData$order.clusterTime)
         }
     }else{
         design <- object$design
@@ -163,10 +162,74 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
 }
 
 ## * .vcov.matrix.lmm
+## output observation specific design matrix (but no covariance pattern)
 .vcov.matrix.lmm <- function(structure, data, 
-                            strata.var, U.strata,
-                            time.var, U.time,
-                            cluster.var, U.cluster, index.cluster, index.clusterTime, order.clusterTime){
+                             strata.var, U.strata,
+                             time.var, U.time,
+                             cluster.var, order.clusterTime){
+
+    ## ** normalize data
+    ## strata
+    if(identical(strata.var, "XXstrata.indexXX") && strata.var %in% names(data) == FALSE){
+        data$XXstrata.indexXX <- factor(1, levels = 1, labels = U.strata)
+    }
+    n.strata <- length(U.strata)
+    
+    ## time
+    n.time <- length(U.time)
+
+    ## formula
+    formula.var <- structure$formula$var
+    formula.cor <- structure$formula$cor
+
+    ## ** check compatibility structure and data
+    if(is.na(structure$name$strata)){
+        structure$name$strata <- strata.var
+    }else if(!identical(structure$name$strata,strata.var)){
+        stop("The name of the strata variable in the residual variance-covariance structure does not match the actual strata variable. \n")
+    }
+    if(is.na(structure$name$time)){
+        structure$name$time <- time.var
+    }else if(!identical(structure$name$time,time.var)){
+        stop("The name of the time variable in the residual variance-covariance structure does not match the actual time variable. \n")
+    }
+    if(is.na(structure$name$cluster)){
+        structure$name$cluster <- cluster.var
+    }else if(!identical(structure$name$cluster,cluster.var)){
+        stop("The name of the cluster variable in the residual variance-covariance structure does not match the actual cluster variable. \n")
+    }
+
+    ## ** design matrix
+    out <- list(var = NULL, cor = NULL)
+    if(is.null(structure$param)){ ## structure
+        out$var <- .colnameOrder(.model.matrix_regularize(formula.var, data = data, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
+        if(!is.null(formula.cor) && n.time>1 && any(sapply(order.clusterTime,length)>1)){  ## at least one individual with more than timepoint
+            out$cor <- .colnameOrder(.model.matrix_regularize(formula.cor, data = data, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
+        }
+    }else{ ## newdata
+        attr.var <- suppressWarnings(attributes(.colnameOrder(.model.matrix_regularize(formula.var, data = data, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)))
+        out$var <- model.matrix(formula.var, data = data)[,attr(structure$X$var,"original.colnames"),drop=FALSE]
+        attr.var$dimnames[[1]] <- attr(out$var, "dimnames")[[1]]
+        attributes(out$var) <- attr.var
+
+        if(!is.null(formula.cor) && n.time>1 && any(sapply(order.clusterTime,length)>1)){  ## at least one individual with more than timepoint
+            attr.cor <- suppressWarnings(attributes(.colnameOrder(.model.matrix_regularize(formula.cor, data = data, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)))
+            out$cor <- model.matrix(formula.cor, data = data)[,attr(structure$X$cor,"original.colnames"),drop=FALSE]
+            attr.cor$dimnames[[1]] <- attr(out$cor, "dimnames")[[1]]
+            attributes(out$cor) <- attr.cor
+        }
+    }
+
+    ## ** export
+    return(out)
+}
+
+## * .vcov.matrix.lmm2
+## output covariance patterns
+.vcov.matrix.lmm2 <- function(structure, data, 
+                              strata.var, U.strata,
+                              time.var, U.time,
+                              cluster.var, U.cluster, index.cluster, index.clusterTime, order.clusterTime){
 
     ## ** normalize data
     ## strata
@@ -198,34 +261,27 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
     }else if(!identical(structure$name$cluster,cluster.var)){
         stop("The name of the cluster variable in the residual variance-covariance structure does not match the actual cluster variable. \n")
     }
+
     ## ** design matrix
-    if(is.null(structure$param)){ ## structure
-        out <- list(var = NULL, cor = NULL)
-        out$var <- .colnameOrder(.model.matrix_regularize(formula.var, data = data, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
-        if(!is.null(formula.cor) && n.time>1 && any(sapply(order.clusterTime,length)>1)){  ## at least one individual with more than timepoint
-            out$cor <- .colnameOrder(.model.matrix_regularize(formula.cor, data = data, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
-        }
-    }else{ ## newdata
-        out <- structure
-        out$U.cluster <- U.cluster
-        X.var <- model.matrix(formula.var, data = data)[,attr(structure$X$var,"original.colnames")]
-        index.varPattern <- .buildVarPatterns(X.var = X.var, data = data, Upattern = structure$X$Upattern,
-                                              U.cluster, index.cluster = index.cluster, index.clusterTime = index.clusterTime, order.clusterTime = order.clusterTime,
-                                              U.strata = U.strata, strata.var = strata.var)
+    out <- structure
+    out$U.cluster <- U.cluster
+    X.var <- model.matrix(formula.var, data = data)[,attr(structure$X$var,"original.colnames")]
+    index.varPattern <- .buildVarPatterns(X.var = X.var, data = data, Upattern = structure$X$Upattern,
+                                          U.cluster, index.cluster = index.cluster, index.clusterTime = index.clusterTime, order.clusterTime = order.clusterTime,
+                                          U.strata = U.strata, strata.var = strata.var)
 
-        if(!is.null(structure$X$cor)){
-            X.cor <- model.matrix(formula.cor, data = data)[,attr(structure$X$cor,"original.colnames")]
-            index.corPattern <- .buildCorPatterns(X.cor = X.cor, Upattern = structure$X$Upattern,
-                                                  U.cluster, index.cluster = index.cluster, order.clusterTime = order.clusterTime)
+    if(!is.null(structure$X$cor)){
+        X.cor <- model.matrix(formula.cor, data = data)[,attr(structure$X$cor,"original.colnames")]
+        index.corPattern <- .buildCorPatterns(X.cor = X.cor, Upattern = structure$X$Upattern,
+                                              U.cluster, index.cluster = index.cluster, order.clusterTime = order.clusterTime)
 
-            index.pattern <- match(paste(index.varPattern,index.corPattern,sep="."),paste(structure$X$Upattern$var,structure$X$Upattern$cor,sep="."))
-            out$X$pattern.cluster <- stats::setNames(structure$X$Upattern$name[index.pattern],U.cluster)
-        }else{
-            out$X$pattern.cluster <- stats::setNames(structure$X$Upattern$name[match(index.varPattern,structure$X$Upattern$var)],U.cluster)
-        }
-        out$X$cluster.pattern <- stats::setNames(lapply(out$X$Upattern$name,function(iN){unname(which(iN==out$X$pattern.cluster))}), out$X$Upattern$name)
-        out$X$Upattern$ncluster <- sapply(out$X$Upattern$name,function(iN){sum(iN==out$X$pattern.cluster)})
+        index.pattern <- match(paste(index.varPattern,index.corPattern,sep="."),paste(structure$X$Upattern$var,structure$X$Upattern$cor,sep="."))
+        out$X$pattern.cluster <- stats::setNames(structure$X$Upattern$name[index.pattern],U.cluster)
+    }else{
+        out$X$pattern.cluster <- stats::setNames(structure$X$Upattern$name[match(index.varPattern,structure$X$Upattern$var)],U.cluster)
     }
+    out$X$cluster.pattern <- stats::setNames(lapply(out$X$Upattern$name,function(iN){unname(which(iN==out$X$pattern.cluster))}), out$X$Upattern$name)
+    out$X$Upattern$ncluster <- sapply(out$X$Upattern$name,function(iN){sum(iN==out$X$pattern.cluster)})
 
     ## ** export
     return(out)
@@ -420,8 +476,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
     rmX <- unlist(ls.rmX)
     if(length(rmX)>0){
         warning("Constant values in the design matrix in interactions \"",paste(names(ls.rmX), collapse = "\" \""),"\"\n ",
-                "Coefficients \"",paste(rmX, collapse = "\" \""),"\" will be removed from the design matrix. \n",
-                "Consider defining manually the interaction, e.g. via droplevels(interaction(.,.)) to avoid this warning. \n")
+                "Coefficients \"",paste(rmX, collapse = "\" \""),"\" will be removed from the design matrix. \n")
         X.old <- X
         test.keep <- colnames(X.old) %in% setdiff(colnames(X.old),rmX)
         X <- X.old[,test.keep]

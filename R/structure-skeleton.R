@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: okt  1 2021 (17:08) 
+## Last-Updated: okt 15 2021 (16:16) 
 ##           By: Brice Ozenne
-##     Update #: 1070
+##     Update #: 1095
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -74,7 +74,7 @@
     outDesign <- .vcov.matrix.lmm(structure = structure, data = data, 
                                   strata.var = strata.var, U.strata = structure$U.strata,
                                   time.var = time.var, U.time = structure$U.time, 
-                                  cluster.var = cluster.var, index.cluster = index.cluster, index.clusterTime = index.clusterTime, order.clusterTime = order.clusterTime)
+                                  cluster.var = cluster.var, order.clusterTime = order.clusterTime)
 
     X.var <- outDesign$var
     X.cor <- outDesign$cor
@@ -150,7 +150,8 @@
     outPattern <- .findUpatterns(X.var = X.var, X.cor = NULL, data = data,
                                   time.var = time.var, index.clusterTime = index.clusterTime, order.clusterTime = order.clusterTime, U.time = structure$U.time,
                                   index.cluster = index.cluster, U.cluster = structure$U.cluster,
-                                  strata.var = strata.var, strata.param = stats::setNames(structure$param$strata,structure$param$name), U.strata = structure$U.strata)
+                                 strata.var = strata.var, strata.param = stats::setNames(structure$param$strata,structure$param$name), U.strata = structure$U.strata)
+    browser()
     structure$param$time <- outPattern$time.param
     structure$X <- list(Upattern = outPattern$Upattern,
                         pattern.cluster = outPattern$pattern.cluster,
@@ -186,7 +187,7 @@
     outDesign <- .vcov.matrix.lmm(structure = structure, data = data, 
                                  strata.var = strata.var, U.strata = structure$U.strata,
                                  time.var = time.var, U.time = structure$U.time, 
-                                 cluster.var = cluster.var, index.cluster = index.cluster, index.clusterTime = index.clusterTime, order.clusterTime = order.clusterTime)
+                                 cluster.var = cluster.var, order.clusterTime = order.clusterTime)
 
     X.var <- outDesign$var
     X.cor <- outDesign$cor
@@ -273,7 +274,7 @@
     outDesign <- .vcov.matrix.lmm(structure = structure, data = data, 
                                  strata.var = strata.var, U.strata = structure$U.strata,
                                  time.var = time.var, U.time = structure$U.time, 
-                                 cluster.var = cluster.var, index.cluster = index.cluster, index.clusterTime = index.clusterTime, order.clusterTime = order.clusterTime)
+                                 cluster.var = cluster.var, order.clusterTime = order.clusterTime)
 
     X.var <- outDesign$var
     X.cor <- outDesign$cor

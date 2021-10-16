@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: okt  2 2021 (14:52) 
+## Last-Updated: okt 15 2021 (17:34) 
 ##           By: Brice Ozenne
-##     Update #: 185
+##     Update #: 186
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -495,18 +495,19 @@ capture.output(anova(e.lmm))
 ## anova(e.gls,type="marginal")
 
 ## ** predictions
-GS <- AICcmodavg::predictSE(e.gls2, newdata = d)
-pp1 <- predict(e.lmm, newdata = d)
-pp2 <- predict(e.lmm2, newdata = d)
-set.seed(10)
-index <- sample.int(NROW(d))
-pp3 <- predict(e.lmm, newdata = d[index,,drop=FALSE])
-expect_equivalent(pp1$estimate,GS$fit, tol = 1e-5)
-expect_equivalent(pp1$se,GS$se.fit, tol = 1e-5)
-expect_equal(pp1,pp2, tol = 1e-5)
-expect_equivalent(pp1[index,,drop=FALSE],pp3, tol = 1e-5) ## different rownames
-## .getUVarCov(e.lmm)
-
+if(require(AICcmodavg)){
+    GS <- AICcmodavg::predictSE(e.gls2, newdata = d)
+    pp1 <- predict(e.lmm, newdata = d)
+    pp2 <- predict(e.lmm2, newdata = d)
+    set.seed(10)
+    index <- sample.int(NROW(d))
+    pp3 <- predict(e.lmm, newdata = d[index,,drop=FALSE])
+    expect_equivalent(pp1$estimate,GS$fit, tol = 1e-5)
+    expect_equivalent(pp1$se,GS$se.fit, tol = 1e-5)
+    expect_equal(pp1,pp2, tol = 1e-5)
+    expect_equivalent(pp1[index,,drop=FALSE],pp3, tol = 1e-5) ## different rownames
+    ## .getUVarCov(e.lmm)
+}
 
 })
 

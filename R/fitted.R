@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul  8 2021 (17:09) 
 ## Version: 
-## Last-Updated: sep 23 2021 (20:53) 
+## Last-Updated: okt 15 2021 (14:46) 
 ##           By: Brice Ozenne
-##     Update #: 12
+##     Update #: 13
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -53,8 +53,10 @@ fitted.lmm <- function(object, newdata = NULL, keep.newdata = FALSE, ...){
 
     ## design matrix
     if(is.null(newdata)){
+        newdata <- object$data.original
+            
         if(length(object$index.na)>0){
-            prediction <- rep(NA, NROW(object$data.original))
+            prediction <- rep(NA, NROW(newdata))
             prediction[-object$index.na] <- object$fitted
         }else{
             prediction <- as.vector(object$fitted)
