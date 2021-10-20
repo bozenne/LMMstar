@@ -4,10 +4,12 @@
 \alias{dummy.coef.lmm}
 \title{Marginal Mean Values For Linear Mixed Model}
 \usage{
-\method{dummy.coef}{lmm}(object, ...)
+\method{dummy.coef}{lmm}(object, drop = TRUE, ...)
 }
 \arguments{
 \item{object}{a \code{lmm} object.}
+
+\item{drop}{[logical] should combinations of covariates that do no exist in the original dataset be removed?}
 
 \item{...}{arguments passed to \code{emmeans}.}
 }
