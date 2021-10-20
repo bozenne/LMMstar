@@ -49,7 +49,7 @@ When argument indiv is \code{FALSE}, a matrix with the value of the infroamtion 
 When argument indiv is \code{TRUE}, a 3-dimensional array with the value of the information relative to each pair of coefficient (dimension 2 and 3) and each cluster (dimension 1).
 }
 \description{
-Extract or compute the (expected) second derivative of the log-likelihood of a multivariate gaussian model.
+Extract or compute the (expected) second derivative of the log-likelihood of a linear mixed model.
 }
 \details{
 For details about the arguments \bold{transform.sigma}, \bold{transform.k}, \bold{transform.rho}, see the documentation of the \link[LMMstar]{coef} function.

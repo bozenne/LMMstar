@@ -68,7 +68,7 @@ A data.frame containing for each coefficient (in rows): \itemize{
 }
 }
 \description{
-Compute confidence intervals (CIs) and p-values for the coefficients of a multivariate gaussian model.
+Compute confidence intervals (CIs) and p-values for the coefficients of a linear mixed model.
 }
 \examples{
 ## simulate data in the long format

@@ -58,7 +58,7 @@ or only for coefficients relative to the correlation structure (\code{"correlati
 A matrix with an attribute \code{"df"} when argument df is set to \code{TRUE}.
 }
 \description{
-Extract the variance-covariance matrix of the model coefficients of a multivariate gaussian model.
+Extract the variance-covariance matrix of the model coefficients of a linear mixed model.
 }
 \details{
 For details about the arguments \bold{transform.sigma}, \bold{transform.k}, \bold{transform.rho}, see the documentation of the \link[LMMstar]{coef} function.

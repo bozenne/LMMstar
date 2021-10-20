@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: okt  2 2021 (17:47) 
+## Last-Updated: okt 18 2021 (11:19) 
 ##           By: Brice Ozenne
-##     Update #: 455
+##     Update #: 456
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,7 +17,7 @@
 
 ## * score.lmm (documentation)
 ##' @title Extract The Score From a Linear Mixed Model
-##' @description Extract or compute the first derivative of the log-likelihood of a multivariate gaussian model.
+##' @description Extract or compute the first derivative of the log-likelihood of a linear mixed model.
 ##' @name score
 ##' 
 ##' @param x a \code{lmm} object.

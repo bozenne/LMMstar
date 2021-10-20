@@ -14,6 +14,7 @@
   keep.data = FALSE,
   plot = "none",
   engine.qqplot = "ggplot2",
+  add.smooth = TRUE,
   digit.cor = 2,
   size.text = 16,
   type.object = "lmm",
@@ -37,6 +38,8 @@
 
 \item{engine.qqplot}{[character] Should ggplot2 or qqtest be used to display quantile-quantile plots? Only used when argument \code{plot} is \code{"qqplot"}.}
 
+\item{add.smooth}{[logical] should a local smoother be used to display the mean of the residual values across the fitted values. Only relevant for \code{plot="scatterplot"}.}
+
 \item{digit.cor}{[integer, >0] Number of digit used to display the correlation coefficients? No correlation coefficient is displayed when set to 0. Only used when argument \code{plot} is \code{"correlation"}.}
 
 \item{size.text}{[numeric, >0] Size of the font used to displayed text when using ggplot2.}
@@ -51,7 +54,7 @@ It is a matrix if the argument \code{type} contains several values.
 When argument format is \code{"wide"} and type.oobject is \code{"lmm"}, a data.frame with the value of the residual relative to each cluster (in rows) at each timepoint (in columns).
 }
 \description{
-Extract or compute the residuals of a multivariate gaussian model.
+Extract or compute the residuals of a linear mixed model.
 }
 \details{
 The argument \code{type} defines how the residuals are computed:

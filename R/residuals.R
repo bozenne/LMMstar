@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: okt 15 2021 (16:09) 
+## Last-Updated: okt 20 2021 (15:00) 
 ##           By: Brice Ozenne
-##     Update #: 218
+##     Update #: 252
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,7 +17,7 @@
 
 ## * residuals.lmm (documentation)
 ##' @title Extract The Residuals From a Linear Mixed Model
-##' @description Extract or compute the residuals of a multivariate gaussian model.
+##' @description Extract or compute the residuals of a linear mixed model.
 ##' @name residuals
 ##' 
 ##' @param object a \code{lmm} object.
@@ -27,6 +27,7 @@
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the residuals. Only relevant if differs from the fitted values.
 ##' @param plot [character] Should a qqplot (\code{"qqplot"}), or a heatmap of the correlation between residuals  (\code{"correlation"}, require wide format), or a plot of residuals along the fitted values (\code{"scatterplot"}, require long format) be displayed?
 ##' @param engine.qqplot [character] Should ggplot2 or qqtest be used to display quantile-quantile plots? Only used when argument \code{plot} is \code{"qqplot"}.
+##' @param add.smooth [logical] should a local smoother be used to display the mean of the residual values across the fitted values. Only relevant for \code{plot="scatterplot"}.
 ##' @param digit.cor [integer, >0] Number of digit used to display the correlation coefficients? No correlation coefficient is displayed when set to 0. Only used when argument \code{plot} is \code{"correlation"}.
 ##' @param size.text [numeric, >0] Size of the font used to displayed text when using ggplot2.
 ##' @param keep.data [logical] Should the argument \code{data} be output along side the residuals? Only possible in the long format.
@@ -82,8 +83,9 @@
 ##' @export
 residuals.lmm <- function(object, type = "response", format = "long",
                           data = NULL, p = NULL, keep.data = FALSE,
-                          plot = "none", engine.qqplot = "ggplot2", digit.cor = 2, size.text = 16,
+                          plot = "none", engine.qqplot = "ggplot2", add.smooth = TRUE, digit.cor = 2, size.text = 16,
                           type.object = "lmm", ...){
+
     options <- LMMstar.options()
     type.residual <- type
 
@@ -94,7 +96,10 @@ residuals.lmm <- function(object, type = "response", format = "long",
     }
     type.object <- match.arg(type.object, c("lmm","gls"))
     format <- match.arg(format, c("wide","long"))
-    plot <- match.arg(plot, c("none","qqplot","correlation","scatterplot"))
+    plot <- match.arg(plot, c("none","qqplot","correlation","scatterplot","scatterplot2"))
+    if(length(add.smooth)==1){
+        add.smooth <- rep(add.smooth,2)
+    }
     if(length(type.residual)>1 && plot != "none"){
         stop("Argument \'plot\' must be \"none\" when exporting several types of residuals. \n")
     }
@@ -103,9 +108,6 @@ residuals.lmm <- function(object, type = "response", format = "long",
     }
     if(plot == "correlation" && format == "long"){
         stop("Argument \'format\' must be \"wide\" to display the correlation between residuals. \n")
-    }
-    if(plot == "scatterplot" && format == "wide"){
-        stop("Argument \'format\' must be \"long\" to display the residuals along the fitted values. \n")
     }
     if(identical("all",tolower(type.residual))){
         type.residual <- c("response","studentized","pearson","normalized","normalized2","scaled")
@@ -303,10 +305,10 @@ residuals.lmm <- function(object, type = "response", format = "long",
         }
 
         ## plot
-        ## 
+        ##
         if(format=="wide"){
             
-            dfL.res <- data.frame(residuals = as.vector(M.res), cluster = level.cluster, time = level.time)
+            dfL.res <- data.frame(residuals = as.vector(M.res), cluster = level.cluster, time = level.time,stringsAsFactors = FALSE)
             MW.res <- reshape2::dcast(data = dfL.res,
                                       formula = cluster~time, value.var = "residuals")            
             if(plot=="qqplot"){
@@ -326,6 +328,25 @@ residuals.lmm <- function(object, type = "response", format = "long",
 
                     lapply(1:m,function(iCol){qqtest::qqtest(stats::na.omit(MW.res[,iCol+1]), main = paste0(object$time$var,": ",colnames(MW.res)[iCol+1]," (",label.residual,")"))})
                 }
+            }else if(plot %in% c("scatterplot","scatterplot2")){
+                dfL.res$time <- paste0(object$time$var,": ", dfL.res$time)
+                dfL.res$fitted <- fitted
+                attr(MW.res,"plot") <- ggplot2::ggplot(dfL.res) + ggplot2::xlab("Fitted values") + ggplot2::theme(text = ggplot2::element_text(size=size.text))
+                if(plot=="scatterplot"){
+                    attr(MW.res,"plot") <- attr(MW.res,"plot") + ggplot2::geom_abline(slope=0,intercept=0,color ="red") + ggplot2::geom_point(ggplot2::aes(x = fitted, y = residuals)) + ggplot2::ylab(label.residual)
+                    if(add.smooth[1]){
+                        attr(MW.res,"plot") <- attr(MW.res,"plot") + ggplot2::geom_smooth(ggplot2::aes(x = fitted, y = residuals), se = add.smooth[2])
+                    }
+                }else if(plot=="scatterplot2"){
+                    label.residual2 <- paste0("|",label.residual,"|")
+                    attr(MW.res,"plot") <- attr(MW.res,"plot") + ggplot2::geom_point(ggplot2::aes(x = fitted, y = sqrt(abs(residuals)))) + ggplot2::ylab(bquote(sqrt(.(label.residual2))))
+                    if(add.smooth[1]){
+                        attr(MW.res,"plot") <- attr(MW.res,"plot") + ggplot2::geom_smooth(ggplot2::aes(x = fitted, y = sqrt(abs(residuals))), se = add.smooth[2])
+                    }
+                }
+                attr(MW.res,"plot") <- attr(MW.res,"plot") + ggplot2::facet_wrap(~time)
+                
+                print(attr(MW.res,"plot"))
             }else if(plot == "correlation"){
                 name.time <- colnames(MW.res[,-1])
                 
@@ -334,7 +355,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
                 arr.ind.cor <- which(ind.cor, arr.ind = TRUE)
                 arr.ind.cor[] <- name.time[arr.ind.cor]
 
-                df.gg <- data.frame(correlation = M.cor[ind.cor], arr.ind.cor)
+                df.gg <- data.frame(correlation = M.cor[ind.cor], arr.ind.cor,stringsAsFactors = FALSE)
                 df.gg$col <- factor(df.gg$col, levels = name.time)
                 df.gg$row <- factor(df.gg$row, levels = name.time)
                 df.gg$row.index <- match(df.gg$row,name.time)
@@ -360,16 +381,29 @@ residuals.lmm <- function(object, type = "response", format = "long",
 
             if(plot == "qqplot"){
                 if(engine.qqplot=="ggplot2"){
-                    df.gg <- data.frame(residuals = M.res[,1])
+                    df.gg <- data.frame(residuals = M.res[,1],stringsAsFactors = FALSE)
                     attr(M.res,"plot") <- ggplot2::ggplot(df.gg, ggplot2::aes(sample = residuals)) + ggplot2::stat_qq() + ggplot2::stat_qq_line() + ggplot2::ggtitle(label.residual) + ggplot2::theme(text = ggplot2::element_text(size=size.text))
                     print(attr(M.res,"plot"))
                 }else if(engine.qqplot=="qqtest"){
                     requireNamespace("qqtest")
                     qqtest::qqtest(stats::na.omit(M.res[,1]))
                 }
-            }else if(plot == "scatterplot"){
-                df.gg <- data.frame(fitted = fitted, residuals = M.res[,1])
-                attr(M.res,"plot") <- ggplot2::ggplot(df.gg) + ggplot2::geom_abline(slope=0,intercept=0,color ="red") + ggplot2::geom_point(ggplot2::aes(x = fitted, y = residuals)) + ggplot2::ylab(label.residual) + ggplot2::xlab("Fitted values") + ggplot2::theme(text = ggplot2::element_text(size=size.text))
+            }else if(plot %in% c("scatterplot","scatterplot2")){
+                df.gg <- data.frame(fitted = fitted, residuals = M.res[,1],stringsAsFactors = FALSE)
+
+                attr(M.res,"plot") <- ggplot2::ggplot(df.gg) + ggplot2::xlab("Fitted values") + ggplot2::theme(text = ggplot2::element_text(size=size.text))
+                if(plot=="scatterplot"){
+                    attr(M.res,"plot") <- attr(M.res,"plot") + ggplot2::geom_abline(slope=0,intercept=0,color ="red") + ggplot2::geom_point(ggplot2::aes(x = fitted, y = residuals)) + ggplot2::ylab(label.residual) 
+                    if(add.smooth[1]){
+                        attr(M.res,"plot") <- attr(M.res,"plot") + ggplot2::geom_smooth(ggplot2::aes(x = fitted, y = residuals), se = add.smooth[2])
+                    }
+                }else if(plot=="scatterplot2"){
+                    label.residual2 <- paste0("|",label.residual,"|")
+                    attr(M.res,"plot") <- attr(M.res,"plot") + ggplot2::geom_point(ggplot2::aes(x = fitted, y = sqrt(abs(residuals)))) + ggplot2::ylab(bquote(sqrt(.(label.residual2))))
+                    if(add.smooth[1]){
+                        attr(M.res,"plot") <- attr(M.res,"plot") + ggplot2::geom_smooth(ggplot2::aes(x = fitted, y = sqrt(abs(residuals))), se = add.smooth[2])
+                    }
+                }
                 print(attr(M.res,"plot"))
             }
 

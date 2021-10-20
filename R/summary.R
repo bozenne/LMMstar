@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: okt  1 2021 (17:12) 
+## Last-Updated: okt 20 2021 (14:09) 
 ##           By: Brice Ozenne
-##     Update #: 348
+##     Update #: 355
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,7 +17,7 @@
 
 ## * summary.lmm (documentation)
 ##' @title Summary Output for a Linear Mixed Model
-##' @description Summary output for a  multivariate gaussian model fitted with \code{lmm}.
+##' @description Summary output for a linear mixed model fitted with \code{lmm}.
 ##' This is a modified version of the \code{nlme::summary.gls} function.
 ##' @name summary
 ##'
@@ -115,22 +115,8 @@ summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print =
         str.XY[1] <- paste0(" ",str.XY[1])
         cat(paste0("  ",str.XY,"\n"))
 
-        data.X <- data[all.vars(stats::delete.response(stats::terms(formula$mean)))]
-        C <- lapply(data.X, function(iCol){
-            if(inherits(iCol,"factor")){stats::contrasts(iCol)}else if(inherits(iCol,"character")){stats::contrasts(as.factor(iCol))}
-        })
-        if(length(C)>0){
-            C <- C[!unlist(lapply(C, is.null))]
-            if(length(C)>0){
-                if(attr(stats::terms(formula$mean),"intercept") == 1){
-                    ref.level <- paste(unlist(lapply(names(C), function(iC){
-                        paste0(iC,"=",rownames(C[[iC]])[1])
-                    })), collapse = " ; ")
-                    cat("    reference level: ",ref.level," \n", sep = "")
-                }
-                ## print(C)
-            }
-        }
+        reference.level <- levels(object)$reference
+        cat("    reference level: ",paste(paste(names(reference.level),reference.level,sep="="),collapse=";")," \n", sep = "")
         cat("\n")
     }
     
@@ -221,15 +207,15 @@ summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print =
     if(print && (!hide.var || !hide.sd)){
             printtable <- matrix(NA, ncol = 0, nrow = length(name.sigma))
             if(!hide.var){
-                printtable <- cbind(printtable, data.frame(variance = unname(table.var[,"estimate"])))
+                printtable <- cbind(printtable, data.frame(variance = unname(table.var[,"estimate"]),stringsAsFactors = FALSE))
                 if(test.k){
-                    printtable <- cbind(printtable, data.frame(ratio = unname(table.var[,"estimate.ratio"])))
+                    printtable <- cbind(printtable, data.frame(ratio = unname(table.var[,"estimate.ratio"]),stringsAsFactors = FALSE))
                 }
             }
             if(!hide.sd){
-                printtable <- cbind(printtable, data.frame("standard deviation" = unname(table.sd[,"estimate"])))
+                printtable <- cbind(printtable, data.frame("standard deviation" = unname(table.sd[,"estimate"]),stringsAsFactors = FALSE))
                 if(test.k){
-                    printtable <- cbind(printtable, data.frame(ratio = unname(table.sd[,"estimate.ratio"])))
+                    printtable <- cbind(printtable, data.frame(ratio = unname(table.sd[,"estimate.ratio"]),stringsAsFactors = FALSE))
                 }
             }
 

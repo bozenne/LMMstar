@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: okt  1 2021 (17:22) 
+## Last-Updated: okt 19 2021 (21:15) 
 ##           By: Brice Ozenne
-##     Update #: 581
+##     Update #: 583
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -381,7 +381,8 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
                                  lower = NA,
                                  upper = NA,
                                  null = iNull,
-                                 p.value = NA)
+                                 p.value = NA,
+                                 stringsAsFactors = FALSE)
                 CI$statistic <- CI$estimate/CI$se
                 rownames(CI) <- rownames(iC)
                 if(!is.null(names(effects))){
@@ -401,7 +402,8 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
                                "statistic" = iStat/iN.hypo,
                                "df.num" = iN.hypo,
                                "df.denom" = iDf,
-                               "p.value" = 1 - stats::pf(iStat/iN.hypo, df1 = iN.hypo, df2 = iDf))
+                               "p.value" = 1 - stats::pf(iStat/iN.hypo, df1 = iN.hypo, df2 = iDf),
+                               stringsAsFactors = FALSE)
             attr(iRes, "contrast") <- iC
             attr(iRes, "CI") <- CI
             attr(iRes, "glht") <- CI.glht
@@ -464,7 +466,8 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
                       logLikH0 = stats::logLik(objectH0),
                       statistic = NA,
                       df = length(paramTest),
-                      p.value = NA)
+                      p.value = NA,
+                      stringsAsFactors = FALSE)
     out$statistic <- 2*(out$logLikH1 - out$logLikH0)
     out$p.value <- 1 - stats::pchisq(out$statistic, df = out$df)
                

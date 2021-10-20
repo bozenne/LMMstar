@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: okt  1 2021 (17:24) 
+## Last-Updated: okt 19 2021 (21:11) 
 ##           By: Brice Ozenne
-##     Update #: 320
+##     Update #: 322
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,7 +17,7 @@
 
 ## * confint.lmm (documentation)
 ##' @title Statistical Inference for Linear Mixed Model
-##' @description Compute confidence intervals (CIs) and p-values for the coefficients of a multivariate gaussian model. 
+##' @description Compute confidence intervals (CIs) and p-values for the coefficients of a linear mixed model. 
 ##' @name confint
 ##' 
 ##' @param object a \code{lmm} object.
@@ -190,7 +190,8 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     ## ** combine
     name.beta <- names(beta)
     out <- data.frame(estimate = beta, se = sqrt(diag(vcov.beta[name.beta,name.beta,drop=FALSE])),
-                      statistic = as.numeric(NA), df = df[name.beta], lower = as.numeric(NA), upper = as.numeric(NA), null = null, p.value = as.numeric(NA))
+                      statistic = as.numeric(NA), df = df[name.beta], lower = as.numeric(NA), upper = as.numeric(NA), null = null, p.value = as.numeric(NA),
+                      stringsAsFactors = FALSE)
     out$statistic <- (out$estimate-null)/out$se
     out$p.value <- 2*(1-stats::pt(abs(out$statistic), df = out$df))
 

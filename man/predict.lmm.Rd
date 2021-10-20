@@ -43,7 +43,7 @@ A data.frame with 5 columns:\itemize{
 }
 }
 \description{
-Predicted Mean Value With Uncertainty For Linear Mixed Model
+Predicted mean value conditional on covariates or on covariates and other outcome values.
 }
 \details{
 Static prediction are made using the linear predictor \eqn{X\beta} while dynamic prediction uses the conditional normal distribution of the missing outcome given the observed outcomes. So if outcome 1 is observed but not 2, prediction for outcome 2 is obtain by \eqn{X_2\beta + \sigma_{21}\sigma^{-1}_{22}(Y_1-X_1\beta)}. In that case, the uncertainty is computed as the sum of the conditional variance \eqn{\sigma_{22}-\sigma_{21}\sigma^{-1}_{22}\sigma_{12}} plus the uncertainty about the estimated conditional mean (obtained via delta method using numerical derivatives).

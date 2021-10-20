@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (14:58) 
 ## Version: 
-## Last-Updated: okt  1 2021 (16:51) 
+## Last-Updated: okt 19 2021 (21:15) 
 ##           By: Brice Ozenne
-##     Update #: 229
+##     Update #: 231
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -127,7 +127,8 @@ getCoef.lm <- function(object, conf.level = 0.95, effects = c("mean"),
                           t.value = as.double(objectS[,"t value"]),
                           p.value = as.double(objectS[,"Pr(>|t|)"]),
                           lower = as.double(inter[,1]),
-                          upper = as.double(inter[,2])
+                          upper = as.double(inter[,2]),
+                          stringsAsFactors = FALSE
                           )
         rownames(iDF) <- rownames(objectS)
         
@@ -143,7 +144,8 @@ getCoef.lm <- function(object, conf.level = 0.95, effects = c("mean"),
                           t.value = as.numeric(NA),
                           p.value = as.numeric(NA),
                           lower = sqrt(ddf)*stats::sigma(object)/sqrt(stats::qchisq(1 - alpha/2, ddf)),
-                          upper = sqrt(ddf)*stats::sigma(object)/sqrt(stats::qchisq(alpha/2, ddf))
+                          upper = sqrt(ddf)*stats::sigma(object)/sqrt(stats::qchisq(alpha/2, ddf)),
+                          stringsAsFactors = FALSE
                           )
         rownames(iDF) <- "sigma"
         
@@ -193,7 +195,8 @@ getCoef.gls <- function(object, conf.level = 0.95, effects = c("mean"),
                           t.value = as.double(objectS[,"t-value"]),
                           p.value = as.double(objectS[,"p-value"]),
                           lower = as.double(inter$coef[,"lower"]),
-                          upper = as.double(inter$coef[,"upper"])
+                          upper = as.double(inter$coef[,"upper"]),
+                          stringsAsFactors = FALSE
                           )
         rownames(iDF) <- rownames(inter$coef)
         
@@ -208,7 +211,8 @@ getCoef.gls <- function(object, conf.level = 0.95, effects = c("mean"),
                               t.value = NA,
                               p.value = NA,
                               lower = as.double(inter$corStruct[,"lower"]),
-                              upper = as.double(inter$corStruct[,"upper"])
+                              upper = as.double(inter$corStruct[,"upper"]),
+                              stringsAsFactors = FALSE
                               )
             rownames(iDF) <- rownames(inter$corStruct)
             
@@ -221,7 +225,8 @@ getCoef.gls <- function(object, conf.level = 0.95, effects = c("mean"),
                               t.value = NA,
                               p.value = NA,
                               lower = as.double(inter$varStruct[,"lower"]),
-                              upper = as.double(inter$varStruct[,"upper"])
+                              upper = as.double(inter$varStruct[,"upper"]),
+                              stringsAsFactors = FALSE
                               )
             rownames(iDF) <- rownames(inter$varStruct)
             
@@ -233,7 +238,8 @@ getCoef.gls <- function(object, conf.level = 0.95, effects = c("mean"),
                           t.value = NA,
                           p.value = NA,
                           lower = as.double(inter$sigma["lower"]),
-                          upper = as.double(inter$sigma["upper"])
+                          upper = as.double(inter$sigma["upper"]),
+                          stringsAsFactors = FALSE
                           )
         rownames(iDF) <- "sigma"
         out <- rbind(out,iDF)
@@ -279,7 +285,8 @@ getCoef.lme <- function(object, conf.level = 0.95, effects = c("mean"),
                           t.value = as.double(objectS[,"t-value"]),
                           p.value = as.double(objectS[,"p-value"]),
                           lower = as.double(inter$fixed[,"lower"]),
-                          upper = as.double(inter$fixed[,"upper"])
+                          upper = as.double(inter$fixed[,"upper"]),
+                          stringsAsFactors = FALSE
                           )
         rownames(iDF) <- rownames(inter$fixed)
         
@@ -294,7 +301,8 @@ getCoef.lme <- function(object, conf.level = 0.95, effects = c("mean"),
                               t.value = NA,
                               p.value = NA,
                               lower = as.double(inter$corStruct[,"lower"]),
-                              upper = as.double(inter$corStruct[,"upper"])
+                              upper = as.double(inter$corStruct[,"upper"]),
+                              stringsAsFactors = FALSE
                               )
             rownames(iDF) <- rownames(inter$corStruct)
 
@@ -307,7 +315,8 @@ getCoef.lme <- function(object, conf.level = 0.95, effects = c("mean"),
                               t.value = NA,
                               p.value = NA,
                               lower = as.double(inter$varStruct[,"lower"]),
-                              upper = as.double(inter$varStruct[,"upper"])
+                              upper = as.double(inter$varStruct[,"upper"]),
+                              stringsAsFactors = FALSE
                               )
             rownames(iDF) <- rownames(inter$varStruct)
             
@@ -322,7 +331,8 @@ getCoef.lme <- function(object, conf.level = 0.95, effects = c("mean"),
                               t.value = NA,
                               p.value = NA,
                               lower = as.double(inter$reStruct[[iTau]]["lower"]),
-                              upper = as.double(inter$reStruct[[iTau]]["upper"])
+                              upper = as.double(inter$reStruct[[iTau]]["upper"]),
+                              stringsAsFactors = FALSE
                               )
             rownames(iDF) <- paste0(iNameTau,"_",rownames(inter$reStruct[[iTau]]))
             
@@ -334,7 +344,8 @@ getCoef.lme <- function(object, conf.level = 0.95, effects = c("mean"),
                           t.value = NA,
                           p.value = NA,
                           lower = as.double(inter$sigma["lower"]),
-                          upper = as.double(inter$sigma["upper"])
+                          upper = as.double(inter$sigma["upper"]),
+                          stringsAsFactors = FALSE
                           )
         rownames(iDF) <- "sigma"
         
@@ -369,7 +380,7 @@ getCoef.lme <- function(object, conf.level = 0.95, effects = c("mean"),
     ## ** initialize
     assign <- attr(X,"assign")
     terms.labels <- attr(terms,"term.labels")
-    out <- data.frame(Effect = c("(Intercept)",terms.labels)[assign+1])
+    out <- data.frame(Effect = c("(Intercept)",terms.labels,stringsAsFactors = FALSE)[assign+1])
     
     ## ** add factors
     if(!is.null(attr(X,"contrasts"))){    

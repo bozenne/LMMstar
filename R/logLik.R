@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: okt  1 2021 (17:02) 
+## Last-Updated: okt 18 2021 (11:19) 
 ##           By: Brice Ozenne
-##     Update #: 232
+##     Update #: 233
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,7 +17,7 @@
 
 ## * logLik.lmm (documentation)
 ##' @title Extract The Log-Likelihood From a Linear Mixed Model
-##' @description Extract or compute the log-likelihood of a multivariate gaussian model.
+##' @description Extract or compute the log-likelihood of a linear mixed model.
 ##' @name logLik
 ##' 
 ##' @param object a \code{lmm} object.

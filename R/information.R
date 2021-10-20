@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: okt  2 2021 (17:47) 
+## Last-Updated: okt 18 2021 (11:19) 
 ##           By: Brice Ozenne
-##     Update #: 917
+##     Update #: 918
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,7 +17,7 @@
 
 ## * information.lmm (documentation)
 ##' @title Extract The Information From a Linear Mixed Model
-##' @description Extract or compute the (expected) second derivative of the log-likelihood of a multivariate gaussian model.
+##' @description Extract or compute the (expected) second derivative of the log-likelihood of a linear mixed model.
 ##' @name information
 ##' 
 ##' @param x a \code{lmm} object.

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: okt  1 2021 (17:00) 
+## Last-Updated: okt 20 2021 (14:51) 
 ##           By: Brice Ozenne
-##     Update #: 1173
+##     Update #: 1221
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,9 +17,8 @@
 
 ## * lmm (documentation)
 ##' @title Fit Linear Mixed Model
-##' @description Fit a multivariate gaussian model using either a compound symmetry structure or an unstructured covariance matrix.
-##' This is essentially an interface to the \code{nlme::gls} function.
-##'
+##' @description Fit a linear mixed model defined by a mean and a covariance structure.
+##'g
 ##' @param formula [formula] Specify the model for the mean.
 ##' On the left hand side the outcome and on the right hand side the covariates affecting the mean value.
 ##' E.g. Y ~ Gender + Gene.
@@ -36,20 +35,88 @@
 ##'
 ##' @details \bold{Computation time} the \code{lmm} has not been developped to be a fast function as, by default, it uses REML estimation with the observed information matrix and uses a Satterthwaite approximation to compute degrees of freedom (this require to compute the third derivative of the log-likelihood which is done by numerical differentiation). The computation time can be substantially reduced by using ML estimation with the expected information matrix and no calculation of degrees of freedom: arguments \code{method.fit="ML"}, \code{type.information="expected"}, \code{df=FALSE}. This will, however, lead to less accurate p-values and confidence intervals in small samples.
 ##'
-##' @return an object of class \code{lmm} containing the estimated parameter values, the residuals, and relevant derivatives of the likelihood.
-##' Compatible with standard methods such as \code{summary}, \code{autoplot}, \code{confint}, \code{coef}, \code{anova}, \code{predict}, \code{residuals}.
+##' By default, the estimation of the model parameters will be made using the \code{nlme::gls} function.
+##' See argument optimizer in \code{\link{LMMstar.options}}
+##'
+##' @seealso
+##' \code{\link{summary.lmm}} for a summary of the model fit. \cr
+##' \code{\link{model.tables.lmm}} for a data.frame containing estimates with their uncertainty. \cr
+##' \code{\link{plot.lmm}} for a graphical display of the model fit or diagnostic plots. \cr
+##' \code{\link{levels.lmm}} to display the reference level. \cr
+##' \code{\link{anova.lmm}} for testing linear combinations of coefficients (F-test, multiple Wald tests) \cr
+##' \code{\link{getVarCov.lmm}} for extracting estimated residual variance-covariance matrices. \cr
+##' \code{\link{residuals.lmm}} for extracting residuals or creating residual plots (e.g. qqplots).
+##' \code{\link{predict.lmm}} for evaluating mean and variance of the outcome conditional on covariates or other outcome values.
 
+##' @return an object of class \code{lmm} containing the estimated parameter values, the residuals, and relevant derivatives of the likelihood.
 
 ## * lmm (examples)
 ##' @examples
-##' ## simulate data in the long format
+##' #### 1- simulate data in the long format ####
 ##' set.seed(10)
 ##' dL <- sampleRem(100, n.times = 3, format = "long")
+##' dL$X1 <- as.factor(dL$X1)
+##' dL$X2 <- as.factor(dL$X2)
 ##' 
-##' ## fit Linear Mixed Model
-##' eCS.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "CS", data = dL)
-##' eCS.lmm
+##' #### 2- fit Linear Mixed Model ####
+##' eCS.lmm <- lmm(Y ~ X1 * X2 + X5, repetition = ~visit|id, structure = "CS", data = dL)
+##' 
+##' logLik(eCS.lmm)
 ##' summary(eCS.lmm)
+##'
+##'
+##' #### 3- estimates ####
+##' ## reference level
+##' levels(eCS.lmm)$reference
+##' ## mean parameters
+##' coef(eCS.lmm)
+##' model.tables(eCS.lmm)
+##' confint(eCS.lmm)
+##'
+##' if(require(emmeans)){
+##'   dummy.coef(eCS.lmm)
+##' }
+##' 
+##' ## all parameters
+##' coef(eCS.lmm, effects = "all")
+##' model.tables(eCS.lmm, effects = "all")
+##' confint(eCS.lmm, effects = "all")
+##'
+##' ## variance-covariance structure
+##' getVarCov(eCS.lmm)
+##' 
+##' #### 3- diagnostic plots ####
+##' quantile(residuals(eCS.lmm))
+##' quantile(residuals(eCS.lmm, type = "normalized"))
+##'
+##' \dontrun{
+##' if(require(ggplot2)){
+##'   ## investigate misspecification of the mean structure
+##'   plot(eCS.lmm, type = "scatterplot")
+##'   ## investigate misspecification of the variance structure
+##'   plot(eCS.lmm, type = "scatterplot2")
+##'   ## investigate misspecification of the correlation structure
+##'   plot(eCS.lmm, type = "correlation")
+##'   ## investigate misspecification of the residual distribution
+##'   plot(eCS.lmm, type = "qqplot")
+##' }
+##' }
+##' 
+##' #### 4- statistical inference ####
+##' anova(eCS.lmm) ## effect of each variable
+##' anova(eCS.lmm, effects = "X11-X21=0") ## test specific coefficient
+##' ## test several hypothese with adjustment for multiple comparisons
+##' anova(eCS.lmm, effects = c("X11=0","X21=0"), ci = TRUE)
+##'
+##' #### 5- prediction ####
+##' ## conditional on covariates
+##' newd <- dL[1:3,]
+##' predict(eCS.lmm, newdata = newd, keep.newdata = TRUE)
+##' ## conditional on covariates and outcome
+##' newd <- dL[1:3,]
+##' newd$Y[3] <- NA
+##' predict(eCS.lmm, newdata = newd, type = "dynamic", keep.newdata = TRUE)
+##' 
 
 ## * lmm (code)
 ##' @export
@@ -99,31 +166,18 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     ## *** repetition 
     if(trace>=2){cat("- repetition ")}
     if(missing(repetition)){
-
         if(inherits(structure,"structure")){
             var.cluster <- structure$name$cluster
             var.time <- structure$name$time
-            if(is.null(var.time) && structure$type %in% c("CS","UN")){
+            if(is.null(var.time) && structure$type %in% c("IND","UN")){
                 stop("Could not identify the time variable based on the \'structure\' argument. \n",
                      "Consider specifying the \'repetition\' argument. \n")
             }
-            
+        }else if(identical(structure,"ID")){
+            var.cluster  <- NULL
+            var.time  <- NULL
         }else if(missing(structure)){
-
-            var.cluster <- NULL
-            var.time <- NULL
-            structure <- "IND"
-
-        }else{
             stop("Argument \'repetition\' is missing. \n")
-        }
-
-        if(is.null(var.time)){
-            if("XXtimeXX" %in% names(data)){
-                stop("Argument \'data\' should not contain a column named \"XXtimeXX\" as this name is used by the lmm function when the argument \'repetition\' is missing. \n")
-            }
-            data$XXtimeXX <- "t1"
-            var.time <- "XXtimeXX"
         }
         if(is.null(var.cluster)){
             if("XXidXX" %in% names(data)){
@@ -132,8 +186,12 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
             data$XXidXX <- 1:NROW(data)
             var.cluster <- "XXidXX"
         }
-            
-        repetition <-  stats::as.formula(paste0("~",var.time," | ",var.cluster))            
+        if(!is.null(var.time)){
+            repetition <- stats::as.formula(paste0("~",var.time," | ",var.cluster))            
+        }else{
+            repetition <- NULL
+        }
+        
     }else{
         if(!inherits(repetition,"formula")){
             stop("Argument \'repetition\' must be of class formula, something like: ~ time|id or group ~ time|id. \n")
@@ -148,10 +206,19 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
             stop("Incorrect specification of argument \'repetition\'. \n",
                  "Should have exactly one variable after the grouping symbol (|), something like: ~ time|id or group ~ time|id. \n")
         }
-        var.time <- all.vars(stats::update(stats::as.formula(res.split[1]),0~.)) 
-        if(length(var.time)!=1){
+        
+        var.time <- all.vars(stats::update(stats::as.formula(res.split[1]),0~.))
+        if(length(var.time)>1){
             stop("Incorrect specification of argument \'repetition\'. \n",
                  "There should be exactly one variable before the grouping symbol (|), something like: ~ time|id or group ~ time|id. \n")
+        }else if(length(var.time)==0){
+
+            if(any(duplicated(data[[var.cluster]]))){
+                stop("Incorrect specification of argument \'repetition\'. \n",
+                     "There should be exactly one variable before the grouping symbol (|), something like: ~ time|id or group ~ time|id. \n")
+            }else{
+                var.time <- NULL                
+            }
         }
     }
 
@@ -168,11 +235,29 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                  sep = "")
         }
     }
+
+    if(var.cluster %in% names(data) == FALSE){
+        stop("Could not find column \"",var.cluster,"\" indicating the cluster in argument \'data\' \n")
+    }
     if(is.factor(data[[var.cluster]])){
         data[[var.cluster]] <- droplevels(data[[var.cluster]])
     }else{
         data[[var.cluster]] <- factor(data[[var.cluster]], levels = sort(unique(data[[var.cluster]])))
     }
+    if(is.null(var.time)){
+        if("XXtimeXX" %in% names(data)){
+            stop("Argument \'data\' should not contain a column named \"XXtimeXX\" as this name is used by the lmm function when the argument \'repetition\' is missing. \n")
+        }
+        iTime <- tapply(data[[var.cluster]], data[[var.cluster]], function(iC){paste0("t",1:length(iC))})
+        iIndex <- tapply(1:NROW(data), data[[var.cluster]], function(iC){iC})
+        data[iIndex,"XXtimeXX"] <- iTime
+        var.time <- "XXtimeXX"
+
+        if(is.null(var.time)){
+            repetition <- stats::as.formula(paste0("~",var.time," | ",var.cluster))            
+        }
+    }
+
     test.duplicated <- tapply(data[[var.time]], data[[var.cluster]], function(iT){any(duplicated(iT))})
     if(any(test.duplicated)){
         stop("Incorrect specification of argument \'repetition\'. \n",

@@ -24,7 +24,7 @@
 A numeric value (total logLikelihood) or a vector of numeric values, one for each cluster (cluster specific logLikelihood).
 }
 \description{
-Extract or compute the log-likelihood of a multivariate gaussian model.
+Extract or compute the log-likelihood of a linear mixed model.
 }
 \details{
 \bold{transform}: \cr

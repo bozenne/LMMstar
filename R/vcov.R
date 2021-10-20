@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: okt  2 2021 (14:31) 
+## Last-Updated: okt 18 2021 (11:19) 
 ##           By: Brice Ozenne
-##     Update #: 462
+##     Update #: 463
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,7 +17,7 @@
 
 ## * vcov.lmm (documentation)
 ##' @title Extract The Variance-Covariance Matrix From a Linear Mixed Model
-##' @description Extract the variance-covariance matrix of the model coefficients of a multivariate gaussian model.
+##' @description Extract the variance-covariance matrix of the model coefficients of a linear mixed model.
 ##' @name vcov
 ##' 
 ##' @param object a \code{lmm} object.

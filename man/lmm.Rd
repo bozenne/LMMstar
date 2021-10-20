@@ -41,22 +41,91 @@ On the left hand side, a possible stratification variable, e.g. group ~ time|id.
 }
 \value{
 an object of class \code{lmm} containing the estimated parameter values, the residuals, and relevant derivatives of the likelihood.
-Compatible with standard methods such as \code{summary}, \code{autoplot}, \code{confint}, \code{coef}, \code{anova}, \code{predict}, \code{residuals}.
 }
 \description{
-Fit a multivariate gaussian model using either a compound symmetry structure or an unstructured covariance matrix.
-This is essentially an interface to the \code{nlme::gls} function.
+Fit a linear mixed model defined by a mean and a covariance structure.
+g
 }
 \details{
 \bold{Computation time} the \code{lmm} has not been developped to be a fast function as, by default, it uses REML estimation with the observed information matrix and uses a Satterthwaite approximation to compute degrees of freedom (this require to compute the third derivative of the log-likelihood which is done by numerical differentiation). The computation time can be substantially reduced by using ML estimation with the expected information matrix and no calculation of degrees of freedom: arguments \code{method.fit="ML"}, \code{type.information="expected"}, \code{df=FALSE}. This will, however, lead to less accurate p-values and confidence intervals in small samples.
+
+By default, the estimation of the model parameters will be made using the \code{nlme::gls} function.
+See argument optimizer in \code{\link{LMMstar.options}}
 }
 \examples{
-## simulate data in the long format
+#### 1- simulate data in the long format ####
 set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
+dL$X1 <- as.factor(dL$X1)
+dL$X2 <- as.factor(dL$X2)
 
-## fit Linear Mixed Model
-eCS.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "CS", data = dL)
-eCS.lmm
+#### 2- fit Linear Mixed Model ####
+eCS.lmm <- lmm(Y ~ X1 * X2 + X5, repetition = ~visit|id, structure = "CS", data = dL)
+
+logLik(eCS.lmm)
 summary(eCS.lmm)
+
+
+#### 3- estimates ####
+## reference level
+levels(eCS.lmm)$reference
+## mean parameters
+coef(eCS.lmm)
+model.tables(eCS.lmm)
+confint(eCS.lmm)
+
+if(require(emmeans)){
+  dummy.coef(eCS.lmm)
+}
+
+## all parameters
+coef(eCS.lmm, effects = "all")
+model.tables(eCS.lmm, effects = "all")
+confint(eCS.lmm, effects = "all")
+
+## variance-covariance structure
+getVarCov(eCS.lmm)
+
+#### 3- diagnostic plots ####
+quantile(residuals(eCS.lmm))
+quantile(residuals(eCS.lmm, type = "normalized"))
+
+\dontrun{
+if(require(ggplot2)){
+  ## investigate misspecification of the mean structure
+  plot(eCS.lmm, type = "scatterplot")
+  ## investigate misspecification of the variance structure
+  plot(eCS.lmm, type = "scatterplot2")
+  ## investigate misspecification of the correlation structure
+  plot(eCS.lmm, type = "correlation")
+  ## investigate misspecification of the residual distribution
+  plot(eCS.lmm, type = "qqplot")
+}
+}
+
+#### 4- statistical inference ####
+anova(eCS.lmm) ## effect of each variable
+anova(eCS.lmm, effects = "X11-X21=0") ## test specific coefficient
+## test several hypothese with adjustment for multiple comparisons
+anova(eCS.lmm, effects = c("X11=0","X21=0"), ci = TRUE)
+
+#### 5- prediction ####
+## conditional on covariates
+newd <- dL[1:3,]
+predict(eCS.lmm, newdata = newd, keep.newdata = TRUE)
+## conditional on covariates and outcome
+newd <- dL[1:3,]
+newd$Y[3] <- NA
+predict(eCS.lmm, newdata = newd, type = "dynamic", keep.newdata = TRUE)
+
+}
+\seealso{
+\code{\link{summary.lmm}} for a summary of the model fit. \cr
+\code{\link{model.tables.lmm}} for a data.frame containing estimates with their uncertainty. \cr
+\code{\link{plot.lmm}} for a graphical display of the model fit or diagnostic plots. \cr
+\code{\link{levels.lmm}} to display the reference level. \cr
+\code{\link{anova.lmm}} for testing linear combinations of coefficients (F-test, multiple Wald tests) \cr
+\code{\link{getVarCov.lmm}} for extracting estimated residual variance-covariance matrices. \cr
+\code{\link{residuals.lmm}} for extracting residuals or creating residual plots (e.g. qqplots).
+\code{\link{predict.lmm}} for evaluating mean and variance of the outcome conditional on covariates or other outcome values.
 }

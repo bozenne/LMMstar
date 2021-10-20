@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: okt 15 2021 (16:16) 
+## Last-Updated: okt 20 2021 (14:38) 
 ##           By: Brice Ozenne
-##     Update #: 1095
+##     Update #: 1106
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -142,7 +142,8 @@
     structure$param <- data.frame(name = c(param.sigma,param.k),
                                   strata = c(strata.sigma,strata.k),
                                   type = c(rep("sigma",length=length(param.sigma)),rep("k",length=length(param.k))),
-                                  time = NA)
+                                  time = NA,
+                                  stringsAsFactors = FALSE)
     structure$param <- structure$param[order(structure$param$strata),,drop=FALSE]
     rownames(structure$param) <- NULL
 
@@ -151,7 +152,7 @@
                                   time.var = time.var, index.clusterTime = index.clusterTime, order.clusterTime = order.clusterTime, U.time = structure$U.time,
                                   index.cluster = index.cluster, U.cluster = structure$U.cluster,
                                  strata.var = strata.var, strata.param = stats::setNames(structure$param$strata,structure$param$name), U.strata = structure$U.strata)
-    browser()
+
     structure$param$time <- outPattern$time.param
     structure$X <- list(Upattern = outPattern$Upattern,
                         pattern.cluster = outPattern$pattern.cluster,
@@ -231,7 +232,8 @@
     structure$param <- data.frame(name = c(param.sigma,param.rho),
                                   strata = c(strata.sigma,strata.rho),
                                   type = c(rep("sigma",length=length(param.sigma)),rep("rho",length=length(param.rho))),
-                                  time = NA)
+                                  time = NA,
+                                  stringsAsFactors = FALSE)
     structure$param <- structure$param[order(structure$param$strata),,drop=FALSE]
     rownames(structure$param) <- NULL
 
@@ -411,7 +413,8 @@
     structure$param <- data.frame(name = c(param.sigma,param.k,param.rho),
                                   strata = c(strata.sigma,strata.k,strata.rho),
                                   type = c(rep("sigma",length=length(param.sigma)),rep("k",length=length(param.k)),rep("rho",length=length(param.rho))),
-                                  time = NA)
+                                  time = NA,
+                                  stringsAsFactors = FALSE)
     structure$param <- structure$param[order(structure$param$strata),,drop=FALSE]
     rownames(structure$param) <- NULL
     attr(structure$param,"lpdiff.rho") <- lpdiff.rho
@@ -508,7 +511,7 @@
             if(length(lpdiff.rho)==1 && all(iDiff==lpdiff.rho)){
                 iZ <- matrix(1, nrow = length(iDiff), ncol = 1, dimnames = list(NULL,names(lpdiff.rho)))
             }else{
-                iZ <- model.matrix(~0+X,data.frame(X = factor(names(lpdiff.rho)[match(iDiff,lpdiff.rho)], levels = names(lpdiff.rho))))
+                iZ <- model.matrix(~0+X,data.frame(X = factor(names(lpdiff.rho)[match(iDiff,lpdiff.rho)], levels = names(lpdiff.rho)),stringsAsFactors = FALSE))
                 colnames(iZ) <- names(lpdiff.rho)
             }
             rownames(iZ) <- paste("(",iPair.time[1,],",",iPair.time[2,],")", sep = "")
@@ -560,7 +563,8 @@
                            time = NA,
                            strata = NA,
                            ncluster = NA,
-                           param = NA)
+                           param = NA,
+                           stringsAsFactors = FALSE)
     attr(Upattern,"name.UpatternVar") <- UpatternVar.cluster
     attr(Upattern,"levels.UpatternVar") <- attr(ls.patternVar.cluster,"levels")
     attr(X.var2,"original.colnames") <- attr(X.var,"original.colnames")

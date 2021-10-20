@@ -1,4 +1,4 @@
-% Created 2021-10-08 fr 18:07
+% Created 2021-10-20 on 15:49
 % Intended LaTeX compiler: pdflatex
 \documentclass[12pt]{article}
 
@@ -241,14 +241,18 @@ The \textbf{LMMstar} package contains four main functions:
 linear mixed models. The user can interact with \emph{lmm} objects using:
 \begin{itemize}
 \item \texttt{anova} to test combinations of coefficients (Wald test or Likelihood ratio tests).
-\item \texttt{autoplot} to obtain a graphical display of the fitted values.
 \item \texttt{coef} to extract the estimates.
-\item \texttt{confint} to extract estimates, confidence intervals, and p.values.
+\item \texttt{dummy.coef} to extract the estimated (marginal) mean for each combination of categorical covariate.
+\item \texttt{levels} to extract the reference level for the mean structure
+(i.e. what \texttt{(Intercept)} refers to in presence of categorical
+covariates).
 \item \texttt{getVarCov} to extract the modeled residual variance covariance matrix.
 \item \texttt{logLik} to output the log-likelihood of the estimated model.
+\item \texttt{model.tables} to extract table containing estimates with the corresponding uncertainty.
+\item \texttt{plot} to obtain a diagnostic plots or a graphical display of the fitted values.
 \item \texttt{predict} to compute the conditional mean for new observations.
 \item \texttt{residuals} to extract the observed residuals of the fitted model.
-\item \texttt{summary} to obtain a summary of the results.
+\item \texttt{summary} to obtain a summary of the input, model fit, and estimated values.
 \end{itemize}
 \item the \texttt{summarize} function to compute summary statistics stratified on a categorical variable (typically time).
 \item the \texttt{sampleRem} function to simulate longitudinal data.
@@ -310,7 +314,7 @@ utils::packageVersion("LMMstar")
 \end{lstlisting}
 
 \begin{verbatim}
-[1] '0.3.1'
+[1] '0.3.4'
 \end{verbatim}
 
 
@@ -325,7 +329,7 @@ LMMstar.options(optimizer = "FS")
 \clearpage
 
 \section{Descriptive statistics}
-\label{sec:org5c07051}
+\label{sec:org7769a27}
 Mean, standard deviation, and other summary statistic can be computed
 with respect to a categorical variable (typically time) using the
 \texttt{summarize} function:
@@ -351,9 +355,9 @@ print(sss, digits = 3)
 \clearpage
 
 \section{Linear mixed model}
-\label{sec:org589adec}
+\label{sec:orgb441bd6}
 \subsection{Modeling tools}
-\label{sec:orgcc2d890}
+\label{sec:orga4b5a65}
 Fit a linear model with \textbf{identity} structure:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -510,13 +514,13 @@ A3_months  354.9368 332.8130 319.7058  341.7246
 
 \clearpage
 \subsection{Model output}
-\label{sec:org0077e60}
+\label{sec:org8fc5e4a}
 
 The \texttt{summary} method can be used to display the main information
 relative to the model fit:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-summary(eCS.lmm)
+summary(eUN.lmm)
 \end{lstlisting}
 
 \begin{verbatim}
@@ -538,31 +542,34 @@ Summary of the outcome and covariates:
 Estimation procedure 
 
   - Restricted Maximum Likelihood (REML) 
-  - log-likelihood :-243.6005
-  - parameters: mean = 5, variance = 1, correlation = 1
-  - convergence: TRUE (10 iterations, largest |score|=3.641667e-06 is for rho)
+  - log-likelihood :-216.3189
+  - parameters: mean = 5, variance = 4, correlation = 6
+  - convergence: TRUE (27 iterations, largest |score|=8.734359e-07 is for rho(B1_week,A3_months))
  
-Residual variance-covariance: compound symmetry 
+Residual variance-covariance: unstructured 
 
-  - correlation structure: ~1 
+  - correlation structure: ~time 
               B3_months B1_week A1_week A3_months
-    B3_months      1.00    0.97    0.97      0.97
-    B1_week        0.97    1.00    0.97      0.97
-    A1_week        0.97    0.97    1.00      0.97
-    A3_months      0.97    0.97    0.97      1.00
+    B3_months     1.000   0.989   0.985     0.938
+    B1_week       0.989   1.000   0.998     0.954
+    A1_week       0.985   0.998   1.000     0.966
+    A3_months     0.938   0.954   0.966     1.000
 
-  - variance structure: ~1 
-          standard.deviation
-    sigma           18.84957
+  - variance structure: ~time 
+              standard.deviation     ratio
+    B3_months           20.28081 1.0000000
+    B1_week             19.04554 0.9390916
+    A1_week             17.65480 0.8705176
+    A3_months           16.76104 0.8264480
 
 Fixed effects: weight ~ time + glucagon 
 
               estimate    se     df   lower   upper p.value    
-(Intercept)    129.369 4.226 20.034 120.556 138.183  <0.001 ***
-timeB1_week     -7.619 1.054 53.968  -9.732  -5.507  <0.001 ***
-timeA1_week    -14.495 1.428 53.879 -17.358 -11.632  <0.001 ***
-timeA3_months  -27.051 1.087 53.943 -29.231 -24.872  <0.001 ***
-glucagon         0.822  0.62  53.81  -0.421   2.065   0.191    
+(Intercept)    128.539 4.536 18.976 119.043 138.034 < 0.001 ***
+timeB1_week     -7.882 0.713 19.171  -9.374   -6.39 < 0.001 ***
+timeA1_week    -11.788 1.018 21.644   -13.9  -9.676 < 0.001 ***
+timeA3_months  -26.122 1.656  18.84 -29.591 -22.654 < 0.001 ***
+glucagon        -0.888 0.242 13.707  -1.408  -0.369 0.00257  **
 
 Uncertainty was quantified using model-based standard errors (column se). 
 Degrees of freedom were computed using a Satterthwaite approximation (column df). 
@@ -575,17 +582,30 @@ arguments \texttt{df} to \texttt{FALSE} and \texttt{type.information} to \texttt
 calling \texttt{lmm} should lead to a more reasonnable computation time.
 
 \subsection{Extract estimated coefficients}
-\label{sec:org0dba526}
+\label{sec:orgd05fd84}
 The value of the estimated coefficients can be output using \texttt{coef}:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-coef(eCS.lmm)
+coef(eUN.lmm)
 \end{lstlisting}
 
 \begin{verbatim}
 (Intercept)   timeB1_week   timeA1_week timeA3_months      glucagon 
-129.3690995    -7.6194918   -14.4951323   -27.0514694     0.8217879
+128.5385950    -7.8822331   -11.7879542   -26.1223907    -0.8883083
 \end{verbatim}
+
+
+Variance coefficients can be output by specifying the \texttt{effects} argument:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+coef(eUN.lmm, effects = "variance")
+\end{lstlisting}
+
+\begin{verbatim}
+     sigma   k.B1_week   k.A1_week k.A3_months 
+20.2808131   0.9390916   0.8705176   0.8264480
+\end{verbatim}
+
 
 
 It is possible to apply specific transformation on the variance
@@ -601,101 +621,136 @@ sigma:B3_months   sigma:B1_week   sigma:A1_week sigma:A3_months
        20.28081        19.04554        17.65480        16.76104
 \end{verbatim}
 
+
+The marginal mean at each timepoint can be obtainet using \texttt{dummy.coef}:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+dummy.coef(eUN.lmm)
+\end{lstlisting}
+
+\begin{verbatim}
+       time estimate       se       df     lower    upper
+1 B3_months 128.5386 4.536445 18.97584 119.04289 138.0343
+2   B1_week 120.6564 4.261691 19.04078 111.73783 129.5749
+3   A1_week 116.7506 3.956964 19.04925 108.47007 125.0312
+4 A3_months 102.4162 3.747908 19.05531  94.57328 110.2591
+\end{verbatim}
+
+\subsection{Extract estimated coefficient and associated uncertainty}
+\label{sec:org674e36d}
+
+The uncertainty about the mean coefficients can be obtained using the
+\texttt{model.tables} method \footnote{it is equivalent to \texttt{confint} method
+except that by default it also outputs \texttt{se} and \texttt{p.value}}:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+model.tables(eUN.lmm)
+\end{lstlisting}
+
+\begin{verbatim}
+              estimate    se   df  lower   upper  p.value
+(Intercept)    128.539 4.536 19.0 119.04 138.034 0.00e+00
+timeB1_week     -7.882 0.713 19.2  -9.37  -6.390 9.27e-10
+timeA1_week    -11.788 1.018 21.6 -13.90  -9.676 9.55e-11
+timeA3_months  -26.122 1.656 18.8 -29.59 -22.654 2.62e-12
+glucagon        -0.888 0.242 13.7  -1.41  -0.369 2.57e-03
+\end{verbatim}
+
+
+Values for the all correlation parameters can be displayed
+too, by specifying \texttt{effect="all"}:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+model.tables(eUN.lmm, effect = "all") ## not shown
+\end{lstlisting}
+
+Because these parameters are constrained (e.g. strictly positive),
+they uncertainty is by default computed after transformation
+(e.g. \texttt{log}) and then backtransformed. 
+
 \subsection{Extract estimated residual variance-covariance structure}
-\label{sec:org46e0313}
+\label{sec:org45ea9ca}
 
 The method \texttt{getVarCov} can be used to output the covariance structure of the residuals:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-getVarCov(eCS.lmm)
+getVarCov(eUN.lmm)
 \end{lstlisting}
 
 \begin{verbatim}
           B3_months  B1_week  A1_week A3_months
-B3_months  355.3062 344.6236 344.6236  344.6236
-B1_week    344.6236 355.3062 344.6236  344.6236
-A1_week    344.6236 344.6236 355.3062  344.6236
-A3_months  344.6236 344.6236 344.6236  355.3062
+B3_months  411.3114 381.9734 352.6400  318.8573
+B1_week    381.9734 362.7326 335.4649  304.6314
+A1_week    352.6400 335.4649 311.6921  285.8077
+A3_months  318.8573 304.6314 285.8077  280.9323
 \end{verbatim}
 
 
 It can also be specific to an individual:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-getVarCov(eCS.lmm, individual = 5)
+getVarCov(eUN.lmm, individual = 5)
 \end{lstlisting}
 
 \begin{verbatim}
           B3_months  A1_week A3_months
-B3_months  355.3062 344.6236  344.6236
-A1_week    344.6236 355.3062  344.6236
-A3_months  344.6236 344.6236  355.3062
+B3_months  411.3114 352.6400  318.8573
+A1_week    352.6400 311.6921  285.8077
+A3_months  318.8573 285.8077  280.9323
 \end{verbatim}
 
 
 \clearpage
 
 \subsection{Model diagnostic}
-\label{sec:orgb352268}
+\label{sec:org4763f40}
 
-The method \texttt{residuals} can also be used to extract the residulas in
-the wide format:
-\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
-\begin{lstlisting}
-eCS.diagW <- residuals(eCS.lmm, type = "normalized", format = "wide")
-head(eCS.diagW)
-\end{lstlisting}
-
-\begin{verbatim}
-  cluster  B3_months      B1_week    A1_week  A3_months
-1       1 -0.8042448 -0.709908591 -1.4242830  0.3176640
-2       2  1.0863177 -0.133256793  1.1083627  1.5977042
-3       3 -0.4597852 -0.612727857 -0.6060136 -0.8589524
-4       4 -1.0103075  0.007471092  0.1309862  1.1428822
-5       5 -0.1258773           NA -0.3819184 -0.7874832
-6       6  3.5646224  2.333205013  2.8387203  0.3586263
-\end{verbatim}
-
-
-or in the long format:
-\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
-\begin{lstlisting}
-eCS.diagL <- residuals(eCS.lmm, type = "normalized", format = "long")
-head(eCS.diagL)
-\end{lstlisting}
-
-\begin{verbatim}
-[1] -0.8042448  1.0863177 -0.4597852 -1.0103075 -0.1258773  3.5646224
-\end{verbatim}
-
-
-Various type of residuals can be extract but the normalized one are
-recommanded when doing model checking. The method \texttt{residuals} can also
-be used to display diagnostic plots, e.g. about:
+The method \texttt{plot} can be used to display diagnostic plots about:
 \begin{itemize}
-\item the distribution of the residuals across fitted values using a
-scatterplot
+\item misspecification of the mean structure
 \end{itemize}
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-residuals(eCS.lmm, type = "normalized", plot = "scatterplot", size.text = 20)
+plot(eUN.lmm, type = "scatterplot")
 \end{lstlisting}
 
 \begin{center}
 \includegraphics[width=0.4\textwidth]{./figures/diag-scatterplot.pdf}
 \end{center}
 
+\begin{itemize}
+\item misspecification of the variance structure
+\end{itemize}
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+plot(eUN.lmm, type = "scatterplot2")
+\end{lstlisting}
+
+\begin{center}
+\includegraphics[width=0.4\textwidth]{./figures/diag-scatterplot2.pdf}
+\end{center}
+
 \clearpage
 
 \begin{itemize}
-\item the "normality" of the residuals at each repetition using a
-quantile-quantile plot \footnote{see \cite{oldford2016self} for guidance
+\item misspecification of the correlation structure
+\end{itemize}
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+plot(eUN.lmm, type = "correlation")
+\end{lstlisting}
+
+\begin{center}
+\includegraphics[width=0.4\textwidth]{./figures/diag-correlation.pdf}
+\end{center}
+
+\begin{itemize}
+\item residual distribution vs. normal distribution \footnote{see \cite{oldford2016self} for guidance
 about how to read quantile-quantile plots.}:
 \end{itemize}
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-residuals(eCS.lmm, type = "normalized", format = "wide",
-	  plot = "qqplot", engine.qqplot = "qqtest")
+plot(eUN.lmm, type = "qqplot", engine.qqplot = "qqtest")
 ## Note: the qqtest package to be installed to use the argument engine.plot = "qqtest" 
 \end{lstlisting}
 
@@ -703,110 +758,102 @@ residuals(eCS.lmm, type = "normalized", format = "wide",
 \includegraphics[width=0.5\textwidth]{./figures/diag-qqplot.pdf}
 \end{center}
 
-\begin{itemize}
-\item the residual correlation within cluster between the residuals:
-\end{itemize}
+\clearpage
+
+The method \texttt{residuals} returns the residulas in the wide format:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-residuals(eCS.lmm, type = "normalized", plot = "correlation", format = "wide",
-	  size.text = 20)
+eUN.diagW <- residuals(eUN.lmm, type = "normalized", format = "wide")
+colnames(eUN.diagW) <- gsub("normalized.","",colnames(eUN.diagW))
+head(eUN.diagW)
 \end{lstlisting}
 
-\begin{center}
-\includegraphics[width=0.5\textwidth]{./figures/diag-correlation.pdf}
-\end{center}
+\begin{verbatim}
+  cluster r.B3_months  r.B1_week   r.A1_week r.A3_months
+1       1  -0.2897364 -0.2027622 -1.16864032   0.3258573
+2       2   0.8603118 -1.6492167  0.62578804   1.7370660
+3       3   0.7273066 -0.4155168 -0.68266746  -0.8510316
+4       4  -1.6403081 -0.5128371  0.06806211   1.1725813
+5       5   0.4755409         NA -0.18736417  -0.8634200
+6       6   1.7801675  1.2847698  2.63004809   0.3505542
+\end{verbatim}
 
+
+or in the long format:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+eUN.diagL <- residuals(eUN.lmm, type = "normalized", format = "long")
+head(eUN.diagL)
+\end{lstlisting}
+
+\begin{verbatim}
+[1] -0.2897364  0.8603118  0.7273066 -1.6403081  0.4755409  1.7801675
+\end{verbatim}
+
+
+Various type of residuals can be extract but the normalized one are
+recommanded when doing model checking.
 
 \subsection{Model fit}
-\label{sec:org89a0353}
+\label{sec:org8ed6341}
 
-The fitted values can be displayed via the \texttt{emmeans} package or using the \texttt{autoplot} method:
+The fitted values can be displayed via the \texttt{plot} method or using the \texttt{emmeans} package:
+
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-library(emmeans) ## left panel
-emmip(eCS.lmm, ~time) + theme(text = element_text(size=20))
+library(ggplot2) ## left panel
+autoplot(eUN.lmm, color = "id", size.text = 20)
 \end{lstlisting}
 
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-library(ggplot2) ## right panel
-autoplot(eCS.lmm, color = "id", size.text = 20)
+library(emmeans) ## right panel
+emmip(eUN.lmm, ~time) + theme(text = element_text(size=20))
 \end{lstlisting}
 
-\begin{minipage}{0.45\linewidth}
-\begin{center}
-\includegraphics[width=\textwidth]{./figures/fit-emmip.pdf}
-\end{center}
-\end{minipage}
 \begin{minipage}{0.45\linewidth}
 \begin{center}
 \includegraphics[width=\textwidth]{./figures/fit-autoplot.pdf}
 \end{center}
 \end{minipage}
+\begin{minipage}{0.45\linewidth}
+\begin{center}
+\includegraphics[width=\textwidth]{./figures/fit-emmip.pdf}
+\end{center}
+\end{minipage}
 
-In the first case the average curve (over glucago values) is displayed
-while in the latter each possible curve is displayed. With the
-\texttt{autoplot} method, it is possible to display a curve specific to a
-glucagon value via the argument \texttt{at}:
+In the first case each possible curve is displayed while in the latter
+the average curve (over glucagon values). With the \texttt{autoplot} method,
+it is possible to display a curve specific to a glucagon value via the
+argument \texttt{at}:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-autoplot(eCS.lmm, at = data.frame(glucagon = 10), color = "glucagon")
+autoplot(eUN.lmm, at = data.frame(glucagon = 10), color = "glucagon")
 \end{lstlisting}
 
 \subsection{Statistical inference}
-\label{sec:org67ca719}
-
-\subsubsection{Model coefficients}
-\label{sec:org8fdaa43}
-
-The estimated coefficients with their confidence intervals can be accessed via the \texttt{confint} method:
-\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
-\begin{lstlisting}
-confint(eCS.lmm)
-\end{lstlisting}
-
-\begin{verbatim}
-              estimate   lower  upper
-(Intercept)    129.369 120.556 138.18
-timeB1_week     -7.619  -9.732  -5.51
-timeA1_week    -14.495 -17.358 -11.63
-timeA3_months  -27.051 -29.231 -24.87
-glucagon         0.822  -0.421   2.06
-\end{verbatim}
-
-
-\clearpage
-
-Confidence intervals for the variance and correlation parameters can
-be displayed too specifying \texttt{effect="all"}:
-\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
-\begin{lstlisting}
-confint(eCS.lmm, effect = "all", backtransform = TRUE)
-\end{lstlisting}
-
-\begin{verbatim}
-              estimate   lower   upper
-(Intercept)    129.369 120.556 138.183
-timeB1_week     -7.619  -9.732  -5.507
-timeA1_week    -14.495 -17.358 -11.632
-timeA3_months  -27.051 -29.231 -24.872
-glucagon         0.822  -0.421   2.065
-sigma           18.850  13.479  26.359
-rho              0.970   0.936   0.986
-Note: estimates and confidence intervals for sigma, rho have been back-transformed.
-\end{verbatim}
-
-
-Because these parameters are constrained (e.g. strictly positive),
-they uncertainty is by default computed after transformation
-(e.g. \texttt{log}) and then backtransformed. 
-
-\subsubsection{Linear combination of the model coefficients}
-\label{sec:orgcc65233}
+\label{sec:org45e682c}
 
 The \texttt{anova} method can be use to test one or several linear
-combinations of the model coefficients using Wald tests. For instance
-whether there is a change in average weight just after taking the
+combinations of the model coefficients using Wald tests. By default,
+it will simultaneously test all parameters associated to a variable:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+anova(eUN.lmm)
+\end{lstlisting}
+
+\begin{verbatim}
+                     ** mean coefficients ** 
+ - F-test
+         statistic df.num df.denom      p.value
+time      86.74280      3 19.00520 2.842460e-11
+glucagon  13.51775      1 13.70749 2.571626e-03
+\end{verbatim}
+
+
+Note that here the p-values are not adjust for multiple comparisons
+over variables. It is possible to specify a null hypothesis to be
+test: e.g. is there a change in average weight just after taking the
 treatment:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -824,6 +871,28 @@ anova(eUN.lmm, effects = c("timeA1_week-timeB1_week=0"), ci = TRUE)
 timeA1_week - timeB1_week -3.905721 -5.155643 -2.655799 3.723358e-06
 \end{verbatim}
 
+
+One can also simulateneously tests several null hypotheses:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+anova(eUN.lmm, effects = c("timeA1_week-timeB1_week=0",
+			   "timeA3_months-timeB1_week=0"), ci = TRUE)
+\end{lstlisting}
+
+\begin{verbatim}
+                     ** User-specified hypotheses ** 
+ - F-test
+ statistic df.num df.denom     p.value
+  98.65054      2 18.61992 1.23382e-10
+
+ - P-values and confidence interval (adjusted for multiplicity) 
+                              estimate      lower      upper      p.value
+timeA1_week - timeB1_week    -3.905721  -5.306911  -2.504531 4.080425e-06
+timeA3_months - timeB1_week -18.240158 -21.357228 -15.123087 2.195166e-11
+\end{verbatim}
+
+
+\clearpage
 
 When testing transformed variance or correlation parameters,
 parentheses (as in \texttt{log(k).B1\_week}) cause problem for recognizing
@@ -844,8 +913,6 @@ Error in parse(text = ex[i]) : <text>:1:7: uventet symbol
           ^
 \end{verbatim}
 
-
-\clearpage
 
 It is then advised to build a contrast matrix, e.g.:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -898,7 +965,7 @@ statistic df.num df.denom     p.value
 \clearpage
 
 \subsection{Baseline adjustment}
-\label{sec:org5ca6be9}
+\label{sec:orgdad8ed5}
 
 The \texttt{lmm} contains an "experimental" feature to drop non-identifiable
 effects from the model. For instance, let us define two (artifical) groups of
@@ -965,8 +1032,7 @@ eC.lmm <- lmm(weight ~ treat*time, data = gastricbypassL,
 Advarselsbesked:
 I .model.matrix_regularize(formula, data) :
   Constant values in the design matrix in interactions "treat:time"
- Coefficients "treat1" "treat2" "timeA1_week" "timeA3_months" "treat1:timeB1_week" "treat2:timeB1_week" will be removed from the design matrix. 
-Consider defining manually the interaction, e.g. via droplevels(interaction(.,.)) to avoid this warning.
+ Coefficients "treat1" "treat2" "timeA1_week" "timeA3_months" "treat1:timeB1_week" "treat2:timeB1_week" will be removed from the design matrix.
 \end{verbatim}
 
 
@@ -1005,8 +1071,6 @@ table(treat = gastricbypassL$treat2, time = gastricbypassL$time, group = gastric
 \end{lstlisting}
 
 \begin{verbatim}
-windows 
-      2
 , , group = 1
 
      time
@@ -1032,16 +1096,16 @@ eC2.lmm <- suppressWarnings(lmm(weight ~ treat2*time, data = gastricbypassL,
 will directly output group differences (last two coefficients):
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-confint(eC2.lmm, effects = "mean", columns = c("estimate","lower","upper","p.value"))
+model.tables(eC2.lmm)
 \end{lstlisting}
 \begin{verbatim}
-                      estimate  lower  upper  p.value
-(Intercept)             128.97 119.48 138.46 0.00e+00
-timeB1_week              -7.73  -9.19  -6.27 1.00e-09
-timeA1_week             -12.84 -14.64 -11.04 2.02e-12
-timeA3_months           -27.08 -30.66 -23.50 3.20e-13
-treat22:timeA1_week      -1.44  -2.75  -0.12 3.43e-02
-treat22:timeA3_months     1.57  -3.64   6.78 5.32e-01
+                      estimate    se   df  lower  upper  p.value
+(Intercept)             128.97 4.532 19.0 119.48 138.46 0.00e+00
+timeB1_week              -7.73 0.697 19.0  -9.19  -6.27 1.00e-09
+timeA1_week             -12.84 0.865 20.5 -14.64 -11.04 2.02e-12
+timeA3_months           -27.08 1.724 21.4 -30.66 -23.50 3.20e-13
+treat22:timeA1_week      -1.44 0.621 16.3  -2.75  -0.12 3.43e-02
+treat22:timeA3_months     1.57 2.463 16.3  -3.64   6.78 5.32e-01
 \end{verbatim}
 
 
@@ -1051,17 +1115,17 @@ an equivalent mean structure:
 \begin{lstlisting}
 eC3.lmm <- suppressWarnings(lmm(weight ~ 0+treat2:time, data = gastricbypassL,
 				repetition = ~time|id, structure = "UN"))
-confint(eC3.lmm)
+model.tables(eC3.lmm) ## equivalent to dummy.coef(eC2.lmm)
 \end{lstlisting}
 
 \begin{verbatim}
-                      estimate lower upper
-treat21:timeB3_months      129 119.5   138
-treat21:timeB1_week        121 112.4   130
-treat21:timeA1_week        116 107.5   125
-treat22:timeA1_week        115 106.1   123
-treat21:timeA3_months      102  93.8   110
-treat22:timeA3_months      103  94.9   112
+                      estimate   se   df lower upper p.value
+treat21:timeB3_months      129 4.53 19.0 119.5   138       0
+treat21:timeB1_week        121 4.23 19.0 112.4   130       0
+treat21:timeA1_week        116 4.11 19.1 107.5   125       0
+treat22:timeA1_week        115 4.13 19.4 106.1   123       0
+treat21:timeA3_months      102 3.87 20.2  93.8   110       0
+treat22:timeA3_months      103 4.17 25.2  94.9   112       0
 \end{verbatim}
 
 
@@ -1070,21 +1134,21 @@ or the baseline mean and the change since baseline:
 \begin{lstlisting}
 eC4.lmm <- suppressWarnings(lmm(weight ~ treat2:time, data = gastricbypassL,
 				repetition = ~time|id, structure = "UN"))
-confint(eC4.lmm)
+model.tables(eC4.lmm)
 \end{lstlisting}
 
 \begin{verbatim}
-                      estimate  lower  upper
-(Intercept)             128.97 119.48 138.46
-treat21:timeB1_week      -7.73  -9.19  -6.27
-treat21:timeA1_week     -12.84 -14.64 -11.04
-treat22:timeA1_week     -14.27 -16.23 -12.32
-treat21:timeA3_months   -27.08 -30.66 -23.50
-treat22:timeA3_months   -25.51 -30.32 -20.69
+                      estimate    se   df  lower  upper  p.value
+(Intercept)             128.97 4.532 19.0 119.48 138.46 0.00e+00
+treat21:timeB1_week      -7.73 0.697 19.0  -9.19  -6.27 1.00e-09
+treat21:timeA1_week     -12.84 0.865 20.5 -14.64 -11.04 2.02e-12
+treat22:timeA1_week     -14.27 0.950 26.3 -16.23 -12.32 2.02e-14
+treat21:timeA3_months   -27.08 1.724 21.4 -30.66 -23.50 3.20e-13
+treat22:timeA3_months   -25.51 2.323 22.6 -30.32 -20.69 1.60e-10
 \end{verbatim}
 
 \subsection{Marginal means}
-\label{sec:org18b5259}
+\label{sec:orgfbe25d5}
 
 The \texttt{lmm} function can be used in conjonction with the \texttt{emmeans}
 package to compute marginal means. Consider the following model:
@@ -1231,9 +1295,9 @@ summary(epairs.group, by = NULL, adjust = "mvt", infer = TRUE)
 
 \begin{verbatim}
  contrast time      estimate    SE   df lower.CL upper.CL t.ratio p.value
- 2 - 1    B3_months     4.83 10.10 18.0    -18.0     27.7   0.478  0.7498
- 2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0   0.618  0.6488
- 2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.9   0.471  0.7552
+ 2 - 1    B3_months     4.83 10.10 18.0    -18.0     27.7   0.478  0.7494
+ 2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0   0.618  0.6485
+ 2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.9   0.471  0.7553
  2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.7   0.797  0.5284
 
 Confidence level used: 0.95 
@@ -1263,7 +1327,7 @@ P value adjustment: sidak method for 4 tests
 \end{verbatim}
 
 \subsection{Predictions}
-\label{sec:org071f09f}
+\label{sec:org6d626b9}
 
 Two types of predictions can be performed with the \texttt{predict} method:
 \begin{itemize}
@@ -1273,22 +1337,22 @@ Two types of predictions can be performed with the \texttt{predict} method:
 \begin{lstlisting}
 news <- gastricbypassL[gastricbypassL$id==1,]
 news$glucagon <- 0
-predict(eCS.lmm, newdata = news)
+predict(eUN.lmm, newdata = news)
 \end{lstlisting}
 
 \begin{verbatim}
   estimate       se       df     lower    upper
-1 129.3691 4.225632 20.03432 120.55555 138.1826
-2 121.7496 4.235605 20.22155 112.92049 130.5787
-3 114.8740 4.271415 20.89949 105.98847 123.7595
-4 102.3176 4.215043 19.83701  93.52057 111.1147
+1 128.5386 4.536445 18.97584 119.04289 138.0343
+2 120.6564 4.261691 19.04078 111.73783 129.5749
+3 116.7506 3.956964 19.04925 108.47007 125.0312
+4 102.4162 3.747908 19.05531  94.57328 110.2591
 \end{verbatim}
 
 
 which can be computing by creating a design matrix:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-X.12 <- model.matrix(formula(eCS.lmm), news)
+X.12 <- model.matrix(formula(eUN.lmm), news)
 X.12
 \end{lstlisting}
 
@@ -1308,15 +1372,15 @@ attr(,"contrasts")$time
 and then multiplying it with the regression coefficients:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-X.12 %*% coef(eCS.lmm)
+X.12 %*% coef(eUN.lmm)
 \end{lstlisting}
 
 \begin{verbatim}
        [,1]
-1  129.3691
-21 121.7496
-41 114.8740
-61 102.3176
+1  128.5386
+21 120.6564
+41 116.7506
+61 102.4162
 \end{verbatim}
 
 
@@ -1332,20 +1396,20 @@ based on the weight 3 months before the intervention:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none,otherkeywords={}, deletekeywords={}}
 \begin{lstlisting}
 newd <- rbind(
-  data.frame(id = 1, time = "B3_months", weight = coef(eCS.lmm)["(Intercept)"], glucagon = 0),
+  data.frame(id = 1, time = "B3_months", weight = coef(eUN.lmm)["(Intercept)"], glucagon = 0),
   data.frame(id = 1, time = "B1_week", weight = NA, glucagon = 0),
   data.frame(id = 2, time = "B3_months", weight = 100, glucagon = 0),
   data.frame(id = 2, time = "B1_week", weight = NA, glucagon = 0)
 )
-predict(eCS.lmm, newdata = newd, type = "dynamic", keep.newdata = TRUE)
+predict(eUN.lmm, newdata = newd, type = "dynamic", keep.newdata = TRUE)
 \end{lstlisting}
 
 \begin{verbatim}
-  id      time   weight glucagon  estimate       se  df     lower    upper
-1  1 B3_months 129.3691        0        NA       NA  NA        NA       NA
-2  1   B1_week       NA        0 121.74961 1.046825 Inf 119.69787 123.8013
-3  2 B3_months 100.0000        0        NA       NA  NA        NA       NA
-4  2   B1_week       NA        0  93.26352 5.603475 Inf  82.28091 104.2461
+  id      time   weight glucagon  estimate        se  df     lower    upper
+1  1 B3_months 128.5386        0        NA        NA  NA        NA       NA
+2  1   B1_week       NA        0 120.65636 0.6361008 Inf 119.40963 121.9031
+3  2 B3_months 100.0000        0        NA        NA  NA        NA       NA
+4  2   B1_week       NA        0  94.15336 6.2597469 Inf  81.88448 106.4222
 \end{verbatim}
 
 
@@ -1357,15 +1421,15 @@ The first subjects has the average weight while the second has a much
   Gaussian vector:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-mu1 <- coef(eCS.lmm)[1]
-mu2 <- sum(coef(eCS.lmm)[1:2])
-Omega_11 <- getVarCov(eCS.lmm)["B3_months","B3_months"]
-Omega_21 <- getVarCov(eCS.lmm)["B1_week","B3_months"]
+mu1 <- coef(eUN.lmm)[1]
+mu2 <- sum(coef(eUN.lmm)[1:2])
+Omega_11 <- getVarCov(eUN.lmm)["B3_months","B3_months"]
+Omega_21 <- getVarCov(eUN.lmm)["B1_week","B3_months"]
 as.double(mu2 + Omega_21 * (100 - mu1) / Omega_11)
 \end{lstlisting}
 
 \begin{verbatim}
-[1] 93.26352
+[1] 94.15336
 \end{verbatim}
 
 
@@ -1373,7 +1437,7 @@ as.double(mu2 + Omega_21 * (100 - mu1) / Omega_11)
 \clearpage
 
 \section{Data generation}
-\label{sec:orga606331}
+\label{sec:orgb9505d6}
 Simulate some data in the wide format:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -1420,7 +1484,7 @@ head(dL)
 \clearpage
 
 \section{Modifying default options}
-\label{sec:org81cdc20}
+\label{sec:org2ff7547}
 The \texttt{LMMstar.options} method enable to get and set the default options
 used by the package. For instance, the default option for the information matrix is:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -1449,7 +1513,7 @@ LMMstar.options(reinitialise = TRUE)
 \clearpage
 
 \section{R session}
-\label{sec:orgcca9ae6}
+\label{sec:orgd7d0e97}
 Details of the R session used to generate this document:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -1500,7 +1564,7 @@ loaded via a namespace (and not attached):
 \clearpage
 
 \section*{References}
-\label{sec:org7e9b7de}
+\label{sec:org54ff840}
 \begingroup
 \renewcommand{\section}[2]{}
 
@@ -1526,7 +1590,7 @@ loaded via a namespace (and not attached):
 \section{Likelihood in a linear mixed model}
 \label{SM:likelihood}
 \subsection{Log-likelihood}
-\label{sec:orgf0854c0}
+\label{sec:org9b2024f}
 
 Denote by \(\VY\) a vector of \(m\) outcomes, \(\VX\) a vector of
 \(p\) covariates, \(\mu(\Vparam,\VX)\) the modeled mean, and
@@ -1560,7 +1624,7 @@ when setting the argument \texttt{indiv} to \texttt{TRUE}.
 \bigskip
 
 \subsection{Score}
-\label{sec:orgd325129}
+\label{sec:org11850c0}
 
  Using that \(\partial \log(\det(X))=tr(X^{-1}\partial(X))\), the
 score is obtained by derivating once the log-likelihood, i.e., for
@@ -1583,7 +1647,7 @@ what \texttt{score} outputs for the ML criteria when setting the argument
 \clearpage
 
 \subsection{Hessian}
-\label{sec:orgb6df94c}
+\label{sec:orgc683dca}
 
 Derivating a second time the log-likelihood gives the hessian, \(\Hessian(\Vparam)\), with element\footnote{if one is relative to the mean and the other to the variance then they are respectively \(\theta\) and \(\theta'\)}:
 \begin{align*}
@@ -1631,7 +1695,7 @@ is set to \texttt{"expected"} (up to a factor -1).
 \clearpage
 
 \subsection{Degrees of freedom}
-\label{sec:org4377945}
+\label{sec:orgef8f371}
 
 Degrees of freedom are computed using a Satterthwaite approximation,
 i.e. for an estimate coefficient \(\widehat{\beta}\in\widehat{\Vparam}\) with standard

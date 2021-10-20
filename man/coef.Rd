@@ -43,7 +43,7 @@ or only coefficients relative to the correlation structure (\code{"correlation"}
 A vector with the value of the model coefficients.
 }
 \description{
-Extract coefficients from a multivariate gaussian model.
+Extract coefficients from a linear mixed model.
 }
 \details{
 \bold{transform.sigma}: \cr
@@ -78,7 +78,7 @@ Extract coefficients from a multivariate gaussian model.
 set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
 
-## fit Multivariate Gaussian Model
+## fit linear mixed model
 eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
 
 ## output coefficients

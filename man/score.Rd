@@ -46,7 +46,7 @@ When argument indiv is \code{FALSE}, a vector with the value of the score relati
 When argument indiv is \code{TRUE}, a matrix with the value of the score relative to each coefficient (in columns) and each cluster (in rows).
 }
 \description{
-Extract or compute the first derivative of the log-likelihood of a multivariate gaussian model.
+Extract or compute the first derivative of the log-likelihood of a linear mixed model.
 }
 \details{
 For details about the arguments \bold{transform.sigma}, \bold{transform.k}, \bold{transform.rho}, see the documentation of the \link[LMMstar]{coef} function.

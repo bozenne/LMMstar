@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: okt 15 2021 (16:12) 
+## Last-Updated: okt 20 2021 (11:47) 
 ##           By: Brice Ozenne
-##     Update #: 1281
+##     Update #: 1304
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -517,12 +517,22 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
         if(is.character(data[[iVar]])){
             out <- stats::contrasts(as.factor(data[[iVar]]))
             if(any(colSums(abs(out)>1e-12)>1)){
-                stop("Cannot handle contrasts involving simultaneously several levels. \n")
+                if(any(options()$contrast!=c("contr.treatment","contr.poly"))){
+                    stop("Cannot handle contrasts involving simultaneously several levels. \n",
+                         "Could be because options()$contrast has been modified to non-standard contrasts. \n")
+                }else{
+                    stop("Cannot handle contrasts involving simultaneously several levels. \n")
+                }
             }
         }else if(is.factor(data[[iVar]])){
             out <- stats::contrasts(data[[iVar]])
             if(any(colSums(abs(out)>1e-12)>1)){
-                stop("Cannot handle contrasts involving simultaneously several levels. \n")
+                if(any(options()$contrast!=c("contr.treatment","contr.poly"))){
+                    stop("Cannot handle contrasts involving simultaneously several levels. \n",
+                         "Could be because options()$contrast has been modified to non-standard contrasts. \n")
+                }else{
+                    stop("Cannot handle contrasts involving simultaneously several levels. \n")
+                }
             }
         }else{
             out <- NULL
@@ -538,7 +548,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
         }
     }),all.variable)
     reference <- unlist(ls.reference[!sapply(ls.reference,is.null)])
-    reference2 <- data.frame(matrix(FALSE, nrow = 1, ncol = length(rownames(var2term)), dimnames = list(NULL, rownames(var2term))))
+    reference2 <- data.frame(matrix(FALSE, nrow = 1, ncol = length(rownames(var2term)), dimnames = list(NULL, rownames(var2term))),stringsAsFactors = FALSE)
     reference2[,names(reference)] <- reference
 
     ## ** addtional informations
@@ -554,7 +564,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
 
         if(X.order[iCol]==0){
             ## reference level for intercept
-            X.level[[iCol]] <- data.frame(reference)
+            X.level[[iCol]] <- data.frame(reference,stringsAsFactors = FALSE)
             rownames(X.level[[iCol]]) <- NULL
         }else if(X.order[iCol]>0){
             ## variables involved
@@ -577,7 +587,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
                     X.level2[[iCol]][,is.na(X.level[[iCol]])] <- TRUE
                 }
             }else{
-                X.level[[iCol]] <- data.frame(matrix(as.numeric(NA), nrow = 1, ncol = length(iVar), dimnames = list(NULL, iVar)))
+                X.level[[iCol]] <- data.frame(matrix(as.numeric(NA), nrow = 1, ncol = length(iVar), dimnames = list(NULL, iVar)),stringsAsFactors = FALSE)
                 X.level2[[iCol]][,iVar] <- TRUE
             }
         }
@@ -596,7 +606,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
 
 ## ** .extractIndexData
 .extractIndexData <- function(data, structure){
-    
+
     ## *** find variable names
     time.var <- structure$name$time
     cluster.var <- structure$name$cluster

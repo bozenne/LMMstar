@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: sep 20 2021 (14:42) 
+## Last-Updated: okt 18 2021 (11:19) 
 ##           By: Brice Ozenne
-##     Update #: 213
+##     Update #: 215
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,7 +17,7 @@
 
 ## * coef.lmm (documentation)
 ##' @title Extract Coefficients From a Linear Mixed Model
-##' @description Extract coefficients from a multivariate gaussian model.
+##' @description Extract coefficients from a linear mixed model.
 ##' @name coef
 ##'
 ##' @param object a \code{lmm} object.
@@ -68,7 +68,7 @@
 ##' set.seed(10)
 ##' dL <- sampleRem(100, n.times = 3, format = "long")
 ##' 
-##' ## fit Multivariate Gaussian Model
+##' ## fit linear mixed model
 ##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
 ##'
 ##' ## output coefficients

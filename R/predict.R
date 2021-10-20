@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: okt  2 2021 (17:32) 
+## Last-Updated: okt 20 2021 (14:19) 
 ##           By: Brice Ozenne
-##     Update #: 485
+##     Update #: 489
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,6 +17,7 @@
 
 ## * predict.lmm (documentation)
 ##' @title Predicted Mean Value With Uncertainty For Linear Mixed Model
+##' @description Predicted mean value conditional on covariates or on covariates and other outcome values.
 ##'
 ##' @param object a \code{lmm} object.
 ##' @param newdata [data.frame] the covariate values for each cluster.
@@ -209,7 +210,7 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
         if(keep.newdata){
             out <- cbind(newdata, estimate = prediction)
         }else{
-            out <- data.frame(estimate = prediction)
+            out <- data.frame(estimate = prediction,stringsAsFactors = FALSE)
         }
         ## compute uncertainty about the predictions
         ## prediction.se <- sqrt(diag(X %*% vcov.beta %*% t(X)))
@@ -222,9 +223,11 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
                 ## find variance corresponding to each observation
                 Omega.diag <- data.frame(value = unlist(lapply(Omega,diag)),
                                          pattern = unlist(lapply(1:length(Omega),function(iO){rep(names(Omega)[[iO]],NCOL(Omega[[iO]]))})),
-                                         time = U.time[unlist(lapply(Omega,attr,"time"))])
+                                         time = U.time[unlist(lapply(Omega,attr,"time"))],
+                                         stringsAsFactors = FALSE)
                 data.Omega <- data.frame(pattern = pattern.cluster[newdata[[name.cluster]]],
-                                         time = newdata[[name.time]])
+                                         time = newdata[[name.time]],
+                                         stringsAsFactors = FALSE)
                 index.value <- match(paste(data.Omega$pattern,data.Omega$time,sep="|"), paste(Omega.diag$pattern,Omega.diag$time,sep="|"))
                 prediction.var <- prediction.var + Omega.diag$value[index.value]
             }
@@ -306,7 +309,7 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
                 out$df <- ifelse(!is.na(prediction),Inf,NA)
             }
         }else{
-            out <- data.frame(estimate = stats::na.omit(prediction))
+            out <- data.frame(estimate = stats::na.omit(prediction),stringsAsFactors = FALSE)
             if(!is.null(se)){
                 out$se <- sqrt(stats::na.omit(prediction.var))
                 out$df <- Inf
