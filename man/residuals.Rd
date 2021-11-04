@@ -12,19 +12,21 @@
   data = NULL,
   p = NULL,
   keep.data = FALSE,
+  var = NULL,
   plot = "none",
   engine.qqplot = "ggplot2",
   add.smooth = TRUE,
   digit.cor = 2,
   size.text = 16,
-  type.object = "lmm",
+  scales = "free",
   ...
 )
 }
 \arguments{
 \item{object}{a \code{lmm} object.}
 
-\item{type}{[character] Should the raw residuals be output (\code{"response"}), or the Pearson residuals (\code{"pearson"}),  or normalized residuals (\code{"normalized"} or \code{"scaled"}).}
+\item{type}{[character] Should the raw residuals be output (\code{"response"}), the Pearson residuals (\code{"pearson"}), normalized residuals (\code{"normalized"} , \code{"scaled"}),
+or partial residuals (\code{"partial"} or \code{"partial-ref"}). See detail section.}
 
 \item{format}{[character] Should the residuals be output relative as a vector (\code{"long"}), or as a matrix with in row the clusters and in columns the outcomes (\code{"wide"}).}
 
@@ -33,6 +35,8 @@
 \item{p}{[numeric vector] value of the model coefficients at which to evaluate the residuals. Only relevant if differs from the fitted values.}
 
 \item{keep.data}{[logical] Should the argument \code{data} be output along side the residuals? Only possible in the long format.}
+
+\item{var}{[character vector] name of the variable relative to which the partial residuals should be computed.}
 
 \item{plot}{[character] Should a qqplot (\code{"qqplot"}), or a heatmap of the correlation between residuals  (\code{"correlation"}, require wide format), or a plot of residuals along the fitted values (\code{"scatterplot"}, require long format) be displayed?}
 
@@ -44,7 +48,7 @@
 
 \item{size.text}{[numeric, >0] Size of the font used to displayed text when using ggplot2.}
 
-\item{type.object}{[character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.}
+\item{scales}{[character] Passed to \code{ggplot2::facet_wrap}.}
 
 \item{...}{Not used. For compatibility with the generic method.}
 }
@@ -65,12 +69,16 @@ The argument \code{type} defines how the residuals are computed:
 \item \code{"normalized"}: raw residuals are multiplied, within clusters, by the inverse of the (lower) Cholesky factor of the modeled residual variance covariance matrix \eqn{\varepsilon = ( Y_{i} - X_{i} \hat{\beta} )\hat{C}^{-1}}.
 \item \code{"normalized2"}: same as \code{"normalized"} but excluding the contribution of the cluster in the modeled residual variance covariance matrix \eqn{\varepsilon = ( Y_{i} - X_{i} \hat{\beta} ) \hat{D}_i^{-1}}.
 \item \code{"scaled"}: corresponds to the scaled scaled residuals of PROC MIXED in SAS.
+\item \code{"partial"} or \code{"partial-ref"}: the partial residual are computed as the raw residuals plus the effect of the covariates in argument \code{var}.
+\code{"partial"} uses \eqn{\hat{\beta} X  + \hat{\varepsilon}} where \(X\) is centered while \code{"partial"} uses \eqn{\hat{\beta} X + \hat{\gamma} Z  + \hat{\varepsilon}} where the Z value are the same for all observations, i.e. uses a reference level.
 }
 where
 \itemize{
-\item \eqn{X} the design matrix
+\item \eqn{X} the design matrix (default) or the design matrix restricted to the variable(s) in argument \code{var} (partial residuals).
 \item \eqn{Y} the outcome
-\item \eqn{\hat{\beta}} the estimated mean coefficients
+\item \eqn{Z} not defined (default) or the design matrix restricted to the variable(s) not in argument \code{var} (partial residuals).
+\item \eqn{\hat{\beta}} the estimated mean coefficients relative to \eqn{X}
+\item \eqn{\hat{\gamma}} the estimated mean coefficients relative to \eqn{Z}
 \item \eqn{\hat{\Omega}} the modeled variance-covariance of the residuals and \eqn{\hat{\omega}} its diagonal elements
 \item \eqn{\hat{C}} the lower Cholesky factor of \eqn{\hat{\Omega}}, i.e. \eqn{\hat{C} \hat{C}^{t} = \hat{\Omega}}
 \item \eqn{\hat{Q}_i= X_i (X^{t}\hat{\Omega}X)^{-1}X_i^{t}} a cluster specific correction factor, approximating the contribution of cluster i to \eqn{\hat{Omega}}. Its diagonal elements are denoted \eqn{\hat{q}_i}.
@@ -82,8 +90,14 @@ where
 set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
 
+## fit Linear Model
+e.lm <- lmm(Y ~ visit + X1 + X2 + X5, data = dL)
+residuals(e.lm, type = "partial", var = "X1")
+residuals(e.lm, type = "partial", var = "X1", keep.data = TRUE)
+
 ## fit Linear Mixed Model
-eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL)
+eUN.lmm <- lmm(Y ~ visit + X1 + X2 + X5,
+               repetition = ~visit|id, structure = "UN", data = dL)
 
 ## residuals
 residuals(eUN.lmm, format = "long", type = c("normalized","pearson"))

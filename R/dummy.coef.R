@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (11:08) 
 ## Version: 
-## Last-Updated: okt 20 2021 (15:46) 
+## Last-Updated: nov  3 2021 (12:40) 
 ##           By: Brice Ozenne
-##     Update #: 21
+##     Update #: 24
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -32,10 +32,12 @@
 
 ## * dummy.coef.lmm (code)
 ##' @export
-dummy.coef.lmm <- function(object,drop=TRUE,...){
+dummy.coef.lmm <- function(object, drop = TRUE,...){
+
     requireNamespace("emmeans")
 
     var.cat <- intersect(all.vars(object$formula$mean),  names(object$xfactor))
+
     if(length(var.cat)==0){
         outEmmeans <- as.data.frame(emmeans::emmeans(object,specs=~1,...))
         out <- data.frame(estimate = outEmmeans$emmean,
@@ -47,6 +49,7 @@ dummy.coef.lmm <- function(object,drop=TRUE,...){
         attr(out,"message") <- attr(outEmmeans,"mesg")[1]
     }else{
         ff <- stats::as.formula(paste("~",paste(var.cat, collapse = "+")))
+        
         out <- as.data.frame(emmeans::emmeans(object,specs=ff, ...))
         names(out)[names(out)=="emmean"] <- "estimate"
         names(out)[names(out)=="SE"] <- "se"

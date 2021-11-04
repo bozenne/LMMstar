@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: okt  1 2021 (16:29) 
+## Last-Updated: nov  4 2021 (16:28) 
 ##           By: Brice Ozenne
-##     Update #: 68
+##     Update #: 69
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -27,7 +27,7 @@
 ##' @param plot [logical] should the plot be displayed?
 ##' @param size.point [numeric, >0] the size of the point on the plot.
 ##' @param size.line [numeric, >0] the size of the line on the plot.
-##' @param size.text [numeric, >0] Size of the font used to displayed text when using ggplot2.
+##' @param size.text [numeric, >0] size of the font used to displayed text when using ggplot2.
 ##' @param position.errorbar [character] relative position of the errorbars.
 ##' @param ... Not used. For compatibility with the generic method.
 ##'

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (17:03) 
 ## Version: 
-## Last-Updated: okt  2 2021 (17:42) 
+## Last-Updated: nov  4 2021 (16:49) 
 ##           By: Brice Ozenne
-##     Update #: 63
+##     Update #: 64
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -131,6 +131,9 @@ test_that("practical 2 - ncgs",{
     ncgsL$treatment <- factor(ncgsL$group, c("none","placebo","highdose"))
     ncgsL$treatment[ncgsL$time=="0"] <- "none"
     
+    ncgsL$treatment2 <- factor(ncgsL$group, c("placebo","highdose"))
+    ncgsL$treatment2[ncgsL$time=="0"] <- "placebo"
+
     ## ** unstructured with missing data
     e.gls <- gls(cholest~time+highdose.time,
                  data=ncgsL,
@@ -146,16 +149,21 @@ test_that("practical 2 - ncgs",{
                  control=glsControl(opt='optim'),
                  df = FALSE)
     
-    system.time({
-        e2.lmm <- suppressWarnings(lmm(cholest~treatment*time,
-                                       data=ncgsL,
-                                       repetition = ~time|id,
-                                       structure = "UN",
-                                       control=glsControl(opt='optim')))
-    })
+    e2.lmm <- suppressWarnings(lmm(cholest~treatment*time,
+                                   data=ncgsL,
+                                   repetition = ~time|id,
+                                   structure = "UN",
+                                   control=glsControl(opt='optim')))
     
+    e3.lmm <- suppressWarnings(lmm(cholest~treatment2*time,
+                                   data=ncgsL,
+                                   repetition = ~time|id,
+                                   structure = "UN",
+                                   control=glsControl(opt='optim')))
+
     expect_equal(as.double(logLik(e.gls)), as.double(logLik(e.lmm)), tol = 1e-6)
     expect_equal(as.double(logLik(e.gls)), as.double(logLik(e2.lmm)), tol = 1e-6)
+    expect_equal(as.double(logLik(e.gls)), as.double(logLik(e3.lmm)), tol = 1e-6)
     
     ## ** extract information
     confint(e2.lmm, effects = "all", backtransform = TRUE)[,c("estimate","lower","upper")]
@@ -205,7 +213,7 @@ test_that("practical 2 - vitamin",{
     expect_equal(as.double(logLik(e.gls)), as.double(logLik(e.lmm)), tol = 1e-6)
     
     ## ** extract information
-    autoplot(e.lmm, color = "group")
+    autoplot(e.lmm, color = "group",ci =FALSE)
     qqtest(residuals(e.lmm))
     confint(e.lmm)
     e.lmm_anova <- anova(e.lmm, effects = "treatmentvitamin:visit6 - treatmentcontrol:visit6 = 0", ci = TRUE)

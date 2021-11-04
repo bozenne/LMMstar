@@ -9,7 +9,6 @@
   obj,
   individual = NULL,
   p = NULL,
-  type.object = c("lmm", "gls"),
   simplifies = TRUE,
   strata = NULL,
   ...
@@ -21,8 +20,6 @@
 \item{individual}{[character] identifier of the cluster for which to extract the residual variance-covariance matrix.}
 
 \item{p}{[numeric vector] value of the model coefficients at which to evaluate the residual variance-covariance matrix. Only relevant if differs from the fitted values.}
-
-\item{type.object}{[character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.}
 
 \item{simplifies}{[logical] When there is only one variance-covariance matrix, output a matrix instead of a list of matrices.}
 

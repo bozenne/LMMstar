@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: okt 19 2021 (21:11) 
+## Last-Updated: nov  4 2021 (10:34) 
 ##           By: Brice Ozenne
-##     Update #: 322
+##     Update #: 323
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -30,7 +30,6 @@
 ##' @param robust [logical] Should robust standard error (aka sandwich estimator) be output instead of the model-based standard errors. Not feasible for variance or correlation coefficients estimated by REML.
 ##' @param null [numeric vector] the value of the null hypothesis relative to each coefficient.
 ##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.
-##' @param type.object [character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.
 ##' @param strata [character vector] When not \code{NULL}, only output coefficient relative to specific levels of the variable used to stratify the mean and covariance structure.
 ##' @param columns [character vector] Columns to be output. Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
 ##' @param type.information,transform.sigma,transform.k,transform.rho,transform.names are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.
@@ -70,7 +69,7 @@
 ## * confint.lmm (code)
 ##' @export
 confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robust = FALSE, null = NULL,
-                         type.object = "lmm", strata = NULL, columns = NULL,
+                         strata = NULL, columns = NULL,
                          df = NULL, type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE,
                          backtransform = NULL, ...){
 
@@ -85,7 +84,6 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
         stop("Argument \'parm\' should not be used. It is here for compatibility with the generic method. \n",
              "Use \'effects\' instead. \n")
     }
-    type.object <- match.arg(type.object, c("lmm","gls"))
     type.param <- object$param$type
     if(is.null(effects)){
         effects <- options$effects
@@ -96,13 +94,6 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     effects[effects== "fixed"] <- "mean"
     if(!is.null(strata)){
         strata <- match.arg(strata, object$strata$levels, several.ok = TRUE)
-    }
-    if(type.object=="gls"){
-        if(!is.null(strata)){
-            return(lapply(object$gls[strata], intervals))
-        }else{
-            return(lapply(object$gls, intervals))
-        }
     }
     if(is.null(df)){
         df <- (!is.null(object$df)) && (robust==FALSE)
@@ -137,14 +128,14 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     }
 
     ## ** get estimate
-    beta <- coef(object, effects = effects, type.object = "lmm", strata = strata,
+    beta <- coef(object, effects = effects, strata = strata,
                  transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
     p <- length(beta)
-    nameNoTransform.beta <- names(coef(object, effects = effects, type.object = "lmm", strata = strata,
+    nameNoTransform.beta <- names(coef(object, effects = effects, strata = strata,
                                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE))
    
     ## ** get uncertainty
-    vcov.beta <- vcov(object, effects = effects, df = df, type.object = "lmm", strata = strata, robust = robust,
+    vcov.beta <- vcov(object, effects = effects, df = df, strata = strata, robust = robust,
                       type.information = type.information, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
 
     if(df){
@@ -208,7 +199,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
         attr(out, "type")[attr(out, "type")=="sigma"] <- "k"
     }
     attr(out, "old2new") <-  stats::setNames(nameNoTransform.beta, rownames(out))
-    attr(out, "backtransform.names") <- names(coef(object, effects = effects, type.object = "lmm", strata = strata,
+    attr(out, "backtransform.names") <- names(coef(object, effects = effects, strata = strata,
                                                    transform.sigma = gsub("log","",transform.sigma), transform.k = gsub("log","",transform.k), transform.rho = gsub("atanh","",transform.rho), transform.names = transform.names))
 
     attr(out, "backtransform") <-  FALSE

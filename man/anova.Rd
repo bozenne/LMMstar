@@ -13,7 +13,6 @@
   rhs = NULL,
   df = !is.null(object$df),
   ci = FALSE,
-  type.object = "lmm",
   transform.sigma = NULL,
   transform.k = NULL,
   transform.rho = NULL,
@@ -39,8 +38,6 @@ Can also be use to specify linear combinations of coefficients, similarly to the
 \item{df}{[logical] Should a F-distribution be used to model the distribution of the Wald statistic. Otherwise a chi-squared distribution is used.}
 
 \item{ci}{[logical] Should a confidence interval be output for each hypothesis?}
-
-\item{type.object}{[character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.}
 
 \item{transform.sigma, transform.k, transform.rho, transform.names}{are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.}
 

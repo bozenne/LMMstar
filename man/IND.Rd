@@ -4,10 +4,12 @@
 \alias{IND}
 \title{Independence Structure}
 \usage{
-IND(formula, var.time, ...)
+IND(formula, var.cluster, var.time, ...)
 }
 \arguments{
 \item{formula}{formula indicating factors influencing the residual variance.}
+
+\item{var.cluster}{[character] used to check the cluster variable in the formula.}
 
 \item{var.time}{[character] name of the time variable.}
 

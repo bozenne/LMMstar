@@ -4,10 +4,12 @@
 \alias{ID}
 \title{identity Structure}
 \usage{
-ID(formula, var.time, ...)
+ID(formula, var.cluster, var.time, ...)
 }
 \arguments{
 \item{formula}{formula indicating the time and cluster variables.}
+
+\item{var.cluster}{[character] used to check the cluster variable in the formula.}
 
 \item{var.time}{[character] name of the time variable.}
 

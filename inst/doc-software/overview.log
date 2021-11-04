@@ -1,7 +1,7 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.23 (MiKTeX 21.8) (preloaded format=pdflatex 2021.8.26)  20 OCT 2021 15:52
+This is pdfTeX, Version 3.141592653-2.6-1.40.23 (MiKTeX 21.8) (preloaded format=pdflatex 2021.8.26)  4 NOV 2021 17:31
 entering extended mode
-**./overview.tex
-(overview.tex
+**c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/overview.tex
+(c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/overview.tex
 LaTeX2e <2021-06-01> patch level 1
 L3 programming layer <2021-07-12>
 (C:\Program Files\MiKTeX 2.9\tex/latex/base\article.cls
@@ -1321,29 +1321,29 @@ Package pdftex.def Info: ./figures/diag-scatterplot2.pdf  used on input line 73
  [10
 
  <./figures/diag-scatterplot.pdf> <./figures/diag-scatterplot2.pdf>]
-<./figures/diag-correlation.pdf, id=239, 650.43pt x 505.89pt>
+<./figures/diag-correlation.pdf, id=239, 867.24pt x 460.72125pt>
 File: ./figures/diag-correlation.pdf Graphic file (type pdf)
 <use ./figures/diag-correlation.pdf>
-Package pdftex.def Info: ./figures/diag-correlation.pdf  used on input line 744
+Package pdftex.def Info: ./figures/diag-correlation.pdf  used on input line 746
 .
-(pdftex.def)             Requested size: 216.23764pt x 168.17929pt.
+(pdftex.def)             Requested size: 324.36473pt x 172.32011pt.
 <./figures/diag-qqplot.pdf, id=243, 505.89pt x 505.89pt>
 File: ./figures/diag-qqplot.pdf Graphic file (type pdf)
 <use ./figures/diag-qqplot.pdf>
-Package pdftex.def Info: ./figures/diag-qqplot.pdf  used on input line 758.
+Package pdftex.def Info: ./figures/diag-qqplot.pdf  used on input line 760.
 (pdftex.def)             Requested size: 270.3012pt x 270.30496pt.
  [11
 
  <./figures/diag-correlation.pdf> <./figures/diag-qqplot.pdf>]
-<./figures/fit-autoplot.pdf, id=277, 505.89pt x 505.89pt>
+<./figures/fit-autoplot.pdf, id=278, 505.89pt x 505.89pt>
 File: ./figures/fit-autoplot.pdf Graphic file (type pdf)
 <use ./figures/fit-autoplot.pdf>
-Package pdftex.def Info: ./figures/fit-autoplot.pdf  used on input line 816.
+Package pdftex.def Info: ./figures/fit-autoplot.pdf  used on input line 818.
 (pdftex.def)             Requested size: 243.26941pt x 243.27214pt.
-<./figures/fit-emmip.pdf, id=278, 505.89pt x 505.89pt>
+<./figures/fit-emmip.pdf, id=279, 505.89pt x 505.89pt>
 File: ./figures/fit-emmip.pdf Graphic file (type pdf)
 <use ./figures/fit-emmip.pdf>
-Package pdftex.def Info: ./figures/fit-emmip.pdf  used on input line 821.
+Package pdftex.def Info: ./figures/fit-emmip.pdf  used on input line 823.
 (pdftex.def)             Requested size: 243.26941pt x 243.27214pt.
 
 [12
@@ -1353,7 +1353,7 @@ Package pdftex.def Info: ./figures/fit-emmip.pdf  used on input line 821.
 ] [15
 
 ]
-<./figures/gg-baseAdj.pdf, id=353, 505.89pt x 505.89pt>
+<./figures/gg-baseAdj.pdf, id=354, 505.89pt x 505.89pt>
 File: ./figures/gg-baseAdj.pdf Graphic file (type pdf)
 <use ./figures/gg-baseAdj.pdf>
 Package pdftex.def Info: ./figures/gg-baseAdj.pdf  used on input line 1060.
@@ -1375,23 +1375,23 @@ Package pdftex.def Info: ./figures/gg-baseAdj.pdf  used on input line 1060.
 ]
 
 LaTeX Font Warning: Font shape `U/stmry/b/n' undefined
-(Font)              using `U/stmry/m/n' instead on input line 1595.
+(Font)              using `U/stmry/m/n' instead on input line 1607.
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1621--1621
+Underfull \hbox (badness 10000) in paragraph at lines 1633--1633
 [][]\T1/lmr/m/n/10 The REML is the like-li-hood of the ob-ser-va-tions di-vided
  by the prior on the es-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1621--1621
+Underfull \hbox (badness 10000) in paragraph at lines 1633--1633
 \T1/lmr/m/n/10 ti-mated mean pa-ram-e-ters $[][] \OMS/lmsy/m/n/10  N\OT1/lmr/m
 /n/10 (\OML/lmm/m/it/10 ; [][]\OT1/lmr/m/n/10 )$\T1/lmr/m/n/10 . This cor-re-s
 ponds to
  []
 
 
-Underfull \hbox (badness 2591) in paragraph at lines 1621--1621
+Underfull \hbox (badness 2591) in paragraph at lines 1633--1633
 [] [] []$ \T1/lmr/m/n/10 Since $\OML/lmm/m/it/10 $ \T1/lmr/m/n/10 will be es-t
 i-mated to be
  []
@@ -1399,12 +1399,12 @@ i-mated to be
 [27
 
 ]
-Overfull \hbox (19.98886pt too wide) detected at line 1660
+Overfull \hbox (19.98886pt too wide) detected at line 1672
 []
  []
 
 
-Overfull \hbox (10.84985pt too wide) detected at line 1690
+Overfull \hbox (10.84985pt too wide) detected at line 1702
 []
  []
 
@@ -1429,13 +1429,13 @@ Package rerunfilecheck Info: File `overview.out' has not changed.
 (rerunfilecheck)             Checksum: 128C6654E60B50C83335787D8A47CD12;3641.
  ) 
 Here is how much of TeX's memory you used:
- 30669 strings out of 478868
- 539913 string characters out of 2856724
- 1256730 words of memory out of 3000000
- 47634 multiletter control sequences out of 15000+600000
+ 30673 strings out of 478868
+ 540116 string characters out of 2856724
+ 1256717 words of memory out of 3000000
+ 47636 multiletter control sequences out of 15000+600000
  500323 words of font info for 123 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 114i,17n,117p,605b,1843s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 114i,17n,117p,662b,1819s stack positions out of 5000i,500n,10000p,200000b,80000s
 pdfTeX warning (dest): name{Hfootnote.4} has been referenced but does not exi
 st, replaced by a fixed one
 
@@ -1477,7 +1477,7 @@ iKTeX 2.9/fonts/type1/public/amsfonts/symbols/msam10.pfb><C:/Program Files/MiKT
 eX 2.9/fonts/type1/public/amsfonts/symbols/msam5.pfb><C:/Program Files/MiKTeX 2
 .9/fonts/type1/public/amsfonts/symbols/msam7.pfb><C:/Program Files/MiKTeX 2.9/f
 onts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on overview.pdf (31 pages, 592786 bytes).
+Output written on overview.pdf (31 pages, 594881 bytes).
 PDF statistics:
  778 PDF objects out of 1000 (max. 8388607)
  300 named destinations out of 1000 (max. 500000)

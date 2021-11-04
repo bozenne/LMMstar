@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: okt 20 2021 (11:47) 
+## Last-Updated: nov  4 2021 (17:28) 
 ##           By: Brice Ozenne
-##     Update #: 1304
+##     Update #: 1416
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,10 +18,9 @@
 
 ## * model.matrix.lmm (code)
 ##' @export
-model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object = "lmm", ...){
+model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies = TRUE, ...){
 
     ## ** normalize user imput
-    type.object <- match.arg(type.object, c("lmm","gls"))
     if(identical(effects,"all")){
         effects <- c("mean","variance")
     }
@@ -33,7 +32,12 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
     ## ** update design matrix with new dataset
     if(!is.null(data)){
         design <- list(mean = NULL,
-                       vcov = NULL)
+                       vcov = NULL,
+                       Y = NULL,
+                       index.cluster = NULL,
+                       index.time = NULL,
+                       cluster = NULL,
+                       param = object$design$param)
 
         ## prepare data
         if("variance" %in% effects){
@@ -56,16 +60,35 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
             }
         }
 
+        ## outcome
+        if(object$outcome$var %in% names(data) && !simplifies){
+            design$Y <- data[[object$outcome$var]]
+        }
+
+        ## time
+        if(object$time$var %in% names(data) && !simplifies){
+            design$index.time <- as.numeric(factor(data[[object$time$var]], levels = object$time$levels))
+        }
+
+        ## cluster
+        if("variance" %in% effects || (object$time$var %in% names(data) && object$cluster$var %in% names(data) && !simplifies)){
+            indexData <- .extractIndexData(data = data, structure = object$design$vcov)
+
+            design$index.cluster <- match(data[[object$cluster$var]], indexData$U.cluster) 
+            attr(design$index.cluster,"sorted") <- lapply(indexData$U.cluster, function(iC){indexData$index.cluster[[iC]][indexData$order.cluster[[iC]]]})
+            design$cluster <- list(n = length(indexData$U.cluster), levels = indexData$U.cluster, nobs = sapply(indexData$index.cluster,length))
+        }
+
         ## mean
         if("mean" %in% effects){
-            design$mean <- .mean.matrix.lmm(formula = object$formula$mean.design, colnames = colnames(object$design$mean), data = data, 
+            ## use stats::model.frame to handle spline
+            design$mean <- .mean.matrix.lmm(formula = object$formula$mean.design, colnames = colnames(object$design$mean),
+                                            data = stats::model.frame(attr(object$design$mean,"terms"), data = data, na.action = stats::na.pass), 
                                             var.strata = object$strata$var, U.strata = object$strata$levels)
         }
     
         ## variance
-                   
         if("variance" %in% effects){
-            indexData <- .extractIndexData(data = data, structure = object$design$vcov)
             design$vcov <- .vcov.matrix.lmm2(structure = object$design$vcov, data = data,
                                              strata.var = indexData$strata.var, U.strata = indexData$U.strata,
                                              time.var = indexData$time.var, U.time = indexData$U.time,
@@ -77,7 +100,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
     }
 
     ## ** update design matrix with new datase
-    if(type.object == "lmm"){
+    if(simplifies){
         if("mean" %in% effects && "variance" %in% effects){
             return(list(mean = design$mean,
                         vcov = design$vcov))
@@ -86,13 +109,10 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
         }else if("variance" %in% effects){
             return(design$vcov)
         }
-    }else if(type.object == "gls"){
-        if(object$strata$n==1){
-            return(model.matrix(object$gls[[1]], data = data))
-        }else{
-            return(lapply(object$gls, model.matrix, data = data))
-        }
+    }else{
+        return(design)
     }
+    
 }
 
 
@@ -124,7 +144,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
             if(is.null(colnames)){
                 iX <- .model.matrix_regularize(formula, data[data[[var.strata]]==iS,,drop=FALSE])
             }else{
-                iX <- stats::model.matrix(formula, stats::model.frame(formula, data[data[[var.strata]]==iS,,drop=FALSE], na.action = stats::na.pass))
+                iX <- stats::model.matrix(formula, data[data[[var.strata]]==iS,,drop=FALSE])
             }
             colnames(iX) <- paste0(colnames(iX),":",iS)
             attr(iX,"index") <- data[data[[var.strata]]==iS,"XXindexXX"]
@@ -137,19 +157,23 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
             X.mean <- X.mean[,colnames,drop=FALSE]
         }
         attr(X.mean, "assign") <- as.vector(do.call(cbind,lapply(ls.X.mean,attr,"assign")))
+        attr(X.mean, "variable") <- attr(ls.X.mean[[1]],"variable")
+
         if(is.null(colnames)){
             strata.mu <- unlist(lapply(1:n.strata, function(iStrata){stats::setNames(rep(iStrata, NCOL(ls.X.mean[[iStrata]])),colnames(ls.X.mean[[iStrata]]))}))
         }else{
             attr.assign <- attr(X.mean, "assign")[match(colnames(X.mean),colnames)]
+            attr.variable <- attr(X.mean, "variable")[match(colnames(X.mean),colnames)]
             X.mean <- X.mean[,colnames,drop=FALSE]
             attr(X.mean, "assign") <- attr.assign
+            attr(X.mean, "variable") <- attr.assign
         }
     }else{
         if(is.null(colnames)){
             X.mean <- .model.matrix_regularize(formula, data)
             strata.mu <- stats::setNames(rep(1,NCOL(X.mean)), colnames(X.mean))
         }else{
-            X.mean <-  stats::model.matrix(formula, stats::model.frame(formula, data, na.action = stats::na.pass))[,colnames,drop=FALSE]
+            X.mean <-  stats::model.matrix(formula, data)[,colnames,drop=FALSE]
         }
     }
 
@@ -296,11 +320,14 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
                               precompute.moments){
 
     ## ** mean
-    X.mean <- .mean.matrix.lmm(formula = formula.mean, colnames = NULL, data = data,
+    ## use stats::model.frame to handle splines
+    data.mf <- stats::model.frame(formula.mean,data)
+    X.mean <- .mean.matrix.lmm(formula = formula.mean, colnames = NULL, data = data.mf,
                                var.strata = var.strata, U.strata = U.strata)
     strata.mu <- attr(X.mean,"strata.mu")
     attr(X.mean,"strata.mu") <- NULL
-
+    attr(X.mean,"terms") <- attr(data.mf,"terms")
+    
     ## ** variance (update structure)
     structure <- .skeleton(structure = structure, data = data)
 
@@ -393,10 +420,12 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
     ## ** identify if there is an identifiability problem
     X <- stats::model.matrix(formula, data)
     X.qr <- qr(X)
-    if(X.qr$rank==NCOL(X.qr$qr)){
+
+    if(X.qr$rank==NCOL(X)){
         if(augmodel){
             return(.augmodel.matrix(stats::delete.response(stats::terms(formula)),data))
         }else{
+            attr(X,"variable") <- all.vars(formula)
             return(X)
         }
     }else if(LMMstar.options()$drop.X==FALSE){
@@ -419,7 +448,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
     if(length(name.factor)>0){
         test.factor <- sapply(name.factor, function(iVar){all(levels(data[[iVar]]) %in% data[[iVar]])})
         if(any(test.factor==FALSE)){
-            warning("Factor variable(s) with empty level: \"",paste(name.factor[test.factor==FALSE], collapse = "\" \""),"\"\n ",
+            message("Factor variable(s) with empty level: \"",paste(name.factor[test.factor==FALSE], collapse = "\" \""),"\"\n ",
                     "The empty level(s) will be remove internally. Consider applying droplevels to avoid this warning. \n")
             factor.drop <- name.factor[test.factor==FALSE]
             for(iFactor in factor.drop){
@@ -432,13 +461,14 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
     X <- .augmodel.matrix(tt,data)
     ## M.interactionName <- do.call(cbind,lapply(name.var, function(iVar){if(is.logical(X.Mlevel[,iVar])){return(c(NA,iVar)[X.Mlevel[,iVar]+1])}else{return(paste0(iVar,X.Mlevel[,iVar]))}}))
     ## vec.interactionName <- apply(M.interactionName, MARGIN = 1, FUN = function(iRow){paste(na.omit(iRow), collapse = ":")})
-    
+
     ## ** test 2: remove column(s) corresponding to the same level
     index.keep <- which(!duplicated(attr(X,"M.level")))
     Xsave <- X
     X <- Xsave[,index.keep,drop=FALSE]
     attrX <- attributes(Xsave)[setdiff(names(attributes(Xsave)),names(attributes(X)))]
     attrX$assign <- attrX$assign[index.keep]
+    attrX$variable <- attrX$variable[index.keep]
     attrX$term.labels <- attrX$term.labels[index.keep]
     attrX$order <- attrX$order[index.keep]
     attrX$ls.levels <- attrX$ls.levels[index.keep]
@@ -455,15 +485,15 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
         ## identify coefficient relative to this interaction 
         iNoVar <- setdiff(name.var,iVar)
         if(length(iNoVar)>0){ ## remove coefficients relative to other covariates
-            iMlevel <- X.Mlevel[apply(X.Mlevel[,iNoVar,drop=FALSE],1,function(iParam){all(iParam==X.reference[iNoVar])}),,drop=FALSE]
+            iMlevel <- X.Mlevel[apply(X.Mlevel[,iNoVar,drop=FALSE],1,function(iParam){all(iParam==X.reference[iNoVar])}),iVar,drop=FALSE]
         }else{
             iMlevel <- X.Mlevel
         }
 
-        test.constant <- sapply(1:NROW(iMlevel), FUN = function(iParam){ ## iParam <- 1 
-            iNumeric <- intersect(iVar, var.numeric)
-            
+        ## create all possible values for the interaction and check if it is constant
+        test.constant <- sapply(1:NROW(iMlevel), FUN = function(iParam){ ## iParam <- 2
             iValue <- do.call(cbind,lapply(var.factor, function(iFactor){data[[iFactor]]==iMlevel[iParam,iFactor]}))
+            iNumeric <- intersect(iVar, var.numeric)
             if(length(iNumeric)>0){
                 iLs.ValueNum <- lapply(iNumeric, function(iN){if(iMlevel[iParam,iN]){data[[iN]]*iMlevel[iParam,iN]}else{rep(1,NROW(data))}})
                 iValue <- cbind(iValue,do.call(cbind,iLs.ValueNum))
@@ -474,27 +504,66 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
     }), tt.term.labels[which(tt.order>1)])
 
     rmX <- unlist(ls.rmX)
+
     if(length(rmX)>0){
-        warning("Constant values in the design matrix in interactions \"",paste(names(ls.rmX), collapse = "\" \""),"\"\n ",
-                "Coefficients \"",paste(rmX, collapse = "\" \""),"\" will be removed from the design matrix. \n")
         X.old <- X
         test.keep <- colnames(X.old) %in% setdiff(colnames(X.old),rmX)
         X <- X.old[,test.keep]
+        if(qr(X)$rank==X.qr$rank){
+            message("Constant values in the design matrix in interactions \"",paste(names(ls.rmX), collapse = "\" \""),"\"\n ",
+                    "Coefficients \"",paste(rmX, collapse = "\" \""),"\" have been removed. \n")
+        }else{
+            warning("Constant values in the design matrix in interactions \"",paste(names(ls.rmX), collapse = "\" \""),"\"\n ",
+                    "Coefficients \"",paste(rmX, collapse = "\" \""),"\" have been removed. \n")
+        }
+
         attr(X,"assign") <- attr(X.old,"assign")[test.keep] ## as.numeric(as.factor(attr(X.old,"assign")[test.keep])) - "(Intercept)" %in% colnames(X)
         attr(X,"contr.treatment") <- attr(X.old,"contr.treatment")
-        if(augmodel){
+        if(augmodel || X.qr$rank!=NCOL(X.qr$qr)){
             attr(X,"term.labels") <- attr(X.old,"term.labels")[test.keep]
             attr(X,"order") <- attr(X.old,"order")[test.keep]
             attr(X,"M.level") <- attr(X.old,"M.level")[test.keep,,drop=FALSE]
         }
-    }else if(!augmodel){
+    }
+    
+    ## ** identify if there is still an identifiability problem
+    
+    if(X.qr$rank==NCOL(X)){
+        return(X)
+    }
+
+    ## ** test 4: remove columns one at a time, starting from the higher order term (i.e. the last columns)
+    score.ref <- apply(attr(X,"M.level"),1,function(iRow){sum(iRow==attr(X,"reference"))})
+    test.name <- colnames(X)[order(attr(X,"order")+score.ref/(length(attr(X,"reference"))+1), decreasing = TRUE)]
+    
+    rmX <- NULL
+    for(iCol in test.name){
+        iIndex <- colnames(X)!=iCol
+        X.test <- X[,iIndex,drop=FALSE]
+        if(X.qr$rank == qr(X.test)$rank){
+            rmX <- c(rmX, iCol)
+            keep.attr <- attributes(X)
+            X <- X.test
+            attr(X,"assign") <- keep.attr$assign[iIndex]
+            attr(X,"contrast") <- keep.attr$contrasts
+            if(augmodel){
+                attr(X,"term.labels") <- keep.attr$term.labels[iIndex]
+                attr(X,"order") <- keep.attr$order[iIndex]
+                attr(X,"M.level") <- keep.attr$M.level[iIndex,,drop=FALSE]
+            }
+        }
+        if(NCOL(X)==X.qr$rank){break}
+    }
+    if(length(rmX)>0){
+        message("Singular design matrix, coefficient",if(length(rmX)>1){"s"}," \"",paste(rmX, collapse = "\" \""),"\" has been removed. \n")
+    } else if(!augmodel){
         attr(X,"term.labels") <- NULL
         attr(X,"order") <- NULL
         attr(X,"ls.level") <- NULL
         attr(X,"M.level") <- NULL
         attr(X,"reference.level") <- NULL
     }
-    
+
     ## ** export
     return(X)
 }
@@ -576,15 +645,20 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
             if(!is.null(iContrast) && length(iContrast)>0){
                 ## re-create all possible names and identify the one matching the column name 
                 iLs.factor <- stats::setNames(lapply(iVar,function(iName){rownames(iContrast[[iName]])}), iVar)
-                iLs.grid <- expand.grid(iLs.factor)
+                iLs.grid <- expand.grid(iLs.factor[sapply(iLs.factor,length)>0])
                 iLs.allnameInteraction <- interaction(stats::setNames(lapply(iVar,function(iName){paste0(iName,iLs.grid[[iName]])}), iVar), sep = ":")
                 iIndex  <- which(X.names[iCol] == iLs.allnameInteraction)
                 ## deduce the factor variable
                 iValue.factor <- iLs.grid[iIndex,,drop=FALSE]
-                X.level[[iCol]] <- as.data.frame(stats::setNames(lapply(iVar, function(iName){if(is.null(iValue.factor[[iName]])){as.numeric(NA)}else{as.character(iValue.factor[1,iName])}}), iVar))                
+                X.level[[iCol]] <- as.data.frame(stats::setNames(lapply(iVar, function(iName){
+                    if(iName %in% names(iValue.factor) == FALSE){
+                        as.numeric(NA)
+                    }else{
+                        as.character(iValue.factor[1,iName])
+                    }}), iVar))                
                 X.level2[[iCol]][,names(X.level[[iCol]])] <- X.level[[iCol]]
                 if(any(is.na(X.level[[iCol]]))){
-                    X.level2[[iCol]][,is.na(X.level[[iCol]])] <- TRUE
+                    X.level2[[iCol]][,is.na(X.level2[[iCol]])] <- TRUE
                 }
             }else{
                 X.level[[iCol]] <- data.frame(matrix(as.numeric(NA), nrow = 1, ncol = length(iVar), dimnames = list(NULL, iVar)),stringsAsFactors = FALSE)
@@ -594,6 +668,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", type.object 
     }
 
     ## ** add attributes
+    attr(X,"variable") <- colnames(reference2)
     attr(X,"term.labels") <- X.term
     attr(X,"order") <- X.order
     attr(X,"ls.level") <- X.level

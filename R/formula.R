@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:53) 
 ## Version: 
-## Last-Updated: May 27 2021 (12:11) 
+## Last-Updated: nov  4 2021 (10:32) 
 ##           By: Brice Ozenne
-##     Update #: 15
+##     Update #: 16
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,7 +17,7 @@
 
 ## * formula.lmm (code)
 ##' @export
-formula.lmm <- function(x, type.object = "lmm", effects = "mean", ...){
+formula.lmm <- function(x, effects = "mean", ...){
 
     ## ** normalize user imput
     dots <- list(...)
@@ -25,28 +25,19 @@ formula.lmm <- function(x, type.object = "lmm", effects = "mean", ...){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
 
-    type.x <- match.arg(type.object, c("lmm","lmm-mean","lmm-variance","gls"))
     if(identical(effects,"all")){
         effects <- c("mean","variance")
     }
     effects <- match.arg(effects, c("mean","variance"), several.ok = TRUE)
 
     ## ** extract formula
-    if(type.object == "lmm"){
-        if("mean" %in% effects && "variance" %in% effects){
-            return(list(mean = x$formula$mean,
-                        variance = x$formula$var))
-        }else if("mean" %in% effects){
-            return(x$formula$mean)
-        }else if("variance" %in% effects){
-            return(x$formula$var)
-        }
-    }else if(type.object =="gls"){
-        if(x$strata$n==1){
-            return(stats::formula(x$gls[[1]]))
-        }else{
-            return(lapply(x$gls, stats::formula))
-        }
+    if("mean" %in% effects && "variance" %in% effects){
+        return(list(mean = x$formula$mean,
+                    variance = x$formula$var))
+    }else if("mean" %in% effects){
+        return(x$formula$mean)
+    }else if("variance" %in% effects){
+        return(x$formula$var)
     }
 }
 

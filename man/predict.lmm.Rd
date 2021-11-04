@@ -12,6 +12,7 @@
   type = "static",
   level = 0.95,
   keep.newdata = FALSE,
+  se.fit,
   ...
 )
 }
@@ -25,11 +26,14 @@ Can also be \code{NULL} to not compute standard error, p-values, and confidence 
 
 \item{df}{[logical] Should a Student's t-distribution be used to model the distribution of the predicted mean. Otherwise a normal distribution is used.}
 
-\item{type}{[character] Should prediction be made conditional on the covariates only (\code{"static"}) or also on outcome values at other timepoints (\code{"dynamic"}).}
+\item{type}{[character] Should prediction be made conditional on the covariates only (\code{"static"}) or also on outcome values at other timepoints (\code{"dynamic"}).
+Can also output the model term (\code{"terms"}, similarly to \code{stats::predict.lm}.}
 
 \item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
 
 \item{keep.newdata}{[logical] Should the argument \code{newdata} be output along side the predicted values?}
+
+\item{se.fit}{For internal use. When not missing mimic the output of \code{predict.se}. Overwrite argument \code{se}.}
 
 \item{...}{Not used. For compatibility with the generic method.}
 }
@@ -41,12 +45,16 @@ A data.frame with 5 columns:\itemize{
 \item \code{lower}: lower bound of the confidence interval of the predicted mean
 \item \code{upper}: upper bound of the confidence interval of the predicted mean
 }
+except when the argument \code{se.fit} is specified (see \code{predict.lm} for the output format).
 }
 \description{
 Predicted mean value conditional on covariates or on covariates and other outcome values.
 }
 \details{
 Static prediction are made using the linear predictor \eqn{X\beta} while dynamic prediction uses the conditional normal distribution of the missing outcome given the observed outcomes. So if outcome 1 is observed but not 2, prediction for outcome 2 is obtain by \eqn{X_2\beta + \sigma_{21}\sigma^{-1}_{22}(Y_1-X_1\beta)}. In that case, the uncertainty is computed as the sum of the conditional variance \eqn{\sigma_{22}-\sigma_{21}\sigma^{-1}_{22}\sigma_{12}} plus the uncertainty about the estimated conditional mean (obtained via delta method using numerical derivatives).
+
+The model terms are computing by centering the design matrix around the mean value of the covariates used to fit the model.
+Then the centered design matrix is multiplied by the mean coefficients and columns assigned to the same variable (e.g. three level factor variable) are summed together.
 }
 \examples{
 ## simulate data in the long format

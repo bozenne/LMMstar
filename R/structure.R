@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: okt 20 2021 (14:49) 
+## Last-Updated: nov  4 2021 (10:10) 
 ##           By: Brice Ozenne
-##     Update #: 307
+##     Update #: 316
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -115,7 +115,11 @@
     var.rhs <- rhs.vars(formula.var)
     if(length(var.rhs)==0){
         var.time <- NULL
-        formula.var <- ~1 ## no need to stratify on anything
+        if(length(var.strata)==0){
+            formula.var <- ~1 
+        }else{
+            formula.var <- stats::as.formula(paste("~0+",var.strata))
+        }
     }else if(length(var.rhs)==1){
         var.time <- var.rhs
         if(length(var.strata)==0){
@@ -164,6 +168,7 @@
 ##' @description Variance-covariance structure where the residuals are independent and identically distribution.
 ##'
 ##' @param formula formula indicating the time and cluster variables.
+##' @param var.cluster [character] used to check the cluster variable in the formula.
 ##' @param var.time [character] name of the time variable.
 ##' @param ... not used.
 ##'
@@ -179,10 +184,14 @@
 ##' ID(gender~time,var.time="time")
 ##' 
 ##' @export
-ID <- function(formula, var.time, ...){
-    out0 <- .formulaStructure(formula, missing.time.ok = TRUE, missing.id.ok = TRUE)
+ID <- function(formula, var.cluster, var.time, ...){
+    if(is.null(formula)){
+        out0 <- list(cluster = NULL, strata = NULL, time = NULL)
+    }else{
+        out0 <- .formulaStructure(formula, missing.time.ok = TRUE, missing.id.ok = TRUE)
+    }
     out <- list(call = match.call(),
-                name = data.frame(cluster = if(length(out0$cluster)==1){out0$cluster}else{NA},
+                name = data.frame(cluster = if(!missing(var.cluster)==1){var.cluster}else if(length(out0$var.cluster)==1){out0$var.cluster}else{NA},
                                   strata = if(!is.null(out0$strata)){out0$strata}else{NA},
                                   time = if(!missing(var.time)){var.time}else if(length(out0$var.time)==1){out0$var.time}else{NA},
                                   var = NA,
@@ -214,6 +223,7 @@ ID <- function(formula, var.time, ...){
 ##' @description Variance-covariance structure where the residuals are independent.
 ##'
 ##' @param formula formula indicating factors influencing the residual variance.
+##' @param var.cluster [character] used to check the cluster variable in the formula.
 ##' @param var.time [character] name of the time variable.
 ##' @param ... not used.
 ##'
@@ -230,10 +240,10 @@ ID <- function(formula, var.time, ...){
 ##' IND(gender~time,var.time="time")
 ##' 
 ##' @export
-IND <- function(formula, var.time, ...){
+IND <- function(formula, var.cluster, var.time, ...){
     out0 <- .formulaStructure(formula, missing.time.ok = TRUE, missing.id.ok = TRUE)
     out <- list(call = match.call(),
-                name = data.frame(cluster = if(length(out0$cluster)==1){out0$cluster}else{NA},
+                name = data.frame(cluster = if(!missing(var.cluster)==1){var.cluster}else if(length(out0$var.cluster)==1){out0$var.cluster}else{NA},
                                   strata = if(!is.null(out0$strata)){out0$strata}else{NA},
                                   time = if(!missing(var.time)){var.time}else if(length(out0$var.time)==1){out0$var.time}else{NA},
                                   var = if(length(out0$X.var)>0){I(list(out0$X.var))}else{NA},

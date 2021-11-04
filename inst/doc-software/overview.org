@@ -7,6 +7,10 @@ if(system("whoami",intern=TRUE)=="bozenne"){
 }else if(system("whoami",intern=TRUE)=="unicph\\hpl802"){  
   setwd("c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/")
 }
+library(ggplot2)
+library(LMMstar)
+library(emmeans)
+library(ggpubr)
 #+END_SRC
 
 #+RESULTS:
@@ -93,7 +97,7 @@ utils::packageVersion("LMMstar")
 #+END_SRC
 
 #+RESULTS:
-: [1] '0.3.4'
+: [1] '0.3.5'
 
 When estimating model coefficients, we will use the internal
 optimization routine of the *LMMstar* package (instead of relying on
@@ -383,7 +387,7 @@ coef(eUN.lmm, effects = "variance", transform.k = "sd")
 : sigma:B3_months   sigma:B1_week   sigma:A1_week sigma:A3_months 
 :        20.28081        19.04554        17.65480        16.76104
 
-The marginal mean at each timepoint can be obtainet using =dummy.coef=:
+The marginal means at each timepoint can be obtainet using =dummy.coef=:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 dummy.coef(eUN.lmm)
 #+END_SRC
@@ -499,15 +503,29 @@ plot(eUN.lmm, type = "scatterplot2")
 \clearpage
 
 - misspecification of the correlation structure
-#+begin_src R :file ./figures/diag-correlation.pdf :results graphics file :session *R* :cache no
-plot(eUN.lmm, type = "correlation")
+
+#+BEGIN_SRC R :exports code :results output :session *R* :cache no
+plot(eUN.lmm, type = "correlation", type.residual = "response")
+plot(eUN.lmm, type = "correlation", type.residual = "normalized")
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC R :exports none :results output raw drawer :session *R* :cache no
+library(ggpubr)
+gg <- ggarrange(plot(eUN.lmm, type = "correlation", type.residual = "response", plot = FALSE)$plot,
+                plot(eUN.lmm, type = "correlation", type.residual = "normalized", plot = FALSE)$plot,
+                common.legend = TRUE)
+ggsave(gg, filename = "./figures/diag-correlation.pdf", width = 12)
 #+end_src
 
 
 #+RESULTS:
-[[file:./figures/diag-correlation.pdf]]
+:results:
+Saving 12 x 6.38 in image
+:end:
 
-#+ATTR_LaTeX: :width 0.4\textwidth :placement [!h]
+#+ATTR_LaTeX: :width 0.6\textwidth :placement [!h]
 [[./figures/diag-correlation.pdf]]
 
 - residual distribution vs. normal distribution [fn::see cite:oldford2016self for guidance
@@ -772,10 +790,8 @@ eC.lmm <- lmm(weight ~ treat*time, data = gastricbypassL,
 #+end_src
 
 #+RESULTS:
-: Advarselsbesked:
-: I .model.matrix_regularize(formula, data) :
-:   Constant values in the design matrix in interactions "treat:time"
-:  Coefficients "treat1" "treat2" "timeA1_week" "timeA3_months" "treat1:timeB1_week" "treat2:timeB1_week" will be removed from the design matrix.
+: Constant values in the design matrix in interactions "treat:time"
+:  Coefficients "treat1" "treat2" "timeA1_week" "timeA3_months" "treat1:timeB1_week" "treat2:timeB1_week" have been removed.
 
 with the following coefficients:
 #+begin_src R :exports both :results output :session *R* :cache no
@@ -832,6 +848,8 @@ eC2.lmm <- suppressWarnings(lmm(weight ~ treat2*time, data = gastricbypassL,
 #+end_src
 
 #+RESULTS:
+: Constant values in the design matrix in interactions "treat2:time"
+:  Coefficients "treat22" "treat22:timeB1_week" have been removed.
 
 will directly output group differences (last two coefficients):
 #+begin_src R :exports both :results output :session *R* :cache no
@@ -855,6 +873,8 @@ model.tables(eC3.lmm) ## equivalent to dummy.coef(eC2.lmm)
 #+end_src
 
 #+RESULTS:
+: Constant values in the design matrix in interactions "treat2:time"
+:  Coefficients "treat22:timeB3_months" "treat22:timeB1_week" have been removed.
 :                       estimate   se   df lower upper p.value
 : treat21:timeB3_months      129 4.53 19.0 119.5   138       0
 : treat21:timeB1_week        121 4.23 19.0 112.4   130       0
@@ -871,6 +891,8 @@ model.tables(eC4.lmm)
 #+end_src
 
 #+RESULTS:
+: Constant values in the design matrix in interactions "treat2:time"
+:  Coefficients "treat22:timeB3_months" "treat22:timeB1_week" have been removed.
 :                       estimate    se   df  lower  upper  p.value
 : (Intercept)             128.97 4.532 19.0 119.48 138.46 0.00e+00
 : treat21:timeB1_week      -7.73 0.697 19.0  -9.19  -6.27 1.00e-09
@@ -892,7 +914,6 @@ e.group <- lmm(weight ~ time*group, data = gastricbypassL,
 
 We can for instance compute the average value over time /assuming balanced groups/:
 #+begin_src R :exports both :results output :session *R* :cache no
-library(emmeans)
 emmeans(e.group, specs=~time)
 #+end_src
 
@@ -1014,10 +1035,10 @@ summary(epairs.group, by = NULL, adjust = "mvt", infer = TRUE)
 
 #+RESULTS:
 :  contrast time      estimate    SE   df lower.CL upper.CL t.ratio p.value
-:  2 - 1    B3_months     4.83 10.10 18.0    -18.0     27.7   0.478  0.7494
-:  2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0   0.618  0.6485
-:  2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.9   0.471  0.7553
-:  2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.7   0.797  0.5284
+:  2 - 1    B3_months     4.83 10.10 18.0    -18.0     27.6   0.478  0.7497
+:  2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0   0.618  0.6481
+:  2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.8   0.471  0.7554
+:  2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.7   0.797  0.5282
 : 
 : Confidence level used: 0.95 
 : Conf-level adjustment: mvt method for 4 estimates 
@@ -1224,30 +1245,33 @@ attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
- [1] emmeans_1.6.3     LMMstar_0.3.0     nlme_3.1-152      ggplot2_3.3.5     spelling_2.2     
- [6] roxygen2_7.1.1    butils.base_1.2   Rcpp_1.0.7        data.table_1.14.0 devtools_2.4.2   
-[11] usethis_2.0.1    
+ [1] ggpubr_0.4.0        sandwich_3.0-1      reshape2_1.4.4      numDeriv_2016.8-1.1
+ [5] multcomp_1.4-17     TH.data_1.1-0       MASS_7.3-54         survival_3.2-13    
+ [9] mvtnorm_1.1-3       Matrix_1.3-4        lava_1.6.10         emmeans_1.7.0      
+[13] ggplot2_3.3.5       LMMstar_0.3.5       nlme_3.1-152        spelling_2.2       
+[17] roxygen2_7.1.1      butils.base_1.2     Rcpp_1.0.7          data.table_1.14.2  
+[21] devtools_2.4.2      usethis_2.0.1      
 
 loaded via a namespace (and not attached):
- [1] pkgload_1.2.1       splines_4.1.1       remotes_2.4.0       sessioninfo_1.1.1  
- [5] globals_0.14.0      numDeriv_2016.8-1.1 pillar_1.6.3        lattice_0.20-44    
- [9] glue_1.4.2          digest_0.6.27       colorspace_2.0-2    sandwich_3.0-1     
-[13] qqtest_1.2.0        plyr_1.8.6          Matrix_1.3-4        pkgconfig_2.0.3    
-[17] listenv_0.8.0       purrr_0.3.4         xtable_1.8-4        mvtnorm_1.1-2      
-[21] scales_1.1.1        processx_3.5.2      lava_1.6.10         tibble_3.1.4       
-[25] farver_2.1.0        generics_0.1.0      ellipsis_0.3.2      TH.data_1.1-0      
-[29] cachem_1.0.6        withr_2.4.2         cli_3.0.1           survival_3.2-11    
-[33] magrittr_2.0.1      crayon_1.4.1        memoise_2.0.0       estimability_1.3   
-[37] ps_1.6.0            fs_1.5.0            fansi_0.5.0         future_1.22.1      
-[41] parallelly_1.28.1   MASS_7.3-54         xml2_1.3.2          pkgbuild_1.2.0     
-[45] tools_4.1.1         prettyunits_1.1.1   lifecycle_1.0.1     multcomp_1.4-17    
-[49] stringr_1.4.0       munsell_0.5.0       callr_3.7.0         compiler_4.1.1     
-[53] rlang_0.4.11        grid_4.1.1          labeling_0.4.2      testthat_3.0.4     
-[57] gtable_0.3.0        codetools_0.2-18    reshape2_1.4.4      R6_2.5.1           
-[61] zoo_1.8-9           knitr_1.33          dplyr_1.0.7         fastmap_1.1.0      
-[65] future.apply_1.8.1  utf8_1.2.2          rprojroot_2.0.2     desc_1.3.0         
-[69] stringi_1.7.4       parallel_4.1.1      vctrs_0.3.8         tidyselect_1.1.1   
-[73] xfun_0.25           coda_0.19-4
+ [1] colorspace_2.0-2   ggsignif_0.6.2     ellipsis_0.3.2     rio_0.5.27         rprojroot_2.0.2   
+ [6] estimability_1.3   fs_1.5.0           listenv_0.8.0      farver_2.1.0       remotes_2.4.0     
+[11] fansi_0.5.0        xml2_1.3.2         codetools_0.2-18   splines_4.1.1      cachem_1.0.6      
+[16] knitr_1.36         pkgload_1.2.1      broom_0.7.9        compiler_4.1.1     backports_1.2.1   
+[21] assertthat_0.2.1   fastmap_1.1.0      cli_3.0.1          prettyunits_1.1.1  tools_4.1.1       
+[26] coda_0.19-4        gtable_0.3.0       glue_1.4.2         dplyr_1.0.7        carData_3.0-4     
+[31] cellranger_1.1.0   vctrs_0.3.8        iterators_1.0.13   xfun_0.26          stringr_1.4.0     
+[36] globals_0.14.0     ps_1.6.0           openxlsx_4.2.4     testthat_3.0.4     lifecycle_1.0.1   
+[41] rstatix_0.7.0      future_1.22.1      zoo_1.8-9          scales_1.1.1       butils_1.4.7      
+[46] qqtest_1.2.0       ragg_1.1.3         hms_1.1.0          parallel_4.1.1     curl_4.3.2        
+[51] memoise_2.0.0      pbapply_1.5-0      gridExtra_2.3      stringi_1.7.5      desc_1.3.0        
+[56] foreach_1.5.1      boot_1.3-28        pkgbuild_1.2.0     zip_2.2.0          rlang_0.4.11      
+[61] pkgconfig_2.0.3    systemfonts_1.0.3  lattice_0.20-44    purrr_0.3.4        labeling_0.4.2    
+[66] cowplot_1.1.1      processx_3.5.2     tidyselect_1.1.1   parallelly_1.28.1  plyr_1.8.6        
+[71] magrittr_2.0.1     R6_2.5.1           generics_0.1.0     DBI_1.1.1          pillar_1.6.3      
+[76] haven_2.4.3        foreign_0.8-81     withr_2.4.2        mgcv_1.8-36        abind_1.4-5       
+[81] tibble_3.1.5       future.apply_1.8.1 crayon_1.4.1       car_3.0-11         utf8_1.2.2        
+[86] grid_4.1.1         readxl_1.3.1       callr_3.7.0        forcats_0.5.1      digest_0.6.28     
+[91] xtable_1.8-4       tidyr_1.1.3        textshaping_0.3.6  munsell_0.5.0      sessioninfo_1.1.1
 #+end_example
 
 \clearpage

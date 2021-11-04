@@ -12,7 +12,6 @@
   effects = NULL,
   robust = FALSE,
   null = NULL,
-  type.object = "lmm",
   strata = NULL,
   columns = NULL,
   df = NULL,
@@ -40,8 +39,6 @@ or only for correlation coefficients (\code{"correlation"}).}
 \item{robust}{[logical] Should robust standard error (aka sandwich estimator) be output instead of the model-based standard errors. Not feasible for variance or correlation coefficients estimated by REML.}
 
 \item{null}{[numeric vector] the value of the null hypothesis relative to each coefficient.}
-
-\item{type.object}{[character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.}
 
 \item{strata}{[character vector] When not \code{NULL}, only output coefficient relative to specific levels of the variable used to stratify the mean and covariance structure.}
 

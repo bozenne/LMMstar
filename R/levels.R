@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 18 2021 (10:32) 
 ## Version: 
-## Last-Updated: okt 18 2021 (11:28) 
+## Last-Updated: okt 20 2021 (19:08) 
 ##           By: Brice Ozenne
-##     Update #: 10
+##     Update #: 12
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -33,13 +33,9 @@ levels.lmm <- function(x){
     if(length(C)>0){
         C <- C[!unlist(lapply(C, is.null))]
         if(length(C)>0){
-            if(attr(stats::terms(x$formula$mean),"intercept") == 1){
-                ref.level <- unlist(lapply(names(C), function(iC){
-                    stats::setNames(rownames(C[[iC]])[1],iC)
-                }))  
-            }else{
-                ref.level <- NULL
-            }
+            ref.level <- unlist(lapply(names(C), function(iC){
+                stats::setNames(rownames(C[[iC]])[1],iC)
+            }))  
         }else{
             ref.level <- NULL
         }

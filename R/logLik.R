@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: okt 18 2021 (11:19) 
+## Last-Updated: nov  4 2021 (10:33) 
 ##           By: Brice Ozenne
-##     Update #: 233
+##     Update #: 235
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -23,7 +23,6 @@
 ##' @param object a \code{lmm} object.
 ##' @param data [data.frame] dataset relative to which the log-likelihood should be computed. Only relevant if differs from the dataset used to fit the model.
 ##' @param indiv [logical] Should the contribution of each cluster to the log-likelihood be output? Otherwise output the sum of all clusters of the derivatives. 
-##' @param type.object [character] Set this argument to \code{"gls"} to obtain the output from the gls object and related method.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the log-likelihood. Only relevant if differs from the fitted values.
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
@@ -42,18 +41,14 @@
 ## * logLik
 ##' @rdname logLik
 ##' @export
-logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv = FALSE, ...){
-
-    ## ** normalize user input
-    type.object <- match.arg(type.object, c("lmm","gls"))
+logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
 
     ## ** extract or recompute log-likelihood
-    if(type.object=="lmm"){
-        if(is.null(data) && is.null(p) && indiv == FALSE){
-            design <- object$design ## useful in case of NA
-            out <- object$logLik
-        }else{
-            test.precompute <- !is.null(object$design$precompute.XX) && !indiv
+    if(is.null(data) && is.null(p) && indiv == FALSE){
+        design <- object$design ## useful in case of NA
+        out <- object$logLik
+    }else{
+        test.precompute <- !is.null(object$design$precompute.XX) && !indiv
             
             if(!is.null(data)){
                 ff.allvars <- c(all.vars(object$formula$mean), all.vars(object$formula$var))
@@ -89,20 +84,6 @@ logLik.lmm <- function(object, data = NULL, p = NULL, type.object = "lmm", indiv
                                 logLik = TRUE, score = FALSE, information = FALSE, vcov = FALSE, df = FALSE, indiv = indiv, 
                                 trace = FALSE, precompute.moments = test.precompute)$logLik
         } 
-    }else if(type.object=="gls"){
-        if(!is.null(data)){
-            stop("Cannot handle argument \'data\' when argument \'type.object\' is \"gls\". \n")
-        }
-        if(!is.null(p)){
-            stop("Cannot handle argument \'p\' when argument \'type.object\' is \"gls\". \n")
-        }
-
-        if(is.null(object$variable$strata)){
-            out <- stats::logLik(object$gls[[1]])
-        }else{
-            out <- lapply(object$gls, stats::logLik)
-        }
-    }
 
     ## ** restaure NAs
     if(length(object$index.na)>0 && indiv){ 

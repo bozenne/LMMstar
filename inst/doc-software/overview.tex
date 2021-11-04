@@ -1,4 +1,4 @@
-% Created 2021-10-20 on 15:51
+% Created 2021-11-04 to 17:31
 % Intended LaTeX compiler: pdflatex
 \documentclass[12pt]{article}
 
@@ -314,7 +314,7 @@ utils::packageVersion("LMMstar")
 \end{lstlisting}
 
 \begin{verbatim}
-[1] '0.3.4'
+[1] '0.3.5'
 \end{verbatim}
 
 
@@ -329,7 +329,7 @@ LMMstar.options(optimizer = "FS")
 \clearpage
 
 \section{Descriptive statistics}
-\label{sec:org67c8089}
+\label{sec:org8ac86bc}
 Mean, standard deviation, and other summary statistic can be computed
 with respect to a categorical variable (typically time) using the
 \texttt{summarize} function:
@@ -355,9 +355,9 @@ print(sss, digits = 3)
 \clearpage
 
 \section{Linear mixed model}
-\label{sec:orgfe667be}
+\label{sec:org40aeaab}
 \subsection{Modeling tools}
-\label{sec:org1172327}
+\label{sec:orgf51d1c2}
 Fit a linear model with \textbf{identity} structure:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -514,7 +514,7 @@ A3_months  354.9368 332.8130 319.7058  341.7246
 
 \clearpage
 \subsection{Model output}
-\label{sec:org2daa03f}
+\label{sec:org9db32d3}
 
 The \texttt{summary} method can be used to display the main information
 relative to the model fit:
@@ -582,7 +582,7 @@ arguments \texttt{df} to \texttt{FALSE} and \texttt{type.information} to \texttt
 calling \texttt{lmm} should lead to a more reasonnable computation time.
 
 \subsection{Extract estimated coefficients}
-\label{sec:org0e45eb2}
+\label{sec:orgab8e774}
 The value of the estimated coefficients can be output using \texttt{coef}:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -622,7 +622,7 @@ sigma:B3_months   sigma:B1_week   sigma:A1_week sigma:A3_months
 \end{verbatim}
 
 
-The marginal mean at each timepoint can be obtainet using \texttt{dummy.coef}:
+The marginal means at each timepoint can be obtainet using \texttt{dummy.coef}:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
 dummy.coef(eUN.lmm)
@@ -637,7 +637,7 @@ dummy.coef(eUN.lmm)
 \end{verbatim}
 
 \subsection{Extract estimated coefficient and associated uncertainty}
-\label{sec:org97667d2}
+\label{sec:org8015941}
 
 The uncertainty about the mean coefficients can be obtained using the
 \texttt{model.tables} method \footnote{it is equivalent to \texttt{confint} method
@@ -669,7 +669,7 @@ they uncertainty is by default computed after transformation
 (e.g. \texttt{log}) and then backtransformed. 
 
 \subsection{Extract estimated residual variance-covariance structure}
-\label{sec:orgf5e5fab}
+\label{sec:org3fd68aa}
 
 The method \texttt{getVarCov} can be used to output the covariance structure of the residuals:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -703,7 +703,7 @@ A3_months  318.8573 285.8077  280.9323
 \clearpage
 
 \subsection{Model diagnostic}
-\label{sec:orgf9ddf2f}
+\label{sec:org9b58eb1}
 
 The method \texttt{plot} can be used to display diagnostic plots about:
 \begin{itemize}
@@ -735,13 +735,15 @@ plot(eUN.lmm, type = "scatterplot2")
 \begin{itemize}
 \item misspecification of the correlation structure
 \end{itemize}
+
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-plot(eUN.lmm, type = "correlation")
+plot(eUN.lmm, type = "correlation", type.residual = "response")
+plot(eUN.lmm, type = "correlation", type.residual = "normalized")
 \end{lstlisting}
 
 \begin{center}
-\includegraphics[width=0.4\textwidth]{./figures/diag-correlation.pdf}
+\includegraphics[width=0.6\textwidth]{./figures/diag-correlation.pdf}
 \end{center}
 
 \begin{itemize}
@@ -795,7 +797,7 @@ Various type of residuals can be extract but the normalized one are
 recommanded when doing model checking.
 
 \subsection{Model fit}
-\label{sec:org4119d90}
+\label{sec:org063aeb0}
 
 The fitted values can be displayed via the \texttt{plot} method or using the \texttt{emmeans} package:
 
@@ -832,7 +834,7 @@ autoplot(eUN.lmm, at = data.frame(glucagon = 10), color = "glucagon")
 \end{lstlisting}
 
 \subsection{Statistical inference}
-\label{sec:orgd4ef80e}
+\label{sec:org06290e2}
 
 The \texttt{anova} method can be use to test one or several linear
 combinations of the model coefficients using Wald tests. By default,
@@ -965,7 +967,7 @@ statistic df.num df.denom     p.value
 \clearpage
 
 \subsection{Baseline adjustment}
-\label{sec:org33eb3ae}
+\label{sec:org9d81fcb}
 
 The \texttt{lmm} contains an "experimental" feature to drop non-identifiable
 effects from the model. For instance, let us define two (artifical) groups of
@@ -1029,10 +1031,8 @@ eC.lmm <- lmm(weight ~ treat*time, data = gastricbypassL,
 \end{lstlisting}
 
 \begin{verbatim}
-Advarselsbesked:
-I .model.matrix_regularize(formula, data) :
-  Constant values in the design matrix in interactions "treat:time"
- Coefficients "treat1" "treat2" "timeA1_week" "timeA3_months" "treat1:timeB1_week" "treat2:timeB1_week" will be removed from the design matrix.
+Constant values in the design matrix in interactions "treat:time"
+ Coefficients "treat1" "treat2" "timeA1_week" "timeA3_months" "treat1:timeB1_week" "treat2:timeB1_week" have been removed.
 \end{verbatim}
 
 
@@ -1093,6 +1093,12 @@ eC2.lmm <- suppressWarnings(lmm(weight ~ treat2*time, data = gastricbypassL,
 				repetition = ~time|id, structure = "UN"))
 \end{lstlisting}
 
+\begin{verbatim}
+Constant values in the design matrix in interactions "treat2:time"
+ Coefficients "treat22" "treat22:timeB1_week" have been removed.
+\end{verbatim}
+
+
 will directly output group differences (last two coefficients):
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -1119,6 +1125,8 @@ model.tables(eC3.lmm) ## equivalent to dummy.coef(eC2.lmm)
 \end{lstlisting}
 
 \begin{verbatim}
+Constant values in the design matrix in interactions "treat2:time"
+ Coefficients "treat22:timeB3_months" "treat22:timeB1_week" have been removed.
                       estimate   se   df lower upper p.value
 treat21:timeB3_months      129 4.53 19.0 119.5   138       0
 treat21:timeB1_week        121 4.23 19.0 112.4   130       0
@@ -1138,6 +1146,8 @@ model.tables(eC4.lmm)
 \end{lstlisting}
 
 \begin{verbatim}
+Constant values in the design matrix in interactions "treat2:time"
+ Coefficients "treat22:timeB3_months" "treat22:timeB1_week" have been removed.
                       estimate    se   df  lower  upper  p.value
 (Intercept)             128.97 4.532 19.0 119.48 138.46 0.00e+00
 treat21:timeB1_week      -7.73 0.697 19.0  -9.19  -6.27 1.00e-09
@@ -1148,7 +1158,7 @@ treat22:timeA3_months   -25.51 2.323 22.6 -30.32 -20.69 1.60e-10
 \end{verbatim}
 
 \subsection{Marginal means}
-\label{sec:orgd0173d2}
+\label{sec:org20a708c}
 
 The \texttt{lmm} function can be used in conjonction with the \texttt{emmeans}
 package to compute marginal means. Consider the following model:
@@ -1161,7 +1171,6 @@ e.group <- lmm(weight ~ time*group, data = gastricbypassL,
 We can for instance compute the average value over time \emph{assuming balanced groups}:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-library(emmeans)
 emmeans(e.group, specs=~time)
 \end{lstlisting}
 
@@ -1295,10 +1304,10 @@ summary(epairs.group, by = NULL, adjust = "mvt", infer = TRUE)
 
 \begin{verbatim}
  contrast time      estimate    SE   df lower.CL upper.CL t.ratio p.value
- 2 - 1    B3_months     4.83 10.10 18.0    -18.0     27.7   0.478  0.7494
- 2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0   0.618  0.6485
- 2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.9   0.471  0.7553
- 2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.7   0.797  0.5284
+ 2 - 1    B3_months     4.83 10.10 18.0    -18.0     27.6   0.478  0.7497
+ 2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0   0.618  0.6481
+ 2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.8   0.471  0.7554
+ 2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.7   0.797  0.5282
 
 Confidence level used: 0.95 
 Conf-level adjustment: mvt method for 4 estimates 
@@ -1327,7 +1336,7 @@ P value adjustment: sidak method for 4 tests
 \end{verbatim}
 
 \subsection{Predictions}
-\label{sec:org6b49ac0}
+\label{sec:orgf2bfb4d}
 
 Two types of predictions can be performed with the \texttt{predict} method:
 \begin{itemize}
@@ -1437,7 +1446,7 @@ as.double(mu2 + Omega_21 * (100 - mu1) / Omega_11)
 \clearpage
 
 \section{Data generation}
-\label{sec:org72170be}
+\label{sec:orgcb68c06}
 Simulate some data in the wide format:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -1484,7 +1493,7 @@ head(dL)
 \clearpage
 
 \section{Modifying default options}
-\label{sec:orgc093e9d}
+\label{sec:org70e991b}
 The \texttt{LMMstar.options} method enable to get and set the default options
 used by the package. For instance, the default option for the information matrix is:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -1513,7 +1522,7 @@ LMMstar.options(reinitialise = TRUE)
 \clearpage
 
 \section{R session}
-\label{sec:org6c73e28}
+\label{sec:orgbe03d13}
 Details of the R session used to generate this document:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -1535,36 +1544,39 @@ attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
- [1] emmeans_1.6.3     LMMstar_0.3.0     nlme_3.1-152      ggplot2_3.3.5     spelling_2.2     
- [6] roxygen2_7.1.1    butils.base_1.2   Rcpp_1.0.7        data.table_1.14.0 devtools_2.4.2   
-[11] usethis_2.0.1    
+ [1] ggpubr_0.4.0        sandwich_3.0-1      reshape2_1.4.4      numDeriv_2016.8-1.1
+ [5] multcomp_1.4-17     TH.data_1.1-0       MASS_7.3-54         survival_3.2-13    
+ [9] mvtnorm_1.1-3       Matrix_1.3-4        lava_1.6.10         emmeans_1.7.0      
+[13] ggplot2_3.3.5       LMMstar_0.3.5       nlme_3.1-152        spelling_2.2       
+[17] roxygen2_7.1.1      butils.base_1.2     Rcpp_1.0.7          data.table_1.14.2  
+[21] devtools_2.4.2      usethis_2.0.1      
 
 loaded via a namespace (and not attached):
- [1] pkgload_1.2.1       splines_4.1.1       remotes_2.4.0       sessioninfo_1.1.1  
- [5] globals_0.14.0      numDeriv_2016.8-1.1 pillar_1.6.3        lattice_0.20-44    
- [9] glue_1.4.2          digest_0.6.27       colorspace_2.0-2    sandwich_3.0-1     
-[13] qqtest_1.2.0        plyr_1.8.6          Matrix_1.3-4        pkgconfig_2.0.3    
-[17] listenv_0.8.0       purrr_0.3.4         xtable_1.8-4        mvtnorm_1.1-2      
-[21] scales_1.1.1        processx_3.5.2      lava_1.6.10         tibble_3.1.4       
-[25] farver_2.1.0        generics_0.1.0      ellipsis_0.3.2      TH.data_1.1-0      
-[29] cachem_1.0.6        withr_2.4.2         cli_3.0.1           survival_3.2-11    
-[33] magrittr_2.0.1      crayon_1.4.1        memoise_2.0.0       estimability_1.3   
-[37] ps_1.6.0            fs_1.5.0            fansi_0.5.0         future_1.22.1      
-[41] parallelly_1.28.1   MASS_7.3-54         xml2_1.3.2          pkgbuild_1.2.0     
-[45] tools_4.1.1         prettyunits_1.1.1   lifecycle_1.0.1     multcomp_1.4-17    
-[49] stringr_1.4.0       munsell_0.5.0       callr_3.7.0         compiler_4.1.1     
-[53] rlang_0.4.11        grid_4.1.1          labeling_0.4.2      testthat_3.0.4     
-[57] gtable_0.3.0        codetools_0.2-18    reshape2_1.4.4      R6_2.5.1           
-[61] zoo_1.8-9           knitr_1.33          dplyr_1.0.7         fastmap_1.1.0      
-[65] future.apply_1.8.1  utf8_1.2.2          rprojroot_2.0.2     desc_1.3.0         
-[69] stringi_1.7.4       parallel_4.1.1      vctrs_0.3.8         tidyselect_1.1.1   
-[73] xfun_0.25           coda_0.19-4
+ [1] colorspace_2.0-2   ggsignif_0.6.2     ellipsis_0.3.2     rio_0.5.27         rprojroot_2.0.2   
+ [6] estimability_1.3   fs_1.5.0           listenv_0.8.0      farver_2.1.0       remotes_2.4.0     
+[11] fansi_0.5.0        xml2_1.3.2         codetools_0.2-18   splines_4.1.1      cachem_1.0.6      
+[16] knitr_1.36         pkgload_1.2.1      broom_0.7.9        compiler_4.1.1     backports_1.2.1   
+[21] assertthat_0.2.1   fastmap_1.1.0      cli_3.0.1          prettyunits_1.1.1  tools_4.1.1       
+[26] coda_0.19-4        gtable_0.3.0       glue_1.4.2         dplyr_1.0.7        carData_3.0-4     
+[31] cellranger_1.1.0   vctrs_0.3.8        iterators_1.0.13   xfun_0.26          stringr_1.4.0     
+[36] globals_0.14.0     ps_1.6.0           openxlsx_4.2.4     testthat_3.0.4     lifecycle_1.0.1   
+[41] rstatix_0.7.0      future_1.22.1      zoo_1.8-9          scales_1.1.1       butils_1.4.7      
+[46] qqtest_1.2.0       ragg_1.1.3         hms_1.1.0          parallel_4.1.1     curl_4.3.2        
+[51] memoise_2.0.0      pbapply_1.5-0      gridExtra_2.3      stringi_1.7.5      desc_1.3.0        
+[56] foreach_1.5.1      boot_1.3-28        pkgbuild_1.2.0     zip_2.2.0          rlang_0.4.11      
+[61] pkgconfig_2.0.3    systemfonts_1.0.3  lattice_0.20-44    purrr_0.3.4        labeling_0.4.2    
+[66] cowplot_1.1.1      processx_3.5.2     tidyselect_1.1.1   parallelly_1.28.1  plyr_1.8.6        
+[71] magrittr_2.0.1     R6_2.5.1           generics_0.1.0     DBI_1.1.1          pillar_1.6.3      
+[76] haven_2.4.3        foreign_0.8-81     withr_2.4.2        mgcv_1.8-36        abind_1.4-5       
+[81] tibble_3.1.5       future.apply_1.8.1 crayon_1.4.1       car_3.0-11         utf8_1.2.2        
+[86] grid_4.1.1         readxl_1.3.1       callr_3.7.0        forcats_0.5.1      digest_0.6.28     
+[91] xtable_1.8-4       tidyr_1.1.3        textshaping_0.3.6  munsell_0.5.0      sessioninfo_1.1.1
 \end{verbatim}
 
 \clearpage
 
 \section*{References}
-\label{sec:orgd83cc9d}
+\label{sec:orgaf67aa3}
 \begingroup
 \renewcommand{\section}[2]{}
 
@@ -1590,7 +1602,7 @@ loaded via a namespace (and not attached):
 \section{Likelihood in a linear mixed model}
 \label{SM:likelihood}
 \subsection{Log-likelihood}
-\label{sec:org57b5179}
+\label{sec:org2cf8ce6}
 
 Denote by \(\VY\) a vector of \(m\) outcomes, \(\VX\) a vector of
 \(p\) covariates, \(\mu(\Vparam,\VX)\) the modeled mean, and
@@ -1624,7 +1636,7 @@ when setting the argument \texttt{indiv} to \texttt{TRUE}.
 \bigskip
 
 \subsection{Score}
-\label{sec:org0736d84}
+\label{sec:org32580af}
 
  Using that \(\partial \log(\det(X))=tr(X^{-1}\partial(X))\), the
 score is obtained by derivating once the log-likelihood, i.e., for
@@ -1647,7 +1659,7 @@ what \texttt{score} outputs for the ML criteria when setting the argument
 \clearpage
 
 \subsection{Hessian}
-\label{sec:orga784436}
+\label{sec:org0350dbe}
 
 Derivating a second time the log-likelihood gives the hessian, \(\Hessian(\Vparam)\), with element\footnote{if one is relative to the mean and the other to the variance then they are respectively \(\theta\) and \(\theta'\)}:
 \begin{align*}
@@ -1695,7 +1707,7 @@ is set to \texttt{"expected"} (up to a factor -1).
 \clearpage
 
 \subsection{Degrees of freedom}
-\label{sec:orgd5d7ac5}
+\label{sec:orgdf6289e}
 
 Degrees of freedom are computed using a Satterthwaite approximation,
 i.e. for an estimate coefficient \(\widehat{\beta}\in\widehat{\Vparam}\) with standard

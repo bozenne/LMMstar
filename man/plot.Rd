@@ -5,17 +5,42 @@
 \alias{plot.lmm}
 \title{Graphical Display For Linear Mixed Models}
 \usage{
-\method{plot}{lmm}(x, type = "fit", type.residual = "normalized", by.time = TRUE, ...)
+\method{plot}{lmm}(
+  x,
+  type = "fit",
+  type.residual = "normalized",
+  by.time = TRUE,
+  ci = TRUE,
+  plot = TRUE,
+  alpha = 0.2,
+  size.point = 3,
+  size.line = 1,
+  size.text = 16,
+  ...
+)
 }
 \arguments{
 \item{x}{a \code{lmm} object.}
 
-\item{type}{[character] the type of plot: \code{"fit"}, \code{"qqplot"}, \code{"correlation"}, \code{"scatterplot"}, \code{"scatterplot2"}.}
+\item{type}{[character] the type of plot: \code{"fit"}, \code{"qqplot"}, \code{"correlation"}, \code{"scatterplot"}, \code{"scatterplot2"}, \code{"partial"}.}
 
-\item{type.residual}{[character] the type of residual to be used. Not relevant for \code{type="fit"}. By default, normalized residuals are used.}
+\item{type.residual}{[character] the type of residual to be used. Not relevant for \code{type="fit"}.
+By default, normalized residuals are used except when requesting a partial residual plot.}
 
 \item{by.time}{[logical] should a separate plot be made at each repetition or a single plot over all repetitions be used?
 Only relevant for \code{type="qqplot"}, \code{type="scatterplot"}, and \code{type="scatterplot2"}.}
+
+\item{ci}{[logical] should confidence intervals be displayed?}
+
+\item{plot}{[logical] should the plot be displayed?}
+
+\item{alpha}{[numeric, 0-1] Transparency parameter used to display the confidence intervals.}
+
+\item{size.point}{[numeric, >0] the size of the point on the plot.}
+
+\item{size.line}{[numeric, >0] the size of the line on the plot.}
+
+\item{size.text}{[numeric, >0] size of the font used to displayed text when using ggplot2.}
 
 \item{...}{additional argument passed to \code{residuals.lmm} or \code{autoplot.lmm}.}
 }

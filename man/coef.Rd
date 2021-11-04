@@ -8,7 +8,6 @@
 \method{coef}{lmm}(
   object,
   effects = NULL,
-  type.object = "lmm",
   strata = NULL,
   transform.sigma = "none",
   transform.k = "none",
@@ -24,8 +23,6 @@
 or only coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 or only coefficients relative to the variance structure (\code{"variance"}),
 or only coefficients relative to the correlation structure (\code{"correlation"}).}
-
-\item{type.object}{[character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.}
 
 \item{strata}{[character vector] When not \code{NULL}, only output coefficient relative to specific levels of the variable used to stratify the mean and covariance structure.}
 

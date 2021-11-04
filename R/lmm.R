@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: okt 20 2021 (14:51) 
+## Last-Updated: nov  4 2021 (14:44) 
 ##           By: Brice Ozenne
-##     Update #: 1221
+##     Update #: 1239
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -166,18 +166,17 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     ## *** repetition 
     if(trace>=2){cat("- repetition ")}
     if(missing(repetition)){
-        if(inherits(structure,"structure")){
+        if(missing(structure) || identical(structure,"ID")){
+            var.cluster  <- NULL
+            var.time  <- NULL
+            structure <- "ID"
+        }else if(inherits(structure,"structure")){
             var.cluster <- structure$name$cluster
             var.time <- structure$name$time
             if(is.null(var.time) && structure$type %in% c("IND","UN")){
                 stop("Could not identify the time variable based on the \'structure\' argument. \n",
                      "Consider specifying the \'repetition\' argument. \n")
             }
-        }else if(identical(structure,"ID")){
-            var.cluster  <- NULL
-            var.time  <- NULL
-        }else if(missing(structure)){
-            stop("Argument \'repetition\' is missing. \n")
         }
         if(is.null(var.cluster)){
             if("XXidXX" %in% names(data)){
@@ -455,7 +454,8 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                                     var.cluster = var.cluster,
                                     precompute.moments = options$precompute.moments)
 
-    out$xfactor <- c(stats::.getXlevels(stats::terms(out$formula$mean.design),data),
+    ## note use model.frame to handline splines in the formula
+    out$xfactor <- c(stats::.getXlevels(stats::terms(out$formula$mean.design),stats::model.frame(out$formula$mean.design,data)),
                      stats::.getXlevels(stats::terms(out$formula$var.design),data))
     if(!is.null(out$formula$cor.design)){
         out$xfactor <- c(out$xfactor,stats::.getXlevels(stats::terms(out$formula$cor.design),data))
@@ -495,7 +495,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
 
     if(optimizer=="gls"){
 
-        if(max(out$design$cluster$nobs)==1 || type.structure == "IND"){
+        if(max(out$design$cluster$nobs)==1 || type.structure %in% c("IND","ID")){
             name.var <- stats::na.omit(setdiff(structure$name$var,structure$name$strata))
 
             if(type.structure == "CS" || length(name.var)==0){

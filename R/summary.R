@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: okt 20 2021 (14:09) 
+## Last-Updated: okt 20 2021 (15:58) 
 ##           By: Brice Ozenne
-##     Update #: 355
+##     Update #: 356
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -116,7 +116,9 @@ summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print =
         cat(paste0("  ",str.XY,"\n"))
 
         reference.level <- levels(object)$reference
-        cat("    reference level: ",paste(paste(names(reference.level),reference.level,sep="="),collapse=";")," \n", sep = "")
+        if(!is.null(reference.level)){
+            cat("    reference level: ",paste(paste(names(reference.level),reference.level,sep="="),collapse=";")," \n", sep = "")
+        }
         cat("\n")
     }
     

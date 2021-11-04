@@ -10,7 +10,6 @@
   effects = "mean",
   robust = FALSE,
   df = FALSE,
-  type.object = "lmm",
   strata = NULL,
   data = NULL,
   p = NULL,
@@ -33,8 +32,6 @@ or only for coefficients relative to the correlation structure (\code{"correlati
 \item{robust}{[logical] Should robust standard error (aka sandwich estimator) be output instead of the model-based standard errors. Not feasible for variance or correlation coefficients estimated by REML.}
 
 \item{df}{[logical] Should degree of freedom, computed using Satterthwaite approximation, for the model parameters be output.}
-
-\item{type.object}{[character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.}
 
 \item{strata}{[character vector] When not \code{NULL}, only output the variance-covariance matrix for the estimated parameters relative to specific levels of the variable used to stratify the mean and covariance structure.}
 

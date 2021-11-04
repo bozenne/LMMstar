@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: okt 18 2021 (11:19) 
+## Last-Updated: nov  4 2021 (10:35) 
 ##           By: Brice Ozenne
-##     Update #: 463
+##     Update #: 465
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -27,7 +27,6 @@
 ##' or only for coefficients relative to the correlation structure (\code{"correlation"}).
 ##' @param robust [logical] Should robust standard error (aka sandwich estimator) be output instead of the model-based standard errors. Not feasible for variance or correlation coefficients estimated by REML.
 ##' @param df [logical] Should degree of freedom, computed using Satterthwaite approximation, for the model parameters be output.
-##' @param type.object [character] Set this argument to \code{"gls"} to obtain the output from the gls object and related methods.
 ##' @param data [data.frame] dataset relative to which the information should be computed. Only relevant if differs from the dataset used to fit the model.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the information. Only relevant if differs from the fitted values.
 ##' @param strata [character vector] When not \code{NULL}, only output the variance-covariance matrix for the estimated parameters relative to specific levels of the variable used to stratify the mean and covariance structure.
@@ -46,7 +45,7 @@
 ## * vcov.lmm (code)
 ##' @rdname vcov
 ##' @export
-vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, type.object = "lmm", strata = NULL, data = NULL, p = NULL,
+vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strata = NULL, data = NULL, p = NULL,
                      type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
     
     options <- LMMstar.options()
@@ -57,7 +56,6 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, type.
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
-    type.object <- match.arg(type.object, c("lmm","gls"))
     if(is.null(effects)){
         effects <- options$effects
     }else if(identical(effects,"all")){
@@ -84,7 +82,6 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, type.
     test.notransform <- init$test.notransform
 
     ## ** extract or recompute variance covariance matrix
-    if(type.object=="lmm"){
 
         if(is.null(data) && is.null(p) && test.notransform && (df == FALSE || !is.null(object$df)) && (robust == FALSE) && attr(object$information,"type.information")==type.information){
             keep.name <- stats::setNames(names(coef(object, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE)),
@@ -153,42 +150,7 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, type.
             }
 
         }
-        return(vcov)
-
-    }else if(type.object=="gls"){
-        if(!is.null(data)){
-            stop("Cannot handle argument \'data\' when argument \'type.object\' is \"gls\". \n")
-        }
-        if(!is.null(p)){
-            stop("Cannot handle argument \'p\' when argument \'type.object\' is \"gls\". \n")
-        }
-        if(transform>0){
-            stop("Cannot handle argument \'transform\' when argument \'type.object\' is \"gls\". \n")
-        }
-        if(df){
-            stop("Cannot handle argument \'df\' when argument \'type.object\' is \"gls\". \n")
-        }
-        
-        .getVcov <- function(oo, effects){
-            if(identical(effects,"mean")){
-                return(vcov(oo))
-            }else if("mean" %in% effects == FALSE){
-                return(oo$apVar)
-            }else{
-                out.names <- c(colnames(vcov(oo)),colnames(oo$apVar))
-                out <- as.matrix(Matrix::bdiag(vcov(oo), oo$apVar))
-                dimnames(out) <- list(out.names,out.names)
-                return(out)
-            }
-        }
-
-        if(is.null(strata) && (object$strata$n == 1)){
-            .getVcov(object$gls[[1]], effects = effects)
-        }else{
-            return(lapply(object$gls[which(object$strata$levels %in% strata)], .getVcov, effects = effects))
-        }
-
-    }
+    return(vcov)    
 }
 
 

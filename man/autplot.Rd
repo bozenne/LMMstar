@@ -36,7 +36,7 @@
 
 \item{size.line}{[numeric, >0] the size of the line on the plot.}
 
-\item{size.text}{[numeric, >0] Size of the font used to displayed text when using ggplot2.}
+\item{size.text}{[numeric, >0] size of the font used to displayed text when using ggplot2.}
 
 \item{position.errorbar}{[character] relative position of the errorbars.}
 
