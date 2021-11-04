@@ -4,3 +4,5 @@
 README.org
 LICENSE
 ^appveyor\.yml$
+^doc$
+^Meta$

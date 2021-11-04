@@ -74,17 +74,17 @@ head(gastricbypassL)
 : 6  6     1 3 months before surgery  158.8 10386.00
 
 See =?gastricbypassL= for a presentation of the database. We will use a shorter version of the time variable:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 gastricbypassL$time <- factor(gastricbypassL$time,
                               levels = c("3 months before surgery", "1 week before surgery",
                                                             "1 week after surgery", "3 months after surgery" ),
                               labels = c("B3_months","B1_week","A1_week","A3_months"))
-#+end_src
+#+END_SRC
 #+RESULTS:
 and rescale the glucagon values
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 gastricbypassL$glucagon <- as.double(scale(gastricbypassL$glucagon))
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 
@@ -373,18 +373,18 @@ calling =lmm= should lead to a more reasonnable computation time.
 
 ** Extract estimated coefficients
 The value of the estimated coefficients can be output using =coef=:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 coef(eUN.lmm)
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 :   (Intercept)   timeB1_week   timeA1_week timeA3_months      glucagon 
 :   128.5385950    -7.8822331   -11.7879542   -26.1223907    -0.8883083
 
 Variance coefficients can be output by specifying the =effects= argument:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 coef(eUN.lmm, effects = "variance")
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 :       sigma   k.B1_week   k.A1_week k.A3_months 
@@ -394,9 +394,9 @@ coef(eUN.lmm, effects = "variance")
 It is possible to apply specific transformation on the variance
 coefficients, for instance to obtain the residual variance relative to
 each outcome:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 coef(eUN.lmm, effects = "variance", transform.k = "sd")
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 : sigma:B3_months   sigma:B1_week   sigma:A1_week sigma:A3_months 
@@ -419,9 +419,9 @@ dummy.coef(eUN.lmm)
 The uncertainty about the mean coefficients can be obtained using the
 =model.tables= method [fn:: it is equivalent to =confint= method
 except that by default it also outputs =se= and =p.value=]:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 model.tables(eUN.lmm)
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 :               estimate    se   df  lower   upper  p.value
@@ -433,9 +433,9 @@ model.tables(eUN.lmm)
 
 Values for the all correlation parameters can be displayed
 too, by specifying @@latex:\texttt{effect="all"}@@:
-#+begin_src R :exports code :results output :session *R* :cache no
+#+BEGIN_SRC R :exports code :results output :session *R* :cache no
 model.tables(eUN.lmm, effect = "all") ## not shown
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 #+begin_example
@@ -466,9 +466,9 @@ they uncertainty is by default computed after transformation
 ** Extract estimated residual variance-covariance structure
 
 The method =getVarCov= can be used to output the covariance structure of the residuals:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 getVarCov(eUN.lmm)
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 :           B3_months  B1_week  A1_week A3_months
@@ -478,9 +478,9 @@ getVarCov(eUN.lmm)
 : A3_months  318.8573 304.6314 285.8077  280.9323
 
 It can also be specific to an individual:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 getVarCov(eUN.lmm, individual = 5)
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 :           B3_months  A1_week A3_months
@@ -494,9 +494,9 @@ getVarCov(eUN.lmm, individual = 5)
 
 The method =plot= can be used to display diagnostic plots about:
 - misspecification of the mean structure
-#+begin_src R :file ./figures/diag-scatterplot.pdf :results graphics file :session *R* :cache no
+#+BEGIN_SRC R :file ./figures/diag-scatterplot.pdf :results graphics file :session *R* :cache no
 plot(eUN.lmm, type = "scatterplot")
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 [[file:./figures/diag-scatterplot.pdf]]
@@ -505,9 +505,9 @@ plot(eUN.lmm, type = "scatterplot")
 [[./figures/diag-scatterplot.pdf]]
 
 - misspecification of the variance structure
-#+begin_src R :file ./figures/diag-scatterplot2.pdf :results graphics file :session *R* :cache no
+#+BEGIN_SRC R :file ./figures/diag-scatterplot2.pdf :results graphics file :session *R* :cache no
 plot(eUN.lmm, type = "scatterplot2")
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 [[file:./figures/diag-scatterplot2.pdf]]
@@ -546,7 +546,7 @@ gg <- ggarrange(plot(eUN.lmm, type = "correlation", type.residual = "response", 
                 plot(eUN.lmm, type = "correlation", type.residual = "normalized", plot = FALSE)$plot,
                 common.legend = TRUE)
 ggsave(gg, filename = "./figures/diag-correlation.pdf", width = 12)
-#+end_src
+#+END_SRC
 
 
 #+RESULTS:
@@ -559,10 +559,10 @@ Saving 12 x 6.38 in image
 
 - residual distribution vs. normal distribution [fn::see cite:oldford2016self for guidance
   about how to read quantile-quantile plots.]:
-#+begin_src R :file ./figures/diag-qqplot.pdf :results graphics file :session *R* :cache no
+#+BEGIN_SRC R :file ./figures/diag-qqplot.pdf :results graphics file :session *R* :cache no
 plot(eUN.lmm, type = "qqplot", engine.qqplot = "qqtest")
 ## Note: the qqtest package to be installed to use the argument engine.plot = "qqtest" 
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 [[file:./figures/diag-qqplot.pdf]]
@@ -573,11 +573,11 @@ plot(eUN.lmm, type = "qqplot", engine.qqplot = "qqtest")
 \clearpage
 
 The method =residuals= returns the residulas in the wide format:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 eUN.diagW <- residuals(eUN.lmm, type = "normalized", format = "wide")
 colnames(eUN.diagW) <- gsub("normalized.","",colnames(eUN.diagW))
 head(eUN.diagW)
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 :   cluster r.B3_months  r.B1_week   r.A1_week r.A3_months
@@ -589,10 +589,10 @@ head(eUN.diagW)
 : 6       6   1.7801675  1.2847698  2.63004809   0.3505542
 
 or in the long format:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 eUN.diagL <- residuals(eUN.lmm, type = "normalized", format = "long")
 head(eUN.diagL)
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 : [1] -0.2897364  0.8603118  0.7273066 -1.6403081  0.4755409  1.7801675
@@ -604,18 +604,18 @@ recommanded when doing model checking.
 
 The fitted values can be displayed via the =plot= method or using the =emmeans= package:
 
-#+begin_src R :file ./figures/fit-autoplot.pdf :results graphics file :session *R* :cache no
+#+BEGIN_SRC R :file ./figures/fit-autoplot.pdf :results graphics file :session *R* :cache no
 library(ggplot2) ## left panel
 autoplot(eUN.lmm, color = "id", size.text = 20)
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 [[file:./figures/fit-autoplot.pdf]]
 
-#+begin_src R :file ./figures/fit-emmip.pdf :results graphics file :session *R* :cache no
+#+BEGIN_SRC R :file ./figures/fit-emmip.pdf :results graphics file :session *R* :cache no
 library(emmeans) ## right panel
 emmip(eUN.lmm, ~time) + theme(text = element_text(size=20))
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 [[file:./figures/fit-emmip.pdf]]
@@ -636,9 +636,9 @@ In the first case each possible curve is displayed while in the latter
 the average curve (over glucagon values). With the =autoplot= method,
 it is possible to display a curve specific to a glucagon value via the
 argument =at=:
-#+begin_src R :exports code :results output :session *R* :cache no
+#+BEGIN_SRC R :exports code :results output :session *R* :cache no
 autoplot(eUN.lmm, at = data.frame(glucagon = 10), color = "glucagon")
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 : windows 
@@ -668,9 +668,9 @@ Note that here the p-values are not adjust for multiple comparisons
 over variables. It is possible to specify a null hypothesis to be
 test: e.g. is there a change in average weight just after taking the
 treatment:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 anova(eUN.lmm, effects = c("timeA1_week-timeB1_week=0"), ci = TRUE)
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 :                      ** User-specified hypotheses ** 
@@ -683,10 +683,10 @@ anova(eUN.lmm, effects = c("timeA1_week-timeB1_week=0"), ci = TRUE)
 : timeA1_week - timeB1_week -3.905721 -5.155643 -2.655799 3.723358e-06
 
 One can also simulateneously tests several null hypotheses:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 anova(eUN.lmm, effects = c("timeA1_week-timeB1_week=0",
                            "timeA3_months-timeB1_week=0"), ci = TRUE)
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 :                      ** User-specified hypotheses ** 
@@ -702,12 +702,12 @@ anova(eUN.lmm, effects = c("timeA1_week-timeB1_week=0",
 When testing transformed variance or correlation parameters,
 parentheses (as in =log(k).B1_week=) cause problem for recognizing
 parameters:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 try(
   anova(eUN.lmm,
         effects = c("log(k).B1_week=0","log(k).A1_week=0","log(k).A3_months=0"))
 )
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 : Error in .anova_Wald(object, effects = effects, rhs = rhs, df = df, ci = ci,  : 
@@ -717,13 +717,13 @@ try(
 :           ^
 
 It is then advised to build a contrast matrix, e.g.:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 name.coef <- rownames(confint(eUN.lmm, effects = "all", backtransform = FALSE))
 name.varcoef <- grep("log(k)",name.coef, value = TRUE, fixed = TRUE)
 C <- matrix(0, nrow = 3, ncol = length(name.coef), dimnames = list(name.varcoef, name.coef))
 diag(C[name.varcoef,name.varcoef]) <- 1
 C
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 #+begin_example
@@ -751,9 +751,9 @@ log(k).A3_months                             0
 
 And then call the =anova= method specifying the null hypothesis via the
 contrast matrix:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 anova(eUN.lmm, effects = C)
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 :                      ** User-specified hypotheses ** 
@@ -768,20 +768,20 @@ anova(eUN.lmm, effects = C)
 The =lmm= contains an "experimental" feature to drop non-identifiable
 effects from the model. For instance, let us define two (artifical) groups of
 patients:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 gastricbypassL$group <- c("1","2")[as.numeric(gastricbypassL$id) %in% 15:20 + 1]
-#+end_src
+#+END_SRC
 #+RESULTS:
 We would like to model group differences only after baseline
 (i.e. only at 1 week and 3 months after). For this we will define a
 treatment variable being the group variable except before baseline where
 it is ="none"=:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 gastricbypassL$treat <- baselineAdjustment(gastricbypassL, variable = "group",
                                            repetition = ~time|id, constrain = c("B3_months","B1_week"),
                                            new.level = "none")
 table(treat = gastricbypassL$treat, time = gastricbypassL$time, group = gastricbypassL$group)
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 #+begin_example
@@ -805,9 +805,9 @@ treat  B3_months B1_week A1_week A3_months
 Here we will be able to estimate a total of 6 means and therefore can
 at most identify 6 effects. However the design matrix for the
 interaction model:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 colnames(model.matrix(weight ~ treat*time, data = gastricbypassL))
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 :  [1] "(Intercept)"          "treat1"               "treat2"               "timeB1_week"         
@@ -817,19 +817,19 @@ colnames(model.matrix(weight ~ treat*time, data = gastricbypassL))
 contains 12 parameters (i.e. 6 too many). The =lmm= function will
 internally remove the one that cannot be identified and fit a
 simplified model:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 eC.lmm <- lmm(weight ~ treat*time, data = gastricbypassL,
               repetition = ~time|id, structure = "UN")
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 : Constant values in the design matrix in interactions "treat:time"
 :  Coefficients "treat1" "treat2" "timeA1_week" "timeA3_months" "treat1:timeB1_week" "treat2:timeB1_week" have been removed.
 
 with the following coefficients:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 coef(eC.lmm, effects = "mean")
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 :          (Intercept)          timeB1_week   treat1:timeA1_week   treat2:timeA1_week 
@@ -838,9 +838,9 @@ coef(eC.lmm, effects = "mean")
 :            -27.07620            -25.50553
 
 One can vizualize the baseline adjustment via the =autoplot= function:
-#+begin_src R :file ./figures/gg-baseAdj.pdf :results graphics file :session *R* :cache no
+#+BEGIN_SRC R :file ./figures/gg-baseAdj.pdf :results graphics file :session *R* :cache no
 autoplot(eC.lmm, color = "group", ci = FALSE, size.text = 20)
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 [[file:./figures/gg-baseAdj.pdf]]
@@ -851,11 +851,11 @@ autoplot(eC.lmm, color = "group", ci = FALSE, size.text = 20)
 To more easily compare the two groups, one could set the baseline
 treatment to the treatment in the control arm by omitting the argument
 =new.level=:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 gastricbypassL$treat2 <- baselineAdjustment(gastricbypassL, variable = "group",
                                             repetition = ~time|id, constrain = c("B3_months","B1_week"))
 table(treat = gastricbypassL$treat2, time = gastricbypassL$time, group = gastricbypassL$group)
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 #+begin_example
@@ -877,19 +877,19 @@ treat B3_months B1_week A1_week A3_months
 #+end_example
 
 Fitting the model
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 eC2.lmm <- suppressWarnings(lmm(weight ~ treat2*time, data = gastricbypassL,
                                 repetition = ~time|id, structure = "UN"))
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 : Constant values in the design matrix in interactions "treat2:time"
 :  Coefficients "treat22" "treat22:timeB1_week" have been removed.
 
 will directly output group differences (last two coefficients):
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 model.tables(eC2.lmm)
-#+end_src
+#+END_SRC
 #+RESULTS:
 :                       estimate    se   df  lower  upper  p.value
 : (Intercept)             128.97 4.532 19.0 119.48 138.46 0.00e+00
@@ -901,11 +901,11 @@ model.tables(eC2.lmm)
 
 It is also possible to get the estimated mean at each timepoint, using
 an equivalent mean structure:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 eC3.lmm <- suppressWarnings(lmm(weight ~ 0+treat2:time, data = gastricbypassL,
                                 repetition = ~time|id, structure = "UN"))
 model.tables(eC3.lmm) ## equivalent to dummy.coef(eC2.lmm)
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 : Constant values in the design matrix in interactions "treat2:time"
@@ -919,11 +919,11 @@ model.tables(eC3.lmm) ## equivalent to dummy.coef(eC2.lmm)
 : treat22:timeA3_months      103 4.17 25.2  94.9   112       0
 
 or the baseline mean and the change since baseline:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 eC4.lmm <- suppressWarnings(lmm(weight ~ treat2:time, data = gastricbypassL,
                                 repetition = ~time|id, structure = "UN"))
 model.tables(eC4.lmm)
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 : Constant values in the design matrix in interactions "treat2:time"
@@ -940,17 +940,17 @@ model.tables(eC4.lmm)
 
 The =emmeans= package can be used to output marginal means. Consider
 the following model:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 e.group <- lmm(weight ~ time*group, data = gastricbypassL,
                repetition = ~time|id, structure = "UN")
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 
 We can for instance compute the average value over time /assuming balanced groups/:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 emmeans(e.group, specs=~time)
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 : NOTE: Results may be misleading due to involvement in interactions
@@ -964,10 +964,10 @@ emmeans(e.group, specs=~time)
 : Confidence level used: 0.95
 
 This differs from the average value over time over the whole sample:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 df.pred <- cbind(gastricbypassL, predict(e.group, newdata = gastricbypassL))
 summarize(formula = estimate~time, data = df.pred)
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 :    outcome      time observed missing    mean       sd      min   median    max
@@ -977,9 +977,9 @@ summarize(formula = estimate~time, data = df.pred)
 : 4 estimate A3_months       20       0 102.365 3.146729 100.3571 100.3571 107.05
 
 as the groups are not balanced:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 table(group = gastricbypassL$group, time = gastricbypassL$time)
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 :      time
@@ -989,12 +989,12 @@ table(group = gastricbypassL$group, time = gastricbypassL$time)
 
 The "emmeans" approach gives equal "weight" to the expected value of
 both group 2:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 mu.group1 <-  as.double(coef(e.group)["(Intercept)"])
 mu.group2 <-  as.double(coef(e.group)["(Intercept)"] + coef(e.group)["group2"])
 p.group1 <- 14/20          ; p.group2 <- 6/20
 c(emmeans = (mu.group1+mu.group2)/2, predict = mu.group1 * p.group1 + mu.group2 * p.group2)
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 :  emmeans  predict 
@@ -1003,10 +1003,10 @@ c(emmeans = (mu.group1+mu.group2)/2, predict = mu.group1 * p.group1 + mu.group2 
 Which one is relevant depends on the application. The =emmeans=
 function can also be used to display expected value in each group over
 time:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 emmeans.group <- emmeans(e.group, specs = ~group|time)
 emmeans.group
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 #+begin_example
@@ -1034,10 +1034,10 @@ Confidence level used: 0.95
 #+end_example
 
 Using the =pair= function displays the differences:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 epairs.group <- pairs(emmeans.group, reverse = TRUE)
 epairs.group
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 #+begin_example
@@ -1060,9 +1060,9 @@ time = A3_months:
 
 One can adjust for multiple comparison via the =adjust= argument and
 display confidence intervals setting the argument =infer= to =TRUE=:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 summary(epairs.group, by = NULL, adjust = "mvt", infer = TRUE)
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 :  contrast time      estimate    SE   df lower.CL upper.CL t.ratio p.value
@@ -1078,9 +1078,9 @@ summary(epairs.group, by = NULL, adjust = "mvt", infer = TRUE)
 This should also work when doing baseline adjustment (because of
 baseline adjustment no difference is expected at the first two
 timepoints):
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 summary(pairs(emmeans(eC2.lmm , specs = ~treat2|time), reverse = TRUE), by = NULL)
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 : Note: adjust = "tukey" was changed to "sidak"
@@ -1530,31 +1530,31 @@ LMMstar.options(optimizer = "FS",
 \bigskip
 
 Let's take an example:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 ## data(gastricbypassL, package = "LMMstar")
 dfTest <- gastricbypassL
 dfTest$glucagon2 <- dfTest$glucagon*2
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 
 where we multiply one column of the design matrix by 2. As mentionned
 previously this does not affect the log-likelihood when using ML:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 logLik(lmm(weight ~ glucagon, data = dfTest, structure = UN(~time|id), method = "ML"))
 logLik(lmm(weight ~ glucagon2, data = dfTest, structure = UN(~time|id), method = "ML"))
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 : [1] -245.7909
 : [1] -245.7909
 
 but it does when using REML:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 logLik(lmm(weight ~ glucagon, data = dfTest, structure = UN(~time|id), method = "REML"))
 logLik(lmm(weight ~ glucagon2, data = dfTest, structure = UN(~time|id), method = "REML"))
 log(2)
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 : [1] -245.0382
@@ -1568,12 +1568,12 @@ would typically be the case when adding an interaction where we can
 have a smaller restricted log-likehood when considering a more complex
 model:
 
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 set.seed(1)
 dfTest$ff <- rbinom(NROW(dfTest), size = 1, prob = 0.5)
 logLik(lmm(weight ~ glucagon, data = dfTest, structure = UN(~time|id), method = "REML"))
 logLik(lmm(weight ~ glucagon*ff, data = dfTest, structure = UN(~time|id), method = "REML"))
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 : [1] -245.0382
@@ -1581,10 +1581,10 @@ logLik(lmm(weight ~ glucagon*ff, data = dfTest, structure = UN(~time|id), method
 
 This is quite counter-intuitive as more complex model should lead to
 better fit and would never happen when using ML:
-#+begin_src R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 logLik(lmm(weight ~ glucagon, data = dfTest, structure = UN(~time|id), method = "ML"))
 logLik(lmm(weight ~ glucagon*ff, data = dfTest, structure = UN(~time|id), method = "ML"))
-#+end_src
+#+END_SRC
 
 #+RESULTS:
 : [1] -245.7909
