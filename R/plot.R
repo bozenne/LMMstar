@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (11:00) 
 ## Version: 
-## Last-Updated: nov  4 2021 (16:56) 
+## Last-Updated: nov 10 2021 (14:57) 
 ##           By: Brice Ozenne
-##     Update #: 54
+##     Update #: 63
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,6 +15,7 @@
 ## 
 ### Code:
 
+## * plot (documentation)
 ##' @title Graphical Display For Linear Mixed Models
 ##' @description Display fitted values or residual plot for the mean, variance, and correlation structure.
 ##' Can also display quantile-quantile plot relative to the normal distribution.
@@ -28,22 +29,23 @@
 ##' Only relevant for \code{type="qqplot"}, \code{type="scatterplot"}, and \code{type="scatterplot2"}.
 ##' @param ci [logical] should confidence intervals be displayed?
 ##' @param plot [logical] should the plot be displayed?
-##' @param alpha [numeric, 0-1] Transparency parameter used to display the confidence intervals.
-##' @param size.point [numeric, >0] the size of the point on the plot.
-##' @param size.line [numeric, >0] the size of the line on the plot.
+##' @param ci.alpha [numeric, 0-1] Transparency parameter used to display the confidence intervals.
+##' @param mean.size [numeric vector of length 2] size of the point and line for the mean trajectory.
 ##' @param size.text [numeric, >0] size of the font used to displayed text when using ggplot2.
 ##' @param ... additional argument passed to \code{residuals.lmm} or \code{autoplot.lmm}.
 ##'
-##' @details Call \code{link(autoplot.lmm)} when code{type=="fit"} and \code{link(residuals.lmm)} for the other types.
+##' @details Call \code{\link{autoplot.lmm}} when code{type=="fit"} and \code{link(residuals.lmm)} for the other types.
 ##'
 ##' @return A list with two elements \itemize{
 ##' \item \code{data}: data used to create the graphical display.
 ##' \item \code{plot}: ggplot object.
 ##' }
-##' 
+
+ 
+## * plot (code)
 ##' @export
 plot.lmm <- function(x, type = "fit", type.residual = "normalized", by.time = TRUE, ci = TRUE,
-                     plot = TRUE, alpha = 0.2, size.point = 3, size.line = 1, size.text = 16, ...){
+                     plot = TRUE, ci.alpha = 0.2, mean.size = c(3, 1), size.text = 16, ...){
     type <- match.arg(type, c("qqplot","correlation","scatterplot","scatterplot2","fit","partial"))
     if(by.time){
         format <- "wide"
@@ -53,7 +55,7 @@ plot.lmm <- function(x, type = "fit", type.residual = "normalized", by.time = TR
     
     if(type=="fit"){
         ## requireNamespace("ggplot2")
-        out <- autoplot.lmm(x, ci = ci, plot = plot, alpha = alpha, size.point = size.point, size.line = size.line, size.text = size.text, ...)
+        out <- autoplot.lmm(x, ci = ci, plot = plot, ci.alpha = ci.alpha, mean.size = mean.size, size.text = size.text, ...)
     }else if(type=="partial"){
         ## prepare
         if(is.null(match.call()$type.residual)){
@@ -99,19 +101,19 @@ plot.lmm <- function(x, type = "fit", type.residual = "normalized", by.time = TR
             if(ci){
                 gg <- gg + ggplot2::geom_errorbar(ggplot2::aes_string(ymin = "lower", ymax = "upper"))
             }
-            gg <- gg + ggplot2::geom_point(ggplot2::aes_string(y = "estimate"), size = size.point, shape = 21, fill = "white")
+            gg <- gg + ggplot2::geom_point(ggplot2::aes_string(y = "estimate"), size = mean.size[1], shape = 21, fill = "white")
         }else{
             gg <- ggplot2::ggplot(data = gg.data, mapping = ggplot2::aes_string(x = name.varnum))
             gg <- gg + ggplot2::geom_point(ggplot2::aes_string(y = "r.partial"), color = "gray")
             if(length(type.var)==1){
-                gg <- gg + ggplot2::geom_line(ggplot2::aes_string(y = "estimate"), size = size.line)
+                gg <- gg + ggplot2::geom_line(ggplot2::aes_string(y = "estimate"), size = mean.size[2])
                 if(ci){
-                    gg <- gg + ggplot2::geom_ribbon(ggplot2::aes_string(ymin = "lower", ymax = "upper"), alpha = alpha)
+                    gg <- gg + ggplot2::geom_ribbon(ggplot2::aes_string(ymin = "lower", ymax = "upper"), alpha = ci.alpha)
                 }
             }else{
-                gg <- gg + ggplot2::geom_line(ggplot2::aes_string(y = "estimate", group = name.varcat, color = name.varcat), size = size.line)
+                gg <- gg + ggplot2::geom_line(ggplot2::aes_string(y = "estimate", group = name.varcat, color = name.varcat), size = mean.size[2])
                 if(ci){
-                    gg <- gg + ggplot2::geom_ribbon(ggplot2::aes_string(ymin = "lower", ymax = "upper", group = name.varcat, color = name.varcat), alpha = alpha)
+                    gg <- gg + ggplot2::geom_ribbon(ggplot2::aes_string(ymin = "lower", ymax = "upper", group = name.varcat, color = name.varcat), alpha = ci.alpha)
                 }
             }            
         }

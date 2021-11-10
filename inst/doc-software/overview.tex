@@ -1,4 +1,4 @@
-% Created 2021-11-04 Thu 23:13
+% Created 2021-11-10 on 15:18
 % Intended LaTeX compiler: pdflatex
 \documentclass[12pt]{article}
 
@@ -218,7 +218,7 @@ linkcolor=[rgb]{0,0,0.5},
  pdftitle={Overview of the package LMMstar},
  pdfkeywords={},
  pdfsubject={},
- pdfcreator={Emacs 26.3 (Org mode 9.4.6)},
+ pdfcreator={Emacs 27.2 (Org mode 9.4.4)},
  pdflang={English}
  }
 \begin{document}
@@ -314,7 +314,7 @@ utils::packageVersion("LMMstar")
 \end{lstlisting}
 
 \begin{verbatim}
-[1] '0.3.5'
+[1] '0.4.0'
 \end{verbatim}
 
 
@@ -329,7 +329,7 @@ LMMstar.options(optimizer = "FS")
 \clearpage
 
 \section{Descriptive statistics}
-\label{sec:org4ef9370}
+\label{sec:org21fe618}
 Mean, standard deviation, and other summary statistic can be computed
 with respect to a categorical variable (typically time) using the
 \texttt{summarize} function:
@@ -355,9 +355,9 @@ print(sss, digits = 3)
 \clearpage
 
 \section{Linear mixed model}
-\label{sec:orga7d2e6d}
+\label{sec:org3422624}
 \subsection{Modeling tools}
-\label{sec:org9dfa950}
+\label{sec:org75cccf8}
 Fit a linear model with \textbf{identity} structure:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -514,7 +514,7 @@ A3_months  354.9368 332.8130 319.7058  341.7246
 
 \clearpage
 \subsection{Model output}
-\label{sec:org34c54e7}
+\label{sec:orgb6b452b}
 
 The \texttt{summary} method can be used to display the main information
 relative to the model fit:
@@ -522,7 +522,6 @@ relative to the model fit:
 \begin{lstlisting}
 summary(eUN.lmm)
 \end{lstlisting}
-
 
 \begin{verbatim}
            Linear Mixed Model 
@@ -587,7 +586,7 @@ arguments \texttt{df} to \texttt{FALSE} and \texttt{type.information} to \texttt
 calling \texttt{lmm} should lead to a more reasonnable computation time.
 
 \subsection{Extract estimated coefficients}
-\label{sec:org2d448bc}
+\label{sec:orga3cc592}
 The value of the estimated coefficients can be output using \texttt{coef}:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -642,7 +641,7 @@ dummy.coef(eUN.lmm)
 \end{verbatim}
 
 \subsection{Extract estimated coefficient and associated uncertainty}
-\label{sec:orgf9cd5eb}
+\label{sec:org778c30e}
 
 The uncertainty about the mean coefficients can be obtained using the
 \texttt{model.tables} method \footnote{it is equivalent to \texttt{confint} method
@@ -674,7 +673,7 @@ they uncertainty is by default computed after transformation
 (e.g. \texttt{log}) and then backtransformed. 
 
 \subsection{Extract estimated residual variance-covariance structure}
-\label{sec:org25de74c}
+\label{sec:org8cb1abf}
 
 The method \texttt{getVarCov} can be used to output the covariance structure of the residuals:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -708,7 +707,7 @@ A3_months  318.8573 285.8077  280.9323
 \clearpage
 
 \subsection{Model diagnostic}
-\label{sec:org4c86876}
+\label{sec:org03ea04e}
 
 The method \texttt{plot} can be used to display diagnostic plots about:
 \begin{itemize}
@@ -802,14 +801,14 @@ Various type of residuals can be extract but the normalized one are
 recommanded when doing model checking.
 
 \subsection{Model fit}
-\label{sec:org0aabc0f}
+\label{sec:org69e1791}
 
 The fitted values can be displayed via the \texttt{plot} method or using the \texttt{emmeans} package:
 
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
 library(ggplot2) ## left panel
-autoplot(eUN.lmm, color = "id", size.text = 20)
+plot(eUN.lmm, type = "fit", color = "id", ci.alpha = NA, size.text = 20)
 \end{lstlisting}
 
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -830,16 +829,34 @@ emmip(eUN.lmm, ~time) + theme(text = element_text(size=20))
 \end{minipage}
 
 In the first case each possible curve is displayed while in the latter
-the average curve (over glucagon values). With the \texttt{autoplot} method,
+the average curve (over glucagon values). With the \texttt{plot} method,
 it is possible to display a curve specific to a glucagon value via the
 argument \texttt{at}:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-autoplot(eUN.lmm, at = data.frame(glucagon = 10), color = "glucagon")
+plot(eUN.lmm, type = "fit", at = data.frame(glucagon = 10), color = "glucagon")
 \end{lstlisting}
 
+It is also possible to display the observed values along with the
+fitted values by setting the argument \texttt{obs.alpha} to a strictly
+positive value below or equal to 1. This argument controls the
+transparency of the color used to display the observed values:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+gg <- plot(eUN.lmm, type = "fit", obs.alpha = 0.2, ci = FALSE,plot = FALSE)$plot
+gg <- gg + facet_wrap(~id, labeller = label_both)
+gg <- gg + theme(axis.text.x=element_text(angle = 90, hjust = 0))
+gg
+\end{lstlisting}
+
+\begin{center}
+\includegraphics[width=\textwidth]{./figures/fit-autoplot-indiv.pdf}
+\end{center}
+
+\clearpage
+
 \subsection{Statistical inference}
-\label{sec:orged92c4e}
+\label{sec:org0071f50}
 
 The \texttt{anova} method can be use to test one or several linear
 combinations of the model coefficients using Wald tests. By default,
@@ -970,7 +987,7 @@ statistic df.num df.denom     p.value
 \clearpage
 
 \subsection{Baseline adjustment}
-\label{sec:org7ab576f}
+\label{sec:orgd82c70a}
 
 The \texttt{lmm} contains an "experimental" feature to drop non-identifiable
 effects from the model. For instance, let us define two (artifical) groups of
@@ -1163,7 +1180,7 @@ treat22:timeA3_months   -25.51 2.323 22.6 -30.32 -20.69 1.60e-10
 \end{verbatim}
 
 \subsection{Marginal means}
-\label{sec:org9dfe318}
+\label{sec:org878f885}
 
 The \texttt{emmeans} package can be used to output marginal means. Consider
 the following model:
@@ -1337,7 +1354,7 @@ P value adjustment: sidak method for 4 tests
 \end{verbatim}
 
 \subsection{Predictions}
-\label{sec:orga7425a3}
+\label{sec:orge615abb}
 
 Two types of predictions can be performed with the \texttt{predict} method:
 \begin{itemize}
@@ -1447,7 +1464,7 @@ as.double(mu2 + Omega_21 * (100 - mu1) / Omega_11)
 \clearpage
 
 \section{Data generation}
-\label{sec:org69e3d7d}
+\label{sec:orgc10a39c}
 Simulate some data in the wide format:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -1494,7 +1511,7 @@ head(dL)
 \clearpage
 
 \section{Modifying default options}
-\label{sec:orgfcd63bd}
+\label{sec:org6b48291}
 The \texttt{LMMstar.options} method enable to get and set the default options
 used by the package. For instance, the default option for the information matrix is:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -1523,7 +1540,7 @@ LMMstar.options(reinitialise = TRUE)
 \clearpage
 
 \section{R session}
-\label{sec:orgef5523c}
+\label{sec:orgf57c9ba}
 Details of the R session used to generate this document:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -1574,7 +1591,7 @@ loaded via a namespace (and not attached):
 \clearpage
 
 \section*{References}
-\label{sec:org03b7506}
+\label{sec:org00bf3da}
 \begingroup
 \renewcommand{\section}[2]{}
 
@@ -1600,7 +1617,7 @@ loaded via a namespace (and not attached):
 \section{Likelihood in a linear mixed model}
 \label{SM:likelihood}
 \subsection{Log-likelihood}
-\label{sec:org69a589b}
+\label{sec:org21ac77e}
 
 Denote by \(\VY\) a vector of \(m\) outcomes, \(\VX\) a vector of
 \(p\) covariates, \(\mu(\Vparam,\VX)\) the modeled mean, and
@@ -1634,7 +1651,7 @@ when setting the argument \texttt{indiv} to \texttt{TRUE}.
 \bigskip
 
 \subsection{Score}
-\label{sec:org3709d7e}
+\label{sec:org7e01157}
 
  Using that \(\partial \log(\det(X))=tr(X^{-1}\partial(X))\), the
 score is obtained by derivating once the log-likelihood, i.e., for
@@ -1657,7 +1674,7 @@ what \texttt{score} outputs for the ML criteria when setting the argument
 \clearpage
 
 \subsection{Hessian}
-\label{sec:org5ddc336}
+\label{sec:orgc0916a6}
 
 Derivating a second time the log-likelihood gives the hessian, \(\Hessian(\Vparam)\), with element\footnote{if one is relative to the mean and the other to the variance then they are respectively \(\theta\) and \(\theta'\)}:
 \begin{align*}
@@ -1665,7 +1682,7 @@ Derivating a second time the log-likelihood gives the hessian, \(\Hessian(\Vpara
 =& \textcolor{\darkred}{\frac{1}{2} tr \left( \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i\right)^{-1} \left\{ \sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \left(\ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] - 2 \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}]\right)\Omega_i(\Vparam)^{-1} \trans{\VX}_i \right.  \right.}  \\
 & \textcolor{\darkred}{ \left. \left. \qquad + \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \left(\sum_{i=1}^n \VX_i\Omega_i^{-1}(\Vparam) \trans{\VX}_i \right)^{-1} \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \right\} \right) } \\
 & +\sum_{i=1}^n \left( \textcolor{\darkblue}{ \frac{1}{2} tr\left(\Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta] - \Omega_i(\Vparam)^{-1} \ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] \right) } \right.\\
-& \qquad \textcolor{\darkblue}{ -  \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)^{-1}][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \trans{\Vvarepsilon_i(\Vparam)} - \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \trans{\dpartial[\mu(\Vparam,\VX_i)][\theta^{\prime}]} } \\
+& \qquad \textcolor{\darkblue}{ -  \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \trans{\Vvarepsilon_i(\Vparam)} - \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \trans{\dpartial[\mu(\Vparam,\VX_i)][\theta^{\prime}]} } \\
 & \qquad \left. \textcolor{\darkblue}{ + \frac{1}{2} \Vvarepsilon_i(\Vparam) \Omega_i(\Vparam)^{-1} \left(\ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] - \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta] - \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \right) \Omega_i(\Vparam)^{-1} \trans{\Vvarepsilon_i(\Vparam)} } \right).
 \end{align*}
 where \(\Vvarepsilon_i(\Vparam) = \VY_i-\mu(\Vparam,\VX_i)\).
@@ -1705,13 +1722,13 @@ is set to \texttt{"expected"} (up to a factor -1).
 \clearpage
 
 \subsection{Degrees of freedom}
-\label{sec:org97488a2}
+\label{sec:org95ac2a0}
 
 Degrees of freedom are computed using a Satterthwaite approximation,
 i.e. for an estimate coefficient \(\widehat{\beta}\in\widehat{\Vparam}\) with standard
 error \(\sigma_{\widehat{beta}}\), the degree of freedom is:
 \begin{align*}
-df\left(\sigma_{\widehat{\beta}}\right) = \frac{2 \sigma_{\widehat{\beta}}}{\Var[\widehat{\sigma}_{\widehat{\beta}}]}
+df\left(\sigma_{\widehat{\beta}}\right) = \frac{2 \sigma^4_{\widehat{\beta}}}{\Var[\widehat{\sigma}_{\widehat{\beta}}]}
 \end{align*}
 Using a first order Taylor expansion we can approximate the variance term as:
 \begin{align*}

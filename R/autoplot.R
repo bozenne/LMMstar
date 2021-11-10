@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: nov  4 2021 (16:28) 
+## Last-Updated: nov 10 2021 (15:13) 
 ##           By: Brice Ozenne
-##     Update #: 69
+##     Update #: 90
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,15 +21,16 @@
 ##'
 ##' @param object a \code{lmm} object.
 ##' @param at [data.frame] values for the covariates at which to evaluate the fitted values.
+##' @param obs.alpha [numeric, 0-1] When not NA, transparency parameter used to display the original data by cluster.
+##' @param obs.size [numeric vector of length 2] size of the point and line for the original data.
 ##' @param color [character] name of the variable in the dataset used to color the curve.
 ##' @param ci [logical] should confidence intervals be displayed?
-##' @param alpha [numeric, 0-1] When not NA, transparency parameter used to display the confidence intervals.
+##' @param ci.alpha [numeric, 0-1] When not NA, transparency parameter used to display the confidence intervals.
 ##' @param plot [logical] should the plot be displayed?
-##' @param size.point [numeric, >0] the size of the point on the plot.
-##' @param size.line [numeric, >0] the size of the line on the plot.
+##' @param mean.size [numeric vector of length 2] size of the point and line for the mean trajectory.
 ##' @param size.text [numeric, >0] size of the font used to displayed text when using ggplot2.
 ##' @param position.errorbar [character] relative position of the errorbars.
-##' @param ... Not used. For compatibility with the generic method.
+##' @param ... arguments passed to the predict method.
 ##'
 ##' @return A list with two elements \itemize{
 ##' \item \code{data}: data used to create the graphical display.
@@ -40,8 +41,8 @@
 ## * autoplot.lmm (code)
 ##' @rdname autplot
 ##' @export
-autoplot.lmm <- function(object, at = NULL, color = TRUE, ci = TRUE, alpha = NA, plot = TRUE,
-                         size.point = 3, size.line = 1, size.text = 16, position.errorbar = "identity", ...){
+autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, color = TRUE, ci = TRUE, ci.alpha = NA, plot = TRUE,
+                         mean.size = c(3, 1), size.text = 16, position.errorbar = "identity", ...){
 
     var.cluster <- object$cluster$var
     var.time <- object$time$var
@@ -75,6 +76,11 @@ autoplot.lmm <- function(object, at = NULL, color = TRUE, ci = TRUE, alpha = NA,
     keep.id <- unique(data[test.duplicated==FALSE,var.cluster])
     newdata <- data[data[[var.cluster]] %in% keep.id,,drop=FALSE]
 
+    ls.UX <- lapply(as.character(unique(newdata[[var.cluster]])), function(iC){
+        iVec <- as.character(interaction(data[data[[var.cluster]] %in% iC,attr(object$design$mean,"variable"),drop=FALSE]))
+        cbind(repetition = data[data[[var.cluster]] %in% iC,var.time,drop=FALSE], lp = iVec)
+    })
+        
     if(identical(color,TRUE)){
         mean.var <- all.vars(stats::delete.response(stats::terms(stats::formula(object, effects = "mean"))))
         newdataRed <- newdata[order(newdata[[var.cluster]]),mean.var,drop=FALSE]
@@ -94,27 +100,48 @@ autoplot.lmm <- function(object, at = NULL, color = TRUE, ci = TRUE, alpha = NA,
             color <-  NULL
         }
     }
+    if(!is.na(obs.alpha) && obs.alpha>0 && length(color)>1 && color %in% names(data) == FALSE){
+        index.X <- unlist(lapply(as.character(unique(data[[var.cluster]])), function(iC){
+            iVec <- as.character(interaction(data[data[[var.cluster]] %in% iC,attr(object$design$mean,"variable"),drop=FALSE]))
+            iM <- cbind(repetition = data[data[[var.cluster]] %in% iC,var.time,drop=FALSE], lp = iVec)
+            iScore <- unlist(lapply(ls.UX, function(iUX){sum(iUX[match(iM[,"Days"],iUX[,"Days"]),"lp"]==iM[,"lp"])}))
+            which.max(iScore)
+        }))
+        data[[color]] <- sort(unique(newdata[[color]]))[index.X]
+    }
     
     ## ** compute fitted curve
-    preddata <- cbind(newdata, stats::predict(object, newdata = newdata))
+    preddata <- cbind(newdata, stats::predict(object, newdata = newdata, ...))
 
     ## ** generate plot
     gg <- ggplot2::ggplot(preddata, ggplot2::aes_string(x = var.time, y = "estimate", group = var.cluster))
+    if(!is.na(obs.alpha) && obs.alpha>0){
+        if(!is.null(color)){
+            gg <- gg + ggplot2::geom_point(data = data, mapping = ggplot2::aes_string(x = var.time, y = object$outcome$var, group = var.cluster, color = color),
+                                           alpha = obs.alpha, size = obs.size[1])
+            gg <- gg + ggplot2::geom_line(data = data, mapping = ggplot2::aes_string(x = var.time, y = object$outcome$var, group = var.cluster, color = color),
+                                          alpha = obs.alpha, size = obs.size[2])
+            ## gg + facet_wrap(as.formula(paste0("~",var.cluster)))
+        }else{
+            gg <- gg + ggplot2::geom_point(data = data, mapping = ggplot2::aes_string(x = var.time, y = object$outcome$var, group = var.cluster), alpha = obs.alpha, size = obs.size[1])
+            gg <- gg + ggplot2::geom_line(data = data, mapping = ggplot2::aes_string(x = var.time, y = object$outcome$var, group = var.cluster), alpha = obs.alpha, size = obs.size[2])
+        }
+    }
     if(ci){
-        if(is.na(alpha)){
+        if(is.na(ci.alpha)){
             gg <- gg + ggplot2::geom_errorbar(ggplot2::aes_string(ymin = "lower", ymax = "upper"), position = position.errorbar)
         }else{
             if(!is.null(color)){
-                gg <- gg + ggplot2::geom_ribbon(ggplot2::aes_string(ymin = "lower", ymax = "upper", fill = color), alpha = alpha)
+                gg <- gg + ggplot2::geom_ribbon(ggplot2::aes_string(ymin = "lower", ymax = "upper", fill = color), alpha = ci.alpha)
             }else{
-                gg <- gg + ggplot2::geom_ribbon(ggplot2::aes_string(ymin = "lower", ymax = "upper"), alpha = alpha)
+                gg <- gg + ggplot2::geom_ribbon(ggplot2::aes_string(ymin = "lower", ymax = "upper"), alpha = ci.alpha)
             }
         }
     }
     if(!is.null(color)){
-        gg <- gg + ggplot2::geom_point(ggplot2::aes_string(color = color), size = size.point) + ggplot2::geom_line(ggplot2::aes_string(color = color), size = size.line)
+        gg <- gg + ggplot2::geom_point(ggplot2::aes_string(color = color), size = mean.size[1]) + ggplot2::geom_line(ggplot2::aes_string(color = color), size = mean.size[2])
     }else{
-        gg <- gg + ggplot2::geom_point(size = size.point) + ggplot2::geom_line(size = size.line)
+        gg <- gg + ggplot2::geom_point(size = mean.size[1]) + ggplot2::geom_line(size = mean.size[2])
     }
     gg  <- gg + ggplot2::ylab(object$outcome$var) + ggplot2::theme(text = ggplot2::element_text(size=size.text))
 

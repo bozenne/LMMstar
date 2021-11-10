@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: nov  4 2021 (14:44) 
+## Last-Updated: nov 10 2021 (15:00) 
 ##           By: Brice Ozenne
-##     Update #: 1239
+##     Update #: 1241
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -45,7 +45,7 @@
 ##' \code{\link{levels.lmm}} to display the reference level. \cr
 ##' \code{\link{anova.lmm}} for testing linear combinations of coefficients (F-test, multiple Wald tests) \cr
 ##' \code{\link{getVarCov.lmm}} for extracting estimated residual variance-covariance matrices. \cr
-##' \code{\link{residuals.lmm}} for extracting residuals or creating residual plots (e.g. qqplots).
+##' \code{\link{residuals.lmm}} for extracting residuals or creating residual plots (e.g. qqplots). \cr
 ##' \code{\link{predict.lmm}} for evaluating mean and variance of the outcome conditional on covariates or other outcome values.
 
 ##' @return an object of class \code{lmm} containing the estimated parameter values, the residuals, and relevant derivatives of the likelihood.
@@ -85,7 +85,7 @@
 ##' ## variance-covariance structure
 ##' getVarCov(eCS.lmm)
 ##' 
-##' #### 3- diagnostic plots ####
+##' #### 4- diagnostic plots ####
 ##' quantile(residuals(eCS.lmm))
 ##' quantile(residuals(eCS.lmm, type = "normalized"))
 ##'
@@ -102,13 +102,13 @@
 ##' }
 ##' }
 ##' 
-##' #### 4- statistical inference ####
+##' #### 5- statistical inference ####
 ##' anova(eCS.lmm) ## effect of each variable
 ##' anova(eCS.lmm, effects = "X11-X21=0") ## test specific coefficient
 ##' ## test several hypothese with adjustment for multiple comparisons
 ##' anova(eCS.lmm, effects = c("X11=0","X21=0"), ci = TRUE)
 ##'
-##' #### 5- prediction ####
+##' #### 6- prediction ####
 ##' ## conditional on covariates
 ##' newd <- dL[1:3,]
 ##' predict(eCS.lmm, newdata = newd, keep.newdata = TRUE)
