@@ -25,8 +25,7 @@
 \arguments{
 \item{object}{a \code{lmm} object.}
 
-\item{type}{[character] Should the raw residuals be output (\code{"response"}), the Pearson residuals (\code{"pearson"}), normalized residuals (\code{"normalized"} , \code{"scaled"}),
-or partial residuals (\code{"partial"} or \code{"partial-ref"}). See detail section.}
+\item{type}{[character] type of residual to output: raw residuals (\code{"response"}), Pearson residuals (\code{"pearson"}), normalized residuals (\code{"normalized"}, scaled residual \code{"scaled"}), or partial residuals (\code{"partial"} or \code{"partial-ref"}). Can also be \code{"all"} to output all except partial residuals. See detail section.}
 
 \item{format}{[character] Should the residuals be output relative as a vector (\code{"long"}), or as a matrix with in row the clusters and in columns the outcomes (\code{"wide"}).}
 
@@ -63,14 +62,15 @@ Extract or compute the residuals of a linear mixed model.
 \details{
 The argument \code{type} defines how the residuals are computed:
 \itemize{
+\item \code{"fitted"}: fitted value \eqn{X_{ij} \hat{\beta}}.
 \item \code{"raw"}: observed outcome minus fitted value \eqn{\varepsilon = Y_{ij} - X_{ij} \hat{\beta}}.
 \item \code{"pearson"}: each raw residual is divided by its modeled standard deviation \eqn{\varepsilon = \frac{Y_{ij} - X_{ij} \hat{\beta}}{\sqrt{\hat{\omega}_{ij}}}}.
 \item \code{"studentized"}: same as \code{"pearson"} but excluding the contribution of the cluster in the modeled standard deviation  \eqn{\varepsilon = \frac{Y_{ij} - X_{ij} \hat{\beta}}{\sqrt{\hat{\omega}_{ij}-\hat{q}_{ij}}}}.
 \item \code{"normalized"}: raw residuals are multiplied, within clusters, by the inverse of the (lower) Cholesky factor of the modeled residual variance covariance matrix \eqn{\varepsilon = ( Y_{i} - X_{i} \hat{\beta} )\hat{C}^{-1}}.
 \item \code{"normalized2"}: same as \code{"normalized"} but excluding the contribution of the cluster in the modeled residual variance covariance matrix \eqn{\varepsilon = ( Y_{i} - X_{i} \hat{\beta} ) \hat{D}_i^{-1}}.
-\item \code{"scaled"}: corresponds to the scaled scaled residuals of PROC MIXED in SAS.
+\item \code{"scaled"}: corresponds to the scaled residuals of PROC MIXED in SAS.
 \item \code{"partial"} or \code{"partial-ref"}: the partial residual are computed as the raw residuals plus the effect of the covariates in argument \code{var}.
-\code{"partial"} uses \eqn{\hat{\beta} X  + \hat{\varepsilon}} where \(X\) is centered while \code{"partial"} uses \eqn{\hat{\beta} X + \hat{\gamma} Z  + \hat{\varepsilon}} where the Z value are the same for all observations, i.e. uses a reference level.
+\code{"partial"} uses \eqn{\hat{\beta} X  + \hat{\varepsilon}} where \eqn{X} is centered while \code{"partial-ref"} uses \eqn{\hat{\beta} X + \hat{\gamma} Z  + \hat{\varepsilon}} where the Z value are the same for all observations, i.e. uses a reference level.
 }
 where
 \itemize{
@@ -81,7 +81,7 @@ where
 \item \eqn{\hat{\gamma}} the estimated mean coefficients relative to \eqn{Z}
 \item \eqn{\hat{\Omega}} the modeled variance-covariance of the residuals and \eqn{\hat{\omega}} its diagonal elements
 \item \eqn{\hat{C}} the lower Cholesky factor of \eqn{\hat{\Omega}}, i.e. \eqn{\hat{C} \hat{C}^{t} = \hat{\Omega}}
-\item \eqn{\hat{Q}_i= X_i (X^{t}\hat{\Omega}X)^{-1}X_i^{t}} a cluster specific correction factor, approximating the contribution of cluster i to \eqn{\hat{Omega}}. Its diagonal elements are denoted \eqn{\hat{q}_i}.
+\item \eqn{\hat{Q}_i= X_i (X^{t}\hat{\Omega}X)^{-1}X_i^{t}} a cluster specific correction factor, approximating the contribution of cluster i to \eqn{\hat{\Omega}}. Its diagonal elements are denoted \eqn{\hat{q}_i}.
 \item \eqn{\hat{D}_i} the lower Cholesky factor of \eqn{\hat{\Omega}-\hat{Q}_i}
 }
 }
@@ -101,11 +101,11 @@ eUN.lmm <- lmm(Y ~ visit + X1 + X2 + X5,
 
 ## residuals
 residuals(eUN.lmm, format = "long", type = c("normalized","pearson"))
-residuals(eUN.lmm, format = "long", type = "all", keep.data = TRUE)
 residuals(eUN.lmm, format = "wide", plot = "correlation")
 residuals(eUN.lmm, format = "wide", type = "normalized")
 residuals(eUN.lmm, format = "wide", type = "scaled")
 
 ## residuals and predicted values
-residuals(eUN.lmm, data = fitted(eUN.lmm,keep.newdata=TRUE),keep.data=TRUE)
+residuals(eUN.lmm, type = "all")
+residuals(eUN.lmm, type = "all", keep.data = TRUE)
 }

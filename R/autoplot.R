@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: nov 10 2021 (15:13) 
+## Last-Updated: nov 10 2021 (16:39) 
 ##           By: Brice Ozenne
-##     Update #: 90
+##     Update #: 91
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -75,12 +75,7 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
     test.duplicated <- duplicated(X.beta)
     keep.id <- unique(data[test.duplicated==FALSE,var.cluster])
     newdata <- data[data[[var.cluster]] %in% keep.id,,drop=FALSE]
-
-    ls.UX <- lapply(as.character(unique(newdata[[var.cluster]])), function(iC){
-        iVec <- as.character(interaction(data[data[[var.cluster]] %in% iC,attr(object$design$mean,"variable"),drop=FALSE]))
-        cbind(repetition = data[data[[var.cluster]] %in% iC,var.time,drop=FALSE], lp = iVec)
-    })
-        
+    
     if(identical(color,TRUE)){
         mean.var <- all.vars(stats::delete.response(stats::terms(stats::formula(object, effects = "mean"))))
         newdataRed <- newdata[order(newdata[[var.cluster]]),mean.var,drop=FALSE]
@@ -101,6 +96,11 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
         }
     }
     if(!is.na(obs.alpha) && obs.alpha>0 && length(color)>1 && color %in% names(data) == FALSE){
+        ls.UX <- lapply(as.character(unique(newdata[[var.cluster]])), function(iC){
+            iVec <- as.character(interaction(data[data[[var.cluster]] %in% iC,attr(object$design$mean,"variable"),drop=FALSE]))
+            cbind(repetition = data[data[[var.cluster]] %in% iC,var.time,drop=FALSE], lp = iVec)
+        })
+    
         index.X <- unlist(lapply(as.character(unique(data[[var.cluster]])), function(iC){
             iVec <- as.character(interaction(data[data[[var.cluster]] %in% iC,attr(object$design$mean,"variable"),drop=FALSE]))
             iM <- cbind(repetition = data[data[[var.cluster]] %in% iC,var.time,drop=FALSE], lp = iVec)
@@ -111,8 +111,11 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
     }
     
     ## ** compute fitted curve
-    preddata <- cbind(newdata, stats::predict(object, newdata = newdata, ...))
-
+    if(!is.na(obs.alpha) && obs.alpha>0){
+        preddata <- cbind(data, stats::predict(object, newdata = data, ...))
+    }else{
+        preddata <- cbind(newdata, stats::predict(object, newdata = newdata, ...))
+    }
     ## ** generate plot
     gg <- ggplot2::ggplot(preddata, ggplot2::aes_string(x = var.time, y = "estimate", group = var.cluster))
     if(!is.na(obs.alpha) && obs.alpha>0){

@@ -12,9 +12,8 @@
   by.time = TRUE,
   ci = TRUE,
   plot = TRUE,
-  alpha = 0.2,
-  size.point = 3,
-  size.line = 1,
+  ci.alpha = 0.2,
+  mean.size = c(3, 1),
   size.text = 16,
   ...
 )
@@ -34,11 +33,9 @@ Only relevant for \code{type="qqplot"}, \code{type="scatterplot"}, and \code{typ
 
 \item{plot}{[logical] should the plot be displayed?}
 
-\item{alpha}{[numeric, 0-1] Transparency parameter used to display the confidence intervals.}
+\item{ci.alpha}{[numeric, 0-1] Transparency parameter used to display the confidence intervals.}
 
-\item{size.point}{[numeric, >0] the size of the point on the plot.}
-
-\item{size.line}{[numeric, >0] the size of the line on the plot.}
+\item{mean.size}{[numeric vector of length 2] size of the point and line for the mean trajectory.}
 
 \item{size.text}{[numeric, >0] size of the font used to displayed text when using ggplot2.}
 
@@ -55,5 +52,5 @@ Display fitted values or residual plot for the mean, variance, and correlation s
 Can also display quantile-quantile plot relative to the normal distribution.
 }
 \details{
-Call \code{link(autoplot.lmm)} when code{type=="fit"} and \code{link(residuals.lmm)} for the other types.
+Call \code{\link{autoplot.lmm}} when code{type=="fit"} and \code{link(residuals.lmm)} for the other types.
 }

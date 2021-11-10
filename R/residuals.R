@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: nov 10 2021 (14:22) 
+## Last-Updated: nov 10 2021 (16:43) 
 ##           By: Brice Ozenne
-##     Update #: 432
+##     Update #: 435
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -318,14 +318,14 @@ residuals.lmm <- function(object, type = "response", format = "long",
         res <-  as.vector(Y - fitted)
         M.res <- matrix(NA, nrow = NROW(X), ncol = length(type.residual), dimnames = list(NULL, name.residual))
     }else{
-        fitted <- fitted(object)
+        fitted <- stats::fitted(object)
         res <- as.vector(object$residuals)
         M.res <- matrix(NA, nrow = NROW(object$residuals), ncol = length(type.residual), dimnames = list(NULL, name.residual))
     }
 
     ## ** normalization
     if ("fitted" %in% type.residual) {
-        M.res[,"fitted"] <- stats::fitted(object, newdata = data, keep.newdata = FALSE)
+        M.res[,"fitted"] <- fitted
     }
     if ("response" %in% type.residual) {
         M.res[,"r.response"] <- res
