@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: sep 20 2021 (14:53) 
+## Last-Updated: nov 12 2021 (17:36) 
 ##           By: Brice Ozenne
-##     Update #: 347
+##     Update #: 405
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,7 +16,7 @@
 ### Code:
 
 ## * reparametrize
-reparametrize <- function(p, type, strata, time.levels,
+reparametrize <- function(p, type, strata, 
                           Jacobian = TRUE, dJacobian = TRUE,
                           FUN = NULL,
                           transform.sigma = NULL,
@@ -42,7 +42,7 @@ reparametrize <- function(p, type, strata, time.levels,
         if(!is.null(transform.rho)){
             warning("Argument \'transform.rho\' is ignored when argument \'FUN\' is specified. \n")
         }
-        valid.args <- c("inverse","p","strata","time.levels","type")
+        valid.args <- c("inverse","p","strata","type")
         if(any(names(formals(FUN)) %in% valid.args == FALSE)){
             stop("Invalid argument for \'FUN\'. \n",
                  "Invalid argument(s): \'",paste(names(formals(FUN))[names(formals(FUN)) %in% valid.args == FALSE], collapse = "\' \'"),"\' \n",
@@ -56,7 +56,7 @@ reparametrize <- function(p, type, strata, time.levels,
         }
         
         ## *** transformed parameter
-        p.trans <- FUN(p = p, type = type, strata = strata, time.levels =  time.levels, inverse = FALSE)
+        p.trans <- FUN(p = p, type = type, strata = strata, inverse = FALSE)
         newname <- names(p.trans)
         names(p.trans) <- names(p)
         if(length(p.trans)!=n.p){
@@ -69,27 +69,27 @@ reparametrize <- function(p, type, strata, time.levels,
 
         ## *** jacobian
         if(Jacobian){
-            if(any(abs(p-FUN(p = p.trans, type = type, strata = strata, time.levels =  time.levels, inverse = TRUE))>1e-6)){
+            if(any(abs(p-FUN(p = p.trans, type = type, strata = strata, inverse = TRUE))>1e-6)){
                 stop("The argument \'inverse\' of the function defined in argument \'FUN\' seems to lead to incorrect value. \n",
                      "FUN(FUN(p, inverse = FALSE),inverse = TRUE) should be equal to argument \'p\'. \n")
             }
 
-            dFUN <- function(x, type, strata, time.levels, vectorize){
-                out <- numDeriv::jacobian(function(pp){FUN(p = pp, type = type, strata = strata, time.levels =  time.levels, inverse = TRUE)},x)
+            dFUN <- function(x, type, strata, vectorize){
+                out <- numDeriv::jacobian(function(pp){FUN(p = pp, type = type, strata = strata, inverse = TRUE)},x)
                 if(vectorize){
                     return(as.vector(out))
                 }else{
                     return(out)
                 }
             }
-            attr(p.trans,"Jacobian") <- dFUN(p.trans, type = type, strata = strata, time.levels, vectorize = FALSE)
+            attr(p.trans,"Jacobian") <- dFUN(p.trans, type = type, strata = strata, vectorize = FALSE)
             dimnames(attr(p.trans,"Jacobian")) <- list(name.p,name.p)
         }
         
         ## *** derivative of the jacobian
         if(dJacobian==1){
-            ddFUN <- function(x, type, strata, time.levels, vectorize){
-                out <- numDeriv::jacobian(function(pp){dFUN(x = pp, type = type, strata = strata, time.levels =  time.levels, vectorize = TRUE)},x)
+            ddFUN <- function(x, type, strata, vectorize){
+                out <- numDeriv::jacobian(function(pp){dFUN(x = pp, type = type, strata = strata, vectorize = TRUE)},x)
                 if(vectorize){ ## convert to array
                     return(out)
                 }else{
@@ -100,7 +100,7 @@ reparametrize <- function(p, type, strata, time.levels,
                     return(A.out)
                 }
             }        
-            attr(p.trans,"dJacobian") <- ddFUN(p.trans, type = type, strata = strata, time.levels, vectorize = FALSE)
+            attr(p.trans,"dJacobian") <- ddFUN(p.trans, type = type, strata = strata, vectorize = FALSE)
         }else if(dJacobian==2){
             stop("Argument \'dJacobian==2\' not implemented for numerical derivatives. \n")
         }
@@ -109,7 +109,7 @@ reparametrize <- function(p, type, strata, time.levels,
         init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
                                 x.transform.sigma = options$transform.sigma, x.transform.k = options$transform.k, x.transform.rho = options$transform.rho)
             
-        ls.out <- .reparametrize(p = p, type = type, strata = strata, time.levels = time.levels,
+        ls.out <- .reparametrize(p = p, type = type, strata = strata,
                                  Jacobian = Jacobian, dJacobian = dJacobian, inverse = FALSE,
                                  transform.sigma = init$transform.sigma,
                                  transform.k = init$transform.k,
@@ -134,8 +134,9 @@ reparametrize <- function(p, type, strata, time.levels,
 
 ## * .reparametrize
 ## TODO: - extend transform.rho="cov" to UN pattern (i.e. find k corresponding to rho)
-.reparametrize <- function(p, type, strata, time.levels,
+.reparametrize <- function(p, type, strata, 
                            time.k, time.rho,
+                           name2sd,
                            Jacobian, dJacobian, inverse,
                            transform.sigma,
                            transform.k,
@@ -356,10 +357,10 @@ reparametrize <- function(p, type, strata, time.levels,
 
                 if(transform.names){
                     out$newname[match(iName.sigma,name.p)] <- switch(transform.sigma,
-                                                                     "none" = paste0(iName.sigma,":",time.levels[1]),
-                                                                     "log" = paste0("log(",iName.sigma,"):",time.levels[1]),
-                                                                     "square" = paste0(iName.sigma,"^2:",time.levels[1]),
-                                                                     "logsquare" = paste0("log(",iName.sigma,"^2):",time.levels[1])
+                                                                     "none" = paste0(iName.sigma,":",name2sd[iName.sigma]),
+                                                                     "log" = paste0("log(",iName.sigma,"):",name2sd[iName.sigma]),
+                                                                     "square" = paste0(iName.sigma,"^2:",name2sd[iName.sigma]),
+                                                                     "logsquare" = paste0("log(",iName.sigma,"^2):",name2sd[iName.sigma])
                                                                      )
                 }
                 
@@ -369,7 +370,7 @@ reparametrize <- function(p, type, strata, time.levels,
                     }else{
                         out$p[iName.k] <- p[iName.sigma]*p[iName.k]
                         if(transform.names){
-                            out$newname[match(c(iName.sigma,iName.k),name.p)] <- paste0(iName.sigma,":",time.levels)
+                            out$newname[match(c(iName.sigma,iName.k),name.p)] <- paste0("sigma:",name2sd[c(iName.sigma,iName.k)])
                         }
                         if(Jacobian){
                             ## \sigma1, \sigma2/\sigma1, ...   so  1 -\sigma2/\sigma1^2       
@@ -404,7 +405,7 @@ reparametrize <- function(p, type, strata, time.levels,
                     }else{
                         out$p[iName.k] <- log(p[iName.k]*p[iName.sigma])
                         if(transform.names){
-                            out$newname[match(c(iName.sigma,iName.k),name.p)] <- paste0("log(",iName.sigma,"):",time.levels)
+                            out$newname[match(c(iName.sigma,iName.k),name.p)] <- paste0("log(sigma):",name2sd[c(iName.sigma,iName.k)])
                         }
                         if(Jacobian){
                             ## \exp(\sigma1), \exp(\sigma2 - \sigma1), ...   so  \exp(\sigma1) -\exp(\sigma2 - \sigma1)
@@ -439,7 +440,7 @@ reparametrize <- function(p, type, strata, time.levels,
                     }else{
                         out$p[iName.k] <- p[iName.sigma]^2*p[iName.k]^2
                         if(transform.names){
-                            out$newname[match(c(iName.sigma,iName.k),name.p)] <- paste0(iName.sigma,"^2:",time.levels)
+                            out$newname[match(c(iName.sigma,iName.k),name.p)] <- paste0("sigma^2:",name2sd[c(iName.sigma,iName.k)])
                         }
                         if(Jacobian){
                             ## sqrt(\sigma1), sqrt(\sigma2/\sigma1), ...   so  1/(2 sqrt(\sigma1)) -\sqrt(\sigma2)/(2 \sigma1^(3/2))       
@@ -476,7 +477,7 @@ reparametrize <- function(p, type, strata, time.levels,
                     }else{
                         out$p[iName.k] <- 2*log(p[iName.k]*p[iName.sigma])
                         if(transform.names){
-                            out$newname[match(c(iName.sigma,iName.k),name.p)] <- paste0("log(",iName.sigma,"):",time.levels)
+                            out$newname[match(c(iName.sigma,iName.k),name.p)] <- paste0("log(sigma^2):",name2sd[c(iName.sigma,iName.k)])
                         }
                         if(Jacobian){
                             ## \exp(\sigma1/2), \exp(\sigma2/2 - \sigma1/2), ...   so  \exp(\sigma1/2)/2 -\exp(\sigma2/2 - \sigma1/2)/2
@@ -556,8 +557,8 @@ reparametrize <- function(p, type, strata, time.levels,
                     }else{
                         out$p[iName.rho] <- p[iName.rho]*p[iName.sigma]^2
                         if(transform.names){
-                            out$newname[match(iName.sigma,name.p)] <- paste0(iName.sigma,"^2")
-                            out$newname[match(iName.rho,name.p)] <- gsub(pattern = "^Rho|^cor",replacement = "cov",iName.rho,")")
+                            name2sd[iName.rho]
+                            out$newname[match(iName.rho,name.p)] <- paste0("cov:",iStrata)
                         }
                         if(Jacobian){
                             ##  \rho/\sigma leads to -\rho/\sigma^2 and 1/\sigma
@@ -595,25 +596,64 @@ reparametrize <- function(p, type, strata, time.levels,
                             return(p[iRho]/sqrt(p[iName.sigma1]*p[iName.sigma2]))
                         })
                     }else{
-                        out$p[iName.rho] <- sapply(iName.rho, function(iRho){ ## iRho <- iName.rho[1]
-                            iTime.k <- time.k[strata[names(time.k)] == strata[iRho]]
-                            iName.sigma1 <- names(which(iTime.k==time.rho[1,iRho]))
-                            iName.sigma2 <- names(which(iTime.k==time.rho[2,iRho]))
-                            if(length(iName.sigma1)>0){
-                                iSigma1 <- p[iName.sigma1]
+                        ls.rho <- stats::setNames(lapply(iName.rho, function(iRho){ ## iRho <- iName.rho[1]
+                            iName.rho <- list(unname(name2sd[iName.sigma]),unname(name2sd[iName.sigma]))
+                       
+                            ## timepoint associated with the correlation
+                            iTimeRho.1 <- time.rho[1,iRho]
+                            iTimeRho.2 <- time.rho[2,iRho]
+                            ## possible k multipliers for the variance
+                            iName.k1 <- names(which(time.k[iName.k]==time.rho[1,iRho]))
+                            iName.k2 <- names(which(time.k[iName.k]==time.rho[2,iRho]))
+                            ## 
+                            if(length(iName.k1)>0){
+                                if(length(iName.k1)==length(iName.k2)){
+                                    iK1 <- p[iName.k1]
+                                    iName.rho[[1]] <- unname(name2sd[iName.k1])
+                                }else{
+                                    iK1 <- c(1,p[iName.k1])
+                                    iName.rho[[1]] <- unname(c(iName.rho[[1]],name2sd[iName.k1]))
+                                }
                             }else{
-                                iSigma1 <- 1
+                                iK1 <- 1
                             }
-                            if(length(iName.sigma2)>0){
-                                iSigma2 <- p[iName.sigma2]
+                            if(length(iName.k2)>0){
+                                iK2 <- p[iName.k2]
+                                iName.rho[[2]] <- unname(name2sd[iName.k2])
                             }else{
-                                iSigma2 <- 1
+                                iK2 <- 1
                             }
-                            return(p[iRho]*iSigma1*iSigma2*p[iName.sigma]^2)
-                        })
-                        if(transform.names){
-                            out$newname[match(iName.rho,name.p)] <- gsub(pattern = "^Rho|^cor",replacement = "cov",iName.rho,")")
+
+                            if(transform.names){
+                                iNewname <- paste0("cov(",as.character(interaction(as.data.frame(do.call(cbind,iName.rho)),sep=", ")),")")
+                            }else{
+                                iNewname <- rep(iRho, length(iK1))
+                            }
+                            return(stats::setNames(p[iRho]*iK1*iK2*p[iName.sigma]^2, iNewname))
+                        }), iName.rho)
+
+                        iIndex.insert <- which(names(out$p) %in% iName.rho)
+                        savep <- out$p
+                        savenewname <- out$newname
+
+                        out$p <- vector(mode = "numeric", length = length(out$p)+length(ls.rho)-length(iIndex.insert))
+                        out$newname <- vector(mode = "character", length = length(out$p)+length(ls.rho)-length(iIndex.insert))
+                        
+                        if(min(iIndex.insert)>1){
+                            out$p[1:(min(iIndex.insert)-1)] <- savep[1:(min(iIndex.insert)-1)]
+                            names(out$p)[1:(min(iIndex.insert)-1)] <- names(savep)[1:(min(iIndex.insert)-1)]
+                            out$newname[1:(min(iIndex.insert)-1)] <- savenewname[1:(min(iIndex.insert)-1)]
                         }
+                        out$p[min(iIndex.insert):(min(iIndex.insert)+length(ls.rho)-1)] <- unname(unlist(ls.rho))
+                        names(out$p)[min(iIndex.insert):(min(iIndex.insert)+length(ls.rho)-1)] <- iName.rho
+                        out$newname[min(iIndex.insert):(min(iIndex.insert)+length(ls.rho)-1)] <- names(unlist(unname(ls.rho)))
+                        
+                        if(max(iIndex.insert)<length(out$p)){
+                            out$p[(min(iIndex.insert)+length(ls.rho)):length(out$p)] <- savep[(max(iIndex.insert)+1):length(out$p)]
+                            names(out$p)[(min(iIndex.insert)+length(ls.rho)):length(out$p)] <- names(savep)[(max(iIndex.insert)+1):length(out$p)]
+                            out$newname[(min(iIndex.insert)+length(ls.rho)):length(out$p)] <- savenewname[(max(iIndex.insert)+1):length(out$p)]
+                        }
+                        
                         if(Jacobian){
                             stop("Not implemented in presence of multiple variance parameters. \n")
                             ## \rho/(\sigma1 \sigma2)  leads to  -\rho/(\sigma1^2 \sigma2) and -\rho/(\sigma1 \sigma2^2) and 1/(\sigma1 \sigma2)

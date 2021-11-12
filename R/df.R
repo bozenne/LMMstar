@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (10:34) 
 ## Version: 
-## Last-Updated: okt  2 2021 (17:08) 
+## Last-Updated: nov 12 2021 (13:49) 
 ##           By: Brice Ozenne
-##     Update #: 131
+##     Update #: 132
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -163,7 +163,8 @@
     FUN_information <- function(p, as.double){
 
         if(test.transform){ ## back-transform
-            backp <- .reparametrize(p = p[param.nameVar], type = param.type[param.nameVar], strata = param.strata[param.nameVar], 
+            backp <- .reparametrize(p = p[param.nameVar],
+                                    type = param.type[param.nameVar], strata = param.strata[param.nameVar], 
                                     Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
                                     transform.sigma = transform.sigma,
                                     transform.k = transform.k,

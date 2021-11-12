@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: okt  2 2021 (17:20) 
+## Last-Updated: nov 12 2021 (18:02) 
 ##           By: Brice Ozenne
-##     Update #: 185
+##     Update #: 190
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -38,8 +38,9 @@
         test.d2Omega  <- FALSE
     }
 
-    out$reparametrize <- .reparametrize(p = param.value[index.var], type = param.type[index.var], strata = param.strata[index.var], time.levels = time$levels,
+    out$reparametrize <- .reparametrize(p = param.value[index.var], type = param.type[index.var], strata = param.strata[index.var], 
                                         time.k = design$param$time.k, time.rho = design$param$time.rho,
+                                        name2sd = stats::setNames(design$vcov$param$name2,design$vcov$param$name),
                                         Jacobian = TRUE, dJacobian = 2*test.d2Omega, inverse = FALSE, ##  2 is necessary to export the right dJacobian
                                         transform.sigma = transform.sigma,
                                         transform.k = transform.k,
@@ -153,7 +154,11 @@
                              precompute = precompute)
 
         if(information){
-            out$information <- Minfo[attr(effects, "original.names"),attr(effects, "original.names"),drop=FALSE]
+            if(indiv){
+                out$information <- Minfo[,attr(effects, "original.names"),attr(effects, "original.names"),drop=FALSE]
+            }else{
+                out$information <- Minfo[attr(effects, "original.names"),attr(effects, "original.names"),drop=FALSE]
+            }
             attr(out$information, "type.information") <- type.information
             attr(out$information, "robust") <- robust
             if(transform.names && length(out$reparametrize$newname)>0){

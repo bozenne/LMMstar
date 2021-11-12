@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: nov  4 2021 (11:49) 
 ## Version: 
-## Last-Updated: nov  4 2021 (16:34) 
+## Last-Updated: nov 12 2021 (15:59) 
 ##           By: Brice Ozenne
-##     Update #: 11
+##     Update #: 13
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -38,6 +38,7 @@ test_that("linear model",{
 
     ## single variable
     e.lmm <- lmm(Y~visit+X1+X2+X6, data = dL)
+    model.matrix(e.lmm)
     test1 <- residuals(e.lmm, type = "partial", var = "visit")
     test1.bis <- residuals(e.lmm, type = "partial", var = "visit", format = "wide")
     test2 <- residuals(e.lmm, type = "partial", var = "X1")
@@ -96,6 +97,8 @@ test_that("linear model with splines",{
     e.lmm <- lmm(Y~visit+X1+stats::poly(X6, 4), data = dL)
 
     ## compare predictions
+    model.matrix(e.lmm, data = dL[1:2,])
+
     GS <- predict(e.lm, newdata = dL[1:2,])
     test <- predict(e.lmm, newdata = dL[1:2,])
     expect_equal(as.double(test$estimate), as.double(GS), tol = 1e-6)

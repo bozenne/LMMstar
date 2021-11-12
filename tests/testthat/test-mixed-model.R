@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: okt 15 2021 (17:35) 
+## Last-Updated: nov 12 2021 (18:23) 
 ##           By: Brice Ozenne
-##     Update #: 98
+##     Update #: 104
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -340,6 +340,8 @@ test_that("Stratified unstructured (REML)",{
 eUN.lmm <- lmm(Y ~ (visit + age)*gender, repetition = gender~visit|id, structure = "UN", data = dL, trace = 0, method = "REML")
 eUN.gls <- list(male=gls(Y ~ visit + age, correlation = corSymm(form=~1|id), weights = varIdent(form=~1|visit), data = dL[dL$gender=="male",], method = "REML"),
                 female=gls(Y ~ visit + age, correlation = corSymm(form=~1|id), weights = varIdent(form=~1|visit), data = dL[dL$gender=="female",], method = "REML"))
+coef(eUN.lmm, transform.sigma = "none", transform.k = "sd", effects = "variance")
+coef(eUN.lmm, transform.sigma = "none", effects = "variance")
 capture.output(summary(eUN.lmm))
 ## anova(eUN.lmm, effects = "all")
 

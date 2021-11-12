@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: okt 20 2021 (15:58) 
+## Last-Updated: nov 12 2021 (17:13) 
 ##           By: Brice Ozenne
-##     Update #: 356
+##     Update #: 391
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -61,7 +61,6 @@ summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print =
     method.fit <- object$method
     nobsByCluster <- object$design$cluster$nobs
     formula <- object$formula
-    Omega <- nlme::getVarCov(object, simplifies = FALSE)
     df <- !is.null(object$df)
     options <- LMMstar.options()
     dots <- list(...)
@@ -155,18 +154,47 @@ summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print =
         }
     }
     ## *** correlation
-    if(object$time$n>1){
-        if(print && !hide.cor){
+    if(object$time$n>1 && !hide.cor){
+        if(print){
             cat("  - correlation structure:",deparse(formula$cor),"\n")
         }
-        table.cor <- lapply(Omega,stats::cov2cor)
-        if(length(table.cor)==1){
+        ## find unique correlation patterns
+        Omega <- nlme::getVarCov(object, simplifies = FALSE)
+        table.cor <- stats::setNames(vector(mode = "list", length = length(Omega)),names(Omega))
+        for(iStrata in 1:length(Omega)){ ## iStrata <- 1
+            iOmega <- Omega[[iStrata]]
+            iPattern <- attr(iOmega,"pattern")
+            attr(iOmega,"pattern") <- NULL
+            if(is.matrix(iOmega)){
+                table.cor[[iStrata]] <- stats::cov2cor(iOmega)
+            }else{
+                iUpattern <- structure$X$Upattern[match(iPattern,structure$X$Upattern$name),,drop=FALSE]
+                index.keep <- which(!duplicated(iUpattern$cor))
+                if(length(index.keep)==1){
+                    table.cor[[iStrata]] <- stats::cov2cor(iOmega[[index.keep]])
+                }else if(length(index.keep)!=length(Omega)){
+                    table.cor[[iStrata]] <- lapply(iOmega[index.keep],stats::cov2cor)
+                    names(table.cor[[iStrata]]) <- tapply(1:length(iUpattern$cor),iUpattern$cor,function(iIndex){paste(names(iOmega[iIndex]),collapse=", ")})
+                }else{
+                    table.cor[[iStrata]] <- lapply(iOmega,stats::cov2cor)
+                }                
+            }
+        }
+        if(length(table.cor)==1){ ## only one strata
             table.cor <- table.cor[[1]]
         }
-        if(print && !hide.cor){
+
+        if(print){
             if(is.list(table.cor)){
                 table.cor  <- lapply(table.cor, function(iCor){
-                    rownames(iCor) <- paste0("    ",rownames(iCor))
+                    if(is.matrix(iCor)){
+                        rownames(iCor) <- paste0("    ",rownames(iCor))
+                    }else{
+                        iCor <- lapply(iCor, function(iiCor){
+                            rownames(iiCor) <- paste0("    ",rownames(iiCor))
+                            return(iiCor)
+                        })
+                    }
                     return(iCor)
                 })
             }else{
@@ -181,6 +209,7 @@ summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print =
     
 
     ## *** variance
+
     if(!hide.var || !hide.sd){
         name.sigma <- gsub("sigma:","",names(coef(object, transform.sigma = "none", transform.k = "sd", effects = "variance")))
         index.ref <- which(names(coef(object, effects = "variance", transform.names = FALSE)) %in% names(param.sigma))
@@ -207,68 +236,74 @@ summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print =
         table.sd <- NULL
     }
     if(print && (!hide.var || !hide.sd)){
-            printtable <- matrix(NA, ncol = 0, nrow = length(name.sigma))
-            if(!hide.var){
-                printtable <- cbind(printtable, data.frame(variance = unname(table.var[,"estimate"]),stringsAsFactors = FALSE))
-                if(test.k){
-                    printtable <- cbind(printtable, data.frame(ratio = unname(table.var[,"estimate.ratio"]),stringsAsFactors = FALSE))
-                }
-            }
-            if(!hide.sd){
-                printtable <- cbind(printtable, data.frame("standard deviation" = unname(table.sd[,"estimate"]),stringsAsFactors = FALSE))
-                if(test.k){
-                    printtable <- cbind(printtable, data.frame(ratio = unname(table.sd[,"estimate.ratio"]),stringsAsFactors = FALSE))
-                }
-            }
 
-            rownames(printtable) <- paste0("    ",name.sigma)
-            print(printtable, digit = digit)
+        printtable <- matrix(NA, ncol = 0, nrow = length(name.sigma))
+        if(!hide.var){
+            printtable <- cbind(printtable, data.frame(variance = unname(table.var[,"estimate"]),stringsAsFactors = FALSE))
+            if(test.k){
+                printtable <- cbind(printtable, data.frame(ratio = unname(table.var[,"estimate.ratio"]),stringsAsFactors = FALSE))
+            }
+        }
+        if(!hide.sd){
+            printtable <- cbind(printtable, data.frame("standard deviation" = unname(table.sd[,"estimate"]),stringsAsFactors = FALSE))
+            if(test.k){
+                printtable <- cbind(printtable, data.frame(ratio = unname(table.sd[,"estimate.ratio"]),stringsAsFactors = FALSE))
+            }
+        }
+
+        rownames(printtable) <- paste0("    ",name.sigma)
+        print(printtable, digit = digit)
     }
     if(print && (!hide.cor || !hide.var || !hide.sd)){
         cat("\n")
     }
     
     ## ** mean structure
-    if(print && !hide.mean){
-        cat("Fixed effects:",deparse(call$formula),"\n\n")
-    }
-    table.mean <- confint(object, level = level, robust = robust, effects = "mean", columns = c("estimate","se","df","lower","upper","statistic","p.value"))
-    starSymbol <- stats::symnum(table.mean[,"p.value"], corr = FALSE, na = FALSE,
-                                cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1),
-                                symbols = c("***", "**", "*", ".", " "))
-    printtable.mean <- cbind(table.mean, starSymbol)
-    names(printtable.mean)[8] <- ""
-    printtable.mean[["estimate"]] <- as.character(round(table.mean[["estimate"]], digits = digit))
-    printtable.mean[["se"]] <- as.character(round(table.mean[["se"]], digits = digit))
-    printtable.mean[["df"]] <- as.character(round(table.mean[["df"]], digits = digit))
-    printtable.mean[["lower"]] <- as.character(round(table.mean[["lower"]], digits = digit))
-    printtable.mean[["upper"]] <- as.character(round(table.mean[["upper"]], digits = digit))
-    printtable.mean[["statistic"]] <- as.character(round(table.mean[["statistic"]], digits = digit))
-    printtable.mean[["p.value"]] <- format.pval(table.mean[["p.value"]], digits = digit, eps = 10^(-digit))
-    if(any(names(printtable.mean) %in% columns == FALSE)){
-        printtable.mean <- printtable.mean[,-which(names(printtable.mean) %in% columns == FALSE),drop=FALSE]
+    if(!hide.mean){
+        if(print){
+            cat("Fixed effects:",deparse(call$formula),"\n\n")
+        }
+        table.mean <- confint(object, level = level, robust = robust, effects = "mean", columns = c("estimate","se","df","lower","upper","statistic","p.value"))
+        starSymbol <- stats::symnum(table.mean[,"p.value"], corr = FALSE, na = FALSE,
+                                    cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1),
+                                    symbols = c("***", "**", "*", ".", " "))
+        printtable.mean <- cbind(table.mean, starSymbol)
+        names(printtable.mean)[8] <- ""
+        printtable.mean[["estimate"]] <- as.character(round(table.mean[["estimate"]], digits = digit))
+        printtable.mean[["se"]] <- as.character(round(table.mean[["se"]], digits = digit))
+        printtable.mean[["df"]] <- as.character(round(table.mean[["df"]], digits = digit))
+        printtable.mean[["lower"]] <- as.character(round(table.mean[["lower"]], digits = digit))
+        printtable.mean[["upper"]] <- as.character(round(table.mean[["upper"]], digits = digit))
+        printtable.mean[["statistic"]] <- as.character(round(table.mean[["statistic"]], digits = digit))
+        printtable.mean[["p.value"]] <- format.pval(table.mean[["p.value"]], digits = digit, eps = 10^(-digit))
+        if(any(names(printtable.mean) %in% columns == FALSE)){
+            printtable.mean <- printtable.mean[,-which(names(printtable.mean) %in% columns == FALSE),drop=FALSE]
+        }
+    
+        if(print){
+            print(printtable.mean)
+            cat("\n")
+            if(robust){
+                cat("Uncertainty was quantified using robust standard errors (column se). \n", sep = "")
+            }else{
+                cat("Uncertainty was quantified using model-based standard errors (column se). \n", sep = "")
+            }
+            if(!is.null(object$df)){
+                cat("Degrees of freedom were computed using a Satterthwaite approximation (column df). \n", sep = "")
+            }
+            if("lower" %in% columns && "upper" %in% columns){
+                cat("The columns lower and upper indicate a ",100*level,"% confidence interval for each coefficient.\n", sep = "")
+            }else if("lower" %in% columns){
+                cat("The column lower indicates a ",100*level,"% confidence interval for each coefficient.\n", sep = "")
+            }else if("upper" %in% columns){
+                cat("The column upper indicate a ",100*level,"% confidence interval for each coefficient.\n", sep = "")
+            }
+            cat("\n")
+        }
+    }else{
+        table.mean <- NULL
     }
     
-    if(print && !hide.mean){
-        print(printtable.mean)
-        cat("\n")
-        if(robust){
-            cat("Uncertainty was quantified using robust standard errors (column se). \n", sep = "")
-        }else{
-            cat("Uncertainty was quantified using model-based standard errors (column se). \n", sep = "")
-        }
-        if(!is.null(object$df)){
-            cat("Degrees of freedom were computed using a Satterthwaite approximation (column df). \n", sep = "")
-        }
-        if("lower" %in% columns && "upper" %in% columns){
-            cat("The columns lower and upper indicate a ",100*level,"% confidence interval for each coefficient.\n", sep = "")
-        }else if("lower" %in% columns){
-            cat("The column lower indicates a ",100*level,"% confidence interval for each coefficient.\n", sep = "")
-        }else if("upper" %in% columns){
-            cat("The column upper indicate a ",100*level,"% confidence interval for each coefficient.\n", sep = "")
-        }
-        cat("\n")
-    }
     ## ** export
     return(invisible(list(correlation = table.cor,
                           variance = table.var,

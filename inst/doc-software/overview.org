@@ -98,7 +98,7 @@ utils::packageVersion("LMMstar")
 #+END_SRC
 
 #+RESULTS:
-: [1] '0.4.0'
+: [1] '0.4.1'
 
 When estimating model coefficients, we will use the internal
 optimization routine of the *LMMstar* package (instead of relying on
@@ -264,14 +264,12 @@ cat(" covariance structure: \n");getVarCov(eSUN.lmm)
 
 #+RESULTS:
 #+begin_example
-     Linear Mixed Model with an unstructured covariance matrix 
-
  outcome/cluster/time: weight/id/time 
  data                : 80 observations and distributed in 20 clusters 
- parameters          : 8 mean ((Intercept) timeB1_week timeA1_week timeA3_months group1 timeB1_week:group1 timeA1_week:group1 timeA3_months:group1) 
+ parameters          : 8 mean ((Intercept):0 timeB1_week:0 timeA1_week:0 timeA3_months:0 (Intercept):1 timeB1_week:1 timeA1_week:1 timeA3_months:1) 
                        8 variance (sigma:0 sigma:1 k.B1_week:0 k.A1_week:0 k.A3_months:0 k.B1_week:1 k.A1_week:1 k.A3_months:1) 
                        12 correlation (rho(B3_months,B1_week):0 rho(B3_months,A1_week):0 rho(B3_months,A3_months):0 rho(B1_week,A1_week):0 rho(B1_week,A3_months):0 rho(A1_week,A3_months):0 rho(B3_months,B1_week):1 rho(B3_months,A1_week):1 rho(B3_months,A3_months):1 rho(B1_week,A1_week):1 rho(B1_week,A3_months):1 rho(A1_week,A3_months):1) 
- log-likelihood      : -205.26832084513 
+ log-likelihood      : -205.268320845129 
  convergence         : TRUE (15 iterations)
  covariance structure: 
 $`0`

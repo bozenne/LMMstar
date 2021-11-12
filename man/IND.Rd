@@ -4,32 +4,35 @@
 \alias{IND}
 \title{Independence Structure}
 \usage{
-IND(formula, var.cluster, var.time, ...)
+IND(formula, var.cluster, var.time, add.time)
 }
 \arguments{
-\item{formula}{formula indicating factors influencing the residual variance.}
+\item{formula}{formula indicating variables influencing the residual variance,
+using either as a multiplicative factor (right hand side) or stratification (left hand side) to model their effect.}
 
-\item{var.cluster}{[character] used to check the cluster variable in the formula.}
+\item{var.cluster}{[character] cluster variable.}
 
-\item{var.time}{[character] name of the time variable.}
+\item{var.time}{[character] time variable.}
 
-\item{...}{not used.}
+\item{add.time}{Should the default formula (i.e. when \code{NULL}) contain a time effect.}
 }
 \value{
 An object of class \code{IND} that can be passed to the argument \code{structure} of the \code{lmm} function.
 }
 \description{
 Variance-covariance structure where the residuals are independent.
+Can be stratified on a categorical variable.
 }
 \details{
 A typical formula would be either \code{~1} indicating constant variance
 or \code{~time} indicating a time dependent variance.
 }
 \examples{
-IND(~1)
-IND(~time)
-IND(~time+gender)
-IND(~time+gender,var.time="time")
-IND(gender~time,var.time="time")
+IND(NULL, var.cluster = "id", var.time = "time", add.time = TRUE)
+IND(~1, var.cluster = "id", var.time = "time")
+IND(gender~1, var.cluster = "id", var.time = "time")
 
+IND(~time, var.cluster = "id", var.time = "time")
+IND(gender~time, var.cluster = "id", var.time = "time")
+IND(~time+gender, var.cluster = "id", var.time = "time")
 }

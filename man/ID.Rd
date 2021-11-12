@@ -7,28 +7,26 @@
 ID(formula, var.cluster, var.time, ...)
 }
 \arguments{
-\item{formula}{formula indicating the time and cluster variables.}
+\item{formula}{formula indicating on which variable to stratify the residual variance (left hand side).}
 
-\item{var.cluster}{[character] used to check the cluster variable in the formula.}
+\item{var.cluster}{[character] cluster variable.}
 
-\item{var.time}{[character] name of the time variable.}
+\item{var.time}{[character] time variable.}
 
-\item{...}{not used.}
+\item{...}{Not used. For compatibility with other structures.}
 }
 \value{
 An object of class \code{IND} that can be passed to the argument \code{structure} of the \code{lmm} function.
 }
 \description{
 Variance-covariance structure where the residuals are independent and identically distribution.
+Can be stratified on a categorical variable.
 }
 \details{
-A typical formula would be either \code{~1}.
+A typical formula would be \code{~1}.
 }
 \examples{
-ID(~1)
-ID(~time)
-ID(~time+gender)
-ID(~time+gender,var.time="time")
-ID(gender~time,var.time="time")
-
+ID(NULL, var.cluster = "id", var.time = "time")
+ID(~1, var.cluster = "id", var.time = "time")
+ID(gender~1, var.cluster = "id", var.time = "time")
 }

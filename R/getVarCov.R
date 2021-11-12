@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: nov  4 2021 (10:33) 
+## Last-Updated: nov 12 2021 (15:46) 
 ##           By: Brice Ozenne
-##     Update #: 154
+##     Update #: 194
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -104,8 +104,15 @@ getVarCov.lmm <- function(obj, individual = NULL, p = NULL, simplifies = TRUE, s
 
     ## ** export
     if(is.list(out) && length(out)==1 && simplifies){
-        return(out[[1]])
+        out <- out[[1]]
+        attr(out,"pattern") <- NULL
+        return(out)
     }else{
+        if(simplifies){
+            for(iStrata in 1:length(out)){
+                attr(out[[iStrata]],"pattern") <- NULL
+            }
+        }
         return(out)
     }
 }
@@ -116,14 +123,29 @@ getVarCov.lmm <- function(obj, individual = NULL, p = NULL, simplifies = TRUE, s
     ntime <- object$time$n
     time.level <- object$time$level
     time.n <- object$time$n
-    index.time <- object$design$vcov$X$Upattern$time[names(Omega)] ## subset when strata
+    Upattern <- object$design$vcov$X$Upattern
+    Upattern.strata <- Upattern[names(Upattern$time) %in% names(Omega),]
+    index.time <- Upattern.strata$time ## subset when strata
     varPattern.ntime <- sapply(index.time,length)
-    if(any(varPattern.ntime==ntime)){ ## one covariance structure cover all times
-        out <- Omega[[which(varPattern.ntime==ntime)]]
+
+    index.maxPattern <- which(varPattern.ntime==ntime)
+    if(length(index.maxPattern)==1){ ## exactly one covariance structure cover all times
+        out <- Omega[[index.maxPattern]]
         dimnames(out) <- list(time.level[attr(out,"time")],time.level[attr(out,"time")])
         attr(out,"time") <- NULL
         attr(out,"sd") <- NULL
         attr(out,"cor") <- NULL
+        attr(out,"pattern") <- Upattern.strata$name[index.maxPattern]
+    }else if(sum(varPattern.ntime==ntime)>1){ ## more than one covariance structure cover all times
+        out <- lapply(Omega[index.maxPattern], function(iO){
+            dimnames(iO) <- list(time.level[attr(iO,"time")],time.level[attr(iO,"time")])
+            attr(iO,"time") <- NULL
+            attr(iO,"sd") <- NULL
+            attr(iO,"cor") <- NULL
+            return(iO)
+        })
+        ## rename each pattern according to the covariates
+        out <- .patternName(Omega = out, data = object$data, name = object$design$vcov$name, Upattern = Upattern.strata, time.n = time.n)        
     }else{
         index.maxtime <- which(varPattern.ntime==max(varPattern.ntime))
         M.patterns <- matrix(0, nrow = time.n, ncol = length(index.maxtime),
@@ -143,18 +165,61 @@ getVarCov.lmm <- function(obj, individual = NULL, p = NULL, simplifies = TRUE, s
                     iMindex <- iMindex+1
                 }
             }
-            if(any(rowSums(M.patterns)==0)){
-                stop("Something went wrong when trying to identify the residual variance-covariance matrix at all timepoints. \n")
-            }
-
         }
+        out <- lapply(Omega[colnames(M.patterns)], function(iO){
+            dimnames(iO) <- list(time.level[attr(iO,"time")],time.level[attr(iO,"time")])
+            attr(iO,"time") <- NULL
+            attr(iO,"sd") <- NULL
+            attr(iO,"cor") <- NULL
+            return(iO)
+        })
+        ## rename each pattern according to the covariates
+        out <- .patternName(Omega = out, data = object$data, name = object$design$vcov$name, Upattern = Upattern.strata, time.n = time.n)        
 
-        out <- as.matrix(Matrix::bdiag(Omega[colnames(M.patterns)]))
+        ## reduce data to the clusters and variables involved in the unique patterns
+        Upattern.strataRed <- Upattern.strata[Upattern.strata$name %in% names(out),,drop=FALSE]
+        keep.col <- stats::na.omit(c(object$design$vcov$name$var[[1]],object$design$vcov$name$cor[[1]]))
+        object$data$XXcluster.indexXX <- as.numeric(object$data$XXclusterXX)
+        iData <- object$data[object$data$XXcluster.indexXX %in% Upattern.strataRed$example, c("XXcluster.indexXX","XXtime.indexXX",keep.col),drop=FALSE]
+        
+
         dimnames(out) <- list(time.level[sapply(Omega[colnames(M.patterns)], attr, "time")],
                               time.level[sapply(Omega[colnames(M.patterns)], attr, "time")])
+        attr(out,"pattern") <- colnames(M.patterns)
 
     }
     return(out)
+}
+
+
+## * .patternName
+## reduce data to the clusters and variables involved in the unique patterns
+.patternName <- function(Omega, data, name, Upattern, time.n){
+    Upattern.red <- Upattern[Upattern$name %in% names(Omega),,drop=FALSE]
+    keep.col <- stats::na.omit(c(name$var[[1]],name$cor[[1]]))
+    data$XXcluster.indexXX <- as.numeric(data$XXclusterXX)
+    data <- data[data$XXcluster.indexXX %in% Upattern.red$example, c("XXcluster.indexXX","XXtime.indexXX",keep.col),drop=FALSE]
+    ## remove column corresponding to the time variable
+    if(time.n>1){
+        test.time <- sapply(data[-(1:2)], function(iCol){sum(diag(table(iCol,data$XXtime.indexXX)))==NROW(data)})
+        if(any(test.time)){
+            data <- data[test.time==FALSE]
+        }
+    }
+
+    ## for each subject, combine all combinations of variables
+    if(NCOL(data)==0){
+        OmegaSave <- Omega
+        Omega <- as.matrix(Matrix::bdiag(OmegaSave))
+        dimnames(Omega) <- list(unname(sapply(OmegaSave, rownames)),
+                                unname(sapply(OmegaSave, colnames)))
+        attr(Omega,"pattern") <- names(OmegaSave)
+    }else{
+        Omega.name <- tapply(1:NROW(data), data$XXcluster.index, function(iRow){paste(interaction(unique(data[-(1:2)][iRow,,drop=FALSE])), collapse = ", ")})
+        names(Omega) <- unname(Omega.name)[order(Upattern.red$example)]
+        attr(Omega,"pattern") <- Upattern.red$name
+    }
+    return(Omega)
 }
 ##----------------------------------------------------------------------
 ### getVarCov.R ends here

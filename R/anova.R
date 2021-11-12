@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: nov  4 2021 (10:30) 
+## Last-Updated: nov 12 2021 (13:46) 
 ##           By: Brice Ozenne
-##     Update #: 584
+##     Update #: 585
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -245,8 +245,10 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
             if(test.reparametrize){
                 object2 <- object
                 index.var <- which(object$param$type %in% c("sigma","k","rho"))
-                object2$reparametrize <- .reparametrize(p = object$param$value[index.var], type = object$param$type[index.var], strata = object$param$strata[index.var], time.levels = object$time$levels,
+                object2$reparametrize <- .reparametrize(p = object$param$value[index.var],
+                                                        type = object$param$type[index.var], strata = object$param$strata[index.var], 
                                                         time.k = object$design$param$time.k, time.rho = object$design$param$time.rho,
+                                                        name2sd = stats::setNames(object$design$vcov$param$name2,object$design$vcov$param$name),
                                                         Jacobian = FALSE, dJacobian = FALSE, inverse = FALSE,
                                                         transform.sigma = "none",
                                                         transform.k = "none",

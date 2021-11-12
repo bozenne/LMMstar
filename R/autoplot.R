@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: nov 10 2021 (16:39) 
+## Last-Updated: nov 12 2021 (16:11) 
 ##           By: Brice Ozenne
-##     Update #: 91
+##     Update #: 94
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -44,11 +44,12 @@
 autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, color = TRUE, ci = TRUE, ci.alpha = NA, plot = TRUE,
                          mean.size = c(3, 1), size.text = 16, position.errorbar = "identity", ...){
 
-    var.cluster <- object$cluster$var
-    var.time <- object$time$var
+    if(object$time$n==1){
+        stop("Cannot display the fitted values over time when there only is a single timepoint. \n")
+    }
     
     ## ** find representative individuals
-    reorder <- order(object$data[[var.cluster]],object$data[[var.time]])
+    reorder <- order(object$data[["XXclusterXX"]],object$data[["XXtimeXX"]])
     data <- object$data[reorder,,drop=FALSE]
     if(!is.null(at)){
         if(is.vector(at)){at <- as.data.frame(as.list(at))}
@@ -73,13 +74,13 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
 
     ## only keep one representant per type of design matrix
     test.duplicated <- duplicated(X.beta)
-    keep.id <- unique(data[test.duplicated==FALSE,var.cluster])
-    newdata <- data[data[[var.cluster]] %in% keep.id,,drop=FALSE]
+    keep.id <- unique(data[test.duplicated==FALSE,"XXclusterXX"])
+    newdata <- data[data[["XXclusterXX"]] %in% keep.id,,drop=FALSE]
     
     if(identical(color,TRUE)){
         mean.var <- all.vars(stats::delete.response(stats::terms(stats::formula(object, effects = "mean"))))
-        newdataRed <- newdata[order(newdata[[var.cluster]]),mean.var,drop=FALSE]
-        order.cluster <- droplevels(newdata[[var.cluster]][order(newdata[[var.cluster]])])
+        newdataRed <- newdata[order(newdata[["XXclusterXX"]]),mean.var,drop=FALSE]
+        order.cluster <- droplevels(newdata[["XXclusterXX"]][order(newdata[["XXclusterXX"]])])
 
         ## iCol <- newdataRed[,1]
         M.duplicated <- apply(newdataRed, 2, function(iCol){unlist(tapply(iCol, order.cluster, function(iColCluster){duplicated(iColCluster)[-1]}))})
@@ -96,14 +97,14 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
         }
     }
     if(!is.na(obs.alpha) && obs.alpha>0 && length(color)>1 && color %in% names(data) == FALSE){
-        ls.UX <- lapply(as.character(unique(newdata[[var.cluster]])), function(iC){
-            iVec <- as.character(interaction(data[data[[var.cluster]] %in% iC,attr(object$design$mean,"variable"),drop=FALSE]))
-            cbind(repetition = data[data[[var.cluster]] %in% iC,var.time,drop=FALSE], lp = iVec)
+        ls.UX <- lapply(as.character(unique(newdata[["XXclusterXX"]])), function(iC){
+            iVec <- as.character(interaction(data[data[["XXclusterXX"]] %in% iC,attr(object$design$mean,"variable"),drop=FALSE]))
+            cbind(repetition = data[data[["XXclusterXX"]] %in% iC,"XXtimeXX",drop=FALSE], lp = iVec)
         })
     
-        index.X <- unlist(lapply(as.character(unique(data[[var.cluster]])), function(iC){
-            iVec <- as.character(interaction(data[data[[var.cluster]] %in% iC,attr(object$design$mean,"variable"),drop=FALSE]))
-            iM <- cbind(repetition = data[data[[var.cluster]] %in% iC,var.time,drop=FALSE], lp = iVec)
+        index.X <- unlist(lapply(as.character(unique(data[["XXclusterXX"]])), function(iC){
+            iVec <- as.character(interaction(data[data[["XXclusterXX"]] %in% iC,attr(object$design$mean,"variable"),drop=FALSE]))
+            iM <- cbind(repetition = data[data[["XXclusterXX"]] %in% iC,"XXtimeXX",drop=FALSE], lp = iVec)
             iScore <- unlist(lapply(ls.UX, function(iUX){sum(iUX[match(iM[,"Days"],iUX[,"Days"]),"lp"]==iM[,"lp"])}))
             which.max(iScore)
         }))
@@ -117,17 +118,17 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
         preddata <- cbind(newdata, stats::predict(object, newdata = newdata, ...))
     }
     ## ** generate plot
-    gg <- ggplot2::ggplot(preddata, ggplot2::aes_string(x = var.time, y = "estimate", group = var.cluster))
+    gg <- ggplot2::ggplot(preddata, ggplot2::aes_string(x = "XXtimeXX", y = "estimate", group = "XXclusterXX"))
     if(!is.na(obs.alpha) && obs.alpha>0){
         if(!is.null(color)){
-            gg <- gg + ggplot2::geom_point(data = data, mapping = ggplot2::aes_string(x = var.time, y = object$outcome$var, group = var.cluster, color = color),
+            gg <- gg + ggplot2::geom_point(data = data, mapping = ggplot2::aes_string(x = "XXtimeXX", y = object$outcome$var, group = "XXclusterXX", color = color),
                                            alpha = obs.alpha, size = obs.size[1])
-            gg <- gg + ggplot2::geom_line(data = data, mapping = ggplot2::aes_string(x = var.time, y = object$outcome$var, group = var.cluster, color = color),
+            gg <- gg + ggplot2::geom_line(data = data, mapping = ggplot2::aes_string(x = "XXtimeXX", y = object$outcome$var, group = "XXclusterXX", color = color),
                                           alpha = obs.alpha, size = obs.size[2])
-            ## gg + facet_wrap(as.formula(paste0("~",var.cluster)))
+            ## gg + facet_wrap(~XXclusterXX)
         }else{
-            gg <- gg + ggplot2::geom_point(data = data, mapping = ggplot2::aes_string(x = var.time, y = object$outcome$var, group = var.cluster), alpha = obs.alpha, size = obs.size[1])
-            gg <- gg + ggplot2::geom_line(data = data, mapping = ggplot2::aes_string(x = var.time, y = object$outcome$var, group = var.cluster), alpha = obs.alpha, size = obs.size[2])
+            gg <- gg + ggplot2::geom_point(data = data, mapping = ggplot2::aes_string(x = "XXtimeXX", y = object$outcome$var, group = "XXclusterXX"), alpha = obs.alpha, size = obs.size[1])
+            gg <- gg + ggplot2::geom_line(data = data, mapping = ggplot2::aes_string(x = "XXtimeXX", y = object$outcome$var, group = "XXclusterXX"), alpha = obs.alpha, size = obs.size[2])
         }
     }
     if(ci){

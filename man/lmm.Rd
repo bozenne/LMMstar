@@ -62,7 +62,7 @@ dL$X2 <- as.factor(dL$X2)
 #### 2- fit Linear Mixed Model ####
 eCS.lmm <- lmm(Y ~ X1 * X2 + X5, repetition = ~visit|id, structure = "CS", data = dL)
 
-logLik(eCS.lmm)
+logLik(eCS.lmm) ## -670.9439
 summary(eCS.lmm)
 
 

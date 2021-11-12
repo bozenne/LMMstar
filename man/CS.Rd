@@ -7,13 +7,14 @@
 CS(formula, var.cluster, var.time, ...)
 }
 \arguments{
-\item{formula}{formula indicating the cluster and a possible stratification.}
+\item{formula}{formula indicating on which variable to stratify the residual variance and correlation (left hand side)
+and variables influencing the residual variance (right hand side).}
 
-\item{var.cluster}{[character] used to check the cluster variable in the formula.}
+\item{var.cluster}{[character] cluster variable.}
 
-\item{var.time}{[character] used to check the time variable in the formula.}
+\item{var.time}{[character] time variable.}
 
-\item{...}{not used.}
+\item{...}{Not used. For compatibility with other structures.}
 }
 \value{
 An object of class \code{CS} that can be passed to the argument \code{structure} of the \code{lmm} function.
@@ -23,12 +24,12 @@ Variance-covariance structure where the residuals have constant variance and cor
 Can be stratified on a categorical variable.
 }
 \details{
-A typical formula would be \code{~1|id}, indicating a variance constant over time and the same correlation between all pairs of times.
+A typical formula would be \code{~1}, indicating a variance constant over time and the same correlation between all pairs of times.
 }
 \examples{
-CS(~1|id)
-CS(~1|id, var.time = "time", var.cluster = "id")
-CS(group~1|id)
-CS(group~time|id, var.time = "time", var.cluster = "id")
+CS(~1, var.cluster = "id", var.time = "time")
+CS(gender~1, var.cluster = "id", var.time = "time")
+CS(list(~time,~1), var.cluster = "id", var.time = "time")
+CS(list(gender~time,gender~1), var.cluster = "id", var.time = "time")
 
 }

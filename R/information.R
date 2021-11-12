@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: okt 18 2021 (11:19) 
+## Last-Updated: nov 12 2021 (18:22) 
 ##           By: Brice Ozenne
-##     Update #: 918
+##     Update #: 923
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -98,9 +98,8 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
                                         structure = x$design$vcov,
                                         data = data,
                                         var.outcome = x$outcome$var,
-                                        var.strata = x$strata$var, U.strata = x$strata$levels,
-                                        var.time = x$time$var, U.time = x$time$levels,
-                                        var.cluster = x$cluster$var,
+                                        U.strata = x$strata$levels,
+                                        U.time = x$time$levels,
                                         precompute.moments = test.precompute)
         }else{
             design <- x$design
@@ -132,6 +131,16 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
             out <- array(NA, dim = c(iAdd$n.allcluster, dim(out.save)[2:3]),
                          dimnames = c(list(NULL), dimnames(out.save)[2:3]))
             out[match(design$cluster$levels, iAdd$allcluster),,] <- out.save
+        }
+    }
+
+    ## re-order values when converting to sd with strata (avoid sd0:0 sd0:1 sd1:0 sd1:1 sd2:0 sd2:1 ...)
+    if("variance" %in% effects && transform.k %in% c("sd","var","logsd","logvar") && x$strata$n>1 && transform.names){
+        out.name <- names(stats::coef(x, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = TRUE))
+        if(indiv){
+            out <- out[,out.name,out.name,drop=FALSE]
+        }else{
+            out <- out[out.name,out.name,drop=FALSE]
         }
     }
 

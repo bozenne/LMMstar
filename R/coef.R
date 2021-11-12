@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: nov  4 2021 (10:31) 
+## Last-Updated: nov 12 2021 (18:22) 
 ##           By: Brice Ozenne
-##     Update #: 216
+##     Update #: 251
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -120,62 +120,69 @@ coef.lmm <- function(object, effects = NULL, strata = NULL,
         out <- c(out, object$param$value[object$param$type=="mu"])
     }
 
-        if(any(c("variance","correlation") %in% effects)){
-            pVar <- NULL
-            if("variance" %in% effects){
-                if(test.notransform){
-                    index.sigmak <- names(object$param$type)[object$param$type %in% c("sigma","k")]
-                    if(transform.names && !is.null(object$reparametrize$newname)){
-                        pVar <- c(pVar, stats::setNames(object$reparametrize$p[index.sigmak],object$reparametrize$newname[match(index.sigmak,names(object$reparametrize$p))]))
-                    }else{
-                        pVar <- c(pVar, object$reparametrize$p[index.sigmak])
-                    }                    
+    if(any(c("variance","correlation") %in% effects)){
+        pVar <- NULL
+        if("variance" %in% effects){
+            if(test.notransform){
+                index.sigmak <- names(object$param$type)[object$param$type %in% c("sigma","k")]
+                if(transform.names && !is.null(object$reparametrize$newname)){
+                    pVar <- c(pVar, stats::setNames(object$reparametrize$p[index.sigmak],object$reparametrize$newname[match(index.sigmak,names(object$reparametrize$p))]))
                 }else{
-                    pVar <- c(pVar, object$param$value[object$param$type %in% c("sigma","k")])
-                }
-            }
-            if("correlation" %in% effects){
-                if(test.notransform){
-                    index.rho <- names(object$param$type)[object$param$type %in% c("rho")]
-                    if(transform.names && !is.null(object$reparametrize$newname)){
-                        pVar <- c(pVar, stats::setNames(object$reparametrize$p[index.rho],object$reparametrize$newname[match(index.rho,names(object$reparametrize$p))]))
-                    }else{
-                        pVar <- c(pVar, object$reparametrize$p[index.rho])
-                    }                    
-                }else{
-                    pVar <- c(pVar, object$param$value[object$param$type %in% c("rho")])
-                }
-            }
-            if(!test.notransform){
-                ls.reparam <- .reparametrize(p = pVar,
-                                             type = object$param$type[names(pVar)], strata = object$param$strata[names(pVar)], time.levels = object$time$levels,
-                                             time.k = object$design$param$time.k, time.rho = object$design$param$time.rho,
-                                             Jacobian = FALSE, dJacobian = FALSE, inverse = FALSE,
-                                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
-                outVar <- ls.reparam$p
-                if(ls.reparam$transform){
-                    newname <- stats::setNames(ls.reparam$newname,names(pVar))
-                }else{
-                    newname <- NULL
-                }
+                    pVar <- c(pVar, object$reparametrize$p[index.sigmak])
+                }                    
             }else{
-                outVar <- pVar
+                pVar <- c(pVar, object$param$value[object$param$type %in% c("sigma","k")])
+            }
+        }
+        if("correlation" %in% effects){
+            if(test.notransform){
+                index.rho <- names(object$param$type)[object$param$type %in% c("rho")]
+                if(transform.names && !is.null(object$reparametrize$newname)){
+                    pVar <- c(pVar, stats::setNames(object$reparametrize$p[index.rho],object$reparametrize$newname[match(index.rho,names(object$reparametrize$p))]))
+                }else{
+                    pVar <- c(pVar, object$reparametrize$p[index.rho])
+                }                    
+            }else{
+                pVar <- c(pVar, object$param$value[object$param$type %in% c("rho")])
+            }
+        }
+        if(!test.notransform){
+            ls.reparam <- .reparametrize(p = pVar,  
+                                         type = object$param$type[names(pVar)], strata = object$param$strata[names(pVar)],
+                                         time.k = object$design$param$time.k, time.rho = object$design$param$time.rho,
+                                         name2sd = stats::setNames(object$design$vcov$param$name2,object$design$vcov$param$name),
+                                         Jacobian = FALSE, dJacobian = FALSE, inverse = FALSE,
+                                         transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+            outVar <- ls.reparam$p
+            if(ls.reparam$transform){
+                newname <- stats::setNames(ls.reparam$newname,names(pVar))
+            }else{
                 newname <- NULL
             }
-            out <- c(out,outVar)
+        }else{
+            outVar <- pVar
+            newname <- NULL
+        }
+        out <- c(out,outVar)
 
         }else{
             newname <- NULL
         }
-
-    ## post process
+    
+    ## ** post process
+    ## re-order values when converting to sd with strata (avoid sd0:0 sd0:1 sd1:0 sd1:1 sd2:0 sd2:1 ...)
+    if("variance" %in% effects && transform.k %in% c("sd","var","logsd","logvar") && object$strata$n>1 && transform.names){
+        out.strata <- object$param$strata[names(pVar)]
+        out.type <- object$param$type[names(pVar)]
+        index.sd <- which(out.type %in% c("sigma","k"))
+        out[names(out.type)[index.sd]] <- out[names(out.type)[index.sd]][order(out.strata[index.sd])]
+    }
     if(!is.null(strata)){
         out <- out[object$param$strata[names(out)] %in% strata]
     }
     if(length(newname)>0){
         names(out)[match(names(newname),names(out))] <- as.character(newname)
     }
-
     return(out)
 }
 ##----------------------------------------------------------------------

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: okt  6 2021 (08:11) 
+## Last-Updated: nov 12 2021 (15:06) 
 ##           By: Brice Ozenne
-##     Update #: 39
+##     Update #: 40
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -67,7 +67,6 @@ test_that("single t-test",{
 ## confint(anova(e.lmm))
 
 ## * paired t-test
-
 data(armd.wide, package = "nlmeU")
 subjCC <- armd.wide[!is.na(armd.wide$visual0) & !is.na(armd.wide$visual52),"subject"]
 armd.wideCC <- armd.wide[armd.wide$subject %in% subjCC,]

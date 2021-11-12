@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: nov 10 2021 (16:43) 
+## Last-Updated: nov 12 2021 (16:11) 
 ##           By: Brice Ozenne
-##     Update #: 435
+##     Update #: 442
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -152,6 +152,9 @@ residuals.lmm <- function(object, type = "response", format = "long",
     }
     ## check plot
     plot <- match.arg(plot, c("none","qqplot","correlation","scatterplot","scatterplot2"))
+    if(plot == "correlation" && object$time$n == 1){
+        stop("Cannot display the residual correlation over time when there is only a single timepoint. \n")
+    }
     if(length(add.smooth)==1){
         add.smooth <- rep(add.smooth,2)
     }
@@ -185,14 +188,14 @@ residuals.lmm <- function(object, type = "response", format = "long",
 
     ## ** update design
     if(any(c("partial","partial-ref") %in% type.residual)){
-        ## extract data
+        ## extract data and design matrix
         if(is.null(data)){
             data <- stats::model.frame(object)
             data <- data[,setdiff(colnames(data),c("XXindexXX", "XXstrata.indexXX", "XXvisit.indexXX")),drop=FALSE]
+            design <- model.matrix(object, effects = effects, simplifies = FALSE)
+        }else{
+            design <- model.matrix(object, data = data, effects = effects, simplifies = FALSE)
         }
-
-        ## design matrix relative to the data
-        design <- model.matrix(object, data = data, effects = effects, simplifies = FALSE)
 
         ## design matrix relative to the data where the effect of variables no in var has been removed
         reference <- NULL
@@ -405,8 +408,8 @@ residuals.lmm <- function(object, type = "response", format = "long",
     ## plot
     ##
     if(format=="wide"){
-            
-        dfL.res <- data.frame(residuals = as.vector(M.res), cluster = level.cluster, time = level.time,stringsAsFactors = FALSE)
+
+        dfL.res <- data.frame(residuals = as.vector(M.res), cluster = level.cluster, time = level.time, stringsAsFactors = FALSE)
         MW.res <- reshape2::dcast(data = dfL.res,
                                   formula = cluster~time, value.var = "residuals")
         attr(MW.res,"reference") <- attr(M.res,"reference")

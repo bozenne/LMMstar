@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: okt  1 2021 (17:07) 
+## Last-Updated: nov 12 2021 (09:10) 
 ##           By: Brice Ozenne
-##     Update #: 412
+##     Update #: 414
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -73,7 +73,7 @@
     pattern.cluster <- object$X$pattern.cluster
     X.var <- object$X$var
     X.cor <- object$X$cor
-    
+
     Omega <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
         iPattern.var <- Upattern[iPattern,"var"]
         iPattern.cor <- Upattern[iPattern,"cor"]

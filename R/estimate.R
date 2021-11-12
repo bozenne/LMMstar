@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: okt  4 2021 (14:14) 
+## Last-Updated: nov 12 2021 (13:47) 
 ##           By: Brice Ozenne
-##     Update #: 315
+##     Update #: 318
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -186,7 +186,8 @@
                 param.value[param.Omega] <- .reparametrize(param.newvalue.trans,
                                                            type = design$param$type[names(param.newvalue.trans)],
                                                            strata = design$param$strata[names(param.newvalue.trans)],
-                                                           time.levels = time$levels, time.k = design$param$time.k, time.rho = design$param$time.rho,
+                                                           time.k = design$param$time.k, time.rho = design$param$time.rho,
+                                                           name2sd = stats::setNames(design$vcov$param$name2,design$vcov$param$name),
                                                            Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
                                                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)$p
             }
@@ -241,8 +242,9 @@
         }
         score <- outMoments$score
     }else{
-        reparam.value <- .reparametrize(p = param.value, type = design$param$type, strata = design$param$strata, time.levels = time,
+        reparam.value <- .reparametrize(p = param.value, type = design$param$type, strata = design$param$strata, 
                                         time.k = design$param$time.k, time.rho = design$param$time.rho,
+                                        name2sd = stats::setNames(design$vcov$param$name2,design$vcov$param$name),
                                         Jacobian = FALSE, dJacobian = FALSE, inverse = FALSE, ##  2 is necessary to export the right dJacobian
                                         transform.sigma = transform.sigma,
                                         transform.k = transform.k,
@@ -320,7 +322,8 @@
         param.newvalue[names(transparam.newvalue)] <- .reparametrize(transparam.newvalue,
                                                                      type = design$param$type[names(transparam.newvalue)],
                                                                      strata = design$param$strata[names(transparam.newvalue)],
-                                                                     time.levels = time$levels, time.k = design$param$time.k, time.rho = design$param$time.rho,
+                                                                     time.k = design$param$time.k, time.rho = design$param$time.rho,
+                                                                     name2sd = stats::setNames(design$vcov$param$name2,design$vcov$param$name),
                                                                      Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
                                                                      transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)$p
 

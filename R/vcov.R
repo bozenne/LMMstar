@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: nov  4 2021 (10:35) 
+## Last-Updated: nov 12 2021 (18:23) 
 ##           By: Brice Ozenne
-##     Update #: 465
+##     Update #: 470
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -115,10 +115,8 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strat
                 design <- .model.matrix.lmm(formula.mean = object$formula$mean.design,
                                             structure = object$design$vcov,
                                             data = data,
-                                            var.outcome = object$outcome$var,
-                                            var.strata = object$strata$var, U.strata = object$strata$levels,
-                                            var.time = object$time$var, U.time = object$time$levels,
-                                            var.cluster = object$cluster$var,
+                                            U.strata = object$strata$levels,
+                                            U.time = object$time$levels,
                                             precompute.moments = test.precompute)
             }else{
                 design <- object$design
@@ -141,14 +139,25 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strat
                                        logLik = FALSE, score = FALSE, information = FALSE, vcov = TRUE, df = df, indiv = FALSE, effects = effects, robust = robust,
                                        trace = FALSE, precompute.moments = test.precompute, method.numDeriv = options$method.numDeriv, transform.names = transform.names)
 
-            vcov <- outMoments$vcov
-            if(df>0){
-                attr(vcov,"df") <- outMoments$df
+            if("variance" %in% effects && transform.k %in% c("sd","var","logsd","logvar") && object$strata$n>1 && transform.names){
+                ## re-order values when converting to sd with strata (avoid sd0:0 sd0:1 sd1:0 sd1:1 sd2:0 sd2:1 ...)
+                out.name <- names(stats::coef(object, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = TRUE))
+                vcov <- outMoments$vcov[out.name,out.name,drop=FALSE]
+                if(df>0){
+                    attr(vcov,"df") <- outMoments$df[out.name]
+                }
+                if(df>1){
+                    attr(vcov,"dVcov") <- outMoments$dVcov[out.name,out.name,out.name,drop=FALSE]
+                }
+            }else{
+                vcov <- outMoments$vcov
+                if(df>0){
+                    attr(vcov,"df") <- outMoments$df
+                }
+                if(df>1){
+                    attr(vcov,"dVcov") <- outMoments$dVcov
+                }
             }
-            if(df>1){
-                attr(vcov,"dVcov") <- outMoments$dVcov
-            }
-
         }
     return(vcov)    
 }

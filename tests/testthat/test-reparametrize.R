@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:54) 
 ## Version: 
-## Last-Updated: sep 20 2021 (16:53) 
+## Last-Updated: nov 12 2021 (15:05) 
 ##           By: Brice Ozenne
-##     Update #: 30
+##     Update #: 31
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -30,12 +30,12 @@ type <- c("sigma", "k")
 strata <- c(1, 1)
 time.level <- c(1, 2)
 
-GS.none <- reparametrize(p = p, type = type, strata = strata, time.level = time.level,
-                    FUN = function(p, type, strata, time.levels, inverse){
+GS.none <- reparametrize(p = p, type = type, strata = strata, 
+                    FUN = function(p, type, strata, inverse){
                         p
                     })
 
-test.none <- reparametrize(p = p, type = type, strata = strata, time.level = time.level,
+test.none <- reparametrize(p = p, type = type, strata = strata, 
                       transform.sigma = "none",
                       transform.k = "none",
                       transform.rho = "none")
@@ -49,8 +49,8 @@ strata <- c(1, 1, 1)
 time.level <- c(1, 2)
 
 ## ** log, square, atanh
-GS.sp1 <- reparametrize(p = p, type = type, strata = strata, time.level = time.level,
-                        FUN = function(p, type, strata, time.levels, inverse){
+GS.sp1 <- reparametrize(p = p, type = type, strata = strata, 
+                        FUN = function(p, type, strata, inverse){
                           
                           if(inverse){
                               p[type=="sigma"] <- exp(p[type=="sigma"])
@@ -64,7 +64,7 @@ GS.sp1 <- reparametrize(p = p, type = type, strata = strata, time.level = time.l
 
                             return(p)
                         }, transform.names = FALSE)
-test.sp1 <- reparametrize(p = p, type = type, strata = strata, time.level = time.level,                          
+test.sp1 <- reparametrize(p = p, type = type, strata = strata, 
                           transform.sigma = "log",
                           transform.k = "square",
                           transform.rho = "atanh",
@@ -79,7 +79,7 @@ test.sp1 <- reparametrize(p = p, type = type, strata = strata, time.level = time
 
 expect_equal(GS.sp1, test.sp1, tol = 1e-5)
 
-testB.sp1 <- .reparametrize(p = setNames(as.double(test.sp1),names(p)), type = type, strata = strata, time.level = time.level,
+testB.sp1 <- .reparametrize(p = setNames(as.double(test.sp1),names(p)), type = type, strata = strata, 
                Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
                transform.sigma = "log",
                transform.k = "square",
@@ -88,8 +88,8 @@ testB.sp1 <- .reparametrize(p = setNames(as.double(test.sp1),names(p)), type = t
 expect_equal(testB.sp1$p, p)
 
 ## ** logsquare
-GS.sp2 <- reparametrize(p = p, type = type, strata = strata, time.level = time.level,
-                        FUN = function(p, type, strata, time.levels, inverse){
+GS.sp2 <- reparametrize(p = p, type = type, strata = strata, 
+                        FUN = function(p, type, strata, inverse){
                           
                           if(inverse){
                               p[type=="sigma"] <- exp(p[type=="sigma"]/2)
@@ -105,7 +105,7 @@ GS.sp2 <- reparametrize(p = p, type = type, strata = strata, time.level = time.l
                       }, transform.names = FALSE)
 
 
-test.sp2 <- reparametrize(p = p, type = type, strata = strata, time.level = time.level,
+test.sp2 <- reparametrize(p = p, type = type, strata = strata, 
                       transform.sigma = "logsquare",
                       transform.k = "logsquare",
                       transform.rho = "atanh",
@@ -113,7 +113,7 @@ test.sp2 <- reparametrize(p = p, type = type, strata = strata, time.level = time
 
 expect_equal(GS.sp2, test.sp2, tol = 1e-5)
 
-testB.sp2 <- .reparametrize(p = setNames(as.double(test.sp2),names(p)), type = type, strata = strata, time.level = time.level,
+testB.sp2 <- .reparametrize(p = setNames(as.double(test.sp2),names(p)), type = type, strata = strata, 
                Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
                transform.sigma = "logsquare",
                transform.k = "logsquare",
@@ -124,8 +124,8 @@ expect_equal(testB.sp2$p, p)
 
 ## * transformation involving multiple parameters
 ## ** sd
-GS.mp1 <- reparametrize(p = p, type = type, strata = strata, time.level = time.level,
-                        FUN = function(p, type, strata, time.levels, inverse){
+GS.mp1 <- reparametrize(p = p, type = type, strata = strata, 
+                        FUN = function(p, type, strata, inverse){
                             sigma <- p[type=="sigma"]
                             k <- p[type=="k"]
                             rho <- p[type=="rho"]
@@ -135,7 +135,7 @@ GS.mp1 <- reparametrize(p = p, type = type, strata = strata, time.level = time.l
                                 return(setNames(c(sigma*c(1,k),rho), names(p)))
                             }
                         }, transform.names = FALSE)
-test.mp1 <- reparametrize(p = p, type = type, strata = strata, time.levels = time.level,
+test.mp1 <- reparametrize(p = p, type = type, strata = strata, 
                           transform.sigma = "none",
                           transform.k = "sd",
                           transform.rho = "none",
@@ -143,7 +143,7 @@ test.mp1 <- reparametrize(p = p, type = type, strata = strata, time.levels = tim
 
 expect_equal(test.mp1, GS.mp1, tol = 1e-5)
 
-testB.mp1 <- .reparametrize(p = setNames(as.double(test.mp1),names(p)), type = type, strata = strata, time.level = time.level,
+testB.mp1 <- .reparametrize(p = setNames(as.double(test.mp1),names(p)), type = type, strata = strata, 
                Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
                transform.sigma = "none",
                transform.k = "sd",
@@ -152,8 +152,8 @@ testB.mp1 <- .reparametrize(p = setNames(as.double(test.mp1),names(p)), type = t
 expect_equal(testB.mp1$p, p)
 
 ## ** logsd
-GS.mp2 <- reparametrize(p = p, type = type, strata = strata, time.level = time.level,
-                        FUN = function(p, type, strata, time.levels, inverse){
+GS.mp2 <- reparametrize(p = p, type = type, strata = strata, 
+                        FUN = function(p, type, strata, inverse){
                             sigma <- p[type=="sigma"]
                             k <- p[type=="k"]
                             rho <- p[type=="rho"]
@@ -164,7 +164,7 @@ GS.mp2 <- reparametrize(p = p, type = type, strata = strata, time.level = time.l
                             }
                         }, transform.names = FALSE)
 
-test.mp2 <- reparametrize(p = p, type = type, strata = strata, time.levels = time.level,
+test.mp2 <- reparametrize(p = p, type = type, strata = strata, 
                           transform.sigma = "none",
                           transform.k = "logsd",
                           transform.rho = "none",
@@ -172,7 +172,7 @@ test.mp2 <- reparametrize(p = p, type = type, strata = strata, time.levels = tim
 
 expect_equal(test.mp2, GS.mp2, tol = 1e-5)
 
-testB.mp2 <- .reparametrize(p = setNames(as.double(test.mp2),names(p)), type = type, strata = strata, time.level = time.level,
+testB.mp2 <- .reparametrize(p = setNames(as.double(test.mp2),names(p)), type = type, strata = strata, 
                        Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
                        transform.sigma = "none",
                        transform.k = "logsd",
@@ -181,8 +181,8 @@ testB.mp2 <- .reparametrize(p = setNames(as.double(test.mp2),names(p)), type = t
 expect_equal(testB.mp2$p, p)
 
 ## ** var / cov
-GS.mp3 <- reparametrize(p = p, type = type, strata = strata, time.level = time.level,
-                        FUN = function(p, type, strata, time.levels, inverse){
+GS.mp3 <- reparametrize(p = p, type = type, strata = strata, 
+                        FUN = function(p, type, strata, inverse){
                             sigma <- p[type=="sigma"]
                             k <- p[type=="k"]
                             rho <- p[type=="rho"]
@@ -193,14 +193,14 @@ GS.mp3 <- reparametrize(p = p, type = type, strata = strata, time.level = time.l
                             }
                         }, transform.names = FALSE)
 
-test.mp3 <- reparametrize(p = p, type = type, strata = strata, time.levels = time.level,
+test.mp3 <- reparametrize(p = p, type = type, strata = strata, 
                           transform.sigma = "none",
                           transform.k = "var",
                           transform.rho = "none", transform.names = FALSE)
 
 expect_equal(test.mp1, GS.mp1, tol = 1e-5)
 
-testB.mp3 <- .reparametrize(p = setNames(as.double(test.mp3),names(p)), type = type, strata = strata, time.level = time.level,
+testB.mp3 <- .reparametrize(p = setNames(as.double(test.mp3),names(p)), type = type, strata = strata, 
                Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
                transform.sigma = "none",
                transform.k = "var",
@@ -209,8 +209,8 @@ testB.mp3 <- .reparametrize(p = setNames(as.double(test.mp3),names(p)), type = t
 expect_equal(testB.mp3$p, p)
 
 ## ** logvar / logcov
-GS.mp4 <- reparametrize(p = p, type = type, strata = strata, time.level = time.level,
-                        FUN = function(p, type, strata, time.levels, inverse){
+GS.mp4 <- reparametrize(p = p, type = type, strata = strata, 
+                        FUN = function(p, type, strata, inverse){
                             sigma <- p[type=="sigma"]
                             k <- p[type=="k"]
                             rho <- p[type=="rho"]
@@ -221,14 +221,14 @@ GS.mp4 <- reparametrize(p = p, type = type, strata = strata, time.level = time.l
                             }
                         }, transform.names = FALSE)
 
-test.mp4 <- reparametrize(p = p, type = type, strata = strata, time.levels = time.level,
+test.mp4 <- reparametrize(p = p, type = type, strata = strata, 
                           transform.sigma = "none",
                           transform.k = "logvar",
                           transform.rho = "none", transform.names = FALSE)
 
 expect_equal(test.mp4, GS.mp4, tol = 1e-5)
 
-testB.mp4 <- .reparametrize(p = setNames(as.double(test.mp4),names(p)), type = type, strata = strata, time.level = time.level,
+testB.mp4 <- .reparametrize(p = setNames(as.double(test.mp4),names(p)), type = type, strata = strata, 
                             Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
                             transform.sigma = "none",
                             transform.k = "logvar",
@@ -243,8 +243,8 @@ p.bis <- c("sigma" = 1.5, "rho" =  0.5)
 type.bis <- c("sigma", "rho")
 strata.bis <- c(1, 1)
 
-GS.mp5 <- reparametrize(p = p.bis, type = type.bis, strata = strata.bis, time.level = time.level,
-                        FUN = function(p, type, strata, time.levels, inverse){
+GS.mp5 <- reparametrize(p = p.bis, type = type.bis, strata = strata.bis, 
+                        FUN = function(p, type, strata, inverse){
                             sigma <- p[type=="sigma"]
                             rho <- p[type=="rho"]
                             if(inverse){
@@ -262,7 +262,7 @@ test.mp5 <- reparametrize(p = p.bis, type = type.bis, strata = strata.bis,
 
 expect_equal(test.mp5, GS.mp5, tol = 1e-5)
 
-testB.mp5 <- .reparametrize(p = setNames(as.double(test.mp5),names(p.bis)), type = type.bis, strata = strata.bis, time.level = time.level,
+testB.mp5 <- .reparametrize(p = setNames(as.double(test.mp5),names(p.bis)), type = type.bis, strata = strata.bis, 
                             Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
                             transform.sigma = "none",
                             transform.k = "none",

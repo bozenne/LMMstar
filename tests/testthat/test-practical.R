@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (17:03) 
 ## Version: 
-## Last-Updated: nov  4 2021 (16:49) 
+## Last-Updated: nov 12 2021 (17:25) 
 ##           By: Brice Ozenne
-##     Update #: 64
+##     Update #: 65
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -57,7 +57,7 @@ test_that("practical 1 - gastricbypass",{
                    structure = "CS")
     
     expect_equal(as.double(logLik(eCS.gls)), as.double(logLik(eCS.lmm)), tol = 1e-6)
-    
+
     ## ** unstructured without missing data
     test.nna <- tapply(is.na(gastricbypassL$glucagon),gastricbypassL$id, sum)==0
     gastricbypassL.full <- gastricbypassL[gastricbypassL$id %in% names(which(test.nna)),]
@@ -105,7 +105,9 @@ test_that("practical 1 - gastricbypass",{
 
     ## ** extract information
     confint(eUN.lmm, effects = "all", backtransform = TRUE)[,c("estimate","lower","upper")]
-    coef(eUN.lmm, transform.k = "sd")
+    expect_equal(unname(coef(eUN.lmm, effects = "variance", transform.k = "sd")),
+                 unname(coef(eUN.lmm, effects = "variance")[1]*c(1,coef(eUN.lmm, effects = "variance")[-1])),
+                 tol = 1e-6)
     emmeans(eUN.lmm, specs = ~time)
     emmip(eUN.lmm, ~time)
     autoplot(eUN.lmm)
@@ -170,7 +172,7 @@ test_that("practical 2 - ncgs",{
     e2.lmm_anova <- anova(e2.lmm, effects = c("treatmenthighdose:time6-treatmentplacebo:time6=0","treatmenthighdose:time12-treatmentplacebo:time12=0"), ci = TRUE)
     expect_equal(e2.lmm_anova$all$df.denom, 100.0411, tol = 1e-1) ## Richardson
     autoplot(e2.lmm, color = "group") 
-    autoplot(e2.lmm, color = "group", alpha = 0.25)
+    autoplot(e2.lmm, color = "group", ci.alpha = 0.25)
     }
 })
 

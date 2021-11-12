@@ -4,16 +4,17 @@
 \alias{UN}
 \title{Unstructured Structure}
 \usage{
-UN(formula, var.cluster, var.time, ...)
+UN(formula, var.cluster, var.time, add.time)
 }
 \arguments{
-\item{formula}{formula indicating the cluster, factors influencing the variance and the correlation, and a possible stratification.}
+\item{formula}{formula indicating on which variable to stratify the residual variance and correlation (left hand side)
+and variables influencing the residual variance (right hand side).}
 
-\item{var.cluster}{[character] used to check the cluster variable in the formula.}
+\item{var.cluster}{[character] cluster variable.}
 
-\item{var.time}{[character] used to check the time variable in the formula.}
+\item{var.time}{[character] time variable.}
 
-\item{...}{not used.}
+\item{add.time}{Should the default formula (i.e. when \code{NULL}) contain a time effect.}
 }
 \value{
 An object of class \code{UN} that can be passed to the argument \code{structure} of the \code{lmm} function.
@@ -23,12 +24,12 @@ Variance-covariance structure where the residuals have time-specific variance an
 Can be stratified on a categorical variable.
 }
 \details{
-A typical formula would be \code{~time} or \code{~time|id}, indicating a time-specific variance parameter and a correlation parameter specific to each pair of times.
+A typical formula would be \code{~1}, indicating a time-specific variance parameter and a correlation parameter specific to each pair of times.
 }
 \examples{
-UN(~time|id)
-UN(~time+gender|id)
-UN(group~time|id, var.cluster = "id")
-UN(group~time|id, var.cluster = "id", var.time = "time")
+UN(NULL, var.cluster = "id", var.time = "time", add.time = TRUE)
+UN(list(~gender,~time), var.cluster = "id", var.time = "time")
+UN(gender~time, var.cluster = "id", var.time = "time")
+UN(list(gender~time,gender~time), var.cluster = "id", var.time = "time")
 
 }

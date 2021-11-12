@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul  8 2021 (17:09) 
 ## Version: 
-## Last-Updated: okt 15 2021 (14:46) 
+## Last-Updated: nov 12 2021 (15:29) 
 ##           By: Brice Ozenne
-##     Update #: 13
+##     Update #: 14
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -31,12 +31,12 @@
 ##' dL <- sampleRem(100, n.times = 3, format = "long")
 ##' 
 ##' ## fit Linear Mixed Model
-##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
+##' eCS.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "CS", data = dL, df = FALSE)
 ##'
 ##' ## prediction
-##' fitted(eUN.lmm)
-##' fitted(eUN.lmm, newdata = data.frame(X1 = 1, X2 = 2, X5 = 3))
-##' fitted(eUN.lmm, newdata = data.frame(X1 = 1, X2 = 2, X5 = 3), keep.newdata = TRUE)
+##' fitted(eCS.lmm)
+##' fitted(eCS.lmm, newdata = data.frame(X1 = 1, X2 = 2, X5 = 3))
+##' fitted(eCS.lmm, newdata = data.frame(X1 = 1, X2 = 2, X5 = 3), keep.newdata = TRUE)
 
 ## * fitted.lmm (code)
 ##' @export
