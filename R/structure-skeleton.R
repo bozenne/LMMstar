@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: nov 12 2021 (17:16) 
+## Last-Updated: nov 13 2021 (18:45) 
 ##           By: Brice Ozenne
-##     Update #: 1261
+##     Update #: 1265
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -122,6 +122,7 @@
     structure$pair.varcoef <- outPattern$pair.varcoef
 
     ## ** export
+    structure$xfactor <- list(var = stats::.getXlevels(stats::terms(structure$formula$var),stats::model.frame(structure$formula$var,data)))
     return(structure)
 }
 
@@ -130,7 +131,7 @@
 .skeleton.CS <- function(structure, data){
 
     ## ** prepare
-    outInit <- .extractIndexData(data = data, structure = structure)
+    outInit <-   .extractIndexData(data = data, structure = structure)
     data <- outInit$data ## convert variables to factor 
     time.var <- outInit$time.var
     structure$U.time <- outInit$U.time
@@ -227,6 +228,8 @@
     structure$pair.varcoef <- outPattern$pair.varcoef
 
     ## ** export
+    structure$xfactor <- list(var = stats::.getXlevels(stats::terms(structure$formula$var),stats::model.frame(structure$formula$var,data)),
+                              cor = stats::.getXlevels(stats::terms(structure$formula$cor),stats::model.frame(structure$formula$cor,data)))
     return(structure)
 }
 
@@ -374,6 +377,8 @@
     structure$pair.varcoef <- outPattern$pair.varcoef
 
     ## ** export
+    structure$xfactor <- list(var = stats::.getXlevels(stats::terms(structure$formula$var),stats::model.frame(structure$formula$var,data)),
+                              cor = stats::.getXlevels(stats::terms(structure$formula$cor),stats::model.frame(structure$formula$cor,data)))
     return(structure)
 }
 

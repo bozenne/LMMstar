@@ -13,4 +13,5 @@ library(ggplot2)
 
 ## * run tests
 ## setwd("~/Documents/GitHub/LMMstar/tests/")
+## setwd("c:/Users/hpl802/Documents/Github/LMMstar/tests/")
 test_check("LMMstar")

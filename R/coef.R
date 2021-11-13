@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: nov 12 2021 (18:22) 
+## Last-Updated: nov 13 2021 (17:01) 
 ##           By: Brice Ozenne
-##     Update #: 251
+##     Update #: 261
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -175,7 +175,10 @@ coef.lmm <- function(object, effects = NULL, strata = NULL,
         out.strata <- object$param$strata[names(pVar)]
         out.type <- object$param$type[names(pVar)]
         index.sd <- which(out.type %in% c("sigma","k"))
-        out[names(out.type)[index.sd]] <- out[names(out.type)[index.sd]][order(out.strata[index.sd])]
+        savenames <- names(out)
+        savenames[savenames %in% names(out.type)[index.sd]] <- names(out.type)[index.sd][order(out.strata[index.sd])]
+        out <- out[savenames]
+        
     }
     if(!is.null(strata)){
         out <- out[object$param$strata[names(out)] %in% strata]

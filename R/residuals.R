@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: nov 12 2021 (16:11) 
+## Last-Updated: nov 13 2021 (17:59) 
 ##           By: Brice Ozenne
-##     Update #: 442
+##     Update #: 444
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -203,10 +203,10 @@ residuals.lmm <- function(object, type = "response", format = "long",
         if("partial-ref" %in% type.residual){ 
             ## set the dataset at the reference value for all variables not in var
             if(is.null(attr(type.residual,"reference"))){
-                name.Xfac <- names(object$xfactor)
+                name.Xfac <- names(object$xfactor$mean)
                 name.Xnum <- setdiff(name.X,name.Xfac)
                 if(length(name.Xfac)>0){
-                    reference <- c(reference, lapply(object$xfactor,function(iX){factor(iX[1], levels = iX)}))
+                    reference <- c(reference, lapply(object$xfactor$mean,function(iX){factor(iX[1], levels = iX)}))
                 }
                 if(length(name.Xnum)>0){
                     reference <- c(reference, as.list(stats::setNames(rep(0, length(name.Xnum)), name.Xnum)))

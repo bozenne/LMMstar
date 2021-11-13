@@ -1,11 +1,11 @@
-### test-previous-bug.R --- 
+### test-auto-previous-bug.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: nov 12 2021 (15:20) 
+## Last-Updated: nov 13 2021 (18:19) 
 ##           By: Brice Ozenne
-##     Update #: 91
+##     Update #: 93
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -400,4 +400,4 @@ test_that("mixing continuous and discrete time",{
 
 })
 ######################################################################
-### test-previous-bug.R ends here
+### test-auto-previous-bug.R ends here

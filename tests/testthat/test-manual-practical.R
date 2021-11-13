@@ -1,11 +1,11 @@
-### test-practical.R --- 
+### test-manual-practical.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (17:03) 
 ## Version: 
-## Last-Updated: nov 12 2021 (17:25) 
+## Last-Updated: nov 13 2021 (18:31) 
 ##           By: Brice Ozenne
-##     Update #: 65
+##     Update #: 68
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -37,6 +37,7 @@ test.practical <- FALSE
 ## * Practical 1
 test_that("practical 1 - gastricbypass",{
     if(test.practical){
+
     data(gastricbypassL, package = "LMMstar")
     gastricbypassL$time <- factor(gastricbypassL$time,
                                   levels = c("3 months before surgery", "1 week before surgery", "1 week after surgery", "3 months after surgery"),
@@ -123,12 +124,13 @@ test_that("practical 1 - gastricbypass",{
 ## * Practical 2
 test_that("practical 2 - ncgs",{
     if(test.practical){
-    data(ncgsL, package = "LMMstar")
-    ncgsL$visit <- as.numeric(ncgsL$visit)
-    ncgsL$highdose.time <- ncgsL$time
-    ncgsL$highdose.time[ncgsL$group=="placebo"] <- "0"
-    ncgsL$time <- relevel(as.factor(ncgsL$time), ref="0")
-    ncgsL$highdose.time <- relevel(as.factor(ncgsL$highdose.time), ref="0")
+    
+        data(ncgsL, package = "LMMstar")
+        ncgsL$visit <- as.numeric(ncgsL$visit)
+        ncgsL$highdose.time <- ncgsL$time
+        ncgsL$highdose.time[ncgsL$group=="placebo"] <- "0"
+        ncgsL$time <- relevel(as.factor(ncgsL$time), ref="0")
+        ncgsL$highdose.time <- relevel(as.factor(ncgsL$highdose.time), ref="0")
     
     ncgsL$treatment <- factor(ncgsL$group, c("none","placebo","highdose"))
     ncgsL$treatment[ncgsL$time=="0"] <- "none"
@@ -178,6 +180,7 @@ test_that("practical 2 - ncgs",{
 
 test_that("practical 2 - vitamin",{
     if(test.practical){
+    
     data(vitaminL, package = "LMMstar")
 
     vitaminL$visit.num <- as.numeric(vitaminL$visit)
@@ -227,7 +230,8 @@ test_that("practical 2 - vitamin",{
 ## * Practical 3
 test_that("practical 3 - swabsL",{
     if(test.practical){
-    data(swabsL, package = "LMMstar")
+    
+   data(swabsL, package = "LMMstar")
 
     ## ** unstructured
     eUN.gls <- gls(swabs ~ crowding + name,
@@ -260,6 +264,7 @@ test_that("practical 3 - swabsL",{
 ## * Practical 4
 test_that("practical 4 - bloodpressureL",{
     if(test.practical){
+
         data(bloodpressureL, package = "LMMstar")
         bloodpressureL$period.num <- as.numeric(bloodpressureL$period)
         bloodpressureL$treatment.num <- as.numeric(bloodpressureL$treatment)
@@ -303,4 +308,4 @@ test_that("practical 4 - bloodpressureL",{
 
 
 ##----------------------------------------------------------------------
-### test-practical.R ends here
+### test-manual-practical.R ends here

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: nov 12 2021 (18:22) 
+## Last-Updated: nov 13 2021 (16:35) 
 ##           By: Brice Ozenne
-##     Update #: 463
+##     Update #: 464
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -91,6 +91,7 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
                                         data = data,
                                         var.outcome = x$outcome$var,
                                         U.strata = x$strata$levels, U.time = x$time$levels,
+                                        stratify.mean = x$opt$name=="gls",
                                         precompute.moments = test.precompute)
         }else{
             design <- x$design

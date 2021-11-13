@@ -1,11 +1,11 @@
-### test-ttest.R --- 
+### test-auto-ttest.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: nov 12 2021 (15:06) 
+## Last-Updated: nov 13 2021 (18:19) 
 ##           By: Brice Ozenne
-##     Update #: 40
+##     Update #: 42
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -146,4 +146,4 @@ test_that("multiple t-test",{
 
 
 ##----------------------------------------------------------------------
-### test-ttest.R ends here
+### test-auto-ttest.R ends here

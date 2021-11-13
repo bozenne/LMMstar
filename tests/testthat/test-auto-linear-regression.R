@@ -1,11 +1,11 @@
-### test-linear-regression.R --- 
+### test-auto-linear-regression.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: okt 15 2021 (17:34) 
+## Last-Updated: nov 13 2021 (18:18) 
 ##           By: Brice Ozenne
-##     Update #: 186
+##     Update #: 188
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -526,4 +526,4 @@ test_that("missing values",{
 
 
 ##----------------------------------------------------------------------
-### test-linear-regression.R ends here
+### test-auto-linear-regression.R ends here

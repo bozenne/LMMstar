@@ -15,6 +15,8 @@ library(ggpubr)
 #+END_SRC
 
 #+RESULTS:
+: Indlæser krævet pakke: nlme
+: LMMstar version 0.4.1
 
 This vignette describes the main functionalities of the *LMMstar*
 package. This package implements specific types of linear mixed models
@@ -264,12 +266,14 @@ cat(" covariance structure: \n");getVarCov(eSUN.lmm)
 
 #+RESULTS:
 #+begin_example
+     Linear Mixed Model with an unstructured covariance matrix 
+
  outcome/cluster/time: weight/id/time 
  data                : 80 observations and distributed in 20 clusters 
- parameters          : 8 mean ((Intercept):0 timeB1_week:0 timeA1_week:0 timeA3_months:0 (Intercept):1 timeB1_week:1 timeA1_week:1 timeA3_months:1) 
+ parameters          : 8 mean ((Intercept) timeB1_week timeA1_week timeA3_months group timeB1_week:group timeA1_week:group timeA3_months:group) 
                        8 variance (sigma:0 sigma:1 k.B1_week:0 k.A1_week:0 k.A3_months:0 k.B1_week:1 k.A1_week:1 k.A3_months:1) 
                        12 correlation (rho(B3_months,B1_week):0 rho(B3_months,A1_week):0 rho(B3_months,A3_months):0 rho(B1_week,A1_week):0 rho(B1_week,A3_months):0 rho(A1_week,A3_months):0 rho(B3_months,B1_week):1 rho(B3_months,A1_week):1 rho(B3_months,A3_months):1 rho(B1_week,A1_week):1 rho(B1_week,A3_months):1 rho(A1_week,A3_months):1) 
- log-likelihood      : -205.268320845129 
+ log-likelihood      : -205.26832084513 
  convergence         : TRUE (15 iterations)
  covariance structure: 
 $`0`
@@ -522,20 +526,6 @@ plot(eUN.lmm, type = "correlation", type.residual = "normalized")
 #+END_SRC
 
 #+RESULTS:
-#+begin_example
-`geom_smooth()` using method = 'loess' and formula 'y ~ x'
-null device 
-          1 
-Advarselsbeskeder:
-1: Removed 2 rows containing non-finite values (stat_smooth). 
-2: Removed 2 rows containing missing values (geom_point).
-`geom_smooth()` using method = 'loess' and formula 'y ~ x'
-null device 
-          1 
-Advarselsbeskeder:
-1: Removed 2 rows containing non-finite values (stat_smooth). 
-2: Removed 2 rows containing missing values (geom_point).
-#+end_example
 
 #+BEGIN_SRC R :exports none :results output raw drawer :session *R* :cache no
 library(ggpubr)
@@ -638,8 +628,6 @@ plot(eUN.lmm, type = "fit", at = data.frame(glucagon = 10), color = "glucagon")
 #+END_SRC
 
 #+RESULTS:
-: Advarselsbesked:
-: Removed 2 rows containing missing values (geom_point).
 
 It is also possible to display the observed values along with the
 fitted values by setting the argument =obs.alpha= to a strictly
@@ -874,8 +862,6 @@ table(treat = gastricbypassL$treat2, time = gastricbypassL$time, group = gastric
 
 #+RESULTS:
 #+begin_example
-windows 
-      2
 , , group = 1
 
      time
@@ -1081,10 +1067,10 @@ summary(epairs.group, by = NULL, adjust = "mvt", infer = TRUE)
 
 #+RESULTS:
 :  contrast time      estimate    SE   df lower.CL upper.CL t.ratio p.value
-:  2 - 1    B3_months     4.83 10.10 18.0    -18.0     27.6   0.478  0.7493
-:  2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0   0.618  0.6479
-:  2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.8   0.471  0.7550
-:  2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.7   0.797  0.5284
+:  2 - 1    B3_months     4.83 10.10 18.0    -18.0     27.7   0.478  0.7494
+:  2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0   0.618  0.6481
+:  2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.9   0.471  0.7550
+:  2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.7   0.797  0.5281
 : 
 : Confidence level used: 0.95 
 : Conf-level adjustment: mvt method for 4 estimates 

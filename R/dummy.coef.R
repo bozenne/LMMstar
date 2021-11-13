@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (11:08) 
 ## Version: 
-## Last-Updated: nov  3 2021 (12:40) 
+## Last-Updated: nov 13 2021 (17:59) 
 ##           By: Brice Ozenne
-##     Update #: 24
+##     Update #: 25
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -36,7 +36,7 @@ dummy.coef.lmm <- function(object, drop = TRUE,...){
 
     requireNamespace("emmeans")
 
-    var.cat <- intersect(all.vars(object$formula$mean),  names(object$xfactor))
+    var.cat <- intersect(all.vars(object$formula$mean),  names(object$xfactor$mean))
 
     if(length(var.cat)==0){
         outEmmeans <- as.data.frame(emmeans::emmeans(object,specs=~1,...))

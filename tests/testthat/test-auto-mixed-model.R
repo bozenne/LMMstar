@@ -1,11 +1,11 @@
-### test-mixed-model.R --- 
+### test-auto-mixed-model.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: nov 12 2021 (18:23) 
+## Last-Updated: nov 13 2021 (18:24) 
 ##           By: Brice Ozenne
-##     Update #: 104
+##     Update #: 107
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -391,7 +391,7 @@ expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 ## lava transformation
 newp.2 <- fct.trans(newp); 
 GS <- jacobian(func = function(p){logLik(eUN.lmm, p = fct.trans(p,inverse = TRUE))}, x = newp.2)
-test <- score(eUN.lmm, effects = "all", p = newp, transform.k = "var", transform.rho = "none")
+test <- score(eUN.lmm, effects = "all", p = newp, transform.k = "var", transform.rho = "none", transform.names = FALSE)
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## cov transformation
@@ -419,7 +419,7 @@ expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 test <- information(eUN.lmm, effects = "all",
                     p = coef(eUN.lmm, effects = "all", transform.sigma = "none", transform.k = "none", transform.rho = "none"),
-                    transform.k = "var", transform.rho = "none") 
+                    transform.k = "var", transform.rho = "none", transform.names = FALSE) 
 GS <- -hessian(func = function(p){logLik(eUN.lmm, p = fct.trans(p,inverse = TRUE))},
                x = coef(eUN.lmm, effects = "all", transform.k = "var", transform.rho = "none", transform.names = FALSE))
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
@@ -477,4 +477,4 @@ test_that("missing values",{
     dL[dL$id==dL$id[1],,drop=FALSE]
 })
 ##----------------------------------------------------------------------
-### test-mixed-model.R ends here
+### test-auto-mixed-model.R ends here

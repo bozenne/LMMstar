@@ -1,4 +1,4 @@
-% Created 2021-11-10 on 15:18
+% Created 2021-11-13 lø 18:32
 % Intended LaTeX compiler: pdflatex
 \documentclass[12pt]{article}
 
@@ -314,7 +314,7 @@ utils::packageVersion("LMMstar")
 \end{lstlisting}
 
 \begin{verbatim}
-[1] '0.4.0'
+[1] '0.4.1'
 \end{verbatim}
 
 
@@ -329,7 +329,7 @@ LMMstar.options(optimizer = "FS")
 \clearpage
 
 \section{Descriptive statistics}
-\label{sec:org21fe618}
+\label{sec:org00e2aa5}
 Mean, standard deviation, and other summary statistic can be computed
 with respect to a categorical variable (typically time) using the
 \texttt{summarize} function:
@@ -355,9 +355,9 @@ print(sss, digits = 3)
 \clearpage
 
 \section{Linear mixed model}
-\label{sec:org3422624}
+\label{sec:org4f59f82}
 \subsection{Modeling tools}
-\label{sec:org75cccf8}
+\label{sec:org7d8f34c}
 Fit a linear model with \textbf{identity} structure:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -491,7 +491,7 @@ cat(" covariance structure: \n");getVarCov(eSUN.lmm)
 
  outcome/cluster/time: weight/id/time 
  data                : 80 observations and distributed in 20 clusters 
- parameters          : 8 mean ((Intercept) timeB1_week timeA1_week timeA3_months group1 timeB1_week:group1 timeA1_week:group1 timeA3_months:group1) 
+ parameters          : 8 mean ((Intercept) timeB1_week timeA1_week timeA3_months group timeB1_week:group timeA1_week:group timeA3_months:group) 
                        8 variance (sigma:0 sigma:1 k.B1_week:0 k.A1_week:0 k.A3_months:0 k.B1_week:1 k.A1_week:1 k.A3_months:1) 
                        12 correlation (rho(B3_months,B1_week):0 rho(B3_months,A1_week):0 rho(B3_months,A3_months):0 rho(B1_week,A1_week):0 rho(B1_week,A3_months):0 rho(A1_week,A3_months):0 rho(B3_months,B1_week):1 rho(B3_months,A1_week):1 rho(B3_months,A3_months):1 rho(B1_week,A1_week):1 rho(B1_week,A3_months):1 rho(A1_week,A3_months):1) 
  log-likelihood      : -205.26832084513 
@@ -514,7 +514,7 @@ A3_months  354.9368 332.8130 319.7058  341.7246
 
 \clearpage
 \subsection{Model output}
-\label{sec:orgb6b452b}
+\label{sec:orgf331795}
 
 The \texttt{summary} method can be used to display the main information
 relative to the model fit:
@@ -586,7 +586,7 @@ arguments \texttt{df} to \texttt{FALSE} and \texttt{type.information} to \texttt
 calling \texttt{lmm} should lead to a more reasonnable computation time.
 
 \subsection{Extract estimated coefficients}
-\label{sec:orga3cc592}
+\label{sec:org2fb7226}
 The value of the estimated coefficients can be output using \texttt{coef}:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -641,7 +641,7 @@ dummy.coef(eUN.lmm)
 \end{verbatim}
 
 \subsection{Extract estimated coefficient and associated uncertainty}
-\label{sec:org778c30e}
+\label{sec:org15cc784}
 
 The uncertainty about the mean coefficients can be obtained using the
 \texttt{model.tables} method \footnote{it is equivalent to \texttt{confint} method
@@ -673,7 +673,7 @@ they uncertainty is by default computed after transformation
 (e.g. \texttt{log}) and then backtransformed. 
 
 \subsection{Extract estimated residual variance-covariance structure}
-\label{sec:org8cb1abf}
+\label{sec:org5608e45}
 
 The method \texttt{getVarCov} can be used to output the covariance structure of the residuals:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -707,7 +707,7 @@ A3_months  318.8573 285.8077  280.9323
 \clearpage
 
 \subsection{Model diagnostic}
-\label{sec:org03ea04e}
+\label{sec:org6519b31}
 
 The method \texttt{plot} can be used to display diagnostic plots about:
 \begin{itemize}
@@ -801,7 +801,7 @@ Various type of residuals can be extract but the normalized one are
 recommanded when doing model checking.
 
 \subsection{Model fit}
-\label{sec:org69e1791}
+\label{sec:org416c95a}
 
 The fitted values can be displayed via the \texttt{plot} method or using the \texttt{emmeans} package:
 
@@ -856,7 +856,7 @@ gg
 \clearpage
 
 \subsection{Statistical inference}
-\label{sec:org0071f50}
+\label{sec:orgb10534e}
 
 The \texttt{anova} method can be use to test one or several linear
 combinations of the model coefficients using Wald tests. By default,
@@ -987,7 +987,7 @@ statistic df.num df.denom     p.value
 \clearpage
 
 \subsection{Baseline adjustment}
-\label{sec:orgd82c70a}
+\label{sec:org3944735}
 
 The \texttt{lmm} contains an "experimental" feature to drop non-identifiable
 effects from the model. For instance, let us define two (artifical) groups of
@@ -1091,8 +1091,6 @@ table(treat = gastricbypassL$treat2, time = gastricbypassL$time, group = gastric
 \end{lstlisting}
 
 \begin{verbatim}
-windows 
-      2
 , , group = 1
 
      time
@@ -1180,7 +1178,7 @@ treat22:timeA3_months   -25.51 2.323 22.6 -30.32 -20.69 1.60e-10
 \end{verbatim}
 
 \subsection{Marginal means}
-\label{sec:org878f885}
+\label{sec:org31c2136}
 
 The \texttt{emmeans} package can be used to output marginal means. Consider
 the following model:
@@ -1322,10 +1320,10 @@ summary(epairs.group, by = NULL, adjust = "mvt", infer = TRUE)
 
 \begin{verbatim}
  contrast time      estimate    SE   df lower.CL upper.CL t.ratio p.value
- 2 - 1    B3_months     4.83 10.10 18.0    -18.0     27.6   0.478  0.7493
- 2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0   0.618  0.6479
- 2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.8   0.471  0.7550
- 2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.7   0.797  0.5284
+ 2 - 1    B3_months     4.83 10.10 18.0    -18.0     27.7   0.478  0.7494
+ 2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0   0.618  0.6481
+ 2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.9   0.471  0.7550
+ 2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.7   0.797  0.5281
 
 Confidence level used: 0.95 
 Conf-level adjustment: mvt method for 4 estimates 
@@ -1354,7 +1352,7 @@ P value adjustment: sidak method for 4 tests
 \end{verbatim}
 
 \subsection{Predictions}
-\label{sec:orge615abb}
+\label{sec:orgeb80a6a}
 
 Two types of predictions can be performed with the \texttt{predict} method:
 \begin{itemize}
@@ -1464,7 +1462,7 @@ as.double(mu2 + Omega_21 * (100 - mu1) / Omega_11)
 \clearpage
 
 \section{Data generation}
-\label{sec:orgc10a39c}
+\label{sec:org431296a}
 Simulate some data in the wide format:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -1511,7 +1509,7 @@ head(dL)
 \clearpage
 
 \section{Modifying default options}
-\label{sec:org6b48291}
+\label{sec:org4693ab9}
 The \texttt{LMMstar.options} method enable to get and set the default options
 used by the package. For instance, the default option for the information matrix is:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -1540,7 +1538,7 @@ LMMstar.options(reinitialise = TRUE)
 \clearpage
 
 \section{R session}
-\label{sec:orgf57c9ba}
+\label{sec:orga542f88}
 Details of the R session used to generate this document:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -1591,7 +1589,7 @@ loaded via a namespace (and not attached):
 \clearpage
 
 \section*{References}
-\label{sec:org00bf3da}
+\label{sec:org1f64929}
 \begingroup
 \renewcommand{\section}[2]{}
 
@@ -1617,7 +1615,7 @@ loaded via a namespace (and not attached):
 \section{Likelihood in a linear mixed model}
 \label{SM:likelihood}
 \subsection{Log-likelihood}
-\label{sec:org21ac77e}
+\label{sec:org93cad87}
 
 Denote by \(\VY\) a vector of \(m\) outcomes, \(\VX\) a vector of
 \(p\) covariates, \(\mu(\Vparam,\VX)\) the modeled mean, and
@@ -1651,7 +1649,7 @@ when setting the argument \texttt{indiv} to \texttt{TRUE}.
 \bigskip
 
 \subsection{Score}
-\label{sec:org7e01157}
+\label{sec:org8a29948}
 
  Using that \(\partial \log(\det(X))=tr(X^{-1}\partial(X))\), the
 score is obtained by derivating once the log-likelihood, i.e., for
@@ -1674,7 +1672,7 @@ what \texttt{score} outputs for the ML criteria when setting the argument
 \clearpage
 
 \subsection{Hessian}
-\label{sec:orgc0916a6}
+\label{sec:orgb06f485}
 
 Derivating a second time the log-likelihood gives the hessian, \(\Hessian(\Vparam)\), with element\footnote{if one is relative to the mean and the other to the variance then they are respectively \(\theta\) and \(\theta'\)}:
 \begin{align*}
@@ -1722,7 +1720,7 @@ is set to \texttt{"expected"} (up to a factor -1).
 \clearpage
 
 \subsection{Degrees of freedom}
-\label{sec:org95ac2a0}
+\label{sec:org03cbcb5}
 
 Degrees of freedom are computed using a Satterthwaite approximation,
 i.e. for an estimate coefficient \(\widehat{\beta}\in\widehat{\Vparam}\) with standard

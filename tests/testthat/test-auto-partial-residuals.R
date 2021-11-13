@@ -1,11 +1,11 @@
-### test-partial-residuals.R --- 
+### test-auto-partial-residuals.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
 ## Created: nov  4 2021 (11:49) 
 ## Version: 
-## Last-Updated: nov 12 2021 (15:59) 
+## Last-Updated: nov 13 2021 (18:19) 
 ##           By: Brice Ozenne
-##     Update #: 13
+##     Update #: 16
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -136,4 +136,4 @@ test_that("linear model with splines",{
 })
 
 ##----------------------------------------------------------------------
-### test-partial-residuals.R ends here
+### test-auto-partial-residuals.R ends here

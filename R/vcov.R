@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: nov 12 2021 (18:23) 
+## Last-Updated: nov 13 2021 (16:35) 
 ##           By: Brice Ozenne
-##     Update #: 470
+##     Update #: 471
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -117,6 +117,7 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strat
                                             data = data,
                                             U.strata = object$strata$levels,
                                             U.time = object$time$levels,
+                                            stratify.mean = object$opt$name=="gls",
                                             precompute.moments = test.precompute)
             }else{
                 design <- object$design

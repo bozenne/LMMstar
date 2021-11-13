@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: nov 12 2021 (15:53) 
+## Last-Updated: nov 13 2021 (18:10) 
 ##           By: Brice Ozenne
-##     Update #: 1499
+##     Update #: 1528
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -67,15 +67,15 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         if(any(ff.allvars %in% names(data) == FALSE)){
             stop("Incorrect argument \'data\': missing variable(s) \"",paste(ff.allvars[ff.allvars %in% names(data) == FALSE], collapse = "\" \""),"\".\n")
         }
-        ff.factor <- intersect(ff.allvars, names(object$xfactor))
+        ff.factor <- names(object$xfactor$mean)
         if(length(ff.factor)>0){
             for(iVar in ff.factor){ ## iVar <- ff.factor[2]
-                if(any(data[[iVar]] %in% object$xfactor[[iVar]] == FALSE)){
-                    Wf <- unique(data[[iVar]][data[[iVar]] %in% object$xfactor[[iVar]] == FALSE])
+                if(any(data[[iVar]] %in% object$xfactor$mean[[iVar]] == FALSE)){
+                    Wf <- setdiff(unique(data[[iVar]]), iLevel)
                     stop("Unknown factor(s) \"",paste0(Wf,collapse="\" \""),"\" for variable \"",iVar,"\".\n",
-                         "Valid factors: \"",paste0(object$xfactor[[iVar]], collapse="\" \""),"\".\n")
+                         "Valid factors: \"",paste0(object$xfactor$mean[[iVar]], collapse="\" \""),"\".\n")
                 }
-                data[[iVar]] <- factor(data[[iVar]], levels = object$xfactor[[iVar]])
+                data[[iVar]] <- factor(data[[iVar]], levels = object$xfactor$mean[[iVar]])
             }
         }
 
@@ -110,11 +110,24 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             ## use stats::model.frame to handle spline
             design$mean <- .mean.matrix.lmm(formula = object$formula$mean.design, colnames = colnames(object$design$mean),
                                             data = stats::model.frame(attr(object$design$mean,"terms"), data = data, na.action = stats::na.pass), 
-                                            U.strata = object$strata$levels)
+                                            U.strata = if(object$opt$name=="gls"){object$strata$levels}else{NA}) ## only stratify mean if gls optimizer
         }
     
         ## variance
         if("variance" %in% effects){
+            ff.factor <- unique(c(names(object$xfactor$var),names(object$xfactor$cor)))
+            if(length(ff.factor)>0){
+                for(iVar in ff.factor){ ## iVar <- ff.factor[1]
+                    iLevel <- unique(c(object$xfactor$var[[iVar]],object$xfactor$cor[[iVar]]))
+                    if(any(data[[iVar]] %in% iLevel == FALSE)){
+                        Wf <- setdiff(unique(data[[iVar]]), iLevel)
+                        stop("Unknown factor(s) \"",paste0(Wf,collapse="\" \""),"\" for variable \"",iVar,"\".\n",
+                             "Valid factors: \"",paste0(iLevel, collapse="\" \""),"\".\n")
+                    }
+                    data[[iVar]] <- factor(data[[iVar]], levels = iLevel)
+                }
+            }
+            
             design$vcov <- .vcov.matrix.lmm2(structure = object$design$vcov, data = data,
                                              strata.var = indexData$strata.var, U.strata = indexData$U.strata,
                                              time.var = indexData$time.var, U.time = indexData$U.time,
@@ -328,12 +341,13 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 .model.matrix.lmm <- function(formula.mean, structure,
                               data, var.outcome,
                               U.strata, U.time,
+                              stratify.mean,
                               precompute.moments){
 
     ## ** mean
     ## use stats::model.frame to handle splines
     data.mf <- stats::model.frame(stats::update(formula.mean,~.+XXindexXX+XXtimeXX+XXclusterXX+XXstrataXX),data)
-    X.mean <- .mean.matrix.lmm(formula = formula.mean, colnames = NULL, data = data.mf, U.strata = U.strata)
+    X.mean <- .mean.matrix.lmm(formula = formula.mean, colnames = NULL, data = data.mf, U.strata = if(stratify.mean){U.strata}else{NA})  ## only stratify mean if gls optimizer
     strata.mu <- attr(X.mean,"strata.mu")
     attr(X.mean,"strata.mu") <- NULL
     attr(X.mean,"terms") <- attr(data.mf,"terms")

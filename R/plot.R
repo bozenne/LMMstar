@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (11:00) 
 ## Version: 
-## Last-Updated: nov 10 2021 (14:57) 
+## Last-Updated: nov 13 2021 (17:59) 
 ##           By: Brice Ozenne
-##     Update #: 63
+##     Update #: 64
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -71,7 +71,7 @@ plot.lmm <- function(x, type = "fit", type.residual = "normalized", by.time = TR
         }else{
             type.predict <- "static0"
         }
-        type.var <- c("numeric","categorical")[name.var %in% names(x$xfactor) + 1]
+        type.var <- c("numeric","categorical")[name.var %in% names(x$xfactor$mean) + 1]
         if(sum(type.var=="numeric")>1){
             stop("Cannot simulatenously display partial residuals for more 2 numeric variables. \n")
         }

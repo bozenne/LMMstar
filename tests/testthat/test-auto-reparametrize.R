@@ -1,11 +1,11 @@
-### test-reparametrize.R --- 
+### test-auto-reparametrize.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:54) 
 ## Version: 
-## Last-Updated: nov 12 2021 (15:05) 
+## Last-Updated: nov 13 2021 (18:19) 
 ##           By: Brice Ozenne
-##     Update #: 31
+##     Update #: 33
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -271,4 +271,4 @@ testB.mp5 <- .reparametrize(p = setNames(as.double(test.mp5),names(p.bis)), type
 expect_equal(testB.mp5$p, p.bis)
 
 ##----------------------------------------------------------------------
-### test-reparametrize.R ends here
+### test-auto-reparametrize.R ends here

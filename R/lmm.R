@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: nov 12 2021 (15:59) 
+## Last-Updated: nov 13 2021 (17:58) 
 ##           By: Brice Ozenne
-##     Update #: 1379
+##     Update #: 1388
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -356,18 +356,22 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
         stop("Cannot handle interaction involving more than two variables. \n")
     }
 
-    if(!is.na(var.strata) && optimizer == "gls"){
-        var.X.withinStrata <- setdiff(var.X, var.strata)
-        if(length(var.X.withinStrata)==0){
-            formula.design <- stats::as.formula(paste0(var.strata,"~1")) ## no covariate within strata
-        }else{
-            terms.mean <- stats::terms(formula)
-            newterm.labels <- gsub(paste0("\\:",var.strata,"$"),"",gsub(paste0("^",var.strata,"\\:"),"",setdiff(attr(terms.mean,"term.labels"),var.strata)))  ## remove interaction or main effect with the strata variable
-            if(attr(terms.mean,"intercept")>0){
-                formula.design <- stats::update(formula, paste0(var.strata,"~",paste0(unique(newterm.labels),collapse=" + ")))
+    if(!is.na(var.strata)){
+        if(optimizer == "gls"){
+            var.X.withinStrata <- setdiff(var.X, var.strata)
+            if(length(var.X.withinStrata)==0){
+                formula.design <- stats::as.formula(paste0(var.strata,"~1")) ## no covariate within strata
             }else{
-                formula.design <- stats::update(formula, paste0(var.strata,"~-1+",paste0(unique(newterm.labels),collapse=" + ")))
+                terms.mean <- stats::terms(formula)
+                newterm.labels <- gsub(paste0("\\:",var.strata,"$"),"",gsub(paste0("^",var.strata,"\\:"),"",setdiff(attr(terms.mean,"term.labels"),var.strata)))  ## remove interaction or main effect with the strata variable
+                if(attr(terms.mean,"intercept")>0){
+                    formula.design <- stats::update(formula, paste0(var.strata,"~",paste0(unique(newterm.labels),collapse=" + ")))
+                }else{
+                    formula.design <- stats::update(formula, paste0(var.strata,"~-1+",paste0(unique(newterm.labels),collapse=" + ")))
+                }
             }
+        }else{
+            formula.design <- stats::as.formula(stats::delete.response(stats::terms(formula)))
         }
     }else{
         formula.design <- stats::as.formula(stats::delete.response(stats::terms(formula)))
@@ -472,15 +476,13 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                                     data = data, var.outcome = var.outcome,
                                     U.strata = U.strata,
                                     U.time = U.time,
+                                    stratify.mean = optimizer=="gls",
                                     precompute.moments = options$precompute.moments)
 
     ## note use model.frame to handline splines in the formula
-    out$xfactor <- c(stats::.getXlevels(stats::terms(out$formula$mean.design),stats::model.frame(out$formula$mean.design,data)),
-                     stats::.getXlevels(stats::terms(out$formula$var.design),data))
-    if(!is.null(out$formula$cor.design)){
-        out$xfactor <- c(out$xfactor,stats::.getXlevels(stats::terms(out$formula$cor.design),data))
-    }
-    out$xfactor <- out$xfactor[duplicated(names(out$xfactor))==FALSE]
+    out$xfactor <- c(list(mean = stats::.getXlevels(stats::terms(out$formula$mean.design),stats::model.frame(out$formula$mean.design,data))),
+                     out$design$vcov$xfactor)
+    out$design$vcov$xfactor <- NULL
 
     if(optimizer=="gls"){
         ## move from design matrix to dataset (useful when doing baseline adjustment)
@@ -552,6 +554,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
             param.rho <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]$modelStruct$corStruct, unconstrained = FALSE) })
             param.value <- c(param.value,stats::setNames(unlist(param.rho), out$design$param$rho))
         }        
+        out$opt <- list(name = "gls")
 
     }else{
         outEstimate <- .estimate(design = out$design, time = out$time, method.fit = method.fit, type.information = type.information,
@@ -559,8 +562,8 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                                  precompute.moments = options$precompute.moments,
                                  optimizer = optimizer, init = control$init, n.iter = control$n.iter, tol.score = control$tol.score, tol.param = control$tol.param, trace = control$trace)
         param.value <- outEstimate$estimate
-        out$opt <- outEstimate[c("cv","n.iter","score","previous.estimate")]
-
+        out$opt <- c(name = optimizer, outEstimate[c("cv","n.iter","score","previous.estimate")])
+        
         if(out$opt$cv==FALSE){
             warning("Convergence issue: no stable solution has been found. \n")
         }
