@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: nov 12 2021 (16:11) 
+## Last-Updated: nov 23 2021 (16:12) 
 ##           By: Brice Ozenne
-##     Update #: 94
+##     Update #: 99
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -76,15 +76,18 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
     test.duplicated <- duplicated(X.beta)
     keep.id <- unique(data[test.duplicated==FALSE,"XXclusterXX"])
     newdata <- data[data[["XXclusterXX"]] %in% keep.id,,drop=FALSE]
-    
+
     if(identical(color,TRUE)){
         mean.var <- all.vars(stats::delete.response(stats::terms(stats::formula(object, effects = "mean"))))
-        newdataRed <- newdata[order(newdata[["XXclusterXX"]]),mean.var,drop=FALSE]
-        order.cluster <- droplevels(newdata[["XXclusterXX"]][order(newdata[["XXclusterXX"]])])
+        if(length(mean.var)>0){
+            newdataRed <- newdata[order(newdata[["XXclusterXX"]]),mean.var,drop=FALSE]
+            order.cluster <- droplevels(newdata[["XXclusterXX"]][order(newdata[["XXclusterXX"]])])
 
-        ## iCol <- newdataRed[,1]
-        M.duplicated <- apply(newdataRed, 2, function(iCol){unlist(tapply(iCol, order.cluster, function(iColCluster){duplicated(iColCluster)[-1]}))})
-        color <- names(which(colSums(M.duplicated)==NROW(M.duplicated)))
+            M.duplicated <- apply(newdataRed, 2, function(iCol){unlist(tapply(iCol, order.cluster, function(iColCluster){duplicated(iColCluster)[-1]}))})
+            color <- names(which(colSums(M.duplicated)==NROW(M.duplicated)))
+        }else{
+            color <- NULL
+        }
         if(length(color)>1){
             if(paste(color,collapse=".") %in% names(newdataRed)){
                 stop("Cannot use argument \'color\'=TRUE when the dataset contain a column ",paste(color,collapse="."),". \n",

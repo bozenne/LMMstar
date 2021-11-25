@@ -22,7 +22,14 @@
 
 \method{confint}{anova_lmm}(object, parm, level = 0.95, method = "single-step", ...)
 
-\method{print}{anova_lmm}(x, level = 0.95, method = "single-step", print.null = FALSE, ...)
+\method{print}{anova_lmm}(
+  x,
+  level = 0.95,
+  method = "single-step",
+  print.null = FALSE,
+  columns = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{a \code{lmm} object. Only relevant for the anova function.}
@@ -53,6 +60,8 @@ Not relevant for the global test (F-test or Chi-square test) - only relevant whe
 \item{x}{an \code{anova_lmm} object. Only relevant for print and confint functions.}
 
 \item{print.null}{[logical] should the null hypotheses be printed in the console?}
+
+\item{columns}{[character vector] Columns to be output. Can be any of \code{"estimate"}, \code{"se"}, \code{"df"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.}
 }
 \value{
 A list of matrices containing the following columns:\itemize{

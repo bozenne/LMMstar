@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: nov 13 2021 (17:58) 
+## Last-Updated: nov 15 2021 (09:20) 
 ##           By: Brice Ozenne
-##     Update #: 1388
+##     Update #: 1392
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -221,12 +221,16 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
             stop("Argument \'repetition\' must be of class formula, something like: ~ time|cluster or strata ~ time|cluster. \n")
         }
         res.split <- strsplit(deparse(repetition),"|", fixed = TRUE)[[1]]
-        if(length(res.split)!=2){
+        if(length(res.split)>2){
             stop("Incorrect specification of argument \'repetition\'. \n",
                  "The symbol | should only exacly once, something like: ~ time|cluster or strata ~ time|cluster. \n")
         }
-        var.cluster <- trimws(res.split[2], which = "both")
-        if(length(var.cluster)==0){var.cluster <- NA}
+        if(length(res.split)==1){
+            var.cluster <- NA
+        }else{
+            var.cluster <- trimws(res.split[2], which = "both")
+            if(length(var.cluster)==0){var.cluster <- NA}
+        }
         var.time <- all.vars(stats::update(stats::as.formula(res.split[1]),0~.))
         if(length(var.time)==0){var.time <- NA}
         var.strata <- setdiff(all.vars(stats::as.formula(res.split[1])), var.time)
@@ -253,7 +257,6 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
             stop("Argument \'repetition\' is inconsistent with argument \'data\'. \n",
                  "Could not find column \"",var.strata,"\" indicating the strata in argument \'data\' \n")
         }
-
         if(length(var.time)==1 && is.na(var.time)){ ## add time when only one obs per cluster
             if(length(var.cluster)==1 && is.na(var.cluster)){
                 stop("Incorrect specification of argument \'repetition\': missing time and cluster variable. \n",
@@ -262,9 +265,6 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                 stop("Incorrect specification of argument \'repetition\': missing time variable. \n",
                      "There should be exactly one variable before the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
             }
-        }else if(length(var.cluster)==1 && is.na(var.cluster)){
-            stop("Incorrect specification of argument \'repetition\': missing cluster variable. \n",
-                 "There should be exactly one variable before the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
         }
     }
 

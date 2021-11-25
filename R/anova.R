@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: nov 12 2021 (13:46) 
+## Last-Updated: nov 25 2021 (20:47) 
 ##           By: Brice Ozenne
-##     Update #: 585
+##     Update #: 596
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -35,6 +35,7 @@
 ##' @param method [character] type of adjustment for multiple comparisons: one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}.
 ##' Not relevant for the global test (F-test or Chi-square test) - only relevant when testing each hypothesis and adjusting for multiplicity.
 ##' @param transform.sigma,transform.k,transform.rho,transform.names are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.
+##' @param columns [character vector] Columns to be output. Can be any of \code{"estimate"}, \code{"se"}, \code{"df"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
 ##' @param parm Not used. For compatibility with the generic method.
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
@@ -521,10 +522,10 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = "single-step"
 ## * print.anova_lmm
 ##' @rdname anova
 ##' @export
-print.anova_lmm <- function(x, level = 0.95, method = "single-step", print.null = FALSE, ...){
+print.anova_lmm <- function(x, level = 0.95, method = "single-step", print.null = FALSE, columns = NULL, ...){
 
     
-    if(attr(x,"test")=="Wald"){    
+    if(attr(x,"test")=="Wald"){
         type <- names(x)
         ci <- stats::confint(x, level = level, method = method)
         for(iType in type){
@@ -547,14 +548,17 @@ print.anova_lmm <- function(x, level = 0.95, method = "single-step", print.null 
             }
             if(!is.null(ci[[iType]])){
                 options <- LMMstar.options()
-                if(all(sapply(ci[[iType]],NROW)==1)){ ## always only one hypothesis in each global test
+                if(is.null(columns)){
+                    columns <- options$columns.anova
+                }
+                if(all(sapply(ci[[iType]],NROW)==1) || method == "none"){ ## always only one hypothesis in each global test
                     cat("\n - P-values and confidence interval \n", sep="")
                 }else if(length(ci[[iType]])==1){ ## only one global test
                     cat("\n - P-values and confidence interval (adjusted for multiplicity) \n", sep="")
                 }else{
                     cat("\n - P-values and confidence interval (adjusted for multiplicity within each global test) \n", sep="")
                 }
-                print(do.call(rbind,unname(ci[[iType]]))[,options$columns.anova])
+                print(do.call(rbind,unname(ci[[iType]]))[,columns,drop=FALSE])
             }
             cat("\n")
         }

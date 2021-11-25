@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: nov 12 2021 (16:12) 
+## Last-Updated: nov 23 2021 (16:14) 
 ##           By: Brice Ozenne
-##     Update #: 86
+##     Update #: 87
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -80,7 +80,7 @@ print.lmm <- function(x, ...){
                      cbind("log-likelihood",": ",as.double(logLik)))
 
     ## ** optimisation
-    if(!is.null(x$opt)){
+    if(x$opt$name!="gls"){
         M.print <- rbind(M.print,
                          cbind("convergence",": ",paste0(x$opt$cv," (",x$opt$n.iter," iterations)")))
     }
