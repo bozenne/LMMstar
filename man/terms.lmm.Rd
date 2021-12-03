@@ -7,7 +7,9 @@
 \method{terms}{lmm}(x, ...)
 }
 \arguments{
-\item{object}{a \code{lmm} object}
+\item{x}{a \code{lmm} object}
+
+\item{...}{not used, for compatibility with the generic method.}
 }
 \value{
 An object of class \code{terms} giving a symbolic representation of the mean structure.
