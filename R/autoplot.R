@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: nov 23 2021 (16:12) 
+## Last-Updated: nov 30 2021 (15:44) 
 ##           By: Brice Ozenne
-##     Update #: 99
+##     Update #: 102
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -151,6 +151,9 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
         gg <- gg + ggplot2::geom_point(size = mean.size[1]) + ggplot2::geom_line(size = mean.size[2])
     }
     gg  <- gg + ggplot2::ylab(object$outcome$var) + ggplot2::theme(text = ggplot2::element_text(size=size.text))
+    if(!is.null(object$time$var)){
+        gg  <- gg + ggplot2::xlab(object$time$var)
+    }
 
 
     ## ** display

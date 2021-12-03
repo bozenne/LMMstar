@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: okt  1 2021 (17:01) 
+## Last-Updated: dec  3 2021 (09:49) 
 ##           By: Brice Ozenne
-##     Update #: 88
+##     Update #: 89
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -54,7 +54,7 @@ LMMstar.options <- function(..., reinitialise = FALSE){
     if (reinitialise == TRUE) {
         assign(".LMMstar-options", 
                list(backtransform.confint = TRUE,
-                    columns.anova = c("estimate","lower","upper","p.value"),
+                    columns.anova = c("estimate","se","df","lower","upper","p.value"),
                     columns.confint = c("estimate","lower","upper"),
                     columns.summary = c("estimate","se","df","lower","upper","p.value",""),
                     df = TRUE,

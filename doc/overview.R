@@ -253,7 +253,8 @@ epairs.group
 summary(epairs.group, by = NULL, adjust = "mvt", infer = TRUE)
 
 ## chunk 60
-summary(pairs(emmeans(eC2.lmm , specs = ~treat2|time), reverse = TRUE), by = NULL)
+summary(pairs(emmeans(eUN.lmm , specs = ~treat2|time), reverse = TRUE), by = NULL)
+
 
 ## ** Predictions
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: nov 25 2021 (20:47) 
+## Last-Updated: dec  3 2021 (10:42) 
 ##           By: Brice Ozenne
-##     Update #: 596
+##     Update #: 626
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -106,7 +106,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
     ## ** normalized user input
     terms.mean <- attr(stats::terms(object$formula$mean.design),"term.labels")
     subeffect <- NULL
-    if(length(effects)==1){
+    if(!inherits(effects,"mcp") && length(effects)==1){
         if(identical(effects,"all")){
             effects <- c("mean","variance","correlation")
         }else if(grepl("^mean_",effects)){
@@ -138,7 +138,20 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
     transform.rho <- init$transform.rho
 
     name.coef <- names(stats::coef(object, effects = "all"))
-    if(is.matrix(effects)){
+    if(inherits(effects,"mcp")){        
+        out.glht <- try(multcomp::glht(object, linfct = effects),
+                        silent = TRUE)
+        if(inherits(out.glht,"try-error")){
+            stop("Possible mispecification of the argument \'effects\' as running mulcomp::glht lead to the following error: \n",
+                 out.glht)
+        }
+        out <- list(all = NULL)
+        ls.nameTerms <- list(all = NULL)
+        ls.nameTerms.num <- list(all = 1)
+        ls.contrast <- list(all = matrix(0, nrow = NROW(out.glht$linfct), ncol = length(name.coef), dimnames = list(rownames(out.glht$linfct),name.coef)))
+        ls.contrast$all[,colnames(out.glht$linfct)] <- out.glht$linfct
+        ls.null  <- list(all = out.glht$rhs)        
+    }else if(is.matrix(effects)){
         ## try to re-size the matrix if necessary
         if(NCOL(effects)!=length(name.coef)){
             if(is.null(colnames(effects))){
@@ -230,7 +243,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
     }else if(all(grepl("=",effects)==FALSE)){
         stop("Incorrect argument \'effects\': can be \"mean\", \"variance\", \"correlation\", \"all\", \n",
              "or something compatible with the argument \'linfct\' of multcomp::glht. \n ")
-    }else{
+    }else{ ## symbolic definition of effects using equations (characters)
         
         ## run glht
         out.glht <- try(multcomp::glht(object, linfct = effects,
@@ -334,12 +347,14 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
             ## *** statistic
             iC.vcov.C_M1 <- try(solve(iC %*% vcov.param %*% t(iC)), silent = TRUE)
             if(inherits(iC.vcov.C_M1,"try-error")){
-                stop("Could not invert the covariance matrix for the proposed contrast. \n")
+                iStat <- NA
+                attr(iStat,"error") <- "\n  Could not invert the covariance matrix for the proposed contrast."
+            }else{
+                iStat <- as.double(t(iC %*% param - iNull) %*% iC.vcov.C_M1 %*% (iC %*% param - iNull))
             }
-            iStat <- as.double(t(iC %*% param - iNull) %*% iC.vcov.C_M1 %*% (iC %*% param - iNull))
 
             ## *** degree of freedom
-            if(df){
+            if(df && !inherits(iC.vcov.C_M1,"try-error")){
                 svd.tempo <- eigen(iC.vcov.C_M1)
                 D.svd <- diag(svd.tempo$values, nrow = iN.hypo, ncol = iN.hypo)
                 P.svd <- svd.tempo$vectors
@@ -375,7 +390,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
                                  stringsAsFactors = FALSE)
                 CI$statistic <- CI$estimate/CI$se
                 rownames(CI) <- rownames(iC)
-                if(!is.null(names(effects))){
+                if(!is.null(names(effects)) && !inherits(effects,"mcp")){
                     indexName <- intersect(which(names(effects)!=""),which(!is.na(names(effects))))
                     rownames(CI)[indexName] <- names(effects)[indexName]
                 }
@@ -539,8 +554,12 @@ print.anova_lmm <- function(x, level = 0.95, method = "single-step", print.null 
             txt.test <- ifelse(all(iNoDf),"Chi-square test","F-test")
             if(iType == "all"){
                 cat("                     ** User-specified hypotheses ** \n", sep="")
-                cat(" - ",txt.test,"\n", sep="")
-                print(x[[iType]], row.names = FALSE)
+                if(is.na(x[[iType]]$statistic) && !is.null(attr(x[[iType]]$statistic,"error"))){
+                    cat(" - ",txt.test,": ",attr(x[[iType]]$statistic,"error"),"\n", sep="")
+                }else{
+                    cat(" - ",txt.test,"\n", sep="")
+                    print(x[[iType]], row.names = FALSE)
+                }
             }else{
                 cat("                     ** ",iType," coefficients ** \n", sep="")
                 cat(" - ",txt.test,"\n",sep="")
