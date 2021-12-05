@@ -9,7 +9,7 @@ summarize(
   data,
   na.action = stats::na.pass,
   na.rm = FALSE,
-  which = c("observed", "missing", "mean", "sd", "min", "median", "max")
+  which = c("observed", "missing", "mean", "sd", "min", "median", "max", "correlation")
 )
 }
 \arguments{
@@ -29,7 +29,7 @@ Can be any of, or a combination of: \code{"observed"} (number of observations wi
 \code{"missing"} (number of observations with a missing value), \code{"mean"}, \code{"sd"}, \code{"min"}, \code{"median"}, \code{"max"}.}
 }
 \value{
-a data frame containing summary statistics (in columns) for each outcome and value of the grouping variables (rows).
+a data frame containing summary statistics (in columns) for each outcome and value of the grouping variables (rows). It has an attribute \code{"correlation"} when it was possible to compute the correlation matrix for each outcome with respect to the grouping variable.
 }
 \description{
 Compute summary statistics (similar to the SAS macro procmean).
@@ -51,5 +51,12 @@ summarize(Y1+Y2 ~ X1, data = d)
 summarize(Y1+Y2 ~ X1, data = d2)
 summarize(Y1+Y2 ~ X1, data = d2, na.rm = TRUE)
 
-## End of examples
+## long format
+dL <- reshape2::melt(d, id.vars = c("id","X1"), measure.var = c("Y1","Y2","Y3"))
+dL2 <- dL[-(4:5),]
+
+summarize(value ~ variable + X1, data = dL)
+e.S <- summarize(value ~ variable + X1 | id, data = dL2, na.rm = TRUE)
+e.S
+attr(e.S, "correlation")
 }

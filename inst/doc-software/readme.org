@@ -2,6 +2,7 @@ Instructions to run to prepare the vignette (to run before installing the packag
 
 - export R code
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
+## devtools::build_vignettes("LMMstar", quiet = FALSE) ## generate the META folder
 setwd(pathGitHub())
 butils:::extractRchunk(file = "./LMMstar/inst/doc-software/overview.org", newfile = "./LMMstar/doc/overview.R", overwrite = TRUE)
 #+END_SRC
