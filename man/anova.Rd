@@ -96,6 +96,15 @@ anova(eUN.lmm)
 anova(eUN.lmm, effects = "all")
 anova(eUN.lmm, effects = c("X1=0","X2+X5=10"), ci = TRUE)
 
+if(require(multcomp)){
+amod <- lmm(breaks ~ tension, data = warpbreaks)
+e.glht <- glht(amod, linfct = mcp(tension = "Tukey"))
+summary(e.glht, test = Chisqtest()) ## 0.000742
+
+print(anova(amod, effect = mcp(tension = "Tukey"), df = FALSE), print.null = TRUE)
+
+anova(amod, effect = mcp(tension = "Tukey"), ci = TRUE)
+}
 }
 \references{
 Dmitrienko, A. and D'Agostino, R., Sr (2013), Traditional multiplicity adjustment methods in clinical trials. Statist. Med., 32: 5172-5218. https://doi.org/10.1002/sim.5990.

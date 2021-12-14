@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: dec  3 2021 (10:42) 
+## Last-Updated: Dec 14 2021 (13:04) 
 ##           By: Brice Ozenne
-##     Update #: 626
+##     Update #: 670
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -69,6 +69,15 @@
 ##' anova(eUN.lmm, effects = "all")
 ##' anova(eUN.lmm, effects = c("X1=0","X2+X5=10"), ci = TRUE)
 ##' 
+##' if(require(multcomp)){
+##' amod <- lmm(breaks ~ tension, data = warpbreaks)
+##' e.glht <- glht(amod, linfct = mcp(tension = "Tukey"))
+##' summary(e.glht, test = Chisqtest()) ## 0.000742
+##'
+##' print(anova(amod, effect = mcp(tension = "Tukey"), df = FALSE), print.null = TRUE)
+##' 
+##' anova(amod, effect = mcp(tension = "Tukey"), ci = TRUE)
+##' }
 
 ## * anova.lmm (code)
 ##' @rdname anova
@@ -334,31 +343,38 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
                 }else{
                     diag(iC[name.iParam[iIndex.param],name.iParam[iIndex.param]]) <- 1
                 }
-                iC2 <- iC
-                colnames(iC2) <- name.param[match(colnames(iC),newname)]
+                iC.uni <- iC
+                colnames(iC.uni) <- name.param[match(colnames(iC),newname)]
             }else{
                 iC <- ls.contrast[[iType]]
-                iC2 <- iC
+                iC.uni <- iC
                 iN.hypo <- NROW(iC)
                 iNull <- ls.null[[iType]]
                 iName.hypo  <- paste(paste0(rownames(iC),"==",iNull),collapse=", ")
             }
 
             ## *** statistic
-            iC.vcov.C_M1 <- try(solve(iC %*% vcov.param %*% t(iC)), silent = TRUE)
+            outSimp <- .simplifyContrast(iC, iNull) ## remove extra lines
+            iC.vcov.C_M1 <- try(solve(outSimp$C %*% vcov.param %*% t(outSimp$C)), silent = TRUE)
             if(inherits(iC.vcov.C_M1,"try-error")){
                 iStat <- NA
+                iDf <- c(iN.hypo,Inf)
                 attr(iStat,"error") <- "\n  Could not invert the covariance matrix for the proposed contrast."
             }else{
-                iStat <- as.double(t(iC %*% param - iNull) %*% iC.vcov.C_M1 %*% (iC %*% param - iNull))
+                iStat <- as.double(t(outSimp$C %*% param - outSimp$rhs) %*% iC.vcov.C_M1 %*% (outSimp$C %*% param - outSimp$rhs))/outSimp$dim 
+                iDf <- c(outSimp$dim,Inf)
+                if(outSimp$rm>0){
+                    iName.hypo <- paste(paste0(rownames(outSimp$C),"==",outSimp$rhs),collapse=", ")
+                }
             }
 
             ## *** degree of freedom
             if(df && !inherits(iC.vcov.C_M1,"try-error")){
+
                 svd.tempo <- eigen(iC.vcov.C_M1)
-                D.svd <- diag(svd.tempo$values, nrow = iN.hypo, ncol = iN.hypo)
+                D.svd <- diag(svd.tempo$values, nrow = outSimp$dim, ncol = outSimp$dim)
                 P.svd <- svd.tempo$vectors
-                contrast.svd <- sqrt(D.svd) %*% t(P.svd) %*% iC
+                contrast.svd <- sqrt(D.svd) %*% t(P.svd) %*% outSimp$C
                 colnames(contrast.svd) <- name.param
 
                 iNu_m <- dfSigma(contrast = contrast.svd,
@@ -367,15 +383,13 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
                                  keep.param = name.param)
                 
                 iEQ <- sum(iNu_m/(iNu_m - 2))
-                iDf <- 2 * iEQ/(iEQ - iN.hypo)
-            }else{
-                iDf <- Inf
+                iDf[2] <- 2 * iEQ/(iEQ - outSimp$dim)
             }
 
             ## *** confidence interval
             if(ci){
                 if(df){
-                    ci.df <-  .dfX(X.beta = iC2, vcov.param = vcov.param, dVcov.param = dVcov.param)
+                    ci.df <-  .dfX(X.beta = iC.uni, vcov.param = vcov.param, dVcov.param = dVcov.param)
                 }else{
                     ci.df <- Inf
                 }
@@ -404,10 +418,10 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
 
             ## *** test
             iRes <- data.frame("null" = iName.hypo,
-                               "statistic" = iStat/iN.hypo,
-                               "df.num" = iN.hypo,
-                               "df.denom" = iDf,
-                               "p.value" = 1 - stats::pf(iStat/iN.hypo, df1 = iN.hypo, df2 = iDf),
+                               "statistic" = iStat,
+                               "df.num" = iDf[1],
+                               "df.denom" = iDf[2],
+                               "p.value" = 1 - stats::pf(iStat, df1 = iDf[1], df2 = iDf[2]),
                                stringsAsFactors = FALSE)
             attr(iRes, "contrast") <- iC
             attr(iRes, "CI") <- CI
@@ -551,18 +565,17 @@ print.anova_lmm <- function(x, level = 0.95, method = "single-step", print.null 
                 x[[iType]][["null"]] <- NULL
             }
             iNoDf <- is.infinite(x[[iType]]$df.denom)
-            txt.test <- ifelse(all(iNoDf),"Chi-square test","F-test")
             if(iType == "all"){
                 cat("                     ** User-specified hypotheses ** \n", sep="")
                 if(is.na(x[[iType]]$statistic) && !is.null(attr(x[[iType]]$statistic,"error"))){
-                    cat(" - ",txt.test,": ",attr(x[[iType]]$statistic,"error"),"\n", sep="")
+                    cat(" - F-test: ",attr(x[[iType]]$statistic,"error"),"\n", sep="")
                 }else{
-                    cat(" - ",txt.test,"\n", sep="")
+                    cat(" - F-test:\n", sep="")
                     print(x[[iType]], row.names = FALSE)
                 }
             }else{
                 cat("                     ** ",iType," coefficients ** \n", sep="")
-                cat(" - ",txt.test,"\n",sep="")
+                cat(" - F-test:\n",sep="")
                 print(x[[iType]])
             }
             if(!is.null(ci[[iType]])){
@@ -616,6 +629,40 @@ dfSigma <- function(contrast, vcov, dVcov, keep.param){
     ## denom - t(dVcov[iLink,iLink,]) %*% vcov[keep.param,keep.param,drop=FALSE] %*% dVcov[iLink,iLink,]
     df <- numerator/denom
     return(df)
+}
+
+## * .simplifyContrast
+## remove contrasts making the contrast matrix singular
+.simplifyContrast <- function(object, rhs, tol = 1e-10, trace = TRUE){
+    object.eigen <- eigen(tcrossprod(object))
+    n.zero <- sum(abs(object.eigen$values) < tol)
+
+    if(n.zero==0){return(list(C = object, rhs = rhs, dim = NROW(object), rm = 0))}
+    
+    keep.lines <- 1:NROW(object)
+    for(iLine in NROW(object):1){ ## iLine <- 3
+        iN.zero <- sum(abs(eigen(tcrossprod(object[setdiff(keep.lines,iLine),,drop=FALSE]))$values) < tol)
+        if(iN.zero<n.zero){
+            keep.lines <- setdiff(keep.lines,iLine)
+            n.zero <- iN.zero
+        }
+        if(n.zero==0){
+            
+            if(trace){
+                name.rm <- rownames(object)[-keep.lines]
+                if(length(name.rm)==1){
+                    message("Singular contrast matrix: contrast \"",name.rm,"\" has been removed. \n")
+                }else{
+                    message("Singular contrast matrix: contrasts \"",paste(name.rm,collapse= "\" \""),"\" have been removed. \n")
+                }
+            }
+
+            return(list(C = object[keep.lines,,drop=FALSE], rhs = rhs[keep.lines], dim = length(keep.lines), rm = NROW(object)-length(keep.lines)))
+        }
+    }
+
+    ## n.zero>0 so failure
+    return(NULL)
 }
 
 ##----------------------------------------------------------------------
