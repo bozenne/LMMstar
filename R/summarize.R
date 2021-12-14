@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Dec  5 2021 (14:49) 
+## Last-Updated: dec  8 2021 (17:35) 
 ##           By: Brice Ozenne
-##     Update #: 58
+##     Update #: 71
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -55,6 +55,8 @@
 ##' dL2 <- dL[-(4:5),]
 ##' 
 ##' summarize(value ~ variable + X1, data = dL)
+##'
+##' ## compute correlations
 ##' e.S <- summarize(value ~ variable + X1 | id, data = dL2, na.rm = TRUE)
 ##' e.S
 ##' attr(e.S, "correlation")
@@ -92,7 +94,6 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE,
         stop("Wrong specification of argument \'formula\'. \n",
              "There should at most one symbol |. \n")
     }else if(length(grep("|",deparse(formula), fixed = TRUE))==1){
-        
         formula.split <- strsplit(split = "|",deparse(formula),fixed=TRUE)
         formula2 <- stats::as.formula(formula.split[[1]][1])
         name.X <- rhs.vars(formula2)
@@ -163,10 +164,10 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE,
     }
 
     ## ** correlation
-    if(!is.null(name.id) && any(!test.between) && "correlation" %in% "which"){ ## id and time variables
+    if(!is.null(name.id) && any(!test.between) && "correlation" %in% which){ ## id and time variables
 
         time <- names(which(!test.between)) ## can be several variables
-        table.id.time <- do.call(table,stats::setNames(c(list(data[[name.id]]),data[,name.X]),
+        table.id.time <- do.call(table,stats::setNames(c(list(data[[name.id]]),data[,name.X,drop=FALSE]),
                                                        c(name.id,name.X)))
         if(all(table.id.time %in% 0:1)){
 
@@ -175,8 +176,8 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE,
             for(iY in 1:n.Y){
                 attr(out,"correlation")[[iY]] <- stats::setNames(lapply(ls.id, function(iId){ ## iId <- ls.id[[1]]
                     iDataL <- data[data[[name.id]] %in% iId,,drop = FALSE]
-                    iDataW <- reshape2::dcast(iData,
-                                              formula = stats::as.formula(paste0(name.id,"~",time)),
+                    iDataW <- reshape2::dcast(iDataL,
+                                              formula = stats::as.formula(paste0(name.id,"~",paste0(time,collapse="+"))),
                                               value.var = name.Y[iY])
                     if(na.rm){
                         return(stats::cor(iDataW[,-1,drop=FALSE], use = "pairwise"))

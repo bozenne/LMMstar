@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: nov 12 2021 (16:07) 
+## Last-Updated: dec 10 2021 (17:20) 
 ##           By: Brice Ozenne
-##     Update #: 529
+##     Update #: 537
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -155,11 +155,12 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
         if(any(test.duplicated)){
             stop("The time column \"",name.time,"\" in argument \'newdata\' should not have duplicated values within clusters. \n")
         }
-        test.na <- tapply(newdata[[name.Y]],newdata[[name.cluster]], function(iY){any(is.na(iY))})
-        if(any(test.na==FALSE)){
-            stop("The outcome column \"",name.Y,"\" in argument \'newdata\' should contain at least one missing value for each cluster. \n",
-                 "They are used to indicate the time at which prediction should be made. \n")
-        }
+        ## test.na <- tapply(newdata[[name.Y]],newdata[[name.cluster]], function(iY){any(is.na(iY))})
+        ## if(any(test.na==FALSE)){
+        ##     stop("The outcome column \"",name.Y,"\" in argument \'newdata\' should contain at least one missing value for each cluster. \n",
+        ##          "They are used to indicate the time at which prediction should be made. \n")
+        ## }
+
         if(any("XXXindexXXX" %in% names(newdata))){
             stop("Argument \'newdata\' should not contain a column named \"XXXindexXXX\" as this name is used internally. \n")
         }
@@ -302,8 +303,7 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
             iX.con <- X[iNewdata$XXXindexXXX[iIndex.con],,drop=FALSE]
             iX.pred <- X[iPos.pred,,drop=FALSE]
             iOmega.pred <- Omega[[pattern.cluster[seq.id[iId]]]]
-
-            if(length(iLevels.con)==0){ ## static prediction
+            if(length(iPos.pred)>0 && length(iLevels.con)==0){ ## static prediction
                 prediction[iPos.pred] <- iX.pred %*% beta
                 ## iPred.var <- diag(iX.pred %*% vcov.beta %*% t(iX.pred)) + diag(iOmega.pred)
                 if(factor.estimation){
@@ -312,7 +312,7 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
                 if(factor.residual){
                     prediction.var[iPos.pred] <- prediction.var[iPos.pred] + diag(iOmega.pred)
                 }
-            }else{ ## dynamic prediction
+            }else if(length(iPos.pred)>0){ ## dynamic prediction
                 iOmegaM1.con <- solve(iOmega.pred[iLevels.con,iLevels.con,drop=FALSE])
                 iOmega.predcon <- iOmega.pred[iLevels.pred,iLevels.con,drop=FALSE]
                 iOmega.conpred <- iOmega.pred[iLevels.con,iLevels.pred,drop=FALSE]
