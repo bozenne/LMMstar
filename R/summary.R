@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: nov 23 2021 (16:14) 
+## Last-Updated: Dec 15 2021 (18:54) 
 ##           By: Brice Ozenne
-##     Update #: 394
+##     Update #: 395
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -126,10 +126,11 @@ summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print =
         cat("Estimation procedure \n\n")
         if(method.fit == "REML"){
             cat("  - Restricted Maximum Likelihood (REML) \n")
+            cat("  - log-restricted likelihood :", as.double(logLik), "\n",sep="")
         }else{
             cat("  - Maximum Likelihood (ML) \n")
+            cat("  - log-likelihood :", as.double(logLik), "\n",sep="")
         }
-        cat("  - log-likelihood :", as.double(logLik), "\n",sep="")
         cat("  - parameters: mean = ",length(param.mu),", variance = ",length(c(param.sigma,param.k)),", correlation = ",length(param.rho),"\n", sep = "")
         if(object$opt$name!="gls"){
             index.score <- which.max(abs(object$score))

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: nov  4 2021 (11:49) 
 ## Version: 
-## Last-Updated: nov 13 2021 (18:19) 
+## Last-Updated: Dec 15 2021 (17:16) 
 ##           By: Brice Ozenne
-##     Update #: 16
+##     Update #: 18
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -38,7 +38,6 @@ test_that("linear model",{
 
     ## single variable
     e.lmm <- lmm(Y~visit+X1+X2+X6, data = dL)
-    model.matrix(e.lmm)
     test1 <- residuals(e.lmm, type = "partial", var = "visit")
     test1.bis <- residuals(e.lmm, type = "partial", var = "visit", format = "wide")
     test2 <- residuals(e.lmm, type = "partial", var = "X1")
@@ -51,6 +50,7 @@ test_that("linear model",{
     expect_equal(as.double(test3-test1), rep(e.diff,length(test1)), tol = 1e-6)
 
     ## plot(e.lmm, type = "partial", var = "X6")
+    ## plot(e.lmm, type = "partial", var = c("(Intercept)","X6"))
     
     ## ## manual plot
     ## rr <- residuals(e.lmm, type = "partial-ref", var = "X6", keep.data = TRUE)

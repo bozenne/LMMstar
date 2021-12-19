@@ -69,6 +69,7 @@ eUN.lmm <- lmm(Y ~ visit + X1 + X2 + X5,
 newd <- data.frame(X1 = 1, X2 = 2, X5 = 3, visit = factor(1:3, levels = 1:3))
 predict(eUN.lmm, newdata = newd)
 predict(eUN.lmm, newdata = newd, keep.newdata = TRUE)
+predict(eUN.lmm, newdata = newd, keep.newdata = TRUE, se = "total")
 
 ## dynamic prediction
 newd.d1 <- cbind(newd, Y = c(NA,NA,NA))

@@ -17,7 +17,9 @@
 \arguments{
 \item{obj}{a \code{lmm} object.}
 
-\item{individual}{[character] identifier of the cluster for which to extract the residual variance-covariance matrix.}
+\item{individual}{[character, data.frame, NULL] identifier of the cluster(s) for which to extract the residual variance-covariance matrix.
+For new clusters, a dataset containing the information (cluster, time, strata, ...) to be used to generate the residual variance-covariance matrices.
+When \code{NULL}, will output complete data covariance patterns.}
 
 \item{p}{[numeric vector] value of the model coefficients at which to evaluate the residual variance-covariance matrix. Only relevant if differs from the fitted values.}
 
@@ -43,6 +45,7 @@ dL <- sampleRem(100, n.times = 3, format = "long")
 eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
 
 ## extract residuals variance covariance matrix
-getVarCov(eUN.lmm)
-getVarCov(eUN.lmm, individual = c("1","5"))
+getVarCov(eUN.lmm) ## unique patterns
+getVarCov(eUN.lmm, individual = c("1","5")) ## existing individuals
+getVarCov(eUN.lmm, individual = dL[1:7,,drop=FALSE]) ## new individuals
 }

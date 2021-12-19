@@ -56,6 +56,8 @@ dL <- reshape2::melt(d, id.vars = c("id","X1"), measure.var = c("Y1","Y2","Y3"))
 dL2 <- dL[-(4:5),]
 
 summarize(value ~ variable + X1, data = dL)
+
+## compute correlations
 e.S <- summarize(value ~ variable + X1 | id, data = dL2, na.rm = TRUE)
 e.S
 attr(e.S, "correlation")

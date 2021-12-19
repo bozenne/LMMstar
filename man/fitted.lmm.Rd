@@ -4,7 +4,14 @@
 \alias{fitted.lmm}
 \title{Predicted Mean Value For Linear Mixed Model}
 \usage{
-\method{fitted}{lmm}(object, newdata = NULL, keep.newdata = FALSE, ...)
+\method{fitted}{lmm}(
+  object,
+  newdata = NULL,
+  keep.newdata = FALSE,
+  impute = FALSE,
+  se.impute = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{a \code{lmm} object.}
@@ -13,24 +20,58 @@
 
 \item{keep.newdata}{[logical] Should the argument \code{newdata} be output along side the predicted values?}
 
+\item{impute}{[logical] Should the missing data in the outcome be imputed based on covariates and other outcome values from the same cluster.}
+
+\item{se.impute}{[character] If \code{FALSE} the most likely value is imputed. Otherwise the imputed value is sampled from a normal distribution.
+The value of the argument determine which standard deviation is used: all uncertainty about the predicted value (\code{"total"}),
+only uncertainty related to the estimation of the model parameters (\code{"estimate"}), or only uncertainty related to the residual variance of the outcome (\code{"residual"}).
+Passed to \code{predict.lmm}.}
+
 \item{...}{Not used. For compatibility with the generic method.}
 }
 \value{
-A vector of length the number of row of newdata
+When \code{keep.newdata==FALSE}: \itemize{
+\item if \code{impute=FALSE} a vector of length the number of row of newdata containing the fitted values (i.e. based on the covariates only).
+\item if \code{impute=TRUE} a vector of length the number of missing values in the outcome of newdata containing the cluster-specific conditional means
+(i.e. based on the covariates and outcome measurements from the same cluster).
+}
+
+When \code{keep.newdata==TRUE}, a dataframe with an additional column containing the fitted values (i.e. based on the covariates only).
+If \code{impute=TRUE}, the missing value in the outcome column are replaced by the cluster-specific conditional means
+(i.e. based on the covariates and outcome measurements from the same cluster).
 }
 \description{
 Predicted Mean Value For Linear Mixed Model
 }
 \examples{
-## simulate data in the long format
+#### simulate data in the long format ####
 set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
 
-## fit Linear Mixed Model
-eCS.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "CS", data = dL, df = FALSE)
+#### fit Linear Mixed Model ####
+eCS.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id,
+               structure = "CS", data = dL, df = FALSE)
 
 ## prediction
 fitted(eCS.lmm)
 fitted(eCS.lmm, newdata = data.frame(X1 = 1, X2 = 2, X5 = 3))
 fitted(eCS.lmm, newdata = data.frame(X1 = 1, X2 = 2, X5 = 3), keep.newdata = TRUE)
+
+#### fit Linear Mixed Model with missing data ####
+dL2 <- dL
+dL2[3,"Y"] <- NA
+eCS2.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id,
+                structure = "CS", data = dL2, df = FALSE)
+
+## most likely value to impute
+fitted(eCS2.lmm, impute = TRUE)
+head(fitted(eCS2.lmm, impute = TRUE, keep.newdata = TRUE))
+
+## multiple imputation
+dL2.imp1 <- data.frame(imp = "1",
+    fitted(eCS2.lmm, impute = TRUE, se.impute = "total", keep.newdata = TRUE))
+dL2.imp2 <- data.frame(imp = "2",
+    fitted(eCS2.lmm, impute = TRUE, se.impute = "total", keep.newdata = TRUE))
+head(dL2.imp1)
+head(dL2.imp2)
 }

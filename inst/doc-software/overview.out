@@ -1,0 +1,23 @@
+\BOOKMARK [1][-]{section.1}{Descriptive statistics}{}% 1
+\BOOKMARK [1][-]{section.2}{Linear mixed model}{}% 2
+\BOOKMARK [2][-]{subsection.2.1}{Modeling tools}{section.2}% 3
+\BOOKMARK [2][-]{subsection.2.2}{Model output}{section.2}% 4
+\BOOKMARK [2][-]{subsection.2.3}{Extract estimated coefficients}{section.2}% 5
+\BOOKMARK [2][-]{subsection.2.4}{Extract estimated coefficient and associated uncertainty}{section.2}% 6
+\BOOKMARK [2][-]{subsection.2.5}{Extract estimated residual variance-covariance structure}{section.2}% 7
+\BOOKMARK [2][-]{subsection.2.6}{Model diagnostic}{section.2}% 8
+\BOOKMARK [2][-]{subsection.2.7}{Model fit}{section.2}% 9
+\BOOKMARK [2][-]{subsection.2.8}{Statistical inference}{section.2}% 10
+\BOOKMARK [2][-]{subsection.2.9}{Baseline adjustment}{section.2}% 11
+\BOOKMARK [2][-]{subsection.2.10}{Marginal means}{section.2}% 12
+\BOOKMARK [2][-]{subsection.2.11}{Predictions}{section.2}% 13
+\BOOKMARK [2][-]{subsection.2.12}{Missing values and imputation}{section.2}% 14
+\BOOKMARK [1][-]{section.3}{Data generation}{}% 15
+\BOOKMARK [1][-]{section.4}{Modifying default options}{}% 16
+\BOOKMARK [1][-]{section.5}{R session}{}% 17
+\BOOKMARK [1][-]{appendix.A}{Likelihood in a linear mixed model}{}% 18
+\BOOKMARK [2][-]{subsection.A.1}{Log-likelihood}{appendix.A}% 19
+\BOOKMARK [2][-]{subsection.A.2}{Score}{appendix.A}% 20
+\BOOKMARK [2][-]{subsection.A.3}{Hessian}{appendix.A}% 21
+\BOOKMARK [2][-]{subsection.A.4}{Degrees of freedom}{appendix.A}% 22
+\BOOKMARK [1][-]{appendix.B}{Likelihood ratio test with the REML criterion}{}% 23

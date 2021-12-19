@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: nov 13 2021 (18:19) 
+## Last-Updated: Dec 15 2021 (16:49) 
 ##           By: Brice Ozenne
-##     Update #: 93
+##     Update #: 94
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -200,15 +200,16 @@ test_that("lmm - predicted values",{
     expect_equal(predict(fit.main, newdata = data.frame(time = "1 week before surgery", visit = 1:4, id = c(1,1,2,2)), se = "total"),
                  data.frame("estimate" = c(121.24, 121.24, 121.24, 121.24), 
                             "se" = c(20.70577588, 19.37721241, 18.75815531, 17.57030288), 
-                            "df" = c(18.99992877, 18.99992877, 18.99992877, 18.99992877), 
-                            "lower" = c(77.90230203, 80.68301803, 81.97871975, 84.46492409), 
-                            "upper" = c(164.57769797, 161.79698197, 160.50128025, 158.01507591)),
+                            "df" = c(Inf, Inf, Inf, Inf), 
+                            "lower" = c(80.65742501, 83.26136156, 84.47469117, 86.80283915), 
+                            "upper" = c(161.82257499, 159.21863844, 158.00530883, 155.67716085)),
                  tol = 1e-3)
 
     data("gastricbypassW", package = "LMMstar")
     GS <- predict(lm(weight2 ~ weight1, data = gastricbypassW), newdata = data.frame(weight1 = 50), se = TRUE)
-    test <- predict(fit.main, newdata = data.frame(time = c("3 months before surgery","1 week before surgery"), visit = 1:2, weight = c(50,NA), id = c(1,1)),
+    test <- predict(fit.main, newdata = data.frame(time = c("3 months before surgery","1 week before surgery"), visit = factor(1:2,levels=1:4), weight = c(50,NA), id = c(1,1)),
                     type = "dynamic", keep.newdata = FALSE)
+
     expect_equivalent(test$estimate, GS$fit, tol = 1e-3)
     expect_equivalent(test,
                       data.frame("estimate" = c(48.3228695), 

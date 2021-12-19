@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: Dec 14 2021 (13:04) 
+## Last-Updated: Dec 15 2021 (18:50) 
 ##           By: Brice Ozenne
-##     Update #: 670
+##     Update #: 678
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -466,6 +466,11 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
     typeH1 <-  objectH1$param$type
     paramH0 <-  names(objectH0$param$type)
     typeH0 <-  objectH0$param$type
+    if(NROW(objectH0$design$mean)!=NROW(objectH1$design$mean)){
+        stop("Mismatch between the design matrices for the mean of the two models - could be due to missing data. \n",
+             "Different number of rows: ",NROW(objectH0$design$mean)," vs. ",NROW(objectH1$design$mean),".\n")
+    }
+
     test.X <- identical(objectH0$design$mean[,paramH0[typeH0=="mu"],drop=FALSE], objectH1$design$mean[,paramH0[typeH0=="mu"],drop=FALSE])
     if(test.X==FALSE){
         stop("Mismatch between the design matrices for the mean of the two models - one should be nested in the other. \n")
@@ -476,7 +481,11 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, df = !is.null(object$d
         stop("The two models should use the same type of objective function for the likelihood ratio test to be valid. \n")
     }
     if(objectH1$method.fit=="REML" && any(typeH1[paramTest]=="mu")){
-        stop("Cannot test mean parameters when the objective function is REML. \n")
+        objectH0$call$method.fit <- "ML"
+        objectH1$call$method.fit <- "ML"
+        message("Cannot use a likelihood ratio test to compare mean parameters when the objective function is REML. \n",
+                "Will re-estimate the model via ML and re-run the likelihood ratio test. \n")
+        return(anova(eval(objectH0$call),eval(objectH1$call)))
     }
 
     ## ** LRT
