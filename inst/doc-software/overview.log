@@ -1,9 +1,9 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2021.11.14)  19 DEC 2021 00:26
+This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2021.11.14)  22 DEC 2021 16:35
 entering extended mode
- restricted \write18 enabled.
+ \write18 enabled.
  %&-line parsing enabled.
-**/home/bozenne/Documents/GitHub/LMMstar/inst/doc-software/overview.tex
-(/home/bozenne/Documents/GitHub/LMMstar/inst/doc-software/overview.tex
+**overview.tex
+(./overview.tex
 LaTeX2e <2020-02-02> patch level 2
 L3 programming layer <2020-02-14>
 (/usr/share/texlive/texmf-dist/tex/latex/base/article.cls
@@ -1453,13 +1453,13 @@ LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 2070.
  ) 
 Here is how much of TeX's memory you used:
- 27695 strings out of 483081
- 492024 string characters out of 5963440
- 1055325 words of memory out of 5000000
+ 27694 strings out of 483081
+ 491855 string characters out of 5963440
+ 1056326 words of memory out of 5000000
  41721 multiletter control sequences out of 15000+600000
  629231 words of font info for 120 fonts, out of 8000000 for 9000
  59 hyphenation exceptions out of 8191
- 76i,17n,96p,946b,1872s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 76i,17n,96p,889b,1872s stack positions out of 5000i,500n,10000p,200000b,80000s
 pdfTeX warning (dest): name{Hfootnote.4} has been referenced but does not exi
 st, replaced by a fixed one
 
@@ -1497,7 +1497,7 @@ nts/symbols/msam10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfon
 ts/symbols/msam5.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts
 /symbols/msam7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/s
 ymbols/msbm10.pfb>
-Output written on overview.pdf (36 pages, 525523 bytes).
+Output written on overview.pdf (36 pages, 525512 bytes).
 PDF statistics:
  862 PDF objects out of 1000 (max. 8388607)
  751 compressed objects within 8 object streams

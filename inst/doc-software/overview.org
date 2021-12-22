@@ -21,9 +21,9 @@ package. This package implements specific types of linear mixed models
 mainly useful when having repeated observations over a discrete
 variable (e.g. time, brain region, ...). Key assumptions are that at
 the cluster level, observation are independent and identically
-distributed and that the mean and variance are driven by independent
-factors. In particular, in large samples the residuals do not have to
-be normally distributed.
+distributed and that the mean and variance are independent
+(conditionally on covariates). In particular, in large samples the
+residuals do not have to be normally distributed.
 
 \bigskip
 

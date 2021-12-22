@@ -33,8 +33,11 @@ Imports:
 Suggests:
     AICcmodavg,
     data.table,
+    ggpubr,
+    lattice,
     nlmeU,
     optimx,
+    psych,
     Publish,
     qqtest,
     R.rsp,
