@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Dec 15 2021 (18:10) 
+## Last-Updated: Dec 26 2021 (18:39) 
 ##           By: Brice Ozenne
-##     Update #: 1630
+##     Update #: 1631
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -306,7 +306,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         U.cluster <- as.character(U.cluster)
     }
     n.cluster <- length(U.cluster)
-    index.cluster <- match(data[["XXclusterXX"]], U.cluster) ## ‘match’ returns a vector of the positions of (first) matches of its first argument in its second.
+    index.cluster <- match(data[["XXclusterXX"]], U.cluster) ## match returns a vector of the positions of (first) matches of its first argument in its second.
     index.time <- data[["XXtime.indexXX"]]
     attr(index.cluster,"sorted") <- lapply(1:n.cluster, function(iId){
         iIndex <- which(index.cluster==iId)
