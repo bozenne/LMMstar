@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: nov  4 2021 (10:34) 
+## Last-Updated: Jan  5 2022 (09:43) 
 ##           By: Brice Ozenne
-##     Update #: 323
+##     Update #: 324
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -207,7 +207,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     if(is.function(backtransform)){
         out.save <- out
         out$estimate <- do.call(backtransform, list(out.save$estimate))
-        out$se  <- numDeriv::grad(func = exp, x = out.save$estimate) * out.save$se
+        out$se  <- numDeriv::grad(func = backtransform, x = out.save$estimate) * out.save$se
         out$lower <- do.call(backtransform, list(out.save$lower))
         out$upper <- do.call(backtransform, list(out.save$upper))
         attr(out, "backtransform") <-  2    
