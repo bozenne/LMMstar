@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jan 24 2022 (10:05) 
+## Last-Updated: jan 24 2022 (16:35) 
 ##           By: Brice Ozenne
-##     Update #: 88
+##     Update #: 89
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -76,8 +76,13 @@ print.lmm <- function(x, ...){
     }
 
     ## ** log-likelihood
-    M.print <- rbind(M.print,
-                     cbind("log-likelihood",": ",as.double(logLik)))
+    if(x$method.fit=="ML"){
+        M.print <- rbind(M.print,
+                         cbind("log-likelihood",": ",as.double(logLik)))
+    }else if(x$method.fit=="REML"){
+        M.print <- rbind(M.print,
+                         cbind("log-restr.likelihood",": ",as.double(logLik)))
+    }
 
     ## ** optimisation
     if(x$opt$name!="gls"){

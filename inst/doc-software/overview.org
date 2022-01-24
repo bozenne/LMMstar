@@ -15,17 +15,15 @@ library(ggpubr)
 #+END_SRC
 
 #+RESULTS:
-: Indlæser krævet pakke: nlme
-: LMMstar version 0.4.1
 
 This vignette describes the main functionalities of the *LMMstar*
 package. This package implements specific types of linear mixed models
 mainly useful when having repeated observations over a discrete
 variable (e.g. time, brain region, ...). Key assumptions are that at
 the cluster level, observation are independent and identically
-distributed and that the mean and variance are driven by independent
-factors. In particular, in large samples the residuals do not have to
-be normally distributed.
+distributed and that the mean and variance are independent
+(conditionally on covariates). In particular, in large samples the
+residuals do not have to be normally distributed.
 
 \bigskip
 
@@ -100,7 +98,7 @@ utils::packageVersion("LMMstar")
 #+END_SRC
 
 #+RESULTS:
-: [1] '0.4.1'
+: [1] ‘0.4.3’
 
 When estimating model coefficients, we will use the internal
 optimization routine of the *LMMstar* package (instead of relying on
@@ -133,6 +131,29 @@ print(sss, digits = 3)
 : 7 glucagon   A1_week       19       1   1.0569  1.044  -0.478   0.9408   3.267
 : 8 glucagon A3_months       20       0   0.0576  0.760  -1.047   0.0319   2.124
 
+Correlation matrices are also ouput when a cluster and ordering
+variable have been specified (here respectively =id= and =time=):
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+sss <- summarize(weight ~ time|id, data = gastricbypassL, na.rm = TRUE)
+print(sss, digits = 3)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+  outcome      time observed missing mean   sd   min median max
+1  weight B3_months       20       0  129 20.3 100.9  123.1 173
+2  weight   B1_week       20       0  121 18.9  95.7  114.5 162
+3  weight   A1_week       20       0  116 18.3  89.9  110.6 155
+4  weight A3_months       20       0  102 17.1  78.8   98.5 148
+
+ Pearson's correlation: 
+          B3_months B1_week A1_week A3_months
+B3_months     1.000   0.990   0.986     0.946
+B1_week       0.990   1.000   0.997     0.959
+A1_week       0.986   0.997   1.000     0.966
+A3_months     0.946   0.959   0.966     1.000
+#+end_example
+
 \clearpage
 
 * Linear mixed model
@@ -154,7 +175,7 @@ cat(" covariance structure: \n");getVarCov(eId.lmm)
  data                : 78 observations and distributed in 20 clusters 
  parameters          : 5 mean ((Intercept) timeB1_week timeA1_week timeA3_months glucagon) 
                        1 variance (sigma) 
- log-likelihood      : -323.086426918519 
+ log-restr.likelihood: -323.086426918519 
  convergence         : TRUE (6 iterations)
  covariance structure: 
           B3_months  B1_week  A1_week A3_months
@@ -181,7 +202,7 @@ cat(" covariance structure: \n");getVarCov(eInd.lmm)
  data                : 78 observations and distributed in 20 clusters 
  parameters          : 5 mean ((Intercept) timeB1_week timeA1_week timeA3_months glucagon) 
                        4 variance (sigma k.B1_week k.A1_week k.A3_months) 
- log-likelihood      : -321.457830361849 
+ log-restr.likelihood: -321.457830361849 
  convergence         : TRUE (9 iterations)
  covariance structure: 
           B3_months  B1_week  A1_week A3_months
@@ -211,7 +232,7 @@ cat(" covariance structure: \n");getVarCov(eCS.lmm)
  parameters          : 5 mean ((Intercept) timeB1_week timeA1_week timeA3_months glucagon) 
                        1 variance (sigma) 
                        1 correlation (rho) 
- log-likelihood      : -243.600523870253 
+ log-restr.likelihood: -243.600523870253 
  convergence         : TRUE (10 iterations)
  covariance structure: 
           B3_months  B1_week  A1_week A3_months
@@ -241,8 +262,8 @@ cat(" covariance structure: \n");getVarCov(eUN.lmm)
  parameters          : 5 mean ((Intercept) timeB1_week timeA1_week timeA3_months glucagon) 
                        4 variance (sigma k.B1_week k.A1_week k.A3_months) 
                        6 correlation (rho(B3_months,B1_week) rho(B3_months,A1_week) rho(B3_months,A3_months) rho(B1_week,A1_week) rho(B1_week,A3_months) rho(A1_week,A3_months)) 
- log-likelihood      : -216.318937004305 
- convergence         : TRUE (27 iterations)
+ log-restr.likelihood: -216.318937004305 
+ convergence         : TRUE (26 iterations)
  covariance structure: 
           B3_months  B1_week  A1_week A3_months
 B3_months  411.3114 381.9734 352.6400  318.8573
@@ -273,7 +294,7 @@ cat(" covariance structure: \n");getVarCov(eSUN.lmm)
  parameters          : 8 mean ((Intercept) timeB1_week timeA1_week timeA3_months group timeB1_week:group timeA1_week:group timeA3_months:group) 
                        8 variance (sigma:0 sigma:1 k.B1_week:0 k.A1_week:0 k.A3_months:0 k.B1_week:1 k.A1_week:1 k.A3_months:1) 
                        12 correlation (rho(B3_months,B1_week):0 rho(B3_months,A1_week):0 rho(B3_months,A3_months):0 rho(B1_week,A1_week):0 rho(B1_week,A3_months):0 rho(A1_week,A3_months):0 rho(B3_months,B1_week):1 rho(B3_months,A1_week):1 rho(B3_months,A3_months):1 rho(B1_week,A1_week):1 rho(B1_week,A3_months):1 rho(A1_week,A3_months):1) 
- log-likelihood      : -205.26832084513 
+ log-restr.likelihood: -205.26832084513 
  convergence         : TRUE (15 iterations)
  covariance structure: 
 $`0`
@@ -323,9 +344,9 @@ Summary of the outcome and covariates:
 Estimation procedure 
 
   - Restricted Maximum Likelihood (REML) 
-  - log-likelihood :-216.3189
+  - log-restricted likelihood :-216.3189
   - parameters: mean = 5, variance = 4, correlation = 6
-  - convergence: TRUE (27 iterations, largest |score|=8.734359e-07 is for rho(B1_week,A3_months))
+  - convergence: TRUE (26 iterations, largest |score|=4.315158e-06 is for k.A1_week)
  
 Residual variance-covariance: unstructured 
 
@@ -380,7 +401,7 @@ coef(eUN.lmm)
 
 #+RESULTS:
 :   (Intercept)   timeB1_week   timeA1_week timeA3_months      glucagon 
-:   128.5385950    -7.8822331   -11.7879542   -26.1223907    -0.8883083
+:   128.5385950    -7.8822331   -11.7879541   -26.1223907    -0.8883083
 
 Variance coefficients can be output by specifying the =effects= argument:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -403,7 +424,7 @@ coef(eUN.lmm, effects = "variance", transform.k = "sd")
 : sigma:B3_months   sigma:B1_week   sigma:A1_week sigma:A3_months 
 :        20.28081        19.04554        17.65480        16.76104
 
-The marginal means at each timepoint can be obtainet using =dummy.coef=:
+The marginal means at each timepoint can be obtained using =dummy.coef=:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 dummy.coef(eUN.lmm)
 #+END_SRC
@@ -478,7 +499,7 @@ getVarCov(eUN.lmm)
 : A1_week    352.6400 335.4649 311.6921  285.8077
 : A3_months  318.8573 304.6314 285.8077  280.9323
 
-It can also be specific to an individual:
+It can also be specific to a "known" individual:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 getVarCov(eUN.lmm, individual = 5)
 #+END_SRC
@@ -488,6 +509,20 @@ getVarCov(eUN.lmm, individual = 5)
 : B3_months  411.3114 352.6400  318.8573
 : A1_week    352.6400 311.6921  285.8077
 : A3_months  318.8573 285.8077  280.9323
+
+or for a new individual:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+newdata <- data.frame(id = "X", time = c("B3_months","B1_week","A1_week","A3_months"))
+getVarCov(eUN.lmm, individual = newdata)
+#+END_SRC
+
+#+RESULTS:
+:           B3_months  B1_week  A1_week A3_months
+: B3_months  411.3114 381.9734 352.6400  318.8573
+: B1_week    381.9734 362.7326 335.4649  304.6314
+: A1_week    352.6400 335.4649 311.6921  285.8077
+: A3_months  318.8573 304.6314 285.8077  280.9323
+
 
 \clearpage
 
@@ -571,7 +606,7 @@ head(eUN.diagW)
 : 1       1  -0.2897364 -0.2027622 -1.16864032   0.3258573
 : 2       2   0.8603118 -1.6492167  0.62578804   1.7370660
 : 3       3   0.7273066 -0.4155168 -0.68266746  -0.8510316
-: 4       4  -1.6403081 -0.5128371  0.06806211   1.1725813
+: 4       4  -1.6403081 -0.5128371  0.06806212   1.1725813
 : 5       5   0.4755409         NA -0.18736417  -0.8634200
 : 6       6   1.7801675  1.2847698  2.63004809   0.3505542
 
@@ -641,7 +676,7 @@ gg
 #+END_SRC
 
 #+RESULTS:
-: Advarselsbesked:
+: Warning message:
 : Removed 2 rows containing missing values (geom_point).
 
 # ## ggsave(gg + theme(text = element_text(size=20)), filename = "figures/fit-autoplot-indiv.pdf", width = 12)
@@ -662,10 +697,10 @@ anova(eUN.lmm)
 
 #+RESULTS:
 :                      ** mean coefficients ** 
-:  - F-test
+:  - F-test:
 :          statistic df.num df.denom      p.value
-: time      86.74280      3 19.00520 2.842460e-11
-: glucagon  13.51775      1 13.70749 2.571626e-03
+: time      86.74279      3 19.00520 2.842460e-11
+: glucagon  13.51775      1 13.70749 2.571625e-03
 
 Note that here the p-values are not adjust for multiple comparisons
 over variables. It is possible to specify a null hypothesis to be
@@ -677,13 +712,13 @@ anova(eUN.lmm, effects = c("timeA1_week-timeB1_week=0"), ci = TRUE)
 
 #+RESULTS:
 :                      ** User-specified hypotheses ** 
-:  - F-test
+:  - F-test:
 :  statistic df.num df.denom      p.value
 :   43.14135      1 17.87455 3.723358e-06
 : 
 :  - P-values and confidence interval 
-:                            estimate     lower     upper      p.value
-: timeA1_week - timeB1_week -3.905721 -5.155643 -2.655799 3.723358e-06
+:                            estimate        se       df     lower     upper      p.value
+: timeA1_week - timeB1_week -3.905721 0.5946403 17.87455 -5.155643 -2.655799 3.723358e-06
 
 One can also simulateneously tests several null hypotheses:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -693,14 +728,41 @@ anova(eUN.lmm, effects = c("timeA1_week-timeB1_week=0",
 
 #+RESULTS:
 :                      ** User-specified hypotheses ** 
-:  - F-test
-:  statistic df.num df.denom     p.value
-:   98.65054      2 18.61992 1.23382e-10
+:  - F-test:
+:  statistic df.num df.denom      p.value
+:   98.65053      2 18.61992 1.233819e-10
 : 
 :  - P-values and confidence interval (adjusted for multiplicity) 
-:                               estimate      lower      upper      p.value
-: timeA1_week - timeB1_week    -3.905721  -5.306911  -2.504531 4.080425e-06
-: timeA3_months - timeB1_week -18.240158 -21.357228 -15.123087 2.195166e-11
+:                               estimate        se df      lower      upper      p.value
+: timeA1_week - timeB1_week    -3.905721 0.5946403 20  -5.306911  -2.504531 4.080425e-06
+: timeA3_months - timeB1_week -18.240158 1.3228299 20 -21.357228 -15.123087 2.195177e-11
+
+or return all pairwise comparisons for a given factor using the =mcp=
+function of the multcomp package:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+library(multcomp)
+anova(eUN.lmm, effects = mcp(time = "Tukey"), ci = TRUE)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+Singular contrast matrix: contrasts "A1_week - B1_week" "A3_months - B1_week" "A3_months - A1_week" have been removed. 
+
+                     ,** User-specified hypotheses ** 
+ - F-test:
+ statistic df.num df.denom     p.value
+  86.74279      3  19.0052 2.84246e-11
+
+ - P-values and confidence interval (adjusted for multiplicity) 
+                        estimate        se df      lower      upper      p.value
+B1_week - B3_months    -7.882233 0.7131797 22  -9.784489  -5.979977 8.137047e-12
+A1_week - B3_months   -11.787954 1.0175135 22 -14.501956  -9.073953 4.271916e-12
+A3_months - B3_months -26.122391 1.6564077 22 -30.540507 -21.704274 0.000000e+00
+A1_week - B1_week      -3.905721 0.5946403 22  -5.491798  -2.319644 4.898696e-06
+A3_months - B1_week   -18.240158 1.3228299 22 -21.768526 -14.711789 4.718448e-14
+A3_months - A1_week   -14.334437 1.0565002 22 -17.152427 -11.516446 4.263256e-14
+#+end_example
+
 
 When testing transformed variance or correlation parameters,
 parentheses (as in =log(k).B1_week=) cause problem for recognizing
@@ -715,7 +777,7 @@ try(
 #+RESULTS:
 : Error in .anova_Wald(object, effects = effects, rhs = rhs, df = df, ci = ci,  : 
 :   Possible mispecification of the argument 'effects' as running mulcomp::glht lead to the following error: 
-: Error in parse(text = ex[i]) : <text>:1:7: uventet symbol
+: Error in parse(text = ex[i]) : <text>:1:7: unexpected symbol
 : 1: log(k).B1_week
 :           ^
 
@@ -760,7 +822,7 @@ anova(eUN.lmm, effects = C)
 
 #+RESULTS:
 :                      ** User-specified hypotheses ** 
-:  - F-test
+:  - F-test:
 :  statistic df.num df.denom     p.value
 :   6.203161      3 17.99456 0.004417117
 
@@ -1067,10 +1129,10 @@ summary(epairs.group, by = NULL, adjust = "mvt", infer = TRUE)
 
 #+RESULTS:
 :  contrast time      estimate    SE   df lower.CL upper.CL t.ratio p.value
-:  2 - 1    B3_months     4.83 10.10 18.0    -18.0     27.7   0.478  0.7494
-:  2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0   0.618  0.6481
-:  2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.9   0.471  0.7550
-:  2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.7   0.797  0.5281
+:  2 - 1    B3_months     4.83 10.10 18.0    -18.0     27.6   0.478  0.7499
+:  2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0   0.618  0.6476
+:  2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.9   0.471  0.7553
+:  2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.7   0.797  0.5279
 : 
 : Confidence level used: 0.95 
 : Conf-level adjustment: mvt method for 4 estimates 
@@ -1164,7 +1226,7 @@ predict(eUN.lmm, newdata = newd, type = "dynamic", keep.newdata = TRUE)
 #+RESULTS:
 :   id      time   weight glucagon  estimate        se  df     lower    upper
 : 1  1 B3_months 128.5386        0        NA        NA  NA        NA       NA
-: 2  1   B1_week       NA        0 120.65636 0.6361008 Inf 119.40963 121.9031
+: 2  1   B1_week       NA        0 120.65636 0.6361009 Inf 119.40963 121.9031
 : 3  2 B3_months 100.0000        0        NA        NA  NA        NA       NA
 : 4  2   B1_week       NA        0  94.15336 6.2597469 Inf  81.88448 106.4222
   
@@ -1185,6 +1247,133 @@ as.double(mu2 + Omega_21 * (100 - mu1) / Omega_11)
 #+RESULTS:
 : [1] 94.15336
 
+
+\clearpage
+
+** Missing values and imputation
+
+
+We now consider the glucagon level as an outcome. The =summarize=
+function can be used to describe the amount of missing data at each
+repetition:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+sss <- summarize(glucagon ~ time, data = gastricbypassL, na.rm = TRUE)
+cbind(sss[,1:4], pc = paste0(100 * sss$missing / (sss$missing + sss$observed), "%"))
+#+END_SRC
+
+#+RESULTS:
+:    outcome      time observed missing pc
+: 1 glucagon B3_months       20       0 0%
+: 2 glucagon   B1_week       19       1 5%
+: 3 glucagon   A1_week       19       1 5%
+: 4 glucagon A3_months       20       0 0%
+
+Further description of the missing data patterns rely on function
+outside the LMMstar package, e.g. appropriate call to =tapply= and
+=table=:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+vec.pattern <- tapply(as.numeric(is.na(gastricbypassL$glucagon)),
+                      INDEX = gastricbypassL$id,
+                      FUN = paste, collapse=".")
+table(vec.pattern)
+#+END_SRC
+
+#+RESULTS:
+: vec.pattern
+: 0.0.0.0 0.0.1.0 0.1.0.0 
+:      18       1       1
+
+Linear mixed model can handle missing value in the outcome variable,
+assuming that missigness is random conditional on the covariate and
+observed outcome values. The =lmm= function can be used "as usual":
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eUN.lmmNA <- lmm(glucagon ~ time,
+                 repetition = ~time|id, structure = "UN",
+                 data = gastricbypassL)
+summary(eUN.lmmNA, hide.fit = TRUE,
+        hide.cor = TRUE, hide.sd = TRUE, hide.mean = TRUE)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+           Linear Mixed Model 
+ 
+Dataset: gastricbypassL 
+
+  - 20 clusters 
+  - 78 observations were analyzed, 2 were excluded because of missing values 
+  - between 3 and 4 observations per cluster 
+
+Summary of the outcome and covariates: 
+
+    $ glucagon: num  -0.9654 0.2408 -0.0682 -0.6837 -0.6163 ...
+    $ time    : Factor w/ 4 levels "B3_months","B1_week",..: 1 1 1 1 1 1 1 1 1 1 ...
+    reference level: time=B3_months
+#+end_example
+
+The visible difference in the summary is when describing the dataset:
+we can see that some repetitions (here 2) have been ignored as the
+outcome was missing. So for some clusters only 3 values were analyzed
+instead of 4. It is possible to extract the most likely value for
+these missing observation using the =fitted= function with argument
+=impute=TRUE=:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+fitted(eUN.lmmNA, impute = TRUE)
+#+END_SRC
+
+#+RESULTS:
+: [1] -0.7430158  1.4978616
+
+When using the argument =keep.newdata=TRUE=, the missing outcome value
+has been replaced by its most likely value (which is the same as the
+dynamic prediction, describedy previously):
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eData <- fitted(eUN.lmmNA, impute = TRUE, keep.newdata = TRUE)
+eData[eData$id %in% eData[eData$imputed,"id"],]
+#+END_SRC
+
+#+RESULTS:
+:    id visit      time weight   glucagon group treat treat2 imputed    estimate
+: 5   5     1 B3_months  113.1 -0.6162619     1  none      1   FALSE -0.48564787
+: 15 15     1 B3_months  115.0 -0.9012594     2  none      1   FALSE -0.48564787
+: 25  5     2   B1_week  105.6 -0.7430158     1  none      1    TRUE -0.61323797
+: 35 15     2   B1_week  109.7 -0.4903032     2  none      1   FALSE -0.61323797
+: 45  5     3   A1_week   99.9  1.4303759     1     1      1   FALSE  1.07898563
+: 55 15     3   A1_week  103.5  1.4978616     2     2      2    TRUE  1.07898563
+: 65  5     4 A3_months   87.7  0.2751184     1     1      1   FALSE  0.05764249
+: 75 15     4 A3_months   94.1  1.2596319     2     2      2   FALSE  0.05764249
+
+Visually:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+ggplot(eData, aes(x=time,y=glucagon, group=id)) + geom_line() + geom_point(aes(color=imputed))
+#+END_SRC
+
+#+BEGIN_SRC R :exports none :results output raw drawer :session *R* :cache no
+gg <- ggplot(eData, aes(x=time,y=glucagon, group=id)) + geom_line() + geom_point(aes(color=imputed), size=2)
+ggsave(gg+ theme(text = element_text(size=20)), filename = "./figures/imputation.pdf", width = 12)
+#+END_SRC
+#+RESULTS:
+:results:
+Saving 12 x 7 in image
+:end:
+
+#+ATTR_LaTeX: :width 1\textwidth :options trim={0 0 0 0} :placement [!h]
+[[./figures/imputation.pdf]]
+
+It is possible to sample from the estimated distribution of the
+missing value instead of using the most likely value, e.g. accounting
+for residual variance and uncertainty related to parameter estimation:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+set.seed(10)
+fitted(eUN.lmmNA, impute = TRUE, se = "total")
+fitted(eUN.lmmNA, impute = TRUE, se = "total")
+fitted(eUN.lmmNA, impute = TRUE, se = "total")
+#+END_SRC
+
+#+RESULTS:
+: [1] -0.7375653  1.3052918
+: [1] -1.1417336  0.8716473
+: [1] -0.657376  1.905251
 
 \clearpage
 

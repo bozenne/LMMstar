@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul  8 2021 (17:09) 
 ## Version: 
-## Last-Updated: jan 24 2022 (11:29) 
+## Last-Updated: jan 24 2022 (16:37) 
 ##           By: Brice Ozenne
-##     Update #: 49
+##     Update #: 50
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -57,9 +57,11 @@
 ##' dL2[3,"Y"] <- NA
 ##' eCS2.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id,
 ##'                 structure = "CS", data = dL2, df = FALSE)
+##' 
 ##' ## most likely value to impute
 ##' fitted(eCS2.lmm, impute = TRUE)
 ##' head(fitted(eCS2.lmm, impute = TRUE, keep.newdata = TRUE))
+##' 
 ##' ## multiple imputation
 ##' dL2.imp1 <- data.frame(imp = "1",
 ##'     fitted(eCS2.lmm, impute = TRUE, se.impute = "total", keep.newdata = TRUE))
@@ -96,6 +98,12 @@ fitted.lmm <- function(object, newdata = NULL, keep.newdata = FALSE, impute = FA
 
         if(keep.newdata==FALSE){
             return(newdata[index.NA,object$outcome$var])
+        }else{
+            if("imputed" %in% names(newdata)){
+                stop("Argument \'newdata\' should not contain a column called \"imputed\". \n")
+            }
+            newdata$imputed <- FALSE
+            newdata$imputed[index.NA] <- TRUE
         }
     }
 

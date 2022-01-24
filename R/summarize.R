@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: dec  8 2021 (17:35) 
+## Last-Updated: Dec 18 2021 (19:53) 
 ##           By: Brice Ozenne
-##     Update #: 71
+##     Update #: 83
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -190,9 +190,33 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE,
     }
 
     ## ** export
+    class(out) <- append("summarize",class(out))
     return(out)
 }
 
+## * print.summarize
+#' @export
+print.summarize <- function(x,...){
+    print(as.data.frame(x), ...)
+    if(!is.null(attr(x,"correlation"))){
+        cat("\n Pearson's correlation: \n")
+        ls.cor <- attr(x,"correlation")
+        if(length(ls.cor)==1){ ## outcome
+            ls.cor <- ls.cor[[1]]
+            if(length(ls.cor)==1){ ## group
+                ls.cor <- ls.cor[[1]]
+            }
+        }else{
+            for(iY in 1:length(ls.cor)){ ## group
+                if(length(ls.cor[[iY]])==1){
+                    ls.cor[[iY]] <- ls.cor[[iY]][[1]]
+                }
+            }
+        }
+        print(ls.cor, ...)
+    }
+    return(invisible(NULL))
+}
 
 ######################################################################
 ### summarize.R ends here

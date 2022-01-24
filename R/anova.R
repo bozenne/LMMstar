@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jan 24 2022 (11:49) 
+## Last-Updated: jan 24 2022 (16:37) 
 ##           By: Brice Ozenne
-##     Update #: 653
+##     Update #: 655
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -69,6 +69,15 @@
 ##' anova(eUN.lmm, effects = "all")
 ##' anova(eUN.lmm, effects = c("X1=0","X2+X5=10"), ci = TRUE)
 ##' 
+##' if(require(multcomp)){
+##' amod <- lmm(breaks ~ tension, data = warpbreaks)
+##' e.glht <- glht(amod, linfct = mcp(tension = "Tukey"))
+##' summary(e.glht, test = Chisqtest()) ## 0.000742
+##'
+##' print(anova(amod, effect = mcp(tension = "Tukey"), df = FALSE), print.null = TRUE)
+##' 
+##' anova(amod, effect = mcp(tension = "Tukey"), ci = TRUE)
+##' }
 
 ## * anova.lmm (code)
 ##' @rdname anova
@@ -274,7 +283,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                                                vcov. = function(iX){vcov.lmm(iX, robust = robust, effects = "all")}), silent = TRUE)
                 if(inherits(out.glht,"try-error")){
                     stop("Possible mispecification of the argument \'effects\' as running mulcomp::glht lead to the following error: \n",
-                         out.glht)
+                         out.glht)
                 }
                 oldname.coef <- colnames(out.glht$linfct)
                 newname.hypo <- rownames(out.glht$linfct)
@@ -335,31 +344,38 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                 }else{
                     diag(iC[name.iParam[iIndex.param],name.iParam[iIndex.param]]) <- 1
                 }
-                iC2 <- iC
-                colnames(iC2) <- name.param[match(colnames(iC),newname)]
+                iC.uni <- iC
+                colnames(iC.uni) <- name.param[match(colnames(iC),newname)]
             }else{
                 iC <- ls.contrast[[iType]]
-                iC2 <- iC
+                iC.uni <- iC
                 iN.hypo <- NROW(iC)
                 iNull <- ls.null[[iType]]
                 iName.hypo  <- paste(paste0(rownames(iC),"==",iNull),collapse=", ")
             }
 
             ## *** statistic
-            iC.vcov.C_M1 <- try(solve(iC %*% vcov.param %*% t(iC)), silent = TRUE)
+            outSimp <- .simplifyContrast(iC, iNull) ## remove extra lines
+            iC.vcov.C_M1 <- try(solve(outSimp$C %*% vcov.param %*% t(outSimp$C)), silent = TRUE)
             if(inherits(iC.vcov.C_M1,"try-error")){
                 iStat <- NA
+                iDf <- c(iN.hypo,Inf)
                 attr(iStat,"error") <- "\n  Could not invert the covariance matrix for the proposed contrast."
             }else{
-                iStat <- as.double(t(iC %*% param - iNull) %*% iC.vcov.C_M1 %*% (iC %*% param - iNull))
+                iStat <- as.double(t(outSimp$C %*% param - outSimp$rhs) %*% iC.vcov.C_M1 %*% (outSimp$C %*% param - outSimp$rhs))/outSimp$dim 
+                iDf <- c(outSimp$dim,Inf)
+                if(outSimp$rm>0){
+                    iName.hypo <- paste(paste0(rownames(outSimp$C),"==",outSimp$rhs),collapse=", ")
+                }
             }
 
             ## *** degree of freedom
             if(df && !inherits(iC.vcov.C_M1,"try-error")){
+
                 svd.tempo <- eigen(iC.vcov.C_M1)
-                D.svd <- diag(svd.tempo$values, nrow = iN.hypo, ncol = iN.hypo)
+                D.svd <- diag(svd.tempo$values, nrow = outSimp$dim, ncol = outSimp$dim)
                 P.svd <- svd.tempo$vectors
-                contrast.svd <- sqrt(D.svd) %*% t(P.svd) %*% iC
+                contrast.svd <- sqrt(D.svd) %*% t(P.svd) %*% outSimp$C
                 colnames(contrast.svd) <- name.param
 
                 iNu_m <- dfSigma(contrast = contrast.svd,
@@ -368,15 +384,13 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                                  keep.param = name.param)
                 
                 iEQ <- sum(iNu_m/(iNu_m - 2))
-                iDf <- 2 * iEQ/(iEQ - iN.hypo)
-            }else{
-                iDf <- Inf
+                iDf[2] <- 2 * iEQ/(iEQ - outSimp$dim)
             }
 
             ## *** confidence interval
             if(ci){
                 if(df){
-                    ci.df <-  .dfX(X.beta = iC2, vcov.param = vcov.param, dVcov.param = dVcov.param)
+                    ci.df <-  .dfX(X.beta = iC.uni, vcov.param = vcov.param, dVcov.param = dVcov.param)
                 }else{
                     ci.df <- Inf
                 }
@@ -406,10 +420,10 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
 
             ## *** test
             iRes <- data.frame("null" = iName.hypo,
-                               "statistic" = iStat/iN.hypo,
-                               "df.num" = iN.hypo,
-                               "df.denom" = iDf,
-                               "p.value" = 1 - stats::pf(iStat/iN.hypo, df1 = iN.hypo, df2 = iDf),
+                               "statistic" = iStat,
+                               "df.num" = iDf[1],
+                               "df.denom" = iDf[2],
+                               "p.value" = 1 - stats::pf(iStat, df1 = iDf[1], df2 = iDf[2]),
                                stringsAsFactors = FALSE)
             attr(iRes, "contrast") <- iC
             attr(iRes, "CI") <- CI
@@ -454,6 +468,11 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     typeH1 <-  objectH1$param$type
     paramH0 <-  names(objectH0$param$type)
     typeH0 <-  objectH0$param$type
+    if(NROW(objectH0$design$mean)!=NROW(objectH1$design$mean)){
+        stop("Mismatch between the design matrices for the mean of the two models - could be due to missing data. \n",
+             "Different number of rows: ",NROW(objectH0$design$mean)," vs. ",NROW(objectH1$design$mean),".\n")
+    }
+
     test.X <- identical(objectH0$design$mean[,paramH0[typeH0=="mu"],drop=FALSE], objectH1$design$mean[,paramH0[typeH0=="mu"],drop=FALSE])
     if(test.X==FALSE){
         stop("Mismatch between the design matrices for the mean of the two models - one should be nested in the other. \n")
@@ -464,7 +483,11 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         stop("The two models should use the same type of objective function for the likelihood ratio test to be valid. \n")
     }
     if(objectH1$method.fit=="REML" && any(typeH1[paramTest]=="mu")){
-        stop("Cannot test mean parameters when the objective function is REML. \n")
+        objectH0$call$method.fit <- "ML"
+        objectH1$call$method.fit <- "ML"
+        message("Cannot use a likelihood ratio test to compare mean parameters when the objective function is REML. \n",
+                "Will re-estimate the model via ML and re-run the likelihood ratio test. \n")
+        return(anova(eval(objectH0$call),eval(objectH1$call)))
     }
 
     ## ** LRT
@@ -680,6 +703,40 @@ dfSigma <- function(contrast, vcov, dVcov, keep.param){
     ## denom - t(dVcov[iLink,iLink,]) %*% vcov[keep.param,keep.param,drop=FALSE] %*% dVcov[iLink,iLink,]
     df <- numerator/denom
     return(df)
+}
+
+## * .simplifyContrast
+## remove contrasts making the contrast matrix singular
+.simplifyContrast <- function(object, rhs, tol = 1e-10, trace = TRUE){
+    object.eigen <- eigen(tcrossprod(object))
+    n.zero <- sum(abs(object.eigen$values) < tol)
+
+    if(n.zero==0){return(list(C = object, rhs = rhs, dim = NROW(object), rm = 0))}
+    
+    keep.lines <- 1:NROW(object)
+    for(iLine in NROW(object):1){ ## iLine <- 3
+        iN.zero <- sum(abs(eigen(tcrossprod(object[setdiff(keep.lines,iLine),,drop=FALSE]))$values) < tol)
+        if(iN.zero<n.zero){
+            keep.lines <- setdiff(keep.lines,iLine)
+            n.zero <- iN.zero
+        }
+        if(n.zero==0){
+            
+            if(trace){
+                name.rm <- rownames(object)[-keep.lines]
+                if(length(name.rm)==1){
+                    message("Singular contrast matrix: contrast \"",name.rm,"\" has been removed. \n")
+                }else{
+                    message("Singular contrast matrix: contrasts \"",paste(name.rm,collapse= "\" \""),"\" have been removed. \n")
+                }
+            }
+
+            return(list(C = object[keep.lines,,drop=FALSE], rhs = rhs[keep.lines], dim = length(keep.lines), rm = NROW(object)-length(keep.lines)))
+        }
+    }
+
+    ## n.zero>0 so failure
+    return(NULL)
 }
 
 ##----------------------------------------------------------------------

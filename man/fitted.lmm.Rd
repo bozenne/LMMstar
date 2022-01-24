@@ -62,9 +62,11 @@ dL2 <- dL
 dL2[3,"Y"] <- NA
 eCS2.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id,
                 structure = "CS", data = dL2, df = FALSE)
+
 ## most likely value to impute
 fitted(eCS2.lmm, impute = TRUE)
 head(fitted(eCS2.lmm, impute = TRUE, keep.newdata = TRUE))
+
 ## multiple imputation
 dL2.imp1 <- data.frame(imp = "1",
     fitted(eCS2.lmm, impute = TRUE, se.impute = "total", keep.newdata = TRUE))
