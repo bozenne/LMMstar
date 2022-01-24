@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul  8 2021 (17:09) 
 ## Version: 
-## Last-Updated: dec 10 2021 (17:18) 
+## Last-Updated: jan 24 2022 (11:29) 
 ##           By: Brice Ozenne
-##     Update #: 48
+##     Update #: 49
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -86,12 +86,12 @@ fitted.lmm <- function(object, newdata = NULL, keep.newdata = FALSE, impute = FA
         if(is.null(newdata)){
             newdata <- object$data.original
         }
-        e.impute <- predict(object, newdata = newdata, type = "dynamic", se = se.impute, keep.newdata = TRUE)
+        e.impute <- stats::predict(object, newdata = newdata, type = "dynamic", se = se.impute, keep.newdata = TRUE)
         index.NA <- which(!is.na(e.impute$estimate))
         if(length(index.NA) > 0 && "se" %in% names(e.impute) == FALSE){
             newdata[index.NA,object$outcome$var] <- e.impute[index.NA,"estimate"]
         }else{
-            newdata[index.NA,object$outcome$var] <- rnorm(length(index.NA), mean = e.impute[index.NA,"estimate"], sd = e.impute[index.NA,"se"])
+            newdata[index.NA,object$outcome$var] <- stats::rnorm(length(index.NA), mean = e.impute[index.NA,"estimate"], sd = e.impute[index.NA,"se"])
         }
 
         if(keep.newdata==FALSE){

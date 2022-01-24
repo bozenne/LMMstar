@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: nov 23 2021 (16:14) 
+## Last-Updated: jan 24 2022 (09:48) 
 ##           By: Brice Ozenne
-##     Update #: 394
+##     Update #: 395
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,7 +26,7 @@
 ##' @param level [numeric,0-1] confidence level for the confidence intervals.
 ##' @param print [logical] should the output be printed in the console.
 ##' @param columns [character vector] Columns to be output for the fixed effects. Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
-##' @param robust [logical] Should robust standard error (aka sandwich estimator) be output instead of the model-based standard errors. 
+##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
 ##' @param hide.fit [logical] should information about the model fit not be printed.
 ##' @param hide.data [logical] should information about the dataset not be printed.
 ##' @param hide.cor [logical] should information about the correlation structure not be printed.

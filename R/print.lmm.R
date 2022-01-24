@@ -1,11 +1,11 @@
-### print.R --- 
+### print.lmm.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: nov 23 2021 (16:14) 
+## Last-Updated: jan 24 2022 (10:05) 
 ##           By: Brice Ozenne
-##     Update #: 87
+##     Update #: 88
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -97,4 +97,4 @@ print.lmm <- function(x, ...){
 
 
 ##----------------------------------------------------------------------
-### print.R ends here
+### print.lmm.R ends here

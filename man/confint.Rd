@@ -36,7 +36,7 @@ or only for mean coefficients (\code{"mean"} or \code{"fixed"}),
 or only for variance coefficients (\code{"variance"}),
 or only for correlation coefficients (\code{"correlation"}).}
 
-\item{robust}{[logical] Should robust standard error (aka sandwich estimator) be output instead of the model-based standard errors. Not feasible for variance or correlation coefficients estimated by REML.}
+\item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. Not feasible for variance or correlation coefficients estimated by REML.}
 
 \item{null}{[numeric vector] the value of the null hypothesis relative to each coefficient.}
 
