@@ -100,11 +100,11 @@ dL <- sampleRem(100, n.times = 3, format = "long")
 eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL)
 
 ## chi-2 test
-anova(eUN.lmm, df = FALSE)
+summary(anova(eUN.lmm, df = FALSE))
 
 ## F-test
 anova(eUN.lmm)
-anova(eUN.lmm, effects = "all")
+summary(anova(eUN.lmm, effects = "all"))
 anova(eUN.lmm, effects = c("X1=0","X2+X5=10"), ci = TRUE)
 
 if(require(multcomp)){

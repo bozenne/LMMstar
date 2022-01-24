@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 24 2022 (10:05) 
 ## Version: 
-## Last-Updated: jan 24 2022 (11:25) 
+## Last-Updated: jan 24 2022 (16:45) 
 ##           By: Brice Ozenne
-##     Update #: 18
+##     Update #: 19
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -19,7 +19,9 @@
 ##' @rdname anova
 ##' @export
 print.anova_lmm <- function(x, ...){
-    summary(x, print.null = -1, ...)
+    dots <- list(...)
+    dots$print.null <- NULL
+    return(do.call(summary, c(list(object = x, print.null = -1), dots)))
 }
 
 ## * summary.anova_lmm
