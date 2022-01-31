@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: nov 12 2021 (13:47) 
+## Last-Updated: jan 31 2022 (15:25) 
 ##           By: Brice Ozenne
-##     Update #: 318
+##     Update #: 362
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,7 +15,98 @@
 ## 
 ### Code:
 
-## * estimate (documentation)
+## * estimate.lmm
+##' @title Delta Method for Mixed Models
+##' @description Perform a first order delta method
+##'
+##' @param x  a \code{lmm} object.
+##' @param f [function] function of the model coefficient computing the parameter(s) of interest. Can accept extra-arguments.
+##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
+##' @param df [logical] Should degree of freedom, computed using Satterthwaite approximation, for the parameter of interest be output.
+##' @param type.information [character] Should the expected information be used  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
+##' @param level [numeric,0-1] the confidence level of the confidence intervals.
+##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
+##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
+##' @param transform.rho [character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"} - see details.
+##' @param ... extra arguments passed to \code{f}.
+##'
+##' @examples
+##' set.seed(10)
+##' d <- sampleRem(1e2, n.time = 2)
+##' e.ANCOVA1 <- lm(Y2~Y1+X1, data = d)
+##'
+##' if(require(reshape2) && require(lava)){
+##'    dL2 <- melt(d, id.vars = c("id","Y1","X1"),  measure.vars = c("Y1","Y2"))
+##'    e.lmm <- lmm(value ~ variable + variable:X1, data = dL2, repetition = ~variable|id)
+##' 
+##'    e.delta <- estimate(e.lmm, function(p){
+##'        c(Y1 = p["rho(Y1,Y2)"]*p["k.Y2"],
+##'          X1 = p["variableY2:X1"]-p["k.Y2"]*p["rho(Y1,Y2)"]*p["variableY1:X1"])
+##' })
+##'    ## same estimate and similar standard errors. 
+##'    e.delta
+##'    summary(e.ANCOVA1)$coef
+##'    ## Degrees of freedom are a bit off though
+##' }
+##' @export
+estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NULL, level = 0.95,
+                         transform.sigma = "none", transform.k = "none", transform.rho = "none", ...){
+
+    
+    ## estimate
+    beta <- coef(x, effects = "all", transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
+
+    ## partial derivative
+    f.formals <- names(formals(f))
+    if(length(f.formals)==1){
+        fbeta <- f(beta)
+        grad <- numDeriv::jacobian(func = f, x = beta)
+    }else{
+        fbeta <- f(beta, ...)
+        grad <- numDeriv::jacobian(func = f, x = beta, ...)
+    }
+    
+
+    ## extract variance-covariance
+    Sigma <- vcov(x, df = 2*(df>0), effects = "all", robust = robust, type.information = type.information, ## 2*df is needed to return dVcov
+                  transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
+
+    ## ** delta-method
+    C.Sigma.C <- grad %*% Sigma %*% t(grad)
+    C.sigma.C <- sqrt(diag(C.Sigma.C))
+
+    ## df 
+    if(!is.null(attr(Sigma, "dVcov"))){
+        keep.param <- dimnames(attr(Sigma, "dVcov"))[[3]]
+        C.dVcov.C <- sapply(keep.param, function(iM){ ##  iName  <- dimnames(attr(Sigma, "dVcov"))[[3]][1]
+            rowSums(grad %*% attr(Sigma, "dVcov")[,,iM] * grad)
+        })
+        numerator <- 2 *diag(C.Sigma.C)^2
+        denom <- rowSums(C.dVcov.C %*% Sigma[keep.param,keep.param,drop=FALSE] * C.dVcov.C)
+        df <- numerator/denom
+    }else{
+        df <- rep(Inf, NROW(grad))
+    }
+
+    ## ** export
+    alpha <- 1-level
+    out <- data.frame(estimate = as.double(fbeta),
+                      se = as.double(C.sigma.C),
+                      df = as.double(df),
+                      lower = as.double(fbeta + stats::qt(alpha/2, df = df) * C.sigma.C),
+                      upper = as.double(fbeta + stats::qt(1-alpha/2, df = df) * C.sigma.C),
+                      p.value = as.double(2*(1-stats::pt(abs(fbeta/C.sigma.C), df = df))))
+    attr(out,"gradient") <- grad
+    if(!is.null(names(fbeta))){
+        rownames(out) <- names(fbeta)
+        rownames(attr(out,"gradient")) <- names(fbeta)
+    }
+    colnames(attr(out,"gradient")) <- names(beta)
+    return(out)
+}
+
+
+## * .estimate (documentation)
 ##' @title Optimizer for mixed models
 ##' @description Optimization procedure for mixed model (REML or ML).
 ##' Alternate between one step of gradient descent to update the variance parameters
@@ -48,7 +139,7 @@
 ##'
 ##' @keywords internal
 
-## * estimate (code)
+## * .estimate (code)
 .estimate <- function(design, time, method.fit, type.information,
                       transform.sigma, transform.k, transform.rho,
                       precompute.moments, optimizer, init, n.iter, tol.score, tol.param, trace){

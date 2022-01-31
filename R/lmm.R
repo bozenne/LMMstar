@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jan 24 2022 (10:18) 
+## Last-Updated: jan 31 2022 (14:41) 
 ##           By: Brice Ozenne
-##     Update #: 1393
+##     Update #: 1395
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -582,7 +582,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
                                transform.sigma = options$transform.sigma, transform.k = options$transform.k, transform.rho = options$transform.rho,
                                logLik = TRUE, score = TRUE, information = TRUE, vcov = TRUE, df = df, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
                                trace = trace>=2, precompute.moments = options$precompute.moments, method.numDeriv = options$method.numDeriv, transform.names = FALSE)
-
+    
     out[names(outMoments)] <- outMoments
 
     

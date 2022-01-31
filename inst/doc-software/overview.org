@@ -15,6 +15,10 @@ library(ggpubr)
 #+END_SRC
 
 #+RESULTS:
+: Indlæser krævet pakke: nlme
+: LMMstar version 0.4.5
+: Advarselsbesked:
+: pakke 'nlme' blev bygget under R version 4.1.2
 
 This vignette describes the main functionalities of the *LMMstar*
 package. This package implements specific types of linear mixed models
@@ -77,8 +81,9 @@ See =?gastricbypassL= for a presentation of the database. We will use a shorter 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 gastricbypassL$time <- factor(gastricbypassL$time,
                               levels = c("3 months before surgery", "1 week before surgery",
-                                                            "1 week after surgery", "3 months after surgery" ),
+                                         "1 week after surgery", "3 months after surgery" ),
                               labels = c("B3_months","B1_week","A1_week","A3_months"))
+gastricbypassL$visit <- as.numeric(gastricbypassL$time) ## convert to numeric
 #+END_SRC
 #+RESULTS:
 and rescale the glucagon values
@@ -686,7 +691,7 @@ gg
 
 \clearpage
 
-** Statistical inference
+** Statistical inference (linear)
 
 The =anova= method can be use to test one or several linear
 combinations of the model coefficients using Wald tests. By default,
@@ -825,6 +830,79 @@ anova(eUN.lmm, effects = C)
 :  - F-test:
 :  statistic df.num df.denom     p.value
 :   6.203161      3 17.99456 0.004417117
+
+\clearpage
+
+** Statistical inference (non-linear)
+
+The =estimate= function can be used to test one or several non-linear
+combinations of model coefficients, using a first order delta method
+to quantify uncertainty. The combination has to be specified via a
+function (argument =f=). To illustrate its use consider an ANCOVA
+analysis:
+#+BEGIN_EXPORT latex
+\[ Y_{i1} = \textcolor{\darkred}{\alpha} + \textcolor{\darkblue}{\beta} Y_{i,0} + \textcolor{\darkgreen}{\gamma} X_{i} + e_{i} \]
+#+END_EXPORT
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+gastricbypassW <- reshape(gastricbypassL[,c("id","time","weight","group")],
+                          direction = "wide",
+                          timevar = "time", idvar = c("id","group"))
+e.ANCOVA <- lm(weight.A1_week ~ weight.B1_week + group, data = gastricbypassW)
+summary(e.ANCOVA)$coef
+#+END_SRC
+
+#+RESULTS:
+:                  Estimate Std. Error    t value     Pr(>|t|)
+: (Intercept)    -1.4823022 2.31781138 -0.6395267 5.310047e-01
+: weight.B1_week  0.9654917 0.01803988 53.5198489 2.156258e-20
+: group           0.2521714 0.66499945  0.3792054 7.092302e-01
+
+We can replicate this analysis by first fitting a mixed model:
+#+BEGIN_EXPORT latex
+\[ Y_{ij} = \alpha_j + \gamma_j X_{i} + \varepsilon_{i,j} \text{ where } \varepsilon_i \sim \Gaus \left( \begin{bmatrix} 0 \\ 0 \end{bmatrix}, \begin{bmatrix} \sigma^2_1 & \rho \sigma_1 \sigma_2 \\ \rho \sigma_1 \sigma_2 & \sigma^2_2 \end{bmatrix} \right) \]
+#+END_EXPORT
+#+BEGIN_SRC R :exports code :results output :session *R* :cache no
+e.lmmANCOVA <- lmm(weight ~ time+time:group, repetition = ~time|id,
+                   data = gastricbypassL[gastricbypassL$visit %in% c("2","3"),])
+#+END_SRC
+
+#+RESULTS:
+: Factor variable(s) with empty level: "time"
+:  The empty level(s) will be remove internally. Consider applying droplevels to avoid this warning.
+
+and then perform a delta-method:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+lava::estimate(e.lmmANCOVA, f = function(p){
+  c(Y1 = as.double(p["rho(B1_week,A1_week)"]*p["k.A1_week"]),
+    X1 = as.double(p["timeA1_week:group"]-p["rho(B1_week,A1_week)"]*p["k.A1_week"]*p["timeB1_week:group"]))
+})
+#+END_SRC
+
+#+RESULTS:
+:     estimate         se       df      lower    upper   p.value
+: Y1 0.9654917 0.01753161 15.96769  0.9283202 1.002663 0.0000000
+: X1 0.2521713 0.64626330 15.00349 -1.1252784 1.629621 0.7018732
+
+Indeed:
+#+BEGIN_EXPORT latex
+\begin{align*}
+\Esp[Y_{i2}|Y_{i1},X_{i}] &= \alpha_j + \gamma_j X_{i} + \rho \frac{\sigma_2}{\sigma_1}\left(Y_{i1} - \alpha_j - \gamma_j X_{i}\right) \\
+                         &= \textcolor{\darkred}{\alpha_j - \rho \frac{\sigma_2}{\sigma_1} \alpha_j}
+                         + \textcolor{\darkblue}{\rho \frac{\sigma_2}{\sigma_1}Y_{i1}}
+                         + \textcolor{\darkgreen}{\left(\gamma_j - \rho \frac{\sigma_2}{\sigma_1} \gamma_j\right)  X_{i} }
+\end{align*}
+#+END_EXPORT
+
+We obtain identical estimate but different standard-errors/degrees of
+freedom compared to the univariate linear model approach. The later is
+to be prefer as it does not rely on approximation. The former is
+nevertheless useful as it can handle missing data in the outcome
+variable.
+
+
+
+
 
 \clearpage
 
