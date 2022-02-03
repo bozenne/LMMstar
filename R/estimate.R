@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: jan 31 2022 (15:25) 
+## Last-Updated: feb  3 2022 (13:25) 
 ##           By: Brice Ozenne
-##     Update #: 362
+##     Update #: 368
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -65,7 +65,6 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
         fbeta <- f(beta, ...)
         grad <- numDeriv::jacobian(func = f, x = beta, ...)
     }
-    
 
     ## extract variance-covariance
     Sigma <- vcov(x, df = 2*(df>0), effects = "all", robust = robust, type.information = type.information, ## 2*df is needed to return dVcov
@@ -75,6 +74,15 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
     C.Sigma.C <- grad %*% Sigma %*% t(grad)
     C.sigma.C <- sqrt(diag(C.Sigma.C))
 
+    ## second order?
+    ## g(\thetahat) = g(\theta) + (\thetahat-\theta)grad + 0.5(\thetahat-\theta)lap(\thetahat-\theta) + ...
+    ## Var[g(\thetahat)] = grad\Var[\thetahat-\theta]grad + 0.25\Var[(\thetahat-\theta)lap(\thetahat-\theta)] + \Cov((\thetahat-\theta)grad,(\thetahat-\theta)lap(\thetahat-\theta)) + ...
+    ## https://stats.stackexchange.com/questions/427332/variance-of-quadratic-form-for-multivariate-normal-distribution
+    ## Var[g(\thetahat)] = grad\Var[\thetahat-\theta]grad + 0.25*2*tr((lap\Var[\thetahat-\theta])^2) + 0 + ...
+    
+    ## lap <- numDeriv::hessian(func = f, x = beta) ## laplacian
+    ## 2 * sum(diag(Sigma %*% lap %*% Sigma %*% lap))
+    
     ## df 
     if(!is.null(attr(Sigma, "dVcov"))){
         keep.param <- dimnames(attr(Sigma, "dVcov"))[[3]]

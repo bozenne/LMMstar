@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jan 31 2022 (12:59) 
+## Last-Updated: feb  3 2022 (13:25) 
 ##           By: Brice Ozenne
-##     Update #: 327
+##     Update #: 328
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -250,7 +250,7 @@ print.confint_lmm <- function(x, digit = 3, ...){
         txt <- unique(c("estimates","standard errors","confidence intervals","confidence intervals")[c("estimate","se","lower","upper") %in% names(x)])
         cat("Note: ",paste(txt,collapse = ", ")," have been back-transformed. \n", sep ="")
     }
-    return(NULL)
+    return(invisible(NULL))
 }
 
 ## * backtransform

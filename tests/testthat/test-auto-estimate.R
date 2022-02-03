@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 31 2022 (11:36) 
 ## Version: 
-## Last-Updated: jan 31 2022 (16:16) 
+## Last-Updated: feb  3 2022 (13:26) 
 ##           By: Brice Ozenne
-##     Update #: 23
+##     Update #: 28
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -65,6 +65,7 @@ test_that("delta method for association based on residual variance", {
         c(Y1 = p["rho(Y1,Y2)"]*p["k.Y2"],
           X1 = p["variableY2:X1"]-p["k.Y2"]*p["rho(Y1,Y2)"]*p["variableY1:X1"])
     })
+    
     expect_equal(e.deltaANCOVA1["Y1","estimate"], unname(e.OmegaANCOVA1["Y1","Y2"]/e.OmegaANCOVA1["Y1","Y1"]), tol = 1e-10)
     expect_equal(e.deltaANCOVA1["Y1","se"], unname(sqrt(e.varANCOVA1)), tol = 1e-10)
 
@@ -110,7 +111,7 @@ test_that("delta method for association based on residual variance", {
 })
 
 
-## ** Association between the changes
+## * Association between the changes
 e.lm <- lm(dY~dX, data = d)
 summary(e.lm)$coef["dX",]
 ##  Estimate Std. Error    t value   Pr(>|t|) 
@@ -175,6 +176,27 @@ test_that("delta method for association based on residual variance", {
     expect_equal(as.double(unlist(e.delta4)), as.double(unlist(test)), tol = 1e-6)
 
 })
+
+## ## For Paul
+## set.seed(10)
+## dW <- sampleRem(25, n.time = 3)
+## dW$dY2 <- dW$Y2 - dW$Y1
+## dW$dY3 <- dW$Y3 - dW$Y1
+
+## dL <- melt(dW, id.vars = c("id","X1","Y1"), measure.vars = c("dY2","dY3"))
+
+## e.lm <- lm(dY3~Y1+X1, data = dW)
+
+
+## e.lmm <- lmm(value ~ variable + variable:Y1 + variable:X1, repetition =~variable|id,  data = dL)
+## library(nlme)
+## e.lme <- lme(value ~ variable + variable:Y1 + variable:X1, random =~1|id, weights=varIdent(form=~1|variable),
+##              correlation=corSymm(form=~1|id),  data = dL)
+
+## summary(e.lm)$coef
+## print(model.tables(e.lmm), digit = 7)
+
+## summary(e.lme)$tTable
 
 
 ##----------------------------------------------------------------------

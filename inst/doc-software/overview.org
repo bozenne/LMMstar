@@ -864,7 +864,7 @@ We can replicate this analysis by first fitting a mixed model:
 #+END_EXPORT
 #+BEGIN_SRC R :exports code :results output :session *R* :cache no
 e.lmmANCOVA <- lmm(weight ~ time+time:group, repetition = ~time|id,
-                   data = gastricbypassL[gastricbypassL$visit %in% c("2","3"),])
+                   data = gastricbypassL[gastricbypassL$visit %in% 2:3,])
 #+END_SRC
 
 #+RESULTS:
