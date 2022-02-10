@@ -1,8 +1,8 @@
 Package: LMMstar
 Type: Package
 Title: Repeated Measurement Models for Discrete Times
-Version: 0.4.5
-Date: 2022-01-31
+Version: 0.4.6
+Date: 2022-02-10
 Authors@R: c(
     person("Brice", "Ozenne", role = c("aut", "cre"), email = "brice.mh.ozenne@gmail.com", comment = c(ORCID = "0000-0001-9694-2956")),
     person("Julie", "Forman", role = "aut", email = "jufo@sund.ku.dk", comment = c(ORCID = "0000-0001-7368-0869"))
@@ -52,7 +52,8 @@ Collate:
     'autoplot.R'
     'baselineAdjustment.R'
     'coef.R'
-    'confint.R'
+    'confint.anova_lmm.R'
+    'confint.lmm.R'
     'df.R'
     'doc-data.R'
     'dummy.coef.R'
@@ -78,6 +79,7 @@ Collate:
     'predict.R'
     'print.anova_lmm.R'
     'print.lmm.R'
+    'rbind.anova_lmm.R'
     'reparametrize.R'
     'residuals.R'
     'sampleRem.R'
@@ -89,7 +91,7 @@ Collate:
     'structure-skeleton.R'
     'structure.R'
     'summarize.R'
-    'summary.Manova_lmm.R'
+    'summary.anova_lmm.R'
     'summary.lmm.R'
     'terms.R'
     'transformSummaryTable.R'

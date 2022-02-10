@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: nov 13 2021 (16:35) 
+## Last-Updated: feb 10 2022 (10:53) 
 ##           By: Brice Ozenne
-##     Update #: 925
+##     Update #: 945
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -486,11 +486,28 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
     }
 
     if(robust){
+        if(REML){
+            if(type.information=="observed"){
+                stop("Cannot compute robust observed information matrix under REML. \n",
+                     "Consider using the expected information matrix by setting the argument type.information=\"expected\" when calling lmm.\n")
+            }
+            effects2 <- "mean"
+            attr(effects2,"original.names") <- attr(effects,"original.names")
+            attr(effects2,"reparametrize.names") <- attr(effects,"reparametrize.names")
+        }else{
+            effects2 <- effects
+        }
         attr.info <- info
         attr.bread <- crossprod(.score(X = X, residuals = residuals, precision = precision, dOmega = dOmega, index.variance = index.variance, time.variance = time.variance, 
-                                       index.cluster = index.cluster, name.varcoef = name.varcoef, name.allcoef = name.allcoef, indiv = TRUE, REML = REML, effects = effects,
+                                       index.cluster = index.cluster, name.varcoef = name.varcoef, name.allcoef = name.allcoef, indiv = TRUE, REML = REML, effects = effects2,
                                        precompute = precompute) )
-        info <- attr.info %*% solve(attr.bread) %*% attr.info
+        if(any(c("mean","variance","correlation") %in% effects2 == FALSE)){
+            keep.cols <- intersect(names(which(rowSums(abs(attr.bread))!=0)),names(which(rowSums(abs(attr.bread))!=0)))
+            info <- NA*attr.info
+            info[keep.cols,keep.cols] <- attr.info[keep.cols,keep.cols,drop=FALSE] %*% solve(attr.bread[keep.cols,keep.cols,drop=FALSE]) %*% attr.info[keep.cols,keep.cols,drop=FALSE]
+        }else{
+            info <- attr.info %*% solve(attr.bread) %*% attr.info
+        }
     }
 
     return(info)

@@ -1,11 +1,11 @@
-### confint.R --- 
+### confint.lmm.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: feb  3 2022 (13:25) 
+## Last-Updated: feb 10 2022 (11:05) 
 ##           By: Brice Ozenne
-##     Update #: 328
+##     Update #: 331
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -137,11 +137,10 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     ## ** get uncertainty
     vcov.beta <- vcov(object, effects = effects, df = df, strata = strata, robust = robust,
                       type.information = type.information, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
-
     if(df){
         df <- pmax(attr(vcov.beta,"df"), options$min.df)
         attr(vcov.beta,"df") <- NULL
-        if((type.information != "observed") && ("mean" %in% effects)){
+        if((object$method.fit=="REML") && (type.information != "observed") && ("mean" %in% effects)){
             warning("when using REML with expected information, the degree of freedom of the mean parameters may depend on the parametrisation of the variance parameters. \n")
         }
     }else{
@@ -312,4 +311,4 @@ print.confint_lmm <- function(x, digit = 3, ...){
     return(object)
 }
 ##----------------------------------------------------------------------
-### confint.R ends here
+### confint.lmm.R ends here

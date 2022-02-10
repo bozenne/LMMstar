@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jan 24 2022 (16:46) 
+## Last-Updated: feb 10 2022 (18:50) 
 ##           By: Brice Ozenne
-##     Update #: 656
+##     Update #: 775
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,7 +21,6 @@
 ##' @name anova
 ##' 
 ##' @param object a \code{lmm} object. Only relevant for the anova function.
-##' @param x an \code{anova_lmm} object. Only relevant for print and confint functions.
 ##' @param effects [character] Should the Wald test be computed for all variables (\code{"all"}),
 ##' or only variables relative to the mean (\code{"mean"} or \code{"fixed"}),
 ##' or only variables relative to the variance structure (\code{"variance"}),
@@ -29,14 +28,9 @@
 ##' Can also be use to specify linear combinations of coefficients, similarly to the \code{linfct} argument of the \code{multcomp::glht} function.
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
 ##' @param rhs [numeric vector] the right hand side of the hypothesis. Only used when the argument effects is a matrix.
-##' @param ci [logical] Should a confidence interval be output for each hypothesis?
-##' @param level [numeric, 0-1] nominal coverage of the confidence intervals.
-##' @param print.null [logical] should the null hypotheses be printed in the console?
 ##' @param df [logical] Should a F-distribution be used to model the distribution of the Wald statistic. Otherwise a chi-squared distribution is used.
+##' @param ci [logical] Should a confidence interval be output for each hypothesis?
 ##' @param transform.sigma,transform.k,transform.rho,transform.names are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.
-##' @param columns [character vector] Columns to be output. Can be any of \code{"estimate"}, \code{"se"}, \code{"df"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
-##' @param transform [function] function to backtransform the estimates, standard errors, null hypothesis, and the associated confidence intervals
-##' (e.g. \code{exp} if the outcomes have been log-transformed).
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @return A list of matrices containing the following columns:\itemize{
@@ -74,7 +68,9 @@
 ##' e.glht <- glht(amod, linfct = mcp(tension = "Tukey"))
 ##' summary(e.glht, test = Chisqtest()) ## 0.000742
 ##'
-##' print(anova(amod, effect = mcp(tension = "Tukey"), df = FALSE), print.null = TRUE)
+##' e.amod <- anova(amod, effect = mcp(tension = "Tukey"))
+##' summary(e.amod)
+##'
 ##' 
 ##' anova(amod, effect = mcp(tension = "Tukey"), ci = TRUE)
 ##' }
@@ -82,7 +78,7 @@
 ## * anova.lmm (code)
 ##' @rdname anova
 ##' @export
-anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !is.null(object$df), ci = FALSE, 
+anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !is.null(object$df), ci = TRUE, 
                       transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
     
     
@@ -160,7 +156,9 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         ls.nameTerms.num <- list(all = 1)
         ls.contrast <- list(all = matrix(0, nrow = NROW(out.glht$linfct), ncol = length(name.coef), dimnames = list(rownames(out.glht$linfct),name.coef)))
         ls.contrast$all[,colnames(out.glht$linfct)] <- out.glht$linfct
-        ls.null  <- list(all = out.glht$rhs)        
+        ls.null  <- list(all = out.glht$rhs)
+        name.effects <- NULL
+       
     }else if(is.matrix(effects)){
         ## try to re-size the matrix if necessary
         if(NCOL(effects)!=length(name.coef)){
@@ -183,7 +181,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         ## run glht
         out.glht <- try(multcomp::glht(object, linfct = effects, rhs = rhs,  ## only used for generating contrast matrix
                                        coef. = function(iX){coef.lmm(iX, effects = "all")},
-                                       vcov. = function(iX){vcov.lmm(iX, robust = robust, effects = "all")}),
+                                       vcov. = function(iX){vcov.lmm(iX, robust = FALSE, effects = "all")}),
                         silent = TRUE)
         if(inherits(out.glht,"try-error")){
             stop("Possible mispecification of the argument \'effects\' as running mulcomp::glht lead to the following error: \n",
@@ -194,6 +192,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         ls.nameTerms.num <- list(all = 1)
         ls.contrast <- list(all = out.glht$linfct)
         ls.null  <- list(all = out.glht$rhs)        
+        name.effects <- rownames(effects)
 
     }else if(all(tolower(effects) %in% c("mean","fixed","variance","correlation"))){
         
@@ -208,6 +207,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         
         effects <- match.arg(effects, c("mean","fixed","variance","correlation"), several.ok = TRUE)
         effects[effects=="fixed"] <- "mean"
+        name.effects <- NULL
         
         out <- list()
         ls.assign <- list()
@@ -254,11 +254,11 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         stop("Incorrect argument \'effects\': can be \"mean\", \"variance\", \"correlation\", \"all\", \n",
              "or something compatible with the argument \'linfct\' of multcomp::glht. \n ")
     }else{ ## symbolic definition of effects using equations (characters)
-        
+
         ## run glht
         out.glht <- try(multcomp::glht(object, linfct = effects,  ## only used for generating contrast matrix
                                        coef. = function(iX){coef.lmm(iX, effects = "all")},
-                                       vcov. = function(iX){vcov.lmm(iX, robust = robust, effects = "all")}),
+                                       vcov. = function(iX){vcov.lmm(iX, robust = FALSE, effects = "all")}),
                         silent = TRUE)
         newname.coef <- names(stats::coef(object, effects = "all"))
         
@@ -283,7 +283,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                                                vcov. = function(iX){vcov.lmm(iX, robust = robust, effects = "all")}), silent = TRUE)
                 if(inherits(out.glht,"try-error")){
                     stop("Possible mispecification of the argument \'effects\' as running mulcomp::glht lead to the following error: \n",
-                         out.glht)
+                         out.glht)
                 }
                 oldname.coef <- colnames(out.glht$linfct)
                 newname.hypo <- rownames(out.glht$linfct)
@@ -301,21 +301,35 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         ls.nameTerms <- list(all = NULL)
         ls.nameTerms.num <- list(all = 1)
         ls.contrast <- list(all = out.glht$linfct)
-        ls.null  <- list(all = out.glht$rhs)        
+        ls.null  <- list(all = out.glht$rhs)
+        name.effects <- names(effects)
+        if(!is.null(name.effects)){
+            rownames(ls.contrast$all) <- name.effects
+        }
     }
     type.information <- attr(object$information,"type.information")    
 
     ## ** prepare
-    param <- coef(object, effects = "all",
+    if(robust && object$method.fit=="REML"){
+        name.mean <- names(coef(object, effects = "mean"))
+        if(any(names(which(colSums(abs(do.call(rbind,ls.contrast)))>0)) %in% name.mean == FALSE)){
+            stop("Cannot test variance, covariance, or correlation parameters using robust standard errors with REML. \n")
+        }
+        effects <- "mean"
+        ls.contrast <- lapply(ls.contrast, function(iC){iC[,name.mean,drop=FALSE]})
+    }else{
+        effects <- "all"
+    }
+    param <- coef(object, effects = effects,
                   transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
-    newname <- names(coef(object, effects = "all",
+    newname <- names(coef(object, effects = effects,
                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names))
     name.param <- names(param)
     n.param <- length(param)
-    vcov.param <- vcov(object, df = df*2, effects = "all", robust = robust,
+    vcov.param <- vcov(object, df = df*2, effects = effects, robust = robust,
                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
     dVcov.param <- attr(vcov.param,"dVcov")
-    if(type.information != "observed"){
+    if(df>0 && object$method.fit=="REML" && type.information == "expected"){
         warning("when using REML with expected information, the degree of freedom of the F-statistic may depend on the parametrisation of the variance parameters. \n")
     }
 
@@ -330,6 +344,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         name.iParam <- names(iParam)
 
         iLs <- lapply(ls.nameTerms.num[[iType]], function(iTerm){ ## iTerm <- 1
+
             ## *** contrast matrix
             if(is.null(ls.contrast[[iType]])){
                 if(all(ls.assign[[iType]]!=iTerm)){return(NULL)}
@@ -338,6 +353,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                 iN.hypo <- length(iIndex.param)
                 iNull <- rep(ls.null[[iType]][iTerm],iN.hypo)
                 iName.hypo <- paste(paste0(name.iParam[iIndex.param],"==",iNull), collapse = ", ")
+
                 iC <- matrix(0, nrow = iN.hypo, ncol = n.param, dimnames = list(name.iParam[iIndex.param], newname))
                 if(length(iIndex.param)==1){
                     iC[name.iParam[iIndex.param],name.iParam[iIndex.param]] <- 1
@@ -359,7 +375,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
             iC.vcov.C_M1 <- try(solve(outSimp$C %*% vcov.param %*% t(outSimp$C)), silent = TRUE)
             if(inherits(iC.vcov.C_M1,"try-error")){
                 iStat <- NA
-                iDf <- c(iN.hypo,Inf)
+                iDf <- c(outSimp$dim,Inf)
                 attr(iStat,"error") <- "\n  Could not invert the covariance matrix for the proposed contrast."
             }else{
                 iStat <- as.double(t(outSimp$C %*% param - outSimp$rhs) %*% iC.vcov.C_M1 %*% (outSimp$C %*% param - outSimp$rhs))/outSimp$dim 
@@ -370,7 +386,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
             }
 
             ## *** degree of freedom
-            if(df && !inherits(iC.vcov.C_M1,"try-error")){
+            if(df>0 && !inherits(iC.vcov.C_M1,"try-error")){
 
                 svd.tempo <- eigen(iC.vcov.C_M1)
                 D.svd <- diag(svd.tempo$values, nrow = outSimp$dim, ncol = outSimp$dim)
@@ -389,7 +405,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
 
             ## *** confidence interval
             if(ci){
-                if(df){
+                if(df>0){
                     ci.df <-  .dfX(X.beta = iC.uni, vcov.param = vcov.param, dVcov.param = dVcov.param)
                 }else{
                     ci.df <- Inf
@@ -403,15 +419,15 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                                  null = iNull,
                                  p.value = NA,
                                  stringsAsFactors = FALSE)
-                CI$statistic <- CI$estimate/CI$se
+                CI$statistic <- (CI$estimate-iNull)/CI$se
                 rownames(CI) <- rownames(iC)
                 if(!is.null(names(effects)) && !inherits(effects,"mcp")){
                     indexName <- intersect(which(names(effects)!=""),which(!is.na(names(effects))))
                     rownames(CI)[indexName] <- names(effects)[indexName]
                 }
-                CI.glht <- multcomp::glht(object, linfct = iC, rhs = iNull, df = ceiling(max(ci.df)),
-                                          coef. = function(iX){coef.lmm(iX, effects = "all")},
-                                          vcov. = function(iX){vcov.lmm(iX, robust = robust, effects = "all")})
+                CI.glht <- multcomp::glht(object, linfct = iC, rhs = iNull, df = ceiling(stats::median(ci.df)),
+                                          coef. = function(iX){coef.lmm(iX, effects = effects)},
+                                          vcov. = function(iX){vcov.lmm(iX, robust = robust, effects = effects)})
                 attr(CI.glht$vcov,"robust") <- robust
             }else{
                 CI <- NULL
@@ -419,13 +435,13 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
             }
 
             ## *** test
-            iRes <- data.frame("null" = iName.hypo,
+            iRes <- data.frame("null" = if(!is.null(name.effects)){paste(name.effects,collapse=", ")}else{iName.hypo},
                                "statistic" = iStat,
                                "df.num" = iDf[1],
                                "df.denom" = iDf[2],
                                "p.value" = 1 - stats::pf(iStat, df1 = iDf[1], df2 = iDf[2]),
                                stringsAsFactors = FALSE)
-            attr(iRes, "contrast") <- iC
+
             attr(iRes, "CI") <- CI
             attr(iRes, "glht") <- CI.glht
             return(iRes)
@@ -439,7 +455,6 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         }
 
         out[[iType]] <- do.call(rbind, iLs)
-        attr(out[[iType]], "contrast") <- lapply(iLs,attr,"contrast")
         attr(out[[iType]], "CI") <- lapply(iLs,attr,"CI")
         attr(out[[iType]], "glht") <- lapply(iLs,attr,"glht")
         
@@ -447,6 +462,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
 
     ## ** export
     attr(out, "test") <- "Wald"
+    attr(out, "robust") <- robust
     return(out)
 }
 
@@ -506,176 +522,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     return(out)
 }
 
-## * confint.anova_lmm
-##' @title Confidence Intervals for Multivariate Wald Tests
-##' @description Compute confidence intervals for linear hypothesis tests, possibly with adjustment for multiple comparisons.
-##' @name anova
-##' 
-##' @param object a \code{anova_lmm} object
-##' @param level [numeric, 0-1] nominal coverage of the confidence intervals.
-##' @param method [character] type of adjustment for multiple comparisons: one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}.
-##' @param parm Not used. For compatibility with the generic method.
-##' @param ... Not used. For compatibility with the generic method.
-##' @export
-confint.anova_lmm <- function(object, parm, level = 0.95, method = "single-step", ...){
 
-    ## ** normalize user input
-    if(attr(object,"test") == "LRT"){
-        message("No confidence interval available for likelihood ratio tests.")
-        return(NULL)
-    }
-    if(!missing(parm)){
-        stop("Argument \'parm\' is not used - only there for compatibility with the generic method. \n")
-    }
-    dots <- list(...)
-    options <- LMMstar.options()
-    if(length(dots)>0){
-        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
-    }
-    alpha <- 1-level
-    method <- match.arg(method, c("none","bonferroni","single-step"))
-
-    ## ** extract info and compute CI
-    out <- lapply(object, function(iO){ ## iO <- object[[1]]
-        iTable <- attr(iO,"CI")
-        if(is.null(iTable) || all(sapply(iTable,is.null))){return(NULL)}
-        iOut <- stats::setNames(vector(mode = "list", length = length(iTable)),names(iTable))
-
-        for(iTest in 1:length(iTable)){ ## iTest <- 1
-            iOut[[iTest]] <- iTable[[iTest]]
-            iOut[[iTest]]$df <- pmax(iOut[[iTest]]$df, options$min.df)
-            if(method == "none" || NROW(iOut[[iTest]])==1){
-                iOut[[iTest]]$lower <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(alpha/2, df = iOut[[iTest]]$df)
-                iOut[[iTest]]$upper <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(1-alpha/2, df = iOut[[iTest]]$df)
-                iOut[[iTest]]$p.value <- 2*(1-stats::pt( abs((iOut[[iTest]]$estimate-iOut[[iTest]]$null) / iOut[[iTest]]$se), df = iOut[[iTest]]$df))
-            }else if(method == "single-step"){
-                iGlht <- attr(iO,"glht")[[iTest]]
-                iCi <- confint(iGlht)
-                iOut[[iTest]]$lower <- iCi$confint[,"lwr"]
-                iOut[[iTest]]$upper <- iCi$confint[,"upr"]
-                iOut[[iTest]]$p.value <- summary(iGlht, test = multcomp::adjusted("single-step"))$test$pvalues
-                iOut[[iTest]]$df <- iGlht$df
-            }else if(method == "bonferroni"){
-                p <- NROW(iOut[[iTest]])
-                iOut[[iTest]]$lower <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(alpha/(2*p), df = iOut[[iTest]]$df)
-                iOut[[iTest]]$upper <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(1-alpha/(2*p), df = iOut[[iTest]]$df)
-                iOut[[iTest]]$p.value <- pmin(1,2*p*(1-stats::pt( abs((iOut[[iTest]]$estimate-iOut[[iTest]]$null) / iOut[[iTest]]$se), df = iOut[[iTest]]$df)))
-            }
-        }
-        return(iOut)
-    })
-    return(out)
-}
-
-## * rbind.anova_lmm
-##' @title Linear Hypothesis Testing Across Linear Mixed Models
-##' @description Linear hypothesis testing accross linear mixed model.
-##'
-##' @param model a \code{anova_lmm} object (output of \code{anova} applied to a \code{lmm} object)
-##' @param linfct a \code{anova_lmm} object (output of \code{anova} applied to a \code{lmm} object)
-##' @param ...  possibly other \code{anova_lmm} objects
-##' @param sep [character] character used to separate the outcome and the covariate when naming the tests.
-##' 
-##' @export
-rbind.anova_lmm <- function(model, linfct, ..., sep = ": "){
-    default <- LMMstar.options()
-    
-    ## ** check user input
-    if(!inherits(linfct,"anova_lmm")){
-        stop("Argument \'anova_lmm\' should inherit from anova_lmm. \n")
-    }
-    dots <- list(...)
-    if(any(sapply(dots,inherits,"anova_lmm")==FALSE)){
-        stop("Extra arguments should inherit from anova_lmm. \n")
-    }
-    ls.object <- c(list(model, linfct),dots)
-    if(any(sapply(ls.object,function(iO){"all" %in% names(iO)})==FALSE)){
-        stop("All argument should correspond to user specified hypothesis, i.e. call anova with argument linfct. \n")
-    }
-    if(any(sapply(ls.object,function(iO){!is.null(attr(iO$all,"glht"))})==FALSE)){
-        stop("All argument should contain a \"glht\" object, i.e. call anova with argument ci=TRUE. \n")
-    }
-    ls.glht <- lapply(ls.object, function(iO){attr(iO$all,"glht")[[1]]})
-    
-    ## ** Extract elements from anova object
-    ls.C <- lapply(ls.glht,"[[","linfct")
-    ls.rhs <- lapply(ls.glht,"[[","rhs")
-    ls.coef <- lapply(ls.glht,"[[","coef")
-    ls.lmm <- lapply(ls.glht,"[[","model")
-    ls.df <- lapply(ls.glht,"[[","df")
-    ls.alternative <- lapply(ls.glht,"[[","alternative")
-    if(any(unlist(ls.alternative) != ls.alternative[[1]])){
-        stop("Element \'alternative\' should take the same value for all glht objects. \n")
-    }
-    ls.robust <- lapply(ls.glht,function(iO){attr(iO$vcov,"robust")})
-    if(any(unlist(ls.robust) != ls.robust[[1]])){
-        stop("Element \'robust\' should take the same value for all glht objects. \n")
-    }
-    robust <- unique(unlist(ls.robust))
-    ls.transform.sigma <- lapply(ls.object[[1]],function(iO){if(is.null(iO$call$transform.sigma)){default$transform.sigma}else{iO$call$transform.sigma}})
-    if(any(unlist(ls.transform.sigma) != ls.transform.sigma[[1]])){
-        stop("Element \'transform.sigma\' should take the same value for all glht objects. \n")
-    }
-    transform.sigma <- unique(unlist(ls.transform.sigma))
-    ls.transform.k <- lapply(ls.object[[1]],function(iO){if(is.null(iO$call$transform.k)){default$transform.k}else{iO$call$transform.k}})
-    if(any(unlist(ls.transform.k) != ls.transform.k[[1]])){
-        stop("Element \'transform.k\' should take the same value for all glht objects. \n")
-    }
-    transform.k <- unique(unlist(ls.transform.k))
-    ls.transform.rho <- lapply(ls.object[[1]],function(iO){if(is.null(iO$call$transform.rho)){default$transform.rho}else{iO$call$transform.rho}})
-    if(any(unlist(ls.transform.rho) != ls.transform.rho[[1]])){
-        stop("Element \'transform.rho\' should take the same value for all glht objects. \n")
-    }
-    transform.rho <- unique(unlist(ls.transform.rho))
-    ls.method.fit <- lapply(ls.lmm,"[[","method.fit")
-    if(any(unlist(ls.method.fit) != ls.method.fit[[1]])){
-        stop("Element \'ls.method.fit\' should take the same value for all glht objects. \n")
-    }
-    method.fit <- unique(unlist(ls.method.fit))
-    vec.outcome <- unname(unlist(sapply(ls.lmm,"[[","outcome")))
-
-    names(ls.C) <- vec.outcome
-    names(ls.coef) <- vec.outcome
-    names(ls.lmm) <- vec.outcome
-
-    ## ** extract iid
-    ls.iid <- lapply(ls.lmm, function(iO){
-        iid(iO, effects = if(method.fit=="REML"){"mean"}else{"all"}, robust = robust,
-            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
-        
-    })
-    names(ls.iid) <- vec.outcome
-    
-    ## ** build glht object
-    out <- list(model = ls.lmm, robust = robust)
-
-    out$linfct <- as.matrix(do.call(Matrix::bdiag, ls.C))
-    rownames(out$linfct) <- unlist(lapply(vec.outcome, function(iO){paste0(iO,sep,rownames(ls.C[[iO]]))}))
-    colnames(out$linfct) <- unlist(lapply(vec.outcome, function(iO){paste0(iO,sep,colnames(ls.C[[iO]]))}))
-    
-    out$rhs <- unlist(ls.rhs)
-    out$coef <- unlist(lapply(vec.outcome, function(iO){stats::setNames(ls.coef[[iO]],paste0(iO,sep,names(ls.coef[[iO]])))}))
-
-    out$vcov <- crossprod(do.call(cbind,ls.iid))
-    rownames(out$vcov) <- unlist(lapply(vec.outcome, function(iO){paste0(iO,sep,colnames(ls.iid[[iO]]))}))
-    colnames(out$vcov) <- unlist(lapply(vec.outcome, function(iO){paste0(iO,sep,colnames(ls.iid[[iO]]))}))
-
-    if(method.fit=="REML"){
-        if(any(abs(out$linfct[,setdiff(colnames(out$linfct),colnames(out$vcov))]>1e-10))){
-            stop("Cannot test covariance structure across models when using REML. \n",
-                 "Consider setting argument \'method.fit\' to \"ML\" when calling lmm. \n")
-        }
-        out$linfct <- out$linfct[,colnames(out$vcov),drop=FALSE]
-        out$coef <- out$coef[colnames(out$vcov)]
-    }
-    
-    out$df <- unlist(ls.df)
-    out$alternative <- ls.alternative[[1]]
-
-    ## ** export
-    class(out) <- c("Manova_lmm","glht")
-    return(out)
-}
 
 ## * dfSigma
 ##' @title Degree of Freedom for the Chi-Square Test

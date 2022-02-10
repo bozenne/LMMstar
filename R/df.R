@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (10:34) 
 ## Version: 
-## Last-Updated: nov 12 2021 (13:49) 
+## Last-Updated: feb 10 2022 (11:12) 
 ##           By: Brice Ozenne
-##     Update #: 132
+##     Update #: 155
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -172,10 +172,9 @@
                                     transform.names = FALSE)
             p[param.nameVar] <- backp$p
         }
-
         iMoment <- .moments.lmm(value = p, design = design, time = time, method.fit = method.fit, type.information = type.information,
                                 transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                logLik = FALSE, score = FALSE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("mean","variance","correlation"), robust = robust,
+                                logLik = FALSE, score = FALSE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = effects, robust = robust,
                                 trace = FALSE, precompute.moments = precompute.moments, method.numDeriv = method.numDeriv, transform.names = FALSE)
 
         if(as.double){
@@ -188,8 +187,13 @@
     ## ** variance-covariance matrix
     ## full variance covariance matrix
     info <- FUN_information(param.trans.value, as.double = FALSE)
-    vcov <- solve(info)
-
+    if(robust && method.fit=="REML"){
+        keep.cols <- intersect(names(which(rowSums(!is.na(info))>0)),names(which(rowSums(!is.na(info))>0)))
+        vcov <- NA*info
+        vcov[keep.cols,keep.cols] <- solve(info[keep.cols,keep.cols,drop=FALSE])
+    }else{
+        vcov <- solve(info)
+    }
     ## ** derivative of the information using numerical derivative
     if(type.information == "observed"){
         M.dInfo <- numDeriv::jacobian(func = function(p){FUN_information(p, as.double = TRUE)}, x = param.trans.value, method = method.numDeriv)
@@ -207,12 +211,20 @@
     ## ** derivative of the variance covariance matrix
     name.effects <- attr(effects,"original.names")
     n.effects <- length(name.effects)
-    A.dVcov <- array(0, dim = c(n.effects,n.effects,n.allcoef), dimnames = list(name.effects,name.effects,name.allcoef))
-    for(iParam in 1:NCOL(M.dInfo)){ ## iParam <- 1
-        iName <- colnames(M.dInfo)[iParam]
-        A.dVcov[,,iName] <- - (vcov %*% matrix(M.dInfo[,iName], nrow = n.allcoef, ncol = n.allcoef) %*% vcov)[name.effects,name.effects,drop=FALSE]
+    A.dVcov <- array(NA, dim = c(n.effects,n.effects,n.allcoef), dimnames = list(name.effects,name.effects,name.allcoef))
+    for(iParam in 1:n.effects){ ## iParam <- 1
+                
+        iName <- name.effects[iParam]
+        if(iName %in% colnames(M.dInfo)){
+            if(robust && method.fit=="REML"){
+                A.dVcov[keep.cols,keep.cols,iName] <- - (vcov[keep.cols,keep.cols,drop=FALSE] %*% matrix(M.dInfo[,iName], nrow = n.allcoef, ncol = n.allcoef, dimnames = dimnames(vcov))[keep.cols,keep.cols,drop=FALSE] %*% vcov[keep.cols,keep.cols,drop=FALSE])
+            }else{
+                A.dVcov[,,iName] <- - (vcov %*% matrix(M.dInfo[,iName], nrow = n.allcoef, ncol = n.allcoef) %*% vcov)[name.effects,name.effects,drop=FALSE]
+            }
+        }else{
+            A.dVcov[,,iName] <- 0
+        }
     }
-
     ## solve(crossprod(model.matrix(e.lmm, effects = "mean")))
     ## 4*coef(e.lmm)["sigma"]^2/stats::nobs(e.lmm)[1]
     ## ** degrees of freedom

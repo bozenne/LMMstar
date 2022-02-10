@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 31 2022 (11:36) 
 ## Version: 
-## Last-Updated: feb  3 2022 (13:26) 
+## Last-Updated: feb 10 2022 (18:49) 
 ##           By: Brice Ozenne
-##     Update #: 28
+##     Update #: 30
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -45,6 +45,9 @@ test_that("delta method for association based on residual variance", {
     e.coefANCOVA1 <- coef(e.lmmANCOVA1, effects  = "all")
     e.OmegaANCOVA1 <- getVarCov(e.lmmANCOVA1)
     e.vcovANCOVA1 <- vcov(e.lmmANCOVA1, effects = "all", transform.sigma = "none", transform.k = "none", transform.rho = "none")
+
+    ## sigma(e.ANCOVA1)^2
+    ## e.OmegaANCOVA1[2,2]*(1-e.coefANCOVA1["rho(Y1,Y2)"]^2)
 
     ## ## check estimate
     ## (with Y1)

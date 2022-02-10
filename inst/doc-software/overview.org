@@ -16,7 +16,7 @@ library(ggpubr)
 
 #+RESULTS:
 : Indlæser krævet pakke: nlme
-: LMMstar version 0.4.5
+: LMMstar version 0.4.6
 : Advarselsbesked:
 : pakke 'nlme' blev bygget under R version 4.1.2
 
@@ -34,11 +34,13 @@ residuals do not have to be normally distributed.
 The *LMMstar* package contains four main functions:
 - the function =lmm= is the main function of the package which fits
   linear mixed models. The user can interact with /lmm/ objects using:
-    + =anova= to test combinations of coefficients (Wald test or Likelihood ratio tests).
+    + =anova= to test linear combinations of coefficients (Wald test
+      or Likelihood ratio tests). Can be combined via =rbind=.
     + =coef= to extract the estimates.
     + =dummy.coef= to extract the estimated (marginal) mean for each combination of categorical covariate.
-    + =levels= to extract the reference level for the mean structure
-      (i.e. what =(Intercept)= refers to in presence of categorical
+    + =estimate= to test non-linear combinations of coefficients (Wald test via a first order delta method).
+    + =levels= to extract the reference level for the mean structure.
+      (i.e. what =(Intercept)= refers to in presence of categorical.
       covariates).
     + =getVarCov= to extract the modeled residual variance covariance matrix.
     + =logLik= to output the log-likelihood of the estimated model.
@@ -103,7 +105,7 @@ utils::packageVersion("LMMstar")
 #+END_SRC
 
 #+RESULTS:
-: [1] ‘0.4.3’
+: [1] '0.4.6'
 
 When estimating model coefficients, we will use the internal
 optimization routine of the *LMMstar* package (instead of relying on
@@ -268,7 +270,7 @@ cat(" covariance structure: \n");getVarCov(eUN.lmm)
                        4 variance (sigma k.B1_week k.A1_week k.A3_months) 
                        6 correlation (rho(B3_months,B1_week) rho(B3_months,A1_week) rho(B3_months,A3_months) rho(B1_week,A1_week) rho(B1_week,A3_months) rho(A1_week,A3_months)) 
  log-restr.likelihood: -216.318937004305 
- convergence         : TRUE (26 iterations)
+ convergence         : TRUE (27 iterations)
  covariance structure: 
           B3_months  B1_week  A1_week A3_months
 B3_months  411.3114 381.9734 352.6400  318.8573
@@ -349,9 +351,9 @@ Summary of the outcome and covariates:
 Estimation procedure 
 
   - Restricted Maximum Likelihood (REML) 
-  - log-restricted likelihood :-216.3189
+  - log-likelihood :-216.3189
   - parameters: mean = 5, variance = 4, correlation = 6
-  - convergence: TRUE (26 iterations, largest |score|=4.315158e-06 is for k.A1_week)
+  - convergence: TRUE (27 iterations, largest |score|=8.734359e-07 is for rho(B1_week,A3_months))
  
 Residual variance-covariance: unstructured 
 
@@ -406,7 +408,7 @@ coef(eUN.lmm)
 
 #+RESULTS:
 :   (Intercept)   timeB1_week   timeA1_week timeA3_months      glucagon 
-:   128.5385950    -7.8822331   -11.7879541   -26.1223907    -0.8883083
+:   128.5385950    -7.8822331   -11.7879542   -26.1223907    -0.8883083
 
 Variance coefficients can be output by specifying the =effects= argument:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -611,7 +613,7 @@ head(eUN.diagW)
 : 1       1  -0.2897364 -0.2027622 -1.16864032   0.3258573
 : 2       2   0.8603118 -1.6492167  0.62578804   1.7370660
 : 3       3   0.7273066 -0.4155168 -0.68266746  -0.8510316
-: 4       4  -1.6403081 -0.5128371  0.06806212   1.1725813
+: 4       4  -1.6403081 -0.5128371  0.06806211   1.1725813
 : 5       5   0.4755409         NA -0.18736417  -0.8634200
 : 6       6   1.7801675  1.2847698  2.63004809   0.3505542
 
@@ -701,71 +703,91 @@ anova(eUN.lmm)
 #+END_SRC
 
 #+RESULTS:
-:                      ** mean coefficients ** 
-:  - F-test:
-:          statistic df.num df.denom      p.value
-: time      86.74279      3 19.00520 2.842460e-11
-: glucagon  13.51775      1 13.70749 2.571625e-03
+: 
+: 	|| mean coefficients || 
+: 
+:  - Multivariate Wald test (global null hypothesis)
+:          statistic df.num df.denom    p.value    
+: time        86.743      3   19.005 2.8425e-11 ***
+: glucagon    13.518      1   13.707  0.0025716  **
+: ---
+:  Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 Note that here the p-values are not adjust for multiple comparisons
 over variables. It is possible to specify a null hypothesis to be
 test: e.g. is there a change in average weight just after taking the
 treatment:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-anova(eUN.lmm, effects = c("timeA1_week-timeB1_week=0"), ci = TRUE)
+anova(eUN.lmm, effects = c("timeA1_week-timeB1_week=0"))
 #+END_SRC
 
 #+RESULTS:
-:                      ** User-specified hypotheses ** 
-:  - F-test:
-:  statistic df.num df.denom      p.value
-:   43.14135      1 17.87455 3.723358e-06
 : 
-:  - P-values and confidence interval 
-:                            estimate        se       df     lower     upper      p.value
-: timeA1_week - timeB1_week -3.905721 0.5946403 17.87455 -5.155643 -2.655799 3.723358e-06
+: 	|| User-specified linear hypotheses || 
+: 
+:  - Multivariate Wald test (global null hypothesis)
+:  statistic df.num df.denom    p.value    
+:     43.141      1   17.875 3.7234e-06 ***
+: ---
+:  Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 One can also simulateneously tests several null hypotheses:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-anova(eUN.lmm, effects = c("timeA1_week-timeB1_week=0",
-                           "timeA3_months-timeB1_week=0"), ci = TRUE)
+e.anova <- anova(eUN.lmm, effects = c("timeA1_week-timeB1_week=0",
+                                      "timeA3_months-timeB1_week=0"))
+summary(e.anova)
 #+END_SRC
 
 #+RESULTS:
-:                      ** User-specified hypotheses ** 
-:  - F-test:
-:  statistic df.num df.denom      p.value
-:   98.65053      2 18.61992 1.233819e-10
-: 
-:  - P-values and confidence interval (adjusted for multiplicity) 
-:                               estimate        se df      lower      upper      p.value
-: timeA1_week - timeB1_week    -3.905721 0.5946403 20  -5.306911  -2.504531 4.080425e-06
-: timeA3_months - timeB1_week -18.240158 1.3228299 20 -21.357228 -15.123087 2.195177e-11
+#+begin_example
+
+	|| User-specified linear hypotheses || 
+
+ - Multivariate Wald test (global null hypothesis)
+ statistic df.num df.denom    p.value    
+    98.651      2    18.62 1.2338e-10 ***
+
+ - Univariate Wald test (individual null hypotheses) 
+                             estimate        se        df     lower    upper p.value    
+timeA1_week - timeB1_week    -3.90572   0.59464  19.00000  -5.31234  -2.4991 < 1e-05 ***
+timeA3_months - timeB1_week -18.24016   1.32283  19.00000 -21.36931 -15.1110 < 1e-05 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+Standard errors: model-based
+(CIs/p-values adjusted for multiple comparisons -- single step max-test)
+#+end_example
 
 or return all pairwise comparisons for a given factor using the =mcp=
 function of the multcomp package:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 library(multcomp)
-anova(eUN.lmm, effects = mcp(time = "Tukey"), ci = TRUE)
+summary(anova(eUN.lmm, effects = mcp(time = "Tukey")))
 #+END_SRC
 
 #+RESULTS:
 #+begin_example
 Singular contrast matrix: contrasts "A1_week - B1_week" "A3_months - B1_week" "A3_months - A1_week" have been removed. 
 
-                     ,** User-specified hypotheses ** 
- - F-test:
- statistic df.num df.denom     p.value
-  86.74279      3  19.0052 2.84246e-11
 
- - P-values and confidence interval (adjusted for multiplicity) 
-                        estimate        se df      lower      upper      p.value
-B1_week - B3_months    -7.882233 0.7131797 22  -9.784489  -5.979977 8.137047e-12
-A1_week - B3_months   -11.787954 1.0175135 22 -14.501956  -9.073953 4.271916e-12
-A3_months - B3_months -26.122391 1.6564077 22 -30.540507 -21.704274 0.000000e+00
-A1_week - B1_week      -3.905721 0.5946403 22  -5.491798  -2.319644 4.898696e-06
-A3_months - B1_week   -18.240158 1.3228299 22 -21.768526 -14.711789 4.718448e-14
-A3_months - A1_week   -14.334437 1.0565002 22 -17.152427 -11.516446 4.263256e-14
+	|| User-specified linear hypotheses || 
+
+ - Multivariate Wald test (global null hypothesis)
+ statistic df.num df.denom    p.value    
+    86.743      3   19.005 2.8425e-11 ***
+
+ - Univariate Wald test (individual null hypotheses) 
+                       estimate        se        df     lower    upper p.value    
+B1_week - B3_months    -7.88223   0.71318  20.00000  -9.79578  -5.9687 < 1e-05 ***
+A1_week - B3_months   -11.78795   1.01751  20.00000 -14.51807  -9.0578 < 1e-05 ***
+A3_months - B3_months -26.12239   1.65641  20.00000 -30.56673 -21.6780 < 1e-05 ***
+A1_week - B1_week      -3.90572   0.59464  20.00000  -5.50121  -2.3102 < 1e-05 ***
+A3_months - B1_week   -18.24016   1.32283  20.00000 -21.78947 -14.6908 < 1e-05 ***
+A3_months - A1_week   -14.33444   1.05650  20.00000 -17.16916 -11.4997 < 1e-05 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+Standard errors: model-based
+(CIs/p-values adjusted for multiple comparisons -- single step max-test)
+Error when computing the adjusted p-value by numerical integration: 1.5336e-05
 #+end_example
 
 
@@ -780,9 +802,9 @@ try(
 #+END_SRC
 
 #+RESULTS:
-: Error in .anova_Wald(object, effects = effects, rhs = rhs, df = df, ci = ci,  : 
+: Error in .anova_Wald(object, effects = effects, robust = robust, rhs = rhs,  : 
 :   Possible mispecification of the argument 'effects' as running mulcomp::glht lead to the following error: 
-: Error in parse(text = ex[i]) : <text>:1:7: unexpected symbol
+: Error in parse(text = ex[i]) : <text>:1:7: uventet symbol
 : 1: log(k).B1_week
 :           ^
 
@@ -882,7 +904,7 @@ lava::estimate(e.lmmANCOVA, f = function(p){
 #+RESULTS:
 :     estimate         se       df      lower    upper   p.value
 : Y1 0.9654917 0.01753161 15.96769  0.9283202 1.002663 0.0000000
-: X1 0.2521713 0.64626330 15.00349 -1.1252784 1.629621 0.7018732
+: X1 0.2521714 0.64626333 15.00348 -1.1252785 1.629621 0.7018732
 
 Indeed:
 #+BEGIN_EXPORT latex
@@ -899,10 +921,6 @@ freedom compared to the univariate linear model approach. The later is
 to be prefer as it does not rely on approximation. The former is
 nevertheless useful as it can handle missing data in the outcome
 variable.
-
-
-
-
 
 \clearpage
 

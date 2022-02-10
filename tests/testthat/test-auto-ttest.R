@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: nov 13 2021 (18:19) 
+## Last-Updated: feb 10 2022 (18:46) 
 ##           By: Brice Ozenne
-##     Update #: 42
+##     Update #: 43
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -124,7 +124,7 @@ test_that("multiple t-test",{
     e.lh <- anova(e.lmm, effects = c("gender:Y1"="visitY1:male - visitY1:female = 0",
                                      "gender:Y2"="visitY2:male - visitY2:female = 0",
                                      "gender:Y3"="visitY3:male - visitY3:female = 0",
-                                     "gender:Y4"="visitY4:male - visitY4:female = 0"), ci = TRUE)
+                                     "gender:Y4"="visitY4:male - visitY4:female = 0"))
     
     ## check likelihood and score
     expect_equal(logLik(e.lmm), -240.1934, tol = 1e-5)
@@ -136,10 +136,10 @@ test_that("multiple t-test",{
                      t.test(Y4~gender, data = dW))
     ## print(e.lh, method = "none")
 
-    expect_equal(confint(e.lh)$all[[1]]$se, sapply(ls.ttest,"[[","stderr"), tol = 1e-5)
-    expect_equal(as.double(unlist(confint(e.lh, method = "none")$all[[1]][,c("df")])),
+    expect_equal(confint(e.lh)$se, sapply(ls.ttest,"[[","stderr"), tol = 1e-5)
+    expect_equal(as.double(unlist(confint(e.lh, method = "none")$df)),
                  as.double(do.call(rbind,lapply(ls.ttest,"[[","parameter"))), tol = 1e-1)
-    expect_equal(as.double(unlist(confint(e.lh, method = "none")$all[[1]][,c("lower","upper")])),
+    expect_equal(as.double(unlist(confint(e.lh, method = "none")[,c("lower","upper")])),
                  as.double(do.call(rbind,lapply(ls.ttest,"[[","conf.int"))), tol = 1e-3)
 })
 
