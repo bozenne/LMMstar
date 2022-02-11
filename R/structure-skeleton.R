@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: Dec 15 2021 (17:10) 
+## Last-Updated: feb 11 2022 (16:47) 
 ##           By: Brice Ozenne
-##     Update #: 1319
+##     Update #: 1330
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -622,7 +622,6 @@
         }
         return(iParam)
     })
-
     names(Upattern$time) <- Upattern$name
     names(cluster.pattern) <- Upattern$name
     names(Upattern$param) <- Upattern$name

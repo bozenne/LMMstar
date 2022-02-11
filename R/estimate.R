@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: feb  3 2022 (13:25) 
+## Last-Updated: feb 11 2022 (17:53) 
 ##           By: Brice Ozenne
-##     Update #: 368
+##     Update #: 397
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -153,9 +153,6 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
                       precompute.moments, optimizer, init, n.iter, tol.score, tol.param, trace){
 
    
-    if(!precompute.moments){
-        stop("Only implemented when option \'precompute.moments\' is TRUE")
-    }
     options <- LMMstar.options()
     if(is.null(n.iter)){
         n.iter <- options$param.optimizer["n.iter"]
@@ -184,7 +181,6 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
     precompute.XX <- design$precompute.XX$pattern
     key.XX <- design$precompute.XX$key
     wolfe <- FALSE
-
     effects <- c("variance","correlation")
     
     ## ** intialization
@@ -199,7 +195,8 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
         start.OmegaM1 <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 2
             diag(1, nrow = length(Upattern[iPattern,"time"][[1]]), ncol = length(Upattern[iPattern,"time"][[1]]))
         }), Upattern$name)
-        param.value[param.mu] <- .estimateGLS(OmegaM1 = start.OmegaM1, pattern = Upattern$name, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX)
+        param.value[param.mu] <- .estimateGLS(OmegaM1 = start.OmegaM1, pattern = Upattern$name, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX,
+                                              design = design)
         
         ## vcov values
         iResiduals.long <- design$Y - design$mean %*% param.value[param.mu]
@@ -248,7 +245,7 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
             outMoments <- .moments.lmm(value = param.value, design = design, time = time, method.fit = method.fit, type.information = type.information,
                                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                        logLik = TRUE, score = TRUE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = effects, robust = FALSE,
-                                       trace = FALSE, precompute.moments = TRUE, transform.names = FALSE)
+                                       trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)
             logLik.value <- outMoments$logLik    
             score.value <- outMoments$score    
             information.value <- outMoments$information
@@ -263,7 +260,7 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
                     outMoments <- .moments.lmm(value = param.valueM1, design = design, time = time, method.fit = method.fit, type.information = type.information,
                                                transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                                logLik = TRUE, score = TRUE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = effects, robust = FALSE,
-                                               trace = FALSE, precompute.moments = TRUE, transform.names = FALSE)
+                                               trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)
                     logLik.value <- outMoments$logLik                    
                 }else{
                     cv <- -1
@@ -278,7 +275,7 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
             if(wolfe){
                 attr(param.value,"trans") <- outMoments$reparametrize$p
                 param.value[param.Omega] <- .wolfe(param.value = param.value, update.value = update.value, score.value = score.value, logLik.value = logLik.value, 
-                                                   design = design, effects = effects, time = time, method.fit = method.fit, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
+                                                   design = design, effects = effects, time = time, method.fit = method.fit, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, precompute.moments = precompute.moments)
                 attr(param.value,"trans") <- NULL
             }else{
                 param.newvalue.trans <- outMoments$reparametrize$p + update.value
@@ -296,8 +293,8 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
             ## eigen(iOmega[[1]])
             param.value[param.mu] <- .estimateGLS(OmegaM1 = stats::setNames(lapply(iOmega, solve), names(iOmega)),
                                                   pattern = Upattern$name, precompute.XY = precompute.XY, precompute.XX = precompute.XX,
-                                                  key.XX = key.XX)
-
+                                                  key.XX = key.XX,
+                                                  design = design)
         
             if(trace > 0 && trace < 3){
                 cat("*")
@@ -353,19 +350,19 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
             .moments.lmm(value = p, design = design, time = time, method.fit = method.fit, 
                          transform.sigma = "none", transform.k = "none", transform.rho = "none",
                          logLik = TRUE, score = FALSE, information = FALSE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
-                         trace = FALSE, precompute.moments = TRUE, transform.names = FALSE)$logLik
+                         trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)$logLik
         }
         warper_grad <- function(p){
             .moments.lmm(value = p, design = design, time = time, method.fit = method.fit, 
                          transform.sigma = "none", transform.k = "none", transform.rho = "none",
                          logLik = FALSE, score = TRUE, information = FALSE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
-                         trace = FALSE, precompute.moments = TRUE, transform.names = FALSE)$score
+                         trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)$score
         }
         warper_hess <- function(p){
             -.moments.lmm(value = p, design = design, time = time, method.fit = method.fit,
                           transform.sigma = "none", transform.k = "none", transform.rho = "none", type.information = "observed",
                           logLik = FALSE, score = FALSE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
-                          trace = FALSE, precompute.moments = TRUE, transform.names = FALSE)$information
+                          trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)$information
         }
         ## numDeriv::jacobian(x = param.value, func = warper_obj)-warper_grad(param.value)
         res.optim <- optimx::optimx(par = param.value, fn = warper_obj, gr = warper_grad, hess = warper_hess,
@@ -386,28 +383,46 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
 }
 
 ## * .estimateGLS
-.estimateGLS <- function(OmegaM1, pattern, precompute.XY, precompute.XX, key.XX){
-
-    name.param <- colnames(key.XX)
+.estimateGLS <- function(OmegaM1, pattern, precompute.XY, precompute.XX, key.XX, design = design){
+ 
+    name.param <- design$param$mu ## colnames(key.XX)
     n.param <- length(name.param)
-    max.key <- key.XX[n.param,n.param]
     numerator <- matrix(0, nrow = n.param, ncol = 1)
     denominator <- matrix(0, nrow = n.param, ncol = n.param)
+    if(!is.null(key.XX)){
+        max.key <- key.XX[n.param,n.param]
+    }
     
     for(iPattern in pattern){ ## iPattern <- pattern[1]
-        iVec.Omega <- as.double(OmegaM1[[iPattern]])
-        iTime2 <- length(iVec.Omega)
-        numerator  <- numerator + t(iVec.Omega %*%  matrix(precompute.XY[[iPattern]], nrow = iTime2, ncol = n.param))
-        denominator  <- denominator + as.double(iVec.Omega %*%  matrix(precompute.XX[[iPattern]], nrow = iTime2, ncol = max.key))[key.XX]
-    }
+        if(!is.null(precompute.XX) && !is.null(precompute.XY)){
+            iVec.Omega <- as.double(OmegaM1[[iPattern]])
+            iTime2 <- length(iVec.Omega)
+            numerator  <- numerator + t(iVec.Omega %*%  matrix(precompute.XY[[iPattern]], nrow = iTime2, ncol = n.param))
+            denominator  <- denominator + as.double(iVec.Omega %*%  matrix(precompute.XX[[iPattern]], nrow = iTime2, ncol = max.key))[key.XX]
+        }else{
+            iOmega <- OmegaM1[[iPattern]]
+            iIndexCluster <- attr(design$index.cluster,"sorted")[which(design$vcov$X$pattern.cluster==iPattern)]
+            for(iId in 1:length(iIndexCluster)){ ## iId <- 1
+                iX <- design$mean[iIndexCluster[[iId]],,drop=FALSE]
+                if(is.null(design$weight)){
+                    iWeight <- 1
+                }else{
+                    iWeight <- design$weights[attr(design$index.cluster, "sorted")[[iId]][1]]
+                }
+                numerator  <- numerator + iWeight * (t(iX) %*% iOmega %*% design$Y[iIndexCluster[[iId]]])
+                denominator  <- denominator + iWeight * (t(iX) %*% iOmega %*% iX)
+            }
 
+        }
+
+    }
     out <- solve(denominator) %*% numerator
     return(stats::setNames(as.double(out), name.param))
 }
 
 ## * .wolfe
 .wolfe <- function(param.value, update.value, score.value, logLik.value, c1 = 1e-4, c2 = 0.9,
-                   design, effects, time, method.fit, transform.sigma, transform.k, transform.rho){
+                   design, effects, time, method.fit, transform.sigma, transform.k, transform.rho, precompute.moments){
     alpha <- 1
     test.i <- FALSE
     test.ii <- FALSE
@@ -429,7 +444,7 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
         outMoments <- .moments.lmm(value = param.newvalue, design = design, time = time, method.fit = method.fit, 
                                    transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                    logLik = TRUE, score = TRUE, information = FALSE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = effects, robust = FALSE,
-                                   trace = FALSE, precompute.moments = TRUE, transform.names = FALSE)    
+                                   trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)    
         logLik.newvalue <- outMoments$logLik
         score.newvalue <- outMoments$score
 

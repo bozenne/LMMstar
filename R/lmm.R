@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jan 31 2022 (14:41) 
+## Last-Updated: feb 11 2022 (16:05) 
 ##           By: Brice Ozenne
-##     Update #: 1395
+##     Update #: 1416
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -120,7 +120,9 @@
 
 ## * lmm (code)
 ##' @export
-lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NULL, type.information = NULL, trace = NULL, control = NULL){
+lmm <- function(formula, repetition, structure, data,
+                weights = NULL, scale.Omega = NULL,
+                method.fit = NULL, df = NULL, type.information = NULL, trace = NULL, control = NULL){
 
     out <- list(call = match.call(), data.original = data)
     options <- LMMstar.options()
@@ -447,10 +449,44 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
         }
     }
 
+    ## weights
+    if(!is.null(weights)){
+        if(optimizer=="gls"){
+            stop("Cannot use argument \'weight\' with optimizer \"gls\".\n",
+                 "Consider using \"FS\" optimizer instead (see control argument). \n")
+        }
+        if(is.character(weights)){
+            var.weights <- weights
+        }else if(inherits(weights,"formula")){
+            var.weights <- all.vars(weights)
+        }else {
+            stop("Argument \'weights\' should be a character or a formula. \n")
+        }
+        if(length(var.weights)>1){
+            stop("Can only handle a single weights variable. \n")
+        }
+        if(var.weights %in% names(data)==FALSE){
+            stop("Argument \'weights\' is inconsistent with argument \'data\'. \n",
+                 "Variable \"",var.weights,"\" could not be found in the dataset. \n",
+                 sep = "")
+        }
+        if(any(data[[var.weights]]<=0)){
+            stop("Weights should be strictly positives. \n")
+        }
+        if(!is.na(var.cluster)){
+            if(any(tapply(data[[var.weights]], data[[var.cluster]], function(iW){sum(!duplicated(iW))})>1)){
+                stop("Invalid argument \'weights\': weights should be constant within clusters. \n")
+            }
+        }
+    }else{
+        var.weights <- NA
+    }
+
     ## store
     out$strata <- list(n = n.strata, levels = U.strata, var = var.strata)
     out$time <- list(n = n.time, levels = U.time, var = var.time)
     out$cluster <- list(n = n.cluster, levels = U.cluster, var = var.cluster)
+    out$weight <- list(var = var.weights)
     out$outcome <- list(var = var.outcome)
     out$data <- data
 
@@ -473,7 +509,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     if(trace>=1){cat("- extract design matrices")}
     out$design <- .model.matrix.lmm(formula.mean = out$formula$mean.design,
                                     structure = structure,
-                                    data = data, var.outcome = var.outcome,
+                                    data = data, var.outcome = var.outcome, var.weights = var.weights,
                                     U.strata = U.strata,
                                     U.time = U.time,
                                     stratify.mean = optimizer=="gls",
@@ -559,7 +595,7 @@ lmm <- function(formula, repetition, structure, data, method.fit = NULL, df = NU
     }else{
         outEstimate <- .estimate(design = out$design, time = out$time, method.fit = method.fit, type.information = type.information,
                                  transform.sigma = options$transform.sigma, transform.k = options$transform.k, transform.rho = options$transform.rho,
-                                 precompute.moments = options$precompute.moments,
+                                 precompute.moments = options$precompute.moments, 
                                  optimizer = optimizer, init = control$init, n.iter = control$n.iter, tol.score = control$tol.score, tol.param = control$tol.param, trace = control$trace)
         param.value <- outEstimate$estimate
         out$opt <- c(name = optimizer, outEstimate[c("cv","n.iter","score","previous.estimate")])

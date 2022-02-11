@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 22 2021 (13:47) 
 ## Version: 
-## Last-Updated: sep 22 2021 (13:48) 
+## Last-Updated: feb 11 2022 (13:12) 
 ##           By: Brice Ozenne
-##     Update #: 2
+##     Update #: 8
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -89,7 +89,7 @@
 
 ## * .precomputeRR
 ## Precompute square of the residuals
-.precomputeRR <- function(residuals, pattern.time, pattern, pattern.cluster, index.cluster){
+.precomputeRR <- function(residuals, weights, pattern.time, pattern, pattern.cluster, index.cluster){
 
     n.pattern <- length(pattern)
     n.time <- stats::setNames(lapply(pattern.time,length), pattern)

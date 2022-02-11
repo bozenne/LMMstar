@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: nov 13 2021 (16:35) 
+## Last-Updated: feb 11 2022 (17:02) 
 ##           By: Brice Ozenne
-##     Update #: 464
+##     Update #: 470
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -141,7 +141,8 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
 }
 
 ## * .score
-.score <- function(X, residuals, precision, dOmega, Upattern.ncluster,
+.score <- function(X, residuals, precision, dOmega,
+                   Upattern.ncluster, weights, 
                    index.variance, time.variance, index.cluster, name.varcoef, name.allcoef,
                    indiv, REML, effects,
                    precompute){
@@ -227,19 +228,19 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
             tiX <- t(iX)
 
             if(test.mean){
-                Score[iId,name.mucoef] <- tiX %*% precision[[iPattern]] %*% iResidual
+                Score[iId,name.mucoef] <- weights[iId] * (tiX %*% precision[[iPattern]] %*% iResidual)
             }
 
             if(test.vcov){
                 if(REML){
-                    REML.denom <- REML.denom + tiX %*% precision[[iPattern]] %*% iX
+                    REML.denom <- REML.denom + weights[iId] * (tiX %*% precision[[iPattern]] %*% iX)
                 }
 
                 for(iVarcoef in name.varcoef[[iPattern]]){ ## iVarcoef <- name.varcoef[1]
-                    Score[iId,iVarcoef] <- -0.5 * trOmegaM1_dOmega[[iPattern]][[iVarcoef]] + 0.5 * t(iResidual) %*% OmegaM1_dOmega_OmegaM1[[iPattern]][[iVarcoef]] %*% iResidual
+                    Score[iId,iVarcoef] <- -0.5 * weights[iId] * trOmegaM1_dOmega[[iPattern]][[iVarcoef]] + 0.5 * weights[iId] * t(iResidual) %*% OmegaM1_dOmega_OmegaM1[[iPattern]][[iVarcoef]] %*% iResidual
 
                     if(REML){
-                        REML.num[,,iVarcoef] <- REML.num[,,iVarcoef] + tiX %*% OmegaM1_dOmega_OmegaM1[[iPattern]][[iVarcoef]] %*% iX
+                        REML.num[,,iVarcoef] <- REML.num[,,iVarcoef] + weights[iId] * (tiX %*% OmegaM1_dOmega_OmegaM1[[iPattern]][[iVarcoef]] %*% iX)
                     }
                 }
             }

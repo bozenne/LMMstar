@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.23 (MiKTeX 21.8) (preloaded format=pdflatex 2021.8.26)  11 FEB 2022 11:23
+This is pdfTeX, Version 3.141592653-2.6-1.40.23 (MiKTeX 21.8) (preloaded format=pdflatex 2021.8.26)  11 FEB 2022 17:14
 entering extended mode
 **c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/overview.tex
 (c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/overview.tex
@@ -1399,23 +1399,23 @@ Package pdftex.def Info: ./figures/imputation.pdf  used on input line 1752.
 ]
 
 LaTeX Font Warning: Font shape `U/stmry/b/n' undefined
-(Font)              using `U/stmry/m/n' instead on input line 1931.
+(Font)              using `U/stmry/m/n' instead on input line 1928.
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1957--1957
+Underfull \hbox (badness 10000) in paragraph at lines 1961--1961
 [][]\T1/lmr/m/n/10 The REML is the like-li-hood of the ob-ser-va-tions di-vided
  by the prior on the es-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1957--1957
+Underfull \hbox (badness 10000) in paragraph at lines 1961--1961
 \T1/lmr/m/n/10 ti-mated mean pa-ram-e-ters $[][] \OMS/lmsy/m/n/10  N\OT1/lmr/m
 /n/10 (\OML/lmm/m/it/10 ; [][]\OT1/lmr/m/n/10 )$\T1/lmr/m/n/10 . This cor-re-s
 ponds to
  []
 
 
-Underfull \hbox (badness 2591) in paragraph at lines 1957--1957
+Underfull \hbox (badness 2591) in paragraph at lines 1961--1961
 [] [] []$ \T1/lmr/m/n/10 Since $\OML/lmm/m/it/10 $ \T1/lmr/m/n/10 will be es-t
 i-mated to be
  []
@@ -1423,12 +1423,12 @@ i-mated to be
 [34
 
 ]
-Overfull \hbox (19.98886pt too wide) detected at line 1996
+Overfull \hbox (31.8687pt too wide) detected at line 2000
 []
  []
 
 
-Overfull \hbox (10.84985pt too wide) detected at line 2026
+Overfull \hbox (22.72969pt too wide) detected at line 2030
 []
  []
 
@@ -1501,7 +1501,7 @@ iKTeX 2.9/fonts/type1/public/amsfonts/symbols/msam10.pfb><C:/Program Files/MiKT
 eX 2.9/fonts/type1/public/amsfonts/symbols/msam5.pfb><C:/Program Files/MiKTeX 2
 .9/fonts/type1/public/amsfonts/symbols/msam7.pfb><C:/Program Files/MiKTeX 2.9/f
 onts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on overview.pdf (38 pages, 668174 bytes).
+Output written on overview.pdf (38 pages, 669471 bytes).
 PDF statistics:
  916 PDF objects out of 1000 (max. 8388607)
  369 named destinations out of 1000 (max. 500000)

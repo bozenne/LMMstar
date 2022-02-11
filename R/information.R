@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: feb 10 2022 (10:53) 
+## Last-Updated: feb 11 2022 (17:23) 
 ##           By: Brice Ozenne
-##     Update #: 945
+##     Update #: 954
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -154,7 +154,8 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
 ## d 0.5 tr[(X \OmegaM1 X)^{-1} (X \OmegaM1 d\Omega \OmegaM1 X)] = 0.5 tr[ (X \OmegaM1 d'\Omega \OmegaM1 X) (X \OmegaM1 X)^{-2} (X \OmegaM1 d\Omega \OmegaM1 X) ]
 ##                                                                 - 0.5 tr[ (X \OmegaM1 X)^{-1} (X \OmegaM1 d'\Omega \OmegaM1 d\Omega \OmegaM1 X) + (X \OmegaM1 X)^{-1} (X \OmegaM1 d\Omega \OmegaM1 d'\Omega \OmegaM1 X) ]
 ##                                                                 + 0.5 tr[ (X \OmegaM1 X)^{-1} (X \OmegaM1 d2\Omega \OmegaM1 X) ]
-.information <- function(X, residuals, precision, dOmega, d2Omega, Upattern.ncluster,
+.information <- function(X, residuals, precision, dOmega, d2Omega,
+                         Upattern.ncluster, weights,
                          index.variance, time.variance, index.cluster, name.varcoef, name.allcoef,
                          pair.meanvarcoef, pair.varcoef, indiv, REML, type.information, effects, robust,
                          precompute){
@@ -308,7 +309,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
             }
         
             ## **** mean,mean
-            iValue <- tiX %*% iOmega %*% iX
+            iValue <-  weights[iId] * (tiX %*% iOmega %*% iX)
             if(test.mean){
                 if(indiv){
                     info[iId,name.mucoef,name.mucoef] <- iValue
@@ -319,7 +320,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
             if(REML && test.vcov){
                 REML.denom <- REML.denom + iValue
                 for(iVarcoef in name.varcoef[[iPattern]]){ ## iVarcoef <- 1
-                    REML.numerator1[,,iVarcoef] <- REML.numerator1[,,iVarcoef] + tiX %*% OmegaM1_dOmega_OmegaM1[[iPattern]][[iVarcoef]] %*% iX
+                    REML.numerator1[,,iVarcoef] <- REML.numerator1[,,iVarcoef] + weights[iId] * (tiX %*% OmegaM1_dOmega_OmegaM1[[iPattern]][[iVarcoef]] %*% iX)
                 }
             }
 
@@ -330,11 +331,11 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
                     iCoef1 <- pair.varcoef[[iPattern]][1,iPair]
                     iCoef2 <- pair.varcoef[[iPattern]][2,iPair]
 
-                    iValue <- 0.5 * tr_OmegaM1_d2OmegaAndCo[[iPattern]][iPair]
+                    iValue <- 0.5 * weights[iId] * tr_OmegaM1_d2OmegaAndCo[[iPattern]][iPair]
                     ## 0.5 * tr(iOmega %*% idOmega$sigma %*% iOmega %*% idOmega$sigma)
 
                     if(type.information == "observed"){
-                        iValue <- iValue - 0.5 * t(iResidual) %*% OmegaM1_d2OmegaAndCo_OmegaM1[[iPattern]][,,iPair] %*% iResidual
+                        iValue <- iValue - 0.5 * weights[iId] * (t(iResidual) %*% OmegaM1_d2OmegaAndCo_OmegaM1[[iPattern]][,,iPair] %*% iResidual)
                     }
                     if(indiv){
                         info[iId,iCoef1,iCoef2] <- iValue
@@ -350,7 +351,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
 
                     if(REML){
                         iKey <- REML.key[iCoef1,iCoef2]
-                        REML.numerator2[,,iKey] <- REML.numerator2[,,iKey] + tiX %*% OmegaM1_d2OmegaAndCo_OmegaM1[[iPattern]][,,iPair] %*% iX
+                        REML.numerator2[,,iKey] <- REML.numerator2[,,iKey] + weights[iId] * (tiX %*% OmegaM1_d2OmegaAndCo_OmegaM1[[iPattern]][,,iPair] %*% iX)
                     }
                 }
             }
@@ -362,7 +363,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
                     iCoef1 <- pair.meanvarcoef[[iPattern]][1,iPair]
                     iCoef2 <- pair.meanvarcoef[[iPattern]][2,iPair]
 
-                    iValue <- tiX[iCoef1,,drop=FALSE] %*% OmegaM1_dOmega_OmegaM1[[iPattern]][[iCoef2]] %*% iResidual 
+                    iValue <- weights[iId] * (tiX[iCoef1,,drop=FALSE] %*% OmegaM1_dOmega_OmegaM1[[iPattern]][[iCoef2]] %*% iResidual)
 
                     if(indiv){
                         info[iId,iCoef1,iCoef2] <- iValue
@@ -509,7 +510,6 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
             info <- attr.info %*% solve(attr.bread) %*% attr.info
         }
     }
-
     return(info)
 }
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Dec 26 2021 (18:39) 
+## Last-Updated: feb 11 2022 (17:57) 
 ##           By: Brice Ozenne
-##     Update #: 1631
+##     Update #: 1668
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -131,6 +131,9 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             if(!is.na(object$cluster$var) && object$cluster$var %in% names(data.var) == FALSE){
                 stop("Missing cluster column (variable \"",object$cluster$var,"\") in argument \'data\'. \n")
             }
+            if(!is.na(object$weight$var) && object$weight$var %in% names(data.var) == FALSE){
+                stop("Missing weight column (variable \"",object$weight$var,"\") in argument \'data\'. \n")
+            }
             indexData <- .extractIndexData(data = data.var, structure = object$design$vcov)
 
             design$index.cluster <- match(data.var$XXclusterXX, indexData$U.cluster) 
@@ -140,6 +143,10 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             design$index.time <- data$XXtime.indexXX
 
             design$vcov <- .skeleton(object$design$vcov, data = data.var)
+            
+            if(!is.null(object$weight$var)){
+                design$weight <- data.var[[object$weight$var]]
+            }
             
         }
     }else{
@@ -284,7 +291,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 
 ## * .model.matrix.lmm
 .model.matrix.lmm <- function(formula.mean, structure,
-                              data, var.outcome,
+                              data, var.outcome, var.weights,
                               U.strata, U.time,
                               stratify.mean,
                               precompute.moments){
@@ -315,9 +322,16 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 
     ## ** prepare calculation of the score
     if(precompute.moments){
-        precompute.XX <-  .precomputeXX(X = X.mean, pattern = structure$X$Upattern$name,
+        if(is.null(data[[var.weights]])){
+            wX.mean <- X.mean
+            wY <- cbind(data[[var.outcome]])
+        }else{
+            wX.mean <- sweep(X.mean, FUN = "*", MARGIN = 1, STATS = sqrt(data[[var.weights]]))
+            wY <- cbind(data[[var.outcome]]*sqrt(data[[var.weights]]))
+        }
+        precompute.XX <-  .precomputeXX(X = wX.mean, pattern = structure$X$Upattern$name, 
                                         pattern.time = structure$X$Upattern$time, pattern.cluster = structure$X$cluster.pattern, index.cluster = attr(index.cluster,"sorted"))
-        precompute.XY <-  .precomputeXR(X = precompute.XX$Xpattern, residuals = cbind(data[[var.outcome]]), pattern = structure$X$Upattern$name,
+        precompute.XY <-  .precomputeXR(X = precompute.XX$Xpattern, residuals = wY, pattern = structure$X$Upattern$name,
                                         pattern.time = structure$X$Upattern$time, pattern.cluster = structure$X$cluster.pattern, index.cluster = attr(index.cluster,"sorted"))
     }else{
         precompute.XX <- NULL
@@ -360,8 +374,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
                                                skeleton.param$strata.k,
                                                skeleton.param$strata.rho), name.param)
 
-
-    ## ** gather and export
+    ## ** gather and export    
     out <- list(mean = X.mean,
                 vcov = structure,
                 Y = data[[var.outcome]],
@@ -372,6 +385,10 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
                 cluster = list(n = n.cluster, levels = U.cluster, nobs = table(index.cluster)),
                 param = skeleton.param
                 )
+
+    if(!is.null(var.weights)){
+        out$weights <- data[[var.weights]]
+    }
     return(out)
 }
 

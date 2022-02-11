@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: feb  9 2022 (19:11) 
+## Last-Updated: feb 11 2022 (17:01) 
 ##           By: Brice Ozenne
-##     Update #: 212
+##     Update #: 226
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -68,16 +68,34 @@
     out$residuals <- design$Y - out$fitted
 
     if(precompute.moments){
+        if(is.null(design$weights)){
+            wRR <- out$residuals
+            wR <-  out$residuals
+            Upattern.ncluster <- stats::setNames(design$vcov$X$Upattern$ncluster,design$vcov$X$Upattern$name)
+        }else{
+            wR <- sweep(out$residuals, FUN = "*", MARGIN = 1, STATS = design$weights)
+            wRR <- sweep(out$residuals, FUN = "*", MARGIN = 1, STATS = sqrt(design$weights))
+            Upattern.ncluster <- tapply(tapply(design$weight,design$index.cluster,unique),design$vcov$X$pattern.cluster,sum)[design$vcov$X$Upattern$name]
+        }
+        weights.cluster <- NULL
+
         precompute <- list(XX = design$precompute.XX,
-                           RR = .precomputeRR(residuals = out$residuals, pattern = design$vcov$X$Upattern$name,
+                           RR = .precomputeRR(residuals = wRR, pattern = design$vcov$X$Upattern$name,
                                               pattern.time = design$vcov$X$Upattern$time, pattern.cluster = design$vcov$X$cluster.pattern, index.cluster = attr(design$index.cluster,"sorted"))                           
                            )
         if(score || information || vcov || df){
-            precompute$XR  <-  .precomputeXR(X = design$precompute.XX$Xpattern, residuals = out$residuals, pattern = design$vcov$X$Upattern$name,
-                                             pattern.time = design$vcov$X$Upattern$time, pattern.cluster = design$vcov$X$cluster.pattern, index.cluster = attr(design$index.cluster,"sorted"))            }
-
+            precompute$XR  <-  .precomputeXR(X = design$precompute.XX$Xpattern, residuals = wR, pattern = design$vcov$X$Upattern$name,
+                                             pattern.time = design$vcov$X$Upattern$time, pattern.cluster = design$vcov$X$cluster.pattern, index.cluster = attr(design$index.cluster,"sorted"))              }
+        
+        
     }else{
         precompute <- NULL
+        Upattern.ncluster <- NULL
+        if(is.null(design$weights)){
+            weights.cluster <- rep(1, design$cluster$n)
+        }else{
+            weights.cluster <- design$weights[sapply(attr(design$index.cluster, "sorted"),"[[",1)]
+        }
     }
 
     if(trace>=1){cat("- Omega \n")}
@@ -111,18 +129,18 @@
     ## matrix(MM[,8],4,4)
 
     ## ** 3- compute likelihood derivatives
-    Upattern.ncluster <- stats::setNames(design$vcov$X$Upattern$ncluster,design$vcov$X$Upattern$name)
     if(logLik){
         if(trace>=1){cat("- log-likelihood \n")}
         out$logLik <- .logLik(X = design$mean, residuals = out$residuals, precision = out$OmegaM1,
-                              Upattern.ncluster = Upattern.ncluster,
+                              Upattern.ncluster = Upattern.ncluster, weights = weights.cluster,
                               index.variance = design$vcov$X$pattern.cluster, time.variance = design$index.time, index.cluster = design$index.cluster, 
                               indiv = indiv, REML = method.fit=="REML", precompute = precompute)
     }
 
     if(score){ 
         if(trace>=1){cat("- score \n")}
-        out$score <- .score(X = design$mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, Upattern.ncluster = Upattern.ncluster,
+        out$score <- .score(X = design$mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega,
+                            Upattern.ncluster = Upattern.ncluster, weights = weights.cluster,
                             index.variance = design$vcov$X$pattern.cluster, time.variance = design$index.time, index.cluster = design$index.cluster,
                             name.varcoef = design$vcov$X$Upattern$param, name.allcoef = name.allcoef,
                             indiv = indiv, REML = method.fit=="REML", effects = effects, precompute = precompute)
@@ -146,7 +164,8 @@
             effects2 <- effects
         }
 
-        Minfo <- .information(X = design$mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega, Upattern.ncluster = Upattern.ncluster,
+        Minfo <- .information(X = design$mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega,
+                              Upattern.ncluster = Upattern.ncluster, weights = weights.cluster,
                               index.variance = design$vcov$X$pattern.cluster, time.variance = design$index.time, index.cluster = design$index.cluster,
                               name.varcoef = design$vcov$X$Upattern$param, name.allcoef = name.allcoef,
                               pair.meanvarcoef = design$param$pair.meanvarcoef, pair.varcoef = design$vcov$pair.varcoef,

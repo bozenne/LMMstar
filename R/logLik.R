@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: nov 13 2021 (16:35) 
+## Last-Updated: feb 11 2022 (16:21) 
 ##           By: Brice Ozenne
-##     Update #: 237
+##     Update #: 243
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -100,7 +100,7 @@ logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
 }
 
 ## * .logLik
-.logLik <- function(X, residuals, precision, Upattern.ncluster,
+.logLik <- function(X, residuals, precision, Upattern.ncluster, weights,
                     index.variance, time.variance, index.cluster,
                     indiv, REML, precompute){
 
@@ -116,7 +116,7 @@ logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
     name.mucoef <- colnames(X)
     log2pi <- log(2*pi)
     REML.det <- matrix(0, nrow = n.mucoef, ncol = n.mucoef, dimnames = list(name.mucoef, name.mucoef))
-    
+
     ## ** prepare output
     if(test.loopIndiv){
         ll <- rep(NA, n.cluster)
@@ -124,22 +124,22 @@ logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
         ll <- 0
     }
     
-
     ## ** compute log-likelihood
     ## *** looping over individuals
     if(test.loopIndiv){
         ## precompute
         logidet.precision <- lapply(precision, function(iM) {-log(base::det(iM))})
-
+        
         ## loop
-        for (iId in 1:n.cluster) {
+        for (iId in 1:n.cluster) { ## iId <- 1
             iIndex <- attr(index.cluster, "sorted")[[iId]]
             iResidual <- residuals[iIndex, , drop = FALSE]
             iX <- X[iIndex, , drop = FALSE]
             iOmega <- precision[[index.variance[iId]]]
-            ll[iId] <- -(NCOL(iOmega) * log2pi + logidet.precision[[index.variance[iId]]] + t(iResidual) %*% iOmega %*% iResidual)/2
+            
+            ll[iId] <- - weights[iId] * (NCOL(iOmega) * log2pi + logidet.precision[[index.variance[iId]]] + t(iResidual) %*% iOmega %*% iResidual)/2
             if (REML) {
-                REML.det <- REML.det + t(iX) %*% iOmega %*% iX
+                REML.det <- REML.det + weights[iId] * (t(iX) %*% iOmega %*% iX)
             }
         }
         if(!indiv){
