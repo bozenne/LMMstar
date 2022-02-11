@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (11:00) 
 ## Version: 
-## Last-Updated: nov 13 2021 (17:59) 
+## Last-Updated: feb 11 2022 (11:25) 
 ##           By: Brice Ozenne
-##     Update #: 64
+##     Update #: 66
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -34,7 +34,7 @@
 ##' @param size.text [numeric, >0] size of the font used to displayed text when using ggplot2.
 ##' @param ... additional argument passed to \code{residuals.lmm} or \code{autoplot.lmm}.
 ##'
-##' @details Call \code{\link{autoplot.lmm}} when code{type=="fit"} and \code{link(residuals.lmm)} for the other types.
+##' @details Call \code{\link{autoplot.lmm}} when code{type=="fit"} and \code{\link{residuals.lmm}} for the other types.
 ##'
 ##' @return A list with two elements \itemize{
 ##' \item \code{data}: data used to create the graphical display.

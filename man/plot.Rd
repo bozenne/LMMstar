@@ -52,5 +52,5 @@ Display fitted values or residual plot for the mean, variance, and correlation s
 Can also display quantile-quantile plot relative to the normal distribution.
 }
 \details{
-Call \code{\link{autoplot.lmm}} when code{type=="fit"} and \code{link(residuals.lmm)} for the other types.
+Call \code{\link{autoplot.lmm}} when code{type=="fit"} and \code{\link{residuals.lmm}} for the other types.
 }

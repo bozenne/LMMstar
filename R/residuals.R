@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: Dec 19 2021 (00:36) 
+## Last-Updated: feb 11 2022 (10:48) 
 ##           By: Brice Ozenne
-##     Update #: 447
+##     Update #: 459
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -317,11 +317,14 @@ residuals.lmm <- function(object, type = "response", format = "long",
 
     ## ** raw residuals
     if(!is.null(data) || !is.null(p) || "partial" %in% type.residual || "partial-ref" %in% type.residual){
-        fitted <- X %*% beta
+        fitted <- (X %*% beta)[,1]
         res <-  as.vector(Y - fitted)
         M.res <- matrix(NA, nrow = NROW(X), ncol = length(type.residual), dimnames = list(NULL, name.residual))
     }else{
         fitted <- stats::fitted(object)
+        if(!is.null(object$index.na)){ ## make sure to be consistent with X %*% beta
+            fitted <- fitted[-object$index.na]
+        }
         res <- as.vector(object$residuals)
         M.res <- matrix(NA, nrow = NROW(object$residuals), ncol = length(type.residual), dimnames = list(NULL, name.residual))
     }
@@ -398,6 +401,10 @@ residuals.lmm <- function(object, type = "response", format = "long",
         M.res <- matrix(NA, nrow = inflateNA$n.allobs, ncol = length(type.residual), dimnames = list(NULL, name.residual))
         M.res[-object$index.na,] <- Msave.res
 
+        Msave.fit <- fitted
+        fitted <- matrix(NA, nrow = inflateNA$n.allobs, ncol = 1)
+        fitted[-object$index.na,] <- Msave.fit
+        
         level.cluster <- factor(inflateNA$level.cluster, levels = cluster.level)
         level.time <- factor(inflateNA$level.time, object$time$levels)
     }else{
@@ -431,26 +438,27 @@ residuals.lmm <- function(object, type = "response", format = "long",
 
                     lapply(1:m,function(iCol){qqtest::qqtest(stats::na.omit(MW.res[,iCol+1]), main = paste0(object$time$var,": ",colnames(MW.res)[iCol+1]," (",label.residual,")"))})
                 }
-            }else if(plot %in% c("scatterplot","scatterplot2")){
-                dfL.res$time <- paste0(object$time$var,": ", dfL.res$time)
-                dfL.res$fitted <- fitted
-                attr(MW.res,"plot") <- ggplot2::ggplot(dfL.res) + ggplot2::xlab("Fitted values") + ggplot2::theme(text = ggplot2::element_text(size=size.text))
-                if(plot=="scatterplot"){
-                    attr(MW.res,"plot") <- attr(MW.res,"plot") + ggplot2::geom_abline(slope=0,intercept=0,color ="red") + ggplot2::geom_point(ggplot2::aes(x = fitted, y = residuals)) + ggplot2::ylab(label.residual)
-                    if(add.smooth[1]){
-                        attr(MW.res,"plot") <- attr(MW.res,"plot") + ggplot2::geom_smooth(ggplot2::aes(x = fitted, y = residuals), se = add.smooth[2])
-                    }
-                }else if(plot=="scatterplot2"){
-                    label.residual2 <- paste0("|",label.residual,"|")
-                    attr(MW.res,"plot") <- attr(MW.res,"plot") + ggplot2::geom_point(ggplot2::aes(x = fitted, y = sqrt(abs(residuals)))) + ggplot2::ylab(bquote(sqrt(.(label.residual2))))
-                    if(add.smooth[1]){
-                        attr(MW.res,"plot") <- attr(MW.res,"plot") + ggplot2::geom_smooth(ggplot2::aes(x = fitted, y = sqrt(abs(residuals))), se = add.smooth[2])
-                    }
+        }else if(plot %in% c("scatterplot","scatterplot2")){
+
+            dfL.res$time <- paste0(object$time$var,": ", dfL.res$time)
+            dfL.res$fitted <- fitted
+            attr(MW.res,"plot") <- ggplot2::ggplot(dfL.res) + ggplot2::xlab("Fitted values") + ggplot2::theme(text = ggplot2::element_text(size=size.text))
+            if(plot=="scatterplot"){
+                attr(MW.res,"plot") <- attr(MW.res,"plot") + ggplot2::geom_abline(slope=0,intercept=0,color ="red") + ggplot2::geom_point(ggplot2::aes(x = fitted, y = residuals)) + ggplot2::ylab(label.residual)
+                if(add.smooth[1]){
+                    attr(MW.res,"plot") <- attr(MW.res,"plot") + ggplot2::geom_smooth(ggplot2::aes(x = fitted, y = residuals), se = add.smooth[2])
                 }
-                attr(MW.res,"plot") <- attr(MW.res,"plot") + ggplot2::facet_wrap(~time, scales = scales)
-                print(attr(MW.res,"plot"))
-            }else if(plot == "correlation"){
-                name.time <- colnames(MW.res[,-1])
+            }else if(plot=="scatterplot2"){
+                label.residual2 <- paste0("|",label.residual,"|")
+                attr(MW.res,"plot") <- attr(MW.res,"plot") + ggplot2::geom_point(ggplot2::aes(x = fitted, y = sqrt(abs(residuals)))) + ggplot2::ylab(bquote(sqrt(.(label.residual2))))
+                if(add.smooth[1]){
+                    attr(MW.res,"plot") <- attr(MW.res,"plot") + ggplot2::geom_smooth(ggplot2::aes(x = fitted, y = sqrt(abs(residuals))), se = add.smooth[2])
+                }
+            }
+            attr(MW.res,"plot") <- attr(MW.res,"plot") + ggplot2::facet_wrap(~time, scales = scales)
+            print(attr(MW.res,"plot"))
+        }else if(plot == "correlation"){
+            name.time <- colnames(MW.res[,-1])
                 
                 M.cor  <- stats::cor(MW.res[,-1], use = "pairwise")
                 ind.cor <- !is.na(M.cor)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: feb 10 2022 (18:50) 
+## Last-Updated: feb 11 2022 (11:21) 
 ##           By: Brice Ozenne
-##     Update #: 775
+##     Update #: 785
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -331,6 +331,9 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     dVcov.param <- attr(vcov.param,"dVcov")
     if(df>0 && object$method.fit=="REML" && type.information == "expected"){
         warning("when using REML with expected information, the degree of freedom of the F-statistic may depend on the parametrisation of the variance parameters. \n")
+    }
+    if(any(sapply(ls.contrast, function(iC){is.null(iC) || identical(colnames(iC), names(param))}) == FALSE)){
+        warning("Names of the columns of the contrast matrix do not match the names of the model coefficients. \n")
     }
 
     ## ** F-tests

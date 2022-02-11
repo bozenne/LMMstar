@@ -7,18 +7,36 @@ if(system("whoami",intern=TRUE)=="bozenne"){
 }else if(system("whoami",intern=TRUE)=="unicph\\hpl802"){  
   setwd("c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/")
 }
-library(ggplot2)
-library(LMMstar)
-library(emmeans)
-library(qqtest)
-library(ggpubr)
+library(ggplot2, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
+library(emmeans, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
+library(qqtest, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
+library(multcomp, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
+library(ggpubr, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
+library(LMMstar, quietly = TRUE, verbose = FALSE)
 #+END_SRC
 
 #+RESULTS:
-: Indlæser krævet pakke: nlme
-: LMMstar version 0.4.6
-: Advarselsbesked:
-: pakke 'nlme' blev bygget under R version 4.1.2
+#+begin_example
+
+Vedhæfter pakke: 'MASS'
+
+Det følgende objekt er maskeret fra 'package:qqtest':
+
+    bacteria
+
+
+Vedhæfter pakke: 'TH.data'
+
+Det følgende objekt er maskeret fra 'package:MASS':
+
+    geyser
+
+Advarselsbesked:
+pakke 'multcomp' blev bygget under R version 4.1.2
+LMMstar version 0.4.6
+Advarselsbesked:
+pakke 'nlme' blev bygget under R version 4.1.2
+#+end_example
 
 This vignette describes the main functionalities of the *LMMstar*
 package. This package implements specific types of linear mixed models
@@ -86,6 +104,7 @@ gastricbypassL$time <- factor(gastricbypassL$time,
                                          "1 week after surgery", "3 months after surgery" ),
                               labels = c("B3_months","B1_week","A1_week","A3_months"))
 gastricbypassL$visit <- as.numeric(gastricbypassL$time) ## convert to numeric
+gastricbypassL$group <- as.numeric(gastricbypassL$id)%%2 ## create artificial group variable
 #+END_SRC
 #+RESULTS:
 and rescale the glucagon values
@@ -284,7 +303,6 @@ A3_months  318.8573 304.6314 285.8077  280.9323
 \noindent Fit a linear mixed model with *stratified unstructured* covariance matrix:
 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-gastricbypassL$group <- as.numeric(gastricbypassL$id)%%2
 eSUN.lmm <- lmm(weight ~ time*group,
                 repetition = group~time|id, structure = "UN",
                 data = gastricbypassL)
@@ -683,13 +701,36 @@ gg
 #+END_SRC
 
 #+RESULTS:
-: Warning message:
+: Advarselsbesked:
 : Removed 2 rows containing missing values (geom_point).
 
 # ## ggsave(gg + theme(text = element_text(size=20)), filename = "figures/fit-autoplot-indiv.pdf", width = 12)
 
 #+ATTR_LaTeX: :width \textwidth :placement [!h]
 [[./figures/fit-autoplot-indiv.pdf]]
+
+\clearpage
+
+Partial residuals can also be displayed via the =plot= method:
+#+BEGIN_SRC R :file ./figures/fit-pres.pdf :results graphics file :session *R* :cache no
+plot(eUN.lmm, type = "scatterplot", type.residual = "partial", var = "glucagon")
+#+END_SRC
+
+#+RESULTS:
+[[file:./figures/fit-pres.pdf]]
+
+#+ATTR_LaTeX: :width 0.6\textwidth :placement [!h]
+[[./figures/fit-pres.pdf]]
+
+Their value can be extracted via the =residuals= method, e.g.:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+df.pres <- residuals(eUN.lmm, type = "partial", var = "glucagon", keep.data = TRUE)
+m.pres <- gastricbypassL$weight - model.matrix(~time,gastricbypassL) %*% coef(eUN.lmm)[1:4]
+range(df.pres$r.partial - m.pres, na.rm = TRUE)
+#+END_SRC
+
+#+RESULTS:
+: [1] -1.421085e-14  1.421085e-14
 
 \clearpage
 
@@ -777,17 +818,17 @@ Singular contrast matrix: contrasts "A1_week - B1_week" "A3_months - B1_week" "A
 
  - Univariate Wald test (individual null hypotheses) 
                        estimate        se        df     lower    upper p.value    
-B1_week - B3_months    -7.88223   0.71318  20.00000  -9.79578  -5.9687 < 1e-05 ***
-A1_week - B3_months   -11.78795   1.01751  20.00000 -14.51807  -9.0578 < 1e-05 ***
-A3_months - B3_months -26.12239   1.65641  20.00000 -30.56673 -21.6780 < 1e-05 ***
-A1_week - B1_week      -3.90572   0.59464  20.00000  -5.50121  -2.3102 < 1e-05 ***
-A3_months - B1_week   -18.24016   1.32283  20.00000 -21.78947 -14.6908 < 1e-05 ***
-A3_months - A1_week   -14.33444   1.05650  20.00000 -17.16916 -11.4997 < 1e-05 ***
+B1_week - B3_months    -7.88223   0.71318  20.00000  -9.79667  -5.9678 < 1e-05 ***
+A1_week - B3_months   -11.78795   1.01751  20.00000 -14.51934  -9.0566 < 1e-05 ***
+A3_months - B3_months -26.12239   1.65641  20.00000 -30.56880 -21.6760 < 1e-05 ***
+A1_week - B1_week      -3.90572   0.59464  20.00000  -5.50196  -2.3095 < 1e-05 ***
+A3_months - B1_week   -18.24016   1.32283  20.00000 -21.79112 -14.6892 < 1e-05 ***
+A3_months - A1_week   -14.33444   1.05650  20.00000 -17.17048 -11.4984 < 1e-05 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 Standard errors: model-based
 (CIs/p-values adjusted for multiple comparisons -- single step max-test)
-Error when computing the adjusted p-value by numerical integration: 1.5336e-05
+Error when computing the adjusted p-value by numerical integration: 4.763e-06
 #+end_example
 
 
@@ -810,8 +851,8 @@ try(
 
 It is then advised to build a contrast matrix, e.g.:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-name.coef <- rownames(confint(eUN.lmm, effects = "all", backtransform = FALSE))
-name.varcoef <- grep("log(k)",name.coef, value = TRUE, fixed = TRUE)
+name.coef <- rownames(confint(eUN.lmm, effects = "all"))
+name.varcoef <- grep("^k",name.coef, value = TRUE)
 C <- matrix(0, nrow = 3, ncol = length(name.coef), dimnames = list(name.varcoef, name.coef))
 diag(C[name.varcoef,name.varcoef]) <- 1
 C
@@ -819,26 +860,18 @@ C
 
 #+RESULTS:
 #+begin_example
-                 (Intercept) timeB1_week timeA1_week timeA3_months glucagon log(sigma)
-log(k).B1_week             0           0           0             0        0          0
-log(k).A1_week             0           0           0             0        0          0
-log(k).A3_months           0           0           0             0        0          0
-                 log(k).B1_week log(k).A1_week log(k).A3_months atanh(rho(B3_months,B1_week))
-log(k).B1_week                1              0                0                             0
-log(k).A1_week                0              1                0                             0
-log(k).A3_months              0              0                1                             0
-                 atanh(rho(B3_months,A1_week)) atanh(rho(B3_months,A3_months))
-log(k).B1_week                               0                               0
-log(k).A1_week                               0                               0
-log(k).A3_months                             0                               0
-                 atanh(rho(B1_week,A1_week)) atanh(rho(B1_week,A3_months))
-log(k).B1_week                             0                             0
-log(k).A1_week                             0                             0
-log(k).A3_months                           0                             0
-                 atanh(rho(A1_week,A3_months))
-log(k).B1_week                               0
-log(k).A1_week                               0
-log(k).A3_months                             0
+            (Intercept) timeB1_week timeA1_week timeA3_months glucagon sigma k.B1_week k.A1_week
+k.B1_week             0           0           0             0        0     0         1         0
+k.A1_week             0           0           0             0        0     0         0         1
+k.A3_months           0           0           0             0        0     0         0         0
+            k.A3_months rho(B3_months,B1_week) rho(B3_months,A1_week) rho(B3_months,A3_months)
+k.B1_week             0                      0                      0                        0
+k.A1_week             0                      0                      0                        0
+k.A3_months           1                      0                      0                        0
+            rho(B1_week,A1_week) rho(B1_week,A3_months) rho(A1_week,A3_months)
+k.B1_week                      0                      0                      0
+k.A1_week                      0                      0                      0
+k.A3_months                    0                      0                      0
 #+end_example
 
 And then call the =anova= method specifying the null hypothesis via the
@@ -848,10 +881,14 @@ anova(eUN.lmm, effects = C)
 #+END_SRC
 
 #+RESULTS:
-:                      ** User-specified hypotheses ** 
-:  - F-test:
-:  statistic df.num df.denom     p.value
-:   6.203161      3 17.99456 0.004417117
+: 
+: 	|| User-specified linear hypotheses || 
+: 
+:  - Multivariate Wald test (global null hypothesis)
+:  statistic df.num df.denom   p.value   
+:     6.2032      3   17.995 0.0044171 **
+: ---
+:  Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 \clearpage
 
@@ -1000,7 +1037,7 @@ coef(eC.lmm, effects = "mean")
 
 One can vizualize the baseline adjustment via the =autoplot= function:
 #+BEGIN_SRC R :file ./figures/gg-baseAdj.pdf :results graphics file :session *R* :cache no
-autoplot(eC.lmm, color = "group", ci = FALSE, size.text = 20)
+autoplot(eC.lmm, color = "group", ci = FALSE, size.text = 20) 
 #+END_SRC
 
 #+RESULTS:
@@ -1225,10 +1262,10 @@ summary(epairs.group, by = NULL, adjust = "mvt", infer = TRUE)
 
 #+RESULTS:
 :  contrast time      estimate    SE   df lower.CL upper.CL t.ratio p.value
-:  2 - 1    B3_months     4.83 10.10 18.0    -18.0     27.6   0.478  0.7499
-:  2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0   0.618  0.6476
-:  2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.9   0.471  0.7553
-:  2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.7   0.797  0.5279
+:  2 - 1    B3_months     4.83 10.10 18.0    -18.0     27.7   0.478  0.7496
+:  2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0   0.618  0.6486
+:  2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.9   0.471  0.7556
+:  2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.7   0.797  0.5285
 : 
 : Confidence level used: 0.95 
 : Conf-level adjustment: mvt method for 4 estimates 
@@ -1322,7 +1359,7 @@ predict(eUN.lmm, newdata = newd, type = "dynamic", keep.newdata = TRUE)
 #+RESULTS:
 :   id      time   weight glucagon  estimate        se  df     lower    upper
 : 1  1 B3_months 128.5386        0        NA        NA  NA        NA       NA
-: 2  1   B1_week       NA        0 120.65636 0.6361009 Inf 119.40963 121.9031
+: 2  1   B1_week       NA        0 120.65636 0.6361008 Inf 119.40963 121.9031
 : 3  2 B3_months 100.0000        0        NA        NA  NA        NA       NA
 : 4  2   B1_week       NA        0  94.15336 6.2597469 Inf  81.88448 106.4222
   
@@ -1443,6 +1480,8 @@ Visually:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 ggplot(eData, aes(x=time,y=glucagon, group=id)) + geom_line() + geom_point(aes(color=imputed))
 #+END_SRC
+
+#+RESULTS:
 
 #+BEGIN_SRC R :exports none :results output raw drawer :session *R* :cache no
 gg <- ggplot(eData, aes(x=time,y=glucagon, group=id)) + geom_line() + geom_point(aes(color=imputed), size=2)
