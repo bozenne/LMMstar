@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul  8 2021 (17:09) 
 ## Version: 
-## Last-Updated: jan 24 2022 (16:37) 
+## Last-Updated: Feb 13 2022 (23:09) 
 ##           By: Brice Ozenne
-##     Update #: 50
+##     Update #: 51
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -120,11 +120,11 @@ fitted.lmm <- function(object, newdata = NULL, keep.newdata = FALSE, impute = FA
         }
     }else{
         ## extract coefficients
-        beta <- coef(object, effects = "mean")
+        beta <- stats::coef(object, effects = "mean")
         name.beta <- names(beta)
 
         ## generate design matrix
-        X.beta <- model.matrix(object, data = newdata, effects = "mean")
+        X.beta <- stats::model.matrix(object, data = newdata, effects = "mean")
 
         ## compute predictions
         prediction <- as.vector(X.beta %*% beta)

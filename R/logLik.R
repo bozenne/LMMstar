@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: feb 11 2022 (16:21) 
+## Last-Updated: Feb 13 2022 (23:11) 
 ##           By: Brice Ozenne
-##     Update #: 243
+##     Update #: 249
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -50,40 +50,28 @@ logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
     }else{
         test.precompute <- !is.null(object$design$precompute.XX) && !indiv
             
-            if(!is.null(data)){
-                ff.allvars <- c(all.vars(object$formula$mean), all.vars(object$formula$var))
-                if(any(ff.allvars %in% names(data) == FALSE)){
-                    stop("Incorrect argument \'data\': missing variable(s) \"",paste(ff.allvars[ff.allvars %in% names(data) == FALSE], collapse = "\" \""),"\".\n")
-                }
-
-                design <- .model.matrix.lmm(formula.mean = object$formula$mean.design,
-                                            structure = object$design$vcov,
-                                            data = data,
-                                            var.outcome = object$outcome$var,
-                                            U.strata = object$strata$levels,
-                                            U.time = object$time$levels,
-                                            stratify.mean = object$opt$name=="gls",
-                                            precompute.moments = test.precompute)
-            }else{
-                design <- object$design
-            }
+        if(!is.null(data)){
+            design <- stats::model.matrix(object, data = data, effects = "all", simplifies = FALSE)
+        }else{
+            design <- object$design
+        }
           
-            if(!is.null(p)){
-                if(any(duplicated(names(p)))){
-                    stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
-                }
-                if(any(names(object$param$type) %in% names(p) == FALSE)){
-                    stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param$type)[names(object$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
-                }
-                p <- p[names(object$param$value)]
-            }else{
-                p <- object$param$value
+        if(!is.null(p)){
+            if(any(duplicated(names(p)))){
+                stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
             }
-            out <- .moments.lmm(value = p, design = design, time = object$time, method.fit = object$method.fit,
-                                transform.sigma = "none", transform.k = "none", transform.rho = "none",
-                                logLik = TRUE, score = FALSE, information = FALSE, vcov = FALSE, df = FALSE, indiv = indiv, 
-                                trace = FALSE, precompute.moments = test.precompute)$logLik
-        } 
+            if(any(names(object$param$type) %in% names(p) == FALSE)){
+                stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param$type)[names(object$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
+            }
+            p <- p[names(object$param$value)]
+        }else{
+            p <- object$param$value
+        }
+        out <- .moments.lmm(value = p, design = design, time = object$time, method.fit = object$method.fit,
+                            transform.sigma = "none", transform.k = "none", transform.rho = "none",
+                            logLik = TRUE, score = FALSE, information = FALSE, vcov = FALSE, df = FALSE, indiv = indiv, 
+                            trace = FALSE, precompute.moments = test.precompute)$logLik
+    } 
 
     ## ** restaure NAs
     if(length(object$index.na)>0 && indiv){ 
@@ -136,10 +124,15 @@ logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
             iResidual <- residuals[iIndex, , drop = FALSE]
             iX <- X[iIndex, , drop = FALSE]
             iOmega <- precision[[index.variance[iId]]]
+            if(!is.null(weights)){
+                iWeight <- weights[iId]
+            }else{
+                iWeight <- 1
+            }
             
-            ll[iId] <- - weights[iId] * (NCOL(iOmega) * log2pi + logidet.precision[[index.variance[iId]]] + t(iResidual) %*% iOmega %*% iResidual)/2
+            ll[iId] <- - iWeight * (NCOL(iOmega) * log2pi + logidet.precision[[index.variance[iId]]] + t(iResidual) %*% iOmega %*% iResidual)/2
             if (REML) {
-                REML.det <- REML.det + weights[iId] * (t(iX) %*% iOmega %*% iX)
+                REML.det <- REML.det + iWeight * (t(iX) %*% iOmega %*% iX)
             }
         }
         if(!indiv){

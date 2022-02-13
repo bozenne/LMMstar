@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: feb 11 2022 (17:57) 
+## Last-Updated: Feb 13 2022 (23:09) 
 ##           By: Brice Ozenne
-##     Update #: 1668
+##     Update #: 1683
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -115,11 +115,10 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 
         ## *** mean
         if("mean" %in% effects){
-
             ## use stats::model.frame to handle spline
             design$mean  <- .mean.matrix.lmm(formula = object$formula$mean.design, colnames = colnames(object$design$mean),
-                                            data = stats::model.frame(attr(object$design$mean,"terms"), data = data.mean, na.action = stats::na.pass), 
-                                            U.strata = if(object$opt$name=="gls"){object$strata$levels}else{NA}) ## only stratify mean if gls optimizer
+                                             data = stats::model.frame(attr(object$design$mean,"terms"), data = data.mean , na.action = stats::na.pass), 
+                                             U.strata = if(object$opt$name=="gls"){object$strata$levels}else{NA}) ## only stratify mean if gls optimizer
         }
     
         ## *** variance
@@ -271,14 +270,14 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             out$cor <- .colnameOrder(.model.matrix_regularize(formula.cor, data = data, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
         }
     }else{ ## newdata
-        out$var <- model.matrix(formula.var, data = data)[,attr(structure$X$var,"original.colnames"),drop=FALSE]
+        out$var <- stats::model.matrix(formula.var, data = data)[,attr(structure$X$var,"original.colnames"),drop=FALSE]
         ## colnames(out$var) <- colnames(structure$X$var[[1]])
         attr(out$var,"assign") <- attr(structure$X$var,"assign")
         attr(out$var,"M.level") <- attr(structure$X$var,"M.level")
         attr(out$var,"original.colnames") <- attr(structure$X$var,"original.colnames")
 
         if(!is.null(formula.cor) && n.time>1 && any(sapply(order.clusterTime,length)>1)){  ## at least one individual with more than timepoint
-            out$cor <- model.matrix(formula.cor, data = data)[,attr(structure$X$cor,"original.colnames"),drop=FALSE]
+            out$cor <- stats::model.matrix(formula.cor, data = data)[,attr(structure$X$cor,"original.colnames"),drop=FALSE]
             attr(out$cor,"M.level") <- attr(structure$X$cor,"M.level")
             attr(out$cor,"assign") <- attr(structure$X$cor,"assign")
             attr(out$cor,"original.colnames") <- attr(structure$X$cor,"original.colnames")

@@ -16,12 +16,12 @@ This dataset is in the long format (i.e. one line per measurement).
 \itemize{
 \item group Treatment group: vitamin or placebo.
 \item animal Identifier
-\item weigth1 weight (in g) of the pig at the end of week 1 (before treatment).
-\item weigth3 weight (in g) of the pig at the end of week 3 (before treatment).
-\item weigth4 weight (in g) of the pig at the end of week 4 (before treatment).
-\item weigth5 weight (in g) of the pig at the end of week 5 (after treatment).
-\item weigth6 weight (in g) of the pig at the end of week 6 (after treatment).
-\item weigth7 weight (in g) of the pig at the end of week 7 (after treatment).
+\item weight1 weight (in g) of the pig at the end of week 1 (before treatment).
+\item weight3 weight (in g) of the pig at the end of week 3 (before treatment).
+\item weight4 weight (in g) of the pig at the end of week 4 (before treatment).
+\item weight5 weight (in g) of the pig at the end of week 5 (after treatment).
+\item weight6 weight (in g) of the pig at the end of week 6 (after treatment).
+\item weight7 weight (in g) of the pig at the end of week 7 (after treatment).
 }
 }
 \references{

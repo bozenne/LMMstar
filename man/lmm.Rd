@@ -9,6 +9,8 @@ lmm(
   repetition,
   structure,
   data,
+  weights = NULL,
+  scale.Omega = NULL,
   method.fit = NULL,
   df = NULL,
   type.information = NULL,
@@ -28,6 +30,10 @@ On the left hand side, a possible stratification variable, e.g. group ~ time|id.
 \item{structure}{[character] type of covariance structure, either \code{"CS"} (compound symmetry) or \code{"UN"} (unstructured).}
 
 \item{data}{[data.frame] dataset (in the long format) containing the observations.}
+
+\item{weights}{[formula or character] variable in the dataset used to weight the log-likelihood and its derivative. Should be constant within cluster.}
+
+\item{scale.Omega}{[formula or character] variable in the dataset used to rescale the residual variance-covariance matrix. Should be constant within cluster.}
 
 \item{method.fit}{[character] Should Restricted Maximum Likelihoood (\code{"REML"}) or Maximum Likelihoood (\code{"ML"}) be used to estimate the model parameters?}
 

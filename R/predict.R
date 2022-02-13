@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: Dec 15 2021 (16:49) 
+## Last-Updated: Feb 13 2022 (23:09) 
 ##           By: Brice Ozenne
-##     Update #: 562
+##     Update #: 563
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -197,7 +197,7 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
     vcov.beta <- vcov(object, effects = "mean")
 
     ## ** design matrix
-    X <- model.matrix(object, data = newdata, effects = "mean")
+    X <- stats::model.matrix(object, data = newdata, effects = "mean")
         
     if(type == "terms"){
         Xmean <- colMeans(object$design$mean)

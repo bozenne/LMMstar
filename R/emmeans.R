@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 10 2021 (16:08) 
 ## Version: 
-## Last-Updated: okt  2 2021 (17:36) 
+## Last-Updated: Feb 13 2022 (23:10) 
 ##           By: Brice Ozenne
-##     Update #: 71
+##     Update #: 72
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -49,7 +49,7 @@ emm_basis.lmm <- function(object, trms, xlev, grid, ...){
 
     out <- list()
     m  <-  stats::model.frame(trms, grid, na.action = stats::na.pass, xlev = xlev)
-    out$X <- model.matrix(object, data = m, effects = "mean")
+    out$X <- stats::model.matrix(object, data = m, effects = "mean")
     ## out$X  <-  stats::model.matrix(trms, m, contrasts.arg = object$contrasts)
     out$bhat  <- stats::coef(object, effects = "mean")
     out$nbasis  <-  matrix(NA)  ## no rank deficiency

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: Dec 15 2021 (17:37) 
+## Last-Updated: Feb 13 2022 (23:09) 
 ##           By: Brice Ozenne
-##     Update #: 275
+##     Update #: 276
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -75,7 +75,7 @@ getVarCov.lmm <- function(obj, individual = NULL, p = NULL, simplifies = TRUE, s
     ## individual
     if(!is.null(individual)){
         if(inherits(individual, "data.frame")){
-            object$design$vcov <- model.matrix(object, data = individual, effect = "variance")
+            object$design$vcov <- stats::model.matrix(object, data = individual, effect = "variance")
         }else{
             if(any(duplicated(individual))){
                 stop("Argument \'individual\' should contain duplicates. \n")

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: dec  8 2021 (17:36) 
+## Last-Updated: Feb 13 2022 (23:10) 
 ##           By: Brice Ozenne
-##     Update #: 105
+##     Update #: 106
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -70,7 +70,7 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
     }
 
     ## design matrix
-    X.beta <- model.matrix(object, data = data, effects = "mean")
+    X.beta <- stats::model.matrix(object, data = data, effects = "mean")
 
     ## only keep one representant per type of design matrix
     test.duplicated <- duplicated(X.beta)

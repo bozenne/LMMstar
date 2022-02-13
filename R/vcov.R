@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: feb  9 2022 (19:04) 
+## Last-Updated: Feb 13 2022 (23:12) 
 ##           By: Brice Ozenne
-##     Update #: 476
+##     Update #: 483
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -107,18 +107,7 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strat
             test.precompute <- !is.null(object$design$precompute.XX)
          
             if(!is.null(data)){
-                ff.allvars <- c(all.vars(object$formula$mean), all.vars(object$formula$var))
-                if(any(ff.allvars %in% names(data) == FALSE)){
-                    stop("Incorrect argument \'data\': missing variable(s) \"",paste(ff.allvars[ff.allvars %in% names(data) == FALSE], collapse = "\" \""),"\".\n")
-                }
-
-                design <- .model.matrix.lmm(formula.mean = object$formula$mean.design,
-                                            structure = object$design$vcov,
-                                            data = data,
-                                            U.strata = object$strata$levels,
-                                            U.time = object$time$levels,
-                                            stratify.mean = object$opt$name=="gls",
-                                            precompute.moments = test.precompute)
+                design <- stats::model.matrix(object, data = data, effects = "all", simplifies = FALSE)
             }else{
                 design <- object$design
             }

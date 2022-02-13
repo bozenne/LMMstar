@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: feb 11 2022 (17:02) 
+## Last-Updated: Feb 13 2022 (23:10) 
 ##           By: Brice Ozenne
-##     Update #: 470
+##     Update #: 478
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -81,18 +81,7 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
         test.precompute <- !is.null(x$design$precompute.XX) && !indiv
 
         if(!is.null(data)){
-            ff.allvars <- c(all.vars(x$formula$mean), all.vars(x$formula$var))
-            if(any(ff.allvars %in% names(data) == FALSE)){
-                stop("Incorrect argument \'data\': missing variable(s) \"",paste(ff.allvars[ff.allvars %in% names(data) == FALSE], collapse = "\" \""),"\".\n")
-            }
-
-            design <- .model.matrix.lmm(formula.mean = x$formula$mean.design,
-                                        structure = x$design$vcov,
-                                        data = data,
-                                        var.outcome = x$outcome$var,
-                                        U.strata = x$strata$levels, U.time = x$time$levels,
-                                        stratify.mean = x$opt$name=="gls",
-                                        precompute.moments = test.precompute)
+            design <- stats::model.matrix(x, data = data, effects = "all", simplifies = FALSE)
         }else{
             design <- x$design
         }
@@ -220,6 +209,11 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
         for(iId in 1:n.cluster){ ## iId <- 7
             iPattern <- index.variance[iId]
             iIndex <- attr(index.cluster,"sorted")[[iId]]
+            if(!is.null(weights)){
+                iWeight <- weights[iId]
+            }else{
+                iWeight <- 1
+            }
             ## iIndex <- which(index.cluster==iId)
             ## iIndex <- iIndex[order(time.variance[iIndex])] ## re-order observations according to the variance-covariance matrix
 
@@ -228,19 +222,19 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
             tiX <- t(iX)
 
             if(test.mean){
-                Score[iId,name.mucoef] <- weights[iId] * (tiX %*% precision[[iPattern]] %*% iResidual)
+                Score[iId,name.mucoef] <- iWeight * (tiX %*% precision[[iPattern]] %*% iResidual)
             }
 
             if(test.vcov){
                 if(REML){
-                    REML.denom <- REML.denom + weights[iId] * (tiX %*% precision[[iPattern]] %*% iX)
+                    REML.denom <- REML.denom + iWeight * (tiX %*% precision[[iPattern]] %*% iX)
                 }
 
                 for(iVarcoef in name.varcoef[[iPattern]]){ ## iVarcoef <- name.varcoef[1]
-                    Score[iId,iVarcoef] <- -0.5 * weights[iId] * trOmegaM1_dOmega[[iPattern]][[iVarcoef]] + 0.5 * weights[iId] * t(iResidual) %*% OmegaM1_dOmega_OmegaM1[[iPattern]][[iVarcoef]] %*% iResidual
+                    Score[iId,iVarcoef] <- -0.5 * iWeight * trOmegaM1_dOmega[[iPattern]][[iVarcoef]] + 0.5 * iWeight * t(iResidual) %*% OmegaM1_dOmega_OmegaM1[[iPattern]][[iVarcoef]] %*% iResidual
 
                     if(REML){
-                        REML.num[,,iVarcoef] <- REML.num[,,iVarcoef] + weights[iId] * (tiX %*% OmegaM1_dOmega_OmegaM1[[iPattern]][[iVarcoef]] %*% iX)
+                        REML.num[,,iVarcoef] <- REML.num[,,iVarcoef] + iWeight * (tiX %*% OmegaM1_dOmega_OmegaM1[[iPattern]][[iVarcoef]] %*% iX)
                     }
                 }
             }

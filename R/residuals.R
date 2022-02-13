@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: feb 11 2022 (10:48) 
+## Last-Updated: Feb 13 2022 (23:09) 
 ##           By: Brice Ozenne
-##     Update #: 459
+##     Update #: 462
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -192,9 +192,9 @@ residuals.lmm <- function(object, type = "response", format = "long",
         if(is.null(data)){
             data <- stats::model.frame(object)
             data <- data[,setdiff(colnames(data),c("XXindexXX", "XXstrata.indexXX", "XXvisit.indexXX")),drop=FALSE]
-            design <- model.matrix(object, effects = effects, simplifies = FALSE)
+            design <- stats::model.matrix(object, effects = effects, simplifies = FALSE)
         }else{
-            design <- model.matrix(object, data = data, effects = effects, simplifies = FALSE)
+            design <- stats::model.matrix(object, data = data, effects = effects, simplifies = FALSE)
         }
 
         ## design matrix relative to the data where the effect of variables no in var has been removed
@@ -223,7 +223,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
             }
 
             ## build design matrix
-            design2 <- model.matrix(object, data = data, effects = effects, simplifies = FALSE)
+            design2 <- stats::model.matrix(object, data = data, effects = effects, simplifies = FALSE)
 
             ## handle intercept term
             if(keep.intercept==FALSE && "(Intercept)" %in% colnames(design2$mean)){
@@ -236,7 +236,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
         }
         
     }else{
-        design <- model.matrix(object, data = data, effects = effects, simplifies = FALSE)
+        design <- stats::model.matrix(object, data = data, effects = effects, simplifies = FALSE)
         if(keep.data){
             data <- stats::model.frame(object)
             data <- data[,setdiff(colnames(data),c("XXindexXX", "XXstrata.indexXX", "XXvisit.indexXX")),drop=FALSE]

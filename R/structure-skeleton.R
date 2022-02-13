@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: feb 11 2022 (16:47) 
+## Last-Updated: Feb 13 2022 (23:10) 
 ##           By: Brice Ozenne
-##     Update #: 1330
+##     Update #: 1331
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -544,7 +544,7 @@
             if(length(lpdiff.rho)==1 && all(iDiff==lpdiff.rho)){
                 iZ <- matrix(1, nrow = length(iDiff), ncol = 1, dimnames = list(NULL,names(lpdiff.rho)))
             }else{
-                iZ <- model.matrix(~0+X,data.frame(X = factor(names(lpdiff.rho)[match(iDiff,lpdiff.rho)], levels = names(lpdiff.rho)),stringsAsFactors = FALSE))
+                iZ <- stats::model.matrix(~0+X,data.frame(X = factor(names(lpdiff.rho)[match(iDiff,lpdiff.rho)], levels = names(lpdiff.rho)),stringsAsFactors = FALSE))
                 colnames(iZ) <- names(lpdiff.rho)
             }
             rownames(iZ) <- paste("(",iPair.time[1,],",",iPair.time[2,],")", sep = "")

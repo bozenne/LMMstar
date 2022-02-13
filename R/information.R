@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: feb 11 2022 (17:23) 
+## Last-Updated: Feb 13 2022 (23:09) 
 ##           By: Brice Ozenne
-##     Update #: 954
+##     Update #: 962
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -89,19 +89,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
         test.precompute <- !is.null(x$design$precompute.XX) && !indiv
          
         if(!is.null(data)){
-            ff.allvars <- c(all.vars(x$formula$mean), all.vars(x$formula$var))
-            if(any(ff.allvars %in% names(data) == FALSE)){
-                stop("Incorrect argument \'data\': missing variable(s) \"",paste(ff.allvars[ff.allvars %in% names(data) == FALSE], collapse = "\" \""),"\".\n")
-            }
-
-            design <- .model.matrix.lmm(formula.mean = x$formula$mean.design,
-                                        structure = x$design$vcov,
-                                        data = data,
-                                        var.outcome = x$outcome$var,
-                                        U.strata = x$strata$levels,
-                                        U.time = x$time$levels,
-                                        stratify.mean = x$opt$name=="gls",
-                                        precompute.moments = test.precompute)
+            design <- stats::model.matrix(x, data = data, effects = "all", simplifies = FALSE)
         }else{
             design <- x$design
         }
@@ -117,7 +105,6 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
         }else{
             p <- x$param$value
         }
-     
         out <- .moments.lmm(value = p, design = design, time = x$time, method.fit = x$method.fit, type.information = type.information,
                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                             logLik = FALSE, score = FALSE, information = TRUE, vcov = FALSE, df = FALSE, indiv = indiv, effects = effects, robust = robust,
@@ -298,6 +285,11 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
         for(iId in 1:n.cluster){ ## iId <- 7
             iPattern <- index.variance[iId]
             iIndex <- attr(index.cluster,"sorted")[[iId]]
+            if(!is.null(weights)){
+                iWeight <- weights[iId]
+            }else{
+                iWeight <- 1
+            }
             ## iIndex <- which(index.cluster==iId)
             ## iIndex <- iIndex[order(time.variance[iIndex])] ## re-order observations according to the variance-covariance matrix
 
@@ -309,7 +301,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
             }
         
             ## **** mean,mean
-            iValue <-  weights[iId] * (tiX %*% iOmega %*% iX)
+            iValue <-  iWeight * (tiX %*% iOmega %*% iX)
             if(test.mean){
                 if(indiv){
                     info[iId,name.mucoef,name.mucoef] <- iValue
@@ -320,7 +312,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
             if(REML && test.vcov){
                 REML.denom <- REML.denom + iValue
                 for(iVarcoef in name.varcoef[[iPattern]]){ ## iVarcoef <- 1
-                    REML.numerator1[,,iVarcoef] <- REML.numerator1[,,iVarcoef] + weights[iId] * (tiX %*% OmegaM1_dOmega_OmegaM1[[iPattern]][[iVarcoef]] %*% iX)
+                    REML.numerator1[,,iVarcoef] <- REML.numerator1[,,iVarcoef] + iWeight * (tiX %*% OmegaM1_dOmega_OmegaM1[[iPattern]][[iVarcoef]] %*% iX)
                 }
             }
 
@@ -331,11 +323,11 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
                     iCoef1 <- pair.varcoef[[iPattern]][1,iPair]
                     iCoef2 <- pair.varcoef[[iPattern]][2,iPair]
 
-                    iValue <- 0.5 * weights[iId] * tr_OmegaM1_d2OmegaAndCo[[iPattern]][iPair]
+                    iValue <- 0.5 * iWeight * tr_OmegaM1_d2OmegaAndCo[[iPattern]][iPair]
                     ## 0.5 * tr(iOmega %*% idOmega$sigma %*% iOmega %*% idOmega$sigma)
 
                     if(type.information == "observed"){
-                        iValue <- iValue - 0.5 * weights[iId] * (t(iResidual) %*% OmegaM1_d2OmegaAndCo_OmegaM1[[iPattern]][,,iPair] %*% iResidual)
+                        iValue <- iValue - 0.5 * iWeight * (t(iResidual) %*% OmegaM1_d2OmegaAndCo_OmegaM1[[iPattern]][,,iPair] %*% iResidual)
                     }
                     if(indiv){
                         info[iId,iCoef1,iCoef2] <- iValue
@@ -351,7 +343,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
 
                     if(REML){
                         iKey <- REML.key[iCoef1,iCoef2]
-                        REML.numerator2[,,iKey] <- REML.numerator2[,,iKey] + weights[iId] * (tiX %*% OmegaM1_d2OmegaAndCo_OmegaM1[[iPattern]][,,iPair] %*% iX)
+                        REML.numerator2[,,iKey] <- REML.numerator2[,,iKey] + iWeight * (tiX %*% OmegaM1_d2OmegaAndCo_OmegaM1[[iPattern]][,,iPair] %*% iX)
                     }
                 }
             }
@@ -363,7 +355,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
                     iCoef1 <- pair.meanvarcoef[[iPattern]][1,iPair]
                     iCoef2 <- pair.meanvarcoef[[iPattern]][2,iPair]
 
-                    iValue <- weights[iId] * (tiX[iCoef1,,drop=FALSE] %*% OmegaM1_dOmega_OmegaM1[[iPattern]][[iCoef2]] %*% iResidual)
+                    iValue <- iWeight * (tiX[iCoef1,,drop=FALSE] %*% OmegaM1_dOmega_OmegaM1[[iPattern]][[iCoef2]] %*% iResidual)
 
                     if(indiv){
                         info[iId,iCoef1,iCoef2] <- iValue
@@ -499,7 +491,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
             effects2 <- effects
         }
         attr.info <- info
-        attr.bread <- crossprod(.score(X = X, residuals = residuals, precision = precision, dOmega = dOmega, index.variance = index.variance, time.variance = time.variance, 
+        attr.bread <- crossprod(.score(X = X, residuals = residuals, precision = precision, dOmega = dOmega, weights = weights, index.variance = index.variance, time.variance = time.variance, 
                                        index.cluster = index.cluster, name.varcoef = name.varcoef, name.allcoef = name.allcoef, indiv = TRUE, REML = REML, effects = effects2,
                                        precompute = precompute) )
         if(any(c("mean","variance","correlation") %in% effects2 == FALSE)){
