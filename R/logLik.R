@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: Feb 13 2022 (23:11) 
+## Last-Updated: feb 14 2022 (10:10) 
 ##           By: Brice Ozenne
-##     Update #: 249
+##     Update #: 257
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -88,7 +88,7 @@ logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
 }
 
 ## * .logLik
-.logLik <- function(X, residuals, precision, Upattern.ncluster, weights,
+.logLik <- function(X, residuals, precision, Upattern.ncluster, weights, scale.Omega,
                     index.variance, time.variance, index.cluster,
                     indiv, REML, precompute){
 
@@ -123,17 +123,14 @@ logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
             iIndex <- attr(index.cluster, "sorted")[[iId]]
             iResidual <- residuals[iIndex, , drop = FALSE]
             iX <- X[iIndex, , drop = FALSE]
-            iOmega <- precision[[index.variance[iId]]]
-            if(!is.null(weights)){
-                iWeight <- weights[iId]
-            }else{
-                iWeight <- 1
-            }
-            
-            ll[iId] <- - iWeight * (NCOL(iOmega) * log2pi + logidet.precision[[index.variance[iId]]] + t(iResidual) %*% iOmega %*% iResidual)/2
+            iOmegaM1 <- precision[[index.variance[iId]]] * scale.Omega[iId]
+            iWeight <- weights[iId]
+
+            ll[iId] <- - iWeight * (NCOL(iOmegaM1) * (log2pi-log(scale.Omega[iId])) + logidet.precision[[index.variance[iId]]] + t(iResidual) %*% iOmegaM1 %*% iResidual)/2
             if (REML) {
-                REML.det <- REML.det + iWeight * (t(iX) %*% iOmega %*% iX)
+                REML.det <- REML.det + iWeight * (t(iX) %*% iOmegaM1 %*% iX)
             }
+            ## log(det(iOmegaM1)) - NCOL(iOmegaM1)*log(scale.Omega[iId])+logidet.precision[[index.variance[iId]]]
         }
         if(!indiv){
             ll <- sum(ll)
@@ -147,13 +144,13 @@ logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
 
         ## loop
         for (iPattern in 1:n.pattern) { ## iPattern <- 1
-            iOmega <- precision[[iPattern]]
-            iLogDet.Omega <- log(base::det(iOmega))
-            ll <- ll - 0.5 * unname(Upattern.ncluster[iPattern]) * (NCOL(iOmega) * log2pi - iLogDet.Omega) - 0.5 * sum(precompute$RR[[iPattern]] * iOmega)
+            iOmegaM1 <- precision[[iPattern]]
+            iLogDet.Omega <- log(base::det(iOmegaM1))
+            ll <- ll - 0.5 * unname(Upattern.ncluster[iPattern]) * (NCOL(iOmegaM1) * log2pi - iLogDet.Omega) - 0.5 * sum(precompute$RR[[iPattern]] * iOmegaM1)
             if (REML) {
                 ## compute (unique contribution, i.e. only lower part of the matrix)
-                ## iContribution <- apply(precompute$XX$pattern[[iPattern]], MARGIN = 3, FUN = function(iM){sum(iM * iOmega)})
-                iContribution <- as.double(iOmega) %*% matrix(precompute$XX$pattern[[iPattern]], nrow = length(iOmega), ncol = dim(precompute$XX$pattern[[iPattern]])[3], byrow = FALSE)
+                ## iContribution <- apply(precompute$XX$pattern[[iPattern]], MARGIN = 3, FUN = function(iM){sum(iM * iOmegaM1)})
+                iContribution <- as.double(iOmegaM1) %*% matrix(precompute$XX$pattern[[iPattern]], nrow = length(iOmegaM1), ncol = dim(precompute$XX$pattern[[iPattern]])[3], byrow = FALSE)
                 ## fill the matrix
                 REML.det <- REML.det + iContribution[as.vector(precompute$XX$key)]
             }

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: Feb 13 2022 (23:10) 
+## Last-Updated: feb 14 2022 (11:16) 
 ##           By: Brice Ozenne
-##     Update #: 1331
+##     Update #: 1358
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -175,18 +175,26 @@
         strata.rho <- NULL
         lpdiff.rho <- NULL
     }else if(n.strata==1){ ## 1 strata with repetition
-        param.rho <- "rho"
-        strata.rho <- stats::setNames(1,param.rho)
-        colnames(X.cor) <- param.rho
-        lpdiff.rho <- stats::setNames(paste0("R.",interaction(as.data.frame(unique(X.cor)),drop=FALSE)),param.rho)
-    }else{ ## some strata with repetition
+        if(is.na(structure$name$cor)){ ## no covariate
+            param.rho <- "rho"
+            strata.rho <- stats::setNames(1,param.rho)
+            colnames(X.cor) <- param.rho
+            lpdiff.rho <- stats::setNames(paste0("R.",interaction(as.data.frame(unique(X.cor)),drop=FALSE)),param.rho)
+        }else{ ## covariates
+            outBuild <- .buildRho(data = data, X.cor = X.cor,
+                                  U.cluster = structure$U.cluster, index.cluster = index.cluster, index.clusterTime = index.clusterTime, order.clusterTime = order.clusterTime)
+            param.rho <- outBuild$param 
+            strata.rho <- outBuild$strata 
+            lpdiff.rho <- outBuild$code 
+        }        
+    }else{ ## some strata with repetition (only relevant when using gls optimizer otherwise handle as covariate without strata)
         param.rho <- NULL
         strata.rho <- NULL
         lpdiff.rho <- NULL
         index.rho <- NULL
-        for(iStrata in 1:n.strata){ ## iStrata <- 1 ## check if strata has repetition
+        for(iStrata in 1:n.strata){ ## iStrata <- 1
             iIndex <- which(data$XXstrata.indexXX == iStrata)
-            if(any(duplicated(data[iIndex,"XXclusterXX"]))){
+            if(any(duplicated(data[iIndex,"XXclusterXX"]))){ ## check if strata has repetition
                 iParam <- paste0("rho:",structure$U.strata[iStrata])
 
                 index.rho <- c(index.rho,iIndex[1])
@@ -283,43 +291,13 @@
         param.rho <- NULL
         strata.rho <- NULL
     }else if(n.strata==1){
-        lp.cor <- as.character(interaction(as.data.frame(X.cor),drop=TRUE))
-        LPcluster.cor <- lapply(structure$U.cluster, function(iC){
-            lp.cor[index.cluster[[iC]][order.clusterTime[[iC]]]]
-        })
-        indexCluster.cor <- which(!duplicated(LPcluster.cor))
 
-        ## for each cluster compute all pairwise difference in covariates
-        all.lpdiff.rho <- unlist(lapply(structure$U.cluster[indexCluster.cor], function(iC){ ## iC <- 1
-            iX <- X.cor[index.cluster[[iC]][order.clusterTime[[iC]]],,drop=FALSE]
-            if(NROW(iX)==1){return(NULL)}
-            iPair.time <- .unorderedPairs(1:NROW(iX), distinct = TRUE)
-            iDF.diff <- as.data.frame(do.call(rbind,lapply(1:NCOL(iPair.time),function(iCol){
-                iX1 <- iX[min(iPair.time[,iCol]),,drop=FALSE]
-                iX2 <- iX[max(iPair.time[,iCol]),,drop=FALSE]
-                if(all(iX1==iX2)){return(cbind("R",iX1))}else{return(cbind("D",iX2-iX1))}
-            })))
-            iVec.diff <- as.character(interaction(iDF.diff, drop=TRUE))
-            iCov <- as.character(interaction(data[index.cluster[[iC]][order.clusterTime[[iC]]],names(attr(X.cor,"M.level")),drop=FALSE],drop=TRUE))
-            names(iVec.diff) <- sapply(1:NCOL(iPair.time),function(iCol){paste0("(",iCov[min(iPair.time[,iCol])],",",iCov[max(iPair.time[,iCol])],")")})
-            return(iVec.diff)
-        }))
-        test.duplicated <- duplicated(all.lpdiff.rho)
-        lpdiff.rho <- all.lpdiff.rho[test.duplicated==FALSE]
-        names(lpdiff.rho) <- paste0("rho",names(lpdiff.rho))
+        outBuild <- .buildRho(data = data, X.cor = X.cor,
+                              U.cluster = structure$U.cluster, index.cluster = index.cluster, index.clusterTime = index.clusterTime, order.clusterTime = order.clusterTime)
+        param.rho <- outBuild$param 
+        strata.rho <- outBuild$strata 
+        lpdiff.rho <- outBuild$code 
 
-        param.rho <- names(lpdiff.rho)
-        strata.rho <- stats::setNames(rep(1,length(param.rho)),param.rho)
-        time.rho <- do.call(cbind,lapply(structure$U.cluster[indexCluster.cor], function(iC){
-            .unorderedPairs(index.clusterTime[[iC]][order.clusterTime[[iC]]], distinct = TRUE)
-        }))[,test.duplicated==FALSE,drop=FALSE]
-
-        reorder.rho <- order(time.rho[1,],time.rho[2,])
-        time.rho <- time.rho[,reorder.rho,drop=FALSE]
-        lpdiff.rho <- lpdiff.rho[reorder.rho]
-        param.rho <- param.rho[reorder.rho]
-        strata.rho <- strata.rho[reorder.rho]
-        time.rho <- time.rho[reorder.rho]
     }else{
         pair.time <- .unorderedPairs(1:length(structure$U.time), distinct = TRUE)
         pair.name <- apply(pair.time,2,function(iT){paste0("(",structure$U.time[iT[1]],",",structure$U.time[iT[2]],")")})
@@ -778,3 +756,49 @@
 
 ##----------------------------------------------------------------------
 ### structure-skeleton.R ends here
+## ** .buildRho
+## identify all possible pairwise combinations 
+.buildRho <- function(data, X.cor,
+                      U.cluster, index.cluster, index.clusterTime, order.clusterTime){
+
+    lp.cor <- as.character(interaction(as.data.frame(X.cor),drop=TRUE))
+    LPcluster.cor <- lapply(U.cluster, function(iC){
+        lp.cor[index.cluster[[iC]][order.clusterTime[[iC]]]]
+    })
+    indexCluster.cor <- which(!duplicated(LPcluster.cor))
+
+    ## for each cluster compute all pairwise difference in covariates
+    all.lpdiff.rho <- unlist(lapply(U.cluster[indexCluster.cor], function(iC){ ## iC <- 1
+        iX <- X.cor[index.cluster[[iC]][order.clusterTime[[iC]]],,drop=FALSE]
+        if(NROW(iX)==1){return(NULL)}
+        iPair.time <- .unorderedPairs(1:NROW(iX), distinct = TRUE)
+        iDF.diff <- as.data.frame(do.call(rbind,lapply(1:NCOL(iPair.time),function(iCol){
+            iX1 <- iX[min(iPair.time[,iCol]),,drop=FALSE]
+            iX2 <- iX[max(iPair.time[,iCol]),,drop=FALSE]
+            if(all(iX1==iX2)){return(cbind("R",iX1))}else{return(cbind("D",iX2-iX1))}
+        })))
+        iVec.diff <- as.character(interaction(iDF.diff, drop=TRUE))
+        iCov <- as.character(interaction(data[index.cluster[[iC]][order.clusterTime[[iC]]],names(attr(X.cor,"M.level")),drop=FALSE],drop=TRUE))
+        names(iVec.diff) <- sapply(1:NCOL(iPair.time),function(iCol){paste0("(",iCov[min(iPair.time[,iCol])],",",iCov[max(iPair.time[,iCol])],")")})
+        return(iVec.diff)
+    }))
+
+    test.duplicated <- duplicated(all.lpdiff.rho)
+    lpdiff.rho <- all.lpdiff.rho[test.duplicated==FALSE]
+    names(lpdiff.rho) <- paste0("rho",names(lpdiff.rho))
+
+    param.rho <- names(lpdiff.rho)
+    strata.rho <- stats::setNames(rep(1,length(param.rho)),param.rho)
+    time.rho <- do.call(cbind,lapply(U.cluster[indexCluster.cor], function(iC){
+        .unorderedPairs(index.clusterTime[[iC]][order.clusterTime[[iC]]], distinct = TRUE)
+    }))[,test.duplicated==FALSE,drop=FALSE]
+
+    reorder.rho <- order(time.rho[1,],time.rho[2,])
+
+    out <- list(time = time.rho[,reorder.rho,drop=FALSE],
+                code = lpdiff.rho[reorder.rho],
+                param = param.rho[reorder.rho],
+                strata = strata.rho[reorder.rho])
+
+    return(out)
+}

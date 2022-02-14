@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: feb 11 2022 (17:53) 
+## Last-Updated: feb 14 2022 (10:17) 
 ##           By: Brice Ozenne
-##     Update #: 397
+##     Update #: 402
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -400,7 +400,7 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
             numerator  <- numerator + t(iVec.Omega %*%  matrix(precompute.XY[[iPattern]], nrow = iTime2, ncol = n.param))
             denominator  <- denominator + as.double(iVec.Omega %*%  matrix(precompute.XX[[iPattern]], nrow = iTime2, ncol = max.key))[key.XX]
         }else{
-            iOmega <- OmegaM1[[iPattern]]
+            iOmegaM1 <- OmegaM1[[iPattern]]
             iIndexCluster <- attr(design$index.cluster,"sorted")[which(design$vcov$X$pattern.cluster==iPattern)]
             for(iId in 1:length(iIndexCluster)){ ## iId <- 1
                 iX <- design$mean[iIndexCluster[[iId]],,drop=FALSE]
@@ -409,14 +409,14 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
                 }else{
                     iWeight <- design$weights[attr(design$index.cluster, "sorted")[[iId]][1]]
                 }
-                numerator  <- numerator + iWeight * (t(iX) %*% iOmega %*% design$Y[iIndexCluster[[iId]]])
-                denominator  <- denominator + iWeight * (t(iX) %*% iOmega %*% iX)
+                numerator  <- numerator + iWeight * (t(iX) %*% iOmegaM1 %*% design$Y[iIndexCluster[[iId]]]) * design$scale.Omega[iId]
+                denominator  <- denominator + iWeight * (t(iX) %*% iOmegaM1 %*% iX) * design$scale.Omega[iId]
             }
 
         }
 
     }
-    out <- solve(denominator) %*% numerator
+    out <- solve(denominator, numerator)    
     return(stats::setNames(as.double(out), name.param))
 }
 

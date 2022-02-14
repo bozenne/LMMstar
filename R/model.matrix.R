@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Feb 13 2022 (23:09) 
+## Last-Updated: feb 14 2022 (10:46) 
 ##           By: Brice Ozenne
-##     Update #: 1683
+##     Update #: 1700
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -130,8 +130,11 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             if(!is.na(object$cluster$var) && object$cluster$var %in% names(data.var) == FALSE){
                 stop("Missing cluster column (variable \"",object$cluster$var,"\") in argument \'data\'. \n")
             }
-            if(!is.na(object$weight$var) && object$weight$var %in% names(data.var) == FALSE){
-                stop("Missing weight column (variable \"",object$weight$var,"\") in argument \'data\'. \n")
+            if(!is.na(object$weight$var[1]) && object$weight$var[1] %in% names(data.var) == FALSE){
+                stop("Missing weight column (variable \"",object$weight$var[1],"\") in argument \'data\'. \n")
+            }
+            if(!is.na(object$weight$var[2]) && object$weight$var[2] %in% names(data.var) == FALSE){
+                stop("Missing scale.Omega column (variable \"",object$weight$var[2],"\") in argument \'data\'. \n")
             }
             indexData <- .extractIndexData(data = data.var, structure = object$design$vcov)
 
@@ -143,8 +146,11 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 
             design$vcov <- .skeleton(object$design$vcov, data = data.var)
             
-            if(!is.null(object$weight$var)){
-                design$weight <- data.var[[object$weight$var]]
+            if(!is.na(object$weight$var[1])){
+                design$weight <- data.var[[object$weight$var[1]]]
+            }
+            if(!is.na(object$weight$var[2])){
+                design$scale.Omega <- data.var[[object$weight$var[2]]]
             }
             
         }
@@ -303,7 +309,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     attr(X.mean,"strata.mu") <- NULL
     attr(X.mean,"terms") <- attr(data.mf,"terms")
 
-    ## ** variance (update structure)    
+    ## ** variance (update structure)
     structure <- .skeleton(structure = structure, data = data)
 
     ## ** cluster
@@ -321,12 +327,12 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 
     ## ** prepare calculation of the score
     if(precompute.moments){
-        if(is.null(data[[var.weights]])){
+        if(is.na(var.weights[1])){
             wX.mean <- X.mean
             wY <- cbind(data[[var.outcome]])
         }else{
-            wX.mean <- sweep(X.mean, FUN = "*", MARGIN = 1, STATS = sqrt(data[[var.weights]]))
-            wY <- cbind(data[[var.outcome]]*sqrt(data[[var.weights]]))
+            wX.mean <- sweep(X.mean, FUN = "*", MARGIN = 1, STATS = sqrt(data[[var.weights[1]]]))
+            wY <- cbind(data[[var.outcome]]*sqrt(data[[var.weights[1]]]))
         }
         precompute.XX <-  .precomputeXX(X = wX.mean, pattern = structure$X$Upattern$name, 
                                         pattern.time = structure$X$Upattern$time, pattern.cluster = structure$X$cluster.pattern, index.cluster = attr(index.cluster,"sorted"))
@@ -385,8 +391,11 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
                 param = skeleton.param
                 )
 
-    if(!is.null(var.weights)){
-        out$weights <- data[[var.weights]]
+    if(!is.na(var.weights[1])){
+        out$weights <- data[[var.weights[1]]]
+    }
+    if(!is.na(var.weights[2])){
+        out$scale.Omega <- data[[var.weights[2]]]
     }
     return(out)
 }

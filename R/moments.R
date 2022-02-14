@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: Feb 13 2022 (22:51) 
+## Last-Updated: feb 14 2022 (09:46) 
 ##           By: Brice Ozenne
-##     Update #: 230
+##     Update #: 237
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -78,6 +78,7 @@
             Upattern.ncluster <- tapply(tapply(design$weight,design$index.cluster,unique),design$vcov$X$pattern.cluster,sum)[design$vcov$X$Upattern$name]
         }
         weights.cluster <- NULL
+        scale.cluster <- NULL
 
         precompute <- list(XX = design$precompute.XX,
                            RR = .precomputeRR(residuals = wRR, pattern = design$vcov$X$Upattern$name,
@@ -92,9 +93,14 @@
         precompute <- NULL
         Upattern.ncluster <- NULL
         if(is.null(design$weights)){
-            weights.cluster <- rep(1, design$cluster$n)
+            weights.cluster <- stats::setNames(rep(1, design$cluster$n), design$cluster$levels)
         }else{
-            weights.cluster <- design$weights[sapply(attr(design$index.cluster, "sorted"),"[[",1)]
+            weights.cluster <- stats::setNames(design$weights[sapply(attr(design$index.cluster, "sorted"),"[[",1)], design$cluster$levels)
+        }
+        if(is.null(design$scale.Omega)){
+            scale.cluster <- stats::setNames(rep(1, design$cluster$n), design$cluster$levels)
+        }else{
+            scale.cluster <- stats::setNames(design$scale.Omega[sapply(attr(design$index.cluster, "sorted"),"[[",1)], design$cluster$levels)
         }
     }
 
@@ -132,7 +138,7 @@
     if(logLik){
         if(trace>=1){cat("- log-likelihood \n")}
         out$logLik <- .logLik(X = design$mean, residuals = out$residuals, precision = out$OmegaM1,
-                              Upattern.ncluster = Upattern.ncluster, weights = weights.cluster,
+                              Upattern.ncluster = Upattern.ncluster, weights = weights.cluster, scale.Omega = scale.cluster,
                               index.variance = design$vcov$X$pattern.cluster, time.variance = design$index.time, index.cluster = design$index.cluster, 
                               indiv = indiv, REML = method.fit=="REML", precompute = precompute)
     }
@@ -140,7 +146,7 @@
     if(score){ 
         if(trace>=1){cat("- score \n")}
         out$score <- .score(X = design$mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega,
-                            Upattern.ncluster = Upattern.ncluster, weights = weights.cluster,
+                            Upattern.ncluster = Upattern.ncluster, weights = weights.cluster, scale.Omega = scale.cluster,
                             index.variance = design$vcov$X$pattern.cluster, time.variance = design$index.time, index.cluster = design$index.cluster,
                             name.varcoef = design$vcov$X$Upattern$param, name.allcoef = name.allcoef,
                             indiv = indiv, REML = method.fit=="REML", effects = effects, precompute = precompute)
@@ -165,7 +171,7 @@
         }
 
         Minfo <- .information(X = design$mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega,
-                              Upattern.ncluster = Upattern.ncluster, weights = weights.cluster,
+                              Upattern.ncluster = Upattern.ncluster, weights = weights.cluster, scale.Omega = scale.cluster,
                               index.variance = design$vcov$X$pattern.cluster, time.variance = design$index.time, index.cluster = design$index.cluster,
                               name.varcoef = design$vcov$X$Upattern$param, name.allcoef = name.allcoef,
                               pair.meanvarcoef = design$param$pair.meanvarcoef, pair.varcoef = design$vcov$pair.varcoef,

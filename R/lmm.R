@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Feb 13 2022 (23:10) 
+## Last-Updated: feb 14 2022 (10:44) 
 ##           By: Brice Ozenne
-##     Update #: 1421
+##     Update #: 1431
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -108,7 +108,7 @@
 ##' anova(eCS.lmm) ## effect of each variable
 ##' anova(eCS.lmm, effects = "X11-X21=0") ## test specific coefficient
 ##' ## test several hypothese with adjustment for multiple comparisons
-##' anova(eCS.lmm, effects = c("X11=0","X21=0"), ci = TRUE)
+##' summary(anova(eCS.lmm, effects = c("X11=0","X21=0")))
 ##'
 ##' #### 6- prediction ####
 ##' ## conditional on covariates
@@ -118,7 +118,25 @@
 ##' newd <- dL[1:3,]
 ##' newd$Y[3] <- NA
 ##' predict(eCS.lmm, newdata = newd, type = "dynamic", keep.newdata = TRUE)
+##'
+##' #### EXTRA ####
+##' if(require(mvtnorm)){
+##' ## model for the average over m replicates
+##' ## (only works with independent replicates)
+##' Sigma1 <- diag(1,1,1); Sigma5 <- diag(1,5,5)
+##' n <- 100
+##' dfW <- rbind(data.frame(id = 1:n, rep = 5, Y = rowMeans(rmvnorm(n, sigma = Sigma5))),
+##'              data.frame(id = (n+1):(2*n), rep = 1, Y = rmvnorm(n, sigma = Sigma1)))
 ##' 
+##' e.lmmW <- lmm(Y~1, data = dfW, scale.Omega=~rep, control = list(optimizer = "FS"))
+##' e.lmm0 <- lmm(Y~1, data = dfW)
+##' model.tables(e.lmmW, effects = "all")
+##' model.tables(e.lmm0, effects = "all")
+##' ## TRUE standard error is 1
+##'
+##' }
+##' 
+
 
 ## * lmm (code)
 ##' @export
@@ -454,7 +472,7 @@ lmm <- function(formula, repetition, structure, data,
     ## weights
     if(!is.null(weights)){
         if(optimizer=="gls"){
-            stop("Cannot use argument \'weight\' with optimizer \"gls\".\n",
+            stop("Cannot use argument \'weights\' with optimizer \"gls\".\n",
                  "Consider using \"FS\" optimizer instead (see control argument). \n")
         }
         if(is.character(weights)){
@@ -484,11 +502,45 @@ lmm <- function(formula, repetition, structure, data,
         var.weights <- NA
     }
 
+    ## scale.Omega
+    if(!is.null(scale.Omega)){
+        if(optimizer=="gls"){
+            stop("Cannot use argument \'scale.Omega\' with optimizer \"gls\".\n",
+                 "Consider using \"FS\" optimizer instead (see control argument). \n")
+        }
+        if(is.character(scale.Omega)){
+            var.scale.Omega <- scale.Omega
+        }else if(inherits(scale.Omega,"formula")){
+            var.scale.Omega <- all.vars(scale.Omega)
+        }else {
+            stop("Argument \'scale.Omega\' should be a character or a formula. \n")
+        }
+        if(length(var.scale.Omega)>1){
+            stop("Can only handle a single scale.Omega variable. \n")
+        }
+        if(var.scale.Omega %in% names(data)==FALSE){
+            stop("Argument \'scale.Omega\' is inconsistent with argument \'data\'. \n",
+                 "Variable \"",var.scale.Omega,"\" could not be found in the dataset. \n",
+                 sep = "")
+        }
+        if(any(data[[var.scale.Omega]]<=0)){
+            stop("Scale.Omega should be strictly positives. \n")
+        }
+        if(!is.na(var.cluster)){
+            if(any(tapply(data[[var.scale.Omega]], data[[var.cluster]], function(iW){sum(!duplicated(iW))})>1)){
+                stop("Invalid argument \'scale.Omega\': scale.Omega should be constant within clusters. \n")
+            }
+        }
+        options$precompute.moments <- FALSE
+    }else{
+        var.scale.Omega <- NA
+    }
+
     ## store
     out$strata <- list(n = n.strata, levels = U.strata, var = var.strata)
     out$time <- list(n = n.time, levels = U.time, var = var.time)
     out$cluster <- list(n = n.cluster, levels = U.cluster, var = var.cluster)
-    out$weight <- list(var = var.weights)
+    out$weights <- list(var = c("logLik" = var.weights, "Omega" = var.scale.Omega))
     out$outcome <- list(var = var.outcome)
     out$data <- data
 
@@ -511,7 +563,7 @@ lmm <- function(formula, repetition, structure, data,
     if(trace>=1){cat("- extract design matrices")}
     out$design <- .model.matrix.lmm(formula.mean = out$formula$mean.design,
                                     structure = structure,
-                                    data = data, var.outcome = var.outcome, var.weights = var.weights,
+                                    data = data, var.outcome = var.outcome, var.weights = out$weights$var,
                                     U.strata = U.strata,
                                     U.time = U.time,
                                     stratify.mean = optimizer=="gls",

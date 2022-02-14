@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: nov 12 2021 (15:12) 
+## Last-Updated: feb 14 2022 (11:20) 
 ##           By: Brice Ozenne
-##     Update #: 399
+##     Update #: 406
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -32,9 +32,21 @@
 .formulaStructure <- function(formula, add.X = NULL){
 
     if(is.list(formula) && length(formula)==2 && all(sapply(formula,inherits,"formula"))){
-        init.formula.var <- .formulaStructure(formula[[1]])
-        init.formula.cor <- .formulaStructure(formula[[2]])
 
+        if(is.null(names(formula))){
+            init.formula.var <- .formulaStructure(formula[[1]])
+            init.formula.cor <- .formulaStructure(formula[[2]])
+        }else if(all(names(formula) %in% c("var","cor"))){
+            init.formula.var <- .formulaStructure(formula$var)
+            init.formula.cor <- .formulaStructure(formula$cor)
+        }else if(all(names(formula) %in% c("variance","correlation"))){
+            init.formula.var <- .formulaStructure(formula$variance)
+            init.formula.cor <- .formulaStructure(formula$correlation)
+        }else{
+            stop("Incorrectn ames associated to the formula for the residual variance-covariance structure. \n",
+                 "Should be \"variance\" and \"correlation\" (or \"var\" and \"cor\"). \n")
+        }
+        
         if(!identical(init.formula.var$strata,init.formula.cor$strata)){
             stop("Incorrect argument \'formula\': strata variable differ between the correlation and variance structure. \n")
         }
@@ -227,16 +239,12 @@ CS <- function(formula, var.cluster, var.time, ...){
         outCov <- .formulaStructure(formula)
     }
 
-    if(length(outCov$X.cor)>0){
-        stop("Structure \"CS\" cannot handle covariates in the correlation structure. \n")
-    }
-
     out <- list(call = match.call(),
                 name = data.frame(cluster = if(!missing(var.cluster)){var.cluster}else{NA},
                                   strata = if(!is.null(outCov$strata)){outCov$strata}else{NA},
                                   time = if(!missing(var.time)){var.time}else{NA},
                                   var = if(length(outCov$X.var)>0){I(list(outCov$X.var))}else{NA},
-                                  cor = NA,
+                                  cor = if(length(outCov$X.cor)>0){I(list(outCov$X.cor))}else{NA},
                                   stringsAsFactors = FALSE),
                 formula = list(var = outCov$formula.var,
                                cor = outCov$formula.cor),
