@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: feb 10 2022 (18:40) 
+## Last-Updated: feb 14 2022 (12:20) 
 ##           By: Brice Ozenne
-##     Update #: 33
+##     Update #: 37
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -119,7 +119,8 @@ rbind.anova_lmm <- function(model, ..., sep = ": "){
     out$rhs <- unlist(ls.rhs)
     out$coef <- unlist(lapply(1:length(vec.outcome), function(iO){stats::setNames(ls.coef[[iO]],paste0(vec.outcome[iO],sep,names(ls.coef[[iO]])))}))
 
-    out$vcov <- crossprod(do.call(cbind,ls.iid))
+    iIID <- do.call(cbind,ls.iid)
+    out$vcov <- crossprod(iIID[rowSums(is.na(iIID))==0,,drop=FALSE])
     rownames(out$vcov) <- unlist(lapply(1:length(vec.outcome), function(iO){paste0(vec.outcome[iO],sep,colnames(ls.iid[[iO]]))}))
     colnames(out$vcov) <- unlist(lapply(1:length(vec.outcome), function(iO){paste0(vec.outcome[iO],sep,colnames(ls.iid[[iO]]))}))
 

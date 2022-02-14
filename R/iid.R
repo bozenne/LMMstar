@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  4 2021 (10:04) 
 ## Version: 
-## Last-Updated: jan 24 2022 (10:16) 
+## Last-Updated: feb 14 2022 (12:19) 
 ##           By: Brice Ozenne
-##     Update #: 25
+##     Update #: 27
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -76,7 +76,7 @@ iid.lmm <- function(object,
     ## ** compute iid
     out <- object.score %*% object.vcov
     if(robust==FALSE){
-        out <- sweep(out, MARGIN = 2, FUN = "*", STATS = sqrt(diag(object.vcov))/sqrt(colSums(out^2)))
+        out <- sweep(out, MARGIN = 2, FUN = "*", STATS = sqrt(diag(object.vcov))/sqrt(colSums(out^2, na.rm = TRUE)))
     }
 
     ## ** export

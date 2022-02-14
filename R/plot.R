@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (11:00) 
 ## Version: 
-## Last-Updated: feb 11 2022 (11:25) 
+## Last-Updated: feb 14 2022 (12:04) 
 ##           By: Brice Ozenne
-##     Update #: 66
+##     Update #: 73
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -46,6 +46,8 @@
 ##' @export
 plot.lmm <- function(x, type = "fit", type.residual = "normalized", by.time = TRUE, ci = TRUE,
                      plot = TRUE, ci.alpha = 0.2, mean.size = c(3, 1), size.text = 16, ...){
+
+    attr.ref <- attr(type,"reference")
     type <- match.arg(type, c("qqplot","correlation","scatterplot","scatterplot2","fit","partial"))
     if(by.time){
         format <- "wide"
@@ -77,7 +79,9 @@ plot.lmm <- function(x, type = "fit", type.residual = "normalized", by.time = TR
         }
 
         ## extract partial residuals
-        rr <- stats::residuals(x, type = "partial-ref", var = type.residual, keep.data = TRUE)
+        ttt <- "partial-ref"
+        attr(ttt,"reference") <- attr.ref
+        rr <- stats::residuals(x, type = ttt, var = type.residual, keep.data = TRUE)
         ## extract predictions
         gg.data <- stats::predict(x, newdata = rr, keep.newdata = TRUE, type = type.predict)
         ## normalize covariates
