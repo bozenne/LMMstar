@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: feb 14 2022 (12:14) 
+## Last-Updated: feb 15 2022 (16:50) 
 ##           By: Brice Ozenne
-##     Update #: 503
+##     Update #: 506
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -76,7 +76,7 @@
 ##' residuals(e.lm, type = "partial", var = "X1", keep.data = TRUE)
 ##' 
 ##' ## fit Linear Mixed Model
-##' eUN.lmm <- lmm(Y ~ visit + X1 + X2 + X5,
+##' eUN.lmm <- lmm(Y ~ visit + X1 + X2 + X5 + X6,
 ##'                repetition = ~visit|id, structure = "UN", data = dL)
 ##'
 ##' ## residuals
@@ -88,6 +88,12 @@
 ##' ## residuals and predicted values
 ##' residuals(eUN.lmm, type = "all")
 ##' residuals(eUN.lmm, type = "all", keep.data = TRUE)
+##' 
+##' ## partial residuals
+##' residuals(eUN.lmm, type = "partial-ref", var = c("(Intercept)","X6"), plot = "scatterplot")
+##' residuals(eUN.lmm, type = "partial-ref", var = c("X6"), plot = "scatterplot")
+##' ## plot.lmm(eUN.lmm, type = "partial", var = c("(Intercept)","X6"))
+##' ## plot.lmm(eUN.lmm, type = "partial", var = c("X6"))
 
 
 ## * residuals.lmm (code)
@@ -230,7 +236,6 @@ residuals.lmm <- function(object, type = "response", format = "long",
             if(!is.null(object$index.na)){ 
                 design2$mean <- design2$mean[-object$index.na,,drop=FALSE]
             }
-
             ## handle intercept term
             if(keep.intercept==FALSE && "(Intercept)" %in% colnames(design2$mean)){
                 design2$mean[,"(Intercept)"] <- 0

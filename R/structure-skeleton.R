@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: feb 14 2022 (11:16) 
+## Last-Updated: feb 15 2022 (17:39) 
 ##           By: Brice Ozenne
-##     Update #: 1358
+##     Update #: 1385
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -146,10 +146,10 @@
     index.cluster <- outInit$index.cluster ## list of positions of the observation belonging to each cluster in the dataset
 
     ## ** design matrix
-    outDesign <- .vcov.matrix.lmm(structure = structure, data = data, 
-                                 strata.var = strata.var, U.strata = structure$U.strata,
-                                 time.var = time.var, U.time = structure$U.time, 
-                                 cluster.var = cluster.var, order.clusterTime = order.clusterTime)
+    outDesign <- .vcov.matrix.lmm(structure = structure, data = data, heterogenous = structure$heterogenous,
+                                  strata.var = strata.var, U.strata = structure$U.strata,
+                                  time.var = time.var, U.time = structure$U.time, 
+                                  cluster.var = cluster.var, order.clusterTime = order.clusterTime)
 
     X.var <- outDesign$var
     X.cor <- outDesign$cor
@@ -181,7 +181,7 @@
             colnames(X.cor) <- param.rho
             lpdiff.rho <- stats::setNames(paste0("R.",interaction(as.data.frame(unique(X.cor)),drop=FALSE)),param.rho)
         }else{ ## covariates
-            outBuild <- .buildRho(data = data, X.cor = X.cor,
+            outBuild <- .buildRho(data = data, X.cor = X.cor, heterogenous = structure$heterogenous, 
                                   U.cluster = structure$U.cluster, index.cluster = index.cluster, index.clusterTime = index.clusterTime, order.clusterTime = order.clusterTime)
             param.rho <- outBuild$param 
             strata.rho <- outBuild$strata 
@@ -223,7 +223,7 @@
     attr(structure$param,"lpdiff.rho") <- lpdiff.rho
 
     ## ** pattern
-    outPattern <- .findUpatterns(X.var = X.var, X.cor = X.cor, lpdiff.rho = lpdiff.rho, data = data,
+    outPattern <- .findUpatterns(X.var = X.var, X.cor = X.cor, lpdiff.rho = lpdiff.rho, data = data, heterogenous = structure$heterogenous,
                                  time.var = time.var, index.clusterTime = index.clusterTime, order.clusterTime = order.clusterTime, U.time = structure$U.time,
                                  index.cluster = index.cluster, U.cluster = structure$U.cluster,
                                  strata.var = strata.var, strata.param = stats::setNames(structure$param$strata,structure$param$name), U.strata = structure$U.strata)
@@ -261,7 +261,7 @@
     cor.var <- structure$name$cor[[1]]
 
     ## ** design matrix
-    outDesign <- .vcov.matrix.lmm(structure = structure, data = data, 
+    outDesign <- .vcov.matrix.lmm(structure = structure, data = data, heterogenous = heterogenous,
                                  strata.var = strata.var, U.strata = structure$U.strata,
                                  time.var = time.var, U.time = structure$U.time, 
                                  cluster.var = cluster.var, order.clusterTime = order.clusterTime)
@@ -292,7 +292,7 @@
         strata.rho <- NULL
     }else if(n.strata==1){
 
-        outBuild <- .buildRho(data = data, X.cor = X.cor,
+        outBuild <- .buildRho(data = data, X.cor = X.cor, heterogenous = TRUE,
                               U.cluster = structure$U.cluster, index.cluster = index.cluster, index.clusterTime = index.clusterTime, order.clusterTime = order.clusterTime)
         param.rho <- outBuild$param 
         strata.rho <- outBuild$strata 
@@ -342,7 +342,7 @@
     attr(structure$param,"lpdiff.rho") <- lpdiff.rho
 
     ## ** pattern
-    outPattern <- .findUpatterns(X.var = X.var, X.cor = X.cor, lpdiff.rho = lpdiff.rho, data = data,
+    outPattern <- .findUpatterns(X.var = X.var, X.cor = X.cor, lpdiff.rho = lpdiff.rho, data = data, heterogenous = TRUE,
                                  time.var = time.var, index.clusterTime = index.clusterTime, order.clusterTime = order.clusterTime, U.time = structure$U.time,
                                  index.cluster = index.cluster, U.cluster = structure$U.cluster,
                                  strata.var = strata.var, strata.param = stats::setNames(structure$param$strata,structure$param$name), U.strata = structure$U.strata)
@@ -447,7 +447,7 @@
 
 ## * helpers
 ## ** .findUpatterns
-.findUpatterns <- function(X.var, X.cor, Upattern = NULL, lpdiff.rho, data,
+.findUpatterns <- function(X.var, X.cor, Upattern = NULL, lpdiff.rho, data, heterogenous,
                            time.var, index.clusterTime, order.clusterTime, U.time,
                            index.cluster, U.cluster,
                            strata.var, strata.param, U.strata){
@@ -515,7 +515,12 @@
                     iPair <- iPair.time[,iCol]
                     iX1 <- iX[iTime == min(iPair),,drop=FALSE]
                     iX2 <- iX[iTime == max(iPair),,drop=FALSE]
-                    if(all(iX1==iX2)){return(cbind(ref="R",iX1))}else{return(cbind(ref = "D",iX2-iX1))}                        
+                    if(heterogenous){
+                        if(all(iX1==iX2)){return(cbind("R",iX1))}else{return(cbind("D",iX2-iX1))}
+                    }else{
+                        if(all(iX1==iX2)){return("R")}else{return(cbind("D",sum(iX2!=iX1)))}
+                    }
+
                 }))
             ), drop = TRUE))
             ## generate design matrix relative to the coefficient
@@ -754,11 +759,9 @@
     return(out)
 }
 
-##----------------------------------------------------------------------
-### structure-skeleton.R ends here
 ## ** .buildRho
 ## identify all possible pairwise combinations 
-.buildRho <- function(data, X.cor,
+.buildRho <- function(data, X.cor, heterogenous,
                       U.cluster, index.cluster, index.clusterTime, order.clusterTime){
 
     lp.cor <- as.character(interaction(as.data.frame(X.cor),drop=TRUE))
@@ -775,7 +778,11 @@
         iDF.diff <- as.data.frame(do.call(rbind,lapply(1:NCOL(iPair.time),function(iCol){
             iX1 <- iX[min(iPair.time[,iCol]),,drop=FALSE]
             iX2 <- iX[max(iPair.time[,iCol]),,drop=FALSE]
-            if(all(iX1==iX2)){return(cbind("R",iX1))}else{return(cbind("D",iX2-iX1))}
+            if(heterogenous){
+                if(all(iX1==iX2)){return(cbind("R",iX1))}else{return(cbind("D",iX2-iX1))}
+            }else{
+                if(all(iX1==iX2)){return("R")}else{return(cbind("D",sum(iX2!=iX1)))}
+            }
         })))
         iVec.diff <- as.character(interaction(iDF.diff, drop=TRUE))
         iCov <- as.character(interaction(data[index.cluster[[iC]][order.clusterTime[[iC]]],names(attr(X.cor,"M.level")),drop=FALSE],drop=TRUE))
@@ -802,3 +809,5 @@
 
     return(out)
 }
+##----------------------------------------------------------------------
+### structure-skeleton.R ends here

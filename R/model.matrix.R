@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: feb 14 2022 (10:46) 
+## Last-Updated: feb 15 2022 (17:39) 
 ##           By: Brice Ozenne
-##     Update #: 1700
+##     Update #: 1715
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -232,7 +232,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 
 ## * .vcov.matrix.lmm
 ## output observation specific design matrix (but no covariance pattern)
-.vcov.matrix.lmm <- function(structure, data, 
+.vcov.matrix.lmm <- function(structure, data, heterogenous,
                              strata.var, U.strata,
                              time.var, U.time,
                              cluster.var, order.clusterTime){
@@ -273,6 +273,11 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     if(is.null(structure$param)){ ## structure
         out$var <- .colnameOrder(.model.matrix_regularize(formula.var, data = data, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
         if(!is.null(formula.cor) && n.time>1 && any(sapply(order.clusterTime,length)>1)){  ## at least one individual with more than timepoint
+            if(heterogenous==FALSE){
+                for(iVar in all.vars(formula.cor)){
+                    data[[iVar]] <- as.numeric(as.factor(data[[iVar]]))
+                }
+            }
             out$cor <- .colnameOrder(.model.matrix_regularize(formula.cor, data = data, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
         }
     }else{ ## newdata
@@ -283,6 +288,11 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         attr(out$var,"original.colnames") <- attr(structure$X$var,"original.colnames")
 
         if(!is.null(formula.cor) && n.time>1 && any(sapply(order.clusterTime,length)>1)){  ## at least one individual with more than timepoint
+            if(heterogenous==FALSE){
+                for(iVar in all.vars(formula.cor)){
+                    data[[iVar]] <- as.numeric(as.factor(data[[iVar]]))
+                }
+            }
             out$cor <- stats::model.matrix(formula.cor, data = data)[,attr(structure$X$cor,"original.colnames"),drop=FALSE]
             attr(out$cor,"M.level") <- attr(structure$X$cor,"M.level")
             attr(out$cor,"assign") <- attr(structure$X$cor,"assign")
