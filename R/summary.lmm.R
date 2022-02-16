@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: feb 16 2022 (15:48) 
+## Last-Updated: feb 16 2022 (18:53) 
 ##           By: Brice Ozenne
-##     Update #: 421
+##     Update #: 422
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -163,7 +163,7 @@ summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print =
         }else if(structure$type == "UN"){
             cat(txt.strata,"unstructured \n\n",sep="")
         }else if(structure$type == "CS"){
-            if(is.na(structure$name$cor[[1]])){
+            if(all(is.na(structure$name$cor[[1]]))){
                 cat(txt.strata,"compound symmetry \n\n",sep="")
             }else if(structure$heterogeneous){
                 cat(txt.strata,"block unstructured \n\n",sep="")
