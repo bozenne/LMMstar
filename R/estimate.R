@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: feb 14 2022 (10:17) 
+## Last-Updated: feb 16 2022 (15:37) 
 ##           By: Brice Ozenne
-##     Update #: 402
+##     Update #: 428
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -190,17 +190,16 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
         if(trace>1){
             cat("\nInitialization:\n")
         }
-
         ## mean value
         start.OmegaM1 <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 2
             diag(1, nrow = length(Upattern[iPattern,"time"][[1]]), ncol = length(Upattern[iPattern,"time"][[1]]))
         }), Upattern$name)
         param.value[param.mu] <- .estimateGLS(OmegaM1 = start.OmegaM1, pattern = Upattern$name, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX,
                                               design = design)
-        
+
         ## vcov values
         iResiduals.long <- design$Y - design$mean %*% param.value[param.mu]
-        outInit <- .initialize(design$vcov, residuals = iResiduals.long)
+        outInit <- .initialize(design$vcov, residuals = iResiduals.long, Xmean = design$mean)
         param.value[names(outInit)] <- outInit
 
         if(trace>1){
@@ -251,6 +250,7 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
             information.value <- outMoments$information
 
             if(all(abs(outMoments$score)<tol.score) && (iIter==1 || all(abs(param.valueM1 - param.value)<tol.param))){
+                if(iIter==1){param.valueM1 <- param.value * NA}
                 cv <- TRUE
                 break
             }else if(is.na(logLik.value) || (logLik.value < logLik.valueM1)){ ## decrease in likelihood - try observed information matrix
@@ -329,7 +329,7 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
             }else if(cv==0){
                 if(iIter==1){
                     cat("No convergence after ",iIter," iteration: max score=",max(abs(outMoments$score)),"\n")
-                }else{
+                }else if(iIter==n.iter){
                     cat("No convergence after ",iIter," iterations: max score=",max(abs(outMoments$score))," | max change in coefficient= ",max(abs(param.valueM1 - param.value)),"\n", sep = "")
                 }
             }else if(cv==-1){

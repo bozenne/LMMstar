@@ -4,7 +4,7 @@
 \alias{CS}
 \title{Compound Symmetry Structure}
 \usage{
-CS(formula, var.cluster, var.time, ...)
+CS(formula, var.cluster, var.time, heterogeneous = TRUE)
 }
 \arguments{
 \item{formula}{formula indicating on which variable to stratify the residual variance and correlation (left hand side)
@@ -14,7 +14,8 @@ and variables influencing the residual variance (right hand side).}
 
 \item{var.time}{[character] time variable.}
 
-\item{...}{Not used. For compatibility with other structures.}
+\item{heterogeneous}{[logical] when covariates are used for the correlation structure,
+should correlation parameters should be specific to each level of the covariate?}
 }
 \value{
 An object of class \code{CS} that can be passed to the argument \code{structure} of the \code{lmm} function.

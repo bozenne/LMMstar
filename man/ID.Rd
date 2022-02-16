@@ -4,7 +4,7 @@
 \alias{ID}
 \title{identity Structure}
 \usage{
-ID(formula, var.cluster, var.time, ...)
+ID(formula, var.cluster, var.time)
 }
 \arguments{
 \item{formula}{formula indicating on which variable to stratify the residual variance (left hand side).}
@@ -12,8 +12,6 @@ ID(formula, var.cluster, var.time, ...)
 \item{var.cluster}{[character] cluster variable.}
 
 \item{var.time}{[character] time variable.}
-
-\item{...}{Not used. For compatibility with other structures.}
 }
 \value{
 An object of class \code{IND} that can be passed to the argument \code{structure} of the \code{lmm} function.

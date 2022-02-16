@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: nov 13 2021 (16:47) 
 ## Version: 
-## Last-Updated: Dec 19 2021 (17:05) 
+## Last-Updated: feb 16 2022 (15:40) 
 ##           By: Brice Ozenne
-##     Update #: 20
+##     Update #: 21
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -235,11 +235,11 @@ test_that("Extactors for lmm", {
     fitAnova.main <- anova(fit.main, ci = TRUE)
     fitAnova.main
     expect_equivalent(fitAnova.main$mean[,c("statistic","df.num","df.denom","p.value")],
-                      data.frame("statistic" = c(121.65944111), 
+                      data.frame("statistic" = c(121.65995198), 
                                  "df.num" = c(3), 
                                  "df.denom" = c(18.97809203), 
                                  "p.value" = c(1.427969e-12)),
-                      tol = 1e-6
+                      tol = 1e-5
                       )
 
 

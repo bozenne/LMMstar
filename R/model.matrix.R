@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: feb 15 2022 (17:39) 
+## Last-Updated: feb 16 2022 (09:39) 
 ##           By: Brice Ozenne
-##     Update #: 1715
+##     Update #: 1716
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -232,7 +232,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 
 ## * .vcov.matrix.lmm
 ## output observation specific design matrix (but no covariance pattern)
-.vcov.matrix.lmm <- function(structure, data, heterogenous,
+.vcov.matrix.lmm <- function(structure, data, heterogeneous,
                              strata.var, U.strata,
                              time.var, U.time,
                              cluster.var, order.clusterTime){
@@ -273,7 +273,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     if(is.null(structure$param)){ ## structure
         out$var <- .colnameOrder(.model.matrix_regularize(formula.var, data = data, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
         if(!is.null(formula.cor) && n.time>1 && any(sapply(order.clusterTime,length)>1)){  ## at least one individual with more than timepoint
-            if(heterogenous==FALSE){
+            if(heterogeneous==FALSE){
                 for(iVar in all.vars(formula.cor)){
                     data[[iVar]] <- as.numeric(as.factor(data[[iVar]]))
                 }
@@ -288,7 +288,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         attr(out$var,"original.colnames") <- attr(structure$X$var,"original.colnames")
 
         if(!is.null(formula.cor) && n.time>1 && any(sapply(order.clusterTime,length)>1)){  ## at least one individual with more than timepoint
-            if(heterogenous==FALSE){
+            if(heterogeneous==FALSE){
                 for(iVar in all.vars(formula.cor)){
                     data[[iVar]] <- as.numeric(as.factor(data[[iVar]]))
                 }

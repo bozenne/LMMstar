@@ -96,7 +96,7 @@ residuals(e.lm, type = "partial", var = "X1")
 residuals(e.lm, type = "partial", var = "X1", keep.data = TRUE)
 
 ## fit Linear Mixed Model
-eUN.lmm <- lmm(Y ~ visit + X1 + X2 + X5,
+eUN.lmm <- lmm(Y ~ visit + X1 + X2 + X5 + X6,
                repetition = ~visit|id, structure = "UN", data = dL)
 
 ## residuals
@@ -108,4 +108,10 @@ residuals(eUN.lmm, format = "wide", type = "scaled")
 ## residuals and predicted values
 residuals(eUN.lmm, type = "all")
 residuals(eUN.lmm, type = "all", keep.data = TRUE)
+
+## partial residuals
+residuals(eUN.lmm, type = "partial-ref", var = c("(Intercept)","X6"), plot = "scatterplot")
+residuals(eUN.lmm, type = "partial-ref", var = c("X6"), plot = "scatterplot")
+## plot.lmm(eUN.lmm, type = "partial", var = c("(Intercept)","X6"))
+## plot.lmm(eUN.lmm, type = "partial", var = c("X6"))
 }
