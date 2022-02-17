@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: feb 14 2022 (10:44) 
+## Last-Updated: feb 17 2022 (12:15) 
 ##           By: Brice Ozenne
-##     Update #: 1431
+##     Update #: 1436
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -306,6 +306,10 @@ lmm <- function(formula, repetition, structure, data,
     }
     
     if(inherits(structure,"structure")){
+        if(optimizer=="gls"){
+            stop("Argument \'structure\' must be a character when using gls optimizer. \n",
+                 "Otherwise add argument control = list(optimizer = \"FS\"). \n")
+        }
         if(!missing(repetition)){
             if(!is.na(structure$name$time) && structure$name$time != var.time){
                 stop("Argument \'structure\' is inconsistent with argument \'repetition\'. \n",
