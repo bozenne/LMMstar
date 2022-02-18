@@ -5,4 +5,11 @@ Oldford, R.~W. (2016).
 \newblock Self-calibrating quantile--quantile plots.
 \newblock {\em The American Statistician}, 70(1):74--90.
 
+\bibitem[Pipper et~al., 2012]{pipper2012versatile}
+Pipper, C.~B., Ritz, C., and Bisgaard, H. (2012).
+\newblock A versatile method for confirmatory evaluation of the effects of a
+  covariate in multiple models.
+\newblock {\em Journal of the Royal Statistical Society: Series C (Applied
+  Statistics)}, 61(2):315--326.
+
 \end{thebibliography}

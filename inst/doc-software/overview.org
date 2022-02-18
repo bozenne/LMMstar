@@ -917,17 +917,17 @@ Singular contrast matrix: contrasts "A1_week - B1_week" "A3_months - B1_week" "A
 
  - Univariate Wald test (individual null hypotheses) 
                        estimate        se        df     lower    upper p.value    
-B1_week - B3_months    -7.88223   0.71318  20.00000  -9.79656  -5.9679 < 1e-05 ***
-A1_week - B3_months   -11.78795   1.01751  20.00000 -14.51918  -9.0567 < 1e-05 ***
-A3_months - B3_months -26.12239   1.65641  20.00000 -30.56854 -21.6762 < 1e-05 ***
-A1_week - B1_week      -3.90572   0.59464  20.00000  -5.50186  -2.3096 < 1e-05 ***
-A3_months - B1_week   -18.24016   1.32283  20.00000 -21.79092 -14.6894 < 1e-05 ***
-A3_months - A1_week   -14.33444   1.05650  20.00000 -17.17031 -11.4986 < 1e-05 ***
+B1_week - B3_months    -7.88223   0.71318  20.00000  -9.79647  -5.9680 < 1e-05 ***
+A1_week - B3_months   -11.78795   1.01751  20.00000 -14.51905  -9.0569 < 1e-05 ***
+A3_months - B3_months -26.12239   1.65641  20.00000 -30.56833 -21.6764 < 1e-05 ***
+A1_week - B1_week      -3.90572   0.59464  20.00000  -5.50179  -2.3097 < 1e-05 ***
+A3_months - B1_week   -18.24016   1.32283  20.00000 -21.79075 -14.6896 < 1e-05 ***
+A3_months - A1_week   -14.33444   1.05650  20.00000 -17.17018 -11.4987 < 1e-05 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 Standard errors: model-based
 (CIs/p-values adjusted for multiple comparisons -- single step max-test)
-Error when computing the adjusted p-value by numerical integration: 1.376e-05
+Error when computing the adjusted p-value by numerical integration: 1.114e-06
 #+end_example
 
 
@@ -979,7 +979,7 @@ contrast matrix:
 anova(eUN.lmm, effects = C)
 #+END_SRC
 
-#+RESULTS:
+#+RESULTS: 
 : 
 : 	|| User-specified linear hypotheses || 
 : 
@@ -988,6 +988,39 @@ anova(eUN.lmm, effects = C)
 :     6.2032      3   17.995 0.0044171 **
 : ---
 :  Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Note that using the approach of cite:pipper2012versatile it is also
+possible to adjust for multiple testing across several =lmm=
+objects. To do so, one first fit the mixed models, then use the
+=anova= method to indicate which hypotheses are being tested, and
+combine them using =rbind=.
+
+\clearpage
+
+Here is a (very artificial) example:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+Manova <- rbind(anova(eInd.lmm, effects = "glucagon = 0"),
+                anova(eCS.lmm, effects = "glucagon = 0"),
+                anova(eUN.lmm, effects = "glucagon = 0"))
+summary(Manova) 
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+
+	|| User-specified linear hypotheses || 
+
+ - Univariate Wald test (individual null hypotheses) 
+      estimate        se        df     lower   upper  p.value   
+[1,]  -8.27006   2.57880  35.00000 -14.70613 -1.8340 0.008413 **
+[2,]   0.82179   0.61997  35.00000  -0.72551  2.3691 0.460415   
+[3,]  -0.88831   0.24161  35.00000  -1.49130 -0.2853 0.002304 **
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+Standard errors: model-based
+(CIs/p-values adjusted for multiple comparisons -- single step max-test)
+Error when computing the adjusted p-value by numerical integration: 0.00015454
+#+end_example
 
 \clearpage
 

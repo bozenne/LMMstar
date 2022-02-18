@@ -1429,18 +1429,8 @@ INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\tex\generic\gettitlestring\gett
 INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\tex\generic\gettitlestring\gettitlestring.sty
 INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\tex\latex\kvoptions\kvoptions.sty
 INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\tex\generic\ltxcmds\ltxcmds.sty
-INPUT .\overview.out
-INPUT overview.out
-INPUT .\overview.out
-INPUT overview.out
-INPUT .\overview.out
-INPUT overview.out
-INPUT .\overview.out
-INPUT overview.out
-OUTPUT overview.pdf
-INPUT .\overview.out
-INPUT .\overview.out
 OUTPUT overview.out
+OUTPUT overview.pdf
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmr17.tfm
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmr12.tfm
 INPUT C:\Program Files\MiKTeX 2.9\tex\latex\lm\ot1lmr.fd

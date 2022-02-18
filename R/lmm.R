@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: feb 17 2022 (12:32) 
+## Last-Updated: feb 18 2022 (17:20) 
 ##           By: Brice Ozenne
-##     Update #: 1437
+##     Update #: 1445
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -641,7 +641,10 @@ lmm <- function(formula, repetition, structure, data,
         param.value <- c(stats::setNames(unlist(param.mu),out$design$param$mu),
                          stats::setNames(unlist(param.sigma), out$design$param$sigma))
         if(length(out$design$param$k)>0){
-            param.k <- lapply(U.strata, function(iS){  coef(out$gls[[iS]]$modelStruct$varStruct, unconstrained = FALSE) })
+            correct.order <- out$xfactor$var[[name.var[[1]]]]
+            param.k <- lapply(U.strata, function(iS){ ## iS <- "1"
+                iCoef <- coef(out$gls[[iS]]$modelStruct$varStruct, unconstrained = FALSE)[correct.order[-1]]
+            })            
             param.value <- c(param.value,stats::setNames(unlist(param.k), out$design$param$k))
         }
         if(length(out$design$param$rho)>0){
@@ -685,6 +688,10 @@ lmm <- function(formula, repetition, structure, data,
     if(trace>=1){cat("\n")}
 
     ## ** convert to lmm and export
+    if(optimizer=="gls" && any(abs(out$score)>0.1)){
+        warning("Large score value - incorrect model convergence or interface with nlme::gls. \n",
+                "Consider switching to internal optimizer using control = list(optimizer = \"FS\") when calling LMM. \n")
+    }
     class(out) <- "lmm"
     return(out)
 }

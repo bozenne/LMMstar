@@ -1,12 +1,12 @@
 # Fdb version 3
-["bibtex overview"] 1645033808 "overview.aux" "overview.bbl" "overview" 1645033813
+["bibtex overview"] 1645203172 "overview.aux" "overview.bbl" "overview" 1645203172
   "C:/Program Files/MiKTeX 2.9/bibtex/bst/bibtex/apalike.bst" 1291972791 24635 604dafcc79f521a11ea73e506e1fbd98 ""
-  "bibliography.bib" 1629959629 253 18ebb9a8fc0f7eaca82623759266d471 ""
-  "overview.aux" 1645033812 5940 0128c242e427305b76abb2a531ccdf8f "pdflatex"
+  "bibliography.bib" 1645202753 1073 c7d78c8e866f70164e7424b9dd8f1de4 ""
+  "overview.aux" 1645203169 6033 cf7be8f1bc5f48476ace316675f49672 "pdflatex"
   (generated)
   "overview.bbl"
   "overview.blg"
-["pdflatex"] 1645033808 "c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/overview.tex" "overview.pdf" "overview" 1645033813
+["pdflatex"] 1645203142 "c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/overview.tex" "overview.pdf" "overview" 1645203142
   "C:/Program Files/MiKTeX 2.9/fonts/enc/dvips/lm/lm-ec.enc" 1254935040 2375 baa924870cfb487815765f9094cf3728 ""
   "C:/Program Files/MiKTeX 2.9/fonts/enc/dvips/lm/lm-mathex.enc" 1254935040 3486 c7eadf5dcc57b3b2d11736679f6636ba ""
   "C:/Program Files/MiKTeX 2.9/fonts/enc/dvips/lm/lm-mathit.enc" 1254935040 2405 5dcf2c1b967ee25cc46c58cd52244aed ""
@@ -300,7 +300,7 @@
   "C:/Users/hpl802/AppData/Roaming/MiKTeX/2.9/tex/latex/xargs/xargs.sty" 1206231060 12403 a11204384274e5980f17ec9564088fa4 ""
   "C:/Users/hpl802/AppData/Roaming/MiKTeX/2.9/tex/latex/xifthen/xifthen.sty" 1448274436 5689 1bfa68243e89a54479e7d0580773c57e ""
   "C:/Users/hpl802/AppData/Roaming/MiKTeX/2.9/tex/latex/xstring/xstring.sty" 1626881362 123 a302f2c651a95033260db60e51527ae8 ""
-  "c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/overview.tex" 1645033791 93841 8c65b144dd81f38cbb344b94819e8ad9 ""
+  "c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/overview.tex" 1645203140 95137 9399f85d0f64c7f698c3dad09dc84bfe ""
   "figures/diag-correlation.pdf" 1645033646 6204 c07933064c7023bfb0e3865aa0de6cbd ""
   "figures/diag-qqplot.pdf" 1645033649 14403 b603c8ba4216e5d48c9723c68c5e55c0 ""
   "figures/diag-scatterplot.pdf" 1645033640 16237 a2eacc8d8070af477bf0f5e17df5c97c ""
@@ -311,14 +311,14 @@
   "figures/fit-pres.pdf" 1645033662 16860 c6e91f6cbad565763ca9750ea79cf7ca ""
   "figures/gg-baseAdj.pdf" 1645033700 5033 23cd420e7698d1283f94b3e1058053a6 ""
   "figures/imputation.pdf" 1645033763 9100 0ce32389df13cbd83e9c05739a80e46e ""
-  "overview.aux" 1645033812 5940 0128c242e427305b76abb2a531ccdf8f "pdflatex"
-  "overview.bbl" 1645033808 232 2647b61db3cdf1b935e03269d8ca3a93 "bibtex overview"
-  "overview.out" 1645033812 4174 a9e3aa6ccb889cfb2ab25ee37e5d2a34 "pdflatex"
-  "overview.tex" 1645033791 93841 8c65b144dd81f38cbb344b94819e8ad9 ""
+  "overview.aux" 1645203121 6033 32c5b00f8db161cf1762e20a48bd2847 "pdflatex"
+  "overview.bbl" 1645203123 557 8ab52bee5b1d6446bf910c1d9775dd73 "bibtex overview"
+  "overview.out" 1645203169 4174 a9e3aa6ccb889cfb2ab25ee37e5d2a34 "pdflatex"
+  "overview.tex" 1645203140 95137 9399f85d0f64c7f698c3dad09dc84bfe ""
   (generated)
-  "overview.log"
-  "overview.soc"
   "overview.pdf"
+  "overview.soc"
   "overview.out"
   "overview.aux"
+  "overview.log"
   "overview.loc"
