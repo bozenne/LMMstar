@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: Feb 13 2022 (23:10) 
+## Last-Updated: feb 21 2022 (10:56) 
 ##           By: Brice Ozenne
-##     Update #: 106
+##     Update #: 111
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -49,7 +49,11 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
     }
     
     ## ** find representative individuals
-    reorder <- order(object$data[["XXclusterXX"]],object$data[["XXtimeXX"]])
+    order.nrep <- names(sort(sapply(object$design$vcov$X$Upattern$time, length), decreasing = TRUE))
+    col.pattern <- factor(object$design$vcov$X$pattern.cluster, order.nrep)[object$data[["XXclusterXX"]]]
+
+    ## put observations with full data first to avoid "holes"  in the plot
+    reorder <- order(col.pattern,object$data[["XXclusterXX"]],object$data[["XXtimeXX"]])
     data <- object$data[reorder,,drop=FALSE]
     if(!is.null(at)){
         if(is.vector(at)){at <- as.data.frame(as.list(at))}
@@ -113,13 +117,14 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
         }))
         data[[color]] <- sort(unique(newdata[[color]]))[index.X]
     }
-    
+
     ## ** compute fitted curve
     if(!is.na(obs.alpha) && obs.alpha>0){
         preddata <- cbind(data, stats::predict(object, newdata = data, ...))
     }else{
         preddata <- cbind(newdata, stats::predict(object, newdata = newdata, ...))
     }
+    
     ## ** generate plot
     gg <- ggplot2::ggplot(preddata, ggplot2::aes_string(x = "XXtimeXX", y = "estimate", group = "XXclusterXX"))
     if(!is.na(obs.alpha) && obs.alpha>0){
