@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: feb 21 2022 (10:44) 
+## Last-Updated: feb 22 2022 (17:36) 
 ##           By: Brice Ozenne
-##     Update #: 99
+##     Update #: 100
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -427,5 +427,26 @@ test_that("gls optimizer - error ordering variance parameters",{
 
 })
 
+## * from: Malene tirsdag 22-02-22 at 17:34
+df <- data.frame("log_IFNa" = c( 1.1136746,  1.0979168,  1.0745213, -3.0030119,  0.9195400,  1.0816337,  1.4536404,  0.4530283,  0.9987007,  1.3941097,  1.6380655,  1.3419980,  1.4379752,  0.7561828,  0.6982147,  1.5206042,  1.6218099,  1.1070709,  1.5043738,  0.9522556,  1.3215201, NA, NA, NA,  1.0144907, NA,  1.4610340,  1.0398889,  1.3813941,  0.9113367,  0.7513407,  1.1575091,  1.1068172,  1.3658617,  0.9008641,  1.4357748,  1.6262030,  0.7771742,  1.2950271,  1.2599487, NA, NA, NA,  1.6344580, NA, NA,  0.7543576,  1.3104026,  0.7917371,  1.1973980,  1.5714896, NA, NA,  1.6890410,  0.7307361,  1.7447027,  1.0303527,  1.7552029,  1.2171710,  1.3890859,  1.5453714, NA, NA, NA,  1.2413246,  1.2562996,  1.6185791,  1.1264622, NA, NA,  1.4776775,  0.5709515, NA, NA,  1.0534947,  1.0281084, NA, NA,  1.4854105,  1.1183065,  1.6004625,  1.7128854,  0.7852837,  1.7102292,  1.4144262,  0.9393343,  1.4653732,  1.3641911,  0.9447136, NA, NA,  1.3546462,  0.7566908, NA, NA, NA, NA,  1.8578419,  1.6445525, NA, NA, NA,  1.2770124), 
+                 "Time" = c("Baseline", "4 weeks", "12 months", "Baseline", "4 weeks", "6 months", "12 months", "Baseline", "4 weeks", "6 months", "12 months", "Baseline", "4 weeks", "Baseline", "4 weeks", "12 months", "Baseline", "Baseline", "4 weeks", "6 months", "12 months", "Baseline", "4 weeks", "6 months", "12 months", "Baseline", "4 weeks", "6 months", "Baseline", "4 weeks", "12 months", "Baseline", "4 weeks", "6 months", "Baseline", "12 months", "Baseline", "4 weeks", "6 months", "12 months", "Baseline", "4 weeks", "6 months", "12 months", "Baseline", "4 weeks", "6 months", "12 months", "Baseline", "4 weeks", "12 months", "Baseline", "4 weeks", "6 months", "12 months", "Baseline", "4 weeks", "12 months", "Baseline", "4 weeks", "12 months", "Baseline", "4 weeks", "6 months", "12 months", "Baseline", "4 weeks", "12 months", "Baseline", "4 weeks", "6 months", "12 months", "Baseline", "4 weeks", "6 months", "12 months", "Baseline", "4 weeks", "6 months", "12 months", "Baseline", "4 weeks", "6 months", "Baseline", "4 weeks", "6 months", "Baseline", "4 weeks", "12 months", "Baseline", "4 weeks", "6 months", "12 months", "Baseline", "4 weeks", "Baseline", "4 weeks", "Baseline", "4 weeks", "Baseline", "4 weeks", "6 months", "12 months"), 
+                 "ID1" = c(28, 28, 28, 22, 22, 22, 22, 24, 24, 24, 24, 31, 31, 23, 23, 23, 17, 14, 14, 14, 14,  7,  7,  7,  7, 13, 13, 13, 27, 27, 27, 21, 21, 21, 20, 20, 19, 19, 19, 19,  1,  1,  1,  1, 12, 12, 12, 12, 25, 25, 25,  9,  9,  9,  9, 18, 18, 18, 26, 26, 26,  6,  6,  6,  6, 30, 30, 30, 10, 10, 10, 10,  8,  8,  8,  8,  4,  4,  4,  4, 15, 15, 15, 16, 16, 16, 29, 29, 29,  5,  5,  5,  5,  3,  3, 11, 11, 32, 32,  2,  2,  2,  2), 
+                 "visit" = c(1, 2, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 1, 2, 4, 1, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 1, 2, 4, 1, 2, 3, 1, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 4, 1, 2, 3, 4, 1, 2, 4, 1, 2, 4, 1, 2, 3, 4, 1, 2, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 1, 2, 3, 1, 2, 4, 1, 2, 3, 4, 1, 2, 1, 2, 1, 2, 1, 2, 3, 4))
+
+df$Time <- factor(df$Time, levels = c("Baseline","4 weeks","6 months","12 months"))
+df$visit <- as.numeric(df$Time)
+
+test_that("", {
+
+e.fit <- lmm(log_IFNa~Time, repetition = ~Time|ID1, structure="UN", df=TRUE, data=df) 
+
+e.gls <- gls(log_IFNa~Time,
+             correlation = corSymm(form=~visit|ID1),
+             weights = varIdent(form=~1|Time),
+             data = df,
+             na.action = na.omit)
+
+expect_equal(logLik(e.fit),as.double(logLik(e.gls)), tol = 1e-3)
+})
 ######################################################################
 ### test-auto-previous-bug.R ends here

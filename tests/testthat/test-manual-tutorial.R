@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: nov 13 2021 (16:47) 
 ## Version: 
-## Last-Updated: feb 16 2022 (15:40) 
+## Last-Updated: feb 22 2022 (12:13) 
 ##           By: Brice Ozenne
-##     Update #: 21
+##     Update #: 22
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -53,7 +53,7 @@ test_that("summarize", {
     GS <- data.frame("outcome" = c("weight", "weight", "weight", "weight"), 
                      "time" = as.factor(c("-3 month", "-1 week", "+1 week", "+3 month")), 
                      "observed" = c(20, 20, 20, 20), 
-                     "missing" = c(0, 0, 0, 0), 
+                    "missing" = c(0, 0, 0, 0), 
                      "mean" = c(128.970, 121.240, 115.700, 102.365), 
                      "sd" = c(20.26937, 18.91019, 18.27532, 17.05389), 
                      "min" = c(100.9,  95.7,  89.9,  78.8), 

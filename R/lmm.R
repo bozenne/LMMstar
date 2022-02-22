@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: feb 18 2022 (17:20) 
+## Last-Updated: feb 22 2022 (17:34) 
 ##           By: Brice Ozenne
-##     Update #: 1445
+##     Update #: 1461
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -590,12 +590,15 @@ lmm <- function(formula, repetition, structure, data,
             data.fit <- cbind(data.fit, data[,add.col[add.col %in% names(data.fit) == FALSE],drop=FALSE])
         }
         ## order by strata, time, and cluster (strata, cluster, and time does not provide satisfactory results, mixing k-parameters)
-        data.fit <- data.fit[order(data[["XXstrata.indexXX"]],data[["XXtime.indexXX"]],data[["XXclusterXX"]]),,drop=FALSE]
+        col.pattern <- factor(out$design$vcov$X$pattern.cluster, out$design$vcov$X$Upattern$name)[as.character(data.fit[["XXclusterXX"]])]
+        data.fit <- data.fit[order(data.fit[["XXstrata.indexXX"]],col.pattern,data.fit[["XXclusterXX"]],data.fit[["XXtime.indexXX"]]),,drop=FALSE]
         if(n.strata==1){
             txt.data <- "data.fit"
         }else{
             txt.data <- paste0("data.fit[data.fit$XXstrataXX==\"",U.strata,"\",,drop=FALSE]")
         }
+        ## change cluster name so that they appear in order (important when there are missing values as this influences the reference level for the weights)
+        data.fit[["XXclusterXX"]] <- as.factor(as.numeric(factor(data.fit[["XXclusterXX"]],levels=unique(data.fit[["XXclusterXX"]]))))
         ##  update formula
         txt.formula <- tapply(paste0("p",1:NCOL(out$design$mean)),out$design$param$strata.mu, function(iStrata){
             paste0(var.outcome, "~ 0 + ",  paste(iStrata, collapse = " + "))
@@ -611,8 +614,8 @@ lmm <- function(formula, repetition, structure, data,
     if(optimizer=="gls"){
         name.var <- stats::na.omit(setdiff(structure$name$var,structure$name$strata))
         if(length(name.var)>0){
-            form.var <- stats::as.formula(paste0("~1|",paste(name.var[[1]],collapse="*")))
-            txt.var <- paste0("weights = nlme::varIdent(form = ",deparse(form.var),"), ")
+            form.var <- stats::as.formula(paste0("~1|", paste(name.var[[1]], collapse = "*")))
+            txt.var <- paste0("weights = nlme::varIdent(form = ", deparse(form.var), "), ")
         }else{
             txt.var <- NULL
         }
@@ -641,9 +644,8 @@ lmm <- function(formula, repetition, structure, data,
         param.value <- c(stats::setNames(unlist(param.mu),out$design$param$mu),
                          stats::setNames(unlist(param.sigma), out$design$param$sigma))
         if(length(out$design$param$k)>0){
-            correct.order <- out$xfactor$var[[name.var[[1]]]]
             param.k <- lapply(U.strata, function(iS){ ## iS <- "1"
-                iCoef <- coef(out$gls[[iS]]$modelStruct$varStruct, unconstrained = FALSE)[correct.order[-1]]
+                iCoef <- coef(out$gls[[iS]]$modelStruct$varStruct, unconstrained = FALSE)
             })            
             param.value <- c(param.value,stats::setNames(unlist(param.k), out$design$param$k))
         }
