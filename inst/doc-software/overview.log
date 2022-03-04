@@ -1,7 +1,7 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.23 (MiKTeX 21.8) (preloaded format=pdflatex 2021.8.26)  18 FEB 2022 17:52
+This is pdfTeX, Version 3.141592653-2.6-1.40.23 (MiKTeX 21.8) (preloaded format=pdflatex 2021.8.26)  24 FEB 2022 11:04
 entering extended mode
-**./overview.tex
-(overview.tex
+**c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/overview.tex
+(c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/overview.tex
 LaTeX2e <2021-06-01> patch level 1
 L3 programming layer <2021-07-12>
 (C:\Program Files\MiKTeX 2.9\tex/latex/base\article.cls
@@ -228,14 +228,6 @@ Package: multicol 2019/12/09 v1.8y multicolumn formatting (FMi)
 \@tempa=\box92
 \@tempa=\box93
 \@tempa=\box94
-\@tempa=\box95
-\@tempa=\box96
-\@tempa=\box97
-\@tempa=\box98
-\@tempa=\box99
-\@tempa=\box100
-\@tempa=\box101
-\@temp94
 \@tempa=\box95
 \@tempa=\box96
 \@tempa=\box97
@@ -1213,6 +1205,7 @@ Package: gettitlestring 2019/12/15 v1.6 Cleanup title references (HO)
 LaTeX Info: Redefining \ref on input line 224.
 LaTeX Info: Redefining \pageref on input line 224.
 LaTeX Info: Redefining \nameref on input line 224.
+ (overview.out) (overview.out)
 \@outlinefile=\write5
 \openout5 = `overview.out'.
 
@@ -1221,7 +1214,8 @@ Package caption Info: float package is loaded.
 Package caption Info: End \AtBeginDocument code.
 LaTeX Font Info:    Trying to load font information for OT1+lmr on input line 2
 27.
- (C:\Program Files\MiKTeX 2.9\tex/latex/lm\ot1lmr.fd
+
+(C:\Program Files\MiKTeX 2.9\tex/latex/lm\ot1lmr.fd
 File: ot1lmr.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
 LaTeX Font Info:    Trying to load font information for OML+lmm on input line 2
@@ -1320,13 +1314,13 @@ LaTeX Font Info:    External font `lmex10' loaded for size
 ] [11
 
 ] [12]
-<./figures/diag-scatterplot.pdf, id=173, 505.89pt x 505.89pt>
+<./figures/diag-scatterplot.pdf, id=262, 505.89pt x 505.89pt>
 File: ./figures/diag-scatterplot.pdf Graphic file (type pdf)
 <use ./figures/diag-scatterplot.pdf>
 Package pdftex.def Info: ./figures/diag-scatterplot.pdf  used on input line 873
 .
 (pdftex.def)             Requested size: 216.23764pt x 216.23933pt.
-<./figures/diag-scatterplot2.pdf, id=174, 505.89pt x 505.89pt>
+<./figures/diag-scatterplot2.pdf, id=263, 505.89pt x 505.89pt>
 File: ./figures/diag-scatterplot2.pdf Graphic file (type pdf)
 <use ./figures/diag-scatterplot2.pdf>
 Package pdftex.def Info: ./figures/diag-scatterplot2.pdf  used on input line 88
@@ -1335,13 +1329,13 @@ Package pdftex.def Info: ./figures/diag-scatterplot2.pdf  used on input line 88
  [13
 
  <./figures/diag-scatterplot.pdf> <./figures/diag-scatterplot2.pdf>]
-<./figures/diag-correlation.pdf, id=201, 867.24pt x 460.72125pt>
+<./figures/diag-correlation.pdf, id=289, 867.24pt x 460.72125pt>
 File: ./figures/diag-correlation.pdf Graphic file (type pdf)
 <use ./figures/diag-correlation.pdf>
 Package pdftex.def Info: ./figures/diag-correlation.pdf  used on input line 901
 .
 (pdftex.def)             Requested size: 324.36473pt x 172.32011pt.
-<./figures/diag-qqplot.pdf, id=205, 505.89pt x 505.89pt>
+<./figures/diag-qqplot.pdf, id=293, 505.89pt x 505.89pt>
 File: ./figures/diag-qqplot.pdf Graphic file (type pdf)
 <use ./figures/diag-qqplot.pdf>
 Package pdftex.def Info: ./figures/diag-qqplot.pdf  used on input line 915.
@@ -1349,12 +1343,12 @@ Package pdftex.def Info: ./figures/diag-qqplot.pdf  used on input line 915.
  [14
 
  <./figures/diag-correlation.pdf> <./figures/diag-qqplot.pdf>]
-<./figures/fit-autoplot.pdf, id=240, 505.89pt x 505.89pt>
+<./figures/fit-autoplot.pdf, id=328, 505.89pt x 505.89pt>
 File: ./figures/fit-autoplot.pdf Graphic file (type pdf)
 <use ./figures/fit-autoplot.pdf>
 Package pdftex.def Info: ./figures/fit-autoplot.pdf  used on input line 973.
 (pdftex.def)             Requested size: 243.26941pt x 243.27214pt.
-<./figures/fit-emmip.pdf, id=241, 505.89pt x 505.89pt>
+<./figures/fit-emmip.pdf, id=329, 505.89pt x 505.89pt>
 File: ./figures/fit-emmip.pdf Graphic file (type pdf)
 <use ./figures/fit-emmip.pdf>
 Package pdftex.def Info: ./figures/fit-emmip.pdf  used on input line 978.
@@ -1362,7 +1356,7 @@ Package pdftex.def Info: ./figures/fit-emmip.pdf  used on input line 978.
  [15
 
  <./figures/fit-autoplot.pdf> <./figures/fit-emmip.pdf>]
-<./figures/fit-autoplot-indiv.pdf, id=270, 867.24pt x 710.655pt>
+<./figures/fit-autoplot-indiv.pdf, id=357, 867.24pt x 710.655pt>
 File: ./figures/fit-autoplot-indiv.pdf Graphic file (type pdf)
 <use ./figures/fit-autoplot-indiv.pdf>
 Package pdftex.def Info: ./figures/fit-autoplot-indiv.pdf  used on input line 1
@@ -1370,7 +1364,7 @@ Package pdftex.def Info: ./figures/fit-autoplot-indiv.pdf  used on input line 1
 (pdftex.def)             Requested size: 540.60239pt x 443.00885pt.
 
 [16 <./figures/fit-autoplot-indiv.pdf>]
-<./figures/fit-pres.pdf, id=291, 867.24pt x 361.35pt>
+<./figures/fit-pres.pdf, id=378, 867.24pt x 361.35pt>
 File: ./figures/fit-pres.pdf Graphic file (type pdf)
 <use ./figures/fit-pres.pdf>
 Package pdftex.def Info: ./figures/fit-pres.pdf  used on input line 1018.
@@ -1387,7 +1381,7 @@ Package pdftex.def Info: ./figures/fit-pres.pdf  used on input line 1018.
 ] [23
 
 ]
-<./figures/gg-baseAdj.pdf, id=404, 505.89pt x 505.89pt>
+<./figures/gg-baseAdj.pdf, id=488, 505.89pt x 505.89pt>
 File: ./figures/gg-baseAdj.pdf Graphic file (type pdf)
 <use ./figures/gg-baseAdj.pdf>
 Package pdftex.def Info: ./figures/gg-baseAdj.pdf  used on input line 1398.
@@ -1398,7 +1392,7 @@ Package pdftex.def Info: ./figures/gg-baseAdj.pdf  used on input line 1398.
 ] [30] [31
 
 ]
-<./figures/imputation.pdf, id=530, 867.24pt x 460.72125pt>
+<./figures/imputation.pdf, id=611, 867.24pt x 460.72125pt>
 File: ./figures/imputation.pdf Graphic file (type pdf)
 <use ./figures/imputation.pdf>
 Package pdftex.def Info: ./figures/imputation.pdf  used on input line 1895.
@@ -1466,19 +1460,16 @@ Overfull \hbox (22.72969pt too wide) detected at line 2171
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
 
-Package rerunfilecheck Warning: File `overview.out' has changed.
-(rerunfilecheck)                Rerun to get outlines right
-(rerunfilecheck)                or use package `bookmark'.
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
 
-Package rerunfilecheck Info: Checksums for `overview.out':
-(rerunfilecheck)             Before: <no file>
-(rerunfilecheck)             After:  A9E3AA6CCB889CFB2AB25EE37E5D2A34;4174.
+Package rerunfilecheck Info: File `overview.out' has not changed.
+(rerunfilecheck)             Checksum: A9E3AA6CCB889CFB2AB25EE37E5D2A34;4174.
  ) 
 Here is how much of TeX's memory you used:
- 30907 strings out of 478868
- 543149 string characters out of 2856724
- 1256847 words of memory out of 3000000
- 47768 multiletter control sequences out of 15000+600000
+ 30959 strings out of 478868
+ 544040 string characters out of 2856724
+ 1256896 words of memory out of 3000000
+ 47816 multiletter control sequences out of 15000+600000
  503311 words of font info for 124 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  114i,17n,117p,662b,1888s stack positions out of 5000i,500n,10000p,200000b,80000s
@@ -1526,9 +1517,9 @@ iKTeX 2.9/fonts/type1/public/amsfonts/symbols/msam10.pfb><C:/Program Files/MiKT
 eX 2.9/fonts/type1/public/amsfonts/symbols/msam5.pfb><C:/Program Files/MiKTeX 2
 .9/fonts/type1/public/amsfonts/symbols/msam7.pfb><C:/Program Files/MiKTeX 2.9/f
 onts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on overview.pdf (42 pages, 676283 bytes).
+Output written on overview.pdf (42 pages, 685067 bytes).
 PDF statistics:
- 897 PDF objects out of 1000 (max. 8388607)
+ 970 PDF objects out of 1000 (max. 8388607)
  402 named destinations out of 1000 (max. 500000)
- 63 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 255 words of extra memory for PDF output out of 10000 (max. 10000000)
 

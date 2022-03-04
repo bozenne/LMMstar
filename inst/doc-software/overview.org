@@ -1078,10 +1078,10 @@ lava::estimate(e.lmmANCOVA, f = function(p){
 Indeed:
 #+BEGIN_EXPORT latex
 \begin{align*}
-\Esp[Y_{i2}|Y_{i1},X_{i}] &= \alpha_j + \gamma_j X_{i} + \rho \frac{\sigma_2}{\sigma_1}\left(Y_{i1} - \alpha_j - \gamma_j X_{i}\right) \\
-                         &= \textcolor{\darkred}{\alpha_j - \rho \frac{\sigma_2}{\sigma_1} \alpha_j}
+\Esp[Y_{i2}|Y_{i1},X_{i}] &= \alpha_2 + \gamma_2 X_{i} + \rho \frac{\sigma_2}{\sigma_1}\left(Y_{i1} - \alpha_1 - \gamma_1 X_{i}\right) \\
+                         &= \textcolor{\darkred}{\alpha_2 - \rho \frac{\sigma_2}{\sigma_1} \alpha_1}
                          + \textcolor{\darkblue}{\rho \frac{\sigma_2}{\sigma_1}Y_{i1}}
-                         + \textcolor{\darkgreen}{\left(\gamma_j - \rho \frac{\sigma_2}{\sigma_1} \gamma_j\right)  X_{i} }
+                         + \textcolor{\darkgreen}{\left(\gamma_2 - \rho \frac{\sigma_2}{\sigma_1} \gamma_1\right)  X_{i} }
 \end{align*}
 #+END_EXPORT
 

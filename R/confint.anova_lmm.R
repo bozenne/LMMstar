@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: feb 10 2022 (13:18) 
+## Last-Updated: mar  4 2022 (15:45) 
 ##           By: Brice Ozenne
-##     Update #: 16
+##     Update #: 20
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -42,7 +42,7 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = "single-step"
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
     alpha <- 1-level
-    method <- match.arg(method, c("none","bonferroni","single-step"))
+    method <- match.arg(method, c(p.adjust.methods,"single-step"))
 
     ## ** extract info and compute CI
     out <- lapply(object[setdiff(names(object),"call")], function(iO){ ## iO <- object[[1]]
@@ -70,6 +70,10 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = "single-step"
                 iOut[[iTest]]$lower <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(alpha/(2*p), df = iOut[[iTest]]$df)
                 iOut[[iTest]]$upper <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(1-alpha/(2*p), df = iOut[[iTest]]$df)
                 iOut[[iTest]]$p.value <- pmin(1,2*p*(1-stats::pt( abs((iOut[[iTest]]$estimate-iOut[[iTest]]$null) / iOut[[iTest]]$se), df = iOut[[iTest]]$df)))
+            }else{
+                iOut[[iTest]]$lower <- NA
+                iOut[[iTest]]$upper <- NA
+                iOut[[iTest]]$p.value <- p.adjust(2*(1-stats::pt( abs((iOut[[iTest]]$estimate-iOut[[iTest]]$null) / iOut[[iTest]]$se), df = iOut[[iTest]]$df)), method = method)
             }
         }
         return(iOut)

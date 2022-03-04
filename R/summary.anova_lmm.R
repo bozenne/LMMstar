@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:50) 
 ## Version: 
-## Last-Updated: feb 11 2022 (10:31) 
+## Last-Updated: mar  4 2022 (15:42) 
 ##           By: Brice Ozenne
-##     Update #: 143
+##     Update #: 144
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -139,12 +139,16 @@ summary.anova_lmm <- function(object, method = "single-step", transform = NULL, 
                         cat("(CIs/p-values adjusted for multiple comparisons -- Bonferroni)\n", sep="")
                     }else if(method == "single-step"){
                         cat("(CIs/p-values adjusted for multiple comparisons -- single step max-test)\n", sep="")
+                    }else{
+                        cat(paste0("(CIs/p-values adjusted for multiple comparisons -- ",method,")\n", sep=""),sep="")
                     }
                 }else{
                     if(method=="bonferroni"){
                         cat("(CIs/p-values adjusted for multiple comparisons within each global test -- bonferroni) \n", sep="")
                     }else if(method == "single-step"){
                         cat("(CIs/p-values adjusted for multiple comparisons within each global test -- single step max-test) \n", sep="")
+                    }else{
+                        cat(paste0("(CIs/p-values adjusted for multiple comparisons within each global test -- ",method,") \n", sep=""),sep="")
                     }
                 }
 
