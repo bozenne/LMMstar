@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: nov  4 2021 (11:49) 
 ## Version: 
-## Last-Updated: Dec 15 2021 (17:16) 
+## Last-Updated: mar  7 2022 (10:47) 
 ##           By: Brice Ozenne
-##     Update #: 18
+##     Update #: 20
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -38,14 +38,14 @@ test_that("linear model",{
 
     ## single variable
     e.lmm <- lmm(Y~visit+X1+X2+X6, data = dL)
-    test1 <- residuals(e.lmm, type = "partial", var = "visit")
-    test1.bis <- residuals(e.lmm, type = "partial", var = "visit", format = "wide")
-    test2 <- residuals(e.lmm, type = "partial", var = "X1")
+    test1 <- residuals(e.lmm, type = "partial-center", var = "visit")
+    test1.bis <- residuals(e.lmm, type = "partial-center", var = "visit", format = "wide")
+    test2 <- residuals(e.lmm, type = "partial-center", var = "X1")
     expect_equal(as.double(test1), as.double(GS[,"visit"]), tol = 1e-6)
     expect_equal(as.double(test2), as.double(GS[,"X1"]), tol = 1e-6)
 
     ## same but with another reference
-    test3 <- residuals(e.lmm, type = "partial-ref", var = "visit")
+    test3 <- residuals(e.lmm, type = "partial", var = "visit")
     e.diff <- mean(e.lmm$design$mean[,c("visit2","visit3")] %*% coef(e.lmm)[c("visit2","visit3")]) ## expected difference
     expect_equal(as.double(test3-test1), rep(e.diff,length(test1)), tol = 1e-6)
 
@@ -53,7 +53,7 @@ test_that("linear model",{
     ## plot(e.lmm, type = "partial", var = c("(Intercept)","X6"))
     
     ## ## manual plot
-    ## rr <- residuals(e.lmm, type = "partial-ref", var = "X6", keep.data = TRUE)
+    ## rr <- residuals(e.lmm, type = "partial", var = "X6", keep.data = TRUE)
     ## dd.gg <- predict(e.lmm, newdata = rr, keep.newdata = TRUE, type = "static0")
     ## gg <- ggplot(dd.gg)
     ## gg <- gg + geom_point(aes(x = X6, y = r.partial)) + geom_line(aes(x = X6, y = estimate))
@@ -70,14 +70,14 @@ test_that("linear model with interaction",{
     
     ## single variable
     e.lmm <- lmm(Y~visit*X6+X2+X5, data = dL)
-    test1 <- residuals(e.lmm, type = "partial", var = "visit")
-    test1.bis <- residuals(e.lmm, type = "partial", var = "visit", format = "wide")
-    test2 <- residuals(e.lmm, type = "partial", var = "X6")
+    test1 <- residuals(e.lmm, type = "partial-center", var = "visit")
+    test1.bis <- residuals(e.lmm, type = "partial-center", var = "visit", format = "wide")
+    test2 <- residuals(e.lmm, type = "partial-center", var = "X6")
     expect_equal(as.double(test1), as.double(GS[,"visit"]), tol = 1e-6)
     expect_equal(as.double(test2), as.double(GS[,"X6"]), tol = 1e-6)
 
     ## multiple variables
-    test3 <- residuals(e.lmm, type = "partial", var = c("visit","X6"))
+    test3 <- residuals(e.lmm, type = "partial-center", var = c("visit","X6"))
     
     ## plot(e.lmm, type = "partial", var = c("visit","X6"))
 
@@ -105,13 +105,13 @@ test_that("linear model with splines",{
     
     ## compare partial residuals
     GS <- residuals(e.lm, type = "partial")
-    test <- residuals(e.lmm, type = "partial", var = "X6")
+    test <- residuals(e.lmm, type = "partial-center", var = "X6")
     expect_equal(as.double(test), as.double(GS[,"stats::poly(X6, 4)"]), tol = 1e-6)
 
     ## plot(e.lmm, type = "partial", var = "X6")
 
     ## ## manual plot
-    ## rr <- residuals(e.lmm, type = "partial-ref", var = "X6", keep.data = TRUE)
+    ## rr <- residuals(e.lmm, type = "partial", var = "X6", keep.data = TRUE)
     ## dd.gg <- predict(e.lmm, newdata = rr, keep.newdata = TRUE, type = "static0")
     ## gg <- ggplot(dd.gg)
     ## gg <- gg + geom_point(aes(x = X6, y = r.partial)) + geom_line(aes(x = X6, y = estimate))
@@ -131,7 +131,7 @@ test_that("linear model with splines",{
     
     ## ## compare partial residuals
     ## GS <- residuals(e.lm, type = "partial")
-    ## test <- residuals(e.lmm, type = "partial", var = "X6")
+    ## test <- residuals(e.lmm, type = "partial-mean", var = "X6")
     ## expect_equal(as.double(test), as.double(GS[,"splines::ns(X6, 4)"]), tol = 1e-6)
 })
 

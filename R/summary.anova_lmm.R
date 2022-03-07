@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:50) 
 ## Version: 
-## Last-Updated: mar  4 2022 (15:42) 
+## Last-Updated: mar  7 2022 (09:48) 
 ##           By: Brice Ozenne
-##     Update #: 144
+##     Update #: 146
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -32,6 +32,9 @@
 ##' @param digits [interger] number of digits used to display estimates.
 ##' @param digits.p.value [interger] number of digits used to display p-values.
 ##' @param ... Not used. For compatibility with the generic method.
+##'
+##'
+##' @details Adjustment for multiple comparisons via the single step method is performed using the multcomp package.
  
 ## * summary.anova_lmm (code)
 ##' @export

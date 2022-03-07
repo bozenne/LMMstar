@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (11:00) 
 ## Version: 
-## Last-Updated: feb 15 2022 (16:49) 
+## Last-Updated: mar  7 2022 (09:19) 
 ##           By: Brice Ozenne
-##     Update #: 77
+##     Update #: 78
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -79,7 +79,7 @@ plot.lmm <- function(x, type = "fit", type.residual = "normalized", by.time = TR
         }
 
         ## extract partial residuals
-        ttt <- "partial-ref"
+        ttt <- "partial"
         attr(ttt,"reference") <- attr.ref
         rr <- stats::residuals(x, type = ttt, var = type.residual, keep.data = TRUE)
         ## extract predictions

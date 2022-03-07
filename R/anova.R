@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: feb 11 2022 (11:21) 
+## Last-Updated: mar  7 2022 (10:56) 
 ##           By: Brice Ozenne
-##     Update #: 785
+##     Update #: 788
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,7 +17,7 @@
 
 ## * anova.lmm (documentation)
 ##' @title Multivariate Wald Tests For Linear Mixed Model
-##' @description Perform a Wald test testing simultaneously several null hypotheses corresponding to linear combinations of the model paramaters. 
+##' @description Simultaneous tests of linear combinations of the model paramaters using Wald tests. 
 ##' @name anova
 ##' 
 ##' @param object a \code{lmm} object. Only relevant for the anova function.
@@ -44,7 +44,10 @@
 ##' 
 ##' @details By default confidence intervals and p-values are adjusted based on the distribution of the maximum-statistic.
 ##' This is refered to as a single-step Dunnett multiple testing procedures in table II of Dmitrienko et al. (2013) and is performed using the multcomp package with the option \code{test = adjusted("single-step")}.
-##'
+##' 
+##' @seealso
+##' \code{\link{summary.anova_lmm}} for a summary of the results. \cr
+##' 
 ##' @references Dmitrienko, A. and D'Agostino, R., Sr (2013), Traditional multiplicity adjustment methods in clinical trials. Statist. Med., 32: 5172-5218. https://doi.org/10.1002/sim.5990.
 ##'  
 ##' @examples
@@ -61,9 +64,9 @@
 ##' ## F-test
 ##' anova(eUN.lmm)
 ##' summary(anova(eUN.lmm, effects = "all"))
-##' anova(eUN.lmm, effects = c("X1=0","X2+X5=10"), ci = TRUE)
-##' 
-##' if(require(multcomp)){
+##' anova(eUN.lmm, effects = c("X1=0","X2+X5=10"))
+##'
+##' ## another example
 ##' amod <- lmm(breaks ~ tension, data = warpbreaks)
 ##' e.glht <- glht(amod, linfct = mcp(tension = "Tukey"))
 ##' summary(e.glht, test = Chisqtest()) ## 0.000742
@@ -73,7 +76,6 @@
 ##'
 ##' 
 ##' anova(amod, effect = mcp(tension = "Tukey"), ci = TRUE)
-##' }
 
 ## * anova.lmm (code)
 ##' @rdname anova

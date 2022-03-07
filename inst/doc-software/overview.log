@@ -1,7 +1,7 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.23 (MiKTeX 21.8) (preloaded format=pdflatex 2021.8.26)  24 FEB 2022 11:04
+This is pdfTeX, Version 3.141592653-2.6-1.40.23 (MiKTeX 21.8) (preloaded format=pdflatex 2021.8.26)  7 MAR 2022 10:52
 entering extended mode
-**c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/overview.tex
-(c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/overview.tex
+**./overview.tex
+(overview.tex
 LaTeX2e <2021-06-01> patch level 1
 L3 programming layer <2021-07-12>
 (C:\Program Files\MiKTeX 2.9\tex/latex/base\article.cls
@@ -1459,20 +1459,17 @@ Overfull \hbox (22.72969pt too wide) detected at line 2171
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
-
-LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
-
 Package rerunfilecheck Info: File `overview.out' has not changed.
 (rerunfilecheck)             Checksum: A9E3AA6CCB889CFB2AB25EE37E5D2A34;4174.
  ) 
 Here is how much of TeX's memory you used:
- 30959 strings out of 478868
- 544040 string characters out of 2856724
- 1256896 words of memory out of 3000000
- 47816 multiletter control sequences out of 15000+600000
+ 30934 strings out of 478868
+ 543495 string characters out of 2856724
+ 1256909 words of memory out of 3000000
+ 47793 multiletter control sequences out of 15000+600000
  503311 words of font info for 124 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 114i,17n,117p,662b,1888s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 114i,17n,117p,605b,1888s stack positions out of 5000i,500n,10000p,200000b,80000s
 pdfTeX warning (dest): name{Hfootnote.5} has been referenced but does not exi
 st, replaced by a fixed one
 
@@ -1517,7 +1514,7 @@ iKTeX 2.9/fonts/type1/public/amsfonts/symbols/msam10.pfb><C:/Program Files/MiKT
 eX 2.9/fonts/type1/public/amsfonts/symbols/msam5.pfb><C:/Program Files/MiKTeX 2
 .9/fonts/type1/public/amsfonts/symbols/msam7.pfb><C:/Program Files/MiKTeX 2.9/f
 onts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on overview.pdf (42 pages, 685067 bytes).
+Output written on overview.pdf (42 pages, 685080 bytes).
 PDF statistics:
  970 PDF objects out of 1000 (max. 8388607)
  402 named destinations out of 1000 (max. 500000)

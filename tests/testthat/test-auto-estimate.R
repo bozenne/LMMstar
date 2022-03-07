@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 31 2022 (11:36) 
 ## Version: 
-## Last-Updated: feb 14 2022 (09:28) 
+## Last-Updated: mar  7 2022 (09:08) 
 ##           By: Brice Ozenne
-##     Update #: 33
+##     Update #: 35
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -63,7 +63,7 @@ test_that("delta method for association based on residual variance", {
     ## (with Y1)
     e.varANCOVA1 <- e.coefANCOVA1["rho(Y1,Y2)"]^2 * e.vcovANCOVA1["k.Y2","k.Y2"] + e.coefANCOVA1["k.Y2"]^2 * e.vcovANCOVA1["rho(Y1,Y2)","rho(Y1,Y2)"] + 2*e.coefANCOVA1["k.Y2"]*e.coefANCOVA1["rho(Y1,Y2)"]*e.vcovANCOVA1["k.Y2","rho(Y1,Y2)"]
     ## expect_equal(unname(sqrt(e.varANCOVA1)), unname(sqrt(diag(vcov(e.ANCOVA1))["Y1"])), tol = 1e-1)
-    expect_equal(unname(sqrt(e.varANCOVA1)), 0.04586995, tol = 1e-6) ## too small variance compared to lm (0.04610579)
+    expect_equal(unname(sqrt(e.varANCOVA1)), 0.04586995, tol = 1e-5) ## too small variance compared to lm (0.04610579)
     
     e.deltaANCOVA1 <- estimate(e.lmmANCOVA1, function(p){
         c(Y1 = p["rho(Y1,Y2)"]*p["k.Y2"],
@@ -80,7 +80,7 @@ test_that("delta method for association based on residual variance", {
                        "upper" = c(1.01476516, 0.47127739), 
                        "p.value" = c(0, 0.60548972))
 
-    expect_equal(as.double(unlist(e.deltaANCOVA1)), as.double(unlist(test)), tol = 1e-6)
+    expect_equal(as.double(unlist(e.deltaANCOVA1)), as.double(unlist(test)), tol = 1e-5)
 
     ## ANCOVA2
     dL22 <- dL2
@@ -111,7 +111,7 @@ test_that("delta method for association based on residual variance", {
                        "lower" = c(-0.20496993, -0.84053168), 
                        "upper" = c(0.04829458, 0.50917047), 
                        "p.value" = c(0.22461774, 0.62798535))
-    expect_equal(as.double(unlist(test)), as.double(unlist(e.deltaANCOVA2)), tol = 1e-6)
+    expect_equal(as.double(unlist(test)), as.double(unlist(e.deltaANCOVA2)), tol = 1e-5)
 })
 
 
@@ -141,7 +141,7 @@ test_that("delta method for association based on residual variance", {
     ## check variance
     e.var2 <- e.coef2["rho(dX,dY)"]^2 * e.vcov22["k.dY","k.dY"] + e.coef2["k.dY"]^2 * e.vcov22["rho(dX,dY)","rho(dX,dY)"] + 2*e.coef2["k.dY"]*e.coef2["rho(dX,dY)"]*e.vcov22["k.dY","rho(dX,dY)"]
     ## expect_equal(unname(sqrt(e.var2)), unname(sqrt(diag(vcov(e.lm))["dX"])), tol = 1e-1)
-    expect_equal(unname(sqrt(e.var2)), 0.2776132, tol = 1e-6) ## too small variance compared to lm (0.279)
+    expect_equal(unname(sqrt(e.var2)), 0.2776132, tol = 1e-5) ## too small variance compared to lm (0.279)
     
     e.delta2 <- estimate(e.lmm2, function(p){
         unname(p["rho(dX,dY)"]*p["k.dY"])
@@ -155,7 +155,7 @@ test_that("delta method for association based on residual variance", {
                        "lower" = c(-0.29083419), 
                        "upper" = c(0.82721577), 
                        "p.value" = c(0.33913908))
-    expect_equal(as.double(unlist(e.delta2)), as.double(unlist(test)), tol = 1e-6)
+    expect_equal(as.double(unlist(e.delta2)), as.double(unlist(test)), tol = 1e-5)
     
     ## quadrivariate mixed model estimating the association between the changes
     dL4 <- melt(d, id.vars = c("id","X5"),  measure.vars = c("X1","X2","Y1","Y2"))
@@ -177,7 +177,7 @@ test_that("delta method for association based on residual variance", {
                        "lower" = c(-0.31843493), 
                        "upper" = c(0.85482116), 
                        "p.value" = c(0.34782614))
-    expect_equal(as.double(unlist(e.delta4)), as.double(unlist(test)), tol = 1e-6)
+    expect_equal(as.double(unlist(e.delta4)), as.double(unlist(test)), tol = 1e-4)
 
 })
 

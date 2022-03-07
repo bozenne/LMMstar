@@ -110,7 +110,7 @@ utils::packageVersion("LMMstar")
 #+END_SRC
 
 #+RESULTS:
-: [1] '0.5.0'
+: [1] '0.5.1'
 
 When estimating model coefficients, we will use the internal
 optimization routine of the *LMMstar* package (instead of relying on
@@ -829,7 +829,16 @@ range(df.pres$r.partial - m.pres, na.rm = TRUE)
 #+END_SRC
 
 #+RESULTS:
-: [1] 4.44154 4.44154
+: [1] -1.065814e-14  1.154632e-14
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+df.pres2 <- residuals(eUN.lmm, type = "partial-center", var = "glucagon", keep.data = TRUE)
+m.pres2 <- m.pres - mean(gastricbypassL$glucagon, na.rm = TRUE) * coef(eUN.lmm)["glucagon"]
+range(df.pres2$r.partial - m.pres2, na.rm = TRUE)
+#+END_SRC
+
+#+RESULTS:
+: [1] -1.421085e-14  1.110223e-14
 
 \clearpage
 
