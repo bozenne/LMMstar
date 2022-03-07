@@ -44,3 +44,6 @@ Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \
 \description{
 Estimates, p-values, and confidence intevals for linear hypothesis testing, possibly adjusted for multiple comparisons.
 }
+\details{
+Adjustment for multiple comparisons via the single step method is performed using the multcomp package.
+}

@@ -51,7 +51,7 @@ A list of matrices containing the following columns:\itemize{
 as well as an attribute contrast containing the contrast matrix encoding the linear combinations of coefficients (in columns) for each hypothesis (in rows).
 }
 \description{
-Perform a Wald test testing simultaneously several null hypotheses corresponding to linear combinations of the model paramaters.
+Simultaneous tests of linear combinations of the model paramaters using Wald tests.
 }
 \details{
 By default confidence intervals and p-values are adjusted based on the distribution of the maximum-statistic.
@@ -71,8 +71,9 @@ summary(anova(eUN.lmm, df = FALSE))
 ## F-test
 anova(eUN.lmm)
 summary(anova(eUN.lmm, effects = "all"))
-anova(eUN.lmm, effects = c("X1=0","X2+X5=10"), ci = TRUE)
+anova(eUN.lmm, effects = c("X1=0","X2+X5=10"))
 
+## another example
 if(require(multcomp)){
 amod <- lmm(breaks ~ tension, data = warpbreaks)
 e.glht <- glht(amod, linfct = mcp(tension = "Tukey"))
@@ -87,4 +88,7 @@ anova(amod, effect = mcp(tension = "Tukey"), ci = TRUE)
 }
 \references{
 Dmitrienko, A. and D'Agostino, R., Sr (2013), Traditional multiplicity adjustment methods in clinical trials. Statist. Med., 32: 5172-5218. https://doi.org/10.1002/sim.5990.
+}
+\seealso{
+\code{\link{summary.anova_lmm}} for a summary of the results. \cr
 }

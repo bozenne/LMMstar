@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: mar  4 2022 (15:45) 
+## Last-Updated: mar  7 2022 (12:13) 
 ##           By: Brice Ozenne
-##     Update #: 20
+##     Update #: 21
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -42,7 +42,7 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = "single-step"
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
     alpha <- 1-level
-    method <- match.arg(method, c(p.adjust.methods,"single-step"))
+    method <- match.arg(method, c(stats::p.adjust.methods,"single-step"))
 
     ## ** extract info and compute CI
     out <- lapply(object[setdiff(names(object),"call")], function(iO){ ## iO <- object[[1]]
@@ -73,7 +73,7 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = "single-step"
             }else{
                 iOut[[iTest]]$lower <- NA
                 iOut[[iTest]]$upper <- NA
-                iOut[[iTest]]$p.value <- p.adjust(2*(1-stats::pt( abs((iOut[[iTest]]$estimate-iOut[[iTest]]$null) / iOut[[iTest]]$se), df = iOut[[iTest]]$df)), method = method)
+                iOut[[iTest]]$p.value <- stats::p.adjust(2*(1-stats::pt( abs((iOut[[iTest]]$estimate-iOut[[iTest]]$null) / iOut[[iTest]]$se), df = iOut[[iTest]]$df)), method = method)
             }
         }
         return(iOut)

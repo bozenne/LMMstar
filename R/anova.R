@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: mar  7 2022 (10:56) 
+## Last-Updated: mar  7 2022 (12:07) 
 ##           By: Brice Ozenne
-##     Update #: 788
+##     Update #: 789
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -67,6 +67,7 @@
 ##' anova(eUN.lmm, effects = c("X1=0","X2+X5=10"))
 ##'
 ##' ## another example
+##' if(require(multcomp)){
 ##' amod <- lmm(breaks ~ tension, data = warpbreaks)
 ##' e.glht <- glht(amod, linfct = mcp(tension = "Tukey"))
 ##' summary(e.glht, test = Chisqtest()) ## 0.000742
@@ -76,6 +77,7 @@
 ##'
 ##' 
 ##' anova(amod, effect = mcp(tension = "Tukey"), ci = TRUE)
+##' }
 
 ## * anova.lmm (code)
 ##' @rdname anova

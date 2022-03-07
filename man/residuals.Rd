@@ -25,7 +25,7 @@
 \arguments{
 \item{object}{a \code{lmm} object.}
 
-\item{type}{[character] type of residual to output: raw residuals (\code{"response"}), Pearson residuals (\code{"pearson"}), normalized residuals (\code{"normalized"}, scaled residual \code{"scaled"}), or partial residuals (\code{"partial"} or \code{"partial-ref"}). Can also be \code{"all"} to output all except partial residuals. See detail section.}
+\item{type}{[character] type of residual to output: raw residuals (\code{"response"}), Pearson residuals (\code{"pearson"}), normalized residuals (\code{"normalized"}, scaled residual \code{"scaled"}), or partial residuals (\code{"partial"} or \code{"partial-center"}). Can also be \code{"all"} to output all except partial residuals. See detail section.}
 
 \item{format}{[character] Should the residuals be output relative as a vector (\code{"long"}), or as a matrix with in row the clusters and in columns the outcomes (\code{"wide"}).}
 
@@ -63,22 +63,20 @@ Extract or compute the residuals of a linear mixed model.
 The argument \code{type} defines how the residuals are computed:
 \itemize{
 \item \code{"fitted"}: fitted value \eqn{X_{ij} \hat{\beta}}.
-\item \code{"raw"}: observed outcome minus fitted value \eqn{\varepsilon = Y_{ij} - X_{ij} \hat{\beta}}.
-\item \code{"pearson"}: each raw residual is divided by its modeled standard deviation \eqn{\varepsilon = \frac{Y_{ij} - X_{ij} \hat{\beta}}{\sqrt{\hat{\omega}_{ij}}}}.
-\item \code{"studentized"}: same as \code{"pearson"} but excluding the contribution of the cluster in the modeled standard deviation  \eqn{\varepsilon = \frac{Y_{ij} - X_{ij} \hat{\beta}}{\sqrt{\hat{\omega}_{ij}-\hat{q}_{ij}}}}.
-\item \code{"normalized"}: raw residuals are multiplied, within clusters, by the inverse of the (lower) Cholesky factor of the modeled residual variance covariance matrix \eqn{\varepsilon = ( Y_{i} - X_{i} \hat{\beta} )\hat{C}^{-1}}.
-\item \code{"normalized2"}: same as \code{"normalized"} but excluding the contribution of the cluster in the modeled residual variance covariance matrix \eqn{\varepsilon = ( Y_{i} - X_{i} \hat{\beta} ) \hat{D}_i^{-1}}.
-\item \code{"scaled"}: corresponds to the scaled residuals of PROC MIXED in SAS.
-\item \code{"partial"} or \code{"partial-ref"}: the partial residual are computed as the raw residuals plus the effect of the covariates in argument \code{var}.
-\code{"partial"} uses \eqn{\hat{\beta} X  + \hat{\varepsilon}} where \eqn{X} is centered while \code{"partial-ref"} uses \eqn{\hat{\beta} X + \hat{\gamma} Z  + \hat{\varepsilon}} where the Z value are the same for all observations, i.e. uses a reference level.
+\item \code{"raw"}: observed outcome minus fitted value \eqn{\varepsilon_{ij} = Y_{ij} - X_{ij} \hat{\beta}}.
+\item \code{"pearson"}: each raw residual is divided by its modeled standard deviation \eqn{\varepsilon_{ij} = \frac{Y_{ij} - X_{ij} \hat{\beta}}{\sqrt{\hat{\omega}_{ij}}}}.
+\item \code{"studentized"}: same as \code{"pearson"} but excluding the contribution of the cluster in the modeled standard deviation  \eqn{\varepsilon_{ij} = \frac{Y_{ij} - X_{ij} \hat{\beta}}{\sqrt{\hat{\omega}_{ij}-\hat{q}_{ij}}}}.
+\item \code{"normalized"}: raw residuals are multiplied, within clusters, by the inverse of the (lower) Cholesky factor of the modeled residual variance covariance matrix \eqn{\varepsilon_{ij} = ( Y_{i} - X_{i} \hat{\beta} )\hat{C}^{-1}}.
+\item \code{"normalized2"}: same as \code{"normalized"} but excluding the contribution of the cluster in the modeled residual variance covariance matrix \eqn{\varepsilon_{ij} = ( Y_{i} - X_{i} \hat{\beta} ) \hat{D}_i^{-1}}.
+\item \code{"scaled"}: scaled residuals (see PROC MIXED in SAS).
+\item \code{"partial"}: partial residuals (\eqn{\gamma E + \hat{\varepsilon}}). A reference level can be also be specified via the attribute \code{"reference"} to change the absolute level of the partial residuals.
+\code{"partial-center"}: partial residuals with centered covariates (\eqn{\gamma E + \hat{\varepsilon}} where \eqn{E} has been centered, i.e., has 0-mean)
 }
 where
 \itemize{
-\item \eqn{X} the design matrix (default) or the design matrix restricted to the variable(s) in argument \code{var} (partial residuals).
+\item \eqn{X=(E,W)} the design matrix. For partial residuals, it is split according to the variable(s) in argument \code{var} (\eqn{E}) and the rest (\eqn{W}).
 \item \eqn{Y} the outcome
-\item \eqn{Z} not defined (default) or the design matrix restricted to the variable(s) not in argument \code{var} (partial residuals).
-\item \eqn{\hat{\beta}} the estimated mean coefficients relative to \eqn{X}
-\item \eqn{\hat{\gamma}} the estimated mean coefficients relative to \eqn{Z}
+\item \eqn{\hat{\beta}=(\hat{\gamma},\hat{\delta})} the estimated mean coefficients relative to \eqn{X=(E,W)}
 \item \eqn{\hat{\Omega}} the modeled variance-covariance of the residuals and \eqn{\hat{\omega}} its diagonal elements
 \item \eqn{\hat{C}} the lower Cholesky factor of \eqn{\hat{\Omega}}, i.e. \eqn{\hat{C} \hat{C}^{t} = \hat{\Omega}}
 \item \eqn{\hat{Q}_i= X_i (X^{t}\hat{\Omega}X)^{-1}X_i^{t}} a cluster specific correction factor, approximating the contribution of cluster i to \eqn{\hat{\Omega}}. Its diagonal elements are denoted \eqn{\hat{q}_i}.
@@ -86,16 +84,29 @@ where
 }
 }
 \examples{
-## simulate data in the long format
+#### simulate data in the long format ####
 set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
 
-## fit Linear Model
+#### Linear Model ####
 e.lm <- lmm(Y ~ visit + X1 + X2 + X5, data = dL)
+
+## partial residuals
 residuals(e.lm, type = "partial", var = "X1")
+## residuals(e.lm) + dL$X1 * coef(e.lm)["X1"]
 residuals(e.lm, type = "partial", var = "X1", keep.data = TRUE)
 
-## fit Linear Mixed Model
+## partial residuals
+type <- "partial"
+attr(type,"reference") <- data.frame(visit=factor(2,1:3),X2=0,X5=0)
+residuals(e.lm, type = type, var = "X1")
+## residuals(e.lm) + dL$X1 * coef(e.lm)["X1"] + coef(e.lm)["visit2"]
+
+## partial residuals with centered covariates
+residuals(e.lm, type = "partial-center", var = "X1")
+## residuals(e.lm) + (dL$X1-mean(dL$X1)) * coef(e.lm)["X1"]
+
+#### Linear Mixed Model ####
 eUN.lmm <- lmm(Y ~ visit + X1 + X2 + X5 + X6,
                repetition = ~visit|id, structure = "UN", data = dL)
 
@@ -110,8 +121,6 @@ residuals(eUN.lmm, type = "all")
 residuals(eUN.lmm, type = "all", keep.data = TRUE)
 
 ## partial residuals
-residuals(eUN.lmm, type = "partial-ref", var = c("(Intercept)","X6"), plot = "scatterplot")
-residuals(eUN.lmm, type = "partial-ref", var = c("X6"), plot = "scatterplot")
-## plot.lmm(eUN.lmm, type = "partial", var = c("(Intercept)","X6"))
-## plot.lmm(eUN.lmm, type = "partial", var = c("X6"))
+residuals(eUN.lmm, type = "partial", var = c("(Intercept)","X6"), plot = "scatterplot")
+residuals(eUN.lmm, type = "partial", var = c("X6"), plot = "scatterplot")
 }
