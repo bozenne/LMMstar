@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (17:03) 
 ## Version: 
-## Last-Updated: Dec 19 2021 (17:46) 
+## Last-Updated: mar 14 2022 (09:39) 
 ##           By: Brice Ozenne
-##     Update #: 77
+##     Update #: 80
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -41,22 +41,22 @@ test_that("practical 1 - gastricbypass",{
     ## ** data
     data(gastricbypassL, package = "LMMstar")
     gastricbypassL$time <- factor(gastricbypassL$time,
-                                  levels = c("3 months before surgery", "1 week before surgery", "1 week after surgery", "3 months after surgery"),
+                                  levels = c("3 months before", "1 week before", "1 week after", "3 months after"),
                                   labels = c("m3B","w1B","w1A","m3A"))
     gastricbypassL$visit <- as.numeric(gastricbypassL$visit)
 
     ## ** summarize
-    summarize(glucagonAUC~time, data=long, na.rm=TRUE)
-    summarize(glucagonAUC~time|id, data=long, na.rm=TRUE)
+    summarize(glucagonAUC~time, data = gastricbypassL, na.rm=TRUE)
+    summarize(glucagonAUC~time|id, data = gastricbypassL, na.rm=TRUE)
     
     ## ** compound symmetry
-    eCS.gls <- gls(glucagon~time,
+    eCS.gls <- gls(glucagonAUC~time,
                    data=gastricbypassL,
                    correlation=corCompSymm(form=~visit|id),
                    na.action=na.exclude,
                    control=glsControl(opt="optim"))
 
-    eCS.lmm <- lmm(glucagon~time,
+    eCS.lmm <- lmm(glucagonAUC~time,
                    control=glsControl(opt="optim"),
                    data=gastricbypassL,
                    repetition = ~time|id,
@@ -65,7 +65,7 @@ test_that("practical 1 - gastricbypass",{
     expect_equal(as.double(logLik(eCS.gls)), as.double(logLik(eCS.lmm)), tol = 1e-6)
 
     ## ** unstructured with missing data
-    eUN.gls <- gls(glucagon~time,
+    eUN.gls <- gls(glucagonAUC~time,
                    data=gastricbypassL,
                    correlation=corSymm(form=~visit|id),
                    weights=varIdent(form=~1|time),
@@ -73,7 +73,7 @@ test_that("practical 1 - gastricbypass",{
                    control=glsControl(opt="optim"),
                    method = "REML")
 
-    eUN.lmm <- lmm(glucagon~time,
+    eUN.lmm <- lmm(glucagonAUC~time,
                    data=gastricbypassL,
                    control=glsControl(opt="optim"),
                    repetition = ~time|id,

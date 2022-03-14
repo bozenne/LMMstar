@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:50) 
 ## Version: 
-## Last-Updated: mar  7 2022 (09:48) 
+## Last-Updated: mar 14 2022 (12:30) 
 ##           By: Brice Ozenne
-##     Update #: 146
+##     Update #: 166
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,7 +20,7 @@
 ##' @description Estimates, p-values, and confidence intevals for linear hypothesis testing, possibly adjusted for multiple comparisons.
 ##' 
 ##' @param object an \code{anova_lmm} object, output of \code{anova}.
-##' @param method [character] type of adjustment for multiple comparisons: one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}.
+##' @param method [character] type of adjustment for multiple comparisons: one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}, \code{"single-step2"}.
 ##' @param transform [function] function to backtransform the estimates, standard errors, null hypothesis, and the associated confidence intervals
 ##' (e.g. \code{exp} if the outcomes have been log-transformed).
 ##' @param level [numeric 0-1] level of the confidence intervals.
@@ -34,11 +34,12 @@
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##'
-##' @details Adjustment for multiple comparisons via the single step method is performed using the multcomp package.
+##' @details By default adjustment for multiple comparisons via a single step max-test adjustment,
+##' either using the multcomp package (equal degrees of freedom) or the copula package (unequal degrees of freedom).
  
 ## * summary.anova_lmm (code)
 ##' @export
-summary.anova_lmm <- function(object, method = "single-step", transform = NULL, level = 0.95, print.nulls = TRUE, seed = NULL, columns = NULL,
+summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0.95, print.nulls = TRUE, seed = NULL, columns = NULL,
                               digits = max(3L, getOption("digits") - 2L),
                               digits.p.value = max(3L, getOption("digits") - 2L),
                               ...){
@@ -76,6 +77,7 @@ summary.anova_lmm <- function(object, method = "single-step", transform = NULL, 
     if(attr(object,"test")=="Wald"){
         type <- setdiff(names(object),"call")
         ci <- stats::confint(object, level = level, method = method, simplify = FALSE)
+
         for(iType in type){
 
             if(is.null(object[[iType]])){next}
@@ -135,27 +137,28 @@ summary.anova_lmm <- function(object, method = "single-step", transform = NULL, 
                 }else{
                     cat("Standard errors: model-based\n")
                 }
-                if(all(sapply(ci[[iType]],NROW)==1) || method == "none"){ ## always only one hypothesis in each global test
+                iMethod <- unique(unlist(lapply(ci[[iType]], attr, "method")))  ## WARNING: technically some p-values could be computed by single-step and others by single-step2
+                if(all(sapply(ci[[iType]],NROW)==1) || "none" %in% iMethod){ ## always only one hypothesis in each global test
                     cat("(CIs/p-values not adjusted for multiple comparisons) \n", sep="")
                 }else if(length(ci[[iType]])==1){ ## only one global test
-                    if(method=="bonferroni"){
+                    if("bonferroni" %in% iMethod){
                         cat("(CIs/p-values adjusted for multiple comparisons -- Bonferroni)\n", sep="")
-                    }else if(method == "single-step"){
-                        cat("(CIs/p-values adjusted for multiple comparisons -- single step max-test)\n", sep="")
+                    }else if("single-step" %in% iMethod || "single-step2" %in% iMethod){
+                        cat("(CIs/p-values adjusted for multiple comparisons -- max-test adjustment)\n", sep="")
                     }else{
-                        cat(paste0("(CIs/p-values adjusted for multiple comparisons -- ",method,")\n", sep=""),sep="")
+                        cat(paste0("(CIs/p-values adjusted for multiple comparisons -- ",iMethod,")\n", sep=""),sep="")
                     }
                 }else{
-                    if(method=="bonferroni"){
+                    if("bonferroni" %in% iMethod){
                         cat("(CIs/p-values adjusted for multiple comparisons within each global test -- bonferroni) \n", sep="")
-                    }else if(method == "single-step"){
-                        cat("(CIs/p-values adjusted for multiple comparisons within each global test -- single step max-test) \n", sep="")
+                    }else if("single-step" %in% iMethod || "single-step2" %in% iMethod){
+                        cat("(CIs/p-values adjusted for multiple comparisons within each global test -- max-test adjustment) \n", sep="")
                     }else{
-                        cat(paste0("(CIs/p-values adjusted for multiple comparisons within each global test -- ",method,") \n", sep=""),sep="")
+                        cat(paste0("(CIs/p-values adjusted for multiple comparisons within each global test -- ",iMethod,") \n", sep=""),sep="")
                     }
                 }
 
-                if(method == "single-step" && "p.value" %in% columns){
+                if("single-step" %in% iMethod && "p.value" %in% columns){
                     error <- max(c(0,unlist(lapply(ci[[iType]],function(iO){attr(iO$p.value,"error")}))))
                     if(error > 1e-12){
                         txt.error <- paste0("Error when computing the adjusted p-value by numerical integration: ", signif(error, digits = 5))
@@ -164,6 +167,8 @@ summary.anova_lmm <- function(object, method = "single-step", transform = NULL, 
                         }
                         cat(txt.error,"\n")
                     }
+                }else if("single-step2" %in% iMethod){
+                    cat("CIs/p-values computed using ",attr(ci[[iType]][[1]],"n.sample")," samples.\n", sep = "")
                 }
 
 

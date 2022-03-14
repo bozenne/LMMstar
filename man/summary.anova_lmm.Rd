@@ -6,7 +6,7 @@
 \usage{
 \method{summary}{anova_lmm}(
   object,
-  method = "single-step",
+  method = NULL,
   transform = NULL,
   level = 0.95,
   print.nulls = TRUE,
@@ -20,7 +20,7 @@
 \arguments{
 \item{object}{an \code{anova_lmm} object, output of \code{anova}.}
 
-\item{method}{[character] type of adjustment for multiple comparisons: one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}.}
+\item{method}{[character] type of adjustment for multiple comparisons: one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}, \code{"single-step2"}.}
 
 \item{transform}{[function] function to backtransform the estimates, standard errors, null hypothesis, and the associated confidence intervals
 (e.g. \code{exp} if the outcomes have been log-transformed).}
@@ -45,5 +45,6 @@ Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \
 Estimates, p-values, and confidence intevals for linear hypothesis testing, possibly adjusted for multiple comparisons.
 }
 \details{
-Adjustment for multiple comparisons via the single step method is performed using the multcomp package.
+By default adjustment for multiple comparisons via a single step max-test adjustment,
+either using the multcomp package (equal degrees of freedom) or the copula package (unequal degrees of freedom).
 }

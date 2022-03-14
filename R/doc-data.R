@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: feb 11 2022 (12:21) 
+## Last-Updated: mar 14 2022 (09:41) 
 ##           By: Brice Ozenne
-##     Update #: 76
+##     Update #: 79
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -250,7 +250,7 @@ NULL
 #' \item visit The visit index.
 #' \item time The time at which the visit took place.
 #' \item weight Bodyweight (in kg) measured during the visit.
-#' \item glucagon Glucagon measured during the visit.
+#' \item glucagonAUC Glucagon measured during the visit.
 #' }
 #' 
 #' @name gastricbypassL
@@ -263,13 +263,13 @@ NULL
 ## dtW <- data.table::as.data.table(gastricbypassW)
 ## dtL <- data.table::melt(dtW, id.vars = "id",
 ##                         measure.vars = patterns("weight","glucagonAUC"),
-##                         value.name = c("weight","glucagon"), variable.name = "time")
+##                         value.name = c("weight","glucagonAUC"), variable.name = "time")
 ## gastricbypassL <- as.data.frame(dtL)
 ## gastricbypassL$visit <- gastricbypassL$time
 ## gastricbypassL$time <- factor(gastricbypassL$visit, levels = 1:4,
-##                               labels = c("3 months before surgery","1 week before surgery",
-##                                          "1 week after surgery","3 months after surgery"))
-## gastricbypassL <- gastricbypassL[,c("id","visit","time","weight","glucagon")]
+##                               labels = c("3 months before","1 week before",
+##                                          "1 week after","3 months after"))
+## gastricbypassL <- gastricbypassL[,c("id","visit","time","weight","glucagonAUC")]
 ## save(gastricbypassL, file = "data/gastricbypassL.rda")
 ##
 ## str(gastricbypassL)

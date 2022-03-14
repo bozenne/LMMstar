@@ -1,8 +1,8 @@
 Package: LMMstar
 Type: Package
 Title: Repeated Measurement Models for Discrete Times
-Version: 0.5.3
-Date: 2022-03-07
+Version: 0.5.4
+Date: 2022-03-14
 Authors@R: c(
     person("Brice", "Ozenne", role = c("aut", "cre"), email = "brice.mh.ozenne@gmail.com", comment = c(ORCID = "0000-0001-9694-2956")),
     person("Julie", "Forman", role = "aut", email = "jufo@sund.ku.dk", comment = c(ORCID = "0000-0001-7368-0869"))
@@ -32,6 +32,7 @@ Imports:
     sandwich
 Suggests:
     AICcmodavg,
+    copula,
     data.table,
     ggpubr,
     lattice,
@@ -53,6 +54,7 @@ Collate:
     'autoplot.R'
     'baselineAdjustment.R'
     'coef.R'
+    'confint.R'
     'confint.anova_lmm.R'
     'confint.lmm.R'
     'df.R'
@@ -69,6 +71,7 @@ Collate:
     'levels.R'
     'lmm.R'
     'logLik.R'
+    'mlmm.R'
     'model.frame.R'
     'model.matrix.R'
     'model.tables.R'

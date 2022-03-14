@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: feb 16 2022 (15:17) 
+## Last-Updated: mar 14 2022 (11:39) 
 ##           By: Brice Ozenne
-##     Update #: 91
+##     Update #: 93
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -37,6 +37,7 @@
 #' \item min.df [integer]: minimum possible degree of freedom. Used by \code{confint}.
 #' \item method.fit [character]: objective function when fitting the Linear Mixed Model (REML or ML). Used by \code{lmm}.
 #' \item method.numDeriv [character]: type used to approximate the third derivative of the log-likelihood (when computing the degrees of freedom). Can be \code{"simple"} or \code{"Richardson"}. See \code{numDeriv::jacobian} for more details. Used by \code{lmm}.
+#' \item n.sampleCopula [integer]: number of samples used to compute confidence intervals and p-values adjusted for multiple comparisons via \code{"single-step2"}. Used by \code{confint.anova_lmm}.
 #' \item optimizer [character]: method used to estimate the model parameters: can the \code{nlme::gls} (\code{"gls"}) or an algorithm combine fisher scoring for the variance parameters and generalized least squares for the mean parameters (\code{"FS"}).
 #' \item param.optimizer [numeric vector]: default option for the \code{FS} optimization routine: maximum number of gradient descent iterations (\code{n.iter}), maximum acceptable score value (\code{tol.score}), maximum acceptable change in parameter value (\code{tol.param}).
 #' \item precompute.moments [logical]: Should the cross terms between the residuals and design matrix be pre-computed. Useful when the number of subject is substantially larger than the number of mean paramters.
@@ -61,6 +62,7 @@ LMMstar.options <- function(..., reinitialise = FALSE){
                     drop.X = TRUE,
                     effects = "mean",
                     min.df = 1,
+                    n.sampleCopula = 1e5,
                     method.fit = "REML",
                     method.numDeriv = "simple",
                     optimizer = "gls",

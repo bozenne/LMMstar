@@ -4,14 +4,7 @@
 \alias{confint.anova_lmm}
 \title{Confidence Intervals for Multivariate Wald Tests}
 \usage{
-\method{confint}{anova_lmm}(
-  object,
-  parm,
-  level = 0.95,
-  method = "single-step",
-  simplify = TRUE,
-  ...
-)
+\method{confint}{anova_lmm}(object, parm, level = 0.95, method = NULL, simplify = TRUE, ...)
 }
 \arguments{
 \item{object}{a \code{anova_lmm} object}
@@ -20,7 +13,7 @@
 
 \item{level}{[numeric, 0-1] nominal coverage of the confidence intervals.}
 
-\item{method}{[character] type of adjustment for multiple comparisons: one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}.}
+\item{method}{[character] type of adjustment for multiple comparisons: one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}, \code{"single-step2"}.}
 
 \item{simplify}{[logical] Return a data.frame instead of a list containing a data.frame when possible.}
 
@@ -28,4 +21,10 @@
 }
 \description{
 Compute confidence intervals for linear hypothesis tests, possibly with adjustment for multiple comparisons.
+}
+\details{
+Method \code{"single-step"} adjust for multiple comparisons using quantiles of the multivariate Student's t-distribution, assuming equal degrees of freedom in the marginal.
+This is performed by the multcomp package.
+
+When degrees of freedom differs between individual hypotheses, method \code{"single-step2"} is recommended. It simulates data using copula whose marginal distributions are Student's t-distribution (with possibly different degrees of freedom) and elliptical copula with parameters the estimated correlation between the test statistics. This is performed by the copula package.
 }

@@ -17,7 +17,7 @@ This dataset is in the long format (i.e. one line per measurement).
 \item visit The visit index.
 \item time The time at which the visit took place.
 \item weight Bodyweight (in kg) measured during the visit.
-\item glucagon Glucagon measured during the visit.
+\item glucagonAUC Glucagon measured during the visit.
 }
 }
 \references{

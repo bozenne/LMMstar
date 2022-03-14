@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: feb 22 2022 (17:36) 
+## Last-Updated: mar 14 2022 (09:40) 
 ##           By: Brice Ozenne
-##     Update #: 100
+##     Update #: 105
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -70,15 +70,15 @@ test_that("getCoef - Non-positive definite approximate variance-covariance",{
 test_that("lmm - error due to minus sign in levels of a categorical variable",{
     data(gastricbypassL, package = "LMMstar")
     gastricbypassL$time2 <- factor(gastricbypassL$time,
-                                  levels = c("3 months before surgery", "1 week before surgery", "1 week after surgery", "3 months after surgery"),
+                                  levels = c("3 months before", "1 week before", "1 week after", "3 months after"),
                                   labels = c("-3 months", "-1 week", "+1 week", "+3 months"))
 
-    eCS.lmm <- lmm(glucagon~time,
+    eCS.lmm <- lmm(glucagonAUC~time,
                    control=glsControl(opt="optim"),
                    data=gastricbypassL,
                    repetition = ~time|id,
                    structure = "CS")
-    e.gls <- gls(glucagon~time,
+    e.gls <- gls(glucagonAUC~time,
                  control=glsControl(opt="optim"),
                  data=gastricbypassL,
                  na.action = na.omit,
@@ -87,7 +87,7 @@ test_that("lmm - error due to minus sign in levels of a categorical variable",{
     expect_equal(coef(e.gls), coef(eCS.lmm, effects = "mean"), tol = 1e-5)
 
     ## previously a bug when asking the confindence interval for sd and only for variance effects
-    eUN.lmm <- lmm(glucagon~time2,
+    eUN.lmm <- lmm(glucagonAUC~time2,
                    control=glsControl(opt="optim"),
                    data=gastricbypassL,
                    repetition = ~time|id,
@@ -116,14 +116,14 @@ test_that("lmm - error due to minus sign in levels of a categorical variable",{
 ## * from: Julie Lyng Forman <jufo@sund.ku.dk> date: Wednesday, 07/07/21 11:00 PM (1/3)
 test_that("lmm - error when predicting due to missing values in the covariates",{
     data(gastricbypassL, package = "LMMstar")
-    e.lmm  <- lmm(weight ~ glucagon, repetition = ~ time|id , structure = "CS", data = gastricbypassL)
+    e.lmm  <- lmm(weight ~ glucagonAUC, repetition = ~ time|id , structure = "CS", data = gastricbypassL)
     summary(e.lmm, print = FALSE) ## was bugging at some point
     capture.output(summary(e.lmm, hide.fit = TRUE, hide.sd = TRUE, hide.cor = TRUE)) ## was bugging at some point
     expect_equal(NROW(predict(e.lmm, newdata = gastricbypassL)),NROW(gastricbypassL))
 
     set.seed(10)
     gastricbypassL$Gender <- factor(as.numeric(gastricbypassL$id) %% 2, levels = 0:1, labels = c("M","F"))
-    e2.lmm  <- lmm(weight ~ Gender*glucagon, repetition =Gender ~ time|id , structure = "CS", data = gastricbypassL)
+    e2.lmm  <- lmm(weight ~ Gender*glucagonAUC, repetition =Gender ~ time|id , structure = "CS", data = gastricbypassL)
     getVarCov(e2.lmm)
     summary(e2.lmm, print = FALSE)
 })
@@ -188,16 +188,16 @@ test_that("lmm - predicted values",{
     ## error due to wrong factor
     expect_error(predict(fit.main, newdata = data.frame(time = "-1 week"), se = FALSE))
     ## valid prediction
-    expect_equal(predict(fit.main, newdata = data.frame(time = "1 week before surgery"), se = FALSE)[[1]],
+    expect_equal(predict(fit.main, newdata = data.frame(time = "1 week before"), se = FALSE)[[1]],
                  sum(coef(fit.main)[1:2]))
-    expect_equal(predict(fit.main, newdata = data.frame(time = "1 week before surgery"), se = "estimation"),
+    expect_equal(predict(fit.main, newdata = data.frame(time = "1 week before"), se = "estimation"),
                  data.frame("estimate" = c(121.24), 
                             "se" = c(4.22845441), 
                             "df" = c(18.99992877), 
                             "lower" = c(112.38974096), 
                             "upper" = c(130.09025904)),
                  tol = 1e-3)
-    expect_equal(predict(fit.main, newdata = data.frame(time = "1 week before surgery", visit = 1:4, id = c(1,1,2,2)), se = "total"),
+    expect_equal(predict(fit.main, newdata = data.frame(time = "1 week before", visit = 1:4, id = c(1,1,2,2)), se = "total"),
                  data.frame("estimate" = c(121.24, 121.24, 121.24, 121.24), 
                             "se" = c(20.70577588, 19.37721241, 18.75815531, 17.57030288), 
                             "df" = c(Inf, Inf, Inf, Inf), 
@@ -207,7 +207,7 @@ test_that("lmm - predicted values",{
 
     data("gastricbypassW", package = "LMMstar")
     GS <- predict(lm(weight2 ~ weight1, data = gastricbypassW), newdata = data.frame(weight1 = 50), se = TRUE)
-    test <- predict(fit.main, newdata = data.frame(time = c("3 months before surgery","1 week before surgery"), visit = factor(1:2,levels=1:4), weight = c(50,NA), id = c(1,1)),
+    test <- predict(fit.main, newdata = data.frame(time = c("3 months before","1 week before"), visit = factor(1:2,levels=1:4), weight = c(50,NA), id = c(1,1)),
                     type = "dynamic", keep.newdata = FALSE)
 
     expect_equivalent(test$estimate, GS$fit, tol = 1e-3)

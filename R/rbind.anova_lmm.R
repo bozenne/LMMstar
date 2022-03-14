@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: feb 14 2022 (12:20) 
+## Last-Updated: mar 14 2022 (11:02) 
 ##           By: Brice Ozenne
-##     Update #: 37
+##     Update #: 68
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,12 +15,14 @@
 ## 
 ### Code:
 
-## * rbind.anova_lmm
+## * rbind.anova_lmm (documentation)
 ##' @title Linear Hypothesis Testing Across Linear Mixed Models
 ##' @description Linear hypothesis testing accross linear mixed model.
 ##'
 ##' @param model a \code{anova_lmm} object (output of \code{anova} applied to a \code{lmm} object)
 ##' @param ...  possibly other \code{anova_lmm} objects
+##' @param name [character vector or NULL] character used to identify each model in the output.
+##' By default, use the name of the outcome of the model.
 ##' @param sep [character] character used to separate the outcome and the covariate when naming the tests.
 ##'
 ##' @examples
@@ -39,8 +41,10 @@
 ##' ## combine
 ##' ZZZ <- rbind(AAA,BBB)
 ##' summary(ZZZ)
+
+## * rbind.anova_lmm (code)
 ##' @export
-rbind.anova_lmm <- function(model, ..., sep = ": "){
+rbind.anova_lmm <- function(model, ..., name = NULL, sep = ": "){
     default <- LMMstar.options()
 
     ## ** check user input
@@ -49,8 +53,9 @@ rbind.anova_lmm <- function(model, ..., sep = ": "){
         stop("Extra arguments should inherit from anova_lmm. \n")
     }
     ls.object <- c(list(model),dots)
+
     if(any(sapply(ls.object,function(iO){"all" %in% names(iO)})==FALSE)){
-        stop("All argument should correspond to user specified hypothesis, i.e. call anova with argument linfct. \n")
+        stop("All argument should correspond to user specified hypothesis, i.e. call anova with argument \'effects\'. \n")
     }
     if(any(sapply(ls.object,function(iO){!is.null(attr(iO$all,"glht"))})==FALSE)){
         stop("All argument should contain a \"glht\" object, i.e. call anova with argument ci=TRUE. \n")
@@ -95,16 +100,31 @@ rbind.anova_lmm <- function(model, ..., sep = ": "){
         stop("Element \'ls.method.fit\' should take the same value for all glht objects. \n")
     }
     method.fit <- unique(unlist(ls.method.fit))
-    vec.outcome <- unname(unlist(sapply(ls.lmm,"[[","outcome")))
+    if(!is.null(name)){
+        if(length(name) != length(ls.lmm)){
+            stop("Argument \'name\' should be NULL or have length ",length(ls.lmm),". \n")
+        }
+        vec.outcome <- name
+    }else{
+        vec.outcome <- unname(unlist(sapply(ls.lmm,"[[","outcome")))
+    }
 
     names(ls.C) <- vec.outcome
     names(ls.coef) <- vec.outcome
     names(ls.lmm) <- vec.outcome
 
+    seq.cluster <- unique(unlist(lapply(ls.lmm, function(iLMM){iLMM$cluster$levels})))
+    n.cluster <- length(seq.cluster)
+
     ## ** extract iid
-    ls.iid <- lapply(ls.lmm, function(iO){
-        iid(iO, effects = if(method.fit=="REML"){"mean"}else{"all"}, robust = robust,
-            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
+    ls.iid <- lapply(ls.lmm, function(iO){ ## 
+        iIID <- iid(iO, effects = if(method.fit=="REML"){"mean"}else{"all"}, robust = robust,
+                    transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
+
+        iOut <- matrix(0, nrow = n.cluster, ncol = NCOL(iIID),
+                       dimnames = list(seq.cluster, colnames(iIID)))
+        iOut[match(iO$cluster$levels, seq.cluster),] <- iIID
+        return(iOut)
         
     })
     names(ls.iid) <- vec.outcome
@@ -162,7 +182,7 @@ rbind.anova_lmm <- function(model, ..., sep = ": "){
                  call = lapply(ls.object,"[[","call"))
 
     attr(out2$all,"CI") <- list(data.frame(estimate = as.double(out$linfct %*% out$coef),
-                                           se = sqrt(diag(out$linfct %*% out$vcov %*% t(out$linfct))),
+                                           se = as.double(sqrt(diag(out$linfct %*% out$vcov %*% t(out$linfct)))),
                                            df = out$df,
                                            statistic = NA,
                                            lower = NA,
@@ -171,7 +191,9 @@ rbind.anova_lmm <- function(model, ..., sep = ": "){
                                            p.value = NA,
                                            stringsAsFactors = FALSE))
     attr(out2$all,"CI")[[1]]$statistic <- (attr(out2$all,"CI")[[1]]$estimate-out$rhs)/attr(out2$all,"CI")[[1]]$se
-
+    if(any(duplicated(rownames(out$linfct))) == FALSE){
+        rownames(attr(out2$all,"CI")[[1]]) <- rownames(out$linfct)
+    }
     out$df <- ceiling(stats::median(out$df))
     attr(out2$all,"glht") <- list(out)
     
