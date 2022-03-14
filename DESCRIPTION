@@ -54,7 +54,6 @@ Collate:
     'autoplot.R'
     'baselineAdjustment.R'
     'coef.R'
-    'confint.R'
     'confint.anova_lmm.R'
     'confint.lmm.R'
     'df.R'
