@@ -13,7 +13,7 @@ is specified via patterns (compound symmetry, unstructured, ...). Statistical in
 is performed based on the observed information and a Satterthwaite degrees of freedom.
 Normalized residuals are provided to assess model misspecification.
 Statistical inference can be performed for arbitrary linear or non-linear combination(s) of model coefficients.
-Predictions can be computed conditional to covariates only or also to outcome values. \cr \cr
+Predictions can be computed conditional to covariates only or also to outcome values. 
 
 \strong{Notations}: the linear mixed model is denoted:
 '\deqn{ \mathbf{Y}_{i} = \mathbf{X}_{i}\beta+\boldsymbol{\varepsilon}_i }
@@ -27,7 +27,6 @@ where
 \item \eqn{i} indexes the cluster (level where replicates are assumed independent).
 \item \eqn{j} indexes the repetitions, e.g. the variance of \eqn{\varepsilon_{ij}} is \eqn{\omega_{ij}}.
 }
-\cr \cr
 
 \strong{Covariance patterns}: \eqn{\Omega} can be parametrized as: \itemize{
 \item \code{"ID"}: identity (no correlation, constant variance).
