@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (17:03) 
 ## Version: 
-## Last-Updated: mar 14 2022 (09:39) 
+## Last-Updated: mar 21 2022 (11:05) 
 ##           By: Brice Ozenne
-##     Update #: 80
+##     Update #: 81
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -299,6 +299,8 @@ test_that("practical 6 - vasscoresL",{
     fit.CS <- lmm(vas~-1+treatment, data=vasscoresL,
                      repetition=~treatment|id, structure="CS")
     summary(fit.CS)
+    ## autoplot(fit.CS)
+    ## dummy.coef(fit.CS)
     fit.UN <- lmm(vas~-1+treatment, data=vasscoresL,
                      repetition=~treatment|id, structure="UN")
     summary(fit.UN)

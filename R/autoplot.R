@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: feb 21 2022 (10:56) 
+## Last-Updated: mar 21 2022 (10:48) 
 ##           By: Brice Ozenne
-##     Update #: 111
+##     Update #: 121
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -75,12 +75,20 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
 
     ## design matrix
     X.beta <- stats::model.matrix(object, data = data, effects = "mean")
-
     ## only keep one representant per type of design matrix
-    test.duplicated <- duplicated(X.beta)
-    keep.id <- unique(data[test.duplicated==FALSE,"XXclusterXX"])
-    newdata <- data[data[["XXclusterXX"]] %in% keep.id,,drop=FALSE]
+    pattern.alltimes <- which(object$time$n == sapply(object$design$vcov$X$Upattern$time, length))
+    if(length(pattern.alltimes)>0){
+        index.id <- names(which(object$design$vcov$X$pattern.cluster==object$design$vcov$X$Upattern$name[pattern.alltimes[1]]))[1]
+        newdata <- data[data[["XXclusterXX"]] %in% index.id,]
+    }else{
+        warning("No cluster with all timepoints. Generate an artificial cluster. \n")
+        X.vars <- all.vars(stats::delete.response(stats::terms(object$formula$mean)))
 
+        data.order <- data[rowSums(is.na(data[X.vars]))==0,] ## rm NA in X
+        data.order <- data.order[order(data.order[["XXclusterXX"]],data.order[["XXtimeXX"]]),] ## order data
+        newdata <- data.order[!duplicated(data.order[["XXtimeXX"]]),,drop=FALSE]
+    }
+  
     if(identical(color,TRUE)){
         mean.var <- all.vars(stats::delete.response(stats::terms(stats::formula(object, effects = "mean"))))
         if(length(mean.var)>0){
@@ -124,7 +132,7 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
     }else{
         preddata <- cbind(newdata, stats::predict(object, newdata = newdata, ...))
     }
-    
+
     ## ** generate plot
     gg <- ggplot2::ggplot(preddata, ggplot2::aes_string(x = "XXtimeXX", y = "estimate", group = "XXclusterXX"))
     if(!is.na(obs.alpha) && obs.alpha>0){

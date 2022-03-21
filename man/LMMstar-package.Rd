@@ -15,15 +15,15 @@ Normalized residuals are provided to assess model misspecification.
 Statistical inference can be performed for arbitrary linear or non-linear combination(s) of model coefficients.
 Predictions can be computed conditional to covariates only or also to outcome values. \cr \cr
 
-\strong{Notations}: the linear mixed model is denoted:
-'\deqn{ \mathbf{Y}_{i} = \mathbf{X}_{i}\beta+\boldsymbol{\varepsilon}_i }
+\strong{Notations}: the linear mixed model estimated by \code{\link{lmm}} is denoted:
+\deqn{ \mathbf{Y}_{i} = \mathbf{X}_{i}\beta+\boldsymbol{\varepsilon}_i }
 where
 \itemize{
 \item \eqn{\mathbf{Y}}: vector of outcome.
-\item \eqn{\mathbf{X}}: design matrix.
-\item \eqn{\boldsymbol{\varepsilon}}: vector of residuals with 0-mean and variance \eqn{\Omega}.
-\item \eqn{\beta}: estimated mean coefficients relative to \eqn{X}.
-\item \eqn{\Omega}: the modeled variance-covariance of the residuals with diagonal elements \eqn{\omega}.
+\item \eqn{\mathbf{X}}: design matrix (extractor: \code{\link{model.matrix.lmm}}).
+\item \eqn{\boldsymbol{\varepsilon}}: vector of residuals with 0-mean and variance \eqn{\Omega} (extractor: \code{\link{residuals.lmm}}).
+\item \eqn{\beta}: estimated mean coefficients relative to \eqn{X} (extractor: \code{\link{coef.lmm}}).
+\item \eqn{\Omega}: the modeled variance-covariance of the residuals with diagonal elements \eqn{\omega}  (extractor: \code{\link{getVarCov.lmm}}).
 \item \eqn{i} indexes the cluster (level where replicates are assumed independent).
 \item \eqn{j} indexes the repetitions, e.g. the variance of \eqn{\varepsilon_{ij}} is \eqn{\omega_{ij}}.
 }

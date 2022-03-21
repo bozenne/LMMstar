@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (11:08) 
 ## Version: 
-## Last-Updated: nov 13 2021 (17:59) 
+## Last-Updated: mar 21 2022 (10:53) 
 ##           By: Brice Ozenne
-##     Update #: 25
+##     Update #: 31
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -59,7 +59,8 @@ dummy.coef.lmm <- function(object, drop = TRUE,...){
 
         if(drop){
             var.ff <- attr(out,"pri.vars")
-            existing.levels <- unique(as.character(interaction(object$data.original[,var.ff,drop=FALSE])))
+            data.original <- as.data.frame(object$data.original)
+            existing.levels <- unique(as.character(interaction(data.original[,var.ff,drop=FALSE])))
             out <- out[as.character(interaction(out[,var.ff,drop=FALSE])) %in% existing.levels,,drop=FALSE]
         }
 

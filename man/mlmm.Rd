@@ -22,8 +22,7 @@ mlmm(..., data, by, effects = NULL, robust = FALSE, df = TRUE, ci = TRUE)
 \item{ci}{[logical] Should a confidence interval be output for each hypothesis?}
 }
 \description{
-Fit several linear mixed models, extract relevant coefficients, and combine them into a single table. 
-g
+Fit several linear mixed models, extract relevant coefficients, and combine them into a single table.
 }
 \examples{
 

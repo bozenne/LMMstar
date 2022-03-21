@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: mar 14 2022 (12:32) 
+## Last-Updated: mar 14 2022 (13:38) 
 ##           By: Brice Ozenne
-##     Update #: 39
+##     Update #: 40
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,11 +18,11 @@
 ## * mlmm (documentation)
 ##' @title Fit Multiple Linear Mixed Model
 ##' @description Fit several linear mixed models, extract relevant coefficients, and combine them into a single table. 
-##'g
+##'
 ##' @param ... arguments passed to \code{\link{lmm}}.
 ##' @param data [data.frame] dataset (in the long format) containing the observations.
 ##' @param by [character] variable used to split the dataset. On each split a seperate linear mixed model is fit.
-##'@param effects [character] Linear combinations of coefficients relative to which Wald test should be computed.
+##' @param effects [character] Linear combinations of coefficients relative to which Wald test should be computed.
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. Argument passed to \code{anova.lmm}.
 ##' @param df [logical] Should the degree of freedom be computed using a Satterthwaite approximation?
 ##' @param ci [logical] Should a confidence interval be output for each hypothesis?
