@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: mar 14 2022 (09:40) 
+## Last-Updated: mar 21 2022 (13:05) 
 ##           By: Brice Ozenne
-##     Update #: 105
+##     Update #: 106
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -425,6 +425,7 @@ test_that("gls optimizer - error ordering variance parameters",{
     GS <- lmm(log_IL10~Time, repetition = ~Visit|ID, structure="UN", df=FALSE,
               data=df)
 
+    expect_equal(logLik(test),logLik(GS), tol = 1e-6) ## -34.79214
 })
 
 ## * from: Malene tirsdag 22-02-22 at 17:34

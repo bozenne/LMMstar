@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: mar 14 2022 (11:02) 
+## Last-Updated: mar 25 2022 (12:32) 
 ##           By: Brice Ozenne
-##     Update #: 68
+##     Update #: 74
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -140,7 +140,17 @@ rbind.anova_lmm <- function(model, ..., name = NULL, sep = ": "){
     out$coef <- unlist(lapply(1:length(vec.outcome), function(iO){stats::setNames(ls.coef[[iO]],paste0(vec.outcome[iO],sep,names(ls.coef[[iO]])))}))
 
     iIID <- do.call(cbind,ls.iid)
-    out$vcov <- crossprod(iIID[rowSums(is.na(iIID))==0,,drop=FALSE])
+    if(any(is.na(iIID))){
+        out$vcov <- tcrossprod(sqrt(apply(iIID^2, 2, sum, na.rm = TRUE))) * cor(iIID, use = "pairwise")
+        ## usually better compared to formula 11.43 from chapter 11.4 of the book High-dimensional statistics by WAINWRIGHT
+        ## iIDD0 <- iIID/(1-mean(is.na(iIID)))
+        ## iIDD0[is.na(iIDD)] <- 0
+        ## out$vcov <- crossprod(iIDD0) - mean(is.na(iIDD))*diag(diag(crossprod(iIDD0)))
+
+        ## out$vcov - crossprod(iIID)
+    }else{
+        out$vcov <- crossprod(iIID)
+    }
     rownames(out$vcov) <- unlist(lapply(1:length(vec.outcome), function(iO){paste0(vec.outcome[iO],sep,colnames(ls.iid[[iO]]))}))
     colnames(out$vcov) <- unlist(lapply(1:length(vec.outcome), function(iO){paste0(vec.outcome[iO],sep,colnames(ls.iid[[iO]]))}))
 
