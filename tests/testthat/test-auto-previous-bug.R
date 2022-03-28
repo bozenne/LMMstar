@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: mar 21 2022 (13:05) 
+## Last-Updated: mar 28 2022 (18:44) 
 ##           By: Brice Ozenne
-##     Update #: 106
+##     Update #: 107
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -437,7 +437,7 @@ df <- data.frame("log_IFNa" = c( 1.1136746,  1.0979168,  1.0745213, -3.0030119, 
 df$Time <- factor(df$Time, levels = c("Baseline","4 weeks","6 months","12 months"))
 df$visit <- as.numeric(df$Time)
 
-test_that("", {
+test_that("communication with gls", {
 
 e.fit <- lmm(log_IFNa~Time, repetition = ~Time|ID1, structure="UN", df=TRUE, data=df) 
 
@@ -449,5 +449,19 @@ e.gls <- gls(log_IFNa~Time,
 
 expect_equal(logLik(e.fit),as.double(logLik(e.gls)), tol = 1e-3)
 })
+
+## * from: Brice mandag 22-03-28 at 18:43
+test_that("LRT", {
+
+    dL <- sampleRem(1e2, n.times = 3, format = "long")
+
+    e.lmm1 <- lmm(Y ~ X1+X2+X3, repetition = ~visit|id, data = dL)
+    e.lmm2 <- lmm(Y ~ X1, repetition = ~visit|id, data = dL)
+
+    test <- anova(e.lmm1, e.lmm2)
+    expect_equal(test$p.value,0.2866855, tol = 1-5)
+
+})
+
 ######################################################################
 ### test-auto-previous-bug.R ends here

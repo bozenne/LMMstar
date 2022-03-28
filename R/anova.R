@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: mar  7 2022 (12:07) 
+## Last-Updated: mar 28 2022 (18:41) 
 ##           By: Brice Ozenne
-##     Update #: 789
+##     Update #: 793
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -102,9 +102,9 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         out <- .anova_Wald(object, effects = effects, robust = robust, rhs = rhs, df = df, ci = ci, 
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
     }
-    
+
     ## ** export
-    out$call <- match.call()
+    attr(out,"call") <- match.call()
     class(out) <- append("anova_lmm",class(out))
     return(out)
 }
@@ -523,7 +523,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                       stringsAsFactors = FALSE)
     out$statistic <- 2*(out$logLikH1 - out$logLikH0)
     out$p.value <- 1 - stats::pchisq(out$statistic, df = out$df)
-               
+
     ## ** export
     attr(out, "test") <- "LRT"
     return(out)
