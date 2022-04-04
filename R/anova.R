@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: mar 28 2022 (18:41) 
+## Last-Updated: apr  1 2022 (16:41) 
 ##           By: Brice Ozenne
-##     Update #: 793
+##     Update #: 799
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -74,9 +74,7 @@
 ##'
 ##' e.amod <- anova(amod, effect = mcp(tension = "Tukey"))
 ##' summary(e.amod)
-##'
 ##' 
-##' anova(amod, effect = mcp(tension = "Tukey"), ci = TRUE)
 ##' }
 
 ## * anova.lmm (code)
@@ -131,7 +129,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                 subeffect <- iLabels[effects == paste0("variance_",iLabels)]
                 effects <- "variance"
             }
-        }else if(grepl("^cor_",effects) && !is.null(object$design$vcov$X$cor)){
+        }else if(grepl("^cor_",effects) && !is.null(object$design$vcov$X$cor.pairwise)){
             iLabels <- attr(stats::terms(object$formula$cor.design),"term.labels")
             if(any(effects == paste0("correlation_",iLabels))){
                 subeffect <- iLabels[effects == paste0("correlation_",iLabels)]
@@ -243,7 +241,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         }
         if("correlation" %in% effects){
             out <- c(out,list(correlation = NULL))
-            ls.assign$correlation <- attr(object$design$vcov$X$cor,"assign")
+            ls.assign$correlation <- attr(object$design$vcov$X$cor.pairwise,"assign")
             ls.nameTerms$correlation <- if(!is.null(ls.assign$correlation)){object$time$var}else{NULL}
             ls.contrast <- c(ls.contrast,list(correlation = NULL))
             null.correlation <- switch(transform.rho,

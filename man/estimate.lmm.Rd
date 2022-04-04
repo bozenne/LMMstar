@@ -42,11 +42,28 @@
 Perform a first order delta method
 }
 \examples{
+if(require(lava)){
+
+#### Random effect ####
+set.seed(10)
+dL <- sampleRem(1e2, n.times = 3, format = "long")
+e.lmm1 <- lmm(Y ~ X1+X2+X3, repetition = ~visit|id, structure = "CS", data = dL)
+coef(e.lmm1, effects = "ranef")
+e.ranef <- estimate(e.lmm1, f  = function(p){coef(e.lmm1, p = p, effects = "ranef")})
+e.ranef
+
+if(require(ggplot2)){
+df.gg <- cbind(index = 1:NROW(e.ranef), e.ranef)
+gg.ranef <- ggplot(df.gg, aes(x = index, y=estimate, ymin=lower, ymax = upper))
+gg.ranef + geom_point() + geom_errorbar() + ylab("estimated random effect") + xlab("id")
+}
+
+#### ANCOVA via mixed model ####
 set.seed(10)
 d <- sampleRem(1e2, n.time = 2)
 e.ANCOVA1 <- lm(Y2~Y1+X1, data = d)
 
-if(require(reshape2) && require(lava)){
+if(require(reshape2)){
    dL2 <- melt(d, id.vars = c("id","Y1","X1"),  measure.vars = c("Y1","Y2"))
    e.lmm <- lmm(value ~ variable + variable:X1, data = dL2, repetition = ~variable|id)
 
@@ -58,5 +75,7 @@ if(require(reshape2) && require(lava)){
    e.delta
    summary(e.ANCOVA1)$coef
    ## Degrees of freedom are a bit off though
+}
+
 }
 }

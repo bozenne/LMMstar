@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: okt  1 2021 (17:06) 
+## Last-Updated: apr  1 2022 (16:38) 
 ##           By: Brice Ozenne
-##     Update #: 57
+##     Update #: 58
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -90,7 +90,7 @@
     n.Upattern <- NROW(Upattern)
     pattern.cluster <- object$X$pattern.cluster
     X.var <- object$X$var
-    X.cor <- object$X$cor
+    X.cor <- object$X$cor.pairwise
     if(!is.null(Jacobian)){
         test.nooffdiag <- all(abs(c(Jacobian[lower.tri(Jacobian,diag=FALSE)],Jacobian[upper.tri(Jacobian,diag=FALSE)]))<1e-10)
         if(test.nooffdiag){

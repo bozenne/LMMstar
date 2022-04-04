@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: okt  1 2021 (17:07) 
+## Last-Updated: apr  1 2022 (16:38) 
 ##           By: Brice Ozenne
-##     Update #: 53
+##     Update #: 54
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -85,7 +85,7 @@
     n.Upattern <- NROW(Upattern)
     pattern.cluster <- object$X$pattern.cluster
     X.var <- object$X$var
-    X.cor <- object$X$cor
+    X.cor <- object$X$cor.pairwise
 
     ## ** loop over covariance patterns
     out <- lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1

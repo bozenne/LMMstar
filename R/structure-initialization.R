@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: feb 16 2022 (17:28) 
+## Last-Updated: apr  1 2022 (16:54) 
 ##           By: Brice Ozenne
-##     Update #: 147
+##     Update #: 154
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -176,14 +176,14 @@
     attr(sigma, "studentized") <- NULL
     out[names(sigma)] <- sigma
 
-    if(is.null(object$X$cor)){return(out)}
+    if(is.null(object$X$cor.pairwise)){return(out)}
     ## combine all residuals and all design matrices
-    M.prodres <- do.call(rbind,lapply(1:length(object$X$cor), function(iPattern){ ## iPattern <- 1
-        X.iPattern <- object$X$cor[[iPattern]]
+    M.prodres <- do.call(rbind,lapply(1:length(object$X$cor.pairwise), function(iPattern){ ## iPattern <- 1
+        X.iPattern <- object$X$cor.pairwise[[iPattern]]
         if(is.null(X.iPattern)){return(NULL)}
 
         ## number of timepoints
-        iN.time <- length(attr(object$X$cor[[iPattern]],"index.Utime"))
+        iN.time <- length(attr(object$X$cor.pairwise[[iPattern]],"index.Utime"))
         ## position in the matrix associated to each correlation parameter
         indicator.param <- attr(X.iPattern,"indicator.param")
         ## index of the residuals belonging to each individual

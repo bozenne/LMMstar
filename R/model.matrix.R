@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: feb 16 2022 (09:39) 
+## Last-Updated: apr  1 2022 (16:40) 
 ##           By: Brice Ozenne
-##     Update #: 1716
+##     Update #: 1721
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -269,7 +269,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     }
 
     ## ** design matrix
-    out <- list(var = NULL, cor = NULL)
+    out <- list(var = NULL, cor.pairwise = NULL)
     if(is.null(structure$param)){ ## structure
         out$var <- .colnameOrder(.model.matrix_regularize(formula.var, data = data, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
         if(!is.null(formula.cor) && n.time>1 && any(sapply(order.clusterTime,length)>1)){  ## at least one individual with more than timepoint
@@ -278,7 +278,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
                     data[[iVar]] <- as.numeric(as.factor(data[[iVar]]))
                 }
             }
-            out$cor <- .colnameOrder(.model.matrix_regularize(formula.cor, data = data, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
+            out$cor.pairwise <- .colnameOrder(.model.matrix_regularize(formula.cor, data = data, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
         }
     }else{ ## newdata
         out$var <- stats::model.matrix(formula.var, data = data)[,attr(structure$X$var,"original.colnames"),drop=FALSE]
@@ -293,10 +293,10 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
                     data[[iVar]] <- as.numeric(as.factor(data[[iVar]]))
                 }
             }
-            out$cor <- stats::model.matrix(formula.cor, data = data)[,attr(structure$X$cor,"original.colnames"),drop=FALSE]
-            attr(out$cor,"M.level") <- attr(structure$X$cor,"M.level")
-            attr(out$cor,"assign") <- attr(structure$X$cor,"assign")
-            attr(out$cor,"original.colnames") <- attr(structure$X$cor,"original.colnames")
+            out$cor.pairwise <- stats::model.matrix(formula.cor, data = data)[,attr(structure$X$cor.pairwise,"original.colnames"),drop=FALSE]
+            attr(out$cor.pairwise,"M.level") <- attr(structure$X$cor.pairwise,"M.level")
+            attr(out$cor.pairwise,"assign") <- attr(structure$X$cor.pairwise,"assign")
+            attr(out$cor.pairwise,"original.colnames") <- attr(structure$X$cor.pairwise,"original.colnames")
         }
     }
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: mar 28 2022 (18:44) 
+## Last-Updated: apr  1 2022 (11:50) 
 ##           By: Brice Ozenne
-##     Update #: 107
+##     Update #: 108
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -452,15 +452,15 @@ expect_equal(logLik(e.fit),as.double(logLik(e.gls)), tol = 1e-3)
 
 ## * from: Brice mandag 22-03-28 at 18:43
 test_that("LRT", {
-
+    set.seed(10)
     dL <- sampleRem(1e2, n.times = 3, format = "long")
 
-    e.lmm1 <- lmm(Y ~ X1+X2+X3, repetition = ~visit|id, data = dL)
-    e.lmm2 <- lmm(Y ~ X1, repetition = ~visit|id, data = dL)
+    e.lmm1 <- lmm(Y ~ X1+X2+X3, repetition = ~visit|id, data = dL, method.fit = "ML")
+    e.lmm2 <- lmm(Y ~ X1, repetition = ~visit|id, data = dL, method.fit = "ML")
 
     test <- anova(e.lmm1, e.lmm2)
-    expect_equal(test$p.value,0.2866855, tol = 1-5)
-
+    expect_equal(test$p.value,0.5017193, tol = 1e-5)
+    expect_equal(test$p.value,1-pchisq(abs(2*(logLik(e.lmm1)-logLik(e.lmm2))), df = 2), tol = 1-5)
 })
 
 ######################################################################

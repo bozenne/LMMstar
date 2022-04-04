@@ -4,10 +4,12 @@ library(LMMstar)
 
 library(lava)
 library(nlme)
+library(lme4)
 library(emmeans)
 library(numDeriv)
 library(data.table)
 library(multcomp)
+library(reshape2)
 library(qqtest)
 library(ggplot2)
 

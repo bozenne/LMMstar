@@ -110,7 +110,7 @@ utils::packageVersion("LMMstar")
 #+END_SRC
 
 #+RESULTS:
-: [1] '0.5.3'
+: [1] '0.5.7'
 
 When estimating model coefficients, we will use the internal
 optimization routine of the *LMMstar* package (instead of relying on
@@ -326,11 +326,14 @@ A3_months  336.3836 336.3836 339.4747  346.6085
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
 library(lme4)
-logLik(lmer(weight ~ time*group + (1|id/baseline), data = gastricbypassL))
+e.lmer <- lmer(weight ~ time*group + (1|id/baseline), data = gastricbypassL)
+logLik(e.lmer)
+range(matrix(c(ranef(e.lmer)[[2]][,1],ranef(e.lmer)[[1]][,1]), ncol = 3, byrow = FALSE)-coef(eBCS.lmm, effects = "ranef"))
 #+END_SRC
 
 #+RESULTS:
 : 'log Lik.' -234.9713 (df=11)
+: [1] -7.897069e-05  8.584946e-05
 
 \noindent Fit a linear mixed model with *block unstructured* covariance matrix:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no

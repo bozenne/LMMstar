@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: mar  7 2022 (10:44) 
+## Last-Updated: apr  1 2022 (10:32) 
 ##           By: Brice Ozenne
-##     Update #: 552
+##     Update #: 554
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -287,7 +287,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
         if(any(names(object$param$type) %in% names(p) == FALSE)){
             stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param$type)[names(object$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
         }
-        beta <- p[names(object$param$type=="mu")]
+        beta <- p[names(which(object$param$type=="mu"))]
         if(any(type.residual %in% c("studentized","pearson","normalized","normalized2","scaled"))){
             Omega <- .calc_Omega(object = structure, param = p)
             precision <- lapply(Omega, solve)

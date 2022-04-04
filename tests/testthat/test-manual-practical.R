@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (17:03) 
 ## Version: 
-## Last-Updated: mar 21 2022 (11:05) 
+## Last-Updated: apr  1 2022 (11:33) 
 ##           By: Brice Ozenne
-##     Update #: 81
+##     Update #: 83
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -240,6 +240,10 @@ test_that("practical 3 - swabsL",{
     ## with interaction
     eCSI.lmm <- lmm(swabs ~ crowding * name, data = swabsL, structure = "CS", repetition = ~name|family)
     emmip(eCSI.lmm, crowding~name)
+
+    eCSI.lme <- lme(swabs ~ crowding * name, random =~ 1 | family, data = swabsL2)
+    GS <- as.data.frame(ranef(eCSI.lme, augFrame = TRUE))
+    expect_equal(as.double(GS[,1]),as.double(coef(eCSI.lmm, effects = "ranef")[rownames(GS)]), tol = 1e-5)
 })
 
 ## * Practical 4

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 31 2022 (11:36) 
 ## Version: 
-## Last-Updated: mar  7 2022 (09:08) 
+## Last-Updated: apr  4 2022 (12:23) 
 ##           By: Brice Ozenne
-##     Update #: 35
+##     Update #: 53
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -19,6 +19,7 @@ if(FALSE){
     library(lava)
     library(reshape2)
     library(testthat)
+    library(lme4)
 
     library(LMMstar)
 }
@@ -38,7 +39,7 @@ e.ANCOVA2 <- lm(dY~Y1+X1, data = d)
 
 test_that("delta method for association based on residual variance", {
 
-    dL2 <- melt(d, id.vars = c("id","Y1","X1"),  measure.vars = c("Y1","Y2"))
+    dL2 <- reshape2::melt(d, id.vars = c("id","Y1","X1"),  measure.vars = c("Y1","Y2"))
 
     ## ANCOVA1
     e.lmmANCOVA1 <- lmm(value ~ variable + variable:X1, data = dL2, repetition = ~variable|id)
@@ -124,7 +125,7 @@ summary(e.lm)$coef["dX",]
 
 test_that("delta method for association based on residual variance", {
 
-    dL2 <- melt(d, id.vars = c("id","X5"),  measure.vars = c("dX","dY"))
+    dL2 <- reshape2::melt(d, id.vars = c("id","X5"),  measure.vars = c("dX","dY"))
 
 
     ## bivariate mixed model estimating the association between the changes
@@ -158,7 +159,7 @@ test_that("delta method for association based on residual variance", {
     expect_equal(as.double(unlist(e.delta2)), as.double(unlist(test)), tol = 1e-5)
     
     ## quadrivariate mixed model estimating the association between the changes
-    dL4 <- melt(d, id.vars = c("id","X5"),  measure.vars = c("X1","X2","Y1","Y2"))
+    dL4 <- reshape2::melt(d, id.vars = c("id","X5"),  measure.vars = c("X1","X2","Y1","Y2"))
     e.lmm4 <- lmm(value ~ variable, data = dL4, repetition = ~variable|id)
 
     Omega4 <- getVarCov(e.lmm4)
@@ -202,6 +203,48 @@ test_that("delta method for association based on residual variance", {
 
 ## summary(e.lme)$tTable
 
+## * Random effects
+set.seed(10)
+dL <- sampleRem(1e2, n.times = 3, format = "long")
 
+test_that("single random effect", {
+    e.lmm1 <- lmm(Y ~ X1+X2+X3, repetition = ~visit|id, structure = "CS", data = dL)
+    e.ranef <- estimate(e.lmm1, f  = function(p){ ## p <- coef(e.lmm1, effects = "all")
+        coef(e.lmm1, p = p, effects = "ranef")
+    })
+
+    e.lmer <- lme4::lmer(Y ~ X1+X2+X3 + (1|id), data = dL)
+    GS <- as.data.frame(nlme::ranef(e.lmer))
+
+    expect_equal(as.double(e.ranef[,"estimate"]), as.double(GS$condval), tol = 1e-5)
+    ## expect_equal(e.ranef[,"se"], GS$condsd, tol = 1e-5) ## completely off
+})
+
+test_that("crossed random effect", {
+    ## data from https://stats.stackexchange.com/questions/228800/crossed-vs-nested-random-effects-how-do-they-differ-and-how-are-they-specified
+    ## mydata <- read.csv("https://web.archive.org/web/20160624172041if_/http://www-personal.umich.edu/~bwest/classroom.csv")
+    ## mydata$classid2 <- unlist(tapply(mydata$classid, mydata$schoolid, function(x){as.numeric(as.factor(x))}))
+    ## mydata$rep <- unlist(tapply(mydata$schoolid, mydata$schoolid, function(x){1:length(x)}))
+    ## mydataR <- mydata[mydata$schoolid %in% 1:8,c("mathgain","schoolid","classid2","rep")]
+
+    mydataR <- data.frame("mathgain" = c(32, 109, 56, 83, 53, 65, 51, 66, 88, -7, 60, -2, 101, 30, 65, 29, 152, 50, 60, 74, 91, 68, 94, 120, 58, 123, 88, 60, 152, 96, 57, 115, 58, 51, 104, 65, 64, 59, 70, 63, -110, 73, 100, -9, 67, 58, 72, 88, 115, 62, 42, 88, 71, 74, 67, 74, 87, 83, 93, 56, 40, 69, 75, 57, 23, 53, 114, 56, 55, 28, 61, 59, 57, 85, 28, 166, 61, 47, 62, 35, 52, 70, 11, 37, 36, 13, 6, 21, 26), 
+           "schoolid" = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8), 
+           "classid2" = c(1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 1, 1, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4, 4, 4, 4, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3), 
+           "rep" = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16))
+
+    e.lmer <- lme4::lmer(mathgain ~ (1 | schoolid/classid2), data = mydataR)
+    e.lmm <- lmm(mathgain ~ 1, repetition =~rep|schoolid,
+                 structure = CS(~classid2, heterogeneous = FALSE),
+                 control = list(optimizer = "FS"), data = mydataR)
+
+    
+
+    expect_equal(as.double(coef(e.lmm, effects = "ranef")[,"schoolid"]), as.double(nlme::ranef(e.lmer)$schoolid[,1]), tol = 1e-5)
+
+    test <- coef(e.lmm, effects = "ranef")[,c("classid21","classid22","classid23","classid24")]
+
+    expect_equal(as.double(test[test!=0]), as.double(nlme::ranef(e.lmer)[["classid2:schoolid"]][,1]), tol = 1e-5)
+    ## expect_equal(e.ranef[,"se"], GS$condsd, tol = 1e-5) ## completely off
+})
 ##----------------------------------------------------------------------
 ### test-auto-estimate.R ends here

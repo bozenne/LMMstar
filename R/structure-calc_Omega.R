@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: Dec 15 2021 (17:38) 
+## Last-Updated: apr  4 2022 (10:00) 
 ##           By: Brice Ozenne
-##     Update #: 420
+##     Update #: 423
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -72,7 +72,7 @@
     n.Upattern <- NROW(Upattern)
     pattern.cluster <- object$X$pattern.cluster
     X.var <- object$X$var
-    X.cor <- object$X$cor
+    X.cor <- object$X$cor.pairwise
 
     Omega <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
         iPattern.var <- Upattern[iPattern,"var"]

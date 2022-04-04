@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: feb 16 2022 (09:39) 
+## Last-Updated: apr  4 2022 (11:06) 
 ##           By: Brice Ozenne
-##     Update #: 1390
+##     Update #: 1428
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -77,7 +77,7 @@
                                   cluster.var = cluster.var, order.clusterTime = order.clusterTime)
 
     X.var <- outDesign$var
-    X.cor <- outDesign$cor
+    X.cor <- outDesign$cor.pairwise
 
     ## ** define parameters
     ## *** sigma
@@ -118,7 +118,8 @@
                         pattern.cluster = outPattern$pattern.cluster,
                         cluster.pattern = outPattern$cluster.pattern,
                         var = outPattern$X.var,
-                        cor = outPattern$X.cor)
+                        cor = X.cor,
+                        cor.pairwise = outPattern$X.cor.pairwise)
     structure$pair.varcoef <- outPattern$pair.varcoef
 
     ## ** export
@@ -152,7 +153,7 @@
                                   cluster.var = cluster.var, order.clusterTime = order.clusterTime)
 
     X.var <- outDesign$var
-    X.cor <- outDesign$cor
+    X.cor <- outDesign$cor.pairwise
 
     ## ** param
     ## *** sigma
@@ -232,7 +233,8 @@
                         pattern.cluster = outPattern$pattern.cluster,
                         cluster.pattern = outPattern$cluster.pattern,
                         var = outPattern$X.var,
-                        cor = outPattern$X.cor)
+                        cor = X.cor,
+                        cor.pairwise = outPattern$X.cor.pairwise)
     structure$pair.varcoef <- outPattern$pair.varcoef
 
     ## ** export
@@ -267,7 +269,7 @@
                                  cluster.var = cluster.var, order.clusterTime = order.clusterTime)
 
     X.var <- outDesign$var
-    X.cor <- outDesign$cor
+    X.cor <- outDesign$cor.pairwise
 
     ## ** param
     ## *** sigma
@@ -352,7 +354,8 @@
                         pattern.cluster = outPattern$pattern.cluster,
                         cluster.pattern = outPattern$cluster.pattern,
                         var = outPattern$X.var,
-                        cor = outPattern$X.cor)
+                        cor = X.cor,
+                        cor.pairwise = outPattern$X.cor.pairwise)
     structure$pair.varcoef <- outPattern$pair.varcoef
 
     ## ** export
@@ -518,7 +521,7 @@
                     if(heterogeneous){
                         if(all(iX1==iX2)){return(cbind("R",iX1))}else{return(cbind("D",iX2-iX1))}
                     }else{
-                        if(all(iX1==iX2)){return("R")}else{return(cbind("D",sum(iX2!=iX1)))}
+                        if(all(iX1==iX2)){return(matrix(c("R",""),nrow=1,ncol=2))}else{return(cbind("D",sum(iX2!=iX1)))}
                     }
 
                 }))
@@ -644,7 +647,7 @@
     out <- list(pattern.cluster = stats::setNames(pattern.cluster,U.cluster),
                 cluster.pattern = cluster.pattern,
                 Upattern = Upattern,
-                X.cor = X.cor2,
+                X.cor.pairwise = X.cor2,
                 X.var = X.var2,
                 time.param = time.param,
                 pair.varcoef = pair.varcoef)
@@ -738,7 +741,7 @@
         return(iOut)
     })
     score.time <- do.call(rbind, ls.score.time)
-    score.pattern2 <- do.call(order, args = c(as.list(as.data.frame(do.call(rbind,lapply(ls.score.time,attr, "level"))))))
+    score.pattern2 <- do.call(base::order, args = c(as.list(as.data.frame(do.call(rbind,lapply(ls.score.time,attr, "level"))))))
     ## better than just score.pattern because it properly handle numeric i.e. 9<10 instead of "9" > "10"
     out <- list(cluster = indexU.cluster[order(score.time[,1],score.time[,2],score.pattern2)])
     out$name <- pattern.cluster[out$cluster]
@@ -771,17 +774,17 @@
     indexCluster.cor <- which(!duplicated(LPcluster.cor))
 
     ## for each cluster compute all pairwise difference in covariates
-    all.lpdiff.rho <- unlist(lapply(U.cluster[indexCluster.cor], function(iC){ ## iC <- 1
+    all.lpdiff.rho <- unlist(lapply(U.cluster[indexCluster.cor], function(iC){ ## iC <- U.cluster[1]
         iX <- X.cor[index.cluster[[iC]][order.clusterTime[[iC]]],,drop=FALSE]
         if(NROW(iX)==1){return(NULL)}
         iPair.time <- .unorderedPairs(1:NROW(iX), distinct = TRUE)
-        iDF.diff <- as.data.frame(do.call(rbind,lapply(1:NCOL(iPair.time),function(iCol){
+        iDF.diff <- as.data.frame(do.call(rbind,lapply(1:NCOL(iPair.time),function(iCol){ ## iCol <- 1
             iX1 <- iX[min(iPair.time[,iCol]),,drop=FALSE]
             iX2 <- iX[max(iPair.time[,iCol]),,drop=FALSE]
             if(heterogeneous){
                 if(all(iX1==iX2)){return(cbind("R",iX1))}else{return(cbind("D",iX2-iX1))}
             }else{
-                if(all(iX1==iX2)){return("R")}else{return(cbind("D",sum(iX2!=iX1)))}
+                if(all(iX1==iX2)){return(matrix(c("R",""), nrow = 1, ncol = 2))}else{return(cbind("D",sum(iX2!=iX1)))}
             }
         })))
         iVec.diff <- as.character(interaction(iDF.diff, drop=TRUE))
@@ -789,14 +792,13 @@
         names(iVec.diff) <- sapply(1:NCOL(iPair.time),function(iCol){paste0("(",iCov[min(iPair.time[,iCol])],",",iCov[max(iPair.time[,iCol])],")")})
         return(iVec.diff)
     }))
-
     test.duplicated <- duplicated(all.lpdiff.rho)
     lpdiff.rho <- all.lpdiff.rho[test.duplicated==FALSE]
     names(lpdiff.rho) <- paste0("rho",names(lpdiff.rho))
-
     param.rho <- names(lpdiff.rho)
     strata.rho <- stats::setNames(rep(1,length(param.rho)),param.rho)
-    time.rho <- do.call(cbind,lapply(U.cluster[indexCluster.cor], function(iC){
+
+    time.rho <- do.call(cbind,lapply(U.cluster[indexCluster.cor], function(iC){ ## iC <- "105"
         .unorderedPairs(index.clusterTime[[iC]][order.clusterTime[[iC]]], distinct = TRUE)
     }))[,test.duplicated==FALSE,drop=FALSE]
 

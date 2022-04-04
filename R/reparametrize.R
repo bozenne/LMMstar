@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: nov 12 2021 (17:36) 
+## Last-Updated: apr  1 2022 (12:21) 
 ##           By: Brice Ozenne
-##     Update #: 405
+##     Update #: 407
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -557,8 +557,7 @@ reparametrize <- function(p, type, strata,
                     }else{
                         out$p[iName.rho] <- p[iName.rho]*p[iName.sigma]^2
                         if(transform.names){
-                            name2sd[iName.rho]
-                            out$newname[match(iName.rho,name.p)] <- paste0("cov:",iStrata)
+                            out$newname[match(iName.rho,name.p)] <- gsub("rho(","cov(",out$newname[match(iName.rho,name.p)],fixed = TRUE)
                         }
                         if(Jacobian){
                             ##  \rho/\sigma leads to -\rho/\sigma^2 and 1/\sigma

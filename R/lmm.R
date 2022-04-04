@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: mar 21 2022 (10:54) 
+## Last-Updated: apr  1 2022 (16:43) 
 ##           By: Brice Ozenne
-##     Update #: 1463
+##     Update #: 1464
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -293,7 +293,7 @@ lmm <- function(formula, repetition, structure, data,
     if(trace>=2){cat("\n")}
 
     ## *** residual variance-covariance structure
-    if(trace>=2){cat("- residual variance-covariance structure  ")}
+    if(trace>=2){cat("- residual variance-covariance structure ")}
 
     if(missing(structure)){
         if(!is.na(var.cluster) && any(duplicated(data[[var.cluster]]))){

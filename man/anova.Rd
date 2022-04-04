@@ -82,8 +82,6 @@ summary(e.glht, test = Chisqtest()) ## 0.000742
 e.amod <- anova(amod, effect = mcp(tension = "Tukey"))
 summary(e.amod)
 
-
-anova(amod, effect = mcp(tension = "Tukey"), ci = TRUE)
 }
 }
 \references{

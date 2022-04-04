@@ -9,6 +9,7 @@
   object,
   effects = NULL,
   strata = NULL,
+  p = NULL,
   transform.sigma = "none",
   transform.k = "none",
   transform.rho = "none",
@@ -25,6 +26,8 @@ or only coefficients relative to the variance structure (\code{"variance"}),
 or only coefficients relative to the correlation structure (\code{"correlation"}).}
 
 \item{strata}{[character vector] When not \code{NULL}, only output coefficient relative to specific levels of the variable used to stratify the mean and covariance structure.}
+
+\item{p}{[numeric vector] value of the model coefficients to be used. Only relevant if differs from the fitted values.}
 
 \item{transform.sigma}{[character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.}
 
@@ -69,6 +72,9 @@ Extract coefficients from a linear mixed model.
 \item \code{"atanh"} ouput correlation coefficient after tangent hyperbolic transformation.
 \item \code{"cov"} ouput covariance coefficient.
 }
+
+When using a (pure) compound symmetry covariance structure (\code{structure = "CS"}),
+estimated random effects can be extracted by setting argument \code{effects} to \code{"ranef"}.
 }
 \examples{
 ## simulate data in the long format

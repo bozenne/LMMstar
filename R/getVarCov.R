@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: Feb 13 2022 (23:09) 
+## Last-Updated: apr  1 2022 (10:16) 
 ##           By: Brice Ozenne
-##     Update #: 276
+##     Update #: 281
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,6 +26,7 @@
 ##' When \code{NULL}, will output complete data covariance patterns.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the residual variance-covariance matrix. Only relevant if differs from the fitted values.
 ##' @param strata [character vector] When not \code{NULL} and argument \code{individual} is not specified, only output the residual variance-covariance matrix relative to specific levels of the variable used to stratify the mean and covariance structure.
+##' @param inverse [logical] Output the matrix inverse of the variance-covariance matrix.
 ##' @param simplifies [logical] When there is only one variance-covariance matrix, output a matrix instead of a list of matrices.
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
@@ -49,7 +50,7 @@
 ## * getVarCov.lmm
 ##' @rdname getVarCov
 ##' @export
-getVarCov.lmm <- function(obj, individual = NULL, p = NULL, simplifies = TRUE, strata = NULL, ...){
+getVarCov.lmm <- function(obj, individual = NULL, p = NULL, inverse = FALSE, simplifies = TRUE, strata = NULL, ...){
     object <- obj
 
     ## ** normalize user imput
@@ -112,6 +113,17 @@ getVarCov.lmm <- function(obj, individual = NULL, p = NULL, simplifies = TRUE, s
         }else{
             Omega <- object$Omega
         }
+    }
+
+    ## ** inverse
+    if(inverse){
+        Omega <- lapply(Omega, function(iO){
+            iOut <- solve(iO)
+            attr(iOut,"time") <- attr(iO,"time")
+            attr(iOut,"sd") <- attr(iO,"sd")
+            attr(iOut,"cor") <- attr(iO,"cor")
+            return(iOut)
+        })
     }
 
     ## ** subset

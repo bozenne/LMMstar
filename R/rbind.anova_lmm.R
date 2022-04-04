@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: mar 25 2022 (12:32) 
+## Last-Updated: apr  1 2022 (11:15) 
 ##           By: Brice Ozenne
-##     Update #: 74
+##     Update #: 75
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -141,7 +141,7 @@ rbind.anova_lmm <- function(model, ..., name = NULL, sep = ": "){
 
     iIID <- do.call(cbind,ls.iid)
     if(any(is.na(iIID))){
-        out$vcov <- tcrossprod(sqrt(apply(iIID^2, 2, sum, na.rm = TRUE))) * cor(iIID, use = "pairwise")
+        out$vcov <- tcrossprod(sqrt(apply(iIID^2, 2, sum, na.rm = TRUE))) * stats::cor(iIID, use = "pairwise")
         ## usually better compared to formula 11.43 from chapter 11.4 of the book High-dimensional statistics by WAINWRIGHT
         ## iIDD0 <- iIID/(1-mean(is.na(iIID)))
         ## iIDD0[is.na(iIDD)] <- 0
