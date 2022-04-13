@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: apr  4 2022 (11:21) 
+## Last-Updated: apr 13 2022 (17:14) 
 ##           By: Brice Ozenne
-##     Update #: 433
+##     Update #: 454
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -220,7 +220,6 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
         iResiduals.long <- design$Y - design$mean %*% param.value[param.mu]
         outInit <- .initialize(design$vcov, residuals = iResiduals.long, Xmean = design$mean)
         param.value[names(outInit)] <- outInit
-
         if(trace>1){
             print(param.value)
         }
@@ -287,7 +286,7 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
                     break
                 }
             }
-            
+
             ## *** variance estimate
             param.valueM1 <- param.value
             update.value <- stats::setNames(as.double(score.value %*% solve(information.value)), names(outMoments$reparametrize$p))
@@ -411,7 +410,7 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
     if(!is.null(key.XX)){
         max.key <- key.XX[n.param,n.param]
     }
-    
+
     for(iPattern in pattern){ ## iPattern <- pattern[1]
         if(!is.null(precompute.XX) && !is.null(precompute.XY)){
             iVec.Omega <- as.double(OmegaM1[[iPattern]])
@@ -421,15 +420,18 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
         }else{
             iOmegaM1 <- OmegaM1[[iPattern]]
             iIndexCluster <- attr(design$index.cluster,"sorted")[which(design$vcov$X$pattern.cluster==iPattern)]
-            for(iId in 1:length(iIndexCluster)){ ## iId <- 1
+            for(iId in 1:length(iIndexCluster)){ ## iId <- 2
                 iX <- design$mean[iIndexCluster[[iId]],,drop=FALSE]
                 if(is.null(design$weight)){
                     iWeight <- 1
                 }else{
                     iWeight <- design$weights[attr(design$index.cluster, "sorted")[[iId]][1]]
                 }
-                numerator  <- numerator + iWeight * (t(iX) %*% iOmegaM1 %*% design$Y[iIndexCluster[[iId]]]) * design$scale.Omega[iId]
-                denominator  <- denominator + iWeight * (t(iX) %*% iOmegaM1 %*% iX) * design$scale.Omega[iId]
+                if(!is.null(design$scale.Omega)){
+                    iWeight <- iWeight * design$scale.Omega[iId]
+                }
+                numerator  <- numerator + iWeight * (t(iX) %*% iOmegaM1 %*% design$Y[iIndexCluster[[iId]]])
+                denominator  <- denominator + iWeight * (t(iX) %*% iOmegaM1 %*% iX)
             }
 
         }

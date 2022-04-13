@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: feb 18 2022 (17:07) 
+## Last-Updated: apr 13 2022 (13:49) 
 ##           By: Brice Ozenne
-##     Update #: 261
+##     Update #: 263
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -111,7 +111,7 @@ logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
     }else{
         ll <- 0
     }
-    
+
     ## ** compute log-likelihood
     ## *** looping over individuals
     if(test.loopIndiv){

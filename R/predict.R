@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: Feb 13 2022 (23:09) 
+## Last-Updated: apr 13 2022 (18:41) 
 ##           By: Brice Ozenne
-##     Update #: 563
+##     Update #: 568
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -228,7 +228,6 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
     ## ** identify variance patterns
     if(type.prediction == "dynamic" || factor.residual){
         Omega <- getVarCov(object, individual = newdata, simplifies = FALSE)
-
     }
             
     ## ** compute predictions

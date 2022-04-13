@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: apr  1 2022 (16:43) 
+## Last-Updated: apr 13 2022 (12:03) 
 ##           By: Brice Ozenne
-##     Update #: 1464
+##     Update #: 1469
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -129,7 +129,7 @@
 ##'              data.frame(id = (n+1):(2*n), rep = 1, Y = rmvnorm(n, sigma = Sigma1)))
 ##' 
 ##' e.lmmW <- lmm(Y~1, data = dfW, scale.Omega=~rep, control = list(optimizer = "FS"))
-##' e.lmm0 <- lmm(Y~1, data = dfW)
+##' e.lmm0 <- lmm(Y~1, data = dfW, control = list(optimizer = "FS"))
 ##' model.tables(e.lmmW, effects = "all")
 ##' model.tables(e.lmm0, effects = "all")
 ##' ## TRUE standard error is 1
@@ -146,8 +146,9 @@ lmm <- function(formula, repetition, structure, data,
 
     out <- list(call = match.call(), data.original = data)
     options <- LMMstar.options()
-
+    
     ## ** check and normalize user imput
+    precompute.moments <- options$precompute.moments
     if(is.null(trace)){
         trace <- options$trace
     }
@@ -351,6 +352,7 @@ lmm <- function(formula, repetition, structure, data,
     }else{
         stop("Argument \'structure\' must either be a character or a structure object. \n")
     }
+    if(structure$type=="CUSTOM"){precompute.moments <- FALSE}
 
     ## *** mean structure
     if(trace>=2){cat("- mean structure")}
@@ -535,7 +537,7 @@ lmm <- function(formula, repetition, structure, data,
                 stop("Invalid argument \'scale.Omega\': scale.Omega should be constant within clusters. \n")
             }
         }
-        options$precompute.moments <- FALSE
+        precompute.moments <- FALSE
     }else{
         var.scale.Omega <- NA
     }
@@ -571,7 +573,7 @@ lmm <- function(formula, repetition, structure, data,
                                     U.strata = U.strata,
                                     U.time = U.time,
                                     stratify.mean = optimizer=="gls",
-                                    precompute.moments = options$precompute.moments)
+                                    precompute.moments = precompute.moments)
 
     ## note use model.frame to handline splines in the formula
     out$xfactor <- c(list(mean = stats::.getXlevels(stats::terms(out$formula$mean.design),stats::model.frame(out$formula$mean.design,data))),
@@ -658,7 +660,7 @@ lmm <- function(formula, repetition, structure, data,
     }else{
         outEstimate <- .estimate(design = out$design, time = out$time, method.fit = method.fit, type.information = type.information,
                                  transform.sigma = options$transform.sigma, transform.k = options$transform.k, transform.rho = options$transform.rho,
-                                 precompute.moments = options$precompute.moments, 
+                                 precompute.moments = precompute.moments, 
                                  optimizer = optimizer, init = control$init, n.iter = control$n.iter, tol.score = control$tol.score, tol.param = control$tol.param, trace = control$trace)
         param.value <- outEstimate$estimate
         out$opt <- c(name = optimizer, outEstimate[c("cv","n.iter","score","previous.estimate")])
@@ -680,7 +682,7 @@ lmm <- function(formula, repetition, structure, data,
     outMoments <- .moments.lmm(value = out$param$value, design = out$design, time = out$time, method.fit = method.fit, type.information = type.information,
                                transform.sigma = options$transform.sigma, transform.k = options$transform.k, transform.rho = options$transform.rho,
                                logLik = TRUE, score = TRUE, information = TRUE, vcov = TRUE, df = df, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
-                               trace = trace>=2, precompute.moments = options$precompute.moments, method.numDeriv = options$method.numDeriv, transform.names = FALSE)
+                               trace = trace>=2, precompute.moments = precompute.moments, method.numDeriv = options$method.numDeriv, transform.names = FALSE)
     
     out[names(outMoments)] <- outMoments
 

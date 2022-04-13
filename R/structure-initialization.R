@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: apr  1 2022 (16:54) 
+## Last-Updated: apr 13 2022 (13:23) 
 ##           By: Brice Ozenne
-##     Update #: 154
+##     Update #: 165
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -237,6 +237,19 @@
 ## * initialize.UN
 .initialize.UN <- .initialize.CS
 
+## * initialize.CUSTOM
+.initialize.CUSTOM <- function(object, residuals, Xmeans){
+
+    out <- stats::setNames(rep(NA, NROW(object$param)), object$param$name)
+    if(!is.null(object$init.sigma) && any(!is.na(object$init.sigma))){
+        out[names(object$init.sigma[!is.na(object$init.sigma)])] <- object$init.sigma[!is.na(object$init.sigma)]
+    }
+    if(!is.null(object$init.rho) && any(!is.na(object$init.rho))){
+        out[names(object$init.rho[!is.na(object$init.rho)])] <- object$init.rho[!is.na(object$init.rho)]
+    }
+
+    return(out)
+}
 
 
 ##----------------------------------------------------------------------

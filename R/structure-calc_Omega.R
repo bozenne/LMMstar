@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: apr  4 2022 (10:00) 
+## Last-Updated: apr 13 2022 (17:16) 
 ##           By: Brice Ozenne
-##     Update #: 423
+##     Update #: 437
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -67,7 +67,7 @@
 
 
 ## * calc_Omega.UN
-.calc_Omega.UN <- function(object, param, keep.interim = FALSE){
+.calc_Omega.UN <- function(object, param, keep.interim = FALSE){    
     Upattern <- object$X$Upattern
     n.Upattern <- NROW(Upattern)
     pattern.cluster <- object$X$pattern.cluster
@@ -105,6 +105,46 @@
 ## * calc_Omega.CS
 .calc_Omega.CS <- .calc_Omega.UN
 
+## * calc_Omega.CS
+.calc_Omega.CUSTOM <- function(object, param, keep.interim = FALSE){
+
+    Upattern <- object$X$Upattern
+    n.Upattern <- NROW(Upattern)
+    pattern.cluster <- object$X$pattern.cluster
+    X.var <- object$X$var
+    X.cor <- object$X$cor
+    FCT.sigma <- object$FCT.sigma
+    FCT.rho <- object$FCT.rho
+    name.sigma <- names(object$init.sigma)
+    name.rho <- names(object$init.rho)
+
+    Omega <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
+
+        iIndex <- attr(object$X$Upattern$example[[iPattern]],"index")
+        iTime <- Upattern[iPattern,"time"][[1]]
+        iNtime <- length(iTime)
+
+        iX.var <- X.var[iIndex,,drop=FALSE]
+        iOmega.sd <- FCT.sigma(param[name.sigma],iTime,iX.var)
+        
+        if(iNtime > 1 && !is.null(X.cor)){
+            iX.cor <- X.cor[iIndex,,drop=FALSE]
+            iOmega.cor <- FCT.rho(param[name.rho],iTime,iX.cor)
+            diag(iOmega.cor) <- 0
+        }
+        iOmega <- diag(as.double(iOmega.sd)^2, nrow = iNtime, ncol = iNtime) + iOmega.cor * tcrossprod(iOmega.sd)
+        
+        if(keep.interim){
+            attr(iOmega,"time") <- iTime
+            attr(iOmega,"sd") <- iOmega.sd
+            attr(iOmega,"cor") <- iOmega.cor
+        }
+        return(iOmega)
+    }), Upattern$name)
+
+
+    return(Omega)
+}
 
 
 ##----------------------------------------------------------------------

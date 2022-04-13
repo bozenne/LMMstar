@@ -134,7 +134,7 @@ dfW <- rbind(data.frame(id = 1:n, rep = 5, Y = rowMeans(rmvnorm(n, sigma = Sigma
              data.frame(id = (n+1):(2*n), rep = 1, Y = rmvnorm(n, sigma = Sigma1)))
 
 e.lmmW <- lmm(Y~1, data = dfW, scale.Omega=~rep, control = list(optimizer = "FS"))
-e.lmm0 <- lmm(Y~1, data = dfW)
+e.lmm0 <- lmm(Y~1, data = dfW, control = list(optimizer = "FS"))
 model.tables(e.lmmW, effects = "all")
 model.tables(e.lmm0, effects = "all")
 ## TRUE standard error is 1

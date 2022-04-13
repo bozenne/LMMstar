@@ -110,7 +110,7 @@ utils::packageVersion("LMMstar")
 #+END_SRC
 
 #+RESULTS:
-: [1] '0.5.7'
+: [1] '0.6.0'
 
 When estimating model coefficients, we will use the internal
 optimization routine of the *LMMstar* package (instead of relying on
@@ -169,7 +169,7 @@ A3_months     0.946   0.959   0.966     1.000
 \clearpage
 
 * Linear mixed model
-** Covariance patterns
+** Classical covariance patterns
 Fit a linear model with *identity* structure:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 eId.lmm <- lmm(weight ~ time + glucagon,
@@ -1658,6 +1658,134 @@ fitted(eUN.lmmNA, impute = TRUE, se = "total")
 : [1] 4.262434 6.305287
 : [1] 3.858267 5.871642
 : [1] 4.342624 6.905246
+
+\clearpage
+
+* User-specific covariance patterns
+
+From version 0.6.0 and above it is possible customize the covariance
+pattern under the following model for the residuals:
+\[\Omega = \trans{\boldsymbol{\sigma}} R \boldsymbol{\sigma}\]
+where:
+- \(\boldsymbol{\sigma}=f(\boldsymbol{\theta}_{\sigma},Z_{\sigma})\)
+  is a vector of residual standard errors depending on a vector of
+  parameters \(\boldsymbol{\theta}_{\sigma}\) and possible covariates
+  via the design matrix \(Z_{\sigma}\). 
+- \(R=g(\boldsymbol{\theta}_{R},Z_R)\) is a matrix of residual
+  correlations depending on a vector of parameters
+  \(\boldsymbol{\theta}_{R}\) and possible covariates via the design
+  matrix \(Z_R\).
+
+\bigskip
+
+To be more concrete, consider the following correlation matrix
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+rho.2block <- function(p,time,...){
+  n.time <- length(time)
+  rho <- matrix(1, nrow = n.time, ncol = n.time)
+  rho[1,2] <- rho[2,1] <- rho[4,5] <- rho[5,4] <- p["rho1"]
+  rho[1,3] <- rho[3,1] <- rho[4,6] <- rho[6,4] <- p["rho2"]
+  rho[2,3] <- rho[3,2] <- rho[5,6] <- rho[6,5] <- p["rho3"]
+  rho[4:6,1:3] <- rho[1:3,4:6] <- p["rho4"]
+  return(rho)
+}
+Rho <- rho.2block(p = c(rho1=0.25,rho2=0.5,rho3=0.4,rho4=0.1),
+                  time = 1:6)
+Rho
+#+END_SRC
+
+#+RESULTS:
+:      [,1] [,2] [,3] [,4] [,5] [,6]
+: [1,] 1.00 0.25  0.5 0.10 0.10  0.1
+: [2,] 0.25 1.00  0.4 0.10 0.10  0.1
+: [3,] 0.50 0.40  1.0 0.10 0.10  0.1
+: [4,] 0.10 0.10  0.1 1.00 0.25  0.5
+: [5,] 0.10 0.10  0.1 0.25 1.00  0.4
+: [6,] 0.10 0.10  0.1 0.50 0.40  1.0
+
+and the corresponding dataset:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+set.seed(11)
+n <- 1000
+Y <- rmvnorm(n, mean = rep(0,6), sigma = Rho)
+dfL <- reshape2::melt(cbind(id = 1:n, as.data.frame(Y)), id.vars = "id")
+dfL$time  <- dfL$variable
+dfL <- dfL[order(dfL$id),]
+dfL[1:8,]
+#+END_SRC
+
+#+RESULTS:
+:      id variable      value time
+: 1     1       V1 -0.9842079   V1
+: 1001  1       V2 -0.3681245   V2
+: 2001  1       V3 -1.6174652   V3
+: 3001  1       V4 -1.4994103   V4
+: 4001  1       V5  0.7493107   V5
+: 5001  1       V6 -1.0719657   V6
+: 2     2       V1  1.2402726   V1
+: 1002  2       V2  0.6494215   V2
+
+To fit the corresponding mixed model, we call =lmm= using a
+(non-standard) correlation structure via the =CUSTOM= structure:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+e.lmmCUSTOM <- lmm(value~time,
+                   repetition=~time|id,
+                   structure=CUSTOM(~variable,
+                                    FCT.sigma = function(p,time,X){rep(p,length(time))}, ## function f
+                                    init.sigma = c("sigma"=1),
+                                    FCT.rho = rho.2block, ## function g
+                                    init.rho = c("rho1"=0.25,"rho2"=0.25,"rho3"=0.25,"rho4"=0.25)),
+                   data=dfL, control = list(optimizer = "FS"),
+                   df = FALSE) ## df = FALSE to save computation time
+logLik(e.lmmCUSTOM)
+#+END_SRC
+
+#+RESULTS:
+: [1] -7962.243
+
+The optimization procedure is not very fast but eventually reaches an
+optimum. We can then output the estimated correlation matrix:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+cov2cor(getVarCov(e.lmmCUSTOM))
+#+END_SRC
+
+#+RESULTS:
+:            V1         V2         V3         V4         V5         V6
+: V1 1.00000000 0.24898095 0.50058993 0.09053785 0.09053785 0.09053785
+: V2 0.24898095 1.00000000 0.36110943 0.09053785 0.09053785 0.09053785
+: V3 0.50058993 0.36110943 1.00000000 0.09053785 0.09053785 0.09053785
+: V4 0.09053785 0.09053785 0.09053785 1.00000000 0.24898095 0.50058993
+: V5 0.09053785 0.09053785 0.09053785 0.24898095 1.00000000 0.36110943
+: V6 0.09053785 0.09053785 0.09053785 0.50058993 0.36110943 1.00000000
+
+Note that specifying a classical structure via =CUSTOM= (e.g. compound symmetry):
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+logLik(lmm(value~time,
+           repetition=~time|id,
+           structure=CUSTOM(~1,
+                            FCT.sigma = function(p,time,X){rep(p,length(time))},
+                            init.sigma = c("sigma"=1),
+                            FCT.rho = function(p,time,X){matrix(p,length(time),length(time))+diag(1-p,length(time),length(time))},
+                            init.rho = c("rho"=0.5)), 
+           data=dfL, control = list(optimizer = "FS"),
+           df = FALSE))
+#+END_SRC
+
+#+RESULTS:
+: [1] -8186.859
+
+should be the same as using the pre-specified structure (up the
+certain user-friendly displays):
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+logLik(lmm(value~time,
+           repetition=~time|id,
+           structure="CS", 
+           data=dfL, control = list(optimizer = "FS"),
+           df = FALSE))
+#+END_SRC
+
+#+RESULTS:
+: [1] -8186.859
 
 \clearpage
 

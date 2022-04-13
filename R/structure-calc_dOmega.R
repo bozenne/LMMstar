@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: apr  1 2022 (16:38) 
+## Last-Updated: apr 13 2022 (17:14) 
 ##           By: Brice Ozenne
-##     Update #: 54
+##     Update #: 90
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -65,7 +65,7 @@
 `.calc_dOmega` <-
     function(object, param, Omega, Jacobian) UseMethod(".calc_dOmega")
 
-## * calc_Omega.UN
+## * calc_dOmega.UN
 .calc_dOmega.UN <- function(object, param, Omega, Jacobian = NULL){
 
     ## ** prepare
@@ -178,11 +178,86 @@
     return(out)
 }
 
-## * calc_Omega.IND
+## * calc_dOmega.IND
 .calc_dOmega.IND <- .calc_dOmega.UN
 
-## * calc_Omega.CS
+## * calc_dOmega.CS
 .calc_dOmega.CS <- .calc_dOmega.UN
+
+## * calc_dOmega.CUSTOM
+.calc_dOmega.CUSTOM <- function(object, param, Omega, Jacobian = NULL){
+
+    FCT.sigma <- object$FCT.sigma
+    FCT.rho <- object$FCT.rho
+    dFCT.sigma <- object$dFCT.sigma
+    dFCT.rho <- object$dFCT.rho
+    name.sigma <- names(object$init.sigma)
+    name.rho <- names(object$init.rho)
+
+    if(!is.null(FCT.sigma) && is.null(dFCT.sigma) || !is.null(FCT.rho) && is.null(dFCT.rho) ){
+
+        ## unlist(.calc_Omega.CUSTOM(object, param = param, keep.interim = FALSE))
+        vec.dOmega <- numDeriv::jacobian(func = function(x){
+            unlist(.calc_Omega.CUSTOM(object, param = x, keep.interim = FALSE))
+        }, x = param[c(name.sigma,name.rho)])
+
+        vec.pattern <- unlist(lapply(names(Omega), function(iName){
+            iTime <- attr(Omega[[iName]],"time")
+            iNtime <- length(iTime)
+            iOut <- matrix(iName, nrow = iNtime, ncol = iNtime, dimnames = list(iTime,iTime))
+        }))
+        out <- by(data = vec.dOmega, INDICES = vec.pattern, FUN = function(idOmega){ ## idOmega <- vec.dOmega[1:16,]
+            iOut <- apply(idOmega, MARGIN = 2, simplify = FALSE, function(iVec){
+                iNtime <- sqrt(length(iVec))
+                matrix(iVec, nrow = iNtime, ncol = iNtime)
+            })
+            names(iOut) <- c(name.sigma,name.rho)
+            return(iOut)
+        })
+    }else{
+
+        Upattern <- object$X$Upattern
+        n.Upattern <- NROW(Upattern)
+        pattern.cluster <- object$X$pattern.cluster
+        X.var <- object$X$var
+        X.cor <- object$X$cor
+
+        out <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
+
+            iIndex <- attr(object$X$Upattern$example[[iPattern]],"index")
+            iTime <- Upattern[iPattern,"time"][[1]]
+            iNtime <- length(iTime)
+
+            iX.var <- X.var[iIndex,,drop=FALSE]
+            iOmega.sd <- unname(attr(Omega[[iPattern]], "sd"))
+            idOmega.sd <- dFCT.sigma(param[name.sigma],iTime,iX.var)
+        
+            if(iNtime > 1 && !is.null(X.cor)){
+                iX.cor <- X.cor[iIndex,,drop=FALSE]
+                iOmega.cor <- attr(Omega[[iPattern]], "cor")
+                idOmega.cor <- dFCT.rho(param[name.rho],iTime,iX.cor)
+                iOut <- c(
+                    lapply(idOmega.sd, function(iDeriv){
+                        iDeriv <- unname(iDeriv)
+                        return(diag(2*iDeriv*iOmega.sd, nrow = iNtime, ncol = iNtime) + iOmega.cor * (iDeriv %*% t(iOmega.sd) + iOmega.sd %*% t(iDeriv)))
+                    }),
+                    lapply(idOmega.cor, function(iDeriv){
+                        iDeriv <- unname(iDeriv)
+                        return(iDeriv * tcrossprod(iOmega.sd))
+                    })
+                )
+            }else{
+                iOut <- lapply(idOmega.sd, function(iDeriv){
+                    diag(2*as.double(iDeriv)*as.double(iOmega.sd), nrow = iNtime, ncol = iNtime)
+                })
+            }
+        
+            return(iOut)
+        }), Upattern$name)
+    }
+
+    return(out)
+}
 
 
 

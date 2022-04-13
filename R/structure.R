@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: feb 16 2022 (16:26) 
+## Last-Updated: apr 13 2022 (17:44) 
 ##           By: Brice Ozenne
-##     Update #: 428
+##     Update #: 473
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -160,6 +160,7 @@ ID <- function(formula, var.cluster, var.time){
                                   stringsAsFactors = FALSE),
                 formula = list(var = outCov$formula.var,
                                cor = NULL),
+                heterogeneous = TRUE,
                 type = "IND")
 
     ## export
@@ -208,6 +209,7 @@ IND <- function(formula, var.cluster, var.time, add.time){
                                   stringsAsFactors = FALSE),
                 formula = list(var = outCov$formula.var,
                                cor = NULL),
+                heterogeneous = TRUE,
                 type = "IND")
 
     ## export
@@ -303,6 +305,7 @@ UN <- function(formula, var.cluster, var.time, add.time){
                                   stringsAsFactors = FALSE),
                 formula = list(var = outCov$formula.var,
                                cor = outCov$formula.cor),
+                heterogeneous = TRUE,
                 type = "UN")
 
     ## export
@@ -313,6 +316,142 @@ UN <- function(formula, var.cluster, var.time, add.time){
 
 ## * EXP (exponential)
 
+## * CUSTOM (user-specified)
+##' @title Custom Structure
+##' @description Variance-covariance structure specified by the user.
+##' 
+##' @param formula formula indicating variables influencing the residual variance and correlation (right hand side).
+##' @param var.cluster [character] cluster variable.
+##' @param var.time [character] time variable.
+##' @param FCT.sigma [function] take as argument the model parameters, time, and design matrix.
+##' Output the vector of residuals standard deviations.
+##' @param dFCT.sigma [list of vectors] list whose elements are the first derivative of argument \code{FCT.sigma}. 
+##' @param d2FCT.sigma [list of vectors] list whose elements are the second derivative of argument \code{FCT.sigma} (no cross-terms).
+##' @param init.sigma [numeric vector] initial value for the variance parameters.
+##' @param FCT.rho [function] take as argument the model parameters, time, and design matrix.
+##' Output the matrix of residuals correlation.
+##' @param dFCT.rho [list of matrices] list whose elements are the first derivative of argument \code{FCT.rho}. 
+##' @param d2FCT.rho [list of matrices] list whose elements are the second derivative of argument \code{FCT.rho} (no cross-terms).
+##' @param init.rho [numeric vector] initial value for the correlation parameters.
+##'
+##' @return An object of class \code{CUSTOM} that can be passed to the argument \code{structure} of the \code{lmm} function.
+##'
+##' @examples
+##' 
+##' ## Compound symmetry structure
+##' CUSTOM(~1,
+##'        FCT.sigma = function(p,time,X){rep(p,length(time))},
+##'        init.sigma = c("sigma"=1),
+##'        dFCT.sigma = function(p,time,X){list(sigma = rep(1,length(time)))},  
+##'        d2FCT.sigma = function(p,time,X){list(sigma = rep(0,length(time)))},  
+##'        FCT.rho = function(p,time,X){
+##'            matrix(p,length(time),length(time))+diag(1-p,length(time),length(time))
+##'        },
+##'        init.rho = c("rho"=0.5),
+##'        dFCT.rho = function(p,time,X){
+##'             list(rho = matrix(1,length(time),length(time))-diag(1,length(time),length(time)))
+##'        },
+##'        d2FCT.rho = function(p,time,X){list(rho = matrix(0,length(time),length(time)))}
+##' )
+##' 
+##' ## 2 block structure
+##' rho.2block <- function(p,time,X){
+##'    n.time <- length(time)
+##'    rho <- matrix(0, nrow = n.time, ncol = n.time)
+##'    rho[1,2] <- rho[2,1] <- rho[4,5] <- rho[5,4] <- p["rho1"]
+##'    rho[1,3] <- rho[3,1] <- rho[4,6] <- rho[6,4] <- p["rho2"]
+##'    rho[2,3] <- rho[3,2] <- rho[5,6] <- rho[6,5] <- p["rho3"]
+##'    rho[4:6,1:3] <- rho[1:3,4:6] <- p["rho4"]
+##'    return(rho)
+##' }
+##' drho.2block <- function(p,time,X){
+##'    n.time <- length(time)
+##'    drho <- list(rho1 = matrix(0, nrow = n.time, ncol = n.time),
+##'                 rho2 = matrix(0, nrow = n.time, ncol = n.time),
+##'                 rho3 = matrix(0, nrow = n.time, ncol = n.time),
+##'                 rho4 = matrix(0, nrow = n.time, ncol = n.time))   
+##'    drho$rho1[1,2] <- drho$rho1[2,1] <- drho$rho1[4,5] <- drho$rho1[5,4] <- 1
+##'    drho$rho2[1,3] <- drho$rho2[3,1] <- drho$rho2[4,6] <- drho$rho2[6,4] <- 1
+##'    drho$rho3[2,3] <- drho$rho3[3,2] <- drho$rho3[5,6] <- drho$rho3[6,5] <- 1
+##'    drho$rho4[4:6,1:3] <- drho$rho4[1:3,4:6] <- 1
+##'    return(drho)
+##' }
+##' d2rho.2block <- function(p,time,X){
+##'    n.time <- length(time)
+##'    d2rho <- list(rho1 = matrix(0, nrow = n.time, ncol = n.time),
+##'                  rho2 = matrix(0, nrow = n.time, ncol = n.time),
+##'                  rho3 = matrix(0, nrow = n.time, ncol = n.time),
+##'                  rho4 = matrix(0, nrow = n.time, ncol = n.time))   
+##'    return(d2rho)
+##' }
+##'
+##' CUSTOM(~variable,
+##'        FCT.sigma = function(p,time,X){rep(p,length(time))},
+##'        dFCT.sigma = function(p,time,X){list(sigma=rep(1,length(time)))},
+##'        d2FCT.sigma = function(p,time,X){list(sigma=rep(0,length(time)))},
+##'        init.sigma = c("sigma"=1),
+##'        FCT.rho = rho.2block,
+##'        dFCT.rho = drho.2block,
+##'        d2FCT.rho = d2rho.2block,
+##'        init.rho = c("rho1"=0.25,"rho2"=0.25,"rho3"=0.25,"rho4"=0.25))
+##' 
+##' @export
+CUSTOM <- function(formula, var.cluster, var.time,
+                   FCT.sigma, dFCT.sigma = NULL, d2FCT.sigma = NULL, init.sigma,
+                   FCT.rho, dFCT.rho = NULL, d2FCT.rho = NULL, init.rho){
+    if(is.null(formula)){
+        outCov <- .formulaStructure(~1)
+    }else{
+        outCov <- .formulaStructure(formula)
+    }
+
+    out <- list(call = match.call(),
+                name = data.frame(cluster = if(!missing(var.cluster)){var.cluster}else{NA},
+                                  strata = if(!is.null(outCov$strata)){outCov$strata}else{NA},
+                                  time = if(!missing(var.time)){var.time}else{NA},
+                                  var = if(length(outCov$X.var)>0){I(list(outCov$X.var))}else{NA},
+                                  cor = if(length(outCov$X.cor)>0){I(list(outCov$X.cor))}else{NA},
+                                  stringsAsFactors = FALSE),
+                formula = list(var = outCov$formula.var,
+                               cor = outCov$formula.cor),
+                heterogeneous = TRUE,
+                type = "CUSTOM")
+
+    ## param
+    if(!missing(FCT.sigma)){
+        out$FCT.sigma <- FCT.sigma
+        out$dFCT.sigma <- dFCT.sigma
+        out$d2FCT.sigma <- d2FCT.sigma
+        out$init.sigma <- init.sigma
+        if(length(out$init.sigma)>0 && is.null(names(out$init.sigma))){
+            names(out$init.sigma) <- paste0("sigma",1:length(out$init.sigma))
+        }
+    }else{
+        out$FCT.sigma <- function(p,time,X){rep(p,length(time))}
+        out$dFCT.sigma <- function(p,time,X){list(rep(1,length(time)))}
+        out$d2FCT.sigma <- function(p,time,X){list(rep(0,length(time)))}
+        out$init.sigma <- c(sigma = NA)
+    }
+    if(!missing(FCT.rho)){
+        out$FCT.rho <- FCT.rho
+        out$dFCT.rho <- dFCT.rho
+        out$d2FCT.rho <- d2FCT.rho
+        out$init.rho <- init.rho
+        if(length(init.rho)>0 && is.null(names(out$init.rho))){
+            names(out$init.rho) <- paste0("rho",1:length(out$init.rho))
+        }
+    }else{
+        out$FCT.rho <- NULL
+        out$dFCT.rho <- NULL
+        out$d2FCT.rho <- NULL
+        out$init.rho <- NULL
+    }
+
+    ## export
+    class(out) <- append("structure",class(out))
+    class(out) <- append("CUSTOM",class(out))
+    return(out)
+}
 
 
 ##----------------------------------------------------------------------

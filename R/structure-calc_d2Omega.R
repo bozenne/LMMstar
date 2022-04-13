@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: apr  1 2022 (16:38) 
+## Last-Updated: apr 13 2022 (17:08) 
 ##           By: Brice Ozenne
-##     Update #: 58
+##     Update #: 76
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -229,6 +229,7 @@
         return(iHess)
         
     })
+
     ## ** export
     out <- stats::setNames(out,Upattern$name)
     return(out)
@@ -240,6 +241,137 @@
 ## * calc_d2Omega.CS
 .calc_d2Omega.CS <- .calc_d2Omega.UN
 
+## * calc_d2Omega.CUSTOM
+.calc_d2Omega.CUSTOM <- function(object, param, Omega, dOmega, Jacobian = NULL, dJacobian = NULL){
+
+    Upattern <- object$X$Upattern
+    n.Upattern <- NROW(Upattern)
+     
+    FCT.sigma <- object$FCT.sigma
+    FCT.rho <- object$FCT.rho
+    dFCT.sigma <- object$dFCT.sigma
+    dFCT.rho <- object$dFCT.rho
+    d2FCT.sigma <- object$d2FCT.sigma
+    d2FCT.rho <- object$d2FCT.rho
+    name.sigma <- names(object$init.sigma)
+    name.rho <- names(object$init.rho)
+    pair.varcoef <- object$pair.varcoef
+
+    if(!is.null(FCT.sigma) && is.null(d2FCT.sigma) || !is.null(FCT.rho) && is.null(d2FCT.rho) ){
+
+        ## second derivative
+        ## unlist(.calc_dOmega.CUSTOM(object, param = param, Omega = Omega))
+        vec.dOmega <- numDeriv::jacobian(func = function(x){
+            unlist(.calc_dOmega.CUSTOM(object, param = x, Omega = Omega))
+        }, x = param[c(name.sigma,name.rho)])
+
+        ## indicator of pattern
+        vec.pattern <- unlist(lapply(names(dOmega), function(iName){ ## iName <- names(dOmega)[1]
+            iParam <- names(dOmega[[iName]])
+            iTime <- attr(Omega[[iName]],"time")
+            iNtime <- length(iTime)
+            iOut <- lapply(iParam, function(iP){matrix(iName, nrow = iNtime, ncol = iNtime, dimnames = list(iTime,iTime))})
+            return(iOut)
+        }))
+
+        ## indicator of param
+        vec.param <- unlist(lapply(names(dOmega), function(iName){ ## iName <- names(dOmega)[1]
+            iParam <- names(dOmega[[iName]])
+            iTime <- attr(Omega[[iName]],"time")
+            iNtime <- length(iTime)
+            iOut <- lapply(iParam, function(iP){matrix(iP, nrow = iNtime, ncol = iNtime, dimnames = list(iTime,iTime))})
+            return(iOut)
+        }))
+
+        ## matrix to list of matrices according to param and pattern
+        vec.patternXparam <- paste0(vec.pattern,"_",vec.param)
+        list.d2Omega <- by(data = data.frame(pattern = vec.pattern, param = vec.param, vec.dOmega), INDICES = vec.patternXparam, FUN = function(idOmega){ ## idOmega <- vec.dOmega[1:16,]
+            iOut <- apply(idOmega[,-(1:2),drop=FALSE], MARGIN = 2, simplify = FALSE, function(iVec){
+                iNtime <- sqrt(length(iVec))
+                matrix(iVec, nrow = iNtime, ncol = iNtime)
+            })
+            names(iOut) <- c(name.sigma,name.rho)
+            return(iOut)
+        })[unique(vec.patternXparam)]
+
+        ## normalize to expected output
+        out <- stats::setNames(vector(mode = "list", length = n.Upattern), Upattern$name)
+        for(iPattern in 1:n.Upattern){
+            
+            iIndex.pattern <- vec.pattern[!duplicated(vec.patternXparam)]==Upattern$name[iPattern]
+            iParam.pattern <- vec.param[!duplicated(vec.patternXparam)][iIndex.pattern]
+            iList.d2Omega <- list.d2Omega[iIndex.pattern]
+            out[[iPattern]] <- apply(pair.varcoef[[Upattern$name[iPattern]]], MARGIN = 2, simplify = FALSE, function(iCol){ ## iCol <- pair.varcoef[[Upattern$name[iPattern]]][,1]
+                iList.d2Omega[[which(iParam.pattern==iCol[1])]][[iCol[2]]]
+            })
+
+        }
+    }else{
+        pattern.cluster <- object$X$pattern.cluster
+        X.var <- object$X$var
+        X.cor <- object$X$cor
+
+        out <- stats::setNames(vector(mode = "list", length = n.Upattern), Upattern$name)
+        for(iPattern in 1:n.Upattern){ ## iPattern <- 1
+            iIndex <- attr(object$X$Upattern$example[[iPattern]],"index")
+            iTime <- Upattern[iPattern,"time"][[1]]
+            iNtime <- length(iTime)
+
+            iX.var <- X.var[iIndex,,drop=FALSE]
+            iOmega.sd <- unname(attr(Omega[[iPattern]], "sd"))
+            idOmega.sd <- dFCT.sigma(param[name.sigma],iTime,iX.var)
+            id2Omega.sd <- d2FCT.sigma(param[name.sigma],iTime,iX.var)
+
+            if(iNtime > 1 && !is.null(X.cor)){
+                iX.cor <- X.cor[iIndex,,drop=FALSE]
+                iOmega.cor <- attr(Omega[[iPattern]], "cor")
+                idOmega.cor <- dFCT.rho(param[name.sigma],iTime,iX.cor)
+                id2Omega.cor <- d2FCT.rho(param[name.rho],iTime,iX.cor)
+            }
+
+            out[[iPattern]] <- apply(pair.varcoef[[Upattern$name[iPattern]]], MARGIN = 2, simplify = FALSE, function(iCol){ ## iCol <- pair.varcoef[[Upattern$name[iPattern]]][,1]
+
+                iDeriv <- matrix(0, iNtime, iNtime)
+                if(iCol[1] %in% name.sigma && iCol[2] %in% name.sigma){
+                    if(iCol[1]==iCol[2]){
+                        iDeriv1 <- idOmega.sd[[iCol[1]]]
+                        iDeriv2 <- id2Omega.sd[[iCol[1]]]
+                    
+                        ## diagonal sigma terms: f(a)^2 --> 2f(a)f'(a) --> 2[f'(a)f'(a)+f(a)f''(a)]
+                        iDeriv <- iDeriv + 2*diag(iDeriv1^2 + iOmega.sd*iDeriv2, nrow = iNtime, ncol = iNtime)
+                        ## off-diagonal sigma terms: f(a)f(b) --> f''(a)f(b)
+                        if(iNtime > 1 && !is.null(X.cor)){
+                            iDeriv <- iDeriv + iOmega.cor * (iDeriv2 %*% t(iOmega.sd) + iOmega.sd %*% t(iDeriv2))
+                        }
+                    }else if(iNtime > 1 && !is.null(X.cor)){
+                        iDeriv1 <- idOmega.sd[[iCol[1]]]
+                        iDeriv2 <- idOmega.sd[[iCol[2]]]
+                    
+                        ## off-diagonal sigma terms: f(a)f(b) --> f'(a)f'(b)
+                        iDeriv <- iDeriv + iOmega.cor * (iDeriv1 %*% t(iDeriv2) + iDeriv2 %*% t(iDeriv1))
+                    }
+                }else if(iCol[1] %in% name.rho && iCol[2] %in% name.rho){
+                    ## diagonal sigma terms: 0
+                    ## off-diagonal sigma terms: f(a)f(b)f(c) --> f(a)f(b)f''(c)
+                    if(iCol[1]==iCol[2]){
+                        iDeriv <- iDeriv + id2Omega.cor[[iCol[1]]] * tcrossprod(iOmega.sd)
+                    }
+                }else{
+                    iDeriv1 <- idOmega.sd[[iCol[iCol %in% name.sigma]]]
+                    iDeriv2 <- idOmega.cor[[iCol[iCol %in% name.rho]]]
+                    ## diagonal sigma terms: 0
+                    ## off-diagonal sigma terms: f(a)f(b)f(c) --> f'(a)f(b)f'(c)
+                    iDeriv <- iDeriv + iDeriv2 * (iDeriv1 %*% t(iOmega.sd) + iOmega.sd %*% t(iDeriv1))
+                }
+
+                return(iDeriv)
+            })
+
+        }
+    }
+        
+    return(out)
+}
 
 
 ##----------------------------------------------------------------------
