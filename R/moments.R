@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: feb 16 2022 (10:35) 
+## Last-Updated: apr 20 2022 (12:11) 
 ##           By: Brice Ozenne
-##     Update #: 239
+##     Update #: 249
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -106,7 +106,11 @@
 
     if(trace>=1){cat("- Omega \n")}
     out$Omega <- .calc_Omega(object = design$vcov, param = param.value, keep.interim = TRUE)
-    out$OmegaM1 <- lapply(out$Omega,solve)
+    out$OmegaM1 <- try(lapply(out$Omega,solve), silent = TRUE)
+    if(inherits(out$OmegaM1,"try-error")){
+        stop("Could not invert the residuals variance-covariance matrix. \n",
+             out$OmegaM1)
+    }
 
     if(score || information || vcov || df){
         if(trace>=1){cat("- dOmega \n")}

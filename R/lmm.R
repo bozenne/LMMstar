@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: apr 13 2022 (12:03) 
+## Last-Updated: apr 29 2022 (17:41) 
 ##           By: Brice Ozenne
-##     Update #: 1469
+##     Update #: 1480
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -281,7 +281,9 @@ lmm <- function(formula, repetition, structure, data,
                  "Could not find column \"",var.strata,"\" indicating the strata in argument \'data\' \n")
         }
         if(length(var.time)==1 && is.na(var.time)){ ## add time when only one obs per cluster
-            if(length(var.cluster)==1 && is.na(var.cluster)){
+            if(identical(structure,"CS")){
+                ## ignore
+            }else if(length(var.cluster)==1 && is.na(var.cluster)){
                 stop("Incorrect specification of argument \'repetition\': missing time and cluster variable. \n",
                      "Should have exactly one variable after the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
             }else if(any(duplicated(data[[var.cluster]]))){
@@ -726,6 +728,10 @@ lmm <- function(formula, repetition, structure, data,
     if(is.na(var.time)){
         iTime <- tapply(data$XXclusterXX, data$XXclusterXX, function(iC){paste0("t",1:length(iC))})
         iIndex <- tapply(1:NROW(data), data$XXclusterXX, function(iC){iC})
+        if(is.list(iIndex)){
+            iIndex <- unlist(iIndex)
+            iTime <- unlist(iTime)
+        }
         data[iIndex,"XXtimeXX"] <- as.factor(iTime)
         data$XXtime.indexXX <- as.numeric(data$XXtimeXX)
     }else if(var.time %in% names(data)){
