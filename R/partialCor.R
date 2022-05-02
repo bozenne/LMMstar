@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: May  1 2022 (23:33) 
+## Last-Updated: maj  2 2022 (21:14) 
 ##           By: Brice Ozenne
-##     Update #: 45
+##     Update #: 58
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -63,11 +63,10 @@
 ##' #### bivariate (with repetition) ####
 ##' data(gastricbypassL, package = "LMMstar")
 ##' 
-##' ## partialCor(weight+glucagonAUC~time, data = gastricbypassL)
-##' ## partialCor(list(weight~time,glucagonAUC~time), data = gastricbypassL)
+##' partialCor(weight+glucagonAUC~time, data = gastricbypassL)
 ##' 
-##' ## partialCor(weight+glucagonAUC~time|id, data = gastricbypassL)
-##' ## partialCor(list(weight~time,glucagonAUC~time), data = gastricbypassL)
+##' partialCor(weight+glucagonAUC~time|id, data = gastricbypassL)
+##' partialCor(list(weight~time|id,glucagonAUC~time|id), data = gastricbypassL)
 
 ## * partialCor (documentation)
 ##' @export
@@ -84,7 +83,7 @@ partialCor <- function(formula, data){
         if(length(response)!=2){
             stop("Argument \'formula\' should contain exactly two variables on the left hand side of the formula. \n")
         }
-        formula <- lapply(response, function(iY){as.formula(paste(iY,deparse(rhs)))}) ## iY <- response[1]        
+        formula <- lapply(response, function(iY){stats::as.formula(paste(iY,deparse(rhs)))}) ## iY <- response[1]        
     }
 
     ## *** check formula agree with data
@@ -118,6 +117,12 @@ partialCor <- function(formula, data){
         }        
     }
 
+    ## *** Extra
+    if(any(c("CCvariableCC","CCvalueCC","CCrepetitionCC") %in% names(data))){
+        stop("Argument \'data\' should not contain columns \"CCvariableCC\", \"CCvalueCC\", or \"CCrepetitionCC\". \n",
+             "Those names are used internally. \n")
+    }
+    
     ## ** reshape    
     ls.name.X <- lapply(formula, function(iF){setdiff(all.vars(stats::delete.response(stats::terms(iF))),name.id)})
     name.X <- unique(unlist(ls.name.X))
@@ -129,14 +134,15 @@ partialCor <- function(formula, data){
     }
     
     dataL <- reshape2::melt(data = data[, union(name.XY, name.id),drop=FALSE],
-                            varying = name.Y, id.var = c(name.id,name.X), direction = "long")
+                            varying = name.Y, id.var = c(name.id,name.X), direction = "long",
+                            variable.name = "CCvariableCC", value.name = "CCvalueCC")
 
     ## ** fit mixed model
     index.interaction <- which(colSums(1-do.call(rbind,lapply(ls.name.X, function(iX){name.X %in% iX})))==0)
 
     X.formula <- name.X
     if(length(index.interaction)>0){
-        X.formula[index.interaction] <- paste0(name.X[index.interaction],":","variable")
+        X.formula[index.interaction] <- paste0(name.X[index.interaction],":","CCvariableCC")
     }
 
     ## set value to reference when not in the ajustment set    
@@ -144,26 +150,51 @@ partialCor <- function(formula, data){
         for(iX in name.X){ ## iX <- name.X[1]
             if(iX %in% ls.name.X[[iY]]==FALSE){
                 if(is.numeric(data[[iX]])){
-                    dataL[dataL$variable == name.Y[iY],iX]  <- 0
+                    dataL[dataL$CCvariableCC == name.Y[iY],iX]  <- 0
                 }else if(is.factor(data[[iX]])){
-                    dataL[dataL$variable == name.Y[iY],iX]  <- levels(data[[iX]])[1]
+                    dataL[dataL$CCvariableCC == name.Y[iY],iX]  <- levels(data[[iX]])[1]
                 }else if(is.character(data[[iX]])){
                     data[[iX]] <- as.factor(data[[iX]])
-                    dataL[dataL$variable == name.Y[iY],iX]  <- levels(data[[iX]])[1]
+                    dataL[dataL$CCvariableCC == name.Y[iY],iX]  <- levels(data[[iX]])[1]
                 }else{
                     stop("Unknown type of variable for ",iX,". \n")
                 }
             }            
         }
     }
-    formula.repetition <- as.formula(paste("~variable|",name.id))
-    formula.mean <- as.formula(paste("value~variable+",paste(X.formula, collapse = "+")))
 
-    e.lmm <- lmm(formula.mean, repetition = formula.repetition,
-                 data = dataL, structure = "UN")
+    
+    test.duplicated <- tapply(dataL[[name.id]], dataL[["CCvariableCC"]], function(iId){any(duplicated(iId))})
+    if(length(X.formula)>0){
+        formula.mean <- stats::as.formula(paste("CCvalueCC~CCvariableCC+",paste(X.formula, collapse = "+")))
+    }else{
+        formula.mean <- CCvalueCC~CCvariableCC
+    }
+    if(any(test.duplicated)){
+        dataL <- dataL[order(dataL$id,dataL$CCvariableCC),]
+        dataL$CCrepetitionCC <- unlist(tapply(dataL$id,dataL$id,function(iId){1:length(iId)}))
+        formula.repetition <- stats::as.formula(paste("~CCrepetitionCC|",name.id))
+
+        e.lmm <- lmm(formula.mean, repetition = formula.repetition,
+                     data = dataL, structure = CS(~CCvariableCC, heterogeneous = TRUE),
+                     control = list(optimizer = "FS"))
+        out <- model.tables(e.lmm, effects = "correlation")
+
+        name.cor <- paste0("rho(",name.Y,",",rev(name.Y),")")
+        index.cor <- which(rownames(out) %in% name.cor)
+        out <- out[index.cor,,drop=FALSE]
+        attr(out,"old2new") <- attr(out,"old2new")[index.cor]
+        attr(attr(out,"old2new"),"names") <- attr(attr(out,"old2new"),"names")
+        attr(out,"backtransform.names") <- attr(out,"backtransform.names")[index.cor]
+    }else{
+        formula.repetition <- stats::as.formula(paste("~CCvariableCC|",name.id))
+
+        e.lmm <- lmm(formula.mean, repetition = formula.repetition,
+                     data = dataL, structure = "UN")
+        out <- model.tables(e.lmm, effects = "correlation")
+    }
 
     ## ** export
-    out <- model.tables(e.lmm, effects = "correlation")
     attr(out, "lmm") <- e.lmm
     return(out)
 }
