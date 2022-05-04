@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: mar 21 2022 (10:48) 
+## Last-Updated: maj  4 2022 (18:04) 
 ##           By: Brice Ozenne
-##     Update #: 121
+##     Update #: 124
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -78,7 +78,7 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
     ## only keep one representant per type of design matrix
     pattern.alltimes <- which(object$time$n == sapply(object$design$vcov$X$Upattern$time, length))
     if(length(pattern.alltimes)>0){
-        index.id <- names(which(object$design$vcov$X$pattern.cluster==object$design$vcov$X$Upattern$name[pattern.alltimes[1]]))[1]
+        index.id <- sapply(pattern.alltimes, function(iP){names(which(object$design$vcov$X$pattern.cluster == object$design$vcov$X$Upattern$name[iP]))[1]})
         newdata <- data[data[["XXclusterXX"]] %in% index.id,]
     }else{
         warning("No cluster with all timepoints. Generate an artificial cluster. \n")
@@ -88,7 +88,7 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
         data.order <- data.order[order(data.order[["XXclusterXX"]],data.order[["XXtimeXX"]]),] ## order data
         newdata <- data.order[!duplicated(data.order[["XXtimeXX"]]),,drop=FALSE]
     }
-  
+
     if(identical(color,TRUE)){
         mean.var <- all.vars(stats::delete.response(stats::terms(stats::formula(object, effects = "mean"))))
         if(length(mean.var)>0){

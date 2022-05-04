@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: apr 29 2022 (17:41) 
+## Last-Updated: maj  4 2022 (17:38) 
 ##           By: Brice Ozenne
-##     Update #: 1480
+##     Update #: 1500
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -267,8 +267,9 @@ lmm <- function(formula, repetition, structure, data,
                  "Could not find column \"",var.cluster,"\" indicating the cluster in argument \'data\' \n")
         }
         if(length(var.time)>1){
-            stop("Incorrect specification of argument \'repetition\': too many time variables. \n",
-                 "There should be exactly one variable before the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
+            newname.time <- gsub("\\*|\\+","_",gsub(" ","",gsub("~","",res.split[1], fixed = TRUE), fixed = TRUE))
+            data[[newname.time]] <- as.numeric(interaction(as.data.frame(model.matrix(stats::as.formula(res.split[1]), data[,var.time,drop=FALSE])), drop = TRUE))
+            var.time <- newname.time
         }else if(length(var.time)==1 && !is.na(var.time) && var.time %in% names(data) == FALSE){
             stop("Argument \'repetition\' is inconsistent with argument \'data\'. \n",
                  "Could not find column \"",var.time,"\" indicating the cluster in argument \'data\' \n")

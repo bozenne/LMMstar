@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: apr 13 2022 (18:41) 
+## Last-Updated: maj  4 2022 (18:16) 
 ##           By: Brice Ozenne
-##     Update #: 568
+##     Update #: 574
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -136,8 +136,8 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
         if(any(newdata[[name.strata]] %in% object$strata$level == FALSE)){
             stop("The strata column \"",name.strata,"\" in argument \'newdata\' contains unknown levels. \n")
         }
-    } 
-    
+    }
+
     if(type.prediction == "dynamic"){
         if(name.time %in% names(newdata) == FALSE){
             stop("The time column \"",name.time,"\" in argument \'newdata\' is missing and necessary when doing dynamic predictions. \n")
@@ -235,9 +235,9 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
         ## compute predictions
         prediction <- X %*% beta
         if(keep.newdata){
-            out <- cbind(newdata, estimate = prediction)
+            out <- cbind(newdata, estimate = prediction[,1])
         }else{
-            out <- data.frame(estimate = prediction,stringsAsFactors = FALSE)
+            out <- data.frame(estimate = prediction[,1],stringsAsFactors = FALSE)
         }
         ## compute uncertainty about the predictions
         ## prediction.se <- sqrt(diag(X %*% vcov.beta %*% t(X)))

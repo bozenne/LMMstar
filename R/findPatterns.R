@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: apr 13 2022 (10:31) 
+## Last-Updated: maj  4 2022 (17:50) 
 ##           By: Brice Ozenne
-##     Update #: 10
+##     Update #: 21
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -71,6 +71,7 @@
         ## update vector giving the index of the pattern corresponding to each cluster
         patternCor.cluster <- as.numeric(factor(unlist(ls.patternCor.cluster), levels = UpatternCor.cluster))
         ## generate design matrix associated to each pattern
+        
         X.cor2 <- lapply(out.orderUPatternCor$cluster, function(iC){ ## iC <- 1
             ## extract design
             iX <- X.cor[index.cluster[[iC]][order.clusterTime[[iC]]],,drop=FALSE]
@@ -85,7 +86,7 @@
                     iX1 <- iX[iTime == min(iPair),,drop=FALSE]
                     iX2 <- iX[iTime == max(iPair),,drop=FALSE]
                     if(heterogeneous){
-                        if(all(iX1==iX2)){return(cbind("R",iX1))}else{return(cbind("D",iX2-iX1))}
+                        if(all(iX1==iX2)){return(cbind("R",iX1))}else{return(cbind(paste0("D",paste(iX1,collapse="")),iX2-iX1))}
                     }else{
                         if(all(iX1==iX2)){return(matrix(c("R",""),nrow=1,ncol=2))}else{return(cbind("D",sum(iX2!=iX1)))}
                     }

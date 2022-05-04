@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: apr 13 2022 (18:40) 
+## Last-Updated: maj  4 2022 (17:50) 
 ##           By: Brice Ozenne
-##     Update #: 1476
+##     Update #: 1491
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -269,7 +269,7 @@
         lpdiff.rho <- stats::setNames(unlist(lapply(U.strata, function(iS){ ## iS <- U.strata[1]
             iUX.cor <- UX.cor[Data.rho[[strata.var]]==iS,,drop=FALSE]
             if(NROW(iUX.cor)==1){return(NULL)}
-            iLPdiff.rho <- apply(pair.time,2,function(iCol){paste0("D.",paste(iUX.cor[max(iCol),]-iUX.cor[min(iCol),],collapse="."))})
+            iLPdiff.rho <- apply(pair.time,2,function(iCol){paste0("D",paste(iUX.cor[min(iCol),],collapse=""),".",paste(iUX.cor[max(iCol),]-iUX.cor[min(iCol),],collapse="."))})
             return(iLPdiff.rho)
         })),param.rho)
     }
@@ -471,7 +471,7 @@
     ls.pair.time <- lapply(seq.length, function(iN){.unorderedPairs(1:iN, distinct = TRUE)})
 
     ## for each cluster compute all pairwise difference in covariates
-    all.lpdiff.rho <- unlist(lapply(U.cluster[indexCluster.cor], function(iC){ ## iC <- U.cluster[1]
+    all.lpdiff.rho <- unlist(lapply(U.cluster[indexCluster.cor], function(iC){ ## iC <- U.cluster[4]
         iX <- X.cor[index.cluster[[iC]][order.clusterTime[[iC]]],,drop=FALSE]
         if(NROW(iX)==1){return(NULL)}
         iPair.time <- ls.pair.time[[which(NROW(iX)==seq.length)]]
@@ -479,7 +479,7 @@
             iX1 <- iX[min(iPair.time[,iCol]),,drop=FALSE]
             iX2 <- iX[max(iPair.time[,iCol]),,drop=FALSE]
             if(heterogeneous){
-                if(all(iX1==iX2)){return(cbind("R",iX1))}else{return(cbind("D",iX2-iX1))}
+                if(all(iX1==iX2)){return(cbind("R",iX1))}else{return(cbind(paste0("D",paste(iX1,collapse="")),iX2-iX1))}
             }else{
                 if(all(iX1==iX2)){return(matrix(c("R",""), nrow = 1, ncol = 2))}else{return(cbind("D",sum(iX2!=iX1)))}
             }

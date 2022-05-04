@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: apr 13 2022 (18:50) 
+## Last-Updated: maj  4 2022 (18:18) 
 ##           By: Brice Ozenne
-##     Update #: 1783
+##     Update #: 1788
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -45,6 +45,11 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         ## *** reformat data and create time, cluster, strata indicators
         if("mean" %in% effects){
             data.mean <- data
+            ff.allvars <- all.vars(object$formula$mean.design)
+            if(any(ff.allvars %in% names(data) == FALSE)){
+                stop("Incorrect argument \'data\': missing variable(s) for the mean structure \"",paste(ff.allvars[ff.allvars %in% names(data) == FALSE], collapse = "\" \""),"\".\n")
+            }
+
             ff.factor <- names(object$xfactor$mean)
             if(length(ff.factor)>0){
                 for(iVar in ff.factor){ ## iVar <- ff.factor[1]
@@ -55,11 +60,6 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
                     }
                     data.mean[[iVar]] <- factor(data[[iVar]], levels = object$xfactor$mean[[iVar]])
                 }
-            }
-
-            ff.allvars <- all.vars(object$formula$mean.design)
-            if(any(ff.allvars %in% names(data) == FALSE)){
-                stop("Incorrect argument \'data\': missing variable(s) for the mean structure \"",paste(ff.allvars[ff.allvars %in% names(data) == FALSE], collapse = "\" \""),"\".\n")
             }
 
             ## necessary to add the strata

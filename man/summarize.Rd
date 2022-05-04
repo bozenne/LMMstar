@@ -9,7 +9,9 @@ summarize(
   data,
   na.action = stats::na.pass,
   na.rm = FALSE,
-  which = c("observed", "missing", "mean", "sd", "min", "median", "max", "correlation")
+  level = 0.95,
+  which = c("observed", "missing", "mean", "sd", "min", "median", "max", "correlation"),
+  skip.reference = TRUE
 )
 }
 \arguments{
@@ -24,9 +26,16 @@ Passed to the \code{stats::aggregate} function.}
 
 \item{na.rm}{[logical] Should the summary statistics be computed by omitting the missing values.}
 
+\item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
+
 \item{which}{[character vector] name of the summary statistics to kept in the output.
 Can be any of, or a combination of: \code{"observed"} (number of observations with a measurement),
-\code{"missing"} (number of observations with a missing value), \code{"mean"}, \code{"sd"}, \code{"min"}, \code{"median"}, \code{"max"}.}
+\code{"missing"} (number of observations with a missing value), \code{"mean"}, \code{"mean.lower"}, \code{"mean.upper"},
+\code{"sd"}, \code{"min"},
+\code{"median"}, \code{"median.lower"}, \code{"median.upper"},
+\code{"max"}.}
+
+\item{skip.reference}{[logical] should the summary statistics for the reference level of categorical variables be omitted?}
 }
 \value{
 a data frame containing summary statistics (in columns) for each outcome and value of the grouping variables (rows). It has an attribute \code{"correlation"} when it was possible to compute the correlation matrix for each outcome with respect to the grouping variable.
@@ -34,6 +43,10 @@ a data frame containing summary statistics (in columns) for each outcome and val
 \description{
 Compute summary statistics (similar to the SAS macro procmean).
 This is essentially an interface to the \code{stats::aggregate} function.
+}
+\details{
+Confidence intervals for the mean are computed via \code{stats::t.test}
+and confidence intervals for the median are computed via \code{asht::medianTest}.
 }
 \examples{
 ## simulate data in the wide format
