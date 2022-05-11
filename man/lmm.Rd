@@ -90,7 +90,7 @@ model.tables(eCS.lmm, effects = "all")
 confint(eCS.lmm, effects = "all")
 
 ## variance-covariance structure
-getVarCov(eCS.lmm)
+sigma(eCS.lmm)
 
 #### 4- diagnostic plots ####
 quantile(residuals(eCS.lmm))

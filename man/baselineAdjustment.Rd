@@ -4,7 +4,14 @@
 \alias{baselineAdjustment}
 \title{Perform Baseline Adjustment}
 \usage{
-baselineAdjustment(object, variable, repetition, constrain, new.level = NULL)
+baselineAdjustment(
+  object,
+  variable,
+  repetition,
+  constrain,
+  new.level = NULL,
+  collapse.time = NULL
+)
 }
 \arguments{
 \item{object}{[data.frame] dataset}
@@ -16,6 +23,8 @@ baselineAdjustment(object, variable, repetition, constrain, new.level = NULL)
 \item{constrain}{[vector] Levels of the time variable at which the variable is constained.}
 
 \item{new.level}{[character or numeric] Level used at the constraint. If \code{NULL}, then the first level of the variable argument is used.}
+
+\item{collapse.time}{[character] When not \code{NULL} character used to combine the time and argument variable into a new (interaction) variable.}
 }
 \value{
 A vector of length the number of rows of the dataset.
@@ -31,17 +40,33 @@ ncgsL$treat <- baselineAdjustment(ncgsL, variable = "group",
                  repetition= ~ visit|id, constrain = 1)
 table(treat = ncgsL$treat, visit = ncgsL$visit, group = ncgsL$group)
 
+ncgsL$treattime <- baselineAdjustment(ncgsL, variable = "group",
+                   repetition= ~ visit|id, constrain = 1, collapse.time = ".")
+table(treattime = ncgsL$treattime, visit = ncgsL$visit, group = ncgsL$group)
+
 e1.lmm <- suppressWarnings(lmm(cholest~visit*treat,
+             data=ncgsL, repetition= ~ visit|id,
+             structure = "CS"))
+e1bis.lmm <- suppressWarnings(lmm(cholest~treattime,
              data=ncgsL, repetition= ~ visit|id,
              structure = "CS"))
 
 
 ## baseline adjustment 2
-ncgsL$treat2 <- baselineAdjustment(ncgsL, variable = "group", new.level = "none",
+ncgsL$treat2 <- baselineAdjustment(ncgsL, variable = "group",
+                 new.level = "basleine",
                  repetition= ~ visit|id, constrain = 1)
 table(treat = ncgsL$treat2, visit = ncgsL$visit, group = ncgsL$group)
 
+ncgsL$treattime2 <- baselineAdjustment(ncgsL, variable = "group",
+                   new.level = "baseline",
+                   repetition= ~ visit|id, constrain = 1, collapse.time = ".")
+table(treattime = ncgsL$treattime2, visit = ncgsL$visit, group = ncgsL$group)
+
 e2.lmm <- suppressWarnings(lmm(cholest~visit*treat2,
+             data=ncgsL, repetition= ~ visit|id,
+             structure = "CS"))
+e2bis.lmm <- suppressWarnings(lmm(cholest~treattime2,
              data=ncgsL, repetition= ~ visit|id,
              structure = "CS"))
 

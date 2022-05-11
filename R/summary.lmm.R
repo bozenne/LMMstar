@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: feb 16 2022 (18:53) 
+## Last-Updated: maj  9 2022 (19:12) 
 ##           By: Brice Ozenne
-##     Update #: 422
+##     Update #: 430
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -46,7 +46,7 @@
 ##' @rdname summary
 ##' @export
 summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print = TRUE, columns = NULL,
-                        hide.fit = FALSE, hide.data = FALSE, hide.cor = FALSE, hide.var = TRUE, hide.sd = FALSE, hide.mean = FALSE, ...){
+                        hide.fit = FALSE, hide.data = FALSE, hide.cor = is.null(object$formula$cor), hide.var = TRUE, hide.sd = FALSE, hide.mean = FALSE, ...){
 
     ## ** normalize user input
     param.mu <- object$param$value[object$param$type=="mu"]
@@ -178,7 +178,7 @@ summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print =
             cat("  - correlation structure:",deparse(formula$cor),"\n")
         }
         ## find unique correlation patterns
-        Omega <- nlme::getVarCov(object, simplifies = FALSE)        
+        Omega <- stats::sigma(object, simplifies = FALSE)        
         table.cor <- stats::setNames(vector(mode = "list", length = length(Omega)),names(Omega))
         for(iStrata in 1:length(Omega)){ ## iStrata <- 1
             iOmega <- Omega[[iStrata]]

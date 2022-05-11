@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: apr 13 2022 (17:44) 
+## Last-Updated: maj  9 2022 (18:35) 
 ##           By: Brice Ozenne
-##     Update #: 473
+##     Update #: 526
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -130,6 +130,7 @@
 ##' @param formula formula indicating on which variable to stratify the residual variance (left hand side).
 ##' @param var.cluster [character] cluster variable.
 ##' @param var.time [character] time variable.
+##' @param add.time not used.
 ##'
 ##' @details A typical formula would be \code{~1}.
 ##'
@@ -138,22 +139,20 @@
 ##' @examples
 ##' ID(NULL, var.cluster = "id", var.time = "time")
 ##' ID(~1, var.cluster = "id", var.time = "time")
+##' ID(~gender, var.cluster = "id", var.time = "time")
 ##' ID(gender~1, var.cluster = "id", var.time = "time")
 ##' @export
-ID <- function(formula, var.cluster, var.time){
+ID <- function(formula, var.cluster, var.time, add.time){
 
-    if(is.null(formula)){
+    if(is.null(formula) || length(all.vars(formula))==0){
         outCov <- .formulaStructure(~1)
     }else{
-        outCov <- .formulaStructure(formula)
+        ## put covariate as strata if in addition to time
+        outCov <- .formulaStructure(stats::as.formula(paste0(paste(all.vars(formula), collapse="+"),"~1")))
     }
-    if(length(outCov$X.var)>0 || length(outCov$X.cor)>0){
-        stop("Structure \"ID\" cannot handle covariates, consider using structure \"IND\" instead. \n")
-    }
-
     out <- list(call = match.call(),
                 name = data.frame(cluster = if(!missing(var.cluster)){var.cluster}else{NA},
-                                  strata = if(!is.null(outCov$strata)){outCov$strata}else{NA},
+                                  strata = if(length(outCov$strata)>0){outCov$strata}else{NA},
                                   time = if(!missing(var.time)){var.time}else{NA},
                                   var = NA,
                                   cor = NA,
@@ -196,9 +195,9 @@ ID <- function(formula, var.cluster, var.time){
 ##' @export
 IND <- function(formula, var.cluster, var.time, add.time){
     if(is.null(formula)){
-        outCov <- .formulaStructure(~1, add.X = if(add.time && !is.na(var.time)){var.time}else{NULL})
+        outCov <- .formulaStructure(~1, add.X = if(!missing(add.time) && add.time && !is.na(var.time)){var.time}else{NULL})
     }else{
-        outCov <- .formulaStructure(formula)
+        outCov <- .formulaStructure(formula, add.X = if(!missing(add.time) && add.time && !is.na(var.time)){var.time}else{NULL})
     }
     out <- list(call = match.call(),
                 name = data.frame(cluster = if(!missing(var.cluster)){var.cluster}else{NA},
@@ -230,6 +229,7 @@ IND <- function(formula, var.cluster, var.time, add.time){
 ##' @param var.time [character] time variable.
 ##' @param heterogeneous [logical] when covariates are used for the correlation structure,
 ##' should correlation parameters should be specific to each level of the covariate?
+##' @param add.time not used.
 ##'
 ##' @details A typical formula would be \code{~1}, indicating a variance constant over time and the same correlation between all pairs of times.
 ##'
@@ -242,7 +242,7 @@ IND <- function(formula, var.cluster, var.time, add.time){
 ##' CS(list(gender~time,gender~1), var.cluster = "id", var.time = "time")
 ##' 
 ##' @export
-CS <- function(formula, var.cluster, var.time, heterogeneous = TRUE){
+CS <- function(formula, var.cluster, var.time, heterogeneous = TRUE, add.time){
     if(is.null(formula)){
         outCov <- .formulaStructure(~1)
     }else{
@@ -272,8 +272,7 @@ CS <- function(formula, var.cluster, var.time, heterogeneous = TRUE){
 ##' @description Variance-covariance structure where the residuals have time-specific variance and correlation.
 ##' Can be stratified on a categorical variable.
 ##'
-##' @param formula formula indicating on which variable to stratify the residual variance and correlation (left hand side)
-##' and variables influencing the residual variance (right hand side).
+##' @param formula formula indicating on which variable to stratify the covariance structure.
 ##' @param var.cluster [character] cluster variable.
 ##' @param var.time [character] time variable.
 ##' @param add.time Should the default formula (i.e. when \code{NULL}) contain a time effect.
@@ -284,16 +283,24 @@ CS <- function(formula, var.cluster, var.time, heterogeneous = TRUE){
 ##' 
 ##' @examples
 ##' UN(NULL, var.cluster = "id", var.time = "time", add.time = TRUE)
-##' UN(list(~gender,~time), var.cluster = "id", var.time = "time")
-##' UN(gender~time, var.cluster = "id", var.time = "time")
-##' UN(list(gender~time,gender~time), var.cluster = "id", var.time = "time")
+##' UN(~gender, var.cluster = "id", var.time = "time", add.time = TRUE)
 ##' 
 ##' @export
 UN <- function(formula, var.cluster, var.time, add.time){
-    if(is.null(formula)){
-        outCov <- .formulaStructure(~1, add.X = if(add.time){var.time}else{NULL})
+
+    if(is.null(formula) || length(all.vars(formula))==0){
+        if(!missing(add.time) && add.time){
+            outCov <- .formulaStructure(~1, add.X = var.time)
+        }else{
+            outCov <- .formulaStructure(~1)
+        }
     }else{
-        outCov <- .formulaStructure(formula)
+        if(!missing(add.time) && add.time){
+            ## put covariate as strata if in addition to time
+            outCov <- .formulaStructure(stats::as.formula(paste0(paste(all.vars(formula), collapse="+"),"~1")), add.X = var.time)
+        }else{
+            outCov <- .formulaStructure(formula)
+        }
     }
 
     out <- list(call = match.call(),
@@ -333,6 +340,7 @@ UN <- function(formula, var.cluster, var.time, add.time){
 ##' @param dFCT.rho [list of matrices] list whose elements are the first derivative of argument \code{FCT.rho}. 
 ##' @param d2FCT.rho [list of matrices] list whose elements are the second derivative of argument \code{FCT.rho} (no cross-terms).
 ##' @param init.rho [numeric vector] initial value for the correlation parameters.
+##' @param add.time not used.
 ##'
 ##' @return An object of class \code{CUSTOM} that can be passed to the argument \code{structure} of the \code{lmm} function.
 ##'
@@ -398,7 +406,7 @@ UN <- function(formula, var.cluster, var.time, add.time){
 ##' @export
 CUSTOM <- function(formula, var.cluster, var.time,
                    FCT.sigma, dFCT.sigma = NULL, d2FCT.sigma = NULL, init.sigma,
-                   FCT.rho, dFCT.rho = NULL, d2FCT.rho = NULL, init.rho){
+                   FCT.rho, dFCT.rho = NULL, d2FCT.rho = NULL, init.rho, add.time){
     if(is.null(formula)){
         outCov <- .formulaStructure(~1)
     }else{

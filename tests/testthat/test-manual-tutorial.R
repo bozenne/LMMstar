@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: nov 13 2021 (16:47) 
 ## Version: 
-## Last-Updated: feb 22 2022 (12:13) 
+## Last-Updated: maj  9 2022 (15:49) 
 ##           By: Brice Ozenne
-##     Update #: 22
+##     Update #: 23
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -229,7 +229,7 @@ test_that("Extactors for lmm", {
                       GS, tol = 1e-5)
     
     ## Extract covariance matrix:
-    getVarCov(fit.main)
+    sigma(fit.main)
 
     ## F-test:
     fitAnova.main <- anova(fit.main, ci = TRUE)

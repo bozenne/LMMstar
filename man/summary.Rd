@@ -14,7 +14,7 @@
   columns = NULL,
   hide.fit = FALSE,
   hide.data = FALSE,
-  hide.cor = FALSE,
+  hide.cor = is.null(object$formula$cor),
   hide.var = TRUE,
   hide.sd = FALSE,
   hide.mean = FALSE,

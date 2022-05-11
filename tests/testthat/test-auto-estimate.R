@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 31 2022 (11:36) 
 ## Version: 
-## Last-Updated: apr  4 2022 (12:23) 
+## Last-Updated: maj  9 2022 (15:49) 
 ##           By: Brice Ozenne
-##     Update #: 53
+##     Update #: 57
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -44,7 +44,7 @@ test_that("delta method for association based on residual variance", {
     ## ANCOVA1
     e.lmmANCOVA1 <- lmm(value ~ variable + variable:X1, data = dL2, repetition = ~variable|id)
     e.coefANCOVA1 <- coef(e.lmmANCOVA1, effects  = "all")
-    e.OmegaANCOVA1 <- getVarCov(e.lmmANCOVA1)
+    e.OmegaANCOVA1 <- sigma(e.lmmANCOVA1)
     e.vcovANCOVA1 <- vcov(e.lmmANCOVA1, effects = "all", transform.sigma = "none", transform.k = "none", transform.rho = "none")
 
     ## sigma(e.ANCOVA1)^2 ## 2.201905
@@ -91,7 +91,7 @@ test_that("delta method for association based on residual variance", {
     ## summary(lm(value ~ variable+variable:X1+Y1, data = dL22))
     ## summary(gls(value ~ variable+variable:X1+Y1, data = dL22, correlation = corSymm(form=~1|id), weights = varIdent(form=~1|variable)))
     e.coefANCOVA2 <- coef(e.lmmANCOVA2, effects  = "all")
-    e.OmegaANCOVA2 <- getVarCov(e.lmmANCOVA2)
+    e.OmegaANCOVA2 <- sigma(e.lmmANCOVA2)
     e.vcovANCOVA2 <- vcov(e.lmmANCOVA2, effects = "all", transform.sigma = "none", transform.k = "none", transform.rho = "none")
 
     ## check estimate
@@ -132,7 +132,7 @@ test_that("delta method for association based on residual variance", {
     e.lmm2 <- lmm(value ~ variable, data = dL2, repetition = ~variable|id)
 
     e.coef2 <- coef(e.lmm2, effects  = "all")
-    e.Omega2 <- getVarCov(e.lmm2)
+    e.Omega2 <- sigma(e.lmm2)
     e.vcov22 <- vcov(e.lmm2, effects = "all", type.information = "observed", transform.sigma = "none", transform.k = "none", transform.rho = "none")
 
     ## check estimate
@@ -162,14 +162,14 @@ test_that("delta method for association based on residual variance", {
     dL4 <- reshape2::melt(d, id.vars = c("id","X5"),  measure.vars = c("X1","X2","Y1","Y2"))
     e.lmm4 <- lmm(value ~ variable, data = dL4, repetition = ~variable|id)
 
-    Omega4 <- getVarCov(e.lmm4)
+    Omega4 <- sigma(e.lmm4)
     C <- rbind(c(1,-1,0,0), c(0,0,1,-1))
     Omega4.diff <- C %*% Omega4 %*% t(C)
     
     expect_equal(as.double(Omega4.diff), as.double(e.Omega2), tol = 1e-5)
 
     e.delta4 <- estimate(e.lmm4, function(p){ ## p <- coef(e.lmm4, effects = "all")
-        iOmega <- C %*% getVarCov(e.lmm4, p = p) %*% t(C)
+        iOmega <- C %*% sigma(e.lmm4, p = p) %*% t(C)
         iOmega[1,2]/iOmega[1,1]
     })
     test <- data.frame("estimate" = c(0.26819312), 

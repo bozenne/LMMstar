@@ -1,11 +1,11 @@
-### getVarCov.R --- 
+### sigma.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: apr  1 2022 (10:16) 
+## Last-Updated: maj  9 2022 (15:46) 
 ##           By: Brice Ozenne
-##     Update #: 281
+##     Update #: 284
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,17 +15,17 @@
 ## 
 ### Code:
 
-## * getVarCov.lmm (documentation)
+## * sigma.lmm (documentation)
 ##' @title Extract The Residuals Variance-Covariance Matrix From a Linear Mixed Model
 ##' @description Extract the unique set of residuals variance-covariance matrices or the one relative to specific clusters.
-##' @name getVarCov
+##' @name sigma
 ##' 
-##' @param obj a \code{lmm} object.
-##' @param individual [character, data.frame, NULL] identifier of the cluster(s) for which to extract the residual variance-covariance matrix.
+##' @param object a \code{lmm} object.
+##' @param cluster [character, data.frame, NULL] identifier of the cluster(s) for which to extract the residual variance-covariance matrix.
 ##' For new clusters, a dataset containing the information (cluster, time, strata, ...) to be used to generate the residual variance-covariance matrices.
 ##' When \code{NULL}, will output complete data covariance patterns.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the residual variance-covariance matrix. Only relevant if differs from the fitted values.
-##' @param strata [character vector] When not \code{NULL} and argument \code{individual} is not specified, only output the residual variance-covariance matrix relative to specific levels of the variable used to stratify the mean and covariance structure.
+##' @param strata [character vector] When not \code{NULL} and argument \code{cluster} is not specified, only output the residual variance-covariance matrix relative to specific levels of the variable used to stratify the mean and covariance structure.
 ##' @param inverse [logical] Output the matrix inverse of the variance-covariance matrix.
 ##' @param simplifies [logical] When there is only one variance-covariance matrix, output a matrix instead of a list of matrices.
 ##' @param ... Not used. For compatibility with the generic method.
@@ -43,15 +43,14 @@
 ##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
 ##'
 ##' ## extract residuals variance covariance matrix
-##' getVarCov(eUN.lmm) ## unique patterns
-##' getVarCov(eUN.lmm, individual = c("1","5")) ## existing individuals
-##' getVarCov(eUN.lmm, individual = dL[1:7,,drop=FALSE]) ## new individuals
+##' sigma(eUN.lmm) ## unique patterns
+##' sigma(eUN.lmm, cluster = c("1","5")) ## existing clusters
+##' sigma(eUN.lmm, cluster = dL[1:7,,drop=FALSE]) ## new clusters
 
-## * getVarCov.lmm
-##' @rdname getVarCov
+## * sigma.lmm
+##' @rdname sigma
 ##' @export
-getVarCov.lmm <- function(obj, individual = NULL, p = NULL, inverse = FALSE, simplifies = TRUE, strata = NULL, ...){
-    object <- obj
+sigma.lmm <- function(object, cluster = NULL, p = NULL, inverse = FALSE, simplifies = TRUE, strata = NULL, ...){
 
     ## ** normalize user imput
     ## dot
@@ -73,39 +72,39 @@ getVarCov.lmm <- function(obj, individual = NULL, p = NULL, inverse = FALSE, sim
     }
     n.strata <- length(strata)
 
-    ## individual
-    if(!is.null(individual)){
-        if(inherits(individual, "data.frame")){
-            object$design$vcov <- stats::model.matrix(object, data = individual, effect = "variance")
+    ## cluster
+    if(!is.null(cluster)){
+        if(inherits(cluster, "data.frame")){
+            object$design$vcov <- stats::model.matrix(object, data = cluster, effect = "variance")
         }else{
-            if(any(duplicated(individual))){
-                stop("Argument \'individual\' should contain duplicates. \n")
+            if(any(duplicated(cluster))){
+                stop("Argument \'cluster\' should contain duplicates. \n")
             }
-            if(is.numeric(individual)){
-                if(any(individual %in% 1:length(object$design$cluster$levels) == FALSE)){ ## use object$design$cluster instead object$cluster to remove clusters with missing values
-                    stop("When numeric, elements in argument \'individual\' should index the clusters, i.e. be between 1 and ",object$design$cluster$n,". \n", sep = "")
+            if(is.numeric(cluster)){
+                if(any(cluster %in% 1:length(object$design$cluster$levels) == FALSE)){ ## use object$design$cluster instead object$cluster to remove clusters with missing values
+                    stop("When numeric, elements in argument \'cluster\' should index the clusters, i.e. be between 1 and ",object$design$cluster$n,". \n", sep = "")
                 }
-                individual <- object$design$cluster$levels[individual]
+                cluster <- object$design$cluster$levels[cluster]
             }else if(is.character(object$design$cluster$levels)){
-                if(any(individual %in% object$design$cluster$levels == FALSE)){
-                    stop("When character, elements in argument \'individual\' should refer to clusters used to fit the model \n", sep = "")
+                if(any(cluster %in% object$design$cluster$levels == FALSE)){
+                    stop("When character, elements in argument \'cluster\' should refer to clusters used to fit the model \n", sep = "")
                 }
-                individual <- match.arg(as.character(individual), object$design$cluster$levels, several.ok = TRUE)
+                cluster <- match.arg(as.character(cluster), object$design$cluster$levels, several.ok = TRUE)
             }else{
-                stop("Incorrect value for argument \'individual\'. Should be a numeric vector or a character vector. \n")
+                stop("Incorrect value for argument \'cluster\'. Should be a numeric vector or a character vector. \n")
             }
         }
     }
 
     ## ** rebuild residual variance-covariance matrix
-    if(inherits(individual, "data.frame")){ ## for new individuals/times
+    if(inherits(cluster, "data.frame")){ ## for new clusters/times
         if(is.null(p)){
             p <- coef(object, effects = "all")
         }
         Omega <- .calc_Omega(object = object$design$vcov,
                              param = p,
                              keep.interim = TRUE)
-    }else{ ## for existing individuals and time
+    }else{ ## for existing clusters and time
         if(!is.null(p)){
             Omega <- .calc_Omega(object = object$design$vcov,
                                  param = p,
@@ -127,7 +126,7 @@ getVarCov.lmm <- function(obj, individual = NULL, p = NULL, inverse = FALSE, sim
     }
 
     ## ** subset
-    if(is.null(individual)){ ## unique covariance patterns
+    if(is.null(cluster)){ ## unique covariance patterns
         if(object$strata$n==1){            
             out <- stats::setNames(list(.getUVarCov(object, Omega = Omega)),object$strata$levels)
         }else{
@@ -136,9 +135,9 @@ getVarCov.lmm <- function(obj, individual = NULL, p = NULL, inverse = FALSE, sim
                 out[[iStrata]] <- .getUVarCov(object, Omega = Omega[strata[object$design$vcov$X$Upattern$strata]==strata[iStrata]])
             }
         }
-    }else if(inherits(individual,"data.frame")){ ## individual specific covariance patterns (new)
+    }else if(inherits(cluster,"data.frame")){ ## cluster specific covariance patterns (new)
         
-        Ucluster <- as.character(unique(individual[[object$cluster$var]]))
+        Ucluster <- as.character(unique(cluster[[object$cluster$var]]))
         out <- stats::setNames(Omega[object$design$vcov$X$pattern.cluster[Ucluster]],Ucluster)
 
         for(iO in 1:length(out)){ ## iO <- 6
@@ -148,16 +147,16 @@ getVarCov.lmm <- function(obj, individual = NULL, p = NULL, inverse = FALSE, sim
             attr(out[[iO]],"cor") <- NULL
         }
 
-    }else{ ## individual specific covariance patterns (existing)
+    }else{ ## cluster specific covariance patterns (existing)
 
-        out <- stats::setNames(Omega[object$design$vcov$X$pattern.cluster[individual]], individual)
+        out <- stats::setNames(Omega[object$design$vcov$X$pattern.cluster[cluster]], cluster)
 
         for(iO in 1:length(out)){ ## iO <- 6
             ## DO NOT USE
             ## dimnames(out[[iO]]) <- list(object$time$levels[attr(out[[iO]],"time")],object$time$levels[attr(out[[iO]],"time")])
             ## as this is incorrect with CS structure and missing data (indeed CS can be for time 1,2 but also work for 2,3. However the previous line would incorrectly label the times)
             
-            iO.sort <- attr(object$design$index.cluster,"sorted")[[which(object$design$cluster$levels == individual[iO])]]
+            iO.sort <- attr(object$design$index.cluster,"sorted")[[which(object$design$cluster$levels == cluster[iO])]]
             iO.time <- object$time$levels[object$design$index.time[iO.sort]]
             dimnames(out[[iO]]) <- list(iO.time,iO.time)
             
@@ -174,13 +173,26 @@ getVarCov.lmm <- function(obj, individual = NULL, p = NULL, inverse = FALSE, sim
         attr(out,"pattern") <- NULL
         return(out)
     }else{
-        if(simplifies && is.null(individual)){
+        if(simplifies && is.null(cluster)){
             for(iStrata in 1:length(out)){
                 attr(out[[iStrata]],"pattern") <- NULL
             }
         }
         return(out)
     }
+}
+
+## * getVarCov.lmm
+##' @title Depreciated Extractor of the Residual Variance-Covariance Matrix
+##' @description Depreciated extractor of the residual variance-covariance matrix.
+##' @param obj  a \code{lmm} object.
+##' @param ... other arguments.
+##' @return Nothing
+##' @seealso \code{\link{sigma.lmm}}
+#' @export
+getVarCov.lmm <- function(obj, ...) {
+  .Deprecated("sigma.lmm")
+  NULL
 }
 
 ## * .getUVarPattern
@@ -216,7 +228,7 @@ getVarCov.lmm <- function(obj, individual = NULL, p = NULL, inverse = FALSE, sim
         out <- matrix(NA, nrow = time.n, ncol = time.n, dimnames = list(time.level, time.level))
 
         ## 1- get all covariance matrix
-        ls.Omega <- getVarCov(object, individual = unlist(object$design$vcov$X$cluster.pattern[Upattern.strata$name]))
+        ls.Omega <- sigma(object, cluster = unlist(object$design$vcov$X$cluster.pattern[Upattern.strata$name]))
         
         ## 2- get all unique covariance matrix
         ls.UOmega <- ls.Omega[!duplicated(ls.Omega)]
@@ -269,4 +281,4 @@ getVarCov.lmm <- function(obj, individual = NULL, p = NULL, inverse = FALSE, sim
     return(Omega)
 }
 ##----------------------------------------------------------------------
-### getVarCov.R ends here
+### sigma.R ends here

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 20 2022 (12:12) 
 ## Version: 
-## Last-Updated: apr 20 2022 (13:35) 
+## Last-Updated: maj 10 2022 (09:31) 
 ##           By: Brice Ozenne
-##     Update #: 4
+##     Update #: 5
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -45,13 +45,13 @@ if(FALSE){
 
     
     ## ** ICC
-    e.icc <- ICC(Y)
+    e.icc <- psych::ICC(Y)
 
     e1.lmm <- lmm(value ~ 1,
                   repetition =~ Var2|Var1,
                   data = dfL, structure = "CS", df = FALSE)
-    GS <- e.icc$results[e.icc$results$type=="ICC1",c("ICC","lower bound","upper bound")]
     test <- model.tables(e1.lmm, effects = "correlation")[,c("estimate","lower","upper")]
+    GS <- e.icc$results[e.icc$results$type=="ICC1",c("ICC","lower bound","upper bound")]
     as.double(GS-test)
 
     e3.lmm <- lmm(value ~ Var2,

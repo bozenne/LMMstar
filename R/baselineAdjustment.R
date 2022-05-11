@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (14:55) 
 ## Version: 
-## Last-Updated: okt  1 2021 (16:35) 
+## Last-Updated: maj  9 2022 (17:43) 
 ##           By: Brice Ozenne
-##     Update #: 30
+##     Update #: 71
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,6 +25,7 @@
 ##' @param repetition [formula] Time and cluster structure, typically \code{~time|id}. See examples below.
 ##' @param constrain [vector] Levels of the time variable at which the variable is constained.
 ##' @param new.level [character or numeric] Level used at the constraint. If \code{NULL}, then the first level of the variable argument is used.
+##' @param collapse.time [character] When not \code{NULL} character used to combine the time and argument variable into a new (interaction) variable.
 ##' 
 ##' @return A vector of length the number of rows of the dataset.
 ##' 
@@ -36,17 +37,33 @@
 ##'                  repetition= ~ visit|id, constrain = 1)
 ##' table(treat = ncgsL$treat, visit = ncgsL$visit, group = ncgsL$group)
 ##'
+##' ncgsL$treattime <- baselineAdjustment(ncgsL, variable = "group",
+##'                    repetition= ~ visit|id, constrain = 1, collapse.time = ".")
+##' table(treattime = ncgsL$treattime, visit = ncgsL$visit, group = ncgsL$group)
+##' 
 ##' e1.lmm <- suppressWarnings(lmm(cholest~visit*treat,
+##'              data=ncgsL, repetition= ~ visit|id,
+##'              structure = "CS"))
+##' e1bis.lmm <- suppressWarnings(lmm(cholest~treattime,
 ##'              data=ncgsL, repetition= ~ visit|id,
 ##'              structure = "CS"))
 ##' 
 ##' 
 ##' ## baseline adjustment 2
-##' ncgsL$treat2 <- baselineAdjustment(ncgsL, variable = "group", new.level = "none",
+##' ncgsL$treat2 <- baselineAdjustment(ncgsL, variable = "group",
+##'                  new.level = "basleine",
 ##'                  repetition= ~ visit|id, constrain = 1)
 ##' table(treat = ncgsL$treat2, visit = ncgsL$visit, group = ncgsL$group)
 ##'
+##' ncgsL$treattime2 <- baselineAdjustment(ncgsL, variable = "group",
+##'                    new.level = "baseline",
+##'                    repetition= ~ visit|id, constrain = 1, collapse.time = ".")
+##' table(treattime = ncgsL$treattime2, visit = ncgsL$visit, group = ncgsL$group)
+##'
 ##' e2.lmm <- suppressWarnings(lmm(cholest~visit*treat2,
+##'              data=ncgsL, repetition= ~ visit|id,
+##'              structure = "CS"))
+##' e2bis.lmm <- suppressWarnings(lmm(cholest~treattime2,
 ##'              data=ncgsL, repetition= ~ visit|id,
 ##'              structure = "CS"))
 ##' 
@@ -56,7 +73,7 @@
 ## * baselineAdjustment (code)
 ##' @rdname baselineAdjustment
 ##' @export
-baselineAdjustment <- function(object, variable, repetition, constrain, new.level = NULL){
+baselineAdjustment <- function(object, variable, repetition, constrain, new.level = NULL, collapse.time = NULL){
 
     ## ** normalize user input
     if(!inherits(object,"data.frame")){
@@ -127,16 +144,32 @@ baselineAdjustment <- function(object, variable, repetition, constrain, new.leve
     }
     
     ## ** perform baseline adjustment
-    if(is.null(new.level)){
-        out <- factor(object[[variable]], levels = level.variable)
-        out[object[[var.time]] %in% constrain] <- level.variable[1]
+    object[[variable]] <- droplevels(as.factor(object[[variable]]))
+    object[[var.time]] <- droplevels(as.factor(object[[var.time]]))
+    if(is.null(collapse.time)){
+        out.prepare <- object[[variable]]
+        out.prepare2 <- object[[variable]]
     }else{
-        out <- factor(object[[variable]], levels = c(new.level,level.variable))
-        out[object[[var.time]] %in% constrain] <- new.level
+        level.variable <- apply(expand.grid(levels(object[[var.time]]), levels(object[[variable]])), 1, paste, collapse = collapse.time)
+        out.prepare <- paste(object[[var.time]], object[[variable]],  sep = collapse.time)
+        out.prepare2 <- object[[var.time]]
+    }
+    out <- factor(out.prepare, levels = c(new.level,level.variable))
+    for(iC in length(constrain):1){ ## iC <- constrain[1]
+        ## iterate over reverse order to get the new levels in the right order
+
+        if(is.null(new.level)){
+            iNewLevel <- out.prepare2[object[[var.time]] == constrain[iC]][1]
+            out <- factor(out, levels = union(iNewLevel,levels(out)))
+            out[object[[var.time]] == constrain[iC]] <- iNewLevel
+        }else{
+            out[object[[var.time]] == constrain[iC]] <- new.level
+        }
+        
     }
 
     ## ** export
-    return(out)
+    return(droplevels(out))
 }
 
 ##----------------------------------------------------------------------

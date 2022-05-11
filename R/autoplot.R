@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: maj  4 2022 (18:04) 
+## Last-Updated: maj  9 2022 (18:29) 
 ##           By: Brice Ozenne
-##     Update #: 124
+##     Update #: 138
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -73,21 +73,41 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
         }
     }
 
-    ## design matrix
+    ## design matrix: find unique combinations of covariates
     X.beta <- stats::model.matrix(object, data = data, effects = "mean")
-    ## only keep one representant per type of design matrix
-    pattern.alltimes <- which(object$time$n == sapply(object$design$vcov$X$Upattern$time, length))
-    if(length(pattern.alltimes)>0){
-        index.id <- sapply(pattern.alltimes, function(iP){names(which(object$design$vcov$X$pattern.cluster == object$design$vcov$X$Upattern$name[iP]))[1]})
-        newdata <- data[data[["XXclusterXX"]] %in% index.id,]
-    }else{
-        warning("No cluster with all timepoints. Generate an artificial cluster. \n")
-        X.vars <- all.vars(stats::delete.response(stats::terms(object$formula$mean)))
+    IX.beta <- interaction(as.data.frame(X.beta), drop = TRUE)
+    vec.X.beta <- tapply(IX.beta, data[["XXclusterXX"]],paste, collapse = "_XXX_")
+    UX.beta <- unique(vec.X.beta)
+    if(ci && !is.na(ci.alpha)){ ## remove duplicates
+        
+        test.UX.beta <- rep(TRUE, length(UX.beta))
+        for(iUX in 1:length(UX.beta)){
 
-        data.order <- data[rowSums(is.na(data[X.vars]))==0,] ## rm NA in X
-        data.order <- data.order[order(data.order[["XXclusterXX"]],data.order[["XXtimeXX"]]),] ## order data
-        newdata <- data.order[!duplicated(data.order[["XXtimeXX"]]),,drop=FALSE]
+            iX <- IX.beta[data[["XXclusterXX"]] == names(UX.beta)[iUX]]
+            iTest <- sapply(names(UX.beta)[-iUX], function(iId){all(iX %in% IX.beta[data[["XXclusterXX"]] == iId])})
+            if(any(iTest)){
+                test.UX.beta[iUX] <- FALSE
+            }
+
+        }
+        UX.beta <- UX.beta[test.UX.beta]
     }
+    
+    lsID.beta <- lapply(UX.beta, function(iX.beta){names(iX.beta == vec.X.beta)}) ## cluster(s) within each mean pattern
+    newdata <- data[data[["XXclusterXX"]] %in% names(UX.beta),]
+    
+    ## pattern.alltimes <- which(object$time$n == sapply(object$design$vcov$X$Upattern$time, length))
+    ## if(length(pattern.alltimes)>0){
+    ##     index.id <- sapply(pattern.alltimes, function(iP){names(which(object$design$vcov$X$pattern.cluster == object$design$vcov$X$Upattern$name[iP]))[1]})
+    ##     newdata <- data[data[["XXclusterXX"]] %in% index.id,]
+    ## }else{
+    ##     warning("No cluster with all timepoints. Generate an artificial cluster. \n")
+    ##     X.vars <- all.vars(stats::delete.response(stats::terms(object$formula$mean)))
+
+    ##     data.order <- data[rowSums(is.na(data[X.vars]))==0,] ## rm NA in X
+    ##     data.order <- data.order[order(data.order[["XXclusterXX"]],data.order[["XXtimeXX"]]),] ## order data
+    ##     newdata <- data.order[!duplicated(data.order[["XXtimeXX"]]),,drop=FALSE]
+    ## }
 
     if(identical(color,TRUE)){
         mean.var <- all.vars(stats::delete.response(stats::terms(stats::formula(object, effects = "mean"))))

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: apr  4 2022 (19:05) 
+## Last-Updated: maj  9 2022 (19:11) 
 ##           By: Brice Ozenne
-##     Update #: 348
+##     Update #: 354
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -180,7 +180,7 @@ coef.lmm <- function(object, effects = NULL, strata = NULL, p = NULL,
             df.epsilon <- df.epsilon[-object$index.na,,drop=FALSE]
         }
         ## inverse residual variance-covariance matrix
-        ls.OmegaM1 <- nlme::getVarCov(object, p = p, indiv = unique(df.epsilon$XXclusterXX), inverse = TRUE) 
+        ls.OmegaM1 <- stats::sigma(object, p = p, cluster = unique(df.epsilon$XXclusterXX), inverse = TRUE) 
         ls.epsilon <- base::tapply(df.epsilon$r.response,df.epsilon$XXclusterXX,list)[names(ls.OmegaM1)]## split residuals by id
         ## covariance parameter(s)
         tau <- stats::coef(object, effects = "correlation", transform.rho = "cov", transform.names = FALSE)
@@ -275,7 +275,7 @@ coef.lmm <- function(object, effects = NULL, strata = NULL, p = NULL,
                 newname <- stats::setNames(ls.reparam$newname,names(pVar))
             }else{
                 newname <- NULL
-            }
+            }            
         }else{
             outVar <- pVar
             newname <- NULL
@@ -293,12 +293,12 @@ coef.lmm <- function(object, effects = NULL, strata = NULL, p = NULL,
         out <- out[setdiff(names(out),names(p[object$param$type %in% c("sigma","k")]))]
     }else if("variance" %in% effects && transform.k %in% c("sd","var","logsd","logvar") && object$strata$n>1 && transform.names){
         ## re-order values when converting to sd with strata (avoid sd0:0 sd0:1 sd1:0 sd1:1 sd2:0 sd2:1 ...)
-        out.strata <- object$param$strata[names(pVar)]
-        out.type <- object$param$type[names(pVar)]
-        index.sd <- which(out.type %in% c("sigma","k"))
-        savenames <- names(out)
-        savenames[savenames %in% names(out.type)[index.sd]] <- names(out.type)[index.sd][order(out.strata[index.sd])]
-        out <- out[savenames]        
+        ## out.strata <- object$param$strata[names(pVar)]
+        ## out.type <- object$param$type[names(pVar)]
+        ## index.sd <- which(out.type %in% c("sigma","k"))
+        ## savenames <- names(out)
+        ## savenames[savenames %in% names(out.type)[index.sd]] <- names(out.type)[index.sd][order(out.strata[index.sd])]
+        ## out <- out[savenames]        
     }
     if(!is.null(strata)){
         ## only keep parameters relative to certain strata

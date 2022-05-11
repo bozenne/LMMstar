@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: maj  4 2022 (18:16) 
+## Last-Updated: maj  9 2022 (15:48) 
 ##           By: Brice Ozenne
-##     Update #: 574
+##     Update #: 577
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -227,7 +227,7 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
 
     ## ** identify variance patterns
     if(type.prediction == "dynamic" || factor.residual){
-        Omega <- getVarCov(object, individual = newdata, simplifies = FALSE)
+        Omega <- stats::sigma(object, cluster = newdata, simplifies = FALSE)
     }
             
     ## ** compute predictions
@@ -314,7 +314,7 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
                 }
                 if(factor.estimation){
                     calcPred <- function(x){ ## x <- param.all
-                        OO <- getVarCov(object, p = x, individual = iNewdata, simplifies = TRUE)
+                        OO <- stats::sigma(object, p = x, cluster = iNewdata, simplifies = TRUE)
                         rr <- solve(OO[iLevels.con,iLevels.con,drop=FALSE]) %*% (iY - iX.con %*% x[name.beta])
                         pp <- iX.pred %*% x[name.beta] + OO[iLevels.pred,iLevels.con,drop=FALSE] %*% rr
                         return(pp)

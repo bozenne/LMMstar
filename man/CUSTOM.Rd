@@ -15,7 +15,8 @@ CUSTOM(
   FCT.rho,
   dFCT.rho = NULL,
   d2FCT.rho = NULL,
-  init.rho
+  init.rho,
+  add.time
 )
 }
 \arguments{
@@ -42,6 +43,8 @@ Output the matrix of residuals correlation.}
 \item{d2FCT.rho}{[list of matrices] list whose elements are the second derivative of argument \code{FCT.rho} (no cross-terms).}
 
 \item{init.rho}{[numeric vector] initial value for the correlation parameters.}
+
+\item{add.time}{not used.}
 }
 \value{
 An object of class \code{CUSTOM} that can be passed to the argument \code{structure} of the \code{lmm} function.

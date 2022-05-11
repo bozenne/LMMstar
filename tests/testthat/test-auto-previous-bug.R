@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: apr  1 2022 (11:50) 
+## Last-Updated: maj  9 2022 (15:49) 
 ##           By: Brice Ozenne
-##     Update #: 108
+##     Update #: 109
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -124,7 +124,7 @@ test_that("lmm - error when predicting due to missing values in the covariates",
     set.seed(10)
     gastricbypassL$Gender <- factor(as.numeric(gastricbypassL$id) %% 2, levels = 0:1, labels = c("M","F"))
     e2.lmm  <- lmm(weight ~ Gender*glucagonAUC, repetition =Gender ~ time|id , structure = "CS", data = gastricbypassL)
-    getVarCov(e2.lmm)
+    sigma(e2.lmm)
     summary(e2.lmm, print = FALSE)
 })
 

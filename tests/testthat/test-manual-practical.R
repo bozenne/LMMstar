@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (17:03) 
 ## Version: 
-## Last-Updated: apr  1 2022 (11:33) 
+## Last-Updated: maj  9 2022 (19:13) 
 ##           By: Brice Ozenne
-##     Update #: 83
+##     Update #: 86
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -224,7 +224,7 @@ test_that("practical 3 - swabsL",{
     eUN.lmm <- lmm(swabs ~ crowding + name, data = swabsL, structure = "UN", repetition = ~name|family)
     expect_equal(as.double(logLik(eUN.lmm)),as.double(logLik(eUN.gls)), tol = 1e-6)
     ## summary(eUN.lmm)
-    getVarCov(eUN.lmm)
+    sigma(eUN.lmm)
 
     ## ** compound symmetry
     eCS.lme <- lme(swabs ~ crowding + name,
@@ -234,7 +234,7 @@ test_that("practical 3 - swabsL",{
     expect_equal(as.double(logLik(eCS.lmm)), as.double(logLik(eCS.lme)), tol = 1e-6)
 
     ## summary(eCS.lmm)
-    getVarCov(eCS.lmm)
+    sigma(eCS.lmm)
     emmip(eCS.lmm, crowding~name)
 
     ## with interaction
@@ -304,6 +304,7 @@ test_that("practical 6 - vasscoresL",{
                      repetition=~treatment|id, structure="CS")
     summary(fit.CS)
     ## autoplot(fit.CS)
+    ## autoplot(fit.CS, obs.alpha = 0.1)
     ## dummy.coef(fit.CS)
     fit.UN <- lmm(vas~-1+treatment, data=vasscoresL,
                      repetition=~treatment|id, structure="UN")

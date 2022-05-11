@@ -28,31 +28,32 @@ residuals do not have to be normally distributed.
 
 \bigskip
 
-The *LMMstar* package contains four main functions:
+The user interface of the *LMMstar* package is made of the following functions:
 - the function =lmm= is the main function of the package which fits
   linear mixed models. The user can interact with /lmm/ objects using:
     + =anova= to test linear combinations of coefficients (Wald test
-      or Likelihood ratio tests). Can be combined via =rbind=.
+      or Likelihood ratio tests). \newline The output be combined via =rbind=.
     + =coef= to extract the estimates.
     + =dummy.coef= to extract the estimated (marginal) mean for each combination of categorical covariate.
     + =estimate= to test non-linear combinations of coefficients (Wald test via a first order delta method).
     + =levels= to extract the reference level for the mean structure.
       (i.e. what =(Intercept)= refers to in presence of categorical.
       covariates).
-    + =getVarCov= to extract the modeled residual variance covariance matrix.
     + =logLik= to output the log-likelihood of the estimated model.
     + =model.tables= to extract table containing estimates with the corresponding uncertainty.
     + =plot= to obtain a diagnostic plots, partial residual plots, or a graphical display of the fitted values.
     + =predict= to compute the conditional mean for new observations.
     + =residuals= to extract the observed residuals of the fitted model.
+    + =sigma= to extract the modeled residual variance covariance matrix.
     + =summary= to obtain a summary of the input, model fit, and estimated values.
-- the =summarize= function to compute summary statistics stratified on a categorical variable (typically time).
+- the =summarize= function to compute summary statistics stratified on a categorical variable.
+- the =partialCor= function to compute partial correlation between two variables.
 - the =sampleRem= function to simulate longitudinal data.
 - the =LMMstar.options= function enables the user to display the
   default values used in the *LMMstar* package. The function
   can also change the default values to better match the user needs.
 
-\clearpage
+\bigskip
 
 Before going further we need to load the *LMMstar* package in the R
 session:
@@ -110,7 +111,7 @@ utils::packageVersion("LMMstar")
 #+END_SRC
 
 #+RESULTS:
-: [1] '0.6.0'
+: [1] '0.6.1'
 
 When estimating model coefficients, we will use the internal
 optimization routine of the *LMMstar* package (instead of relying on
@@ -166,6 +167,18 @@ A1_week       0.986   0.997   1.000     0.966
 A3_months     0.946   0.959   0.966     1.000
 #+end_example
 
+It is possible to compute correlations adjusted for other variables, e.g.:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+partialCor(list(weight~group, glucagonAUC~group),
+           data = gastricbypassL[gastricbypassL$time=="B3_months",])
+#+END_SRC
+
+#+RESULTS:
+:                         estimate    se   df  lower upper p.value
+: rho(weight,glucagonAUC)   -0.124 0.236 9.14 -0.576 0.386    0.61
+: Note: estimates and confidence intervals for rho have been back-transformed. 
+:       standard errors are not back-transformed.
+
 \clearpage
 
 * Linear mixed model
@@ -176,7 +189,7 @@ eId.lmm <- lmm(weight ~ time + glucagon,
                repetition = ~time|id, structure = "ID",
                data = gastricbypassL)
 eId.lmm
-cat(" covariance structure: \n");getVarCov(eId.lmm)
+cat(" covariance structure: \n");sigma(eId.lmm)
 #+END_SRC
 
 #+RESULTS:
@@ -203,7 +216,7 @@ eInd.lmm <- lmm(weight ~ time + glucagon,
                repetition = ~time|id, structure = "IND",
                data = gastricbypassL)
 eInd.lmm
-cat(" covariance structure: \n");getVarCov(eInd.lmm)
+cat(" covariance structure: \n");sigma(eInd.lmm)
 #+END_SRC
 
 #+RESULTS:
@@ -232,7 +245,7 @@ eCS.lmm <- lmm(weight ~ time + glucagon,
                repetition = ~time|id, structure = "CS",
                data = gastricbypassL)
 eCS.lmm
-cat(" covariance structure: \n");getVarCov(eCS.lmm)
+cat(" covariance structure: \n");sigma(eCS.lmm)
 #+END_SRC
 
 #+RESULTS:
@@ -260,32 +273,32 @@ A3_months  344.6236 344.6236 344.6236  355.3062
 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 eSCS.lmm <- lmm(weight ~ time*group,
-                repetition = group~time|id, structure = "CS",
+                repetition = ~time|id, structure = CS(~group),
                 data = gastricbypassL)
 eSCS.lmm
-cat(" covariance structure: \n");getVarCov(eSCS.lmm)
+cat(" covariance structure: \n");sigma(eSCS.lmm)
 #+END_SRC
 
 #+RESULTS:
 #+begin_example
-     Linear Mixed Model with a stratified compound symmetry covariance matrix 
+     Linear Mixed Model with a block unstructured covariance matrix 
 
  outcome/cluster/time: weight/id/time 
  data                : 80 observations and distributed in 20 clusters 
  parameters          : 8 mean ((Intercept) timeB1_week timeA1_week timeA3_months group timeB1_week:group timeA1_week:group timeA3_months:group) 
-                       2 variance (sigma:0 sigma:1) 
-                       2 correlation (rho:0 rho:1) 
+                       2 variance (sigma k.1) 
+                       2 correlation (rho(0) rho(1)) 
  log-restr.likelihood: -233.141302306302 
  convergence         : TRUE (7 iterations)
  covariance structure: 
-$`0`
+$`0.0`
           B3_months  B1_week  A1_week A3_months
 B3_months  348.0783 334.7404 334.7404  334.7404
 B1_week    334.7404 348.0783 334.7404  334.7404
 A1_week    334.7404 334.7404 348.0783  334.7404
 A3_months  334.7404 334.7404 334.7404  348.0783
 
-$`1`
+$`1.1`
           B3_months  B1_week  A1_week A3_months
 B3_months  345.1388 340.0877 340.0877  340.0877
 B1_week    340.0877 345.1388 340.0877  340.0877
@@ -302,7 +315,7 @@ eBCS.lmm <- lmm(weight ~ time*group,
                 repetition = ~time|id, structure = CS(~baseline, heterogeneous = FALSE),
                 data = gastricbypassL)
 eBCS.lmm
-cat(" covariance structure: \n");getVarCov(eBCS.lmm)
+cat(" covariance structure: \n");sigma(eBCS.lmm)
 #+END_SRC
 
 #+RESULTS:
@@ -313,7 +326,7 @@ cat(" covariance structure: \n");getVarCov(eBCS.lmm)
  data                : 80 observations and distributed in 20 clusters 
  parameters          : 8 mean ((Intercept) timeB1_week timeA1_week timeA3_months group timeB1_week:group timeA1_week:group timeA3_months:group) 
                        1 variance (sigma) 
-                       2 correlation (rho(TRUE,TRUE) rho(TRUE,FALSE)) 
+                       2 correlation (rho(TRUE) rho(TRUE,FALSE)) 
  log-restr.likelihood: -234.971305082514 
  convergence         : TRUE (7 iterations)
  covariance structure: 
@@ -341,7 +354,7 @@ eBUN.lmm <- lmm(weight ~ time*group,
                 repetition = ~time|id, structure = CS(~baseline),
                 data = gastricbypassL)
 eBUN.lmm
-cat(" covariance structure: \n");getVarCov(eBUN.lmm)
+cat(" covariance structure: \n");sigma(eBUN.lmm)
 #+END_SRC
 
 #+RESULTS:
@@ -352,7 +365,7 @@ cat(" covariance structure: \n");getVarCov(eBUN.lmm)
  data                : 80 observations and distributed in 20 clusters 
  parameters          : 8 mean ((Intercept) timeB1_week timeA1_week timeA3_months group timeB1_week:group timeA1_week:group timeA3_months:group) 
                        2 variance (sigma k.TRUE) 
-                       3 correlation (rho(TRUE,TRUE) rho(TRUE,FALSE) rho(FALSE,FALSE)) 
+                       3 correlation (rho(TRUE) rho(TRUE,FALSE) rho(FALSE)) 
  log-restr.likelihood: -231.80588606934 
  convergence         : TRUE (7 iterations)
  covariance structure: 
@@ -372,7 +385,7 @@ eUN.lmm <- lmm(weight ~ time + glucagon,
                repetition = ~time|id, structure = "UN",
                data = gastricbypassL)
 eUN.lmm
-cat(" covariance structure: \n");getVarCov(eUN.lmm)
+cat(" covariance structure: \n");sigma(eUN.lmm)
 #+END_SRC
 
 #+RESULTS:
@@ -400,10 +413,10 @@ A3_months  318.8573 304.6314 285.8077  280.9323
 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 eSUN.lmm <- lmm(weight ~ time*group + glucagon,
-                repetition = group~time|id, structure = "UN",
+                repetition = ~time|id, structure = UN(~group),
                 data = gastricbypassL)
 eSUN.lmm
-cat(" covariance structure: \n");getVarCov(eSUN.lmm)
+cat(" covariance structure: \n");sigma(eSUN.lmm)
 #+END_SRC
 
 #+RESULTS:
@@ -611,9 +624,9 @@ they uncertainty is by default computed after transformation
 
 ** Extract estimated residual variance-covariance structure
 
-The method =getVarCov= can be used to output the covariance structure of the residuals:
+The method =sigma= can be used to output the covariance structure of the residuals:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-getVarCov(eUN.lmm)
+sigma(eUN.lmm)
 #+END_SRC
 
 #+RESULTS:
@@ -625,7 +638,7 @@ getVarCov(eUN.lmm)
 
 It can also be specific to a "known" individual:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-getVarCov(eUN.lmm, individual = 5)
+sigma(eUN.lmm, cluster = 5)
 #+END_SRC
 
 #+RESULTS:
@@ -637,7 +650,7 @@ getVarCov(eUN.lmm, individual = 5)
 or for a new individual:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 newdata <- data.frame(id = "X", time = c("B3_months","B1_week","A1_week","A3_months"))
-getVarCov(eUN.lmm, individual = newdata)
+sigma(eUN.lmm, cluster = newdata)
 #+END_SRC
 
 #+RESULTS:
@@ -901,8 +914,8 @@ summary(e.anova)
 
  - Univariate Wald test (individual null hypotheses) 
                              estimate        se        df     lower    upper p.value    
-timeA1_week - timeB1_week    -3.90572   0.59464  17.87453  -5.31903  -2.4924   2e-05 ***
-timeA3_months - timeB1_week -18.24016   1.32283  19.02810 -21.38419 -15.0961  <1e-05 ***
+timeA1_week - timeB1_week    -3.90572   0.59464  17.00000  -5.32750  -2.4839 < 1e-05 ***
+timeA3_months - timeB1_week -18.24016   1.32283  19.00000 -21.40304 -15.0773 < 1e-05 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 Standard errors: model-based
@@ -930,12 +943,12 @@ Singular contrast matrix: contrasts "A1_week - B1_week" "A3_months - B1_week" "A
 
  - Univariate Wald test (individual null hypotheses) 
                        estimate        se        df     lower    upper p.value    
-B1_week - B3_months    -7.88223   0.71318  19.17147  -9.81006  -5.9544  <1e-05 ***
-A1_week - B3_months   -11.78795   1.01751  21.64404 -14.53843  -9.0375  <1e-05 ***
-A3_months - B3_months -26.12239   1.65641  18.84049 -30.59989 -21.6449  <1e-05 ***
-A1_week - B1_week      -3.90572   0.59464  17.87453  -5.51312  -2.2983   2e-05 ***
-A3_months - B1_week   -18.24016   1.32283  19.02810 -21.81595 -14.6644  <1e-05 ***
-A3_months - A1_week   -14.33444   1.05650  20.26658 -17.19030 -11.4786  <1e-05 ***
+B1_week - B3_months    -7.88223   0.71318  19.00000  -9.82885  -5.9356  <1e-05 ***
+A1_week - B3_months   -11.78795   1.01751  21.00000 -14.56525  -9.0107  <1e-05 ***
+A3_months - B3_months -26.12239   1.65641  18.00000 -30.64354 -21.6012  <1e-05 ***
+A1_week - B1_week      -3.90572   0.59464  17.00000  -5.52879  -2.2827   2e-05 ***
+A3_months - B1_week   -18.24016   1.32283  19.00000 -21.85081 -14.6295  <1e-05 ***
+A3_months - A1_week   -14.33444   1.05650  20.00000 -17.21814 -11.4507  <1e-05 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 Standard errors: model-based
@@ -1029,9 +1042,9 @@ summary(Manova)
 
  - Univariate Wald test (individual null hypotheses) 
       estimate        se        df     lower   upper p.value   
-[1,]  -8.27006   2.57880  34.20071 -14.88175 -1.6584 0.01173 * 
-[2,]   0.82179   0.61997  53.80983  -0.76772  2.4113 0.47205   
-[3,]  -0.88831   0.24161  13.70759  -1.50776 -0.2689 0.00399 **
+[1,]  -8.27006   2.57880  34.00000 -14.90551 -1.6346 0.01222 * 
+[2,]   0.82179   0.61997  53.00000  -0.77344  2.4170 0.47409   
+[3,]  -0.88831   0.24161  13.00000  -1.50998 -0.2666 0.00408 **
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 Standard errors: model-based
@@ -1112,17 +1125,13 @@ variable.
 
 ** Baseline adjustment
 
-The =lmm= contains an "experimental" feature to drop non-identifiable
-effects from the model. For instance, let us define two (artifical) groups of
-patients:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-gastricbypassL$group <- c("1","2")[as.numeric(gastricbypassL$id) %in% 15:20 + 1]
-#+END_SRC
-#+RESULTS:
-We would like to model group differences only after baseline
-(i.e. only at 1 week and 3 months after). For this we will define a
-treatment variable being the group variable except before baseline where
-it is ="none"=:
+In clinical trial the group and intervention variable often do not
+coincide, e.g., in presence of baseline measurement. In our running
+example, the first two measurement are pre-treatment (i.e. treatment
+should be ="none"=) while the last two measurements are post-treatment
+(i.e. treatment should be =1= or =2=). The =baselineAdjustment=
+function can be helpful to:
+- define the treatment variable from the time and allocation variable, where baseline has its specific value
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 gastricbypassL$treat <- baselineAdjustment(gastricbypassL, variable = "group",
                                            repetition = ~time|id, constrain = c("B3_months","B1_week"),
@@ -1149,55 +1158,8 @@ treat  B3_months B1_week A1_week A3_months
   2            0       0       6         6
 #+end_example
 
-Here we will be able to estimate a total of 6 means and therefore can
-at most identify 6 effects. However the design matrix for the
-interaction model:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-colnames(model.matrix(weight ~ treat*time, data = gastricbypassL))
-#+END_SRC
-
-#+RESULTS:
-:  [1] "(Intercept)"          "treat1"               "treat2"               "timeB1_week"         
-:  [5] "timeA1_week"          "timeA3_months"        "treat1:timeB1_week"   "treat2:timeB1_week"  
-:  [9] "treat1:timeA1_week"   "treat2:timeA1_week"   "treat1:timeA3_months" "treat2:timeA3_months"
-
-contains 12 parameters (i.e. 6 too many). The =lmm= function will
-internally remove the one that cannot be identified and fit a
-simplified model:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eC.lmm <- lmm(weight ~ treat*time, data = gastricbypassL,
-              repetition = ~time|id, structure = "UN")
-#+END_SRC
-
-#+RESULTS:
-: Constant values in the design matrix in interactions "treat:time"
-:  Coefficients "treat1" "treat2" "timeA1_week" "timeA3_months" "treat1:timeB1_week" "treat2:timeB1_week" have been removed.
-
-with the following coefficients:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-coef(eC.lmm, effects = "mean")
-#+END_SRC
-
-#+RESULTS:
-:          (Intercept)          timeB1_week   treat1:timeA1_week   treat2:timeA1_week 
-:            128.97000             -7.73000            -12.83949            -14.27452 
-: treat1:timeA3_months treat2:timeA3_months 
-:            -27.07620            -25.50553
-
-One can vizualize the baseline adjustment via the =autoplot= function:
-#+BEGIN_SRC R :file ./figures/gg-baseAdj.pdf :results graphics file :session *R* :cache no
-autoplot(eC.lmm, color = "group", ci = FALSE, size.text = 20) 
-#+END_SRC
-
-#+RESULTS:
-[[file:./figures/gg-baseAdj.pdf]]
-
-#+ATTR_LaTeX: :width 0.4\textwidth :placement [!h]
-[[./figures/gg-baseAdj.pdf]]
-
-To more easily compare the two groups, one could set the baseline
-treatment to the treatment in the control arm by omitting the argument
-=new.level=:
+- define the treatment variable from the time and allocation variable,
+  where baseline corresponds to the reference group
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 gastricbypassL$treat2 <- baselineAdjustment(gastricbypassL, variable = "group",
                                             repetition = ~time|id, constrain = c("B3_months","B1_week"))
@@ -1221,20 +1183,101 @@ treat B3_months B1_week A1_week A3_months
     2         0       0       6         6
 #+end_example
 
-Fitting the model
+- define a time varying treatment variable from the time and allocation variable
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eC2.lmm <- suppressWarnings(lmm(weight ~ treat2*time, data = gastricbypassL,
-                                repetition = ~time|id, structure = "UN"))
+gastricbypassL$timeXtreat <- baselineAdjustment(gastricbypassL, variable = "group",
+                                                repetition = ~time|id, constrain = c("B3_months","B1_week"),
+                                                collapse.time = ".")
+
+table(treat = gastricbypassL$timeXtreat, time = gastricbypassL$time, group = gastricbypassL$group)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+, , group = 1
+
+             time
+treat         B3_months B1_week A1_week A3_months
+  B3_months          14       0       0         0
+  B1_week             0      14       0         0
+  A1_week.1           0       0      14         0
+  A3_months.1         0       0       0        14
+  A1_week.2           0       0       0         0
+  A3_months.2         0       0       0         0
+
+, , group = 2
+
+             time
+treat         B3_months B1_week A1_week A3_months
+  B3_months           6       0       0         0
+  B1_week             0       6       0         0
+  A1_week.1           0       0       0         0
+  A3_months.1         0       0       0         0
+  A1_week.2           0       0       6         0
+  A3_months.2         0       0       0         6
+#+end_example
+
+We would then typically like to model group differences only after
+baseline (i.e. only at 1 week and 3 months after). This can be
+performed using the time varying treatment variable, e.g.:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eC.lmm <- lmm(weight ~ timeXtreat, data = gastricbypassL,
+              repetition = ~time|id, structure = "UN")
+coef(eC.lmm) ## change from baseline
+#+END_SRC
+
+#+RESULTS:
+:           (Intercept)     timeXtreatB1_week   timeXtreatA1_week.1 timeXtreatA3_months.1 
+:             128.97000              -7.73000             -12.83949             -27.07620 
+:   timeXtreatA1_week.2 timeXtreatA3_months.2 
+:             -14.27452             -25.50553
+
+or
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eC2.lmm <- lmm(weight ~ 0 + timeXtreat, data = gastricbypassL,
+              repetition = ~time|id, structure = "UN")
+coef(eC2.lmm) ## absolute value
+#+END_SRC
+
+#+RESULTS:
+:   timeXtreatB3_months     timeXtreatB1_week   timeXtreatA1_week.1 timeXtreatA3_months.1 
+:              128.9700              121.2400              116.1305              101.8938 
+:   timeXtreatA1_week.2 timeXtreatA3_months.2 
+:              114.6955              103.4645
+
+The parametrization however does (directly) output treatment
+effects. Instead one may be tempted to use a formula like
+=treatment*time=. However this will lead to a non-indentifiable
+model. Indeed we are only able to estimate a total of 6 means when
+constraining the expected baseline value between the two groups to be
+the same. Therefore can at most identify 6 effects. However the
+design matrix for the interaction model:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+colnames(model.matrix(weight ~ treat*time, data = gastricbypassL))
+#+END_SRC
+
+#+RESULTS:
+:  [1] "(Intercept)"          "treat1"               "treat2"               "timeB1_week"         
+:  [5] "timeA1_week"          "timeA3_months"        "treat1:timeB1_week"   "treat2:timeB1_week"  
+:  [9] "treat1:timeA1_week"   "treat2:timeA1_week"   "treat1:timeA3_months" "treat2:timeA3_months"
+
+contains 12 parameters (i.e. 6 too many). Fortunately, the =lmm=
+contains an "experimental" feature to drop non-identifiable effects
+from the model and will fit a simplified model:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eC3.lmm <- lmm(weight ~ treat2*time, data = gastricbypassL,
+               repetition = ~time|id, structure = "UN")
 #+END_SRC
 
 #+RESULTS:
 : Constant values in the design matrix in interactions "treat2:time"
 :  Coefficients "treat22" "treat22:timeB1_week" have been removed.
 
-will directly output group differences (last two coefficients):
+with the following coefficients:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-model.tables(eC2.lmm)
+model.tables(eC3.lmm)
 #+END_SRC
+
 #+RESULTS:
 :                       estimate    se   df  lower  upper  p.value
 : (Intercept)             128.97 4.532 19.0 119.48 138.46 0.00e+00
@@ -1244,42 +1287,17 @@ model.tables(eC2.lmm)
 : treat22:timeA1_week      -1.44 0.621 16.3  -2.75  -0.12 3.43e-02
 : treat22:timeA3_months     1.57 2.463 16.3  -3.64   6.78 5.32e-01
 
-It is also possible to get the estimated mean at each timepoint, using
-an equivalent mean structure:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eC3.lmm <- suppressWarnings(lmm(weight ~ 0+treat2:time, data = gastricbypassL,
-                                repetition = ~time|id, structure = "UN"))
-model.tables(eC3.lmm) ## equivalent to dummy.coef(eC2.lmm)
+One can vizualize the baseline adjustment via the =autoplot= function:
+#+BEGIN_SRC R :file ./figures/gg-baseAdj.pdf :results graphics file :session *R* :cache no
+autoplot(eC3.lmm, color = "group", ci = FALSE, size.text = 20, obs.alpha = 0.1) 
 #+END_SRC
 
 #+RESULTS:
-: Constant values in the design matrix in interactions "treat2:time"
-:  Coefficients "treat22:timeB3_months" "treat22:timeB1_week" have been removed.
-:                       estimate   se   df lower upper p.value
-: treat21:timeB3_months      129 4.53 19.0 119.5   138       0
-: treat21:timeB1_week        121 4.23 19.0 112.4   130       0
-: treat21:timeA1_week        116 4.11 19.1 107.5   125       0
-: treat22:timeA1_week        115 4.13 19.4 106.1   123       0
-: treat21:timeA3_months      102 3.87 20.2  93.8   110       0
-: treat22:timeA3_months      103 4.17 25.2  94.9   112       0
+[[file:./figures/gg-baseAdj.pdf]]
 
-or the baseline mean and the change since baseline:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eC4.lmm <- suppressWarnings(lmm(weight ~ treat2:time, data = gastricbypassL,
-                                repetition = ~time|id, structure = "UN"))
-model.tables(eC4.lmm)
-#+END_SRC
+#+ATTR_LaTeX: :width 0.4\textwidth :placement [!h]
+[[./figures/gg-baseAdj.pdf]]
 
-#+RESULTS:
-: Constant values in the design matrix in interactions "treat2:time"
-:  Coefficients "treat22:timeB3_months" "treat22:timeB1_week" have been removed.
-:                       estimate    se   df  lower  upper  p.value
-: (Intercept)             128.97 4.532 19.0 119.48 138.46 0.00e+00
-: treat21:timeB1_week      -7.73 0.697 19.0  -9.19  -6.27 1.00e-09
-: treat21:timeA1_week     -12.84 0.865 20.5 -14.64 -11.04 2.02e-12
-: treat22:timeA1_week     -14.27 0.950 26.3 -16.23 -12.32 2.02e-14
-: treat21:timeA3_months   -27.08 1.724 21.4 -30.66 -23.50 3.20e-13
-: treat22:timeA3_months   -25.51 2.323 22.6 -30.32 -20.69 1.60e-10
 
 ** Marginal means
 
@@ -1411,10 +1429,10 @@ summary(epairs.group, by = NULL, adjust = "mvt", infer = TRUE)
 
 #+RESULTS:
 :  contrast time      estimate    SE   df lower.CL upper.CL t.ratio p.value
-:  2 - 1    B3_months     4.83 10.10 18.0    -18.0     27.7   0.478  0.7496
-:  2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0   0.618  0.6481
-:  2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.9   0.471  0.7551
-:  2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.7   0.797  0.5285
+:  2 - 1    B3_months     4.83 10.10 18.0    -17.9     27.6   0.478  0.7490
+:  2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0   0.618  0.6482
+:  2 - 1    A1_week       4.29  9.11 18.0    -16.2     24.8   0.471  0.7552
+:  2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.6   0.797  0.5287
 : 
 : Confidence level used: 0.95 
 : Conf-level adjustment: mvt method for 4 estimates 
@@ -1521,8 +1539,8 @@ The first subjects has the average weight while the second has a much
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 mu1 <- coef(eUN.lmm)[1]
 mu2 <- sum(coef(eUN.lmm)[1:2])
-Omega_11 <- getVarCov(eUN.lmm)["B3_months","B3_months"]
-Omega_21 <- getVarCov(eUN.lmm)["B1_week","B3_months"]
+Omega_11 <- sigma(eUN.lmm)["B3_months","B3_months"]
+Omega_21 <- sigma(eUN.lmm)["B1_week","B3_months"]
 as.double(mu2 + Omega_21 * (100 - mu1) / Omega_11)
 #+END_SRC
 
@@ -1610,20 +1628,21 @@ When using the argument =keep.newdata=TRUE=, the missing outcome value
 has been replaced by its most likely value (which is the same as the
 dynamic prediction, describedy previously):
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eData <- fitted(eUN.lmmNA, impute = TRUE, keep.newdata = TRUE)
-eData[eData$id %in% eData[eData$imputed,"id"],]
+  eData <- fitted(eUN.lmmNA, impute = TRUE, keep.newdata = TRUE)
+eData$treat <- eData$treat2 <- eData$timeXtreat <- NULL
+  eData[eData$id %in% eData[eData$imputed,"id"],]
 #+END_SRC
 
 #+RESULTS:
-:    id visit      time weight glucagon baseline group treat treat2 imputed estimate
-: 5   5     1 B3_months  113.1 4.383738     TRUE     1  none      1   FALSE 4.514352
-: 15 15     1 B3_months  115.0 4.098741     TRUE     2  none      1   FALSE 4.514352
-: 25  5     2   B1_week  105.6 4.256984     TRUE     1  none      1    TRUE 4.386762
-: 35 15     2   B1_week  109.7 4.509697     TRUE     2  none      1   FALSE 4.386762
-: 45  5     3   A1_week   99.9 6.430376    FALSE     1     1      1   FALSE 6.078985
-: 55 15     3   A1_week  103.5 6.497856    FALSE     2     2      2    TRUE 6.078985
-: 65  5     4 A3_months   87.7 5.275118    FALSE     1     1      1   FALSE 5.057642
-: 75 15     4 A3_months   94.1 6.259632    FALSE     2     2      2   FALSE 5.057642
+:    id visit      time weight glucagonAUC baseline glucagon group id2  treatXtime imputed estimate
+: 5   5     1 B3_months  113.1      7090.5     TRUE 4.383738     1  C5   B3_months   FALSE 4.514352
+: 15 15     1 B3_months  115.0      5410.5     TRUE 4.098741     2 C15   B3_months   FALSE 4.514352
+: 25  5     2   B1_week  105.6          NA     TRUE 4.256984     1  C5     B1_week    TRUE 4.386762
+: 35 15     2   B1_week  109.7      7833.0     TRUE 4.509697     2 C15     B1_week   FALSE 4.386762
+: 45  5     3   A1_week   99.9     19155.0    FALSE 6.430376     1  C5   A1_week.1   FALSE 6.078985
+: 55 15     3   A1_week  103.5          NA    FALSE 6.497856     2 C15   A1_week.2    TRUE 6.078985
+: 65  5     4 A3_months   87.7     12345.0    FALSE 5.275118     1  C5 A3_months.1   FALSE 5.057642
+: 75 15     4 A3_months   94.1     18148.5    FALSE 6.259632     2 C15 A3_months.2   FALSE 5.057642
 
 Visually:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -1746,7 +1765,7 @@ logLik(e.lmmCUSTOM)
 The optimization procedure is not very fast but eventually reaches an
 optimum. We can then output the estimated correlation matrix:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-cov2cor(getVarCov(e.lmmCUSTOM))
+cov2cor(sigma(e.lmmCUSTOM))
 #+END_SRC
 
 #+RESULTS:

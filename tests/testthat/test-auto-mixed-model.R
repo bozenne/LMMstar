@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: apr  1 2022 (11:23) 
+## Last-Updated: maj  9 2022 (15:49) 
 ##           By: Brice Ozenne
-##     Update #: 108
+##     Update #: 112
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -140,7 +140,7 @@ expect_equal(eCS.lmm_anova$mean$df.denom, c(297.03106,  97.05084,  97.05084), to
 expect_equal(eCS.lmm_anova$correlation$df.denom, c(14.7493), tol = 1e-1)
 
 ## ** getVarCov
-getVarCov(eCS.lmm)
+sigma(eCS.lmm)
 
 ## ** prediction
 test <- predict(eCS.lmm, newdata = dL)
@@ -244,7 +244,7 @@ expect_equal(eUN.lmm_anova$variance$df.denom, c(189.236), tol = 1e-1)
 expect_equal(eUN.lmm_anova$correlation$df.denom, c(20.66968), tol = 1e-1)
 
 ## ** getVarCov
-getVarCov(eUN.lmm)
+sigma(eUN.lmm)
 })
 
 ## * Stratified random intercept model / Compound symmetry structure
@@ -330,7 +330,7 @@ expect_equal(eCS.lmm_anova$mean$df.denom, c(143.04097,  46.63249), tol = 1e-1)
 expect_equal(eCS.lmm_anova$correlation$df.denom, c(7.450136), tol = 1e-1)
 
 ## ** getVarCov
-getVarCov(eCS.lmm)
+sigma(eCS.lmm)
 })
 
 ## * Stratified unstructed covariance matrix
@@ -447,7 +447,7 @@ expect_equal(eUN.lmm_anova$correlation$df.denom, c(9.100919), tol = 1e-1)
 
 
 ## ** getVarCov
-getVarCov(eUN.lmm)
+sigma(eUN.lmm)
 })
 
 ## * Missing data

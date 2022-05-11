@@ -7,8 +7,7 @@
 UN(formula, var.cluster, var.time, add.time)
 }
 \arguments{
-\item{formula}{formula indicating on which variable to stratify the residual variance and correlation (left hand side)
-and variables influencing the residual variance (right hand side).}
+\item{formula}{formula indicating on which variable to stratify the covariance structure.}
 
 \item{var.cluster}{[character] cluster variable.}
 
@@ -28,8 +27,6 @@ A typical formula would be \code{~1}, indicating a time-specific variance parame
 }
 \examples{
 UN(NULL, var.cluster = "id", var.time = "time", add.time = TRUE)
-UN(list(~gender,~time), var.cluster = "id", var.time = "time")
-UN(gender~time, var.cluster = "id", var.time = "time")
-UN(list(gender~time,gender~time), var.cluster = "id", var.time = "time")
+UN(~gender, var.cluster = "id", var.time = "time", add.time = TRUE)
 
 }

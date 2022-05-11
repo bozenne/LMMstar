@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: nov 13 2021 (18:18) 
+## Last-Updated: maj  9 2022 (15:49) 
 ##           By: Brice Ozenne
-##     Update #: 188
+##     Update #: 189
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -381,8 +381,8 @@ expect_equal(test[name.coefM,], c(rep(sum(d$Gender=="M"),length(name.coefM)-1),s
 expect_equal(test[name.coefF,], c(rep(sum(d$Gender=="F"),length(name.coefM)-1),sum(d$Gender=="F")/4), tol = 1e-6)
 
 ## ** variance-covariance
-getVarCov(e.lmm)
-getVarCov(e.lmm2)
+sigma(e.lmm)
+sigma(e.lmm2)
 
 ## ** residuals
 residuals(e.lmm, format = "long")

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: maj  4 2022 (18:18) 
+## Last-Updated: maj 11 2022 (19:11) 
 ##           By: Brice Ozenne
-##     Update #: 1788
+##     Update #: 1827
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -86,13 +86,13 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 
             data.var <- .prepareData(data.var, var.cluster = object$cluster$var, var.time = object$time$var, var.strata = object$strata$var)
 
-            if("XXtimeXX" %in% names(data.var) == FALSE){
+            if("XXtimeXX" %in% names(data.var) == FALSE || "XXtime.indexXX" %in% names(data.var) == FALSE){
                 if(object$time$n==1){
                     data.var$XXtimeXX <- factor(object$time$levels)
                     data.var$XXtime.indexXX <- as.numeric(data.var$XXtimeXX)
                 }
             }
-            if("XXclusterXX" %in% names(data.var) == FALSE){
+            if("XXclusterXX" %in% names(data.var) == FALSE || "XXcluster.indexXX" %in% names(data.var) == FALSE){
                 if(object$time$n==1){
                     data.var$XXclusterXX <- factor(1:NROW(data.var))
                     data.var$XXcluster.indexXX <- as.numeric(data.var$XXclusterXX)
@@ -401,8 +401,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         structure$xfactor <- list(var = stats::.getXlevels(stats::terms(structure$formula$var),stats::model.frame(structure$formula$var,data)),
                                   cor = stats::.getXlevels(stats::terms(structure$formula$cor),stats::model.frame(structure$formula$cor,data)))
     }
-    ## *** design matrix
-
+    ## *** design matrix    
     outDesign <- .vcov.matrix.lmm(structure = structure, data = outInit$data, 
                                   strata.var = outInit$strata.var, U.strata = structure$U.strata,
                                   time.var = outInit$time.var, U.time = structure$U.time, 
@@ -413,17 +412,18 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 
 
     ## *** parametrization and patterns
-
     structure <- .skeleton(structure = structure, data = data, indexData = outInit)
 
     ## *** covariance pattern
-    outPattern <- .findUpatterns(X.var = structure$X$var, X.cor = structure$X$cor,
-                                 lpdiff.rho = attr(structure$param,"lpdiff.rho"), data = outInit$data, heterogeneous = structure$heterogeneous,
+    outPattern <- .findUpatterns(X.var = structure$X$var,
+                                 X.cor = structure$X$cor, table.rho = attr(structure$param,"table.rho"),
+                                 data = outInit$data, heterogeneous = structure$heterogeneous,
                                  time.var = outInit$time.var, index.clusterTime = outInit$index.clusterTime, order.clusterTime = outInit$order.clusterTime, U.time = outInit$U.time,
                                  index.cluster = outInit$index.cluster, U.cluster = outInit$U.cluster,
-                                 strata.var = outInit$strata.var, strata.param = stats::setNames(structure$param$strata,structure$param$name), U.strata = outInit$U.strata)
+                                 strata.var = outInit$strata.var,  index.clusterStrata = outInit$index.clusterStrata,
+                                 strata.param = stats::setNames(structure$param$strata,structure$param$name), U.strata = outInit$U.strata)
 
-
+    browser()
     structure$X$Upattern <- outPattern$Upattern
     structure$X$pattern.cluster <- outPattern$pattern.cluster
     structure$X$cluster.pattern <- outPattern$cluster.pattern
@@ -658,6 +658,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         if(augmodel || X.qr$rank!=NCOL(X.qr$qr)){
             attr(X,"term.labels") <- attr(X.old,"term.labels")[test.keep]
             attr(X,"order") <- attr(X.old,"order")[test.keep]
+            attr(X,"ls.level") <- attr(X.old,"ls.level")[test.keep]
             attr(X,"M.level") <- attr(X.old,"M.level")[test.keep,,drop=FALSE]
         }
     }
@@ -822,7 +823,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     time.var <- structure$name$time
     cluster.var <- structure$name$cluster
     strata.var <- structure$name$strata
-    all.var <- stats::na.omit(c(time.var,cluster.var,strata.var,unlist(lapply(structure$formula,all.vars))))
+    all.var <- unlist(lapply(structure$formula,all.vars))
 
     if(length(all.var)>0){
         for(iVar in all.var){
@@ -837,37 +838,9 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     }
 
     ## *** find unique levels of each variable
-    if(!is.na(cluster.var)){
-        if(is.factor(data[[cluster.var]])){
-            U.cluster <- levels(data[[cluster.var]])
-        }else{
-            U.cluster <- as.character(unique(data[[cluster.var]]))
-        }
-    }else{
-        U.cluster <- paste0("id",1:NROW(data))
-    }
-    
-    if(!is.na(time.var)){
-        if(is.factor(data[[time.var]])){
-            U.time <- levels(data[[time.var]])
-        }else{
-            U.time <- as.character(unique(data[[time.var]]))
-        }
-    }else if(!is.na(cluster.var)){
-        U.time <- paste0("T",1:max(table(data[[cluster.var]])))
-    }else{
-        U.time <- "T1"
-    }
-
-    if(!is.na(strata.var)){
-        if(is.factor(data[[strata.var]])){
-            U.strata <- levels(data[[strata.var]])
-        }else{
-            U.strata <- as.character(unique(data[[strata.var]]))
-        }
-    }else{
-        U.strata <- "S1"
-    }
+    U.cluster <- levels(data[[cluster.var]])
+    U.time <- levels(data[[time.var]])
+    U.strata <- levels(data[[strata.var]])
 
     ## *** find position of each cluster
     if(!is.na(cluster.var)){
@@ -888,6 +861,13 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     }
     order.clusterTime <- lapply(index.clusterTime, order)
 
+    ## *** find strata corresponding to each cluster
+    if(!is.na(strata.var)){
+        index.clusterStrata <- tapply(as.numeric(factor(data[[strata.var]], levels = U.strata)),data[[cluster.var]],unique)
+    }else{
+        index.clusterStrata <- rep(1, length(U.cluster))
+    }
+    
 
     ## *** export
     out <- list(data = data,
@@ -898,6 +878,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
                 strata.var = strata.var,
                 U.strata = U.strata,
                 index.cluster = index.cluster,
+                index.clusterStrata = index.clusterStrata,
                 index.clusterTime = index.clusterTime,
                 order.clusterTime = order.clusterTime
                 )

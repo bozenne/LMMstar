@@ -1,4 +1,4 @@
-% Created 2022-04-13 on 18:53
+% Created 2022-05-09 ma 18:35
 % Intended LaTeX compiler: pdflatex
 \documentclass[12pt]{article}
 
@@ -235,35 +235,36 @@ residuals do not have to be normally distributed.
 
 \bigskip
 
-The \textbf{LMMstar} package contains four main functions:
+The user interface of the \textbf{LMMstar} package is made of the following functions:
 \begin{itemize}
 \item the function \texttt{lmm} is the main function of the package which fits
 linear mixed models. The user can interact with \emph{lmm} objects using:
 \begin{itemize}
 \item \texttt{anova} to test linear combinations of coefficients (Wald test
-or Likelihood ratio tests). Can be combined via \texttt{rbind}.
+or Likelihood ratio tests). \newline The output be combined via \texttt{rbind}.
 \item \texttt{coef} to extract the estimates.
 \item \texttt{dummy.coef} to extract the estimated (marginal) mean for each combination of categorical covariate.
 \item \texttt{estimate} to test non-linear combinations of coefficients (Wald test via a first order delta method).
 \item \texttt{levels} to extract the reference level for the mean structure.
 (i.e. what \texttt{(Intercept)} refers to in presence of categorical.
 covariates).
-\item \texttt{getVarCov} to extract the modeled residual variance covariance matrix.
 \item \texttt{logLik} to output the log-likelihood of the estimated model.
 \item \texttt{model.tables} to extract table containing estimates with the corresponding uncertainty.
 \item \texttt{plot} to obtain a diagnostic plots, partial residual plots, or a graphical display of the fitted values.
 \item \texttt{predict} to compute the conditional mean for new observations.
 \item \texttt{residuals} to extract the observed residuals of the fitted model.
+\item \texttt{sigma} to extract the modeled residual variance covariance matrix.
 \item \texttt{summary} to obtain a summary of the input, model fit, and estimated values.
 \end{itemize}
-\item the \texttt{summarize} function to compute summary statistics stratified on a categorical variable (typically time).
+\item the \texttt{summarize} function to compute summary statistics stratified on a categorical variable.
+\item the \texttt{partialCor} function to compute partial correlation between two variables.
 \item the \texttt{sampleRem} function to simulate longitudinal data.
 \item the \texttt{LMMstar.options} function enables the user to display the
 default values used in the \textbf{LMMstar} package. The function
 can also change the default values to better match the user needs.
 \end{itemize}
 
-\clearpage
+\bigskip
 
 Before going further we need to load the \textbf{LMMstar} package in the R
 session:
@@ -324,7 +325,7 @@ utils::packageVersion("LMMstar")
 \end{lstlisting}
 
 \begin{verbatim}
-[1] '0.6.0'
+[1] '0.6.1'
 \end{verbatim}
 
 
@@ -339,7 +340,7 @@ LMMstar.options(optimizer = "FS")
 \clearpage
 
 \section{Descriptive statistics}
-\label{sec:orge50a212}
+\label{sec:org28f070e}
 Mean, standard deviation, and other summary statistic can be computed
 with respect to a categorical variable (typically time) using the
 \texttt{summarize} function:
@@ -385,12 +386,27 @@ A1_week       0.986   0.997   1.000     0.966
 A3_months     0.946   0.959   0.966     1.000
 \end{verbatim}
 
+It is possible to compute correlations adjusted for other variables, e.g.:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+partialCor(list(weight~group, glucagonAUC~group),
+	   data = gastricbypassL[gastricbypassL$time=="B3_months",])
+\end{lstlisting}
+
+\begin{verbatim}
+                        estimate    se   df  lower upper p.value
+rho(weight,glucagonAUC)   -0.124 0.236 9.14 -0.576 0.386    0.61
+Note: estimates and confidence intervals for rho have been back-transformed. 
+      standard errors are not back-transformed.
+\end{verbatim}
+
+
 \clearpage
 
 \section{Linear mixed model}
-\label{sec:orgb87fb5b}
+\label{sec:orgbf4e8a4}
 \subsection{Classical covariance patterns}
-\label{sec:org54e3fa2}
+\label{sec:org25de9c0}
 Fit a linear model with \textbf{identity} structure:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -398,7 +414,7 @@ eId.lmm <- lmm(weight ~ time + glucagon,
 	       repetition = ~time|id, structure = "ID",
 	       data = gastricbypassL)
 eId.lmm
-cat(" covariance structure: \n");getVarCov(eId.lmm)
+cat(" covariance structure: \n");sigma(eId.lmm)
 \end{lstlisting}
 
 \begin{verbatim}
@@ -425,7 +441,7 @@ eInd.lmm <- lmm(weight ~ time + glucagon,
 	       repetition = ~time|id, structure = "IND",
 	       data = gastricbypassL)
 eInd.lmm
-cat(" covariance structure: \n");getVarCov(eInd.lmm)
+cat(" covariance structure: \n");sigma(eInd.lmm)
 \end{lstlisting}
 
 \begin{verbatim}
@@ -454,7 +470,7 @@ eCS.lmm <- lmm(weight ~ time + glucagon,
 	       repetition = ~time|id, structure = "CS",
 	       data = gastricbypassL)
 eCS.lmm
-cat(" covariance structure: \n");getVarCov(eCS.lmm)
+cat(" covariance structure: \n");sigma(eCS.lmm)
 \end{lstlisting}
 
 \begin{verbatim}
@@ -482,31 +498,31 @@ A3_months  344.6236 344.6236 344.6236  355.3062
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
 eSCS.lmm <- lmm(weight ~ time*group,
-		repetition = group~time|id, structure = "CS",
+		repetition = ~time|id, structure = CS(~group),
 		data = gastricbypassL)
 eSCS.lmm
-cat(" covariance structure: \n");getVarCov(eSCS.lmm)
+cat(" covariance structure: \n");sigma(eSCS.lmm)
 \end{lstlisting}
 
 \begin{verbatim}
-     Linear Mixed Model with a stratified compound symmetry covariance matrix 
+     Linear Mixed Model with a block unstructured covariance matrix 
 
  outcome/cluster/time: weight/id/time 
  data                : 80 observations and distributed in 20 clusters 
  parameters          : 8 mean ((Intercept) timeB1_week timeA1_week timeA3_months group timeB1_week:group timeA1_week:group timeA3_months:group) 
-                       2 variance (sigma:0 sigma:1) 
-                       2 correlation (rho:0 rho:1) 
+                       2 variance (sigma k.1) 
+                       2 correlation (rho(0) rho(1)) 
  log-restr.likelihood: -233.141302306302 
  convergence         : TRUE (7 iterations)
  covariance structure: 
-$`0`
+$`0.0`
           B3_months  B1_week  A1_week A3_months
 B3_months  348.0783 334.7404 334.7404  334.7404
 B1_week    334.7404 348.0783 334.7404  334.7404
 A1_week    334.7404 334.7404 348.0783  334.7404
 A3_months  334.7404 334.7404 334.7404  348.0783
 
-$`1`
+$`1.1`
           B3_months  B1_week  A1_week A3_months
 B3_months  345.1388 340.0877 340.0877  340.0877
 B1_week    340.0877 345.1388 340.0877  340.0877
@@ -524,7 +540,7 @@ eBCS.lmm <- lmm(weight ~ time*group,
 		repetition = ~time|id, structure = CS(~baseline, heterogeneous = FALSE),
 		data = gastricbypassL)
 eBCS.lmm
-cat(" covariance structure: \n");getVarCov(eBCS.lmm)
+cat(" covariance structure: \n");sigma(eBCS.lmm)
 \end{lstlisting}
 
 \begin{verbatim}
@@ -534,7 +550,7 @@ cat(" covariance structure: \n");getVarCov(eBCS.lmm)
  data                : 80 observations and distributed in 20 clusters 
  parameters          : 8 mean ((Intercept) timeB1_week timeA1_week timeA3_months group timeB1_week:group timeA1_week:group timeA3_months:group) 
                        1 variance (sigma) 
-                       2 correlation (rho(TRUE,TRUE) rho(TRUE,FALSE)) 
+                       2 correlation (rho(TRUE) rho(TRUE,FALSE)) 
  log-restr.likelihood: -234.971305082514 
  convergence         : TRUE (7 iterations)
  covariance structure: 
@@ -552,7 +568,7 @@ eBUN.lmm <- lmm(weight ~ time*group,
 		repetition = ~time|id, structure = CS(~baseline),
 		data = gastricbypassL)
 eBUN.lmm
-cat(" covariance structure: \n");getVarCov(eBUN.lmm)
+cat(" covariance structure: \n");sigma(eBUN.lmm)
 \end{lstlisting}
 
 \begin{verbatim}
@@ -562,7 +578,7 @@ cat(" covariance structure: \n");getVarCov(eBUN.lmm)
  data                : 80 observations and distributed in 20 clusters 
  parameters          : 8 mean ((Intercept) timeB1_week timeA1_week timeA3_months group timeB1_week:group timeA1_week:group timeA3_months:group) 
                        2 variance (sigma k.TRUE) 
-                       3 correlation (rho(TRUE,TRUE) rho(TRUE,FALSE) rho(FALSE,FALSE)) 
+                       3 correlation (rho(TRUE) rho(TRUE,FALSE) rho(FALSE)) 
  log-restr.likelihood: -231.80588606934 
  convergence         : TRUE (7 iterations)
  covariance structure: 
@@ -583,7 +599,7 @@ eUN.lmm <- lmm(weight ~ time + glucagon,
 	       repetition = ~time|id, structure = "UN",
 	       data = gastricbypassL)
 eUN.lmm
-cat(" covariance structure: \n");getVarCov(eUN.lmm)
+cat(" covariance structure: \n");sigma(eUN.lmm)
 \end{lstlisting}
 
 \begin{verbatim}
@@ -611,10 +627,10 @@ A3_months  318.8573 304.6314 285.8077  280.9323
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
 eSUN.lmm <- lmm(weight ~ time*group + glucagon,
-		repetition = group~time|id, structure = "UN",
+		repetition = ~time|id, structure = UN(~group),
 		data = gastricbypassL)
 eSUN.lmm
-cat(" covariance structure: \n");getVarCov(eSUN.lmm)
+cat(" covariance structure: \n");sigma(eSUN.lmm)
 \end{lstlisting}
 
 \begin{verbatim}
@@ -646,7 +662,7 @@ A3_months  350.0416 331.5182 308.1345  334.8267
 \clearpage
 
 \subsection{Model output}
-\label{sec:org51a7d83}
+\label{sec:org07515f9}
 
 The \texttt{summary} method can be used to display the main information
 relative to the model fit:
@@ -720,7 +736,7 @@ arguments \texttt{df} to \texttt{FALSE} and \texttt{type.information} to \texttt
 calling \texttt{lmm} should lead to a more reasonnable computation time.
 
 \subsection{Extract estimated coefficients}
-\label{sec:orgc791525}
+\label{sec:org4b33297}
 The value of the estimated coefficients can be output using \texttt{coef}:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -775,7 +791,7 @@ dummy.coef(eUN.lmm)
 \end{verbatim}
 
 \subsection{Extract estimated coefficient and associated uncertainty}
-\label{sec:org433912f}
+\label{sec:org3b3df83}
 
 The uncertainty about the mean coefficients can be obtained using the
 \texttt{model.tables} method \footnote{it is equivalent to \texttt{confint} method
@@ -807,12 +823,12 @@ they uncertainty is by default computed after transformation
 (e.g. \texttt{log}) and then backtransformed. 
 
 \subsection{Extract estimated residual variance-covariance structure}
-\label{sec:orgdc905c2}
+\label{sec:org7cd58ca}
 
-The method \texttt{getVarCov} can be used to output the covariance structure of the residuals:
+The method \texttt{sigma} can be used to output the covariance structure of the residuals:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-getVarCov(eUN.lmm)
+sigma(eUN.lmm)
 \end{lstlisting}
 
 \begin{verbatim}
@@ -827,7 +843,7 @@ A3_months  318.8573 304.6314 285.8077  280.9323
 It can also be specific to a "known" individual:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-getVarCov(eUN.lmm, individual = 5)
+sigma(eUN.lmm, cluster = 5)
 \end{lstlisting}
 
 \begin{verbatim}
@@ -842,7 +858,7 @@ or for a new individual:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
 newdata <- data.frame(id = "X", time = c("B3_months","B1_week","A1_week","A3_months"))
-getVarCov(eUN.lmm, individual = newdata)
+sigma(eUN.lmm, cluster = newdata)
 \end{lstlisting}
 
 \begin{verbatim}
@@ -858,7 +874,7 @@ A3_months  318.8573 304.6314 285.8077  280.9323
 \clearpage
 
 \subsection{Model diagnostic}
-\label{sec:org033acd0}
+\label{sec:org66bb2d5}
 
 The method \texttt{plot} can be used to display diagnostic plots about:
 \begin{itemize}
@@ -952,7 +968,7 @@ Various type of residuals can be extract but the normalized one are
 recommanded when doing model checking.
 
 \subsection{Model fit}
-\label{sec:orgdf3b9ff}
+\label{sec:org41c3641}
 
 The fitted values can be displayed via the \texttt{plot} method or using the \texttt{emmeans} package:
 
@@ -1034,7 +1050,7 @@ range(df.pres$r.partial - m.pres, na.rm = TRUE)
 \clearpage
 
 \subsection{Statistical inference (linear)}
-\label{sec:org6c0a574}
+\label{sec:orge55bdc0}
 
 The \texttt{anova} method can be use to test one or several linear
 combinations of the model coefficients using Wald tests. By default,
@@ -1096,8 +1112,8 @@ summary(e.anova)
 
  - Univariate Wald test (individual null hypotheses) 
                              estimate        se        df     lower    upper p.value    
-timeA1_week - timeB1_week    -3.90572   0.59464  17.87453  -5.31903  -2.4924   2e-05 ***
-timeA3_months - timeB1_week -18.24016   1.32283  19.02810 -21.38419 -15.0961  <1e-05 ***
+timeA1_week - timeB1_week    -3.90572   0.59464  17.00000  -5.32750  -2.4839 < 1e-05 ***
+timeA3_months - timeB1_week -18.24016   1.32283  19.00000 -21.40304 -15.0773 < 1e-05 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 Standard errors: model-based
@@ -1125,12 +1141,12 @@ Singular contrast matrix: contrasts "A1_week - B1_week" "A3_months - B1_week" "A
 
  - Univariate Wald test (individual null hypotheses) 
                        estimate        se        df     lower    upper p.value    
-B1_week - B3_months    -7.88223   0.71318  19.17147  -9.81006  -5.9544  <1e-05 ***
-A1_week - B3_months   -11.78795   1.01751  21.64404 -14.53843  -9.0375  <1e-05 ***
-A3_months - B3_months -26.12239   1.65641  18.84049 -30.59989 -21.6449  <1e-05 ***
-A1_week - B1_week      -3.90572   0.59464  17.87453  -5.51312  -2.2983   2e-05 ***
-A3_months - B1_week   -18.24016   1.32283  19.02810 -21.81595 -14.6644  <1e-05 ***
-A3_months - A1_week   -14.33444   1.05650  20.26658 -17.19030 -11.4786  <1e-05 ***
+B1_week - B3_months    -7.88223   0.71318  19.00000  -9.82885  -5.9356  <1e-05 ***
+A1_week - B3_months   -11.78795   1.01751  21.00000 -14.56525  -9.0107  <1e-05 ***
+A3_months - B3_months -26.12239   1.65641  18.00000 -30.64354 -21.6012  <1e-05 ***
+A1_week - B1_week      -3.90572   0.59464  17.00000  -5.52879  -2.2827   2e-05 ***
+A3_months - B1_week   -18.24016   1.32283  19.00000 -21.85081 -14.6295  <1e-05 ***
+A3_months - A1_week   -14.33444   1.05650  20.00000 -17.21814 -11.4507  <1e-05 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 Standard errors: model-based
@@ -1230,9 +1246,9 @@ summary(Manova)
 
  - Univariate Wald test (individual null hypotheses) 
       estimate        se        df     lower   upper p.value   
-[1,]  -8.27006   2.57880  34.20071 -14.88175 -1.6584 0.01173 * 
-[2,]   0.82179   0.61997  53.80983  -0.76772  2.4113 0.47205   
-[3,]  -0.88831   0.24161  13.70759  -1.50776 -0.2689 0.00399 **
+[1,]  -8.27006   2.57880  34.00000 -14.90551 -1.6346 0.01222 * 
+[2,]   0.82179   0.61997  53.00000  -0.77344  2.4170 0.47409   
+[3,]  -0.88831   0.24161  13.00000  -1.50998 -0.2666 0.00408 **
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 Standard errors: model-based
@@ -1243,7 +1259,7 @@ CIs/p-values computed using 1e+05 samples.
 \clearpage
 
 \subsection{Statistical inference (non-linear)}
-\label{sec:org6048ae0}
+\label{sec:org3ef1ab6}
 
 The \texttt{estimate} function can be used to test one or several non-linear
 combinations of model coefficients, using a first order delta method
@@ -1310,19 +1326,17 @@ variable.
 \clearpage
 
 \subsection{Baseline adjustment}
-\label{sec:org467eae4}
+\label{sec:org0714bac}
 
-The \texttt{lmm} contains an "experimental" feature to drop non-identifiable
-effects from the model. For instance, let us define two (artifical) groups of
-patients:
-\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
-\begin{lstlisting}
-gastricbypassL$group <- c("1","2")[as.numeric(gastricbypassL$id) %in% 15:20 + 1]
-\end{lstlisting}
-We would like to model group differences only after baseline
-(i.e. only at 1 week and 3 months after). For this we will define a
-treatment variable being the group variable except before baseline where
-it is \texttt{"none"}:
+In clinical trial the group and intervention variable often do not
+coincide, e.g., in presence of baseline measurement. In our running
+example, the first two measurement are pre-treatment (i.e. treatment
+should be \texttt{"none"}) while the last two measurements are post-treatment
+(i.e. treatment should be \texttt{1} or \texttt{2}). The \texttt{baselineAdjustment}
+function can be helpful to:
+\begin{itemize}
+\item define the treatment variable from the time and allocation variable, where baseline has its specific value
+\end{itemize}
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
 gastricbypassL$treat <- baselineAdjustment(gastricbypassL, variable = "group",
@@ -1349,63 +1363,10 @@ treat  B3_months B1_week A1_week A3_months
   2            0       0       6         6
 \end{verbatim}
 
-Here we will be able to estimate a total of 6 means and therefore can
-at most identify 6 effects. However the design matrix for the
-interaction model:
-\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
-\begin{lstlisting}
-colnames(model.matrix(weight ~ treat*time, data = gastricbypassL))
-\end{lstlisting}
-
-\begin{verbatim}
-[1] "(Intercept)"          "treat1"               "treat2"               "timeB1_week"         
-[5] "timeA1_week"          "timeA3_months"        "treat1:timeB1_week"   "treat2:timeB1_week"  
-[9] "treat1:timeA1_week"   "treat2:timeA1_week"   "treat1:timeA3_months" "treat2:timeA3_months"
-\end{verbatim}
-
-
-contains 12 parameters (i.e. 6 too many). The \texttt{lmm} function will
-internally remove the one that cannot be identified and fit a
-simplified model:
-\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
-\begin{lstlisting}
-eC.lmm <- lmm(weight ~ treat*time, data = gastricbypassL,
-	      repetition = ~time|id, structure = "UN")
-\end{lstlisting}
-
-\begin{verbatim}
-Constant values in the design matrix in interactions "treat:time"
- Coefficients "treat1" "treat2" "timeA1_week" "timeA3_months" "treat1:timeB1_week" "treat2:timeB1_week" have been removed.
-\end{verbatim}
-
-
-with the following coefficients:
-\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
-\begin{lstlisting}
-coef(eC.lmm, effects = "mean")
-\end{lstlisting}
-
-\begin{verbatim}
-         (Intercept)          timeB1_week   treat1:timeA1_week   treat2:timeA1_week 
-           128.97000             -7.73000            -12.83949            -14.27452 
-treat1:timeA3_months treat2:timeA3_months 
-           -27.07620            -25.50553
-\end{verbatim}
-
-
-One can vizualize the baseline adjustment via the \texttt{autoplot} function:
-\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
-\begin{lstlisting}
-autoplot(eC.lmm, color = "group", ci = FALSE, size.text = 20) 
-\end{lstlisting}
-
-\begin{center}
-\includegraphics[width=0.4\textwidth]{./figures/gg-baseAdj.pdf}
-\end{center}
-
-To more easily compare the two groups, one could set the baseline
-treatment to the treatment in the control arm by omitting the argument
-\texttt{new.level}:
+\begin{itemize}
+\item define the treatment variable from the time and allocation variable,
+where baseline corresponds to the reference group
+\end{itemize}
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
 gastricbypassL$treat2 <- baselineAdjustment(gastricbypassL, variable = "group",
@@ -1429,11 +1390,102 @@ treat B3_months B1_week A1_week A3_months
     2         0       0       6         6
 \end{verbatim}
 
-Fitting the model
+\begin{itemize}
+\item define a time varying treatment variable from the time and allocation variable
+\end{itemize}
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-eC2.lmm <- suppressWarnings(lmm(weight ~ treat2*time, data = gastricbypassL,
-				repetition = ~time|id, structure = "UN"))
+gastricbypassL$timeXtreat <- baselineAdjustment(gastricbypassL, variable = "group",
+						repetition = ~time|id, constrain = c("B3_months","B1_week"),
+						collapse.time = ".")
+
+table(treat = gastricbypassL$timeXtreat, time = gastricbypassL$time, group = gastricbypassL$group)
+\end{lstlisting}
+
+\begin{verbatim}
+, , group = 1
+
+             time
+treat         B3_months B1_week A1_week A3_months
+  B3_months          14       0       0         0
+  B1_week             0      14       0         0
+  A1_week.1           0       0      14         0
+  A3_months.1         0       0       0        14
+  A1_week.2           0       0       0         0
+  A3_months.2         0       0       0         0
+
+, , group = 2
+
+             time
+treat         B3_months B1_week A1_week A3_months
+  B3_months           6       0       0         0
+  B1_week             0       6       0         0
+  A1_week.1           0       0       0         0
+  A3_months.1         0       0       0         0
+  A1_week.2           0       0       6         0
+  A3_months.2         0       0       0         6
+\end{verbatim}
+
+We would then typically like to model group differences only after
+baseline (i.e. only at 1 week and 3 months after). This can be
+performed using the time varying treatment variable, e.g.:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+eC.lmm <- lmm(weight ~ timeXtreat, data = gastricbypassL,
+	      repetition = ~time|id, structure = "UN")
+coef(eC.lmm) ## change from baseline
+\end{lstlisting}
+
+\begin{verbatim}
+        (Intercept)     timeXtreatB1_week   timeXtreatA1_week.1 timeXtreatA3_months.1 
+          128.97000              -7.73000             -12.83949             -27.07620 
+timeXtreatA1_week.2 timeXtreatA3_months.2 
+          -14.27452             -25.50553
+\end{verbatim}
+
+
+or
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+eC2.lmm <- lmm(weight ~ 0 + timeXtreat, data = gastricbypassL,
+	      repetition = ~time|id, structure = "UN")
+coef(eC2.lmm) ## absolute value
+\end{lstlisting}
+
+\begin{verbatim}
+timeXtreatB3_months     timeXtreatB1_week   timeXtreatA1_week.1 timeXtreatA3_months.1 
+           128.9700              121.2400              116.1305              101.8938 
+timeXtreatA1_week.2 timeXtreatA3_months.2 
+           114.6955              103.4645
+\end{verbatim}
+
+
+The parametrization however does (directly) output treatment
+effects. Instead one may be tempted to use a formula like
+\texttt{treatment*time}. However this will lead to a non-indentifiable
+model. Indeed we are only able to estimate a total of 6 means when
+constraining the expected baseline value between the two groups to be
+the same. Therefore can at most identify 6 effects. However the
+design matrix for the interaction model:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+colnames(model.matrix(weight ~ treat*time, data = gastricbypassL))
+\end{lstlisting}
+
+\begin{verbatim}
+[1] "(Intercept)"          "treat1"               "treat2"               "timeB1_week"         
+[5] "timeA1_week"          "timeA3_months"        "treat1:timeB1_week"   "treat2:timeB1_week"  
+[9] "treat1:timeA1_week"   "treat2:timeA1_week"   "treat1:timeA3_months" "treat2:timeA3_months"
+\end{verbatim}
+
+
+contains 12 parameters (i.e. 6 too many). Fortunately, the \texttt{lmm}
+contains an "experimental" feature to drop non-identifiable effects
+from the model and will fit a simplified model:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+eC3.lmm <- lmm(weight ~ treat2*time, data = gastricbypassL,
+	       repetition = ~time|id, structure = "UN")
 \end{lstlisting}
 
 \begin{verbatim}
@@ -1442,11 +1494,12 @@ Constant values in the design matrix in interactions "treat2:time"
 \end{verbatim}
 
 
-will directly output group differences (last two coefficients):
+with the following coefficients:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-model.tables(eC2.lmm)
+model.tables(eC3.lmm)
 \end{lstlisting}
+
 \begin{verbatim}
                       estimate    se   df  lower  upper  p.value
 (Intercept)             128.97 4.532 19.0 119.48 138.46 0.00e+00
@@ -1458,50 +1511,19 @@ treat22:timeA3_months     1.57 2.463 16.3  -3.64   6.78 5.32e-01
 \end{verbatim}
 
 
-It is also possible to get the estimated mean at each timepoint, using
-an equivalent mean structure:
+One can vizualize the baseline adjustment via the \texttt{autoplot} function:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-eC3.lmm <- suppressWarnings(lmm(weight ~ 0+treat2:time, data = gastricbypassL,
-				repetition = ~time|id, structure = "UN"))
-model.tables(eC3.lmm) ## equivalent to dummy.coef(eC2.lmm)
+autoplot(eC3.lmm, color = "group", ci = FALSE, size.text = 20, obs.alpha = 0.1) 
 \end{lstlisting}
 
-\begin{verbatim}
-Constant values in the design matrix in interactions "treat2:time"
- Coefficients "treat22:timeB3_months" "treat22:timeB1_week" have been removed.
-                      estimate   se   df lower upper p.value
-treat21:timeB3_months      129 4.53 19.0 119.5   138       0
-treat21:timeB1_week        121 4.23 19.0 112.4   130       0
-treat21:timeA1_week        116 4.11 19.1 107.5   125       0
-treat22:timeA1_week        115 4.13 19.4 106.1   123       0
-treat21:timeA3_months      102 3.87 20.2  93.8   110       0
-treat22:timeA3_months      103 4.17 25.2  94.9   112       0
-\end{verbatim}
+\begin{center}
+\includegraphics[width=0.4\textwidth]{./figures/gg-baseAdj.pdf}
+\end{center}
 
-
-or the baseline mean and the change since baseline:
-\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
-\begin{lstlisting}
-eC4.lmm <- suppressWarnings(lmm(weight ~ treat2:time, data = gastricbypassL,
-				repetition = ~time|id, structure = "UN"))
-model.tables(eC4.lmm)
-\end{lstlisting}
-
-\begin{verbatim}
-Constant values in the design matrix in interactions "treat2:time"
- Coefficients "treat22:timeB3_months" "treat22:timeB1_week" have been removed.
-                      estimate    se   df  lower  upper  p.value
-(Intercept)             128.97 4.532 19.0 119.48 138.46 0.00e+00
-treat21:timeB1_week      -7.73 0.697 19.0  -9.19  -6.27 1.00e-09
-treat21:timeA1_week     -12.84 0.865 20.5 -14.64 -11.04 2.02e-12
-treat22:timeA1_week     -14.27 0.950 26.3 -16.23 -12.32 2.02e-14
-treat21:timeA3_months   -27.08 1.724 21.4 -30.66 -23.50 3.20e-13
-treat22:timeA3_months   -25.51 2.323 22.6 -30.32 -20.69 1.60e-10
-\end{verbatim}
 
 \subsection{Marginal means}
-\label{sec:org30a7a3d}
+\label{sec:orgc108aa1}
 
 The \texttt{emmeans} package can be used to output marginal means. Consider
 the following model:
@@ -1643,10 +1665,10 @@ summary(epairs.group, by = NULL, adjust = "mvt", infer = TRUE)
 
 \begin{verbatim}
  contrast time      estimate    SE   df lower.CL upper.CL t.ratio p.value
- 2 - 1    B3_months     4.83 10.10 18.0    -18.0     27.7   0.478  0.7496
- 2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0   0.618  0.6481
- 2 - 1    A1_week       4.29  9.11 18.0    -16.3     24.9   0.471  0.7551
- 2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.7   0.797  0.5285
+ 2 - 1    B3_months     4.83 10.10 18.0    -17.9     27.6   0.478  0.7490
+ 2 - 1    B1_week       5.80  9.38 18.0    -15.4     27.0   0.618  0.6482
+ 2 - 1    A1_week       4.29  9.11 18.0    -16.2     24.8   0.471  0.7552
+ 2 - 1    A3_months     6.69  8.40 18.1    -12.3     25.6   0.797  0.5287
 
 Confidence level used: 0.95 
 Conf-level adjustment: mvt method for 4 estimates 
@@ -1675,7 +1697,7 @@ P value adjustment: sidak method for 4 tests
 \end{verbatim}
 
 \subsection{Predictions}
-\label{sec:org6016648}
+\label{sec:org3a70ae2}
 
 Two types of predictions can be performed with the \texttt{predict} method:
 \begin{itemize}
@@ -1771,8 +1793,8 @@ The first subjects has the average weight while the second has a much
 \begin{lstlisting}
 mu1 <- coef(eUN.lmm)[1]
 mu2 <- sum(coef(eUN.lmm)[1:2])
-Omega_11 <- getVarCov(eUN.lmm)["B3_months","B3_months"]
-Omega_21 <- getVarCov(eUN.lmm)["B1_week","B3_months"]
+Omega_11 <- sigma(eUN.lmm)["B3_months","B3_months"]
+Omega_21 <- sigma(eUN.lmm)["B1_week","B3_months"]
 as.double(mu2 + Omega_21 * (100 - mu1) / Omega_11)
 \end{lstlisting}
 
@@ -1785,7 +1807,7 @@ as.double(mu2 + Omega_21 * (100 - mu1) / Omega_11)
 \clearpage
 
 \subsection{Missing values and imputation}
-\label{sec:orga88b805}
+\label{sec:orgb6d21f8}
 
 
 We now consider the glucagon level as an outcome. The \texttt{summarize}
@@ -1873,20 +1895,21 @@ has been replaced by its most likely value (which is the same as the
 dynamic prediction, describedy previously):
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-eData <- fitted(eUN.lmmNA, impute = TRUE, keep.newdata = TRUE)
-eData[eData$id %in% eData[eData$imputed,"id"],]
+  eData <- fitted(eUN.lmmNA, impute = TRUE, keep.newdata = TRUE)
+eData$treat <- eData$treat2 <- eData$timeXtreat <- NULL
+  eData[eData$id %in% eData[eData$imputed,"id"],]
 \end{lstlisting}
 
 \begin{verbatim}
-   id visit      time weight glucagon baseline group treat treat2 imputed estimate
-5   5     1 B3_months  113.1 4.383738     TRUE     1  none      1   FALSE 4.514352
-15 15     1 B3_months  115.0 4.098741     TRUE     2  none      1   FALSE 4.514352
-25  5     2   B1_week  105.6 4.256984     TRUE     1  none      1    TRUE 4.386762
-35 15     2   B1_week  109.7 4.509697     TRUE     2  none      1   FALSE 4.386762
-45  5     3   A1_week   99.9 6.430376    FALSE     1     1      1   FALSE 6.078985
-55 15     3   A1_week  103.5 6.497856    FALSE     2     2      2    TRUE 6.078985
-65  5     4 A3_months   87.7 5.275118    FALSE     1     1      1   FALSE 5.057642
-75 15     4 A3_months   94.1 6.259632    FALSE     2     2      2   FALSE 5.057642
+   id visit      time weight glucagonAUC baseline glucagon group id2  treatXtime imputed estimate
+5   5     1 B3_months  113.1      7090.5     TRUE 4.383738     1  C5   B3_months   FALSE 4.514352
+15 15     1 B3_months  115.0      5410.5     TRUE 4.098741     2 C15   B3_months   FALSE 4.514352
+25  5     2   B1_week  105.6          NA     TRUE 4.256984     1  C5     B1_week    TRUE 4.386762
+35 15     2   B1_week  109.7      7833.0     TRUE 4.509697     2 C15     B1_week   FALSE 4.386762
+45  5     3   A1_week   99.9     19155.0    FALSE 6.430376     1  C5   A1_week.1   FALSE 6.078985
+55 15     3   A1_week  103.5          NA    FALSE 6.497856     2 C15   A1_week.2    TRUE 6.078985
+65  5     4 A3_months   87.7     12345.0    FALSE 5.275118     1  C5 A3_months.1   FALSE 5.057642
+75 15     4 A3_months   94.1     18148.5    FALSE 6.259632     2 C15 A3_months.2   FALSE 5.057642
 \end{verbatim}
 
 
@@ -1921,7 +1944,7 @@ fitted(eUN.lmmNA, impute = TRUE, se = "total")
 \clearpage
 
 \section{User-specific covariance patterns}
-\label{sec:orgd859c77}
+\label{sec:org2594553}
 
 From version 0.6.0 and above it is possible customize the covariance
 pattern under the following model for the residuals:
@@ -2018,7 +2041,7 @@ The optimization procedure is not very fast but eventually reaches an
 optimum. We can then output the estimated correlation matrix:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-cov2cor(getVarCov(e.lmmCUSTOM))
+cov2cor(sigma(e.lmmCUSTOM))
 \end{lstlisting}
 
 \begin{verbatim}
@@ -2070,7 +2093,7 @@ logLik(lmm(value~time,
 \clearpage
 
 \section{Data generation}
-\label{sec:orge2b69c7}
+\label{sec:org732b079}
 Simulate some data in the wide format:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -2117,7 +2140,7 @@ head(dL)
 \clearpage
 
 \section{Modifying default options}
-\label{sec:org403906c}
+\label{sec:orgf7854b5}
 The \texttt{LMMstar.options} method enable to get and set the default options
 used by the package. For instance, the default option for the information matrix is:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -2146,7 +2169,7 @@ LMMstar.options(reinitialise = TRUE)
 \clearpage
 
 \section{R session}
-\label{sec:org40ba666}
+\label{sec:org70e2ec1}
 Details of the R session used to generate this document:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -2195,7 +2218,7 @@ loaded via a namespace (and not attached):
 \clearpage
 
 \section*{References}
-\label{sec:org0e68325}
+\label{sec:org317eee2}
 \begingroup
 \renewcommand{\section}[2]{}
 
@@ -2228,7 +2251,7 @@ consider \(n\) replicates (i.e. \(\VY_1,\ldots,\VY_n)\) and
 \(\omega=(w_1,\ldots,w_n)\), which are by default all equal to 1.
 
 \subsection{Log-likelihood}
-\label{sec:org17dc7c9}
+\label{sec:org729ff1a}
 
 The restricted log-likelihood in a linear mixed model can then be
 written:
@@ -2259,7 +2282,7 @@ when setting the argument \texttt{indiv} to \texttt{TRUE}.
 \bigskip
 
 \subsection{Score}
-\label{sec:org24a134c}
+\label{sec:org73774a8}
 
  Using that \(\partial \log(\det(X))=tr(X^{-1}\partial(X))\), the
 score is obtained by derivating once the log-likelihood, i.e., for
@@ -2282,7 +2305,7 @@ what \texttt{score} outputs for the ML criteria when setting the argument
 \clearpage
 
 \subsection{Hessian}
-\label{sec:org62fa1bd}
+\label{sec:org20684c8}
 
 Derivating a second time the log-likelihood gives the hessian, \(\Hessian(\Vparam)\), with element\footnote{if one is relative to the mean and the other to the variance then they are respectively \(\theta\) and \(\theta'\)}:
 \begin{align*}
@@ -2330,7 +2353,7 @@ is set to \texttt{"expected"} (up to a factor -1).
 \clearpage
 
 \subsection{Degrees of freedom}
-\label{sec:org2bb577b}
+\label{sec:org017bedf}
 
 Degrees of freedom are computed using a Satterthwaite approximation,
 i.e. for an estimate coefficient \(\widehat{\beta}\in\widehat{\Vparam}\) with standard
