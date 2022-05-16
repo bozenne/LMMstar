@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: maj 11 2022 (19:08) 
+## Last-Updated: maj 16 2022 (14:29) 
 ##           By: Brice Ozenne
-##     Update #: 1609
+##     Update #: 1621
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -355,24 +355,25 @@ lmm <- function(formula, repetition, structure, data,
         type.structure <- structure$type
         call.structure <- as.list(structure$call)
 
+
         if(is.na(structure$name$cluster) || is.na(structure$name$time)){
-            structure <- do.call(deparse(call.structure[[1]]), args = c(call.structure[-1], list(var.cluster = "XXcluster.indexXX", var.time = var.time, add.time = add.time)))
+            structure <- do.call(deparse(call.structure[[1]]), args = c(call.structure[-1], list(var.cluster = "XXcluster.indexXX", var.time = "XXtime.indexXX", add.time = add.time)))
         }
         var.strata <- structure$name$strata
     }else if(inherits(structure,"character")){
         type.structure <- match.arg(structure, c("ID","IND","CS","UN"))        
         n.time <- data[[var.time]]
         if(is.na(var.strata)){
-            structure <- do.call(type.structure, list(formula = ~1, var.cluster = "XXcluster.indexXX", var.time = var.time, add.time = add.time))
+            structure <- do.call(type.structure, list(formula = ~1, var.cluster = "XXcluster.indexXX", var.time = "XXtime.indexXX", add.time = add.time))
         }else{
-            structure <- do.call(type.structure, list(stats::as.formula(paste(var.strata,"~1")), var.cluster = "XXcluster.indexXX", var.time = var.time, add.time = add.time))
+            structure <- do.call(type.structure, list(stats::as.formula(paste(var.strata,"~1")), var.cluster = "XXcluster.indexXX", var.time = "XXtime.indexXX", add.time = add.time))
         }
     }else if(inherits(structure,"function")){
         n.time <- data[[var.time]]
         if(is.na(var.strata)){
-            structure <- do.call(structure, list(formula = ~1, var.cluster = "XXcluster.indexXX", var.time = var.time, add.time = add.time))
+            structure <- do.call(structure, list(formula = ~1, var.cluster = "XXcluster.indexXX", var.time = "XXtime.indexXX", add.time = add.time))
         }else{
-            structure <- do.call(structure, list(stats::as.formula(paste(var.strata,"~1")), var.cluster = "XXcluster.indexXX", var.time = var.time, add.time = add.time))
+            structure <- do.call(structure, list(stats::as.formula(paste(var.strata,"~1")), var.cluster = "XXcluster.indexXX", var.time = "XXtime.indexXX", add.time = add.time))
         }
     }else{
         stop("Argument \'structure\' must either be a character or a structure object. \n")
@@ -578,8 +579,6 @@ lmm <- function(formula, repetition, structure, data,
     out$design <- .model.matrix.lmm(formula.mean = out$formula$mean.design,
                                     structure = structure,
                                     data = data, var.outcome = var.outcome, var.weights = out$weights$var,
-                                    U.strata = U.strata,
-                                    U.time = U.time,
                                     stratify.mean = optimizer=="gls",
                                     precompute.moments = precompute.moments)
 

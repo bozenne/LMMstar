@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: maj 11 2022 (19:11) 
+## Last-Updated: maj 16 2022 (19:09) 
 ##           By: Brice Ozenne
-##     Update #: 1827
+##     Update #: 1897
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -290,14 +290,22 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 ## * .vcov.matrix.lmm
 ## output observation specific design matrix (but no covariance pattern)
 .vcov.matrix.lmm <- function(structure, data, 
-                             strata.var, U.strata,
-                             time.var, U.time,
-                             cluster.var, order.clusterTime){
+                             order.clusterTime){
 
-    ## ** normalize data
+    cluster.var <- structure$name$cluster
+    time.var <- structure$name$time
+    strata.var <- structure$name$strata
+    U.cluster <- sort(unique(data[[cluster.var]]))
+    U.time <- sort(unique(data[[time.var]]))
+    U.strata <- sort(unique(data[[strata.var]]))
+    
+    ## ** normalize arguments
     ## strata
+    if(is.na(strata.var)){
+        strata.var <- "XXstrata.indexXX"
+    }
     if(identical(strata.var, "XXstrata.indexXX") && strata.var %in% names(data) == FALSE){
-        data$XXstrata.indexXX <- factor(1, levels = 1, labels = U.strata)
+        data$XXstrata.indexXX <- rep(1, NROW(data))
     }
     n.strata <- length(U.strata)
     
@@ -314,50 +322,48 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     }else{
         heterogeneous <- TRUE
     }
-    
-    ## ** check compatibility structure and data
-    if(is.na(structure$name$strata)){
-        structure$name$strata <- strata.var
-    }else if(!identical(structure$name$strata,strata.var)){
-        stop("The name of the strata variable in the residual variance-covariance structure does not match the actual strata variable. \n")
+
+    ## data
+    dataVar <- data
+    if(length(all.vars(formula.var))>0 && structure$type %in% c("ID","IND","CS","UN")){
+        for(iVar in all.vars(formula.var)){
+            if(heterogeneous == FALSE && !is.numeric(data[[iVar]])){
+                dataVar[[iVar]] <- as.numeric(as.factor(data[[iVar]]))
+            }else if(heterogeneous && is.numeric(data[[iVar]])){
+                dataVar[[iVar]] <- as.factor(data[[iVar]])
+            }
+        }
     }
-    if(is.na(structure$name$time)){
-        structure$name$time <- time.var
-    }else if(!identical(structure$name$time,time.var)){
-        stop("The name of the time variable in the residual variance-covariance structure does not match the actual time variable. \n")
+
+    dataCor <- data
+    if(length(all.vars(formula.cor))>0 && structure$type %in% c("ID","IND","CS","UN")){
+        for(iVar in all.vars(formula.cor)){
+            if(heterogeneous == FALSE && !is.numeric(data[[iVar]])){
+                dataCor[[iVar]] <- as.numeric(as.factor(data[[iVar]]))
+            }else if(heterogeneous && is.numeric(data[[iVar]])){
+                dataCor[[iVar]] <- as.factor(data[[iVar]])
+            }
+        }
     }
-    if(is.na(structure$name$cluster)){
-        structure$name$cluster <- cluster.var
-    }else if(!identical(structure$name$cluster,cluster.var)){
-        stop("The name of the cluster variable in the residual variance-covariance structure does not match the actual cluster variable. \n")
-    }
+
 
     ## ** design matrix
     out <- list(var = NULL, cor = NULL)
+
     if(is.null(structure$param)){ ## structure
-        out$var <- .colnameOrder(.model.matrix_regularize(formula.var, data = data, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
+        out$var <- .colnameOrder(.model.matrix_regularize(formula.var, data = dataVar, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
         if(!is.null(formula.cor) && n.time>1 && any(sapply(order.clusterTime,length)>1)){  ## at least one individual with more than timepoint
-            if(heterogeneous==FALSE){
-                for(iVar in all.vars(formula.cor)){
-                    data[[iVar]] <- as.numeric(as.factor(data[[iVar]]))
-                }
-            }
-            out$cor <- .colnameOrder(.model.matrix_regularize(formula.cor, data = data, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
+            out$cor <- .colnameOrder(.model.matrix_regularize(formula.cor, data = dataCor, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
         }
     }else{ ## newdata
-        out$var <- stats::model.matrix(formula.var, data = data)[,attr(structure$X$var,"original.colnames"),drop=FALSE]
+        out$var <- stats::model.matrix(formula.var, data = dataVar)[,attr(structure$X$var,"original.colnames"),drop=FALSE]
         ## colnames(out$var) <- colnames(structure$X$var[[1]])
         attr(out$var,"assign") <- attr(structure$X$var,"assign")
         attr(out$var,"M.level") <- attr(structure$X$var,"M.level")
         attr(out$var,"original.colnames") <- attr(structure$X$var,"original.colnames")
 
         if(!is.null(formula.cor) && n.time>1 && any(sapply(order.clusterTime,length)>1)){  ## at least one individual with more than timepoint
-            if(heterogeneous==FALSE){
-                for(iVar in all.vars(formula.cor)){
-                    data[[iVar]] <- as.numeric(as.factor(data[[iVar]]))
-                }
-            }
-            out$cor <- stats::model.matrix(formula.cor, data = data)[,attr(structure$X$cor,"original.colnames"),drop=FALSE]
+            out$cor <- stats::model.matrix(formula.cor, data = dataCor)[,attr(structure$X$cor,"original.colnames"),drop=FALSE]
             attr(out$cor,"M.level") <- attr(structure$X$cor,"M.level")
             attr(out$cor,"assign") <- attr(structure$X$cor,"assign")
             attr(out$cor,"original.colnames") <- attr(structure$X$cor,"original.colnames")
@@ -371,9 +377,14 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 ## * .model.matrix.lmm
 .model.matrix.lmm <- function(formula.mean, structure,
                               data, var.outcome, var.weights,
-                              U.strata, U.time,
                               stratify.mean,
                               precompute.moments){
+
+    ## ** indexes
+    outInit <- .extractIndexData(data = data, structure = structure)
+    U.cluster <- outInit$U.cluster
+    U.time <- outInit$U.time
+    U.strata <- outInit$U.strata
 
     ## ** mean
     ## use stats::model.frame to handle splines
@@ -386,14 +397,10 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     ## ** variance
 
     ## *** structure of the data (time, cluster, strata)
-    outInit <- .extractIndexData(data = data, structure = structure)
     ## outInit$data: convert variables to factor 
     ## outInit$index.clusterTime: list of index relative to the time at which the observations are made within cluster
     ## outInit$order.clusterTime: list of index for re-ordering the observations within cluster 
     ## outInit$index.cluster: list of positions of the observation belonging to each cluster in the dataset
-    structure$U.time <- outInit$U.time
-    structure$U.cluster <- outInit$U.cluster
-    structure$U.strata <- outInit$U.strata
     if(is.null(structure$formula$cor)){
         structure$xfactor <- list(var = stats::.getXlevels(stats::terms(structure$formula$var),stats::model.frame(structure$formula$var,data)),
                                   cor = NULL)
@@ -401,27 +408,22 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         structure$xfactor <- list(var = stats::.getXlevels(stats::terms(structure$formula$var),stats::model.frame(structure$formula$var,data)),
                                   cor = stats::.getXlevels(stats::terms(structure$formula$cor),stats::model.frame(structure$formula$cor,data)))
     }
+
     ## *** design matrix    
-    outDesign <- .vcov.matrix.lmm(structure = structure, data = outInit$data, 
-                                  strata.var = outInit$strata.var, U.strata = structure$U.strata,
-                                  time.var = outInit$time.var, U.time = structure$U.time, 
-                                  cluster.var = outInit$cluster.var, order.clusterTime = outInit$order.clusterTime)
+    outDesign <- .vcov.matrix.lmm(structure = structure, data = data, order.clusterTime = outInit$order.clusterTime)
 
     structure$X <- list(var = outDesign$var,
                         cor = outDesign$cor)
-
 
     ## *** parametrization and patterns
     structure <- .skeleton(structure = structure, data = data, indexData = outInit)
 
     ## *** covariance pattern
-    outPattern <- .findUpatterns(X.var = structure$X$var,
-                                 X.cor = structure$X$cor, table.rho = attr(structure$param,"table.rho"),
-                                 data = outInit$data, heterogeneous = structure$heterogeneous,
-                                 time.var = outInit$time.var, index.clusterTime = outInit$index.clusterTime, order.clusterTime = outInit$order.clusterTime, U.time = outInit$U.time,
-                                 index.cluster = outInit$index.cluster, U.cluster = outInit$U.cluster,
-                                 strata.var = outInit$strata.var,  index.clusterStrata = outInit$index.clusterStrata,
-                                 strata.param = stats::setNames(structure$param$strata,structure$param$name), U.strata = outInit$U.strata)
+    outPattern <- .findUpatterns(X.var = structure$X$var, X.cor = structure$X$cor, param = structure$param,
+                                 data = data, heterogeneous = structure$heterogeneous,
+                                 time.var = structure$name$time.var, index.clusterTime = outInit$index.clusterTime, order.clusterTime = outInit$order.clusterTime, U.time = U.time,
+                                 index.cluster = outInit$index.cluster, U.cluster = U.cluster,
+                                 strata.var = structure$name$strata.var,  index.clusterStrata = outInit$index.clusterStrata, U.strata = U.strata)
 
     browser()
     structure$X$Upattern <- outPattern$Upattern
@@ -656,6 +658,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         attr(X,"assign") <- attr(X.old,"assign")[test.keep] ## as.numeric(as.factor(attr(X.old,"assign")[test.keep])) - "(Intercept)" %in% colnames(X)
         attr(X,"contr.treatment") <- attr(X.old,"contr.treatment")
         if(augmodel || X.qr$rank!=NCOL(X.qr$qr)){
+            attr(X,"formula") <- attr(X.old,"formula")
             attr(X,"term.labels") <- attr(X.old,"term.labels")[test.keep]
             attr(X,"order") <- attr(X.old,"order")[test.keep]
             attr(X,"ls.level") <- attr(X.old,"ls.level")[test.keep]
@@ -684,6 +687,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             attr(X,"assign") <- keep.attr$assign[iIndex]
             attr(X,"contrast") <- keep.attr$contrasts
             if(augmodel){
+                attr(X,"formula") <- keep.attr$formula
                 attr(X,"term.labels") <- keep.attr$term.labels[iIndex]
                 attr(X,"order") <- keep.attr$order[iIndex]
                 attr(X,"M.level") <- keep.attr$M.level[iIndex,,drop=FALSE]
@@ -694,6 +698,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     if(length(rmX)>0){
         message("Singular design matrix, coefficient",if(length(rmX)>1){"s"}," \"",paste(rmX, collapse = "\" \""),"\" has been removed. \n")
     } else if(!augmodel){
+        attr(X,"formula") <- NULL
         attr(X,"term.labels") <- NULL
         attr(X,"order") <- NULL
         attr(X,"ls.level") <- NULL
@@ -805,6 +810,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     }
 
     ## ** add attributes
+    attr(X,"formula") <- formula
     attr(X,"variable") <- colnames(reference2)
     attr(X,"term.labels") <- X.term
     attr(X,"order") <- X.order
@@ -819,28 +825,17 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 ## ** .extractIndexData
 .extractIndexData <- function(data, structure){
 
-    ## *** find variable names
     time.var <- structure$name$time
     cluster.var <- structure$name$cluster
     strata.var <- structure$name$strata
-    all.var <- unlist(lapply(structure$formula,all.vars))
-
-    if(length(all.var)>0){
-        for(iVar in all.var){
-            if(is.factor(data[[iVar]]) && is.null(structure$X)){
-                ## if the design matrix for the covariance pattern has been built
-                ## then we may ask prediction for subsets so we don't want to drop levels
-                data[[iVar]] <- droplevels(data[[iVar]])
-            }else{
-                data[[iVar]] <- as.factor(data[[iVar]])
-            }
-        }
+    
+    U.cluster <- sort(unique(data[[cluster.var]]))
+    U.time <- sort(unique(data[[time.var]]))
+    if(!is.na(strata.var)){
+        U.strata <- sort(unique(data[[strata.var]]))
+    }else{
+        U.strata <- "1"
     }
-
-    ## *** find unique levels of each variable
-    U.cluster <- levels(data[[cluster.var]])
-    U.time <- levels(data[[time.var]])
-    U.strata <- levels(data[[strata.var]])
 
     ## *** find position of each cluster
     if(!is.na(cluster.var)){
@@ -867,15 +862,10 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     }else{
         index.clusterStrata <- rep(1, length(U.cluster))
     }
-    
 
     ## *** export
-    out <- list(data = data,
-                time.var = time.var,
+    out <- list(U.cluster = U.cluster,
                 U.time = U.time,
-                cluster.var = cluster.var,
-                U.cluster = U.cluster,
-                strata.var = strata.var,
                 U.strata = U.strata,
                 index.cluster = index.cluster,
                 index.clusterStrata = index.clusterStrata,

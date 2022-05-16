@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: mar 14 2022 (11:39) 
+## Last-Updated: maj 16 2022 (13:58) 
 ##           By: Brice Ozenne
-##     Update #: 93
+##     Update #: 94
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -65,7 +65,7 @@ LMMstar.options <- function(..., reinitialise = FALSE){
                     n.sampleCopula = 1e5,
                     method.fit = "REML",
                     method.numDeriv = "simple",
-                    optimizer = "gls",
+                    optimizer = "FS",
                     param.optimizer = c(n.iter = 100, tol.score = 1e-4, tol.param = 1e-5),
                     precompute.moments = TRUE,
                     trace = FALSE,
