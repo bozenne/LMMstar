@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: apr 13 2022 (17:14) 
+## Last-Updated: maj 17 2022 (18:08) 
 ##           By: Brice Ozenne
-##     Update #: 454
+##     Update #: 476
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -187,10 +187,12 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
     }
 
     ## ** prepare
-    param.mu <- design$param$mu
-    param.sigma <- design$param$sigma
-    param.k <- design$param$k
-    param.rho <- design$param$rho
+    index.cluster <- design$index.cluster
+    
+    param.mu <- design$param[design$param$type=="mu","name"]
+    param.sigma <- design$param[design$param$type=="sigma","name"]
+    param.k <- design$param[design$param$type=="k","name"]
+    param.rho <- design$param[design$param$type=="rho","name"]
     param.Omega <- c(param.sigma,param.k,param.rho)
     param.name <- c(param.mu,param.Omega)
     n.param <- length(param.name)
@@ -210,15 +212,15 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
             cat("\nInitialization:\n")
         }
         ## mean value
-        start.OmegaM1 <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 2
-            diag(1, nrow = length(Upattern[iPattern,"time"][[1]]), ncol = length(Upattern[iPattern,"time"][[1]]))
+        start.OmegaM1 <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
+            diag(1, nrow = Upattern[iPattern,"n.time"], ncol = Upattern[iPattern,"n.time"])
         }), Upattern$name)
         param.value[param.mu] <- .estimateGLS(OmegaM1 = start.OmegaM1, pattern = Upattern$name, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX,
                                               design = design)
 
         ## vcov values
         iResiduals.long <- design$Y - design$mean %*% param.value[param.mu]
-        outInit <- .initialize(design$vcov, residuals = iResiduals.long, Xmean = design$mean)
+        outInit <- .initialize(design$vcov, residuals = iResiduals.long, Xmean = design$mean, index.cluster = index.cluster)
         param.value[names(outInit)] <- outInit
         if(trace>1){
             print(param.value)
@@ -297,13 +299,14 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
                 attr(param.value,"trans") <- NULL
             }else{
                 param.newvalue.trans <- outMoments$reparametrize$p + update.value
-                param.value[param.Omega] <- .reparametrize(param.newvalue.trans,
-                                                           type = design$param$type[names(param.newvalue.trans)],
-                                                           strata = design$param$strata[names(param.newvalue.trans)],
-                                                           time.k = design$param$time.k, time.rho = design$param$time.rho,
-                                                           name2sd = stats::setNames(design$vcov$param$name2,design$vcov$param$name),
-                                                           Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
-                                                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)$p
+                param.value[names(param.newvalue.trans)] <- .reparametrize(param.newvalue.trans,
+                                                                           type = design$param[match(names(param.newvalue.trans), design$param$name), "type"],
+                                                                           strata = design$param[match(names(param.newvalue.trans), design$param$name), "strata"],
+                                                                           sigma = design$param[match(names(param.newvalue.trans), design$param$name), "sigma"],
+                                                                           k.x = design$param[match(names(param.newvalue.trans), design$param$name), "k.x"],
+                                                                           k.y = design$param[match(names(param.newvalue.trans), design$param$name), "k.y"],
+                                                                           Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
+                                                                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)$p
             }
             
             ## *** mean estimate
@@ -357,8 +360,7 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
         score <- outMoments$score
     }else{
         reparam.value <- .reparametrize(p = param.value, type = design$param$type, strata = design$param$strata, 
-                                        time.k = design$param$time.k, time.rho = design$param$time.rho,
-                                        name2sd = stats::setNames(design$vcov$param$name2,design$vcov$param$name),
+                                        sigma = design$param$sigma, k.x = design$param$k.x, k.y = design$param$k.y,
                                         Jacobian = FALSE, dJacobian = FALSE, inverse = FALSE, ##  2 is necessary to export the right dJacobian
                                         transform.sigma = transform.sigma,
                                         transform.k = transform.k,
@@ -401,9 +403,9 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
 }
 
 ## * .estimateGLS
-.estimateGLS <- function(OmegaM1, pattern, precompute.XY, precompute.XX, key.XX, design = design){
- 
-    name.param <- design$param$mu ## colnames(key.XX)
+.estimateGLS <- function(OmegaM1, pattern, precompute.XY, precompute.XX, key.XX, design){
+
+    name.param <- design$param[design$param$type=="mu","name"] ## colnames(key.XX)
     n.param <- length(name.param)
     numerator <- matrix(0, nrow = n.param, ncol = 1)
     denominator <- matrix(0, nrow = n.param, ncol = n.param)
@@ -419,13 +421,13 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
             denominator  <- denominator + as.double(iVec.Omega %*%  matrix(precompute.XX[[iPattern]], nrow = iTime2, ncol = max.key))[key.XX]
         }else{
             iOmegaM1 <- OmegaM1[[iPattern]]
-            iIndexCluster <- attr(design$index.cluster,"sorted")[which(design$vcov$X$pattern.cluster==iPattern)]
+            iIndexCluster <- design$index.cluster[which(design$vcov$X$pattern.cluster$pattern==iPattern)]
             for(iId in 1:length(iIndexCluster)){ ## iId <- 2
                 iX <- design$mean[iIndexCluster[[iId]],,drop=FALSE]
                 if(is.null(design$weight)){
                     iWeight <- 1
                 }else{
-                    iWeight <- design$weights[attr(design$index.cluster, "sorted")[[iId]][1]]
+                    iWeight <- design$weights[iId]
                 }
                 if(!is.null(design$scale.Omega)){
                     iWeight <- iWeight * design$scale.Omega[iId]
@@ -455,10 +457,11 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
     for(iIter in 1:100){
         transparam.newvalue <- transparam.newvalue + alpha * update.value
         param.newvalue[names(transparam.newvalue)] <- .reparametrize(transparam.newvalue,
-                                                                     type = design$param$type[names(transparam.newvalue)],
-                                                                     strata = design$param$strata[names(transparam.newvalue)],
-                                                                     time.k = design$param$time.k, time.rho = design$param$time.rho,
-                                                                     name2sd = stats::setNames(design$vcov$param$name2,design$vcov$param$name),
+                                                                     type = design$param[match(names(transparam.newvalue),design$param$name),"type"],
+                                                                     strata = design$param[match(names(transparam.newvalue),design$param$name),"strata"],
+                                                                     sigma = design$param[match(names(transparam.newvalue),design$param$name),"sigma"],
+                                                                     k.x = design$param[match(names(transparam.newvalue),design$param$name),"k.x"],
+                                                                     k.y = design$param[match(names(transparam.newvalue),design$param$name),"k.y"],
                                                                      Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
                                                                      transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)$p
 

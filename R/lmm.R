@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: maj 16 2022 (14:29) 
+## Last-Updated: maj 17 2022 (18:06) 
 ##           By: Brice Ozenne
-##     Update #: 1621
+##     Update #: 1666
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -440,7 +440,10 @@ lmm <- function(formula, repetition, structure, data,
     ## *** data
     if(trace>=2){cat("- data")}
     data <- .prepareData(data, var.cluster = var.cluster, var.time = var.time, var.strata = var.strata)
-
+    if(is.na(var.cluster)){var.cluster <- "XXclusterXX"}
+    if(is.na(var.time)){var.time <- "XXtimeXX"}
+    if(is.na(var.strata)){var.strata <- "XXstrataXX"}
+    
     ## cluster
     U.cluster <- levels(data$XXclusterXX)
     n.cluster <- length(U.cluster)
@@ -562,10 +565,19 @@ lmm <- function(formula, repetition, structure, data,
     ## *** missing values
     var.all <- unname(unique(stats::na.omit(c(var.strata,var.outcome,var.X,var.time,var.cluster,var.Z))))
     index.na <- which(rowSums(is.na(data[,var.all,drop=FALSE]))>0)
+
     if(length(index.na)>0){
-        attr(index.na, "cluster") <- data$XXcluster.indexXX[index.na]
-        attr(index.na, "time") <- data$XXtime.indexXX[index.na]
-        data <- data[-index.na,, drop=FALSE]
+        attr(index.na, "index") <- data[index.na,"XXindexXX"]
+
+        attr(index.na, "cluster") <- data[index.na,var.cluster]
+        attr(index.na, "cluster.index") <- data[index.na,"XXcluster.indexXX"]
+        attr(index.na, "cluster.index")[attr(index.na, "cluster.index") %in% data[-index.na,"XXcluster.indexXX"] == FALSE] <- NA
+        
+        attr(index.na, "time") <- data[index.na,var.time]
+        attr(index.na, "time.index") <- data[index.na,"XXtime.indexXX"]
+        attr(index.na, "time.index")[attr(index.na, "time.index") %in% data[-index.na,"XXtime.indexXX"] == FALSE] <- NA
+
+        data <- .prepareData(data[-index.na,, drop=FALSE], var.cluster = var.cluster, var.time = var.time, var.strata = var.strata)
     }else{
         index.na <- NULL
     }
@@ -601,15 +613,15 @@ lmm <- function(formula, repetition, structure, data,
             data.fit <- cbind(data.fit, data[,add.col[add.col %in% names(data.fit) == FALSE],drop=FALSE])
         }
         ## order by strata, time, and cluster (strata, cluster, and time does not provide satisfactory results, mixing k-parameters)
-        col.pattern <- factor(out$design$vcov$X$pattern.cluster, out$design$vcov$X$Upattern$name)[as.character(data.fit[["XXcluster.indexXX"]])]
+        col.pattern <- out$design$vcov$X$pattern.cluster$pattern[data.fit[["XXcluster.indexXX"]]]
         data.fit <- data.fit[order(data.fit[["XXstrata.indexXX"]],col.pattern,data.fit[["XXcluster.indexXX"]],data.fit[["XXtime.indexXX"]]),,drop=FALSE]
         if(n.strata==1){
             txt.data <- "data.fit"
         }else{
             txt.data <- paste0("data.fit[data.fit$XXstrataXX==\"",U.strata,"\",,drop=FALSE]")
         }
-        ##  update formula
-        txt.formula <- tapply(paste0("p",1:NCOL(out$design$mean)),out$design$param$strata.mu, function(iStrata){
+        ## update formula
+        txt.formula <- tapply(paste0("p",1:NCOL(out$design$mean)),unlist(out$design$param[out$design$param$type=="mu","strata"]), function(iStrata){
             paste0(var.outcome, "~ 0 + ",  paste(iStrata, collapse = " + "))
         })
     }
@@ -621,7 +633,7 @@ lmm <- function(formula, repetition, structure, data,
     if(trace>=1){cat("2. Estimate model parameters")}
 
     if(optimizer=="gls"){
-        name.var <- stats::na.omit(setdiff(structure$name$var,structure$name$strata))
+        name.var <- unlist(structure$name$var)
         if(length(name.var)>0){
             form.var <- stats::as.formula(paste0("~1|", paste(name.var[[1]], collapse = "*")))
             txt.var <- paste0("weights = nlme::varIdent(form = ", deparse(form.var), "), ")
@@ -650,20 +662,19 @@ lmm <- function(formula, repetition, structure, data,
         })
         param.mu <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]) })
         param.sigma <- lapply(U.strata, function(iS){ stats::sigma(out$gls[[iS]]) })
-        param.value <- c(stats::setNames(unlist(param.mu),out$design$param$mu),
-                         stats::setNames(unlist(param.sigma), out$design$param$sigma))
-        if(length(out$design$param$k)>0){
+        param.value <- c(stats::setNames(unlist(param.mu),out$design$param[out$design$param$type=="mu","name"]),
+                         stats::setNames(unlist(param.sigma), out$design$param[out$design$param$type=="sigma","name"]))
+        if("k" %in% out$design$param$type){
             param.k <- lapply(U.strata, function(iS){ ## iS <- "1"
                 iCoef <- coef(out$gls[[iS]]$modelStruct$varStruct, unconstrained = FALSE)
             })            
-            param.value <- c(param.value,stats::setNames(unlist(param.k), out$design$param$k))
+            param.value <- c(param.value,stats::setNames(unlist(param.k), out$design$param[out$design$param$type=="k","name"]))
         }
-        if(length(out$design$param$rho)>0){
+        if("rho" %in% out$design$param$type){
             param.rho <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]$modelStruct$corStruct, unconstrained = FALSE) })
-            param.value <- c(param.value,stats::setNames(unlist(param.rho), out$design$param$rho))
+            param.value <- c(param.value,stats::setNames(unlist(param.rho), out$design$param[out$design$param$type=="rho","name"]))
         }        
         out$opt <- list(name = "gls")
-
     }else{
         outEstimate <- .estimate(design = out$design, time = out$time, method.fit = method.fit, type.information = type.information,
                                  transform.sigma = options$transform.sigma, transform.k = options$transform.k, transform.rho = options$transform.rho,
@@ -678,22 +689,19 @@ lmm <- function(formula, repetition, structure, data,
         
     }
     out$param <- list(value = param.value,
-                      type = out$design$param$type,
-                      strata = stats::setNames(out$strata$levels[out$design$param$strata],names(out$design$param$strata)))
+                      type = stats::setNames(out$design$param$type, out$design$param$name),
+                      strata = stats::setNames(out$design$param$strata, out$design$param$name))
 
     if(trace>=1){cat("\n")}
 
     ## ** Compute likelihood derivatives
     if(trace>=1){cat("3. Compute likelihood derivatives \n")}
-
     outMoments <- .moments.lmm(value = out$param$value, design = out$design, time = out$time, method.fit = method.fit, type.information = type.information,
                                transform.sigma = options$transform.sigma, transform.k = options$transform.k, transform.rho = options$transform.rho,
                                logLik = TRUE, score = TRUE, information = TRUE, vcov = TRUE, df = df, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
                                trace = trace>=2, precompute.moments = precompute.moments, method.numDeriv = options$method.numDeriv, transform.names = FALSE)
     
     out[names(outMoments)] <- outMoments
-
-    
     
 
     if(trace>=1){cat("\n")}

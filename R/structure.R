@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: maj  9 2022 (18:35) 
+## Last-Updated: maj 17 2022 (11:06) 
 ##           By: Brice Ozenne
-##     Update #: 526
+##     Update #: 529
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -314,7 +314,7 @@ UN <- function(formula, var.cluster, var.time, add.time){
                                cor = outCov$formula.cor),
                 heterogeneous = TRUE,
                 type = "UN")
-
+    
     ## export
     class(out) <- append("structure",class(out))
     class(out) <- append("UN",class(out))

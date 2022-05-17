@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: apr 13 2022 (13:23) 
+## Last-Updated: maj 17 2022 (13:32) 
 ##           By: Brice Ozenne
-##     Update #: 165
+##     Update #: 185
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -23,6 +23,7 @@
 ##' @param structure [structure]
 ##' @param residuals [vector] vector of residuals.
 ##' @param Xmean [matrix] design matrix for the mean effects used to estimate the residual degrees of freedom for variance calculation.
+##' @param index.cluster [list of numeric vectors] position of the observations of each cluster.
 ##'
 ##' @keywords internal
 ##' 
@@ -64,31 +65,28 @@
 ##' .initialize(Sun4, residuals = residuals(eGas.lm))
 ##' .initialize(Sun24, residuals = residuals(eGas.lm))
 `.initialize` <-
-    function(object, residuals, Xmean) UseMethod(".initialize")
+    function(object, residuals, Xmean, index.cluster) UseMethod(".initialize")
 
 ## * initialization.IND
-.initialize.IND <- function(object, residuals, Xmean){
+.initialize.IND <- function(object, residuals, Xmean, index.cluster){
 
     param.type <- stats::setNames(object$param$type,object$param$name)
     param.strata <- stats::setNames(object$param$strata,object$param$name)
     Upattern.name <- object$X$Upattern$name
-    cluster.pattern <- object$X$cluster.pattern
 
     ## combine all residuals and all design matrices
-    M.res <- do.call(rbind,lapply(object$X$var, function(iPattern){ ## iPattern <- object$X$var[[1]]
-        X.iPattern <- iPattern
-        cluster.iPattern <- attr(iPattern,"index.cluster")
-        obs.iPattern <- unlist(attr(iPattern,"index.obs"))
-        attr(X.iPattern,"indicator.param") <- NULL
-        attr(X.iPattern,"index.cluster") <- NULL
-        attr(X.iPattern,"index.obs") <- NULL
-        iOut <- cbind(index = obs.iPattern, residuals = residuals[obs.iPattern], do.call(rbind,rep(list(X.iPattern),length(cluster.iPattern))))
+    M.res <- do.call(rbind,lapply(1:length(object$X$Xpattern.var), function(iPattern){ ## iPattern <- 1
+        X.iPattern <- object$X$Xpattern.var[[iPattern]]
+        cluster.iPattern <- attr(X.iPattern,"index.cluster")
+        obs.iPattern <- unlist(index.cluster[cluster.iPattern])
+        iOut <- cbind(index.pattern = iPattern, index.obs = obs.iPattern,
+                      residuals = residuals[obs.iPattern], do.call(rbind,rep(list(X.iPattern),length(cluster.iPattern))))
         return(iOut)
     }))
 
     ## extract information
     epsilon2 <- M.res[,"residuals"]^2
-    X <- M.res[,-(1:2),drop=FALSE]
+    X <- M.res[,-(1:3),drop=FALSE]
     paramVar.type <- param.type[colnames(X)]
     paramVar.strata <- param.strata[colnames(X)]
     n.strata <- length(unique(paramVar.strata))
@@ -97,10 +95,11 @@
     ## small sample correction (inflate residuals)
     if(!is.null(Xmean)){
         ## n - df
-        M.indexsigma <- do.call(rbind,lapply(object$X$var, function(iPattern){ ## iPattern <- object$X$var[[2]]
-            iUX <- interaction(as.data.frame(iPattern), drop = TRUE)
-            iDW <- data.frame(UX = 1:NROW(iUX), X = iUX, do.call(cbind,attr(iPattern, "index.obs")))
+        M.indexsigma <- do.call(rbind,lapply(object$X$Xpattern.var, function(iPattern){ ## iPattern <- object$X$Xpattern.var[[1]]
+            iUX <- interaction(as.data.frame(iPattern), drop = TRUE, sep = ":")
+            iDW <- data.frame(UX = 1:NROW(iUX), X = iUX, do.call(cbind,index.cluster[attr(iPattern, "index.cluster")]))
             iDL <- stats::reshape(iDW, direction = "long", idvar = c("UX","X"), varying = setdiff(names(iDW),c("UX","X")), v.names = "index")
+            rownames(iDL) <- NULL
             return(iDL[,c("X","index")])
         }))
         ## vec.hat <- diag(Xmean %*% solve(t(Xmean) %*% Xmean) %*% t(Xmean))
@@ -151,7 +150,7 @@
     if(identical(attr(residuals,"studentized"),TRUE)){
         attr(residuals,"studentized") <- NULL
         attr(out,"studentized") <- rep(NA,n.obs)
-        attr(out,"studentized")[M.res[,"index"]] <- M.res[,"residuals"]/exp(X %*% log(out))
+        attr(out,"studentized")[M.res[,"index.obs"]] <- M.res[,"residuals"]/exp(X %*% log(out))
     }
 
     ## export
@@ -159,65 +158,56 @@
 }
 
 ## * initialize.CS
-.initialize.CS <- function(object, residuals, Xmean){
-
+.initialize.CS <- function(object, residuals, Xmean, index.cluster){
     out <- stats::setNames(rep(NA, NROW(object$param)), object$param$name)
 
     ## extract information
     param.type <- stats::setNames(object$param$type,object$param$name)
     param.strata <- stats::setNames(object$param$strata,object$param$name)
     Upattern.name <- object$X$Upattern$name
-    cluster.pattern <- object$X$cluster.pattern
 
     ## estimate variance and standardize residuals
     attr(residuals,"studentized") <- TRUE ## to return studentized residuals
-    sigma <- .initialize.IND(object = object, residuals = residuals, Xmean = Xmean)
+
+    sigma <- .initialize.IND(object = object, residuals = residuals, Xmean = Xmean, index.cluster = index.cluster)
     residuals.studentized <- attr(sigma, "studentized")
     attr(sigma, "studentized") <- NULL
     out[names(sigma)] <- sigma
 
-    if(is.null(object$X$cor.pairwise)){return(out)}
+    if(is.null(object$X$Xpattern.cor)){return(out)}
     ## combine all residuals and all design matrices
-    M.prodres <- do.call(rbind,lapply(1:length(object$X$cor.pairwise), function(iPattern){ ## iPattern <- 1
-        X.iPattern <- object$X$cor.pairwise[[iPattern]]
+    M.prodres <- do.call(rbind,lapply(1:length(object$X$Xpattern.cor), function(iPattern){ ## iPattern <- 3
+        X.iPattern <- object$X$Xpattern.cor[[iPattern]]
         if(is.null(X.iPattern)){return(NULL)}
 
         ## number of timepoints
-        iN.time <- length(attr(object$X$cor.pairwise[[iPattern]],"index.Utime"))
+        iN.time <- NROW(attr(object$X$Xpattern.cor[[iPattern]],"X"))
         ## position in the matrix associated to each correlation parameter
         indicator.param <- attr(X.iPattern,"indicator.param")
         ## index of the residuals belonging to each individual
-        obs.iPattern <- do.call(rbind,attr(X.iPattern,"index.obs"))
+        obs.iPattern <- do.call(rbind,index.cluster[attr(X.iPattern,"index.cluster")])
         ## identify non-duplicated pairs of observation (here restrict matrix to its  upper part)
-        iIndexUpper <- which(attr(X.iPattern,"index.pairtime")[1,]<attr(X.iPattern,"index.pairtime")[2,])
-        iPair <- attr(X.iPattern,"index.pairtime")[,iIndexUpper,drop=FALSE]
+        iAllPair <- attr(X.iPattern,"index.pair")
+        iPair <- iAllPair[iAllPair[,"col"]<iAllPair[,"row"],,drop=FALSE]
+        iParam <- unique(iPair$param)
+        iPair$param <- as.numeric(factor(iPair$param, levels = iParam))
         ## convert index among all time to index among all time available for this pair
-        iIndex.Utime <- attr(X.iPattern, "index.Utime")
-        iPair2 <- matrix(NA, nrow = 2, ncol = NCOL(iPair))
-        iPair2[] <- as.numeric(factor(iPair, levels = iIndex.Utime, labels = 1:length(iIndex.Utime)))
-        iIndex.pair <- iPair2[1,] + (iPair2[2,]-1)*iN.time
-                
-        iLs.out <- lapply(names(indicator.param), function(iParam){
-            if(length(indicator.param[[iParam]])>0){
-                iIndexParam.pair <- iPair2[,iIndex.pair %in% indicator.param[[iParam]],drop=FALSE]
-                
-                iOut <- data.frame(prod = sum(residuals.studentized[obs.iPattern[,iIndexParam.pair[1,]]]*residuals.studentized[obs.iPattern[,iIndexParam.pair[2,]]]),
-                                   sum1 = sum(residuals.studentized[obs.iPattern[,iIndexParam.pair[1,]]]),
-                                   sum2 = sum(residuals.studentized[obs.iPattern[,iIndexParam.pair[2,]]]),
-                                   sums1 = sum(residuals.studentized[obs.iPattern[,iIndexParam.pair[1,]]]^2),
-                                   sums2 = sum(residuals.studentized[obs.iPattern[,iIndexParam.pair[2,]]]^2),
-                                   n = NROW(obs.iPattern)*NCOL(iIndexParam.pair),
-                                   param = iParam)
-            }else{
-                iOut <- data.frame(prod = 0, sum1 = 0, sum2 = 0, sums1 = 0, sums2 = 0,
-                                   n = 0,
-                                   param = iParam)
-            }
-        })
+        iIndex.pair <- attr(X.iPattern,"index.vec2matrix")[iAllPair[,"col"]<iAllPair[,"row"]]
+        ## M <- matrix(0,4,4);M[iIndex.pair] <- 1:length(iIndex.pair)
 
+        iLs.out <- apply(iPair, 1, function(iRow){
+            data.frame(prod = sum(residuals.studentized[obs.iPattern[,iRow[1]]]*residuals.studentized[obs.iPattern[,iRow[2]]]),
+                       sum1 = sum(residuals.studentized[obs.iPattern[,iRow[1]]]),
+                       sum2 = sum(residuals.studentized[obs.iPattern[,iRow[2]]]),
+                       sums1 = sum(residuals.studentized[obs.iPattern[,iRow[1]]]^2),
+                       sums2 = sum(residuals.studentized[obs.iPattern[,iRow[2]]]^2),
+                       n = NROW(obs.iPattern),
+                       param = iParam[iRow[3]])
+        })
 
         return(do.call(rbind,iLs.out))
     }))
+
     ## estimate correlation
     param.rho <- names(param.type)[param.type=="rho"]
 
@@ -238,7 +228,7 @@
 .initialize.UN <- .initialize.CS
 
 ## * initialize.CUSTOM
-.initialize.CUSTOM <- function(object, residuals, Xmeans){
+.initialize.CUSTOM <- function(object, residuals, Xmeans, index.cluster){
 
     out <- stats::setNames(rep(NA, NROW(object$param)), object$param$name)
     if(!is.null(object$init.sigma) && any(!is.na(object$init.sigma))){

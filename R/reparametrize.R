@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: apr  1 2022 (12:21) 
+## Last-Updated: maj 17 2022 (18:13) 
 ##           By: Brice Ozenne
-##     Update #: 407
+##     Update #: 419
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -135,14 +135,13 @@ reparametrize <- function(p, type, strata,
 ## * .reparametrize
 ## TODO: - extend transform.rho="cov" to UN pattern (i.e. find k corresponding to rho)
 .reparametrize <- function(p, type, strata, 
-                           time.k, time.rho,
-                           name2sd,
+                           sigma, k.x, k.y,
                            Jacobian, dJacobian, inverse,
                            transform.sigma,
                            transform.k,
                            transform.rho,
                            transform.names){
-    
+
     if(transform.k %in% c("sd","logsd","var","logvar") && any("k" %in% type)){
         transform.sigma  <- switch(transform.k,
                                    "var" = "square",
@@ -342,10 +341,11 @@ reparametrize <- function(p, type, strata,
                 }
             }
         }else if(transform.k %in% c("sd","logsd","var","logvar")){
+            browser()
             index.param <- which(type %in% c("sigma","k"))
             name.param <- name.p[index.param]
             type.param <- type[index.param]
-            strata.param <- strata[index.param]
+            strata.param <- unlist(strata[index.param])
             Ustrata <- unique(strata.param)
 
             for(iStrata in Ustrata){ ## iStrata <- 1
@@ -537,10 +537,14 @@ reparametrize <- function(p, type, strata,
                 }
             }
         }else if(transform.rho == "cov"){
+            browser()
             index.param <- which(type %in% c("rho","sigma","k"))
             name.param <- name.p[index.param]
             type.param <- type[index.param]
-            strata.param <- strata[index.param]
+            if(any(sapply(strata[index.param],length)>1)){
+                stop("Cannot handle variance/correlation parameters in several strata. \n")
+            }
+            strata.param <- unlist(strata[index.param])
             Ustrata <- unique(strata.param)
 
             for(iStrata in Ustrata){ ## iStrata <- 1

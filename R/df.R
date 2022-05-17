@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (10:34) 
 ## Version: 
-## Last-Updated: feb 11 2022 (17:14) 
+## Last-Updated: maj 17 2022 (18:09) 
 ##           By: Brice Ozenne
-##     Update #: 156
+##     Update #: 159
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -149,6 +149,9 @@
     param.value <- value
     param.type <- design$param$type
     param.strata <- design$param$strata
+    sigma <- design$param$sigma
+    k.x <- design$param$k.x
+    k.y <- design$param$k.y
     name.allcoef <- names(param.type)
     n.allcoef <- length(param.type)
 
@@ -164,7 +167,11 @@
 
         if(test.transform){ ## back-transform
             backp <- .reparametrize(p = p[param.nameVar],
-                                    type = param.type[param.nameVar], strata = param.strata[param.nameVar], 
+                                    type = param.type[param.nameVar],
+                                    strata = param.strata[param.nameVar], 
+                                    sigma = sigma[param.nameVar], 
+                                    k.x = k.x[param.nameVar], 
+                                    k.y = k.y[param.nameVar], 
                                     Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
                                     transform.sigma = transform.sigma,
                                     transform.k = transform.k,

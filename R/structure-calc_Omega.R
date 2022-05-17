@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: apr 13 2022 (17:16) 
+## Last-Updated: maj 17 2022 (16:56) 
 ##           By: Brice Ozenne
-##     Update #: 437
+##     Update #: 443
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -66,19 +66,19 @@
     function(object, param, keep.interim) UseMethod(".calc_Omega")
 
 
-## * calc_Omega.UN
-.calc_Omega.UN <- function(object, param, keep.interim = FALSE){    
+## * calc_Omega.IND
+.calc_Omega.IND <- function(object, param, keep.interim = FALSE){
+
     Upattern <- object$X$Upattern
     n.Upattern <- NROW(Upattern)
     pattern.cluster <- object$X$pattern.cluster
-    X.var <- object$X$var
-    X.cor <- object$X$cor.pairwise
+    X.var <- object$X$Xpattern.var
+    X.cor <- object$X$Xpattern.cor
 
     Omega <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
         iPattern.var <- Upattern[iPattern,"var"]
         iPattern.cor <- Upattern[iPattern,"cor"]
-        iTime <- Upattern[iPattern,"time"][[1]]
-        iNtime <- length(iTime)
+        iNtime <- Upattern[iPattern,"n.time"]
 
         Omega.sd <- unname(exp(X.var[[iPattern.var]] %*% log(param[colnames(X.var[[iPattern.var]])])))
         Omega.cor <- diag(0, nrow = iNtime, ncol = iNtime)
@@ -89,7 +89,6 @@
         Omega <- diag(as.double(Omega.sd)^2, nrow = iNtime, ncol = iNtime) + Omega.cor * tcrossprod(Omega.sd)
         
         if(keep.interim){
-            attr(Omega,"time") <- iTime
             attr(Omega,"sd") <- Omega.sd
             attr(Omega,"cor") <- Omega.cor
         }
@@ -99,11 +98,11 @@
     return(Omega)
 }
 
-## * calc_Omega.IND
-.calc_Omega.IND <- .calc_Omega.UN
-
 ## * calc_Omega.CS
-.calc_Omega.CS <- .calc_Omega.UN
+.calc_Omega.CS <- .calc_Omega.IND
+
+## * calc_Omega.UN
+.calc_Omega.UN <- .calc_Omega.IND
 
 ## * calc_Omega.CS
 .calc_Omega.CUSTOM <- function(object, param, keep.interim = FALSE){

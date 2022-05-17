@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: apr 13 2022 (17:14) 
+## Last-Updated: maj 17 2022 (16:58) 
 ##           By: Brice Ozenne
-##     Update #: 90
+##     Update #: 93
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -65,8 +65,8 @@
 `.calc_dOmega` <-
     function(object, param, Omega, Jacobian) UseMethod(".calc_dOmega")
 
-## * calc_dOmega.UN
-.calc_dOmega.UN <- function(object, param, Omega, Jacobian = NULL){
+## * calc_dOmega.IND
+.calc_dOmega.IND <- function(object, param, Omega, Jacobian = NULL){
 
     ## ** prepare
     type <- object$param$type
@@ -83,17 +83,16 @@
     
     Upattern <- object$X$Upattern
     n.Upattern <- NROW(Upattern)
-    pattern.cluster <- object$X$pattern.cluster
-    X.var <- object$X$var
-    X.cor <- object$X$cor.pairwise
+    pattern.cluster <- object$X$pattern.cluster$pattern
+    X.var <- object$X$Xpattern.var
+    X.cor <- object$X$Xpattern.cor
 
     ## ** loop over covariance patterns
     out <- lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
 
         iPattern.var <- Upattern[iPattern,"var"]
         iPattern.cor <- Upattern[iPattern,"cor"]
-        iTime <- Upattern[iPattern,"time"][[1]]
-        iNtime <- length(iTime)
+        iNtime <- Upattern[iPattern,"n.time"]
         iName.param <- Upattern[iPattern,"param"][[1]]
 
         iOmega.sd <- attr(Omega[[iPattern]],"sd")
@@ -178,11 +177,11 @@
     return(out)
 }
 
-## * calc_dOmega.IND
-.calc_dOmega.IND <- .calc_dOmega.UN
-
 ## * calc_dOmega.CS
-.calc_dOmega.CS <- .calc_dOmega.UN
+.calc_dOmega.CS <- .calc_dOmega.IND
+
+## * calc_dOmega.UN
+.calc_dOmega.UN <- .calc_dOmega.IND
 
 ## * calc_dOmega.CUSTOM
 .calc_dOmega.CUSTOM <- function(object, param, Omega, Jacobian = NULL){

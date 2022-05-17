@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: apr 20 2022 (12:11) 
+## Last-Updated: maj 17 2022 (17:57) 
 ##           By: Brice Ozenne
-##     Update #: 249
+##     Update #: 289
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,7 +21,7 @@
                          logLik, score, information, vcov, df, indiv, effects, robust,
                          trace, precompute.moments, method.numDeriv, transform.names){
 
-    param.value <- value
+    param.value <- value[design$param$name]
     param.type <- design$param$type
     param.strata <- design$param$strata
     out <- list()
@@ -37,10 +37,8 @@
     }else{
         test.d2Omega  <- FALSE
     }
-
     out$reparametrize <- .reparametrize(p = param.value[index.var], type = param.type[index.var], strata = param.strata[index.var], 
-                                        time.k = design$param$time.k, time.rho = design$param$time.rho,
-                                        name2sd = stats::setNames(design$vcov$param$name2,design$vcov$param$name),
+                                        sigma = design$param$sigma[index.var], k.x = design$param$k.x[index.var], k.y = design$param$k.y[index.var],
                                         Jacobian = TRUE, dJacobian = 2*test.d2Omega, inverse = FALSE, ##  2 is necessary to export the right dJacobian
                                         transform.sigma = transform.sigma,
                                         transform.k = transform.k,
@@ -71,22 +69,25 @@
         if(is.null(design$weights)){
             wRR <- out$residuals
             wR <-  out$residuals
-            Upattern.ncluster <- stats::setNames(design$vcov$X$Upattern$ncluster,design$vcov$X$Upattern$name)
+            Upattern.ncluster <- stats::setNames(design$vcov$X$Upattern$n.cluster,design$vcov$X$Upattern$name)
         }else{
             wR <- sweep(out$residuals, FUN = "*", MARGIN = 1, STATS = design$weights)
             wRR <- sweep(out$residuals, FUN = "*", MARGIN = 1, STATS = sqrt(design$weights))
-            Upattern.ncluster <- tapply(tapply(design$weight,design$index.cluster,unique),design$vcov$X$pattern.cluster,sum)[design$vcov$X$Upattern$name]
+            Upattern.ncluster <- tapply(tapply(design$weight,design$index.cluster,unique),design$vcov$X$pattern.cluster$pattern,sum)[design$vcov$X$Upattern$name]
         }
         weights.cluster <- NULL
         scale.cluster <- NULL
 
         precompute <- list(XX = design$precompute.XX,
-                           RR = .precomputeRR(residuals = wRR, pattern = design$vcov$X$Upattern$name,
-                                              pattern.time = design$vcov$X$Upattern$time, pattern.cluster = design$vcov$X$cluster.pattern, index.cluster = attr(design$index.cluster,"sorted"))                           
+                           RR = .precomputeRR(residuals = wRR, pattern = design$vcov$X$Upattern$name, 
+                                              pattern.ntime = stats::setNames(design$vcov$X$Upattern$n.time, design$vcov$X$Upattern$name),
+                                              pattern.cluster = design$vcov$X$Upattern$index.cluster, index.cluster = design$index.cluster)                           
                            )
         if(score || information || vcov || df){
             precompute$XR  <-  .precomputeXR(X = design$precompute.XX$Xpattern, residuals = wR, pattern = design$vcov$X$Upattern$name,
-                                             pattern.time = design$vcov$X$Upattern$time, pattern.cluster = design$vcov$X$cluster.pattern, index.cluster = attr(design$index.cluster,"sorted"))              }
+                                             pattern.ntime = stats::setNames(design$vcov$X$Upattern$n.time, design$vcov$X$Upattern$name),
+                                             pattern.cluster = design$vcov$X$Upattern$index.cluster, index.cluster = design$index.cluster)
+        }
         
         
     }else{
@@ -95,12 +96,12 @@
         if(is.null(design$weights)){
             weights.cluster <- stats::setNames(rep(1, design$cluster$n), design$cluster$levels)
         }else{
-            weights.cluster <- stats::setNames(design$weights[sapply(attr(design$index.cluster, "sorted"),"[[",1)], design$cluster$levels)
+            weights.cluster <- stats::setNames(design$weights[sapply(design$index.cluster,"[[",1)], design$cluster$levels)
         }
         if(is.null(design$scale.Omega)){
             scale.cluster <- stats::setNames(rep(1, design$cluster$n), design$cluster$levels)
         }else{
-            scale.cluster <- stats::setNames(design$scale.Omega[sapply(attr(design$index.cluster, "sorted"),"[[",1)], design$cluster$levels)
+            scale.cluster <- stats::setNames(design$scale.Omega[sapply(design$index.cluster,"[[",1)], design$cluster$levels)
         }
     }
 
@@ -143,7 +144,7 @@
         if(trace>=1){cat("- log-likelihood \n")}
         out$logLik <- .logLik(X = design$mean, residuals = out$residuals, precision = out$OmegaM1,
                               Upattern.ncluster = Upattern.ncluster, weights = weights.cluster, scale.Omega = scale.cluster,
-                              index.variance = design$vcov$X$pattern.cluster, time.variance = design$index.time, index.cluster = design$index.cluster, 
+                              index.variance = design$vcov$X$pattern.cluster$pattern, time.variance = design$index.clusterTime, index.cluster = design$index.cluster, 
                               indiv = indiv, REML = method.fit=="REML", precompute = precompute)
     }
 
@@ -151,7 +152,7 @@
         if(trace>=1){cat("- score \n")}
         out$score <- .score(X = design$mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega,
                             Upattern.ncluster = Upattern.ncluster, weights = weights.cluster, scale.Omega = scale.cluster,
-                            index.variance = design$vcov$X$pattern.cluster, time.variance = design$index.time, index.cluster = design$index.cluster,
+                            index.variance = design$vcov$X$pattern.cluster$pattern, time.variance = design$index.clusterTime, index.cluster = design$index.cluster,
                             name.varcoef = design$vcov$X$Upattern$param, name.allcoef = name.allcoef,
                             indiv = indiv, REML = method.fit=="REML", effects = effects, precompute = precompute)
 
@@ -173,12 +174,11 @@
         }else{
             effects2 <- effects
         }
-
         Minfo <- .information(X = design$mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega,
                               Upattern.ncluster = Upattern.ncluster, weights = weights.cluster, scale.Omega = scale.cluster,
-                              index.variance = design$vcov$X$pattern.cluster, time.variance = design$index.time, index.cluster = design$index.cluster,
+                              index.variance = design$vcov$X$pattern.cluster$pattern, time.variance = design$index.clusterTime, index.cluster = design$index.cluster,
                               name.varcoef = design$vcov$X$Upattern$param, name.allcoef = name.allcoef,
-                              pair.meanvarcoef = design$param$pair.meanvarcoef, pair.varcoef = design$vcov$pair.varcoef,
+                              pair.meanvarcoef = attr(design$param, "pair.meanvarcoef"), pair.varcoef = design$vcov$X$pair.varcoef,
                               indiv = indiv, REML = (method.fit=="REML"), type.information = type.information, effects = effects2, robust = robust,
                               precompute = precompute)
 
@@ -219,7 +219,7 @@
 
     if(df){
         if(trace>=1){cat("- degrees of freedom \n")}
-        ## system.time(
+    ## system.time(
         out$df <- .df_numDeriv(value = param.value, reparametrize = out$reparametrize,
                                design = design, time = time, method.fit = method.fit, type.information = type.information,
                                transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, effects = effects2, 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: maj 16 2022 (19:27) 
+## Last-Updated: maj 17 2022 (11:03) 
 ##           By: Brice Ozenne
-##     Update #: 1816
+##     Update #: 1842
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -66,7 +66,6 @@
     
     index.clusterTime <- indexData$index.clusterTime ## list of index relative to the time at which the observations are made within cluster
     index.clusterStrata <- indexData$index.clusterStrata ## vector of index relative to which strata each cluster belong to
-    order.clusterTime <- indexData$order.clusterTime ## list of index for re-ordering the observations within cluster 
     index.cluster <- indexData$index.cluster ## list of positions of the observation belonging to each cluster in the dataset
 
     X.var <- structure$X$var
@@ -92,8 +91,9 @@
     if(NROW(X.cor)>0){
         outRho <- .initRho(data = data, X.cor = X.cor, X.var = c(outK, list(strata.sigma = strata.sigma)), heterogeneous = structure$heterogeneous, 
                            U.cluster = U.cluster, index.cluster = index.cluster,
-                           U.time = U.time, index.clusterTime = index.clusterTime, order.clusterTime = order.clusterTime,
+                           U.time = U.time, index.clusterTime = index.clusterTime, 
                            strata.var = strata.var, U.strata = U.strata, index.clusterStrata = index.clusterStrata, n.strata = n.strata)
+        
         param.rho <- outRho$param
         strata.rho <- outRho$strata
         code.rho <- outRho$code
@@ -132,7 +132,7 @@
     }
     structure$param <- structure$param[order(structure$param$strata),,drop=FALSE]
     rownames(structure$param) <- NULL
-    print(structure)
+
     ## ** export
     structure$X$var <- X.var
     structure$X$cor <- X.cor
@@ -161,7 +161,6 @@
     
     index.clusterTime <- indexData$index.clusterTime ## list of index relative to the time at which the observations are made within cluster
     index.clusterStrata <- indexData$index.clusterStrata ## vector of index relative to which strata each cluster belong to
-    order.clusterTime <- indexData$order.clusterTime ## list of index for re-ordering the observations within cluster 
     index.cluster <- indexData$index.cluster ## list of positions of the observation belonging to each cluster in the dataset
     cor.var <- structure$name$cor[[1]]
 
@@ -192,7 +191,7 @@
     if(!is.null(X.cor)){
         outRho <- .initRho(data = data, X.cor = X.cor, heterogeneous = structure$heterogeneous, 
                            U.cluster = U.cluster, index.cluster = index.cluster,
-                           U.time = U.time, index.clusterTime = index.clusterTime, order.clusterTime = order.clusterTime,
+                           U.time = U.time, index.clusterTime = index.clusterTime, 
                            U.strata = U.strata, index.clusterStrata = index.clusterStrata, n.strata = n.strata)
         browser()
         attr(structure$param,"lpdiff.rho") <- outRho$code        
@@ -282,7 +281,7 @@
 ## for each cluster compute all pairwise difference in covariates to find the parameters
 .initRho <- function(data, X.cor, X.var, heterogeneous, 
                      U.cluster, index.cluster,
-                     U.time, index.clusterTime, order.clusterTime,
+                     U.time, index.clusterTime, 
                      strata.var, U.strata, index.clusterStrata, n.strata, sep = ":"){
 
     fct.envir <- environment()
@@ -295,7 +294,7 @@
     lpObs.cor <- interaction(as.data.frame(X.cor),sep=sep,drop=TRUE)
     lpnObs.cor <- as.numeric(factor(lpObs.cor, levels = Ulp.cor))
     lpnCluster.cor <- stats::setNames(lapply(U.cluster, function(iC){
-        lpnObs.cor[index.cluster[[iC]][order.clusterTime[[iC]]]]
+        lpnObs.cor[index.cluster[[iC]]]
     }), U.cluster)
     attr(lpnCluster.cor, "levels") <- Ulp.cor
 
@@ -309,13 +308,11 @@
             iCluster <- U.cluster
             iIndex.cluster <- index.cluster
             iIndex.clusterTime <- index.clusterTime
-            iOrder.clusterTime <- order.clusterTime
             iLpnCluster.cor <- lpnCluster.cor         
         }else{
             iCluster <- names(index.clusterStrata)[which(index.clusterStrata==iStrata)]
             iIndex.cluster <- index.cluster[iCluster]
             iIndex.clusterTime <- index.clusterTime[iCluster]
-            iOrder.clusterTime <- order.clusterTime[iCluster]
             iLpnCluster.cor <- lpnCluster.cor[iCluster]            
         }
         if(!missing(X.var)){
@@ -343,16 +340,14 @@
         ## **** remove cluster identical to other cluster in term of linear predictors
         iIndex.unique <- which(!duplicated(iULpCluster.cor))
         iCluster2 <- iCluster[iIndex.unique]
-        iULpIndex.cor2 <- iULpIndex.cor[iIndex.unique]
-        iULpCluster.cor2 <- iULpCluster.cor[iIndex.unique]
 
-        iN.pair <- unique(sapply(iULpIndex.cor2, length))
+        iN.pair <- unique(sapply(iULpIndex.cor[iIndex.unique], length))
         ls.pair <- vector(mode = "list", length = max(iN.pair))
         ls.pair[iN.pair] <- lapply(iN.pair, function(iN){.unorderedPairs(1:iN, distinct = TRUE)})
         
         ## **** contrast all pairs
         for(iC in iCluster2){ ## iC <- iCluster2[1]
-            iCindex  <- index.cluster[[iC]][order.clusterTime[[iC]]][iULpIndex.cor2[[iC]]]
+            iCindex  <- index.cluster[[iC]][iULpIndex.cor[[iC]]]
             iCX.cor <- X.cor[iCindex,,drop=FALSE]
             iData <- data[iCindex,,drop=FALSE]
                 
@@ -379,11 +374,11 @@
                                        k.y = NA)
 
                     if(!missing(X.var)){ ## add corresponding variance parameters
-                        iCX.sigma <- iX.sigma[index.cluster[[iC]][order.clusterTime[[iC]]][1:2],,drop=FALSE]
+                        iCX.sigma <- iX.sigma[index.cluster[[iC]][1:2],,drop=FALSE]
                         iOut$sigma <- colnames(iCX.sigma)[colSums(iCX.sigma)!=0]
 
                         if(length(iX.k)>0){
-                            iCX.k <- iX.k[index.cluster[[iC]][order.clusterTime[[iC]]][1:2],,drop=FALSE]
+                            iCX.k <- iX.k[index.cluster[[iC]][1:2],,drop=FALSE]
                             if(sum(iCX.k[1,,drop=FALSE]!=0)){
                                 iOut$k.x <- colnames(iCX.k)[iCX.k[1,,drop=FALSE]==1]
                             }
@@ -421,7 +416,7 @@
                     if(n.strata>1){
                         iName <- paste0(iName,":",U.strata[iStrata])
                     }
-                    iM <- matrix(lpnCluster.cor[[iC]][iPair.time], ncol = 2, byrow = FALSE, dimnames = list(NULL, c("x","y")))[iIndex.store,]
+                    iM <- matrix(lpnCluster.cor[[iC]][iPair.time], ncol = 2, byrow = TRUE, dimnames = list(NULL, c("x","y")))[iIndex.store,]
                     iOut <- data.frame(lp.x = iM[,"x"],
                                        lp.y = iM[,"y"],
                                        strata = rep(iStrata, length(iIndex.store)),

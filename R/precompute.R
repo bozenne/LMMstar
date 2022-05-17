@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 22 2021 (13:47) 
 ## Version: 
-## Last-Updated: feb 11 2022 (13:12) 
+## Last-Updated: maj 17 2022 (16:39) 
 ##           By: Brice Ozenne
-##     Update #: 8
+##     Update #: 19
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,12 +17,12 @@
 
 ## * .precomputeXX
 ## Precompute square of the design matrix
-.precomputeXX <- function(X, pattern, pattern.time, pattern.cluster, index.cluster){
+.precomputeXX <- function(X, pattern, pattern.ntime, pattern.cluster, index.cluster){
+
     p <- NCOL(X)
     n.pattern <- length(pattern)
-    n.time <- lapply(pattern.time,length)
 
-    out <- list(pattern = stats::setNames(lapply(pattern, function(iPattern){array(0, dim = c(n.time[[iPattern]],n.time[[iPattern]],p*(p+1)/2))}), pattern),
+    out <- list(pattern = stats::setNames(lapply(pattern, function(iPattern){array(0, dim = c(pattern.ntime[iPattern],pattern.ntime[iPattern],p*(p+1)/2))}), pattern),
                 key = matrix(as.numeric(NA),nrow=p,ncol=p,dimnames=list(colnames(X),colnames(X))),
                 Xpattern = stats::setNames(vector(mode = "list", length = n.pattern),pattern))
 
@@ -32,7 +32,7 @@
 
     ## fill matrix
     for(iPattern in pattern){ ## iPattern <- pattern[1]
-        iTime <- length(pattern.time[[iPattern]])
+        iTime <- pattern.ntime[iPattern]
 
         if(iTime==1){
             out$Xpattern[[iPattern]] <- do.call(rbind,lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){X[iIndex,,drop=FALSE]}))
@@ -58,17 +58,18 @@
 
 ## * .precomputeXR
 ## Precompute design matrix times residuals
-.precomputeXR <- function(X, residuals, pattern, pattern.time, pattern.cluster, index.cluster){
+.precomputeXR <- function(X, residuals, pattern, pattern.ntime, pattern.cluster, index.cluster){
     p <- NCOL(X[[1]])
     name.mucoef <- colnames(X)
     n.pattern <- length(pattern)
-    n.time <- lapply(pattern.time,length)
 
-    out <- stats::setNames(lapply(pattern, function(iPattern){array(0, dim = c(n.time[[iPattern]], n.time[[iPattern]], ncol = p), dimnames = list(NULL,NULL,name.mucoef))}), pattern)
+    out <- stats::setNames(lapply(pattern, function(iPattern){
+        array(0, dim = c(pattern.ntime[iPattern], pattern.ntime[iPattern], ncol = p), dimnames = list(NULL,NULL,name.mucoef))
+    }), pattern)
 
     for(iPattern in pattern){ ## iPattern <- pattern[1]
 
-        iTime <- length(pattern.time[[iPattern]])
+        iTime <- pattern.ntime[iPattern]
         iResiduals <- do.call(cbind, lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){residuals[iIndex,,drop=FALSE]}))
         iX <- X[[iPattern]]
 
@@ -89,11 +90,12 @@
 
 ## * .precomputeRR
 ## Precompute square of the residuals
-.precomputeRR <- function(residuals, weights, pattern.time, pattern, pattern.cluster, index.cluster){
+.precomputeRR <- function(residuals, pattern.ntime, pattern, pattern.cluster, index.cluster){
 
     n.pattern <- length(pattern)
-    n.time <- stats::setNames(lapply(pattern.time,length), pattern)
-    out <- stats::setNames(lapply(pattern, function(iPattern){matrix(0, nrow = n.time[[iPattern]], ncol = n.time[[iPattern]])}), pattern)
+    out <- stats::setNames(lapply(pattern, function(iPattern){
+        matrix(0, nrow = pattern.ntime[iPattern], ncol = pattern.ntime[iPattern])
+    }), pattern)
 
     for(iPattern in pattern){ ## iPattern <- pattern[1]
         

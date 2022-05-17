@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: apr 13 2022 (17:08) 
+## Last-Updated: maj 17 2022 (17:02) 
 ##           By: Brice Ozenne
-##     Update #: 76
+##     Update #: 83
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -67,8 +67,8 @@
 `.calc_d2Omega` <-
     function(object, param, Omega, dOmega, Jacobian, dJacobian) UseMethod(".calc_d2Omega")
 
-## * calc_d2Omega.UN
-.calc_d2Omega.UN <- function(object, param, Omega, dOmega, Jacobian = NULL, dJacobian = NULL){
+## * calc_d2Omega.IND
+.calc_d2Omega.IND <- function(object, param, Omega, dOmega, Jacobian = NULL, dJacobian = NULL){
 
     ## ** prepare
     type <- stats::setNames(object$param$type,object$param$name) 
@@ -85,12 +85,12 @@
     if(missing(dOmega)){
         dOmega <- .calc_dOmega(object, param = param, Omega = Omega, Jacobian = Jacobian)
     }
-    
+
     Upattern <- object$X$Upattern
     n.Upattern <- NROW(Upattern)
-    pattern.cluster <- object$X$pattern.cluster
-    X.var <- object$X$var
-    X.cor <- object$X$cor.pairwise
+    pattern.cluster <- object$X$pattern.cluster$pattern
+    X.var <- object$X$Xpattern.var
+    X.cor <- object$X$Xpattern.cor
     if(!is.null(Jacobian)){
         test.nooffdiag <- all(abs(c(Jacobian[lower.tri(Jacobian,diag=FALSE)],Jacobian[upper.tri(Jacobian,diag=FALSE)]))<1e-10)
         if(test.nooffdiag){
@@ -107,8 +107,7 @@
 
         iPattern.var <- Upattern[iPattern,"var"]
         iPattern.cor <- Upattern[iPattern,"cor"]
-        iTime <- Upattern[iPattern,"time"][[1]]
-        iNtime <- length(iTime)
+        iNtime <- Upattern[iPattern,"n.time"]
         iName.param <- Upattern[iPattern,"param"][[1]]
 
         iOmega.sd <- attr(Omega[[iPattern]],"sd")
@@ -128,7 +127,7 @@
         iX.cor <- X.cor[[iPattern.cor]][,c(iParam.rho),drop=FALSE]
         iIndicator <- c(attr(X.var[[iPattern.var]],"indicator.param"),attr(X.cor[[iPattern.cor]],"indicator.param"))
 
-        iPair <- object$pair.varcoef[[Upattern[iPattern,"name"]]]
+        iPair <- object$X$pair.varcoef[[Upattern[iPattern,"name"]]]
         n.iPair <- NCOL(iPair)
 
         iHess <- lapply(1:n.iPair, function(iPair){matrix(0, nrow = iNtime, ncol = iNtime)})
@@ -235,11 +234,11 @@
     return(out)
 } 
 
-## * calc_d2Omega.IND
-.calc_d2Omega.IND <- .calc_d2Omega.UN
+## * calc_d2Omega.CS
+.calc_d2Omega.UN <- .calc_d2Omega.IND
 
 ## * calc_d2Omega.CS
-.calc_d2Omega.CS <- .calc_d2Omega.UN
+.calc_d2Omega.UN <- .calc_d2Omega.IND
 
 ## * calc_d2Omega.CUSTOM
 .calc_d2Omega.CUSTOM <- function(object, param, Omega, dOmega, Jacobian = NULL, dJacobian = NULL){
