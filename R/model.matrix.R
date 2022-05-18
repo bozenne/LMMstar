@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: maj 17 2022 (18:04) 
+## Last-Updated: maj 18 2022 (11:34) 
 ##           By: Brice Ozenne
-##     Update #: 1966
+##     Update #: 1978
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -483,9 +483,26 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     }), structure$X$Upattern$name)
 
     ## ** param
+    ls.sub <- lapply(as.list(c("(Intercept)",attr(formula.mean,"term.labels"))[attr(X.mean,"assign")+1]),
+                     function(iSub){
+                         if(grepl(":",iSub,fixed = TRUE)){
+                             unlist(strsplit(iSub,":",fixed = TRUE))
+                         }else{
+                             return(iSub)
+                         }
+                     })
+    mu.level <- mapply(sub = ls.sub,
+                       name = colnames(X.mean),
+                       FUN = function(sub,name){
+                           for(iSub in sub){
+                               name <- gsub(iSub,"",name, fixed = TRUE)
+                           }
+                           return(name)
+                       })
     skeleton.param <- rbind(data.frame(name = colnames(X.mean),
                                        strata = NA,
                                        type = "mu",
+                                       level = gsub("^:","",gsub(":$","",mu.level)),
                                        code = NA,
                                        code.x = NA,
                                        code.y = NA,
@@ -494,9 +511,9 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
                                        k.y = NA),
                             structure$param)
 
-    skeleton.param$strata <- as.list(skeleton.param$strata)
     if(stratify.mean){
         skeleton.param$strata[skeleton.param$type=="mu"] <- strata.mu
+        skeleton.param$strata <- as.list(skeleton.param$strata)
     }else{
         skeleton.param$strata[skeleton.param$type=="mu"] <- list(as.numeric(unique(na.omit(skeleton.param$strata))))
     }

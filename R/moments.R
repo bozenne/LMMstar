@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: maj 17 2022 (17:57) 
+## Last-Updated: maj 18 2022 (11:40) 
 ##           By: Brice Ozenne
-##     Update #: 289
+##     Update #: 297
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -23,7 +23,7 @@
 
     param.value <- value[design$param$name]
     param.type <- design$param$type
-    param.strata <- design$param$strata
+    param.level <- design$param$level
     out <- list()
 
     ## ** 1- reparametrisation
@@ -37,13 +37,14 @@
     }else{
         test.d2Omega  <- FALSE
     }
-    out$reparametrize <- .reparametrize(p = param.value[index.var], type = param.type[index.var], strata = param.strata[index.var], 
+    out$reparametrize <- .reparametrize(p = param.value[index.var], type = param.type[index.var], level = param.level[index.var], 
                                         sigma = design$param$sigma[index.var], k.x = design$param$k.x[index.var], k.y = design$param$k.y[index.var],
                                         Jacobian = TRUE, dJacobian = 2*test.d2Omega, inverse = FALSE, ##  2 is necessary to export the right dJacobian
                                         transform.sigma = transform.sigma,
                                         transform.k = transform.k,
                                         transform.rho = transform.rho,
                                         transform.names = TRUE)
+    browser()
 
     newname.allcoef <- stats::setNames(name.allcoef, name.allcoef)
     if(out$reparametrize$transform==FALSE){

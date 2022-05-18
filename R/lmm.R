@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: maj 17 2022 (18:06) 
+## Last-Updated: maj 18 2022 (11:40) 
 ##           By: Brice Ozenne
-##     Update #: 1666
+##     Update #: 1674
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -688,15 +688,13 @@ lmm <- function(formula, repetition, structure, data,
         }
         
     }
-    out$param <- list(value = param.value,
-                      type = stats::setNames(out$design$param$type, out$design$param$name),
-                      strata = stats::setNames(out$design$param$strata, out$design$param$name))
+    out$param <- param.value
 
     if(trace>=1){cat("\n")}
 
     ## ** Compute likelihood derivatives
     if(trace>=1){cat("3. Compute likelihood derivatives \n")}
-    outMoments <- .moments.lmm(value = out$param$value, design = out$design, time = out$time, method.fit = method.fit, type.information = type.information,
+    outMoments <- .moments.lmm(value = out$param, design = out$design, time = out$time, method.fit = method.fit, type.information = type.information,
                                transform.sigma = options$transform.sigma, transform.k = options$transform.k, transform.rho = options$transform.rho,
                                logLik = TRUE, score = TRUE, information = TRUE, vcov = TRUE, df = df, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
                                trace = trace>=2, precompute.moments = precompute.moments, method.numDeriv = options$method.numDeriv, transform.names = FALSE)

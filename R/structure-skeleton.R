@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: maj 17 2022 (11:03) 
+## Last-Updated: maj 18 2022 (11:09) 
 ##           By: Brice Ozenne
-##     Update #: 1842
+##     Update #: 1859
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -78,6 +78,7 @@
     param.sigma <- outSigma$param    
     strata.sigma <- outSigma$strata    
     code.sigma <- outSigma$code
+    level.sigma <- outSigma$level
 
     ## *** k
     outK <- .initK(X.var = X.var, strata.var = strata.var, U.strata = U.strata, n.strata = n.strata,
@@ -86,6 +87,7 @@
     param.k <- outK$param    
     strata.k <- outK$strata    
     code.k <- outK$code
+    level.k <- outK$level
 
     ## *** param rho
     if(NROW(X.cor)>0){
@@ -97,6 +99,7 @@
         param.rho <- outRho$param
         strata.rho <- outRho$strata
         code.rho <- outRho$code
+        level.rho <- outRho$level
     }else{
         param.rho <- NULL
         strata.rho <- NULL
@@ -107,6 +110,7 @@
     structure$param <- data.frame(name = c(param.sigma,param.k,param.rho),
                                   strata = as.numeric(c(strata.sigma,strata.k,strata.rho)),
                                   type = c(rep("sigma",length=length(param.sigma)),rep("k",length=length(param.k)),rep("rho",length=length(param.rho))),
+                                  level = c(level.sigma,level.k,level.rho),
                                   code = c(code.sigma,code.k,code.rho),
                                   code.x = as.factor(NA),
                                   code.y = as.factor(NA),
@@ -205,21 +209,24 @@
 ## ** .initSigma
 .initSigma <- function(X.var, strata.var, U.strata, n.strata, sep = ":"){
 
+
     if(n.strata==1){
         param.sigma <- "sigma"
-        if(!identical(colnames(X.var)[attr(X.var,"assign")==0],"(Intercept)")){
+        index.sigma <- which(attr(X.var,"assign")==0)
+        if(!identical(colnames(X.var)[index.sigma],"(Intercept)")){
             stop("Could not find the intercept in the design matrix for the variance.\n")
         }
-        colnames(X.var)[attr(X.var,"assign")==0] <- param.sigma
+        colnames(X.var)[index.sigma] <- param.sigma
         strata.sigma <- stats::setNames(1,param.sigma)        
     }else{
         param.sigma <- paste0("sigma:",U.strata)
-        if(!identical(colnames(X.var)[attr(X.var,"assign")==1],paste0(strata.var,U.strata))){
+        index.sigma <- which(attr(X.var,"assign")==1)
+        if(!identical(colnames(X.var)[index.sigma],paste0(strata.var,U.strata))){
             stop("Could not find the strata-specific intercepts in the design matrix for the variance.\n")
         }
-        colnames(X.var)[attr(X.var,"assign")==1] <- param.sigma
+        colnames(X.var)[index.sigma] <- param.sigma
         strata.sigma <- stats::setNames(1:n.strata,param.sigma)
-        attr(X.var,"order")[attr(X.var,"assign")==1] <- 0
+        attr(X.var,"order")[index.sigma] <- 0
         
     }
 
@@ -229,34 +236,42 @@
                                   apply(X.varsigma, 1, function(iRow){names(which(iRow==1))}))
     code.sigma <- as.character(code.sigma[param.sigma])
 
+    ## find level
+    M.level <- attr(X.var,"M.level")
+    if(length(M.level)>0){
+        level.sigma <- as.character(interaction(M.level[index.sigma,,drop=FALSE],sep=sep, drop = TRUE))
+    }else{
+        level.sigma <- as.character(NA)
+    }
+
     return(list(X = X.var,
                 param = param.sigma,
                 strata = strata.sigma,
-                code = code.sigma))
+                code = code.sigma,
+                level = level.sigma))
 
 }
 
 ## ** .initK
 .initK <- function(X.var, strata.var, U.strata, n.strata,
-                   param.sigma, strata.sigma, sep = ":"){
+                   param.sigma, strata.sigma, sep = c(".",":")){
 
     index.k <- which(attr(X.var,"assign")>(n.strata>1))
-    if(length(index.k)>0){
 
+    if(length(index.k)>0){
         M.level <- attr(X.var,"M.level")
-        oldnames <- as.character(interaction(as.data.frame(lapply(1:NCOL(M.level), function(iVar){paste0(names(M.level)[iVar],M.level[index.k,iVar])})),sep=sep, drop = TRUE) )
-        newnames <- as.character(interaction(M.level[index.k,,drop=FALSE],sep=sep, drop = TRUE))
-        index.sigma <- which(attr(X.var,"assign")<=(n.strata>1))
-       
+        oldnames <- as.character(interaction(as.data.frame(lapply(1:NCOL(M.level), function(iVar){paste0(names(M.level)[iVar],M.level[index.k,iVar])})), sep = sep[2], drop = TRUE) )
+        level.k <- as.character(interaction(M.level[index.k,,drop=FALSE], sep = sep[2], drop = TRUE))
+        
         if(!identical(colnames(X.var)[index.k],oldnames)){
             stop("Could not find the k parameters in the design matrix for the variance.\n")
         }
-        colnames(X.var)[index.k] <- paste("k",newnames,sep=".")
+        colnames(X.var)[index.k] <- paste("k",level.k, sep = sep[1])
         param.k <- colnames(X.var)[index.k]
 
         ## find code
         X.vark <- unique(X.var[rowSums(X.var[,param.sigma,drop=FALSE])!=rowSums(X.var),,drop=FALSE])
-        code.k <- stats::setNames(as.character(interaction(as.data.frame(X.vark), drop = TRUE, sep = sep)),
+        code.k <- stats::setNames(as.character(interaction(as.data.frame(X.vark), drop = TRUE, sep = sep[2])),
                                   apply(X.vark[,param.k,drop=FALSE], 1, function(iRow){names(which(iRow==1))}))[param.k]
         code.k <- as.character(code.k[param.k])
 
@@ -269,12 +284,14 @@
         param.k <- NULL
         strata.k <- NULL
         code.k <- NULL
+        level.k <- NULL
     }
 
     return(list(X = X.var,
                 param = param.k,
                 strata = strata.k,
-                code = code.k))
+                code = code.k,
+                level = level.k))
 }
 
 ## ** .initRho
@@ -282,16 +299,16 @@
 .initRho <- function(data, X.cor, X.var, heterogeneous, 
                      U.cluster, index.cluster,
                      U.time, index.clusterTime, 
-                     strata.var, U.strata, index.clusterStrata, n.strata, sep = ":"){
+                     strata.var, U.strata, index.clusterStrata, n.strata, sep = c(":")){
 
     fct.envir <- environment()
     n.time <- length(U.time)
         
     ## *** linear predictor for each observation and then grouped by cluster
     UX.cor <- model.matrix(attr(X.cor,"formula"),attr(X.cor,"M.level"))
-    Ulp.cor <- as.character(interaction(as.data.frame(UX.cor),sep=sep,drop=TRUE))
+    Ulp.cor <- as.character(interaction(as.data.frame(UX.cor), sep = sep, drop=TRUE))
 
-    lpObs.cor <- interaction(as.data.frame(X.cor),sep=sep,drop=TRUE)
+    lpObs.cor <- interaction(as.data.frame(X.cor), sep = sep, drop=TRUE)
     lpnObs.cor <- as.numeric(factor(lpObs.cor, levels = Ulp.cor))
     lpnCluster.cor <- stats::setNames(lapply(U.cluster, function(iC){
         lpnObs.cor[index.cluster[[iC]]]
@@ -357,17 +374,20 @@
                 if(is.null(out[[iStrata]]) || iCode %in% out[[iStrata]]$code == FALSE){
                     ## name difference according to the covariate values
                     if(length(attr(X.cor,"M.level"))==0 || identical(names(attr(X.cor,"M.level")),strata.var)){
-                        iName <- "rho"
+                        iLevel <- ""
                     }else{
-                        iName <- paste0("rho(",as.character(interaction(iData[,names(attr(X.cor,"M.level")),drop=FALSE],drop=TRUE)),")")
+                        iLevel <- paste0("(",as.character(interaction(iData[,names(attr(X.cor,"M.level")),drop=FALSE],drop=TRUE)),")")
                     }
                     if(n.strata>1){
-                        iName <- paste0(iName,":",U.strata[iStrata])
+                        iLevel <- paste0(iLevel,":",U.strata[iStrata])
                     }
+                    iName <- paste0("rho",iLevel)
+
                     iOut <- data.frame(lp.x = lpnCluster.cor[[iC]][1],
                                        lp.y = lpnCluster.cor[[iC]][2],
                                        strata = iStrata,
                                        code = iCode,
+                                       level = iLevel,
                                        param = iName,
                                        sigma = NA,
                                        k.x = NA,
@@ -410,17 +430,19 @@
                     ## name difference according to the covariate values
                     iName.covcor <- setdiff(names(attr(X.cor,"M.level")),strata.var)
                     iCov <- as.character(interaction(iData[,iName.covcor,drop=FALSE],drop=TRUE))
-                    iName <- sapply(1:NCOL(iPair.time),function(iCol){
-                        return(paste0("rho(",paste(unique(c(iCov[min(iPair.time[,iCol])],iCov[max(iPair.time[,iCol])])),collapse=","),")"))
+                    iLevel <- sapply(1:NCOL(iPair.time),function(iCol){
+                        return(paste0("(",paste(unique(c(iCov[min(iPair.time[,iCol])],iCov[max(iPair.time[,iCol])])),collapse=","),")"))
                     })
                     if(n.strata>1){
-                        iName <- paste0(iName,":",U.strata[iStrata])
+                        iLevel <- paste0(iLevel,":",U.strata[iStrata])
                     }
+                    iName <- paste0("rho",iLevel)
                     iM <- matrix(lpnCluster.cor[[iC]][iPair.time], ncol = 2, byrow = TRUE, dimnames = list(NULL, c("x","y")))[iIndex.store,]
                     iOut <- data.frame(lp.x = iM[,"x"],
                                        lp.y = iM[,"y"],
                                        strata = rep(iStrata, length(iIndex.store)),
                                        code = iCode[iIndex.store],
+                                       level = iLevel[iIndex.store],
                                        param = iName[iIndex.store],
                                        sigma = NA,
                                        k.x = NA,

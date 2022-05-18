@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: maj 17 2022 (18:08) 
+## Last-Updated: maj 18 2022 (08:52) 
 ##           By: Brice Ozenne
-##     Update #: 476
+##     Update #: 477
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -301,7 +301,6 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
                 param.newvalue.trans <- outMoments$reparametrize$p + update.value
                 param.value[names(param.newvalue.trans)] <- .reparametrize(param.newvalue.trans,
                                                                            type = design$param[match(names(param.newvalue.trans), design$param$name), "type"],
-                                                                           strata = design$param[match(names(param.newvalue.trans), design$param$name), "strata"],
                                                                            sigma = design$param[match(names(param.newvalue.trans), design$param$name), "sigma"],
                                                                            k.x = design$param[match(names(param.newvalue.trans), design$param$name), "k.x"],
                                                                            k.y = design$param[match(names(param.newvalue.trans), design$param$name), "k.y"],
@@ -359,7 +358,7 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
         }
         score <- outMoments$score
     }else{
-        reparam.value <- .reparametrize(p = param.value, type = design$param$type, strata = design$param$strata, 
+        reparam.value <- .reparametrize(p = param.value, type = design$param$type, 
                                         sigma = design$param$sigma, k.x = design$param$k.x, k.y = design$param$k.y,
                                         Jacobian = FALSE, dJacobian = FALSE, inverse = FALSE, ##  2 is necessary to export the right dJacobian
                                         transform.sigma = transform.sigma,
@@ -458,7 +457,6 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
         transparam.newvalue <- transparam.newvalue + alpha * update.value
         param.newvalue[names(transparam.newvalue)] <- .reparametrize(transparam.newvalue,
                                                                      type = design$param[match(names(transparam.newvalue),design$param$name),"type"],
-                                                                     strata = design$param[match(names(transparam.newvalue),design$param$name),"strata"],
                                                                      sigma = design$param[match(names(transparam.newvalue),design$param$name),"sigma"],
                                                                      k.x = design$param[match(names(transparam.newvalue),design$param$name),"k.x"],
                                                                      k.y = design$param[match(names(transparam.newvalue),design$param$name),"k.y"],
