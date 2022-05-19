@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: apr  1 2022 (10:32) 
+## Last-Updated: maj 19 2022 (19:31) 
 ##           By: Brice Ozenne
-##     Update #: 554
+##     Update #: 564
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -581,6 +581,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
 .addNA <- function(index.na, design, time){
 
     attr.cluster <- attr(index.na,"cluster")
+    attr.cluster.index <- attr(index.na,"cluster.index")
     attr.time <- attr(index.na,"time")
 
     ## ** if no missing value or missing information about cluster or time returns nothing
@@ -588,31 +589,49 @@ residuals.lmm <- function(object, type = "response", format = "long",
         return(NULL)
     }
 
+    ## ** identify missing clusters
+    missing.cluster <- sort(unique(attr.cluster[is.na(attr.cluster.index)]))
+
     ## ** identify all clusters
-    allcluster <- sort(union(design$cluster$levels, attr.cluster))
+    allcluster <- levels(design$cluster$levels.original)
     n.allcluster <- length(allcluster)
 
-    n.allobs <- length(design$index.cluster)+length(index.na)
+    n.allobs <- length(unlist(design$index.cluster))+length(index.na)
+
+    ## ** merge all observations
+    ls.index.na <- tapply(index.na,attr.cluster, function(iX){iX-0.1}, simplify = FALSE)
+    ls.index.obs <- design$index.cluster
+    names(ls.index.obs) <- as.character(sort(design$cluster$levels.original))
     
-    ## ** identify missing clusters
-    missing.cluster <- setdiff(attr.cluster, design$cluster$levels)
+    intersect.naobs <- intersect(names(ls.index.na), names(ls.index.obs))
+    if(length(intersect.naobs)>0){
+        for(iNAOBS in intersect.naobs){
+            ls.index.obs[[iNAOBS]] <- c(ls.index.obs[[iNAOBS]], ls.index.na[[iNAOBS]])
+        }
+    }
+
+    setdiff.naobs <- setdiff(names(ls.index.na), names(ls.index.obs))
+    if(length(setdiff.naobs)>0){
+       ls.index.obs <- c(ls.index.obs, ls.index.na[setdiff.naobs])
+    }
 
     ## ** create extended vector of observations
-    level.cluster <- rep(NA, n.allobs)
-    level.cluster[-index.na] <- design$cluster$levels[design$index.cluster]
-    level.cluster[index.na] <- attr.cluster
+    vec.index.cluster <- sort(unlist(lapply(allcluster, function(iC){stats::setNames(ls.index.obs[[iC]],rep(iC,length(ls.index.obs[[iC]])))})))
+    level.cluster <- names(vec.index.cluster)
+    index.cluster <- tapply(1:n.allobs, level.cluster, function(iC){iC}, simplify = FALSE)
+    attr(index.cluster,"na.rm") <-  tapply((1:n.allobs)[vec.index.cluster %% 1 == 0], level.cluster[vec.index.cluster %% 1 == 0], function(iC){iC}, simplify = FALSE)
 
-    level.time <- rep(NA, n.allobs)
-    level.time[-index.na] <- time$levels[design$index.time]
-    level.time[index.na] <- time$levels[attr.time]
+    index.time <- setNames(rep(list(1:time$n), n.allcluster), allcluster)
+    attr(index.time,"na.rm") <- design$index.clusterTime
 
     ## ** export
     return(list(allcluster = allcluster,
+                obs.cluster = setdiff(allcluster,missing.cluster),
                 missing.cluster = missing.cluster,
-                n.allcluster = length(allcluster),
-                n.allobs = length(level.cluster),
-                level.cluster = level.cluster,
-                level.time = level.time))
+                n.allcluster = n.allcluster,
+                n.allobs = n.allobs,
+                index.cluster = index.cluster,
+                index.time = index.time))
     
 }
 ##----------------------------------------------------------------------

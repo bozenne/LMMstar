@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: maj 18 2022 (11:34) 
+## Last-Updated: maj 19 2022 (19:18) 
 ##           By: Brice Ozenne
-##     Update #: 1978
+##     Update #: 1984
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -529,7 +529,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
                 index.cluster = index.cluster,
                 index.clusterTime = index.clusterTime,
                 index.clusterStrata = index.clusterStrata,
-                cluster = list(n = length(index.cluster), levels = U.cluster, nobs = sapply(index.cluster,length)),
+                cluster = list(n = length(index.cluster), levels = U.cluster, levels.original = unique(data$XXclusterXX), nobs = sapply(index.cluster,length)),
                 param = skeleton.param
                 )
     if(!is.na(var.weights[1])){

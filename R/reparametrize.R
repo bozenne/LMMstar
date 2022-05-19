@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: maj 18 2022 (19:18) 
+## Last-Updated: maj 19 2022 (17:55) 
 ##           By: Brice Ozenne
-##     Update #: 601
+##     Update #: 664
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -385,10 +385,12 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
 
         if(dJacobian==1){ ## orignal scale after tranformation
             for(iIndex in index){
+                ## d2f^{-1}:y -> exp(y)=x
                 out$dJacobian[iIndex,iIndex,iIndex] <- p[iIndex]
             }
         }else if(dJacobian==2){ ## newscale after transformation
             for(iIndex in index){
+                ## d/dx df^{-1}:y -> 1
                 out$dJacobian[iIndex,iIndex,iIndex] <- 1
             }
         }
@@ -427,10 +429,12 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
 
         if(dJacobian == 1){
             for(iIndex in index){
+                ## d2f^{-1}:y -> -1/(4*y^(3/2))=-1/(4x^3)
                 out$dJacobian[iIndex,iIndex,iIndex] <- -1/(4*p[iIndex]^3)
             }
         }else if(dJacobian == 2){
             for(iIndex in index){
+                ## d/dx df^{-1}:y -> -1/(2x^2)
                 out$dJacobian[iIndex,iIndex,iIndex] <- -1/(2*p[iIndex]^2)
             }
         }
@@ -468,10 +472,12 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
 
         if(dJacobian == 1){
             for(iIndex in index){
+                ## d2f^{-1}:y -> exp(y/2)/4 = x/4
                 out$dJacobian[iIndex,iIndex,iIndex] <- p[iIndex]/4
             }
         }else if(dJacobian == 2){
             for(iIndex in index){
+                ## d/dx df^{-1}:y -> 1/2
                 out$dJacobian[iIndex,iIndex,iIndex] <- 1/2
             }
         }
@@ -518,23 +524,26 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
     }
     
     if(dJacobian == 1){
-        ## \sigma1, \sigma2/\sigma1, ...   so  0 -\sigma2/(2\sigma1^3)  0  -1/sigma^2    
-        ##                                     0  -1/sigma1^2           0  0
-        ## WARNING we plug-in \sigma1 and \sigma2/\sigma1
         for(iK in 1:n.index){
+            ## df^{-1}:(y1,y2) -> (-y2/y1^2,1/y1)     
+            ## d2f^{-1}:(y1,y2) -> (2 y2/y1^3,-1/y1^2) = (2x2/x1^2,-1/x1^1)    
+            ##                  -> (-1/y1^2,0)         = (-1/x^2,0)
             iIndex.k <- index[iK]
             iIndex.sigma <- indexSigma[iK]
             out$dJacobian[iIndex.k,iIndex.sigma,iIndex.sigma] <- 2*p[iIndex.k]/(p[iIndex.sigma]^2)
-            out$dJacobian[iIndex.k,iIndex.sigma,iIndex.k] <- -1/p[iIndex.sigma]^2
             out$dJacobian[iIndex.k,iIndex.k,iIndex.sigma] <- -1/p[iIndex.sigma]^2
+            out$dJacobian[iIndex.k,iIndex.sigma,iIndex.k] <- -1/p[iIndex.sigma]^2
         }
     }else if(dJacobian == 2){
         for(iK in 1:n.index){
+            ## df^{-1}:(y1,y2) -> (-x2/x1,1/x1)     
+            ## d/dx df^{-1}:(y1,y2) -> (x2/x1^2,-1/x1^2)
+            ##                      -> (-1/x1,0)
             iIndex.k <- index[iK]
             iIndex.sigma <- indexSigma[iK]
             out$dJacobian[iIndex.k,iIndex.sigma,iIndex.sigma] <- p[iIndex.k]/p[iIndex.sigma]^2
-            out$dJacobian[iIndex.k,iIndex.sigma,iIndex.k] <- -1/p[iIndex.sigma]
             out$dJacobian[iIndex.k,iIndex.k,iIndex.sigma] <- -1/p[iIndex.sigma]^2
+            out$dJacobian[iIndex.k,iIndex.sigma,iIndex.k] <- -1/p[iIndex.sigma]
         }
     }
 
@@ -569,7 +578,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
         if(Jacobian){
             ## df^{-1}:(y1,y2) -> (exp(y1),-exp(y2-y1)) = (x1, -x2)            /y1
             ##                 -> (0,exp(y2-y1)) = (0, x2)                     /y2
-            ## Here we are only interested in the second column, i.e. (-x2/,x2)
+            ## Here we are only interested in the second column, i.e. (-x2,x2)
             for(iK in 1:n.index){
                 iIndex.k <- index[iK]
                 iIndex.sigma <- indexSigma[iK]
@@ -578,19 +587,22 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
             diag(out$Jacobian)[index] <- p[index]
         }
         if(dJacobian == 1){
-            ## exp(\sigma1), exp(\sigma2-\sigma1), ...   so  \exp(\sigma) exp(\sigma2-\sigma1)    0 -exp(\sigma2-\sigma1) 
-            ##                                                         0  -exp(\sigma2-\sigma1)   0 exp(\sigma2-\sigma1) 
-            ## WARNING we plug-in exp(\sigma1) and exp(\sigma2-\sigma1)
             for(iK in 1:n.index){
+                ## df^{-1}:(y1,y2) -> (-exp(y2-y1),exp(y2-y1))
+                ## d2f^{-1}:(y1,y2) -> (exp(y2-y1),-exp(y2-y1)) = (x2,-x2)
+                ##                  -> (-exp(y2-y1),exp(y2-y1)) = (-x2,x2)
                 iIndex.k <- index[iK]
                 iIndex.sigma <- indexSigma[iK]
                 out$dJacobian[iIndex.k,iIndex.sigma,iIndex.sigma] <- p[iIndex.k]
-                out$dJacobian[iIndex.k,iIndex.sigma,iIndex.k] <- -p[iIndex.k]
                 out$dJacobian[iIndex.k,iIndex.k,iIndex.sigma] <- -p[iIndex.k]
+                out$dJacobian[iIndex.k,iIndex.sigma,iIndex.k] <- -p[iIndex.k]
                 out$dJacobian[iIndex.k,iIndex.k,iIndex.k] <- p[iIndex.k]
             }
         }else if(dJacobian == 2){
             for(iK in 1:n.index){
+                ## df^{-1}:(y1,y2) -> (-x2,x2)
+                ## d/dx df^{-1}:(y1,y2) -> (0,0)
+                ##                      -> (-1,1)
                 iIndex.k <- index[iK]
                 iIndex.sigma <- indexSigma[iK]
                 out$dJacobian[iIndex.k,iIndex.sigma,iIndex.k] <- -1
@@ -645,6 +657,9 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
             ##                                                      0              - 1 / (4*\sqrt(\sigma2)\sigma1^(3/2))   0 -1 / (4*\sigma2^(3/2)\sqrt(\sigma1))
             ## WARNING we plug-in sqrt(\sigma1) and sqrt(\sigma2/\sigma1)
             for(iK in 1:n.index){
+                ## df^{-1}:(y1,y2) -> (-sqrt(y2)/(2*y1^(3/2)),1/(2*sqrt(y2*y1)))
+                ## d2f^{-1}:(y1,y2) -> (3sqrt(y2)/(4*y1^(5/2)),-1/(4*sqrt(y2)*y1^(3/2)))) = (3 x2/(4x1^4), -1/(4*x2*x1^4))
+                ##                  -> (-1/(4*sqrt(y2)*y1^(3/2)),-1/(4*y2^(3/2)*y1))) = (-1/(4*x2*x1^4), -1/(4*x2^3*x1^4))
                 iIndex.k <- index[iK]
                 iIndex.sigma <- indexSigma[iK]
                 out$dJacobian[iIndex.k,iIndex.sigma,iIndex.sigma] <- 3*p[iIndex.k]/(4*p[iIndex.sigma]^4)
@@ -653,12 +668,15 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
                 out$dJacobian[iIndex.k,iIndex.k,iIndex.k] <- -1/(4*p[iIndex.sigma]^4*p[iIndex.k]^3)
             }
         }else if(dJacobian == 2){
-            out$dJacobian[index.k,indexSigma.k,indexSigma.k] <- p[index.k]/p[indexSigma.k]^3
             for(iK in 1:n.index){
+                ## df^{-1}:(y1,y2) -> (-x2/(2*x1^2),1/(2*x1^2*x2))
+                ## d/dx df^{-1}:(y1,y2) -> (x2/(4*x1^3),-1/(4*x1^3*x2))
+                ##                      -> (-1/(2*x1^2),-1/(2*x1^2*x2^2))
                 iIndex.k <- index[iK]
                 iIndex.sigma <- indexSigma[iK]
+                out$dJacobian[iIndex.k,iIndex.sigma,iIndex.sigma] <- p[iIndex.k]/(4*p[iIndex.sigma]^3)
+                out$dJacobian[iIndex.k,iIndex.k,iIndex.sigma] <- -1/(4*p[iIndex.sigma]^3*p[iIndex.k])
                 out$dJacobian[iIndex.k,iIndex.sigma,iIndex.k] <- -1/(2*p[iIndex.sigma]^2)
-                out$dJacobian[iIndex.k,iIndex.k,iIndex.sigma] <- -1/(p[iIndex.sigma]^3*p[iIndex.k])
                 out$dJacobian[iIndex.k,iIndex.k,iIndex.k] <- -1/(2*p[iIndex.sigma]^2*p[iIndex.k]^2)
             }
         }
@@ -703,9 +721,9 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
             diag(out$Jacobian)[index] <- p[index]/2
         }
         if(dJacobian == 1){
-            ## \exp(\sigma1/2), \exp(\sigma2/2 - \sigma1/2), ...   so  \exp(\sigma1/2)/4  \exp(\sigma2/2 - \sigma1/2)/4    0  -\exp(\sigma2/2 - \sigma1/2)/4
-            ##                                                          0                 -\exp(\sigma2/2 - \sigma1/2)/4   0  \exp(\sigma2/2 - \sigma1/2)/4
-            ## WARNING we plug-in \exp(\sigma1/2) and \exp(\sigma2/2-\sigma1/2)
+            ## df^{-1}:(y1,y2) -> (-exp(y2/2-y1/2)/2,exp(y2/2-y1/2)/2)
+            ## d2f^{-1}:(y1,y2) -> (exp(y2/2-y1/2)/4,-exp(y2/2-y1/2)/4) = (x2/4,-x2/4)
+            ##                  -> (-exp(y2/2-y1/2)/4,exp(y2/2-y1/2)/4) = (-x2/4,x2/4)
             for(iK in 1:n.index){
                 iIndex.k <- index[iK]
                 iIndex.sigma <- indexSigma[iK]
@@ -716,6 +734,9 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
             }
         }else if(dJacobian == 2){
             for(iK in 1:n.index){
+                ## df^{-1}:(y1,y2) -> (-x2/2/,x2/2)
+                ## d/dx df^{-1}:(y1,y2) -> (0,0)
+                ##                      -> (-1/2,1/2)
                 iIndex.k <- index[iK]
                 iIndex.sigma <- indexSigma[iK]
                 out$dJacobian[iIndex.k,iIndex.sigma,iIndex.k] <- -1/2
@@ -748,19 +769,21 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
         out$p[index] <- atanh(p[index])
 
         if(transform.names){
-            ## df^{-1}:y -> d tanh(y) = 1-tanh(y)^2 = 1-x^2
             out$newname[index] <- paste0("atanh(rho)", level[index])
         }
 
         if(Jacobian){
+            ## df^{-1}:y -> d tanh(y) = 1-tanh(y)^2 = 1-x^2
             diag(out$Jacobian)[index] <- (1-p[index]^2) ## (1-tanh(x)^2) where x=atanh(rho)
         }
         if(dJacobian == 1){
             for(iRho in index){
+                ## d2f^{-1}:y -> d tanh(y) = - 2 tanh(y)(1-tanh(y)^2) = -2 x (1-x^2)
                 out$dJacobian[iRho,iRho,iRho] <- -2*p[iRho]*(1-p[iRho]^2)
             }
         }else if(dJacobian == 2){
             for(iRho in index){
+                ## d/dx df^{-1}:y -> -2x
                 out$dJacobian[iRho,iRho,iRho] <- -2*p[iRho]
             }
         }
@@ -822,7 +845,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
 
             ## dfd^{-1}:(y1,y2,y3,y4) -> 0                                                            /y1 
             ##                        -> -y4/(2*sqrt(y3)*y2^(3/2)) = -x4/(2*y2) = -x4/(2*x1^2*x2^2)   /y2
-            ##                        -> -y4/(2*sqrt(y2)*y3^(3/2)) = -x4/(2*y3) = -x4/(2*x1^2*x2^2)   /y3
+            ##                        -> -y4/(2*sqrt(y2)*y3^(3/2)) = -x4/(2*y3) = -x4/(2*x1^2*x3^2)   /y3
             ##                        -> 1/sqrt(y2*y3)     =  1/(x1^2*x2*x3)                          /y4
 
             for(iRho in 1:n.index){ ## iRho <- 1
@@ -840,8 +863,8 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
                     out$Jacobian[iIndex.rho,iIndex.ky] <- -p[iIndex.rho]/(2*p[iIndex.sigma]^2*p[iIndex.ky]^2) ## /y2                   
                 }else{ ## both non-NA
                     ## 0 for /y1
-                    out$Jacobian[iIndex.rho,iIndex.kx] <- -p[iIndex.rho]/(2*p[iIndex.sigma]^2*p[iIndex.kx]^2) ## /y3
-                    out$Jacobian[iIndex.rho,iIndex.ky] <- -p[iIndex.rho]/(2*p[iIndex.sigma]^2*p[iIndex.ky]^2) ## /y4                   
+                    out$Jacobian[iIndex.rho,iIndex.kx] <- out$Jacobian[iIndex.rho,iIndex.sigma]-p[iIndex.rho]/(2*p[iIndex.sigma]^2*p[iIndex.kx]^2) ## /y3
+                    out$Jacobian[iIndex.rho,iIndex.ky] <- out$Jacobian[iIndex.rho,iIndex.sigma]-p[iIndex.rho]/(2*p[iIndex.sigma]^2*p[iIndex.ky]^2) ## /y4                   
                 }
             }
             diag(out$Jacobian)[index] <- 1/(Sigma^2*Kx*Ky) ## /y4 ok
@@ -850,40 +873,136 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
         if(dJacobian == 1){
             ##    fa^{-1}:(y1,y4) -> (x1,x4)=(sqrt(y1),y4/y1)
             ##    dfa^{-1}:(y1,y4) -> (-y4/y1^2,1/y1)
-            ## so d2fa^{-1}:(y1,y4) -> (2 y4/y1^3,-1/y1^2)   =  (2 x/x1^4,-1/x1^4)     // y1
+            ## so d2fa^{-1}:(y1,y4) -> (2 y4/y1^3,-1/y1^2)   =  (2 x4/x1^4,-1/x1^4)     // y1
             ##                      -> (-1/y1^2,0)           = (-1/x1^4,0)             // y4
 
             ##    fb^{-1}:(y1,y2,y3) -> (x1,x2,x3)=(sqrt(y1),sqrt(y2/y1),y4/sqrt(y1*y2))
             ##    dfb^{-1}:(y1,y2,y4) -> ( -y4/(2*sqrt(y2)*y1^(3/2)),-y4/(2*sqrt(y1)*y2^(3/2)),1/sqrt(y1*y2) )
-            ## so d2fb^{-1}:(y1,y2,y4) -> (3*y4/(4*sqrt(y2)*y1^(5/2)), y4/(4*y1^(3/2)*y2^(3/2)), -1/(2*y1^(3/2)*sqrt(y2))) = (3*x4/(4*x1^4),x4/(4*x1^4*x2^2),-1/(2*x1^4*x2)) ## y1
-            ##                         -> (y4/(4*y1^(3/2)*y2^(3/2)), 3*y4/(4*sqrt(y1)*y2^(5/2)), -1/(2*sqrt(y1)*y2^(3/2))) = (x4/(4*x1^4*x2^2),3x4/(4*x1^4*x2^4),-1/(2*x1^4*x2^3)) ## y2
-            ##                         -> (-1/(2*sqrt(y2)*y1^(3/2)),-1/(2*sqrt(y1)*y2^(3/2)) , 0) = (-1/(2*x1^4*x2), -1/(2*x1^4*x2^3), 0)     ## y4
+            ## so d2fb^{-1}:(y1,y2,y4) -> (3*y4/(4*sqrt(y2)*y1^(5/2)), y4/(4*y1^(3/2)*y2^(3/2)), -1/(2*y1^(3/2)*sqrt(y2))) = (3*x4/(4*x1^4)   ,x4/(4*x1^4*x2^2) ,-1/(2*x1^4*x2)) ## y1
+            ##                         -> (y4/(4*y1^(3/2)*y2^(3/2)), 3*y4/(4*sqrt(y1)*y2^(5/2)), -1/(2*sqrt(y1)*y2^(3/2))) = (x4/(4*x1^4*x2^2),3*x4/(4*x1^4*x2^4),-1/(2*x1^4*x2^3)) ## y2
+            ##                         -> (-1/(2*sqrt(y2)*y1^(3/2)),-1/(2*sqrt(y1)*y2^(3/2)) , 0)                          = (-1/(2*x1^4*x2)  , -1/(2*x1^4*x2^3), 0)     ## y4
         
             ## fd^{-1}:(y1,y2,y3,y4) -> (x1,x2,x3,x4)=(sqrt(y1),sqrt(y2/y1),sqrt(y3/y1),y4/sqrt(y2*y3))
             ## dfd^{-1}:(y1,y2,y3,y4) -> (0, -y4/(2*sqrt(y3)*y2^(3/2)), -y4/(2*sqrt(y2)*y3^(3/2)), 1/sqrt(y2*y3))
-            ## so d2fb^{-1}:(y1,y2,y4) -> 0           ## y1
-            ##                         -> ?           ## y2
-            ##                         -> ?           ## y3
-            ##                         -> ?           ## y4
-        
-            for(iRho in 1:n.index){
+            ## so d2fd^{-1}:(y1,y2,y3,y4) -> (0, 0, 0, 0)
+            ##                            -> (0, 3*y4/(4*sqrt(y3)*y2^(5/2)), y4/(4*y2^(3/2)*y3^(3/2)), -1/(2y2^(3/2)*sqrt(y3))) = (0,3*x4/(4*x2^4*x1^4),x4/(4*x2^2*x3^2*x1^4),-1/(2*x2^3*x3*x1^4)))
+            ##                            -> (0, y4/(4*y3^(3/2)*y2^(3/2)), 3y4/(4*sqrt(y2)*y3^(5/2)), -1/(2sqrt(y2)*y3^(3/2))) = (0,x4/(4*x3^2^x2^2*x1^4),3*x4/(4*y3^4*x1^4),-1/(2*x2*x3^3*x1^4))
+            ##                            -> (0, -1/(2*sqrt(y3)*y2^(3/2)), -1/(2*sqrt(y2)*y3^(3/2)), 0) = (0,-1/(2*x3*x2^3*x1^4),-1/(2*x2*x3^3*x1^4),0)
+
+            for(iRho in 1:n.index){ ## iRho <- 1
                 iIndex.sigma <- indexSigma[iRho]
                 iIndex.kx <- indexKx[iRho]
                 iIndex.ky <- indexKy[iRho]
                 iIndex.rho <- index[iRho]
-                out$dJacobian[iIndex.rho,iIndex.sigma,iIndex.sigma] <- 2*p[iIndex.rho]/p[iIndex.sigma]^(4)
-                out$dJacobian[iIndex.rho,iIndex.sigma,iIndex.rho] <- -1/p[iIndex.sigma]^4
-                out$dJacobian[iIndex.rho,iIndex.rho,iIndex.sigma] <- -1/p[iIndex.sigma]^4
+                if(is.na(iIndex.kx) && is.na(iIndex.ky)){
+
+                    out$dJacobian[iIndex.rho,iIndex.sigma,iIndex.sigma] <- 2*p[iIndex.rho]/p[iIndex.sigma]^4
+                    out$dJacobian[iIndex.rho,iIndex.sigma,iIndex.rho] <- -1/p[iIndex.sigma]^4
+                    out$dJacobian[iIndex.rho,iIndex.rho,iIndex.sigma] <- -1/p[iIndex.sigma]^4
+
+                }else if(!is.na(iIndex.kx) && is.na(iIndex.ky)){
+                    
+                    out$dJacobian[iIndex.rho,iIndex.sigma,iIndex.sigma] <- 3*p[iIndex.rho]/(4*p[iIndex.sigma]^4)               
+                    out$dJacobian[iIndex.rho,iIndex.sigma,iIndex.kx] <- out$dJacobian[iIndex.rho,iIndex.sigma,iIndex.kx] + p[iIndex.rho]/(4*p[iIndex.sigma]^4*p[iIndex.kx]^2)               
+                    out$dJacobian[iIndex.rho,iIndex.sigma,iIndex.rho] <- -1/(2*p[iIndex.sigma]^4*p[iIndex.kx])               
+
+                    out$dJacobian[iIndex.rho,iIndex.kx,iIndex.sigma] <- out$dJacobian[iIndex.rho,iIndex.kx,iIndex.sigma] + p[iIndex.rho]/(4*p[iIndex.sigma]^4*p[iIndex.kx]^2)
+                    out$dJacobian[iIndex.rho,iIndex.kx,iIndex.kx] <- out$dJacobian[iIndex.rho,iIndex.kx,iIndex.kx] + 3*p[iIndex.rho]/(4*p[iIndex.sigma]^4*p[iIndex.kx]^4)
+                    out$dJacobian[iIndex.rho,iIndex.kx,iIndex.rho] <- out$dJacobian[iIndex.rho,iIndex.kx,iIndex.rho] - 1/(2*p[iIndex.sigma]^4*p[iIndex.kx]^3)
+
+                    out$dJacobian[iIndex.rho,iIndex.rho,iIndex.sigma] <- -1/(2*p[iIndex.sigma]^4*p[iIndex.kx])
+                    out$dJacobian[iIndex.rho,iIndex.rho,iIndex.kx] <- out$dJacobian[iIndex.rho,iIndex.rho,iIndex.kx] - 1/(2*p[iIndex.sigma]^4*p[iIndex.kx]^3)
+
+
+                }else if(is.na(iIndex.kx) && !is.na(iIndex.ky)){
+
+                    out$dJacobian[iIndex.rho,iIndex.sigma,iIndex.sigma] <- 3*p[iIndex.rho]/(4*p[iIndex.sigma]^4)               
+                    out$dJacobian[iIndex.rho,iIndex.sigma,iIndex.ky] <- out$dJacobian[iIndex.rho,iIndex.sigma,iIndex.ky] + p[iIndex.rho]/(4*p[iIndex.sigma]^4*p[iIndex.ky]^2)               
+                    out$dJacobian[iIndex.rho,iIndex.sigma,iIndex.rho] <- -1/(2*p[iIndex.sigma]^4*p[iIndex.ky])               
+
+                    out$dJacobian[iIndex.rho,iIndex.ky,iIndex.sigma] <- out$dJacobian[iIndex.rho,iIndex.ky,iIndex.sigma] + p[iIndex.rho]/(4*p[iIndex.sigma]^4*p[iIndex.ky]^2)
+                    out$dJacobian[iIndex.rho,iIndex.ky,iIndex.ky] <- out$dJacobian[iIndex.rho,iIndex.ky,iIndex.ky] + 3*p[iIndex.rho]/(4*p[iIndex.sigma]^4*p[iIndex.ky]^4)
+                    out$dJacobian[iIndex.rho,iIndex.ky,iIndex.rho] <- out$dJacobian[iIndex.rho,iIndex.ky,iIndex.rho] - 1/(2*p[iIndex.sigma]^4*p[iIndex.ky]^3)
+
+                    out$dJacobian[iIndex.rho,iIndex.rho,iIndex.sigma] <- -1/(2*p[iIndex.sigma]^4*p[iIndex.ky])
+                    out$dJacobian[iIndex.rho,iIndex.rho,iIndex.ky] <- out$dJacobian[iIndex.rho,iIndex.rho,iIndex.ky] - 1/(2*p[iIndex.sigma]^4*p[iIndex.ky]^3)
+
+                }else{ ## both non-NA
+                    ## 0 for /y1
+                    out$dJacobian[iIndex.rho,iIndex.kx,iIndex.kx] <- out$dJacobian[iIndex.rho,iIndex.kx,iIndex.kx]+3*p[iIndex.rho]/(4*p[iIndex.sigma]^4*p[iIndex.kx]^4)
+                    out$dJacobian[iIndex.rho,iIndex.kx,iIndex.ky] <- out$dJacobian[iIndex.rho,iIndex.kx,iIndex.ky]+p[iIndex.rho]/(4*p[iIndex.sigma]^4*p[iIndex.kx]^2*p[iIndex.ky]^2)
+                    out$dJacobian[iIndex.rho,iIndex.kx,iIndex.rho] <- out$dJacobian[iIndex.rho,iIndex.kx,iIndex.rho]-1/(2*p[iIndex.sigma]^4*p[iIndex.kx]^3*p[iIndex.ky])
+
+                    out$dJacobian[iIndex.rho,iIndex.ky,iIndex.kx] <- out$dJacobian[iIndex.rho,iIndex.ky,iIndex.kx]+p[iIndex.rho]/(4*p[iIndex.sigma]^4*p[iIndex.kx]^2*p[iIndex.ky]^2)
+                    out$dJacobian[iIndex.rho,iIndex.ky,iIndex.ky] <- out$dJacobian[iIndex.rho,iIndex.ky,iIndex.ky]+3*p[iIndex.rho]/(4*p[iIndex.sigma]^4*p[iIndex.ky]^4)
+                    out$dJacobian[iIndex.rho,iIndex.ky,iIndex.rho] <- out$dJacobian[iIndex.rho,iIndex.ky,iIndex.rho]-1/(2*p[iIndex.sigma]^4*p[iIndex.kx]*p[iIndex.ky]^3)
+
+                    out$dJacobian[iIndex.rho,iIndex.rho,iIndex.kx] <- out$dJacobian[iIndex.rho,iIndex.rho,iIndex.kx]-1/(2*p[iIndex.sigma]^4*p[iIndex.kx]^3*p[iIndex.ky]) 
+                    out$dJacobian[iIndex.rho,iIndex.rho,iIndex.ky] <- out$dJacobian[iIndex.rho,iIndex.rho,iIndex.ky]-1/(2*p[iIndex.sigma]^4*p[iIndex.kx]*p[iIndex.ky]^3) 
+                }
+                
             }
+            
+            
         }else if(dJacobian == 2){
             for(iRho in 1:n.index){
-                iIndex.sigma <- indexSigma[iRho]
-                iIndex.kx <- indexKx[iRho]
-                iIndex.ky <- indexKy[iRho]
-                iIndex.rho <- index[iRho]
-                out$dJacobian[iIndex.rho,iIndex.sigma,iIndex.sigma] <- 2*p[iIndex.rho]/p[iIndex.sigma]^3
-                out$dJacobian[iIndex.rho,iIndex.sigma,iIndex.rho] <- -1/p[iIndex.sigma]^2
-                out$dJacobian[iIndex.rho,iIndex.rho,iIndex.sigma] <- -2/p[iIndex.sigma]^3
+                ## dfa^{-1}:(y1,y4) -> (-x4/(x1^2),1/(x1^2))
+                ## d/dx dfa^{-1}:(y1,y4) -> (x4/(2 x1^3),-1/(2x1^3))
+                ##                       -> (-1/(x1^2),0)
+
+                ## dfb^{-1}:(y1,y2,y4) -> (-x4 / (2*x1^2), -x4 / (2*x1^2*x2^2), 1/(x1^2*x2))
+                ## d/dx dfb^{-1}:(y1,y2,y4) -> (x4 / (4*x1^3), x4 / (4*x1^3*x2^2), -1/(2x1^3*x2))
+                ##                          -> (0, x4 / (4*x1^2*x2^3), -1/(x1^2*x2^2))
+                ##                          -> (-1 / (2*x1^2), -1 / (2*x1^2*x2^2), 0)
+                
+                ## dfd^{-1}:(y1,y2,y3,y4) -> (0, -x4/(2*x1^2*x2^2), -x4/(2*x1^2*x3^2), 1/(x1^2*x2*x3))
+                ## d/dx dfd^{-1}:(y1,y2,y3,y4) -> (0, x4/(4*x1^3*x2^2), x4/(4*x1^3*x3^2), -1/(2x1^3*x2*x3))
+                ##                             -> (0, x4/(4*x1^2*x2^3), 0, -1/(x1^2*x2^2*x3))
+                ##                             -> (0, 0, x4/(4*x1^2*x3^3), -1/(x1^2*x2*x3^2))
+                ##                             -> (0, -1/(2*x1^2*x2^2), -1/(2*x1^2*x3^2), 0)
+                for(iRho in 1:n.index){ ## iRho <- 1
+                    iIndex.sigma <- indexSigma[iRho]
+                    iIndex.kx <- indexKx[iRho]
+                    iIndex.ky <- indexKy[iRho]
+                    iIndex.rho <- index[iRho]
+                    if(is.na(iIndex.kx) && is.na(iIndex.ky)){
+                        out$dJacobian[iIndex.rho,iIndex.sigma,iIndex.sigma] <- p[iIndex.rho]/(2*p[iIndex.sigma]^3)
+                        out$dJacobian[iIndex.rho,iIndex.sigma,iIndex.rho] <- -1/p[iIndex.sigma]^2
+                    }else if(!is.na(iIndex.kx) && is.na(iIndex.ky)){
+                        out$dJacobian[iIndex.rho,iIndex.sigma,iIndex.sigma] <- p[iIndex.rho]/(4*p[iIndex.sigma]^3)
+                        out$dJacobian[iIndex.rho,iIndex.sigma,iIndex.rho] <- -1/(2*p[iIndex.sigma]^2)
+                    
+                        out$dJacobian[iIndex.rho,iIndex.kx,iIndex.sigma] <- out$dJacobian[iIndex.rho,iIndex.kx,iIndex.sigma]+p[iIndex.rho]/(4*p[iIndex.sigma]^3*p[iIndex.kx]^2)
+                        out$dJacobian[iIndex.rho,iIndex.kx,iIndex.kx] <- out$dJacobian[iIndex.rho,iIndex.kx,iIndex.kx]+p[iIndex.rho]/(4*p[iIndex.sigma]^2*p[iIndex.kx]^3)
+                        out$dJacobian[iIndex.rho,iIndex.kx,iIndex.rho] <- out$dJacobian[iIndex.rho,iIndex.kx,iIndex.rho]-1/(2*p[iIndex.sigma]^2*p[iIndex.kx]^2)
+                    }else if(is.na(iIndex.kx) && !is.na(iIndex.ky)){
+                        out$dJacobian[iIndex.rho,iIndex.sigma,iIndex.sigma] <- p[iIndex.rho]/(4*p[iIndex.sigma]^3)
+                        out$dJacobian[iIndex.rho,iIndex.sigma,iIndex.rho] <- -1/(2*p[iIndex.sigma]^2)
+                   
+                        out$dJacobian[iIndex.rho,iIndex.ky,iIndex.iSigma] <- out$dJacobian[iIndex.rho,iIndex.ky,iIndex.iSigma]+p[iIndex.rho]/(4*p[iIndex.sigma]^3*p[iIndex.ky]^2)
+                        out$dJacobian[iIndex.rho,iIndex.ky,iIndex.ky] <- out$dJacobian[iIndex.rho,iIndex.ky,iIndex.ky]+p[iIndex.rho]/(4*p[iIndex.sigma]^2*p[iIndex.ky]^3)
+                        out$dJacobian[iIndex.rho,iIndex.ky,iIndex.rho] <- out$dJacobian[iIndex.rho,iIndex.ky,iIndex.rho]-1/(2*p[iIndex.sigma]^2*p[iIndex.ky]^2)
+                    }else{ ## both non-NA
+                        out$dJacobian[iIndex.rho,iIndex.kx,iIndex.iSigma] <- out$dJacobian[iIndex.rho,iIndex.kx,iIndex.iSigma]+p[iIndex.rho]/(4*p[iIndex.sigma]^3*p[iIndex.kx]^2) 
+                        out$dJacobian[iIndex.rho,iIndex.kx,iIndex.ky] <- out$dJacobian[iIndex.rho,iIndex.kx,iIndex.ky]+p[iIndex.rho]/(4*p[iIndex.sigma]^2*p[iIndex.kx]^3) 
+                        out$dJacobian[iIndex.rho,iIndex.kx,iIndex.rho] <- out$dJacobian[iIndex.rho,iIndex.kx,iIndex.rho]-1/(2*p[iIndex.sigma]^2*p[iIndex.kx]^2) 
+                        
+                        out$dJacobian[iIndex.rho,iIndex.ky,iIndex.iSigma] <- out$dJacobian[iIndex.rho,iIndex.ky,iIndex.iSigma]+p[iIndex.rho]/(4*p[iIndex.sigma]^3*p[iIndex.ky]^2)
+                        out$dJacobian[iIndex.rho,iIndex.ky,iIndex.ky] <- out$dJacobian[iIndex.rho,iIndex.ky,iIndex.ky]+p[iIndex.rho]/(4*p[iIndex.sigma]^2*p[iIndex.ky]^3)
+                        out$dJacobian[iIndex.rho,iIndex.ky,iIndex.rho] <- out$dJacobian[iIndex.rho,iIndex.ky,iIndex.rho]-1/(2*p[iIndex.sigma]^2*p[iIndex.ky]^2)
+                    }
+                    
+                    out$dJacobian[iIndex.rho,iIndex.rho,iIndex.sigma] <- -1/(2*p[iIndex.sigma]^3*p[iIndex.kx]*p[iIndex.ky])
+                    if(!is.na(iIndex.kx)){
+                        out$dJacobian[iIndex.rho,iIndex.rho,iIndex.kx] <- out$dJacobian[iIndex.rho,iIndex.rho,iIndex.kx]-1/(p[iIndex.sigma]^2*p[iIndex.kx]^2*p[iIndex.ky])
+                    }
+                    if(!is.na(iIndex.ky)){
+                        out$dJacobian[iIndex.rho,iIndex.rho,iIndex.ky] <- out$dJacobian[iIndex.rho,iIndex.rho,iIndex.ky]-1/(p[iIndex.sigma]^2*p[iIndex.kx]*p[iIndex.ky]^2)
+                    }
+                    
+
+                    
+                }
             }
         }
     }

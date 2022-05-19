@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: maj 18 2022 (11:40) 
+## Last-Updated: maj 19 2022 (19:19) 
 ##           By: Brice Ozenne
-##     Update #: 1674
+##     Update #: 1679
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -566,7 +566,7 @@ lmm <- function(formula, repetition, structure, data,
     var.all <- unname(unique(stats::na.omit(c(var.strata,var.outcome,var.X,var.time,var.cluster,var.Z))))
     index.na <- which(rowSums(is.na(data[,var.all,drop=FALSE]))>0)
 
-    if(length(index.na)>0){
+    if(length(index.na)>0){        
         attr(index.na, "index") <- data[index.na,"XXindexXX"]
 
         attr(index.na, "cluster") <- data[index.na,var.cluster]
@@ -727,7 +727,7 @@ lmm <- function(formula, repetition, structure, data,
     ## ** cluster
     if(is.na(var.cluster)){
         data$XXclusterXX <- as.factor(sprintf(paste0("%0",ceiling(log10(NROW(data))),"d"), 1:NROW(data)))
-    }else if(var.cluster %in% names(data)){
+    }else if("XXclusterXX" %in% names(data) == FALSE){
         if(is.factor(data[[var.cluster]])){
             data$XXclusterXX <- droplevels(data[[var.cluster]])
         }else if(is.numeric(data[[var.cluster]]) && all(data[[var.cluster]] %% 1 == 0)){
@@ -736,7 +736,7 @@ lmm <- function(formula, repetition, structure, data,
             data$XXclusterXX <- factor(data[[var.cluster]], levels = sort(unique(data[[var.cluster]])))
         }
     }
-    data$XXcluster.indexXX <- as.numeric(data$XXclusterXX)
+    data$XXcluster.indexXX <- as.numeric(droplevels(data$XXclusterXX))
 
     ## ** time
     if(is.na(var.time)){
@@ -747,7 +747,7 @@ lmm <- function(formula, repetition, structure, data,
             iTime <- unlist(iTime)
         }
         data[iIndex,"XXtimeXX"] <- as.factor(sprintf(paste0("%0",ceiling(log10(max(iTime))),"d"), iTime))
-    }else if(var.time %in% names(data)){
+    }else if("XXtimeXX" %in% names(data) == FALSE){
         if(is.factor(data[[var.time]])){
             data$XXtimeXX <- droplevels(data[[var.time]])
         }else if(is.numeric(data[[var.time]]) && all(data[[var.time]] %% 1 == 0)){
@@ -756,7 +756,7 @@ lmm <- function(formula, repetition, structure, data,
             data$XXtimeXX <- factor(data[[var.time]], levels = sort(unique(data[[var.time]])))
         }
     }
-    data$XXtime.indexXX <- as.numeric(data$XXtimeXX)
+    data$XXtime.indexXX <- as.numeric(droplevels(data$XXtimeXX))
     
     
     ## ** strata

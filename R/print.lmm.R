@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: feb 16 2022 (18:53) 
+## Last-Updated: maj 19 2022 (18:08) 
 ##           By: Brice Ozenne
-##     Update #: 98
+##     Update #: 99
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -19,10 +19,10 @@
 ##' @export
 print.lmm <- function(x, ...){
 
-    param.mu <- x$param$value[x$param$type=="mu"]
-    param.sigma <- x$param$value[x$param$type=="sigma"]
-    param.k <- x$param$value[x$param$type=="k"]
-    param.rho <- x$param$value[x$param$type=="rho"]
+    param.mu <- x$param[x$design$param$type=="mu"]
+    param.sigma <- x$param[x$design$param$type=="sigma"]
+    param.k <- x$param[x$design$param$type=="k"]
+    param.rho <- x$param[x$design$param$type=="rho"]
     structure <- x$design$vcov
     logLik <- stats::logLik(x)
     nobs <- stats::nobs(x)

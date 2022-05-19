@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:54) 
 ## Version: 
-## Last-Updated: maj 18 2022 (19:18) 
+## Last-Updated: maj 19 2022 (18:00) 
 ##           By: Brice Ozenne
-##     Update #: 43
+##     Update #: 44
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -33,12 +33,13 @@ k.x <- k.y <- c(NA, NA)
 GS.none <- reparametrize(p = p, type = type,  
                          FUN = function(p, ...){
                              p
-                         })
+                         }, transform.names = FALSE)
 
 test.none <- reparametrize(p = p, type = type, 
                            transform.sigma = "none",
                            transform.k = "none",
-                           transform.rho = "none")
+                           transform.rho = "none",
+                           transform.names = FALSE)
 
 expect_equal(GS.none, test.none, tol = 1e-6)
 
@@ -89,7 +90,7 @@ testB.sp1 <- .reparametrize(p = setNames(as.double(test.sp1),names(p)), type = t
                             transform.k = "square",
                             transform.rho = "atanh",
                             transform.names = FALSE)
-expect_equal(testB.sp1$p, p)
+expect_equal(testB.sp1$p, p, tol = 1e-5)
 
 ## ** logsquare, logsquare, none
 GS.sp2 <- reparametrize(p = p, type = type, 
@@ -121,7 +122,7 @@ testB.sp2 <- .reparametrize(p = setNames(as.double(test.sp2),names(p)), type = t
                             transform.k = "logsquare",
                             transform.rho = "none",
                             transform.names = FALSE)
-expect_equal(testB.sp2$p, p)
+expect_equal(testB.sp2$p, p, tol = 1e-5)
 
 ## * transformation involving multiple parameters
 ## ** sd
@@ -150,7 +151,7 @@ testB.mp1 <- .reparametrize(p = setNames(as.double(test.mp1),names(p)), type = t
                transform.k = "sd",
                transform.rho = "none",
                transform.names = FALSE)
-expect_equal(testB.mp1$p, p)
+expect_equal(testB.mp1$p, p, tol = 1e-5)
 
 ## ** logsd
 GS.mp2 <- reparametrize(p = p, type = type, 
@@ -177,7 +178,7 @@ testB.mp2 <- .reparametrize(p = setNames(as.double(test.mp2),names(p)), type = t
                             transform.k = "logsd",
                             transform.rho = "none",
                             transform.names = FALSE)
-expect_equal(testB.mp2$p, p)
+expect_equal(testB.mp2$p, p, tol = 1e-5)
 
 ## ** var
 GS.mp3 <- reparametrize(p = p, type = type,
@@ -204,7 +205,7 @@ testB.mp3 <- .reparametrize(p = setNames(as.double(test.mp3),names(p)), type = t
                             transform.k = "var",
                             transform.rho = "none",
                             transform.names = FALSE)
-expect_equal(testB.mp3$p, p)
+expect_equal(testB.mp3$p, p, tol = 1e-5)
 
 ## ** logvar
 GS.mp4 <- reparametrize(p = p, type = type, 
@@ -231,7 +232,7 @@ testB.mp4 <- .reparametrize(p = setNames(as.double(test.mp4),names(p)), type = t
                             transform.k = "logvar",
                             transform.rho = "none",
                             transform.names = FALSE)
-expect_equal(testB.mp4$p, p)
+expect_equal(testB.mp4$p, p, tol = 1e-5)
 
 ## ** cov (CS)
 GS.mp5 <- reparametrize(p = p[c(1,3)], type = type[c(1,3)], 
@@ -257,7 +258,7 @@ testB.mp5 <- .reparametrize(p = setNames(as.double(test.mp5),names(p[c(1,3)])), 
                             transform.k = "none",
                             transform.rho = "cov",
                             transform.names = FALSE)
-expect_equal(testB.mp5$p, p[c(1,3)])
+expect_equal(testB.mp5$p, p[c(1,3)], tol = 1e-5)
 
 ## ** cov (UN)
 GS.mp6 <- reparametrize(p = p, type = type, 
@@ -285,7 +286,7 @@ testB.mp6 <- .reparametrize(p = setNames(as.double(test.mp6),names(p)), type, si
                             transform.k = "none",
                             transform.rho = "cov",
                             transform.names = FALSE)
-expect_equal(testB.mp6$p, p)
+expect_equal(testB.mp6$p, p, tol = 1e-5)
 
 
 p2 <- c("sigma" = 1.5, "k1" = 2, "k2" = 0.9, "rho01" =  0.5, "rho02" =  0.25, "rho12" =  0.6)
@@ -317,11 +318,11 @@ test.mp7 <- reparametrize(p = p2, type = type2, sigma = sigma2, k.x = k2.x, k.y 
                           transform.rho = "cov",
                           transform.names = FALSE)
 
-head(test.mp7-GS.mp7)
+expect_equal(test.mp7, GS.mp7, tol = 1e-5)
 
-range(attr(test.mp7,"Jacobian")-attr(GS.mp7,"Jacobian"))
-
-
+attr(test.mp7,"Jacobian")-attr(GS.mp7,"Jacobian")
+rdiff <- (attr(test.mp7,"dJacobian")-attr(GS.mp7,"dJacobian"))/abs(attr(test.mp7,"dJacobian"))
+range(rdiff[!is.na(rdiff) & !is.infinite(rdiff)])
 
 ##----------------------------------------------------------------------
 ### test-auto-reparametrize.R ends here

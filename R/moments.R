@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: maj 18 2022 (11:40) 
+## Last-Updated: maj 19 2022 (18:01) 
 ##           By: Brice Ozenne
-##     Update #: 297
+##     Update #: 298
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -44,7 +44,6 @@
                                         transform.k = transform.k,
                                         transform.rho = transform.rho,
                                         transform.names = TRUE)
-    browser()
 
     newname.allcoef <- stats::setNames(name.allcoef, name.allcoef)
     if(out$reparametrize$transform==FALSE){

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: maj  9 2022 (19:12) 
+## Last-Updated: maj 19 2022 (18:10) 
 ##           By: Brice Ozenne
-##     Update #: 430
+##     Update #: 434
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -49,10 +49,10 @@ summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print =
                         hide.fit = FALSE, hide.data = FALSE, hide.cor = is.null(object$formula$cor), hide.var = TRUE, hide.sd = FALSE, hide.mean = FALSE, ...){
 
     ## ** normalize user input
-    param.mu <- object$param$value[object$param$type=="mu"]
-    param.sigma <- object$param$value[object$param$type=="sigma"]
-    param.k <- object$param$value[object$param$type=="k"]
-    param.rho <- object$param$value[object$param$type=="rho"]
+    param.mu <- object$param[object$design$param$type=="mu"]
+    param.sigma <- object$param[object$design$param$type=="sigma"]
+    param.k <- object$param[object$design$param$type=="k"]
+    param.rho <- object$param[object$design$param$type=="rho"]
     data <- object$data
     call <- object$call
     structure <- object$design$vcov
@@ -133,7 +133,7 @@ summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print =
         cat("  - parameters: mean = ",length(param.mu),", variance = ",length(c(param.sigma,param.k)),", correlation = ",length(param.rho),"\n", sep = "")
         if(object$opt$name!="gls"){
             abs.score <- abs(object$score)
-            abs.diff <- abs(object$opt$previous.estimate-object$param$value)
+            abs.diff <- abs(object$opt$previous.estimate-object$param)
             name.score <- names(which.max(abs.score))[1]
             name.diff <- names(which.max(abs.diff))[1]
             
