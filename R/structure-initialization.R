@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: maj 17 2022 (13:32) 
+## Last-Updated: maj 20 2022 (16:12) 
 ##           By: Brice Ozenne
-##     Update #: 185
+##     Update #: 217
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -176,14 +176,9 @@
 
     if(is.null(object$X$Xpattern.cor)){return(out)}
     ## combine all residuals and all design matrices
-    M.prodres <- do.call(rbind,lapply(1:length(object$X$Xpattern.cor), function(iPattern){ ## iPattern <- 3
+    M.prodres <- do.call(rbind,lapply(1:length(object$X$Xpattern.cor), function(iPattern){ ## iPattern <- 1
         X.iPattern <- object$X$Xpattern.cor[[iPattern]]
         if(is.null(X.iPattern)){return(NULL)}
-
-        ## number of timepoints
-        iN.time <- NROW(attr(object$X$Xpattern.cor[[iPattern]],"X"))
-        ## position in the matrix associated to each correlation parameter
-        indicator.param <- attr(X.iPattern,"indicator.param")
         ## index of the residuals belonging to each individual
         obs.iPattern <- do.call(rbind,index.cluster[attr(X.iPattern,"index.cluster")])
         ## identify non-duplicated pairs of observation (here restrict matrix to its  upper part)
@@ -191,38 +186,54 @@
         iPair <- iAllPair[iAllPair[,"col"]<iAllPair[,"row"],,drop=FALSE]
         iParam <- unique(iPair$param)
         iPair$param <- as.numeric(factor(iPair$param, levels = iParam))
-        ## convert index among all time to index among all time available for this pair
-        iIndex.pair <- attr(X.iPattern,"index.vec2matrix")[iAllPair[,"col"]<iAllPair[,"row"]]
-        ## M <- matrix(0,4,4);M[iIndex.pair] <- 1:length(iIndex.pair)
 
-        iLs.out <- apply(iPair, 1, function(iRow){
-            data.frame(prod = sum(residuals.studentized[obs.iPattern[,iRow[1]]]*residuals.studentized[obs.iPattern[,iRow[2]]]),
-                       sum1 = sum(residuals.studentized[obs.iPattern[,iRow[1]]]),
-                       sum2 = sum(residuals.studentized[obs.iPattern[,iRow[2]]]),
-                       sums1 = sum(residuals.studentized[obs.iPattern[,iRow[1]]]^2),
-                       sums2 = sum(residuals.studentized[obs.iPattern[,iRow[2]]]^2),
-                       n = NROW(obs.iPattern),
-                       param = iParam[iRow[3]])
-        })
-
-        return(do.call(rbind,iLs.out))
+        if(NROW(iPair)<=NROW(obs.iPattern)){ ## more individuals than pairs
+            iLs.out <- apply(iPair, 1, function(iRow){
+                iOut <- data.frame(prod = sum(residuals.studentized[obs.iPattern[,iRow[1]]]*residuals.studentized[obs.iPattern[,iRow[2]]]),
+                                   sum1 = sum(residuals.studentized[obs.iPattern[,iRow[1]]]),
+                                   sum2 = sum(residuals.studentized[obs.iPattern[,iRow[2]]]),
+                                   sums1 = sum(residuals.studentized[obs.iPattern[,iRow[1]]]^2),
+                                   sums2 = sum(residuals.studentized[obs.iPattern[,iRow[2]]]^2),
+                                   n = NROW(obs.iPattern),
+                                   param = iRow[3])
+                return(iOut)
+            }, simplify = FALSE)
+        }else{ ## more pairs than individuals
+            iLs.out <- apply(obs.iPattern, 1, function(iRow){ ## iRow <- obs.iPattern[1,]
+                iLSDF <- split(data.frame(row = residuals.studentized[iRow[iPair[,"row"]]],
+                                          col = residuals.studentized[iRow[iPair[,"col"]]],
+                                          param = iPair[,"param"]),
+                               iPair[,"param"])
+                iOut <- lapply(iLSDF, function(iiDF){
+                    data.frame(prod = sum(iiDF[,1]*iiDF[,2]),
+                               sum1 = sum(iiDF[,1]),
+                               sum2 = sum(iiDF[,2]),
+                               sums1 = sum(iiDF[,1]^2),
+                               sums2 = sum(iiDF[,2]^2),
+                               n=NROW(iiDF),
+                               param = iiDF[1,3])})
+                return(do.call(rbind,iOut))
+            }, simplify = FALSE)
+        }
+        iDf.out <- do.call(rbind,iLs.out)
+        iDf.out$param <- iParam[iDf.out$param]
+        return(iDf.out)
     }))
-
     ## estimate correlation
     param.rho <- names(param.type)[param.type=="rho"]
 
-    for(iRho in param.rho){ ## iRho <- param.rho[3]
-        iIndex <- which(M.prodres$param==iRho)
-        iN <- sum(M.prodres[iIndex,"n"])
-        iNum <- sum(M.prodres[iIndex,"prod"])/iN-(sum(M.prodres[iIndex,"sum1"])/iN)*(sum(M.prodres[iIndex,"sum2"])/iN)
-        iDenom1 <- sum(M.prodres[iIndex,"sums1"])/iN-(sum(M.prodres[iIndex,"sum1"])/iN)^2
-        iDenom2 <- sum(M.prodres[iIndex,"sums2"])/iN-(sum(M.prodres[iIndex,"sum2"])/iN)^2
-        out[iRho] <- iNum/sqrt(iDenom1*iDenom2)
-    }
+    e.rho <- unlist(lapply(split(M.prodres, M.prodres$param), function(iDF){ ## iDF <- split(M.prodres, M.prodres$param)[[3]]
+        iN <- sum(iDF$n)
+        iNum <- sum(iDF$prod)/iN-(sum(iDF$sum1)/iN)*(sum(iDF$sum2)/iN)
+        iDenom1 <- sum(iDF$sums1)/iN-(sum(iDF$sum1)/iN)^2
+        iDenom2 <- sum(iDF$sums2)/iN-(sum(iDF$sum2)/iN)^2
+        return(iNum/sqrt(iDenom1*iDenom2))
+    }))
+    out[names(e.rho)] <- e.rho
 
     ## export
     return(out)
-}
+    }
 
 ## * initialize.UN
 .initialize.UN <- .initialize.CS

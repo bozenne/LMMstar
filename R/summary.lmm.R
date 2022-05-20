@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: maj 19 2022 (18:10) 
+## Last-Updated: maj 20 2022 (16:19) 
 ##           By: Brice Ozenne
-##     Update #: 434
+##     Update #: 436
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -232,7 +232,6 @@ summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print =
     
 
     ## *** variance
-
     if(!hide.var || !hide.sd){
         name.sigma <- gsub("sigma:","",names(coef(object, transform.sigma = "none", transform.k = "sd", effects = "variance")))
         index.ref <- which(names(coef(object, effects = "variance", transform.names = FALSE)) %in% names(param.sigma))

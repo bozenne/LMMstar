@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (10:34) 
 ## Version: 
-## Last-Updated: maj 19 2022 (18:05) 
+## Last-Updated: maj 20 2022 (09:47) 
 ##           By: Brice Ozenne
-##     Update #: 164
+##     Update #: 172
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -147,10 +147,10 @@
 
     ## ** prepare vector of parameters
     param.value <- value
-    param.type <- design$param$type
-    sigma <- design$param$sigma
-    k.x <- design$param$k.x
-    k.y <- design$param$k.y
+    param.type <- stats::setNames(design$param$type, design$param$name)
+    sigma <- stats::setNames(design$param$sigma, design$param$name)
+    k.x <- stats::setNames(design$param$k.x, design$param$name)
+    k.y <- stats::setNames(design$param$k.y, design$param$name)
     name.allcoef <- design$param$name
     n.allcoef <- length(param.type)
 

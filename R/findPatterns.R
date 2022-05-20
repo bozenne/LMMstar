@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: maj 17 2022 (17:09) 
+## Last-Updated: maj 20 2022 (11:56) 
 ##           By: Brice Ozenne
-##     Update #: 172
+##     Update #: 183
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -133,7 +133,8 @@
     ## *** cor
     if(!is.null(X.cor)){
         param.rho <- param[param$type=="rho",,drop=FALSE]
-        lp.xy <- paste0(param.rho$code.x,"::X::",param.rho$code.y)
+        ls.lp.xy <- mapply(x = param.rho$code.x, y = param.rho$code.y, FUN = paste , sep = "::X::", SIMPLIFY = FALSE)
+        lp.xy <- unlist(lapply(names(ls.lp.xy), function(iN){stats::setNames(ls.lp.xy[[iN]],rep(iN, length(ls.lp.xy[[iN]])))}))
         UlpnCluster.cor0 <- lpnCluster.cor0[cluster.pattern.cor]
         
         iN.pair <- unique(sapply(UlpnCluster.cor0, length))
@@ -149,7 +150,7 @@
             iC.pair <- ls.pair[[length(iC.code)]]
             iC.codepair <- matrix(iC.code[iC.pair], ncol = 2, byrow = TRUE, dimnames = list(NULL,c("lp.x","lp.y")))
             iC.lp.xy <- paste0(attr(param,"level.cor")[iC.codepair[,"lp.x"]],sep[2],attr(param,"level.cor")[iC.codepair[,"lp.y"]])
-            iC.param <- param.rho$name[match(iC.lp.xy,lp.xy)]
+            iC.param <- names(lp.xy)[match(iC.lp.xy,lp.xy)]
             
             iC.table <- rbind(data.frame(row = iC.pair[1,], col = iC.pair[2,], param = iC.param),
                               data.frame(row = iC.pair[2,], col = iC.pair[1,], param = iC.param))

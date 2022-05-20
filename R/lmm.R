@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: maj 19 2022 (19:19) 
+## Last-Updated: maj 20 2022 (13:24) 
 ##           By: Brice Ozenne
-##     Update #: 1679
+##     Update #: 1680
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -147,12 +147,12 @@ lmm <- function(formula, repetition, structure, data,
     out <- list(call = match.call(), data.original = data)
     options <- LMMstar.options()
     
-    ## ** check and normalize user imput
+    ## ** check and normalize user input
     precompute.moments <- options$precompute.moments
     if(is.null(trace)){
         trace <- options$trace
     }
-    if(trace>=1){cat("1. Check and normalize user imput \n")}
+    if(trace>=1){cat("1. Check and normalize user input \n")}
 
     ## *** data
     if(!inherits(data,"data.frame")){

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: feb 10 2022 (11:05) 
+## Last-Updated: maj 20 2022 (16:59) 
 ##           By: Brice Ozenne
-##     Update #: 331
+##     Update #: 332
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -30,7 +30,6 @@
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. Not feasible for variance or correlation coefficients estimated by REML.
 ##' @param null [numeric vector] the value of the null hypothesis relative to each coefficient.
 ##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.
-##' @param strata [character vector] When not \code{NULL}, only output coefficient relative to specific levels of the variable used to stratify the mean and covariance structure.
 ##' @param columns [character vector] Columns to be output. Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
 ##' @param type.information,transform.sigma,transform.k,transform.rho,transform.names are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.
 ##' @param backtransform [logical] should the variance/covariance/correlation coefficient be backtransformed?
@@ -69,7 +68,7 @@
 ## * confint.lmm (code)
 ##' @export
 confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robust = FALSE, null = NULL,
-                         strata = NULL, columns = NULL,
+                         columns = NULL,
                          df = NULL, type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE,
                          backtransform = NULL, ...){
 
@@ -92,9 +91,6 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     }
     effects <- match.arg(effects, c("mean","fixed","variance","correlation"), several.ok = TRUE)
     effects[effects== "fixed"] <- "mean"
-    if(!is.null(strata)){
-        strata <- match.arg(strata, object$strata$levels, several.ok = TRUE)
-    }
     if(is.null(df)){
         df <- (!is.null(object$df)) && (robust==FALSE)
     }
@@ -128,14 +124,14 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     }
 
     ## ** get estimate
-    beta <- coef(object, effects = effects, strata = strata,
+    beta <- coef(object, effects = effects, 
                  transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
     p <- length(beta)
-    nameNoTransform.beta <- names(coef(object, effects = effects, strata = strata,
+    nameNoTransform.beta <- names(coef(object, effects = effects, 
                                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE))
    
     ## ** get uncertainty
-    vcov.beta <- vcov(object, effects = effects, df = df, strata = strata, robust = robust,
+    vcov.beta <- vcov(object, effects = effects, df = df, robust = robust,
                       type.information = type.information, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
     if(df){
         df <- pmax(attr(vcov.beta,"df"), options$min.df)
@@ -198,7 +194,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
         attr(out, "type")[attr(out, "type")=="sigma"] <- "k"
     }
     attr(out, "old2new") <-  stats::setNames(nameNoTransform.beta, rownames(out))
-    attr(out, "backtransform.names") <- names(coef(object, effects = effects, strata = strata,
+    attr(out, "backtransform.names") <- names(coef(object, effects = effects, 
                                                    transform.sigma = gsub("log","",transform.sigma), transform.k = gsub("log","",transform.k), transform.rho = gsub("atanh","",transform.rho), transform.names = transform.names))
 
     attr(out, "backtransform") <-  FALSE

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: maj 19 2022 (19:18) 
+## Last-Updated: maj 20 2022 (10:04) 
 ##           By: Brice Ozenne
-##     Update #: 1984
+##     Update #: 1991
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -333,7 +333,6 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             }
         }
     }
-
     dataCor <- data
     if(length(all.vars(formula.cor))>0 && structure$type %in% c("ID","IND","CS","UN")){
         for(iVar in all.vars(formula.cor)){
@@ -344,7 +343,6 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             }
         }
     }
-
 
     ## ** design matrix
     out <- list(var = NULL, cor = NULL)

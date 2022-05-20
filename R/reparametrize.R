@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: maj 19 2022 (17:55) 
+## Last-Updated: maj 20 2022 (09:47) 
 ##           By: Brice Ozenne
-##     Update #: 664
+##     Update #: 670
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -257,12 +257,10 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
         }else{
             level.rho <- level[index.rho]
         }
-
         out <- transform.rho(p = p, out = out,
                              index = index.rho, indexSigma = match(sigma[index.rho], name.p), indexKx = match(k.x[index.rho], name.p), indexKy = match(k.y[index.rho], name.p),
                              level = level.rho, type = "rho",
                              inverse = inverse, transform.names = transform.names, Jacobian = Jacobian, dJacobian = dJacobian)
-               
 
     }     
 

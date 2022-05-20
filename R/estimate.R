@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: maj 18 2022 (08:52) 
+## Last-Updated: maj 20 2022 (16:15) 
 ##           By: Brice Ozenne
-##     Update #: 477
+##     Update #: 487
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -203,7 +203,7 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
     key.XX <- design$precompute.XX$key
     wolfe <- FALSE
     effects <- c("variance","correlation")
-    
+
     ## ** intialization
     if(is.null(init)){
 
@@ -211,6 +211,7 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
         if(trace>1){
             cat("\nInitialization:\n")
         }
+
         ## mean value
         start.OmegaM1 <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
             diag(1, nrow = Upattern[iPattern,"n.time"], ncol = Upattern[iPattern,"n.time"])
@@ -305,7 +306,8 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
                                                                            k.x = design$param[match(names(param.newvalue.trans), design$param$name), "k.x"],
                                                                            k.y = design$param[match(names(param.newvalue.trans), design$param$name), "k.y"],
                                                                            Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
-                                                                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)$p
+                                                                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                                                                           transform.names = FALSE)$p
             }
             
             ## *** mean estimate
@@ -358,13 +360,6 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
         }
         score <- outMoments$score
     }else{
-        reparam.value <- .reparametrize(p = param.value, type = design$param$type, 
-                                        sigma = design$param$sigma, k.x = design$param$k.x, k.y = design$param$k.y,
-                                        Jacobian = FALSE, dJacobian = FALSE, inverse = FALSE, ##  2 is necessary to export the right dJacobian
-                                        transform.sigma = transform.sigma,
-                                        transform.k = transform.k,
-                                        transform.rho = transform.rho,
-                                        transform.names = TRUE)
         warper_obj <- function(p){
             .moments.lmm(value = p, design = design, time = time, method.fit = method.fit, 
                          transform.sigma = "none", transform.k = "none", transform.rho = "none",
@@ -461,7 +456,8 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
                                                                      k.x = design$param[match(names(transparam.newvalue),design$param$name),"k.x"],
                                                                      k.y = design$param[match(names(transparam.newvalue),design$param$name),"k.y"],
                                                                      Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
-                                                                     transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)$p
+                                                                     transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                                                                     transform.names = FALSE)$p
 
         outMoments <- .moments.lmm(value = param.newvalue, design = design, time = time, method.fit = method.fit, 
                                    transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,

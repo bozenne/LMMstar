@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: maj 17 2022 (17:02) 
+## Last-Updated: maj 20 2022 (09:40) 
 ##           By: Brice Ozenne
-##     Update #: 83
+##     Update #: 93
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -235,9 +235,9 @@
 } 
 
 ## * calc_d2Omega.CS
-.calc_d2Omega.UN <- .calc_d2Omega.IND
+.calc_d2Omega.CS <- .calc_d2Omega.IND
 
-## * calc_d2Omega.CS
+## * calc_d2Omega.UN
 .calc_d2Omega.UN <- .calc_d2Omega.IND
 
 ## * calc_d2Omega.CUSTOM

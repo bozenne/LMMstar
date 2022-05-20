@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: maj 19 2022 (19:31) 
+## Last-Updated: maj 20 2022 (16:55) 
 ##           By: Brice Ozenne
-##     Update #: 564
+##     Update #: 578
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -114,6 +114,25 @@ residuals.lmm <- function(object, type = "response", format = "long",
     options <- LMMstar.options()
     type.residual <- type
 
+    ## ** extract from object
+    xfactorMu <- object$xfactor$mean
+    variableMu.name <- attr(object$design$mean,"variable")
+    variableMuFac.name <- names(xfactorMu)
+    variableMuNum.name <- setdiff(variableMu.name,variableMuFac.name)
+
+    param.name <- object$design$param$name
+    param.type <- stats::setNames(object$design$param$type,param.name)
+    param.value <- object$param
+
+    U.time <- object$time$levels
+    name.time <- object$time$var
+    n.time <- object$time$n
+    index.na <- object$index.na
+    X.mean <- object$design$mean
+    object.residuals <- object$residuals
+    object.Omega <- object$Omega
+    object.OmegaM1 <- object$OmegaM1
+
     ## ** normalize user imput
     dots <- list(...)
     if(length(dots)>0){
@@ -148,16 +167,15 @@ residuals.lmm <- function(object, type = "response", format = "long",
         if(is.null(var)){
             stop("Argument \'var\' should indicate the covariate effects to preserve when computing the partial residuals. \n")
         }
-        name.X <- attr(object$design$mean,"variable")
         keep.intercept <- "(Intercept)" %in% var
-        if(keep.intercept && "(Intercept)" %in%  colnames(object$design$mean) == FALSE){
+        if(keep.intercept && "(Intercept)" %in%  param.name == FALSE){
             stop("Argument \'var\' cannot contain \"(Intercept)\" when the model does no include an intercept. \n")
         }
         var <- setdiff(var,"(Intercept)")
-        if(any(var %in% name.X == FALSE)){
+        if(any(var %in% variableMu.name == FALSE)){
             stop("Argument \'var\' should refer to covariate(s) of the mean structure. \n",
-                 "Valid covariates: \"",paste(name.X, collapse = "\" \""),"\". \n",
-                 "Invalid covariates: \"",paste(var[var %in% name.X == FALSE],collapse="\" \""),"\". \n")
+                 "Valid covariates: \"",paste(variableMu.name, collapse = "\" \""),"\". \n",
+                 "Invalid covariates: \"",paste(var[var %in% variableMu.name == FALSE],collapse="\" \""),"\". \n")
         }
     }else{
         if(!is.null(var)){
@@ -167,7 +185,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
     }
     ## check plot
     plot <- match.arg(plot, c("none","qqplot","correlation","scatterplot","scatterplot2"))
-    if(plot == "correlation" && object$time$n == 1){
+    if(plot == "correlation" && n.time == 1){
         stop("Cannot display the residual correlation over time when there is only a single timepoint. \n")
     }
     if(length(add.smooth)==1){
@@ -218,12 +236,10 @@ residuals.lmm <- function(object, type = "response", format = "long",
         if("partial" %in% type.residual){ 
             ## set the dataset at the reference value for all variables not in var
             if(is.null(attr.ref)){
-                name.Xfac <- names(object$xfactor$mean)
-                name.Xnum <- setdiff(name.X,name.Xfac)
-                if(length(name.Xfac)>0){
-                    reference <- c(reference, lapply(object$xfactor$mean,function(iX){factor(iX[1], levels = iX)}))
+                if(length(variableMuFac.name)>0){
+                    reference <- c(reference, lapply(xfactorMu,function(iX){factor(iX[1], levels = iX)}))
                 }
-                if(length(name.Xnum)>0){
+                if(length(variableMuNum.name)>0){
                     reference <- c(reference, as.list(stats::setNames(rep(0, length(name.Xnum)), name.Xnum)))
                 }
                 reference <- data.frame(reference, stringsAsFactors = FALSE)
@@ -247,15 +263,15 @@ residuals.lmm <- function(object, type = "response", format = "long",
             }
             ## build design matrix
             design2 <- stats::model.matrix(object, data = data, effects = effects, simplifies = FALSE)
-            if(!is.null(object$index.na)){ 
-                design2$mean <- design2$mean[-object$index.na,,drop=FALSE]
+            if(!is.null(index.na)){ 
+                design2$mean <- design2$mean[-index.na,,drop=FALSE]
             }
             ## handle intercept term
             if(keep.intercept==FALSE && "(Intercept)" %in% colnames(design2$mean)){
                 design2$mean[,"(Intercept)"] <- 0
             }
         }else if("partial-center" %in% type.residual){
-            centering <- colMeans(object$design$mean)
+            centering <- colMeans(X.mean)
             design2 <- design
             design2$mean <- sweep(design$mean, FUN = "-", MARGIN = 2, STATS = centering)
         }
@@ -284,19 +300,19 @@ residuals.lmm <- function(object, type = "response", format = "long",
         if(any(duplicated(names(p)))){
             stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
         }
-        if(any(names(object$param$type) %in% names(p) == FALSE)){
-            stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param$type)[names(object$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
+        if(any(names(param.type) %in% names(p) == FALSE)){
+            stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(param.type)[names(param.type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
         }
-        beta <- p[names(which(object$param$type=="mu"))]
+        beta <- p[names(which(param.type=="mu"))]
         if(any(type.residual %in% c("studentized","pearson","normalized","normalized2","scaled"))){
             Omega <- .calc_Omega(object = structure, param = p)
             precision <- lapply(Omega, solve)
         }
     }else{
-        beta <- object$param$value[object$param$type=="mu"]
+        beta <- param.value[param.type=="mu"]
         if(any(type.residual %in% c("studentized","pearson","normalized","normalized2","scaled"))){
-            Omega <- object$Omega
-            precision <- object$OmegaM1
+            Omega <- object.Omega
+            precision <- object.OmegaM1
         }
     }
 
@@ -347,11 +363,11 @@ residuals.lmm <- function(object, type = "response", format = "long",
         M.res <- matrix(NA, nrow = NROW(X), ncol = length(type.residual), dimnames = list(NULL, name.residual))
     }else{
         fitted <- stats::fitted(object)
-        if(!is.null(object$index.na)){ ## make sure to be consistent with X %*% beta
-            fitted <- fitted[-object$index.na]
+        if(!is.null(index.na)){ ## make sure to be consistent with X %*% beta
+            fitted <- fitted[-index.na]
         }
-        res <- as.vector(object$residuals)
-        M.res <- matrix(NA, nrow = NROW(object$residuals), ncol = length(type.residual), dimnames = list(NULL, name.residual))
+        res <- as.vector(object.residuals)
+        M.res <- matrix(NA, nrow = NROW(object.residuals), ncol = length(type.residual), dimnames = list(NULL, name.residual))
     }
 
     ## ** normalization
@@ -366,8 +382,8 @@ residuals.lmm <- function(object, type = "response", format = "long",
         attr(M.res,"reference") <- reference
     }
     if ("partial-center" %in% type.residual){
-        index.var <- which(attr(object$design$mean,"variable") %in% var)
-        index.col <- which(attr(object$design$mean,"assign") %in% index.var)
+        index.var <- which(attr(X.mean,"variable") %in% var)
+        index.col <- which(attr(X.mean,"assign") %in% index.var)
         M.res[,"r.partial"] <- design2$mean[,index.col,drop=FALSE] %*% beta[index.col] + res
         attr(M.res,"centering") <- centering
     }
@@ -420,23 +436,23 @@ residuals.lmm <- function(object, type = "response", format = "long",
     }
 
     ## ** add NA
-    if(is.null(match.call()$data) && length(object$index.na)>0){
-        inflateNA <-  .addNA(index.na = object$index.na, design = design, time = object$time)
+    if(is.null(match.call()$data) && length(index.na)>0){
+        inflateNA <-  .addNA(index.na = index.na, design = design, time = list(n = n.time, levels = U.time, var = name.time))
         Msave.res <- M.res
         M.res <- matrix(NA, nrow = inflateNA$n.allobs, ncol = length(type.residual), dimnames = list(NULL, name.residual))
-        M.res[-object$index.na,] <- Msave.res
+        M.res[-index.na,] <- Msave.res
         attr(M.res,"centering") <- attr(Msave.res,"centering")
         attr(M.res,"reference") <- attr(Msave.res,"reference")
 
         Msave.fit <- fitted
         fitted <- matrix(NA, nrow = inflateNA$n.allobs, ncol = 1)
-        fitted[-object$index.na,] <- Msave.fit
+        fitted[-index.na,] <- Msave.fit
         
         level.cluster <- factor(inflateNA$level.cluster, levels = cluster.level)
-        level.time <- factor(inflateNA$level.time, object$time$levels)
+        level.time <- factor(inflateNA$level.time, U.time)
     }else{
         level.cluster <- factor(cluster.level[index.cluster], levels = cluster.level)
-        level.time <- factor(object$time$levels[index.time], object$time$levels)
+        level.time <- factor(U.time[index.time], U.time)
     }
 
     ## plot
@@ -450,7 +466,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
         attr(MW.res,"centering") <- attr(M.res,"centering")
         if(plot=="qqplot"){
             if(engine.qqplot=="ggplot2"){
-                dfL.res$time <- paste0(object$time$var,": ", dfL.res$time)
+                dfL.res$time <- paste0(name.time,": ", dfL.res$time)
                 attr(MW.res,"plot") <- ggplot2::ggplot(dfL.res, ggplot2::aes(sample = residuals)) + ggplot2::stat_qq() + ggplot2::stat_qq_line() + ggplot2::facet_wrap(~time, scales = scales) + ggplot2::ggtitle(label.residual) + ggplot2::theme(text = ggplot2::element_text(size=size.text))
                 print(attr(MW.res,"plot"))
             }else if(engine.qqplot=="qqtest"){
@@ -463,10 +479,10 @@ residuals.lmm <- function(object, type = "response", format = "long",
                     on.exit(graphics::par(oldpar))            
                     graphics::par(mfrow = c(sqrtm.round,sqrtm.round2))
 
-                lapply(1:m,function(iCol){qqtest::qqtest(stats::na.omit(MW.res[,iCol+1]), main = paste0(object$time$var,": ",colnames(MW.res)[iCol+1]," (",label.residual,")"))})
+                lapply(1:m,function(iCol){qqtest::qqtest(stats::na.omit(MW.res[,iCol+1]), main = paste0(name.time,": ",colnames(MW.res)[iCol+1]," (",label.residual,")"))})
             }
         }else if(plot %in% c("scatterplot","scatterplot2")){
-            dfL.res$time <- paste0(object$time$var,": ", dfL.res$time)
+            dfL.res$time <- paste0(name.time,": ", dfL.res$time)
             if(type.residual %in% c("partial","partial-center")){
                 dfL.res$fitted <- data[[var]]
                 xlab.gg <- var
@@ -504,7 +520,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
                 df.gg$col.index <- match(df.gg$col,name.time)
                 dfR.gg <- df.gg[df.gg$col.index>=df.gg$row.index,,drop=FALSE]
                 
-                attr(MW.res,"plot") <- ggplot2::ggplot(dfR.gg, ggplot2::aes_string(x = "col", y = "row", fill = "correlation")) + ggplot2::geom_tile() + ggplot2::scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1,1), space = "Lab", name="Correlation") + ggplot2::xlab(object$time$var) + ggplot2::ylab(object$time$var) + ggplot2::ggtitle(label.residual) + ggplot2::theme(text = ggplot2::element_text(size=size.text))
+                attr(MW.res,"plot") <- ggplot2::ggplot(dfR.gg, ggplot2::aes_string(x = "col", y = "row", fill = "correlation")) + ggplot2::geom_tile() + ggplot2::scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1,1), space = "Lab", name="Correlation") + ggplot2::xlab(name.time) + ggplot2::ylab(name.time) + ggplot2::ggtitle(label.residual) + ggplot2::theme(text = ggplot2::element_text(size=size.text))
                 if(!is.na(digit.cor) && digit.cor>0){
                     correlation <- NULL ## [[:forCRANcheck:]]
                     attr(MW.res,"plot") <- attr(MW.res,"plot") + ggplot2::geom_text(ggplot2::aes(label = round(correlation,digit.cor)))
