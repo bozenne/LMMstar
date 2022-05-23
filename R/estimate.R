@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: maj 23 2022 (11:10) 
+## Last-Updated: maj 23 2022 (16:28) 
 ##           By: Brice Ozenne
-##     Update #: 489
+##     Update #: 497
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -246,7 +246,12 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
 
     
     ## ** loop
-    if(optimizer=="FS"){
+    if(n.iter==0){
+        cv <- FALSE
+        param.valueM1 <- NULL
+        score <- NULL
+        iIter <- 0
+    }else if(optimizer=="FS"){
         cv <- FALSE
         param.valueM1 <- NULL
         logLik.value <- -Inf
@@ -328,9 +333,10 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
             }else if(trace > 4){
                 M.print <- rbind(estimate = param.value,
                                  diff = param.value - param.valueM1,
-                                 score = c(rep(0, length(param.mu)),outMoments$score))
+                                 score = c(rep(NA, length(param.mu)),outMoments$score))
                 rownames(M.print) <- paste0(rownames(M.print),".",iIter)
                 print(M.print)
+                
             }
         
     }

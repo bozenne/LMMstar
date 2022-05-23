@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: maj 20 2022 (16:43) 
+## Last-Updated: maj 23 2022 (17:49) 
 ##           By: Brice Ozenne
-##     Update #: 381
+##     Update #: 385
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -251,7 +251,6 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
         colnames(M.ranef) <- colnames(X.Z)
         return(M.ranef)
     }
-
     if(any(c("variance","correlation") %in% effects2)){
         pVar <- NULL
         if("variance" %in% effects2){
@@ -263,7 +262,7 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
                     pVar <- c(pVar, reparametrize.p[index.sigmak])
                 }                    
             }else{
-                pVar <- c(pVar, p[param.type %in% c("sigma","k")])
+                pVar <- c(pVar, p[param.type[names(p)] %in% c("sigma","k")])
             }
         }
         if("correlation" %in% effects2){

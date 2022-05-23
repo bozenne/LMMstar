@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: maj 19 2022 (18:04) 
+## Last-Updated: maj 23 2022 (14:37) 
 ##           By: Brice Ozenne
-##     Update #: 96
+##     Update #: 100
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -109,7 +109,6 @@
         
         iScore <- stats::setNames(vector(mode = "list", length = length(iParamVar)), iParamVar)
         iX.var <- X.var[[iPattern.var]][,c(iParam.sigma,iParam.k),drop=FALSE]
-        iX.cor <- X.cor[[iPattern.cor]][,c(iParam.rho),drop=FALSE]
         iIndicator <- attr(X.cor[[iPattern.cor]],"indicator.param")
 
         if(n.iParam.sigma==1){

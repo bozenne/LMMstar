@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: maj 17 2022 (16:56) 
+## Last-Updated: maj 23 2022 (14:35) 
 ##           By: Brice Ozenne
-##     Update #: 443
+##     Update #: 447
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -82,9 +82,10 @@
 
         Omega.sd <- unname(exp(X.var[[iPattern.var]] %*% log(param[colnames(X.var[[iPattern.var]])])))
         Omega.cor <- diag(0, nrow = iNtime, ncol = iNtime)
-
         if(!is.null(X.cor) && !is.null(X.cor[[iPattern.cor]])){
-            Omega.cor[attr(X.cor[[iPattern.cor]],"index.vec2matrix")] <- X.cor[[iPattern.cor]] %*% param[colnames(X.cor[[iPattern.cor]])]
+            for(iParam in attr(X.cor[[iPattern.cor]],"param")){
+                Omega.cor[attr(X.cor[[iPattern.cor]],"indicator.param")[[iParam]]] <- param[iParam]
+            }
         }
         Omega <- diag(as.double(Omega.sd)^2, nrow = iNtime, ncol = iNtime) + Omega.cor * tcrossprod(Omega.sd)
         

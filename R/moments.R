@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: maj 23 2022 (11:12) 
+## Last-Updated: maj 23 2022 (16:49) 
 ##           By: Brice Ozenne
-##     Update #: 302
+##     Update #: 312
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -153,7 +153,7 @@
         out$score <- .score(X = design$mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega,
                             Upattern.ncluster = Upattern.ncluster, weights = weights.cluster, scale.Omega = scale.cluster,
                             index.variance = design$vcov$X$pattern.cluster$pattern, time.variance = design$index.clusterTime, index.cluster = design$index.cluster,
-                            name.varcoef = design$vcov$X$Upattern$param, name.allcoef = name.allcoef,
+                            name.allcoef = name.allcoef,
                             indiv = indiv, REML = method.fit=="REML", effects = effects, precompute = precompute)
 
         if(transform.names && length(out$reparametrize$newname)>0){
@@ -177,7 +177,7 @@
         Minfo <- .information(X = design$mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega,
                               Upattern.ncluster = Upattern.ncluster, weights = weights.cluster, scale.Omega = scale.cluster,
                               index.variance = design$vcov$X$pattern.cluster$pattern, time.variance = design$index.clusterTime, index.cluster = design$index.cluster,
-                              name.varcoef = design$vcov$X$Upattern$param, name.allcoef = name.allcoef,
+                              name.allcoef = name.allcoef,
                               pair.meanvarcoef = attr(design$param, "pair.meanvarcoef"), pair.varcoef = design$vcov$X$pair.varcoef,
                               indiv = indiv, REML = (method.fit=="REML"), type.information = type.information, effects = effects2, robust = robust,
                               precompute = precompute)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: apr 13 2022 (13:49) 
+## Last-Updated: maj 23 2022 (16:09) 
 ##           By: Brice Ozenne
-##     Update #: 263
+##     Update #: 266
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -63,9 +63,9 @@ logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
             if(any(names(object$param$type) %in% names(p) == FALSE)){
                 stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param$type)[names(object$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
             }
-            p <- p[names(object$param$value)]
+            p <- p[names(object$param)]
         }else{
-            p <- object$param$value
+            p <- object$param
         }
         out <- .moments.lmm(value = p, design = design, time = object$time, method.fit = object$method.fit,
                             transform.sigma = "none", transform.k = "none", transform.rho = "none",
@@ -120,7 +120,7 @@ logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
         
         ## loop
         for (iId in 1:n.cluster) { ## iId <- 1
-            iIndex <- attr(index.cluster, "sorted")[[iId]]
+            iIndex <- index.cluster[[iId]]
             iResidual <- residuals[iIndex, , drop = FALSE]
             iX <- X[iIndex, , drop = FALSE]
             iOmegaM1 <- precision[[index.variance[iId]]] * scale.Omega[iId]

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: feb 14 2022 (11:29) 
+## Last-Updated: maj 23 2022 (16:47) 
 ##           By: Brice Ozenne
-##     Update #: 973
+##     Update #: 980
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -101,9 +101,9 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
             if(any(names(x$param$type) %in% names(p) == FALSE)){
                 stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(x$param$type)[names(x$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
             }
-            p <- p[names(x$param$value)]
+            p <- p[names(x$param)]
         }else{
-            p <- x$param$value
+            p <- x$param
         }
         out <- .moments.lmm(value = p, design = design, time = x$time, method.fit = x$method.fit, type.information = type.information,
                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
@@ -143,7 +143,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
 ##                                                                 + 0.5 tr[ (X \OmegaM1 X)^{-1} (X \OmegaM1 d2\Omega \OmegaM1 X) ]
 .information <- function(X, residuals, precision, dOmega, d2Omega,
                          Upattern.ncluster, weights, scale.Omega,
-                         index.variance, time.variance, index.cluster, name.varcoef, name.allcoef,
+                         index.variance, time.variance, index.cluster, name.allcoef,
                          pair.meanvarcoef, pair.varcoef, indiv, REML, type.information, effects, robust,
                          precompute){
 
@@ -153,6 +153,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
     n.cluster <- length(index.variance)
     name.mucoef <- colnames(X)
     n.mucoef <- length(name.mucoef)
+    name.varcoef <- lapply(dOmega, names)
     n.varcoef <- lapply(name.varcoef, length)
     n.allcoef <- length(name.allcoef)
     name.allvarcoef <- name.allcoef[name.allcoef %in% unique(unlist(name.varcoef))] ## make sure the ordering is correct
@@ -284,7 +285,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
         ## loop
         for(iId in 1:n.cluster){ ## iId <- 7
             iPattern <- index.variance[iId]
-            iIndex <- attr(index.cluster,"sorted")[[iId]]
+            iIndex <- index.cluster[[iId]]
             iWeight <- weights[iId]
             ## iIndex <- which(index.cluster==iId)
             ## iIndex <- iIndex[order(time.variance[iIndex])] ## re-order observations according to the variance-covariance matrix
@@ -496,7 +497,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
         attr.bread <- crossprod(.score(X = X, residuals = residuals, precision = precision, dOmega = dOmega,
                                        weights = weights, scale.Omega = scale.Omega,
                                        index.variance = index.variance, time.variance = time.variance, 
-                                       index.cluster = index.cluster, name.varcoef = name.varcoef, name.allcoef = name.allcoef, indiv = TRUE, REML = REML, effects = effects2,
+                                       index.cluster = index.cluster, name.allcoef = name.allcoef, indiv = TRUE, REML = REML, effects = effects2,
                                        precompute = precompute) )
         if(any(c("mean","variance","correlation") %in% effects2 == FALSE)){
             keep.cols <- intersect(names(which(rowSums(abs(attr.bread))!=0)),names(which(rowSums(abs(attr.bread))!=0)))

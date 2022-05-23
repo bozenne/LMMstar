@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: maj 20 2022 (11:56) 
+## Last-Updated: maj 23 2022 (17:53) 
 ##           By: Brice Ozenne
-##     Update #: 183
+##     Update #: 206
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -55,8 +55,13 @@
             lpnObs.cor[index.cluster[[iC]]]
         }), U.cluster)
         lpnCluster.cor <- sapply(lpnCluster.cor0, paste, collapse = ".")
-        
-        name.pattern.cor <- sort(unique(lpnCluster.cor))
+
+        name.pattern.cor <- unique(lpnCluster.cor)
+        if(!heterogeneous){
+            name.pattern.cor <- name.pattern.cor[order(nchar(as.character(name.pattern.cor)))]
+        }else{
+            name.pattern.cor <- sort(name.pattern.cor)
+        }
         cluster.pattern.cor <- which(!duplicated(lpnCluster.cor))
         cluster.pattern.cor <- cluster.pattern.cor[match(lpnCluster.cor[cluster.pattern.cor], name.pattern.cor)]
         n.pattern.cor <- length(name.pattern.cor)
@@ -78,7 +83,6 @@
     name.pattern <- name.pattern[order.pattern]
     n.pattern <- length(name.pattern)
 
-    ## *** individual belonging to each pattern
     out$pattern.cluster <- data.frame(index.cluster = U.cluster,
                                       pattern = factor(name.pattern[match(lpnCluster, name.pattern)], levels = name.pattern))
 
@@ -108,7 +112,7 @@
         attr(out$Upattern, "lp.UpatternCor") <- Ulp.cor
         out$pattern.cluster$cor <- stats::setNames(stats::setNames(out$Upattern$cor, out$Upattern$name)[out$pattern.cluster$pattern], out$pattern.cluster$cluster)
     }
-
+    
     ## ** characterize each pattern
 
     ## *** var
@@ -133,7 +137,7 @@
     ## *** cor
     if(!is.null(X.cor)){
         param.rho <- param[param$type=="rho",,drop=FALSE]
-        ls.lp.xy <- mapply(x = param.rho$code.x, y = param.rho$code.y, FUN = paste , sep = "::X::", SIMPLIFY = FALSE)
+        ls.lp.xy <- mapply(x = param.rho$code.x, y = param.rho$code.y, FUN = paste, sep = "::X::", SIMPLIFY = FALSE)
         lp.xy <- unlist(lapply(names(ls.lp.xy), function(iN){stats::setNames(ls.lp.xy[[iN]],rep(iN, length(ls.lp.xy[[iN]])))}))
         UlpnCluster.cor0 <- lpnCluster.cor0[cluster.pattern.cor]
         
@@ -145,29 +149,28 @@
             iC.all <- out$pattern.cluster$index.cluster[which(out$pattern.cluster$cor==iP)]
             iC <- iC.all[1]
             iX <- X.cor[index.cluster[[iC]],,drop=FALSE]
-
             iC.code <- lpnCluster.cor0[[iC]]
             iC.pair <- ls.pair[[length(iC.code)]]
             iC.codepair <- matrix(iC.code[iC.pair], ncol = 2, byrow = TRUE, dimnames = list(NULL,c("lp.x","lp.y")))
             iC.lp.xy <- paste0(attr(param,"level.cor")[iC.codepair[,"lp.x"]],sep[2],attr(param,"level.cor")[iC.codepair[,"lp.y"]])
             iC.param <- names(lp.xy)[match(iC.lp.xy,lp.xy)]
-            
+            ## unique(iC.lp.xy)
+
             iC.table <- rbind(data.frame(row = iC.pair[1,], col = iC.pair[2,], param = iC.param),
                               data.frame(row = iC.pair[2,], col = iC.pair[1,], param = iC.param))
-            iX.pairwise <- matrix(0, nrow = NROW(iC.table), ncol = length(param.rho$name),
-                                  dimnames = list(paste0("(",iC.table$row,",",iC.table$col,")"), param.rho$name))
-            iX.pairwise[1:NROW(iC.table) + (match(iC.table$param , param.rho$name)-1) * NROW(iC.table)] <- 1
-            attr(iX.pairwise, "index.cluster") <- iC.all
-            attr(iX.pairwise, "index.strata") <- unname(index.clusterStrata[iC])
-            attr(iX.pairwise, "index.pair") <- iC.table
-            attr(iX.pairwise, "X") <- iX
-            attr(iX.pairwise, "index.vec2matrix") <- c(iC.table[,"row"] + NROW(iX) * (iC.table[,"col"] - 1))
-            attr(iX.pairwise, "param") <- sort(unique(iC.table$param))
-            attr(iX.pairwise, "indicator.param") <- stats::setNames(lapply(attr(iX.pairwise, "param"),function(iP){attr(iX.pairwise, "index.vec2matrix")[which(iC.table$param==iP)]}),
-                                                                    attr(iX.pairwise, "param"))
-            return(iX.pairwise)
+            ## iX.pairwise <- matrix(0, nrow = NROW(iC.table), ncol = length(param.rho$name),
+            ##                       dimnames = list(paste0("(",iC.table$row,",",iC.table$col,")"), param.rho$name))
+            ## iX.pairwise[1:NROW(iC.table) + (match(iC.table$param , param.rho$name)-1) * NROW(iC.table)] <- 1
+            attr(iX, "index.cluster") <- iC.all
+            attr(iX, "index.strata") <- unname(index.clusterStrata[iC])
+            attr(iX, "index.pair") <- iC.table
+            attr(iX, "index.vec2matrix") <- c(iC.table[,"row"] + NROW(iX) * (iC.table[,"col"] - 1))
+            attr(iX, "param") <- sort(unique(iC.table$param))
+            attr(iX, "indicator.param") <- stats::setNames(lapply(attr(iX, "param"),function(iP){attr(iX, "index.vec2matrix")[which(iC.table$param==iP)]}),
+                                                           attr(iX, "param"))
+            return(iX)
             ## iM <- matrix(0,length(iC.code),length(iC.code)); iM[attr(iX.pairwise, "index.vec2matrix")] <- iX.pairwise %*% 1:NROW(param.rho)
-        }),name.pattern.var)
+        }),name.pattern.cor)
 
         out$Upattern$param <- stats::setNames(lapply(out$Upattern$name, function(iP){ ## iP <- out$Upattern$name[1]
             c(out$Upattern[["param"]][[which(out$Upattern$name==iP)]],

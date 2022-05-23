@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: maj 23 2022 (11:56) 
+## Last-Updated: maj 23 2022 (15:53) 
 ##           By: Brice Ozenne
-##     Update #: 1682
+##     Update #: 1688
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -297,7 +297,7 @@ lmm <- function(formula, repetition, structure, data,
             ## create new variable summarizing the formula
 
             ## compute all combinations
-            interaction.tempo <- interaction(lapply(var.time, function(iX){as.factor(data[,iX])}), drop = TRUE)
+            interaction.tempo <- interaction(lapply(var.time, function(iX){as.factor(data[[iX]])}), drop = TRUE)
 
             ## update name of the time variable
             var.time <- gsub("\\*|\\+","_",gsub(" ","",gsub("~","",res.split[1], fixed = TRUE), fixed = TRUE))
@@ -736,12 +736,12 @@ lmm <- function(formula, repetition, structure, data,
     
     ## ** cluster
     if(is.na(var.cluster)){
-        data$XXclusterXX <- as.factor(sprintf(paste0("%0",ceiling(log10(NROW(data))),"d"), 1:NROW(data)))
+        data$XXclusterXX <- as.factor(sprintf(paste0("%0",ceiling(log10(NROW(data)))+0.1,"d"), 1:NROW(data)))
     }else if("XXclusterXX" %in% names(data) == FALSE){
         if(is.factor(data[[var.cluster]])){
             data$XXclusterXX <- droplevels(data[[var.cluster]])
         }else if(is.numeric(data[[var.cluster]]) && all(data[[var.cluster]] %% 1 == 0)){
-            data$XXclusterXX <- as.factor(sprintf(paste0("%0",ceiling(log10(max(abs(data[[var.cluster]])))),"d"), data[[var.cluster]]))
+            data$XXclusterXX <- as.factor(sprintf(paste0("%0",ceiling(log10(max(abs(data[[var.cluster]])))+0.1),"d"), data[[var.cluster]]))
         }else{
             data$XXclusterXX <- factor(data[[var.cluster]], levels = sort(unique(data[[var.cluster]])))
         }
@@ -756,12 +756,12 @@ lmm <- function(formula, repetition, structure, data,
             iIndex <- unlist(iIndex)
             iTime <- unlist(iTime)
         }
-        data[iIndex,"XXtimeXX"] <- as.factor(sprintf(paste0("%0",ceiling(log10(max(iTime))),"d"), iTime))
+        data[iIndex,"XXtimeXX"] <- as.factor(sprintf(paste0("%0",ceiling(log10(max(iTime))+0.1),"d"), iTime))
     }else if("XXtimeXX" %in% names(data) == FALSE){
         if(is.factor(data[[var.time]])){
             data$XXtimeXX <- droplevels(data[[var.time]])
         }else if(is.numeric(data[[var.time]]) && all(data[[var.time]] %% 1 == 0)){
-            data$XXtimeXX <- as.factor(sprintf(paste0("%0",ceiling(log10(max(abs(data[[var.time]])))),"d"), data[[var.time]]))
+            data$XXtimeXX <- as.factor(sprintf(paste0("%0",ceiling(log10(max(abs(data[[var.time]])))+0.1),"d"), data[[var.time]]))
         }else{
             data$XXtimeXX <- factor(data[[var.time]], levels = sort(unique(data[[var.time]])))
         }
@@ -778,7 +778,7 @@ lmm <- function(formula, repetition, structure, data,
         if(is.factor(data[[var.strata]])){
             data$XXstrataXX <- droplevels(data[[var.strata]])
         }else if(is.numeric(data[[var.strata]]) && all(data[[var.strata]] %% 1 == 0)){
-            data$XXstrataXX <- as.factor(sprintf(paste0("%0",ceiling(log10(max(abs(data[[var.strata]])))),"d"), data[[var.strata]]))
+            data$XXstrataXX <- as.factor(sprintf(paste0("%0",ceiling(log10(max(abs(data[[var.strata]])))+0.1),"d"), data[[var.strata]]))
         }else{
             data$XXstrataXX <- factor(data[[var.strata]], levels = sort(unique(data[[var.strata]])))
         }

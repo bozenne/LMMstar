@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: maj 20 2022 (18:07) 
+## Last-Updated: maj 23 2022 (17:57) 
 ##           By: Brice Ozenne
-##     Update #: 313
+##     Update #: 339
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -143,14 +143,13 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, inverse = FALSE, simplif
 
     ## ** subset
     if(is.null(cluster)){ ## unique covariance patterns
-        if(n.strata==1){            
-            out <- stats::setNames(list(.getUVarCov(object, Omega = Omega)),U.strata)
-        }else{
-            out <- stats::setNames(vector(mode = "list", length = n.strata),strata)
-            for(iStrata in 1:n.strata){ ## iStrata <- 1
-                out[[iStrata]] <- .getUVarCov(object, Omega = Omega[strata[Upattern$strata]==strata[iStrata]])
-            }
+        
+        out <- .getUVarCov(object, Omega = Omega)
+        for(iO in 1:length(out)){ ## iO <- 6
+            attr(out[[iO]],"sd") <- NULL
+            attr(out[[iO]],"cor") <- NULL
         }
+        
     }else if(inherits(cluster,"data.frame")){ ## cluster specific covariance patterns (new)
         
         Ucluster <- as.character(unique(cluster[[name.cluster]]))
@@ -158,7 +157,6 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, inverse = FALSE, simplif
 
         for(iO in 1:length(out)){ ## iO <- 6
             dimnames(out[[iO]]) <- list(U.time[attr(out[[iO]],"time")],U.time[attr(out[[iO]],"time")])
-            attr(out[[iO]],"time") <- NULL
             attr(out[[iO]],"sd") <- NULL
             attr(out[[iO]],"cor") <- NULL
         }
@@ -177,7 +175,6 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, inverse = FALSE, simplif
             iO.time <- U.time[index.clusteTime[[iC]]]
             dimnames(out[[iO]]) <- list(iO.time,iO.time)
             
-            attr(out[[iO]],"time") <- NULL
             attr(out[[iO]],"sd") <- NULL
             attr(out[[iO]],"cor") <- NULL
         }
@@ -218,12 +215,13 @@ getVarCov.lmm <- function(obj, ...) {
 .getUVarCov <- function(object, Omega, sep = c(":","::X::")){
 
     ## ** extract from object
+    heterogeneous <- object$design$vcov$heterogeneous
     n.time <- object$time$n
     U.time <- object$time$level
     Upattern <- object$design$vcov$X$Upattern
     Xpattern.var <- object$design$vcov$X$Xpattern.var
     Xpattern.cor <- object$design$vcov$X$Xpattern.cor
-    
+
     ## ** restrict to current strata
     iUpattern <- Upattern[Upattern$name %in% names(Omega),]
     iXpattern.var <- Xpattern.var[iUpattern$var]
@@ -252,20 +250,41 @@ getVarCov.lmm <- function(obj, ...) {
 
     ## ** check whether other patterns are not nested in the set of unique patterns
     ## if so add them
-    possibleNested.pattern <- setdiff(Upattern$name, keep.pattern)
-    for(iPattern in possibleNested.pattern){ ## iPattern <- possibleNested.pattern[1]
-       iTable <- table.Xpattern[rownames(table.Xpattern) == iPattern,,drop=FALSE]
+    if(heterogeneous){
+        possibleNested.pattern <- setdiff(Upattern$name, keep.pattern)
+        for(iPattern in possibleNested.pattern){ ## iPattern <- possibleNested.pattern[1]
+            iTable <- table.Xpattern[rownames(table.Xpattern) == iPattern,,drop=FALSE]
 
-       iTest <- rowSums(sweep(table.Xpattern.keep, MARGIN = 1, FUN = "-", STATS = iTable)<0)
-       if(any(iTable>0)){
-           keep.pattern <- c(keep.pattern, iPattern)
-           table.Xpattern.keep <- table.Xpattern[rownames(table.Xpattern) %in% keep.pattern,,drop=FALSE]
-       }
+            iTest <- rowSums(sweep(table.Xpattern.keep, MARGIN = 2, FUN = "-", STATS = iTable)<0)
+            if(all(iTable>0)){
+                keep.pattern <- c(keep.pattern, iPattern)
+                table.Xpattern.keep <- table.Xpattern[rownames(table.Xpattern) %in% keep.pattern,,drop=FALSE]
+            }
+        }
     }
 
-    ## ** export Omega
-    out <- Omega[[keep.pattern]]
+    ## ** recover time
+    if(!is.numeric(object$data[[object$time$var]])){
+        iUpattern.var <- iUpattern$var[match(keep.pattern,iUpattern$name)]
+        iIndex.time <- lapply(Xpattern.var[iUpattern.var], function(iX){object$design$index.clusterTime[[attr(iX,"index.cluster")[1]]]})
+        out <- mapply(x = Omega[keep.pattern], y = iIndex.time, function(x,y){
+            dimnames(x) <- list(U.time[y],U.time[y])
+            dimnames(attr(x,"sd")) <- list(U.time[y],NULL)
+            dimnames(attr(x,"cor")) <- list(U.time[y],U.time[y])
+            return(x)
+        }, SIMPLIFY = FALSE)
+    }else{
+        out <- Omega[keep.pattern]
+    }
 
+    ## ** rename patterns
+    Upattern.strata <- unlist(object$design$vcov$X$Upattern[match(keep.pattern,object$design$vcov$X$Upattern$name),"index.strata"])
+    if(all(!duplicated(Upattern.strata)) && all(1:object$strata$n %in% Upattern.strata)){
+        names(out) <- object$strata$levels[Upattern.strata]
+        out <- out[order(Upattern.strata)]
+    }
+    
+    ## ** export Omega
     return(out)
 }
 

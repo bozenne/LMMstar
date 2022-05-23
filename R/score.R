@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: apr 13 2022 (12:05) 
+## Last-Updated: maj 23 2022 (16:49) 
 ##           By: Brice Ozenne
-##     Update #: 488
+##     Update #: 505
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -93,11 +93,10 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
             if(any(names(x$param$type) %in% names(p) == FALSE)){
                 stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(x$param$type)[names(x$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
             }
-            p <- p[names(x$param$value)]
+            p <- p[names(x$param)]
         }else{
-            p <- x$param$value
+            p <- x$param
         }
-        
         out <- .moments.lmm(value = p, design = design, time = x$time, method.fit = x$method.fit,
                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                             logLik = FALSE, score = TRUE, information = FALSE, vcov = FALSE, df = FALSE, indiv = indiv, effects = effects,
@@ -132,9 +131,10 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
 ## * .score
 .score <- function(X, residuals, precision, dOmega,
                    Upattern.ncluster, weights, scale.Omega,
-                   index.variance, time.variance, index.cluster, name.varcoef, name.allcoef,
+                   index.variance, time.variance, index.cluster, name.allcoef,
                    indiv, REML, effects,
                    precompute){
+
 
     ## ** extract information
     test.loopIndiv <- indiv || is.null(precompute)
@@ -142,6 +142,7 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
     n.cluster <- length(index.variance)
     name.mucoef <- colnames(X)
     n.mucoef <- length(name.mucoef)
+    name.varcoef <- lapply(dOmega,names)
     n.varcoef <- lapply(name.varcoef, length)
     name.allvarcoef <- unique(unlist(name.varcoef))
     U.pattern <- names(dOmega)
@@ -194,7 +195,7 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
     ## ** compute score
     ## *** looping over individuals
     if(test.loopIndiv){
-        
+
         if(test.vcov){ ## precompute
             trOmegaM1_dOmega <- stats::setNames(vector(mode = "list", length = n.pattern), U.pattern)
             OmegaM1_dOmega_OmegaM1 <- stats::setNames(vector(mode = "list", length = n.pattern), U.pattern)
@@ -208,7 +209,7 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
         ## loop
         for(iId in 1:n.cluster){ ## iId <- 7
             iPattern <- index.variance[iId]
-            iIndex <- attr(index.cluster,"sorted")[[iId]]
+            iIndex <- index.cluster[[iId]]
             iWeight <- weights[iId]
             iOmegaM1 <- precision[[index.variance[iId]]] * scale.Omega[iId]
             ## iIndex <- which(index.cluster==iId)

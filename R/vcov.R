@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: Feb 13 2022 (23:12) 
+## Last-Updated: maj 23 2022 (16:09) 
 ##           By: Brice Ozenne
-##     Update #: 483
+##     Update #: 484
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -119,9 +119,9 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strat
                 if(any(names(object$param$type) %in% names(p) == FALSE)){
                     stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param$type)[names(object$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
                 }
-                p <- p[names(object$param$value)]
+                p <- p[names(object$param)]
             }else{
-                p <- object$param$value
+                p <- object$param
             }
 
             outMoments <- .moments.lmm(value = p, design = design, time = object$time, method.fit = object$method.fit, type.information = type.information,

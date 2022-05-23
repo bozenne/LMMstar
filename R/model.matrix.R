@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: maj 20 2022 (10:04) 
+## Last-Updated: maj 23 2022 (16:32) 
 ##           By: Brice Ozenne
-##     Update #: 1991
+##     Update #: 1996
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -426,7 +426,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 
     structure$X <- c(structure$X,outPattern)
     ## structure$X$Xpattern.cor
-    
+
     if(structure$type=="CUSTOM"){
         structure$X$Upattern$param <- stats::setNames(lapply(1:length(structure$X$Upattern$param), function(iL){structure$param$name}),
                                                       names(structure$X$Upattern$param))

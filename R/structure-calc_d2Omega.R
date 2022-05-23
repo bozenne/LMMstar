@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: maj 20 2022 (09:40) 
+## Last-Updated: maj 23 2022 (17:15) 
 ##           By: Brice Ozenne
-##     Update #: 93
+##     Update #: 100
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -102,6 +102,7 @@
         }
         
     }
+
     ## ** loop over covariance patterns
     out <- lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
 
@@ -124,14 +125,13 @@
 
         iScore <- stats::setNames(vector(mode = "list", length = length(iParamVar)), iParamVar)
         iX.var <- X.var[[iPattern.var]][,c(iParam.sigma,iParam.k),drop=FALSE]
-        iX.cor <- X.cor[[iPattern.cor]][,c(iParam.rho),drop=FALSE]
         iIndicator <- c(attr(X.var[[iPattern.var]],"indicator.param"),attr(X.cor[[iPattern.cor]],"indicator.param"))
 
         iPair <- object$X$pair.varcoef[[Upattern[iPattern,"name"]]]
         n.iPair <- NCOL(iPair)
 
         iHess <- lapply(1:n.iPair, function(iPair){matrix(0, nrow = iNtime, ncol = iNtime)})
-
+        
         for(iiPair in 1:n.iPair){ ## iiPair <- 2
             ## name of parameters
             iCoef1 <- iPair[1,iiPair]
