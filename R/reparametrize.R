@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: maj 20 2022 (09:47) 
+## Last-Updated: maj 23 2022 (11:17) 
 ##           By: Brice Ozenne
-##     Update #: 670
+##     Update #: 686
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -204,9 +204,9 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
         if(!transform.names){
             level.sigma <- NULL
         }else if(transform.k %in% c("sd","logsd","var","logvar")){
-            level.sigma <- level[index.sigma]
+            level.sigma <- sapply(level,"[[",1)
         }else{
-            level.sigma <- rep(NA,length(index.sigma))
+            level.sigma <- stats::setNames(rep(NA,n.p),name.p)
         }
 
         out <- transform.sigma(p = p, out = out,
@@ -233,9 +233,8 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
         if(!transform.names){
             level.k <- NULL
         }else{
-            level.k <- level[index.k]
+            level.k <- sapply(level,"[[",1)
         }
-
         out <- transform.k(p = p, out = out,
                            index = index.k, indexSigma = match(sigma[index.k], name.p),
                            level = level.k, type = "k",
@@ -255,7 +254,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
         if(!transform.names){
             level.rho <- NULL
         }else{
-            level.rho <- level[index.rho]
+            level.rho <- sapply(level,"[[",1)
         }
         out <- transform.rho(p = p, out = out,
                              index = index.rho, indexSigma = match(sigma[index.rho], name.p), indexKx = match(k.x[index.rho], name.p), indexKy = match(k.y[index.rho], name.p),
@@ -336,8 +335,8 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
 
 ## * .reparametrize.one
 .reparametrize.one <- function(p, out, index, indexSigma, indexKx, indexKy, level, inverse, type,
-                                transform.names, Jacobian, dJacobian,
-                                sep = "."){
+                               transform.names, Jacobian, dJacobian,
+                               sep = "."){
 
     out$p[index] <- 1
 

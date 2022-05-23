@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:50) 
 ## Version: 
-## Last-Updated: mar 14 2022 (12:30) 
+## Last-Updated: maj 23 2022 (12:36) 
 ##           By: Brice Ozenne
-##     Update #: 166
+##     Update #: 202
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -24,11 +24,12 @@
 ##' @param transform [function] function to backtransform the estimates, standard errors, null hypothesis, and the associated confidence intervals
 ##' (e.g. \code{exp} if the outcomes have been log-transformed).
 ##' @param level [numeric 0-1] level of the confidence intervals.
-##' @param print.nulls [logical] should the estimates for the individual null hypotheses be displayed?
+##' @param print [logical] should the output be printed in the console.
+##' Can be a vector of length 2 where the first element refer to the global tests and the second to the individual tests.
 ##' @param seed [integer] value that will be set before adjustment for multiple comparisons to ensure reproducible results.
 ##' Can also be \code{NULL}: in such a case no seed is set.
 ##' @param columns [character vector] Columns to be displayed for each null hypothesis.
-##' Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"df.denom"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
+##' Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
 ##' @param digits [interger] number of digits used to display estimates.
 ##' @param digits.p.value [interger] number of digits used to display p-values.
 ##' @param ... Not used. For compatibility with the generic method.
@@ -39,7 +40,7 @@
  
 ## * summary.anova_lmm (code)
 ##' @export
-summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0.95, print.nulls = TRUE, seed = NULL, columns = NULL,
+summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0.95, print = TRUE, seed = NULL, columns = NULL,
                               digits = max(3L, getOption("digits") - 2L),
                               digits.p.value = max(3L, getOption("digits") - 2L),
                               ...){
@@ -59,19 +60,39 @@ summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0
         }
     }
     if(!is.null(match.call()$method) && is.null(match.call()$print.nulls)){
-        print.nulls <- 2
+        print <- TRUE
+    }
+    if(length(print)==1){
+        print.indiv <- print
+        print.global <- print
+    }else if(length(print)>2){
+        stop("Argument \'print\' should have length at most 2. \n",
+             "The first element refering to global test and the second to individual hypotheses. \n")
+    }else{
+        print.global <- print[1]
+        print.indiv <- print[2]
     }
 
     options <- LMMstar.options()
     if(is.null(columns)){
-        columns <- c(options$columns.anova, "df.denom", "df.num")
+        columns.indiv <- options$columns.anova
+        columns.global <- union("statistic", setdiff(options$columns.anova, c("estimate", "se", "lower", "upper")))
     }else{
-        columns <- match.arg(columns, choices = c("null","estimate","se","statistic","df","lower","upper","p.value"), several.ok = TRUE)
-        if("df" %in% columns){
-            columns <- c(columns,"df.num","df.denom")
+        columns.indiv <- match.arg(columns, choices = c("null","estimate","se","statistic","df","lower","upper","p.value","partial.R"), several.ok = TRUE)
+        columns.global <- setdiff(columns.indiv, c("estimate", "se", "lower", "upper"))
+    }
+    if("df" %in% columns.global){
+        index.df <- which(columns.global == "df")
+        if(index.df == 1){
+            columns.global <- c("df.num", "df.denom", columns.global[(index.df+1):length(columns.global)])
+        }else if(index.df == length(columns.global)){
+            columns.global <- c(columns.global[1:(index.df-1)], "df.num", "df.denom")
+        }else{
+            columns.global <- c(columns.global[1:(index.df-1)], "df.num", "df.denom", columns.global[(index.df+1):length(columns.global)])
         }
     }
-
+    columns.global <- gsub("^partial.R$","partial.R2", columns.global)
+                
     out <- list()
     
     if(attr(object,"test")=="Wald"){
@@ -84,105 +105,117 @@ summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0
             object.print <- object[[iType]]
             object.print <- cbind(object.print,
                                   " " = stats::symnum(object.print$p.value, corr = FALSE, na = FALSE, 
-                                                       cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1), 
-                                                       symbols = c("***", "**", "*", ".", " "))
+                                                      cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1), 
+                                                      symbols = c("***", "**", "*", ".", " "))
                                   )
             object.print$p.value <- as.character(signif(object.print$p.value, digits = digits.p.value))
             iNoDf <- is.infinite(object.print$df.denom)
             txt.test <- "Multivariate Wald test (global null hypothesis)"
-            if(iType == "all"){
+            if(iType == "all" && (print.global || print.indiv)){
                 cat("\n\t", "|| User-specified linear hypotheses || \n", sep="")
                 ## print(object$call)
-            }else{
+            }else if(print.global || print.indiv){
                 cat("\n\t","|| ",iType," coefficients || \n", sep="")
             }
-            if(print.nulls>-1){
+
+            ## ** Global tests
+            out <- c(out, list(object[[iType]]))
+        
+            if(print.global){
                 if(iType == "all"){
                     if(is.na(object.print$statistic) && !is.null(attr(object.print$statistic,"error"))){
                         cat("\n - ",txt.test,": ",attr(object.print$statistic,"error"),"\n", sep="")
                     }else{
                         cat("\n - ",txt.test,"\n", sep="")
-                        print(object.print[,names(object.print) %in% c(columns,"statistic"," "),drop=FALSE], digits = digits, row.names = FALSE)
-                        out <- c(out, list(object[[iType]]))
+                        print(object.print[,names(object.print) %in% c(columns.global,"statistic"," "),drop=FALSE], digits = digits, row.names = FALSE)
+                        
                     }
                 }else{
                     cat("\n - ",txt.test,"\n",sep="")
-                    print(object.print[,names(object.print) %in% c(columns,"statistic"," "),drop=FALSE], digits = digits)
-                    out <- c(out, list(object[[iType]]))
+                    print(object.print[,names(object.print) %in% c(columns.global,"statistic"," "),drop=FALSE], digits = digits)
                 }
-                if(print.nulls==FALSE && "p.value" %in% columns && iType == utils::tail(type,1)){
+                if(print.indiv==FALSE && "p.value" %in% columns.global && iType == utils::tail(type,1)){
                     cat("---\n",
                         "Signif. codes:  0 \'***\' 0.001 \'**\' 0.01 \'*\' 0.05 \'.\' 0.1 \' \' 1\n")
                 }
             }
-            if(!is.null(ci[[iType]]) && abs(print.nulls)>=1){
+
+            ## ** individual specific tests
+            if(!is.null(ci[[iType]])){
+                
                 if(!is.null(transform)){
                     ci[[iType]] <- lapply(ci[[iType]], function(iCI){transformSummaryTable(iCI, transform = transform)})
                 }
-
-                cat("\n - Univariate Wald test (individual null hypotheses) \n", sep="")
-                object.print <- do.call(rbind,unname(ci[[iType]]))
-                stats::printCoefmat(object.print[,names(object.print) %in% columns,drop=FALSE], digits = digits,
-                                    has.Pvalue = "p.value" %in% columns,
-                                    P.values = "p.value" %in% columns,
-                                    eps.Pvalue = 10^{-digits.p.value},
-                                    signif.legend = TRUE)
                 out <- c(out, list(do.call(rbind,unname(ci[[iType]]))))
-                if(!is.null(transform)){
-                    cat("\n Columns ",paste(intersect(columns,c("estimate","se","lower","upper")), collapse =", ")," have been back-transform. \n",sep="")
-                }
 
-                if(attr(object,"robust")){
-                    cat("Standard errors: robust\n")
-                }else{
-                    cat("Standard errors: model-based\n")
-                }
-                iMethod <- unique(unlist(lapply(ci[[iType]], attr, "method")))  ## WARNING: technically some p-values could be computed by single-step and others by single-step2
-                if(all(sapply(ci[[iType]],NROW)==1) || "none" %in% iMethod){ ## always only one hypothesis in each global test
-                    cat("(CIs/p-values not adjusted for multiple comparisons) \n", sep="")
-                }else if(length(ci[[iType]])==1){ ## only one global test
-                    if("bonferroni" %in% iMethod){
-                        cat("(CIs/p-values adjusted for multiple comparisons -- Bonferroni)\n", sep="")
-                    }else if("single-step" %in% iMethod || "single-step2" %in% iMethod){
-                        cat("(CIs/p-values adjusted for multiple comparisons -- max-test adjustment)\n", sep="")
-                    }else{
-                        cat(paste0("(CIs/p-values adjusted for multiple comparisons -- ",iMethod,")\n", sep=""),sep="")
-                    }
-                }else{
-                    if("bonferroni" %in% iMethod){
-                        cat("(CIs/p-values adjusted for multiple comparisons within each global test -- bonferroni) \n", sep="")
-                    }else if("single-step" %in% iMethod || "single-step2" %in% iMethod){
-                        cat("(CIs/p-values adjusted for multiple comparisons within each global test -- max-test adjustment) \n", sep="")
-                    }else{
-                        cat(paste0("(CIs/p-values adjusted for multiple comparisons within each global test -- ",iMethod,") \n", sep=""),sep="")
-                    }
-                }
+                if(print.indiv){
 
-                if("single-step" %in% iMethod && "p.value" %in% columns){
-                    error <- max(c(0,unlist(lapply(ci[[iType]],function(iO){attr(iO$p.value,"error")}))))
-                    if(error > 1e-12){
-                        txt.error <- paste0("Error when computing the adjusted p-value by numerical integration: ", signif(error, digits = 5))
-                        if(!is.null(seed)){
-                            txt.error <- paste0(txt.error," (seed ",seed,")")
+                    cat("\n - Univariate Wald test (individual null hypotheses) \n", sep="")
+                    object.print <- do.call(rbind,unname(ci[[iType]]))
+                    stats::printCoefmat(object.print[,names(object.print) %in% columns.indiv,drop=FALSE], digits = digits,
+                                        has.Pvalue = "p.value" %in% columns.indiv,
+                                        P.values = "p.value" %in% columns.indiv,
+                                        eps.Pvalue = 10^{-digits.p.value},
+                                        signif.legend = TRUE)
+                    if(!is.null(transform)){
+                        cat("\n Columns ",paste(intersect(columns.indiv,c("estimate","se","lower","upper")), collapse =", ")," have been back-transform. \n",sep="")
+                    }
+
+                    if(attr(object,"robust")){
+                        cat("Standard errors: robust\n")
+                    }else{
+                        cat("Standard errors: model-based\n")
+                    }
+                    iMethod <- unique(unlist(lapply(ci[[iType]], attr, "method")))  ## WARNING: technically some p-values could be computed by single-step and others by single-step2
+                    if(all(sapply(ci[[iType]],NROW)==1) || "none" %in% iMethod){ ## always only one hypothesis in each global test
+                        cat("(CIs/p-values not adjusted for multiple comparisons) \n", sep="")
+                    }else if(length(ci[[iType]])==1){ ## only one global test
+                        if("bonferroni" %in% iMethod){
+                            cat("(CIs/p-values adjusted for multiple comparisons -- Bonferroni)\n", sep="")
+                        }else if("single-step" %in% iMethod || "single-step2" %in% iMethod){
+                            cat("(CIs/p-values adjusted for multiple comparisons -- max-test adjustment)\n", sep="")
+                        }else{
+                            cat(paste0("(CIs/p-values adjusted for multiple comparisons -- ",iMethod,")\n", sep=""),sep="")
                         }
-                        cat(txt.error,"\n")
+                    }else{
+                        if("bonferroni" %in% iMethod){
+                            cat("(CIs/p-values adjusted for multiple comparisons within each global test -- bonferroni) \n", sep="")
+                        }else if("single-step" %in% iMethod || "single-step2" %in% iMethod){
+                            cat("(CIs/p-values adjusted for multiple comparisons within each global test -- max-test adjustment) \n", sep="")
+                        }else{
+                            cat(paste0("(CIs/p-values adjusted for multiple comparisons within each global test -- ",iMethod,") \n", sep=""),sep="")
+                        }
                     }
-                }else if("single-step2" %in% iMethod){
-                    cat("CIs/p-values computed using ",attr(ci[[iType]][[1]],"n.sample")," samples.\n", sep = "")
+
+                    if("single-step" %in% iMethod && "p.value" %in% columns.indiv){
+                        error <- max(c(0,unlist(lapply(ci[[iType]],function(iO){attr(iO$p.value,"error")}))))
+                        if(error > 1e-12){
+                            txt.error <- paste0("Error when computing the adjusted p-value by numerical integration: ", signif(error, digits = 5))
+                            if(!is.null(seed)){
+                                txt.error <- paste0(txt.error," (seed ",seed,")")
+                            }
+                            cat(txt.error,"\n")
+                        }
+                    }else if("single-step2" %in% iMethod){
+                        cat("CIs/p-values computed using ",attr(ci[[iType]][[1]],"n.sample")," samples.\n", sep = "")
+                    }
+
                 }
-
-
             }
         }
-        cat("\n")
+
+        if(print.global || print.indiv){ cat("\n") }
+
     }else if(attr(object,"test")=="LRT"){
         cat(" - Likelihood ratio test \n")
         out <- as.data.frame(object)
         out.print <- out
-        if("null" %in% columns == FALSE){
+        if("null" %in% columns.indiv == FALSE){
             out.print[["null"]] <- NULL
         }
-        print(out.print)
+        if(print.global>0){
+            print(out.print)
+        }
     }
 
     return(invisible(out))

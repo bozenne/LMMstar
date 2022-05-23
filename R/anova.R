@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: apr  1 2022 (16:41) 
+## Last-Updated: maj 23 2022 (11:49) 
 ##           By: Brice Ozenne
-##     Update #: 799
+##     Update #: 811
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -422,10 +422,12 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                                  lower = NA,
                                  upper = NA,
                                  null = iNull,
+                                 partial.R = NA,
                                  p.value = NA,
                                  stringsAsFactors = FALSE)
                 CI$statistic <- (CI$estimate-iNull)/CI$se
                 rownames(CI) <- rownames(iC)
+                CI$partial.R <- sign(CI$statistic)*sqrt(CI$statistic^2 / (CI$df + CI$statistic^2))
                 if(!is.null(names(effects)) && !inherits(effects,"mcp")){
                     indexName <- intersect(which(names(effects)!=""),which(!is.na(names(effects))))
                     rownames(CI)[indexName] <- names(effects)[indexName]
@@ -444,8 +446,13 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                                "statistic" = iStat,
                                "df.num" = iDf[1],
                                "df.denom" = iDf[2],
+                               "partial.R2"  =  iDf[1] * iStat / (iDf[2] + iDf[1] * iStat),
                                "p.value" = 1 - stats::pf(iStat, df1 = iDf[1], df2 = iDf[2]),
                                stringsAsFactors = FALSE)
+            ## R2 calculation from
+            ## "An R2 statistic for fixed effects in the linear mixed model" by Lloyd J. Edwards et al. 2008 (Statistic in medicine)
+            ## Equation 19
+            ## DOI: 10.1002/sim.3429
 
             attr(iRes, "CI") <- CI
             attr(iRes, "glht") <- CI.glht
@@ -464,7 +471,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         attr(out[[iType]], "glht") <- lapply(iLs,attr,"glht")
         
     }
-
+    
     ## ** export
     attr(out, "test") <- "Wald"
     attr(out, "robust") <- robust

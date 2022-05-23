@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: maj 20 2022 (13:24) 
+## Last-Updated: maj 23 2022 (11:56) 
 ##           By: Brice Ozenne
-##     Update #: 1680
+##     Update #: 1682
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -33,13 +33,23 @@
 ##' @param weights [formula or character] variable in the dataset used to weight the log-likelihood and its derivative. Should be constant within cluster.
 ##' @param scale.Omega [formula or character] variable in the dataset used to rescale the residual variance-covariance matrix. Should be constant within cluster.
 ##' @param trace [interger, >0] Show the progress of the execution of the function.
-##' @param control [list] Control values for the optimization method. The element \code{optimizer} indicates which optimizer to use and additional argument will be pass to the optimizer.
+##' @param control [list] Control values for the optimization method.
+##' The element \code{optimizer} indicates which optimizer to use and additional argument will be pass to the optimizer.
+##' 
 ##'
 ##' @details \bold{Computation time} the \code{lmm} has not been developped to be a fast function as, by default, it uses REML estimation with the observed information matrix and uses a Satterthwaite approximation to compute degrees of freedom (this require to compute the third derivative of the log-likelihood which is done by numerical differentiation). The computation time can be substantially reduced by using ML estimation with the expected information matrix and no calculation of degrees of freedom: arguments \code{method.fit="ML"}, \code{type.information="expected"}, \code{df=FALSE}. This will, however, lead to less accurate p-values and confidence intervals in small samples.
 ##'
 ##' By default, the estimation of the model parameters will be made using the \code{nlme::gls} function.
 ##' See argument optimizer in \code{\link{LMMstar.options}}
 ##'
+##' \bold{Argument control:} when using the optimizer \code{"FS"}, the following elements can be used
+##' \itemize{
+##' \item \code{init}: starting values for the model parameters.
+##' \item \code{n.iter}: maximum number of interations of the optimization algorithm.
+##' \item \code{tol.score}: score value below which convergence has been reached.
+##' \item \code{tol.param}: difference in estimated parameters from two successive iterations below which convergence has been reached.
+##' \item \code{trace}: display progress of the optimization procedure.
+##' }
 ##' @seealso
 ##' \code{\link{summary.lmm}} for a summary of the model fit. \cr
 ##' \code{\link{model.tables.lmm}} for a data.frame containing estimates with their uncertainty. \cr

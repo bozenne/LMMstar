@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: maj 20 2022 (11:30) 
+## Last-Updated: maj 23 2022 (11:06) 
 ##           By: Brice Ozenne
-##     Update #: 1948
+##     Update #: 1952
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -458,7 +458,7 @@
                         iLevel <- paste0(iLevel,":",U.strata[iStrata])
                     }
                     iName <- paste0("rho",iLevel)
-                    iM <- matrix(lpnCluster.cor[[iC]][iULpIndex.cor[[iC]]][iPair.time], ncol = 2, byrow = TRUE, dimnames = list(NULL, c("x","y")))[iIndex.store,]
+                    iM <- matrix(lpnCluster.cor[[iC]][iULpIndex.cor[[iC]]][iPair.time], ncol = 2, byrow = TRUE, dimnames = list(NULL, c("x","y")))[iIndex.store,,drop=FALSE]
                     iOut <- unique(data.frame(lp.x = iM[,"x"],
                                               lp.y = iM[,"y"],
                                               strata = rep(iStrata, length(iIndex.store)),
