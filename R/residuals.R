@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: maj 23 2022 (16:48) 
+## Last-Updated: maj 24 2022 (19:14) 
 ##           By: Brice Ozenne
-##     Update #: 579
+##     Update #: 581
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -290,7 +290,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
     precompute.XX <- design$precompute.XX
     cluster.level <- design$cluster$levels
     index.cluster <- design$index.cluster
-    index.time <- design$index.time
+    index.time <- design$index.clusterTime
 
     index.variance <- structure$X$pattern.cluster
     n.pattern <-  NROW(structure$X$Upattern)
@@ -451,8 +451,14 @@ residuals.lmm <- function(object, type = "response", format = "long",
         level.cluster <- factor(inflateNA$level.cluster, levels = cluster.level)
         level.time <- factor(inflateNA$level.time, U.time)
     }else{
-        level.cluster <- factor(cluster.level[index.cluster], levels = cluster.level)
-        level.time <- factor(U.time[index.time], U.time)
+
+        n.obs <- sum(sapply(index.cluster,length))
+        level.cluster <- rep(NA, n.obs)
+        level.time <- rep(NA, n.obs)
+        for(iCluster in names(index.cluster)){
+            level.cluster[index.cluster[[iCluster]]] <- iCluster
+            level.time[index.cluster[[iCluster]]] <- index.time[[iCluster]]
+        }
     }
 
     ## plot

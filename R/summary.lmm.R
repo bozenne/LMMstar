@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: maj 23 2022 (17:47) 
+## Last-Updated: maj 24 2022 (16:54) 
 ##           By: Brice Ozenne
-##     Update #: 438
+##     Update #: 459
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -48,14 +48,18 @@
 summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print = TRUE, columns = NULL,
                         hide.fit = FALSE, hide.data = FALSE, hide.cor = is.null(object$formula$cor), hide.var = TRUE, hide.sd = FALSE, hide.mean = FALSE, ...){
 
-    ## ** normalize user input
-    param.mu <- object$param[object$design$param$type=="mu"]
-    param.sigma <- object$param[object$design$param$type=="sigma"]
-    param.k <- object$param[object$design$param$type=="k"]
-    param.rho <- object$param[object$design$param$type=="rho"]
+    ## ** extract from object
+    param.value <- object$param
+    param.type <- stats::setNames(object$design$param$type, object$design$param$name)
+    
+    param.mu <- param.value[names(which(param.type=="mu"))]
+    param.sigma <- param.value[names(which(param.type=="sigma"))]
+    param.k <- param.value[names(which(param.type=="k"))]
+    param.rho <- param.value[names(which(param.type=="rho"))]
     data <- object$data
     call <- object$call
     structure <- object$design$vcov
+
     logLik <- stats::logLik(object)
     nobs <- stats::nobs(object)
     method.fit <- object$method
@@ -63,6 +67,8 @@ summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print =
     formula <- object$formula
     df <- !is.null(object$df)
     options <- LMMstar.options()
+
+    ## ** normalize user input
     dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
@@ -231,16 +237,16 @@ summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print =
     }
     
 
-    ## *** variance
+    ## *** variance    
     if(!hide.var || !hide.sd){
-        name.sigma <- gsub("sigma:","",names(coef(object, transform.sigma = "none", transform.k = "sd", effects = "variance")))
+        name.sigma <- names(coef(object, transform.k = "sd", effects = "variance"))
         index.ref <- which(names(coef(object, effects = "variance", transform.names = FALSE)) %in% names(param.sigma))
         if(print){
             cat("  - variance structure:",deparse(formula$var.design),"\n")
         }
     }
     if(!hide.var){
-        table.var <- cbind(estimate = coef(object, transform.sigma = "none", transform.k = "var", effects = "variance"),
+        table.var <- cbind(estimate = coef(object, transform.k = "var", effects = "variance"),
                            estimate.ratio = coef(object, transform.sigma = "none", transform.k = "square", effects = "variance", transform.names = FALSE))
         table.var[index.ref,"estimate.ratio"] <- 1
         test.k <- NROW(table.var) > length(index.ref)
@@ -249,7 +255,7 @@ summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print =
         table.var <- NULL
     }
     if(!hide.sd){
-        table.sd <- cbind(estimate = coef(object, transform.sigma = "none", transform.k = "sd", effects = "variance"),
+        table.sd <- cbind(estimate = coef(object, transform.k = "sd", effects = "variance"),
                           estimate.ratio = coef(object, transform.sigma = "none", transform.k = "none", effects = "variance", transform.names = FALSE))
         table.sd[index.ref,"estimate.ratio"] <- 1
         test.k <- NROW(table.sd) > length(index.ref)
@@ -258,7 +264,6 @@ summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print =
         table.sd <- NULL
     }
     if(print && (!hide.var || !hide.sd)){
-
         printtable <- matrix(NA, ncol = 0, nrow = length(name.sigma))
         if(!hide.var){
             printtable <- cbind(printtable, data.frame(variance = unname(table.var[,"estimate"]),stringsAsFactors = FALSE))
@@ -272,7 +277,6 @@ summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print =
                 printtable <- cbind(printtable, data.frame(ratio = unname(table.sd[,"estimate.ratio"]),stringsAsFactors = FALSE))
             }
         }
-
         rownames(printtable) <- paste0("    ",name.sigma)
         print(printtable, digit = digit)
     }

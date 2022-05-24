@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: maj 17 2022 (11:06) 
+## Last-Updated: maj 24 2022 (19:55) 
 ##           By: Brice Ozenne
-##     Update #: 529
+##     Update #: 553
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -242,24 +242,30 @@ IND <- function(formula, var.cluster, var.time, add.time){
 ##' CS(list(gender~time,gender~1), var.cluster = "id", var.time = "time")
 ##' 
 ##' @export
-CS <- function(formula, var.cluster, var.time, heterogeneous = TRUE, add.time){
+CS <- function(formula, var.cluster, var.time, heterogeneous = FALSE, add.time){
     if(is.null(formula)){
         outCov <- .formulaStructure(~1)
-    }else{
+    }else if(heterogeneous){
         outCov <- .formulaStructure(formula)
+    }else{
+        outCov <- .formulaStructure(list(update(formula,~0),formula))
     }
-    
     out <- list(call = match.call(),
                 name = data.frame(cluster = if(!missing(var.cluster)){var.cluster}else{NA},
                                   strata = if(!is.null(outCov$strata)){outCov$strata}else{NA},
                                   time = if(!missing(var.time)){var.time}else{NA},
-                                  var = if(heterogeneous && length(outCov$X.var)>0){I(list(outCov$X.var))}else{NA},
+                                  var = if(length(outCov$X.var)>0){I(list(outCov$X.var))}else{NA},
                                   cor = if(length(outCov$X.cor)>0){I(list(outCov$X.cor))}else{NA},
                                   stringsAsFactors = FALSE),
-                formula = list(var = if(heterogeneous){outCov$formula.var}else{~1},
+                formula = list(var = outCov$formula.var,
                                cor = outCov$formula.cor),
                 heterogeneous = heterogeneous,
                 type = "CS")
+
+    ## remove intercept
+    if(length(all.vars(out$formula$cor)>0)){
+        out$formula$cor <- update(out$formula$cor,~0+.)
+    }
 
     ## export
     class(out) <- append("structure",class(out))
@@ -314,7 +320,12 @@ UN <- function(formula, var.cluster, var.time, add.time){
                                cor = outCov$formula.cor),
                 heterogeneous = TRUE,
                 type = "UN")
-    
+
+    ## remove intercept
+    if(length(all.vars(out$formula$cor)>0)){
+        out$formula$cor <- update(out$formula$cor,~0+.)
+    }
+
     ## export
     class(out) <- append("structure",class(out))
     class(out) <- append("UN",class(out))

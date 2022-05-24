@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: maj 23 2022 (17:03) 
+## Last-Updated: maj 24 2022 (20:37) 
 ##           By: Brice Ozenne
-##     Update #: 1992
+##     Update #: 2019
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -244,10 +244,12 @@
 
     ## find level
     M.level <- attr(X.var,"M.level")
-    if(length(M.level)>0){
-        level.sigma <- as.character(interaction(M.level[index.sigma,,drop=FALSE],sep=sep, drop = TRUE))
-    }else{
+    if(NCOL(M.level)==0){ ## nothing
         level.sigma <- ""
+    }else if(n.strata==1 || NCOL(M.level)>1){ ## no strata or strata with covariate
+        level.sigma <- paste0(".",as.character(interaction(M.level[index.sigma,,drop=FALSE],sep=sep, drop = TRUE)))
+    }else{ ## only strata
+        level.sigma <- paste0(sep,as.character(interaction(M.level[index.sigma,,drop=FALSE],sep=sep, drop = TRUE)))
     }
 
     return(list(X = X.var,
@@ -267,12 +269,17 @@
     if(length(index.k)>0){
         M.level <- attr(X.var,"M.level")
         oldnames <- as.character(interaction(as.data.frame(lapply(1:NCOL(M.level), function(iVar){paste0(names(M.level)[iVar],M.level[index.k,iVar])})), sep = sep[2], drop = TRUE) )
-        level.k <- as.character(interaction(M.level[index.k,,drop=FALSE], sep = sep[2], drop = TRUE))
+
+        if(n.strata==1 || NCOL(M.level)>1){ ## no strata or strata with covariate
+            level.k <- paste0(sep[1],as.character(interaction(M.level[index.k,,drop=FALSE], sep = sep[2], drop = TRUE)))
+        }else{ ## only strata
+            level.k <- as.character(interaction(M.level[index.k,,drop=FALSE], sep = sep[2], drop = TRUE))
+        }
         
         if(!identical(colnames(X.var)[index.k],oldnames)){
             stop("Could not find the k parameters in the design matrix for the variance.\n")
         }
-        colnames(X.var)[index.k] <- paste("k",level.k, sep = sep[1])
+        colnames(X.var)[index.k] <- paste0("k",level.k)
         param.k <- colnames(X.var)[index.k]
 
         ## find code
@@ -341,12 +348,12 @@
             iIndex.clusterTime <- index.clusterTime[iCluster]
             iLpnCluster.cor <- lpnCluster.cor[iCluster]            
         }
+        
         if(!missing(X.var)){
             iX.sigma <- X.var$X[,names(which(X.var$strata.sigma==iStrata)),drop=FALSE]
             iX.k <- X.var$X[,names(which(X.var$strata==iStrata)),drop=FALSE]
         }
-        ## ## (re-order by the number of observed timepoints)
-        ## iCluster <- iCluster[order(sapply(iIndex.clusterTime,length) - sapply(iIndex.clusterTime,min)/(n.time+1), decreasing = TRUE)]
+        
         
         ## no replicates
         if(all(sapply(iLpnCluster.cor,length)<=1)){
@@ -369,8 +376,9 @@
             return(iCode)
         }), iCluster)
 
-        ## **** remove cluster identical to other cluster in term of linear predictors
-        iIndex.unique <- which(!duplicated(iULpCluster.cor))
+        ## **** remove cluster with single value or identical to other cluster in term of linear predictors
+        iIndex.unique <- intersect(which(!duplicated(iULpCluster.cor)),
+                                   which(sapply(iIndex.cluster,length)>1))
         iCluster2 <- iCluster[iIndex.unique]
 
         iN.pair <- unique(sapply(iULpIndex.cor[iIndex.unique], length))
@@ -417,7 +425,6 @@
                     iOut$sigma <- colnames(iCX.sigma)[colSums(iCX.sigma)!=0]
 
                     if(length(iX.k)>0){
-
                         iCX.k <- iX.k[index.cluster[[iC]][1:2],,drop=FALSE]
                         if(sum(iCX.k[1,,drop=FALSE]!=0)){
                             iOut$k.x <- colnames(iCX.k)[iCX.k[1,,drop=FALSE]==1]
@@ -515,7 +522,9 @@
         attr(X,"M.level") <- attr(X,"M.level")[,c(setdiff(names(attr(X,"M.level")),strata.var),strata.var),drop=FALSE]
         attr(X,"reference.level") <- attr(X,"reference.level")[,c(setdiff(names(attr(X,"M.level")),strata.var),strata.var),drop=FALSE]
         attr(X,"term.labels") <- unname(unlist(lapply(attr(X,"ls.level"), function(iL){paste(names(iL),collapse = ":")})))
-        colnames(X) <- unname(sapply(attr(X,"ls.level"), function(iL){paste(paste0(names(iL),as.character(iL)),collapse = ":")}))
+        colnames(X) <- unname(sapply(attr(X,"ls.level"), function(iL){
+            iL[is.na(iL)] <- "";paste(paste0(names(iL),as.character(iL)),collapse = ":")
+        }))
     }
     
     return(X)    

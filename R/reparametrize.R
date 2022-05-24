@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: maj 23 2022 (11:17) 
+## Last-Updated: maj 24 2022 (12:05) 
 ##           By: Brice Ozenne
-##     Update #: 686
+##     Update #: 699
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -214,7 +214,6 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
                                level = level.sigma, type = "sigma",
                                inverse = inverse, transform.names = transform.names, Jacobian = Jacobian, dJacobian = dJacobian)
                
-
     }
 
     ## *** k
@@ -326,8 +325,11 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
 
 ## * .reparametrize.none
 .reparametrize.none <- function(p, out, index, indexSigma, indexKx, indexKy, level, inverse, type,
-                                transform.names, Jacobian, dJacobian,
-                                sep = "."){
+                                transform.names, Jacobian, dJacobian){
+
+    if(!inverse && transform.names && all(!is.na(level[index]))){
+        out$newname[index] <- paste0(type, level[index])
+    }
 
     return(out)
 
@@ -335,8 +337,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
 
 ## * .reparametrize.one
 .reparametrize.one <- function(p, out, index, indexSigma, indexKx, indexKy, level, inverse, type,
-                               transform.names, Jacobian, dJacobian,
-                               sep = "."){
+                               transform.names, Jacobian, dJacobian){
 
     out$p[index] <- 1
 
@@ -354,8 +355,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
 
 ## * .reparametrize.log
 .reparametrize.log <- function(p, out, index, indexSigma, indexKx, indexKy, level, inverse, type,
-                               transform.names, Jacobian, dJacobian,
-                               sep = "."){
+                               transform.names, Jacobian, dJacobian){
 
     if(inverse){
 
@@ -371,7 +371,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
             if(all(is.na(level[index]))){
                 out$newname[index] <- paste0("log(",type,")")
             }else{
-                out$newname[index] <- paste0("log(",type,")", sep, level[index])
+                out$newname[index] <- paste0("log(",type,")", level[index])
             }
         }
             
@@ -399,8 +399,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
 
 ## * .reparametrize.square
 .reparametrize.square <- function(p, out, index, indexSigma, indexKx, indexKy, level, inverse, type,
-                                  transform.names, Jacobian, dJacobian,
-                                  sep = "."){
+                                  transform.names, Jacobian, dJacobian){
     if(inverse){
 
         ## f^{-1}:y -> x=sqrt(y)
@@ -415,7 +414,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
             if(all(is.na(level[index]))){
                 out$newname[index] <- paste0(type, "^2")
             }else{
-                out$newname[index] <- paste0(type, "^2", sep, level[index])
+                out$newname[index] <- paste0(type, "^2", level[index])
             }
         }
 
@@ -442,8 +441,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
 
 ## * .reparametrize.logsquare
 .reparametrize.logsquare <- function(p, out, index, indexSigma, indexKx, indexKy, level, inverse, type,
-                                     transform.names, Jacobian, dJacobian,
-                                     sep = "."){
+                                     transform.names, Jacobian, dJacobian){
     if(inverse){
 
         ## f^{-1}:y -> x=sqrt(exp(y))=exp(y/2)
@@ -458,7 +456,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
             if(all(is.na(level[index]))){
                 out$newname[index] <- paste0("log(",type,"^2)")
             }else{
-                out$newname[index] <- paste0("log(",type,"^2)", sep, level[index])
+                out$newname[index] <- paste0("log(",type,"^2)", level[index])
             }
         }
 
@@ -485,8 +483,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
 
 ## * .reparametrize.sd
 .reparametrize.sd <- function(p, out, index, indexSigma, indexKx, indexKy, level, inverse, type,
-                              transform.names, Jacobian, dJacobian,
-                              sep = "."){
+                              transform.names, Jacobian, dJacobian){
 
     if(type!="k"){
         stop("Only implemented for type \'k\' parameters. \n")
@@ -504,7 +501,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
         out$p[index] <- p[index]*p[indexSigma]
          
         if(transform.names){
-            out$newname[index] <- paste0("sigma", sep, level[index])
+            out$newname[index] <- paste0("sigma", level[index])
         }
 
         if(Jacobian){
@@ -549,8 +546,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
 
 ## * .reparametrize.logsd
 .reparametrize.logsd <- function(p, out, index, indexSigma, indexKx, indexKy, level, inverse, type,
-                                 transform.names, Jacobian, dJacobian,
-                                 sep = "."){
+                                 transform.names, Jacobian, dJacobian){
 
     if(type!="k"){
         stop("Only implemented for type \'k\' parameters. \n")
@@ -569,7 +565,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
         out$p[index] <- log(p[index]*p[indexSigma])
 
         if(transform.names){
-            out$newname[index] <- paste0("log(sigma)", sep, level[index])
+            out$newname[index] <- paste0("log(sigma)", level[index])
         }
 
         if(Jacobian){
@@ -614,8 +610,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
 
 ## * .reparametrize.var
 .reparametrize.var <- function(p, out, index, indexSigma, indexKx, indexKy, level, inverse, type,
-                               transform.names, Jacobian, dJacobian,
-                               sep = "."){
+                               transform.names, Jacobian, dJacobian){
 
     if(type!="k"){
         stop("Only implemented for type \'k\' parameters. \n")
@@ -634,7 +629,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
         out$p[index] <- p[indexSigma]^2*p[index]^2
 
         if(transform.names){
-            out$newname[index] <- paste0("sigma^2", sep, level[index])
+            out$newname[index] <- paste0("sigma^2", level[index])
         }
 
         if(Jacobian){
@@ -684,8 +679,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
 
 ## * .reparametrize.logvar
 .reparametrize.logvar <- function(p, out, index, indexSigma, indexKx, indexKy, level, inverse, type,
-                                  transform.names, Jacobian, dJacobian,
-                                  sep = "."){
+                                  transform.names, Jacobian, dJacobian){
     if(type!="k"){
         stop("Only implemented for type \'k\' parameters. \n")
     }
@@ -703,7 +697,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
         out$p[index] <- 2*log(p[index]*p[indexSigma])
 
         if(transform.names){
-            out$newname[index] <- paste0("log(sigma^2)", sep, level[index])
+            out$newname[index] <- paste0("log(sigma^2)", level[index])
         }
         
         if(Jacobian){
@@ -747,8 +741,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
 
 ## * .reparametrize.atanh
 .reparametrize.atanh <- function(p, out, index, indexSigma, indexKx, indexKy, level, inverse, type,
-                                 transform.names, Jacobian, dJacobian,
-                                 sep = "."){
+                                 transform.names, Jacobian, dJacobian){
     if(type!="rho"){
         stop("Only implemented for type \'rho\' parameters. \n")
     }
@@ -791,8 +784,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
 
 ## * .reparametrize.cov
 .reparametrize.cov <- function(p, out, index, indexSigma, indexKx, indexKy, level, inverse, type,
-                               transform.names, Jacobian, dJacobian,
-                               sep = "."){
+                               transform.names, Jacobian, dJacobian){
     if(type!="rho"){
         stop("Only implemented for type \'rho\' parameters. \n")
     }

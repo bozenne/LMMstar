@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: maj 23 2022 (16:28) 
+## Last-Updated: maj 24 2022 (16:40) 
 ##           By: Brice Ozenne
-##     Update #: 497
+##     Update #: 516
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -262,7 +262,7 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
         if(trace>1){
             cat("\nLoop:\n")
         }
-        for(iIter in 1:n.iter){ ## iIter <- 1
+        for(iIter in 0:(n.iter-1)){ ## iIter <- 1
             logLik.valueM1 <- logLik.value
             score.valueM1 <- score.value
 
@@ -275,8 +275,8 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
             score.value <- outMoments$score    
             information.value <- outMoments$information
 
-            if(all(abs(outMoments$score)<tol.score) && (iIter==1 || all(abs(param.valueM1 - param.value)<tol.param))){
-                if(iIter==1){param.valueM1 <- param.value * NA}
+            if(all(abs(outMoments$score)<tol.score) && (iIter==0 || all(abs(param.valueM1 - param.value)<tol.param))){
+                if(iIter==0){param.valueM1 <- param.value * NA}
                 cv <- TRUE
                 break
             }else if(is.na(logLik.value) || (logLik.value < logLik.valueM1)){ ## decrease in likelihood - try observed information matrix
@@ -322,20 +322,21 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
                                                   pattern = Upattern$name, precompute.XY = precompute.XY, precompute.XX = precompute.XX,
                                                   key.XX = key.XX,
                                                   design = design)
-        
+
             if(trace > 0 && trace < 3){
                 cat("*")
             }else if(trace==3){
-                cat("iteration",iIter,": logLik=",outMoments$logLik,"\n")
+                cat("iteration ",iIter+1,": logLik=",formatC(outMoments$logLik, digit = 10),"\n",sep="")
             }else if(trace==4){
-                cat("iteration",iIter,": logLik=",outMoments$logLik,"\n")
+                cat("iteration ",iIter+1,": logLik=",formatC(outMoments$logLik, digit = 10),"\n",sep="")
                 print(param.value)
             }else if(trace > 4){
+                cat("iteration ",iIter+1,": logLik=",formatC(outMoments$logLik, digit = 10),"\n",sep="")
                 M.print <- rbind(estimate = param.value,
-                                 diff = param.value - param.valueM1,
+                                 diff = c(param.value - param.valueM1),
                                  score = c(rep(NA, length(param.mu)),outMoments$score))
-                rownames(M.print) <- paste0(rownames(M.print),".",iIter)
                 print(M.print)
+                cat("\n")
                 
             }
         
@@ -349,13 +350,13 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
                 print(param.value)
             }
             if(cv>0){
-                if(iIter==1){
+                if(iIter==0){
                     cat("Convergence after ",iIter," iteration: max score=",max(abs(outMoments$score)),"\n", sep = "")
                 }else{
                     cat("Convergence after ",iIter," iterations: max score=",max(abs(outMoments$score))," | max change in coefficient=",max(abs(param.valueM1 - param.value)),"\n", sep = "")
                 }
             }else if(cv==0){
-                if(iIter==1){
+                if(iIter==0){
                     cat("No convergence after ",iIter," iteration: max score=",max(abs(outMoments$score)),"\n")
                 }else if(iIter==n.iter){
                     cat("No convergence after ",iIter," iterations: max score=",max(abs(outMoments$score))," | max change in coefficient= ",max(abs(param.valueM1 - param.value)),"\n", sep = "")

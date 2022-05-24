@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: maj 23 2022 (16:49) 
+## Last-Updated: maj 24 2022 (10:52) 
 ##           By: Brice Ozenne
-##     Update #: 312
+##     Update #: 321
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -112,17 +112,22 @@
         stop("Could not invert the residuals variance-covariance matrix. \n",
              out$OmegaM1)
     }
-
     if(score || information || vcov || df){
         if(trace>=1){cat("- dOmega \n")}
         out$dOmega <- .calc_dOmega(object = design$vcov, param = param.value, Omega = out$Omega,
-                                   Jacobian = out$reparametrize$Jacobian)
+                                   Jacobian = out$reparametrize$Jacobian,
+                                   transform.sigma = transform.sigma,
+                                   transform.k = transform.k,
+                                   transform.rho = transform.rho)
     }
 
     if(test.d2Omega){
         if(trace>=1){cat("- d2Omega \n")}
         out$d2Omega <- .calc_d2Omega(object = design$vcov, param = param.value, Omega = out$Omega, dOmega = out$dOmega, 
-                                     Jacobian = out$reparametrize$Jacobian, dJacobian = out$reparametrize$dJacobian)
+                                     Jacobian = out$reparametrize$Jacobian, dJacobian = out$reparametrize$dJacobian,
+                                     transform.sigma = transform.sigma,
+                                     transform.k = transform.k,
+                                     transform.rho = transform.rho)
     }
 
     ## param.value
@@ -242,7 +247,6 @@
             dimnames(out$dVcov) <- list(newname.allcoef[dimnames(out$dVcov)[[1]]], newname.allcoef[dimnames(out$dVcov)[[2]]], newname.allcoef[dimnames(out$dVcov)[[3]]])
         }
     }
-
     ## ** 4- export
     return(out)
 }

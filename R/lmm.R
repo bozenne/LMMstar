@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: maj 23 2022 (15:53) 
+## Last-Updated: maj 24 2022 (19:34) 
 ##           By: Brice Ozenne
-##     Update #: 1688
+##     Update #: 1714
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -226,12 +226,12 @@ lmm <- function(formula, repetition, structure, data,
     if(missing(repetition)){
         if(missing(structure)){
             var.cluster  <- NA
-            var.time  <- NA
+            var.time  <- "XXtimeXX"
             var.strata  <- NA
             structure <- "ID"
         }else if(identical(structure,"ID") || identical(structure,"IND") || inherits(structure,"IND") || inherits(structure,"ID")){
             var.cluster  <- NA
-            var.time  <- NA
+            var.time  <- "XXtimeXX"
             var.strata  <- NA
         }else if(inherits(structure,"structure")){
             var.cluster <- structure$name$cluster
@@ -365,29 +365,29 @@ lmm <- function(formula, repetition, structure, data,
         type.structure <- structure$type
         call.structure <- as.list(structure$call)
 
-
         if(is.na(structure$name$cluster) || is.na(structure$name$time)){
-            structure <- do.call(deparse(call.structure[[1]]), args = c(call.structure[-1], list(var.cluster = "XXcluster.indexXX", var.time = "XXtime.indexXX", add.time = add.time)))
+            structure <- do.call(deparse(call.structure[[1]]), args = c(call.structure[-1], list(var.cluster = "XXcluster.indexXX", var.time = var.time, add.time = add.time)))
         }
         var.strata <- structure$name$strata
     }else if(inherits(structure,"character")){
         type.structure <- match.arg(structure, c("ID","IND","CS","UN"))        
         n.time <- data[[var.time]]
         if(is.na(var.strata)){
-            structure <- do.call(type.structure, list(formula = ~1, var.cluster = "XXcluster.indexXX", var.time = "XXtime.indexXX", add.time = add.time))
+            structure <- do.call(type.structure, list(formula = ~1, var.cluster = "XXcluster.indexXX", var.time = var.time, add.time = add.time))
         }else{
-            structure <- do.call(type.structure, list(stats::as.formula(paste(var.strata,"~1")), var.cluster = "XXcluster.indexXX", var.time = "XXtime.indexXX", add.time = add.time))
+            structure <- do.call(type.structure, list(stats::as.formula(paste(var.strata,"~1")), var.cluster = "XXcluster.indexXX", var.time = var.time, add.time = add.time))
         }
     }else if(inherits(structure,"function")){
         n.time <- data[[var.time]]
         if(is.na(var.strata)){
-            structure <- do.call(structure, list(formula = ~1, var.cluster = "XXcluster.indexXX", var.time = "XXtime.indexXX", add.time = add.time))
+            structure <- do.call(structure, list(formula = ~1, var.cluster = "XXcluster.indexXX", var.time = var.time, add.time = add.time))
         }else{
-            structure <- do.call(structure, list(stats::as.formula(paste(var.strata,"~1")), var.cluster = "XXcluster.indexXX", var.time = "XXtime.indexXX", add.time = add.time))
+            structure <- do.call(structure, list(stats::as.formula(paste(var.strata,"~1")), var.cluster = "XXcluster.indexXX", var.time = var.time, add.time = add.time))
         }
     }else{
         stop("Argument \'structure\' must either be a character or a structure object. \n")
     }
+    if(structure$name["time"]!="XXtime.indexXX"){structure$name["time"] <- "XXtime.indexXX"}
     if(structure$type=="CUSTOM"){precompute.moments <- FALSE}
 
     ## *** mean structure
@@ -735,7 +735,7 @@ lmm <- function(formula, repetition, structure, data,
     data$XXindexXX <- 1:NROW(data)
     
     ## ** cluster
-    if(is.na(var.cluster)){
+    if(is.na(var.cluster) || (identical(var.cluster,"XXclusterXX") && "XXclusterXX" %in% names(data) == FALSE)){
         data$XXclusterXX <- as.factor(sprintf(paste0("%0",ceiling(log10(NROW(data)))+0.1,"d"), 1:NROW(data)))
     }else if("XXclusterXX" %in% names(data) == FALSE){
         if(is.factor(data[[var.cluster]])){
@@ -749,7 +749,7 @@ lmm <- function(formula, repetition, structure, data,
     data$XXcluster.indexXX <- as.numeric(droplevels(data$XXclusterXX))
 
     ## ** time
-    if(is.na(var.time)){
+    if(is.na(var.time) || (identical(var.time,"XXtimeXX") && "XXtimeXX" %in% names(data) == FALSE)){
         iTime <- tapply(data$XXclusterXX, data$XXclusterXX, function(iC){1:length(iC)})
         iIndex <- tapply(1:NROW(data), data$XXclusterXX, function(iC){iC})
         if(is.list(iIndex)){
@@ -770,7 +770,7 @@ lmm <- function(formula, repetition, structure, data,
     
     
     ## ** strata
-    if(is.na(var.strata)){
+    if(is.na(var.strata) || (identical(var.strata,"XXindexXX") && "XXindexXX" %In% names(data) == FALSE)){
         var.strata <- "XXstrata.indexXX"
         data$XXstrataXX <- factor(1)
         data$XXstrata.indexXX <- 1

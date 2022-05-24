@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: maj 23 2022 (16:32) 
+## Last-Updated: maj 24 2022 (19:54) 
 ##           By: Brice Ozenne
-##     Update #: 1996
+##     Update #: 2023
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -326,9 +326,13 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     dataVar <- data
     if(length(all.vars(formula.var))>0 && structure$type %in% c("ID","IND","CS","UN")){
         for(iVar in all.vars(formula.var)){
-            if(heterogeneous == FALSE && !is.numeric(data[[iVar]])){
-                dataVar[[iVar]] <- as.numeric(as.factor(data[[iVar]]))
-            }else if(heterogeneous && is.numeric(data[[iVar]])){
+            if(heterogeneous == FALSE){
+                if(iVar == strata.var){
+                    dataVar[[iVar]] <- as.factor(data[[iVar]])
+                }else if(!is.numeric(data[[iVar]])){
+                    dataVar[[iVar]] <- as.numeric(as.factor(data[[iVar]]))
+                }
+            }else if(heterogeneous){
                 dataVar[[iVar]] <- as.factor(data[[iVar]])
             }
         }
@@ -336,21 +340,26 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     dataCor <- data
     if(length(all.vars(formula.cor))>0 && structure$type %in% c("ID","IND","CS","UN")){
         for(iVar in all.vars(formula.cor)){
-            if(heterogeneous == FALSE && !is.numeric(data[[iVar]])){
-                dataCor[[iVar]] <- as.numeric(as.factor(data[[iVar]]))
-            }else if(heterogeneous && is.numeric(data[[iVar]])){
+            if(heterogeneous == FALSE){
+                if(iVar == strata.var){
+                    dataCor[[iVar]] <- as.factor(data[[iVar]])
+                }else if(!is.numeric(data[[iVar]])){
+                    dataCor[[iVar]] <- as.numeric(as.factor(data[[iVar]]))
+                }
+            }else if(heterogeneous){
                 dataCor[[iVar]] <- as.factor(data[[iVar]])
             }
         }
     }
 
     ## ** design matrix
-    out <- list(var = NULL, cor = NULL)
-
+    out <- list(var = NULL, cor = NULL, xfactor = list(var = NULL, cor = NULL))
     if(is.null(structure$param)){ ## structure
         out$var <- .colnameOrder(.model.matrix_regularize(formula.var, data = dataVar, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
+        out$xfactor$var <- stats::.getXlevels(stats::terms(formula.var),stats::model.frame(formula.var,dataVar))
         if(!is.null(formula.cor) && n.time>1 && any(sapply(index.cluster,length)>1)){  ## at least one individual with more than timepoint
             out$cor <- .colnameOrder(.model.matrix_regularize(formula.cor, data = dataCor, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
+            out$xfactor$cor <- stats::.getXlevels(stats::terms(formula.cor),stats::model.frame(formula.cor,dataCor))
         }
     }else{ ## newdata
         out$var <- stats::model.matrix(formula.var, data = dataVar)[,attr(structure$X$var,"original.colnames"),drop=FALSE]
@@ -385,7 +394,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     index.cluster <- outInit$index.cluster
     index.clusterStrata <- outInit$index.clusterStrata
     index.clusterTime <- outInit$index.clusterTime
-    
+
     ## ** mean
     ## use stats::model.frame to handle splines
     data.mf <- stats::model.frame(stats::update(formula.mean,~.+XXindexXX+XXtimeXX+XXclusterXX+XXstrataXX),data)
@@ -396,10 +405,12 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 
     ## ** variance
 
-    ## *** structure of the data (time, cluster, strata)
-    ## outInit$data: convert variables to factor 
-    ## outInit$index.clusterTime: list of index relative to the time at which the observations are made within cluster
-    ## outInit$index.cluster: list of positions of the observation belonging to each cluster in the dataset
+    ## *** design matrix    
+    outDesign <- .vcov.matrix.lmm(structure = structure, data = data, index.cluster = outInit$index.cluster)
+
+    structure$X <- list(var = outDesign$var,
+                        cor = outDesign$cor)
+
     if(is.null(structure$formula$cor)){
         structure$xfactor <- list(var = stats::.getXlevels(stats::terms(structure$formula$var),stats::model.frame(structure$formula$var,data)),
                                   cor = NULL)
@@ -407,12 +418,6 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         structure$xfactor <- list(var = stats::.getXlevels(stats::terms(structure$formula$var),stats::model.frame(structure$formula$var,data)),
                                   cor = stats::.getXlevels(stats::terms(structure$formula$cor),stats::model.frame(structure$formula$cor,data)))
     }
-
-    ## *** design matrix    
-    outDesign <- .vcov.matrix.lmm(structure = structure, data = data, index.cluster = outInit$index.cluster)
-
-    structure$X <- list(var = outDesign$var,
-                        cor = outDesign$cor)
 
     ## *** parametrization and patterns
     structure <- .skeleton(structure = structure, data = data, indexData = outInit)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: maj 23 2022 (17:49) 
+## Last-Updated: maj 24 2022 (21:03) 
 ##           By: Brice Ozenne
-##     Update #: 385
+##     Update #: 488
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -89,6 +89,7 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
     param.type <- stats::setNames(object$design$param$type,param.name)
     param.level <- stats::setNames(object$design$param$level,param.name)
     param.sigma <- stats::setNames(object$design$param$sigma,param.name)
+    param.strata <- stats::setNames(object$design$param$strata,param.name)
     param.k.x <- stats::setNames(object$design$param$k.x,param.name)
     param.k.y <- stats::setNames(object$design$param$k.y,param.name)
 
@@ -99,6 +100,10 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
     index.na <- object$index.na
     type.pattern <- object$design$vcov$type
     
+    U.strata <- object$strata$levels
+    strata.var <- object$strata$var
+    n.strata <- object$strata$n
+    U.cluster.original <- object$design$cluster$levels.original
     cluster.var <- object$cluster$var
     n.cluster <- object$cluster$n
     X.cor <- object$design$vcov$X$cor
@@ -138,8 +143,8 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
         if(type.pattern!="CS"){
             stop("Can only extract random effects for \"CS\" structure. \n")
         }
-        if(length(all.vars(object$design$vcov$formula$var))>0){
-            stop("Cannot extract random effects when the variance is not constant. \n")
+        if(object$design$vcov$heterogeneous){
+            stop("Can only extract random effects for \"CS\" structure with homogeneous structure. \n")
         }
         if(length(effects)>1){
             stop("Argument \'effects\' should be of length 1 when it contains \"ranef\". \n")
@@ -188,31 +193,162 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
     }
 
     if("ranef" %in% effects2){
-        browser()
         ## raw residuals
         df.epsilon <- stats::residuals(object, p = p, keep.data = TRUE, type = "response")
         if(length(index.na)>0){
             df.epsilon <- df.epsilon[-index.na,,drop=FALSE]
         }
         ## inverse residual variance-covariance matrix
-        ls.OmegaM1 <- stats::sigma(object, p = p, cluster = unique(df.epsilon$XXclusterXX), inverse = TRUE) 
-        ls.epsilon <- base::tapply(df.epsilon$r.response,df.epsilon$XXclusterXX,list)[names(ls.OmegaM1)]## split residuals by id
+        U.cluster <- unique(df.epsilon$XXcluster.indexXX)
+        ls.OmegaM1 <- stats::sigma(object, p = p, cluster = U.cluster, inverse = TRUE, simplifies = FALSE) 
+        ls.epsilon <- base::tapply(df.epsilon$r.response,df.epsilon$XXcluster.indexXX,list)[names(ls.OmegaM1)]## split residuals by id
+        cluster.strata <- U.strata[unlist(Upattern$index.strata)[match(attr(ls.OmegaM1,"pattern"), Upattern$name)]]
         ## covariance parameter(s)
         tau <- stats::coef(object, effects = "correlation", transform.rho = "cov", transform.names = FALSE)
+        tau.strata <- U.strata[unlist(param.strata[match(names(tau),param.name)])]
+
         ## design matrix
         df.Z <- as.data.frame(X.cor) ## e.g. school=1,id=1,2,3,....
-        df.Z[-1] <- lapply(df.Z[-1],as.factor)
-        names(df.Z)[1] <- cluster.var
-        ls.Z.tempo <- lapply(names(df.Z), function(iZ){stats::model.matrix(stats::as.formula(paste0("~0+",iZ)),df.Z)})
-        X.Z <- do.call(cbind,ls.Z.tempo) ## convert factor to dummy variables
-        ls.Z <- base::by(X.Z,index.cluster, function(iDF){t(iDF)}, simplify = FALSE)
-
-        if(length(tau)==1){
-            G <- diag(tau, nrow = length(tau)) ## variance-covariance matrix of the random effects
+        if(n.strata==1){
+            Z.strata <- stats::setNames(rep(U.strata, NCOL(df.Z)),names(df.Z))
         }else{
-            ls.corparam <- lapply(colnames(X.Z), FUN = function(iName){ ## iName <- colnames(X.Z)[2]
+            Z.strata <- sapply(attr(X.cor,"ls.level"), function(iRow){iRow[,strata.var]})
+        }
+        M.ranef <- do.call(rbind,lapply(U.strata, function(iStrata){ ## iStrata <- U.strata[1]
+            iCluster <- U.cluster[cluster.strata==iStrata]
+            iIndex.cluster <- index.cluster[iCluster]
+            iUpattern <- Upattern[U.strata[unlist(Upattern$index.strata)]==iStrata,,drop=FALSE]
+            iZ <- df.Z[unlist(iIndex.cluster),names(which(Z.strata==iStrata)),drop=FALSE]
+            iNobs <- sapply(iIndex.cluster,length)
+            iIndex.cluster2 <- mapply(x = cumsum(iNobs), y = c(1,cumsum(iNobs[-length(iNobs)])+1), function(x,y){y:x}, SIMPLIFY = FALSE)
 
-                iCluster <- min(index.cluster[X.Z[,iName]==1]) ## find cluster relevant for the type of random effect
+            iRanef <- .ranef(design = iZ,
+                             tau = tau[tau.strata == iStrata],
+                             OmegaM1 = ls.OmegaM1[iCluster],
+                             epsilon = ls.epsilon[iCluster],
+                             cluster.var = cluster.var,
+                             index.cluster = iIndex.cluster2,
+                             Upattern = iUpattern,
+                             Xpattern.cor = Xpattern.cor[unique(iUpattern$cor)])
+            rownames(iRanef) <- as.character(U.cluster.original[iCluster])        
+            return(iRanef)
+        }))
+        return(M.ranef[as.character(U.cluster.original),,drop=FALSE])
+    }
+    if(any(c("variance","correlation") %in% effects2)){
+        pVar <- NULL
+        if("variance" %in% effects2){
+            if(test.notransform){
+                index.sigmak <- names(param.type)[param.type %in% c("sigma","k")]
+                if(transform.names && !is.null(object.reparametrize.newname)){
+                    pVar <- c(pVar, stats::setNames(reparametrize.p[index.sigmak],object.reparametrize.newname[match(index.sigmak,names(reparametrize.p))]))
+                }else{
+                    pVar <- c(pVar, reparametrize.p[index.sigmak])
+                }                    
+            }else{
+                pVar <- c(pVar, p[param.name[param.type %in% c("sigma","k")]])
+            }
+        }
+        if("correlation" %in% effects2){
+            if(test.notransform){
+                index.rho <- names(param.type)[param.type %in% c("rho")]
+                if(transform.names && !is.null(object.reparametrize.newname)){
+                    pVar <- c(pVar, stats::setNames(reparametrize.p[index.rho],object.reparametrize.newname[match(index.rho,names(reparametrize.p))]))
+                }else{
+                    pVar <- c(pVar, reparametrize.p[index.rho])
+                }                    
+            }else{
+                pVar <- c(pVar, p[param.name[param.type %in% c("rho")]])
+            }
+        }
+        if(!test.notransform){
+            ls.reparam <- .reparametrize(p = pVar,  
+                                         type = param.type[names(pVar)], 
+                                         sigma = param.sigma[names(pVar)], 
+                                         k.x = param.k.x[names(pVar)], 
+                                         k.y = param.k.y[names(pVar)], 
+                                         level = param.level[names(pVar)], 
+                                         Jacobian = FALSE, dJacobian = FALSE, inverse = FALSE,
+                                         transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+            outVar <- ls.reparam$p
+            if(ls.reparam$transform){
+                newname <- stats::setNames(ls.reparam$newname,names(pVar))
+            }else{
+                newname <- NULL
+            }            
+        }else{
+            outVar <- pVar
+            newname <- NULL
+        }
+        out <- c(out,outVar)
+
+        }else{
+            newname <- NULL
+        }
+    
+    ## ** post process
+    if(("variance" %in% effects2) && ("variance" %in% effects == FALSE)){
+        index.rm <- which(names(newname) %in% param.name[param.type %in% c("sigma","k")])
+        newname <- newname[-index.rm]
+        out <- out[-index.rm]
+    }
+    if(length(newname)>0){
+        ## rename
+        names(out)[match(names(newname),names(out))] <- as.character(newname)
+    }
+    return(out)
+}
+
+
+## * .ranef
+##' @description estimate random effect in a given strata
+##' @noRd
+##'
+##' @details Consider the following mixed model:
+##' \deqn{Y = X\beta + \epsilon}
+##' where \eqn{\Sigma_{\epsilon}}, the variance of \eqn{\epsilon}, has a (possibly stratified) compound symmetry structure.
+##' Denoting by \eqn{I} the identity matirx, this mean that \eqn{\Sigma_{\epsilon} = \sigma^2 I + Z \Sigma_{\eta} Z^T}
+##' where \(\Sigma_{\eta}\) is the covariance relative to the design matrix \eqn{Z} (e.g. same student or school). So implicitely we have:
+##' \deqn{Y = X\beta + Z \eta + \varepsilon}
+##' where \eqn{\varepsilon \sim \mathcal{N}(0, \sigma^2 I)}. So we can estimate the random effets via:
+##' \deqn{E[Y|\eta] = Z \Sigma_{\eta} \Omega^{-1} (Y-X\beta)}
+.ranef <- function(design, tau, OmegaM1, epsilon,
+                   cluster.var, index.cluster, Upattern, Xpattern.cor){
+
+    n.cluster <- length(index.cluster)
+
+    ## ** build design matrix
+    if(NCOL(design)==1 && all(design==1)){ 
+        ls.designA <- stats::setNames(list(design), cluster.var)        
+    }else{
+        ls.designA <- c(stats::setNames(list(rep(1,NROW(design))), cluster.var),
+                        lapply(design,as.factor))
+    }
+    df.designA <- as.data.frame(ls.designA)
+    names(df.designA) <- names(ls.designA)
+
+    ls.Z.tempo <- lapply(names(ls.designA), function(iZ){stats::model.matrix(stats::as.formula(paste0("~0+",iZ)),df.designA)})
+    X.Z <- do.call(cbind,ls.Z.tempo) ## convert factor to dummy variables
+    ls.Z <- lapply(index.cluster, function(iIndex){t(X.Z[iIndex,,drop=FALSE])})
+
+    ## ** get variance of the random effects
+    if(length(tau)==1){
+        G <- diag(tau, nrow = length(tau)) ## variance-covariance matrix of the random effects
+    }else{
+        index.cluster2 <- rep(NA, NROW(X.Z))
+        pattern.cluster <- rep(NA, n.cluster)
+
+        for(iCluster in 1:length(index.cluster)){
+            index.cluster2[index.cluster[[iCluster]]] <- iCluster
+        }
+        U.indexcluster <- unique(index.cluster2)
+        for(iPattern in 1:NROW(Upattern)){
+            pattern.cluster[Upattern$index.cluster[[iPattern]]] <- Upattern$name[iPattern]
+        }
+
+        ls.corparam <- lapply(colnames(X.Z), FUN = function(iName){ ## iName <- colnames(X.Z)[2]
+browser()
+                iCluster <- min(index.cluster2[X.Z[,iName]==1]) ## find cluster relevant for the type of random effect
                 iPattern <- which(Upattern$name == pattern.cluster[iCluster]) ## covariance pattern corresponding to the cluster
                 iPattern.index <- attr(Xpattern.cor[[iPattern]],"index.pairtime") ## 2 x T matrix: all pairs of observations
                 index.obs <- which(ls.Z[[iCluster]][iName,]==1) ## identify observations relevant for the type of random effect in the cluster
@@ -244,75 +380,16 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
             }
            
         }
-        M.ranef <- t(do.call(cbind,lapply(1:n.cluster, function(iC){ ##  iC <- 5
-            G %*% ls.Z[[iC]][,,drop=FALSE] %*% ls.OmegaM1[[iC]] %*% ls.epsilon[[iC]]
-        })))
-        rownames(M.ranef) <- names(ls.OmegaM1)
-        colnames(M.ranef) <- colnames(X.Z)
-        return(M.ranef)
-    }
-    if(any(c("variance","correlation") %in% effects2)){
-        pVar <- NULL
-        if("variance" %in% effects2){
-            if(test.notransform){
-                index.sigmak <- names(param.type)[param.type %in% c("sigma","k")]
-                if(transform.names && !is.null(object.reparametrize.newname)){
-                    pVar <- c(pVar, stats::setNames(reparametrize.p[index.sigmak],object.reparametrize.newname[match(index.sigmak,names(reparametrize.p))]))
-                }else{
-                    pVar <- c(pVar, reparametrize.p[index.sigmak])
-                }                    
-            }else{
-                pVar <- c(pVar, p[param.type[names(p)] %in% c("sigma","k")])
-            }
-        }
-        if("correlation" %in% effects2){
-            if(test.notransform){
-                index.rho <- names(param.type)[param.type %in% c("rho")]
-                if(transform.names && !is.null(object.reparametrize.newname)){
-                    pVar <- c(pVar, stats::setNames(reparametrize.p[index.rho],object.reparametrize.newname[match(index.rho,names(reparametrize.p))]))
-                }else{
-                    pVar <- c(pVar, reparametrize.p[index.rho])
-                }                    
-            }else{
-                pVar <- c(pVar, p[param.type %in% c("rho")])
-            }
-        }
-        if(!test.notransform){
-            ls.reparam <- .reparametrize(p = pVar,  
-                                         type = param.type[names(pVar)], 
-                                         sigma = param.sigma[names(pVar)], 
-                                         k.x = param.k.x[names(pVar)], 
-                                         k.y = param.k.y[names(pVar)], 
-                                         level = param.level[names(pVar)], 
-                                         Jacobian = FALSE, dJacobian = FALSE, inverse = FALSE,
-                                         transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
-            outVar <- ls.reparam$p
-            if(ls.reparam$transform){
-                newname <- stats::setNames(ls.reparam$newname,names(pVar))
-            }else{
-                newname <- NULL
-            }            
-        }else{
-            outVar <- pVar
-            newname <- NULL
-        }
-        out <- c(out,outVar)
+browser()
+    ## ** compute random effects
+    M.ranef <- t(do.call(cbind,lapply(1:n.cluster, function(iC){ ##  iC <- 2 
+        G %*% ls.Z[[iC]] %*% OmegaM1[[iC]] %*% epsilon[[iC]]
+    })))
+    rownames(M.ranef) <- names(OmegaM1)
+    colnames(M.ranef) <- colnames(X.Z)
 
-        }else{
-            newname <- NULL
-        }
-    
-    ## ** post process
-    if(!identical(effects,effects2)){
-        ## remove variance parameters
-        newname <- newname[setdiff(names(newname),names(p[param.type %in% c("sigma","k")]))]
-        out <- out[setdiff(names(out),names(p[param.type %in% c("sigma","k")]))]
-    }
-    if(length(newname)>0){
-        ## rename
-        names(out)[match(names(newname),names(out))] <- as.character(newname)
-    }
-    return(out)
+    return(M.ranef)
 }
+
 ##----------------------------------------------------------------------
 ### coef.R ends here
