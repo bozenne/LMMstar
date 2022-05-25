@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: maj 24 2022 (19:20) 
+## Last-Updated: maj 25 2022 (11:31) 
 ##           By: Brice Ozenne
-##     Update #: 241
+##     Update #: 243
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -130,21 +130,12 @@
         iIndex.param <- which(colSums(iX)!=0)
         iParam.k <- intersect(names(iIndex.param),param.k)
         iParam.sigma <- intersect(names(iIndex.param),param.sigma)
-
         attr(iX,"index.cluster") <- iC.all
         attr(iX,"index.strata") <- unname(index.clusterStrata[iC])
         attr(iX,"param") <- names(iIndex.param)
-        attr(iX,"indicator.param") <- stats::setNames(lapply(iIndex.param,function(iCol){which(tcrossprod(iX[,iCol],rep(1,NROW(iX))) + t(tcrossprod(iX[,iCol],rep(1,NROW(iX)))) > 0)}),
-                                                      names(iIndex.param))
-        attr(iX,"Mindicator.param") <- c(stats::setNames(lapply(iParam.sigma, function(iParam){
-            return(matrix(2, nrow = NROW(iX), ncol = NROW(iX)))
-        }),iParam.sigma),
-        stats::setNames(lapply(iParam.k, function(iParam){
-            iM <- matrix(0, nrow = NROW(iX), ncol = NROW(iX))
-            iM[attr(iX,"indicator.param")[[iParam]]] <- 1
-            diag(iM) <- 2*diag(iM)
-            return(iM)
-        }),iParam.k))
+        attr(iX,"Mindicator.param") <- stats::setNames(lapply(iIndex.param,function(iCol){tcrossprod(iX[,iCol],rep(1,NROW(iX))) + t(tcrossprod(iX[,iCol],rep(1,NROW(iX))))}),
+                                                       names(iIndex.param))
+        attr(iX,"indicator.param") <- lapply(attr(iX,"Mindicator.param"),function(iM){which(iM>0)})
 
         return(iX)
     }),name.pattern.var)

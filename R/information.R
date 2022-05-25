@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: maj 23 2022 (16:47) 
+## Last-Updated: maj 25 2022 (16:25) 
 ##           By: Brice Ozenne
-##     Update #: 980
+##     Update #: 985
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -111,18 +111,25 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
                             trace = FALSE, precompute.moments = test.precompute, transform.names = transform.names)$information
     }
     
-    ## ** restaure NA
-    if(length(x$index.na)>0 && indiv && is.null(data)){ 
-        iAdd <- .addNA(index.na = x$index.na, design = design, time = x$time)
-        if(length(iAdd$missing.cluster)>0){
+    ## ** restaure NAs and name
+    if(indiv){
+        if(is.null(data) && length(x$index.na)>0 && any(is.na(attr(x$index.na,"cluster.index")))){
+            dimnames(out)[[1]] <- x$design$cluster$levels
             out.save <- out
-            out <- array(NA, dim = c(iAdd$n.allcluster, dim(out.save)[2:3]),
-                         dimnames = c(list(NULL), dimnames(out.save)[2:3]))
-            out[match(design$cluster$levels, iAdd$allcluster),,] <- out.save
-        }
+            out <- matrix(NA, dim = c(x$cluster$n, dim(out.save)[2:3]),
+                          dimnames = c(list(x$cluster$levels), dimnames(out.save)[2:3]))
+            out[dimnames(out.save)[[1]],,] <- out.save
+
+            if(is.numeric(design$cluster$levels.original)){
+                dimnames(out)[[1]] <- NULL
+            }
+        }else if(!is.numeric(design$cluster$levels.original)){
+            dimnames(out)[[1]] <- design$cluster$levels.original
+        } 
     }
 
-    ## re-order values when converting to sd with strata (avoid sd0:0 sd0:1 sd1:0 sd1:1 sd2:0 sd2:1 ...)
+
+    ## ** re-order values when converting to sd with strata (avoid sd0:0 sd0:1 sd1:0 sd1:1 sd2:0 sd2:1 ...)
     if("variance" %in% effects && transform.k %in% c("sd","var","logsd","logvar") && x$strata$n>1 && transform.names){
         out.name <- names(stats::coef(x, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = TRUE))
         if(indiv){

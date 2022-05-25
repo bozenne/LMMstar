@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: maj 24 2022 (19:55) 
+## Last-Updated: maj 25 2022 (17:14) 
 ##           By: Brice Ozenne
-##     Update #: 553
+##     Update #: 578
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,7 +29,7 @@
 ##' .formulaStructure( ~ time)
 ##' .formulaStructure(list( ~ gender+time,  ~ time))
 ##' .formulaStructure(strata ~ 1)
-.formulaStructure <- function(formula, add.X = NULL, collapse.formula = TRUE){
+.formulaStructure <- function(formula, add.X = NULL){
 
     ## ** normalize to formula format
     if(!is.list(formula)){
@@ -194,11 +194,27 @@ ID <- function(formula, var.cluster, var.time, add.time){
 ##' IND(~time+gender, var.cluster = "id", var.time = "time")
 ##' @export
 IND <- function(formula, var.cluster, var.time, add.time){
-    if(is.null(formula)){
-        outCov <- .formulaStructure(~1, add.X = if(!missing(add.time) && add.time && !is.na(var.time)){var.time}else{NULL})
+
+    if(!missing(add.time)){
+        if(is.character(add.time)){
+            add.X <- add.time
+        }else if(add.time){
+            add.X <- var.time
+        }else if(!add.time){
+            add.X <- NULL
+        }else{
+            stop("Incorrect argument \'add.time\': should be logical or character. \n")
+        }
     }else{
-        outCov <- .formulaStructure(formula, add.X = if(!missing(add.time) && add.time && !is.na(var.time)){var.time}else{NULL})
+        add.X <- NULL
     }
+
+    if(is.null(formula)){
+        outCov <- .formulaStructure(~1, add.X = add.X)
+    }else{
+        outCov <- .formulaStructure(formula, add.X = add.X)
+    }
+
     out <- list(call = match.call(),
                 name = data.frame(cluster = if(!missing(var.cluster)){var.cluster}else{NA},
                                   strata = if(!is.null(outCov$strata)){outCov$strata}else{NA},
@@ -242,13 +258,18 @@ IND <- function(formula, var.cluster, var.time, add.time){
 ##' CS(list(gender~time,gender~1), var.cluster = "id", var.time = "time")
 ##' 
 ##' @export
-CS <- function(formula, var.cluster, var.time, heterogeneous = FALSE, add.time){
-    if(is.null(formula)){
+CS <- function(formula, var.cluster, var.time, heterogeneous = TRUE, add.time){
+    if(is.list(formula)){
+        outCov <- .formulaStructure(formula)
+    }else if(is.null(formula)){
         outCov <- .formulaStructure(~1)
     }else if(heterogeneous){
         outCov <- .formulaStructure(formula)
     }else{
-        outCov <- .formulaStructure(list(update(formula,~0),formula))
+        outCov <- .formulaStructure(list(~1,formula))
+    }
+    if(length(outCov$X.var)==0 && length(outCov$X.cor)==0){
+        heterogeneous <- FALSE
     }
     out <- list(call = match.call(),
                 name = data.frame(cluster = if(!missing(var.cluster)){var.cluster}else{NA},
@@ -261,11 +282,6 @@ CS <- function(formula, var.cluster, var.time, heterogeneous = FALSE, add.time){
                                cor = outCov$formula.cor),
                 heterogeneous = heterogeneous,
                 type = "CS")
-
-    ## remove intercept
-    if(length(all.vars(out$formula$cor)>0)){
-        out$formula$cor <- update(out$formula$cor,~0+.)
-    }
 
     ## export
     class(out) <- append("structure",class(out))
@@ -294,19 +310,24 @@ CS <- function(formula, var.cluster, var.time, heterogeneous = FALSE, add.time){
 ##' @export
 UN <- function(formula, var.cluster, var.time, add.time){
 
-    if(is.null(formula) || length(all.vars(formula))==0){
-        if(!missing(add.time) && add.time){
-            outCov <- .formulaStructure(~1, add.X = var.time)
+    if(!missing(add.time)){
+        if(is.character(add.time)){
+            add.X <- add.time
+        }else if(add.time){
+            add.X <- var.time
+        }else if(!add.time){
+            add.X <- NULL
         }else{
-            outCov <- .formulaStructure(~1)
+            stop("Incorrect argument \'add.time\': should be logical or character. \n")
         }
     }else{
-        if(!missing(add.time) && add.time){
-            ## put covariate as strata if in addition to time
-            outCov <- .formulaStructure(stats::as.formula(paste0(paste(all.vars(formula), collapse="+"),"~1")), add.X = var.time)
-        }else{
-            outCov <- .formulaStructure(formula)
-        }
+        add.X <- NULL
+    }
+    
+    if(is.null(formula) || length(all.vars(formula))==0){
+        outCov <- .formulaStructure(~1, add.X = var.time)
+    }else{
+        outCov <- .formulaStructure(stats::as.formula(paste0(paste(all.vars(formula), collapse="+"),"~1")), add.X = var.time)
     }
 
     out <- list(call = match.call(),

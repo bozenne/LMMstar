@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: maj 24 2022 (19:54) 
+## Last-Updated: maj 25 2022 (17:15) 
 ##           By: Brice Ozenne
-##     Update #: 2023
+##     Update #: 2047
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -532,7 +532,8 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
                 index.cluster = index.cluster,
                 index.clusterTime = index.clusterTime,
                 index.clusterStrata = index.clusterStrata,
-                cluster = list(n = length(index.cluster), levels = U.cluster, levels.original = unique(data$XXclusterXX), nobs = sapply(index.cluster,length)),
+                time = list(n = max(unlist(index.clusterTime)), levels = levels(data$XXtimeXX), levels.original = NULL, nobs = table(unlist(index.clusterTime))),
+                cluster = list(n = length(index.cluster), levels = levels(data$XXclusterXX), levels.original = NULL, nobs = sapply(index.cluster,length)),
                 param = skeleton.param
                 )
     if(!is.na(var.weights[1])){
@@ -671,9 +672,12 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     }
     
     ## ** identify if there is still an identifiability problem
-    
     if(X.qr$rank==NCOL(X)){
         return(X)
+    }
+    browser()
+    if(any(attr(X,"order")>2)){
+        stop("Cannot handle interaction involving more than two variables. \n")
     }
 
     ## ** test 4: remove columns one at a time, starting from the higher order term (i.e. the last columns)
@@ -838,37 +842,28 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     if(!is.na(strata.var)){
         U.strata <- sort(unique(data[[strata.var]]))
     }else{
-        U.strata <- "1"
+        U.strata <- 1
     }
 
     ## *** find position of each cluster
-    if(!is.na(cluster.var)){
-        index.cluster <- tapply(1:NROW(data),data[[cluster.var]],function(iI){iI}, simplify = FALSE)
-    }else{
-        index.cluster <- stats::setNames(as.list(1:NROW(data)), U.cluster)
-    }
-
+    index.cluster <- tapply(1:NROW(data),data[[cluster.var]],function(iI){iI}, simplify = FALSE)
+    
     ## *** find time corresponding to each cluster
-    if(is.na(cluster.var) && is.na(time.var)){
-        index.clusterTime <- stats::setNames(as.list(rep(1,NROW(data))),U.cluster)
-    }else if(!is.na(cluster.var) && !is.na(time.var)){
-        index.clusterTime <- tapply(data[[time.var]],data[[cluster.var]],function(iT){as.numeric(factor(iT,levels = U.time))})
-    }else if(!is.na(time.var)){
-        index.clusterTime <- stats::setNames(as.list(as.numeric(factor(data[[time.var]], levels = U.time))),U.cluster)
-    }else if(!is.na(cluster.var)){
-        index.clusterTime <- tapply(data[[cluster.var]],data[[cluster.var]],function(iT){1:length(iT)})
-    }
+    index.clusterTime <- tapply(data[[time.var]],data[[cluster.var]],function(iT){as.numeric(factor(iT,levels = U.time))})
 
     ## *** re-order according to time
     order.clusterTime <- lapply(index.clusterTime, order)
     index.cluster <- mapply(x = index.cluster, y = order.clusterTime, function(x,y){x[y]}, SIMPLIFY = FALSE)
+    attr(index.cluster, "vectorwise") <- data[[cluster.var]]
     index.clusterTime <- mapply(x = index.clusterTime, y = order.clusterTime, function(x,y){x[y]}, SIMPLIFY = FALSE)
+    attr(index.clusterTime, "vectorwise") <- as.numeric(factor(data[[time.var]], levels = U.time))
 
     ## *** find strata corresponding to each cluster
     if(!is.na(strata.var)){
-        index.clusterStrata <- tapply(as.numeric(factor(data[[strata.var]], levels = U.strata)),data[[cluster.var]],unique)
+        iMatch <- tapply(data[[strata.var]],data[[cluster.var]],unique)
+        index.clusterStrata <- stats::setNames(match(iMatch, U.strata), names(iMatch))
     }else{
-        index.clusterStrata <- rep(1, length(U.cluster))
+        index.clusterStrata <- stats::setNames(rep(1, length(U.cluster)), U.cluster)
     }
 
     ## *** export
@@ -876,10 +871,9 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
                 U.time = U.time,
                 U.strata = U.strata,
                 index.cluster = index.cluster,
-                index.clusterStrata = index.clusterStrata,
-                index.clusterTime = index.clusterTime
+                index.clusterTime = index.clusterTime,
+                index.clusterStrata = index.clusterStrata
                 )
-
     return(out)
 }
 

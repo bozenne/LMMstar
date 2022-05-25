@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: maj 24 2022 (16:06) 
+## Last-Updated: maj 25 2022 (11:24) 
 ##           By: Brice Ozenne
-##     Update #: 130
+##     Update #: 132
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -146,6 +146,7 @@
                     iScore[[iRho]][iIndicator.cor[[iRho]]] <- iOmega.var[iIndicator.cor[[iRho]]]
                 }
             }
+
         }
         ## apply transformation
         if(!is.null(Jacobian)){

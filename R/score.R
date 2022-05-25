@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: maj 23 2022 (16:49) 
+## Last-Updated: maj 25 2022 (16:25) 
 ##           By: Brice Ozenne
-##     Update #: 505
+##     Update #: 517
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -103,15 +103,21 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
                             trace = FALSE, precompute.moments = test.precompute, transform.names = transform.names)$score
     }
 
-    ## ** restaure NA
-    if(length(x$index.na)>0 && indiv && is.null(data)){ 
-        iAdd <- .addNA(index.na = x$index.na, design = design, time = x$time)
-        if(length(iAdd$missing.cluster)>0){
+    ## ** restaure NAs and name
+    if(indiv){
+        if(is.null(data) && length(x$index.na)>0 && any(is.na(attr(x$index.na,"cluster.index")))){
+            rownames(out) <- x$design$cluster$levels
             out.save <- out
-            out <- matrix(NA, nrow = iAdd$n.allcluster, ncol = NCOL(out.save),
-                          dimnames = list(NULL, colnames(out.save)))
-            out[match(design$cluster$levels, iAdd$allcluster),] <- out.save
-        }
+            out <- matrix(NA, nrow = x$cluster$n, ncol = NCOL(out),
+                          dimnames = list(x$cluster$levels, colnames(out)))
+            out[rownames(out.save),] <- out.save
+
+            if(is.numeric(design$cluster$levels.original)){
+                rownames(out) <- NULL
+            }
+        }else if(!is.numeric(design$cluster$levels.original)){
+            rownames(out) <- design$cluster$levels.original
+        } 
     }
 
     ## re-order columns when converting to sd with strata (avoid sd0:0 sd0:1 sd1:0 sd1:1 sd2:0 sd2:1 ...)

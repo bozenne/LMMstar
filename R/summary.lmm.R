@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: maj 24 2022 (16:54) 
+## Last-Updated: maj 25 2022 (16:40) 
 ##           By: Brice Ozenne
-##     Update #: 459
+##     Update #: 478
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -68,6 +68,9 @@ summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print =
     df <- !is.null(object$df)
     options <- LMMstar.options()
 
+    n.cluster.original <- object$cluster$n
+    n.cluster.design <- object$design$cluster$n
+    
     ## ** normalize user input
     dots <- list(...)
     if(length(dots)>0){
@@ -97,9 +100,8 @@ summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print =
         cat("Dataset:", deparse(call$data), "\n\n")
 
         if(nobs["missing"]>0){
-            missing.cluster <- .addNA(object$index.na, design = object$design, time = object$time)$missing.cluster
-            if(length(missing.cluster)>0){
-                cat("  - ", nobs["cluster"], " clusters were analyzed, ",length(missing.cluster)," were excluded because of missing values \n" , sep = "")
+            if(n.cluster.original-n.cluster.design>0){
+                cat("  - ", nobs["cluster"], " clusters were analyzed, ",n.cluster.original-n.cluster.design," were excluded because of missing values \n" , sep = "")
             }else{
                 cat("  - ", nobs["cluster"], " clusters \n" , sep = "")
             }
@@ -183,52 +185,36 @@ summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print =
         if(print){
             cat("  - correlation structure:",deparse(formula$cor),"\n")
         }
+
         ## find unique correlation patterns
-        Omega <- stats::sigma(object, simplifies = FALSE)        
-        table.cor <- stats::setNames(vector(mode = "list", length = length(Omega)),names(Omega))
-        for(iStrata in 1:length(Omega)){ ## iStrata <- 1
-            iOmega <- Omega[[iStrata]]
-            iPattern <- attr(iOmega,"pattern")
-            attr(iOmega,"pattern") <- NULL
-            if(is.matrix(iOmega)){
-                table.cor[[iStrata]] <- stats::cov2cor(iOmega)
-            }else{
-                iUpattern <- structure$X$Upattern[match(iPattern,structure$X$Upattern$name),,drop=FALSE]
-                index.keep <- which(!duplicated(iUpattern$cor))
-                if(length(index.keep)==1){
-                    table.cor[[iStrata]] <- stats::cov2cor(iOmega[[index.keep]])
-                }else if(length(index.keep)!=length(Omega)){
-                    table.cor[[iStrata]] <- lapply(iOmega[index.keep],stats::cov2cor)
-                    names(table.cor[[iStrata]]) <- tapply(1:length(iUpattern$cor),iUpattern$cor,function(iIndex){paste(names(iOmega[iIndex]),collapse=", ")})
-                }else{
-                    table.cor[[iStrata]] <- lapply(iOmega,stats::cov2cor)
-                }                
-            }
-        }
+        table.cor <- lapply(stats::sigma(object, simplifies = FALSE), stats::cov2cor)
         if(length(table.cor)==1){ ## only one strata
             table.cor <- table.cor[[1]]
         }
-
         if(print){
             if(is.list(table.cor)){
-                table.cor  <- lapply(table.cor, function(iCor){
-                    if(is.matrix(iCor)){
+                table.cor  <- lapply(table.cor, function(iCor){ ## iCor <- table.cor[[1]]
+                    if(is.matrix(iCor) && !is.null(rownames(iCor))){
                         rownames(iCor) <- paste0("    ",rownames(iCor))
                     }else{
                         iCor <- lapply(iCor, function(iiCor){
-                            rownames(iiCor) <- paste0("    ",rownames(iiCor))
+                            if(!is.null(rownames(iiCor))){
+                                rownames(iiCor) <- paste0("    ",rownames(iiCor))
+                            }
                             return(iiCor)
                         })
                     }
                     return(iCor)
                 })
-            }else{
+            }else if(!is.null(rownames(table.cor))){
                 rownames(table.cor) <- paste0("    ",rownames(table.cor))
             }
             if(object$time$n>10 || hide.cor==-1){
-                print(coef(object,effect="correlation"))
+                table.cor.print <- rbind(coef(object,effect="correlation"))
+                rownames(table.cor.print) <- "    "
+                print(table.cor.print)
             }else{
-                print(table.cor, digit = digit)
+                print(object, digit = digit)
             }
             cat("\n")
         }

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: maj 23 2022 (16:09) 
+## Last-Updated: maj 25 2022 (16:25) 
 ##           By: Brice Ozenne
-##     Update #: 266
+##     Update #: 277
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -73,13 +73,19 @@ logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
                             trace = FALSE, precompute.moments = test.precompute)$logLik
     } 
 
-    ## ** restaure NAs
-    if(length(object$index.na)>0 && indiv){ 
-        iAdd <- .addNA(index.na = object$index.na, design = design, time = object$time)
-        if(length(iAdd$missing.cluster)>0){
+    ## ** restaure NAs and name
+    if(indiv){
+        if(is.null(data) && length(object$index.na)>0 && any(is.na(attr(object$index.na,"cluster.index")))){
+            names(out) <- object$design$cluster$levels
             out.save <- out
-            out <- rep(NA, length = iAdd$n.allcluster)
-            out[match(design$cluster$levels, iAdd$allcluster)] <- out.save
+            out <- stats::setNames(rep(NA, times = object$cluster$n), object$cluster$levels)
+            out[rownames(out.save)] <- out.save
+
+            if(is.numeric(design$cluster$levels.original)){
+                names(out) <- NULL
+            }
+        }else if(!is.numeric(design$cluster$levels.original)){
+            names(out) <- design$cluster$levels.original
         }
     }
 

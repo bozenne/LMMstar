@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: maj 24 2022 (19:14) 
+## Last-Updated: maj 25 2022 (15:56) 
 ##           By: Brice Ozenne
-##     Update #: 581
+##     Update #: 594
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -133,6 +133,9 @@ residuals.lmm <- function(object, type = "response", format = "long",
     object.Omega <- object$Omega
     object.OmegaM1 <- object$OmegaM1
 
+    cluster.levels.original <- object$design$cluster$levels.original
+    time.levels.original <- object$design$time$levels.original
+    
     ## ** normalize user imput
     dots <- list(...)
     if(length(dots)>0){
@@ -435,30 +438,25 @@ residuals.lmm <- function(object, type = "response", format = "long",
         }
     }
 
-    ## ** add NA
+    ## ** restaure NA
     if(is.null(match.call()$data) && length(index.na)>0){
-        inflateNA <-  .addNA(index.na = index.na, design = design, time = list(n = n.time, levels = U.time, var = name.time))
         Msave.res <- M.res
-        M.res <- matrix(NA, nrow = inflateNA$n.allobs, ncol = length(type.residual), dimnames = list(NULL, name.residual))
+        M.res <- matrix(NA, nrow = NROW(Msave.res)+length(index.na), ncol = NCOL(Msave.res), dimnames = list(NULL, colnames(Msave.res)))
         M.res[-index.na,] <- Msave.res
         attr(M.res,"centering") <- attr(Msave.res,"centering")
         attr(M.res,"reference") <- attr(Msave.res,"reference")
 
         Msave.fit <- fitted
-        fitted <- matrix(NA, nrow = inflateNA$n.allobs, ncol = 1)
+        fitted <- matrix(NA, nrow = NROW(Msave.fit)+length(index.na), ncol = NCOL(Msave.fit), dimnames = list(NULL, colnames(Msave.fit)))
         fitted[-index.na,] <- Msave.fit
-        
-        level.cluster <- factor(inflateNA$level.cluster, levels = cluster.level)
-        level.time <- factor(inflateNA$level.time, U.time)
-    }else{
 
-        n.obs <- sum(sapply(index.cluster,length))
-        level.cluster <- rep(NA, n.obs)
-        level.time <- rep(NA, n.obs)
-        for(iCluster in names(index.cluster)){
-            level.cluster[index.cluster[[iCluster]]] <- iCluster
-            level.time[index.cluster[[iCluster]]] <- index.time[[iCluster]]
-        }
+        level.cluster <- c(factor(attr(index.na,"cluster"), levels = cluster.levels.original),
+                           factor(attr(index.cluster,"vectorwise"), levels = 1:length(cluster.levels.original), labels = cluster.levels.original))
+        level.time  <- c(factor(attr(index.na,"time"), levels = time.levels.original),
+                         factor(attr(index.time,"vectorwise"), levels = 1:length(time.levels.original), labels = time.levels.original))
+    }else{
+        level.cluster <- attr(index.cluster,"vectorwise")
+        level.time <- attr(index.time,"vectorwise")
     }
 
     ## plot
@@ -599,62 +597,6 @@ residuals.lmm <- function(object, type = "response", format = "long",
         }
     }
 
-## * .addNA
-.addNA <- function(index.na, design, time){
 
-    attr.cluster <- attr(index.na,"cluster")
-    attr.cluster.index <- attr(index.na,"cluster.index")
-    attr.time <- attr(index.na,"time")
-
-    ## ** if no missing value or missing information about cluster or time returns nothing
-    if(length(index.na)==0 || any(is.na(attr.cluster)) || any(is.na(attr.time))){
-        return(NULL)
-    }
-
-    ## ** identify missing clusters
-    missing.cluster <- sort(unique(attr.cluster[is.na(attr.cluster.index)]))
-
-    ## ** identify all clusters
-    allcluster <- levels(design$cluster$levels.original)
-    n.allcluster <- length(allcluster)
-
-    n.allobs <- length(unlist(design$index.cluster))+length(index.na)
-
-    ## ** merge all observations
-    ls.index.na <- tapply(index.na,attr.cluster, function(iX){iX-0.1}, simplify = FALSE)
-    ls.index.obs <- design$index.cluster
-    names(ls.index.obs) <- as.character(sort(design$cluster$levels.original))
-    
-    intersect.naobs <- intersect(names(ls.index.na), names(ls.index.obs))
-    if(length(intersect.naobs)>0){
-        for(iNAOBS in intersect.naobs){
-            ls.index.obs[[iNAOBS]] <- c(ls.index.obs[[iNAOBS]], ls.index.na[[iNAOBS]])
-        }
-    }
-
-    setdiff.naobs <- setdiff(names(ls.index.na), names(ls.index.obs))
-    if(length(setdiff.naobs)>0){
-       ls.index.obs <- c(ls.index.obs, ls.index.na[setdiff.naobs])
-    }
-
-    ## ** create extended vector of observations
-    vec.index.cluster <- sort(unlist(lapply(allcluster, function(iC){stats::setNames(ls.index.obs[[iC]],rep(iC,length(ls.index.obs[[iC]])))})))
-    level.cluster <- names(vec.index.cluster)
-    index.cluster <- tapply(1:n.allobs, level.cluster, function(iC){iC}, simplify = FALSE)
-    attr(index.cluster,"na.rm") <-  tapply((1:n.allobs)[vec.index.cluster %% 1 == 0], level.cluster[vec.index.cluster %% 1 == 0], function(iC){iC}, simplify = FALSE)
-
-    index.time <- setNames(rep(list(1:time$n), n.allcluster), allcluster)
-    attr(index.time,"na.rm") <- design$index.clusterTime
-
-    ## ** export
-    return(list(allcluster = allcluster,
-                obs.cluster = setdiff(allcluster,missing.cluster),
-                missing.cluster = missing.cluster,
-                n.allcluster = n.allcluster,
-                n.allobs = n.allobs,
-                index.cluster = index.cluster,
-                index.time = index.time))
-    
-}
 ##----------------------------------------------------------------------
 ### residuals.R ends here

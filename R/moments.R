@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: maj 24 2022 (10:52) 
+## Last-Updated: maj 25 2022 (11:32) 
 ##           By: Brice Ozenne
-##     Update #: 321
+##     Update #: 324
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -204,7 +204,6 @@
             }
         }
     }
-    
     if(vcov || df){
         if(trace>=1){cat("- variance-covariance \n")}
         if(robust && method.fit=="REML"){
