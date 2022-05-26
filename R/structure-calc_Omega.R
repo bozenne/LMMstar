@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: maj 24 2022 (16:05) 
+## Last-Updated: May 26 2022 (08:49) 
 ##           By: Brice Ozenne
-##     Update #: 449
+##     Update #: 451
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -66,8 +66,8 @@
     function(object, param, keep.interim) UseMethod(".calc_Omega")
 
 
-## * calc_Omega.IND
-.calc_Omega.IND <- function(object, param, keep.interim = FALSE){
+## * calc_Omega.ID
+.calc_Omega.ID <- function(object, param, keep.interim = FALSE){
 
     Upattern <- object$X$Upattern
     n.Upattern <- NROW(Upattern)
@@ -99,11 +99,14 @@
     return(Omega)
 }
 
+## * calc_Omega.IND
+.calc_Omega.IND <- .calc_Omega.ID
+
 ## * calc_Omega.CS
-.calc_Omega.CS <- .calc_Omega.IND
+.calc_Omega.CS <- .calc_Omega.ID
 
 ## * calc_Omega.UN
-.calc_Omega.UN <- .calc_Omega.IND
+.calc_Omega.UN <- .calc_Omega.ID
 
 ## * calc_Omega.CS
 .calc_Omega.CUSTOM <- function(object, param, keep.interim = FALSE){

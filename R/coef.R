@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: maj 25 2022 (19:17) 
+## Last-Updated: May 27 2022 (00:18) 
 ##           By: Brice Ozenne
-##     Update #: 536
+##     Update #: 541
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -128,6 +128,12 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
     }else if(identical(effects,"all")){
         effects <- c("mean","variance","correlation")
     }
+    if("ranef" %in% effects){
+        if(length(effects)>1){
+            stop("Argument \'effects\' should be of length 1 when it contains \"ranef\". \n")
+        }
+        return(.ranef(object, p = p))
+    }
     effects <- match.arg(effects, c("mean","fixed","variance","correlation","ranef"), several.ok = TRUE)
     effects[effects== "fixed"] <- "mean"
     
@@ -139,17 +145,6 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
     test.notransform <- init$test.notransform
     
     effects2 <- effects
-    if("ranef" %in% effects){
-        if(type.pattern!="CS"){
-            stop("Can only extract random effects for \"CS\" structure. \n")
-        }
-        ## if(object$design$vcov$heterogeneous){
-        ##     stop("Can only extract random effects for \"CS\" structure with homogeneous structure. \n")
-        ## }
-        if(length(effects)>1){
-            stop("Argument \'effects\' should be of length 1 when it contains \"ranef\". \n")
-        }
-    }
     if(transform.rho == "cov"){
         if(all("correlation" %in% effects == FALSE)){
             stop("Cannot use the argument \'transform.rho\' set to \"cov\" when \"correlation\" is not in argument \'effect\'. \n")
@@ -193,53 +188,7 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
     }
 
     if("ranef" %in% effects2){
-        ## raw residuals
-        df.epsilon <- stats::residuals(object, p = p, keep.data = TRUE, type = "response")
-        if(length(index.na)>0){
-            df.epsilon <- df.epsilon[-index.na,,drop=FALSE]
-        }
-        ## inverse residual variance-covariance matrix
-        U.cluster <- order(unique(df.epsilon$XXcluster.indexXX))
-        ls.OmegaM1 <- stats::sigma(object, p = p, cluster = U.cluster, inverse = TRUE, simplifies = FALSE)
-        ls.epsilon <- base::tapply(df.epsilon$r.response,df.epsilon$XXcluster.indexXX,list)## split residuals by id
-        cluster.strata <- do.call(rbind,mapply(x = Upattern$index.strata, y = Upattern$index.cluster, function(x,y){data.frame(index.strata = x, index.cluster = y)}, SIMPLIFY = FALSE))
-
-        ## covariance parameter(s)
-        tau <- stats::coef(object, effects = "correlation", transform.rho = "cov", transform.names = FALSE)
-        tau.strata <- U.strata[unlist(param.strata[match(names(tau),param.name)])]
-
-        ## design matrix
-        df.Z <- as.data.frame(X.cor) ## e.g. school=1,id=1,2,3,....
-        if(n.strata==1){
-            Z.strata <- stats::setNames(rep(U.strata, NCOL(df.Z)),names(df.Z))
-        }else{
-            Z.strata <- sapply(attr(X.cor,"ls.level"), function(iRow){iRow[,strata.var]})
-        }
-
-        ## compute random effect in each strata
-        M.ranef <- do.call(rbind,lapply(U.strata, function(iStrata){ ## iStrata <- U.strata[1]
-
-            iCluster <- cluster.strata$index.cluster[U.strata[cluster.strata$index.strata]==iStrata]
-            iIndex.cluster <- index.cluster[iCluster]
-            iUpattern <- Upattern[U.strata[unlist(Upattern$index.strata)]==iStrata,,drop=FALSE]
-            iZ <- df.Z[unlist(iIndex.cluster),names(which(Z.strata==iStrata)),drop=FALSE]
-            iNobs <- sapply(iIndex.cluster,length)
-            iIndex.cluster2 <- mapply(x = cumsum(iNobs), y = c(1,cumsum(iNobs[-length(iNobs)])+1), function(x,y){y:x}, SIMPLIFY = FALSE)
-            attr(iIndex.cluster2, "vectorwise") <- attr(index.cluster, "vectorwise")[setdiff(1:length(attr(index.cluster, "vectorwise")),index.cluster[-iCluster])]
-
-            iRanef <- .ranef(design = iZ,
-                             tau = tau[tau.strata == iStrata],
-                             OmegaM1 = ls.OmegaM1[iCluster],
-                             epsilon = ls.epsilon[iCluster],
-                             cluster.var = cluster.var,
-                             index.cluster = iIndex.cluster2,
-                             Upattern = iUpattern,
-                             Xpattern.cor = Xpattern.cor[unique(iUpattern$cor)])
-
-            rownames(iRanef) <- as.character(U.cluster.original[iCluster])        
-            return(iRanef)
-        }))
-        return(M.ranef[as.character(U.cluster.original),,drop=FALSE])
+        return(.ranef(object, p = p))
     }
     if(any(c("variance","correlation") %in% effects2)){
         pVar <- NULL
@@ -306,122 +255,6 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
 }
 
 
-## * .ranef
-##' @description estimate random effect in a given strata
-##' @noRd
-##'
-##' @details Consider the following mixed model:
-##' \deqn{Y = X\beta + \epsilon}
-##' where \eqn{\Sigma_{\epsilon}}, the variance of \eqn{\epsilon}, has a (possibly stratified) compound symmetry structure.
-##' Denoting by \eqn{I} the identity matirx, this mean that \eqn{\Sigma_{\epsilon} = \sigma^2 I + Z \Sigma_{\eta} Z^T}
-##' where \(\Sigma_{\eta}\) is the covariance relative to the design matrix \eqn{Z} (e.g. same student or school). So implicitely we have:
-##' \deqn{Y = X\beta + Z \eta + \varepsilon}
-##' where \eqn{\varepsilon \sim \mathcal{N}(0, \sigma^2 I)}. So we can estimate the random effets via:
-##' \deqn{E[Y|\eta] = Z \Sigma_{\eta} \Omega^{-1} (Y-X\beta)}
-.ranef <- function(design, tau, OmegaM1, epsilon,
-                   cluster.var, index.cluster, Upattern, Xpattern.cor){
-
-    n.cluster <- length(index.cluster)
-    n.tau <- length(tau)
-
-    ## ** build design matrix
-    if(any(names(design) == "(Intercept)")){
-        names(design)[names(design) == "(Intercept)"] <- cluster.var
-    }
-    nUnique <- sapply(design, function(iX){length(unique(iX))})
-    if(any(nUnique>2)){
-        for(iCol in names(which(nUnique>2))){
-            design[[iCol]] <- as.factor(design[[iCol]])
-        }
-    }
-
-    ls.Z.tempo <- lapply(names(design), function(iZ){stats::model.matrix(stats::as.formula(paste0("~0+",iZ)),design)})
-    X.Z <- do.call(cbind,ls.Z.tempo) ## convert factor to dummy variables
-    ls.Z <- lapply(index.cluster, function(iIndex){t(X.Z[iIndex,,drop=FALSE])})
-
-    ## ** get variance of the random effects
-    if(length(tau)==1){
-        G <- diag(tau, nrow = length(tau)) ## variance-covariance matrix of the random effects
-    }else{
-        pattern.cluster <- do.call(rbind,mapply(x=as.list(Upattern$cor),y=Upattern$index.cluster, function(x,y){data.frame(pattern = x, index.cluster = y)}, SIMPLIFY = FALSE))
-
-        ls.corparam <- lapply(colnames(X.Z), FUN = function(iName){ ## iName <- colnames(X.Z)[2]
-            iCluster <- min(attr(index.cluster,"vectorwise")[X.Z[,iName]==1]) ## find cluster relevant for the type of random effect
-            iPattern <- pattern.cluster[pattern.cluster$index.cluster==iCluster,"pattern"] ## covariance pattern corresponding to the cluster
-            iPattern.index <- attr(Xpattern.cor[[iPattern]],"index.pair") ## 2 x T matrix: all pairs of observations
-            index.obs <- which(ls.Z[[iCluster]][iName,]==1) ## identify observations relevant for the type of random effect in the cluster
-            index.pair <- which((iPattern.index[,"row"] %in% index.obs) * (iPattern.index[,"col"] %in% index.obs)==1) ## identify all pairs affected by the random effect
-            param.obs <- iPattern.index[index.pair,"param"] ## identify correlation parameter(s) corresponding to the random effect
-            return(unique(param.obs))
-        })
-            
-        if(all(sapply(ls.corparam, length)==1)){
-            G <- diag(tau[unlist(ls.corparam)], nrow = length(ls.corparam)) ## variance-covariance matrix of the random effects
-        }else{
-            ## attempt to fix the case where the is confusion between two levels of nesting
-            ## e.g. ID/Day/Scan: At baseline (i.e. Day 1) only a single scan was performed
-            ##                   so by default it would be associated to Scan instead of Day
-            grp.corparam <- mapply(cumsum(c(0,sapply(ls.Z.tempo[1:(length(ls.Z.tempo)-1)],NCOL)))+1,cumsum(sapply(ls.Z.tempo,NCOL)),
-                                   FUN = function(x,y){x:y})
-            for(iG in 1:length(grp.corparam)){ ## iG <- 2
-                if(sum(!duplicated(ls.corparam[grp.corparam[[iG]]]))>1){
-                    warning("Possible issue when identifying the correlation parameters associated to the random effects. \n")
-                    ls.corparam[grp.corparam[[iG]]] <- lapply(1:length(grp.corparam[[iG]]), function(iL){unique(unlist(ls.corparam[grp.corparam[[iG]]]))})
-                }
-            }
-
-            nametau.order <- names(sort(table(unlist(ls.corparam)), decreasing = FALSE)) ## identify nesting
-            tau.order <- tau[nametau.order] - c(0,tau[nametau.order[-length(nametau.order)]]) ## re-order and reparametrize covariance parameters
-            G <- diag(sapply(ls.corparam, function(iRho){ ## xxx <- ls.corparam[[1]]
-                tau.order[sort(factor(iRho, levels = nametau.order))[1]]
-            }))
-        }
-    }
-browser()
-    ## ** compute random effects
-    M.ranef <- t(do.call(cbind,lapply(1:n.cluster, function(iC){ ##  iC <- 1
-        G %*% ls.Z[[iC]] %*% OmegaM1[[iC]] %*% epsilon[[iC]]
-    })))
-
-    rownames(M.ranef) <- names(OmegaM1)
-    colnames(M.ranef) <- colnames(X.Z)
-
-
-    return(M.ranef)
-
-    ls.cluster.design <- lapply(1:n.cluster, FUN = function(iC){ ## iC <- 1
-        iZ <- ls.Z[[iC]][rowSums(ls.Z[[iC]])!=0,,drop=FALSE]
-        iCluster <- unique(attr(index.cluster,"vectorwise")[index.cluster[[iC]]])
-        iPattern <- pattern.cluster[pattern.cluster$index.cluster == iC,"pattern"]
-        iIndex.pair <- attr(Xpattern.cor[[iPattern]],"index.pair")
-        iNtime <- NROW(Xpattern.cor[[iPattern]])
-
-        iG <- stats::setNames(lapply(rownames(iZ), function(iName){ ## iName <- rownames(iZ)[1]
-            iPair <- which(iZ[iName,]==1)
-            iParam.pair <- unique(iIndex.pair[iIndex.pair[,"row"] %in% iPair & iIndex.pair[,"col"] %in% iPair,"param"])
-            iM <- matrix(0, nrow = n.tau, ncol = iNtime, dimnames = list(names(tau), NULL))
-            iM[iParam.pair,iPair] <- 1
-            attr(iM,"crosstable") <- table(apply(iM,1,function(x){factor(x,levels = 0:1)},simplify = FALSE))
-            return(iM)
-        }), rownames(iZ))
-        attr(iG,"crosstable") <- Reduce("+",lapply(iG,attr,"crosstable"))
-        return(iG)
-    })
-    Reduce("+",lapply(ls.cluster.design,attr,"crosstable"))
-    ls.cluster.design[[1]][[1]]
-
-        Xpattern.cor[[1]]
-        head(X.Z)
-        ls.corparam <- lapply(colnames(X.Z), FUN = function(iName){ ## iName <- colnames(X.Z)[2]
-            iCluster <- min(attr(index.cluster,"vectorwise")[X.Z[,iName]==1]) ## find cluster relevant for the type of random effect
-            iPattern <- pattern.cluster[pattern.cluster$cluster==iCluster,"pattern"] ## covariance pattern corresponding to the cluster
-            iPattern.index <- attr(Xpattern.cor[[iPattern]],"index.pair") ## 2 x T matrix: all pairs of observations
-            index.obs <- which(ls.Z[[iCluster]][iName,]==1) ## identify observations relevant for the type of random effect in the cluster
-            index.pair <- which((iPattern.index[,"row"] %in% index.obs) * (iPattern.index[,"col"] %in% index.obs)==1) ## identify all pairs affected by the random effect
-            param.obs <- iPattern.index[index.pair,"param"] ## identify correlation parameter(s) corresponding to the random effect
-            return(unique(param.obs))
-        })
-}
 
 ##----------------------------------------------------------------------
 ### coef.R ends here

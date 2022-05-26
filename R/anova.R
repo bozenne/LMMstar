@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: maj 23 2022 (16:08) 
+## Last-Updated: May 26 2022 (09:03) 
 ##           By: Brice Ozenne
-##     Update #: 813
+##     Update #: 814
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -270,7 +270,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
             ## restaure untransformed parametrization (glht does not handle log(k). or atanh(cor))
             if(test.reparametrize){
                 object2 <- object
-                index.var <- which(object$param$type %in% c("sigma","k","rho"))
+                index.var <- which(object$design$param$type %in% c("sigma","k","rho"))
                 object2$reparametrize <- .reparametrize(p = object$param[index.var],
                                                         type = object$design$param$type[index.var], 
                                                         level = object$design$param$level[index.var], 

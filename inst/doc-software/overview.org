@@ -201,7 +201,7 @@ cat(" covariance structure: \n");sigma(eId.lmm)
  parameters          : 5 mean ((Intercept) timeB1_week timeA1_week timeA3_months glucagon) 
                        1 variance (sigma) 
  log-restr.likelihood: -323.086426918519 
- convergence         : TRUE (1 iterations)
+ convergence         : TRUE (0 iterations)
  covariance structure: 
           B3_months  B1_week  A1_week A3_months
 B3_months  330.0427   0.0000   0.0000    0.0000
@@ -228,7 +228,7 @@ cat(" covariance structure: \n");sigma(eInd.lmm)
  parameters          : 5 mean ((Intercept) timeB1_week timeA1_week timeA3_months glucagon) 
                        4 variance (sigma k.B1_week k.A1_week k.A3_months) 
  log-restr.likelihood: -321.457830361849 
- convergence         : TRUE (9 iterations)
+ convergence         : TRUE (8 iterations)
  covariance structure: 
           B3_months  B1_week  A1_week A3_months
 B3_months  442.6475   0.0000   0.0000    0.0000
@@ -258,7 +258,7 @@ cat(" covariance structure: \n");sigma(eCS.lmm)
                        1 variance (sigma) 
                        1 correlation (rho) 
  log-restr.likelihood: -243.600523870253 
- convergence         : TRUE (10 iterations)
+ convergence         : TRUE (9 iterations)
  covariance structure: 
           B3_months  B1_week  A1_week A3_months
 B3_months  355.3062 344.6236 344.6236  344.6236
@@ -273,7 +273,7 @@ A3_months  344.6236 344.6236 344.6236  355.3062
 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 eSCS.lmm <- lmm(weight ~ time*group,
-                repetition = ~time|id, structure = CS(~group),
+                repetition = ~time|id, structure = CS(group~1),
                 data = gastricbypassL)
 eSCS.lmm
 cat(" covariance structure: \n");sigma(eSCS.lmm)
@@ -281,24 +281,24 @@ cat(" covariance structure: \n");sigma(eSCS.lmm)
 
 #+RESULTS:
 #+begin_example
-     Linear Mixed Model with a block unstructured covariance matrix 
+     Linear Mixed Model with a stratified compound symmetry covariance matrix 
 
  outcome/cluster/time: weight/id/time 
  data                : 80 observations and distributed in 20 clusters 
  parameters          : 8 mean ((Intercept) timeB1_week timeA1_week timeA3_months group timeB1_week:group timeA1_week:group timeA3_months:group) 
-                       2 variance (sigma k.1) 
-                       2 correlation (rho(0) rho(1)) 
+                       2 variance (sigma:0 sigma:1) 
+                       2 correlation (rho:0 rho:1) 
  log-restr.likelihood: -233.141302306302 
- convergence         : TRUE (7 iterations)
+ convergence         : TRUE (6 iterations)
  covariance structure: 
-$`0.0`
+$`0`
           B3_months  B1_week  A1_week A3_months
 B3_months  348.0783 334.7404 334.7404  334.7404
 B1_week    334.7404 348.0783 334.7404  334.7404
 A1_week    334.7404 334.7404 348.0783  334.7404
 A3_months  334.7404 334.7404 334.7404  348.0783
 
-$`1.1`
+$`1`
           B3_months  B1_week  A1_week A3_months
 B3_months  345.1388 340.0877 340.0877  340.0877
 B1_week    340.0877 345.1388 340.0877  340.0877
@@ -328,7 +328,7 @@ cat(" covariance structure: \n");sigma(eBCS.lmm)
                        1 variance (sigma) 
                        2 correlation (rho(TRUE) rho(TRUE,FALSE)) 
  log-restr.likelihood: -234.971305082514 
- convergence         : TRUE (7 iterations)
+ convergence         : TRUE (6 iterations)
  covariance structure: 
           B3_months  B1_week  A1_week A3_months
 B3_months  346.6085 339.4747 336.3836  336.3836
@@ -346,7 +346,10 @@ range(matrix(c(ranef(e.lmer)[[2]][,1],ranef(e.lmer)[[1]][,1]), ncol = 3, byrow =
 
 #+RESULTS:
 : 'log Lik.' -234.9713 (df=11)
-: [1] -7.897069e-05  8.584946e-05
+: Called from: .ranef(design = iZ, tau = tau[tau.strata == iStrata], OmegaM1 = ls.OmegaM1[iCluster], 
+:     epsilon = ls.epsilon[iCluster], cluster.var = cluster.var, 
+:     index.cluster = iIndex.cluster2, Upattern = iUpattern, Xpattern.cor = Xpattern.cor[unique(iUpattern$cor)])
+: [1] "org_babel_R_eoe"
 
 \noindent Fit a linear mixed model with *block unstructured* covariance matrix:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -367,7 +370,7 @@ cat(" covariance structure: \n");sigma(eBUN.lmm)
                        2 variance (sigma k.TRUE) 
                        3 correlation (rho(TRUE) rho(TRUE,FALSE) rho(FALSE)) 
  log-restr.likelihood: -231.80588606934 
- convergence         : TRUE (7 iterations)
+ convergence         : TRUE (6 iterations)
  covariance structure: 
           B3_months  B1_week  A1_week A3_months
 B3_months  377.4267 372.4602 336.3836  336.3836
@@ -397,8 +400,8 @@ cat(" covariance structure: \n");sigma(eUN.lmm)
  parameters          : 5 mean ((Intercept) timeB1_week timeA1_week timeA3_months glucagon) 
                        4 variance (sigma k.B1_week k.A1_week k.A3_months) 
                        6 correlation (rho(B3_months,B1_week) rho(B3_months,A1_week) rho(B3_months,A3_months) rho(B1_week,A1_week) rho(B1_week,A3_months) rho(A1_week,A3_months)) 
- log-restr.likelihood: -216.318937004305 
- convergence         : TRUE (23 iterations)
+ log-restr.likelihood: -216.318937004306 
+ convergence         : TRUE (22 iterations)
  covariance structure: 
           B3_months  B1_week  A1_week A3_months
 B3_months  411.3114 381.9734 352.6400  318.8573
@@ -428,8 +431,8 @@ cat(" covariance structure: \n");sigma(eSUN.lmm)
  parameters          : 9 mean ((Intercept) timeB1_week timeA1_week timeA3_months group glucagon timeB1_week:group timeA1_week:group timeA3_months:group) 
                        8 variance (sigma:0 sigma:1 k.B1_week:0 k.A1_week:0 k.A3_months:0 k.B1_week:1 k.A1_week:1 k.A3_months:1) 
                        12 correlation (rho(B3_months,B1_week):0 rho(B3_months,A1_week):0 rho(B3_months,A3_months):0 rho(B1_week,A1_week):0 rho(B1_week,A3_months):0 rho(A1_week,A3_months):0 rho(B3_months,B1_week):1 rho(B3_months,A1_week):1 rho(B3_months,A3_months):1 rho(B1_week,A1_week):1 rho(B1_week,A3_months):1 rho(A1_week,A3_months):1) 
- log-restr.likelihood: -197.171312062212 
- convergence         : TRUE (51 iterations)
+ log-restr.likelihood: -197.171312062216 
+ convergence         : TRUE (50 iterations)
  covariance structure: 
 $`0`
           B3_months  B1_week  A1_week A3_months

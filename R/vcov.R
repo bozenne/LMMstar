@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: maj 23 2022 (16:09) 
+## Last-Updated: May 26 2022 (09:04) 
 ##           By: Brice Ozenne
-##     Update #: 484
+##     Update #: 485
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -116,8 +116,8 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strat
                 if(any(duplicated(names(p)))){
                     stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
                 }
-                if(any(names(object$param$type) %in% names(p) == FALSE)){
-                    stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param$type)[names(object$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
+                if(any(names(object$param) %in% names(p) == FALSE)){
+                    stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param)[names(object$param) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
                 }
                 p <- p[names(object$param)]
             }else{

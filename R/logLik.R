@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: maj 25 2022 (16:25) 
+## Last-Updated: May 26 2022 (09:03) 
 ##           By: Brice Ozenne
-##     Update #: 277
+##     Update #: 285
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -60,8 +60,8 @@ logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
             if(any(duplicated(names(p)))){
                 stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
             }
-            if(any(names(object$param$type) %in% names(p) == FALSE)){
-                stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param$type)[names(object$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
+            if(any(names(object$param) %in% names(p) == FALSE)){
+                stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param)[names(object$param) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
             }
             p <- p[names(object$param)]
         }else{

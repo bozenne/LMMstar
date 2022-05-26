@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: maj 25 2022 (11:32) 
+## Last-Updated: May 26 2022 (09:35) 
 ##           By: Brice Ozenne
-##     Update #: 324
+##     Update #: 327
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -129,7 +129,6 @@
                                      transform.k = transform.k,
                                      transform.rho = transform.rho)
     }
-
     ## param.value
     ##     MM <- numDeriv::jacobian(func = function(iP){
     ##         as.vector(.calc_Omega(object = design$vcov, param = iP)[[1]])

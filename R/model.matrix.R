@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: maj 25 2022 (17:15) 
+## Last-Updated: May 26 2022 (12:50) 
 ##           By: Brice Ozenne
-##     Update #: 2047
+##     Update #: 2059
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -329,8 +329,12 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             if(heterogeneous == FALSE){
                 if(iVar == strata.var){
                     dataVar[[iVar]] <- as.factor(data[[iVar]])
+                }else if(is.logical(data[[iVar]])){
+                    dataVar[[iVar]] <- as.numeric(data[[iVar]]) + 1
                 }else if(!is.numeric(data[[iVar]])){
                     dataVar[[iVar]] <- as.numeric(as.factor(data[[iVar]]))
+                }else if(is.numeric(data[[iVar]])){
+                    dataVar[[iVar]] <- data[[iVar]] - min(data[[iVar]]) + 1
                 }
             }else if(heterogeneous){
                 dataVar[[iVar]] <- as.factor(data[[iVar]])
@@ -343,8 +347,12 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             if(heterogeneous == FALSE){
                 if(iVar == strata.var){
                     dataCor[[iVar]] <- as.factor(data[[iVar]])
+                }else if(is.logical(data[[iVar]])){
+                    dataCor[[iVar]] <- as.numeric(data[[iVar]]) + 1
                 }else if(!is.numeric(data[[iVar]])){
                     dataCor[[iVar]] <- as.numeric(as.factor(data[[iVar]]))
+                }else if(is.numeric(data[[iVar]])){
+                    dataCor[[iVar]] <- data[[iVar]] - min(data[[iVar]]) + 1
                 }
             }else if(heterogeneous){
                 dataCor[[iVar]] <- as.factor(data[[iVar]])
@@ -474,7 +482,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     }
 
     ## ** pairs
-    pair.meanvarcoef <- stats::setNames(lapply(structure$X$Upattern$name, function(iPattern){ ## iPattern <- structure$X$Upattern$name[2]
+    pair.meanvarcoef <- stats::setNames(lapply(structure$X$Upattern$name, function(iPattern){ ## iPattern <- structure$X$Upattern$name[1]
         if(stratify.mean){
             iParamMu <- names(strata.mu)[strata.mu==structure$X$Upattern$index.strata[iPattern]]
         }else{

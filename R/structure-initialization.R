@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: maj 20 2022 (16:12) 
+## Last-Updated: May 26 2022 (08:49) 
 ##           By: Brice Ozenne
-##     Update #: 217
+##     Update #: 218
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -67,8 +67,8 @@
 `.initialize` <-
     function(object, residuals, Xmean, index.cluster) UseMethod(".initialize")
 
-## * initialization.IND
-.initialize.IND <- function(object, residuals, Xmean, index.cluster){
+## * initialization.ID
+.initialize.ID <- function(object, residuals, Xmean, index.cluster){
 
     param.type <- stats::setNames(object$param$type,object$param$name)
     param.strata <- stats::setNames(object$param$strata,object$param$name)
@@ -156,6 +156,9 @@
     ## export
     return(out)
 }
+
+## * initialization.IND
+.initialize.IND <- .initialize.ID
 
 ## * initialize.CS
 .initialize.CS <- function(object, residuals, Xmean, index.cluster){

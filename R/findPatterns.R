@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: maj 25 2022 (11:31) 
+## Last-Updated: May 26 2022 (09:56) 
 ##           By: Brice Ozenne
-##     Update #: 243
+##     Update #: 252
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -177,7 +177,7 @@
             attr(iX, "index.strata") <- unname(index.clusterStrata[iC])
             attr(iX, "index.pair") <- iC.table
             attr(iX, "index.vec2matrix") <- c(iC.table[,"row"] + NROW(iX) * (iC.table[,"col"] - 1))
-            attr(iX, "param") <- sort(unique(iC.table$param))
+            attr(iX, "param") <- unique(iC.param)
             attr(iX, "indicator.param") <- stats::setNames(lapply(attr(iX, "param"),function(iP){attr(iX, "index.vec2matrix")[which(iC.table$param==iP)]}),
                                                            attr(iX, "param"))
             attr(iX,"Mindicator.param") <- stats::setNames(lapply(attr(iX, "param"), function(iParam){

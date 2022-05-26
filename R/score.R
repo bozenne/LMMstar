@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: maj 25 2022 (16:25) 
+## Last-Updated: May 26 2022 (09:02) 
 ##           By: Brice Ozenne
-##     Update #: 517
+##     Update #: 519
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -90,8 +90,8 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
             if(any(duplicated(names(p)))){
                 stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
             }
-            if(any(names(x$param$type) %in% names(p) == FALSE)){
-                stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(x$param$type)[names(x$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
+            if(any(names(x$param) %in% names(p) == FALSE)){
+                stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(x$param)[names(x$param) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
             }
             p <- p[names(x$param)]
         }else{

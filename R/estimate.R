@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: maj 24 2022 (16:40) 
+## Last-Updated: May 26 2022 (09:12) 
 ##           By: Brice Ozenne
-##     Update #: 516
+##     Update #: 522
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -259,10 +259,11 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
         type.information <- "expected"
         wolfe.c1 <- 1e-4
         wolfe.c2 <- 0.9
+        iIter <- 0
         if(trace>1){
             cat("\nLoop:\n")
         }
-        for(iIter in 0:(n.iter-1)){ ## iIter <- 1
+        for(iiIter in 0:(n.iter-1)){ ## iIter <- 1
             logLik.valueM1 <- logLik.value
             score.valueM1 <- score.value
 
@@ -275,8 +276,8 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
             score.value <- outMoments$score    
             information.value <- outMoments$information
 
-            if(all(abs(outMoments$score)<tol.score) && (iIter==0 || all(abs(param.valueM1 - param.value)<tol.param))){
-                if(iIter==0){param.valueM1 <- param.value * NA}
+            if(all(abs(outMoments$score)<tol.score) && (iiIter==0 || all(abs(param.valueM1 - param.value)<tol.param))){
+                if(iiIter==0){param.valueM1 <- param.value * NA}
                 cv <- TRUE
                 break
             }else if(is.na(logLik.value) || (logLik.value < logLik.valueM1)){ ## decrease in likelihood - try observed information matrix
@@ -323,15 +324,16 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
                                                   key.XX = key.XX,
                                                   design = design)
 
+            iIter <- iIter+1
             if(trace > 0 && trace < 3){
                 cat("*")
             }else if(trace==3){
-                cat("iteration ",iIter+1,": logLik=",formatC(outMoments$logLik, digit = 10),"\n",sep="")
+                cat("iteration ",iIter,": logLik=",formatC(outMoments$logLik, digit = 10),"\n",sep="")
             }else if(trace==4){
-                cat("iteration ",iIter+1,": logLik=",formatC(outMoments$logLik, digit = 10),"\n",sep="")
+                cat("iteration ",iIter,": logLik=",formatC(outMoments$logLik, digit = 10),"\n",sep="")
                 print(param.value)
             }else if(trace > 4){
-                cat("iteration ",iIter+1,": logLik=",formatC(outMoments$logLik, digit = 10),"\n",sep="")
+                cat("iteration ",iIter,": logLik=",formatC(outMoments$logLik, digit = 10),"\n",sep="")
                 M.print <- rbind(estimate = param.value,
                                  diff = c(param.value - param.valueM1),
                                  score = c(rep(NA, length(param.mu)),outMoments$score))
@@ -394,7 +396,7 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
         iIter <- res.optim$niter
         cv <- (res.optim$convcode==0)
     }
-    
+
     ## ** export
     return(list(estimate = param.value,
                 previous.estimate = param.valueM1,

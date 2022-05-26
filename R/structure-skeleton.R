@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: maj 25 2022 (17:07) 
+## Last-Updated: May 26 2022 (12:51) 
 ##           By: Brice Ozenne
-##     Update #: 2027
+##     Update #: 2069
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -51,8 +51,8 @@
 `.skeleton` <-
     function(structure, data, indexData) UseMethod(".skeleton")
 
-## * skeleton.IND
-.skeleton.IND <- function(structure, data, indexData = NULL){
+## * skeleton.ID
+.skeleton.ID <- function(structure, data, indexData = NULL){
 
     ## ** prepare
     if(is.null(indexData)){
@@ -150,6 +150,9 @@
     return(structure)
 }
 
+
+## * skeleton.IND
+.skeleton.IND <- .skeleton.ID
 
 ## * skeleton.CS
 .skeleton.CS <- .skeleton.IND
@@ -372,7 +375,7 @@
                 iCode <- c(iCode,iLpnCluster.cor[[iId]][iTest2])
                 iTest <- c(iTest,iTest2)
             }
-            fct.envir$iULpIndex.cor[[iId]] <- iTest
+            fct.envir$iULpIndex.cor[[iId]] <- sort(iTest)
             return(iCode)
         }), iCluster)
 
@@ -444,12 +447,10 @@
                     if(heterogeneous){
                         if(all(iCX.cor1==iCX.cor2)){return(cbind("R",iCX.cor1))}else{return(cbind(paste0("D",paste(iCX.cor1,collapse="")),iCX.cor2-iCX.cor1))}
                     }else{
-                        if(all(iCX.cor1==iCX.cor2)){return(matrix(c("R","0"), nrow = 1, ncol = 2))}else{return(cbind("D",sum(iCX.cor2!=iCX.cor1)))}
+                        if(all(iCX.cor1==iCX.cor2)){return(matrix(c("R",rep(iStrata,NCOL(iCX.cor1))), nrow = 1, ncol = 1+NCOL(iCX.cor1)))}else{return(matrix(c("D",as.numeric(iCX.cor2!=iCX.cor1)), nrow = 1))}
                     }
                 })))
-
                 iCode <- as.character(interaction(iDF.diff, drop=TRUE))
-                
                 ## name difference according to the covariate values
                 iName.covcor <- setdiff(names(attr(X.cor,"M.level")),strata.var)
                 iCov <- as.character(interaction(iData[,iName.covcor,drop=FALSE],drop=TRUE))
@@ -477,24 +478,25 @@
                                    k.x = NA,
                                    k.y = NA)
 
-                    if(!missing(X.var)){ ## add corresponding variance parameters
-                        iCX.sigma <- iX.sigma[iCindex,,drop=FALSE]
-                        iOut$sigma <- colnames(iCX.sigma)[colSums(iCX.sigma)!=0]
+                if(!missing(X.var)){ ## add corresponding variance parameters
+                    iCX.sigma <- iX.sigma[iCindex,,drop=FALSE]
+                    iOut$sigma <- colnames(iCX.sigma)[colSums(iCX.sigma)!=0]
 
-                        if(length(iX.k)>0){
-                            iCX.k <- iX.k[iCindex,,drop=FALSE]
+                    if(length(iX.k)>0){
+                        iCX.k <- iX.k[iCindex,,drop=FALSE]
+                        iNames.k <- colnames(iCX.k)
 
-                            iName2 <- sapply(1:NCOL(iPair.time),function(iCol){ ## iCol <- 1
-                                iName.x <- names(which(iCX.k[min(iPair.time[,iCol]),]==1))
-                                if(length(iName.x)==0){iName.x <- NA}
-                                iName.y <- names(which(iCX.k[max(iPair.time[,iCol]),]==1))
-                                if(length(iName.y)==0){iName.y <- NA}
-                                return(c(iName.x,iName.y))
-                            })
-                            iOut$k.x <- iName2[1,]
-                            iOut$k.y <- iName2[2,]
-                        }
+                        iName2 <- sapply(index.unique,function(iCol){ ## iCol <- 4
+                            iName.x <- iNames.k[which(iCX.k[min(iPair.time[,iCol]),]==1)]
+                            if(length(iName.x)==0){iName.x <- NA}
+                            iName.y <- iNames.k[which(iCX.k[max(iPair.time[,iCol]),]==1)]
+                            if(length(iName.y)==0){iName.y <- NA}
+                            return(c(iName.x,iName.y))
+                        })
+                        iOut$k.x <- iName2[1,]
+                        iOut$k.y <- iName2[2,]
                     }
+                }
                 out[[iStrata]] <- rbind(out[[iStrata]], iOut)
             
             }            

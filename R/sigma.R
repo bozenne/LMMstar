@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: maj 24 2022 (20:23) 
+## Last-Updated: May 26 2022 (12:29) 
 ##           By: Brice Ozenne
-##     Update #: 374
+##     Update #: 381
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -225,7 +225,10 @@ getVarCov.lmm <- function(obj, ...) {
     Upattern <- object$design$vcov$X$Upattern
     Xpattern.var <- object$design$vcov$X$Xpattern.var
     Xpattern.cor <- object$design$vcov$X$Xpattern.cor
-
+    data <- object$data
+    formula <- object$design$vcov$formula
+    Vindex.cluster <- attr(object$design$index.cluster, "vectorwise")
+    
     ## ** summary statistic of each pattern
     XCpattern.var <- lapply(Xpattern.var, function(iVar){as.character(interaction(as.data.frame(iVar),sep=sep[1]))})
     if(!is.null(object$design$vcov$X$Xpattern.cor)){
@@ -286,11 +289,18 @@ getVarCov.lmm <- function(obj, ...) {
 
     ## ** rename patterns
     Upattern.strata <- unlist(Upattern[match(keep.pattern,Upattern$name),"index.strata"])
-    if(all(!duplicated(Upattern.strata)) && all(1:object$strata$n %in% Upattern.strata)){
-        names(out) <- object$strata$levels[Upattern.strata]
-        out <- out[order(Upattern.strata)]
+
+    all.cov <- union(all.vars(formula$var), all.vars(formula$cor))
+    Ucov.cluster <- do.call(rbind,by(data[,all.cov,drop=FALSE],
+                                     INDICES = Vindex.cluster,
+                                     FUN = function(iData){apply(iData,MARGIN=2,FUN = function(iCol){iU <- unique(iCol); if(length(iU)==1){iU}else{NA}})}, simplify = FALSE))
+    Ucov.pattern <- which(colSums(is.na(Ucov.cluster))==0)
+    if(length(Ucov.pattern)>0){
+        iIndex.cluster <- sapply(Upattern[match(names(out),Upattern$name),"index.cluster"],"[",1)
+        covname.pattern <- as.character(interaction(Ucov.cluster[iIndex.cluster,Ucov.pattern,drop=FALSE], sep = sep[1], drop=TRUE))
+        names(out) <- covname.pattern
     }
-    
+
     ## ** export Omega
     return(out)
 }

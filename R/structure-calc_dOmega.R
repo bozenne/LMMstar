@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: maj 25 2022 (11:24) 
+## Last-Updated: May 26 2022 (09:58) 
 ##           By: Brice Ozenne
-##     Update #: 132
+##     Update #: 135
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -66,8 +66,8 @@
 `.calc_dOmega` <-
     function(object, param, Omega, Jacobian, transform.sigma, transform.k, transform.rho) UseMethod(".calc_dOmega")
 
-## * calc_dOmega.IND
-.calc_dOmega.IND <- function(object, param, Omega, Jacobian = NULL,
+## * calc_dOmega.ID
+.calc_dOmega.ID <- function(object, param, Omega, Jacobian = NULL,
                              transform.sigma = NULL, transform.k = NULL, transform.rho = NULL){
 
     ## ** prepare
@@ -108,16 +108,14 @@
         iOmega.sd <- attr(Omega[[iPattern]],"sd")
         iOmega.cor <- attr(Omega[[iPattern]],"cor")
         iOmega <- Omega[[iPattern]] ; attr(iOmega,"sd") <- NULL; attr(iOmega,"cor") <- NULL; attr(iOmega,"time") <- NULL;
-
-        iParam.sigma <- intersect(name.sigma, iName.param)
+        iParam.sigma <- intersect(iName.param, name.sigma)
         n.iParam.sigma <- length(iParam.sigma)
-        iParam.k <- intersect(name.k, iName.param)
+        iParam.k <- intersect(iName.param, name.k)
         n.iParam.k <- length(iParam.k)
-        iParam.rho <- intersect(name.rho, iName.param)
+        iParam.rho <- intersect(iName.param, name.rho)
         n.iParam.rho <- length(iParam.rho)
-        iParamVar <- c(iParam.sigma, iParam.k, iParam.rho)
 
-        iScore <- stats::setNames(vector(mode = "list", length = length(iParamVar)), iParamVar)
+        iScore <- stats::setNames(vector(mode = "list", length = length(iName.param)), iName.param)
         iIndicator.cor <- attr(X.cor[[iPattern.cor]],"indicator.param")
         iMindicator.var <- attr(X.var[[iPattern.var]],"Mindicator.param")
 
@@ -153,12 +151,12 @@
             ## [dOmega_[11]/d theta_1] ... [dOmega_[11]/d theta_p] %*% Jacobian
             ## [dOmega_[ij]/d theta_1] ... [dOmega_[ij]/d theta_p] %*% Jacobian
             ## [dOmega_[mm]/d theta_1] ... [dOmega_[mm]/d theta_p] %*% Jacobian
-            if(any(abs(Jacobian[iParamVar,setdiff(name.paramVar,iParamVar),drop=FALSE])>1e-10)){
+            if(any(abs(Jacobian[iName.param,setdiff(name.paramVar,iName.param),drop=FALSE])>1e-10)){
                 stop("Something went wrong when computing the derivative of the residual variance covariance matrix. \n",
                      "Contact the package manager with a reproducible example generating this error message. \n")
             }
-            M.iScore <- do.call(cbind,lapply(iScore,as.double)) %*% Jacobian[iParamVar,iParamVar,drop=FALSE]
-            iScore <- stats::setNames(lapply(1:NCOL(M.iScore), function(iCol){matrix(M.iScore[,iCol], nrow = iNtime, ncol = iNtime, byrow = FALSE)}), iParamVar)
+            M.iScore <- do.call(cbind,lapply(iScore,as.double)) %*% Jacobian[iName.param,iName.param,drop=FALSE]
+            iScore <- stats::setNames(lapply(1:NCOL(M.iScore), function(iCol){matrix(M.iScore[,iCol], nrow = iNtime, ncol = iNtime, byrow = FALSE)}), iName.param)
         }
         return(iScore)
     })
@@ -168,11 +166,14 @@
     return(out)
 }
 
+## * calc_dOmega.IND
+.calc_dOmega.IND <- .calc_dOmega.ID
+
 ## * calc_dOmega.CS
-.calc_dOmega.CS <- .calc_dOmega.IND
+.calc_dOmega.CS <- .calc_dOmega.ID
 
 ## * calc_dOmega.UN
-.calc_dOmega.UN <- .calc_dOmega.IND
+.calc_dOmega.UN <- .calc_dOmega.ID
 
 ## * calc_dOmega.CUSTOM
 .calc_dOmega.CUSTOM <- function(object, param, Omega, Jacobian = NULL){

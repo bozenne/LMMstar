@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: maj 25 2022 (16:25) 
+## Last-Updated: May 26 2022 (09:47) 
 ##           By: Brice Ozenne
-##     Update #: 985
+##     Update #: 989
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -98,8 +98,8 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
             if(any(duplicated(names(p)))){
                 stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
             }
-            if(any(names(x$param$type) %in% names(p) == FALSE)){
-                stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(x$param$type)[names(x$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
+            if(any(names(x$param) %in% names(p) == FALSE)){
+                stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(x$param)[names(x$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
             }
             p <- p[names(x$param)]
         }else{

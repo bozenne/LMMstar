@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: maj 25 2022 (16:52) 
+## Last-Updated: May 26 2022 (11:51) 
 ##           By: Brice Ozenne
-##     Update #: 1798
+##     Update #: 1817
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -223,11 +223,21 @@ lmm <- function(formula, repetition, structure, data,
                 stop("Inconsistency between the strata defined via the \'repetition\' and the \'structure\' argument. \n",
                      "\"",paste(var.strata2, collapse = "\" \""),"\" vs. \"",paste(var.strata, collapse = "\" \""),"\" \n")
             }else{
+                ## update structure with strata (including the call as it will be updated afterwards)
+                if(!identical(var.strata,var.strata2)){
+                    if(is.list(structure$call$formula)){
+                        structure$call$formula <- list(update(as.formula(structure$call$formula[[1]], as.formula(paste0(var.strata2,"~.")))),
+                                                       update(as.formula(structure$call$formula[[2]], as.formula(paste0(var.strata2,"~.")))))
+                    }else{
+                        structure$call$formula <- update(as.formula(structure$call$formula), as.formula(paste0(var.strata2,"~.")))
+                    }
+                    structure$name$strata <- var.strata2
+                }
+
                 var.strata <- var.strata2
             }
         }
     }
-
     ## compatibility structure/repetition
     if(!missing(structure)){
         if(all(is.na(var.cluster)) && structure$type %in% c("CS","UN")){
@@ -263,7 +273,11 @@ lmm <- function(formula, repetition, structure, data,
     }
     
     ## *** data
-    data <- .prepareData(data, var.cluster = var.cluster, var.time = var.time, var.strata = var.strata, missing.repetition = missing.repetition)
+    data <- .prepareData(data,
+                         var.cluster = var.cluster,
+                         var.time = var.time,
+                         var.strata = var.strata,
+                         missing.repetition = missing.repetition)
 
     ## cluster
     if(is.na(var.cluster)){

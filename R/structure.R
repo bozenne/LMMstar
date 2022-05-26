@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: maj 25 2022 (17:14) 
+## Last-Updated: May 26 2022 (14:20) 
 ##           By: Brice Ozenne
-##     Update #: 578
+##     Update #: 594
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -22,6 +22,7 @@
 ##'
 ##' @param formula A formula or a list of two formulas.
 ##' @param add.X additional covariates to be added to the variance and correlation structure.
+##' @param heterogeneous when \code{FALSE}, main effects are kept in the correlation structure.
 ##' 
 ##' @keywords internal
 ##' @examples
@@ -29,7 +30,7 @@
 ##' .formulaStructure( ~ time)
 ##' .formulaStructure(list( ~ gender+time,  ~ time))
 ##' .formulaStructure(strata ~ 1)
-.formulaStructure <- function(formula, add.X = NULL){
+.formulaStructure <- function(formula, add.X = NULL, heterogeneous = TRUE){
 
     ## ** normalize to formula format
     if(!is.list(formula)){
@@ -102,10 +103,12 @@
     }else{
         if(length(var.strata)==0){
             formula.cor <- stats::as.formula(paste("~",paste(ls.var.X$correlation,collapse="+")))
-        }else{
+        }else if(heterogeneous){
             formula.cor <- stats::as.formula(paste("~0+",paste(paste(ls.var.X$correlation,var.strata,sep=":"),collapse="+")))
             ## stats::update(terms.var, paste0("~0+",out$name$strata,"+",out$name$strata,":."))
             ## using ".:var.strata" does not work (it gives the same formula - does not invert . var.strata around the : symbol)
+        }else{
+            formula.cor <- stats::as.formula(paste("~0+",var.strata,"+",paste(paste(ls.var.X$correlation,var.strata,sep=":"),collapse="+")))
         }
     }
     
@@ -160,11 +163,11 @@ ID <- function(formula, var.cluster, var.time, add.time){
                 formula = list(var = outCov$formula.var,
                                cor = NULL),
                 heterogeneous = TRUE,
-                type = "IND")
+                type = "ID")
 
     ## export
     class(out) <- append("structure",class(out))
-    class(out) <- append("IND",class(out))
+    class(out) <- append("ID",class(out))
     return(out)
 }
 
@@ -260,13 +263,17 @@ IND <- function(formula, var.cluster, var.time, add.time){
 ##' @export
 CS <- function(formula, var.cluster, var.time, heterogeneous = TRUE, add.time){
     if(is.list(formula)){
-        outCov <- .formulaStructure(formula)
+        outCov <- .formulaStructure(formula, heterogeneous = heterogeneous)
     }else if(is.null(formula)){
-        outCov <- .formulaStructure(~1)
+        outCov <- .formulaStructure(~1, heterogeneous = heterogeneous)
     }else if(heterogeneous){
-        outCov <- .formulaStructure(formula)
+        outCov <- .formulaStructure(formula, heterogeneous = heterogeneous)
     }else{
-        outCov <- .formulaStructure(list(~1,formula))
+        if(attr(terms(formula),"response")==1){
+            outCov <- .formulaStructure(list(update(formula,.~0),formula), heterogeneous = heterogeneous)
+        }else{
+            outCov <- .formulaStructure(list(~1,formula), heterogeneous = heterogeneous)
+        }
     }
     if(length(outCov$X.var)==0 && length(outCov$X.cor)==0){
         heterogeneous <- FALSE
@@ -325,9 +332,10 @@ UN <- function(formula, var.cluster, var.time, add.time){
     }
     
     if(is.null(formula) || length(all.vars(formula))==0){
-        outCov <- .formulaStructure(~1, add.X = var.time)
+        outCov <- .formulaStructure(~1, add.X = add.X)
     }else{
-        outCov <- .formulaStructure(stats::as.formula(paste0(paste(all.vars(formula), collapse="+"),"~1")), add.X = var.time)
+        outCov <- .formulaStructure(stats::as.formula(paste0(paste(all.vars(formula), collapse="+"),"~1")),
+                                    add.X = add.X)
     }
 
     out <- list(call = match.call(),

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: maj 25 2022 (16:40) 
+## Last-Updated: May 26 2022 (14:25) 
 ##           By: Brice Ozenne
-##     Update #: 478
+##     Update #: 487
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -24,6 +24,7 @@
 ##' @param object [lmm] output of the \code{lmm} function.
 ##' @param digit [integer,>0] number of digit used to display numeric values.
 ##' @param level [numeric,0-1] confidence level for the confidence intervals.
+##' @param type.cor [character] should the correlation matrix be display (\code{"matrix"}) or the parameter values (\code{"param"}).
 ##' @param print [logical] should the output be printed in the console.
 ##' @param columns [character vector] Columns to be output for the fixed effects. Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
@@ -45,7 +46,7 @@
 ## * summary.lmm (code)
 ##' @rdname summary
 ##' @export
-summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print = TRUE, columns = NULL,
+summary.lmm <- function(object, digit = 3, level = 0.95, type.cor = NULL, robust = FALSE, print = TRUE, columns = NULL,
                         hide.fit = FALSE, hide.data = FALSE, hide.cor = is.null(object$formula$cor), hide.var = TRUE, hide.sd = FALSE, hide.mean = FALSE, ...){
 
     ## ** extract from object
@@ -83,7 +84,10 @@ summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print =
         columns <- options$columns.summary
     }
 
-
+    if(!is.null(type.cor)){
+        type.cor <- match.arg(type.cor, c("matrix","param"))
+    }
+    
     ## ** welcome message
     if(print){
         if(length(param.rho) == 0){
@@ -188,33 +192,30 @@ summary.lmm <- function(object, digit = 3, level = 0.95, robust = FALSE, print =
 
         ## find unique correlation patterns
         table.cor <- lapply(stats::sigma(object, simplifies = FALSE), stats::cov2cor)
-        if(length(table.cor)==1){ ## only one strata
-            table.cor <- table.cor[[1]]
-        }
         if(print){
-            if(is.list(table.cor)){
-                table.cor  <- lapply(table.cor, function(iCor){ ## iCor <- table.cor[[1]]
-                    if(is.matrix(iCor) && !is.null(rownames(iCor))){
-                        rownames(iCor) <- paste0("    ",rownames(iCor))
-                    }else{
-                        iCor <- lapply(iCor, function(iiCor){
-                            if(!is.null(rownames(iiCor))){
-                                rownames(iiCor) <- paste0("    ",rownames(iiCor))
-                            }
-                            return(iiCor)
-                        })
-                    }
-                    return(iCor)
-                })
-            }else if(!is.null(rownames(table.cor))){
-                rownames(table.cor) <- paste0("    ",rownames(table.cor))
-            }
-            if(object$time$n>10 || hide.cor==-1){
+            table.cor  <- lapply(table.cor, function(iCor){ ## iCor <- table.cor[[1]]
+                if(is.matrix(iCor) && !is.null(rownames(iCor))){
+                    rownames(iCor) <- paste0("    ",rownames(iCor))
+                }else{
+                    iCor <- lapply(iCor, function(iiCor){
+                        if(!is.null(rownames(iiCor))){
+                            rownames(iiCor) <- paste0("    ",rownames(iiCor))
+                        }
+                        return(iiCor)
+                    })
+                }
+                return(iCor)
+            })
+            if(identical(type.cor,"param") || (is.null(type.cor) && object$time$n>10)){
                 table.cor.print <- rbind(coef(object,effect="correlation"))
                 rownames(table.cor.print) <- "    "
                 print(table.cor.print)
             }else{
-                print(object, digit = digit)
+                if(length(table.cor)==1){ ## only one (unique) pattern
+                    print(table.cor[[1]], digit = digit)
+                }else{
+                    print(table.cor, digit = digit)
+                }                        
             }
             cat("\n")
         }

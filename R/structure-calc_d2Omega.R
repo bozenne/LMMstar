@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: maj 24 2022 (16:34) 
+## Last-Updated: May 26 2022 (08:49) 
 ##           By: Brice Ozenne
-##     Update #: 148
+##     Update #: 149
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -70,8 +70,8 @@
     function(object, param, Omega, dOmega, Jacobian, dJacobian,
              transform.sigma, transform.k, transform.rho) UseMethod(".calc_d2Omega")
 
-## * calc_d2Omega.IND
-.calc_d2Omega.IND <- function(object, param, Omega, dOmega, Jacobian = NULL, dJacobian = NULL,
+## * calc_d2Omega.ID
+.calc_d2Omega.ID <- function(object, param, Omega, dOmega, Jacobian = NULL, dJacobian = NULL,
                               transform.sigma = NULL, transform.k = NULL, transform.rho = NULL){
 
     ## ** prepare
@@ -240,11 +240,14 @@
     return(out)
 } 
 
+## * calc_d2Omega.IND
+.calc_d2Omega.IND <- .calc_d2Omega.ID
+
 ## * calc_d2Omega.CS
-.calc_d2Omega.CS <- .calc_d2Omega.IND
+.calc_d2Omega.CS <- .calc_d2Omega.ID
 
 ## * calc_d2Omega.UN
-.calc_d2Omega.UN <- .calc_d2Omega.IND
+.calc_d2Omega.UN <- .calc_d2Omega.ID
 
 ## * calc_d2Omega.CUSTOM
 .calc_d2Omega.CUSTOM <- function(object, param, Omega, dOmega, Jacobian = NULL, dJacobian = NULL){
