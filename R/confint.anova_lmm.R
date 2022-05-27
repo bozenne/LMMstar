@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: maj 23 2022 (10:25) 
+## Last-Updated: maj 27 2022 (13:33) 
 ##           By: Brice Ozenne
-##     Update #: 61
+##     Update #: 64
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -95,13 +95,13 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, simplif
 
                 myMvd <- copula::mvdc(copula = copula::normalCopula(param=rho[lower.tri(rho)], dim = NROW(rho), dispstr = "un"),
                                       margins = rep("t", n.marginal),
-                                      paramMargins = as.list(stats::setNames(floor(iOut[[iTest]]$df),rep("df",n.marginal))))
+                                      paramMargins = as.list(stats::setNames((iOut[[iTest]]$df),rep("df",n.marginal))))
                 maxH0 <- sort(apply(abs(copula::rMvdc(n.sample, myMvd)), 1, max))
                 
                 iOut[[iTest]]$p.value <- sapply(abs(iOut[[iTest]]$statistic), function(iT){(sum(iT <= maxH0)+1)/(n.sample+1)})
 
                 cH0 <- stats::quantile(maxH0, 0.95) ## attr(confint(iGlht)$confint,"calpha")
-                iOut[[iTest]]$df <- floor(iOut[[iTest]]$df)
+                iOut[[iTest]]$df <- iOut[[iTest]]$df
                 iOut[[iTest]]$lower <- iOut[[iTest]]$estimate - iOut[[iTest]]$se * cH0
                 iOut[[iTest]]$upper <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * cH0
                 attr(iOut[[iTest]], "n.sample") <-  n.sample

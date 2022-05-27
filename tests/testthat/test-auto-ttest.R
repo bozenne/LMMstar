@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: maj  4 2022 (17:50) 
+## Last-Updated: maj 27 2022 (14:10) 
 ##           By: Brice Ozenne
-##     Update #: 44
+##     Update #: 52
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -50,8 +50,8 @@ d$time <- "t1"
 
 ## ** test
 test_that("single t-test",{
-    e.lmm <- lmm(Y ~ Gender-1, repetition = ~Gender|id, structure = "UN", data = d, trace = 0, df = TRUE)
-    e2.lmm <- lmm(Y ~ Gender, repetition = ~Gender|id, structure = "UN", data = d, trace = 0, df = TRUE)
+    e.lmm <- lmm(Y ~ Gender-1, repetition = ~Gender|id, data = d, trace = 0, df = TRUE)
+    e2.lmm <- lmm(Y ~ Gender, repetition = ~Gender|id, data = d, trace = 0, df = TRUE)
 
     ## e3.lmm <- lmm(Y ~ Gender, repetition = ~Gender|id, structure = "UN", data = d, trace = 0)
     e.gls <- gls(Y ~ Gender, weights = varIdent(form=~1|Gender), data = d)
@@ -63,8 +63,11 @@ test_that("single t-test",{
     expect_equal(e.ttest$p.value, anova(e.lmm, effects = c("GenderM-GenderF=0"))$all$p.value, tol = 1e-5)
     expect_equal(e.ttest$p.value, confint(e2.lmm)["GenderF","p.value"], tol = 1e-5)
     ## summary(e.gls)$tTable
+    ## summary(e.lmm)$tTable
 })
-## confint(anova(e.lmm))
+## summary(anova(e.lmm))
+## summary(anova(e2.lmm))
+## summary(e.lmm)
 
 ## * paired t-test
 data(armd.wide, package = "nlmeU")
@@ -83,7 +86,7 @@ rownames(armd.longCC) <- NULL
 test_that("paired t-test",{
     ## LMMstar.options(optimizer = "FS")
     e.tt <- t.test(visual52-visual0 ~ treat.f, data = armd.wideCC)
-    e.lmm <- suppressMessages(lmm(visual ~ week*treat.f,
+    e.lmm <- suppressMessages(lmm(visual ~ week*treat.f, 
                                  repetition = ~ week | subject, structure = "UN",
                                  data = armd.longCC[armd.longCC$week %in% c("0","52"),]))
     e.confintlmm <- confint(e.lmm)
@@ -120,16 +123,16 @@ dL$visit <- factor(dL$visit,
 ## ** test
 test_that("multiple t-test",{
     ## profvis::profvis(e.lmm <- lmm(Y ~ visit + gender:visit - 1, structure = UN(gender~visit|id), data = dL, trace = 0))
-    e.lmm <- lmm(Y ~ visit + gender:visit - 1, repetition = gender~visit|id, structure = "UN", data = dL, trace = 0, df = TRUE)
-    e.lh <- anova(e.lmm, effects = c("gender:Y1"="visitY1:male - visitY1:female = 0",
-                                     "gender:Y2"="visitY2:male - visitY2:female = 0",
-                                     "gender:Y3"="visitY3:male - visitY3:female = 0",
-                                     "gender:Y4"="visitY4:male - visitY4:female = 0"))
+    e.lmm <- lmm(Y ~ visit:gender - 1, repetition = gender~visit|id, structure = "UN", data = dL, trace = 0, df = TRUE)
+    e.lh <- anova(e.lmm, effects = c("gender:Y1"="visitY1:gendermale - visitY1:genderfemale = 0",
+                                     "gender:Y2"="visitY2:gendermale - visitY2:genderfemale = 0",
+                                     "gender:Y3"="visitY3:gendermale - visitY3:genderfemale = 0",
+                                     "gender:Y4"="visitY4:gendermale - visitY4:genderfemale = 0"))
     
     ## check likelihood and score
     expect_equal(logLik(e.lmm), -240.1934, tol = 1e-5)
 
-    e.gls <- gls(Y ~ visit + gender:visit, correlation = corSymm(form=~1|id), weights = varIdent(form=~1|visit), data = dL)
+    e.gls <- gls(Y ~ visit + visit:gender, correlation = corSymm(form=~1|id), weights = varIdent(form=~1|visit), data = dL)
     ls.ttest <- list(t.test(Y1~gender, data = dW),
                      t.test(Y2~gender, data = dW),
                      t.test(Y3~gender, data = dW),

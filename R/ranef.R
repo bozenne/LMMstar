@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 26 2022 (11:18) 
 ## Version: 
-## Last-Updated: May 27 2022 (00:21) 
+## Last-Updated: maj 27 2022 (13:10) 
 ##           By: Brice Ozenne
-##     Update #: 124
+##     Update #: 159
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -73,7 +73,11 @@
     index.clusterStrata <- as.character(attr(nestingStructure,"index.clusterStrata"))
 
     ls.tau <- lapply(nestingStructure, function(iVec){ ## iVec <- nestingStructure[[1]]
-        rev(c(utils::tail(cumtau[iVec],1),diff(rev(cumtau[iVec]))))
+        iTau <- rev(c(utils::tail(cumtau[iVec],1),diff(rev(cumtau[iVec]))))
+        if(any(iTau<0)){
+            stop("Variance for the random effects is found to be negative - cannot estimate the random effects. \n")
+        }
+        return(iTau)
     })
     tau <- unlist(unname(ls.tau))
 
@@ -192,14 +196,17 @@
         iPattern <- as.character(pattern.cluster[iC,"cor"])
         iIndex.pair <- attr(Xpattern.cor[[iPattern]],"index.pair")
         if(length(col.within)==0){
-            return(unique(iIndex.pair$param))
+            iiDF <- data.frame(matrix(0, nrow = 1, ncol = n.rho), NA, NA, NA)
+            names(iiDF) <- c(name.rho, "index", "Z", "value")
+            iiDF[1,unique(iIndex.pair$param)] <- 1
+            return(iiDF)
         }
         iNtime <- NROW(Xpattern.cor[[iPattern]])
         iIndex.obs <- index.cluster[[iC]]
         iZ <- X.cor[iIndex.obs,col.within,drop=FALSE]
 
         iCol.within <- names(which(colSums(iZ!=0)>0))
-        iGrid <- do.call(rbind,lapply(iCol.within, function(iCol){data.frame(col = iCol.within, value = c(NA,unique(iZ[,iCol.within])))}))
+        iGrid <- do.call(rbind,lapply(iCol.within, function(iCol){data.frame(col = iCol, value = c(NA,unique(iZ[,iCol.within])))}))
 
         ls.iG <- lapply(1:NROW(iGrid), function(iiRow){  ##  iiRow <- 1
             iiCol <- iGrid[iiRow,"col"]
@@ -224,23 +231,16 @@
     })
 
     ## *** aggregate at strata level
-    if(length(col.within)>0){
-        out <- tapply(1:length(strata.clusterR), strata.clusterR, function(iIndex){
-            iDesign <- do.call(rbind,ls.cluster.design[iIndex])
-            iOccurence <- colSums(iDesign[,name.rho,drop=FALSE])
-            iOccurence <- iOccurence[iOccurence!=0]
-            if(any(duplicated(iOccurence))){
-                warning("Non strict nesting of the correlation components - identify of the random effect may be unreliable. \n")
-            }
-            iNesting <- names(iOccurence)[order(iOccurence, decreasing = TRUE)]
-            if(any(apply(iDesign[,iNesting,drop=FALSE],1,diff)>0)){
-                warning("Non fully nested factors  - identify of the random effect may be unreliable. \n")
-            }
-            return(iNesting)         
-        }, simplify = FALSE)
-    }else{
-        out <- stats::setNames(ls.cluster.design, strata.clusterR)
-    }
+    out <- tapply(1:length(strata.clusterR), strata.clusterR, function(iIndex){ ## iIndex <- 1
+        iDesign <- do.call(rbind,ls.cluster.design[iIndex])
+        iOccurence <- colSums(iDesign[,name.rho,drop=FALSE])
+        iOccurence <- iOccurence[iOccurence!=0]
+        if(any(duplicated(iOccurence))){
+            warning("Non strict nesting of the correlation components - identify of the random effect may be unreliable. \n")
+        }
+        iNesting <- names(iOccurence)[order(iOccurence, decreasing = TRUE)]
+        return(iNesting)         
+    }, simplify = FALSE)
 
     ## *** associate columns of the design matrix to correlation parameters
     df.param <- do.call(rbind,lapply(Xpattern.cor, function(iPattern){
@@ -249,32 +249,38 @@
             if(all(iPattern[,iiVar]==0)){
                 return(NULL)
             }else{
-                return(data.frame(variable = iiVar, value = unique(iPattern[,iiVar])))
+                iUvalue <- unique(iPattern[,iiVar])
+                iTable <- table(iPattern[,iiVar])
+                return(data.frame(variable = iiVar, value = iUvalue, rep = as.double(iTable[as.character(iUvalue)])))
             }
         }))
-        iGrid.param <- do.call(rbind,lapply(1:NROW(iGrid), function(iiG){ ## iiG <- 1
+        ## only consider levels with at least two observations, i.e. at least one pair
+        iIndex.grid <- which(iGrid$rep>1)
+        iGrid.param <- do.call(rbind,lapply(iIndex.grid, function(iiG){ ## iiG <- 1
             iiVar <- iGrid[iiG,"variable"]
             iiValue <- iGrid[iiG,"value"]
             iiPair <- which(iPattern[,iiVar]==iiValue)
             iiVec.param <- iIndex.pair[(iIndex.pair[,"row"] %in% iiPair) & (iIndex.pair[,"col"] %in% iiPair),"param"]
             return(table(factor(iiVec.param, levels = name.rho)))            
         }))
-        return(cbind(strata = index.clusterStrata2[attr(iPattern,"index.cluster")[1]], iGrid,iGrid.param>0))
+        return(cbind(strata = index.clusterStrata2[attr(iPattern,"index.cluster")[1]], iGrid[iIndex.grid,,drop=FALSE], iGrid.param>0))
     }))
+    rownames(df.param) <- NULL
 
     X.cor.assign <- stats::setNames(attr(X.cor,"assign"), colnames(X.cor))
     X.cor.terms <- stats::setNames(attr(X.cor,"term.labels"), colnames(X.cor))
     
     param2variable <- by(df.param, INDICES = df.param$strata, FUN = function(iDF){ ## iDF <- df.param
 
-            iCol <- colSums(iDF[,name.rho,drop=FALSE])
-            iCol2 <- iCol[iCol!=0]
-            iRow <- setNames(rowSums(iDF[,name.rho,drop=FALSE]), iDF$variable)
-            iRow2 <- iRow[!duplicated(iRow)]
+        ## rownames(iDF) <- NULL
+        iCol <- colSums(iDF[,name.rho,drop=FALSE])
+        iCol2 <- iCol[iCol!=0]
+        iRow <- setNames(rowSums(iDF[,name.rho,drop=FALSE]), iDF$variable)
+        iRow2 <- tapply(iRow, names(iRow), max)
 
-            if(length(iCol2)!=length(iRow2)){
-                stop("Something went wrong when associating the correlation parameters to the random effects. \n")
-            }
+        if(length(iCol2)!=length(iRow2)){
+            stop("Something went wrong when associating the correlation parameters to the random effects. \n")
+        }
     
         iOut <- data.frame(strata = iDF$strata[1],
                            param = names(sort(iCol2)), ## which parameter is the least there, i.e. is more global as it requires more pairs
@@ -285,7 +291,6 @@
         iOut$term.labels2 <- gsub(":","_X_XX_X_",iOut$term.labels)
         return(iOut)
     })
-
     class(param2variable) <- "list"
     attr(param2variable,"call") <- NULL
 

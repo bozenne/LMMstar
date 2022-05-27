@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 20 2022 (12:12) 
 ## Version: 
-## Last-Updated: maj 23 2022 (12:31) 
+## Last-Updated: maj 27 2022 (14:25) 
 ##           By: Brice Ozenne
-##     Update #: 14
+##     Update #: 18
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,7 +25,7 @@ if(FALSE){
 }
 
 context("Compare ICC estimation")
-LMMstar.options(optimizer = "FS", method.numDeriv = "simple", precompute.moments = TRUE)
+LMMstar.options(optimizer = "gls", method.numDeriv = "simple", precompute.moments = TRUE)
 
 ## * Correlation
 
@@ -45,13 +45,13 @@ test_that("estimate correlation via lmm", {
     test2 <- partialCor(c(V1,V2)~1, data.frame(V1 = Y[,1], V2= Y[,2]))
     
     ## same point estimate
-    expect_equal(as.double(test[,"estimate"]),as.double(GS["estimate.cor"]), tol = 1e-6)
-    expect_equal(as.double(test2[,"estimate"]),as.double(GS["estimate.cor"]), tol = 1e-6)
+    expect_equal(as.double(test[,"estimate"]),as.double(GS["estimate.cor"]), tol = 1e-5)
+    expect_equal(as.double(test2[,"estimate"]),as.double(GS["estimate.cor"]), tol = 1e-5)
  
     ## but different ci
     as.double(GS-test)
-    expect_equal(as.double(test$lower),as.double(test2$lower), tol = 1e-6)
-    expect_equal(as.double(test$upper),as.double(test2$upper), tol = 1e-6)
+    expect_equal(as.double(test$lower),as.double(test2$lower), tol = 1e-5)
+    expect_equal(as.double(test$upper),as.double(test2$upper), tol = 1e-5)
 })
 
 ## * Partial correlation
@@ -77,7 +77,6 @@ test_that("estimate partial correlation via lmm", {
     GS - e.aovlmm[[1]][names(GS),"partial.R2"] ## some difference in age effect
     
     expect_equal(e.aovlmm[[1]][names(GS),"partial.R2"], e.aovlmm[[2]][names(GS),"partial.R"]^2, tol = 1e-6)
-
 })
 
 ## * ICC

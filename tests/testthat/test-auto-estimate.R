@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 31 2022 (11:36) 
 ## Version: 
-## Last-Updated: maj  9 2022 (15:49) 
+## Last-Updated: maj 27 2022 (14:48) 
 ##           By: Brice Ozenne
-##     Update #: 57
+##     Update #: 59
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,6 +25,8 @@ if(FALSE){
 }
 
 context("Check delta method (estimate function) for mixed model")
+LMMstar.options(optimizer = "gls", method.numDeriv = "Richardson", precompute.moments = TRUE,
+                columns.confint = c("estimate","se","df","lower","upper","p.value"))
 
 ## * Compare change with complete data
 ## ** Simulate data
@@ -70,6 +72,12 @@ test_that("delta method for association based on residual variance", {
         c(Y1 = p["rho(Y1,Y2)"]*p["k.Y2"],
           X1 = p["variableY2:X1"]-p["k.Y2"]*p["rho(Y1,Y2)"]*p["variableY1:X1"])
     })
+    e.deltaANCOVA1.bis <- estimate(e.lmmANCOVA1, function(p){
+        Omega <- sigma(e.lmmANCOVA1, p = p)
+        c(Y1 = Omega["Y1","Y2"]/Omega["Y1","Y1"],
+          X1 = p["variableY2:X1"]-(Omega["Y1","Y2"]/Omega["Y1","Y1"])*p["variableY1:X1"])
+    })
+    
     
     expect_equal(e.deltaANCOVA1["Y1","estimate"], unname(e.OmegaANCOVA1["Y1","Y2"]/e.OmegaANCOVA1["Y1","Y1"]), tol = 1e-10)
     expect_equal(e.deltaANCOVA1["Y1","se"], unname(sqrt(e.varANCOVA1)), tol = 1e-10)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: May 26 2022 (11:51) 
+## Last-Updated: maj 27 2022 (14:24) 
 ##           By: Brice Ozenne
-##     Update #: 1817
+##     Update #: 1841
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -182,6 +182,7 @@ lmm <- function(formula, repetition, structure, data,
     ## *** repetition 
     if(missing(repetition)){
         missing.repetition <- TRUE
+        update.strataStructure <- FALSE
         if(missing(structure)){
             var.cluster  <- NA
             var.time  <- NA
@@ -223,21 +224,14 @@ lmm <- function(formula, repetition, structure, data,
                 stop("Inconsistency between the strata defined via the \'repetition\' and the \'structure\' argument. \n",
                      "\"",paste(var.strata2, collapse = "\" \""),"\" vs. \"",paste(var.strata, collapse = "\" \""),"\" \n")
             }else{
-                ## update structure with strata (including the call as it will be updated afterwards)
-                if(!identical(var.strata,var.strata2)){
-                    if(is.list(structure$call$formula)){
-                        structure$call$formula <- list(update(as.formula(structure$call$formula[[1]], as.formula(paste0(var.strata2,"~.")))),
-                                                       update(as.formula(structure$call$formula[[2]], as.formula(paste0(var.strata2,"~.")))))
-                    }else{
-                        structure$call$formula <- update(as.formula(structure$call$formula), as.formula(paste0(var.strata2,"~.")))
-                    }
-                    structure$name$strata <- var.strata2
-                }
-
+                update.strataStructure <- TRUE
                 var.strata <- var.strata2
             }
+        }else{
+            update.strataStructure <- FALSE
         }
     }
+    
     ## compatibility structure/repetition
     if(!missing(structure)){
         if(all(is.na(var.cluster)) && structure$type %in% c("CS","UN")){
@@ -374,11 +368,11 @@ lmm <- function(formula, repetition, structure, data,
         }
 
         ## structure
-        if(structure$type %in% c("IND","ID","CS","UN")){
+        if(!missing(structure) && structure$type %in% c("IND","ID","CS","UN") == FALSE){
             stop("Argument \'structure\' must be of type \"IND\", \"ID\", \"CS\", or \"UN\" when using gls optimizer. \n",
                  "Otherwise add argument control = list(optimizer = \"FS\"). \n")
         }
-        if(!identical(structure$name$cor,NA)){
+        if(!missing(structure) && length(structure$name$cor[[1]])>0 && any(!is.na(structure$name$cor[[1]]))){
             stop("Argument \'structure\' cannot depend on covariates other than for stratification when using gls optimizer. \n",
                  "Otherwise add argument control = list(optimizer = \"FS\"). \n")
         }
@@ -481,11 +475,9 @@ lmm <- function(formula, repetition, structure, data,
     }else{
         formula.design <- stats::as.formula(stats::delete.response(stats::terms(formula)))
     }
+
     out$formula <- list(mean = formula,
-                        mean.design = formula.design,
-                        var.design = structure$formula$var,
-                        cor.design = structure$formula$cor)
-    var.Z <- c(all.vars(out$formula$var.design),all.vars(out$formula$cor.design))
+                        mean.design = formula.design)
     if(trace>=2){cat("\n")}
 
     ## *** residual variance-covariance structure
@@ -493,15 +485,15 @@ lmm <- function(formula, repetition, structure, data,
 
     if(missing(structure)){
         if(any(duplicated(data[["XXclusterXX"]]))){
-            if(is.na(attr(time.var,"original"))){
-                structure <- "CS"
+            if(is.na(attr(var.time,"original"))){
+                structure <- CS(~1)
             }else{
-                structure <- "UN"
+                structure <- UN(~1)
             }
         }else if(length(levels(data[["XXtimeXX"]]))>1){
-            structure <- "IND"
+            structure <- IND(~1)
         }else{
-            structure <- "ID"
+            structure <- ID(~1)
         }
     }
 
@@ -527,12 +519,26 @@ lmm <- function(formula, repetition, structure, data,
     if(is.na(structure$name$cluster)){
         args.structure$var.time <- "XXtime.indexXX"
     }
+    ## add strata to the call
+    if(update.strataStructure){
+        if(is.list(args.structure$formula)){
+            args.structure$formula <- list(update(as.formula(args.structure$formula[[1]], as.formula(paste0(var.strata2,"~.")))),
+                                           update(as.formula(args.structure$formula[[2]], as.formula(paste0(var.strata2,"~.")))))
+        }else{
+            args.structure$formula <- update(as.formula(args.structure$formula), as.formula(paste0(var.strata2,"~.")))
+        }
+    }
+
     if(inherits(call.structure[[1]], "function")){
         structure <- do.call(call.structure[[1]], args = args.structure)
     }else{
         structure <- do.call(deparse(call.structure[[1]]), args = args.structure)
     }
     if(structure$type=="CUSTOM"){precompute.moments <- FALSE}
+    
+    out$formula$var.design <- structure$formula$var
+    out$formula$cor.design <- structure$formula$cor
+    var.Z <- c(all.vars(out$formula$var.design),all.vars(out$formula$cor.design))
     if(trace>=2){cat("\n")}
 
     ## *** missing values
@@ -565,7 +571,7 @@ lmm <- function(formula, repetition, structure, data,
         index.na <- NULL
     }
 
-    out$data <- data
+    out$data <- data.save
     out$index.na <- index.na
 
     if(trace>=2){cat("\n")}
@@ -632,7 +638,7 @@ lmm <- function(formula, repetition, structure, data,
 
     if(optimizer=="gls"){
         name.var <- unlist(structure$name$var)
-        if(length(name.var)>0){
+        if(length(name.var)>0 && any(!is.na(name.var))){
             form.var <- stats::as.formula(paste0("~1|", paste(name.var[[1]], collapse = "*")))
             txt.var <- paste0("weights = nlme::varIdent(form = ", deparse(form.var), "), ")
         }else{

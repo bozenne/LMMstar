@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: mar 14 2022 (09:41) 
+## Last-Updated: maj 27 2022 (11:25) 
 ##           By: Brice Ozenne
-##     Update #: 79
+##     Update #: 80
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -418,6 +418,27 @@ NULL
 #' Nephrol Dial Transplant (2020) 110. doi: 10.1093/ndt/gfaa114
 #' @keywords data
 NULL
+
+## * school
+## ** schoolL
+#' @title Simulated Data with 3-level struture (Long Format)
+#'
+#' @description Simulated data a nested structure: Student/Class/School and one outcome.
+#'
+#' \itemize{
+#' \item school 
+#' \item class 
+#' \item student
+#' \item outcome  
+#' }
+#' 
+#' @name schoolL
+#' @docType data
+#' @usage data(schoolL)
+#' @keywords data
+NULL
+## save(schoolL, file = "data/schooL.rda")
+## str(schoolL)
 
 ## * swabs
 ## ** swabsW

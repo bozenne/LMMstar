@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: May 26 2022 (09:58) 
+## Last-Updated: maj 27 2022 (13:15) 
 ##           By: Brice Ozenne
-##     Update #: 135
+##     Update #: 137
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -88,12 +88,13 @@
     pattern.cluster <- object$X$pattern.cluster$pattern
     X.var <- object$X$Xpattern.var
     X.cor <- object$X$Xpattern.cor
+
     if(identical(transform.sigma,"log") && identical(transform.k,"log") && identical(transform.rho,"atanh")){
         Jacobian <- NULL
     }else{
-        transform.sigma <- NULL
-        transform.k <- NULL
-        transform.rho <- NULL
+        transform.sigma <- "none"
+        transform.k <- "none"
+        transform.rho <- "none"
     }
     log.param <- log(param[c(name.sigma,name.k)])
 

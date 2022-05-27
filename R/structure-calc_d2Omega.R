@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: May 26 2022 (08:49) 
+## Last-Updated: maj 27 2022 (14:48) 
 ##           By: Brice Ozenne
-##     Update #: 149
+##     Update #: 157
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -100,9 +100,9 @@
         Jacobian <- NULL
         dJacobian <- NULL
     }else{
-        transform.sigma <- NULL
-        transform.k <- NULL
-        transform.rho <- NULL
+        transform.sigma <- "none"
+        transform.k <- "none"
+        transform.rho <- "none"
     }
     if(!is.null(Jacobian)){
         test.nooffdiag <- all(abs(c(Jacobian[lower.tri(Jacobian,diag=FALSE)],Jacobian[upper.tri(Jacobian,diag=FALSE)]))<1e-10)
@@ -179,7 +179,11 @@
                     if(transform.k == "log"){
                         iHess[[iiPair]] <- iMindicator.var1 * iMindicator.var2 * iOmega
                     }else{ ## no transformation  (other transformations are made through jacobian)
-                        iHess[[iiPair]] <- iMindicator.var1 * iMindicator.var2 * iOmega / (param[iCoef1]*param[iCoef2])
+                        if(iCoef1==iCoef2){
+                            iHess[[iiPair]] <- iMindicator.var1*(iMindicator.var1-1) * iOmega / param[iCoef1]^2
+                        }else{
+                            iHess[[iiPair]] <- iMindicator.var1 * iMindicator.var2 * iOmega / (param[iCoef1]*param[iCoef2])
+                        }
                     }
                 }else if(iType2 == "rho"){
                     if(transform.k == "log"){

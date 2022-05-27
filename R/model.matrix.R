@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: May 26 2022 (12:50) 
+## Last-Updated: maj 27 2022 (14:08) 
 ##           By: Brice Ozenne
-##     Update #: 2059
+##     Update #: 2067
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -118,7 +118,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             ## use stats::model.frame to handle spline
             design$mean  <- .mean.matrix.lmm(formula = object$formula$mean.design, colnames = colnames(object$design$mean),
                                              data = stats::model.frame(attr(object$design$mean,"terms"), data = data.mean , na.action = stats::na.pass), 
-                                             U.strata = if(object$opt$name=="gls"){object$strata$levels}else{NA}) ## only stratify mean if gls optimizer
+                                             stratify = (object$opt$name=="gls") && (object$strata$n>1), name.strata = object$strata$var, U.strata = object$strata$levels) ## only stratify mean if gls optimizer
         }
     
         ## *** variance
@@ -233,12 +233,13 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 
 
 ## * .mean.matrix.lmm
-.mean.matrix.lmm <- function(formula, colnames, data, U.strata){
+.mean.matrix.lmm <- function(formula, colnames, data,
+                             stratify, name.strata, U.strata){
 
-    n.strata <- length(U.strata)
 
     ## ** design matrix
-    if(n.strata>1){
+    if(stratify && length(U.strata)>1){
+        n.strata <- length(U.strata)
 
         ## *** generate design matrix for each strata
         ls.X.mean <- lapply(U.strata, function(iS){ ## iS <- U.strata[1]
@@ -247,7 +248,11 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             }else{
                 iX <- stats::model.matrix(formula, data[data$XXstrataXX==iS,,drop=FALSE])
             }
-            colnames(iX) <- paste0(colnames(iX),":",iS)
+            if(name.strata!="XXstrataXX"){
+                colnames(iX) <- paste0(colnames(iX),":",name.strata,iS)
+            }else{
+                colnames(iX) <- paste0(colnames(iX),":",iS)
+            }
             attr(iX,"index") <- data[data$XXstrataXX==iS,"XXindexXX"]
             return(iX)
         })
@@ -406,7 +411,8 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     ## ** mean
     ## use stats::model.frame to handle splines
     data.mf <- stats::model.frame(stats::update(formula.mean,~.+XXindexXX+XXtimeXX+XXclusterXX+XXstrataXX),data)
-    X.mean <- .mean.matrix.lmm(formula = formula.mean, colnames = NULL, data = data.mf, U.strata = if(stratify.mean){U.strata}else{NA})  ## only stratify mean if gls optimizer
+    X.mean <- .mean.matrix.lmm(formula = formula.mean, colnames = NULL, data = data.mf,
+                               stratify = stratify.mean, name.strata = structure$name$strata, U.strata = U.strata)  ## only stratify mean if gls optimizer
     strata.mu <- attr(X.mean,"strata.mu")
     attr(X.mean,"strata.mu") <- NULL
     attr(X.mean,"terms") <- attr(data.mf,"terms")
@@ -683,7 +689,6 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     if(X.qr$rank==NCOL(X)){
         return(X)
     }
-    browser()
     if(any(attr(X,"order")>2)){
         stop("Cannot handle interaction involving more than two variables. \n")
     }
@@ -868,7 +873,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 
     ## *** find strata corresponding to each cluster
     if(!is.na(strata.var)){
-        iMatch <- tapply(data[[strata.var]],data[[cluster.var]],unique)
+        iMatch <- tapply(as.character(data[[strata.var]]),data[[cluster.var]],unique)
         index.clusterStrata <- stats::setNames(match(iMatch, U.strata), names(iMatch))
     }else{
         index.clusterStrata <- stats::setNames(rep(1, length(U.cluster)), U.cluster)
