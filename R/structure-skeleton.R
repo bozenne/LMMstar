@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: maj 27 2022 (13:38) 
+## Last-Updated: May 28 2022 (17:15) 
 ##           By: Brice Ozenne
-##     Update #: 2073
+##     Update #: 2112
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -163,52 +163,37 @@
 ## * skeleton.CUSTOM
 .skeleton.CUSTOM <- function(structure, data, indexData = NULL){
 
-    ## ** prepare
-    if(is.null(indexData)){
-        indexData <- .extractIndexData(data = data, structure = structure)
-    }
-    strata.var <- indexData$strata.var
-    U.time <- structure$U.time
-    U.cluster <- structure$U.cluster
-    U.strata <- structure$U.strata
-    n.strata <- length(U.strata)
-    
-    index.clusterTime <- indexData$index.clusterTime ## list of index relative to the time at which the observations are made within cluster
-    index.clusterStrata <- indexData$index.clusterStrata ## vector of index relative to which strata each cluster belong to
-    index.cluster <- indexData$index.cluster ## list of positions of the observation belonging to each cluster in the dataset
-    cor.var <- structure$name$cor[[1]]
-
-    X.var <- structure$X$var
-    X.cor <- structure$X$cor
-
-    ## ** param
+    ## ** gather parameters
     structure$param <- NULL
     if(!is.null(structure$FCT.sigma)){
         structure$param <- rbind(structure$param,
                                  data.frame(name = names(structure$init.sigma),
                                             strata = 1,
                                             type = "sigma",
-                                            time = NA,
-                                            name2 = as.character(NA)))
+                                            level = as.character(NA),
+                                            code = as.character(NA),
+                                            code.x = NA,
+                                            code.y = NA,
+                                            sigma = as.character(NA),
+                                            k.x = as.character(NA),
+                                            k.y = as.character(NA)))
     }
+
     if(!is.null(structure$FCT.rho)){
         structure$param <- rbind(structure$param,
                                  data.frame(name = names(structure$init.rho),
                                             strata = 1,
                                             type = "rho",
-                                            time = NA,
-                                            name2 = as.character(NA)))
+                                            level = as.character(NA),
+                                            code = as.character(NA),
+                                            code.x = NA,
+                                            code.y = NA,
+                                            sigma = as.character(NA),
+                                            k.x = as.character(NA),
+                                            k.y = as.character(NA)))
     }
-
-
-    ## ** prepare for  patterns
-    if(!is.null(X.cor)){
-        outRho <- .initRho(data = data, X.cor = X.cor, heterogeneous = structure$heterogeneous, 
-                           U.cluster = U.cluster, index.cluster = index.cluster,
-                           U.time = U.time, index.clusterTime = index.clusterTime, 
-                           U.strata = U.strata, index.clusterStrata = index.clusterStrata, n.strata = n.strata)
-        attr(structure$param,"lpdiff.rho") <- outRho$code        
-    }
+    structure$param$code.x <- rep(list(NULL), NROW(structure$param))
+    structure$param$code.y <- rep(list(NULL), NROW(structure$param))
 
     ## ** pattern
     return(structure)

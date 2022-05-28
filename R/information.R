@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: May 26 2022 (09:47) 
+## Last-Updated: May 28 2022 (17:40) 
 ##           By: Brice Ozenne
-##     Update #: 989
+##     Update #: 990
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -328,7 +328,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
                     iCoef2 <- pair.varcoef[[iPattern]][2,iPair]
 
                     iValue <- 0.5 * iWeight * tr_OmegaM1_d2OmegaAndCo[[iPattern]][iPair]
-                    ## 0.5 * tr(iOmegaM1 %*% idOmega$sigma %*% iOmegaM1 %*% idOmega$sigma)
+                    ## 0.5 * ntr(iOmegaM1 %*% idOmega$sigma %*% iOmegaM1 %*% idOmega$sigma)
 
                     if(type.information == "observed"){
                         iValue <- iValue - 0.5 * iWeight * (t(iResidual) %*% OmegaM1_d2OmegaAndCo_OmegaM1[[iPattern]][,,iPair] %*% iResidual) * scale.Omega[iId]

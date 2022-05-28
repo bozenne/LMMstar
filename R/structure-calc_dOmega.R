@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: maj 27 2022 (13:15) 
+## Last-Updated: May 28 2022 (17:35) 
 ##           By: Brice Ozenne
-##     Update #: 137
+##     Update #: 156
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -68,7 +68,7 @@
 
 ## * calc_dOmega.ID
 .calc_dOmega.ID <- function(object, param, Omega, Jacobian = NULL,
-                             transform.sigma = NULL, transform.k = NULL, transform.rho = NULL){
+                            transform.sigma = NULL, transform.k = NULL, transform.rho = NULL){
 
     ## ** prepare
     type <- object$param$type
@@ -177,7 +177,11 @@
 .calc_dOmega.UN <- .calc_dOmega.ID
 
 ## * calc_dOmega.CUSTOM
-.calc_dOmega.CUSTOM <- function(object, param, Omega, Jacobian = NULL){
+.calc_dOmega.CUSTOM <- function(object, param, Omega, Jacobian = NULL,
+                                transform.sigma = NULL, transform.k = NULL, transform.rho = NULL){
+
+    Upattern <- object$X$Upattern
+    n.Upattern <- NROW(Upattern)
 
     FCT.sigma <- object$FCT.sigma
     FCT.rho <- object$FCT.rho
@@ -194,8 +198,8 @@
         }, x = param[c(name.sigma,name.rho)])
 
         vec.pattern <- unlist(lapply(names(Omega), function(iName){
-            iTime <- attr(Omega[[iName]],"time")
-            iNtime <- length(iTime)
+            iTime <- attr(Omega[[iName]],"time") ## warning: may be NULL
+            iNtime <- Upattern[Upattern$name==iName,"n.time"]
             iOut <- matrix(iName, nrow = iNtime, ncol = iNtime, dimnames = list(iTime,iTime))
         }))
         out <- by(data = vec.dOmega, INDICES = vec.pattern, FUN = function(idOmega){ ## idOmega <- vec.dOmega[1:16,]
@@ -206,28 +210,35 @@
             names(iOut) <- c(name.sigma,name.rho)
             return(iOut)
         })
+        class(out) <- "list"
+        attr(out,"call") <- NULL
+
     }else{
 
-        Upattern <- object$X$Upattern
-        n.Upattern <- NROW(Upattern)
         pattern.cluster <- object$X$pattern.cluster
         X.var <- object$X$var
         X.cor <- object$X$cor
 
         out <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
 
-            iIndex <- attr(object$X$Upattern$example[[iPattern]],"index")
-            iTime <- Upattern[iPattern,"time"][[1]]
-            iNtime <- length(iTime)
-
-            iX.var <- X.var[iIndex,,drop=FALSE]
-            iOmega.sd <- unname(attr(Omega[[iPattern]], "sd"))
-            idOmega.sd <- dFCT.sigma(param[name.sigma],iTime,iX.var)
+            ## derivative of sd with respect to the variance parameters
+            iPattern.var <- object$X$Upattern$var[iPattern]
+            iNtime <- object$X$Upattern$n.time[iPattern]
+            iX.var <- object$X$Xpattern.var[[iPattern.var]]
+            iTime <- attr(iX.var, "index.time")
+            iOmega.sd <- attr(Omega[[iPattern]], "sd")
+            idOmega.sd <- dFCT.sigma(p = param[name.sigma], time = iTime, X = iX.var)
         
+            ## derivative of rho with respect to the correlation parameters
             if(iNtime > 1 && !is.null(X.cor)){
-                iX.cor <- X.cor[iIndex,,drop=FALSE]
+                iPattern.cor <- object$X$Upattern$cor[iPattern]
+                iX.cor <- object$X$Xpattern[[iPattern.cor]]
                 iOmega.cor <- attr(Omega[[iPattern]], "cor")
-                idOmega.cor <- dFCT.rho(param[name.rho],iTime,iX.cor)
+                idOmega.cor <- dFCT.rho(p = param[name.rho], time = iTime, X = iX.cor)
+            }
+
+            ## derivative of Omega with respect to the variance and correlation parameters
+            if(iNtime > 1 && !is.null(X.cor)){
                 iOut <- c(
                     lapply(idOmega.sd, function(iDeriv){
                         iDeriv <- unname(iDeriv)
@@ -247,7 +258,6 @@
             return(iOut)
         }), Upattern$name)
     }
-
     return(out)
 }
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: May 26 2022 (12:29) 
+## Last-Updated: May 28 2022 (16:34) 
 ##           By: Brice Ozenne
-##     Update #: 381
+##     Update #: 386
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -151,6 +151,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, inverse = FALSE, simplif
         
         out <- .getUVarCov(object, Omega = Omega)
         for(iO in 1:length(out)){ ## iO <- 6
+            attr(out[[iO]],"time") <- NULL
             attr(out[[iO]],"sd") <- NULL
             attr(out[[iO]],"cor") <- NULL
         }
@@ -162,6 +163,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, inverse = FALSE, simplif
 
         for(iO in 1:length(out)){ ## iO <- 6
             dimnames(out[[iO]]) <- list(U.time[attr(out[[iO]],"time")],U.time[attr(out[[iO]],"time")])
+            attr(out[[iO]],"time") <- NULL
             attr(out[[iO]],"sd") <- NULL
             attr(out[[iO]],"cor") <- NULL
         }
@@ -278,7 +280,11 @@ getVarCov.lmm <- function(obj, ...) {
         Upattern.var <- Upattern$var[match(keep.pattern,Upattern$name)]
         iIndex.time <- lapply(Xpattern.var[Upattern.var], function(iX){object$design$index.clusterTime[[attr(iX,"index.cluster")[1]]]})
         out <- mapply(x = Omega[keep.pattern], y = iIndex.time, function(x,y){
-            dimnames(x) <- list(U.time[y],U.time[y])
+            if(!is.null(attr(x,"time"))){
+                dimnames(x) <- list(U.time[attr(x,"time")],U.time[attr(x,"time")])
+            }else{
+                dimnames(x) <- list(U.time[y],U.time[y])
+            }
             dimnames(attr(x,"sd")) <- list(U.time[y],NULL)
             dimnames(attr(x,"cor")) <- list(U.time[y],U.time[y])
             return(x)
@@ -286,7 +292,6 @@ getVarCov.lmm <- function(obj, ...) {
     }else{
         out <- Omega[keep.pattern]
     }
-
     ## ** rename patterns
     Upattern.strata <- unlist(Upattern[match(keep.pattern,Upattern$name),"index.strata"])
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: May 26 2022 (08:49) 
+## Last-Updated: May 28 2022 (16:40) 
 ##           By: Brice Ozenne
-##     Update #: 451
+##     Update #: 461
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -92,6 +92,7 @@
         if(keep.interim){
             attr(Omega,"sd") <- Omega.sd
             attr(Omega,"cor") <- Omega.cor
+            attr(Omega,"time") <- attr(X.var[[iPattern.var]], "index.time")
         }
         return(Omega)
     }), Upattern$name)
@@ -123,24 +124,24 @@
 
     Omega <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
 
-        iIndex <- attr(object$X$Upattern$example[[iPattern]],"index")
-        iTime <- Upattern[iPattern,"time"][[1]]
-        iNtime <- length(iTime)
-
-        iX.var <- X.var[iIndex,,drop=FALSE]
-        iOmega.sd <- FCT.sigma(param[name.sigma],iTime,iX.var)
+        iPattern.var <- object$X$Upattern$var[iPattern]
+        iNtime <- object$X$Upattern$n.time[iPattern]
+        iX.var <- object$X$Xpattern.var[[iPattern.var]]
+        iTime <- attr(iX.var, "index.time")
+        iOmega.sd <- FCT.sigma(p = param[name.sigma], time = iTime, X = iX.var)
         
         if(iNtime > 1 && !is.null(X.cor)){
-            iX.cor <- X.cor[iIndex,,drop=FALSE]
-            iOmega.cor <- FCT.rho(param[name.rho],iTime,iX.cor)
+            iPattern.cor <- object$X$Upattern$cor[iPattern]
+            iX.cor <- object$X$Xpattern[[iPattern.cor]]
+            iOmega.cor <- FCT.rho(p = param[name.rho], time = iTime, X = iX.var)
             diag(iOmega.cor) <- 0
         }
         iOmega <- diag(as.double(iOmega.sd)^2, nrow = iNtime, ncol = iNtime) + iOmega.cor * tcrossprod(iOmega.sd)
         
         if(keep.interim){
-            attr(iOmega,"time") <- iTime
             attr(iOmega,"sd") <- iOmega.sd
             attr(iOmega,"cor") <- iOmega.cor
+            attr(iOmega,"time") <- iTime
         }
         return(iOmega)
     }), Upattern$name)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: maj 27 2022 (14:08) 
+## Last-Updated: May 28 2022 (17:25) 
 ##           By: Brice Ozenne
-##     Update #: 2067
+##     Update #: 2085
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -437,35 +437,10 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     structure <- .skeleton(structure = structure, data = data, indexData = outInit)
 
     ## *** covariance pattern
-    outPattern <- .findUpatterns(X.var = structure$X$var, X.cor = structure$X$cor, param = structure$param,
-                                 data = data, heterogeneous = structure$heterogeneous,
-                                 time.var = structure$name$time.var, index.clusterTime = outInit$index.clusterTime, U.time = U.time,
-                                 index.cluster = outInit$index.cluster, U.cluster = U.cluster,
-                                 strata.var = structure$name$strata.var,  index.clusterStrata = outInit$index.clusterStrata, U.strata = U.strata)
-
-    structure$X <- c(structure$X,outPattern)
-    ## structure$X$Xpattern.cor
-
-    if(structure$type=="CUSTOM"){
-        structure$X$Upattern$param <- stats::setNames(lapply(1:length(structure$X$Upattern$param), function(iL){structure$param$name}),
-                                                      names(structure$X$Upattern$param))
-        structure$pair.varcoef <- lapply(outPattern$pair.varcoef, function(i){
-            iParam <- structure$param$name
-            iOut <- .unorderedPairs(iParam)
-            attr(iOut, "key") <- matrix(NA, nrow = length(iParam), ncol = length(iParam), dimnames = list(iParam,iParam))
-            for(iCol in 1:NCOL(iOut)){
-                attr(iOut, "key")[iOut[1,iCol],iOut[2,iCol]] <- iCol
-                attr(iOut, "key")[iOut[2,iCol],iOut[1,iCol]] <- iCol
-            }
-            return(iOut)
-        })
-        ## add index of the observations
-        structure$X$Upattern$example <- lapply(structure$X$Upattern$example, function(iEx){
-            iOut <- iEx
-            attr(iOut,"index") <- outInit$index.cluster[[iEx]]
-            iOut
-        })
-    }
+    structure <- .findUpatterns(structure,
+                                index.clusterTime = outInit$index.clusterTime, U.time = U.time,
+                                index.cluster = outInit$index.cluster, U.cluster = U.cluster,
+                                index.clusterStrata = outInit$index.clusterStrata, U.strata = U.strata)
 
     ## ** prepare calculation of the score
     if(precompute.moments){
@@ -488,6 +463,18 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     }
 
     ## ** pairs
+    structure$X$pair.varcoef <- stats::setNames(lapply(structure$X$Upattern$name, function(iPattern){## iPattern <- structure$X$Upattern$name[1]
+        iParamVar <- structure$X$Upattern$param[[iPattern]]
+
+        iOut <- .unorderedPairs(iParamVar)
+        attr(iOut, "key") <- matrix(NA, nrow = length(iParamVar), ncol = length(iParamVar), dimnames = list(iParamVar,iParamVar))
+        for(iCol in 1:NCOL(iOut)){
+            attr(iOut, "key")[iOut[1,iCol],iOut[2,iCol]] <- iCol
+            attr(iOut, "key")[iOut[2,iCol],iOut[1,iCol]] <- iCol
+        }
+        return(iOut)
+    }),structure$X$Upattern$name)
+
     pair.meanvarcoef <- stats::setNames(lapply(structure$X$Upattern$name, function(iPattern){ ## iPattern <- structure$X$Upattern$name[1]
         if(stratify.mean){
             iParamMu <- names(strata.mu)[strata.mu==structure$X$Upattern$index.strata[iPattern]]

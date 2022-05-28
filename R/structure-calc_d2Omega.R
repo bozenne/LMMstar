@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: maj 27 2022 (14:48) 
+## Last-Updated: May 28 2022 (17:39) 
 ##           By: Brice Ozenne
-##     Update #: 157
+##     Update #: 172
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -254,7 +254,8 @@
 .calc_d2Omega.UN <- .calc_d2Omega.ID
 
 ## * calc_d2Omega.CUSTOM
-.calc_d2Omega.CUSTOM <- function(object, param, Omega, dOmega, Jacobian = NULL, dJacobian = NULL){
+.calc_d2Omega.CUSTOM <- function(object, param, Omega, dOmega, Jacobian = NULL, dJacobian = NULL,
+                                 transform.sigma = NULL, transform.k = NULL, transform.rho = NULL){
 
     Upattern <- object$X$Upattern
     n.Upattern <- NROW(Upattern)
@@ -267,7 +268,7 @@
     d2FCT.rho <- object$d2FCT.rho
     name.sigma <- names(object$init.sigma)
     name.rho <- names(object$init.rho)
-    pair.varcoef <- object$pair.varcoef
+    pair.varcoef <- object$X$pair.varcoef
 
     if(!is.null(FCT.sigma) && is.null(d2FCT.sigma) || !is.null(FCT.rho) && is.null(d2FCT.rho) ){
 
@@ -280,8 +281,8 @@
         ## indicator of pattern
         vec.pattern <- unlist(lapply(names(dOmega), function(iName){ ## iName <- names(dOmega)[1]
             iParam <- names(dOmega[[iName]])
-            iTime <- attr(Omega[[iName]],"time")
-            iNtime <- length(iTime)
+            iTime <- attr(Omega[[iName]],"time") ## warning: may be NULL
+            iNtime <- Upattern[Upattern$name==iName,"n.time"]
             iOut <- lapply(iParam, function(iP){matrix(iName, nrow = iNtime, ncol = iNtime, dimnames = list(iTime,iTime))})
             return(iOut)
         }))
@@ -289,8 +290,8 @@
         ## indicator of param
         vec.param <- unlist(lapply(names(dOmega), function(iName){ ## iName <- names(dOmega)[1]
             iParam <- names(dOmega[[iName]])
-            iTime <- attr(Omega[[iName]],"time")
-            iNtime <- length(iTime)
+            iTime <- attr(Omega[[iName]],"time") ## warning: may be NULL
+            iNtime <- Upattern[Upattern$name==iName,"n.time"]
             iOut <- lapply(iParam, function(iP){matrix(iP, nrow = iNtime, ncol = iNtime, dimnames = list(iTime,iTime))})
             return(iOut)
         }))
@@ -313,6 +314,7 @@
             iIndex.pattern <- vec.pattern[!duplicated(vec.patternXparam)]==Upattern$name[iPattern]
             iParam.pattern <- vec.param[!duplicated(vec.patternXparam)][iIndex.pattern]
             iList.d2Omega <- list.d2Omega[iIndex.pattern]
+
             out[[iPattern]] <- apply(pair.varcoef[[Upattern$name[iPattern]]], MARGIN = 2, simplify = FALSE, function(iCol){ ## iCol <- pair.varcoef[[Upattern$name[iPattern]]][,1]
                 iList.d2Omega[[which(iParam.pattern==iCol[1])]][[iCol[2]]]
             })
@@ -325,24 +327,24 @@
 
         out <- stats::setNames(vector(mode = "list", length = n.Upattern), Upattern$name)
         for(iPattern in 1:n.Upattern){ ## iPattern <- 1
-            iIndex <- attr(object$X$Upattern$example[[iPattern]],"index")
-            iTime <- Upattern[iPattern,"time"][[1]]
-            iNtime <- length(iTime)
 
-            iX.var <- X.var[iIndex,,drop=FALSE]
-            iOmega.sd <- unname(attr(Omega[[iPattern]], "sd"))
-            idOmega.sd <- dFCT.sigma(param[name.sigma],iTime,iX.var)
-            id2Omega.sd <- d2FCT.sigma(param[name.sigma],iTime,iX.var)
+            iPattern.var <- object$X$Upattern$var[iPattern]
+            iNtime <- object$X$Upattern$n.time[iPattern]
+            iX.var <- object$X$Xpattern.var[[iPattern.var]]
+            iTime <- attr(iX.var, "index.time")
+            iOmega.sd <- attr(Omega[[iPattern]], "sd")
+            idOmega.sd <- dFCT.sigma(p = param[name.sigma], time = iTime, X = iX.var)
+            id2Omega.sd <- d2FCT.sigma(p = param[name.sigma], time = iTime, X = iX.var)
 
             if(iNtime > 1 && !is.null(X.cor)){
-                iX.cor <- X.cor[iIndex,,drop=FALSE]
+                iPattern.cor <- object$X$Upattern$cor[iPattern]
+                iX.cor <- object$X$Xpattern[[iPattern.cor]]
                 iOmega.cor <- attr(Omega[[iPattern]], "cor")
-                idOmega.cor <- dFCT.rho(param[name.sigma],iTime,iX.cor)
-                id2Omega.cor <- d2FCT.rho(param[name.rho],iTime,iX.cor)
+                idOmega.cor <- dFCT.rho(p = param[name.sigma], time = iTime, X = iX.cor)
+                id2Omega.cor <- d2FCT.rho(p = param[name.rho], time = iTime, X = iX.cor)
             }
 
             out[[iPattern]] <- apply(pair.varcoef[[Upattern$name[iPattern]]], MARGIN = 2, simplify = FALSE, function(iCol){ ## iCol <- pair.varcoef[[Upattern$name[iPattern]]][,1]
-
                 iDeriv <- matrix(0, iNtime, iNtime)
                 if(iCol[1] %in% name.sigma && iCol[2] %in% name.sigma){
                     if(iCol[1]==iCol[2]){
@@ -381,7 +383,6 @@
 
         }
     }
-        
     return(out)
 }
 
