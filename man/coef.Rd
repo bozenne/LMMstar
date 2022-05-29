@@ -8,7 +8,6 @@
 \method{coef}{lmm}(
   object,
   effects = NULL,
-  strata = NULL,
   p = NULL,
   transform.sigma = "none",
   transform.k = "none",
@@ -24,8 +23,6 @@
 or only coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 or only coefficients relative to the variance structure (\code{"variance"}),
 or only coefficients relative to the correlation structure (\code{"correlation"}).}
-
-\item{strata}{[character vector] When not \code{NULL}, only output coefficient relative to specific levels of the variable used to stratify the mean and covariance structure.}
 
 \item{p}{[numeric vector] value of the model coefficients to be used. Only relevant if differs from the fitted values.}
 

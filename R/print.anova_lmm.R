@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 24 2022 (10:05) 
 ## Version: 
-## Last-Updated: feb 10 2022 (13:18) 
+## Last-Updated: May 29 2022 (11:14) 
 ##           By: Brice Ozenne
-##     Update #: 27
+##     Update #: 30
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -19,8 +19,8 @@
 ##' @export
 print.anova_lmm <- function(x, ...){
     dots <- list(...)
-    dots$print.null <- NULL
-    return(do.call(summary, c(list(object = x, print.nulls = FALSE), dots)))
+    dots$print <- c(1,0)
+    return(do.call(summary, c(list(object = x), dots)))
 }
 
 ##----------------------------------------------------------------------

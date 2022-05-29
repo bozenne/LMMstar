@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: maj  9 2022 (15:49) 
+## Last-Updated: May 30 2022 (00:50) 
 ##           By: Brice Ozenne
-##     Update #: 109
+##     Update #: 111
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -138,7 +138,6 @@ test_that("lmm - studentized and normalized residuals",{
                     structure="UN",
                     data=dfres.R,
                     df=TRUE)
-    
 
     dfres.R$fitted <- predict(fit.main, newdata = dfres.R)$estimate
     dfres.R$residual <- residuals(fit.main, type = 'response')
@@ -171,17 +170,22 @@ test_that("lmm - studentized and normalized residuals",{
 })
 
 test_that("lmm - predicted values",{
+    set.seed(11)
+    dfres.R2 <- dfres.R[sample.int(NROW(dfres.R),replace = FALSE),,drop=FALSE]
+
     fit.main <- lmm(weight~time, 
                     repetition=~visit|id,
                     structure="UN",
                     data=dfres.R,
                     df=TRUE)
-    set.seed(11)
     fit.main2 <- lmm(weight~time, 
                      repetition=~visit|id,
                      structure="UN",
-                     data=dfres.R[sample.int(NROW(dfres.R),replace = FALSE),,drop=FALSE],
+                     data=dfres.R2,
                      df=TRUE)
+    coef(fit.main, effects = "all")
+    coef(fit.main2, effects = "all")
+    
     ## check sensitivity to ordering of the values
     expect_equal(logLik(fit.main2),logLik(fit.main))
 
@@ -207,8 +211,8 @@ test_that("lmm - predicted values",{
 
     data("gastricbypassW", package = "LMMstar")
     GS <- predict(lm(weight2 ~ weight1, data = gastricbypassW), newdata = data.frame(weight1 = 50), se = TRUE)
-    test <- predict(fit.main, newdata = data.frame(time = c("3 months before","1 week before"), visit = factor(1:2,levels=1:4), weight = c(50,NA), id = c(1,1)),
-                    type = "dynamic", keep.newdata = FALSE)
+    newdata <- data.frame(time = c("3 months before","1 week before"), visit = factor(1:2,levels=1:4), weight = c(50,NA), id = c(1,1))
+    test <- predict(fit.main, newdata = newdata, type = "dynamic", keep.newdata = FALSE)
 
     expect_equivalent(test$estimate, GS$fit, tol = 1e-3)
     expect_equivalent(test,
@@ -301,7 +305,9 @@ test_that("glht - number of parameters",{
     Mc <- matrix(0, nrow = 1, ncol = length(coef(eUN.lmm)), dimnames = list(NULL, names(coef(eUN.lmm))))
     Mc[,2] <- 1
 
-    CI.glht <- multcomp::glht(eUN.lmm, linfct = Mc, rhs = 0, df = 10)
+    CI.glht <- multcomp::glht(eUN.lmm, linfct = Mc, rhs = 0, df = 10,
+                              coef. = function(iX){coef.lmm(iX, effects = "mean")},
+                              vcov. = function(iX){vcov.lmm(iX, effects = "mean")})
     expect_equal(NCOL(CI.glht$linfct),length(coef(eUN.lmm)))
 
 })
@@ -413,9 +419,10 @@ test_that("gls optimizer - error ordering variance parameters",{
     ## and that was not properly handled by lmm
     test <- lmm(log_IL10~1, repetition = ~Visit|ID2, structure="UN", df=FALSE,
                 data=df)
-
     GS <- lmm(log_IL10~1, repetition = ~Visit|ID, structure="UN", df=FALSE,
               data=df)
+    ## coef(GS, effects = "all") - coef(test, effects = "all")
+    ## logLik(GS) - logLik(test)
 
     expect_equal(logLik(test),logLik(GS), tol = 1e-6) ## -32.3097
 

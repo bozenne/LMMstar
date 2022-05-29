@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: nov  4 2021 (11:49) 
 ## Version: 
-## Last-Updated: mar  7 2022 (10:47) 
+## Last-Updated: May 29 2022 (17:03) 
 ##           By: Brice Ozenne
-##     Update #: 20
+##     Update #: 21
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -92,6 +92,7 @@ test_that("linear model with interaction",{
 })
 
 test_that("linear model with splines",{
+
     ## 1- poly
     e.lm <- lm(Y~visit+X1+stats::poly(X6,4), data = dL)
     e.lmm <- lmm(Y~visit+X1+stats::poly(X6, 4), data = dL)

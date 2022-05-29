@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: maj 27 2022 (13:11) 
+## Last-Updated: May 29 2022 (16:54) 
 ##           By: Brice Ozenne
-##     Update #: 596
+##     Update #: 631
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -143,11 +143,15 @@ residuals.lmm <- function(object, type = "response", format = "long",
     }
     ## check format
     format <- match.arg(format, c("wide","long"))
+    if(format=="wide" && identical("all",tolower(type.residual))){
+        message("Move to wide format to output all types of residuals. \n")
+        format <- "long"
+    }
     if(keep.data && format == "wide"){
         stop("Argument \'keep.data\' must be \"FALSE\" when using the wide format. \n")
     }
     ## check type.residuals
-    if(identical("all",tolower(type.residual))){
+    if(identical("all",tolower(type.residual))){        
         type.residual <- c("fitted","response","studentized","pearson","normalized","normalized2","scaled")
     }
     attr.ref <- attr(type.residual,"reference")
@@ -227,7 +231,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
         ## extract data and design matrix
         if(is.null(data)){
             data <- stats::model.frame(object)
-            data <- data[,setdiff(colnames(data),c("XXindexXX", "XXstrata.indexXX", "XXvisit.indexXX")),drop=FALSE]
+            data <- data[,setdiff(colnames(data),c("XXindexXX",  "XXstrataXX", "XXstrata.indexXX", "XXtimeXX", "XXtime.indexXX", "XXclusterXX", "XXcluster.indexXX")),drop=FALSE]
             design <- stats::model.matrix(object, effects = effects, simplifies = FALSE)
         }else{
             design <- stats::model.matrix(object, data = data, effects = effects, simplifies = FALSE)
@@ -243,7 +247,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
                     reference <- c(reference, lapply(xfactorMu,function(iX){factor(iX[1], levels = iX)}))
                 }
                 if(length(variableMuNum.name)>0){
-                    reference <- c(reference, as.list(stats::setNames(rep(0, length(name.Xnum)), name.Xnum)))
+                    reference <- c(reference, as.list(stats::setNames(rep(0, length(variableMuNum.name)), variableMuNum.name)))
                 }
                 reference <- data.frame(reference, stringsAsFactors = FALSE)
             }else if(!is.data.frame(attr.ref)){
@@ -252,8 +256,8 @@ residuals.lmm <- function(object, type = "response", format = "long",
                 reference <- attr.ref
             }
             resdata <- data
-            if(length(setdiff(name.X,var))>0){
-                for(iVar in setdiff(name.X,var)){
+            if(length(setdiff(variableMu.name,var))>0){
+                for(iVar in setdiff(variableMu.name,var)){
                     if(is.factor(data[[iVar]]) && !is.factor(reference[[iVar]])){
                         stop("The reference value of variable ",iVar," should be a factor. \n")
                     }
@@ -292,10 +296,9 @@ residuals.lmm <- function(object, type = "response", format = "long",
     n.cluster <- design$cluster$n
     precompute.XX <- design$precompute.XX
     cluster.level <- design$cluster$levels
-    index.cluster <- design$index.cluster
-    index.time <- design$index.clusterTime
-
-    index.variance <- structure$X$pattern.cluster
+    index.cluster <- attr(design$index.cluster,"vectorwise")
+    index.time <- attr(design$index.clusterTime,"vectorwise")
+    index.variance <- as.character(structure$X$pattern.cluster$pattern)
     n.pattern <-  NROW(structure$X$Upattern)
 
     ## ** update Omega
@@ -440,29 +443,31 @@ residuals.lmm <- function(object, type = "response", format = "long",
 
     ## ** restaure NA
     if(is.null(match.call()$data) && length(index.na)>0){
+        n.allobs <- NROW(M.res)+length(index.na)
+
         Msave.res <- M.res
-        M.res <- matrix(NA, nrow = NROW(Msave.res)+length(index.na), ncol = NCOL(Msave.res), dimnames = list(NULL, colnames(Msave.res)))
+        M.res <- matrix(NA, nrow = n.allobs, ncol = NCOL(Msave.res), dimnames = list(NULL, colnames(Msave.res)))
         M.res[-index.na,] <- Msave.res
         attr(M.res,"centering") <- attr(Msave.res,"centering")
         attr(M.res,"reference") <- attr(Msave.res,"reference")
 
         Msave.fit <- fitted
-        fitted <- matrix(NA, nrow = NROW(Msave.fit)+length(index.na), ncol = NCOL(Msave.fit), dimnames = list(NULL, colnames(Msave.fit)))
+        fitted <- matrix(NA, nrow = n.allobs, ncol = NCOL(Msave.fit), dimnames = list(NULL, colnames(Msave.fit)))
         fitted[-index.na,] <- Msave.fit
 
-        level.cluster <- c(factor(attr(index.na,"cluster"), levels = cluster.levels.original),
-                           factor(attr(index.cluster,"vectorwise"), levels = 1:length(cluster.levels.original), labels = cluster.levels.original))
-        level.time  <- c(factor(attr(index.na,"time"), levels = time.levels.original),
-                         factor(attr(index.time,"vectorwise"), levels = 1:length(time.levels.original), labels = time.levels.original))
+        level.cluster <- rep(NA, n.allobs)
+        level.cluster[index.na] <- factor(attr(index.na,"cluster"), levels = cluster.levels.original)
+        level.cluster[-index.na] <- factor(index.cluster, levels = 1:length(cluster.levels.original), labels = cluster.levels.original)
+        level.time <- rep(NA, n.allobs)
+        level.time[index.na] <- factor(attr(index.na,"time"), levels = time.levels.original)
+        level.time[-index.na] <- factor(index.time, levels = 1:length(time.levels.original), labels = time.levels.original)
     }else{
-        level.cluster <- attr(index.cluster,"vectorwise")
-        level.time <- attr(index.time,"vectorwise")
+        level.cluster <- index.cluster
+        level.time <- index.time
     }
-
     ## plot
     ##
     if(format=="wide"){
-
         dfL.res <- data.frame(residuals = as.vector(M.res), cluster = level.cluster, time = level.time, stringsAsFactors = FALSE)
         MW.res <- reshape2::dcast(data = dfL.res,
                                   formula = cluster~time, value.var = "residuals")
@@ -531,7 +536,6 @@ residuals.lmm <- function(object, type = "response", format = "long",
                 }
                 print(attr(MW.res,"plot"))
             }
-
             if(plot == "none"){
                 names(MW.res)[-1] <- paste0(name.residual,".",names(MW.res)[-1])
                 return(MW.res)

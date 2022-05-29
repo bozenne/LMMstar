@@ -43,7 +43,8 @@ On the left hand side, a possible stratification variable, e.g. group ~ time|id.
 
 \item{trace}{[interger, >0] Show the progress of the execution of the function.}
 
-\item{control}{[list] Control values for the optimization method. The element \code{optimizer} indicates which optimizer to use and additional argument will be pass to the optimizer.}
+\item{control}{[list] Control values for the optimization method.
+The element \code{optimizer} indicates which optimizer to use and additional argument will be pass to the optimizer.}
 }
 \value{
 an object of class \code{lmm} containing the estimated parameter values, the residuals, and relevant derivatives of the likelihood.
@@ -57,6 +58,15 @@ g
 
 By default, the estimation of the model parameters will be made using the \code{nlme::gls} function.
 See argument optimizer in \code{\link{LMMstar.options}}
+
+\bold{Argument control:} when using the optimizer \code{"FS"}, the following elements can be used
+\itemize{
+\item \code{init}: starting values for the model parameters.
+\item \code{n.iter}: maximum number of interations of the optimization algorithm.
+\item \code{tol.score}: score value below which convergence has been reached.
+\item \code{tol.param}: difference in estimated parameters from two successive iterations below which convergence has been reached.
+\item \code{trace}: display progress of the optimization procedure.
+}
 }
 \examples{
 #### 1- simulate data in the long format ####

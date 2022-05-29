@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 31 2022 (11:36) 
 ## Version: 
-## Last-Updated: maj 27 2022 (14:48) 
+## Last-Updated: May 29 2022 (16:07) 
 ##           By: Brice Ozenne
-##     Update #: 59
+##     Update #: 63
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,7 +25,7 @@ if(FALSE){
 }
 
 context("Check delta method (estimate function) for mixed model")
-LMMstar.options(optimizer = "gls", method.numDeriv = "Richardson", precompute.moments = TRUE,
+LMMstar.options(optimizer = "FS", method.numDeriv = "simple", precompute.moments = TRUE,
                 columns.confint = c("estimate","se","df","lower","upper","p.value"))
 
 ## * Compare change with complete data
@@ -244,8 +244,6 @@ test_that("crossed random effect", {
     e.lmm <- lmm(mathgain ~ 1, repetition =~rep|schoolid,
                  structure = CS(~classid2, heterogeneous = FALSE),
                  control = list(optimizer = "FS"), data = mydataR)
-
-    
 
     expect_equal(as.double(coef(e.lmm, effects = "ranef")[,"schoolid"]), as.double(nlme::ranef(e.lmer)$schoolid[,1]), tol = 1e-5)
 

@@ -7,6 +7,7 @@
 \method{fitted}{lmm}(
   object,
   newdata = NULL,
+  format = "long",
   keep.newdata = FALSE,
   impute = FALSE,
   se.impute = FALSE,
@@ -18,7 +19,9 @@
 
 \item{newdata}{[data.frame] the covariate values for each cluster.}
 
-\item{keep.newdata}{[logical] Should the argument \code{newdata} be output along side the predicted values?}
+\item{format}{[character] Should the predicted mean be output relative as a vector (\code{"long"}), or as a matrix with in row the clusters and in columns the outcomes (\code{"wide"}).}
+
+\item{keep.newdata}{[logical] Should the argument \code{newdata} be output along side the predicted values? The output will then be a \code{data.frame}.}
 
 \item{impute}{[logical] Should the missing data in the outcome be imputed based on covariates and other outcome values from the same cluster.}
 
@@ -30,7 +33,9 @@ Passed to \code{predict.lmm}.}
 \item{...}{Not used. For compatibility with the generic method.}
 }
 \value{
-When \code{keep.newdata==FALSE}: \itemize{
+When \code{format="wide"}, a data.frame with as many rows as clusters.
+When \code{format="long"} or \code{keep.newdata==TRUE}, a data.frame with as many rows as observations.
+Otherwise: \itemize{
 \item if \code{impute=FALSE} a vector of length the number of row of newdata containing the fitted values (i.e. based on the covariates only).
 \item if \code{impute=TRUE} a vector of length the number of missing values in the outcome of newdata containing the cluster-specific conditional means
 (i.e. based on the covariates and outcome measurements from the same cluster).

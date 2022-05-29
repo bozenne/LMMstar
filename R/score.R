@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: May 26 2022 (09:02) 
+## Last-Updated: May 29 2022 (22:37) 
 ##           By: Brice Ozenne
-##     Update #: 519
+##     Update #: 524
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -118,16 +118,6 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
         }else if(!is.numeric(design$cluster$levels.original)){
             rownames(out) <- design$cluster$levels.original
         } 
-    }
-
-    ## re-order columns when converting to sd with strata (avoid sd0:0 sd0:1 sd1:0 sd1:1 sd2:0 sd2:1 ...)
-    if("variance" %in% effects && transform.k %in% c("sd","var","logsd","logvar") && x$strata$n>1 && transform.names){
-        out.name <- names(stats::coef(x, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = TRUE))
-        if(indiv){
-            out <- out[,out.name,drop=FALSE]
-        }else{
-            out <- out[out.name]
-        }
     }
 
     ## ** export

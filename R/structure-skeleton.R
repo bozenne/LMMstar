@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: May 28 2022 (17:15) 
+## Last-Updated: May 29 2022 (23:48) 
 ##           By: Brice Ozenne
-##     Update #: 2112
+##     Update #: 2137
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -307,7 +307,9 @@
 
     ## *** linear predictor for each observation and then grouped by cluster
     if(length(all.vars(attr(X.cor,"formula")))>0){
-        UX.cor <- unique(X.cor) ## model.matrix(attr(X.cor,"formula"),attr(X.cor,"M.level"))
+        ## reorder by cluster and time and then find unique rows
+        nobs.cluster <- table(attr(index.cluster,"vectorwise"))
+        UX.cor <- unique(X.cor[unlist(index.cluster[names(sort(nobs.cluster, decreasing = TRUE))]),,drop=TRUE])
         Ulp.cor <- as.character(interaction(as.data.frame(UX.cor), sep = sep, drop=TRUE))
     }else{
         Ulp.cor <- "1"
@@ -381,8 +383,12 @@
             iData <- data[iCindex,,drop=FALSE]
 
             if(NROW(iCX.cor)==1){ ## SAME LINEAR PREDICTOR FOR ALL OBSERVATIONS WITHIN CLUSTER
-                iCode <- paste0("R",as.character(interaction(as.data.frame(iCX.cor), drop = TRUE)))
-                       
+                if(heterogeneous){ ## make sure it is compatible with the next case (in case some cluster have only a single pair of observations)
+                    iDF.diff <- as.data.frame(cbind("R",iCX.cor), drop = TRUE)
+                }else{
+                    iDF.diff <- as.data.frame(matrix(c("R",rep(iStrata,NCOL(iCX.cor))), nrow = 1, ncol = 1+NCOL(iCX.cor)))
+                }
+                iCode <- as.character(interaction(iDF.diff, drop=TRUE))
                 ## name difference according to the covariate values
                 if(length(attr(X.cor,"M.level"))==0 || identical(names(attr(X.cor,"M.level")),strata.var)){
                     if(n.strata>1){

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: maj 27 2022 (13:54) 
+## Last-Updated: May 29 2022 (23:22) 
 ##           By: Brice Ozenne
-##     Update #: 333
+##     Update #: 341
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -222,7 +222,7 @@
 
     if(df){
         if(trace>=1){cat("- degrees of freedom \n")}
-    ## system.time(
+        ## system.time(
         out$df <- .df_numDeriv(value = param.value, reparametrize = out$reparametrize,
                                design = design, time = time, method.fit = method.fit, type.information = type.information,
                                transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, effects = effects2, 

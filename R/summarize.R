@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: maj  4 2022 (17:35) 
+## Last-Updated: May 29 2022 (10:57) 
 ##           By: Brice Ozenne
-##     Update #: 123
+##     Update #: 125
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -194,18 +194,32 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
             }else{
                 wty <- list(conf.int = c(NA, NA))
             }
-            
-            iVec <- c("observed" = sum(!is.na(y)),
-                      "missing" = n.missing,
-                      "mean" = mean(y, na.rm = na.rm),
-                      "mean.lower" = tty$conf.int[1],
-                      "mean.upper" = tty$conf.int[2],
-                      "sd" = stats::sd(y, na.rm = na.rm),
-                      "min" = min(y, na.rm = na.rm),
-                      "median" = stats::median(y, na.rm = na.rm),
-                      "median.lower" = wty$conf.int[1],
-                      "median.upper" = wty$conf.int[2],
-                      "max" = max(y, na.rm = na.rm))
+
+            if(all(is.na(y))){ ## avoid warning when taking min(), e.g. min(NA, na.rm = TRUE)
+                iVec <- c("observed" = sum(!is.na(y)),
+                          "missing" = n.missing,
+                          "mean" = NA,
+                          "mean.lower" = NA,
+                          "mean.upper" = NA,
+                          "sd" = NA,
+                          "min" = NA,
+                          "median" = NA,
+                          "median.lower" = NA,
+                          "median.upper" = NA,
+                          "max" = NA)
+            }else{
+                iVec <- c("observed" = sum(!is.na(y)),
+                          "missing" = n.missing,
+                          "mean" = mean(y, na.rm = na.rm),
+                          "mean.lower" = tty$conf.int[1],
+                          "mean.upper" = tty$conf.int[2],
+                          "sd" = stats::sd(y, na.rm = na.rm),
+                          "min" = min(y, na.rm = na.rm),
+                          "median" = stats::median(y, na.rm = na.rm),
+                          "median.lower" = wty$conf.int[1],
+                          "median.upper" = wty$conf.int[2],
+                          "max" = max(y, na.rm = na.rm))
+            }
             if(all(y %in% 0:1)){
                 iVec[c("sd","median","median.lower","median.upper")] <- NA
             }

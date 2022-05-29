@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: apr  1 2022 (11:15) 
+## Last-Updated: May 29 2022 (11:52) 
 ##           By: Brice Ozenne
-##     Update #: 75
+##     Update #: 82
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -49,7 +49,9 @@ rbind.anova_lmm <- function(model, ..., name = NULL, sep = ": "){
 
     ## ** check user input
     dots <- list(...)
-    if(any(sapply(dots,inherits,"anova_lmm")==FALSE)){
+    if(length(dots)==0){
+        return(model) ## nothing to combine
+    }else if(any(sapply(dots,inherits,"anova_lmm")==FALSE)){
         stop("Extra arguments should inherit from anova_lmm. \n")
     }
     ls.object <- c(list(model),dots)
@@ -207,6 +209,7 @@ rbind.anova_lmm <- function(model, ..., name = NULL, sep = ": "){
     out$df <- ceiling(stats::median(out$df))
     attr(out2$all,"glht") <- list(out)
     
+    attr(out2, "df") <- is.na(out$df)
     attr(out2, "test") <- "Wald"
     attr(out2, "robust") <- robust
     class(out2) <- append("anova_lmm",class(out))

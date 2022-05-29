@@ -11,7 +11,6 @@
   p = NULL,
   inverse = FALSE,
   simplifies = TRUE,
-  strata = NULL,
   ...
 )
 }
@@ -27,8 +26,6 @@ When \code{NULL}, will output complete data covariance patterns.}
 \item{inverse}{[logical] Output the matrix inverse of the variance-covariance matrix.}
 
 \item{simplifies}{[logical] When there is only one variance-covariance matrix, output a matrix instead of a list of matrices.}
-
-\item{strata}{[character vector] When not \code{NULL} and argument \code{cluster} is not specified, only output the residual variance-covariance matrix relative to specific levels of the variable used to stratify the mean and covariance structure.}
 
 \item{...}{Not used. For compatibility with the generic method.}
 }

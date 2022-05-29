@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 26 2022 (11:18) 
 ## Version: 
-## Last-Updated: maj 27 2022 (13:10) 
+## Last-Updated: May 29 2022 (14:21) 
 ##           By: Brice Ozenne
-##     Update #: 159
+##     Update #: 163
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -87,7 +87,7 @@
         df.epsilon <- df.epsilon[-index.na,,drop=FALSE]
     }
     ## ** extract inverse residual variance-covariance matrix
-    U.indexcluster <- order(unique(df.epsilon$XXcluster.indexXX))
+    U.indexcluster <- sort(unique(df.epsilon$XXcluster.indexXX))
     ls.OmegaM1 <- stats::sigma(object, p = p, cluster = U.indexcluster, inverse = TRUE, simplifies = FALSE)
     ls.epsilon <- base::tapply(df.epsilon$r.response,df.epsilon$XXcluster.indexXX,list)## split residuals by id
 

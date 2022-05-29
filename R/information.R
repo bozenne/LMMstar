@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: May 28 2022 (17:40) 
+## Last-Updated: May 30 2022 (01:54) 
 ##           By: Brice Ozenne
-##     Update #: 990
+##     Update #: 993
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -110,13 +110,13 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
                             logLik = FALSE, score = FALSE, information = TRUE, vcov = FALSE, df = FALSE, indiv = indiv, effects = effects, robust = robust,
                             trace = FALSE, precompute.moments = test.precompute, transform.names = transform.names)$information
     }
-    
+
     ## ** restaure NAs and name
     if(indiv){
         if(is.null(data) && length(x$index.na)>0 && any(is.na(attr(x$index.na,"cluster.index")))){
             dimnames(out)[[1]] <- x$design$cluster$levels
             out.save <- out
-            out <- matrix(NA, dim = c(x$cluster$n, dim(out.save)[2:3]),
+            out <- array(NA, dim = c(x$cluster$n, dim(out.save)[2:3]),
                           dimnames = c(list(x$cluster$levels), dimnames(out.save)[2:3]))
             out[dimnames(out.save)[[1]],,] <- out.save
 

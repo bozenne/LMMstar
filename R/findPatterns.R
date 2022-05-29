@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: May 28 2022 (17:24) 
+## Last-Updated: May 30 2022 (00:40) 
 ##           By: Brice Ozenne
-##     Update #: 301
+##     Update #: 314
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -42,7 +42,7 @@
 
     ## *** var
     lpObs.var <- interaction(as.data.frame(X.var), drop = TRUE, sep = sep[1])
-    if(!identical(sort(levels(lpObs.var)), sort(Ulp.var))){
+    if(!all(levels(lpObs.var) %in% Ulp.var)){
         warning("Something went wrong when extracting the variance patterns. \n")
     }
     lpnObs.var <- as.numeric(factor(lpObs.var, levels = Ulp.var))
@@ -58,7 +58,7 @@
     ## *** cor
     if(!is.null(X.cor)){
         lpObs.cor <- interaction(as.data.frame(X.cor), drop = TRUE, sep = sep[1])
-        if(!identical(sort(levels(lpObs.cor)), sort(Ulp.cor))){
+        if(!all(levels(lpObs.cor) %in% sort(Ulp.cor))){
             warning("Something went wrong when extracting the correlation patterns. \n")
         }
         lpnObs.cor <- as.numeric(factor(lpObs.cor, levels = Ulp.cor))
@@ -180,7 +180,7 @@
             iC.pair <- ls.pair[[length(iC.code)]]
             iC.codepair <- matrix(iC.code[iC.pair], ncol = 2, byrow = TRUE, dimnames = list(NULL,c("lp.x","lp.y")))
             iC.lp.xy <- paste0(attr(param,"level.cor")[iC.codepair[,"lp.x"]],sep[2],attr(param,"level.cor")[iC.codepair[,"lp.y"]])
-            iC.param <- names(lp.xy)[match(iC.lp.xy,lp.xy)]
+            iC.param <- names(lp.xy)[match(iC.lp.xy,lp.xy)] ## can contain NA when asking a new structure without having seen a particular pair
             ## unique(iC.lp.xy)
 
             iC.table <- rbind(data.frame(row = iC.pair[1,], col = iC.pair[2,], param = iC.param),
@@ -196,9 +196,14 @@
             attr(iX, "index.pair") <- iC.table
             attr(iX, "index.vec2matrix") <- c(iC.table[,"row"] + NROW(iX) * (iC.table[,"col"] - 1))
             attr(iX, "param") <- unique(iC.param)
-            attr(iX, "indicator.param") <- stats::setNames(lapply(attr(iX, "param"),function(iP){attr(iX, "index.vec2matrix")[which(iC.table$param==iP)]}),
-                                                           attr(iX, "param"))
-            attr(iX,"Mindicator.param") <- stats::setNames(lapply(attr(iX, "param"), function(iParam){
+            attr(iX, "indicator.param") <- stats::setNames(lapply(attr(iX, "param"),function(iP){
+                if(is.na(iP)){ ## deal with NA for the case prediction where a pair of time may not have been observed
+                    return(attr(iX, "index.vec2matrix")[which(is.na(iC.table$param))])
+                }else{
+                    return(attr(iX, "index.vec2matrix")[which(iC.table$param==iP)])
+                }
+            }), attr(iX, "param"))
+            attr(iX,"Mindicator.param") <- stats::setNames(lapply(1:length(attr(iX, "param")), function(iParam){
                 iM <- matrix(0, nrow = NROW(iX), ncol = NROW(iX))
                 iM[attr(iX,"indicator.param")[[iParam]]] <- 1
                 return(iM)

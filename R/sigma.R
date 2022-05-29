@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: May 28 2022 (16:34) 
+## Last-Updated: May 30 2022 (01:06) 
 ##           By: Brice Ozenne
-##     Update #: 386
+##     Update #: 460
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -62,23 +62,29 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, inverse = FALSE, simplif
     strata <- object$strata$levels
     n.strata <- length(strata)
 
-    U.cluster <- object$design$cluster$levels ## use object$design$cluster instead object$cluster to remove clusters with missing values
-    U.original.cluster <- object$design$cluster$levels.original
-    n.cluster <- object$design$cluster$n
-    name.cluster <- object$design$cluster$var
-    index.cluster <- object$design$index.cluster
-    index.clusterTime <- object$design$index.clusterTime
-    
     n.strata <- object$strata$n
+    strata.var <- object$strata$var
     U.strata <- object$strata$levels
-    name.time <- object$time$var
+    if(!is.null(attr(object$time$var,"original"))){
+        time.var <- attr(object$time$var,"original")
+    }else{
+        time.var <- object$time$var
+    }
     U.time <- object$time$levels
-
-    structure <- object$design$vcov
-    pattern.cluster <- structure$X$pattern.cluster
-    Upattern <- structure$X$Upattern
+    n.time <- object$time$n
+    if(!is.null(attr(object$cluster$var,"original"))){
+        cluster.var <- attr(object$cluster$var,"original")
+    }else{
+        cluster.var <- object$cluster$var
+    }
+        
+    object.structure <- object$design$vcov
     object.Omega <- object$Omega
-
+    object.n.cluster <- object$design$cluster$n
+    object.cluster <- object$design$cluster$levels
+    object.index.cluster <- object$design$index.cluster
+    object.index.clusterTime <- object$design$index.clusterTime
+    
     ## ** normalize user imput
     ## dot
     dots <- list(...)
@@ -93,99 +99,113 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, inverse = FALSE, simplif
 
     ## cluster    
     if(!is.null(cluster)){
-        if(inherits(cluster, "data.frame")){
-            cluster <- unique(stats::model.matrix(object, data = cluster, effect = "variance")[["XXindex.clusterXX"]])
+        test.clusterDF <- inherits(cluster, "data.frame")
+        if(test.clusterDF){
+            newdesign <- stats::model.matrix(object, data = cluster, effect = "variance", simplifies = FALSE)
+            cluster <- 1:newdesign$cluster$n
+            U.output <- newdesign$cluster$levels
         }else{
             if(any(duplicated(cluster))){
                 stop("Argument \'cluster\' should contain duplicates. \n")
             }
             if(is.numeric(cluster)){
-                if(any(cluster %in% 1:n.cluster == FALSE)){ 
-                    stop("When numeric, elements in argument \'cluster\' should index the clusters, i.e. be between 1 and ",n.cluster,". \n", sep = "")
+                if(any(cluster %in% 1:object.n.cluster == FALSE)){ 
+                    stop("When numeric, elements in argument \'cluster\' should index the clusters, i.e. be between 1 and ",object.n.cluster,". \n", sep = "")
                 }
                 cluster <- cluster
-                U.output <- U.cluster                
+                U.output <- object.cluster[cluster] ## use object$design$cluster instead object$cluster to remove clusters with missing valuesb
             }else if(is.character(cluster)){
-                if(any(cluster %in% U.original.cluster == FALSE)){
+                if(any(cluster %in% object.cluster == FALSE)){
                     stop("When character, elements in argument \'cluster\' should refer to clusters used to fit the model \n", sep = "")
                 }
-                cluster <- match(cluster, U.original.cluster)
-                U.output <- U.original.cluster                
+                cluster <- match(cluster, object.cluster)
+                U.output <- object.cluster[cluster]               
             }else{
                 stop("Incorrect value for argument \'cluster\'. Should be a numeric vector or a character vector. \n")
             }
         }
+    }else{
+        test.clusterDF <- FALSE
     }
-
-    ## ** rebuild residual variance-covariance matrix
-    if(inherits(cluster, "data.frame")){ ## for new clusters/times
+    
+    ## ** rebuild residual variance-covariance matrix    
+    if(test.clusterDF){ ## for new clusters/times
         if(is.null(p)){
             p <- coef(object, effects = "all")
         }
-        Omega <- .calc_Omega(object = structure,
+        Omega <- .calc_Omega(object = newdesign$vcov,
                              param = p,
-                             keep.interim = TRUE)
+                             keep.interim = FALSE)
+
+        pattern.cluster <- as.character(newdesign$vcov$X$pattern.cluster$pattern[match(cluster,newdesign$vcov$X$pattern.cluster$index.cluster)])
+        index.cluster <- newdesign$index.cluster[cluster]
+        index.clusterTime <- newdesign$index.clusterTime[cluster]
+
     }else{ ## for existing clusters and time
-        if(!is.null(p)){
-            Omega <- .calc_Omega(object = structure,
+        vec.cov <- c(setdiff(object.structure$name$var[[1]], c(time.var,object.structure$name$time)),
+                     setdiff(object.structure$name$cor[[1]], c(time.var,object.structure$name$time)))
+        vec.ntime <- tapply(object.structure$X$Upattern$n.time,unlist(object.structure$X$Upattern$index.strata), max)
+        if(is.null(cluster) && any(vec.ntime < n.time) && length(stats::na.omit(vec.cov))==0){
+            ## Agregate patterns in presence of missing values
+            ## Only work when no covariate
+            keep.index.strata <- which(vec.ntime < n.time)
+            df.fulltime <- do.call(rbind,lapply(keep.index.strata, function(iStrata){
+                if(!is.na(attr(strata.var,"original"))){
+                    iDF <- data.frame(U.strata[iStrata],
+                                      U.time,
+                                      object$cluster$levels[iStrata])
+                    names(iDF) <- c(time.var,cluster.var,attr(strata.var,"original"))
+                }else{
+                    iDF <- data.frame(U.time,object$cluster$levels[iStrata])
+                    names(iDF) <- c(time.var,cluster.var)
+                }
+                return(iDF)
+            }))
+            object$design$vcov <- model.matrix(object, data = df.fulltime, effects = "variance", simplifies = TRUE)
+            Omega <- .calc_Omega(object = object$design$vcov,
+                                 param = if(is.null(p)){object$param}else{p},
+                                 keep.interim = FALSE)
+
+        }else if(!is.null(p)){
+            Omega <- .calc_Omega(object = object.structure,
                                  param = p,
-                                 keep.interim = TRUE)
+                                 keep.interim = FALSE)
         }else{
             Omega <- object.Omega
+            for(iO in 1:length(Omega)){
+                attr(Omega[[iO]], "sd") <- NULL
+                attr(Omega[[iO]], "cor") <- NULL
+                attr(Omega[[iO]], "time") <- NULL
+            }
         }
+        
+        pattern.cluster <- as.character(object.structure$X$pattern.cluster$pattern[match(cluster,object.structure$X$pattern.cluster$index.cluster)])
+        index.cluster <- object.index.cluster[cluster]
+        index.clusterTime <- object.index.clusterTime[cluster]
     }
 
     ## ** inverse
     if(inverse){
-        Omega <- lapply(Omega, function(iO){
-            iOut <- solve(iO)
-            attr(iOut,"time") <- attr(iO,"time")
-            attr(iOut,"sd") <- attr(iO,"sd")
-            attr(iOut,"cor") <- attr(iO,"cor")
-            return(iOut)
-        })
+        Omega <- lapply(Omega, solve)
     }
 
     ## ** subset
     if(is.null(cluster)){ ## unique covariance patterns
-        
         out <- .getUVarCov(object, Omega = Omega)
-        for(iO in 1:length(out)){ ## iO <- 6
-            attr(out[[iO]],"time") <- NULL
-            attr(out[[iO]],"sd") <- NULL
-            attr(out[[iO]],"cor") <- NULL
-        }
-        
-    }else if(inherits(cluster,"data.frame")){ ## cluster specific covariance patterns (new)
-        
-        Ucluster <- as.character(unique(cluster[[name.cluster]]))
-        out <- stats::setNames(Omega[pattern.cluster[Ucluster]],Ucluster)
+    }else{ ## cluster specific covariance patterns 
+        out <- stats::setNames(Omega[pattern.cluster],U.output)
+        attr(out, "pattern") <- pattern.cluster
 
-        for(iO in 1:length(out)){ ## iO <- 6
-            dimnames(out[[iO]]) <- list(U.time[attr(out[[iO]],"time")],U.time[attr(out[[iO]],"time")])
-            attr(out[[iO]],"time") <- NULL
-            attr(out[[iO]],"sd") <- NULL
-            attr(out[[iO]],"cor") <- NULL
-        }
-
-    }else{ ## cluster specific covariance patterns (existing)
-        out.pattern <- pattern.cluster$pattern[match(cluster,pattern.cluster$index.cluster)]
-        out <- stats::setNames(Omega[out.pattern], U.output[cluster])
-        attr(out, "pattern") <- as.character(out.pattern)
-
-        for(iO in 1:length(out)){ ## iO <- 6
-            ## DO NOT USE
-            ## dimnames(out[[iO]]) <- list(object$time$levels[attr(out[[iO]],"time")],object$time$levels[attr(out[[iO]],"time")])
-            ## as this is incorrect with CS structure and missing data (indeed CS can be for time 1,2 but also work for 2,3. However the previous line would incorrectly label the times)
-            if(!is.numeric(object$data[[name.time]])){
-                iC <- cluster[[iO]]
-                iO.sort <- index.cluster[[iC]]
-                iO.time <- U.time[index.clusterTime[[iC]]]
-                dimnames(out[[iO]]) <- list(iO.time,iO.time)
+        if(!is.numeric(object$data[[time.var]])){
+            for(iC in 1:length(out)){ ## iC <- 1
+                ## DO NOT USE
+                ## dimnames(out[[iO]]) <- list(object$time$levels[attr(out[[iO]],"time")],object$time$levels[attr(out[[iO]],"time")])
+                ## as this is incorrect with CS structure and missing data (indeed CS can be for time 1,2 but also work for 2,3. However the previous line would incorrectly label the times)
+                iC.time <- U.time[index.clusterTime[[cluster[[iC]]]]]
+                dimnames(out[[iC]]) <- list(iC.time,iC.time)
             }
-            attr(out[[iO]],"sd") <- NULL
-            attr(out[[iO]],"cor") <- NULL
         }
+
     }
 
     ## ** export
@@ -228,6 +248,12 @@ getVarCov.lmm <- function(obj, ...) {
     Xpattern.var <- object$design$vcov$X$Xpattern.var
     Xpattern.cor <- object$design$vcov$X$Xpattern.cor
     data <- object$data
+    if(length(object$index.na)){
+        data <- data[-object$index.na,,drop=FALSE]
+        data$XXcluster.indexXX <- attr(object$design$index.cluster,"vectorwise")
+        data$XXtime.indexXX <- attr(object$design$index.clusterTime,"vectorwise")
+        data$XXstrata.indexXX <- attr(object$design$index.clusterStrata,"vectorwise")
+    }
     formula <- object$design$vcov$formula
     Vindex.cluster <- attr(object$design$index.cluster, "vectorwise")
     
@@ -235,7 +261,7 @@ getVarCov.lmm <- function(obj, ...) {
     XCpattern.var <- lapply(Xpattern.var, function(iVar){as.character(interaction(as.data.frame(iVar),sep=sep[1]))})
     if(!is.null(object$design$vcov$X$Xpattern.cor)){
         XCpattern.cor <- lapply(Xpattern.cor, function(iCor){as.character(interaction(as.data.frame(iCor),sep=sep[1]))})
-        XCpattern <- mapply(x = XCpattern.var[Upattern$var], y = XCpattern.cor[Upattern$cor], function(x,y){paste(x,y,sep=sep[2])})
+        XCpattern <- mapply(x = XCpattern.var[Upattern$var], y = XCpattern.cor[Upattern$cor], function(x,y){paste(x,y,sep=sep[2])}, SIMPLIFY = FALSE)
     }else{
         XCpattern <- XCpattern.var[Upattern$var]
     }
@@ -264,46 +290,57 @@ getVarCov.lmm <- function(obj, ...) {
     ## if so add them
     if(heterogeneous){
         possibleNested.pattern <- setdiff(Upattern$name, keep.pattern)
-        for(iPattern in possibleNested.pattern){ ## iPattern <- possibleNested.pattern[1]
-            iTable <- table.Xpattern[rownames(table.Xpattern) == iPattern,,drop=FALSE]
+        if(length(possibleNested.pattern)>0 && any(Upattern[Upattern$name %in% possibleNested.pattern,"n.time"]==1)){
+            ## remove patterns with single observation whose variance is already covered by the kept patterns
+            pattern.singleton <- intersect(Upattern[Upattern$n.time==1,"name"], possibleNested.pattern)
+            covered.variance <- unlist(XCpattern.var[rownames(table.param) %in% keep.pattern])
+            possibleNested.pattern <- setdiff(possibleNested.pattern,
+                                              pattern.singleton[unlist(XCpattern.var[rownames(table.param) %in% pattern.singleton]) %in% covered.variance])
+            
+        }
+        if(length(possibleNested.pattern)>0){
+            for(iPattern in possibleNested.pattern){ ## iPattern <- possibleNested.pattern[1]
+                iTable <- table.Xpattern[rownames(table.Xpattern) == iPattern,,drop=FALSE]
 
-            iTest <- rowSums(sweep(table.Xpattern.keep, MARGIN = 2, FUN = "-", STATS = iTable)<0)
-            if(all(iTest>0)){
-                keep.pattern <- c(keep.pattern, iPattern)
-                table.Xpattern.keep <- table.Xpattern[rownames(table.Xpattern) %in% keep.pattern,,drop=FALSE]
+                iTest <- rowSums(sweep(table.Xpattern.keep, MARGIN = 2, FUN = "-", STATS = iTable)<0)
+                if(all(iTest>0)){
+                    keep.pattern <- c(keep.pattern, iPattern)
+                    table.Xpattern.keep <- table.Xpattern[rownames(table.Xpattern) %in% keep.pattern,,drop=FALSE]
+                }
             }
         }
     }
 
     ## ** recover time
-    if(!is.numeric(object$data[[object$time$var]])){
+    if(!is.numeric(data[[object$time$var]])){
+        
         Upattern.var <- Upattern$var[match(keep.pattern,Upattern$name)]
-        iIndex.time <- lapply(Xpattern.var[Upattern.var], function(iX){object$design$index.clusterTime[[attr(iX,"index.cluster")[1]]]})
-        out <- mapply(x = Omega[keep.pattern], y = iIndex.time, function(x,y){
-            if(!is.null(attr(x,"time"))){
-                dimnames(x) <- list(U.time[attr(x,"time")],U.time[attr(x,"time")])
+        iIndex.time <- lapply(Xpattern.var[Upattern.var], function(iX){
+            if(!is.null(attr(iX,"index.time"))){
+                return(attr(iX,"index.time"))
             }else{
-                dimnames(x) <- list(U.time[y],U.time[y])
+                return(object$design$index.clusterTime[[attr(iX,"index.cluster")[1]]])
             }
-            dimnames(attr(x,"sd")) <- list(U.time[y],NULL)
-            dimnames(attr(x,"cor")) <- list(U.time[y],U.time[y])
+        })
+        out <- mapply(x = Omega[keep.pattern], y = iIndex.time, function(x,y){
+            dimnames(x) <- list(U.time[y],U.time[y])
             return(x)
         }, SIMPLIFY = FALSE)
     }else{
         out <- Omega[keep.pattern]
     }
     ## ** rename patterns
-    Upattern.strata <- unlist(Upattern[match(keep.pattern,Upattern$name),"index.strata"])
-
     all.cov <- union(all.vars(formula$var), all.vars(formula$cor))
-    Ucov.cluster <- do.call(rbind,by(data[,all.cov,drop=FALSE],
-                                     INDICES = Vindex.cluster,
-                                     FUN = function(iData){apply(iData,MARGIN=2,FUN = function(iCol){iU <- unique(iCol); if(length(iU)==1){iU}else{NA}})}, simplify = FALSE))
-    Ucov.pattern <- which(colSums(is.na(Ucov.cluster))==0)
-    if(length(Ucov.pattern)>0){
-        iIndex.cluster <- sapply(Upattern[match(names(out),Upattern$name),"index.cluster"],"[",1)
-        covname.pattern <- as.character(interaction(Ucov.cluster[iIndex.cluster,Ucov.pattern,drop=FALSE], sep = sep[1], drop=TRUE))
-        names(out) <- covname.pattern
+    if(length(all.cov)>0){
+        Ucov.cluster <- do.call(rbind,by(data[,all.cov,drop=FALSE],
+                                         INDICES = Vindex.cluster,
+                                         FUN = function(iData){apply(iData,MARGIN=2,FUN = function(iCol){iU <- unique(iCol); if(length(iU)==1){iU}else{NA}})}, simplify = FALSE))
+        Ucov.pattern <- which(colSums(is.na(Ucov.cluster))==0)
+        if(length(Ucov.pattern)>0){
+            iIndex.cluster <- sapply(Upattern[match(names(out),Upattern$name),"index.cluster"],"[",1)
+            covname.pattern <- as.character(interaction(Ucov.cluster[iIndex.cluster,Ucov.pattern,drop=FALSE], sep = sep[1], drop=TRUE))
+            names(out) <- covname.pattern
+        }
     }
 
     ## ** export Omega

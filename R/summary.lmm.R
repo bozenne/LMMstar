@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: May 26 2022 (14:25) 
+## Last-Updated: May 30 2022 (01:07) 
 ##           By: Brice Ozenne
-##     Update #: 487
+##     Update #: 499
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -191,33 +191,38 @@ summary.lmm <- function(object, digit = 3, level = 0.95, type.cor = NULL, robust
         }
 
         ## find unique correlation patterns
-        table.cor <- lapply(stats::sigma(object, simplifies = FALSE), stats::cov2cor)
+        if(identical(type.cor,"param") || (is.null(type.cor) && object$time$n>10)){
+            table.cor <- rbind(coef(object,effect="correlation"))
+        }else{
+            table.cor <- lapply(stats::sigma(object, simplifies = FALSE), stats::cov2cor)
+        }
         if(print){
-            table.cor  <- lapply(table.cor, function(iCor){ ## iCor <- table.cor[[1]]
-                if(is.matrix(iCor) && !is.null(rownames(iCor))){
-                    rownames(iCor) <- paste0("    ",rownames(iCor))
-                }else{
-                    iCor <- lapply(iCor, function(iiCor){
-                        if(!is.null(rownames(iiCor))){
-                            rownames(iiCor) <- paste0("    ",rownames(iiCor))
-                        }
-                        return(iiCor)
-                    })
-                }
-                return(iCor)
-            })
             if(identical(type.cor,"param") || (is.null(type.cor) && object$time$n>10)){
-                table.cor.print <- rbind(coef(object,effect="correlation"))
+                table.cor.print <- table.cor
                 rownames(table.cor.print) <- "    "
                 print(table.cor.print)
+                cat("\n")
             }else{
+                table.cor.print  <- lapply(table.cor, function(iCor){ ## iCor <- table.cor[[1]]
+                    if(is.matrix(iCor) && !is.null(rownames(iCor))){
+                        rownames(iCor) <- paste0("    ",rownames(iCor))
+                    }else{
+                        iCor <- lapply(iCor, function(iiCor){
+                            if(!is.null(rownames(iiCor))){
+                                rownames(iiCor) <- paste0("    ",rownames(iiCor))
+                            }
+                            return(iiCor)
+                        })
+                    }
+                    return(iCor)
+                })
                 if(length(table.cor)==1){ ## only one (unique) pattern
-                    print(table.cor[[1]], digit = digit)
+                    print(table.cor.print[[1]], digit = digit)
+                    cat("\n")
                 }else{
-                    print(table.cor, digit = digit)
+                    print(table.cor.print, digit = digit)
                 }                        
             }
-            cat("\n")
         }
     }else{
         table.cor <- NULL
@@ -292,13 +297,18 @@ summary.lmm <- function(object, digit = 3, level = 0.95, type.cor = NULL, robust
         if(any(names(printtable.mean) %in% columns == FALSE)){
             printtable.mean <- printtable.mean[,-which(names(printtable.mean) %in% columns == FALSE),drop=FALSE]
         }
+        if(length(object$df)>0){
+            names(printtable.mean) <- gsub("^statistic","t-statistic",names(printtable.mean))
+        }else{
+            names(printtable.mean) <- gsub("^statistic","z-statistic",names(printtable.mean))
+        }
     
         if(print){
             print(printtable.mean)
             cat("\n")
-            if(robust){
+            if(robust && "se" %in% columns){
                 cat("Uncertainty was quantified using robust standard errors (column se). \n", sep = "")
-            }else{
+            }else if("se" %in% columns){
                 cat("Uncertainty was quantified using model-based standard errors (column se). \n", sep = "")
             }
             if(!is.null(object$df)){
@@ -311,7 +321,10 @@ summary.lmm <- function(object, digit = 3, level = 0.95, type.cor = NULL, robust
             }else if("upper" %in% columns){
                 cat("The column upper indicate a ",100*level,"% confidence interval for each coefficient.\n", sep = "")
             }
-            cat("\n")
+
+            if(("lower" %in% columns) || ("upper" %in% columns) || (!is.null(object$df)) || (robust && "se" %in% columns)){
+                cat("\n")
+            }
         }
     }else{
         table.mean <- NULL

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: feb 10 2022 (13:10) 
+## Last-Updated: May 29 2022 (16:51) 
 ##           By: Brice Ozenne
-##     Update #: 50
+##     Update #: 51
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -51,7 +51,7 @@ test_that("rbind for anova",{
     test <- capture.output(summary(ZZZ))
 
     expect_equal(as.double(unlist(test1[1:2,c("estimate","se","df","lower","upper","p.value")])), as.double(unlist(model.tables(e.lmm1)[c("X1","X2"),])), tol = 1e-6)
-    expect_equal(as.double(unlist(test1)), as.double(unlist(test2)), tol = 1e-6)
+    expect_equal(as.double(unlist(test1[,c("estimate","se","df","lower","upper","p.value")])), as.double(unlist(test2[,c("estimate","se","df","lower","upper","p.value")])), tol = 1e-6)
 
 
     ## outplot <- plot(e.lmm2, var = "X8", type = "partial")

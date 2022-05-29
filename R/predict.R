@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: maj  9 2022 (15:48) 
+## Last-Updated: May 30 2022 (00:50) 
 ##           By: Brice Ozenne
-##     Update #: 577
+##     Update #: 590
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -107,46 +107,13 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
                  "While \"total\" will reflect the prediction error. \n")
         }
         se <- match.arg(se, c("estimation","residual","total"))
-    }
-    if(!is.na(name.cluster) && is.null(newdata[[name.cluster]])){
-        rm.cluster <- TRUE
-        if(type=="static"){
-            newdata[[name.cluster]] <- as.character(1:NROW(newdata))
-        }else if(type == "dynamic"){
-            if(any(duplicated(newdata[[name.time]]))){
-                stop("Duplicated time values found in column ",name.time,".\n",
-                     "Consider specifying the cluster variable in argument \'newdata\'. \n")
-            }else{
-                newdata[[name.cluster]] <- as.character("1")
-            }
-        }
-    }else{
-        rm.cluster <- FALSE
-        if(!is.na(name.cluster) && (is.factor(newdata[[name.cluster]]) || is.numeric(newdata[[name.cluster]]))){
-            newdata[[name.cluster]] <- as.character(newdata[[name.cluster]])
-        }
-    }
-    if(!is.null(name.strata)){
-        if(name.strata %in% names(newdata) == FALSE){
-            stop("The strata column \"",name.strata,"\" in argument \'newdata\' is missing. \n")
-        }
-        if(is.factor(newdata[[name.strata]]) || is.numeric(newdata[[name.strata]])){
-            newdata[[name.strata]] <- as.character(newdata[[name.strata]])
-        }
-        if(any(newdata[[name.strata]] %in% object$strata$level == FALSE)){
-            stop("The strata column \"",name.strata,"\" in argument \'newdata\' contains unknown levels. \n")
-        }
-    }
-
+    }    
     if(type.prediction == "dynamic"){
         if(name.time %in% names(newdata) == FALSE){
             stop("The time column \"",name.time,"\" in argument \'newdata\' is missing and necessary when doing dynamic predictions. \n")
         }
         if(name.Y %in% names(newdata) == FALSE){
             stop("The outcome column \"",name.Y,"\" in argument \'newdata\' is missing and necessary when doing dynamic predictions. \n")
-        }
-        if(is.factor(newdata[[name.time]]) || is.numeric(newdata[[name.time]])){
-            newdata[[name.time]] <- as.character(newdata[[name.time]])
         }
         if(any(newdata[[name.time]] %in% U.time == FALSE)){
             stop("The time column \"",name.time,"\" in argument \'newdata\' should match the existing times. \n",
@@ -156,24 +123,18 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
         if(any(test.duplicated)){
             stop("The time column \"",name.time,"\" in argument \'newdata\' should not have duplicated values within clusters. \n")
         }
+         if(any("XXXindexXXX" %in% names(newdata))){
+            stop("Argument \'newdata\' should not contain a column named \"XXXindexXXX\" as this name is used internally. \n")
+        }
         ## test.na <- tapply(newdata[[name.Y]],newdata[[name.cluster]], function(iY){any(is.na(iY))})
         ## if(any(test.na==FALSE)){
         ##     stop("The outcome column \"",name.Y,"\" in argument \'newdata\' should contain at least one missing value for each cluster. \n",
         ##          "They are used to indicate the time at which prediction should be made. \n")
         ## }
-
-        if(any("XXXindexXXX" %in% names(newdata))){
-            stop("Argument \'newdata\' should not contain a column named \"XXXindexXXX\" as this name is used internally. \n")
-        }
-        newdata$XXXindexXXX <- 1:NROW(newdata)
     }else if(type.prediction == "static" && !is.na(name.time)){
-        if(name.time %in% names(newdata) == FALSE){
-            if(!is.null(se) && se %in% c("residual","total")){
-                stop("The time column \"",name.time,"\" in missing from argument \'newdata\'. \n",
-                     "It is necessary for uncertainty calculation involving the residual variance. \n")
-            }else{
-                newdata[[name.time]] <- U.time[1]
-            }
+        if((name.time %in% names(newdata) == FALSE) && (!is.null(se) && se %in% c("residual","total"))){
+            stop("The time column \"",name.time,"\" in missing from argument \'newdata\'. \n",
+                 "It is necessary for uncertainty calculation involving the residual variance. \n")
         }
     }
 
@@ -261,6 +222,7 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
     }else if(type.prediction == "dynamic"){
 
         ## prepare
+        newdata$XXXindexXXX <- 1:NROW(newdata)
         vcov.all <- vcov(object, effects = "all")
         param.all <- coef(object, effects = "all")
         name.beta <- colnames(X)
@@ -363,9 +325,6 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
                  se.fit = out$se,
                  residual.scale = NA,
                  df = out$df))
-    }
-    if(rm.cluster){
-        out[[name.cluster]] <- NULL
     }
     alpha <- 1-level
     if(!is.null(se)){

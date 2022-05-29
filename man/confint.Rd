@@ -12,7 +12,6 @@
   effects = NULL,
   robust = FALSE,
   null = NULL,
-  strata = NULL,
   columns = NULL,
   df = NULL,
   type.information = NULL,
@@ -40,9 +39,8 @@ or only for correlation coefficients (\code{"correlation"}).}
 
 \item{null}{[numeric vector] the value of the null hypothesis relative to each coefficient.}
 
-\item{strata}{[character vector] When not \code{NULL}, only output coefficient relative to specific levels of the variable used to stratify the mean and covariance structure.}
-
-\item{columns}{[character vector] Columns to be output. Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.}
+\item{columns}{[character vector] Columns to be output.
+Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}, \code{"partial.R"}.}
 
 \item{df}{[logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.}
 

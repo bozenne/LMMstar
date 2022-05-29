@@ -9,6 +9,7 @@
   object,
   digit = 3,
   level = 0.95,
+  type.cor = NULL,
   robust = FALSE,
   print = TRUE,
   columns = NULL,
@@ -27,6 +28,8 @@
 \item{digit}{[integer,>0] number of digit used to display numeric values.}
 
 \item{level}{[numeric,0-1] confidence level for the confidence intervals.}
+
+\item{type.cor}{[character] should the correlation matrix be display (\code{"matrix"}) or the parameter values (\code{"param"}).}
 
 \item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.}
 

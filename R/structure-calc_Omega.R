@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: May 28 2022 (16:40) 
+## Last-Updated: May 29 2022 (23:41) 
 ##           By: Brice Ozenne
-##     Update #: 461
+##     Update #: 485
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -79,12 +79,17 @@
         iPattern.var <- Upattern[iPattern,"var"]
         iPattern.cor <- Upattern[iPattern,"cor"]
         iNtime <- Upattern[iPattern,"n.time"]
-
         Omega.sd <- unname(exp(X.var[[iPattern.var]] %*% log(param[colnames(X.var[[iPattern.var]])])))
         Omega.cor <- diag(0, nrow = iNtime, ncol = iNtime)
         if(!is.null(X.cor) && !is.null(X.cor[[iPattern.cor]])){
-            for(iParam in attr(X.cor[[iPattern.cor]],"param")){
-                Omega.cor[attr(X.cor[[iPattern.cor]],"indicator.param")[[iParam]]] <- param[iParam]
+            iParam.cor <- attr(X.cor[[iPattern.cor]],"param")
+            for(iiP in 1:length(iParam.cor)){
+                iiParam <- iParam.cor[iiP]
+                if(is.na(iiParam)){
+                    Omega.cor[attr(X.cor[[iPattern.cor]],"indicator.param")[[iiParam]]] <- NA
+                }else{
+                    Omega.cor[attr(X.cor[[iPattern.cor]],"indicator.param")[[iiParam]]] <- param[iiParam]
+                }
             }
         }
         Omega <- diag(as.double(Omega.sd)^2, nrow = iNtime, ncol = iNtime) + Omega.cor * tcrossprod(Omega.sd)
@@ -96,7 +101,7 @@
         }
         return(Omega)
     }), Upattern$name)
-
+    ## print(Omega)
     return(Omega)
 }
 
@@ -145,7 +150,6 @@
         }
         return(iOmega)
     }), Upattern$name)
-
 
     return(Omega)
 }

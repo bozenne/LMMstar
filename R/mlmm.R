@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: mar 14 2022 (13:38) 
+## Last-Updated: May 30 2022 (01:30) 
 ##           By: Brice Ozenne
-##     Update #: 40
+##     Update #: 51
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -89,11 +89,18 @@ mlmm <- function(..., data, by, effects = NULL, robust = FALSE, df = TRUE, ci = 
     ls.lmm <- lapply(ls.data, function(iData){
         lmm(..., data = iData, df = df)
     })
-    if(is.null(effects)){
-        
+
+    if(is.null(effects) || all(effects %in% c("mean","fixed","variance","correlation","all"))){
         ls.anova <- lapply(ls.lmm, function(iLMM){
-            iE <- paste(names(coef(iLMM, effects = options$effects)),"==0", sep = "")
-            anova(iLMM, effects = iE, robust = robust, df = df, ci = ci)
+            iAllCoef <- names(coef(iLMM, effects = "all"))
+            iAllCoef.effects <- names(coef(iLMM, effects = options$effects))
+            iC <- matrix(0, nrow = length(iAllCoef.effects), ncol = length(iAllCoef), dimnames = list(iAllCoef.effects,iAllCoef))
+            if(length(iAllCoef.effects)==1){
+                iC[iAllCoef.effects,iAllCoef.effects] <- 1
+            }else{
+                diag(iC[iAllCoef.effects,iAllCoef.effects]) <- 1
+            }
+            anova(iLMM, effects = iC, robust = robust, df = df, ci = ci)
         })
     }else{
         ls.anova <- lapply(ls.lmm, anova, effects = effects, robust = robust, df = df, ci = ci)

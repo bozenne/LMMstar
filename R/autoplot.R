@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: maj  9 2022 (18:29) 
+## Last-Updated: May 30 2022 (01:12) 
 ##           By: Brice Ozenne
-##     Update #: 138
+##     Update #: 158
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -47,14 +47,27 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
     if(object$time$n==1){
         stop("Cannot display the fitted values over time when there only is a single timepoint. \n")
     }
-    
+
+    ## ** extract from object
+    object.data <- object$data
+    Upattern <- object$design$vcov$X$Upattern
+    pattern.cluster <- object$design$vcov$X$pattern.cluster
+
+    outcome.var <- object$outcome$var
+    time.var <- attr(object$time$var,"original")
+    mu.var <- attr(object$design$mean,"variable") 
+    if(length(time.var) == 0 && length(mu.var) == 0){
+        message("There is nothing to be displayed: empty time variable and no covariate for the mean structure. \n")
+        return(NULL)
+    }
+
     ## ** find representative individuals
-    order.nrep <- names(sort(sapply(object$design$vcov$X$Upattern$time, length), decreasing = TRUE))
-    col.pattern <- factor(object$design$vcov$X$pattern.cluster, order.nrep)[object$data[["XXclusterXX"]]]
+    order.nrep <- names(sort(stats::setNames(Upattern$n.time, Upattern$name), decreasing = TRUE))
+    col.pattern <- factor(pattern.cluster, order.nrep)[object.data[["XXclusterXX"]]]
 
     ## put observations with full data first to avoid "holes"  in the plot
-    reorder <- order(col.pattern,object$data[["XXclusterXX"]],object$data[["XXtimeXX"]])
-    data <- object$data[reorder,,drop=FALSE]
+    reorder <- order(col.pattern,object.data[["XXclusterXX"]],object.data[["XXtimeXX"]])
+    data <- object.data[reorder,,drop=FALSE]
     if(!is.null(at)){
         if(is.vector(at)){at <- as.data.frame(as.list(at))}
         if(!is.data.frame(at)){
@@ -74,7 +87,7 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
     }
 
     ## design matrix: find unique combinations of covariates
-    X.beta <- stats::model.matrix(object, data = data, effects = "mean")
+    X.beta <- stats::model.matrix(object, data = data[,union(time.var, mu.var), drop=FALSE], effects = "mean")
     IX.beta <- interaction(as.data.frame(X.beta), drop = TRUE)
     vec.X.beta <- tapply(IX.beta, data[["XXclusterXX"]],paste, collapse = "_XXX_")
     UX.beta <- unique(vec.X.beta)
@@ -133,12 +146,12 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
     }
     if(!is.na(obs.alpha) && obs.alpha>0 && length(color)>1 && color %in% names(data) == FALSE){
         ls.UX <- lapply(as.character(unique(newdata[["XXclusterXX"]])), function(iC){
-            iVec <- as.character(interaction(data[data[["XXclusterXX"]] %in% iC,attr(object$design$mean,"variable"),drop=FALSE]))
+            iVec <- as.character(interaction(data[data[["XXclusterXX"]] %in% iC,mu.var,drop=FALSE]))
             cbind(repetition = data[data[["XXclusterXX"]] %in% iC,"XXtimeXX",drop=FALSE], lp = iVec)
         })
     
         index.X <- unlist(lapply(as.character(unique(data[["XXclusterXX"]])), function(iC){
-            iVec <- as.character(interaction(data[data[["XXclusterXX"]] %in% iC,attr(object$design$mean,"variable"),drop=FALSE]))
+            iVec <- as.character(interaction(data[data[["XXclusterXX"]] %in% iC,mu.var,drop=FALSE]))
             iM <- cbind(repetition = data[data[["XXclusterXX"]] %in% iC,"XXtimeXX",drop=FALSE], lp = iVec)
             iScore <- unlist(lapply(ls.UX, function(iUX){sum(iUX[match(iM[,"Days"],iUX[,"Days"]),"lp"]==iM[,"lp"])}))
             which.max(iScore)
@@ -148,23 +161,23 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
 
     ## ** compute fitted curve
     if(!is.na(obs.alpha) && obs.alpha>0){
-        preddata <- cbind(data, stats::predict(object, newdata = data, ...))
+        preddata <- cbind(data, stats::predict(object, newdata = data[,union(time.var, mu.var), drop=FALSE], ...))
     }else{
-        preddata <- cbind(newdata, stats::predict(object, newdata = newdata, ...))
+        preddata <- cbind(newdata, stats::predict(object, newdata = newdata[,union(time.var, mu.var), drop=FALSE], ...))
     }
 
     ## ** generate plot
     gg <- ggplot2::ggplot(preddata, ggplot2::aes_string(x = "XXtimeXX", y = "estimate", group = "XXclusterXX"))
     if(!is.na(obs.alpha) && obs.alpha>0){
         if(!is.null(color)){
-            gg <- gg + ggplot2::geom_point(data = data, mapping = ggplot2::aes_string(x = "XXtimeXX", y = object$outcome$var, group = "XXclusterXX", color = color),
+            gg <- gg + ggplot2::geom_point(data = data, mapping = ggplot2::aes_string(x = "XXtimeXX", y = outcome.var, group = "XXclusterXX", color = color),
                                            alpha = obs.alpha, size = obs.size[1])
-            gg <- gg + ggplot2::geom_line(data = data, mapping = ggplot2::aes_string(x = "XXtimeXX", y = object$outcome$var, group = "XXclusterXX", color = color),
+            gg <- gg + ggplot2::geom_line(data = data, mapping = ggplot2::aes_string(x = "XXtimeXX", y = outcome.var, group = "XXclusterXX", color = color),
                                           alpha = obs.alpha, size = obs.size[2])
             ## gg + facet_wrap(~XXclusterXX)
         }else{
-            gg <- gg + ggplot2::geom_point(data = data, mapping = ggplot2::aes_string(x = "XXtimeXX", y = object$outcome$var, group = "XXclusterXX"), alpha = obs.alpha, size = obs.size[1])
-            gg <- gg + ggplot2::geom_line(data = data, mapping = ggplot2::aes_string(x = "XXtimeXX", y = object$outcome$var, group = "XXclusterXX"), alpha = obs.alpha, size = obs.size[2])
+            gg <- gg + ggplot2::geom_point(data = data, mapping = ggplot2::aes_string(x = "XXtimeXX", y = outcome.var, group = "XXclusterXX"), alpha = obs.alpha, size = obs.size[1])
+            gg <- gg + ggplot2::geom_line(data = data, mapping = ggplot2::aes_string(x = "XXtimeXX", y = outcome.var, group = "XXclusterXX"), alpha = obs.alpha, size = obs.size[2])
         }
     }
     if(ci){
@@ -183,9 +196,9 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
     }else{
         gg <- gg + ggplot2::geom_point(size = mean.size[1]) + ggplot2::geom_line(size = mean.size[2])
     }
-    gg  <- gg + ggplot2::ylab(object$outcome$var) + ggplot2::theme(text = ggplot2::element_text(size=size.text))
-    if(!is.null(object$time$var)){
-        gg  <- gg + ggplot2::xlab(object$time$var)
+    gg  <- gg + ggplot2::ylab(outcome.var) + ggplot2::theme(text = ggplot2::element_text(size=size.text))
+    if(!is.null(time.var) && any(!is.na(time.var))){
+        gg  <- gg + ggplot2::xlab(paste(stats::na.omit(time.var), collapse = " "))
     }
 
 

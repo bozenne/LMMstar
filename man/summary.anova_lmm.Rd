@@ -9,7 +9,7 @@
   method = NULL,
   transform = NULL,
   level = 0.95,
-  print.nulls = TRUE,
+  print = TRUE,
   seed = NULL,
   columns = NULL,
   digits = max(3L, getOption("digits") - 2L),
@@ -27,13 +27,14 @@
 
 \item{level}{[numeric 0-1] level of the confidence intervals.}
 
-\item{print.nulls}{[logical] should the estimates for the individual null hypotheses be displayed?}
+\item{print}{[logical] should the output be printed in the console.
+Can be a vector of length 2 where the first element refer to the global tests and the second to the individual tests.}
 
 \item{seed}{[integer] value that will be set before adjustment for multiple comparisons to ensure reproducible results.
 Can also be \code{NULL}: in such a case no seed is set.}
 
 \item{columns}{[character vector] Columns to be displayed for each null hypothesis.
-Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"df.denom"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.}
+Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.}
 
 \item{digits}{[interger] number of digits used to display estimates.}
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: maj 27 2022 (14:24) 
+## Last-Updated: May 30 2022 (01:16) 
 ##           By: Brice Ozenne
-##     Update #: 1841
+##     Update #: 1899
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -286,7 +286,7 @@ lmm <- function(formula, repetition, structure, data,
     out$cluster <- list(n = n.cluster, levels = U.cluster, var = var.cluster)
 
     ## time
-    if(is.na(var.time)){
+    if(all(is.na(var.time))){
         var.timeOLD <- var.time
         var.time <- "XXtimeXX"
         attr(var.time, "original") <- var.timeOLD
@@ -485,7 +485,7 @@ lmm <- function(formula, repetition, structure, data,
 
     if(missing(structure)){
         if(any(duplicated(data[["XXclusterXX"]]))){
-            if(is.na(attr(var.time,"original"))){
+            if(all(is.na(attr(var.time,"original")))){
                 structure <- CS(~1)
             }else{
                 structure <- UN(~1)
@@ -498,9 +498,9 @@ lmm <- function(formula, repetition, structure, data,
     }
 
     if(!missing.repetition){
-        if(!is.na(structure$name$time) && structure$name$time != var.time){
+        if(any(!is.na(structure$name$time)) && any(sort(structure$name$time) != sort(var.time))){
             warning("Argument \'structure\' is inconsistent with argument \'repetition\'. \n",
-                    "Not the same time variable: ",structure$name$time," vs. ",var.time,".\n")
+                    "Not the same time variable: ",paste(structure$name$time, collapse = " ")," vs. ",paste(var.time, collapse =  " "),".\n")
         }
         if(!is.na(structure$name$cluster) && structure$name$cluster != var.cluster){
             warning("Argument \'structure\' is inconsistent with argument \'repetition\'. \n",
@@ -591,11 +591,15 @@ lmm <- function(formula, repetition, structure, data,
             out$design$cluster$levels.original <- sort(unique(data.save[[attr(var.cluster,"original")]]))
         }
     }
-    if(!is.na(attr(var.time,"original"))){
-        if(is.factor(data[[attr(var.time,"original")]])){
-            out$design$time$levels.original <- levels(data.save[[attr(var.time,"original")]])
+    if(any(!is.na(attr(var.time,"original")))){
+        if(length(attr(var.time,"original"))==1){
+            if(is.factor(data[[attr(var.time,"original")]])){
+                out$design$time$levels.original <- levels(data.save[[attr(var.time,"original")]])
+            }else{
+                out$design$time$levels.original <- sort(unique(data.save[[attr(var.time,"original")]]))
+            }
         }else{
-            out$design$time$levels.original <- sort(unique(data.save[[attr(var.time,"original")]]))
+                out$design$time$levels.original <- as.character(interaction(data.save[,attr(var.time,"original")], drop = TRUE))
         }
     }
     ## note use model.frame to handline splines in the formula
@@ -616,9 +620,12 @@ lmm <- function(formula, repetition, structure, data,
         if(any(add.col %in% names(data.fit) == FALSE)){
             data.fit <- cbind(data.fit, data[,add.col[add.col %in% names(data.fit) == FALSE],drop=FALSE])
         }
-        ## order by strata, time, and cluster (strata, cluster, and time does not provide satisfactory results, mixing k-parameters)
-        col.pattern <- out$design$vcov$X$pattern.cluster$pattern[data.fit[["XXcluster.indexXX"]]]
-        data.fit <- data.fit[order(data.fit[["XXstrata.indexXX"]],col.pattern,data.fit[["XXcluster.indexXX"]],data.fit[["XXtime.indexXX"]]),,drop=FALSE]
+        ## order by strata, cluster size, cluster, and time
+        ## col.pattern <- out$design$vcov$X$pattern.cluster$pattern[data.fit[["XXcluster.indexXX"]]]
+        table.clusterSize <- unlist(unname(tapply(data.fit$XXcluster.indexXX,data.fit$XXstrata.indexXX, function(iVec){sort(table(iVec), decreasing = TRUE)}, simplify = FALSE)))
+        data.fit$XXcluster.indexXX <- as.numeric(factor(data.fit$XXcluster.indexXX, levels = names(table.clusterSize)))
+        
+        data.fit <- data.fit[order(data.fit$XXcluster.indexXX,data.fit$XXtime.indexXX),,drop=FALSE]
         if(n.strata==1){
             txt.data <- "data.fit"
         }else{
@@ -665,19 +672,52 @@ lmm <- function(formula, repetition, structure, data,
             paste0(gsub(",",",\n    ",gsub(" ","",paste(deparse(iM$call), collapse = ""))),"\n")
         })
         param.mu <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]) })
-        param.sigma <- lapply(U.strata, function(iS){ stats::sigma(out$gls[[iS]]) })
+        param.sigma <- lapply(U.strata, function(iS){
+            if(is.null(out$gls[[iS]]$modelStruct$varStruct)){
+                return(stats::sigma(out$gls[[iS]]))
+            }else{
+                iLevel <- c(unlist(out$design$param[unlist(out$design$param$strata) == iS & out$design$param$type=="sigma","level"]),
+                            unlist(out$design$param[unlist(out$design$param$strata) == iS & out$design$param$type=="k","level"]))
+                iSubLevel <- gsub("^\\.","",iLevel)
+                iCoef <- coef(out$gls[[iS]]$modelStruct$varStruct, unconstrained = FALSE, allCoef = TRUE)
+                if(names(iCoef)[1] == iSubLevel[1] || names(iCoef)[1] %in% iSubLevel == FALSE){ 
+                    return(stats::sigma(out$gls[[iS]]))         
+                }else{ ## handle the case where the reference level is wrong
+                    return(iCoef[names(iCoef)==iSubLevel[1]] * stats::sigma(out$gls[[iS]])) 
+                }
+            }
+            
+        })
         param.value <- c(stats::setNames(unlist(param.mu),out$design$param[out$design$param$type=="mu","name"]),
                          stats::setNames(unlist(param.sigma), out$design$param[out$design$param$type=="sigma","name"]))
         if("k" %in% out$design$param$type){
-            param.k <- lapply(U.strata, function(iS){ ## iS <- "1"
+            param.k <- lapply(1:length(U.strata), function(iS){ ## iS <- 1
+                iLevel <- unlist(out$design$param[unlist(out$design$param$strata) == iS & out$design$param$type=="k","level"])
+                iSubLevel <- gsub("^\\.","",iLevel)
                 iCoef <- coef(out$gls[[iS]]$modelStruct$varStruct, unconstrained = FALSE)
-            })            
+                if(all(names(iCoef) %in% iSubLevel)){ ## if possible re-order coef based on the names
+                    return(iCoef[iSubLevel])
+                }else{
+                    iAllCoef <- coef(out$gls[[iS]]$modelStruct$varStruct, unconstrained = FALSE, allCoef = TRUE) * sigma(out$gls[[iS]])
+                    if(all(iSubLevel %in% names(iAllCoef))){ ## handle the case where the reference level is wrong                        
+                        return(iAllCoef[match(iSubLevel, names(iAllCoef))]/iAllCoef[names(iAllCoef) %in% iSubLevel == FALSE])                        
+                    }else{
+                        return(iCoef)
+                    }
+                }
+            })
+            if(sum(sapply(param.k,length))!=sum(out$design$param$type=="k")){
+                warning("Mismatch in number of variance parameters between gls and lmm. \n")
+            }
             param.value <- c(param.value,stats::setNames(unlist(param.k), out$design$param[out$design$param$type=="k","name"]))
         }
         if("rho" %in% out$design$param$type){
             param.rho <- lapply(U.strata, function(iS){ coef(out$gls[[iS]]$modelStruct$corStruct, unconstrained = FALSE) })
+            if(sum(sapply(param.rho,length))!=sum(out$design$param$type=="rho")){
+                warning("Mismatch in number of correlation parameters between gls and lmm. \n")
+            }
             param.value <- c(param.value,stats::setNames(unlist(param.rho), out$design$param[out$design$param$type=="rho","name"]))
-        }        
+        }
         out$opt <- list(name = "gls")
     }else{
         outEstimate <- .estimate(design = out$design, time = out$time, method.fit = method.fit, type.information = type.information,
@@ -729,7 +769,9 @@ lmm <- function(formula, repetition, structure, data,
     data <- as.data.frame(data)
     
     ## ** tests
-    if(missing.repetition){
+    if(is.null(missing.repetition)){
+        name.arg <- NULL
+    }else if(missing.repetition){
         name.arg <- "structure"
     }else{
         name.arg <- "repetition"
@@ -757,19 +799,31 @@ lmm <- function(formula, repetition, structure, data,
         stop("Argument \'data\' should not contain a column named \"XXstrata.indexXX\" as this name is used internally by the lmm function. \n")
     }
     if(any(!is.na(var.cluster)) && any(var.cluster %in% names(data) == FALSE)){
-        stop("Argument \'",name.arg,"\' is inconsistent with argument \'data\'. \n",
-             "Could not find column \"",paste(var.cluster, collapse = "\" \""),"\" indicating the cluster in argument \'data\'. \n", sep="")
+        if(!is.null(name.arg)){
+            stop("Argument \'",name.arg,"\' is inconsistent with argument \'data\'. \n",
+                 "Could not find column \"",paste(var.cluster, collapse = "\" \""),"\" indicating the cluster in argument \'data\'. \n", sep="")
+        }else{
+            stop("Could not find column \"",paste(var.cluster, collapse = "\" \""),"\" indicating the cluster in argument \'data\'. \n", sep="")
+        }
     }
     if(any(!is.na(var.time)) && any(var.time %in% names(data) == FALSE)){
-        stop("Argument \'",name.arg,"\' is inconsistent with argument \'data\'. \n",
-             "Could not find column \"",paste(var.time, collapse = "\" \""),"\" indicating the cluster in argument \'data\'. \n", sep="")
+        if(!is.null(name.arg)){
+            stop("Argument \'",name.arg,"\' is inconsistent with argument \'data\'. \n",
+                 "Could not find column \"",paste(var.time, collapse = "\" \""),"\" indicating the cluster in argument \'data\'. \n", sep="")
+        }else{
+            stop("Could not find column \"",paste(var.time, collapse = "\" \""),"\" indicating the cluster in argument \'data\'. \n", sep="")
+        }
     }
     if(any(!is.na(var.strata)) && any(var.strata %in% names(data) == FALSE)){
-        stop("Argument \'",name.arg,"\' is inconsistent with argument \'data\'. \n",
-             "Could not find column \"",paste(var.strata, collapse = "\" \""),"\" indicating the strata in argument \'data\'. \n",sep="")
+        if(!is.null(name.arg)){
+            stop("Argument \'",name.arg,"\' is inconsistent with argument \'data\'. \n",
+                 "Could not find column \"",paste(var.strata, collapse = "\" \""),"\" indicating the strata in argument \'data\'. \n",sep="")
+        }else{
+            stop("Could not find column \"",paste(var.strata, collapse = "\" \""),"\" indicating the strata in argument \'data\'. \n",sep="")
+        }
     }
     if(length(var.cluster)>1){
-        if(missing.repetition){
+        if(!is.null(missing.repetition) && missing.repetition){
             stop("Incorrect specification of argument \'",name.arg,"\': too many cluster variables. \n")
         }else{
             stop("Incorrect specification of argument \'",name.arg,"\': too many cluster variables. \n",
@@ -806,8 +860,8 @@ lmm <- function(formula, repetition, structure, data,
         }
         ## try to handle the case where time in cluster 1 is (C1,S1) (C1,S2) (C1,S3) while it is (C2,S1) (C2,S2) (C2,S3)
         ## i.e. unify time across clusters
-        data[["XXtime"]] <- factor(data[["XXtime.indexXX"]], labels = levels(interaction.tempo)[1:max(data[["XXtime.indexXX"]])])
-        
+        data[["XXtimeXX"]] <- factor(data[["XXtime.indexXX"]], labels = levels(interaction.tempo)[1:max(data[["XXtime.indexXX"]])])
+
     }else if(is.na(var.time) || (identical(var.time,"XXtimeXX") && "XXtimeXX" %in% names(data) == FALSE)){
         iTime <- tapply(data$XXclusterXX, data$XXclusterXX, function(iC){1:length(iC)})
         iIndex <- tapply(1:NROW(data), data$XXclusterXX, function(iC){iC})
