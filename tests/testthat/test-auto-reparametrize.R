@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:54) 
 ## Version: 
-## Last-Updated: May 29 2022 (14:54) 
+## Last-Updated: maj 30 2022 (09:25) 
 ##           By: Brice Ozenne
-##     Update #: 45
+##     Update #: 46
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -207,7 +207,7 @@ test.mp3 <- reparametrize(p = p, type = type, sigma = sigma,
                           transform.k = "var",
                           transform.rho = "none", transform.names = FALSE)
 
-expect_equal(test.mp1, GS.mp1, tol = 1e-5)
+expect_equal(test.mp3, GS.mp3, tol = 1e-5)
 
 testB.mp3 <- .reparametrize(p = setNames(as.double(test.mp3),names(p)), type = type, sigma = sigma,
                             Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,

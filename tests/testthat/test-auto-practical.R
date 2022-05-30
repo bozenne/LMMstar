@@ -1,11 +1,11 @@
-### test-manual-practical.R --- 
+### test-auto-practical.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (17:03) 
 ## Version: 
-## Last-Updated: May 29 2022 (16:32) 
+## Last-Updated: maj 30 2022 (09:22) 
 ##           By: Brice Ozenne
-##     Update #: 102
+##     Update #: 103
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -364,4 +364,4 @@ test_that("practical 6 - vasscoresL",{
     expect_equal(sigma(fit.UN.red), GS, tol = 1e-5)
 })
 ##----------------------------------------------------------------------
-### test-manual-practical.R ends here
+### test-auto-practical.R ends here

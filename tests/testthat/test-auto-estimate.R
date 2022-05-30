@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 31 2022 (11:36) 
 ## Version: 
-## Last-Updated: May 29 2022 (16:07) 
+## Last-Updated: maj 30 2022 (09:17) 
 ##           By: Brice Ozenne
-##     Update #: 63
+##     Update #: 64
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,7 +25,7 @@ if(FALSE){
 }
 
 context("Check delta method (estimate function) for mixed model")
-LMMstar.options(optimizer = "FS", method.numDeriv = "simple", precompute.moments = TRUE,
+LMMstar.options(optimizer = "gls", method.numDeriv = "simple", precompute.moments = TRUE,
                 columns.confint = c("estimate","se","df","lower","upper","p.value"))
 
 ## * Compare change with complete data
