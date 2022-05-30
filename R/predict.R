@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: May 30 2022 (00:50) 
+## Last-Updated: maj 30 2022 (13:31) 
 ##           By: Brice Ozenne
-##     Update #: 590
+##     Update #: 594
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -107,7 +107,23 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
                  "While \"total\" will reflect the prediction error. \n")
         }
         se <- match.arg(se, c("estimation","residual","total"))
-    }    
+    }
+    if(!is.na(attr(name.cluster,"original"))){
+        if(is.null(newdata[[name.cluster]])){
+            if(type=="static"){
+                newdata[[name.cluster]] <- as.character(1:NROW(newdata))
+            }else if(type == "dynamic" && !is.na(attr(name.time,"original")) && attr(name.time,"original") %in% names(newdata)){
+                if(any(duplicated(newdata[[attr(name.time,"original")]]))){
+                    stop("Duplicated time values found in column ",name.time,".\n",
+                         "Consider specifying the cluster variable in argument \'newdata\'. \n")
+                }else{
+                    newdata[[name.cluster]] <- as.character("1")
+                }
+            }
+        }else if((is.factor(newdata[[name.cluster]]) || is.numeric(newdata[[name.cluster]]))){
+            newdata[[name.cluster]] <- as.character(newdata[[name.cluster]])
+        }
+    }
     if(type.prediction == "dynamic"){
         if(name.time %in% names(newdata) == FALSE){
             stop("The time column \"",name.time,"\" in argument \'newdata\' is missing and necessary when doing dynamic predictions. \n")
@@ -119,11 +135,14 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
             stop("The time column \"",name.time,"\" in argument \'newdata\' should match the existing times. \n",
                  "Existing times: \"",paste0(U.time, collapse = "\" \""),"\".\n")
         }
+        if(name.cluster %in% names(newdata) == FALSE){
+            stop("The cluster column \"",name.cluster,"\" in argument \'newdata\' is missing and necessary whendoing dynamic predictions. \n")
+        }
         test.duplicated <- tapply(newdata[[name.time]],newdata[[name.cluster]], function(iT){any(duplicated(iT))})
         if(any(test.duplicated)){
             stop("The time column \"",name.time,"\" in argument \'newdata\' should not have duplicated values within clusters. \n")
         }
-         if(any("XXXindexXXX" %in% names(newdata))){
+        if(any("XXXindexXXX" %in% names(newdata))){
             stop("Argument \'newdata\' should not contain a column named \"XXXindexXXX\" as this name is used internally. \n")
         }
         ## test.na <- tapply(newdata[[name.Y]],newdata[[name.cluster]], function(iY){any(is.na(iY))})
@@ -198,7 +217,7 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
         if(keep.newdata){
             out <- cbind(newdata, estimate = prediction[,1])
         }else{
-            out <- data.frame(estimate = prediction[,1],stringsAsFactors = FALSE)
+            out <- data.frame(estimate = prediction[,1], stringsAsFactors = FALSE)
         }
         ## compute uncertainty about the predictions
         ## prediction.se <- sqrt(diag(X %*% vcov.beta %*% t(X)))

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: May 30 2022 (01:06) 
+## Last-Updated: maj 30 2022 (13:37) 
 ##           By: Brice Ozenne
-##     Update #: 460
+##     Update #: 484
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -37,13 +37,15 @@
 ##' ## simulate data in the long format
 ##' set.seed(10)
 ##' dL <- sampleRem(100, n.times = 3, format = "long")
+##' dL$id.fac <- paste0("id",dL$id)
 ##' 
 ##' ## fit Linear Mixed Model
-##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
+##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id.fac,
+##'                structure = "UN", data = dL, df = FALSE)
 ##'
 ##' ## extract residuals variance covariance matrix
 ##' sigma(eUN.lmm) ## unique patterns
-##' sigma(eUN.lmm, cluster = c("1","5")) ## existing clusters
+##' sigma(eUN.lmm, cluster = c("id1","id5")) ## existing clusters
 ##' sigma(eUN.lmm, cluster = dL[1:7,,drop=FALSE]) ## new clusters
 
 ## * sigma.lmm
@@ -71,6 +73,11 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, inverse = FALSE, simplif
         time.var <- object$time$var
     }
     U.time <- object$time$levels
+    if(is.null(attr(U.time,"original"))){
+        U.time.original <- U.time
+    }else{
+        U.time.original <- attr(U.time,"original")
+    }
     n.time <- object$time$n
     if(!is.null(attr(object$cluster$var,"original"))){
         cluster.var <- attr(object$cluster$var,"original")
@@ -151,12 +158,13 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, inverse = FALSE, simplif
             keep.index.strata <- which(vec.ntime < n.time)
             df.fulltime <- do.call(rbind,lapply(keep.index.strata, function(iStrata){
                 if(!is.na(attr(strata.var,"original"))){
+                    ## NOTE: use U.time.original instead of U.time in case multiple time variables
                     iDF <- data.frame(U.strata[iStrata],
-                                      U.time,
+                                      U.time.original, 
                                       object$cluster$levels[iStrata])
                     names(iDF) <- c(time.var,cluster.var,attr(strata.var,"original"))
                 }else{
-                    iDF <- data.frame(U.time,object$cluster$levels[iStrata])
+                    iDF <- data.frame(U.time.original,object$cluster$levels[iStrata])
                     names(iDF) <- c(time.var,cluster.var)
                 }
                 return(iDF)
@@ -201,7 +209,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, inverse = FALSE, simplif
                 ## DO NOT USE
                 ## dimnames(out[[iO]]) <- list(object$time$levels[attr(out[[iO]],"time")],object$time$levels[attr(out[[iO]],"time")])
                 ## as this is incorrect with CS structure and missing data (indeed CS can be for time 1,2 but also work for 2,3. However the previous line would incorrectly label the times)
-                iC.time <- U.time[index.clusterTime[[cluster[[iC]]]]]
+                iC.time <- U.time[index.clusterTime[[iC]]]
                 dimnames(out[[iC]]) <- list(iC.time,iC.time)
             }
         }
@@ -256,7 +264,7 @@ getVarCov.lmm <- function(obj, ...) {
     }
     formula <- object$design$vcov$formula
     Vindex.cluster <- attr(object$design$index.cluster, "vectorwise")
-    
+
     ## ** summary statistic of each pattern
     XCpattern.var <- lapply(Xpattern.var, function(iVar){as.character(interaction(as.data.frame(iVar),sep=sep[1]))})
     if(!is.null(object$design$vcov$X$Xpattern.cor)){
@@ -312,7 +320,7 @@ getVarCov.lmm <- function(obj, ...) {
     }
 
     ## ** recover time
-    if(!is.numeric(data[[object$time$var]])){
+    if(length(object$time$var)>1 || !is.numeric(data[[object$time$var]])){
         
         Upattern.var <- Upattern$var[match(keep.pattern,Upattern$name)]
         iIndex.time <- lapply(Xpattern.var[Upattern.var], function(iX){

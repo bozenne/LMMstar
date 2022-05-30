@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: May 29 2022 (22:31) 
+## Last-Updated: maj 30 2022 (17:21) 
 ##           By: Brice Ozenne
-##     Update #: 533
+##     Update #: 648
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -201,7 +201,6 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
     precompute.XY <- design$precompute.XY
     precompute.XX <- design$precompute.XX$pattern
     key.XX <- design$precompute.XX$key
-    wolfe <- FALSE
     effects <- c("variance","correlation")
 
     ## ** intialization
@@ -256,9 +255,10 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
         param.valueM1 <- NULL
         logLik.value <- -Inf
         score.value <- stats::setNames(rep(Inf, length(param.value)), names(param.value))
+        information.value <- NULL
         type.information <- "expected"
-        wolfe.c1 <- 1e-4
-        wolfe.c2 <- 0.9
+        ## wolfe.c1 <- 1e-4
+        ## wolfe.c2 <- 0.9
         iIter <- 0
         if(trace>1){
             cat("\nLoop:\n")
@@ -266,8 +266,9 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
         for(iiIter in 0:(n.iter-1)){ ## iIter <- 1
             logLik.valueM1 <- logLik.value
             score.valueM1 <- score.value
+            information.valueM1 <- information.value
 
-            ## *** moments
+            ## *** estimate moments
             outMoments <- .moments.lmm(value = param.value, design = design, time = time, method.fit = method.fit, type.information = type.information,
                                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                        logLik = TRUE, score = TRUE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = effects, robust = FALSE,
@@ -276,47 +277,55 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
             score.value <- outMoments$score    
             information.value <- outMoments$information
 
+            ## if(iiIter==0){
+            ##     test.wolfe <- c(TRUE,TRUE)
+            ## }else{
+            ##     ## wolfe condition for full step
+            ##     test.wolfe <- .wolfe(update = update.value,
+            ##                          logLik.old = logLik.valueM1, logLik.new = logLik.value, 
+            ##                          score.old = score.valueM1, score.new = score.value, alpha = 1, c1 = wolfe.c1, c2 = wolfe.c2)
+            ## }
+
             if(all(abs(outMoments$score)<tol.score) && (iiIter==0 || all(abs(param.valueM1 - param.value)<tol.param))){
                 if(iiIter==0){param.valueM1 <- param.value * NA}
                 cv <- TRUE
                 break
-            }else if(is.na(logLik.value) || (logLik.value < logLik.valueM1)){ ## decrease in likelihood - try observed information matrix
-                if(type.information=="expected"){
-                    type.information <- "observed"
-                    wolfe <- TRUE
-                    outMoments <- .moments.lmm(value = param.valueM1, design = design, time = time, method.fit = method.fit, type.information = type.information,
-                                               transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                               logLik = TRUE, score = TRUE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = effects, robust = FALSE,
-                                               trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)
-                    logLik.value <- outMoments$logLik                    
-                }else{
+            }else if(iiIter == 0 && is.na(logLik.value)){
+                cv <- -1
+                break
+            }else if(is.na(logLik.value) || (logLik.value < logLik.valueM1)){ ## decrease in likelihood - try partial update
+
+                outMoments <- .backtracking(valueM1 = param.valueM1, update = update.value, n.iter = options$param.optimizer["n.backtracking"],
+                                            design = design, time = time, method.fit = method.fit, type.information = type.information,
+                                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                                            logLikM1 = logLik.valueM1, scoreM1 = score.valueM1, informationM1 = information.valueM1, effects = effects, precompute.moments = precompute.moments,
+                                            precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX, param.mu = param.mu)
+                
+                if(attr(outMoments,"cv")==FALSE){
                     cv <- -1
-                    param.value <- param.valueM1
+                    param.value <- param.valueM1 ## revert back to previous iteration
                     break
+                }else{
+                    param.value <- attr(outMoments,"value")    
                 }
             }
 
-            ## *** variance estimate
+            ## *** update variance-covariance estimate
+            ## update variance-covariance parameters (transform scale)
             param.valueM1 <- param.value
             update.value <- stats::setNames(as.double(score.value %*% solve(information.value)), names(outMoments$reparametrize$p))
-            if(wolfe){
-                attr(param.value,"trans") <- outMoments$reparametrize$p
-                param.value[param.Omega] <- .wolfe(param.value = param.value, update.value = update.value, score.value = score.value, logLik.value = logLik.value, 
-                                                   design = design, effects = effects, time = time, method.fit = method.fit, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, precompute.moments = precompute.moments)
-                attr(param.value,"trans") <- NULL
-            }else{
-                param.newvalue.trans <- outMoments$reparametrize$p + update.value
-                param.value[names(param.newvalue.trans)] <- .reparametrize(param.newvalue.trans,
-                                                                           type = design$param[match(names(param.newvalue.trans), design$param$name), "type"],
-                                                                           sigma = design$param[match(names(param.newvalue.trans), design$param$name), "sigma"],
-                                                                           k.x = design$param[match(names(param.newvalue.trans), design$param$name), "k.x"],
-                                                                           k.y = design$param[match(names(param.newvalue.trans), design$param$name), "k.y"],
-                                                                           Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
-                                                                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                                                           transform.names = FALSE)$p
-            }
+            param.newvalue.trans <- outMoments$reparametrize$p + update.value
+            ## back to original (transform scale)
+            param.value[names(param.newvalue.trans)] <- .reparametrize(param.newvalue.trans,
+                                                                       type = design$param[match(names(param.newvalue.trans), design$param$name), "type"],
+                                                                       sigma = design$param[match(names(param.newvalue.trans), design$param$name), "sigma"],
+                                                                       k.x = design$param[match(names(param.newvalue.trans), design$param$name), "k.x"],
+                                                                       k.y = design$param[match(names(param.newvalue.trans), design$param$name), "k.y"],
+                                                                       Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
+                                                                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                                                                       transform.names = FALSE)$p
             
-            ## *** mean estimate
+            ## *** update mean estimate
             iOmega <- .calc_Omega(object = design$vcov, param = param.value, keep.interim = TRUE)
             ## eigen(iOmega[[1]])
             param.value[param.mu] <- .estimateGLS(OmegaM1 = stats::setNames(lapply(iOmega, solve), names(iOmega)),
@@ -324,22 +333,31 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
                                                   key.XX = key.XX,
                                                   design = design)
 
+            ## *** display
             iIter <- iIter+1
             if(trace > 0 && trace < 3){
                 cat("*")
-            }else if(trace==3){
-                cat("iteration ",iIter,": logLik=",formatC(outMoments$logLik, digit = 10),"\n",sep="")
-            }else if(trace==4){
-                cat("iteration ",iIter,": logLik=",formatC(outMoments$logLik, digit = 10),"\n",sep="")
-                print(param.value)
-            }else if(trace > 4){
-                cat("iteration ",iIter,": logLik=",formatC(outMoments$logLik, digit = 10),"\n",sep="")
-                M.print <- rbind(estimate = param.value,
-                                 diff = c(param.value - param.valueM1),
-                                 score = c(rep(NA, length(param.mu)),outMoments$score))
-                print(M.print)
-                cat("\n")
+            }else{
+                if(!is.null(attr(outMoments,"n.backtrack"))){
+                    txt.backtract <- paste0(" (",attr(outMoments,"n.backtrack")," backtrack)")
+                }else{
+                    txt.backtract <- ""
+                }
+
+                if(trace==3){
+                    cat("iteration ",iIter,txt.backtract,": logLik=",formatC(outMoments$logLik, digit = 10),"\n",sep="")
+                }else if(trace==4){
+                    cat("iteration ",iIter,txt.backtract,": logLik=",formatC(outMoments$logLik, digit = 10),"\n",sep="")
+                    print(param.value)
+                }else if(trace > 4){
+                    cat("iteration ",iIter,txt.backtract,": logLik=",formatC(outMoments$logLik, digit = 10),"\n",sep="")
+                    M.print <- rbind(estimate = param.value,
+                                     diff = c(param.value - param.valueM1),
+                                     score = c(rep(NA, length(param.mu)),outMoments$score))
+                    print(M.print)
+                    cat("\n")
                 
+            }
             }
         
     }
@@ -406,6 +424,7 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
 }
 
 ## * .estimateGLS
+## Implement GLS estimator i.e. \beta = (tX \OmegaM1 X)^{1} tX \OmegaM1 Y
 .estimateGLS <- function(OmegaM1, pattern, precompute.XY, precompute.XX, key.XX, design){
 
     name.param <- design$param[design$param$type=="mu","name"] ## colnames(key.XX)
@@ -447,45 +466,105 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
 }
 
 ## * .wolfe
-.wolfe <- function(param.value, update.value, score.value, logLik.value, c1 = 1e-4, c2 = 0.9,
-                   design, effects, time, method.fit, transform.sigma, transform.k, transform.rho, precompute.moments){
-    alpha <- 1
-    test.i <- FALSE
-    test.ii <- FALSE
-    param.newvalue <- param.value
-    attr(param.newvalue,"trans") <- NULL
-    transparam.newvalue <- attr(param.value,"trans")[names(update.value)]
-    
-    ## ** compute new values
-    for(iIter in 1:100){
-        transparam.newvalue <- transparam.newvalue + alpha * update.value
-        param.newvalue[names(transparam.newvalue)] <- .reparametrize(transparam.newvalue,
-                                                                     type = design$param[match(names(transparam.newvalue),design$param$name),"type"],
-                                                                     sigma = design$param[match(names(transparam.newvalue),design$param$name),"sigma"],
-                                                                     k.x = design$param[match(names(transparam.newvalue),design$param$name),"k.x"],
-                                                                     k.y = design$param[match(names(transparam.newvalue),design$param$name),"k.y"],
-                                                                     Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
-                                                                     transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                                                     transform.names = FALSE)$p
-
-        outMoments <- .moments.lmm(value = param.newvalue, design = design, time = time, method.fit = method.fit, 
-                                   transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                   logLik = TRUE, score = TRUE, information = FALSE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = effects, robust = FALSE,
-                                   trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)    
-        logLik.newvalue <- outMoments$logLik
-        score.newvalue <- outMoments$score
-
-        ## ** test
-        test.i <- as.vector( (-logLik.newvalue) <= (-logLik.value) + c1 * alpha * update.value %*% (-score.value) )
-        ## test.ii <- as.vector(update.value %*% (-score.newvalue) <= - c2 * update.value %*% (-score.value))
-        if(!is.na(test.i) && test.i){
-            break
-        }else{
-            alpha <- alpha / 2
-        }
+## Nocedal 2000 Numerical optimization page 34 (formula 3.
+## (3.6a) f(x_k + \alpha_k p_k) <= f(x_k) + c_1 \alpha_k \nabla f_k p_k
+##        -logLik_{k+1} <= -logLik_{k} + c_1 \alpha_k Score_k update_k
+## MAKE SURE THAT THE CHANGE IN LOGLIK WORTH THE AMOUNT OF UPDATE OTHERWISE WE SHOULD HALF THE UPDATE
+## (3.6b) \nable f(x_k + \alpha_k p_k) p_k >= c_2 \nabla f_k p_k
+##        -Score_{k+1} update_k <=c2 Score_k update_k
+## MAKE SURE THAT THE SCORE IS NOT TOO NEGATIVE OTHERWISE WE COULD GO FURTHER
+.wolfe <- function(update, logLik.old, logLik.new, score.old, score.new, alpha, c1, c2){
+    if(!is.na(c1)){
+        test.a <- as.vector( (-logLik.new) <= (-logLik.old) + c1 * alpha * update %*% (-score.old) )
+    }else{
+        test.a <- TRUE
     }
-    return(param.newvalue[names(update.value)])
+    if(!is.na(c2)){
+        test.b <- as.vector(update %*% (-score.new) <= - c2 * update %*% (-score.old))
+    }else{
+        test.b <- TRUE
+    }
+    return(c(test.a, test.b))
 }
 
+## * backtracking
+.backtracking <- function(valueM1, update, n.iter,
+                          design, time, method.fit, type.information,
+                          transform.sigma, transform.k, transform.rho, 
+                          logLikM1, scoreM1, informationM1, information, effects, precompute.moments,
+                          precompute.XY, precompute.XX, key.XX, param.mu){
+
+    if(n.iter<=0){return(list(cv = FALSE))}
+    
+    alpha <- 1/2
+    name.update <- names(update)
+    design.param <- design$param[match(name.update, design$param$name),,drop=FALSE]
+    valueNEW <- stats::setNames(rep(NA, length(valueM1)), names(valueM1))
+    cv <- FALSE
+
+    ## move param to transform scale
+    valueM1.trans <- .reparametrize(valueM1[name.update],
+                                    type = design.param$type,
+                                    sigma = design.param$sigma,
+                                    k.x = design.param$k.x,
+                                    k.y = design.param$k.y,
+                                    Jacobian = FALSE, dJacobian = FALSE, inverse = FALSE,
+                                    transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                                    transform.names = FALSE)$p
+
+    for(iIter in 1:n.iter){
+
+        ## update variance-covariance parameters (transform scale)
+        valueNEW.trans <- valueM1.trans[name.update] + alpha * update
+
+        ## update variance-covariance parameters (original scale)
+        valueNEW[name.update] <- .reparametrize(valueNEW.trans,
+                                                type = design.param$type,
+                                                sigma = design.param$sigma,
+                                                k.x = design.param$k.x,
+                                                k.y = design.param$k.y,
+                                                Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
+                                                transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                                                transform.names = FALSE)$p
+
+        ## estimate residual variance-covariance matrix
+        iOmega <- .calc_Omega(object = design$vcov, param = valueNEW, keep.interim = TRUE)
+        if(any(sapply(iOmega,det)<0)){
+            alpha <- alpha/2
+            next
+        }
+        
+        ## update mean parameters
+        valueNEW[param.mu] <- .estimateGLS(OmegaM1 = stats::setNames(lapply(iOmega, solve), names(iOmega)),
+                                           pattern = design$vcov$X$Upattern$name, precompute.XY = precompute.XY, precompute.XX = precompute.XX,
+                                           key.XX = key.XX,
+                                           design = design)
+
+        ## compute moments
+        momentNEW <- .moments.lmm(value = valueNEW, design = design, time = time, method.fit = method.fit, type.information = type.information,
+                                  transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                                  logLik = TRUE, score = TRUE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = effects, robust = FALSE,
+                                  trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)
+
+        ## ## check wolfe condition
+        ## test.wolfe <- .wolfe(update,
+        ##                      logLik.old = logLikM1, logLik.new = momentNEW$score,
+        ##                      score.old = scoreM1, score.new = momentNEW$score,
+        ##                      alpha = alpha, c1 = c1, c2 = c2)
+        ## check convergence
+        if(is.na(momentNEW$logLik) || momentNEW$logLik<logLikM1){
+            alpha <- alpha/2
+        }else{
+            cv <- TRUE
+            break
+        }
+
+    }
+    attr(momentNEW,"value") <- valueNEW
+    attr(momentNEW,"cv") <- cv
+    attr(momentNEW,"n.backtrack") <- iIter
+    return(momentNEW)
+}
+                
 ##----------------------------------------------------------------------
 ### estimate.R ends here

@@ -7,18 +7,76 @@ head(gastricbypassL)
 
 ## chunk 4
 gastricbypassL$time <- factor(gastricbypassL$time,
-                              levels = c("3 months before surgery", "1 week before surgery",
-                                                            "1 week after surgery", "3 months after surgery" ),
+                              levels = c("3monthsBefore", "1weekBefore",
+                                         "1weekAfter", "3monthsAfter" ),
                               labels = c("B3_months","B1_week","A1_week","A3_months"))
+gastricbypassL$visit <- as.numeric(gastricbypassL$time) ## convert to numeric
+gastricbypassL$baseline <- gastricbypassL$visit<=2
 
 ## chunk 5
 gastricbypassL$glucagon <- as.double(scale(gastricbypassL$glucagon))
-
-## chunk 6
-utils::packageVersion("LMMstar")
+gastricbypassL$group <- as.numeric(gastricbypassL$id)%%2
 
 ## chunk 7
 LMMstar.options(optimizer = "FS")
+
+gastricbypassL$treat <- baselineAdjustment(gastricbypassL, variable = "group",
+                                           repetition = ~time|id, constrain = c("B3_months"))
+eCS.lmm <- lmm(weight ~ treat:time,
+               repetition = ~time|id, structure = "CS",
+               data = gastricbypassL, trace = 5, control = list(optimizer = "FS"))
+summary(eCS.lmm)
+
+eUN.lmm <- lmm(weight ~ treat:time,
+               repetition = ~time|id, structure = "UN",
+               data = gastricbypassL, trace = 5, control = list(optimizer = "FS"))
+eUN.lmm$design$vcov$type
+
+param.type <- setNames(eUN.lmm$design$param$type,eUN.lmm$design$param$name)
+
+GS <- jacobian(function(p){
+    p[names(param.type)[param.type %in% c("sigma","k")]] <- exp(p[names(param.type)[param.type %in% c("sigma","k")]])
+    p[names(param.type)[param.type %in% c("rho")]] <- tanh(p[names(param.type)[param.type %in% c("rho")]])
+    logLik(eUN.lmm, p = p, transform.sigma ="none", transform.k = "none", transform.rho = "none")
+}, x = coef(eUN.lmm, effects = "all", transform.sigma = "log", transform.k = "log", transform.rho = "atanh", transform.names = FALSE))
+test <- score(eUN.lmm, effects = "all")
+GS - test
+
+gastricbypassL$treat.time <- paste0(gastricbypassL$treat,".",gastricbypassL$time)
+gastricbypassL$treat.time[gastricbypassL$treat.time=="1.B3_months"] <- "baseline"
+eCUN.lmm <- lmm(weight ~ treat.time,
+               repetition = ~treat.time|id, structure = "UN",
+               data = gastricbypassL, trace = 5, control = list(optimizer = "FS", trace = 5, n.iter = 10))
+
+eSUN.lmm <- lmm(weight ~ treat.time,
+               repetition = group~time|id, structure = "UN",
+               data = gastricbypassL, trace = 5, control = list(optimizer = "FS", trace = 5))
+
+
+param.type <- setNames(eCUN.lmm$design$param$type,eCUN.lmm$design$param$name)
+
+GS <- jacobian(function(p){
+    p[names(param.type)[param.type %in% c("sigma","k")]] <- exp(p[names(param.type)[param.type %in% c("sigma","k")]])
+    p[names(param.type)[param.type %in% c("rho")]] <- tanh(p[names(param.type)[param.type %in% c("rho")]])
+    logLik(eCUN.lmm, p = p, transform.sigma ="none", transform.k = "none", transform.rho = "none")
+}, x = coef(eCUN.lmm, effects = "all", transform.sigma = "log", transform.k = "log", transform.rho = "atanh", transform.names = FALSE))
+test <- score(eCUN.lmm, effects = "all")
+range(GS - test)
+
+sigma(eCUN.lmm)
+
+eCUN.lmm$design$vcov$X$Upattern
+eCUN.lmm$time
+summary(eCUN.lmm, type.cor = "param")
+summary(eCUN.lmm)
+
+eUN.lmm$
+summary(eUN.lmm)
+
+eUN.lmm <- lmm(weight ~ treat:time,
+               repetition = ~treat:time|id, structure = "UN",
+               data = gastricbypassL)
+eUN.lmm
 
 ## * Descriptive statistics
 

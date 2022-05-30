@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: May 29 2022 (11:52) 
+## Last-Updated: maj 30 2022 (13:42) 
 ##           By: Brice Ozenne
-##     Update #: 82
+##     Update #: 83
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -28,7 +28,7 @@
 ##' @examples
 ##' ## simulate data
 ##' set.seed(10)
-##' dL <- sampleRem(1e2, n.times = 3, format = "long")
+##' dL <- sampleRem(1e3, n.times = 3, format = "long")
 ##'
 ##' ## estimate mixed models
 ##' e.lmm1 <- lmm(Y ~ X1+X2+X3, repetition = ~visit|id, data = dL)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: maj 30 2022 (09:23) 
+## Last-Updated: maj 30 2022 (13:18) 
 ##           By: Brice Ozenne
-##     Update #: 124
+##     Update #: 130
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -475,6 +475,33 @@ test_that("missing values",{
     eCS.lmm <- lmm(Ymiss ~ visit + age + gender, repetition = ~visit|id, structure = "CS", data = dL, trace = 0, method.fit = "ML")
     eCS.gls <- gls(Ymiss ~ visit + age + gender, correlation = corCompSymm(form=~1|id), data = dL, method = "ML", na.action = na.omit)
     expect_equal(as.double(logLik(eCS.lmm)), as.double(logLik(eCS.gls)))
+})
+
+## * Baseline constrain
+test_that("Baseline constrain",{
+
+    dL$group <- as.factor(dL$id %% 2)
+    dL$treat <- (dL$group==1)*(dL$visit!="Y1")
+    table(dL$treat, baselineAdjustment(dL, variable = "group", repetition = ~visit|id, constrain = "Y1", new.level = "0"))
+    dL$treat.visit <- baselineAdjustment(dL, variable = "group", repetition = ~visit|id, constrain = "Y1", collapse.time = ".")
+
+    ## eUN.lmm <- lmm(Y ~ group*visit, repetition = ~group*visit|id, structure = "UN", data = dL, trace = 0, method = "REML")
+    ## logLik(eUN.lmm)
+    eCUN.lmm <- suppressMessages(lmm(Y ~ treat*visit, repetition = ~treat*visit|id, structure = "UN", data = dL, trace = 0, method = "REML", df = FALSE))
+    eCUN2.lmm <- lmm(Y ~ treat.visit, repetition = ~treat.visit|id, structure = "UN", data = dL, trace = 0, method = "REML", df = FALSE)
+    
+    expect_equal(logLik(eCUN2.lmm), logLik(eCUN.lmm), tol = 1e-5)
+    expect_equal(logLik(eCUN2.lmm), -618.14359397, tol = 1e-5)
+
+    capture.output(summary(eCUN2.lmm))
+    capture.output(summary(anova(eCUN2.lmm), method = "none"))
+    plot(eCUN2.lmm, color = "group", time.var = "visit")
+
+    ## baseline constrain for order 3 interaction
+    eCUN.I2.lmm <- suppressMessages(lmm(Y ~ gender*treat*visit, repetition = ~treat*visit|id, structure = "UN", data = dL, trace = 0, method = "REML", df = FALSE))
+    eCUN2.I2.lmm <- suppressMessages(lmm(Y ~ gender:treat.visit, repetition = ~treat.visit|id, structure = "UN", data = dL, trace = 0, method = "REML", df = FALSE))
+    logLik(eCUN.I2.lmm)
+    logLik(eCUN2.I2.lmm)
 })
 ##----------------------------------------------------------------------
 ### test-auto-mixed-model.R ends here

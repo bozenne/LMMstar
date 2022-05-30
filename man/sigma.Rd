@@ -40,12 +40,14 @@ Extract the unique set of residuals variance-covariance matrices or the one rela
 ## simulate data in the long format
 set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
+dL$id.fac <- paste0("id",dL$id)
 
 ## fit Linear Mixed Model
-eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
+eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id.fac,
+               structure = "UN", data = dL, df = FALSE)
 
 ## extract residuals variance covariance matrix
 sigma(eUN.lmm) ## unique patterns
-sigma(eUN.lmm, cluster = c("1","5")) ## existing clusters
+sigma(eUN.lmm, cluster = c("id1","id5")) ## existing clusters
 sigma(eUN.lmm, cluster = dL[1:7,,drop=FALSE]) ## new clusters
 }

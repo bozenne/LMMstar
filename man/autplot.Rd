@@ -10,6 +10,7 @@
   obs.alpha = 0,
   obs.size = c(2, 0.5),
   at = NULL,
+  time.var = NULL,
   color = TRUE,
   ci = TRUE,
   ci.alpha = NA,

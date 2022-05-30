@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: May 30 2022 (01:11) 
+## Last-Updated: maj 30 2022 (13:18) 
 ##           By: Brice Ozenne
-##     Update #: 2183
+##     Update #: 2202
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -605,7 +605,6 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     
     X.Mlevel <- attr(X,"M.level")
     X.reference <- attr(X,"reference")
-
     ## ** test 3: form interaction and identify columns of the design matrix that are constant
     ls.rmX <- stats::setNames(lapply(which(tt.order>1), function(iInteraction){ ## iInteraction <- 2 
         ## variables involved in the interactions
@@ -639,7 +638,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         X <- X.old[,test.keep]
         if(qr(X)$rank==X.qr$rank){
             message("Constant values in the design matrix in interactions \"",paste(names(ls.rmX), collapse = "\" \""),"\"\n ",
-                    "Coefficients \"",paste(rmX, collapse = "\" \""),"\" have been removed. \n")
+                    "Coefficients \"",paste(unique(rmX), collapse = "\" \""),"\" have been removed. \n")
         }else{
             warning("Constant values in the design matrix in interactions \"",paste(names(ls.rmX), collapse = "\" \""),"\"\n ",
                     "Coefficients \"",paste(rmX, collapse = "\" \""),"\" have been removed. \n")

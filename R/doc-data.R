@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: May 30 2022 (01:55) 
+## Last-Updated: maj 30 2022 (10:31) 
 ##           By: Brice Ozenne
-##     Update #: 91
+##     Update #: 93
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -268,7 +268,6 @@ NULL
 NULL
 
 ## * gastricbypass
-
 ## ** gastricbypassW
 #' @title Data From The Gastric Bypass Study (Wide Format)
 #'
@@ -324,11 +323,11 @@ NULL
 ## gastricbypassL <- as.data.frame(dtL)
 ## gastricbypassL$visit <- gastricbypassL$time
 ## gastricbypassL$time <- factor(gastricbypassL$visit, levels = 1:4,
-##                               labels = c("3 months before","1 week before",
-##                                          "1 week after","3 months after"))
+##                               labels = c("3monthsBefore","1weekBefore",
+##                                          "1weekAfter","3monthsAfter"))
 ## gastricbypassL <- gastricbypassL[,c("id","visit","time","weight","glucagonAUC")]
 ## save(gastricbypassL, file = "data/gastricbypassL.rda")
-##
+
 ## str(gastricbypassL)
 
 ## * ncgs

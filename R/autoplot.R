@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: May 30 2022 (01:12) 
+## Last-Updated: maj 30 2022 (12:12) 
 ##           By: Brice Ozenne
-##     Update #: 158
+##     Update #: 176
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -41,7 +41,7 @@
 ## * autoplot.lmm (code)
 ##' @rdname autplot
 ##' @export
-autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, color = TRUE, ci = TRUE, ci.alpha = NA, plot = TRUE,
+autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, time.var = NULL, color = TRUE, ci = TRUE, ci.alpha = NA, plot = TRUE,
                          mean.size = c(3, 1), size.text = 16, position.errorbar = "identity", ...){
 
     if(object$time$n==1){
@@ -54,7 +54,18 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
     pattern.cluster <- object$design$vcov$X$pattern.cluster
 
     outcome.var <- object$outcome$var
-    time.var <- attr(object$time$var,"original")
+    if(is.null(time.var)){
+        time.var.plot <- "XXtimeXX" ## nice as it sure to be a categorical variable
+    }else{
+        if(length(time.var)>1){
+            stop("Argument \'time.var\' should have length 1 or be NULL. \n")
+        }
+        if(time.var %in% names(object$data) == FALSE){
+            stop("Could not find the variable \"",time.var,"\" defined by the \'time.var\' argument in the data used to fit the lmm. \n")
+        }
+        time.var.plot <- time.var
+    }
+    time.var <- attr(object$time$var,"original") ## need to be after statement on time.var.plot to avoid confusion
     mu.var <- attr(object$design$mean,"variable") 
     if(length(time.var) == 0 && length(mu.var) == 0){
         message("There is nothing to be displayed: empty time variable and no covariate for the mean structure. \n")
@@ -167,17 +178,17 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
     }
 
     ## ** generate plot
-    gg <- ggplot2::ggplot(preddata, ggplot2::aes_string(x = "XXtimeXX", y = "estimate", group = "XXclusterXX"))
+    gg <- ggplot2::ggplot(preddata, ggplot2::aes_string(x = time.var.plot, y = "estimate", group = "XXclusterXX"))
     if(!is.na(obs.alpha) && obs.alpha>0){
         if(!is.null(color)){
-            gg <- gg + ggplot2::geom_point(data = data, mapping = ggplot2::aes_string(x = "XXtimeXX", y = outcome.var, group = "XXclusterXX", color = color),
+            gg <- gg + ggplot2::geom_point(data = data, mapping = ggplot2::aes_string(x = time.var.plot, y = outcome.var, group = "XXclusterXX", color = color),
                                            alpha = obs.alpha, size = obs.size[1])
-            gg <- gg + ggplot2::geom_line(data = data, mapping = ggplot2::aes_string(x = "XXtimeXX", y = outcome.var, group = "XXclusterXX", color = color),
+            gg <- gg + ggplot2::geom_line(data = data, mapping = ggplot2::aes_string(x = time.var.plot, y = outcome.var, group = "XXclusterXX", color = color),
                                           alpha = obs.alpha, size = obs.size[2])
             ## gg + facet_wrap(~XXclusterXX)
         }else{
-            gg <- gg + ggplot2::geom_point(data = data, mapping = ggplot2::aes_string(x = "XXtimeXX", y = outcome.var, group = "XXclusterXX"), alpha = obs.alpha, size = obs.size[1])
-            gg <- gg + ggplot2::geom_line(data = data, mapping = ggplot2::aes_string(x = "XXtimeXX", y = outcome.var, group = "XXclusterXX"), alpha = obs.alpha, size = obs.size[2])
+            gg <- gg + ggplot2::geom_point(data = data, mapping = ggplot2::aes_string(x = time.var.plot, y = outcome.var, group = "XXclusterXX"), alpha = obs.alpha, size = obs.size[1])
+            gg <- gg + ggplot2::geom_line(data = data, mapping = ggplot2::aes_string(x = time.var.plot, y = outcome.var, group = "XXclusterXX"), alpha = obs.alpha, size = obs.size[2])
         }
     }
     if(ci){
@@ -197,8 +208,8 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
         gg <- gg + ggplot2::geom_point(size = mean.size[1]) + ggplot2::geom_line(size = mean.size[2])
     }
     gg  <- gg + ggplot2::ylab(outcome.var) + ggplot2::theme(text = ggplot2::element_text(size=size.text))
-    if(!is.null(time.var) && any(!is.na(time.var))){
-        gg  <- gg + ggplot2::xlab(paste(stats::na.omit(time.var), collapse = " "))
+    if(!is.null(time.var.plot) && any(!is.na(time.var.plot))){
+        gg  <- gg + ggplot2::xlab(paste(stats::na.omit(time.var.plot), collapse = " "))
     }
 
 

@@ -54,7 +54,7 @@ e1bis.lmm <- suppressWarnings(lmm(cholest~treattime,
 
 ## baseline adjustment 2
 ncgsL$treat2 <- baselineAdjustment(ncgsL, variable = "group",
-                 new.level = "basleine",
+                 new.level = "baseline",
                  repetition= ~ visit|id, constrain = 1)
 table(treat = ncgsL$treat2, visit = ncgsL$visit, group = ncgsL$group)
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: May 30 2022 (01:16) 
+## Last-Updated: maj 30 2022 (11:39) 
 ##           By: Brice Ozenne
-##     Update #: 1899
+##     Update #: 1936
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -147,7 +147,6 @@
 ##' }
 ##' 
 
-
 ## * lmm (code)
 ##' @export
 lmm <- function(formula, repetition, structure, data,
@@ -238,7 +237,7 @@ lmm <- function(formula, repetition, structure, data,
             stop("Incorrect specification of argument \'repetition\': missing cluster variable. \n",
                  "Should have exactly one variable after the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
         }
-        if(all(is.na(var.time)) && structure$type %in% c("IND","UN")){
+        if(all(is.na(var.time)) && structure$type %in% c("IND","UN") && all(is.na(structure$name$var[[1]]))){
             stop("Incorrect specification of argument \'repetition\': missing time variable. \n",
                  "Should have exactly one variable before the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
         }
@@ -294,6 +293,9 @@ lmm <- function(formula, repetition, structure, data,
         attr(var.time, "original") <- var.time
     }
     U.time <- levels(data$XXtimeXX)
+    if(length(var.time)>0){
+        attr(U.time,"original") <- data[!duplicated(data[["XXtimeXX"]]), var.time,drop=FALSE]
+    }
     n.time <- length(U.time)
     out$time <- list(n = n.time, levels = U.time, var = var.time)
 
@@ -456,7 +458,7 @@ lmm <- function(formula, repetition, structure, data,
 
     ## *** mean structure
     if(trace>=2){cat("- formula for the mean structure")}
-    
+
     if(optimizer == "gls" && n.strata > 1){
         var.X.withinStrata <- setdiff(var.X, var.strata)
         if(length(var.X.withinStrata)==0){
@@ -475,7 +477,6 @@ lmm <- function(formula, repetition, structure, data,
     }else{
         formula.design <- stats::as.formula(stats::delete.response(stats::terms(formula)))
     }
-
     out$formula <- list(mean = formula,
                         mean.design = formula.design)
     if(trace>=2){cat("\n")}
@@ -510,7 +511,7 @@ lmm <- function(formula, repetition, structure, data,
     type.structure <- structure$type
     call.structure <- as.list(structure$call)
     args.structure <- call.structure[-1]
-    if("add.time" %in% names(args.structure) == FALSE && type.structure %in% c("IND","UN")){
+    if("add.time" %in% names(args.structure) == FALSE && type.structure %in% c("IND","UN") && n.time>1){
         args.structure$add.time <- var.time
     }
     if(is.na(structure$name$cluster)){
@@ -646,7 +647,7 @@ lmm <- function(formula, repetition, structure, data,
     if(optimizer=="gls"){
         name.var <- unlist(structure$name$var)
         if(length(name.var)>0 && any(!is.na(name.var))){
-            form.var <- stats::as.formula(paste0("~1|", paste(name.var[[1]], collapse = "*")))
+            form.var <- stats::as.formula(paste0("~1|", paste(name.var, collapse = "*")))
             txt.var <- paste0("weights = nlme::varIdent(form = ", deparse(form.var), "), ")
         }else{
             txt.var <- NULL
@@ -678,7 +679,7 @@ lmm <- function(formula, repetition, structure, data,
             }else{
                 iLevel <- c(unlist(out$design$param[unlist(out$design$param$strata) == iS & out$design$param$type=="sigma","level"]),
                             unlist(out$design$param[unlist(out$design$param$strata) == iS & out$design$param$type=="k","level"]))
-                iSubLevel <- gsub("^\\.","",iLevel)
+                iSubLevel <- gsub(":","*",gsub("^\\.","",iLevel), fixed = TRUE)
                 iCoef <- coef(out$gls[[iS]]$modelStruct$varStruct, unconstrained = FALSE, allCoef = TRUE)
                 if(names(iCoef)[1] == iSubLevel[1] || names(iCoef)[1] %in% iSubLevel == FALSE){ 
                     return(stats::sigma(out$gls[[iS]]))         
@@ -693,7 +694,7 @@ lmm <- function(formula, repetition, structure, data,
         if("k" %in% out$design$param$type){
             param.k <- lapply(1:length(U.strata), function(iS){ ## iS <- 1
                 iLevel <- unlist(out$design$param[unlist(out$design$param$strata) == iS & out$design$param$type=="k","level"])
-                iSubLevel <- gsub("^\\.","",iLevel)
+                iSubLevel <- gsub(":","*",gsub("^\\.","",iLevel))
                 iCoef <- coef(out$gls[[iS]]$modelStruct$varStruct, unconstrained = FALSE)
                 if(all(names(iCoef) %in% iSubLevel)){ ## if possible re-order coef based on the names
                     return(iCoef[iSubLevel])
@@ -851,16 +852,16 @@ lmm <- function(formula, repetition, structure, data,
     ## ** time
     if(length(var.time)>1){
         ## create new variable summarizing all variables
-        interaction.tempo <- interaction(lapply(var.time, function(iX){as.factor(data[[iX]])}), drop = TRUE)
-                      
-        ## assign to each cluster
-        data[["XXtime.indexXX"]] <- NA
-        for(iCluster in unique(data[[var.cluster]])){ ## iCluster <- 1
-            data[["XXtime.indexXX"]][data[[var.cluster]]==iCluster] <- as.numeric(droplevels(interaction.tempo[data[[var.cluster]]==iCluster]))
-        }
-        ## try to handle the case where time in cluster 1 is (C1,S1) (C1,S2) (C1,S3) while it is (C2,S1) (C2,S2) (C2,S3)
-        ## i.e. unify time across clusters
-        data[["XXtimeXX"]] <- factor(data[["XXtime.indexXX"]], labels = levels(interaction.tempo)[1:max(data[["XXtime.indexXX"]])])
+        data[["XXtimeXX"]] <- interaction(lapply(var.time, function(iX){as.factor(data[[iX]])}), drop = TRUE)
+        
+        ## ## try to handle the case where time in cluster 1 is (C1,S1) (C1,S2) (C1,S3) while it is (C2,S1) (C2,S2) (C2,S3)
+        ## ## i.e. unify time across clusters
+        ## interaction.tempo <-  <- interaction(lapply(var.time, function(iX){as.factor(data[[iX]])}), drop = TRUE)
+        ## data[["XXtime.indexXX"]] <- NA
+        ## for(iCluster in unique(data[[var.cluster]])){ ## iCluster <- 1
+        ##     data[["XXtime.indexXX"]][data[[var.cluster]]==iCluster] <- as.numeric(droplevels(interaction.tempo[data[[var.cluster]]==iCluster]))
+        ## }
+        ## data[["XXtimeXX"]] <- factor(data[["XXtime.indexXX"]], labels = levels(interaction.tempo)[1:max(data[["XXtime.indexXX"]])])
 
     }else if(is.na(var.time) || (identical(var.time,"XXtimeXX") && "XXtimeXX" %in% names(data) == FALSE)){
         iTime <- tapply(data$XXclusterXX, data$XXclusterXX, function(iC){1:length(iC)})
@@ -879,8 +880,8 @@ lmm <- function(formula, repetition, structure, data,
         }else{
             data$XXtimeXX <- factor(data[[var.time]], levels = sort(unique(data[[var.time]])))
         }
-        data$XXtime.indexXX <- as.numeric(droplevels(data$XXtimeXX))
     }
+    data$XXtime.indexXX <- as.numeric(data$XXtimeXX)
     
     ## ** strata
     if(length(var.strata)>1){

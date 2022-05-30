@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (14:55) 
 ## Version: 
-## Last-Updated: maj  9 2022 (17:43) 
+## Last-Updated: maj 30 2022 (11:57) 
 ##           By: Brice Ozenne
-##     Update #: 71
+##     Update #: 72
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -51,7 +51,7 @@
 ##' 
 ##' ## baseline adjustment 2
 ##' ncgsL$treat2 <- baselineAdjustment(ncgsL, variable = "group",
-##'                  new.level = "basleine",
+##'                  new.level = "baseline",
 ##'                  repetition= ~ visit|id, constrain = 1)
 ##' table(treat = ncgsL$treat2, visit = ncgsL$visit, group = ncgsL$group)
 ##'
@@ -139,9 +139,9 @@ baselineAdjustment <- function(object, variable, repetition, constrain, new.leve
              "Level(s) \"",paste(invalid, collapse = "\" \""),"\" does not match any value of the variable ",var.time," in the dataset. \n",
              sep = "")
     }
-    if(!is.null(new.level) && new.level %in% level.variable){
-        stop("Argument \'new.level\' should not correspond to a value of variable ",variable,"in argument \'object\'.")
-    }
+    ## if(!is.null(new.level) && new.level %in% level.variable){
+    ##     stop("Argument \'new.level\' should not correspond to a value of variable ",variable,"in argument \'object\'.")
+    ## }
     
     ## ** perform baseline adjustment
     object[[variable]] <- droplevels(as.factor(object[[variable]]))
@@ -154,7 +154,7 @@ baselineAdjustment <- function(object, variable, repetition, constrain, new.leve
         out.prepare <- paste(object[[var.time]], object[[variable]],  sep = collapse.time)
         out.prepare2 <- object[[var.time]]
     }
-    out <- factor(out.prepare, levels = c(new.level,level.variable))
+    out <- factor(out.prepare, levels = union(new.level,level.variable))
     for(iC in length(constrain):1){ ## iC <- constrain[1]
         ## iterate over reverse order to get the new levels in the right order
 

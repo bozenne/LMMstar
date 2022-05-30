@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: maj 24 2022 (16:52) 
+## Last-Updated: maj 30 2022 (11:54) 
 ##           By: Brice Ozenne
-##     Update #: 102
+##     Update #: 104
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -72,9 +72,9 @@ print.lmm <- function(x, ...){
         txt.var <- c(txt.var,"cluster")
         value.var <- c(value.var,x$cluster$var)
     }
-    if(!is.na(x$time$var)){
+    if(!all(is.na(x$time$var))){
         txt.var <- c(txt.var,"time")
-        value.var <- c(value.var,x$time$var)
+        value.var <- c(value.var,paste(x$time$var, collapse = ", "))
     }
     Ctxt.var <- paste(txt.var,collapse="/")
 

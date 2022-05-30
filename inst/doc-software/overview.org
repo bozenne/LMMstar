@@ -80,8 +80,8 @@ head(gastricbypassL)
 See =?gastricbypassL= for a presentation of the database. We will use a shorter version of the time variable:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 gastricbypassL$time <- factor(gastricbypassL$time,
-                              levels = c("3 months before", "1 week before",
-                                         "1 week after", "3 months after" ),
+                              levels = c("3monthsBefore", "1weekBefore",
+                                         "1weekAfter", "3monthsAfter" ),
                               labels = c("B3_months","B1_week","A1_week","A3_months"))
 gastricbypassL$visit <- as.numeric(gastricbypassL$time) ## convert to numeric
 gastricbypassL$baseline <- gastricbypassL$visit<=2
@@ -1300,7 +1300,6 @@ autoplot(eC3.lmm, color = "group", ci = FALSE, size.text = 20, obs.alpha = 0.1)
 
 #+ATTR_LaTeX: :width 0.4\textwidth :placement [!h]
 [[./figures/gg-baseAdj.pdf]]
-
 
 ** Marginal means
 
