@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: maj 30 2022 (11:39) 
+## Last-Updated: May 30 2022 (22:47) 
 ##           By: Brice Ozenne
-##     Update #: 1936
+##     Update #: 1939
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -523,10 +523,10 @@ lmm <- function(formula, repetition, structure, data,
     ## add strata to the call
     if(update.strataStructure){
         if(is.list(args.structure$formula)){
-            args.structure$formula <- list(update(as.formula(args.structure$formula[[1]], as.formula(paste0(var.strata2,"~.")))),
-                                           update(as.formula(args.structure$formula[[2]], as.formula(paste0(var.strata2,"~.")))))
+            args.structure$formula <- list(stats::update(stats::as.formula(args.structure$formula[[1]], stats::as.formula(paste0(var.strata2,"~.")))),
+                                           stats::update(stats::as.formula(args.structure$formula[[2]], stats::as.formula(paste0(var.strata2,"~.")))))
         }else{
-            args.structure$formula <- update(as.formula(args.structure$formula), as.formula(paste0(var.strata2,"~.")))
+            args.structure$formula <- stats::update(stats::as.formula(args.structure$formula), stats::as.formula(paste0(var.strata2,"~.")))
         }
     }
 
@@ -887,7 +887,7 @@ lmm <- function(formula, repetition, structure, data,
     if(length(var.strata)>1){
         ## create new variable summarizing all variables
         data[["XXstrataXX"]] <- interaction(lapply(var.strata, function(iX){as.factor(data[[iX]])}), drop = TRUE)
-    }else if(is.na(var.strata) || (identical(var.strata,"XXindexXX") && "XXindexXX" %In% names(data) == FALSE)){
+    }else if(is.na(var.strata) || (identical(var.strata,"XXindexXX") && "XXindexXX" %in% names(data) == FALSE)){
         var.strata <- "XXstrata.indexXX"
         data$XXstrataXX <- factor(1)
     }else{

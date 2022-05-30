@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 20 2022 (12:12) 
 ## Version: 
-## Last-Updated: May 29 2022 (14:48) 
+## Last-Updated: May 30 2022 (23:19) 
 ##           By: Brice Ozenne
-##     Update #: 20
+##     Update #: 24
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -31,7 +31,7 @@ LMMstar.options(optimizer = "gls", method.numDeriv = "simple", precompute.moment
 
 ## simulate data
 set.seed(10)
-Y <- rmvnorm(100, mean = 0:1, sigma = 0.5 + diag(0.5,2,2))
+Y <- mvtnorm::rmvnorm(100, mean = 0:1, sigma = 0.5 + diag(0.5,2,2))
 dfL <- reshape2::melt(Y)
 
 test_that("estimate correlation via lmm", {
@@ -70,7 +70,7 @@ test_that("estimate partial correlation via lmm", {
     ## mixed model
     e.lmm <- lmm(distance ~ age*Sex, repetition = ~1|Subject, structure = "CS", data = Orthodont)
     e.aovlmm <- summary(anova(e.lmm), columns = "partial.R", print = FALSE)
-    e.lmer <- lmer(distance ~ age*Sex + (1|Subject), data = Orthodont)
+    ## e.lmer <- lme4::lmer(distance ~ age*Sex + (1|Subject), data = Orthodont)
 
     ## library(r2glmm); setNames(r2beta(e.lmer, method = "kr")[2:4,"Rsq"],r2beta(e.lmer, method = "kr")[2:4,"Effect"])
     GS <- c("age" = 0.57834264, "age:Sex" = 0.07388639, "Sex" = 0.00431524)

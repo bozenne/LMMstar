@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: maj 30 2022 (13:18) 
+## Last-Updated: May 30 2022 (22:45) 
 ##           By: Brice Ozenne
-##     Update #: 2202
+##     Update #: 2203
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -498,7 +498,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         skeleton.param$strata[skeleton.param$type=="mu"] <- strata.mu
         skeleton.param$strata <- as.list(skeleton.param$strata)
     }else{
-        skeleton.param$strata[skeleton.param$type=="mu"] <- list(as.numeric(unique(na.omit(skeleton.param$strata))))
+        skeleton.param$strata[skeleton.param$type=="mu"] <- list(as.numeric(unique(stats::na.omit(skeleton.param$strata))))
     }
     rownames(skeleton.param) <- NULL
     attr(skeleton.param, "pair.meanvarcoef") <- pair.meanvarcoef
@@ -588,7 +588,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     ## ** create "naive" design matrix
     X <- .augmodel.matrix(tt,data)
     ## M.interactionName <- do.call(cbind,lapply(name.var, function(iVar){if(is.logical(X.Mlevel[,iVar])){return(c(NA,iVar)[X.Mlevel[,iVar]+1])}else{return(paste0(iVar,X.Mlevel[,iVar]))}}))
-    ## vec.interactionName <- apply(M.interactionName, MARGIN = 1, FUN = function(iRow){paste(na.omit(iRow), collapse = ":")})
+    ## vec.interactionName <- apply(M.interactionName, MARGIN = 1, FUN = function(iRow){paste(stats::na.omit(iRow), collapse = ":")})
 
     ## ** test 2: remove column(s) corresponding to the same level
     index.keep <- which(!duplicated(attr(X,"M.level")))

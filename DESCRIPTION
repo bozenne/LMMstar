@@ -39,6 +39,7 @@ Suggests:
     lattice,
     mvtnorm,
     lme4,
+    lmerTest,
     nlmeU,
     optimx,
     psych,

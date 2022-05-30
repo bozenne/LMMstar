@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: maj 30 2022 (17:21) 
+## Last-Updated: May 30 2022 (23:00) 
 ##           By: Brice Ozenne
-##     Update #: 648
+##     Update #: 655
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -294,7 +294,6 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
                 cv <- -1
                 break
             }else if(is.na(logLik.value) || (logLik.value < logLik.valueM1)){ ## decrease in likelihood - try partial update
-
                 outMoments <- .backtracking(valueM1 = param.valueM1, update = update.value, n.iter = options$param.optimizer["n.backtracking"],
                                             design = design, time = time, method.fit = method.fit, type.information = type.information,
                                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
@@ -306,7 +305,10 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
                     param.value <- param.valueM1 ## revert back to previous iteration
                     break
                 }else{
-                    param.value <- attr(outMoments,"value")    
+                    param.value <- attr(outMoments,"value")
+                    logLik.value <- outMoments$logLik    
+                    score.value <- outMoments$score    
+                    information.value <- outMoments$information
                 }
             }
 
@@ -345,12 +347,12 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
                 }
 
                 if(trace==3){
-                    cat("iteration ",iIter,txt.backtract,": logLik=",formatC(outMoments$logLik, digit = 10),"\n",sep="")
+                    cat("iteration ",iIter,txt.backtract,": logLik=",formatC(outMoments$logLik, digits = 10),"\n",sep="")
                 }else if(trace==4){
-                    cat("iteration ",iIter,txt.backtract,": logLik=",formatC(outMoments$logLik, digit = 10),"\n",sep="")
+                    cat("iteration ",iIter,txt.backtract,": logLik=",formatC(outMoments$logLik, digits = 10),"\n",sep="")
                     print(param.value)
                 }else if(trace > 4){
-                    cat("iteration ",iIter,txt.backtract,": logLik=",formatC(outMoments$logLik, digit = 10),"\n",sep="")
+                    cat("iteration ",iIter,txt.backtract,": logLik=",formatC(outMoments$logLik, digits = 10),"\n",sep="")
                     M.print <- rbind(estimate = param.value,
                                      diff = c(param.value - param.valueM1),
                                      score = c(rep(NA, length(param.mu)),outMoments$score))

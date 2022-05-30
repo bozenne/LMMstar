@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: May 29 2022 (23:48) 
+## Last-Updated: May 30 2022 (23:06) 
 ##           By: Brice Ozenne
-##     Update #: 2137
+##     Update #: 2142
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -310,7 +310,7 @@
         ## reorder by cluster and time and then find unique rows
         nobs.cluster <- table(attr(index.cluster,"vectorwise"))
         UX.cor <- unique(X.cor[unlist(index.cluster[names(sort(nobs.cluster, decreasing = TRUE))]),,drop=TRUE])
-        Ulp.cor <- as.character(interaction(as.data.frame(UX.cor), sep = sep, drop=TRUE))
+        Ulp.cor <- sort(as.character(interaction(as.data.frame(UX.cor), sep = sep, drop=TRUE)), decreasing = TRUE)
     }else{
         Ulp.cor <- "1"
     }
@@ -351,7 +351,7 @@
         }
 
         ## **** find unique linear predictor values within cluster
-        iULpIndex.cor <- setNames(vector(mode = "list", length = length(iCluster)), iCluster)
+        iULpIndex.cor <- stats::setNames(vector(mode = "list", length = length(iCluster)), iCluster)
         iULpCluster.cor <- stats::setNames(lapply(iCluster, function(iId){ ## iId <- iCluster[1]
             ## unique levels
             iTest <- which(!duplicated(iLpnCluster.cor[[iId]]))

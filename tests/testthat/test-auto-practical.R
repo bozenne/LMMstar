@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (17:03) 
 ## Version: 
-## Last-Updated: maj 30 2022 (09:22) 
+## Last-Updated: May 30 2022 (23:35) 
 ##           By: Brice Ozenne
-##     Update #: 103
+##     Update #: 110
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -40,7 +40,7 @@ test_that("practical 1 - gastricbypass",{
     ## ** data
     data(gastricbypassL, package = "LMMstar")
     gastricbypassL$time <- factor(gastricbypassL$time,
-                                  levels = c("3 months before", "1 week before", "1 week after", "3 months after"),
+                                  levels = c("3monthsBefore", "1weekBefore", "1weekAfter", "3monthsAfter"),
                                   labels = c("m3B","w1B","w1A","m3A"))
     gastricbypassL$visit <- as.numeric(gastricbypassL$visit)
 
@@ -80,10 +80,10 @@ test_that("practical 1 - gastricbypass",{
     ## check moments
     expect_equal(as.double(logLik(eUN.gls)), as.double(logLik(eUN.lmm)), tol = 1e-6)
     
-    GS <- jacobian(func = function(p){logLik(eUN.lmm, p = p, transform.sigma = "none", transform.k = "none", transform.rho = "none")}, x = coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none", effects = "all"))
+    GS <- numDeriv::jacobian(func = function(p){logLik(eUN.lmm, p = p, transform.sigma = "none", transform.k = "none", transform.rho = "none")}, x = coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none", effects = "all"))
     expect_equal(as.double(GS), as.double(score(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none", effects = "all")), tol = 1e-6)
 
-    GS <- -jacobian(func = function(p){score(eUN.lmm, p = p, transform.sigma = "none", transform.k = "none", transform.rho = "none",effects = "all")}, x = coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none", effects = "all"))
+    GS <- -numDeriv::jacobian(func = function(p){score(eUN.lmm, p = p, transform.sigma = "none", transform.k = "none", transform.rho = "none",effects = "all")}, x = coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none", effects = "all"))
     expect_equal(as.double(GS), as.double(information(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none", effects = "all")), tol = 1e-6)
 
     ## ** extract information
@@ -183,9 +183,8 @@ test_that("practical 2 - vitamin",{
 
     e0.lmm <- lmm(weight~visit+vita.time,
                   data=vitaminL,
-                  type.information = "expected",
                   repetition = ~visit|animal,
-                  structure = "UN")
+                  structure = "UN", control = list(trace = 3))
 
     
     e.lmm <- suppressWarnings(lmm(weight~treatment*visit,
@@ -307,18 +306,18 @@ test_that("practical 6 - vasscoresL",{
 
     expect_equal(sigma(fit.CS), GS, tol = 1e-5)
     
-    GS <- lmer(vas~-1+treatment+(1|id), data=vasscoresL)
+    GS <- lmer(vas~-1+treatment+(1|id), data=vasscoresL)    
     expect_equal(unname(coef(fit.CS)), unname(fixef(GS)), tol = 1e-5)
     expect_equal(unname(model.tables(fit.CS)$se), unname(summary(GS)$coef[,"Std. Error"]), tol = 1e-2)
     expect_equal(unname(model.tables(fit.CS)$df), unname(summary(GS)$coef[,"df"]), tol = 1e-2)
-             
+
     ## autoplot(fit.CS)
     suppressWarnings(autoplot(fit.CS, obs.alpha = 0.1))
     dummy.coef(fit.CS)
     fit.UN <- lmm(vas~-1+treatment, data=vasscoresL,
-                     repetition=~treatment|id, structure="UN")
+                  repetition=~treatment|id, structure="UN")
     capture.output(summary(fit.UN))
-
+    
     ## GS <- lmm(vas~-1+treatment, data=vasscoresL,
     ##               repetition=~treatment|id, structure="UN",
     ##               control = list(optimizer = "FS"))

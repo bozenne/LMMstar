@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 26 2022 (11:18) 
 ## Version: 
-## Last-Updated: May 29 2022 (14:21) 
+## Last-Updated: May 30 2022 (22:45) 
 ##           By: Brice Ozenne
-##     Update #: 163
+##     Update #: 165
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -125,7 +125,7 @@
             ## convert to factor and rename
             iDf <- stats::setNames(list(as.factor(iVec)), rho2variable$term.labels2[iV])
             ## expand design matrix relative to each factor level
-            iX <- model.matrix(as.formula(paste("~ 0+",names(iDf))), iDf)[,paste0(names(iDf),setdiff(sort(unique(iVec)),0))]
+            iX <- model.matrix(stats::as.formula(paste("~ 0+",names(iDf))), iDf)[,paste0(names(iDf),setdiff(sort(unique(iVec)),0))]
             ## find variance parameters (one for each strata)
             iParam <- stats::setNames(tau[iTable$param], iTable$strata)
             ## expand variance parameters across strata
@@ -275,7 +275,7 @@
         ## rownames(iDF) <- NULL
         iCol <- colSums(iDF[,name.rho,drop=FALSE])
         iCol2 <- iCol[iCol!=0]
-        iRow <- setNames(rowSums(iDF[,name.rho,drop=FALSE]), iDF$variable)
+        iRow <- stats::setNames(rowSums(iDF[,name.rho,drop=FALSE]), iDF$variable)
         iRow2 <- tapply(iRow, names(iRow), max)
 
         if(length(iCol2)!=length(iRow2)){

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: maj 30 2022 (10:31) 
+## Last-Updated: May 30 2022 (23:39) 
 ##           By: Brice Ozenne
-##     Update #: 93
+##     Update #: 102
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -70,8 +70,9 @@ NULL
 #' @name abetaL
 #' @docType data
 #' @usage data(abetaL)
-#' @references Pech, Josefine, et al. "The impact of a new affective episode on psychosocial functioning, quality of life and perceived stress in newly diagnosed patients with bipolar disorder: A prospective one-year case-control study." Journal of Affective Disorders 277 (2020): 486-494.
+#' @references Pech, Josefine, et al. The impact of a new affective episode on psychosocial functioning, quality of life and perceived stress in newly diagnosed patients with bipolar disorder: A prospective one-year case-control study.Journal of Affective Disorders 277 (2020): 486-494.
 #' @keywords data
+NULL
 
 ## * blandAltman
 ## ** blandAltmanW
@@ -81,20 +82,21 @@ NULL
 #' This dataset is in the wide format (i.e. one line per patient).
 #'
 #' \itemize{
-#' \item id Patient identifier
+#' \item id Patient identifier.
 #' \item wright1 First measurement made with a Wright peak flow meter.
 #' \item wright2 Second measurement made with a Wright peak flow meter.
 #' \item mini1 First measurement made with a mini Wright peak flow meter.
 #' \item mini2 Second measurement made with a mini Wright peak flow meter.
 #' }
 #' 
+#' @name blandAltmanW
 #' @docType data
 #' @usage data(blandAltmanW)
 #' @references Bland & Altman, Statistical methods for assessing agreement between two methods of clinical measurement, Lancet, 1986; i: 307-310.
 #' @keywords data
 NULL
 
-## ** calciumL
+## ** blandAltmanL
 #' @title Data From The Bland Altman Study (Long Format)
 #'
 #' @description  Data From The Bland Altman Study where two methods to measure the peak expiratory flow rate (PEFR) where compared.
@@ -493,8 +495,6 @@ NULL
 #' @usage data(schoolL)
 #' @keywords data
 NULL
-## save(schoolL, file = "data/schooL.rda")
-## str(schoolL)
 
 ## * swabs
 ## ** swabsW

@@ -30,6 +30,8 @@
 
 \item{at}{[data.frame] values for the covariates at which to evaluate the fitted values.}
 
+\item{time.var}{[character] x-axis variable for the plot.}
+
 \item{color}{[character] name of the variable in the dataset used to color the curve.}
 
 \item{ci}{[logical] should confidence intervals be displayed?}
