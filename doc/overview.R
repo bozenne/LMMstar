@@ -502,30 +502,33 @@ sessionInfo()
 ## * Likelihood ratio test with the REML criterion
 
 ## chunk 101
-LMMstar.options(optimizer = "FS",
-                param.optimizer = c(n.iter = 1000, tol.score = 1e-3, tol.param = 1e-5))
-
-## chunk 102
 ## data(gastricbypassL, package = "LMMstar")
 dfTest <- gastricbypassL
 dfTest$glucagon2 <- dfTest$glucagon*2
 
+## chunk 102
+eML.lmmUN <- lmm(weight ~ time+glucagon, data = dfTest, repetition = ~time|id, method = "ML")
+eML.lmmUN2 <- lmm(weight ~ time+glucagon2, data = dfTest, repetition = ~time|id, method = "ML")
+
 ## chunk 103
-logLik(lmm(weight ~ glucagon, data = dfTest, structure = UN(~time|id), method = "ML"))
-logLik(lmm(weight ~ glucagon2, data = dfTest, structure = UN(~time|id), method = "ML"))
+logLik(eML.lmmUN)
+logLik(eML.lmmUN2)
 
 ## chunk 104
-logLik(lmm(weight ~ glucagon, data = dfTest, structure = UN(~time|id), method = "REML"))
-logLik(lmm(weight ~ glucagon2, data = dfTest, structure = UN(~time|id), method = "REML"))
-log(2)
+eREML.lmmUN <- lmm(weight ~ time + glucagon, data = dfTest, repetition = ~time|id, method = "REML")
+eREML.lmmUN2 <- lmm(weight ~ time + glucagon2, data = dfTest, repetition = ~time|id, method = "REML")
 
 ## chunk 105
-set.seed(1)
-dfTest$ff <- rbinom(NROW(dfTest), size = 1, prob = 0.5)
-logLik(lmm(weight ~ glucagon, data = dfTest, structure = UN(~time|id), method = "REML"))
-logLik(lmm(weight ~ glucagon*ff, data = dfTest, structure = UN(~time|id), method = "REML"))
+logLik(eREML.lmmUN)-logLik(eREML.lmmUN2)
+log(2)
 
 ## chunk 106
-logLik(lmm(weight ~ glucagon, data = dfTest, structure = UN(~time|id), method = "ML"))
-logLik(lmm(weight ~ glucagon*ff, data = dfTest, structure = UN(~time|id), method = "ML"))
+set.seed(15) 
+dfTest$ff <- rbinom(NROW(dfTest), size = 1, prob = 0.5)
+logLik(lmm(weight ~ time+glucagon, data = dfTest, repetition = ~time|id, method = "REML"))
+logLik(lmm(weight ~ time+glucagon*ff, data = dfTest, repetition = ~time|id, method = "REML"))
+
+## chunk 107
+logLik(lmm(weight ~ time + glucagon, data = dfTest, repetition = ~time|id, method = "ML"))
+logLik(lmm(weight ~ time + glucagon*ff, data = dfTest, repetition = ~time|id, method = "ML"))
 

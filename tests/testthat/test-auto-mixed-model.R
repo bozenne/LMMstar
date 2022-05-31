@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: May 30 2022 (23:30) 
+## Last-Updated: May 31 2022 (23:56) 
 ##           By: Brice Ozenne
-##     Update #: 134
+##     Update #: 135
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -197,8 +197,14 @@ test <- score(eUN.lmm, effects = "all", p = newp, transform.sigma = "square", tr
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## cov transformation
-## newp.cov <- newp; newp.cov[c("sigma","rho")] <- c(newp["sigma"]^2,newp["rho"]*newp["sigma"]^2)
-## GS <- jacobian(func = function(p){p[c("sigma","rho")] <- c(sqrt(p["sigma"]),p["rho"]/p["sigma"]); logLik(eUN.lmm, p = p)}, x = newp.cov)
+## name.sigma <- eUN.lmm$design$param[eUN.lmm$design$param$type=="rho","name"]
+## name.rho <- eUN.lmm$design$param[eUN.lmm$design$param$type=="rho","name"]
+## name.k1 <- eUN.lmm$design$param[eUN.lmm$design$param$type=="rho","k.x"]
+## name.k2 <- eUN.lmm$design$param[eUN.lmm$design$param$type=="rho","k.y"]
+## newp.cov <- newp
+## newp.cov[name.rho] <- newp[name.rho]*ifelse(is.na(newp[name.k1]),1,newp[name.k1])*newp[name.k2]*newp["sigma"]^2
+## newp.cov[name.rho] <- newp[name.rho]*ifelse(is.na(newp[name.k1]),1,newp[name.k1])*newp[name.k2]*newp["sigma"]^2
+## GS <- jacobian(func = function(p){p[name.rho] <- c(p[name.rho]*); logLik(eUN.lmm, p = p)}, x = newp.cov)
 ## test <- score(eUN.lmm, p = newp, transform.rho = "cov")
 ## expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
@@ -315,6 +321,15 @@ expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 newp.2 <- newp; newp.2[c("sigma:male","sigma:female")] <- newp[c("sigma:male","sigma:female")]^2
 GS <- -hessian(func = function(p){p[c("sigma:male","sigma:female")] <- sqrt(p[c("sigma:male","sigma:female")]); logLik(eSCS.lmm, p = p)}, x = newp.2)
 test <- information(eSCS.lmm, effects = "all", p = newp, transform.sigma = "square", transform.k = "none", transform.rho = "none")
+expect_equal(as.double(test), as.double(GS), tol = 1e-6)
+
+## cov transformation
+newp.cov <- newp.2; newp.cov[c("rho:male","rho:female")] <- c(newp["rho:male"]*newp["sigma:male"]^2, newp["rho:female"]*newp["sigma:female"]^2)
+GS <- -hessian(func = function(p){
+    p[c("sigma:male","rho:male","sigma:female","rho:female")] <- c(sqrt(p["sigma:male"]),p["rho:male"]/p["sigma:male"],sqrt(p["sigma:female"]),p["rho:female"]/p["sigma:female"])
+    logLik(eSCS.lmm, p = p)
+}, x = newp.cov)
+test <- information(eSCS.lmm, p = newp, effects = "all", transform.rho = "cov")
 expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
 ## ** degree of freedom

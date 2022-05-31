@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: May 30 2022 (22:50) 
+## Last-Updated: May 31 2022 (20:57) 
 ##           By: Brice Ozenne
-##     Update #: 177
+##     Update #: 179
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -57,6 +57,13 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
     outcome.var <- object$outcome$var
     if(is.null(time.var)){
         time.var.plot <- "XXtimeXX" ## nice as it sure to be a categorical variable
+
+        if(!is.null(attr(object$time$var,"original")) && !is.na(attr(object$time$var,"original"))){
+            xlabel.plot <- attr(object$time$var,"original")
+        }else{
+            xlabel.plot <- ""
+        }
+        
     }else{
         if(length(time.var)>1){
             stop("Argument \'time.var\' should have length 1 or be NULL. \n")
@@ -65,6 +72,7 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
             stop("Could not find the variable \"",time.var,"\" defined by the \'time.var\' argument in the data used to fit the lmm. \n")
         }
         time.var.plot <- time.var
+        xlabel.plot <- time.var
     }
     time.var <- attr(object$time$var,"original") ## need to be after statement on time.var.plot to avoid confusion
     mu.var <- attr(object$design$mean,"variable") 
@@ -210,7 +218,7 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
     }
     gg  <- gg + ggplot2::ylab(outcome.var) + ggplot2::theme(text = ggplot2::element_text(size=size.text))
     if(!is.null(time.var.plot) && any(!is.na(time.var.plot))){
-        gg  <- gg + ggplot2::xlab(paste(stats::na.omit(time.var.plot), collapse = " "))
+        gg  <- gg + ggplot2::xlab(paste(stats::na.omit(xlabel.plot), collapse = " "))
     }
 
 

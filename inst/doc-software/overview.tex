@@ -1,4 +1,4 @@
-% Created 2022-05-31 ti 15:57
+% Created 2022-05-31 Tue 23:45
 % Intended LaTeX compiler: pdflatex
 \documentclass[12pt]{article}
 
@@ -218,7 +218,7 @@ linkcolor=[rgb]{0,0,0.5},
  pdftitle={Overview of the package LMMstar},
  pdfkeywords={},
  pdfsubject={},
- pdfcreator={Emacs 27.2 (Org mode 9.5.2)},
+ pdfcreator={Emacs 26.3 (Org mode 9.4.6)},
  pdflang={English}
  }
 \begin{document}
@@ -328,7 +328,7 @@ utils::packageVersion("LMMstar")
 \end{lstlisting}
 
 \begin{verbatim}
-[1] '0.7.1'
+[1] ‘0.7.1’
 \end{verbatim}
 
 
@@ -343,7 +343,7 @@ LMMstar.options(optimizer = "FS")
 \clearpage
 
 \section{Descriptive statistics}
-\label{sec:org96053c3}
+\label{sec:org05d6ac4}
 Mean, standard deviation, and other summary statistic can be computed
 with respect to a categorical variable (typically time) using the
 \texttt{summarize} function:
@@ -408,9 +408,9 @@ Note: estimates and confidence intervals for rho have been back-transformed.
 \clearpage
 
 \section{Linear mixed model}
-\label{sec:org0188aab}
+\label{sec:orgaaed480}
 \subsection{Classical covariance patterns}
-\label{sec:org9e049f0}
+\label{sec:org4a2e1b4}
 Fit a linear model with \textbf{identity} structure:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -666,7 +666,7 @@ A3m 350.0416 331.5182 308.1345 334.8267
 \clearpage
 
 \subsection{Model output}
-\label{sec:org11730b6}
+\label{sec:org6c2b4b7}
 
 The \texttt{summary} method can be used to display the main information
 relative to the model fit:
@@ -792,7 +792,7 @@ arguments \texttt{df} to \texttt{FALSE} and \texttt{type.information} to \texttt
 calling \texttt{lmm} should lead to a more reasonnable computation time.
 
 \subsection{Extract estimated coefficients}
-\label{sec:org353d019}
+\label{sec:orge3456bc}
 The value of the estimated coefficients can be output using \texttt{coef}:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -847,7 +847,7 @@ dummy.coef(eUN.lmm)
 \end{verbatim}
 
 \subsection{Extract estimated coefficient and associated uncertainty}
-\label{sec:orgb5f5431}
+\label{sec:org5bd8d79}
 
 The uncertainty about the mean coefficients can be obtained using the
 \texttt{model.tables} method \footnote{it is equivalent to \texttt{confint} method
@@ -879,7 +879,7 @@ they uncertainty is by default computed after transformation
 (e.g. \texttt{log}) and then backtransformed. 
 
 \subsection{Extract estimated residual variance-covariance structure}
-\label{sec:orgcfbdcde}
+\label{sec:orgef1def8}
 
 The method \texttt{sigma} can be used to output the covariance structure of the residuals:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -930,7 +930,7 @@ A3m 318.8573 304.6314 285.8077 280.9323
 \clearpage
 
 \subsection{Model diagnostic}
-\label{sec:org5972ae0}
+\label{sec:orgec0b8be}
 
 The method \texttt{plot} can be used to display diagnostic plots about:
 \begin{itemize}
@@ -1026,7 +1026,7 @@ Various type of residuals can be extract but the normalized one are
 recommanded when doing model checking.
 
 \subsection{Model fit}
-\label{sec:orge6cc652}
+\label{sec:org0a90a9a}
 
 The fitted values can be displayed via the \texttt{plot} method or using the \texttt{emmeans} package:
 
@@ -1116,7 +1116,7 @@ Advarselsbeskeder:
 \clearpage
 
 \subsection{Statistical inference (linear)}
-\label{sec:org3cf03e8}
+\label{sec:orgeb7ecf8}
 
 The \texttt{anova} method can be use to test one or several linear
 combinations of the model coefficients using Wald tests. By default,
@@ -1318,7 +1318,7 @@ Adjusted CIs/p-values computed using 1e+05 samples.
 \clearpage
 
 \subsection{Statistical inference (non-linear)}
-\label{sec:org9efc1f3}
+\label{sec:orgec91b34}
 
 The \texttt{estimate} function can be used to test one or several non-linear
 combinations of model coefficients, using a first order delta method
@@ -1385,7 +1385,7 @@ variable.
 \clearpage
 
 \subsection{Baseline adjustment}
-\label{sec:org1c7e8a3}
+\label{sec:orge7a04db}
 
 In clinical trial the group and intervention variable often do not
 coincide, e.g., in presence of baseline measurement. In our running
@@ -1577,7 +1577,7 @@ autoplot(eC3.lmm, color = "group", ci = FALSE, size.text = 20, obs.alpha = 0.1)
 \end{center}
 
 \subsection{Marginal means}
-\label{sec:orgc4cbd11}
+\label{sec:org562bda6}
 
 The \texttt{emmeans} package can be used to output marginal means. Consider
 the following model:
@@ -1751,7 +1751,7 @@ P value adjustment: sidak method for 4 tests
 \end{verbatim}
 
 \subsection{Predictions}
-\label{sec:orga11ece2}
+\label{sec:org9c3e8fb}
 
 Two types of predictions can be performed with the \texttt{predict} method:
 \begin{itemize}
@@ -1861,7 +1861,7 @@ as.double(mu2 + Omega_21 * (100 - mu1) / Omega_11)
 \clearpage
 
 \subsection{Missing values and imputation}
-\label{sec:org1a1f766}
+\label{sec:orgf60bb04}
 
 
 We now consider the glucagon level as an outcome. The \texttt{summarize}
@@ -1998,7 +1998,7 @@ fitted(eUN.lmmNA, impute = TRUE, se = "total")
 \clearpage
 
 \section{User-specific covariance patterns}
-\label{sec:org4cbd373}
+\label{sec:org50d3efe}
 
 From version 0.6.0 and above it is possible customize the covariance
 pattern under the following model for the residuals:
@@ -2147,7 +2147,7 @@ logLik(lmm(value~time,
 \clearpage
 
 \section{Data generation}
-\label{sec:orgeaa188f}
+\label{sec:org88da57b}
 Simulate some data in the wide format:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -2194,7 +2194,7 @@ head(dL)
 \clearpage
 
 \section{Modifying default options}
-\label{sec:org3770436}
+\label{sec:org11e90bd}
 The \texttt{LMMstar.options} method enable to get and set the default options
 used by the package. For instance, the default option for the information matrix is:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -2223,7 +2223,7 @@ LMMstar.options(reinitialise = TRUE)
 \clearpage
 
 \section{R session}
-\label{sec:org7e66477}
+\label{sec:org351b79c}
 Details of the R session used to generate this document:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -2274,7 +2274,7 @@ loaded via a namespace (and not attached):
 \clearpage
 
 \section*{References}
-\label{sec:org03e9688}
+\label{sec:org9331474}
 \begingroup
 \renewcommand{\section}[2]{}
 
@@ -2307,7 +2307,7 @@ consider \(n\) replicates (i.e. \(\VY_1,\ldots,\VY_n)\) and
 \(\omega=(w_1,\ldots,w_n)\), which are by default all equal to 1.
 
 \subsection{Log-likelihood}
-\label{sec:org4db2b0d}
+\label{sec:orgf38093c}
 
 The restricted log-likelihood in a linear mixed model can then be
 written:
@@ -2338,7 +2338,7 @@ when setting the argument \texttt{indiv} to \texttt{TRUE}.
 \bigskip
 
 \subsection{Score}
-\label{sec:orgd94e600}
+\label{sec:org90cfebc}
 
  Using that \(\partial \log(\det(X))=tr(X^{-1}\partial(X))\), the
 score is obtained by derivating once the log-likelihood, i.e., for
@@ -2361,7 +2361,7 @@ what \texttt{score} outputs for the ML criteria when setting the argument
 \clearpage
 
 \subsection{Hessian}
-\label{sec:org8e01c47}
+\label{sec:org19fce7f}
 
 Derivating a second time the log-likelihood gives the hessian, \(\Hessian(\Vparam)\), with element\footnote{if one is relative to the mean and the other to the variance then they are respectively \(\theta\) and \(\theta'\)}:
 \begin{align*}
@@ -2409,7 +2409,7 @@ is set to \texttt{"expected"} (up to a factor -1).
 \clearpage
 
 \subsection{Degrees of freedom}
-\label{sec:org81b5baa}
+\label{sec:orgaab62fe}
 
 Degrees of freedom are computed using a Satterthwaite approximation,
 i.e. for an estimate coefficient \(\widehat{\beta}\in\widehat{\Vparam}\) with standard
@@ -2469,15 +2469,7 @@ The blue term of \autoref{eq:log-likelihood} in the log-likelihood is
 invariant to re-parameterisation while the red term is not. This means
 that a re-parametrisation of \(X\) into \(\tilde{X} = B X\) with \(B\)
 invertible would not change the likelihood when using ML but would
-decrease the log-likelihood by \(\log(|B|)\) when using REML. 
-\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
-\begin{lstlisting}
-LMMstar.options(optimizer = "FS",
-		param.optimizer = c(n.iter = 1000, tol.score = 1e-3, tol.param = 1e-5))
-\end{lstlisting}
-
-\bigskip
-
+decrease the log-likelihood by \(\log(|B|)\) when using REML. \newline
 Let's take an example:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -2490,31 +2482,37 @@ where we multiply one column of the design matrix by 2. As mentionned
 previously this does not affect the log-likelihood when using ML:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-logLik(lmm(weight ~ glucagon, data = dfTest, structure = UN(~time|id), method = "ML"))
-logLik(lmm(weight ~ glucagon2, data = dfTest, structure = UN(~time|id), method = "ML"))
+eML.lmmUN <- lmm(weight ~ time+glucagon, data = dfTest, repetition = ~time|id, method = "ML")
+eML.lmmUN2 <- lmm(weight ~ time+glucagon2, data = dfTest, repetition = ~time|id, method = "ML")
+\end{lstlisting}
+
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+logLik(eML.lmmUN)
+logLik(eML.lmmUN2)
 \end{lstlisting}
 
 \begin{verbatim}
-Fejl i .formulaStructure(stats::as.formula(paste0(paste(all.vars(formula),  : 
-  There should be at most one strata variable.
-Fejl i .formulaStructure(stats::as.formula(paste0(paste(all.vars(formula),  : 
-  There should be at most one strata variable.
+[1] -245.7909
+[1] -245.7909
 \end{verbatim}
 
 
 but it does when using REML:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-logLik(lmm(weight ~ glucagon, data = dfTest, structure = UN(~time|id), method = "REML"))
-logLik(lmm(weight ~ glucagon2, data = dfTest, structure = UN(~time|id), method = "REML"))
+eREML.lmmUN <- lmm(weight ~ time + glucagon, data = dfTest, repetition = ~time|id, method = "REML")
+eREML.lmmUN2 <- lmm(weight ~ time + glucagon2, data = dfTest, repetition = ~time|id, method = "REML")
+\end{lstlisting}
+
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+logLik(eREML.lmmUN)-logLik(eREML.lmmUN2)
 log(2)
 \end{lstlisting}
 
 \begin{verbatim}
-Fejl i .formulaStructure(stats::as.formula(paste0(paste(all.vars(formula),  : 
-  There should be at most one strata variable.
-Fejl i .formulaStructure(stats::as.formula(paste0(paste(all.vars(formula),  : 
-  There should be at most one strata variable.
+[1] 0.6931472
 [1] 0.6931472
 \end{verbatim}
 
@@ -2528,17 +2526,15 @@ model:
 
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-set.seed(1)
+set.seed(15) 
 dfTest$ff <- rbinom(NROW(dfTest), size = 1, prob = 0.5)
-logLik(lmm(weight ~ glucagon, data = dfTest, structure = UN(~time|id), method = "REML"))
-logLik(lmm(weight ~ glucagon*ff, data = dfTest, structure = UN(~time|id), method = "REML"))
+logLik(lmm(weight ~ time+glucagon, data = dfTest, repetition = ~time|id, method = "REML"))
+logLik(lmm(weight ~ time+glucagon*ff, data = dfTest, repetition = ~time|id, method = "REML"))
 \end{lstlisting}
 
 \begin{verbatim}
-Fejl i .formulaStructure(stats::as.formula(paste0(paste(all.vars(formula),  : 
-  There should be at most one strata variable.
-Fejl i .formulaStructure(stats::as.formula(paste0(paste(all.vars(formula),  : 
-  There should be at most one strata variable.
+[1] -216.3189
+[1] -217.0239
 \end{verbatim}
 
 
@@ -2546,15 +2542,13 @@ This is quite counter-intuitive as more complex model should lead to
 better fit and would never happen when using ML:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-logLik(lmm(weight ~ glucagon, data = dfTest, structure = UN(~time|id), method = "ML"))
-logLik(lmm(weight ~ glucagon*ff, data = dfTest, structure = UN(~time|id), method = "ML"))
+logLik(lmm(weight ~ time + glucagon, data = dfTest, repetition = ~time|id, method = "ML"))
+logLik(lmm(weight ~ time + glucagon*ff, data = dfTest, repetition = ~time|id, method = "ML"))
 \end{lstlisting}
 
 \begin{verbatim}
-Fejl i .formulaStructure(stats::as.formula(paste0(paste(all.vars(formula),  : 
-  There should be at most one strata variable.
-Fejl i .formulaStructure(stats::as.formula(paste0(paste(all.vars(formula),  : 
-  There should be at most one strata variable.
+[1] -218.71
+[1] -217.4141
 \end{verbatim}
 
 

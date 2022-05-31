@@ -114,7 +114,7 @@ utils::packageVersion("LMMstar")
 #+END_SRC
 
 #+RESULTS:
-: [1] '0.7.1'
+: [1] ‘0.7.1’
 
 When estimating model coefficients, we will use the internal
 optimization routine of the *LMMstar* package (instead of relying on
@@ -2222,16 +2222,7 @@ The blue term of autoref:eq:log-likelihood in the log-likelihood is
 invariant to re-parameterisation while the red term is not. This means
 that a re-parametrisation of \(X\) into \(\tilde{X} = B X\) with \(B\)
 invertible would not change the likelihood when using ML but would
-decrease the log-likelihood by \(\log(|B|)\) when using REML. 
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-LMMstar.options(optimizer = "FS",
-                param.optimizer = c(n.iter = 1000, tol.score = 1e-3, tol.param = 1e-5))
-#+END_SRC
-
-#+RESULTS:
-
-\bigskip
-
+decrease the log-likelihood by \(\log(|B|)\) when using REML. \newline
 Let's take an example:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 ## data(gastricbypassL, package = "LMMstar")
@@ -2243,29 +2234,37 @@ dfTest$glucagon2 <- dfTest$glucagon*2
 
 where we multiply one column of the design matrix by 2. As mentionned
 previously this does not affect the log-likelihood when using ML:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-logLik(lmm(weight ~ glucagon, data = dfTest, structure = UN(~time|id), method = "ML"))
-logLik(lmm(weight ~ glucagon2, data = dfTest, structure = UN(~time|id), method = "ML"))
+#+BEGIN_SRC R :exports code :results output :session *R* :cache no
+eML.lmmUN <- lmm(weight ~ time+glucagon, data = dfTest, repetition = ~time|id, method = "ML")
+eML.lmmUN2 <- lmm(weight ~ time+glucagon2, data = dfTest, repetition = ~time|id, method = "ML")
 #+END_SRC
 
 #+RESULTS:
-: Fejl i .formulaStructure(stats::as.formula(paste0(paste(all.vars(formula),  : 
-:   There should be at most one strata variable.
-: Fejl i .formulaStructure(stats::as.formula(paste0(paste(all.vars(formula),  : 
-:   There should be at most one strata variable.
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+logLik(eML.lmmUN)
+logLik(eML.lmmUN2)
+#+END_SRC
+
+#+RESULTS:
+: [1] -245.7909
+: [1] -245.7909
 
 but it does when using REML:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-logLik(lmm(weight ~ glucagon, data = dfTest, structure = UN(~time|id), method = "REML"))
-logLik(lmm(weight ~ glucagon2, data = dfTest, structure = UN(~time|id), method = "REML"))
+eREML.lmmUN <- lmm(weight ~ time + glucagon, data = dfTest, repetition = ~time|id, method = "REML")
+eREML.lmmUN2 <- lmm(weight ~ time + glucagon2, data = dfTest, repetition = ~time|id, method = "REML")
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+logLik(eREML.lmmUN)-logLik(eREML.lmmUN2)
 log(2)
 #+END_SRC
 
 #+RESULTS:
-: Fejl i .formulaStructure(stats::as.formula(paste0(paste(all.vars(formula),  : 
-:   There should be at most one strata variable.
-: Fejl i .formulaStructure(stats::as.formula(paste0(paste(all.vars(formula),  : 
-:   There should be at most one strata variable.
+: [1] 0.6931472
 : [1] 0.6931472
 
 Therefore, when comparing models with different mean effects there is
@@ -2276,30 +2275,26 @@ have a smaller restricted log-likehood when considering a more complex
 model:
 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-set.seed(1)
+set.seed(15) 
 dfTest$ff <- rbinom(NROW(dfTest), size = 1, prob = 0.5)
-logLik(lmm(weight ~ glucagon, data = dfTest, structure = UN(~time|id), method = "REML"))
-logLik(lmm(weight ~ glucagon*ff, data = dfTest, structure = UN(~time|id), method = "REML"))
+logLik(lmm(weight ~ time+glucagon, data = dfTest, repetition = ~time|id, method = "REML"))
+logLik(lmm(weight ~ time+glucagon*ff, data = dfTest, repetition = ~time|id, method = "REML"))
 #+END_SRC
 
 #+RESULTS:
-: Fejl i .formulaStructure(stats::as.formula(paste0(paste(all.vars(formula),  : 
-:   There should be at most one strata variable.
-: Fejl i .formulaStructure(stats::as.formula(paste0(paste(all.vars(formula),  : 
-:   There should be at most one strata variable.
+: [1] -216.3189
+: [1] -217.0239
 
 This is quite counter-intuitive as more complex model should lead to
 better fit and would never happen when using ML:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-logLik(lmm(weight ~ glucagon, data = dfTest, structure = UN(~time|id), method = "ML"))
-logLik(lmm(weight ~ glucagon*ff, data = dfTest, structure = UN(~time|id), method = "ML"))
+logLik(lmm(weight ~ time + glucagon, data = dfTest, repetition = ~time|id, method = "ML"))
+logLik(lmm(weight ~ time + glucagon*ff, data = dfTest, repetition = ~time|id, method = "ML"))
 #+END_SRC
 
 #+RESULTS:
-: Fejl i .formulaStructure(stats::as.formula(paste0(paste(all.vars(formula),  : 
-:   There should be at most one strata variable.
-: Fejl i .formulaStructure(stats::as.formula(paste0(paste(all.vars(formula),  : 
-:   There should be at most one strata variable.
+: [1] -218.71
+: [1] -217.4141
 
 This is why, unless one knows what he/she is doing, it is not
 recommanded to use likelihood ratio test to assess relevance of mean

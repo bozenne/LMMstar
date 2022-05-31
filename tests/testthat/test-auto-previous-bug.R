@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: May 30 2022 (23:14) 
+## Last-Updated: May 31 2022 (20:58) 
 ##           By: Brice Ozenne
-##     Update #: 113
+##     Update #: 115
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -207,13 +207,11 @@ test_that("lmm - constrain model, cluster with 1 or several observations",{
 
     ## data
     data("calciumL", package = "LMMstar")
-    calciumL$time <- 0.5 * (calciumL$visit-1)
-    calciumL$timefac <- factor(calciumL$time)
     
     ## treatment variable
     calciumL$treat <- factor(calciumL$grp, c('N','P','C'))
-    calciumL$treat[calciumL$time=="0"] <- "N"
-    table(calciumL$time, calciumL$treat)
+    calciumL$treat[calciumL$visit=="1"] <- "N"
+    table(calciumL$visit, calciumL$treat)
     table(calciumL$grp, calciumL$treat)
 
     calciumL$treat2 <- calciumL$treat
@@ -221,22 +219,22 @@ test_that("lmm - constrain model, cluster with 1 or several observations",{
     calciumL$treat2 <- droplevels(calciumL$treat2)
     
     ## constrained time-treatment interaction
-    calciumL$treat.time <- calciumL$timefac
-    calciumL$treat.time[calciumL$grp=='P'] <- "0"
+    calciumL$treat.visit <- calciumL$visit
+    calciumL$treat.visit[calciumL$grp=='P'] <- "1"
 
     ## Set reference points for time and treatment factors:
-    calciumL$timfac <- relevel(calciumL$timefac, ref="0")
+    calciumL$visit <- relevel(calciumL$visit, ref="1")
     calciumL$treat <- relevel(calciumL$treat, ref="N")
     calciumL$treat2 <- relevel(calciumL$treat2, ref="C")
-    calciumL$treat.time <- relevel(calciumL$treat.time, ref="0")
+    calciumL$treat.visit <- relevel(calciumL$treat.visit, ref="1")
 
     ## Fit the constrained linear mixed model:
-    fit.clmm <- suppressWarnings(lmm(bmd~treat*timefac,
+    fit.clmm <- suppressMessages(lmm(bmd~treat*visit,
                                      repetition=~visit|girl,
                                      structure="UN",
                                      data=calciumL,
                                      df=FALSE))
-    fit.clmm.bis <- suppressWarnings(lmm(bmd~0+treat:timefac,
+    fit.clmm.bis <- suppressMessages(lmm(bmd~0+treat:visit,
                                          repetition=~visit|girl,
                                          structure="UN",
                                          data=calciumL,
@@ -245,9 +243,9 @@ test_that("lmm - constrain model, cluster with 1 or several observations",{
     ## coef(fit.clmm.bis)
     ## summary(fit.clmm)
     ## summary(fit.clmm.bis)
-    ## autoplot(fit.clmm)
+    ## autoplot(fit.clmm, color = "grp")
 
-    fit.clmm2 <- suppressWarnings(lmm(bmd~treat2*timefac,
+    fit.clmm2 <- suppressWarnings(lmm(bmd~treat2*visit,
                                       repetition=~visit|girl,
                                       structure="UN",
                                       data=calciumL,
