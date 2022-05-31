@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: May 29 2022 (22:02) 
+## Last-Updated: May 30 2022 (22:46) 
 ##           By: Brice Ozenne
-##     Update #: 713
+##     Update #: 714
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -970,15 +970,15 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
                         out$dJacobian[iIndex.rho,iIndex.sigma,iIndex.sigma] <- p[iIndex.rho]/(p[iIndex.sigma]^3)
                         out$dJacobian[iIndex.rho,iIndex.sigma,iIndex.rho] <- -1/(p[iIndex.sigma]^2)
                    
-                        out$dJacobian[iIndex.rho,iIndex.ky,iIndex.iSigma] <- out$dJacobian[iIndex.rho,iIndex.ky,iIndex.iSigma]+p[iIndex.rho]/(p[iIndex.sigma]^3*p[iIndex.ky]^2)
+                        out$dJacobian[iIndex.rho,iIndex.ky,iIndex.sigma] <- out$dJacobian[iIndex.rho,iIndex.ky,iIndex.sigma]+p[iIndex.rho]/(p[iIndex.sigma]^3*p[iIndex.ky]^2)
                         out$dJacobian[iIndex.rho,iIndex.ky,iIndex.ky] <- out$dJacobian[iIndex.rho,iIndex.ky,iIndex.ky]+p[iIndex.rho]/(p[iIndex.sigma]^2*p[iIndex.ky]^3)
                         out$dJacobian[iIndex.rho,iIndex.ky,iIndex.rho] <- out$dJacobian[iIndex.rho,iIndex.ky,iIndex.rho]-1/(2*p[iIndex.sigma]^2*p[iIndex.ky]^2)
                     }else{ ## both non-NA
-                        out$dJacobian[iIndex.rho,iIndex.kx,iIndex.iSigma] <- out$dJacobian[iIndex.rho,iIndex.kx,iIndex.iSigma]+p[iIndex.rho]/(p[iIndex.sigma]^3*p[iIndex.kx]^2) 
+                        out$dJacobian[iIndex.rho,iIndex.kx,iIndex.sigma] <- out$dJacobian[iIndex.rho,iIndex.kx,iIndex.sigma]+p[iIndex.rho]/(p[iIndex.sigma]^3*p[iIndex.kx]^2) 
                         out$dJacobian[iIndex.rho,iIndex.kx,iIndex.ky] <- out$dJacobian[iIndex.rho,iIndex.kx,iIndex.ky]+p[iIndex.rho]/(p[iIndex.sigma]^2*p[iIndex.kx]^3) 
                         out$dJacobian[iIndex.rho,iIndex.kx,iIndex.rho] <- out$dJacobian[iIndex.rho,iIndex.kx,iIndex.rho]-1/(2*p[iIndex.sigma]^2*p[iIndex.kx]^2) 
                         
-                        out$dJacobian[iIndex.rho,iIndex.ky,iIndex.iSigma] <- out$dJacobian[iIndex.rho,iIndex.ky,iIndex.iSigma]+p[iIndex.rho]/(p[iIndex.sigma]^3*p[iIndex.ky]^2)
+                        out$dJacobian[iIndex.rho,iIndex.ky,iIndex.sigma] <- out$dJacobian[iIndex.rho,iIndex.ky,iIndex.sigma]+p[iIndex.rho]/(p[iIndex.sigma]^3*p[iIndex.ky]^2)
                         out$dJacobian[iIndex.rho,iIndex.ky,iIndex.ky] <- out$dJacobian[iIndex.rho,iIndex.ky,iIndex.ky]+p[iIndex.rho]/(p[iIndex.sigma]^2*p[iIndex.ky]^3)
                         out$dJacobian[iIndex.rho,iIndex.ky,iIndex.rho] <- out$dJacobian[iIndex.rho,iIndex.ky,iIndex.rho]-1/(2*p[iIndex.sigma]^2*p[iIndex.ky]^2)
                     }

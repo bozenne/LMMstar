@@ -6,8 +6,6 @@
 \title{Data From The Bland Altman Study (Long Format)}
 \usage{
 data(abetaL)
-
-data(blandAltmanW)
 }
 \description{
 Extract data from a longitudinal case control study including 87 patients newly diagnosed with bipolar disorder and 44 age and sex matched healthy controls.
@@ -29,21 +27,8 @@ This dataset is in the long format (i.e. one line per measurement).
 \item alcohol Daily alcohol consumption.
 \item missingreason Reason of drop out or missed visit.
 }
-
-Data From The Bland Altman Study where two methods to measure the peak expiratory flow rate (PEFR) where compared.
-This dataset is in the wide format (i.e. one line per patient).
-
-\itemize{
-\item id Patient identifier
-\item wright1 First measurement made with a Wright peak flow meter.
-\item wright2 Second measurement made with a Wright peak flow meter.
-\item mini1 First measurement made with a mini Wright peak flow meter.
-\item mini2 Second measurement made with a mini Wright peak flow meter.
-}
 }
 \references{
-Pech, Josefine, et al. "The impact of a new affective episode on psychosocial functioning, quality of life and perceived stress in newly diagnosed patients with bipolar disorder: A prospective one-year case-control study." Journal of Affective Disorders 277 (2020): 486-494.
-
-Bland & Altman, Statistical methods for assessing agreement between two methods of clinical measurement, Lancet, 1986; i: 307-310.
+Pech, Josefine, et al. The impact of a new affective episode on psychosocial functioning, quality of life and perceived stress in newly diagnosed patients with bipolar disorder: A prospective one-year case-control study.Journal of Affective Disorders 277 (2020): 486-494.
 }
 \keyword{data}

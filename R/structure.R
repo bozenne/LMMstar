@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: May 28 2022 (16:24) 
+## Last-Updated: May 30 2022 (22:47) 
 ##           By: Brice Ozenne
-##     Update #: 602
+##     Update #: 604
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -269,8 +269,8 @@ CS <- function(formula, var.cluster, var.time, heterogeneous = TRUE, add.time){
     }else if(heterogeneous){
         outCov <- .formulaStructure(formula, heterogeneous = heterogeneous)
     }else{
-        if(attr(terms(formula),"response")==1){
-            outCov <- .formulaStructure(list(update(formula,.~0),formula), heterogeneous = heterogeneous)
+        if(attr(stats::terms(formula),"response")==1){
+            outCov <- .formulaStructure(list(stats::update(formula,.~0),formula), heterogeneous = heterogeneous)
         }else{
             outCov <- .formulaStructure(list(~1,formula), heterogeneous = heterogeneous)
         }
@@ -352,7 +352,7 @@ UN <- function(formula, var.cluster, var.time, add.time){
 
     ## remove intercept
     if(length(all.vars(out$formula$cor)>0)){
-        out$formula$cor <- update(out$formula$cor,~0+.)
+        out$formula$cor <- stats::update(out$formula$cor,~0+.)
     }
 
     ## export

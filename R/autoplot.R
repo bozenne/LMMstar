@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: maj 30 2022 (12:12) 
+## Last-Updated: May 30 2022 (22:50) 
 ##           By: Brice Ozenne
-##     Update #: 176
+##     Update #: 177
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,6 +21,7 @@
 ##'
 ##' @param object a \code{lmm} object.
 ##' @param at [data.frame] values for the covariates at which to evaluate the fitted values.
+##' @param time.var [character] x-axis variable for the plot.
 ##' @param obs.alpha [numeric, 0-1] When not NA, transparency parameter used to display the original data by cluster.
 ##' @param obs.size [numeric vector of length 2] size of the point and line for the original data.
 ##' @param color [character] name of the variable in the dataset used to color the curve.

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: May 29 2022 (23:41) 
+## Last-Updated: May 30 2022 (23:35) 
 ##           By: Brice Ozenne
-##     Update #: 485
+##     Update #: 487
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -86,6 +86,7 @@
             for(iiP in 1:length(iParam.cor)){
                 iiParam <- iParam.cor[iiP]
                 if(is.na(iiParam)){
+                    iiParam <- which(is.na(names(attr(X.cor[[iPattern.cor]],"indicator.param")))) 
                     Omega.cor[attr(X.cor[[iPattern.cor]],"indicator.param")[[iiParam]]] <- NA
                 }else{
                     Omega.cor[attr(X.cor[[iPattern.cor]],"indicator.param")[[iiParam]]] <- param[iiParam]

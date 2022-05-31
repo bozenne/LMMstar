@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: maj 30 2022 (13:18) 
+## Last-Updated: May 30 2022 (23:30) 
 ##           By: Brice Ozenne
-##     Update #: 130
+##     Update #: 134
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -439,7 +439,7 @@ test <- confint(eSUN.lmm, effects = "all")[,"df", drop=FALSE]
 
 ## ** anova
 eSUN.lmm_anova <- anova(eSUN.lmm, effects = "all", ci = TRUE)
-if(eSCS.lmm$opt$name=="gls"){
+if(eSUN.lmm$opt$name=="gls"){
     expect_equal(eSUN.lmm_anova$mean$df.denom, c(47.63744, 42.53266), tol = 1e-1)
 }else{
     expect_equal(eSUN.lmm_anova$mean$df.denom, c(57.00206139, 55.02679117, 67.96985137, 93.51660476, 54.92384757), tol = 1e-1)
@@ -451,6 +451,9 @@ expect_equal(eSUN.lmm_anova$correlation$df.denom, c(9.100919), tol = 1e-1)
 ## ** getVarCov
 sigma(eSUN.lmm)
 })
+
+## * Crossed random effects
+data(schoolL, package = "LMMstar")
 
 ## * Missing data
 test_that("missing values",{
@@ -487,8 +490,8 @@ test_that("Baseline constrain",{
 
     ## eUN.lmm <- lmm(Y ~ group*visit, repetition = ~group*visit|id, structure = "UN", data = dL, trace = 0, method = "REML")
     ## logLik(eUN.lmm)
-    eCUN.lmm <- suppressMessages(lmm(Y ~ treat*visit, repetition = ~treat*visit|id, structure = "UN", data = dL, trace = 0, method = "REML", df = FALSE))
-    eCUN2.lmm <- lmm(Y ~ treat.visit, repetition = ~treat.visit|id, structure = "UN", data = dL, trace = 0, method = "REML", df = FALSE)
+    eCUN.lmm <- suppressMessages(lmm(Y ~ treat*visit, repetition = ~treat*visit|id, structure = "UN", data = dL, trace = 0, method = "REML", df = FALSE, control = list(optimizer = "FS")))
+    eCUN2.lmm <- lmm(Y ~ treat.visit, repetition = ~treat.visit|id, structure = "UN", data = dL, trace = 0, method = "REML", df = FALSE, control = list(optimizer = "FS"))
     
     expect_equal(logLik(eCUN2.lmm), logLik(eCUN.lmm), tol = 1e-5)
     expect_equal(logLik(eCUN2.lmm), -618.14359397, tol = 1e-5)
@@ -498,10 +501,10 @@ test_that("Baseline constrain",{
     plot(eCUN2.lmm, color = "group", time.var = "visit")
 
     ## baseline constrain for order 3 interaction
-    eCUN.I2.lmm <- suppressMessages(lmm(Y ~ gender*treat*visit, repetition = ~treat*visit|id, structure = "UN", data = dL, trace = 0, method = "REML", df = FALSE))
-    eCUN2.I2.lmm <- suppressMessages(lmm(Y ~ gender:treat.visit, repetition = ~treat.visit|id, structure = "UN", data = dL, trace = 0, method = "REML", df = FALSE))
-    logLik(eCUN.I2.lmm)
-    logLik(eCUN2.I2.lmm)
+    eCUN.I2.lmm <- suppressMessages(lmm(Y ~ gender*treat*visit, repetition = ~treat*visit|id, structure = "UN", data = dL, trace = 0, method = "REML", df = FALSE, control = list(optimizer = "FS")))
+    eCUN2.I2.lmm <- suppressMessages(lmm(Y ~ gender:treat.visit, repetition = ~treat.visit|id, structure = "UN", data = dL, trace = 0, method = "REML", df = FALSE, control = list(optimizer = "FS")))
+    expect_equal(logLik(eCUN.I2.lmm), logLik(eCUN2.I2.lmm), tol = 1e-5)
+    expect_equal(logLik(eCUN.I2.lmm), -598.96051963, tol = 1e-5)
 })
 ##----------------------------------------------------------------------
 ### test-auto-mixed-model.R ends here

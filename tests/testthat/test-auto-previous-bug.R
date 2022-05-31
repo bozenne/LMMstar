@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: May 30 2022 (00:50) 
+## Last-Updated: May 30 2022 (23:14) 
 ##           By: Brice Ozenne
-##     Update #: 111
+##     Update #: 113
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -43,34 +43,11 @@ vitaminL <- data.frame("group" = c("C", "C", "C", "C", "C", "T", "T", "T", "T", 
                        "vita.time" = c("1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "5", "5", "5", "5", "5", "1", "1", "1", "1", "1", "6", "6", "6", "6", "6", "1", "1", "1", "1", "1", "7", "7", "7", "7", "7"))
 vitaminL$time <- as.factor(vitaminL$time)
 
-test_that("getCoef - Non-positive definite approximate variance-covariance",{
-    e.gls <- gls(weight ~ time + vita.time,
-                 data = vitaminL,
-                 correlation = corSymm(form =~ as.numeric(time)|animal),
-                 weight = varIdent(form =~ 1|time),
-                 na.action = na.exclude,
-                 control = glsControl(opt = 'optim'))
-    ## intervals(e.gls)
-    getCoef(e.gls, effects = "variance")
-    GS <- data.frame("estimate" = c(480.4, 54.8, 91.1, 90.06462365, 57.41600708, 99.73653031, -12.3292473, 73.96798584, 55.72693938), 
-           "std.error" = c(8.91159611, 9.0787633, 9.78750731, 15.79765713, 20.53007694, 18.6808209, 14.9512271, 18.19375363, 19.20869827), 
-           "t.value" = c(53.90729045, 6.03606441, 9.3077836, 5.70113802, 2.79667764, 5.33898006, -0.82463113, 4.06557038, 2.90113045), 
-           "p.value" = c(0, 1.8e-07, 0, 6e-07, 0.00726379, 2.18e-06, 0.41342136, 0.00016606, 0.00547612), 
-           "lower" = c(462.50922428, 36.57362215, 71.45075917, 58.3495036, 16.2001578, 62.23321744, -42.34508817, 37.44250132, 17.16386849), 
-           "upper" = c(498.29077572, 73.02637785, 110.74924083, 121.77974371, 98.63185636, 137.23984317, 17.68659356, 110.49347035, 94.29001027))
-    test <- getCoef(e.gls)
-    expect_equal(test$estimate, GS$estimate, tol = 1e-5)
-    expect_equal(test$se, GS$se, tol = 1e-5)
-    expect_equal(test$df, GS$df, tol = 1e-1)
-    expect_equal(test$lower, GS$lower, tol = 1e-2)
-    expect_equal(test$upper, GS$upper, tol = 1e-2)
-})
-
 ## * from: Julie Lyng Forman <jufo@sund.ku.dk> date: Tuesday, 06/18/21 2:03 PM
 test_that("lmm - error due to minus sign in levels of a categorical variable",{
     data(gastricbypassL, package = "LMMstar")
     gastricbypassL$time2 <- factor(gastricbypassL$time,
-                                  levels = c("3 months before", "1 week before", "1 week after", "3 months after"),
+                                  levels = c("3monthsBefore", "1weekBefore", "1weekAfter", "3monthsAfter"),
                                   labels = c("-3 months", "-1 week", "+1 week", "+3 months"))
 
     eCS.lmm <- lmm(glucagonAUC~time,
@@ -192,16 +169,16 @@ test_that("lmm - predicted values",{
     ## error due to wrong factor
     expect_error(predict(fit.main, newdata = data.frame(time = "-1 week"), se = FALSE))
     ## valid prediction
-    expect_equal(predict(fit.main, newdata = data.frame(time = "1 week before"), se = FALSE)[[1]],
+    expect_equal(predict(fit.main, newdata = data.frame(time = "1weekBefore"), se = FALSE)[[1]],
                  sum(coef(fit.main)[1:2]))
-    expect_equal(predict(fit.main, newdata = data.frame(time = "1 week before"), se = "estimation"),
+    expect_equal(predict(fit.main, newdata = data.frame(time = "1weekBefore"), se = "estimation"),
                  data.frame("estimate" = c(121.24), 
                             "se" = c(4.22845441), 
                             "df" = c(18.99992877), 
                             "lower" = c(112.38974096), 
                             "upper" = c(130.09025904)),
                  tol = 1e-3)
-    expect_equal(predict(fit.main, newdata = data.frame(time = "1 week before", visit = 1:4, id = c(1,1,2,2)), se = "total"),
+    expect_equal(predict(fit.main, newdata = data.frame(time = "1weekBefore", visit = 1:4, id = c(1,1,2,2)), se = "total"),
                  data.frame("estimate" = c(121.24, 121.24, 121.24, 121.24), 
                             "se" = c(20.70577588, 19.37721241, 18.75815531, 17.57030288), 
                             "df" = c(Inf, Inf, Inf, Inf), 
@@ -211,7 +188,7 @@ test_that("lmm - predicted values",{
 
     data("gastricbypassW", package = "LMMstar")
     GS <- predict(lm(weight2 ~ weight1, data = gastricbypassW), newdata = data.frame(weight1 = 50), se = TRUE)
-    newdata <- data.frame(time = c("3 months before","1 week before"), visit = factor(1:2,levels=1:4), weight = c(50,NA), id = c(1,1))
+    newdata <- data.frame(time = c("3monthsBefore","1weekBefore"), visit = factor(1:2,levels=1:4), weight = c(50,NA), id = c(1,1))
     test <- predict(fit.main, newdata = newdata, type = "dynamic", keep.newdata = FALSE)
 
     expect_equivalent(test$estimate, GS$fit, tol = 1e-3)

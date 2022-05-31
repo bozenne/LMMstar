@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: maj 30 2022 (13:37) 
+## Last-Updated: May 30 2022 (23:33) 
 ##           By: Brice Ozenne
-##     Update #: 484
+##     Update #: 486
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -152,6 +152,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, inverse = FALSE, simplif
         vec.cov <- c(setdiff(object.structure$name$var[[1]], c(time.var,object.structure$name$time)),
                      setdiff(object.structure$name$cor[[1]], c(time.var,object.structure$name$time)))
         vec.ntime <- tapply(object.structure$X$Upattern$n.time,unlist(object.structure$X$Upattern$index.strata), max)
+
         if(is.null(cluster) && any(vec.ntime < n.time) && length(stats::na.omit(vec.cov))==0){
             ## Agregate patterns in presence of missing values
             ## Only work when no covariate
