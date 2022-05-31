@@ -22,7 +22,7 @@ Linear hypothesis testing accross linear mixed model.
 \examples{
 ## simulate data
 set.seed(10)
-dL <- sampleRem(1e2, n.times = 3, format = "long")
+dL <- sampleRem(1e3, n.times = 3, format = "long")
 
 ## estimate mixed models
 e.lmm1 <- lmm(Y ~ X1+X2+X3, repetition = ~visit|id, data = dL)

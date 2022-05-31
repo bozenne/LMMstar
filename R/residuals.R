@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: May 29 2022 (16:54) 
+## Last-Updated: maj 31 2022 (10:08) 
 ##           By: Brice Ozenne
-##     Update #: 631
+##     Update #: 635
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -468,7 +468,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
     ## plot
     ##
     if(format=="wide"){
-        dfL.res <- data.frame(residuals = as.vector(M.res), cluster = level.cluster, time = level.time, stringsAsFactors = FALSE)
+        dfL.res <- data.frame(residuals = as.vector(M.res), cluster = level.cluster, time = factor(U.time[level.time], U.time), stringsAsFactors = FALSE)
         MW.res <- reshape2::dcast(data = dfL.res,
                                   formula = cluster~time, value.var = "residuals")
         attr(MW.res,"reference") <- attr(M.res,"reference")

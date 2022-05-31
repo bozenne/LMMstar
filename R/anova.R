@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: May 30 2022 (01:40) 
+## Last-Updated: maj 31 2022 (10:12) 
 ##           By: Brice Ozenne
-##     Update #: 850
+##     Update #: 851
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -265,7 +265,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         if(inherits(out.glht,"try-error")){
 
             ## maybe the error is due to white space in the name of the coefficients
-            if(grepl(" ",effects)){
+            if(any(grepl(" ",effects))){
                 lhs <- sapply(strsplit(effects, split = "=",fixed = TRUE),"[",1)
                 lhs.term <- unlist(strsplit(unlist(strsplit(lhs, split = "+", fixed = TRUE)), split = "-", fixed = TRUE))
                 lhs.variable <- trimws(lapply(strsplit(lhs.term, split = "*", fixed = TRUE), utils::tail, 1), which = "both")

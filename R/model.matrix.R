@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: maj 30 2022 (13:18) 
+## Last-Updated: maj 31 2022 (09:56) 
 ##           By: Brice Ozenne
-##     Update #: 2202
+##     Update #: 2221
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -545,6 +545,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         ## no warning because this is normal behavior when stratifying
         formula <- stats::update(formula, stats::as.formula(paste0("~.-",paste(names(test.1value)[test.1value==1],collapse="-"))))
     }
+    
     ## ** identify if there is an identifiability problem
     X <- stats::model.matrix(formula, data)
     X.qr <- qr(X)
@@ -556,10 +557,11 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             attr(X,"variable") <- all.vars(formula)
             return(X)
         }
-    }else if(LMMstar.options()$drop.X==FALSE){
-        stop("The design matrix does not have full rank according to the QR decomposition. \n")
+    }else{
+        if(LMMstar.options()$drop.X==FALSE){
+            stop("The design matrix does not have full rank according to the QR decomposition. \n")
+        }
     }
-
     ## ** prepare
     tt <- stats::delete.response(stats::terms(formula))
     tt.factors <- attr(tt,"factors")
@@ -605,6 +607,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     
     X.Mlevel <- attr(X,"M.level")
     X.reference <- attr(X,"reference")
+
     ## ** test 3: form interaction and identify columns of the design matrix that are constant
     ls.rmX <- stats::setNames(lapply(which(tt.order>1), function(iInteraction){ ## iInteraction <- 2 
         ## variables involved in the interactions
@@ -711,7 +714,14 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     ## ** normalize formula
     formula.terms <- stats::delete.response(stats::terms(formula))
     var2term <- attr(formula.terms, "factors")
-    
+
+    ## if(NROW(var2term)>0){
+    ##     test1fac <- sapply(data[,rownames(var2term),drop=FALSE], function(iVar){length(unique(iVar))})
+    ##     if(any(test1fac==1)){
+    ##         stop("Cannot create the design matrix due to a factor variable with a single level. \n",
+    ##              "Variable: \"",paste(names(test1fac)[test1fac==1], collapse = "\" \""),"\". \n")
+    ##     }
+    ## }
     ## ** create design matrix
     X <- stats::model.matrix(formula,data)
     p <- NCOL(X)

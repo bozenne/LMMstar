@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: maj 30 2022 (10:31) 
+## Last-Updated: maj 31 2022 (15:40) 
 ##           By: Brice Ozenne
-##     Update #: 93
+##     Update #: 95
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -212,8 +212,8 @@ NULL
 ##                             "4" = 1.5,
 ##                             "5" = 2.0)
 ## calciumL$time.fac <- factor(calciumL$visit, levels = 1:5,
-##                             labels = c("0 years","0.5 years","1 years","1.5 years","2 years")) 
-## save(calciumL, file = "data/gastricbypassL.rda")
+##                             labels = c("0years","0.5years","1years","1.5years","2years")) 
+## save(calciumL, file = "data/calciumL.rda")
 ##
 ## str(calciumL)
 

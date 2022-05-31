@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: maj 27 2022 (13:33) 
+## Last-Updated: maj 31 2022 (15:24) 
 ##           By: Brice Ozenne
-##     Update #: 64
+##     Update #: 65
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -87,7 +87,6 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, simplif
                 iOut[[iTest]]$df <- iGlht$df
             }else if(iMethod == "single-step2"){
                 iGlht <- attr(iO,"glht")[[iTest]]
-                requireNamespace("copula")
                 n.sample <- options$n.sampleCopula
 
                 rho <- stats::cov2cor(iGlht$linfct %*% iGlht$vcov %*% t(iGlht$linfct))
