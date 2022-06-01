@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: May 30 2022 (23:33) 
+## Last-Updated: jun  1 2022 (13:00) 
 ##           By: Brice Ozenne
-##     Update #: 486
+##     Update #: 494
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -205,16 +205,14 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, inverse = FALSE, simplif
         out <- stats::setNames(Omega[pattern.cluster],U.output)
         attr(out, "pattern") <- pattern.cluster
 
-        if(!is.numeric(object$data[[time.var]])){
-            for(iC in 1:length(out)){ ## iC <- 1
-                ## DO NOT USE
-                ## dimnames(out[[iO]]) <- list(object$time$levels[attr(out[[iO]],"time")],object$time$levels[attr(out[[iO]],"time")])
-                ## as this is incorrect with CS structure and missing data (indeed CS can be for time 1,2 but also work for 2,3. However the previous line would incorrectly label the times)
-                iC.time <- U.time[index.clusterTime[[iC]]]
-                dimnames(out[[iC]]) <- list(iC.time,iC.time)
-            }
+        for(iC in 1:length(out)){ ## iC <- 1
+            ## DO NOT USE
+            ## dimnames(out[[iO]]) <- list(object$time$levels[attr(out[[iO]],"time")],object$time$levels[attr(out[[iO]],"time")])
+            ## as this is incorrect with CS structure and missing data (indeed CS can be for time 1,2 but also work for 2,3. However the previous line would incorrectly label the times)
+            iC.time <- U.time[index.clusterTime[[iC]]]
+            dimnames(out[[iC]]) <- list(iC.time,iC.time)
         }
-
+        
     }
 
     ## ** export

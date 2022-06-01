@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: maj 31 2022 (15:59) 
+## Last-Updated: jun  1 2022 (12:57) 
 ##           By: Brice Ozenne
-##     Update #: 2222
+##     Update #: 2230
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -340,7 +340,6 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             }
         }
     }
-
     ## ** design matrix
     out <- list(var = NULL, cor = NULL, xfactor = list(var = NULL, cor = NULL))
     if(is.null(structure$param)){ ## structure
@@ -350,7 +349,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             out$cor <- .colnameOrder(.model.matrix_regularize(formula.cor, data = dataCor, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
             out$xfactor$cor <- stats::.getXlevels(stats::terms(formula.cor),stats::model.frame(formula.cor,dataCor)) 
         }
-    }else{ ## newdata
+    }else{ ## newdata        
         out$var <- stats::model.matrix(formula.var, data = dataVar)[,attr(structure$X$var,"original.colnames"),drop=FALSE]
         colnames(out$var) <- colnames(structure$X$var)
         for(iAssign in setdiff(names(attributes(structure$X$var)), c("dim","dimnames"))){
@@ -399,16 +398,9 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     ## *** design matrix
     outDesign <- .vcov.matrix.lmm(structure = structure, data = data, index.cluster = outInit$index.cluster)
 
+    structure$xfactor <- outDesign$xfactor
     structure$X <- list(var = outDesign$var,
                         cor = outDesign$cor)
-
-    if(is.null(structure$formula$cor)){
-        structure$xfactor <- list(var = stats::.getXlevels(stats::terms(structure$formula$var),stats::model.frame(structure$formula$var,data)),
-                                  cor = NULL)
-    }else{
-        structure$xfactor <- list(var = stats::.getXlevels(stats::terms(structure$formula$var),stats::model.frame(structure$formula$var,data)),
-                                  cor = stats::.getXlevels(stats::terms(structure$formula$cor),stats::model.frame(structure$formula$cor,data)))
-    }
 
     ## *** parametrization and patterns
     structure <- .skeleton(structure = structure, data = data, indexData = outInit)

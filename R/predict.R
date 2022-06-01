@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: maj 30 2022 (13:31) 
+## Last-Updated: jun  1 2022 (12:11) 
 ##           By: Brice Ozenne
-##     Update #: 594
+##     Update #: 597
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -256,10 +256,10 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
         for(iId in 1:n.id){ ## iId <- 1
             iNewdata <- newdata.order[newdata.order[[name.cluster]] == seq.id[iId],,drop=FALSE] ## subset
             iIndex.con <- which(!is.na(iNewdata[[name.Y]]))
-            iLevels.con <- iNewdata[[name.time]][iIndex.con]
+            iLevels.con <- as.character(iNewdata[[name.time]][iIndex.con])
             iIndex.pred <- which(is.na(iNewdata[[name.Y]])) ## position in the individal specific dataset
             iPos.pred <- iNewdata$XXXindexXXX[iIndex.pred] ## position in the original dataset
-            iLevels.pred <- iNewdata[[name.time]][iIndex.pred]
+            iLevels.pred <- as.character(iNewdata[[name.time]][iIndex.pred])
 
             iX.con <- X[iNewdata$XXXindexXXX[iIndex.con],,drop=FALSE]
             iX.pred <- X[iPos.pred,,drop=FALSE]
