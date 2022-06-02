@@ -58,20 +58,26 @@ d2 <- d
 d2[1,"Y2"] <- NA
 
 ## run summarize
-summarize(Y1+Y2 ~ 1, data = d)
+summarize(Y1 ~ 1, data = d)
 summarize(Y1+Y2 ~ X1, data = d)
 
-summarize(Y1+Y2 ~ X1, data = d2)
+summarize(Y1 ~ X1, data = d2)
 summarize(Y1+Y2 ~ X1, data = d2, na.rm = TRUE)
 
 ## long format
-dL <- reshape2::melt(d, id.vars = c("id","X1"), measure.var = c("Y1","Y2","Y3"))
-dL2 <- dL[-(4:5),]
+dL <- reshape(d, idvar = "id", direction = "long",
+             v.names = "Y", varying = c("Y1","Y2","Y3"))
+summarize(Y ~ time + X1, data = dL)
 
-summarize(value ~ variable + X1, data = dL)
+## compute correlations (single time variable)
+e.S <- summarize(Y ~ time + X1 | id, data = dL, na.rm = TRUE)
+e.S
+attr(e.S, "correlation")
 
-## compute correlations
-e.S <- summarize(value ~ variable + X1 | id, data = dL2, na.rm = TRUE)
+## compute correlations (composite time variable)
+dL$time2 <- dL$time == 2
+dL$time3 <- dL$time == 3
+e.S <- summarize(Y ~ time2 + time3 + X1 | id, data = dL, na.rm = TRUE)
 e.S
 attr(e.S, "correlation")
 }

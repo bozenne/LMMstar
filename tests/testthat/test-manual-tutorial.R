@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: nov 13 2021 (16:47) 
 ## Version: 
-## Last-Updated: jun  1 2022 (18:54) 
+## Last-Updated: Jun  2 2022 (11:36) 
 ##           By: Brice Ozenne
-##     Update #: 24
+##     Update #: 25
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -203,7 +203,6 @@ test_that("Extactors for lmm", {
     if(test.practical==FALSE){skip('Not run to save time in the check')}
 
     ## ** section 7.1
-
     fit.main <- lmm(weight~time,
                     repetition=~visit|id,
                     structure="UN",

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (14:23) 
 ## Version: 
-## Last-Updated: okt  1 2021 (17:06) 
+## Last-Updated: Jun  2 2022 (11:04) 
 ##           By: Brice Ozenne
-##     Update #: 67
+##     Update #: 74
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -104,12 +104,12 @@ sampleRem <- function(n, n.times,
     ## ** reshape
     if(format == "long"){
         col.cst <- c("id",paste0("X",1:10),if(latent){"eta"})
-        d <- reshape2::melt(d, direction  = "long",
+        d <- stats::reshape(d, direction  = "long",
                             idvar = col.cst,
-                            measure.vars = name.Y,
-                            value.name = "Y",
-                            variable.name = "visit")
-        d$visit <- factor(d$visit, levels = name.Y, labels = 1:n.times)
+                            varying = name.Y,
+                            v.names = "Y",
+                            timevar = "visit")
+        d$visit <- as.factor(d$visit)
         d <- d[order(d$id,d$visit),c("id","visit","Y",paste0("X",1:10),if(latent){"eta"})]
         rownames(d) <- NULL
     }

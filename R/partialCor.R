@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: maj 31 2022 (09:41) 
+## Last-Updated: Jun  2 2022 (11:20) 
 ##           By: Brice Ozenne
-##     Update #: 70
+##     Update #: 73
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -132,10 +132,14 @@ partialCor <- function(formula, data){
     if(any(duplicated(name.Y))){
         stop("Variables in the left hand side of argument should be unique. \n")
     }
+    dataL <- stats::reshape(data[, union(name.XY, name.id),drop=FALSE], direction  = "long",
+                            idvar = c(name.id,name.X),
+                            varying = name.Y,
+                            v.names = "CCvalueCC",
+                            timevar = "CCvariableCC")
+    dataL$CCvariableCC <- factor(dataL$CCvariableCC, labels = name.Y)
+    rownames(dataL) <- NULL
     
-    dataL <- reshape2::melt(data = data[, union(name.XY, name.id),drop=FALSE],
-                            varying = name.Y, id.var = c(name.id,name.X), direction = "long",
-                            variable.name = "CCvariableCC", value.name = "CCvalueCC")
 
     ## ** fit mixed model
     index.interaction <- which(colSums(1-do.call(rbind,lapply(ls.name.X, function(iX){name.X %in% iX})))==0)

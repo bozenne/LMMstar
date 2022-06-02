@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: May 29 2022 (10:57) 
+## Last-Updated: Jun  2 2022 (11:30) 
 ##           By: Brice Ozenne
-##     Update #: 125
+##     Update #: 144
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -52,20 +52,26 @@
 ##' d2[1,"Y2"] <- NA
 ##'
 ##' ## run summarize
-##' summarize(Y1+Y2 ~ 1, data = d)
+##' summarize(Y1 ~ 1, data = d)
 ##' summarize(Y1+Y2 ~ X1, data = d)
 ##' 
-##' summarize(Y1+Y2 ~ X1, data = d2)
+##' summarize(Y1 ~ X1, data = d2)
 ##' summarize(Y1+Y2 ~ X1, data = d2, na.rm = TRUE)
 ##' 
 ##' ## long format
-##' dL <- reshape2::melt(d, id.vars = c("id","X1"), measure.var = c("Y1","Y2","Y3"))
-##' dL2 <- dL[-(4:5),]
-##' 
-##' summarize(value ~ variable + X1, data = dL)
+##' dL <- reshape(d, idvar = "id", direction = "long",
+##'              v.names = "Y", varying = c("Y1","Y2","Y3"))
+##' summarize(Y ~ time + X1, data = dL)
 ##'
-##' ## compute correlations
-##' e.S <- summarize(value ~ variable + X1 | id, data = dL2, na.rm = TRUE)
+##' ## compute correlations (single time variable)
+##' e.S <- summarize(Y ~ time + X1 | id, data = dL, na.rm = TRUE)
+##' e.S
+##' attr(e.S, "correlation")
+##' 
+##' ## compute correlations (composite time variable)
+##' dL$time2 <- dL$time == 2
+##' dL$time3 <- dL$time == 3
+##' e.S <- summarize(Y ~ time2 + time3 + X1 | id, data = dL, na.rm = TRUE)
 ##' e.S
 ##' attr(e.S, "correlation")
 
@@ -241,16 +247,27 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
         time <- names(which(!test.between)) ## can be several variables
         table.id.time <- do.call(table,stats::setNames(c(list(data[[name.id]]),data[,name.X,drop=FALSE]),
                                                        c(name.id,name.X)))
+        if(length(time)>1 && paste(time, collapse = "_X_XX_X_") %in% names(data)){
+            stop("Argument \'data\' should not contain a column named \"",paste(time, collapse = "_X_XX_X_"),"\" as this name is used internally. \n")
+        }
+        
         if(all(table.id.time %in% 0:1)){
 
             attr(out,"correlation") <- stats::setNames(vector(mode = "list", length = length(name.Y)),
                                                        name.Y)
+
             for(iY in 1:n.Y){
                 attr(out,"correlation")[[iY]] <- stats::setNames(lapply(ls.id, function(iId){ ## iId <- ls.id[[1]]
                     iDataL <- data[data[[name.id]] %in% iId,,drop = FALSE]
-                    iDataW <- reshape2::dcast(iDataL,
-                                              formula = stats::as.formula(paste0(name.id,"~",paste0(time,collapse="+"))),
-                                              value.var = name.Y[iY])
+                    if(length(time)>1){
+                        iDataL[[paste(time, collapse = "_X_XX_X_")]] <- interaction(iDataL[,time, drop=FALSE])
+                        Utime <- paste(time, collapse = "_X_XX_X_")
+                    }else{
+                        Utime <- time
+                    }
+                    iDataW <- stats::reshape(data = iDataL[,c(name.id, Utime, name.Y[iY])],
+                                             direction = "wide", timevar = Utime, idvar = name.id, v.names = name.Y[iY])
+                    
                     if(na.rm){
                         return(stats::cor(iDataW[,-1,drop=FALSE], use = "pairwise"))
                     }else{

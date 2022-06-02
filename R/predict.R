@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jun  1 2022 (19:08) 
+## Last-Updated: Jun  2 2022 (11:44) 
 ##           By: Brice Ozenne
-##     Update #: 612
+##     Update #: 664
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -75,28 +75,39 @@
 predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object$df), type = "static",
                         level = 0.95, keep.newdata = FALSE, se.fit, ...){
     
+    ## ** extract from object
+    options <- LMMstar.options()
+    name.Y <- object$outcome$var
+    U.time <- object$time$levels
+    name.time <- attr(object$time$var,"original")
+    name.cluster <- attr(object$cluster$var,"original")
+
+    table.param <- object$design$param
+    mu <- coef(object, effects = "mean")
+    param.mu <- names(mu)
+    vcov.mu <- vcov(object, effects = "mean")
+    theta <- coef(object, effects = "all")
+    name.theta <- names(theta)
+    vcov.theta <- vcov(object, effects = "all")
+
     ## ** normalize user imput
     dots <- list(...)    
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
-    options <- LMMstar.options()
-    name.Y <- object$outcome$var
-    name.time <- object$time$var
-    if(object$strata$n>1){
-        name.strata <- object$strata$var
-    }else{
-        name.strata <- NULL
-    }
-    U.time <- object$time$levels
-    name.cluster <- object$cluster$var
+    ## type of prediction
     type.prediction <- match.arg(type, c("static0","static","terms","dynamic")) ## static0: no intercept
+    if((type.prediction == "dynamic") && ("rho" %in% table.param$type == FALSE)){
+        type.prediction <- "static"
+        message("Move to static prediction as there is no correlation parameter in the model. \n")
+    }
     if(type.prediction=="static0"){
         type.prediction <- "static"
         keep.intercept <- FALSE
     }else{
         keep.intercept <- TRUE
     }
+    ## standard error
     if(!missing(se.fit)){se <- "estimation"}
     if(identical(se,FALSE)){
         se <- NULL
@@ -108,56 +119,6 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
         }
         se <- match.arg(se, c("estimation","residual","total"))
     }
-    if(!is.na(attr(name.cluster,"original"))){
-        if(is.null(newdata[[name.cluster]])){
-            if(type=="static"){
-                newdata[[name.cluster]] <- as.character(1:NROW(newdata))
-            }else if(type == "dynamic" && !is.na(attr(name.time,"original")) && attr(name.time,"original") %in% names(newdata)){
-                if(any(duplicated(newdata[[attr(name.time,"original")]]))){
-                    stop("Duplicated time values found in column ",name.time,".\n",
-                         "Consider specifying the cluster variable in argument \'newdata\'. \n")
-                }else{
-                    newdata[[name.cluster]] <- as.character("1")
-                }
-            }
-        }else if((is.factor(newdata[[name.cluster]]) || is.numeric(newdata[[name.cluster]]))){
-            newdata[[name.cluster]] <- as.character(newdata[[name.cluster]])
-        }
-    }
-    if(type.prediction == "dynamic"){
-        if(name.Y %in% names(newdata) == FALSE){
-            stop("The outcome column \"",name.Y,"\" in argument \'newdata\' is missing and necessary when doing dynamic predictions. \n")
-        }
-        if(name.cluster %in% names(newdata) == FALSE){
-            stop("The cluster column \"",name.cluster,"\" in argument \'newdata\' is missing and necessary when doing dynamic predictions. \n")
-        }
-        if(all(!is.na(attr(name.time,"original")))){
-            if(name.time %in% names(newdata) == FALSE){
-                stop("The time column \"",name.time,"\" in argument \'newdata\' is missing and necessary when doing dynamic predictions. \n")
-            }
-            if(any(newdata[[name.time]] %in% U.time == FALSE)){
-                stop("The time column \"",name.time,"\" in argument \'newdata\' should match the existing times. \n",
-                     "Existing times: \"",paste0(U.time, collapse = "\" \""),"\".\n")
-            }
-            test.duplicated <- tapply(newdata[[name.time]],newdata[[name.cluster]], function(iT){any(duplicated(iT))})
-            if(any(test.duplicated)){
-                stop("The time column \"",name.time,"\" in argument \'newdata\' should not have duplicated values within clusters. \n")
-            }
-        }
-        if(any("XXXindexXXX" %in% names(newdata))){
-            stop("Argument \'newdata\' should not contain a column named \"XXXindexXXX\" as this name is used internally. \n")
-        }
-    }else if(type.prediction == "static" && !is.na(name.time)){
-        if((name.time %in% names(newdata) == FALSE) && (!is.null(se) && se %in% c("residual","total"))){
-            stop("The time column \"",name.time,"\" in missing from argument \'newdata\'. \n",
-                 "It is necessary for uncertainty calculation involving the residual variance. \n")
-        }
-    }
-
-    if(keep.newdata && any(c("estimate","se","df","lower","upper") %in% names(newdata))){
-        stop("Argument \'newdata\' should not contain a column named \"estimate\", \"se\", \"lower\", \"upper\", or \"df\" as those names are used internally. \n")
-    }
-
     if(!is.null(se)){
         factor.estimation <- se %in% c("estimation","total")
     }else{
@@ -169,67 +130,131 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
         factor.residual <- FALSE
     }
 
-    ## ** extract coefficients and variance
-    beta <- coef(object, effects = "mean")
-    vcov.beta <- vcov(object, effects = "mean")
+    ## impute cluster when missing (if static) and unambiguous, i.e. no repeated times (id dynamic)
+    if(!is.na(name.cluster)){
+        if(is.null(newdata[[name.cluster]])){
+            if(type.prediction=="static"){
+                newdata[[name.cluster]] <- as.character(1:NROW(newdata))
+            }else if(type.prediction == "dynamic" && all(!is.na(name.time)) && all(name.time %in% names(newdata))){
+                if(any(duplicated(newdata[,name.time, drop=FALSE]))){
+                    stop("Duplicated time values found in column ",name.time,".\n",
+                         "Consider specifying the cluster variable in argument \'newdata\'. \n")
+                }else{
+                    newdata[[name.cluster]] <- "1"
+                }
+            }
+        }else if((is.factor(newdata[[name.cluster]]) || is.numeric(newdata[[name.cluster]]))){
+            newdata[[name.cluster]] <- as.character(newdata[[name.cluster]])
+        }
+    }
+
+    ## check data
+    if(type.prediction == "dynamic"){
+
+        if(name.Y %in% names(newdata) == FALSE){
+            stop("The outcome column \"",name.Y,"\" in argument \'newdata\' is missing and necessary when doing dynamic predictions. \n")
+        }
+        if(all(is.na(name.cluster))){
+            stop("The cluster variable should be explicit when doing dynamic predictions. \n",
+                 "Consider re-fitting lmm specifying the argument repetition as ~time|cluster. \n")
+        }
+        if(name.cluster %in% names(newdata) == FALSE){
+            stop("The cluster column \"",name.cluster,"\" in argument \'newdata\' is missing and necessary when doing dynamic predictions. \n")
+        }
+        if(all(is.na(name.time))){
+            stop("The time variable should be explicit when doing dynamic predictions. \n",
+                 "Consider re-fitting lmm specifying the argument repetition as ~time|cluster. \n")
+        }
+        if(any(name.time %in% names(newdata) == FALSE)){
+            stop("The time column \"",paste(name.time, collapse=", "),"\" in argument \'newdata\' is missing and necessary when doing dynamic predictions. \n")
+        }
+
+        test.level <- sapply(name.time, function(iVar){all(newdata[[iVar]] %in% attr(U.time,"original")[,iVar])})
+        if(any(test.level == FALSE)){
+            stop("The time column \"",names(which(test.level==FALSE)[1]),"\" in argument \'newdata\' should match the existing times. \n",
+                 "Existing times: \"",paste0(attr(U.time,"original")[,names(which(test.level==FALSE)[1])], collapse = "\" \""),"\".\n")
+        }
+        test.duplicated <- by(newdata[,name.time,drop=FALSE],newdata[[name.cluster]], function(iT){any(duplicated(iT))})
+        if(any(unlist(test.duplicated))){
+            stop("The time column \"",paste(name.time, collapse = "\", \""),"\" in argument \'newdata\' should not have duplicated values within clusters. \n")
+        }
+
+    }else if(type.prediction == "static"){
+        
+        if(all(!is.na(name.time)) && any(name.time %in% names(newdata) == FALSE) && !is.null(se) && se %in% c("residual","total")){
+            stop("The time column \"",paste(name.time[name.time %in% names(newdata) == FALSE], collapse = "\", \""),"\" in missing from argument \'newdata\'. \n",
+                 "It is necessary for uncertainty calculation involving the residual variance. \n")
+        }
+
+    }
+
+    if(keep.newdata && any(c("estimate","se","df","lower","upper") %in% names(newdata))){
+        stop("Argument \'newdata\' should not contain a column named \"estimate\", \"se\", \"lower\", \"upper\", or \"df\" as those names are used internally. \n")
+    }
 
     ## ** design matrix
     X <- stats::model.matrix(object, data = newdata, effects = "mean")
-        
-    if(type == "terms"){
+    if(!keep.intercept && "(Intercept)" %in% colnames(X)){
+        X[,"(Intercept)"] <- 0
+    }
+    n.obs <- NROW(X)
+
+    ## ** terms        
+    if(type.prediction == "terms"){
         Xmean <- colMeans(object$design$mean)
         Xc <- sweep(X, FUN = "-", MARGIN = 2, STATS = Xmean)
-        Xbeta <- sweep(Xc, FUN = "*", MARGIN = 2,  STATS = beta)
+        Xcmu <- sweep(Xc, FUN = "*", MARGIN = 2,  STATS = mu)
 
             index.n0 <- which(attr(object$design$mean,"assign")!=0)
             if(length(index.n0)==0){
                 Xterm <- matrix(nrow = NROW(newdata), ncol = 0)
             }else{
                 Xterm <- do.call(cbind,tapply(index.n0,attr(object$design$mean,"assign")[index.n0],function(iCol){
-                    list(rowSums(Xbeta[,iCol,drop=FALSE]))
+                    list(rowSums(Xcmu[,iCol,drop=FALSE]))
                 }))
                 colnames(Xterm) <- attr(object$design$mean,"variable")                
             }
 
         if(any(attr(object$design$mean,"assign")==0)){
-            attr(Xterm, "constant") <- sum(Xmean*beta)
+            attr(Xterm, "constant") <- sum(Xmean*mu)
         }
         return(Xterm)
     }
 
-    if(!keep.intercept && "(Intercept)" %in% colnames(X)){
-        X[,"(Intercept)"] <- 0
-    }
-    n.obs <- NROW(X)
-
     ## ** identify variance patterns
     if(type.prediction == "dynamic" || factor.residual){
         Omega <- stats::sigma(object, cluster = newdata, simplifies = FALSE)
+        index.cluster <- attr(Omega, "index.cluster")
+        index.clusterTime <- attr(Omega, "index.clusterTime")
+        U.cluster <- names(index.cluster)
+        n.cluster <- length(U.cluster)
+
+
+        if(!is.na(name.cluster) && any(newdata[[name.cluster]] %in% U.cluster == FALSE)){
+            stop("Something went wrong when extracting the residual variance-covariance matrices from newdata. \n")
+        }
+
     }
             
     ## ** compute predictions
     if(type.prediction == "static"){
         ## compute predictions
-        prediction <- X %*% beta
+        prediction <- X %*% mu
         if(keep.newdata){
             out <- cbind(newdata, estimate = prediction[,1])
         }else{
             out <- data.frame(estimate = prediction[,1], stringsAsFactors = FALSE)
         }
         ## compute uncertainty about the predictions
-        ## prediction.se <- sqrt(diag(X %*% vcov.beta %*% t(X)))
+        ## prediction.se <- sqrt(diag(X %*% vcov.mu %*% t(X)))
         if(!is.null(se)){
             prediction.var <- rep(0,n.obs)
             if(factor.estimation){
-                prediction.var <- prediction.var + rowSums((X %*% vcov.beta) *X)
+                prediction.var <- prediction.var + rowSums((X %*% vcov.mu) * X)
             }
             if(factor.residual){
-                Ucluster <- unique(newdata[[object$cluster$var]])
-                
-                for(iCluster in Ucluster){ ## iCluster <- Ucluster[1]
-                    iCluster.index <- which(newdata[[object$cluster$var]]==iCluster)
-                    iCluster.index.order <- iCluster.index[match(newdata[iCluster.index,object$time$var],colnames(Omega[[iCluster]]))]
-                    prediction.var[iCluster.index.order] <- prediction.var[iCluster.index.order] + diag(Omega[[iCluster]])
+                for(iCluster in U.cluster){ ## iCluster <- U.cluster[1]
+                    prediction.var[index.cluster[[iCluster]]] <- prediction.var[index.cluster[[iCluster]]] + diag(Omega[[iCluster]])
                 }
             }
             out$se <- sqrt(prediction.var)
@@ -238,38 +263,32 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
     }else if(type.prediction == "dynamic"){
 
         ## prepare
-        newdata$XXXindexXXX <- 1:NROW(newdata)
-        vcov.all <- vcov(object, effects = "all")
-        param.all <- coef(object, effects = "all")
-        name.beta <- colnames(X)
-        
-        newdata.order <- newdata[order(newdata[[name.time]]),,drop=FALSE]
         prediction <- rep(NA, n.obs)
         prediction.var <- rep(NA, n.obs)
-
-        seq.id <- unique(newdata[[name.cluster]])
-        n.id <- length(seq.id)
-
-        for(iId in 1:n.id){ ## iId <- 1
-            iNewdata <- newdata.order[newdata.order[[name.cluster]] == seq.id[iId],,drop=FALSE] ## subset
+        
+        for(iC in U.cluster){ ## iId <- 1
+            iNewdata <- newdata[index.cluster[[iC]],,drop=FALSE] ## subset
             iIndex.con <- which(!is.na(iNewdata[[name.Y]]))
-            iLevels.con <- as.character(iNewdata[[name.time]][iIndex.con])
+            iPos.con <- index.cluster[[iC]][iIndex.con]
+            iLevels.con <- U.time[index.clusterTime[[iC]][iIndex.con]]
+            
             iIndex.pred <- which(is.na(iNewdata[[name.Y]])) ## position in the individal specific dataset
-            iPos.pred <- iNewdata$XXXindexXXX[iIndex.pred] ## position in the original dataset
-            iLevels.pred <- as.character(iNewdata[[name.time]][iIndex.pred])
+            iPos.pred <- index.cluster[[iC]][iIndex.pred]
+            iLevels.pred <- U.time[index.clusterTime[[iC]][iIndex.pred]]
 
-            iX.con <- X[iNewdata$XXXindexXXX[iIndex.con],,drop=FALSE]
+            iX.con <- X[iPos.con,,drop=FALSE]
             iX.pred <- X[iPos.pred,,drop=FALSE]
-            iOmega.pred <- Omega[[seq.id[iId]]]
-            if(length(iPos.pred)>0 && length(iLevels.con)==0){ ## static prediction
+            iOmega.pred <- Omega[[iC]]
+            
+            if(length(iPos.pred)>0 && length(iPos.con)==0){ ## static prediction
 
-                prediction[iPos.pred] <- iX.pred %*% beta
-                ## iPred.var <- diag(iX.pred %*% vcov.beta %*% t(iX.pred)) + diag(iOmega.pred)
+                prediction[iPos.pred] <- iX.pred %*% mu
+                ## iPred.var <- diag(iX.pred %*% vcov.mu %*% t(iX.pred)) + diag(iOmega.pred)
                 if(factor.estimation || factor.residual){
                     prediction.var[iPos.pred] <- 0
                 }
                 if(factor.estimation){
-                    prediction.var[iPos.pred] <- prediction.var[iPos.pred] + rowSums((iX.pred %*% vcov.beta) * iX.pred)
+                    prediction.var[iPos.pred] <- prediction.var[iPos.pred] + rowSums((iX.pred %*% vcov.mu) * iX.pred)
                 }
                 if(factor.residual){
                     prediction.var[iPos.pred] <- prediction.var[iPos.pred] + diag(iOmega.pred)
@@ -283,24 +302,24 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
                 ## extract current outcome
                 iY <- iNewdata[iIndex.con,name.Y]
                 ## compute normalized residuals
-                iResiduals <- iOmegaM1.con %*% (iY - iX.con %*% beta)
+                iResiduals <- iOmegaM1.con %*% (iY - iX.con %*% mu)
                 ## deduce prediction
-                prediction[iPos.pred] <- iX.pred %*% beta + iOmega.predcon %*% iResiduals
+                prediction[iPos.pred] <- iX.pred %*% mu + iOmega.predcon %*% iResiduals
 
                 if(factor.estimation || factor.residual){
                     prediction.var[iPos.pred] <- 0
                 }
                 if(factor.estimation){
-                    calcPred <- function(x){ ## x <- param.all
+                    calcPred <- function(x){ ## x <- theta 
                         OO <- stats::sigma(object, p = x, cluster = iNewdata, simplifies = TRUE)
-                        rr <- solve(OO[iLevels.con,iLevels.con,drop=FALSE]) %*% (iY - iX.con %*% x[name.beta])
-                        pp <- iX.pred %*% x[name.beta] + OO[iLevels.pred,iLevels.con,drop=FALSE] %*% rr
+                        rr <- solve(OO[iLevels.con,iLevels.con,drop=FALSE]) %*% (iY - iX.con %*% x[param.mu])
+                        pp <- iX.pred %*% x[param.mu] + OO[iLevels.pred,iLevels.con,drop=FALSE] %*% rr
                         return(pp)
                     }
-                    ## calcPred(param.all)
-                    iGrad <- numDeriv::jacobian(x = param.all, func = calcPred, method = options$method.numDeriv)
-                    ## colnames(iGrad) <- names(param.all)
-                    prediction.var[iPos.pred] <- prediction.var[iPos.pred] + rowSums((iGrad %*% vcov.all)*iGrad)
+                    ## calcPred(theta)
+                    iGrad <- numDeriv::jacobian(x = theta, func = calcPred, method = options$method.numDeriv)
+                    ## colnames(iGrad) <- names(name.theta)
+                    prediction.var[iPos.pred] <- prediction.var[iPos.pred] + rowSums((iGrad %*% vcov.theta)*iGrad)
                 }
                 if(factor.residual){
                     ## iOmega.pred[2,2]*(1-attr(iOmega.pred,"cor")[1,2]^2)
@@ -311,7 +330,7 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
             
         }
         if(keep.newdata){
-            out <- cbind(newdata[,setdiff(colnames(newdata),"XXXindexXXX"),drop=FALSE], estimate = prediction)
+            out <- cbind(newdata, estimate = prediction)
             if(!is.null(se)){
                 out$se <- sqrt(prediction.var)
                 out$df <- ifelse(!is.na(prediction),Inf,NA)
@@ -336,7 +355,7 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
         dVcov <- attr(vcov.param,"dVcov")
         attr(vcov.param, "df") <- NULL
         attr(vcov.param, "dVcov") <- NULL
-        out$df <- .dfX(X.beta = X, vcov.param = vcov.param, dVcov.param = dVcov)     
+        out$df <- .dfX(X.beta = X, vcov.param = vcov.param, dVcov.param = dVcov)
     }
 
     ## ** export
@@ -418,9 +437,12 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
 
     ## ** Satterthwaite approximation of the degrees of freedom
     ## NOTE: df(beta) is 2*diag(vcov.beta)^2 / diag(vcov.vcovbeta[Mname.beta2[,1]==Mname.beta2[,2],Mname.beta2[,1]==Mname.beta2[,2]])
-    out <- sapply(1:n.obs, function(iObs){
-        2 * prediction.vcov[iObs,iObs]^2 / (dXTX.dT[iObs,] %*% vcov.vcovbeta %*% dXTX.dT[iObs,])
-    })
+    denum <- rowSums((dXTX.dT %*% vcov.vcovbeta) * dXTX.dT)
+    out <- 2*diag(prediction.vcov)^2 / denum
+    out[denum==0] <- Inf
+    ## out <- sapply(1:n.obs, function(iObs){
+    ##     2 * prediction.vcov[iObs,iObs]^2 / (dXTX.dT[iObs,] %*% vcov.vcovbeta %*% dXTX.dT[iObs,])
+    ## })
 
 
     ## ** export

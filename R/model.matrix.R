@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: jun  1 2022 (19:02) 
+## Last-Updated: Jun  2 2022 (11:57) 
 ##           By: Brice Ozenne
-##     Update #: 2258
+##     Update #: 2259
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -133,8 +133,13 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
                 }
             }
 
-            ## add cluster if no time repetition
-            if((cluster.var %in% names(data.var) == FALSE) && all(time.var %in% names(data.var)) && all(!duplicated(data.var[,time.var,drop=FALSE]))){
+            if(cluster.var %in% names(data.var)){
+                ## remove extra levels
+                if(is.factor(data.var[[cluster.var]])){
+                    data.var[[cluster.var]] <- droplevels(data.var[[cluster.var]])
+                }
+            }else if(all(time.var %in% names(data.var)) && all(!duplicated(data.var[,time.var,drop=FALSE]))){
+                ## add cluster if no time repetition
                 data.var[[cluster.var]] <- object$cluster$levels[1]
             }
 

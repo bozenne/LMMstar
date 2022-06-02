@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul  8 2021 (17:09) 
 ## Version: 
-## Last-Updated: jun  1 2022 (19:26) 
+## Last-Updated: Jun  2 2022 (11:43) 
 ##           By: Brice Ozenne
-##     Update #: 101
+##     Update #: 125
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -77,7 +77,15 @@
 ##' @export
 fitted.lmm <- function(object, newdata = NULL, format = "long",
                        keep.newdata = FALSE, impute = FALSE, se.impute = FALSE, ...){
-    
+
+    ## ** extract from object
+    outcome.var <- object$outcome$var
+    cluster.var <- object$cluster$var
+    time.var <- object$time$var
+    object.fitted <- object$fitted
+    object.data <- object$data ## with columns XXindexXX, XXclusterXX, ... and all observations (including NAs)
+    object.data.original <- object$data.original 
+
     ## ** normalize user imput
     dots <- list(...)
     if(length(dots)>0){
@@ -86,96 +94,73 @@ fitted.lmm <- function(object, newdata = NULL, format = "long",
     if(!is.logical(impute)){
         stop("Argument \'impute\' should be TRUE or FALSE. \n")
     }
-    format <- match.arg(format, c("wide","long"))
-    outcome.var <- object$outcome$var
-    cluster.var <- object$cluster$var
-    time.var <- object$time$var
+    if(impute && "imputed" %in% names(newdata)){
+        stop("Argument \'newdata\' should not contain a column called \"imputed\". \n")
+    }
+    if(!impute){
+        se.impute <- FALSE
+    }
+    type.prediction <- ifelse(impute,"dynamic", "static")
 
+    format <- match.arg(format, c("wide","long"))
+    
     test.original.data <- is.null(newdata)
     if(test.original.data){
-        if(!impute){
-            newdata <- object$data
-        }else{
-            newdata <- object$data.original
-        }
+        newdata <- object.data.original
     }
 
     if(format == "wide") {
         keep.newdata <- TRUE
     }
 
-    ## ** impute missing values
-    if(impute){
-        e.impute <- stats::predict(object, newdata = newdata, type = "dynamic", se = se.impute, keep.newdata = TRUE)
-        index.NA <- which(!is.na(e.impute$estimate))
-        if(length(index.NA) > 0){
-            if("se" %in% names(e.impute) == FALSE){
-                newdata[index.NA,outcome.var] <- e.impute[index.NA,"estimate"]
-            }else{
-                newdata[index.NA,outcome.var] <- stats::rnorm(length(index.NA), mean = e.impute[index.NA,"estimate"], sd = e.impute[index.NA,"se"])
-            }
-        }
-
-        if(keep.newdata==FALSE){
-            out <- newdata[index.NA,outcome.var]
-        }else{
-            if("imputed" %in% names(newdata)){
-                stop("Argument \'newdata\' should not contain a column called \"imputed\". \n")
-            }
-            newdata$imputed <- FALSE
-            newdata$imputed[index.NA] <- TRUE
-            out <- newdata
-        }
-        value.var <- outcome.var
-    }
-
     ## ** compute predictions
-    ## design matrix
-    if(!impute){
+    e.pred <- stats::predict(object,
+                             newdata = newdata,
+                             type = type.prediction,
+                             se = se.impute,
+                             keep.newdata = keep.newdata)
+    
+    ## ** store
+    if(impute){ ## store dynamic predictions
 
-        if(format == "wide" && !test.original.data){
-            ## rebuild time or cluster variable 
-            newdata <- .prepareData(data = newdata,
-                                    var.cluster = attr(cluster.var, "original"),
-                                    var.time = attr(time.var, "original"), 
-                                    var.strata = NA,
-                                    missing.repetition = NULL)
-        }
-
-        if(test.original.data){
-            if(length(object$index.na)>0){
-                out <- rep(NA, NROW(newdata))
-                out[-object$index.na] <- object$fitted
-            }else{
-                out <- as.vector(object$fitted)
+            index.NA <- which(!is.na(e.pred$estimate))
+            if(keep.newdata == FALSE){
+                if("se" %in% names(e.pred) == FALSE){
+                    out <- e.pred[index.NA,"estimate"]
+                }else{
+                    out <- stats::rnorm(length(index.NA),
+                                        mean = e.pred[index.NA,"estimate"],
+                                        sd = e.pred[index.NA,"se"])
+                }
+                
+            }else if(length(index.NA) > 0){
+                if("se" %in% names(e.pred) == FALSE){
+                    newdata[index.NA,outcome.var] <- e.pred[index.NA,"estimate"]
+                }else{
+                    newdata[index.NA,outcome.var] <- stats::rnorm(length(index.NA),
+                                                                  mean = e.pred[index.NA,"estimate"],
+                                                                  sd = e.pred[index.NA,"se"])
+                }
+                newdata$imputed <- FALSE
+                newdata$imputed[index.NA] <- TRUE
+                out <- newdata
             }
+            value.var <- c(outcome.var,"imputed")
+    }else{ ## store static predictions
+
+        if(keep.newdata == FALSE){
+            out <- e.pred[["estimate"]]
         }else{
-            ## extract coefficients
-            beta <- stats::coef(object, effects = "mean")
-            name.beta <- names(beta)
-
-            ## generate design matrix
-            X.beta <- stats::model.matrix(object, data = newdata, effects = "mean")
-
-            ## compute predictions
-            out <- as.vector(X.beta %*% beta)
-        }
-        if(keep.newdata){
-            if("estimate" %in% names(newdata)){
-                stop("Argument \'newdata\' should not contain a column called \"estimate\". \n")
-            }
-            out <- cbind(newdata, estimate = out)
+            out <- e.pred
         }
         value.var <- "estimate"
+
     }
 
     ## ** convert to wide format
     if(format=="wide"){
-        if(value.var!="estimate"){
-            out[[value.var]] <- out[[value.var]]*c(NA,1)[1+out$imputed]
-        }
-        out <- reshape2::dcast(data = out,
-                               formula = stats::as.formula(paste0(cluster.var,"~",time.var)), value.var = value.var)
+        out <- stats::reshape(data = out[,c(attr(time.var,"original"), attr(cluster.var,"original"), value.var),drop=FALSE], 
+                              direction = "wide", timevar = attr(time.var,"original"), idvar = attr(cluster.var,"original"), v.names = value.var)
     }
 
     ## ** export

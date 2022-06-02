@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: jun  1 2022 (13:00) 
+## Last-Updated: Jun  2 2022 (11:58) 
 ##           By: Brice Ozenne
-##     Update #: 494
+##     Update #: 508
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -135,7 +135,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, inverse = FALSE, simplif
         test.clusterDF <- FALSE
     }
     
-    ## ** rebuild residual variance-covariance matrix    
+    ## ** rebuild residual variance-covariance matrix
     if(test.clusterDF){ ## for new clusters/times
         if(is.null(p)){
             p <- coef(object, effects = "all")
@@ -201,9 +201,11 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, inverse = FALSE, simplif
     ## ** subset
     if(is.null(cluster)){ ## unique covariance patterns
         out <- .getUVarCov(object, Omega = Omega)
-    }else{ ## cluster specific covariance patterns 
+    }else{ ## cluster specific covariance patterns
         out <- stats::setNames(Omega[pattern.cluster],U.output)
-        attr(out, "pattern") <- pattern.cluster
+        attr(out, "pattern") <- stats::setNames(pattern.cluster,U.output)
+        attr(out,"index.cluster") <- stats::setNames(index.cluster,U.output)
+        attr(out,"index.clusterTime") <- stats::setNames(index.clusterTime,U.output)
 
         for(iC in 1:length(out)){ ## iC <- 1
             ## DO NOT USE

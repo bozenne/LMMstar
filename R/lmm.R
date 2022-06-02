@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jun  1 2022 (18:59) 
+## Last-Updated: Jun  2 2022 (11:28) 
 ##           By: Brice Ozenne
-##     Update #: 1948
+##     Update #: 1957
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -779,7 +779,6 @@ lmm <- function(formula, repetition, structure, data,
     }else{
         name.arg <- "repetition"
     }
-
     if("XXindexXX" %in% names(data)){
         stop("Argument \'data\' should not contain a column named \"XXindexXX\" as this name is used internally by the lmm function. \n")
     }
@@ -802,6 +801,7 @@ lmm <- function(formula, repetition, structure, data,
         stop("Argument \'data\' should not contain a column named \"XXstrata.indexXX\" as this name is used internally by the lmm function. \n")
     }
     if(any(!is.na(var.cluster)) && any(var.cluster %in% names(data) == FALSE)){
+
         if(!is.null(name.arg)){
             stop("Argument \'",name.arg,"\' is inconsistent with argument \'data\'. \n",
                  "Could not find column \"",paste(var.cluster, collapse = "\" \""),"\" indicating the cluster in argument \'data\'. \n", sep="")
@@ -812,9 +812,9 @@ lmm <- function(formula, repetition, structure, data,
     if(any(!is.na(var.time)) && any(var.time %in% names(data) == FALSE)){
         if(!is.null(name.arg)){
             stop("Argument \'",name.arg,"\' is inconsistent with argument \'data\'. \n",
-                 "Could not find column \"",paste(var.time, collapse = "\" \""),"\" indicating the cluster in argument \'data\'. \n", sep="")
+                 "Could not find column \"",paste(var.time, collapse = "\" \""),"\" indicating the time in argument \'data\'. \n", sep="")
         }else{
-            stop("Could not find column \"",paste(var.time, collapse = "\" \""),"\" indicating the cluster in argument \'data\'. \n", sep="")
+            stop("Could not find column \"",paste(var.time, collapse = "\" \""),"\" indicating the time in argument \'data\'. \n", sep="")
         }
     }
     if(any(!is.na(var.strata)) && any(var.strata %in% names(data) == FALSE)){
@@ -904,7 +904,7 @@ lmm <- function(formula, repetition, structure, data,
         var.strata <- "XXstrata.indexXX"
         data$XXstrataXX <- factor(1)
     }else{
-        if(is.factor(data[[var.strata]]) && !is.null(repetition)){
+        if(is.factor(data[[var.strata]]) && !is.null(missing.repetition)){
             if(droplevels){
                 data$XXstrataXX <- droplevels(data[[var.strata]])
             }else{

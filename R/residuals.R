@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: maj 31 2022 (10:08) 
+## Last-Updated: Jun  2 2022 (11:15) 
 ##           By: Brice Ozenne
-##     Update #: 635
+##     Update #: 641
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -469,8 +469,11 @@ residuals.lmm <- function(object, type = "response", format = "long",
     ##
     if(format=="wide"){
         dfL.res <- data.frame(residuals = as.vector(M.res), cluster = level.cluster, time = factor(U.time[level.time], U.time), stringsAsFactors = FALSE)
-        MW.res <- reshape2::dcast(data = dfL.res,
-                                  formula = cluster~time, value.var = "residuals")
+
+        MW.res <- stats::reshape(data = dfL.res[,c("cluster","time","residuals"),drop=FALSE], 
+                                 direction = "wide", timevar = "time", idvar = "cluster", v.names = "residuals")
+        colnames(MW.res)[-1] <- gsub("^residuals.","",colnames(MW.res)[-1])
+        
         attr(MW.res,"reference") <- attr(M.res,"reference")
         attr(MW.res,"centering") <- attr(M.res,"centering")
         if(plot=="qqplot"){
@@ -515,20 +518,19 @@ residuals.lmm <- function(object, type = "response", format = "long",
             attr(MW.res,"plot") <- attr(MW.res,"plot") + ggplot2::facet_wrap(~time, scales = scales)
             print(attr(MW.res,"plot"))
         }else if(plot == "correlation"){
-            name.time <- colnames(MW.res[,-1])
-                
+            Ulevel.time <- colnames(MW.res[,-1])
+            
                 M.cor  <- stats::cor(MW.res[,-1], use = "pairwise")
                 ind.cor <- !is.na(M.cor)
                 arr.ind.cor <- which(ind.cor, arr.ind = TRUE)
-                arr.ind.cor[] <- name.time[arr.ind.cor]
+                arr.ind.cor[] <- Ulevel.time[arr.ind.cor]
 
                 df.gg <- data.frame(correlation = M.cor[ind.cor], arr.ind.cor,stringsAsFactors = FALSE)
-                df.gg$col <- factor(df.gg$col, levels = name.time)
-                df.gg$row <- factor(df.gg$row, levels = name.time)
-                df.gg$row.index <- match(df.gg$row,name.time)
-                df.gg$col.index <- match(df.gg$col,name.time)
+                df.gg$col <- factor(df.gg$col, levels = Ulevel.time)
+                df.gg$row <- factor(df.gg$row, levels = Ulevel.time)
+                df.gg$row.index <- match(df.gg$row, Ulevel.time)
+                df.gg$col.index <- match(df.gg$col, Ulevel.time)
                 dfR.gg <- df.gg[df.gg$col.index>=df.gg$row.index,,drop=FALSE]
-                
                 attr(MW.res,"plot") <- ggplot2::ggplot(dfR.gg, ggplot2::aes_string(x = "col", y = "row", fill = "correlation")) + ggplot2::geom_tile() + ggplot2::scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1,1), space = "Lab", name="Correlation") + ggplot2::xlab(name.time) + ggplot2::ylab(name.time) + ggplot2::ggtitle(label.residual) + ggplot2::theme(text = ggplot2::element_text(size=size.text))
                 if(!is.na(digit.cor) && digit.cor>0){
                     correlation <- NULL ## [[:forCRANcheck:]]
