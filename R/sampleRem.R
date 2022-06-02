@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (14:23) 
 ## Version: 
-## Last-Updated: Jun  2 2022 (11:04) 
+## Last-Updated: Jun  2 2022 (14:07) 
 ##           By: Brice Ozenne
-##     Update #: 74
+##     Update #: 76
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -103,9 +103,8 @@ sampleRem <- function(n, n.times,
     
     ## ** reshape
     if(format == "long"){
-        col.cst <- c("id",paste0("X",1:10),if(latent){"eta"})
         d <- stats::reshape(d, direction  = "long",
-                            idvar = col.cst,
+                            idvar = "id",
                             varying = name.Y,
                             v.names = "Y",
                             timevar = "visit")

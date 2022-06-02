@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: May 30 2022 (22:58) 
+## Last-Updated: Jun  2 2022 (14:56) 
 ##           By: Brice Ozenne
-##     Update #: 84
+##     Update #: 91
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -28,11 +28,13 @@
 ##' @examples
 ##' ## simulate data
 ##' set.seed(10)
-##' dL <- sampleRem(1e3, n.times = 3, format = "long")
+##' dL <- sampleRem(1e2, n.times = 3, format = "long")
 ##'
 ##' ## estimate mixed models
-##' e.lmm1 <- lmm(Y ~ X1+X2+X3, repetition = ~visit|id, data = dL)
-##' e.lmm2 <- lmm(Y ~ X1+X8+X9, repetition = ~visit|id, data = dL)
+##' e.lmm1 <- lmm(Y ~ X1+X2+X3, repetition = ~visit|id, data = dL,
+##'               structure = "CS", df = FALSE)
+##' e.lmm2 <- lmm(Y ~ X1+X8+X9, repetition = ~visit|id, data = dL,
+##'               structure = "CS", df = FALSE)
 ##'
 ##' ## select null hypotheses
 ##' AAA <- anova(e.lmm1, ci = TRUE, effect = c("X1|X2,X3"="X1=0","X2|X1,X3"="X2=0"))

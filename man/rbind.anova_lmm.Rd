@@ -22,15 +22,18 @@ Linear hypothesis testing accross linear mixed model.
 \examples{
 ## simulate data
 set.seed(10)
-dL <- sampleRem(1e3, n.times = 3, format = "long")
+dL <- sampleRem(1e2, n.times = 3, format = "long")
 
 ## estimate mixed models
-e.lmm1 <- lmm(Y ~ X1+X2+X3, repetition = ~visit|id, data = dL)
-e.lmm2 <- lmm(Y ~ X1+X8+X9, repetition = ~visit|id, data = dL)
+e.lmm1 <- lmm(Y ~ X1+X2+X3, repetition = ~visit|id, data = dL,
+              structure = "CS", df = FALSE)
+e.lmm2 <- lmm(Y ~ X1+X8+X9, repetition = ~visit|id, data = dL,
 
 ## select null hypotheses
-AAA <- anova(e.lmm1, ci = TRUE, effect = c("X1|X2,X3"="X1=0","X2|X1,X3"="X2=0"))
-BBB <- anova(e.lmm2, ci = TRUE, effect = c("X1|X8,X9"="X1=0"))
+AAA <- anova(e.lmm1, ci = TRUE, effect = c("X1|X2,X3"="X1=0","X2|X1,X3"="X2=0"),
+             df = FALSE, structure = "CS")
+BBB <- anova(e.lmm2, ci = TRUE, effect = c("X1|X8,X9"="X1=0"),
+             df = FALSE, structure = "CS")
 
 ## combine
 ZZZ <- rbind(AAA,BBB)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: Jun  2 2022 (10:54) 
+## Last-Updated: Jun  2 2022 (14:12) 
 ##           By: Brice Ozenne
-##     Update #: 222
+##     Update #: 226
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -98,7 +98,7 @@
         M.indexsigma <- do.call(rbind,lapply(object$X$Xpattern.var, function(iPattern){ ## iPattern <- object$X$Xpattern.var[[1]]
             iUX <- interaction(as.data.frame(iPattern), drop = TRUE, sep = ":")
             iDW <- data.frame(UX = 1:NROW(iUX), X = iUX, do.call(cbind,index.cluster[attr(iPattern, "index.cluster")]))
-            iDL <- stats::reshape(iDW, direction = "long", idvar = c("UX","X"), varying = setdiff(names(iDW),c("UX","X")), v.names = "index")
+            iDL <- stats::reshape(iDW, direction = "long", idvar = "UX", varying = setdiff(names(iDW),c("UX","X")), v.names = "index")
             rownames(iDL) <- NULL
             return(iDL[,c("X","index")])
         }))

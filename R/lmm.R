@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Jun  2 2022 (11:28) 
+## Last-Updated: Jun  2 2022 (14:43) 
 ##           By: Brice Ozenne
-##     Update #: 1957
+##     Update #: 1958
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -22,9 +22,7 @@
 ##' @param formula [formula] Specify the model for the mean.
 ##' On the left hand side the outcome and on the right hand side the covariates affecting the mean value.
 ##' E.g. Y ~ Gender + Gene.
-##' @param repetition [formula] Specify the model for the covariance.
-##' On the right hand side the time/repetition variable and the grouping variable, e.g. ~ time|id.
-##' On the left hand side, a possible stratification variable, e.g. group ~ time|id. In that case the mean structure should only be stratified on this variable using interactions.
+##' @param repetition [formula] Specify the structure of the data: the time/repetition variable and the grouping variable, e.g. ~ time|id.
 ##' @param structure [character] type of covariance structure, either \code{"CS"} (compound symmetry) or \code{"UN"} (unstructured).
 ##' @param data [data.frame] dataset (in the long format) containing the observations.
 ##' @param method.fit [character] Should Restricted Maximum Likelihoood (\code{"REML"}) or Maximum Likelihoood (\code{"ML"}) be used to estimate the model parameters?

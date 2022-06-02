@@ -23,9 +23,7 @@ lmm(
 On the left hand side the outcome and on the right hand side the covariates affecting the mean value.
 E.g. Y ~ Gender + Gene.}
 
-\item{repetition}{[formula] Specify the model for the covariance.
-On the right hand side the time/repetition variable and the grouping variable, e.g. ~ time|id.
-On the left hand side, a possible stratification variable, e.g. group ~ time|id. In that case the mean structure should only be stratified on this variable using interactions.}
+\item{repetition}{[formula] Specify the structure of the data: the time/repetition variable and the grouping variable, e.g. ~ time|id.}
 
 \item{structure}{[character] type of covariance structure, either \code{"CS"} (compound symmetry) or \code{"UN"} (unstructured).}
 

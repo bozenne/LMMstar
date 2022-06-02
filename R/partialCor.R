@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: Jun  2 2022 (11:20) 
+## Last-Updated: Jun  2 2022 (14:53) 
 ##           By: Brice Ozenne
-##     Update #: 73
+##     Update #: 93
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,7 +21,8 @@
 ##' 
 ##' @param formula a formula with in the left hand side the variables for which the correlation should be computed
 ##' and on the right hand side the adjustment set. Can also be a list of formula for outcome-specific adjustment set.
-##' @param data dataset containing the variables.
+##' @param repetition [formula] Specify the structure of the data: the time/repetition variable and the grouping variable, e.g. ~ time|id.
+##' @param data [data.frame] dataset containing the variables.
 ##'
 ##' @details Fit a mixed model to estimate the partial correlation which can be time consuming.
 ##' 
@@ -65,12 +66,11 @@
 ##' 
 ##' partialCor(weight+glucagonAUC~time, data = gastricbypassL)
 ##' 
-##' partialCor(weight+glucagonAUC~time|id, data = gastricbypassL)
-##' partialCor(list(weight~time|id,glucagonAUC~time|id), data = gastricbypassL)
+##' partialCor(weight+glucagonAUC~time, repetition =~time|id, data = gastricbypassL)
 
 ## * partialCor (documentation)
 ##' @export
-partialCor <- function(formula, data){
+partialCor <- function(formula, data, repetition){
 
     ## ** normalize arguments
     data <- as.data.frame(data)
@@ -100,31 +100,43 @@ partialCor <- function(formula, data){
         stop("Variable(s) \"", paste(name.XY[name.XY %in% names(data) == FALSE], collapse = "\" \""),"\" are not in argument \'data\'. \n")
     }
 
-    ## *** id
-    ls.group <- lapply(formula, function(iF){grep("|",deparse(iF), fixed = TRUE)})
-    if(length(unlist(ls.group))==0){
+    if(any(c("CCvariableCC","CCvalueCC","CCrepetitionCC") %in% names(data))){
+        stop("Argument \'data\' should not contain columns \"CCvariableCC\", \"CCvalueCC\", or \"CCrepetitionCC\". \n",
+             "Those names are used internally. \n")
+    }
+
+    ## *** id and time
+    if(!missing(repetition)){
+        if(!inherits(repetition,"formula")){
+            stop("Argument \'repetition\' must be of class formula, something like: ~ time|cluster or strata ~ time|cluster. \n")
+        }
+
+        repetition.split <- strsplit(x = deparse(repetition), split = "|",fixed=TRUE)[[1]]
+        if(length(repetition.split)!=2){
+            stop("Incorrect specification of argument \'repetition\'. \n",
+                 "The symbol | should only exacly once, something like: ~ time|cluster or strata ~ time|cluster. \n")
+        }
+        name.id <- trimws(repetition.split[2], which = "both")
+        if(any(name.id %in% names(data) == FALSE)){
+            stop("Cluster variable \"", name.id,"\" is not in argument \'data\'. \n")
+        }
+        name.time <- all.vars(stats::as.formula(repetition.split[1]))
+        if(any(name.id %in% names(data) == FALSE)){
+            stop("Repetition variable \"", name.time,"\" is not in argument \'data\'. \n")
+        }
+        
+    }else{
         if("CCindexCC" %in% names(data)){
             stop("Argument \'data\' should not contain a variable \"CCindexCC\". \n")
         }
         data$CCindexCC <- 1:NROW(data)
         name.id <- "CCindexCC"
-    }else{
-        formula.split <- lapply(formula, function(iF){strsplit(split = "|",deparse(iF),fixed=TRUE)[[1]][2]})
-        name.id <- trimws(unique(unlist(formula.split), which = "both"))
-        if(length(name.id)!=1){
-            stop("The grouping variable should be the same for all outcome in argument \'formula\'. \n",
-                 "Detected grouping variables: \"",paste0(name.id, collapse = "\" \""),"\".\n")
-        }        
-    }
-
-    ## *** Extra
-    if(any(c("CCvariableCC","CCvalueCC","CCrepetitionCC") %in% names(data))){
-        stop("Argument \'data\' should not contain columns \"CCvariableCC\", \"CCvalueCC\", or \"CCrepetitionCC\". \n",
-             "Those names are used internally. \n")
+        data$CCrepetitionCC <- 1
+        name.time <- "CCrepetitionCC"
     }
     
     ## ** reshape    
-    ls.name.X <- lapply(formula, function(iF){setdiff(all.vars(stats::delete.response(stats::terms(iF))),name.id)})
+    ls.name.X <- lapply(formula, function(iF){all.vars(stats::delete.response(stats::terms(iF)))})
     name.X <- unique(unlist(ls.name.X))
 
     ls.name.Y <- lapply(ls.name.XY, function(iF){setdiff(iF,c(name.X,name.id))})
@@ -132,15 +144,14 @@ partialCor <- function(formula, data){
     if(any(duplicated(name.Y))){
         stop("Variables in the left hand side of argument should be unique. \n")
     }
-    dataL <- stats::reshape(data[, union(name.XY, name.id),drop=FALSE], direction  = "long",
-                            idvar = c(name.id,name.X),
+    dataL <- stats::reshape(data[, unique(c(name.XY, name.id, name.time)),drop=FALSE], direction  = "long",
+                            idvar = c(name.id, name.time),
                             varying = name.Y,
                             v.names = "CCvalueCC",
                             timevar = "CCvariableCC")
     dataL$CCvariableCC <- factor(dataL$CCvariableCC, labels = name.Y)
     rownames(dataL) <- NULL
     
-
     ## ** fit mixed model
     index.interaction <- which(colSums(1-do.call(rbind,lapply(ls.name.X, function(iX){name.X %in% iX})))==0)
 

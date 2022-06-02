@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: maj 31 2022 (15:59) 
+## Last-Updated: Jun  2 2022 (14:07) 
 ##           By: Brice Ozenne
-##     Update #: 96
+##     Update #: 98
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -385,11 +385,13 @@ NULL
 #' @keywords data
 NULL
 ## data("ncgsW")
-## ncgsL <- reshape2::melt(ncgsW, id.vars = c("group","id"),
-##                         measure.vars = paste0("cholest",1:5),
-##                         value.name = c("cholest"), variable.name = "visit")
-## ncgsL$visit <- as.factor(sapply(ncgsL$visit, gsub,
-##                       pattern = "cholest", replacement = ""))
+## ncgsL <- stats::reshape(ncgsW, direction  = "long",
+##                         idvar = "id",
+##                         varying = paste0("cholest",1:5),
+##                         v.names = "choltest",
+##                         timevar = "visit")
+## ncgsL$visit <- as.factor(ncgsL$visit)
+## rownames(ncgsL) <- NULL
 ## ncgsL$time <- sapply(as.character(ncgsL$visit), switch,
 ##                             "1" = 0,
 ##                             "2" = 6,

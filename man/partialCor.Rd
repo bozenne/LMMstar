@@ -4,13 +4,15 @@
 \alias{partialCor}
 \title{Partial Correlation}
 \usage{
-partialCor(formula, data)
+partialCor(formula, data, repetition)
 }
 \arguments{
 \item{formula}{a formula with in the left hand side the variables for which the correlation should be computed
 and on the right hand side the adjustment set. Can also be a list of formula for outcome-specific adjustment set.}
 
-\item{data}{dataset containing the variables.}
+\item{data}{[data.frame] dataset containing the variables.}
+
+\item{repetition}{[formula] Specify the structure of the data: the time/repetition variable and the grouping variable, e.g. ~ time|id.}
 }
 \description{
 Estimate the partial correlation between two variables where the adjustment set may differ between variables.
@@ -58,6 +60,5 @@ data(gastricbypassL, package = "LMMstar")
 
 partialCor(weight+glucagonAUC~time, data = gastricbypassL)
 
-partialCor(weight+glucagonAUC~time|id, data = gastricbypassL)
-partialCor(list(weight~time|id,glucagonAUC~time|id), data = gastricbypassL)
+partialCor(weight+glucagonAUC~time, repetition =~time|id, data = gastricbypassL)
 }
