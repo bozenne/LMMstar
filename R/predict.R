@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jun  1 2022 (12:11) 
+## Last-Updated: jun  1 2022 (19:08) 
 ##           By: Brice Ozenne
-##     Update #: 597
+##     Update #: 612
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -125,31 +125,28 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
         }
     }
     if(type.prediction == "dynamic"){
-        if(name.time %in% names(newdata) == FALSE){
-            stop("The time column \"",name.time,"\" in argument \'newdata\' is missing and necessary when doing dynamic predictions. \n")
-        }
         if(name.Y %in% names(newdata) == FALSE){
             stop("The outcome column \"",name.Y,"\" in argument \'newdata\' is missing and necessary when doing dynamic predictions. \n")
         }
-        if(any(newdata[[name.time]] %in% U.time == FALSE)){
-            stop("The time column \"",name.time,"\" in argument \'newdata\' should match the existing times. \n",
-                 "Existing times: \"",paste0(U.time, collapse = "\" \""),"\".\n")
-        }
         if(name.cluster %in% names(newdata) == FALSE){
-            stop("The cluster column \"",name.cluster,"\" in argument \'newdata\' is missing and necessary whendoing dynamic predictions. \n")
+            stop("The cluster column \"",name.cluster,"\" in argument \'newdata\' is missing and necessary when doing dynamic predictions. \n")
         }
-        test.duplicated <- tapply(newdata[[name.time]],newdata[[name.cluster]], function(iT){any(duplicated(iT))})
-        if(any(test.duplicated)){
-            stop("The time column \"",name.time,"\" in argument \'newdata\' should not have duplicated values within clusters. \n")
+        if(all(!is.na(attr(name.time,"original")))){
+            if(name.time %in% names(newdata) == FALSE){
+                stop("The time column \"",name.time,"\" in argument \'newdata\' is missing and necessary when doing dynamic predictions. \n")
+            }
+            if(any(newdata[[name.time]] %in% U.time == FALSE)){
+                stop("The time column \"",name.time,"\" in argument \'newdata\' should match the existing times. \n",
+                     "Existing times: \"",paste0(U.time, collapse = "\" \""),"\".\n")
+            }
+            test.duplicated <- tapply(newdata[[name.time]],newdata[[name.cluster]], function(iT){any(duplicated(iT))})
+            if(any(test.duplicated)){
+                stop("The time column \"",name.time,"\" in argument \'newdata\' should not have duplicated values within clusters. \n")
+            }
         }
         if(any("XXXindexXXX" %in% names(newdata))){
             stop("Argument \'newdata\' should not contain a column named \"XXXindexXXX\" as this name is used internally. \n")
         }
-        ## test.na <- tapply(newdata[[name.Y]],newdata[[name.cluster]], function(iY){any(is.na(iY))})
-        ## if(any(test.na==FALSE)){
-        ##     stop("The outcome column \"",name.Y,"\" in argument \'newdata\' should contain at least one missing value for each cluster. \n",
-        ##          "They are used to indicate the time at which prediction should be made. \n")
-        ## }
     }else if(type.prediction == "static" && !is.na(name.time)){
         if((name.time %in% names(newdata) == FALSE) && (!is.null(se) && se %in% c("residual","total"))){
             stop("The time column \"",name.time,"\" in missing from argument \'newdata\'. \n",
@@ -313,7 +310,6 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
 
             
         }
-
         if(keep.newdata){
             out <- cbind(newdata[,setdiff(colnames(newdata),"XXXindexXXX"),drop=FALSE], estimate = prediction)
             if(!is.null(se)){
@@ -323,8 +319,13 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
         }else{
             out <- data.frame(estimate = stats::na.omit(prediction),stringsAsFactors = FALSE)
             if(!is.null(se)){
-                out$se <- sqrt(stats::na.omit(prediction.var))
-                out$df <- Inf
+                if(NROW(out)>0){
+                    out$se <- sqrt(stats::na.omit(prediction.var))
+                    out$df <- Inf
+                }else{
+                    out$se <- numeric(0)
+                    out$df <- numeric(0)
+                }
             }
         }
     }
@@ -341,14 +342,19 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
     ## ** export
     if(!missing(se.fit)){
         return(list(fit = out$estimate,
-                 se.fit = out$se,
-                 residual.scale = NA,
-                 df = out$df))
+                    se.fit = out$se,
+                    residual.scale = NA,
+                    df = out$df))
     }
     alpha <- 1-level
     if(!is.null(se)){
-        out$lower <- out$estimate + stats::qt(alpha/2, df = out$df) * out$se
-        out$upper <- out$estimate + stats::qt(1-alpha/2, df = out$df) * out$se
+        if(NROW(out)>0){
+            out$lower <- out$estimate + stats::qt(alpha/2, df = out$df) * out$se
+            out$upper <- out$estimate + stats::qt(1-alpha/2, df = out$df) * out$se
+        }else{
+            out$lower <- numeric(0)
+            out$upper <- numeric(0)
+        }
     }
     rownames(out) <- NULL
     return(out)

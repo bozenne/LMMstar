@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: May 31 2022 (23:33) 
+## Last-Updated: jun  1 2022 (14:51) 
 ##           By: Brice Ozenne
-##     Update #: 659
+##     Update #: 686
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -367,7 +367,7 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
         if(trace==1){
             cat("\n")
         }else if(trace>1){
-            if(trace == 2){
+            if(trace %in% 2:3){
                 cat("\n")
                 print(param.value)
             }
@@ -390,30 +390,88 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
         score <- outMoments$score
     }else{
         warper_obj <- function(p){
-            .moments.lmm(value = p, design = design, time = time, method.fit = method.fit, 
-                         transform.sigma = "none", transform.k = "none", transform.rho = "none",
-                         logLik = TRUE, score = FALSE, information = FALSE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
-                         trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)$logLik
+            p.original <- .reparametrize(p,
+                                         type = design$param[match(names(param.value), design$param$name), "type"],
+                                         sigma = design$param[match(names(param.value), design$param$name), "sigma"],
+                                         k.x = design$param[match(names(param.value), design$param$name), "k.x"],
+                                         k.y = design$param[match(names(param.value), design$param$name), "k.y"],
+                                         Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
+                                         transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                                         transform.names = FALSE)$p
+            -.moments.lmm(value = p.original, design = design, time = time, method.fit = method.fit, 
+                          transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                          logLik = TRUE, score = FALSE, information = FALSE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
+                          trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)$logLik
         }
         warper_grad <- function(p){
-            .moments.lmm(value = p, design = design, time = time, method.fit = method.fit, 
-                         transform.sigma = "none", transform.k = "none", transform.rho = "none",
-                         logLik = FALSE, score = TRUE, information = FALSE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
-                         trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)$score
+            p.original <- .reparametrize(p,
+                                         type = design$param[match(names(param.value), design$param$name), "type"],
+                                         sigma = design$param[match(names(param.value), design$param$name), "sigma"],
+                                         k.x = design$param[match(names(param.value), design$param$name), "k.x"],
+                                         k.y = design$param[match(names(param.value), design$param$name), "k.y"],
+                                         Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
+                                         transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                                         transform.names = FALSE)$p
+            -.moments.lmm(value = p.original, design = design, time = time, method.fit = method.fit, 
+                          transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                          logLik = FALSE, score = TRUE, information = FALSE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
+                          trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)$score
         }
         warper_hess <- function(p){
-            -.moments.lmm(value = p, design = design, time = time, method.fit = method.fit,
-                          transform.sigma = "none", transform.k = "none", transform.rho = "none", type.information = "observed",
-                          logLik = FALSE, score = FALSE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
-                          trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)$information
+            p.original <- .reparametrize(p,
+                                         type = design$param[match(names(param.value), design$param$name), "type"],
+                                         sigma = design$param[match(names(param.value), design$param$name), "sigma"],
+                                         k.x = design$param[match(names(param.value), design$param$name), "k.x"],
+                                         k.y = design$param[match(names(param.value), design$param$name), "k.y"],
+                                         Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
+                                         transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                                         transform.names = FALSE)$p
+            .moments.lmm(value = p.original, design = design, time = time, method.fit = method.fit,
+                         transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, type.information = "observed",
+                         logLik = FALSE, score = FALSE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
+                         trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)$information
         }
-        ## numDeriv::jacobian(x = param.value, func = warper_obj)-warper_grad(param.value)
-        res.optim <- optimx::optimx(par = param.value, fn = warper_obj, gr = warper_grad, hess = warper_hess,
-                                    method = optimizer, itnmax = n.iter)
-        param.value[] <- as.double(res.optim[1:length(param.value)])
+
+        ## *** reparametrize (original -> unconstrain scale)
+        param.value.trans <- .reparametrize(param.value,
+                                            type = design$param[match(names(param.value), design$param$name), "type"],
+                                            sigma = design$param[match(names(param.value), design$param$name), "sigma"],
+                                            k.x = design$param[match(names(param.value), design$param$name), "k.x"],
+                                            k.y = design$param[match(names(param.value), design$param$name), "k.y"],
+                                            Jacobian = FALSE, dJacobian = FALSE, inverse = FALSE,
+                                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                                            transform.names = FALSE)$p
+
+        ## *** optimize
+        ## warper_obj(param.value.trans)
+        ## warper_obj(2*param.value.trans)
+        ## numDeriv::jacobian(x = param.value.trans, func = warper_obj)-warper_grad(param.value.trans)
+        res.optim <- optimx::optimx(par = param.value.trans, fn = warper_obj, gr = warper_grad, hess = warper_hess,
+                                    method = optimizer, itnmax = n.iter, control = list(trace = trace))
+        ## solution <- setNames(as.double(res.optim[1,1:length(param.value.trans)]), names(param.value.trans))
+        ## warper_obj(solution)
+        ## warper_grad(solution)
+
+        ## *** reparametrize (unconstrain scale -> original)
+        param.value[] <- .reparametrize(as.double(res.optim[1:length(param.value)]),
+                                        type = design$param[match(names(param.value), design$param$name), "type"],
+                                        sigma = design$param[match(names(param.value), design$param$name), "sigma"],
+                                        k.x = design$param[match(names(param.value), design$param$name), "k.x"],
+                                        k.y = design$param[match(names(param.value), design$param$name), "k.y"],
+                                        Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
+                                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                                        transform.names = FALSE)$p
+
         param.valueM1 <- NULL
         score <- attr(res.optim,"details")[,"ngatend"][[1]]
         iIter <- res.optim$niter
+        attr(iIter,"eval") <- c("logLik" = NA, "score" = NA)
+        if("fevals" %in% names(res.optim)){
+            attr(iIter,"eval")["logLik"] <- res.optim$fevals
+        }
+        if("gevals" %in% names(res.optim)){
+            attr(iIter,"eval")["score"] <- res.optim$gevals
+        }
         cv <- (res.optim$convcode==0)
     }
 
@@ -421,7 +479,7 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
     return(list(estimate = param.value,
                 previous.estimate = param.valueM1,
                 score = score,
-                n.iter = iIter,
+                n.iter = iIter,                
                 cv = cv>0))
 }
 

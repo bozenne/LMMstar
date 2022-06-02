@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: May 30 2022 (23:06) 
+## Last-Updated: jun  1 2022 (16:22) 
 ##           By: Brice Ozenne
-##     Update #: 2142
+##     Update #: 2148
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -515,9 +515,11 @@
         attr(X,"M.level") <- attr(X,"M.level")[,c(setdiff(names(attr(X,"M.level")),strata.var),strata.var),drop=FALSE]
         attr(X,"reference.level") <- attr(X,"reference.level")[,c(setdiff(names(attr(X,"M.level")),strata.var),strata.var),drop=FALSE]
         attr(X,"term.labels") <- unname(unlist(lapply(attr(X,"ls.level"), function(iL){paste(names(iL),collapse = ":")})))
-        colnames(X) <- unname(sapply(attr(X,"ls.level"), function(iL){
-            iL[is.na(iL)] <- "";paste(paste0(names(iL),as.character(iL)),collapse = ":")
+        X.newname <- unname(sapply(attr(X,"ls.level"), function(iL){ ## iL <- attr(X,"ls.level")[[3]]
+            iL[is.na(iL)] <- ""
+            return(paste(paste0(names(iL),as.character(iL)),collapse = ":"))
         }))
+        colnames(X) <- X.newname
     }
     
     return(X)    

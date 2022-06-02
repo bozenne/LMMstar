@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul  8 2021 (17:09) 
 ## Version: 
-## Last-Updated: May 29 2022 (13:45) 
+## Last-Updated: jun  1 2022 (19:26) 
 ##           By: Brice Ozenne
-##     Update #: 84
+##     Update #: 101
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -93,34 +93,27 @@ fitted.lmm <- function(object, newdata = NULL, format = "long",
 
     test.original.data <- is.null(newdata)
     if(test.original.data){
-        newdata <- object$data.original
-    }
-        
-
-    ## ** prepare for wide format transformation
-    if(format == "wide"){
-        keep.newdata <- TRUE
-        if((cluster.var %in% names(newdata) == FALSE) || (time.var %in% names(newdata) == FALSE)){
-            data2prepare <- as.data.frame(newdata)
-            data2prepare$XXindexXX <- NULL
-            data2prepare$XXclusterXX <- NULL
-            data2prepare$XXcluster.indexXX <- NULL
-            data2prepare$XXtimeXX <- NULL
-            data2prepare$XXtime.indexXX <- NULL
-            data2prepare$XXstrataXX <- NULL
-            data2prepare$XXstrata.indexXX <- NULL
-            newdata <- .prepareData(data = data2prepare, var.cluster = attr(cluster.var,"original"), var.time = attr(time.var,"original"), var.strata = NA, missing.repetition = NULL)
+        if(!impute){
+            newdata <- object$data
+        }else{
+            newdata <- object$data.original
         }
     }
-    
+
+    if(format == "wide") {
+        keep.newdata <- TRUE
+    }
+
     ## ** impute missing values
     if(impute){
         e.impute <- stats::predict(object, newdata = newdata, type = "dynamic", se = se.impute, keep.newdata = TRUE)
         index.NA <- which(!is.na(e.impute$estimate))
-        if(length(index.NA) > 0 && "se" %in% names(e.impute) == FALSE){
-            newdata[index.NA,outcome.var] <- e.impute[index.NA,"estimate"]
-        }else{
-            newdata[index.NA,outcome.var] <- stats::rnorm(length(index.NA), mean = e.impute[index.NA,"estimate"], sd = e.impute[index.NA,"se"])
+        if(length(index.NA) > 0){
+            if("se" %in% names(e.impute) == FALSE){
+                newdata[index.NA,outcome.var] <- e.impute[index.NA,"estimate"]
+            }else{
+                newdata[index.NA,outcome.var] <- stats::rnorm(length(index.NA), mean = e.impute[index.NA,"estimate"], sd = e.impute[index.NA,"se"])
+            }
         }
 
         if(keep.newdata==FALSE){
@@ -139,6 +132,16 @@ fitted.lmm <- function(object, newdata = NULL, format = "long",
     ## ** compute predictions
     ## design matrix
     if(!impute){
+
+        if(format == "wide" && !test.original.data){
+            ## rebuild time or cluster variable 
+            newdata <- .prepareData(data = newdata,
+                                    var.cluster = attr(cluster.var, "original"),
+                                    var.time = attr(time.var, "original"), 
+                                    var.strata = NA,
+                                    missing.repetition = NULL)
+        }
+
         if(test.original.data){
             if(length(object$index.na)>0){
                 out <- rep(NA, NROW(newdata))
@@ -172,7 +175,7 @@ fitted.lmm <- function(object, newdata = NULL, format = "long",
             out[[value.var]] <- out[[value.var]]*c(NA,1)[1+out$imputed]
         }
         out <- reshape2::dcast(data = out,
-                               formula = stats::as.formula(paste0(object$cluster$var,"~",object$time$var)), value.var = value.var)
+                               formula = stats::as.formula(paste0(cluster.var,"~",time.var)), value.var = value.var)
     }
 
     ## ** export

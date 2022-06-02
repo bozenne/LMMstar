@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jun  1 2022 (12:58) 
+## Last-Updated: jun  1 2022 (18:59) 
 ##           By: Brice Ozenne
-##     Update #: 1942
+##     Update #: 1948
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -270,7 +270,8 @@ lmm <- function(formula, repetition, structure, data,
                          var.cluster = var.cluster,
                          var.time = var.time,
                          var.strata = var.strata,
-                         missing.repetition = missing.repetition)
+                         missing.repetition = missing.repetition,
+                         droplevels = TRUE)
 
     ## cluster
     if(is.na(var.cluster)){
@@ -567,7 +568,8 @@ lmm <- function(formula, repetition, structure, data,
                              var.cluster = attr(var.cluster,"original"),
                              var.time = attr(var.time,"original"),
                              var.strata = attr(var.strata,"original"),
-                             missing.repetition = missing.repetition)
+                             missing.repetition = missing.repetition,
+                             droplevels = TRUE)
     }else{
         index.na <- NULL
     }
@@ -761,7 +763,7 @@ lmm <- function(formula, repetition, structure, data,
 ## * .prepareData
 ## convert to data.frame
 ## generate factor time, cluster, strata and related indexes
-.prepareData <- function(data, var.cluster, var.time, var.strata, missing.repetition){
+.prepareData <- function(data, var.cluster, var.time, var.strata, missing.repetition, droplevels){
 
     ## ** convert to data.frame
     if(!inherits(data,"data.frame")){
@@ -840,7 +842,11 @@ lmm <- function(formula, repetition, structure, data,
         data$XXclusterXX <- as.factor(sprintf(paste0("%0",ceiling(log10(NROW(data)))+0.1,"d"), 1:NROW(data)))
     }else if("XXclusterXX" %in% names(data) == FALSE){
         if(is.factor(data[[var.cluster]])){
-            data$XXclusterXX <- droplevels(data[[var.cluster]])
+            if(droplevels){
+                data$XXclusterXX <- droplevels(data[[var.cluster]])
+            }else{
+                data$XXclusterXX <- data[[var.cluster]]
+            }
         }else if(is.numeric(data[[var.cluster]]) && all(data[[var.cluster]] %% 1 == 0)){
             data$XXclusterXX <- as.factor(sprintf(paste0("%0",ceiling(log10(max(abs(data[[var.cluster]])))+0.1),"d"), data[[var.cluster]]))
         }else{
@@ -872,9 +878,16 @@ lmm <- function(formula, repetition, structure, data,
         }
         data[iIndex,"XXtimeXX"] <- as.factor(sprintf(paste0("%0",ceiling(log10(max(iTime))+0.1),"d"), iTime))
         data$XXtime.indexXX <- as.numeric(droplevels(data$XXtimeXX))
+    }else if(is.null(missing.repetition)){
+        ## from model.matrix: prediction for new data where the time variable has already be nicely reformated to factor
+        data$XXtimeXX <- data[[var.time]]
     }else{
         if(is.factor(data[[var.time]])){
-            data$XXtimeXX <- droplevels(data[[var.time]])
+            if(droplevels){
+                data$XXtimeXX <- droplevels(data[[var.time]])
+            }else{
+                data$XXtimeXX <- data[[var.time]]
+            }
         }else if(is.numeric(data[[var.time]]) && all(data[[var.time]] %% 1 == 0)){
             data$XXtimeXX <- as.factor(sprintf(paste0("%0",ceiling(log10(max(abs(data[[var.time]])))+0.1),"d"), data[[var.time]]))
         }else{
@@ -891,8 +904,12 @@ lmm <- function(formula, repetition, structure, data,
         var.strata <- "XXstrata.indexXX"
         data$XXstrataXX <- factor(1)
     }else{
-        if(is.factor(data[[var.strata]])){
-            data$XXstrataXX <- droplevels(data[[var.strata]])
+        if(is.factor(data[[var.strata]]) && !is.null(repetition)){
+            if(droplevels){
+                data$XXstrataXX <- droplevels(data[[var.strata]])
+            }else{
+                data$XXstrataXX <- data[[var.strata]]
+            }
         }else if(is.numeric(data[[var.strata]]) && all(data[[var.strata]] %% 1 == 0)){
             data$XXstrataXX <- as.factor(sprintf(paste0("%0",ceiling(log10(max(abs(data[[var.strata]])))+0.1),"d"), data[[var.strata]]))
         }else{

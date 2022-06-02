@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: jun  1 2022 (12:57) 
+## Last-Updated: jun  1 2022 (19:02) 
 ##           By: Brice Ozenne
-##     Update #: 2230
+##     Update #: 2258
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -102,7 +102,8 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
                                       var.cluster = NA,
                                       var.time = NA,
                                       var.strata = strata.var,
-                                      missing.repetition = NULL)
+                                      missing.repetition = NULL,
+                                      droplevels = TRUE)
 
             ## use stats::model.frame to handle spline
             design$mean  <- .mean.matrix.lmm(formula = object$formula$mean.design, colnames = colnames(object$design$mean),
@@ -133,16 +134,17 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             }
 
             ## add cluster if no time repetition
-          if((cluster.var %in% names(data.var) == FALSE) && all(time.var %in% names(data.var)) && all(!duplicated(data.var[,time.var,drop=FALSE]))){
-              data.var[[cluster.var]] <- object$cluster$levels[1]
-          }
+            if((cluster.var %in% names(data.var) == FALSE) && all(time.var %in% names(data.var)) && all(!duplicated(data.var[,time.var,drop=FALSE]))){
+                data.var[[cluster.var]] <- object$cluster$levels[1]
+            }
 
-          ## necessary to add the cluster index/time index/strata index
-          data.var <- .prepareData(data.var,
-                                   var.cluster = cluster.var,
-                                   var.time = time.var,
-                                   var.strata = strata.var,
-                                   missing.repetition = NULL)
+            ## necessary to add the cluster index/time index/strata index
+            data.var <- .prepareData(data.var,
+                                     var.cluster = cluster.var,
+                                     var.time = time.var,
+                                     var.strata = strata.var,
+                                     missing.repetition = NULL,
+                                     droplevels = FALSE)
 
             ff.allvars <- unique(all.vars(object$formula$var,object$formula$cor))
             if(any(ff.allvars %in% names(data) == FALSE)){
@@ -537,7 +539,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         ## no warning because this is normal behavior when stratifying
         formula <- stats::update(formula, stats::as.formula(paste0("~.-",paste(names(test.1value)[test.1value==1],collapse="-"))))
     }
-    
+
     ## ** identify if there is an identifiability problem
     X <- stats::model.matrix(formula, data)
     X.qr <- qr(X)
@@ -581,6 +583,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 
     ## ** create "naive" design matrix
     X <- .augmodel.matrix(tt,data)
+
     ## M.interactionName <- do.call(cbind,lapply(name.var, function(iVar){if(is.logical(X.Mlevel[,iVar])){return(c(NA,iVar)[X.Mlevel[,iVar]+1])}else{return(paste0(iVar,X.Mlevel[,iVar]))}}))
     ## vec.interactionName <- apply(M.interactionName, MARGIN = 1, FUN = function(iRow){paste(stats::na.omit(iRow), collapse = ":")})
 
@@ -593,7 +596,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     attrX$variable <- attrX$variable
     attrX$term.labels <- attrX$term.labels[index.keep]
     attrX$order <- attrX$order[index.keep]
-    attrX$ls.levels <- attrX$ls.levels[index.keep]
+    attrX$ls.level <- attrX$ls.level[index.keep]
     attrX$M.level <- attrX$M.level[index.keep,,drop=FALSE]
     attributes(X) <- c(attributes(X),attrX)
     
@@ -613,7 +616,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         }
 
         ## create all possible values for the interaction and check if it is constant
-        test.constant <- sapply(1:NROW(iMlevel), FUN = function(iParam){ ## iParam <- 2
+        test.constant <- sapply(1:NROW(iMlevel), FUN = function(iParam){ ## iParam <- 1
             iValue <- do.call(cbind,lapply(var.factor, function(iFactor){data[[iFactor]]==iMlevel[iParam,iFactor]}))
             iNumeric <- intersect(iVar, var.numeric)
             if(length(iNumeric)>0){
@@ -630,7 +633,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     if(length(rmX)>0){
         X.old <- X
         test.keep <- colnames(X.old) %in% setdiff(colnames(X.old),rmX)
-        X <- X.old[,test.keep]
+        X <- X.old[,test.keep,drop=FALSE]
         if(qr(X)$rank==X.qr$rank){
             message("Constant values in the design matrix in interactions \"",paste(names(ls.rmX), collapse = "\" \""),"\"\n ",
                     "Coefficients \"",paste(unique(rmX), collapse = "\" \""),"\" have been removed. \n")
@@ -650,7 +653,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             attr(X,"reference.level") <- attr(X.old,"reference.level")
         }
     }
-    
+
     ## ** identify if there is still an identifiability problem
     if(X.qr$rank==NCOL(X)){
         return(X)
@@ -804,7 +807,6 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             }
         }
     }
-
     ## ** add attributes
     attr(X,"formula") <- formula
     attr(X,"variable") <- colnames(reference2)

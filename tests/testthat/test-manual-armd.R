@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Dec 19 2021 (17:07) 
 ## Version: 
-## Last-Updated: Dec 19 2021 (17:38) 
+## Last-Updated: jun  1 2022 (13:38) 
 ##           By: Brice Ozenne
-##     Update #: 12
+##     Update #: 13
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,6 +20,7 @@ if(FALSE){
     library(lattice) 
     library(psych)   
     library(emmeans) 
+    library(ggplot2) 
 
     library(LMMstar)
 }
