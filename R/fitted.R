@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul  8 2021 (17:09) 
 ## Version: 
-## Last-Updated: Jun  2 2022 (11:43) 
+## Last-Updated: Jun  2 2022 (17:25) 
 ##           By: Brice Ozenne
-##     Update #: 125
+##     Update #: 137
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -109,8 +109,8 @@ fitted.lmm <- function(object, newdata = NULL, format = "long",
         newdata <- object.data.original
     }
 
-    if(format == "wide") {
-        keep.newdata <- TRUE
+    if((format == "wide") && (keep.newdata == FALSE)) {
+        keep.newdata <- 0.5
     }
 
     ## ** compute predictions
@@ -159,8 +159,30 @@ fitted.lmm <- function(object, newdata = NULL, format = "long",
 
     ## ** convert to wide format
     if(format=="wide"){
-        out <- stats::reshape(data = out[,c(attr(time.var,"original"), attr(cluster.var,"original"), value.var),drop=FALSE], 
-                              direction = "wide", timevar = attr(time.var,"original"), idvar = attr(cluster.var,"original"), v.names = value.var)
+
+        if(keep.newdata>=1){
+            vec.lU <- sapply(colnames(out), function(iVar){max(tapply(out[[iVar]],out[[attr(cluster.var,"original")]],function(iValue){length(unique(iValue))}))})
+            if(any(vec.lU==1)){
+                add.col  <- names(vec.lU)[vec.lU==1]
+            }else{
+                add.col  <- NULL
+            }
+        }else{
+            add.col <- NULL
+        }
+
+        if(length(attr(time.var,"original"))>1){
+            if("XXtimeXX" %in% names(newdata)){
+                stop("Argument \'newdata\' should not contain a column called \"XXtimeXX\". \n")
+            }
+            
+            out$XXtimeXX <- interaction(out[,attr(time.var,"original")])
+            out <- stats::reshape(data = out[,union(add.col,c(value.var, attr(cluster.var,"original"), "XXtimeXX")),drop=FALSE], 
+                                  direction = "wide", timevar = "XXtimeXX", idvar = attr(cluster.var,"original"), v.names = value.var)
+        }else{
+            out <- stats::reshape(data = out[,union(add.col,c(attr(time.var,"original"), attr(cluster.var,"original"), value.var)),drop=FALSE], 
+                                  direction = "wide", timevar = attr(time.var,"original"), idvar = attr(cluster.var,"original"), v.names = value.var)
+        }
     }
 
     ## ** export

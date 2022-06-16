@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: May 31 2022 (20:57) 
+## Last-Updated: Jun  2 2022 (17:10) 
 ##           By: Brice Ozenne
-##     Update #: 179
+##     Update #: 181
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -58,7 +58,7 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
     if(is.null(time.var)){
         time.var.plot <- "XXtimeXX" ## nice as it sure to be a categorical variable
 
-        if(!is.null(attr(object$time$var,"original")) && !is.na(attr(object$time$var,"original"))){
+        if(!is.null(attr(object$time$var,"original")) && all(!is.na(attr(object$time$var,"original")))){
             xlabel.plot <- attr(object$time$var,"original")
         }else{
             xlabel.plot <- ""
@@ -218,7 +218,7 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
     }
     gg  <- gg + ggplot2::ylab(outcome.var) + ggplot2::theme(text = ggplot2::element_text(size=size.text))
     if(!is.null(time.var.plot) && any(!is.na(time.var.plot))){
-        gg  <- gg + ggplot2::xlab(paste(stats::na.omit(xlabel.plot), collapse = " "))
+        gg  <- gg + ggplot2::xlab(paste(stats::na.omit(xlabel.plot), collapse = ", "))
     }
 
 
