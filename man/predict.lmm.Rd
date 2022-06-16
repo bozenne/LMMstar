@@ -7,6 +7,7 @@
 \method{predict}{lmm}(
   object,
   newdata,
+  p = NULL,
   se = "estimation",
   df = !is.null(object$df),
   type = "static",
@@ -20,6 +21,8 @@
 \item{object}{a \code{lmm} object.}
 
 \item{newdata}{[data.frame] the covariate values for each cluster.}
+
+\item{p}{[numeric vector] value of the model coefficients at which to evaluate the predictions. Only relevant if differs from the fitted values.}
 
 \item{se}{[character] Type of uncertainty to be accounted for: estimation of the regression parameters (\code{"estimation"}), residual variance (\code{"residual"}), or both (\code{"total"}).
 Can also be \code{NULL} to not compute standard error, p-values, and confidence intervals.}

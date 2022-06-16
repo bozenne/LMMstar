@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: Jun  2 2022 (11:44) 
+## Last-Updated: jun 13 2022 (17:27) 
 ##           By: Brice Ozenne
-##     Update #: 664
+##     Update #: 674
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,6 +21,7 @@
 ##'
 ##' @param object a \code{lmm} object.
 ##' @param newdata [data.frame] the covariate values for each cluster.
+##' @param p [numeric vector] value of the model coefficients at which to evaluate the predictions. Only relevant if differs from the fitted values.
 ##' @param level [numeric,0-1] the confidence level of the confidence intervals.
 ##' @param se [character] Type of uncertainty to be accounted for: estimation of the regression parameters (\code{"estimation"}), residual variance (\code{"residual"}), or both (\code{"total"}).
 ##' Can also be \code{NULL} to not compute standard error, p-values, and confidence intervals.
@@ -72,7 +73,7 @@
 
 ## * predict.lmm (code)
 ##' @export
-predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object$df), type = "static",
+predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.null(object$df), type = "static",
                         level = 0.95, keep.newdata = FALSE, se.fit, ...){
     
     ## ** extract from object
@@ -81,14 +82,11 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
     U.time <- object$time$levels
     name.time <- attr(object$time$var,"original")
     name.cluster <- attr(object$cluster$var,"original")
+    object.mean <- object$design$mean
 
     table.param <- object$design$param
-    mu <- coef(object, effects = "mean")
-    param.mu <- names(mu)
-    vcov.mu <- vcov(object, effects = "mean")
-    theta <- coef(object, effects = "all")
-    name.theta <- names(theta)
-    vcov.theta <- vcov(object, effects = "all")
+    name.mu <- table.param$name[table.param$type=="mu"]
+    name.theta <- table.param$name
 
     ## ** normalize user imput
     dots <- list(...)    
@@ -192,6 +190,27 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
         stop("Argument \'newdata\' should not contain a column named \"estimate\", \"se\", \"lower\", \"upper\", or \"df\" as those names are used internally. \n")
     }
 
+    ## p
+    if(!is.null(p) && any(name.theta %in% names(p) == FALSE)){
+        stop("Incorrect argument \'p\' - it should be a vector with names containing all parameters. \n",
+             "Missing parameter(s): \"",paste(name.theta[name.theta %in% names(p) == FALSE], collapse ="\" \""),"\"")
+    }
+
+
+    ## ** parameters
+    if(is.null(p)){
+        mu <- coef(object, effects = "mean")
+        vcov.mu <- vcov(object, effects = "mean")
+        theta <- coef(object, effects = "all")
+        vcov.theta <- vcov(object, effects = "all")
+    }else{
+        theta <- p
+        vcov.theta <- vcov(object, p = p, effects = "all")
+        mu <- p[name.mu]
+        vcov.mu <- vcov(object, p = p, effects = "mean")
+    }
+
+
     ## ** design matrix
     X <- stats::model.matrix(object, data = newdata, effects = "mean")
     if(!keep.intercept && "(Intercept)" %in% colnames(X)){
@@ -201,21 +220,21 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
 
     ## ** terms        
     if(type.prediction == "terms"){
-        Xmean <- colMeans(object$design$mean)
+        Xmean <- colMeans(object.mean)
         Xc <- sweep(X, FUN = "-", MARGIN = 2, STATS = Xmean)
         Xcmu <- sweep(Xc, FUN = "*", MARGIN = 2,  STATS = mu)
 
-            index.n0 <- which(attr(object$design$mean,"assign")!=0)
+            index.n0 <- which(attr(object.mean,"assign")!=0)
             if(length(index.n0)==0){
                 Xterm <- matrix(nrow = NROW(newdata), ncol = 0)
             }else{
-                Xterm <- do.call(cbind,tapply(index.n0,attr(object$design$mean,"assign")[index.n0],function(iCol){
+                Xterm <- do.call(cbind,tapply(index.n0,attr(object.mean,"assign")[index.n0],function(iCol){
                     list(rowSums(Xcmu[,iCol,drop=FALSE]))
                 }))
-                colnames(Xterm) <- attr(object$design$mean,"variable")                
+                colnames(Xterm) <- attr(object.mean,"variable")                
             }
 
-        if(any(attr(object$design$mean,"assign")==0)){
+        if(any(attr(object.mean,"assign")==0)){
             attr(Xterm, "constant") <- sum(Xmean*mu)
         }
         return(Xterm)
@@ -312,8 +331,8 @@ predict.lmm <- function(object, newdata, se = "estimation", df = !is.null(object
                 if(factor.estimation){
                     calcPred <- function(x){ ## x <- theta 
                         OO <- stats::sigma(object, p = x, cluster = iNewdata, simplifies = TRUE)
-                        rr <- solve(OO[iLevels.con,iLevels.con,drop=FALSE]) %*% (iY - iX.con %*% x[param.mu])
-                        pp <- iX.pred %*% x[param.mu] + OO[iLevels.pred,iLevels.con,drop=FALSE] %*% rr
+                        rr <- solve(OO[iLevels.con,iLevels.con,drop=FALSE]) %*% (iY - iX.con %*% x[name.mu])
+                        pp <- iX.pred %*% x[name.mu] + OO[iLevels.pred,iLevels.con,drop=FALSE] %*% rr
                         return(pp)
                     }
                     ## calcPred(theta)

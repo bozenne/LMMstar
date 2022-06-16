@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Dec 19 2021 (17:07) 
 ## Version: 
-## Last-Updated: Jun  2 2022 (11:35) 
+## Last-Updated: jun 13 2022 (14:05) 
 ##           By: Brice Ozenne
-##     Update #: 14
+##     Update #: 20
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -171,6 +171,56 @@ test_that("lmm - ttest", {
     expect_equivalent(as.double(GS$estimate),
                       as.double(c(coef(e052.lmm2)["week52"], coef(e052.lmm2)["week52"] + coef(e052.lmm2)["treat.fActive:week52"])),
                       tol = 1e-6)
+})
+
+## * Predict function
+test_that("lmm - predict", {
+    if(test.practical==FALSE){skip('Not run to save time in the check')}
+
+    subject.NNA <- armd.wide$subject[rowSums(is.na(armd.wide))==0]
+
+    armd.longR <- armd.long[armd.long$subject %in% subject.NNA,]
+    armd.wideR <- armd.wide[armd.wide$subject %in% subject.NNA,]
+
+    e.UN <- lmm(visual~0+week:treat.f, data = armd.longR,
+                repetition = ~week|subject, control = list(optimizer = "FS"))
+    e.SUN <- lmm(visual~0+week:treat.f, data = armd.longR,
+                 repetition = treat.f~week|subject, control = list(optimizer = "FS"))
+    e.ANCOVA <- lm(visual52 ~ visual0 + treat.f, data = armd.wideR)
+
+    ## counterfactual dataset
+    armd.longRpl <- armd.longR[armd.longR$week %in% c(0,52),c("subject","week","treat.f","visual")]
+    armd.longRpl$treat.f[] <- "Placebo"
+    armd.longRpl$visual[armd.longRpl$week != 0] <- NA
+    armd.longRa <- armd.longR[armd.longR$week %in% c(0,52),c("subject","week","treat.f","visual")]
+    armd.longRa$treat.f[] <- "Active"
+    armd.longRa$visual[armd.longRa$week != 0] <- NA
+
+    ## ANCOVA with homogenous variance/correlation
+    pred.longRpl <- predict(e.UN, newdata = armd.longRpl, type = "dynamic", se = FALSE)
+    pred.longRa <- predict(e.UN, newdata = armd.longRa, type = "dynamic", se = FALSE)
+
+    expect_equal(as.double(coef(e.ANCOVA)["treat.fActive"]), as.double(mean(pred.longRa$estimate - pred.longRpl$estimate)), tol = 1e-5)
+
+    ## lava::estimate(e.UN, function(p){
+    ##     pred.longRpl <- predict(e.UN, p = p, newdata = armd.longRpl, type = "dynamic", se = FALSE)
+    ##     pred.longRa <- predict(e.UN, p = p, newdata = armd.longRa, type = "dynamic", se = FALSE)
+    ##     pred.longRa[,1] - pred.longRpl[,1]
+    ## }, method.numDeriv = "simple", average = TRUE)
+
+    ## ANCOVA with heterogenous variance/correlation
+    pred.longRpl <- predict(e.SUN, newdata = armd.longRpl, type = "dynamic", se = FALSE)
+    pred.longRa <- predict(e.SUN, newdata = armd.longRa, type = "dynamic", se = FALSE)
+
+    expect_equal(-4.3300289,mean(pred.longRa$estimate - pred.longRpl$estimate), tol = 1e-5)
+
+    ## lava::estimate(e.SUN, function(p){
+    ##     pred.longRpl <- predict(e.SUN, p = p, newdata = armd.longRpl, type = "dynamic", se = FALSE)
+    ##     pred.longRa <- predict(e.SUN, p = p, newdata = armd.longRa, type = "dynamic", se = FALSE)
+    ##     pred.longRa[,1] - pred.longRpl[,1]
+    ## }, method.numDeriv = "simple", average = TRUE)
+
+
 })
 ##----------------------------------------------------------------------
 ### test-manual-armd.R ends here

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: jun  1 2022 (14:51) 
+## Last-Updated: jun 13 2022 (16:51) 
 ##           By: Brice Ozenne
-##     Update #: 686
+##     Update #: 695
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,6 +25,8 @@
 ##' @param df [logical] Should degree of freedom, computed using Satterthwaite approximation, for the parameter of interest be output.
 ##' @param type.information [character] Should the expected information be used  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
 ##' @param level [numeric,0-1] the confidence level of the confidence intervals.
+##' @param method.numDeriv [character] method used to approximate the gradient: either \code{"simple"} or \code{"Richardson"}.
+##' Passed to \code{numDeriv::jacobian}.
 ##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
 ##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
 ##' @param transform.rho [character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"} - see details.
@@ -69,8 +71,13 @@
 ##' }
 ##' @export
 estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NULL, level = 0.95,
+                         method.numDeriv = NULL, average = FALSE,
                          transform.sigma = "none", transform.k = "none", transform.rho = "none", ...){
 
+
+    if(is.null(method.numDeriv)){
+        method.numDeriv <- LMMstar.options()$method.numDeriv
+    }
     
     ## estimate
     beta <- coef(x, effects = "all", transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
@@ -78,11 +85,24 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
     ## partial derivative
     f.formals <- names(formals(f))
     if(length(f.formals)==1){
-        fbeta <- f(beta)
-        grad <- numDeriv::jacobian(func = f, x = beta)
+        if(average){
+            fbeta.indiv <- f(beta) 
+            fbeta <- mean(fbeta.indiv)
+            grad <- numDeriv::jacobian(func = function(x){mean(f(x))}, x = beta, method = method.numDeriv)
+        }else{
+            fbeta <- f(beta)
+            grad <- numDeriv::jacobian(func = f, x = beta, method = method.numDeriv)
+        }
+        
     }else{
-        fbeta <- f(beta, ...)
-        grad <- numDeriv::jacobian(func = f, x = beta, ...)
+        if(average){
+            fbeta.indiv <- f(beta, ...)
+            fbeta <- mean(fbeta.indiv)
+            grad <- numDeriv::jacobian(func = function(x, ...){mean(f(x, ...))}, x = beta, method = method.numDeriv)
+        }else{
+            fbeta <- f(beta, ...)
+            grad <- numDeriv::jacobian(func = f, x = beta, method = method.numDeriv, ...)
+        }
     }
 
     ## extract variance-covariance
@@ -91,7 +111,6 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
 
     ## ** delta-method
     C.Sigma.C <- grad %*% Sigma %*% t(grad)
-    C.sigma.C <- sqrt(diag(C.Sigma.C))
 
     ## second order?
     ## g(\thetahat) = g(\theta) + (\thetahat-\theta)grad + 0.5(\thetahat-\theta)lap(\thetahat-\theta) + ...
@@ -101,6 +120,11 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
     
     ## lap <- numDeriv::hessian(func = f, x = beta) ## laplacian
     ## 2 * sum(diag(Sigma %*% lap %*% Sigma %*% lap))
+    if(average){
+        C.sigma.C <- sqrt(diag(C.Sigma.C) + sum((fbeta.indiv - fbeta)^2)/(length(fbeta.indiv)-1))
+    }else{
+        C.sigma.C <- sqrt(diag(C.Sigma.C))
+    }
     
     ## df 
     if(!is.null(attr(Sigma, "dVcov"))){

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Jun  2 2022 (11:57) 
+## Last-Updated: jun 16 2022 (14:51) 
 ##           By: Brice Ozenne
-##     Update #: 2259
+##     Update #: 2297
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -123,7 +123,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             ## convert to factor with the right levels
             if(length(ff.factor)>0){
                 for(iVar in ff.factor){ ## iVar <- ff.factor[1]
-                    iLevel <- unique(c(object$xfactor$var[[iVar]],object$xfactor$cor[[iVar]]))
+                    iLevel <- unique(c(object$xfactor$var[[iVar]],object$xfactor$cor[[iVar]]))                    
                     if(any(data[[iVar]] %in% iLevel == FALSE)){
                         Wf <- setdiff(unique(data[[iVar]]), iLevel)
                         stop("Unknown factor(s) \"",paste0(Wf,collapse="\" \""),"\" for variable \"",iVar,"\".\n",
@@ -142,7 +142,6 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
                 ## add cluster if no time repetition
                 data.var[[cluster.var]] <- object$cluster$levels[1]
             }
-
             ## necessary to add the cluster index/time index/strata index
             data.var <- .prepareData(data.var,
                                      var.cluster = cluster.var,
@@ -227,7 +226,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         ## *** generate design matrix for each strata
         ls.X.mean <- lapply(U.strata, function(iS){ ## iS <- U.strata[1]
             if(is.null(colnames)){
-                iX <- .model.matrix_regularize(formula, data[data$XXstrataXX==iS,,drop=FALSE])
+                iX <- .model.matrix_regularize(formula, data = data[data$XXstrataXX==iS,,drop=FALSE], type = "mean")
             }else{
                 iX <- stats::model.matrix(formula, data[data$XXstrataXX==iS,,drop=FALSE])
             }
@@ -260,7 +259,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         }
     }else{
         if(is.null(colnames)){
-            X.mean <- .model.matrix_regularize(formula, data)
+            X.mean <- .model.matrix_regularize(formula, data = data, type = "mean")
             strata.mu <- stats::setNames(rep(U.strata,NCOL(X.mean)), colnames(X.mean))
         }else{
             X.mean <-  stats::model.matrix(formula, data)[,colnames,drop=FALSE]
@@ -350,10 +349,10 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     ## ** design matrix
     out <- list(var = NULL, cor = NULL, xfactor = list(var = NULL, cor = NULL))
     if(is.null(structure$param)){ ## structure
-        out$var <- .colnameOrder(.model.matrix_regularize(formula.var, data = dataVar, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
+        out$var <- .colnameOrder(.model.matrix_regularize(formula.var, data = dataVar, augmodel = TRUE, type = "variance"), strata.var = strata.var, n.strata = n.strata)
         out$xfactor$var <- stats::.getXlevels(stats::terms(formula.var),stats::model.frame(formula.var,dataVar))
         if(!is.null(formula.cor) && n.time>1 && any(sapply(index.cluster,length)>1)){  ## at least one individual with more than timepoint
-            out$cor <- .colnameOrder(.model.matrix_regularize(formula.cor, data = dataCor, augmodel = TRUE), strata.var = strata.var, n.strata = n.strata)
+            out$cor <- .colnameOrder(.model.matrix_regularize(formula.cor, data = dataCor, augmodel = TRUE, type = "correlation"), strata.var = strata.var, n.strata = n.strata)
             out$xfactor$cor <- stats::.getXlevels(stats::terms(formula.cor),stats::model.frame(formula.cor,dataCor)) 
         }
     }else{ ## newdata        
@@ -536,7 +535,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 ## * helpers
 ## ** .model.matrix_regularize
 ## remove un-identifiable columns from the design matrix 
-.model.matrix_regularize <- function(formula, data, augmodel = FALSE){
+.model.matrix_regularize <- function(formula, data, augmodel = FALSE, type){
 
     ## ## ** test 0: remove variable(s) with single level in the formula
     test.1value <- sapply(all.vars(formula),function(iVar){length(unique(data[[iVar]]))})
@@ -558,7 +557,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         }
     }else{
         if(LMMstar.options()$drop.X==FALSE){
-            stop("The design matrix does not have full rank according to the QR decomposition. \n")
+            stop("The design matrix for the ",type," structure does not have full rank according to the QR decomposition. \n", sep = "")
         }
     }
     ## ** prepare
@@ -578,7 +577,9 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         test.factor <- sapply(name.factor, function(iVar){all(levels(data[[iVar]]) %in% data[[iVar]])})
         if(any(test.factor==FALSE)){
             message("Factor variable(s) with empty level: \"",paste(name.factor[test.factor==FALSE], collapse = "\" \""),"\"\n ",
-                    "The empty level(s) will be remove internally. Consider applying droplevels to avoid this warning. \n")
+                    "The empty level(s) will be remove internally for the ",type," structure.\n",
+                    "Consider applying droplevels to avoid this warning. \n",
+                    sep = "")
             factor.drop <- name.factor[test.factor==FALSE]
             for(iFactor in factor.drop){
                 data[[iFactor]] <- droplevels(data[[iFactor]])
@@ -640,11 +641,11 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         test.keep <- colnames(X.old) %in% setdiff(colnames(X.old),rmX)
         X <- X.old[,test.keep,drop=FALSE]
         if(qr(X)$rank==X.qr$rank){
-            message("Constant values in the design matrix in interactions \"",paste(names(ls.rmX), collapse = "\" \""),"\"\n ",
-                    "Coefficients \"",paste(unique(rmX), collapse = "\" \""),"\" have been removed. \n")
+            message("Constant values in the design matrix for the ",type," structure.\n",
+                    "Coefficients \"",paste(unique(rmX), collapse = "\" \""),"\" relative to interactions \"",paste(names(ls.rmX), collapse = "\" \""),"\" have been removed. \n", sep = "")
         }else{
-            warning("Constant values in the design matrix in interactions \"",paste(names(ls.rmX), collapse = "\" \""),"\"\n ",
-                    "Coefficients \"",paste(rmX, collapse = "\" \""),"\" have been removed. \n")
+            warning("Constant values in the design matrix for the ",type," structure.\n",
+                    "Coefficients \"",paste(unique(rmX), collapse = "\" \""),"\" relative to interactions \"",paste(names(ls.rmX), collapse = "\" \""),"\" have been removed. \n", sep = "")
         }
         attr(X,"assign") <- attr(X.old,"assign")[test.keep] ## as.numeric(as.factor(attr(X.old,"assign")[test.keep])) - "(Intercept)" %in% colnames(X)
         attr(X,"contrasts") <- attr(X.old,"contrasts")
@@ -693,7 +694,8 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         if(NCOL(X)==X.qr$rank){break}
     }
     if(length(rmX)>0){
-        message("Singular design matrix, coefficient",if(length(rmX)>1){"s"}," \"",paste(rmX, collapse = "\" \""),"\" has been removed. \n")
+        message("Design matrix for the ",type," structure is singular. \n",
+                "Coefficient",if(length(rmX)>1){"s"}," \"",paste(rmX, collapse = "\" \""),"\" has been removed. \n")
     } else if(!augmodel){
         attr(X,"formula") <- NULL
         attr(X,"term.labels") <- NULL
@@ -832,6 +834,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     cluster.var <- structure$name$cluster
     strata.var <- structure$name$strata
 
+    ## *** find unique levels
     U.cluster <- sort(unique(data[[cluster.var]]))
     U.time <- sort(unique(data[[time.var]]))
     if(!is.na(strata.var)){

@@ -11,6 +11,8 @@
   robust = FALSE,
   type.information = NULL,
   level = 0.95,
+  method.numDeriv = NULL,
+  average = FALSE,
   transform.sigma = "none",
   transform.k = "none",
   transform.rho = "none",
@@ -29,6 +31,9 @@
 \item{type.information}{[character] Should the expected information be used  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).}
 
 \item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
+
+\item{method.numDeriv}{[character] method used to approximate the gradient: either \code{"simple"} or \code{"Richardson"}.
+Passed to \code{numDeriv::jacobian}.}
 
 \item{transform.sigma}{[character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.}
 

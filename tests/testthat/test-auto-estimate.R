@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 31 2022 (11:36) 
 ## Version: 
-## Last-Updated: maj 30 2022 (09:17) 
+## Last-Updated: jun 13 2022 (13:26) 
 ##           By: Brice Ozenne
-##     Update #: 64
+##     Update #: 65
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -122,7 +122,6 @@ test_that("delta method for association based on residual variance", {
                        "p.value" = c(0.22461774, 0.62798535))
     expect_equal(as.double(unlist(test)), as.double(unlist(e.deltaANCOVA2)), tol = 1e-5)
 })
-
 
 ## * Association between the changes
 e.lm <- lm(dY~dX, data = d)
