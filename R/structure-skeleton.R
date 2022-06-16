@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: jun  1 2022 (16:22) 
+## Last-Updated: jun 16 2022 (14:51) 
 ##           By: Brice Ozenne
-##     Update #: 2148
+##     Update #: 2189
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -352,15 +352,15 @@
 
         ## **** find unique linear predictor values within cluster
         iULpIndex.cor <- stats::setNames(vector(mode = "list", length = length(iCluster)), iCluster)
-        iULpCluster.cor <- stats::setNames(lapply(iCluster, function(iId){ ## iId <- iCluster[1]
+        iULpCluster.cor <- stats::setNames(lapply(iCluster, function(iId){ ## iId <- iCluster[2]
             ## unique levels
             iTest <- which(!duplicated(iLpnCluster.cor[[iId]]))
             iCode <- iLpnCluster.cor[[iId]][iTest]
             ## add duplicates
             if(length(iTest)>1 && length(iLpnCluster.cor[[iId]])>length(iTest)){
                 iTest2 <- (1:length(iLpnCluster.cor[[iId]]))[-iTest][which(!duplicated(iLpnCluster.cor[[iId]][-iTest]))]
-                iCode <- c(iCode,iLpnCluster.cor[[iId]][iTest2])
-                iTest <- c(iTest,iTest2)
+                iTest <- sort(c(iTest,iTest2))
+                iCode <- iLpnCluster.cor[[iId]][iTest]
             }
             fct.envir$iULpIndex.cor[[iId]] <- sort(iTest)
             return(iCode)
@@ -377,7 +377,6 @@
         
         ## **** contrast all pairs
         for(iC in iCluster2){ ## iC <- iCluster2[1]
-
             iCindex  <- index.cluster[[iC]][iULpIndex.cor[[iC]]]
             iCX.cor <- X.cor[iCindex,,drop=FALSE]
             iData <- data[iCindex,,drop=FALSE]
@@ -432,9 +431,22 @@
                     
             }else{ ## DIFFERENT LINEAR PREDICTORS WITHIN CLUSTER
                 iPair.time <- ls.pair[[NROW(iCX.cor)]]
+                iM <- matrix(lpnCluster.cor[[iC]][iULpIndex.cor[[iC]]][iPair.time], ncol = 2, byrow = TRUE, dimnames = list(NULL, c("x","y")))
+                
                 iDF.diff <- as.data.frame(do.call(rbind,lapply(1:NCOL(iPair.time),function(iCol){ ## iCol <- 1
-                    iCX.cor1 <- iCX.cor[min(iPair.time[,iCol]),,drop=FALSE]
-                    iCX.cor2 <- iCX.cor[max(iPair.time[,iCol]),,drop=FALSE]
+
+                    if(iM[iCol,"x"] < iM[iCol,"y"]){
+                        ## make sure same correlation coefficient for (X=1,X=0) and (X=0,X=1)
+                        iCX.cor1 <- iCX.cor[iPair.time[1,iCol],,drop=FALSE]
+                        iCX.cor2 <- iCX.cor[iPair.time[2,iCol],,drop=FALSE]
+                    }else if(iM[iCol,"x"] > iM[iCol,"y"]){
+                        ## make sure same correlation coefficient for (X=1,X=0) and (X=0,X=1)
+                        iCX.cor1 <- iCX.cor[iPair.time[2,iCol],,drop=FALSE]
+                        iCX.cor2 <- iCX.cor[iPair.time[1,iCol],,drop=FALSE]
+                    }else{
+                        iCX.cor1 <- iCX.cor[min(iPair.time[,iCol]),,drop=FALSE]
+                        iCX.cor2 <- iCX.cor[max(iPair.time[,iCol]),,drop=FALSE]
+                    }
                     if(heterogeneous){
                         if(all(iCX.cor1==iCX.cor2)){return(cbind("R",iCX.cor1))}else{return(cbind(paste0("D",paste(iCX.cor1,collapse="")),iCX.cor2-iCX.cor1))}
                     }else{
@@ -456,7 +468,6 @@
                     iLevel <- paste0(iLevel,":",U.strata[iStrata])
                 }
                 iName <- paste0("rho",iLevel)
-                iM <- matrix(lpnCluster.cor[[iC]][iULpIndex.cor[[iC]]][iPair.time], ncol = 2, byrow = TRUE, dimnames = list(NULL, c("x","y")))
 
                 index.unique <- which(!duplicated(cbind(iCode, iM)))
                 iOut <- data.frame(lp.x = iM[index.unique,"x"],
@@ -476,7 +487,6 @@
                     if(length(iX.k)>0){
                         iCX.k <- iX.k[iCindex,,drop=FALSE]
                         iNames.k <- colnames(iCX.k)
-
                         iName2 <- sapply(index.unique,function(iCol){ ## iCol <- 4
                             iName.x <- iNames.k[which(iCX.k[min(iPair.time[,iCol]),]==1)]
                             if(length(iName.x)==0){iName.x <- NA}

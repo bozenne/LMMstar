@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: May 30 2022 (22:46) 
+## Last-Updated: jun 16 2022 (15:03) 
 ##           By: Brice Ozenne
-##     Update #: 714
+##     Update #: 735
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -147,7 +147,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
 
     arg.transform.sigma <- attr(transform.sigma,"arg")
     arg.transform.k <- attr(transform.k,"arg")
-    
+
     if(transform.rho %in% "cov" && any("rho" %in% type)){
         transform.sigma <- "square"
         transform.k <- "var"
@@ -207,8 +207,13 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
             level.sigma <- sapply(level,"[[",1)
         }else{
             level.sigma <- stats::setNames(rep(NA,n.p),name.p)
+            pos.column <- which(grepl(":",name.p,fixed=TRUE))
+            if(length(pos.column)>1){ ## add strata
+                level.sigma[pos.column] <- sapply(strsplit(name.p[pos.column],":", fixed = TRUE), function(iString){
+                    paste(c(":",iString[-1]),collapse="")
+                })
+            }
         }
-
         out <- transform.sigma(p = p, out = out,
                                index = index.sigma,
                                level = level.sigma, type = "sigma",

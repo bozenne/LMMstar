@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Jun  2 2022 (11:28) 
+## Last-Updated: jun 16 2022 (14:45) 
 ##           By: Brice Ozenne
-##     Update #: 1957
+##     Update #: 1968
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -295,7 +295,8 @@ lmm <- function(formula, repetition, structure, data,
     }
     U.time <- levels(data$XXtimeXX)
     if(length(var.time)>0){
-        attr(U.time,"original") <- data[!duplicated(data[["XXtimeXX"]]), var.time,drop=FALSE]
+        ls.timeOriginal <- by(data[,var.time,drop=FALSE],data$XXtimeXX,function(iDF){iDF[1,,drop=FALSE]}, simplify = FALSE)
+        attr(U.time,"original") <- do.call(rbind,ls.timeOriginal)
     }
     n.time <- length(U.time)
     out$time <- list(n = n.time, levels = U.time, var = var.time)
@@ -541,6 +542,20 @@ lmm <- function(formula, repetition, structure, data,
     out$formula$var.design <- structure$formula$var
     out$formula$cor.design <- structure$formula$cor
     var.Z <- c(all.vars(out$formula$var.design),all.vars(out$formula$cor.design))
+
+    if(!identical(structure$name$var[[1]], NA) && any(structure$name$var[[1]] %in% names(data) == FALSE)){
+        invalid <- structure$name$var[[1]][structure$name$var[[1]] %in% names(data) == FALSE]
+        stop("Variance structure inconsistent with argument \'data\'. \n",
+             "Variable(s) \"",paste(invalid, collapse = "\" \""),"\" could not be found in the dataset. \n",
+             sep = "")
+    }
+    if(!identical(structure$name$cor[[1]], NA) && any(structure$name$cor[[1]] %in% names(data) == FALSE)){
+        invalid <- structure$name$cor[[1]][structure$name$cor[[1]] %in% names(data) == FALSE]
+        stop("Correlation structure inconsistent with argument \'data\'. \n",
+             "Variable(s) \"",paste(invalid, collapse = "\" \""),"\" could not be found in the dataset. \n",
+             sep = "")
+    }
+
     if(trace>=2){cat("\n")}
 
     ## *** missing values
@@ -895,7 +910,7 @@ lmm <- function(formula, repetition, structure, data,
         }
     }
     data$XXtime.indexXX <- as.numeric(data$XXtimeXX)
-    
+
     ## ** strata
     if(length(var.strata)>1){
         ## create new variable summarizing all variables

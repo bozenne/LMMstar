@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: May 27 2022 (00:18) 
+## Last-Updated: jun 16 2022 (14:40) 
 ##           By: Brice Ozenne
-##     Update #: 541
+##     Update #: 545
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -193,7 +193,7 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
     if(any(c("variance","correlation") %in% effects2)){
         pVar <- NULL
         if("variance" %in% effects2){
-            if(test.notransform){
+            if(test.notransform){                
                 index.sigmak <- names(param.type)[param.type %in% c("sigma","k")]
                 if(transform.names && !is.null(object.reparametrize.newname)){
                     pVar <- c(pVar, stats::setNames(reparametrize.p[index.sigmak],object.reparametrize.newname[match(index.sigmak,names(reparametrize.p))]))
