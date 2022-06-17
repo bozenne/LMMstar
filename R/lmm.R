@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Jun 16 2022 (23:19) 
+## Last-Updated: Jun 16 2022 (23:35) 
 ##           By: Brice Ozenne
-##     Update #: 1969
+##     Update #: 1973
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -741,7 +741,7 @@ lmm <- function(formula, repetition, structure, data,
                                  precompute.moments = precompute.moments, 
                                  optimizer = optimizer, init = control$init, n.iter = control$n.iter, tol.score = control$tol.score, tol.param = control$tol.param, trace = control$trace)
         param.value <- outEstimate$estimate
-        out$opt <- c(name = optimizer, outEstimate[c("cv","n.iter","score","previous.estimate")])
+        out$opt <- c(name = optimizer, outEstimate[c("cv","n.iter","score","previous.estimate","n.iter.max","tol.score","tol.param")])
         
         if(out$opt$cv==FALSE){
             warning("Convergence issue: no stable solution has been found. \n")

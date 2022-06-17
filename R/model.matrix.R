@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: jun 16 2022 (14:51) 
+## Last-Updated: Jun 17 2022 (06:23) 
 ##           By: Brice Ozenne
-##     Update #: 2297
+##     Update #: 2299
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -491,7 +491,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
                                        k.x = NA,
                                        k.y = NA),
                             structure$param)
-
+    skeleton.param$fixed <- FALSE
     if(stratify.mean){
         skeleton.param$strata[skeleton.param$type=="mu"] <- strata.mu
         skeleton.param$strata <- as.list(skeleton.param$strata)
