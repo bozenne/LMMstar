@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Jun 17 2022 (06:23) 
+## Last-Updated: jun 20 2022 (16:49) 
 ##           By: Brice Ozenne
-##     Update #: 2299
+##     Update #: 2303
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -429,6 +429,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         precompute.XX <-  .precomputeXX(X = wX.mean, pattern = structure$X$Upattern$name, 
                                         pattern.ntime = stats::setNames(structure$X$Upattern$n.time, structure$X$Upattern$name),
                                         pattern.cluster = structure$X$Upattern$index.cluster, index.cluster = index.cluster)
+
         precompute.XY <-  .precomputeXR(X = precompute.XX$Xpattern, residuals = wY, pattern = structure$X$Upattern$name,
                                         pattern.ntime = stats::setNames(structure$X$Upattern$n.time, structure$X$Upattern$name),
                                         pattern.cluster = structure$X$Upattern$index.cluster, index.cluster = index.cluster)

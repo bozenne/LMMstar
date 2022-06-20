@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: Jun 17 2022 (11:28) 
+## Last-Updated: jun 20 2022 (17:52) 
 ##           By: Brice Ozenne
-##     Update #: 750
+##     Update #: 784
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,6 +25,8 @@
 ##' @param df [logical] Should degree of freedom, computed using Satterthwaite approximation, for the parameter of interest be output.
 ##' @param type.information [character] Should the expected information be used  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
 ##' @param level [numeric,0-1] the confidence level of the confidence intervals.
+##' @param average [logical] is the estimand the average output of argument \code{f}?
+##' Otherwise consider each individual output of argument \code{f}.
 ##' @param method.numDeriv [character] method used to approximate the gradient: either \code{"simple"} or \code{"Richardson"}.
 ##' Passed to \code{numDeriv::jacobian}.
 ##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
@@ -220,16 +222,28 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
     param.Omega <- c(param.sigma,param.k,param.rho)
     param.name <- c(param.mu,param.Omega)
 
-    param.Omega2 <- setdiff(param.Omega,design$param[design$param$fixed,"name"])
-    param.mu2 <- setdiff(param.mu,design$param[design$param$fixed,"name"])
+    param.fixed <- design$param[design$param$fixed,"name"]
+    param.Omega2 <- setdiff(param.Omega,param.fixed)
+    param.mu2 <- setdiff(param.mu,param.fixed)
+    param.fixed.mu <- setdiff(param.mu,param.mu2)
     design.param2 <- design$param[match(param.Omega2, design$param$name),,drop=FALSE]
     
     n.param <- length(param.name)
     Upattern <- design$vcov$X$Upattern
     n.Upattern <- NROW(Upattern)
-    precompute.XY <- design$precompute.XY
-    precompute.XX <- design$precompute.XX$pattern
-    key.XX <- design$precompute.XX$key
+
+    if(length(param.fixed.mu)>0){
+        key.XX <- design$precompute.XX$key[param.mu2,param.mu2]
+        index.precompute <- unique(as.double(design$precompute.XX$key[param.mu2,param.mu2]))
+        key.XX[] <- stats::setNames(1:length(index.precompute),index.precompute)[as.character(design$precompute.XX$key[param.mu2,param.mu2])]
+        precompute.XY <- lapply(design$precompute.XY, function(iX){iX[,,param.mu2,drop=FALSE]})
+        precompute.XX <- lapply(design$precompute.XX$pattern, function(iX){iX[,,index.precompute,drop=FALSE]})
+    }else{
+        precompute.XY <- design$precompute.XY
+        precompute.XX <- design$precompute.XX$pattern
+        key.XX <- design$precompute.XX$key
+    }
+    
     effects <- c("variance","correlation")
 
     ## ** intialization
@@ -245,7 +259,7 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
             diag(1, nrow = Upattern[iPattern,"n.time"], ncol = Upattern[iPattern,"n.time"])
         }), Upattern$name)
         param.value[param.mu] <- .estimateGLS(OmegaM1 = start.OmegaM1, pattern = Upattern$name, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX,
-                                              design = design)
+                                              design = design, param.mu = param.mu)
 
         ## vcov values
         iResiduals.long <- design$Y - design$mean %*% param.value[param.mu]
@@ -304,7 +318,6 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
             logLik.value <- outMoments$logLik    
             score.value <- outMoments$score    
             information.value <- outMoments$information
-
             ## if(iiIter==0){
             ##     test.wolfe <- c(TRUE,TRUE)
             ## }else{
@@ -364,7 +377,6 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
                                                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                                             transform.names = FALSE)$p
             }
-            
             ## *** update mean estimate
             if(length(param.mu2)>0){
                 iOmega <- .calc_Omega(object = design$vcov, param = param.value, keep.interim = TRUE)
@@ -372,7 +384,8 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
                 param.value[param.mu2] <- .estimateGLS(OmegaM1 = stats::setNames(lapply(iOmega, solve), names(iOmega)),
                                                        pattern = Upattern$name, precompute.XY = precompute.XY, precompute.XX = precompute.XX,
                                                        key.XX = key.XX,
-                                                       design = design)[param.mu2]
+                                                       design = design,
+                                                       param.mu = param.mu2)
             }
             
             ## *** display
@@ -528,16 +541,17 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
 
 ## * .estimateGLS
 ## Implement GLS estimator i.e. \beta = (tX \OmegaM1 X)^{1} tX \OmegaM1 Y
-.estimateGLS <- function(OmegaM1, pattern, precompute.XY, precompute.XX, key.XX, design){
-
-    name.param <- design$param[design$param$type=="mu","name"] ## colnames(key.XX)
+.estimateGLS <- function(OmegaM1, pattern, precompute.XY, precompute.XX, key.XX, design, param.mu){
+    name.param <- param.mu
     n.param <- length(name.param)
     numerator <- matrix(0, nrow = n.param, ncol = 1)
     denominator <- matrix(0, nrow = n.param, ncol = n.param)
+
     if(!is.null(key.XX)){
         max.key <- key.XX[n.param,n.param]
     }
 
+    precompute.XX <- NULL
     for(iPattern in pattern){ ## iPattern <- pattern[1]
         if(!is.null(precompute.XX) && !is.null(precompute.XY)){
             iVec.Omega <- as.double(OmegaM1[[iPattern]])
@@ -548,7 +562,7 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
             iOmegaM1 <- OmegaM1[[iPattern]]
             iIndexCluster <- design$index.cluster[which(design$vcov$X$pattern.cluster$pattern==iPattern)]
             for(iId in 1:length(iIndexCluster)){ ## iId <- 2
-                iX <- design$mean[iIndexCluster[[iId]],,drop=FALSE]
+                iX <- design$mean[iIndexCluster[[iId]],param.mu,drop=FALSE]
                 if(is.null(design$weight)){
                     iWeight <- 1
                 }else{
@@ -641,7 +655,8 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
             valueNEW[param.mu] <- .estimateGLS(OmegaM1 = stats::setNames(lapply(iOmega, solve), names(iOmega)),
                                                pattern = design$vcov$X$Upattern$name, precompute.XY = precompute.XY, precompute.XX = precompute.XX,
                                                key.XX = key.XX,
-                                               design = design)[param.mu]
+                                               design = design,
+                                               param.mu = param.mu)
         }
 
         ## compute moments

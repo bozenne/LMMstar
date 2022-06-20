@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 17 2022 (05:36) 
 ## Version: 
-## Last-Updated: Jun 17 2022 (11:00) 
+## Last-Updated: jun 20 2022 (14:52) 
 ##           By: Brice Ozenne
-##     Update #: 34
+##     Update #: 37
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,7 +15,7 @@
 ## 
 ### Code:
 
-constrain.lmm <- function(x, effects, trace = FALSE, init = NULL, ...){
+.constrain.lmm <- function(x, effects, trace = FALSE, init = NULL, ...){
 
     ## ** normalize user input
     dots <- list(...)
@@ -26,7 +26,7 @@ constrain.lmm <- function(x, effects, trace = FALSE, init = NULL, ...){
 
     name.effects <- names(effects)
     if(is.null(init)){
-        init <- coef(e.lmm, effects = "all")
+        init <- coef(x, effects = "all")
     }
     if(any(duplicated(name.effects))){
         stop("Incorrect argument \'effects\': contain duplicated names \"",paste(unique(name.effects[duplicated(name.effects)]), collapse = "\" \""),"\".\n")
@@ -41,7 +41,8 @@ constrain.lmm <- function(x, effects, trace = FALSE, init = NULL, ...){
     
     eee <- .estimate(design = x$design, time = x$time, method.fit = x$method.fit, type.information = x$type.information,
                      transform.sigma = x$reparametrize$transform.sigma, transform.k = x$reparametrize$transform.k, transform.rho = x$reparametrize$transform.rho,
-                     precompute.moments = "precompute.XX" %in% names(x$design), optimizer = "FS", init = init, n.iter = x$opt$control$n.iter, tol.score = x$opt$control$tol.score, tol.param = x$opt$control$tol.param, trace = trace)
+                     precompute.moments = "precompute.XX" %in% names(x$design),
+                     optimizer = "FS", init = init, n.iter = x$opt$control$n.iter, tol.score = x$opt$control$tol.score, tol.param = x$opt$control$tol.param, trace = trace)
 
     x$opt[c("cv","n.iter","score","previous.estimate")] <- eee[c("cv","n.iter","score","previous.estimate")]
     x$param <- eee$estimate

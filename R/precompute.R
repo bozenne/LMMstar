@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 22 2021 (13:47) 
 ## Version: 
-## Last-Updated: maj 17 2022 (16:39) 
+## Last-Updated: jun 20 2022 (16:48) 
 ##           By: Brice Ozenne
-##     Update #: 19
+##     Update #: 21
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -60,7 +60,7 @@
 ## Precompute design matrix times residuals
 .precomputeXR <- function(X, residuals, pattern, pattern.ntime, pattern.cluster, index.cluster){
     p <- NCOL(X[[1]])
-    name.mucoef <- colnames(X)
+    name.mucoef <- colnames(X[[1]])
     n.pattern <- length(pattern)
 
     out <- stats::setNames(lapply(pattern, function(iPattern){

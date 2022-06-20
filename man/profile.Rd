@@ -8,16 +8,20 @@
 \method{profile}{lmm}(
   fitted,
   effects = NULL,
-  maxpts = 100,
+  profile.likelihood = FALSE,
+  maxpts = NULL,
   conf.level = 0.95,
   trace = FALSE,
   plot = TRUE,
   size = c(3, 2, 1),
   linetype = 2,
   shape = 19,
-  transform.sigma = "none",
-  transform.k = "none",
-  transform.rho = "none",
+  scales = "free",
+  nrow = NULL,
+  ncol = NULL,
+  transform.sigma = NULL,
+  transform.k = NULL,
+  transform.rho = NULL,
   transform.names = TRUE,
   ...
 )
@@ -28,7 +32,7 @@
 \item{effects}{[character vector] name of the parameters for which the (restricted) log-likelihood should be evaluated.
 Alternatively can be the type of parameters, e.g. \code{"mean"}, \code{"variance"}, \code{"correlation"}, or \code{"all"}.}
 
-\item{maxpts}{[integer, >0] the number of points use to discretize the likelihood.}
+\item{maxpts}{[integer, >0] number of points use to discretize the likelihood, \code{maxpts} points smaller than the MLE and \code{maxpts} points higher than the MLE.}
 
 \item{conf.level}{[numeric, 0-1] the confidence level of the confidence intervals used to decide about the range of values for each parameter.}
 
@@ -42,6 +46,8 @@ Alternatively can be the type of parameters, e.g. \code{"mean"}, \code{"variance
 
 \item{shape}{[integer, >0] type of point used to represent the MLE.}
 
+\item{scales, nrow, ncol}{argument passed to \code{ggplot2::facet_wrap}.}
+
 \item{transform.sigma}{[character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.}
 
 \item{transform.k}{[character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.}
@@ -52,15 +58,19 @@ Alternatively can be the type of parameters, e.g. \code{"mean"}, \code{"variance
 
 \item{...}{Not used. For compatibility with the generic method.}
 }
+\value{
+A data.frame object containing the log-likelihood for various parameter values.
+When argument \code{plot} is TRUE, also contain an attribute \code{"plot"} containing a \code{ggplot} object.
+}
 \description{
-Display the (restricted) log-likelihood when varying one parameter at a time.
+Display the (restricted) log-likelihood when varying one parameter at a time around the Maximum Likelihood Estimate (MLE).
 }
 \details{
 WARNING: this differs from profile likelihood (which contrain one parameter and update the other accordingly).
 In particular, it should not be used to obtain confidence intervals.
 }
 \examples{
-data(gastricbypassW)
+data(gastricbypassW, package = "LMMstar")
 e.lmm <- lmm(weight2 ~ weight1 + glucagonAUC1, data = gastricbypassW)
 df.profile <- profile(e.lmm, effects = "all", maxpts = 10)
 df.profile <- profile(e.lmm, effects = "all", maxpts = 10, transform.sigma = "log")
