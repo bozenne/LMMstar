@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: Jun 17 2022 (10:33) 
+## Last-Updated: jun 24 2022 (10:13) 
 ##           By: Brice Ozenne
-##     Update #: 995
+##     Update #: 997
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -182,6 +182,9 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
                        dimnames = list(name.effects, name.effects)
                        )
     }    
+    if(any(is.na(attr(precision,"logdet")))){ ## non positive definite residual variance covariance
+        return(info*NA)
+    }
 
     ## restrict to relevant parameters
     if(("variance" %in% effects == FALSE) && ("correlation" %in% effects == FALSE)){ ## compute hessian only for mean parameters
@@ -486,7 +489,8 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
         if(REML){
             if(type.information=="observed"){
                 stop("Cannot compute robust observed information matrix under REML. \n",
-                     "Consider using the expected information matrix by setting the argument type.information=\"expected\" when calling lmm.\n")
+                     "Consider using ML estimation by setting the argument method.fit=\"ML\" when calling lmm \n",
+                     "or using the expected information matrix by setting the argument type.information=\"expected\" when calling lmm.\n")
             }
             effects2 <- "mean"
             attr(effects2,"original.names") <- attr(effects,"original.names")

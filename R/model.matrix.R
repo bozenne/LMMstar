@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: jun 20 2022 (16:49) 
+## Last-Updated: jun 24 2022 (15:03) 
 ##           By: Brice Ozenne
-##     Update #: 2303
+##     Update #: 2305
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -848,7 +848,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     index.cluster <- tapply(1:NROW(data),data[[cluster.var]],function(iI){iI}, simplify = FALSE)
     
     ## *** find time corresponding to each cluster
-    index.clusterTime <- tapply(data[[time.var]],data[[cluster.var]],function(iT){as.numeric(factor(iT,levels = U.time))})
+    index.clusterTime <- tapply(as.numeric(factor(data[[time.var]],levels = U.time)),data[[cluster.var]],function(iT){iT})
 
     ## *** re-order according to time
     order.clusterTime <- lapply(index.clusterTime, order)

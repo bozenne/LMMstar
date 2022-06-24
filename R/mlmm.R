@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: May 30 2022 (01:30) 
+## Last-Updated: jun 24 2022 (18:03) 
 ##           By: Brice Ozenne
-##     Update #: 51
+##     Update #: 61
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -32,7 +32,6 @@
 ##' #### univariate regression ####
 ##' if(require(lava)){
 ##' library(LMMstar)
-##' library(lava)
 ##' 
 ##' set.seed(10)
 ##' d1 <- cbind(sim(lvm(Y~0.5*X1), 25), group = "A")
@@ -112,6 +111,14 @@ mlmm <- function(..., data, by, effects = NULL, robust = FALSE, df = TRUE, ci = 
     out <- do.call("rbind.anova_lmm",
                    args = c(list(model = ls.anova[[1]], name = name.model), unname(ls.anova[-1]))
                    )
+    attr.callout <- list(df = attr(out,"df"),
+                         test = attr(out,"test"),
+                         robust = attr(out,"robust"))
+    out$call <- match.call()
+    attr(out$call,"df") <- attr.callout$df
+    attr(out$call,"test") <- attr.callout$test
+    attr(out$call,"robust") <- attr.callout$robust
+    class(out) <- append("mlmm", class(out))
     return(out)
 }
 ##----------------------------------------------------------------------

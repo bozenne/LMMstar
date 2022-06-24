@@ -13,8 +13,9 @@
   conf.level = 0.95,
   trace = FALSE,
   plot = TRUE,
-  size = c(3, 2, 1),
-  linetype = 2,
+  ci = FALSE,
+  size = c(3, 2, 1, 1),
+  linetype = c("dashed", "dashed", "dashed"),
   shape = 19,
   scales = "free",
   nrow = NULL,
@@ -29,8 +30,10 @@
 \arguments{
 \item{fitted}{a \code{lmm} object.}
 
-\item{effects}{[character vector] name of the parameters for which the (restricted) log-likelihood should be evaluated.
+\item{effects}{[character vector] name of the parameters who will be constrained.
 Alternatively can be the type of parameters, e.g. \code{"mean"}, \code{"variance"}, \code{"correlation"}, or \code{"all"}.}
+
+\item{profile.likelihood}{[logical] should profile likelihood be performed? Otherwise varying one parameter at a time around the MLE while keeping the other constant).}
 
 \item{maxpts}{[integer, >0] number of points use to discretize the likelihood, \code{maxpts} points smaller than the MLE and \code{maxpts} points higher than the MLE.}
 
@@ -40,9 +43,15 @@ Alternatively can be the type of parameters, e.g. \code{"mean"}, \code{"variance
 
 \item{plot}{[logical] Should a graphical representation of the results be provided?}
 
-\item{size}{[numeric vector of length 3] Size of the point for the MLE, the width of the line representing the likelihood, and the width of the corresponding quadratic approximation.}
+\item{ci}{[logical] Should a 95\% confidence intervals obtained from the Wald test (vertical lines) and Likelihood ratio test (horizontal line) be displayed?}
 
-\item{linetype}{[integer, >0] type of line used to represent the quadratic approximation of the likelihood.}
+\item{size}{[numeric vector of length 4] Size of the point for the MLE,
+width of the line representing the likelihood,
+width of the corresponding quadratic approximation,
+and width of the line representing the confidence intervals.}
+
+\item{linetype}{[integer vector of length 2] type of line used to represent the quadratic approximation of the likelihood
+and the confidence intervals.}
 
 \item{shape}{[integer, >0] type of point used to represent the MLE.}
 
@@ -63,15 +72,29 @@ A data.frame object containing the log-likelihood for various parameter values.
 When argument \code{plot} is TRUE, also contain an attribute \code{"plot"} containing a \code{ggplot} object.
 }
 \description{
-Display the (restricted) log-likelihood when varying one parameter at a time around the Maximum Likelihood Estimate (MLE).
+Display the (restricted) log-likelihood around Maximum Likelihood Estimate (MLE) under specific constrains.
 }
 \details{
-WARNING: this differs from profile likelihood (which contrain one parameter and update the other accordingly).
-In particular, it should not be used to obtain confidence intervals.
+Each parameter defined by the argument \code{effets} is treated separately:\itemize{
+\item the confidence interval of a parameter is discretized with \code{maxpt} points,
+\item this parameter is set to a discretization value.
+\item the other parameters are either set to the (unconstrained) MLE (\code{profile.likelihood=FALSE})
+or to constrained MLE  (\code{profile.likelihood=TRUE}). The latter case is much more computer intensive as it implies re-running the estimation procedure.
+\item the (restricted) log-likelihood is evaluated.
+}
 }
 \examples{
 data(gastricbypassW, package = "LMMstar")
-e.lmm <- lmm(weight2 ~ weight1 + glucagonAUC1, data = gastricbypassW)
-df.profile <- profile(e.lmm, effects = "all", maxpts = 10)
-df.profile <- profile(e.lmm, effects = "all", maxpts = 10, transform.sigma = "log")
+e.lmm <- lmm(weight2 ~ weight1 + glucagonAUC1,
+             data = gastricbypassW, control = list(optimizer = "FS"))
+
+## profile logLiklihood
+\dontrun{
+profile(e.lmm, effects = "all", maxpts = 10, profile.likelihood = TRUE)
+}
+
+## along a single parameter axis
+profile(e.lmm, effects = "all", maxpts = 10, transform.sigma = "none")
+profile(e.lmm, effects = "all", maxpts = 10, transform.sigma = "log")
+
 }

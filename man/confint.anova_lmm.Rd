@@ -4,7 +4,15 @@
 \alias{confint.anova_lmm}
 \title{Confidence Intervals for Multivariate Wald Tests}
 \usage{
-\method{confint}{anova_lmm}(object, parm, level = 0.95, method = NULL, simplify = TRUE, ...)
+\method{confint}{anova_lmm}(
+  object,
+  parm,
+  level = 0.95,
+  method = NULL,
+  columns = NULL,
+  simplify = TRUE,
+  ...
+)
 }
 \arguments{
 \item{object}{a \code{anova_lmm} object}
@@ -14,6 +22,9 @@
 \item{level}{[numeric, 0-1] nominal coverage of the confidence intervals.}
 
 \item{method}{[character] type of adjustment for multiple comparisons: one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}, \code{"single-step2"}.}
+
+\item{columns}{[character vector] Columns to be output.
+Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}, \code{"partial.R"}.}
 
 \item{simplify}{[logical] Return a data.frame instead of a list containing a data.frame when possible.}
 

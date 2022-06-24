@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jun  1 2022 (14:46) 
+## Last-Updated: jun 24 2022 (17:43) 
 ##           By: Brice Ozenne
-##     Update #: 108
+##     Update #: 110
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -108,13 +108,13 @@ print.lmm <- function(x, ...){
     if(x$opt$name!="gls"){
         if(!is.na(x$opt$n.iter)){
             M.print <- rbind(M.print,
-                             cbind("convergence",": ",paste0(x$opt$cv," (",x$opt$n.iter," iterations)")))
+                             cbind("convergence",": ",paste0(x$opt$cv>0," (",x$opt$n.iter," iterations)")))
         }else if(!is.null(attr(x$opt$n.iter,"eval"))){
             M.print <- rbind(M.print,
-                             cbind("convergence",": ",paste0(x$opt$cv," (evaluations: ",attr(x$opt$n.iter,"eval")["logLik"]," likelihood, ",attr(x$opt$n.iter,"eval")["score"]," score)")))
+                             cbind("convergence",": ",paste0(x$opt$cv>0," (evaluations: ",attr(x$opt$n.iter,"eval")["logLik"]," likelihood, ",attr(x$opt$n.iter,"eval")["score"]," score)")))
         }else{
             M.print <- rbind(M.print,
-                             cbind("convergence",": ",x$opt$cv))
+                             cbind("convergence",": ",x$opt$cv>0))
         }
     }
 

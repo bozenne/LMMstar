@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: May 29 2022 (22:37) 
+## Last-Updated: jun 24 2022 (15:57) 
 ##           By: Brice Ozenne
-##     Update #: 524
+##     Update #: 537
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -153,6 +153,9 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
     }else{
         Score <- stats::setNames(rep(0, n.effects), name.effects)
     }
+    if(any(is.na(attr(precision, "logdet")))){ ## non positive definite residual variance covariance
+        return(Score*NA)
+    }
 
     ## restrict to relevant parameters
     if(("variance" %in% effects == FALSE) && ("correlation" %in% effects == FALSE)){ ## compute score only for mean parameters
@@ -247,7 +250,6 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
             iOmegaM1 <- precision[[iPattern]]
             iTime2 <- length(iOmegaM1)
 
-
             if(test.mean){
                 ## X %*% iOmega^-1 %*% residual
                 Score[name.mucoef] <- Score[name.mucoef] + as.double(iOmegaM1) %*% matrix(unlist(precompute$XR[[iPattern]]), nrow = iTime2, ncol = n.mucoef, byrow = FALSE)
@@ -255,13 +257,10 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
             }
 
             if(test.vcov){
-                idOmega <- matrix(unlist(dOmega[[iPattern]]), nrow = iTime2, ncol = n.varcoef[[iPattern]], dimnames = list(NULL,name.varcoef[[iPattern]]))
-                iTrace <- stats::setNames(colSums(sweep(idOmega, MARGIN = 1, FUN = "*", STATS = as.double(precision[[iPattern]]))), name.varcoef[[iPattern]])
+                iTrace <- sapply(dOmega[[iPattern]], FUN = function(iO){sum(iO*precision[[iPattern]])})
                 
                 ## iOmega^-1 dOmega iOmega^-1
-                iOmegaM1_dOmega_OmegaM1 <- matrix(iOmegaM1 %*% tblock(t(do.call(rbind, dOmega[[iPattern]]) %*% iOmegaM1)),
-                                                  nrow = iTime2, ncol = length(name.varcoef[[iPattern]]), dimnames = list(NULL,name.varcoef[[iPattern]]), byrow = FALSE)
-
+                iOmegaM1_dOmega_OmegaM1 <- do.call(cbind,lapply(dOmega[[iPattern]], function(iM){as.numeric(iOmegaM1 %*% iM %*% iOmegaM1)}))
                 Score[iName.varcoef] <- Score[iName.varcoef] - 0.5 * Upattern.ncluster[iPattern] * iTrace + 0.5 * as.double(precompute$RR[[iPattern]]) %*% iOmegaM1_dOmega_OmegaM1
                 
                 if(REML){

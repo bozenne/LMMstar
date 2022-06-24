@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Jun 16 2022 (23:35) 
+## Last-Updated: jun 24 2022 (10:53) 
 ##           By: Brice Ozenne
-##     Update #: 1973
+##     Update #: 1985
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -160,7 +160,7 @@ lmm <- function(formula, repetition, structure, data,
     }
     
     ## ** 1. check and normalize user input
-    if(trace>=1){cat("1. Check and normalize user input \n")}
+    if(trace>=1){cat("1. Check and normalize user input")}
 
     ## *** structure
     if(!missing(structure)){
@@ -346,6 +346,12 @@ lmm <- function(formula, repetition, structure, data,
         optimizer <- match.arg(control$optimizer, c("gls","FS",optimx.method)) ## FS = fisher scoring
         control$optimizer <- NULL
     }
+    if(is.null(control$trace)){
+        trace.control <- trace-1
+    }else{
+        trace.control <- control$trace
+    }
+
     if(optimizer=="gls"){
 
         ## stratification of the mean structure
@@ -657,7 +663,7 @@ lmm <- function(formula, repetition, structure, data,
 
 
     ## ** 3. Estimate model parameters
-    if(trace>=1){cat("3. Estimate model parameters")}
+    if(trace>=1){cat("3. Estimate model parameters\n")}
 
     if(optimizer=="gls"){
         name.var <- unlist(structure$name$var)
@@ -739,18 +745,18 @@ lmm <- function(formula, repetition, structure, data,
         outEstimate <- .estimate(design = out$design, time = out$time, method.fit = method.fit, type.information = type.information,
                                  transform.sigma = options$transform.sigma, transform.k = options$transform.k, transform.rho = options$transform.rho,
                                  precompute.moments = precompute.moments, 
-                                 optimizer = optimizer, init = control$init, n.iter = control$n.iter, tol.score = control$tol.score, tol.param = control$tol.param, trace = control$trace)
+                                 optimizer = optimizer, init = control$init, n.iter = control$n.iter, tol.score = control$tol.score, tol.param = control$tol.param, trace = trace.control)
         param.value <- outEstimate$estimate
-        out$opt <- c(name = optimizer, outEstimate[c("cv","n.iter","score","previous.estimate","n.iter.max","tol.score","tol.param")])
+        out$opt <- c(name = optimizer, outEstimate[c("cv","n.iter","score","previous.estimate","previous.logLik","control")])
         
-        if(out$opt$cv==FALSE){
+        if(out$opt$cv<=0){
             warning("Convergence issue: no stable solution has been found. \n")
         }
         
     }
     out$param <- param.value
 
-    if(trace>=1){cat("\n")}
+    if(trace.control>=2){cat("\n")}
 
     ## ** 4. Compute likelihood derivatives
     if(trace>=1){cat("4. Compute likelihood derivatives \n")}

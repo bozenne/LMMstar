@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: May 29 2022 (23:37) 
+## Last-Updated: jun 24 2022 (17:53) 
 ##           By: Brice Ozenne
-##     Update #: 287
+##     Update #: 304
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -110,6 +110,7 @@ logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
     name.mucoef <- colnames(X)
     log2pi <- log(2*pi)
     REML.det <- matrix(0, nrow = n.mucoef, ncol = n.mucoef, dimnames = list(name.mucoef, name.mucoef))
+    logdet.precision <- attr(precision, "logdet")
 
     ## ** prepare output
     if(test.loopIndiv){
@@ -117,13 +118,13 @@ logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
     }else{
         ll <- 0
     }
+    if(any(is.na(logdet.precision))){ ## non positive definite residual variance covariance
+        return(ll*NA)
+    }
 
     ## ** compute log-likelihood
     ## *** looping over individuals
     if(test.loopIndiv){
-        ## precompute
-        logidet.precision <- lapply(precision, function(iM) {-log(base::det(iM))})
-        
         ## loop
         for (iId in 1:n.cluster) { ## iId <- 1
             iIndex <- index.cluster[[iId]]
@@ -131,12 +132,11 @@ logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
             iX <- X[iIndex, , drop = FALSE]
             iOmegaM1 <- precision[[index.variance[iId]]] * scale.Omega[iId]
             iWeight <- weights[iId]
-
-            ll[iId] <- - iWeight * (NCOL(iOmegaM1) * (log2pi-log(scale.Omega[iId])) + logidet.precision[[index.variance[iId]]] + t(iResidual) %*% iOmegaM1 %*% iResidual)/2
+            ll[iId] <- - iWeight * (NCOL(iOmegaM1) * (log2pi-log(scale.Omega[iId])) - logdet.precision[[index.variance[iId]]] + t(iResidual) %*% iOmegaM1 %*% iResidual)/2
             if (REML) {
                 REML.det <- REML.det + iWeight * (t(iX) %*% iOmegaM1 %*% iX)
             }
-            ## log(det(iOmegaM1)) - NCOL(iOmegaM1)*log(scale.Omega[iId])+logidet.precision[[index.variance[iId]]]
+            ## log(det(iOmegaM1)) - NCOL(iOmegaM1)*log(scale.Omega[iId])+logdet.precision[[index.variance[iId]]]
         }
         if(!indiv){
             ll <- sum(ll)
@@ -151,8 +151,7 @@ logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
         ## loop
         for (iPattern in 1:n.pattern) { ## iPattern <- 1
             iOmegaM1 <- precision[[iPattern]]
-            iLogDet.Omega <- log(base::det(iOmegaM1))
-            ll <- ll - 0.5 * unname(Upattern.ncluster[iPattern]) * (NCOL(iOmegaM1) * log2pi - iLogDet.Omega) - 0.5 * sum(precompute$RR[[iPattern]] * iOmegaM1)
+            ll <- ll - 0.5 * unname(Upattern.ncluster[iPattern]) * (NCOL(iOmegaM1) * log2pi - logdet.precision[[iPattern]]) - 0.5 * sum(precompute$RR[[iPattern]] * iOmegaM1)
             if (REML) {
                 ## compute (unique contribution, i.e. only lower part of the matrix)
                 ## iContribution <- apply(precompute$XX$pattern[[iPattern]], MARGIN = 3, FUN = function(iM){sum(iM * iOmegaM1)})

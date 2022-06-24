@@ -1,11 +1,11 @@
-### coef.R --- 
+### coef.lmm.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: jun 16 2022 (14:40) 
+## Last-Updated: jun 22 2022 (15:43) 
 ##           By: Brice Ozenne
-##     Update #: 545
+##     Update #: 546
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -257,4 +257,4 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
 
 
 ##----------------------------------------------------------------------
-### coef.R ends here
+### coef.lmm.R ends here

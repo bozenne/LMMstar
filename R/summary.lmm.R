@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: May 30 2022 (01:07) 
+## Last-Updated: jun 24 2022 (17:43) 
 ##           By: Brice Ozenne
-##     Update #: 499
+##     Update #: 501
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -28,8 +28,8 @@
 ##' @param print [logical] should the output be printed in the console.
 ##' @param columns [character vector] Columns to be output for the fixed effects. Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
-##' @param hide.fit [logical] should information about the model fit not be printed.
 ##' @param hide.data [logical] should information about the dataset not be printed.
+##' @param hide.fit [logical] should information about the model fit not be printed.
 ##' @param hide.cor [logical] should information about the correlation structure not be printed.
 ##' @param hide.sd [logical] should information about the standard deviation not be printed.
 ##' @param hide.var [logical] should information about the variance not be printed.
@@ -47,7 +47,7 @@
 ##' @rdname summary
 ##' @export
 summary.lmm <- function(object, digit = 3, level = 0.95, type.cor = NULL, robust = FALSE, print = TRUE, columns = NULL,
-                        hide.fit = FALSE, hide.data = FALSE, hide.cor = is.null(object$formula$cor), hide.var = TRUE, hide.sd = FALSE, hide.mean = FALSE, ...){
+                        hide.data = FALSE, hide.fit = FALSE, hide.cor = is.null(object$formula$cor), hide.var = TRUE, hide.sd = FALSE, hide.mean = FALSE, ...){
 
     ## ** extract from object
     param.value <- object$param
@@ -149,7 +149,7 @@ summary.lmm <- function(object, digit = 3, level = 0.95, type.cor = NULL, robust
             name.score <- names(which.max(abs.score))[1]
             name.diff <- names(which.max(abs.diff))[1]
             
-            cat("  - convergence: ",object$opt$cv," (",object$opt$n.iter," iterations) \n",
+            cat("  - convergence: ",object$opt$cv>0," (",object$opt$n.iter," iterations) \n",
                 "    largest |score| = ",max(abs.score)," for ",name.score,"\n",
                 if(!is.null(name.diff)){paste0("            |change|= ",max(abs.diff)," for ",name.diff,"\n")},
                 sep = "")

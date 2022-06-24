@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: maj 31 2022 (15:24) 
+## Last-Updated: jun 24 2022 (18:02) 
 ##           By: Brice Ozenne
-##     Update #: 65
+##     Update #: 106
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -23,6 +23,8 @@
 ##' @param parm Not used. For compatibility with the generic method.
 ##' @param level [numeric, 0-1] nominal coverage of the confidence intervals.
 ##' @param method [character] type of adjustment for multiple comparisons: one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}, \code{"single-step2"}.
+##' @param columns [character vector] Columns to be output.
+##' Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}, \code{"partial.R"}.
 ##' @param simplify [logical] Return a data.frame instead of a list containing a data.frame when possible.
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
@@ -32,14 +34,14 @@
 ##' When degrees of freedom differs between individual hypotheses, method \code{"single-step2"} is recommended. It simulates data using copula whose marginal distributions are Student's t-distribution (with possibly different degrees of freedom) and elliptical copula with parameters the estimated correlation between the test statistics. This is performed by the copula package.
 ##' 
 ##' @export
-confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, simplify = TRUE, ...){
+confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, columns = NULL, simplify = TRUE, ...){
 
     ## ** normalize user input
     if(attr(object,"test") == "LRT"){
         message("No confidence interval available for likelihood ratio tests.")
         return(NULL)
     }
-    if(!missing(parm)){
+    if(!missing(parm) && !is.null(parm)){
         stop("Argument \'parm\' is not used - only there for compatibility with the generic method. \n")
     }
     dots <- list(...)
@@ -49,7 +51,13 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, simplif
     }
     alpha <- 1-level
     if(!is.null(method)){
-        method <- match.arg(method, c(stats::p.adjust.methods,"single-step", "single-step2"))
+        method <- match.arg(method, c(stats::p.adjust.methods,"single-step", "single-step2","pool"))
+    }
+
+    if(!is.null(columns)){
+        columns  <- match.arg(columns, c("estimate","se","statistic","df","lower","upper","null","p.value","partial.R"), several.ok = TRUE)
+    }else{
+        columns <- options$columns.confint
     }
 
     ## ** extract info and compute CI
@@ -78,13 +86,95 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, simplif
                 iOut[[iTest]]$lower <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(alpha/2, df = iOut[[iTest]]$df)
                 iOut[[iTest]]$upper <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(1-alpha/2, df = iOut[[iTest]]$df)
                 iOut[[iTest]]$p.value <- 2*(1-stats::pt( abs((iOut[[iTest]]$estimate-iOut[[iTest]]$null) / iOut[[iTest]]$se), df = iOut[[iTest]]$df))
+            }else if(iMethod == "pool"){
+                iOut.save <- iOut[[iTest]]
+                pool.name <- rownames(iOut.save)
+                n.pool <- NROW(iOut.save)
+                df <- attr(object,"df")
+                iC <- attr(iO,"glht")[[iTest]]$linfct
+                
+                pool.estimate  <- mean(iOut.save$estimate-iOut.save$null)
+                
+                if(inherits(object,"mlmm")){
+                    sep <- attr(object,"sep")
+                    pool.name <- sapply(strsplit(pool.name,split=sep,fixed =TRUE), function(iVec){paste(iVec[-1],collapse="")})
+                    pool.variance <- mean(iOut.save$se^2)+sum((iOut.save$estimate-pool.estimate)^2)*(1+1/n.pool)/(n.pool-1)
+
+                    ## trying to get dfct
+                    if(df){
+                        ## note df = num/denum i.e. denum = num/df = 2*se^4/df
+                        ## and Var[mean] = mean(Var)/n = mean(2*se^4/(df*n))
+                        ## so df(mean) = 2*mean(Var)^2 / mean(2*se^4/(df*n))
+                        ##             = mean(Var)^2 / mean(se^4/(df*n))
+                        ## here the second term in the pooled variance is ignored
+                        pool.df <- mean(iOut.save$se^2)^2 / mean((iOut.save$se^4/(n.pool*iOut.save$df)))
+                        
+                        ## ## get all models
+                        ## ls.model <- estimate(object)
+                        ## ## get all coef
+                        ## ls.coef <- lapply(ls.model,coef, effects = "all")
+                        ## index.coef <- unlist(lapply(1:n.pool, function(iPool){rep(iPool, length(ls.coef[[iPool]]))}))
+                        ## vec.coef <- stats::setNames(unlist(ls.coef, use.names = FALSE),unlist(lapply(ls.coef,names)))
+                        ## ## get contrast matrix
+                        ## ls.C <- attr(iC,"model-specific")
+                        ## M.C <- as.matrix(do.call(Matrix::bdiag, ls.C))
+                        ## ## get variance-covariance of all coef
+                        ## ls.vcov <- lapply(attr(iO,"glht")[[iTest]]$model, vcov, effects = "all")
+                        ## M.vcov <- as.matrix(do.call(Matrix::bdiag, ls.vcov))
+                        ## ## derivative of the variance with respect to the model parameters
+                        ## warperPoolVar <- function(x){ ## x <- vec.coef
+                        ##     term1 <- mean(sapply(1:n.pool, function(iPool){ ## iPool <- 1
+                        ##         ls.C[[iPool]] %*% vcov(ls.model[[iPool]], p = x[index.coef==iPool], effects = "all") %*% t(ls.C[[iPool]])
+                        ##     }))
+                        ##     term2 <- var(M.C %*% x)*(1+1/n.pool)
+                        ##     return(as.double(term1+0*term2)) ## WARNING: only consider the first term
+                        ## }
+                        ## ## sanity check
+                        ## ## warperPoolVar(vec.coef) - pool.variance
+                        ## nabla <- numDeriv::jacobian(warperPoolVar, x = vec.coef, method = "Richardson")
+                        ## ## Satterthwaite approximation
+                        ## pool.df <- as.double(2 * warperPoolVar(vec.coef)^2/ (nabla %*% M.vcov %*% t(nabla)))
+                    }else{
+                        pool.df <- Inf
+                    }
+                }else{
+                    iC.pool <- rep(1/n.pool, n.pool) %*% iC
+                    pool.variance <- iC.pool %*% attr(iO,"glht")[[iTest]]$vcov %*% t(iC.pool)
+                    if(df){
+                        pool.df <- .dfX(X.beta = iC.pool, vcov.param = attr(iO,"glht")[[iTest]]$model$vcov, dVcov.param = attr(iO,"glht")[[iTest]]$model$dVcov)
+                    }else{
+                        pool.df <- Inf
+                    }
+                }
+                iOut[[iTest]] <- data.frame(estimate = pool.estimate,
+                                            se = sqrt(pool.variance),
+                                            df = pool.df,
+                                            statistic = NA,
+                                            lower = NA,
+                                            upper = NA,
+                                            null = 0,
+                                            p.value = NA)
+
+                ## try to find common pattern
+                nchar.hypo <- min(nchar(pool.name))
+                Mchar.hypo <- do.call(rbind,lapply(strsplit(pool.name, split = "", fixed = TRUE), function(iSplit){iSplit[1:nchar.hypo]}))
+                indexchar.hypo <- which(colSums(apply(Mchar.hypo,2,duplicated)==FALSE)==1)
+                if(length(indexchar.hypo)>0){
+                    rownames(iOut[[iTest]]) <- paste(Mchar.hypo[1,indexchar.hypo],collapse = "")
+                }
+                iOut[[iTest]]$statistic <- iOut[[iTest]]$estimate/iOut[[iTest]]$se
+                iOut[[iTest]]$lower <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(alpha/2, df = iOut[[iTest]]$df)
+                iOut[[iTest]]$upper <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(1-alpha/2, df = iOut[[iTest]]$df)
+                iOut[[iTest]]$p.value <- 2*(1-stats::pt( abs((iOut[[iTest]]$estimate-iOut[[iTest]]$null) / iOut[[iTest]]$se), df = iOut[[iTest]]$df))
             }else if(iMethod == "single-step"){
+
                 iGlht <- attr(iO,"glht")[[iTest]]
                 iCi <- confint(iGlht)
                 iOut[[iTest]]$lower <- iCi$confint[,"lwr"]
                 iOut[[iTest]]$upper <- iCi$confint[,"upr"]
                 iOut[[iTest]]$p.value <- summary(iGlht, test = multcomp::adjusted("single-step"))$test$pvalues
                 iOut[[iTest]]$df <- iGlht$df
+
             }else if(iMethod == "single-step2"){
                 iGlht <- attr(iO,"glht")[[iTest]]
                 n.sample <- options$n.sampleCopula
@@ -100,7 +190,6 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, simplif
                 iOut[[iTest]]$p.value <- sapply(abs(iOut[[iTest]]$statistic), function(iT){(sum(iT <= maxH0)+1)/(n.sample+1)})
 
                 cH0 <- stats::quantile(maxH0, 0.95) ## attr(confint(iGlht)$confint,"calpha")
-                iOut[[iTest]]$df <- iOut[[iTest]]$df
                 iOut[[iTest]]$lower <- iOut[[iTest]]$estimate - iOut[[iTest]]$se * cH0
                 iOut[[iTest]]$upper <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * cH0
                 attr(iOut[[iTest]], "n.sample") <-  n.sample
@@ -114,10 +203,10 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, simplif
                 iOut[[iTest]]$upper <- NA
                 iOut[[iTest]]$p.value <- stats::p.adjust(2*(1-stats::pt( abs((iOut[[iTest]]$estimate-iOut[[iTest]]$null) / iOut[[iTest]]$se), df = iOut[[iTest]]$df)), method = iMethod)
             }
-        }
+            iOut[[iTest]][names(iOut[[iTest]])[names(iOut[[iTest]]) %in% columns == FALSE]] <- NULL
+        }        
         return(iOut)
     })
-
     if(simplify && length(out)==1){
         out <- out[[1]]
         if(simplify && length(out)==1){

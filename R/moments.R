@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: Jun 17 2022 (10:34) 
+## Last-Updated: jun 24 2022 (10:18) 
 ##           By: Brice Ozenne
-##     Update #: 347
+##     Update #: 371
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -107,11 +107,24 @@
 
     if(trace>=1){cat("- Omega \n")}
     out$Omega <- .calc_Omega(object = design$vcov, param = param.value, keep.interim = TRUE)
-    out$OmegaM1 <- try(lapply(out$Omega,solve), silent = TRUE)
-    if(inherits(out$OmegaM1,"try-error")){
-        stop("Could not invert the residuals variance-covariance matrix. \n",
-             out$OmegaM1)
+
+    ## choleski decomposition
+    Omega.chol <- lapply(out$Omega,function(iO){try(chol(iO),silent=TRUE)})
+    if(any(sapply(Omega.chol,inherits,"try-error"))){
+        index.error <- which(sapply(Omega.chol,inherits,"try-error"))
+        attr(out,"error") <- c("Residuals variance-covariance matrix is not positive definite. Original error message:\n",
+                               unique(unlist(Omega.chol[index.error])))
     }
+    ## inverse
+    out$OmegaM1 <- lapply(Omega.chol,function(iChol){
+        if(inherits(iChol,"try-error")){return(iChol)}else{return(chol2inv(iChol))}
+    })
+    ## determinant
+    attr(out$OmegaM1,"logdet") <- sapply(Omega.chol, function(iChol){
+        if(inherits(iChol,"try-error")){return(NA)}else{return(-2*sum(log(diag(iChol))))}
+    })
+    ## log(sapply(out$OmegaM1,det))
+
     if(score || information || vcov || df){
         if(trace>=1){cat("- dOmega \n")}
         out$dOmega <- .calc_dOmega(object = design$vcov, param = param.value, Omega = out$Omega,

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:50) 
 ## Version: 
-## Last-Updated: May 29 2022 (16:33) 
+## Last-Updated: jun 24 2022 (17:32) 
 ##           By: Brice Ozenne
-##     Update #: 218
+##     Update #: 231
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -59,7 +59,7 @@ summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0
             stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
         }
     }
-    if(!is.null(match.call()$method) && is.null(match.call()$print.nulls)){
+    if(!is.null(match.call()$method) && is.null(match.call()$print)){
         print <- TRUE
     }
     if(length(print)==1){
@@ -97,7 +97,7 @@ summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0
     
     if(attr(object,"test")=="Wald"){
         type <- setdiff(names(object),"call")
-        ci <- stats::confint(object, level = level, method = method, simplify = FALSE)
+        ci <- confint(object, level = level, method = method, columns = columns.indiv, simplify = FALSE)
 
         for(iType in type){
 
@@ -111,10 +111,10 @@ summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0
             object.print$p.value <- as.character(signif(object.print$p.value, digits = digits.p.value))
             iNoDf <- is.infinite(object.print$df.denom)
             txt.test <- "Multivariate Wald test (global null hypothesis)"
-            if(iType == "all" && (print.global || print.indiv)){
+            if(iType == "all" && (print.global>0.5 || print.indiv>0.5)){
                 cat("\n\t", "|| User-specified linear hypotheses || \n", sep="")
                 ## print(object$call)
-            }else if(print.global || print.indiv){
+            }else if(print.global>0.5 || print.indiv>0.5){
                 cat("\n\t","|| ",iType," coefficients || \n", sep="")
             }
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: Jun  2 2022 (14:56) 
+## Last-Updated: jun 22 2022 (17:32) 
 ##           By: Brice Ozenne
-##     Update #: 91
+##     Update #: 101
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -168,7 +168,7 @@ rbind.anova_lmm <- function(model, ..., name = NULL, sep = ": "){
         out$linfct <- out$linfct[,keep.col,drop=FALSE]
         out$coef <- out$coef[keep.col]
     }
-    
+    attr(out$linfct,"model-specific") <- ls.C
     out$df <- unlist(ls.df)
     out$alternative <- ls.alternative[[1]]
     class(out) <- "glht"
@@ -210,10 +210,10 @@ rbind.anova_lmm <- function(model, ..., name = NULL, sep = ": "){
     }
     out$df <- ceiling(stats::median(out$df))
     attr(out2$all,"glht") <- list(out)
-    
-    attr(out2, "df") <- is.na(out$df)
+    attr(out2, "df") <- !is.na(out$df)
     attr(out2, "test") <- "Wald"
     attr(out2, "robust") <- robust
+    attr(out2, "sep") <- sep
     class(out2) <- append("anova_lmm",class(out))
     return(out2)
 }

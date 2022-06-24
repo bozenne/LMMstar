@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 17 2022 (05:36) 
 ## Version: 
-## Last-Updated: jun 20 2022 (14:52) 
+## Last-Updated: jun 24 2022 (11:49) 
 ##           By: Brice Ozenne
-##     Update #: 37
+##     Update #: 43
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -38,11 +38,10 @@
 
     ## ** refit model
     x$design$param[x$design$param$name %in% name.effects,"fixed"] <- TRUE
-    
     eee <- .estimate(design = x$design, time = x$time, method.fit = x$method.fit, type.information = x$type.information,
                      transform.sigma = x$reparametrize$transform.sigma, transform.k = x$reparametrize$transform.k, transform.rho = x$reparametrize$transform.rho,
                      precompute.moments = "precompute.XX" %in% names(x$design),
-                     optimizer = "FS", init = init, n.iter = x$opt$control$n.iter, tol.score = x$opt$control$tol.score, tol.param = x$opt$control$tol.param, trace = trace)
+                     optimizer = "FS", init = init, n.iter = x$opt$control["n.iter"], tol.score = x$opt$control["tol.score"], tol.param = x$opt$control["tol.param"], trace = trace)
 
     x$opt[c("cv","n.iter","score","previous.estimate")] <- eee[c("cv","n.iter","score","previous.estimate")]
     x$param <- eee$estimate

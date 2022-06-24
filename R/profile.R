@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jun 16 2022 (15:19) 
 ## Version: 
-## Last-Updated: jun 20 2022 (14:40) 
+## Last-Updated: jun 24 2022 (17:34) 
 ##           By: Brice Ozenne
-##     Update #: 214
+##     Update #: 258
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -28,7 +28,7 @@
 ##' @param conf.level [numeric, 0-1] the confidence level of the confidence intervals used to decide about the range of values for each parameter.
 ##' @param trace [logical] Show the progress of the execution of the function.
 ##' @param plot [logical] Should a graphical representation of the results be provided?
-##' @param ci [logical] Should confidence intervals obtained from the Wald test (vertical lines) and Likelihood ratio test (horizontal line) be displayed?
+##' @param ci [logical] Should a 95\% confidence intervals obtained from the Wald test (vertical lines) and Likelihood ratio test (horizontal line) be displayed?
 ##' @param size [numeric vector of length 4] Size of the point for the MLE,
 ##' width of the line representing the likelihood,
 ##' width of the corresponding quadratic approximation,
@@ -44,8 +44,7 @@
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' 
-##' @details Each parameter defined by the argument \code{effets} is treated separately:
-##' \itemize{
+##' @details Each parameter defined by the argument \code{effets} is treated separately:\itemize{
 ##' \item the confidence interval of a parameter is discretized with \code{maxpt} points,
 ##' \item this parameter is set to a discretization value.
 ##' \item the other parameters are either set to the (unconstrained) MLE (\code{profile.likelihood=FALSE})
@@ -60,17 +59,22 @@
 ##' data(gastricbypassW, package = "LMMstar")
 ##' e.lmm <- lmm(weight2 ~ weight1 + glucagonAUC1,
 ##'              data = gastricbypassW, control = list(optimizer = "FS"))
+##'
+##' ## profile logLiklihood
+##' \dontrun{
+##' profile(e.lmm, effects = "all", maxpts = 10, profile.likelihood = TRUE)
+##' }
 ##' 
+##' ## along a single parameter axis
 ##' profile(e.lmm, effects = "all", maxpts = 10, transform.sigma = "none")
 ##' profile(e.lmm, effects = "all", maxpts = 10, transform.sigma = "log")
 ##' 
-##' profile(e.lmm, effects = "all", maxpts = 10, profile.likelihood = TRUE)
 
 ## * profile.lmm (code)
 ##' @export
 profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
                         maxpts = NULL, conf.level = 0.95, trace = FALSE,
-                        plot = TRUE, ci = FALSE, size = c(3,2,1,1), linetype = c(2,3,3), shape = 19, scales = "free", nrow = NULL, ncol = NULL,
+                        plot = TRUE, ci = FALSE, size = c(3,2,1,1), linetype = c("dashed","dashed","dashed"), shape = 19, scales = "free", nrow = NULL, ncol = NULL,
                         transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
 
     ## ** normalize user input
@@ -109,13 +113,13 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
     }
     n.effects <- length(effects)
 
-    if(fitted$opt$name!="FS" && profile.likelihood){
+    if(fitted$opt$name!="FS" && profile.likelihood>0){
         stop("Argument \'profile.likelihood\' can only be TRUE when \"FS\" optimizer is used. \n",
              "Consider adding the argument control = list(optimizer = \"FS\") when fitting the mixed model with lmm. \n")
     }
 
     if(is.null(maxpts)){
-        if(profile.likelihood){
+        if(profile.likelihood>0){
             maxpts <- 15
         }else{
             maxpts <- 50
@@ -125,7 +129,7 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
         grid <- NULL
     }else if(length(maxpts)>=1){
         grid <- maxpts
-        maxpts <- ceiling(length(maxpts)/2)
+        maxpts <- length(maxpts)/2
     }
 
     if(ci && profile.likelihood==FALSE){
@@ -133,7 +137,7 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
     }
 
     ## ** profile likelihood
-    if(trace>1){cat("Profile likelihood (",maxpts," points):\n",sep="")}
+    if(trace>1){cat("Profile likelihood (",round(2*maxpts)," points):\n",sep="")}
     ls.profile <- lapply(1:n.effects, function(iParam){ ## iParam <- 4
 
         iIndex <- which(name.p == effects[iParam])
@@ -144,10 +148,6 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
         iLower.trans <- p.trans[iIndex,"lower"]
         iUpper.trans <- p.trans[iIndex,"upper"]
 
-        if(trace>0){
-            if(trace<=1){cat("*")}
-            if(trace>1){cat(" - ",iName.trans," (between ",iLower.trans," and ",iUpper.trans,")\n",sep="")}
-        }
         if(is.null(grid)){
             seqValue.trans <- c(seq(iLower.trans, iValue.trans, length.out = maxpts+1), seq(iValue.trans, iUpper.trans, length.out = maxpts+1)[-1])
             seqOptimum <- c(rep(FALSE,maxpts),TRUE,rep(FALSE,maxpts))
@@ -155,6 +155,13 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
             seqValue.trans <- sort(unique(c(grid, iValue.trans)))
             seqOptimum <- seqValue.trans == iValue.trans
         }
+        if(trace>0){
+            if(trace<=1){cat("*")}
+            if(trace>1){cat(" - ",iName.trans," (between ",min(seqValue.trans)," and ",max(seqValue.trans),")\n",sep="")}
+        }
+
+        iMaxpts <- max(which(seqOptimum==TRUE)-1,length(seqOptimum)-which(seqOptimum==TRUE))
+        
         iIndex.center <- which(seqOptimum==TRUE)
         seqValue <- .reparametrize(p = seqValue.trans, type = rep(iType,length(seqValue.trans)),
                                    transform.sigma = transform.sigma,
@@ -172,21 +179,35 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
                            cv = NA)
         iOut[iIndex.center,"logLik"] <- fitted$logLik
         iOut[iIndex.center,"cv"] <- TRUE
-            
-        if(profile.likelihood){
+
+        keep.estimate <- NULL
+
+        if(profile.likelihood>0){
             iInitInf <- stats::setNames(p[,"estimate"], name.p)
             iInitSup <- stats::setNames(p[,"estimate"], name.p)
-            for(iPts in 1:maxpts){
-                if(maxpts+1-iPts>0){
+            if(profile.likelihood>1){
+                iOut[name.p] <- NA
+                iOut[iIndex.center,name.p] <- p[,"estimate"]
+            }
+
+            for(iPts in 1:iMaxpts){ ## iPts <- 15 
+
+                if(iIndex.center-iPts>0){
                     iResInf <- .constrain.lmm(fitted, effects = stats::setNames(seqValue[iIndex.center-iPts], effects[iParam]), init = iInitInf, trace = FALSE)
                     iOut[iIndex.center-iPts, c("logLik","cv")] <- c(logLik = iResInf$logLik, cv = iResInf$opt$cv)
-                    iInitInf <- iResInf$estimate
+                    iInitInf <- iResInf$param
+                    if(profile.likelihood>1){
+                        iOut[iIndex.center-iPts, name.p] <- iResInf$param
+                    }
                 }
                 
-                if(maxpts+1+iPts<=length(seqValue)){
+                if(iIndex.center+iPts<=length(seqValue)){
                     iResSup <- .constrain.lmm(fitted, effects = stats::setNames(seqValue[iIndex.center+iPts], effects[iParam]), init = iInitSup, trace = FALSE)
                     iOut[iIndex.center+iPts, c("logLik","cv")] <- c(logLik = iResSup$logLik, cv = iResSup$opt$cv)
-                    iInitSup <- iResSup$estimate
+                    iInitSup <- iResSup$param
+                    if(profile.likelihood>1){
+                        iOut[iIndex.center+iPts, name.p] <- iResSup$param
+                    }
                 }
             }
 
@@ -225,8 +246,12 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
         }
         gg <- ggplot2::ggplot(df.profile, ggplot2::aes_string(x="value.trans",y=name.y))
         gg <- gg + ggplot2::ylab(legend.y)
-        if(profile.likelihood){
-            gg <- gg + ggplot2::ggtitle(expression(paste("Profile maximum likelihood estimation for parameter:")))
+        if(profile.likelihood>0){
+            if(ci){
+                gg <- gg + ggplot2::ggtitle(paste("Profile maximum likelihood estimation for parameter (95% CI):"))
+            }else{
+                gg <- gg + ggplot2::ggtitle(paste("Profile maximum likelihood estimation for parameter:"))
+            }
         }else{
             gg <- gg + ggplot2::ggtitle(expression(paste("Varying a ",bold('single')," parameter:")))
         }
@@ -250,15 +275,21 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
             gg <- gg  + ggplot2::geom_point(data = df.profile[df.profile$optimum==TRUE,,drop=FALSE], ggplot2::aes(color = "MLE"), size = size[1], shape = shape)
         }
         if(ci){
-            if(plot==1){
-                gg <- gg  + ggplot2::geom_abline(slope = 0, intercept = fitted$logLik - qchisq(0.95, df = 1)/2, size = size[4], linetype = linetype[2])
+            if(plot<=1){
+                gg <- gg  + ggplot2::geom_abline(slope = 0, intercept = fitted$logLik - stats::qchisq(0.95, df = 1)/2, size = size[4], linetype = linetype[2])
             }else{
-                gg <- gg  + ggplot2::geom_abline(slope = 0, intercept = exp(- qchisq(0.95, df = 1)/2), size = size[4], linetype = linetype[2])
+                gg <- gg  + ggplot2::geom_abline(slope = 0, intercept = exp(- stats::qchisq(0.95, df = 1)/2), size = size[4], linetype = linetype[2])
             }
-            df.ci <- cbind(param = rownames(p.trans), p.trans)[which(name.p %in% effects),,drop=FALSE]
+
+            ## recompute ci at level 0.95
+            p.trans2 <- confint(fitted, effects = "all", level = 0.95,
+                               transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                               transform.names = transform.names)
+
+            df.ci <- cbind(param = rownames(p.trans2), p.trans2)[which(name.p %in% effects),,drop=FALSE]
             df.ci$param <- factor(df.ci$param, levels = levels(df.profile$param))
-            gg <- gg  + ggplot2::geom_vline(data = df.ci, mapping = ggplot2::aes(xintercept = lower), size = size[4], linetype = linetype[2])
-            gg <- gg  + ggplot2::geom_vline(data = df.ci, mapping = ggplot2::aes(xintercept = upper), size = size[4], linetype = linetype[2])
+            gg <- gg + ggplot2::geom_vline(data = df.ci, mapping = ggplot2::aes_string(xintercept = "lower"), size = size[4], linetype = linetype[2])
+            gg <- gg + ggplot2::geom_vline(data = df.ci, mapping = ggplot2::aes_string(xintercept = "upper"), size = size[4], linetype = linetype[2])
         }
         gg <- gg  + ggplot2::xlab("") + ggplot2::labs(color = "") + ggplot2::theme(legend.position = "bottom")
         if(plot>=1){

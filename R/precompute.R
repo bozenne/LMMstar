@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 22 2021 (13:47) 
 ## Version: 
-## Last-Updated: jun 20 2022 (16:48) 
+## Last-Updated: jun 21 2022 (16:57) 
 ##           By: Brice Ozenne
-##     Update #: 21
+##     Update #: 23
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -41,7 +41,8 @@
             out$pattern[[iPattern]][1,1,] <- iX.summary[lower.tri(iX.summary, diag = TRUE)]
         }else{
             out$Xpattern[[iPattern]] <- array(unlist(lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){X[iIndex,,drop=FALSE]})),
-                                              dim = c(iTime,NCOL(X),length(index.cluster[pattern.cluster[[iPattern]]])))
+                                              dim = c(iTime,NCOL(X),length(index.cluster[pattern.cluster[[iPattern]]])),
+                                              dimnames = list(NULL,colnames(X),NULL))
 
             for(iCol1 in 1:p){ ## iCol1 <- 1
                 for(iCol2 in 1:iCol1){ ## iCol2 <- 2

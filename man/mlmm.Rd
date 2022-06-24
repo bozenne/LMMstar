@@ -29,7 +29,6 @@ Fit several linear mixed models, extract relevant coefficients, and combine them
 #### univariate regression ####
 if(require(lava)){
 library(LMMstar)
-library(lava)
 
 set.seed(10)
 d1 <- cbind(sim(lvm(Y~0.5*X1), 25), group = "A")

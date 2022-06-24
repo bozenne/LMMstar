@@ -13,8 +13,8 @@
   robust = FALSE,
   print = TRUE,
   columns = NULL,
-  hide.fit = FALSE,
   hide.data = FALSE,
+  hide.fit = FALSE,
   hide.cor = is.null(object$formula$cor),
   hide.var = TRUE,
   hide.sd = FALSE,
@@ -37,9 +37,9 @@
 
 \item{columns}{[character vector] Columns to be output for the fixed effects. Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.}
 
-\item{hide.fit}{[logical] should information about the model fit not be printed.}
-
 \item{hide.data}{[logical] should information about the dataset not be printed.}
+
+\item{hide.fit}{[logical] should information about the model fit not be printed.}
 
 \item{hide.cor}{[logical] should information about the correlation structure not be printed.}
 
