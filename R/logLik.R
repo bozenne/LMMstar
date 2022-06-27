@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: jun 24 2022 (17:53) 
+## Last-Updated: jun 27 2022 (12:23) 
 ##           By: Brice Ozenne
-##     Update #: 304
+##     Update #: 307
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -154,8 +154,7 @@ logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
             ll <- ll - 0.5 * unname(Upattern.ncluster[iPattern]) * (NCOL(iOmegaM1) * log2pi - logdet.precision[[iPattern]]) - 0.5 * sum(precompute$RR[[iPattern]] * iOmegaM1)
             if (REML) {
                 ## compute (unique contribution, i.e. only lower part of the matrix)
-                ## iContribution <- apply(precompute$XX$pattern[[iPattern]], MARGIN = 3, FUN = function(iM){sum(iM * iOmegaM1)})
-                iContribution <- as.double(iOmegaM1) %*% matrix(precompute$XX$pattern[[iPattern]], nrow = length(iOmegaM1), ncol = dim(precompute$XX$pattern[[iPattern]])[3], byrow = FALSE)
+                iContribution <- as.double(iOmegaM1) %*% precompute$XX$pattern[[iPattern]]
                 ## fill the matrix
                 REML.det <- REML.det + iContribution[as.vector(precompute$XX$key)]
             }

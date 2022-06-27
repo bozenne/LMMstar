@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: jun 24 2022 (10:18) 
+## Last-Updated: jun 27 2022 (16:45) 
 ##           By: Brice Ozenne
-##     Update #: 371
+##     Update #: 386
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -132,6 +132,16 @@
                                    transform.sigma = transform.sigma,
                                    transform.k = transform.k,
                                    transform.rho = transform.rho)
+        if(("variance" %in% effects) || ("correlation" %in% effects)){ ## compute for score and information
+            attr(out$dOmega, "ls.dOmega_OmegaM1") <- stats::setNames(lapply(design$vcov$X$Upattern$name, function(iPattern){
+                lapply(out$dOmega[[iPattern]], function(iM){iM %*% out$OmegaM1[[iPattern]]})
+            }), design$vcov$X$Upattern$name)
+            attr(out$dOmega, "ls.OmegaM1_dOmega_OmegaM1") <- stats::setNames(lapply(design$vcov$X$Upattern$name, function(iPattern){ ## iPattern <- "1:1"
+                lapply(attr(out$dOmega, "ls.dOmega_OmegaM1")[[iPattern]], function(iM){out$OmegaM1[[iPattern]] %*% iM})
+            }), design$vcov$X$Upattern$name)
+            attr(out$dOmega, "dOmega_OmegaM1") <- lapply(attr(out$dOmega, "ls.dOmega_OmegaM1"), function(iO){ do.call(cbind, lapply(iO,as.numeric)) })
+            attr(out$dOmega, "OmegaM1_dOmega_OmegaM1") <- lapply(attr(out$dOmega, "ls.OmegaM1_dOmega_OmegaM1"), function(iO){ do.call(cbind, lapply(iO,as.numeric)) })
+        }
     }
 
     if(test.d2Omega){

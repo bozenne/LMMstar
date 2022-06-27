@@ -1,0 +1,53 @@
+This is BibTeX, Version 0.99d
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: overview.aux
+Reallocating 'name_of_file' (item size: 1) to 8 items.
+The style file: apalike.bst
+Reallocating 'name_of_file' (item size: 1) to 13 items.
+Database file #1: bibliography.bib
+Repeated entry---line 21 of file bibliography.bib
+ : @article{pipper2012versatile
+ :                             ,
+I'm skipping whatever remains of this entry
+You've used 2 entries,
+            1935 wiz_defined-function locations,
+            487 strings with 4089 characters,
+and the built_in function-call counts, 795 in all, are:
+= -- 79
+> -- 25
+< -- 1
++ -- 10
+- -- 8
+* -- 70
+:= -- 141
+add.period$ -- 6
+call.type$ -- 2
+change.case$ -- 14
+chr.to.int$ -- 2
+cite$ -- 2
+duplicate$ -- 28
+empty$ -- 59
+format.name$ -- 10
+if$ -- 150
+int.to.chr$ -- 1
+int.to.str$ -- 0
+missing$ -- 2
+newline$ -- 13
+num.names$ -- 6
+pop$ -- 9
+preamble$ -- 1
+purify$ -- 14
+quote$ -- 0
+skip$ -- 22
+stack$ -- 0
+substring$ -- 70
+swap$ -- 2
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 12
+warning$ -- 0
+while$ -- 8
+width$ -- 0
+write$ -- 28
+(There was 1 error message)

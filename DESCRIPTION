@@ -1,7 +1,7 @@
 Package: LMMstar
 Type: Package
 Title: Repeated Measurement Models for Discrete Times
-Version: 0.7.3
+Version: 0.7.4
 Date: 2022-06-24
 Authors@R: c(
     person("Brice", "Ozenne", role = c("aut", "cre"), email = "brice.mh.ozenne@gmail.com", comment = c(ORCID = "0000-0001-9694-2956")),
@@ -39,6 +39,7 @@ Suggests:
     mvtnorm,
     lme4,
     lmerTest,
+    mice,
     nlmeU,
     optimx,
     psych,

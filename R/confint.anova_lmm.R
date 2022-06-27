@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jun 24 2022 (18:02) 
+## Last-Updated: jun 27 2022 (11:53) 
 ##           By: Brice Ozenne
-##     Update #: 106
+##     Update #: 127
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -59,7 +59,6 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, columns
     }else{
         columns <- options$columns.confint
     }
-
     ## ** extract info and compute CI
     out <- lapply(object[setdiff(names(object),"call")], function(iO){ ## iO <- object[[1]]
 
@@ -98,16 +97,29 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, columns
                 if(inherits(object,"mlmm")){
                     sep <- attr(object,"sep")
                     pool.name <- sapply(strsplit(pool.name,split=sep,fixed =TRUE), function(iVec){paste(iVec[-1],collapse="")})
-                    pool.variance <- mean(iOut.save$se^2)+sum((iOut.save$estimate-pool.estimate)^2)*(1+1/n.pool)/(n.pool-1)
-
+                    pool.U <- mean(iOut.save$se^2)
+                    pool.B <- sum((iOut.save$estimate-pool.estimate)^2)/(n.pool-1)
+                    pool.variance <- pool.U+(1+1/n.pool)*pool.B
+                
                     ## trying to get dfct
                     if(df){
+                        ## ## VERSION 1: MICE's approach ## ##
+                        ## https://stefvanbuuren.name/fimd/sec-whyandwhen.html
+                        
+                        ## proportion of variance attributable to the missing data
+                        pool.lambda <- (1+1/n.pool)*pool.B / pool.variance
+                        pool.nu_old <- (n.pool-1)/pool.lambda^2 ## formula 2.30 (Rubin 1987b eq 3.1.6)
+                        pool.nu_obs <- (iOut.save$df+1)/(iOut.save$df+3)*iOut.save$df*(1-pool.lambda) ## formula 2.31 (Barnard and Rubin (1999) )
+                        pool.df <- mean(pool.nu_old*pool.nu_obs/(pool.nu_old+pool.nu_obs)) ## formula 2.32
+
+                        ## ## VERSION 2: SATTERWAITE APPROXIMATION ## ## 
+                        ## -> weird results ## 
                         ## note df = num/denum i.e. denum = num/df = 2*se^4/df
                         ## and Var[mean] = mean(Var)/n = mean(2*se^4/(df*n))
                         ## so df(mean) = 2*mean(Var)^2 / mean(2*se^4/(df*n))
                         ##             = mean(Var)^2 / mean(se^4/(df*n))
                         ## here the second term in the pooled variance is ignored
-                        pool.df <- mean(iOut.save$se^2)^2 / mean((iOut.save$se^4/(n.pool*iOut.save$df)))
+                        ## pool.df <- mean(iOut.save$se^2)^2 / mean((iOut.save$se^4/(iOut.save$df)))
                         
                         ## ## get all models
                         ## ls.model <- estimate(object)
@@ -127,7 +139,7 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, columns
                         ##         ls.C[[iPool]] %*% vcov(ls.model[[iPool]], p = x[index.coef==iPool], effects = "all") %*% t(ls.C[[iPool]])
                         ##     }))
                         ##     term2 <- var(M.C %*% x)*(1+1/n.pool)
-                        ##     return(as.double(term1+0*term2)) ## WARNING: only consider the first term
+                        ##     return(as.double(term1+term2)) ## WARNING: only consider the first term
                         ## }
                         ## ## sanity check
                         ## ## warperPoolVar(vec.coef) - pool.variance

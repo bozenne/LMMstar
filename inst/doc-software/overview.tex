@@ -1,4 +1,4 @@
-% Created 2022-05-31 Tue 23:45
+% Created 2022-06-27 ma 17:51
 % Intended LaTeX compiler: pdflatex
 \documentclass[12pt]{article}
 
@@ -218,7 +218,7 @@ linkcolor=[rgb]{0,0,0.5},
  pdftitle={Overview of the package LMMstar},
  pdfkeywords={},
  pdfsubject={},
- pdfcreator={Emacs 26.3 (Org mode 9.4.6)},
+ pdfcreator={Emacs 27.2 (Org mode 9.5.2)},
  pdflang={English}
  }
 \begin{document}
@@ -253,6 +253,7 @@ covariates).
 \item \texttt{model.tables} to extract the estimates, standard errors, p-value, and confidence intervals.
 \item \texttt{plot} to obtain a diagnostic plots, partial residual plots, or a graphical display of the fitted values.
 \item \texttt{predict} to compute the conditional mean for new observations.
+\item \texttt{profile} to display the likelihood or profile likelihood of the model.
 \item \texttt{residuals} to extract the observed residuals of the fitted model.
 \item \texttt{sigma} to extract the modeled residual variance covariance matrix.
 \item \texttt{summary} to obtain a summary of the input, model fit, and estimated values.
@@ -343,7 +344,7 @@ LMMstar.options(optimizer = "FS")
 \clearpage
 
 \section{Descriptive statistics}
-\label{sec:org05d6ac4}
+\label{sec:org6f22cb1}
 Mean, standard deviation, and other summary statistic can be computed
 with respect to a categorical variable (typically time) using the
 \texttt{summarize} function:
@@ -408,9 +409,9 @@ Note: estimates and confidence intervals for rho have been back-transformed.
 \clearpage
 
 \section{Linear mixed model}
-\label{sec:orgaaed480}
+\label{sec:org724ba8b}
 \subsection{Classical covariance patterns}
-\label{sec:org4a2e1b4}
+\label{sec:org7bb6bec}
 Fit a linear model with \textbf{identity} structure:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -666,7 +667,7 @@ A3m 350.0416 331.5182 308.1345 334.8267
 \clearpage
 
 \subsection{Model output}
-\label{sec:org6c2b4b7}
+\label{sec:orgc18fae3}
 
 The \texttt{summary} method can be used to display the main information
 relative to the model fit:
@@ -792,7 +793,7 @@ arguments \texttt{df} to \texttt{FALSE} and \texttt{type.information} to \texttt
 calling \texttt{lmm} should lead to a more reasonnable computation time.
 
 \subsection{Extract estimated coefficients}
-\label{sec:orge3456bc}
+\label{sec:org113cf40}
 The value of the estimated coefficients can be output using \texttt{coef}:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -847,7 +848,7 @@ dummy.coef(eUN.lmm)
 \end{verbatim}
 
 \subsection{Extract estimated coefficient and associated uncertainty}
-\label{sec:org5bd8d79}
+\label{sec:orgdf4ba56}
 
 The uncertainty about the mean coefficients can be obtained using the
 \texttt{model.tables} method \footnote{it is equivalent to \texttt{confint} method
@@ -879,7 +880,7 @@ they uncertainty is by default computed after transformation
 (e.g. \texttt{log}) and then backtransformed. 
 
 \subsection{Extract estimated residual variance-covariance structure}
-\label{sec:orgef1def8}
+\label{sec:orgf266558}
 
 The method \texttt{sigma} can be used to output the covariance structure of the residuals:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -930,7 +931,7 @@ A3m 318.8573 304.6314 285.8077 280.9323
 \clearpage
 
 \subsection{Model diagnostic}
-\label{sec:orgec0b8be}
+\label{sec:org4a54599}
 
 The method \texttt{plot} can be used to display diagnostic plots about:
 \begin{itemize}
@@ -1026,7 +1027,7 @@ Various type of residuals can be extract but the normalized one are
 recommanded when doing model checking.
 
 \subsection{Model fit}
-\label{sec:org0a90a9a}
+\label{sec:org71f8aab}
 
 The fitted values can be displayed via the \texttt{plot} method or using the \texttt{emmeans} package:
 
@@ -1116,7 +1117,7 @@ Advarselsbeskeder:
 \clearpage
 
 \subsection{Statistical inference (linear)}
-\label{sec:orgeb7ecf8}
+\label{sec:org46d959b}
 
 The \texttt{anova} method can be use to test one or several linear
 combinations of the model coefficients using Wald tests. By default,
@@ -1318,7 +1319,7 @@ Adjusted CIs/p-values computed using 1e+05 samples.
 \clearpage
 
 \subsection{Statistical inference (non-linear)}
-\label{sec:orgec91b34}
+\label{sec:org78b346c}
 
 The \texttt{estimate} function can be used to test one or several non-linear
 combinations of model coefficients, using a first order delta method
@@ -1385,7 +1386,7 @@ variable.
 \clearpage
 
 \subsection{Baseline adjustment}
-\label{sec:orge7a04db}
+\label{sec:orgf420fcd}
 
 In clinical trial the group and intervention variable often do not
 coincide, e.g., in presence of baseline measurement. In our running
@@ -1577,7 +1578,7 @@ autoplot(eC3.lmm, color = "group", ci = FALSE, size.text = 20, obs.alpha = 0.1)
 \end{center}
 
 \subsection{Marginal means}
-\label{sec:org562bda6}
+\label{sec:orgacc7e39}
 
 The \texttt{emmeans} package can be used to output marginal means. Consider
 the following model:
@@ -1751,7 +1752,7 @@ P value adjustment: sidak method for 4 tests
 \end{verbatim}
 
 \subsection{Predictions}
-\label{sec:org9c3e8fb}
+\label{sec:orge688ba9}
 
 Two types of predictions can be performed with the \texttt{predict} method:
 \begin{itemize}
@@ -1861,7 +1862,7 @@ as.double(mu2 + Omega_21 * (100 - mu1) / Omega_11)
 \clearpage
 
 \subsection{Missing values and imputation}
-\label{sec:orgf60bb04}
+\label{sec:orgc5591dc}
 
 
 We now consider the glucagon level as an outcome. The \texttt{summarize}
@@ -1998,7 +1999,7 @@ fitted(eUN.lmmNA, impute = TRUE, se = "total")
 \clearpage
 
 \section{User-specific covariance patterns}
-\label{sec:org50d3efe}
+\label{sec:org58205f0}
 
 From version 0.6.0 and above it is possible customize the covariance
 pattern under the following model for the residuals:
@@ -2147,7 +2148,7 @@ logLik(lmm(value~time,
 \clearpage
 
 \section{Data generation}
-\label{sec:org88da57b}
+\label{sec:orgcdf7363}
 Simulate some data in the wide format:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -2194,7 +2195,7 @@ head(dL)
 \clearpage
 
 \section{Modifying default options}
-\label{sec:org11e90bd}
+\label{sec:orgb0d1cf6}
 The \texttt{LMMstar.options} method enable to get and set the default options
 used by the package. For instance, the default option for the information matrix is:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -2223,7 +2224,7 @@ LMMstar.options(reinitialise = TRUE)
 \clearpage
 
 \section{R session}
-\label{sec:org351b79c}
+\label{sec:org26398dc}
 Details of the R session used to generate this document:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -2274,7 +2275,7 @@ loaded via a namespace (and not attached):
 \clearpage
 
 \section*{References}
-\label{sec:org9331474}
+\label{sec:orge869896}
 \begingroup
 \renewcommand{\section}[2]{}
 
@@ -2307,7 +2308,7 @@ consider \(n\) replicates (i.e. \(\VY_1,\ldots,\VY_n)\) and
 \(\omega=(w_1,\ldots,w_n)\), which are by default all equal to 1.
 
 \subsection{Log-likelihood}
-\label{sec:orgf38093c}
+\label{sec:orgd4feb35}
 
 The restricted log-likelihood in a linear mixed model can then be
 written:
@@ -2338,7 +2339,7 @@ when setting the argument \texttt{indiv} to \texttt{TRUE}.
 \bigskip
 
 \subsection{Score}
-\label{sec:org90cfebc}
+\label{sec:org98ec38c}
 
  Using that \(\partial \log(\det(X))=tr(X^{-1}\partial(X))\), the
 score is obtained by derivating once the log-likelihood, i.e., for
@@ -2361,7 +2362,7 @@ what \texttt{score} outputs for the ML criteria when setting the argument
 \clearpage
 
 \subsection{Hessian}
-\label{sec:org19fce7f}
+\label{sec:org8a34363}
 
 Derivating a second time the log-likelihood gives the hessian, \(\Hessian(\Vparam)\), with element\footnote{if one is relative to the mean and the other to the variance then they are respectively \(\theta\) and \(\theta'\)}:
 \begin{align*}
@@ -2400,7 +2401,7 @@ when \(\Esp[\VY_i-\mu(\Vparam,\VX_i)]=0\). This leads to:
  & + \sum_{i=1}^n w_i \left( \textcolor{\darkblue}{
 - \frac{1}{2} tr\left(\Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta]\right)
  - \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \trans{\dpartial[\mu(\Vparam,\VX_i)][\theta^{\prime}]}
- } \right) \label{eq:expectedInfo} 
+ } \right) \label{eq:expectedInfo}
 \end{align}
 
 This is what \texttt{information} output when the argument \texttt{type.information}
@@ -2409,11 +2410,11 @@ is set to \texttt{"expected"} (up to a factor -1).
 \clearpage
 
 \subsection{Degrees of freedom}
-\label{sec:orgaab62fe}
+\label{sec:org049f9d5}
 
 Degrees of freedom are computed using a Satterthwaite approximation,
 i.e. for an estimate coefficient \(\widehat{\beta}\in\widehat{\Vparam}\) with standard
-error \(\sigma_{\widehat{beta}}\), the degree of freedom is:
+error \(\sigma_{\widehat{\beta}}\), the degree of freedom is:
 \begin{align*}
 df\left(\sigma_{\widehat{\beta}}\right) = \frac{2 \sigma^4_{\widehat{\beta}}}{\Var[\widehat{\sigma}_{\widehat{\beta}}]}
 \end{align*}
@@ -2424,30 +2425,42 @@ Using a first order Taylor expansion we can approximate the variance term as:
 \end{align*}
 
 where \(\Sigma_{\Vparam}\) is the variance-covariance matrix of all
-model coefficients, \(\Information_{\Vparam}\) the information
-matrix for all model coefficients, \(c_{\beta}\) a matrix used to
-select the element relative to \(\beta\) in the first derivative of
-the information matrix, and \(\dpartial[.][\Vparam]\) denotes the
-vector of derivatives with respect to all model coefficients.
+  model coefficients, \(\Information_{\Vparam}\) the information
+  matrix for all model coefficients, \(c_{\beta}\) a matrix used to
+  select the element relative to \(\beta\) in the first derivative of
+  the information matrix, and \(\dpartial[.][\Vparam]\) denotes the
+  vector of derivatives with respect to all model coefficients.
 
 \bigskip
 
 The derivative of the information matrix (i.e. negative hessian) can
 then be computed using numerical derivatives or using analytical
-formula. To simplify the derivation of the formula we will only derive
-them at the maximum likelihood, i.e. when
+formula. To obtain the later we first notice that:
+\begin{align}
+&\Hessian(\theta,\theta^{\prime}) = \Esp[\Hessian(\theta,\theta^{\prime})|\VX] \notag \\
+& + \sum_{i=1}^n  w_i \left( \textcolor{\darkblue}{ tr\left(\Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta] - \Omega_i(\Vparam)^{-1} \ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] \right) } \right. \notag \\
+& \qquad \textcolor{\darkblue}{ -  \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \trans{\Vvarepsilon_i(\Vparam)}} \notag \\
+& \qquad \left. \textcolor{\darkblue}{ + \frac{1}{2} \Vvarepsilon_i(\Vparam) \Omega_i(\Vparam)^{-1} \left(\ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] - \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta] - \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \right) \Omega_i(\Vparam)^{-1} \trans{\Vvarepsilon_i(\Vparam)} } \right) \label{eq:diffInfo}
+\end{align}
+where
+\[  \Esp[\Hessian(\theta,\theta^{\prime})|\VX] = \textcolor{\darkred}{\frac{1}{2} tr \left(A(\Vparam)^{-1} \left(\sum_{i=1}^n w_i b_i(\Vparam) B_i(\Vparam) \trans{b}_i(\Vparam) + C(\Vparam)A(\Vparam)^{-1} \trans{C}(\Vparam) \right)\right)}
+ + \textcolor{\darkblue}{E(\Vparam)}
+\]
+So we will first derive the derivative of
+\(\Hessian(\theta,\theta^{\prime})\) and then the one of the blue term
+in \autoref{eq:diffInfo}.  To simplify the derivation of the
+formula we will only derive them at the maximum likelihood, i.e. when
 \(\Esp\left[\dpartial[\Hessian(\theta,\theta^{\prime}|\VX)][\theta^{\prime\prime}]\right]=\frac{\partial
 \Esp[\Hessian(\theta,\theta^{\prime}|\VX)]}{\partial
 \theta^{\prime\prime}}\) where the expectation is taken over
-\(\VX\). We can therefore take the derivative of formula
-\eqref{eq:expectedInfo}. We first note that its derivative with respect
+\(\VX\). To find the derivative of
+\(\Hessian(\theta,\theta^{\prime})\) we can therefore take the
+derivative of formula \eqref{eq:expectedInfo}. Its derivative with respect
 to the mean parameters is 0. So we just need to compute the derivative
 with respect to a variance parameter \(\theta^{\prime\prime}\):
 \begin{align*}
- & \frac{\partial\Esp[\Hessian(\theta,\theta^{\prime})|\VX]}{\partial \theta^{\prime\prime}} \notag\\ 
-% &= \textcolor{\darkred}{ \frac{1}{2} tr \left( \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i\right)^{-1}  \left\{ \sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \left( \ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] - 2 \dpartial[\Omega_i(\Vparam)][\theta]  \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}]\right) \Omega_i(\Vparam)^{-1} \trans{\VX}_i \right.  \right.} \notag \\
-% & \textcolor{\darkred}{ \left. \left. \qquad +  \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i \right) \left(\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \right\} \right) } \notag\\
- & + \sum_{i=1}^n w_i \left( \textcolor{\darkblue}{
+ \frac{\partial\textcolor{\darkblue}{E(\Vparam)}}{\partial \theta^{\prime\prime}}=&
+ \sum_{i=1}^n w_i \left( \textcolor{\darkblue}{
 - \frac{1}{2} tr\left(
 -2\Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta] \right. } \right. \\
 & \qquad \qquad \textcolor{\darkblue}{\left. + \Omega_i(\Vparam)^{-1} \ddpartial[\Omega_i(\Vparam)][\theta^{\prime}][\theta^{\prime\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta]

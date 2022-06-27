@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:07) 
 ## Version: 
-## Last-Updated: apr 13 2022 (10:10) 
+## Last-Updated: jun 27 2022 (12:16) 
 ##           By: Brice Ozenne
-##     Update #: 6
+##     Update #: 17
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,17 +26,20 @@
 ##' @details adapted from RecordLinkage package
 ##'
 ##' @examples
-##' .unorderedPairs(1:5, distinct = TRUE)
+##' .unorderedPairs(1:5, distinct = TRUE) - utils::combn(5, m = 2)
 ##' .unorderedPairs(1:5, distinct = FALSE)
 ##' 
 .unorderedPairs <- function(x, distinct = FALSE){
-    n <- length(x)
-    ls <- lapply(1:n, function(k){ rbind(x[k], x[k:n])})
-    out <- do.call(cbind,ls)##array(unlist(ls), dim = c(2, n * (n + 1)/2))
-    if(distinct){
-        out <- out[,apply(out,2,function(iCol){all(!duplicated(iCol))}),drop=FALSE]
+    n.x <- length(x)
+    out <- do.call(cbind,lapply(1:n.x, function(iK) {
+        rbind(x[iK], x[iK:n.x])
+    }))
+    
+    if(distinct){## same as combn but faster when x is large
+        return(out[,out[1,]!=out[2,],drop=FALSE])
+    }else{
+        return(out)
     }
-    return(out)
 }
 
 

@@ -1,11 +1,11 @@
-### test-auto-ttest.R --- 
+### test-auto-mmm.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: May 29 2022 (16:51) 
+## Last-Updated: jun 27 2022 (11:55) 
 ##           By: Brice Ozenne
-##     Update #: 51
+##     Update #: 52
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -64,4 +64,4 @@ test_that("rbind for anova",{
 
 
 ##----------------------------------------------------------------------
-### test-auto-ttest.R ends here
+### test-auto-mmm.R ends here

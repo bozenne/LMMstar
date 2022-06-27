@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (10:48) 
 ## Version: 
-## Last-Updated: maj 23 2022 (11:19) 
+## Last-Updated: jun 27 2022 (11:54) 
 ##           By: Brice Ozenne
-##     Update #: 13
+##     Update #: 14
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -30,6 +30,10 @@ model.tables.lmm <- function(x, ...){
     confint(x, ..., columns = c("estimate","se","df","lower","upper","p.value"))
 }
 
+##' @export
+model.tables.mlmm <- function(x, ...){
+    confint(x, ..., columns = c("estimate","se","df","lower","upper","p.value"))
+}
 
 ##----------------------------------------------------------------------
 ### model.tables.R ends here

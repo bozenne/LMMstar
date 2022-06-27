@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (10:34) 
 ## Version: 
-## Last-Updated: jun 22 2022 (19:07) 
+## Last-Updated: jun 27 2022 (12:22) 
 ##           By: Brice Ozenne
-##     Update #: 187
+##     Update #: 189
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -67,11 +67,11 @@
         iName.varcoef <- name.varcoef[[iPattern]]
         iN.varcoef <- length(iName.varcoef)
 
-        iX <- matrix(unlist(precompute$XX$pattern[[iPattern]]), nrow = iTime2, ncol = dim(precompute$XX$pattern[[iPattern]])[3], byrow = FALSE)
+        iX <- precompute$XX$pattern[[iPattern]]
                     
         ## *** mean,mean,vcov
         for(iParam in name.varcoef[[iPattern]]){ ## iParam <- name.varcoef[[iPattern]][1]
-            iValue <- (as.double(iOmega %*% dOmega[[iPattern]][[iParam]] %*% iOmega)  %*% iX)[as.double(precompute$XX$key)]
+            iValue <- (as.double(iOmega %*% dOmega[[iPattern]][[iParam]] %*% iOmega) %*% iX)[as.double(precompute$XX$key)]
             dhessian[name.mucoef,name.mucoef,iParam] <- dhessian[name.mucoef,name.mucoef,iParam] + iValue
         }
         ## *** mean,vcov,vcov
