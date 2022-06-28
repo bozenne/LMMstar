@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: jun 27 2022 (16:47) 
+## Last-Updated: jun 28 2022 (11:27) 
 ##           By: Brice Ozenne
-##     Update #: 1041
+##     Update #: 1048
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -280,8 +280,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
                 for(iPair in 1:npair.varcoef[[iPattern]]){ ## iPair <- 4
                     iCoef1 <- pair.varcoef[[iPattern]][1,iPair]
                     iCoef2 <- pair.varcoef[[iPattern]][2,iPair]
-
-                    iTerm21 <- OmegaM1_dOmega_OmegaM1[[iPattern]][[iCoef2]] %*% idOmega[[iCoef1]]
+                    iTerm21 <- ls.OmegaM1_dOmega_OmegaM1[[iPattern]][[iCoef2]] %*% idOmega[[iCoef1]]
                     
                     ## trace
                     if(type.information == "expected"){
@@ -290,7 +289,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
                         tr_OmegaM1_d2OmegaAndCo[[iPattern]][iPair] <- - tr(iTerm21 - iOmegaM1 %*% d2Omega[[iPattern]][[iPair]])
                     }
                     if(REML || type.information == "observed"){
-                        iTerm12 <- OmegaM1_dOmega_OmegaM1[[iPattern]][[iCoef1]] %*% idOmega[[iCoef2]]
+                        iTerm12 <- ls.OmegaM1_dOmega_OmegaM1[[iPattern]][[iCoef1]] %*% idOmega[[iCoef2]]
                         OmegaM1_d2OmegaAndCo_OmegaM1[[iPattern]][,,iPair] <- iOmegaM1 %*% d2Omega[[iPattern]][[iPair]] %*% iOmegaM1 - (iTerm12 + iTerm21) %*% iOmegaM1
                     }
                 }
@@ -324,7 +323,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
             if(REML && test.vcov){
                 REML.denom <- REML.denom + iValue
                 for(iVarcoef in name.varcoef[[iPattern]]){ ## iVarcoef <- 1
-                    REML.numerator1[,,iVarcoef] <- REML.numerator1[,,iVarcoef] + iWeight * (tiX %*% OmegaM1_dOmega_OmegaM1[[iPattern]][[iVarcoef]] %*% iX) * scale.Omega[iId]
+                    REML.numerator1[,,iVarcoef] <- REML.numerator1[,,iVarcoef] + iWeight * (tiX %*% ls.OmegaM1_dOmega_OmegaM1[[iPattern]][[iVarcoef]] %*% iX) * scale.Omega[iId]
                 }
             }
 
@@ -367,7 +366,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
                     iCoef1 <- pair.meanvarcoef[[iPattern]][1,iPair]
                     iCoef2 <- pair.meanvarcoef[[iPattern]][2,iPair]
 
-                    iValue <- iWeight * (tiX[iCoef1,,drop=FALSE] %*% OmegaM1_dOmega_OmegaM1[[iPattern]][[iCoef2]] %*% iResidual) * scale.Omega[iId]
+                    iValue <- iWeight * (tiX[iCoef1,,drop=FALSE] %*% ls.OmegaM1_dOmega_OmegaM1[[iPattern]][[iCoef2]] %*% iResidual) * scale.Omega[iId]
 
                     if(indiv){
                         info[iId,iCoef1,iCoef2] <- iValue
@@ -414,7 +413,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
                         return(as.double(out + t(out)))
                     }))
                     iOmegaM1_d2OmegaAndCo_OmegaM1 <- iOmegaM1_d2Omega_OmegaM1 - iOmegaM1_dOmega1_OmegaM1_dOmega2_OmegaM1
-                    
+
                 }
 
                 if(REML){

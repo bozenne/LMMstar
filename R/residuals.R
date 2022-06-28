@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: Jun  2 2022 (11:15) 
+## Last-Updated: jun 28 2022 (11:35) 
 ##           By: Brice Ozenne
-##     Update #: 641
+##     Update #: 643
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -336,8 +336,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
                     iOmega <- precision[[iPattern]]
                     iTime <- NCOL(iOmega)
                     iTime2 <- length(iOmega)
-
-                    iX <- matrix(unlist(precompute.XX$pattern[[iPattern]]), nrow = iTime2, ncol = dim(precompute.XX$pattern[[iPattern]])[3], byrow = FALSE)
+                    iX <- precompute.XX$pattern[[iPattern]]
                     tX.precision.X <- tX.precision.X + (as.double(iOmega) %*% iX)[as.double(precompute.XX$key)]
                 }
             }else{

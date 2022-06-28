@@ -1,6 +1,6 @@
 PWD c:\Users\hpl802\Documents\Github\LMMstar\inst\doc-software
 INPUT C:\Users\hpl802\AppData\Local\MiKTeX\2.9\miktex\data\le\pdftex\pdflatex.fmt
-INPUT overview.tex
+INPUT c:\Users\hpl802\Documents\Github\LMMstar\inst\doc-software\overview.tex
 OUTPUT overview.log
 INPUT C:\Program Files\MiKTeX 2.9\tex\latex\base\article.cls
 INPUT C:\Program Files\MiKTeX 2.9\tex\latex\base\article.cls
@@ -1429,18 +1429,8 @@ INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\tex\generic\gettitlestring\gett
 INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\tex\generic\gettitlestring\gettitlestring.sty
 INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\tex\latex\kvoptions\kvoptions.sty
 INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\tex\generic\ltxcmds\ltxcmds.sty
-INPUT .\overview.out
-INPUT overview.out
-INPUT .\overview.out
-INPUT overview.out
-INPUT .\overview.out
-INPUT overview.out
-INPUT .\overview.out
-INPUT overview.out
-OUTPUT overview.pdf
-INPUT .\overview.out
-INPUT .\overview.out
 OUTPUT overview.out
+OUTPUT overview.pdf
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmr17.tfm
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmr12.tfm
 INPUT C:\Program Files\MiKTeX 2.9\tex\latex\lm\ot1lmr.fd

@@ -1,4 +1,4 @@
-% Created 2022-06-27 ma 17:51
+% Created 2022-06-28 ti 12:10
 % Intended LaTeX compiler: pdflatex
 \documentclass[12pt]{article}
 
@@ -344,7 +344,7 @@ LMMstar.options(optimizer = "FS")
 \clearpage
 
 \section{Descriptive statistics}
-\label{sec:org6f22cb1}
+\label{sec:org91da012}
 Mean, standard deviation, and other summary statistic can be computed
 with respect to a categorical variable (typically time) using the
 \texttt{summarize} function:
@@ -409,9 +409,9 @@ Note: estimates and confidence intervals for rho have been back-transformed.
 \clearpage
 
 \section{Linear mixed model}
-\label{sec:org724ba8b}
+\label{sec:orga1cc40d}
 \subsection{Classical covariance patterns}
-\label{sec:org7bb6bec}
+\label{sec:org095f44f}
 Fit a linear model with \textbf{identity} structure:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -667,7 +667,7 @@ A3m 350.0416 331.5182 308.1345 334.8267
 \clearpage
 
 \subsection{Model output}
-\label{sec:orgc18fae3}
+\label{sec:org25ef0be}
 
 The \texttt{summary} method can be used to display the main information
 relative to the model fit:
@@ -793,7 +793,7 @@ arguments \texttt{df} to \texttt{FALSE} and \texttt{type.information} to \texttt
 calling \texttt{lmm} should lead to a more reasonnable computation time.
 
 \subsection{Extract estimated coefficients}
-\label{sec:org113cf40}
+\label{sec:orgac13f65}
 The value of the estimated coefficients can be output using \texttt{coef}:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -848,7 +848,7 @@ dummy.coef(eUN.lmm)
 \end{verbatim}
 
 \subsection{Extract estimated coefficient and associated uncertainty}
-\label{sec:orgdf4ba56}
+\label{sec:orgc1017e6}
 
 The uncertainty about the mean coefficients can be obtained using the
 \texttt{model.tables} method \footnote{it is equivalent to \texttt{confint} method
@@ -880,7 +880,7 @@ they uncertainty is by default computed after transformation
 (e.g. \texttt{log}) and then backtransformed. 
 
 \subsection{Extract estimated residual variance-covariance structure}
-\label{sec:orgf266558}
+\label{sec:orgfea3a85}
 
 The method \texttt{sigma} can be used to output the covariance structure of the residuals:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -931,7 +931,7 @@ A3m 318.8573 304.6314 285.8077 280.9323
 \clearpage
 
 \subsection{Model diagnostic}
-\label{sec:org4a54599}
+\label{sec:orge689743}
 
 The method \texttt{plot} can be used to display diagnostic plots about:
 \begin{itemize}
@@ -1027,7 +1027,7 @@ Various type of residuals can be extract but the normalized one are
 recommanded when doing model checking.
 
 \subsection{Model fit}
-\label{sec:org71f8aab}
+\label{sec:org16240e7}
 
 The fitted values can be displayed via the \texttt{plot} method or using the \texttt{emmeans} package:
 
@@ -1117,7 +1117,7 @@ Advarselsbeskeder:
 \clearpage
 
 \subsection{Statistical inference (linear)}
-\label{sec:org46d959b}
+\label{sec:orgf0efdf5}
 
 The \texttt{anova} method can be use to test one or several linear
 combinations of the model coefficients using Wald tests. By default,
@@ -1319,7 +1319,7 @@ Adjusted CIs/p-values computed using 1e+05 samples.
 \clearpage
 
 \subsection{Statistical inference (non-linear)}
-\label{sec:org78b346c}
+\label{sec:org2923554}
 
 The \texttt{estimate} function can be used to test one or several non-linear
 combinations of model coefficients, using a first order delta method
@@ -1386,7 +1386,7 @@ variable.
 \clearpage
 
 \subsection{Baseline adjustment}
-\label{sec:orgf420fcd}
+\label{sec:org55da7b6}
 
 In clinical trial the group and intervention variable often do not
 coincide, e.g., in presence of baseline measurement. In our running
@@ -1578,7 +1578,7 @@ autoplot(eC3.lmm, color = "group", ci = FALSE, size.text = 20, obs.alpha = 0.1)
 \end{center}
 
 \subsection{Marginal means}
-\label{sec:orgacc7e39}
+\label{sec:org18cf47b}
 
 The \texttt{emmeans} package can be used to output marginal means. Consider
 the following model:
@@ -1752,7 +1752,7 @@ P value adjustment: sidak method for 4 tests
 \end{verbatim}
 
 \subsection{Predictions}
-\label{sec:orge688ba9}
+\label{sec:org81eb238}
 
 Two types of predictions can be performed with the \texttt{predict} method:
 \begin{itemize}
@@ -1862,7 +1862,7 @@ as.double(mu2 + Omega_21 * (100 - mu1) / Omega_11)
 \clearpage
 
 \subsection{Missing values and imputation}
-\label{sec:orgc5591dc}
+\label{sec:orgda19116}
 
 
 We now consider the glucagon level as an outcome. The \texttt{summarize}
@@ -1999,7 +1999,7 @@ fitted(eUN.lmmNA, impute = TRUE, se = "total")
 \clearpage
 
 \section{User-specific covariance patterns}
-\label{sec:org58205f0}
+\label{sec:org4bc38b1}
 
 From version 0.6.0 and above it is possible customize the covariance
 pattern under the following model for the residuals:
@@ -2148,7 +2148,7 @@ logLik(lmm(value~time,
 \clearpage
 
 \section{Data generation}
-\label{sec:orgcdf7363}
+\label{sec:org2ce2c50}
 Simulate some data in the wide format:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -2195,7 +2195,7 @@ head(dL)
 \clearpage
 
 \section{Modifying default options}
-\label{sec:orgb0d1cf6}
+\label{sec:orgaf14c87}
 The \texttt{LMMstar.options} method enable to get and set the default options
 used by the package. For instance, the default option for the information matrix is:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -2224,7 +2224,7 @@ LMMstar.options(reinitialise = TRUE)
 \clearpage
 
 \section{R session}
-\label{sec:org26398dc}
+\label{sec:org93f90ab}
 Details of the R session used to generate this document:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -2275,7 +2275,7 @@ loaded via a namespace (and not attached):
 \clearpage
 
 \section*{References}
-\label{sec:orge869896}
+\label{sec:org1d26ce4}
 \begingroup
 \renewcommand{\section}[2]{}
 
@@ -2308,7 +2308,7 @@ consider \(n\) replicates (i.e. \(\VY_1,\ldots,\VY_n)\) and
 \(\omega=(w_1,\ldots,w_n)\), which are by default all equal to 1.
 
 \subsection{Log-likelihood}
-\label{sec:orgd4feb35}
+\label{sec:org126f6e1}
 
 The restricted log-likelihood in a linear mixed model can then be
 written:
@@ -2339,7 +2339,7 @@ when setting the argument \texttt{indiv} to \texttt{TRUE}.
 \bigskip
 
 \subsection{Score}
-\label{sec:org98ec38c}
+\label{sec:orgb7b34cf}
 
  Using that \(\partial \log(\det(X))=tr(X^{-1}\partial(X))\), the
 score is obtained by derivating once the log-likelihood, i.e., for
@@ -2362,7 +2362,7 @@ what \texttt{score} outputs for the ML criteria when setting the argument
 \clearpage
 
 \subsection{Hessian}
-\label{sec:org8a34363}
+\label{sec:org157409c}
 
 Derivating a second time the log-likelihood gives the hessian, \(\Hessian(\Vparam)\), with element\footnote{if one is relative to the mean and the other to the variance then they are respectively \(\theta\) and \(\theta'\)}:
 \begin{align*}
@@ -2410,7 +2410,7 @@ is set to \texttt{"expected"} (up to a factor -1).
 \clearpage
 
 \subsection{Degrees of freedom}
-\label{sec:org049f9d5}
+\label{sec:orgb6db961}
 
 Degrees of freedom are computed using a Satterthwaite approximation,
 i.e. for an estimate coefficient \(\widehat{\beta}\in\widehat{\Vparam}\) with standard
@@ -2459,7 +2459,23 @@ derivative of formula \eqref{eq:expectedInfo}. Its derivative with respect
 to the mean parameters is 0. So we just need to compute the derivative
 with respect to a variance parameter \(\theta^{\prime\prime}\):
 \begin{align*}
- \frac{\partial\textcolor{\darkblue}{E(\Vparam)}}{\partial \theta^{\prime\prime}}=&
+ & \frac{\partial \textcolor{\darkred}{ A(\Vparam)^{-1} \left(\sum_{i=1}^n w_i b_i(\Vparam) B_i(\Vparam) \trans{b}_i(\Vparam) + C(\Vparam)A(\Vparam)^{-1} \trans{C}(\Vparam) \right)}}{\partial \theta^{\prime\prime}} \\
+ =& \textcolor{\darkred}{A(\Vparam)^{-1} \dpartial[A(\Vparam)][\theta^{\prime\prime}] A(\Vparam)^{-1} \left(\sum_{i=1}^n w_i b_i(\Vparam) B_i(\Vparam) \trans{b}_i(\Vparam) + C(\Vparam)A(\Vparam)^{-1} \trans{C}(\Vparam) \right)} \\
+ & +\textcolor{\darkred}{A(\Vparam)^{-1} \left(\sum_{i=1}^n w_i \left(
+ \dpartial[b_i(\Vparam)][\theta^{\prime\prime}]  B_i(\Vparam) \trans{b}_i(\Vparam)
+ + b_i(\Vparam) \dpartial[B_i(\Vparam)][\theta^{\prime\prime}]   \trans{b}_i(\Vparam)
+ + b_i(\Vparam) B_i(\Vparam) \dpartial[\trans{b}_i(\Vparam)][\theta^{\prime\prime}] \right. \right. } \\
+& \qquad \qquad \qquad \qquad \quad + \textcolor{\darkred}{\left. \left.
+ \dpartial[C(\Vparam)][\theta^{\prime\prime}]  A^{-1}(\Vparam) \trans{C}(\Vparam)
+ + C(\Vparam) A^{-1}\dpartial[A(\Vparam)][\theta^{\prime\prime}]A^{-1}   \trans{C}(\Vparam)
+ + C(\Vparam) A^{-1}(\Vparam) \dpartial[\trans{C}(\Vparam)][\theta^{\prime\prime}]
+\right) \right)}
+\end{align*}
+
+and
+
+\begin{align*}
+ \dpartial[\textcolor{\darkblue}{E(\Vparam)}][\theta^{\prime\prime}]=&
  \sum_{i=1}^n w_i \left( \textcolor{\darkblue}{
 - \frac{1}{2} tr\left(
 -2\Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta] \right. } \right. \\
@@ -2470,7 +2486,24 @@ with respect to a variance parameter \(\theta^{\prime\prime}\):
  \right)}
 \end{align*}
 
-
+where:
+\begin{align*}
+\textcolor{\darkred}{\dpartial[A(\Vparam)][\theta^{\prime\prime}]} &= \textcolor{\darkred}{\sum_{i=1}^n w_i \VX_i \Omega^{-1}_i(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime\prime}]\Omega^{-1}_i(\Vparam) \trans{\VX}_i} \\
+\textcolor{\darkred}{\dpartial[b_i(\Vparam)][\theta^{\prime\prime}]} &= \textcolor{\darkred}{\VX_i \Omega^{-1}_i(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime\prime}]\Omega^{-1}_i(\Vparam)} \\
+\textcolor{\darkred}{\dpartial[B_i(\Vparam)][\theta^{\prime\prime}]} &= \textcolor{\darkred}{
+  \frac{\partial^3 \Omega_i(\Vparam)}{\theta\theta^{\prime}\theta^{\prime\prime}} } \\
+  & \textcolor{\darkred}{ - 2 \left(
+  \ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime\prime}]\Omega^{-1}_i(\Vparam)\dpartial[\Omega_i(\Vparam)][\theta^{\prime}]
++ \dpartial[\Omega_i(\Vparam)][\theta]\Omega^{-1}_i(\Vparam)\dpartial[\Omega_i(\Vparam)][\theta^{\prime\prime}]\Omega^{-1}_i(\Vparam)\dpartial[\Omega_i(\Vparam)][\theta^{\prime}]
++ \dpartial[\Omega_i(\Vparam)][\theta]\Omega^{-1}_i(\Vparam)\ddpartial[\Omega_i(\Vparam)][\theta^{\prime}][\theta^{\prime\prime}]
+\right)
+  } \\
+\textcolor{\darkred}{\dpartial[C(\Vparam)][\theta^{\prime\prime}]} &= \textcolor{\darkred}{\sum_{i=1}^n w_i \VX_i \Omega^{-1}_i(\Vparam) \left(
+\dpartial[\Omega_i(\Vparam)][\theta^{\prime\prime}] \Omega^{-1}_i(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta]
++ \ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime\prime}]
++ \dpartial[\Omega_i(\Vparam)][\theta] \Omega^{-1}_i(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime\prime}]
+\right) \Omega^{-1}_i(\Vparam) \trans{\VX}_i} 
+\end{align*}
 
 
 

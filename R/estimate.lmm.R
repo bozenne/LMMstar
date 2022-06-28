@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: jun 24 2022 (17:42) 
+## Last-Updated: jun 28 2022 (11:46) 
 ##           By: Brice Ozenne
-##     Update #: 846
+##     Update #: 849
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -241,7 +241,7 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
             key.XX <- design$precompute.XX$key[param.mu2,param.mu2,drop=FALSE]
             index.precompute <- unique(as.double(design$precompute.XX$key[param.mu2,param.mu2]))
             key.XX[] <- stats::setNames(1:length(index.precompute),index.precompute)[as.character(design$precompute.XX$key[param.mu2,param.mu2])]        
-            precompute.XX <- lapply(design$precompute.XX$pattern, function(iX){iX[,,index.precompute,drop=FALSE]})
+            precompute.XX <- lapply(design$precompute.XX$pattern, function(iX){iX[,index.precompute,drop=FALSE]})
 
             precompute.XXpattern <- lapply(design$precompute.XX$Xpattern, function(iM){
                 if(length(dim(iM))==2){

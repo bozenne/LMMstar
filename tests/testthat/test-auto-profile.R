@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jun 20 2022 (14:45) 
 ## Version: 
-## Last-Updated: jun 21 2022 (15:25) 
+## Last-Updated: jun 28 2022 (11:47) 
 ##           By: Brice Ozenne
-##     Update #: 9
+##     Update #: 10
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -39,7 +39,6 @@ test_that("Profile likelihood (lm)",{
     cMLE <- coef(e0.profile2, effects = "all")
 
     e4.profile <- lm(weight2 ~ 0 + weight1 + glucagonAUC1, data = cbind(gastricbypassW, off = 4), offset = off)
-
     test <- profile(e.full2, effects = "(Intercept)", profile.likelihood = TRUE, plot = FALSE, maxpts = c(0,4))
     expect_equal(test$logLik[1:2], as.double(c(logLik(e0.profile),logLik(e4.profile))), tol = 1e-5)
 

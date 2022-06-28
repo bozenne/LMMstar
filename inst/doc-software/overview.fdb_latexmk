@@ -1,12 +1,12 @@
 # Fdb version 3
-["bibtex overview"] 1656345066 "overview.aux" "overview.bbl" "overview" 1656345071
+["bibtex overview"] 1656411070 "overview.aux" "overview.bbl" "overview" 1656411070
   "C:/Program Files/MiKTeX 2.9/bibtex/bst/bibtex/apalike.bst" 1291976391 24635 604dafcc79f521a11ea73e506e1fbd98 ""
   "bibliography.bib" 1655476877 1073 c7d78c8e866f70164e7424b9dd8f1de4 ""
-  "overview.aux" 1656345070 6335 ea8dec73191c9f625bc23f0720bb1add "pdflatex"
+  "overview.aux" 1656411069 6335 724f5e13c8a4d9e1016e1d267986f613 "pdflatex"
   (generated)
   "overview.bbl"
   "overview.blg"
-["pdflatex"] 1656345066 "overview.tex" "overview.pdf" "overview" 1656345071
+["pdflatex"] 1656411051 "c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/overview.tex" "overview.pdf" "overview" 1656411051
   "C:/Program Files/MiKTeX 2.9/fonts/enc/dvips/lm/lm-ec.enc" 1254938640 2375 baa924870cfb487815765f9094cf3728 ""
   "C:/Program Files/MiKTeX 2.9/fonts/enc/dvips/lm/lm-mathex.enc" 1254938640 3486 c7eadf5dcc57b3b2d11736679f6636ba ""
   "C:/Program Files/MiKTeX 2.9/fonts/enc/dvips/lm/lm-mathit.enc" 1254938640 2405 5dcf2c1b967ee25cc46c58cd52244aed ""
@@ -300,6 +300,7 @@
   "C:/Users/hpl802/AppData/Roaming/MiKTeX/2.9/tex/latex/xargs/xargs.sty" 1206234660 12403 a11204384274e5980f17ec9564088fa4 ""
   "C:/Users/hpl802/AppData/Roaming/MiKTeX/2.9/tex/latex/xifthen/xifthen.sty" 1448278036 5689 1bfa68243e89a54479e7d0580773c57e ""
   "C:/Users/hpl802/AppData/Roaming/MiKTeX/2.9/tex/latex/xstring/xstring.sty" 1626884962 123 a302f2c651a95033260db60e51527ae8 ""
+  "c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/overview.tex" 1656411049 103845 96145bbaa7eb45973f18fa341dd435f0 ""
   "figures/diag-correlation.pdf" 1655476877 6174 16304adcafe90fdb36355e75bff0c495 ""
   "figures/diag-qqplot.pdf" 1655476877 14326 a2d093fc63cfc3658a1851dd4404473c ""
   "figures/diag-scatterplot.pdf" 1655476877 16217 b2da0732f33e9a540d3eb0614f391a27 ""
@@ -310,14 +311,14 @@
   "figures/fit-pres.pdf" 1655476877 16850 016a57c2a9a069f8a658635e7cb75f22 ""
   "figures/gg-baseAdj.pdf" 1655476877 11147 7a714e629f310694c22d606415a5a19d ""
   "figures/imputation.pdf" 1655476877 9073 8217ea053dffa6df96baa83a6d06fcf5 ""
-  "overview.aux" 1656345070 6335 ea8dec73191c9f625bc23f0720bb1add "pdflatex"
-  "overview.bbl" 1656345066 557 8ab52bee5b1d6446bf910c1d9775dd73 "bibtex overview"
-  "overview.out" 1656345070 4442 5402268f71b37563fd84da077f4675b4 "pdflatex"
-  "overview.tex" 1656345060 101035 05337c60dd383adaf568d5912168d0f9 ""
+  "overview.aux" 1656410862 6335 5fca167b7398914c75b5b43128357a39 "pdflatex"
+  "overview.bbl" 1656410864 557 8ab52bee5b1d6446bf910c1d9775dd73 "bibtex overview"
+  "overview.out" 1656411069 4442 5402268f71b37563fd84da077f4675b4 "pdflatex"
+  "overview.tex" 1656411049 103845 96145bbaa7eb45973f18fa341dd435f0 ""
   (generated)
-  "overview.aux"
-  "overview.out"
-  "overview.log"
-  "overview.loc"
   "overview.soc"
   "overview.pdf"
+  "overview.log"
+  "overview.aux"
+  "overview.loc"
+  "overview.out"
