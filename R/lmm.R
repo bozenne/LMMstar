@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jun 24 2022 (10:53) 
+## Last-Updated: jun 30 2022 (15:25) 
 ##           By: Brice Ozenne
-##     Update #: 1985
+##     Update #: 1996
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -387,7 +387,6 @@ lmm <- function(formula, repetition, structure, data,
 
     }
 
-
     ## *** weights
     if(!is.null(weights)){
         if(optimizer=="gls"){
@@ -742,6 +741,46 @@ lmm <- function(formula, repetition, structure, data,
         }
         out$opt <- list(name = "gls")
     }else{
+
+        if(identical(control$init,"lmer")){
+            ## check feasibility
+            requireNamespace("lme4")
+            if(out$design$vcov$type!="CS" || out$design$vcov$heterogeneous){
+                stop("Initializer \"lmer\" only available for homegeneous CS structures.")
+            }
+            if(n.strata>1){
+                stop("Initializer \"lmer\" cannot handle multiple strata.")
+            }
+
+            ## identify nesting
+            nesting <- .nestingRanef(out)
+            table.nesting <- attr(nesting,"rho2variable")[[1]]
+
+            ## fit lmer model
+            lmer.formula <- out$formula$mean
+            if(is.null(attr(nesting, "nesting.var"))){
+                lmer.formula <- stats::update(lmer.formula, stats::as.formula(paste0(".~.+(1|",out$cluster$var,")")))
+            }else{
+                lmer.formula <- stats::update(lmer.formula, stats::as.formula(paste0(".~.+(1|",paste(c(out$cluster$var,attr(nesting, "nesting.var")),collapse="/"),")")))
+            }
+            e.lmer <- lme4::lmer(lmer.formula, data = data, REML = method.fit=="REML")
+
+            ## extract lmer estimates
+            lmer.beta <- lme4::fixef(e.lmer)
+            lmer.sigma <- stats::setNames(stats::sigma(e.lmer)^2,"sigma")
+            lmer.tau <- stats::setNames((sapply(lme4::VarCorr(e.lmer),attr,"stddev"))^2, sapply(strsplit(names(lme4::VarCorr(e.lmer)),split=":"),"[",1))
+
+            ## convert to LMMstar estimates
+            init.sigma <- sqrt(lmer.sigma+sum(lmer.tau))
+            init.tau <- cumsum(rev(lmer.tau))/init.sigma^2
+            names(init.tau) <- table.nesting$param[match(gsub("(Intercept)",out$cluster$var,table.nesting$variable, fixed = TRUE),names(init.tau))]
+            if(!identical(sort(names(c(lmer.beta,init.sigma,init.tau))), sort(out$design$param$name))){
+                stop("Could not identify all coefficients from the lmer model. \n")
+            }
+            
+            control$init <- c(lmer.beta,init.sigma,init.tau)[out$design$param$name]
+        }
+        
         outEstimate <- .estimate(design = out$design, time = out$time, method.fit = method.fit, type.information = type.information,
                                  transform.sigma = options$transform.sigma, transform.k = options$transform.k, transform.rho = options$transform.rho,
                                  precompute.moments = precompute.moments, 

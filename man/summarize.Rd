@@ -10,8 +10,13 @@ summarize(
   na.action = stats::na.pass,
   na.rm = FALSE,
   level = 0.95,
-  which = c("observed", "missing", "mean", "sd", "min", "median", "max", "correlation"),
-  skip.reference = TRUE
+  columns = c("observed", "missing", "mean", "sd", "min", "median", "max",
+    "correlation"),
+  FUN = NULL,
+  which = NULL,
+  skip.reference = TRUE,
+  digits = NULL,
+  ...
 )
 }
 \arguments{
@@ -28,14 +33,24 @@ Passed to the \code{stats::aggregate} function.}
 
 \item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
 
-\item{which}{[character vector] name of the summary statistics to kept in the output.
+\item{columns}{[character vector] name of the summary statistics to kept in the output.
 Can be any of, or a combination of: \code{"observed"} (number of observations with a measurement),
-\code{"missing"} (number of observations with a missing value), \code{"mean"}, \code{"mean.lower"}, \code{"mean.upper"},
+\code{"missing"} (number of observations with a missing value),
+\code{"mean"}, \code{"mean.ci.lower"} (confidence interval), \code{"mean.ci.upper"}, \code{"mean.pi.lower"} (prediction interval), \code{"mean.pi.upper"},
 \code{"sd"}, \code{"min"},
 \code{"median"}, \code{"median.lower"}, \code{"median.upper"},
 \code{"max"}.}
 
+\item{FUN}{[function] user-defined function for computing summary statistics.
+It should take a vector as an argument and output a single value or a vector (with names).}
+
+\item{which}{deprecated, use the argument columns instead.}
+
 \item{skip.reference}{[logical] should the summary statistics for the reference level of categorical variables be omitted?}
+
+\item{digits}{[integer, >=0] the minimum number of significant digits to be used to display the results. Passed to \code{print.data.frame}}
+
+\item{...}{additional arguments passed to argument \code{FUN}.}
 }
 \value{
 a data frame containing summary statistics (in columns) for each outcome and value of the grouping variables (rows). It has an attribute \code{"correlation"} when it was possible to compute the correlation matrix for each outcome with respect to the grouping variable.
@@ -52,6 +67,7 @@ and confidence intervals for the median are computed via \code{asht::medianTest}
 ## simulate data in the wide format
 set.seed(10)
 d <- sampleRem(1e2, n.times = 3)
+d$treat <-  sample(LETTERS[1:3], NROW(d), replace=TRUE, prob=c(0.3, 0.3, 0.4) )
 
 ## add a missing value
 d2 <- d
@@ -59,7 +75,9 @@ d2[1,"Y2"] <- NA
 
 ## run summarize
 summarize(Y1 ~ 1, data = d)
+summarize(Y1 ~ 1, data = d, FUN = quantile, p = c(0.25,0.75))
 summarize(Y1+Y2 ~ X1, data = d)
+summarize(treat ~ 1, skip.reference = FALSE, data = d)
 
 summarize(Y1 ~ X1, data = d2)
 summarize(Y1+Y2 ~ X1, data = d2, na.rm = TRUE)
