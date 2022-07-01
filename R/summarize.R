@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jun 30 2022 (15:15) 
+## Last-Updated: jul  1 2022 (16:12) 
 ##           By: Brice Ozenne
-##     Update #: 199
+##     Update #: 220
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,35 +17,43 @@
 
 ## * summarize (documentation)
 ##' @title Compute summary statistics
-##' @description Compute summary statistics (similar to the SAS macro procmean).
-##' This is essentially an interface to the \code{stats::aggregate} function.
+##' @description Compute summary statistics for multiple variables and/or multiple groups and save them in a data frame.
 ##'
 ##' @param formula [formula] on the left hand side the outcome(s) and on the right hand side the grouping variables.
 ##' E.g. Y1+Y2 ~ Gender + Gene will compute for each gender and gene the summary statistics for Y1 and for Y2.
 ##' Passed to the \code{stats::aggregate} function.
-##' @param data [data.frame] dataset (in the wide format) containing the observations.
+##' @param data [data.frame] dataset containing the observations.
 ##' @param na.action [function] a function which indicates what should happen when the data contain 'NA' values.
-##' Passed to the \code{stats::aggregate} function.
+##' Passed to the \code{stats::aggregate} function. 
 ##' @param na.rm [logical] Should the summary statistics be computed by omitting the missing values.
 ##' @param columns [character vector] name of the summary statistics to kept in the output.
-##' Can be any of, or a combination of: \code{"observed"} (number of observations with a measurement),
-##' \code{"missing"} (number of observations with a missing value),
-##' \code{"mean"}, \code{"mean.ci.lower"} (confidence interval), \code{"mean.ci.upper"}, \code{"mean.pi.lower"} (prediction interval), \code{"mean.pi.upper"},
-##' \code{"sd"}, \code{"min"},
-##' \code{"median"}, \code{"median.lower"}, \code{"median.upper"},
-##' \code{"max"}.
+##' Can be any of, or a combination of:\itemize{
+##' \item \code{"observed"}: number of observations with a measurement.
+##' \item \code{"missing"}: number of observations with a missing value.
+##' \item \code{"mean"}, \code{"mean.lower"} \code{"mean.upper"}: mean with its confidence interval.
+##' \item \code{"median"}, \code{"median.lower"} \code{"median.upper"}: median with its confidence interval.
+##' \item \code{"sd"}: standard deviation.
+##' \item \code{"q1"}, \code{"q3"}, \code{"IQR"}: 1st and 3rd quartile, interquartile range.
+##' \item \code{"min"}, \code{"max"}: minimum and maximum observation.
+##' \item \code{"predict.lower"}, \code{"predict.upper"}: prediction interval for normally distributed outcome.
+##' \item \code{"correlation"}: correlation matrix between the outcomes (when feasible, see detail section).
+##' }
 ##' @param FUN [function] user-defined function for computing summary statistics.
-##' It should take a vector as an argument and output a single value or a vector (with names).
+##' It should take a vector as an argument and output a named single value or a named vector.
 ##' @param which deprecated, use the argument columns instead.
 ##' @param level [numeric,0-1] the confidence level of the confidence intervals.
 ##' @param skip.reference [logical] should the summary statistics for the reference level of categorical variables be omitted?
 ##' @param digits [integer, >=0] the minimum number of significant digits to be used to display the results. Passed to \code{print.data.frame}
 ##' @param ... additional arguments passed to argument \code{FUN}.
 ##'
-##' @details Confidence intervals for the mean are computed via \code{stats::t.test}
-##' and confidence intervals for the median are computed via \code{asht::medianTest}.
+##' @details This function is essentially an interface to the \code{stats::aggregate} function.
 ##' 
-##' @return a data frame containing summary statistics (in columns) for each outcome and value of the grouping variables (rows). It has an attribute \code{"correlation"} when it was possible to compute the correlation matrix for each outcome with respect to the grouping variable.
+##' Confidence intervals (CI) and prediction intervals (PI) for the mean are computed via \code{stats::t.test}.
+##' Confidence intervals (CI) for the median are computed via \code{asht::medianTest}.
+##'
+##' Correlation can be assessed when a grouping and ordering variable are given in the formula interface , e.g. Y ~ time|id.
+##' 
+##' @return A data frame containing summary statistics (in columns) for each outcome and value of the grouping variables (rows). It has an attribute \code{"correlation"} when it was possible to compute the correlation matrix for each outcome with respect to the grouping variable.
 
 ## * summarize (examples)
 ##' @examples
@@ -87,7 +95,7 @@
 ## * summarize (code)
 ##' @export
 summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, level = 0.95,
-                      columns = c("observed","missing","mean","sd","min","median","max","correlation"),
+                      columns = c("observed","missing","mean","sd","min","q1","median","q3","max","correlation"),
                       FUN = NULL,
                       which = NULL,
                       skip.reference = TRUE,
@@ -151,7 +159,7 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
         warning("Argument \'which\' is deprecated. Consider using argument \'columns\' instead. \n")
         columns <- which
     }
-    valid.columns <- c("observed","missing","mean","mean.ci.lower","mean.ci.upper","mean.pi.lower","mean.pi.upper","sd","min","median","median.upper","median.lower","IQR","max","correlation")
+    valid.columns <- c("observed","missing","mean","mean.lower","mean.upper","predict.lower","predict.upper","sd","min","q1","median","q3","median.upper","median.lower","IQR","max","correlation")
     columns <- match.arg(columns, choices = valid.columns, several.ok = TRUE)
 
     dots <- list(...)
@@ -217,7 +225,7 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
             }
 
             ## *** gather
-            if("mean.ci.lower" %in% columns || "mean.ci.upper" %in% columns){
+            if("mean.lower" %in% columns || "mean.upper" %in% columns || "predict.lower" %in% columns || "predict.upper" %in% columns){
                 if(all(y %in% 0:1)){
                     tty <- stats::binom.test(x = sum(y==1, na.rm = TRUE), n = sum(!is.na(y)), conf.level = level, alternative = "two.sided")
                 }else{
@@ -236,43 +244,48 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
                 iVec <- c("observed" = n.obs,
                           "missing" = n.missing,
                           "mean" = NA,
-                          "mean.ci.lower" = NA,
-                          "mean.ci.upper" = NA,
-                          "mean.pi.lower" = NA,
-                          "mean.pi.upper" = NA,
+                          "mean.lower" = NA,
+                          "mean.upper" = NA,
+                          "predict.lower" = NA,
+                          "predict.upper" = NA,
                           "sd" = NA,
                           "min" = NA,
+                          "q1" = NA,
                           "median" = NA,
                           "median.lower" = NA,
                           "median.upper" = NA,
+                          "q3" = NA,
                           "IQR" = NA,
                           "max" = NA)
             }else{
                 iVec <- c("observed" = sum(!is.na(y)),
                           "missing" = n.missing,
                           "mean" = mean(y, na.rm = na.rm),
-                          "mean.ci.lower" = tty$conf.int[1], ## as.double(tty$estimate + stats::qt((1-level)/2,tty$parameter) * tty$stderr[1])  - tty$conf.int[1]
-                          "mean.ci.upper" = tty$conf.int[2], ## as.double(tty$estimate + stats::qt(1-(1-level)/2,tty$parameter) * tty$stderr[1])  - tty$conf.int[2]
-                          "mean.pi.lower" = as.double(tty$estimate + sqrt(n.obs+1) * stats::qt((1-level)/2,tty$parameter) * tty$stderr[1]), 
-                          "mean.pi.upper" = as.double(tty$estimate + sqrt(n.obs+1) * stats::qt(1-(1-level)/2,tty$parameter) * tty$stderr[1]), 
+                          "mean.lower" = tty$conf.int[1], ## as.double(tty$estimate + stats::qt((1-level)/2,tty$parameter) * tty$stderr[1])  - tty$conf.int[1]
+                          "mean.upper" = tty$conf.int[2], ## as.double(tty$estimate + stats::qt(1-(1-level)/2,tty$parameter) * tty$stderr[1])  - tty$conf.int[2]
+                          "predict.lower" = as.double(tty$estimate + sqrt(n.obs+1) * stats::qt((1-level)/2,tty$parameter) * tty$stderr[1]), 
+                          "predict.upper" = as.double(tty$estimate + sqrt(n.obs+1) * stats::qt(1-(1-level)/2,tty$parameter) * tty$stderr[1]), 
                           "sd" = stats::sd(y, na.rm = na.rm),
                           "min" = min(y, na.rm = na.rm),
+                          "q1" = unname(stats::quantile(y, prob = 0.25, na.rm = na.rm)),
                           "median" = stats::median(y, na.rm = na.rm),
                           "median.lower" = wty$conf.int[1],
                           "median.upper" = wty$conf.int[2],
+                          "q3" = unname(stats::quantile(y, prob = 0.75, na.rm = na.rm)),
                           "IQR" = stats::IQR(y, na.rm = na.rm),
                           "max" = max(y, na.rm = na.rm))
             }
             if(!is.null(FUN)){
                 iVec <- c(iVec,do.call(FUN, c(list(y), dots)))
                 if(all(y %in% 0:1)){
-                    iVec[c("sd","median","median.lower","median.upper")] <- NA
+                    iVec[c("sd","predict.lower","predict.upper","q1","median","median.lower","median.upper","q3","IQR")] <- NA
                 }
             }
             return(iVec)
             
         },
         na.action=na.action)
+        
         iDF <- cbind(outcome = name.Y[iY],
                      iAggregate[name.X],
                      iAggregate[["XXindexXX"]][,union(setdiff(columns,"correlation"),setdiff(colnames(iAggregate[["XXindexXX"]]),valid.columns)),drop=FALSE])

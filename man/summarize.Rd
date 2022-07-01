@@ -10,7 +10,7 @@ summarize(
   na.action = stats::na.pass,
   na.rm = FALSE,
   level = 0.95,
-  columns = c("observed", "missing", "mean", "sd", "min", "median", "max",
+  columns = c("observed", "missing", "mean", "sd", "min", "q1", "median", "q3", "max",
     "correlation"),
   FUN = NULL,
   which = NULL,
@@ -24,7 +24,7 @@ summarize(
 E.g. Y1+Y2 ~ Gender + Gene will compute for each gender and gene the summary statistics for Y1 and for Y2.
 Passed to the \code{stats::aggregate} function.}
 
-\item{data}{[data.frame] dataset (in the wide format) containing the observations.}
+\item{data}{[data.frame] dataset containing the observations.}
 
 \item{na.action}{[function] a function which indicates what should happen when the data contain 'NA' values.
 Passed to the \code{stats::aggregate} function.}
@@ -34,15 +34,20 @@ Passed to the \code{stats::aggregate} function.}
 \item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
 
 \item{columns}{[character vector] name of the summary statistics to kept in the output.
-Can be any of, or a combination of: \code{"observed"} (number of observations with a measurement),
-\code{"missing"} (number of observations with a missing value),
-\code{"mean"}, \code{"mean.ci.lower"} (confidence interval), \code{"mean.ci.upper"}, \code{"mean.pi.lower"} (prediction interval), \code{"mean.pi.upper"},
-\code{"sd"}, \code{"min"},
-\code{"median"}, \code{"median.lower"}, \code{"median.upper"},
-\code{"max"}.}
+Can be any of, or a combination of:\itemize{
+\item \code{"observed"}: number of observations with a measurement.
+\item \code{"missing"}: number of observations with a missing value.
+\item \code{"mean"}, \code{"mean.lower"} \code{"mean.upper"}: mean with its confidence interval.
+\item \code{"median"}, \code{"median.lower"} \code{"median.upper"}: median with its confidence interval.
+\item \code{"sd"}: standard deviation.
+\item \code{"q1"}, \code{"q3"}, \code{"IQR"}: 1st and 3rd quartile, interquartile range.
+\item \code{"min"}, \code{"max"}: minimum and maximum observation.
+\item \code{"predict.lower"}, \code{"predict.upper"}: prediction interval for normally distributed outcome.
+\item \code{"correlation"}: correlation matrix between the outcomes (when feasible, see detail section).
+}}
 
 \item{FUN}{[function] user-defined function for computing summary statistics.
-It should take a vector as an argument and output a single value or a vector (with names).}
+It should take a vector as an argument and output a named single value or a named vector.}
 
 \item{which}{deprecated, use the argument columns instead.}
 
@@ -56,12 +61,15 @@ It should take a vector as an argument and output a single value or a vector (wi
 a data frame containing summary statistics (in columns) for each outcome and value of the grouping variables (rows). It has an attribute \code{"correlation"} when it was possible to compute the correlation matrix for each outcome with respect to the grouping variable.
 }
 \description{
-Compute summary statistics (similar to the SAS macro procmean).
-This is essentially an interface to the \code{stats::aggregate} function.
+Compute summary statistics for multiple variables and/or multiple groups and save them in a data frame.
 }
 \details{
-Confidence intervals for the mean are computed via \code{stats::t.test}
-and confidence intervals for the median are computed via \code{asht::medianTest}.
+This function is essentially an interface to the \code{stats::aggregate} function.
+
+Confidence intervals (CI) and prediction intervals (PI) for the mean are computed via \code{stats::t.test}.
+Confidence intervals (CI) for the median are computed via \code{asht::medianTest}.
+
+Correlation can be assessed when a grouping and ordering variable are given in the formula interface , e.g. Y ~ time|id.
 }
 \examples{
 ## simulate data in the wide format
