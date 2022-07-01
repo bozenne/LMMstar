@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: jun 28 2022 (09:55) 
+## Last-Updated: Jul  1 2022 (09:42) 
 ##           By: Brice Ozenne
-##     Update #: 389
+##     Update #: 394
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -124,7 +124,6 @@
         if(inherits(iChol,"try-error")){return(NA)}else{return(-2*sum(log(diag(iChol))))}
     })
     ## log(sapply(out$OmegaM1,det))
-
     if(score || information || vcov || df){
         if(trace>=1){cat("- dOmega \n")}
         out$dOmega <- .calc_dOmega(object = design$vcov, param = param.value, Omega = out$Omega,
@@ -134,10 +133,14 @@
                                    transform.rho = transform.rho)
 
         attr(out$dOmega, "ls.dOmega_OmegaM1") <- stats::setNames(lapply(design$vcov$X$Upattern$name, function(iPattern){
-            lapply(out$dOmega[[iPattern]], function(iM){iM %*% out$OmegaM1[[iPattern]]})
+            lapply(out$dOmega[[iPattern]], function(iM){
+                if(inherits(out$OmegaM1[[iPattern]],"try-error")){return(NA)}else{iM %*% out$OmegaM1[[iPattern]]}
+            })
         }), design$vcov$X$Upattern$name)
         attr(out$dOmega, "ls.OmegaM1_dOmega_OmegaM1") <- stats::setNames(lapply(design$vcov$X$Upattern$name, function(iPattern){ ## iPattern <- "1:1"
-            lapply(attr(out$dOmega, "ls.dOmega_OmegaM1")[[iPattern]], function(iM){out$OmegaM1[[iPattern]] %*% iM})
+            lapply(attr(out$dOmega, "ls.dOmega_OmegaM1")[[iPattern]], function(iM){
+                if(inherits(out$OmegaM1[[iPattern]],"try-error")){return(NA)}else{out$OmegaM1[[iPattern]] %*% iM}
+            })
         }), design$vcov$X$Upattern$name)
         attr(out$dOmega, "dOmega_OmegaM1") <- lapply(attr(out$dOmega, "ls.dOmega_OmegaM1"), function(iO){ do.call(cbind, lapply(iO,as.numeric)) })
         attr(out$dOmega, "OmegaM1_dOmega_OmegaM1") <- lapply(attr(out$dOmega, "ls.OmegaM1_dOmega_OmegaM1"), function(iO){ do.call(cbind, lapply(iO,as.numeric)) })
@@ -267,6 +270,7 @@
             dimnames(out$dVcov) <- list(newname.allcoef[dimnames(out$dVcov)[[1]]], newname.allcoef[dimnames(out$dVcov)[[2]]], newname.allcoef[dimnames(out$dVcov)[[3]]])
         }
     }
+
     ## ** 4- export
     return(out)
 }

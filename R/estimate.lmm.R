@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: jun 30 2022 (12:04) 
+## Last-Updated: Jul  1 2022 (09:45) 
 ##           By: Brice Ozenne
-##     Update #: 851
+##     Update #: 854
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -357,7 +357,7 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
                     cv <- 1
                     break
                 }
-            }else if(all(abs(outMoments$score[param.Omega2])<tol.score) && (iiIter==0 || all(abs(param.valueM1 - param.value)<tol.param))){
+            }else if(all(!is.na(outMoments$score)) && all(abs(outMoments$score[param.Omega2])<tol.score) && (iiIter==0 || all(abs(param.valueM1 - param.value)<tol.param))){
                 if(iiIter==0){
                     param.valueM1 <- param.value * NA
                 }
@@ -458,6 +458,8 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
             }
             if(length(param.Omega2)==0){
                 cat(attr(cv,"message")," after ",iIter," iteration. \n",sep="") ## only one iteration (GLS)
+            }else if(cv==-2){
+                cat(attr(cv,"message"),". \n",sep="") ## incorrect initialization
             }else if(iIter==0){
                 cat(attr(cv,"message")," after ",iIter," iteration: max score=",max(abs(outMoments$score[param.Omega2])),"\n", sep = "")
             }else{
