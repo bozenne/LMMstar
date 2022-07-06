@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: Jul  1 2022 (09:45) 
+## Last-Updated: jul  6 2022 (13:40) 
 ##           By: Brice Ozenne
-##     Update #: 854
+##     Update #: 855
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -313,7 +313,7 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
         param.valueM1 <- NULL
         logLik.value <- NULL
         logLik.valueM1 <- NULL
-        score <- NULL
+        score.value <- NULL
         iIter <- 0
     }else if(optimizer=="FS"){
         cv <- 0
