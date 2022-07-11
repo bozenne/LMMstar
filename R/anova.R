@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: maj 31 2022 (10:12) 
+## Last-Updated: Jul  8 2022 (12:32) 
 ##           By: Brice Ozenne
-##     Update #: 851
+##     Update #: 867
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -437,13 +437,14 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                                  lower = NA,
                                  upper = NA,
                                  null = iNull,
-                                 partial.R = NA,
+                                 partial.r = NA,
                                  p.value = NA,
                                  stringsAsFactors = FALSE)
                 CI$statistic <- (CI$estimate-iNull)/CI$se
                 rownames(CI) <- rownames(iC)
-                CI$partial.R <- sign(CI$statistic)*sqrt(CI$statistic^2 / (CI$df + CI$statistic^2))
+                CI$partial.r <- sign(CI$statistic)*sqrt(CI$statistic^2 / (CI$df + CI$statistic^2))
                 if(!is.null(names(effects)) && !inherits(effects,"mcp")){
+                    
                     indexName <- intersect(which(names(effects)!=""),which(!is.na(names(effects))))
                     rownames(CI)[indexName] <- names(effects)[indexName]
                 }
@@ -461,7 +462,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                                "statistic" = iStat,
                                "df.num" = iDf[1],
                                "df.denom" = iDf[2],
-                               "partial.R2"  =  iDf[1] * iStat / (iDf[2] + iDf[1] * iStat),
+                               "partial.r2"  =  iDf[1] * iStat / (iDf[2] + iDf[1] * iStat),
                                "p.value" = 1 - stats::pf(iStat, df1 = iDf[1], df2 = iDf[2]),
                                stringsAsFactors = FALSE)
             ## R2 calculation from

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:50) 
 ## Version: 
-## Last-Updated: jun 27 2022 (11:26) 
+## Last-Updated: Jul  8 2022 (09:36) 
 ##           By: Brice Ozenne
-##     Update #: 233
+##     Update #: 236
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -78,7 +78,12 @@ summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0
         columns.indiv <- options$columns.anova
         columns.global <- union("statistic", setdiff(options$columns.anova, c("estimate", "se", "lower", "upper")))
     }else{
-        columns.indiv <- match.arg(columns, choices = c("null","estimate","se","statistic","df","lower","upper","p.value","partial.R"), several.ok = TRUE)
+        valid.columns <- c("null","estimate","se","statistic","df","lower","upper","p.value","partial.r")
+        columns.indiv <- tolower(columns)
+        if(any(columns.indiv %in% valid.columns == FALSE)){
+            stop("Incorrect value \"",paste(columns.indiv[columns.indiv %in% valid.columns == FALSE], collapse ="\" \""),"\" for argument \'columns\'. \n",
+                 "Valid values: \"",paste(setdiff(valid.columns, columns.indiv), collapse ="\" \""),"\".\n")
+        }
         columns.global <- setdiff(columns.indiv, c("estimate", "se", "lower", "upper"))
     }
     if("df" %in% columns.global){
@@ -91,7 +96,7 @@ summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0
             columns.global <- c(columns.global[1:(index.df-1)], "df.num", "df.denom", columns.global[(index.df+1):length(columns.global)])
         }
     }
-    columns.global <- gsub("^partial.R$","partial.R2", columns.global)
+    columns.global <- gsub("^partial.r$","partial.r2", columns.global)
     object.df <- attr(object,"df")
     out <- list()
     

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jun 30 2022 (15:25) 
+## Last-Updated: Jul  8 2022 (09:29) 
 ##           By: Brice Ozenne
-##     Update #: 1996
+##     Update #: 1998
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -662,7 +662,7 @@ lmm <- function(formula, repetition, structure, data,
 
 
     ## ** 3. Estimate model parameters
-    if(trace>=1){cat("3. Estimate model parameters\n")}
+    if(trace>=1){cat("3. Estimate model parameters")}
 
     if(optimizer=="gls"){
         name.var <- unlist(structure$name$var)
@@ -795,7 +795,7 @@ lmm <- function(formula, repetition, structure, data,
     }
     out$param <- param.value
 
-    if(trace.control>=2){cat("\n")}
+    if(trace>=1){cat("\n")}
 
     ## ** 4. Compute likelihood derivatives
     if(trace>=1){cat("4. Compute likelihood derivatives \n")}

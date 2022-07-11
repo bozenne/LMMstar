@@ -58,7 +58,7 @@ It should take a vector as an argument and output a named single value or a name
 \item{...}{additional arguments passed to argument \code{FUN}.}
 }
 \value{
-a data frame containing summary statistics (in columns) for each outcome and value of the grouping variables (rows). It has an attribute \code{"correlation"} when it was possible to compute the correlation matrix for each outcome with respect to the grouping variable.
+A data frame containing summary statistics (in columns) for each outcome and value of the grouping variables (rows). It has an attribute \code{"correlation"} when it was possible to compute the correlation matrix for each outcome with respect to the grouping variable.
 }
 \description{
 Compute summary statistics for multiple variables and/or multiple groups and save them in a data frame.

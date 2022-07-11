@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 20 2022 (12:12) 
 ## Version: 
-## Last-Updated: May 30 2022 (23:19) 
+## Last-Updated: Jul  8 2022 (12:32) 
 ##           By: Brice Ozenne
-##     Update #: 24
+##     Update #: 44
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -63,20 +63,22 @@ test_that("estimate partial correlation via lmm", {
     e.lm <- lmm(distance ~ age, data = Orthodont)
     expect_equal(cor(Orthodont$age,Orthodont$distance), confint(e.lm, column = "partial.R")["age","partial.R"], tol = 1e-3)
 
-    e.lm2 <- lmm(distance ~ age+Sex, data = Orthodont)
+    e.lm2 <- lmm(distance ~ Sex+age, data = Orthodont)
     GS <- lava::partialcor(c(age,distance)~Sex, data = Orthodont)
     expect_equal(GS[,"cor"], confint(e.lm2, column = "partial.R")["age","partial.R"], tol = 1e-3)
 
     ## mixed model
-    e.lmm <- lmm(distance ~ age*Sex, repetition = ~1|Subject, structure = "CS", data = Orthodont)
-    e.aovlmm <- summary(anova(e.lmm), columns = "partial.R", print = FALSE)
-    ## e.lmer <- lme4::lmer(distance ~ age*Sex + (1|Subject), data = Orthodont)
+    e.lmm <- lmm(distance ~ Sex*age, repetition = ~1|Subject, structure = "CS", data = Orthodont)
+    e.aovlmm <- summary(anova(e.lmm), columns = "partial.r", print = FALSE)
+    ## e.lmer <- lme4::lmer(distance ~ Sex*age + (1|Subject), data = Orthodont)
 
     ## library(r2glmm); setNames(r2beta(e.lmer, method = "kr")[2:4,"Rsq"],r2beta(e.lmer, method = "kr")[2:4,"Effect"])
-    GS <- c("age" = 0.57834264, "age:Sex" = 0.07388639, "Sex" = 0.00431524)
-    GS - e.aovlmm[[1]][names(GS),"partial.R2"] ## some difference in age effect
+    GS <- c("age" = 0.57834264, "Sex:age" = 0.07388639, "Sex" = 0.00431524)
+    GS - e.aovlmm[[1]][names(GS),"partial.r2"] ## some difference in age effect
     
-    expect_equal(e.aovlmm[[1]][names(GS),"partial.R2"], e.aovlmm[[2]][names(GS),"partial.R"]^2, tol = 1e-6)
+    expect_equal(e.aovlmm[[1]][,"partial.r2"], e.aovlmm[[2]][,"partial.r"]^2, tol = 1e-6)
+
+
 })
 
 ## * ICC

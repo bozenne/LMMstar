@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jun 27 2022 (11:53) 
+## Last-Updated: Jul  8 2022 (11:26) 
 ##           By: Brice Ozenne
-##     Update #: 127
+##     Update #: 128
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -24,7 +24,7 @@
 ##' @param level [numeric, 0-1] nominal coverage of the confidence intervals.
 ##' @param method [character] type of adjustment for multiple comparisons: one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}, \code{"single-step2"}.
 ##' @param columns [character vector] Columns to be output.
-##' Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}, \code{"partial.R"}.
+##' Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}, \code{"partial.r"}.
 ##' @param simplify [logical] Return a data.frame instead of a list containing a data.frame when possible.
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
@@ -55,7 +55,7 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, columns
     }
 
     if(!is.null(columns)){
-        columns  <- match.arg(columns, c("estimate","se","statistic","df","lower","upper","null","p.value","partial.R"), several.ok = TRUE)
+        columns  <- match.arg(columns, c("estimate","se","statistic","df","lower","upper","null","p.value","partial.r"), several.ok = TRUE)
     }else{
         columns <- options$columns.confint
     }

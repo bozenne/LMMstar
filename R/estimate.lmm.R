@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: Jul  1 2022 (09:45) 
+## Last-Updated: Jul  8 2022 (09:33) 
 ##           By: Brice Ozenne
-##     Update #: 854
+##     Update #: 859
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -277,7 +277,7 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
 
         param.value <- stats::setNames(rep(NA, n.param),param.name)
         if(trace>1){
-            cat("\nInitialization:\n")
+            cat("\n\nInitialization:\n")
         }
 
         ## mean value
@@ -302,7 +302,7 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
         param.value <- init[param.name]     
      
         if(trace>1){
-            cat("\nInitialization:\n")
+            cat("\n\nInitialization:\n")
             print(param.value)
         }
     }
