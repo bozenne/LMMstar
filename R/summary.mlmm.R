@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jun 22 2022 (14:45) 
 ## Version: 
-## Last-Updated: jun 24 2022 (18:01) 
+## Last-Updated: jul 12 2022 (09:10) 
 ##           By: Brice Ozenne
-##     Update #: 46
+##     Update #: 48
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -101,8 +101,12 @@ summary.mlmm <- function(object, method = NULL, print = NULL, hide.data = FALSE,
     ## ** extract test
     if(any(print)){
         cat("Statistical inference \n")
-        options <- LMMstar.options()
-        out <- summary.anova_lmm(object, method = method, columns = options$columns.summary, print = print/2, ...)
+        if("columns" %in% names(list(...))){
+            out <- summary.anova_lmm(object, method = method, print = print/2, ...)
+        }else{
+            options <- LMMstar.options()
+            out <- summary.anova_lmm(object, method = method, columns = options$columns.summary, print = print/2, ...)
+        }
     }
 
     ## ** export

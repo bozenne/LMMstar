@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: Jul  8 2022 (12:32) 
+## Last-Updated: jul 12 2022 (09:03) 
 ##           By: Brice Ozenne
-##     Update #: 867
+##     Update #: 868
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -442,7 +442,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                                  stringsAsFactors = FALSE)
                 CI$statistic <- (CI$estimate-iNull)/CI$se
                 rownames(CI) <- rownames(iC)
-                CI$partial.r <- sign(CI$statistic)*sqrt(CI$statistic^2 / (CI$df + CI$statistic^2))
+                CI$partial.r <- CI$statistic / sqrt(CI$df + CI$statistic^2)
                 if(!is.null(names(effects)) && !inherits(effects,"mcp")){
                     
                     indexName <- intersect(which(names(effects)!=""),which(!is.na(names(effects))))

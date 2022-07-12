@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:50) 
 ## Version: 
-## Last-Updated: Jul  8 2022 (09:36) 
+## Last-Updated: jul 12 2022 (09:11) 
 ##           By: Brice Ozenne
-##     Update #: 236
+##     Update #: 240
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -78,7 +78,7 @@ summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0
         columns.indiv <- options$columns.anova
         columns.global <- union("statistic", setdiff(options$columns.anova, c("estimate", "se", "lower", "upper")))
     }else{
-        valid.columns <- c("null","estimate","se","statistic","df","lower","upper","p.value","partial.r")
+        valid.columns <- c("null","estimate","se","statistic","df","lower","upper","p.value","partial.r","")
         columns.indiv <- tolower(columns)
         if(any(columns.indiv %in% valid.columns == FALSE)){
             stop("Incorrect value \"",paste(columns.indiv[columns.indiv %in% valid.columns == FALSE], collapse ="\" \""),"\" for argument \'columns\'. \n",
@@ -113,6 +113,7 @@ summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0
                                                       cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1), 
                                                       symbols = c("***", "**", "*", ".", " "))
                                   )
+            names(object.print)[NCOL(object.print)] <- ""
             object.print$p.value <- as.character(signif(object.print$p.value, digits = digits.p.value))
             iNoDf <- is.infinite(object.print$df.denom)
             txt.test <- "Multivariate Wald test (global null hypothesis)"
@@ -139,7 +140,7 @@ summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0
                     }
                     print(object.print, digits = digits, row.names = (iType != "all"))
                 }
-                if(print.indiv==FALSE && "p.value" %in% columns.global && iType == utils::tail(type,1)){
+                if(print.indiv==FALSE && "" %in% columns.global && iType == utils::tail(type,1)){
                     cat("---\n",
                         "Signif. codes:  0 \'***\' 0.001 \'**\' 0.01 \'*\' 0.05 \'.\' 0.1 \' \' 1\n")
                 }
