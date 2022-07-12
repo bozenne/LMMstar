@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jul 12 2022 (09:03) 
+## Last-Updated: jul 12 2022 (17:17) 
 ##           By: Brice Ozenne
-##     Update #: 868
+##     Update #: 871
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -509,9 +509,9 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         stop("One model must be nest in the other model to perform a likelihood ratio test. \n")
     }
     paramH1 <-  objectH1$design$param$name
-    typeH1 <-  objectH1$design$param$type
+    typeH1 <-  stats::setNames(objectH1$design$param$type, paramH1)
     paramH0 <-  objectH0$design$param$name
-    typeH0 <-  objectH0$design$param$type
+    typeH0 <-  stats::setNames(objectH0$design$param$type, paramH0)
     if(NROW(objectH0$design$mean)!=NROW(objectH1$design$mean)){
         stop("Mismatch between the design matrices for the mean of the two models - could be due to missing data. \n",
              "Different number of rows: ",NROW(objectH0$design$mean)," vs. ",NROW(objectH1$design$mean),".\n")

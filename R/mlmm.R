@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: jun 24 2022 (18:03) 
+## Last-Updated: jul 12 2022 (18:26) 
 ##           By: Brice Ozenne
-##     Update #: 61
+##     Update #: 82
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -67,7 +67,9 @@
 
 ## * mlmm (code)
 ##' @export
-mlmm <- function(..., data, by, effects = NULL, robust = FALSE, df = TRUE, ci = TRUE){
+mlmm <- function(..., data, by, effects = NULL, robust = FALSE, df = TRUE, ci = TRUE,
+                 transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE,
+                 backtransform = NULL){
 
     ## ** normalizer user input
     options <- LMMstar.options()
@@ -82,6 +84,23 @@ mlmm <- function(..., data, by, effects = NULL, robust = FALSE, df = TRUE, ci = 
         stop("Mismatch between argument \'by\' and \'data\'.\n",
              "Could not find column \"",by,"\" in data \n")
     }
+    if(is.null(backtransform)){
+        if(is.null(transform.sigma) && is.null(transform.k) && is.null(transform.rho)){
+            backtransform <- options$backtransform.confint
+        }else{
+            backtransform <- FALSE
+        }
+    }else if(is.character(backtransform)){
+        backtransform <-  eval(parse(text=backtransform))
+    }
+    ## used to decide on the null hypothesis of k parameters
+    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
+                            x.transform.sigma = options$transform.sigma, x.transform.k = options$transform.k, x.transform.rho = options$transform.rho)
+    
+    transform.sigma <- init$transform.sigma
+    transform.k <- init$transform.k
+    transform.rho <- init$transform.rho
+    transform <- init$transform
 
     ## ** fit mixed models
     ls.data <- base::split(data, data[[by]])
@@ -90,27 +109,35 @@ mlmm <- function(..., data, by, effects = NULL, robust = FALSE, df = TRUE, ci = 
     })
 
     if(is.null(effects) || all(effects %in% c("mean","fixed","variance","correlation","all"))){
-        ls.anova <- lapply(ls.lmm, function(iLMM){
+        ls.anova <- lapply(ls.lmm, function(iLMM){ ## iLMM <- ls.lmm[[1]]
             iAllCoef <- names(coef(iLMM, effects = "all"))
-            iAllCoef.effects <- names(coef(iLMM, effects = options$effects))
+            if(is.null(effects)){
+                iAllCoef.effects <- names(coef(iLMM, effects = options$effects))
+            }else{
+                iAllCoef.effects <- names(coef(iLMM, effects = effects))
+            }
             iC <- matrix(0, nrow = length(iAllCoef.effects), ncol = length(iAllCoef), dimnames = list(iAllCoef.effects,iAllCoef))
             if(length(iAllCoef.effects)==1){
                 iC[iAllCoef.effects,iAllCoef.effects] <- 1
             }else{
                 diag(iC[iAllCoef.effects,iAllCoef.effects]) <- 1
             }
-            anova(iLMM, effects = iC, robust = robust, df = df, ci = ci)
+            iOut <- anova(iLMM, effects = iC, robust = robust, df = df, ci = ci,
+                          transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+            return(iOut)
         })
     }else{
-        ls.anova <- lapply(ls.lmm, anova, effects = effects, robust = robust, df = df, ci = ci)
+        ls.anova <- lapply(ls.lmm, anova, effects = effects, robust = robust, df = df, ci = ci,
+                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
     }
 
     ## ** joint inference
-    ## out <- do.call("rbind", args = c(list(model = ls.anova[[1]]), unname(ls.anova[-1])))
     name.model <- paste0(by,"=",unlist(lapply(ls.data, function(iData){iData[[by]][1]})))
     out <- do.call("rbind.anova_lmm",
                    args = c(list(model = ls.anova[[1]], name = name.model), unname(ls.anova[-1]))
                    )
+
+    ## ** export
     attr.callout <- list(df = attr(out,"df"),
                          test = attr(out,"test"),
                          robust = attr(out,"robust"))

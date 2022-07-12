@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jun 22 2022 (17:32) 
+## Last-Updated: jul 12 2022 (18:45) 
 ##           By: Brice Ozenne
-##     Update #: 101
+##     Update #: 112
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -117,21 +117,26 @@ rbind.anova_lmm <- function(model, ..., name = NULL, sep = ": "){
     names(ls.coef) <- vec.outcome
     names(ls.lmm) <- vec.outcome
 
-    seq.cluster <- unique(unlist(lapply(ls.lmm, function(iLMM){iLMM$cluster$levels})))
+    ls.cluster <- lapply(ls.lmm, function(iLMM){iLMM$cluster$levels})
+    seq.cluster <- unique(unlist(ls.cluster))
     n.cluster <- length(seq.cluster)
 
+    independence <- all(duplicated(unlist(ls.cluster))==FALSE) ## each individual only appear once
+
     ## ** extract iid
-    ls.iid <- lapply(ls.lmm, function(iO){ ## 
-        iIID <- iid(iO, effects = if(method.fit=="REML"){"mean"}else{"all"}, robust = robust,
-                    transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
+    if(!independence){
+        ls.iid <- lapply(ls.lmm, function(iO){ ## 
+            iIID <- iid(iO, effects = if(method.fit=="REML"){"mean"}else{"all"}, robust = robust,
+                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
 
         iOut <- matrix(0, nrow = n.cluster, ncol = NCOL(iIID),
                        dimnames = list(seq.cluster, colnames(iIID)))
         iOut[match(iO$cluster$levels, seq.cluster),] <- iIID
         return(iOut)
         
-    })
-    names(ls.iid) <- vec.outcome
+        })
+        names(ls.iid) <- vec.outcome
+    }
 
     ## ** build glht object
     out <- list(model = ls.lmm, robust = robust)
@@ -141,24 +146,34 @@ rbind.anova_lmm <- function(model, ..., name = NULL, sep = ": "){
     colnames(out$linfct) <- unlist(lapply(1:length(vec.outcome), function(iO){paste0(vec.outcome[iO],sep,colnames(ls.C[[iO]]))}))
 
     out$rhs <- unlist(ls.rhs)
-    out$coef <- unlist(lapply(1:length(vec.outcome), function(iO){stats::setNames(ls.coef[[iO]],paste0(vec.outcome[iO],sep,names(ls.coef[[iO]])))}))
+    ls.coef <- lapply(ls.lmm, coef, effects = "all",
+                      transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
+    out$coef <- stats::setNames(unlist(ls.coef), unlist(lapply(1:length(vec.outcome), function(iO){paste0(vec.outcome[iO],sep,names(ls.coef[[iO]]))})))
 
-    iIID <- do.call(cbind,ls.iid)
-    if(any(is.na(iIID))){
-        out$vcov <- tcrossprod(sqrt(apply(iIID^2, 2, sum, na.rm = TRUE))) * stats::cor(iIID, use = "pairwise")
-        ## usually better compared to formula 11.43 from chapter 11.4 of the book High-dimensional statistics by WAINWRIGHT
-        ## iIDD0 <- iIID/(1-mean(is.na(iIID)))
-        ## iIDD0[is.na(iIDD)] <- 0
-        ## out$vcov <- crossprod(iIDD0) - mean(is.na(iIDD))*diag(diag(crossprod(iIDD0)))
-
-        ## out$vcov - crossprod(iIID)
+    if(independence){
+        ls.vcov <- lapply(ls.lmm, vcov, effects = "all",
+                          robust = robust, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
+        out$vcov <- as.matrix(do.call(Matrix::bdiag,ls.vcov))
+        rownames(out$vcov) <- unlist(lapply(1:length(vec.outcome), function(iO){paste0(vec.outcome[iO],sep,colnames(ls.vcov[[iO]]))}))
+        colnames(out$vcov) <- unlist(lapply(1:length(vec.outcome), function(iO){paste0(vec.outcome[iO],sep,colnames(ls.vcov[[iO]]))}))
     }else{
-        out$vcov <- crossprod(iIID)
-    }
-    rownames(out$vcov) <- unlist(lapply(1:length(vec.outcome), function(iO){paste0(vec.outcome[iO],sep,colnames(ls.iid[[iO]]))}))
-    colnames(out$vcov) <- unlist(lapply(1:length(vec.outcome), function(iO){paste0(vec.outcome[iO],sep,colnames(ls.iid[[iO]]))}))
+        iIID <- do.call(cbind,ls.iid)
+        if(any(is.na(iIID))){
+            out$vcov <- tcrossprod(sqrt(apply(iIID^2, 2, sum, na.rm = TRUE))) * stats::cor(iIID, use = "pairwise")
+            ## usually better compared to formula 11.43 from chapter 11.4 of the book High-dimensional statistics by WAINWRIGHT
+            ## iIDD0 <- iIID/(1-mean(is.na(iIID)))
+            ## iIDD0[is.na(iIDD)] <- 0
+            ## out$vcov <- crossprod(iIDD0) - mean(is.na(iIDD))*diag(diag(crossprod(iIDD0)))
 
-    if(method.fit=="REML"){
+            ## out$vcov - crossprod(iIID)
+        }else{
+            out$vcov <- crossprod(iIID)
+        }
+        rownames(out$vcov) <- unlist(lapply(1:length(vec.outcome), function(iO){paste0(vec.outcome[iO],sep,colnames(ls.iid[[iO]]))}))
+        colnames(out$vcov) <- unlist(lapply(1:length(vec.outcome), function(iO){paste0(vec.outcome[iO],sep,colnames(ls.iid[[iO]]))}))
+    }
+    
+    if(method.fit=="REML" && !independence){
         if(any(abs(out$linfct[,setdiff(colnames(out$linfct),colnames(out$vcov))]>1e-10))){
             stop("Cannot test covariance structure across models when using REML. \n",
                  "Consider setting argument \'method.fit\' to \"ML\" when calling lmm. \n")
@@ -186,7 +201,7 @@ rbind.anova_lmm <- function(model, ..., name = NULL, sep = ": "){
     }
 
     
-    ## ** export
+    ## ** collect
     out2 <- list(all = data.frame("null" = paste(rownames(out$linfct),collapse=", "),
                                   "statistic" = iStat,
                                   "df.num" = iDf[1],
@@ -209,6 +224,25 @@ rbind.anova_lmm <- function(model, ..., name = NULL, sep = ": "){
         rownames(attr(out2$all,"CI")[[1]]) <- rownames(out$linfct)
     }
     out$df <- ceiling(stats::median(out$df))
+
+    ## ## ** backtransform
+    ## attr(out, "transform") <- list(sigma = transform.sigma,
+    ##                                k = transform.k,
+    ##                                rho = transform.rho)
+    ## attr(out, "type") <- type.param
+    ## if(transform.k %in% c("sd","var","logsd","logvar")){
+    ##     attr(out, "type")[attr(out, "type")=="sigma"] <- "k"
+    ## }
+    ## attr(out, "old2new") <-  stats::setNames(nameNoTransform.beta, rownames(out))
+    ## attr(out, "backtransform.names") <- names(coef(object, effects = effects, 
+    ##                                                transform.sigma = gsub("log","",transform.sigma), transform.k = gsub("log","",transform.k), transform.rho = gsub("atanh","",transform.rho), transform.names = transform.names))
+
+    ## attr(out, "backtransform") <-  FALSE
+    ## out <- .backtransform(out)
+
+
+
+    ## ** export
     attr(out2$all,"glht") <- list(out)
     attr(out2, "df") <- !is.na(out$df)
     attr(out2, "test") <- "Wald"

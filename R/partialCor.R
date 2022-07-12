@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: Jun  2 2022 (14:53) 
+## Last-Updated: jul 12 2022 (18:09) 
 ##           By: Brice Ozenne
-##     Update #: 93
+##     Update #: 113
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -61,6 +61,9 @@
 ##' partialCor(list(hl~BC+deg, disp~BC), data = y.data)
 ##' partialCor(list(hl~BC+deg+gender, disp~1), data = y.data)
 ##' 
+##' #### stratified bivariate (no repetition) ####
+##' ## partialCor(list(hl~1, disp~1), data = y.data, by = "gender") ## too small dataset
+##' 
 ##' #### bivariate (with repetition) ####
 ##' data(gastricbypassL, package = "LMMstar")
 ##' 
@@ -70,7 +73,7 @@
 
 ## * partialCor (documentation)
 ##' @export
-partialCor <- function(formula, data, repetition){
+partialCor <- function(formula, data, repetition, by = NULL){
 
     ## ** normalize arguments
     data <- as.data.frame(data)
@@ -134,7 +137,17 @@ partialCor <- function(formula, data, repetition){
         data$CCrepetitionCC <- 1
         name.time <- "CCrepetitionCC"
     }
-    
+
+    ## *** by
+    if(!is.null(by)){
+        if(length(by)!=1){
+            stop("Argument \'by\' must have length 1. \n")
+        }
+        if(by %in% names(data) == FALSE){
+            stop("Argument \'by\' should correspond to a column name of argument \'data\'. \n")
+        }
+    }
+
     ## ** reshape    
     ls.name.X <- lapply(formula, function(iF){all.vars(stats::delete.response(stats::terms(iF)))})
     name.X <- unique(unlist(ls.name.X))
@@ -144,8 +157,8 @@ partialCor <- function(formula, data, repetition){
     if(any(duplicated(name.Y))){
         stop("Variables in the left hand side of argument should be unique. \n")
     }
-    dataL <- stats::reshape(data[, unique(c(name.XY, name.id, name.time)),drop=FALSE], direction  = "long",
-                            idvar = c(name.id, name.time),
+    dataL <- stats::reshape(data[, unique(c(name.XY, name.id, name.time,by)),drop=FALSE], direction  = "long",
+                            idvar = c(name.id, name.time, by),
                             varying = name.Y,
                             v.names = "CCvalueCC",
                             timevar = "CCvariableCC")
@@ -190,10 +203,17 @@ partialCor <- function(formula, data, repetition){
         dataL$CCrepetitionCC <- unlist(tapply(dataL$id,dataL$id,function(iId){1:length(iId)}))
         formula.repetition <- stats::as.formula(paste("~CCrepetitionCC|",name.id))
 
-        e.lmm <- lmm(formula.mean, repetition = formula.repetition,
-                     data = dataL, structure = CS(~CCvariableCC, heterogeneous = TRUE),
-                     control = list(optimizer = "FS"))
-        out <- model.tables(e.lmm, effects = "correlation")
+        if(is.null(by)){
+            e.lmm <- lmm(formula.mean, repetition = formula.repetition,
+                         data = dataL, structure = CS(~CCvariableCC, heterogeneous = TRUE),
+                         control = list(optimizer = "FS"))
+            out <- model.tables(e.lmm, effects = "correlation")
+        }else{
+            e.lmm <- mlmm(formula.mean, repetition = formula.repetition,
+                          data = dataL, structure = CS(~CCvariableCC, heterogeneous = TRUE),
+                          control = list(optimizer = "FS"), by = by, effects = "correlation")
+            out <- confint(e.lmm, columns = c("estimate","se","df","lower","upper","p.value"))
+        }
 
         name.cor <- paste0("rho(",name.Y,",",rev(name.Y),")")
         index.cor <- which(rownames(out) %in% name.cor)
@@ -204,9 +224,15 @@ partialCor <- function(formula, data, repetition){
     }else{
         formula.repetition <- stats::as.formula(paste("~CCvariableCC|",name.id))
 
-        e.lmm <- lmm(formula.mean, repetition = formula.repetition,
-                     data = dataL, structure = "UN")
-        out <- model.tables(e.lmm, effects = "correlation")
+        if(is.null(by)){
+            e.lmm <- lmm(formula.mean, repetition = formula.repetition,
+                         data = dataL, structure = "UN")
+            out <- model.tables(e.lmm, effects = "correlation")
+        }else{
+            e.lmm <- mlmm(formula.mean, repetition = formula.repetition,
+                          data = dataL, structure = "UN", by = by, effects = "correlation")
+            out <- confint(e.lmm, columns = c("estimate","se","df","lower","upper","p.value"))
+        }
     }
 
     ## ** export
