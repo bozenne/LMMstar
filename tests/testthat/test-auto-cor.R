@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 20 2022 (12:12) 
 ## Version: 
-## Last-Updated: Jul  8 2022 (12:32) 
+## Last-Updated: Jul 14 2022 (12:38) 
 ##           By: Brice Ozenne
-##     Update #: 44
+##     Update #: 53
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -57,7 +57,7 @@ test_that("estimate correlation via lmm", {
 ## * Partial correlation
 data("Orthodont", package = "nlme")
 
-test_that("estimate partial correlation via lmm", {
+test_that("estimate partial correlation via lmm (independence)", {
 
     ## univariate linear model
     e.lm <- lmm(distance ~ age, data = Orthodont)
@@ -119,6 +119,155 @@ test_that("ICC", {
     ##     c(e.icc$results$p[3], model.tables(e.lmm, effects="correlation")$p.value)
     ## })
     ## colMeans(do.call(rbind,ls.sim)<=0.05)
+
+})
+
+## * Partial correlation with repeated measuremnts
+set.seed(10)
+
+n.time <- 3
+n.id <- 100
+sd.id <- 1.5
+Sigma <- matrix(c(1,0.8,0.8,1),2,2)
+##      [,1] [,2]
+## [1,]  1.0  0.8
+## [2,]  0.8  1.0
+df.W <- data.frame(id = unlist(lapply(1:n.id, rep, n.time)),
+                   time = rep(1:n.time,n.id),
+                   rmvnorm(n.time*n.id, mean = c(3,3), sigma = Sigma)
+                   )
+df.W$X2 <- df.W$X2 + rnorm(n.id, sd = sd.id)[df.W$id]
+df.W$id <- as.factor(df.W$id)
+df.L <- reshape2::melt(df.W, id.vars = c("id","time")) 
+df.L$time2 <- as.factor(as.numeric(as.factor(paste(df.L$variable,df.L$time,sep="."))))
+
+Sigma.GS <- as.matrix(bdiag(Sigma,Sigma,Sigma))[c(1,3,5,2,4,6),c(1,3,5,2,4,6)]
+Sigma.GS[4:6,4:6] <- Sigma.GS[4:6,4:6] + sd.id^2
+cov2cor(Sigma.GS)
+##           [,1]      [,2]      [,3]      [,4]      [,5]      [,6]
+## [1,] 1.0000000 0.0000000 0.0000000 0.4437602 0.0000000 0.0000000
+## [2,] 0.0000000 1.0000000 0.0000000 0.0000000 0.4437602 0.0000000
+## [3,] 0.0000000 0.0000000 1.0000000 0.0000000 0.0000000 0.4437602
+## [4,] 0.4437602 0.0000000 0.0000000 1.0000000 0.6923077 0.6923077
+## [5,] 0.0000000 0.4437602 0.0000000 0.6923077 1.0000000 0.6923077
+## [6,] 0.0000000 0.0000000 0.4437602 0.6923077 0.6923077 1.0000000
+## cor(dcast(df.L, id~time2)[,-1])
+##              1           2           3           4           5          6
+## 1  1.000000000 -0.05237788 -0.02684335  0.44774229 0.004389268 0.06020988
+## 2 -0.052377883  1.00000000  0.06204366 -0.01202896 0.504596466 0.03584304
+## 3 -0.026843354  0.06204366  1.00000000 -0.05860345 0.019500348 0.47095753
+## 4  0.447742292 -0.01202896 -0.05860345  1.00000000 0.652024959 0.70171094
+## 5  0.004389268  0.50459647  0.01950035  0.65202496 1.000000000 0.68454889
+## 6  0.060209882  0.03584304  0.47095753  0.70171094 0.684548892 1.00000000
+
+## ggplot(df.W, aes(x = X1, y = X2, group = id, color = id)) + geom_point() + guides(color = "none") + geom_smooth(method="lm", se = FALSE)
+
+
+test_that("estimate partial correlation via lmm (cluster)", {
+
+    eWrong.lmm <- lmm(value ~ variable, repetition = ~time+variable|id, data = df.L,
+                      structure = CS(~variable, heterogeneous = TRUE), control = list(optimizer = "FS", trace = 2))
+
+    df.L$gender <- as.numeric(df.L$id) %% 2
+    eWrong.lmm <- lmm(value ~ variable, repetition = ~time2|id, data = df.L,
+                      structure = "UN", control = list(optimizer = "FS", trace = 2))
+
+    df.W$time2 <- as.factor(df.W$time)
+    eTop.lmm <- lmm(value ~ variable, repetition = ~time2|id, data = df.L,
+                     structure = "TOEPLITZ", control = list(optimizer = "FS", trace = 2))
+    eTop1.lmm <- lmm(X1 ~ time, repetition = ~time|id, data = df.W,
+                     structure = "TOEPLITZ", control = list(optimizer = "FS", trace = 2))
+    eTop2.lmm <- lmm(X2 ~ time, repetition = ~time|id, data = df.W,
+                     structure = "TOEPLITZ", control = list(optimizer = "FS", trace = 2))
+    summary(eTop1.lmm)
+    summary(eTop2.lmm)
+
+    partialCor(list(X1~1,X2~1), data = df.W)
+    partialCor(list(X1~1,X2~1), repetition = ~time|id, data = df.W)
+    partialCor(list(X1~1,X2~1), repetition = ~time|id, data = df.W, heterogeneous = FALSE)
+    
+    eTop.lmm <- lmm(value ~ variable, repetition = ~time2|id, data = df.L,
+                    structure = TOEPLITZ(~1, heterogeneous=FALSE), control = list(optimizer = "FS", trace = 2))
+    summary(eTop.lmm)
+
+    eTop.lmm <- lmm(value ~ variable, repetition = ~time2|id, data = df.L,
+                       structure = TOEPLITZ(~variable), control = list(optimizer = "FS", trace = 2))
+    summary(eTop.lmm)
+    eTopTop.lmm <- lmm(value ~ variable, repetition = ~time2|id, data = df.L,
+                       structure = TOEPLITZ(~time+variable, add.time = FALSE, heterogeneous = FALSE), control = list(optimizer = "FS", trace = 2))
+    summary(eTopTop.lmm)
+
+    
+    sigma(eTopTop.lmm)[1,4]/(sqrt(sigma(eTopTop.lmm)[1,1]-sigma(eTopTop.lmm)[1,2])*sqrt(sigma(eTopTop.lmm)[4,4]-sigma(eTopTop.lmm)[4,5]))
+    
+    eUN.lmm <- lmm(value ~ variable, repetition = ~time2|id, data = df.L,
+                   structure = UN, control = list(optimizer = "FS", trace = 2))
+    summary(eUN.lmm)
+
+    eUN.lmm$Omega
+    eTop1.lmm$Omega
+    sigma(eUN.lmm)
+    sigma(eTop1.lmm)
+    sigma(eTop2.lmm)
+    summary(eUN.lmm)
+    summary(eTop1.lmm)
+    cov2cor(sigma(eTop.lmm))
+    coef(eTop.lmm, effect = "correlation")
+
+    cov2cor(sigma(eWrong.lmm))
+
+    rho.2block <- function(p, time, X){
+        index0 <- which(X[,2]==0)
+        index1 <- which(X[,2]==1)
+
+        rho <- matrix(1, nrow = length(time), ncol = length(time))
+        rho[index0,index0] <- p["rho(X1)"]
+        rho[index1,index0] <- p["rho(X1,X2)"]
+        rho[index0,index1] <- p["rho(X1,X2)"]
+        diag(rho[index0,index1]) <- p["rho"]
+        diag(rho[index1,index0]) <- p["rho"]
+        rho[index1,index1] <- p["rho(X2)"]
+        diag(rho) <- 1
+        return(rho)
+    }
+    sigma.2block <- function(p, time, X){
+        index0 <- which(X[,2]==0)
+        index1 <- which(X[,2]==1)
+
+        sigma <- rep(NA, length(time))
+        sigma[index0] <- p["sigma"]
+        sigma[index1] <- p["sigma"]*p["k.X2"]
+        return(sigma)
+    }
+
+    struct <- CUSTOM(~variable,
+                     FCT.sigma = sigma.2block,
+                     init.sigma = c("sigma"=1,"k.X2"=3),
+                     FCT.rho = rho.2block, ## function g
+                     init.rho = c("rho(X2)"=0.8,"rho(X1,X2)"=0.05,"rho(X1)"=0,"rho"=0.4))
+
+    eigen(rho.2block(c("rho(X2)"=0.8,"rho(X1,X2)"=0.05,"rho(X1)"=0,"rho"=0.4), time = 1:6, X = cbind(1,c(rep(0,3),rep(1,3)))))
+
+    eWrong0.lmm <- lmm(value ~ variable, repetition = ~time+variable|id, data = df.L,
+                       structure = CS(~variable, heterogeneous = TRUE), control = list(optimizer = "FS", n.iter = 1),
+                       df = FALSE)
+
+    eWrong.lmm <- lmm(value ~ variable, repetition = ~time+variable|id, data = df.L,
+                       structure = CS(~variable, heterogeneous = TRUE), control = list(optimizer = "FS"),
+                       df = FALSE)
+
+    e.lmm <- lmm(value ~ variable, repetition = ~time+variable|id, data = df.L,
+                 structure = struct, df = FALSE,
+                 control = list(optimizer = "FS", trace = 5))
+    summary(e.lmm)
+    logLik(e.lmm)
+    logLik(eWrong.lmm)
+
+    score(e.lmm, effects = "all", p = coef(eWrong0.lmm, effects = "all"))
+    score(eWrong.lmm, effects = "all", p = coef(eWrong0.lmm, effects = "all"))
+
+    information(e.lmm, effects = "all", p = coef(eWrong0.lmm, effects = "all"))
+    information(eWrong.lmm, effects = "all", p = coef(eWrong0.lmm, effects = "all"))
 
 })
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: May 30 2022 (23:35) 
+## Last-Updated: Jul 13 2022 (18:30) 
 ##           By: Brice Ozenne
-##     Update #: 487
+##     Update #: 495
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -112,6 +112,9 @@
 ## * calc_Omega.CS
 .calc_Omega.CS <- .calc_Omega.ID
 
+## * calc_Omega.TOEPLITZ
+.calc_Omega.TOEPLITZ <- .calc_Omega.ID
+
 ## * calc_Omega.UN
 .calc_Omega.UN <- .calc_Omega.ID
 
@@ -135,7 +138,7 @@
         iX.var <- object$X$Xpattern.var[[iPattern.var]]
         iTime <- attr(iX.var, "index.time")
         iOmega.sd <- FCT.sigma(p = param[name.sigma], time = iTime, X = iX.var)
-        
+
         if(iNtime > 1 && !is.null(X.cor)){
             iPattern.cor <- object$X$Upattern$cor[iPattern]
             iX.cor <- object$X$Xpattern[[iPattern.cor]]

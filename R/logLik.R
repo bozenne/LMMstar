@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: jun 27 2022 (12:23) 
+## Last-Updated: Jul 13 2022 (17:57) 
 ##           By: Brice Ozenne
-##     Update #: 307
+##     Update #: 308
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -119,7 +119,11 @@ logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
         ll <- 0
     }
     if(any(is.na(logdet.precision))){ ## non positive definite residual variance covariance
-        return(ll*NA)
+        if(indiv){
+            return(ll*NA)
+        }else{
+            return(NA)
+        }
     }
 
     ## ** compute log-likelihood

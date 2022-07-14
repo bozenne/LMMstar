@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jun 24 2022 (17:43) 
+## Last-Updated: Jul 13 2022 (22:32) 
 ##           By: Brice Ozenne
-##     Update #: 501
+##     Update #: 505
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -182,6 +182,8 @@ summary.lmm <- function(object, digit = 3, level = 0.95, type.cor = NULL, robust
             }else{
                 cat(txt.strata,"block compound symmetry \n\n",sep="")
             }
+        }else if(structure$type == "TOEPLITZ"){
+            cat(txt.strata,"Toeplitz \n\n",sep="")
         }
     }
     ## *** correlation
@@ -204,8 +206,10 @@ summary.lmm <- function(object, digit = 3, level = 0.95, type.cor = NULL, robust
                 cat("\n")
             }else{
                 table.cor.print  <- lapply(table.cor, function(iCor){ ## iCor <- table.cor[[1]]
-                    if(is.matrix(iCor) && !is.null(rownames(iCor))){
-                        rownames(iCor) <- paste0("    ",rownames(iCor))
+                    if(is.matrix(iCor)){
+                        if(!is.null(rownames(iCor))){
+                            rownames(iCor) <- paste0("    ",rownames(iCor))
+                        }
                     }else{
                         iCor <- lapply(iCor, function(iiCor){
                             if(!is.null(rownames(iiCor))){

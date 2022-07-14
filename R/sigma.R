@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: jun 13 2022 (17:27) 
+## Last-Updated: Jul 13 2022 (22:37) 
 ##           By: Brice Ozenne
-##     Update #: 512
+##     Update #: 517
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -321,23 +321,19 @@ getVarCov.lmm <- function(obj, ...) {
     }
 
     ## ** recover time
-    if(length(object$time$var)>1 || !is.numeric(data[[object$time$var]])){
-        
-        Upattern.var <- Upattern$var[match(keep.pattern,Upattern$name)]
-        iIndex.time <- lapply(Xpattern.var[Upattern.var], function(iX){
-            if(!is.null(attr(iX,"index.time"))){
-                return(attr(iX,"index.time"))
-            }else{
-                return(object$design$index.clusterTime[[attr(iX,"index.cluster")[1]]])
-            }
-        })
-        out <- mapply(x = Omega[keep.pattern], y = iIndex.time, function(x,y){
-            dimnames(x) <- list(U.time[y],U.time[y])
-            return(x)
-        }, SIMPLIFY = FALSE)
-    }else{
-        out <- Omega[keep.pattern]
-    }
+    Upattern.var <- Upattern$var[match(keep.pattern,Upattern$name)]
+    iIndex.time <- lapply(Xpattern.var[Upattern.var], function(iX){
+        if(!is.null(attr(iX,"index.time"))){
+            return(attr(iX,"index.time"))
+        }else{
+            return(object$design$index.clusterTime[[attr(iX,"index.cluster")[1]]])
+        }
+    })
+    out <- mapply(x = Omega[keep.pattern], y = iIndex.time, function(x,y){
+        dimnames(x) <- list(U.time[y],U.time[y])
+        return(x)
+    }, SIMPLIFY = FALSE)
+
     ## ** rename patterns
     all.cov <- union(all.vars(formula$var), all.vars(formula$cor))
     if(length(all.cov)>0){

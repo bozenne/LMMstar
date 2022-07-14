@@ -47,6 +47,7 @@ Suggests:
     qqtest,
     R.rsp,
     reshape2,
+    rmcorr,
     testthat
 VignetteBuilder: R.rsp
 RoxygenNote: 7.2.0

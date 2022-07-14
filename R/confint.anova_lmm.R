@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: Jul  8 2022 (11:26) 
+## Last-Updated: Jul 14 2022 (12:38) 
 ##           By: Brice Ozenne
-##     Update #: 128
+##     Update #: 131
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -59,16 +59,17 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, columns
     }else{
         columns <- options$columns.confint
     }
+    type <- unique(object$multivariate$type)
+browser()
+    
     ## ** extract info and compute CI
-    out <- lapply(object[setdiff(names(object),"call")], function(iO){ ## iO <- object[[1]]
+    for(iType in type){ ## iType <- type[1]
 
-        iTable <- attr(iO,"CI")
-        if(is.null(iTable) || all(sapply(iTable,is.null))){return(NULL)}
-        iOut <- stats::setNames(vector(mode = "list", length = length(iTable)),names(iTable))
+        if(is.null(object$univariate) || iType %in% object$univariate$type == FALSE){next}
+        iIndex.table <- which(object$univariate$type==iType)
 
-        for(iTest in 1:length(iTable)){ ## iTest <- 1
-            iOut[[iTest]] <- iTable[[iTest]]
-            iOut[[iTest]]$df <- pmax(iOut[[iTest]]$df, options$min.df)
+        for(iiTest in iIndex.table){ ## iiTest <- 1
+            object$univariate[iiTest,"df"] <- pmax(object$univariate[iiTest,"df"], options$min.df)
 
             if(is.null(method)){
                 if(length(unique(round(iOut[[iTest]]$df)))>1){
@@ -218,7 +219,8 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, columns
             iOut[[iTest]][names(iOut[[iTest]])[names(iOut[[iTest]]) %in% columns == FALSE]] <- NULL
         }        
         return(iOut)
-    })
+    }
+
     if(simplify && length(out)==1){
         out <- out[[1]]
         if(simplify && length(out)==1){

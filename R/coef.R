@@ -1,11 +1,11 @@
-### coef.lmm.R --- 
+### coef.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: jun 22 2022 (15:43) 
+## Last-Updated: Jul 14 2022 (11:44) 
 ##           By: Brice Ozenne
-##     Update #: 546
+##     Update #: 547
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -254,7 +254,15 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
     return(out)
 }
 
+## * coef.mlmm
+##' @export
+coef.mlmm <- function(object, ...){
+
+    ls.model <- lava::estimate(object)
+    return(lapply(ls.model,coef, ...))
+
+}
 
 
 ##----------------------------------------------------------------------
-### coef.lmm.R ends here
+### coef.R ends here

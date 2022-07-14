@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: Jun  2 2022 (14:12) 
+## Last-Updated: Jul 13 2022 (18:30) 
 ##           By: Brice Ozenne
-##     Update #: 226
+##     Update #: 228
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -237,6 +237,9 @@
     ## export
     return(out)
     }
+
+## * initialize.TOEPLITZ
+.initialize.TOEPLITZ <- .initialize.CS
 
 ## * initialize.UN
 .initialize.UN <- .initialize.CS

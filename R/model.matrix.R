@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: jun 24 2022 (15:03) 
+## Last-Updated: Jul 14 2022 (09:12) 
 ##           By: Brice Ozenne
-##     Update #: 2305
+##     Update #: 2308
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -311,27 +311,15 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 
     ## data
     dataVar <- data
-    if(length(all.vars(formula.var))>0 && structure$type %in% c("ID","IND","CS","UN")){
+    if(length(all.vars(formula.var))>0 && structure$type %in% c("ID","IND","CS","UN","TOEPLITZ")){
         for(iVar in all.vars(formula.var)){
-            if(heterogeneous == FALSE){
-                if(iVar == strata.var){
-                    dataVar[[iVar]] <- as.factor(data[[iVar]])
-                }else if(is.logical(data[[iVar]])){
-                    dataVar[[iVar]] <- as.numeric(data[[iVar]]) + 1
-                }else if(!is.numeric(data[[iVar]])){
-                    dataVar[[iVar]] <- as.numeric(as.factor(data[[iVar]]))
-                }else if(is.numeric(data[[iVar]])){
-                    dataVar[[iVar]] <- data[[iVar]] - min(data[[iVar]]) + 1
-                }
-            }else if(heterogeneous){
-                dataVar[[iVar]] <- as.factor(data[[iVar]])
-            }
+            dataVar[[iVar]] <- as.factor(data[[iVar]])
         }
     }
     dataCor <- data
-    if(length(all.vars(formula.cor))>0 && structure$type %in% c("ID","IND","CS","UN")){
+    if(length(all.vars(formula.cor))>0 && structure$type %in% c("ID","IND","CS","UN","TOEPLITZ")){
         for(iVar in all.vars(formula.cor)){
-            if(heterogeneous == FALSE){
+            if(heterogeneous == FALSE || structure$type=="TOEPLITZ"){
                 if(iVar == strata.var){
                     dataCor[[iVar]] <- as.factor(data[[iVar]])
                 }else if(is.logical(data[[iVar]])){

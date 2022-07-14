@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: jun 24 2022 (15:08) 
+## Last-Updated: Jul 14 2022 (10:43) 
 ##           By: Brice Ozenne
-##     Update #: 2191
+##     Update #: 2256
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -91,10 +91,12 @@
 
     ## *** param rho
     if(NROW(X.cor)>0){
-        outRho <- .initRho(data = data, X.cor = X.cor, X.var = c(outK, list(strata.sigma = strata.sigma)), heterogeneous = structure$heterogeneous, 
-                           U.cluster = U.cluster, index.cluster = index.cluster,
-                           U.time = U.time, index.clusterTime = index.clusterTime, 
-                           strata.var = strata.var, U.strata = U.strata, index.clusterStrata = index.clusterStrata, n.strata = n.strata)
+        outRho <- .initRhoCS(data = data,
+                             X.cor = X.cor, X.var = c(outK, list(strata.sigma = strata.sigma)), heterogeneous = structure$heterogeneous, toeplitz = structure$type=="TOEPLITZ",
+                             U.cluster = U.cluster, index.cluster = index.cluster,
+                             U.time = U.time, index.clusterTime = index.clusterTime, 
+                             strata.var = strata.var, U.strata = U.strata, index.clusterStrata = index.clusterStrata, n.strata = n.strata)
+
         param.rho <- outRho$param[!duplicated(outRho$code)]
         strata.rho <- outRho$strata[!duplicated(outRho$code)]
         code.rho <- outRho$code[!duplicated(outRho$code)]
@@ -156,6 +158,9 @@
 
 ## * skeleton.CS
 .skeleton.CS <- .skeleton.IND
+
+## * skeleton.TOEPLITZ
+.skeleton.TOEPLITZ <- .skeleton.IND
 
 ## * skeleton.UN
 .skeleton.UN <- .skeleton.CS
@@ -295,12 +300,12 @@
                 level = level.k))
 }
 
-## ** .initRho
+## ** .initRhoCS
 ## for each cluster compute all pairwise difference in covariates to find the parameters
-.initRho <- function(data, X.cor, X.var, heterogeneous, 
-                     U.cluster, index.cluster,
-                     U.time, index.clusterTime, 
-                     strata.var, U.strata, index.clusterStrata, n.strata, sep = c(":")){
+.initRhoCS <- function(data, X.cor, X.var, heterogeneous, toeplitz,
+                       U.cluster, index.cluster,
+                       U.time, index.clusterTime, 
+                       strata.var, U.strata, index.clusterStrata, n.strata, sep = c(":")){
 
     fct.envir <- environment()
     n.time <- length(U.time)
@@ -323,6 +328,16 @@
 
     ## *** identify the correlation parameters
     out <- vector(mode = "list", length = n.strata)
+    if(toeplitz){
+        index.XcolTime <- which(attr(X.cor,"term.labels")==attr(X.cor,"variable")[1])
+        if(length(attr(X.cor,"variable"))>1){
+            toeplitz.block <- TRUE
+            index.XcolBlock <- which(attr(X.cor,"term.labels")==attr(X.cor,"variable")[2])
+        }else{
+            toeplitz.block <- FALSE
+            index.XcolBlock <- NULL
+        }
+    }
 
     for(iStrata in 1:n.strata){
 
@@ -374,7 +389,7 @@
         iN.pair <- unique(sapply(iULpIndex.cor[iIndex.unique], length))
         ls.pair <- vector(mode = "list", length = max(iN.pair))
         ls.pair[iN.pair] <- lapply(iN.pair, function(iN){.unorderedPairs(1:iN, distinct = TRUE)})
-        
+
         ## **** contrast all pairs
         for(iC in iCluster2){ ## iC <- iCluster2[1]
             iCindex  <- index.cluster[[iC]][iULpIndex.cor[[iC]]]
@@ -382,6 +397,7 @@
             iData <- data[iCindex,,drop=FALSE]
 
             if(NROW(iCX.cor)==1){ ## SAME LINEAR PREDICTOR FOR ALL OBSERVATIONS WITHIN CLUSTER
+
                 if(heterogeneous){ ## make sure it is compatible with the next case (in case some cluster have only a single pair of observations)
                     iDF.diff <- as.data.frame(cbind("R",iCX.cor), drop = TRUE)
                 }else{
@@ -432,7 +448,6 @@
             }else{ ## DIFFERENT LINEAR PREDICTORS WITHIN CLUSTER
                 iPair.time <- ls.pair[[NROW(iCX.cor)]]
                 iM <- matrix(lpnCluster.cor[[iC]][iULpIndex.cor[[iC]]][iPair.time], ncol = 2, byrow = TRUE, dimnames = list(NULL, c("x","y")))
-                
                 iDF.diff <- as.data.frame(do.call(rbind,lapply(1:NCOL(iPair.time),function(iCol){ ## iCol <- 1
 
                     if(iM[iCol,"x"] < iM[iCol,"y"]){
@@ -447,10 +462,35 @@
                         iCX.cor1 <- iCX.cor[min(iPair.time[,iCol]),,drop=FALSE]
                         iCX.cor2 <- iCX.cor[max(iPair.time[,iCol]),,drop=FALSE]
                     }
-                    if(heterogeneous){
-                        if(all(iCX.cor1==iCX.cor2)){return(cbind("R",iCX.cor1))}else{return(cbind(paste0("D",paste(iCX.cor1,collapse="")),iCX.cor2-iCX.cor1))}
+
+                    if(toeplitz){
+                        
+                        if(toeplitz.block){
+                            if(iCX.cor2[,index.XcolBlock] == iCX.cor1[,index.XcolBlock]){
+                                if(heterogeneous){
+                                    return(cbind("R",iCX.cor2[,index.XcolBlock],abs(iCX.cor2[,index.XcolTime]-iCX.cor1[,index.XcolTime])))
+                                }else{
+                                    return(cbind("R",iCX.cor2[,index.XcolBlock],0))
+                                }
+                            }else{
+                                if(heterogeneous){
+                                    return(cbind("D",abs(iCX.cor2[,index.XcolBlock]-iCX.cor1[,index.XcolBlock]),abs(iCX.cor2[,index.XcolTime]-iCX.cor1[,index.XcolTime])))
+                                }else{
+                                    return(cbind("D",abs(iCX.cor2[,index.XcolBlock]-iCX.cor1[,index.XcolBlock]),as.numeric(iCX.cor2[,index.XcolTime]!=iCX.cor1[,index.XcolTime])))
+                                }
+                            }
+                        }else{
+                            return(cbind("D",abs(iCX.cor2[,index.XcolTime]-iCX.cor1[,index.XcolTime])))
+                        }
+
                     }else{
-                        if(all(iCX.cor1==iCX.cor2)){return(matrix(c("R",rep(iStrata,NCOL(iCX.cor1))), nrow = 1, ncol = 1+NCOL(iCX.cor1)))}else{return(matrix(c("D",as.numeric(iCX.cor2!=iCX.cor1)), nrow = 1))}
+
+                        if(heterogeneous){
+                            if(all(iCX.cor1==iCX.cor2)){return(cbind("R",iCX.cor1))}else{return(cbind(paste0("D",paste(iCX.cor1,collapse="")),iCX.cor2-iCX.cor1))}
+                        }else{
+                            if(all(iCX.cor1==iCX.cor2)){return(matrix(c("R",rep(iStrata,NCOL(iCX.cor1))), nrow = 1, ncol = 1+NCOL(iCX.cor1)))}else{return(matrix(c("D",as.numeric(iCX.cor2!=iCX.cor1)), nrow = 1))}
+                        }
+
                     }
                 })))
                 iCode <- as.character(interaction(iDF.diff, drop=TRUE))
@@ -512,6 +552,61 @@
     attr(out, "levels") <- Ulp.cor
     return(out)
 }
+
+## ## ** .initRhoToeplitz
+## ## for each cluster compute all pairwise difference in covariates to find the parameters
+## .initRhoToeplitz <- function(data, X.cor, X.var, heterogeneous, 
+##                              U.cluster, index.cluster,
+##                              U.time, index.clusterTime, 
+##                              strata.var, U.strata, index.clusterStrata, n.strata, sep = c(":")){
+
+
+##     out <- vector(mode = "list", length = n.strata)
+##     test.covariate <- length(setdiff(attr(X.cor,"variable"), strata.var))>0
+    
+##     for(iStrata in 1:n.strata){
+
+##         ## **** subset relative to strata
+##         if(n.strata==1){
+##             iCluster <- U.cluster
+##             iIndex.cluster <- index.cluster
+##             iIndex.clusterTime <- index.clusterTime
+##         }else{
+##             iCluster <- names(index.clusterStrata)[which(index.clusterStrata==iStrata)]
+##             iIndex.cluster <- index.cluster[iCluster]
+##             iIndex.clusterTime <- index.clusterTime[iCluster]
+##         }
+
+##         if(all(sapply(iIndex.cluster,length)<=1)){
+##             next
+##         }
+
+##         ## **** all possible time lag
+##         borwser()
+##         iLevel <- unique(unlist(lapply(unique(iIndex.clusterTime), function(iVec){unique(dist(iVec))})))
+##         iOut <- data.frame(lp.x = lpnCluster.cor[[iC]][1],
+##                            lp.y = lpnCluster.cor[[iC]][2],
+##                            strata = iStrata,
+##                            code = iCode,
+##                            level = iLevel,
+##                            param = paste("rho",iLevel),
+##                            sigma = NA,
+##                            k.x = NA,
+##                            k.y = NA)
+        
+##         out[[iStrata]] <- rbind(out[[iStrata]], iOut)
+
+##     }
+
+##     ## ** export
+##     out <- do.call(rbind, out)
+##     out <- do.call(rbind, out)
+##     rownames(out) <- NULL
+##     out <- out[order(out$lp.x,out$lp.y,out$strata),]
+##     attr(out, "levels") <- Ulp.cor
+    
+##     return(out)
+## }
 
 ## ** .colnameOrder
 ## reorder the variable in the column name

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: May 30 2022 (00:40) 
+## Last-Updated: Jul 13 2022 (18:33) 
 ##           By: Brice Ozenne
-##     Update #: 314
+##     Update #: 315
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -240,6 +240,9 @@
 
 ## * .findUpatterns.CS
 .findUpatterns.CS <- .findUpatterns.ID
+
+## * .findUpatterns.TOEPLITZ
+.findUpatterns.TOEPLITZ <- .findUpatterns.ID
 
 ## * .findUpatterns.UN
 .findUpatterns.UN <- .findUpatterns.ID

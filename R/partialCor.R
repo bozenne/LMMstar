@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: jul 12 2022 (18:09) 
+## Last-Updated: Jul 14 2022 (11:39) 
 ##           By: Brice Ozenne
-##     Update #: 113
+##     Update #: 145
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -23,8 +23,21 @@
 ##' and on the right hand side the adjustment set. Can also be a list of formula for outcome-specific adjustment set.
 ##' @param repetition [formula] Specify the structure of the data: the time/repetition variable and the grouping variable, e.g. ~ time|id.
 ##' @param data [data.frame] dataset containing the variables.
+##' @param heterogeneous [logical] Specify whether the variance differ between the two variables (no repetition)
+##' or whether the correlation/variance vary over repetitions (repetition).
+##' @param by [character] variable used to stratified the correlation on.
 ##'
-##' @details Fit a mixed model to estimate the partial correlation which can be time consuming.
+##' @details Fit a mixed model to estimate the partial correlation with the following variance-covariance pattern:
+##' \itemize{
+##' \item \bold{no repetition}: unstructure or compound symmetry structure for 2 observations.
+##' \item \bold{repetition}: toeplitz for 2T observations where T denotes the number of repetitions.
+##' }
+##'
+##' @return A data.frame with the estimate partial correlation (rho), standard error, degree of freedom, confidence interval, and p-value (test of no correlation).
+##' When \code{heterogeneous=FALSE} is used with repeated measurements, a second correlation coefficient (r) is output where the between subject variance has been removed (similar to Bland et al. 1995).
+##'
+##' @references
+##'  Bland J M, Altman D G. Statistics notes: Calculating correlation coefficients with repeated observations: Part 1—correlation within subjects BMJ 1995; 310 :446 doi:10.1136/bmj.310.6977.446 
 ##' 
 ##' @examples
 ##' #### bivariate (no repetition) ####
@@ -65,15 +78,21 @@
 ##' ## partialCor(list(hl~1, disp~1), data = y.data, by = "gender") ## too small dataset
 ##' 
 ##' #### bivariate (with repetition) ####
-##' data(gastricbypassL, package = "LMMstar")
+##' if(require(rmcorr)){
+##' data(bland1995, package = "rmcorr")
+##' bland1995$Subject <- as.factor(bland1995$Subject)
 ##' 
-##' partialCor(weight+glucagonAUC~time, data = gastricbypassL)
+##' ls.time <- tapply(1:NROW(bland1995),bland1995$Subject,function(x){1:length(x)})
+##' bland1995$time <- unlist(ls.time)
+##' 
+##' partialCor(pH+PacO2~1, repetition =~time|Subject, data = bland1995)
 ##' 
 ##' partialCor(weight+glucagonAUC~time, repetition =~time|id, data = gastricbypassL)
+##' }
 
 ## * partialCor (documentation)
 ##' @export
-partialCor <- function(formula, data, repetition, by = NULL){
+partialCor <- function(formula, data, repetition, heterogeneous = TRUE, by = NULL){
 
     ## ** normalize arguments
     data <- as.data.frame(data)
@@ -191,7 +210,6 @@ partialCor <- function(formula, data, repetition, by = NULL){
         }
     }
 
-    
     test.duplicated <- tapply(dataL[[name.id]], dataL[["CCvariableCC"]], function(iId){any(duplicated(iId))})
     if(length(X.formula)>0){
         formula.mean <- stats::as.formula(paste("CCvalueCC~CCvariableCC+",paste(X.formula, collapse = "+")))
@@ -199,13 +217,18 @@ partialCor <- function(formula, data, repetition, by = NULL){
         formula.mean <- CCvalueCC~CCvariableCC
     }
     if(any(test.duplicated)){
-        dataL <- dataL[order(dataL$id,dataL$CCvariableCC),]
-        dataL$CCrepetitionCC <- unlist(tapply(dataL$id,dataL$id,function(iId){1:length(iId)}))
+        dataL <- dataL[order(dataL[[name.id]],dataL$CCvariableCC),]
+        dataL$CCrepetitionCC <- unlist(tapply(dataL[[name.id]],dataL[[name.id]],function(iId){1:length(iId)}))
         formula.repetition <- stats::as.formula(paste("~CCrepetitionCC|",name.id))
 
+        if(heterogeneous){
+            structure <- TOEPLITZ(~time+CCvariableCC, add.time = FALSE, heterogeneous = TRUE)
+        }else{
+            structure <- TOEPLITZ(list(~CCvariableCC,~time+CCvariableCC), add.time = FALSE, heterogeneous = FALSE)
+        }
         if(is.null(by)){
             e.lmm <- lmm(formula.mean, repetition = formula.repetition,
-                         data = dataL, structure = CS(~CCvariableCC, heterogeneous = TRUE),
+                         data = dataL, structure = structure,
                          control = list(optimizer = "FS"))
             out <- model.tables(e.lmm, effects = "correlation")
         }else{
@@ -215,22 +238,37 @@ partialCor <- function(formula, data, repetition, by = NULL){
             out <- confint(e.lmm, columns = c("estimate","se","df","lower","upper","p.value"))
         }
 
-        name.cor <- paste0("rho(",name.Y,",",rev(name.Y),")")
+        ## find the right correlation coefficient
+        designParam.rho <- e.lmm$design$param[e.lmm$design$param$type=="rho",,drop=FALSE]
+        ## D.1.0: not the same variable (difference of 1) but same time
+        name.cor <- designParam.rho[which(designParam.rho$code=="D.1.0"),"name"]
         index.cor <- which(rownames(out) %in% name.cor)
         out <- out[index.cor,,drop=FALSE]
+        if(!heterogeneous){
+            name.corW <- e.lmm$design$param[grep("^R",e.lmm$design$param$code),"name"]
+            out <- rbind(out, estimate(e.lmm, function(p){ ## p <- coef(e.lmm, effects = "all")
+                p[name.cor]/sqrt(prod(1-pmax(0,p[name.corW]))) ## handle negative correlations
+            }))
+            rownames(out) <- c(rownames(out)[1],gsub("^rho","  r",rownames(out)[1]))
+        }
         attr(out,"old2new") <- attr(out,"old2new")[index.cor]
         attr(attr(out,"old2new"),"names") <- attr(attr(out,"old2new"),"names")
         attr(out,"backtransform.names") <- attr(out,"backtransform.names")[index.cor]
     }else{
         formula.repetition <- stats::as.formula(paste("~CCvariableCC|",name.id))
-
+        if(heterogeneous){
+            structure <- "UN"
+        }else{
+            structure <- "CS"
+        }
+            
         if(is.null(by)){
             e.lmm <- lmm(formula.mean, repetition = formula.repetition,
-                         data = dataL, structure = "UN")
+                         data = dataL, structure = structure)
             out <- model.tables(e.lmm, effects = "correlation")
         }else{
             e.lmm <- mlmm(formula.mean, repetition = formula.repetition,
-                          data = dataL, structure = "UN", by = by, effects = "correlation")
+                          data = dataL, structure = structure, by = by, effects = "correlation")
             out <- confint(e.lmm, columns = c("estimate","se","df","lower","upper","p.value"))
         }
     }

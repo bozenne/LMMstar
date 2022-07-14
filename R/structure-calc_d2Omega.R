@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: Jun 17 2022 (10:35) 
+## Last-Updated: Jul 13 2022 (18:31) 
 ##           By: Brice Ozenne
-##     Update #: 178
+##     Update #: 179
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -236,9 +236,9 @@
             iHess <- iHess2
         }
 
-        return(iHess)
-        
+        return(iHess)        
     })
+    
     ## ** export
     out <- stats::setNames(out,Upattern$name)
     return(out)
@@ -249,6 +249,9 @@
 
 ## * calc_d2Omega.CS
 .calc_d2Omega.CS <- .calc_d2Omega.ID
+
+## * calc_d2Omega.TOEPLITZ
+.calc_d2Omega.TOEPLITZ <- .calc_d2Omega.ID
 
 ## * calc_d2Omega.UN
 .calc_d2Omega.UN <- .calc_d2Omega.ID

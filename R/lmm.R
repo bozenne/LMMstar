@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Jul  8 2022 (09:29) 
+## Last-Updated: Jul 14 2022 (09:10) 
 ##           By: Brice Ozenne
-##     Update #: 1998
+##     Update #: 2016
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -175,7 +175,7 @@ lmm <- function(formula, repetition, structure, data,
     }else{
         var.strata <- NA
     }
-
+    
     ## *** repetition 
     if(missing(repetition)){
         missing.repetition <- TRUE
@@ -516,7 +516,8 @@ lmm <- function(formula, repetition, structure, data,
     type.structure <- structure$type
     call.structure <- as.list(structure$call)
     args.structure <- call.structure[-1]
-    if("add.time" %in% names(args.structure) == FALSE && type.structure %in% c("IND","UN") && n.time>1){
+    
+    if(("add.time" %in% names(args.structure) == FALSE || identical(args.structure$add.time,TRUE)) && type.structure %in% c("IND","UN","TOEPLITZ") && n.time>1){
         args.structure$add.time <- var.time
     }
     if(is.na(structure$name$cluster)){
@@ -559,6 +560,14 @@ lmm <- function(formula, repetition, structure, data,
              sep = "")
     }
 
+    ## update transformation
+    if(structure$type=="CUSTOM" && (is.null(structure$d2FCT.sigma) || is.null(structure$d2FCT.rho)) && (df || method.fit=="REML" || type.information=="observed")){
+        ## need second derivative but transformation based on dJacobian not implemented!
+        options$transform.sigma <- "none"
+        options$transform.k <- "none"
+        options$transform.rho <- "none"
+    }
+    
     if(trace>=2){cat("\n")}
 
     ## *** missing values
@@ -741,7 +750,11 @@ lmm <- function(formula, repetition, structure, data,
         }
         out$opt <- list(name = "gls")
     }else{
-
+        valid.control <- c("init","n.iter","tol.score","tol.param","trace")
+        if(any(names(control) %in% valid.control  == FALSE)){
+            stop("Incorrect elements in argument \'control\': \"",paste(names(control)[names(control) %in% valid.control  == FALSE], collapse = "\" \""),"\". \n",
+                 "Valid elements: \"",paste(valid.control, collapse = "\" \""),"\".\n")
+        }
         if(identical(control$init,"lmer")){
             ## check feasibility
             requireNamespace("lme4")
@@ -780,7 +793,7 @@ lmm <- function(formula, repetition, structure, data,
             
             control$init <- c(lmer.beta,init.sigma,init.tau)[out$design$param$name]
         }
-        
+
         outEstimate <- .estimate(design = out$design, time = out$time, method.fit = method.fit, type.information = type.information,
                                  transform.sigma = options$transform.sigma, transform.k = options$transform.k, transform.rho = options$transform.rho,
                                  precompute.moments = precompute.moments, 

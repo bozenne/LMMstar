@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: jun 28 2022 (09:51) 
+## Last-Updated: Jul 14 2022 (11:44) 
 ##           By: Brice Ozenne
-##     Update #: 495
+##     Update #: 497
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -88,9 +88,9 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strat
 
     ## ** extract or recompute variance covariance matrix
 
-        if(is.null(data) && is.null(p) && test.notransform && (df == FALSE || !is.null(object$df)) && (robust == FALSE) && attr(object$information,"type.information")==type.information){
-            keep.name <- stats::setNames(names(coef(object, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE)),
-                                                     names(coef(object, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)))    
+    if(is.null(data) && is.null(p) && test.notransform && (df == FALSE || !is.null(object$df)) && (robust == FALSE) && attr(object$information,"type.information")==type.information){
+        keep.name <- stats::setNames(names(coef(object, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE)),
+                                     names(coef(object, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)))    
 
             vcov <- object$vcov[keep.name,keep.name,drop=FALSE]
             if(transform.names){
@@ -157,6 +157,14 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strat
     return(vcov)    
 }
 
+## * vcov.mlmm
+##' @export
+vcov.mlmm <- function(object, ...){
+
+    ls.model <- lava::estimate(object)
+    return(lapply(ls.model,vcov, ...))
+
+}
 
 ##----------------------------------------------------------------------
 ### vcov.R ends here
