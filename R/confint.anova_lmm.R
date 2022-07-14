@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: Jul 14 2022 (12:38) 
+## Last-Updated: jul 14 2022 (16:52) 
 ##           By: Brice Ozenne
-##     Update #: 131
+##     Update #: 167
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -54,44 +54,79 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, columns
         method <- match.arg(method, c(stats::p.adjust.methods,"single-step", "single-step2","pool"))
     }
 
-    if(!is.null(columns)){
-        columns  <- match.arg(columns, c("estimate","se","statistic","df","lower","upper","null","p.value","partial.r"), several.ok = TRUE)
+    valid.columns <- c("type","test","method","estimate","se","statistic","df","lower","upper","null","p.value","partial.r")
+    if(identical(columns,"all")){
+        columns <- valid.columns
+    }else if(!is.null(columns)){
+        columns <- tolower(columns)
+        if(any(columns %in% valid.columns == FALSE)){
+            stop("Incorrect value(s) \"",paste(columns[columns %in% valid.columns == FALSE], collapse = "\" \""),"\" for argument \'columns\'. \n",
+                 "Valid values: \"",paste(setdiff(valid.columns, columns), collapse = "\" \""),"\"\n")
+        }
     }else{
         columns <- options$columns.confint
     }
     type <- unique(object$multivariate$type)
-browser()
+    browser()
+    if(object$args$ci==FALSE){
+        return(NULL)
+    }
     
+    ## ** normalize df
+    out <- object$univariate
+    out$method <- "NA"
+    out$df <- pmax(out$df, options$min.df)
+    out$statistic <- (out$estimate-out$null) / out$se
+
     ## ** extract info and compute CI
-    for(iType in type){ ## iType <- type[1]
+    n.sample <- options$n.sampleCopula
+    grid <- unique(out[,c("type","test")])
+    n.grid <- NROW(grid)
 
-        if(is.null(object$univariate) || iType %in% object$univariate$type == FALSE){next}
-        iIndex.table <- which(object$univariate$type==iType)
+    for(iGrid in 1:n.grid){ ## iGrid <- 1
 
-        for(iiTest in iIndex.table){ ## iiTest <- 1
-            object$univariate[iiTest,"df"] <- pmax(object$univariate[iiTest,"df"], options$min.df)
+        iIndex.table <- intersect(which(out$type==grid$type[iGrid]),
+                                  which(out$test==grid$test[iGrid]))
+        iTable <- out[iIndex.table,,drop=FALSE]
+        iN.test <- NROW(iTable)
 
-            if(is.null(method)){
-                if(length(unique(round(iOut[[iTest]]$df)))>1){
-                    iMethod <- "single-step2"
-                }else{
-                    iMethod <- "single-step"
-                }
+        ## *** method for multiple comparisons adjustment
+        if(is.null(method)){
+            if(NROW(iTable$df)==1){
+                iMethod  <- "none"
+            }else if(length(unique(round(iTable$df)))>1){
+                iMethod <- "single-step2"
+            }else{
+                iMethod <- "single-step"
+            }
+        }else{
+            if(NROW(iTable$df)==1){
+                iMethod  <- "none"
             }else{
                 iMethod <- method
             }
-            attr(iOut[[iTest]], "method") <-  iMethod
+        }
+        out[iIndex.table,"method"] <-  iMethod
 
-            if(iMethod == "none" || NROW(iOut[[iTest]])==1){
-                iOut[[iTest]]$lower <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(alpha/2, df = iOut[[iTest]]$df)
-                iOut[[iTest]]$upper <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(1-alpha/2, df = iOut[[iTest]]$df)
-                iOut[[iTest]]$p.value <- 2*(1-stats::pt( abs((iOut[[iTest]]$estimate-iOut[[iTest]]$null) / iOut[[iTest]]$se), df = iOut[[iTest]]$df))
-            }else if(iMethod == "pool"){
-                iOut.save <- iOut[[iTest]]
-                pool.name <- rownames(iOut.save)
-                n.pool <- NROW(iOut.save)
-                df <- attr(object,"df")
-                iC <- attr(iO,"glht")[[iTest]]$linfct
+        ## *** evaluation
+        if(iMethod %in% c("single-step","single-step2")){
+            iGlht <- object$glht[[grid[iGrid,"type"]]][[grid[iGrid,"test"]]]
+        }
+        iTable$p.value <- 2*(1-stats::pt( abs(iTable$statistic), df = iTable$df))
+
+        if(iMethod == "none"){
+            
+            out[iIndex.table,"lower"] <- iTable$estimate + iTable$se * stats::qt(alpha/2, df = iTable$df)
+            out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * stats::qt(1-alpha/2, df = iTable$df)
+            out[iIndex.table,"p.value"] <- iTable$p.value
+            
+        }else if(iMethod == "pool"){
+            browser()
+            iOut.save <- iOut[[iTest]]
+            pool.name <- rownames(iOut.save)
+            n.pool <- NROW(iOut.save)
+            df <- attr(object,"df")
+            iC <- attr(iO,"glht")[[iTest]]$linfct
                 
                 pool.estimate  <- mean(iOut.save$estimate-iOut.save$null)
                 
@@ -168,66 +203,59 @@ browser()
                                             null = 0,
                                             p.value = NA)
 
-                ## try to find common pattern
-                nchar.hypo <- min(nchar(pool.name))
-                Mchar.hypo <- do.call(rbind,lapply(strsplit(pool.name, split = "", fixed = TRUE), function(iSplit){iSplit[1:nchar.hypo]}))
-                indexchar.hypo <- which(colSums(apply(Mchar.hypo,2,duplicated)==FALSE)==1)
-                if(length(indexchar.hypo)>0){
-                    rownames(iOut[[iTest]]) <- paste(Mchar.hypo[1,indexchar.hypo],collapse = "")
-                }
-                iOut[[iTest]]$statistic <- iOut[[iTest]]$estimate/iOut[[iTest]]$se
-                iOut[[iTest]]$lower <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(alpha/2, df = iOut[[iTest]]$df)
-                iOut[[iTest]]$upper <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(1-alpha/2, df = iOut[[iTest]]$df)
-                iOut[[iTest]]$p.value <- 2*(1-stats::pt( abs((iOut[[iTest]]$estimate-iOut[[iTest]]$null) / iOut[[iTest]]$se), df = iOut[[iTest]]$df))
+            ## try to find common pattern
+            nchar.hypo <- min(nchar(pool.name))
+            Mchar.hypo <- do.call(rbind,lapply(strsplit(pool.name, split = "", fixed = TRUE), function(iSplit){iSplit[1:nchar.hypo]}))
+            indexchar.hypo <- which(colSums(apply(Mchar.hypo,2,duplicated)==FALSE)==1)
+            if(length(indexchar.hypo)>0){
+                rownames(iOut[[iTest]]) <- paste(Mchar.hypo[1,indexchar.hypo],collapse = "")
+            }
+            
+            out[iIndex.table,"lower"] <- iTable$estimate + iTable$se * stats::qt(alpha/2, df = iTable$df)
+            out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * stats::qt(1-alpha/2, df = iTable$df)
+            out[iIndex.table,"p.value"] <- 2*(1-stats::pt( abs(iTable$statistic), df = iTable$df))
+            
             }else if(iMethod == "single-step"){
 
-                iGlht <- attr(iO,"glht")[[iTest]]
                 iCi <- confint(iGlht)
-                iOut[[iTest]]$lower <- iCi$confint[,"lwr"]
-                iOut[[iTest]]$upper <- iCi$confint[,"upr"]
-                iOut[[iTest]]$p.value <- summary(iGlht, test = multcomp::adjusted("single-step"))$test$pvalues
-                iOut[[iTest]]$df <- iGlht$df
+                
+                out[iIndex.table,"lower"] <- iCi$confint[,"lwr"]
+                out[iIndex.table,"upper"] <- iCi$confint[,"upr"]
+                out[iIndex.table,"p.value"] <- summary(iGlht, test = multcomp::adjusted("single-step"))$test$pvalues
+                out[iIndex.table,"df"] <- iGlht$df
 
             }else if(iMethod == "single-step2"){
-                iGlht <- attr(iO,"glht")[[iTest]]
-                n.sample <- options$n.sampleCopula
 
                 rho <- stats::cov2cor(iGlht$linfct %*% iGlht$vcov %*% t(iGlht$linfct))
-                n.marginal <- length(iOut[[iTest]]$df)
 
                 myMvd <- copula::mvdc(copula = copula::normalCopula(param=rho[lower.tri(rho)], dim = NROW(rho), dispstr = "un"),
-                                      margins = rep("t", n.marginal),
-                                      paramMargins = as.list(stats::setNames((iOut[[iTest]]$df),rep("df",n.marginal))))
-                maxH0 <- sort(apply(abs(copula::rMvdc(n.sample, myMvd)), 1, max))
+                                      margins = rep("t", iN.test),
+                                      paramMargins = as.list(stats::setNames(iTable$df,rep("df",iN.test))))
+                maxH0 <- apply(abs(copula::rMvdc(n.sample, myMvd)), 1, max)
+                cH0 <- stats::quantile(maxH0, 1-alpha)  ## attr(confint(iGlht)$confint,"calpha")
                 
-                iOut[[iTest]]$p.value <- sapply(abs(iOut[[iTest]]$statistic), function(iT){(sum(iT <= maxH0)+1)/(n.sample+1)})
-
-                cH0 <- stats::quantile(maxH0, 0.95) ## attr(confint(iGlht)$confint,"calpha")
-                iOut[[iTest]]$lower <- iOut[[iTest]]$estimate - iOut[[iTest]]$se * cH0
-                iOut[[iTest]]$upper <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * cH0
-                attr(iOut[[iTest]], "n.sample") <-  n.sample
+                out[iIndex.table,"p.value"] <- sapply(abs(iTable$statistic), function(iT){(sum(iT <= maxH0)+1)/(n.sample+1)})
+                out[iIndex.table,"lower"] <- iTable$estimate - iTable$se * cH0
+                out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * cH0
+                attr(out, "n.sample") <-  n.sample
+                
             }else if(iMethod == "bonferroni"){
-                p <- NROW(iOut[[iTest]])
-                iOut[[iTest]]$lower <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(alpha/(2*p), df = iOut[[iTest]]$df)
-                iOut[[iTest]]$upper <- iOut[[iTest]]$estimate + iOut[[iTest]]$se * stats::qt(1-alpha/(2*p), df = iOut[[iTest]]$df)
-                iOut[[iTest]]$p.value <- pmin(1,2*p*(1-stats::pt( abs((iOut[[iTest]]$estimate-iOut[[iTest]]$null) / iOut[[iTest]]$se), df = iOut[[iTest]]$df)))
+                
+                out[iIndex.table,"lower"] <- iTable$estimate + iTable$se * stats::qt(alpha/(2*iN.test), df = iTable$df)
+                out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * stats::qt(1-alpha/(2*iN.test), df = iTable$df)
+                out[iIndex.table,"p.value"] <- pmin(1,iN.test*iTable$p.value)
+                
             }else{
-                iOut[[iTest]]$lower <- NA
-                iOut[[iTest]]$upper <- NA
-                iOut[[iTest]]$p.value <- stats::p.adjust(2*(1-stats::pt( abs((iOut[[iTest]]$estimate-iOut[[iTest]]$null) / iOut[[iTest]]$se), df = iOut[[iTest]]$df)), method = iMethod)
+                
+                out[iIndex.table,"lower"] <- NA
+                out[iIndex.table,"upper"] <- NA
+                out[iIndex.table,"p.value"] <- stats::p.adjust(iTable$p.value, method = iMethod)
+                
             }
-            iOut[[iTest]][names(iOut[[iTest]])[names(iOut[[iTest]]) %in% columns == FALSE]] <- NULL
-        }        
-        return(iOut)
     }
 
-    if(simplify && length(out)==1){
-        out <- out[[1]]
-        if(simplify && length(out)==1){
-            out <- out[[1]]
-        }
-    }
-    return(out)
+    ## ** export
+    return(out[,columns,drop=FALSE])
 }
 
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 12 2022 (18:45) 
+## Last-Updated: jul 14 2022 (16:54) 
 ##           By: Brice Ozenne
-##     Update #: 112
+##     Update #: 113
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -68,7 +68,7 @@ rbind.anova_lmm <- function(model, ..., name = NULL, sep = ": "){
     if(any(sapply(ls.glht, is.null))){
         stop("Could not extract glht object. \n Make sure that argument \'ci\' is TRUE when calling anova. \n")
     }
-
+browser()
     ## ** Extract elements from anova object
     ls.C <- lapply(ls.glht,"[[","linfct")
     ls.rhs <- lapply(ls.glht,"[[","rhs")

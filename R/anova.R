@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: Jul 14 2022 (12:32) 
+## Last-Updated: jul 14 2022 (15:56) 
 ##           By: Brice Ozenne
-##     Update #: 969
+##     Update #: 973
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -31,7 +31,7 @@
 ##' @param df [logical] Should a F-distribution be used to model the distribution of the Wald statistic. Otherwise a chi-squared distribution is used.
 ##' @param ci [logical] Should an estimate, standard error, confidence interval, and p-value be output for each hypothesis?
 ##' @param transform.sigma,transform.k,transform.rho,transform.names are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.
-##' @param backtransform [logical] should the variance/covariance/correlation coefficient be backtransformed?
+##' @param backtransform [logical] should the variance/covariance/correlation coefficients be backtransformed?
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @return A list of matrices containing the following columns:\itemize{
@@ -106,8 +106,18 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     if(inherits(effects,"lmm")){ ## likelihood ratio test
         out <- .anova_LRT(object1 = object, object2 = effects)
     }else{ ## Wald test
+        if(is.null(backtransform)){
+            if(is.null(transform.sigma) && is.null(transform.k) && is.null(transform.rho)){
+                backtransform <- options$backtransform.confint
+            }else{
+                backtransform <- FALSE
+            }
+        }else if(is.character(backtransform)){
+            backtransform <-  eval(parse(text=backtransform))
+        }
         out <- .anova_Wald(object, effects = effects, robust = robust, rhs = rhs, df = df, ci = ci, 
-                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names,
+                           backtransform = backtransform)
     }
     ## ** export
     attr(out,"call") <- match.call()
@@ -117,7 +127,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
 
 ## * .anova_Wald
 .anova_Wald <- function(object, effects, robust, rhs, df, ci, 
-                        transform.sigma, transform.k, transform.rho, transform.names){
+                        transform.sigma, transform.k, transform.rho, transform.names, backtransform){
 
     ## ** normalized user input
     terms.mean <- attr(stats::terms(object$formula$mean.design),"term.labels")
@@ -491,15 +501,36 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
             ## Equation 19
             ## DOI: 10.1002/sim.3429
             out$multivariate <- rbind(out$multivariate, cbind(type = iType, test = iNameTerm, iRes))
-            out$univariate <- rbind(out$univariate, cbind(type = iType, test = iNameTerm, CI))
+            if(ci){
+                out$univariate <- rbind(out$univariate, cbind(type = iType, test = iNameTerm, CI))
+            }
             out$glht[[iType]][[iNameTerm]] <- CI.glht           
         }
     }
     
     ## ** export
-    attr(out, "df") <- df
+    if("all" %in% type){ ## save some of the object when user define contrasts for possible use of rbind.anova_lmm
+        out$object <- list(outcome = object$outcome$var,
+                           method.fit = object$method.fit,
+                           type.information = attr(object$information,"type.information"),
+                           outcome = object$outcome$var,
+                           cluster = object$cluster$levels)
+        out$param <- data.frame(name = names(param), name.transform = newname, type = object$design$param[match(names(param),object$design$param$name),"type"])
+        if(REML){
+            out$iid <- iid(object, effects = "mean", robust = robust, type.information = attr(object$information,"type.information"),
+                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+        }else{
+            out$iid <- iid(object, effects = effects, robust = robust, type.information = attr(object$information,"type.information"),
+                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+        }
+        out$vcov <- vcov.param
+        out$dVcov.param <- dVcov.param
+    }
+    
+    out$args <- data.frame(robust = robust, df = df, ci = ci, 
+                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                           transform.names = transform.names, backtransform = backtransform)
     attr(out, "test") <- "Wald"
-    attr(out, "robust") <- robust
     return(out)
 }
 

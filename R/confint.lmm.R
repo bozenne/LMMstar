@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: Jul 13 2022 (08:57) 
+## Last-Updated: jul 14 2022 (16:06) 
 ##           By: Brice Ozenne
-##     Update #: 363
+##     Update #: 365
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -125,8 +125,15 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     }else{
         type.information <- match.arg(type.information, c("expected","observed"))
     }
-    if(!is.null(columns)){
-        columns  <- match.arg(columns, c("estimate","se","statistic","df","lower","upper","null","p.value","partial.R"), several.ok = TRUE)
+    valid.columns <- c("estimate","se","statistic","df","lower","upper","null","p.value","partial.r")
+    if(identical(columns,"all")){
+        columns <- valid.columns
+    }else if(!is.null(columns)){
+        columns <- tolower(columns)
+        if(any(columns %in% valid.columns == FALSE)){
+            stop("Incorrect value(s) \"",paste(columns[columns %in% valid.columns == FALSE], collapse = "\" \""),"\" for argument \'columns\'. \n",
+                 "Valid values: \"",paste(setdiff(valid.columns, columns), collapse = "\" \""),"\"\n")
+        }
     }else{
         columns <- options$columns.confint
     }

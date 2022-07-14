@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: jul 12 2022 (18:26) 
+## Last-Updated: jul 14 2022 (17:33) 
 ##           By: Brice Ozenne
-##     Update #: 82
+##     Update #: 85
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -136,6 +136,7 @@ mlmm <- function(..., data, by, effects = NULL, robust = FALSE, df = TRUE, ci = 
     out <- do.call("rbind.anova_lmm",
                    args = c(list(model = ls.anova[[1]], name = name.model), unname(ls.anova[-1]))
                    )
+    browser()
 
     ## ** export
     attr.callout <- list(df = attr(out,"df"),

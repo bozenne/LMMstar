@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 13 2022 (13:55) 
 ## Version: 
-## Last-Updated: Jul 14 2022 (12:38) 
+## Last-Updated: jul 14 2022 (16:50) 
 ##           By: Brice Ozenne
-##     Update #: 4
+##     Update #: 5
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -82,5 +82,11 @@ test_that("LRT"{
 
 })
 
+## * Wald test
+## check back-transform is working like confint
+## default
+## default no back
+## transform back
+## transform no back
 ##----------------------------------------------------------------------
 ### test-auto-anova.R ends here

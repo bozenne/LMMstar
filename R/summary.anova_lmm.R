@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:50) 
 ## Version: 
-## Last-Updated: jul 12 2022 (09:11) 
+## Last-Updated: jul 14 2022 (16:07) 
 ##           By: Brice Ozenne
-##     Update #: 240
+##     Update #: 243
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -74,14 +74,17 @@ summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0
     }
 
     options <- LMMstar.options()
-    if(is.null(columns)){
+    valid.columns <- c("null","estimate","se","statistic","df","lower","upper","p.value","partial.r","")
+    if(identical(columns,"all")){
+        columns.global <- setdiff(valid.columns, c("estimate", "se", "lower", "upper"))
+        columns.indiv <- valid.columns
+    }else  if(is.null(columns)){
         columns.indiv <- options$columns.anova
         columns.global <- union("statistic", setdiff(options$columns.anova, c("estimate", "se", "lower", "upper")))
     }else{
-        valid.columns <- c("null","estimate","se","statistic","df","lower","upper","p.value","partial.r","")
         columns.indiv <- tolower(columns)
         if(any(columns.indiv %in% valid.columns == FALSE)){
-            stop("Incorrect value \"",paste(columns.indiv[columns.indiv %in% valid.columns == FALSE], collapse ="\" \""),"\" for argument \'columns\'. \n",
+            stop("Incorrect value(s) \"",paste(columns.indiv[columns.indiv %in% valid.columns == FALSE], collapse ="\" \""),"\" for argument \'columns\'. \n",
                  "Valid values: \"",paste(setdiff(valid.columns, columns.indiv), collapse ="\" \""),"\".\n")
         }
         columns.global <- setdiff(columns.indiv, c("estimate", "se", "lower", "upper"))

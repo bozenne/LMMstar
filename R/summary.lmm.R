@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: Jul 13 2022 (22:32) 
+## Last-Updated: jul 14 2022 (16:07) 
 ##           By: Brice Ozenne
-##     Update #: 505
+##     Update #: 506
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -78,11 +78,18 @@ summary.lmm <- function(object, digit = 3, level = 0.95, type.cor = NULL, robust
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
 
-    if(!is.null(columns)){
-        columns  <- match.arg(columns, c("estimate","se","statistic","df","lower","upper","null","p.value",""), several.ok = TRUE)
+    valid.columns <- c("estimate","se","statistic","df","lower","upper","null","p.value","")
+    if(identical(columns,"all")){
+        columns <- valid.columns
+    }else if(!is.null(columns)){
+        columns <- tolower(columns)
+        if(any(columns %in% valid.columns == FALSE)){
+            stop("Incorrect value(s) \"",paste(columns[columns %in% valid.columns == FALSE], collapse = "\" \""),"\" for argument \'columns\'. \n",
+                 "Valid values: \"",paste(setdiff(valid.columns, columns), collapse = "\" \""),"\"\n")
+        }
     }else{
         columns <- options$columns.summary
-    }
+    }    
 
     if(!is.null(type.cor)){
         type.cor <- match.arg(type.cor, c("matrix","param"))
