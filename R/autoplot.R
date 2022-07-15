@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: Jun  2 2022 (17:10) 
+## Last-Updated: Jul 15 2022 (09:45) 
 ##           By: Brice Ozenne
-##     Update #: 181
+##     Update #: 199
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,7 +29,7 @@
 ##' @param ci.alpha [numeric, 0-1] When not NA, transparency parameter used to display the confidence intervals.
 ##' @param plot [logical] should the plot be displayed?
 ##' @param mean.size [numeric vector of length 2] size of the point and line for the mean trajectory.
-##' @param size.text [numeric, >0] size of the font used to displayed text when using ggplot2.
+##' @param size.text [numeric, >0] size of the font used to display text.
 ##' @param position.errorbar [character] relative position of the errorbars.
 ##' @param ... arguments passed to the predict method.
 ##'
@@ -232,5 +232,83 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
                           plot = gg)))
 }
 
+## * autoplot.anova_lmm (documentation)
+##' @title Graphical Display For Linear Hypothesis Test
+##' @name autoplot
+##'
+##' @param object a \code{anova_lmm} object.
+##' @param color [logical] should the estimates be colored by global null hypothesis, e.g. when testing the effect of a 3 factor covariate, the two corresponding coefficient will have the same color.
+##' @param ci [logical] should confidence intervals be displayed?
+##' @param plot [logical] should the plot be displayed?
+##' @param size.estimate [numeric, >0] size of the dot used to display the estimates.
+##' @param size.ci [numeric, >0] thickness of the line used to display the confidence intervals.
+##' @param width.ci [numeric, >0] width of the line used to display the confidence intervals.
+##' @param size.null [numeric, >0] thickness of the line used to display the null hypothesis.
+##' @param size.text [numeric, >0] size of the font used to display text.
+##' @param ... arguments passed to the confint method.
+##'
+##' @return A list with two elements \itemize{
+##' \item \code{data}: data used to create the graphical display.
+##' \item \code{plot}: ggplot object.
+##' }
+##'
+##' @examples
+##' ## From the multcomp package
+##' if(require(datasets)){
+##' 
+##' e.lmm <- lmm(Fertility ~ Agriculture + Examination + Education + Catholic + Infant.Mortality, data = swiss)
+##' autoplot(anova(e.lmm))
+##'
+##' amod <- lmm(breaks ~ tension + wool, data = warpbreaks)
+##' autoplot(anova(amod))
+##' }
+##'
+##' 
+
+## * autoplot.anova_lmm (code)
+##' @rdname autplot
+##' @export
+autoplot.anova_lmm <- function(object, color = NULL, ci = TRUE, plot = TRUE, 
+                               size.estimate = 3, size.ci = 1, width.ci = 0.2, size.null = 1, size.text = 16, ...){
+
+    if(ci){
+        table <- confint(object, columns = c("estimate","test","lower","upper"), ...)
+    }else{
+        table <- object$univariate
+    }
+    table <- cbind(names = rownames(table), table)
+    if(is.null(color)){
+        if(length(unique(table$test))==1 || all(duplicated(table$test)==FALSE)){
+            color <- FALSE
+        }else{
+            color <- TRUE
+        }
+    }
+    table$test <- as.factor(table$test)
+
+    if(color){
+        gg <- ggplot2::ggplot(table, ggplot2::aes_string(x = "names", y = "estimate", color = "test")) + ggplot2::labs(color = "")
+    }else{
+        gg <- ggplot2::ggplot(table, ggplot2::aes_string(x = "names", y = "estimate")) 
+    }
+    gg <- gg + ggplot2::geom_point(size = size.estimate) + ggplot2::labs(x = "", y = "")
+    if(ci){
+        gg <- gg + ggplot2::geom_errorbar(ggplot2::aes_string(ymin = "lower", ymax = "upper"), size = size.ci, width = width.ci)
+    }
+    gg <- gg + ggplot2::theme(text = ggplot2::element_text(size=size.text))
+    if(size.null>0){
+        gg <- gg + ggplot2::geom_hline(yintercept=0, lty=2, size = size.null)
+    }
+    gg <- gg + ggplot2::coord_flip()
+    
+    ## ** display
+    if(plot){
+        print(gg)
+    }
+
+    ## ** export
+    return(invisible(list(data = table,
+                          plot = gg)))
+}
 ##----------------------------------------------------------------------
 ### autoplot.R ends here

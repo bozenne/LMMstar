@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (10:48) 
 ## Version: 
-## Last-Updated: jun 27 2022 (11:54) 
+## Last-Updated: Jul 15 2022 (11:17) 
 ##           By: Brice Ozenne
-##     Update #: 14
+##     Update #: 16
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -27,12 +27,16 @@
 ##' 
 ##' @export
 model.tables.lmm <- function(x, ...){
-    confint(x, ..., columns = c("estimate","se","df","lower","upper","p.value"))
+    out <- confint(x, ..., columns = c("estimate","se","df","lower","upper","p.value"))
+    attr(out, "back-transform") <- NULL
+    class(out) <- "data.frame"
+    return(out)
 }
 
 ##' @export
 model.tables.mlmm <- function(x, ...){
-    confint(x, ..., columns = c("estimate","se","df","lower","upper","p.value"))
+    out <- confint(x, ..., columns = c("estimate","se","df","lower","upper","p.value"))
+    return(out)
 }
 
 ##----------------------------------------------------------------------

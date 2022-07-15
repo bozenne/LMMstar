@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 14 2022 (16:52) 
+## Last-Updated: Jul 15 2022 (12:21) 
 ##           By: Brice Ozenne
-##     Update #: 167
+##     Update #: 192
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,7 +25,6 @@
 ##' @param method [character] type of adjustment for multiple comparisons: one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}, \code{"single-step2"}.
 ##' @param columns [character vector] Columns to be output.
 ##' Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}, \code{"partial.r"}.
-##' @param simplify [logical] Return a data.frame instead of a list containing a data.frame when possible.
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @details Method \code{"single-step"} adjust for multiple comparisons using quantiles of the multivariate Student's t-distribution, assuming equal degrees of freedom in the marginal.
@@ -34,7 +33,7 @@
 ##' When degrees of freedom differs between individual hypotheses, method \code{"single-step2"} is recommended. It simulates data using copula whose marginal distributions are Student's t-distribution (with possibly different degrees of freedom) and elliptical copula with parameters the estimated correlation between the test statistics. This is performed by the copula package.
 ##' 
 ##' @export
-confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, columns = NULL, simplify = TRUE, ...){
+confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, columns = NULL, ...){
 
     ## ** normalize user input
     if(attr(object,"test") == "LRT"){
@@ -67,7 +66,7 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, columns
         columns <- options$columns.confint
     }
     type <- unique(object$multivariate$type)
-    browser()
+
     if(object$args$ci==FALSE){
         return(NULL)
     }
@@ -80,7 +79,8 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, columns
 
     ## ** extract info and compute CI
     n.sample <- options$n.sampleCopula
-    grid <- unique(out[,c("type","test")])
+    grid <- object$multivariate[,c("type","test")]
+    grid$type.original <- object$args$type[[1]]
     n.grid <- NROW(grid)
 
     for(iGrid in 1:n.grid){ ## iGrid <- 1
@@ -110,7 +110,7 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, columns
 
         ## *** evaluation
         if(iMethod %in% c("single-step","single-step2")){
-            iGlht <- object$glht[[grid[iGrid,"type"]]][[grid[iGrid,"test"]]]
+            iGlht <- object$glht[[grid[iGrid,"type.original"]]][[grid[iGrid,"test"]]]
         }
         iTable$p.value <- 2*(1-stats::pt( abs(iTable$statistic), df = iTable$df))
 
@@ -254,10 +254,37 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, columns
             }
     }
 
-    ## ** export
-    return(out[,columns,drop=FALSE])
-}
+    ## ** back-transformation
+    type.param <- object$param$type
+    transform.names <- object$param$name.transform
+    backtransform.names <- object$param$name
+    backtransform <- object$args$backtransform
+    transform.sigma <- object$args$transform.sigma
+    transform.k <- object$args$transform.k
+    transform.rho <- object$args$transform.rho
 
+    if(is.function(backtransform) || all(is.character(backtransform)) || identical(backtransform,TRUE) || identical(backtransform,1)){
+        browser()
+
+        if(is.function(backtransform) || all(is.character(backtransform))){
+
+            out <- .backtransform(out, type.param = type.param,  backtransform.names = NULL,
+                                  transform.mu = backtransform, transform.sigma = backtransform, transform.k = backtransform, transform.rho = backtransform)
+
+        }else{
+
+            out <- .backtransform(out, type.param = type.param,  backtransform.names = NULL,
+                                  transform.mu = "none", transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
+
+        }
+    }
+
+    
+    ## ** export
+    out[names(out)[names(out) %in% columns == FALSE]] <- NULL
+    class(out) <- append("confint_lmm", class(out))
+    return(out)
+}
 
 ##----------------------------------------------------------------------
 ### confint.anova_lmm.R ends here

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jul 14 2022 (16:06) 
+## Last-Updated: Jul 15 2022 (11:41) 
 ##           By: Brice Ozenne
-##     Update #: 365
+##     Update #: 385
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -201,7 +201,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     index.cor <- setdiff(which(type.beta=="mu"), which(name.beta=="(Intercept)"))
     if(length(index.cor)>0){
         out[index.cor,"partial.R"] <- sign(out$statistic[index.cor])*sqrt(out$statistic[index.cor]^2/(out$df[index.cor]+out$statistic[index.cor]^2))
-        ## inspired from "An R2 statistic for fixed effects in the linear mixed model" by Lloyd J. Edwards et al. 2008 (Statistic in medicine)
+        ## from "An R2 statistic for fixed effects in the linear mixed model" by Lloyd J. Edwards et al. 2008 (Statistic in medicine)
         ## Equation 19
         ## DOI: 10.1002/sim.3429
     }
@@ -210,127 +210,57 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     out$lower <- out$estimate + stats::qt(alpha/2, df = out$df) * out$se
     out$upper <- out$estimate + stats::qt(1-alpha/2, df = out$df) * out$se
 
-    ## ** export
-    attr(out, "transform") <- list(sigma = transform.sigma,
-                                   k = transform.k,
-                                   rho = transform.rho)
-    attr(out, "type") <- type.param
-    if(transform.k %in% c("sd","var","logsd","logvar")){
-        attr(out, "type")[attr(out, "type")=="sigma"] <- "k"
-    }
-    attr(out, "old2new") <-  stats::setNames(nameNoTransform.beta, rownames(out))
-    attr(out, "backtransform.names") <- names(coef(object, effects = effects, 
-                                                   transform.sigma = gsub("log","",transform.sigma), transform.k = gsub("log","",transform.k), transform.rho = gsub("atanh","",transform.rho), transform.names = transform.names))
+    ## ** back-transform
+    if(is.function(backtransform) || all(is.character(backtransform)) || identical(backtransform,TRUE) || identical(backtransform,1)){
 
-    attr(out, "backtransform") <-  FALSE
-    class(out) <- append("confint_lmm", class(out))
-    if(is.function(backtransform)){
-        out.save <- out
-        out$estimate <- do.call(backtransform, list(out.save$estimate))
-        out$se  <- numDeriv::grad(func = backtransform, x = out.save$estimate) * out.save$se
-        out$lower <- do.call(backtransform, list(out.save$lower))
-        out$upper <- do.call(backtransform, list(out.save$upper))
-        out$partial.R <- as.numeric(NA)
-        attr(out, "backtransform") <-  2    
-    }else if(backtransform){
-        out <- .backtransform(out)
+        if(is.function(backtransform) || all(is.character(backtransform))){
+
+            out <- .backtransform(out, type.param = type.param[match(nameNoTransform.beta, names(type.param))],  backtransform.names = names(beta),
+                                  transform.mu = backtransform, transform.sigma = backtransform, transform.k = backtransform, transform.rho = backtransform)
+
+        }else{
+
+            backtransform.names <- names(coef(object, effects = effects, 
+                                              transform.sigma = gsub("log","",transform.sigma), transform.k = gsub("log","",transform.k), transform.rho = gsub("atanh","",transform.rho), transform.names = transform.names))
+
+            out <- .backtransform(out, type.param = type.param[match(nameNoTransform.beta, names(type.param))],  backtransform.names = backtransform.names,
+                                  transform.mu = "none", transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
+
+        }
     }
+
+    ## ** export
     out[names(out)[names(out) %in% columns == FALSE]] <- NULL
+    class(out) <- append("confint_lmm", class(out))
     return(out)
 }
 
 ## * print.confint_lmm
 ##' @export
-print.confint_lmm <- function(x, digit = 3, ...){
+print.confint_lmm <- function(x, digit = 3, detail = TRUE, ...){
     print(as.data.frame(x), digits = digit)
+    message.backtransform <- attr(x,"back-transform")
 
-    backtransform <- attr(x,"backtransform")
-    if(identical(backtransform, TRUE)){
-        transform <- attr(x,"transform")
-        type <- attr(x,"type")
+    if(detail>0 && !is.null(message.backtransform) && any(!is.na(message.backtransform$FUN))){
+        message.backtransform <- message.backtransform[!is.na(message.backtransform$FUN),,drop=FALSE]
 
-        transform2 <- unlist(transform[c("sigma","k","rho")])
-        ## missing.type <- stats::setNames(c("sigma","k","rho") %in% type == FALSE,c("transform.sigma","transform.k","transform.rho"))
-        ## transform2[names(missing.type)[missing.type]] <- "none"
-        iType <- attr(x,"type")[rownames(x)]
-        
-        if(length(intersect(iType,names(transform2)))>0){
-            if(all(c("estimate","se","lower","upper") %in% names(x))){
-                cat("Note: estimates and confidence intervals for ",paste(intersect(iType,names(transform2)), collapse = ", ")," have been back-transformed. \n",
-                    "      standard errors are not back-transformed.\n", sep="")
-            }else if(all(c("estimate","lower","upper") %in% names(x))){
-                cat("Note: estimates and confidence intervals for ",paste(intersect(iType,names(transform2)), collapse = ", ")," have been back-transformed. \n", sep="")
-            }else if(all(c("estimate","se") %in% names(x))){
-                cat("Note: estimates for ",paste(intersect(iType,names(transform2)), collapse = ", ")," have been back-transformed. \n",
-                    "      standard errors are not back-transformed.\n", sep="")
-            }else if("estimate" %in% names(x)){
-                cat("Note: estimates for ",paste(intersect(iType,names(transform2)), collapse = ", ")," have been back-transformed. \n")
-            }
+        if(any(message.backtransform[,setdiff(names(message.backtransform), "FUN")] == FALSE)){
+            warning("Could not back-transform everything.\n")
         }
-    }else if(identical(backtransform, 2)){
-        txt <- unique(c("estimates","standard errors","confidence intervals","confidence intervals")[c("estimate","se","lower","upper") %in% names(x)])
-        cat("Note: ",paste(txt,collapse = ", ")," have been back-transformed. \n", sep ="")
+
+        if(NROW(x)==1){
+            txt <- unique(c("estimate","standard error","confidence interval","confidence interval")[c("estimate","se","lower","upper") %in% setdiff(names(message.backtransform), "FUN")])
+        }else{
+            txt <- unique(c("estimates","standard errors","confidence intervals","confidence intervals")[c("estimate","se","lower","upper") %in% setdiff(names(message.backtransform), "FUN")])
+        }
+        cat("Note: ",paste(txt,collapse = ", ")," have been back-transformed. \n",sep="")
+        if(detail>=0.5){
+            cat("(",paste0(paste(rownames(message.backtransform),collapse = "/")," parameters with ",paste(message.backtransform$FUN,collapse="/")),"). \n", sep ="")
+        }
+        
     }
     return(invisible(NULL))
 }
 
-## * backtransform
-##' @title BackTransformation for Outputs from Linear Mixed Models
-##' @description Back-transform estimates and confidence intervals (CIs).
-##' @noRd
-##' 
-##' @param object a \code{confint_lmm} object, i.e. the output of the confint function applied to a \code{lmm} object.
-##'
-##' @details if the option \code{transform.sigma} and/or  \code{transform.k} is one of \code{"log"}, \code{"logsd"}, \code{"logvar"}, \code{"logsqaure"},
-##' the estimate and CIs are transformed back to the original scale by applying the exponential function.
-##' 
-##' If the option \code{transform.rho} is \code{"atanh"}, the estimate and CIs are transformed back to the original scale by applying the tangent hyperbolic function.
-##'
-##' @keywords internal
-.backtransform <-   function(object,...) UseMethod(".backtransform")
-
-.backtransform.confint_lmm <- function(object, ...){
-
-    type.param <- attr(object,"type")
-    transform <- attr(object,"transform")
-    old2new <- attr(object,"old2new")
-    if(attr(object,"backtransform")){
-        message("Estimates and confidence intervals have already been backtransformed.")
-        return(object)
-    }
-
-    for(iType in names(transform)){ ## iType <- names(transform)[1]
-
-        if(transform[[iType]] %in%  c("log","logsd","logvar","logsquare")){
-            iBacktransform <- exp
-        }else if(identical("exp",transform[[iType]])){
-            iBacktransform <- log
-        }else if(identical("tanh",transform[[iType]])){
-            iBacktransform <- atanh
-        }else if(identical("atanh",transform[[iType]])){
-            iBacktransform <- tanh
-        }else if(transform[[iType]] %in% c("none","sd","var","square","cov")){
-            next
-        }else{
-            stop("Unknown transformation. \n")
-        }
-        iIndex.type <- which(type.param[old2new]==iType)
-        ## ** back-transform
-        if(length(iIndex.type)>0){
-            object$estimate[iIndex.type] <- sapply(object$estimate[iIndex.type],iBacktransform)
-            object$lower[iIndex.type] <- sapply(object$lower[iIndex.type],iBacktransform)
-            object$upper[iIndex.type] <- sapply(object$upper[iIndex.type],iBacktransform)
-        }
-    }
-        
-
-    ## ** rename
-    backtransform.names <- attr(object,"backtransform.names")
-    rownames(object) <- backtransform.names
-    
-    ## ** export
-    attr(object, "backtransform") <-  TRUE    
-    return(object)
-}
 ##----------------------------------------------------------------------
 ### confint.lmm.R ends here

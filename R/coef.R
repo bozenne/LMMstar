@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: Jul 14 2022 (11:44) 
+## Last-Updated: Jul 15 2022 (09:11) 
 ##           By: Brice Ozenne
-##     Update #: 547
+##     Update #: 550
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -260,6 +260,19 @@ coef.mlmm <- function(object, ...){
 
     ls.model <- lava::estimate(object)
     return(lapply(ls.model,coef, ...))
+
+}
+
+## * coef.anova_lmm
+##' @export
+coef.anova_lmm <- function(object, ...){
+
+    if(is.null(object$univariate)){
+        return(NULL)
+    }else{
+        return(stats::setNames(object$univariate$estimate, rownames(object$univariate)))
+    }
+    
 
 }
 

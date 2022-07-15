@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:50) 
 ## Version: 
-## Last-Updated: jul 14 2022 (16:07) 
+## Last-Updated: Jul 15 2022 (12:45) 
 ##           By: Brice Ozenne
-##     Update #: 243
+##     Update #: 262
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -100,26 +100,25 @@ summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0
         }
     }
     columns.global <- gsub("^partial.r$","partial.r2", columns.global)
-    object.df <- attr(object,"df")
-    out <- list()
+    object.df <- object$args$df
+    object.robust <- object$args$robust
+    object.ci <- object$args$ci
+
     
     if(attr(object,"test")=="Wald"){
-        type <- setdiff(names(object),"call")
-        ci <- confint(object, level = level, method = method, columns = columns.indiv, simplify = FALSE)
 
-        for(iType in type){
+        table.multivariate <- object$multivariate
+        table.multivariate$type.original <- object$args$type[[1]]
+        type <- unique(table.multivariate$type.original)
 
-            if(is.null(object[[iType]])){next}
-            object.print <- object[[iType]]
-            object.print <- cbind(object.print,
-                                  " " = stats::symnum(object.print$p.value, corr = FALSE, na = FALSE, 
-                                                      cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1), 
-                                                      symbols = c("***", "**", "*", ".", " "))
-                                  )
-            names(object.print)[NCOL(object.print)] <- ""
-            object.print$p.value <- as.character(signif(object.print$p.value, digits = digits.p.value))
-            iNoDf <- is.infinite(object.print$df.denom)
-            txt.test <- "Multivariate Wald test (global null hypothesis)"
+        if(object.ci){
+            table.univariate <- confint(object, level = level, method = method, columns = union(c("type","test","method"),columns.indiv))
+            table.univariate$type.original <- table.multivariate$type.original[table.univariate$test]
+        }
+        
+        for(iType in type){ ## iType <- type[1]
+
+            ## ** type of test
             if(iType == "all" && (print.global>0.5 || print.indiv>0.5)){
                 cat("\n\t", "|| User-specified linear hypotheses || \n", sep="")
                 ## print(object$call)
@@ -128,14 +127,23 @@ summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0
             }
 
             ## ** Global tests
-            out <- c(out, list(object[[iType]]))
-        
+            object.print <- table.multivariate[table.multivariate$type.original==iType,,drop=FALSE]
+            object.print <- cbind(object.print,
+                                  " " = stats::symnum(object.print$p.value, corr = FALSE, na = FALSE, 
+                                                      cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1), 
+                                                      symbols = c("***", "**", "*", ".", " "))
+                                  )
+            names(object.print)[NCOL(object.print)] <- ""
+            object.print$p.value <- as.character(signif(object.print$p.value, digits = digits.p.value))
+            
             if(print.global){
+
+                txt.test <- "Multivariate Wald test (global null hypothesis)"
                 if(all(is.na(object.print$statistic)) && !is.null(attr(object.print$statistic,"error"))){
                     cat("\n - ",txt.test,": ",attr(object.print$statistic,"error"),"\n", sep="")
                 }else{
                     cat("\n - ",txt.test,"\n", sep="")
-                    object.print <-  object.print[,names(object.print) %in% c(columns.global,"statistic"," "),drop=FALSE]
+                    object.print <-  object.print[,names(object.print) %in% columns.global,drop=FALSE]
                     if(object.df){
                         names(object.print) <- gsub("^statistic","F-statistic",names(object.print))
                     }else{
@@ -150,17 +158,16 @@ summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0
             }
 
             ## ** individual specific tests
-            if(!is.null(ci[[iType]])){
-                
-                if(!is.null(transform)){
-                    ci[[iType]] <- lapply(ci[[iType]], function(iCI){transformSummaryTable(iCI, transform = transform)})
-                }
-                out <- c(out, list(do.call(rbind,unname(ci[[iType]]))))
-
+            if(object.ci){
+                                
                 if(print.indiv){
 
                     cat("\n - Univariate Wald test (individual null hypotheses) \n", sep="")
-                    object.print <- do.call(rbind,unname(ci[[iType]]))
+                    object.print <- table.univariate[table.univariate$type.original==iType,,drop=FALSE]
+                    iMethod <- unique(object.print$method)
+                    if(length(iMethod)>1){
+                        warning("Different methods have been used to adjust for multiple comparisons - text describing the adjustment will not be accurate.")
+                    }
                     object.print <- object.print[,names(object.print) %in% columns.indiv,drop=FALSE]
                     if(object.df){
                         names(object.print) <- gsub("^statistic","t-statistic",names(object.print))
@@ -175,14 +182,13 @@ summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0
                     if(!is.null(transform)){
                         cat("\n Columns ",paste(intersect(columns.indiv,c("estimate","se","lower","upper")), collapse =", ")," have been back-transform. \n",sep="")
                     }
-
-                    if(attr(object,"robust") && "se" %in% columns.indiv){
+browser()
+                    if(object.robust && "se" %in% columns.indiv){
                         cat("Standard errors: robust\n")
                     }else if("se" %in% columns.indiv){
                         cat("Standard errors: model-based\n")
                     }
-                    iMethod <- unique(unlist(lapply(ci[[iType]], attr, "method")))  ## WARNING: technically some p-values could be computed by single-step and others by single-step2
-
+                    
                     if(any(c("p.value", "lower", "upper") %in% columns.indiv)){
                         if("p.value" %in% columns.indiv == FALSE){
                             txt.cip <- "P-values"
@@ -191,7 +197,8 @@ summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0
                         }else{
                             txt.cip <- "CIs/p-values"
                         }
-                        if(all(sapply(ci[[iType]],NROW)==1) || "none" %in% iMethod){ ## always only one hypothesis in each global test
+                        browser()
+                        if("none" %in% iMethod){ ## always only one hypothesis in each global test
                             cat("(",txt.cip," not adjusted for multiple comparisons) \n", sep="")
                         }else if(length(ci[[iType]])==1){ ## only one global test
                             if("bonferroni" %in% iMethod){

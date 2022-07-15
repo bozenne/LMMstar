@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jul 14 2022 (15:56) 
+## Last-Updated: Jul 15 2022 (12:16) 
 ##           By: Brice Ozenne
-##     Update #: 973
+##     Update #: 996
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -106,15 +106,6 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     if(inherits(effects,"lmm")){ ## likelihood ratio test
         out <- .anova_LRT(object1 = object, object2 = effects)
     }else{ ## Wald test
-        if(is.null(backtransform)){
-            if(is.null(transform.sigma) && is.null(transform.k) && is.null(transform.rho)){
-                backtransform <- options$backtransform.confint
-            }else{
-                backtransform <- FALSE
-            }
-        }else if(is.character(backtransform)){
-            backtransform <-  eval(parse(text=backtransform))
-        }
         out <- .anova_Wald(object, effects = effects, robust = robust, rhs = rhs, df = df, ci = ci, 
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names,
                            backtransform = backtransform)
@@ -156,6 +147,9 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         }
     }
 
+    if(is.null(backtransform) && (!is.null(transform.sigma) || !is.null(transform.k) || !is.null(transform.rho))){
+        backtransform <- FALSE
+    }
     init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
                             x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho)
     
@@ -368,6 +362,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     vcov.param <- vcov(object, df = df*2, effects = effects, robust = robust,
                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
     dVcov.param <- attr(vcov.param,"dVcov")
+    type.param <- stats::setNames(object$design$param$type,object$design$param$name)
     if(df>0 && object$method.fit=="REML" && type.information == "expected"){
         warning("when using REML with expected information, the degree of freedom of the F-statistic may depend on the parametrisation of the variance parameters. \n")
     }
@@ -473,8 +468,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                 CI$statistic <- (CI$estimate-iNull)/CI$se
                 rownames(CI) <- rownames(iC)
                 CI$partial.r <- CI$statistic / sqrt(CI$df + CI$statistic^2)
-                if(!is.null(names(effects)) && !inherits(effects,"mcp")){
-                    
+                if(!is.null(names(effects)) && !inherits(effects,"mcp")){                    
                     indexName <- intersect(which(names(effects)!=""),which(!is.na(names(effects))))
                     rownames(CI)[indexName] <- names(effects)[indexName]
                 }
@@ -500,23 +494,48 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
             ## "An R2 statistic for fixed effects in the linear mixed model" by Lloyd J. Edwards et al. 2008 (Statistic in medicine)
             ## Equation 19
             ## DOI: 10.1002/sim.3429
-            out$multivariate <- rbind(out$multivariate, cbind(type = iType, test = iNameTerm, iRes))
+            if(iType=="all"){
+                Utype <- unique(type.param[colnames(iC)[which(colSums(abs(iC)>0)>0)]])
+                if(length(Utype)==1){
+                    iType2 <- Utype
+                }else{
+                    iType2 <- "all"
+                }
+            }else{
+                iType2 <- switch(iType,
+                                 "mean"="mu",
+                                 "variance"="k",
+                                 "correlation"="rho")
+            }
+            out$multivariate <- rbind(out$multivariate, cbind(type = iType2, test = iNameTerm, iRes))
             if(ci){
-                out$univariate <- rbind(out$univariate, cbind(type = iType, test = iNameTerm, CI))
+                    out$univariate <- rbind(out$univariate, cbind(type = iType2, test = iNameTerm, CI))
             }
             out$glht[[iType]][[iNameTerm]] <- CI.glht           
         }
     }
-    
-    ## ** export
+
+    ## ** export    
+    if(is.null(backtransform)){
+        if(all(out$univariate$type=="mu")){
+            backtransform <- FALSE ## no need for back-transformation
+        }else{
+            backtransform <- options$backtransform.confint
+        }
+    }else if(is.character(backtransform)){
+        backtransform <-  eval(parse(text=backtransform))
+    }
+
     if("all" %in% type){ ## save some of the object when user define contrasts for possible use of rbind.anova_lmm
         out$object <- list(outcome = object$outcome$var,
                            method.fit = object$method.fit,
                            type.information = attr(object$information,"type.information"),
                            outcome = object$outcome$var,
                            cluster = object$cluster$levels)
-        out$param <- data.frame(name = names(param), name.transform = newname, type = object$design$param[match(names(param),object$design$param$name),"type"])
-        if(REML){
+        out$param <- data.frame(name = names(param),
+                                name.transform = newname,
+                                type = object$design$param[match(names(param),object$design$param$name),"type"])
+        if(object$method.fit == "REML"){
             out$iid <- iid(object, effects = "mean", robust = robust, type.information = attr(object$information,"type.information"),
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
         }else{
@@ -526,10 +545,10 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         out$vcov <- vcov.param
         out$dVcov.param <- dVcov.param
     }
-    
-    out$args <- data.frame(robust = robust, df = df, ci = ci, 
+    out$args <- data.frame(type = NA, robust = robust, df = df, ci = ci, 
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                            transform.names = transform.names, backtransform = backtransform)
+    out$args$type <- list(type)
     attr(out, "test") <- "Wald"
     return(out)
 }
