@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: Jul 15 2022 (12:21) 
+## Last-Updated: jul 15 2022 (18:24) 
 ##           By: Brice Ozenne
-##     Update #: 192
+##     Update #: 214
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -82,7 +82,8 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, columns
     grid <- object$multivariate[,c("type","test")]
     grid$type.original <- object$args$type[[1]]
     n.grid <- NROW(grid)
-
+    attr(out,"error") <- rep(NA,n.grid)
+    
     for(iGrid in 1:n.grid){ ## iGrid <- 1
 
         iIndex.table <- intersect(which(out$type==grid$type[iGrid]),
@@ -218,11 +219,13 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, columns
             }else if(iMethod == "single-step"){
 
                 iCi <- confint(iGlht)
-                
+                iP <- summary(iGlht, test = multcomp::adjusted("single-step"))
+
                 out[iIndex.table,"lower"] <- iCi$confint[,"lwr"]
                 out[iIndex.table,"upper"] <- iCi$confint[,"upr"]
-                out[iIndex.table,"p.value"] <- summary(iGlht, test = multcomp::adjusted("single-step"))$test$pvalues
+                out[iIndex.table,"p.value"] <- as.double(iP$test$pvalues)
                 out[iIndex.table,"df"] <- iGlht$df
+                attr(out, "error")[iGrid] <-  attr(iP$test$pvalues,"error")
 
             }else if(iMethod == "single-step2"){
 
@@ -236,8 +239,8 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, columns
                 
                 out[iIndex.table,"p.value"] <- sapply(abs(iTable$statistic), function(iT){(sum(iT <= maxH0)+1)/(n.sample+1)})
                 out[iIndex.table,"lower"] <- iTable$estimate - iTable$se * cH0
-                out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * cH0
-                attr(out, "n.sample") <-  n.sample
+                out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * cH0                
+                attr(out, "n.sample") <-  attr(out, "n.sample")
                 
             }else if(iMethod == "bonferroni"){
                 
@@ -255,33 +258,43 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, columns
     }
 
     ## ** back-transformation
-    type.param <- object$param$type
-    transform.names <- object$param$name.transform
-    backtransform.names <- object$param$name
     backtransform <- object$args$backtransform
-    transform.sigma <- object$args$transform.sigma
-    transform.k <- object$args$transform.k
-    transform.rho <- object$args$transform.rho
 
     if(is.function(backtransform) || all(is.character(backtransform)) || identical(backtransform,TRUE) || identical(backtransform,1)){
-        browser()
+
+        type.param <- object$param$type[match(rownames(out), object$param$name.transform)]
 
         if(is.function(backtransform) || all(is.character(backtransform))){
 
-            out <- .backtransform(out, type.param = type.param,  backtransform.names = NULL,
-                                  transform.mu = backtransform, transform.sigma = backtransform, transform.k = backtransform, transform.rho = backtransform)
+            out <- .backtransform(out, type.param = type.param,
+                                  backtransform = TRUE, backtransform.names = NULL,
+                                  transform.mu = backtransform,
+                                  transform.sigma = backtransform,
+                                  transform.k = backtransform,
+                                  transform.rho = backtransform)
 
         }else{
 
-            out <- .backtransform(out, type.param = type.param,  backtransform.names = NULL,
-                                  transform.mu = "none", transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
+            name.backtransform <- object$param$name.backtransform[match(rownames(out), object$param$name.transform)]
+
+            out <- .backtransform(out, type.param = type.param,  
+                                  backtransform = TRUE, backtransform.names = name.backtransform,
+                                  transform.mu = "none",
+                                  transform.sigma = object$args$transform.sigma,
+                                  transform.k = object$args$transform.k,
+                                  transform.rho = object$args$transform.rho)
 
         }
     }
 
-    
     ## ** export
+    Umethod <- unique(out$method)
+    if(length(Umethod)>1){
+        Umethod <- setdiff(Umethod,"none")
+    }
     out[names(out)[names(out) %in% columns == FALSE]] <- NULL
+    attr(out, "level") <- 0.95
+    attr(out, "method") <- Umethod
     class(out) <- append("confint_lmm", class(out))
     return(out)
 }

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: Jul 15 2022 (11:41) 
+## Last-Updated: jul 15 2022 (17:48) 
 ##           By: Brice Ozenne
-##     Update #: 385
+##     Update #: 416
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -103,14 +103,22 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
         df <- (!is.null(object$df)) && (robust==FALSE)
     }
     if(is.null(backtransform)){
-        if(is.null(transform.sigma) && is.null(transform.k) && is.null(transform.rho)){
-            backtransform <- options$backtransform.confint
-        }else{
-            backtransform <- FALSE
+        backtransform <- rep(as.logical(options$backtransform.confint),4)
+        if(!is.null(transform.sigma)){
+            backtransform[1] <- FALSE
         }
-    }else if(is.character(backtransform)){
+        if(!is.null(transform.k)){
+            backtransform[2] <- FALSE
+        }
+        if(!is.null(transform.rho)){
+            backtransform[3] <- FALSE
+        }
+    }else if(any(is.character(backtransform))){
         backtransform <-  eval(parse(text=backtransform))
+    }else if(all(is.numeric(backtransform))){
+        backtransform <- as.logical(backtransform)
     }
+
     ## used to decide on the null hypothesis of k parameters
     init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
                             x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho)
@@ -210,22 +218,31 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     out$lower <- out$estimate + stats::qt(alpha/2, df = out$df) * out$se
     out$upper <- out$estimate + stats::qt(1-alpha/2, df = out$df) * out$se
 
+
     ## ** back-transform
-    if(is.function(backtransform) || all(is.character(backtransform)) || identical(backtransform,TRUE) || identical(backtransform,1)){
+    if(!identical(backtransform,FALSE) && !identical(backtransform,c(FALSE,FALSE,FALSE))){
 
         if(is.function(backtransform) || all(is.character(backtransform))){
 
-            out <- .backtransform(out, type.param = type.param[match(nameNoTransform.beta, names(type.param))],  backtransform.names = names(beta),
-                                  transform.mu = backtransform, transform.sigma = backtransform, transform.k = backtransform, transform.rho = backtransform)
+            out <- .backtransform(out, type.param = type.param[match(nameNoTransform.beta, names(type.param))],
+                                  backtransform = TRUE, backtransform.names = names(beta),
+                                  transform.mu = backtransform,
+                                  transform.sigma = backtransform,
+                                  transform.k = backtransform,
+                                  transform.rho = backtransform)
 
         }else{
 
             backtransform.names <- names(coef(object, effects = effects, 
                                               transform.sigma = gsub("log","",transform.sigma), transform.k = gsub("log","",transform.k), transform.rho = gsub("atanh","",transform.rho), transform.names = transform.names))
 
-            out <- .backtransform(out, type.param = type.param[match(nameNoTransform.beta, names(type.param))],  backtransform.names = backtransform.names,
-                                  transform.mu = "none", transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
-
+            out <- .backtransform(out,
+                                   type.param = type.param[match(nameNoTransform.beta, names(type.param))],
+                                   backtransform = backtransform, backtransform.names = backtransform.names,
+                                   transform.mu = "none",
+                                   transform.sigma = transform.sigma,
+                                   transform.k = transform.k,
+                                   transform.rho = transform.rho)
         }
     }
 
@@ -233,33 +250,6 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     out[names(out)[names(out) %in% columns == FALSE]] <- NULL
     class(out) <- append("confint_lmm", class(out))
     return(out)
-}
-
-## * print.confint_lmm
-##' @export
-print.confint_lmm <- function(x, digit = 3, detail = TRUE, ...){
-    print(as.data.frame(x), digits = digit)
-    message.backtransform <- attr(x,"back-transform")
-
-    if(detail>0 && !is.null(message.backtransform) && any(!is.na(message.backtransform$FUN))){
-        message.backtransform <- message.backtransform[!is.na(message.backtransform$FUN),,drop=FALSE]
-
-        if(any(message.backtransform[,setdiff(names(message.backtransform), "FUN")] == FALSE)){
-            warning("Could not back-transform everything.\n")
-        }
-
-        if(NROW(x)==1){
-            txt <- unique(c("estimate","standard error","confidence interval","confidence interval")[c("estimate","se","lower","upper") %in% setdiff(names(message.backtransform), "FUN")])
-        }else{
-            txt <- unique(c("estimates","standard errors","confidence intervals","confidence intervals")[c("estimate","se","lower","upper") %in% setdiff(names(message.backtransform), "FUN")])
-        }
-        cat("Note: ",paste(txt,collapse = ", ")," have been back-transformed. \n",sep="")
-        if(detail>=0.5){
-            cat("(",paste0(paste(rownames(message.backtransform),collapse = "/")," parameters with ",paste(message.backtransform$FUN,collapse="/")),"). \n", sep ="")
-        }
-        
-    }
-    return(invisible(NULL))
 }
 
 ##----------------------------------------------------------------------

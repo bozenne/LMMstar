@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:50) 
 ## Version: 
-## Last-Updated: Jul 15 2022 (12:45) 
+## Last-Updated: jul 15 2022 (18:28) 
 ##           By: Brice Ozenne
-##     Update #: 262
+##     Update #: 284
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -103,7 +103,6 @@ summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0
     object.df <- object$args$df
     object.robust <- object$args$robust
     object.ci <- object$args$ci
-
     
     if(attr(object,"test")=="Wald"){
 
@@ -113,9 +112,12 @@ summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0
 
         if(object.ci){
             table.univariate <- confint(object, level = level, method = method, columns = union(c("type","test","method"),columns.indiv))
-            table.univariate$type.original <- table.multivariate$type.original[table.univariate$test]
+
+            typetest2type.original <- stats::setNames(table.multivariate$type.original,paste(table.multivariate$type,table.multivariate$test,sep="|"))
+            table.univariate$type.original <- typetest2type.original[paste(table.univariate$type,table.univariate$test,sep="|")]
+            univariate.method <- attr(table.univariate,"method")
         }
-        
+
         for(iType in type){ ## iType <- type[1]
 
             ## ** type of test
@@ -164,8 +166,8 @@ summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0
 
                     cat("\n - Univariate Wald test (individual null hypotheses) \n", sep="")
                     object.print <- table.univariate[table.univariate$type.original==iType,,drop=FALSE]
-                    iMethod <- unique(object.print$method)
-                    if(length(iMethod)>1){
+                    n.hypoPerTest <- table(paste(object.print$type,object.print$test,sep="|"))
+                    if(length(univariate.method)>1){
                         warning("Different methods have been used to adjust for multiple comparisons - text describing the adjustment will not be accurate.")
                     }
                     object.print <- object.print[,names(object.print) %in% columns.indiv,drop=FALSE]
@@ -182,7 +184,7 @@ summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0
                     if(!is.null(transform)){
                         cat("\n Columns ",paste(intersect(columns.indiv,c("estimate","se","lower","upper")), collapse =", ")," have been back-transform. \n",sep="")
                     }
-browser()
+
                     if(object.robust && "se" %in% columns.indiv){
                         cat("Standard errors: robust\n")
                     }else if("se" %in% columns.indiv){
@@ -197,38 +199,41 @@ browser()
                         }else{
                             txt.cip <- "CIs/p-values"
                         }
-                        browser()
-                        if("none" %in% iMethod){ ## always only one hypothesis in each global test
+                        if(univariate.method[1] == "none"){ ## always only one hypothesis in each global test
                             cat("(",txt.cip," not adjusted for multiple comparisons) \n", sep="")
-                        }else if(length(ci[[iType]])==1){ ## only one global test
-                            if("bonferroni" %in% iMethod){
+                        }else if(length(n.hypoPerTest)==1){ ## only one global test
+                            if(univariate.method[1] == "bonferroni"){
                                 cat("(",txt.cip," adjusted for multiple comparisons -- Bonferroni)\n", sep="")
-                            }else if("single-step" %in% iMethod || "single-step2" %in% iMethod){
+                            }else if(univariate.method[1] %in% c("single-step", "single-step2")){
                                 cat("(",txt.cip," adjusted for multiple comparisons -- max-test adjustment)\n", sep="")
                             }else{
-                                cat(paste0("(",txt.cip," adjusted for multiple comparisons -- ",iMethod,")\n", sep=""),sep="")
+                                cat(paste0("(",txt.cip," adjusted for multiple comparisons -- ",univariate.method[1],")\n", sep=""),sep="")
                             }
                         }else{
-                            if("bonferroni" %in% iMethod){
+                            if(univariate.method[1] == "bonferroni"){
                                 cat("(",txt.cip," adjusted for multiple comparisons within each global test -- bonferroni) \n", sep="")
-                            }else if("single-step" %in% iMethod || "single-step2" %in% iMethod){
+                            }else if(univariate.method[1] %in% c("single-step","single-step2")){
                                 cat("(",txt.cip," adjusted for multiple comparisons within each global test -- max-test adjustment) \n", sep="")
                             }else{
-                                cat(paste0("(",txt.cip," adjusted for multiple comparisons within each global test -- ",iMethod,") \n", sep=""),sep="")
+                                cat(paste0("(",txt.cip," adjusted for multiple comparisons within each global test -- ",univariate.method[1],") \n", sep=""),sep="")
                             }
                         }
 
-                        if("single-step" %in% iMethod){
-                            error <- max(c(0,unlist(lapply(ci[[iType]],function(iO){attr(iO$p.value,"error")}))))
+                        if(univariate.method[1] == "single-step"){
+                            error <- max(c(0,abs(attr(table.univariate,"error")[table.multivariate$type.original==iType])), na.rm = TRUE)
                             if(error > 1e-12){
                                 txt.error <- paste0("Error when computing the adjusted ",txt.cip," by numerical integration: ", signif(error, digits = 5))
                                 if(!is.null(seed)){
                                     txt.error <- paste0(txt.error," (seed ",seed,")")
                                 }
-                                cat(txt.error,"\n")
+                                cat(txt.error,".\n",sep="")
                             }
-                        }else if("single-step2" %in% iMethod){
-                            cat("Adjusted ",txt.cip," computed using ",attr(ci[[iType]][[1]],"n.sample")," samples.\n", sep = "")
+                        }else if(univariate.method[1] == "single-step2"){
+                            txt.sample <- paste("Adjusted ",txt.cip," computed using ",attr(table.univariate,"n.sample")," samples", sep = "")
+                            if(!is.null(seed)){
+                                txt.sample <- paste0(txt.error," (seed ",seed,")")
+                            }
+                            cat(txt.sample,".\n")                            
                         }
                     }
                 }
@@ -249,7 +254,7 @@ browser()
         }
     }
 
-    return(invisible(out))
+    return(invisible(NULL))
 }
 
 

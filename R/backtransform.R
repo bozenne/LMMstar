@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 15 2022 (10:04) 
 ## Version: 
-## Last-Updated: Jul 15 2022 (11:44) 
+## Last-Updated: jul 15 2022 (17:11) 
 ##           By: Brice Ozenne
-##     Update #: 29
+##     Update #: 40
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -24,6 +24,7 @@
 ##' @param type.param [character vector] type of each parameter in the table: can be \code{mu}, \code{sigma}, \code{k}, or \code{rho}.
 ##' @param backtransform.names [character vector] name of each parameter in the table after backtransformation.
 ##' @param transform.mu,transform.sigma,transform.k,transform.rho [character or function] name of the transformation to be reverted or back-transformation to be apply to the mean, variance, or correlation parameters.
+##' @param backtransform [logical vector] whether back-transformation should be apply to the mean, variance, or correlation parameters.
 ##'
 ##' @details If the option \code{transform.sigma} and/or  \code{transform.k} is one of \code{"log"}, \code{"logsd"}, \code{"logvar"}, \code{"logsqaure"},
 ##' the estimate and CIs are transformed back to the original scale by applying the exponential function. 
@@ -33,19 +34,24 @@
 ##' 
 ##' @keywords internal
 .backtransform <- function(object, type.param, backtransform.names,
-                           transform.mu, transform.sigma, transform.k, transform.rho){
+                           backtransform, transform.mu, transform.sigma, transform.k, transform.rho){
 
     ## ** prepare
     if(transform.k %in% c("sd","var","logsd","logvar")){
         type.param[type.param=="sigma"] <- "k"
     }
+    
     transform <- list(mu = transform.mu,
                       sigma = transform.sigma,
                       k = transform.k,
                       rho = transform.rho)[c("mu","sigma","k","rho") %in% type.param]
+
+    if(length(backtransform)==4){
+        transform <- transform[intersect(names(transform),c("mu","sigma","k","rho")[which(backtransform)])]
+    }
+
     todo <- intersect(c("estimate","se", "lower", "upper"), names(object))
     message <- data.frame(matrix(nrow = NROW(transform), ncol = length(todo)+1, dimnames = list(names(transform), c(todo,"FUN"))))
-
 
     ## ** backtransform
     for(iType in names(transform)){ ## iType <- names(transform)[1]
@@ -101,7 +107,7 @@
          }
 
         iIndex.type <- which(type.param==iType)
-        
+
         if("estimate" %in% names(object)){
             object$estimate[iIndex.type] <- iBacktransform(object$estimate[iIndex.type])
             message[iType,"estimate"] <- TRUE

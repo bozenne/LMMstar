@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jul 14 2022 (16:07) 
+## Last-Updated: jul 15 2022 (18:29) 
 ##           By: Brice Ozenne
-##     Update #: 506
+##     Update #: 507
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -351,3 +351,4 @@ summary.lmm <- function(object, digit = 3, level = 0.95, type.cor = NULL, robust
 
 ######################################################################
 ### summary.lmm.R ends here
+ 

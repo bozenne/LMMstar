@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: Jul 15 2022 (12:16) 
+## Last-Updated: jul 15 2022 (17:39) 
 ##           By: Brice Ozenne
-##     Update #: 996
+##     Update #: 1013
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -120,6 +120,8 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
 .anova_Wald <- function(object, effects, robust, rhs, df, ci, 
                         transform.sigma, transform.k, transform.rho, transform.names, backtransform){
 
+    options <- LMMstar.options()
+    
     ## ** normalized user input
     terms.mean <- attr(stats::terms(object$formula$mean.design),"term.labels")
     subeffect <- NULL
@@ -374,6 +376,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     out$glht <- stats::setNames(vector(mode = "list", length = length(type)), type)
 
     for(iType in type){ ## iType <- "correlation"
+
         ## skip empty type
         if(length(ls.nameTerms.num[[iType]])==0 || (is.null(ls.contrast[[iType]]) && (all(ls.assign[[iType]]==0)))){ next }
 
@@ -515,7 +518,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         }
     }
 
-    ## ** export    
+    ## ** export
     if(is.null(backtransform)){
         if(all(out$univariate$type=="mu")){
             backtransform <- FALSE ## no need for back-transformation
@@ -526,29 +529,40 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         backtransform <-  eval(parse(text=backtransform))
     }
 
-    if("all" %in% type){ ## save some of the object when user define contrasts for possible use of rbind.anova_lmm
-        out$object <- list(outcome = object$outcome$var,
-                           method.fit = object$method.fit,
-                           type.information = attr(object$information,"type.information"),
-                           outcome = object$outcome$var,
-                           cluster = object$cluster$levels)
-        out$param <- data.frame(name = names(param),
-                                name.transform = newname,
-                                type = object$design$param[match(names(param),object$design$param$name),"type"])
-        if(object$method.fit == "REML"){
-            out$iid <- iid(object, effects = "mean", robust = robust, type.information = attr(object$information,"type.information"),
-                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
-        }else{
-            out$iid <- iid(object, effects = effects, robust = robust, type.information = attr(object$information,"type.information"),
-                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
-        }
-        out$vcov <- vcov.param
-        out$dVcov.param <- dVcov.param
+    ## save some of the object when user define contrasts for possible use of rbind.anova_lmm
+    out$object <- list(outcome = object$outcome$var,
+                       method.fit = object$method.fit,
+                       type.information = attr(object$information,"type.information"),
+                       outcome = object$outcome$var,
+                       cluster = object$cluster$levels)
+    out$param <- data.frame(name = names(param),
+                            name.transform = newname,
+                            name.backtransform = names(coef(object, effects = effects, 
+                                                            transform.sigma = gsub("log","",transform.sigma),
+                                                            transform.k = gsub("log","",transform.k),
+                                                            transform.rho = gsub("atanh","",transform.rho),
+                                                            transform.names = transform.names)),
+                            type = object$design$param[match(names(param),object$design$param$name),"type"])
+
+    if(object$method.fit == "REML"){
+        out$iid <- iid(object, effects = "mean", robust = robust, type.information = attr(object$information,"type.information"),
+                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+    }else{
+        out$iid <- iid(object, effects = effects, robust = robust, type.information = attr(object$information,"type.information"),
+                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
     }
+    out$vcov <- vcov.param
+    out$dVcov.param <- dVcov.param
+
     out$args <- data.frame(type = NA, robust = robust, df = df, ci = ci, 
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                            transform.names = transform.names, backtransform = backtransform)
-    out$args$type <- list(type)
+    
+    if(identical(type,"all")){
+        out$args$type <- list("all")
+    }else{
+        out$args$type <- list(c("mu"="mean", "k"="variance", "rho"="correlation")[out$multivariate$type])
+    }
     attr(out, "test") <- "Wald"
     return(out)
 }
