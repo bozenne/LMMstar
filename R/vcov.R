@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: Jul 14 2022 (11:44) 
+## Last-Updated: jul 18 2022 (16:06) 
 ##           By: Brice Ozenne
-##     Update #: 497
+##     Update #: 500
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -155,6 +155,14 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strat
             }
         }
     return(vcov)    
+}
+
+## * vcov.mlmm
+##' @export
+vcov.anova_lmm <- function(object, ...){
+
+    return(object$vcov)
+
 }
 
 ## * vcov.mlmm

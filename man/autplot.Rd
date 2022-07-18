@@ -3,6 +3,7 @@
 \name{autoplot}
 \alias{autoplot}
 \alias{autoplot.lmm}
+\alias{autoplot.anova_lmm}
 \title{Graphical Display For Linear Mixed Models}
 \usage{
 \method{autoplot}{lmm}(
@@ -20,9 +21,22 @@
   position.errorbar = "identity",
   ...
 )
+
+\method{autoplot}{anova_lmm}(
+  object,
+  color = NULL,
+  ci = TRUE,
+  plot = TRUE,
+  size.estimate = 3,
+  size.ci = 1,
+  width.ci = 0.2,
+  size.null = 1,
+  size.text = 16,
+  ...
+)
 }
 \arguments{
-\item{object}{a \code{lmm} object.}
+\item{object}{a \code{anova_lmm} object.}
 
 \item{obs.alpha}{[numeric, 0-1] When not NA, transparency parameter used to display the original data by cluster.}
 
@@ -32,7 +46,7 @@
 
 \item{time.var}{[character] x-axis variable for the plot.}
 
-\item{color}{[character] name of the variable in the dataset used to color the curve.}
+\item{color}{[logical] should the estimates be colored by global null hypothesis, e.g. when testing the effect of a 3 factor covariate, the two corresponding coefficient will have the same color.}
 
 \item{ci}{[logical] should confidence intervals be displayed?}
 
@@ -42,13 +56,26 @@
 
 \item{mean.size}{[numeric vector of length 2] size of the point and line for the mean trajectory.}
 
-\item{size.text}{[numeric, >0] size of the font used to displayed text when using ggplot2.}
+\item{size.text}{[numeric, >0] size of the font used to display text.}
 
 \item{position.errorbar}{[character] relative position of the errorbars.}
 
-\item{...}{arguments passed to the predict method.}
+\item{...}{arguments passed to the confint method.}
+
+\item{size.estimate}{[numeric, >0] size of the dot used to display the estimates.}
+
+\item{size.ci}{[numeric, >0] thickness of the line used to display the confidence intervals.}
+
+\item{width.ci}{[numeric, >0] width of the line used to display the confidence intervals.}
+
+\item{size.null}{[numeric, >0] thickness of the line used to display the null hypothesis.}
 }
 \value{
+A list with two elements \itemize{
+\item \code{data}: data used to create the graphical display.
+\item \code{plot}: ggplot object.
+}
+
 A list with two elements \itemize{
 \item \code{data}: data used to create the graphical display.
 \item \code{plot}: ggplot object.
@@ -56,4 +83,19 @@ A list with two elements \itemize{
 }
 \description{
 Graphical Display For Linear Mixed Models
+
+Graphical Display For Linear Hypothesis Test
+}
+\examples{
+## From the multcomp package
+if(require(datasets)){
+
+e.lmm <- lmm(Fertility ~ Agriculture + Examination + Education + Catholic + Infant.Mortality, data = swiss)
+autoplot(anova(e.lmm))
+
+amod <- lmm(breaks ~ tension + wool, data = warpbreaks)
+autoplot(anova(amod))
+}
+
+
 }

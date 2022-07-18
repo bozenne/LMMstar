@@ -66,17 +66,21 @@ A data.frame containing for each coefficient (in rows): \itemize{
 Compute confidence intervals (CIs) and p-values for the coefficients of a linear mixed model.
 }
 \examples{
-## simulate data in the long format
+#### simulate data in the long format ####
 set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
 
-## fit Linear Mixed Model
+#### fit Linear Mixed Model ####
 eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL)
 
+#### Confidence intervals ####
 ## based on a Student's t-distribution with transformation
-confint(eUN.lmm)
+confint(eUN.lmm, effects = "all")
 ## based on a Student's t-distribution without transformation
-confint(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none")
+confint(eUN.lmm, effects = "all",
+        transform.sigma = "none", transform.k = "none", transform.rho = "none")
+## based on a Student's t-distribution transformation but not backtransformed
+confint(eUN.lmm, effects = "all", backtransform = FALSE)
 ## based on a Normal distribution with transformation
 confint(eUN.lmm, df = FALSE)
 

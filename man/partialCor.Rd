@@ -4,7 +4,7 @@
 \alias{partialCor}
 \title{Partial Correlation}
 \usage{
-partialCor(formula, data, repetition)
+partialCor(formula, data, repetition, heterogeneous = TRUE, by = NULL)
 }
 \arguments{
 \item{formula}{a formula with in the left hand side the variables for which the correlation should be computed
@@ -13,12 +13,25 @@ and on the right hand side the adjustment set. Can also be a list of formula for
 \item{data}{[data.frame] dataset containing the variables.}
 
 \item{repetition}{[formula] Specify the structure of the data: the time/repetition variable and the grouping variable, e.g. ~ time|id.}
+
+\item{heterogeneous}{[logical] Specify whether the variance differ between the two variables (no repetition)
+or whether the correlation/variance vary over repetitions (repetition).}
+
+\item{by}{[character] variable used to stratified the correlation on.}
+}
+\value{
+A data.frame with the estimate partial correlation (rho), standard error, degree of freedom, confidence interval, and p-value (test of no correlation).
+When \code{heterogeneous=FALSE} is used with repeated measurements, a second correlation coefficient (r) is output where the between subject variance has been removed (similar to Bland et al. 1995).
 }
 \description{
 Estimate the partial correlation between two variables where the adjustment set may differ between variables.
 }
 \details{
-Fit a mixed model to estimate the partial correlation which can be time consuming.
+Fit a mixed model to estimate the partial correlation with the following variance-covariance pattern:
+\itemize{
+\item \bold{no repetition}: unstructure or compound symmetry structure for 2 observations.
+\item \bold{repetition}: toeplitz for 2T observations where T denotes the number of repetitions.
+}
 }
 \examples{
 #### bivariate (no repetition) ####
@@ -55,10 +68,22 @@ partialCor(hl + disp~BC+deg, data = y.data)
 partialCor(list(hl~BC+deg, disp~BC), data = y.data)
 partialCor(list(hl~BC+deg+gender, disp~1), data = y.data)
 
-#### bivariate (with repetition) ####
-data(gastricbypassL, package = "LMMstar")
+#### stratified bivariate (no repetition) ####
+## partialCor(list(hl~1, disp~1), data = y.data, by = "gender") ## too small dataset
 
-partialCor(weight+glucagonAUC~time, data = gastricbypassL)
+#### bivariate (with repetition) ####
+if(require(rmcorr)){
+data(bland1995, package = "rmcorr")
+bland1995$Subject <- as.factor(bland1995$Subject)
+
+ls.time <- tapply(1:NROW(bland1995),bland1995$Subject,function(x){1:length(x)})
+bland1995$time <- unlist(ls.time)
+
+partialCor(pH+PacO2~1, repetition =~time|Subject, data = bland1995)
 
 partialCor(weight+glucagonAUC~time, repetition =~time|id, data = gastricbypassL)
+}
+}
+\references{
+Bland J M, Altman D G. Statistics notes: Calculating correlation coefficients with repeated observations: Part 1—correlation within subjects BMJ 1995; 310 :446 doi:10.1136/bmj.310.6977.446
 }

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 13 2022 (13:55) 
 ## Version: 
-## Last-Updated: jul 14 2022 (16:50) 
+## Last-Updated: jul 18 2022 (16:52) 
 ##           By: Brice Ozenne
-##     Update #: 5
+##     Update #: 10
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,16 +25,17 @@ if(FALSE){
 
 context("Check anova method")
 
-## * Likelihood ratio tests
-
-## ** simulate data
+## * Simulate data
 set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
 
 dL$X1 <- as.factor(dL$X1)
 dL$X2 <- as.factor(dL$X2)
 
-## ** LRT
+
+## * Likelihood ratio tests
+
+
 test_that("LRT"{
 
     ## remove variance factor
@@ -83,10 +84,64 @@ test_that("LRT"{
 })
 
 ## * Wald test
-## check back-transform is working like confint
-## default
-## default no back
-## transform back
-## transform no back
+
+e.lmm1 <- lmm(Y ~ X1+X2+X3, repetition = ~visit|id, data = dL,
+              structure = "UN", df = FALSE)
+
+dL$id2 <- paste0(dL$id,".bis")
+dL$Y2 <- dL$Y
+e.lmm2 <- lmm(Y2 ~ X1+X2+X3, repetition = ~visit|id2, data = dL,
+              structure = "UN", df = FALSE)
+
+## ** back-transform
+
+test_that("anova_lmm vs. confint", {
+
+    ## check back-transform is working like confint
+    GS <- model.tables(e.lmm1, effects = "all")
+    test1 <- model.tables(anova(e.lmm1, effects = "all"), method = "none")
+    expect_equal(test1, GS[rownames(test1),], tol = 1e-5)
+
+    test2 <- model.tables(anova(e.lmm1, effects = c("k.2=0","X1=0")), method = "none")
+    expect_equal(test2, GS[rownames(test2),], tol = 1e-5)
+
+    ## default no back
+    test1.bis <- model.tables(anova(e.lmm1, effects = "all", backtransform = FALSE), method = "none")
+    expect_equal(test1$p.value, test1.bis$p.value, tol = 1e-5)
+    expect_equal(confint(e.lmm1, backtransform = FALSE, effects = "all")[rownames(test1.bis),"estimate"],
+                 unname(test1.bis$estimate), tol = 1e-5)
+})
+
+## ** rbind
+
+test_that("rbind.anova_lmm", {
+
+    ## same clusters
+    A1 <- anova(e.lmm1, ci = TRUE, effect = c("X1=0"))
+    A2 <- anova(e.lmm1, ci = TRUE, effect = c("X2=0"))
+    A3 <- anova(e.lmm1, ci = TRUE, effect = c("X3=0"))
+    A123.bis <- rbind.anova_lmm(A1,A2,A3)
+    A123 <- anova(e.lmm1, ci = TRUE, effect = c("X1=0","X2=0","X3=0"), robust = TRUE)
+
+    expect_equal(coef(A123), coef(A123.bis), tol = 1e-5)
+    expect_equal(vcov(A123), vcov(A123.bis), tol = 1e-5)
+
+    GS <- model.tables(A123)
+    test <- model.tables(A123.bis)
+    expect_equal(A123.bis$univariate[,c("estimate","se","statistic")],A123$univariate[,c("estimate","se","statistic")],
+                 tol = 1e-5)
+
+    ## different clusters
+    A1 <- anova(e.lmm1, ci = TRUE, effect = c("X1=0","X2=0","X3=0"))
+    A2 <- anova(e.lmm2, ci = TRUE, effect = c("X1=0","X2=0","X3=0"))
+    A12.ter <- rbind.anova_lmm(A1,A2)
+    A123 <- anova(e.lmm1, ci = TRUE, effect = c("X1=0","X2=0","X3=0"))
+
+    expect_equal(unname(rep(coef(A123),2)), unname(coef(A12.ter)), tol = 1e-5)
+    expect_equal(unname(as.matrix(bdiag(vcov(A123),vcov(A123)))), unname(vcov(A12.ter)), tol = 1e-5)
+    expect_equal(A12.ter$multivariate$statistic, A123$multivariate$statistic, tol = 1e-5)
+})
+
+
 ##----------------------------------------------------------------------
 ### test-auto-anova.R ends here

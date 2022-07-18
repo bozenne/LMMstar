@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:50) 
 ## Version: 
-## Last-Updated: jul 15 2022 (18:28) 
+## Last-Updated: jul 18 2022 (15:47) 
 ##           By: Brice Ozenne
-##     Update #: 284
+##     Update #: 296
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -103,7 +103,7 @@ summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0
     object.df <- object$args$df
     object.robust <- object$args$robust
     object.ci <- object$args$ci
-    
+
     if(attr(object,"test")=="Wald"){
 
         table.multivariate <- object$multivariate
@@ -112,9 +112,12 @@ summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0
 
         if(object.ci){
             table.univariate <- confint(object, level = level, method = method, columns = union(c("type","test","method"),columns.indiv))
-
-            typetest2type.original <- stats::setNames(table.multivariate$type.original,paste(table.multivariate$type,table.multivariate$test,sep="|"))
-            table.univariate$type.original <- typetest2type.original[paste(table.univariate$type,table.univariate$test,sep="|")]
+            if(NROW(table.multivariate)==1){
+                table.univariate$type.original <- table.multivariate$type.original
+            }else{
+                typetest2type.original <- stats::setNames(table.multivariate$type.original,paste(table.multivariate$type,table.multivariate$test,sep="|"))
+                table.univariate$type.original <- typetest2type.original[paste(table.univariate$type,table.univariate$test,sep="|")]
+            }
             univariate.method <- attr(table.univariate,"method")
         }
 
@@ -137,7 +140,8 @@ summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0
                                   )
             names(object.print)[NCOL(object.print)] <- ""
             object.print$p.value <- as.character(signif(object.print$p.value, digits = digits.p.value))
-            
+            rownames(object.print) <- object.print$test
+
             if(print.global){
 
                 txt.test <- "Multivariate Wald test (global null hypothesis)"
@@ -151,7 +155,7 @@ summary.anova_lmm <- function(object, method = NULL, transform = NULL, level = 0
                     }else{
                         names(object.print) <- gsub("^statistic","chi2-statistic",names(object.print))
                     }
-                    print(object.print, digits = digits, row.names = (iType != "all"))
+                    print(object.print, digits = digits, row.names = any(rownames(object.print)!="1"))
                 }
                 if(print.indiv==FALSE && "" %in% columns.global && iType == utils::tail(type,1)){
                     cat("---\n",

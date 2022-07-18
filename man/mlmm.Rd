@@ -4,7 +4,20 @@
 \alias{mlmm}
 \title{Fit Multiple Linear Mixed Model}
 \usage{
-mlmm(..., data, by, effects = NULL, robust = FALSE, df = TRUE, ci = TRUE)
+mlmm(
+  ...,
+  data,
+  by,
+  effects = NULL,
+  robust = FALSE,
+  df = TRUE,
+  ci = TRUE,
+  transform.sigma = NULL,
+  transform.k = NULL,
+  transform.rho = NULL,
+  transform.names = TRUE,
+  backtransform = NULL
+)
 }
 \arguments{
 \item{...}{arguments passed to \code{\link{lmm}}.}

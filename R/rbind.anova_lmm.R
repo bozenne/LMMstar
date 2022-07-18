@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 14 2022 (16:54) 
+## Last-Updated: jul 18 2022 (17:21) 
 ##           By: Brice Ozenne
-##     Update #: 113
+##     Update #: 222
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -48,8 +48,9 @@
 ##' @export
 rbind.anova_lmm <- function(model, ..., name = NULL, sep = ": "){
     default <- LMMstar.options()
-
-    ## ** check user input
+    call <- match.call()
+    
+    ## ** Check user input
     dots <- list(...)
     if(length(dots)==0){
         return(model) ## nothing to combine
@@ -57,201 +58,260 @@ rbind.anova_lmm <- function(model, ..., name = NULL, sep = ": "){
         stop("Extra arguments should inherit from anova_lmm. \n")
     }
     ls.object <- c(list(model),dots)
-
-    if(any(sapply(ls.object,function(iO){"all" %in% names(iO)})==FALSE)){
-        stop("All argument should correspond to user specified hypothesis, i.e. call anova with argument \'effects\'. \n")
+    n.object <- length(ls.object)
+    if(!is.null(name) && length(name)!=n.object){
+        stop("Argument \'name\' should have length ",n.object,", i.e. as many elements as anova objects. \n")
     }
-    if(any(sapply(ls.object,function(iO){!is.null(attr(iO$all,"glht"))})==FALSE)){
+    
+    table.args <- cbind(do.call(rbind,lapply(ls.object,"[[","args")),
+                        do.call(rbind,lapply(ls.object, function(iO){data.frame(n.test = NROW(iO$univariate),
+                                                                                iO$object[c("outcome","method.fit","type.information")])
+                        })))
+
+    Utype <- unique(unlist(table.args$type))
+    newtable.args <- data.frame(type = ifelse(length(Utype)>1,"all",Utype),
+                                table.args[1,c("robust","df","ci","transform.sigma","transform.k","transform.rho","transform.names","backtransform")]
+                                )
+
+    newtable.args$backtransform <- na.omit(table.args$backtransform)[1]
+    newtable.args$n.test <- sum(table.args$n.test)
+    if(length(unique(table.args$outcome))==1){
+        newtable.args$outcome <- table.args$outcome[1]
+    }
+    if(length(unique(table.args$method.fit))==1){
+        newtable.args$method.fit <- table.args$method.fit[1]
+    }
+    if(length(unique(table.args$type.information))==1){
+        newtable.args$type.information <- table.args$type.information[1]
+    }
+    
+    if(any(table.args$ci==FALSE)){
         stop("All argument should contain a \"glht\" object, i.e. call anova with argument ci=TRUE. \n")
     }
-    ls.glht <- lapply(ls.object, function(iO){attr(iO$all,"glht")[[1]]})
-    if(any(sapply(ls.glht, is.null))){
-        stop("Could not extract glht object. \n Make sure that argument \'ci\' is TRUE when calling anova. \n")
+    if(any(newtable.args$robust!=table.args$robust[-1])){
+        stop("Element \'robust\' should take the same value for all objects. \n")
     }
-browser()
-    ## ** Extract elements from anova object
-    ls.C <- lapply(ls.glht,"[[","linfct")
-    ls.rhs <- lapply(ls.glht,"[[","rhs")
-    ls.coef <- lapply(ls.glht,"[[","coef")
-    ls.lmm <- lapply(ls.glht,"[[","model")
-    ls.df <- lapply(ls.object,function(iO){attr(iO$all,"CI")[[1]]$df})
-    ls.alternative <- lapply(ls.glht,"[[","alternative")
-    if(any(unlist(ls.alternative) != ls.alternative[[1]])){
+    if(any(newtable.args$df!=table.args$df[-1])){
+        stop("Element \'df\' should take the same value for all objects. \n")
+    }
+    if(any(newtable.args$transform.sigma!=table.args$transform.sigma[-1])){
+        stop("Element \'transform.sigma\' should take the same value for all objects. \n")
+    }
+    if(any(newtable.args$transform.k!=table.args$transform.k[-1])){
+        stop("Element \'transform.k\' should take the same value for all objects. \n")
+    }
+    if(any(newtable.args$transform.rho!=table.args$transform.rho[-1])){
+        stop("Element \'transform.rho\' should take the same value for all objects. \n")
+    }
+    if(any(newtable.args$transform.names!=table.args$transform.names[-1])){
+        stop("Element \'transform.names\' should take the same value for all objects. \n")
+    }
+    if(any(!is.na(table.args$backtransform)) && any(newtable.args$backtransform!=na.omit(table.args$backtransform)[-1])){
+        stop("Element \'backtransform\' should take the same value for all objects. \n")
+    }
+    ls.glht <- unname(unlist(unlist(lapply(ls.object,"[[","glht"),recursive = FALSE),recursive = FALSE))
+    alternative <- ls.glht[[1]]$alternative
+    if(any(alternative != sapply(ls.glht,"[[","alternative")[-1])){
         stop("Element \'alternative\' should take the same value for all glht objects. \n")
     }
-    ls.robust <- lapply(ls.glht,function(iO){attr(iO$vcov,"robust")})
-    if(any(unlist(ls.robust) != ls.robust[[1]])){
-        stop("Element \'robust\' should take the same value for all glht objects. \n")
-    }
-    robust <- unique(unlist(ls.robust))
-    ls.transform.sigma <- lapply(ls.object[[1]],function(iO){if(is.null(iO$call$transform.sigma)){default$transform.sigma}else{iO$call$transform.sigma}})
-    if(any(unlist(ls.transform.sigma) != ls.transform.sigma[[1]])){
-        stop("Element \'transform.sigma\' should take the same value for all glht objects. \n")
-    }
-    transform.sigma <- unique(unlist(ls.transform.sigma))
-    ls.transform.k <- lapply(ls.object[[1]],function(iO){if(is.null(iO$call$transform.k)){default$transform.k}else{iO$call$transform.k}})
-    if(any(unlist(ls.transform.k) != ls.transform.k[[1]])){
-        stop("Element \'transform.k\' should take the same value for all glht objects. \n")
-    }
-    transform.k <- unique(unlist(ls.transform.k))
-    ls.transform.rho <- lapply(ls.object[[1]],function(iO){if(is.null(iO$call$transform.rho)){default$transform.rho}else{iO$call$transform.rho}})
-    if(any(unlist(ls.transform.rho) != ls.transform.rho[[1]])){
-        stop("Element \'transform.rho\' should take the same value for all glht objects. \n")
-    }
-    transform.rho <- unique(unlist(ls.transform.rho))
-    ls.method.fit <- lapply(ls.lmm,"[[","method.fit")
-    if(any(unlist(ls.method.fit) != ls.method.fit[[1]])){
-        stop("Element \'ls.method.fit\' should take the same value for all glht objects. \n")
-    }
-    method.fit <- unique(unlist(ls.method.fit))
-    if(!is.null(name)){
-        if(length(name) != length(ls.lmm)){
-            stop("Argument \'name\' should be NULL or have length ",length(ls.lmm),". \n")
+    name.unitest <- unlist(lapply(ls.object, function(iO){rownames(iO$univariate)}))
+    if(any(duplicated(name.unitest))){
+        name.unitest <- unlist(lapply(ls.object, function(iO){paste0(iO$object$outcome, sep, rownames(iO$univariate))}))
+
+        if(is.na(sep) || any(duplicated(name.unitest))){
+            stop("Univariate test should have distinct names. \n",
+                 "Consider naming them when calling anova, e.g. anova(object, effect = c(\"myname1\"=\"X1=0\",\"myname2\"=\"X2=0\"))")
+        }else{
+            for(iO in 1:n.object){
+                rownames(ls.object[[iO]]$univariate) <- paste0(ls.object[[iO]]$object$outcome, sep, rownames(ls.object[[iO]]$univariate))
+            }
         }
-        vec.outcome <- name
-    }else{
-        vec.outcome <- unname(unlist(sapply(ls.lmm,"[[","outcome")))
     }
 
-    names(ls.C) <- vec.outcome
-    names(ls.coef) <- vec.outcome
-    names(ls.lmm) <- vec.outcome
+    contrast <- attr(model,"contrast")
+    if(!is.null(contrast)){
+        if(NCOL(contrast)!=newtable.args$n.test){
+            stop("Incorrect contrast matrix: should have ",newtable.args$n.test," columns.\n",
+                 "(one for each univariate test) \n")
+        }
+        if(is.null(colnames(contrast))){
+            colnames(contrast) <- name.unitest
+        }else if(!identical(sort(colnames(contrast)), name.unitest)){
+            stop("Incorrect column names for argument contrast.\n",
+                 "Should match \"",paste(name.unitest, collapse="\" \""),"\".\n")
+        }else{
+            contrast <- contrast[,name.unitest,drop=FALSE]
+        }
+    }else{
+        contrast <- diag(1, nrow = newtable.args$n.test, ncol = newtable.args$n.test)
+        dimnames(contrast) <- list(name.unitest, name.unitest)
+    }
+    rhs <- attr(model,"rhs")
+    if(!is.null(rhs)){
+        if(length(rhs)!=newtable.args$n.test){
+            stop("Incorrect rhs: should have ",newtable.args$n.test," values.\n",
+                 "(one for each univariate test) \n")
+        }
+    }else{
+        rhs <- stats::setNames(rep(0, newtable.args$n.test), name.unitest)
+    }
 
-    ls.cluster <- lapply(ls.lmm, function(iLMM){iLMM$cluster$levels})
+    ## ** Try to find unique names
+
+    ## *** for the model parameters
+    ## find all names
+    ls.testname <- lapply(ls.object, function(iO){iO$multivariate$test})
+    vec.testname <- unlist(ls.testname)
+
+    if(!is.null(name)){
+        outcome <- name
+    }else if(all(sapply(ls.testname, function(iO){all(is.character(iO))})) && all(duplicated(vec.testname)==FALSE)){
+        outcome <- vec.testname
+    }else{
+        outcome <- sapply(ls.object, function(iO){iO$object$outcome})
+        if(any(duplicated(outcome))){
+            outcome <- c(deparse(call$model),
+                         sapply(setdiff(which(names(call)==""),1), function(iIndex){deparse(call[[iIndex]])}))
+        }
+    }
+
+    ## *** for the hypotheses
+    gridTest <- do.call(rbind,lapply(1:n.object, function(iO){
+        cbind(outcome = outcome[iO], ls.object[[iO]]$multivariate[,c("type","test"),drop=FALSE])
+    }))
+
+    if(is.na(sep) && all(duplicated(gridTest$test)==FALSE)){
+        gridTest <- gridTest[,"test",drop=FALSE]
+    }else if(!is.na(sep) && all(duplicated(outcome)==FALSE)){
+        gridTest <- gridTest[,"outcome",drop=FALSE]
+    }else if(all(duplicated(gridTest$test)==FALSE)){
+        gridTest <- gridTest[,"test",drop=FALSE]
+    }else if(all(duplicated(gridTest$type)==FALSE)){
+        gridTest <- gridTest[,"type",drop=FALSE]
+    }else{
+        if(all(duplicated(outcome))){
+            gridTest$outcome <- NULL
+        }
+        if(all(duplicated(outcome))){
+            gridTest$type <- NULL
+        }
+        if(all(duplicated(test))){
+            gridTest$test <- NULL
+        }
+    }
+    col.nametest <- colnames(gridTest)
+    name.test <- unique(as.character(interaction(gridTest[,col.nametest,drop=FALSE])))
+
+    ## ** Extract elements from anova object
+    ## *** univariate Wald test
+    newtable.univariate <- do.call(rbind,lapply(1:n.object,function(iO){ ## iO <- 1
+        iTable <- cbind(outcome = outcome[iO], ls.object[[iO]]$univariate)
+        iTable$name.test <- factor(as.character(interaction(iTable[,col.nametest,drop=FALSE])),levels = name.test)
+        return(iTable)
+    }))
+    newtable.univariate$lower <- NA
+    newtable.univariate$upper <- NA
+    newtable.univariate$p.value <- NA
+    
+    ## *** cluster
+    ls.cluster <- lapply(ls.object, function(iO){iO$object$cluster})
     seq.cluster <- unique(unlist(ls.cluster))
     n.cluster <- length(seq.cluster)
 
     independence <- all(duplicated(unlist(ls.cluster))==FALSE) ## each individual only appear once
-
-    ## ** extract iid
-    if(!independence){
-        ls.iid <- lapply(ls.lmm, function(iO){ ## 
-            iIID <- iid(iO, effects = if(method.fit=="REML"){"mean"}else{"all"}, robust = robust,
-                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
-
-        iOut <- matrix(0, nrow = n.cluster, ncol = NCOL(iIID),
-                       dimnames = list(seq.cluster, colnames(iIID)))
-        iOut[match(iO$cluster$levels, seq.cluster),] <- iIID
-        return(iOut)
-        
-        })
-        names(ls.iid) <- vec.outcome
+    if(all(sapply(ls.object, function(iO){attr(iO$args$robust,"call")})==FALSE)){
+        newtable.args$robust <- independence==FALSE
     }
 
-    ## ** build glht object
-    out <- list(model = ls.lmm, robust = robust)
-
-    out$linfct <- as.matrix(do.call(Matrix::bdiag, ls.C))
-    rownames(out$linfct) <- unlist(lapply(1:length(vec.outcome), function(iO){paste0(vec.outcome[iO],sep,rownames(ls.C[[iO]]))}))
-    colnames(out$linfct) <- unlist(lapply(1:length(vec.outcome), function(iO){paste0(vec.outcome[iO],sep,colnames(ls.C[[iO]]))}))
-
-    out$rhs <- unlist(ls.rhs)
-    ls.coef <- lapply(ls.lmm, coef, effects = "all",
-                      transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
-    out$coef <- stats::setNames(unlist(ls.coef), unlist(lapply(1:length(vec.outcome), function(iO){paste0(vec.outcome[iO],sep,names(ls.coef[[iO]]))})))
+    ## *** estimate
+    beta.estimate <- stats::setNames(newtable.univariate$estimate, name.unitest)
 
     if(independence){
-        ls.vcov <- lapply(ls.lmm, vcov, effects = "all",
-                          robust = robust, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
-        out$vcov <- as.matrix(do.call(Matrix::bdiag,ls.vcov))
-        rownames(out$vcov) <- unlist(lapply(1:length(vec.outcome), function(iO){paste0(vec.outcome[iO],sep,colnames(ls.vcov[[iO]]))}))
-        colnames(out$vcov) <- unlist(lapply(1:length(vec.outcome), function(iO){paste0(vec.outcome[iO],sep,colnames(ls.vcov[[iO]]))}))
-    }else{
-        iIID <- do.call(cbind,ls.iid)
-        if(any(is.na(iIID))){
-            out$vcov <- tcrossprod(sqrt(apply(iIID^2, 2, sum, na.rm = TRUE))) * stats::cor(iIID, use = "pairwise")
-            ## usually better compared to formula 11.43 from chapter 11.4 of the book High-dimensional statistics by WAINWRIGHT
-            ## iIDD0 <- iIID/(1-mean(is.na(iIID)))
-            ## iIDD0[is.na(iIDD)] <- 0
-            ## out$vcov <- crossprod(iIDD0) - mean(is.na(iIDD))*diag(diag(crossprod(iIDD0)))
-
-            ## out$vcov - crossprod(iIID)
+        
+        beta.vcov <- as.matrix(do.call(Matrix::bdiag,lapply(ls.object, "[[", "vcov")))
+        
+        if(all(diag(contrast)==1) && all(contrast[upper.tri(contrast, diag = FALSE)] == 0) && all(contrast[lower.tri(contrast, diag = FALSE)] == 0)){
+            beta.df <- newtable.univariate$df
         }else{
-            out$vcov <- crossprod(iIID)
+            beta.df <- rep(Inf, length(beta.estimate))
+            newtable.args$df <- FALSE
         }
-        rownames(out$vcov) <- unlist(lapply(1:length(vec.outcome), function(iO){paste0(vec.outcome[iO],sep,colnames(ls.iid[[iO]]))}))
-        colnames(out$vcov) <- unlist(lapply(1:length(vec.outcome), function(iO){paste0(vec.outcome[iO],sep,colnames(ls.iid[[iO]]))}))
-    }
-    
-    if(method.fit=="REML" && !independence){
-        if(any(abs(out$linfct[,setdiff(colnames(out$linfct),colnames(out$vcov))]>1e-10))){
-            stop("Cannot test covariance structure across models when using REML. \n",
-                 "Consider setting argument \'method.fit\' to \"ML\" when calling lmm. \n")
-        }
-        rm.name <- unique(setdiff(colnames(out$linfct),colnames(out$vcov)))
-        keep.col <- setdiff(1:NCOL(out$linfct),which(colnames(out$linfct) %in% rm.name))
-        out$linfct <- out$linfct[,keep.col,drop=FALSE]
-        out$coef <- out$coef[keep.col]
-    }
-    attr(out$linfct,"model-specific") <- ls.C
-    out$df <- unlist(ls.df)
-    out$alternative <- ls.alternative[[1]]
-    class(out) <- "glht"
-
-    ## ** global test
-    outSimp <- .simplifyContrast(out$linfct, out$rhs) ## remove extra lines
-    iC.vcov.C_M1 <- try(solve(outSimp$C %*% out$vcov %*% t(outSimp$C)), silent = TRUE)
-    if(inherits(iC.vcov.C_M1,"try-error")){
-        iStat <- NA
-        iDf <- c(outSimp$dim,Inf)
-        attr(iStat,"error") <- "\n  Could not invert the covariance matrix for the proposed contrast."
+        
     }else{
-        iStat <- as.double(t(outSimp$C %*% out$coef - outSimp$rhs) %*% iC.vcov.C_M1 %*% (outSimp$C %*% out$coef - outSimp$rhs))/outSimp$dim 
-        iDf <- c(outSimp$dim,Inf)
+        if(any(sapply(ls.object, function(iO){is.null(iO$iid)}))){
+            stop("Cannot evaluate the joint influence function of the variance-covariance parameters. \n",
+                 "Consider using method.fit=\"ML\" when calling lmm. \n")
+        }        
+        M.iid <- do.call(cbind,lapply(ls.object, "[[", "iid"))
+        
+        if(any(is.na(M.iid))){
+            beta.vcov <- tcrossprod(sqrt(apply(M.iid^2, 2, sum, na.rm = TRUE))) * stats::cor(M.iid, use = "pairwise")
+            ## usually better compared to formula 11.43 from chapter 11.4 of the book High-dimensional statistics by WAINWRIGHT
+            ## iIDD0 <- M.iid/(1-mean(is.na(M.iid)))
+            ## iIDD0[is.na(M.iid)] <- 0
+            ## out$vcov <- crossprod(iIDD0) - mean(is.na(M.iid))*diag(diag(crossprod(iIDD0)))
+            ## out$vcov - crossprod(M.iid)
+        }else{
+            beta.vcov <- crossprod(M.iid)
+        }
+        beta.df <- rep(Inf, length(beta.estimate))
+        newtable.args$df <- FALSE
+    }
+    dimnames(beta.vcov) <- list(name.unitest,name.unitest)
+    names(beta.df) <- name.unitest
+
+    ## ** Combine elements
+
+    ## *** multivariate tests
+    outSimp <- .simplifyContrast(contrast, rhs) ## remove extra lines
+    C.vcov.C <- outSimp$C %*% beta.vcov %*% t(outSimp$C)
+    C.vcov.C_M1 <- try(solve(C.vcov.C), silent = TRUE)
+    if(inherits(C.vcov.C_M1,"try-error")){
+        multistat <- NA
+        attr(multistat,"error") <- "\n  Could not invert the covariance matrix for the proposed contrast."
+    }else{
+        multistat <- as.double(t(outSimp$C %*% beta.estimate - outSimp$rhs) %*% C.vcov.C_M1 %*% (outSimp$C %*% beta.estimate - outSimp$rhs))/outSimp$dim 
     }
 
-    
-    ## ** collect
-    out2 <- list(all = data.frame("null" = paste(rownames(out$linfct),collapse=", "),
-                                  "statistic" = iStat,
-                                  "df.num" = iDf[1],
-                                  "df.denom" = iDf[2],
-                                  "p.value" = 1 - stats::pf(iStat, df1 = iDf[1], df2 = iDf[2]),
-                                  stringsAsFactors = FALSE),
-                 call = lapply(ls.object,"[[","call"))
+    Utype2 <- unique(unlist(lapply(ls.object, function(iO){iO$multivariate$type})))
+    newtable.multivariate <- data.frame(type = ifelse(length(Utype2)>1,"all",Utype2),
+                                        test = 1,
+                                        null = paste(unlist(lapply(ls.object,function(iO){iO$multivariate$null})), collapse = ", "),
+                                        statistic = multistat,
+                                        df.num = newtable.args$n.test,
+                                        df.denom = Inf,
+                                        partial.r2 = NA,
+                                        p.value = 1 - stats::pf(multistat, df1 = newtable.args$n.test, df2 = Inf))
 
-    attr(out2$all,"CI") <- list(data.frame(estimate = as.double(out$linfct %*% out$coef),
-                                           se = as.double(sqrt(diag(out$linfct %*% out$vcov %*% t(out$linfct)))),
-                                           df = out$df,
-                                           statistic = NA,
-                                           lower = NA,
-                                           upper = NA,
-                                           null = out$rhs,
-                                           p.value = NA,
-                                           stringsAsFactors = FALSE))
-    attr(out2$all,"CI")[[1]]$statistic <- (attr(out2$all,"CI")[[1]]$estimate-out$rhs)/attr(out2$all,"CI")[[1]]$se
-    if(any(duplicated(rownames(out$linfct))) == FALSE){
-        rownames(attr(out2$all,"CI")[[1]]) <- rownames(out$linfct)
+
+    ## *** univariate
+    newtable.univariate$se <- sqrt(diag(C.vcov.C))
+    newtable.univariate$statistic <- newtable.univariate$estimate/newtable.univariate$se
+    if(newtable.args$df){
+        e.glht <- list(linfct = contrast, rhs = rhs, coef = beta.estimate, vcov = beta.vcov, df = ceiling(stats::median(beta.df)), alternative = alternative)
+    }else{
+        e.glht <- list(linfct = contrast, rhs = rhs, coef = beta.estimate, vcov = beta.vcov, df = FALSE, alternative = alternative)
     }
-    out$df <- ceiling(stats::median(out$df))
+    class(e.glht) <- "glht"
 
-    ## ## ** backtransform
-    ## attr(out, "transform") <- list(sigma = transform.sigma,
-    ##                                k = transform.k,
-    ##                                rho = transform.rho)
-    ## attr(out, "type") <- type.param
-    ## if(transform.k %in% c("sd","var","logsd","logvar")){
-    ##     attr(out, "type")[attr(out, "type")=="sigma"] <- "k"
-    ## }
-    ## attr(out, "old2new") <-  stats::setNames(nameNoTransform.beta, rownames(out))
-    ## attr(out, "backtransform.names") <- names(coef(object, effects = effects, 
-    ##                                                transform.sigma = gsub("log","",transform.sigma), transform.k = gsub("log","",transform.k), transform.rho = gsub("atanh","",transform.rho), transform.names = transform.names))
+    ## ** Export
+    out <- list(multivariate = newtable.multivariate[,names(model$multivariate),drop=FALSE],
+                univariate = newtable.univariate[,names(model$univariate),drop=FALSE],
+                glht = list(all = list("1" = e.glht)),
+                args = newtable.args,
+                vcov = C.vcov.C)
 
-    ## attr(out, "backtransform") <-  FALSE
-    ## out <- .backtransform(out)
-
-
-
-    ## ** export
-    attr(out2$all,"glht") <- list(out)
-    attr(out2, "df") <- !is.na(out$df)
-    attr(out2, "test") <- "Wald"
-    attr(out2, "robust") <- robust
-    attr(out2, "sep") <- sep
-    class(out2) <- append("anova_lmm",class(out))
-    return(out2)
+    attr(out, "test") <- "Wald"
+    class(out) <- append(c("manova_lmm","anova_lmm"),class(out))
+    return(out)
 }
 
+
+## * rbind.manova_lmm (code)
+##' @export
+rbind.manova_lmm <- function(...){
+    stop("Cannot use rbind on the output of rbind.anova_lmm. \n")
+}
 
 ##----------------------------------------------------------------------
 ### rbind.anova_lmm.R ends here

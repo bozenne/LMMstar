@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 15 2022 (18:24) 
+## Last-Updated: jul 18 2022 (16:39) 
 ##           By: Brice Ozenne
-##     Update #: 214
+##     Update #: 240
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -66,7 +66,8 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, columns
         columns <- options$columns.confint
     }
     type <- unique(object$multivariate$type)
-
+    df <- object$args$df
+    
     if(object$args$ci==FALSE){
         return(NULL)
     }
@@ -86,8 +87,12 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, columns
     
     for(iGrid in 1:n.grid){ ## iGrid <- 1
 
-        iIndex.table <- intersect(which(out$type==grid$type[iGrid]),
-                                  which(out$test==grid$test[iGrid]))
+        if(n.grid>1){
+            iIndex.table <- intersect(which(out$type==grid$type[iGrid]),
+                                      which(out$test==grid$test[iGrid]))
+        }else{
+            iIndex.table <- 1:NROW(out)
+        }
         iTable <- out[iIndex.table,,drop=FALSE]
         iN.test <- NROW(iTable)
 
@@ -216,16 +221,17 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, columns
             out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * stats::qt(1-alpha/2, df = iTable$df)
             out[iIndex.table,"p.value"] <- 2*(1-stats::pt( abs(iTable$statistic), df = iTable$df))
             
-            }else if(iMethod == "single-step"){
+        }else if(iMethod == "single-step"){
+            iCi <- confint(iGlht)
+            iP <- summary(iGlht, test = multcomp::adjusted("single-step"))
 
-                iCi <- confint(iGlht)
-                iP <- summary(iGlht, test = multcomp::adjusted("single-step"))
-
-                out[iIndex.table,"lower"] <- iCi$confint[,"lwr"]
-                out[iIndex.table,"upper"] <- iCi$confint[,"upr"]
-                out[iIndex.table,"p.value"] <- as.double(iP$test$pvalues)
+            out[iIndex.table,"lower"] <- iCi$confint[,"lwr"]
+            out[iIndex.table,"upper"] <- iCi$confint[,"upr"]
+            out[iIndex.table,"p.value"] <- as.double(iP$test$pvalues)
+            if(df){
                 out[iIndex.table,"df"] <- iGlht$df
-                attr(out, "error")[iGrid] <-  attr(iP$test$pvalues,"error")
+            }
+            attr(out, "error")[iGrid] <-  attr(iP$test$pvalues,"error")
 
             }else if(iMethod == "single-step2"){
 
@@ -240,7 +246,7 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, columns
                 out[iIndex.table,"p.value"] <- sapply(abs(iTable$statistic), function(iT){(sum(iT <= maxH0)+1)/(n.sample+1)})
                 out[iIndex.table,"lower"] <- iTable$estimate - iTable$se * cH0
                 out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * cH0                
-                attr(out, "n.sample") <-  attr(out, "n.sample")
+                attr(out, "n.sample") <-  n.sample
                 
             }else if(iMethod == "bonferroni"){
                 
@@ -262,11 +268,9 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, columns
 
     if(is.function(backtransform) || all(is.character(backtransform)) || identical(backtransform,TRUE) || identical(backtransform,1)){
 
-        type.param <- object$param$type[match(rownames(out), object$param$name.transform)]
-
         if(is.function(backtransform) || all(is.character(backtransform))){
 
-            out <- .backtransform(out, type.param = type.param,
+            out <- .backtransform(out, type.param = out$type,
                                   backtransform = TRUE, backtransform.names = NULL,
                                   transform.mu = backtransform,
                                   transform.sigma = backtransform,
@@ -274,11 +278,8 @@ confint.anova_lmm <- function(object, parm, level = 0.95, method = NULL, columns
                                   transform.rho = backtransform)
 
         }else{
-
-            name.backtransform <- object$param$name.backtransform[match(rownames(out), object$param$name.transform)]
-
-            out <- .backtransform(out, type.param = type.param,  
-                                  backtransform = TRUE, backtransform.names = name.backtransform,
+            out <- .backtransform(out, type.param = out$type,  
+                                  backtransform = TRUE, backtransform.names = object$args$backtransform.names[[1]],
                                   transform.mu = "none",
                                   transform.sigma = object$args$transform.sigma,
                                   transform.k = object$args$transform.k,

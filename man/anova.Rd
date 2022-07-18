@@ -16,6 +16,7 @@
   transform.k = NULL,
   transform.rho = NULL,
   transform.names = TRUE,
+  backtransform = NULL,
   ...
 )
 }
@@ -34,9 +35,11 @@ Can also be use to specify linear combinations of coefficients, similarly to the
 
 \item{df}{[logical] Should a F-distribution be used to model the distribution of the Wald statistic. Otherwise a chi-squared distribution is used.}
 
-\item{ci}{[logical] Should a confidence interval be output for each hypothesis?}
+\item{ci}{[logical] Should an estimate, standard error, confidence interval, and p-value be output for each hypothesis?}
 
 \item{transform.sigma, transform.k, transform.rho, transform.names}{are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.}
+
+\item{backtransform}{[logical] should the variance/covariance/correlation coefficients be backtransformed?}
 
 \item{...}{Not used. For compatibility with the generic method.}
 }
@@ -58,22 +61,25 @@ By default confidence intervals and p-values are adjusted based on the distribut
 This is refered to as a single-step Dunnett multiple testing procedures in table II of Dmitrienko et al. (2013) and is performed using the multcomp package with the option \code{test = adjusted("single-step")}.
 }
 \examples{
-## simulate data in the long format
+#### simulate data in the long format ####
 set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
 
-## fit Linear Mixed Model
+#### fit Linear Mixed Model ####
 eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL)
 
-## chi-2 test
-summary(anova(eUN.lmm, df = FALSE))
-
-## F-test
+#### Multivariate Wald test ####
+## F-tests
 anova(eUN.lmm)
-summary(anova(eUN.lmm, effects = "all"))
-anova(eUN.lmm, effects = c("X1=0","X2+X5=10"))
+summary(anova(eUN.lmm))
 
-## another example
+## user defined F-test
+summary(anova(eUN.lmm, effects = c("X1=0","X2+X5=10")))
+
+## chi2-tests
+anova(eUN.lmm, df = FALSE)
+
+## with standard contrast
 if(require(multcomp)){
 amod <- lmm(breaks ~ tension, data = warpbreaks)
 e.glht <- glht(amod, linfct = mcp(tension = "Tukey"))
@@ -81,8 +87,14 @@ summary(e.glht, test = Chisqtest()) ## 0.000742
 
 e.amod <- anova(amod, effect = mcp(tension = "Tukey"))
 summary(e.amod)
-
 }
+
+#### Likelihood ratio test ####
+eUN0.lmm <- lmm(Y ~ X1 + X2, repetition = ~visit|id, structure = "UN", data = dL)
+anova(eUN.lmm, eUN0.lmm)
+
+eCS.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "CS", data = dL)
+anova(eUN.lmm, eCS.lmm)
 }
 \references{
 Dmitrienko, A. and D'Agostino, R., Sr (2013), Traditional multiplicity adjustment methods in clinical trials. Statist. Med., 32: 5172-5218. https://doi.org/10.1002/sim.5990.

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jul 15 2022 (17:39) 
+## Last-Updated: jul 18 2022 (16:57) 
 ##           By: Brice Ozenne
-##     Update #: 1013
+##     Update #: 1061
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -77,7 +77,7 @@
 ##' summary(e.glht, test = Chisqtest()) ## 0.000742
 ##'
 ##' e.amod <- anova(amod, effect = mcp(tension = "Tukey"))
-##' summary(e.amod)##' 
+##' summary(e.amod)
 ##' }
 ##' 
 ##' #### Likelihood ratio test ####
@@ -93,6 +93,8 @@
 anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !is.null(object$df), ci = TRUE, 
                       transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, backtransform = NULL, ...){
 
+    call <- match.call()
+
     ## ** normalized user input    
     dots <- list(...)
     options <- LMMstar.options()
@@ -106,12 +108,13 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     if(inherits(effects,"lmm")){ ## likelihood ratio test
         out <- .anova_LRT(object1 = object, object2 = effects)
     }else{ ## Wald test
+        attr(robust, "call") <- "robust" %in% names(call)
         out <- .anova_Wald(object, effects = effects, robust = robust, rhs = rhs, df = df, ci = ci, 
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names,
                            backtransform = backtransform)
     }
     ## ** export
-    attr(out,"call") <- match.call()
+    attr(out,"call") <- call
     class(out) <- append("anova_lmm",class(out))
     return(out)
 }
@@ -170,7 +173,11 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                  out.glht)
         }
         type <- "all"
-        ls.nameTerms <- list(all = NULL)
+        if(length(names(effects))==1){
+            ls.nameTerms <- list(all = names(effects))
+        }else{
+            ls.nameTerms <- list(all = NULL)
+        }
         ls.nameTerms.num <- list(all = 1)
         ls.contrast <- list(all = matrix(0, nrow = NROW(out.glht$linfct), ncol = length(name.coef), dimnames = list(rownames(out.glht$linfct),name.coef)))
         ls.contrast$all[,colnames(out.glht$linfct)] <- out.glht$linfct
@@ -333,14 +340,18 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
             }
         }
         type <- "all"
-        ls.nameTerms <- list(all = NULL)
-        ls.nameTerms.num <- list(all = 1)
         ls.contrast <- list(all = out.glht$linfct)
         ls.null  <- list(all = out.glht$rhs)
         name.effects <- names(effects)
         if(!is.null(name.effects)){
-            rownames(ls.contrast$all) <- name.effects
+            rownames(ls.contrast$all) <- name.effects            
         }
+        if(length(effects)==1){
+            ls.nameTerms <- list(all = name.effects)
+        }else{
+            ls.nameTerms <- list(all = NULL)
+        }
+        ls.nameTerms.num <- list(all = 1)
     }
     type.information <- attr(object$information,"type.information")    
 
@@ -400,7 +411,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                 iIndex.param <- which(ls.assign[[iType]]==iTerm)
                 iN.hypo <- length(iIndex.param)
                 iNull <- rep(ls.null[[iType]][iTerm],iN.hypo)
-                iName.hypo <- paste(paste0(name.iParam[iIndex.param],"==",iNull), collapse = ", ")
+                iName.hypo <- paste(paste0(name.iParam[iIndex.param],"=",iNull), collapse = ", ")
 
                 iC <- matrix(0, nrow = iN.hypo, ncol = n.param, dimnames = list(name.iParam[iIndex.param], newname))
                 if(length(iIndex.param)==1){
@@ -415,7 +426,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                 iC.uni <- iC
                 iN.hypo <- NROW(iC)
                 iNull <- ls.null[[iType]]
-                iName.hypo  <- paste(paste0(rownames(iC),"==",iNull),collapse=", ")
+                iName.hypo  <- paste(paste0(rownames(iC),"=",iNull),collapse=", ")
             }
 
             ## *** statistic
@@ -429,7 +440,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                 iStat <- as.double(t(outSimp$C %*% param - outSimp$rhs) %*% iC.vcov.C_M1 %*% (outSimp$C %*% param - outSimp$rhs))/outSimp$dim 
                 iDf <- c(outSimp$dim,Inf)
                 if(outSimp$rm>0){
-                    iName.hypo <- paste(paste0(rownames(outSimp$C),"==",outSimp$rhs),collapse=", ")
+                    iName.hypo <- paste(paste0(rownames(outSimp$C),"=",outSimp$rhs),collapse=", ")
                 }
             }
 
@@ -486,7 +497,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
             }
 
             ## *** test
-            iRes <- data.frame("null" = if(!is.null(name.effects)){paste(name.effects,collapse=", ")}else{iName.hypo},
+            iRes <- data.frame("null" = iName.hypo,
                                "statistic" = iStat,
                                "df.num" = iDf[1],
                                "df.denom" = iDf[2],
@@ -498,30 +509,32 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
             ## Equation 19
             ## DOI: 10.1002/sim.3429
             if(iType=="all"){
-                Utype <- unique(type.param[colnames(iC)[which(colSums(abs(iC)>0)>0)]])
-                if(length(Utype)==1){
-                    iType2 <- Utype
-                }else{
-                    iType2 <- "all"
-                }
+                iType2 <- apply(iC, MARGIN = 1, FUN = function(iRow){
+                    iType <- unique(type.param[names(iRow)[which(abs(iRow)>0)]])
+                    if(length(iType)>1){return("all")}else{return(iType)}
+                })
             }else{
                 iType2 <- switch(iType,
                                  "mean"="mu",
                                  "variance"="k",
                                  "correlation"="rho")
             }
-            out$multivariate <- rbind(out$multivariate, cbind(type = iType2, test = iNameTerm, iRes))
+            if(length(unique(iType2))==1){
+                out$multivariate <- rbind(out$multivariate, cbind(type = iType2[1], test = iNameTerm, iRes))
+            }else{
+                out$multivariate <- rbind(out$multivariate, cbind(type = "all", test = iNameTerm, iRes))
+            }
             if(ci){
-                    out$univariate <- rbind(out$univariate, cbind(type = iType2, test = iNameTerm, CI))
+                out$univariate <- rbind(out$univariate, cbind(type = iType2, test = iNameTerm, CI))
             }
             out$glht[[iType]][[iNameTerm]] <- CI.glht           
         }
     }
 
-    ## ** export
+    ## ** prepare for back-transform
     if(is.null(backtransform)){
-        if(all(out$univariate$type=="mu")){
-            backtransform <- FALSE ## no need for back-transformation
+        if(all(out$univariate$type %in% c("mu","all"))){
+            backtransform <- NA ## no need for back-transformation
         }else{
             backtransform <- options$backtransform.confint
         }
@@ -529,35 +542,52 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         backtransform <-  eval(parse(text=backtransform))
     }
 
-    ## save some of the object when user define contrasts for possible use of rbind.anova_lmm
-    out$object <- list(outcome = object$outcome$var,
-                       method.fit = object$method.fit,
-                       type.information = attr(object$information,"type.information"),
-                       outcome = object$outcome$var,
-                       cluster = object$cluster$levels)
-    out$param <- data.frame(name = names(param),
-                            name.transform = newname,
-                            name.backtransform = names(coef(object, effects = effects, 
-                                                            transform.sigma = gsub("log","",transform.sigma),
-                                                            transform.k = gsub("log","",transform.k),
-                                                            transform.rho = gsub("atanh","",transform.rho),
-                                                            transform.names = transform.names)),
-                            type = object$design$param[match(names(param),object$design$param$name),"type"])
+    ## ** save some of the objects for possible use of rbind.anova_lmm
+    if(ci > 0.5){
+        out$object <- list(outcome = object$outcome$var,
+                           method.fit = object$method.fit,
+                           type.information = attr(object$information,"type.information"),
+                           cluster = object$cluster$levels)
+        globalC <- do.call(rbind,lapply(unlist(out$glht, recursive=FALSE),"[[","linfct"))
 
-    if(object$method.fit == "REML"){
-        out$iid <- iid(object, effects = "mean", robust = robust, type.information = attr(object$information,"type.information"),
-                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
-    }else{
-        out$iid <- iid(object, effects = effects, robust = robust, type.information = attr(object$information,"type.information"),
-                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+        ## default: non-robust vcov and robust for iid
+        if(attr(robust,"call")){
+            out$vcov <- globalC %*% vcov.param %*% t(globalC)
+            robust2 <- robust
+        }else{
+            out$vcov <- globalC %*% vcov(object, df = FALSE, effects = "all", robust = FALSE,
+                                         transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE) %*% t(globalC)
+            robust2 <- TRUE
+        }
+        
+        if(object$method.fit == "ML"){
+            out$iid <- iid(object, effects = effects, robust = robust2, type.information = attr(object$information,"type.information"),
+                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names) %*% t(globalC)
+        }else if(object$method.fit == "REML" && all(type.param[which(colSums(globalC!=0)>0)]=="mu")){
+            globalC <- globalC[,name.param[type.param=="mu"],drop=FALSE]
+            out$iid <- iid(object, effects = "mean", robust = robust2, type.information = attr(object$information,"type.information"),
+                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names) %*% t(globalC)
+        }
+        ## do not handle df ...
     }
-    out$vcov <- vcov.param
-    out$dVcov.param <- dVcov.param
-
+    
+    ## ** export
     out$args <- data.frame(type = NA, robust = robust, df = df, ci = ci, 
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                            transform.names = transform.names, backtransform = backtransform)
-    
+
+    if(ci && !is.na(backtransform) && backtransform && transform.names && is.null(names(effects))){
+        backtransform.names <- names(coef(object,
+                                          effects = effects, 
+                                          transform.sigma = gsub("log","",transform.sigma),
+                                          transform.k = gsub("log","",transform.k),
+                                          transform.rho = gsub("atanh","",transform.rho),
+                                          transform.names = transform.names))
+        
+        out$args$backtransform.names <- list(stats::setNames(rownames(out$univariate),rownames(out$univariate)))
+        index <- match(newname,out$args$backtransform.names[[1]])
+        out$args$backtransform.names[[1]][stats::na.omit(index)] <- backtransform.names[which(!is.na(index))]
+    }
     if(identical(type,"all")){
         out$args$type <- list("all")
     }else{

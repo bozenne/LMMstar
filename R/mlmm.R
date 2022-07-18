@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: jul 14 2022 (17:33) 
+## Last-Updated: jul 18 2022 (17:02) 
 ##           By: Brice Ozenne
-##     Update #: 85
+##     Update #: 86
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -31,7 +31,6 @@
 ##'
 ##' #### univariate regression ####
 ##' if(require(lava)){
-##' library(LMMstar)
 ##' 
 ##' set.seed(10)
 ##' d1 <- cbind(sim(lvm(Y~0.5*X1), 25), group = "A")
@@ -131,12 +130,12 @@ mlmm <- function(..., data, by, effects = NULL, robust = FALSE, df = TRUE, ci = 
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
     }
 
+    browser()
     ## ** joint inference
     name.model <- paste0(by,"=",unlist(lapply(ls.data, function(iData){iData[[by]][1]})))
     out <- do.call("rbind.anova_lmm",
                    args = c(list(model = ls.anova[[1]], name = name.model), unname(ls.anova[-1]))
                    )
-    browser()
 
     ## ** export
     attr.callout <- list(df = attr(out,"df"),

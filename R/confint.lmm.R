@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jul 15 2022 (17:48) 
+## Last-Updated: jul 18 2022 (16:43) 
 ##           By: Brice Ozenne
-##     Update #: 416
+##     Update #: 420
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -155,7 +155,6 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     name.beta <- names(beta)
     type.beta <- type.param[name.beta]
 
-        
     ## ** get uncertainty
     vcov.beta <- vcov(object, effects = effects, df = df, robust = robust,
                       type.information = type.information, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
@@ -176,6 +175,12 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
                            "mu" = 0,
                            "sigma" = NA,
                            "k" = NA,
+                           "rho" = 0),nameNoTransform.beta)
+        }else if(transform.k %in% c("log")){
+            null <- stats::setNames(sapply(type.param[nameNoTransform.beta],switch,
+                           "mu" = 0,
+                           "sigma" = NA,
+                           "k" = 0,
                            "rho" = 0),nameNoTransform.beta)
         }else{
             null <- stats::setNames(sapply(type.param[nameNoTransform.beta],switch,
@@ -204,6 +209,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
                       statistic = as.numeric(NA), df = df[name.beta], lower = as.numeric(NA), upper = as.numeric(NA), null = null, p.value = as.numeric(NA),
                       partial.R = as.numeric(NA),
                       stringsAsFactors = FALSE)
+
     out$statistic <- (out$estimate-null)/out$se
     out$p.value <- 2*(1-stats::pt(abs(out$statistic), df = out$df))
     index.cor <- setdiff(which(type.beta=="mu"), which(name.beta=="(Intercept)"))

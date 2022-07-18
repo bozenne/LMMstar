@@ -8,7 +8,7 @@ CS(formula, var.cluster, var.time, heterogeneous = TRUE, add.time)
 }
 \arguments{
 \item{formula}{formula indicating on which variable to stratify the residual variance and correlation (left hand side)
-and variables influencing the residual variance (right hand side).}
+and variables influencing the residual variance and correlation (right hand side).}
 
 \item{var.cluster}{[character] cluster variable.}
 
@@ -23,7 +23,8 @@ should correlation parameters should be specific to each level of the covariate?
 An object of class \code{CS} that can be passed to the argument \code{structure} of the \code{lmm} function.
 }
 \description{
-Variance-covariance structure where the residuals have constant variance and correlation.
+Variance-covariance structure where the residuals have constant variance and correlation,
+possibly only within certain covariate levels.
 Can be stratified on a categorical variable.
 }
 \details{

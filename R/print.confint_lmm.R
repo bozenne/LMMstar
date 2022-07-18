@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 15 2022 (17:48) 
 ## Version: 
-## Last-Updated: jul 15 2022 (18:02) 
+## Last-Updated: jul 18 2022 (15:46) 
 ##           By: Brice Ozenne
-##     Update #: 22
+##     Update #: 30
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,24 +18,32 @@
 ## * print.confint_lmm
 ##' @export
 print.confint_lmm <- function(x, digit = 3, detail = FALSE, ...){
-    print(as.data.frame(x), digits = digit)
-    message.backtransform <- attr(x,"back-transform")
 
-    if(detail>0){
+    print(as.data.frame(x), digits = digit, ...)
+
+    message.backtransform <- attr(x,"back-transform")
+    test.backtransform <- !is.null(message.backtransform) && any(!is.na(message.backtransform$FUN))
+
+    method.multiplicity <- attr(x,"method")
+    test.multiplicity <- !is.null(method.multiplicity) && method.multiplicity!="none"
+
+    if(detail>0 && (test.multiplicity || test.backtransform)){
 
         cat("\n   Note: ")
-
-        method.multiplicity <- attr(x,"method")
         add.space <- ""
 
-        if(!is.null(method.multiplicity) && method.multiplicity!="none"){
-            
+        if(test.multiplicity){
+            if(!is.null(message.backtransform)){
+                names_x <- intersect(names(x),names(message.backtransform))
+            }else{
+                names_x <- names(x)
+            }
             if(NROW(x)==1){
                 short2text <- stats::setNames(c("confidence interval","confidence interval","p-value"),c("lower","upper","p.value"))
-                txt <- unique(short2text[intersect(names(short2text),intersect(names(x),names(message.backtransform)))])
+                txt <- unique(short2text[intersect(names(short2text),names_x)])
             }else{
                 short2text <- stats::setNames(c("confidence intervals","confidence intervals","p-values"),c("lower","upper","p.value"))
-                txt <- unique(short2text[intersect(names(short2text),intersect(names(x),names(message.backtransform)))])
+                txt <- unique(short2text[intersect(names(short2text),names_x)])
             }
             if(method.multiplicity == "bonferroni"){
                 txt.method <- "Bonferroni"
@@ -48,7 +56,7 @@ print.confint_lmm <- function(x, digit = 3, detail = FALSE, ...){
             cat(paste(txt,collapse = ", ")," have been adjusted for multiplicity using ",method.multiplicity,". \n",sep="")
         }
         
-        if(!is.null(message.backtransform) && any(!is.na(message.backtransform$FUN))){
+        if(test.backtransform){
             message.backtransform <- message.backtransform[!is.na(message.backtransform$FUN),,drop=FALSE]
 
             if(any(message.backtransform[,setdiff(names(message.backtransform), "FUN")] == FALSE)){
@@ -67,7 +75,7 @@ print.confint_lmm <- function(x, digit = 3, detail = FALSE, ...){
             if(detail>=0.5){
                 cat(" (",paste0(paste(rownames(message.backtransform),collapse = "/")," parameters with ",paste(message.backtransform$FUN,collapse="/")),"). \n", sep ="")
             }
-            cat(".\n")
+            cat("\n")
         }
     }
     return(invisible(NULL))
