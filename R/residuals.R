@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: jun 28 2022 (11:35) 
+## Last-Updated: jul 20 2022 (15:58) 
 ##           By: Brice Ozenne
-##     Update #: 643
+##     Update #: 644
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,7 +29,7 @@
 ##' @param plot [character] Should a qqplot (\code{"qqplot"}), or a heatmap of the correlation between residuals  (\code{"correlation"}, require wide format), or a plot of residuals along the fitted values (\code{"scatterplot"}, require long format) be displayed?
 ##' @param engine.qqplot [character] Should ggplot2 or qqtest be used to display quantile-quantile plots? Only used when argument \code{plot} is \code{"qqplot"}.
 ##' @param add.smooth [logical] should a local smoother be used to display the mean of the residual values across the fitted values. Only relevant for \code{plot="scatterplot"}.
-##' @param digit.cor [integer, >0] Number of digit used to display the correlation coefficients? No correlation coefficient is displayed when set to 0. Only used when argument \code{plot} is \code{"correlation"}.
+##' @param digits.cor [integer, >0] Number of digit used to display the correlation coefficients? No correlation coefficient is displayed when set to 0. Only used when argument \code{plot} is \code{"correlation"}.
 ##' @param size.text [numeric, >0] Size of the font used to displayed text when using ggplot2.
 ##' @param keep.data [logical] Should the argument \code{data} be output along side the residuals? Only possible in the long format.
 ##' @param scales [character] Passed to \code{ggplot2::facet_wrap}.
@@ -109,7 +109,7 @@
 ##' @export
 residuals.lmm <- function(object, type = "response", format = "long",
                           data = NULL, p = NULL, keep.data = FALSE, var = NULL,
-                          plot = "none", engine.qqplot = "ggplot2", add.smooth = TRUE, digit.cor = 2, size.text = 16, scales = "free", ...){
+                          plot = "none", engine.qqplot = "ggplot2", add.smooth = TRUE, digits.cor = 2, size.text = 16, scales = "free", ...){
 
     options <- LMMstar.options()
     type.residual <- type
@@ -531,9 +531,9 @@ residuals.lmm <- function(object, type = "response", format = "long",
                 df.gg$col.index <- match(df.gg$col, Ulevel.time)
                 dfR.gg <- df.gg[df.gg$col.index>=df.gg$row.index,,drop=FALSE]
                 attr(MW.res,"plot") <- ggplot2::ggplot(dfR.gg, ggplot2::aes_string(x = "col", y = "row", fill = "correlation")) + ggplot2::geom_tile() + ggplot2::scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1,1), space = "Lab", name="Correlation") + ggplot2::xlab(name.time) + ggplot2::ylab(name.time) + ggplot2::ggtitle(label.residual) + ggplot2::theme(text = ggplot2::element_text(size=size.text))
-                if(!is.na(digit.cor) && digit.cor>0){
+                if(!is.na(digits.cor) && digits.cor>0){
                     correlation <- NULL ## [[:forCRANcheck:]]
-                    attr(MW.res,"plot") <- attr(MW.res,"plot") + ggplot2::geom_text(ggplot2::aes(label = round(correlation,digit.cor)))
+                    attr(MW.res,"plot") <- attr(MW.res,"plot") + ggplot2::geom_text(ggplot2::aes(label = round(correlation,digits.cor)))
                 }
                 print(attr(MW.res,"plot"))
             }

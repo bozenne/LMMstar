@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: Jul 14 2022 (11:39) 
+## Last-Updated: jul 20 2022 (15:54) 
 ##           By: Brice Ozenne
-##     Update #: 145
+##     Update #: 186
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -92,30 +92,38 @@
 
 ## * partialCor (documentation)
 ##' @export
-partialCor <- function(formula, data, repetition, heterogeneous = TRUE, by = NULL){
+partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, by = NULL,
+                       effects = NULL, rhs = NULL, method = "none", transform.rho = NULL){
 
     ## ** normalize arguments
     data <- as.data.frame(data)
 
     ## *** convert first argument to list of formula
     if(inherits(formula,"formula")){
-        rhs <- stats::delete.response(stats::terms(formula))
-        response <- setdiff(all.vars(formula),all.vars(rhs))
-
-        if(length(response)!=2){
+        formula.rhs <- stats::delete.response(stats::terms(formula))
+        response <- setdiff(all.vars(formula),all.vars(formula.rhs))
+        if(is.null(repetition) && length(response)<2){
+            stop("Argument \'formula\' should contain at least two variables on the left hand side of the formula. \n")
+        }else if(!is.null(repetition) && length(response)!=2){
             stop("Argument \'formula\' should contain exactly two variables on the left hand side of the formula. \n")
         }
-        formula <- lapply(response, function(iY){stats::as.formula(paste(iY,deparse(rhs)))}) ## iY <- response[1]        
+        formula <- lapply(response, function(iY){stats::as.formula(paste(iY,deparse(formula.rhs)))}) ## iY <- response[1]        
+    }else{
+        if(!is.list(formula)){
+            stop("Argument \'formula\' should be a formula or a list of formula. \n")
+        }
+        if(any(unlist(lapply(formula, inherits, "formula"))==FALSE)){
+            stop("Argument \'formula\' should be a formula or list of formula. \n")
+        }
+        if(is.null(repetition) && length(formula)<2){
+            stop("Argument \'formula\' should contain at least two formula. \n")
+        }else if(!is.null(repetition) && length(formula)!=2){
+            stop("Argument \'formula\' should contain exactly two formula. \n")
+        }
     }
+
 
     ## *** check formula agree with data
-    if(length(formula)!=2){
-        stop("Argument \'formula\' should be a list of two elements. \n")
-    }
-    if(any(unlist(lapply(formula, inherits, "formula"))==FALSE)){
-        stop("Argument \'formula\' should be a list of formula. \n")
-    }
-
     ls.name.XY <- lapply(formula,all.vars)
     name.XY <- unique(unlist(ls.name.XY))
     if(any(name.XY %in% names(data) == FALSE)){
@@ -165,6 +173,12 @@ partialCor <- function(formula, data, repetition, heterogeneous = TRUE, by = NUL
         if(by %in% names(data) == FALSE){
             stop("Argument \'by\' should correspond to a column name of argument \'data\'. \n")
         }
+    }
+
+    ## *** contrast
+    valid.contrMat <- c("Dunnett", "Tukey", "Sequen")
+    if(length(effects)==1 && (effects %in% valid.contrMat == FALSE)){
+        stop("When character, argument \'effects\' should be one of \"",paste(valid.contrMat,collapse="\" \""),"\".\n")
     }
 
     ## ** reshape    
@@ -261,12 +275,43 @@ partialCor <- function(formula, data, repetition, heterogeneous = TRUE, by = NUL
         }else{
             structure <- "CS"
         }
-            
+
         if(is.null(by)){
             e.lmm <- lmm(formula.mean, repetition = formula.repetition,
                          data = dataL, structure = structure)
-            out <- model.tables(e.lmm, effects = "correlation")
+
+            name.param <- e.lmm$design$param$name
+            n.param <- length(name.param)
+            name.cor <- e.lmm$design$param[e.lmm$design$param$type=="rho","name"]
+                
+            if(length(effects)==0){
+                Cmat <- matrix(0, nrow = length(name.cor), ncol = n.param,
+                               dimnames = list(name.cor,name.param))
+                diag(Cmat[name.cor,name.cor]) <- 1
+            }else if(length(effects)==1 && is.character(effects)){
+                contrast <- contrMat(rep(1,length(name.cor)), type = effects)
+                Cmat <- matrix(0, nrow = NROW(contrast), ncol = n.param,
+                               dimnames = list(NULL,name.param))
+                Cmat[,name.cor] <- unname(contrast)
+                rownames(Cmat) <- unlist(lapply(strsplit(split = "-",rownames(contrast),fixed=TRUE), function(iVec){
+                    paste(name.cor[as.numeric(trimws(iVec))], collapse = " - ")
+                }))
+            }
+            if(all(rowSums(Cmat!=0)==1) || !is.null(transform.rho)){
+                out <- confint(anova(e.lmm, effects = Cmat, transform.rho = transform.rho),
+                               method = method, columns = c("estimate","se","df","lower","upper","p.value"))
+            }else{
+                out0 <- confint(anova(e.lmm, effects = Cmat, transform.rho = "none"),
+                               method = "none", columns = c("estimate","se","df","p.value"))
+                out <- confint(anova(e.lmm, effects = Cmat, transform.rho = "atanh"),
+                                method = method, columns = c("estimate","se","df","p.value"))
+                out$estimate <- out0$estimate
+                out$se <- out0$se
+                out$df <- out0$df
+                attr(out,"back-transform")[,"estimate"] <- FALSE
+            }
         }else{
+            browser()
             e.lmm <- mlmm(formula.mean, repetition = formula.repetition,
                           data = dataL, structure = structure, by = by, effects = "correlation")
             out <- confint(e.lmm, columns = c("estimate","se","df","lower","upper","p.value"))
@@ -275,6 +320,7 @@ partialCor <- function(formula, data, repetition, heterogeneous = TRUE, by = NUL
 
     ## ** export
     attr(out, "lmm") <- e.lmm
+    class(out) <- append("partialCor", class(out))
     return(out)
 }
 

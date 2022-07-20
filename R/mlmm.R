@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: jul 18 2022 (17:02) 
+## Last-Updated: jul 20 2022 (15:13) 
 ##           By: Brice Ozenne
-##     Update #: 86
+##     Update #: 104
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,6 +26,11 @@
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. Argument passed to \code{anova.lmm}.
 ##' @param df [logical] Should the degree of freedom be computed using a Satterthwaite approximation?
 ##' @param ci [logical] Should a confidence interval be output for each hypothesis?
+##'
+##' @details
+##' \bold{Grouping variable} in argument repetition: when numeric, it will be converted into a factor variable, possibly adding a leading 0 to preserve the ordering.
+##' This transformation may cause inconsistency when combining results between different \code{lmm} object. 
+##' This is why the grouping variable should preferably be of type character or factor.
 ##' 
 ##' @examples
 ##'
@@ -66,7 +71,7 @@
 
 ## * mlmm (code)
 ##' @export
-mlmm <- function(..., data, by, effects = NULL, robust = FALSE, df = TRUE, ci = TRUE,
+mlmm <- function(..., data, by, effects = NULL, robust = NULL, df = TRUE, ci = TRUE,
                  transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE,
                  backtransform = NULL){
 
@@ -102,6 +107,21 @@ mlmm <- function(..., data, by, effects = NULL, robust = FALSE, df = TRUE, ci = 
     transform <- init$transform
 
     ## ** fit mixed models
+    repetition <- list(...)$repetition
+    if(!is.null(repetition)){
+        res.split <- strsplit(deparse(repetition),"|", fixed = TRUE)[[1]]
+        if(length(res.split)==2){
+            var.cluster <- trimws(res.split[2], which = "both")
+            if(var.cluster %in% names(data) && is.numeric(data[[var.cluster]])){
+                if(all(data[[var.cluster]]>0) && all(data[[var.cluster]] %% 1 == 0)){
+                    data[[var.cluster]] <- as.factor(sprintf(paste0("%0",ceiling(log10(max(data[[var.cluster]]))+0.1),"d"), data[[var.cluster]]))
+                }else{
+                    data[[var.cluster]] <- as.factor(data[[var.cluster]])
+                }
+            }
+        }
+    }
+
     ls.data <- base::split(data, data[[by]])
     ls.lmm <- lapply(ls.data, function(iData){
         lmm(..., data = iData, df = df)
@@ -121,30 +141,36 @@ mlmm <- function(..., data, by, effects = NULL, robust = FALSE, df = TRUE, ci = 
             }else{
                 diag(iC[iAllCoef.effects,iAllCoef.effects]) <- 1
             }
-            iOut <- anova(iLMM, effects = iC, robust = robust, df = df, ci = ci,
-                          transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+            if(is.null(robust)){
+                iOut <- anova(iLMM, effects = iC, df = df, ci = ci,
+                              transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+            }else{
+                iOut <- anova(iLMM, effects = iC, robust = robust, df = df, ci = ci,
+                              transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+            }
             return(iOut)
         })
     }else{
-        ls.anova <- lapply(ls.lmm, anova, effects = effects, robust = robust, df = df, ci = ci,
-                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+        if(is.null(robust)){
+            ls.anova <- lapply(ls.lmm, anova, effects = effects, df = df, ci = ci,
+                               transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+        }else{
+            ls.anova <- lapply(ls.lmm, anova, effects = effects, robust = robust, df = df, ci = ci,
+                               transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+        }
     }
 
-    browser()
     ## ** joint inference
     name.model <- paste0(by,"=",unlist(lapply(ls.data, function(iData){iData[[by]][1]})))
+    contrast <- attr(effects,"contrasts")
+    rhs <- attr(effects,"rhs")
     out <- do.call("rbind.anova_lmm",
-                   args = c(list(model = ls.anova[[1]], name = name.model), unname(ls.anova[-1]))
+                   args = c(list(model = ls.anova[[1]], effects = contrast, rhs = rhs, name = name.model), unname(ls.anova[-1]))
                    )
-
+    out$model <- ls.lmm
+        
     ## ** export
-    attr.callout <- list(df = attr(out,"df"),
-                         test = attr(out,"test"),
-                         robust = attr(out,"robust"))
-    out$call <- match.call()
-    attr(out$call,"df") <- attr.callout$df
-    attr(out$call,"test") <- attr.callout$test
-    attr(out$call,"robust") <- attr.callout$robust
+    attr(out,"call") <- match.call()
     class(out) <- append("mlmm", class(out))
     return(out)
 }

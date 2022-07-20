@@ -65,6 +65,10 @@ See argument optimizer in \code{\link{LMMstar.options}}
 \item \code{tol.param}: difference in estimated parameters from two successive iterations below which convergence has been reached.
 \item \code{trace}: display progress of the optimization procedure.
 }
+
+\bold{Argument repetition:} when numeric, it will be converted into a factor variable, possibly adding a leading 0 to preserve the ordering.
+This transformation may cause inconsistency when combining results between different \code{lmm} object. 
+This is why the grouping variable should preferably be of type character or factor.
 }
 \examples{
 #### 1- simulate data in the long format ####

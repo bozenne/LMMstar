@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 18 2022 (17:21) 
+## Last-Updated: jul 20 2022 (15:11) 
 ##           By: Brice Ozenne
-##     Update #: 222
+##     Update #: 250
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,6 +21,8 @@
 ##'
 ##' @param model a \code{anova_lmm} object (output of \code{anova} applied to a \code{lmm} object)
 ##' @param ...  possibly other \code{anova_lmm} objects
+##' @param effects [numeric matrix] matrix indicating how to combine the left-hand side of the hypotheses. By default identity matrix.
+##' @param rhs [numeric vector] the right hand side of the hypothesis. Should have the same length as the number of row of argument \code{effects}.
 ##' @param name [character vector or NULL] character used to identify each model in the output.
 ##' By default, use the name of the outcome of the model.
 ##' @param sep [character] character used to separate the outcome and the covariate when naming the tests.
@@ -46,7 +48,7 @@
 
 ## * rbind.anova_lmm (code)
 ##' @export
-rbind.anova_lmm <- function(model, ..., name = NULL, sep = ": "){
+rbind.anova_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, sep = ": "){
     default <- LMMstar.options()
     call <- match.call()
     
@@ -70,10 +72,8 @@ rbind.anova_lmm <- function(model, ..., name = NULL, sep = ": "){
 
     Utype <- unique(unlist(table.args$type))
     newtable.args <- data.frame(type = ifelse(length(Utype)>1,"all",Utype),
-                                table.args[1,c("robust","df","ci","transform.sigma","transform.k","transform.rho","transform.names","backtransform")]
+                                table.args[1,c("robust","df","ci","transform.sigma","transform.k","transform.rho","transform.names")]
                                 )
-
-    newtable.args$backtransform <- na.omit(table.args$backtransform)[1]
     newtable.args$n.test <- sum(table.args$n.test)
     if(length(unique(table.args$outcome))==1){
         newtable.args$outcome <- table.args$outcome[1]
@@ -94,42 +94,54 @@ rbind.anova_lmm <- function(model, ..., name = NULL, sep = ": "){
     if(any(newtable.args$df!=table.args$df[-1])){
         stop("Element \'df\' should take the same value for all objects. \n")
     }
-    if(any(newtable.args$transform.sigma!=table.args$transform.sigma[-1])){
+    if(!all(is.na(table.args$transform.sigma)) && any(newtable.args$transform.sigma!=table.args$transform.sigma[-1])){
         stop("Element \'transform.sigma\' should take the same value for all objects. \n")
     }
-    if(any(newtable.args$transform.k!=table.args$transform.k[-1])){
+    if(!all(is.na(table.args$transform.k)) && any(newtable.args$transform.k!=table.args$transform.k[-1])){
         stop("Element \'transform.k\' should take the same value for all objects. \n")
     }
-    if(any(newtable.args$transform.rho!=table.args$transform.rho[-1])){
+    if(!all(is.na(table.args$transform.rho)) && any(newtable.args$transform.rho!=table.args$transform.rho[-1])){
         stop("Element \'transform.rho\' should take the same value for all objects. \n")
     }
     if(any(newtable.args$transform.names!=table.args$transform.names[-1])){
         stop("Element \'transform.names\' should take the same value for all objects. \n")
-    }
-    if(any(!is.na(table.args$backtransform)) && any(newtable.args$backtransform!=na.omit(table.args$backtransform)[-1])){
-        stop("Element \'backtransform\' should take the same value for all objects. \n")
     }
     ls.glht <- unname(unlist(unlist(lapply(ls.object,"[[","glht"),recursive = FALSE),recursive = FALSE))
     alternative <- ls.glht[[1]]$alternative
     if(any(alternative != sapply(ls.glht,"[[","alternative")[-1])){
         stop("Element \'alternative\' should take the same value for all glht objects. \n")
     }
-    name.unitest <- unlist(lapply(ls.object, function(iO){rownames(iO$univariate)}))
-    if(any(duplicated(name.unitest))){
-        name.unitest <- unlist(lapply(ls.object, function(iO){paste0(iO$object$outcome, sep, rownames(iO$univariate))}))
 
-        if(is.na(sep) || any(duplicated(name.unitest))){
+    if(is.null(name)){
+        name.unitest <- unlist(lapply(ls.object, function(iO){rownames(iO$univariate)}))
+        if(any(duplicated(name.unitest))){
+            name.unitest <- unlist(lapply(ls.object, function(iO){paste0(iO$object$outcome, sep, rownames(iO$univariate))}))
+
+            if(is.na(sep) || any(duplicated(name.unitest))){
+                stop("Univariate test should have distinct names. \n",
+                     "Consider naming them when calling anova, e.g. anova(object, effect = c(\"myname1\"=\"X1=0\",\"myname2\"=\"X2=0\"))")
+            }else{
+                for(iO in 1:n.object){
+                    rownames(ls.object[[iO]]$univariate) <- paste0(ls.object[[iO]]$object$outcome, sep, rownames(ls.object[[iO]]$univariate))
+                }
+            }
+        }
+    }else{
+        name.unitest <- unlist(lapply(1:n.object, function(iO){paste0(name[iO],sep,rownames(ls.object[[iO]]$univariate))}))
+        for(iO in 1:n.object){
+            rownames(ls.object[[iO]]$univariate) <- paste0(name[iO],sep,rownames(ls.object[[iO]]$univariate))
+        }
+        if(any(duplicated(name.unitest))){
             stop("Univariate test should have distinct names. \n",
                  "Consider naming them when calling anova, e.g. anova(object, effect = c(\"myname1\"=\"X1=0\",\"myname2\"=\"X2=0\"))")
-        }else{
-            for(iO in 1:n.object){
-                rownames(ls.object[[iO]]$univariate) <- paste0(ls.object[[iO]]$object$outcome, sep, rownames(ls.object[[iO]]$univariate))
-            }
         }
     }
 
-    contrast <- attr(model,"contrast")
+    contrast <- effects
     if(!is.null(contrast)){
+
+        browser()
+        contrMat(n=c(1,1,1), type='Tukey')
         if(NCOL(contrast)!=newtable.args$n.test){
             stop("Incorrect contrast matrix: should have ",newtable.args$n.test," columns.\n",
                  "(one for each univariate test) \n")
@@ -146,7 +158,6 @@ rbind.anova_lmm <- function(model, ..., name = NULL, sep = ": "){
         contrast <- diag(1, nrow = newtable.args$n.test, ncol = newtable.args$n.test)
         dimnames(contrast) <- list(name.unitest, name.unitest)
     }
-    rhs <- attr(model,"rhs")
     if(!is.null(rhs)){
         if(length(rhs)!=newtable.args$n.test){
             stop("Incorrect rhs: should have ",newtable.args$n.test," values.\n",
@@ -156,6 +167,12 @@ rbind.anova_lmm <- function(model, ..., name = NULL, sep = ": "){
         rhs <- stats::setNames(rep(0, newtable.args$n.test), name.unitest)
     }
 
+
+    cluster.var <- ls.object[[1]]$object$cluster.var
+    if(any(cluster.var!=unlist(lapply(ls.object[-1], function(iO){iO$object$cluster.var})))){
+        stop("Cluster variable differs among objects. \n")
+    }
+    
     ## ** Try to find unique names
 
     ## *** for the model parameters
@@ -218,14 +235,13 @@ rbind.anova_lmm <- function(model, ..., name = NULL, sep = ": "){
     seq.cluster <- unique(unlist(ls.cluster))
     n.cluster <- length(seq.cluster)
 
-    independence <- all(duplicated(unlist(ls.cluster))==FALSE) ## each individual only appear once
+    independence <- (cluster.var=="XXclusterXX" || all(duplicated(unlist(ls.cluster))==FALSE)) ## each individual only appear once
     if(all(sapply(ls.object, function(iO){attr(iO$args$robust,"call")})==FALSE)){
         newtable.args$robust <- independence==FALSE
     }
 
     ## *** estimate
     beta.estimate <- stats::setNames(newtable.univariate$estimate, name.unitest)
-
     if(independence){
         
         beta.vcov <- as.matrix(do.call(Matrix::bdiag,lapply(ls.object, "[[", "vcov")))
@@ -241,8 +257,12 @@ rbind.anova_lmm <- function(model, ..., name = NULL, sep = ": "){
         if(any(sapply(ls.object, function(iO){is.null(iO$iid)}))){
             stop("Cannot evaluate the joint influence function of the variance-covariance parameters. \n",
                  "Consider using method.fit=\"ML\" when calling lmm. \n")
-        }        
-        M.iid <- do.call(cbind,lapply(ls.object, "[[", "iid"))
+        }
+        M.iid <- matrix(0, nrow = n.cluster, ncol = length(beta.estimate),
+                        dimnames = list(seq.cluster, names(beta.estimate)))
+        for(iO in 1:n.object){            
+            M.iid[ls.cluster[[iO]],rownames(ls.object[[iO]]$univariate)] <- ls.object[[iO]]$iid
+        }
         
         if(any(is.na(M.iid))){
             beta.vcov <- tcrossprod(sqrt(apply(M.iid^2, 2, sum, na.rm = TRUE))) * stats::cor(M.iid, use = "pairwise")

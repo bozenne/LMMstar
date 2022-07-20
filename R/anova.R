@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jul 18 2022 (16:57) 
+## Last-Updated: jul 20 2022 (16:53) 
 ##           By: Brice Ozenne
-##     Update #: 1061
+##     Update #: 1107
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,17 +21,16 @@
 ##' @name anova
 ##' 
 ##' @param object a \code{lmm} object. Only relevant for the anova function.
-##' @param effects [character] Should the Wald test be computed for all variables (\code{"all"}),
+##' @param effects [character or numeric matrix] Should the Wald test be computed for all variables (\code{"all"}),
 ##' or only variables relative to the mean (\code{"mean"} or \code{"fixed"}),
 ##' or only variables relative to the variance structure (\code{"variance"}),
 ##' or only variables relative to the correlation structure (\code{"correlation"}).
-##' Can also be use to specify linear combinations of coefficients, similarly to the \code{linfct} argument of the \code{multcomp::glht} function.
+##' Can also be use to specify linear combinations of coefficients or a contrast matrix, similarly to the \code{linfct} argument of the \code{multcomp::glht} function.
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
 ##' @param rhs [numeric vector] the right hand side of the hypothesis. Only used when the argument effects is a matrix.
 ##' @param df [logical] Should a F-distribution be used to model the distribution of the Wald statistic. Otherwise a chi-squared distribution is used.
 ##' @param ci [logical] Should an estimate, standard error, confidence interval, and p-value be output for each hypothesis?
 ##' @param transform.sigma,transform.k,transform.rho,transform.names are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.
-##' @param backtransform [logical] should the variance/covariance/correlation coefficients be backtransformed?
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @return A list of matrices containing the following columns:\itemize{
@@ -91,7 +90,7 @@
 ##' @rdname anova
 ##' @export
 anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !is.null(object$df), ci = TRUE, 
-                      transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, backtransform = NULL, ...){
+                      transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
 
     call <- match.call()
 
@@ -110,18 +109,16 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     }else{ ## Wald test
         attr(robust, "call") <- "robust" %in% names(call)
         out <- .anova_Wald(object, effects = effects, robust = robust, rhs = rhs, df = df, ci = ci, 
-                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names,
-                           backtransform = backtransform)
+                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
     }
     ## ** export
     attr(out,"call") <- call
-    class(out) <- append("anova_lmm",class(out))
     return(out)
 }
 
 ## * .anova_Wald
 .anova_Wald <- function(object, effects, robust, rhs, df, ci, 
-                        transform.sigma, transform.k, transform.rho, transform.names, backtransform){
+                        transform.sigma, transform.k, transform.rho, transform.names){
 
     options <- LMMstar.options()
     
@@ -152,9 +149,6 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         }
     }
 
-    if(is.null(backtransform) && (!is.null(transform.sigma) || !is.null(transform.k) || !is.null(transform.rho))){
-        backtransform <- FALSE
-    }
     init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
                             x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho)
     
@@ -366,16 +360,20 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     }else{
         effects <- "all"
     }
+    type.param <- stats::setNames(object$design$param$type,object$design$param$name)
     param <- coef(object, effects = effects,
                   transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
-    newname <- names(coef(object, effects = effects,
-                          transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names))
+    newparam <- coef(object, effects = effects,
+                     transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+    newname <- names(newparam)
     name.param <- names(param)
+    name.paramSigma <- names(type.param)[type.param=="sigma"]
+    name.paramK <- names(type.param)[type.param=="k"]
+    name.paramRho <- names(type.param)[type.param=="rho"]
     n.param <- length(param)
     vcov.param <- vcov(object, df = df*2, effects = effects, robust = robust,
                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
     dVcov.param <- attr(vcov.param,"dVcov")
-    type.param <- stats::setNames(object$design$param$type,object$design$param$name)
     if(df>0 && object$method.fit=="REML" && type.information == "expected"){
         warning("when using REML with expected information, the degree of freedom of the F-statistic may depend on the parametrisation of the variance parameters. \n")
     }
@@ -531,23 +529,16 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         }
     }
 
-    ## ** prepare for back-transform
-    if(is.null(backtransform)){
-        if(all(out$univariate$type %in% c("mu","all"))){
-            backtransform <- NA ## no need for back-transformation
-        }else{
-            backtransform <- options$backtransform.confint
-        }
-    }else if(is.character(backtransform)){
-        backtransform <-  eval(parse(text=backtransform))
-    }
-
     ## ** save some of the objects for possible use of rbind.anova_lmm
     if(ci > 0.5){
         out$object <- list(outcome = object$outcome$var,
                            method.fit = object$method.fit,
                            type.information = attr(object$information,"type.information"),
-                           cluster = object$cluster$levels)
+                           cluster.var = object$cluster$var)
+        if(!is.na(attr(object$cluster$var,"original"))){
+            out$object$cluster <- object$cluster$levels
+        }
+                           
         globalC <- do.call(rbind,lapply(unlist(out$glht, recursive=FALSE),"[[","linfct"))
 
         ## default: non-robust vcov and robust for iid
@@ -559,7 +550,6 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                                          transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE) %*% t(globalC)
             robust2 <- TRUE
         }
-        
         if(object$method.fit == "ML"){
             out$iid <- iid(object, effects = effects, robust = robust2, type.information = attr(object$information,"type.information"),
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names) %*% t(globalC)
@@ -574,26 +564,37 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     ## ** export
     out$args <- data.frame(type = NA, robust = robust, df = df, ci = ci, 
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                           transform.names = transform.names, backtransform = backtransform)
-
-    if(ci && !is.na(backtransform) && backtransform && transform.names && is.null(names(effects))){
-        backtransform.names <- names(coef(object,
-                                          effects = effects, 
-                                          transform.sigma = gsub("log","",transform.sigma),
-                                          transform.k = gsub("log","",transform.k),
-                                          transform.rho = gsub("atanh","",transform.rho),
-                                          transform.names = transform.names))
+                           transform.names = transform.names)
+    if(ci && transform.names && is.null(names(effects))){
+            backtransform.names <- names(coef(object,
+                                              effects = effects, 
+                                              transform.sigma = gsub("log","",transform.sigma),
+                                              transform.k = gsub("log","",transform.k),
+                                              transform.rho = gsub("atanh","",transform.rho),
+                                              transform.names = transform.names))
         
-        out$args$backtransform.names <- list(stats::setNames(rownames(out$univariate),rownames(out$univariate)))
-        index <- match(newname,out$args$backtransform.names[[1]])
-        out$args$backtransform.names[[1]][stats::na.omit(index)] <- backtransform.names[which(!is.na(index))]
+            out$args$backtransform.names <- list(stats::setNames(rownames(out$univariate),rownames(out$univariate)))
+            index <- match(newname,out$args$backtransform.names[[1]])
+            out$args$backtransform.names[[1]][stats::na.omit(index)] <- backtransform.names[which(!is.na(index))]
     }
+    if(all(name.paramSigma %in% colnames(globalC) == FALSE) || all(globalC[,name.paramSigma,drop=FALSE]==0)){
+        out$args$transform.sigma <- NA
+    }
+    if(all(name.paramK %in% colnames(globalC) == FALSE) || all(globalC[,name.paramK,drop=FALSE]==0)){
+        out$args$transform.k <- NA
+    }
+    if(all(name.paramRho %in% colnames(globalC) == FALSE) || all(globalC[,name.paramRho,drop=FALSE]==0)){
+        out$args$transform.rho <- NA
+    }
+
     if(identical(type,"all")){
         out$args$type <- list("all")
     }else{
         out$args$type <- list(c("mu"="mean", "k"="variance", "rho"="correlation")[out$multivariate$type])
     }
-    attr(out, "test") <- "Wald"
+
+    ## ** export
+    class(out) <- append("Wald_lmm",class(out))
     return(out)
 }
 
@@ -608,9 +609,11 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     if(is.na(logLik1) || is.na(logLik2)){
         stop("Cannot perform a likelihood ratio test when the log-likelihood is NA for one of the models.\n")
     }else if(logLik2>=logLik1){
+        type <- "2-1"
         objectH0 <- object1
         objectH1 <- object2
     }else if(logLik1>=logLik2){
+        type <- "1-2"
         objectH0 <- object2
         objectH1 <- object1
     }
@@ -801,7 +804,8 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     out$p.value <- 1 - stats::pchisq(out$statistic, df = out$df)
 
     ## ** export
-    attr(out, "test") <- "LRT"
+    attr(out,"type") <- type
+    class(out) <- append("LRT_lmm",class(out))
     return(out)
 }
 

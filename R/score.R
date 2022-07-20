@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: jun 27 2022 (16:43) 
+## Last-Updated: jul 20 2022 (11:05) 
 ##           By: Brice Ozenne
-##     Update #: 555
+##     Update #: 557
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -112,11 +112,11 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
                           dimnames = list(x$cluster$levels, colnames(out)))
             out[rownames(out.save),] <- out.save
 
-            if(is.numeric(design$cluster$levels.original)){
+            if(is.numeric(design$cluster$levels)){
                 rownames(out) <- NULL
             }
-        }else if(!is.numeric(design$cluster$levels.original)){
-            rownames(out) <- design$cluster$levels.original
+        }else if(!is.numeric(design$cluster$levels)){
+            rownames(out) <- design$cluster$levels
         } 
     }
 

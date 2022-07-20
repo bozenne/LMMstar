@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (11:00) 
 ## Version: 
-## Last-Updated: mar  7 2022 (09:19) 
+## Last-Updated: jul 20 2022 (11:26) 
 ##           By: Brice Ozenne
-##     Update #: 78
+##     Update #: 81
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -134,6 +134,12 @@ plot.lmm <- function(x, type = "fit", type.residual = "normalized", by.time = TR
         attr(out$data,"plot") <- NULL
     }
     return(invisible(out))
+}
+
+## * plot (code)
+##' @export
+plot.anova_lmm <- function(x, ...){
+    autoplot.anova_lmm(x, ...)
 }
 
 ##----------------------------------------------------------------------

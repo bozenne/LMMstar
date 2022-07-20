@@ -23,11 +23,11 @@
 \arguments{
 \item{object}{a \code{lmm} object. Only relevant for the anova function.}
 
-\item{effects}{[character] Should the Wald test be computed for all variables (\code{"all"}),
+\item{effects}{[character or numeric matrix] Should the Wald test be computed for all variables (\code{"all"}),
 or only variables relative to the mean (\code{"mean"} or \code{"fixed"}),
 or only variables relative to the variance structure (\code{"variance"}),
 or only variables relative to the correlation structure (\code{"correlation"}).
-Can also be use to specify linear combinations of coefficients, similarly to the \code{linfct} argument of the \code{multcomp::glht} function.}
+Can also be use to specify linear combinations of coefficients or a contrast matrix, similarly to the \code{linfct} argument of the \code{multcomp::glht} function.}
 
 \item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.}
 

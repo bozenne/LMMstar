@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: Jul 15 2022 (09:11) 
+## Last-Updated: jul 20 2022 (16:17) 
 ##           By: Brice Ozenne
-##     Update #: 550
+##     Update #: 553
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -254,18 +254,9 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
     return(out)
 }
 
-## * coef.mlmm
+## * coef.Wald_lmm
 ##' @export
-coef.mlmm <- function(object, ...){
-
-    ls.model <- lava::estimate(object)
-    return(lapply(ls.model,coef, ...))
-
-}
-
-## * coef.anova_lmm
-##' @export
-coef.anova_lmm <- function(object, ...){
+coef.Wald_lmm <- function(object, ...){
 
     if(is.null(object$univariate)){
         return(NULL)
@@ -273,8 +264,21 @@ coef.anova_lmm <- function(object, ...){
         return(stats::setNames(object$univariate$estimate, rownames(object$univariate)))
     }
     
+}
+## * coef.LRT_lmm
+##' @export
+coef.LRT_lmm <- function(object, ...){
+    message("No effect size available for likelihood ratio tests.")
+    return(NULL)
+}
+## * coef.mlmm
+##' @export
+coef.mlmm <- function(object, ...){
+
+    return(lapply(object$model,coef, ...))
 
 }
+
 
 
 ##----------------------------------------------------------------------

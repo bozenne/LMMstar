@@ -9,7 +9,7 @@ mlmm(
   data,
   by,
   effects = NULL,
-  robust = FALSE,
+  robust = NULL,
   df = TRUE,
   ci = TRUE,
   transform.sigma = NULL,
@@ -37,11 +37,15 @@ mlmm(
 \description{
 Fit several linear mixed models, extract relevant coefficients, and combine them into a single table.
 }
+\details{
+\bold{Grouping variable} in argument repetition: when numeric, it will be converted into a factor variable, possibly adding a leading 0 to preserve the ordering.
+This transformation may cause inconsistency when combining results between different \code{lmm} object. 
+This is why the grouping variable should preferably be of type character or factor.
+}
 \examples{
 
 #### univariate regression ####
 if(require(lava)){
-library(LMMstar)
 
 set.seed(10)
 d1 <- cbind(sim(lvm(Y~0.5*X1), 25), group = "A")

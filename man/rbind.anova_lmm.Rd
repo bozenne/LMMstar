@@ -4,12 +4,16 @@
 \alias{rbind.anova_lmm}
 \title{Linear Hypothesis Testing Across Linear Mixed Models}
 \usage{
-\method{rbind}{anova_lmm}(model, ..., name = NULL, sep = ": ")
+\method{rbind}{anova_lmm}(model, ..., effects = NULL, rhs = NULL, name = NULL, sep = ": ")
 }
 \arguments{
 \item{model}{a \code{anova_lmm} object (output of \code{anova} applied to a \code{lmm} object)}
 
 \item{...}{possibly other \code{anova_lmm} objects}
+
+\item{effects}{[numeric matrix] matrix indicating how to combine the left-hand side of the hypotheses. By default identity matrix.}
+
+\item{rhs}{[numeric vector] the right hand side of the hypothesis. Should have the same length as the number of row of argument \code{effects}.}
 
 \item{name}{[character vector or NULL] character used to identify each model in the output.
 By default, use the name of the outcome of the model.}

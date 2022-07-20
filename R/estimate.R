@@ -1,11 +1,11 @@
-### estimate.lmm.R --- 
+### estimate.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: Jul 13 2022 (17:57) 
+## Last-Updated: jul 20 2022 (16:17) 
 ##           By: Brice Ozenne
-##     Update #: 862
+##     Update #: 863
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -715,4 +715,4 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
 }
                 
 ##----------------------------------------------------------------------
-### estimate.lmm.R ends here
+### estimate.R ends here

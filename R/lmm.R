@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Jul 14 2022 (09:10) 
+## Last-Updated: jul 20 2022 (10:54) 
 ##           By: Brice Ozenne
-##     Update #: 2016
+##     Update #: 2018
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -48,6 +48,11 @@
 ##' \item \code{tol.param}: difference in estimated parameters from two successive iterations below which convergence has been reached.
 ##' \item \code{trace}: display progress of the optimization procedure.
 ##' }
+##' 
+##' \bold{Argument repetition:} when numeric, it will be converted into a factor variable, possibly adding a leading 0 to preserve the ordering.
+##' This transformation may cause inconsistency when combining results between different \code{lmm} object. 
+##' This is why the grouping variable should preferably be of type character or factor.
+##' 
 ##' @seealso
 ##' \code{\link{summary.lmm}} for a summary of the model fit. \cr
 ##' \code{\link{model.tables.lmm}} for a data.frame containing estimates with their uncertainty. \cr
