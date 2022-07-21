@@ -16,7 +16,6 @@
   transform.k = NULL,
   transform.rho = NULL,
   transform.names = TRUE,
-  backtransform = NULL,
   ...
 )
 }
@@ -38,8 +37,6 @@ Can also be use to specify linear combinations of coefficients or a contrast mat
 \item{ci}{[logical] Should an estimate, standard error, confidence interval, and p-value be output for each hypothesis?}
 
 \item{transform.sigma, transform.k, transform.rho, transform.names}{are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.}
-
-\item{backtransform}{[logical] should the variance/covariance/correlation coefficients be backtransformed?}
 
 \item{...}{Not used. For compatibility with the generic method.}
 }
@@ -100,5 +97,5 @@ anova(eUN.lmm, eCS.lmm)
 Dmitrienko, A. and D'Agostino, R., Sr (2013), Traditional multiplicity adjustment methods in clinical trials. Statist. Med., 32: 5172-5218. https://doi.org/10.1002/sim.5990.
 }
 \seealso{
-\code{\link{summary.anova_lmm}} for a summary of the results. \cr
+\code{\link{summary.Wald_lmm}} for a summary of the results. \cr
 }

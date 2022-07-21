@@ -16,7 +16,7 @@
   plot = "none",
   engine.qqplot = "ggplot2",
   add.smooth = TRUE,
-  digit.cor = 2,
+  digits.cor = 2,
   size.text = 16,
   scales = "free",
   ...
@@ -43,7 +43,7 @@
 
 \item{add.smooth}{[logical] should a local smoother be used to display the mean of the residual values across the fitted values. Only relevant for \code{plot="scatterplot"}.}
 
-\item{digit.cor}{[integer, >0] Number of digit used to display the correlation coefficients? No correlation coefficient is displayed when set to 0. Only used when argument \code{plot} is \code{"correlation"}.}
+\item{digits.cor}{[integer, >0] Number of digit used to display the correlation coefficients? No correlation coefficient is displayed when set to 0. Only used when argument \code{plot} is \code{"correlation"}.}
 
 \item{size.text}{[numeric, >0] Size of the font used to displayed text when using ggplot2.}
 

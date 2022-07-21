@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jul 20 2022 (16:53) 
+## Last-Updated: jul 21 2022 (14:54) 
 ##           By: Brice Ozenne
-##     Update #: 1107
+##     Update #: 1129
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -46,7 +46,7 @@
 ##' This is refered to as a single-step Dunnett multiple testing procedures in table II of Dmitrienko et al. (2013) and is performed using the multcomp package with the option \code{test = adjusted("single-step")}.
 ##' 
 ##' @seealso
-##' \code{\link{summary.anova_lmm}} for a summary of the results. \cr
+##' \code{\link{summary.Wald_lmm}} for a summary of the results. \cr
 ##' 
 ##' @references Dmitrienko, A. and D'Agostino, R., Sr (2013), Traditional multiplicity adjustment methods in clinical trials. Statist. Med., 32: 5172-5218. https://doi.org/10.1002/sim.5990.
 ##'  
@@ -106,13 +106,16 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
 
     if(inherits(effects,"lmm")){ ## likelihood ratio test
         out <- .anova_LRT(object1 = object, object2 = effects)
+        attr(out,"call") <- call
+        class(out) <- append("LRT_lmm",class(out))
     }else{ ## Wald test
         attr(robust, "call") <- "robust" %in% names(call)
         out <- .anova_Wald(object, effects = effects, robust = robust, rhs = rhs, df = df, ci = ci, 
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+        attr(out,"call") <- call
+        class(out) <- append("Wald_lmm",class(out))
     }
     ## ** export
-    attr(out,"call") <- call
     return(out)
 }
 
@@ -121,6 +124,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                         transform.sigma, transform.k, transform.rho, transform.names){
 
     options <- LMMstar.options()
+    type.information <- attr(object$information,"type.information")    
     
     ## ** normalized user input
     terms.mean <- attr(stats::terms(object$formula$mean.design),"term.labels")
@@ -347,7 +351,6 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         }
         ls.nameTerms.num <- list(all = 1)
     }
-    type.information <- attr(object$information,"type.information")    
 
     ## ** prepare
     if(robust && object$method.fit=="REML"){
@@ -518,7 +521,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                                  "correlation"="rho")
             }
             if(length(unique(iType2))==1){
-                out$multivariate <- rbind(out$multivariate, cbind(type = iType2[1], test = iNameTerm, iRes))
+                out$multivariate <- rbind(out$multivariate, cbind(type = unname(iType2[1]), test = iNameTerm, iRes))
             }else{
                 out$multivariate <- rbind(out$multivariate, cbind(type = "all", test = iNameTerm, iRes))
             }
@@ -529,11 +532,11 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         }
     }
 
-    ## ** save some of the objects for possible use of rbind.anova_lmm
+    ## ** save some of the objects for possible use of rbind.Wald_lmm
     if(ci > 0.5){
         out$object <- list(outcome = object$outcome$var,
                            method.fit = object$method.fit,
-                           type.information = attr(object$information,"type.information"),
+                           type.information = type.information,
                            cluster.var = object$cluster$var)
         if(!is.na(attr(object$cluster$var,"original"))){
             out$object$cluster <- object$cluster$levels
@@ -551,18 +554,18 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
             robust2 <- TRUE
         }
         if(object$method.fit == "ML"){
-            out$iid <- iid(object, effects = effects, robust = robust2, type.information = attr(object$information,"type.information"),
+            out$iid <- iid(object, effects = effects, robust = robust2, 
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names) %*% t(globalC)
         }else if(object$method.fit == "REML" && all(type.param[which(colSums(globalC!=0)>0)]=="mu")){
             globalC <- globalC[,name.param[type.param=="mu"],drop=FALSE]
-            out$iid <- iid(object, effects = "mean", robust = robust2, type.information = attr(object$information,"type.information"),
+            out$iid <- iid(object, effects = "mean", robust = robust2, 
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names) %*% t(globalC)
         }
         ## do not handle df ...
     }
-    
+
     ## ** export
-    out$args <- data.frame(type = NA, robust = robust, df = df, ci = ci, 
+    out$args <- data.frame(type = NA, robust = robust, df = df, ci = ci,
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                            transform.names = transform.names)
     if(ci && transform.names && is.null(names(effects))){
@@ -594,7 +597,6 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     }
 
     ## ** export
-    class(out) <- append("Wald_lmm",class(out))
     return(out)
 }
 
@@ -640,7 +642,9 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         objectH1$call$method.fit <- "ML"
         message("Cannot use a likelihood ratio test to compare mean parameters when the objective function is REML. \n",
                 "Will re-estimate the model via ML and re-run the likelihood ratio test. \n")
-        return(anova(eval(objectH0$call),eval(objectH1$call)))
+        out <- anova(eval(objectH0$call),eval(objectH1$call))
+        attr(out,"type") <- type
+        return(out)
     }
 
     ## *** number of observations
@@ -805,7 +809,6 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
 
     ## ** export
     attr(out,"type") <- type
-    class(out) <- append("LRT_lmm",class(out))
     return(out)
 }
 

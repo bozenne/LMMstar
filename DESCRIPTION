@@ -2,7 +2,7 @@ Package: LMMstar
 Type: Package
 Title: Repeated Measurement Models for Discrete Times
 Version: 0.8.0
-Date: 2022-07-20
+Date: 2022-07-21
 Authors@R: c(
     person("Brice", "Ozenne", role = c("aut", "cre"), email = "brice.mh.ozenne@gmail.com", comment = c(ORCID = "0000-0001-9694-2956")),
     person("Julie", "Forman", role = "aut", email = "jufo@sund.ku.dk", comment = c(ORCID = "0000-0001-7368-0869"))
@@ -60,15 +60,13 @@ Collate:
     'backtransform.R'
     'baselineAdjustment.R'
     'coef.R'
-    'confint.anova_lmm.R'
-    'confint.lmm.R'
-    'confint.mlmm.R'
+    'confint.R'
     'constrain.R'
     'df.R'
     'doc-data.R'
     'dummy.coef.R'
     'emmeans.R'
-    'estimate.lmm.R'
+    'estimate.R'
     'findPatterns.R'
     'fitted.R'
     'formula.R'
@@ -88,13 +86,10 @@ Collate:
     'plot.R'
     'precompute.R'
     'predict.R'
-    'print.anova_lmm.R'
-    'print.confint_lmm.R'
-    'print.lmm.R'
-    'print.mlmm.R'
+    'print.R'
     'profile.R'
     'ranef.R'
-    'rbind.anova_lmm.R'
+    'rbind.R'
     'reparametrize.R'
     'residuals.R'
     'sampleRem.R'
@@ -107,9 +102,7 @@ Collate:
     'structure-skeleton.R'
     'structure.R'
     'summarize.R'
-    'summary.anova_lmm.R'
-    'summary.lmm.R'
-    'summary.mlmm.R'
+    'summary.R'
     'terms.R'
     'unorderedPairs.R'
     'utils.R'

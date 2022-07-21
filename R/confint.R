@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 20 2022 (16:16) 
+## Last-Updated: jul 21 2022 (14:27) 
 ##           By: Brice Ozenne
-##     Update #: 262
+##     Update #: 265
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -262,7 +262,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
 ##' @title Confidence Intervals for Multivariate Wald Tests
 ##' @description Compute confidence intervals for linear hypothesis tests, possibly with adjustment for multiple comparisons.
 ##' 
-##' @param object a \code{anova_lmm} object
+##' @param object a \code{Wald_lmm} object
 ##' @param parm Not used. For compatibility with the generic method.
 ##' @param level [numeric, 0-1] nominal coverage of the confidence intervals.
 ##' @param method [character] type of adjustment for multiple comparisons: one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}, \code{"single-step2"}.
@@ -575,7 +575,7 @@ confint.LRT_lmm <- function(object, parm, level = 0.95, ...){
 ##' @param parm Not used. For compatibility with the generic method.
 ##' @param level [numeric,0-1] the confidence level of the confidence intervals.
 ##' @param method [character] type of adjustment for multiple comparisons: one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}, \code{"single-step2"}, or \code{"pool"}.
-##' @param ... other arguments are passed to \code{\link{confint.anova_lmm}}.
+##' @param ... other arguments are passed to \code{\link{confint.Wald_lmm}}.
 ##'
 ##' @details Statistical inference following pooling is performed according to Rubin's rule whose validity requires the congeniality condition of Meng (1994).
 ##'
@@ -590,7 +590,7 @@ confint.mlmm <- function(object, parm = NULL, level = 0.95, method = NULL, ...){
         method <- "none"
     }
 
-    return(confint.anova_lmm(object, parm = parm, level = level, method = method, ...))
+    return(confint.Wald_lmm(object, parm = parm, level = level, method = method, ...))
     
 }
 

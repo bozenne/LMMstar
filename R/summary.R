@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jul 20 2022 (17:05) 
+## Last-Updated: jul 21 2022 (17:18) 
 ##           By: Brice Ozenne
-##     Update #: 571
+##     Update #: 914
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -22,16 +22,18 @@
 ##' @name summary
 ##'
 ##' @param object [lmm] output of the \code{lmm} function.
-##' @param digits [integer,>0] number of digits used to display numeric values.
-##' When a vector of length 2, the second values is used for the number of digits for p-values.
 ##' @param level [numeric,0-1] confidence level for the confidence intervals.
-##' @param type.cor [character] should the correlation matrix be display (\code{"matrix"}) or the parameter values (\code{"param"}).
-##' @param print [logical] should the output be printed in the console.
-##' @param columns [character vector] Columns to be output for the fixed effects. Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
+##' @param print [logical] should the output be printed in the console.
+##' @param columns [character vector] Columns to be output for the fixed effects.
+##' Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
+##' @param digits [interger, >0] number of digits used to display estimates.
+##' @param digits.df [interger, >0] number of digits used to display degrees of freedom.
+##' @param digits.p.value [interger, >0] number of digits used to display p-values.
 ##' @param hide.data [logical] should information about the dataset not be printed.
 ##' @param hide.fit [logical] should information about the model fit not be printed.
 ##' @param hide.cor [logical] should information about the correlation structure not be printed.
+##' @param type.cor [character] should the correlation matrix be display (\code{"matrix"}) or the parameter values (\code{"param"}).
 ##' @param hide.sd [logical] should information about the standard deviation not be printed.
 ##' @param hide.var [logical] should information about the variance not be printed.
 ##' @param hide.mean [logical] should information about the mean structure not be printed.
@@ -47,8 +49,9 @@
 ## * summary.lmm (code)
 ##' @rdname summary
 ##' @export
-summary.lmm <- function(object, digits = 3, level = 0.95, type.cor = NULL, robust = FALSE, print = TRUE, columns = NULL,
-                        hide.data = FALSE, hide.fit = FALSE, hide.cor = is.null(object$formula$cor), hide.var = TRUE, hide.sd = FALSE, hide.mean = FALSE, ...){
+summary.lmm <- function(object, level = 0.95, robust = FALSE,
+                        print = TRUE, columns = NULL, digits = 3, digits.df = 1, digits.p.value = 3, 
+                        hide.data = FALSE, hide.fit = FALSE, hide.cor = is.null(object$formula$cor), type.cor = NULL, hide.var = TRUE, hide.sd = FALSE, hide.mean = FALSE, ...){
 
     ## ** extract from object
     param.value <- object$param
@@ -65,6 +68,7 @@ summary.lmm <- function(object, digits = 3, level = 0.95, type.cor = NULL, robus
     logLik <- stats::logLik(object)
     nobs <- stats::nobs(object)
     method.fit <- object$method
+    type.information <- attr(object$information,"type.information")
     nobsByCluster <- object$design$cluster$nobs
     formula <- object$formula
     df <- !is.null(object$df)
@@ -79,7 +83,7 @@ summary.lmm <- function(object, digits = 3, level = 0.95, type.cor = NULL, robus
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
 
-    valid.columns <- c("estimate","se","statistic","df","lower","upper","null","p.value","")
+    valid.columns <- c("estimate","se","df","lower","upper","null","statistic","p.value","")
     if(identical(columns,"all")){
         columns <- valid.columns
     }else if(!is.null(columns)){
@@ -95,10 +99,7 @@ summary.lmm <- function(object, digits = 3, level = 0.95, type.cor = NULL, robus
     if(!is.null(type.cor)){
         type.cor <- match.arg(type.cor, c("matrix","param"))
     }
-    if(length(digits)==1){
-        digits <- rep(digits,2)
-    }
-    
+
     ## ** welcome message
     if(print){
         if(length(param.rho) == 0){
@@ -232,10 +233,10 @@ summary.lmm <- function(object, digits = 3, level = 0.95, type.cor = NULL, robus
                     return(iCor)
                 })
                 if(length(table.cor)==1){ ## only one (unique) pattern
-                    print(table.cor.print[[1]], digits = digits[1])
+                    print(table.cor.print[[1]], digits = digits)
                     cat("\n")
                 }else{
-                    print(table.cor.print, digits = digits[1])
+                    print(table.cor.print, digits = digits)
                 }                        
             }
         }
@@ -285,7 +286,7 @@ summary.lmm <- function(object, digits = 3, level = 0.95, type.cor = NULL, robus
             }
         }
         rownames(printtable) <- paste0("    ",name.sigma)
-        print(printtable, digits = digits[1])
+        print(printtable, digits = digits)
     }
     if(print && (!hide.cor || !hide.var || !hide.sd)){
         cat("\n")
@@ -293,52 +294,25 @@ summary.lmm <- function(object, digits = 3, level = 0.95, type.cor = NULL, robus
     
     ## ** mean structure
     if(!hide.mean){
-        if(print){
-            cat("Fixed effects:",deparse(call$formula),"\n\n")
-        }
         table.mean <- confint(object,
                               level = level,
                               robust = robust,
                               effects = "mean",
-                              columns = c("estimate","se","df","lower","upper","statistic","p.value"))
+                              columns = c("estimate","se","df","lower","upper","statistic","null","p.value"))
 
-        printtable.mean <- table.mean[,-which(names(table.mean) %in% columns == FALSE),drop=FALSE]
-        if(length(object$df)>0){
-            names(printtable.mean) <- gsub("^statistic","t-statistic",names(printtable.mean))
-        }else{
-            names(printtable.mean) <- gsub("^statistic","z-statistic",names(printtable.mean))
-        }
-   
         if(print){
-            toPrint <- capture.output(stats::printCoefmat(printtable.mean, digits = digits[1],
-                                                          has.Pvalue = "p.value" %in% columns,
-                                                          P.values = "p.value" %in% columns,
-                                                          eps.Pvalue = 10^{-digits[2]},
-                                                          signif.legend = FALSE))
-            sapply(toPrint, function(iTxt){cat("  ",iTxt,"\n",sep="")})
-            cat(" ",paste(rep("-", max(nchar(toPrint))),collapse=""),"\n")
-            if("" %in% columns){
-                cat("  Signif. codes:  0 \'***\' 0.001 \'**\' 0.01 \'*\' 0.05 \'.\' 0.1 \' \' 1\n")
-            }
-            if(robust && "se" %in% columns){
-                cat("  Uncertainty was quantified using robust standard errors (column se). \n", sep = "")
-            }else if("se" %in% columns){
-                cat("  Uncertainty was quantified using model-based standard errors (column se). \n", sep = "")
-            }
-            if(!is.null(object$df)){
-                cat("  Degrees of freedom were computed using a Satterthwaite approximation (column df). \n", sep = "")
-            }
-            if("lower" %in% columns && "upper" %in% columns){
-                cat("  The columns lower and upper indicate a ",100*level,"% confidence interval for each coefficient.\n", sep = "")
-            }else if("lower" %in% columns){
-                cat("  The column lower indicates a ",100*level,"% confidence interval for each coefficient.\n", sep = "")
-            }else if("upper" %in% columns){
-                cat("  The column upper indicate a ",100*level,"% confidence interval for each coefficient.\n", sep = "")
-            }
-
-            if(("lower" %in% columns) || ("upper" %in% columns) || (!is.null(object$df)) || (robust && "se" %in% columns)){
-                cat("\n")
-            }
+            cat("Fixed effects:",deparse(call$formula),"\n\n")
+            .printStatTable(table = table.mean, df = df, level = level, robust = robust,
+                            method.p.adjust = NULL,
+                            backtransform = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL,
+                            columns = columns, 
+                            col.df = "df", name.statistic = c("z-statistic","t-statistic"),
+                            type.information = type.information,
+                            digits = digits,
+                            digits.df = digits.df,
+                            digits.p.value = digits.p.value,
+                            decoration = TRUE, legend = TRUE)
+            cat("\n")
         }
     }else{
         table.mean <- NULL
@@ -355,270 +329,200 @@ summary.lmm <- function(object, digits = 3, level = 0.95, type.cor = NULL, robus
 ##' @title Summary of Testing for a Linear Mixed Models
 ##' @description Estimates, p-values, and confidence intevals for linear hypothesis testing, possibly adjusted for multiple comparisons.
 ##' 
-##' @param object an \code{anova_lmm} object, output of \code{anova}.
+##' @param object an \code{Wald_lmm} object, output of \code{anova}.
 ##' @param print [logical] should the output be printed in the console.
 ##' Can be a vector of length 2 where the first element refer to the global tests and the second to the individual tests.
 ##' @param seed [integer] value that will be set before adjustment for multiple comparisons to ensure reproducible results.
 ##' Can also be \code{NULL}: in such a case no seed is set.
 ##' @param columns [character vector] Columns to be displayed for each null hypothesis.
-##' Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
-##' @param digits [interger] number of digits used to display estimates.
-##' @param digits.p.value [interger] number of digits used to display p-values.
-##' @param ... arguments \code{method}, \code{level}, and \code{backtransform} passed to \code{\link{confint_anova_lmm}}
+##' Can be any of \code{"type"}, \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.##' 
+##' @param legend [logical] should explanations about the content of the table be displayed.
+##' @param digits [interger, >0] number of digits used to display estimates.
+##' @param digits.df [interger, >0] number of digits used to display degrees of freedom.
+##' @param digits.p.value [interger, >0] number of digits used to display p-values.
+##' @param ... arguments \code{method}, \code{level}, and \code{backtransform} passed to \code{\link{confint.Wald_lmm}}
 ##'
 ##'
 ##' @details By default adjustment for multiple comparisons via a single step max-test adjustment,
 ##' either using the multcomp package (equal degrees of freedom) or the copula package (unequal degrees of freedom).
+##' When multiple multivariate Wald tests are performed, adjustment for multiple comparisons for the univariate Wald tests is performed within each multivariate Wald test.
+##' The number of tests ajusted for equal the first degree of freedom of the multivariate Wald statistic.
+##'
+##' Adding the value \code{"type"} in argument \code{"columns"} ensures that the type of parameter that is being test (mean, variance, correlation) is output.
+##'
+##' @return \code{NULL}
  
 ## * summary.Wald_lmm (code)
 ##' @export
-summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL,
-                             digits = max(3L, getOption("digits") - 2L),
-                             digits.p.value = max(3L, getOption("digits") - 2L),
+summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, legend = TRUE,
+                             digits = 3, digits.df = 1, digits.p.value = 3, sep = ": ",
                              ...){
 
+    ## ** normalize input
+    if(length(print)==1){
+        print.univariate <- print
+        print.multivariate <- print
+    }else if(length(print)>2){
+        stop("Argument \'print\' should have length at most 2. \n",
+             "The first element refering to global test and the second to individual hypotheses. \n")
+    }else{
+        print.multivariate <- print[1]
+        print.univariate <- print[2]
+    }
+    options <- LMMstar.options()
+    valid.columns <- c("null","estimate","se","statistic","df","lower","upper","p.value","partial.r","","type")
+    if(identical(columns,"all")){
+        columns.multivariate <- setdiff(valid.columns, c("estimate", "se", "lower", "upper"))
+        columns.univariate <- valid.columns
+    }else  if(is.null(columns)){
+        columns.univariate <- options$columns.anova
+        columns.multivariate <- union("statistic", setdiff(options$columns.anova, c("estimate", "se", "lower", "upper")))
+    }else{
+        columns.univariate <- tolower(columns)
+        if(any(columns.univariate %in% valid.columns == FALSE)){
+            stop("Incorrect value(s) \"",paste(columns.univariate[columns.univariate %in% valid.columns == FALSE], collapse ="\" \""),"\" for argument \'columns\'. \n",
+                 "Valid values: \"",paste(setdiff(valid.columns, columns.univariate), collapse ="\" \""),"\".\n")
+        }
+        columns.multivariate <- setdiff(columns.univariate, c("estimate", "se", "lower", "upper"))
+    }
+    if("df" %in% columns.multivariate){
+        index.df <- which(columns.multivariate == "df")
+        if(index.df == 1){
+            columns.multivariate <- c("df.num", "df.denom", columns.multivariate[(index.df+1):length(columns.multivariate)])
+        }else if(index.df == length(columns.multivariate)){
+            columns.multivariate <- c(columns.multivariate[1:(index.df-1)], "df.num", "df.denom")
+        }else{
+            columns.multivariate <- c(columns.multivariate[1:(index.df-1)], "df.num", "df.denom", columns.multivariate[(index.df+1):length(columns.multivariate)])
+        }
+    }
+    columns.multivariate <- gsub("^partial.r$","partial.r2", columns.multivariate)
+    type.information <- object$object$type.information
+    df <- object$args$df
+    robust <- object$args$robust
+    ci <- object$args$ci
+
+    transform.sigma <- object$args$transform.sigma
+    transform.k <- object$args$transform.k
+    transform.rho <- object$args$transform.rho
+
+    ## ** ensure reproducibility
     if(!is.null(seed)){
         old.seed <- get0(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
         on.exit( assign(".Random.seed", old.seed, envir = .GlobalEnv, inherits = FALSE) )
         set.seed(seed)
     }
 
-    if(length(print)==1){
-        print.indiv <- print
-        print.global <- print
-    }else if(length(print)>2){
-        stop("Argument \'print\' should have length at most 2. \n",
-             "The first element refering to global test and the second to individual hypotheses. \n")
-    }else{
-        print.global <- print[1]
-        print.indiv <- print[2]
-    }
-    options <- LMMstar.options()
-    valid.columns <- c("null","estimate","se","statistic","df","lower","upper","p.value","partial.r","")
-    if(identical(columns,"all")){
-        columns.global <- setdiff(valid.columns, c("estimate", "se", "lower", "upper"))
-        columns.indiv <- valid.columns
-    }else  if(is.null(columns)){
-        columns.indiv <- options$columns.anova
-        columns.global <- union("statistic", setdiff(options$columns.anova, c("estimate", "se", "lower", "upper")))
-    }else{
-        columns.indiv <- tolower(columns)
-        if(any(columns.indiv %in% valid.columns == FALSE)){
-            stop("Incorrect value(s) \"",paste(columns.indiv[columns.indiv %in% valid.columns == FALSE], collapse ="\" \""),"\" for argument \'columns\'. \n",
-                 "Valid values: \"",paste(setdiff(valid.columns, columns.indiv), collapse ="\" \""),"\".\n")
+    ## ** extract information
+    ## *** multivariate tests
+    if(print.multivariate>0){
+
+        table.multivariate <- object$multivariate[,setdiff(columns.multivariate,c("type",""))]
+        nchar.type <- nchar(object$args$type[[1]])
+        maxchar.type <- max(nchar.type)
+        if("type" %in% columns.multivariate){
+            vec.white <- sapply(maxchar.type-nchar.type, function(iN){paste(rep(" ", iN), collapse = "")})
+            rownames(table.multivariate) <- paste(vec.white,object$args$type[[1]],sep,object$multivariate$test,sep="")
+        }else if(any(duplicated(object$multivariate$test))){
+            test.nduplicated <- !duplicated(object$args$type[[1]])
+            rownames(table.multivariate) <- sapply(1:NROW(table.multivariate), function(iIndex){
+                if(test.nduplicated[iIndex]){
+                    paste(paste(rep(" ", maxchar.type-nchar.type[iIndex]), collapse = ""),object$args$type[[1]][iIndex],sep,object$multivariate$test[iIndex],sep="")
+                }else{
+                    paste(paste(rep(" ", maxchar.type+nchar(sep)), collapse = ""),object$multivariate$test[iIndex],sep="")
+                }
+            })
+        }else if(!identical(object$args$type[[1]],"all")){
+            rownames(object$multivariate) <- object$multivariate$test
         }
-        columns.global <- setdiff(columns.indiv, c("estimate", "se", "lower", "upper"))
+        if(print.multivariate>0.5){
+            cat("\t\tMultivariate Wald test \n\n")
+        }
+        .printStatTable(table = table.multivariate, robust = robust, df = df, level = NULL, type.information = type.information,
+                        method.p.adjust = NULL,
+                        backtransform = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL,
+                        columns = columns.multivariate, col.df = c("df.num","df.denom"), name.statistic = c("Chi2-statistic","F-statistic"),
+                        digits = digits, digits.df = c(df.num = 0, df.denom = digits.df), digits.p.value = digits.p.value,
+                        decoration = legend, legend = legend)
+
+        cat("\n")
     }
-    if("df" %in% columns.global){
-        index.df <- which(columns.global == "df")
-        if(index.df == 1){
-            columns.global <- c("df.num", "df.denom", columns.global[(index.df+1):length(columns.global)])
-        }else if(index.df == length(columns.global)){
-            columns.global <- c(columns.global[1:(index.df-1)], "df.num", "df.denom")
+    browser()
+    ## *** local tests
+    if(print.univariate>0 && ci){
+        table.univariate <- confint(object, columns = union(setdiff(columns.univariate,""),"type"), ...)
+        error <- attr(table.univariate,"error")
+        n.sample <- attr(table.univariate,"n.sample")
+        method.p.adjust <- attr(table.univariate,"method")
+        level <- attr(table.univariate,"level")
+        backtransform <- attr(table.univariate,"backtransform")
+
+        ## type of adjustment
+        if(length(object$args$type[[1]])>1){
+            if(length(unique(object$args$type[[1]]))==1){
+                factor.p.adjust <- "covariate name"
+            }else if(all(duplicated(object$args$type[[1]])==FALSE)){
+                factor.p.adjust <- "type of parameter"
+            }else{
+                factor.p.adjust <- "covariate name and type of parameter"
+            }
         }else{
-            columns.global <- c(columns.global[1:(index.df-1)], "df.num", "df.denom", columns.global[(index.df+1):length(columns.global)])
-        }
-    }
-    columns.global <- gsub("^partial.r$","partial.r2", columns.global)
-    object.df <- object$args$df
-    object.robust <- object$args$robust
-    object.ci <- object$args$ci
-
-    table.multivariate <- object$multivariate
-    table.multivariate$type.original <- object$args$type[[1]]
-    type <- unique(table.multivariate$type.original)
-
-    if(object.ci){
-        table.univariate <- confint(object, columns = union(c("type","test","method"),setdiff(columns.indiv,"")), ...)
-        if(NROW(table.multivariate)==1){
-            table.univariate$type.original <- table.multivariate$type.original
-        }else{
-            typetest2type.original <- stats::setNames(table.multivariate$type.original,paste(table.multivariate$type,table.multivariate$test,sep="|"))
-            table.univariate$type.original <- typetest2type.original[paste(table.univariate$type,table.univariate$test,sep="|")]
-        }
-        univariate.method <- attr(table.univariate,"method")
-    }
-
-    for(iType in type){ ## iType <- type[1]
-
-        ## ** Type of test
-        if(iType == "all" && (print.global>0.5 || print.indiv>0.5)){
-            cat("\n\t", "|| User-specified linear hypotheses || \n", sep="")
-            ## print(object$call)
-        }else if(print.global>0.5 || print.indiv>0.5){
-            cat("\n\t","|| ",iType," coefficients || \n", sep="")
+            factor.p.adjust <- NULL
         }
 
-        ## ** Global tests
-        object.print <- table.multivariate[table.multivariate$type.original==iType,,drop=FALSE]
-        object.print <- cbind(object.print,
-                              " " = stats::symnum(object.print$p.value, corr = FALSE, na = FALSE, 
-                                                  cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1), 
-                                                  symbols = c("***", "**", "*", ".", " "))
-                              )
-        names(object.print)[NCOL(object.print)] <- ""
-        object.print$p.value <- as.character(signif(object.print$p.value, digits = digits.p.value))
-        rownames(object.print) <- object.print$test
-
-            if(print.global){
-
-                txt.test <- "Multivariate Wald test (global null hypothesis)"
-                if(all(is.na(object.print$statistic)) && !is.null(attr(object.print$statistic,"error"))){
-                    cat("\n - ",txt.test,": ",attr(object.print$statistic,"error"),"\n", sep="")
+        ## incorporate type
+        table.univariate$type <-  c("mu" = "mean", "k" = "variance", "rho" = "correlation")[object$univariate$type]
+        nchar.type <- nchar(table.univariate$type)
+        maxchar.type <- max(nchar.type)
+        if("type" %in% columns.univariate){
+            vec.white <- sapply(maxchar.type-nchar.type, function(iN){paste(rep(" ", iN), collapse = "")})
+            rownames(table.univariate) <- paste(vec.white,table.univariate$type,sep,rownames(table.univariate),sep="")
+        }else if(length(unique(table.univariate$type))>1){
+            test.nduplicated <- !duplicated(table.univariate$type)
+            rownames(table.univariate) <- sapply(1:NROW(table.univariate), function(iIndex){
+                if(test.nduplicated[iIndex]){
+                    paste(paste(rep(" ", maxchar.type-nchar.type[iIndex]), collapse = ""),table.univariate$type[iIndex],sep,rownames(table.univariate)[iIndex],sep="")
                 }else{
-                    cat("\n - ",txt.test,"\n", sep="")
-                    object.print <-  object.print[,names(object.print) %in% columns.global,drop=FALSE]
-                    if(object.df){
-                        names(object.print) <- gsub("^statistic","F-statistic",names(object.print))
-                    }else{
-                        names(object.print) <- gsub("^statistic","chi2-statistic",names(object.print))
-                    }
-                    print(object.print, digits = digits, row.names = any(rownames(object.print)!="1"))
+                    paste(paste(rep(" ", maxchar.type+nchar(sep)), collapse = ""),rownames(table.univariate)[iIndex],sep="")
                 }
-            }
-
-            ## ** Individual specific tests
-            if(object.ci){
-                                
-                if(print.indiv){
-
-                    cat("\n - Univariate Wald test (individual null hypotheses) \n", sep="")
-                    object.print <- table.univariate[table.univariate$type.original==iType,,drop=FALSE]
-                    n.hypoPerTest <- table(paste(object.print$type,object.print$test,sep="|"))
-                    if(length(univariate.method)>1){
-                        warning("Different methods have been used to adjust for multiple comparisons - text describing the adjustment will not be accurate.")
-                    }
-                    object.print <- object.print[,names(object.print) %in% columns.indiv,drop=FALSE]
-                    if(object.df){
-                        names(object.print) <- gsub("^statistic","t-statistic",names(object.print))
-                    }else{
-                        names(object.print) <- gsub("^statistic","z-statistic",names(object.print))
-                    }
-
-                    stats::printCoefmat(object.print, digits = digits,
-                                        has.Pvalue = "p.value" %in% columns.indiv,
-                                        P.values = "p.value" %in% columns.indiv,
-                                        eps.Pvalue = 10^{-digits.p.value},
-                                        signif.legend = FALSE)
-                }
-            }
+            })
+        }
+        table.univariate$type <- NULL
+        if(inherits(object,"rbindWald_lmm") && length(unique(setdiff(object$univariate$method,"none"))>1)){
+            warning("Different methods have been used to adjust for multiple comparisons - text describing the adjustment will not be accurate.")
+        }
+        if(print.univariate>0.5){
+            cat("\t\tUnivariate Wald test \n\n")
         }
 
+        .printStatTable(table = table.univariate, robust = robust, df = df, level = level, type.information = type.information,
+                        method.p.adjust = method.p.adjust, factor.p.adjust = factor.p.adjust, error.p.adjust = error, seed = seed, n.sample = n.sample,
+                        backtransform = backtransform, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                        columns = setdiff(columns.univariate,"type"), col.df = c("df"), name.statistic = c("t-statistic","z-statistic"),
+                        digits = digits, digits.df = digits.df, digits.p.value = digits.p.value,
+                        decoration = legend, legend = legend)
 
-        ## ** Legend
-        if(print.global || print.indiv){
-
-            cat("---\n")
-            if("" %in% columns.global || "" %in% columns.indiv){
-                cat("Signif. codes:  0 \'***\' 0.001 \'**\' 0.01 \'*\' 0.05 \'.\' 0.1 \' \' 1\n")
-            }
-            if(object.robust && "se" %in% columns.indiv){
-                cat("  Standard errors: robust\n")
-            }else if("se" %in% columns.indiv){
-                cat("  Standard errors: model-based\n")
-            }
-
-            if("back-transform" %in% names(attributes(table.univariate))){
-                message.backtransform <- attr(table.univariate,"back-transform")[!is.na(attr(table.univariate,"back-transform")$FUN),,drop=FALSE]
-
-                if(any(message.backtransform[,setdiff(names(message.backtransform), "FUN")] == FALSE)){
-                    warning("Could not back-transform everything.\n")
-                }
-                if(NROW(object.print)==1){
-                    short2text <- stats::setNames(c("estimate","standard error","confidence interval","confidence interval"),c("estimate","se","lower","upper"))
-                    txt <- unique(short2text[intersect(names(short2text),intersect(names(object.print),names(message.backtransform)))])
-                }else{
-                    short2text <- stats::setNames(c("estimates","standard errors","confidence intervals","confidence intervals"),c("estimate","se","lower","upper"))
-                    txt <- unique(short2text[intersect(names(short2text),intersect(names(object.print),names(message.backtransform)))])
-                }
-                substr(txt[1], 1, 1) <- toupper(substr(txt[1], 1, 1))
-                cat("  ",paste(txt,collapse = ", ")," have been back-transformed",sep="")
-                if(print>0.5){
-                    cat(" (",paste0(paste(rownames(message.backtransform),collapse = "/")," parameters with ",paste(message.backtransform$FUN,collapse="/")),"). \n", sep ="")
-                }
-            }else if(any(!is.na(c(object$args$transform.sigma,object$args$transform.k,object$args$transform.rho)))){
-                vec.transform <- na.omit(c(sigma=object$args$transform.sigma,k=object$args$transform.k,rho=object$args$transform.rho))
-                if(NROW(object.print)==1){
-                    short2text <- stats::setNames(c("estimate","standard error","confidence interval","confidence interval"),c("estimate","se","lower","upper"))
-                    txt <- unique(short2text[intersect(names(short2text),names(object.print))])
-                }else{
-                    short2text <- stats::setNames(c("estimates","standard errors","confidence intervals","confidence intervals"),c("estimate","se","lower","upper"))
-                    txt <- unique(short2text[intersect(names(short2text),names(object.print))])
-                }
-                substr(txt[1], 1, 1) <- toupper(substr(txt[1], 1, 1))
-                cat("  ",paste(txt,collapse = ", ")," have been transformed",sep="")
-                if(print>0.5){
-                    cat(" (",paste0(paste(names(vec.transform),collapse = "/")," parameters with ",paste(vec.transform,collapse="/")),"). \n", sep ="")
-                }
-            }
-
-            if(any(c("p.value", "lower", "upper") %in% columns.indiv)){
-                if("p.value" %in% columns.indiv == FALSE){
-                    txt.cip <- "P-values"
-                }else if("lower" %in% columns.indiv == FALSE && "upper" %in% columns.indiv == FALSE){
-                    txt.cip <- "CIs"
-                }else{
-                    txt.cip <- "CIs/p-values"
-                }
-                if(univariate.method[1] == "none"){ ## always only one hypothesis in each global test
-                    ## cat("  (",txt.cip," not adjusted for multiple comparisons) \n", sep="")
-                }else if(length(n.hypoPerTest)==1){ ## only one global test
-                    if(univariate.method[1] == "bonferroni"){
-                        cat("  (",txt.cip," adjusted for multiple comparisons -- Bonferroni)\n", sep="")
-                    }else if(univariate.method[1] %in% c("single-step", "single-step2")){
-                        cat("  (",txt.cip," adjusted for multiple comparisons -- max-test adjustment)\n", sep="")
-                    }else{
-                        cat(paste0("  (",txt.cip," adjusted for multiple comparisons -- ",univariate.method[1],")\n", sep=""),sep="")
-                    }
-                }else{
-                    if(univariate.method[1] == "bonferroni"){
-                        cat("  (",txt.cip," adjusted for multiple comparisons within each global test -- bonferroni) \n", sep="")
-                    }else if(univariate.method[1] %in% c("single-step","single-step2")){
-                        cat("  (",txt.cip," adjusted for multiple comparisons within each global test -- max-test adjustment) \n", sep="")
-                    }else{
-                        cat(paste0("(",txt.cip," adjusted for multiple comparisons within each global test -- ",univariate.method[1],") \n", sep=""),sep="")
-                    }
-                }
-
-                if(univariate.method[1] == "single-step"){
-                    if(first){cat("\n");first <- FALSE}
-                    error <- max(c(0,abs(attr(table.univariate,"error")[table.multivariate$type.original==iType])), na.rm = TRUE)
-                    if(error > 1e-12){
-                        txt.error <- paste0("Error when computing the adjusted ",txt.cip," by numerical integration: ", signif(error, digits = 5))
-                        if(!is.null(seed)){
-                            txt.error <- paste0(txt.error," (seed ",seed,")")
-                        }
-                        cat(txt.error,".\n",sep="")
-                    }
-                }else if(univariate.method[1] == "single-step2"){
-                    if(first){cat("\n");first <- FALSE}
-                    txt.sample <- paste("Adjusted ",txt.cip," computed using ",attr(table.univariate,"n.sample")," samples", sep = "")
-                    if(!is.null(seed)){
-                        txt.sample <- paste0(txt.error," (seed ",seed,")")
-                    }
-                    cat(txt.sample,".\n")                            
-                }
-            }
+        if(print.univariate>0.5){
             cat("\n")
         }
-        
-   
+
+
+    }
+
+    ## ** export
+    return(invisible(NULL))
 }
 
 
 ## * summary.LRT_lmm
-summary.LRT_lmm <- function(object, digits = 3, columns = NULL, ...){
+summary.LRT_lmm <- function(object, digits = 3, digits.df = 1, digits.p.value = 3, columns = NULL, ...){
 
     ## ** normalize input
-    if(length(digits)==1){
-        digits <- rep(digits,2)
-    }
     valid.columns <- c("null","logLikH0","logLikH1","statistic","df","p.value","")
 
     if(identical(columns,"all")){
         columns <- valid.columns
     }else if(is.null(columns) || identical(columns,"all")){
-        columns <- setdiff(valid.columns,"null")
+        columns <- valid.columns
     }else{
         if(any(columns %in% valid.columns == FALSE)){
             stop("Incorrect value(s) \"",paste(columns[columns %in% valid.columns == FALSE], collapse ="\" \""),"\" for argument \'columns\'. \n",
@@ -636,24 +540,26 @@ summary.LRT_lmm <- function(object, digits = 3, columns = NULL, ...){
     }else if(attr(object,"type")=="2-1"){
         cat("\t\t(",name2," vs. ",name1,")\n\n",sep="")
     }
-
-    out <- as.data.frame(object)
-    out[names(out)[names(out) %in% columns == FALSE]] <- NULL
-    rownames(out) <- ""
-    toPrint <- capture.output(stats::printCoefmat(out, digits = digits[1],
-                                                  has.Pvalue = "p.value" %in% columns,
-                                                  P.values = "p.value" %in% columns,
-                                                  eps.Pvalue = 10^{-digits[2]},
-                                                  signif.legend = FALSE))
-    sapply(toPrint, function(iTxt){cat("  ",iTxt,"\n",sep="")})
-    cat(" ",paste(rep("-", max(nchar(toPrint))),collapse=""),"\n")
-    if("" %in% columns){
-        cat("  Signif. codes:  0 \'***\' 0.001 \'**\' 0.01 \'*\' 0.05 \'.\' 0.1 \' \' 1\n")
+    table <- as.data.frame(object)
+    if("null" %in% columns){
+        table$null
+        cat("  ","Null hypothesis: ",table$null,".\n\n",sep="")
     }
+
+    table[names(table)[names(table) %in% setdiff(columns,"null") == FALSE]] <- NULL
+    rownames(table) <- ""
+    
+    .printStatTable(table = table, robust = NULL, df = FALSE, level = NULL, type.information = NULL,
+                    method.p.adjust = NULL,
+                    backtransform = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL,
+                    columns = setdiff(columns,"null"), col.df = c("df"), name.statistic = c("statistic"),
+                    digits = digits, digits.df = digits.df, digits.p.value = digits.p.value,
+                    decoration = TRUE, legend = TRUE)
+
     cat("\n")
 
     ## ** export
-    return(invisible(out))
+    return(invisible(NULL))
 }
 
 ## * summary.mlmm (documentation)
@@ -667,24 +573,25 @@ summary.LRT_lmm <- function(object, digits = 3, columns = NULL, ...){
 ##' Can be a vector of length 2 where the first element refer to the global tests and the second to the individual tests.
 ##' @param hide.data [logical] should information about the dataset not be printed.
 ##' @param hide.fit [logical] should information about the model fit not be printed.
-##' @param ... other arguments are passed to \code{\link{summary.anova_lmm}}.
+##' @param ... other arguments are passed to \code{\link{summary.Wald_lmm}}.
 ##'
 
 ## * summary.mlmm (code)
 ##' @export
 summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.data = FALSE, hide.fit = FALSE, ...){
 
+    options <- LMMstar.options()
+            
     if(is.null(method)){
         method <- "none"
     }
     if(is.null(print)){
-        print <- c(FALSE,TRUE)
+        print <- c(0,1/2)
     }
-
 
     ## extract models
     ls.model <- object$model
-    method.fit <- object$args$method.fit
+    method.fit <- object$object$method.fit
     optimizer <- ls.model[[1]]$opt$name
     logLik <- sapply(ls.model, logLik)
     cv <- sapply(ls.model, function(iM){iM$opt$cv})
@@ -705,7 +612,7 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
     call <- attr(object,"call")
     
     ## ** welcome message
-    if(any(print)){
+    if(any(print>0)){
         cat("	Linear Mixed Models stratified according to \"",call$by,"\" \n\n",sep="")
     }
 
@@ -745,20 +652,253 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
 
 
     ## ** extract test
-    if(any(print)){
-        cat("Statistical inference \n")
-        if("columns" %in% names(list(...))){
-            out <- summary.anova_lmm(object, method = method, print = print/2, ...)
-        }else{
-            options <- LMMstar.options()
-            out <- summary.anova_lmm(object, method = method, columns = options$columns.summary, print = print/2, ...)
-        }
+    if(any(print>0)){
+        cat("Statistical inference \n\n")
+        out <- summary.Wald_lmm(object, method = method, print = print, ...)
     }
 
     ## ** export
     return(invisible(out))
 }
 
+
+## * .printStatTable (documentation)
+##' @description Display a table containing the model coefficients and their uncertainty, as well as a legendn.
+##' Inspired from \code{\link{stats::printCoefmat}}.
+##'
+##' @param table [data.frame] table containing the coefficients to be displayed.
+##' @param robust [logical or NULL] are robust standard error used?
+##' @param df [logical or NULL] are degrees of freedom calculated by Satterthwaite approximation?
+##' @param level [numeric or NULL] confidence level.
+##' @param type.information [character] type of information matrix.
+##' @param method.p.adjust [character or NULL] adjustment method for multiple comparisons.
+##' \code{"none"} corresponds to no adjustment.
+##' @param factor.p.adjust [character or NULL] Are p-values adjusted within a certain factor?
+##' @param error.p.adjust [numeric or NULL] Numeric error performed when adjusting for multiple comparisons.
+##' @param seed [integer, >0] Random number generator (RNG) state used when adjusting for multiple comparisons.
+##' @param n.sample [integer, >0] Number of samples used  when adjusting for multiple comparisons.
+##' @param backtransform [data.frame or NULL] Table containing how the estimates or their uncertainty have been back-transformed.?
+##' @param transform.sigma,transform.k,transform.rho [character or NULL] Transformation used on certain type of parameters?
+##' @param decoration [logical] should a decoration be displayed between the table and the legend?
+##' @param columns [character vector] columns from argument \code{table} to be displayed.
+##' @param col.df [character vector] columns containing the degrees of freedom. If several, they will be merged.
+##' @param name.statistic [character vector] how to rename the statistic depending on whether degrees of freedom have been computed.
+##' @param digits [interger, >0] number of digits used to display estimates.
+##' @param digits.df [interger, >0] number of digits used to display degrees of freedom.
+##' @param digits.p.value [interger, >0] number of digits used to display p-values.
+##' @param decoration [logical] should an horizontal bar be displayed just after the table.
+##' @param legend [logical] should explanations about the content of the table be displayed.
+##' @param space [character] horizontal space.
+##' 
+
+## * .printStatTable (code)
+##' @noRd
+.printStatTable <- function(table, robust, df, level, type.information,
+                            method.p.adjust = NULL, factor.p.adjust, error.p.adjust, seed, n.sample,
+                            backtransform = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL,
+                            columns, col.df, name.statistic,
+                            digits, digits.df, digits.p.value,
+                            decoration, legend, space = "  "){
+
+   
+    ## ** check input
+    if(any(setdiff(columns,"") %in% names(table) == FALSE)){
+        missing.col <- setdiff(columns,"")[setdiff(columns,"") %in% names(table) == FALSE]
+        stop("Inconsistency between argument \'columns\' and \'table\'. \n",
+             "Could not find column(s) \"",paste(missing.col, collapse="\" \""),"\" in \'table\'. \n")
+    }
+    if(is.null(transform.sigma)){
+        transform.sigma <- NA
+    }
+    if(is.null(transform.k)){
+        transform.k <- NA
+    }
+    if(is.null(transform.rho)){
+        transform.rho <- NA
+    }
+    
+    ## ** add stars
+    if("p.value" %in% names(table)){
+        table.print <- cbind(table,
+                             stats::symnum(table$p.value, corr = FALSE, na = FALSE,
+                                           cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1),
+                                           symbols = c("***", "**", "*", ".", " "))
+                             )
+        names(table.print)[NCOL(table.print)] <- ""
+    }else{
+        table.print <- table
+    }
+
+    ## ** round
+    columns.num <- intersect(setdiff(columns,c(col.df,"p.value")), names(table))
+    for(iCol in columns.num){
+        table.print[[iCol]] <- as.character(round(table.print[[iCol]], digits = digits))
+    }
+    if("p.value" %in% names(table)){
+        table.print$p.value <- as.character(format.pval(table.print$p.value, digits = digits.p.value, eps = 10^(-digits.p.value)))
+    }
+    if(!is.null(col.df)){
+        
+        if(identical(col.df,"df")){
+            table.print$df <- as.character(round(table.print$df, digits = digits.df))
+        }else{
+            table.print[[col.df[1]]] <- paste0("(",apply(do.call(cbind,lapply(col.df, function(iCol){
+                iDF <- formatC(table.print[[iCol]], digits = digits.df[[iCol]], format = "f")
+                nchar.iDF <- nchar(iDF)
+                maxchar.iDF <- max(nchar.iDF)
+                if(all(nchar.iDF==maxchar.iDF)){
+                    return(iDF)
+                }else{
+                    iWS <- sapply(maxchar.iDF-nchar.iDF, function(iN){paste(rep(" ",iN),collapse="")})
+                    return(paste0(iWS,iDF))
+                }
+            })), 1, paste, collapse = ","),")")
+            table.print[col.df[-1]] <- NULL
+            names(table.print)[names(table.print)== col.df[1]] <- "df"
+            columns[columns==col.df[1]] <- "df"
+            columns <- setdiff(columns,col.df[-1])
+        }
+    }
+
+    ## ** rename statistic
+    if(!is.null(name.statistic) && ("df" %in% names(table.print)) && ("statistic" %in% names(table.print))){
+        if(df){
+            columns[columns=="statistic"] <- name.statistic[1]
+            names(table.print)[names(table.print)=="statistic"] <- name.statistic[1]
+        }else{
+            columns[columns=="statistic"] <- name.statistic[1]
+            names(table.print)[names(table.print)=="statistic"] <- name.statistic[1]
+        }
+    }
+
+    ## ** add space to rownames
+    if(identical(rownames(table.print),"1")){
+        rownames(table.print) <- space
+    }else{
+        rownames(table.print) <- paste(space,rownames(table.print))
+    }
+    ## ** subset columns
+    table.print <- table.print[,names(table.print) %in% columns,drop=FALSE]
+
+    ## ** print table
+    print(table.print)
+
+    ## ** add decoration below table
+    if(decoration){
+        nchar.col <- sapply(1:NCOL(table.print), function(iCol){max(nchar(c(names(table.print)[iCol],as.character(table.print[[iCol]]))))})
+        nchar.tot <- sum(nchar.col) + max(nchar(rownames(table))) + NCOL(table.print)
+        cat(space,paste(rep("-", nchar.tot),collapse=""),"\n")
+    }
+    
+    ## ** legend
+    if(legend){
+
+        ## *** significance level
+        if("" %in% columns){
+            cat(space,"Signif. codes:  0 \'***\' 0.001 \'**\' 0.01 \'*\' 0.05 \'.\' 0.1 \' \' 1.\n",sep="")
+        }
+
+        if(!is.null(level) && is.null(method.p.adjust) && any(c("lower", "upper") %in% columns)){
+            ## *** ci 
+            if(NROW(table)==1){
+                txt.ci <- paste0("the ",100*level,"% confidence intervals of the coefficient")
+            }else{
+                txt.ci <- paste0(100*level,"% pointwise confidence intervals for each coefficient")
+            }
+            if("lower" %in% columns && "upper" %in% columns){
+                cat(space,"Columns lower and upper contain ",txt.ci,".\n", sep = "")
+            }else if("lower" %in% columns){
+                cat(space,"Column lower contains ",txt.ci,".\n", sep = "")
+            }else if("upper" %in% columns){
+                cat(space,"Column upper contains ",100*level,"% ",txt.ci,".\n", sep = "")
+            }
+        }else if(!is.null(level) && !is.null(method.p.adjust) && any(c("p.value","lower", "upper") %in% columns) && NROW(table)>1){
+            ## *** adjustment for multiple comparisons 
+            txt.cip <- paste("Columns",paste(intersect(c("lower","upper","p.value"),columns),collapse="/"))
+
+            if(method.p.adjust == "none"){ ## 
+                cat(space,txt.cip," not adjusted for multiple comparisons.\n", sep="")
+            }else{ 
+                if(method.p.adjust %in% c("single-step", "single-step2")){
+                    cat(space,txt.cip," adjusted for multiple comparisons -- max-test.\n", sep="")
+                }else{
+                    cat(paste0(space,txt.cip," adjusted for multiple comparisons -- ",method.p.adjust,".\n", sep=""),sep="")
+                }
+            }
+
+            if(method.p.adjust != "none" && !is.null(factor.p.adjust)){
+                cat(space,"(adjustment within ",factor.p.adjust,"). \n",sep="")
+            }
+            if(method.p.adjust == "single-step"){
+                if(!is.null(error.p.adjust) && abs(error.p.adjust>1e-12)){
+                    if(!is.null(seed)){
+                        cat(space,"(error when computing the adjusted ",txt.cip," by numerical integration: ", signif(error.p.adjust, digits = digits.p.value)," with seed for the RNG: ",seed,")\n",sep="")
+                    }else{
+                        cat(space,"(error when computing the adjusted ",txt.cip," by numerical integration: ", signif(error.p.adjust, digits = digits.p.value),")\n",sep="")
+                    }
+                }else if(!is.null(seed)){
+                    cat(space,"(seed for the RNG: ",seed,")\n",sep="")
+                }
+            }else if(method.p.adjust == "single-step2"){
+                if(!is.null(seed)){
+                    cat(space,"(",n.sample," samples have been used with seed for the RNG",seed,")\n",sep="")
+                }else{
+                    cat(space,"(",n.sample," samples have been used)\n",sep="")
+                }
+            }
+        }
+
+        ## *** type of standard error 
+        if(!is.null(robust) && !is.null(type.information)){
+            if(robust && "se" %in% columns){
+                cat(space,"Robust standard errors are derived from the ",type.information," information (column se). \n", sep = "")
+            }else if("se" %in% columns){
+                cat(space,"Model-based standard errors are derived from the ",type.information," information (column se). \n", sep = "")
+            }
+        }
+
+        ## *** type of degree of freeedom 
+        if(identical(df,TRUE) && "df" %in% columns){
+            cat(space,"Degrees of freedom were computed using a Satterthwaite approximation (column df). \n", sep = "")
+        }
+
+        ## *** backtransformation
+        if(!is.null(backtransform)){
+            message.backtransform <- backtransform[!is.na(backtransform$FUN),,drop=FALSE]
+
+            if(any(message.backtransform[,setdiff(names(message.backtransform), "FUN")] == FALSE)){
+                warning("Could not back-transform everything.\n")
+            }
+            if(NROW(table)==1){
+                short2text <- stats::setNames(c("estimate","standard error","confidence interval","confidence interval"),c("estimate","se","lower","upper"))
+                txt <- unique(short2text[intersect(names(short2text),intersect(columns,names(message.backtransform)))])
+            }else{
+                short2text <- stats::setNames(c("estimates","standard errors","confidence intervals","confidence intervals"),c("estimate","se","lower","upper"))
+                txt <- unique(short2text[intersect(names(short2text),intersect(columns,names(message.backtransform)))])
+            }
+            substr(txt[1], 1, 1) <- toupper(substr(txt[1], 1, 1))
+            cat("  ",paste(txt,collapse = ", ")," have been back-transformed",sep="")
+            cat(" (",paste0(paste(rownames(message.backtransform),collapse = "/")," parameters with ",paste(message.backtransform$FUN,collapse="/")),"). \n", sep ="")
+        }else if(any(!is.na(c(transform.sigma,transform.k,transform.rho)))){
+            vec.transform <- na.omit(c(sigma=transform.sigma,k=transform.k,rho=transform.rho))
+            if(NROW(table)==1){
+                short2text <- stats::setNames(c("estimate","standard error","confidence interval","confidence interval"),c("estimate","se","lower","upper"))
+                txt <- unique(short2text[intersect(names(short2text),columns)])
+            }else{
+                short2text <- stats::setNames(c("estimates","standard errors","confidence intervals","confidence intervals"),c("estimate","se","lower","upper"))
+                txt <- unique(short2text[intersect(names(short2text),columns)])
+            }
+            substr(txt[1], 1, 1) <- toupper(substr(txt[1], 1, 1))
+            cat("  ",paste(txt,collapse = ", ")," have been transformed (",paste0(paste(names(vec.transform),collapse = "/")," parameters with ",paste(vec.transform,collapse="/")),"). \n", sep ="")
+        }
+    }
+
+    ## ** export
+    return(invisible(NULL))
+
+}
+
 ######################################################################
 ### summary.R ends here
  
+   

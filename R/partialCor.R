@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: jul 20 2022 (15:54) 
+## Last-Updated: jul 21 2022 (17:19) 
 ##           By: Brice Ozenne
-##     Update #: 186
+##     Update #: 191
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -198,7 +198,7 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
     dataL$CCvariableCC <- factor(dataL$CCvariableCC, labels = name.Y)
     rownames(dataL) <- NULL
     
-    ## ** fit mixed model
+    ## ** prepare for mixed model
     index.interaction <- which(colSums(1-do.call(rbind,lapply(ls.name.X, function(iX){name.X %in% iX})))==0)
 
     X.formula <- name.X
@@ -230,7 +230,10 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
     }else{
         formula.mean <- CCvalueCC~CCvariableCC
     }
+
+    ## ** fit mixed model
     if(any(test.duplicated)){
+        ## *** TOEPLITZ mixed model (repetition)
         dataL <- dataL[order(dataL[[name.id]],dataL$CCvariableCC),]
         dataL$CCrepetitionCC <- unlist(tapply(dataL[[name.id]],dataL[[name.id]],function(iId){1:length(iId)}))
         formula.repetition <- stats::as.formula(paste("~CCrepetitionCC|",name.id))
@@ -269,6 +272,7 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
         attr(attr(out,"old2new"),"names") <- attr(attr(out,"old2new"),"names")
         attr(out,"backtransform.names") <- attr(out,"backtransform.names")[index.cor]
     }else{
+        ## *** UN/CS mixed model (no repetition)
         formula.repetition <- stats::as.formula(paste("~CCvariableCC|",name.id))
         if(heterogeneous){
             structure <- "UN"
@@ -277,6 +281,7 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
         }
 
         if(is.null(by)){
+            ## fit model
             e.lmm <- lmm(formula.mean, repetition = formula.repetition,
                          data = dataL, structure = structure)
 
@@ -284,10 +289,16 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
             n.param <- length(name.param)
             name.cor <- e.lmm$design$param[e.lmm$design$param$type=="rho","name"]
                 
+            ## define contrast
             if(length(effects)==0){
                 Cmat <- matrix(0, nrow = length(name.cor), ncol = n.param,
                                dimnames = list(name.cor,name.param))
-                diag(Cmat[name.cor,name.cor]) <- 1
+                if(length(name.cor)==1){
+                    Cmat[name.cor,name.cor] <- 1
+                }else{
+                    diag(Cmat[name.cor,name.cor]) <- 1
+                }
+                
             }else if(length(effects)==1 && is.character(effects)){
                 contrast <- contrMat(rep(1,length(name.cor)), type = effects)
                 Cmat <- matrix(0, nrow = NROW(contrast), ncol = n.param,
@@ -297,6 +308,8 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
                     paste(name.cor[as.numeric(trimws(iVec))], collapse = " - ")
                 }))
             }
+
+            ## run test linear hypothesis
             if(all(rowSums(Cmat!=0)==1) || !is.null(transform.rho)){
                 out <- confint(anova(e.lmm, effects = Cmat, transform.rho = transform.rho),
                                method = method, columns = c("estimate","se","df","lower","upper","p.value"))
@@ -308,12 +321,11 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
                 out$estimate <- out0$estimate
                 out$se <- out0$se
                 out$df <- out0$df
-                attr(out,"back-transform")[,"estimate"] <- FALSE
+                attr(out,"backtransform")[,"estimate"] <- FALSE
             }
         }else{
-            browser()
-            e.lmm <- mlmm(formula.mean, repetition = formula.repetition,
-                          data = dataL, structure = structure, by = by, effects = "correlation")
+            e.lmm <- mlmm(formula.mean, repetition = formula.repetition, data = dataL, structure = structure,
+                          by = by, effects = "correlation", contrast.rbind = effects)
             out <- confint(e.lmm, columns = c("estimate","se","df","lower","upper","p.value"))
         }
     }

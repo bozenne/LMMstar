@@ -3,7 +3,7 @@
 \name{autoplot}
 \alias{autoplot}
 \alias{autoplot.lmm}
-\alias{autoplot.anova_lmm}
+\alias{autoplot.Wald_lmm}
 \title{Graphical Display For Linear Mixed Models}
 \usage{
 \method{autoplot}{lmm}(
@@ -22,7 +22,7 @@
   ...
 )
 
-\method{autoplot}{anova_lmm}(
+\method{autoplot}{Wald_lmm}(
   object,
   color = NULL,
   ci = TRUE,
@@ -36,7 +36,7 @@
 )
 }
 \arguments{
-\item{object}{a \code{anova_lmm} object.}
+\item{object}{a \code{Wald_lmm} object.}
 
 \item{obs.alpha}{[numeric, 0-1] When not NA, transparency parameter used to display the original data by cluster.}
 

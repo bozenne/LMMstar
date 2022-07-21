@@ -4,7 +4,17 @@
 \alias{partialCor}
 \title{Partial Correlation}
 \usage{
-partialCor(formula, data, repetition, heterogeneous = TRUE, by = NULL)
+partialCor(
+  formula,
+  data,
+  repetition = NULL,
+  heterogeneous = TRUE,
+  by = NULL,
+  effects = NULL,
+  rhs = NULL,
+  method = "none",
+  transform.rho = NULL
+)
 }
 \arguments{
 \item{formula}{a formula with in the left hand side the variables for which the correlation should be computed

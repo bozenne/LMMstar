@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jul 20 2022 (16:57) 
+## Last-Updated: jul 21 2022 (17:17) 
 ##           By: Brice Ozenne
-##     Update #: 123
+##     Update #: 135
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -37,9 +37,9 @@ print.lmm <- function(x, ...){
     ## ** type of model
     if(length(param.rho) == 0){
         if(length(c(param.sigma,param.k))==1){
-            cat("     Linear regression \n")
+            cat("\t\tLinear regression \n")
         }else{
-            cat("     Linear regression with heterogeneous residual variance \n")
+            cat("\t\tLinear regression with heterogeneous residual variance \n")
         }
     }else{
         if(structure$type=="UN"){
@@ -48,7 +48,7 @@ print.lmm <- function(x, ...){
             }else{
                 txt.strata <- "a stratified"
             }
-            cat("     Linear Mixed Model with ",txt.strata," unstructured covariance matrix \n", sep = "")
+            cat("\t\tLinear Mixed Model with ",txt.strata," unstructured covariance matrix \n", sep = "")
         }else if(structure$type=="CS"){
             if(is.na(structure$name$strata)){
                 txt.strata <- "a"
@@ -56,11 +56,11 @@ print.lmm <- function(x, ...){
                 txt.strata <- "a stratified"
             }
             if(all(is.na(structure$name$cor[[1]]))){
-                cat("     Linear Mixed Model with ",txt.strata," compound symmetry covariance matrix \n", sep = "")
+                cat("\t\tLinear Mixed Model with ",txt.strata," compound symmetry covariance matrix \n", sep = "")
             }else if(structure$heterogeneous){
-                cat("     Linear Mixed Model with ",txt.strata," block unstructured covariance matrix \n", sep = "")
+                cat("\t\tLinear Mixed Model with ",txt.strata," block unstructured covariance matrix \n", sep = "")
             }else{
-                cat("     Linear Mixed Model with ",txt.strata," block compound symmetry covariance matrix \n", sep = "")
+                cat("\t\tLinear Mixed Model with ",txt.strata," block compound symmetry covariance matrix \n", sep = "")
             }
         }
     }
@@ -135,7 +135,7 @@ print.confint_lmm <- function(x, digits = 3, detail = FALSE, ...){
 
     print(as.data.frame(x), digits = digits, ...)
 
-    message.backtransform <- attr(x,"back-transform")
+    message.backtransform <- attr(x,"backtransform")
     test.backtransform <- !is.null(message.backtransform) && any(!is.na(message.backtransform$FUN))
 
     method.multiplicity <- attr(x,"method")
@@ -199,7 +199,7 @@ print.confint_lmm <- function(x, digits = 3, detail = FALSE, ...){
 print.Wald_lmm <- function(x, ...){
     dots <- list(...)
     dots$print <- c(1,0)
-    return(do.call(summary, c(list(object = x), dots)))
+    return(do.call(summary, c(list(object = x, legend = FALSE), dots)))
 }
 
 ## * print.LRT_lmm
@@ -207,7 +207,7 @@ print.Wald_lmm <- function(x, ...){
 print.LRT_lmm <- function(x, ...){
 
     ## ** display
-    cat("           Likelihood ratio test \n\n")
+    cat("\t\tLikelihood ratio test \n\n")
     out <- as.data.frame(x)
     out$null <- NULL
     rownames(out) <- ""
@@ -233,65 +233,10 @@ print.mlmm <- function(x, ...){
 ##' @export
 print.partialCor <- function(x, digits = 3, detail = TRUE, ...){
 
-    print(as.data.frame(x), digits = digits, ...)
-    browser()
-    message.backtransform <- attr(x,"back-transform")
-    test.backtransform <- !is.null(message.backtransform) && any(!is.na(message.backtransform$FUN))
-
-    method.multiplicity <- attr(x,"method")
-    test.multiplicity <- !is.null(method.multiplicity) && method.multiplicity!="none"
-
-    if(detail>0 && (test.multiplicity || test.backtransform)){
-
-        cat("\n   Note: ")
-        add.space <- ""
-
-        if(test.multiplicity){
-            if(!is.null(message.backtransform)){
-                names_x <- intersect(names(x),names(message.backtransform))
-            }else{
-                names_x <- names(x)
-            }
-            if(NROW(x)==1){
-                short2text <- stats::setNames(c("confidence interval","confidence interval","p-value"),c("lower","upper","p.value"))
-                txt <- unique(short2text[intersect(names(short2text),names_x)])
-            }else{
-                short2text <- stats::setNames(c("confidence intervals","confidence intervals","p-values"),c("lower","upper","p.value"))
-                txt <- unique(short2text[intersect(names(short2text),names_x)])
-            }
-            if(method.multiplicity == "bonferroni"){
-                txt.method <- "Bonferroni"
-            }else if(method.multiplicity %in% c("single-step","single-step2")){
-                txt.method <- "max-test adjustment"
-            }else{
-                txt.method <- method.multiplicity
-            }
-            add.space <- "         "
-            cat(paste(txt,collapse = ", ")," have been adjusted for multiplicity using ",method.multiplicity,". \n",sep="")
-        }
-        
-        if(test.backtransform){
-            message.backtransform <- message.backtransform[!is.na(message.backtransform$FUN),,drop=FALSE]
-
-            if(any(message.backtransform[,setdiff(names(message.backtransform), "FUN")] == FALSE)){
-                warning("Could not back-transform everything.\n")
-            }
-
-            if(NROW(x)==1){
-                short2text <- stats::setNames(c("estimate","standard error","confidence interval","confidence interval"),c("estimate","se","lower","upper"))
-                txt <- unique(short2text[intersect(names(short2text),intersect(names(x),names(message.backtransform)))])
-            }else{
-                short2text <- stats::setNames(c("estimates","standard errors","confidence intervals","confidence intervals"),c("estimate","se","lower","upper"))
-                txt <- unique(short2text[intersect(names(short2text),intersect(names(x),names(message.backtransform)))])
-            }
-            cat(add.space,paste(txt,collapse = ", ")," have been back-transformed",sep="")
-            if(detail>=0.5){
-                cat(" (",paste0(paste(rownames(message.backtransform),collapse = "/")," parameters with ",paste(message.backtransform$FUN,collapse="/")),"). \n", sep ="")
-            }
-            cat("\n")
-        }
-    }
-    return(invisible(NULL))
+    cat("\t\tPartial correlation \n\n")
+    dots <- list(...)
+    dots$print <- c(0,0.5)
+    return(do.call("summary.Wald_lmm", c(list(object = x, legend = FALSE), dots)))
 }
 
 ##----------------------------------------------------------------------

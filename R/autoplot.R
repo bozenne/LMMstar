@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: Jul 15 2022 (09:45) 
+## Last-Updated: jul 21 2022 (14:26) 
 ##           By: Brice Ozenne
-##     Update #: 199
+##     Update #: 201
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -232,11 +232,11 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
                           plot = gg)))
 }
 
-## * autoplot.anova_lmm (documentation)
+## * autoplot.Wald_lmm (documentation)
 ##' @title Graphical Display For Linear Hypothesis Test
 ##' @name autoplot
 ##'
-##' @param object a \code{anova_lmm} object.
+##' @param object a \code{Wald_lmm} object.
 ##' @param color [logical] should the estimates be colored by global null hypothesis, e.g. when testing the effect of a 3 factor covariate, the two corresponding coefficient will have the same color.
 ##' @param ci [logical] should confidence intervals be displayed?
 ##' @param plot [logical] should the plot be displayed?
@@ -265,10 +265,10 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
 ##'
 ##' 
 
-## * autoplot.anova_lmm (code)
+## * autoplot.Wald_lmm (code)
 ##' @rdname autplot
 ##' @export
-autoplot.anova_lmm <- function(object, color = NULL, ci = TRUE, plot = TRUE, 
+autoplot.Wald_lmm <- function(object, color = NULL, ci = TRUE, plot = TRUE, 
                                size.estimate = 3, size.ci = 1, width.ci = 0.2, size.null = 1, size.text = 16, ...){
 
     if(ci){

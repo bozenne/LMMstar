@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (10:48) 
 ## Version: 
-## Last-Updated: jul 18 2022 (16:45) 
+## Last-Updated: jul 21 2022 (16:59) 
 ##           By: Brice Ozenne
-##     Update #: 19
+##     Update #: 21
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -28,15 +28,15 @@
 ##' @export
 model.tables.lmm <- function(x, ...){
     out <- confint(x, ..., columns = c("estimate","se","df","lower","upper","p.value"))
-    attr(out, "back-transform") <- NULL
+    attr(out, "backtransform") <- NULL
     class(out) <- "data.frame"
     return(out)
 }
 
 ##' @export
-model.tables.anova_lmm <- function(x, ...){
+model.tables.Wald_lmm <- function(x, ...){
     out <- confint(x, ..., columns = c("estimate","se","df","lower","upper","p.value"))
-    attr(out, "back-transform") <- NULL
+    attr(out, "backtransform") <- NULL
     attr(out, "error") <- NULL
     attr(out, "level") <- NULL
     attr(out, "method") <- NULL
@@ -47,7 +47,7 @@ model.tables.anova_lmm <- function(x, ...){
 ##' @export
 model.tables.mlmm <- function(x, ...){
     out <- confint(x, ..., columns = c("estimate","se","df","lower","upper","p.value"))
-    attr(out, "back-transform") <- NULL
+    attr(out, "backtransform") <- NULL
     class(out) <- "data.frame"
     return(out)
 }

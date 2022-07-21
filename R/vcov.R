@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: jul 18 2022 (16:06) 
+## Last-Updated: jul 21 2022 (14:27) 
 ##           By: Brice Ozenne
-##     Update #: 500
+##     Update #: 503
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -159,7 +159,7 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strat
 
 ## * vcov.mlmm
 ##' @export
-vcov.anova_lmm <- function(object, ...){
+vcov.Wald_lmm <- function(object, ...){
 
     return(object$vcov)
 
@@ -169,7 +169,7 @@ vcov.anova_lmm <- function(object, ...){
 ##' @export
 vcov.mlmm <- function(object, ...){
 
-    ls.model <- lava::estimate(object)
+    ls.model <- object$model
     return(lapply(ls.model,vcov, ...))
 
 }

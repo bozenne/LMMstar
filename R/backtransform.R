@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 15 2022 (10:04) 
 ## Version: 
-## Last-Updated: jul 15 2022 (17:11) 
+## Last-Updated: jul 21 2022 (16:58) 
 ##           By: Brice Ozenne
-##     Update #: 40
+##     Update #: 41
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -133,7 +133,7 @@
     }
     
     ## ** export
-    attr(object,"back-transform") <- message
+    attr(object,"backtransform") <- message
     return(object)
 }
 
