@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jul 21 2022 (17:18) 
+## Last-Updated: jul 29 2022 (09:31) 
 ##           By: Brice Ozenne
-##     Update #: 914
+##     Update #: 937
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -446,10 +446,13 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
 
         cat("\n")
     }
-    browser()
+
     ## *** local tests
     if(print.univariate>0 && ci){
         table.univariate <- confint(object, columns = union(setdiff(columns.univariate,""),"type"), ...)
+        if(is.null(columns) && all(is.na(table.univariate$lower)) && all(is.na(table.univariate$upper))){
+            columns.univariate <- setdiff(columns.univariate, c("lower","upper"))
+        }
         error <- attr(table.univariate,"error")
         n.sample <- attr(table.univariate,"n.sample")
         method.p.adjust <- attr(table.univariate,"method")
@@ -470,7 +473,9 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         }
 
         ## incorporate type
-        table.univariate$type <-  c("mu" = "mean", "k" = "variance", "rho" = "correlation")[object$univariate$type]
+        if(attr(table.univariate,"method") %in% c("average","pool.se","pool.rubin") == FALSE){
+            table.univariate$type <-  c("mu" = "mean", "k" = "variance", "rho" = "correlation")[object$univariate$type]
+        }
         nchar.type <- nchar(table.univariate$type)
         maxchar.type <- max(nchar.type)
         if("type" %in% columns.univariate){
@@ -785,7 +790,7 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
 
     ## ** add decoration below table
     if(decoration){
-        nchar.col <- sapply(1:NCOL(table.print), function(iCol){max(nchar(c(names(table.print)[iCol],as.character(table.print[[iCol]]))))})
+        nchar.col <- sapply(1:NCOL(table.print), function(iCol){max(nchar(c(names(table.print)[iCol],as.character(table.print[[iCol]]))), na.rm = TRUE)})
         nchar.tot <- sum(nchar.col) + max(nchar(rownames(table))) + NCOL(table.print)
         cat(space,paste(rep("-", nchar.tot),collapse=""),"\n")
     }
@@ -812,12 +817,40 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
             }else if("upper" %in% columns){
                 cat(space,"Column upper contains ",100*level,"% ",txt.ci,".\n", sep = "")
             }
+        }else if(!is.null(method.p.adjust) && method.p.adjust %in% c("average","pool.se","pool.rubin")){
+
+            if(method.p.adjust == "average"){
+                if(NROW(table)>1){
+                    cat(space,"Estimates have been averaged within ",factor.p.adjust,".\n", sep="")
+                }else{
+                    cat(space,"Estimates have been averaged.\n", sep="")
+                }
+            }else if(method.p.adjust == "pool.se"){
+                if(NROW(table)>1){
+                    cat(space,"Estimates have been averaged, weighted by the inverse of their variance, within ",factor.p.adjust,".\n", sep="")
+                }else{
+                    cat(space,"Estimates have been averaged, weighted by the inverse of their variance.\n", sep="")
+                }
+                if(any(c("se","lower","upper","p.value") %in% columns)){
+                    cat(space,space,"WARNING: uncertainty about the weights has not been accounted for. \n",sep="")
+                }
+            }else if(method.p.adjust == "pool.rubin"){
+                if(NROW(table)>1){
+                    cat(space,"Estimates have been pooled within ",factor.p.adjust," using Rubin's rule.\n", sep="")
+                }else{
+                    cat(space,"Estimates have been pooled using Rubin's rule.\n", sep="")
+                }
+            }
+
+            
+            method.p.adjust
         }else if(!is.null(level) && !is.null(method.p.adjust) && any(c("p.value","lower", "upper") %in% columns) && NROW(table)>1){
+
             ## *** adjustment for multiple comparisons 
             txt.cip <- paste("Columns",paste(intersect(c("lower","upper","p.value"),columns),collapse="/"))
 
             if(method.p.adjust == "none"){ ## 
-                cat(space,txt.cip," not adjusted for multiple comparisons.\n", sep="")
+                ## cat(space,txt.cip," not adjusted for multiple comparisons.\n", sep="")
             }else{ 
                 if(method.p.adjust %in% c("single-step", "single-step2")){
                     cat(space,txt.cip," adjusted for multiple comparisons -- max-test.\n", sep="")

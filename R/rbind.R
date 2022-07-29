@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 21 2022 (16:33) 
+## Last-Updated: jul 29 2022 (09:33) 
 ##           By: Brice Ozenne
-##     Update #: 303
+##     Update #: 324
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -75,7 +75,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
                         })))
 
     Utype <- unique(unlist(table.args$type))
-    newtable.args <- data.frame(type = ifelse(length(Utype)>1,"all",Utype),
+    newtable.args <- data.frame(type = ifelse(length(Utype)>1,"all",Utype), sep = sep,
                                 table.args[1,c("robust","df","ci","transform.sigma","transform.k","transform.rho","transform.names")]
                                 )
 
@@ -118,11 +118,11 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
     }
 
     if(is.null(name)){
-        name.unitest <- unlist(lapply(ls.object, function(iO){rownames(iO$univariate)}))
-        if(any(duplicated(name.unitest))){
-            name.unitest <- unlist(lapply(ls.object, function(iO){paste0(iO$object$outcome, sep, rownames(iO$univariate))}))
+        name.modelparam <- unlist(lapply(ls.object, function(iO){rownames(iO$univariate)}))
+        if(any(duplicated(name.modelparam))){
+            name.modelparam <- unlist(lapply(ls.object, function(iO){paste0(iO$object$outcome, sep, rownames(iO$univariate))}))
 
-            if(is.na(sep) || any(duplicated(name.unitest))){
+            if(is.na(sep) || any(duplicated(name.modelparam))){
                 stop("Univariate test should have distinct names. \n",
                      "Consider naming them when calling anova, e.g. anova(object, effect = c(\"myname1\"=\"X1=0\",\"myname2\"=\"X2=0\"))")
             }else{
@@ -132,32 +132,32 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
             }
         }
     }else{
-        name.unitest <- unlist(lapply(1:n.object, function(iO){paste0(name[iO],sep,rownames(ls.object[[iO]]$univariate))}))
+        name.modelparam <- unlist(lapply(1:n.object, function(iO){paste0(name[iO],sep,rownames(ls.object[[iO]]$univariate))}))
         for(iO in 1:n.object){
             rownames(ls.object[[iO]]$univariate) <- paste0(name[iO],sep,rownames(ls.object[[iO]]$univariate))
         }
-        if(any(duplicated(name.unitest))){
+        if(any(duplicated(name.modelparam))){
             stop("Univariate test should have distinct names. \n",
                  "Consider naming them when calling anova, e.g. anova(object, effect = c(\"myname1\"=\"X1=0\",\"myname2\"=\"X2=0\"))")
         }
     }
 
-    n.test <- length(name.unitest)
+    n.modelparam <- length(name.modelparam)
     if(!is.null(effects)){
 
         if(is.matrix(effects)){
             contrast <- effects
-            if(NCOL(contrast)!=n.test){
-                stop("Incorrect contrast matrix: should have ",n.test," columns.\n",
+            if(NCOL(contrast)!=n.modelparam){
+                stop("Incorrect contrast matrix: should have ",n.modelparam," columns.\n",
                      "(one for each univariate test) \n")
             }
             if(is.null(colnames(contrast))){
-                colnames(contrast) <- name.unitest
-            }else if(!identical(sort(colnames(contrast)), sort(name.unitest))){
+                colnames(contrast) <- name.modelparam
+            }else if(!identical(sort(colnames(contrast)), sort(name.modelparam))){
                 stop("Incorrect column names for argument contrast.\n",
-                     "Should match \"",paste(sort(name.unitest), collapse="\" \""),"\".\n")
+                     "Should match \"",paste(sort(name.modelparam), collapse="\" \""),"\".\n")
             }else{
-                contrast <- contrast[,name.unitest,drop=FALSE]
+                contrast <- contrast[,name.modelparam,drop=FALSE]
             }
         }else if(all(is.character(effects))){
             if(length(effects)>1){
@@ -167,16 +167,18 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
             if(effects %in% valid.contrast == FALSE){
                 stop("When a character, argument \'effects\' should be one of \"",paste(valid.contrast, collapse = "\" \""),"\". \n")
             }
-            contrast <- contrMat(rep(1,length(name.unitest)), type = effects)
-            colnames(contrast) <- name.unitest
+            contrast <- contrMat(rep(1,length(name.modelparam)), type = effects)
+            colnames(contrast) <- name.modelparam
             try(rownames(contrast) <- unlist(lapply(strsplit(split = "-",rownames(contrast),fixed=TRUE), function(iVec){
-                paste(name.unitest[as.numeric(trimws(iVec))], collapse = " - ")
+                paste(name.modelparam[as.numeric(trimws(iVec))], collapse = " - ")
             })), silent = TRUE)
         }
     }else{
-        contrast <- diag(1, nrow = n.test, ncol = n.test)
-        dimnames(contrast) <- list(name.unitest, name.unitest)
+        contrast <- diag(1, nrow = n.modelparam, ncol = n.modelparam)
+        dimnames(contrast) <- list(name.modelparam, name.modelparam)
     }
+    n.test <- NROW(contrast)
+    name.test <- rownames(contrast)
 
     if(!is.null(rhs)){
         if(length(rhs)!=n.test){
@@ -184,7 +186,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
                  "(one for each univariate test) \n")
         }
     }else{
-        rhs <- stats::setNames(rep(0, n.test), name.unitest)
+        rhs <- stats::setNames(rep(0, n.test), name.test)
     }
 
     cluster.var <- ls.object[[1]]$object$cluster.var
@@ -238,17 +240,14 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
     }
     col.nametest <- colnames(gridTest)
     name.test <- unique(as.character(interaction(gridTest[,col.nametest,drop=FALSE])))
-    
+
     ## ** Extract elements from anova object
     ## *** univariate Wald test
-    newtable.univariate <- do.call(rbind,lapply(1:n.object,function(iO){ ## iO <- 1
+    table.univariate <- do.call(rbind,lapply(1:n.object,function(iO){ ## iO <- 1
         iTable <- cbind(outcome = outcome[iO], ls.object[[iO]]$univariate)
         iTable$name.test <- factor(as.character(interaction(iTable[,col.nametest,drop=FALSE])),levels = name.test)
         return(iTable)
     }))
-    newtable.univariate$lower <- NA
-    newtable.univariate$upper <- NA
-    newtable.univariate$p.value <- NA
     
     ## *** cluster
     ls.cluster <- lapply(ls.object, function(iO){iO$object$cluster})
@@ -262,13 +261,13 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
     }
 
     ## *** estimate
-    beta.estimate <- stats::setNames(newtable.univariate$estimate, name.unitest)
+    beta.estimate <- stats::setNames(table.univariate$estimate, name.modelparam)
     if(independence){
         
         beta.vcov <- as.matrix(do.call(Matrix::bdiag,lapply(ls.object, "[[", "vcov")))
         
         if(all(diag(contrast)==1) && all(contrast[upper.tri(contrast, diag = FALSE)] == 0) && all(contrast[lower.tri(contrast, diag = FALSE)] == 0)){
-            beta.df <- newtable.univariate$df
+            beta.df <- table.univariate$df
         }else{
             beta.df <- rep(Inf, length(beta.estimate))
             newtable.args$df <- FALSE
@@ -298,15 +297,16 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
         beta.df <- rep(Inf, length(beta.estimate))
         newtable.args$df <- FALSE
     }
-    dimnames(beta.vcov) <- list(name.unitest,name.unitest)
-    names(beta.df) <- name.unitest
+    dimnames(beta.vcov) <- list(name.modelparam,name.modelparam)
+    names(beta.df) <- name.modelparam
 
     ## ** Combine elements
 
     ## *** multivariate tests
-    outSimp <- .simplifyContrast(contrast, rhs) ## remove extra lines
+    outSimp <- .simplifyContrast(contrast, rhs = rhs) ## remove extra lines
     C.vcov.C <- outSimp$C %*% beta.vcov %*% t(outSimp$C)
     C.vcov.C_M1 <- try(solve(C.vcov.C), silent = TRUE)
+
     if(inherits(C.vcov.C_M1,"try-error")){
         multistat <- NA
         attr(multistat,"error") <- "\n  Could not invert the covariance matrix for the proposed contrast."
@@ -327,38 +327,43 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
 
     ## *** univariate
     if(!is.null(effects)){
-        ## new names
-        rownames(newtable.univariate) <- rownames(contrast)
-        ## new estimate
-        newtable.univariate$estimate <- (contrast %*% beta.estimate)[,1]
-        ## new uncertainty
         C.vcov.C <- contrast %*% beta.vcov %*% t(contrast)
-        newtable.univariate$se <- sqrt(diag(C.vcov.C))
-        ## new test statistic
+        newtable.univariate <- data.frame(type = ifelse(length(Utype2)>1,"all",Utype2),
+                                          test = 1,
+                                          estimate = (contrast %*% beta.estimate)[,1],
+                                          se = sqrt(diag(C.vcov.C)),
+                                          df = Inf,
+                                          statistic = NA,
+                                          lower = NA,
+                                          upper = NA,
+                                          null = rhs,
+                                          partial.r = NA,
+                                          p.value = NA)
+        rownames(newtable.univariate) <- rownames(contrast)
         newtable.univariate$statistic <- newtable.univariate$estimate/newtable.univariate$se
-        ## new degrees of freedom
-        newtable.univariate$df <- Inf
         newtable.args$df <- FALSE
     }else{
+        newtable.univariate <- table.univariate
         C.vcov.C <- beta.vcov
     }
     if(newtable.args$df){
         e.glht <- list(linfct = contrast, rhs = rhs,
-                       coef = newtable.univariate$estimate, vcov = C.vcov.C, df = ceiling(stats::median(newtable.args$df)), alternative = alternative)
+                       coef = table.univariate$estimate, vcov = beta.vcov, df = ceiling(stats::median(newtable.args$df)), alternative = alternative)
     }else{
         e.glht <- list(linfct = contrast, rhs = rhs,
-                       coef = newtable.univariate$estimate, vcov = C.vcov.C, df = FALSE, alternative = alternative)
+                       coef = table.univariate$estimate, vcov = beta.vcov, df = FALSE, alternative = alternative)
     }
     class(e.glht) <- "glht"
 
     ## ** Export
+    e.glht$linfct.original <- lapply(ls.glht, "[[", "linfct")
     out <- list(multivariate = newtable.multivariate[,names(model$multivariate),drop=FALSE],
                 univariate = newtable.univariate[,names(model$univariate),drop=FALSE],
                 glht = list(all = list("1" = e.glht)),
                 object = newobject,
                 args = newtable.args,
                 vcov = C.vcov.C)
-
+    attr(out$object,"independence") <- independence
     attr(out,"call") <- list(anova = lapply(ls.object,attr,"call"),
                              rbind = match.call())
     class(out) <- append(c("rbindWald_lmm","Wald_lmm"),class(out))

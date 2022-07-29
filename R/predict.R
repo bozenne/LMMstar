@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jul 18 2022 (17:01) 
+## Last-Updated: jul 29 2022 (11:49) 
 ##           By: Brice Ozenne
-##     Update #: 675
+##     Update #: 707
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -400,7 +400,7 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
 }
 
 ## * .dfX
-.dfX <- function(X.beta, vcov.param, dVcov.param){
+.dfX <- function(X.beta, vcov.param, dVcov.param, return.vcov = FALSE){
 
     if(!is.matrix(X.beta) && is.vector(X.beta)){
         X.beta <- rbind(X.beta)
@@ -463,8 +463,11 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
     ##     2 * prediction.vcov[iObs,iObs]^2 / (dXTX.dT[iObs,] %*% vcov.vcovbeta %*% dXTX.dT[iObs,])
     ## })
 
-
     ## ** export
+    if(return.vcov){
+        attr(out,"vcov") <- vcov.vcovbeta
+        attr(out,"contrast") <- X.beta
+    }
     return(out)
 }
 

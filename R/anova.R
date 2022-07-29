@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jul 21 2022 (14:54) 
+## Last-Updated: jul 29 2022 (11:04) 
 ##           By: Brice Ozenne
-##     Update #: 1129
+##     Update #: 1147
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -393,7 +393,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         if(length(ls.nameTerms.num[[iType]])==0 || (is.null(ls.contrast[[iType]]) && (all(ls.assign[[iType]]==0)))){ next }
 
         iParam <- coef(object, effects = iType,
-                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
         name.iParam <- names(iParam)
         
         if(is.null(ls.nameTerms[[iType]])){
@@ -401,7 +401,6 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         }
         out$glht[[iType]] <- stats::setNames(vector(mode = "list", length = length(ls.nameTerms.num[[iType]])), ls.nameTerms[[iType]])
 
-        
         for(iTerm in ls.nameTerms.num[[iType]]){ ## iTerm <- 1
             iNameTerm <- ls.nameTerms[[iType]][[which(iTerm == ls.nameTerms.num[[iType]])]]
 
@@ -414,7 +413,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                 iNull <- rep(ls.null[[iType]][iTerm],iN.hypo)
                 iName.hypo <- paste(paste0(name.iParam[iIndex.param],"=",iNull), collapse = ", ")
 
-                iC <- matrix(0, nrow = iN.hypo, ncol = n.param, dimnames = list(name.iParam[iIndex.param], newname))
+                iC <- matrix(0, nrow = iN.hypo, ncol = n.param, dimnames = list(name.iParam[iIndex.param], name.param))
                 if(length(iIndex.param)==1){
                     iC[name.iParam[iIndex.param],name.iParam[iIndex.param]] <- 1
                 }else{
@@ -464,9 +463,9 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
             }
 
             ## *** confidence interval
-            if(ci){
+            if(ci>0){
                 if(df>0){
-                    ci.df <-  .dfX(X.beta = iC.uni, vcov.param = vcov.param, dVcov.param = dVcov.param)
+                    ci.df <-  .dfX(X.beta = iC.uni, vcov.param = vcov.param, dVcov.param = dVcov.param, return.vcov = ci>0.5)
                 }else{
                     ci.df <- Inf
                 }
@@ -561,7 +560,6 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
             out$iid <- iid(object, effects = "mean", robust = robust2, 
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names) %*% t(globalC)
         }
-        ## do not handle df ...
     }
 
     ## ** export
@@ -867,7 +865,6 @@ dfSigma <- function(contrast, vcov, dVcov, keep.param){
                     message("Singular contrast matrix: contrasts \"",paste(name.rm,collapse= "\" \""),"\" have been removed. \n")
                 }
             }
-
             return(list(C = object[keep.lines,,drop=FALSE], rhs = rhs[keep.lines], dim = length(keep.lines), rm = NROW(object)-length(keep.lines)))
         }
     }

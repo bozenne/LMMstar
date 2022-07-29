@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: jul 21 2022 (14:27) 
+## Last-Updated: jul 28 2022 (18:04) 
 ##           By: Brice Ozenne
-##     Update #: 503
+##     Update #: 512
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -162,16 +162,19 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strat
 vcov.Wald_lmm <- function(object, ...){
 
     return(object$vcov)
-
+    
 }
 
 ## * vcov.mlmm
 ##' @export
-vcov.mlmm <- function(object, ...){
+vcov.mlmm <- function(object, effects = "contrast", ...){
 
-    ls.model <- object$model
-    return(lapply(ls.model,vcov, ...))
-
+    if(!is.null(effects) && effects=="contrast"){
+        return(object$vcov)
+    }else{
+        return(lapply(object$model, vcov, effects = effects, ...))
+    }
+    
 }
 
 ##----------------------------------------------------------------------

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: jul 20 2022 (16:17) 
+## Last-Updated: jul 28 2022 (18:05) 
 ##           By: Brice Ozenne
-##     Update #: 553
+##     Update #: 555
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -273,10 +273,14 @@ coef.LRT_lmm <- function(object, ...){
 }
 ## * coef.mlmm
 ##' @export
-coef.mlmm <- function(object, ...){
+coef.mlmm <- function(object, effects = "contrast", ...){
 
-    return(lapply(object$model,coef, ...))
-
+    if(!is.null(effects) && effects=="contrast"){
+        return(stats::setNames(object$univariate$estimate,rownames(object$univariate)))
+    }else{
+        return(lapply(object$model, coef, effects = effects, ...))
+    }
+    
 }
 
 

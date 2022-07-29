@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 13 2022 (13:55) 
 ## Version: 
-## Last-Updated: jul 18 2022 (16:52) 
+## Last-Updated: jul 29 2022 (14:00) 
 ##           By: Brice Ozenne
-##     Update #: 10
+##     Update #: 20
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -97,19 +97,44 @@ e.lmm2 <- lmm(Y2 ~ X1+X2+X3, repetition = ~visit|id2, data = dL,
 
 test_that("anova_lmm vs. confint", {
 
+    ## anova(e.lmm1, effects = "X11=0")
+
     ## check back-transform is working like confint
     GS <- model.tables(e.lmm1, effects = "all")
     test1 <- model.tables(anova(e.lmm1, effects = "all"), method = "none")
     expect_equal(test1, GS[rownames(test1),], tol = 1e-5)
 
-    test2 <- model.tables(anova(e.lmm1, effects = c("k.2=0","X1=0")), method = "none")
+    test2 <- model.tables(anova(e.lmm1, effects = c("k.2=0","X11=0")), method = "none")
     expect_equal(test2, GS[rownames(test2),], tol = 1e-5)
 
     ## default no back
-    test1.bis <- model.tables(anova(e.lmm1, effects = "all", backtransform = FALSE), method = "none")
+    test1.bis <- model.tables(anova(e.lmm1, effects = "all"), backtransform = FALSE, method = "none")
     expect_equal(test1$p.value, test1.bis$p.value, tol = 1e-5)
-    expect_equal(confint(e.lmm1, backtransform = FALSE, effects = "all")[rownames(test1.bis),"estimate"],
+    expect_equal(confint(e.lmm1, backtransform = FALSE, effects = "all", transform.names = FALSE)[rownames(test1.bis),"estimate"],
                  unname(test1.bis$estimate), tol = 1e-5)
+})
+
+## ** pooling
+
+test_that("pooling anova_lmm ", {
+
+    test <- anova(eUN.lmm, effects = c("X11=0","X21=0","X5=0","X11:X21=0"))
+
+    ## average
+    test2 <- estimate(eUN.lmm, function(p){mean(p[2:5])})
+    GS <- anova(eUN.lmm, effects = c("average" = "0.25*X11 + 0.25*X21 + 0.25*X5 + 0.25*X11:X21=0"))
+
+    expect_equal(as.double(model.tables(GS)), as.double(model.tables(test, method = "average")), tol = 1e-6)
+    expect_equal(as.double(model.tables(GS)[,c("estimate","se","df")]), as.double(test2[,c("estimate","se","df")]), tol = 1e-4)
+
+    ## pool.fixse
+    test2 <- estimate(eUN.lmm, function(p){
+        weighted.mean(p[2:5], 1/diag(vcov(eUN.lmm))[2:5])
+    })
+    model.tables(test, method = "pool.fixse")
+
+    model.tables(test, method = "pool.se")
+
 })
 
 ## ** rbind

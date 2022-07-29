@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: jul 20 2022 (16:17) 
+## Last-Updated: jul 29 2022 (13:03) 
 ##           By: Brice Ozenne
-##     Update #: 863
+##     Update #: 869
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -74,17 +74,34 @@
 ##' @export
 estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NULL, level = 0.95,
                          method.numDeriv = NULL, average = FALSE,
-                         transform.sigma = "none", transform.k = "none", transform.rho = "none", ...){
+                         transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, ...){
 
 
+    ## ** normalize arguments
     if(is.null(method.numDeriv)){
         method.numDeriv <- LMMstar.options()$method.numDeriv
     }
-    
-    ## estimate
-    beta <- coef(x, effects = "all", transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
+    if(is.null(transform.sigma)){
+        transform2.sigma <- "none"
+    }else{
+        transform2.sigma <- transform.sigma
+    }
+    if(is.null(transform.k)){
+        transform2.k <- "none"
+    }else{
+        transform2.k <- transform.k
+    }
+    if(is.null(transform.rho)){
+        transform2.rho <- "none"
+    }else{
+        transform2.rho <- transform.rho
+    }
 
-    ## partial derivative
+    ## ** estimate
+    beta <- coef(x, effects = "all", transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho, transform.names = FALSE)
+    type.beta <- stats::setNames(x$design$param$type,x$design$param$name)[names(beta)]
+
+    ## ** partial derivative
     f.formals <- names(formals(f))
     if(length(f.formals)==1){
         if(average){
@@ -106,10 +123,22 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
             grad <- numDeriv::jacobian(func = f, x = beta, method = method.numDeriv, ...)
         }
     }
+    colnames(grad) <- names(beta)
 
-    ## extract variance-covariance
+    ## revert back to usual transformation if vcov parameter not used
+    if(all(colSums(grad[,type.beta=="sigma",drop=FALSE]!=0)==0) && is.null(transform.sigma)){
+        transform2.sigma <- x$reparametrize$transform.sigma
+    }
+    if(all(colSums(grad[,type.beta=="k",drop=FALSE]!=0)==0) && is.null(transform.k)){
+        transform2.k <- x$reparametrize$transform.k
+    }
+    if(all(colSums(grad[,type.beta=="rho",drop=FALSE]!=0)==0) && is.null(transform.rho)){
+        transform2.rho <- x$reparametrize$transform.rho
+    }
+    
+    ## ** extract variance-covariance
     Sigma <- vcov(x, df = 2*(df>0), effects = "all", robust = robust, type.information = type.information, ## 2*df is needed to return dVcov
-                  transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
+                  transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho)
 
     ## ** delta-method
     C.Sigma.C <- grad %*% Sigma %*% t(grad)
@@ -128,15 +157,10 @@ estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NUL
         C.sigma.C <- sqrt(diag(C.Sigma.C))
     }
     
-    ## df 
+    ## ** df 
     if(!is.null(attr(Sigma, "dVcov"))){
-        keep.param <- dimnames(attr(Sigma, "dVcov"))[[3]]
-        C.dVcov.C <- sapply(keep.param, function(iM){ ##  iName  <- dimnames(attr(Sigma, "dVcov"))[[3]][1]
-            rowSums(grad %*% attr(Sigma, "dVcov")[,,iM] * grad)
-        })
-        numerator <- 2 *diag(C.Sigma.C)^2
-        denom <- rowSums(C.dVcov.C %*% Sigma[keep.param,keep.param,drop=FALSE] * C.dVcov.C)
-        df <- numerator/denom
+        colnames(grad) <- colnames(Sigma)
+        df <- .dfX(X.beta = grad, vcov.param = Sigma, dVcov.param = attr(Sigma, "dVcov"))
     }else{
         df <- rep(Inf, NROW(grad))
     }
