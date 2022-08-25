@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: Jul 13 2022 (18:30) 
+## Last-Updated: aug 24 2022 (10:50) 
 ##           By: Brice Ozenne
-##     Update #: 228
+##     Update #: 241
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -130,11 +130,15 @@
         Z <- do.call(cbind,ls.Z)[,colnames(X)]
         eTest.res <- stats::lm.fit(y=epsilon2.ssc,x=Z)
 
-        if(all(abs(e.res$fitted.value-eTest.res$fitted.value)<1e-6)){
+        if(all(abs(e.res$fitted.value-eTest.res$fitted.value)<1e-6) || any(epsilon2.ssc<=0)){
             ls.out <- lapply(1:n.strata, function(iStrata){
                 iParamVar.type <- paramVar.type[paramVar.strata == iStrata]
-                iOut <- sqrt(eTest.res$coef[names(iParamVar.type)])
+                iOut <- sqrt(eTest.res$coef[names(iParamVar.type)])                
                 if(any("k" %in% iParamVar.type)){
+                    if(abs(iOut[iParamVar.type=="sigma"])<1e-6){
+                        stop("Cannot initialize covariance structure: no residual variability for the reference level. \n",
+                             "Consider using a simplified covariance structure, e.g. homoschedastic. \n")
+                    }
                     iOut[iParamVar.type=="k"] <- iOut[iParamVar.type=="k"]/iOut[iParamVar.type=="sigma"]
                 }
                 return(iOut)
@@ -232,11 +236,19 @@
         iDenom2 <- sum(iDF$sums2)/iN-(sum(iDF$sum2)/iN)^2
         return(iNum/sqrt(iDenom1*iDenom2))
     }))
+
+    ## take care of extreme cases, e.g. 0 variability
+    if(any(is.na(e.rho))){
+        e.rho[is.na(e.rho)] <- 0
+    }
+    if(any(is.infinite(e.rho))){
+        e.rho[is.infinite(e.rho)] <- 0
+    }
     out[names(e.rho)] <- e.rho
 
     ## export
     return(out)
-    }
+}
 
 ## * initialize.TOEPLITZ
 .initialize.TOEPLITZ <- .initialize.CS

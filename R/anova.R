@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jul 29 2022 (11:04) 
+## Last-Updated: aug 25 2022 (13:54) 
 ##           By: Brice Ozenne
-##     Update #: 1147
+##     Update #: 1159
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -420,7 +420,6 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                     diag(iC[name.iParam[iIndex.param],name.iParam[iIndex.param]]) <- 1
                 }
                 iC.uni <- iC
-                colnames(iC.uni) <- name.param[match(colnames(iC),newname)]
             }else{
                 iC <- ls.contrast[[iType]]
                 iC.uni <- iC

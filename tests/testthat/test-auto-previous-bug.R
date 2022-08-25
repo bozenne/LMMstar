@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: May 31 2022 (20:58) 
+## Last-Updated: aug 24 2022 (10:50) 
 ##           By: Brice Ozenne
-##     Update #: 115
+##     Update #: 118
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -443,6 +443,26 @@ test_that("LRT", {
     test <- anova(e.lmm1, e.lmm2)
     expect_equal(test$p.value,0.5017193, tol = 1e-5)
     expect_equal(test$p.value,1-pchisq(abs(2*(logLik(e.lmm1)-logLik(e.lmm2))), df = 2), tol = 1-5)
+})
+
+## * from: Sophia Armand Thursday, Aug 18, 2022 11:57:41 AM
+test_that("0 variability in the outcome", {
+
+    df <- data.frame("Accuracy_fear" = c(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, NA, 1.0, 1.0, 1.0, 1.0, 1.0, 0.5, 1.0, 1.0, 1.0, NA, 1.0, 0.8, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0), 
+                     "intervention" = c("baseline", "baseline", "baseline", "baseline", "psilocybin", "psilocybin", "baseline", "baseline", "psilocybin", "psilocybin", "baseline", "baseline", "psilocybin", "baseline", "psilocybin", "psilocybin", "baseline", "baseline", "psilocybin", "baseline", "psilocybin", "baseline", "baseline", "psilocybin", "psilocybin", "psilocybin", "baseline", "baseline", "baseline", "psilocybin", "baseline", "psilocybin", "baseline", "psilocybin", "baseline", "baseline", "psilocybin", "psilocybin", "baseline", "baseline", "psilocybin", "baseline", "baseline", "psilocybin", "psilocybin", "psilocybin"), 
+                     "cimbi" = c( 2, 20,  9, 18,  2, 20, 19,  5,  5, 18, 22, 21, 22, 24, 21, 24, 23, 25, 23, 26, 25, 16, 15, 16, 12, 15, 13, 17, 14, 13,  8, 14, 11, 11,  7,  1,  7,  1, 10,  4,  4,  6,  3, 10,  3,  6))
+
+    ## tapply(df$Accuracy_fear, df$intervention, var, na.rm = TRUE)
+    ##   baseline psilocybin 
+    ## 0.00000000 0.01467836 
+
+    expect_error(lmm(Accuracy_fear ~ intervention, repetition = ~intervention|cimbi, data = df,
+                     control = list(optimizer = "FS"), structure = "UN"))
+
+    e.lmm <- lmm(Accuracy_fear ~ intervention, repetition = ~intervention|cimbi, data = df,
+                 control = list(optimizer = "FS"), structure = "CS")
+    expect_equal(logLik(e.lmm), 43.76518, tol = 1e-5)
+
 })
 
 ######################################################################

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: jul 29 2022 (13:03) 
+## Last-Updated: aug 25 2022 (10:51) 
 ##           By: Brice Ozenne
-##     Update #: 869
+##     Update #: 871
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -72,7 +72,7 @@
 ##'
 ##' }
 ##' @export
-estimate.lmm <- function(x, f, df = TRUE, robust = FALSE, type.information = NULL, level = 0.95,
+estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.information = NULL, level = 0.95,
                          method.numDeriv = NULL, average = FALSE,
                          transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, ...){
 

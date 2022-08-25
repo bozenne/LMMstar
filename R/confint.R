@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 29 2022 (13:10) 
+## Last-Updated: aug 25 2022 (14:31) 
 ##           By: Brice Ozenne
-##     Update #: 350
+##     Update #: 396
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -286,6 +286,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
 ##'  \item \code{"average"}: average estimates
 ##'  \item \code{"pool.fixse"}: weighted average of the estimates, with weights being the inverse of the squared standard error. The uncertainty about the weights is neglected.
 ##'  \item \code{"pool.se"}: weighted average of the estimates, with weights being the inverse of the squared standard error. The uncertainty about the weights is computed under independence of the variance parameters between models. 
+##'  \item \code{"pool.pca"}: weighted average of the estimates, with weights being determined using a Principal Component Analysis. The uncertainty about the weights is neglected.
 ##'  \item \code{"pool.rubin"}: average of the estimates and compute the uncertainty according to Rubin's rule (Barnard et al. 1999).
 ##' }
 ##'
@@ -305,12 +306,17 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
     alpha <- 1-level
+    method.fit <- object$object$method.fit
+
+    
     if(!is.null(method)){
         method <- match.arg(method, c(stats::p.adjust.methods,"single-step", "Westfall", "Shaffer", "free", "single-step2",
-                                      "average","pool.fixse","pool.se","pool.rubin"))
-        if(method=="pool.se" && (!inherits(object,"rbindWald_lmm") || any(object$univariate$type != "mu") || any(sapply(object$glht$all[[1]]$linfct.original,NROW)!=1))){
-            method <- "pool.fixse"
-        }
+                                      "average","pool.fixse","pool.se","pool.pca","pool.rubin"))        
+    }
+    if(identical(method,"pool.se") && !inherits(object,"rbindWald_lmm")){
+        method <- "pool.fixse"
+        message("Argument \'method\' has been changed from \"pool.se\" to \"pool.fixse\". \n",
+                "Consider using the estimate() function to account for the uncertainty of the weights. \n")
     }
     
     valid.columns <- c("type","test","method","estimate","se","statistic","df","lower","upper","null","p.value","partial.r")
@@ -393,6 +399,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
             }
         }
         out[iIndex.table,"method"] <-  iMethod
+        
         ## *** evaluation
         if(iMethod %in% c("single-step","single-step2","Westfall","free","Shaffer")){
             iGlht <- object$glht[[grid[iGrid,"type.original"]]][[grid[iGrid,"test"]]]
@@ -405,7 +412,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
             out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * stats::qt(1-alpha/2, df = iTable$df)
             out[iIndex.table,"p.value"] <- iTable$p.value
             
-        }else if(iMethod %in% c("average","pool.fixse","pool.se","pool.rubin")){
+        }else if(iMethod %in% c("average","pool.fixse","pool.se","pool.pca","pool.rubin")){
 
             ## replace many lines (individual effect) by a single line (for the average)
             out.save <- out
@@ -447,28 +454,35 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
                 rownames(out)[iIndex.table[1]] <- paste0("<",paste(pool.name,collapse=", "),">")
                 ## }    
             }
-            
+
             ## find contrast
             iVcov <- object$vcov[iIndex.table,iIndex.table,drop=FALSE]
-            if(iMethod %in% c("average","pool.fixse")){
+            if(iMethod %in% c("average","pool.fixse","pool.pca")){
 
                 if(iMethod=="average"){
                     iC.pool <- matrix(1/iN.test, nrow = 1, ncol = iN.test)
-                }else if(iMethod=="pool.fixse"){
+                }else if(iMethod %in% "pool.fixse"){
                     iIvar <- 1/out.save[iIndex.table,"se"]^2                
                     iC.pool <- matrix(iIvar/sum(iIvar), nrow = 1, ncol = iN.test)
+                }else if(iMethod == "pool.pca"){
+                    iEigen <- eigen(iVcov)                    
+                    iKappa <- sweep(iEigen$vectors, FUN = "/", MARGIN = 2, STATS = colSums(iEigen$vectors))
+                    iOmega <- iEigen$values/colSums(iEigen$vectors)^2
+                    iOmegaKappa <- sweep(iKappa, FUN = "*", MARGIN = 2, STATS = 1/iOmega/sum(1/iOmega))
+                    iC.pool <- rbind(rowSums(iOmegaKappa))
                 }
+            
                 iVcov.pool <- as.double(iC.pool %*% iVcov %*% t(iC.pool))
 
                 ## degree of freedom
-                if(inherits(object,"rbindWald_lmm") || is.null(attr(out.save$df,"vcov"))){
-                    if(length(unique(out.save[iIndex.table,"df"]))!=1){
-                        pool.df <- Inf                                
-                    }else{
-                        pool.df <- out.save[iIndex.table[1],"df"]
-                    }
+                if(df == FALSE){
+                    pool.df <- Inf
+                }else if(length(unique(out.save[iIndex.table,"df"]))==1){
+                    pool.df <- out.save[iIndex.table[1],"df"]
+                }else if(is.null(attr(out.save$df,"vcov"))){
+                    pool.df <- Inf
                 }else{
-                    iCvar.pool <- colMeans(sweep(attr(out.save$df,"contrast"), FUN = "*", MARGIN = 1, STATS = iC.pool)) ## iCvar.pool[iCvar.pool!=0]
+                    iCvar.pool <- colSums(sweep(attr(out.save$df,"contrast"), FUN = "*", MARGIN = 1, STATS = iC.pool)) ## iCvar.pool[iCvar.pool!=0]
                     iVcov.vcov <- attr(out.save$df,"vcov")
                     iPair <- expand.grid(names(iCvar.pool),names(iCvar.pool))
 
@@ -493,28 +507,32 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
                 iVcov.pool <- iC.pool %*% iVcov %*% t(iC.pool)
                 
                 ## uncertainty relative to C in C\beta
-                if(iMethod=="pool.se"){
-                    iLS.model <- object$model
-                    iLS.meancoef <- lapply(object$model, stats::coef, effects = "mean")
-                    iLS.vcovcoef <- lapply(object$model, stats::coef, effects = c("variance","correlation"))
-                    iLS.vcovvcov <- lapply(object$model, vcov, effects = c("variance","correlation"), transform.sigma = "none", transform.k = "none", transform.rho = "none")
-                    iLS.Coriginal <- stats::setNames(object$glht$all[[1]]$linfct.original, names(iLS.model))
-                    iLS.tCoriginal <- lapply(iLS.Coriginal,t)
-                    iVEC.beta <- cbind(out.save[iIndex.table,"estimate"]-out.save[iIndex.table,"null"])
-                                        
-                    icalcCB <- function(x, index){
-                        iIvar.new <- iIvar
-                        iIvar.new[index] <- 1/(iLS.Coriginal[[index]] %*% vcov(iLS.model[[index]], p = c(iLS.meancoef[[index]], x), effects = "all") %*% iLS.tCoriginal[[index]])
-                        return((iIvar.new/sum(iIvar.new)) %*% iVEC.beta)
-                    }
-                    
-                    ## c(calciC(iLS.vcovcoef[[1]], index = 1), calciC(iLS.vcovcoef[[2]], index = 2))
-                    iVcov.pool2 <- lapply(1:n.model, function(iModel){ ## iModel <- 3
-                        d_calciCB <- numDeriv::jacobian(calciC, x = iLS.vcovcoef[[iModel]], index = iModel)
-                        return(as.double(d_calciCB %*% iVcov2 %*% t(d_calciCB)))
-                    })
-                    iVcov.pool <- iVcov.pool + sum(unlist(iVcov.pool2))
+                iLS.model <- object$model
+                iLS.meancoef <- lapply(object$model, stats::coef, effects = "mean")
+                iLS.vcovcoef <- lapply(object$model, stats::coef, effects = c("variance","correlation"))
+                iLS.vcovvcov <- lapply(object$model, vcov, effects = c("variance","correlation"), transform.sigma = "none", transform.k = "none", transform.rho = "none")
+                iLS.Coriginal <- stats::setNames(object$glht$all[[1]]$linfct.original, names(iLS.model))
+                iLS.tCoriginal <- lapply(iLS.Coriginal,t)
+                iVEC.beta <- cbind(out.save[iIndex.table,"estimate"]-out.save[iIndex.table,"null"])
+
+                if(all(sapply(iLS.meancoef,length) == sapply(iLS.Coriginal,NCOL))){
+                    effects.vcov <- "mean"
+                }else{
+                    effects.vcov <- "all"
                 }
+                                        
+                icalcCB <- function(x, index){
+                    iIvar.new <- iIvar
+                    iIvar.new[index] <- 1/(iLS.Coriginal[[index]] %*% vcov(iLS.model[[index]], p = c(iLS.meancoef[[index]], x), effects = effects.vcov) %*% iLS.tCoriginal[[index]])
+                    return((iIvar.new/sum(iIvar.new)) %*% iVEC.beta)
+                }
+
+                ## assumes independence between models
+                iVcov.pool2 <- lapply(1:n.model, function(iModel){ ## iModel <- 1
+                    d_calciCB <- numDeriv::jacobian(icalcCB, x = iLS.vcovcoef[[iModel]], index = iModel)
+                    return(as.double(d_calciCB %*% iLS.vcovvcov[[iModel]] %*% t(d_calciCB)))
+                })
+                iVcov.pool <- iVcov.pool + sum(unlist(iVcov.pool2))
             
                 if(length(unique(out.save[iIndex.table,"df"]))!=1){
                     pool.df <- Inf                                
@@ -548,14 +566,6 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
                 }
 
             }
-            ## else if(iMethod == "pool.pca"){
-            ##     iEigen <- eigen(iVcov)
-            ##     iKappa <- sweep(iEigen$vectors, FUN = "/", MARGIN = 2, STATS = colSums(iEigen$vectors))
-            ##     iOmega <- iEigen$values/colSums(iEigen$vectors)^2
-            ##     iOmegaKappa <- sweep(iKappa, FUN = "*", MARGIN = 2, STATS = 1/iOmega/sum(1/iOmega))
-            ##     iC.pool <- rbind(rowSums(iOmegaKappa))
-            ##     iVcov.pool <- iC.pool %*% iVcov %*% t(iC.pool)
-            ## }
             
             out[iIndex.table[1],"estimate"]  <- iC.pool %*% (out.save[iIndex.table,"estimate"]-out.save[iIndex.table,"null"])
             out[iIndex.table[1],"se"] <- sqrt(iVcov.pool)
@@ -567,7 +577,6 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
             out[iIndex.table[1],"p.value"] <- 2*(1-stats::pt( abs(out[iIndex.table[1],"statistic"]), df = pool.df ))
 
         }else if(iMethod == "single-step"){
-
             iCi <- confint(iGlht)
             iP <- summary(iGlht, test = multcomp::adjusted("single-step"))
 

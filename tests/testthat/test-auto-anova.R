@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 13 2022 (13:55) 
 ## Version: 
-## Last-Updated: jul 29 2022 (14:00) 
+## Last-Updated: aug 25 2022 (15:35) 
 ##           By: Brice Ozenne
-##     Update #: 20
+##     Update #: 38
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -19,6 +19,7 @@ if(FALSE){
     library(lava)
     library(reshape2)
     library(testthat)
+    library(mice)
 
     library(LMMstar)
 }
@@ -31,7 +32,6 @@ dL <- sampleRem(100, n.times = 3, format = "long")
 
 dL$X1 <- as.factor(dL$X1)
 dL$X2 <- as.factor(dL$X2)
-
 
 ## * Likelihood ratio tests
 
@@ -83,14 +83,15 @@ test_that("LRT"{
 
 })
 
-## * Wald test
+## * Wald test (single model)
 
 e.lmm1 <- lmm(Y ~ X1+X2+X3, repetition = ~visit|id, data = dL,
               structure = "UN", df = FALSE)
 
-dL$id2 <- paste0(dL$id,".bis")
-dL$Y2 <- dL$Y
-e.lmm2 <- lmm(Y2 ~ X1+X2+X3, repetition = ~visit|id2, data = dL,
+dL2 <- dL
+dL2$id <- paste0(dL$id,".bis")
+dL2$Y2 <- dL$Y
+e.lmm2 <- lmm(Y2 ~ X1+X2+X3, repetition = ~visit|id, data = dL2,
               structure = "UN", df = FALSE)
 
 ## ** back-transform
@@ -115,58 +116,97 @@ test_that("anova_lmm vs. confint", {
 })
 
 ## ** pooling
+e.lmm3 <- lmm(Y ~ X1*X2+X5, repetition = ~visit|id, data = dL,
+              structure = "UN", df = TRUE)
 
 test_that("pooling anova_lmm ", {
 
-    test <- anova(eUN.lmm, effects = c("X11=0","X21=0","X5=0","X11:X21=0"))
+    e.anova <- anova(e.lmm3, effects = c("X11=0","X21=0","X5=0","X11:X21=0"))
 
     ## average
-    test2 <- estimate(eUN.lmm, function(p){mean(p[2:5])})
-    GS <- anova(eUN.lmm, effects = c("average" = "0.25*X11 + 0.25*X21 + 0.25*X5 + 0.25*X11:X21=0"))
+    test.average <- model.tables(e.anova, method = "average")
+    test.average2 <- estimate(e.lmm3, function(p){mean(p[2:5])})
+    GS.average <- anova(e.lmm3, effects = c("average" = "0.25*X11 + 0.25*X21 + 0.25*X5 + 0.25*X11:X21=0"))
+    expect_equal(as.double(model.tables(GS.average)), as.double(test.average), tol = 1e-6)
+    expect_equal(as.double(model.tables(GS.average)[,c("estimate","se","df")]),
+                 as.double(test.average2[,c("estimate","se","df")]), tol = 1e-4)
 
-    expect_equal(as.double(model.tables(GS)), as.double(model.tables(test, method = "average")), tol = 1e-6)
-    expect_equal(as.double(model.tables(GS)[,c("estimate","se","df")]), as.double(test2[,c("estimate","se","df")]), tol = 1e-4)
-
-    ## pool.fixse
-    test2 <- estimate(eUN.lmm, function(p){
-        weighted.mean(p[2:5], 1/diag(vcov(eUN.lmm))[2:5])
+    ## pool.se
+    test.se <- model.tables(e.anova, method = "pool.fixse")
+    test.se2 <- estimate(e.lmm3, function(p){
+        weighted.mean(p[2:5], 1/diag(vcov(e.lmm3))[2:5])
     })
-    model.tables(test, method = "pool.fixse")
+    GS.se <- anova(e.lmm3, effects = c("pool.se" = "0.163520470*X11 + 0.013263174*X21 + 0.816759181*X5 + 0.006457176*X11:X21=0"))
+    ## diag(1/vcov(e.lmm3))[-1]/sum(1/diag(vcov(e.lmm3))[-1])
 
-    model.tables(test, method = "pool.se")
+    ## no uncertainty about the weights
+    expect_equal(as.double(model.tables(GS.se)), as.double(test.se), tol = 1e-6)
+    expect_equal(as.double(model.tables(GS.se)$estimate), as.double(test.se2$estimate), tol = 1e-6)
+    expect_equal(as.double(test.se2), c(0.2862191, 0.2762587, 90.2378692, -0.2625972, 0.8350354, 0.3029450), tol = 1e-6)
+    
+    ## pool.pca
+    test.pca <- model.tables(e.anova, method = "pool.pca")    
+    expect_equal(as.double(test.pca), c(0.2432747, 0.2586498, 90.4081859, -0.2705465, 0.7570960,  0.3494384), tol = 1e-6)
+
+    test.rubin <- model.tables(e.anova, method = "pool.rubin")
+    expect_equal(test.rubin$estimate,test.average$estimate, tol = 1e-6)
 
 })
 
-## ** rbind
+
+## * Wald test (multiple models via rbind)
 
 test_that("rbind.anova_lmm", {
 
     ## same clusters
-    A1 <- anova(e.lmm1, ci = TRUE, effect = c("X1=0"))
-    A2 <- anova(e.lmm1, ci = TRUE, effect = c("X2=0"))
+    A1 <- anova(e.lmm1, ci = TRUE, effect = c("X11=0"))
+    A2 <- anova(e.lmm1, ci = TRUE, effect = c("X21=0"))
     A3 <- anova(e.lmm1, ci = TRUE, effect = c("X3=0"))
-    A123.bis <- rbind.anova_lmm(A1,A2,A3)
-    A123 <- anova(e.lmm1, ci = TRUE, effect = c("X1=0","X2=0","X3=0"), robust = TRUE)
+    A123.bis <- rbind(A1,A2,A3)
+    A123 <- anova(e.lmm1, ci = TRUE, effect = c("X11=0","X21=0","X3=0"), robust = TRUE)
 
     expect_equal(coef(A123), coef(A123.bis), tol = 1e-5)
     expect_equal(vcov(A123), vcov(A123.bis), tol = 1e-5)
 
     GS <- model.tables(A123)
     test <- model.tables(A123.bis)
-    expect_equal(A123.bis$univariate[,c("estimate","se","statistic")],A123$univariate[,c("estimate","se","statistic")],
+    expect_equal(A123.bis$univariate[,c("estimate","se","statistic")],
+                 A123$univariate[,c("estimate","se","statistic")],
                  tol = 1e-5)
 
     ## different clusters
-    A1 <- anova(e.lmm1, ci = TRUE, effect = c("X1=0","X2=0","X3=0"))
-    A2 <- anova(e.lmm2, ci = TRUE, effect = c("X1=0","X2=0","X3=0"))
-    A12.ter <- rbind.anova_lmm(A1,A2)
-    A123 <- anova(e.lmm1, ci = TRUE, effect = c("X1=0","X2=0","X3=0"))
+    A1 <- anova(e.lmm1, ci = TRUE, effect = c("X11=0","X21=0","X3=0"))
+    A2 <- anova(e.lmm2, ci = TRUE, effect = c("X11=0","X21=0","X3=0"))
+    A12.ter <- rbind(A1,A2)
+    A123 <- anova(e.lmm1, ci = TRUE, effect = c("X11=0","X21=0","X3=0"))
 
     expect_equal(unname(rep(coef(A123),2)), unname(coef(A12.ter)), tol = 1e-5)
     expect_equal(unname(as.matrix(bdiag(vcov(A123),vcov(A123)))), unname(vcov(A12.ter)), tol = 1e-5)
     expect_equal(A12.ter$multivariate$statistic, A123$multivariate$statistic, tol = 1e-5)
 })
 
+## * Rubin's rule
+set.seed(123)
+df.NA <- mice(nhanes)
+
+test_that("Rubin's rule", {
+
+    ## mice
+    ls.mice <- with(data=df.NA,exp=lm(chl~bmi))
+    GS <- summary(pool(ls.mice))
+
+    ## lmm
+    df.NNA <- complete(df.NA, action = "long")
+    e.lmm <- mlmm(chl~bmi, by = ".imp", data = df.NNA,
+                  effects = "bmi=0")
+    test <- model.tables(e.lmm, method = "pool.rubin")
+
+    expect_equal(as.double(GS[GS$term=="bmi",c("estimate","std.error")]),
+                 as.double(test[,c("estimate","se")]), tol = 1e-6)
+    expect_equal(as.double(GS[GS$term=="bmi",c("df","p.value")]),
+                 as.double(test[,c("df","p.value")]), tol = 1e-2)
+
+})
 
 ##----------------------------------------------------------------------
 ### test-auto-anova.R ends here

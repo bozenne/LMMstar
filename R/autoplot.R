@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: jul 21 2022 (14:26) 
+## Last-Updated: aug 25 2022 (10:35) 
 ##           By: Brice Ozenne
-##     Update #: 201
+##     Update #: 252
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -237,15 +237,26 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
 ##' @name autoplot
 ##'
 ##' @param object a \code{Wald_lmm} object.
-##' @param color [logical] should the estimates be colored by global null hypothesis, e.g. when testing the effect of a 3 factor covariate, the two corresponding coefficient will have the same color.
-##' @param ci [logical] should confidence intervals be displayed?
+##' @param type [character] what to display: a forest plot (\code{"forest"}) or a heatmap (\code{"heat"}).
 ##' @param plot [logical] should the plot be displayed?
-##' @param size.estimate [numeric, >0] size of the dot used to display the estimates.
-##' @param size.ci [numeric, >0] thickness of the line used to display the confidence intervals.
-##' @param width.ci [numeric, >0] width of the line used to display the confidence intervals.
-##' @param size.null [numeric, >0] thickness of the line used to display the null hypothesis.
+##' @param add.args [list] additional arguments used to customized the graphical display.
+##' Must be a named list. See details.
 ##' @param size.text [numeric, >0] size of the font used to display text.
 ##' @param ... arguments passed to the confint method.
+##'
+##' @details Argument \strong{add.args}: parameters specific to the forest plot: \itemize{
+##' \item \code{color}: [logical] should the estimates be colored by global null hypothesis, e.g. when testing the effect of a 3 factor covariate, the two corresponding coefficient will have the same color.
+##' \item \code{ci}: [logical] should confidence intervals be displayed?
+##' \item \code{size.estimate}: [numeric, >0] size of the dot used to display the estimates.
+##' \item \code{size.ci}: [numeric, >0] thickness of the line used to display the confidence intervals.
+##' \item \code{width.ci}: [numeric, >0] width of the line used to display the confidence intervals.
+##' \item \code{size.null}: [numeric, >0] thickness of the line used to display the null hypothesis. 
+##' }
+##' Parameters specific to the forest plot: \itemize{
+##' \item \code{limits}: [numeric vector of length 2] minimum and maximum value of the colorscale relative to the correlation.
+##' \item \code{low}, \code{mid}, \code{high}: [character] color for the the colorscale relative to the correlation.
+##' \item \code{midpoint}: [numeric] correlation value associated with the color defined by argument \code{mid}
+##' }
 ##'
 ##' @return A list with two elements \itemize{
 ##' \item \code{data}: data used to create the graphical display.
@@ -255,52 +266,165 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
 ##' @examples
 ##' ## From the multcomp package
 ##' if(require(datasets)){
-##' 
-##' e.lmm <- lmm(Fertility ~ Agriculture + Examination + Education + Catholic + Infant.Mortality, data = swiss)
-##' autoplot(anova(e.lmm))
 ##'
-##' amod <- lmm(breaks ~ tension + wool, data = warpbreaks)
-##' autoplot(anova(amod))
+##' ## only tests with 1 df
+##' e.lmm <- lmm(Fertility ~ Agriculture + Examination + Education + Catholic + Infant.Mortality, data = swiss)
+##' e.aovlmm <- anova(e.lmm)
+##' 
+##' autoplot(e.aovlmm, type = "forest")
+##' autoplot(e.aovlmm, type = "heat") ## 3 color gradient
+##' autoplot(e.aovlmm, type = "heat", add.args = list(mid = NULL)) ## 2 color gradient
+##'
+##' ## test with more than 1 df
+##' e.lmm2 <- lmm(breaks ~ tension + wool, data = warpbreaks)
+##' e.aovlmm2 <- anova(e.lmm2)
+##' autoplot(e.aovlmm2)
+##' autoplot(e.aovlmm2, add.args = list(color = FALSE))
 ##' }
 ##'
-##' 
 
 ## * autoplot.Wald_lmm (code)
 ##' @rdname autplot
 ##' @export
-autoplot.Wald_lmm <- function(object, color = NULL, ci = TRUE, plot = TRUE, 
-                               size.estimate = 3, size.ci = 1, width.ci = 0.2, size.null = 1, size.text = 16, ...){
+autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 16, add.args = NULL, ...){
 
-    if(ci){
-        table <- confint(object, columns = c("estimate","test","lower","upper"), ...)
-    }else{
-        table <- object$univariate
+    ## ** check user input
+    type <- match.arg(type, c("forest","heat"))
+    if(!is.null(add.args) && !is.list(add.args)){
+        stop("Argument \'add.args\' should be a list. \n")
     }
-    table <- cbind(names = rownames(table), table)
-    if(is.null(color)){
-        if(length(unique(table$test))==1 || all(duplicated(table$test)==FALSE)){
-            color <- FALSE
+    if(is.list(add.args) && is.null(names(add.args))){
+        stop("Argument \'add.args\' should have names, i.e. names(add.args) should not be NULL. \n")
+    }
+
+    if(type=="forest"){
+        init.add.args <- list(color = NULL,
+                              ci = TRUE,
+                              size.estimate = 3, 
+                              size.ci = 1,
+                              width.ci = 0.2,
+                              size.null = 1)
+    }else{
+        init.add.args <- list(limits = c(-1,1.00001),
+                              low = "blue",
+                              mid = "white",
+                              high = "red",
+                              midpoint = 0)
+    }
+    valid.names <- names(init.add.args)
+    if(any(names(add.args) %in% valid.names == FALSE)){
+        invalid.names <- names(add.args)[names(add.args) %in% valid.names == FALSE]
+        if(length(invalid.names)>1){txt.invalid <- "are not valid arguments"}else{txt.invalid <- "is not a valid argument"}
+
+        possible.names <- setdiff(valid.names,names(add.args))
+        if(length(possible.names)>0){
+            txt.valid <- paste0("Possible arguments: \"",paste(possible.names, collapse = "\", \""),"\". \n")
         }else{
-            color <- TRUE
+            txt.valid <- NULL
+        }
+
+        stop("Incorrect element in argument \'add.args\'. \n",
+             "\"",paste(invalid.names, collapse = "\", \""),"\" ",txt.invalid,". \n",
+             txt.valid, sep = "")
+    }
+
+    if(is.null(add.args)){
+        add.args <- init.add.args
+    }else{
+        missing.names <- setdiff(valid.names, names(add.args))
+        if(length(missing.names)>0){
+            add.args[missing.names] <- init.add.args[missing.names]
         }
     }
-    table$test <- as.factor(table$test)
 
-    if(color){
-        gg <- ggplot2::ggplot(table, ggplot2::aes_string(x = "names", y = "estimate", color = "test")) + ggplot2::labs(color = "")
-    }else{
-        gg <- ggplot2::ggplot(table, ggplot2::aes_string(x = "names", y = "estimate")) 
+    ## ** graphical display
+    if(type=="forest"){
+
+        color <- add.args$color
+        ci <- add.args$ci
+        size.estimate <- add.args$size.estimate
+        size.ci <- add.args$size.ci
+        width.ci <- add.args$width.ci
+        size.null <- add.args$size.null
+
+        if(ci){
+            table <- confint(object, columns = c("estimate","test","lower","upper"), ...)
+        }else{
+            table <- object$univariate
+        }
+        table <- cbind(names = rownames(table), table)
+        if(is.null(color)){
+            if(length(unique(table$test))==1 || all(duplicated(table$test)==FALSE)){
+                color <- FALSE
+            }else{
+                color <- TRUE
+            }
+        }
+        table$test <- as.factor(table$test)
+
+        if(color){
+            gg <- ggplot2::ggplot(table, ggplot2::aes_string(x = "names", y = "estimate", color = "test")) + ggplot2::labs(color = "")
+        }else{
+            gg <- ggplot2::ggplot(table, ggplot2::aes_string(x = "names", y = "estimate")) 
+        }
+        gg <- gg + ggplot2::geom_point(size = size.estimate) + ggplot2::labs(x = "", y = "")
+        if(ci){
+            gg <- gg + ggplot2::geom_errorbar(ggplot2::aes_string(ymin = "lower", ymax = "upper"), size = size.ci, width = width.ci)
+        }
+        if(size.null>0){
+            gg <- gg + ggplot2::geom_hline(yintercept=0, lty=2, size = size.null)
+        }
+        gg <- gg + ggplot2::coord_flip()
+
+    }else if(type=="heat"){
+
+        limits <- add.args$limits
+        low <- add.args$low
+        mid <- add.args$mid
+        high <- add.args$high
+        midpoint <- add.args$midpoint
+
+        Sigma_t <- cov2cor(object$vcov)
+        
+        ## from matrix to long format
+        table <- as.data.frame(cbind(which(is.na(NA*Sigma_t), arr.ind = TRUE),value = as.numeric(Sigma_t)))
+        rownames(table) <- NULL
+
+        ## rename
+        if(!is.null(object$args$sep) && all(colnames(Sigma_t) == rownames(Sigma_t))){
+            splitname <- strsplit(colnames(Sigma_t),split = object$args$sep, fixed = TRUE)
+            if(all(sapply(splitname,length)==2) && length(unique(sapply(splitname,"[",2)))==1){
+                name.x <- splitname[[1]][2]
+                name.y <- splitname[[1]][2]
+                table$col <- sapply(splitname,"[",1)[table$col]
+                table$row <- sapply(splitname,"[",1)[table$row]
+            }else{
+                table$col <- colnames(Sigma_t)[table$col]
+                table$row <- rownames(Sigma_t)[table$row]
+                name.x <- ""
+                name.y <- ""
+            }
+        }else{
+            table$col <- colnames(Sigma_t)[table$col]
+            table$row <- rownames(Sigma_t)[table$row]
+            name.x <- ""
+            name.y <- ""
+        }
+
+        table$row <- as.factor(table$row)
+        table$col <- factor(table$col, levels = rev(levels(table$row)))
+        gg <- ggplot(table) + geom_tile(aes(x=row,y=col,fill=value))
+
+        if(!is.null(mid)){
+            gg <- gg + scale_fill_gradient2(limits = limits, midpoint = midpoint, low = low, mid = mid, high = high)
+        }else{
+            gg <- gg + scale_fill_gradient(limits = limits, low = low, high = high)
+        }
+        gg <- gg + labs(x=name.x,y=name.y, fill = "correlation")
     }
-    gg <- gg + ggplot2::geom_point(size = size.estimate) + ggplot2::labs(x = "", y = "")
-    if(ci){
-        gg <- gg + ggplot2::geom_errorbar(ggplot2::aes_string(ymin = "lower", ymax = "upper"), size = size.ci, width = width.ci)
-    }
+        
     gg <- gg + ggplot2::theme(text = ggplot2::element_text(size=size.text))
-    if(size.null>0){
-        gg <- gg + ggplot2::geom_hline(yintercept=0, lty=2, size = size.null)
-    }
-    gg <- gg + ggplot2::coord_flip()
-    
+
     ## ** display
     if(plot){
         print(gg)

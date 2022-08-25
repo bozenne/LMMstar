@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: jul 28 2022 (14:20) 
+## Last-Updated: aug 25 2022 (15:35) 
 ##           By: Brice Ozenne
-##     Update #: 147
+##     Update #: 154
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -152,7 +152,8 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
                 ls.Cmat[[iName]][iNameCoef,iNameCoef] <- 1
             }else{
                 diag(ls.Cmat[[iName]][iNameCoef,iNameCoef]) <- 1
-            }    
+            }
+            ls.Cmat[[iName]] <- ls.Cmat[[iName]][rowSums(abs(ls.Cmat[[iName]]))!=0,] ## remove lines with only 0
         }
         rhs <- NULL
 
@@ -218,9 +219,8 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
         stop("Unknown value for argument \'effects\'. \n",
              "Can be a matrix, or a character encoding the contrast, or \"mean\", \"variance\", \"correlation\", \"all\".\n")
     }
-
     ## *** run 
-    ls.anova <- stats::setNames(lapply(name.lmm, function(iName){
+    ls.anova <- stats::setNames(lapply(name.lmm, function(iName){ ## iName <- name.lmm[1]
         if(is.null(robust)){
             anova(ls.lmm[[iName]], effects = ls.Cmat[[iName]], rhs = rhs[[iName]], df = df, ci = ci,
                   transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
