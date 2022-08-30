@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: aug 25 2022 (13:54) 
+## Last-Updated: aug 30 2022 (09:20) 
 ##           By: Brice Ozenne
-##     Update #: 1159
+##     Update #: 1161
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -480,7 +480,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                                  stringsAsFactors = FALSE)
                 CI$statistic <- (CI$estimate-iNull)/CI$se
                 rownames(CI) <- rownames(iC)
-                CI$partial.r <- CI$statistic / sqrt(CI$df + CI$statistic^2)
+                CI$partial.r <- CI$statistic / sqrt(as.double(CI$df) + CI$statistic^2) ## as.double to remove attributes from df (typically vcov)
                 if(!is.null(names(effects)) && !inherits(effects,"mcp")){                    
                     indexName <- intersect(which(names(effects)!=""),which(!is.na(names(effects))))
                     rownames(CI)[indexName] <- names(effects)[indexName]

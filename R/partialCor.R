@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: jul 21 2022 (17:19) 
+## Last-Updated: aug 30 2022 (18:58) 
 ##           By: Brice Ozenne
-##     Update #: 191
+##     Update #: 229
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,16 +21,16 @@
 ##' 
 ##' @param formula a formula with in the left hand side the variables for which the correlation should be computed
 ##' and on the right hand side the adjustment set. Can also be a list of formula for outcome-specific adjustment set.
-##' @param repetition [formula] Specify the structure of the data: the time/repetition variable and the grouping variable, e.g. ~ time|id.
 ##' @param data [data.frame] dataset containing the variables.
+##' @param repetition [formula] Specify the structure of the data: the time/repetition variable and the grouping variable, e.g. ~ time|id.
 ##' @param heterogeneous [logical] Specify whether the variance differ between the two variables (no repetition)
 ##' or whether the correlation/variance vary over repetitions (repetition).
 ##' @param by [character] variable used to stratified the correlation on.
 ##'
 ##' @details Fit a mixed model to estimate the partial correlation with the following variance-covariance pattern:
 ##' \itemize{
-##' \item \bold{no repetition}: unstructure or compound symmetry structure for 2 observations.
-##' \item \bold{repetition}: toeplitz for 2T observations where T denotes the number of repetitions.
+##' \item \bold{no repetition}: unstructure or compound symmetry structure for M observations, M being the number of variable on the left hand side (i.e. outcomes).
+##' \item \bold{repetition}: toeplitz for M*T observations where T denotes the number of repetitions. In that case heterogeneous can be 1, 0.5, or 0.
 ##' }
 ##'
 ##' @return A data.frame with the estimate partial correlation (rho), standard error, degree of freedom, confidence interval, and p-value (test of no correlation).
@@ -233,44 +233,60 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
 
     ## ** fit mixed model
     if(any(test.duplicated)){
+
         ## *** TOEPLITZ mixed model (repetition)
         dataL <- dataL[order(dataL[[name.id]],dataL$CCvariableCC),]
         dataL$CCrepetitionCC <- unlist(tapply(dataL[[name.id]],dataL[[name.id]],function(iId){1:length(iId)}))
-        formula.repetition <- stats::as.formula(paste("~CCrepetitionCC|",name.id))
-
-        if(heterogeneous){
-            structure <- TOEPLITZ(~time+CCvariableCC, add.time = FALSE, heterogeneous = TRUE)
+        formula.repetition <- stats::as.formula(paste("~time+CCvariableCC|",name.id))
+        if(heterogeneous>=1){
+            structure <- TOEPLITZ(heterogeneous = TRUE)
+        }else if(heterogeneous>=0.5){
+            structure <- TOEPLITZ(heterogeneous = 0.5)
         }else{
-            structure <- TOEPLITZ(list(~CCvariableCC,~time+CCvariableCC), add.time = FALSE, heterogeneous = FALSE)
+            structure <- TOEPLITZ(heterogeneous = FALSE)
         }
+
         if(is.null(by)){
+            
             e.lmm <- lmm(formula.mean, repetition = formula.repetition,
                          data = dataL, structure = structure,
                          control = list(optimizer = "FS"))
-            out <- model.tables(e.lmm, effects = "correlation")
+            out <- confint(e.lmm, columns = c("estimate","se","df","lower","upper","p.value"), effects = "correlation", transform.rho = transform.rho)
+
+            ## identify the right correlation coefficient
+            code.rho <- e.lmm$design$param[e.lmm$design$param$type=="rho","code"]
+            name.rho <- e.lmm$design$param[e.lmm$design$param$type=="rho","name"][grepl("D.",code.rho)]
+
+            M.time <- attr(e.lmm$time$levels,"original")
+            U.time <- unique(M.time[,1])
+            tentative.rho <- sapply(U.time, function(iT){paste0("rho(",paste(interaction(M.time)[M.time[,1]==iT],collapse=","),")")})
+
+            if(any(tentative.rho %in% rownames(out))){
+                keep.rho <- intersect(tentative.rho,rownames(out)) 
+                out <- out[keep.rho,,drop=FALSE]
+                if((length(keep.rho)==1) && (heterogeneous<1) && is.null(transform.rho)){
+                    name.rho2 <- e.lmm$design$param[e.lmm$design$param$type=="rho","name"][grepl("R.",code.rho)]
+                    out2 <- estimate(e.lmm, f = function(p){
+                        if(any(p[name.rho2]<0)){NA}else{p[keep.rho]/sqrt(prod(1-p[name.rho2]))}
+                    })
+                    rownames(out2) <- gsub("^rho","r",rownames(out2))
+                    out <- rbind(out, out2)
+                    attr(out,"backtransform") <- NULL                    
+                }
+            }else{
+                out <- out[name.rho,,drop=FALSE]
+            }
+
+            
         }else{
-            e.lmm <- mlmm(formula.mean, repetition = formula.repetition,
-                          data = dataL, structure = CS(~CCvariableCC, heterogeneous = TRUE),
-                          control = list(optimizer = "FS"), by = by, effects = "correlation")
+
+            e.lmm <- mlmm(formula.mean, repetition = formula.repetition, data = dataL, structure = structure, control = list(optimizer = "FS"),                          
+                          by = by, effects = "correlation", contrast.rbind = effects)
             out <- confint(e.lmm, columns = c("estimate","se","df","lower","upper","p.value"))
+
         }
 
-        ## find the right correlation coefficient
-        designParam.rho <- e.lmm$design$param[e.lmm$design$param$type=="rho",,drop=FALSE]
-        ## D.1.0: not the same variable (difference of 1) but same time
-        name.cor <- designParam.rho[which(designParam.rho$code=="D.1.0"),"name"]
-        index.cor <- which(rownames(out) %in% name.cor)
-        out <- out[index.cor,,drop=FALSE]
-        if(!heterogeneous){
-            name.corW <- e.lmm$design$param[grep("^R",e.lmm$design$param$code),"name"]
-            out <- rbind(out, estimate(e.lmm, function(p){ ## p <- coef(e.lmm, effects = "all")
-                p[name.cor]/sqrt(prod(1-pmax(0,p[name.corW]))) ## handle negative correlations
-            }))
-            rownames(out) <- c(rownames(out)[1],gsub("^rho","  r",rownames(out)[1]))
-        }
-        attr(out,"old2new") <- attr(out,"old2new")[index.cor]
-        attr(attr(out,"old2new"),"names") <- attr(attr(out,"old2new"),"names")
-        attr(out,"backtransform.names") <- attr(out,"backtransform.names")[index.cor]
+        
     }else{
         ## *** UN/CS mixed model (no repetition)
         formula.repetition <- stats::as.formula(paste("~CCvariableCC|",name.id))

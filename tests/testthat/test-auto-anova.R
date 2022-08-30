@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 13 2022 (13:55) 
 ## Version: 
-## Last-Updated: aug 25 2022 (15:35) 
+## Last-Updated: aug 29 2022 (13:27) 
 ##           By: Brice Ozenne
-##     Update #: 38
+##     Update #: 40
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -36,7 +36,7 @@ dL$X2 <- as.factor(dL$X2)
 ## * Likelihood ratio tests
 
 
-test_that("LRT"{
+test_that("LRT", {
 
     ## remove variance factor
     e0 <- suppressMessages(anova(lmm(Y ~ X1 + X2, data = dL),
@@ -187,7 +187,7 @@ test_that("rbind.anova_lmm", {
 
 ## * Rubin's rule
 set.seed(123)
-df.NA <- mice(nhanes)
+df.NA <- mice(nhanes, printFlag = FALSE)
 
 test_that("Rubin's rule", {
 

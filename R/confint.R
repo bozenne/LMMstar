@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: aug 25 2022 (14:31) 
+## Last-Updated: aug 30 2022 (09:13) 
 ##           By: Brice Ozenne
-##     Update #: 396
+##     Update #: 401
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -31,7 +31,7 @@
 ##' @param null [numeric vector] the value of the null hypothesis relative to each coefficient.
 ##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.
 ##' @param columns [character vector] Columns to be output.
-##' Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}, \code{"partial.R"}.
+##' Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}, \code{"partial.r"}.
 ##' @param type.information,transform.sigma,transform.k,transform.rho,transform.names are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.
 ##' @param backtransform [logical] should the variance/covariance/correlation coefficient be backtransformed?
 ##' @param ... Not used. For compatibility with the generic method.
@@ -207,14 +207,14 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     name.beta <- names(beta)
     out <- data.frame(estimate = beta, se = sqrt(diag(vcov.beta[name.beta,name.beta,drop=FALSE])),
                       statistic = as.numeric(NA), df = df[name.beta], lower = as.numeric(NA), upper = as.numeric(NA), null = null, p.value = as.numeric(NA),
-                      partial.R = as.numeric(NA),
+                      partial.r = as.numeric(NA),
                       stringsAsFactors = FALSE)
 
     out$statistic <- (out$estimate-null)/out$se
     out$p.value <- 2*(1-stats::pt(abs(out$statistic), df = out$df))
     index.cor <- setdiff(which(type.beta=="mu"), which(name.beta=="(Intercept)"))
     if(length(index.cor)>0){
-        out[index.cor,"partial.R"] <- sign(out$statistic[index.cor])*sqrt(out$statistic[index.cor]^2/(out$df[index.cor]+out$statistic[index.cor]^2))
+        out[index.cor,"partial.r"] <- sign(out$statistic[index.cor])*sqrt(out$statistic[index.cor]^2/(out$df[index.cor]+out$statistic[index.cor]^2))
         ## from "An R2 statistic for fixed effects in the linear mixed model" by Lloyd J. Edwards et al. 2008 (Statistic in medicine)
         ## Equation 19
         ## DOI: 10.1002/sim.3429
@@ -251,7 +251,6 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
                                    transform.rho = transform.rho)
         }
     }
-
     ## ** export
     out[names(out)[names(out) %in% columns == FALSE]] <- NULL
     class(out) <- append("confint_lmm", class(out))

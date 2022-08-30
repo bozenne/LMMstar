@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 31 2022 (11:36) 
 ## Version: 
-## Last-Updated: jun 13 2022 (13:26) 
+## Last-Updated: aug 30 2022 (09:13) 
 ##           By: Brice Ozenne
-##     Update #: 65
+##     Update #: 66
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -111,7 +111,7 @@ test_that("delta method for association based on residual variance", {
           X1 = as.double(p["variableY2:X1"]-p["k.Y2"]*p["rho(Y1,Y2)"]*p["variableY1:X1"]))
     })
     ## do not match standard error
-    summary(e.ANCOVA2)$coef[c("Y1","X1"),]
+    ## summary(e.ANCOVA2)$coef[c("Y1","X1"),]
     ## e.deltaANCOVA2
 
     test <- data.frame("estimate" = c(-0.07833768, -0.16568061), 
@@ -133,7 +133,6 @@ summary(e.lm)$coef["dX",]
 test_that("delta method for association based on residual variance", {
 
     dL2 <- reshape2::melt(d, id.vars = c("id","X5"),  measure.vars = c("dX","dY"))
-
 
     ## bivariate mixed model estimating the association between the changes
     e.lmm2 <- lmm(value ~ variable, data = dL2, repetition = ~variable|id)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: Jul 14 2022 (10:14) 
+## Last-Updated: aug 30 2022 (10:30) 
 ##           By: Brice Ozenne
-##     Update #: 632
+##     Update #: 648
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -66,7 +66,8 @@
     }
 
     ## ** right hand side
-    ls.var.X <- lapply(formula, function(iF){unique(c(add.X,rhs.vars(iF)))})
+    ls.var.X <- list(variance = c(add.X$variance,rhs.vars(formula$variance)),
+                     correlation = c(add.X$correlation,rhs.vars(formula$correlation)))
 
     test.interaction <- sapply(formula, function(iF){
         any(attr(stats::delete.response(stats::terms(iF)),"order")>1)
@@ -200,9 +201,11 @@ IND <- function(formula, var.cluster, var.time, add.time){
 
     if(!missing(add.time)){
         if(is.character(add.time)){
-            add.X <- add.time
+            add.X <- list(variance = add.time,
+                          correlation = NULL)
         }else if(add.time){
-            add.X <- var.time
+            add.X <- list(variance = var.time,
+                          correlation = NULL)
         }else if(!add.time){
             add.X <- NULL
         }else{
@@ -326,9 +329,27 @@ TOEPLITZ <- function(formula, var.cluster, var.time, heterogeneous = TRUE, add.t
 
     if(!missing(add.time)){
         if(is.character(add.time)){
-            add.X <- add.time
+            if(heterogeneous>=1){
+                add.X <- list(variance = add.time,
+                              correlation = add.time)
+            }else if(heterogeneous>=0.5){
+                add.X <- list(variance = utils::tail(add.time,1),
+                              correlation = add.time)
+            }else{
+                add.X <- list(variance = NULL,
+                              correlation = add.time)
+            }
         }else if(add.time){
-            add.X <- var.time
+            if(heterogeneous>=1){
+                add.X <- list(variance = var.time,
+                              correlation = var.time)
+            }else if(heterogeneous>=0.5){
+                add.X <- list(variance = utils::tail(var.time,1),
+                              correlation = var.time)
+            }else{
+                add.X <- list(variance = NULL,
+                              correlation = var.time)
+            }
         }else if(!add.time){
             add.X <- NULL
         }else{
@@ -400,9 +421,11 @@ UN <- function(formula, var.cluster, var.time, add.time){
 
     if(!missing(add.time)){
         if(is.character(add.time)){
-            add.X <- add.time
+            add.X <- list(variance = add.time,
+                          correlation = add.time)
         }else if(add.time){
-            add.X <- var.time
+            add.X <- list(variance = var.time,
+                          correlation = var.time)
         }else if(!add.time){
             add.X <- NULL
         }else{

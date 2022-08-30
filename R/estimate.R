@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: aug 25 2022 (10:51) 
+## Last-Updated: aug 30 2022 (19:01) 
 ##           By: Brice Ozenne
-##     Update #: 871
+##     Update #: 874
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -126,14 +126,16 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
     colnames(grad) <- names(beta)
 
     ## revert back to usual transformation if vcov parameter not used
-    if(all(colSums(grad[,type.beta=="sigma",drop=FALSE]!=0)==0) && is.null(transform.sigma)){
-        transform2.sigma <- x$reparametrize$transform.sigma
-    }
-    if(all(colSums(grad[,type.beta=="k",drop=FALSE]!=0)==0) && is.null(transform.k)){
-        transform2.k <- x$reparametrize$transform.k
-    }
-    if(all(colSums(grad[,type.beta=="rho",drop=FALSE]!=0)==0) && is.null(transform.rho)){
-        transform2.rho <- x$reparametrize$transform.rho
+    if(all(!is.na(grad))){
+        if(all(colSums(grad[,type.beta=="sigma",drop=FALSE]!=0)==0) && is.null(transform.sigma)){
+            transform2.sigma <- x$reparametrize$transform.sigma
+        }
+        if(all(colSums(grad[,type.beta=="k",drop=FALSE]!=0)==0) && is.null(transform.k)){
+            transform2.k <- x$reparametrize$transform.k
+        }
+        if(all(colSums(grad[,type.beta=="rho",drop=FALSE]!=0)==0) && is.null(transform.rho)){
+            transform2.rho <- x$reparametrize$transform.rho
+        }
     }
     
     ## ** extract variance-covariance

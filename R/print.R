@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jul 21 2022 (17:17) 
+## Last-Updated: aug 30 2022 (17:55) 
 ##           By: Brice Ozenne
-##     Update #: 135
+##     Update #: 150
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -234,9 +234,23 @@ print.mlmm <- function(x, ...){
 print.partialCor <- function(x, digits = 3, detail = TRUE, ...){
 
     cat("\t\tPartial correlation \n\n")
-    dots <- list(...)
-    dots$print <- c(0,0.5)
-    return(do.call("summary.Wald_lmm", c(list(object = x, legend = FALSE), dots)))
+
+    out <- do.call("print.confint_lmm", c(list(x, detail = detail, digits = digits), ...))
+
+    if(any(grepl("^rho\\(",rownames(x))) && any(grepl("^r\\(",rownames(x)))){
+
+        xplus <- cbind(rownames(x),formatC(as.matrix(x), digits = digits, format = "f"))
+        xplus.char <- apply(xplus,1, function(iRow){ ## iRow <- xplus[2,]
+            sum(nchar(iRow)+1)
+        })
+        width <- max(c(xplus.char,sum(nchar(colnames(x))+1)))
+        cat("\t",rep("-",width),"\n",sep="")
+        cat("\trho: marginal correlation \n")
+        cat("\tr  : correlation conditional on the individual \n")
+        cat("\n")
+    }
+
+    return(invisible(NULL))
 }
 
 ##----------------------------------------------------------------------
