@@ -77,9 +77,9 @@ Must be a named list. See details.}
 
 \item{limits}{[numeric vector of length 2] minimum and maximum value of the colorscale relative to the correlation.}
 
-\item{low, mid, high:}{[character] color for the the colorscale relative to the correlation.}
+\item{low, mid, high}{[character] color for the the colorscale relative to the correlation.}
 
-\item{midpoint:}{[numeric] correlation value associated with the color defined by argument \code{mid}.}
+\item{midpoint}{[numeric] correlation value associated with the color defined by argument \code{mid}.}
 }
 \value{
 A list with two elements \itemize{

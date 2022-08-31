@@ -95,13 +95,17 @@ e.cor <- partialCor(weight+glucagonAUC~time, repetition =~time|id,
                     data = gastricbypassL)
 e.cor
 coef(attr(e.cor,"lmm"), effects = "correlation")
+if(require(ggplot2)){
 autoplot(e.cor)
+}
 
 e.cor2 <- partialCor(weight+glucagonAUC~time, repetition =~time|id,
                      data = gastricbypassL, heterogeneous = 0.5)
 e.cor2
 coef(attr(e.cor2,"lmm"), effects = "correlation")
+if(require(ggplot2)){
 autoplot(e.cor2)
+}
 
 }
 \references{

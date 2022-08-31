@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: aug 31 2022 (18:11) 
+## Last-Updated: aug 31 2022 (19:27) 
 ##           By: Brice Ozenne
-##     Update #: 269
+##     Update #: 270
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -442,8 +442,8 @@ autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 
 ##' @param plot [logical] should the plot be displayed?
 ##' @param size.text [numeric, >0] size of the font used to display text.
 ##' @param limits [numeric vector of length 2] minimum and maximum value of the colorscale relative to the correlation.
-##' @param low,mid,high: [character] color for the the colorscale relative to the correlation.
-##' @param midpoint: [numeric] correlation value associated with the color defined by argument \code{mid}.
+##' @param low,mid,high [character] color for the the colorscale relative to the correlation.
+##' @param midpoint [numeric] correlation value associated with the color defined by argument \code{mid}.
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @return A list with two elements \itemize{
