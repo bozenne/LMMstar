@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: May 31 2022 (23:56) 
+## Last-Updated: aug 31 2022 (18:27) 
 ##           By: Brice Ozenne
-##     Update #: 135
+##     Update #: 138
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -136,8 +136,8 @@ expect_equal(test[c("age","genderfemale"),"df"], rep(97,2), tol = 1e-3)
 
 ## ** anova
 eCS.lmm_anova <- anova(eCS.lmm, effects = "all")
-expect_equal(eCS.lmm_anova$mean$df.denom, c(297.03106,  97.05084,  97.05084), tol = 1e-1)
-expect_equal(eCS.lmm_anova$correlation$df.denom, c(14.7493), tol = 1e-1)
+expect_equal(eCS.lmm_anova$multivariate[eCS.lmm_anova$multivariate$type=="mu","df.denom"], c(297.03106,  97.05084,  97.05084), tol = 1e-1)
+expect_equal(eCS.lmm_anova$multivariate[eCS.lmm_anova$multivariate$type=="rho","df.denom"], c(14.7493), tol = 1e-1)
 
 ## ** getVarCov
 sigma(eCS.lmm)
@@ -240,10 +240,10 @@ expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 ## ** degree of freedom and anova checked in test-ttest.R (section multiple t-test)
 ## anova(eUN.lmm, ci = TRUE)
 
-eUN.lmm_anova <- anova(eUN.lmm, effects = "all", ci = TRUE)
-expect_equal(eUN.lmm_anova$mean$df.denom, c(99.00144, 96.18348, 94.17755), tol = 1e-1)
-expect_equal(eUN.lmm_anova$variance$df.denom, c(189.236), tol = 1e-1)
-expect_equal(eUN.lmm_anova$correlation$df.denom, c(20.66968), tol = 1e-1)
+eUN.lmm_anova <- anova(eUN.lmm, effects = "all", ci = TRUE)$multivariate
+expect_equal(eUN.lmm_anova[eUN.lmm_anova$type=="mu","df.denom"], c(99.00144, 96.18348, 94.17755), tol = 1e-1)
+expect_equal(eUN.lmm_anova[eUN.lmm_anova$type=="k","df.denom"], c(189.236), tol = 1e-1)
+expect_equal(eUN.lmm_anova[eUN.lmm_anova$type=="rho","df.denom"], c(20.66968), tol = 1e-1)
 
 ## ** getVarCov
 sigma(eUN.lmm)
@@ -336,13 +336,13 @@ expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 test <- model.tables(eSCS.lmm, effects = "all", transform.sigma = "none")[,"df",drop=FALSE]
 
 ## ** anova
-eSCS.lmm_anova <- anova(eSCS.lmm, effects = "all")
+eSCS.lmm_anova <- anova(eSCS.lmm, effects = "all")$multivariate
 if(eSCS.lmm$opt$name=="gls"){
-    expect_equal(eSCS.lmm_anova$mean$df.denom, c(143.04096527, 46.63249177), tol = 1e-1)
+    expect_equal(eSCS.lmm_anova[eSCS.lmm_anova$type=="mu","df.denom"], c(143.04096527, 46.63249177), tol = 1e-1)
 }else{
-    expect_equal(eSCS.lmm_anova$mean$df.denom, c(171.0218177, 56.03889211, 81.14993152, 285.63027224, 63.97167502), tol = 1e-1)
+    expect_equal(eSCS.lmm_anova[eSCS.lmm_anova$type=="mu","df.denom"], c(171.0218177, 56.03889211, 81.14993152, 285.63027224, 63.97167502), tol = 1e-1)
 }
-expect_equal(eSCS.lmm_anova$correlation$df.denom, c(7.450136), tol = 1e-1)
+expect_equal(eSCS.lmm_anova[eSCS.lmm_anova$type=="rho","df.denom"], c(7.450136), tol = 1e-1)
 
 ## ** getVarCov
 sigma(eSCS.lmm)
@@ -453,14 +453,14 @@ test <- confint(eSUN.lmm, effects = "all")[,"df", drop=FALSE]
 ## anova(eSUN.gls)
 
 ## ** anova
-eSUN.lmm_anova <- anova(eSUN.lmm, effects = "all", ci = TRUE)
+eSUN.lmm_anova <- anova(eSUN.lmm, effects = "all", ci = TRUE)$multivariate
 if(eSUN.lmm$opt$name=="gls"){
-    expect_equal(eSUN.lmm_anova$mean$df.denom, c(47.63744, 42.53266), tol = 1e-1)
+    expect_equal(eSUN.lmm_anova[eSUN.lmm_anova$type=="mu","df.denom"], c(47.63744, 42.53266), tol = 1e-1)
 }else{
-    expect_equal(eSUN.lmm_anova$mean$df.denom, c(57.00206139, 55.02679117, 67.96985137, 93.51660476, 54.92384757), tol = 1e-1)
+    expect_equal(eSUN.lmm_anova[eSUN.lmm_anova$type=="mu","df.denom"], c(57.00206139, 55.02679117, 67.96985137, 93.51660476, 54.92384757), tol = 1e-1)
 }
-expect_equal(eSUN.lmm_anova$variance$df.denom, c(86.07826), tol = 1e-1)
-expect_equal(eSUN.lmm_anova$correlation$df.denom, c(9.100919), tol = 1e-1)
+expect_equal(eSUN.lmm_anova[eSUN.lmm_anova$type=="k","df.denom"], c(86.07826), tol = 1e-1)
+expect_equal(eSUN.lmm_anova[eSUN.lmm_anova$type=="rho","df.denom"], c(9.100919), tol = 1e-1)
 
 
 ## ** getVarCov
@@ -495,8 +495,8 @@ test_that("missing values",{
     expect_equal(as.double(logLik(eCS.lmm)), as.double(logLik(eCS.gls)))
 })
 
-## * Baseline constrain
-test_that("Baseline constrain",{
+## * Baseline constraint
+test_that("Baseline constraint",{
 
     dL$group <- as.factor(dL$id %% 2)
     dL$treat <- (dL$group==1)*(dL$visit!="Y1")
@@ -513,13 +513,14 @@ test_that("Baseline constrain",{
 
     capture.output(summary(eCUN2.lmm))
     capture.output(summary(anova(eCUN2.lmm), method = "none"))
-    plot(eCUN2.lmm, color = "group", time.var = "visit")
+    ## plot(eCUN2.lmm, color = "group", time.var = "visit")
 
     ## baseline constrain for order 3 interaction
     eCUN.I2.lmm <- suppressMessages(lmm(Y ~ gender*treat*visit, repetition = ~treat*visit|id, structure = "UN", data = dL, trace = 0, method = "REML", df = FALSE, control = list(optimizer = "FS")))
     eCUN2.I2.lmm <- suppressMessages(lmm(Y ~ gender:treat.visit, repetition = ~treat.visit|id, structure = "UN", data = dL, trace = 0, method = "REML", df = FALSE, control = list(optimizer = "FS")))
     expect_equal(logLik(eCUN.I2.lmm), logLik(eCUN2.I2.lmm), tol = 1e-5)
     expect_equal(logLik(eCUN.I2.lmm), -598.96051963, tol = 1e-5)
+
 })
 ##----------------------------------------------------------------------
 ### test-auto-mixed-model.R ends here

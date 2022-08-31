@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 13 2022 (13:55) 
 ## Version: 
-## Last-Updated: aug 29 2022 (13:27) 
+## Last-Updated: aug 31 2022 (16:40) 
 ##           By: Brice Ozenne
-##     Update #: 40
+##     Update #: 41
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -113,6 +113,7 @@ test_that("anova_lmm vs. confint", {
     expect_equal(test1$p.value, test1.bis$p.value, tol = 1e-5)
     expect_equal(confint(e.lmm1, backtransform = FALSE, effects = "all", transform.names = FALSE)[rownames(test1.bis),"estimate"],
                  unname(test1.bis$estimate), tol = 1e-5)
+
 })
 
 ## ** pooling
@@ -168,6 +169,9 @@ test_that("rbind.anova_lmm", {
     expect_equal(coef(A123), coef(A123.bis), tol = 1e-5)
     expect_equal(vcov(A123), vcov(A123.bis), tol = 1e-5)
 
+    ## sqrt(diag(vcov(A123)))
+    ## sqrt(diag(vcov(A123.bis)))
+    ## A123.bis$univariate ## rbind.Wald_lmm(A1,A2,A3)
     GS <- model.tables(A123)
     test <- model.tables(A123.bis)
     expect_equal(A123.bis$univariate[,c("estimate","se","statistic")],
@@ -183,6 +187,7 @@ test_that("rbind.anova_lmm", {
     expect_equal(unname(rep(coef(A123),2)), unname(coef(A12.ter)), tol = 1e-5)
     expect_equal(unname(as.matrix(bdiag(vcov(A123),vcov(A123)))), unname(vcov(A12.ter)), tol = 1e-5)
     expect_equal(A12.ter$multivariate$statistic, A123$multivariate$statistic, tol = 1e-5)
+
 })
 
 ## * Rubin's rule

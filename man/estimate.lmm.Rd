@@ -7,15 +7,15 @@
 \method{estimate}{lmm}(
   x,
   f,
-  df = TRUE,
+  df = !is.null(x$df),
   robust = FALSE,
   type.information = NULL,
   level = 0.95,
   method.numDeriv = NULL,
   average = FALSE,
-  transform.sigma = "none",
-  transform.k = "none",
-  transform.rho = "none",
+  transform.sigma = NULL,
+  transform.k = NULL,
+  transform.rho = NULL,
   ...
 )
 }

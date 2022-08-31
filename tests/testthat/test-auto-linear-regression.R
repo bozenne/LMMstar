@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: May 30 2022 (23:22) 
+## Last-Updated: aug 31 2022 (17:12) 
 ##           By: Brice Ozenne
-##     Update #: 198
+##     Update #: 199
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -169,13 +169,15 @@ test_that("single variance parameter (ML)",{
 
     ## ** anova
     test <- anova(e.lmm)
-    expect_equal(test$mean["Gene","statistic"]*test$mean["Gene","df.num"],
+    ## summary(test)
+    ## summary(anova(e.lmm, effects = "all"))
+   
+    expect_equal(prod(test$multivariate[test$multivariate$test=="Gene",c("statistic","df.num")]),
                  unname(lava::compare(e.lava, par = c("Y~GeneLA","Y~GeneAA"))$statistic), tol = 1e-6)
-    expect_equal(test$mean["Gene","df.denom"], NROW(d))
+    expect_equal(test$multivariate[test$multivariate$test=="Gene","df.denom"], NROW(d), tol = 1e-6)
 
-    test <- anova(e.lmm, effect = c("GeneLA=0","GeneAA=0"))
-    test2 <-  anova(e.lmm, effect = c("GeneLA=0","GeneAA=0"))
-
+    test2 <- anova(e.lmm, effect = c("GeneLA=0","GeneAA=0"))
+    ## summary(test2)
 })
 
 ## * single variance parameter (REML)
@@ -272,8 +274,8 @@ test_that("single variance parameter (REML)",{
     ## ** anova
     test <- anova(e.lmm)
     GS <- anova(e.gls, type = "marginal")
-    expect_equal(test$mean$statistic,GS[["F-value"]][-1], tol = 1e-6)
-    expect_equal(test$mean$p.value,GS[["p-value"]][-1], tol = 1e-6)
+    expect_equal(test$multivariate$statistic,GS[["F-value"]][-1], tol = 1e-6)
+    expect_equal(test$multivariate$p.value,GS[["p-value"]][-1], tol = 1e-6)
 
     ## ** predictions
     test <- predict(e.lmm, newdata = d)

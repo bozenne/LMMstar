@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: jun 27 2022 (11:59) 
+## Last-Updated: aug 31 2022 (17:18) 
 ##           By: Brice Ozenne
-##     Update #: 54
+##     Update #: 55
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -40,7 +40,7 @@ test_that("mlmm: pool",{
 
     e.mlmm <- mlmm(Y~X, by = ".imp", data = complete(dfA, action = "long"),
                    effects = c("X=0"))
-    test <- model.tables(e.mlmm, method = "pool")
+    test <- model.tables(e.mlmm, method = "pool.rubin")
 
     expect_equal(as.double(GS[GS$term=="X",c("estimate","std.error","df","p.value")]),
                  as.double(test[c("estimate","se","df","p.value")]), tol = 1e-4)

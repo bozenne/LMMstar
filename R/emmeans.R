@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 10 2021 (16:08) 
 ## Version: 
-## Last-Updated: Feb 13 2022 (23:10) 
+## Last-Updated: aug 31 2022 (17:37) 
 ##           By: Brice Ozenne
-##     Update #: 72
+##     Update #: 78
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -54,13 +54,20 @@ emm_basis.lmm <- function(object, trms, xlev, grid, ...){
     out$bhat  <- stats::coef(object, effects = "mean")
     out$nbasis  <-  matrix(NA)  ## no rank deficiency
     out$V  <- stats::vcov(object, effects = "mean")
-    out$dffun <- function(k,dfargs){
-        if(is.vector(k)){k <- rbind(k)}
-        if(is.null(colnames(k))){colnames(k) <- dfargs$name.meanparam}
-        do.call(dfargs$FUN, args = list(X.beta = k, vcov.param = dfargs$vcov.param, dVcov.param = dfargs$dVcov.param))
-    }
-    out$dfargs <- list(FUN = .dfX , name.meanparam = colnames(out$X), vcov.param = object$vcov, dVcov.param = object$dVcov)
 
+    if(!is.null(object$dVcov)){
+        out$dffun <- function(k,dfargs){
+            if(is.vector(k)){k <- rbind(k)}
+            if(is.null(colnames(k))){colnames(k) <- dfargs$name.meanparam}
+            do.call(dfargs$FUN, args = list(X.beta = k, vcov.param = dfargs$vcov.param, dVcov.param = dfargs$dVcov.param))
+        }    
+    }else{
+        out$dffun <- function(k,dfargs){
+            return(Inf)
+        }
+    }
+    out$dfargs <- list(FUN = .dfX, name.meanparam = colnames(out$X), vcov.param = object$vcov, dVcov.param = object$dVcov)
+    
     return(out)
 }
 

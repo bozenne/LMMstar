@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 31 2022 (11:36) 
 ## Version: 
-## Last-Updated: aug 30 2022 (09:13) 
+## Last-Updated: aug 31 2022 (16:46) 
 ##           By: Brice Ozenne
-##     Update #: 66
+##     Update #: 67
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -158,10 +158,10 @@ test_that("delta method for association based on residual variance", {
 
     test <- data.frame("estimate" = c(0.26819079), 
                        "se" = c(0.27761318), 
-                       "df" = c(45.3428542), 
-                       "lower" = c(-0.29083419), 
-                       "upper" = c(0.82721577), 
-                       "p.value" = c(0.33913908))
+                       "df" = c(45.32849395), 
+                       "lower" = c(-0.29083904), 
+                       "upper" = c(0.82722062), 
+                       "p.value" = c(0.33914069))
     expect_equal(as.double(unlist(e.delta2)), as.double(unlist(test)), tol = 1e-5)
     
     ## quadrivariate mixed model estimating the association between the changes
@@ -179,11 +179,11 @@ test_that("delta method for association based on residual variance", {
         iOmega[1,2]/iOmega[1,1]
     })
     test <- data.frame("estimate" = c(0.26819312), 
-                       "se" = c(0.27761253), 
-                       "df" = c(16.65819987), 
-                       "lower" = c(-0.31843493), 
-                       "upper" = c(0.85482116), 
-                       "p.value" = c(0.34782614))
+                       "se" = c(0.27761261), 
+                       "df" = c(16.66677284), 
+                       "lower" = c(-0.31841161), 
+                       "upper" = c(0.85479785), 
+                       "p.value" = c(0.34781928))
     expect_equal(as.double(unlist(e.delta4)), as.double(unlist(test)), tol = 1e-4)
 
 })

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 29 2022 (09:33) 
+## Last-Updated: aug 31 2022 (16:31) 
 ##           By: Brice Ozenne
-##     Update #: 324
+##     Update #: 333
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -22,7 +22,7 @@
 ##' @param model a \code{Wald_lmm} object (output of \code{anova} applied to a \code{lmm} object)
 ##' @param ...  possibly other \code{Wald_lmm} objects
 ##' @param effects [character or numeric matrix] how to combine the left-hand side of the hypotheses.
-##' By default identity matrix but can also be \code{"Dunnett"},  \code{"Tukey"}, or  \code{"Sequen"} (see function \code{contrMat} from the multcomp package).
+##' By default identity matrix but can also be \code{"Dunnett"},  \code{"Tukey"}, or  \code{"Sequen"} (see function \code{multcomp::contrMat} from the multcomp package).
 ##' @param rhs [numeric vector] the right hand side of the hypothesis. Should have the same length as the number of row of argument \code{effects}.
 ##' @param name [character vector or NULL] character used to identify each model in the output.
 ##' By default, use the name of the outcome of the model.
@@ -167,7 +167,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
             if(effects %in% valid.contrast == FALSE){
                 stop("When a character, argument \'effects\' should be one of \"",paste(valid.contrast, collapse = "\" \""),"\". \n")
             }
-            contrast <- contrMat(rep(1,length(name.modelparam)), type = effects)
+            contrast <- multcomp::contrMat(rep(1,length(name.modelparam)), type = effects)
             colnames(contrast) <- name.modelparam
             try(rownames(contrast) <- unlist(lapply(strsplit(split = "-",rownames(contrast),fixed=TRUE), function(iVec){
                 paste(name.modelparam[as.numeric(trimws(iVec))], collapse = " - ")
@@ -228,13 +228,13 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
     }else if(all(duplicated(gridTest$type)==FALSE)){
         gridTest <- gridTest[,"type",drop=FALSE]
     }else{
-        if(all(duplicated(outcome))){
+        if(all(duplicated(gridTest$outcome))){
             gridTest$outcome <- NULL
         }
-        if(all(duplicated(outcome))){
+        if(all(duplicated(gridTest$type))){
             gridTest$type <- NULL
         }
-        if(all(duplicated(test))){
+        if(all(duplicated(gridTest$test))){
             gridTest$test <- NULL
         }
     }
@@ -343,8 +343,11 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
         newtable.univariate$statistic <- newtable.univariate$estimate/newtable.univariate$se
         newtable.args$df <- FALSE
     }else{
-        newtable.univariate <- table.univariate
         C.vcov.C <- beta.vcov
+        newtable.univariate <- table.univariate
+        ## update se and statistic in case robust standard errors have been used
+        newtable.univariate$se <- sqrt(diag(beta.vcov))
+        newtable.univariate$statistic <- newtable.univariate$estimate/newtable.univariate$se
     }
     if(newtable.args$df){
         e.glht <- list(linfct = contrast, rhs = rhs,

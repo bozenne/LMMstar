@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 15 2022 (10:04) 
 ## Version: 
-## Last-Updated: jul 21 2022 (16:58) 
+## Last-Updated: aug 31 2022 (17:42) 
 ##           By: Brice Ozenne
-##     Update #: 41
+##     Update #: 43
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -37,7 +37,7 @@
                            backtransform, transform.mu, transform.sigma, transform.k, transform.rho){
 
     ## ** prepare
-    if(transform.k %in% c("sd","var","logsd","logvar")){
+    if(inherits(transform.k,"character") && transform.k %in% c("sd","var","logsd","logvar")){
         type.param[type.param=="sigma"] <- "k"
     }
     

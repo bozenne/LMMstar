@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: nov 13 2021 (16:47) 
 ## Version: 
-## Last-Updated: Jun  2 2022 (11:36) 
+## Last-Updated: aug 31 2022 (17:42) 
 ##           By: Brice Ozenne
-##     Update #: 25
+##     Update #: 26
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -53,11 +53,13 @@ test_that("summarize", {
     GS <- data.frame("outcome" = c("weight", "weight", "weight", "weight"), 
                      "time" = as.factor(c("-3 month", "-1 week", "+1 week", "+3 month")), 
                      "observed" = c(20, 20, 20, 20), 
-                    "missing" = c(0, 0, 0, 0), 
+                     "missing" = c(0, 0, 0, 0), 
                      "mean" = c(128.970, 121.240, 115.700, 102.365), 
                      "sd" = c(20.26937, 18.91019, 18.27532, 17.05389), 
-                     "min" = c(100.9,  95.7,  89.9,  78.8), 
-                     "median" = c(123.1, 114.5, 110.6,  98.5), 
+                     "min" = c(100.9,  95.7,  89.9,  78.8),
+                     "q1" = c(115.300, 107.775, 102.225,  90.400), 
+                     "median" = c(123.1, 114.5, 110.6,  98.5),
+                     "q3" = c(139.825, 134.525, 128.375, 108.250), 
                      "max" = c(173.0, 162.2, 155.0, 148.0))
 
     expect_equivalent(ss1,GS, tol = 1e-3)
@@ -233,7 +235,7 @@ test_that("Extactors for lmm", {
     ## F-test:
     fitAnova.main <- anova(fit.main, ci = TRUE)
     fitAnova.main
-    expect_equivalent(fitAnova.main$mean[,c("statistic","df.num","df.denom","p.value")],
+    expect_equivalent(fitAnova.main$multivariate[,c("statistic","df.num","df.denom","p.value")],
                       data.frame("statistic" = c(121.65995198), 
                                  "df.num" = c(3), 
                                  "df.denom" = c(18.97809203), 
@@ -315,6 +317,7 @@ test_that("log transformation for lmm", {
     ## Estimates and CIs on log2-scale:
     test <- confint(fit.log, backtransform = function(x){2^x})
     test
+
     ## Back-transformed estimates and CIs:
     expect_equivalent(2^confint(fit.log)[,c("estimate","lower","upper")],
                       test[,c("estimate","lower","upper")],

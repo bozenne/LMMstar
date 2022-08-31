@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: aug 30 2022 (09:20) 
+## Last-Updated: aug 31 2022 (18:25) 
 ##           By: Brice Ozenne
-##     Update #: 1161
+##     Update #: 1175
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -125,7 +125,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
 
     options <- LMMstar.options()
     type.information <- attr(object$information,"type.information")    
-    
+
     ## ** normalized user input
     terms.mean <- attr(stats::terms(object$formula$mean.design),"term.labels")
     subeffect <- NULL
@@ -388,7 +388,6 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     out$glht <- stats::setNames(vector(mode = "list", length = length(type)), type)
 
     for(iType in type){ ## iType <- "correlation"
-
         ## skip empty type
         if(length(ls.nameTerms.num[[iType]])==0 || (is.null(ls.contrast[[iType]]) && (all(ls.assign[[iType]]==0)))){ next }
 
@@ -406,8 +405,8 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
 
             ## *** contrast matrix
             if(is.null(ls.contrast[[iType]])){
-                if(all(ls.assign[[iType]]!=iTerm)){return(NULL)}
-                if(!is.null(subeffect) && ls.nameTerms$mean[iTerm]!=subeffect){return(NULL)}
+                if(all(ls.assign[[iType]]!=iTerm)){next}
+                if(!is.null(subeffect) && ls.nameTerms$mean[iTerm]!=subeffect){next}
                 iIndex.param <- which(ls.assign[[iType]]==iTerm)
                 iN.hypo <- length(iIndex.param)
                 iNull <- rep(ls.null[[iType]][iTerm],iN.hypo)

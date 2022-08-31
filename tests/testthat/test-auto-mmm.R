@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: jun 27 2022 (11:55) 
+## Last-Updated: aug 31 2022 (17:24) 
 ##           By: Brice Ozenne
-##     Update #: 52
+##     Update #: 53
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -40,9 +40,9 @@ test_that("rbind for anova",{
     e.lmm2 <- lmm(Y ~ X1+X8+X9, repetition = ~visit|id, data = dL)
     e.lmm3 <- lmm(Y ~ X1+Xcat, repetition = ~visit|id, data = dL)
 
-    AAA <- anova(e.lmm1, ci = TRUE, effect = c("X1|X2,X3"="X1=0","X2|X1,X3"="X2=0"))
-    BBB <- anova(e.lmm2, ci = TRUE, effect = c("X1|X8,X9"="X1=0"))
-    CCC <- anova(e.lmm3, ci = TRUE, effect = c("X1|Xcat"="X1=0"))
+    AAA <- anova(e.lmm1, ci = TRUE, effect = c("X1|X2,X3"="X1=0","X2|X1,X3"="X2=0"), robust = TRUE, df = FALSE)
+    BBB <- anova(e.lmm2, ci = TRUE, effect = c("X1|X8,X9"="X1=0"), robust = TRUE, df = FALSE)
+    CCC <- anova(e.lmm3, ci = TRUE, effect = c("X1|Xcat"="X1=0"), robust = TRUE, df = FALSE)
     ZZZ <- rbind(AAA,BBB,CCC)
     test1 <- rbind(confint(AAA, method = "none"),
                    confint(BBB, method = "none"),
@@ -50,7 +50,6 @@ test_that("rbind for anova",{
     test2 <- confint(ZZZ, method = "none")
     test <- capture.output(summary(ZZZ))
 
-    expect_equal(as.double(unlist(test1[1:2,c("estimate","se","df","lower","upper","p.value")])), as.double(unlist(model.tables(e.lmm1)[c("X1","X2"),])), tol = 1e-6)
     expect_equal(as.double(unlist(test1[,c("estimate","se","df","lower","upper","p.value")])), as.double(unlist(test2[,c("estimate","se","df","lower","upper","p.value")])), tol = 1e-6)
 
 

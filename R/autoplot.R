@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: aug 25 2022 (10:35) 
+## Last-Updated: aug 31 2022 (18:11) 
 ##           By: Brice Ozenne
-##     Update #: 252
+##     Update #: 269
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,7 +17,6 @@
 
 ## * autoplot.lmm (documentation)
 ##' @title Graphical Display For Linear Mixed Models
-##' @name autoplot
 ##'
 ##' @param object a \code{lmm} object.
 ##' @param at [data.frame] values for the covariates at which to evaluate the fitted values.
@@ -234,7 +233,6 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
 
 ## * autoplot.Wald_lmm (documentation)
 ##' @title Graphical Display For Linear Hypothesis Test
-##' @name autoplot
 ##'
 ##' @param object a \code{Wald_lmm} object.
 ##' @param type [character] what to display: a forest plot (\code{"forest"}) or a heatmap (\code{"heat"}).
@@ -252,7 +250,7 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
 ##' \item \code{width.ci}: [numeric, >0] width of the line used to display the confidence intervals.
 ##' \item \code{size.null}: [numeric, >0] thickness of the line used to display the null hypothesis. 
 ##' }
-##' Parameters specific to the forest plot: \itemize{
+##' Parameters specific to the heatmap plot: \itemize{
 ##' \item \code{limits}: [numeric vector of length 2] minimum and maximum value of the colorscale relative to the correlation.
 ##' \item \code{low}, \code{mid}, \code{high}: [character] color for the the colorscale relative to the correlation.
 ##' \item \code{midpoint}: [numeric] correlation value associated with the color defined by argument \code{mid}
@@ -265,7 +263,7 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
 ##'
 ##' @examples
 ##' ## From the multcomp package
-##' if(require(datasets)){
+##' if(require(datasets) && require(ggplot2)){
 ##'
 ##' ## only tests with 1 df
 ##' e.lmm <- lmm(Fertility ~ Agriculture + Examination + Education + Catholic + Infant.Mortality, data = swiss)
@@ -384,7 +382,7 @@ autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 
         high <- add.args$high
         midpoint <- add.args$midpoint
 
-        Sigma_t <- cov2cor(object$vcov)
+        Sigma_t <- stats::cov2cor(object$vcov)
         
         ## from matrix to long format
         table <- as.data.frame(cbind(which(is.na(NA*Sigma_t), arr.ind = TRUE),value = as.numeric(Sigma_t)))
@@ -413,15 +411,75 @@ autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 
 
         table$row <- as.factor(table$row)
         table$col <- factor(table$col, levels = rev(levels(table$row)))
-        gg <- ggplot(table) + geom_tile(aes(x=row,y=col,fill=value))
+        gg <- ggplot2::ggplot(table) + ggplot2::geom_tile(ggplot2::aes_string(x="row",y="col",fill="value"))
 
         if(!is.null(mid)){
-            gg <- gg + scale_fill_gradient2(limits = limits, midpoint = midpoint, low = low, mid = mid, high = high)
+            gg <- gg + ggplot2::scale_fill_gradient2(limits = limits, midpoint = midpoint, low = low, mid = mid, high = high)
         }else{
-            gg <- gg + scale_fill_gradient(limits = limits, low = low, high = high)
+            gg <- gg + ggplot2::scale_fill_gradient(limits = limits, low = low, high = high)
         }
-        gg <- gg + labs(x=name.x,y=name.y, fill = "correlation")
+        gg <- gg + ggplot2::labs(x=name.x,y=name.y, fill = "correlation")
     }
+        
+    gg <- gg + ggplot2::theme(text = ggplot2::element_text(size=size.text))
+
+    ## ** display
+    if(plot){
+        print(gg)
+    }
+
+    ## ** export
+    return(invisible(list(data = table,
+                          plot = gg)))
+}
+
+
+## * autoplot.partialCor (documentation)
+##' @title Graphical Display For Partial Correlation
+##' @description Extract and display the correlation modeled via the linear mixed model.
+##'
+##' @param object a \code{partialCor} object.
+##' @param plot [logical] should the plot be displayed?
+##' @param size.text [numeric, >0] size of the font used to display text.
+##' @param limits [numeric vector of length 2] minimum and maximum value of the colorscale relative to the correlation.
+##' @param low,mid,high: [character] color for the the colorscale relative to the correlation.
+##' @param midpoint: [numeric] correlation value associated with the color defined by argument \code{mid}.
+##' @param ... Not used. For compatibility with the generic method.
+##'
+##' @return A list with two elements \itemize{
+##' \item \code{data}: data used to create the graphical display.
+##' \item \code{plot}: ggplot object.
+##' }
+##'
+
+## * autoplot.partialCor (code)
+##' @rdname autplot
+##' @export
+autoplot.partialCor <- function(object, plot = TRUE, size.text = 16,
+                                limits = c(-1,1.00001), low = "blue", mid = "white", high = "red", midpoint = 0, ...){
+
+    object.lmm <- attr(object,"lmm")
+    Sigma_t <- sigma(object.lmm)
+    name.time <- object.lmm$time$levels
+    if(!is.matrix(Sigma_t)){
+        stop("Could not extract a unique covariance matrix. \n")
+    }
+    Sigma_t <- stats::cov2cor(Sigma_t)
+        
+    ## from matrix to long format
+    table <- as.data.frame(cbind(which(is.na(NA*Sigma_t), arr.ind = TRUE),value = as.numeric(Sigma_t)))
+    rownames(table) <- NULL
+    table$col <- factor(colnames(Sigma_t)[table$col], levels = name.time)
+    table$row <- factor(rownames(Sigma_t)[table$row], levels = name.time)
+    
+    gg <- ggplot2::ggplot(table) + ggplot2::geom_tile(ggplot2::aes_string(x="row",y="col",fill="value"))
+
+    if(!is.null(mid)){
+        gg <- gg + ggplot2::scale_fill_gradient2(limits = limits, midpoint = midpoint, low = low, mid = mid, high = high)
+    }else{
+        gg <- gg + ggplot2::scale_fill_gradient(limits = limits, low = low, high = high)
+    }
+    gg <- gg + ggplot2::labs(x = NULL, y = NULL, fill = "correlation") + ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5, hjust=1))
         
     gg <- gg + ggplot2::theme(text = ggplot2::element_text(size=size.text))
 

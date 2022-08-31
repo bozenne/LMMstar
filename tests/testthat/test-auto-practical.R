@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (17:03) 
 ## Version: 
-## Last-Updated: May 30 2022 (23:35) 
+## Last-Updated: aug 31 2022 (17:29) 
 ##           By: Brice Ozenne
-##     Update #: 110
+##     Update #: 111
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -104,7 +104,7 @@ test_that("practical 1 - gastricbypass",{
     eUN.lmm_anova <- anova(eUN.lmm, effects = c("timew1A-timew1B=0"), ci = TRUE)
     capture.output(eUN.lmm_anova)
     capture.output(summary(eUN.lmm_anova))
-    expect_equal(eUN.lmm_anova$all$df.denom, 19.24699, tol = 1e-1) ## Richardson
+    expect_equal(eUN.lmm_anova$multivariate$df.denom, 19.24699, tol = 1e-1) ## Richardson
 })
 
 ## * Practical 2
@@ -154,7 +154,7 @@ test_that("practical 2 - ncgs",{
     ## ** extract information
     confint(e2.lmm, effects = "all", backtransform = TRUE)[,c("estimate","lower","upper")]
     e2.lmm_anova <- anova(e2.lmm, effects = c("treatmenthighdose:time6-treatmentplacebo:time6=0","treatmenthighdose:time12-treatmentplacebo:time12=0"), ci = TRUE)
-    expect_equal(e2.lmm_anova$all$df.denom, 100.0411, tol = 1e-1) ## Richardson
+    expect_equal(e2.lmm_anova$multivariate$df.denom, 100.0411, tol = 1e-1) ## Richardson
     autoplot(e2.lmm) 
     autoplot(e2.lmm, color = "group") 
     autoplot(e2.lmm, color = "group", ci.alpha = 0.25)
@@ -283,6 +283,7 @@ test_that("practical 4 - bloodpressureL",{
                     structure = "UN", repetition = ~ treatment | id)
     capture.output(summary(eUNT.lmm))
     expect_equal(as.double(logLik(eUNT.lmm)),as.double(logLik(eUNT.gls)), tol = 1e-6)
+
 })
 
 ## * Practical 6

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 20 2022 (12:12) 
 ## Version: 
-## Last-Updated: aug 30 2022 (11:38) 
+## Last-Updated: aug 31 2022 (16:44) 
 ##           By: Brice Ozenne
-##     Update #: 59
+##     Update #: 60
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -185,12 +185,12 @@ test_that("estimate partial correlation via lmm (cluster)", {
 
     expect_equal(as.double(model.tables(eTopHetero.lmm, effects = "correlation")["rho(1.X1,1.X2)",]),
                  as.double(test.hetero), tol = 1e-6)
-    expect_equal(c(4.332644e-01, 4.888257e-02, 1.978815e+01, 3.288053e-01, 5.272503e-01, 1.494162e-07),
+    expect_equal(c(0.47549331, 0.04987419, 13.38669723, 0.36577561, 0.572176, 1.16e-06),
                  as.double(test.hetero), tol = 1e-6)
     expect_equal(as.double(model.tables(eTopHomo.lmm, effects = "correlation")["rho(1.X1,1.X2)",]),
-                 as.double(test.homo), tol = 1e-6)
-    expect_equal(c(4.334200e-01, 4.875447e-02, 2.002694e+01, 3.293324e-01, 5.271000e-01, 1.314180e-07),
-                 as.double(test.homo), tol = 1e-6)
+                 as.double(test.homo["rho(1.X1,1.X2)",]), tol = 1e-6)
+    expect_equal(c(0.4732798, 0.04992003, 14.13096784, 0.36401686, 0.56969305, 8.3e-07),
+                 as.double(test.homo["rho(1.X1,1.X2)",]), tol = 1e-6)
     
 })
 

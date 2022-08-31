@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Dec 19 2021 (17:07) 
 ## Version: 
-## Last-Updated: jun 13 2022 (14:05) 
+## Last-Updated: aug 31 2022 (17:38) 
 ##           By: Brice Ozenne
-##     Update #: 20
+##     Update #: 21
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,7 +26,7 @@ if(FALSE){
 }
 
 context("Check lmm on Basic Statistic course")
-LMMstar.options(optimizer = "FS", method.numDeriv = "simple", precompute.moments = TRUE)
+LMMstar.options(optimizer = "FS", method.numDeriv = "simple", precompute.moments = TRUE, df = TRUE)
 test.practical <- FALSE
 
 ## * Data

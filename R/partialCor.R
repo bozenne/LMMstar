@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: aug 30 2022 (18:58) 
+## Last-Updated: aug 31 2022 (18:53) 
 ##           By: Brice Ozenne
-##     Update #: 229
+##     Update #: 237
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,6 +26,10 @@
 ##' @param heterogeneous [logical] Specify whether the variance differ between the two variables (no repetition)
 ##' or whether the correlation/variance vary over repetitions (repetition).
 ##' @param by [character] variable used to stratified the correlation on.
+##' @param effects [character or matrix] type of contrast to be used for comparing the correlation parameters. One of \code{"Dunnett"}, \code{"Tukey"}, \code{"Sequen"}, or a contrast matrix.
+##' @param rhs [numeric vector] right hand side for the comparison of correlation parameters. 
+##' @param method [character] adjustment for multiple comparisons (e.g. \code{"single-step"}).
+##' @param transform.rho [character] scale on which perform statistical inference (e.g. \code{"atanh"})
 ##'
 ##' @details Fit a mixed model to estimate the partial correlation with the following variance-covariance pattern:
 ##' \itemize{
@@ -78,17 +82,23 @@
 ##' ## partialCor(list(hl~1, disp~1), data = y.data, by = "gender") ## too small dataset
 ##' 
 ##' #### bivariate (with repetition) ####
-##' if(require(rmcorr)){
-##' data(bland1995, package = "rmcorr")
-##' bland1995$Subject <- as.factor(bland1995$Subject)
-##' 
-##' ls.time <- tapply(1:NROW(bland1995),bland1995$Subject,function(x){1:length(x)})
-##' bland1995$time <- unlist(ls.time)
-##' 
-##' partialCor(pH+PacO2~1, repetition =~time|Subject, data = bland1995)
-##' 
-##' partialCor(weight+glucagonAUC~time, repetition =~time|id, data = gastricbypassL)
+##' data(gastricbypassL)
+##' e.cor <- partialCor(weight+glucagonAUC~time, repetition =~time|id,
+##'                     data = gastricbypassL)
+##' e.cor
+##' coef(attr(e.cor,"lmm"), effects = "correlation")
+##' if(require(ggplot2)){
+##' autoplot(e.cor)
 ##' }
+##'
+##' e.cor2 <- partialCor(weight+glucagonAUC~time, repetition =~time|id,
+##'                      data = gastricbypassL, heterogeneous = 0.5)
+##' e.cor2
+##' coef(attr(e.cor2,"lmm"), effects = "correlation")
+##' if(require(ggplot2)){
+##' autoplot(e.cor2)
+##' }
+##' 
 
 ## * partialCor (documentation)
 ##' @export
@@ -269,7 +279,7 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
                     out2 <- estimate(e.lmm, f = function(p){
                         if(any(p[name.rho2]<0)){NA}else{p[keep.rho]/sqrt(prod(1-p[name.rho2]))}
                     })
-                    rownames(out2) <- gsub("^rho","r",rownames(out2))
+                    rownames(out2) <- gsub("^rho","r",rownames(out))
                     out <- rbind(out, out2)
                     attr(out,"backtransform") <- NULL                    
                 }
@@ -316,7 +326,7 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
                 }
                 
             }else if(length(effects)==1 && is.character(effects)){
-                contrast <- contrMat(rep(1,length(name.cor)), type = effects)
+                contrast <- multcomp::contrMat(rep(1,length(name.cor)), type = effects)
                 Cmat <- matrix(0, nrow = NROW(contrast), ncol = n.param,
                                dimnames = list(NULL,name.param))
                 Cmat[,name.cor] <- unname(contrast)

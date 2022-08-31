@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: aug 30 2022 (19:07) 
+## Last-Updated: aug 31 2022 (17:11) 
 ##           By: Brice Ozenne
-##     Update #: 976
+##     Update #: 1009
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -340,6 +340,7 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
 ##' @param digits [interger, >0] number of digits used to display estimates.
 ##' @param digits.df [interger, >0] number of digits used to display degrees of freedom.
 ##' @param digits.p.value [interger, >0] number of digits used to display p-values.
+##' @param sep [character] character string used to separate the type of test (e.g. mean, variance) and the name of the test.
 ##' @param ... arguments \code{method}, \code{level}, and \code{backtransform} passed to \code{\link{confint.Wald_lmm}}
 ##'
 ##'
@@ -376,7 +377,9 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         columns.univariate <- valid.columns
     }else  if(is.null(columns)){
         columns.univariate <- options$columns.anova
-        columns.multivariate <- union("statistic", setdiff(options$columns.anova, c("estimate", "se", "lower", "upper")))
+        if(any(object$multivariate$type!="all")){
+            columns.multivariate <- union(c("type","statistic"), setdiff(options$columns.anova, c("estimate", "se", "lower", "upper")))
+        }
     }else{
         columns.univariate <- tolower(columns)
         if(any(columns.univariate %in% valid.columns == FALSE)){
@@ -415,13 +418,14 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
     ## ** extract information
     ## *** multivariate tests
     if(print.multivariate>0){
-
         table.multivariate <- object$multivariate[,setdiff(columns.multivariate,c("type",""))]
         nchar.type <- nchar(object$args$type[[1]])
         maxchar.type <- max(nchar.type)
         if("type" %in% columns.multivariate){
             vec.white <- sapply(maxchar.type-nchar.type, function(iN){paste(rep(" ", iN), collapse = "")})
-            rownames(table.multivariate) <- paste(vec.white,object$args$type[[1]],sep,object$multivariate$test,sep="")
+            sparsetype <- object$args$type[[1]]
+            sparsetype[duplicated(sparsetype)] <- sapply(sparsetype[duplicated(sparsetype)], function(iWord){paste(rep(" ", times = nchar(iWord)), collapse="")})
+            rownames(table.multivariate) <- paste(vec.white,sparsetype,sep,object$multivariate$test,sep="")
         }else if(any(duplicated(object$multivariate$test))){
             test.nduplicated <- !duplicated(object$args$type[[1]])
             rownames(table.multivariate) <- sapply(1:NROW(table.multivariate), function(iIndex){
@@ -431,8 +435,8 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
                     paste(paste(rep(" ", maxchar.type+nchar(sep)), collapse = ""),object$multivariate$test[iIndex],sep="")
                 }
             })
-        }else if(!identical(object$args$type[[1]],"all")){
-            rownames(object$multivariate) <- object$multivariate$test
+        }else if(any(!identical(object$args$type[[1]],"all"))){
+            rownames(table.multivariate) <- object$multivariate$test
         }
         if(print.multivariate>0.5){
             cat("\t\tMultivariate Wald test \n\n")
@@ -440,7 +444,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         .printStatTable(table = table.multivariate, robust = robust, df = df, level = NULL, type.information = type.information,
                         method.p.adjust = NULL,
                         backtransform = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL,
-                        columns = columns.multivariate, col.df = c("df.num","df.denom"), name.statistic = c("Chi2-statistic","F-statistic"),
+                        columns = setdiff(columns.multivariate,"type"), col.df = c("df.num","df.denom"), name.statistic = c("Chi2-statistic","F-statistic"),
                         digits = digits, digits.df = c(df.num = 0, df.denom = digits.df), digits.p.value = digits.p.value,
                         decoration = legend, legend = legend)
         
@@ -453,9 +457,14 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         if(is.null(columns) && all(is.na(table.univariate$lower)) && all(is.na(table.univariate$upper))){
             columns.univariate <- setdiff(columns.univariate, c("lower","upper"))
         }
+
         error <- attr(table.univariate,"error")
         n.sample <- attr(table.univariate,"n.sample")
         method.p.adjust <- attr(table.univariate,"method")
+        if(length(method.p.adjust)>1){
+            method.p.adjust <- method.p.adjust[1]
+            message("Different adjustment for multiple comparisons were used but only the first is described. \n")
+        }
         level <- attr(table.univariate,"level")
         backtransform <- attr(table.univariate,"backtransform")
 
@@ -473,7 +482,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         }
 
         ## incorporate type
-        if(attr(table.univariate,"method") %in% c("average","pool.fixse","pool.se","pool.pca","pool.rubin") == FALSE){
+        if(method.p.adjust %in% c("average","pool.fixse","pool.se","pool.pca","pool.rubin") == FALSE){
             table.univariate$type <-  c("mu" = "mean", "k" = "variance", "rho" = "correlation")[object$univariate$type]
         }
         nchar.type <- nchar(table.univariate$type)
@@ -687,8 +696,8 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
 ##' @param error.p.adjust [numeric or NULL] Numeric error performed when adjusting for multiple comparisons.
 ##' @param seed [integer, >0] Random number generator (RNG) state used when adjusting for multiple comparisons.
 ##' @param n.sample [integer, >0] Number of samples used  when adjusting for multiple comparisons.
-##' @param backtransform [data.frame or NULL] Table containing how the estimates or their uncertainty have been back-transformed.?
-##' @param transform.sigma,transform.k,transform.rho [character or NULL] Transformation used on certain type of parameters?
+##' @param backtransform [data.frame or NULL] Should estimates and their uncertainty be back-transformed?
+##' @param transform.sigma,transform.k,transform.rho [character or NULL] Transformation used on certain type of parameters.
 ##' @param decoration [logical] should a decoration be displayed between the table and the legend?
 ##' @param columns [character vector] columns from argument \code{table} to be displayed.
 ##' @param col.df [character vector] columns containing the degrees of freedom. If several, they will be merged.
@@ -873,11 +882,11 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
                 cat(space,"(adjustment within ",factor.p.adjust,"). \n",sep="")
             }
             if(method.p.adjust == "single-step"){
-                if(!is.null(error.p.adjust) && abs(error.p.adjust>1e-12)){
+                if(!is.null(error.p.adjust) && any(!is.na(error.p.adjust)) && any(abs(stats::na.omit(error.p.adjust))>1e-12)){
                     if(!is.null(seed)){
-                        cat(space,"(error when computing the adjusted ",txt.cip," by numerical integration: ", signif(error.p.adjust, digits = digits.p.value)," with seed for the RNG: ",seed,")\n",sep="")
+                        cat(space,"(error when computing the adjusted ",tolower(txt.cip)," by numerical integration: ", signif(max(error.p.adjust, na.rm=TRUE), digits = digits.p.value)," with seed for the RNG: ",seed,")\n",sep="")
                     }else{
-                        cat(space,"(error when computing the adjusted ",txt.cip," by numerical integration: ", signif(error.p.adjust, digits = digits.p.value),")\n",sep="")
+                        cat(space,"(error when computing the adjusted ",tolower(txt.cip)," by numerical integration: ", signif(max(error.p.adjust, na.rm=TRUE), digits = digits.p.value),")\n",sep="")
                     }
                 }else if(!is.null(seed)){
                     cat(space,"(seed for the RNG: ",seed,")\n",sep="")
@@ -923,7 +932,7 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
             cat("  ",paste(txt,collapse = ", ")," have been back-transformed",sep="")
             cat(" (",paste0(paste(rownames(message.backtransform),collapse = "/")," parameters with ",paste(message.backtransform$FUN,collapse="/")),"). \n", sep ="")
         }else if(any(!is.na(c(transform.sigma,transform.k,transform.rho)))){
-            vec.transform <- na.omit(c(sigma=transform.sigma,k=transform.k,rho=transform.rho))
+            vec.transform <- stats::na.omit(c(sigma=transform.sigma,k=transform.k,rho=transform.rho))
             if(NROW(table)==1){
                 short2text <- stats::setNames(c("estimate","standard error","confidence interval","confidence interval"),c("estimate","se","lower","upper"))
                 txt <- unique(short2text[intersect(names(short2text),columns)])

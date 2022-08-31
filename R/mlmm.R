@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: aug 25 2022 (15:35) 
+## Last-Updated: aug 31 2022 (16:21) 
 ##           By: Brice Ozenne
-##     Update #: 154
+##     Update #: 155
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -34,7 +34,9 @@
 ##' Argument passed to \code{\link{anova.lmm}}.
 ##' @param ci [logical] Should a confidence interval be output for each hypothesis?
 ##' Argument passed to \code{\link{anova.lmm}}.
-##'
+##' @param transform.sigma,transform.k,transform.rho,transform.names [character] transformation used on certain type of parameters.
+##' @param backtransform [data.frame or NULL] Should estimates and their uncertainty be back-transformed?
+##' 
 ##' @details
 ##' \bold{Grouping variable} in argument repetition: when numeric, it will be converted into a factor variable, possibly adding a leading 0 to preserve the ordering.
 ##' This transformation may cause inconsistency when combining results between different \code{lmm} object. 

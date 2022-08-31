@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (11:00) 
 ## Version: 
-## Last-Updated: jul 21 2022 (14:27) 
+## Last-Updated: aug 31 2022 (18:06) 
 ##           By: Brice Ozenne
-##     Update #: 82
+##     Update #: 83
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -140,6 +140,12 @@ plot.lmm <- function(x, type = "fit", type.residual = "normalized", by.time = TR
 ##' @export
 plot.Wald_lmm <- function(x, ...){
     autoplot.Wald_lmm(x, ...)
+}
+
+## * plot (code)
+##' @export
+plot.partialCor <- function(x, ...){
+    autoplot.partialCor(x, ...)
 }
 
 ##----------------------------------------------------------------------

@@ -9,6 +9,7 @@
   print = TRUE,
   seed = NULL,
   columns = NULL,
+  legend = TRUE,
   digits = 3,
   digits.df = 1,
   digits.p.value = 3,
@@ -28,11 +29,15 @@ Can also be \code{NULL}: in such a case no seed is set.}
 \item{columns}{[character vector] Columns to be displayed for each null hypothesis.
 Can be any of \code{"type"}, \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.##'}
 
+\item{legend}{[logical] should explanations about the content of the table be displayed.}
+
 \item{digits}{[interger, >0] number of digits used to display estimates.}
 
 \item{digits.df}{[interger, >0] number of digits used to display degrees of freedom.}
 
 \item{digits.p.value}{[interger, >0] number of digits used to display p-values.}
+
+\item{sep}{[character] character string used to separate the type of test (e.g. mean, variance) and the name of the test.}
 
 \item{...}{arguments \code{method}, \code{level}, and \code{backtransform} passed to \code{\link{confint.Wald_lmm}}}
 }

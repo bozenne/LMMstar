@@ -8,6 +8,7 @@ mlmm(
   ...,
   data,
   by,
+  contrast.rbind = NULL,
   effects = NULL,
   robust = NULL,
   df = TRUE,
@@ -26,13 +27,26 @@ mlmm(
 
 \item{by}{[character] variable used to split the dataset. On each split a seperate linear mixed model is fit.}
 
-\item{effects}{[character] Linear combinations of coefficients relative to which Wald test should be computed.}
+\item{contrast.rbind}{[character or numeric matrix] Contrast to be be applied to compare the groups.
+Argument passed to the argument \code{effects} of \code{\link{rbind.Wald_lmm}}.
+Right hand side can be specified via an attribute \code{"rhs"}.}
 
-\item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. Argument passed to \code{anova.lmm}.}
+\item{effects}{[character or numeric matrix] Linear combinations of coefficients relative to which Wald test should be computed.
+Argument passed to \code{\link{anova.lmm}}.
+Right hand side can be specified via an attribute \code{"rhs"}.}
 
-\item{df}{[logical] Should the degree of freedom be computed using a Satterthwaite approximation?}
+\item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
+Argument passed to \code{\link{anova.lmm}}.}
 
-\item{ci}{[logical] Should a confidence interval be output for each hypothesis?}
+\item{df}{[logical] Should the degree of freedom be computed using a Satterthwaite approximation?
+Argument passed to \code{\link{anova.lmm}}.}
+
+\item{ci}{[logical] Should a confidence interval be output for each hypothesis?
+Argument passed to \code{\link{anova.lmm}}.}
+
+\item{transform.sigma, transform.k, transform.rho, transform.names}{[character] transformation used on certain type of parameters.}
+
+\item{backtransform}{[data.frame or NULL] Should estimates and their uncertainty be back-transformed?}
 }
 \description{
 Fit several linear mixed models, extract relevant coefficients, and combine them into a single table.

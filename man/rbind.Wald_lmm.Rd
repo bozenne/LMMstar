@@ -11,7 +11,8 @@
 
 \item{...}{possibly other \code{Wald_lmm} objects}
 
-\item{effects}{[numeric matrix] matrix indicating how to combine the left-hand side of the hypotheses. By default identity matrix.}
+\item{effects}{[character or numeric matrix] how to combine the left-hand side of the hypotheses.
+By default identity matrix but can also be \code{"Dunnett"},  \code{"Tukey"}, or  \code{"Sequen"} (see function \code{multcomp::contrMat} from the multcomp package).}
 
 \item{rhs}{[numeric vector] the right hand side of the hypothesis. Should have the same length as the number of row of argument \code{effects}.}
 

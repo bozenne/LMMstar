@@ -28,6 +28,14 @@ and on the right hand side the adjustment set. Can also be a list of formula for
 or whether the correlation/variance vary over repetitions (repetition).}
 
 \item{by}{[character] variable used to stratified the correlation on.}
+
+\item{effects}{[character or matrix] type of contrast to be used for comparing the correlation parameters. One of \code{"Dunnett"}, \code{"Tukey"}, \code{"Sequen"}, or a contrast matrix.}
+
+\item{rhs}{[numeric vector] right hand side for the comparison of correlation parameters.}
+
+\item{method}{[character] adjustment for multiple comparisons (e.g. \code{"single-step"}).}
+
+\item{transform.rho}{[character] scale on which perform statistical inference (e.g. \code{"atanh"})}
 }
 \value{
 A data.frame with the estimate partial correlation (rho), standard error, degree of freedom, confidence interval, and p-value (test of no correlation).
@@ -39,8 +47,8 @@ Estimate the partial correlation between two variables where the adjustment set 
 \details{
 Fit a mixed model to estimate the partial correlation with the following variance-covariance pattern:
 \itemize{
-\item \bold{no repetition}: unstructure or compound symmetry structure for 2 observations.
-\item \bold{repetition}: toeplitz for 2T observations where T denotes the number of repetitions.
+\item \bold{no repetition}: unstructure or compound symmetry structure for M observations, M being the number of variable on the left hand side (i.e. outcomes).
+\item \bold{repetition}: toeplitz for M*T observations where T denotes the number of repetitions. In that case heterogeneous can be 1, 0.5, or 0.
 }
 }
 \examples{
@@ -82,17 +90,19 @@ partialCor(list(hl~BC+deg+gender, disp~1), data = y.data)
 ## partialCor(list(hl~1, disp~1), data = y.data, by = "gender") ## too small dataset
 
 #### bivariate (with repetition) ####
-if(require(rmcorr)){
-data(bland1995, package = "rmcorr")
-bland1995$Subject <- as.factor(bland1995$Subject)
+data(gastricbypassL)
+e.cor <- partialCor(weight+glucagonAUC~time, repetition =~time|id,
+                    data = gastricbypassL)
+e.cor
+coef(attr(e.cor,"lmm"), effects = "correlation")
+autoplot(e.cor)
 
-ls.time <- tapply(1:NROW(bland1995),bland1995$Subject,function(x){1:length(x)})
-bland1995$time <- unlist(ls.time)
+e.cor2 <- partialCor(weight+glucagonAUC~time, repetition =~time|id,
+                     data = gastricbypassL, heterogeneous = 0.5)
+e.cor2
+coef(attr(e.cor2,"lmm"), effects = "correlation")
+autoplot(e.cor2)
 
-partialCor(pH+PacO2~1, repetition =~time|Subject, data = bland1995)
-
-partialCor(weight+glucagonAUC~time, repetition =~time|id, data = gastricbypassL)
-}
 }
 \references{
 Bland J M, Altman D G. Statistics notes: Calculating correlation coefficients with repeated observations: Part 1—correlation within subjects BMJ 1995; 310 :446 doi:10.1136/bmj.310.6977.446

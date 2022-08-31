@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: May 29 2022 (14:52) 
+## Last-Updated: aug 31 2022 (17:31) 
 ##           By: Brice Ozenne
-##     Update #: 54
+##     Update #: 55
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -60,7 +60,7 @@ test_that("single t-test",{
     expect_equal(as.double(logLik(e.lmm)),as.double(logLik(e.gls)))
     expect_equal(as.double(logLik(e2.lmm)),as.double(logLik(e.gls)))
     expect_equal(sort(unname(e.ttest$estimate)), sort(unname(coef(e.lmm, effects = "mean"))))
-    expect_equal(e.ttest$p.value, anova(e.lmm, effects = c("GenderM-GenderF=0"))$all$p.value, tol = 1e-5)
+    expect_equal(e.ttest$p.value, anova(e.lmm, effects = c("GenderM-GenderF=0"))$multivariate$p.value, tol = 1e-5)
     expect_equal(e.ttest$p.value, confint(e2.lmm)["GenderF","p.value"], tol = 1e-5)
     ## summary(e.gls)$tTable
     ## summary(e.lmm)$tTable

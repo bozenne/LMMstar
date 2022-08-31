@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: aug 30 2022 (09:13) 
+## Last-Updated: aug 31 2022 (17:41) 
 ##           By: Brice Ozenne
-##     Update #: 401
+##     Update #: 416
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,7 +18,6 @@
 ## * confint.lmm (documentation)
 ##' @title Statistical Inference for Linear Mixed Model
 ##' @description Compute confidence intervals (CIs) and p-values for the coefficients of a linear mixed model. 
-##' @name confint
 ##' 
 ##' @param object a \code{lmm} object.
 ##' @param parm Not used. For compatibility with the generic method.
@@ -274,8 +273,8 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
 ##' @details \bold{Adjustment for multiple comparisons}: available methods are:
 ##' \itemize{
 ##'  \item \code{"none"}, \code{"bonferroni"}, \code{"single-step2"}
-##'  \item \code{"holm"}, \code{"hochberg"}, \code{"hommel"}, \code{"BH"}, \code{"BY"}, \code{"fdr"}: adjustment performed by \code{\link{stats::p.adjust}}, no confidence interval is computed.
-##'  \item \code{"single-step"}, \code{"free"}, \code{"Westfall"}, \code{"Shaffer""}: adjustment performed by \code{\link{multcomp::glht}},  for all but the first method no confidence interval is computed.
+##'  \item \code{"holm"}, \code{"hochberg"}, \code{"hommel"}, \code{"BH"}, \code{"BY"}, \code{"fdr"}: adjustment performed by [stats::p.adjust()], no confidence interval is computed.
+##'  \item \code{"single-step"}, \code{"free"}, \code{"Westfall"}, \code{"Shaffer"}: adjustment performed by [multcomp::glht()],  for all but the first method no confidence interval is computed.
 ##' }
 ##' Note: method \code{"single-step"} adjust for multiple comparisons using quantiles of the multivariate Student's t-distribution, assuming equal degrees of freedom in the marginal.
 ##' When degrees of freedom differs between individual hypotheses, method \code{"single-step2"} is recommended. It simulates data using copula whose marginal distributions are Student's t-distribution (with possibly different degrees of freedom) and elliptical copula with parameters the estimated correlation between the test statistics (via the copula package). It then computes the frequency at which the simulated maximum exceed the observed maximum and appropriate quantile of simulated maximum for the confidence interval.
@@ -415,7 +414,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
 
             ## replace many lines (individual effect) by a single line (for the average)
             out.save <- out
-            if(tail(iIndex.table,1)==NROW(out)){
+            if(utils::tail(iIndex.table,1)==NROW(out)){
                 out <- out.save[1:iIndex.table[1],,drop=FALSE]
             }else{
                 out <- out.save[c(1:iIndex.table[1],(iIndex.table[length(iIndex.table)]+1):NROW(out.save)),]

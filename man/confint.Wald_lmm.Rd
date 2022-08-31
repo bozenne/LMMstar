@@ -21,7 +21,8 @@
 
 \item{level}{[numeric, 0-1] nominal coverage of the confidence intervals.}
 
-\item{method}{[character] type of adjustment for multiple comparisons: one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}, \code{"single-step2"}.}
+\item{method}{[character] type of adjustment for multiple comparisons, e.g. one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}, \code{"single-step2"}.
+Alternatively, method for combining the estimates, e.g. one of \code{"average"}, \code{"pool.se"}, \code{"pool.rubin"}.}
 
 \item{columns}{[character vector] Columns to be output.
 Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}, \code{"partial.r"}.}
@@ -34,8 +35,24 @@ Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \
 Compute confidence intervals for linear hypothesis tests, possibly with adjustment for multiple comparisons.
 }
 \details{
-Method \code{"single-step"} adjust for multiple comparisons using quantiles of the multivariate Student's t-distribution, assuming equal degrees of freedom in the marginal.
-This is performed by the multcomp package.
+\bold{Adjustment for multiple comparisons}: available methods are:
+\itemize{
+ \item \code{"none"}, \code{"bonferroni"}, \code{"single-step2"}
+ \item \code{"holm"}, \code{"hochberg"}, \code{"hommel"}, \code{"BH"}, \code{"BY"}, \code{"fdr"}: adjustment performed by [stats::p.adjust()], no confidence interval is computed.
+ \item \code{"single-step"}, \code{"free"}, \code{"Westfall"}, \code{"Shaffer"}: adjustment performed by [multcomp::glht()],  for all but the first method no confidence interval is computed.
+}
+Note: method \code{"single-step"} adjust for multiple comparisons using quantiles of the multivariate Student's t-distribution, assuming equal degrees of freedom in the marginal.
+When degrees of freedom differs between individual hypotheses, method \code{"single-step2"} is recommended. It simulates data using copula whose marginal distributions are Student's t-distribution (with possibly different degrees of freedom) and elliptical copula with parameters the estimated correlation between the test statistics (via the copula package). It then computes the frequency at which the simulated maximum exceed the observed maximum and appropriate quantile of simulated maximum for the confidence interval.
 
-When degrees of freedom differs between individual hypotheses, method \code{"single-step2"} is recommended. It simulates data using copula whose marginal distributions are Student's t-distribution (with possibly different degrees of freedom) and elliptical copula with parameters the estimated correlation between the test statistics. This is performed by the copula package.
+ \bold{Pooling estimates}: available methods are:
+\itemize{
+ \item \code{"average"}: average estimates
+ \item \code{"pool.fixse"}: weighted average of the estimates, with weights being the inverse of the squared standard error. The uncertainty about the weights is neglected.
+ \item \code{"pool.se"}: weighted average of the estimates, with weights being the inverse of the squared standard error. The uncertainty about the weights is computed under independence of the variance parameters between models. 
+ \item \code{"pool.pca"}: weighted average of the estimates, with weights being determined using a Principal Component Analysis. The uncertainty about the weights is neglected.
+ \item \code{"pool.rubin"}: average of the estimates and compute the uncertainty according to Rubin's rule (Barnard et al. 1999).
+}
+}
+\references{
+Barnard and Rubin, Small-sample degrees of freedom with multiple imputation. Biometrika (1999), 86(4):948-955.
 }
