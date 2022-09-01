@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (11:00) 
 ## Version: 
-## Last-Updated: aug 31 2022 (18:06) 
+## Last-Updated: sep  1 2022 (09:20) 
 ##           By: Brice Ozenne
-##     Update #: 83
+##     Update #: 84
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -19,7 +19,6 @@
 ##' @title Graphical Display For Linear Mixed Models
 ##' @description Display fitted values or residual plot for the mean, variance, and correlation structure.
 ##' Can also display quantile-quantile plot relative to the normal distribution.
-##' @name plot
 ##' 
 ##' @param x a \code{lmm} object.
 ##' @param type [character] the type of plot: \code{"fit"}, \code{"qqplot"}, \code{"correlation"}, \code{"scatterplot"}, \code{"scatterplot2"}, \code{"partial"}.

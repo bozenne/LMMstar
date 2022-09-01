@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: jul 20 2022 (15:58) 
+## Last-Updated: sep  1 2022 (09:26) 
 ##           By: Brice Ozenne
-##     Update #: 644
+##     Update #: 646
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,7 +18,6 @@
 ## * residuals.lmm (documentation)
 ##' @title Extract The Residuals From a Linear Mixed Model
 ##' @description Extract or compute the residuals of a linear mixed model.
-##' @name residuals
 ##' 
 ##' @param object a \code{lmm} object.
 ##' @param type [character] type of residual to output: raw residuals (\code{"response"}), Pearson residuals (\code{"pearson"}), normalized residuals (\code{"normalized"}, scaled residual \code{"scaled"}), or partial residuals (\code{"partial"} or \code{"partial-center"}). Can also be \code{"all"} to output all except partial residuals. See detail section.
@@ -105,7 +104,6 @@
 ##' residuals(eUN.lmm, type = "partial", var = c("X6"), plot = "scatterplot")
 
 ## * residuals.lmm (code)
-##' @rdname residuals
 ##' @export
 residuals.lmm <- function(object, type = "response", format = "long",
                           data = NULL, p = NULL, keep.data = FALSE, var = NULL,

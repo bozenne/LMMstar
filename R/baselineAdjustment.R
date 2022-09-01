@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (14:55) 
 ## Version: 
-## Last-Updated: maj 30 2022 (11:57) 
+## Last-Updated: sep  1 2022 (09:26) 
 ##           By: Brice Ozenne
-##     Update #: 72
+##     Update #: 74
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,7 +18,6 @@
 ## * baselineAdjustment (documentation)
 ##' @title Perform Baseline Adjustment
 ##' @description Create a new variable based on a time variable and a group variable where groups are constrained to be equal at specific timepoints.  
-##' @name baselineAdjustment
 ##' 
 ##' @param object [data.frame] dataset
 ##' @param variable [character] Column in the dataset to be constrained at specific timepoints. 
@@ -71,7 +70,6 @@
 ##' 
 
 ## * baselineAdjustment (code)
-##' @rdname baselineAdjustment
 ##' @export
 baselineAdjustment <- function(object, variable, repetition, constrain, new.level = NULL, collapse.time = NULL){
 

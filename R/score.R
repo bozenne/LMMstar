@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: jul 20 2022 (11:05) 
+## Last-Updated: sep  1 2022 (09:54) 
 ##           By: Brice Ozenne
-##     Update #: 557
+##     Update #: 560
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,7 +18,6 @@
 ## * score.lmm (documentation)
 ##' @title Extract The Score From a Linear Mixed Model
 ##' @description Extract or compute the first derivative of the log-likelihood of a linear mixed model.
-##' @name score
 ##' 
 ##' @param x a \code{lmm} object.
 ##' @param data [data.frame] dataset relative to which the score should be computed. Only relevant if differs from the dataset used to fit the model.
@@ -33,7 +32,7 @@
 ##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
-##' @details For details about the arguments \bold{transform.sigma}, \bold{transform.k}, \bold{transform.rho}, see the documentation of the \link[LMMstar]{coef} function.
+##' @details For details about the arguments \bold{transform.sigma}, \bold{transform.k}, \bold{transform.rho}, see the documentation of the \link[LMMstar]{coef.lmm} function.
 ##'
 ##' @return
 ##' When argument indiv is \code{FALSE}, a vector with the value of the score relative to each coefficient.
@@ -41,7 +40,6 @@
 ##' 
 
 ## * score.lmm (code)
-##' @rdname score
 ##' @export
 score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
 

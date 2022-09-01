@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jun 16 2022 (15:19) 
 ## Version: 
-## Last-Updated: jun 28 2022 (11:44) 
+## Last-Updated: sep  1 2022 (09:20) 
 ##           By: Brice Ozenne
-##     Update #: 261
+##     Update #: 262
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,7 +18,6 @@
 ## * profile.lmm (documentation)
 ##' @title Display Contour of the log-Likelihood
 ##' @description Display the (restricted) log-likelihood around Maximum Likelihood Estimate (MLE) under specific constrains.
-##' @name profile
 ##'
 ##' @param fitted a \code{lmm} object.
 ##' @param effects [character vector] name of the parameters who will be constrained.

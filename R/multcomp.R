@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 10 2021 (15:57) 
 ## Version: 
-## Last-Updated: okt  1 2021 (17:03) 
+## Last-Updated: sep  1 2022 (09:20) 
 ##           By: Brice Ozenne
-##     Update #: 20
+##     Update #: 21
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,8 +21,6 @@
 ##' 
 ##' @param x  a \code{lmm} object.
 ##' @param ... Not used. For compatibility with the generic method.
-##' 
-##' @name estfun
 ##' 
 ##' @return A matrix containing the score function for each model parameter (columns) relative to each cluster (rows).
 ##' 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: aug 31 2022 (18:25) 
+## Last-Updated: sep  1 2022 (09:25) 
 ##           By: Brice Ozenne
-##     Update #: 1175
+##     Update #: 1177
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,7 +18,6 @@
 ## * anova.lmm (documentation)
 ##' @title Multivariate Wald Tests For Linear Mixed Model
 ##' @description Simultaneous tests of linear combinations of the model paramaters using Wald tests. 
-##' @name anova
 ##' 
 ##' @param object a \code{lmm} object. Only relevant for the anova function.
 ##' @param effects [character or numeric matrix] Should the Wald test be computed for all variables (\code{"all"}),
@@ -87,7 +86,6 @@
 ##' anova(eUN.lmm, eCS.lmm)
 
 ## * anova.lmm (code)
-##' @rdname anova
 ##' @export
 anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !is.null(object$df), ci = TRUE, 
                       transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){

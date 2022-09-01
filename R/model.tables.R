@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (10:48) 
 ## Version: 
-## Last-Updated: jul 21 2022 (16:59) 
+## Last-Updated: sep  1 2022 (09:20) 
 ##           By: Brice Ozenne
-##     Update #: 21
+##     Update #: 22
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,7 +18,6 @@
 ## * model.tables.lmm (documentation)
 ##' @title Statistical Inference for Linear Mixed Model
 ##' @description Export estimates, standard errors, degrees of freedom, confidence intervals (CIs) and p-values for the mean coefficients of a linear mixed model. 
-##' @name model.tables
 ##'
 ##' @param x a \code{lmm} object.
 ##' @param ... arguments to be passed to the \code{confint} method. Should not contain the argument \code{column}.

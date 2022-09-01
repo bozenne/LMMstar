@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 10 2021 (16:08) 
 ## Version: 
-## Last-Updated: aug 31 2022 (17:37) 
+## Last-Updated: sep  1 2022 (09:55) 
 ##           By: Brice Ozenne
-##     Update #: 78
+##     Update #: 81
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,8 +18,7 @@
 ## * recover_data.lmm (code)
 ##' @title Link to emmeans package
 ##' @description Link to emmeans package. Not meant for direct use.
-##' 
-##' @name LMMstar2emmeans
+##' @rdname LMMstar2emmeans
 ##' 
 ##' @param object a \code{lmm} object.
 ##' @param trms see \code{emmeans::emm_basis} documentation 

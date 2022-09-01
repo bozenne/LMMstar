@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jul  1 2022 (16:12) 
+## Last-Updated: sep  1 2022 (10:11) 
 ##           By: Brice Ozenne
-##     Update #: 220
+##     Update #: 224
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,7 +29,9 @@
 ##' @param columns [character vector] name of the summary statistics to kept in the output.
 ##' Can be any of, or a combination of:\itemize{
 ##' \item \code{"observed"}: number of observations with a measurement.
-##' \item \code{"missing"}: number of observations with a missing value.
+##' \item \code{"missing"}: number of missing observations.
+##' When specifying a grouping variable, it will also attempt to count missing rows in the dataset.
+##' \item \code{"pc.missing"}: percentage missing observations.
 ##' \item \code{"mean"}, \code{"mean.lower"} \code{"mean.upper"}: mean with its confidence interval.
 ##' \item \code{"median"}, \code{"median.lower"} \code{"median.upper"}: median with its confidence interval.
 ##' \item \code{"sd"}: standard deviation.
@@ -159,7 +161,9 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
         warning("Argument \'which\' is deprecated. Consider using argument \'columns\' instead. \n")
         columns <- which
     }
-    valid.columns <- c("observed","missing","mean","mean.lower","mean.upper","predict.lower","predict.upper","sd","min","q1","median","q3","median.upper","median.lower","IQR","max","correlation")
+    valid.columns <- c("observed","missing","pc.missing",
+                       "mean","mean.lower","mean.upper","predict.lower","predict.upper",
+                       "sd","min","q1","median","q3","median.upper","median.lower","IQR","max","correlation")
     columns <- match.arg(columns, choices = valid.columns, several.ok = TRUE)
 
     dots <- list(...)
@@ -214,7 +218,7 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
             n.obs <- sum(!is.na(y))
             n.missing <- sum(is.na(y))
             ## as missing rows in the dataset
-            if(!is.null(name.id) && "missing" %in% columns){
+            if(!is.null(name.id) && ("missing" %in% columns || "pc.missing" %in% columns)){
                 if(any(test.between)){
                     iIndex <- which(names(ls.id)==levels(interaction(data[x,names(which(test.between))], drop = TRUE)))
                     n.missing <- n.missing + sum(ls.id[[iIndex]] %in% unique(as.character(data[x,name.id])) == FALSE)
@@ -243,6 +247,7 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
             if(all(is.na(y))){ ## avoid warning when taking min(), e.g. min(NA, na.rm = TRUE)
                 iVec <- c("observed" = n.obs,
                           "missing" = n.missing,
+                          "pc.missing" = n.missing/(n.obs+n.missing),
                           "mean" = NA,
                           "mean.lower" = NA,
                           "mean.upper" = NA,
@@ -260,6 +265,7 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
             }else{
                 iVec <- c("observed" = sum(!is.na(y)),
                           "missing" = n.missing,
+                          "pc.missing" = n.missing/length(y),
                           "mean" = mean(y, na.rm = na.rm),
                           "mean.lower" = tty$conf.int[1], ## as.double(tty$estimate + stats::qt((1-level)/2,tty$parameter) * tty$stderr[1])  - tty$conf.int[1]
                           "mean.upper" = tty$conf.int[2], ## as.double(tty$estimate + stats::qt(1-(1-level)/2,tty$parameter) * tty$stderr[1])  - tty$conf.int[2]

@@ -6,7 +6,7 @@
 ##' of correlated and repeated measurements for health science
 ##' researchers" taught by the section of Biostatistics of the University
 ##' of Copenhagen. It implements linear mixed models where the model for the variance-covariance of the residuals
-##' is specified via patterns (compound symmetry, unstructured, ...). Statistical inference for mean, variance, and correlation parameters
+##' is specified via patterns (compound symmetry, toeplitz, unstructured, ...). Statistical inference for mean, variance, and correlation parameters
 ##' is performed based on the observed information and a Satterthwaite degrees of freedom.
 ##' Normalized residuals are provided to assess model misspecification.
 ##' Statistical inference can be performed for arbitrary linear or non-linear combination(s) of model coefficients.
@@ -18,17 +18,18 @@
 ##' \itemize{
 ##' \item \eqn{\mathbf{Y}}: vector of outcome.
 ##' \item \eqn{\mathbf{X}}: design matrix (extractor: \code{model.matrix.lmm}).
-##' \item \eqn{\boldsymbol{\varepsilon}}: vector of residuals with 0-mean and variance \eqn{\Omega} (extractor: \code{\link{residuals.lmm}}).
+##' \item \eqn{\boldsymbol{\varepsilon}}: vector of residuals with 0-mean and variance \eqn{\Omega_i} (extractor: \code{\link{residuals.lmm}}).
 ##' \item \eqn{\beta}: estimated mean coefficients relative to \eqn{X} (extractor: \code{\link{coef.lmm}}).
-##' \item \eqn{\Omega}: the modeled variance-covariance of the residuals with diagonal elements \eqn{\omega}  (extractor: \code{\link{getVarCov.lmm}}).
+##' \item \eqn{\Omega}: the modeled variance-covariance of the residuals with diagonal elements \eqn{\sigma^2_{j}}  (extractor: \code{\link{sigma.lmm}}).
 ##' \item \eqn{i} indexes the cluster (level where replicates are assumed independent).
-##' \item \eqn{j} indexes the repetitions, e.g. the variance of \eqn{\varepsilon_{ij}} is \eqn{\omega_{ij}}.
+##' \item \eqn{j} indexes the repetitions, e.g. the variance of \eqn{\varepsilon_{ij}} is \eqn{\sigma^2_{ij}}.
 ##' }
 ##'
 ##' \strong{Covariance patterns}: \eqn{\Omega} can be parametrized as: \itemize{
 ##' \item \code{"ID"}: identity (no correlation, constant variance).
 ##' \item \code{"IND"}: independent (no correlation, time-specific variance).
 ##' \item \code{"CS"}: compound symmetry (constant correlation and variance). Can also be used to specify a nested random effect structure or a block specific correlation and variance.
+##' \item \code{"TOEPLITZ"}: toeplitz (lag-specific correlation, time-specific variable).
 ##' \item \code{"UN"}: unstructured (time-specific correlation, time-specific variable).
 ##' }
 ##' It possible to stratify the last two structure with respect to a categorical variable. \cr \cr

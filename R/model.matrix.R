@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Jul 14 2022 (09:12) 
+## Last-Updated: sep  1 2022 (10:17) 
 ##           By: Brice Ozenne
-##     Update #: 2308
+##     Update #: 2310
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -629,12 +629,17 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         X.old <- X
         test.keep <- colnames(X.old) %in% setdiff(colnames(X.old),rmX)
         X <- X.old[,test.keep,drop=FALSE]
-        if(qr(X)$rank==X.qr$rank){
-            message("Constant values in the design matrix for the ",type," structure.\n",
-                    "Coefficients \"",paste(unique(rmX), collapse = "\" \""),"\" relative to interactions \"",paste(names(ls.rmX), collapse = "\" \""),"\" have been removed. \n", sep = "")
+
+        txt <- paste0("Constant values in the design matrix for the ",type," structure.\n")
+        if(length(unique(rmX))==1){
+            txt <- paste0(txt, "Coefficient \"",paste(unique(rmX), collapse = "\" \""),"\" relative to interaction \"",paste(names(ls.rmX), collapse = "\" \""),"\" has been removed. \n")
         }else{
-            warning("Constant values in the design matrix for the ",type," structure.\n",
-                    "Coefficients \"",paste(unique(rmX), collapse = "\" \""),"\" relative to interactions \"",paste(names(ls.rmX), collapse = "\" \""),"\" have been removed. \n", sep = "")
+            txt <- paste0(txt, "Coefficients \"",paste(unique(rmX), collapse = "\" \""),"\" relative to interactions \"",paste(names(ls.rmX), collapse = "\" \""),"\" have been removed. \n")
+        }
+        if(qr(X)$rank==X.qr$rank){
+            message(txt)
+        }else{
+            warning(txt)
         }
         attr(X,"assign") <- attr(X.old,"assign")[test.keep] ## as.numeric(as.factor(attr(X.old,"assign")[test.keep])) - "(Intercept)" %in% colnames(X)
         attr(X,"contrasts") <- attr(X.old,"contrasts")

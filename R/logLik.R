@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: Jul 13 2022 (17:57) 
+## Last-Updated: sep  1 2022 (09:26) 
 ##           By: Brice Ozenne
-##     Update #: 308
+##     Update #: 310
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,7 +18,6 @@
 ## * logLik.lmm (documentation)
 ##' @title Extract The Log-Likelihood From a Linear Mixed Model
 ##' @description Extract or compute the log-likelihood of a linear mixed model.
-##' @name logLik
 ##' 
 ##' @param object a \code{lmm} object.
 ##' @param data [data.frame] dataset relative to which the log-likelihood should be computed. Only relevant if differs from the dataset used to fit the model.
@@ -39,7 +38,6 @@
 ##' 
 
 ## * logLik
-##' @rdname logLik
 ##' @export
 logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
 

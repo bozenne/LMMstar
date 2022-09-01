@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: Jul 13 2022 (22:37) 
+## Last-Updated: sep  1 2022 (09:26) 
 ##           By: Brice Ozenne
-##     Update #: 517
+##     Update #: 519
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,7 +18,6 @@
 ## * sigma.lmm (documentation)
 ##' @title Extract The Residuals Variance-Covariance Matrix From a Linear Mixed Model
 ##' @description Extract the unique set of residuals variance-covariance matrices or the one relative to specific clusters.
-##' @name sigma
 ##' 
 ##' @param object a \code{lmm} object.
 ##' @param cluster [character, data.frame, NULL] identifier of the cluster(s) for which to extract the residual variance-covariance matrix.
@@ -49,7 +48,6 @@
 ##' sigma(eUN.lmm, cluster = dL[1:7,,drop=FALSE]) ## new clusters
 
 ## * sigma.lmm
-##' @rdname sigma
 ##' @export
 sigma.lmm <- function(object, cluster = NULL, p = NULL, inverse = FALSE, simplifies = TRUE, ...){
 

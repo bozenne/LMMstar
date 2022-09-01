@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: jul 28 2022 (18:05) 
+## Last-Updated: sep  1 2022 (09:25) 
 ##           By: Brice Ozenne
-##     Update #: 555
+##     Update #: 557
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,7 +18,6 @@
 ## * coef.lmm (documentation)
 ##' @title Extract Coefficients From a Linear Mixed Model
 ##' @description Extract coefficients from a linear mixed model.
-##' @name coef
 ##'
 ##' @param object a \code{lmm} object.
 ##' @param effects [character] Should all coefficients be output (\code{"all"}),
@@ -79,7 +78,6 @@
 ##' coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none")
 
 ## * coef.lmm (code)
-##' @rdname coef
 ##' @export
 coef.lmm <- function(object, effects = NULL, p = NULL,
                      transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE, ...){

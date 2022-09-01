@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: jul 18 2022 (15:09) 
+## Last-Updated: sep  1 2022 (09:54) 
 ##           By: Brice Ozenne
-##     Update #: 1056
+##     Update #: 1059
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,7 +18,6 @@
 ## * information.lmm (documentation)
 ##' @title Extract The Information From a Linear Mixed Model
 ##' @description Extract or compute the (expected) second derivative of the log-likelihood of a linear mixed model.
-##' @name information
 ##' 
 ##' @param x a \code{lmm} object.
 ##' @param data [data.frame] dataset relative to which the information should be computed. Only relevant if differs from the dataset used to fit the model.
@@ -34,7 +33,7 @@
 ##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
-##' @details For details about the arguments \bold{transform.sigma}, \bold{transform.k}, \bold{transform.rho}, see the documentation of the \link[LMMstar]{coef} function.
+##' @details For details about the arguments \bold{transform.sigma}, \bold{transform.k}, \bold{transform.rho}, see the documentation of the \link[LMMstar]{coef.lmm} function.
 ##'
 ##' @return
 ##' When argument indiv is \code{FALSE}, a matrix with the value of the infroamtion relative to each pair of coefficient (in rows and columns) and each cluster (in rows).
@@ -42,7 +41,6 @@
 ##' 
 
 ## * information.lmm (code)
-##' @rdname information
 ##' @export
 information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FALSE, type.information = NULL,
                             transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){

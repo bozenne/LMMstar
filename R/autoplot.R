@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: aug 31 2022 (19:27) 
+## Last-Updated: sep  1 2022 (09:26) 
 ##           By: Brice Ozenne
-##     Update #: 270
+##     Update #: 272
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -39,7 +39,6 @@
 
 
 ## * autoplot.lmm (code)
-##' @rdname autplot
 ##' @export
 autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, time.var = NULL, color = TRUE, ci = TRUE, ci.alpha = NA, plot = TRUE,
                          mean.size = c(3, 1), size.text = 16, position.errorbar = "identity", ...){
@@ -282,7 +281,6 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
 ##'
 
 ## * autoplot.Wald_lmm (code)
-##' @rdname autplot
 ##' @export
 autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 16, add.args = NULL, ...){
 
@@ -453,7 +451,6 @@ autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 
 ##'
 
 ## * autoplot.partialCor (code)
-##' @rdname autplot
 ##' @export
 autoplot.partialCor <- function(object, plot = TRUE, size.text = 16,
                                 limits = c(-1,1.00001), low = "blue", mid = "white", high = "red", midpoint = 0, ...){

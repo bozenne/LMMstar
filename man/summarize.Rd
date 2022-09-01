@@ -36,7 +36,9 @@ Passed to the \code{stats::aggregate} function.}
 \item{columns}{[character vector] name of the summary statistics to kept in the output.
 Can be any of, or a combination of:\itemize{
 \item \code{"observed"}: number of observations with a measurement.
-\item \code{"missing"}: number of observations with a missing value.
+\item \code{"missing"}: number of missing observations.
+When specifying a grouping variable, it will also attempt to count missing rows in the dataset.
+\item \code{"pc.missing"}: percentage missing observations.
 \item \code{"mean"}, \code{"mean.lower"} \code{"mean.upper"}: mean with its confidence interval.
 \item \code{"median"}, \code{"median.lower"} \code{"median.upper"}: median with its confidence interval.
 \item \code{"sd"}: standard deviation.

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: aug 31 2022 (17:11) 
+## Last-Updated: sep  1 2022 (09:26) 
 ##           By: Brice Ozenne
-##     Update #: 1009
+##     Update #: 1011
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -19,7 +19,6 @@
 ##' @title Summary Output for a Linear Mixed Model
 ##' @description Summary output for a linear mixed model fitted with \code{lmm}.
 ##' This is a modified version of the \code{nlme::summary.gls} function.
-##' @name summary
 ##'
 ##' @param object [lmm] output of the \code{lmm} function.
 ##' @param level [numeric,0-1] confidence level for the confidence intervals.
@@ -47,7 +46,6 @@
 ##' }
 
 ## * summary.lmm (code)
-##' @rdname summary
 ##' @export
 summary.lmm <- function(object, level = 0.95, robust = FALSE,
                         print = TRUE, columns = NULL, digits = 3, digits.df = 1, digits.p.value = 3, 

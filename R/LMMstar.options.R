@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: jul 21 2022 (14:26) 
+## Last-Updated: sep  1 2022 (10:20) 
 ##           By: Brice Ozenne
-##     Update #: 109
+##     Update #: 112
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,9 +15,8 @@
 ## 
 ### Code:
 
-## * BuyseTest.options (documentation) 
+## * LMMstar.options (documentation) 
 #' @title Global options for LMMstar package
-#' @name LMMstar.options
 #' @include 0-onload.R
 #'
 #' @description Update or select global options for the LMMstar package.
@@ -49,7 +48,7 @@
 #' @return A list containing the default options.
 
  
-## * BuyseTest.options (code)
+## * LMMstar.options (code)
 #' @export
 LMMstar.options <- function(..., reinitialise = FALSE){
   
@@ -66,7 +65,7 @@ LMMstar.options <- function(..., reinitialise = FALSE){
                     n.sampleCopula = 1e5,
                     method.fit = "REML",
                     method.numDeriv = "simple",
-                    optimizer = "gls",
+                    optimizer = "FS",
                     param.optimizer = c(n.iter = 100, tol.score = 1e-4, tol.param = 1e-5, n.backtracking = 10),
                     precompute.moments = TRUE,
                     trace = FALSE,

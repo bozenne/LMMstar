@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: jul 28 2022 (18:04) 
+## Last-Updated: sep  1 2022 (09:54) 
 ##           By: Brice Ozenne
-##     Update #: 512
+##     Update #: 515
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,7 +18,6 @@
 ## * vcov.lmm (documentation)
 ##' @title Extract The Variance-Covariance Matrix From a Linear Mixed Model
 ##' @description Extract the variance-covariance matrix of the model coefficients of a linear mixed model.
-##' @name vcov
 ##' 
 ##' @param object a \code{lmm} object.
 ##' @param effects [character] Should the variance-covariance matrix for all coefficients be output (\code{"all"}),
@@ -37,13 +36,12 @@
 ##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
-##' @details For details about the arguments \bold{transform.sigma}, \bold{transform.k}, \bold{transform.rho}, see the documentation of the \link[LMMstar]{coef} function.
+##' @details For details about the arguments \bold{transform.sigma}, \bold{transform.k}, \bold{transform.rho}, see the documentation of the \link[LMMstar]{coef.lmm} function.
 ##'
 ##' @return A matrix with an attribute \code{"df"} when argument df is set to \code{TRUE}.
 ##' 
 
 ## * vcov.lmm (code)
-##' @rdname vcov
 ##' @export
 vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strata = NULL, data = NULL, p = NULL,
                      type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
