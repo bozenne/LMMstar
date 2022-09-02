@@ -90,6 +90,7 @@ partialCor(list(hl~BC+deg+gender, disp~1), data = y.data)
 ## partialCor(list(hl~1, disp~1), data = y.data, by = "gender") ## too small dataset
 
 #### bivariate (with repetition) ####
+\dontrun{
 data(gastricbypassL)
 e.cor <- partialCor(weight+glucagonAUC~time, repetition =~time|id,
                     data = gastricbypassL)
@@ -106,7 +107,7 @@ coef(attr(e.cor2,"lmm"), effects = "correlation")
 if(require(ggplot2)){
 autoplot(e.cor2)
 }
-
+}
 }
 \references{
 Bland J M, Altman D G. Statistics notes: Calculating correlation coefficients with repeated observations: Part 1—correlation within subjects BMJ 1995; 310 :446 doi:10.1136/bmj.310.6977.446

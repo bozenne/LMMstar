@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: aug 31 2022 (18:53) 
+## Last-Updated: sep  2 2022 (09:15) 
 ##           By: Brice Ozenne
-##     Update #: 237
+##     Update #: 238
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -82,6 +82,7 @@
 ##' ## partialCor(list(hl~1, disp~1), data = y.data, by = "gender") ## too small dataset
 ##' 
 ##' #### bivariate (with repetition) ####
+##' \dontrun{
 ##' data(gastricbypassL)
 ##' e.cor <- partialCor(weight+glucagonAUC~time, repetition =~time|id,
 ##'                     data = gastricbypassL)
@@ -98,7 +99,7 @@
 ##' if(require(ggplot2)){
 ##' autoplot(e.cor2)
 ##' }
-##' 
+##' }
 
 ## * partialCor (documentation)
 ##' @export

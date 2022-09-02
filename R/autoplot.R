@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: sep  1 2022 (09:26) 
+## Last-Updated: sep  2 2022 (09:14) 
 ##           By: Brice Ozenne
-##     Update #: 272
+##     Update #: 273
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -265,7 +265,8 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
 ##' if(require(datasets) && require(ggplot2)){
 ##'
 ##' ## only tests with 1 df
-##' e.lmm <- lmm(Fertility ~ Agriculture + Examination + Education + Catholic + Infant.Mortality, data = swiss)
+##' ff <- Fertility ~ Agriculture + Examination + Education + Catholic + Infant.Mortality
+##' e.lmm <- lmm(ff, data = swiss)
 ##' e.aovlmm <- anova(e.lmm)
 ##' 
 ##' autoplot(e.aovlmm, type = "forest")

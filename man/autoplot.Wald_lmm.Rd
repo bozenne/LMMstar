@@ -56,7 +56,8 @@ Parameters specific to the heatmap plot: \itemize{
 if(require(datasets) && require(ggplot2)){
 
 ## only tests with 1 df
-e.lmm <- lmm(Fertility ~ Agriculture + Examination + Education + Catholic + Infant.Mortality, data = swiss)
+ff <- Fertility ~ Agriculture + Examination + Education + Catholic + Infant.Mortality
+e.lmm <- lmm(ff, data = swiss)
 e.aovlmm <- anova(e.lmm)
 
 autoplot(e.aovlmm, type = "forest")
