@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 15 2022 (10:04) 
 ## Version: 
-## Last-Updated: aug 31 2022 (17:42) 
+## Last-Updated: sep  2 2022 (10:33) 
 ##           By: Brice Ozenne
-##     Update #: 43
+##     Update #: 44
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,7 +15,7 @@
 ## 
 ### Code:
 
-## * backtransform
+## * .backtransform
 ##' @title Back-Transformation of Estimates
 ##' @description Back-transform estimates and confidence intervals (CIs).
 ##' @noRd

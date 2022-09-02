@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: sep  2 2022 (09:15) 
+## Last-Updated: sep  2 2022 (11:20) 
 ##           By: Brice Ozenne
-##     Update #: 238
+##     Update #: 250
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -275,14 +275,32 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
             if(any(tentative.rho %in% rownames(out))){
                 keep.rho <- intersect(tentative.rho,rownames(out)) 
                 out <- out[keep.rho,,drop=FALSE]
-                if((length(keep.rho)==1) && (heterogeneous<1) && is.null(transform.rho)){
+
+                ## compute conditional correlation
+                if((length(keep.rho)==1) && (heterogeneous<1)){
                     name.rho2 <- e.lmm$design$param[e.lmm$design$param$type=="rho","name"][grepl("R.",code.rho)]
+                    sub.rho <- setdiff(name.rho, keep.rho)
+
+                    test.atanh <- identical(attr(out,"backtransform")$FUN,"tanh")
+
                     out2 <- estimate(e.lmm, f = function(p){
-                        if(any(p[name.rho2]<0)){NA}else{p[keep.rho]/sqrt(prod(1-p[name.rho2]))}
+                        if(any(p[name.rho2]<0)){
+                            iOut <- NA
+                        }else{
+                            iOut <- (p[keep.rho]-p[sub.rho])/sqrt(prod(1-p[name.rho2]))
+                            if(test.atanh){iOut <- atanh(iOut)}
+                        }
+                        return(iOut)                        
                     })
+
+                    if(test.atanh){
+                        out2 <- .backtransform(out2, type.param = "rho", backtransform.names = NULL, backtransform = c(FALSE,FALSE,FALSE,TRUE),
+                                               transform.mu = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = "atanh")
+                        
+                    }
+
                     rownames(out2) <- gsub("^rho","r",rownames(out))
                     out <- rbind(out, out2)
-                    attr(out,"backtransform") <- NULL                    
                 }
             }else{
                 out <- out[name.rho,,drop=FALSE]

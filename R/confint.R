@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: aug 31 2022 (17:41) 
+## Last-Updated: sep  2 2022 (10:27) 
 ##           By: Brice Ozenne
-##     Update #: 416
+##     Update #: 419
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -223,7 +223,6 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     out$lower <- out$estimate + stats::qt(alpha/2, df = out$df) * out$se
     out$upper <- out$estimate + stats::qt(1-alpha/2, df = out$df) * out$se
 
-
     ## ** back-transform
     if(!identical(backtransform,FALSE) && !identical(backtransform,c(FALSE,FALSE,FALSE))){
 
@@ -247,7 +246,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
                                    transform.mu = "none",
                                    transform.sigma = transform.sigma,
                                    transform.k = transform.k,
-                                   transform.rho = transform.rho)
+                                   transform.rho = transform.rho)            
         }
     }
     ## ** export
