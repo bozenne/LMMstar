@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jun 16 2022 (15:19) 
 ## Version: 
-## Last-Updated: sep  1 2022 (09:20) 
+## Last-Updated: sep  5 2022 (15:03) 
 ##           By: Brice Ozenne
-##     Update #: 262
+##     Update #: 280
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -98,8 +98,9 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
 
     p.trans <- confint(fitted, effects = "all", level = conf.level,
                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                       transform.names = transform.names)
+                       transform.names = transform.names, backtransform = FALSE)
     name.p.trans <- rownames(p.trans)
+    rownames(p.trans) <- name.p
 
     if(is.null(effects)){
         effects <- options$effects
@@ -140,6 +141,7 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
     ls.profile <- lapply(1:n.effects, function(iParam){ ## iParam <- 4
 
         iIndex <- which(name.p == effects[iParam])
+        iName <- name.p[iIndex]
         iName.trans <- name.p.trans[iIndex]
         iType <- unname(type.p[iIndex])
         iValue <- unname(p[iIndex,"estimate"])
@@ -229,7 +231,8 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
     ## ** collect
     df.profile <- do.call(rbind,ls.profile)
     df.profile$param <- factor(df.profile$param, levels = unique(df.profile$param))
-    
+    ## unique(df.profile$param)
+
     ## ** display
     if(plot){
         if(plot>=2){
@@ -282,11 +285,16 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
 
             ## recompute ci at level 0.95
             p.trans2 <- confint(fitted, effects = "all", level = 0.95,
-                               transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                               transform.names = transform.names)
+                                transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                                transform.names = transform.names, backtransform = FALSE)
 
             df.ci <- cbind(param = rownames(p.trans2), p.trans2)[which(name.p %in% effects),,drop=FALSE]
-            df.ci$param <- factor(df.ci$param, levels = levels(df.profile$param))
+            if(transform.names){
+                df.ci$param <- factor(df.ci$param, levels = levels(df.profile$param))
+                ## df.ci$param <- factor(name.p.trans[match(df.ci$param,name.p)], levels = levels(df.profile$param))
+            }else{
+                df.ci$param <- factor(df.ci$param, levels = levels(df.profile$param))
+            }
             gg <- gg + ggplot2::geom_vline(data = df.ci, mapping = ggplot2::aes_string(xintercept = "lower"), size = size[4], linetype = linetype[2])
             gg <- gg + ggplot2::geom_vline(data = df.ci, mapping = ggplot2::aes_string(xintercept = "upper"), size = size[4], linetype = linetype[2])
         }

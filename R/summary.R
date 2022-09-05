@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: sep  1 2022 (09:26) 
+## Last-Updated: sep  5 2022 (14:29) 
 ##           By: Brice Ozenne
-##     Update #: 1011
+##     Update #: 1022
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -377,6 +377,8 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         columns.univariate <- options$columns.anova
         if(any(object$multivariate$type!="all")){
             columns.multivariate <- union(c("type","statistic"), setdiff(options$columns.anova, c("estimate", "se", "lower", "upper")))
+        }else{
+            columns.multivariate <- union(c("statistic"), setdiff(options$columns.anova, c("estimate", "se", "lower", "upper")))
         }
     }else{
         columns.univariate <- tolower(columns)
@@ -481,7 +483,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
 
         ## incorporate type
         if(method.p.adjust %in% c("average","pool.fixse","pool.se","pool.pca","pool.rubin") == FALSE){
-            table.univariate$type <-  c("mu" = "mean", "k" = "variance", "rho" = "correlation")[object$univariate$type]
+            table.univariate$type <-  c("mu" = "mean", "sigma" = "variance", "k" = "variance", "rho" = "correlation")[object$univariate$type]
         }
         nchar.type <- nchar(table.univariate$type)
         maxchar.type <- max(nchar.type)
@@ -489,7 +491,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
             vec.white <- sapply(maxchar.type-nchar.type, function(iN){paste(rep(" ", iN), collapse = "")})
             rownames(table.univariate) <- paste(vec.white,table.univariate$type,sep,rownames(table.univariate),sep="")
         }else if(length(unique(table.univariate$type))>1){
-            test.nduplicated <- !duplicated(table.univariate$type)
+            test.nduplicated <- !duplicated(table.univariate$type)            
             rownames(table.univariate) <- sapply(1:NROW(table.univariate), function(iIndex){
                 if(test.nduplicated[iIndex]){
                     paste(paste(rep(" ", maxchar.type-nchar.type[iIndex]), collapse = ""),table.univariate$type[iIndex],sep,rownames(table.univariate)[iIndex],sep="")

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: sep  2 2022 (11:20) 
+## Last-Updated: sep  5 2022 (17:37) 
 ##           By: Brice Ozenne
-##     Update #: 250
+##     Update #: 252
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -248,7 +248,7 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
         ## *** TOEPLITZ mixed model (repetition)
         dataL <- dataL[order(dataL[[name.id]],dataL$CCvariableCC),]
         dataL$CCrepetitionCC <- unlist(tapply(dataL[[name.id]],dataL[[name.id]],function(iId){1:length(iId)}))
-        formula.repetition <- stats::as.formula(paste("~time+CCvariableCC|",name.id))
+        formula.repetition <- stats::as.formula(paste("~",name.time,"+CCvariableCC|",name.id))
         if(heterogeneous>=1){
             structure <- TOEPLITZ(heterogeneous = TRUE)
         }else if(heterogeneous>=0.5){
@@ -258,7 +258,6 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
         }
 
         if(is.null(by)){
-            
             e.lmm <- lmm(formula.mean, repetition = formula.repetition,
                          data = dataL, structure = structure,
                          control = list(optimizer = "FS"))

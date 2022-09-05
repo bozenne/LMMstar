@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: sep  1 2022 (09:25) 
+## Last-Updated: sep  5 2022 (14:31) 
 ##           By: Brice Ozenne
-##     Update #: 1177
+##     Update #: 1181
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -523,7 +523,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
             if(ci){
                 out$univariate <- rbind(out$univariate, cbind(type = iType2, test = iNameTerm, CI))
             }
-            out$glht[[iType]][[iNameTerm]] <- CI.glht           
+            out$glht[[iType]][[iNameTerm]] <- CI.glht
         }
     }
 

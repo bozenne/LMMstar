@@ -115,7 +115,7 @@ utils::packageVersion("LMMstar")
 #+END_SRC
 
 #+RESULTS:
-: [1] ‘0.7.1’
+: [1] '0.8.0'
 
 When estimating model coefficients, we will use the internal
 optimization routine of the *LMMstar* package (instead of relying on
@@ -138,15 +138,15 @@ print(sss, digits = 3)
 #+END_SRC
 
 #+RESULTS:
-:    outcome time observed missing   mean     sd    min median    max
-: 1   weight  B3m       20       0 128.97 20.269 100.90 123.10 173.00
-: 2   weight  B1w       20       0 121.24 18.910  95.70 114.50 162.20
-: 3   weight  A1w       20       0 115.70 18.275  89.90 110.60 155.00
-: 4   weight  A3m       20       0 102.36 17.054  78.80  98.50 148.00
-: 5 glucagon  B3m       20       0   4.51  0.641   3.61   4.33   6.03
-: 6 glucagon  B1w       19       1   4.39  0.558   3.58   4.23   5.95
-: 7 glucagon  A1w       19       1   6.06  1.044   4.52   5.94   8.27
-: 8 glucagon  A3m       20       0   5.06  0.760   3.95   5.03   7.12
+:    outcome time observed missing   mean     sd    min     q1 median     q3    max
+: 1   weight  B3m       20       0 128.97 20.269 100.90 115.30 123.10 139.82 173.00
+: 2   weight  B1w       20       0 121.24 18.910  95.70 107.78 114.50 134.53 162.20
+: 3   weight  A1w       20       0 115.70 18.275  89.90 102.22 110.60 128.38 155.00
+: 4   weight  A3m       20       0 102.36 17.054  78.80  90.40  98.50 108.25 148.00
+: 5 glucagon  B3m       20       0   4.51  0.641   3.61   4.06   4.33   4.93   6.03
+: 6 glucagon  B1w       19       1   4.39  0.558   3.58   4.05   4.23   4.55   5.95
+: 7 glucagon  A1w       19       1   6.06  1.044   4.52   5.30   5.94   6.62   8.27
+: 8 glucagon  A3m       20       0   5.06  0.760   3.95   4.52   5.03   5.27   7.12
 
 Correlation matrices are also ouput when a cluster and ordering
 variable have been specified (here respectively =id= and =time=):

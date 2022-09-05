@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: aug 30 2022 (19:01) 
+## Last-Updated: sep  5 2022 (14:22) 
 ##           By: Brice Ozenne
-##     Update #: 874
+##     Update #: 878
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -551,6 +551,7 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
         ## warper_obj(param.value.trans)
         ## warper_obj(2*param.value.trans)
         ## numDeriv::jacobian(x = param.value.trans, func = warper_obj)-warper_grad(param.value.trans)
+        if(trace<=0){trace <- 0}
         res.optim <- optimx::optimx(par = param.value.trans, fn = warper_obj, gr = warper_grad, hess = warper_hess,
                                     method = optimizer, itnmax = n.iter, control = list(trace = trace))
         ## solution <- setNames(as.double(res.optim[1,1:length(param.value.trans)]), names(param.value.trans))
@@ -568,7 +569,7 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
                                         transform.names = FALSE)$p
 
         param.valueM1 <- NULL
-        score <- attr(res.optim,"details")[,"ngatend"][[1]]
+        score.value <- attr(res.optim,"details")[,"ngatend"][[1]]
         logLik.value <- NULL
         logLik.valueM1 <- NULL
         iIter <- res.optim$niter
