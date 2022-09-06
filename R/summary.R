@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: sep  6 2022 (17:54) 
+## Last-Updated: sep  6 2022 (18:32) 
 ##           By: Brice Ozenne
-##     Update #: 1029
+##     Update #: 1032
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -687,6 +687,14 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
 }
 
 ## * summary.partialCor
+##' @title Summary for partial correlation
+##' @description Display estimated partial correlation and associated p-values and confidence intevals.
+##' 
+##' @param object a \code{partialCor} object, output of \code{partialCor}.
+##' @param digits [integer,>0] number of digits used to display numeric values.
+##' @param detail [integer,>0] passed to \code{\link{print.confint_lmm}}. If above 0.5 also display when a back-transformation has been used.
+##' @param ... other arguments are passed to \code{\link{print.confint_lmm}}.
+##'
 ##' @export
 summary.partialCor <- function(x, digits = 3, detail = TRUE, ...){
 
