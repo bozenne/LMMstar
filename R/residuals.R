@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: sep  1 2022 (09:26) 
+## Last-Updated: sep  6 2022 (17:39) 
 ##           By: Brice Ozenne
-##     Update #: 646
+##     Update #: 649
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -452,12 +452,22 @@ residuals.lmm <- function(object, type = "response", format = "long",
         fitted <- matrix(NA, nrow = n.allobs, ncol = NCOL(Msave.fit), dimnames = list(NULL, colnames(Msave.fit)))
         fitted[-index.na,] <- Msave.fit
 
-        level.cluster <- rep(NA, n.allobs)
-        level.cluster[index.na] <- factor(attr(index.na,"cluster"), levels = cluster.levels.original)
-        level.cluster[-index.na] <- factor(index.cluster, levels = 1:length(cluster.levels.original), labels = cluster.levels.original)
-        level.time <- rep(NA, n.allobs)
-        level.time[index.na] <- factor(attr(index.na,"time"), levels = time.levels.original)
-        level.time[-index.na] <- factor(index.time, levels = 1:length(time.levels.original), labels = time.levels.original)
+        if(is.null(cluster.levels.original)){
+            level.cluster <- levels(attr(index.na,"cluster"))
+        }else{
+            level.cluster <- rep(NA, n.allobs)
+            level.cluster[index.na] <- factor(attr(index.na,"cluster"), levels = cluster.levels.original)
+            level.cluster[-index.na] <- factor(index.cluster, levels = 1:length(cluster.levels.original), labels = cluster.levels.original)
+        }
+
+        if(is.null(cluster.levels.original)){
+            level.time <- levels(attr(index.na,"time"))
+        }else{
+            level.time <- rep(NA, n.allobs)
+            level.time[index.na] <- factor(attr(index.na,"time"), levels = time.levels.original)
+            level.time[-index.na] <- factor(index.time, levels = 1:length(time.levels.original), labels = time.levels.original)
+        }
+
     }else{
         level.cluster <- index.cluster
         level.time <- index.time

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: sep  5 2022 (14:29) 
+## Last-Updated: sep  6 2022 (17:54) 
 ##           By: Brice Ozenne
-##     Update #: 1022
+##     Update #: 1029
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -513,11 +513,17 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
             attr(method.p.adjust,"warning") <- "WARNING: uncertainty about the weights has been ignored.\n"
         }
 
+        if("single-step2" %in% method.p.adjust){
+            digits.p.value2 <- c(digits.p.value,1/n.sample)
+        }else{
+            digits.p.value2 <- digits.p.value
+        }
+
         .printStatTable(table = table.univariate, robust = robust, df = df, level = level, type.information = type.information,
                         method.p.adjust = method.p.adjust, factor.p.adjust = factor.p.adjust, error.p.adjust = error, seed = seed, n.sample = n.sample,
                         backtransform = backtransform, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                         columns = setdiff(columns.univariate,"type"), col.df = c("df"), name.statistic = c("t-statistic","z-statistic"),
-                        digits = digits, digits.df = digits.df, digits.p.value = digits.p.value,
+                        digits = digits, digits.df = digits.df, digits.p.value = digits.p.value2,
                         decoration = legend, legend = legend)
 
         if(print.univariate>0.5){
@@ -680,6 +686,61 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
     return(invisible(out))
 }
 
+## * summary.partialCor
+##' @export
+summary.partialCor <- function(x, digits = 3, detail = TRUE, ...){
+
+    cat("\t\tPartial correlation \n\n")
+
+    message.backtransform <- attr(x,"backtransform")
+    attr(x,"backtransform") <- NULL
+
+    ## display estimates
+    out <- do.call("print.confint_lmm", c(list(x, detail = detail, digits = digits), ...))
+
+    xplus <- cbind(rownames(x),formatC(as.matrix(x), digits = digits, format = "f"))
+    xplus.char <- apply(xplus,1, function(iRow){ ## iRow <- xplus[2,]
+        sum(nchar(iRow)+1)
+    })
+    width <- max(c(xplus.char,sum(nchar(colnames(x))+1)))
+    cat("\t",rep("-",width),"\n",sep="")
+
+    ## legend (estimates)
+    if(any(grepl("^rho\\(",rownames(x))) && any(grepl("^r\\(",rownames(x)))){
+
+        cat("\trho: marginal correlation \n")
+        cat("\tr  : correlation conditional on the individual \n")
+        
+    }
+
+    ## legend (transformation)
+    test.backtransform <- !is.null(message.backtransform) && any(!is.na(message.backtransform$FUN))
+    if(test.backtransform){
+        message.backtransform <- message.backtransform[!is.na(message.backtransform$FUN),,drop=FALSE]
+
+            if(any(message.backtransform[,setdiff(names(message.backtransform), "FUN")] == FALSE)){
+                warning("Could not back-transform everything.\n")
+            }
+
+        if(NROW(x)==1){
+            short2text <- stats::setNames(c("estimate","standard error","confidence interval","confidence interval"),c("estimate","se","lower","upper"))
+            txt <- unique(short2text[intersect(names(short2text),intersect(names(x),names(message.backtransform)))])
+        }else{
+            short2text <- stats::setNames(c("estimates","standard errors","confidence intervals","confidence intervals"),c("estimate","se","lower","upper"))
+            txt <- unique(short2text[intersect(names(short2text),intersect(names(x),names(message.backtransform)))])
+        }
+        cat("\t",paste(txt,collapse = ", ")," have been back-transformed",sep="")
+        if(detail>=0.5){
+            cat(" (",paste(message.backtransform$FUN,collapse="/"),"). \n", sep ="")
+        }
+        cat("\n")
+    }
+    cat("\n")
+
+    return(invisible(NULL))
+}
+
+
 
 ## * .printStatTable (documentation)
 ##' @description Display a table containing the model coefficients and their uncertainty, as well as a legendn.
@@ -734,6 +795,10 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
     if(is.null(transform.rho)){
         transform.rho <- NA
     }
+
+    if(length(digits.p.value)==1){
+        digits.p.value <- c(digits.p.value,.Machine$double.eps)
+    }
     
     ## ** add stars
     if("p.value" %in% names(table)){
@@ -753,7 +818,7 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
         table.print[[iCol]] <- as.character(round(table.print[[iCol]], digits = digits))
     }
     if("p.value" %in% names(table)){
-        table.print$p.value <- as.character(format.pval(table.print$p.value, digits = digits.p.value, eps = 10^(-digits.p.value)))
+        table.print$p.value <- as.character(format.pval(table.print$p.value, digits = digits.p.value[1], eps = digits.p.value[2]))
     }
     if(!is.null(col.df)){
         
@@ -884,9 +949,9 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
             if(method.p.adjust == "single-step"){
                 if(!is.null(error.p.adjust) && any(!is.na(error.p.adjust)) && any(abs(stats::na.omit(error.p.adjust))>1e-12)){
                     if(!is.null(seed)){
-                        cat(space,"(error when computing the adjusted ",tolower(txt.cip)," by numerical integration: ", signif(max(error.p.adjust, na.rm=TRUE), digits = digits.p.value)," with seed for the RNG: ",seed,")\n",sep="")
+                        cat(space,"(error when computing the adjusted ",tolower(txt.cip)," by numerical integration: ", signif(max(error.p.adjust, na.rm=TRUE), digits = digits.p.value[1])," with seed for the RNG: ",seed,")\n",sep="")
                     }else{
-                        cat(space,"(error when computing the adjusted ",tolower(txt.cip)," by numerical integration: ", signif(max(error.p.adjust, na.rm=TRUE), digits = digits.p.value),")\n",sep="")
+                        cat(space,"(error when computing the adjusted ",tolower(txt.cip)," by numerical integration: ", signif(max(error.p.adjust, na.rm=TRUE), digits = digits.p.value[1]),")\n",sep="")
                     }
                 }else if(!is.null(seed)){
                     cat(space,"(seed for the RNG: ",seed,")\n",sep="")

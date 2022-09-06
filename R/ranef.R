@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 26 2022 (11:18) 
 ## Version: 
-## Last-Updated: May 30 2022 (22:45) 
+## Last-Updated: sep  6 2022 (17:11) 
 ##           By: Brice Ozenne
-##     Update #: 165
+##     Update #: 166
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -131,7 +131,6 @@
             ## expand variance parameters across strata
             iG <- iParam[index.clusterStrata]
             ## compute random effects
-
             iLs.zranef <- by(sweep(iX, MARGIN = 1, FUN = "*", STATS = vec.OmegaM1epsilon), INDICES = Vindex.cluster.sorted, FUN = colSums, simplify = FALSE)
             iRanef <- sweep(do.call(rbind,iLs.zranef), MARGIN = 1, FUN = "*", STATS = iG)
             colnames(iRanef) <- gsub("_X_XX_X_",":",colnames(iRanef))

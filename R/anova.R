@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: sep  5 2022 (14:31) 
+## Last-Updated: sep  6 2022 (17:55) 
 ##           By: Brice Ozenne
-##     Update #: 1181
+##     Update #: 1183
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -298,8 +298,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                          )
                 }
             }
-            
-            test.reparametrize <- grepl("log", c(object$reparametrize$transform.sigma,object$reparametrize$transform.k)) || grep("atanh", object$reparametrize$transform.rho)
+            test.reparametrize <- any(grepl("log", c(object$reparametrize$transform.sigma,object$reparametrize$transform.k))) || grep("atanh", object$reparametrize$transform.rho)
             
             ## restaure untransformed parametrization (glht does not handle log(k). or atanh(cor))
             if(test.reparametrize){

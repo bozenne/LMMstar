@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: sep  2 2022 (10:40) 
+## Last-Updated: sep  6 2022 (13:42) 
 ##           By: Brice Ozenne
-##     Update #: 154
+##     Update #: 161
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -231,49 +231,9 @@ print.mlmm <- function(x, ...){
 
 ## * print.partialCor
 ##' @export
-print.partialCor <- function(x, digits = 3, detail = TRUE, ...){
+print.partialCor <- function(x, digits = 3, ...){
 
-    cat("\t\tPartial correlation \n\n")
-
-    message.backtransform <- attr(x,"backtransform")
-    attr(x,"backtransform") <- NULL
-
-    out <- do.call("print.confint_lmm", c(list(x, detail = detail, digits = digits), ...))
-
-    if(any(grepl("^rho\\(",rownames(x))) && any(grepl("^r\\(",rownames(x)))){
-
-        xplus <- cbind(rownames(x),formatC(as.matrix(x), digits = digits, format = "f"))
-        xplus.char <- apply(xplus,1, function(iRow){ ## iRow <- xplus[2,]
-            sum(nchar(iRow)+1)
-        })
-        width <- max(c(xplus.char,sum(nchar(colnames(x))+1)))
-        cat("\t",rep("-",width),"\n",sep="")
-        cat("\trho: marginal correlation \n")
-        cat("\tr  : correlation conditional on the individual \n")
-        
-        test.backtransform <- !is.null(message.backtransform) && any(!is.na(message.backtransform$FUN))
-        if(test.backtransform){
-            message.backtransform <- message.backtransform[!is.na(message.backtransform$FUN),,drop=FALSE]
-
-            if(any(message.backtransform[,setdiff(names(message.backtransform), "FUN")] == FALSE)){
-                warning("Could not back-transform everything.\n")
-            }
-
-            if(NROW(x)==1){
-                short2text <- stats::setNames(c("estimate","standard error","confidence interval","confidence interval"),c("estimate","se","lower","upper"))
-                txt <- unique(short2text[intersect(names(short2text),intersect(names(x),names(message.backtransform)))])
-            }else{
-                short2text <- stats::setNames(c("estimates","standard errors","confidence intervals","confidence intervals"),c("estimate","se","lower","upper"))
-                txt <- unique(short2text[intersect(names(short2text),intersect(names(x),names(message.backtransform)))])
-            }
-            cat("\t",paste(txt,collapse = ", ")," have been back-transformed",sep="")
-            if(detail>=0.5){
-                cat(" (",paste(message.backtransform$FUN,collapse="/"),"). \n", sep ="")
-            }
-            cat("\n")
-        }
-        cat("\n")
-    }
+    out <- do.call("print.confint_lmm", c(list(x, detail = FALSE, digits = digits), ...))
 
     return(invisible(NULL))
 }

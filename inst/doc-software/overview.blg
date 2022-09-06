@@ -5,10 +5,6 @@ Reallocating 'name_of_file' (item size: 1) to 8 items.
 The style file: apalike.bst
 Reallocating 'name_of_file' (item size: 1) to 13 items.
 Database file #1: bibliography.bib
-Repeated entry---line 21 of file bibliography.bib
- : @article{pipper2012versatile
- :                             ,
-I'm skipping whatever remains of this entry
 You've used 2 entries,
             1935 wiz_defined-function locations,
             487 strings with 4089 characters,
@@ -50,4 +46,3 @@ warning$ -- 0
 while$ -- 8
 width$ -- 0
 write$ -- 28
-(There was 1 error message)
