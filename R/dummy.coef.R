@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (11:08) 
 ## Version: 
-## Last-Updated: sep 10 2022 (16:04) 
+## Last-Updated: sep 12 2022 (09:18) 
 ##           By: Brice Ozenne
-##     Update #: 39
+##     Update #: 40
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -73,8 +73,8 @@ dummy.coef.lmm <- function(object, drop = TRUE,...){
         attr(out,"mesg") <- NULL
     }
     ## Note (Github isssue 2): out inherits from summary_emm and data.frame
-    ##                         sing data.frame on out ensures that it is just a data.frame
-    return(as.data.frame(out))
+    ##                         using data.frame on out ensures that it is just a data.frame
+    return(data.frame(out))
 }
 ##----------------------------------------------------------------------
 ### dummy.coef.R ends here
