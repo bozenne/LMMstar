@@ -13,6 +13,7 @@ partialCor(
   effects = NULL,
   rhs = NULL,
   method = "none",
+  df = NULL,
   transform.rho = NULL
 )
 }
@@ -34,6 +35,8 @@ or whether the correlation/variance vary over repetitions (repetition).}
 \item{rhs}{[numeric vector] right hand side for the comparison of correlation parameters.}
 
 \item{method}{[character] adjustment for multiple comparisons (e.g. \code{"single-step"}).}
+
+\item{df}{[logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.}
 
 \item{transform.rho}{[character] scale on which perform statistical inference (e.g. \code{"atanh"})}
 }

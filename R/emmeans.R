@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 10 2021 (16:08) 
 ## Version: 
-## Last-Updated: sep  1 2022 (09:55) 
+## Last-Updated: sep 10 2022 (16:05) 
 ##           By: Brice Ozenne
-##     Update #: 81
+##     Update #: 82
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -65,7 +65,10 @@ emm_basis.lmm <- function(object, trms, xlev, grid, ...){
             return(Inf)
         }
     }
-    out$dfargs <- list(FUN = .dfX, name.meanparam = colnames(out$X), vcov.param = object$vcov, dVcov.param = object$dVcov)
+    out$dfargs <- list(FUN = .dfX,
+                       name.meanparam = colnames(out$X),
+                       vcov.param = object$vcov,
+                       dVcov.param = object$dVcov)
     
     return(out)
 }

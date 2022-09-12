@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: sep  5 2022 (17:37) 
+## Last-Updated: sep  9 2022 (11:39) 
 ##           By: Brice Ozenne
-##     Update #: 252
+##     Update #: 255
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,6 +29,7 @@
 ##' @param effects [character or matrix] type of contrast to be used for comparing the correlation parameters. One of \code{"Dunnett"}, \code{"Tukey"}, \code{"Sequen"}, or a contrast matrix.
 ##' @param rhs [numeric vector] right hand side for the comparison of correlation parameters. 
 ##' @param method [character] adjustment for multiple comparisons (e.g. \code{"single-step"}).
+##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.
 ##' @param transform.rho [character] scale on which perform statistical inference (e.g. \code{"atanh"})
 ##'
 ##' @details Fit a mixed model to estimate the partial correlation with the following variance-covariance pattern:
@@ -104,7 +105,7 @@
 ## * partialCor (documentation)
 ##' @export
 partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, by = NULL,
-                       effects = NULL, rhs = NULL, method = "none", transform.rho = NULL){
+                       effects = NULL, rhs = NULL, method = "none", df = NULL, transform.rho = NULL){
 
     ## ** normalize arguments
     data <- as.data.frame(data)
@@ -192,6 +193,12 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
         stop("When character, argument \'effects\' should be one of \"",paste(valid.contrMat,collapse="\" \""),"\".\n")
     }
 
+    ## *** df
+    options <- LMMstar.options()
+    if(is.null(df)){
+        df <- options$df
+    }
+
     ## ** reshape    
     ls.name.X <- lapply(formula, function(iF){all.vars(stats::delete.response(stats::terms(iF)))})
     name.X <- unique(unlist(ls.name.X))
@@ -258,10 +265,10 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
         }
 
         if(is.null(by)){
-            e.lmm <- lmm(formula.mean, repetition = formula.repetition,
+            e.lmm <- lmm(formula.mean, df = df, repetition = formula.repetition,
                          data = dataL, structure = structure,
                          control = list(optimizer = "FS"))
-            out <- confint(e.lmm, columns = c("estimate","se","df","lower","upper","p.value"), effects = "correlation", transform.rho = transform.rho)
+            out <- confint(e.lmm, df = df, columns = c("estimate","se","df","lower","upper","p.value"), effects = "correlation", transform.rho = transform.rho)
 
             ## identify the right correlation coefficient
             code.rho <- e.lmm$design$param[e.lmm$design$param$type=="rho","code"]
@@ -282,7 +289,7 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
 
                     test.atanh <- identical(attr(out,"backtransform")$FUN,"tanh")
 
-                    out2 <- estimate(e.lmm, f = function(p){
+                    out2 <- estimate(e.lmm, df = df, f = function(p){
                         if(any(p[name.rho2]<0)){
                             iOut <- NA
                         }else{
@@ -308,9 +315,9 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
             
         }else{
 
-            e.lmm <- mlmm(formula.mean, repetition = formula.repetition, data = dataL, structure = structure, control = list(optimizer = "FS"),                          
+            e.lmm <- mlmm(formula.mean, df = df, repetition = formula.repetition, data = dataL, structure = structure, control = list(optimizer = "FS"),                          
                           by = by, effects = "correlation", contrast.rbind = effects)
-            out <- confint(e.lmm, columns = c("estimate","se","df","lower","upper","p.value"))
+            out <- confint(e.lmm, df = df, columns = c("estimate","se","df","lower","upper","p.value"))
 
         }
 
@@ -327,7 +334,7 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
         if(is.null(by)){
             ## fit model
             e.lmm <- lmm(formula.mean, repetition = formula.repetition,
-                         data = dataL, structure = structure)
+                         data = dataL, structure = structure, df = df)
 
             name.param <- e.lmm$design$param$name
             n.param <- length(name.param)
@@ -355,12 +362,12 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
 
             ## run test linear hypothesis
             if(all(rowSums(Cmat!=0)==1) || !is.null(transform.rho)){
-                out <- confint(anova(e.lmm, effects = Cmat, transform.rho = transform.rho),
+                out <- confint(anova(e.lmm, df = df, effects = Cmat, transform.rho = transform.rho),
                                method = method, columns = c("estimate","se","df","lower","upper","p.value"))
             }else{
-                out0 <- confint(anova(e.lmm, effects = Cmat, transform.rho = "none"),
+                out0 <- confint(anova(e.lmm, df = df, effects = Cmat, transform.rho = "none"),
                                method = "none", columns = c("estimate","se","df","p.value"))
-                out <- confint(anova(e.lmm, effects = Cmat, transform.rho = "atanh"),
+                out <- confint(anova(e.lmm, df = df, effects = Cmat, transform.rho = "atanh"),
                                 method = method, columns = c("estimate","se","df","p.value"))
                 out$estimate <- out0$estimate
                 out$se <- out0$se
@@ -368,9 +375,9 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
                 attr(out,"backtransform")[,"estimate"] <- FALSE
             }
         }else{
-            e.lmm <- mlmm(formula.mean, repetition = formula.repetition, data = dataL, structure = structure,
+            e.lmm <- mlmm(formula.mean, df = df, repetition = formula.repetition, data = dataL, structure = structure,
                           by = by, effects = "correlation", contrast.rbind = effects)
-            out <- confint(e.lmm, columns = c("estimate","se","df","lower","upper","p.value"))
+            out <- confint(e.lmm, df = df, columns = c("estimate","se","df","lower","upper","p.value"))
         }
     }
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: sep  6 2022 (18:32) 
+## Last-Updated: sep 12 2022 (09:24) 
 ##           By: Brice Ozenne
-##     Update #: 1032
+##     Update #: 1034
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -692,29 +692,29 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
 ##' 
 ##' @param object a \code{partialCor} object, output of \code{partialCor}.
 ##' @param digits [integer,>0] number of digits used to display numeric values.
-##' @param detail [integer,>0] passed to \code{\link{print.confint_lmm}}. If above 0.5 also display when a back-transformation has been used.
-##' @param ... other arguments are passed to \code{\link{print.confint_lmm}}.
+##' @param detail [integer,>0] passed to \code{print.confint_lmm}. If above 0.5 also display when a back-transformation has been used.
+##' @param ... other arguments are passed to \code{print.confint_lmm}.
 ##'
 ##' @export
-summary.partialCor <- function(x, digits = 3, detail = TRUE, ...){
+summary.partialCor <- function(object, digits = 3, detail = TRUE, ...){
 
     cat("\t\tPartial correlation \n\n")
 
-    message.backtransform <- attr(x,"backtransform")
-    attr(x,"backtransform") <- NULL
+    message.backtransform <- attr(object,"backtransform")
+    attr(object,"backtransform") <- NULL
 
     ## display estimates
-    out <- do.call("print.confint_lmm", c(list(x, detail = detail, digits = digits), ...))
+    out <- do.call("print.confint_lmm", c(list(object, detail = detail, digits = digits), ...))
 
-    xplus <- cbind(rownames(x),formatC(as.matrix(x), digits = digits, format = "f"))
+    xplus <- cbind(rownames(object),formatC(as.matrix(object), digits = digits, format = "f"))
     xplus.char <- apply(xplus,1, function(iRow){ ## iRow <- xplus[2,]
         sum(nchar(iRow)+1)
     })
-    width <- max(c(xplus.char,sum(nchar(colnames(x))+1)))
+    width <- max(c(xplus.char,sum(nchar(colnames(object))+1)))
     cat("\t",rep("-",width),"\n",sep="")
 
     ## legend (estimates)
-    if(any(grepl("^rho\\(",rownames(x))) && any(grepl("^r\\(",rownames(x)))){
+    if(any(grepl("^rho\\(",rownames(object))) && any(grepl("^r\\(",rownames(object)))){
 
         cat("\trho: marginal correlation \n")
         cat("\tr  : correlation conditional on the individual \n")
@@ -730,12 +730,12 @@ summary.partialCor <- function(x, digits = 3, detail = TRUE, ...){
                 warning("Could not back-transform everything.\n")
             }
 
-        if(NROW(x)==1){
+        if(NROW(object)==1){
             short2text <- stats::setNames(c("estimate","standard error","confidence interval","confidence interval"),c("estimate","se","lower","upper"))
-            txt <- unique(short2text[intersect(names(short2text),intersect(names(x),names(message.backtransform)))])
+            txt <- unique(short2text[intersect(names(short2text),intersect(names(object),names(message.backtransform)))])
         }else{
             short2text <- stats::setNames(c("estimates","standard errors","confidence intervals","confidence intervals"),c("estimate","se","lower","upper"))
-            txt <- unique(short2text[intersect(names(short2text),intersect(names(x),names(message.backtransform)))])
+            txt <- unique(short2text[intersect(names(short2text),intersect(names(object),names(message.backtransform)))])
         }
         cat("\t",paste(txt,collapse = ", ")," have been back-transformed",sep="")
         if(detail>=0.5){

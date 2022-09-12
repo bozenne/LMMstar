@@ -8,7 +8,7 @@ if(system("whoami",intern=TRUE)=="bozenne"){
   setwd("c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/")
 }
 library(ggplot2, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
-library(emmeans quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
+library(emmeans, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
 library(qqtest, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
 library(multcomp, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
 library(ggpubr, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
@@ -187,11 +187,12 @@ partialCor(weight + glucagonAUC ~ group,
 
 * Linear mixed model
 ** Classical covariance patterns
-Fit a linear model with *identity* structure:
+
+Several build-in covariance patterns can be used when specifying the
+linear model. The most basic ones are the *identity* structure:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eId.lmm <- lmm(weight ~ time + glucagon,
-               repetition = ~time|id, structure = "ID",
-               data = gastricbypassL)
+eId.lmm <- lmm(weight ~ time + glucagon, repetition = ~time|id, 
+               structure = "ID", data = gastricbypassL)
 eId.lmm
 cat(" covariance structure: \n");sigma(eId.lmm)
 #+END_SRC
@@ -214,11 +215,10 @@ A1w   0.0000   0.0000 330.0427   0.0000
 A3m   0.0000   0.0000   0.0000 330.0427
 #+end_example
 
-Fit a linear model with *independence* structure:
+and the *independence* structure:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eInd.lmm <- lmm(weight ~ time + glucagon,
-               repetition = ~time|id, structure = "IND",
-               data = gastricbypassL)
+eInd.lmm <- lmm(weight ~ time + glucagon, repetition = ~time|id, 
+               structure = "IND", data = gastricbypassL)
 eInd.lmm
 cat(" covariance structure: \n");sigma(eInd.lmm)
 #+END_SRC
@@ -243,11 +243,10 @@ A3m   0.0000   0.0000   0.0000 237.2049
 
 \clearpage
 
-Fit a linear mixed model with *compound symmetry* structure:
+The most basic linear mixed model is obtained with a *compound symmetry* structure:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eCS.lmm <- lmm(weight ~ time + glucagon,
-               repetition = ~time|id, structure = "CS",
-               data = gastricbypassL)
+eCS.lmm <- lmm(weight ~ time + glucagon, repetition = ~time|id,
+               structure = "CS", data = gastricbypassL)
 eCS.lmm
 cat(" covariance structure: \n");sigma(eCS.lmm)
 #+END_SRC
@@ -271,30 +270,117 @@ A1w 344.6236 344.6236 355.3062 344.6236
 A3m 344.6236 344.6236 344.6236 355.3062
 #+end_example
 
+\noindent A more flexible model can be obtained with a *toeplitz* covariance matrix:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eTOE.lmm <- lmm(weight ~ time*group, repetition = ~time|id,
+                structure = "TOEPLITZ", data = gastricbypassL)
+eTOE.lmm
+cat(" correlation structure: \n");cov2cor(sigma(eTOE.lmm))
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+
+ outcome/cluster/time: weight/id/time 
+ data                : 80 observations and distributed in 20 clusters 
+ parameters          : 8 mean ((Intercept) timeB1w timeA1w timeA3m group timeB1w:group timeA1w:group timeA3m:group) 
+                       4 variance (sigma k.B1w k.A1w k.A3m) 
+                       3 correlation (rho(B3m,B1w) rho(B3m,A1w) rho(B3m,A3m)) 
+ log-restr.likelihood: -224.790790046711 
+ convergence         : TRUE (19 iterations)
+ correlation structure: 
+          B3m       B1w       A1w       A3m
+B3m 1.0000000 0.9857538 0.9675323 0.9481027
+B1w 0.9857538 1.0000000 0.9857538 0.9675323
+A1w 0.9675323 0.9857538 1.0000000 0.9857538
+A3m 0.9481027 0.9675323 0.9857538 1.0000000
+#+end_example
+
 \clearpage
 
-\noindent Fit a linear mixed model with *stratified compound symmetry* covariance matrix:
+\noindent And an even more flexible model can be obtained with an
+*unstructured* covariance matrix:
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eUN.lmm <- lmm(weight ~ time + glucagon, repetition = ~time|id,
+               structure = "UN", data = gastricbypassL)
+eUN.lmm
+cat(" covariance structure: \n");sigma(eUN.lmm)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+		Linear Mixed Model with an unstructured covariance matrix 
+
+ outcome/cluster/time: weight/id/time 
+ data                : 78 observations and distributed in 20 clusters 
+ parameters          : 5 mean ((Intercept) timeB1w timeA1w timeA3m glucagon) 
+                       4 variance (sigma k.B1w k.A1w k.A3m) 
+                       6 correlation (rho(B3m,B1w) rho(B3m,A1w) rho(B3m,A3m) rho(B1w,A1w) rho(B1w,A3m) rho(A1w,A3m)) 
+ log-restr.likelihood: -216.318937004306 
+ convergence         : TRUE (22 iterations)
+ covariance structure: 
+         B3m      B1w      A1w      A3m
+B3m 411.3114 381.9734 352.6400 318.8573
+B1w 381.9734 362.7326 335.4649 304.6314
+A1w 352.6400 335.4649 311.6921 285.8077
+A3m 318.8573 304.6314 285.8077 280.9323
+#+end_example
+
+\noindent Stratification of the covariance structure on a categorical
+variable is also possible:
+- e.g. to get a *stratified compound symmetry*
 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 eSCS.lmm <- lmm(weight ~ time*group,
                 repetition = ~time|id, structure = CS(group~1),
                 data = gastricbypassL)
 eSCS.lmm
-cat(" covariance structure: \n");sigma(eSCS.lmm)
+#+END_SRC
+
+#+RESULTS:
+: 		Linear Mixed Model with a stratified compound symmetry covariance matrix 
+: 
+:  outcome/cluster/time: weight/id/time 
+:  data                : 80 observations and distributed in 20 clusters 
+:  parameters          : 8 mean ((Intercept) timeB1w timeA1w timeA3m group timeB1w:group timeA1w:group timeA3m:group) 
+:                        2 variance (sigma:0 sigma:1) 
+:                        2 correlation (rho:0 rho:1) 
+:  log-restr.likelihood: -233.141302306302 
+:  convergence         : TRUE (6 iterations)
+
+\clearpage
+
+- e.g. *stratified unstructured* covariance matrix:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eSUN.lmm <- lmm(weight ~ time*group + glucagon,
+                repetition = ~time|id, structure = UN(~group),
+                data = gastricbypassL)
+eSUN.lmm
+#+END_SRC
+#+RESULTS:
+: 		Linear Mixed Model with a stratified unstructured covariance matrix 
+: 
+:  outcome/cluster/time: weight/id/time 
+:  data                : 78 observations and distributed in 20 clusters 
+:  parameters          : 9 mean ((Intercept) timeB1w timeA1w timeA3m group glucagon timeB1w:group timeA1w:group timeA3m:group) 
+:                        8 variance (sigma:0 sigma:1 k.B1w:0 k.A1w:0 k.A3m:0 k.B1w:1 k.A1w:1 k.A3m:1) 
+:                        12 correlation (rho(B3m,B1w):0 rho(B3m,A1w):0 rho(B3m,A3m):0 rho(B1w,A1w):0 rho(B1w,A3m):0 rho(A1w,A3m):0 rho(B3m,B1w):1 rho(B3m,A1w):1 rho(B3m,A3m):1 rho(B1w,A1w):1 rho(B1w,A3m):1 rho(A1w,A3m):1) 
+:  log-restr.likelihood: -197.171312062213 
+:  convergence         : TRUE (50 iterations)
+
+
+with covariance structure:
+
+\bigskip
+
+#+LaTeX: \begin{minipage}{0.47\linewidth} 
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+sigma(eSCS.lmm)
 #+END_SRC
 
 #+RESULTS:
 #+begin_example
-		Linear Mixed Model with a stratified compound symmetry covariance matrix 
-
- outcome/cluster/time: weight/id/time 
- data                : 80 observations and distributed in 20 clusters 
- parameters          : 8 mean ((Intercept) timeB1w timeA1w timeA3m group timeB1w:group timeA1w:group timeA3m:group) 
-                       2 variance (sigma:0 sigma:1) 
-                       2 correlation (rho:0 rho:1) 
- log-restr.likelihood: -233.141302306302 
- convergence         : TRUE (6 iterations)
- covariance structure: 
 $`0`
          B3m      B1w      A1w      A3m
 B3m 348.0783 334.7404 334.7404 334.7404
@@ -309,15 +395,39 @@ B1w 340.0877 345.1388 340.0877 340.0877
 A1w 340.0877 340.0877 345.1388 340.0877
 A3m 340.0877 340.0877 340.0877 345.1388
 #+end_example
+#+LaTeX: \end{minipage}
+#+LaTeX: \begin{minipage}{0.47\linewidth} 
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+sigma(eSUN.lmm)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+$`0`
+         B3m      B1w      A1w      A3m
+B3m 417.3374 382.8829 362.5674 301.7430
+B1w 382.8829 364.4515 346.4039 292.7507
+A1w 362.5674 346.4039 331.1789 282.9301
+A3m 301.7430 292.7507 282.9301 253.3324
+
+$`1`
+         B3m      B1w      A1w      A3m
+B3m 383.8877 363.6405 336.5771 350.0416
+B1w 363.6405 347.9898 321.5908 331.5182
+A1w 336.5771 321.5908 297.5329 308.1345
+A3m 350.0416 331.5182 308.1345 334.8267
+#+end_example
+#+LaTeX: \end{minipage}
 
 \clearpage
 
-\noindent Fit a linear mixed model with *block compound symmetry*
-covariance matrix[fn::same as nested random effects]:
+\noindent Finally the some covariance patterns like the compound
+symmetry structure may depend on covariates:
+- e.g. to obtain a *block compound symmetry* structure[fn::similar to
+  nested random effects]:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eBCS.lmm <- lmm(weight ~ time*group,
-                repetition = ~time|id, structure = CS(~baseline, heterogeneous = FALSE),
-                data = gastricbypassL)
+eBCS.lmm <- lmm(weight ~ time*group,repetition = ~time|id,
+                structure = CS(~baseline, heterogeneous = FALSE), data = gastricbypassL)
 eBCS.lmm
 cat(" covariance structure: \n");sigma(eBCS.lmm)
 #+END_SRC
@@ -351,42 +461,12 @@ logLik(e.lmer)
 : 'log Lik.' -234.9713 (df=11)
 : [1] -7.897069e-05  8.584946e-05
 
-\noindent Fit a linear mixed model with *toeplitz* covariance matrix:
+- e.g. to obtain a *block unstructured* covariance matrix:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eTOE.lmm <- lmm(weight ~ time*group,
-                repetition = ~time|id, structure = "TOEPLITZ",
-                data = gastricbypassL)
-eTOE.lmm
-cat(" correlation structure: \n");cov2cor(sigma(eTOE.lmm))
-#+END_SRC
-
-#+RESULTS:
-#+begin_example
-
- outcome/cluster/time: weight/id/time 
- data                : 80 observations and distributed in 20 clusters 
- parameters          : 8 mean ((Intercept) timeB1w timeA1w timeA3m group timeB1w:group timeA1w:group timeA3m:group) 
-                       4 variance (sigma k.B1w k.A1w k.A3m) 
-                       3 correlation (rho(B3m,B1w) rho(B3m,A1w) rho(B3m,A3m)) 
- log-restr.likelihood: -224.790790046711 
- convergence         : TRUE (19 iterations)
- correlation structure: 
-          B3m       B1w       A1w       A3m
-B3m 1.0000000 0.9857538 0.9675323 0.9481027
-B1w 0.9857538 1.0000000 0.9857538 0.9675323
-A1w 0.9675323 0.9857538 1.0000000 0.9857538
-A3m 0.9481027 0.9675323 0.9857538 1.0000000
-#+end_example
-
-\clearpage
-
-\noindent Fit a linear mixed model with *block unstructured* covariance matrix:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eBUN.lmm <- lmm(weight ~ time*group,
-                repetition = ~time|id, structure = CS(~baseline),
-                data = gastricbypassL)
-eBUN.lmm
-cat(" covariance structure: \n");sigma(eBUN.lmm)
+  eBUN.lmm <- lmm(weight ~ time*group, repetition = ~time|id,
+                  structure = CS(~baseline, heterogeneous = TRUE), data = gastricbypassL)
+  eBUN.lmm
+  cat(" covariance structure: \n");sigma(eBUN.lmm)
 #+END_SRC
 
 #+RESULTS:
@@ -408,73 +488,147 @@ A1w 336.3836 336.3836 315.7904 306.4892
 A3m 336.3836 336.3836 306.4892 315.7904
 #+end_example
 
-\noindent Fit a linear mixed model with *unstructured* covariance matrix:
+\clearpage
 
+** User-specific covariance patterns
+
+It is possible input user-specific covariance patterns under the
+following model for the residuals: \[\Omega =
+\trans{\boldsymbol{\sigma}} R \boldsymbol{\sigma}\] where:
+- \(\boldsymbol{\sigma}=f(\boldsymbol{\theta}_{\sigma},Z_{\sigma})\)
+  is a vector of residual standard errors depending on a vector of
+  parameters \(\boldsymbol{\theta}_{\sigma}\) and possible covariates
+  via the design matrix \(Z_{\sigma}\). 
+- \(R=g(\boldsymbol{\theta}_{R},Z_R)\) is a matrix of residual
+  correlations depending on a vector of parameters
+  \(\boldsymbol{\theta}_{R}\) and possible covariates via the design
+  matrix \(Z_R\).
+
+\bigskip
+
+To be more concrete, consider the following correlation matrix
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eUN.lmm <- lmm(weight ~ time + glucagon,
-               repetition = ~time|id, structure = "UN",
-               data = gastricbypassL)
-eUN.lmm
-cat(" covariance structure: \n");sigma(eUN.lmm)
+rho.2block <- function(p,time,...){
+  n.time <- length(time)
+  rho <- matrix(1, nrow = n.time, ncol = n.time)
+  rho[1,2] <- rho[2,1] <- rho[4,5] <- rho[5,4] <- p["rho1"]
+  rho[1,3] <- rho[3,1] <- rho[4,6] <- rho[6,4] <- p["rho2"]
+  rho[2,3] <- rho[3,2] <- rho[5,6] <- rho[6,5] <- p["rho3"]
+  rho[4:6,1:3] <- rho[1:3,4:6] <- p["rho4"]
+  return(rho)
+}
+Rho <- rho.2block(p = c(rho1=0.25,rho2=0.5,rho3=0.4,rho4=0.1),
+                  time = 1:6)
+Rho
 #+END_SRC
 
 #+RESULTS:
-#+begin_example
-		Linear Mixed Model with an unstructured covariance matrix 
+:      [,1] [,2] [,3] [,4] [,5] [,6]
+: [1,] 1.00 0.25  0.5 0.10 0.10  0.1
+: [2,] 0.25 1.00  0.4 0.10 0.10  0.1
+: [3,] 0.50 0.40  1.0 0.10 0.10  0.1
+: [4,] 0.10 0.10  0.1 1.00 0.25  0.5
+: [5,] 0.10 0.10  0.1 0.25 1.00  0.4
+: [6,] 0.10 0.10  0.1 0.50 0.40  1.0
 
- outcome/cluster/time: weight/id/time 
- data                : 78 observations and distributed in 20 clusters 
- parameters          : 5 mean ((Intercept) timeB1w timeA1w timeA3m glucagon) 
-                       4 variance (sigma k.B1w k.A1w k.A3m) 
-                       6 correlation (rho(B3m,B1w) rho(B3m,A1w) rho(B3m,A3m) rho(B1w,A1w) rho(B1w,A3m) rho(A1w,A3m)) 
- log-restr.likelihood: -216.318937004306 
- convergence         : TRUE (22 iterations)
- covariance structure: 
-         B3m      B1w      A1w      A3m
-B3m 411.3114 381.9734 352.6400 318.8573
-B1w 381.9734 362.7326 335.4649 304.6314
-A1w 352.6400 335.4649 311.6921 285.8077
-A3m 318.8573 304.6314 285.8077 280.9323
-#+end_example
+and the corresponding dataset:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+set.seed(11)
+n <- 1000
+Y <- rmvnorm(n, mean = rep(0,6), sigma = Rho)
+dfL <- reshape2::melt(cbind(id = 1:n, as.data.frame(Y)), id.vars = "id")
+dfL$time  <- dfL$variable
+dfL <- dfL[order(dfL$id),]
+dfL[1:8,]
+#+END_SRC
+
+#+RESULTS:
+:      id variable      value time
+: 1     1       V1 -0.9842079   V1
+: 1001  1       V2 -0.3681245   V2
+: 2001  1       V3 -1.6174652   V3
+: 3001  1       V4 -1.4994103   V4
+: 4001  1       V5  0.7493107   V5
+: 5001  1       V6 -1.0719657   V6
+: 2     2       V1  1.2402726   V1
+: 1002  2       V2  0.6494215   V2
+
+To fit the corresponding mixed model, we first define a specific
+covariance structure using the =CUSTOM= function:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+myStruct <- CUSTOM(~variable,
+                   FCT.sigma = function(p,time,X){rep(p,length(time))}, ## function f
+                   init.sigma = c("sigma"=1),
+                   FCT.rho = rho.2block, ## function g
+                   init.rho = c("rho1"=0.25,"rho2"=0.25,"rho3"=0.25,"rho4"=0.25))
+#+END_SRC
+
+#+RESULTS:
+
+and then call =lmm= with this structure structure:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+e.lmmCUSTOM <- lmm(value~time,
+                   repetition=~time|id,
+                   structure = myStruct,
+                   data=dfL,
+                   df = FALSE) ## df = FALSE to save computation time
+logLik(e.lmmCUSTOM)
+#+END_SRC
+
+#+RESULTS:
+: [1] -7962.243
+
+The optimization procedure is not very fast but eventually reaches an
+optimum. We can then output the estimated correlation matrix:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+cov2cor(sigma(e.lmmCUSTOM))
+#+END_SRC
+
+#+RESULTS:
+:            V1         V2         V3         V4         V5         V6
+: V1 1.00000000 0.24898095 0.50058994 0.09053785 0.09053785 0.09053785
+: V2 0.24898095 1.00000000 0.36110943 0.09053785 0.09053785 0.09053785
+: V3 0.50058994 0.36110943 1.00000000 0.09053785 0.09053785 0.09053785
+: V4 0.09053785 0.09053785 0.09053785 1.00000000 0.24898095 0.50058994
+: V5 0.09053785 0.09053785 0.09053785 0.24898095 1.00000000 0.36110943
+: V6 0.09053785 0.09053785 0.09053785 0.50058994 0.36110943 1.00000000
 
 \clearpage
 
-\noindent Fit a linear mixed model with *stratified unstructured* covariance matrix:
-
+Note that specifying a classical structure (e.g. compound symmetry):
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eSUN.lmm <- lmm(weight ~ time*group + glucagon,
-                repetition = ~time|id, structure = UN(~group),
-                data = gastricbypassL)
-eSUN.lmm
-cat(" covariance structure: \n");sigma(eSUN.lmm)
+myCS <- CUSTOM(~1,
+       FCT.sigma = function(p,time,X){rep(p,length(time))},
+       init.sigma = c("sigma"=1),
+       FCT.rho = function(p,time,X){matrix(p,length(time),length(time))+diag(1-p,length(time),length(time))},
+       init.rho = c("rho"=0.5))
 #+END_SRC
 
 #+RESULTS:
-#+begin_example
-		Linear Mixed Model with a stratified unstructured covariance matrix 
 
- outcome/cluster/time: weight/id/time 
- data                : 78 observations and distributed in 20 clusters 
- parameters          : 9 mean ((Intercept) timeB1w timeA1w timeA3m group glucagon timeB1w:group timeA1w:group timeA3m:group) 
-                       8 variance (sigma:0 sigma:1 k.B1w:0 k.A1w:0 k.A3m:0 k.B1w:1 k.A1w:1 k.A3m:1) 
-                       12 correlation (rho(B3m,B1w):0 rho(B3m,A1w):0 rho(B3m,A3m):0 rho(B1w,A1w):0 rho(B1w,A3m):0 rho(A1w,A3m):0 rho(B3m,B1w):1 rho(B3m,A1w):1 rho(B3m,A3m):1 rho(B1w,A1w):1 rho(B1w,A3m):1 rho(A1w,A3m):1) 
- log-restr.likelihood: -197.171312062213 
- convergence         : TRUE (50 iterations)
- covariance structure: 
-$`0`
-         B3m      B1w      A1w      A3m
-B3m 417.3374 382.8829 362.5674 301.7430
-B1w 382.8829 364.4515 346.4039 292.7507
-A1w 362.5674 346.4039 331.1789 282.9301
-A3m 301.7430 292.7507 282.9301 253.3324
+via =CUSTOM=:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+logLik(lmm(value~time,
+           repetition = ~time|id,
+           structure = myCS, 
+           data = dfL, df = FALSE
+           ))
+#+END_SRC
 
-$`1`
-         B3m      B1w      A1w      A3m
-B3m 383.8877 363.6405 336.5771 350.0416
-B1w 363.6405 347.9898 321.5908 331.5182
-A1w 336.5771 321.5908 297.5329 308.1345
-A3m 350.0416 331.5182 308.1345 334.8267
-#+end_example
+#+RESULTS:
+: [1] -8186.859
+
+will be the same as using the pre-specified structure (up the certain
+user-friendly displays):
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+logLik(lmm(value~time,
+           repetition = ~time|id,
+           structure = "CS", 
+           data = dfL, df = FALSE))
+#+END_SRC
+
+#+RESULTS:
+: [1] -8186.859
 
 \clearpage
 
@@ -1703,8 +1857,10 @@ as.double(mu2 + Omega_21 * (100 - mu1) / Omega_11)
 
 \clearpage
 
-** Missing values and imputation
 
+* Missing values and imputation
+
+** Full information approach
 
 We now consider the glucagon level as an outcome. The =summarize=
 function can be used to describe the amount of missing data at each
@@ -1825,9 +1981,12 @@ Summary of the outcome and covariates:
 The visible difference in the summary is when describing the dataset:
 we can see that some repetitions (here 2) have been ignored as the
 outcome was missing. So for some clusters only 3 values were analyzed
-instead of 4. It is possible to extract the most likely value for
-these missing observation using the =fitted= function with argument
-=impute=TRUE=:
+instead of 4.
+
+** Imputation 
+
+It is possible to extract the most likely value for these missing
+observation using the =fitted= function with argument =impute=TRUE=:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 fitted(eUN.lmmNA, impute = TRUE)
 #+END_SRC
@@ -1854,6 +2013,8 @@ eData[eData$id %in% eData[eData$imputed,"id"],]
 : 55 15     3  A1w  103.5          NA    FALSE 6.497856     1   TRUE    TRUE
 : 65  5     4  A3m   87.7     12345.0    FALSE 5.275118     1  FALSE   FALSE
 : 75 15     4  A3m   94.1     18148.5    FALSE 6.259632     1   TRUE   FALSE
+
+\clearpage
 
 Visually:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -1889,133 +2050,73 @@ fitted(eUN.lmmNA, impute = TRUE, se = "total")
 : [1] 3.858267 5.871642
 : [1] 4.342624 6.905246
 
-\clearpage
+** Multiple imputation
 
-* User-specific covariance patterns
-
-From version 0.6.0 and above it is possible customize the covariance
-pattern under the following model for the residuals:
-\[\Omega = \trans{\boldsymbol{\sigma}} R \boldsymbol{\sigma}\]
-where:
-- \(\boldsymbol{\sigma}=f(\boldsymbol{\theta}_{\sigma},Z_{\sigma})\)
-  is a vector of residual standard errors depending on a vector of
-  parameters \(\boldsymbol{\theta}_{\sigma}\) and possible covariates
-  via the design matrix \(Z_{\sigma}\). 
-- \(R=g(\boldsymbol{\theta}_{R},Z_R)\) is a matrix of residual
-  correlations depending on a vector of parameters
-  \(\boldsymbol{\theta}_{R}\) and possible covariates via the design
-  matrix \(Z_R\).
-
-\bigskip
-
-To be more concrete, consider the following correlation matrix
+The =mlmm= function can used to perform stratify analyses, typically
+useful when performing multiple imputations. Consider the wide format
+of the dataset where a few values are missing:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-rho.2block <- function(p,time,...){
-  n.time <- length(time)
-  rho <- matrix(1, nrow = n.time, ncol = n.time)
-  rho[1,2] <- rho[2,1] <- rho[4,5] <- rho[5,4] <- p["rho1"]
-  rho[1,3] <- rho[3,1] <- rho[4,6] <- rho[6,4] <- p["rho2"]
-  rho[2,3] <- rho[3,2] <- rho[5,6] <- rho[6,5] <- p["rho3"]
-  rho[4:6,1:3] <- rho[1:3,4:6] <- p["rho4"]
-  return(rho)
-}
-Rho <- rho.2block(p = c(rho1=0.25,rho2=0.5,rho3=0.4,rho4=0.1),
-                  time = 1:6)
-Rho
+data(gastricbypassW)
+colSums(is.na(gastricbypassW))
 #+END_SRC
 
 #+RESULTS:
-:      [,1] [,2] [,3] [,4] [,5] [,6]
-: [1,] 1.00 0.25  0.5 0.10 0.10  0.1
-: [2,] 0.25 1.00  0.4 0.10 0.10  0.1
-: [3,] 0.50 0.40  1.0 0.10 0.10  0.1
-: [4,] 0.10 0.10  0.1 1.00 0.25  0.5
-: [5,] 0.10 0.10  0.1 0.25 1.00  0.4
-: [6,] 0.10 0.10  0.1 0.50 0.40  1.0
+:           id      weight1      weight2      weight3      weight4 glucagonAUC1 glucagonAUC2 
+:            0            0            0            0            0            0            1 
+: glucagonAUC3 glucagonAUC4 
+:            1            0
 
-and the corresponding dataset:
+We use =mice= to generate a number of imputed datasets (here 5):
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-set.seed(11)
-n <- 1000
-Y <- rmvnorm(n, mean = rep(0,6), sigma = Rho)
-dfL <- reshape2::melt(cbind(id = 1:n, as.data.frame(Y)), id.vars = "id")
-dfL$time  <- dfL$variable
-dfL <- dfL[order(dfL$id),]
-dfL[1:8,]
+library(mice)
+gastricbypassW.mice <- mice(gastricbypassW, printFlag = FALSE)
+gastricbypassW.NNA <- complete(gastricbypassW.mice, action = "long")
+table(gastricbypassW.NNA$.imp)
 #+END_SRC
 
 #+RESULTS:
-:      id variable      value time
-: 1     1       V1 -0.9842079   V1
-: 1001  1       V2 -0.3681245   V2
-: 2001  1       V3 -1.6174652   V3
-: 3001  1       V4 -1.4994103   V4
-: 4001  1       V5  0.7493107   V5
-: 5001  1       V6 -1.0719657   V6
-: 2     2       V1  1.2402726   V1
-: 1002  2       V2  0.6494215   V2
+: Advarselsbesked:
+: Number of logged events: 109
+: 
+:  1  2  3  4  5 
+: 20 20 20 20 20
 
-To fit the corresponding mixed model, we call =lmm= using a
-(non-standard) correlation structure via the =CUSTOM= structure:
+We can then use =mlmm= to perform a separate linear regression per dataset:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-e.lmmCUSTOM <- lmm(value~time,
-                   repetition=~time|id,
-                   structure=CUSTOM(~variable,
-                                    FCT.sigma = function(p,time,X){rep(p,length(time))}, ## function f
-                                    init.sigma = c("sigma"=1),
-                                    FCT.rho = rho.2block, ## function g
-                                    init.rho = c("rho1"=0.25,"rho2"=0.25,"rho3"=0.25,"rho4"=0.25)),
-                   data=dfL, control = list(optimizer = "FS"),
-                   df = FALSE) ## df = FALSE to save computation time
-logLik(e.lmmCUSTOM)
+e.mlmm <- mlmm(glucagonAUC3~glucagonAUC2+weight2, data=gastricbypassW.NNA, by = ".imp", effects = "weight2=0")
+model.tables(e.mlmm)
 #+END_SRC
 
 #+RESULTS:
-: [1] -7962.243
+:                  estimate       se      df     lower     upper     p.value
+: .imp=1: weight2 -204.5518 62.85650 17.0034 -337.1654 -71.93822 0.004667754
+: .imp=2: weight2 -211.6154 65.40082 17.0034 -349.5969 -73.63379 0.004858660
+: .imp=3: weight2 -199.3285 62.11590 17.0034 -330.3796 -68.27744 0.005146118
+: .imp=4: weight2 -200.6794 62.49767 17.0034 -332.5360 -68.82287 0.005123870
+: .imp=5: weight2 -200.0570 62.22081 17.0034 -331.3294 -68.78459 0.005076821
 
-The optimization procedure is not very fast but eventually reaches an
-optimum. We can then output the estimated correlation matrix:
+and pool the results using Rubin's rule:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-cov2cor(sigma(e.lmmCUSTOM))
+model.tables(e.mlmm, method = "pool.rubin")
 #+END_SRC
 
 #+RESULTS:
-:            V1         V2         V3         V4         V5         V6
-: V1 1.00000000 0.24898095 0.50058994 0.09053785 0.09053785 0.09053785
-: V2 0.24898095 1.00000000 0.36110943 0.09053785 0.09053785 0.09053785
-: V3 0.50058994 0.36110943 1.00000000 0.09053785 0.09053785 0.09053785
-: V4 0.09053785 0.09053785 0.09053785 1.00000000 0.24898095 0.50058994
-: V5 0.09053785 0.09053785 0.09053785 0.24898095 1.00000000 0.36110943
-: V6 0.09053785 0.09053785 0.09053785 0.50058994 0.36110943 1.00000000
+:                            estimate       se       df    lower     upper     p.value
+: .imp=<1,2,3,4,5>: weight2 -203.2464 63.27679 15.18078 -337.978 -68.51489 0.005745402
 
-Note that specifying a classical structure via =CUSTOM= (e.g. compound symmetry):
+This matches[fn::almost exactly, only the degrees of freedom are a
+little different] the results obtained with the mice package:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-logLik(lmm(value~time,
-           repetition=~time|id,
-           structure=CUSTOM(~1,
-                            FCT.sigma = function(p,time,X){rep(p,length(time))},
-                            init.sigma = c("sigma"=1),
-                            FCT.rho = function(p,time,X){matrix(p,length(time),length(time))+diag(1-p,length(time),length(time))},
-                            init.rho = c("rho"=0.5)), 
-           data=dfL, control = list(optimizer = "FS"),
-           df = FALSE))
+e.mice <- with(data=gastricbypassW.mice,exp=lm(glucagonAUC3~glucagonAUC2+weight2))
+summary(pool(e.mice))
 #+END_SRC
 
 #+RESULTS:
-: [1] -8186.859
+:           term      estimate    std.error  statistic       df      p.value
+: 1  (Intercept)  4.132265e+04 7640.9221748  5.4080704 15.16438 6.987859e-05
+: 2 glucagonAUC2  7.537004e-02    0.3656408  0.2061314 15.26716 8.394119e-01
+: 3      weight2 -2.032464e+02   63.2767931 -3.2120217 15.17746 5.746732e-03
 
-should be the same as using the pre-specified structure (up the
-certain user-friendly displays):
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-logLik(lmm(value~time,
-           repetition=~time|id,
-           structure="CS", 
-           data=dfL, control = list(optimizer = "FS"),
-           df = FALSE))
-#+END_SRC
-
-#+RESULTS:
-: [1] -8186.859
 
 \clearpage
 

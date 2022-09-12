@@ -4,16 +4,16 @@
 \alias{summary.partialCor}
 \title{Summary for partial correlation}
 \usage{
-\method{summary}{partialCor}(x, digits = 3, detail = TRUE, ...)
+\method{summary}{partialCor}(object, digits = 3, detail = TRUE, ...)
 }
 \arguments{
+\item{object}{a \code{partialCor} object, output of \code{partialCor}.}
+
 \item{digits}{[integer,>0] number of digits used to display numeric values.}
 
-\item{detail}{[integer,>0] passed to \code{\link{print.confint_lmm}}. If above 0.5 also display when a back-transformation has been used.}
+\item{detail}{[integer,>0] passed to \code{print.confint_lmm}. If above 0.5 also display when a back-transformation has been used.}
 
-\item{...}{other arguments are passed to \code{\link{print.confint_lmm}}.}
-
-\item{object}{a \code{partialCor} object, output of \code{partialCor}.}
+\item{...}{other arguments are passed to \code{print.confint_lmm}.}
 }
 \description{
 Display estimated partial correlation and associated p-values and confidence intevals.
