@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: aug 31 2022 (16:31) 
+## Last-Updated: sep 14 2022 (17:56) 
 ##           By: Brice Ozenne
-##     Update #: 333
+##     Update #: 335
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -186,7 +186,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
                  "(one for each univariate test) \n")
         }
     }else{
-        rhs <- stats::setNames(rep(0, n.test), name.test)
+        rhs <- stats::setNames(unlist(lapply(ls.object,function(iO){iO$univariate$null})), name.test)
     }
 
     cluster.var <- ls.object[[1]]$object$cluster.var

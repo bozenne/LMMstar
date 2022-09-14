@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: sep 12 2022 (09:24) 
+## Last-Updated: sep 14 2022 (18:03) 
 ##           By: Brice Ozenne
-##     Update #: 1034
+##     Update #: 1054
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -482,7 +482,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         }
 
         ## incorporate type
-        if(method.p.adjust %in% c("average","pool.fixse","pool.se","pool.pca","pool.rubin") == FALSE){
+        if(method.p.adjust %in% c("average","pool.fixse","pool.se","pool.gls","pool.rubin") == FALSE){
             table.univariate$type <-  c("mu" = "mean", "sigma" = "variance", "k" = "variance", "rho" = "correlation")[object$univariate$type]
         }
         nchar.type <- nchar(table.univariate$type)
@@ -509,8 +509,14 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         }
         if(attr(object$object,"independence")==FALSE && method.p.adjust == "pool.se"){
             attr(method.p.adjust,"warning") <- "WARNING: uncertainty about the weights assumes independence between parameters from different models.\n"
-        }else if(method.p.adjust %in% c("pool.fixse","pool.pca")){
+        }else if(method.p.adjust == "pool.fixse"){
             attr(method.p.adjust,"warning") <- "WARNING: uncertainty about the weights has been ignored.\n"
+        }else if(method.p.adjust == "pool.gls"){
+            attr(method.p.adjust,"warning") <- "WARNING: uncertainty about the weights has been ignored.\n"
+            if(!is.null(error) && any(!is.na(error))){
+                attr(method.p.adjust,"warning") <- paste0(attr(method.p.adjust,"warning"),
+                                                          "           ",error," principal components have been ignored when pooling (singular vcov).\n")
+            }
         }
 
         if("single-step2" %in% method.p.adjust){
@@ -828,8 +834,7 @@ summary.partialCor <- function(object, digits = 3, detail = TRUE, ...){
     if("p.value" %in% names(table)){
         table.print$p.value <- as.character(format.pval(table.print$p.value, digits = digits.p.value[1], eps = digits.p.value[2]))
     }
-    if(!is.null(col.df)){
-        
+    if(!is.null(col.df) && all(col.df %in% columns)){
         if(identical(col.df,"df")){
             table.print$df <- as.character(round(table.print$df, digits = digits.df))
         }else{
@@ -903,7 +908,7 @@ summary.partialCor <- function(object, digits = 3, detail = TRUE, ...){
             }else if("upper" %in% columns){
                 cat(space,"Column upper contains ",100*level,"% ",txt.ci,".\n", sep = "")
             }
-        }else if(!is.null(method.p.adjust) && method.p.adjust %in% c("average","pool.se","pool.fixse","pool.pca","pool.rubin")){
+        }else if(!is.null(method.p.adjust) && method.p.adjust %in% c("average","pool.se","pool.fixse","pool.gls","pool.rubin")){
 
             if(method.p.adjust == "average"){
                 if(NROW(table)>1){
@@ -920,11 +925,11 @@ summary.partialCor <- function(object, digits = 3, detail = TRUE, ...){
                 if(any(c("se","lower","upper","p.value") %in% columns) && !is.null(attr(method.p.adjust,"warning"))){
                     cat(space,attr(method.p.adjust,"warning"),sep="")
                 }
-            }else if(method.p.adjust == "pool.pca"){
+            }else if(method.p.adjust == "pool.gls"){
                 if(NROW(table)>1){
-                    cat(space,"Estimates have been averaged, weighted via PCA ",factor.p.adjust,".\n", sep="")
+                    cat(space,"Estimates have been averaged, weighted via GLS ",factor.p.adjust,".\n", sep="")
                 }else{
-                    cat(space,"Estimates have been averaged, weighted via PCA.\n", sep="")
+                    cat(space,"Estimates have been averaged, weighted via GLS.\n", sep="")
                 }
                 if(any(c("se","lower","upper","p.value") %in% columns) && !is.null(attr(method.p.adjust,"warning"))){
                     cat(space,attr(method.p.adjust,"warning"),sep="")

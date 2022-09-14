@@ -49,7 +49,7 @@ When degrees of freedom differs between individual hypotheses, method \code{"sin
  \item \code{"average"}: average estimates
  \item \code{"pool.fixse"}: weighted average of the estimates, with weights being the inverse of the squared standard error. The uncertainty about the weights is neglected.
  \item \code{"pool.se"}: weighted average of the estimates, with weights being the inverse of the squared standard error. The uncertainty about the weights is computed under independence of the variance parameters between models. 
- \item \code{"pool.pca"}: weighted average of the estimates, with weights being determined using a Principal Component Analysis. The uncertainty about the weights is neglected.
+ \item \code{"pool.gls"}: weighted average of the estimates, with weights being based on the variance-covariance matrix of the estimates. When this matrix is singular, its spectral decomposition is truncated when the correspodning eigenvalues are below \eqn{10^{-12}}. The uncertainty about the weights is neglected. 
  \item \code{"pool.rubin"}: average of the estimates and compute the uncertainty according to Rubin's rule (Barnard et al. 1999).
 }
 }

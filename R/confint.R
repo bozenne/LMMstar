@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: sep  2 2022 (10:27) 
+## Last-Updated: sep 14 2022 (18:09) 
 ##           By: Brice Ozenne
-##     Update #: 419
+##     Update #: 473
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -283,7 +283,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
 ##'  \item \code{"average"}: average estimates
 ##'  \item \code{"pool.fixse"}: weighted average of the estimates, with weights being the inverse of the squared standard error. The uncertainty about the weights is neglected.
 ##'  \item \code{"pool.se"}: weighted average of the estimates, with weights being the inverse of the squared standard error. The uncertainty about the weights is computed under independence of the variance parameters between models. 
-##'  \item \code{"pool.pca"}: weighted average of the estimates, with weights being determined using a Principal Component Analysis. The uncertainty about the weights is neglected.
+##'  \item \code{"pool.gls"}: weighted average of the estimates, with weights being based on the variance-covariance matrix of the estimates. When this matrix is singular, its spectral decomposition is truncated when the correspodning eigenvalues are below \eqn{10^{-12}}. The uncertainty about the weights is neglected. 
 ##'  \item \code{"pool.rubin"}: average of the estimates and compute the uncertainty according to Rubin's rule (Barnard et al. 1999).
 ##' }
 ##'
@@ -304,11 +304,13 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
     }
     alpha <- 1-level
     method.fit <- object$object$method.fit
-
     
     if(!is.null(method)){
+        name.method <- names(method)
         method <- match.arg(method, c(stats::p.adjust.methods,"single-step", "Westfall", "Shaffer", "free", "single-step2",
-                                      "average","pool.fixse","pool.se","pool.pca","pool.rubin"))        
+                                      "average","pool.fixse","pool.se","pool.gls","pool.rubin"))        
+    }else{
+        name.method <- NULL
     }
     if(identical(method,"pool.se") && !inherits(object,"rbindWald_lmm")){
         method <- "pool.fixse"
@@ -409,7 +411,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
             out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * stats::qt(1-alpha/2, df = iTable$df)
             out[iIndex.table,"p.value"] <- iTable$p.value
             
-        }else if(iMethod %in% c("average","pool.fixse","pool.se","pool.pca","pool.rubin")){
+        }else if(iMethod %in% c("average","pool.fixse","pool.se","pool.gls","pool.rubin")){
 
             ## replace many lines (individual effect) by a single line (for the average)
             out.save <- out
@@ -423,22 +425,22 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
             pool.name <- rownames(out.save)[iIndex.table]
             sep <- object$args$sep
             pool.splitname <- strsplit(pool.name, split = sep, fixed = TRUE)
-            if(all(sapply(pool.splitname,length)==2)){
+            if(!is.null(name.method)){
+                rownames(out)[iIndex.table[1]] <- name.method
+            }else if(all(sapply(pool.splitname,length)==2)){
                 Mpool.splitname <- do.call(rbind,pool.splitname)
-
                 pool.splitname2 <- strsplit(Mpool.splitname[,1],split="=", fixed = TRUE)
-
                 if(all(sapply(pool.splitname2,length)==2)){
                     Mpool.splitname2 <- do.call(rbind,pool.splitname2)
                     if(length(unique(Mpool.splitname2[,1]))==1){
-                        rownames(out)[iIndex.table[1]] <- paste0(Mpool.splitname2[1,1],"=<",paste(Mpool.splitname2[,2],collapse=","),">",sep,Mpool.splitname[1,2])                   
+                        rownames(out)[iIndex.table[1]] <- paste0(Mpool.splitname2[1,1],"=<",paste(Mpool.splitname2[1,2],Mpool.splitname2[NROW(Mpool.splitname2),2],sep=":"),">",sep,Mpool.splitname[1,2])                   
                     }else{
-                        rownames(out)[iIndex.table[1]] <- paste0("<",paste(Mpool.splitname[,1],collapse=","),">",sep,Mpool.splitname[1,2])                   
+                        rownames(out)[iIndex.table[1]] <- paste0("<",paste(Mpool.splitname[1,1],Mpool.splitname[NROW(Mpool.splitname),1],sep=":"),">",sep,Mpool.splitname[1,2])                   
                     }
                 }else if(length(unique(Mpool.splitname[,2]))==1){
-                    rownames(out)[iIndex.table[1]] <- paste0("<",paste(Mpool.splitname[,1],collapse=","),">",sep,Mpool.splitname[1,2])                   
+                    rownames(out)[iIndex.table[1]] <- paste0("<",paste(Mpool.splitname[1,1],Mpool.splitname[NROW(Mpool.splitname),1],sep=":"),">",sep,Mpool.splitname[1,2])                   
                 }else{
-                    rownames(out)[iIndex.table[1]] <- paste0("<",paste(pool.name,collapse=","),">")                   
+                    rownames(out)[iIndex.table[1]] <- paste0("<",paste(pool.name[1],pool.name[length(pool.name)],collapse=":"),">")                   
                 }
             }else{
                 ## nchar.hypo <- min(nchar(pool.name))
@@ -448,27 +450,34 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
                 ##     ## only keep common letters                    
                 ##     rownames(out)[iIndex.table[1]] <- paste(Mchar.hypo[1,indexchar.hypo],collapse = "")
                 ## }else{
-                rownames(out)[iIndex.table[1]] <- paste0("<",paste(pool.name,collapse=", "),">")
+                rownames(out)[iIndex.table[1]] <- paste0("<",paste(pool.name[1],pool.name[length(pool.name)],sep=", "),">")
                 ## }    
             }
 
             ## find contrast
             iVcov <- object$vcov[iIndex.table,iIndex.table,drop=FALSE]
-            if(iMethod %in% c("average","pool.fixse","pool.pca")){
+            if(iMethod %in% c("average","pool.fixse","pool.gls")){
 
                 if(iMethod=="average"){
                     iC.pool <- matrix(1/iN.test, nrow = 1, ncol = iN.test)
                 }else if(iMethod %in% "pool.fixse"){
                     iIvar <- 1/out.save[iIndex.table,"se"]^2                
                     iC.pool <- matrix(iIvar/sum(iIvar), nrow = 1, ncol = iN.test)
-                }else if(iMethod == "pool.pca"){
-                    iEigen <- eigen(iVcov)                    
-                    iKappa <- sweep(iEigen$vectors, FUN = "/", MARGIN = 2, STATS = colSums(iEigen$vectors))
-                    iOmega <- iEigen$values/colSums(iEigen$vectors)^2
-                    iOmegaKappa <- sweep(iKappa, FUN = "*", MARGIN = 2, STATS = 1/iOmega/sum(1/iOmega))
-                    iC.pool <- rbind(rowSums(iOmegaKappa))
+                }else if(iMethod == "pool.gls"){
+                    iEigen <- eigen(iVcov)
+                    iEigen.subset <- which(abs(iEigen$values) > 1e-12)
+                    
+                    if(length(iEigen.subset)==0){
+                        stop("All eigenvalues  of the variance-covariance matrix are close to 0 (<1e-12). \n")
+                    }else if(any(abs(iEigen$values) <= 1e-12)){
+                        attr(out, "error")[iGrid] <-  length(iEigen$values)-length(iEigen.subset)
+                    }
+                    iPsum <- colSums(iEigen$vectors[,iEigen.subset,drop=FALSE])
+                    iWeight <- iPsum^2/iEigen$values[iEigen.subset]
+                    iWPstar <- rowSums(sweep(iEigen$vectors[,iEigen.subset,drop=FALSE], FUN = "*", MARGIN = 2, STATS = iWeight/iPsum))
+                    iC.pool <- rbind(iWPstar/sum(iWeight))
+
                 }
-            
                 iVcov.pool <- as.double(iC.pool %*% iVcov %*% t(iC.pool))
 
                 ## degree of freedom
@@ -584,6 +593,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
                 out[iIndex.table,"df"] <- iGlht$df
             }
             attr(out, "error")[iGrid] <-  attr(iP$test$pvalues,"error")
+            attr(out, "quantile")[iGrid] <-  attr(iCi$confint,"calpha")
 
         }else if(iMethod %in% c("Westfall","Shaffer","free")){
 
@@ -610,6 +620,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
             out[iIndex.table,"lower"] <- iTable$estimate - iTable$se * cH0
             out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * cH0                
             attr(out, "n.sample") <-  n.sample
+            attr(out, "quantile")[iGrid] <-  cH0
                 
             }else if(iMethod == "bonferroni"){
                 

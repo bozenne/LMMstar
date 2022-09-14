@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 13 2022 (13:55) 
 ## Version: 
-## Last-Updated: sep  2 2022 (09:16) 
+## Last-Updated: sep 14 2022 (16:07) 
 ##           By: Brice Ozenne
-##     Update #: 42
+##     Update #: 44
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -145,9 +145,9 @@ test_that("pooling anova_lmm ", {
     expect_equal(as.double(model.tables(GS.se)$estimate), as.double(test.se2$estimate), tol = 1e-6)
     expect_equal(as.double(test.se2), c(0.2862191, 0.2762587, 90.2378692, -0.2625972, 0.8350354, 0.3029450), tol = 1e-3)
     
-    ## pool.pca
-    test.pca <- model.tables(e.anova, method = "pool.pca")    
-    expect_equal(as.double(test.pca), c(0.2432747, 0.2586498, 90.4081859, -0.2705465, 0.7570960,  0.3494384), tol = 1e-3)
+    ## pool.gls
+    test.gls <- model.tables(e.anova, method = "pool.gls")    
+    expect_equal(as.double(test.gls), c(0.2432747, 0.2586498, 90.4081859, -0.2705465, 0.7570960,  0.3494384), tol = 1e-3)
 
     test.rubin <- model.tables(e.anova, method = "pool.rubin")
     expect_equal(test.rubin$estimate,test.average$estimate, tol = 1e-6)
