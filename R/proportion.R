@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 15 2022 (14:09) 
 ## Version: 
-## Last-Updated: sep 15 2022 (17:23) 
+## Last-Updated: sep 15 2022 (17:39) 
 ##           By: Brice Ozenne
-##     Update #: 30
+##     Update #: 31
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -32,6 +32,7 @@
   function(object,...) UseMethod("proportion")
 
 ## * proportion.mlmm
+#' @export
 proportion.mlmm <- function(object, n.sample = 100, trace = TRUE, ...){
 
     ## ** prepare
