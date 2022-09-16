@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: sep 16 2022 (10:45) 
+## Last-Updated: sep 16 2022 (11:52) 
 ##           By: Brice Ozenne
-##     Update #: 338
+##     Update #: 340
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -356,7 +356,10 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
     }
     if(newtable.args$df){
         e.glht <- list(linfct = contrast, rhs = rhs,
-                       coef = table.univariate$estimate, vcov = beta.vcov, df = ceiling(stats::median(newtable.args$df)), alternative = alternative)
+                       coef = table.univariate$estimate, vcov = beta.vcov, df = floor(stats::median(newtable.univariate$df)), alternative = alternative)
+        if(!is.na(default$df)){
+            e.glht$df <- pmax(e.glht$df, default$df)
+        }
     }else{
         e.glht <- list(linfct = contrast, rhs = rhs,
                        coef = table.univariate$estimate, vcov = beta.vcov, df = FALSE, alternative = alternative)
