@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: sep 14 2022 (18:09) 
+## Last-Updated: sep 16 2022 (10:45) 
 ##           By: Brice Ozenne
-##     Update #: 473
+##     Update #: 480
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -483,8 +483,8 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
                 ## degree of freedom
                 if(df == FALSE){
                     pool.df <- Inf
-                }else if(length(unique(out.save[iIndex.table,"df"]))==1){
-                    pool.df <- out.save[iIndex.table[1],"df"]
+                }else if(abs(diff(range(out.save[iIndex.table,"df"])))<0.1){
+                    pool.df <- mean(out.save[iIndex.table,"df"])
                 }else if(is.null(attr(out.save$df,"vcov"))){
                     pool.df <- Inf
                 }else{
