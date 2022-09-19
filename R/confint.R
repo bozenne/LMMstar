@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: sep 16 2022 (10:45) 
+## Last-Updated: sep 16 2022 (18:01) 
 ##           By: Brice Ozenne
-##     Update #: 480
+##     Update #: 483
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -465,11 +465,11 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
                     iC.pool <- matrix(iIvar/sum(iIvar), nrow = 1, ncol = iN.test)
                 }else if(iMethod == "pool.gls"){
                     iEigen <- eigen(iVcov)
-                    iEigen.subset <- which(abs(iEigen$values) > 1e-12)
+                    iEigen.subset <- which(abs(iEigen$values) > 1e-10)
                     
                     if(length(iEigen.subset)==0){
                         stop("All eigenvalues  of the variance-covariance matrix are close to 0 (<1e-12). \n")
-                    }else if(any(abs(iEigen$values) <= 1e-12)){
+                    }else if(any(abs(iEigen$values) <= 1e-10)){
                         attr(out, "error")[iGrid] <-  length(iEigen$values)-length(iEigen.subset)
                     }
                     iPsum <- colSums(iEigen$vectors[,iEigen.subset,drop=FALSE])

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 15 2022 (14:09) 
 ## Version: 
-## Last-Updated: sep 15 2022 (17:39) 
+## Last-Updated: sep 16 2022 (12:13) 
 ##           By: Brice Ozenne
-##     Update #: 31
+##     Update #: 33
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,7 +29,7 @@
 #' 
 #' @export
 `proportion` <-
-  function(object,...) UseMethod("proportion")
+  function(object, n.sample, trace, ...) UseMethod("proportion")
 
 ## * proportion.mlmm
 #' @export
@@ -107,10 +107,10 @@ proportion.mlmm <- function(object, n.sample = 100, trace = TRUE, ...){
     ## e.boot <- lapply(0:n.sample, warper)
     alpha <- 1-attr(out.estimate,"level")
     out <- data.frame(estimate = as.double(out.estimate),
-                      se = sd(out.boot, na.rm = TRUE),
+                      se = stats::sd(out.boot, na.rm = TRUE),
                       df = NA,
-                      lower = as.double(quantile(out.boot,alpha/2, na.rm = TRUE)),
-                      upper = as.double(quantile(out.boot,1-alpha/2, na.rm = TRUE)),
+                      lower = as.double(stats::quantile(out.boot,alpha/2, na.rm = TRUE)),
+                      upper = as.double(stats::quantile(out.boot,1-alpha/2, na.rm = TRUE)),
                       p.value = NA)
     rownames(out) <- "proportion"
     return(out)

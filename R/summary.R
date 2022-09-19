@@ -1,11 +1,11 @@
-### summary.R --- 
+ ### summary.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: sep 14 2022 (18:03) 
+## Last-Updated: sep 16 2022 (17:55) 
 ##           By: Brice Ozenne
-##     Update #: 1054
+##     Update #: 1060
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -111,8 +111,9 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
     
     ## ** data message    
     if(print && !hide.data){
-        cat("Dataset:", deparse(call$data), "\n\n")
-
+        if(inherits(call$data,"call")){
+            cat("Dataset:", deparse(call$data), "\n\n")
+        }
         if(nobs["missing"]>0){
             if(n.cluster.original-n.cluster.design>0){
                 cat("  - ", nobs["cluster"], " clusters were analyzed, ",n.cluster.original-n.cluster.design," were excluded because of missing values \n" , sep = "")
@@ -649,7 +650,9 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
 
     ## ** data message    
     if(!hide.data){
-        cat("Dataset:", deparse(call$data), "\n")
+        if(inherits(call$data,"call")){
+            cat("Dataset:", deparse(call$data), "\n")
+        }
         cat("Strata : \"",paste(names(ls.model),collapse = "\", \""),"\"\n\n",sep="")
         if(any(M.nobs[,"missing"]>0)){
             if(any(n.cluster.original-n.cluster.design>0)){

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: sep 16 2022 (11:52) 
+## Last-Updated: sep 16 2022 (12:06) 
 ##           By: Brice Ozenne
-##     Update #: 340
+##     Update #: 343
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -294,7 +294,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
         }else{
             beta.vcov <- crossprod(M.iid)
         }
-        if(abs(diff(range(table.univariate$df)))<0.1){
+        if(any(!is.infinite(table.univariate$df)) && any(!is.na(table.univariate$df)) && abs(diff(range(table.univariate$df, na.rm = TRUE)))<0.1){
             beta.df <- rep(mean(table.univariate$df), length(beta.estimate))
             newtable.args$df <- TRUE
         }else{

@@ -4,17 +4,17 @@
 \alias{proportion}
 \title{Proportion of Significant Findings}
 \usage{
-proportion(object, ...)
+proportion(object, n.sample, trace, ...)
 }
 \arguments{
 \item{object}{\code{Wald_lmm} object}
-
-\item{...}{additional arguments passed to code{confint.Wald_lmm}}
 
 \item{n.sample}{[numeric,>=0] number of bootstrap sample used to assess the uncertainty.
 If 0, then only the point estimate is computed.}
 
 \item{trace}{[logical] shoudl the execution of the boostrap be trace.}
+
+\item{...}{additional arguments passed to code{confint.Wald_lmm}}
 }
 \value{
 a data.frame with the estimated proportion (estimate column), standard error and confidence interval (when boostrap is used).
