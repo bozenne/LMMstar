@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 26 2022 (11:18) 
 ## Version: 
-## Last-Updated: sep  6 2022 (17:11) 
+## Last-Updated: Sep 23 2022 (12:24) 
 ##           By: Brice Ozenne
-##     Update #: 166
+##     Update #: 167
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -164,7 +164,10 @@
     Xpattern.cor <- object$design$vcov$X$Xpattern.cor    
     name.X.cor <- colnames(X.cor)
 
-    if((object$design$vcov$type != "CS") || object$design$vcov$heterogeneous){
+    if(object$design$vcov$type != "CS"){
+        stop("Identification of random effect structure only implemented for \"CS\" structure with argument heterogenous=FALSE. \n")
+    }
+    if(object$design$vcov$heterogeneous){
         stop("Identification of random effect structure only implemented for \"CS\" structure with argument heterogenous=FALSE. \n")
     }
     if(any(grepl("_X_XX_X_",colnames(X.cor)))){

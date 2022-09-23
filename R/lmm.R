@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: aug 24 2022 (10:30) 
+## Last-Updated: Sep 23 2022 (11:30) 
 ##           By: Brice Ozenne
-##     Update #: 2020
+##     Update #: 2028
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -521,9 +521,13 @@ lmm <- function(formula, repetition, structure, data,
     type.structure <- structure$type
     call.structure <- as.list(structure$call)
     args.structure <- call.structure[-1]
-    
+
     if(("add.time" %in% names(args.structure) == FALSE || identical(args.structure$add.time,TRUE)) && type.structure %in% c("IND","UN","TOEPLITZ") && n.time>1){
-        args.structure$add.time <- var.time
+        if(type.structure == "TOEPLITZ" && ("heterogeneous" %in% names(args.structure) && is.null(args.structure$heterogeneous))){
+            args.structure$add.time <- "XXtimeXX"
+        }else{
+            args.structure$add.time <- var.time
+        }
     }
     if(is.na(structure$name$cluster)){
         args.structure$var.cluster <- "XXcluster.indexXX"
@@ -531,6 +535,7 @@ lmm <- function(formula, repetition, structure, data,
     if(is.na(structure$name$cluster)){
         args.structure$var.time <- "XXtime.indexXX"
     }
+
     ## add strata to the call
     if(update.strataStructure){
         if(is.list(args.structure$formula)){
@@ -540,7 +545,6 @@ lmm <- function(formula, repetition, structure, data,
             args.structure$formula <- stats::update(stats::as.formula(args.structure$formula), stats::as.formula(paste0(var.strata2,"~.")))
         }
     }
-
     if(inherits(call.structure[[1]], "function")){
         structure <- do.call(call.structure[[1]], args = args.structure)
     }else{

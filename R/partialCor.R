@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: sep 21 2022 (11:55) 
+## Last-Updated: Sep 23 2022 (12:02) 
 ##           By: Brice Ozenne
-##     Update #: 261
+##     Update #: 293
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -23,8 +23,9 @@
 ##' and on the right hand side the adjustment set. Can also be a list of formula for outcome-specific adjustment set.
 ##' @param data [data.frame] dataset containing the variables.
 ##' @param repetition [formula] Specify the structure of the data: the time/repetition variable and the grouping variable, e.g. ~ time|id.
-##' @param heterogeneous [logical] Specify whether the variance differ between the two variables (no repetition)
-##' or whether the correlation/variance vary over repetitions (repetition).
+##' @param structure [character] Specify the residual variance-covariance structure.
+##' Without repetitions, either \code{"UN"} or \code{"CS"}.
+##' With repetitions, one of \code{"UN"}, \code{"HLAG"}, \code{"LAG"}, \code{"CS"}.
 ##' @param by [character] variable used to stratified the correlation on.
 ##' @param effects [character or matrix] type of contrast to be used for comparing the correlation parameters. One of \code{"Dunnett"}, \code{"Tukey"}, \code{"Sequen"}, or a contrast matrix.
 ##' @param rhs [numeric vector] right hand side for the comparison of correlation parameters. 
@@ -34,12 +35,16 @@
 ##'
 ##' @details Fit a mixed model to estimate the partial correlation with the following variance-covariance pattern:
 ##' \itemize{
-##' \item \bold{no repetition}: unstructure or compound symmetry structure for M observations, M being the number of variable on the left hand side (i.e. outcomes).
-##' \item \bold{repetition}: toeplitz for M*T observations where T denotes the number of repetitions. In that case heterogeneous can be 1, 0.5, or 0.
+##' \item \bold{no repetition}: unstructure or compound symmetry structure for M observations, M being the number of variables on the left hand side (i.e. outcomes).
+##' \item \bold{repetition}: structure for M*T observations where M being the number of variables (typically 2) and T the number of repetitions. 
+##' Can be \code{"UN"}: unstructured (except the off-diagonal containing the correlation parameter),
+##' or \code{"HLAG"}: toeplitz by block with variable and repetition specific variance,
+##' or \code{"LAG"}: toeplitz by block, i.e. correlation depending on the gap between repetitions and specific to each variable,
+##' or \code{"CS"}: compound symmetry by block, i.e. variable specific correlation constant over repetitions (except for the off-diagonal containing the correlation parameter).
 ##' }
 ##'
 ##' @return A data.frame with the estimate partial correlation (rho), standard error, degree of freedom, confidence interval, and p-value (test of no correlation).
-##' When \code{heterogeneous=FALSE} is used with repeated measurements, a second correlation coefficient (r) is output where the between subject variance has been removed (similar to Bland et al. 1995).
+##' When \code{structure="CS"} is used with repeated measurements, a second correlation coefficient (r) is output where the between subject variance has been removed (similar to Bland et al. 1995).
 ##'
 ##' @references
 ##'  Bland J M, Altman D G. Statistics notes: Calculating correlation coefficients with repeated observations: Part 1—correlation within subjects BMJ 1995; 310 :446 doi:10.1136/bmj.310.6977.446 
@@ -84,12 +89,12 @@
 ##' 
 ##' #### bivariate (with repetition) ####
 ##' \dontrun{
-##' data(gastricbypassL)
+##' data(gastricbypassL, package = "LMMstar")
 ##' ## mean: variable and timepoint specific mean parameter (8)
 ##' ## variance: variable and timepoint specific variance parameter (8)
 ##' ## correlation: correlation parameter specific for each variable and time lag (10)
 ##' e.cor <- partialCor(weight+glucagonAUC~time, repetition =~time|id,
-##'                     data = gastricbypassL)
+##'                     data = gastricbypassL, structure = "LAG")
 ##' e.cor
 ##' coef(attr(e.cor,"lmm"), effects = "correlation")
 ##' if(require(ggplot2)){
@@ -98,33 +103,24 @@
 ##'
 ##' ## same except for the mean structure: variable specific mean parameter (2)
 ##' e.cor2 <- partialCor(weight+glucagonAUC~time, repetition =~time|id,
-##'                     data = gastricbypassL)
+##'                     data = gastricbypassL, structure = "LAG")
 ##'
 ##' ## mean: variable and timepoint specific mean parameter (8)
 ##' ## variance: variable specific variance parameter (2)
 ##' ## correlation: correlation parameter specific for each variable and some time lag (4)
 ##' e.cor3 <- partialCor(weight+glucagonAUC~time, repetition =~time|id,
-##'                      data = gastricbypassL, heterogeneous = 0.5)
+##'                      data = gastricbypassL, structure = "CS")
 ##' e.cor3
 ##' coef(attr(e.cor3,"lmm"), effects = "correlation")
 ##' if(require(ggplot2)){
 ##' autoplot(e.cor3)
 ##' }
 ##' 
-##' ## mean: variable and timepoint specific mean parameter (8)
-##' ## variance: variable specific variance parameter (2)
-##' ## correlation: correlation parameter specific for each variable and some time lag (4)
-##' e.cor4 <- partialCor(weight+glucagonAUC~time, repetition =~time|id,
-##'                      data = gastricbypassL, heterogeneous = 0)
-##' e.cor4
-##' coef(attr(e.cor3,"lmm"), effects = "correlation")
-##' if(require(ggplot2)){
-##' autoplot(e.cor3)
-##' }##' }
+##' }
 
 ## * partialCor (documentation)
 ##' @export
-partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, by = NULL,
+partialCor <- function(formula, data, repetition = NULL, structure = NULL, by = NULL,
                        effects = NULL, rhs = NULL, method = "none", df = NULL, transform.rho = NULL){
 
     ## ** normalize arguments
@@ -276,18 +272,21 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
         dataL <- dataL[order(dataL[[name.id]],dataL$CCvariableCC),]
         dataL$CCrepetitionCC <- unlist(tapply(dataL[[name.id]],dataL[[name.id]],function(iId){1:length(iId)}))
         formula.repetition <- stats::as.formula(paste("~",name.time,"+CCvariableCC|",name.id))
-        if(heterogeneous>=1){
-            structure <- TOEPLITZ(heterogeneous = TRUE)
-        }else if(heterogeneous>=0.5){
-            structure <- TOEPLITZ(heterogeneous = 0.5)
+        
+        if(is.null(structure)){
+            structure <- "CS"
         }else{
-            structure <- TOEPLITZ(heterogeneous = FALSE)
+            structure <- match.arg(structure, c("UN","HLAG","LAG","CS"))
         }
-
+        if(structure=="HLAG"){
+            structure2 <- do.call(TOEPLITZ, args = list(formula = stats::as.formula(paste("~",name.time,"+CCvariableCC")), heterogeneous = "LAG", add.time = FALSE))
+        }else{
+            structure2 <- do.call(TOEPLITZ, args = list(heterogeneous = structure))
+        }
+        
         if(is.null(by)){
-            browser()
             e.lmm <- lmm(formula.mean, df = df, repetition = formula.repetition,
-                         data = dataL, structure = structure,
+                         data = dataL, structure = structure2,
                          control = list(optimizer = "FS"))
             out <- confint(e.lmm, df = df, columns = c("estimate","se","df","lower","upper","p.value"), effects = "correlation", transform.rho = transform.rho)
 
@@ -304,7 +303,7 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
                 out <- out[keep.rho,,drop=FALSE]
 
                 ## compute conditional correlation
-                if((length(keep.rho)==1) && (heterogeneous<1)){
+                if((length(keep.rho)==1) && (structure=="CS")){
                     name.rho2 <- e.lmm$design$param[e.lmm$design$param$type=="rho","name"][grepl("R.",code.rho)]
                     sub.rho <- setdiff(name.rho, keep.rho)
 
@@ -336,7 +335,7 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
             
         }else{
 
-            e.lmm <- mlmm(formula.mean, df = df, repetition = formula.repetition, data = dataL, structure = structure, control = list(optimizer = "FS"),                          
+            e.lmm <- mlmm(formula.mean, df = df, repetition = formula.repetition, data = dataL, structure = structure2, control = list(optimizer = "FS"),                          
                           by = by, effects = "correlation", contrast.rbind = effects)
             out <- confint(e.lmm, df = df, columns = c("estimate","se","df","lower","upper","p.value"))
 
@@ -346,10 +345,10 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
     }else{
         ## *** UN/CS mixed model (no repetition)
         formula.repetition <- stats::as.formula(paste("~CCvariableCC|",name.id))
-        if(heterogeneous){
+        if(is.null(structure)){
             structure <- "UN"
         }else{
-            structure <- "CS"
+            structure <- match.arg(structure, c("UN","CS"))
         }
 
         if(is.null(by)){
@@ -383,12 +382,12 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
 
             ## run test linear hypothesis
             if(all(rowSums(Cmat!=0)==1) || !is.null(transform.rho)){
-                out <- confint(anova(e.lmm, df = df, effects = Cmat, transform.rho = transform.rho),
+                out <- confint(anova(e.lmm, effects = Cmat, transform.rho = transform.rho),
                                method = method, columns = c("estimate","se","df","lower","upper","p.value"))
             }else{
-                out0 <- confint(anova(e.lmm, df = df, effects = Cmat, transform.rho = "none"),
+                out0 <- confint(anova(e.lmm, effects = Cmat, transform.rho = "none"),
                                method = "none", columns = c("estimate","se","df","p.value"))
-                out <- confint(anova(e.lmm, df = df, effects = Cmat, transform.rho = "atanh"),
+                out <- confint(anova(e.lmm, effects = Cmat, transform.rho = "atanh"),
                                 method = method, columns = c("estimate","se","df","p.value"))
                 out$estimate <- out0$estimate
                 out$se <- out0$se
@@ -398,7 +397,7 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
         }else{
             e.lmm <- mlmm(formula.mean, df = df, repetition = formula.repetition, data = dataL, structure = structure,
                           by = by, effects = "correlation", contrast.rbind = effects)
-            out <- confint(e.lmm, df = df, columns = c("estimate","se","df","lower","upper","p.value"))
+            out <- confint(e.lmm, columns = c("estimate","se","df","lower","upper","p.value"))
         }
     }
 

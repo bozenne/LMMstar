@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: sep 21 2022 (19:26) 
+## Last-Updated: Sep 23 2022 (11:36) 
 ##           By: Brice Ozenne
-##     Update #: 652
+##     Update #: 702
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -292,6 +292,7 @@ CS <- function(formula, var.cluster, var.time, heterogeneous = TRUE, add.time){
                 formula = list(var = outCov$formula.var,
                                cor = outCov$formula.cor),
                 heterogeneous = heterogeneous,
+                block = length(outCov$X.cor) > 1,
                 type = "CS")
 
     ## export
@@ -309,51 +310,64 @@ CS <- function(formula, var.cluster, var.time, heterogeneous = TRUE, add.time){
 ##' and variables influencing the residual variance and correlation (right hand side). 
 ##' @param var.cluster [character] cluster variable.
 ##' @param var.time [character] time variable.
-##' @param heterogeneous [character] degree of flexibility of the correlation structure within covariate (\code{"UN","LAG","CSL","CS"}).
+##' @param heterogeneous [character] degree of flexibility of the correlation structure within covariate (\code{"UN","LAG","CS"}).
+##' Will also affect the variance structure when not explicit.
 ##' @param add.time Should the default formula (i.e. when \code{NULL}) contain a time effect.
 ##'
 ##' @details \bold{formula}: there can only be at most one covariate for the correlation structure.
 ##' A typical formula would be \code{~1}, indicating a variance constant over time and a correlation specific to each gap time.
 ##'
-##'  \bold{heterogenous}: for a binary covariate the correlation matrix can be decomposed into four blocs: A, B, B, C.
+##' \bold{heterogenous}: for a binary covariate the correlation matrix can be decomposed into four blocs: A, B, B, C.
 ##' A correspond the correlation within level 0 of the covariate, C within level 1, and B between level 0 and 1.
 ##' Different correlation structures can be specified:\itemize{ 
 ##' \item \code{"UN"}: unstructured matrix except for the diagonal elements of C which are constrained to be equal.
 ##' \item \code{"LAG"}: Toeplitz structure within A, B, and C, i.e. correlation specific to each time lag and covariate level.
-##' \item \code{"CSL"}: Compound symmetry A and B, C
+##' \item \code{"CS"}: block-specific value except for C which has a different value for its diagonal elements.
 ##'}
 ##' @return An object of class \code{TOEPLITZ} that can be passed to the argument \code{structure} of the \code{lmm} function.
 ##' 
 ##' @examples
+##' ## no covariate
 ##' TOEPLITZ(~1, var.cluster = "id", var.time = "time")
 ##' TOEPLITZ(gender~1, var.cluster = "id", var.time = "time")
 ##' TOEPLITZ(list(~time,~1), var.cluster = "id", var.time = "time")
 ##' TOEPLITZ(list(gender~time,gender~1), var.cluster = "id", var.time = "time")
-##' 
+##'
+##' ## with covariates
+##' TOEPLITZ(~1, var.cluster = "id", heterogeneous = "UN",
+##'          var.time = "time", add.time = c("time","side"))
+##' TOEPLITZ(~1, var.cluster = "id", heterogeneous = "LAG",
+##'          var.time = "time", add.time = c("time","side"))
+##' TOEPLITZ(~1, var.cluster = "id", heterogeneous = "CS",
+##'          var.time = "time", add.time = c("time","side"))
+##' TOEPLITZ(gender~1, var.cluster = "id", heterogeneous = "CS",
+##'          var.time = "time", add.time = c("time","side"))
 ##' @export
-TOEPLITZ <- function(formula, var.cluster, var.time, heterogeneous = TRUE, add.time){
+TOEPLITZ <- function(formula, var.cluster, var.time, heterogeneous = "LAG", add.time){
 
+    if(is.null(heterogeneous)){
+        heterogeneous <- "LAG"
+        toeplitz.block <- FALSE
+    }else{
+        heterogeneous <- match.arg(heterogeneous, c("UN","LAG","CS"))
+        toeplitz.block <- NULL
+    }
+    
     if(!missing(add.time)){
         if(is.character(add.time)){
-            if(heterogeneous>=1){
+            if(is.null(heterogeneous) || heterogeneous=="UN"){
                 add.X <- list(variance = add.time,
                               correlation = add.time)
-            }else if(heterogeneous>=0.5){
+            }else if(heterogeneous %in% c("LAG","CS")){
                 add.X <- list(variance = utils::tail(add.time,1),
-                              correlation = add.time)
-            }else{
-                add.X <- list(variance = NULL,
                               correlation = add.time)
             }
         }else if(add.time){
-            if(heterogeneous>=1){
+            if(is.null(heterogeneous) || heterogeneous=="UN"){
                 add.X <- list(variance = var.time,
                               correlation = var.time)
-            }else if(heterogeneous>=0.5){
+            }else if(heterogenous %in% c("LAG","CS")){
                 add.X <- list(variance = utils::tail(var.time,1),
-                              correlation = var.time)
-            }else{
-                add.X <- list(variance = NULL,
                               correlation = var.time)
             }
         }else if(!add.time){
@@ -366,26 +380,19 @@ TOEPLITZ <- function(formula, var.cluster, var.time, heterogeneous = TRUE, add.t
     }
 
     if(missing(formula) || is.null(formula)){
-        outCov <- .formulaStructure(~1, heterogeneous = heterogeneous, add.X = add.X)
-        ## in case add.X is not NULL
-        if(heterogeneous==FALSE){
-            outCov$X.var <- NA
-            outCov$formula.var <- ~1
-        }
-    }else if(heterogeneous || is.list(formula)){
-        outCov <- .formulaStructure(formula, heterogeneous = heterogeneous, add.X = add.X)
+        outCov <- .formulaStructure(~1, heterogeneous = TRUE, add.X = add.X)
     }else{
-        outCov <- .formulaStructure(list(~1,formula), heterogeneous = heterogeneous, add.X = add.X)
-        ## in case add.X is not NULL
-        outCov$X.var <- NA
-        outCov$formula.var <- ~1
+        outCov <- .formulaStructure(formula, heterogeneous = TRUE, add.X = add.X)
     }
     if(length(outCov$X.var)==0 && length(outCov$X.cor)==0){
-        heterogeneous <- FALSE
+        heterogeneous <- NULL
     }
     if(length(outCov$X.cor)>2){
         stop("TOEPLITZ covariance structure does not support more than 2 covariates for the correlation structure. \n")
+    }else if(is.null(toeplitz.block)){
+        toeplitz.block <- length(outCov$X.cor) > 1
     }
+
     out <- list(call = match.call(),
                 name = data.frame(cluster = if(!missing(var.cluster)){var.cluster}else{NA},
                                   strata = if(!is.null(outCov$strata)){outCov$strata}else{NA},
@@ -396,6 +403,7 @@ TOEPLITZ <- function(formula, var.cluster, var.time, heterogeneous = TRUE, add.t
                 formula = list(var = outCov$formula.var,
                                cor = outCov$formula.cor),
                 heterogeneous = heterogeneous,
+                block = toeplitz.block,
                 type = "TOEPLITZ")
 
     ## export

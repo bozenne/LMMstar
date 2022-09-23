@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: sep 16 2022 (17:55) 
+## Last-Updated: Sep 23 2022 (11:32) 
 ##           By: Brice Ozenne
-##     Update #: 1060
+##     Update #: 1078
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -186,15 +186,29 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
         }else if(structure$type == "UN"){
             cat(txt.strata,"unstructured \n\n",sep="")
         }else if(structure$type == "CS"){
-            if(all(is.na(structure$name$cor[[1]]))){
-                cat(txt.strata,"compound symmetry \n\n",sep="")
-            }else if(structure$heterogeneous){
-                cat(txt.strata,"block unstructured \n\n",sep="")
+            if(structure$block>=1){
+                if(structure$heterogeneous){
+                    cat(txt.strata,"block unstructured \n\n",sep="")
+                }else{
+                    cat(txt.strata,"block compound symmetry \n\n",sep="")
+                }
             }else{
-                cat(txt.strata,"block compound symmetry \n\n",sep="")
+                cat(txt.strata,"compound symmetry \n\n",sep="")
             }
         }else if(structure$type == "TOEPLITZ"){
-            cat(txt.strata,"Toeplitz \n\n",sep="")
+            if(structure$block){
+                if(structure$heterogeneous == "UN"){
+                    n.block <- length(unique(structure$X$cor[,3]))-1
+                    cat(txt.strata,paste0("unstructured with ",n.block," constant subdiagonal",if(n.block>1){"s"}," \n\n"),sep="")
+                }else if(structure$heterogeneous == "LAG"){
+                    cat(txt.strata,"block Toeplitz \n\n",sep="")
+                }else if(structure$heterogeneous == "CS"){
+                    n.block <- length(unique(structure$X$cor[,3]))-1
+                    cat(txt.strata,paste0("block compound symmetry with ",n.block," specific subdiagonal",if(n.block>1){"s"}," \n\n"),sep="")
+                }
+            }else{
+                cat(txt.strata,"Toeplitz \n\n",sep="")
+            }
         }
     }
     ## *** correlation
@@ -726,7 +740,7 @@ summary.partialCor <- function(object, digits = 3, detail = TRUE, ...){
     if(any(grepl("^rho\\(",rownames(object))) && any(grepl("^r\\(",rownames(object)))){
 
         cat("\trho: marginal correlation \n")
-        cat("\tr  : correlation conditional on the individual \n")
+        cat("\tr  : conditional correlation \n")
         
     }
 

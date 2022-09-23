@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: sep  1 2022 (09:26) 
+## Last-Updated: Sep 23 2022 (10:07) 
 ##           By: Brice Ozenne
-##     Update #: 519
+##     Update #: 520
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -295,7 +295,7 @@ getVarCov.lmm <- function(obj, ...) {
 
     ## ** check whether other patterns are not nested in the set of unique patterns
     ## if so add them
-    if(heterogeneous){
+    if(is.character(heterogeneous) || heterogeneous){
         possibleNested.pattern <- setdiff(Upattern$name, keep.pattern)
         if(length(possibleNested.pattern)>0 && any(Upattern[Upattern$name %in% possibleNested.pattern,"n.time"]==1)){
             ## remove patterns with single observation whose variance is already covered by the kept patterns

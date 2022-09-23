@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: Jul 13 2022 (18:33) 
+## Last-Updated: Sep 23 2022 (10:33) 
 ##           By: Brice Ozenne
-##     Update #: 315
+##     Update #: 319
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -71,7 +71,7 @@
         }), U.cluster)
         lpnCluster.cor <- sapply(lpnCluster.cor0, paste, collapse = ".")
         name.pattern.cor <- unique(lpnCluster.cor)
-        if(!heterogeneous){
+        if(!is.character(heterogeneous) && !heterogeneous){
             name.pattern.cor <- name.pattern.cor[order(nchar(as.character(name.pattern.cor)))]
         }else{
             name.pattern.cor <- sort(name.pattern.cor)

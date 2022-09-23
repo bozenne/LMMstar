@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: sep 16 2022 (18:01) 
+## Last-Updated: Sep 23 2022 (12:36) 
 ##           By: Brice Ozenne
-##     Update #: 483
+##     Update #: 498
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -141,6 +141,12 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
             stop("Incorrect value(s) \"",paste(columns[columns %in% valid.columns == FALSE], collapse = "\" \""),"\" for argument \'columns\'. \n",
                  "Valid values: \"",paste(setdiff(valid.columns, columns), collapse = "\" \""),"\"\n")
         }
+        if(!is.null(names(columns)) && all(names(columns)=="add")){
+            columns <- union(options$columns.confint, unname(columns))
+        }
+        if(!is.null(names(columns)) && all(names(columns)=="remove")){
+            columns <- setdiff(options$columns.confint, unname(columns))
+        }
     }else{
         columns <- options$columns.confint
     }
@@ -249,6 +255,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
                                    transform.rho = transform.rho)            
         }
     }
+
     ## ** export
     out[names(out)[names(out) %in% columns == FALSE]] <- NULL
     class(out) <- append("confint_lmm", class(out))

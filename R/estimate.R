@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: sep  9 2022 (11:21) 
+## Last-Updated: Sep 23 2022 (11:58) 
 ##           By: Brice Ozenne
-##     Update #: 880
+##     Update #: 886
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -383,7 +383,7 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
                     cv <- 1
                     break
                 }
-            }else if(all(!is.na(outMoments$score)) && all(abs(outMoments$score[param.Omega2])<tol.score) && (iiIter==0 || all(abs(param.valueM1 - param.value)<tol.param))){
+            }else if(all(!is.na(outMoments$score)) && all(abs(outMoments$score[param.Omega2])<tol.score) && (iiIter==0 || all(abs(param.valueM1[param.Omega2] - param.value[param.Omega2])<tol.param))){
                 if(iiIter==0){
                     param.valueM1 <- param.value * NA
                 }

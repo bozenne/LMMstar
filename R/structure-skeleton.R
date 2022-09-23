@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: aug 30 2022 (10:45) 
+## Last-Updated: Sep 23 2022 (11:04) 
 ##           By: Brice Ozenne
-##     Update #: 2281
+##     Update #: 2301
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -92,7 +92,8 @@
     ## *** param rho
     if(NROW(X.cor)>0){
         outRho <- .initRho(data = data,
-                           X.cor = X.cor, X.var = c(outK, list(strata.sigma = strata.sigma)), heterogeneous = structure$heterogeneous, toeplitz = structure$type=="TOEPLITZ",
+                           X.cor = X.cor, X.var = c(outK, list(strata.sigma = strata.sigma)),
+                           heterogeneous = structure$heterogeneous, toeplitz = structure$type=="TOEPLITZ", block = structure$block,
                            U.cluster = U.cluster, index.cluster = index.cluster,
                            U.time = U.time, index.clusterTime = index.clusterTime, 
                            strata.var = strata.var, U.strata = U.strata, index.clusterStrata = index.clusterStrata, n.strata = n.strata)
@@ -302,7 +303,8 @@
 
 ## ** .initRho
 ## for each cluster compute all pairwise difference in covariates to find the parameters
-.initRho <- function(data, X.cor, X.var, heterogeneous, toeplitz,
+.initRho <- function(data, X.cor, X.var,
+                     heterogeneous, toeplitz, block,
                      U.cluster, index.cluster,
                      U.time, index.clusterTime, 
                      strata.var, U.strata, index.clusterStrata, n.strata, sep = c(":")){
@@ -330,11 +332,9 @@
     out <- vector(mode = "list", length = n.strata)
     if(toeplitz){
         index.XcolTime <- which(attr(X.cor,"term.labels")==attr(X.cor,"variable")[1])
-        if(length(attr(X.cor,"variable"))>1){
-            toeplitz.block <- TRUE
+        if(block){
             index.XcolBlock <- which(attr(X.cor,"term.labels")==attr(X.cor,"variable")[2])
         }else{
-            toeplitz.block <- FALSE
             index.XcolBlock <- NULL
         }
     }
@@ -396,132 +396,89 @@
             iCX.cor <- X.cor[iCindex,,drop=FALSE]
             iData <- data[iCindex,,drop=FALSE]
 
-            if(NROW(iCX.cor)==1){ ## SAME LINEAR PREDICTOR FOR ALL OBSERVATIONS WITHIN CLUSTER
+            iPair.time <- ls.pair[[NROW(iCX.cor)]]
+            iM <- matrix(lpnCluster.cor[[iC]][iULpIndex.cor[[iC]]][iPair.time], ncol = 2, byrow = TRUE, dimnames = list(NULL, c("x","y")))
+            iDF.diff <- as.data.frame(do.call(rbind,lapply(1:NCOL(iPair.time),function(iCol){ ## iCol <- 1
 
-                if(heterogeneous){ ## make sure it is compatible with the next case (in case some cluster have only a single pair of observations)
-                    iDF.diff <- as.data.frame(cbind("R",iCX.cor), drop = TRUE)
+                if(iM[iCol,"x"] < iM[iCol,"y"]){
+                    ## make sure same correlation coefficient for (X=1,X=0) and (X=0,X=1)
+                    iCX.cor1 <- iCX.cor[iPair.time[1,iCol],,drop=FALSE]
+                    iCX.cor2 <- iCX.cor[iPair.time[2,iCol],,drop=FALSE]
+                }else if(iM[iCol,"x"] > iM[iCol,"y"]){
+                    ## make sure same correlation coefficient for (X=1,X=0) and (X=0,X=1)
+                    iCX.cor1 <- iCX.cor[iPair.time[2,iCol],,drop=FALSE]
+                    iCX.cor2 <- iCX.cor[iPair.time[1,iCol],,drop=FALSE]
                 }else{
-                    iDF.diff <- as.data.frame(matrix(c("R",rep(iStrata,NCOL(iCX.cor))), nrow = 1, ncol = 1+NCOL(iCX.cor)))
+                    iCX.cor1 <- iCX.cor[min(iPair.time[,iCol]),,drop=FALSE]
+                    iCX.cor2 <- iCX.cor[max(iPair.time[,iCol]),,drop=FALSE]
                 }
-                iCode <- as.character(interaction(iDF.diff, drop=TRUE))
-                ## name difference according to the covariate values
-                if(length(attr(X.cor,"M.level"))==0 || identical(names(attr(X.cor,"M.level")),strata.var)){
-                    if(n.strata>1){
-                        iLevel <- paste0(":",U.strata[iStrata])
-                    }else{
-                        iLevel <- ""
-                    }
-                }else{
-                    iLevel <- paste0("(",as.character(interaction(iData[,names(attr(X.cor,"M.level")),drop=FALSE],drop=TRUE)),")")
-                    if(n.strata>1){
-                        iLevel <- paste0(iLevel,":",U.strata[iStrata])
-                    }
-                }
-                iName <- paste0("rho",iLevel)
 
-                iOut <- data.frame(lp.x = lpnCluster.cor[[iC]][1],
-                                   lp.y = lpnCluster.cor[[iC]][2],
-                                   strata = iStrata,
-                                   code = iCode,
-                                   level = iLevel,
-                                   param = iName,
-                                   sigma = NA,
-                                   k.x = NA,
-                                   k.y = NA)
-
-                if(!missing(X.var)){ ## add corresponding variance parameters
-                    iCX.sigma <- iX.sigma[index.cluster[[iC]][1:2],,drop=FALSE]
-                    iOut$sigma <- colnames(iCX.sigma)[colSums(iCX.sigma)!=0]
-
-                    if(length(iX.k)>0){
-                        iCX.k <- iX.k[index.cluster[[iC]][1:2],,drop=FALSE]
-                        if(sum(iCX.k[1,,drop=FALSE]!=0)){
-                            iOut$k.x <- colnames(iCX.k)[iCX.k[1,,drop=FALSE]==1]
-                        }
-                        if(sum(iCX.k[2,,drop=FALSE]!=0)){
-                            iOut$k.y <- colnames(iCX.k)[iCX.k[2,,drop=FALSE]==1]
-                        }
-                    }
-                }
-                out[[iStrata]] <- rbind(out[[iStrata]], iOut)                   
-                    
-            }else{ ## DIFFERENT LINEAR PREDICTORS WITHIN CLUSTER
-                iPair.time <- ls.pair[[NROW(iCX.cor)]]
-                iM <- matrix(lpnCluster.cor[[iC]][iULpIndex.cor[[iC]]][iPair.time], ncol = 2, byrow = TRUE, dimnames = list(NULL, c("x","y")))
-                iDF.diff <- as.data.frame(do.call(rbind,lapply(1:NCOL(iPair.time),function(iCol){ ## iCol <- 1
-
-                    if(iM[iCol,"x"] < iM[iCol,"y"]){
-                        ## make sure same correlation coefficient for (X=1,X=0) and (X=0,X=1)
-                        iCX.cor1 <- iCX.cor[iPair.time[1,iCol],,drop=FALSE]
-                        iCX.cor2 <- iCX.cor[iPair.time[2,iCol],,drop=FALSE]
-                    }else if(iM[iCol,"x"] > iM[iCol,"y"]){
-                        ## make sure same correlation coefficient for (X=1,X=0) and (X=0,X=1)
-                        iCX.cor1 <- iCX.cor[iPair.time[2,iCol],,drop=FALSE]
-                        iCX.cor2 <- iCX.cor[iPair.time[1,iCol],,drop=FALSE]
-                    }else{
-                        iCX.cor1 <- iCX.cor[min(iPair.time[,iCol]),,drop=FALSE]
-                        iCX.cor2 <- iCX.cor[max(iPair.time[,iCol]),,drop=FALSE]
-                    }
-
-                    if(toeplitz){
-                        if(toeplitz.block){
-                            if(iCX.cor2[,index.XcolBlock] == iCX.cor1[,index.XcolBlock]){
-                                if(heterogeneous>=1){
-                                    return(cbind("R",iCX.cor2[,index.XcolBlock],abs(iCX.cor2[,index.XcolTime]-iCX.cor1[,index.XcolTime])))
-                                }else{
-                                    return(cbind("R",iCX.cor2[,index.XcolBlock],0))
-                                }
-                            }else{
-                                if(heterogeneous>=1){
-                                    return(cbind("D",abs(iCX.cor2[,index.XcolBlock]-iCX.cor1[,index.XcolBlock]),abs(iCX.cor2[,index.XcolTime]-iCX.cor1[,index.XcolTime])))
-                                }else{
-                                    return(cbind("D",abs(iCX.cor2[,index.XcolBlock]-iCX.cor1[,index.XcolBlock]),as.numeric(iCX.cor2[,index.XcolTime]!=iCX.cor1[,index.XcolTime])))
-                                }
+                if(toeplitz){
+                    if(block){
+                        if(iCX.cor2[,index.XcolBlock] == iCX.cor1[,index.XcolBlock]){ ## same block
+                            if(heterogeneous=="UN"){
+                                return(cbind("R",iCX.cor2[,index.XcolBlock],paste(iCX.cor1,collapse=""),iCX.cor2[,index.XcolTime]-iCX.cor1[,index.XcolTime]))
+                            }else if(heterogeneous=="LAG"){
+                                return(cbind("R",iCX.cor2[,index.XcolBlock],abs(iCX.cor2[,index.XcolTime]-iCX.cor1[,index.XcolTime])))
+                            }else if(heterogeneous=="CS"){
+                                return(cbind("R",iCX.cor2[,index.XcolBlock],0))
                             }
-                        }else{
-                            return(cbind("D",abs(iCX.cor2[,index.XcolTime]-iCX.cor1[,index.XcolTime])))
+                        }else{ ## different block
+                            if(heterogeneous=="UN"){
+                                if(iCX.cor2[,index.XcolTime]==iCX.cor1[,index.XcolTime]){
+                                    return(cbind("D",abs(iCX.cor2[,index.XcolBlock]-iCX.cor1[,index.XcolBlock]),"0",iCX.cor2[,index.XcolTime]-iCX.cor1[,index.XcolTime]))
+                                }else{
+                                    return(cbind("D",abs(iCX.cor2[,index.XcolBlock]-iCX.cor1[,index.XcolBlock]),paste(iCX.cor1,collapse=""),iCX.cor2[,index.XcolTime]-iCX.cor1[,index.XcolTime]))
+                                }                                
+                            }else if(heterogeneous=="LAG"){
+                                return(cbind("D",abs(iCX.cor2[,index.XcolBlock]-iCX.cor1[,index.XcolBlock]),abs(iCX.cor2[,index.XcolTime]-iCX.cor1[,index.XcolTime])))
+                            }else if(heterogeneous=="CS"){
+                                return(cbind("D",abs(iCX.cor2[,index.XcolBlock]-iCX.cor1[,index.XcolBlock]),as.numeric(iCX.cor2[,index.XcolTime]!=iCX.cor1[,index.XcolTime])))
+                            }
                         }
-
                     }else{
+                        return(cbind("D",abs(iCX.cor2[,index.XcolTime]-iCX.cor1[,index.XcolTime])))
+                    }
 
-                        if(heterogeneous>=1){
-                            if(all(iCX.cor1==iCX.cor2)){return(cbind("R",iCX.cor1))}else{return(cbind(paste0("D",paste(iCX.cor1,collapse="")),iCX.cor2-iCX.cor1))}
-                        }else{
-                            if(all(iCX.cor1==iCX.cor2)){return(matrix(c("R",rep(iStrata,NCOL(iCX.cor1))), nrow = 1, ncol = 1+NCOL(iCX.cor1)))}else{return(matrix(c("D",as.numeric(iCX.cor2!=iCX.cor1)), nrow = 1))}
-                        }
+                }else{
+                    if(heterogeneous>=1){
+                        if(all(iCX.cor1==iCX.cor2)){return(cbind("R",iCX.cor1))}else{return(cbind(paste0("D",paste(iCX.cor1,collapse="")),iCX.cor2-iCX.cor1))}
+                    }else{
+                        if(all(iCX.cor1==iCX.cor2)){return(matrix(c("R",rep(iStrata,NCOL(iCX.cor1))), nrow = 1, ncol = 1+NCOL(iCX.cor1)))}else{return(matrix(c("D",as.numeric(iCX.cor2!=iCX.cor1)), nrow = 1))}
+                    }
 
                     }
-                })))
-                iCode <- as.character(interaction(iDF.diff, drop=TRUE))
-                ## name difference according to the covariate values
-                iName.covcor <- setdiff(names(attr(X.cor,"M.level")),strata.var)
-                iCov <- as.character(interaction(iData[,iName.covcor,drop=FALSE],drop=TRUE))
+            })))
+            iCode <- as.character(interaction(iDF.diff, drop=TRUE))
+            ## name difference according to the covariate values
+            iName.covcor <- setdiff(names(attr(X.cor,"M.level")),strata.var)
+            iCov <- as.character(interaction(iData[,iName.covcor,drop=FALSE],drop=TRUE))
 
-                index.iUCode <- which(!duplicated(iCode))
-                iULevel <- stats::setNames(sapply(index.iUCode,function(iCol){
-                    return(paste0("(",paste(unique(c(iCov[min(iPair.time[,iCol])],iCov[max(iPair.time[,iCol])])),collapse=","),")"))
-                }), iCode[index.iUCode])
-                iLevel <- iULevel[iCode]
+            index.iUCode <- which(!duplicated(iCode))
+            iULevel <- stats::setNames(sapply(index.iUCode,function(iCol){
+                return(paste0("(",paste(unique(c(iCov[min(iPair.time[,iCol])],iCov[max(iPair.time[,iCol])])),collapse=","),")"))
+            }), iCode[index.iUCode])
+            iLevel <- iULevel[iCode]
                                 
-                if(n.strata>1){
-                    iLevel <- paste0(iLevel,":",U.strata[iStrata])
-                }
-                iName <- paste0("rho",iLevel)
+            if(n.strata>1){
+                iLevel <- paste0(iLevel,":",U.strata[iStrata])
+            }
+            iName <- paste0("rho",iLevel)
 
-                index.unique <- which(!duplicated(cbind(iCode, iM)))
-                iOut <- data.frame(lp.x = iM[index.unique,"x"],
-                                   lp.y = iM[index.unique,"y"],
-                                   strata = iStrata,
-                                   code = iCode[index.unique],
-                                   level = iLevel[index.unique],
-                                   param = iName[index.unique],
-                                   sigma = NA,
-                                   k.x = NA,
-                                   k.y = NA)
+            index.unique <- which(!duplicated(cbind(iCode, iM)))
+            iOut <- data.frame(lp.x = iM[index.unique,"x"],
+                               lp.y = iM[index.unique,"y"],
+                               strata = iStrata,
+                               code = iCode[index.unique],
+                               level = iLevel[index.unique],
+                               param = iName[index.unique],
+                               sigma = NA,
+                               k.x = NA,
+                               k.y = NA)
 
-                if(!missing(X.var)){ ## add corresponding variance parameters
-                    iCX.sigma <- iX.sigma[iCindex,,drop=FALSE]
-                    iOut$sigma <- colnames(iCX.sigma)[colSums(iCX.sigma)!=0]
+            if(!missing(X.var)){ ## add corresponding variance parameters
+                iCX.sigma <- iX.sigma[iCindex,,drop=FALSE]
+                iOut$sigma <- colnames(iCX.sigma)[colSums(iCX.sigma)!=0]
 
                     if(length(iX.k)>0){
                         iCX.k <- iX.k[iCindex,,drop=FALSE]
@@ -537,9 +494,7 @@
                         iOut$k.y <- iName2[2,]
                     }
                 }
-                out[[iStrata]] <- rbind(out[[iStrata]], iOut)
-            
-            }            
+            out[[iStrata]] <- rbind(out[[iStrata]], iOut)
         }
         out[[iStrata]] <- out[[iStrata]][!duplicated(out[[iStrata]]),,drop=FALSE]
     }

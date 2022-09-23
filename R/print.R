@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: sep  6 2022 (13:42) 
+## Last-Updated: Sep 23 2022 (12:23) 
 ##           By: Brice Ozenne
-##     Update #: 161
+##     Update #: 164
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -55,12 +55,27 @@ print.lmm <- function(x, ...){
             }else{
                 txt.strata <- "a stratified"
             }
-            if(all(is.na(structure$name$cor[[1]]))){
+            if(!structure$block){
                 cat("\t\tLinear Mixed Model with ",txt.strata," compound symmetry covariance matrix \n", sep = "")
             }else if(structure$heterogeneous){
                 cat("\t\tLinear Mixed Model with ",txt.strata," block unstructured covariance matrix \n", sep = "")
             }else{
                 cat("\t\tLinear Mixed Model with ",txt.strata," block compound symmetry covariance matrix \n", sep = "")
+            }
+        }else if(structure$type=="TOEPLITZ"){
+            if(is.na(structure$name$strata)){
+                txt.strata <- "a"
+            }else{
+                txt.strata <- "a stratified"
+            }
+            if(!structure$block){
+                cat("\t\tLinear Mixed Model with ",txt.strata," Toeplitz covariance matrix \n", sep = "")
+            }else if(structure$heterogeneous == "UN"){
+                cat("\t\tLinear Mixed Model with ",txt.strata," unstructured covariance matrix with constant subdiagonal \n", sep = "")
+            }else if(structure$heterogeneous == "LAG"){
+                cat("\t\tLinear Mixed Model with ",txt.strata," block Toeplitz covariance matrix \n", sep = "")
+            }else if(structure$heterogeneous == "CS"){
+                cat("\t\tLinear Mixed Model with ",txt.strata," block compound symmetry covariance matrix with specific subdiagonal \n", sep = "")
             }
         }
     }
