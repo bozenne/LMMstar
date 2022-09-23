@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: sep 16 2022 (12:06) 
+## Last-Updated: sep 23 2022 (17:43) 
 ##           By: Brice Ozenne
-##     Update #: 343
+##     Update #: 366
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -185,8 +185,10 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
             stop("Incorrect rhs: should have ",n.test," values.\n",
                  "(one for each univariate test) \n")
         }
-    }else{
+    }else if(is.null(effects)){
         rhs <- stats::setNames(unlist(lapply(ls.object,function(iO){iO$univariate$null})), name.test)
+    }else{
+        rhs <- rep(0, NROW(effects))
     }
 
     cluster.var <- ls.object[[1]]$object$cluster.var
@@ -244,11 +246,12 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
     ## ** Extract elements from anova object
     ## *** univariate Wald test
     table.univariate <- do.call(rbind,lapply(1:n.object,function(iO){ ## iO <- 1
-        iTable <- cbind(outcome = outcome[iO], ls.object[[iO]]$univariate)
+        iTable <- cbind(outcome = unname(outcome[iO]), ls.object[[iO]]$univariate)
         iTable$name.test <- factor(as.character(interaction(iTable[,col.nametest,drop=FALSE])),levels = name.test)
+        rownames(iTable) <- rownames(ls.object[[iO]]$univariate)
         return(iTable)
     }))
-    
+
     ## *** cluster
     ls.cluster <- lapply(ls.object, function(iO){iO$object$cluster})
     seq.cluster <- unique(unlist(ls.cluster))
@@ -333,7 +336,8 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
     ## *** univariate
     if(!is.null(effects)){
         C.vcov.C <- contrast %*% beta.vcov %*% t(contrast)
-        newtable.univariate <- data.frame(type = ifelse(length(Utype2)>1,"all",Utype2),
+        newtable.univariate <- data.frame(outcome = NA,
+                                          type = ifelse(length(Utype2)>1,"all",Utype2),
                                           test = 1,
                                           estimate = (contrast %*% beta.estimate)[,1],
                                           se = sqrt(diag(C.vcov.C)),
@@ -369,7 +373,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
     ## ** Export
     e.glht$linfct.original <- lapply(ls.glht, "[[", "linfct")
     out <- list(multivariate = newtable.multivariate[,names(model$multivariate),drop=FALSE],
-                univariate = newtable.univariate[,names(model$univariate),drop=FALSE],
+                univariate = newtable.univariate[,c("outcome",names(model$univariate)),drop=FALSE],
                 glht = list(all = list("1" = e.glht)),
                 object = newobject,
                 args = newtable.args,

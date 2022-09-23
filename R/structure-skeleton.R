@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: Sep 23 2022 (11:04) 
+## Last-Updated: sep 23 2022 (16:55) 
 ##           By: Brice Ozenne
-##     Update #: 2301
+##     Update #: 2312
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -396,8 +396,14 @@
             iCX.cor <- X.cor[iCindex,,drop=FALSE]
             iData <- data[iCindex,,drop=FALSE]
 
-            iPair.time <- ls.pair[[NROW(iCX.cor)]]
-            iM <- matrix(lpnCluster.cor[[iC]][iULpIndex.cor[[iC]]][iPair.time], ncol = 2, byrow = TRUE, dimnames = list(NULL, c("x","y")))
+            if(NROW(iCX.cor)==1){
+                iPair.time <- matrix(1,nrow = 2, ncol = 1)
+                iM <- cbind(x=1, y=1)
+            }else{
+                iPair.time <- ls.pair[[NROW(iCX.cor)]]
+                iM <- matrix(lpnCluster.cor[[iC]][iULpIndex.cor[[iC]]][iPair.time], ncol = 2, byrow = TRUE, dimnames = list(NULL, c("x","y")))
+            }
+        
             iDF.diff <- as.data.frame(do.call(rbind,lapply(1:NCOL(iPair.time),function(iCol){ ## iCol <- 1
 
                 if(iM[iCol,"x"] < iM[iCol,"y"]){
@@ -449,20 +455,26 @@
 
                     }
             })))
+
             iCode <- as.character(interaction(iDF.diff, drop=TRUE))
             ## name difference according to the covariate values
             iName.covcor <- setdiff(names(attr(X.cor,"M.level")),strata.var)
-            iCov <- as.character(interaction(iData[,iName.covcor,drop=FALSE],drop=TRUE))
-
-            index.iUCode <- which(!duplicated(iCode))
-            iULevel <- stats::setNames(sapply(index.iUCode,function(iCol){
-                return(paste0("(",paste(unique(c(iCov[min(iPair.time[,iCol])],iCov[max(iPair.time[,iCol])])),collapse=","),")"))
-            }), iCode[index.iUCode])
-            iLevel <- iULevel[iCode]
-                                
-            if(n.strata>1){
-                iLevel <- paste0(iLevel,":",U.strata[iStrata])
+            if(length(iName.covcor)>0){
+                iCov <- as.character(interaction(iData[,iName.covcor,drop=FALSE],drop=TRUE))
+                index.iUCode <- which(!duplicated(iCode))
+                iULevel <- stats::setNames(sapply(index.iUCode,function(iCol){
+                    return(paste0("(",paste(unique(c(iCov[min(iPair.time[,iCol])],iCov[max(iPair.time[,iCol])])),collapse=","),")"))
+                }), iCode[index.iUCode])
+                iLevel <- iULevel[iCode]
+                if(n.strata>1){
+                    iLevel <- paste0(iLevel,":",U.strata[iStrata])
+                }
+            }else if(n.strata==1){
+                iLevel <- ""
+            }else if(n.strata>1){
+                iLevel <- paste0(":",U.strata[iStrata])
             }
+                                
             iName <- paste0("rho",iLevel)
 
             index.unique <- which(!duplicated(cbind(iCode, iM)))
@@ -480,20 +492,20 @@
                 iCX.sigma <- iX.sigma[iCindex,,drop=FALSE]
                 iOut$sigma <- colnames(iCX.sigma)[colSums(iCX.sigma)!=0]
 
-                    if(length(iX.k)>0){
-                        iCX.k <- iX.k[iCindex,,drop=FALSE]
-                        iNames.k <- colnames(iCX.k)
-                        iName2 <- sapply(index.unique,function(iCol){ ## iCol <- 4
-                            iName.x <- iNames.k[which(iCX.k[min(iPair.time[,iCol]),]==1)]
-                            if(length(iName.x)==0){iName.x <- NA}
-                            iName.y <- iNames.k[which(iCX.k[max(iPair.time[,iCol]),]==1)]
-                            if(length(iName.y)==0){iName.y <- NA}
-                            return(c(iName.x,iName.y))
-                        })
-                        iOut$k.x <- iName2[1,]
-                        iOut$k.y <- iName2[2,]
-                    }
+                if(length(iX.k)>0){
+                    iCX.k <- iX.k[iCindex,,drop=FALSE]
+                    iNames.k <- colnames(iCX.k)
+                    iName2 <- sapply(index.unique,function(iCol){ ## iCol <- 4
+                        iName.x <- iNames.k[which(iCX.k[min(iPair.time[,iCol]),]==1)]
+                        if(length(iName.x)==0){iName.x <- NA}
+                        iName.y <- iNames.k[which(iCX.k[max(iPair.time[,iCol]),]==1)]
+                        if(length(iName.y)==0){iName.y <- NA}
+                        return(c(iName.x,iName.y))
+                    })
+                    iOut$k.x <- iName2[1,]
+                    iOut$k.y <- iName2[2,]
                 }
+            }
             out[[iStrata]] <- rbind(out[[iStrata]], iOut)
         }
         out[[iStrata]] <- out[[iStrata]][!duplicated(out[[iStrata]]),,drop=FALSE]

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: aug 31 2022 (16:21) 
+## Last-Updated: sep 23 2022 (17:50) 
 ##           By: Brice Ozenne
-##     Update #: 155
+##     Update #: 175
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -91,12 +91,24 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
     if(!inherits(data,"data.frame")){
         stop("Argument \'data\' must inherit from \"data.frame\". \n")
     }
-    if(length(by)!=1){
-        stop("Argument \'by\' must has length exactly 1. \n")
-    }
-    if(by %in% names(data) == FALSE){
+    if(any(by %in% names(data) == FALSE)){
         stop("Mismatch between argument \'by\' and \'data\'.\n",
-             "Could not find column \"",by,"\" in data \n")
+             "Could not find column \"",paste(by[by %in% names(data) == FALSE], collapse = "\" \""),"\" in data \n")
+    }
+    reserved.names <- c("by","type","test","estimate","se","df","statistic","lower","upper","null","partial.r","p.value")
+    if(any(names(data) %in% reserved.names)){
+        stop("Argument \'data\' should not contain a column named \"",paste(names(data)[names(data) %in% reserved.names], collapse = "\" \""),
+             "\" as this name is used internally by the mlmm function. \n")
+    }
+    if(length(by)>1){
+        by.keep <- by
+        by <- paste(by.keep,collapse=",")            
+        if(by %in% names(data)){
+            stop("Argument \'data\' should not contain a column named \"",by,"\" as this name is used internally by the mlmm function. \n")
+        }
+        data[[by]] <- interaction(data[by.keep], sep=",")
+    }else{
+        by.keep <- by
     }
     if(is.null(backtransform)){
         if(is.null(transform.sigma) && is.null(transform.k) && is.null(transform.rho)){
@@ -233,7 +245,17 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
     }), name.lmm)
 
     ## ** joint inference
-    name.model <- paste0(by,"=",name.lmm)
+    if(length(by.keep)==1){
+        name.model <- paste0(by,"=",name.lmm)
+        keep.by.level <- matrix(name.lmm, ncol = 1, dimnames = list(NULL, by))
+    }else{
+        name.model <- unlist(lapply(ls.data, function(iData){
+            paste(paste0(by.keep,"=",iData[1,by.keep]),collapse=",")
+        }))
+        keep.by.level <- do.call(rbind,lapply(ls.data, function(iData){
+            iData[1,by.keep]
+        }))
+    }
 
     if(!is.null(contrast.rbind)){
         rhs.by <- attr(contrast.rbind,"rhs")
@@ -247,7 +269,13 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
                    args = c(list(model = ls.anova[[1]], effects = contrast.rbind, rhs = rhs.by, name = name.model, sep = sep), unname(ls.anova[-1]))
                    )
     out$model <- ls.lmm
-        
+    names(out$univariate)[1] <- "by"
+
+    ## add covariate values
+    out$univariate <- merge(out$univariate,
+                            data.frame(by = name.model, keep.by.level),
+                            by = "by")
+    
     ## ** export
     attr(out,"call") <- match.call()
     class(out) <- append("mlmm", class(out))

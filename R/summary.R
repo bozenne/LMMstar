@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: Sep 23 2022 (11:32) 
+## Last-Updated: sep 23 2022 (17:08) 
 ##           By: Brice Ozenne
-##     Update #: 1078
+##     Update #: 1080
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -89,6 +89,12 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
         if(any(columns %in% valid.columns == FALSE)){
             stop("Incorrect value(s) \"",paste(columns[columns %in% valid.columns == FALSE], collapse = "\" \""),"\" for argument \'columns\'. \n",
                  "Valid values: \"",paste(setdiff(valid.columns, columns), collapse = "\" \""),"\"\n")
+        }
+        if(!is.null(names(columns)) && all(names(columns)=="add")){
+            columns <- union(options$columns.summary, unname(columns))
+        }
+        if(!is.null(names(columns)) && all(names(columns)=="remove")){
+            columns <- setdiff(options$columns.summary, unname(columns))
         }
     }else{
         columns <- options$columns.summary
@@ -400,6 +406,12 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         if(any(columns.univariate %in% valid.columns == FALSE)){
             stop("Incorrect value(s) \"",paste(columns.univariate[columns.univariate %in% valid.columns == FALSE], collapse ="\" \""),"\" for argument \'columns\'. \n",
                  "Valid values: \"",paste(setdiff(valid.columns, columns.univariate), collapse ="\" \""),"\".\n")
+        }
+        if(!is.null(names(columns.univariate)) && all(names(columns.univariate)=="add")){
+            columns.univariate <- union(options$columns.anova, unname(columns.univariate))
+        }
+        if(!is.null(names(columns.univariate)) && all(names(columns.univariate)=="remove")){
+            columns.univariate <- setdiff(options$columns.anova, unname(columns.univariate))
         }
         columns.multivariate <- setdiff(columns.univariate, c("estimate", "se", "lower", "upper"))
     }

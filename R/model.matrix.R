@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Sep 23 2022 (12:24) 
+## Last-Updated: sep 23 2022 (16:52) 
 ##           By: Brice Ozenne
-##     Update #: 2311
+##     Update #: 2314
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -428,6 +428,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 
     ## ** pairs
     structure$X$pair.varcoef <- stats::setNames(lapply(structure$X$Upattern$name, function(iPattern){## iPattern <- structure$X$Upattern$name[1]
+
         iParamVar <- structure$X$Upattern$param[[iPattern]]
 
         iOut <- .unorderedPairs(iParamVar)
