@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: aug 30 2022 (10:30) 
+## Last-Updated: sep 21 2022 (19:26) 
 ##           By: Brice Ozenne
-##     Update #: 648
+##     Update #: 652
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -309,13 +309,19 @@ CS <- function(formula, var.cluster, var.time, heterogeneous = TRUE, add.time){
 ##' and variables influencing the residual variance and correlation (right hand side). 
 ##' @param var.cluster [character] cluster variable.
 ##' @param var.time [character] time variable.
-##' @param heterogeneous [logical] when covariates are used for the correlation structure, degree of flexibility within covariate.
-##' 1 is unstructured, 0.5 is Toeplitz, and 0 is compound symmetry.
+##' @param heterogeneous [character] degree of flexibility of the correlation structure within covariate (\code{"UN","LAG","CSL","CS"}).
 ##' @param add.time Should the default formula (i.e. when \code{NULL}) contain a time effect.
 ##'
-##' @details A typical formula would be \code{~1}, indicating a variance constant over time and a correlation specific to each gap time.
-##' Can only be at most one covariate for the correlation structure.
+##' @details \bold{formula}: there can only be at most one covariate for the correlation structure.
+##' A typical formula would be \code{~1}, indicating a variance constant over time and a correlation specific to each gap time.
 ##'
+##'  \bold{heterogenous}: for a binary covariate the correlation matrix can be decomposed into four blocs: A, B, B, C.
+##' A correspond the correlation within level 0 of the covariate, C within level 1, and B between level 0 and 1.
+##' Different correlation structures can be specified:\itemize{ 
+##' \item \code{"UN"}: unstructured matrix except for the diagonal elements of C which are constrained to be equal.
+##' \item \code{"LAG"}: Toeplitz structure within A, B, and C, i.e. correlation specific to each time lag and covariate level.
+##' \item \code{"CSL"}: Compound symmetry A and B, C
+##'}
 ##' @return An object of class \code{TOEPLITZ} that can be passed to the argument \code{structure} of the \code{lmm} function.
 ##' 
 ##' @examples

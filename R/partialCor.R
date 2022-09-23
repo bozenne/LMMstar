@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: sep  9 2022 (11:39) 
+## Last-Updated: sep 21 2022 (11:55) 
 ##           By: Brice Ozenne
-##     Update #: 255
+##     Update #: 261
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -85,6 +85,9 @@
 ##' #### bivariate (with repetition) ####
 ##' \dontrun{
 ##' data(gastricbypassL)
+##' ## mean: variable and timepoint specific mean parameter (8)
+##' ## variance: variable and timepoint specific variance parameter (8)
+##' ## correlation: correlation parameter specific for each variable and time lag (10)
 ##' e.cor <- partialCor(weight+glucagonAUC~time, repetition =~time|id,
 ##'                     data = gastricbypassL)
 ##' e.cor
@@ -93,14 +96,31 @@
 ##' autoplot(e.cor)
 ##' }
 ##'
+##' ## same except for the mean structure: variable specific mean parameter (2)
 ##' e.cor2 <- partialCor(weight+glucagonAUC~time, repetition =~time|id,
+##'                     data = gastricbypassL)
+##'
+##' ## mean: variable and timepoint specific mean parameter (8)
+##' ## variance: variable specific variance parameter (2)
+##' ## correlation: correlation parameter specific for each variable and some time lag (4)
+##' e.cor3 <- partialCor(weight+glucagonAUC~time, repetition =~time|id,
 ##'                      data = gastricbypassL, heterogeneous = 0.5)
-##' e.cor2
-##' coef(attr(e.cor2,"lmm"), effects = "correlation")
+##' e.cor3
+##' coef(attr(e.cor3,"lmm"), effects = "correlation")
 ##' if(require(ggplot2)){
-##' autoplot(e.cor2)
+##' autoplot(e.cor3)
 ##' }
-##' }
+##' 
+##' ## mean: variable and timepoint specific mean parameter (8)
+##' ## variance: variable specific variance parameter (2)
+##' ## correlation: correlation parameter specific for each variable and some time lag (4)
+##' e.cor4 <- partialCor(weight+glucagonAUC~time, repetition =~time|id,
+##'                      data = gastricbypassL, heterogeneous = 0)
+##' e.cor4
+##' coef(attr(e.cor3,"lmm"), effects = "correlation")
+##' if(require(ggplot2)){
+##' autoplot(e.cor3)
+##' }##' }
 
 ## * partialCor (documentation)
 ##' @export
@@ -265,6 +285,7 @@ partialCor <- function(formula, data, repetition = NULL, heterogeneous = TRUE, b
         }
 
         if(is.null(by)){
+            browser()
             e.lmm <- lmm(formula.mean, df = df, repetition = formula.repetition,
                          data = dataL, structure = structure,
                          control = list(optimizer = "FS"))
