@@ -1589,12 +1589,16 @@ INPUT figures\diag-correlation.pdf
 INPUT .\figures\diag-correlation.pdf
 INPUT .\figures\diag-correlation.pdf
 INPUT .\figures\diag-correlation.pdf
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\rm-lmbx10.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\rm-lmbx7.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\rm-lmbx5.tfm
 INPUT .\figures\diag-qqplot.pdf
 INPUT .\figures\diag-qqplot.pdf
 INPUT figures\diag-qqplot.pdf
 INPUT .\figures\diag-qqplot.pdf
 INPUT .\figures\diag-qqplot.pdf
 INPUT .\figures\diag-qqplot.pdf
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\rm-lmbx10.tfm
 INPUT .\figures\fit-autoplot.pdf
 INPUT .\figures\fit-autoplot.pdf
 INPUT figures\fit-autoplot.pdf
@@ -1636,9 +1640,6 @@ INPUT .\overview.bbl
 INPUT overview.bbl
 INPUT .\overview.bbl
 INPUT overview.bbl
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\rm-lmbx10.tfm
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\rm-lmbx7.tfm
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\rm-lmbx5.tfm
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmmib10.tfm
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmmib7.tfm
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmmib5.tfm

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: sep 23 2022 (17:08) 
+## Last-Updated: sep 26 2022 (10:16) 
 ##           By: Brice Ozenne
-##     Update #: 1080
+##     Update #: 1086
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -117,8 +117,10 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
     
     ## ** data message    
     if(print && !hide.data){
-        if(inherits(call$data,"call")){
+        if(inherits(call$data,"call") || inherits(call$data,"name")){
             cat("Dataset:", deparse(call$data), "\n\n")
+        }else{
+            cat("Dataset:\n\n")
         }
         if(nobs["missing"]>0){
             if(n.cluster.original-n.cluster.design>0){

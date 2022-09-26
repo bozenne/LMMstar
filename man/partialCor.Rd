@@ -8,7 +8,7 @@ partialCor(
   formula,
   data,
   repetition = NULL,
-  heterogeneous = TRUE,
+  structure = NULL,
   by = NULL,
   effects = NULL,
   rhs = NULL,
@@ -25,8 +25,9 @@ and on the right hand side the adjustment set. Can also be a list of formula for
 
 \item{repetition}{[formula] Specify the structure of the data: the time/repetition variable and the grouping variable, e.g. ~ time|id.}
 
-\item{heterogeneous}{[logical] Specify whether the variance differ between the two variables (no repetition)
-or whether the correlation/variance vary over repetitions (repetition).}
+\item{structure}{[character] Specify the residual variance-covariance structure.
+Without repetitions, either \code{"UN"} or \code{"CS"}.
+With repetitions, one of \code{"UN"}, \code{"HLAG"}, \code{"LAG"}, \code{"CS"}.}
 
 \item{by}{[character] variable used to stratified the correlation on.}
 
@@ -42,7 +43,7 @@ or whether the correlation/variance vary over repetitions (repetition).}
 }
 \value{
 A data.frame with the estimate partial correlation (rho), standard error, degree of freedom, confidence interval, and p-value (test of no correlation).
-When \code{heterogeneous=FALSE} is used with repeated measurements, a second correlation coefficient (r) is output where the between subject variance has been removed (similar to Bland et al. 1995).
+When \code{structure="CS"} is used with repeated measurements, a second correlation coefficient (r) is output where the between subject variance has been removed (similar to Bland et al. 1995).
 }
 \description{
 Estimate the partial correlation between two variables where the adjustment set may differ between variables.
@@ -50,8 +51,12 @@ Estimate the partial correlation between two variables where the adjustment set 
 \details{
 Fit a mixed model to estimate the partial correlation with the following variance-covariance pattern:
 \itemize{
-\item \bold{no repetition}: unstructure or compound symmetry structure for M observations, M being the number of variable on the left hand side (i.e. outcomes).
-\item \bold{repetition}: toeplitz for M*T observations where T denotes the number of repetitions. In that case heterogeneous can be 1, 0.5, or 0.
+\item \bold{no repetition}: unstructure or compound symmetry structure for M observations, M being the number of variables on the left hand side (i.e. outcomes).
+\item \bold{repetition}: structure for M*T observations where M being the number of variables (typically 2) and T the number of repetitions. 
+Can be \code{"UN"}: unstructured (except the off-diagonal containing the correlation parameter),
+or \code{"HLAG"}: toeplitz by block with variable and repetition specific variance,
+or \code{"LAG"}: toeplitz by block, i.e. correlation depending on the gap between repetitions and specific to each variable,
+or \code{"CS"}: compound symmetry by block, i.e. variable specific correlation constant over repetitions (except for the off-diagonal containing the correlation parameter).
 }
 }
 \examples{
@@ -94,22 +99,33 @@ partialCor(list(hl~BC+deg+gender, disp~1), data = y.data)
 
 #### bivariate (with repetition) ####
 \dontrun{
-data(gastricbypassL)
+data(gastricbypassL, package = "LMMstar")
+## mean: variable and timepoint specific mean parameter (8)
+## variance: variable and timepoint specific variance parameter (8)
+## correlation: correlation parameter specific for each variable and time lag (10)
 e.cor <- partialCor(weight+glucagonAUC~time, repetition =~time|id,
-                    data = gastricbypassL)
+                    data = gastricbypassL, structure = "LAG")
 e.cor
 coef(attr(e.cor,"lmm"), effects = "correlation")
 if(require(ggplot2)){
 autoplot(e.cor)
 }
 
+## same except for the mean structure: variable specific mean parameter (2)
 e.cor2 <- partialCor(weight+glucagonAUC~time, repetition =~time|id,
-                     data = gastricbypassL, heterogeneous = 0.5)
-e.cor2
-coef(attr(e.cor2,"lmm"), effects = "correlation")
+                    data = gastricbypassL, structure = "LAG")
+
+## mean: variable and timepoint specific mean parameter (8)
+## variance: variable specific variance parameter (2)
+## correlation: correlation parameter specific for each variable and some time lag (4)
+e.cor3 <- partialCor(weight+glucagonAUC~time, repetition =~time|id,
+                     data = gastricbypassL, structure = "CS")
+e.cor3
+coef(attr(e.cor3,"lmm"), effects = "correlation")
 if(require(ggplot2)){
-autoplot(e.cor2)
+autoplot(e.cor3)
 }
+
 }
 }
 \references{

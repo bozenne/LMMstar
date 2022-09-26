@@ -116,7 +116,7 @@ utils::packageVersion("LMMstar")
 #+END_SRC
 
 #+RESULTS:
-: [1] '0.8.0'
+: [1] '0.8.3'
 
 \clearpage
 
@@ -280,6 +280,7 @@ cat(" correlation structure: \n");cov2cor(sigma(eTOE.lmm))
 
 #+RESULTS:
 #+begin_example
+		Linear Mixed Model with a Toeplitz covariance matrix 
 
  outcome/cluster/time: weight/id/time 
  data                : 80 observations and distributed in 20 clusters 
@@ -459,7 +460,6 @@ logLik(e.lmer)
 
 #+RESULTS:
 : 'log Lik.' -234.9713 (df=11)
-: [1] -7.897069e-05  8.584946e-05
 
 - e.g. to obtain a *block unstructured* covariance matrix:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -697,13 +697,13 @@ cat(sapply(oo[-(1:2)],paste0,"\n"))
 #+begin_example
 Fixed effects: weight ~ time + glucagon 
  
-                estimate    se   df   lower   upper p.value    
-    (Intercept)   132.98 4.664 19.8 123.243 142.717 < 0.001 ***
-    timeB1w       -7.882 0.713 19.2  -9.374   -6.39 < 0.001 ***
-    timeA1w      -11.788 1.018 21.6   -13.9  -9.676 < 0.001 ***
-    timeA3m      -26.122 1.656 18.8 -29.591 -22.654 < 0.001 ***
-    glucagon      -0.888 0.242 13.7  -1.408  -0.369 0.00257  **
-    ----------------------------------------------------------- 
+                estimate    se   df   lower   upper  p.value    
+    (Intercept)   132.98 4.664 19.8 123.243 142.717  < 2e-16 ***
+    timeB1w       -7.882 0.713 19.2  -9.374   -6.39 9.27e-10 ***
+    timeA1w      -11.788 1.018 21.6   -13.9  -9.676 9.55e-11 ***
+    timeA3m      -26.122 1.656 18.8 -29.591 -22.654 2.62e-12 ***
+    glucagon      -0.888 0.242 13.7  -1.408  -0.369  0.00257  **
+    ------------------------------------------------------------ 
    Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
    Columns lower and upper contain 95% pointwise confidence intervals for each coefficient.
    Model-based standard errors are derived from the observed information (column se). 
@@ -777,8 +777,8 @@ model.tables(eUN.lmm)
 
 Values for the all correlation parameters can be displayed
 too, by specifying @@latex:\texttt{effect="all"}@@:
-#+BEGIN_SRC R :exports code :results output :session *R* :cache no
-model.tables(eUN.lmm, effect = "all") ## not shown
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+model.tables(eUN.lmm, effect = "all")
 #+END_SRC
 
 #+RESULTS:
@@ -803,7 +803,32 @@ rho(A1w,A3m)   0.9658511 1.015050e-01 27.88668   0.9147964   0.9865286 1.450022e
 
 Because these parameters are constrained (e.g. strictly positive),
 they uncertainty is by default computed after transformation
-(e.g. =log=) and then backtransformed. 
+(e.g. =log=) and then backtransformed. The column argument can be used
+to extract more or less information, e.g.:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+model.tables(eUN.lmm, columns = c("estimate","p.value"))
+#+END_SRC
+
+#+RESULTS:
+:                estimate      p.value
+: (Intercept) 132.9801355 0.000000e+00
+: timeB1w      -7.8822331 9.273644e-10
+: timeA1w     -11.7879545 9.552470e-11
+: timeA3m     -26.1223908 2.617462e-12
+: glucagon     -0.8883081 2.571605e-03
+
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+model.tables(eUN.lmm, columns = add("statistic"))
+#+END_SRC
+
+#+RESULTS:
+:                estimate        se  statistic       df      lower       upper      p.value
+: (Intercept) 132.9801355 4.6642475  28.510523 19.75815 123.243045 142.7172256 0.000000e+00
+: timeB1w      -7.8822331 0.7131797 -11.052240 19.17147  -9.374032  -6.3904339 9.273644e-10
+: timeA1w     -11.7879545 1.0175135 -11.585060 21.64404 -13.900162  -9.6757467 9.552470e-11
+: timeA3m     -26.1223908 1.6564077 -15.770508 18.84049 -29.591280 -22.6535021 2.617462e-12
+: glucagon     -0.8883081 0.2416081  -3.676648 13.70759  -1.407545  -0.3690712 2.571605e-03
 
 ** Extract estimated residual variance-covariance structure
 
@@ -862,17 +887,32 @@ sigma(eUN.lmm, cluster = newdata)
 Mixed model having a compound symmetry structure with positive
 correlation parameters are equivalent to random intercept models,
 possibly with nested random effects. Indeed the residual
-variance-covariance matrix can then be decomposed as \(\Omega = Z
-\Omega_1 \trans{Z} + \Omega_2\) where \(Z\) is the design matrix
-associated to the possibly nested clustering factors, \(\Omega_1\) is
-the variance-covariance of the random effects and \(\Omega_2\) the
-residual-variance covariance conditional to the random
-effects. Denoting by \(\varepsilon_i\) the vector of marginal
-residuals relative to individual \(i\) with variance-covariance matrix
-\(\Omega_i\), \(\eta_{ij} = \omega_{2j} Z_{ij}
-\Omega_i^{-1}\varepsilon_i\) is its \(j\)-th random effect with design
-matrix \(Z_{ij}\) and variance \(\omega_{2j}\). This is what the
-=coef= method returns when setting the argument =effects= to
+variance-covariance matrix can then be decomposed as:
+#+BEGIN_EXPORT latex
+\[ \Omega = Z \Omega_1 \trans{Z} + \Omega_2 \]
+#+END_EXPORT
+where:
+- \(Z\) is the design matrix associated to the possibly nested clustering factors
+- \(\Omega_1\) is the variance-covariance of the random effects
+- \(\Omega_2\) the residual-variance covariance conditional to the random effects.
+The joint distribution between the outcome \(\VY\) and the random
+effects \(\Veta\) is
+#+BEGIN_EXPORT latex
+\[
+\begin{bmatrix} \VY \\ \Veta \end{bmatrix} \sim \Gaus\left(\begin{bmatrix} \boldsymbol{\mu} \\ \mathbf{0} \end{bmatrix}, \begin{bmatrix} \Omega & Z \Omega_1 \\ \Omega_1 \trans{Z} & \Omega_1 \end{bmatrix}\right)
+\]
+#+END_EXPORT
+
+
+Denoting by \(\varepsilon_i=\VY_i-\boldsymbol{\mu}_i\) the vector of
+marginal residuals relative to individual \(i\) with
+variance-covariance matrix \(\Omega_i\), the \(j\)-th random effect is
+the expected value given the residual:
+#+BEGIN_EXPORT latex
+\[ \eta_{ij} = \omega_{1j} Z_{ij} \Omega_i^{-1}\varepsilon_i \]
+#+END_EXPORT
+where \(\omega_{1j}\) the variance of the random effect. This is what
+the =coef= method returns when setting the argument =effects= to
 ="ranef"=:
 
 \bigskip

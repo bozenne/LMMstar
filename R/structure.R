@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: Sep 23 2022 (11:36) 
+## Last-Updated: sep 26 2022 (10:12) 
 ##           By: Brice Ozenne
-##     Update #: 702
+##     Update #: 705
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -292,7 +292,7 @@ CS <- function(formula, var.cluster, var.time, heterogeneous = TRUE, add.time){
                 formula = list(var = outCov$formula.var,
                                cor = outCov$formula.cor),
                 heterogeneous = heterogeneous,
-                block = length(outCov$X.cor) > 1,
+                block = length(outCov$X.cor) > 0,
                 type = "CS")
 
     ## export
@@ -317,7 +317,7 @@ CS <- function(formula, var.cluster, var.time, heterogeneous = TRUE, add.time){
 ##' @details \bold{formula}: there can only be at most one covariate for the correlation structure.
 ##' A typical formula would be \code{~1}, indicating a variance constant over time and a correlation specific to each gap time.
 ##'
-##' \bold{heterogenous}: for a binary covariate the correlation matrix can be decomposed into four blocs: A, B, B, C.
+##' \bold{heterogeneous}: for a binary covariate the correlation matrix can be decomposed into four blocs: A, B, B, C.
 ##' A correspond the correlation within level 0 of the covariate, C within level 1, and B between level 0 and 1.
 ##' Different correlation structures can be specified:\itemize{ 
 ##' \item \code{"UN"}: unstructured matrix except for the diagonal elements of C which are constrained to be equal.
@@ -366,7 +366,7 @@ TOEPLITZ <- function(formula, var.cluster, var.time, heterogeneous = "LAG", add.
             if(is.null(heterogeneous) || heterogeneous=="UN"){
                 add.X <- list(variance = var.time,
                               correlation = var.time)
-            }else if(heterogenous %in% c("LAG","CS")){
+            }else if(heterogeneous %in% c("LAG","CS")){
                 add.X <- list(variance = utils::tail(var.time,1),
                               correlation = var.time)
             }

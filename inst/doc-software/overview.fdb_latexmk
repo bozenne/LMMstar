@@ -1,12 +1,12 @@
 # Fdb version 3
-["bibtex overview"] 1662546511 "overview.aux" "overview.bbl" "overview" 1662546516
+["bibtex overview"] 1664181803 "overview.aux" "overview.bbl" "overview" 1664181808
   "C:/Program Files/MiKTeX 2.9/bibtex/bst/bibtex/apalike.bst" 1291976391 24635 604dafcc79f521a11ea73e506e1fbd98 ""
   "bibliography.bib" 1662474033 663 493e64d641eaee11e63e5fc3fddee90b ""
-  "overview.aux" 1662546516 7337 69a7801c5304847b479df47bc0715ad4 "pdflatex"
+  "overview.aux" 1664181807 7337 d6dd889621fef54354fc6cf662ad4bb6 "pdflatex"
   (generated)
   "overview.bbl"
   "overview.blg"
-["pdflatex"] 1662546512 "c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/overview.tex" "overview.pdf" "overview" 1662546516
+["pdflatex"] 1664181803 "c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/overview.tex" "overview.pdf" "overview" 1664181808
   "C:/Program Files/MiKTeX 2.9/fonts/enc/dvips/lm/lm-ec.enc" 1254938640 2375 baa924870cfb487815765f9094cf3728 ""
   "C:/Program Files/MiKTeX 2.9/fonts/enc/dvips/lm/lm-mathex.enc" 1254938640 3486 c7eadf5dcc57b3b2d11736679f6636ba ""
   "C:/Program Files/MiKTeX 2.9/fonts/enc/dvips/lm/lm-mathit.enc" 1254938640 2405 5dcf2c1b967ee25cc46c58cd52244aed ""
@@ -228,7 +228,7 @@
   "C:/Users/hpl802/AppData/Local/MiKTeX/2.9/fonts/tfm/public/stmaryrd/stmary7.tfm" 1629962608 848 26631fcb3e4cb6757598b9cda7967b63 ""
   "C:/Users/hpl802/AppData/Local/MiKTeX/2.9/fonts/tfm/public/stmaryrd/stmary8.tfm" 1629962605 848 6125cdd3627e68d3db8013b98e587508 ""
   "C:/Users/hpl802/AppData/Local/MiKTeX/2.9/miktex/data/le/pdftex/pdflatex.fmt" 1629962902 9720907 266120a9c6de7cc774cdb3e56c3d6620 ""
-  "C:/Users/hpl802/AppData/Local/MiKTeX/2.9/pdftex/config/pdftex.map" 1662364216 226429 a972202707b4675efdd574f7f0b5cb10 ""
+  "C:/Users/hpl802/AppData/Local/MiKTeX/2.9/pdftex/config/pdftex.map" 1663589808 226429 a972202707b4675efdd574f7f0b5cb10 ""
   "C:/Users/hpl802/AppData/Roaming/MiKTeX/2.9/fonts/tfm/adobe/symbol/psyr.tfm" 1136772254 1408 5937f58aa508ea2cea4901c07d10f5fe ""
   "C:/Users/hpl802/AppData/Roaming/MiKTeX/2.9/fonts/tfm/public/prodint/prodint.tfm" 984065182 544 591408749166619c4957166376463e93 ""
   "C:/Users/hpl802/AppData/Roaming/MiKTeX/2.9/tex/generic/atbegshi/atbegshi.sty" 1575574700 24708 5584a51a7101caf7e6bbf1fc27d8f7b1 ""
@@ -300,7 +300,7 @@
   "C:/Users/hpl802/AppData/Roaming/MiKTeX/2.9/tex/latex/xargs/xargs.sty" 1206234660 12403 a11204384274e5980f17ec9564088fa4 ""
   "C:/Users/hpl802/AppData/Roaming/MiKTeX/2.9/tex/latex/xifthen/xifthen.sty" 1448278036 5689 1bfa68243e89a54479e7d0580773c57e ""
   "C:/Users/hpl802/AppData/Roaming/MiKTeX/2.9/tex/latex/xstring/xstring.sty" 1626884962 123 a302f2c651a95033260db60e51527ae8 ""
-  "c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/overview.tex" 1662546505 111959 cf8f12be8012e784e6276e6a95d40dc5 ""
+  "c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/overview.tex" 1664181796 115075 c094bcf640a30be439e1b1e1d8fc76df ""
   "figures/diag-correlation.pdf" 1655476877 6174 16304adcafe90fdb36355e75bff0c495 ""
   "figures/diag-qqplot.pdf" 1655476877 14326 a2d093fc63cfc3658a1851dd4404473c ""
   "figures/diag-scatterplot.pdf" 1655476877 16217 b2da0732f33e9a540d3eb0614f391a27 ""
@@ -311,14 +311,14 @@
   "figures/fit-pres.pdf" 1662478166 16855 832458755dc56ef8f8e9f64d397ca397 ""
   "figures/gg-baseAdj.pdf" 1662480438 11149 b4999e1f6ed2813243ae2c16163f1a9d ""
   "figures/imputation.pdf" 1655476877 9073 8217ea053dffa6df96baa83a6d06fcf5 ""
-  "overview.aux" 1662546516 7337 69a7801c5304847b479df47bc0715ad4 "pdflatex"
-  "overview.bbl" 1662546511 557 8ab52bee5b1d6446bf910c1d9775dd73 "bibtex overview"
-  "overview.out" 1662546516 5174 38178ae7721051745ffd566c073d9117 "pdflatex"
-  "overview.tex" 1662546505 111959 cf8f12be8012e784e6276e6a95d40dc5 ""
+  "overview.aux" 1664181807 7337 d6dd889621fef54354fc6cf662ad4bb6 "pdflatex"
+  "overview.bbl" 1664181803 557 8ab52bee5b1d6446bf910c1d9775dd73 "bibtex overview"
+  "overview.out" 1664181807 5174 38178ae7721051745ffd566c073d9117 "pdflatex"
+  "overview.tex" 1664181796 115075 c094bcf640a30be439e1b1e1d8fc76df ""
   (generated)
-  "overview.out"
-  "overview.pdf"
-  "overview.loc"
   "overview.aux"
-  "overview.soc"
+  "overview.out"
+  "overview.loc"
   "overview.log"
+  "overview.soc"
+  "overview.pdf"

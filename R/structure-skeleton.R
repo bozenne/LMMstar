@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: sep 23 2022 (16:55) 
+## Last-Updated: sep 26 2022 (09:42) 
 ##           By: Brice Ozenne
-##     Update #: 2312
+##     Update #: 2320
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -395,15 +395,13 @@
             iCindex  <- index.cluster[[iC]][iULpIndex.cor[[iC]]]
             iCX.cor <- X.cor[iCindex,,drop=FALSE]
             iData <- data[iCindex,,drop=FALSE]
-
             if(NROW(iCX.cor)==1){
-                iPair.time <- matrix(1,nrow = 2, ncol = 1)
-                iM <- cbind(x=1, y=1)
+                iPair.time <- matrix(1, nrow = 2, ncol = 1)
             }else{
                 iPair.time <- ls.pair[[NROW(iCX.cor)]]
-                iM <- matrix(lpnCluster.cor[[iC]][iULpIndex.cor[[iC]]][iPair.time], ncol = 2, byrow = TRUE, dimnames = list(NULL, c("x","y")))
             }
-        
+            iM <- matrix(lpnCluster.cor[[iC]][iULpIndex.cor[[iC]]][iPair.time], ncol = 2, byrow = TRUE, dimnames = list(NULL, c("x","y")))
+
             iDF.diff <- as.data.frame(do.call(rbind,lapply(1:NCOL(iPair.time),function(iCol){ ## iCol <- 1
 
                 if(iM[iCol,"x"] < iM[iCol,"y"]){

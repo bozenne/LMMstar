@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: Sep 23 2022 (10:33) 
+## Last-Updated: sep 26 2022 (09:39) 
 ##           By: Brice Ozenne
-##     Update #: 319
+##     Update #: 324
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -171,7 +171,7 @@
         ls.pair <- vector(mode = "list", length = max(iN.pair))
 
         ls.pair[iN.pair[iN.pair>0]] <- lapply(iN.pair[iN.pair>0], function(iN){.unorderedPairs(1:iN, distinct = TRUE)})
-        Xpattern.cor <- stats::setNames(lapply(setdiff(name.pattern.cor,""),function(iP){ ## iP <- name.pattern.cor[1]
+        Xpattern.cor <- stats::setNames(lapply(setdiff(name.pattern.cor,""),function(iP){ ## iP <- name.pattern.cor[2]
             ## ignore pattern "", i.e. patterns with no pair
             iC.all <- pattern.cluster$index.cluster[which(pattern.cluster$cor==iP)]
             iC <- iC.all[1]

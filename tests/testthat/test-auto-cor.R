@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 20 2022 (12:12) 
 ## Version: 
-## Last-Updated: aug 31 2022 (16:44) 
+## Last-Updated: sep 26 2022 (09:59) 
 ##           By: Brice Ozenne
-##     Update #: 60
+##     Update #: 62
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -172,20 +172,23 @@ test_that("estimate partial correlation via lmm (cluster)", {
     ## eOK.lmm <- lmm(value ~ variable, repetition = ~time2|id, data = df.L,
     ##                   structure = "UN", control = list(optimizer = "FS", trace = 2))
 
-    test.hetero <- partialCor(c(X1,X2)~1, data = df.W, repetition = ~time|id, heterogeneous = TRUE)
-    test.homo <- partialCor(c(X1,X2)~1, data = df.W, repetition = ~time|id, heterogeneous = 0.5)
+    ## partialCor(c(X1,X2)~1, data = df.W, repetition = ~time|id, structure = "HLAG")
+    test.hetero <- partialCor(c(X1,X2)~1, data = df.W, repetition = ~time|id, structure = "LAG")
+    test.homo <- partialCor(c(X1,X2)~1, data = df.W, repetition = ~time|id, structure = "CS")
     
+    ## eTopHetero2.lmm <- lmm(value ~ variable, repetition = ~time+variable|id, data = df.L,
+    ##                        structure = TOEPLITZ(list(~time+variable,~time+variable), add.time = FALSE, heterogeneous = "LAG"),
+    ##                        control = list(optimizer = "FS"))
     eTopHetero.lmm <- lmm(value ~ variable, repetition = ~time+variable|id, data = df.L,
-                        structure = TOEPLITZ(heterogeneous = TRUE),
-                        control = list(optimizer = "FS"))
-
+                          structure = TOEPLITZ(heterogeneous = "LAG"),
+                          control = list(optimizer = "FS"))
     eTopHomo.lmm <- lmm(value ~ variable, repetition = ~time+variable|id, data = df.L,
-                        structure = TOEPLITZ(heterogeneous = 0.5),
+                        structure = TOEPLITZ(heterogeneous = "CS"),
                         control = list(optimizer = "FS"))
 
     expect_equal(as.double(model.tables(eTopHetero.lmm, effects = "correlation")["rho(1.X1,1.X2)",]),
                  as.double(test.hetero), tol = 1e-6)
-    expect_equal(c(0.47549331, 0.04987419, 13.38669723, 0.36577561, 0.572176, 1.16e-06),
+    expect_equal(c(0.47388305, 0.04995313, 13.80173649, 0.36429768, 0.57052434, 9.8e-07),
                  as.double(test.hetero), tol = 1e-6)
     expect_equal(as.double(model.tables(eTopHomo.lmm, effects = "correlation")["rho(1.X1,1.X2)",]),
                  as.double(test.homo["rho(1.X1,1.X2)",]), tol = 1e-6)

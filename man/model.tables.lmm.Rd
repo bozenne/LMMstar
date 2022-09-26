@@ -4,10 +4,13 @@
 \alias{model.tables.lmm}
 \title{Statistical Inference for Linear Mixed Model}
 \usage{
-\method{model.tables}{lmm}(x, ...)
+\method{model.tables}{lmm}(x, columns, ...)
 }
 \arguments{
 \item{x}{a \code{lmm} object.}
+
+\item{columns}{[character vector] Columns to be output.
+Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}, \code{"partial.r"}.}
 
 \item{...}{arguments to be passed to the \code{confint} method. Should not contain the argument \code{column}.}
 }
