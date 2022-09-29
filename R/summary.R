@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: sep 26 2022 (10:16) 
+## Last-Updated: sep 29 2022 (11:57) 
 ##           By: Brice Ozenne
-##     Update #: 1086
+##     Update #: 1097
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -411,12 +411,21 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         }
         if(!is.null(names(columns.univariate)) && all(names(columns.univariate)=="add")){
             columns.univariate <- union(options$columns.anova, unname(columns.univariate))
-        }
-        if(!is.null(names(columns.univariate)) && all(names(columns.univariate)=="remove")){
+            columns.multivariate <- setdiff(union("statistic",columns.univariate), c("estimate", "se", "lower", "upper"))
+        }else if(!is.null(names(columns.univariate)) && all(names(columns.univariate)=="remove")){
             columns.univariate <- setdiff(options$columns.anova, unname(columns.univariate))
+            columns.multivariate <- setdiff(setdiff(union(options$columns.anova,"statistic"), unname(columns.univariate)), c("estimate", "se", "lower", "upper"))
+        }else{
+            columns.multivariate <- setdiff(columns.univariate, c("estimate", "se", "lower", "upper"))
         }
-        columns.multivariate <- setdiff(columns.univariate, c("estimate", "se", "lower", "upper"))
     }
+    if(length(columns.univariate)==0){
+        print.univariate <- FALSE
+    }
+    if(length(columns.multivariate)==0){
+        print.multivariate <- FALSE
+    }
+
     if("df" %in% columns.multivariate){
         index.df <- which(columns.multivariate == "df")
         if(index.df == 1){
@@ -447,7 +456,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
     ## ** extract information
     ## *** multivariate tests
     if(print.multivariate>0){
-        table.multivariate <- object$multivariate[,setdiff(columns.multivariate,c("type",""))]
+        table.multivariate <- object$multivariate[,setdiff(columns.multivariate,c("type","")),drop=FALSE]
         nchar.type <- nchar(object$args$type[[1]])
         maxchar.type <- max(nchar.type)
         if("type" %in% columns.multivariate){

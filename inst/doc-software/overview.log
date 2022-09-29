@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.23 (MiKTeX 21.8) (preloaded format=pdflatex 2021.8.26)  26 SEP 2022 10:43
+This is pdfTeX, Version 3.141592653-2.6-1.40.23 (MiKTeX 21.8) (preloaded format=pdflatex 2021.8.26)  29 SEP 2022 12:01
 entering extended mode
 **c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/overview.tex
 (c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/overview.tex
@@ -1319,158 +1319,189 @@ LaTeX Font Warning: Font shape `U/stmry/b/n' undefined
 
 ] [13
 
-] [14] [15] [16]
-<./figures/diag-scatterplot.pdf, id=381, 505.89pt x 505.89pt>
+] [14] [15] [16] [17
+
+] [18
+
+] [19]
+<./figures/diag-scatterplot.pdf, id=455, 505.89pt x 505.89pt>
 File: ./figures/diag-scatterplot.pdf Graphic file (type pdf)
 <use ./figures/diag-scatterplot.pdf>
-Package pdftex.def Info: ./figures/diag-scatterplot.pdf  used on input line 124
-5.
+Package pdftex.def Info: ./figures/diag-scatterplot.pdf  used on input line 142
+4.
 (pdftex.def)             Requested size: 216.23764pt x 216.23933pt.
-<./figures/diag-scatterplot2.pdf, id=382, 505.89pt x 505.89pt>
+<./figures/diag-scatterplot2.pdf, id=456, 505.89pt x 505.89pt>
 File: ./figures/diag-scatterplot2.pdf Graphic file (type pdf)
 <use ./figures/diag-scatterplot2.pdf>
-Package pdftex.def Info: ./figures/diag-scatterplot2.pdf  used on input line 12
-57.
+Package pdftex.def Info: ./figures/diag-scatterplot2.pdf  used on input line 14
+36.
 (pdftex.def)             Requested size: 216.23764pt x 216.23933pt.
- [17
+ [20
 
  <./figures/diag-scatterplot.pdf> <./figures/diag-scatterplot2.pdf>]
-<./figures/diag-correlation.pdf, id=407, 867.24pt x 460.72125pt>
+<./figures/diag-correlation.pdf, id=481, 867.24pt x 460.72125pt>
 File: ./figures/diag-correlation.pdf Graphic file (type pdf)
 <use ./figures/diag-correlation.pdf>
-Package pdftex.def Info: ./figures/diag-correlation.pdf  used on input line 127
-3.
+Package pdftex.def Info: ./figures/diag-correlation.pdf  used on input line 145
+2.
 (pdftex.def)             Requested size: 324.36473pt x 172.32011pt.
-<./figures/diag-qqplot.pdf, id=411, 505.89pt x 505.89pt>
+<./figures/diag-qqplot.pdf, id=485, 505.89pt x 505.89pt>
 File: ./figures/diag-qqplot.pdf Graphic file (type pdf)
 <use ./figures/diag-qqplot.pdf>
-Package pdftex.def Info: ./figures/diag-qqplot.pdf  used on input line 1287.
+Package pdftex.def Info: ./figures/diag-qqplot.pdf  used on input line 1466.
 (pdftex.def)             Requested size: 270.3012pt x 270.30496pt.
- [18
+ [21
 
  <./figures/diag-correlation.pdf> <./figures/diag-qqplot.pdf>]
-<./figures/fit-autoplot.pdf, id=446, 505.89pt x 505.89pt>
+<./figures/fit-autoplot.pdf, id=520, 505.89pt x 505.89pt>
 File: ./figures/fit-autoplot.pdf Graphic file (type pdf)
 <use ./figures/fit-autoplot.pdf>
-Package pdftex.def Info: ./figures/fit-autoplot.pdf  used on input line 1345.
+Package pdftex.def Info: ./figures/fit-autoplot.pdf  used on input line 1524.
 (pdftex.def)             Requested size: 243.26941pt x 243.27214pt.
-<./figures/fit-emmip.pdf, id=447, 505.89pt x 505.89pt>
+<./figures/fit-emmip.pdf, id=521, 505.89pt x 505.89pt>
 File: ./figures/fit-emmip.pdf Graphic file (type pdf)
 <use ./figures/fit-emmip.pdf>
-Package pdftex.def Info: ./figures/fit-emmip.pdf  used on input line 1350.
+Package pdftex.def Info: ./figures/fit-emmip.pdf  used on input line 1529.
 (pdftex.def)             Requested size: 243.26941pt x 243.27214pt.
- [19
+ [22
 
  <./figures/fit-autoplot.pdf> <./figures/fit-emmip.pdf>]
-<./figures/fit-autoplot-indiv.pdf, id=476, 867.24pt x 448.67625pt>
+<./figures/fit-autoplot-indiv.pdf, id=549, 867.24pt x 448.67625pt>
 File: ./figures/fit-autoplot-indiv.pdf Graphic file (type pdf)
 <use ./figures/fit-autoplot-indiv.pdf>
 Package pdftex.def Info: ./figures/fit-autoplot-indiv.pdf  used on input line 1
-377.
+556.
 (pdftex.def)             Requested size: 540.60239pt x 279.69626pt.
-
-[20 <./figures/fit-autoplot-indiv.pdf>]
-<./figures/fit-pres.pdf, id=498, 867.24pt x 361.35pt>
+ [23 <./figures/fit-autoplot-indiv.pdf>]
+<./figures/fit-pres.pdf, id=571, 867.24pt x 361.35pt>
 File: ./figures/fit-pres.pdf Graphic file (type pdf)
 <use ./figures/fit-pres.pdf>
-Package pdftex.def Info: ./figures/fit-pres.pdf  used on input line 1394.
+Package pdftex.def Info: ./figures/fit-pres.pdf  used on input line 1573.
 (pdftex.def)             Requested size: 405.45178pt x 168.9413pt.
- [21
+ [24
 
- <./figures/fit-pres.pdf>] [22
-
-]
-[23
-
-] [24
-
-] [25
+ <./figures/fit-pres.pdf>] [25
 
 ] [26
 
-] [27]
-<./figures/gg-baseAdj.pdf, id=621, 505.89pt x 505.89pt>
+] [27
+
+] [28
+
+] [29
+
+] [30]
+<./figures/gg-baseAdj.pdf, id=694, 505.89pt x 505.89pt>
 File: ./figures/gg-baseAdj.pdf Graphic file (type pdf)
 <use ./figures/gg-baseAdj.pdf>
-Package pdftex.def Info: ./figures/gg-baseAdj.pdf  used on input line 1904.
+Package pdftex.def Info: ./figures/gg-baseAdj.pdf  used on input line 2083.
 (pdftex.def)             Requested size: 216.23764pt x 216.23933pt.
- [28] [29 <./figures/gg-baseAdj.pdf>] [30] [31
+ [31] [32 <./figures/gg-baseAdj.pdf>]
+[33] [34
 
-]
-[32
+] [35
 
-] [33
+] [36
 
-] [34
+] [37
 
-] [35]
-<./figures/imputation.pdf, id=746, 867.24pt x 460.72125pt>
+] [38]
+<./figures/imputation.pdf, id=820, 867.24pt x 460.72125pt>
 File: ./figures/imputation.pdf Graphic file (type pdf)
 <use ./figures/imputation.pdf>
-Package pdftex.def Info: ./figures/imputation.pdf  used on input line 2319.
+Package pdftex.def Info: ./figures/imputation.pdf  used on input line 2497.
 (pdftex.def)             Requested size: 540.60239pt x 287.20488pt.
- [36
+ [39
 
- <./figures/imputation.pdf>] [37] [38
-
-] [39
-
-] [40
+ <./figures/imputation.pdf>] [40] [41
 
 ]
-(overview.bbl) [41
+[42
+
+] [43
+
+] (overview.bbl) [44
 
 ]
-Underfull \hbox (badness 10000) in paragraph at lines 2613--2613
+Underfull \hbox (badness 10000) in paragraph at lines 2791--2791
 [][]\T1/lmr/m/n/10 The REML is the like-li-hood of the ob-ser-va-tions di-vided
  by the prior on the es-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 2613--2613
+Underfull \hbox (badness 10000) in paragraph at lines 2791--2791
 \T1/lmr/m/n/10 ti-mated mean pa-ram-e-ters $[][] \OMS/lmsy/m/n/10  N\OT1/lmr/m
 /n/10 (\OML/lmm/m/it/10 ; [][]\OT1/lmr/m/n/10 )$\T1/lmr/m/n/10 . This cor-re-s
 ponds to
  []
 
 
-Underfull \hbox (badness 2591) in paragraph at lines 2613--2613
+Underfull \hbox (badness 2591) in paragraph at lines 2791--2791
 [] [] []$ \T1/lmr/m/n/10 Since $\OML/lmm/m/it/10 $ \T1/lmr/m/n/10 will be es-t
 i-mated to be
  []
 
-[42
+[45
 
 ]
-Overfull \hbox (31.8687pt too wide) detected at line 2652
+Overfull \hbox (31.8687pt too wide) detected at line 2830
 []
  []
 
 
-Overfull \hbox (22.72969pt too wide) detected at line 2682
+Overfull \hbox (22.72969pt too wide) detected at line 2860
 []
  []
 
-[43
+[46
 
 ]
-Overfull \hbox (4.43532pt too wide) detected at line 2721
+Overfull \hbox (4.43532pt too wide) detected at line 2899
 []
  []
 
 
-Overfull \hbox (0.37851pt too wide) detected at line 2750
+Overfull \hbox (0.37851pt too wide) detected at line 2928
 []
  []
 
-[44
+[47
 
 ]
-Overfull \hbox (15.46007pt too wide) detected at line 2783
+Overfull \hbox (15.46007pt too wide) detected at line 2961
 []
  []
 
-[45] [46
+[48] [49
+
+] [50] [51
+
+] [52] [53] [54
+
+] [55
+
+]
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 3443.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `superscript' on input line 3443.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 3443.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `\eta' on input line 3443.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `superscript' on input line 3443.
+
+[56
 
 ]
 \Changes@OutFile=\write6
@@ -1479,19 +1510,19 @@ Overfull \hbox (15.46007pt too wide) detected at line 2783
 \tf@loc=\write7
 \openout7 = `overview.loc'.
 
- [47] (overview.aux)
+ [57] (overview.aux)
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
 Package rerunfilecheck Info: File `overview.out' has not changed.
-(rerunfilecheck)             Checksum: 38178AE7721051745FFD566C073D9117;5174.
+(rerunfilecheck)             Checksum: 75D1F30A2E66073AFC1D0BD38A7E6E6C;6600.
  ) 
 Here is how much of TeX's memory you used:
- 31139 strings out of 478868
- 546398 string characters out of 2856724
- 1236637 words of memory out of 3000000
- 47884 multiletter control sequences out of 15000+600000
- 506257 words of font info for 125 fonts, out of 8000000 for 9000
+ 31389 strings out of 478868
+ 549834 string characters out of 2856724
+ 1238104 words of memory out of 3000000
+ 47996 multiletter control sequences out of 15000+600000
+ 512194 words of font info for 127 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  114i,17n,117p,662b,1880s stack positions out of 5000i,500n,10000p,200000b,80000s
 pdfTeX warning (dest): name{Hfootnote.6} has been referenced but does not exi
@@ -1514,36 +1545,37 @@ pdfTeX warning (dest): name{Hfootnote.1} has been referenced but does not exist
 
 {C:/Program Files/MiKTeX 2.9/fonts/enc/dvips/lm/lm-mathsy.enc}{C:/Program Files
 /MiKTeX 2.9/fonts/enc/dvips/lm/lm-rm.enc}{C:/Program Files/MiKTeX 2.9/fonts/enc
-/dvips/lm/lm-mathit.enc}{C:/Program Files/MiKTeX 2.9/fonts/enc/dvips/lm/lm-math
-ex.enc}{C:/Program Files/MiKTeX 2.9/fonts/enc/dvips/lm/lm-ec.enc}{C:/Program Fi
+/dvips/lm/lm-mathit.enc}{C:/Program Files/MiKTeX 2.9/fonts/enc/dvips/lm/lm-ec.e
+nc}{C:/Program Files/MiKTeX 2.9/fonts/enc/dvips/lm/lm-mathex.enc}{C:/Program Fi
 les/MiKTeX 2.9/fonts/enc/dvips/lm/lm-ts1.enc}<C:/Program Files/MiKTeX 2.9/fonts
 /type1/public/lm/lmbx10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/
-lmbx12.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmbx7.pfb><C:/Pro
-gram Files/MiKTeX 2.9/fonts/type1/public/lm/lmbx8.pfb><C:/Program Files/MiKTeX 
-2.9/fonts/type1/public/lm/lmex10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/p
-ublic/lm/lmmi10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmmi12.p
-fb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmmi5.pfb><C:/Program Fil
-es/MiKTeX 2.9/fonts/type1/public/lm/lmmi7.pfb><C:/Program Files/MiKTeX 2.9/font
-s/type1/public/lm/lmmi8.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/
-lmmib10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmmib7.pfb><C:/P
-rogram Files/MiKTeX 2.9/fonts/type1/public/lm/lmr10.pfb><C:/Program Files/MiKTe
-X 2.9/fonts/type1/public/lm/lmr12.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/
-public/lm/lmr17.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmr5.pfb
-><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmr7.pfb><C:/Program Files/
-MiKTeX 2.9/fonts/type1/public/lm/lmr8.pfb><C:/Program Files/MiKTeX 2.9/fonts/ty
-pe1/public/lm/lmri12.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lms
-y10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmsy5.pfb><C:/Progra
-m Files/MiKTeX 2.9/fonts/type1/public/lm/lmsy6.pfb><C:/Program Files/MiKTeX 2.9
-/fonts/type1/public/lm/lmsy7.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/publi
-c/lm/lmsy8.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmtt10.pfb><C
-:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmtt12.pfb><C:/Program Files/M
-iKTeX 2.9/fonts/type1/public/amsfonts/symbols/msam10.pfb><C:/Program Files/MiKT
-eX 2.9/fonts/type1/public/amsfonts/symbols/msam5.pfb><C:/Program Files/MiKTeX 2
-.9/fonts/type1/public/amsfonts/symbols/msam7.pfb><C:/Program Files/MiKTeX 2.9/f
-onts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on overview.pdf (47 pages, 736814 bytes).
+lmbx12.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmbx6.pfb><C:/Pro
+gram Files/MiKTeX 2.9/fonts/type1/public/lm/lmbx7.pfb><C:/Program Files/MiKTeX 
+2.9/fonts/type1/public/lm/lmbx8.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/pu
+blic/lm/lmex10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmmi10.pf
+b><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmmi12.pfb><C:/Program Fil
+es/MiKTeX 2.9/fonts/type1/public/lm/lmmi5.pfb><C:/Program Files/MiKTeX 2.9/font
+s/type1/public/lm/lmmi7.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/
+lmmi8.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmmib10.pfb><C:/Pr
+ogram Files/MiKTeX 2.9/fonts/type1/public/lm/lmmib7.pfb><C:/Program Files/MiKTe
+X 2.9/fonts/type1/public/lm/lmr10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/
+public/lm/lmr12.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmr17.pf
+b><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmr5.pfb><C:/Program Files
+/MiKTeX 2.9/fonts/type1/public/lm/lmr7.pfb><C:/Program Files/MiKTeX 2.9/fonts/t
+ype1/public/lm/lmr8.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmri
+12.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmsy10.pfb><C:/Progra
+m Files/MiKTeX 2.9/fonts/type1/public/lm/lmsy5.pfb><C:/Program Files/MiKTeX 2.9
+/fonts/type1/public/lm/lmsy6.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/publi
+c/lm/lmsy7.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmsy8.pfb><C:
+/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmtt10.pfb><C:/Program Files/Mi
+KTeX 2.9/fonts/type1/public/lm/lmtt12.pfb><C:/Program Files/MiKTeX 2.9/fonts/ty
+pe1/public/amsfonts/symbols/msam10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1
+/public/amsfonts/symbols/msam5.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/pub
+lic/amsfonts/symbols/msam7.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/
+amsfonts/symbols/msbm10.pfb>
+Output written on overview.pdf (57 pages, 815130 bytes).
 PDF statistics:
- 1146 PDF objects out of 1200 (max. 8388607)
- 514 named destinations out of 1000 (max. 500000)
- 303 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 1376 PDF objects out of 1440 (max. 8388607)
+ 651 named destinations out of 1000 (max. 500000)
+ 359 words of extra memory for PDF output out of 10000 (max. 10000000)
 

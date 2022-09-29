@@ -962,6 +962,220 @@ range(matrix(c(ranef(e.lmer)[[2]][,1],ranef(e.lmer)[[1]][,1]), ncol = 3, byrow =
 
 \clearpage
 
+** Sum of squares
+
+\Warning The definition of the sum of squares is not straightforward with mixed
+models. Intuitively summing residuals across several outcomes will be
+hard to interpret unless all outcomes have the same variance. This is
+why LMMstar does not provide them. Nevertheless for specific
+covariance structure, namely independence and compound symmetry (with
+positive correlation) structure, sum of squares can be deduced from
+the =lmm= object - see appendix [[#SM:sumSquares]] for the theoretical
+derivations. Importantly, with these structures the residuals can be
+reparametrised as random effects plus independent residuals,
+i.e. \(\Omega = Z \Omega_1 \trans{Z} + \omega I\) where \(I\) is the
+identity matrix and \(\omega\) the variance of these independent
+residuals.
+
+\bigskip
+
+Appendix [[#SM:sumSquares]] illustrate how to extract the sum of squares
+for univariate linear regression (i.e. independence structure) and
+here we illustrate the case of a compound symmetry structure.  To
+simplify data manipulation we will consider an dataset ordered by
+cluster and without missing values:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+df.NNA <- gastricbypassL[order(gastricbypassL$id),]
+df.NNA <- df.NNA[!is.na(df.NNA$glucagon),]
+#+END_SRC
+
+#+RESULTS:
+
+A key step is to extract from the =lmm= object:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eCS2.lmm <- lmm(weight ~ time + glucagon, repetition = ~time|id,
+                data = df.NNA, structure = "CS")
+#+END_SRC
+
+#+RESULTS:
+
+the conditional variance \(\omega\):
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+sigma2 <- coef(eCS2.lmm, effect = "variance")^2
+tau <- coef(eCS2.lmm, effect = "correlation")*sigma2
+omega <- unname(sigma2 - tau)
+#+END_SRC
+
+#+RESULTS:
+
+Note that this step will typically depend on the covariance
+structure. The residual sum of squares (SSE) equals the residual
+degrees of freedom times the conditional variance:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+df.res <- df.residual(eCS2.lmm)
+c(df.res = df.res, SSE = df.res * omega)
+#+END_SRC
+
+#+RESULTS:
+:   df.res      SSE 
+:  73.0000 779.8304
+
+For the regression sum of squares (SSR), we first extract the mean
+parameters and their variance-covariance based on the expected
+information:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eBeta.lmm <- coef(eCS2.lmm)
+eVcov.lmm <- vcov(eCS2.lmm, type.information = "expected")
+#+END_SRC
+
+#+RESULTS:
+
+Parameters are grouped with respect to the original variable:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+attr(model.matrix(eCS2.lmm),"assign")
+#+END_SRC
+
+#+RESULTS:
+: [1] 0 1 1 1 2
+
+\clearpage
+
+So we respect this grouping when computing the normalized SSR: 
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+SSRstar.time <- eBeta.lmm[2:4] %*% solve(eVcov.lmm[2:4,2:4]) %*% eBeta.lmm[2:4] 
+SSRstar.glucagon <- eBeta.lmm[5] %*% solve(eVcov.lmm[5,5]) %*% eBeta.lmm[5] 
+#+END_SRC
+#+RESULTS:
+
+The SSR is obtained by multiplying the normalized SSR by the
+conditional variance:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+c(time = SSRstar.time * omega,
+  glucagon = SSRstar.glucagon * omega)
+#+END_SRC
+#+RESULTS:
+:       time   glucagon 
+: 6986.78351   18.83074
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+library(lme4) ## note type I anova so only look at the last line
+anova(lmer(weight ~ time + glucagon + (1|id), data = df.NNA))
+anova(lmer(weight ~ glucagon + time + (1|id), data = df.NNA))
+#+END_SRC
+
+#+RESULTS:
+: Analysis of Variance Table
+:          npar Sum Sq Mean Sq  F value
+: time        3 7516.7 2505.57 234.5468
+: glucagon    1   18.8   18.83   1.7627
+: Analysis of Variance Table
+:          npar Sum Sq Mean Sq F value
+: glucagon    1  548.8  548.76   51.37
+: time        3 6986.8 2328.93  218.01
+
+** Proportion of explained variance and partial correlation
+
+\Warning The definition of explained variance is not straightforward
+with mixed models. Intuitively considering the variance across several
+outcomes will be hard to interpret unless all outcomes have the same
+variance. Similar consideration holds for partial correlation.  This
+is why LMMstar does not output these quantities by
+default. Nevertheless for specific covariance structure, namely
+independence and compound symmetry (with positive correlation)
+structure, explained variance and partial correlation can be deduced
+from the =lmm= object. Importantly, with these structures the
+residuals can be reparametrised as random effects plus independent
+residuals, i.e. \(\Omega = Z \Omega_1 \trans{Z} + \omega I\) where
+\(I\) is the identity matrix and \(\omega\) the variance of these
+independent residuals.
+
+\bigskip
+
+The proportion of explained variance, also called partial \(R^2\) or
+partial \(\eta^2\), is defined as the ratio between sum of squares
+(e.g. cite:lakens2013calculating, equation 12):
+#+BEGIN_EXPORT latex
+\[ R^2=\frac{SSR}{SSR + SSE} \]
+#+END_EXPORT
+which can be approximated using (see appendix [[#SM:sumSquares]]):
+#+BEGIN_EXPORT latex
+\[ R^2=\frac{F df_{num}}{F df_{num} + df_{denom}} \]
+#+END_EXPORT
+where \(F\) denote the F-statistic, \(df_{num}\)
+(resp. \(df_{denom}\)) the degrees of freedom of the numerator
+(resp. denominator) of this statistic. This is the formula implemented
+in LMMstar whose result can be display after calling =anova= in the
+column =partial.r2=:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+summary(anova(eCS2.lmm), columns = add("partial.r"))
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+		Multivariate Wald test 
+
+            F-statistic       df p.value partial.r2    
+   time         217.975 (3,53.9)  <2e-16      0.924 ***
+   glucagon       1.757 (1,53.8)   0.191      0.032    
+   ---------------------------------------------------- 
+  Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
+  Degrees of freedom were computed using a Satterthwaite approximation (column df). 
+
+		Univariate Wald test 
+
+            estimate    se   df   lower   upper partial.r  p.value    
+   timeB1w    -7.619 1.054   54 -10.175  -5.064    -0.701 3.41e-09 ***
+   timeA1w   -14.495 1.428   54 -17.958 -11.032     -0.81 3.22e-15 ***
+   timeA3m   -27.051 1.087   54 -29.688 -24.415    -0.959  < 2e-16 ***
+   glucagon    0.822  0.62 53.8  -0.421   2.065     0.178    0.191    
+   ------------------------------------------------------------------- 
+  Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
+  Columns lower/upper/p.value adjusted for multiple comparisons -- max-test.
+  (adjustment within covariate name). 
+  (error when computing the adjusted columns lower/upper/p.value by numerical integration: 4.59e-09)
+  Model-based standard errors are derived from the observed information (column se). 
+  Degrees of freedom were computed using a Satterthwaite approximation (column df).
+#+end_example
+
+When the F-statistic corresponds to a single variable, its squared
+root multiplied by the sign of the regression coefficient leads to the
+partial correlation coefficient (column =partial.r=). This is
+equivalent to the following formula:
+#+BEGIN_EXPORT latex
+\[ R=\frac{\text{Wald}}{\sqrt{\text{Wald}^2 + df}} \]
+#+END_EXPORT
+
+where \(\text{Wald}\) is the Wald statistic (i.e. estimate divided by
+standard error) of each coefficient and \(\text{df}\) its degrees of
+freedom.
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+iTable <- model.tables(eCS2.lmm, columns = add("statistic"))
+iTable$statistic / sqrt(iTable$statistic^2+ iTable$df)
+effectsize::eta_squared(lmer(weight ~ time + glucagon + (1|id), data = df.NNA))
+cat("\n")
+#+END_SRC
+
+#+RESULTS:
+: [1]  0.9703522 -0.7014568 -0.8103389 -0.9590990  0.1778206
+: # Effect Size for ANOVA (Type III)
+: 
+: Parameter | Eta2 (partial) |       95% CI
+: -----------------------------------------
+: time      |           0.92 | [0.89, 1.00]
+: glucagon  |           0.03 | [0.00, 1.00]
+: 
+: - One-sided CIs: upper bound fixed at [1.00].>
+
+\bigskip
+
+\Warning =partial.r= and =partial.r2= are computed for all types of
+mixed models. But their interpretation as partial correlation and
+proportion of explained variance outside the covariance structures
+mentioned in this vignette is questionnable.
+
+\clearpage
+
 ** Model diagnostic
 
 The method =plot= can be used to display diagnostic plots about:
@@ -1897,7 +2111,6 @@ as.double(mu2 + Omega_21 * (100 - mu1) / Omega_11)
 
 \clearpage
 
-
 * Missing values and imputation
 
 ** Full information approach
@@ -2628,6 +2841,445 @@ logLik(lmm(weight ~ time + glucagon*ff, data = dfTest, repetition = ~time|id, me
 This is why, unless one knows what he/she is doing, it is not
 recommanded to use likelihood ratio test to assess relevance of mean
 parameters in mixed models estimated with REML.
+
+\clearpage
+
+* Sum of squares in a linear mixed model
+:PROPERTIES:
+:CUSTOM_ID: SM:sumSquares
+:END:
+
+All mixed model implemented in LMMstar can be written as:
+#+BEGIN_EXPORT latex
+\[ Y_{it} = X_{it}\beta + \varepsilon_{it} \text{ where } \varepsilon_{i} \sim \Gaus\left(0,\Omega\right)\]
+#+END_EXPORT
+where \(Y\) denote the outcome repeteadly measured within each cluster
+\(i\) where \(t\) indexes the repetitions. \(X\) denotes the
+covariates, \(\beta\) the mean parameters, \(\varepsilon\) the
+residuals, and \(\Omega\) the residual variance-covariance matrix.
+\(\Omega\) must be positive definite so there must exist a square
+postive definite matrix \(\Omega^{1/2}\) such that
+\(\Omega^{1/2}\Omega^{1/2} = \Omega\). Therefore the previous model is
+equivalent to:
+#+BEGIN_EXPORT latex
+\[ Y^*_{it} = X^*_{it}\beta + \varepsilon^*_{it} \text{ where } \varepsilon_{i} \sim \Gaus\left(0,I_T\right)\]
+#+END_EXPORT
+where \(Y^*_{i} = \Omega^{-1/2} Y_{i}\), \(X^*_{i} = \Omega^{-1/2}
+X_{i}\), \(\varepsilon^*_{i} = \Omega^{-1/2} \varepsilon_{i}\), and
+\(I_x\) is the identity matrix with \(x\) rows and columns. One can
+then introduce the projectors \(H= X \left(\trans{X}\Omega^{-1}
+X\right)^{-1}\trans{X} \Omega^{-1}\) and \(H^*= X^*
+\left(\trans{X^*}X^*\right)^{-1}\trans{X^*}\) onto the space spanned
+by \(X\) and \(X^*\) respectively. We can now define the "normalized"
+residual sum of squares as the squared sum of the normalized
+residuals:
+#+BEGIN_EXPORT latex
+\begin{align*}
+SSE^* = \trans{\varepsilon^*} \varepsilon^* &= \trans{Y^*} (I_{nT}-H^*) Y^* \\
+&= \trans{Y} \Omega^{-1} Y - \trans{Y} \Omega^{-1} X \left(\trans{X}\Omega^{-1} X\right)^{-1} \trans{X} \Omega^{-1} Y \\
+&= \trans{Y} (I_{nT}-\trans{H}) \Omega^{-1} (I_{nT}-H) Y 
+\end{align*}
+#+END_EXPORT
+The previous to last line uses that: \((I_{nT}-\trans{H}) \Omega^{-1}
+(I_{nT}-H)= \Omega^{-1} - \trans{H} \Omega^{-1} - \Omega^{-1}H +
+\trans{H} \Omega^{-1} H = \Omega^{-1} - \trans{H}\Omega^{-1}\) as
+\(\trans{H} \Omega^{-1} H = \Omega^{-1}HH=\Omega^{-1}H\) since \(H\)
+is a projector. Note that compared to the "traditional" SSE defined
+for linear regression and random effect models (e.g. see
+cite:christensen2002plane section 2.7), \(SSE=\omega SSE^{*}\) where
+\(\omega\) is the residual variance conditional on any random effects,
+i.e. \(SSE^{*}\) are the residual degrees of freedom. This is because
+the same definition for the sum of squares is used except that
+\(\varepsilon_{i} \sim \Gaus\left(0,\omega\Omega\right)\).
+
+\bigskip
+
+We can also define the "normalized" regression sum of squares:
+#+BEGIN_EXPORT latex
+\begin{align*}
+SSR^* = \trans{(X^*\beta)}X^*\beta &= \trans{\left(H^* Y^*\right)} H^* Y^* = \trans{Y^*} H^* Y^* \\
+&= \trans{Y} \trans{H} \Omega^{-1} Y^* = \trans{Y} \trans{H} \trans{H} \Omega^{-1} Y^* = \trans{Y} \trans{H} \Omega^{-1} H Y^* \\
+&= \widehat{\beta} \trans{X} \Omega^{-1} X \widehat{\beta}
+\end{align*}
+#+END_EXPORT
+where \(\widehat{\beta}= \left(\trans{X}\Omega^{-1}
+X\right)^{-1}\trans{X} \Omega^{-1} Y\). Note that when using the
+expected information \(SSR^* = \widehat{\beta}
+\Sigma^{-1}_{\widehat{\beta}} \widehat{\beta} \), i.e. it is the
+F-statistics times the number of parameters. Again the "traditional"
+SSR defined for linear regression and random effect models is
+proportional to this normalized SSR: \(SSR=\omega SSR^{*}\).
+
+\bigskip
+
+The proportion of explained variance of \(p\) parameters can thus be
+re-expressed as:
+#+BEGIN_EXPORT latex
+\begin{align*}
+R^2 &= \frac{SSR}{SSR+SSE} = \frac{SSR^*}{SSR^*+SSE^*}= \frac{Fp}{Fp+df}
+\end{align*}
+#+END_EXPORT
+where \(df\) denotes the residual degrees of freedom, typically
+\(n-p\) in a univariate linear model fitted with \(n\)
+observations. \Warning In practice \(df\) is estimated using the
+Satterthwaite approximation of the degrees of freedom of the
+regression coefficient to match results from other software package -
+both version are the same in univariate linear regression.
+
+\bigskip
+\bigskip
+
+*Illustration for a univariate linear model:*
+
+\bigskip
+
+Data without missing values:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+df.aov <- gastricbypassL[!is.na(gastricbypassL$glucagon),]
+#+END_SRC
+
+#+RESULTS:
+
+Traditional anova decomposition:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+e.lm <- lm(weight ~ time + glucagon, data = df.aov)
+car::Anova(e.lm, type = "II")
+#+END_SRC
+
+#+RESULTS:
+: Anova Table (Type II tests)
+: 
+: Response: weight
+:            Sum Sq Df F value    Pr(>F)    
+: time       6367.3  3  6.4308 0.0006329 ***
+: glucagon   1964.8  1  5.9531 0.0171207 *  
+: Residuals 24093.1 73                      
+: ---
+: Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+## Which can be reproduced "manually":
+tXX <- crossprod(model.matrix(e.lm))
+beta <- coef(e.lm)
+
+SSE <- sigma(e.lm)^2*df.residual(e.lm)
+SSR.glucagon <- t(beta[5]) %*% solve(solve(tXX)[5,5]) %*% beta[5]
+SSR.time <- t(beta[2:4]) %*% solve(solve(tXX)[2:4,2:4]) %*% beta[2:4]
+c(SSE = SSE, SSR.glucagon = SSR.glucagon, SSR.time = SSR.time,
+  F.time = (SSR.time/3)/(SSE/73),
+  F.glucagon = (SSR.glucagon/1)/(SSE/73))
+#+END_SRC
+
+#+RESULTS:
+:          SSE SSR.glucagon     SSR.time       F.time   F.glucagon 
+: 24093.113574  1964.764452  6367.324429     6.430810     5.953062
+
+
+Fit =lmm=:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+e.lmm <- lmm(weight ~ time + glucagon, data = df.aov)
+#+END_SRC
+
+#+RESULTS:
+
+Residual sum of squares (SSE):
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+SSEstar <- crossprod(residuals(e.lmm, type = "normalized"))
+c(SSEstar = SSEstar, SSE = SSEstar * sigma(e.lmm))
+#+END_SRC
+
+#+RESULTS:
+:  SSEstar      SSE 
+:    73.00 24093.11
+
+The normalized SSE can also be obtained using the =df.residual= method:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+df.residual(e.lmm)
+#+END_SRC
+
+#+RESULTS:
+: [1] 73
+
+Regression sum of squares (SSR):
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eBeta.lmm <- coef(e.lmm)
+eVcov.lmm <- vcov(e.lmm, type.information = "expected")
+
+SSRstar.glucagon <- eBeta.lmm[5] %*% solve(eVcov.lmm[5,5]) %*% eBeta.lmm[5] 
+SSRstar.time <- eBeta.lmm[2:4] %*% solve(eVcov.lmm[2:4,2:4]) %*% eBeta.lmm[2:4] 
+c(SSR.glucagon = SSRstar.glucagon * sigma(e.lmm),
+  SSR.time = SSRstar.time * sigma(e.lmm),
+  F.glucagon = SSRstar.glucagon,
+  F.time = SSRstar.time/3)
+#+END_SRC
+
+#+RESULTS:
+: SSR.glucagon     SSR.time   F.glucagon       F.time 
+:  1964.764452  6367.324429     5.953062     6.430810
+
+So the proportion of explained variance is:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+R2.glucagon <- SSRstar.glucagon/(SSRstar.glucagon+SSEstar)
+R2.glucagon
+#+END_SRC
+
+#+RESULTS:
+:            [,1]
+: [1,] 0.07540002
+
+and the corresponding partial correlation is:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+sign(coef(e.lmm)["glucagon"])*sqrt(R2.glucagon)
+#+END_SRC
+
+#+RESULTS:
+:            [,1]
+: [1,] -0.2745906
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+confint(e.lmm, columns = "partial.r")
+Wald/sqrt(Wald^2+SSEstar[1,1])
+#+END_SRC
+
+#+RESULTS:
+:             partial.r
+: (Intercept)        NA
+: timeB1w       -0.1530
+: timeA1w       -0.0377
+: timeA3m       -0.4127
+: glucagon      -0.2746
+: [1]  0.81973192 -0.15304958 -0.03773485 -0.41272097 -0.27459064
+
+\clearpage
+
+* Equivalent with other R packages
+
+** nlme package
+
+The model class obtained with the =lmm= function overlaps the model
+class of the =lme= and =gls= functions from the nlme package.
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+library(nlme)
+#+END_SRC
+
+For instance, the compound symmetry is equivalent to =corCompSymm=
+correlation structure, or to a random intercept model (when the within
+subject correlation is positive):
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eCS.gls <- gls(weight ~ time + glucagon, correlation = corCompSymm(form=~time|id),
+               data = gastricbypassL, na.action = na.omit)
+eCS.lme <- lme(weight ~ time + glucagon, random = ~1|id,
+               data = gastricbypassL, na.action = na.omit)
+logLik(eCS.lme)
+logLik(eCS.gls)
+logLik(eCS.lmm)
+#+END_SRC
+
+#+RESULTS:
+: 'log Lik.' -243.6005 (df=7)
+: 'log Lik.' -243.6005 (df=7)
+: [1] -243.6005
+
+The estimated random effect also match:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+range(coef(eCS.lmm, effects = "ranef")-ranef(eCS.lme))
+#+END_SRC
+
+#+RESULTS:
+: [1] -3.136988e-08  2.384361e-08
+
+Unstructured residual covariance matrix can also be obtained with
+=gls=:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eUN.gls <- gls(weight ~ time + glucagon,
+               correlation = corSymm(form=~as.numeric(time)|id),
+               weights = varIdent(form=~1|time),
+               data = gastricbypassL, na.action = na.omit)
+logLik(eUN.gls)
+logLik(eUN.lmm)
+#+END_SRC
+
+#+RESULTS:
+: 'log Lik.' -216.3189 (df=15)
+: [1] -216.3189
+
+\clearpage
+
+** lme4 package
+
+The model class obtained with the =lmm= function overlaps the model
+class of the =lmer= function from the lme4 package.
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+library(lme4)
+library(lmerTest)
+#+END_SRC
+
+#+RESULTS:
+
+For instance, the compound symmetry is equivalent to a random
+intercept model (when the within subject correlation is positive):
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eCS.lmer <- lmer(weight ~ time + glucagon + (1|id),
+                 data = gastricbypassL)
+logLik(eCS.lmer)
+logLik(eCS.lmm)
+#+END_SRC
+
+#+RESULTS:
+: 'log Lik.' -243.6005 (df=7)
+: [1] -243.6005
+
+The estimated random effects match:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+range(coef(eCS.lmm, effects = "ranef")-ranef(eCS.lmer)$id)
+#+END_SRC
+
+#+RESULTS:
+: [1] -3.167863e-08  2.406745e-08
+
+Nested random effects correspond to block unstructured:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eBCS.lmer <- lmer(weight ~ time*group + (1|id/baseline),
+                  data = gastricbypassL)
+logLik(eBCS.lmer)
+logLik(eBCS.lmm)
+#+END_SRC
+
+#+RESULTS:
+: 'log Lik.' -234.9713 (df=11)
+: [1] -234.9713
+
+And the estimated random effects still match:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eRanefBCS.lmm <- coef(eBCS.lmm, effects = "ranef")
+eRanefBCS.lmer <- ranef(eBCS.lmer)
+## id
+range(eRanefBCS.lmm[,"id"]-eRanefBCS.lmer$id)
+## baseline
+range(c(eRanefBCS.lmm[,"baseline1"],eRanefBCS.lmm[,"baseline2"])-ranef(eBCS.lmer)$`baseline:id`)
+#+END_SRC
+
+#+RESULTS:
+: [1] -5.831725e-06  9.091306e-06
+: [1] -8.584946e-05  7.897069e-05
+
+\clearpage
+
+An unstructure residual covariance matrix can also be obtained using
+random slopes:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eUN.lmer <- lmer(weight ~ time + glucagon + (0 + time|id),
+                 data = gastricbypassL, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+logLik(eUN.lmer)
+logLik(eUN.lmm)
+#+END_SRC
+
+#+RESULTS:
+: 'log Lik.' -216.3189 (df=16)
+: [1] -216.3189
+
+Note that however the uncertainty is quantified in a slightly different way, e.g.:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+anova(eUN.lmm)
+#+END_SRC
+
+#+RESULTS:
+: 		Multivariate Wald test 
+: 
+:                   F-statistic       df  p.value    
+:    mean: time          86.743 (3,19.0) 2.84e-11 ***
+:        : glucagon      13.518 (1,13.7)  0.00257  **
+
+do not match
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+anova(eUN.lmer)
+#+END_SRC
+
+#+RESULTS:
+: Type III Analysis of Variance Table with Satterthwaite's method
+:           Sum Sq Mean Sq NumDF  DenDF F value    Pr(>F)    
+: time     114.275  38.092     3 20.483  87.242 7.784e-12 ***
+: glucagon  10.125  10.125     1 16.784  23.191 0.0001671 ***
+: ---
+: Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+I think this is because =lmer= base uncertainty computation on the
+expected information (instead of the observed information). Doing so
+leads to more similar results:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eUN2.lmm <- lmm(weight ~ time + glucagon, repetition = ~time|id,
+                structure = "UN", data = gastricbypassL, type.information = "expected")
+suppressWarnings(anova(eUN2.lmm))
+#+END_SRC
+
+#+RESULTS:
+: 		Multivariate Wald test 
+: 
+:                   F-statistic       df  p.value    
+:    mean: time          87.253 (3,22.5) 1.48e-12 ***
+:        : glucagon      23.198 (1,19.4) 0.000114 ***
+
+** effectsize package (\(R^2\) or \(\eta^2\))
+
+Partial \(\eta^2\) can be computed based on =lmer= using the effectsize package:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+library(effectsize)
+eta_squared(eCS.lmer)
+cat("\n")
+#+END_SRC
+
+#+RESULTS:
+: # Effect Size for ANOVA (Type III)
+: 
+: Parameter | Eta2 (partial) |       95% CI
+: -----------------------------------------
+: time      |           0.92 | [0.89, 1.00]
+: glucagon  |           0.03 | [0.00, 1.00]
+: 
+: - One-sided CIs: upper bound fixed at [1.00].>
+
+and are approximately equal to the ones from LMMstar:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+print(anova(eCS.lmm), columns = add("partial.r"))
+#+END_SRC
+
+#+RESULTS:
+: 		Multivariate Wald test 
+: 
+:             F-statistic       df p.value partial.r2    
+:    time         217.975 (3,53.9)  <2e-16      0.924 ***
+:    glucagon       1.757 (1,53.8)   0.191      0.032
+
+The will not be true for heteroschedastic models:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+print(anova(eUN.lmm), columns = add("partial.r"))
+#+END_SRC
+
+#+RESULTS:
+: 		Multivariate Wald test 
+: 
+:             F-statistic       df  p.value partial.r2    
+:    time          86.743 (3,19.0) 2.84e-11      0.932 ***
+:    glucagon      13.518 (1,13.7)  0.00257      0.497  **
+
+compared to:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eta_squared(eUN.lmer)
+cat("\n")
+#+END_SRC
+
+#+RESULTS:
+: # Effect Size for ANOVA (Type III)
+: 
+: Parameter | Eta2 (partial) |       95% CI
+: -----------------------------------------
+: time      |           0.93 | [0.87, 1.00]
+: glucagon  |           0.58 | [0.29, 1.00]
+: 
+: - One-sided CIs: upper bound fixed at [1.00].>
+
+But in that case both may be misleading as the proportion of explained
+variance is not clearly defined.
 
 * CONFIG                                                           :noexport:
 #+LANGUAGE:  en

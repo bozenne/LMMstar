@@ -5,44 +5,46 @@ Reallocating 'name_of_file' (item size: 1) to 8 items.
 The style file: apalike.bst
 Reallocating 'name_of_file' (item size: 1) to 13 items.
 Database file #1: bibliography.bib
-You've used 2 entries,
+Warning--can't use both volume and number fields in christensen2002plane
+You've used 4 entries,
             1935 wiz_defined-function locations,
-            487 strings with 4089 characters,
-and the built_in function-call counts, 795 in all, are:
-= -- 79
-> -- 25
-< -- 1
-+ -- 10
-- -- 8
-* -- 70
-:= -- 141
-add.period$ -- 6
-call.type$ -- 2
-change.case$ -- 14
-chr.to.int$ -- 2
-cite$ -- 2
-duplicate$ -- 28
-empty$ -- 59
-format.name$ -- 10
-if$ -- 150
+            500 strings with 4391 characters,
+and the built_in function-call counts, 1395 in all, are:
+= -- 135
+> -- 39
+< -- 4
++ -- 14
+- -- 12
+* -- 116
+:= -- 250
+add.period$ -- 12
+call.type$ -- 4
+change.case$ -- 25
+chr.to.int$ -- 4
+cite$ -- 5
+duplicate$ -- 56
+empty$ -- 107
+format.name$ -- 16
+if$ -- 266
 int.to.chr$ -- 1
 int.to.str$ -- 0
-missing$ -- 2
-newline$ -- 13
-num.names$ -- 6
-pop$ -- 9
+missing$ -- 5
+newline$ -- 23
+num.names$ -- 12
+pop$ -- 18
 preamble$ -- 1
-purify$ -- 14
+purify$ -- 26
 quote$ -- 0
-skip$ -- 22
+skip$ -- 44
 stack$ -- 0
-substring$ -- 70
-swap$ -- 2
-text.length$ -- 0
+substring$ -- 103
+swap$ -- 6
+text.length$ -- 1
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 12
-warning$ -- 0
-while$ -- 8
+type$ -- 22
+warning$ -- 1
+while$ -- 13
 width$ -- 0
-write$ -- 28
+write$ -- 54
+(There was 1 warning)

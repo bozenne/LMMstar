@@ -1,5 +1,16 @@
 \begin{thebibliography}{}
 
+\bibitem[Christensen, 2011]{christensen2002plane}
+Christensen, R. (2011).
+\newblock {\em Plane answers to complex questions (4th edition)}, volume~35.
+\newblock Springer.
+
+\bibitem[Lakens, 2013]{lakens2013calculating}
+Lakens, D. (2013).
+\newblock Calculating and reporting effect sizes to facilitate cumulative
+  science: a practical primer for t-tests and anovas.
+\newblock {\em Frontiers in psychology}, 4:863.
+
 \bibitem[Oldford, 2016]{oldford2016self}
 Oldford, R.~W. (2016).
 \newblock Self-calibrating quantile--quantile plots.

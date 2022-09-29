@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 23 2022 (16:59) 
 ## Version: 
-## Last-Updated: sep 23 2022 (17:00) 
+## Last-Updated: sep 28 2022 (12:08) 
 ##           By: Brice Ozenne
-##     Update #: 1
+##     Update #: 2
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,6 +15,14 @@
 ## 
 ### Code:
 
+##' @title Remove Columns from Output
+##' @description Auxiliary function that can be used when specifying the argument \code{columns} (e.g. calling \code{confint.lmm}) to remove columns.
+##'
+##' @param ... [character vector] name of the columns to be removed to the default output.
+##'
+##' @return A character vector
+##' 
+##' @export
 remove <- function(...){
     dots <- list(...)
     return(stats::setNames(unlist(dots),rep("remove",length(dots))))

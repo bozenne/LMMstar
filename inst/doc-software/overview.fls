@@ -1571,6 +1571,9 @@ INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmbsy10.tfm
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmbsy10.tfm
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmbsy7.tfm
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmtt10.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmr6.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmbx6.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\rm-lmbx10.tfm
 INPUT .\figures\diag-scatterplot.pdf
 INPUT .\figures\diag-scatterplot.pdf
 INPUT figures\diag-scatterplot.pdf
@@ -1598,7 +1601,6 @@ INPUT figures\diag-qqplot.pdf
 INPUT .\figures\diag-qqplot.pdf
 INPUT .\figures\diag-qqplot.pdf
 INPUT .\figures\diag-qqplot.pdf
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\rm-lmbx10.tfm
 INPUT .\figures\fit-autoplot.pdf
 INPUT .\figures\fit-autoplot.pdf
 INPUT figures\fit-autoplot.pdf
@@ -1623,7 +1625,6 @@ INPUT figures\fit-pres.pdf
 INPUT .\figures\fit-pres.pdf
 INPUT .\figures\fit-pres.pdf
 INPUT .\figures\fit-pres.pdf
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmr6.tfm
 INPUT .\figures\gg-baseAdj.pdf
 INPUT .\figures\gg-baseAdj.pdf
 INPUT figures\gg-baseAdj.pdf
@@ -1646,6 +1647,7 @@ INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmmib5.tfm
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmbsy10.tfm
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmbsy7.tfm
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmbsy5.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\rm-lmbx12.tfm
 OUTPUT overview.soc
 OUTPUT overview.loc
 INPUT overview.aux
@@ -1654,13 +1656,15 @@ INPUT .\overview.out
 INPUT C:\Program Files\MiKTeX 2.9\fonts\enc\dvips\lm\lm-mathsy.enc
 INPUT C:\Program Files\MiKTeX 2.9\fonts\enc\dvips\lm\lm-rm.enc
 INPUT C:\Program Files\MiKTeX 2.9\fonts\enc\dvips\lm\lm-mathit.enc
-INPUT C:\Program Files\MiKTeX 2.9\fonts\enc\dvips\lm\lm-mathex.enc
 INPUT C:\Program Files\MiKTeX 2.9\fonts\enc\dvips\lm\lm-ec.enc
+INPUT C:\Program Files\MiKTeX 2.9\fonts\enc\dvips\lm\lm-mathex.enc
 INPUT C:\Program Files\MiKTeX 2.9\fonts\enc\dvips\lm\lm-ts1.enc
 INPUT C:\Program Files\MiKTeX 2.9\fonts\type1\public\lm\lmbx10.pfb
 INPUT C:\Program Files\MiKTeX 2.9\fonts\type1\public\lm\lmbx10.pfb
 INPUT C:\Program Files\MiKTeX 2.9\fonts\type1\public\lm\lmbx12.pfb
 INPUT C:\Program Files\MiKTeX 2.9\fonts\type1\public\lm\lmbx12.pfb
+INPUT C:\Program Files\MiKTeX 2.9\fonts\type1\public\lm\lmbx6.pfb
+INPUT C:\Program Files\MiKTeX 2.9\fonts\type1\public\lm\lmbx6.pfb
 INPUT C:\Program Files\MiKTeX 2.9\fonts\type1\public\lm\lmbx7.pfb
 INPUT C:\Program Files\MiKTeX 2.9\fonts\type1\public\lm\lmbx7.pfb
 INPUT C:\Program Files\MiKTeX 2.9\fonts\type1\public\lm\lmbx8.pfb
