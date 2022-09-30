@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: sep 23 2022 (17:20) 
+## Last-Updated: sep 29 2022 (12:42) 
 ##           By: Brice Ozenne
-##     Update #: 501
+##     Update #: 513
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -37,7 +37,7 @@
 ##'
 ##' @seealso the function \code{anova} to perform inference about linear combinations of coefficients and adjust for multiple comparisons.
 ##' 
-##' @return A data.frame containing for each coefficient (in rows): \itemize{
+##' @return A data.frame containing some of the following coefficient (in rows): \itemize{
 ##' \item column estimate: the estimate.
 ##' \item column se: the standard error.
 ##' \item column statistic: the test statistic.
@@ -46,6 +46,7 @@
 ##' \item column upper: the upper bound of the confidence interval.
 ##' \item column null: the null hypothesis.
 ##' \item column p.value: the p-value relative to the null hypothesis.
+##' \item column partial.r: transformation of the test statistic and degree of freedom that can be interpreted as partial correlation with certain covariance structure. See vignette.
 ##' }
 ##' 
 ##' @examples
@@ -150,6 +151,10 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     }else{
         columns <- options$columns.confint
     }
+    if("partial.r" %in% columns && (object$design$vcov$type != "CS" || object$design$vcov$heterogeneous != FALSE)){
+        warning("Column \"partial.r\" may not have a simple interpretation. \n", sep = "")
+    }
+
 
     ## ** get estimate
     beta <- coef(object, effects = effects, 
@@ -294,6 +299,11 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
 ##'  \item \code{"pool.rubin"}: average of the estimates and compute the uncertainty according to Rubin's rule (Barnard et al. 1999).
 ##' }
 ##'
+##' \bold{Explained variance and partial correlation}: can be extracted by adding \code{"partial.r"} to the argument \code{columns} for certain types of mixed models,
+##' those equivalent to random effect models (see vignette). 
+##' Explained variance will be displayed in the column \code{partial.r2} (Multivariate section)
+##' and partial correlation will be displayed in the column \code{partial.r} (Univariate section).
+##' WARNING: for other type of mixed models, typically heteroschedastic, the values in the columns \code{partial.r2} and \code{partial.r} may not have any intuitive interpretation. 
 ##' @references Barnard and Rubin, Small-sample degrees of freedom with multiple imputation. Biometrika (1999), 86(4):948-955.
 
 ## * confint.Wald_lmm (code)
@@ -343,6 +353,15 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
     }else{
         columns <- options$columns.confint
     }
+
+    ## sanity check
+    if(!inherits(object,"rbindWald_lmm") && !is.null(object$object$structure)){
+        if("partial.r" %in% columns && (object$object$structure["type"] != "CS" || object$object$structure["heterogeneous"] != FALSE)){
+            warning("Column \"partial.r\" may not have a simple interpretation. \n", sep = "")
+        }
+    }
+ 
+
     type <- unique(object$multivariate$type)
     df <- object$args$df
     

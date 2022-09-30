@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: Sep 23 2022 (11:58) 
+## Last-Updated: sep 30 2022 (15:48) 
 ##           By: Brice Ozenne
-##     Update #: 886
+##     Update #: 889
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -316,7 +316,18 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
         ## vcov values
         iResiduals.long <- partialY - design$mean[,param.mu2,drop=FALSE] %*% param.value[param.mu2]
         outInit <- .initialize(design$vcov, residuals = iResiduals.long, Xmean = design$mean, index.cluster = index.cluster)
-        param.value[names(outInit)] <- outInit
+
+        ## check initialization leads to a positive definite matrix 
+        initOmega <- .calc_Omega(object = design$vcov, param = outInit, keep.interim = TRUE)
+        test.npd <- sapply(initOmega,function(iOmega){any(eigen(iOmega)$values<0)})
+        if(any(test.npd)){ ## otherwise initialize as compound symmetry
+            param.value[param.sigma] <- outInit[param.sigma]
+            param.value[param.k] <- outInit[param.k]
+            param.value[param.rho] <- stats::median(outInit[param.rho])            
+        }else{        
+            param.value[names(outInit)] <- outInit
+        }
+
         if(trace>1){
             print(param.value)
         }

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: sep  6 2022 (17:55) 
+## Last-Updated: sep 29 2022 (12:36) 
 ##           By: Brice Ozenne
-##     Update #: 1183
+##     Update #: 1185
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -531,7 +531,8 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         out$object <- list(outcome = object$outcome$var,
                            method.fit = object$method.fit,
                            type.information = type.information,
-                           cluster.var = object$cluster$var)
+                           cluster.var = object$cluster$var,
+                           structure = c(type = object$design$vcov$type, heterogeneous = object$design$vcov$heterogeneous))
         if(!is.na(attr(object$cluster$var,"original"))){
             out$object$cluster <- object$cluster$levels
         }

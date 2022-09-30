@@ -27,7 +27,7 @@ and on the right hand side the adjustment set. Can also be a list of formula for
 
 \item{structure}{[character] Specify the residual variance-covariance structure.
 Without repetitions, either \code{"UN"} or \code{"CS"}.
-With repetitions, one of \code{"UN"}, \code{"HLAG"}, \code{"LAG"}, \code{"CS"}.}
+With repetitions, one of \code{"UN"}, \code{"PEARSON"}, \code{"HLAG"}, \code{"LAG"}, \code{"HCS"}, \code{"CS"}.}
 
 \item{by}{[character] variable used to stratified the correlation on.}
 
@@ -43,7 +43,7 @@ With repetitions, one of \code{"UN"}, \code{"HLAG"}, \code{"LAG"}, \code{"CS"}.}
 }
 \value{
 A data.frame with the estimate partial correlation (rho), standard error, degree of freedom, confidence interval, and p-value (test of no correlation).
-When \code{structure="CS"} is used with repeated measurements, a second correlation coefficient (r) is output where the between subject variance has been removed (similar to Bland et al. 1995).
+When \code{structure="CS"} or \code{structure="HCS"} is used with repeated measurements, a second correlation coefficient (r) is output where the between subject variance has been removed (similar to Bland et al. 1995).
 }
 \description{
 Estimate the partial correlation between two variables where the adjustment set may differ between variables.
@@ -53,10 +53,12 @@ Fit a mixed model to estimate the partial correlation with the following varianc
 \itemize{
 \item \bold{no repetition}: unstructure or compound symmetry structure for M observations, M being the number of variables on the left hand side (i.e. outcomes).
 \item \bold{repetition}: structure for M*T observations where M being the number of variables (typically 2) and T the number of repetitions. 
-Can be \code{"UN"}: unstructured (except the off-diagonal containing the correlation parameter),
-or \code{"HLAG"}: toeplitz by block with variable and repetition specific variance,
-or \code{"LAG"}: toeplitz by block, i.e. correlation depending on the gap between repetitions and specific to each variable,
-or \code{"CS"}: compound symmetry by block, i.e. variable specific correlation constant over repetitions (except for the off-diagonal containing the correlation parameter).
+Can be \code{"UN"}: unstructured (except the off-diagonal containing the correlation parameter which is constant),
+or \code{"PEARSON"}: same as unstructured except it only uses a single variance parameter per variable, i.e. it assumes constant variance over repetitions.
+or \code{"HLAG"}: toeplitz by block with variable and repetition specific variance.
+or \code{"LAG"}: toeplitz by block, i.e. correlation depending on the gap between repetitions and specific to each variable. It assumes constant variance over repetitions.
+or \code{"HCS"}: heteroschedastic compound symmetry by block, i.e. variable specific correlation constant over repetitions. A specific parameter is used for the off-diagonal crossing the variables at the same repetition (which is the marginal correlation parameter).
+or \code{"CS"}: compound symmetry by block. It assumes constant variance and correlation over repetitions.
 }
 }
 \examples{

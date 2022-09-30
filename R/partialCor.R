@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: Sep 23 2022 (12:02) 
+## Last-Updated: sep 30 2022 (15:38) 
 ##           By: Brice Ozenne
-##     Update #: 293
+##     Update #: 303
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,7 +25,7 @@
 ##' @param repetition [formula] Specify the structure of the data: the time/repetition variable and the grouping variable, e.g. ~ time|id.
 ##' @param structure [character] Specify the residual variance-covariance structure.
 ##' Without repetitions, either \code{"UN"} or \code{"CS"}.
-##' With repetitions, one of \code{"UN"}, \code{"HLAG"}, \code{"LAG"}, \code{"CS"}.
+##' With repetitions, one of \code{"UN"}, \code{"PEARSON"}, \code{"HLAG"}, \code{"LAG"}, \code{"HCS"}, \code{"CS"}.
 ##' @param by [character] variable used to stratified the correlation on.
 ##' @param effects [character or matrix] type of contrast to be used for comparing the correlation parameters. One of \code{"Dunnett"}, \code{"Tukey"}, \code{"Sequen"}, or a contrast matrix.
 ##' @param rhs [numeric vector] right hand side for the comparison of correlation parameters. 
@@ -37,14 +37,16 @@
 ##' \itemize{
 ##' \item \bold{no repetition}: unstructure or compound symmetry structure for M observations, M being the number of variables on the left hand side (i.e. outcomes).
 ##' \item \bold{repetition}: structure for M*T observations where M being the number of variables (typically 2) and T the number of repetitions. 
-##' Can be \code{"UN"}: unstructured (except the off-diagonal containing the correlation parameter),
-##' or \code{"HLAG"}: toeplitz by block with variable and repetition specific variance,
-##' or \code{"LAG"}: toeplitz by block, i.e. correlation depending on the gap between repetitions and specific to each variable,
-##' or \code{"CS"}: compound symmetry by block, i.e. variable specific correlation constant over repetitions (except for the off-diagonal containing the correlation parameter).
+##' Can be \code{"UN"}: unstructured (except the off-diagonal containing the correlation parameter which is constant),
+##' or \code{"PEARSON"}: same as unstructured except it only uses a single variance parameter per variable, i.e. it assumes constant variance over repetitions.
+##' or \code{"HLAG"}: toeplitz by block with variable and repetition specific variance.
+##' or \code{"LAG"}: toeplitz by block, i.e. correlation depending on the gap between repetitions and specific to each variable. It assumes constant variance over repetitions.
+##' or \code{"HCS"}: heteroschedastic compound symmetry by block, i.e. variable specific correlation constant over repetitions. A specific parameter is used for the off-diagonal crossing the variables at the same repetition (which is the marginal correlation parameter).
+##' or \code{"CS"}: compound symmetry by block. It assumes constant variance and correlation over repetitions.
 ##' }
 ##'
 ##' @return A data.frame with the estimate partial correlation (rho), standard error, degree of freedom, confidence interval, and p-value (test of no correlation).
-##' When \code{structure="CS"} is used with repeated measurements, a second correlation coefficient (r) is output where the between subject variance has been removed (similar to Bland et al. 1995).
+##' When \code{structure="CS"} or \code{structure="HCS"} is used with repeated measurements, a second correlation coefficient (r) is output where the between subject variance has been removed (similar to Bland et al. 1995).
 ##'
 ##' @references
 ##'  Bland J M, Altman D G. Statistics notes: Calculating correlation coefficients with repeated observations: Part 1—correlation within subjects BMJ 1995; 310 :446 doi:10.1136/bmj.310.6977.446 
@@ -276,10 +278,16 @@ partialCor <- function(formula, data, repetition = NULL, structure = NULL, by = 
         if(is.null(structure)){
             structure <- "CS"
         }else{
-            structure <- match.arg(structure, c("UN","HLAG","LAG","CS"))
+            structure <- match.arg(structure, c("UN","PEARSON","HLAG","LAG","HCS","CS"))
         }
         if(structure=="HLAG"){
             structure2 <- do.call(TOEPLITZ, args = list(formula = stats::as.formula(paste("~",name.time,"+CCvariableCC")), heterogeneous = "LAG", add.time = FALSE))
+        }else if(structure=="PEARSON"){
+            structure2 <- do.call(TOEPLITZ, args = list(formula = list(~CCvariableCC,stats::as.formula(paste("~",name.time,"+CCvariableCC"))), heterogeneous = "UN", add.time = FALSE))
+        }else if(structure=="HCS"){
+            structure2 <- do.call(TOEPLITZ, args = list(formula = list(stats::as.formula(paste("~",name.time,"+CCvariableCC")),
+                                                                       stats::as.formula(paste("~",name.time,"+CCvariableCC"))),
+                                                        heterogeneous = "CS", add.time = FALSE))
         }else{
             structure2 <- do.call(TOEPLITZ, args = list(heterogeneous = structure))
         }
@@ -303,7 +311,7 @@ partialCor <- function(formula, data, repetition = NULL, structure = NULL, by = 
                 out <- out[keep.rho,,drop=FALSE]
 
                 ## compute conditional correlation
-                if((length(keep.rho)==1) && (structure=="CS")){
+                if((length(keep.rho)==1) && (structure %in% c("CS","HCS"))){
                     name.rho2 <- e.lmm$design$param[e.lmm$design$param$type=="rho","name"][grepl("R.",code.rho)]
                     sub.rho <- setdiff(name.rho, keep.rho)
 

@@ -92,6 +92,7 @@ gastricbypassL$visit <- as.numeric(gastricbypassL$time) ## convert to numeric
 gastricbypassL$baseline <- gastricbypassL$visit<=2
 #+END_SRC
 #+RESULTS:
+
 rescale the glucagon values
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 gastricbypassL$glucagon <- as.double(scale(gastricbypassL$glucagonAUC))+5
@@ -186,7 +187,7 @@ partialCor(weight + glucagonAUC ~ group,
 \clearpage
 
 * Linear mixed model
-** Classical covariance patterns
+n** Classical covariance patterns
 
 Several build-in covariance patterns can be used when specifying the
 linear model. The most basic ones are the *identity* structure:
@@ -3261,6 +3262,10 @@ print(anova(eUN.lmm), columns = add("partial.r"))
 :             F-statistic       df  p.value partial.r2    
 :    time          86.743 (3,19.0) 2.84e-11      0.932 ***
 :    glucagon      13.518 (1,13.7)  0.00257      0.497  **
+: 
+: Advarselsbesked:
+: I summary.Wald_lmm(object = list(multivariate = list(type = c("mu",  :
+:   Column "partial.r2" may not have a simple interpretation.
 
 compared to:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no

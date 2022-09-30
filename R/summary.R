@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: sep 29 2022 (11:57) 
+## Last-Updated: sep 29 2022 (12:47) 
 ##           By: Brice Ozenne
-##     Update #: 1097
+##     Update #: 1102
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -424,6 +424,12 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
     }
     if(length(columns.multivariate)==0){
         print.multivariate <- FALSE
+    }
+    if(!inherits(object,"rbindWald_lmm") && !is.null(object$object$structure)){
+        if("partial.r" %in% columns && print.multivariate && (object$object$structure["type"] != "CS" || object$object$structure["heterogeneous"] != FALSE)){
+            warning("Column \"partial.r2\" may not have a simple interpretation. \n", sep = "")
+            ## another warning will be display for the univariate version (i.e. partial.r) when calling confints
+        }
     }
 
     if("df" %in% columns.multivariate){

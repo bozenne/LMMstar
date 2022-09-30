@@ -50,7 +50,7 @@ Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \
 \item{...}{Not used. For compatibility with the generic method.}
 }
 \value{
-A data.frame containing for each coefficient (in rows): \itemize{
+A data.frame containing some of the following coefficient (in rows): \itemize{
 \item column estimate: the estimate.
 \item column se: the standard error.
 \item column statistic: the test statistic.
@@ -59,6 +59,7 @@ A data.frame containing for each coefficient (in rows): \itemize{
 \item column upper: the upper bound of the confidence interval.
 \item column null: the null hypothesis.
 \item column p.value: the p-value relative to the null hypothesis.
+\item column partial.r: transformation of the test statistic and degree of freedom that can be interpreted as partial correlation with certain covariance structure. See vignette.
 }
 }
 \description{
