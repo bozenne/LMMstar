@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: sep 29 2022 (12:42) 
+## Last-Updated: okt  4 2022 (13:40) 
 ##           By: Brice Ozenne
-##     Update #: 513
+##     Update #: 519
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -498,7 +498,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
                 }else if(iMethod == "pool.gls"){
                     iEigen <- eigen(iVcov)
                     iEigen.subset <- which(abs(iEigen$values) > 1e-10)
-                    
+
                     if(length(iEigen.subset)==0){
                         stop("All eigenvalues  of the variance-covariance matrix are close to 0 (<1e-12). \n")
                     }else if(any(abs(iEigen$values) <= 1e-10)){
@@ -508,7 +508,6 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
                     iWeight <- iPsum^2/iEigen$values[iEigen.subset]
                     iWPstar <- rowSums(sweep(iEigen$vectors[,iEigen.subset,drop=FALSE], FUN = "*", MARGIN = 2, STATS = iWeight/iPsum))
                     iC.pool <- rbind(iWPstar/sum(iWeight))
-
                 }
                 iVcov.pool <- as.double(iC.pool %*% iVcov %*% t(iC.pool))
 
@@ -613,6 +612,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
             out[iIndex.table[1],"upper"] <- out[iIndex.table[1],"estimate"] + out[iIndex.table[1],"se"] * stats::qt(1-alpha/2, df = pool.df)
             out[iIndex.table[1],"partial.r"] <- NA
             out[iIndex.table[1],"p.value"] <- 2*(1-stats::pt( abs(out[iIndex.table[1],"statistic"]), df = pool.df ))
+            attr(out,"contrast") <- iC.pool
 
         }else if(iMethod == "single-step"){
             iCi <- confint(iGlht)

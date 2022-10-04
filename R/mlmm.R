@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: sep 23 2022 (17:50) 
+## Last-Updated: okt  4 2022 (10:22) 
 ##           By: Brice Ozenne
-##     Update #: 175
+##     Update #: 184
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -109,6 +109,9 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
         data[[by]] <- interaction(data[by.keep], sep=",")
     }else{
         by.keep <- by
+        if(is.factor(data[[by]])){
+            data[[by]] <- droplevels(data[[by]])
+        }
     }
     if(is.null(backtransform)){
         if(is.null(transform.sigma) && is.null(transform.k) && is.null(transform.rho)){
@@ -167,7 +170,7 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
             }else{
                 diag(ls.Cmat[[iName]][iNameCoef,iNameCoef]) <- 1
             }
-            ls.Cmat[[iName]] <- ls.Cmat[[iName]][rowSums(abs(ls.Cmat[[iName]]))!=0,] ## remove lines with only 0
+            ls.Cmat[[iName]] <- ls.Cmat[[iName]][rowSums(abs(ls.Cmat[[iName]]))!=0,,drop=FALSE] ## remove lines with only 0
         }
         rhs <- NULL
 

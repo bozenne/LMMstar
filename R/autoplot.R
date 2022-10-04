@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: sep  2 2022 (09:14) 
+## Last-Updated: okt  4 2022 (13:59) 
 ##           By: Brice Ozenne
-##     Update #: 273
+##     Update #: 276
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -382,7 +382,6 @@ autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 
         midpoint <- add.args$midpoint
 
         Sigma_t <- stats::cov2cor(object$vcov)
-        
         ## from matrix to long format
         table <- as.data.frame(cbind(which(is.na(NA*Sigma_t), arr.ind = TRUE),value = as.numeric(Sigma_t)))
         rownames(table) <- NULL
@@ -407,8 +406,7 @@ autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 
             name.x <- ""
             name.y <- ""
         }
-
-        table$row <- as.factor(table$row)
+        table$row <- factor(table$row, levels = unique(table$row))
         table$col <- factor(table$col, levels = rev(levels(table$row)))
         gg <- ggplot2::ggplot(table) + ggplot2::geom_tile(ggplot2::aes_string(x="row",y="col",fill="value"))
 
