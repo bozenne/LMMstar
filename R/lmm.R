@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: sep 26 2022 (09:30) 
+## Last-Updated: okt  5 2022 (11:31) 
 ##           By: Brice Ozenne
-##     Update #: 2030
+##     Update #: 2032
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -37,8 +37,10 @@
 ##'
 ##' @details \bold{Computation time} the \code{lmm} has not been developped to be a fast function as, by default, it uses REML estimation with the observed information matrix and uses a Satterthwaite approximation to compute degrees of freedom (this require to compute the third derivative of the log-likelihood which is done by numerical differentiation). The computation time can be substantially reduced by using ML estimation with the expected information matrix and no calculation of degrees of freedom: arguments \code{method.fit="ML"}, \code{type.information="expected"}, \code{df=FALSE}. This will, however, lead to less accurate p-values and confidence intervals in small samples.
 ##'
-##' By default, the estimation of the model parameters will be made using the \code{nlme::gls} function.
-##' See argument optimizer in \code{\link{LMMstar.options}}
+##' By default, the estimation of the model parameters will be made using a Newton Raphson algorithm.
+##' This algorithm does not ensure that the residual covariance matrix is positive definite and therefore may sometimes fail.
+##' When using an unstructured pattern, i.e. \code{structure="UN"} the \code{nlme::gls} may be preferable as it can ensures positve definitness.
+##' See argument optimizer in \code{\link{LMMstar.options}}.
 ##'
 ##' \bold{Argument control:} when using the optimizer \code{"FS"}, the following elements can be used
 ##' \itemize{

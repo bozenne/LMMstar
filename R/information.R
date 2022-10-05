@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: sep  1 2022 (09:54) 
+## Last-Updated: okt  5 2022 (11:49) 
 ##           By: Brice Ozenne
-##     Update #: 1059
+##     Update #: 1068
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -418,7 +418,11 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
                     
                     iDouble2Mat <- as.vector(precompute$XX$key)
                     ## denominator
-                    REML.denom <- REML.denom + (as.double(iOmegaM1) %*% iX)[iDouble2Mat]
+                    if(is.null(precompute$X.OmegaM1.X)){
+                        REML.denom <- REML.denom + (as.double(iOmegaM1) %*% iX)[iDouble2Mat]
+                    }else{
+                        REML.denom <- REML.denom + precompute$X.OmegaM1.X[[iPattern]][iDouble2Mat]
+                    }
                     ## numerator 1
                     iX_OmegaM1_dOmega_OmegaM1_X <- t(iX) %*% OmegaM1_dOmega_OmegaM1[[iPattern]]
                     for(iVarcoef in iName.varcoef){ ## iVarcoef <- iName.varcoef[1]
@@ -466,6 +470,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
 
     ## ** export
     if(REML && test.vcov){
+        
         REML.denomM1 <- solve(REML.denom)
         REML.numerator2.bis <- array(NA, dim = dim(REML.numerator2), dimnames = dimnames(REML.numerator2))
         ls.REML.numerator1.denomM1 <- stats::setNames(lapply(1:dim(REML.numerator1)[3], FUN = function(iDim){REML.numerator1[,,iDim] %*% REML.denomM1}), dimnames(REML.numerator1)[[3]])

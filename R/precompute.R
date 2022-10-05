@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 22 2021 (13:47) 
 ## Version: 
-## Last-Updated: jun 27 2022 (12:21) 
+## Last-Updated: okt  5 2022 (11:40) 
 ##           By: Brice Ozenne
-##     Update #: 25
+##     Update #: 27
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,7 +21,6 @@
 
     p <- NCOL(X)
     n.pattern <- length(pattern)
-
     out <- list(pattern = stats::setNames(lapply(pattern, function(iPattern){matrix(0, nrow = pattern.ntime[iPattern]*pattern.ntime[iPattern], ncol = p*(p+1)/2)}), pattern),
                 key = matrix(as.numeric(NA),nrow=p,ncol=p,dimnames=list(colnames(X),colnames(X))),
                 Xpattern = stats::setNames(vector(mode = "list", length = n.pattern),pattern))

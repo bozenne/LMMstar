@@ -21,8 +21,8 @@
 
 \item{level}{[numeric, 0-1] nominal coverage of the confidence intervals.}
 
-\item{method}{[character] type of adjustment for multiple comparisons, e.g. one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}, \code{"single-step2"}.
-Alternatively, method for combining the estimates, e.g. one of \code{"average"}, \code{"pool.se"}, \code{"pool.rubin"}.}
+\item{method}{[character] type of adjustment for multiple comparisons, one of \code{"none"}, \code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}.
+Alternatively, method for combining the estimates, one of \code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.rubin"}.}
 
 \item{columns}{[character vector] Columns to be output.
 Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}, \code{"partial.r"}.}

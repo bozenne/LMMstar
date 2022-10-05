@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: okt  4 2022 (13:40) 
+## Last-Updated: okt  5 2022 (13:05) 
 ##           By: Brice Ozenne
-##     Update #: 519
+##     Update #: 521
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -274,8 +274,8 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
 ##' @param object a \code{Wald_lmm} object
 ##' @param parm Not used. For compatibility with the generic method.
 ##' @param level [numeric, 0-1] nominal coverage of the confidence intervals.
-##' @param method [character] type of adjustment for multiple comparisons, e.g. one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}, \code{"single-step2"}.
-##' Alternatively, method for combining the estimates, e.g. one of \code{"average"}, \code{"pool.se"}, \code{"pool.rubin"}.
+##' @param method [character] type of adjustment for multiple comparisons, one of \code{"none"}, \code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}.
+##' Alternatively, method for combining the estimates, one of \code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.rubin"}.
 ##' @param columns [character vector] Columns to be output.
 ##' Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}, \code{"partial.r"}.
 ##' @param backtransform [logical] should the estimates, standard errors, and confidence intervals be backtransformed?

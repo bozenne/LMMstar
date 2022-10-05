@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: aug 24 2022 (10:50) 
+## Last-Updated: okt  5 2022 (11:09) 
 ##           By: Brice Ozenne
-##     Update #: 241
+##     Update #: 246
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -95,15 +95,22 @@
     ## small sample correction (inflate residuals)
     if(!is.null(Xmean)){
         ## n - df
-        M.indexsigma <- do.call(rbind,lapply(object$X$Xpattern.var, function(iPattern){ ## iPattern <- object$X$Xpattern.var[[1]]
-            iUX <- interaction(as.data.frame(iPattern), drop = TRUE, sep = ":")
-            iDW <- data.frame(UX = 1:NROW(iUX), X = iUX, do.call(cbind,index.cluster[attr(iPattern, "index.cluster")]))
-            iDL <- stats::reshape(iDW, direction = "long", idvar = "UX", varying = setdiff(names(iDW),c("UX","X")), v.names = "index")
-            rownames(iDL) <- NULL
-            return(iDL[,c("X","index")])
-        }))
         ## vec.hat <- diag(Xmean %*% solve(t(Xmean) %*% Xmean) %*% t(Xmean))
         vec.hat <- rowSums(Xmean %*% solve(t(Xmean) %*% Xmean) * Xmean)
+        
+        M.indexsigma <- do.call(rbind,lapply(object$X$Xpattern.var, function(iPattern){ ## iPattern <- object$X$Xpattern.var[[1]]
+            
+            iUX <- interaction(as.data.frame(iPattern), drop = TRUE, sep = ":")
+            ## NEW
+            iCluster <- attr(iPattern, "index.cluster")
+            iNCluster <- length(iCluster)
+            iDL <- data.frame(UX = rep(1:NROW(iUX), iNCluster), X = rep(iUX, iNCluster), index = unlist(index.cluster[attr(iPattern, "index.cluster")]))
+            ## OLD 
+            ## iDW <- data.frame(UX = 1:NROW(iUX), X = iUX, do.call(cbind,index.cluster[attr(iPattern, "index.cluster")]))
+            ## iDL2 <- stats::reshape(iDW, direction = "long", idvar = "UX", varying = setdiff(names(iDW),c("UX","X")), v.names = "index")
+            ## all(iDL2$X==iDL$X);all(iDL2$index==iDL$index)
+            return(iDL[,c("X","index")])
+        }))
         p <- tapply(M.indexsigma$index,M.indexsigma$X,function(iIndex){sum(vec.hat[iIndex])})
         n.UX <- table(M.indexsigma$X)
         ## range(M.res[,"index"] - M.indexsigma[,"index"])

@@ -117,7 +117,7 @@ utils::packageVersion("LMMstar")
 #+END_SRC
 
 #+RESULTS:
-: [1] '0.8.3'
+: [1] '0.8.5'
 
 \clearpage
 
@@ -464,10 +464,10 @@ logLik(e.lmer)
 
 - e.g. to obtain a *block unstructured* covariance matrix:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-  eBUN.lmm <- lmm(weight ~ time*group, repetition = ~time|id,
-                  structure = CS(~baseline, heterogeneous = TRUE), data = gastricbypassL)
-  eBUN.lmm
-  cat(" covariance structure: \n");sigma(eBUN.lmm)
+eBUN.lmm <- lmm(weight ~ time*group, repetition = ~time|id,
+                structure = CS(~baseline, heterogeneous = TRUE), data = gastricbypassL)
+eBUN.lmm
+cat(" covariance structure: \n");sigma(eBUN.lmm)
 #+END_SRC
 
 #+RESULTS:

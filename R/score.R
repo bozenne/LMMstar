@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: sep 30 2022 (10:40) 
+## Last-Updated: okt  5 2022 (11:48) 
 ##           By: Brice Ozenne
-##     Update #: 563
+##     Update #: 565
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -265,7 +265,11 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
                     iX <- precompute$XX$pattern[[iPattern]]
                     iDouble2Mat <- as.vector(precompute$XX$key)
                     ## denominator
-                    REML.denom <- REML.denom + (as.double(iOmegaM1) %*% iX)[iDouble2Mat]
+                    if(is.null(precompute$X.OmegaM1.X)){
+                        REML.denom <- REML.denom + (as.double(iOmegaM1) %*% iX)[iDouble2Mat]
+                    }else{
+                        REML.denom <- REML.denom + precompute$X.OmegaM1.X[[iPattern]][iDouble2Mat]
+                    }
                     ## numerator
                     iX_OmegaM1_dOmega_OmegaM1_X <- t(iX) %*% OmegaM1_dOmega_OmegaM1[[iPattern]]
                     for(iVarcoef in iName.varcoef){ ## iVarcoef <- iName.varcoef[1]

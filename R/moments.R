@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: Jul 13 2022 (14:48) 
+## Last-Updated: okt  5 2022 (13:18) 
 ##           By: Brice Ozenne
-##     Update #: 396
+##     Update #: 404
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -169,6 +169,10 @@
     ## matrix(MM[,8],4,4)
 
     ## ** 3- compute likelihood derivatives
+    if(indiv == FALSE && method.fit == "REML" && !is.null(precompute)){
+        precompute$X.OmegaM1.X <- mapply(x = out$OmegaM1, y = precompute$XX$pattern, FUN = function(x,y){as.double(x) %*% y}, SIMPLIFY = FALSE)
+    }
+
     if(logLik){
         if(trace>=1){cat("- log-likelihood \n")}
         out$logLik <- .logLik(X = design$mean, residuals = out$residuals, precision = out$OmegaM1,
