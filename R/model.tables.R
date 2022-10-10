@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (10:48) 
 ## Version: 
-## Last-Updated: Oct 10 2022 (12:23) 
+## Last-Updated: okt 10 2022 (12:33) 
 ##           By: Brice Ozenne
-##     Update #: 30
+##     Update #: 31
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -78,7 +78,7 @@ model.tables.Wald_lmm <- function(x, columns, ...){
 ##' @export
 model.tables.mlmm <- function(x, columns, method = NULL, ...){
 
-    if(!is.null(method) && method %in% c("average","pool.se","pool.gls","pool.rubin")){
+    if(!is.null(method) && method %in% c("average","pool.fixse","pool.se","pool.gls","pool.rubin")){
         newcolumns <- c("estimate","se","df","lower","upper","p.value")
     }else{
         newcolumns <- c("by","parameter","estimate","se","df","lower","upper","p.value")
