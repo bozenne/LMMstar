@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: sep 26 2022 (09:42) 
+## Last-Updated: Oct 10 2022 (12:24) 
 ##           By: Brice Ozenne
-##     Update #: 119
+##     Update #: 123
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -464,6 +464,51 @@ test_that("0 variability in the outcome", {
     expect_equal(logLik(e.lmm), 43.76518, tol = 1e-5)
 
 })
+
+## * from: Brice, Monday 22-10-10 at 11:18
+library(mvtnorm)
+library(data.table)
+
+test_that("Incorrect ordering of the coefficient in mlmm", {
+    ## confusion of the order 1, 10, 2, 3 instead of 1, 2, 3, ...
+    n <- 25
+    J <- 10
+    rho <- 0.5
+    mu <- 1:J
+    Sigma <- rho + diag(1-rho,J,J)
+    dmu <- rep(0.2,J)
+
+    set.seed(10)
+    Y_G1 <- rmvnorm(n, mean = mu, sigma = Sigma)
+    Y_G2 <- rmvnorm(n, mean = mu + dmu, sigma = Sigma)
+
+    dtW <- rbind(data.table(id = paste0("H",formatC(1:n, width = 3, format = "d", flag = "0")),
+                            group = "G1",
+                            Y_G1),
+                 data.table(id = paste0("C",formatC(1:n, width = 3, format = "d", flag = "0")),
+                            group = "G2",
+                            Y_G2))
+    dtL <- melt(dtW, id.vars = c("id","group"), variable.name = "pipeline")
+    dtLS <- summarize(value ~ group+pipeline, dtL)
+
+    e.mlmm <- mlmm(value~group, repetition = ~1|id, data = dtL, df = FALSE, robust = TRUE,
+                   by = "pipeline", effects = "groupG2=0")
+   
+    expect_equal(as.double(tapply(dtLS$mean,dtLS$pipeline,diff)),
+                 as.double(coef(e.mlmm)),
+                 tol = 1e-6)
+    expect_equal(c(0.73517896, 0.74659791, 0.4706369, 0.55304145, 0.50451361, 0.40581536, 0.57647407, 0.45109887, 0.66812277, 0.61664579),
+                 as.double(coef(e.mlmm)),
+                 tol = 1e-6)
+
+    expect_equal(as.double(model.tables(e.mlmm, method = "pool.gls")),
+                 c(0.6344376,0.22787562, Inf, 0.1878096, 1.0810656, 0.00536699),
+                 tol =  1e-6
+                 )
+})
+
+##           
+
 
 ######################################################################
 ### test-auto-previous-bug.R ends here

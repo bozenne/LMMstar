@@ -187,7 +187,7 @@ partialCor(weight + glucagonAUC ~ group,
 \clearpage
 
 * Linear mixed model
-n** Classical covariance patterns
+** Classical covariance patterns
 
 Several build-in covariance patterns can be used when specifying the
 linear model. The most basic ones are the *identity* structure:

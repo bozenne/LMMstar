@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: sep 23 2022 (17:43) 
+## Last-Updated: Oct 10 2022 (12:16) 
 ##           By: Brice Ozenne
-##     Update #: 366
+##     Update #: 368
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -371,9 +371,17 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
     class(e.glht) <- "glht"
 
     ## ** Export
+    M.testname <- do.call(rbind,lapply(paste0(name,sep), grepl, x = colnames(contrast), fixed = TRUE))
+    if(all(contrast %in% 0:1) && all(rowSums(contrast)==1) && all(colSums(M.testname)==1)){
+        vec.prefix <- paste0(name,sep)[apply(M.testname,2,which)]
+        newtable.univariate$parameter <- unname(mapply(vec.prefix, colnames(contrast), FUN = function(x,y){gsub(x,"",y,fixed=TRUE)}))
+    }else{
+        newtable.univariate$parameter <- as.character(NA)
+    }
+
     e.glht$linfct.original <- lapply(ls.glht, "[[", "linfct")
     out <- list(multivariate = newtable.multivariate[,names(model$multivariate),drop=FALSE],
-                univariate = newtable.univariate[,c("outcome",names(model$univariate)),drop=FALSE],
+                univariate = newtable.univariate[,c("outcome","parameter",names(model$univariate)),drop=FALSE],
                 glht = list(all = list("1" = e.glht)),
                 object = newobject,
                 args = newtable.args,

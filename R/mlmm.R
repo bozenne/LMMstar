@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: okt  4 2022 (10:22) 
+## Last-Updated: Oct 10 2022 (11:47) 
 ##           By: Brice Ozenne
-##     Update #: 184
+##     Update #: 191
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -275,10 +275,12 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
     names(out$univariate)[1] <- "by"
 
     ## add covariate values
+    keep.rowname <- rownames(out$univariate)
     out$univariate <- merge(out$univariate,
                             data.frame(by = name.model, keep.by.level),
-                            by = "by")
-    
+                            by = "by", sort = FALSE)
+    rownames(out$univariate) <- sapply(strsplit(keep.rowname,"="), function(iVec){paste(iVec[-1], collapse = "=")})
+
     ## ** export
     attr(out,"call") <- match.call()
     class(out) <- append("mlmm", class(out))

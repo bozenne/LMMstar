@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: okt  5 2022 (13:05) 
+## Last-Updated: Oct 10 2022 (11:50) 
 ##           By: Brice Ozenne
-##     Update #: 521
+##     Update #: 523
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -334,8 +334,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
         message("Argument \'method\' has been changed from \"pool.se\" to \"pool.fixse\". \n",
                 "Consider using the estimate() function to account for the uncertainty of the weights. \n")
     }
-    
-    valid.columns <- c("type","test","method","estimate","se","statistic","df","lower","upper","null","p.value","partial.r")
+    valid.columns <- names(object$univariate)
     if(identical(columns,"all")){
         columns <- valid.columns
     }else if(!is.null(columns)){
