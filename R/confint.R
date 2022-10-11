@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: Oct 10 2022 (11:50) 
+## Last-Updated: Oct 11 2022 (11:10) 
 ##           By: Brice Ozenne
-##     Update #: 523
+##     Update #: 527
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -386,7 +386,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
             backtransform <- options$backtransform.confint
         }
     }
-    n.model <- length(object$object)
+    n.model <- length(object$model)
 
     ## ** normalize df
     out <- object$univariate
@@ -566,7 +566,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
                 ## assumes independence between models
                 iVcov.pool2 <- lapply(1:n.model, function(iModel){ ## iModel <- 1
                     d_calciCB <- numDeriv::jacobian(icalcCB, x = iLS.vcovcoef[[iModel]], index = iModel)
-                    return(as.double(d_calciCB %*% iLS.vcovvcov[[iModel]] %*% t(d_calciCB)))
+                    return(as.double(d_calciCB %*% unname(iLS.vcovvcov)[[iModel]] %*% t(d_calciCB)))
                 })
                 iVcov.pool <- iVcov.pool + sum(unlist(iVcov.pool2))
             
