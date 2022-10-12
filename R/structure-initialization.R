@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: okt  5 2022 (11:09) 
+## Last-Updated: okt 12 2022 (16:59) 
 ##           By: Brice Ozenne
-##     Update #: 246
+##     Update #: 249
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -93,7 +93,7 @@
     n.obs <- NROW(X)
 
     ## small sample correction (inflate residuals)
-    if(!is.null(Xmean)){
+    if(!is.null(Xmean) && NCOL(Xmean)>0){
         ## n - df
         ## vec.hat <- diag(Xmean %*% solve(t(Xmean) %*% Xmean) %*% t(Xmean))
         vec.hat <- rowSums(Xmean %*% solve(t(Xmean) %*% Xmean) * Xmean)
@@ -182,11 +182,14 @@
 
     ## estimate variance and standardize residuals
     attr(residuals,"studentized") <- TRUE ## to return studentized residuals
-
-    sigma <- .initialize.IND(object = object, residuals = residuals, Xmean = Xmean, index.cluster = index.cluster)
-    residuals.studentized <- attr(sigma, "studentized")
-    attr(sigma, "studentized") <- NULL
-    out[names(sigma)] <- sigma
+    if("sigma" %in% param.type){
+        sigma <- .initialize.IND(object = object, residuals = residuals, Xmean = Xmean, index.cluster = index.cluster)
+        residuals.studentized <- attr(sigma, "studentized")
+        attr(sigma, "studentized") <- NULL
+        out[names(sigma)] <- sigma
+    }else{
+        residuals.studentized <- residuals
+    }
 
     if(is.null(object$X$Xpattern.cor)){return(out)}
     ## combine all residuals and all design matrices

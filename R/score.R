@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: okt  5 2022 (11:48) 
+## Last-Updated: okt 12 2022 (17:43) 
 ##           By: Brice Ozenne
-##     Update #: 565
+##     Update #: 572
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -158,7 +158,7 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
     ## restrict to relevant parameters
     if(("variance" %in% effects == FALSE) && ("correlation" %in% effects == FALSE)){ ## compute score only for mean parameters
         test.vcov <- FALSE
-        test.mean <- TRUE
+        test.mean <- n.mucoef>0
     }else{
         if(REML && indiv){
             stop("Not possible to compute individual score for variance and/or correlation coefficients when using REML.\n")
@@ -174,13 +174,13 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
                 stop("Not possible to compute individual score for variance and/or correlation coefficients when using REML.\n")
             }
 
-            test.vcov <- TRUE
+            test.vcov <- any(unlist(n.varcoef)>0)
             test.mean <- FALSE
 
         }else{ ## compute score all parameters
      
-            test.vcov <- TRUE
-            test.mean <- TRUE
+            test.vcov <- any(unlist(n.varcoef)>0)
+            test.mean <- n.mucoef>0
         }
     }
 

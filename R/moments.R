@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: okt  5 2022 (13:18) 
+## Last-Updated: okt 12 2022 (17:28) 
 ##           By: Brice Ozenne
-##     Update #: 404
+##     Update #: 427
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -53,7 +53,6 @@
     }else{
         newname.allcoef[names(out$reparametrize$p)] <- out$reparametrize$newname
     }
-
     if(score || information || vcov || df){
         type.effects <- c("mu","sigma","k","rho")[c("mean","variance","variance","correlation") %in% effects]
         attr(effects, "original.names") <- names(newname.allcoef[param.type %in% type.effects])
@@ -83,7 +82,7 @@
                                               pattern.ntime = stats::setNames(design$vcov$X$Upattern$n.time, design$vcov$X$Upattern$name),
                                               pattern.cluster = design$vcov$X$Upattern$index.cluster, index.cluster = design$index.cluster)                           
                            )
-        if(score || information || vcov || df){
+        if(!is.null(design$precompute.XX) && (score || information || vcov || df)){
             precompute$XR  <-  .precomputeXR(X = design$precompute.XX$Xpattern, residuals = wR, pattern = design$vcov$X$Upattern$name,
                                              pattern.ntime = stats::setNames(design$vcov$X$Upattern$n.time, design$vcov$X$Upattern$name),
                                              pattern.cluster = design$vcov$X$Upattern$index.cluster, index.cluster = design$index.cluster)

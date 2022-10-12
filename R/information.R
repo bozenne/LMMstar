@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: okt  5 2022 (11:49) 
+## Last-Updated: okt 12 2022 (17:43) 
 ##           By: Brice Ozenne
-##     Update #: 1068
+##     Update #: 1078
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -187,7 +187,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
     ## restrict to relevant parameters
     if(("variance" %in% effects == FALSE) && ("correlation" %in% effects == FALSE)){ ## compute hessian only for mean parameters
         test.vcov <- FALSE
-        test.mean <- TRUE
+        test.mean <- n.mucoef>0
     }else{
         if(REML && indiv){
             stop("Not possible to compute individual hessian for variance and/or correlation coefficients when using REML.\n")
@@ -228,13 +228,13 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
                 stop("Not possible to compute individual hessian for variance and/or correlation coefficients when using REML.\n")
             }
 
-            test.vcov <- TRUE
+            test.vcov <- any(unlist(n.varcoef)>0)
             test.mean <- FALSE
 
         }else{ ## compute hessian all parameters
      
-            test.vcov <- TRUE
-            test.mean <- TRUE
+            test.vcov <- any(unlist(n.varcoef)>0)
+            test.mean <- n.mucoef>0
         }
     }
 
@@ -390,11 +390,13 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
             iName.varcoef <- name.varcoef[[iPattern]]
             iN.varcoef <- length(iName.varcoef)
             iX <- precompute$XX$pattern[[iPattern]]
-                    
+
             ## **** mean,mean
-            iValue <- (as.double(iOmegaM1) %*% iX)[as.double(precompute$XX$key)]
-            if(test.mean){
-                info[name.mucoef,name.mucoef] <- info[name.mucoef,name.mucoef] + iValue
+            if(test.mean || REML){
+                iValue <- (as.double(iOmegaM1) %*% iX)[as.double(precompute$XX$key)]
+                if(test.mean){
+                    info[name.mucoef,name.mucoef] <- info[name.mucoef,name.mucoef] + iValue
+                }
             }
 
             ## **** var,var

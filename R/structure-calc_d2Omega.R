@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: Jul 13 2022 (18:31) 
+## Last-Updated: okt 12 2022 (17:02) 
 ##           By: Brice Ozenne
-##     Update #: 179
+##     Update #: 181
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -123,6 +123,7 @@
         iPattern.cor <- Upattern[iPattern,"cor"]
         iNtime <- Upattern[iPattern,"n.time"]
         iName.param <- Upattern[iPattern,"param"][[1]]
+        if(is.null(iName.param)){return(NULL)}
 
         iOmega.sd <- attr(Omega[[iPattern]],"sd")
         iOmega.var <- tcrossprod(iOmega.sd)

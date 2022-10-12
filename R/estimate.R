@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: okt  5 2022 (11:22) 
+## Last-Updated: okt 12 2022 (17:28) 
 ##           By: Brice Ozenne
-##     Update #: 891
+##     Update #: 916
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -310,20 +310,25 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
         start.OmegaM1 <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
             diag(1, nrow = Upattern[iPattern,"n.time"], ncol = Upattern[iPattern,"n.time"])
         }), Upattern$name)
-        param.value[param.mu2] <- .estimateGLS(OmegaM1 = start.OmegaM1, pattern = Upattern$name, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX,
-                                               Y = partialY, design = design, param.mu = param.mu2)
-
+        if(length(param.mu2)>0){
+            param.value[param.mu2] <- .estimateGLS(OmegaM1 = start.OmegaM1, pattern = Upattern$name, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX,
+                                                   Y = partialY, design = design, param.mu = param.mu2)
+        }
         ## vcov values
         iResiduals.long <- partialY - design$mean[,param.mu2,drop=FALSE] %*% param.value[param.mu2]
-        outInit <- .initialize(design$vcov, residuals = iResiduals.long, Xmean = design$mean, index.cluster = index.cluster)
-
+        if(length(param.Omega2)>0){
+            outInit <- .initialize(design$vcov, residuals = iResiduals.long, Xmean = design$mean, index.cluster = index.cluster)
+        }else{
+            outInit <- NULL
+        }
+        
         ## check initialization leads to a positive definite matrix 
         initOmega <- .calc_Omega(object = design$vcov, param = outInit, keep.interim = TRUE)
         test.npd <- sapply(initOmega,function(iOmega){any(eigen(iOmega)$values<0)})
         if(any(test.npd)){ ## otherwise initialize as compound symmetry
-            param.value[param.sigma] <- outInit[param.sigma]
-            param.value[param.k] <- outInit[param.k]
-            param.value[param.rho] <- stats::median(outInit[param.rho])            
+            param.value[setdiff(param.sigma,param.fixed)] <- outInit[setdiff(param.sigma,param.fixed)]
+            param.value[setdiff(param.k,param.fixed)] <- outInit[setdiff(param.k,param.fixed)]
+            param.value[setdiff(param.rho,param.fixed)] <- stats::median(outInit[setdiff(param.rho,param.fixed)])            
         }else{        
             param.value[names(outInit)] <- outInit
         }
@@ -332,6 +337,9 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
             print(param.value)
         }
     }else{
+        if(length(param.Omega2)==0){
+            stop("No initialization is needed when there are only mean parameters. \n")
+        }
         if(any(param.name %in% names(init) == FALSE)){
             stop("Initialization does not contain value for all parameters. \n",
                  "Missing parameters: \"",paste(param.name[param.name %in% names(init) == FALSE], collapse = "\" \""),"\". \n")
@@ -345,8 +353,8 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
     }
 
     ## ** loop
-    if(n.iter==0){
-        cv <- 0
+    if(n.iter==0 || length(param.Omega2)==0){
+        cv <- as.numeric(length(param.Omega2)==0)
         param.valueM1 <- NULL
         logLik.value <- NULL
         logLik.valueM1 <- NULL
@@ -593,6 +601,7 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
         }
         cv <- as.numeric(res.optim$convcode==0)
     }
+
     ## ** export
     return(list(estimate = param.value,
                 previous.estimate = param.valueM1,

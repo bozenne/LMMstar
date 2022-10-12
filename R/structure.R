@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: sep 26 2022 (10:12) 
+## Last-Updated: okt 12 2022 (15:16) 
 ##           By: Brice Ozenne
-##     Update #: 705
+##     Update #: 722
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -79,8 +79,12 @@
     ## ** combine left and right hand side
     ## *** variance
     if(length(ls.var.X$variance)==0){
-        if(length(var.strata)==0){
-            formula.var <- ~1 
+        if(length(var.strata)==0){            
+            if(attr(stats::terms(formula$variance),"intercept")){
+                formula.var <- ~1
+            }else{
+                formula.var <- ~0
+            }
         }else{
             formula.var <- stats::as.formula(paste("~0+",var.strata))
         }
@@ -148,8 +152,14 @@
 ##' @export
 ID <- function(formula, var.cluster, var.time, add.time){
 
-    if(missing(formula) || is.null(formula) || length(all.vars(formula))==0){
+    if(missing(formula) || is.null(formula)){
         outCov <- .formulaStructure(~1)
+    }else if(length(all.vars(formula))==0){
+        if(attr(stats::terms(formula),"intercept")){
+            outCov <- .formulaStructure(~1)
+        }else{
+            outCov <- .formulaStructure(~0)
+        }
     }else{
         ## put covariate as strata if in addition to time
         outCov <- .formulaStructure(stats::as.formula(paste0(paste(all.vars(formula), collapse="+"),"~1")))
@@ -218,7 +228,13 @@ IND <- function(formula, var.cluster, var.time, add.time){
     if(missing(formula) || is.null(formula)){
         outCov <- .formulaStructure(~1, add.X = add.X)
     }else{
+
+        if(length(all.vars(formula))==0 && attr(stats::terms(formula),"intercept")==0){
+            stop("Incorrect formula for structure IND. \n",
+                 "Must have an intercept or a explanatory variable. \n")
+        }
         outCov <- .formulaStructure(formula, add.X = add.X)
+
     }
 
     out <- list(call = match.call(),

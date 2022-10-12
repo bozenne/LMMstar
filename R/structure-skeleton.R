@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: sep 26 2022 (09:42) 
+## Last-Updated: okt 12 2022 (16:55) 
 ##           By: Brice Ozenne
-##     Update #: 2320
+##     Update #: 2331
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -110,16 +110,18 @@
     }
 
     ## ** gather parameters
+    n.param <- length(param.sigma) + length(param.k) + length(param.rho)
+    
     structure$param <- data.frame(name = c(param.sigma,param.k,param.rho),
                                   strata = as.numeric(c(strata.sigma,strata.k,strata.rho)),
                                   type = c(rep("sigma",length=length(param.sigma)),rep("k",length=length(param.k)),rep("rho",length=length(param.rho))),
-                                  level = NA,
+                                  level = rep(NA, times = n.param),
                                   code = c(code.sigma,code.k,code.rho),
-                                  code.x = as.factor(NA),
-                                  code.y = as.factor(NA),
-                                  sigma = as.character(NA),
-                                  k.x = as.character(NA),
-                                  k.y = as.character(NA),                                  
+                                  code.x = rep(as.factor(NA), times = n.param),
+                                  code.y = rep(as.factor(NA), times = n.param),
+                                  sigma = rep(as.character(NA), times = n.param),
+                                  k.x = rep(as.character(NA), times = n.param),
+                                  k.y = rep(as.character(NA), times = n.param),                                  
                                   stringsAsFactors = FALSE)
     
     structure$param$level <- c(level.sigma,level.k,level.rho)
@@ -138,7 +140,7 @@
         ls.tempo <- tapply(factor(outRho$lp.y, levels = 1:length(attr(outRho,"levels")), labels = attr(outRho,"levels")), outRho$code, function(iX){iX}, simplify = FALSE)
         structure$param$code.y[names(ls.tempo)] <- ls.tempo
         names(structure$param$code.y) <- structure$param$name
-        
+
         structure$param[structure$param$type=="rho","sigma"] <- outRho$sigma[!duplicated(outRho$code)]
         structure$param[structure$param$type=="rho","k.x"] <- outRho$k.x[!duplicated(outRho$code)]
         structure$param[structure$param$type=="rho","k.y"] <- outRho$k.y[!duplicated(outRho$code)]
@@ -209,6 +211,13 @@
 ## ** .initSigma
 .initSigma <- function(X.var, strata.var, U.strata, n.strata, sep = ":"){
 
+    if(NCOL(X.var)==0){
+        return(list(X = X.var,
+                    param = NULL,
+                    strata = NULL,
+                    code = NULL,
+                    level = NULL))
+    }
 
     if(n.strata==1){
         param.sigma <- "sigma"
@@ -488,7 +497,9 @@
 
             if(!missing(X.var)){ ## add corresponding variance parameters
                 iCX.sigma <- iX.sigma[iCindex,,drop=FALSE]
-                iOut$sigma <- colnames(iCX.sigma)[colSums(iCX.sigma)!=0]
+                if(NCOL(iCX.sigma)>0){
+                    iOut$sigma <- colnames(iCX.sigma)[colSums(iCX.sigma)!=0]
+                }
 
                 if(length(iX.k)>0){
                     iCX.k <- iX.k[iCindex,,drop=FALSE]

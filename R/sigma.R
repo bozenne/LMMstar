@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: Sep 23 2022 (10:07) 
+## Last-Updated: okt 12 2022 (17:29) 
 ##           By: Brice Ozenne
-##     Update #: 520
+##     Update #: 531
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -264,6 +264,15 @@ getVarCov.lmm <- function(obj, ...) {
     formula <- object$design$vcov$formula
     Vindex.cluster <- attr(object$design$index.cluster, "vectorwise")
 
+    ## ** special case (no covariance structure)
+    if(all(sapply(Upattern$param,length)==0)){
+        index.patternMax <- which.max(Upattern$n.time)
+        time.patternMax <- U.time[attr(Xpattern.var[[index.patternMax]],"index.time")]
+        OmegaMax <- Omega[index.patternMax]
+        dimnames(OmegaMax[[1]]) <- list(time.patternMax,time.patternMax)
+        return(OmegaMax)
+    }
+
     ## ** summary statistic of each pattern
     XCpattern.var <- lapply(Xpattern.var, function(iVar){as.character(interaction(as.data.frame(iVar),sep=sep[1]))})
     if(!is.null(object$design$vcov$X$Xpattern.cor)){
@@ -319,15 +328,7 @@ getVarCov.lmm <- function(obj, ...) {
     }
 
     ## ** recover time
-    Upattern.var <- Upattern$var[match(keep.pattern,Upattern$name)]
-    iIndex.time <- lapply(Xpattern.var[Upattern.var], function(iX){
-        if(!is.null(attr(iX,"index.time"))){
-            return(attr(iX,"index.time"))
-        }else{
-            return(object$design$index.clusterTime[[attr(iX,"index.cluster")[1]]])
-        }
-    })
-    out <- mapply(x = Omega[keep.pattern], y = iIndex.time, function(x,y){
+    out <- mapply(x = Omega[keep.pattern], y = Upattern$time[match(keep.pattern,Upattern$name)], function(x,y){
         dimnames(x) <- list(U.time[y],U.time[y])
         return(x)
     }, SIMPLIFY = FALSE)

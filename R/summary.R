@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: sep 29 2022 (12:47) 
+## Last-Updated: okt 12 2022 (17:30) 
 ##           By: Brice Ozenne
-##     Update #: 1102
+##     Update #: 1114
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -185,8 +185,15 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
             txt.strata <- "stratified "
         }
         
+        if(length(c(param.sigma,param.k))==0){
+            hide.sd <- TRUE
+            hide.var <- TRUE
+        }
+
         if(length(param.rho)==0){
-            if(length(c(param.sigma,param.k))==1){
+            if(length(c(param.sigma,param.k))==0){
+                cat(txt.strata,"identity (variance=1) \n\n",sep="")
+            }else if(length(c(param.sigma,param.k))==1){
                 cat(txt.strata,"identity \n\n",sep="")
             }else{
                 cat(txt.strata,"diagonal \n\n",sep="")
@@ -255,7 +262,7 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
                 })
                 if(length(table.cor)==1){ ## only one (unique) pattern
                     print(table.cor.print[[1]], digits = digits)
-                    cat("\n")
+                    if(!hide.var || !hide.sd){cat("\n")}
                 }else{
                     print(table.cor.print, digits = digits)
                 }                        
@@ -274,6 +281,7 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
             cat("  - variance structure:",deparse(formula$var.design),"\n")
         }
     }
+
     if(!hide.var){
         table.var <- cbind(estimate = coef(object, transform.k = "var", effects = "variance"),
                            estimate.ratio = coef(object, transform.sigma = "none", transform.k = "square", effects = "variance", transform.names = FALSE))
@@ -312,9 +320,9 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
     if(print && (!hide.cor || !hide.var || !hide.sd)){
         cat("\n")
     }
-    
+
     ## ** mean structure
-    if(!hide.mean){
+    if(!hide.mean && length(param.mu)>0){
         table.mean <- confint(object,
                               level = level,
                               robust = robust,

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: Jul 13 2022 (18:31) 
+## Last-Updated: okt 12 2022 (17:02) 
 ##           By: Brice Ozenne
-##     Update #: 160
+##     Update #: 164
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -105,6 +105,7 @@
         iPattern.cor <- Upattern[iPattern,"cor"]
         iNtime <- Upattern[iPattern,"n.time"]
         iName.param <- Upattern[iPattern,"param"][[1]]
+        if(is.null(iName.param)){return(NULL)}
 
         iOmega.sd <- attr(Omega[[iPattern]],"sd")
         iOmega.cor <- attr(Omega[[iPattern]],"cor")
@@ -120,10 +121,12 @@
         iIndicator.cor <- attr(X.cor[[iPattern.cor]],"indicator.param")
         iMindicator.var <- attr(X.var[[iPattern.var]],"Mindicator.param")
 
-        if(transform.sigma == "log"){
-            iScore[[iParam.sigma]] <- 2 * iOmega
-        }else{ ## no transformation  (other transformations are made through jacobian)
-            iScore[[iParam.sigma]] <- 2 * iOmega / param[iParam.sigma]
+        if(n.iParam.sigma>0){
+            if(transform.sigma == "log"){
+                iScore[[iParam.sigma]] <- 2 * iOmega
+            }else{ ## no transformation  (other transformations are made through jacobian)
+                iScore[[iParam.sigma]] <- 2 * iOmega / param[iParam.sigma]
+            }
         }
 
         if(n.iParam.k>0){

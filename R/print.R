@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: Sep 23 2022 (12:23) 
+## Last-Updated: okt 12 2022 (14:56) 
 ##           By: Brice Ozenne
-##     Update #: 164
+##     Update #: 169
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -101,13 +101,26 @@ print.lmm <- function(x, ...){
                      cbind("data",": ",paste(nobs["obs"], " observations and distributed in ", nobs["cluster"], " clusters",sep="")))
 
     ## ** parameters
-    M.print <- rbind(M.print,
-                     cbind("parameters",": ",paste(length(param.mu)," mean (",paste0(names(param.mu),collapse=" "),")", sep="")))
-    M.print <- rbind(M.print,
-                     cbind("","  ",paste(length(c(param.sigma,param.k))," variance (",paste0(names(c(param.sigma,param.k)),collapse=" "),")", sep="")))
+    ls.printparam <- list(c("parameter",": "),
+                          c("","  "),
+                          c("","  "))
+    iParam <- 1
+    if(length(param.mu)>0){
+        M.print <- rbind(M.print,
+                         cbind(ls.printparam[[iParam]][1],ls.printparam[[iParam]][2],
+                               paste(length(param.mu)," mean (",paste0(names(param.mu),collapse=" "),")", sep="")))
+        iParam <- iParam + 1
+    }
+    if(length(c(param.sigma,param.k))>0){
+        M.print <- rbind(M.print,
+                         cbind(ls.printparam[[iParam]][1],ls.printparam[[iParam]][2],
+                               paste(length(c(param.sigma,param.k))," variance (",paste0(names(c(param.sigma,param.k)),collapse=" "),")", sep="")))
+        iParam <- iParam + 1
+    }
     if(length(param.rho)>0){
-    M.print <- rbind(M.print,
-                     cbind("","  ",paste(length(param.rho)," correlation (",paste0(names(param.rho),collapse=" "),")", sep="")))
+        M.print <- rbind(M.print,
+                         cbind(ls.printparam[[iParam]][1],ls.printparam[[iParam]][2],
+                               paste(length(param.rho)," correlation (",paste0(names(param.rho),collapse=" "),")", sep="")))
     }
 
     ## ** log-likelihood

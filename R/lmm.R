@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: okt  5 2022 (11:31) 
+## Last-Updated: okt 12 2022 (18:30) 
 ##           By: Brice Ozenne
-##     Update #: 2032
+##     Update #: 2044
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -250,12 +250,20 @@ lmm <- function(formula, repetition, structure, data,
     
     ## *** objective function
     if(is.null(method.fit)){
-        method.fit <- options$method.fit
+        if(length(rhs.vars(formula))==0 && attr(stats::terms(formula), "intercept") == 0){
+            method.fit <- "ML"
+        }else{
+            method.fit <- options$method.fit
+        }
     }else{
         method.fit <- match.arg(method.fit, choices = c("ML","REML"))
+        if(length(rhs.vars(formula))==0 && method.fit == "REML"){
+            message("Revert back to ML estimation as there is no mean structure. \n")
+            method.fit <- "ML"
+        }
     }
     out$method.fit <- method.fit
-
+    
     ## *** degrees of freedom
     if(is.null(df)){
         df <- options$df
@@ -804,7 +812,6 @@ lmm <- function(formula, repetition, structure, data,
             
             control$init <- c(lmer.beta,init.sigma,init.tau)[out$design$param$name]
         }
-
         outEstimate <- .estimate(design = out$design, time = out$time, method.fit = method.fit, type.information = type.information,
                                  transform.sigma = options$transform.sigma, transform.k = options$transform.k, transform.rho = options$transform.rho,
                                  precompute.moments = precompute.moments, 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: okt  4 2022 (17:29) 
+## Last-Updated: okt 12 2022 (17:28) 
 ##           By: Brice Ozenne
-##     Update #: 2320
+##     Update #: 2344
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -406,7 +406,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
                                 index.clusterStrata = outInit$index.clusterStrata, U.strata = U.strata)
 
     ## ** prepare calculation of the score
-    if(precompute.moments){
+    if(precompute.moments && NCOL(X.mean)>0){
         if(is.na(var.weights[1])){
             wX.mean <- X.mean
             wY <- cbind(data[[var.outcome]])
@@ -430,6 +430,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     structure$X$pair.varcoef <- stats::setNames(lapply(structure$X$Upattern$name, function(iPattern){## iPattern <- structure$X$Upattern$name[1]
 
         iParamVar <- structure$X$Upattern$param[[iPattern]]
+        if(length(iParamVar)==0){return(NULL)}
 
         iOut <- .unorderedPairs(iParamVar)
         attr(iOut, "key") <- matrix(NA, nrow = length(iParamVar), ncol = length(iParamVar), dimnames = list(iParamVar,iParamVar))
@@ -447,6 +448,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             iParamMu <- names(strata.mu)
         }
         iParamVar <- structure$X$Upattern$param[[iPattern]]
+        if(length(iParamVar)==0){return(NULL)}
         iOut <- unname(t(expand.grid(iParamMu, iParamVar)))
         return(iOut)
     }), structure$X$Upattern$name)
@@ -470,17 +472,21 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
                            }
                            return(name)
                        })
-    skeleton.param <- rbind(data.frame(name = colnames(X.mean),
-                                       strata = NA,
-                                       type = "mu",
-                                       level = gsub("^:","",gsub(":$","",mu.level)),
-                                       code = NA,
-                                       code.x = NA,
-                                       code.y = NA,
-                                       sigma = NA,
-                                       k.x = NA,
-                                       k.y = NA),
-                            structure$param)
+    if(NCOL(X.mean)>0){
+        skeleton.param <- rbind(data.frame(name = colnames(X.mean),
+                                           strata = NA,
+                                           type = "mu",
+                                           level = gsub("^:","",gsub(":$","",mu.level)),
+                                           code = NA,
+                                           code.x = NA,
+                                           code.y = NA,
+                                           sigma = NA,
+                                           k.x = NA,
+                                           k.y = NA),
+                                structure$param)
+    }else{
+        skeleton.param <- structure$param
+    }
     skeleton.param$fixed <- FALSE
     if(stratify.mean){
         skeleton.param$strata[skeleton.param$type=="mu"] <- strata.mu
@@ -539,7 +545,9 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     X.qr <- qr(X)
 
     if(X.qr$rank==NCOL(X)){
-        if(augmodel){
+        if(NCOL(X)==0){
+            return(X)
+        }else if(augmodel){
             return(.augmodel.matrix(stats::delete.response(stats::terms(formula)),data))
         }else{
             attr(X,"variable") <- all.vars(formula)
