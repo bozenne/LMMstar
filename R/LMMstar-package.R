@@ -40,7 +40,7 @@
 ##' 
 ##' @importFrom ggplot2 autoplot
 ##' @importFrom nlme getData getVarCov intervals
-##' @importFrom stats anova coef confint df dummy.coef fitted logLik model.matrix model.tables nobs profile residuals sigma vcov
+##' @importFrom stats anova coef confint df dummy.coef fitted logLik model.matrix model.tables nobs profile residuals sigma vcov weights
 ##' @importFrom lava estimate iid score information 
 ##' @importFrom sandwich estfun
 ##' @importFrom emmeans emm_basis recover_data 

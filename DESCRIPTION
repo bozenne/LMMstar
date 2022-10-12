@@ -110,3 +110,4 @@ Collate:
     'unorderedPairs.R'
     'utils.R'
     'vcov.R'
+    'weights.R'
