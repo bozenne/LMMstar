@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: okt 12 2022 (17:28) 
+## Last-Updated: okt 13 2022 (16:01) 
 ##           By: Brice Ozenne
-##     Update #: 427
+##     Update #: 429
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -169,7 +169,9 @@
 
     ## ** 3- compute likelihood derivatives
     if(indiv == FALSE && method.fit == "REML" && !is.null(precompute)){
-        precompute$X.OmegaM1.X <- mapply(x = out$OmegaM1, y = precompute$XX$pattern, FUN = function(x,y){as.double(x) %*% y}, SIMPLIFY = FALSE)
+        precompute$X.OmegaM1.X <- mapply(x = out$OmegaM1, y = precompute$XX$pattern, FUN = function(x,y){
+            if(inherits(x,"try-error")){NULL}else{as.double(x) %*% y}
+        }, SIMPLIFY = FALSE)
     }
 
     if(logLik){

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: okt 12 2022 (17:27) 
+## Last-Updated: okt 13 2022 (16:38) 
 ##           By: Brice Ozenne
-##     Update #: 352
+##     Update #: 358
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -361,17 +361,19 @@
         pattern.indexCor <- NA
     }
     Upattern <- data.frame(name = name.pattern,
-                               var = pattern.indexVar,
-                               cor = pattern.indexCor,
-                               index.strata = NA,
-                               n.time = NA,
-                               param = NA,
-                               index.cluster = NA,
-                               n.cluster = NA)
+                           var = pattern.indexVar,
+                           cor = pattern.indexCor,
+                           index.strata = NA,
+                           n.time = NA,
+                           time = NA,
+                           param = NA,
+                           index.cluster = NA,
+                           n.cluster = NA)
 
     Upattern$index.cluster <- stats::setNames(lapply(name.pattern, function(iPattern){which(lpnCluster == iPattern)}), name.pattern)
     Upattern$n.cluster <- sapply(Upattern$index.cluster, length)
     Upattern$n.time <- sapply(Upattern$index.cluster, function(iId){length(index.clusterTime[[iId[1]]])})
+    Upattern$time <- lapply(Upattern$index.cluster,function(iC){index.clusterTime[[iC[1]]]})
     Upattern$index.strata <- sapply(Upattern$index.cluster, function(iId){unname(unique(index.clusterStrata[iId]))}, simplify = FALSE)
     attr(Upattern, "level.var") <- name.pattern.var
     attr(Upattern, "level.cor") <- name.pattern.cor
@@ -389,9 +391,6 @@
         iC <- iC.all[1]
         iX <- X.var[index.cluster[[iC]],,drop=FALSE]
         attr(iX,"index.cluster") <- iC.all
-        if(sum(!duplicated(index.clusterTime[iC.all]))==1){
-            attr(iX,"index.time") <- index.clusterTime[[iC]]
-        }
         attr(iX,"index.strata") <- unname(index.clusterStrata[iC])
         return(iX)
     }),name.pattern.var)

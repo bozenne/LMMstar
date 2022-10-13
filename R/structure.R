@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: okt 12 2022 (15:16) 
+## Last-Updated: okt 13 2022 (16:53) 
 ##           By: Brice Ozenne
-##     Update #: 722
+##     Update #: 723
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -494,6 +494,8 @@ UN <- function(formula, var.cluster, var.time, add.time){
     class(out) <- append("UN",class(out))
     return(out)
 }
+
+## * LV (latent variable)
 
 ## * EXP (exponential)
 

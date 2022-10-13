@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: okt 12 2022 (18:30) 
+## Last-Updated: okt 13 2022 (15:57) 
 ##           By: Brice Ozenne
-##     Update #: 2044
+##     Update #: 2048
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -594,6 +594,18 @@ lmm <- function(formula, repetition, structure, data,
     var.all <- unname(unique(stats::na.omit(c(var.strata,var.outcome,var.X,var.time,var.cluster,var.Z))))
     index.na <- which(rowSums(is.na(data[,var.all,drop=FALSE]))>0)
     data.save <- data
+
+    if(length(index.na) == NROW(data)){
+        var.na <- var.all[colSums(!is.na(data[,var.all,drop=FALSE]))==0]
+        if(length(var.na)==0){
+            stop("All observations have at least one missing data. \n")
+        }else if(length(var.na)==1){
+            stop("Variable \"",var.na,"\" contains only missing data. \n")
+        }else{
+            stop("Variables \"",paste(var.na, collapse="\" \""),"\" contain only missing data. \n")
+        }
+    }
+
     if(length(index.na)>0){        
         attr(index.na, "cluster") <- data[index.na,var.cluster]
         attr(index.na, "cluster.index") <- data[index.na,"XXcluster.indexXX"]

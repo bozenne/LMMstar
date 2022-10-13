@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: okt 12 2022 (17:30) 
+## Last-Updated: okt 13 2022 (16:35) 
 ##           By: Brice Ozenne
-##     Update #: 1114
+##     Update #: 1116
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -224,6 +224,8 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
             }else{
                 cat(txt.strata,"Toeplitz \n\n",sep="")
             }
+        }else if(structure$type == "CUSTOM"){
+            cat("user-defined structure \n\n")
         }
     }
     ## *** correlation

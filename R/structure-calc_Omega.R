@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: okt 12 2022 (17:29) 
+## Last-Updated: okt 13 2022 (16:39) 
 ##           By: Brice Ozenne
-##     Update #: 510
+##     Update #: 525
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -142,7 +142,7 @@
         iPattern.var <- object$X$Upattern$var[iPattern]
         iNtime <- object$X$Upattern$n.time[iPattern]
         iX.var <- object$X$Xpattern.var[[iPattern.var]]
-        iTime <- attr(iX.var, "index.time")
+        iTime <- object$X$Upattern$time[[iPattern]]
         iOmega.sd <- FCT.sigma(p = param[name.sigma], time = iTime, X = iX.var)
 
         if(iNtime > 1 && !is.null(X.cor)){
@@ -150,8 +150,11 @@
             iX.cor <- object$X$Xpattern[[iPattern.cor]]
             iOmega.cor <- FCT.rho(p = param[name.rho], time = iTime, X = iX.var)
             diag(iOmega.cor) <- 0
+            iOmega <- diag(as.double(iOmega.sd)^2, nrow = iNtime, ncol = iNtime) + iOmega.cor * tcrossprod(iOmega.sd)
+        }else{
+            iOmega.cor <- NULL
+            iOmega <- diag(as.double(iOmega.sd)^2, nrow = iNtime, ncol = iNtime)
         }
-        iOmega <- diag(as.double(iOmega.sd)^2, nrow = iNtime, ncol = iNtime) + iOmega.cor * tcrossprod(iOmega.sd)
         
         if(keep.interim){
             attr(iOmega,"sd") <- iOmega.sd
