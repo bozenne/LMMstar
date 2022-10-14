@@ -1,0 +1,469 @@
+% Created 2022-10-14 fr 11:22
+% Intended LaTeX compiler: pdflatex
+\documentclass[12pt]{article}
+
+%%%% settings when exporting code %%%% 
+
+\usepackage{listings}
+\lstdefinestyle{code-small}{
+backgroundcolor=\color{white}, % background color for the code block
+basicstyle=\ttfamily\small, % font used to display the code
+commentstyle=\color[rgb]{0.5,0,0.5}, % color used to display comments in the code
+keywordstyle=\color{black}, % color used to highlight certain words in the code
+numberstyle=\ttfamily\tiny\color{gray}, % color used to display the line numbers
+rulecolor=\color{black}, % color of the frame
+stringstyle=\color[rgb]{0,.5,0},  % color used to display strings in the code
+breakatwhitespace=false, % sets if automatic breaks should only happen at whitespace
+breaklines=true, % sets automatic line breaking
+columns=fullflexible,
+frame=single, % adds a frame around the code (non,leftline,topline,bottomline,lines,single,shadowbox)
+keepspaces=true, % % keeps spaces in text, useful for keeping indentation of code
+literate={~}{$\sim$}{1}, % symbol properly display via latex
+numbers=none, % where to put the line-numbers; possible values are (none, left, right)
+numbersep=10pt, % how far the line-numbers are from the code
+showspaces=false,
+showstringspaces=false,
+stepnumber=1, % the step between two line-numbers. If it's 1, each line will be numbered
+tabsize=1,
+xleftmargin=0cm,
+emph={anova,apply,class,coef,colnames,colNames,colSums,dim,dcast,for,ggplot,head,if,ifelse,is.na,lapply,list.files,library,logLik,melt,plot,require,rowSums,sapply,setcolorder,setkey,str,summary,tapply},
+aboveskip = \medskipamount, % define the space above displayed listings.
+belowskip = \medskipamount, % define the space above displayed listings.
+lineskip = 0pt} % specifies additional space between lines in listings
+\lstset{style=code-small}
+%%%% packages %%%%%
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{textcomp}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{grffile}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{changes}
+\usepackage{pdflscape}
+\usepackage{geometry}
+\usepackage[normalem]{ulem}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{dsfont}
+\usepackage{array}
+\usepackage{ifthen}
+\usepackage{hyperref}
+\usepackage{natbib}
+%
+%%%% specifications %%%%
+%
+\usepackage{ifthen}
+\usepackage{xifthen}
+\usepackage{xargs}
+\usepackage{xspace}
+\newcommand\Rlogo{\textbf{\textsf{R}}\xspace} %
+\RequirePackage{fancyvrb}
+\DefineVerbatimEnvironment{verbatim}{Verbatim}{fontsize=\small,formatcom = {\color[rgb]{0.5,0,0}}}
+\RequirePackage{colortbl} % arrayrulecolor to mix colors
+\RequirePackage{setspace} % to modify the space between lines - incompatible with footnote in beamer
+\renewcommand{\baselinestretch}{1.1}
+\geometry{top=1cm}
+\RequirePackage{colortbl} % arrayrulecolor to mix colors
+\RequirePackage{pifont}
+\RequirePackage{relsize}
+\newcommand{\Cross}{{\raisebox{-0.5ex}%
+{\relsize{1.5}\ding{56}}}\hspace{1pt} }
+\newcommand{\Valid}{{\raisebox{-0.5ex}%
+{\relsize{1.5}\ding{52}}}\hspace{1pt} }
+\newcommand{\CrossR}{ \textcolor{red}{\Cross} }
+\newcommand{\ValidV}{ \textcolor{green}{\Valid} }
+\usepackage{stackengine}
+\usepackage{scalerel}
+\newcommand\Warning[1][3ex]{%
+\renewcommand\stacktype{L}%
+\scaleto{\stackon[1.3pt]{\color{red}$\triangle$}{\tiny\bfseries !}}{#1}%
+\xspace
+}
+\hypersetup{
+citecolor=[rgb]{0,0.5,0},
+urlcolor=[rgb]{0,0,0.5},
+linkcolor=[rgb]{0,0,0.5},
+}
+\RequirePackage{epstopdf} % to be able to convert .eps to .pdf image files
+\RequirePackage{capt-of} %
+\RequirePackage{caption} % newlines in graphics
+\RequirePackage{enumitem} % to be able to convert .eps to .pdf image files
+\definecolor{lightred}{rgb}{1.0, 0.7, 0.7}
+\definecolor{lightblue}{rgb}{0.0, 0.8, 0.8}
+\newcommand{\darkblue}{blue!80!black}
+\newcommand{\darkgreen}{green!50!black}
+\newcommand{\darkred}{red!50!black}
+\RequirePackage{amsmath}
+\RequirePackage{algorithm}
+\RequirePackage[noend]{algpseudocode}
+\RequirePackage{dsfont}
+\RequirePackage{amsmath,stmaryrd,graphicx}
+\RequirePackage{prodint} % product integral symbol (\PRODI)
+\newcommand\defOperator[7]{%
+\ifthenelse{\isempty{#2}}{
+\ifthenelse{\isempty{#1}}{#7{#3}#4}{#7{#3}#4 \left#5 #1 \right#6}
+}{
+\ifthenelse{\isempty{#1}}{#7{#3}#4_{#2}}{#7{#3}#4_{#1}\left#5 #2 \right#6}
+}
+}
+\newcommand\defUOperator[5]{%
+\ifthenelse{\isempty{#1}}{
+#5\left#3 #2 \right#4
+}{
+\ifthenelse{\isempty{#2}}{\underset{#1}{\operatornamewithlimits{#5}}}{
+\underset{#1}{\operatornamewithlimits{#5}}\left#3 #2 \right#4}
+}
+}
+\newcommand{\defBoldVar}[2]{
+\ifthenelse{\equal{#2}{T}}{\boldsymbol{#1}}{\mathbf{#1}}
+}
+\newcommandx\Cov[2][1=,2=]{\defOperator{#1}{#2}{C}{ov}{\lbrack}{\rbrack}{\mathbb}}
+\newcommandx\Esp[2][1=,2=]{\defOperator{#1}{#2}{E}{}{\lbrack}{\rbrack}{\mathbb}}
+\newcommandx\Prob[2][1=,2=]{\defOperator{#1}{#2}{P}{}{\lbrack}{\rbrack}{\mathbb}}
+\newcommandx\Qrob[2][1=,2=]{\defOperator{#1}{#2}{Q}{}{\lbrack}{\rbrack}{\mathbb}}
+\newcommandx\Var[2][1=,2=]{\defOperator{#1}{#2}{V}{ar}{\lbrack}{\rbrack}{\mathbb}}
+\newcommandx\Binom[2][1=,2=]{\defOperator{#1}{#2}{B}{}{(}{)}{\mathcal}}
+\newcommandx\Gaus[2][1=,2=]{\defOperator{#1}{#2}{N}{}{(}{)}{\mathcal}}
+\newcommandx\Wishart[2][1=,2=]{\defOperator{#1}{#2}{W}{ishart}{(}{)}{\mathcal}}
+\newcommandx\Likelihood[2][1=,2=]{\defOperator{#1}{#2}{L}{}{(}{)}{\mathcal}}
+\newcommandx\Information[2][1=,2=]{\defOperator{#1}{#2}{I}{}{(}{)}{\mathcal}}
+\newcommandx\Score[2][1=,2=]{\defOperator{#1}{#2}{S}{}{(}{)}{\mathcal}}
+\newcommandx\Vois[2][1=,2=]{\defOperator{#1}{#2}{V}{}{(}{)}{\mathcal}}
+\newcommandx\IF[2][1=,2=]{\defOperator{#1}{#2}{IF}{}{(}{)}{\mathcal}}
+\newcommandx\Ind[1][1=]{\defOperator{}{#1}{1}{}{(}{)}{\mathds}}
+\newcommandx\Max[2][1=,2=]{\defUOperator{#1}{#2}{(}{)}{min}}
+\newcommandx\Min[2][1=,2=]{\defUOperator{#1}{#2}{(}{)}{max}}
+\newcommandx\argMax[2][1=,2=]{\defUOperator{#1}{#2}{(}{)}{argmax}}
+\newcommandx\argMin[2][1=,2=]{\defUOperator{#1}{#2}{(}{)}{argmin}}
+\newcommandx\cvD[2][1=D,2=n \rightarrow \infty]{\xrightarrow[#2]{#1}}
+\newcommandx\Hypothesis[2][1=,2=]{
+\ifthenelse{\isempty{#1}}{
+\mathcal{H}
+}{
+\ifthenelse{\isempty{#2}}{
+\mathcal{H}_{#1}
+}{
+\mathcal{H}^{(#2)}_{#1}
+}
+}
+}
+\newcommandx\dpartial[4][1=,2=,3=,4=\partial]{
+\ifthenelse{\isempty{#3}}{
+\frac{#4 #1}{#4 #2}
+}{
+\left.\frac{#4 #1}{#4 #2}\right\rvert_{#3}
+}
+}
+\newcommandx\dTpartial[3][1=,2=,3=]{\dpartial[#1][#2][#3][d]}
+\newcommandx\ddpartial[3][1=,2=,3=]{
+\ifthenelse{\isempty{#3}}{
+\frac{\partial^{2} #1}{\partial #2^2}
+}{
+\frac{\partial^2 #1}{\partial #2\partial #3}
+}
+}
+\newcommand\Real{\mathbb{R}}
+\newcommand\Rational{\mathbb{Q}}
+\newcommand\Natural{\mathbb{N}}
+\newcommand\trans[1]{{#1}^\intercal}%\newcommand\trans[1]{{\vphantom{#1}}^\top{#1}}
+\newcommand{\independent}{\mathrel{\text{\scalebox{1.5}{$\perp\mkern-10mu\perp$}}}}
+\newcommand\half{\frac{1}{2}}
+\newcommand\normMax[1]{\left|\left|#1\right|\right|_{max}}
+\newcommand\normTwo[1]{\left|\left|#1\right|\right|_{2}}
+\author{Brice Ozenne}
+\date{\today}
+\title{Covariance pattern in LMMstar}
+\hypersetup{
+ colorlinks=true,
+ pdfauthor={Brice Ozenne},
+ pdftitle={Covariance pattern in LMMstar},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 27.2 (Org mode 9.5.2)},
+ pdflang={English}
+ }
+\begin{document}
+
+\maketitle
+
+\section{LV pattern}
+\label{sec:org6ce11d4}
+
+\subsection{Theory}
+\label{sec:org0c9597c}
+
+Consider 4 timepoints. The traditional parametrisation of the residual
+variance-covariance matrix of a factor model is
+\[ \Omega = \begin{bmatrix}
+\omega^2_1 + \tau & .                           & .                           & . \\
+\lambda_2 \tau    & \omega^2_2 + \lambda^2_2\tau & .                           & . \\
+\lambda_3 \tau    & \lambda_2 \lambda_3 \tau    & \omega^2_3 + \lambda^2_3 \tau & . \\
+\lambda_4 \tau    & \lambda_2 \lambda_4 \tau    & \lambda_3 \lambda_4 \tau     & \omega^2_4 + \lambda^2_4 \tau \\
+\end{bmatrix} \]
+LMMstar uses a different parametrisation with distinct parameters for
+the variance and the correlation:
+\[ \Omega = \begin{bmatrix}
+\sigma^2_1                      & .                              & .                               & . \\
+\rho_1 \rho_2 \sigma_1 \sigma_2 & \sigma^2_2                      & .                              & . \\
+\rho_1 \rho_3 \sigma_1 \sigma_3 & \rho_2 \rho_3 \sigma_2 \sigma_3 & \sigma^2_3                      & . \\
+\rho_1 \rho_4 \sigma_1 \sigma_4 & \rho_2 \rho_4 \sigma_2 \sigma_4 & \rho_3 \rho_4 \sigma_3 \sigma_4 & \sigma^2_4 \\
+\end{bmatrix} \]
+
+The two parametrisation are equivalent when assuming the same sign for
+all correlation (e.g. all positive correlation).
+
+\bigskip
+
+\(\boldsymbol{\omega},\boldsymbol{\tau},\boldsymbol{\lambda}
+\rightarrow \boldsymbol{\rho},\boldsymbol{\sigma}\): the \(\sigma\)
+values can be deduce from the diagonal of \(\Omega\). \newline To get the
+\(\rho\) value, we can first multiply \(\rho_1 \rho_2 \sigma_1
+\sigma_2 = \lambda_2 \tau\) by \(\rho_1 \rho_3 \sigma_1 \sigma_3 =
+\lambda_3 \tau\) and divide by \(\rho_2 \rho_3 \sigma_2 \sigma_3 =
+\lambda_2 \lambda_3 \tau\):
+\begin{align*}
+\frac{\rho_1^2 \rho_2 \rho_3 \sigma_1^2 \sigma_2 \sigma_3}{\rho_2 \rho_3 \sigma_2 \sigma_3} &= \frac{\lambda_2 \lambda_3 \tau^2}{\lambda_2 \lambda_3 \tau} \\
+\rho_1^2 \sigma_1^2 &= \tau \\
+\rho_1^2 = \frac{\tau}{\omega_1^2 + \tau}
+\end{align*}
+More generally, denoting \(\lambda_1=1\), from:
+\begin{align*}
+\sigma_i^2  &= \omega_i^2+\lambda_i^2\tau \\
+\rho_i \rho_j \sigma_i \sigma_j &= \lambda_i \lambda_j \tau
+\end{align*}
+we can deduce
+\begin{align*}
+\rho_i^2 \rho_j \rho_k  \sigma_i^2 \sigma_j \sigma_k &= \lambda_i^2 \lambda_j \lambda_k \tau^2 \\
+\rho_i^2  \sigma_i^2 &= \lambda_i^2 \tau \\
+\rho_i  &=  \sqrt{\frac{\lambda_i^2 \tau}{\omega_i^2+\lambda_i^2\tau}}
+\end{align*}
+Technical \(\rho_i\) could be negative but here use the assumption of
+same (positive) sign for all correlations.
+
+\bigskip
+
+\(\boldsymbol{\rho},\boldsymbol{\sigma} \rightarrow
+\boldsymbol{\omega},\boldsymbol{\tau},\boldsymbol{\lambda}\): we can re-use the previous result:
+\begin{align*}
+\rho_i^2  &=  \frac{\lambda_i^2 \tau}{\omega_i^2+\lambda_i^2\tau} = \frac{\lambda_i^2 \tau}{\sigma_i^2}
+\end{align*}
+So for \(i=1\):
+\begin{align*}
+\tau  &= \rho_1^2 \sigma_1^2
+\end{align*}
+and otherwise:
+\begin{align*}
+\lambda_i^2  &=  \frac{\rho_i^2 \sigma_i^2}{\rho_1^2 \sigma_1^2} \\
+\lambda_i  &= sign(\rho_1 \rho_i) \frac{\rho_i\sigma_i}{\rho_1 \sigma_1}
+\end{align*}
+One can then deduce \(\omega_i\):
+\begin{align*}
+\omega_i  &=  \sqrt{\sigma_i^2 - \lambda_i \tau} = \sigma_i \sqrt{1-\rho_i^2}
+\end{align*}
+
+\clearpage
+
+\subsection{Example}
+\label{sec:org610e4e1}
+
+Simulate data
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+library(lava)
+library(LMMstar)
+
+mSim <- lvm(c(Y1,Y2,Y3,Y4)~eta+age)
+latent(mSim) <- ~eta
+
+set.seed(10)
+n <- 100
+n.time <- length(endogenous(mSim))
+dfW.sim <- cbind(id = paste0("Id",1:n), sim(mSim, n = n, latent = FALSE))
+dfW.sim$id <- factor(dfW.sim$id, unique(dfW.sim$id))
+head(dfW.sim)
+\end{lstlisting}
+
+\begin{verbatim}
+   id         Y1          Y2         Y3         Y4        age
+1 Id1  0.8087642  0.02821369  2.0055318 2.29256267  0.8694750
+2 Id2  0.3174894  0.92111736  0.8326184 1.09215142 -0.6800096
+3 Id3  0.9880281  1.31941524  3.7496337 1.72867315  0.1732145
+4 Id4 -0.3524308  0.95831086  1.1187839 1.03908643 -0.1594380
+5 Id5  0.3496855 -0.57807269 -1.0256767 0.18052490  0.7934994
+6 Id6  0.1276581  0.30103845  0.2336854 0.06061876  1.6943505
+\end{verbatim}
+
+
+Convert to long format:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+dfL.sim <- reshape(dfW.sim, direction = "long", idvar = c("id","age"), varying = paste0("Y",1:4), sep="")
+dfL.sim$time <- as.factor(dfL.sim$time)
+rownames(dfL.sim) <- NULL
+head(dfL.sim)
+\end{lstlisting}
+
+\begin{verbatim}
+   id        age time          Y
+1 Id1  0.8694750    1  0.8087642
+2 Id2 -0.6800096    1  0.3174894
+3 Id3  0.1732145    1  0.9880281
+4 Id4 -0.1594380    1 -0.3524308
+5 Id5  0.7934994    1  0.3496855
+6 Id6  1.6943505    1  0.1276581
+\end{verbatim}
+
+
+Fit LVM:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+m.lvm <- lvm(c(Y1,Y2,Y3,Y4)~eta+age, eta ~ 0)
+latent(m.lvm) <- ~eta
+e.lvm <- estimate(m.lvm, data = dfW.sim)
+logLik(e.lvm)
+\end{lstlisting}
+
+\begin{verbatim}
+'log Lik.' -651.0478 (df=16)
+\end{verbatim}
+
+
+Export coefficient by type:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+mu.lvm <- coef(e.lvm)[c(paste0("Y",1:n.time),paste0("Y",1:n.time,"~age"))]
+lambda.lvm <- c(1,coef(e.lvm)[paste0("Y",2:n.time,"~eta")])
+tau.lvm <- coef(e.lvm)["eta~~eta"]
+omega.lvm <- coef(e.lvm)[paste0("Y",1:n.time,"~~Y",1:n.time)]
+list(mu = mu.lvm,
+     lambda = lambda.lvm,
+     tau = tau.lvm,
+     omega = omega.lvm)
+\end{lstlisting}
+
+\begin{verbatim}
+$mu
+        Y1         Y2         Y3         Y4     Y1~age     Y2~age     Y3~age 
+-0.1835368 -0.1491306 -0.0194078  0.1459640  0.9502774  1.0535363  0.9671297 
+    Y4~age 
+ 1.0349377 
+
+$lambda
+             Y2~eta    Y3~eta    Y4~eta 
+1.0000000 0.8653753 1.1024519 1.0537868 
+
+$tau
+eta~~eta 
+1.259395 
+
+$omega
+   Y1~~Y1    Y2~~Y2    Y3~~Y3    Y4~~Y4 
+0.8444582 0.9968492 1.0012298 0.9868099
+\end{verbatim}
+
+Conversion to LMM coefficients:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+list(sigma = sqrt(omega.lvm + lambda.lvm^2 * tau.lvm),
+     rho = sqrt( lambda.lvm^2 * tau.lvm / (omega.lvm + lambda.lvm^2 * tau.lvm)))
+\end{lstlisting}
+
+\begin{verbatim}
+$sigma
+  Y1~~Y1   Y2~~Y2   Y3~~Y3   Y4~~Y4 
+1.450466 1.392831 1.591194 1.544450 
+
+$rho
+             Y2~eta    Y3~eta    Y4~eta 
+0.7737012 0.6972477 0.7775305 0.7657021
+\end{verbatim}
+
+
+\clearpage
+
+Fit LMM:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+rhoLVM <- function(p,time,...){
+  R <- tcrossprod(p[time])
+  diag(R) <- 1
+  return(R)
+}
+myStruct <- CUSTOM(~time,
+		   FCT.sigma = function(p,time,X){p[time]},
+		   init.sigma = setNames(rep(1.45,n.time),paste0("sigma",1:n.time)),
+		   FCT.rho = rhoLVM,
+		   init.rho = setNames(rep(0.7,n.time),paste0("rho",1:n.time)))
+e.lmmCUSTOM <- lmm(Y ~ time*age,
+		   repetition = ~time|id,
+		   structure  = myStruct, data = dfL.sim,
+		   method.fit = "ML")
+logLik(e.lmmCUSTOM)
+\end{lstlisting}
+
+\begin{verbatim}
+[1] -651.0478
+\end{verbatim}
+
+
+We get exactly the same log-likelihood as the latent variable
+model. Export coefficient by type:
+
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+mu.lmm <- coef(e.lmmCUSTOM, effects = "mean")
+sigma.lmm <- coef(e.lmmCUSTOM, effects = "variance")
+rho.lmm <- coef(e.lmmCUSTOM, effects = "correlation")
+list(mu = mu.lmm,
+     sigma = sigma.lmm,
+     rho = rho.lmm)
+\end{lstlisting}
+
+\begin{verbatim}
+$mu
+(Intercept)       time2       time3       time4         age   time2:age 
+-0.18353676  0.03440620  0.16412896  0.32950080  0.95027744  0.10325886 
+  time3:age   time4:age 
+ 0.01685224  0.08466026 
+
+$sigma
+  sigma1   sigma2   sigma3   sigma4 
+1.450466 1.392831 1.591194 1.544450 
+
+$rho
+     rho1      rho2      rho3      rho4 
+0.7737013 0.6972475 0.7775306 0.7657020
+\end{verbatim}
+
+\clearpage
+
+Conversion to LVM coefficients:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+list(lambda = rho.lmm*sigma.lmm/(rho.lmm[1]*sigma.lmm[1]),
+     tau = rho.lmm[1]^2*sigma.lmm[1]^2,
+     omega = sigma.lmm^2 * (1-rho.lmm^2))
+\end{lstlisting}
+
+\begin{verbatim}
+$lambda
+    rho1     rho2     rho3     rho4 
+1.000000 0.865375 1.102452 1.053786 
+
+$tau
+    rho1 
+1.259395 
+
+$omega
+   sigma1    sigma2    sigma3    sigma4 
+0.8444578 0.9968496 1.0012293 0.9868104
+\end{verbatim}
+\end{document}
