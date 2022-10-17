@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: okt 12 2022 (16:55) 
+## Last-Updated: Oct 17 2022 (12:38) 
 ##           By: Brice Ozenne
-##     Update #: 2331
+##     Update #: 2341
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -167,6 +167,102 @@
 
 ## * skeleton.UN
 .skeleton.UN <- .skeleton.CS
+
+## * skeleton.EXP
+.skeleton.EXP <- function(structure, data, indexData = NULL){
+
+    ## ** prepare
+    if(is.null(indexData)){
+        indexData <- .extractIndexData(data = data, structure = structure)
+    }
+    strata.var <- structure$name$strata
+    U.cluster <- indexData$U.cluster
+    U.time <- indexData$U.time
+    U.strata <- indexData$U.strata
+    n.strata <- length(U.strata)
+    
+    index.clusterTime <- indexData$index.clusterTime ## list of index relative to the time at which the observations are made within cluster
+    index.clusterStrata <- indexData$index.clusterStrata ## vector of index relative to which strata each cluster belong to
+    index.cluster <- indexData$index.cluster ## list of positions of the observation belonging to each cluster in the dataset
+
+    X.var <- structure$X$var
+    X.cor <- structure$X$cor
+
+    ## ** param
+    ## *** sigma
+    outSigma <- .initSigma(X.var = X.var, strata.var = strata.var, U.strata = U.strata, n.strata = n.strata)
+    X.var <- outSigma$X    
+    param.sigma <- outSigma$param    
+    strata.sigma <- outSigma$strata    
+    code.sigma <- outSigma$code
+    level.sigma <- stats::setNames(as.list(outSigma$level),param.sigma)
+
+    ## *** k
+    outK <- .initK(X.var = X.var, strata.var = strata.var, U.strata = U.strata, n.strata = n.strata,
+                   param.sigma = param.sigma, strata.sigma = strata.sigma)
+    X.var <- outK$X    
+    param.k <- outK$param    
+    strata.k <- outK$strata    
+    code.k <- outK$code
+    level.k <- stats::setNames(as.list(outK$level),param.k)
+
+    ## *** param rho
+    regressor <- colnames(X.cor)[which(attr(X.cor, "assign") == max(attr(X.cor, "assign")))]
+
+    if(n.strata==1){
+        param.rho <- "lambda"
+        strata.rho <- 1
+        code.rho <- regressor
+        level.rho <- ""
+        if(structure$heterogeneous){
+            param.rho <- c(param.rho,"nugget")
+            strata.rho <- c(strata.rho,1)
+            code.rho <- c(code.rho,NA)
+            level.rho <- c(code.rho,"")
+        }
+    }else{
+        param.rho <- paste0("lambda",U.strata)
+        strata.rho <- 1:n.strata
+        code.rho <- regressor
+        level.rho <- U.strata
+        if(structure$heterogeneous){
+            param.rho <- c(param.rho,paste0("nugget",U.strata))
+            strata.rho <- c(strata.rho,1:n.strata)
+            code.rho <- c(code.rho,rep(NA, n.strata))
+            level.rho <- c(level.rho,U.strata)
+        }
+    }
+
+    ## ** gather parameters
+    n.param <- length(param.sigma) + length(param.k) + length(param.rho)
+    
+    structure$param <- data.frame(name = c(param.sigma,param.k,param.rho),
+                                  strata = as.numeric(c(strata.sigma,strata.k,strata.rho)),
+                                  type = c(rep("sigma",length=length(param.sigma)),rep("k",length=length(param.k)),rep("rho",length=length(param.rho))),
+                                  level = rep(NA, times = n.param),
+                                  code = c(code.sigma,code.k,code.rho),
+                                  code.x = rep(as.factor(NA), times = n.param),
+                                  code.y = rep(as.factor(NA), times = n.param),
+                                  sigma = rep(as.character(NA), times = n.param),
+                                  k.x = rep(as.character(NA), times = n.param),
+                                  k.y = rep(as.character(NA), times = n.param),                                  
+                                  stringsAsFactors = FALSE)
+    
+    structure$param$level <- c(level.sigma,level.k,level.rho)
+    attr(structure$param,"level.var") <- outSigma$code
+    if(any(structure$param$type=="k")){
+        structure$param[structure$param$type=="k","sigma"] <- names(strata.sigma)[structure$param[structure$param$type=="k","strata"]]
+        attr(structure$param,"level.var") <- c(attr(structure$param,"level.var"), outK$code)
+    }
+    structure$param <- structure$param[order(structure$param$strata),,drop=FALSE]
+    rownames(structure$param) <- NULL
+
+    ## ** export
+    structure$X$var <- X.var
+    structure$X$cor <- X.cor
+    return(structure)
+}
+
 
 ## * skeleton.CUSTOM
 .skeleton.CUSTOM <- function(structure, data, indexData = NULL){

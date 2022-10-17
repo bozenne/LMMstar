@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: okt 13 2022 (16:38) 
+## Last-Updated: Oct 17 2022 (11:38) 
 ##           By: Brice Ozenne
-##     Update #: 358
+##     Update #: 370
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -56,14 +56,20 @@
         cluster.pattern.var <- cluster.pattern.var[match(lpnCluster.var[cluster.pattern.var], name.pattern.var)]
         n.pattern.var <- length(name.pattern.var)
     }
-    
+
     ## *** cor
     if(!is.null(X.cor)){
         lpObs.cor <- interaction(as.data.frame(X.cor), drop = TRUE, sep = sep[1])
-        if(!all(levels(lpObs.cor) %in% sort(Ulp.cor))){
-            warning("Something went wrong when extracting the correlation patterns. \n")
+
+        if(!is.null(Ulp.cor)){
+            if(!all(levels(lpObs.cor) %in% sort(Ulp.cor))){
+                warning("Something went wrong when extracting the correlation patterns. \n")
+            }
+            lpnObs.cor <- as.numeric(factor(lpObs.cor, levels = Ulp.cor))
+        }else{
+            lpnObs.cor <- as.numeric(lpObs.cor)
         }
-        lpnObs.cor <- as.numeric(factor(lpObs.cor, levels = Ulp.cor))
+
         lpnCluster.cor0 <- stats::setNames(lapply(U.cluster, function(iC){
             if(length(index.cluster[[iC]])>1){
                 return(lpnObs.cor[index.cluster[[iC]]])
@@ -221,10 +227,13 @@
             iC.code <- lpnCluster.cor0[[iC]]
             iC.pair <- ls.pair[[length(iC.code)]]
             iC.codepair <- matrix(iC.code[iC.pair], ncol = 2, byrow = TRUE, dimnames = list(NULL,c("lp.x","lp.y")))
-            iC.lp.xy <- paste0(attr(param,"level.cor")[iC.codepair[,"lp.x"]],sep[2],attr(param,"level.cor")[iC.codepair[,"lp.y"]])
-            iC.param <- names(lp.xy)[match(iC.lp.xy,lp.xy)] ## can contain NA when asking a new structure without having seen a particular pair
+            if(!is.null(attr(param,"level.cor"))){
+                iC.lp.xy <- paste0(attr(param,"level.cor")[iC.codepair[,"lp.x"]],sep[2],attr(param,"level.cor")[iC.codepair[,"lp.y"]])
+                iC.param <- names(lp.xy)[match(iC.lp.xy,lp.xy)] ## can contain NA when asking a new structure without having seen a particular pair
+            }else{
+                iC.param <- paste(param.rho[param.rho$strata == index.clusterStrata[iC],"name"], collapse = "|")
+            }
             ## unique(iC.lp.xy)
-
             iC.table <- rbind(data.frame(row = iC.pair[1,], col = iC.pair[2,], param = iC.param),
                               data.frame(row = iC.pair[2,], col = iC.pair[1,], param = iC.param))
             ## iX.pairwise <- matrix(0, nrow = NROW(iC.table), ncol = length(param.rho$name),
@@ -288,6 +297,9 @@
 
 ## * .findUpatterns.UN
 .findUpatterns.UN <- .findUpatterns.ID
+
+## * .findUpatterns.EXP
+.findUpatterns.EXP <- .findUpatterns.ID
 
 ## * .findUpatterns_CUSTOM
 .findUpatterns.CUSTOM <- function(structure, 

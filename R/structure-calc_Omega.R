@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: okt 13 2022 (16:39) 
+## Last-Updated: Oct 17 2022 (12:42) 
 ##           By: Brice Ozenne
-##     Update #: 525
+##     Update #: 530
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -124,6 +124,48 @@
 ## * calc_Omega.UN
 .calc_Omega.UN <- .calc_Omega.ID
 
+## * calc_Omega.EXP
+.calc_Omega.EXP <- function(object, param, keep.interim = FALSE){
+
+    Upattern <- object$X$Upattern
+    n.Upattern <- NROW(Upattern)
+    pattern.cluster <- object$X$pattern.cluster
+    X.var <- object$X$Xpattern.var
+    X.cor <- object$X$Xpattern.cor
+    regressor <- stats::setNames(object$param[object$param$type=="rho","code"],object$param[object$param$type=="rho","name"])
+    
+    Omega <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
+        iPattern.var <- Upattern[iPattern,"var"]
+        iPattern.cor <- Upattern[iPattern,"cor"]
+        iNtime <- Upattern[iPattern,"n.time"]
+
+        if(length(X.var[[iPattern.var]])>0){
+            Omega.sd <- unname(exp(X.var[[iPattern.var]] %*% log(param[colnames(X.var[[iPattern.var]])])))
+        }else{
+            Omega.sd <- rep(1, iNtime)
+        }
+        Omega.cor <- diag(0, nrow = iNtime, ncol = iNtime)
+        
+        if(!is.null(X.cor) && !is.null(X.cor[[iPattern.cor]])){
+            iParam.cor <- attr(X.cor[[iPattern.cor]],"param")
+            iTime.cor <- X.cor[[iPattern.cor]][,regressor[iParam.cor]]
+            Omega.cor[attr(X.cor[[iPattern.cor]],"indicator.param")[[iParam.cor]]] <- exp(-param[iParam.cor] * iTime.cor)
+        }
+        Omega <- diag(as.double(Omega.sd)^2, nrow = iNtime, ncol = iNtime) + Omega.cor * tcrossprod(Omega.sd)
+        
+        if(keep.interim){
+            attr(Omega,"sd") <- Omega.sd
+            attr(Omega,"cor") <- Omega.cor
+            attr(Omega,"time") <- attr(X.var[[iPattern.var]], "index.time")
+        }
+        return(Omega)
+    }), Upattern$name)
+    ## print(Omega)
+
+    return(Omega)
+    
+    return(1)
+}
 ## * calc_Omega.CS
 .calc_Omega.CUSTOM <- function(object, param, keep.interim = FALSE){
 

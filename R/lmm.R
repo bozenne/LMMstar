@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: okt 13 2022 (15:57) 
+## Last-Updated: Oct 17 2022 (11:18) 
 ##           By: Brice Ozenne
-##     Update #: 2048
+##     Update #: 2055
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -199,6 +199,9 @@ lmm <- function(formula, repetition, structure, data,
         }
     }else{
         missing.repetition <- FALSE
+        if(inherits(try(repetition,silent=TRUE),"try-error")){
+            stop("Could not evaluate argument \'repetition\'. Maybe the symbol \'~\' is missing in the formula. \n")
+        }
         if(!inherits(repetition,"formula")){
             stop("Argument \'repetition\' must be of class formula, something like: ~ time|cluster or strata ~ time|cluster. \n")
         }
@@ -532,7 +535,7 @@ lmm <- function(formula, repetition, structure, data,
     call.structure <- as.list(structure$call)
     args.structure <- call.structure[-1]
 
-    if(("add.time" %in% names(args.structure) == FALSE || identical(args.structure$add.time,TRUE)) && type.structure %in% c("IND","UN","TOEPLITZ") && n.time>1){
+    if(("add.time" %in% names(args.structure) == FALSE || identical(args.structure$add.time,TRUE)) && type.structure %in% c("IND","UN","EXP","TOEPLITZ") && n.time>1){
         if(type.structure == "TOEPLITZ" && ("heterogeneous" %in% names(args.structure) && is.null(args.structure$heterogeneous))){
             args.structure$add.time <- "XXtimeXX"
         }else{
