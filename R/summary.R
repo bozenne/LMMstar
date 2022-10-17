@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: okt 13 2022 (16:35) 
+## Last-Updated: okt 14 2022 (11:47) 
 ##           By: Brice Ozenne
-##     Update #: 1116
+##     Update #: 1127
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -764,28 +764,24 @@ summary.partialCor <- function(object, digits = 3, detail = TRUE, ...){
 
     message.backtransform <- attr(object,"backtransform")
     attr(object,"backtransform") <- NULL
-
     ## display estimates
-    out <- do.call("print.confint_lmm", c(list(object, detail = detail, digits = digits), ...))
-
-    xplus <- cbind(rownames(object),formatC(as.matrix(object), digits = digits, format = "f"))
-    xplus.char <- apply(xplus,1, function(iRow){ ## iRow <- xplus[2,]
-        sum(nchar(iRow)+1)
-    })
-    width <- max(c(xplus.char,sum(nchar(colnames(object))+1)))
-    cat("\t",rep("-",width),"\n",sep="")
-
-    ## legend (estimates)
-    if(any(grepl("^rho\\(",rownames(object))) && any(grepl("^r\\(",rownames(object)))){
-
-        cat("\trho: marginal correlation \n")
-        cat("\tr  : conditional correlation \n")
-        
+    if(!is.null(attr(object,"parameter")) && length(attr(object,"parameter"))==1){
+        cat("\tParameter: ", attr(object,"parameter"),"\n\n",sep="")
+        rownames(object) <- NULL
     }
+    out <- do.call("print.confint_lmm", c(list(object, detail = detail, digits = digits, row.names = FALSE), ...))
+
 
     ## legend (transformation)
     test.backtransform <- !is.null(message.backtransform) && any(!is.na(message.backtransform$FUN))
     if(test.backtransform){
+        xplus <- cbind(rownames(object),formatC(as.matrix(object), digits = digits, format = "f"))
+        xplus.char <- apply(xplus,1, function(iRow){ ## iRow <- xplus[2,]
+            sum(nchar(iRow)+1)
+        })
+        width <- max(c(xplus.char,sum(nchar(colnames(object))+1)))
+        cat("\t",rep("-",width),"\n",sep="")
+
         message.backtransform <- message.backtransform[!is.na(message.backtransform$FUN),,drop=FALSE]
 
             if(any(message.backtransform[,setdiff(names(message.backtransform), "FUN")] == FALSE)){

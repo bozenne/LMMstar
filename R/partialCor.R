@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: okt 14 2022 (10:47) 
+## Last-Updated: okt 14 2022 (11:46) 
 ##           By: Brice Ozenne
-##     Update #: 307
+##     Update #: 317
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -307,21 +307,23 @@ partialCor <- function(formula, data, repetition = NULL, structure = NULL, by = 
             tentative.rho <- sapply(U.time, function(iT){paste0("rho(",paste(interaction(M.time)[M.time[,1]==iT],collapse=","),")")})
 
             if(any(tentative.rho %in% rownames(out))){
-                keep.rho <- intersect(tentative.rho,rownames(out)) 
-                out <- out[keep.rho,,drop=FALSE]
-
+                keep.rho <- intersect(tentative.rho,rownames(out))
+                out <- cbind(type = "marginal",out[keep.rho,,drop=FALSE])
+                level.rho <- e.lmm$design$param[e.lmm$design$param$name==keep.rho,"level"][[1]][1]
+                rownames(out) <- paste0("marginal",level.rho)
+                
                 ## compute conditional correlation
                 if((length(keep.rho)==1) && (structure %in% c("CS","HCS"))){
                     name.rho2 <- e.lmm$design$param[e.lmm$design$param$type=="rho","name"][grepl("R.",code.rho)]
                     sub.rho <- setdiff(name.rho, keep.rho)
 
                     test.atanh <- identical(attr(out,"backtransform")$FUN,"tanh")
-
                     out2 <- estimate(e.lmm, df = df, f = function(p){
                         if(any(p[name.rho2]<0)){
-                            iOut <- NA
+                            iOut <- c(NA,NA)
                         }else{
-                            iOut <- (p[keep.rho]-p[sub.rho])/sqrt(prod(1-p[name.rho2]))
+                            iOut <- c((p[keep.rho]-p[sub.rho])/sqrt(prod(1-p[name.rho2])),
+                                      p[sub.rho]/sqrt(prod(p[name.rho2])))
                             if(test.atanh){iOut <- atanh(iOut)}
                         }
                         return(iOut)                        
@@ -332,12 +334,14 @@ partialCor <- function(formula, data, repetition = NULL, structure = NULL, by = 
                                                transform.mu = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = "atanh")
                         
                     }
-
-                    rownames(out2) <- gsub("^rho","r",rownames(out))
-                    out <- rbind(out, out2)
+                    rownames(out2)[1] <- paste0("conditional",level.rho)
+                    rownames(out2)[2] <- paste0("latent",level.rho)
+                    out <- rbind(out, cbind(type = c("conditional","latent"),out2))
                 }
+                attr(out,"parameter") <- level.rho
             }else{
                 out <- out[name.rho,,drop=FALSE]
+                attr(out,"parameter") <- name.rho
             }
 
             

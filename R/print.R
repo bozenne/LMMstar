@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: okt 12 2022 (14:56) 
+## Last-Updated: okt 14 2022 (11:39) 
 ##           By: Brice Ozenne
-##     Update #: 169
+##     Update #: 170
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -261,6 +261,7 @@ print.mlmm <- function(x, ...){
 ##' @export
 print.partialCor <- function(x, digits = 3, ...){
 
+    x$type <- NULL
     out <- do.call("print.confint_lmm", c(list(x, detail = FALSE, digits = digits), ...))
 
     return(invisible(NULL))
