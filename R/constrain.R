@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 17 2022 (05:36) 
 ## Version: 
-## Last-Updated: jun 28 2022 (11:44) 
+## Last-Updated: okt 31 2022 (18:21) 
 ##           By: Brice Ozenne
-##     Update #: 45
+##     Update #: 49
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -47,7 +47,8 @@
     x$param <- eee$estimate
     x$logLik <- eee$logLik
     x[c("reparametrize","fitted","residuals","Omega","OmegaM1","dOmega","d2Omega","score","information","vcov","df","dVcov")] <- NULL
-    
+
+    class(x) <- append("clmm",class(x))
     return(x)
 }
 

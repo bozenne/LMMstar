@@ -42,6 +42,7 @@ Suggests:
     mice,
     nlmeU,
     optimx,
+    pbapply,
     psych,
     Publish,
     qqtest,

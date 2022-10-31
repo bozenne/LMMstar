@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: okt 12 2022 (17:29) 
+## Last-Updated: okt 31 2022 (18:22) 
 ##           By: Brice Ozenne
-##     Update #: 531
+##     Update #: 540
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -24,6 +24,7 @@
 ##' For new clusters, a dataset containing the information (cluster, time, strata, ...) to be used to generate the residual variance-covariance matrices.
 ##' When \code{NULL}, will output complete data covariance patterns.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the residual variance-covariance matrix. Only relevant if differs from the fitted values.
+##' @param chol [logical] Output the cholesky factorization of the variance-covariance matrix.
 ##' @param inverse [logical] Output the matrix inverse of the variance-covariance matrix.
 ##' @param simplifies [logical] When there is only one variance-covariance matrix, output a matrix instead of a list of matrices.
 ##' @param ... Not used. For compatibility with the generic method.
@@ -49,7 +50,7 @@
 
 ## * sigma.lmm
 ##' @export
-sigma.lmm <- function(object, cluster = NULL, p = NULL, inverse = FALSE, simplifies = TRUE, ...){
+sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = FALSE, simplifies = TRUE, ...){
 
     ## ** extract from object
     param.name <- object$design$param$name
@@ -192,6 +193,9 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, inverse = FALSE, simplif
     }
 
     ## ** inverse
+    if(chol){
+        Omega <- lapply(Omega, chol)
+    }
     if(inverse){
         Omega <- lapply(Omega, solve)
     }
@@ -227,6 +231,16 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, inverse = FALSE, simplif
         }
         return(out)
     }
+}
+
+## * sigma.clmm
+##' @export
+sigma.clmm <- function(object, ...){
+
+    object$Omega <- .calc_Omega(object$design$vcov, param = object$param, keep.interim = FALSE)
+    out <- sigma.lmm(object, ...)
+    return(out)
+
 }
 
 ## * getVarCov.lmm

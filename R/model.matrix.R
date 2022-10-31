@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: okt 12 2022 (17:28) 
+## Last-Updated: okt 31 2022 (15:34) 
 ##           By: Brice Ozenne
-##     Update #: 2344
+##     Update #: 2354
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -414,6 +414,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             wX.mean <- sweep(X.mean, FUN = "*", MARGIN = 1, STATS = sqrt(data[[var.weights[1]]]))
             wY <- cbind(data[[var.outcome]]*sqrt(data[[var.weights[1]]]))
         }
+
         precompute.XX <-  .precomputeXX(X = wX.mean, pattern = structure$X$Upattern$name, 
                                         pattern.ntime = stats::setNames(structure$X$Upattern$n.time, structure$X$Upattern$name),
                                         pattern.cluster = structure$X$Upattern$index.cluster, index.cluster = index.cluster)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: aug 25 2022 (14:00) 
+## Last-Updated: okt 31 2022 (17:37) 
 ##           By: Brice Ozenne
-##     Update #: 711
+##     Update #: 715
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -200,14 +200,20 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
     ## ** parameters
     if(is.null(p)){
         mu <- coef(object, effects = "mean")
-        vcov.mu <- vcov(object, effects = "mean")
-        theta <- coef(object, effects = "all")
-        vcov.theta <- vcov(object, effects = "all")
+        if(type.prediction == "dynamic"){
+            theta <- coef(object, effects = "all")
+        }
+        if(!is.null(se) || type.prediction == "dynamic"){
+            vcov.mu <- vcov(object, effects = "mean")
+            vcov.theta <- vcov(object, effects = "all")
+        }
     }else{
         theta <- p
-        vcov.theta <- vcov(object, p = p, effects = "all")
         mu <- p[name.mu]
-        vcov.mu <- vcov(object, p = p, effects = "mean")
+        if(!is.null(se) || type.prediction == "dynamic"){
+            vcov.theta <- vcov(object, p = p, effects = "all")
+            vcov.mu <- vcov(object, p = p, effects = "mean")
+        }
     }
 
 

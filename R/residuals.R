@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: sep  6 2022 (17:39) 
+## Last-Updated: okt 31 2022 (18:25) 
 ##           By: Brice Ozenne
-##     Update #: 649
+##     Update #: 669
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -37,7 +37,7 @@
 ##' @details The argument \code{type} defines how the residuals are computed:
 ##' \itemize{
 ##' \item \code{"fitted"}: fitted value \eqn{X_{ij} \hat{\beta}}.
-##' \item \code{"raw"}: observed outcome minus fitted value \eqn{\varepsilon_{ij} = Y_{ij} - X_{ij} \hat{\beta}}.
+##' \item \code{"response"}: raw residual, i.e. observed outcome minus fitted value \eqn{\varepsilon_{ij} = Y_{ij} - X_{ij} \hat{\beta}}.
 ##' \item \code{"pearson"}: each raw residual is divided by its modeled standard deviation \eqn{\varepsilon_{ij} = \frac{Y_{ij} - X_{ij} \hat{\beta}}{\sqrt{\hat{\omega}_{ij}}}}.
 ##' \item \code{"studentized"}: same as \code{"pearson"} but excluding the contribution of the cluster in the modeled standard deviation  \eqn{\varepsilon_{ij} = \frac{Y_{ij} - X_{ij} \hat{\beta}}{\sqrt{\hat{\omega}_{ij}-\hat{q}_{ij}}}}.
 ##' \item \code{"normalized"}: raw residuals are multiplied, within clusters, by the inverse of the (lower) Cholesky factor of the modeled residual variance covariance matrix \eqn{\varepsilon_{ij} = ( Y_{i} - X_{i} \hat{\beta} )\hat{C}^{-1}}.
@@ -396,7 +396,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
             iOrder <- order(index.time[iIndex])
             iResidual <- res[iIndex[iOrder]]
             iN.time <- length(iIndex)
-                
+
             for(iType in type.residual){
                 if("pearson" %in% type.residual){
                     resnorm <- iResidual * sqrtPrecision$pearson[[index.variance[iId]]]
@@ -610,6 +610,16 @@ residuals.lmm <- function(object, type = "response", format = "long",
         }
     }
 
+## * residuals.clmm
+##' @export
+residuals.clmm <- function(object, ...){
 
+    object$residuals <- object$design$Y - predict(object, newdata = object$data.original, se = FALSE)$estimate
+    object$Omega <- .calc_Omega(object$design$vcov, param = object$param, keep.interim = FALSE)
+    object$OmegaM1 <- lapply(object$Omega, solve)
+    out <- residuals.lmm(object, ...)
+    return(out)
+
+}
 ##----------------------------------------------------------------------
 ### residuals.R ends here
