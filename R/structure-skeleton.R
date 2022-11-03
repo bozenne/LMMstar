@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: Oct 17 2022 (12:38) 
+## Last-Updated: nov  3 2022 (11:15) 
 ##           By: Brice Ozenne
-##     Update #: 2341
+##     Update #: 2346
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -487,8 +487,9 @@
         }), iCluster)
 
         ## **** remove cluster with single value or identical to other cluster in term of linear predictors
-        iIndex.unique <- intersect(which(!duplicated(iULpCluster.cor)),
-                                   which(sapply(iIndex.cluster,length)>1))
+        iIndex.Nsingle <- which(sapply(iIndex.cluster,length)>1)
+        iIndex.unique <- iIndex.Nsingle[which(!duplicated(iULpCluster.cor[iIndex.Nsingle]))]
+                                   
         iCluster2 <- iCluster[iIndex.unique]
 
         iN.pair <- unique(sapply(iULpIndex.cor[iIndex.unique], length))

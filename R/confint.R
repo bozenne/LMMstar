@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: Oct 11 2022 (11:10) 
+## Last-Updated: nov  3 2022 (11:33) 
 ##           By: Brice Ozenne
-##     Update #: 527
+##     Update #: 532
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -151,8 +151,10 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     }else{
         columns <- options$columns.confint
     }
-    if("partial.r" %in% columns && (object$design$vcov$type != "CS" || object$design$vcov$heterogeneous != FALSE)){
-        warning("Column \"partial.r\" may not have a simple interpretation. \n", sep = "")
+    if("partial.r" %in% columns && object$design$vcov$type %in% c("ID","IND") == FALSE){
+        if(object$design$vcov$type != "CS" || object$design$vcov$heterogeneous != FALSE){
+            warning("Column \"partial.r\" may not have a simple interpretation. \n", sep = "")
+        }
     }
 
 
@@ -355,8 +357,10 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
 
     ## sanity check
     if(!inherits(object,"rbindWald_lmm") && !is.null(object$object$structure)){
-        if("partial.r" %in% columns && (object$object$structure["type"] != "CS" || object$object$structure["heterogeneous"] != FALSE)){
-            warning("Column \"partial.r\" may not have a simple interpretation. \n", sep = "")
+        if("partial.r" %in% columns && object$object$structure["type"] %in% c("ID","IND") == FALSE){
+            if(object$object$structure["type"] != "CS" || object$object$structure["heterogeneous"] != FALSE){
+                warning("Column \"partial.r\" may not have a simple interpretation. \n", sep = "")
+            }
         }
     }
  

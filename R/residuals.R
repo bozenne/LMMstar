@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: okt 31 2022 (18:25) 
+## Last-Updated: nov  3 2022 (11:27) 
 ##           By: Brice Ozenne
-##     Update #: 669
+##     Update #: 670
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -614,7 +614,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
 ##' @export
 residuals.clmm <- function(object, ...){
 
-    object$residuals <- object$design$Y - predict(object, newdata = object$data.original, se = FALSE)$estimate
+    object$residuals <- object$design$Y - stats::predict(object, newdata = object$data.original, se = FALSE)$estimate
     object$Omega <- .calc_Omega(object$design$vcov, param = object$param, keep.interim = FALSE)
     object$OmegaM1 <- lapply(object$Omega, solve)
     out <- residuals.lmm(object, ...)

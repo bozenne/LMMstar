@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: Oct 10 2022 (12:24) 
+## Last-Updated: nov  3 2022 (11:20) 
 ##           By: Brice Ozenne
-##     Update #: 123
+##     Update #: 126
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -507,8 +507,17 @@ test_that("Incorrect ordering of the coefficient in mlmm", {
                  )
 })
 
-##           
+## * from: Brice, torsdag 22-11-03 at 11:18
+test_that("Start with cluster with single observation", {
 
+    set.seed(10)
+    dL <- sampleRem(100, n.times = 3, format = "long")
+    e.lmm <- lmm(Y ~ X1, repetition = ~1|id, structure = "CS", data = dL[3:19,], df = FALSE)
+    e.lmer <- lmer(Y ~ X1 + (1|id), data = dL[3:19,])
+    ## was giving an error
+    expect_equal(as.double(coef(e.lmm, effects = "ranef")[,1]),as.double(ranef(e.lmer)$id[,1]), tol = 1e-6)
+
+})
 
 ######################################################################
 ### test-auto-previous-bug.R ends here

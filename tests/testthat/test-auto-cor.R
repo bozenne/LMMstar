@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 20 2022 (12:12) 
 ## Version: 
-## Last-Updated: sep 26 2022 (09:59) 
+## Last-Updated: nov  3 2022 (11:37) 
 ##           By: Brice Ozenne
-##     Update #: 62
+##     Update #: 63
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -187,13 +187,13 @@ test_that("estimate partial correlation via lmm (cluster)", {
                         control = list(optimizer = "FS"))
 
     expect_equal(as.double(model.tables(eTopHetero.lmm, effects = "correlation")["rho(1.X1,1.X2)",]),
-                 as.double(test.hetero), tol = 1e-6)
+                 as.double(test.hetero[,c("estimate","se","df","lower","upper","p.value")]), tol = 1e-6)
     expect_equal(c(0.47388305, 0.04995313, 13.80173649, 0.36429768, 0.57052434, 9.8e-07),
-                 as.double(test.hetero), tol = 1e-6)
+                 as.double(test.hetero[,c("estimate","se","df","lower","upper","p.value")]), tol = 1e-6)
     expect_equal(as.double(model.tables(eTopHomo.lmm, effects = "correlation")["rho(1.X1,1.X2)",]),
-                 as.double(test.homo["rho(1.X1,1.X2)",]), tol = 1e-6)
+                 as.double(test.homo["marginal(1.X1,1.X2)",c("estimate","se","df","lower","upper","p.value")]), tol = 1e-6)
     expect_equal(c(0.4732798, 0.04992003, 14.13096784, 0.36401686, 0.56969305, 8.3e-07),
-                 as.double(test.homo["rho(1.X1,1.X2)",]), tol = 1e-6)
+                 as.double(test.homo["marginal(1.X1,1.X2)",c("estimate","se","df","lower","upper","p.value")]), tol = 1e-6)
     
 })
 

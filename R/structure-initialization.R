@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: Oct 17 2022 (12:40) 
+## Last-Updated: nov  3 2022 (11:25) 
 ##           By: Brice Ozenne
-##     Update #: 270
+##     Update #: 271
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -377,7 +377,7 @@
             return(0)
         }
 
-        return(uniroot(f = errorFun, lower = lower, upper = upper)$root)
+        return(stats::uniroot(f = errorFun, lower = lower, upper = upper)$root)
     }))
 
     ## take care of extreme cases, e.g. 0 variability

@@ -8,6 +8,7 @@
   object,
   cluster = NULL,
   p = NULL,
+  chol = FALSE,
   inverse = FALSE,
   simplifies = TRUE,
   ...
@@ -21,6 +22,8 @@ For new clusters, a dataset containing the information (cluster, time, strata, .
 When \code{NULL}, will output complete data covariance patterns.}
 
 \item{p}{[numeric vector] value of the model coefficients at which to evaluate the residual variance-covariance matrix. Only relevant if differs from the fitted values.}
+
+\item{chol}{[logical] Output the cholesky factorization of the variance-covariance matrix.}
 
 \item{inverse}{[logical] Output the matrix inverse of the variance-covariance matrix.}
 

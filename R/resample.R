@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: okt 31 2022 (18:34) 
+## Last-Updated: nov  3 2022 (11:27) 
 ##           By: Brice Ozenne
-##     Update #: 160
+##     Update #: 164
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,7 +21,7 @@
 ##' @param object a \code{lmm} object.
 ##' @param type [character] should permutation test (\code{"perm"}) or non-parametric bootstrap (\code{"boot"}) be used?
 ##' @param effects [character vector] the variable(s) to be permuted or the effect(s) to be tested via non-parametric bootstrap.
-##' @param effects [integer] the number of sample used.
+##' @param n.sample [integer] the number of samples used.
 ##' @param trace [logical] should the execution of the resampling be traced?
 ##' @param seed [integer] Random number generator (RNG) state used when starting resampling.
 ##' @param cl a cluster object passed to \code{pbapply::pblapply}. On plateform other than Windows can also be an integer indicating the number of child-processes for parallel evaluation.
@@ -140,9 +140,9 @@ resample <- function(object, type, effects, n.sample = 1e3, trace = TRUE, seed =
     ## *** residuals
     if(type == "perm-res"){
         object0 <- .constrain.lmm(object, effects = stats::setNames(rep(0,length(effects)),effects))
-        Xbeta0 <- predict(object0, newdata = data[,var.mean,drop=FALSE], se = FALSE, df = FALSE)[,1]
-        epsilon.norm <- residuals(object0, type = "normalized")
-        OmegaChol <- sigma(object0, chol = TRUE, cluster = as.character(vec.Uid))
+        Xbeta0 <- stats::predict(object0, newdata = data[,var.mean,drop=FALSE], se = FALSE, df = FALSE)[,1]
+        epsilon.norm <- stats::residuals(object0, type = "normalized")
+        OmegaChol <- stats::sigma(object0, chol = TRUE, cluster = as.character(vec.Uid))
     }
 
     ## ** function
@@ -295,9 +295,9 @@ resample <- function(object, type, effects, n.sample = 1e3, trace = TRUE, seed =
         
     }else if(type == "boot"){
 
-        out$se <- apply(M.sample, MARGIN = 2, FUN = sd, na.rm = TRUE)
-        out$lower <- apply(M.sample, MARGIN = 2, FUN = quantile, probs = 0.025, na.rm = TRUE)
-        out$upper <- apply(M.sample, MARGIN = 2, FUN = quantile, probs = 0.975, na.rm = TRUE)
+        out$se <- apply(M.sample, MARGIN = 2, FUN = stats::sd, na.rm = TRUE)
+        out$lower <- apply(M.sample, MARGIN = 2, FUN = stats::quantile, probs = 0.025, na.rm = TRUE)
+        out$upper <- apply(M.sample, MARGIN = 2, FUN = stats::quantile, probs = 0.975, na.rm = TRUE)
 
         M.sampleH0 <- scale(M.sample, center = TRUE, scale = FALSE)
         out$p.value <- (colSums(abs(M.sampleH0) > abs(M.estimate), na.rm = TRUE)+1)/(colSums(!is.na(M.sample))+1)

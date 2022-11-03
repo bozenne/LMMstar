@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: Oct 17 2022 (11:42) 
+## Last-Updated: nov  3 2022 (11:27) 
 ##           By: Brice Ozenne
-##     Update #: 754
+##     Update #: 755
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -528,7 +528,7 @@ EXP <- function(formula, var.cluster, var.time, nugget = FALSE, add.time){
         outCov <- .formulaStructure(list(~1,stats::as.formula(paste0("~",var.time))), heterogeneous = nugget)
     }else if(is.list(formula)){
         outCov <- .formulaStructure(formula, heterogeneous = nugget)
-    }else if(!missing(add.time) && (is.character(add.time) || identical(add.time,TRUE)) && length(all.vars(update(formula,0~.)))==0){
+    }else if(!missing(add.time) && (is.character(add.time) || identical(add.time,TRUE)) && length(all.vars(stats::update(formula,0~.)))==0){
         if(is.character(add.time)){
             var.time <- add.time
         }
