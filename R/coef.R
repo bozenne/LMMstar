@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: sep  6 2022 (17:18) 
+## Last-Updated: nov  3 2022 (17:52) 
 ##           By: Brice Ozenne
-##     Update #: 564
+##     Update #: 567
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -24,7 +24,7 @@
 ##' or only coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 ##' or only coefficients relative to the variance structure (\code{"variance"}),
 ##' or only coefficients relative to the correlation structure (\code{"correlation"}).
-##' Can also be \code{"ranef"} to output random effect (only for \code{CS} structure) or \code{"partialcor"} to output partial correlations.
+##' Can also be \code{"ranef"} to output random effect (only for \code{CS} structure).
 ##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
 ##' @param p [numeric vector] value of the model coefficients to be used. Only relevant if differs from the fitted values.
 ##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
@@ -132,11 +132,8 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
             stop("Argument \'effects\' should be of length 1 when it contains \"ranef\". \n")
         }
         return(.ranef(object, p = p))
-    }else if("partialcor" %in% effects){
-        object.aov <- anova(object, effects = "mean")$univariate
-        return(stats::setNames(object.aov$partial.r, rownames(object.aov)))
     }
-    effects <- match.arg(effects, c("mean","fixed","variance","correlation","ranef","partialcor"), several.ok = TRUE)
+    effects <- match.arg(effects, c("mean","fixed","variance","correlation","ranef"), several.ok = TRUE)
     effects[effects== "fixed"] <- "mean"
     
     init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 

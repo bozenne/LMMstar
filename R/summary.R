@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: nov  3 2022 (11:34) 
+## Last-Updated: nov  3 2022 (17:55) 
 ##           By: Brice Ozenne
-##     Update #: 1128
+##     Update #: 1129
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -402,7 +402,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         print.univariate <- print[2]
     }
     options <- LMMstar.options()
-    valid.columns <- c("null","estimate","se","statistic","df","lower","upper","p.value","partial.r","","type")
+    valid.columns <- c("null","estimate","se","statistic","df","lower","upper","p.value","","type")
     if(identical(columns,"all")){
         columns.multivariate <- setdiff(valid.columns, c("estimate", "se", "lower", "upper"))
         columns.univariate <- valid.columns
@@ -435,14 +435,6 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
     if(length(columns.multivariate)==0){
         print.multivariate <- FALSE
     }
-    if(!inherits(object,"rbindWald_lmm") && !is.null(object$object$structure)){
-        if("partial.r" %in% columns && print.multivariate && object$object$structure["type"] %in% c("ID","IND") == FALSE){
-            if(object$object$structure["type"] != "CS" || object$object$structure["heterogeneous"] != FALSE){
-                warning("Column \"partial.r2\" may not have a simple interpretation. \n", sep = "")
-                ## another warning will be display for the univariate version (i.e. partial.r) when calling confints
-            }
-        }
-    }
 
     if("df" %in% columns.multivariate){
         index.df <- which(columns.multivariate == "df")
@@ -454,7 +446,6 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
             columns.multivariate <- c(columns.multivariate[1:(index.df-1)], "df.num", "df.denom", columns.multivariate[(index.df+1):length(columns.multivariate)])
         }
     }
-    columns.multivariate <- gsub("^partial.r$","partial.r2", columns.multivariate)
     type.information <- object$object$type.information
     df <- object$args$df
     robust <- object$args$robust

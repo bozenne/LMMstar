@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: Oct 10 2022 (12:16) 
+## Last-Updated: nov  3 2022 (17:55) 
 ##           By: Brice Ozenne
-##     Update #: 368
+##     Update #: 369
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -330,7 +330,6 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
                                         statistic = multistat,
                                         df.num = outSimp$dim,
                                         df.denom = Inf,
-                                        partial.r2 = NA,
                                         p.value = 1 - stats::pf(multistat, df1 = n.test, df2 = Inf))
 
     ## *** univariate
@@ -346,7 +345,6 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
                                           lower = NA,
                                           upper = NA,
                                           null = rhs,
-                                          partial.r = NA,
                                           p.value = NA)
         rownames(newtable.univariate) <- rownames(contrast)
         newtable.univariate$statistic <- newtable.univariate$estimate/newtable.univariate$se

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: nov  3 2022 (11:25) 
+## Last-Updated: nov  3 2022 (16:09) 
 ##           By: Brice Ozenne
-##     Update #: 271
+##     Update #: 274
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -162,6 +162,16 @@
         attr(residuals,"studentized") <- NULL
         attr(out,"studentized") <- rep(NA,n.obs)
         attr(out,"studentized")[M.res[,"index.obs"]] <- M.res[,"residuals"]/exp(X %*% log(out))
+    }
+
+    ## check values
+    if(any(abs(out)<1e-10)){
+        warning("Some of the variance parameter are initialized to a nearly null value. \n",
+                "Parameters: \"",paste(names(out[which(abs(out)<1e-10)]), collapse = "\", \""),"\". \n")
+    }
+    if(any(out< -1e-10)){
+        warning("Some of the variance parameter are initialized to a negative value. \n",
+                "Parameters: \"",paste(names(out[which(out < -1e-10)]), collapse = "\", \""),"\". \n")
     }
 
     ## export

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: nov  3 2022 (11:33) 
+## Last-Updated: nov  3 2022 (17:54) 
 ##           By: Brice Ozenne
-##     Update #: 532
+##     Update #: 537
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -30,7 +30,7 @@
 ##' @param null [numeric vector] the value of the null hypothesis relative to each coefficient.
 ##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.
 ##' @param columns [character vector] Columns to be output.
-##' Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}, \code{"partial.r"}.
+##' Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
 ##' @param type.information,transform.sigma,transform.k,transform.rho,transform.names are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.
 ##' @param backtransform [logical] should the variance/covariance/correlation coefficient be backtransformed?
 ##' @param ... Not used. For compatibility with the generic method.
@@ -46,7 +46,6 @@
 ##' \item column upper: the upper bound of the confidence interval.
 ##' \item column null: the null hypothesis.
 ##' \item column p.value: the p-value relative to the null hypothesis.
-##' \item column partial.r: transformation of the test statistic and degree of freedom that can be interpreted as partial correlation with certain covariance structure. See vignette.
 ##' }
 ##' 
 ##' @examples
@@ -133,7 +132,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     }else{
         type.information <- match.arg(type.information, c("expected","observed"))
     }
-    valid.columns <- c("estimate","se","statistic","df","lower","upper","null","p.value","partial.r")
+    valid.columns <- c("estimate","se","statistic","df","lower","upper","null","p.value")
     if(identical(columns,"all")){
         columns <- valid.columns
     }else if(!is.null(columns)){
@@ -151,12 +150,6 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     }else{
         columns <- options$columns.confint
     }
-    if("partial.r" %in% columns && object$design$vcov$type %in% c("ID","IND") == FALSE){
-        if(object$design$vcov$type != "CS" || object$design$vcov$heterogeneous != FALSE){
-            warning("Column \"partial.r\" may not have a simple interpretation. \n", sep = "")
-        }
-    }
-
 
     ## ** get estimate
     beta <- coef(object, effects = effects, 
@@ -219,18 +212,11 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     name.beta <- names(beta)
     out <- data.frame(estimate = beta, se = sqrt(diag(vcov.beta[name.beta,name.beta,drop=FALSE])),
                       statistic = as.numeric(NA), df = df[name.beta], lower = as.numeric(NA), upper = as.numeric(NA), null = null, p.value = as.numeric(NA),
-                      partial.r = as.numeric(NA),
                       stringsAsFactors = FALSE)
 
     out$statistic <- (out$estimate-null)/out$se
     out$p.value <- 2*(1-stats::pt(abs(out$statistic), df = out$df))
     index.cor <- setdiff(which(type.beta=="mu"), which(name.beta=="(Intercept)"))
-    if(length(index.cor)>0){
-        out[index.cor,"partial.r"] <- sign(out$statistic[index.cor])*sqrt(out$statistic[index.cor]^2/(out$df[index.cor]+out$statistic[index.cor]^2))
-        ## from "An R2 statistic for fixed effects in the linear mixed model" by Lloyd J. Edwards et al. 2008 (Statistic in medicine)
-        ## Equation 19
-        ## DOI: 10.1002/sim.3429
-    }
     
     alpha <- 1-level
     out$lower <- out$estimate + stats::qt(alpha/2, df = out$df) * out$se
@@ -279,7 +265,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
 ##' @param method [character] type of adjustment for multiple comparisons, one of \code{"none"}, \code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}.
 ##' Alternatively, method for combining the estimates, one of \code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.rubin"}.
 ##' @param columns [character vector] Columns to be output.
-##' Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}, \code{"partial.r"}.
+##' Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
 ##' @param backtransform [logical] should the estimates, standard errors, and confidence intervals be backtransformed?
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
@@ -301,11 +287,6 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
 ##'  \item \code{"pool.rubin"}: average of the estimates and compute the uncertainty according to Rubin's rule (Barnard et al. 1999).
 ##' }
 ##'
-##' \bold{Explained variance and partial correlation}: can be extracted by adding \code{"partial.r"} to the argument \code{columns} for certain types of mixed models,
-##' those equivalent to random effect models (see vignette). 
-##' Explained variance will be displayed in the column \code{partial.r2} (Multivariate section)
-##' and partial correlation will be displayed in the column \code{partial.r} (Univariate section).
-##' WARNING: for other type of mixed models, typically heteroschedastic, the values in the columns \code{partial.r2} and \code{partial.r} may not have any intuitive interpretation. 
 ##' @references Barnard and Rubin, Small-sample degrees of freedom with multiple imputation. Biometrika (1999), 86(4):948-955.
 
 ## * confint.Wald_lmm (code)
@@ -353,17 +334,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
         }
     }else{
         columns <- options$columns.confint
-    }
-
-    ## sanity check
-    if(!inherits(object,"rbindWald_lmm") && !is.null(object$object$structure)){
-        if("partial.r" %in% columns && object$object$structure["type"] %in% c("ID","IND") == FALSE){
-            if(object$object$structure["type"] != "CS" || object$object$structure["heterogeneous"] != FALSE){
-                warning("Column \"partial.r\" may not have a simple interpretation. \n", sep = "")
-            }
-        }
-    }
- 
+    } 
 
     type <- unique(object$multivariate$type)
     df <- object$args$df
@@ -613,7 +584,6 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
             out[iIndex.table[1],"statistic"] <- out[iIndex.table[1],"estimate"]/out[iIndex.table[1],"se"]
             out[iIndex.table[1],"lower"] <- out[iIndex.table[1],"estimate"] + out[iIndex.table[1],"se"] * stats::qt(alpha/2, df = pool.df)
             out[iIndex.table[1],"upper"] <- out[iIndex.table[1],"estimate"] + out[iIndex.table[1],"se"] * stats::qt(1-alpha/2, df = pool.df)
-            out[iIndex.table[1],"partial.r"] <- NA
             out[iIndex.table[1],"p.value"] <- 2*(1-stats::pt( abs(out[iIndex.table[1],"statistic"]), df = pool.df ))
             attr(out,"contrast") <- iC.pool
 

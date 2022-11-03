@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: Oct 10 2022 (11:47) 
+## Last-Updated: nov  3 2022 (17:54) 
 ##           By: Brice Ozenne
-##     Update #: 191
+##     Update #: 192
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -95,7 +95,7 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
         stop("Mismatch between argument \'by\' and \'data\'.\n",
              "Could not find column \"",paste(by[by %in% names(data) == FALSE], collapse = "\" \""),"\" in data \n")
     }
-    reserved.names <- c("by","type","test","estimate","se","df","statistic","lower","upper","null","partial.r","p.value")
+    reserved.names <- c("by","type","test","estimate","se","df","statistic","lower","upper","null","p.value")
     if(any(names(data) %in% reserved.names)){
         stop("Argument \'data\' should not contain a column named \"",paste(names(data)[names(data) %in% reserved.names], collapse = "\" \""),
              "\" as this name is used internally by the mlmm function. \n")

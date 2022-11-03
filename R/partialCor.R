@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: nov  3 2022 (11:38) 
+## Last-Updated: nov  3 2022 (19:01) 
 ##           By: Brice Ozenne
-##     Update #: 319
+##     Update #: 362
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -119,42 +119,30 @@
 ##' }
 ##' 
 ##' }
+#' @export
+`partialCor` <-
+  function(object, ...) UseMethod("partialCor")
 
-## * partialCor (documentation)
+## * partialCor.list (code)
 ##' @export
-partialCor <- function(formula, data, repetition = NULL, structure = NULL, by = NULL,
-                       effects = NULL, rhs = NULL, method = "none", df = NULL, transform.rho = NULL){
+partialCor.list <- function(object, data, repetition = NULL, structure = NULL, by = NULL,
+                            effects = NULL, rhs = NULL, method = "none", df = NULL, transform.rho = NULL, ...){
 
     ## ** normalize arguments
     data <- as.data.frame(data)
 
-    ## *** convert first argument to list of formula
-    if(inherits(formula,"formula")){
-        formula.rhs <- stats::delete.response(stats::terms(formula))
-        response <- setdiff(all.vars(formula),all.vars(formula.rhs))
-        if(is.null(repetition) && length(response)<2){
-            stop("Argument \'formula\' should contain at least two variables on the left hand side of the formula. \n")
-        }else if(!is.null(repetition) && length(response)!=2){
-            stop("Argument \'formula\' should contain exactly two variables on the left hand side of the formula. \n")
-        }
-        formula <- lapply(response, function(iY){stats::as.formula(paste(iY,deparse(formula.rhs)))}) ## iY <- response[1]        
-    }else{
-        if(!is.list(formula)){
-            stop("Argument \'formula\' should be a formula or a list of formula. \n")
-        }
-        if(any(unlist(lapply(formula, inherits, "formula"))==FALSE)){
-            stop("Argument \'formula\' should be a formula or list of formula. \n")
-        }
-        if(is.null(repetition) && length(formula)<2){
-            stop("Argument \'formula\' should contain at least two formula. \n")
-        }else if(!is.null(repetition) && length(formula)!=2){
-            stop("Argument \'formula\' should contain exactly two formula. \n")
-        }
+    ## *** check object
+    if(any(unlist(lapply(object, inherits, "formula"))==FALSE)){
+        stop("Argument \'object\' should be a formula or list of formula. \n")
     }
-
-
+    if(is.null(repetition) && length(object)<2){
+        stop("Argument \'object\' should contain at least two formula. \n")
+    }else if(!is.null(repetition) && length(object)!=2){
+        stop("Argument \'object\' should contain exactly two formula. \n")
+    }
+    
     ## *** check formula agree with data
-    ls.name.XY <- lapply(formula,all.vars)
+    ls.name.XY <- lapply(object,all.vars)
     name.XY <- unique(unlist(ls.name.XY))
     if(any(name.XY %in% names(data) == FALSE)){
         stop("Variable(s) \"", paste(name.XY[name.XY %in% names(data) == FALSE], collapse = "\" \""),"\" are not in argument \'data\'. \n")
@@ -181,6 +169,10 @@ partialCor <- function(formula, data, repetition = NULL, structure = NULL, by = 
             stop("Cluster variable \"", name.id,"\" is not in argument \'data\'. \n")
         }
         name.time <- all.vars(stats::as.formula(repetition.split[1]))
+        if(length(name.time)==0){
+            stop("Missing \'time\' variable in the repetition argument. \n",
+                 "Should be something of the form ~time|id. \n")
+        }
         if(any(name.id %in% names(data) == FALSE)){
             stop("Repetition variable \"", name.time,"\" is not in argument \'data\'. \n")
         }
@@ -218,15 +210,14 @@ partialCor <- function(formula, data, repetition = NULL, structure = NULL, by = 
     }
 
     ## ** reshape    
-    ls.name.X <- lapply(formula, function(iF){all.vars(stats::delete.response(stats::terms(iF)))})
+    ls.name.X <- lapply(object, function(iF){all.vars(stats::delete.response(stats::terms(iF)))})
     name.X <- unique(unlist(ls.name.X))
-
     ls.name.Y <- lapply(ls.name.XY, function(iF){setdiff(iF,c(name.X,name.id))})
     name.Y <- unlist(ls.name.Y)
     if(any(duplicated(name.Y))){
         stop("Variables in the left hand side of argument should be unique. \n")
     }
-    dataL <- stats::reshape(data[, unique(c(name.XY, name.id, name.time,by)),drop=FALSE], direction  = "long",
+    dataL <- stats::reshape(data[, unique(c(name.XY, name.id, name.time, by)),drop=FALSE], direction  = "long",
                             idvar = c(name.id, name.time, by),
                             varying = name.Y,
                             v.names = "CCvalueCC",
@@ -301,7 +292,7 @@ partialCor <- function(formula, data, repetition = NULL, structure = NULL, by = 
             ## identify the right correlation coefficient
             code.rho <- e.lmm$design$param[e.lmm$design$param$type=="rho","code"]
             name.rho <- e.lmm$design$param[e.lmm$design$param$type=="rho","name"][grepl("D.",code.rho)]
-
+ 
             M.time <- attr(e.lmm$time$levels,"original")
             U.time <- unique(M.time[,1])
             tentative.rho <- sapply(U.time, function(iT){paste0("rho(",paste(interaction(M.time)[M.time[,1]==iT],collapse=","),")")})
@@ -419,6 +410,147 @@ partialCor <- function(formula, data, repetition = NULL, structure = NULL, by = 
     return(out)
 }
 
+## * partialCor.formula (code)
+##' @export
+partialCor.formula <- function(object, repetition, ...){
+
+    formula.rhs <- stats::delete.response(stats::terms(object))
+    response <- setdiff(all.vars(object),all.vars(formula.rhs))
+    if(is.null(repetition) && length(response)<2){
+        stop("Argument \'object\' should contain at least two variables on the left hand side of the formula. \n")
+    }else if(!is.null(repetition) && length(response)!=2){
+        stop("Argument \'object\' should contain exactly two variables on the left hand side of the formula. \n")
+    }
+    ls.object <- lapply(response, function(iY){stats::as.formula(paste(iY,deparse(formula.rhs)))}) ## iY <- response[1]        
+    
+    return(partialCor.list(ls.object, repetition = repetition, ...))
+}
+
+## * partialCor.lmm (code)
+partialCor.lmm <- function(object, level = 0.95, se = TRUE, ...){
+    df <- object$df
+    mytable <- model.tables(object, columns = c("estimate","statistic","df"))
+
+    name.param <- setdiff(rownames(mytable),"(Intercept)")
+    n.param <- length(name.param)
+
+    M.out <- matrix(NA, nrow = n.param, ncol = 6,
+                    dimnames = list(name.param, c("estimate","se","df","lower","upper","p.value")))
+
+    if(object$design$vcov$type %in% c("ID","IND")){
+        structure <- "univariate"
+        out <- list(cor = M.out,
+                    R2 = M.out)
+    }else if(object$design$vcov$type == "CS" && object$design$vcov$heterogeneous == FALSE){
+        structure <- "CS"
+        out <- list(cor = M.out,
+                    R2_marginal = M.out,
+                    R2_conditional = M.out)
+    }else{
+        structure <- "multivariate"
+        out <- list(cor = M.out,
+                    R2_marginal = M.out)
+    }
+    
+    ## ** partial correlation
+    if(!is.null(df)){
+        ## from "An R2 statistic for fixed effects in the linear mixed model" by Lloyd J. Edwards et al. 2008 (Statistic in medicine)
+        ## Equation 19
+        ## DOI: 10.1002/sim.3429
+        if(se == FALSE){
+            out$cor[,"estimate"] <- sign(mytable[name.param,"statistic"])*sqrt(mytable[name.param,"statistic"]^2/(mytable[name.param,"df"]+mytable[name.param,"statistic"]^2))
+        }else{
+            out$cor <- estimate(object, df = TRUE, level = level, function(p){ ## p <- coef(object, effects = "all")
+                newSigma <- vcov(object, p = p, df = TRUE)
+                newStat <- p[name.param]/sqrt(diag(newSigma[name.param,name.param]))
+                newDf <- attr(newSigma,"df")[name.param]
+                return(sign(newStat)*sqrt(newStat^2/(newDf + newStat^2)))
+            })
+        }
+    }        
+        
+    ## ** partial percentage of variance explained (R2)
+    index.cluster <- object$design$index.cluster
+    X.pattern <- object$design$vcov$X$Upattern
+    name.pattern <- X.pattern$name
+            
+    X.design <- object$design$mean[,name.param,drop=FALSE]
+    assignX.design <- attr(object$design$mean,"assign")[match(name.param,colnames(object$design$mean))]
+
+    M.Xbeta <- do.call(cbind,lapply(unique(assignX.design), function(iAssign){ ## iAssign <- 1
+        iParam <- name.param[iAssign]
+        rowSums(sweep(X.design[,iParam,drop=FALSE], FUN = "*", MARGIN = 2, STATS = mytable[iParam,"estimate"]))
+    }))
+    
+    if(object$design$vcov$type == "ID"){
+
+        ## R2 is computed as the averaged percentage over variance explained
+        ## i.e. variance explained in each variance strata, weighted average as a function of the sample size
+        Mpartial.R2 <- do.call(rbind,lapply(name.pattern, function(iPattern){ ## iPattern <- name.pattern[1]
+            iIndex.cluster <- X.pattern$index.cluster[[iPattern]]
+            iVarBeta <- apply(M.Xbeta[iIndex.cluster,,drop=FALSE],2,var)
+            iSigma <- as.double(object$Omega[[iPattern]])
+            return(c(R2 = iVarBeta/(iVarBeta+iSigma),n = length(iIndex.cluster)))
+        }))
+        out$R2$estimate <- apply(Mpartial.R2[,1:n.param], 2, weighted.mean, w = Mpartial.R2[,"n"] / sum(Mpartial.R2[,"n"]))
+browser()
+    }else if(object$design$vcov$type == "CS" && object$design$vcov$heterogeneous == FALSE){
+    }
+    browser()
+
+    ## ** export
+    return(object)
+}
+
+
+##' \bold{Explained variance and partial correlation}: can be extracted by adding \code{"partial.r"} to the argument \code{columns} for certain types of mixed models,
+##' those equivalent to random effect models (see vignette). 
+##' Explained variance will be displayed in the column \code{partial.r2} (Multivariate section)
+##' and partial correlation will be displayed in the column \code{partial.r} (Univariate section).
+##' WARNING: for other type of mixed models, typically heteroschedastic, the values in the columns \code{partial.r2} and \code{partial.r} may not have any intuitive interpretation. 
+##             ## *** R2
+##             X.design <- object$design$mean
+            
+##             if(df>0 && all(colnames(outSimp$C)[which(outSimp$C!=0, arr.ind = TRUE)[,"col"]] %in% colnames(X.design))){
+                
+
+##                 Mpartial.R2 <- do.call(rbind,lapply(name.pattern, function(iPattern){ ## iPattern <- name.pattern[1]
+##                     iIndex.cluster <- X.pattern$index.cluster[[iPattern]]
+##                     iMindex.cluster <- do.call(rbind,index.cluster[iIndex.cluster])
+
+##                     iM.Num <- NA*iMindex.cluster
+##                     iM.Num[] <- Xbeta.design[iMindex.cluster]
+##                     iNum <- apply(iM.Num,2,var)
+                    
+##                     return(iNum/(iNum+diag(object$Omega[[iPattern]])))
+##                 }))
+
+##                 if(object$design$vcov$type == "ID"){
+
+##                     ## R2 is computed as the averaged percentage over variance explained
+##                     ## i.e. variance explained in each variance strata, weighted average as a function of the sample size
+##                     paramC.design <- (param*colSums(outSimp$C))[colnames(X.design)]
+##                     Mpartial.R2 <- do.call(rbind,lapply(name.pattern, function(iPattern){ ## iPattern <- name.pattern[1]
+##                         iIndex.cluster <- attr(X.pattern[[iPattern]],"index.cluster")
+##                         iVarBeta <- var(rowSums(sweep(X.design[iIndex.cluster,], FUN = "*", MARGIN = 2, STATS = paramC.design)))
+##                         iSigma <- as.double(object$Omega[[iPattern]])
+##                         return(c(R2 = iVarBeta/(iVarBeta+iSigma),n = length(iIndex.cluster)))
+##                     }))
+##                     partial.r2 <- sum(Mpartial.R2[,"R2"] * (Mpartial.R2[,"n"] / sum(Mpartial.R2[,"n"])))
+
+##                 }else if(object$design$vcov$type == "CS" && object$design$vcov$heterogeneous == FALSE){
+                    
+##                   .nestingRanef(object)
+  
+##                     partial.r2 <- sum(Mpartial.R2[,"R2"] * (Mpartial.R2[,"n"] / sum(Mpartial.R2[,"n"])))
+
+## browser()
+##                 }else{
+##                     partial.r2 <- NA
+##                 }
+##             }else{
+##                 partial.r2 <- NA
+##             }
 
 ##----------------------------------------------------------------------
 ### partialCor.R ends here

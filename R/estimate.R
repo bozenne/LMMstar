@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: okt 12 2022 (17:28) 
+## Last-Updated: nov  3 2022 (16:04) 
 ##           By: Brice Ozenne
-##     Update #: 916
+##     Update #: 922
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -321,10 +321,10 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
         }else{
             outInit <- NULL
         }
-        
+
         ## check initialization leads to a positive definite matrix 
-        initOmega <- .calc_Omega(object = design$vcov, param = outInit, keep.interim = TRUE)
-        test.npd <- sapply(initOmega,function(iOmega){any(eigen(iOmega)$values<0)})
+        initOmega <- .calc_Omega(object = design$vcov, param = outInit, keep.interim = TRUE)        
+test.npd <- sapply(initOmega,function(iOmega){any(eigen(iOmega)$values<0)})
         if(any(test.npd)){ ## otherwise initialize as compound symmetry
             param.value[setdiff(param.sigma,param.fixed)] <- outInit[setdiff(param.sigma,param.fixed)]
             param.value[setdiff(param.k,param.fixed)] <- outInit[setdiff(param.k,param.fixed)]
