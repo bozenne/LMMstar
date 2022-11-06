@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: okt 14 2022 (11:39) 
+## Last-Updated: nov  6 2022 (22:16) 
 ##           By: Brice Ozenne
-##     Update #: 170
+##     Update #: 178
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -263,7 +263,6 @@ print.partialCor <- function(x, digits = 3, ...){
 
     x$type <- NULL
     out <- do.call("print.confint_lmm", c(list(x, detail = FALSE, digits = digits), ...))
-
     return(invisible(NULL))
 }
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: nov  3 2022 (17:54) 
+## Last-Updated: nov  6 2022 (21:23) 
 ##           By: Brice Ozenne
-##     Update #: 192
+##     Update #: 220
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -35,7 +35,6 @@
 ##' @param ci [logical] Should a confidence interval be output for each hypothesis?
 ##' Argument passed to \code{\link{anova.lmm}}.
 ##' @param transform.sigma,transform.k,transform.rho,transform.names [character] transformation used on certain type of parameters.
-##' @param backtransform [data.frame or NULL] Should estimates and their uncertainty be back-transformed?
 ##' 
 ##' @details
 ##' \bold{Grouping variable} in argument repetition: when numeric, it will be converted into a factor variable, possibly adding a leading 0 to preserve the ordering.
@@ -82,8 +81,7 @@
 ## * mlmm (code)
 ##' @export
 mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = NULL, df = TRUE, ci = TRUE,
-                 transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE,
-                 backtransform = NULL){
+                 transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE){
 
     ## ** normalizer user input
     options <- LMMstar.options()
@@ -112,15 +110,6 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
         if(is.factor(data[[by]])){
             data[[by]] <- droplevels(data[[by]])
         }
-    }
-    if(is.null(backtransform)){
-        if(is.null(transform.sigma) && is.null(transform.k) && is.null(transform.rho)){
-            backtransform <- options$backtransform.confint
-        }else{
-            backtransform <- FALSE
-        }
-    }else if(is.character(backtransform)){
-        backtransform <-  eval(parse(text=backtransform))
     }
     ## used to decide on the null hypothesis of k parameters
     init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
@@ -236,7 +225,7 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
         stop("Unknown value for argument \'effects\'. \n",
              "Can be a matrix, or a character encoding the contrast, or \"mean\", \"variance\", \"correlation\", \"all\".\n")
     }
-    ## *** run 
+    ## *** run
     ls.anova <- stats::setNames(lapply(name.lmm, function(iName){ ## iName <- name.lmm[1]
         if(is.null(robust)){
             anova(ls.lmm[[iName]], effects = ls.Cmat[[iName]], rhs = rhs[[iName]], df = df, ci = ci,
@@ -274,12 +263,21 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
     out$model <- ls.lmm
     names(out$univariate)[1] <- "by"
 
+    if(!is.null(contrast.rbind)){
+        out.notransform <- do.call("rbind.Wald_lmm",
+                                   args = c(list(model = ls.anova[[1]], effects = NULL, rhs = rhs.by, name = name.model, sep = sep), unname(ls.anova[-1]))
+                                   )
+        out$confint.nocontrast <-  confint(out.notransform)
+    }
+
     ## add covariate values
     keep.rowname <- rownames(out$univariate)
-    out$univariate <- merge(out$univariate,
-                            data.frame(by = name.model, keep.by.level),
-                            by = "by", sort = FALSE)
-    rownames(out$univariate) <- sapply(strsplit(keep.rowname,"="), function(iVec){paste(iVec[-1], collapse = "=")})
+    if(is.null(contrast.rbind)){
+        out$univariate <- merge(out$univariate,
+                                data.frame(by = name.model, keep.by.level),
+                                by = "by", sort = FALSE)
+        rownames(out$univariate) <- sapply(strsplit(keep.rowname,"="), function(iVec){paste(iVec[-1], collapse = "=")})
+    }
 
     ## ** export
     attr(out,"call") <- match.call()

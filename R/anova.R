@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: nov  3 2022 (17:52) 
+## Last-Updated: nov  6 2022 (20:54) 
 ##           By: Brice Ozenne
-##     Update #: 1205
+##     Update #: 1207
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -571,14 +571,16 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
             index <- match(newname,out$args$backtransform.names[[1]])
             out$args$backtransform.names[[1]][stats::na.omit(index)] <- backtransform.names[which(!is.na(index))]
     }
-    if(all(name.paramSigma %in% colnames(globalC) == FALSE) || all(globalC[,name.paramSigma,drop=FALSE]==0)){
-        out$args$transform.sigma <- NA
-    }
-    if(all(name.paramK %in% colnames(globalC) == FALSE) || all(globalC[,name.paramK,drop=FALSE]==0)){
-        out$args$transform.k <- NA
-    }
-    if(all(name.paramRho %in% colnames(globalC) == FALSE) || all(globalC[,name.paramRho,drop=FALSE]==0)){
-        out$args$transform.rho <- NA
+    if(ci){
+        if(all(name.paramSigma %in% colnames(globalC) == FALSE) || all(globalC[,name.paramSigma,drop=FALSE]==0)){
+            out$args$transform.sigma <- NA
+        }
+        if(all(name.paramK %in% colnames(globalC) == FALSE) || all(globalC[,name.paramK,drop=FALSE]==0)){
+            out$args$transform.k <- NA
+        }
+        if(all(name.paramRho %in% colnames(globalC) == FALSE) || all(globalC[,name.paramRho,drop=FALSE]==0)){
+            out$args$transform.rho <- NA
+        }
     }
 
     if(identical(type,"all")){

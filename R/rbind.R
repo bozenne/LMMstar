@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: nov  3 2022 (17:55) 
+## Last-Updated: nov  6 2022 (21:31) 
 ##           By: Brice Ozenne
-##     Update #: 369
+##     Update #: 396
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -75,6 +75,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
                         })))
 
     Utype <- unique(unlist(table.args$type))
+    
     newtable.args <- data.frame(type = ifelse(length(Utype)>1,"all",Utype), sep = sep,
                                 table.args[1,c("robust","df","ci","transform.sigma","transform.k","transform.rho","transform.names")]
                                 )
@@ -173,6 +174,11 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
                 paste(name.modelparam[as.numeric(trimws(iVec))], collapse = " - ")
             })), silent = TRUE)
         }
+        if(any(rowSums(contrast!=0)>0) || any(contrast!=1)){
+            newtable.args$transform.sigma <- NA
+            newtable.args$transform.k <- NA
+            newtable.args$transform.rho <- NA
+        }
     }else{
         contrast <- diag(1, nrow = n.modelparam, ncol = n.modelparam)
         dimnames(contrast) <- list(name.modelparam, name.modelparam)
@@ -196,7 +202,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
         stop("Cluster variable differs among objects. \n")
     }
     newobject$cluster.var <- cluster.var
-
+    
     ## ** Try to find unique names
 
     ## *** for the model parameters

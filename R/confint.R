@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: nov  3 2022 (17:54) 
+## Last-Updated: nov  6 2022 (21:32) 
 ##           By: Brice Ozenne
-##     Update #: 537
+##     Update #: 545
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -707,8 +707,18 @@ confint.mlmm <- function(object, parm = NULL, level = 0.95, method = NULL, ...){
     if(is.null(method)){
         method <- "none"
     }
-    return(confint.Wald_lmm(object, parm = parm, level = level, method = method, ...))
-    
+    out <- confint.Wald_lmm(object, parm = parm, level = level, method = method, ...)
+    contrast <- object$glht$all[[1]]$linfct
+    if(any(object$glht$all[[1]]$linfct %in% 0:1 == FALSE) || any(rowSums(object$glht$all[[1]]$linfct==1)!=1)){
+        out$estimate <- as.double(contrast %*% object$confint.nocontrast$estimate)
+        out$se <- NA
+        out$df <- NA
+        out$lower <- NA
+        out$upper <- NA
+        attr(out,"backtransform") <- attr(object$confint.nocontrast,"backtransform")
+        attr(out,"backtransform")[,c("se","lower","upper")] <- FALSE
+    }
+    return(out)
 }
 
 ## * Extra

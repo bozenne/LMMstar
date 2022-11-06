@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: nov  3 2022 (19:01) 
+## Last-Updated: nov  6 2022 (22:21) 
 ##           By: Brice Ozenne
-##     Update #: 362
+##     Update #: 425
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,7 +17,9 @@
 
 ## * partialCor (documentation)
 ##' @title Partial Correlation
-##' @description Estimate the partial correlation between two variables where the adjustment set may differ between variables.
+##' @description Estimate the partial correlation based on equation 19 of Lloyd et al 2008 (\code{partialCor.lmm}) or explicitely modeling the correlation via a linear mixed model  (\code{partialCor.list}, \code{partialCor.formula}).
+##' The first option is numerically more efficient and exact with a single observation per cluster.
+##' With multiple repetitions, what is being estimated with the first option may not be clear and the second option is therefore preferrable.
 ##' 
 ##' @param formula a formula with in the left hand side the variables for which the correlation should be computed
 ##' and on the right hand side the adjustment set. Can also be a list of formula for outcome-specific adjustment set.
@@ -30,6 +32,8 @@
 ##' @param effects [character or matrix] type of contrast to be used for comparing the correlation parameters. One of \code{"Dunnett"}, \code{"Tukey"}, \code{"Sequen"}, or a contrast matrix.
 ##' @param rhs [numeric vector] right hand side for the comparison of correlation parameters. 
 ##' @param method [character] adjustment for multiple comparisons (e.g. \code{"single-step"}).
+##' @param level [numeric,0-1] the confidence level of the confidence intervals.
+##' @param R2 [logical] Should the R2 (coefficient of determination) be computed?
 ##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.
 ##' @param transform.rho [character] scale on which perform statistical inference (e.g. \code{"atanh"})
 ##'
@@ -49,10 +53,13 @@
 ##' When \code{structure="CS"} or \code{structure="HCS"} is used with repeated measurements, a second correlation coefficient (r) is output where the between subject variance has been removed (similar to Bland et al. 1995).
 ##'
 ##' @references
-##'  Bland J M, Altman D G. Statistics notes: Calculating correlation coefficients with repeated observations: Part 1—correlation within subjects BMJ 1995; 310 :446 doi:10.1136/bmj.310.6977.446 
+##'  Bland J M, Altman D G. Statistics notes: Calculating correlation coefficients with repeated observations: Part 1—correlation within subjects BMJ 1995; 310 :446 doi:10.1136/bmj.310.6977.446
+##'  Edwards, L.J., Muller, K.E., Wolfinger, R.D., Qaqish, B.F. and Schabenberger, O. (2008), An R2 statistic for fixed effects in the linear mixed model. Statist. Med., 27: 6137-6157. https://doi.org/10.1002/sim.3429
 ##' 
 ##' @examples
-##' #### bivariate (no repetition) ####
+##' 
+##' #### no repetition ####
+##' 
 ##' ## example from ppcor::pcor 
 ##' y.data <- data.frame(
 ##'   hl=c(7,15,19,15,21,22,57,15,20,18),
@@ -61,37 +68,37 @@
 ##'   BC=c(1.78e-02,1.05e-06,1.37e-05,7.18e-03,0.00e+00,0.00e+00,0.00e+00
 ##',  4.48e-03,2.10e-06,0.00e+00)
 ##')
-##' 
 ##' ## ppcor::pcor(y.data)
-##' ## estimate
-##' ##              hl       disp        deg        BC
-##' ## hl    1.0000000 -0.6720863 -0.6161163 0.1148459
-##' ## disp -0.6720863  1.0000000 -0.7215522 0.2855420
-##' ## deg  -0.6161163 -0.7215522  1.0000000 0.6940953
-##' ## BC    0.1148459  0.2855420  0.6940953 1.0000000
-##' 
-##' ## $p.value
-##' ##              hl       disp        deg         BC
-##' ## hl   0.00000000 0.06789202 0.10383620 0.78654997
-##' ## disp 0.06789202 0.00000000 0.04332869 0.49299871
-##' ## deg  0.10383620 0.04332869 0.00000000 0.05615021
-##' ## BC   0.78654997 0.49299871 0.05615021 0.00000000
 ##'
-##' set.seed(10)
-##' y.data$gender <- factor(rbinom(10, size = 1, prob = 0.5), labels = c("F","M"))
-##' 
+##' ## partial correlation based on a formula
 ##' partialCor(c(hl,disp)~BC+deg, data = y.data)
 ##' partialCor(hl + disp~BC+deg, data = y.data)
+##' ## partial correlation based on a list
+##' partialCor(list(hl~BC+deg,disp~BC+deg), data = y.data)
+##' ## via an existing model
+##' e.lm <- lmm(hl~disp+BC+deg, data = y.data)
+##' partialCor(e.lm)
 ##'
+##' ## using a different set of covariates for outcome
 ##' partialCor(list(hl~BC+deg, disp~BC), data = y.data)
-##' partialCor(list(hl~BC+deg+gender, disp~1), data = y.data)
 ##' 
-##' #### stratified bivariate (no repetition) ####
-##' ## partialCor(list(hl~1, disp~1), data = y.data, by = "gender") ## too small dataset
+##' ## statified correlation (using another dataset)
+##' data(gastricbypassW, package = "LMMstar")
+##' gastricbypassW$weight.bin <- gastricbypassW$weight1>=120
+##' partialCor(glucagonAUC1+glucagonAUC2~1, data = gastricbypassW, by = "weight.bin")
+##'
+##' ## compared correlation between groups
+##' partialCor(glucagonAUC1+glucagonAUC2~1, data = gastricbypassW, by = "weight.bin",
+##'            effects = "Dunnett") 
 ##' 
-##' #### bivariate (with repetition) ####
+##' #### with repetitions ####
 ##' \dontrun{
 ##' data(gastricbypassL, package = "LMMstar")
+##' ## via a mixed model
+##' eUN.lmm <- lmm(weight ~ glucagonAUC+time, repetition =~time|id,
+##'                data = gastricbypassL, structure = "UN")
+##' partialCor(eUN.lmm)
+##' 
 ##' ## mean: variable and timepoint specific mean parameter (8)
 ##' ## variance: variable and timepoint specific variance parameter (8)
 ##' ## correlation: correlation parameter specific for each variable and time lag (10)
@@ -135,9 +142,9 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
     if(any(unlist(lapply(object, inherits, "formula"))==FALSE)){
         stop("Argument \'object\' should be a formula or list of formula. \n")
     }
-    if(is.null(repetition) && length(object)<2){
+    if(!missing(repetition) && is.null(repetition) && length(object)<2){
         stop("Argument \'object\' should contain at least two formula. \n")
-    }else if(!is.null(repetition) && length(object)!=2){
+    }else if(!missing(repetition) && !is.null(repetition) && length(object)!=2){
         stop("Argument \'object\' should contain exactly two formula. \n")
     }
     
@@ -416,9 +423,9 @@ partialCor.formula <- function(object, repetition, ...){
 
     formula.rhs <- stats::delete.response(stats::terms(object))
     response <- setdiff(all.vars(object),all.vars(formula.rhs))
-    if(is.null(repetition) && length(response)<2){
+    if(!missing(repetition) && is.null(repetition) && length(response)<2){
         stop("Argument \'object\' should contain at least two variables on the left hand side of the formula. \n")
-    }else if(!is.null(repetition) && length(response)!=2){
+    }else if(!missing(repetition) && !is.null(repetition) && length(response)!=2){
         stop("Argument \'object\' should contain exactly two variables on the left hand side of the formula. \n")
     }
     ls.object <- lapply(response, function(iY){stats::as.formula(paste(iY,deparse(formula.rhs)))}) ## iY <- response[1]        
@@ -427,81 +434,119 @@ partialCor.formula <- function(object, repetition, ...){
 }
 
 ## * partialCor.lmm (code)
-partialCor.lmm <- function(object, level = 0.95, se = TRUE, ...){
-    df <- object$df
+partialCor.lmm <- function(object, level = 0.95, R2 = FALSE, se = TRUE, df = TRUE, ...){
+
+    ## ** normalize input
+    object.df <- object$df
+    if(is.null(object.df)){
+        stop("Cannot compute the partial correlation when the degrees of freedom are not computed. \n",
+             "Consider calling \'lmm\' with the argument df=TRUE. \n")
+    }
     mytable <- model.tables(object, columns = c("estimate","statistic","df"))
 
     name.param <- setdiff(rownames(mytable),"(Intercept)")
     n.param <- length(name.param)
 
-    M.out <- matrix(NA, nrow = n.param, ncol = 6,
-                    dimnames = list(name.param, c("estimate","se","df","lower","upper","p.value")))
+    out <- matrix(NA, nrow = n.param, ncol = 6,
+                  dimnames = list(name.param, c("estimate","se","df","lower","upper","p.value")))
 
-    if(object$design$vcov$type %in% c("ID","IND")){
-        structure <- "univariate"
-        out <- list(cor = M.out,
-                    R2 = M.out)
-    }else if(object$design$vcov$type == "CS" && object$design$vcov$heterogeneous == FALSE){
-        structure <- "CS"
-        out <- list(cor = M.out,
-                    R2_marginal = M.out,
-                    R2_conditional = M.out)
-    }else{
-        structure <- "multivariate"
-        out <- list(cor = M.out,
-                    R2_marginal = M.out)
-    }
-    
     ## ** partial correlation
-    if(!is.null(df)){
-        ## from "An R2 statistic for fixed effects in the linear mixed model" by Lloyd J. Edwards et al. 2008 (Statistic in medicine)
-        ## Equation 19
-        ## DOI: 10.1002/sim.3429
-        if(se == FALSE){
-            out$cor[,"estimate"] <- sign(mytable[name.param,"statistic"])*sqrt(mytable[name.param,"statistic"]^2/(mytable[name.param,"df"]+mytable[name.param,"statistic"]^2))
-        }else{
-            out$cor <- estimate(object, df = TRUE, level = level, function(p){ ## p <- coef(object, effects = "all")
-                newSigma <- vcov(object, p = p, df = TRUE)
-                newStat <- p[name.param]/sqrt(diag(newSigma[name.param,name.param]))
-                newDf <- attr(newSigma,"df")[name.param]
-                return(sign(newStat)*sqrt(newStat^2/(newDf + newStat^2)))
-            })
-        }
-    }        
-        
-    ## ** partial percentage of variance explained (R2)
-    index.cluster <- object$design$index.cluster
-    X.pattern <- object$design$vcov$X$Upattern
-    name.pattern <- X.pattern$name
-            
-    X.design <- object$design$mean[,name.param,drop=FALSE]
-    assignX.design <- attr(object$design$mean,"assign")[match(name.param,colnames(object$design$mean))]
-
-    M.Xbeta <- do.call(cbind,lapply(unique(assignX.design), function(iAssign){ ## iAssign <- 1
-        iParam <- name.param[iAssign]
-        rowSums(sweep(X.design[,iParam,drop=FALSE], FUN = "*", MARGIN = 2, STATS = mytable[iParam,"estimate"]))
-    }))
-    
-    if(object$design$vcov$type == "ID"){
-
-        ## R2 is computed as the averaged percentage over variance explained
-        ## i.e. variance explained in each variance strata, weighted average as a function of the sample size
-        Mpartial.R2 <- do.call(rbind,lapply(name.pattern, function(iPattern){ ## iPattern <- name.pattern[1]
-            iIndex.cluster <- X.pattern$index.cluster[[iPattern]]
-            iVarBeta <- apply(M.Xbeta[iIndex.cluster,,drop=FALSE],2,var)
-            iSigma <- as.double(object$Omega[[iPattern]])
-            return(c(R2 = iVarBeta/(iVarBeta+iSigma),n = length(iIndex.cluster)))
-        }))
-        out$R2$estimate <- apply(Mpartial.R2[,1:n.param], 2, weighted.mean, w = Mpartial.R2[,"n"] / sum(Mpartial.R2[,"n"]))
-browser()
-    }else if(object$design$vcov$type == "CS" && object$design$vcov$heterogeneous == FALSE){
+    if(se == FALSE){
+        out[,"estimate"] <- sign(mytable[name.param,"statistic"])*sqrt(mytable[name.param,"statistic"]^2/(mytable[name.param,"df"]+mytable[name.param,"statistic"]^2))
+    }else{
+        out <- estimate(object, df = df, level = level, function(p){ ## p <- coef(object, effects = "all")
+            newSigma <- vcov(object, p = p, df = TRUE)
+            newStat <- p[name.param]/sqrt(diag(newSigma[name.param,name.param]))
+            newDf <- attr(newSigma,"df")[name.param]
+            return(sign(newStat)*sqrt(newStat^2/(newDf + newStat^2)))
+        })
     }
-    browser()
+
+    ## ** R2
+    if(R2){
+        name.meanparam <- setdiff(names(coef(object, effects = "mean")),"(Intercept)")
+
+        SSEstar <- df.residual(object)
+        anova.object <- anova(object)$multivariate
+        anovaAll.object <- anova(object, effects = paste0(name.meanparam,"=0"))$multivariate
+        SSRstar <- c(anova.object$statistic*anova.object$df.num, anovaAll.object$statistic*anovaAll.object$df.num)
+        names(SSRstar) <- c(anova.object$test,"global")
+
+        attr(out,"R2") <- SSRstar/(SSRstar+SSEstar)
+    }
 
     ## ** export
-    return(object)
+    class(out) <- append("partialCor", class(out))
+    return(out)
 }
 
+## * R2 stuff
+## ## ** partial percentage of variance explained (R2)
+## index.cluster <- object$design$index.cluster
+## index.clusterTime <- attr(object$design$index.clusterTime,"vectorwise")
+## X.pattern <- object$design$vcov$X$Upattern
+## name.pattern <- X.pattern$name
+
+## ## design matrix
+## X.design <- object$design$mean[,name.param,drop=FALSE]
+## assignX.design <- attr(object$design$mean,"assign")[match(name.param,colnames(object$design$mean))]
+    
+## ## linear predictor per group of variables
+## Xbeta.param <- sweep(X.design, FUN = "*", MARGIN = 2, STATS = mytable[name.param,"estimate"])
+## Xbeta.assign <- do.call(cbind,lapply(unique(assignX.design), function(iAssign){ ## iAssign <- 1
+##     rowSums(Xbeta.param[,name.param[iAssign],drop=FALSE])
+## }))
+## Xbeta2.assign <- Xbeta.assign^2
+    
+## ## variance pattern
+## Xpattern.var <- object$design$vcov$X$Xpattern.var
+## nXpattern.var <- length(Xpattern.var)
+## nameXpattern.var <- names(Xpattern.var)
+## ls.nameXpattern.var <- strsplit(nameXpattern.var, split = ".", fixed = TRUE)
+    
+## M.timevar <- list(pattern = matrix(NA, nrow = nXpattern.var, ncol = object$time$n),
+##                   varRes = matrix(NA, nrow = nXpattern.var, ncol = object$time$n),
+##                   n = matrix(NA, nrow = nXpattern.var, ncol = object$time$n),
+##                   sumExp = array(NA, dim = c(nXpattern.var, object$time$n, NCOL(Xbeta.assign))),
+##                   sumExp2 = array(NA, dim = c(nXpattern.var, object$time$n, NCOL(Xbeta.assign)))
+##                   )
+    
+## for(iPattern in 1:nXpattern.var){
+##     iIndex.pattern <- which(object$design$vcov$X$Upattern$var == nameXpattern.var[iPattern])[1]
+##     iIndex.time <- object$design$vcov$X$Upattern$time[[iIndex.pattern]]
+##     iIndex.cluster <- object$design$vcov$X$Upattern$index.cluster[[iIndex.pattern]]
+##     iMindex.cluster <- do.call(rbind,index.cluster[iIndex.cluster])
+
+##     M.timevar$pattern[iPattern,iIndex.time] <- ls.nameXpattern.var[[iPattern]]
+##     M.timevar$varRes[iPattern,iIndex.time] <- diag(object$Omega[[iIndex.pattern]])
+##     M.timevar$n[iPattern,iIndex.time] <- object$design$vcov$X$Upattern$n.cluster[iIndex.pattern]
+##     M.timevar$sumExp[iPattern,iIndex.time,] <- apply(iMindex.cluster, 2, function(iCluster.time){
+##         colSums(Xbeta.assign[iCluster.time,,drop=FALSE])
+##     })
+##     M.timevar$sumExp2[iPattern,iIndex.time,] <- apply(iMindex.cluster, 2, function(iCluster.time){
+##         colSums(Xbeta2.assign[iCluster.time,,drop=FALSE])
+##     })
+## }
+## ## marginal
+## level.pattern.var <- unique(M.timevar$pattern[!is.na(M.timevar$pattern)])
+## M.R2marginal <- do.call(rbind,lapply(level.pattern.var, function(iLevel){ ## iLevel <- "1"
+
+    ##     ## set.seed(10)
+    ##     ## X <- rnorm(100, mean = 5)
+    ##     ## var(X)
+    ##     ## sum((X-mean(X))^2)/(length(X)-1)
+    ##     ## sum(X^2)/(length(X)-1) - 2*length(X)*mean(X)^2/(length(X)-1) + length(X)*mean(X)^2/(length(X)-1)
+    ##     ## sum(X^2)/(length(X)-1) - sum(X)^2/(length(X)*(length(X)-1))
+
+    ##     iMask <- which(M.timevar$pattern==iLevel)
+    ##     iN <- sum(M.timevar$n[iMask])
+    ##     iSumExp <- apply(M.timevar$sumExp,3,function(iM){sum(iM[iMask])})
+    ##     iSumExp2 <- apply(M.timevar$sumExp2,3,function(iM){sum(iM[iMask])})
+    ##     return(c(iN,iSumExp2/(iN-1) - iSumExp^2/(iN^2-iN)))
+    ## }))
+
+    ## R2weight <- M.R2marginal[,1]/sum(M.R2marginal[,1])
+    ## out[[2]][,"estimate"] <-  apply(M.R2marginal[,-1],2,weighted.mean, w = R2weight)
 
 ##' \bold{Explained variance and partial correlation}: can be extracted by adding \code{"partial.r"} to the argument \code{columns} for certain types of mixed models,
 ##' those equivalent to random effect models (see vignette). 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: nov  3 2022 (17:55) 
+## Last-Updated: nov  6 2022 (22:19) 
 ##           By: Brice Ozenne
-##     Update #: 1129
+##     Update #: 1136
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -764,7 +764,6 @@ summary.partialCor <- function(object, digits = 3, detail = TRUE, ...){
     }
     out <- do.call("print.confint_lmm", c(list(object, detail = detail, digits = digits, row.names = FALSE), ...))
 
-
     ## legend (transformation)
     test.backtransform <- !is.null(message.backtransform) && any(!is.na(message.backtransform$FUN))
     if(test.backtransform){
@@ -795,6 +794,12 @@ summary.partialCor <- function(object, digits = 3, detail = TRUE, ...){
         cat("\n")
     }
     cat("\n")
+
+    if(!is.null(attr(object,"R2"))){
+        cat("\t\tR2\n\n")
+        print(attr(object,"R2"))
+        cat("\n")
+    }
 
     return(invisible(NULL))
 }

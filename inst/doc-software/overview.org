@@ -2850,7 +2850,7 @@ parameters in mixed models estimated with REML.
 :CUSTOM_ID: SM:sumSquares
 :END:
 
-All mixed model implemented in LMMstar can be written as:
+All mixed models implemented in LMMstar can be written as:
 #+BEGIN_EXPORT latex
 \[ Y_{it} = X_{it}\beta + \varepsilon_{it} \text{ where } \varepsilon_{i} \sim \Gaus\left(0,\Omega\right)\]
 #+END_EXPORT

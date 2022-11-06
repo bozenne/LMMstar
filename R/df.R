@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (10:34) 
 ## Version: 
-## Last-Updated: sep 29 2022 (10:26) 
+## Last-Updated: nov  6 2022 (22:22) 
 ##           By: Brice Ozenne
-##     Update #: 196
+##     Update #: 198
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -24,7 +24,10 @@
 ##' @return A numeric value
 ##' @export
 df.residual.lmm <- function(object, ...){
-    as.double(crossprod(stats::residuals(object, type = "normalized")))
+
+    epsilonN <- stats::residuals(object, type = "normalized")
+    as.double(crossprod(na.omit(epsilonN)))
+    
 }
 
 ## * .df_analytic
