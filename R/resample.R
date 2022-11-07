@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: nov  3 2022 (11:27) 
+## Last-Updated: nov  7 2022 (19:16) 
 ##           By: Brice Ozenne
-##     Update #: 164
+##     Update #: 215
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,6 +15,7 @@
 ## 
 ### Code:
 
+## * resample (documentation)
 ##' @title Inference via Resampling for Linear Mixed Model
 ##' @description Non-parametric bootstrap or permutation test for Linear Mixed Models.
 ##'
@@ -30,15 +31,56 @@
 ##' \item Bootstrap: sampling with replacement clusters. If a cluster is picked twice then different cluster id is used for each pick.
 ##' \item Permutation: permuting covariate values between clusters. This only lead to the null hypothesis when the covariate values are constant within clusters.
 ##' }
+##'
+##' @examples
+##' \dontrun{
+##'
+##' #### univariate linear regression ####
+##' data(gastricbypassW)
+##' ## rescale to ease optimization
+##' gastricbypassW$weight1 <- scale(gastricbypassW$weight1)
+##' gastricbypassW$weight2 <- scale(gastricbypassW$weight2)
+##' gastricbypassW$glucagonAUC1 <- scale(gastricbypassW$glucagonAUC1)
+##'
+##' e.lm <- lmm(weight2~weight1+glucagonAUC1, data = gastricbypassW)
+##' model.tables(e.lm)
+##'
+##' ## non-parametric bootstrap
+##' resample(e.lm, type = "boot", effects = c("weight1","glucagonAUC1"))
+##' ## permutation test
+##' resample(e.lm, type = "perm", effects = "weight1") 
+##' resample(e.lm, type = "perm", effects = "glucagonAUC1")
+##'
+##' #### random intercept model ####
+##' data(gastricbypassL)
+##' gastricbypassL$weight <- scale(gastricbypassL$weight)
+##' gastricbypassL$glucagonAUC <- scale(gastricbypassL$glucagonAUC)
+##' gastricbypassL$gender <- as.numeric(gastricbypassL$id) %% 2
 ##' 
+##' eCS.lmm <- lmm(weight~glucagonAUC+gender, data = gastricbypassL,
+##'                repetition = ~visit|id, structure = "CS")
+##' model.tables(eCS.lmm)
+##'
+##' ## non-parametric bootstrap
+##' resample(eCS.lmm, type = "boot", effects = c("glucagonAUC","gender"))
+##' ## permutation test
+##' resample(eCS.lmm, type = "perm", effects = "gender") 
+##' }
+##' 
+
+
+## * resample (code)
 ##' @export
 resample <- function(object, type, effects, n.sample = 1e3, trace = TRUE, seed = NULL, cl = NULL){
 
     ## ** check user input
-    type <- match.arg(type, c("perm","perm-var","boot"))
+    type <- match.arg(type, c("perm","boot"))
     if(type=="perm"){
         type <- "perm-var"
     }
+    ## boot: non-parametric bootstrap
+    ## perm-var: exchange covariate value between clusters (need to be constant within cluster)
+    ## perm-res: outcome becomes permuted normalized residuals under the null to which the (permuted) fixed effect under the null are added.
 
     name.meanvar <- attr(object$design$mean,"variable")
     value.meancoef <- coef(object, effects = "mean")
@@ -65,7 +107,7 @@ resample <- function(object, type, effects, n.sample = 1e3, trace = TRUE, seed =
         test.Wvar <- unlist(by(object$data[effects], object$data[[object$cluster$var]], function(iData){sum(!duplicated(iData))>1}, simplify = FALSE))
         if(any(test.Wvar)){
             stop("The covariate(s) indicated by the argument \"effects\" vary within cluster. \n",
-                 "Consider using type=\"perm-res\" or type=\"boot\" instead of type=\"perm-var\". \n")
+                 "This is not support when using permutations. Consider using type=\"boot\" instead of type=\"perm\". \n")
         }
         Uvar <- by(object$data[effects], object$data[[object$cluster$var]], function(iData){iData[1,,drop=FALSE]}, simplify = FALSE)
 
@@ -95,10 +137,12 @@ resample <- function(object, type, effects, n.sample = 1e3, trace = TRUE, seed =
     ## ** initialize
     ## *** data
     data <- object$data
+    if(length(object$index.na)>0){
+        data <- data[-object$index.na,]
+    }
     var.cluster <- object$cluster$var
-    vec.id <- data[[var.cluster]]
-    vec.Uid <- unique(vec.id)
-    n.id <- length(vec.Uid)
+    vec.Uid <- object$cluster$level
+    n.id <- object$cluster$n
     n.obs <- NROW(data)
     index.cluster <- object$design$index.cluster
     Vindex.cluster <- unlist(index.cluster)
@@ -139,10 +183,16 @@ resample <- function(object, type, effects, n.sample = 1e3, trace = TRUE, seed =
 
     ## *** residuals
     if(type == "perm-res"){
-        object0 <- .constrain.lmm(object, effects = stats::setNames(rep(0,length(effects)),effects))
+        ## re-estimate the model under the null hypothesis
+        call0 <- object$call
+        call0$formula <- update(eval(call0$formula), paste0("~.-",effects))
+        if(!is.null(object$index.na)){
+            call0$data <- object$data.original[-object$index.na,,drop=FALSE]
+        }
+        object0 <- eval(call0)
         Xbeta0 <- stats::predict(object0, newdata = data[,var.mean,drop=FALSE], se = FALSE, df = FALSE)[,1]
-        epsilon.norm <- stats::residuals(object0, type = "normalized")
-        OmegaChol <- stats::sigma(object0, chol = TRUE, cluster = as.character(vec.Uid))
+        epsilon0.norm <- stats::residuals(object0, type = "normalized")
+        OmegaChol0 <- stats::sigma(object0, chol = TRUE, cluster = as.character(vec.Uid))
     }
 
     ## ** function
@@ -150,7 +200,7 @@ resample <- function(object, type, effects, n.sample = 1e3, trace = TRUE, seed =
 
         ## *** resample
         if(type == "perm-var"){
-            ## permute X-values
+            ## permute X-values (constant within cluster)
             iPerm <- sample(n.id, replace = FALSE)
             iData <- data
             for(iCluster in 1:n.id){ ## iCluster <- 1
@@ -164,21 +214,16 @@ resample <- function(object, type, effects, n.sample = 1e3, trace = TRUE, seed =
             ##     iPatternindex.cluster <-  index.cluster[ls.indexcluster.pattern[[iPattern]]]
             ##     iData[[effects]][unlist(iPatternindex.cluster)] <- data[[effects]][unlist(iPatternindex.cluster[iPerm])]
             ## }
-            
         }else if(type == "perm-res"){
-
             iData <- data
             ## permute residuals (including the fixed effect to be tested)
             iPerm <- sample(1:n.obs, replace = FALSE)
-            iEpsilon.norm <- epsilon.norm[iPerm]
+            iEpsilon0.norm <- epsilon0.norm[iPerm]
             ## rescale residuals
-            for(iCluster in 1:n.id){ ## iCluster <- 1
-                iData[[var.outcome]][index.cluster[[iCluster]]] <- OmegaChol[[iCluster]] %*% iEpsilon.norm[index.cluster[[iCluster]]]
-            }
+            iData[[var.outcome]][unlist(index.cluster)] <- unlist(lapply(1:n.id, function(iC){OmegaChol0[[iC]] %*% iEpsilon0.norm[index.cluster[[iC]]]}))
             ## add fixed effects
-            iData[[var.outcome]] <- iData[[var.outcome]] + Xbeta0
-            ## range(iData[[var.outcome]] - data[iPerm,var.outcome])
-
+            iData[[var.outcome]] <- iData[[var.outcome]] + Xbeta0[iPerm]
+            ## range(iData[[var.outcome]] - data[,var.outcome])
         }else if(type == "boot"){
             ils.Boot <- index.cluster[sample(n.id, replace = TRUE)]
             names(ils.Boot) <- 1:n.id
@@ -211,7 +256,24 @@ resample <- function(object, type, effects, n.sample = 1e3, trace = TRUE, seed =
                                          var.weights = object$weights$var,
                                          stratify.mean = FALSE,
                                          precompute.moments = precompute.moments)
-        }else{
+        }else if(type == "perm-res"){ ## change in the Y values
+
+            iDesign <- object$design
+            iDesign$Y <- iData[[var.outcome]]
+
+            ## update pre-computation              
+            if(precompute.moments && NCOL(iDesign$mean)>0){
+                if(is.na(var.weights[1])){
+                    iwY <- cbind(iData[[var.outcome]])
+                }else{
+                    iwY <- cbind(iData[[var.outcome]]*sqrt(iData[[var.weights[1]]]))
+                }
+                iDesign$precompute.XY <- .precomputeXR(X = iDesign$precompute.XX$Xpattern, residuals = iwY, pattern = iDesign$vcov$X$Upattern$name,
+                                                       pattern.ntime = stats::setNames(iDesign$vcov$X$Upattern$n.time, iDesign$vcov$X$Upattern$name),
+                                                       pattern.cluster = iDesign$vcov$X$Upattern$index.cluster, index.cluster = iDesign$index.cluster)
+            }
+
+        }else{ ## change in the X values
             ## update design matrix according to the permutation (only mean)
             iDesign <- object$design
             iDesign$mean <- model.matrix(object, data = iData[,var.mean,drop=FALSE])
@@ -237,9 +299,6 @@ resample <- function(object, type, effects, n.sample = 1e3, trace = TRUE, seed =
                 iDesign$precompute.XY <- .precomputeXR(X = iDesign$precompute.XX$Xpattern, residuals = iwY, pattern = iDesign$vcov$X$Upattern$name,
                                                        pattern.ntime = stats::setNames(iDesign$vcov$X$Upattern$n.time, iDesign$vcov$X$Upattern$name),
                                                        pattern.cluster = iDesign$vcov$X$Upattern$index.cluster, index.cluster = iIndex.cluster)
-            }else{
-                iPrecompute.XX <- NULL
-                iPrecompute.XY <- NULL
             }
         }
 
@@ -259,9 +318,8 @@ resample <- function(object, type, effects, n.sample = 1e3, trace = TRUE, seed =
                                    tol.param = object$opt$control["tol.param"],
                                    trace = FALSE))
 
-
         ## *** export
-        if(inherits(iEstimate,"try-error")){
+        if(inherits(iEstimate,"try-error") || iEstimate$cv != 1){
             return(NULL)
         }else{
             return(iEstimate$estimate[name.keepcoef])
