@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: nov  8 2022 (17:30) 
+## Last-Updated: nov  8 2022 (18:37) 
 ##           By: Brice Ozenne
-##     Update #: 430
+##     Update #: 436
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -439,6 +439,7 @@ partialCor.formula <- function(object, repetition, ...){
 }
 
 ## * partialCor.lmm (code)
+##' @export
 partialCor.lmm <- function(object, level = 0.95, R2 = FALSE, se = TRUE, df = TRUE, ...){
 
     ## ** normalize input
@@ -461,7 +462,7 @@ partialCor.lmm <- function(object, level = 0.95, R2 = FALSE, se = TRUE, df = TRU
     }else{
         out <- estimate(object, df = df, level = level, function(p){ ## p <- coef(object, effects = "all")
             newSigma <- vcov(object, p = p, df = TRUE)
-            newStat <- p[name.param]/sqrt(diag(newSigma[name.param,name.param]))
+            newStat <- p[name.param]/sqrt(diag(newSigma[name.param,name.param,drop=FALSE]))
             newDf <- attr(newSigma,"df")[name.param]
             return(sign(newStat)*sqrt(newStat^2/(newDf + newStat^2)))
         })
@@ -480,6 +481,12 @@ partialCor.lmm <- function(object, level = 0.95, R2 = FALSE, se = TRUE, df = TRU
         attr(out,"R2") <- SSRstar/(SSRstar+SSEstar)
     }
 
+    ## ** warning
+    if(object$design$vcov$type!="ID"){
+        warning("Formula for the partial correlation",if(R2){" and R2"}," are only valid when having independent and homoschedastic observations. \n",
+                "Use the estimated values at your own risk. \n", sep = "")
+    }
+    
     ## ** export
     attr(out, "call") <- match.call()
     attr(out, "args") <- list(level = level, R2 = R2, se = se, df = df)
