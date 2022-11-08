@@ -25,7 +25,7 @@
 Alternatively, method for combining the estimates, one of \code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.rubin"}.}
 
 \item{columns}{[character vector] Columns to be output.
-Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}, \code{"partial.r"}.}
+Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.}
 
 \item{backtransform}{[logical] should the estimates, standard errors, and confidence intervals be backtransformed?}
 
@@ -52,12 +52,6 @@ When degrees of freedom differs between individual hypotheses, method \code{"sin
  \item \code{"pool.gls"}: weighted average of the estimates, with weights being based on the variance-covariance matrix of the estimates. When this matrix is singular, its spectral decomposition is truncated when the correspodning eigenvalues are below \eqn{10^{-12}}. The uncertainty about the weights is neglected. 
  \item \code{"pool.rubin"}: average of the estimates and compute the uncertainty according to Rubin's rule (Barnard et al. 1999).
 }
-
-\bold{Explained variance and partial correlation}: can be extracted by adding \code{"partial.r"} to the argument \code{columns} for certain types of mixed models,
-those equivalent to random effect models (see vignette). 
-Explained variance will be displayed in the column \code{partial.r2} (Multivariate section)
-and partial correlation will be displayed in the column \code{partial.r} (Univariate section).
-WARNING: for other type of mixed models, typically heteroschedastic, the values in the columns \code{partial.r2} and \code{partial.r} may not have any intuitive interpretation.
 }
 \references{
 Barnard and Rubin, Small-sample degrees of freedom with multiple imputation. Biometrika (1999), 86(4):948-955.

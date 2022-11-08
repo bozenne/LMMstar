@@ -11,7 +11,7 @@ resample(
   n.sample = 1000,
   trace = TRUE,
   seed = NULL,
-  cl = NULL
+  cpus = 1
 )
 }
 \arguments{
@@ -27,7 +27,7 @@ resample(
 
 \item{seed}{[integer] Random number generator (RNG) state used when starting resampling.}
 
-\item{cl}{a cluster object passed to \code{pbapply::pblapply}. On plateform other than Windows can also be an integer indicating the number of child-processes for parallel evaluation.}
+\item{cpus}{[integer] number of child-processes for parallel evaluation.}
 }
 \description{
 Non-parametric bootstrap or permutation test for Linear Mixed Models.
@@ -37,4 +37,42 @@ Both approach are carried at the cluster level: \itemize{
 \item Bootstrap: sampling with replacement clusters. If a cluster is picked twice then different cluster id is used for each pick.
 \item Permutation: permuting covariate values between clusters. This only lead to the null hypothesis when the covariate values are constant within clusters.
 }
+}
+\examples{
+\dontrun{
+
+#### univariate linear regression ####
+data(gastricbypassW, package = "LMMstar")
+## rescale to ease optimization
+gastricbypassW$weight1 <- scale(gastricbypassW$weight1)
+gastricbypassW$weight2 <- scale(gastricbypassW$weight2)
+gastricbypassW$glucagonAUC1 <- scale(gastricbypassW$glucagonAUC1)
+
+e.lm <- lmm(weight2~weight1+glucagonAUC1, data = gastricbypassW)
+model.tables(e.lm)
+
+## non-parametric bootstrap
+resample(e.lm, type = "boot", effects = c("weight1","glucagonAUC1"))
+## permutation test
+resample(e.lm, type = "perm", effects = "weight1") 
+resample(e.lm, type = "perm", effects = "glucagonAUC1")
+## using multiple cores
+resample(e.lm, type = "boot", effects = c("weight1","glucagonAUC1"), cpus = 4, n.sample = 10)
+
+#### random intercept model ####
+data(gastricbypassL)
+gastricbypassL$weight <- scale(gastricbypassL$weight)
+gastricbypassL$glucagonAUC <- scale(gastricbypassL$glucagonAUC)
+gastricbypassL$gender <- as.numeric(gastricbypassL$id) \%\% 2
+
+eCS.lmm <- lmm(weight~glucagonAUC+gender, data = gastricbypassL,
+               repetition = ~visit|id, structure = "CS")
+model.tables(eCS.lmm)
+
+## non-parametric bootstrap
+resample(eCS.lmm, type = "boot", effects = c("glucagonAUC","gender"))
+## permutation test
+resample(eCS.lmm, type = "perm", effects = "gender") 
+}
+
 }

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: okt  1 2021 (17:13) 
+## Last-Updated: nov  8 2022 (17:07) 
 ##           By: Brice Ozenne
-##     Update #: 78
+##     Update #: 85
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -78,5 +78,17 @@ tblock <- function(M){
     }
 }
 
+## * ncharTable
+## compute the width of a table 
+ncharTable <- function(object, digits){
+
+    xplus <- cbind(rownames(object),formatC(as.matrix(object), digits = digits, format = "f"))
+    nchar.colnames <- c(0,nchar(colnames(object)))
+    width <- apply(xplus,1, function(iRow){ ## iRow <- xplus[2,]
+        sum(pmax(nchar.colnames,nchar(trimws(iRow)))+1)-1
+    })
+    return(max(width))
+   
+}
 ##----------------------------------------------------------------------
 ### utils-formula.R ends here

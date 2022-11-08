@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: nov  6 2022 (22:16) 
+## Last-Updated: nov  8 2022 (17:13) 
 ##           By: Brice Ozenne
-##     Update #: 178
+##     Update #: 186
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -263,6 +263,19 @@ print.partialCor <- function(x, digits = 3, ...){
 
     x$type <- NULL
     out <- do.call("print.confint_lmm", c(list(x, detail = FALSE, digits = digits), ...))
+    return(invisible(NULL))
+}
+
+## * print.resample
+##' @export
+print.resample <- function(x, digits = 3, ...){
+    args <- attr(x,"args")
+    n.sample <- attr(x,"n.sample")
+    
+    base::print.data.frame(x, digits = digits)
+    if(n.sample!=args$n.sample){
+        cat(paste0("(based on ",n.sample," samples - ",round((1-n.sample/args$n.sample)*100, digits = digits),"% failed) \n"))
+    }
     return(invisible(NULL))
 }
 

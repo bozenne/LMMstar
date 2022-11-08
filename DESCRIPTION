@@ -1,8 +1,8 @@
 Package: LMMstar
 Type: Package
 Title: Repeated Measurement Models for Discrete Times
-Version: 0.8.8
-Date: 2022-11-03
+Version: 0.8.9
+Date: 2022-11-08
 Authors@R: c(
     person("Brice", "Ozenne", role = c("aut", "cre"), email = "brice.mh.ozenne@gmail.com", comment = c(ORCID = "0000-0001-9694-2956")),
     person("Julie", "Forman", role = "aut", email = "jufo@sund.ku.dk", comment = c(ORCID = "0000-0001-7368-0869"))
@@ -29,6 +29,8 @@ Imports:
     Matrix,
     multcomp,
     numDeriv,
+    parallel,
+    pbapply,
     sandwich
 Suggests:
     AICcmodavg,
@@ -42,7 +44,6 @@ Suggests:
     mice,
     nlmeU,
     optimx,
-    pbapply,
     psych,
     Publish,
     qqtest,

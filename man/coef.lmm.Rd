@@ -22,7 +22,7 @@
 or only coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 or only coefficients relative to the variance structure (\code{"variance"}),
 or only coefficients relative to the correlation structure (\code{"correlation"}).
-Can also be \code{"ranef"} to output random effect (only for \code{CS} structure) or \code{"partialcor"} to output partial correlations.}
+Can also be \code{"ranef"} to output random effect (only for \code{CS} structure).}
 
 \item{p}{[numeric vector] value of the model coefficients to be used. Only relevant if differs from the fitted values.}
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: nov  3 2022 (11:27) 
+## Last-Updated: nov  8 2022 (15:52) 
 ##           By: Brice Ozenne
-##     Update #: 670
+##     Update #: 678
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -355,8 +355,13 @@ residuals.lmm <- function(object, type = "response", format = "long",
     if("normalized" %in% type.residual){
         ## from SAS documentation
         ## If Var[Y]=V and C'C=V, then C'-1 Y has uniform dispersion and its elements are uncorrelated
-        ## B=chol(M) gives B'B = M 
-        sqrtPrecision$normalized <- lapply(precision,function(iP){t(chol(iP))})
+        ## B=chol(M) gives B'B = M
+
+        ## Var(AX) = A VarX A' = A \Omega A' = A \Omega^{1/2} \Omega^{t/2} A'
+        ## so A = \Omega^{-1/2} by first taking Cholesky and then inverting
+        ## However later on we use X A i.e. X[1,] %*% A i.e. t(A) %*% t(X[1,])
+        ## but chol(B) = A' A in R (instead of A A') so we do have A = solve(chol(\Omega))
+        sqrtPrecision$normalized <- lapply(Omega,function(iP){solve(chol(iP))})
     }
 
     ## ** raw residuals
@@ -416,7 +421,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
                 if("normalized2" %in% type.residual){
                     iX <- X[iIndex[iOrder],,drop=FALSE]
                     iQ <- iX %*% tX.precision.X.M1 %*% t(iX)
-                    resnorm <- as.double(iResidual %*% t(chol(solve(Omega[[index.variance[iId]]] - iQ))))
+                    resnorm <- as.double(iResidual %*% solve(chol(Omega[[index.variance[iId]]] - iQ)))
                     M.res[iIndex,"r.normalized2"] <- resnorm[order(iOrder)]
                 }
                 if("scaled" %in% type.residual){
@@ -609,6 +614,36 @@ residuals.lmm <- function(object, type = "response", format = "long",
 
         }
     }
+
+## NOTE: normalizing the residuals can be done by inverting, taking the cholesky transform, possibly transpose
+##       but it is not clear in which order to do that
+##       here is a small simulation study indicating the "best" solution
+##
+## rho <- 0.8
+## Rho <- matrix(c(1,rho,rho^2,rho^3,
+##                 rho,1,rho,rho^2,
+##                 rho^2,rho,1,rho,
+##                 rho^3,rho^2,rho,1),4,4)
+## Sigma <- tcrossprod(1:4) * Rho
+##
+## library(mvtnorm)
+## X <- rmvnorm(100000, mean = rep(0,4), sigma = Sigma)
+## var(X)
+##
+## quantile(var(X %*% solve(t(chol(Sigma)))) - diag(1,4)) ## -2.00926751 -0.78138946 -0.26772457 -0.03288554  2.86152941 
+## quantile(var(X %*% solve(chol(Sigma))) - diag(1,4))    ## -0.0022343367 -0.0009080941  0.0013634135  0.0041065544  0.0080840791 
+## quantile(var(X %*% chol(solve(Sigma))) - diag(1,4))    ## -0.5963488 -0.1940092  0.3265089  0.6047354  1.7839809 
+## quantile(var(X %*% t(chol(solve(Sigma)))) - diag(1,4)) ## -0.0044414902 -0.0004810946  0.0003719232  0.0014844712  0.0098206876
+
+## tSigmaM12 <- t(chol(solve(Sigma)))
+## SigmaM12 <- chol(solve(Sigma))
+## (X %*% tSigmaM12)[1,]
+## X[1,,drop=FALSE] %*% tSigmaM12
+## SigmaM12 %*% X[1,]
+## 
+## quantile(var(t(SigmaM12 %*% t(X))) - diag(1,4))
+
+
 
 ## * residuals.clmm
 ##' @export

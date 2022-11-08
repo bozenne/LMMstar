@@ -16,8 +16,7 @@ mlmm(
   transform.sigma = NULL,
   transform.k = NULL,
   transform.rho = NULL,
-  transform.names = TRUE,
-  backtransform = NULL
+  transform.names = TRUE
 )
 }
 \arguments{
@@ -45,8 +44,6 @@ Argument passed to \code{\link{anova.lmm}}.}
 Argument passed to \code{\link{anova.lmm}}.}
 
 \item{transform.sigma, transform.k, transform.rho, transform.names}{[character] transformation used on certain type of parameters.}
-
-\item{backtransform}{[data.frame or NULL] Should estimates and their uncertainty be back-transformed?}
 }
 \description{
 Fit several linear mixed models, extract relevant coefficients, and combine them into a single table.

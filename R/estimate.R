@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: nov  3 2022 (16:04) 
+## Last-Updated: nov  8 2022 (12:31) 
 ##           By: Brice Ozenne
-##     Update #: 922
+##     Update #: 925
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -221,17 +221,23 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
 ## * .estimate (code)
 .estimate <- function(design, time, method.fit, type.information, 
                       transform.sigma, transform.k, transform.rho,
-                      precompute.moments, optimizer, init, n.iter, tol.score, tol.param, trace){
-   
-    options <- LMMstar.options()
+                      precompute.moments, optimizer, init, n.iter, tol.score, tol.param, n.backtracking = NULL, trace){
+
+    ## ** apply default values
+    if(is.null(n.iter) || is.null(tol.score) || is.null(tol.param) || is.null(n.backtracking)){
+        options <- LMMstar.options()
+    }
     if(is.null(n.iter)){
-        n.iter <- options$param.optimizer["n.iter"]
+        n.iter <- as.double(options$param.optimizer["n.iter"])
     }
     if(is.null(tol.score)){
-        tol.score <- options$param.optimizer["tol.score"]
+        tol.score <- as.double(options$param.optimizer["tol.score"])
     }
     if(is.null(tol.param)){
-        tol.param <- options$param.optimizer["tol.param"]
+        tol.param <- as.double(options$param.optimizer["tol.param"])
+    }
+    if(is.null(n.backtracking)){
+        n.backtracking <- as.double(options$param.optimizer["n.backtracking"])
     }
     if(is.null(trace)){
         trace <- FALSE
@@ -412,7 +418,7 @@ test.npd <- sapply(initOmega,function(iOmega){any(eigen(iOmega)$values<0)})
                 cv <- -2
                 break
             }else if(is.na(logLik.value) || (logLik.value < logLik.valueM1)){ ## decrease in likelihood - try partial update
-                outMoments <- .backtracking(valueM1 = param.valueM1, update = update.value, n.iter = options$param.optimizer["n.backtracking"],
+                outMoments <- .backtracking(valueM1 = param.valueM1, update = update.value, n.iter = n.backtracking,
                                             design = design, time = time, method.fit = method.fit, type.information = type.information,
                                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                             logLikM1 = logLik.valueM1, scoreM1 = score.valueM1, informationM1 = information.valueM1, effects = effects, precompute.moments = precompute.moments,
@@ -610,7 +616,8 @@ test.npd <- sapply(initOmega,function(iOmega){any(eigen(iOmega)$values<0)})
                 score = score.value,
                 n.iter = iIter,                
                 cv = cv,
-                control = c(n.iter = as.double(n.iter), tol.score = as.double(tol.score), tol.param = as.double(tol.param))
+                control = c(n.iter = as.double(n.iter), tol.score = as.double(tol.score), tol.param = as.double(tol.param),
+                            n.backtracking = as.double(n.backtracking))
                 ))
 }
 

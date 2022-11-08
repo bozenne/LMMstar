@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: nov  7 2022 (19:16) 
+## Last-Updated: nov  8 2022 (16:55) 
 ##           By: Brice Ozenne
-##     Update #: 215
+##     Update #: 290
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,23 +20,33 @@
 ##' @description Non-parametric bootstrap or permutation test for Linear Mixed Models.
 ##'
 ##' @param object a \code{lmm} object.
-##' @param type [character] should permutation test (\code{"perm"}) or non-parametric bootstrap (\code{"boot"}) be used?
+##' @param type [character] should permutation test (\code{"perm-var"} or \code{"perm-res"}) or non-parametric bootstrap (\code{"boot"}) be used?
 ##' @param effects [character vector] the variable(s) to be permuted or the effect(s) to be tested via non-parametric bootstrap.
 ##' @param n.sample [integer] the number of samples used.
+##' @param studentized [logical] should a studentized boostrap or permutation test be used?
+##' @param level [numeric,0-1] the confidence level of the confidence intervals.
 ##' @param trace [logical] should the execution of the resampling be traced?
 ##' @param seed [integer] Random number generator (RNG) state used when starting resampling.
-##' @param cl a cluster object passed to \code{pbapply::pblapply}. On plateform other than Windows can also be an integer indicating the number of child-processes for parallel evaluation.
+##' @param cpus [integer] number of child-processes for parallel evaluation.
 ##'
-##' @details Both approach are carried at the cluster level: \itemize{
+##' @details All approach are carried at the cluster level: \itemize{
 ##' \item Bootstrap: sampling with replacement clusters. If a cluster is picked twice then different cluster id is used for each pick.
-##' \item Permutation: permuting covariate values between clusters. This only lead to the null hypothesis when the covariate values are constant within clusters.
+##' \item Permutation: permuting covariate values between clusters (this only lead to the null hypothesis when the covariate values are constant within clusters)
+##' or assigning new outcome values by, under the null, permuting the normalized residuals, rescaling to residuals, and adding back the permuted fixed effect (any mean effect under H1 would be 0 because of the permutation if the variance-covariance structure is correct). The later procedure originates from Oliver et al (2012).
 ##' }
+##'
+##' The studentized bootstrap keep the original estimate and standard error but uses the samples to evaluates the quantiles of the distribution used to form the confidence intervals.
+##' The studentized permutation test approximate the distribution of the test statistic under the null (instead of the distribution of the estimate under the null.).
+##'
+##' P-values for the bootstrap are computed by centering the bootstrap distribution of the estimate or test statistic around 0 and evaluating the frequency at which it takes values more extreme than the observed estimate or test statistics.
+##' 
+##' @references Oliver E. Lee and Thomas M. Braun (2012), Permutation Tests for Random Effects in Linear Mixed Models. Biometrics, Journal 68(2).
 ##'
 ##' @examples
 ##' \dontrun{
 ##'
 ##' #### univariate linear regression ####
-##' data(gastricbypassW)
+##' data(gastricbypassW, package = "LMMstar")
 ##' ## rescale to ease optimization
 ##' gastricbypassW$weight1 <- scale(gastricbypassW$weight1)
 ##' gastricbypassW$weight2 <- scale(gastricbypassW$weight2)
@@ -50,40 +60,46 @@
 ##' ## permutation test
 ##' resample(e.lm, type = "perm", effects = "weight1") 
 ##' resample(e.lm, type = "perm", effects = "glucagonAUC1")
-##'
+##' ## using multiple cores
+##' resample(e.lm, type = "boot", effects = c("weight1","glucagonAUC1"), cpus = 4)
+##' 
 ##' #### random intercept model ####
-##' data(gastricbypassL)
+##' data(gastricbypassL, package = "LMMstar")
 ##' gastricbypassL$weight <- scale(gastricbypassL$weight)
 ##' gastricbypassL$glucagonAUC <- scale(gastricbypassL$glucagonAUC)
 ##' gastricbypassL$gender <- as.numeric(gastricbypassL$id) %% 2
+##' gastricbypassLR <- na.omit(gastricbypassL)
 ##' 
-##' eCS.lmm <- lmm(weight~glucagonAUC+gender, data = gastricbypassL,
+##' eCS.lmm <- lmm(weight~glucagonAUC+gender, data = gastricbypassLR,
 ##'                repetition = ~visit|id, structure = "CS")
 ##' model.tables(eCS.lmm)
 ##'
 ##' ## non-parametric bootstrap
 ##' resample(eCS.lmm, type = "boot", effects = c("glucagonAUC","gender"))
 ##' ## permutation test
-##' resample(eCS.lmm, type = "perm", effects = "gender") 
+##' resample(eCS.lmm, type = "perm-var", effects = "gender")
+##' resample(eCS.lmm, type = "perm-res", effects = "glucagonAUC") 
 ##' }
 ##' 
 
 
 ## * resample (code)
 ##' @export
-resample <- function(object, type, effects, n.sample = 1e3, trace = TRUE, seed = NULL, cl = NULL){
+resample <- function(object, type, effects, n.sample = 1e3, studentized = TRUE,
+                     level = 0.95,
+                     trace = TRUE, seed = NULL, cpus = 1){
 
     ## ** check user input
-    type <- match.arg(type, c("perm","boot"))
-    if(type=="perm"){
-        type <- "perm-var"
-    }
+    alpha <- 1-level
+    type <- match.arg(type, c("perm-var","perm-res","boot"))
     ## boot: non-parametric bootstrap
     ## perm-var: exchange covariate value between clusters (need to be constant within cluster)
     ## perm-res: outcome becomes permuted normalized residuals under the null to which the (permuted) fixed effect under the null are added.
 
     name.meanvar <- attr(object$design$mean,"variable")
     value.meancoef <- coef(object, effects = "mean")
+    sd.meancoef <- sqrt(diag(vcov(object, effects = "mean")))
+
     name.meancoef <- names(value.meancoef)
     if(type == "perm-var"){
         if(any(is.character(effects)==FALSE)){
@@ -132,6 +148,16 @@ resample <- function(object, type, effects, n.sample = 1e3, trace = TRUE, seed =
     }
     if(object$opt$name=="gls"){
         stop("Function resample not compatible with \"gls\" optimizer\n.")
+    }
+
+    if(length(cpus)!=1){
+        stop("Argument \'cpus\' should have length 1.\n ")
+    }else if(identical(cpus,"all")){
+        cpus <- parallel::detectCores()
+    }else if(!is.numeric(cpus) || cpus <=0 || cpus %% 1 != 0){
+        stop("Argument \'cpus\' should be a positive integer or \'all\'.\n ")
+    }else if(cpus>1 && cpus>parallel::detectCores()){
+        stop("Only ",parallel::detectCores()," CPU cores are available. \n")
     }
 
     ## ** initialize
@@ -192,7 +218,7 @@ resample <- function(object, type, effects, n.sample = 1e3, trace = TRUE, seed =
         object0 <- eval(call0)
         Xbeta0 <- stats::predict(object0, newdata = data[,var.mean,drop=FALSE], se = FALSE, df = FALSE)[,1]
         epsilon0.norm <- stats::residuals(object0, type = "normalized")
-        OmegaChol0 <- stats::sigma(object0, chol = TRUE, cluster = as.character(vec.Uid))
+        OmegaChol0 <- lapply(stats::sigma(object0, chol = TRUE, cluster = as.character(vec.Uid)), FUN = base::t)
     }
 
     ## ** function
@@ -255,7 +281,8 @@ resample <- function(object, type, effects, n.sample = 1e3, trace = TRUE, seed =
                                          var.outcome = object$outcome$var,
                                          var.weights = object$weights$var,
                                          stratify.mean = FALSE,
-                                         precompute.moments = precompute.moments)
+                                         precompute.moments = precompute.moments,
+                                         drop.X = object$design$drop.X)
         }else if(type == "perm-res"){ ## change in the Y values
 
             iDesign <- object$design
@@ -316,54 +343,139 @@ resample <- function(object, type, effects, n.sample = 1e3, trace = TRUE, seed =
                                    n.iter = object$opt$control["n.iter"],
                                    tol.score = object$opt$control["tol.score"],
                                    tol.param = object$opt$control["tol.param"],
+                                   n.backtracking = object$opt$control["n.backtracking"],
                                    trace = FALSE))
 
+        if(!inherits(iEstimate,"try-error") && studentized){
+            iVcov <- .moments.lmm(value = iEstimate$estimate,
+                                  design = iDesign,
+                                  time = object$time,
+                                  method.fit = object$method.fit,
+                                  type.information = attr(object$information,"type.information"),
+                                  transform.sigma = object$reparametrize$transform.sigma,
+                                  transform.k = object$reparametrize$transform.k,
+                                  transform.rho = object$reparametrize$transform.rho,
+                                  logLik = FALSE, score = FALSE, information = FALSE, vcov = TRUE, df = FALSE, indiv = FALSE, effects = c("mean"), robust = FALSE,
+                                  trace = FALSE, precompute.moments = precompute.moments, method.numDeriv = "simple", transform.names = FALSE)$vcov
+            
+        }
+
         ## *** export
-        if(inherits(iEstimate,"try-error") || iEstimate$cv != 1){
-            return(NULL)
-        }else{
-            return(iEstimate$estimate[name.keepcoef])
+        if(inherits(iEstimate,"try-error")){
+            return(iEstimate)
+        }else if(!studentized){
+            return(c(iEstimate$cv, iEstimate$estimate[name.keepcoef]))
+        }else if(studentized){
+            c(iEstimate$cv, iEstimate$estimate[name.keepcoef], se = sqrt(diag(iVcov)[name.keepcoef]))
         }
 
     }
     ## res <- warperResample(1)
-
     ## ** run
+    if(trace){
+        if(type == "perm-var"){
+            if(studentized){
+                cat("\tStudentized permutation test with ",n.sample," replicates \n",
+                    "\t(permutation of the regressor values between clusters)\n\n", sep = "")
+            }else{
+                cat("\tPermutation test with ",n.sample," replicates \n",
+                    "\t(permutation of the regressor values between clusters)\n\n", sep = "")
+            }
+        }else if(type == "perm-res"){
+            if(studentized){
+                cat("\tStudentized permutation test with ",n.sample," replicates \n",
+                    "\t(permutation of the normalized residuals under the null)\n\n", sep = "")
+            }else{
+                cat("\tPermutation test with ",n.sample," replicates \n",
+                    "\t(permutation of the normalized residuals under the null)\n\n", sep = "")
+            }
+        }else if(type == "boot"){
+            if(studentized){
+                cat("\tNon-parametric studentized bootstrap with ",n.sample," replicates \n\n", sep = "")
+            }else{
+                cat("\tNon-parametric bootstrap with ",n.sample," replicates \n\n", sep = "")
+            }
+        }
+    }
+    
     if(!is.null(seed)){set.seed(seed)}
 
-    if((!is.null(cl) || trace) && requireNamespace("pbapply")){
+    if(cpus>1){
+        cl <- parallel::makeCluster(cpus)
+        fct2export <- c(".estimate",".precomputeXR",".precomputeXX",".extractIndexData",".model.matrix.lmm",".prepareData")
+        parallel::clusterExport(cl = cl, varlist = fct2export, envir = as.environment(asNamespace("LMMstar")))
+    }else{
+        cl <- NULL
+    }
+
+    if(!is.null(cl) || trace){
         ls.sample <- pbapply::pblapply(1:n.sample, warperResample, cl = cl)
     }else{
         ls.sample <- lapply(1:n.sample, warperResample)
     }
 
-    ## ** post-process
-    M.sample <- do.call(rbind,ls.sample)
-    n.sample <- NROW(M.sample)
+    if(cpus>1){
+        parallel::stopCluster(cl)
+    }
 
+    ## ** post-process
+    M.sample <- do.call(rbind,ls.sample[sapply(ls.sample, inherits, "try-error")==FALSE])
+    Mcv.sample <- M.sample[M.sample[,1]==1,-1,drop=FALSE]
+    ncv.sample <- NROW(Mcv.sample)
+
+    if(studentized){
+        Mcv.sample.se <- Mcv.sample[,(length(name.keepcoef)+1):(2*length(name.keepcoef)),drop=FALSE]
+        Mcv.sample <- Mcv.sample[,1:length(name.keepcoef),drop=FALSE]
+    }
+    
     out <- model.tables(object)[name.keepcoef,,drop=FALSE]*NA
     out$estimate <- as.double(value.meancoef[name.keepcoef])
 
-    M.estimate <- matrix(value.meancoef[name.keepcoef], nrow = n.sample, ncol = length(name.keepcoef), byrow = TRUE,
-                         dimnames = list(NULL,name.keepcoef))
-
     if(type %in% c("perm-var","perm-res") ){
-        
-        out$p.value <- (colSums(abs(M.sample) > abs(M.estimate), na.rm = TRUE)+1)/(colSums(!is.na(M.sample))+1)
-        
+
+        if(studentized){
+            Mcv.estimate <- matrix(value.meancoef[name.keepcoef]/sd.meancoef[name.keepcoef], nrow = ncv.sample, ncol = length(name.keepcoef), byrow = TRUE,
+                                   dimnames = list(NULL,name.keepcoef))
+            Mcv.sample.Wald <- Mcv.sample/Mcv.sample.se
+
+            out$se <- as.double(sd.meancoef[name.keepcoef])
+            out$p.value <- (colSums(abs(Mcv.sample.Wald) > abs(Mcv.estimate), na.rm = TRUE)+1)/(colSums(!is.na(Mcv.sample.Wald))+1)
+        }else{
+            Mcv.estimate <- matrix(value.meancoef[name.keepcoef], nrow = ncv.sample, ncol = length(name.keepcoef), byrow = TRUE,
+                                   dimnames = list(NULL,name.keepcoef))
+
+            out$p.value <- (colSums(abs(Mcv.sample) > abs(Mcv.estimate), na.rm = TRUE)+1)/(colSums(!is.na(Mcv.sample))+1)
+        }
     }else if(type == "boot"){
+        if(studentized){
+            Mcv.sample.Wald0 <- apply(Mcv.sample, MARGIN = 2, FUN = scale, scale = FALSE, center = TRUE)/Mcv.sample.se  ## center around the null
+            statistic.meancoef <- value.meancoef[name.keepcoef]/sd.meancoef[name.keepcoef]
+            
+            out$se <- as.double(sd.meancoef[name.keepcoef])
+            out$lower <- out$estimate + out$se * apply(Mcv.sample.Wald0, MARGIN = 2, FUN = stats::quantile, probs = alpha/2, na.rm = TRUE)
+            out$upper <- out$estimate + out$se * apply(Mcv.sample.Wald0, MARGIN = 2, FUN = stats::quantile, probs = 1-alpha/2, na.rm = TRUE)
+            out$p.value <- (colSums(abs(Mcv.sample.Wald0) > abs(statistic.meancoef), na.rm = TRUE)+1)/(colSums(!is.na(Mcv.sample.Wald0))+1)
 
-        out$se <- apply(M.sample, MARGIN = 2, FUN = stats::sd, na.rm = TRUE)
-        out$lower <- apply(M.sample, MARGIN = 2, FUN = stats::quantile, probs = 0.025, na.rm = TRUE)
-        out$upper <- apply(M.sample, MARGIN = 2, FUN = stats::quantile, probs = 0.975, na.rm = TRUE)
+        }else{
+            Mcv.estimate <- matrix(value.meancoef[name.keepcoef], nrow = ncv.sample, ncol = length(name.keepcoef), byrow = TRUE,
+                                   dimnames = list(NULL,name.keepcoef))
 
-        M.sampleH0 <- scale(M.sample, center = TRUE, scale = FALSE)
-        out$p.value <- (colSums(abs(M.sampleH0) > abs(M.estimate), na.rm = TRUE)+1)/(colSums(!is.na(M.sample))+1)
-        ## out$p.value <- unlist(lapply(name.keepcoef, function(iName){ BuyseTest::boot2pvalue(x = M.sample[,iName], null = 0, estimate = value.meancoef[iName])} ))
+            out$se <- apply(Mcv.sample, MARGIN = 2, FUN = stats::sd, na.rm = TRUE)
+            out$lower <- apply(Mcv.sample, MARGIN = 2, FUN = stats::quantile, probs = alpha/2, na.rm = TRUE)
+            out$upper <- apply(Mcv.sample, MARGIN = 2, FUN = stats::quantile, probs = 1-alpha/2, na.rm = TRUE)
+
+            Mcv.sampleH0 <- scale(Mcv.sample, center = TRUE, scale = FALSE)
+            out$p.value <- (colSums(abs(Mcv.sampleH0) > abs(Mcv.estimate), na.rm = TRUE)+1)/(colSums(!is.na(Mcv.sample))+1)
+        }
+        ## out$p.value <- unlist(lapply(name.keepcoef, function(iName){ BuyseTest::boot2pvalue(x = Mcv.sample[,iName], null = 0, estimate = value.meancoef[iName])} ))
     }
+
+    ## ** export
+    attr(out,"call") <- match.call()
+    attr(out,"args") <- list(type = type, effects = effects, n.sample = n.sample, studentized = studentized, seed = seed)
     attr(out,"M.sample") <- M.sample
     attr(out,"n.sample") <- n.sample
-
+    class(out) <- append("resample",class(out))
     return(out)
 
 }

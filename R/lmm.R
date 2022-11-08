@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Oct 17 2022 (11:18) 
+## Last-Updated: nov  8 2022 (11:15) 
 ##           By: Brice Ozenne
-##     Update #: 2055
+##     Update #: 2056
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -646,7 +646,8 @@ lmm <- function(formula, repetition, structure, data,
                                     structure = structure,
                                     data = data, var.outcome = var.outcome, var.weights = out$weights$var,
                                     stratify.mean = optimizer=="gls",
-                                    precompute.moments = precompute.moments)
+                                    precompute.moments = precompute.moments,
+                                    drop.X = options$drop.X)
 
     if(!is.na(attr(var.cluster,"original"))){
         if(is.factor(data[[attr(var.cluster,"original")]])){

@@ -39,7 +39,7 @@ or only for correlation coefficients (\code{"correlation"}).}
 \item{null}{[numeric vector] the value of the null hypothesis relative to each coefficient.}
 
 \item{columns}{[character vector] Columns to be output.
-Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}, \code{"partial.r"}.}
+Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.}
 
 \item{df}{[logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.}
 
@@ -59,7 +59,6 @@ A data.frame containing some of the following coefficient (in rows): \itemize{
 \item column upper: the upper bound of the confidence interval.
 \item column null: the null hypothesis.
 \item column p.value: the p-value relative to the null hypothesis.
-\item column partial.r: transformation of the test statistic and degree of freedom that can be interpreted as partial correlation with certain covariance structure. See vignette.
 }
 }
 \description{

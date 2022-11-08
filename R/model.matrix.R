@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: okt 31 2022 (15:34) 
+## Last-Updated: nov  8 2022 (11:16) 
 ##           By: Brice Ozenne
-##     Update #: 2354
+##     Update #: 2362
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,11 +18,14 @@
 
 ## * model.matrix.lmm (code)
 ##' @export
-model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies = TRUE, ...){
+model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies = TRUE, drop.X = NULL, ...){
 
     ## ** normalize user imput
     if(identical(effects,"all")){
         effects <- c("mean","variance")
+    }
+    if(is.null(drop.X)){
+        drop.X <- LMMstar.options("drop.X")
     }
 
     effects <- match.arg(effects, c("mean","variance"), several.ok = TRUE)
@@ -178,7 +181,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
                                   pair.varcoef = object$design$vcov$X$pair.varcoef)
 
             ## form design matrix    
-            outDesign <- .vcov.matrix.lmm(structure = object$design$vcov, data = data.var, index.cluster = outInit$index.cluster)
+            outDesign <- .vcov.matrix.lmm(structure = object$design$vcov, data = data.var, index.cluster = outInit$index.cluster, drop.X = drop.X)
             design$vcov$X$var <- outDesign$var
             design$vcov$X$cor <- outDesign$cor
             ## handle the case where structure is UN even though each cluster contain a single observation
@@ -216,7 +219,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 
 ## * .mean.matrix.lmm
 .mean.matrix.lmm <- function(formula, colnames, data,
-                             stratify, name.strata, U.strata){
+                             stratify, name.strata, U.strata, drop.X){
 
 
     ## ** design matrix
@@ -226,7 +229,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         ## *** generate design matrix for each strata
         ls.X.mean <- lapply(U.strata, function(iS){ ## iS <- U.strata[1]
             if(is.null(colnames)){
-                iX <- .model.matrix_regularize(formula, data = data[data$XXstrataXX==iS,,drop=FALSE], type = "mean")
+                iX <- .model.matrix_regularize(formula, data = data[data$XXstrataXX==iS,,drop=FALSE], type = "mean", drop.X = drop.X)
             }else{
                 iX <- stats::model.matrix(formula, data[data$XXstrataXX==iS,,drop=FALSE])
             }
@@ -259,7 +262,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         }
     }else{
         if(is.null(colnames)){
-            X.mean <- .model.matrix_regularize(formula, data = data, type = "mean")
+            X.mean <- .model.matrix_regularize(formula, data = data, type = "mean", drop.X = drop.X)
             strata.mu <- stats::setNames(rep(U.strata,NCOL(X.mean)), colnames(X.mean))
         }else{
             X.mean <-  stats::model.matrix(formula, data)[,colnames,drop=FALSE]
@@ -276,7 +279,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 
 ## * .vcov.matrix.lmm
 ## output observation specific design matrix (but no covariance pattern)
-.vcov.matrix.lmm <- function(structure, data, index.cluster){
+.vcov.matrix.lmm <- function(structure, data, index.cluster, drop.X){
 
     cluster.var <- structure$name$cluster
     time.var <- structure$name$time
@@ -337,10 +340,10 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     ## ** design matrix
     out <- list(var = NULL, cor = NULL, xfactor = list(var = NULL, cor = NULL))
     if(is.null(structure$param)){ ## structure
-        out$var <- .colnameOrder(.model.matrix_regularize(formula.var, data = dataVar, augmodel = TRUE, type = "variance"), strata.var = strata.var, n.strata = n.strata)
+        out$var <- .colnameOrder(.model.matrix_regularize(formula.var, data = dataVar, augmodel = TRUE, type = "variance", drop.X = drop.X), strata.var = strata.var, n.strata = n.strata)
         out$xfactor$var <- stats::.getXlevels(stats::terms(formula.var),stats::model.frame(formula.var,dataVar))
         if(!is.null(formula.cor) && n.time>1 && any(sapply(index.cluster,length)>1)){  ## at least one individual with more than timepoint
-            out$cor <- .colnameOrder(.model.matrix_regularize(formula.cor, data = dataCor, augmodel = TRUE, type = "correlation"), strata.var = strata.var, n.strata = n.strata)
+            out$cor <- .colnameOrder(.model.matrix_regularize(formula.cor, data = dataCor, augmodel = TRUE, type = "correlation", drop.X = drop.X), strata.var = strata.var, n.strata = n.strata)
             out$xfactor$cor <- stats::.getXlevels(stats::terms(formula.cor),stats::model.frame(formula.cor,dataCor)) 
         }
     }else{ ## newdata        
@@ -366,7 +369,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 ## * .model.matrix.lmm
 .model.matrix.lmm <- function(formula.mean, structure,
                               data, var.outcome, var.weights,
-                              stratify.mean,
+                              stratify.mean, drop.X,
                               precompute.moments){
 
     ## ** indexes
@@ -382,7 +385,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     ## use stats::model.frame to handle splines
     data.mf <- stats::model.frame(stats::update(formula.mean,~.+XXindexXX+XXtimeXX+XXclusterXX+XXstrataXX),data)
     X.mean <- .mean.matrix.lmm(formula = formula.mean, colnames = NULL, data = data.mf,
-                               stratify = stratify.mean, name.strata = structure$name$strata, U.strata = U.strata)  ## only stratify mean if gls optimizer
+                               stratify = stratify.mean, name.strata = structure$name$strata, U.strata = U.strata, drop.X = drop.X)  ## only stratify mean if gls optimizer
     strata.mu <- attr(X.mean,"strata.mu")
     attr(X.mean,"strata.mu") <- NULL
     attr(X.mean,"terms") <- attr(data.mf,"terms")
@@ -390,7 +393,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     ## ** variance
 
     ## *** design matrix
-    outDesign <- .vcov.matrix.lmm(structure = structure, data = data, index.cluster = outInit$index.cluster)
+    outDesign <- .vcov.matrix.lmm(structure = structure, data = data, index.cluster = outInit$index.cluster, drop.X = drop.X)
 
     structure$xfactor <- outDesign$xfactor
     structure$X <- list(var = outDesign$var,
@@ -514,7 +517,8 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
                 index.clusterStrata = index.clusterStrata,
                 time = list(n = max(unlist(index.clusterTime)), levels = levels(data$XXtimeXX), levels.original = NULL, nobs = table(unlist(index.clusterTime))),
                 cluster = list(n = length(index.cluster), levels = levels(data$XXclusterXX), levels.original = NULL, nobs = sapply(index.cluster,length)),
-                param = skeleton.param
+                param = skeleton.param,
+                drop.X = drop.X
                 )
     if(!is.na(var.weights[1])){
         out$weights <- data[[var.weights[1]]]
@@ -532,7 +536,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 ## * helpers
 ## ** .model.matrix_regularize
 ## remove un-identifiable columns from the design matrix 
-.model.matrix_regularize <- function(formula, data, augmodel = FALSE, type){
+.model.matrix_regularize <- function(formula, data, augmodel = FALSE, type, drop.X){
 
     ## ## ** test 0: remove variable(s) with single level in the formula
     test.1value <- sapply(all.vars(formula),function(iVar){length(unique(data[[iVar]]))})
@@ -555,10 +559,11 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             return(X)
         }
     }else{
-        if(LMMstar.options()$drop.X==FALSE){
+        if(drop.X==FALSE){
             stop("The design matrix for the ",type," structure does not have full rank according to the QR decomposition. \n", sep = "")
         }
     }
+
     ## ** prepare
     tt <- stats::delete.response(stats::terms(formula))
     tt.factors <- attr(tt,"factors")

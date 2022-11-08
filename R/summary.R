@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: nov  6 2022 (22:19) 
+## Last-Updated: nov  8 2022 (17:31) 
 ##           By: Brice Ozenne
-##     Update #: 1136
+##     Update #: 1172
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -753,7 +753,9 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
 ##' @export
 summary.partialCor <- function(object, digits = 3, detail = TRUE, ...){
 
-    cat("\t\tPartial correlation \n\n")
+    args <- attr(object,"args")
+
+    cat("\n\t\tPartial correlation \n\n")
 
     message.backtransform <- attr(object,"backtransform")
     attr(object,"backtransform") <- NULL
@@ -762,18 +764,22 @@ summary.partialCor <- function(object, digits = 3, detail = TRUE, ...){
         cat("\tParameter: ", attr(object,"parameter"),"\n\n",sep="")
         rownames(object) <- NULL
     }
-    out <- do.call("print.confint_lmm", c(list(object, detail = detail, digits = digits, row.names = FALSE), ...))
+    attr(detail,"summary") <- TRUE
+
+    .printStatTable(table = object, df = args$df, level = args$level, robust = FALSE,
+                    method.p.adjust = NULL,
+                    backtransform = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL,
+                    columns = names(object),
+                    col.df = "df", name.statistic = c("z-statistic","t-statistic"),
+                    type.information = NULL,
+                    digits = digits,
+                    digits.df = 1,
+                    digits.p.value = digits,
+                    decoration = TRUE, legend = TRUE)
 
     ## legend (transformation)
     test.backtransform <- !is.null(message.backtransform) && any(!is.na(message.backtransform$FUN))
     if(test.backtransform){
-        xplus <- cbind(rownames(object),formatC(as.matrix(object), digits = digits, format = "f"))
-        xplus.char <- apply(xplus,1, function(iRow){ ## iRow <- xplus[2,]
-            sum(nchar(iRow)+1)
-        })
-        width <- max(c(xplus.char,sum(nchar(colnames(object))+1)))
-        cat("\t",rep("-",width),"\n",sep="")
-
         message.backtransform <- message.backtransform[!is.na(message.backtransform$FUN),,drop=FALSE]
 
             if(any(message.backtransform[,setdiff(names(message.backtransform), "FUN")] == FALSE)){
@@ -787,11 +793,10 @@ summary.partialCor <- function(object, digits = 3, detail = TRUE, ...){
             short2text <- stats::setNames(c("estimates","standard errors","confidence intervals","confidence intervals"),c("estimate","se","lower","upper"))
             txt <- unique(short2text[intersect(names(short2text),intersect(names(object),names(message.backtransform)))])
         }
-        cat("\t",paste(txt,collapse = ", ")," have been back-transformed",sep="")
+        cat("  ",paste(txt,collapse = ", ")," have been back-transformed",sep="")
         if(detail>=0.5){
             cat(" (",paste(message.backtransform$FUN,collapse="/"),"). \n", sep ="")
         }
-        cat("\n")
     }
     cat("\n")
 
@@ -931,9 +936,7 @@ summary.partialCor <- function(object, digits = 3, detail = TRUE, ...){
 
     ## ** add decoration below table
     if(decoration){
-        nchar.col <- sapply(1:NCOL(table.print), function(iCol){max(nchar(c(names(table.print)[iCol],as.character(table.print[[iCol]]))), na.rm = TRUE)})
-        nchar.tot <- sum(nchar.col) + max(nchar(rownames(table))) + NCOL(table.print)
-        cat(space,paste(rep("-", nchar.tot),collapse=""),"\n")
+        cat(space,paste(rep("-", ncharTable(table.print, digits = digits)),collapse=""),"\n")
     }
     
     ## ** legend
@@ -1076,6 +1079,35 @@ summary.partialCor <- function(object, digits = 3, detail = TRUE, ...){
     ## ** export
     return(invisible(NULL))
 
+}
+
+## * print.resample
+##' @export
+summary.resample <- function(object, digits = 3, ...){
+    args <- attr(object,"args")
+    n.sample <- attr(object,"n.sample")
+
+    if(args$type %in% c("perm-var","perm-res")){
+        if(args$studentized){
+            cat("\tStudentized permutation test\n\n", sep = "")
+        }else{
+            cat("\tPermutation test\n\n", sep = "")
+        }
+    }else if(type == "boot"){
+        if(args$studentized){
+            cat("\tNon-parametric studentized bootstrap\n\n", sep = "")
+        }else{
+            cat("\tNon-parametric bootstrap\n\n", sep = "")
+        }
+    }
+
+    
+    base::print.data.frame(object, digits = digits)
+
+    cat(rep("-",ncharTable(object, digits = digits)),"\n",sep="")
+    cat(paste0("(based on ",n.sample," samples - ",round((1-n.sample/args$n.sample)*100, digits = digits),"% failed) \n"))
+    cat("\n")
+    return(invisible(NULL))
 }
 
 ######################################################################

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: nov  6 2022 (22:21) 
+## Last-Updated: nov  8 2022 (17:30) 
 ##           By: Brice Ozenne
-##     Update #: 425
+##     Update #: 430
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -135,6 +135,8 @@
 partialCor.list <- function(object, data, repetition = NULL, structure = NULL, by = NULL,
                             effects = NULL, rhs = NULL, method = "none", df = NULL, transform.rho = NULL, ...){
 
+    ## ... confidence level
+    
     ## ** normalize arguments
     data <- as.data.frame(data)
 
@@ -294,7 +296,7 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
             e.lmm <- lmm(formula.mean, df = df, repetition = formula.repetition,
                          data = dataL, structure = structure2,
                          control = list(optimizer = "FS"))
-            out <- confint(e.lmm, df = df, columns = c("estimate","se","df","lower","upper","p.value"), effects = "correlation", transform.rho = transform.rho)
+            out <- confint(e.lmm, df = df, columns = c("estimate","se","df","lower","upper","p.value"), effects = "correlation", transform.rho = transform.rho, ...)
 
             ## identify the right correlation coefficient
             code.rho <- e.lmm$design$param[e.lmm$design$param$type=="rho","code"]
@@ -325,7 +327,7 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
                             if(test.atanh){iOut <- atanh(iOut)}
                         }
                         return(iOut)                        
-                    })
+                    }, ...)
 
                     if(test.atanh){
                         out2 <- .backtransform(out2, type.param = "rho", backtransform.names = NULL, backtransform = c(FALSE,FALSE,FALSE,TRUE),
@@ -347,7 +349,7 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
 
             e.lmm <- mlmm(formula.mean, df = df, repetition = formula.repetition, data = dataL, structure = structure2, control = list(optimizer = "FS"),                          
                           by = by, effects = "correlation", contrast.rbind = effects)
-            out <- confint(e.lmm, df = df, columns = c("estimate","se","df","lower","upper","p.value"))
+            out <- confint(e.lmm, df = df, columns = c("estimate","se","df","lower","upper","p.value"), ...)
 
         }
 
@@ -393,12 +395,12 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
             ## run test linear hypothesis
             if(all(rowSums(Cmat!=0)==1) || !is.null(transform.rho)){
                 out <- confint(anova(e.lmm, effects = Cmat, transform.rho = transform.rho),
-                               method = method, columns = c("estimate","se","df","lower","upper","p.value"))
+                               method = method, columns = c("estimate","se","df","lower","upper","p.value"), ...)
             }else{
                 out0 <- confint(anova(e.lmm, effects = Cmat, transform.rho = "none"),
-                               method = "none", columns = c("estimate","se","df","p.value"))
+                               method = "none", columns = c("estimate","se","df","p.value"), ...)
                 out <- confint(anova(e.lmm, effects = Cmat, transform.rho = "atanh"),
-                                method = method, columns = c("estimate","se","df","p.value"))
+                                method = method, columns = c("estimate","se","df","p.value"), ...)
                 out$estimate <- out0$estimate
                 out$se <- out0$se
                 out$df <- out0$df
@@ -412,6 +414,9 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
     }
 
     ## ** export
+    attr(out, "call") <- match.call()
+    attr(out, "args") <- list(by = by, effects = effects, method = method, df = df, transform.rho = transform.rho, level = attr(out,"level"))
+    attr(out, "level") <- NULL
     attr(out, "lmm") <- e.lmm
     class(out) <- append("partialCor", class(out))
     return(out)
@@ -476,6 +481,8 @@ partialCor.lmm <- function(object, level = 0.95, R2 = FALSE, se = TRUE, df = TRU
     }
 
     ## ** export
+    attr(out, "call") <- match.call()
+    attr(out, "args") <- list(level = level, R2 = R2, se = se, df = df)
     class(out) <- append("partialCor", class(out))
     return(out)
 }
