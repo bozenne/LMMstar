@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: nov  6 2022 (21:23) 
+## Last-Updated: nov 11 2022 (17:40) 
 ##           By: Brice Ozenne
-##     Update #: 220
+##     Update #: 229
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -34,6 +34,7 @@
 ##' Argument passed to \code{\link{anova.lmm}}.
 ##' @param ci [logical] Should a confidence interval be output for each hypothesis?
 ##' Argument passed to \code{\link{anova.lmm}}.
+##' @param trace [interger, >0] Show the progress of the execution of the function.
 ##' @param transform.sigma,transform.k,transform.rho,transform.names [character] transformation used on certain type of parameters.
 ##' 
 ##' @details
@@ -81,7 +82,7 @@
 ## * mlmm (code)
 ##' @export
 mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = NULL, df = TRUE, ci = TRUE,
-                 transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE){
+                 transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, trace = TRUE){
 
     ## ** normalizer user input
     options <- LMMstar.options()
@@ -137,17 +138,30 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
     }
 
     ls.data <- base::split(data, data[[by]])
+
+    if(trace>0){
+        cat("Fitting linear mixed models:\n")
+    }
     ls.lmm <- lapply(ls.data, function(iData){
-        lmm(..., data = iData, df = df)
+        if(trace>0.5){
+            cat(" - ",by,"=",unique(iData[[by]]),"\n", cat = "")
+        }
+        lmm(..., data = iData, df = df, trace = trace-1)
     })
     name.lmm <- names(ls.lmm)
     n.lmm <- length(name.lmm)
     
     ## ** test linear combinations
+    if(trace>0){
+        cat("\nHypothesis test:\n")
+    }
     ls.name.allCoef <- lapply(ls.lmm, function(iLMM){names(coef(iLMM, effects = "all"))})
     ls.Cmat <- lapply(ls.name.allCoef, function(iName){matrix(0, nrow = length(iName), ncol = length(iName), dimnames = list(iName,iName))})
 
     ## *** identify contrast
+    if(trace>0.5){
+        cat("  - generate contrast matrix\n")
+    }
     if(is.null(effects)){
 
         name.contrastCoef <- lapply(ls.lmm, function(iLMM){names(coef(iLMM, effects = options$effects))})
@@ -226,6 +240,9 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
              "Can be a matrix, or a character encoding the contrast, or \"mean\", \"variance\", \"correlation\", \"all\".\n")
     }
     ## *** run
+    if(trace>0.5){
+        cat("  - univariate test\n")
+    }
     ls.anova <- stats::setNames(lapply(name.lmm, function(iName){ ## iName <- name.lmm[1]
         if(is.null(robust)){
             anova(ls.lmm[[iName]], effects = ls.Cmat[[iName]], rhs = rhs[[iName]], df = df, ci = ci,
@@ -237,6 +254,9 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
     }), name.lmm)
 
     ## ** joint inference
+    if(trace>0.5){
+        cat("  - combine tests\n")
+    }
     if(length(by.keep)==1){
         name.model <- paste0(by,"=",name.lmm)
         keep.by.level <- matrix(name.lmm, ncol = 1, dimnames = list(NULL, by))
@@ -280,6 +300,9 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
     }
 
     ## ** export
+    if(trace>0){
+        cat("\n")
+    }
     attr(out,"call") <- match.call()
     class(out) <- append("mlmm", class(out))
     return(out)

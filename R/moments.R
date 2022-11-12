@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: okt 13 2022 (16:01) 
+## Last-Updated: nov 11 2022 (16:11) 
 ##           By: Brice Ozenne
-##     Update #: 429
+##     Update #: 434
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -238,9 +238,21 @@
         if(robust && method.fit=="REML"){
             keep.cols <- intersect(names(which(rowSums(!is.na(Minfo))>0)),names(which(rowSums(!is.na(Minfo))>0)))
             Mvcov <- NA*Minfo
-            Mvcov[keep.cols,keep.cols] <- solve(Minfo[keep.cols,keep.cols,drop=FALSE])
+            if(abs(det(Minfo[keep.cols,keep.cols,drop=FALSE]))<1e-12){
+                warning("Singular or nearly singular information matrix. \n")
+                df <- FALSE
+            }else{
+                Mvcov[keep.cols,keep.cols] <- solve(Minfo[keep.cols,keep.cols,drop=FALSE])
+            }
         }else{
-            Mvcov <- solve(Minfo)
+            if(abs(det(Minfo))<1e-12){
+                warning("Singular or nearly singular information matrix. \n")
+                Mvcov <- NA*Minfo
+                df <- FALSE
+            }else{
+                Mvcov <- solve(Minfo)
+            }
+            
         }
         if(vcov){
             out$vcov <- Mvcov[attr(effects, "original.names"),attr(effects, "original.names"),drop=FALSE]

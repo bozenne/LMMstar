@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: okt 12 2022 (17:27) 
+## Last-Updated: nov 11 2022 (17:42) 
 ##           By: Brice Ozenne
-##     Update #: 278
+##     Update #: 283
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -343,6 +343,7 @@ autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 
         size.ci <- add.args$size.ci
         width.ci <- add.args$width.ci
         size.null <- add.args$size.null
+        rhs <- unique(object$univariate$null)
 
         if(ci){
             table <- confint(object, columns = c("estimate","test","lower","upper"), ...)
@@ -358,6 +359,7 @@ autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 
             }
         }
         table$test <- as.factor(table$test)
+        table$names <- factor(table$names, levels = unique(table$names)) ## ensure same ordering as in the object (instead of alphabetical ordering)
 
         if(color){
             gg <- ggplot2::ggplot(table, ggplot2::aes_string(x = "names", y = "estimate", color = "test")) + ggplot2::labs(color = "")
@@ -368,8 +370,8 @@ autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 
         if(ci){
             gg <- gg + ggplot2::geom_errorbar(ggplot2::aes_string(ymin = "lower", ymax = "upper"), size = size.ci, width = width.ci)
         }
-        if(size.null>0){
-            gg <- gg + ggplot2::geom_hline(yintercept=0, lty=2, size = size.null)
+        if(size.null>0 && length(rhs)==1){
+            gg <- gg + ggplot2::geom_hline(yintercept=rhs, lty=2, size = size.null)
         }
         gg <- gg + ggplot2::coord_flip()
 
