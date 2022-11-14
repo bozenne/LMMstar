@@ -2,13 +2,36 @@
 % Please edit documentation in R/partialCor.R
 \name{partialCor}
 \alias{partialCor}
+\alias{partialCor.list}
+\alias{partialCor.formula}
+\alias{partialCor.lmm}
 \title{Partial Correlation}
 \usage{
 partialCor(object, ...)
+
+\method{partialCor}{list}(
+  object,
+  data,
+  repetition = NULL,
+  structure = NULL,
+  by = NULL,
+  effects = NULL,
+  rhs = NULL,
+  method = "none",
+  df = NULL,
+  transform.rho = NULL,
+  ...
+)
+
+\method{partialCor}{formula}(object, repetition, ...)
+
+\method{partialCor}{lmm}(object, level = 0.95, R2 = FALSE, se = TRUE, df = TRUE, ...)
 }
 \arguments{
-\item{formula}{a formula with in the left hand side the variables for which the correlation should be computed
+\item{object}{a formula with in the left hand side the variables for which the correlation should be computed
 and on the right hand side the adjustment set. Can also be a list of formula for outcome-specific adjustment set.}
+
+\item{...}{arguments passed to \code{confint} for \code{partialCor.list} and  \code{partialCor.formula}. Not used for \code{partialCor.lmm}.}
 
 \item{data}{[data.frame] dataset containing the variables.}
 
@@ -26,13 +49,15 @@ With repetitions, one of \code{"UN"}, \code{"PEARSON"}, \code{"HLAG"}, \code{"LA
 
 \item{method}{[character] adjustment for multiple comparisons (e.g. \code{"single-step"}).}
 
+\item{df}{[logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.}
+
+\item{transform.rho}{[character] scale on which perform statistical inference (e.g. \code{"atanh"})}
+
 \item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
 
 \item{R2}{[logical] Should the R2 (coefficient of determination) be computed?}
 
-\item{df}{[logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.}
-
-\item{transform.rho}{[character] scale on which perform statistical inference (e.g. \code{"atanh"})}
+\item{se}{[logical] Should the uncertainty about the partial correlation be evaluated? Only relevant for \code{partialCor.lmm}.}
 }
 \value{
 A data.frame with the estimate partial correlation (rho), standard error, degree of freedom, confidence interval, and p-value (test of no correlation).

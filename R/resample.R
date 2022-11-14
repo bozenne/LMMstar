@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: nov  8 2022 (16:55) 
+## Last-Updated: Nov 12 2022 (16:05) 
 ##           By: Brice Ozenne
-##     Update #: 290
+##     Update #: 291
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -211,7 +211,7 @@ resample <- function(object, type, effects, n.sample = 1e3, studentized = TRUE,
     if(type == "perm-res"){
         ## re-estimate the model under the null hypothesis
         call0 <- object$call
-        call0$formula <- update(eval(call0$formula), paste0("~.-",effects))
+        call0$formula <- stats::update(eval(call0$formula), paste0("~.-",effects))
         if(!is.null(object$index.na)){
             call0$data <- object$data.original[-object$index.na,,drop=FALSE]
         }

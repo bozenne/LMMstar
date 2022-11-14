@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: nov  8 2022 (17:13) 
+## Last-Updated: Nov 12 2022 (16:15) 
 ##           By: Brice Ozenne
-##     Update #: 186
+##     Update #: 199
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -161,13 +161,16 @@ print.lmm <- function(x, ...){
 ##' @export
 print.confint_lmm <- function(x, digits = 3, detail = FALSE, ...){
 
+    ## ** display table
     print(as.data.frame(x), digits = digits, ...)
 
+    ## ** caption
     message.backtransform <- attr(x,"backtransform")
     test.backtransform <- !is.null(message.backtransform) && any(!is.na(message.backtransform$FUN))
 
+    adj.method <- c(stats::p.adjust.methods,"single-step", "Westfall", "Shaffer", "free", "single-step2")
     method.multiplicity <- attr(x,"method")
-    test.multiplicity <- !is.null(method.multiplicity) && method.multiplicity!="none"
+    test.multiplicity <- !is.null(method.multiplicity) && any(method.multiplicity %in% setdiff(adj.method,"none"))
 
     if(detail>0 && (test.multiplicity || test.backtransform)){
 
@@ -187,15 +190,15 @@ print.confint_lmm <- function(x, digits = 3, detail = FALSE, ...){
                 short2text <- stats::setNames(c("confidence intervals","confidence intervals","p-values"),c("lower","upper","p.value"))
                 txt <- unique(short2text[intersect(names(short2text),names_x)])
             }
-            if(method.multiplicity == "bonferroni"){
+            if("bonferroni" %in% method.multiplicity){
                 txt.method <- "Bonferroni"
-            }else if(method.multiplicity %in% c("single-step","single-step2")){
+            }else if("single-step" %in% method.multiplicity || "single-step2" %in% method.multiplicity){
                 txt.method <- "max-test adjustment"
             }else{
-                txt.method <- method.multiplicity
+                txt.method <- method.multiplicity[method.multiplicity %in% adj.method]
             }
             add.space <- "         "
-            cat(paste(txt,collapse = ", ")," have been adjusted for multiplicity using ",method.multiplicity,". \n",sep="")
+            cat(paste(txt,collapse = ", ")," have been adjusted for multiplicity using ",txt.method,". \n",sep="")
         }
         
         if(test.backtransform){
@@ -260,8 +263,6 @@ print.mlmm <- function(x, ...){
 ## * print.partialCor
 ##' @export
 print.partialCor <- function(x, digits = 3, ...){
-
-    x$type <- NULL
     out <- do.call("print.confint_lmm", c(list(x, detail = FALSE, digits = digits), ...))
     return(invisible(NULL))
 }

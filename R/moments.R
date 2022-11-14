@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: nov 11 2022 (16:11) 
+## Last-Updated: Nov 12 2022 (17:51) 
 ##           By: Brice Ozenne
-##     Update #: 434
+##     Update #: 442
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -235,22 +235,31 @@
     }
     if(vcov || df){
         if(trace>=1){cat("- variance-covariance \n")}
+        
         if(robust && method.fit=="REML"){
             keep.cols <- intersect(names(which(rowSums(!is.na(Minfo))>0)),names(which(rowSums(!is.na(Minfo))>0)))
             Mvcov <- NA*Minfo
-            if(abs(det(Minfo[keep.cols,keep.cols,drop=FALSE]))<1e-12){
-                warning("Singular or nearly singular information matrix. \n")
-                df <- FALSE
-            }else{
+            if(is.invertible(Minfo[keep.cols,keep.cols,drop=FALSE], cov2cor = TRUE)){
                 Mvcov[keep.cols,keep.cols] <- solve(Minfo[keep.cols,keep.cols,drop=FALSE])
+            }else{
+                warning("Singular or nearly singular information matrix. \n")
+                test <- try(solve(Minfo[keep.cols,keep.cols,drop=FALSE]), silent = TRUE)
+                if(inherits(Mvcov,"try-error")){
+                    df <- FALSE
+                }else{
+                    Mvcov[keep.cols,keep.cols] <- test
+                }
             }
         }else{
-            if(abs(det(Minfo))<1e-12){
-                warning("Singular or nearly singular information matrix. \n")
-                Mvcov <- NA*Minfo
-                df <- FALSE
-            }else{
+            if(is.invertible(Minfo, cov2cor = TRUE)){
                 Mvcov <- solve(Minfo)
+            }else{
+                warning("Singular or nearly singular information matrix. \n")
+                Mvcov <- try(solve(Minfo), silent = TRUE)
+                if(inherits(Mvcov,"try-error")){
+                    Mvcov <- NA*Minfo
+                    df <- FALSE
+                }
             }
             
         }

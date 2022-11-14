@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: nov  8 2022 (17:31) 
+## Last-Updated: Nov 14 2022 (12:04) 
 ##           By: Brice Ozenne
-##     Update #: 1172
+##     Update #: 1175
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -592,6 +592,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
 
 
 ## * summary.LRT_lmm
+##' @export
 summary.LRT_lmm <- function(object, digits = 3, digits.df = 1, digits.p.value = 3, columns = NULL, ...){
 
     ## ** normalize input
@@ -801,8 +802,20 @@ summary.partialCor <- function(object, digits = 3, detail = TRUE, ...){
     cat("\n")
 
     if(!is.null(attr(object,"R2"))){
-        cat("\t\tR2\n\n")
-        print(attr(object,"R2"))
+        cat("\t\tCoefficient of determination (R2)\n\n")
+
+        table.R2 <- attr(object,"R2")
+        .printStatTable(table = table.R2, df = args$df, level = args$level, robust = FALSE,
+                        method.p.adjust = NULL,
+                        backtransform = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL,
+                        columns = names(object),
+                        col.df = "df", name.statistic = c("z-statistic","t-statistic"),
+                        type.information = NULL,
+                        digits = digits,
+                        digits.df = 1,
+                        digits.p.value = digits,
+                        decoration = TRUE, legend = TRUE)
+
         cat("\n")
     }
 
@@ -810,6 +823,35 @@ summary.partialCor <- function(object, digits = 3, detail = TRUE, ...){
 }
 
 
+
+## * print.resample
+##' @export
+summary.resample <- function(object, digits = 3, ...){
+    args <- attr(object,"args")
+    n.sample <- attr(object,"n.sample")
+
+    if(args$type %in% c("perm-var","perm-res")){
+        if(args$studentized){
+            cat("\tStudentized permutation test\n\n", sep = "")
+        }else{
+            cat("\tPermutation test\n\n", sep = "")
+        }
+    }else if(args$type == "boot"){
+        if(args$studentized){
+            cat("\tNon-parametric studentized bootstrap\n\n", sep = "")
+        }else{
+            cat("\tNon-parametric bootstrap\n\n", sep = "")
+        }
+    }
+
+    
+    base::print.data.frame(object, digits = digits)
+
+    cat(rep("-",ncharTable(object, digits = digits)),"\n",sep="")
+    cat(paste0("(based on ",n.sample," samples - ",round((1-n.sample/args$n.sample)*100, digits = digits),"% failed) \n"))
+    cat("\n")
+    return(invisible(NULL))
+}
 
 ## * .printStatTable (documentation)
 ##' @description Display a table containing the model coefficients and their uncertainty, as well as a legendn.
@@ -1081,34 +1123,6 @@ summary.partialCor <- function(object, digits = 3, detail = TRUE, ...){
 
 }
 
-## * print.resample
-##' @export
-summary.resample <- function(object, digits = 3, ...){
-    args <- attr(object,"args")
-    n.sample <- attr(object,"n.sample")
-
-    if(args$type %in% c("perm-var","perm-res")){
-        if(args$studentized){
-            cat("\tStudentized permutation test\n\n", sep = "")
-        }else{
-            cat("\tPermutation test\n\n", sep = "")
-        }
-    }else if(type == "boot"){
-        if(args$studentized){
-            cat("\tNon-parametric studentized bootstrap\n\n", sep = "")
-        }else{
-            cat("\tNon-parametric bootstrap\n\n", sep = "")
-        }
-    }
-
-    
-    base::print.data.frame(object, digits = digits)
-
-    cat(rep("-",ncharTable(object, digits = digits)),"\n",sep="")
-    cat(paste0("(based on ",n.sample," samples - ",round((1-n.sample/args$n.sample)*100, digits = digits),"% failed) \n"))
-    cat("\n")
-    return(invisible(NULL))
-}
 
 ######################################################################
 ### summary.R ends here

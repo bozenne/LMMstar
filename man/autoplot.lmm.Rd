@@ -14,6 +14,7 @@
   ci = TRUE,
   ci.alpha = NA,
   plot = TRUE,
+  ylim = NULL,
   mean.size = c(3, 1),
   size.text = 16,
   position.errorbar = "identity",
@@ -38,6 +39,8 @@
 \item{ci.alpha}{[numeric, 0-1] When not NA, transparency parameter used to display the confidence intervals.}
 
 \item{plot}{[logical] should the plot be displayed?}
+
+\item{ylim}{[numeric vector of length 2] the lower and higher value of the vertical axis.}
 
 \item{mean.size}{[numeric vector of length 2] size of the point and line for the mean trajectory.}
 

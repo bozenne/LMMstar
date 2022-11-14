@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 20 2022 (12:12) 
 ## Version: 
-## Last-Updated: nov  3 2022 (11:37) 
+## Last-Updated: Nov 12 2022 (17:03) 
 ##           By: Brice Ozenne
-##     Update #: 63
+##     Update #: 66
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -42,7 +42,7 @@ test_that("estimate correlation via lmm", {
     test <- model.tables(e0.lmm, effects = "correlation")[,c("estimate","lower","upper")]
     GS <- unlist(cor.test(Y[,1],Y[,2])[c("estimate","conf.int")])
 
-    test2 <- partialCor(c(V1,V2)~1, data.frame(V1 = Y[,1], V2= Y[,2]))
+    test2 <- partialCor(c(V1,V2)~1, data = data.frame(V1 = Y[,1], V2= Y[,2]))
     
     ## same point estimate
     expect_equal(as.double(test[,"estimate"]),as.double(GS["estimate.cor"]), tol = 1e-5)
@@ -61,25 +61,21 @@ test_that("estimate partial correlation via lmm (independence)", {
 
     ## univariate linear model
     e.lm <- lmm(distance ~ age, data = Orthodont)
-    expect_equal(cor(Orthodont$age,Orthodont$distance), confint(e.lm, column = "partial.r")["age","partial.r"], tol = 1e-3)
+    expect_equal(cor(Orthodont$age,Orthodont$distance), partialCor(e.lm, se = FALSE)[,"estimate"], tol = 1e-3)
 
     e.lm2 <- lmm(distance ~ Sex+age, data = Orthodont)
     GS <- lava::partialcor(c(age,distance)~Sex, data = Orthodont)
-    expect_equal(GS[,"cor"], confint(e.lm2, column = "partial.r")["age","partial.r"], tol = 1e-3)
+    expect_equal(GS[,"cor"], partialCor(e.lm2, se = FALSE)["age","estimate"], tol = 1e-3)
 
     ## mixed model
     e.lmm <- lmm(distance ~ Sex*age, repetition = ~1|Subject, structure = "CS", data = Orthodont)
-    e.aovlmm <- anova(e.lmm)
+    e.R2lmm <- suppressWarnings(partialCor(e.lmm, se = FALSE, R2 = TRUE))
 
     ## e.lmer <- lme4::lmer(distance ~ Sex*age + (1|Subject), data = Orthodont)
     ## library(r2glmm); setNames(r2beta(e.lmer, method = "kr")[2:4,"Rsq"],r2beta(e.lmer, method = "kr")[2:4,"Effect"])
 
     GS <- c("age" = 0.57834264, "Sex:age" = 0.07388639, "Sex" = 0.00431524)
-    GS - e.aovlmm$multivariate[match(names(GS),e.aovlmm$multivariate),"partial.r2"] ## some difference in age effect
-    
-    expect_equal(e.aovlmm$multivariate$partial.r2, e.aovlmm$univariate$partial.r^2, tol = 1e-6)
-
-
+    GS - attr(e.R2lmm, "R2")[names(GS)] ## some difference in age effect
 })
 
 ## * ICC

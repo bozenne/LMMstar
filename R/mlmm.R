@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: nov 11 2022 (17:40) 
+## Last-Updated: Nov 12 2022 (15:23) 
 ##           By: Brice Ozenne
-##     Update #: 229
+##     Update #: 233
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -144,9 +144,9 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
     }
     ls.lmm <- lapply(ls.data, function(iData){
         if(trace>0.5){
-            cat(" - ",by,"=",unique(iData[[by]]),"\n", cat = "")
+            cat(" - ",by,"=",unique(iData[[by]]),"\n", sep = "")
         }
-        lmm(..., data = iData, df = df, trace = trace-1)
+        return(lmm(..., data = iData, df = df, trace = trace-1))
     })
     name.lmm <- names(ls.lmm)
     n.lmm <- length(name.lmm)
@@ -160,7 +160,7 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
 
     ## *** identify contrast
     if(trace>0.5){
-        cat("  - generate contrast matrix\n")
+        cat(" - generate contrast matrix\n")
     }
     if(is.null(effects)){
 
@@ -241,7 +241,7 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
     }
     ## *** run
     if(trace>0.5){
-        cat("  - univariate test\n")
+        cat(" - univariate test\n")
     }
     ls.anova <- stats::setNames(lapply(name.lmm, function(iName){ ## iName <- name.lmm[1]
         if(is.null(robust)){
@@ -255,7 +255,7 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
 
     ## ** joint inference
     if(trace>0.5){
-        cat("  - combine tests\n")
+        cat(" - combine tests\n")
     }
     if(length(by.keep)==1){
         name.model <- paste0(by,"=",name.lmm)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: nov  8 2022 (17:07) 
+## Last-Updated: Nov 14 2022 (09:41) 
 ##           By: Brice Ozenne
-##     Update #: 85
+##     Update #: 92
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -90,5 +90,21 @@ ncharTable <- function(object, digits){
     return(max(width))
    
 }
+
+## * is.invertible
+is.invertible <- function(object, cov2cor, tol = 10^(-10*sqrt(NCOL(object)))){
+    if(cov2cor){
+        if(any(diag(object)<=0)){
+            return(FALSE)
+        }else{
+            object <- stats::cov2cor(object)
+        }
+    }
+    if(any(is.na(object))){
+        return(FALSE)
+    }
+    return(abs(det(object))>tol)
+}
+
 ##----------------------------------------------------------------------
 ### utils-formula.R ends here

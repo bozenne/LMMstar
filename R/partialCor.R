@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: nov  8 2022 (18:37) 
+## Last-Updated: Nov 14 2022 (12:20) 
 ##           By: Brice Ozenne
-##     Update #: 436
+##     Update #: 461
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,11 +17,12 @@
 
 ## * partialCor (documentation)
 ##' @title Partial Correlation
+##' @name partialCor
 ##' @description Estimate the partial correlation based on equation 19 of Lloyd et al 2008 (\code{partialCor.lmm}) or explicitely modeling the correlation via a linear mixed model  (\code{partialCor.list}, \code{partialCor.formula}).
 ##' The first option is numerically more efficient and exact with a single observation per cluster.
 ##' With multiple repetitions, what is being estimated with the first option may not be clear and the second option is therefore preferrable.
 ##' 
-##' @param formula a formula with in the left hand side the variables for which the correlation should be computed
+##' @param object a formula with in the left hand side the variables for which the correlation should be computed
 ##' and on the right hand side the adjustment set. Can also be a list of formula for outcome-specific adjustment set.
 ##' @param data [data.frame] dataset containing the variables.
 ##' @param repetition [formula] Specify the structure of the data: the time/repetition variable and the grouping variable, e.g. ~ time|id.
@@ -34,8 +35,10 @@
 ##' @param method [character] adjustment for multiple comparisons (e.g. \code{"single-step"}).
 ##' @param level [numeric,0-1] the confidence level of the confidence intervals.
 ##' @param R2 [logical] Should the R2 (coefficient of determination) be computed?
+##' @param se [logical] Should the uncertainty about the partial correlation be evaluated? Only relevant for \code{partialCor.lmm}.
 ##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.
 ##' @param transform.rho [character] scale on which perform statistical inference (e.g. \code{"atanh"})
+##' @param ... arguments passed to \code{confint} for \code{partialCor.list} and  \code{partialCor.formula}. Not used for \code{partialCor.lmm}.
 ##'
 ##' @details Fit a mixed model to estimate the partial correlation with the following variance-covariance pattern:
 ##' \itemize{
@@ -131,6 +134,7 @@
   function(object, ...) UseMethod("partialCor")
 
 ## * partialCor.list (code)
+##' @rdname partialCor
 ##' @export
 partialCor.list <- function(object, data, repetition = NULL, structure = NULL, by = NULL,
                             effects = NULL, rhs = NULL, method = "none", df = NULL, transform.rho = NULL, ...){
@@ -348,7 +352,7 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
         }else{
 
             e.lmm <- mlmm(formula.mean, df = df, repetition = formula.repetition, data = dataL, structure = structure2, control = list(optimizer = "FS"),                          
-                          by = by, effects = "correlation", contrast.rbind = effects)
+                          by = by, effects = "correlation", contrast.rbind = effects, trace = FALSE)
             out <- confint(e.lmm, df = df, columns = c("estimate","se","df","lower","upper","p.value"), ...)
 
         }
@@ -408,7 +412,7 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
             }
         }else{
             e.lmm <- mlmm(formula.mean, df = df, repetition = formula.repetition, data = dataL, structure = structure,
-                          by = by, effects = "correlation", contrast.rbind = effects)
+                          by = by, effects = "correlation", contrast.rbind = effects, trace = FALSE)
             out <- confint(e.lmm, columns = c("estimate","se","df","lower","upper","p.value"))
         }
     }
@@ -423,6 +427,7 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
 }
 
 ## * partialCor.formula (code)
+##' @rdname partialCor
 ##' @export
 partialCor.formula <- function(object, repetition, ...){
 
@@ -439,6 +444,7 @@ partialCor.formula <- function(object, repetition, ...){
 }
 
 ## * partialCor.lmm (code)
+##' @rdname partialCor
 ##' @export
 partialCor.lmm <- function(object, level = 0.95, R2 = FALSE, se = TRUE, df = TRUE, ...){
 
@@ -456,40 +462,88 @@ partialCor.lmm <- function(object, level = 0.95, R2 = FALSE, se = TRUE, df = TRU
     out <- matrix(NA, nrow = n.param, ncol = 6,
                   dimnames = list(name.param, c("estimate","se","df","lower","upper","p.value")))
 
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
     ## ** partial correlation
+    value.meancoef <- coef(object, effects = "mean")
+    name.meancoef <- names(value.meancoef)
+    keep.meancoef <- setdiff(name.meancoef, "(Intercept)")
+
     if(se == FALSE){
-        out[,"estimate"] <- sign(mytable[name.param,"statistic"])*sqrt(mytable[name.param,"statistic"]^2/(mytable[name.param,"df"]+mytable[name.param,"statistic"]^2))
+        SSEstar <- stats::df.residual(object)
+        Einfo <- vcov(object, type.information = "expected", effects = "mean")
+        SSRstar.indiv <- value.meancoef[keep.meancoef]^2 / diag(Einfo)[keep.meancoef]
+        out[,"estimate"] <- sign(value.meancoef[keep.meancoef])*sqrt(abs(SSRstar.indiv) / (SSRstar.indiv + SSEstar))
     }else{
         out <- estimate(object, df = df, level = level, function(p){ ## p <- coef(object, effects = "all")
-            newSigma <- vcov(object, p = p, df = TRUE)
-            newStat <- p[name.param]/sqrt(diag(newSigma[name.param,name.param,drop=FALSE]))
-            newDf <- attr(newSigma,"df")[name.param]
-            return(sign(newStat)*sqrt(newStat^2/(newDf + newStat^2)))
+
+            iSSEstar <- stats::df.residual(object, p = p)
+            iEinfo <- vcov(object, p = p, type.information = "expected", effects = "mean")
+            iSSRstar.indiv <- p[keep.meancoef]^2 / diag(iEinfo)[keep.meancoef]
+            return(sign(p[keep.meancoef])*sqrt(abs(iSSRstar.indiv) / (iSSRstar.indiv + iSSEstar)))
+
         })
     }
 
+    ## via another formula
+    ## out[,"estimate"] <- sign(mytable[name.param,"statistic"])*sqrt(mytable[name.param,"statistic"]^2/(mytable[name.param,"df"]+mytable[name.param,"statistic"]^2))
+    ## out <- estimate(object, df = df, level = level, function(p){ ## p <- coef(object, effects = "all")
+    ##     newSigma <- vcov(object, p = p, df = TRUE)
+    ##     newStat <- p[name.param]/sqrt(diag(newSigma[name.param,name.param,drop=FALSE]))
+    ##     newDf <- attr(newSigma,"df")[name.param]
+    ##     return(sign(newStat)*sqrt(newStat^2/(newDf + newStat^2)))
+    ## })
+
     ## ** R2
     if(R2){
-        name.meanparam <- setdiff(names(coef(object, effects = "mean")),"(Intercept)")
 
-        SSEstar <- df.residual(object)
-        anova.object <- anova(object)$multivariate
-        anovaAll.object <- anova(object, effects = paste0(name.meanparam,"=0"))$multivariate
-        SSRstar <- c(anova.object$statistic*anova.object$df.num, anovaAll.object$statistic*anovaAll.object$df.num)
-        names(SSRstar) <- c(anova.object$test,"global")
+        ## linear contrasts
+        ls.C <- lapply(anova(object, effects = "mean", df = FALSE, ci = TRUE)$glht[[1]], function(iAOV){
+            iAOV$linfct[,name.meancoef,drop=FALSE]
+        })
+        ls.C[[length(ls.C)+1]] <- matrix(0, nrow = length(keep.meancoef), ncol = NCOL(ls.C[[1]]),
+                                         dimnames = list(keep.meancoef, colnames(ls.C[[1]])))
+        diag(ls.C[[length(ls.C)]][keep.meancoef,keep.meancoef]) <- 1
+        names(ls.C)[length(ls.C)] <- "global"
 
-        attr(out,"R2") <- SSRstar/(SSRstar+SSEstar)
+        out2 <- matrix(NA, nrow = length(ls.C), ncol = 6,
+                       dimnames = list(names(ls.C), c("estimate","se","df","lower","upper","p.value")))
+
+        if(se == FALSE){
+
+            SSEstar <- stats::df.residual(object)
+            Einfo <- vcov(object, type.information = "expected", effects = "mean")
+            SSRstar.indiv <- sapply(ls.C, function(iC){t(iC %*% cbind(value.meancoef)) %*% solve(iC %*% Einfo %*% t(iC)) %*% (iC %*% cbind(value.meancoef))})
+            out2[,"estimate"] <- SSRstar.indiv / (SSRstar.indiv + SSEstar)
+
+        }else{
+            out2 <- estimate(object, df = df, level = level, function(p){ ## p <- coef(object, effects = "all")
+
+                iSSEstar <- stats::df.residual(object, p = p)
+                iEinfo <- vcov(object, p = p, type.information = "expected", effects = "mean")
+                iSSRstar.indiv <- sapply(ls.C, function(iC){t(iC %*% cbind(p[name.meancoef])) %*% solve(iC %*% iEinfo %*% t(iC)) %*% (iC %*% cbind(p[name.meancoef]))})
+                return(iSSRstar.indiv / (iSSRstar.indiv + iSSEstar))
+
+            })
+        }
+
+    }else{
+        out2 <- NULL
     }
-
+    
     ## ** warning
-    if(object$design$vcov$type!="ID"){
-        warning("Formula for the partial correlation",if(R2){" and R2"}," are only valid when having independent and homoschedastic observations. \n",
+    if(object$design$vcov$type %in% c("ID","CS") == FALSE){
+        warning("Formula for the partial correlation",if(R2){" and R2"}," may not lead to meaningful estimates with heteroschedastic residuals. \n",
                 "Use the estimated values at your own risk. \n", sep = "")
     }
     
     ## ** export
     attr(out, "call") <- match.call()
     attr(out, "args") <- list(level = level, R2 = R2, se = se, df = df)
+    attr(out, "R2") <- out2
     class(out) <- append("partialCor", class(out))
     return(out)
 }

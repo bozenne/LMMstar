@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: nov  6 2022 (21:32) 
+## Last-Updated: Nov 12 2022 (16:04) 
 ##           By: Brice Ozenne
-##     Update #: 545
+##     Update #: 557
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -304,11 +304,33 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
     }
     alpha <- 1-level
     method.fit <- object$object$method.fit
-    
+    pool.method <- c("average","pool.fixse","pool.se","pool.gls","pool.rubin")
+    adj.method <- c(stats::p.adjust.methods,"single-step", "Westfall", "Shaffer", "free", "single-step2")
+
     if(!is.null(method)){
-        name.method <- names(method)
-        method <- match.arg(method, c(stats::p.adjust.methods,"single-step", "Westfall", "Shaffer", "free", "single-step2",
-                                      "average","pool.fixse","pool.se","pool.gls","pool.rubin"))        
+        if(length(method)>1){
+            method <- match.arg(method, c(pool.method,adj.method), several.ok = TRUE)
+            if(sum(method %in% adj.method)>1){
+                stop("Incorrect argument \'method\' \n",
+                     "confint.Wald_lmm cannot handle several methods to adjust for multiple comparisons.")
+            }
+            ls.confint <- lapply(method, function(iMethod){
+                iOut <- confint.Wald_lmm(object = object, method = iMethod, level = level, columns = columns, ...)
+                if(iMethod %in% pool.method){
+                    rownames(iOut) <- iMethod
+                }
+                return(iOut)
+            })
+            out <- do.call(rbind, ls.confint)
+            attr(out,"level") <- level
+            attr(out,"method") <- method
+            attr(out,"contrast") <- stats::setNames(lapply(ls.confint,attr,"contrast"), method)
+            attr(out,"error") <- stats::setNames(lapply(ls.confint,attr,"error"), method)
+            return(out)
+        }else{
+            name.method <- names(method)
+            method <- match.arg(method, c(pool.method,adj.method))
+        }
     }else{
         name.method <- NULL
     }

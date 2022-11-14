@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (10:34) 
 ## Version: 
-## Last-Updated: nov  6 2022 (22:22) 
+## Last-Updated: Nov 14 2022 (10:15) 
 ##           By: Brice Ozenne
-##     Update #: 198
+##     Update #: 202
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,18 +15,18 @@
 ## 
 ### Code:
 
-## * df.residuals
+## * df.residual
 ##' @title Residuals Degrees of Freedom
 ##' @description Residuals degrees of freedom. Computed as the sum of squared normalized residuals
 ##' @param object a \code{lmm} object.
-##' @param ... Not used. For compatibility with the generic method.
+##' @param ... Passed to \code{residuals.lmm}.
 ##'
 ##' @return A numeric value
 ##' @export
 df.residual.lmm <- function(object, ...){
 
-    epsilonN <- stats::residuals(object, type = "normalized")
-    as.double(crossprod(na.omit(epsilonN)))
+    epsilonN <- stats::residuals(object, type = "normalized", ...)
+    as.double(crossprod(stats::na.omit(epsilonN)))
     
 }
 

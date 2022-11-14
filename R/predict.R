@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: okt 31 2022 (17:37) 
+## Last-Updated: Nov 12 2022 (17:31) 
 ##           By: Brice Ozenne
-##     Update #: 715
+##     Update #: 722
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -105,6 +105,13 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
     }else{
         keep.intercept <- TRUE
     }
+
+    ## dataset
+    if(identical(newdata,"unique") && type.prediction %in% c("static","terms")){
+        newdata <- unique(object$data[, attr(object$design$mean,"variable"),drop=FALSE])
+        rownames(newdata) <- NULL
+    }
+    
     ## standard error
     if(!missing(se.fit)){se <- "estimation"}
     if(identical(se,FALSE)){
@@ -130,16 +137,12 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
 
     ## impute cluster when missing (if static) and unambiguous, i.e. no repeated times (id dynamic)
     if(!is.na(name.cluster)){
-        if(is.null(newdata[[name.cluster]])){
-            if(type.prediction=="static"){
-                newdata[[name.cluster]] <- as.character(1:NROW(newdata))
-            }else if(type.prediction == "dynamic" && all(!is.na(name.time)) && all(name.time %in% names(newdata))){
-                if(any(duplicated(newdata[,name.time, drop=FALSE]))){
-                    stop("Duplicated time values found in column ",name.time,".\n",
-                         "Consider specifying the cluster variable in argument \'newdata\'. \n")
-                }else{
-                    newdata[[name.cluster]] <- "1"
-                }
+        if(is.null(newdata[[name.cluster]]) && type.prediction == "dynamic" && all(!is.na(name.time)) && all(name.time %in% names(newdata))){
+            if(any(duplicated(newdata[,name.time, drop=FALSE]))){
+                stop("Duplicated time values found in column ",name.time,".\n",
+                     "Consider specifying the cluster variable in argument \'newdata\'. \n")
+            }else{
+                newdata[[name.cluster]] <- "1"
             }
         }else if((is.factor(newdata[[name.cluster]]) || is.numeric(newdata[[name.cluster]]))){
             newdata[[name.cluster]] <- as.character(newdata[[name.cluster]])
@@ -360,7 +363,7 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
                 out$se <- sqrt(prediction.var)
                 out$df <- ifelse(!is.na(prediction),Inf,NA)
             }
-        }else{
+p        }else{
             out <- data.frame(estimate = stats::na.omit(prediction),stringsAsFactors = FALSE)
             if(!is.null(se)){
                 if(NROW(out)>0){

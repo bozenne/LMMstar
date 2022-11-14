@@ -9,6 +9,8 @@ resample(
   type,
   effects,
   n.sample = 1000,
+  studentized = TRUE,
+  level = 0.95,
   trace = TRUE,
   seed = NULL,
   cpus = 1
@@ -17,11 +19,15 @@ resample(
 \arguments{
 \item{object}{a \code{lmm} object.}
 
-\item{type}{[character] should permutation test (\code{"perm"}) or non-parametric bootstrap (\code{"boot"}) be used?}
+\item{type}{[character] should permutation test (\code{"perm-var"} or \code{"perm-res"}) or non-parametric bootstrap (\code{"boot"}) be used?}
 
 \item{effects}{[character vector] the variable(s) to be permuted or the effect(s) to be tested via non-parametric bootstrap.}
 
 \item{n.sample}{[integer] the number of samples used.}
+
+\item{studentized}{[logical] should a studentized boostrap or permutation test be used?}
+
+\item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
 
 \item{trace}{[logical] should the execution of the resampling be traced?}
 
@@ -33,10 +39,16 @@ resample(
 Non-parametric bootstrap or permutation test for Linear Mixed Models.
 }
 \details{
-Both approach are carried at the cluster level: \itemize{
+All approach are carried at the cluster level: \itemize{
 \item Bootstrap: sampling with replacement clusters. If a cluster is picked twice then different cluster id is used for each pick.
-\item Permutation: permuting covariate values between clusters. This only lead to the null hypothesis when the covariate values are constant within clusters.
+\item Permutation: permuting covariate values between clusters (this only lead to the null hypothesis when the covariate values are constant within clusters)
+or assigning new outcome values by, under the null, permuting the normalized residuals, rescaling to residuals, and adding back the permuted fixed effect (any mean effect under H1 would be 0 because of the permutation if the variance-covariance structure is correct). The later procedure originates from Oliver et al (2012).
 }
+
+The studentized bootstrap keep the original estimate and standard error but uses the samples to evaluates the quantiles of the distribution used to form the confidence intervals.
+The studentized permutation test approximate the distribution of the test statistic under the null (instead of the distribution of the estimate under the null.).
+
+P-values for the bootstrap are computed by centering the bootstrap distribution of the estimate or test statistic around 0 and evaluating the frequency at which it takes values more extreme than the observed estimate or test statistics.
 }
 \examples{
 \dontrun{
@@ -57,22 +69,27 @@ resample(e.lm, type = "boot", effects = c("weight1","glucagonAUC1"))
 resample(e.lm, type = "perm", effects = "weight1") 
 resample(e.lm, type = "perm", effects = "glucagonAUC1")
 ## using multiple cores
-resample(e.lm, type = "boot", effects = c("weight1","glucagonAUC1"), cpus = 4, n.sample = 10)
+resample(e.lm, type = "boot", effects = c("weight1","glucagonAUC1"), cpus = 4)
 
 #### random intercept model ####
-data(gastricbypassL)
+data(gastricbypassL, package = "LMMstar")
 gastricbypassL$weight <- scale(gastricbypassL$weight)
 gastricbypassL$glucagonAUC <- scale(gastricbypassL$glucagonAUC)
 gastricbypassL$gender <- as.numeric(gastricbypassL$id) \%\% 2
+gastricbypassLR <- na.omit(gastricbypassL)
 
-eCS.lmm <- lmm(weight~glucagonAUC+gender, data = gastricbypassL,
+eCS.lmm <- lmm(weight~glucagonAUC+gender, data = gastricbypassLR,
                repetition = ~visit|id, structure = "CS")
 model.tables(eCS.lmm)
 
 ## non-parametric bootstrap
 resample(eCS.lmm, type = "boot", effects = c("glucagonAUC","gender"))
 ## permutation test
-resample(eCS.lmm, type = "perm", effects = "gender") 
+resample(eCS.lmm, type = "perm-var", effects = "gender")
+resample(eCS.lmm, type = "perm-res", effects = "glucagonAUC") 
 }
 
+}
+\references{
+Oliver E. Lee and Thomas M. Braun (2012), Permutation Tests for Random Effects in Linear Mixed Models. Biometrics, Journal 68(2).
 }

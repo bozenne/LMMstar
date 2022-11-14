@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: nov 11 2022 (17:42) 
+## Last-Updated: Nov 12 2022 (18:25) 
 ##           By: Brice Ozenne
-##     Update #: 283
+##     Update #: 291
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -30,6 +30,7 @@
 ##' @param mean.size [numeric vector of length 2] size of the point and line for the mean trajectory.
 ##' @param size.text [numeric, >0] size of the font used to display text.
 ##' @param position.errorbar [character] relative position of the errorbars.
+##' @param ylim [numeric vector of length 2] the lower and higher value of the vertical axis.
 ##' @param ... arguments passed to the predict method.
 ##'
 ##' @return A list with two elements \itemize{
@@ -40,8 +41,9 @@
 
 ## * autoplot.lmm (code)
 ##' @export
-autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, time.var = NULL, color = TRUE, ci = TRUE, ci.alpha = NA, plot = TRUE,
-                         mean.size = c(3, 1), size.text = 16, position.errorbar = "identity", ...){
+autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5),
+                         at = NULL, time.var = NULL, color = TRUE, ci = TRUE, ci.alpha = NA, plot = TRUE,
+                         ylim = NULL, mean.size = c(3, 1), size.text = 16, position.errorbar = "identity", ...){
 
     if(object$time$n==1){
         stop("Cannot display the fitted values over time when there only is a single timepoint. \n")
@@ -105,7 +107,9 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
     }
 
     ## design matrix: find unique combinations of covariates
-    X.beta <- stats::model.matrix(object, data = data[,union(time.var, mu.var), drop=FALSE], effects = "mean")
+    timemu.var <- stats::na.omit(union(time.var, mu.var))
+    X.beta <- stats::model.matrix(object, effects = "mean",
+                                  data = data[,timemu.var, drop=FALSE])
     IX.beta <- interaction(as.data.frame(X.beta), drop = TRUE)
     vec.X.beta <- tapply(IX.beta, data[["XXclusterXX"]],paste, collapse = "_XXX_")
     UX.beta <- unique(vec.X.beta)
@@ -179,9 +183,9 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
 
     ## ** compute fitted curve
     if(!is.na(obs.alpha) && obs.alpha>0){
-        preddata <- cbind(data, stats::predict(object, newdata = data[,union(time.var, mu.var), drop=FALSE], ...))
+        preddata <- cbind(data, stats::predict(object, newdata = data[,timemu.var, drop=FALSE], ...))
     }else{
-        preddata <- cbind(newdata, stats::predict(object, newdata = newdata[,union(time.var, mu.var), drop=FALSE], ...))
+        preddata <- cbind(newdata, stats::predict(object, newdata = newdata[,timemu.var, drop=FALSE], ...))
     }
 
     ## ** generate plot
@@ -218,7 +222,9 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5), at = NULL, 
     if(!is.null(time.var.plot) && any(!is.na(time.var.plot))){
         gg  <- gg + ggplot2::xlab(paste(stats::na.omit(xlabel.plot), collapse = ", "))
     }
-
+    if(!is.null(ylim)){
+        gg <- gg + ggplot2::coord_cartesian(ylim = ylim)
+    }
 
     ## ** display
     if(plot){

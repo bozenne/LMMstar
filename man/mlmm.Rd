@@ -16,7 +16,8 @@ mlmm(
   transform.sigma = NULL,
   transform.k = NULL,
   transform.rho = NULL,
-  transform.names = TRUE
+  transform.names = TRUE,
+  trace = TRUE
 )
 }
 \arguments{
@@ -44,6 +45,8 @@ Argument passed to \code{\link{anova.lmm}}.}
 Argument passed to \code{\link{anova.lmm}}.}
 
 \item{transform.sigma, transform.k, transform.rho, transform.names}{[character] transformation used on certain type of parameters.}
+
+\item{trace}{[interger, >0] Show the progress of the execution of the function.}
 }
 \description{
 Fit several linear mixed models, extract relevant coefficients, and combine them into a single table.
