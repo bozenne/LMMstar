@@ -1,4 +1,4 @@
-% Created 2022-11-14 Mon 12:28
+% Created 2022-11-14 ma 16:59
 % Intended LaTeX compiler: pdflatex
 \documentclass[12pt]{article}
 
@@ -218,7 +218,7 @@ linkcolor=[rgb]{0,0,0.5},
  pdftitle={Overview of the package LMMstar},
  pdfkeywords={},
  pdfsubject={},
- pdfcreator={Emacs 26.3 (Org mode 9.4.6)},
+ pdfcreator={Emacs 27.2 (Org mode 9.5.2)},
  pdflang={English}
  }
 \begin{document}
@@ -289,14 +289,14 @@ utils::packageVersion("LMMstar")
 \end{lstlisting}
 
 \begin{verbatim}
-[1] ‘0.8.9’
+[1] '0.8.9'
 \end{verbatim}
 
 
 \clearpage
 
 \section{Illustrative dataset}
-\label{sec:org328009f}
+\label{sec:orgecfc9ad}
 To illustrate the functionalities of the package, we will use the
 gastricbypass dataset. The long format can be imported using:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -366,7 +366,7 @@ gastricbypassW$group <- as.numeric(gastricbypassW$id)%%2
 \clearpage
 
 \section{Descriptive statistics}
-\label{sec:org5a07f91}
+\label{sec:org24b7e1f}
 Mean, standard deviation, and other summary statistic can be computed
 with respect to a categorical variable (typically time) using the
 \texttt{summarize} function:
@@ -471,9 +471,9 @@ group=1:rho(weight,glucagonAUC) - group=0:rho(weight,glucagonAUC)   0.789
 \clearpage
 
 \section{Linear mixed model}
-\label{sec:org8316d10}
+\label{sec:org1fd51f3}
 \subsection{Classical covariance patterns}
-\label{sec:org7509ee0}
+\label{sec:org73a0d94}
 
 Several build-in covariance patterns can be used when specifying the
 linear model. The most basic ones are the \textbf{identity} structure:
@@ -520,7 +520,7 @@ cat(" covariance structure: \n");sigma(eInd.lmm)
                        4 variance (sigma k.B1w k.A1w k.A3m) 
  log-restr.likelihood: -321.457830361849 
  convergence         : TRUE (8 iterations)
-n covariance structure: 
+ covariance structure: 
          B3m      B1w      A1w      A3m
 B3m 442.6475   0.0000   0.0000   0.0000
 B1w   0.0000 418.9934   0.0000   0.0000
@@ -574,7 +574,7 @@ cat(" correlation structure: \n");cov2cor(sigma(eTOE.lmm))
  parameter           : 8 mean ((Intercept) timeB1w timeA1w timeA3m group timeB1w:group timeA1w:group timeA3m:group) 
                        4 variance (sigma k.B1w k.A1w k.A3m) 
                        3 correlation (rho(B3m,B1w) rho(B3m,A1w) rho(B3m,A3m)) 
- log-restr.likelihood: -224.790790046712 
+ log-restr.likelihood: -224.790790046711 
  convergence         : TRUE (19 iterations)
  correlation structure: 
           B3m       B1w       A1w       A3m
@@ -662,7 +662,7 @@ data                : 78 observations and distributed in 20 clusters
 parameter           : 9 mean ((Intercept) timeB1w timeA1w timeA3m group glucagon timeB1w:group timeA1w:group timeA3m:group) 
                       8 variance (sigma:0 sigma:1 k.B1w:0 k.A1w:0 k.A3m:0 k.B1w:1 k.A1w:1 k.A3m:1) 
                       12 correlation (rho(B3m,B1w):0 rho(B3m,A1w):0 rho(B3m,A3m):0 rho(B1w,A1w):0 rho(B1w,A3m):0 rho(A1w,A3m):0 rho(B3m,B1w):1 rho(B3m,A1w):1 rho(B3m,A3m):1 rho(B1w,A1w):1 rho(B1w,A3m):1 rho(A1w,A3m):1) 
-log-restr.likelihood: -197.171312062212 
+log-restr.likelihood: -197.171312062213 
 convergence         : TRUE (50 iterations)
 \end{verbatim}
 
@@ -783,7 +783,7 @@ A3m 336.3836 336.3836 306.4892 315.7904
 \clearpage
 
 \subsection{User-specific covariance patterns}
-\label{sec:orgc4998f7}
+\label{sec:org4ed099d}
 
 It is possible input user-specific covariance patterns under the
 following model for the residuals: \[\Omega =
@@ -944,7 +944,7 @@ logLik(lmm(value~time,
 \clearpage
 
 \subsection{Model output}
-\label{sec:org690a084}
+\label{sec:org77e9a77}
 
 The \texttt{summary} method can be used to display the main information
 relative to the model fit:
@@ -1019,7 +1019,7 @@ arguments \texttt{df} to \texttt{FALSE} and \texttt{type.information} to \texttt
 calling \texttt{lmm} should lead to a more reasonnable computation time.
 
 \subsection{Extract estimated coefficients}
-\label{sec:org4289063}
+\label{sec:org8c12220}
 The value of the estimated coefficients can be output using \texttt{coef}:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -1074,7 +1074,7 @@ dummy.coef(eUN.lmm)
 \end{verbatim}
 
 \subsection{Extract estimated coefficient and associated uncertainty}
-\label{sec:orgd48964e}
+\label{sec:org6dd8eae}
 
 The uncertainty about the mean coefficients can be obtained using the
 \texttt{model.tables} method \footnote{it is equivalent to \texttt{confint} method
@@ -1156,7 +1156,7 @@ glucagon     -0.8883081 0.2416081  -3.676648 13.70759  -1.407545  -0.3690712 2.5
 \end{verbatim}
 
 \subsection{Extract estimated residual variance-covariance structure}
-\label{sec:org7ed5cb4}
+\label{sec:org77d8ccd}
 
 The method \texttt{sigma} can be used to output the modeled residual
 covariance structure:
@@ -1221,7 +1221,7 @@ A3m 318.8573 304.6314 285.8077 280.9323
 \end{verbatim}
 
 \subsection{Random effects}
-\label{sec:orgdff0460}
+\label{sec:orgd41af56}
 
 Mixed model having a compound symmetry structure with positive
 correlation parameters are equivalent to random intercept models,
@@ -1291,7 +1291,7 @@ head(coef(eBCS.lmm, effects = "ranef"))
 \clearpage
 
 \subsection{Sum of squares}
-\label{sec:orgc57db21}
+\label{sec:org227d584}
 
 \Warning The definition of the sum of squares is not straightforward with mixed
 models. Intuitively summing residuals across several outcomes will be
@@ -1392,7 +1392,7 @@ c(time = SSR.time, glucagon = SSR.glucagon)
 \end{verbatim}
 
 \subsection{Proportion of explained variance and partial correlation}
-\label{sec:org492ad78}
+\label{sec:org0485225}
 
 \Warning The definition of explained variance is not straightforward
 with mixed models. Intuitively considering the variance across several
@@ -1501,7 +1501,7 @@ setNames(aCS2.aov$statistic/(aCS2.aov$statistic+aCS2.aov$df.denom), aCS2.aov$tes
 \clearpage
 
 \subsection{Model diagnostic}
-\label{sec:orgbe015fe}
+\label{sec:org00425b6}
 
 The method \texttt{plot} can be used to display diagnostic plots about:
 \begin{itemize}
@@ -1569,13 +1569,13 @@ head(eUN.diagW)
 \end{lstlisting}
 
 \begin{verbatim}
-  cluster      r.B3m      r.B1w       r.A1w      r.A3m
-1       1 -0.2897365 -0.2027622 -1.16864038  0.3258573
-2       2  0.8603117 -1.6492164  0.62578801  1.7370660
-3       3  0.7273066 -0.4155171 -0.68266741 -0.8510316
-4       4 -1.6403082 -0.5128368  0.06806206  1.1725813
-5       5  0.4755409         NA -0.18736415 -0.8634200
-6       6  1.7801675  1.2847703  2.63004812  0.3505542
+  cluster      r.B3m      r.B1w      r.A1w       r.A3m
+1       1 -0.1082872  0.4283943  0.7477306  0.91794015
+2       2  1.8182348 -0.3516996  1.5698307 -0.98743171
+3       3 -0.9318737 -0.7728221  0.6315751  0.16549699
+4       4  0.8408969  1.8695564  0.3485784 -0.09662565
+5       5 -0.7882340         NA -0.6128276  0.09933842
+6       6  1.4896141 -1.9727358 -1.9672939 -1.37068983
 \end{verbatim}
 
 
@@ -1587,7 +1587,7 @@ head(eUN.diagL)
 \end{lstlisting}
 
 \begin{verbatim}
-[1] -0.2897365  0.8603117  0.7273066 -1.6403082  0.4755409  1.7801675
+[1] -0.1082872  1.8182348 -0.9318737  0.8408969 -0.7882340  1.4896141
 \end{verbatim}
 
 
@@ -1595,7 +1595,7 @@ Various type of residuals can be extract but the normalized one are
 recommanded when doing model checking.
 
 \subsection{Model fit}
-\label{sec:org66aa938}
+\label{sec:org8c3c7d3}
 
 The fitted values can be displayed via the \texttt{plot} method or using the \texttt{emmeans} package:
 
@@ -1651,7 +1651,7 @@ gg
 \clearpage
 
 \subsection{Partial residuals}
-\label{sec:org3a72fb1}
+\label{sec:orgf47edd0}
 
 Partial residuals can also be displayed via the \texttt{plot} method:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -1701,6 +1701,7 @@ Note: to match the partial residuals obtained from \texttt{lm}:
 eIID.lm <- lm(glucagon ~ time + weight, data = gastricbypassL)
 pRes.lm <- residuals(eIID.lm, type = "partial")[,"weight"]
 \end{lstlisting}
+
 one should use \texttt{type} equal to \texttt{"partial-center"} which also removes
 the average effect of the covariate:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -1718,7 +1719,7 @@ range(pRes.lm-na.omit(pRes.lmm))
 \clearpage
 
 \subsection{Statistical inference (linear)}
-\label{sec:orge342e94}
+\label{sec:orgef077dc}
 
 The \texttt{anova} method can be use to test one or several linear
 combinations of the model coefficients using Wald tests. By default,
@@ -1764,18 +1765,18 @@ summary(e.anova)
 \begin{verbatim}
 	      Multivariate Wald test 
 
-        F-statistic       df    p.value    
- all: 1      98.651 (2,18.6) 1.2338e-10 ***
- ------------------------------------------ 
+        F-statistic       df  p.value    
+ all: 1      98.651 (2,18.6) 1.23e-10 ***
+ ---------------------------------------- 
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
 Degrees of freedom were computed using a Satterthwaite approximation (column df). 
 
 	      Univariate Wald test 
 
                    estimate    se   df   lower   upper p.value    
- timeA1w - timeB1w   -3.906 0.595 17.9  -5.323  -2.489 < 1e-05 ***
- timeA3m - timeB1w   -18.24 1.323   19 -21.392 -15.088 < 1e-05 ***
- ----------------------------------------------------------------- 
+ timeA1w - timeB1w   -3.906 0.595 17.9  -5.324  -2.487   2e-05 ***
+ timeA3m - timeB1w   -18.24 1.323   19 -21.396 -15.085  <1e-05 ***
+ --------------------------------------------------------------- 
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
 Columns lower/upper/p.value adjusted for multiple comparisons -- max-test.
 (1e+05 samples have been used)
@@ -1807,12 +1808,12 @@ Singular contrast matrix: contrasts "A1w - B1w" "A3m - B1w" "A3m - A1w" have bee
 		Univariate Wald test 
 
              estimate    se   df   lower   upper p.value    
-   B1w - B3m   -7.882 0.713 19.2  -9.825   -5.94  <1e-05 ***
-   A1w - B3m  -11.788 1.018 21.6 -14.559  -9.017  <1e-05 ***
-   A3m - B3m  -26.122 1.656 18.8 -30.633 -21.611  <1e-05 ***
-   A1w - B1w   -3.906 0.595 17.9  -5.525  -2.286  <1e-05 ***
-   A3m - B1w   -18.24 1.323   19 -21.843 -14.638  <1e-05 ***
-   A3m - A1w  -14.334 1.057 20.3 -17.212 -11.457  <1e-05 ***
+   B1w - B3m   -7.882 0.713 19.2  -9.815   -5.95  <1e-05 ***
+   A1w - B3m  -11.788 1.018 21.6 -14.545  -9.031  <1e-05 ***
+   A3m - B3m  -26.122 1.656 18.8 -30.611 -21.634  <1e-05 ***
+   A1w - B1w   -3.906 0.595 17.9  -5.517  -2.294  <1e-05 ***
+   A3m - B1w   -18.24 1.323   19 -21.825 -14.655  <1e-05 ***
+   A3m - A1w  -14.334 1.057 20.3 -17.198 -11.471  <1e-05 ***
    --------------------------------------------------------- 
   Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
   Columns lower/upper/p.value adjusted for multiple comparisons -- max-test.
@@ -1902,9 +1903,9 @@ Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
 	      Univariate Wald test 
 
                estimate    se   df   lower  upper p.value  
- Ind: glucagon    -8.27 2.574 34.2 -14.869 -1.671  0.0122 *
- CS: glucagon     0.822  0.59 53.8  -0.691  2.335  0.4325  
- UN: glucagon    -0.888 0.353 13.7  -1.793  0.017  0.0557 .
+ Ind: glucagon    -8.27 2.574 34.2 -14.879 -1.661  0.0117 *
+ CS: glucagon     0.822  0.59 53.8  -0.694  2.337  0.4308  
+ UN: glucagon    -0.888 0.353 13.7  -1.795  0.018  0.0561 .
  ---------------------------------------------------------- 
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
 Columns lower/upper/p.value adjusted for multiple comparisons -- max-test.
@@ -1915,7 +1916,7 @@ Robust standard errors are derived from the observed information (column se).
 \clearpage
 
 \subsection{Statistical inference (non-linear)}
-\label{sec:org69566a8}
+\label{sec:org8ad2248}
 
 The \texttt{estimate} function can be used to test one or several non-linear
 combinations of model coefficients, using a first order delta method
@@ -1951,7 +1952,7 @@ e.lmmANCOVA <- lmm(weight ~ time+time:group, repetition = ~time|id,
 		   data = gastricbypassL23)
 \end{lstlisting}
 
-and then perform a delta-method:
+and then perform a first order delta-method:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
 lava::estimate(e.lmmANCOVA, f = function(p){
@@ -1984,7 +1985,7 @@ variable.
 \clearpage
 
 \subsection{Baseline adjustment}
-\label{sec:org866f5f9}
+\label{sec:org19354f9}
 
 In clinical trial the group and intervention variable often do not
 coincide, e.g., in presence of baseline measurement. In our running
@@ -2176,7 +2177,7 @@ autoplot(eC3.lmm, color = "group", ci = FALSE, size.text = 20, obs.alpha = 0.1)
 \end{center}
 
 \subsection{Marginal means}
-\label{sec:orga117d60}
+\label{sec:orgd959896}
 
 The \texttt{emmeans} package can be used to output marginal means. Consider
 the following model:
@@ -2321,10 +2322,10 @@ summary(epairs.group, by = NULL, adjust = "mvt", infer = TRUE)
 
 \begin{verbatim}
  contrast     time estimate    SE   df lower.CL upper.CL t.ratio p.value
- TRUE - FALSE B3m    -0.320 0.313 18.0   -1.156    0.516  -1.022  0.6927
- TRUE - FALSE B1w    -0.344 0.262 18.0   -1.046    0.357  -1.311  0.5058
- TRUE - FALSE A1w    -0.449 0.525 18.4   -1.852    0.954  -0.855  0.7961
- TRUE - FALSE A3m     0.312 0.374 18.0   -0.688    1.311   0.834  0.8084
+ TRUE - FALSE B3m    -0.320 0.313 18.0   -1.156    0.517  -1.022  0.6926
+ TRUE - FALSE B1w    -0.344 0.262 18.0   -1.046    0.358  -1.311  0.5065
+ TRUE - FALSE A1w    -0.449 0.525 18.4   -1.852    0.955  -0.855  0.7960
+ TRUE - FALSE A3m     0.312 0.374 18.0   -0.688    1.312   0.834  0.8085
 
 Confidence level used: 0.95 
 Conf-level adjustment: mvt method for 4 estimates 
@@ -2356,7 +2357,7 @@ P value adjustment: sidak method for 4 tests
 \clearpage
 
 \subsection{Predictions}
-\label{sec:org4f5eaa3}
+\label{sec:orgbd8edcd}
 
 Two types of predictions can be performed with the \texttt{predict} method:
 \begin{itemize}
@@ -2466,10 +2467,10 @@ as.double(mu2 + Omega_21 * (100 - mu1) / Omega_11)
 \clearpage
 
 \section{Missing values and imputation}
-\label{sec:orgdebd495}
+\label{sec:org608a82b}
 
 \subsection{Full information approach}
-\label{sec:org83ba683}
+\label{sec:org43ede40}
 
 We now consider the glucagon level as an outcome. The \texttt{summarize}
 function can be used to describe the amount of missing data at each
@@ -2540,7 +2541,7 @@ outcome was missing. So for some clusters only 3 values were analyzed
 instead of 4.
 
 \subsection{Imputation}
-\label{sec:org262a94a}
+\label{sec:orgae7dcdc}
 
 It is possible to extract the most likely value for these missing
 observation using the \texttt{fitted} function with argument \texttt{impute=TRUE}:
@@ -2607,14 +2608,14 @@ fitted(eUN.lmmNA, impute = TRUE, se = "total")
 \end{verbatim}
 
 \subsection{Multiple imputation}
-\label{sec:org55403b4}
+\label{sec:orgb802fc8}
 
 The \texttt{mlmm} function can used to perform stratify analyses, typically
 useful when performing multiple imputations. Consider the wide format
 of the dataset where a few values are missing:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-data(gastricbypassW)
+data(gastricbypassW, package = "LMMstar")
 colSums(is.na(gastricbypassW))
 \end{lstlisting}
 
@@ -2630,14 +2631,15 @@ We use \texttt{mice} to generate a number of imputed datasets (here 5):
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
 library(mice)
-gastricbypassW.mice <- mice(gastricbypassW, printFlag = FALSE)
+set.seed(10)
+gastricbypassW.mice <- mice(gastricbypassW, m = 5, printFlag = FALSE)
 gastricbypassW.NNA <- complete(gastricbypassW.mice, action = "long")
 table(gastricbypassW.NNA$.imp)
 \end{lstlisting}
 
 \begin{verbatim}
 Advarselsbesked:
-Number of logged events: 109
+Number of logged events: 110
 
  1  2  3  4  5 
 20 20 20 20 20
@@ -2647,17 +2649,18 @@ Number of logged events: 109
 We can then use \texttt{mlmm} to perform a separate linear regression per dataset:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-e.mlmm <- mlmm(glucagonAUC3~glucagonAUC2+weight2, data=gastricbypassW.NNA, by = ".imp", effects = "weight2=0")
+e.mlmm <- mlmm(glucagonAUC3~glucagonAUC2+weight2, data=gastricbypassW.NNA,
+	       by = ".imp", effects = "weight2=0", trace = FALSE)
 model.tables(e.mlmm)
 \end{lstlisting}
 
 \begin{verbatim}
-                 estimate       se      df     lower     upper     p.value
-.imp=1: weight2 -204.5518 62.85650 17.0034 -337.1654 -71.93822 0.004667754
-.imp=2: weight2 -211.6154 65.40082 17.0034 -349.5969 -73.63379 0.004858660
-.imp=3: weight2 -199.3285 62.11590 17.0034 -330.3796 -68.27744 0.005146118
-.imp=4: weight2 -200.6794 62.49767 17.0034 -332.5360 -68.82287 0.005123870
-.imp=5: weight2 -200.0570 62.22081 17.0034 -331.3294 -68.78459 0.005076821
+      by parameter  estimate       se      df     lower     upper     p.value
+1 .imp=1   weight2 -204.6291 62.88617 17.0034 -337.3053 -71.95289 0.004670840
+2 .imp=2   weight2 -194.4004 62.31006 17.0034 -325.8611 -62.93968 0.006231893
+3 .imp=3   weight2 -211.9042 65.51654 17.0034 -350.1299 -73.67848 0.004872354
+4 .imp=4   weight2 -199.8417 62.12071 17.0034 -330.9029 -68.78041 0.005058119
+5 .imp=5   weight2 -199.9269 62.16057 17.0034 -331.0722 -68.78152 0.005065662
 \end{verbatim}
 
 
@@ -2668,8 +2671,8 @@ model.tables(e.mlmm, method = "pool.rubin")
 \end{lstlisting}
 
 \begin{verbatim}
-                           estimate       se       df    lower     upper     p.value
-.imp=<1,2,3,4,5>: weight2 -203.2464 63.27679 15.18078 -337.978 -68.51489 0.005745402
+                estimate      se       df     lower     upper     p.value
+<1:5>: weight2 -202.1404 63.4192 15.09811 -337.2388 -67.04208 0.006078676
 \end{verbatim}
 
 
@@ -2683,17 +2686,30 @@ summary(pool(e.mice))
 
 \begin{verbatim}
           term      estimate    std.error  statistic       df      p.value
-1  (Intercept)  4.132265e+04 7640.9221748  5.4080704 15.16438 6.987859e-05
-2 glucagonAUC2  7.537004e-02    0.3656408  0.2061314 15.26716 8.394119e-01
-3      weight2 -2.032464e+02   63.2767931 -3.2120217 15.17746 5.746732e-03
+1  (Intercept)  4.119699e+04 7674.2675772  5.3681988 15.08457 7.675819e-05
+2 glucagonAUC2  7.038742e-02    0.3689445  0.1907805 15.23549 8.512165e-01
+3      weight2 -2.021404e+02   63.4191998 -3.1873698 15.09481 6.080058e-03
 \end{verbatim}
-
 
 
 \clearpage
 
+One can use the \texttt{plot} function to obtain a forest plot of the
+individual estimates along with the pooled estimate:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+plot(e.mlmm, method = c("pool.rubin","none"))
+\end{lstlisting}
+
+
+\begin{center}
+\includegraphics[trim={0 0 0 0},width=1\textwidth]{./figures/forestplot.pdf}
+\end{center}
+
+\clearpage
+
 \section{Data generation}
-\label{sec:orgcd42d0e}
+\label{sec:org7b46a61}
 Simulate some data in the wide format:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -2740,7 +2756,7 @@ head(dL)
 \clearpage
 
 \section{Modifying default options}
-\label{sec:orga4b43a5}
+\label{sec:org7eab9fe}
 The \texttt{LMMstar.options} method enable to get and set the default options
 used by the package. For instance, the default option for the information matrix is:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -2769,7 +2785,7 @@ LMMstar.options(reinitialise = TRUE)
 \clearpage
 
 \section{R session}
-\label{sec:org91085cc}
+\label{sec:org71595b6}
 Details of the R session used to generate this document:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -2822,7 +2838,7 @@ loaded via a namespace (and not attached):
 \clearpage
 
 \section*{References}
-\label{sec:org229b2e6}
+\label{sec:org13340df}
 \begingroup
 \renewcommand{\section}[2]{}
 
@@ -2855,7 +2871,7 @@ consider \(n\) replicates (i.e. \(\VY_1,\ldots,\VY_n)\) and
 \(\omega=(w_1,\ldots,w_n)\), which are by default all equal to 1.
 
 \subsection{Log-likelihood}
-\label{sec:orgb16a212}
+\label{sec:org06bc41c}
 
 The restricted log-likelihood in a linear mixed model can then be
 written:
@@ -2886,7 +2902,7 @@ when setting the argument \texttt{indiv} to \texttt{TRUE}.
 \bigskip
 
 \subsection{Score}
-\label{sec:org8b785a3}
+\label{sec:orgeb0bb1a}
 
  Using that \(\partial \log(\det(X))=tr(X^{-1}\partial(X))\), the
 score is obtained by derivating once the log-likelihood, i.e., for
@@ -2909,7 +2925,7 @@ what \texttt{score} outputs for the ML criteria when setting the argument
 \clearpage
 
 \subsection{Hessian}
-\label{sec:org41e020f}
+\label{sec:org5b189f0}
 
 Derivating a second time the log-likelihood gives the hessian, \(\Hessian(\Vparam)\), with element\footnote{if one is relative to the mean and the other to the variance then they are respectively \(\theta\) and \(\theta'\)}:
 \begin{align*}
@@ -2957,7 +2973,7 @@ is set to \texttt{"expected"} (up to a factor -1).
 \clearpage
 
 \subsection{Degrees of freedom}
-\label{sec:org883bfa9}
+\label{sec:org20c1f48}
 
 Degrees of freedom are computed using a Satterthwaite approximation,
 i.e. for an estimate coefficient \(\widehat{\beta}\in\widehat{\Vparam}\) with standard
@@ -3086,8 +3102,8 @@ logLik(eML.lmmUN2)
 \end{lstlisting}
 
 \begin{verbatim}
-[1] -245.7909
-[1] -245.7909
+[1] -218.71
+[1] -218.71
 \end{verbatim}
 
 
@@ -3141,7 +3157,7 @@ logLik(lmm(weight ~ time + glucagon*ff, data = dfTest, repetition = ~time|id, me
 
 \begin{verbatim}
 [1] -218.71
-[1] -217.4141
+[1] -218.6874
 \end{verbatim}
 
 
@@ -3362,10 +3378,10 @@ Degrees of freedom were computed using a Satterthwaite approximation (column df)
 \clearpage
 
 \section{Equivalent with other R packages}
-\label{sec:orgd37a1b9}
+\label{sec:org58c3620}
 
 \subsection{nlme package}
-\label{sec:orga16cc40}
+\label{sec:org7ed1f8a}
 
 The model class obtained with the \texttt{lmm} function overlaps the model
 class of the \texttt{lme} and \texttt{gls} functions from the nlme package.
@@ -3427,7 +3443,7 @@ logLik(eUN.lmm)
 \clearpage
 
 \subsection{lme4 package}
-\label{sec:org9949eff}
+\label{sec:orgb5ab3ce}
 
 The model class obtained with the \texttt{lmm} function overlaps the model
 class of the \texttt{lmer} function from the lme4 package.
@@ -3564,7 +3580,7 @@ mean: time          87.253 (3,22.5) 1.48e-12 ***
 \end{verbatim}
 
 \subsection{effectsize package (\(R^2\) or \(\eta^2\))}
-\label{sec:org12e4373}
+\label{sec:orgd8a6578}
 
 Partial \(\eta^2\) can be computed based on \texttt{lmer} using the effectsize package:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -3586,37 +3602,27 @@ glucagon  |           0.03 | [0.00, 1.00]
 \end{verbatim}
 
 
-and are approximately equal to the ones from LMMstar:
+and are approximately equal to what one can compute "manually":
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-print(anova(eCS.lmm), columns = add("partial.r"))
+eCS.Wald <- anova(eCS.lmm)$multivariate
+eCS.Wald$df.num*eCS.Wald$statistic/(eCS.Wald$df.num*eCS.Wald$statistic+eCS.Wald$df.denom)
 \end{lstlisting}
 
 \begin{verbatim}
-	     Multivariate Wald test 
-
-         F-statistic       df p.value partial.r2    
-time         217.975 (3,53.9)  <2e-16      0.924 ***
-glucagon       1.757 (1,53.8)   0.191      0.032
+[1] 0.92380363 0.03162017
 \end{verbatim}
 
 
 The will not be true for heteroschedastic models:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-print(anova(eUN.lmm), columns = add("partial.r"))
+eUN.Wald <- anova(eUN.lmm)$multivariate
+eUN.Wald$df.num*eUN.Wald$statistic/(eUN.Wald$df.num*eUN.Wald$statistic+eUN.Wald$df.denom)
 \end{lstlisting}
 
 \begin{verbatim}
-		Multivariate Wald test 
-
-            F-statistic       df  p.value partial.r2    
-   time          86.743 (3,19.0) 2.84e-11      0.932 ***
-   glucagon      13.518 (1,13.7)  0.00257      0.497  **
-
-Advarselsbesked:
-I summary.Wald_lmm(object = list(multivariate = list(type = c("mu",  :
-  Column "partial.r2" may not have a simple interpretation.
+[1] 0.9319379 0.4965135
 \end{verbatim}
 
 

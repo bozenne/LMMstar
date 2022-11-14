@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (10:48) 
 ## Version: 
-## Last-Updated: nov  3 2022 (17:54) 
+## Last-Updated: nov 14 2022 (16:46) 
 ##           By: Brice Ozenne
-##     Update #: 32
+##     Update #: 34
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -80,8 +80,10 @@ model.tables.mlmm <- function(x, columns, method = NULL, ...){
 
     if(!is.null(method) && method %in% c("average","pool.fixse","pool.se","pool.gls","pool.rubin")){
         newcolumns <- c("estimate","se","df","lower","upper","p.value")
+        rm.rownames <- FALSE
     }else{
         newcolumns <- c("by","parameter","estimate","se","df","lower","upper","p.value")
+        rm.rownames <- TRUE
     }
 
     if(!missing(columns)){
@@ -97,7 +99,9 @@ model.tables.mlmm <- function(x, columns, method = NULL, ...){
     out <- confint(x, method = method, ..., columns = newcolumns)
     attr(out, "backtransform") <- NULL
     class(out) <- "data.frame"
-    rownames(out) <- NULL
+    if(rm.rownames){
+        rownames(out) <- NULL
+    }
     return(out)
 }
 

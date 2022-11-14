@@ -9,7 +9,7 @@
 \arguments{
 \item{object}{a \code{lmm} object.}
 
-\item{...}{Not used. For compatibility with the generic method.}
+\item{...}{Passed to \code{residuals.lmm}.}
 }
 \value{
 A numeric value

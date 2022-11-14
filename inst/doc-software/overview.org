@@ -16,28 +16,6 @@ library(LMMstar, quietly = TRUE, verbose = FALSE)
 #+END_SRC
 
 #+RESULTS:
-#+begin_example
-
-Attaching package: ‘MASS’
-
-The following object is masked from ‘package:qqtest’:
-
-    bacteria
-
-
-Attaching package: ‘TH.data’
-
-The following object is masked from ‘package:MASS’:
-
-    geyser
-LMMstar version 0.8.9
-
-Attaching package: ‘LMMstar’
-
-The following object is masked from ‘package:base’:
-
-    remove
-#+end_example
 
 This vignette describes the main functionalities of the *LMMstar*
 package. This package implements specific types of linear mixed
@@ -98,7 +76,7 @@ utils::packageVersion("LMMstar")
 #+END_SRC
 
 #+RESULTS:
-: [1] ‘0.8.9’
+: [1] '0.8.9'
 
 \clearpage
 
@@ -306,7 +284,7 @@ cat(" covariance structure: \n");sigma(eInd.lmm)
                        4 variance (sigma k.B1w k.A1w k.A3m) 
  log-restr.likelihood: -321.457830361849 
  convergence         : TRUE (8 iterations)
-n covariance structure: 
+ covariance structure: 
          B3m      B1w      A1w      A3m
 B3m 442.6475   0.0000   0.0000   0.0000
 B1w   0.0000 418.9934   0.0000   0.0000
@@ -360,7 +338,7 @@ cat(" correlation structure: \n");cov2cor(sigma(eTOE.lmm))
  parameter           : 8 mean ((Intercept) timeB1w timeA1w timeA3m group timeB1w:group timeA1w:group timeA3m:group) 
                        4 variance (sigma k.B1w k.A1w k.A3m) 
                        3 correlation (rho(B3m,B1w) rho(B3m,A1w) rho(B3m,A3m)) 
- log-restr.likelihood: -224.790790046712 
+ log-restr.likelihood: -224.790790046711 
  convergence         : TRUE (19 iterations)
  correlation structure: 
           B3m       B1w       A1w       A3m
@@ -440,7 +418,7 @@ eSUN.lmm
 :  parameter           : 9 mean ((Intercept) timeB1w timeA1w timeA3m group glucagon timeB1w:group timeA1w:group timeA3m:group) 
 :                        8 variance (sigma:0 sigma:1 k.B1w:0 k.A1w:0 k.A3m:0 k.B1w:1 k.A1w:1 k.A3m:1) 
 :                        12 correlation (rho(B3m,B1w):0 rho(B3m,A1w):0 rho(B3m,A3m):0 rho(B1w,A1w):0 rho(B1w,A3m):0 rho(A1w,A3m):0 rho(B3m,B1w):1 rho(B3m,A1w):1 rho(B3m,A3m):1 rho(B1w,A1w):1 rho(B1w,A3m):1 rho(A1w,A3m):1) 
-:  log-restr.likelihood: -197.171312062212 
+:  log-restr.likelihood: -197.171312062213 
 :  convergence         : TRUE (50 iterations)
 
 
@@ -1307,20 +1285,6 @@ plot(eUN.lmm, type = "correlation", type.residual = "normalized")
 #+END_SRC
 
 #+RESULTS:
-#+begin_example
-`geom_smooth()` using method = 'loess' and formula 'y ~ x'
-windows 
-      2 
-Advarselsbeskeder:
-1: Removed 2 rows containing non-finite values (stat_smooth). 
-2: Removed 2 rows containing missing values (geom_point).
-`geom_smooth()` using method = 'loess' and formula 'y ~ x'
-windows 
-      2 
-Advarselsbeskeder:
-1: Removed 2 rows containing non-finite values (stat_smooth). 
-2: Removed 2 rows containing missing values (geom_point).
-#+end_example
 
 #+BEGIN_SRC R :exports none :results output raw drawer :session *R* :cache no
 library(ggpubr)
@@ -1362,13 +1326,13 @@ head(eUN.diagW)
 #+END_SRC
 
 #+RESULTS:
-:   cluster      r.B3m      r.B1w       r.A1w      r.A3m
-: 1       1 -0.2897365 -0.2027622 -1.16864038  0.3258573
-: 2       2  0.8603117 -1.6492164  0.62578801  1.7370660
-: 3       3  0.7273066 -0.4155171 -0.68266741 -0.8510316
-: 4       4 -1.6403082 -0.5128368  0.06806206  1.1725813
-: 5       5  0.4755409         NA -0.18736415 -0.8634200
-: 6       6  1.7801675  1.2847703  2.63004812  0.3505542
+:   cluster      r.B3m      r.B1w      r.A1w       r.A3m
+: 1       1 -0.1082872  0.4283943  0.7477306  0.91794015
+: 2       2  1.8182348 -0.3516996  1.5698307 -0.98743171
+: 3       3 -0.9318737 -0.7728221  0.6315751  0.16549699
+: 4       4  0.8408969  1.8695564  0.3485784 -0.09662565
+: 5       5 -0.7882340         NA -0.6128276  0.09933842
+: 6       6  1.4896141 -1.9727358 -1.9672939 -1.37068983
 
 or in the long format:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -1377,7 +1341,7 @@ head(eUN.diagL)
 #+END_SRC
 
 #+RESULTS:
-: [1] -0.2897365  0.8603117  0.7273066 -1.6403082  0.4755409  1.7801675
+: [1] -0.1082872  1.8182348 -0.9318737  0.8408969 -0.7882340  1.4896141
 
 Various type of residuals can be extract but the normalized one are
 recommanded when doing model checking.
@@ -1424,12 +1388,6 @@ plot(eUN.lmm, type = "fit", at = data.frame(glucagon = 10), color = "glucagon")
 #+END_SRC
 
 #+RESULTS:
-: windows 
-:       2 
-: Advarselsbesked:
-: Removed 2 rows containing missing values (geom_point).
-: windows 
-:       2
 
 It is also possible to display the observed values along with the
 fitted values by setting the argument =obs.alpha= to a strictly
@@ -1445,9 +1403,6 @@ gg
 #+RESULTS:
 : Advarselsbesked:
 : Removed 2 rows containing missing values (geom_point).
-: Saving 12 x 6.21 in image
-: Advarselsbesked:
-: Removed 2 rows containing missing values (geom_point).
 
 #+ATTR_LaTeX: :width \textwidth :placement [!h]
 [[./figures/fit-autoplot-indiv.pdf]]
@@ -1457,7 +1412,7 @@ ggsave(gg + theme(text = element_text(size=20)), filename = "figures/fit-autoplo
 #+END_SRC
 
 #+RESULTS:
-: Saving 12 x 6.21 in image
+: Saving 12 x 6.38 in image
 : Advarselsbesked:
 : Removed 2 rows containing missing values (geom_point).
 
@@ -1508,6 +1463,9 @@ Note: to match the partial residuals obtained from =lm=:
 eIID.lm <- lm(glucagon ~ time + weight, data = gastricbypassL)
 pRes.lm <- residuals(eIID.lm, type = "partial")[,"weight"]
 #+END_SRC
+
+#+RESULTS:
+
 one should use =type= equal to ="partial-center"= which also removes
 the average effect of the covariate:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -1526,7 +1484,7 @@ range(df.pres2$r.partial - m.pres2, na.rm = TRUE)
 #+END_SRC
 
 #+RESULTS:
-: [1] -1.421085e-14  1.398881e-14
+: [1] -1.065814e-14  1.421085e-14
 
 \clearpage
 
@@ -1570,18 +1528,18 @@ summary(e.anova)
 #+begin_example
 		Multivariate Wald test 
 
-          F-statistic       df    p.value    
-   all: 1      98.651 (2,18.6) 1.2338e-10 ***
-   ------------------------------------------ 
+          F-statistic       df  p.value    
+   all: 1      98.651 (2,18.6) 1.23e-10 ***
+   ---------------------------------------- 
   Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
   Degrees of freedom were computed using a Satterthwaite approximation (column df). 
 
 		Univariate Wald test 
 
                      estimate    se   df   lower   upper p.value    
-   timeA1w - timeB1w   -3.906 0.595 17.9  -5.323  -2.489 < 1e-05 ***
-   timeA3m - timeB1w   -18.24 1.323   19 -21.392 -15.088 < 1e-05 ***
-   ----------------------------------------------------------------- 
+   timeA1w - timeB1w   -3.906 0.595 17.9  -5.324  -2.487   2e-05 ***
+   timeA3m - timeB1w   -18.24 1.323   19 -21.396 -15.085  <1e-05 ***
+   --------------------------------------------------------------- 
   Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
   Columns lower/upper/p.value adjusted for multiple comparisons -- max-test.
   (1e+05 samples have been used)
@@ -1613,12 +1571,12 @@ Singular contrast matrix: contrasts "A1w - B1w" "A3m - B1w" "A3m - A1w" have bee
 		Univariate Wald test 
 
              estimate    se   df   lower   upper p.value    
-   B1w - B3m   -7.882 0.713 19.2  -9.825   -5.94  <1e-05 ***
-   A1w - B3m  -11.788 1.018 21.6 -14.559  -9.017  <1e-05 ***
-   A3m - B3m  -26.122 1.656 18.8 -30.633 -21.611  <1e-05 ***
-   A1w - B1w   -3.906 0.595 17.9  -5.525  -2.286  <1e-05 ***
-   A3m - B1w   -18.24 1.323   19 -21.843 -14.638  <1e-05 ***
-   A3m - A1w  -14.334 1.057 20.3 -17.212 -11.457  <1e-05 ***
+   B1w - B3m   -7.882 0.713 19.2  -9.815   -5.95  <1e-05 ***
+   A1w - B3m  -11.788 1.018 21.6 -14.545  -9.031  <1e-05 ***
+   A3m - B3m  -26.122 1.656 18.8 -30.611 -21.634  <1e-05 ***
+   A1w - B1w   -3.906 0.595 17.9  -5.517  -2.294  <1e-05 ***
+   A3m - B1w   -18.24 1.323   19 -21.825 -14.655  <1e-05 ***
+   A3m - A1w  -14.334 1.057 20.3 -17.198 -11.471  <1e-05 ***
    --------------------------------------------------------- 
   Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
   Columns lower/upper/p.value adjusted for multiple comparisons -- max-test.
@@ -1699,9 +1657,9 @@ summary(Manova)
 		Univariate Wald test 
 
                  estimate    se   df   lower  upper p.value  
-   Ind: glucagon    -8.27 2.574 34.2 -14.869 -1.671  0.0122 *
-   CS: glucagon     0.822  0.59 53.8  -0.691  2.335  0.4325  
-   UN: glucagon    -0.888 0.353 13.7  -1.793  0.017  0.0557 .
+   Ind: glucagon    -8.27 2.574 34.2 -14.879 -1.661  0.0117 *
+   CS: glucagon     0.822  0.59 53.8  -0.694  2.337  0.4308  
+   UN: glucagon    -0.888 0.353 13.7  -1.795  0.018  0.0561 .
    ---------------------------------------------------------- 
   Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
   Columns lower/upper/p.value adjusted for multiple comparisons -- max-test.
@@ -1749,7 +1707,7 @@ e.lmmANCOVA <- lmm(weight ~ time+time:group, repetition = ~time|id,
 
 #+RESULTS:
 
-and then perform a delta-method:
+and then perform a first order delta-method:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 lava::estimate(e.lmmANCOVA, f = function(p){
   c(Y1 = as.double(p["rho(B1w,A1w)"]*p["k.A1w"]),
@@ -2084,10 +2042,10 @@ summary(epairs.group, by = NULL, adjust = "mvt", infer = TRUE)
 
 #+RESULTS:
 :  contrast     time estimate    SE   df lower.CL upper.CL t.ratio p.value
-:  TRUE - FALSE B3m    -0.320 0.313 18.0   -1.156    0.516  -1.022  0.6927
-:  TRUE - FALSE B1w    -0.344 0.262 18.0   -1.046    0.357  -1.311  0.5058
-:  TRUE - FALSE A1w    -0.449 0.525 18.4   -1.852    0.954  -0.855  0.7961
-:  TRUE - FALSE A3m     0.312 0.374 18.0   -0.688    1.311   0.834  0.8084
+:  TRUE - FALSE B3m    -0.320 0.313 18.0   -1.156    0.517  -1.022  0.6926
+:  TRUE - FALSE B1w    -0.344 0.262 18.0   -1.046    0.358  -1.311  0.5065
+:  TRUE - FALSE A1w    -0.449 0.525 18.4   -1.852    0.955  -0.855  0.7960
+:  TRUE - FALSE A3m     0.312 0.374 18.0   -0.688    1.312   0.834  0.8085
 : 
 : Confidence level used: 0.95 
 : Conf-level adjustment: mvt method for 4 estimates 
@@ -2299,7 +2257,7 @@ Fixed effects: glucagon ~ time
    timeB1w       -0.128 0.082   19  -0.3 0.044   0.1370    
    timeA1w        1.565 0.261 18.6 1.018 2.111 9.74e-06 ***
    timeA3m        0.543 0.248   19 0.024 1.063   0.0413   *
-   -------------------------------------------------------- 
+   ----------------------------------------------------- 
   Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
   Columns lower and upper contain 95% pointwise confidence intervals for each coefficient.
   Model-based standard errors are derived from the observed information (column se). 
@@ -2405,7 +2363,7 @@ The =mlmm= function can used to perform stratify analyses, typically
 useful when performing multiple imputations. Consider the wide format
 of the dataset where a few values are missing:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-data(gastricbypassW)
+data(gastricbypassW, package = "LMMstar")
 colSums(is.na(gastricbypassW))
 #+END_SRC
 
@@ -2418,31 +2376,33 @@ colSums(is.na(gastricbypassW))
 We use =mice= to generate a number of imputed datasets (here 5):
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 library(mice)
-gastricbypassW.mice <- mice(gastricbypassW, printFlag = FALSE)
+set.seed(10)
+gastricbypassW.mice <- mice(gastricbypassW, m = 5, printFlag = FALSE)
 gastricbypassW.NNA <- complete(gastricbypassW.mice, action = "long")
 table(gastricbypassW.NNA$.imp)
 #+END_SRC
 
 #+RESULTS:
 : Advarselsbesked:
-: Number of logged events: 109
+: Number of logged events: 110
 : 
 :  1  2  3  4  5 
 : 20 20 20 20 20
 
 We can then use =mlmm= to perform a separate linear regression per dataset:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-e.mlmm <- mlmm(glucagonAUC3~glucagonAUC2+weight2, data=gastricbypassW.NNA, by = ".imp", effects = "weight2=0")
+e.mlmm <- mlmm(glucagonAUC3~glucagonAUC2+weight2, data=gastricbypassW.NNA,
+               by = ".imp", effects = "weight2=0", trace = FALSE)
 model.tables(e.mlmm)
 #+END_SRC
 
 #+RESULTS:
-:                  estimate       se      df     lower     upper     p.value
-: .imp=1: weight2 -204.5518 62.85650 17.0034 -337.1654 -71.93822 0.004667754
-: .imp=2: weight2 -211.6154 65.40082 17.0034 -349.5969 -73.63379 0.004858660
-: .imp=3: weight2 -199.3285 62.11590 17.0034 -330.3796 -68.27744 0.005146118
-: .imp=4: weight2 -200.6794 62.49767 17.0034 -332.5360 -68.82287 0.005123870
-: .imp=5: weight2 -200.0570 62.22081 17.0034 -331.3294 -68.78459 0.005076821
+:       by parameter  estimate       se      df     lower     upper     p.value
+: 1 .imp=1   weight2 -204.6291 62.88617 17.0034 -337.3053 -71.95289 0.004670840
+: 2 .imp=2   weight2 -194.4004 62.31006 17.0034 -325.8611 -62.93968 0.006231893
+: 3 .imp=3   weight2 -211.9042 65.51654 17.0034 -350.1299 -73.67848 0.004872354
+: 4 .imp=4   weight2 -199.8417 62.12071 17.0034 -330.9029 -68.78041 0.005058119
+: 5 .imp=5   weight2 -199.9269 62.16057 17.0034 -331.0722 -68.78152 0.005065662
 
 and pool the results using Rubin's rule:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -2450,8 +2410,8 @@ model.tables(e.mlmm, method = "pool.rubin")
 #+END_SRC
 
 #+RESULTS:
-:                            estimate       se       df    lower     upper     p.value
-: .imp=<1,2,3,4,5>: weight2 -203.2464 63.27679 15.18078 -337.978 -68.51489 0.005745402
+:                 estimate      se       df     lower     upper     p.value
+: <1:5>: weight2 -202.1404 63.4192 15.09811 -337.2388 -67.04208 0.006078676
 
 This matches[fn::almost exactly, only the degrees of freedom are a
 little different] the results obtained with the mice package:
@@ -2462,10 +2422,30 @@ summary(pool(e.mice))
 
 #+RESULTS:
 :           term      estimate    std.error  statistic       df      p.value
-: 1  (Intercept)  4.132265e+04 7640.9221748  5.4080704 15.16438 6.987859e-05
-: 2 glucagonAUC2  7.537004e-02    0.3656408  0.2061314 15.26716 8.394119e-01
-: 3      weight2 -2.032464e+02   63.2767931 -3.2120217 15.17746 5.746732e-03
+: 1  (Intercept)  4.119699e+04 7674.2675772  5.3681988 15.08457 7.675819e-05
+: 2 glucagonAUC2  7.038742e-02    0.3689445  0.1907805 15.23549 8.512165e-01
+: 3      weight2 -2.021404e+02   63.4191998 -3.1873698 15.09481 6.080058e-03
 
+\clearpage
+
+One can use the =plot= function to obtain a forest plot of the
+individual estimates along with the pooled estimate:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+plot(e.mlmm, method = c("pool.rubin","none"))
+#+END_SRC
+
+
+#+BEGIN_SRC R :exports none :results output raw drawer :session *R* :cache no
+ggsave(plot(e.mlmm, method = c("pool.rubin","none"), plot = FALSE)$plot + theme(text = element_text(size=20)), filename = "./figures/forestplot.pdf", width = 12)
+#+END_SRC
+
+#+RESULTS:
+:results:
+Saving 12 x 6.38 in image
+:end:
+
+#+ATTR_LaTeX: :width 1\textwidth :options trim={0 0 0 0} :placement [!h]
+[[./figures/forestplot.pdf]]
 
 \clearpage
 
@@ -2885,8 +2865,8 @@ logLik(eML.lmmUN2)
 #+END_SRC
 
 #+RESULTS:
-: [1] -245.7909
-: [1] -245.7909
+: [1] -218.71
+: [1] -218.71
 
 but it does when using REML:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -2932,7 +2912,7 @@ logLik(lmm(weight ~ time + glucagon*ff, data = dfTest, repetition = ~time|id, me
 
 #+RESULTS:
 : [1] -218.71
-: [1] -217.4141
+: [1] -218.6874
 
 This is why, unless one knows what he/she is doing, it is not
 recommanded to use likelihood ratio test to assess relevance of mean
@@ -3175,6 +3155,8 @@ class of the =lme= and =gls= functions from the nlme package.
 library(nlme)
 #+END_SRC
 
+#+RESULTS:
+
 For instance, the compound symmetry is equivalent to =corCompSymm=
 correlation structure, or to a random intercept model (when the within
 subject correlation is positive):
@@ -3351,33 +3333,23 @@ cat("\n")
 : 
 : - One-sided CIs: upper bound fixed at [1.00].>
 
-and are approximately equal to the ones from LMMstar:
+and are approximately equal to what one can compute "manually":
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-print(anova(eCS.lmm), columns = add("partial.r"))
+eCS.Wald <- anova(eCS.lmm)$multivariate
+eCS.Wald$df.num*eCS.Wald$statistic/(eCS.Wald$df.num*eCS.Wald$statistic+eCS.Wald$df.denom)
 #+END_SRC
 
 #+RESULTS:
-: 		Multivariate Wald test 
-: 
-:             F-statistic       df p.value partial.r2    
-:    time         217.975 (3,53.9)  <2e-16      0.924 ***
-:    glucagon       1.757 (1,53.8)   0.191      0.032
+: [1] 0.92380363 0.03162017
 
 The will not be true for heteroschedastic models:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-print(anova(eUN.lmm), columns = add("partial.r"))
+eUN.Wald <- anova(eUN.lmm)$multivariate
+eUN.Wald$df.num*eUN.Wald$statistic/(eUN.Wald$df.num*eUN.Wald$statistic+eUN.Wald$df.denom)
 #+END_SRC
 
 #+RESULTS:
-: 		Multivariate Wald test 
-: 
-:             F-statistic       df  p.value partial.r2    
-:    time          86.743 (3,19.0) 2.84e-11      0.932 ***
-:    glucagon      13.518 (1,13.7)  0.00257      0.497  **
-: 
-: Advarselsbesked:
-: I summary.Wald_lmm(object = list(multivariate = list(type = c("mu",  :
-:   Column "partial.r2" may not have a simple interpretation.
+: [1] 0.9319379 0.4965135
 
 compared to:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
