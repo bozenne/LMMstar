@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: sep  1 2022 (09:50) 
+## Last-Updated: nov 17 2022 (11:50) 
 ##           By: Brice Ozenne
-##     Update #: 104
+##     Update #: 108
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -210,18 +210,17 @@ NULL
 NULL
 ## data("calciumW")
 ## dtW <- data.table::as.data.table(calciumW)
-## dtL <- data.table::melt(dtW, id.vars = c("girl","grp"),
-##                         measure.vars = patterns("obstime","bmd1"),
+## dtL <- data.table::melt(dtW, id.vars = c("girl","grp","dropout","dropvisit"),
+##                         measure.vars = patterns("time.obs","bmd1"),
 ##                         value.name = c("time.obs","bmd"), variable.name = "visit")
 ## calciumL <- as.data.frame(dtL)
-## calciumL$time.num <- sapply(as.character(calciumL$visit), switch,
+## calciumL$time <- sapply(as.character(calciumL$visit), switch,
 ##                             "1" = 0.0,
 ##                             "2" = 0.5,
 ##                             "3" = 1.0,
 ##                             "4" = 1.5,
 ##                             "5" = 2.0)
-## calciumL$time.fac <- factor(calciumL$visit, levels = 1:5,
-##                             labels = c("0years","0.5years","1years","1.5years","2years")) 
+## calciumL <- calciumL[,c("girl","grp","visit","time","time.obs","bmd","dropout","dropvisit")]
 ## save(calciumL, file = "data/calciumL.rda")
 ##
 ## str(calciumL)
