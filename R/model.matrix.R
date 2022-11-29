@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: nov  8 2022 (11:16) 
+## Last-Updated: nov 24 2022 (18:14) 
 ##           By: Brice Ozenne
-##     Update #: 2362
+##     Update #: 2380
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -547,6 +547,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 
     ## ** identify if there is an identifiability problem
     X <- stats::model.matrix(formula, data)
+    attr(X,"variable") <- all.vars(formula)
     X.qr <- qr(X)
 
     if(X.qr$rank==NCOL(X)){
@@ -555,7 +556,6 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         }else if(augmodel){
             return(.augmodel.matrix(stats::delete.response(stats::terms(formula)),data))
         }else{
-            attr(X,"variable") <- all.vars(formula)
             return(X)
         }
     }else{
@@ -609,7 +609,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     attrX$ls.level <- attrX$ls.level[index.keep]
     attrX$M.level <- attrX$M.level[index.keep,,drop=FALSE]
     attributes(X) <- c(attributes(X),attrX)
-    
+
     X.Mlevel <- attr(X,"M.level")
     X.reference <- attr(X,"reference")
 
@@ -658,9 +658,9 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         }
         attr(X,"assign") <- attr(X.old,"assign")[test.keep] ## as.numeric(as.factor(attr(X.old,"assign")[test.keep])) - "(Intercept)" %in% colnames(X)
         attr(X,"contrasts") <- attr(X.old,"contrasts")
+        attr(X,"variable") <- attr(X.old,"variable")
         if(augmodel || X.qr$rank!=NCOL(X.qr$qr)){
             attr(X,"formula") <- attr(X.old,"formula")
-            attr(X,"variable") <- attr(X.old,"variable")
             attr(X,"term.labels") <- attr(X.old,"term.labels")[test.keep]
             attr(X,"order") <- attr(X.old,"order")[test.keep]
             attr(X,"ls.level") <- attr(X.old,"ls.level")[test.keep]
@@ -691,9 +691,9 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             X <- X.test
             attr(X,"assign") <- keep.attr$assign[iIndex]
             attr(X,"contrast") <- keep.attr$contrasts
+            attr(X,"variable") <- keep.attr$variable
             if(augmodel){
                 attr(X,"formula") <- keep.attr$formula
-                attr(X,"variable") <- keep.attr$variable
                 attr(X,"term.labels") <- keep.attr$term.labels[iIndex]
                 attr(X,"order") <- keep.attr$order[iIndex]
                 attr(X,"M.level") <- keep.attr$M.level[iIndex,,drop=FALSE]

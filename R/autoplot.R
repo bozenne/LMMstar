@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: Nov 12 2022 (18:25) 
+## Last-Updated: nov 24 2022 (17:29) 
 ##           By: Brice Ozenne
-##     Update #: 291
+##     Update #: 294
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -75,7 +75,7 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5),
         xlabel.plot <- time.var
     }
     time.var <- attr(object$time$var,"original") ## need to be after statement on time.var.plot to avoid confusion
-    mu.var <- attr(object$design$mean,"variable") 
+    mu.var <- rhs.vars(object$formula$mean)
     if(length(time.var) == 0 && length(mu.var) == 0){
         message("There is nothing to be displayed: empty time variable and no covariate for the mean structure. \n")
         return(NULL)

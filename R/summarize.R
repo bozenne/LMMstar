@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: sep  1 2022 (10:11) 
+## Last-Updated: nov 24 2022 (17:59) 
 ##           By: Brice Ozenne
-##     Update #: 224
+##     Update #: 243
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -313,7 +313,7 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
             attr(out,"correlation") <- stats::setNames(vector(mode = "list", length = length(name.Y)),
                                                        name.Y)
 
-            for(iY in 1:n.Y){
+            for(iY in 1:n.Y){ ## iY <- 1 
                 attr(out,"correlation")[[iY]] <- stats::setNames(lapply(ls.id, function(iId){ ## iId <- ls.id[[1]]
                     iDataL <- data[data[[name.id]] %in% iId,,drop = FALSE]
                     if(length(time)>1){
@@ -326,10 +326,16 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
                                              direction = "wide", timevar = Utime, idvar = name.id, v.names = name.Y[iY])
                     
                     if(na.rm){
-                        return(stats::cor(iDataW[,-1,drop=FALSE], use = "pairwise"))
+                        iCor <- stats::cor(iDataW[,-1,drop=FALSE], use = "pairwise")
+                        
                     }else{
-                        return(stats::cor(iDataW[,-1,drop=FALSE]))
+                        iCor <- stats::cor(iDataW[,-1,drop=FALSE])
                     }
+                    iLevels <- levels(as.factor(iDataL[[Utime]]))
+                    if(NROW(iCor)==length(iLevels)){
+                        dimnames(iCor) <- list(iLevels,iLevels)
+                    }
+                    return(iCor)
                 }), names(ls.id))
             }
         }
@@ -339,6 +345,8 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
     if(!is.null(digits)){
         attr(out,"digits") <- digits
     }
+    attr(out,"name.Y") <- name.Y
+    attr(out,"name.X") <- name.X
     class(out) <- append("summarize",class(out))
     return(out)
 }
@@ -346,6 +354,24 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
 ## * print.summarize
 #' @export
 print.summarize <- function(x,...){
+    ## remove duplicated values
+    if(length(unique(x$outcome))==1){
+        x$outcome <- NULL
+    }else{
+        x$outcome[duplicated(x$outcome)] <- ""
+    }
+    name.X <-  attr(x,"name.X")
+    if(length(name.X)>0){
+        for(iX in name.X){ ## iX <- name.X[2]
+            iX.value <- as.numeric(as.factor(x[[iX]]))
+            iLevels <- cumsum(iX.value!=c(0,iX.value[-length(iX.value)]))
+            if(any(duplicated(iLevels))){
+                x[[iX]] <- as.character(x[[iX]])
+                x[[iX]][duplicated(iLevels)] <- ""
+            }
+        }
+    }
+
     if(!is.null(attr(x,"digits")) && ("digits" %in% names(list(...)) == FALSE)){
         print(as.data.frame(x), digits = attr(x,"digits"), ...)
     }else{
@@ -360,11 +386,7 @@ print.summarize <- function(x,...){
                 ls.cor <- ls.cor[[1]]
             }
         }else{
-            for(iY in 1:length(ls.cor)){ ## group
-                if(length(ls.cor[[iY]])==1){
-                    ls.cor[[iY]] <- ls.cor[[iY]][[1]]
-                }
-            }
+            ls.cor <- unlist(ls.cor, recursive = FALSE)
         }
         print(ls.cor, ...)
     }

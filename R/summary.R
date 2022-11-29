@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: Nov 14 2022 (12:04) 
+## Last-Updated: nov 23 2022 (18:10) 
 ##           By: Brice Ozenne
-##     Update #: 1175
+##     Update #: 1176
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -529,7 +529,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         }
 
         ## incorporate type
-        if(method.p.adjust %in% c("average","pool.fixse","pool.se","pool.gls","pool.rubin") == FALSE){
+        if(method.p.adjust %in% c("average","pool.fixse","pool.se","pool.gls","pool.gls1","pool.rubin") == FALSE){
             table.univariate$type <-  c("mu" = "mean", "sigma" = "variance", "k" = "variance", "rho" = "correlation")[object$univariate$type]
         }
         nchar.type <- nchar(table.univariate$type)
@@ -558,7 +558,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
             attr(method.p.adjust,"warning") <- "WARNING: uncertainty about the weights assumes independence between parameters from different models.\n"
         }else if(method.p.adjust == "pool.fixse"){
             attr(method.p.adjust,"warning") <- "WARNING: uncertainty about the weights has been ignored.\n"
-        }else if(method.p.adjust == "pool.gls"){
+        }else if(method.p.adjust %in% c("pool.gls","pool.gls1")){
             attr(method.p.adjust,"warning") <- "WARNING: uncertainty about the weights has been ignored.\n"
             if(!is.null(error) && any(!is.na(error))){
                 attr(method.p.adjust,"warning") <- paste0(attr(method.p.adjust,"warning"),
@@ -1003,7 +1003,7 @@ summary.resample <- function(object, digits = 3, ...){
             }else if("upper" %in% columns){
                 cat(space,"Column upper contains ",100*level,"% ",txt.ci,".\n", sep = "")
             }
-        }else if(!is.null(method.p.adjust) && method.p.adjust %in% c("average","pool.se","pool.fixse","pool.gls","pool.rubin")){
+        }else if(!is.null(method.p.adjust) && method.p.adjust %in% c("average","pool.se","pool.fixse","pool.gls","pool.gls1","pool.rubin")){
 
             if(method.p.adjust == "average"){
                 if(NROW(table)>1){
@@ -1020,7 +1020,7 @@ summary.resample <- function(object, digits = 3, ...){
                 if(any(c("se","lower","upper","p.value") %in% columns) && !is.null(attr(method.p.adjust,"warning"))){
                     cat(space,attr(method.p.adjust,"warning"),sep="")
                 }
-            }else if(method.p.adjust == "pool.gls"){
+            }else if(method.p.adjust %in% c("pool.gls","pool.gls1")){
                 if(NROW(table)>1){
                     cat(space,"Estimates have been averaged, weighted via GLS ",factor.p.adjust,".\n", sep="")
                 }else{
