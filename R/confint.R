@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: nov 23 2022 (19:18) 
+## Last-Updated: nov 30 2022 (17:15) 
 ##           By: Brice Ozenne
-##     Update #: 565
+##     Update #: 569
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -503,14 +503,16 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
                     iPsum <- colSums(iEigen$vectors[,iEigen.subset,drop=FALSE])
                     iWeight <- iPsum^2/iEigen$values[iEigen.subset]
                     iWPstar <- rowSums(sweep(iEigen$vectors[,iEigen.subset,drop=FALSE], FUN = "*", MARGIN = 2, STATS = iWeight/iPsum))
-                    browser()
                     iC.pool <- rbind(iWPstar/sum(iWeight))
                     if(iMethod %in% "pool.gls1" && max(abs(iC.pool))>1){
+                        ## +/-max /(max + a) + 1/p (1-1/(max+a)) = +/-1
+                        ## +/-p max + max + a - 1 = +/- p max +/- p a
+                        ## max + a - 1 = +/- p a
+                        ## a = (-max + 1)/(1+/-p)
+                        ## +/-max + a = (1 +/- p max)/(1+/-p)
                         iIndex.max <- which.max(abs(iC.pool))
                         iMax <- abs(iC.pool)[iIndex.max]
-                        iMaxC <- iMax + 3
-
-
+                        iMaxC <- max((1-iN.test*iC.pool)/(1-sign(iC.pool)*iN.test))
                         iC.pool <- rbind(rep((1-1/iMaxC)/iN.test,iN.test) + iC.pool[1,]/iMaxC)
                     }                    
                 }

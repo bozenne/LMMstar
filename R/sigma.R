@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: okt 31 2022 (18:22) 
+## Last-Updated: nov 30 2022 (12:10) 
 ##           By: Brice Ozenne
-##     Update #: 540
+##     Update #: 552
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -287,20 +287,9 @@ getVarCov.lmm <- function(obj, ...) {
         return(OmegaMax)
     }
 
-    ## ** summary statistic of each pattern
-    XCpattern.var <- lapply(Xpattern.var, function(iVar){as.character(interaction(as.data.frame(iVar),sep=sep[1]))})
-    if(!is.null(object$design$vcov$X$Xpattern.cor)){
-        XCpattern.cor <- lapply(Xpattern.cor, function(iCor){as.character(interaction(as.data.frame(iCor),sep=sep[1]))})
-        XCpattern <- mapply(x = XCpattern.var[Upattern$var], y = XCpattern.cor[Upattern$cor], function(x,y){paste(x,y,sep=sep[2])}, SIMPLIFY = FALSE)
-    }else{
-        XCpattern <- XCpattern.var[Upattern$var]
-    }
-    names(XCpattern) <- Upattern$name
+    ## ** percentage of repetitions at each pattern
+    pcObs.Xpattern <- stats::setNames(Upattern$n.time/n.time, Upattern$name)
 
-    labels <- unique(unlist(XCpattern))
-    table.Xpattern <- do.call(rbind,lapply(XCpattern, function(iPattern){table(factor(iPattern, levels = labels))}))
-    pcObs.Xpattern <- rowSums(table.Xpattern)/n.time
-    
     ## ** identify patterns with unique set of parameters
     all.param <- object$design$vcov$param$name
     table.param <- do.call(rbind,lapply(Upattern$param, function(iParam){table(factor(iParam, levels = all.param))}))
@@ -313,32 +302,6 @@ getVarCov.lmm <- function(obj, ...) {
         keep.pattern <- c(keep.pattern, rownames(iTable.param)[iMax])
         iTable.param <- table.param[setdiff(rownames(table.param),keep.pattern),colSums(table.param[keep.pattern,,drop=FALSE])==0,drop=FALSE]
         iter.max <- iter.max-1
-    }
-    table.Xpattern.keep <- table.Xpattern[rownames(table.Xpattern) %in% keep.pattern,,drop=FALSE]
-
-    ## ** check whether other patterns are not nested in the set of unique patterns
-    ## if so add them
-    if(is.character(heterogeneous) || heterogeneous){
-        possibleNested.pattern <- setdiff(Upattern$name, keep.pattern)
-        if(length(possibleNested.pattern)>0 && any(Upattern[Upattern$name %in% possibleNested.pattern,"n.time"]==1)){
-            ## remove patterns with single observation whose variance is already covered by the kept patterns
-            pattern.singleton <- intersect(Upattern[Upattern$n.time==1,"name"], possibleNested.pattern)
-            covered.variance <- unlist(XCpattern.var[rownames(table.param) %in% keep.pattern])
-            possibleNested.pattern <- setdiff(possibleNested.pattern,
-                                              pattern.singleton[unlist(XCpattern.var[rownames(table.param) %in% pattern.singleton]) %in% covered.variance])
-            
-        }
-        if(length(possibleNested.pattern)>0){
-            for(iPattern in possibleNested.pattern){ ## iPattern <- possibleNested.pattern[1]
-                iTable <- table.Xpattern[rownames(table.Xpattern) == iPattern,,drop=FALSE]
-
-                iTest <- rowSums(sweep(table.Xpattern.keep, MARGIN = 2, FUN = "-", STATS = iTable)<0)
-                if(all(iTest>0)){
-                    keep.pattern <- c(keep.pattern, iPattern)
-                    table.Xpattern.keep <- table.Xpattern[rownames(table.Xpattern) %in% keep.pattern,,drop=FALSE]
-                }
-            }
-        }
     }
 
     ## ** recover time
