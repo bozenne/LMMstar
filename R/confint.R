@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: Nov 12 2022 (16:04) 
+## Last-Updated: nov 30 2022 (17:15) 
 ##           By: Brice Ozenne
-##     Update #: 557
+##     Update #: 569
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -304,7 +304,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
     }
     alpha <- 1-level
     method.fit <- object$object$method.fit
-    pool.method <- c("average","pool.fixse","pool.se","pool.gls","pool.rubin")
+    pool.method <- c("average","pool.fixse","pool.se","pool.gls","pool.gls1","pool.rubin")
     adj.method <- c(stats::p.adjust.methods,"single-step", "Westfall", "Shaffer", "free", "single-step2")
 
     if(!is.null(method)){
@@ -439,7 +439,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
             out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * stats::qt(1-alpha/2, df = iTable$df)
             out[iIndex.table,"p.value"] <- iTable$p.value
             
-        }else if(iMethod %in% c("average","pool.fixse","pool.se","pool.gls","pool.rubin")){
+        }else if(iMethod %in% c("average","pool.fixse","pool.se","pool.gls","pool.gls1","pool.rubin")){
 
             ## replace many lines (individual effect) by a single line (for the average)
             out.save <- out
@@ -484,14 +484,14 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
 
             ## find contrast
             iVcov <- object$vcov[iIndex.table,iIndex.table,drop=FALSE]
-            if(iMethod %in% c("average","pool.fixse","pool.gls")){
+            if(iMethod %in% c("average","pool.fixse","pool.gls","pool.gls1")){
 
                 if(iMethod=="average"){
                     iC.pool <- matrix(1/iN.test, nrow = 1, ncol = iN.test)
                 }else if(iMethod %in% "pool.fixse"){
                     iIvar <- 1/out.save[iIndex.table,"se"]^2                
                     iC.pool <- matrix(iIvar/sum(iIvar), nrow = 1, ncol = iN.test)
-                }else if(iMethod == "pool.gls"){
+                }else if(iMethod %in% c("pool.gls","pool.gls1")){
                     iEigen <- eigen(iVcov)
                     iEigen.subset <- which(abs(iEigen$values) > 1e-10)
 
@@ -504,6 +504,17 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
                     iWeight <- iPsum^2/iEigen$values[iEigen.subset]
                     iWPstar <- rowSums(sweep(iEigen$vectors[,iEigen.subset,drop=FALSE], FUN = "*", MARGIN = 2, STATS = iWeight/iPsum))
                     iC.pool <- rbind(iWPstar/sum(iWeight))
+                    if(iMethod %in% "pool.gls1" && max(abs(iC.pool))>1){
+                        ## +/-max /(max + a) + 1/p (1-1/(max+a)) = +/-1
+                        ## +/-p max + max + a - 1 = +/- p max +/- p a
+                        ## max + a - 1 = +/- p a
+                        ## a = (-max + 1)/(1+/-p)
+                        ## +/-max + a = (1 +/- p max)/(1+/-p)
+                        iIndex.max <- which.max(abs(iC.pool))
+                        iMax <- abs(iC.pool)[iIndex.max]
+                        iMaxC <- max((1-iN.test*iC.pool)/(1-sign(iC.pool)*iN.test))
+                        iC.pool <- rbind(rep((1-1/iMaxC)/iN.test,iN.test) + iC.pool[1,]/iMaxC)
+                    }                    
                 }
                 iVcov.pool <- as.double(iC.pool %*% iVcov %*% t(iC.pool))
 
@@ -600,10 +611,10 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
 
             }
             
-            out[iIndex.table[1],"estimate"]  <- iC.pool %*% (out.save[iIndex.table,"estimate"]-out.save[iIndex.table,"null"])
+            out[iIndex.table[1],"estimate"]  <- iC.pool %*% out.save[iIndex.table,"estimate"]
             out[iIndex.table[1],"se"] <- sqrt(iVcov.pool)
             out[iIndex.table[1],"df"] <- pool.df
-            out[iIndex.table[1],"statistic"] <- out[iIndex.table[1],"estimate"]/out[iIndex.table[1],"se"]
+            out[iIndex.table[1],"statistic"] <- (iC.pool %*% (out.save[iIndex.table,"estimate"]-out.save[iIndex.table,"null"]))/out[iIndex.table[1],"se"]
             out[iIndex.table[1],"lower"] <- out[iIndex.table[1],"estimate"] + out[iIndex.table[1],"se"] * stats::qt(alpha/2, df = pool.df)
             out[iIndex.table[1],"upper"] <- out[iIndex.table[1],"estimate"] + out[iIndex.table[1],"se"] * stats::qt(1-alpha/2, df = pool.df)
             out[iIndex.table[1],"p.value"] <- 2*(1-stats::pt( abs(out[iIndex.table[1],"statistic"]), df = pool.df ))

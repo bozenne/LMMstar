@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Oct 11 2022 (10:56) 
 ## Version: 
-## Last-Updated: Oct 11 2022 (11:15) 
+## Last-Updated: nov 23 2022 (18:09) 
 ##           By: Brice Ozenne
-##     Update #: 17
+##     Update #: 18
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -40,7 +40,7 @@
 ##' @export
 weights.Wald_lmm <- function(object, method, ...){
 
-    valid.method <- c("average","pool.fixse","pool.se","pool.gls","pool.rubin")
+    valid.method <- c("average","pool.fixse","pool.se","pool.gls","pool.gls1","pool.rubin")
     if(missing(method)){
         stop("Argument \'method\' is missing.\n",
              "Should be one of \"",paste(valid.method, collapse = "\" \""),"\".\n")

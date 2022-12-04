@@ -16,6 +16,24 @@ library(LMMstar, quietly = TRUE, verbose = FALSE)
 #+END_SRC
 
 #+RESULTS:
+#+begin_example
+
+Vedhæfter pakke: 'MASS'
+
+Det følgende objekt er maskeret fra 'package:qqtest':
+
+    bacteria
+
+
+Vedhæfter pakke: 'TH.data'
+
+Det følgende objekt er maskeret fra 'package:MASS':
+
+    geyser
+
+Advarselsbesked:
+pakke 'multcomp' blev bygget under R version 4.2.1
+#+end_example
 
 This vignette describes the main functionalities of the *LMMstar*
 package. This package implements specific types of linear mixed
@@ -3313,6 +3331,51 @@ suppressWarnings(anova(eUN2.lmm))
 :                   F-statistic       df  p.value    
 :    mean: time          87.253 (3,22.5) 1.48e-12 ***
 :        : glucagon      23.198 (1,19.4) 0.000114 ***
+
+** mmrm package
+
+The package =mmrm= is an alternative implementation of mixed models
+specified via covariance structures:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+library(mmrm)
+e.mmrm <- mmrm(
+  formula = FEV1 ~ RACE + SEX + ARMCD * AVISIT + us(AVISIT | USUBJID),
+  data = fev_data
+)
+#+END_SRC
+
+#+RESULTS:
+
+It leads nearly identical results compared to =lmm=:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+e.lmm <- lmm(
+  formula = FEV1 ~ RACE + SEX + ARMCD * AVISIT,
+  repetition = ~ AVISIT | USUBJID, structure = "UN",
+  data = fev_data, type.information = "expected"
+)
+#+END_SRC
+#+RESULTS:
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+logLik(e.mmrm) - logLik(e.lmm)
+range(coef(e.mmrm) - coef(e.lmm))
+range(vcov(e.mmrm) - vcov(e.lmm))
+#+END_SRC
+
+#+RESULTS:
+: [1] -2.541318e-06
+: [1] -0.0001830095  0.0001626755
+: [1] -0.0003971008  0.0002047941
+
+The main differences are:
+- it uses the expected information matrix to quantify uncertainty
+  instead of the observed information matrix.
+- it uses the Kenward and Roger method for computing the degrees of
+  freedom instead of the Satterthwaite approximation:
+- it implements different covariance patterns
+- it is faster but provides less support to work with the output of
+  the mixed model (e.g. no =residual= method)
+
 
 ** effectsize package (\(R^2\) or \(\eta^2\))
 

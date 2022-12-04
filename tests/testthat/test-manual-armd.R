@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Dec 19 2021 (17:07) 
 ## Version: 
-## Last-Updated: aug 31 2022 (17:38) 
+## Last-Updated: nov 24 2022 (18:15) 
 ##           By: Brice Ozenne
-##     Update #: 21
+##     Update #: 23
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -173,7 +173,7 @@ test_that("lmm - ttest", {
                       tol = 1e-6)
 })
 
-## * Predict function
+## * predict function
 test_that("lmm - predict", {
     if(test.practical==FALSE){skip('Not run to save time in the check')}
 
@@ -221,6 +221,19 @@ test_that("lmm - predict", {
     ## }, method.numDeriv = "simple", average = TRUE)
 
 
+})
+## * graphical display
+test_that("lmm - autoplot", {
+    if(test.practical==FALSE){skip('Not run to save time in the check')}
+
+    armd.long$week.num <- as.numeric(as.character(armd.long$week))
+    eLin.lmm <- lmm(visual ~ 0 + week + week.num:treat.f,
+                    repetition = ~ week | subject,
+                    structure = "UN",
+                    data = armd.long)
+
+    expect_true(!is.null(attr(eLin.lmm$design$mean, "variable")))
+    autoplot(eLin.lmm) ## was returning an error because could not identify the mean variables necessary for the prediction
 })
 ##----------------------------------------------------------------------
 ### test-manual-armd.R ends here

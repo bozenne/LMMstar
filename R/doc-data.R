@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: Nov 15 2022 (10:39) 
+## Last-Updated: Dec  4 2022 (16:20) 
 ##           By: Brice Ozenne
-##     Update #: 105
+##     Update #: 111
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -208,7 +208,7 @@ NULL
 #' @references TO ADD
 #' @keywords data
 NULL
-## data("calciumW")
+## data("calciumW", package = "LMMstar")
 ## dtW <- data.table::as.data.table(calciumW)
 ## dtL <- data.table::melt(dtW, id.vars = c("girl","grp","dropout","dropvisit"),
 ##                         measure.vars = patterns("time.obs","bmd"),

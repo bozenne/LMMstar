@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: Nov 12 2022 (18:25) 
+## Last-Updated: dec  1 2022 (14:09) 
 ##           By: Brice Ozenne
-##     Update #: 291
+##     Update #: 316
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -75,7 +75,7 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5),
         xlabel.plot <- time.var
     }
     time.var <- attr(object$time$var,"original") ## need to be after statement on time.var.plot to avoid confusion
-    mu.var <- attr(object$design$mean,"variable") 
+    mu.var <- rhs.vars(object$formula$mean)
     if(length(time.var) == 0 && length(mu.var) == 0){
         message("There is nothing to be displayed: empty time variable and no covariate for the mean structure. \n")
         return(NULL)
@@ -248,7 +248,8 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5),
 ##' @param ... arguments passed to the confint method.
 ##'
 ##' @details Argument \strong{add.args}: parameters specific to the forest plot: \itemize{
-##' \item \code{color}: [logical] should the estimates be colored by global null hypothesis, e.g. when testing the effect of a 3 factor covariate, the two corresponding coefficient will have the same color.
+##' \item \code{color}: [logical] should the estimates be colored by global null hypothesis, e.g. when testing the effect of a 3 factor covariate, the two corresponding coefficient will have the same color. Alternatively a vector of positive integers giving the color with which each estimator should be displayed.
+##' \item \code{color}: [logical] should the estimates be represented by a different shape per global null hypothesis, e.g. when testing the effect of a 3 factor covariate, the two corresponding coefficient will have the same type of point. Alternatively a vector of positive integers describing the shape to be used for each estimator.
 ##' \item \code{ci}: [logical] should confidence intervals be displayed?
 ##' \item \code{size.estimate}: [numeric, >0] size of the dot used to display the estimates.
 ##' \item \code{size.ci}: [numeric, >0] thickness of the line used to display the confidence intervals.
@@ -302,6 +303,7 @@ autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 
 
     if(type=="forest"){
         init.add.args <- list(color = NULL,
+                              shape = NULL,
                               ci = TRUE,
                               size.estimate = 3, 
                               size.ci = 1,
@@ -344,6 +346,7 @@ autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 
     if(type=="forest"){
 
         color <- add.args$color
+        shape <- add.args$shape
         ci <- add.args$ci
         size.estimate <- add.args$size.estimate
         size.ci <- add.args$size.ci
@@ -360,26 +363,66 @@ autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 
         if(is.null(color)){
             if(length(unique(table$test))==1 || all(duplicated(table$test)==FALSE)){
                 color <- FALSE
+                color.legend <- FALSE
             }else{
+                table$color <- test
                 color <- TRUE
+                color.legend <- FALSE
+            }
+        }else{
+            if(length(color)==NROW(table) && all(is.character(color))){
+                table$color <- color
+                color <- TRUE
+                color.legend <- TRUE
+            }else{
+                stop("Argument \'color\' should have length ",NROW(table)," and be of type character. \n")
             }
         }
+        if(is.null(shape)){
+            if(length(unique(table$test))==1 || all(duplicated(table$test)==FALSE)){
+                shape <- FALSE
+                shape.legend <- FALSE
+            }else{
+                table$shape <- test
+                shape <- TRUE
+                shape.legend <- FALSE
+            }
+        }else{
+            if(length(shape)==NROW(table) && all(is.numeric(shape))){
+                table$shape <- as.character(shape)
+                shape <- TRUE
+                shape.legend <- TRUE
+            }else{
+                stop("Argument \'shape\' should have length ",NROW(table)," and be of type numeric. \n")
+            }
+        }
+
         table$test <- as.factor(table$test)
         table$names <- factor(table$names, levels = unique(table$names)) ## ensure same ordering as in the object (instead of alphabetical ordering)
-
-        if(color){
-            gg <- ggplot2::ggplot(table, ggplot2::aes_string(x = "names", y = "estimate", color = "test")) + ggplot2::labs(color = "")
+        if(color & shape){
+            gg <- ggplot2::ggplot(table, ggplot2::aes_string(x = "names", y = "estimate", color = "color", shape = "shape")) + ggplot2::labs(color = "")
+        }else if(color){
+            gg <- ggplot2::ggplot(table, ggplot2::aes_string(x = "names", y = "estimate", color = "color")) + ggplot2::labs(color = "")
+        }else if(shape){
+            gg <- ggplot2::ggplot(table, ggplot2::aes_string(x = "names", y = "estimate", shape = "shape")) + ggplot2::labs(color = "")
         }else{
-            gg <- ggplot2::ggplot(table, ggplot2::aes_string(x = "names", y = "estimate")) 
+            gg <- ggplot2::ggplot(table, ggplot2::aes_string(x = "names", y = "estimate"))
         }
-        gg <- gg + ggplot2::geom_point(size = size.estimate) + ggplot2::labs(x = "", y = "")
-        if(ci){
-            gg <- gg + ggplot2::geom_errorbar(ggplot2::aes_string(ymin = "lower", ymax = "upper"), size = size.ci, width = width.ci)
-        }
-        if(size.null>0 && length(rhs)==1){
-            gg <- gg + ggplot2::geom_hline(yintercept=rhs, lty=2, size = size.null)
-        }
-        gg <- gg + ggplot2::coord_flip()
+    
+    if(shape.legend){
+        gg <- gg + ggplot2::scale_shape_manual(values = as.numeric(unique(table$shape)), breaks = unique(table$shape)) + ggplot2::guides(shape = "none")
+    }
+    if(color.legend){
+        gg <- gg + ggplot2::scale_color_manual(values = unique(table$color), breaks = unique(table$color)) + ggplot2::guides(color = "none")
+    }
+    gg <- gg + ggplot2::geom_point(size = size.estimate) + ggplot2::labs(x = "", y = "")
+    if(ci){
+        gg <- gg + ggplot2::geom_errorbar(ggplot2::aes_string(ymin = "lower", ymax = "upper"), size = size.ci, width = width.ci)
+    }
+    if(size.null>0 && length(rhs)==1){
+        gg <- gg + ggplot2::geom_hline(yintercept=rhs, lty=2, size = size.null)
+    }
+    gg <- gg + ggplot2::coord_flip()
 
     }else if(type=="heat"){
 
