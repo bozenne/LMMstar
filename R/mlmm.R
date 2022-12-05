@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: Nov 12 2022 (15:23) 
+## Last-Updated: Dec  5 2022 (09:52) 
 ##           By: Brice Ozenne
-##     Update #: 233
+##     Update #: 255
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -82,7 +82,7 @@
 ## * mlmm (code)
 ##' @export
 mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = NULL, df = TRUE, ci = TRUE,
-                 transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, trace = TRUE){
+                 name.short = TRUE, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, trace = TRUE){
 
     ## ** normalizer user input
     options <- LMMstar.options()
@@ -258,11 +258,19 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
         cat(" - combine tests\n")
     }
     if(length(by.keep)==1){
-        name.model <- paste0(by,"=",name.lmm)
+        if(name.short){
+            name.model <- name.lmm
+        }else{
+            name.model <- paste0(by,"=",name.lmm)
+        }
         keep.by.level <- matrix(name.lmm, ncol = 1, dimnames = list(NULL, by))
     }else{
         name.model <- unlist(lapply(ls.data, function(iData){
-            paste(paste0(by.keep,"=",iData[1,by.keep]),collapse=",")
+            if(name.short){
+                return(paste(iData[1,by.keep],collapse=","))
+            }else{
+                return(paste(paste0(by.keep,"=",iData[1,by.keep]),collapse=","))
+            }
         }))
         keep.by.level <- do.call(rbind,lapply(ls.data, function(iData){
             iData[1,by.keep]
@@ -292,11 +300,25 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
 
     ## add covariate values
     keep.rowname <- rownames(out$univariate)
+
     if(is.null(contrast.rbind)){
         out$univariate <- merge(out$univariate,
                                 data.frame(by = name.model, keep.by.level),
                                 by = "by", sort = FALSE)
-        rownames(out$univariate) <- sapply(strsplit(keep.rowname,"="), function(iVec){paste(iVec[-1], collapse = "=")})
+        if(name.short){
+            if(all(duplicated(out$univariate$by)==FALSE)){
+                rownames(out$univariate) <- out$univariate$by
+                dimnames(out$vcov) <- list(out$univariate$by,out$univariate$by)
+            }else{
+                rownames(out$univariate) <- keep.rowname
+            }
+            test.global <- unique(paste0(out$univariate$parameter,"=",out$univariate$null))
+            if(length(test.global)==1 && NROW(out$multivariate)){
+                out$multivariate$null <- test.global
+            }
+        }else{
+            rownames(out$univariate) <- sapply(strsplit(keep.rowname,"="), function(iVec){paste(iVec[-1], collapse = "=")})
+        }
     }
 
     ## ** export

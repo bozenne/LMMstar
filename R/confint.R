@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: nov 30 2022 (17:15) 
+## Last-Updated: Dec  5 2022 (09:31) 
 ##           By: Brice Ozenne
-##     Update #: 569
+##     Update #: 573
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -426,7 +426,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
             }
         }
         out[iIndex.table,"method"] <-  iMethod
-        
+   
         ## *** evaluation
         if(iMethod %in% c("single-step","single-step2","Westfall","free","Shaffer")){
             iGlht <- object$glht[[grid[iGrid,"type.original"]]][[grid[iGrid,"test"]]]

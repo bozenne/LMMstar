@@ -38,7 +38,8 @@ Graphical Display For Linear Hypothesis Test
 }
 \details{
 Argument \strong{add.args}: parameters specific to the forest plot: \itemize{
-\item \code{color}: [logical] should the estimates be colored by global null hypothesis, e.g. when testing the effect of a 3 factor covariate, the two corresponding coefficient will have the same color.
+\item \code{color}: [logical] should the estimates be colored by global null hypothesis, e.g. when testing the effect of a 3 factor covariate, the two corresponding coefficient will have the same color. Alternatively a vector of positive integers giving the color with which each estimator should be displayed.
+\item \code{color}: [logical] should the estimates be represented by a different shape per global null hypothesis, e.g. when testing the effect of a 3 factor covariate, the two corresponding coefficient will have the same type of point. Alternatively a vector of positive integers describing the shape to be used for each estimator.
 \item \code{ci}: [logical] should confidence intervals be displayed?
 \item \code{size.estimate}: [numeric, >0] size of the dot used to display the estimates.
 \item \code{size.ci}: [numeric, >0] thickness of the line used to display the confidence intervals.
@@ -68,7 +69,7 @@ autoplot(e.aovlmm, type = "heat", add.args = list(mid = NULL)) ## 2 color gradie
 e.lmm2 <- lmm(breaks ~ tension + wool, data = warpbreaks)
 e.aovlmm2 <- anova(e.lmm2)
 autoplot(e.aovlmm2)
-autoplot(e.aovlmm2, add.args = list(color = FALSE))
+autoplot(e.aovlmm2, add.args = list(color = FALSE, shape = FALSE))
 }
 
 }

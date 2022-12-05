@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: dec  1 2022 (14:09) 
+## Last-Updated: Dec  5 2022 (10:37) 
 ##           By: Brice Ozenne
-##     Update #: 316
+##     Update #: 334
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -284,7 +284,7 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5),
 ##' e.lmm2 <- lmm(breaks ~ tension + wool, data = warpbreaks)
 ##' e.aovlmm2 <- anova(e.lmm2)
 ##' autoplot(e.aovlmm2)
-##' autoplot(e.aovlmm2, add.args = list(color = FALSE))
+##' autoplot(e.aovlmm2, add.args = list(color = FALSE, shape = FALSE))
 ##' }
 ##'
 
@@ -314,7 +314,10 @@ autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 
                               low = "blue",
                               mid = "white",
                               high = "red",
-                              midpoint = 0)
+                              midpoint = 0,
+                              value.text = FALSE,
+                              value.round = 2,
+                              value.size = 5)
     }
     valid.names <- names(init.add.args)
     if(any(names(add.args) %in% valid.names == FALSE)){
@@ -365,12 +368,15 @@ autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 
                 color <- FALSE
                 color.legend <- FALSE
             }else{
-                table$color <- test
+                table$color <- table$test
                 color <- TRUE
                 color.legend <- FALSE
             }
         }else{
-            if(length(color)==NROW(table) && all(is.character(color))){
+            if(identical(color,FALSE)){
+                color <- FALSE
+                color.legend <- FALSE
+            }else if(length(color)==NROW(table) && all(is.character(color))){
                 table$color <- color
                 color <- TRUE
                 color.legend <- TRUE
@@ -383,12 +389,15 @@ autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 
                 shape <- FALSE
                 shape.legend <- FALSE
             }else{
-                table$shape <- test
+                table$shape <- table$test
                 shape <- TRUE
                 shape.legend <- FALSE
             }
         }else{
-            if(length(shape)==NROW(table) && all(is.numeric(shape))){
+            if(identical(shape,FALSE)){
+                shape <- FALSE
+                shape.legend <- FALSE
+            }else if(length(shape)==NROW(table) && all(is.numeric(shape))){
                 table$shape <- as.character(shape)
                 shape <- TRUE
                 shape.legend <- TRUE
@@ -400,7 +409,7 @@ autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 
         table$test <- as.factor(table$test)
         table$names <- factor(table$names, levels = unique(table$names)) ## ensure same ordering as in the object (instead of alphabetical ordering)
         if(color & shape){
-            gg <- ggplot2::ggplot(table, ggplot2::aes_string(x = "names", y = "estimate", color = "color", shape = "shape")) + ggplot2::labs(color = "")
+            gg <- ggplot2::ggplot(table, ggplot2::aes_string(x = "names", y = "estimate", color = "color", shape = "shape")) + ggplot2::labs(color = "", shape = "")
         }else if(color){
             gg <- ggplot2::ggplot(table, ggplot2::aes_string(x = "names", y = "estimate", color = "color")) + ggplot2::labs(color = "")
         }else if(shape){
@@ -431,6 +440,9 @@ autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 
         mid <- add.args$mid
         high <- add.args$high
         midpoint <- add.args$midpoint
+        value.text <- add.args$value.text
+        value.round <- add.args$value.round
+        value.size <- add.args$value.size
 
         Sigma_t <- stats::cov2cor(object$vcov)
         ## from matrix to long format
@@ -461,6 +473,9 @@ autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 
         table$col <- factor(table$col, levels = rev(levels(table$row)))
         gg <- ggplot2::ggplot(table) + ggplot2::geom_tile(ggplot2::aes_string(x="row",y="col",fill="value"))
 
+        if(value.text){
+            gg <- gg + ggplot2::geom_text(ggplot2::aes(x=row, y = col, label = round(value,value.round)), size = value.size)
+        }
         if(!is.null(mid)){
             gg <- gg + ggplot2::scale_fill_gradient2(limits = limits, midpoint = midpoint, low = low, mid = mid, high = high)
         }else{
