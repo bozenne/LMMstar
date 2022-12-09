@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (11:00) 
 ## Version: 
-## Last-Updated: sep  1 2022 (09:20) 
+## Last-Updated: dec  8 2022 (18:42) 
 ##           By: Brice Ozenne
-##     Update #: 84
+##     Update #: 88
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -145,6 +145,12 @@ plot.Wald_lmm <- function(x, ...){
 ##' @export
 plot.partialCor <- function(x, ...){
     autoplot.partialCor(x, ...)
+}
+
+## * plot (code)
+##' @export
+plot.summarizeNA <- function(x, ...){
+    autoplot.summarizeNA(x, ...)
 }
 
 ##----------------------------------------------------------------------

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: Dec  5 2022 (09:52) 
+## Last-Updated: dec  9 2022 (09:59) 
 ##           By: Brice Ozenne
-##     Update #: 255
+##     Update #: 256
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -34,6 +34,8 @@
 ##' Argument passed to \code{\link{anova.lmm}}.
 ##' @param ci [logical] Should a confidence interval be output for each hypothesis?
 ##' Argument passed to \code{\link{anova.lmm}}.
+##' @param name.short [name.short] use short names for the output coefficients,
+##' e.g. omit the regression variable name when the same regression variable is used in all models.
 ##' @param trace [interger, >0] Show the progress of the execution of the function.
 ##' @param transform.sigma,transform.k,transform.rho,transform.names [character] transformation used on certain type of parameters.
 ##' 

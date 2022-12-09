@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: nov  3 2022 (11:20) 
+## Last-Updated: dec  9 2022 (10:03) 
 ##           By: Brice Ozenne
-##     Update #: 126
+##     Update #: 132
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -93,14 +93,16 @@ test_that("lmm - error due to minus sign in levels of a categorical variable",{
 ## * from: Julie Lyng Forman <jufo@sund.ku.dk> date: Wednesday, 07/07/21 11:00 PM (1/3)
 test_that("lmm - error when predicting due to missing values in the covariates",{
     data(gastricbypassL, package = "LMMstar")
-    e.lmm  <- lmm(weight ~ glucagonAUC, repetition = ~ time|id , structure = "CS", data = gastricbypassL)
+    e.lmm  <- lmm(weight ~ glucagonAUC, repetition = ~ time|id , structure = "CS",
+                  data = gastricbypassL[!is.na(gastricbypassL$glucagonAUC),])
     summary(e.lmm, print = FALSE) ## was bugging at some point
     capture.output(summary(e.lmm, hide.fit = TRUE, hide.sd = TRUE, hide.cor = TRUE)) ## was bugging at some point
     expect_equal(NROW(predict(e.lmm, newdata = gastricbypassL)),NROW(gastricbypassL))
 
     set.seed(10)
     gastricbypassL$Gender <- factor(as.numeric(gastricbypassL$id) %% 2, levels = 0:1, labels = c("M","F"))
-    e2.lmm  <- lmm(weight ~ Gender*glucagonAUC, repetition = Gender ~ time|id , structure = "CS", data = gastricbypassL)
+    e2.lmm  <- lmm(weight ~ Gender*glucagonAUC, repetition = Gender ~ time|id , structure = "CS",
+                   data = gastricbypassL[!is.na(gastricbypassL$glucagonAUC),])
     sigma(e2.lmm)
     summary(e2.lmm, print = FALSE)
 })
@@ -516,6 +518,32 @@ test_that("Start with cluster with single observation", {
     e.lmer <- lmer(Y ~ X1 + (1|id), data = dL[3:19,])
     ## was giving an error
     expect_equal(as.double(coef(e.lmm, effects = "ranef")[,1]),as.double(ranef(e.lmer)$id[,1]), tol = 1e-6)
+
+})
+
+## * from: Brice onsdag 22-12-07 at 16:44
+test_that("Incorrect count of the missing data when duplicated visit within individual", {
+
+    set.seed(10)
+    dL <- sampleRem(2, n.times = 3, format = "long")
+    dL$visit2 <- dL$visit
+    dL$visit2[2] <- "1"
+    dL$Y[2] <- NA
+
+    dLS0 <- summarize(Y ~ 1| id, data = dL[dL$visit==1,], na.rm = TRUE)
+    expect_equal(0, dLS0$missing)
+
+    ## summarize(Y ~ visit, data = dL, na.rm = TRUE)
+    dLS <- summarize(Y ~ visit| id, data = dL, na.rm = TRUE)
+    expect_equal(c(0,1,0), dLS$missing)
+    dLS2 <- summarize(Y ~ visit2| id, data = dL, na.rm = TRUE)
+    expect_equal(c(1,0,0), dLS2$missing)
+
+    
+    summarizeNA(dL)
+    summarizeNA(dL[,c("id","visit","Y")], repetition = ~visit|id)
+    summarizeNA(dL[,c("id","visit","Y","X1")], repetition = ~visit|id)
+    summarizeNA(dL, repetition = ~visit|id)
 
 })
 

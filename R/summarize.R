@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: nov 24 2022 (17:59) 
+## Last-Updated: dec  7 2022 (19:11) 
 ##           By: Brice Ozenne
-##     Update #: 243
+##     Update #: 266
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -101,7 +101,7 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
                       FUN = NULL,
                       which = NULL,
                       skip.reference = TRUE,
-                      digits = NULL,
+                      digits = NULL,                      
                       ...){
 
     data <- as.data.frame(data)
@@ -205,6 +205,20 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
     name.Y <- unique(c(setdiff(name.Y,to.rm),to.add))
     n.Y <- length(name.Y)
 
+    ## ** between and within variables
+    if(!is.null(name.id)){
+        time <- names(which(!test.between)) ## can be several variables
+        if(length(time)==0){
+            table.id.time <- do.call(table,stats::setNames(list(data[[name.id]],rep(1,NROW(data))),c(name.id,"XXXXXX")))
+        }else{
+            table.id.time <- do.call(table,stats::setNames(c(list(data[[name.id]]),data[,name.X,drop=FALSE]),
+                                                           c(name.id,name.X)))
+        }
+    }else{
+        table.id.time <- NULL
+    }
+        
+    
     ## ** compute summary statistics
     out <- NULL
     iFormula <- stats::update(formula2, paste0("XXindexXX~."))
@@ -218,14 +232,15 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
             n.obs <- sum(!is.na(y))
             n.missing <- sum(is.na(y))
             ## as missing rows in the dataset
-            if(!is.null(name.id) && ("missing" %in% columns || "pc.missing" %in% columns)){
+            if(!is.null(table.id.time) && all(table.id.time %in% 0:1) && ("missing" %in% columns || "pc.missing" %in% columns)){
+
                 if(any(test.between)){
                     iIndex <- which(names(ls.id)==levels(interaction(data[x,names(which(test.between))], drop = TRUE)))
                     n.missing <- n.missing + sum(ls.id[[iIndex]] %in% unique(as.character(data[x,name.id])) == FALSE)
-
                 }else{
                     n.missing <- n.missing + sum(ls.id[[1]] %in% unique(as.character(data[x,name.id])) == FALSE)
                 }
+
             }
 
             ## *** gather
@@ -243,7 +258,7 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
             }else{
                 wty <- list(estimate = NA, parameter = NA, stderr = NA, conf.int = c(NA, NA))
             }
-            
+
             if(all(is.na(y))){ ## avoid warning when taking min(), e.g. min(NA, na.rm = TRUE)
                 iVec <- c("observed" = n.obs,
                           "missing" = n.missing,
@@ -298,12 +313,10 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
         
         out <- rbind(out,iDF)
     }
+
     ## ** correlation
     if(!is.null(name.id) && any(!test.between) && "correlation" %in% columns){ ## id and time variables
 
-        time <- names(which(!test.between)) ## can be several variables
-        table.id.time <- do.call(table,stats::setNames(c(list(data[[name.id]]),data[,name.X,drop=FALSE]),
-                                                       c(name.id,name.X)))
         if(length(time)>1 && paste(time, collapse = "_X_XX_X_") %in% names(data)){
             stop("Argument \'data\' should not contain a column named \"",paste(time, collapse = "_X_XX_X_"),"\" as this name is used internally. \n")
         }
@@ -351,47 +364,7 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
     return(out)
 }
 
-## * print.summarize
-#' @export
-print.summarize <- function(x,...){
-    ## remove duplicated values
-    if(length(unique(x$outcome))==1){
-        x$outcome <- NULL
-    }else{
-        x$outcome[duplicated(x$outcome)] <- ""
-    }
-    name.X <-  attr(x,"name.X")
-    if(length(name.X)>0){
-        for(iX in name.X){ ## iX <- name.X[2]
-            iX.value <- as.numeric(as.factor(x[[iX]]))
-            iLevels <- cumsum(iX.value!=c(0,iX.value[-length(iX.value)]))
-            if(any(duplicated(iLevels))){
-                x[[iX]] <- as.character(x[[iX]])
-                x[[iX]][duplicated(iLevels)] <- ""
-            }
-        }
-    }
 
-    if(!is.null(attr(x,"digits")) && ("digits" %in% names(list(...)) == FALSE)){
-        print(as.data.frame(x), digits = attr(x,"digits"), ...)
-    }else{
-        print(as.data.frame(x), ...)
-    }
-    if(!is.null(attr(x,"correlation"))){
-        cat("\n Pearson's correlation: \n")
-        ls.cor <- attr(x,"correlation")
-        if(length(ls.cor)==1){ ## outcome
-            ls.cor <- ls.cor[[1]]
-            if(length(ls.cor)==1){ ## group
-                ls.cor <- ls.cor[[1]]
-            }
-        }else{
-            ls.cor <- unlist(ls.cor, recursive = FALSE)
-        }
-        print(ls.cor, ...)
-    }
-    return(invisible(NULL))
-}
 
 ######################################################################
 ### summarize.R ends here
