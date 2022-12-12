@@ -13,6 +13,7 @@ mlmm(
   robust = NULL,
   df = TRUE,
   ci = TRUE,
+  name.short = TRUE,
   transform.sigma = NULL,
   transform.k = NULL,
   transform.rho = NULL,
@@ -43,6 +44,8 @@ Argument passed to \code{\link{anova.lmm}}.}
 
 \item{ci}{[logical] Should a confidence interval be output for each hypothesis?
 Argument passed to \code{\link{anova.lmm}}.}
+
+\item{name.short}{[logical] Remove reference to the model parameter in the name of each hypothesis when the same for all hypotheses.}
 
 \item{transform.sigma, transform.k, transform.rho, transform.names}{[character] transformation used on certain type of parameters.}
 

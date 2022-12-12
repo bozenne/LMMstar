@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: Dec  5 2022 (10:37) 
+## Last-Updated: Dec 12 2022 (09:56) 
 ##           By: Brice Ozenne
-##     Update #: 334
+##     Update #: 335
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -471,10 +471,12 @@ autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 
         }
         table$row <- factor(table$row, levels = unique(table$row))
         table$col <- factor(table$col, levels = rev(levels(table$row)))
+        table$rvalue <- round(table$value, digits = value.round)
         gg <- ggplot2::ggplot(table) + ggplot2::geom_tile(ggplot2::aes_string(x="row",y="col",fill="value"))
 
         if(value.text){
-            gg <- gg + ggplot2::geom_text(ggplot2::aes(x=row, y = col, label = round(value,value.round)), size = value.size)
+            
+            gg <- gg + ggplot2::geom_text(ggplot2::aes_string(x = "row", y = "col", label = "rvalue"), size = value.size)
         }
         if(!is.null(mid)){
             gg <- gg + ggplot2::scale_fill_gradient2(limits = limits, midpoint = midpoint, low = low, mid = mid, high = high)
