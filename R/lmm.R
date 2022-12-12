@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: nov  8 2022 (11:15) 
+## Last-Updated: dec  9 2022 (10:02) 
 ##           By: Brice Ozenne
-##     Update #: 2056
+##     Update #: 2069
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -502,6 +502,7 @@ lmm <- function(formula, repetition, structure, data,
     }
     out$formula <- list(mean = formula,
                         mean.design = formula.design)
+
     if(trace>=2){cat("\n")}
 
     ## *** residual variance-covariance structure
@@ -606,6 +607,22 @@ lmm <- function(formula, repetition, structure, data,
             stop("Variable \"",var.na,"\" contains only missing data. \n")
         }else{
             stop("Variables \"",paste(var.na, collapse="\" \""),"\" contain only missing data. \n")
+        }
+    }
+
+    test.naOutcome <- is.na(data[[var.outcome]])
+    test.naOther <- rowSums(is.na(data[setdiff(var.all,var.outcome)]))>0
+    if( any(test.naOther > test.naOutcome) ){
+        index.row <- which(test.naOther > test.naOutcome)
+        test.naOther2 <- colSums(is.na(data[index.row,setdiff(var.all,var.outcome),drop=FALSE]))
+        name.naOther2 <- names(test.naOther2)[test.naOther2>0]
+
+        if(length(name.naOther2)==1){
+            warning("Can only handle missing values in the outcome variable. \n",
+                    "Observation(s) with missing values in \"",name.naOther2,"\" will be removed. \n")
+        }else{
+            warning("Can only handle missing values in the outcome variable. \n",
+                    "Observation(s) with missing values in \"",paste(name.naOther2, collapse="\" \""),"\" will be removed. \n")
         }
     }
 

@@ -1,8 +1,8 @@
 Package: LMMstar
 Type: Package
 Title: Repeated Measurement Models for Discrete Times
-Version: 0.8.9
-Date: 2022-12-12
+Version: 0.8.10
+Date: 2022-12-09
 Authors@R: c(
     person("Brice", "Ozenne", role = c("aut", "cre"), email = "brice.mh.ozenne@gmail.com", comment = c(ORCID = "0000-0001-9694-2956")),
     person("Julie", "Forman", role = "aut", email = "jufo@sund.ku.dk", comment = c(ORCID = "0000-0001-7368-0869"))
@@ -109,6 +109,7 @@ Collate:
     'structure-skeleton.R'
     'structure.R'
     'summarize.R'
+    'summarizeNA.R'
     'summary.R'
     'terms.R'
     'unorderedPairs.R'

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: Dec 12 2022 (09:56) 
+## Last-Updated: Dec 12 2022 (11:49) 
 ##           By: Brice Ozenne
-##     Update #: 335
+##     Update #: 353
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -446,7 +446,7 @@ autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 
 
         Sigma_t <- stats::cov2cor(object$vcov)
         ## from matrix to long format
-        table <- as.data.frame(cbind(which(is.na(NA*Sigma_t), arr.ind = TRUE),value = as.numeric(Sigma_t)))
+        table <- as.data.frame(cbind(which(is.na(NA*Sigma_t), arr.ind = TRUE), value = as.numeric(Sigma_t)))
         rownames(table) <- NULL
 
         ## rename
@@ -475,7 +475,6 @@ autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 
         gg <- ggplot2::ggplot(table) + ggplot2::geom_tile(ggplot2::aes_string(x="row",y="col",fill="value"))
 
         if(value.text){
-            
             gg <- gg + ggplot2::geom_text(ggplot2::aes_string(x = "row", y = "col", label = "rvalue"), size = value.size)
         }
         if(!is.null(mid)){
@@ -555,6 +554,66 @@ autoplot.partialCor <- function(object, plot = TRUE, size.text = 16,
     ## ** export
     return(invisible(list(data = table,
                           plot = gg)))
+}
+
+## * autoplot.summarizeNA (documentation)
+##' @title Graphical Display of Missing Data Pattern
+##' @description Graphical representation of the possible missing data patterns in the dataset.
+##'
+##' @param object a \code{summarizeNA} object, output of the \code{\link{summarizeNA}} function.
+##' @param plot [logical] should the plot be displayed?
+##' @param size.text [numeric, >0] size of the font used to display text.
+##' @param add.missing [logical] should the number of missing values per variable be added to the x-axis tick labels.
+##' @param ... Not used. For compatibility with the generic method.
+##'
+##' @return A list with two elements \itemize{
+##' \item \code{data}: data used to create the graphical display.
+##' \item \code{plot}: ggplot object.
+##' }
+##'
+
+## * autoplot.summarizeNA (code)
+##' @export
+autoplot.summarizeNA <- function(object, plot = TRUE, size.text = 16,
+                                 add.missing = " missing", ...){
+
+    newnames <- attr(object,"args")$newnames
+    keep.data <- attr(object,"args")$keep.data
+    
+    if(keep.data == FALSE){
+        stop("Argument \'keep.data\' should be set to TRUE when calling summarizeNA to obtain a graphical display. \n")
+    }
+
+    keep.cols <- setdiff(names(object),newnames)
+    data <- as.data.frame(object[,c(newnames[3],keep.cols),drop=FALSE])
+    dataL <- stats::reshape(data, direction = "long", idvar = newnames[3], varying = keep.cols,
+                            v.names = newnames[[2]],
+                            timevar = newnames[[1]])
+
+    nObs.pattern <- stats::setNames(object[[newnames[2]]], object[[newnames[3]]])
+    nNA.Var <- colSums(data[,keep.cols,drop=FALSE])
+
+    if(!is.null(add.missing) && !is.na(add.missing) && !identical(FALSE,add.missing)){
+        dataL[[newnames[1]]] <- factor(dataL[[newnames[1]]], labels = paste0(keep.cols,"\n(",nNA.Var,add.missing,")"))
+    }else{
+        dataL[[newnames[1]]] <- factor(dataL[[newnames[1]]], labels = keep.cols)
+    }
+    dataL[[newnames[2]]] <- factor(dataL[[newnames[2]]], levels = 1:0, labels = c("yes","no"))
+
+
+    gg.NA <- ggplot2::ggplot(dataL, ggplot2::aes_string(y = newnames[3], x = newnames[1], fill = newnames[2]))
+    gg.NA <- gg.NA + ggplot2::geom_tile(color = "black")
+    gg.NA <- gg.NA + ggplot2::scale_y_discrete(breaks = unique(dataL[[newnames[3]]]), labels = nObs.pattern[unique(dataL[[newnames[3]]])])
+    gg.NA <- gg.NA + ggplot2::labs(fill = "missing", x = "", y = "number of observations")
+    gg.NA <- gg.NA + ggplot2::theme(text = ggplot2::element_text(size=size.text))
+
+    if(plot){
+        print(gg.NA)
+    }
+
+    ## ** export
+    return(invisible(list(data = dataL,
+                          plot = gg.NA)))
 }
 ##----------------------------------------------------------------------
 ### autoplot.R ends here

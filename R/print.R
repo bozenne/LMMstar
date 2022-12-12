@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: Nov 12 2022 (16:15) 
+## Last-Updated: dec  8 2022 (18:41) 
 ##           By: Brice Ozenne
-##     Update #: 199
+##     Update #: 213
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -280,5 +280,68 @@ print.resample <- function(x, digits = 3, ...){
     return(invisible(NULL))
 }
 
+## * print.summarize
+#' @export
+print.summarize <- function(x,...){
+    ## remove duplicated values
+    if(length(unique(x$outcome))==1){
+        x$outcome <- NULL
+    }else{
+        x$outcome[duplicated(x$outcome)] <- ""
+    }
+    name.X <-  attr(x,"name.X")
+    if(length(name.X)>0){
+        for(iX in name.X){ ## iX <- name.X[2]
+            iX.value <- as.numeric(as.factor(x[[iX]]))
+            iLevels <- cumsum(iX.value!=c(0,iX.value[-length(iX.value)]))
+            if(any(duplicated(iLevels))){
+                x[[iX]] <- as.character(x[[iX]])
+                x[[iX]][duplicated(iLevels)] <- ""
+            }
+        }
+    }
+
+    if(!is.null(attr(x,"digits")) && ("digits" %in% names(list(...)) == FALSE)){
+        print(as.data.frame(x), digits = attr(x,"digits"), ...)
+    }else{
+        print(as.data.frame(x), ...)
+    }
+    if(!is.null(attr(x,"correlation"))){
+        cat("\n Pearson's correlation: \n")
+        ls.cor <- attr(x,"correlation")
+        if(length(ls.cor)==1){ ## outcome
+            ls.cor <- ls.cor[[1]]
+            if(length(ls.cor)==1){ ## group
+                ls.cor <- ls.cor[[1]]
+            }
+        }else{
+            ls.cor <- unlist(ls.cor, recursive = FALSE)
+        }
+        print(ls.cor, ...)
+    }
+    return(invisible(NULL))
+}
+
+## * print.summarizeNA
+#' @export
+print.summarizeNA <- function(x,...){
+
+    ## total <- c(list(frequency = NA), list(missing.pattern = "any"), as.list(colSums(sweep(x[,-(1:2)], FUN = "*", MARGIN = 1, STATS = x$frequency))))
+    newx <- x
+    newnames <- attr(x, "args")$newnames
+
+    if(newnames[1] %in% names(x)){
+        newx[[newnames[1]]][duplicated(x[[newnames[1]]])] <- ""
+    }
+
+    ## newx <- rbind(x, as.data.frame(total))
+    toprint <- format.data.frame(newx, digits = NULL, na.encode = FALSE)
+    toprint[is.na(newx)] <- NA
+    print(toprint, na.print="", quote=FALSE, row.names = FALSE)
+
+    
+    return(NULL)
+    
+}
 ##----------------------------------------------------------------------
 ### print.R ends here
