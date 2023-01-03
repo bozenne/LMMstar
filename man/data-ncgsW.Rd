@@ -13,13 +13,13 @@ a randomized study where the level of serum cholesterol was measured at baseline
 This dataset is in the wide format (i.e. one line per patient).
 
 \itemize{
-\item group Treatment group: highdose or placebo.
-\item id Patient identifier
-\item cholest1 cholesterol measurement at baseline (before treatment).
-\item cholest2 cholesterol measurement at 6 months (after treatment).
-\item cholest3 cholesterol measurement at 12 months (after treatment).
-\item cholest4 cholesterol measurement at 20 months (after treatment).
-\item cholest5 cholesterol measurement at 24 months (after treatment).
+\item \code{group}: treatment group (highdose or placebo).
+\item \code{id}: patient identifier.
+\item \code{cholest1}: cholesterol measurement at baseline (before treatment).
+\item \code{cholest2}: cholesterol measurement at 6 months (after treatment).
+\item \code{cholest3}: cholesterol measurement at 12 months (after treatment).
+\item \code{cholest4}: cholesterol measurement at 20 months (after treatment).
+\item \code{cholest5}: cholesterol measurement at 24 months (after treatment).
 }
 }
 \references{

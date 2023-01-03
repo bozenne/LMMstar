@@ -15,11 +15,11 @@ Then the VAS-score (pain sensation on a 0-100mm visual analogue scale) was asses
 This dataset is in the wide format (i.e. one line per patient).
 
 \itemize{
-\item id Patient identifier.
-\item group Treatment group to which the patient has been randomized.
-\item vasA VAS-score when using a zink shower gel.
-\item vasB VAS-score when using a placebo treatment (shower gel without zink).
-\item vasC VAS-score when using a control treatment with demineralized water.
+\item \code{id}: patient identifier.
+\item \code{group}: treatment group to which the patient has been randomized.
+\item \code{vasA}: VAS-score when using a zink shower gel.
+\item \code{vasB}: VAS-score when using a placebo treatment (shower gel without zink).
+\item \code{vasC}: VAS-score when using a control treatment with demineralized water.
 }
 }
 \references{

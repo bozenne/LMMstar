@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: dec  9 2022 (09:59) 
+## Last-Updated: jan  3 2023 (17:54) 
 ##           By: Brice Ozenne
-##     Update #: 256
+##     Update #: 265
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -44,8 +44,12 @@
 ##' This transformation may cause inconsistency when combining results between different \code{lmm} object. 
 ##' This is why the grouping variable should preferably be of type character or factor.
 ##' 
+##' @seealso
+##' \code{\link{confint.mlmm}} for a data.frame containing estimates with their uncertainty. \cr
+##' \code{\link{summary.mlmm}} for a summary of the model and estimates. \cr
+##' \code{\link{autoplot.Wald_lmm}} for a graphical display. \cr
+##' 
 ##' @examples
-##'
 ##' #### univariate regression ####
 ##' if(require(lava)){
 ##' 
@@ -246,6 +250,7 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
         cat(" - univariate test\n")
     }
     ls.anova <- stats::setNames(lapply(name.lmm, function(iName){ ## iName <- name.lmm[1]
+
         if(is.null(robust)){
             anova(ls.lmm[[iName]], effects = ls.Cmat[[iName]], rhs = rhs[[iName]], df = df, ci = ci,
                   transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
@@ -253,6 +258,7 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
             anova(ls.lmm[[iName]], effects = ls.Cmat[[iName]], rhs = rhs[[iName]], robust = robust, df = df, ci = ci,
                   transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
         }
+
     }), name.lmm)
 
     ## ** joint inference

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: dec  9 2022 (18:14) 
+## Last-Updated: jan  3 2023 (17:44) 
 ##           By: Brice Ozenne
-##     Update #: 352
+##     Update #: 363
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,7 +16,7 @@
 ### Code:
 
 ## * autoplot.lmm (documentation)
-##' @title Graphical Display For Linear Mixed Models
+##' @title Display Fitted values of Linear Mixed Models
 ##'
 ##' @param object a \code{lmm} object.
 ##' @param at [data.frame] values for the covariates at which to evaluate the fitted values.
@@ -37,6 +37,27 @@
 ##' \item \code{data}: data used to create the graphical display.
 ##' \item \code{plot}: ggplot object.
 ##' }
+##'
+##' @seealso
+##' \code{\link{plot.lmm}} for other graphical display (residual plots, partial residual plots).
+##'
+##' @examples
+##' if(require(ggplot2)){
+##' 
+##' #### simulate data in the long format ####
+##' set.seed(10)
+##' dL <- sampleRem(100, n.times = 3, format = "long")
+##' dL$X1 <- as.factor(dL$X1)
+##' 
+##' #### fit Linear Mixed Model ####
+##' eCS.lmm <- lmm(Y ~ visit + X1,
+##'                repetition = ~visit|id, structure = "CS", data = dL, df = FALSE)
+##' 
+##' autoplot(eCS.lmm)
+##' autoplot(eCS.lmm, plot = FALSE)$plot + facet_wrap(~X1)
+##' }
+
+
 
 
 ## * autoplot.lmm (code)
@@ -234,6 +255,138 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5),
     ## ** export
     return(invisible(list(data = preddata,
                           plot = gg)))
+}
+
+## * autoplot.partialCor (documentation)
+##' @title Graphical Display For Partial Correlation
+##' @description Extract and display the correlation modeled via the linear mixed model.
+##'
+##' @param object a \code{partialCor} object.
+##' @param plot [logical] should the plot be displayed?
+##' @param size.text [numeric, >0] size of the font used to display text.
+##' @param limits [numeric vector of length 2] minimum and maximum value of the colorscale relative to the correlation.
+##' @param low,mid,high [character] color for the the colorscale relative to the correlation.
+##' @param midpoint [numeric] correlation value associated with the color defined by argument \code{mid}.
+##' @param ... Not used. For compatibility with the generic method.
+##'
+##' @return A list with two elements \itemize{
+##' \item \code{data}: data used to create the graphical display.
+##' \item \code{plot}: ggplot object.
+##' }
+##' 
+##' @examples
+##' if(require(ggplot2)){
+##' data(gastricbypassL, package = "LMMstar")
+##' 
+##' e.pCor <- partialCor(c(weight,glucagonAUC)~time, repetition = ~visit|id,
+##'                      data = gastricbypassL)
+##' autoplot(e.pCor)
+##' }
+##' 
+
+## * autoplot.partialCor (code)
+##' @export
+autoplot.partialCor <- function(object, plot = TRUE, size.text = 16,
+                                limits = c(-1,1.00001), low = "blue", mid = "white", high = "red", midpoint = 0, ...){
+
+    object.lmm <- attr(object,"lmm")
+    Sigma_t <- sigma(object.lmm)
+    name.time <- object.lmm$time$levels
+    if(!is.matrix(Sigma_t)){
+        stop("Could not extract a unique covariance matrix. \n")
+    }
+    Sigma_t <- stats::cov2cor(Sigma_t)
+        
+    ## from matrix to long format
+    table <- as.data.frame(cbind(which(is.na(NA*Sigma_t), arr.ind = TRUE),value = as.numeric(Sigma_t)))
+    rownames(table) <- NULL
+    table$col <- factor(colnames(Sigma_t)[table$col], levels = name.time)
+    table$row <- factor(rownames(Sigma_t)[table$row], levels = name.time)
+    
+    gg <- ggplot2::ggplot(table) + ggplot2::geom_tile(ggplot2::aes_string(x="row",y="col",fill="value"))
+
+    if(!is.null(mid)){
+        gg <- gg + ggplot2::scale_fill_gradient2(limits = limits, midpoint = midpoint, low = low, mid = mid, high = high)
+    }else{
+        gg <- gg + ggplot2::scale_fill_gradient(limits = limits, low = low, high = high)
+    }
+    gg <- gg + ggplot2::labs(x = NULL, y = NULL, fill = "correlation") + ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5, hjust=1))
+        
+    gg <- gg + ggplot2::theme(text = ggplot2::element_text(size=size.text))
+
+    ## ** display
+    if(plot){
+        print(gg)
+    }
+
+    ## ** export
+    return(invisible(list(data = table,
+                          plot = gg)))
+}
+
+## * autoplot.summarizeNA (documentation)
+##' @title Graphical Display of Missing Data Pattern
+##' @description Graphical representation of the possible missing data patterns in the dataset.
+##'
+##' @param object a \code{summarizeNA} object, output of the \code{\link{summarizeNA}} function.
+##' @param plot [logical] should the plot be displayed?
+##' @param size.text [numeric, >0] size of the font used to display text.
+##' @param add.missing [logical] should the number of missing values per variable be added to the x-axis tick labels.
+##' @param ... Not used. For compatibility with the generic method.
+##'
+##' @return A list with two elements \itemize{
+##' \item \code{data}: data used to create the graphical display.
+##' \item \code{plot}: ggplot object.
+##' }
+##' 
+##' @examples
+##' if(require(ggplot2)){
+##' data(gastricbypassL, package = "LMMstar")
+##' autoplot(summarizeNA(gastricbypassL))
+##' }
+
+## * autoplot.summarizeNA (code)
+##' @export
+autoplot.summarizeNA <- function(object, plot = TRUE, size.text = 16,
+                                 add.missing = " missing", ...){
+
+    newnames <- attr(object,"args")$newnames
+    keep.data <- attr(object,"args")$keep.data
+    
+    if(keep.data == FALSE){
+        stop("Argument \'keep.data\' should be set to TRUE when calling summarizeNA to obtain a graphical display. \n")
+    }
+
+    keep.cols <- setdiff(names(object),newnames)
+    data <- as.data.frame(object[,c(newnames[3],keep.cols),drop=FALSE])
+    dataL <- stats::reshape(data, direction = "long", idvar = newnames[3], varying = keep.cols,
+                            v.names = newnames[[2]],
+                            timevar = newnames[[1]])
+
+    nObs.pattern <- stats::setNames(object[[newnames[2]]], object[[newnames[3]]])
+    nNA.Var <- colSums(data[,keep.cols,drop=FALSE])
+
+    if(!is.null(add.missing) && !is.na(add.missing) && !identical(FALSE,add.missing)){
+        dataL[[newnames[1]]] <- factor(dataL[[newnames[1]]], labels = paste0(keep.cols,"\n(",nNA.Var,add.missing,")"))
+    }else{
+        dataL[[newnames[1]]] <- factor(dataL[[newnames[1]]], labels = keep.cols)
+    }
+    dataL[[newnames[2]]] <- factor(dataL[[newnames[2]]], levels = 1:0, labels = c("yes","no"))
+
+
+    gg.NA <- ggplot2::ggplot(dataL, ggplot2::aes_string(y = newnames[3], x = newnames[1], fill = newnames[2]))
+    gg.NA <- gg.NA + ggplot2::geom_tile(color = "black")
+    gg.NA <- gg.NA + ggplot2::scale_y_discrete(breaks = unique(dataL[[newnames[3]]]), labels = nObs.pattern[unique(dataL[[newnames[3]]])])
+    gg.NA <- gg.NA + ggplot2::labs(fill = "missing", x = "", y = "number of observations")
+    gg.NA <- gg.NA + ggplot2::theme(text = ggplot2::element_text(size=size.text))
+
+    if(plot){
+        print(gg.NA)
+    }
+
+    ## ** export
+    return(invisible(list(data = dataL,
+                          plot = gg.NA)))
 }
 
 ## * autoplot.Wald_lmm (documentation)
@@ -498,122 +651,6 @@ autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 
 }
 
 
-## * autoplot.partialCor (documentation)
-##' @title Graphical Display For Partial Correlation
-##' @description Extract and display the correlation modeled via the linear mixed model.
-##'
-##' @param object a \code{partialCor} object.
-##' @param plot [logical] should the plot be displayed?
-##' @param size.text [numeric, >0] size of the font used to display text.
-##' @param limits [numeric vector of length 2] minimum and maximum value of the colorscale relative to the correlation.
-##' @param low,mid,high [character] color for the the colorscale relative to the correlation.
-##' @param midpoint [numeric] correlation value associated with the color defined by argument \code{mid}.
-##' @param ... Not used. For compatibility with the generic method.
-##'
-##' @return A list with two elements \itemize{
-##' \item \code{data}: data used to create the graphical display.
-##' \item \code{plot}: ggplot object.
-##' }
-##'
 
-## * autoplot.partialCor (code)
-##' @export
-autoplot.partialCor <- function(object, plot = TRUE, size.text = 16,
-                                limits = c(-1,1.00001), low = "blue", mid = "white", high = "red", midpoint = 0, ...){
-
-    object.lmm <- attr(object,"lmm")
-    Sigma_t <- sigma(object.lmm)
-    name.time <- object.lmm$time$levels
-    if(!is.matrix(Sigma_t)){
-        stop("Could not extract a unique covariance matrix. \n")
-    }
-    Sigma_t <- stats::cov2cor(Sigma_t)
-        
-    ## from matrix to long format
-    table <- as.data.frame(cbind(which(is.na(NA*Sigma_t), arr.ind = TRUE),value = as.numeric(Sigma_t)))
-    rownames(table) <- NULL
-    table$col <- factor(colnames(Sigma_t)[table$col], levels = name.time)
-    table$row <- factor(rownames(Sigma_t)[table$row], levels = name.time)
-    
-    gg <- ggplot2::ggplot(table) + ggplot2::geom_tile(ggplot2::aes_string(x="row",y="col",fill="value"))
-
-    if(!is.null(mid)){
-        gg <- gg + ggplot2::scale_fill_gradient2(limits = limits, midpoint = midpoint, low = low, mid = mid, high = high)
-    }else{
-        gg <- gg + ggplot2::scale_fill_gradient(limits = limits, low = low, high = high)
-    }
-    gg <- gg + ggplot2::labs(x = NULL, y = NULL, fill = "correlation") + ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5, hjust=1))
-        
-    gg <- gg + ggplot2::theme(text = ggplot2::element_text(size=size.text))
-
-    ## ** display
-    if(plot){
-        print(gg)
-    }
-
-    ## ** export
-    return(invisible(list(data = table,
-                          plot = gg)))
-}
-
-## * autoplot.summarizeNA (documentation)
-##' @title Graphical Display of Missing Data Pattern
-##' @description Graphical representation of the possible missing data patterns in the dataset.
-##'
-##' @param object a \code{summarizeNA} object, output of the \code{\link{summarizeNA}} function.
-##' @param plot [logical] should the plot be displayed?
-##' @param size.text [numeric, >0] size of the font used to display text.
-##' @param add.missing [logical] should the number of missing values per variable be added to the x-axis tick labels.
-##' @param ... Not used. For compatibility with the generic method.
-##'
-##' @return A list with two elements \itemize{
-##' \item \code{data}: data used to create the graphical display.
-##' \item \code{plot}: ggplot object.
-##' }
-##'
-
-## * autoplot.summarizeNA (code)
-##' @export
-autoplot.summarizeNA <- function(object, plot = TRUE, size.text = 16,
-                                 add.missing = " missing", ...){
-
-    newnames <- attr(object,"args")$newnames
-    keep.data <- attr(object,"args")$keep.data
-    
-    if(keep.data == FALSE){
-        stop("Argument \'keep.data\' should be set to TRUE when calling summarizeNA to obtain a graphical display. \n")
-    }
-
-    keep.cols <- setdiff(names(object),newnames)
-    data <- as.data.frame(object[,c(newnames[3],keep.cols),drop=FALSE])
-    dataL <- stats::reshape(data, direction = "long", idvar = newnames[3], varying = keep.cols,
-                            v.names = newnames[[2]],
-                            timevar = newnames[[1]])
-
-    nObs.pattern <- stats::setNames(object[[newnames[2]]], object[[newnames[3]]])
-    nNA.Var <- colSums(data[,keep.cols,drop=FALSE])
-
-    if(!is.null(add.missing) && !is.na(add.missing) && !identical(FALSE,add.missing)){
-        dataL[[newnames[1]]] <- factor(dataL[[newnames[1]]], labels = paste0(keep.cols,"\n(",nNA.Var,add.missing,")"))
-    }else{
-        dataL[[newnames[1]]] <- factor(dataL[[newnames[1]]], labels = keep.cols)
-    }
-    dataL[[newnames[2]]] <- factor(dataL[[newnames[2]]], levels = 1:0, labels = c("yes","no"))
-
-
-    gg.NA <- ggplot2::ggplot(dataL, ggplot2::aes_string(y = newnames[3], x = newnames[1], fill = newnames[2]))
-    gg.NA <- gg.NA + ggplot2::geom_tile(color = "black")
-    gg.NA <- gg.NA + ggplot2::scale_y_discrete(breaks = unique(dataL[[newnames[3]]]), labels = nObs.pattern[unique(dataL[[newnames[3]]])])
-    gg.NA <- gg.NA + ggplot2::labs(fill = "missing", x = "", y = "number of observations")
-    gg.NA <- gg.NA + ggplot2::theme(text = ggplot2::element_text(size=size.text))
-
-    if(plot){
-        print(gg.NA)
-    }
-
-    ## ** export
-    return(invisible(list(data = dataL,
-                          plot = gg.NA)))
-}
 ##----------------------------------------------------------------------
 ### autoplot.R ends here

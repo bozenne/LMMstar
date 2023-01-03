@@ -26,3 +26,9 @@ A list with two elements \itemize{
 \description{
 Graphical representation of the possible missing data patterns in the dataset.
 }
+\examples{
+if(require(ggplot2)){
+data(gastricbypassL, package = "LMMstar")
+autoplot(summarizeNA(gastricbypassL))
+}
+}

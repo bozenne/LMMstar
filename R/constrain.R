@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 17 2022 (05:36) 
 ## Version: 
-## Last-Updated: okt 31 2022 (18:21) 
+## Last-Updated: jan  3 2023 (17:08) 
 ##           By: Brice Ozenne
-##     Update #: 49
+##     Update #: 65
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -38,6 +38,7 @@
 
     ## ** refit model
     x$design$param[x$design$param$name %in% name.effects,"fixed"] <- TRUE
+
     eee <- .estimate(design = x$design, time = x$time, method.fit = x$method.fit, type.information = x$type.information,
                      transform.sigma = x$reparametrize$transform.sigma, transform.k = x$reparametrize$transform.k, transform.rho = x$reparametrize$transform.rho,
                      precompute.moments = "precompute.XX" %in% names(x$design),

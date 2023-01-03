@@ -20,7 +20,14 @@
 \arguments{
 \item{x}{a \code{lmm} object.}
 
-\item{type}{[character] the type of plot: \code{"fit"}, \code{"qqplot"}, \code{"correlation"}, \code{"scatterplot"}, \code{"scatterplot2"}, \code{"partial"}.}
+\item{type}{[character] the type of plot \itemize{
+\item \code{"fit"}: fitted values over repetitions.
+\item \code{"qqplot"}: quantile quantile plot of the normalized residuals
+\item \code{"correlation"}: residual correlation over repetitions
+\item \code{"scatterplot"}: normalized residuals vs. fitted values (diagnostic for missing non-linear effects),
+\item \code{"scatterplot2"}: square root of the normalized residuals vs. fitted values (diagnostic for heteroschedasticity),
+\item \code{"partial"}: partial residual plot.
+}}
 
 \item{type.residual}{[character] the type of residual to be used. Not relevant for \code{type="fit"}.
 By default, normalized residuals are used except when requesting a partial residual plot.}
@@ -52,4 +59,20 @@ Can also display quantile-quantile plot relative to the normal distribution.
 }
 \details{
 Call \code{\link{autoplot.lmm}} when code{type=="fit"} and \code{\link{residuals.lmm}} for the other types.
+}
+\examples{
+set.seed(10)
+dL <- sampleRem(100, n.times = 3, format = "long")
+dL$X1 <- as.factor(dL$X1)
+
+eCS.lmm <- lmm(Y ~ visit + X1,
+               repetition = ~visit|id, structure = "CS", data = dL, df = FALSE)
+plot(eCS.lmm, type = "fit")
+plot(eCS.lmm, type = "qqplot") ## engine.qqplot = "qqtest"
+plot(eCS.lmm, type = "correlation") 
+plot(eCS.lmm, type = "scatterplot") 
+plot(eCS.lmm, type = "scatterplot2") 
+plot(eCS.lmm, type = "partial", type.residual = "visit") 
+plot(eCS.lmm, type = "partial", type.residual = "X1") 
+
 }

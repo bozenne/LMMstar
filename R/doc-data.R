@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: Dec  4 2022 (16:20) 
+## Last-Updated: jan  3 2023 (15:57) 
 ##           By: Brice Ozenne
-##     Update #: 111
+##     Update #: 119
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,17 +26,17 @@
 #' This dataset is in the wide format (i.e. one line per participant).
 #'
 #' \itemize{
-#' \item id Study participant
-#' \item sex M/F
-#' \item age in years
-#' \item group Bipolar disorder (BD) or healthy control (HC)
-#' \item episode Whether the patient experience an affective episode during follow-up.
-#' \item fast0,fast1 Functioning assessment short test at baseline and follow-up
-#' \item qol0,qol1 WHO quality of life score at baseline and follow-up
-#' \item pss0,pss1 Perceived stress score at baseline and follow-up
-#' \item educationyears Years of education including basic school.
-#' \item alcohol Daily alcohol consumption.
-#' \item missingreason Reason of drop out or missed visit
+#' \item \code{id}: study participant.
+#' \item \code{sex}: male (M) or female (F).
+#' \item \code{age}: age in years.
+#' \item \code{group}: bipolar disorder (BD) or healthy control (HC).
+#' \item \code{episode}: whether the patient experience an affective episode during follow-up.
+#' \item \code{fast0},\code{fast1}: functioning assessment short test at baseline and follow-up.
+#' \item \code{qol0},\code{qol1}: WHO quality of life score at baseline and follow-up.
+#' \item \code{pss0},\code{pss1}: perceived stress score at baseline and follow-up.
+#' \item \code{educationyears}: years of education including basic school.
+#' \item \code{alcohol}: daily alcohol consumption.
+#' \item \code{missingreason}: reason of drop out or missed visit.
 #' }
 #' 
 #' @docType data
@@ -55,19 +55,19 @@ NULL
 #' This dataset is in the long format (i.e. one line per measurement).
 #'
 #' \itemize{
-#' \item id Study participant.
-#' \item sex M/F.
-#' \item age in years.
-#' \item group Bipolar disorder (BD) or healthy control (HC).
-#' \item episode Whether the patient experience an affective episode during follow-up.
-#' \item visit index of time at which pss, fast, and qol measurements where performed.
-#' \item year time at which pss, fast, and qol measurements where performed.
-#' \item pss Perceived stress score.
-#' \item fast Functioning assessment short test.
-#' \item qol WHO quality of life score.
-#' \item educationyears Years of education including basic school.
-#' \item alcohol Daily alcohol consumption.
-#' \item missingreason Reason of drop out or missed visit.
+#' \item \code{id}: study participant.
+#' \item \code{sex}: male (M) or female (F).
+#' \item \code{age}: age in years.
+#' \item \code{group}: bipolar disorder (BD) or healthy control (HC).
+#' \item \code{episode}: whether the patient experience an affective episode during follow-up.
+#' \item \code{visit}: index of time at which pss, fast, and qol measurements where performed.
+#' \item \code{year}: time at which pss, fast, and qol measurements where performed.
+#' \item \code{pss}: perceived stress score.
+#' \item \code{fast}: functioning assessment short test.
+#' \item \code{qol}: WHO quality of life score.
+#' \item \code{educationyears}: years of education including basic school.
+#' \item \code{alcohol}: daily alcohol consumption.
+#' \item \code{missingreason}: reason of drop out or missed visit.
 #' }
 #' 
 #' @docType data
@@ -86,11 +86,11 @@ NULL
 #' This dataset is in the wide format (i.e. one line per patient).
 #'
 #' \itemize{
-#' \item id Patient identifier.
-#' \item wright1 First measurement made with a Wright peak flow meter.
-#' \item wright2 Second measurement made with a Wright peak flow meter.
-#' \item mini1 First measurement made with a mini Wright peak flow meter.
-#' \item mini2 Second measurement made with a mini Wright peak flow meter.
+#' \item \code{id}: patient identifier.
+#' \item \code{wright1}: first measurement made with a Wright peak flow meter.
+#' \item \code{wright2}: second measurement made with a Wright peak flow meter.
+#' \item \code{mini1}: first measurement made with a mini Wright peak flow meter.
+#' \item \code{mini2}: second measurement made with a mini Wright peak flow meter.
 #' }
 #' 
 #' @docType data
@@ -108,10 +108,10 @@ NULL
 #' This dataset is in the long format (i.e. one line per measurement).
 #'
 #' \itemize{
-#' \item id Patient identifier.
-#' \item replicate Index of the measurement (first or second).
-#' \item method Device used to make the measurement (Wright peak flow meter or mini Wright peak flow meter).
-#' \item pefr Measurement (peak expiratory flow rate).
+#' \item \code{id}: patient identifier.
+#' \item \code{replicate}: index of the measurement (first or second).
+#' \item \code{method}: device used to make the measurement (Wright peak flow meter or mini Wright peak flow meter).
+#' \item \code{pefr}: measurement (peak expiratory flow rate).
 #' }
 #' 
 #' @docType data
@@ -131,14 +131,14 @@ NULL
 #' and receiving each of the three formulations with a wash-out period of one week.
 #'
 #' \itemize{
-#' \item id Patient identifier
-#' \item sequence sequence of treatment 
-#' \item treatment Formulation of the treatment:
+#' \item \code{id}: patient identifier.
+#' \item \code{sequence}: sequence of treatment .
+#' \item \code{treatment}: formulation of the treatment
 #' A (50 mg tablet)
 #' B (100 mg tablet)
 #' C (sustained-release formulation capsule)
-#' \item period time period (in weeks)
-#' \item duration duration of the drug (in hours)
+#' \item \code{period}: time period (in weeks).
+#' \item \code{duration}: duration of the drug (in hours).
 #' }
 #' 
 #' @docType data
@@ -158,18 +158,18 @@ NULL
 #' This dataset is in the wide format (i.e. one line per patient).
 #'
 #' \itemize{
-#' \item girl Patient identifier
-#' \item grp Treatment group: calcium supplement (coded \code{C}) or placebo (coded \code{P})
-#' \item obstime1 Time after the start of the study at which the first visit took place (in years).
-#' \item obstime2 Time after the start of the study at which the second visit took place (in years).
-#' \item obstime3 Time after the start of the study at which the third visit took place (in years).
-#' \item obstime4 Time after the start of the study at which the fourth visit took place (in years).
-#' \item obstime5 Time after the start of the study at which the fifth visit took place (in years).
-#' \item bmd1 Bone mineral density measured at the first visit (in mg/cm3).
-#' \item bmd2 Bone mineral density measured at the second visit (in mg/cm3).
-#' \item bmd3 Bone mineral density measured at the third visit (in mg/cm3).
-#' \item bmd4 Bone mineral density measured at the fourth visit (in mg/cm3).
-#' \item bmd5 Bone mineral density measured at the fifth visit (in mg/cm3).
+#' \item \code{girl}: patient identifier
+#' \item \code{grp}: treatment group: calcium supplement (coded \code{C}) or placebo (coded \code{P}).
+#' \item \code{obstime1}: time after the start of the study at which the first visit took place (in years).
+#' \item \code{obstime2}: time after the start of the study at which the second visit took place (in years).
+#' \item \code{obstime3}: time after the start of the study at which the third visit took place (in years).
+#' \item \code{obstime4}: time after the start of the study at which the fourth visit took place (in years).
+#' \item \code{obstime5}: time after the start of the study at which the fifth visit took place (in years).
+#' \item \code{bmd1}: bone mineral density measured at the first visit (in mg/cm3).
+#' \item \code{bmd2}: bone mineral density measured at the second visit (in mg/cm3).
+#' \item \code{bmd3}: bone mineral density measured at the third visit (in mg/cm3).
+#' \item \code{bmd4}: bone mineral density measured at the fourth visit (in mg/cm3).
+#' \item \code{bmd5}: bone mineral density measured at the fifth visit (in mg/cm3).
 #' }
 #' 
 #' @docType data
@@ -194,13 +194,13 @@ NULL
 #' This dataset is in the long format (i.e. one line per measurement).
 #'
 #' \itemize{
-#' \item girl Patient identifier
-#' \item grp Treatment group: calcium supplement (coded \code{C}) or placebo (coded \code{P})
-#' \item visit Visit index
-#' \item bmd Bone mineral density (mg/cm3)
-#' \item time.obs Visit time (in years)
-#' \item time.num Scheduled visit time (numeric variable, in years)
-#' \item time.fac Scheduled visit time (factor variable)
+#' \item \code{girl}: patient identifier.
+#' \item \code{grp}: treatment group: calcium supplement (coded \code{C}) or placebo (coded \code{P}).
+#' \item \code{visit}: visit index.
+#' \item \code{bmd}: bone mineral density (mg/cm3).
+#' \item \code{time.obs}: visit time (in years).
+#' \item \code{time.num}: scheduled visit time (numeric variable, in years).
+#' \item \code{time.fac}: scheduled visit time (factor variable).
 #' }
 #' 
 #' @docType data
@@ -234,17 +234,17 @@ NULL
 #' @description TODO
 #'
 #' \itemize{
-#' \item id Patient identifier
-#' \item allocation
-#' \item sex
-#' \item age
-#' \item pwv0
-#' \item pwv12
-#' \item pwv24
-#' \item aix0
-#' \item aix12
-#' \item aix24
-#' \item dropout
+#' \item \code{id}: patient identifier.
+#' \item \code{allocation}:
+#' \item \code{sex}:
+#' \item \code{age}:
+#' \item \code{pwv0}:
+#' \item \code{pwv12}:
+#' \item \code{pwv24}:
+#' \item \code{aix0}:
+#' \item \code{aix12}:
+#' \item \code{aix24}:
+#' \item \code{dropout}:
 #' }
 #' 
 #' @docType data
@@ -261,15 +261,15 @@ NULL
 #' @description TODO
 #' 
 #' \itemize{
-#' \item id Patient identifier
-#' \item allocation
-#' \item sex
-#' \item age
-#' \item visit
-#' \item time
-#' \item pwv
-#' \item aix
-#' \item dropout
+#' \item \code{id}: patient identifier.
+#' \item \code{allocation}:
+#' \item \code{sex}:
+#' \item \code{age}:
+#' \item \code{visit}:
+#' \item \code{time}:
+#' \item \code{pwv}:
+#' \item \code{aix}:
+#' \item \code{dropout}:
 #' }
 #' @docType data
 #' @usage data(ckdL)
@@ -288,15 +288,15 @@ NULL
 #' This dataset is in the wide format (i.e. one line per patient).
 #'
 #' \itemize{
-#' \item id Patient identifier
-#' \item weight1 Bodyweight (in kg) 3 months before surgery.
-#' \item weight2 Bodyweight (in kg) 1 week before surgery.
-#' \item weight3 Bodyweight (in kg) 1 week after surgery.
-#' \item weight4 Bodyweight (in kg) 3 months after surgery.
-#' \item glucagonAUC1 Glucagon value 3 months before surgery.
-#' \item glucagonAUC2 Glucagon value 1 week before surgery.
-#' \item glucagonAUC3 Glucagon value 1 week after surgery.
-#' \item glucagonAUC4 Glucagon value 3 months after surgery.
+#' \item \code{id}: patient identifier.
+#' \item \code{weight1}: bodyweight (in kg) 3 months before surgery.
+#' \item \code{weight2}: bodyweight (in kg) 1 week before surgery.
+#' \item \code{weight3}: bodyweight (in kg) 1 week after surgery.
+#' \item \code{weight4}: bodyweight (in kg) 3 months after surgery.
+#' \item \code{glucagonAUC1}: glucagon value 3 months before surgery.
+#' \item \code{glucagonAUC2}: glucagon value 1 week before surgery.
+#' \item \code{glucagonAUC3}: glucagon value 1 week after surgery.
+#' \item \code{glucagonAUC4}: glucagon value 3 months after surgery.
 #' }
 #' 
 #' @docType data
@@ -315,11 +315,11 @@ NULL
 #' This dataset is in the long format (i.e. one line per measurement).
 #'
 #' \itemize{
-#' \item id Patient identifier
-#' \item visit The visit index.
-#' \item time The time at which the visit took place.
-#' \item weight Bodyweight (in kg) measured during the visit.
-#' \item glucagonAUC Glucagon measured during the visit.
+#' \item \code{id}: patient identifier.
+#' \item \code{visit}: the visit index.
+#' \item \code{time}: the time at which the visit took place.
+#' \item \code{weight}: bodyweight (in kg) measured during the visit.
+#' \item \code{glucagonAUC}: glucagon measured during the visit.
 #' }
 #' 
 #' @docType data
@@ -353,13 +353,13 @@ NULL
 #' This dataset is in the wide format (i.e. one line per patient).
 #'
 #' \itemize{
-#' \item group Treatment group: highdose or placebo.
-#' \item id Patient identifier
-#' \item cholest1 cholesterol measurement at baseline (before treatment).
-#' \item cholest2 cholesterol measurement at 6 months (after treatment).
-#' \item cholest3 cholesterol measurement at 12 months (after treatment).
-#' \item cholest4 cholesterol measurement at 20 months (after treatment).
-#' \item cholest5 cholesterol measurement at 24 months (after treatment).
+#' \item \code{group}: treatment group (highdose or placebo).
+#' \item \code{id}: patient identifier.
+#' \item \code{cholest1}: cholesterol measurement at baseline (before treatment).
+#' \item \code{cholest2}: cholesterol measurement at 6 months (after treatment).
+#' \item \code{cholest3}: cholesterol measurement at 12 months (after treatment).
+#' \item \code{cholest4}: cholesterol measurement at 20 months (after treatment).
+#' \item \code{cholest5}: cholesterol measurement at 24 months (after treatment).
 #' }
 #' 
 #' @docType data
@@ -384,11 +384,11 @@ NULL
 #' This dataset is in the long format (i.e. one line per measurement).
 #'
 #' \itemize{
-#' \item group Treatment group: highdose or placebo.
-#' \item id Patient identifier
-#' \item visit visit index.
-#' \item cholest cholesterol measurement.
-#' \item time time after the start of the study at which the measurement has been done (in month). Treatment is given at 0+.
+#' \item \code{group}: treatment group (highdose or placebo).
+#' \item \code{id}: patient identifier.
+#' \item \code{visit}: visit index.
+#' \item \code{cholest}: cholesterol measurement.
+#' \item \code{time}: time after the start of the study at which the measurement has been done (in month). Treatment is given at 0+.
 #' }
 #' 
 #' @docType data
@@ -425,15 +425,15 @@ NULL
 #' This dataset is in the wide format (i.e. one line per patient).
 #'
 #' \itemize{
-#' \item id Patient identifier
-#' \item sequence Treatment group to which the patient has been randomized.
-#' \item treatment1 Treatment during the first time period.
-#' \item treatment2 Treatment during the second time period
-#' \item auc1 Area under the curve of ?? during the first time period
-#' \item auc2 Area under the curve of ?? during the second time period 
-#' \item bsauc1 ??
-#' \item aldo1 ??
-#' \item aldo2 ??
+#' \item \code{id}: patient identifier.
+#' \item \code{sequence}: treatment group to which the patient has been randomized.
+#' \item \code{treatment1}: treatment during the first time period.
+#' \item \code{treatment2}: treatment during the second time period.
+#' \item \code{auc1}: area under the curve of ?? during the first time period.
+#' \item \code{auc2}: area under the curve of ?? during the second time period.
+#' \item \code{bsauc1}: ??
+#' \item \code{aldo1}: ??
+#' \item \code{aldo2}: ??
 #' }
 #' 
 #' @docType data
@@ -453,13 +453,13 @@ NULL
 #' This dataset is in the long format (i.e. one line per measurement).
 #'
 #' \itemize{
-#' \item id Patient identifier
-#' \item sequence Treatment group to which the patient has been randomized.
-#' \item period Time period.
-#' \item treatment Treatment during the time period
-#' \item auc Area under the curve of ?? during the time period
-#' \item bsauc ??
-#' \item aldo ??
+#' \item \code{id}: patient identifier.
+#' \item \code{sequence}: treatment group to which the patient has been randomized.
+#' \item \code{period}: time period.
+#' \item \code{treatment}: treatment during the time period.
+#' \item \code{auc}: area under the curve of ?? during the time period.
+#' \item \code{bsauc}: ??
+#' \item \code{aldo}: ??
 #' }
 #' 
 #' @docType data
@@ -479,12 +479,12 @@ NULL
 #' This dataset is in the long format (i.e. one line per measurement) and contains measurement over 6 timepoints for each time period.
 #'
 #' \itemize{
-#' \item id Patient identifier
-#' \item sequence Treatment group to which the patient has been randomized.
-#' \item period Time period.
-#' \item treatment Treatment during the time period
-#' \item time Time within each period
-#' \item aldo ??
+#' \item \code{id}: patient identifier.
+#' \item \code{sequence}: treatment group to which the patient has been randomized.
+#' \item \code{period}: time period.
+#' \item \code{treatment}: treatment during the time period.
+#' \item \code{time}: time within each period.
+#' \item \code{aldo}: ??
 #' }
 #' 
 #' @docType data
@@ -503,10 +503,10 @@ NULL
 #' @description Simulated data a nested structure: Student/Class/School and one outcome.
 #'
 #' \itemize{
-#' \item school 
-#' \item class 
-#' \item student
-#' \item outcome  
+#' \item \code{school}:
+#' \item \code{class}: 
+#' \item \code{student}:
+#' \item \code{outcome}:  
 #' }
 #' 
 #' @docType data
@@ -525,13 +525,13 @@ NULL
 #' This dataset is in the wide format (i.e. one line per patient).
 #'
 #' \itemize{
-#' \item crowding Space available in the household.
-#' \item family Family serial number
-#' \item mother number of times the swab measurement was positive for the mother.
-#' \item father number of times the swab measurement was positive for the father.
-#' \item child1 number of times the swab measurement was positive for the first child.
-#' \item child2 number of times the swab measurement was positive for the second child.
-#' \item child3 number of times the swab measurement was positive for the third child.
+#' \item \code{crowding}: space available in the household.
+#' \item \code{family}: family serial number
+#' \item \code{mother}: number of times the swab measurement was positive for the mother.
+#' \item \code{father}: number of times the swab measurement was positive for the father.
+#' \item \code{child1}: number of times the swab measurement was positive for the first child.
+#' \item \code{child2}: number of times the swab measurement was positive for the second child.
+#' \item \code{child3}: number of times the swab measurement was positive for the third child.
 #' }
 #' 
 #' @docType data
@@ -555,10 +555,10 @@ NULL
 #' This dataset is in the long format (i.e. one line per measurement).
 #'
 #' \itemize{
-#' \item crowding Space available in the household.
-#' \item family Family serial number
-#' \item name Type of family member.
-#' \item swabs number of times the swab measurement was positive.
+#' \item \code{crowding}: space available in the household.
+#' \item \code{family}: family serial number
+#' \item \code{name}: type of family member.
+#' \item \code{swabs}: number of times the swab measurement was positive.
 #' }
 #' 
 #' @docType data
@@ -590,11 +590,11 @@ NULL
 #' This dataset is in the wide format (i.e. one line per patient).
 #'
 #' \itemize{
-#' \item id Patient identifier.
-#' \item group Treatment group to which the patient has been randomized.
-#' \item vasA VAS-score when using a zink shower gel.
-#' \item vasB VAS-score when using a placebo treatment (shower gel without zink).
-#' \item vasC VAS-score when using a control treatment with demineralized water.
+#' \item \code{id}: patient identifier.
+#' \item \code{group}: treatment group to which the patient has been randomized.
+#' \item \code{vasA}: VAS-score when using a zink shower gel.
+#' \item \code{vasB}: VAS-score when using a placebo treatment (shower gel without zink).
+#' \item \code{vasC}: VAS-score when using a control treatment with demineralized water.
 #' }
 #' 
 #' @docType data
@@ -619,11 +619,11 @@ NULL
 #' This dataset is in the long format (i.e. one line per measurement).
 #'
 #' \itemize{
-#' \item id Patient identifier.
-#' \item group Treatment group to which the patient has been randomized.
-#' \item treat.num 
-#' \item vas VAS-score relative to the wound.
-#' \item treatment Treatment used on the wound.
+#' \item \code{id}: patient identifier.
+#' \item \code{group}: treatment group to which the patient has been randomized.
+#' \item \code{treat.num}:
+#' \item \code{vas}: VAS-score relative to the wound.
+#' \item \code{treatment}: Treatment used on the wound.
 #' A: active treatment (zink shower gel),
 #' B: placebo treatment (shower gel without zink),
 #' C: control treatment (demineralized water).
@@ -664,14 +664,14 @@ NULL
 #' This dataset is in the wide format (i.e. one line per patient).
 #'
 #' \itemize{
-#' \item group Treatment group: vitamin or placebo.
-#' \item animal Identifier
-#' \item weight1 weight (in g) of the pig at the end of week 1 (before treatment).
-#' \item weight3 weight (in g) of the pig at the end of week 3 (before treatment).
-#' \item weight4 weight (in g) of the pig at the end of week 4 (before treatment).
-#' \item weight5 weight (in g) of the pig at the end of week 5 (after treatment).
-#' \item weight6 weight (in g) of the pig at the end of week 6 (after treatment).
-#' \item weight7 weight (in g) of the pig at the end of week 7 (after treatment).
+#' \item \code{group}: treatment group: vitamin or placebo.
+#' \item \code{animal}: identifier
+#' \item \code{weight1}: weight (in g) of the pig at the end of week 1 (before treatment).
+#' \item \code{weight3}: weight (in g) of the pig at the end of week 3 (before treatment).
+#' \item \code{weight4}: weight (in g) of the pig at the end of week 4 (before treatment).
+#' \item \code{weight5}: weight (in g) of the pig at the end of week 5 (after treatment).
+#' \item \code{weight6}: weight (in g) of the pig at the end of week 6 (after treatment).
+#' \item \code{weight7}: weight (in g) of the pig at the end of week 7 (after treatment).
 #' }
 #' 
 #' @docType data
@@ -695,14 +695,14 @@ NULL
 #' This dataset is in the long format (i.e. one line per measurement).
 #'
 #' \itemize{
-#' \item group Treatment group: vitamin or placebo.
-#' \item animal Identifier
-#' \item weight1 weight (in g) of the pig at the end of week 1 (before treatment).
-#' \item weight3 weight (in g) of the pig at the end of week 3 (before treatment).
-#' \item weight4 weight (in g) of the pig at the end of week 4 (before treatment).
-#' \item weight5 weight (in g) of the pig at the end of week 5 (after treatment).
-#' \item weight6 weight (in g) of the pig at the end of week 6 (after treatment).
-#' \item weight7 weight (in g) of the pig at the end of week 7 (after treatment).
+#' \item \code{group}: treatment group: vitamin or placebo.
+#' \item \code{animal}: identifier
+#' \item \code{weight1}: weight (in g) of the pig at the end of week 1 (before treatment).
+#' \item \code{weight3}: weight (in g) of the pig at the end of week 3 (before treatment).
+#' \item \code{weight4}: weight (in g) of the pig at the end of week 4 (before treatment).
+#' \item \code{weight5}: weight (in g) of the pig at the end of week 5 (after treatment).
+#' \item \code{weight6}: weight (in g) of the pig at the end of week 6 (after treatment).
+#' \item \code{weight7}: weight (in g) of the pig at the end of week 7 (after treatment).
 #' }
 #' 
 #' @docType data

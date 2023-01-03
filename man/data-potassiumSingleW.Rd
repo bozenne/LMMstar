@@ -13,15 +13,15 @@ a randomized placebo-controlled crossover study where the effect of potassium su
 This dataset is in the wide format (i.e. one line per patient).
 
 \itemize{
-\item id Patient identifier
-\item sequence Treatment group to which the patient has been randomized.
-\item treatment1 Treatment during the first time period.
-\item treatment2 Treatment during the second time period
-\item auc1 Area under the curve of ?? during the first time period
-\item auc2 Area under the curve of ?? during the second time period 
-\item bsauc1 ??
-\item aldo1 ??
-\item aldo2 ??
+\item \code{id}: patient identifier.
+\item \code{sequence}: treatment group to which the patient has been randomized.
+\item \code{treatment1}: treatment during the first time period.
+\item \code{treatment2}: treatment during the second time period.
+\item \code{auc1}: area under the curve of ?? during the first time period.
+\item \code{auc2}: area under the curve of ?? during the second time period.
+\item \code{bsauc1}: ??
+\item \code{aldo1}: ??
+\item \code{aldo2}: ??
 }
 }
 \references{

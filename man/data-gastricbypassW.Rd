@@ -13,15 +13,15 @@ where the bodyweight and serum glucagon (a gut hormone) were measured in 20 obes
 This dataset is in the wide format (i.e. one line per patient).
 
 \itemize{
-\item id Patient identifier
-\item weight1 Bodyweight (in kg) 3 months before surgery.
-\item weight2 Bodyweight (in kg) 1 week before surgery.
-\item weight3 Bodyweight (in kg) 1 week after surgery.
-\item weight4 Bodyweight (in kg) 3 months after surgery.
-\item glucagonAUC1 Glucagon value 3 months before surgery.
-\item glucagonAUC2 Glucagon value 1 week before surgery.
-\item glucagonAUC3 Glucagon value 1 week after surgery.
-\item glucagonAUC4 Glucagon value 3 months after surgery.
+\item \code{id}: patient identifier.
+\item \code{weight1}: bodyweight (in kg) 3 months before surgery.
+\item \code{weight2}: bodyweight (in kg) 1 week before surgery.
+\item \code{weight3}: bodyweight (in kg) 1 week after surgery.
+\item \code{weight4}: bodyweight (in kg) 3 months after surgery.
+\item \code{glucagonAUC1}: glucagon value 3 months before surgery.
+\item \code{glucagonAUC2}: glucagon value 1 week before surgery.
+\item \code{glucagonAUC3}: glucagon value 1 week after surgery.
+\item \code{glucagonAUC4}: glucagon value 3 months after surgery.
 }
 }
 \references{

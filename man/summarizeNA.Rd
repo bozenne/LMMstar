@@ -46,3 +46,6 @@ summarizeNA(calciumL[,c("visit","girl","bmd")], repetition = ~visit|girl)
 data(vasscoresW, package = "LMMstar")
 summarizeNA(vasscoresW)
 }
+\seealso{
+\code{\link{autoplot.summarizeNA}} for a graphical display.
+}

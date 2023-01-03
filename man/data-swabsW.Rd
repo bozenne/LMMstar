@@ -13,13 +13,13 @@ where the pneumococcus was studied in 18 families with different space available
 This dataset is in the wide format (i.e. one line per patient).
 
 \itemize{
-\item crowding Space available in the household.
-\item family Family serial number
-\item mother number of times the swab measurement was positive for the mother.
-\item father number of times the swab measurement was positive for the father.
-\item child1 number of times the swab measurement was positive for the first child.
-\item child2 number of times the swab measurement was positive for the second child.
-\item child3 number of times the swab measurement was positive for the third child.
+\item \code{crowding}: space available in the household.
+\item \code{family}: family serial number
+\item \code{mother}: number of times the swab measurement was positive for the mother.
+\item \code{father}: number of times the swab measurement was positive for the father.
+\item \code{child1}: number of times the swab measurement was positive for the first child.
+\item \code{child2}: number of times the swab measurement was positive for the second child.
+\item \code{child3}: number of times the swab measurement was positive for the third child.
 }
 }
 \references{

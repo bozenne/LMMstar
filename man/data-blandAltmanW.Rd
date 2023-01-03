@@ -12,11 +12,11 @@ Data From The Bland Altman Study where two methods to measure the peak expirator
 This dataset is in the wide format (i.e. one line per patient).
 
 \itemize{
-\item id Patient identifier.
-\item wright1 First measurement made with a Wright peak flow meter.
-\item wright2 Second measurement made with a Wright peak flow meter.
-\item mini1 First measurement made with a mini Wright peak flow meter.
-\item mini2 Second measurement made with a mini Wright peak flow meter.
+\item \code{id}: patient identifier.
+\item \code{wright1}: first measurement made with a Wright peak flow meter.
+\item \code{wright2}: second measurement made with a Wright peak flow meter.
+\item \code{mini1}: first measurement made with a mini Wright peak flow meter.
+\item \code{mini2}: second measurement made with a mini Wright peak flow meter.
 }
 }
 \references{

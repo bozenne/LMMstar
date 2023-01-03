@@ -40,3 +40,13 @@ A list with two elements \itemize{
 \description{
 Extract and display the correlation modeled via the linear mixed model.
 }
+\examples{
+if(require(ggplot2)){
+data(gastricbypassL, package = "LMMstar")
+
+e.pCor <- partialCor(c(weight,glucagonAUC)~time, repetition = ~visit|id,
+                     data = gastricbypassL)
+autoplot(e.pCor)
+}
+
+}

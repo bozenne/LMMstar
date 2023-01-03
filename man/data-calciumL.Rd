@@ -13,13 +13,13 @@ on bone mineral density over a 2 year follow-up. The clinical question is: does 
 This dataset is in the long format (i.e. one line per measurement).
 
 \itemize{
-\item girl Patient identifier
-\item grp Treatment group: calcium supplement (coded \code{C}) or placebo (coded \code{P})
-\item visit Visit index
-\item bmd Bone mineral density (mg/cm3)
-\item time.obs Visit time (in years)
-\item time.num Scheduled visit time (numeric variable, in years)
-\item time.fac Scheduled visit time (factor variable)
+\item \code{girl}: patient identifier.
+\item \code{grp}: treatment group: calcium supplement (coded \code{C}) or placebo (coded \code{P}).
+\item \code{visit}: visit index.
+\item \code{bmd}: bone mineral density (mg/cm3).
+\item \code{time.obs}: visit time (in years).
+\item \code{time.num}: scheduled visit time (numeric variable, in years).
+\item \code{time.fac}: scheduled visit time (factor variable).
 }
 }
 \references{

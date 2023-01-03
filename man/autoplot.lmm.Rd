@@ -2,7 +2,7 @@
 % Please edit documentation in R/autoplot.R
 \name{autoplot.lmm}
 \alias{autoplot.lmm}
-\title{Graphical Display For Linear Mixed Models}
+\title{Display Fitted values of Linear Mixed Models}
 \usage{
 \method{autoplot}{lmm}(
   object,
@@ -57,5 +57,24 @@ A list with two elements \itemize{
 }
 }
 \description{
-Graphical Display For Linear Mixed Models
+Display Fitted values of Linear Mixed Models
+}
+\examples{
+if(require(ggplot2)){
+
+#### simulate data in the long format ####
+set.seed(10)
+dL <- sampleRem(100, n.times = 3, format = "long")
+dL$X1 <- as.factor(dL$X1)
+
+#### fit Linear Mixed Model ####
+eCS.lmm <- lmm(Y ~ visit + X1,
+               repetition = ~visit|id, structure = "CS", data = dL, df = FALSE)
+
+autoplot(eCS.lmm)
+autoplot(eCS.lmm, plot = FALSE)$plot + facet_wrap(~X1)
+}
+}
+\seealso{
+\code{\link{plot.lmm}} for other graphical display (residual plots, partial residual plots).
 }

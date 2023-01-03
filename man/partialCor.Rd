@@ -72,14 +72,14 @@ With multiple repetitions, what is being estimated with the first option may not
 Fit a mixed model to estimate the partial correlation with the following variance-covariance pattern:
 \itemize{
 \item \bold{no repetition}: unstructure or compound symmetry structure for M observations, M being the number of variables on the left hand side (i.e. outcomes).
-\item \bold{repetition}: structure for M*T observations where M being the number of variables (typically 2) and T the number of repetitions. 
-Can be \code{"UN"}: unstructured (except the off-diagonal containing the correlation parameter which is constant),
-or \code{"PEARSON"}: same as unstructured except it only uses a single variance parameter per variable, i.e. it assumes constant variance over repetitions.
-or \code{"HLAG"}: toeplitz by block with variable and repetition specific variance.
-or \code{"LAG"}: toeplitz by block, i.e. correlation depending on the gap between repetitions and specific to each variable. It assumes constant variance over repetitions.
-or \code{"HCS"}: heteroschedastic compound symmetry by block, i.e. variable specific correlation constant over repetitions. A specific parameter is used for the off-diagonal crossing the variables at the same repetition (which is the marginal correlation parameter).
-or \code{"CS"}: compound symmetry by block. It assumes constant variance and correlation over repetitions.
-}
+\item \bold{repetition}: structure for M*T observations where M being the number of variables (typically 2) and T the number of repetitions. Can be \itemize{
+      \item \code{"UN"}: unstructured (except the off-diagonal containing the correlation parameter which is constant).
+      \item \code{"PEARSON"}: same as unstructured except it only uses a single variance parameter per variable, i.e. it assumes constant variance over repetitions.
+      \item \code{"HLAG"}: toeplitz by block with variable and repetition specific variance.
+      \item \code{"LAG"}: toeplitz by block, i.e. correlation depending on the gap between repetitions and specific to each variable. It assumes constant variance over repetitions.
+      \item \code{"HCS"}: heteroschedastic compound symmetry by block, i.e. variable specific correlation constant over repetitions. A specific parameter is used for the off-diagonal crossing the variables at the same repetition (which is the marginal correlation parameter).
+      \item \code{"CS"}: compound symmetry by block. It assumes constant variance and correlation over repetitions.
+}}
 }
 \examples{
 

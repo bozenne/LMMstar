@@ -15,7 +15,7 @@
 }
 \value{
 A data.frame containing the level for which the means have been computed (if more than one),
-the estimated mean (\code{estimate}), standard error (\code{se}), degree of freedom (\code{df}), and 95% confidence interval (\code{lower} and \code{upper}).
+the estimated mean (\code{estimate}), standard error (\code{se}), degree of freedom (\code{df}), and 95\% confidence interval (\code{lower} and \code{upper}).
 }
 \description{
 Compute the marginal mean (via the emmeans package) for each combination of categorical covariates.

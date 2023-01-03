@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: nov  3 2022 (17:52) 
+## Last-Updated: jan  3 2023 (16:03) 
 ##           By: Brice Ozenne
-##     Update #: 567
+##     Update #: 568
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -64,6 +64,9 @@
 ##' estimated random effects can be extracted by setting argument \code{effects} to \code{"ranef"}.
 ##'
 ##' @return A vector with the value of the model coefficients.
+##' 
+##' @seealso
+##' \code{\link{confint.lmm}} or \code{\link{model.tables.lmm}} for a data.frame containing estimates with their uncertainty. \cr
 ##' 
 ##' @examples
 ##' ## simulate data in the long format

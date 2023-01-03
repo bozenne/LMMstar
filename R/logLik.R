@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: okt 12 2022 (14:41) 
+## Last-Updated: jan  3 2023 (16:12) 
 ##           By: Brice Ozenne
-##     Update #: 315
+##     Update #: 316
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -24,13 +24,6 @@
 ##' @param indiv [logical] Should the contribution of each cluster to the log-likelihood be output? Otherwise output the sum of all clusters of the derivatives. 
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the log-likelihood. Only relevant if differs from the fitted values.
 ##' @param ... Not used. For compatibility with the generic method.
-##'
-##' @details \bold{transform}: \cr
-##' \itemize{
-##' \item 0 means no transformation i.e. ouput stanrdard error, ratio of standard errors, and correlations.
-##' \item 1 means log/atanh transformation i.e. ouput log(stanrdard error), log(ratio of standard errors), and atanh(correlations).
-##' \item 2 ouput variance coefficients and correlations.
-##' }
 ##'
 ##' @details \bold{indiv}: only relevant when using maximum likelihood. Must be \code{FALSE} when using restricted maximum likelihood.
 ##' 

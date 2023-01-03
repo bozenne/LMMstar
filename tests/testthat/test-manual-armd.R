@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Dec 19 2021 (17:07) 
 ## Version: 
-## Last-Updated: nov 24 2022 (18:15) 
+## Last-Updated: jan  3 2023 (18:59) 
 ##           By: Brice Ozenne
-##     Update #: 23
+##     Update #: 26
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -222,6 +222,24 @@ test_that("lmm - predict", {
 
 
 })
+
+## * baseline constrain
+test_that("lmm - baseline constrain", {
+
+    armd.long$treat <- armd.long$treat.f
+    armd.long$treat[armd.long$week == 0] <- "Placebo"
+    
+    e.lmm <- lmm(visual ~ week:treat,
+                 repetition = ~week:treat|subject,
+                 structure = UN,
+                 control = list(optimizer = "FS"), data = armd.long)
+
+    plot(e.lmm, color = "treat.f")
+    plot(e.lmm, type = "correlation")
+    sigma(e.lmm)
+    
+})
+
 ## * graphical display
 test_that("lmm - autoplot", {
     if(test.practical==FALSE){skip('Not run to save time in the check')}

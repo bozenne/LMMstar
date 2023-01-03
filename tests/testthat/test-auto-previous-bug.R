@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: dec  9 2022 (10:03) 
+## Last-Updated: jan  3 2023 (17:57) 
 ##           By: Brice Ozenne
-##     Update #: 132
+##     Update #: 135
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -19,6 +19,8 @@ if(FALSE){
     library(testthat)
     library(data.table)
     library(nlme)
+    library(lme4)
+    library(lmerTest)
 
     library(LMMstar)
 }
@@ -495,7 +497,7 @@ test_that("Incorrect ordering of the coefficient in mlmm", {
 
     e.mlmm <- mlmm(value~group, repetition = ~1|id, data = dtL, df = FALSE, robust = TRUE,
                    by = "pipeline", effects = "groupG2=0")
-   
+
     expect_equal(as.double(tapply(dtLS$mean,dtLS$pipeline,diff)),
                  as.double(coef(e.mlmm)),
                  tol = 1e-6)

@@ -61,7 +61,6 @@ This transformation may cause inconsistency when combining results between diffe
 This is why the grouping variable should preferably be of type character or factor.
 }
 \examples{
-
 #### univariate regression ####
 if(require(lava)){
 
@@ -96,4 +95,9 @@ e.mlmmX1 <- mlmm(Y~X1+X2+X6, repetition = ~visit|id, data = dL,
 summary(e.mlmmX1)
 summary(e.mlmmX1, method = "single-step")
 
+}
+\seealso{
+\code{\link{confint.mlmm}} for a data.frame containing estimates with their uncertainty. \cr
+\code{\link{summary.mlmm}} for a summary of the model and estimates. \cr
+\code{\link{autoplot.Wald_lmm}} for a graphical display. \cr
 }

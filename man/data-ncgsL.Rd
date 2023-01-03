@@ -13,11 +13,11 @@ a randomized study where the level of serum cholesterol was measured at baseline
 This dataset is in the long format (i.e. one line per measurement).
 
 \itemize{
-\item group Treatment group: highdose or placebo.
-\item id Patient identifier
-\item visit visit index.
-\item cholest cholesterol measurement.
-\item time time after the start of the study at which the measurement has been done (in month). Treatment is given at 0+.
+\item \code{group}: treatment group (highdose or placebo).
+\item \code{id}: patient identifier.
+\item \code{visit}: visit index.
+\item \code{cholest}: cholesterol measurement.
+\item \code{time}: time after the start of the study at which the measurement has been done (in month). Treatment is given at 0+.
 }
 }
 \references{

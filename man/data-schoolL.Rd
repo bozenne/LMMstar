@@ -11,10 +11,10 @@ data(schoolL)
 Simulated data a nested structure: Student/Class/School and one outcome.
 
 \itemize{
-\item school 
-\item class 
-\item student
-\item outcome  
+\item \code{school}:
+\item \code{class}: 
+\item \code{student}:
+\item \code{outcome}:  
 }
 }
 \keyword{data}

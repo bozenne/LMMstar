@@ -13,18 +13,18 @@ on bone mineral density over a 2 year follow-up. The clinical question is: does 
 This dataset is in the wide format (i.e. one line per patient).
 
 \itemize{
-\item girl Patient identifier
-\item grp Treatment group: calcium supplement (coded \code{C}) or placebo (coded \code{P})
-\item obstime1 Time after the start of the study at which the first visit took place (in years).
-\item obstime2 Time after the start of the study at which the second visit took place (in years).
-\item obstime3 Time after the start of the study at which the third visit took place (in years).
-\item obstime4 Time after the start of the study at which the fourth visit took place (in years).
-\item obstime5 Time after the start of the study at which the fifth visit took place (in years).
-\item bmd1 Bone mineral density measured at the first visit (in mg/cm3).
-\item bmd2 Bone mineral density measured at the second visit (in mg/cm3).
-\item bmd3 Bone mineral density measured at the third visit (in mg/cm3).
-\item bmd4 Bone mineral density measured at the fourth visit (in mg/cm3).
-\item bmd5 Bone mineral density measured at the fifth visit (in mg/cm3).
+\item \code{girl}: patient identifier
+\item \code{grp}: treatment group: calcium supplement (coded \code{C}) or placebo (coded \code{P}).
+\item \code{obstime1}: time after the start of the study at which the first visit took place (in years).
+\item \code{obstime2}: time after the start of the study at which the second visit took place (in years).
+\item \code{obstime3}: time after the start of the study at which the third visit took place (in years).
+\item \code{obstime4}: time after the start of the study at which the fourth visit took place (in years).
+\item \code{obstime5}: time after the start of the study at which the fifth visit took place (in years).
+\item \code{bmd1}: bone mineral density measured at the first visit (in mg/cm3).
+\item \code{bmd2}: bone mineral density measured at the second visit (in mg/cm3).
+\item \code{bmd3}: bone mineral density measured at the third visit (in mg/cm3).
+\item \code{bmd4}: bone mineral density measured at the fourth visit (in mg/cm3).
+\item \code{bmd5}: bone mineral density measured at the fifth visit (in mg/cm3).
 }
 }
 \references{

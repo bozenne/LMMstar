@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: nov  8 2022 (12:31) 
+## Last-Updated: jan  3 2023 (17:10) 
 ##           By: Brice Ozenne
-##     Update #: 925
+##     Update #: 932
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -343,9 +343,9 @@ test.npd <- sapply(initOmega,function(iOmega){any(eigen(iOmega)$values<0)})
             print(param.value)
         }
     }else{
-        if(length(param.Omega2)==0){
-            stop("No initialization is needed when there are only mean parameters. \n")
-        }
+        ## if(length(param.Omega2)==0){
+        ##     stop("No initialization is needed when there are only mean parameters. \n")
+        ## }
         if(any(param.name %in% names(init) == FALSE)){
             stop("Initialization does not contain value for all parameters. \n",
                  "Missing parameters: \"",paste(param.name[param.name %in% names(init) == FALSE], collapse = "\" \""),"\". \n")
@@ -362,7 +362,10 @@ test.npd <- sapply(initOmega,function(iOmega){any(eigen(iOmega)$values<0)})
     if(n.iter==0 || length(param.Omega2)==0){
         cv <- as.numeric(length(param.Omega2)==0)
         param.valueM1 <- NULL
-        logLik.value <- NULL
+        logLik.value <- .moments.lmm(value = param.value, design = design, time = time, method.fit = method.fit, type.information = type.information,
+                                     transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                                     logLik = TRUE, score = FALSE, information = FALSE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = effects, robust = FALSE,
+                                     trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)$logLik
         logLik.valueM1 <- NULL
         score.value <- NULL
         iIter <- 0

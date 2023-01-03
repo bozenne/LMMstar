@@ -11,17 +11,17 @@ data(ckdW)
 TODO
 
 \itemize{
-\item id Patient identifier
-\item allocation
-\item sex
-\item age
-\item pwv0
-\item pwv12
-\item pwv24
-\item aix0
-\item aix12
-\item aix24
-\item dropout
+\item \code{id}: patient identifier.
+\item \code{allocation}:
+\item \code{sex}:
+\item \code{age}:
+\item \code{pwv0}:
+\item \code{pwv12}:
+\item \code{pwv24}:
+\item \code{aix0}:
+\item \code{aix12}:
+\item \code{aix24}:
+\item \code{dropout}:
 }
 }
 \references{
