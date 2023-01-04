@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: Dec  5 2022 (09:24) 
+## Last-Updated: jan  4 2023 (13:56) 
 ##           By: Brice Ozenne
-##     Update #: 398
+##     Update #: 402
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -168,6 +168,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
             if(effects %in% valid.contrast == FALSE){
                 stop("When a character, argument \'effects\' should be one of \"",paste(valid.contrast, collapse = "\" \""),"\". \n")
             }
+
             contrast <- multcomp::contrMat(rep(1,length(name.modelparam)), type = effects)
             colnames(contrast) <- name.modelparam
             try(rownames(contrast) <- unlist(lapply(strsplit(split = "-",rownames(contrast),fixed=TRUE), function(iVec){

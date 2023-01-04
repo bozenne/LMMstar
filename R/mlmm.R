@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: jan  3 2023 (17:54) 
+## Last-Updated: jan  4 2023 (13:59) 
 ##           By: Brice Ozenne
-##     Update #: 265
+##     Update #: 291
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -34,8 +34,8 @@
 ##' Argument passed to \code{\link{anova.lmm}}.
 ##' @param ci [logical] Should a confidence interval be output for each hypothesis?
 ##' Argument passed to \code{\link{anova.lmm}}.
-##' @param name.short [name.short] use short names for the output coefficients,
-##' e.g. omit the regression variable name when the same regression variable is used in all models.
+##' @param name.short [logical vector of length 2] use short names for the output coefficients:
+##' omit the name of the by variable, omit the regression variable name when the same regression variable is used in all models.
 ##' @param trace [interger, >0] Show the progress of the execution of the function.
 ##' @param transform.sigma,transform.k,transform.rho,transform.names [character] transformation used on certain type of parameters.
 ##' 
@@ -88,7 +88,7 @@
 ## * mlmm (code)
 ##' @export
 mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = NULL, df = TRUE, ci = TRUE,
-                 name.short = TRUE, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, trace = TRUE){
+                 name.short = c(TRUE,TRUE), transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, trace = TRUE){
 
     ## ** normalizer user input
     options <- LMMstar.options()
@@ -117,6 +117,9 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
         if(is.factor(data[[by]])){
             data[[by]] <- droplevels(data[[by]])
         }
+    }
+    if(length(name.short)==1){
+        name.short <- c(name.short, name.short)
     }
     ## used to decide on the null hypothesis of k parameters
     init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
@@ -266,7 +269,7 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
         cat(" - combine tests\n")
     }
     if(length(by.keep)==1){
-        if(name.short){
+        if(name.short[1]){
             name.model <- name.lmm
         }else{
             name.model <- paste0(by,"=",name.lmm)
@@ -274,7 +277,7 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
         keep.by.level <- matrix(name.lmm, ncol = 1, dimnames = list(NULL, by))
     }else{
         name.model <- unlist(lapply(ls.data, function(iData){
-            if(name.short){
+            if(name.short[1]){
                 return(paste(iData[1,by.keep],collapse=","))
             }else{
                 return(paste(paste0(by.keep,"=",iData[1,by.keep]),collapse=","))
@@ -308,12 +311,11 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
 
     ## add covariate values
     keep.rowname <- rownames(out$univariate)
-
     if(is.null(contrast.rbind)){
         out$univariate <- merge(out$univariate,
                                 data.frame(by = name.model, keep.by.level),
                                 by = "by", sort = FALSE)
-        if(name.short){
+        if(name.short[2]){
             if(all(duplicated(out$univariate$by)==FALSE)){
                 rownames(out$univariate) <- out$univariate$by
                 dimnames(out$vcov) <- list(out$univariate$by,out$univariate$by)
@@ -325,8 +327,15 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
                 out$multivariate$null <- test.global
             }
         }else{
-            rownames(out$univariate) <- sapply(strsplit(keep.rowname,"="), function(iVec){paste(iVec[-1], collapse = "=")})
+            rownames(out$univariate) <- keep.rowname
         }
+    }else if(name.short[2] && all(duplicated(out.notransform$univariate$outcome)==FALSE)){
+
+        try(rownames(out$univariate) <- unlist(lapply(strsplit(split = "-",rownames(out$glht$all[[1]]$linfct),fixed=TRUE), function(iVec){
+            iOutcome <- stats::setNames(out.notransform$univariate$outcome, colnames(out$glht$all[[1]]$linfct))
+            paste(iOutcome[trimws(iVec, which = "both")], collapse = " - ")
+        })), silent = TRUE)
+
     }
 
     ## ** export

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (11:00) 
 ## Version: 
-## Last-Updated: jan  3 2023 (16:55) 
+## Last-Updated: jan  4 2023 (11:41) 
 ##           By: Brice Ozenne
-##     Update #: 91
+##     Update #: 93
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -132,12 +132,12 @@ plot.lmm <- function(x, type = "fit", type.residual = "normalized", by.time = TR
             gg <- ggplot2::ggplot(data = gg.data, mapping = ggplot2::aes_string(x = name.varnum))
             gg <- gg + ggplot2::geom_point(ggplot2::aes_string(y = "r.partial"), color = "gray")
             if(length(type.var)==1){
-                gg <- gg + ggplot2::geom_line(ggplot2::aes_string(y = "estimate"), size = mean.size[2])
+                gg <- gg + ggplot2::geom_line(ggplot2::aes_string(y = "estimate"), linewidth = mean.size[2])
                 if(ci){
                     gg <- gg + ggplot2::geom_ribbon(ggplot2::aes_string(ymin = "lower", ymax = "upper"), alpha = ci.alpha)
                 }
             }else{
-                gg <- gg + ggplot2::geom_line(ggplot2::aes_string(y = "estimate", group = name.varcat, color = name.varcat), size = mean.size[2])
+                gg <- gg + ggplot2::geom_line(ggplot2::aes_string(y = "estimate", group = name.varcat, color = name.varcat), linewidth = mean.size[2])
                 if(ci){
                     gg <- gg + ggplot2::geom_ribbon(ggplot2::aes_string(ymin = "lower", ymax = "upper", group = name.varcat, color = name.varcat), alpha = ci.alpha)
                 }

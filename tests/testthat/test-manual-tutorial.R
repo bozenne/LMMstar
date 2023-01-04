@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: nov 13 2021 (16:47) 
 ## Version: 
-## Last-Updated: aug 31 2022 (17:42) 
+## Last-Updated: jan  4 2023 (10:53) 
 ##           By: Brice Ozenne
-##     Update #: 26
+##     Update #: 27
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -67,7 +67,6 @@ test_that("summarize", {
 })
 
 ## * section 6: about linear mixed models
-
 long$time <- relevel(long$time, ref="-3 month")
 
 ## ** Display of the parametrisation

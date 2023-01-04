@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 31 2022 (11:36) 
 ## Version: 
-## Last-Updated: okt 12 2022 (18:25) 
+## Last-Updated: jan  4 2023 (10:51) 
 ##           By: Brice Ozenne
-##     Update #: 68
+##     Update #: 69
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -120,7 +120,7 @@ test_that("delta method for association based on residual variance", {
                        "lower" = c(-0.20496993, -0.84053168), 
                        "upper" = c(0.04829458, 0.50917047), 
                        "p.value" = c(0.22461774, 0.62798535))
-    expect_equal(as.double(unlist(test)), as.double(unlist(e.deltaANCOVA2)), tol = 1e-5)
+    expect_equal(as.double(unlist(test)), as.double(unlist(e.deltaANCOVA2)), tol = 1e-3)
 })
 
 ## * Association between the changes

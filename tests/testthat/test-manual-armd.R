@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Dec 19 2021 (17:07) 
 ## Version: 
-## Last-Updated: jan  3 2023 (18:59) 
+## Last-Updated: jan  4 2023 (10:54) 
 ##           By: Brice Ozenne
-##     Update #: 26
+##     Update #: 27
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -233,7 +233,7 @@ test_that("lmm - baseline constrain", {
                  repetition = ~week:treat|subject,
                  structure = UN,
                  control = list(optimizer = "FS"), data = armd.long)
-
+    expect_equal(logLik(e.lmm), -4146.824, tol = 1e-5)
     plot(e.lmm, color = "treat.f")
     plot(e.lmm, type = "correlation")
     sigma(e.lmm)

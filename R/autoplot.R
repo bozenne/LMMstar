@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: jan  3 2023 (17:44) 
+## Last-Updated: jan  4 2023 (11:41) 
 ##           By: Brice Ozenne
-##     Update #: 363
+##     Update #: 377
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -216,11 +216,11 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5),
             gg <- gg + ggplot2::geom_point(data = data, mapping = ggplot2::aes_string(x = time.var.plot, y = outcome.var, group = "XXclusterXX", color = color),
                                            alpha = obs.alpha, size = obs.size[1])
             gg <- gg + ggplot2::geom_line(data = data, mapping = ggplot2::aes_string(x = time.var.plot, y = outcome.var, group = "XXclusterXX", color = color),
-                                          alpha = obs.alpha, size = obs.size[2])
+                                          alpha = obs.alpha, linewidth = obs.size[2])
             ## gg + facet_wrap(~XXclusterXX)
         }else{
             gg <- gg + ggplot2::geom_point(data = data, mapping = ggplot2::aes_string(x = time.var.plot, y = outcome.var, group = "XXclusterXX"), alpha = obs.alpha, size = obs.size[1])
-            gg <- gg + ggplot2::geom_line(data = data, mapping = ggplot2::aes_string(x = time.var.plot, y = outcome.var, group = "XXclusterXX"), alpha = obs.alpha, size = obs.size[2])
+            gg <- gg + ggplot2::geom_line(data = data, mapping = ggplot2::aes_string(x = time.var.plot, y = outcome.var, group = "XXclusterXX"), alpha = obs.alpha, linewidth = obs.size[2])
         }
     }
     if(ci){
@@ -235,9 +235,9 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5),
         }
     }
     if(!is.null(color)){
-        gg <- gg + ggplot2::geom_point(ggplot2::aes_string(color = color), size = mean.size[1]) + ggplot2::geom_line(ggplot2::aes_string(color = color), size = mean.size[2])
+        gg <- gg + ggplot2::geom_point(ggplot2::aes_string(color = color), size = mean.size[1]) + ggplot2::geom_line(ggplot2::aes_string(color = color), linewidth = mean.size[2])
     }else{
-        gg <- gg + ggplot2::geom_point(size = mean.size[1]) + ggplot2::geom_line(size = mean.size[2])
+        gg <- gg + ggplot2::geom_point(size = mean.size[1]) + ggplot2::geom_line(linewidth = mean.size[2])
     }
     gg  <- gg + ggplot2::ylab(outcome.var) + ggplot2::theme(text = ggplot2::element_text(size=size.text))
     if(!is.null(time.var.plot) && any(!is.na(time.var.plot))){
@@ -332,6 +332,7 @@ autoplot.partialCor <- function(object, plot = TRUE, size.text = 16,
 ##' @param plot [logical] should the plot be displayed?
 ##' @param size.text [numeric, >0] size of the font used to display text.
 ##' @param add.missing [logical] should the number of missing values per variable be added to the x-axis tick labels.
+##' @param order.pattern [numeric vector or character] in which order the missing data pattern should be displayed. Can either be a numeric vector indexing the patterns or a character refering to order the patterns per number of missing values (\code{"n.missing"}) or number of observations (\code{"frequency"}).
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @return A list with two elements \itemize{
@@ -348,10 +349,22 @@ autoplot.partialCor <- function(object, plot = TRUE, size.text = 16,
 ## * autoplot.summarizeNA (code)
 ##' @export
 autoplot.summarizeNA <- function(object, plot = TRUE, size.text = 16,
-                                 add.missing = " missing", ...){
+                                 add.missing = " missing", order.pattern = NULL, ...){
 
     newnames <- attr(object,"args")$newnames
     keep.data <- attr(object,"args")$keep.data
+    dots <- list(...)
+    
+if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+    
+    if(identical(order.pattern,newnames[4])){
+        order.pattern <- order(object[[newnames[4]]])
+    }
+    if(identical(order.pattern,newnames[2])){
+        order.pattern <- order(object[[newnames[2]]])
+    }
     
     if(keep.data == FALSE){
         stop("Argument \'keep.data\' should be set to TRUE when calling summarizeNA to obtain a graphical display. \n")
@@ -373,6 +386,15 @@ autoplot.summarizeNA <- function(object, plot = TRUE, size.text = 16,
     }
     dataL[[newnames[2]]] <- factor(dataL[[newnames[2]]], levels = 1:0, labels = c("yes","no"))
 
+    if(!is.null(order.pattern)){
+        if(length(order.pattern)!=NROW(data)){
+            stop("Argument \'order.pattern\' should have length ",NROW(data),".\n",sep="")
+        }
+        if(any(sort(order.pattern)!=1:NROW(data))){
+            stop("Argument \'order.pattern\' should be a vector containing integers from 1 to ",NROW(data),".\n",sep="")
+        }
+        dataL[[newnames[3]]] <- factor(dataL[[newnames[3]]], levels = data[[newnames[3]]][order.pattern])
+    }
 
     gg.NA <- ggplot2::ggplot(dataL, ggplot2::aes_string(y = newnames[3], x = newnames[1], fill = newnames[2]))
     gg.NA <- gg.NA + ggplot2::geom_tile(color = "black")

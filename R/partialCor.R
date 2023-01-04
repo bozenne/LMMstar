@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: jan  3 2023 (16:47) 
+## Last-Updated: jan  4 2023 (13:46) 
 ##           By: Brice Ozenne
-##     Update #: 464
+##     Update #: 472
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -38,6 +38,7 @@
 ##' @param se [logical] Should the uncertainty about the partial correlation be evaluated? Only relevant for \code{partialCor.lmm}.
 ##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.
 ##' @param transform.rho [character] scale on which perform statistical inference (e.g. \code{"atanh"})
+##' @param name.short [logical vector of length 2] use short names for the output coefficients (omit the name of the by variable, omit name of the correlation parameter)
 ##' @param ... arguments passed to \code{confint} for \code{partialCor.list} and  \code{partialCor.formula}. Not used for \code{partialCor.lmm}.
 ##'
 ##' @details Fit a mixed model to estimate the partial correlation with the following variance-covariance pattern:
@@ -137,7 +138,7 @@
 ##' @rdname partialCor
 ##' @export
 partialCor.list <- function(object, data, repetition = NULL, structure = NULL, by = NULL,
-                            effects = NULL, rhs = NULL, method = "none", df = NULL, transform.rho = NULL, ...){
+                            effects = NULL, rhs = NULL, method = "none", df = NULL, transform.rho = NULL, name.short = c(TRUE,FALSE), ...){
 
     ## ... confidence level
     
@@ -349,7 +350,6 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
 
             
         }else{
-
             e.lmm <- mlmm(formula.mean, df = df, repetition = formula.repetition, data = dataL, structure = structure2, control = list(optimizer = "FS"),                          
                           by = by, effects = "correlation", contrast.rbind = effects, trace = FALSE)
             out <- confint(e.lmm, df = df, columns = c("estimate","se","df","lower","upper","p.value"), ...)
@@ -401,9 +401,9 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
                                method = method, columns = c("estimate","se","df","lower","upper","p.value"), ...)
             }else{
                 out0 <- confint(anova(e.lmm, effects = Cmat, transform.rho = "none"),
-                               method = "none", columns = c("estimate","se","df","p.value"), ...)
+                                method = "none", columns = c("estimate","se","df","p.value"), ...)
                 out <- confint(anova(e.lmm, effects = Cmat, transform.rho = "atanh"),
-                                method = method, columns = c("estimate","se","df","p.value"), ...)
+                               method = method, columns = c("estimate","se","df","p.value"), ...)
                 out$estimate <- out0$estimate
                 out$se <- out0$se
                 out$df <- out0$df
@@ -411,7 +411,7 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
             }
         }else{
             e.lmm <- mlmm(formula.mean, df = df, repetition = formula.repetition, data = dataL, structure = structure,
-                          by = by, effects = "correlation", contrast.rbind = effects, trace = FALSE)
+                          by = by, effects = "correlation", contrast.rbind = effects, name.short = name.short, trace = FALSE)
             out <- confint(e.lmm, columns = c("estimate","se","df","lower","upper","p.value"))
         }
     }

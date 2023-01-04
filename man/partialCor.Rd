@@ -20,6 +20,7 @@ partialCor(object, ...)
   method = "none",
   df = NULL,
   transform.rho = NULL,
+  name.short = c(TRUE, FALSE),
   ...
 )
 
@@ -52,6 +53,8 @@ With repetitions, one of \code{"UN"}, \code{"PEARSON"}, \code{"HLAG"}, \code{"LA
 \item{df}{[logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.}
 
 \item{transform.rho}{[character] scale on which perform statistical inference (e.g. \code{"atanh"})}
+
+\item{name.short}{[logical vector of length 2] use short names for the output coefficients (omit the name of the by variable, omit name of the correlation parameter)}
 
 \item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
 
