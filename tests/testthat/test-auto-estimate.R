@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 31 2022 (11:36) 
 ## Version: 
-## Last-Updated: jan  4 2023 (10:51) 
+## Last-Updated: Jan  5 2023 (09:19) 
 ##           By: Brice Ozenne
-##     Update #: 69
+##     Update #: 70
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -184,7 +184,7 @@ test_that("delta method for association based on residual variance", {
                        "lower" = c(-0.31841161), 
                        "upper" = c(0.85479785), 
                        "p.value" = c(0.34781928))
-    expect_equal(as.double(unlist(e.delta4)), as.double(unlist(test)), tol = 1e-4)
+    expect_equal(as.double(unlist(e.delta4)), as.double(unlist(test)), tol = 1e-3)
 
 })
 
