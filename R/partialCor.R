@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: Nov 14 2022 (12:20) 
+## Last-Updated: jan  4 2023 (13:46) 
 ##           By: Brice Ozenne
-##     Update #: 461
+##     Update #: 472
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -38,19 +38,20 @@
 ##' @param se [logical] Should the uncertainty about the partial correlation be evaluated? Only relevant for \code{partialCor.lmm}.
 ##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.
 ##' @param transform.rho [character] scale on which perform statistical inference (e.g. \code{"atanh"})
+##' @param name.short [logical vector of length 2] use short names for the output coefficients (omit the name of the by variable, omit name of the correlation parameter)
 ##' @param ... arguments passed to \code{confint} for \code{partialCor.list} and  \code{partialCor.formula}. Not used for \code{partialCor.lmm}.
 ##'
 ##' @details Fit a mixed model to estimate the partial correlation with the following variance-covariance pattern:
 ##' \itemize{
 ##' \item \bold{no repetition}: unstructure or compound symmetry structure for M observations, M being the number of variables on the left hand side (i.e. outcomes).
-##' \item \bold{repetition}: structure for M*T observations where M being the number of variables (typically 2) and T the number of repetitions. 
-##' Can be \code{"UN"}: unstructured (except the off-diagonal containing the correlation parameter which is constant),
-##' or \code{"PEARSON"}: same as unstructured except it only uses a single variance parameter per variable, i.e. it assumes constant variance over repetitions.
-##' or \code{"HLAG"}: toeplitz by block with variable and repetition specific variance.
-##' or \code{"LAG"}: toeplitz by block, i.e. correlation depending on the gap between repetitions and specific to each variable. It assumes constant variance over repetitions.
-##' or \code{"HCS"}: heteroschedastic compound symmetry by block, i.e. variable specific correlation constant over repetitions. A specific parameter is used for the off-diagonal crossing the variables at the same repetition (which is the marginal correlation parameter).
-##' or \code{"CS"}: compound symmetry by block. It assumes constant variance and correlation over repetitions.
-##' }
+##' \item \bold{repetition}: structure for M*T observations where M being the number of variables (typically 2) and T the number of repetitions. Can be \itemize{
+##'       \item \code{"UN"}: unstructured (except the off-diagonal containing the correlation parameter which is constant).
+##'       \item \code{"PEARSON"}: same as unstructured except it only uses a single variance parameter per variable, i.e. it assumes constant variance over repetitions.
+##'       \item \code{"HLAG"}: toeplitz by block with variable and repetition specific variance.
+##'       \item \code{"LAG"}: toeplitz by block, i.e. correlation depending on the gap between repetitions and specific to each variable. It assumes constant variance over repetitions.
+##'       \item \code{"HCS"}: heteroschedastic compound symmetry by block, i.e. variable specific correlation constant over repetitions. A specific parameter is used for the off-diagonal crossing the variables at the same repetition (which is the marginal correlation parameter).
+##'       \item \code{"CS"}: compound symmetry by block. It assumes constant variance and correlation over repetitions.
+##' }}
 ##'
 ##' @return A data.frame with the estimate partial correlation (rho), standard error, degree of freedom, confidence interval, and p-value (test of no correlation).
 ##' When \code{structure="CS"} or \code{structure="HCS"} is used with repeated measurements, a second correlation coefficient (r) is output where the between subject variance has been removed (similar to Bland et al. 1995).
@@ -137,7 +138,7 @@
 ##' @rdname partialCor
 ##' @export
 partialCor.list <- function(object, data, repetition = NULL, structure = NULL, by = NULL,
-                            effects = NULL, rhs = NULL, method = "none", df = NULL, transform.rho = NULL, ...){
+                            effects = NULL, rhs = NULL, method = "none", df = NULL, transform.rho = NULL, name.short = c(TRUE,FALSE), ...){
 
     ## ... confidence level
     
@@ -295,7 +296,6 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
         }else{
             structure2 <- do.call(TOEPLITZ, args = list(heterogeneous = structure))
         }
-        
         if(is.null(by)){
             e.lmm <- lmm(formula.mean, df = df, repetition = formula.repetition,
                          data = dataL, structure = structure2,
@@ -350,7 +350,6 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
 
             
         }else{
-
             e.lmm <- mlmm(formula.mean, df = df, repetition = formula.repetition, data = dataL, structure = structure2, control = list(optimizer = "FS"),                          
                           by = by, effects = "correlation", contrast.rbind = effects, trace = FALSE)
             out <- confint(e.lmm, df = df, columns = c("estimate","se","df","lower","upper","p.value"), ...)
@@ -402,9 +401,9 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
                                method = method, columns = c("estimate","se","df","lower","upper","p.value"), ...)
             }else{
                 out0 <- confint(anova(e.lmm, effects = Cmat, transform.rho = "none"),
-                               method = "none", columns = c("estimate","se","df","p.value"), ...)
+                                method = "none", columns = c("estimate","se","df","p.value"), ...)
                 out <- confint(anova(e.lmm, effects = Cmat, transform.rho = "atanh"),
-                                method = method, columns = c("estimate","se","df","p.value"), ...)
+                               method = method, columns = c("estimate","se","df","p.value"), ...)
                 out$estimate <- out0$estimate
                 out$se <- out0$se
                 out$df <- out0$df
@@ -412,7 +411,7 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
             }
         }else{
             e.lmm <- mlmm(formula.mean, df = df, repetition = formula.repetition, data = dataL, structure = structure,
-                          by = by, effects = "correlation", contrast.rbind = effects, trace = FALSE)
+                          by = by, effects = "correlation", contrast.rbind = effects, name.short = name.short, trace = FALSE)
             out <- confint(e.lmm, columns = c("estimate","se","df","lower","upper","p.value"))
         }
     }

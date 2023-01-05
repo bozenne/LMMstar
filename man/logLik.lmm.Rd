@@ -24,12 +24,5 @@ A numeric value (total logLikelihood) or a vector of numeric values, one for eac
 Extract or compute the log-likelihood of a linear mixed model.
 }
 \details{
-\bold{transform}: \cr
-\itemize{
-\item 0 means no transformation i.e. ouput stanrdard error, ratio of standard errors, and correlations.
-\item 1 means log/atanh transformation i.e. ouput log(stanrdard error), log(ratio of standard errors), and atanh(correlations).
-\item 2 ouput variance coefficients and correlations.
-}
-
 \bold{indiv}: only relevant when using maximum likelihood. Must be \code{FALSE} when using restricted maximum likelihood.
 }

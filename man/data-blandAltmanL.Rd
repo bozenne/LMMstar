@@ -12,10 +12,10 @@ Data From The Bland Altman Study where two methods to measure the peak expirator
 This dataset is in the long format (i.e. one line per measurement).
 
 \itemize{
-\item id Patient identifier.
-\item replicate Index of the measurement (first or second).
-\item method Device used to make the measurement (Wright peak flow meter or mini Wright peak flow meter).
-\item pefr Measurement (peak expiratory flow rate).
+\item \code{id}: patient identifier.
+\item \code{replicate}: index of the measurement (first or second).
+\item \code{method}: device used to make the measurement (Wright peak flow meter or mini Wright peak flow meter).
+\item \code{pefr}: measurement (peak expiratory flow rate).
 }
 }
 \references{

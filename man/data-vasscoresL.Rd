@@ -15,11 +15,11 @@ Then the VAS-score (pain sensation on a 0-100mm visual analogue scale) was asses
 This dataset is in the long format (i.e. one line per measurement).
 
 \itemize{
-\item id Patient identifier.
-\item group Treatment group to which the patient has been randomized.
-\item treat.num 
-\item vas VAS-score relative to the wound.
-\item treatment Treatment used on the wound.
+\item \code{id}: patient identifier.
+\item \code{group}: treatment group to which the patient has been randomized.
+\item \code{treat.num}:
+\item \code{vas}: VAS-score relative to the wound.
+\item \code{treatment}: Treatment used on the wound.
 A: active treatment (zink shower gel),
 B: placebo treatment (shower gel without zink),
 C: control treatment (demineralized water).

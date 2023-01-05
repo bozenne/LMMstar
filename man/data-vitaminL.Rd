@@ -14,14 +14,14 @@ The weight of each guinea pig was recorded at the end of week 1, 3, 4, 5, 6, and
 This dataset is in the long format (i.e. one line per measurement).
 
 \itemize{
-\item group Treatment group: vitamin or placebo.
-\item animal Identifier
-\item weight1 weight (in g) of the pig at the end of week 1 (before treatment).
-\item weight3 weight (in g) of the pig at the end of week 3 (before treatment).
-\item weight4 weight (in g) of the pig at the end of week 4 (before treatment).
-\item weight5 weight (in g) of the pig at the end of week 5 (after treatment).
-\item weight6 weight (in g) of the pig at the end of week 6 (after treatment).
-\item weight7 weight (in g) of the pig at the end of week 7 (after treatment).
+\item \code{group}: treatment group: vitamin or placebo.
+\item \code{animal}: identifier
+\item \code{weight1}: weight (in g) of the pig at the end of week 1 (before treatment).
+\item \code{weight3}: weight (in g) of the pig at the end of week 3 (before treatment).
+\item \code{weight4}: weight (in g) of the pig at the end of week 4 (before treatment).
+\item \code{weight5}: weight (in g) of the pig at the end of week 5 (after treatment).
+\item \code{weight6}: weight (in g) of the pig at the end of week 6 (after treatment).
+\item \code{weight7}: weight (in g) of the pig at the end of week 7 (after treatment).
 }
 }
 \references{

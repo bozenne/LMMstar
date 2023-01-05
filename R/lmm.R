@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: dec  9 2022 (10:02) 
+## Last-Updated: jan  3 2023 (18:41) 
 ##           By: Brice Ozenne
-##     Update #: 2069
+##     Update #: 2078
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -642,6 +642,7 @@ lmm <- function(formula, repetition, structure, data,
         data$XXtime.indexXX <- NULL
         data$XXstrataXX <- NULL
         data$XXstrata.indexXX <- NULL
+
         data <- .prepareData(data[-index.na,, drop=FALSE],
                              var.cluster = attr(var.cluster,"original"),
                              var.time = attr(var.time,"original"),
@@ -681,7 +682,7 @@ lmm <- function(formula, repetition, structure, data,
                 out$design$time$levels.original <- sort(unique(data.save[[attr(var.time,"original")]]))
             }
         }else{
-                out$design$time$levels.original <- as.character(interaction(data.save[,attr(var.time,"original")], drop = TRUE))
+            out$design$time$levels.original <- sort(unique(as.character(interaction(data.save[,attr(var.time,"original")], drop = TRUE))))
         }
     }
     ## note use model.frame to handline splines in the formula

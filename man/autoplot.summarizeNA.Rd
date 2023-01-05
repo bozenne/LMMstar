@@ -4,7 +4,14 @@
 \alias{autoplot.summarizeNA}
 \title{Graphical Display of Missing Data Pattern}
 \usage{
-\method{autoplot}{summarizeNA}(object, plot = TRUE, size.text = 16, add.missing = " missing", ...)
+\method{autoplot}{summarizeNA}(
+  object,
+  plot = TRUE,
+  size.text = 16,
+  add.missing = " missing",
+  order.pattern = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{a \code{summarizeNA} object, output of the \code{\link{summarizeNA}} function.}
@@ -14,6 +21,8 @@
 \item{size.text}{[numeric, >0] size of the font used to display text.}
 
 \item{add.missing}{[logical] should the number of missing values per variable be added to the x-axis tick labels.}
+
+\item{order.pattern}{[numeric vector or character] in which order the missing data pattern should be displayed. Can either be a numeric vector indexing the patterns or a character refering to order the patterns per number of missing values (\code{"n.missing"}) or number of observations (\code{"frequency"}).}
 
 \item{...}{Not used. For compatibility with the generic method.}
 }
@@ -25,4 +34,10 @@ A list with two elements \itemize{
 }
 \description{
 Graphical representation of the possible missing data patterns in the dataset.
+}
+\examples{
+if(require(ggplot2)){
+data(gastricbypassL, package = "LMMstar")
+autoplot(summarizeNA(gastricbypassL))
+}
 }

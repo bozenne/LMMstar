@@ -13,14 +13,14 @@ The study was conducted on 12 male volunteers randomly divided into tree groups
 and receiving each of the three formulations with a wash-out period of one week.
 
 \itemize{
-\item id Patient identifier
-\item sequence sequence of treatment 
-\item treatment Formulation of the treatment:
+\item \code{id}: patient identifier.
+\item \code{sequence}: sequence of treatment .
+\item \code{treatment}: formulation of the treatment
 A (50 mg tablet)
 B (100 mg tablet)
 C (sustained-release formulation capsule)
-\item period time period (in weeks)
-\item duration duration of the drug (in hours)
+\item \code{period}: time period (in weeks).
+\item \code{duration}: duration of the drug (in hours).
 }
 }
 \references{

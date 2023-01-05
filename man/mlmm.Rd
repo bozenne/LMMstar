@@ -13,7 +13,7 @@ mlmm(
   robust = NULL,
   df = TRUE,
   ci = TRUE,
-  name.short = TRUE,
+  name.short = c(TRUE, TRUE),
   transform.sigma = NULL,
   transform.k = NULL,
   transform.rho = NULL,
@@ -45,7 +45,8 @@ Argument passed to \code{\link{anova.lmm}}.}
 \item{ci}{[logical] Should a confidence interval be output for each hypothesis?
 Argument passed to \code{\link{anova.lmm}}.}
 
-\item{name.short}{[logical] Remove reference to the model parameter in the name of each hypothesis when the same for all hypotheses.}
+\item{name.short}{[logical vector of length 2] use short names for the output coefficients:
+omit the name of the by variable, omit the regression variable name when the same regression variable is used in all models.}
 
 \item{transform.sigma, transform.k, transform.rho, transform.names}{[character] transformation used on certain type of parameters.}
 
@@ -60,7 +61,6 @@ This transformation may cause inconsistency when combining results between diffe
 This is why the grouping variable should preferably be of type character or factor.
 }
 \examples{
-
 #### univariate regression ####
 if(require(lava)){
 
@@ -95,4 +95,9 @@ e.mlmmX1 <- mlmm(Y~X1+X2+X6, repetition = ~visit|id, data = dL,
 summary(e.mlmmX1)
 summary(e.mlmmX1, method = "single-step")
 
+}
+\seealso{
+\code{\link{confint.mlmm}} for a data.frame containing estimates with their uncertainty. \cr
+\code{\link{summary.mlmm}} for a summary of the model and estimates. \cr
+\code{\link{autoplot.Wald_lmm}} for a graphical display. \cr
 }

@@ -13,17 +13,17 @@ Contains demographic data and lifestyle factors at baseline, as well as measures
 This dataset is in the wide format (i.e. one line per participant).
 
 \itemize{
-\item id Study participant
-\item sex M/F
-\item age in years
-\item group Bipolar disorder (BD) or healthy control (HC)
-\item episode Whether the patient experience an affective episode during follow-up.
-\item fast0,fast1 Functioning assessment short test at baseline and follow-up
-\item qol0,qol1 WHO quality of life score at baseline and follow-up
-\item pss0,pss1 Perceived stress score at baseline and follow-up
-\item educationyears Years of education including basic school.
-\item alcohol Daily alcohol consumption.
-\item missingreason Reason of drop out or missed visit
+\item \code{id}: study participant.
+\item \code{sex}: male (M) or female (F).
+\item \code{age}: age in years.
+\item \code{group}: bipolar disorder (BD) or healthy control (HC).
+\item \code{episode}: whether the patient experience an affective episode during follow-up.
+\item \code{fast0},\code{fast1}: functioning assessment short test at baseline and follow-up.
+\item \code{qol0},\code{qol1}: WHO quality of life score at baseline and follow-up.
+\item \code{pss0},\code{pss1}: perceived stress score at baseline and follow-up.
+\item \code{educationyears}: years of education including basic school.
+\item \code{alcohol}: daily alcohol consumption.
+\item \code{missingreason}: reason of drop out or missed visit.
 }
 }
 \references{

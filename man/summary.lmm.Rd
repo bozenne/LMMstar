@@ -67,5 +67,4 @@ A list containing elements displayed in the summary: \itemize{
 }
 \description{
 Summary output for a linear mixed model fitted with \code{lmm}.
-This is a modified version of the \code{nlme::summary.gls} function.
 }

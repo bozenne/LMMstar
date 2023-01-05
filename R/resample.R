@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: Nov 12 2022 (16:05) 
+## Last-Updated: jan  3 2023 (17:14) 
 ##           By: Brice Ozenne
-##     Update #: 291
+##     Update #: 292
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -58,8 +58,8 @@
 ##' ## non-parametric bootstrap
 ##' resample(e.lm, type = "boot", effects = c("weight1","glucagonAUC1"))
 ##' ## permutation test
-##' resample(e.lm, type = "perm", effects = "weight1") 
-##' resample(e.lm, type = "perm", effects = "glucagonAUC1")
+##' resample(e.lm, type = "perm-var", effects = "weight1") 
+##' resample(e.lm, type = "perm-var", effects = "glucagonAUC1")
 ##' ## using multiple cores
 ##' resample(e.lm, type = "boot", effects = c("weight1","glucagonAUC1"), cpus = 4)
 ##' 

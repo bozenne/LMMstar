@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 23 2022 (16:59) 
 ## Version: 
-## Last-Updated: sep 28 2022 (12:08) 
+## Last-Updated: jan  3 2023 (18:59) 
 ##           By: Brice Ozenne
-##     Update #: 2
+##     Update #: 3
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,6 +21,13 @@
 ##' @param ... [character vector] name of the columns to be removed to the default output.
 ##'
 ##' @return A character vector
+##' 
+##' @examples
+##' set.seed(10)
+##' dW <- sampleRem(25, n.times = 1, format = "long")
+##' e.lmm <- lmm(Y~X1, data = dW)
+##'
+##' confint(e.lmm, columns = remove("estimate"))
 ##' 
 ##' @export
 remove <- function(...){

@@ -2,7 +2,7 @@
 % Please edit documentation in R/anova.R
 \name{anova.lmm}
 \alias{anova.lmm}
-\title{Multivariate Wald Tests For Linear Mixed Model}
+\title{Multivariate Tests For Linear Mixed Model}
 \usage{
 \method{anova}{lmm}(
   object,
@@ -40,21 +40,26 @@ Can also be use to specify linear combinations of coefficients or a contrast mat
 \item{...}{Not used. For compatibility with the generic method.}
 }
 \value{
-A list of matrices containing the following columns:\itemize{
-\item \code{null}: null hypothesis
-\item \code{statistic}: value of the test statistic
-\item \code{df.num}: degrees of freedom for the numerator (i.e. number of hypotheses)
-\item \code{df.denom}: degrees of freedom for the denominator (i.e. Satterthwaite approximation)
-\item \code{p.value}: p-value.
+A data.frame (LRT) or a list of containing the following elements (Wald):\itemize{
+\item \code{multivariate}: data.frame containing the multivariate Wald test.
+The column \code{df.num} refers to the degrees of freedom for the numerator (i.e. number of hypotheses)
+wherease the column \code{df.denum} refers to the degrees of freedom for the denominator (i.e. Satterthwaite approximation).
+\item \code{univariate}: data.frame containing each univariate Wald test.
+\item \code{glht}: used internally to call functions from the multcomp package.
+\item \code{object}: list containing key information about the linear mixed model.
+\item \code{vcov}: variance-covariance matrix associated to each parameter of interest (i.e. hypothesis).
+\item \code{iid}: matrix containing the influence function relative to each parameter of interest (i.e. hypothesis).
+\item \code{args}: list containing argument values from the function call.
 }
-as well as an attribute contrast containing the contrast matrix encoding the linear combinations of coefficients (in columns) for each hypothesis (in rows).
 }
 \description{
-Simultaneous tests of linear combinations of the model paramaters using Wald tests.
+Simultaneous tests of linear combinations of the model paramaters using Wald tests or Likelihood Ratio Test (LRT).
 }
 \details{
-By default confidence intervals and p-values are adjusted based on the distribution of the maximum-statistic.
-This is refered to as a single-step Dunnett multiple testing procedures in table II of Dmitrienko et al. (2013) and is performed using the multcomp package with the option \code{test = adjusted("single-step")}.
+By default adjustment of confidence intervals and p-values for multiple comparisons is based on the distribution of the maximum-statistic.
+This is refered to as a single-step Dunnett multiple testing procedures in table II of Dmitrienko et al. (2013).
+It is performed using the multcomp package with the option \code{test = adjusted("single-step")} with equal degrees of freedom
+or by simulation using a Student's t copula with unequal degrees of freedom (more in the note of the details section of \code{\link{confint.Wald_lmm}}).
 }
 \examples{
 #### simulate data in the long format ####
@@ -62,32 +67,34 @@ set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
 
 #### fit Linear Mixed Model ####
-eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL)
+eUN.lmm <- lmm(Y ~ visit + X1 + X2 + X5,
+               repetition = ~visit|id, structure = "UN", data = dL)
 
 #### Multivariate Wald test ####
 ## F-tests
 anova(eUN.lmm)
+anova(eUN.lmm, effects = "all")
+anova(eUN.lmm, robust = TRUE, df = FALSE)
 summary(anova(eUN.lmm))
 
 ## user defined F-test
 summary(anova(eUN.lmm, effects = c("X1=0","X2+X5=10")))
+print(anova(eUN.lmm, effects = "mean_visit"), columns = add("null"))
 
 ## chi2-tests
 anova(eUN.lmm, df = FALSE)
 
+
 ## with standard contrast
 if(require(multcomp)){
 amod <- lmm(breaks ~ tension, data = warpbreaks)
-e.glht <- glht(amod, linfct = mcp(tension = "Tukey"))
-summary(e.glht, test = Chisqtest()) ## 0.000742
-
 e.amod <- anova(amod, effect = mcp(tension = "Tukey"))
 summary(e.amod)
 }
 
 #### Likelihood ratio test ####
 eUN0.lmm <- lmm(Y ~ X1 + X2, repetition = ~visit|id, structure = "UN", data = dL)
-anova(eUN.lmm, eUN0.lmm)
+anova(eUN.lmm, eUN0.lmm) 
 
 eCS.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "CS", data = dL)
 anova(eUN.lmm, eCS.lmm)
@@ -96,5 +103,7 @@ anova(eUN.lmm, eCS.lmm)
 Dmitrienko, A. and D'Agostino, R., Sr (2013), Traditional multiplicity adjustment methods in clinical trials. Statist. Med., 32: 5172-5218. https://doi.org/10.1002/sim.5990.
 }
 \seealso{
-\code{\link{summary.Wald_lmm}} for a summary of the results. \cr
+\code{\link{summary.Wald_lmm}} or \code{\link{confint.Wald_lmm}} for a summary of the results. \cr
+\code{\link{autoplot.Wald_lmm}} for a graphical display of the results. \cr
+\code{\link{rbind.Wald_lmm}} for combining result across models and adjust for multiple comparisons. \cr
 }

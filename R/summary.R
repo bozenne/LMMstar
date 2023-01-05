@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: nov 23 2022 (18:10) 
+## Last-Updated: jan  3 2023 (17:27) 
 ##           By: Brice Ozenne
-##     Update #: 1176
+##     Update #: 1180
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,7 +18,6 @@
 ## * summary.lmm (documentation)
 ##' @title Summary Output for a Linear Mixed Model
 ##' @description Summary output for a linear mixed model fitted with \code{lmm}.
-##' This is a modified version of the \code{nlme::summary.gls} function.
 ##'
 ##' @param object [lmm] output of the \code{lmm} function.
 ##' @param level [numeric,0-1] confidence level for the confidence intervals.
@@ -924,7 +923,7 @@ summary.resample <- function(object, digits = 3, ...){
     }
 
     ## ** round
-    columns.num <- intersect(setdiff(columns,c(col.df,"p.value")), names(table))
+    columns.num <- intersect(setdiff(columns,c(col.df,"null","p.value")), names(table))
     for(iCol in columns.num){
         table.print[[iCol]] <- as.character(round(table.print[[iCol]], digits = digits))
     }

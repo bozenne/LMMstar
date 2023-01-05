@@ -13,10 +13,10 @@ where the pneumococcus was studied in 18 families with different space available
 This dataset is in the long format (i.e. one line per measurement).
 
 \itemize{
-\item crowding Space available in the household.
-\item family Family serial number
-\item name Type of family member.
-\item swabs number of times the swab measurement was positive.
+\item \code{crowding}: space available in the household.
+\item \code{family}: family serial number
+\item \code{name}: type of family member.
+\item \code{swabs}: number of times the swab measurement was positive.
 }
 }
 \references{

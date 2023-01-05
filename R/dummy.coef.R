@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (11:08) 
 ## Version: 
-## Last-Updated: sep 12 2022 (09:18) 
+## Last-Updated: jan  3 2023 (16:09) 
 ##           By: Brice Ozenne
-##     Update #: 40
+##     Update #: 41
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,7 +25,7 @@
 ##' @param ... arguments passed to \code{emmeans}.
 ##' 
 ##' @return A data.frame containing the level for which the means have been computed (if more than one),
-##' the estimated mean (\code{estimate}), standard error (\code{se}), degree of freedom (\code{df}), and 95% confidence interval (\code{lower} and \code{upper}).
+##' the estimated mean (\code{estimate}), standard error (\code{se}), degree of freedom (\code{df}), and 95\% confidence interval (\code{lower} and \code{upper}).
 ##' 
 
 

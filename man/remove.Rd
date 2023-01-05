@@ -15,3 +15,11 @@ A character vector
 \description{
 Auxiliary function that can be used when specifying the argument \code{columns} (e.g. calling \code{confint.lmm}) to remove columns.
 }
+\examples{
+set.seed(10)
+dW <- sampleRem(25, n.times = 1, format = "long")
+e.lmm <- lmm(Y~X1, data = dW)
+
+confint(e.lmm, columns = remove("estimate"))
+
+}

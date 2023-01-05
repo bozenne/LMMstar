@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: nov  8 2022 (15:52) 
+## Last-Updated: jan  3 2023 (18:58) 
 ##           By: Brice Ozenne
-##     Update #: 678
+##     Update #: 702
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -40,9 +40,9 @@
 ##' \item \code{"response"}: raw residual, i.e. observed outcome minus fitted value \eqn{\varepsilon_{ij} = Y_{ij} - X_{ij} \hat{\beta}}.
 ##' \item \code{"pearson"}: each raw residual is divided by its modeled standard deviation \eqn{\varepsilon_{ij} = \frac{Y_{ij} - X_{ij} \hat{\beta}}{\sqrt{\hat{\omega}_{ij}}}}.
 ##' \item \code{"studentized"}: same as \code{"pearson"} but excluding the contribution of the cluster in the modeled standard deviation  \eqn{\varepsilon_{ij} = \frac{Y_{ij} - X_{ij} \hat{\beta}}{\sqrt{\hat{\omega}_{ij}-\hat{q}_{ij}}}}.
-##' \item \code{"normalized"}: raw residuals are multiplied, within clusters, by the inverse of the (lower) Cholesky factor of the modeled residual variance covariance matrix \eqn{\varepsilon_{ij} = ( Y_{i} - X_{i} \hat{\beta} )\hat{C}^{-1}}.
+##' \item \code{"normalized"}: raw residuals are multiplied, within clusters, by the inverse of the (upper) Cholesky factor of the modeled residual variance covariance matrix \eqn{\varepsilon_{ij} = ( Y_{i} - X_{i} \hat{\beta} )\hat{C}^{-1}}.
 ##' \item \code{"normalized2"}: same as \code{"normalized"} but excluding the contribution of the cluster in the modeled residual variance covariance matrix \eqn{\varepsilon_{ij} = ( Y_{i} - X_{i} \hat{\beta} ) \hat{D}_i^{-1}}.
-##' \item \code{"scaled"}: scaled residuals (see PROC MIXED in SAS).
+##' \item \code{"scaled"}: scaled residuals (see PROC MIXED in SAS). Numerically identical to \code{"normalized"} but computed by sequentially scaling and centering the residuals, to make them conditionally independent of previous residuals from the same cluster at previous repetitions.
 ##' \item \code{"partial"}: partial residuals (\eqn{\gamma E + \hat{\varepsilon}}). A reference level can be also be specified via the attribute \code{"reference"} to change the absolute level of the partial residuals.
 ##' \code{"partial-center"}: partial residuals with centered covariates (\eqn{\gamma E + \hat{\varepsilon}} where \eqn{E} has been centered, i.e., has 0-mean)
 ##' }
@@ -52,9 +52,9 @@
 ##' \item \eqn{Y} the outcome
 ##' \item \eqn{\hat{\beta}=(\hat{\gamma},\hat{\delta})} the estimated mean coefficients relative to \eqn{X=(E,W)}
 ##' \item \eqn{\hat{\Omega}} the modeled variance-covariance of the residuals and \eqn{\hat{\omega}} its diagonal elements
-##' \item \eqn{\hat{C}} the lower Cholesky factor of \eqn{\hat{\Omega}}, i.e. \eqn{\hat{C} \hat{C}^{t} = \hat{\Omega}}
+##' \item \eqn{\hat{C}} the upper Cholesky factor of \eqn{\hat{\Omega}}, i.e. upper triangular matrix satisfying \eqn{\hat{C}^{t} \hat{C} = \hat{\Omega}}
 ##' \item \eqn{\hat{Q}_i= X_i (X^{t}\hat{\Omega}X)^{-1}X_i^{t}} a cluster specific correction factor, approximating the contribution of cluster i to \eqn{\hat{\Omega}}. Its diagonal elements are denoted \eqn{\hat{q}_i}.
-##' \item \eqn{\hat{D}_i} the lower Cholesky factor of \eqn{\hat{\Omega}-\hat{Q}_i}
+##' \item \eqn{\hat{D}_i} the upper Cholesky factor of \eqn{\hat{\Omega}-\hat{Q}_i}
 ##' }
 ##'
 ##' @return
@@ -132,7 +132,7 @@ residuals.lmm <- function(object, type = "response", format = "long",
     object.OmegaM1 <- object$OmegaM1
 
     cluster.levels.original <- object$design$cluster$levels.original
-    time.levels.original <- object$design$time$levels.original
+    ## time.levels.original <- object$design$time$levels.original
     
     ## ** normalize user imput
     dots <- list(...)
@@ -469,10 +469,15 @@ residuals.lmm <- function(object, type = "response", format = "long",
             level.time <- levels(attr(index.na,"time"))
         }else{
             level.time <- rep(NA, n.allobs)
-            level.time[index.na] <- factor(attr(index.na,"time"), levels = time.levels.original)
-            level.time[-index.na] <- factor(index.time, levels = 1:length(time.levels.original), labels = time.levels.original)
+            if(NCOL(attr(index.na,"time"))>1){
+                level.time[index.na] <- factor(interaction(attr(index.na,"time")), levels = U.time)
+                level.time[-index.na] <- factor(index.time, levels = 1:length(U.time), labels = U.time) ## time.levels.original
+            }else{
+                level.time[index.na] <- factor(attr(index.na,"time"), levels = U.time)
+                level.time[-index.na] <- factor(index.time, levels = 1:length(U.time), labels = U.time) ## time.levels.original
+            }
+            
         }
-
     }else{
         level.cluster <- index.cluster
         level.time <- index.time
@@ -481,7 +486,6 @@ residuals.lmm <- function(object, type = "response", format = "long",
     ##
     if(format=="wide"){
         dfL.res <- data.frame(residuals = as.vector(M.res), cluster = level.cluster, time = factor(U.time[level.time], U.time), stringsAsFactors = FALSE)
-
         MW.res <- stats::reshape(data = dfL.res[,c("cluster","time","residuals"),drop=FALSE], 
                                  direction = "wide", timevar = "time", idvar = "cluster", v.names = "residuals")
         colnames(MW.res)[-1] <- gsub("^residuals.","",colnames(MW.res)[-1])

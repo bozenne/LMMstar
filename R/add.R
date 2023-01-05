@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 23 2022 (16:58) 
 ## Version: 
-## Last-Updated: sep 28 2022 (12:19) 
+## Last-Updated: jan  3 2023 (14:54) 
 ##           By: Brice Ozenne
-##     Update #: 3
+##     Update #: 4
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -22,6 +22,13 @@
 ##'
 ##' @return A character vector
 ##' 
+##' @examples
+##' set.seed(10)
+##' dW <- sampleRem(25, n.times = 1, format = "long")
+##' e.lmm <- lmm(Y~X1, data = dW)
+##'
+##' confint(e.lmm, columns = add("statistic"))
+
 ##' @export
 add <- function(...){
     dots <- list(...)

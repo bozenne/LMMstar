@@ -13,12 +13,12 @@ a randomized placebo-controlled crossover study where the effect of potassium su
 This dataset is in the long format (i.e. one line per measurement) and contains measurement over 6 timepoints for each time period.
 
 \itemize{
-\item id Patient identifier
-\item sequence Treatment group to which the patient has been randomized.
-\item period Time period.
-\item treatment Treatment during the time period
-\item time Time within each period
-\item aldo ??
+\item \code{id}: patient identifier.
+\item \code{sequence}: treatment group to which the patient has been randomized.
+\item \code{period}: time period.
+\item \code{treatment}: treatment during the time period.
+\item \code{time}: time within each period.
+\item \code{aldo}: ??
 }
 }
 \references{

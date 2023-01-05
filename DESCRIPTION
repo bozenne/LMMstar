@@ -2,7 +2,7 @@ Package: LMMstar
 Type: Package
 Title: Repeated Measurement Models for Discrete Times
 Version: 0.8.10
-Date: 2022-12-09
+Date: 2023-01-04
 Authors@R: c(
     person("Brice", "Ozenne", role = c("aut", "cre"), email = "brice.mh.ozenne@gmail.com", comment = c(ORCID = "0000-0001-9694-2956")),
     person("Julie", "Forman", role = "aut", email = "jufo@sund.ku.dk", comment = c(ORCID = "0000-0001-7368-0869"))
@@ -10,7 +10,7 @@ Authors@R: c(
 Description: Companion R package for the course "Statistical analysis of correlated and repeated measurements for health science researchers"
 	     taught by the section of Biostatistics of the University of Copenhagen.
 	     It implements linear mixed models where the model for the variance-covariance of the residuals is specified via patterns (compound symmetry, toeplitz, unstructured, ...).
-	     Statistical inference for mean, variance, and correlation parameters is performed based on the observed information and a Satterthwaite degrees of freedom.
+	     Statistical inference for mean, variance, and correlation parameters is performed based on the observed information and a Satterthwaite approximation of the degrees of freedom.
 	     Normalized residuals are provided to assess model misspecification.
 	     Statistical inference can be performed for arbitrary linear or non-linear combination(s) of model coefficients.
 	     Predictions can be computed conditional to covariates only or also to outcome values. 

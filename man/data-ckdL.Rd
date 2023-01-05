@@ -11,15 +11,15 @@ data(ckdL)
 TODO
 
 \itemize{
-\item id Patient identifier
-\item allocation
-\item sex
-\item age
-\item visit
-\item time
-\item pwv
-\item aix
-\item dropout
+\item \code{id}: patient identifier.
+\item \code{allocation}:
+\item \code{sex}:
+\item \code{age}:
+\item \code{visit}:
+\item \code{time}:
+\item \code{pwv}:
+\item \code{aix}:
+\item \code{dropout}:
 }
 }
 \references{

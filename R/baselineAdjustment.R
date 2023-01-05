@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (14:55) 
 ## Version: 
-## Last-Updated: sep  1 2022 (09:26) 
+## Last-Updated: jan  3 2023 (15:43) 
 ##           By: Brice Ozenne
-##     Update #: 74
+##     Update #: 75
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -40,14 +40,6 @@
 ##'                    repetition= ~ visit|id, constrain = 1, collapse.time = ".")
 ##' table(treattime = ncgsL$treattime, visit = ncgsL$visit, group = ncgsL$group)
 ##' 
-##' e1.lmm <- suppressWarnings(lmm(cholest~visit*treat,
-##'              data=ncgsL, repetition= ~ visit|id,
-##'              structure = "CS"))
-##' e1bis.lmm <- suppressWarnings(lmm(cholest~treattime,
-##'              data=ncgsL, repetition= ~ visit|id,
-##'              structure = "CS"))
-##' 
-##' 
 ##' ## baseline adjustment 2
 ##' ncgsL$treat2 <- baselineAdjustment(ncgsL, variable = "group",
 ##'                  new.level = "baseline",
@@ -59,15 +51,6 @@
 ##'                    repetition= ~ visit|id, constrain = 1, collapse.time = ".")
 ##' table(treattime = ncgsL$treattime2, visit = ncgsL$visit, group = ncgsL$group)
 ##'
-##' e2.lmm <- suppressWarnings(lmm(cholest~visit*treat2,
-##'              data=ncgsL, repetition= ~ visit|id,
-##'              structure = "CS"))
-##' e2bis.lmm <- suppressWarnings(lmm(cholest~treattime2,
-##'              data=ncgsL, repetition= ~ visit|id,
-##'              structure = "CS"))
-##' 
-##' 
-##' 
 
 ## * baselineAdjustment (code)
 ##' @export

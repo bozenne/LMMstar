@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jun 16 2022 (15:19) 
 ## Version: 
-## Last-Updated: sep  5 2022 (15:03) 
+## Last-Updated: jan  4 2023 (11:41) 
 ##           By: Brice Ozenne
-##     Update #: 280
+##     Update #: 285
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -259,7 +259,7 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
         }
         gg <- gg + ggplot2::facet_wrap(~param, scales= scales, nrow = nrow, ncol = ncol)
         if(size[2]>0){
-            gg <- gg + ggplot2::geom_line(size = size[2])
+            gg <- gg + ggplot2::geom_line(linewidth = size[2])
         }
         if(size[3]>0 && (plot<=1)){
             df.fit <- do.call(rbind,by(df.profile, df.profile$param, function(iDF){ ## iDF <- df.profile[df.profile$param=="sigma",]
@@ -271,7 +271,7 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
                 return(iDF)
             }))
             df.fit$param <- factor(df.fit$param, levels = levels(df.profile$param))
-            gg <- gg + ggplot2::geom_line(data = df.fit, size = size[3], linetype = linetype[1], ggplot2::aes(color = "quadratic approximation"))
+            gg <- gg + ggplot2::geom_line(data = df.fit, linewidth = size[3], linetype = linetype[1], ggplot2::aes(color = "quadratic approximation"))
         }
         if(size[1]>0){
             gg <- gg  + ggplot2::geom_point(data = df.profile[df.profile$optimum==TRUE,,drop=FALSE], ggplot2::aes(color = "MLE"), size = size[1], shape = shape)

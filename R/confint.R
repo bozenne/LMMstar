@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: dec  8 2022 (18:11) 
+## Last-Updated: jan  3 2023 (16:08) 
 ##           By: Brice Ozenne
-##     Update #: 575
+##     Update #: 579
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -47,6 +47,10 @@
 ##' \item column null: the null hypothesis.
 ##' \item column p.value: the p-value relative to the null hypothesis.
 ##' }
+##' 
+##' @seealso
+##' \code{\link{coef.lmm}} for a simpler output (e.g. only estimates). \cr
+##' \code{\link{model.tables.lmm}} for a more detailed output (e.g. with p-value). \cr
 ##' 
 ##' @examples
 ##' #### simulate data in the long format ####
@@ -263,7 +267,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
 ##' @param parm Not used. For compatibility with the generic method.
 ##' @param level [numeric, 0-1] nominal coverage of the confidence intervals.
 ##' @param method [character] type of adjustment for multiple comparisons, one of \code{"none"}, \code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}.
-##' Alternatively, method for combining the estimates, one of \code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.rubin"}.
+##' Alternatively, a method for combining the estimates, one of \code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.gls1"}, \code{"pool.rubin"}.
 ##' @param columns [character vector] Columns to be output.
 ##' Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
 ##' @param backtransform [logical] should the estimates, standard errors, and confidence intervals be backtransformed?
@@ -284,6 +288,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
 ##'  \item \code{"pool.fixse"}: weighted average of the estimates, with weights being the inverse of the squared standard error. The uncertainty about the weights is neglected.
 ##'  \item \code{"pool.se"}: weighted average of the estimates, with weights being the inverse of the squared standard error. The uncertainty about the weights is computed under independence of the variance parameters between models. 
 ##'  \item \code{"pool.gls"}: weighted average of the estimates, with weights being based on the variance-covariance matrix of the estimates. When this matrix is singular, its spectral decomposition is truncated when the correspodning eigenvalues are below \eqn{10^{-12}}. The uncertainty about the weights is neglected. 
+##'  \item \code{"pool.gls1"}: similar to \code{"pool.gls"} but ensure that the weights are at most 1 in absolute value by shrinking toward the average.
 ##'  \item \code{"pool.rubin"}: average of the estimates and compute the uncertainty according to Rubin's rule (Barnard et al. 1999).
 ##' }
 ##'

@@ -13,11 +13,11 @@ where the bodyweight and serum glucagon (a gut hormone) were measured in 20 obes
 This dataset is in the long format (i.e. one line per measurement).
 
 \itemize{
-\item id Patient identifier
-\item visit The visit index.
-\item time The time at which the visit took place.
-\item weight Bodyweight (in kg) measured during the visit.
-\item glucagonAUC Glucagon measured during the visit.
+\item \code{id}: patient identifier.
+\item \code{visit}: the visit index.
+\item \code{time}: the time at which the visit took place.
+\item \code{weight}: bodyweight (in kg) measured during the visit.
+\item \code{glucagonAUC}: glucagon measured during the visit.
 }
 }
 \references{
