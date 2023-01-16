@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: Nov 12 2022 (17:31) 
+## Last-Updated: jan 16 2023 (18:08) 
 ##           By: Brice Ozenne
-##     Update #: 722
+##     Update #: 728
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -263,7 +263,7 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
         }
 
     }
-            
+
     ## ** compute predictions
     if(type.prediction == "static"){
         ## compute predictions
@@ -294,7 +294,7 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
         prediction <- rep(NA, n.obs)
         prediction.var <- rep(NA, n.obs)
         
-        for(iC in U.cluster){ ## iId <- 1
+        for(iC in U.cluster){ ## iC <- U.cluster[1]
             iNewdata <- newdata[index.cluster[[iC]],,drop=FALSE] ## subset
             iIndex.con <- which(!is.na(iNewdata[[name.Y]]))
             iPos.con <- index.cluster[[iC]][iIndex.con]
@@ -357,7 +357,7 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
 
             
         }
-        if(keep.newdata){
+    if(keep.newdata){
             out <- cbind(newdata, estimate = prediction)
             if(!is.null(se)){
                 out$se <- sqrt(prediction.var)
@@ -383,7 +383,7 @@ p        }else{
         dVcov <- attr(vcov.param,"dVcov")
         attr(vcov.param, "df") <- NULL
         attr(vcov.param, "dVcov") <- NULL
-        out$df <- .dfX(X.beta = X, vcov.param = vcov.param, dVcov.param = dVcov)
+        out$df <- pmax(.dfX(X.beta = X, vcov.param = vcov.param, dVcov.param = dVcov),1)
     }
 
     ## ** export

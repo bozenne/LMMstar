@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: jan  4 2023 (13:46) 
+## Last-Updated: jan 11 2023 (19:36) 
 ##           By: Brice Ozenne
-##     Update #: 472
+##     Update #: 478
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -297,6 +297,7 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
             structure2 <- do.call(TOEPLITZ, args = list(heterogeneous = structure))
         }
         if(is.null(by)){
+
             e.lmm <- lmm(formula.mean, df = df, repetition = formula.repetition,
                          data = dataL, structure = structure2,
                          control = list(optimizer = "FS"))
@@ -477,7 +478,7 @@ partialCor.lmm <- function(object, level = 0.95, R2 = FALSE, se = TRUE, df = TRU
         SSRstar.indiv <- value.meancoef[keep.meancoef]^2 / diag(Einfo)[keep.meancoef]
         out[,"estimate"] <- sign(value.meancoef[keep.meancoef])*sqrt(abs(SSRstar.indiv) / (SSRstar.indiv + SSEstar))
     }else{
-        out <- estimate(object, df = df, level = level, function(p){ ## p <- coef(object, effects = "all")
+        out <- lava::estimate(object, df = df, level = level, function(p){ ## p <- coef(object, effects = "all")
 
             iSSEstar <- stats::df.residual(object, p = p)
             iEinfo <- vcov(object, p = p, type.information = "expected", effects = "mean")
@@ -498,14 +499,17 @@ partialCor.lmm <- function(object, level = 0.95, R2 = FALSE, se = TRUE, df = TRU
 
     ## ** R2
     if(R2){
-
         ## linear contrasts
         ls.C <- lapply(anova(object, effects = "mean", df = FALSE, ci = TRUE)$glht[[1]], function(iAOV){
             iAOV$linfct[,name.meancoef,drop=FALSE]
         })
         ls.C[[length(ls.C)+1]] <- matrix(0, nrow = length(keep.meancoef), ncol = NCOL(ls.C[[1]]),
                                          dimnames = list(keep.meancoef, colnames(ls.C[[1]])))
-        diag(ls.C[[length(ls.C)]][keep.meancoef,keep.meancoef]) <- 1
+        if(length(keep.meancoef)==1){
+            ls.C[[length(ls.C)]][keep.meancoef,keep.meancoef] <- 1
+        }else{
+            diag(ls.C[[length(ls.C)]][keep.meancoef,keep.meancoef]) <- 1
+        }
         names(ls.C)[length(ls.C)] <- "global"
 
         out2 <- matrix(NA, nrow = length(ls.C), ncol = 6,

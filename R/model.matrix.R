@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: jan  3 2023 (18:39) 
+## Last-Updated: jan 16 2023 (18:04) 
 ##           By: Brice Ozenne
-##     Update #: 2385
+##     Update #: 2387
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -91,7 +91,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             ff.factor <- names(object$xfactor$mean)
             if(length(ff.factor)>0){
                 for(iVar in ff.factor){ ## iVar <- ff.factor[1]
-                    if(any(data[[iVar]] %in% object$xfactor$mean[[iVar]] == FALSE)){
+                    if(any(stats::na.omit(data[[iVar]]) %in% object$xfactor$mean[[iVar]] == FALSE)){
                         Wf <- setdiff(unique(data[[iVar]]), iLevel)
                         stop("Unknown factor(s) \"",paste0(Wf,collapse="\" \""),"\" for variable \"",iVar,"\".\n",
                              "Valid factors: \"",paste0(object$xfactor$mean[[iVar]], collapse="\" \""),"\".\n")
