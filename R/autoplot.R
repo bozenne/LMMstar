@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: Jan  5 2023 (09:15) 
+## Last-Updated: jan 23 2023 (14:24) 
 ##           By: Brice Ozenne
-##     Update #: 378
+##     Update #: 385
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -210,32 +210,54 @@ autoplot.lmm <- function(object, obs.alpha = 0, obs.size = c(2,0.5),
     }
 
     ## ** generate plot
-    gg <- ggplot2::ggplot(preddata, ggplot2::aes_string(x = time.var.plot, y = "estimate", group = "XXclusterXX"))
+    gg <- ggplot2::ggplot(preddata, ggplot2::aes(x = .data[[time.var.plot]],
+                                                 y = .data$estimate,
+                                                 group = .data$XXclusterXX))
     if(!is.na(obs.alpha) && obs.alpha>0){
         if(!is.null(color)){
-            gg <- gg + ggplot2::geom_point(data = data, mapping = ggplot2::aes_string(x = time.var.plot, y = outcome.var, group = "XXclusterXX", color = color),
-                                           alpha = obs.alpha, size = obs.size[1])
-            gg <- gg + ggplot2::geom_line(data = data, mapping = ggplot2::aes_string(x = time.var.plot, y = outcome.var, group = "XXclusterXX", color = color),
-                                          alpha = obs.alpha, linewidth = obs.size[2])
+            gg <- gg + ggplot2::geom_point(data = data,
+                                           mapping = ggplot2::aes(x = .data[[time.var.plot]],
+                                                                  y = .data[[outcome.var]],
+                                                                  group = .data$XXclusterXX,
+                                                                  color = .data[[color]]),
+                                           alpha = obs.alpha,
+                                           size = obs.size[1])
+            gg <- gg + ggplot2::geom_line(data = data,
+                                          mapping = ggplot2::aes(x = .data[[time.var.plot]],
+                                                                 y = .data[[outcome.var]],
+                                                                 group = .data$XXclusterXX,
+                                                                 color = .data[[color]]),
+                                          alpha = obs.alpha,
+                                          linewidth = obs.size[2])
             ## gg + facet_wrap(~XXclusterXX)
         }else{
-            gg <- gg + ggplot2::geom_point(data = data, mapping = ggplot2::aes_string(x = time.var.plot, y = outcome.var, group = "XXclusterXX"), alpha = obs.alpha, size = obs.size[1])
-            gg <- gg + ggplot2::geom_line(data = data, mapping = ggplot2::aes_string(x = time.var.plot, y = outcome.var, group = "XXclusterXX"), alpha = obs.alpha, linewidth = obs.size[2])
+            gg <- gg + ggplot2::geom_point(data = data,
+                                           mapping = ggplot2::aes(x = .data[[time.var.plot]],
+                                                                  y = .data[[outcome.var]],
+                                                                  group = .data$XXclusterXX),
+                                           alpha = obs.alpha,
+                                           size = obs.size[1])
+            gg <- gg + ggplot2::geom_line(data = data,
+                                          mapping = ggplot2::aes(x = .data[[time.var.plot]],
+                                                                 y = .data[[outcome.var]],
+                                                                 group = .data$XXclusterXX),
+                                          alpha = obs.alpha,
+                                          linewidth = obs.size[2])
         }
     }
     if(ci){
         if(is.na(ci.alpha)){
-            gg <- gg + ggplot2::geom_errorbar(ggplot2::aes_string(ymin = "lower", ymax = "upper"), position = position.errorbar)
+            gg <- gg + ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$lower, ymax = .data$upper), position = position.errorbar)
         }else{
             if(!is.null(color)){
-                gg <- gg + ggplot2::geom_ribbon(ggplot2::aes_string(ymin = "lower", ymax = "upper", fill = color), alpha = ci.alpha)
+                gg <- gg + ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$lower, ymax = .data$upper, fill = .data[[color]]), alpha = ci.alpha)
             }else{
-                gg <- gg + ggplot2::geom_ribbon(ggplot2::aes_string(ymin = "lower", ymax = "upper"), alpha = ci.alpha)
+                gg <- gg + ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$lower, ymax = .data$upper), alpha = ci.alpha)
             }
         }
     }
     if(!is.null(color)){
-        gg <- gg + ggplot2::geom_point(ggplot2::aes_string(color = color), size = mean.size[1]) + ggplot2::geom_line(ggplot2::aes_string(color = color), linewidth = mean.size[2])
+        gg <- gg + ggplot2::geom_point(ggplot2::aes(color = .data[[color]]), size = mean.size[1]) + ggplot2::geom_line(ggplot2::aes(color = .data[[color]]), linewidth = mean.size[2])
     }else{
         gg <- gg + ggplot2::geom_point(size = mean.size[1]) + ggplot2::geom_line(linewidth = mean.size[2])
     }
@@ -303,7 +325,7 @@ autoplot.partialCor <- function(object, plot = TRUE, size.text = 16,
     table$col <- factor(colnames(Sigma_t)[table$col], levels = name.time)
     table$row <- factor(rownames(Sigma_t)[table$row], levels = name.time)
     
-    gg <- ggplot2::ggplot(table) + ggplot2::geom_tile(ggplot2::aes_string(x="row",y="col",fill="value"))
+    gg <- ggplot2::ggplot(table) + ggplot2::geom_tile(ggplot2::aes(x = .data$row, y = .data$col, fill = .data$value))
 
     if(!is.null(mid)){
         gg <- gg + ggplot2::scale_fill_gradient2(limits = limits, midpoint = midpoint, low = low, mid = mid, high = high)
@@ -342,8 +364,8 @@ autoplot.partialCor <- function(object, plot = TRUE, size.text = 16,
 ##' 
 ##' @examples
 ##' if(require(ggplot2)){
-##' data(gastricbypassL, package = "LMMstar")
-##' autoplot(summarizeNA(gastricbypassL))
+##' data(gastricbypassW, package = "LMMstar")
+##' autoplot(summarizeNA(gastricbypassW))
 ##' }
 
 ## * autoplot.summarizeNA (code)
@@ -396,7 +418,7 @@ if(length(dots)>0){
         dataL[[newnames[3]]] <- factor(dataL[[newnames[3]]], levels = data[[newnames[3]]][order.pattern])
     }
 
-    gg.NA <- ggplot2::ggplot(dataL, ggplot2::aes_string(y = newnames[3], x = newnames[1], fill = newnames[2]))
+    gg.NA <- ggplot2::ggplot(dataL, ggplot2::aes(y = .data[[newnames[3]]], x = .data[[newnames[1]]], fill = .data[[newnames[2]]]))
     gg.NA <- gg.NA + ggplot2::geom_tile(color = "black")
     gg.NA <- gg.NA + ggplot2::scale_y_discrete(breaks = unique(dataL[[newnames[3]]]), labels = nObs.pattern[unique(dataL[[newnames[3]]])])
     gg.NA <- gg.NA + ggplot2::labs(fill = "missing", x = "", y = "number of observations")
@@ -584,13 +606,13 @@ autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 
         table$test <- as.factor(table$test)
         table$names <- factor(table$names, levels = unique(table$names)) ## ensure same ordering as in the object (instead of alphabetical ordering)
         if(color & shape){
-            gg <- ggplot2::ggplot(table, ggplot2::aes_string(x = "names", y = "estimate", color = "color", shape = "shape")) + ggplot2::labs(color = "", shape = "")
+            gg <- ggplot2::ggplot(table, ggplot2::aes(x = .data$names, y = .data$estimate, color = .data$color, shape = .data$shape)) + ggplot2::labs(color = "", shape = "")
         }else if(color){
-            gg <- ggplot2::ggplot(table, ggplot2::aes_string(x = "names", y = "estimate", color = "color")) + ggplot2::labs(color = "")
+            gg <- ggplot2::ggplot(table, ggplot2::aes(x = .data$names, y = .data$estimate, color = .data$color)) + ggplot2::labs(color = "")
         }else if(shape){
-            gg <- ggplot2::ggplot(table, ggplot2::aes_string(x = "names", y = "estimate", shape = "shape")) + ggplot2::labs(color = "")
+            gg <- ggplot2::ggplot(table, ggplot2::aes(x = .data$names, y = .data$estimate, shape = .data$shape)) + ggplot2::labs(color = "")
         }else{
-            gg <- ggplot2::ggplot(table, ggplot2::aes_string(x = "names", y = "estimate"))
+            gg <- ggplot2::ggplot(table, ggplot2::aes(x = .data$names, y = .data$estimate))
         }
     
     if(shape.legend){
@@ -601,10 +623,10 @@ autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 
     }
     gg <- gg + ggplot2::geom_point(size = size.estimate) + ggplot2::labs(x = "", y = "")
     if(ci){
-        gg <- gg + ggplot2::geom_errorbar(ggplot2::aes_string(ymin = "lower", ymax = "upper"), size = size.ci, width = width.ci)
+        gg <- gg + ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$lower, ymax = .data$upper), size = size.ci, width = width.ci)
     }
     if(size.null>0 && length(rhs)==1){
-        gg <- gg + ggplot2::geom_hline(yintercept=rhs, lty=2, size = size.null)
+        gg <- gg + ggplot2::geom_hline(yintercept=rhs, lty=2, linewidth = size.null)
     }
     gg <- gg + ggplot2::coord_flip()
 
@@ -647,10 +669,10 @@ autoplot.Wald_lmm <- function(object, type = "forest", plot = TRUE, size.text = 
         table$row <- factor(table$row, levels = unique(table$row))
         table$col <- factor(table$col, levels = rev(levels(table$row)))
         table$rvalue <- round(table$value, digits = value.round)
-        gg <- ggplot2::ggplot(table) + ggplot2::geom_tile(ggplot2::aes_string(x="row",y="col",fill="value"))
+        gg <- ggplot2::ggplot(table) + ggplot2::geom_tile(ggplot2::aes(x = .data$row, y = .data$col, fill = .data$value))
 
         if(value.text){
-            gg <- gg + ggplot2::geom_text(ggplot2::aes_string(x = "row", y = "col", label = "rvalue"), size = value.size)
+            gg <- gg + ggplot2::geom_text(ggplot2::aes(x = .data$row, y = .data$col, label = .data$rvalue), size = value.size)
         }
         if(!is.null(mid)){
             gg <- gg + ggplot2::scale_fill_gradient2(limits = limits, midpoint = midpoint, low = low, mid = mid, high = high)

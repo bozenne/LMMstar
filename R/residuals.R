@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: jan  3 2023 (18:58) 
+## Last-Updated: jan 23 2023 (14:29) 
 ##           By: Brice Ozenne
-##     Update #: 702
+##     Update #: 703
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -541,25 +541,36 @@ residuals.lmm <- function(object, type = "response", format = "long",
                 arr.ind.cor <- which(ind.cor, arr.ind = TRUE)
                 arr.ind.cor[] <- Ulevel.time[arr.ind.cor]
 
-                df.gg <- data.frame(correlation = M.cor[ind.cor], arr.ind.cor,stringsAsFactors = FALSE)
-                df.gg$col <- factor(df.gg$col, levels = Ulevel.time)
-                df.gg$row <- factor(df.gg$row, levels = Ulevel.time)
-                df.gg$row.index <- match(df.gg$row, Ulevel.time)
-                df.gg$col.index <- match(df.gg$col, Ulevel.time)
-                dfR.gg <- df.gg[df.gg$col.index>=df.gg$row.index,,drop=FALSE]
-                attr(MW.res,"plot") <- ggplot2::ggplot(dfR.gg, ggplot2::aes_string(x = "col", y = "row", fill = "correlation")) + ggplot2::geom_tile() + ggplot2::scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1,1), space = "Lab", name="Correlation") + ggplot2::xlab(name.time) + ggplot2::ylab(name.time) + ggplot2::ggtitle(label.residual) + ggplot2::theme(text = ggplot2::element_text(size=size.text))
-                if(!is.na(digits.cor) && digits.cor>0){
-                    correlation <- NULL ## [[:forCRANcheck:]]
-                    attr(MW.res,"plot") <- attr(MW.res,"plot") + ggplot2::geom_text(ggplot2::aes(label = round(correlation,digits.cor)))
-                }
-                print(attr(MW.res,"plot"))
+            df.gg <- data.frame(correlation = M.cor[ind.cor], arr.ind.cor,stringsAsFactors = FALSE)
+            df.gg$col <- factor(df.gg$col, levels = Ulevel.time)
+            df.gg$row <- factor(df.gg$row, levels = Ulevel.time)
+            df.gg$row.index <- match(df.gg$row, Ulevel.time)
+            df.gg$col.index <- match(df.gg$col, Ulevel.time)
+            dfR.gg <- df.gg[df.gg$col.index>=df.gg$row.index,,drop=FALSE]
+            attr(MW.res,"plot") <- ggplot2::ggplot(dfR.gg, ggplot2::aes(x = .data$col,
+                                                                        y = .data$row,
+                                                                        fill = .data$correlation)) 
+            attr(MW.res,"plot") <- attr(MW.res,"plot") + ggplot2::geom_tile() + ggplot2::scale_fill_gradient2(low = "blue",
+                                                                                                              high = "red",
+                                                                                                              mid = "white",
+                                                                                                              midpoint = 0,
+                                                                                                              limit = c(-1,1),
+                                                                                                              space = "Lab",
+                                                                                                              name="Correlation")
+            attr(MW.res,"plot") <- attr(MW.res,"plot") + ggplot2::labs(x = name.time, y = name.time) + ggplot2::ggtitle(label.residual)
+            attr(MW.res,"plot") <- attr(MW.res,"plot") + ggplot2::theme(text = ggplot2::element_text(size=size.text))
+            if(!is.na(digits.cor) && digits.cor>0){
+                correlation <- NULL ## [[:forCRANcheck:]]
+                attr(MW.res,"plot") <- attr(MW.res,"plot") + ggplot2::geom_text(ggplot2::aes(label = round(correlation,digits.cor)))
             }
-            if(plot == "none"){
-                names(MW.res)[-1] <- paste0(name.residual,".",names(MW.res)[-1])
-                return(MW.res)
-            }else{
-                return(invisible(MW.res))
-            }
+            print(attr(MW.res,"plot"))
+        }
+        if(plot == "none"){
+            names(MW.res)[-1] <- paste0(name.residual,".",names(MW.res)[-1])
+            return(MW.res)
+        }else{
+            return(invisible(MW.res))
+        }
             
         }else if(format == "long"){
 

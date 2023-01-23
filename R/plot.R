@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (11:00) 
 ## Version: 
-## Last-Updated: jan  4 2023 (11:41) 
+## Last-Updated: jan 23 2023 (14:26) 
 ##           By: Brice Ozenne
-##     Update #: 93
+##     Update #: 94
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -122,24 +122,31 @@ plot.lmm <- function(x, type = "fit", type.residual = "normalized", by.time = TR
         }
         ## display
         if(all(type.var=="categorical")){
-            gg <- ggplot2::ggplot(data = gg.data, mapping = ggplot2::aes_string(x = name.varcat))
-            gg <- gg + ggplot2::geom_point(ggplot2::aes_string(y = "r.partial"), color = "gray")
+            gg <- ggplot2::ggplot(data = gg.data, mapping = ggplot2::aes(x = .data[[name.varcat]]))
+            gg <- gg + ggplot2::geom_point(ggplot2::aes(y = .data$r.partial), color = "gray")
             if(ci){
-                gg <- gg + ggplot2::geom_errorbar(ggplot2::aes_string(ymin = "lower", ymax = "upper"))
+                gg <- gg + ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$lower, ymax = .data$upper))
             }
-            gg <- gg + ggplot2::geom_point(ggplot2::aes_string(y = "estimate"), size = mean.size[1], shape = 21, fill = "white")
+            gg <- gg + ggplot2::geom_point(ggplot2::aes(y = .data$estimate), size = mean.size[1], shape = 21, fill = "white")
         }else{
-            gg <- ggplot2::ggplot(data = gg.data, mapping = ggplot2::aes_string(x = name.varnum))
-            gg <- gg + ggplot2::geom_point(ggplot2::aes_string(y = "r.partial"), color = "gray")
+            gg <- ggplot2::ggplot(data = gg.data, mapping = ggplot2::aes(x = .data[[name.varnum]]))
+            gg <- gg + ggplot2::geom_point(ggplot2::aes(y = .data$r.partial), color = "gray")
             if(length(type.var)==1){
-                gg <- gg + ggplot2::geom_line(ggplot2::aes_string(y = "estimate"), linewidth = mean.size[2])
+                gg <- gg + ggplot2::geom_line(ggplot2::aes(y = .data$estimate), linewidth = mean.size[2])
                 if(ci){
-                    gg <- gg + ggplot2::geom_ribbon(ggplot2::aes_string(ymin = "lower", ymax = "upper"), alpha = ci.alpha)
+                    gg <- gg + ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$lower, ymax = .data$upper), alpha = ci.alpha)
                 }
             }else{
-                gg <- gg + ggplot2::geom_line(ggplot2::aes_string(y = "estimate", group = name.varcat, color = name.varcat), linewidth = mean.size[2])
+                gg <- gg + ggplot2::geom_line(ggplot2::aes(y = .data$estimate,
+                                                           group = .data[[name.varcat]],
+                                                           color = .data[[name.varcat]]),
+                                              linewidth = mean.size[2])
                 if(ci){
-                    gg <- gg + ggplot2::geom_ribbon(ggplot2::aes_string(ymin = "lower", ymax = "upper", group = name.varcat, color = name.varcat), alpha = ci.alpha)
+                    gg <- gg + ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$lower,
+                                                                 ymax = .data$upper,
+                                                                 group = .data[[name.varcat]],
+                                                                 color = .data[[name.varcat]]),
+                                                    alpha = ci.alpha)
                 }
             }            
         }

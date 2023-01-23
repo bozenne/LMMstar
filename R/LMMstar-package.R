@@ -39,6 +39,7 @@
 ##' It is possible to use other optimizer: \code{nlme::gls} for certain covariance patterns or \code{stats::optim}.
 ##' 
 ##' @importFrom ggplot2 autoplot
+##' @importFrom rlang .data
 ##' @importFrom nlme getData getVarCov intervals
 ##' @importFrom stats anova coef confint df dummy.coef fitted logLik model.matrix model.tables nobs profile residuals sigma vcov weights
 ##' @importFrom lava estimate iid information manifest score

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jun 16 2022 (15:19) 
 ## Version: 
-## Last-Updated: jan  4 2023 (11:41) 
+## Last-Updated: jan 23 2023 (14:27) 
 ##           By: Brice Ozenne
-##     Update #: 285
+##     Update #: 286
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -246,7 +246,7 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
             legend.y <- "Log-likelihood"
             fff <- logLik ~ 0+I(value.trans-mean(value.trans)) + I((value.trans-mean(value.trans))^2)
         }
-        gg <- ggplot2::ggplot(df.profile, ggplot2::aes_string(x="value.trans",y=name.y))
+        gg <- ggplot2::ggplot(df.profile, ggplot2::aes(x = .data$value.trans, y = .data[[name.y]]))
         gg <- gg + ggplot2::ylab(legend.y)
         if(profile.likelihood>0){
             if(ci){
@@ -295,8 +295,8 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
             }else{
                 df.ci$param <- factor(df.ci$param, levels = levels(df.profile$param))
             }
-            gg <- gg + ggplot2::geom_vline(data = df.ci, mapping = ggplot2::aes_string(xintercept = "lower"), size = size[4], linetype = linetype[2])
-            gg <- gg + ggplot2::geom_vline(data = df.ci, mapping = ggplot2::aes_string(xintercept = "upper"), size = size[4], linetype = linetype[2])
+            gg <- gg + ggplot2::geom_vline(data = df.ci, mapping = ggplot2::aes(xintercept = .data$lower), size = size[4], linetype = linetype[2])
+            gg <- gg + ggplot2::geom_vline(data = df.ci, mapping = ggplot2::aes(xintercept = .data$upper), size = size[4], linetype = linetype[2])
         }
         gg <- gg  + ggplot2::xlab("") + ggplot2::labs(color = "") + ggplot2::theme(legend.position = "bottom")
         if(plot>=1){
