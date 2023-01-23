@@ -7,17 +7,11 @@
 \method{residuals}{lmm}(
   object,
   type = "response",
-  format = "long",
+  var = NULL,
   data = NULL,
   p = NULL,
+  format = "long",
   keep.data = FALSE,
-  var = NULL,
-  plot = "none",
-  engine.qqplot = "ggplot2",
-  add.smooth = TRUE,
-  digits.cor = 2,
-  size.text = 16,
-  scales = "free",
   ...
 )
 }
@@ -26,27 +20,15 @@
 
 \item{type}{[character] type of residual to output: raw residuals (\code{"response"}), Pearson residuals (\code{"pearson"}), normalized residuals (\code{"normalized"}, scaled residual \code{"scaled"}), or partial residuals (\code{"partial"} or \code{"partial-center"}). Can also be \code{"all"} to output all except partial residuals. See detail section.}
 
-\item{format}{[character] Should the residuals be output relative as a vector (\code{"long"}), or as a matrix with in row the clusters and in columns the outcomes (\code{"wide"}).}
+\item{var}{[character vector] name of the variable relative to which the partial residuals should be computed.}
 
 \item{data}{[data.frame] dataset relative to which the residuals should be computed. Only relevant if differs from the dataset used to fit the model.}
 
 \item{p}{[numeric vector] value of the model coefficients at which to evaluate the residuals. Only relevant if differs from the fitted values.}
 
+\item{format}{[character] Should the residuals be output relative as a vector (\code{"long"}), or as a matrix with in row the clusters and in columns the outcomes (\code{"wide"}).}
+
 \item{keep.data}{[logical] Should the argument \code{data} be output along side the residuals? Only possible in the long format.}
-
-\item{var}{[character vector] name of the variable relative to which the partial residuals should be computed.}
-
-\item{plot}{[character] Should a qqplot (\code{"qqplot"}), or a heatmap of the correlation between residuals  (\code{"correlation"}, require wide format), or a plot of residuals along the fitted values (\code{"scatterplot"}, require long format) be displayed?}
-
-\item{engine.qqplot}{[character] Should ggplot2 or qqtest be used to display quantile-quantile plots? Only used when argument \code{plot} is \code{"qqplot"}.}
-
-\item{add.smooth}{[logical] should a local smoother be used to display the mean of the residual values across the fitted values. Only relevant for \code{plot="scatterplot"}.}
-
-\item{digits.cor}{[integer, >0] Number of digit used to display the correlation coefficients? No correlation coefficient is displayed when set to 0. Only used when argument \code{plot} is \code{"correlation"}.}
-
-\item{size.text}{[numeric, >0] Size of the font used to displayed text when using ggplot2.}
-
-\item{scales}{[character] Passed to \code{ggplot2::facet_wrap}.}
 
 \item{...}{Not used. For compatibility with the generic method.}
 }
@@ -83,19 +65,21 @@ where
 }
 }
 \examples{
+
 #### simulate data in the long format ####
 set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
 
 #### Linear Model ####
-e.lm <- lmm(Y ~ visit + X1 + X2 + X5, data = dL)
+e.lm <- lmm(Y ~ visit + X1 + X2 + X6, data = dL)
 
 ## partial residuals
-residuals(e.lm, type = "partial", var = "X1")
-## residuals(e.lm) + dL$X1 * coef(e.lm)["X1"]
-residuals(e.lm, type = "partial", var = "X1", keep.data = TRUE)
+residuals(e.lm, type = "partial", var = "X6")
+## residuals(e.lm) + dL$X6 * coef(e.lm)["X6"]
+e.reslm <- residuals(e.lm, type = "partial", var = "X6", keep.data = TRUE)
+plot(e.reslm)
 
-## partial residuals
+## partial residuals with specific reference
 type <- "partial"
 attr(type,"reference") <- data.frame(visit=factor(2,1:3),X2=0,X5=0)
 residuals(e.lm, type = type, var = "X1")
@@ -110,16 +94,17 @@ eUN.lmm <- lmm(Y ~ visit + X1 + X2 + X5 + X6,
                repetition = ~visit|id, structure = "UN", data = dL)
 
 ## residuals
-residuals(eUN.lmm, format = "long", type = c("normalized","pearson"))
-residuals(eUN.lmm, format = "wide", plot = "correlation")
+e.reslmm <- residuals(eUN.lmm, type = "normalized", keep.data = TRUE)
+plot(e.reslmm)
+plot(e.reslmm, type = "correlation")
+plot(e.reslmm, type = "scatterplot", labeller = ggplot2::label_both)
 residuals(eUN.lmm, format = "wide", type = "normalized")
-residuals(eUN.lmm, format = "wide", type = "scaled")
 
 ## residuals and predicted values
 residuals(eUN.lmm, type = "all")
 residuals(eUN.lmm, type = "all", keep.data = TRUE)
 
 ## partial residuals
-residuals(eUN.lmm, type = "partial", var = c("(Intercept)","X6"), plot = "scatterplot")
-residuals(eUN.lmm, type = "partial", var = c("X6"), plot = "scatterplot")
+residuals(eUN.lmm, type = "partial", var = c("(Intercept)","X6"))
+residuals(eUN.lmm, type = "partial", var = c("X6"))
 }

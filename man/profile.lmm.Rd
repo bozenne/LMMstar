@@ -2,7 +2,7 @@
 % Please edit documentation in R/profile.R
 \name{profile.lmm}
 \alias{profile.lmm}
-\title{Display Contour of the log-Likelihood}
+\title{Evaluate Contour of the Log-Likelihood}
 \usage{
 \method{profile}{lmm}(
   fitted,
@@ -11,14 +11,6 @@
   maxpts = NULL,
   conf.level = 0.95,
   trace = FALSE,
-  plot = TRUE,
-  ci = FALSE,
-  size = c(3, 2, 1, 1),
-  linetype = c("dashed", "dashed", "dashed"),
-  shape = 19,
-  scales = "free",
-  nrow = NULL,
-  ncol = NULL,
   transform.sigma = NULL,
   transform.k = NULL,
   transform.rho = NULL,
@@ -40,22 +32,6 @@ Alternatively can be the type of parameters, e.g. \code{"mean"}, \code{"variance
 
 \item{trace}{[logical] Show the progress of the execution of the function.}
 
-\item{plot}{[logical] Should a graphical representation of the results be provided?}
-
-\item{ci}{[logical] Should a 95\% confidence intervals obtained from the Wald test (vertical lines) and Likelihood ratio test (horizontal line) be displayed?}
-
-\item{size}{[numeric vector of length 4] Size of the point for the MLE,
-width of the line representing the likelihood,
-width of the corresponding quadratic approximation,
-and width of the line representing the confidence intervals.}
-
-\item{linetype}{[integer vector of length 2] type of line used to represent the quadratic approximation of the likelihood
-and the confidence intervals.}
-
-\item{shape}{[integer, >0] type of point used to represent the MLE.}
-
-\item{scales, nrow, ncol}{argument passed to \code{ggplot2::facet_wrap}.}
-
 \item{transform.sigma}{[character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.}
 
 \item{transform.k}{[character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.}
@@ -68,7 +44,6 @@ and the confidence intervals.}
 }
 \value{
 A data.frame object containing the log-likelihood for various parameter values.
-When argument \code{plot} is TRUE, also contain an attribute \code{"plot"} containing a \code{ggplot} object.
 }
 \description{
 Display the (restricted) log-likelihood around Maximum Likelihood Estimate (MLE) under specific constrains.
@@ -89,11 +64,15 @@ e.lmm <- lmm(weight2 ~ weight1 + glucagonAUC1,
 
 ## profile logLiklihood
 \dontrun{
-profile(e.lmm, effects = "all", maxpts = 10, profile.likelihood = TRUE)
+e.pro <- profile(e.lmm, effects = "all", maxpts = 10, profile.likelihood = TRUE)
+head(e.pro)
+plot(e.pro)
 }
 
 ## along a single parameter axis
-profile(e.lmm, effects = "all", maxpts = 10, transform.sigma = "none")
-profile(e.lmm, effects = "all", maxpts = 10, transform.sigma = "log")
+e.sliceNone <- profile(e.lmm, effects = "all", maxpts = 10, transform.sigma = "none")
+plot(e.sliceNone)
+e.sliceLog <- profile(e.lmm, effects = "all", maxpts = 10, transform.sigma = "log")
+plot(e.sliceLog)
 
 }

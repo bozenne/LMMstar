@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (11:00) 
 ## Version: 
-## Last-Updated: jan 23 2023 (14:26) 
+## Last-Updated: jan 23 2023 (16:04) 
 ##           By: Brice Ozenne
-##     Update #: 94
+##     Update #: 109
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,172 +15,67 @@
 ## 
 ### Code:
 
-## * plot (documentation)
-##' @title Graphical Display For Linear Mixed Models
-##' @description Display fitted values or residual plot for the mean, variance, and correlation structure.
-##' Can also display quantile-quantile plot relative to the normal distribution.
-##' 
-##' @param x a \code{lmm} object.
-##' @param type [character] the type of plot \itemize{
-##' \item \code{"fit"}: fitted values over repetitions.
-##' \item \code{"qqplot"}: quantile quantile plot of the normalized residuals
-##' \item \code{"correlation"}: residual correlation over repetitions
-##' \item \code{"scatterplot"}: normalized residuals vs. fitted values (diagnostic for missing non-linear effects),
-##' \item \code{"scatterplot2"}: square root of the normalized residuals vs. fitted values (diagnostic for heteroschedasticity),
-##' \item \code{"partial"}: partial residual plot.
-##' }
-##' @param type.residual [character] the type of residual to be used. Not relevant for \code{type="fit"}.
-##' By default, normalized residuals are used except when requesting a partial residual plot.
-##' @param by.time [logical] should a separate plot be made at each repetition or a single plot over all repetitions be used?
-##' Only relevant for \code{type="qqplot"}, \code{type="scatterplot"}, and \code{type="scatterplot2"}.
-##' @param ci [logical] should confidence intervals be displayed?
-##' @param plot [logical] should the plot be displayed?
-##' @param ci.alpha [numeric, 0-1] Transparency parameter used to display the confidence intervals.
-##' @param mean.size [numeric vector of length 2] size of the point and line for the mean trajectory.
-##' @param size.text [numeric, >0] size of the font used to displayed text when using ggplot2.
-##' @param ... additional argument passed to \code{residuals.lmm} or \code{autoplot.lmm}.
-##'
-##' @details Call \code{\link{autoplot.lmm}} when code{type=="fit"} and \code{\link{residuals.lmm}} for the other types.
-##'
-##' @return A list with two elements \itemize{
-##' \item \code{data}: data used to create the graphical display.
-##' \item \code{plot}: ggplot object.
-##' }
-##'
-##' @examples
-##' set.seed(10)
-##' dL <- sampleRem(100, n.times = 3, format = "long")
-##' dL$X1 <- as.factor(dL$X1)
-##' 
-##' eCS.lmm <- lmm(Y ~ visit + X1,
-##'                repetition = ~visit|id, structure = "CS", data = dL, df = FALSE)
-##' plot(eCS.lmm, type = "fit")
-##' plot(eCS.lmm, type = "qqplot") ## engine.qqplot = "qqtest"
-##' plot(eCS.lmm, type = "correlation") 
-##' plot(eCS.lmm, type = "scatterplot") 
-##' plot(eCS.lmm, type = "scatterplot2") 
-##' plot(eCS.lmm, type = "partial", type.residual = "visit") 
-##' plot(eCS.lmm, type = "partial", type.residual = "X1") 
-##' 
-
- 
 ## * plot (code)
+##' @describeIn autoplot.lmm Graphical Display For Linear Mixed Models
 ##' @export
-plot.lmm <- function(x, type = "fit", type.residual = "normalized", by.time = TRUE, ci = TRUE,
-                     plot = TRUE, ci.alpha = 0.2, mean.size = c(3, 1), size.text = 16, ...){
+plot.lmm <- function(x, ...){
 
-    attr.ref <- attr(type,"reference")
-    type <- match.arg(type, c("qqplot","correlation","scatterplot","scatterplot2","fit","partial"))
-    if(by.time){
-        format <- "wide"
-    }else{
-        format <- "long"
+    out <- autoplot.lmm(x, ...)
+    if(!is.null(out$plot)){
+        ## if ggplot then the graph is stored in out and should be displayed here
+        ## otherwise the graph has already been displayed but could not be stored in the object
+        print(out$plot)
     }
-    
-    if(type=="fit"){
-        ## requireNamespace("ggplot2")
-        out <- autoplot.lmm(x, ci = ci, plot = plot, ci.alpha = ci.alpha, mean.size = mean.size, size.text = size.text, ...)
-    }else if(type=="partial"){
-        ## prepare
-        if(is.null(match.call()$type.residual)){
-            if(!is.null(list(...)$var)){
-                type.residual <- list(...)$var
-            }else{
-                type.residual <- attr(x$design$mean,"variable")[1]
-            }
-        }        
-        name.var <- setdiff(type.residual,"(Intercept)")
-        if("(Intercept)" %in% type.residual){
-            type.predict <- "static"
-        }else{
-            type.predict <- "static0"
-        }
-        type.var <- c("numeric","categorical")[name.var %in% names(x$xfactor$mean) + 1]
-        if(sum(type.var=="numeric")>1){
-            stop("Cannot simulatenously display partial residuals for more 2 numeric variables. \n")
-        }
+    return(invisible(out))
 
-        ## extract partial residuals
-        ttt <- "partial"
-        attr(ttt,"reference") <- attr.ref
-        rr <- stats::residuals(x, type = ttt, var = type.residual, keep.data = TRUE)
-        ## extract predictions
-        gg.data <- stats::predict(x, newdata = rr, keep.newdata = TRUE, type = type.predict)
-        ## normalize covariates
-        if(sum(type.var=="categorical")==0){
-            name.varcat <- NULL
-        }else if(sum(type.var=="categorical")==1){
-            name.varcat <- paste(name.var[type.var=="categorical"],collapse = ", ")
-            if(sum(type.var=="categorical")>1){
-                gg.data[[name.varcat]] <- interaction(gg.data[name.var[type.var=="categorical"]], sep = ",")
-            }
-        }
-        if(sum(type.var=="numeric")==0){
-            name.varnum <- NULL
-        }else{
-            name.varnum <- name.var[type.var=="numeric"]
-        }
-        ## display
-        if(all(type.var=="categorical")){
-            gg <- ggplot2::ggplot(data = gg.data, mapping = ggplot2::aes(x = .data[[name.varcat]]))
-            gg <- gg + ggplot2::geom_point(ggplot2::aes(y = .data$r.partial), color = "gray")
-            if(ci){
-                gg <- gg + ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$lower, ymax = .data$upper))
-            }
-            gg <- gg + ggplot2::geom_point(ggplot2::aes(y = .data$estimate), size = mean.size[1], shape = 21, fill = "white")
-        }else{
-            gg <- ggplot2::ggplot(data = gg.data, mapping = ggplot2::aes(x = .data[[name.varnum]]))
-            gg <- gg + ggplot2::geom_point(ggplot2::aes(y = .data$r.partial), color = "gray")
-            if(length(type.var)==1){
-                gg <- gg + ggplot2::geom_line(ggplot2::aes(y = .data$estimate), linewidth = mean.size[2])
-                if(ci){
-                    gg <- gg + ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$lower, ymax = .data$upper), alpha = ci.alpha)
-                }
-            }else{
-                gg <- gg + ggplot2::geom_line(ggplot2::aes(y = .data$estimate,
-                                                           group = .data[[name.varcat]],
-                                                           color = .data[[name.varcat]]),
-                                              linewidth = mean.size[2])
-                if(ci){
-                    gg <- gg + ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$lower,
-                                                                 ymax = .data$upper,
-                                                                 group = .data[[name.varcat]],
-                                                                 color = .data[[name.varcat]]),
-                                                    alpha = ci.alpha)
-                }
-            }            
-        }
-        reference <- attr(rr,"reference")[,setdiff(names(attr(rr,"reference")),type.residual)]
-        gg <- gg + ggplot2::ggtitle(paste0("Reference: ",paste(paste0(names(reference),"=",reference), collapse = ", ")))
-        gg <- gg + ggplot2::ylab(paste0("Partial residuals for ",paste(name.var,collapse=", "))) + ggplot2::theme(text = ggplot2::element_text(size=size.text))
-        if(plot){print(gg)}
-        out <- list(data = gg.data,
-                    plot = gg)
-    }else{
-        outRes <- residuals(x, plot = type, type = type.residual, format = format, size.text = size.text, ...)
-        out <- list(data = outRes,
-                    plot = attr(outRes,"plot"))
-        attr(out$data,"plot") <- NULL
-    }
+}
+
+## * plot (code)
+##' @describeIn autoplot.partialCor Graphical Display For Partial Correlation
+##' @export
+plot.partialCor <- function(x, ...){
+    out <- autoplot.partialCor(x, ...)
+    print(out$plot)
+    return(invisible(out))
+
+}
+
+## * plot (code)
+##' @describeIn autoplot.profile_lmm Display Contour of the log-Likelihood
+##' @export
+plot.profile_lmm <- function(x, ...){
+    out <- autoplot.profile_lmm(x, ...)
+    print(out$plot)
+    return(invisible(out))
+
+}
+
+## * plot (code)
+##' @describeIn autoplot.residuals_lmm Graphical Display of the Residuals
+##' @export
+plot.residuals_lmm <- function(x, ...){
+    out <- autoplot.residuals_lmm(x, ...)
+    print(out$plot)
+    return(invisible(out))
+
+}
+
+## * plot (code)
+##' @describeIn autoplot.summarizeNA Graphical Display of Missing Data Pattern
+##' @export
+plot.summarizeNA <- function(x, ...){
+    out <- autoplot.summarizeNA(x, ...)
+    print(out$plot)
     return(invisible(out))
 }
 
 ## * plot (code)
+##' @describeIn autoplot.Wald_lmm Graphical Display For Linear Hypothesis Test
 ##' @export
 plot.Wald_lmm <- function(x, ...){
-    autoplot.Wald_lmm(x, ...)
-}
-
-## * plot (code)
-##' @export
-plot.partialCor <- function(x, ...){
-    autoplot.partialCor(x, ...)
-}
-
-## * plot (code)
-##' @export
-plot.summarizeNA <- function(x, ...){
-    autoplot.summarizeNA(x, ...)
+    out <- autoplot.Wald_lmm(x, ...)
+    print(out$plot)
+    return(invisible(out))
 }
 
 ##----------------------------------------------------------------------

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Dec 19 2021 (17:07) 
 ## Version: 
-## Last-Updated: jan  4 2023 (10:54) 
+## Last-Updated: jan 23 2023 (19:03) 
 ##           By: Brice Ozenne
-##     Update #: 27
+##     Update #: 29
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -116,7 +116,7 @@ test_that("lmm 4 times", {
     model.tables(eFlex.lmm)
 
     armd.long.imp <- fitted(eFlex.lmm, impute = TRUE, keep.newdata = TRUE)
-    gg <- plot(eFlex.lmm, obs.alpha = 0.1, ci = FALSE, plot = FALSE)$plot
+    gg <- autoplot(eFlex.lmm, obs.alpha = 0.1, ci = FALSE)$plot
     gg <- gg + geom_point(data = armd.long.imp[armd.long.imp$subject %in% c("114","167"),,drop=FALSE], aes(x = week, y = visual, group = subject, color = treat.f, shape = imputed), size = 4)
     gg <- gg + geom_line(data = armd.long.imp[armd.long.imp$subject %in% c("114","167"),,drop=FALSE], aes(x = week, y = visual, group = subject, color = treat.f))
     gg
@@ -225,6 +225,7 @@ test_that("lmm - predict", {
 
 ## * baseline constrain
 test_that("lmm - baseline constrain", {
+    if(test.practical==FALSE){skip('Not run to save time in the check')}
 
     armd.long$treat <- armd.long$treat.f
     armd.long$treat[armd.long$week == 0] <- "Placebo"
@@ -234,6 +235,7 @@ test_that("lmm - baseline constrain", {
                  structure = UN,
                  control = list(optimizer = "FS"), data = armd.long)
     expect_equal(logLik(e.lmm), -4146.824, tol = 1e-5)
+    ## plot(e.lmm)
     plot(e.lmm, color = "treat.f")
     plot(e.lmm, type = "correlation")
     sigma(e.lmm)

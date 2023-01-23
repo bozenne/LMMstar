@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: dec  7 2022 (17:13) 
 ## Version: 
-## Last-Updated: jan  3 2023 (17:27) 
+## Last-Updated: jan 23 2023 (18:25) 
 ##           By: Brice Ozenne
-##     Update #: 46
+##     Update #: 47
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -34,14 +34,15 @@
 ##' 
 ##' @examples
 ##' data(gastricbypassW, package = "LMMstar")
-##' summarizeNA(gastricbypassW)
+##' summarizeNA(gastricbypassW) 
 ##' summarizeNA(gastricbypassW, keep.data = FALSE)
 ##' 
 ##' data(gastricbypassL, package = "LMMstar")
 ##' summarizeNA(gastricbypassL, repetition = ~time|id)
 ##' 
 ##' data(calciumL, package = "LMMstar")
-##' summarizeNA(calciumL, repetition = ~visit|girl)
+##' mp <- summarizeNA(calciumL, repetition = ~visit|girl)
+##' plot(mp, variable = "bmd")
 ##' summarizeNA(calciumL[,c("visit","girl","bmd")], repetition = ~visit|girl)
 ##' 
 ##' data(vasscoresW, package = "LMMstar")

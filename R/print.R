@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: dec  8 2022 (18:41) 
+## Last-Updated: jan 23 2023 (17:50) 
 ##           By: Brice Ozenne
-##     Update #: 213
+##     Update #: 215
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -280,6 +280,15 @@ print.resample <- function(x, digits = 3, ...){
     return(invisible(NULL))
 }
 
+## * print.summarize
+#' @export
+print.residuals_lmm <- function(x, ...){
+    x.print <- x
+    attr(x.print, "args") <- NULL
+    class(x.print) <- setdiff(class(x.print),"residuals_lmm")
+    print(x.print)
+    
+}
 ## * print.summarize
 #' @export
 print.summarize <- function(x,...){

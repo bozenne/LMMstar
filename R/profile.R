@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jun 16 2022 (15:19) 
 ## Version: 
-## Last-Updated: jan 23 2023 (14:27) 
+## Last-Updated: jan 23 2023 (15:36) 
 ##           By: Brice Ozenne
-##     Update #: 286
+##     Update #: 300
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,7 +16,7 @@
 ### Code:
 
 ## * profile.lmm (documentation)
-##' @title Display Contour of the log-Likelihood
+##' @title Evaluate Contour of the Log-Likelihood
 ##' @description Display the (restricted) log-likelihood around Maximum Likelihood Estimate (MLE) under specific constrains.
 ##'
 ##' @param fitted a \code{lmm} object.
@@ -26,16 +26,6 @@
 ##' @param maxpts [integer, >0] number of points use to discretize the likelihood, \code{maxpts} points smaller than the MLE and \code{maxpts} points higher than the MLE.
 ##' @param conf.level [numeric, 0-1] the confidence level of the confidence intervals used to decide about the range of values for each parameter.
 ##' @param trace [logical] Show the progress of the execution of the function.
-##' @param plot [logical] Should a graphical representation of the results be provided?
-##' @param ci [logical] Should a 95\% confidence intervals obtained from the Wald test (vertical lines) and Likelihood ratio test (horizontal line) be displayed?
-##' @param size [numeric vector of length 4] Size of the point for the MLE,
-##' width of the line representing the likelihood,
-##' width of the corresponding quadratic approximation,
-##' and width of the line representing the confidence intervals.
-##' @param linetype [integer vector of length 2] type of line used to represent the quadratic approximation of the likelihood
-##' and the confidence intervals.
-##' @param shape [integer, >0] type of point used to represent the MLE.
-##' @param scales,nrow,ncol argument passed to \code{ggplot2::facet_wrap}.
 ##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
 ##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
 ##' @param transform.rho [character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"} - see details.
@@ -52,7 +42,6 @@
 ##' }
 ##'
 ##' @return A data.frame object containing the log-likelihood for various parameter values.
-##' When argument \code{plot} is TRUE, also contain an attribute \code{"plot"} containing a \code{ggplot} object.
 ##' 
 ##' @examples
 ##' data(gastricbypassW, package = "LMMstar")
@@ -61,19 +50,22 @@
 ##'
 ##' ## profile logLiklihood
 ##' \dontrun{
-##' profile(e.lmm, effects = "all", maxpts = 10, profile.likelihood = TRUE)
+##' e.pro <- profile(e.lmm, effects = "all", maxpts = 10, profile.likelihood = TRUE)
+##' head(e.pro)
+##' plot(e.pro)
 ##' }
 ##' 
 ##' ## along a single parameter axis
-##' profile(e.lmm, effects = "all", maxpts = 10, transform.sigma = "none")
-##' profile(e.lmm, effects = "all", maxpts = 10, transform.sigma = "log")
+##' e.sliceNone <- profile(e.lmm, effects = "all", maxpts = 10, transform.sigma = "none")
+##' plot(e.sliceNone)
+##' e.sliceLog <- profile(e.lmm, effects = "all", maxpts = 10, transform.sigma = "log")
+##' plot(e.sliceLog)
 ##' 
 
 ## * profile.lmm (code)
 ##' @export
 profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
-                        maxpts = NULL, conf.level = 0.95, trace = FALSE,
-                        plot = TRUE, ci = FALSE, size = c(3,2,1,1), linetype = c("dashed","dashed","dashed"), shape = 19, scales = "free", nrow = NULL, ncol = NULL,
+                        maxpts = NULL, conf.level = 0.95, trace = FALSE,                        
                         transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
 
     ## ** normalize user input
@@ -132,9 +124,6 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
         maxpts <- length(maxpts)/2
     }
 
-    if(ci && profile.likelihood==FALSE){
-        stop("Can only display the confidence intervals when performing profile likelihood. \n")
-    }
 
     ## ** profile likelihood
     if(trace>1){cat("Profile likelihood (",round(2*maxpts)," points):\n",sep="")}
@@ -233,83 +222,21 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
     df.profile$param <- factor(df.profile$param, levels = unique(df.profile$param))
     ## unique(df.profile$param)
 
-    ## ** display
-    if(plot){
-        if(plot>=2){
-            name.y <- "likelihood.ratio"
-            reference <- 1
-            legend.y <- "Likelihood relative to the maximum likelihood"
-            fff <- likelihood.ratio ~ 0+I(value.trans-mean(value.trans)) + I((value.trans-mean(value.trans))^2)
-        }else{
-            name.y <- "logLik"
-            reference <- fitted$logLik
-            legend.y <- "Log-likelihood"
-            fff <- logLik ~ 0+I(value.trans-mean(value.trans)) + I((value.trans-mean(value.trans))^2)
-        }
-        gg <- ggplot2::ggplot(df.profile, ggplot2::aes(x = .data$value.trans, y = .data[[name.y]]))
-        gg <- gg + ggplot2::ylab(legend.y)
-        if(profile.likelihood>0){
-            if(ci){
-                gg <- gg + ggplot2::ggtitle(paste("Profile maximum likelihood estimation for parameter (95% CI):"))
-            }else{
-                gg <- gg + ggplot2::ggtitle(paste("Profile maximum likelihood estimation for parameter:"))
-            }
-        }else{
-            gg <- gg + ggplot2::ggtitle(expression(paste("Varying a ",bold('single')," parameter:")))
-        }
-        gg <- gg + ggplot2::facet_wrap(~param, scales= scales, nrow = nrow, ncol = ncol)
-        if(size[2]>0){
-            gg <- gg + ggplot2::geom_line(linewidth = size[2])
-        }
-        if(size[3]>0 && (plot<=1)){
-            df.fit <- do.call(rbind,by(df.profile, df.profile$param, function(iDF){ ## iDF <- df.profile[df.profile$param=="sigma",]
-                iDF$myset <- reference
-                ## FOR CRAN test
-                myset <- NULL
-                iLM <- stats::lm(fff, data = iDF, offset = myset)
-                iDF[[name.y]] <- stats::predict(iLM, newdata = iDF)
-                return(iDF)
-            }))
-            df.fit$param <- factor(df.fit$param, levels = levels(df.profile$param))
-            gg <- gg + ggplot2::geom_line(data = df.fit, linewidth = size[3], linetype = linetype[1], ggplot2::aes(color = "quadratic approximation"))
-        }
-        if(size[1]>0){
-            gg <- gg  + ggplot2::geom_point(data = df.profile[df.profile$optimum==TRUE,,drop=FALSE], ggplot2::aes(color = "MLE"), size = size[1], shape = shape)
-        }
-        if(ci){
-            if(plot<=1){
-                gg <- gg  + ggplot2::geom_abline(slope = 0, intercept = fitted$logLik - stats::qchisq(0.95, df = 1)/2, size = size[4], linetype = linetype[2])
-            }else{
-                gg <- gg  + ggplot2::geom_abline(slope = 0, intercept = exp(- stats::qchisq(0.95, df = 1)/2), size = size[4], linetype = linetype[2])
-            }
-
-            ## recompute ci at level 0.95
-            p.trans2 <- confint(fitted, effects = "all", level = 0.95,
-                                transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                transform.names = transform.names, backtransform = FALSE)
-
-            df.ci <- cbind(param = rownames(p.trans2), p.trans2)[which(name.p %in% effects),,drop=FALSE]
-            if(transform.names){
-                df.ci$param <- factor(df.ci$param, levels = levels(df.profile$param))
-                ## df.ci$param <- factor(name.p.trans[match(df.ci$param,name.p)], levels = levels(df.profile$param))
-            }else{
-                df.ci$param <- factor(df.ci$param, levels = levels(df.profile$param))
-            }
-            gg <- gg + ggplot2::geom_vline(data = df.ci, mapping = ggplot2::aes(xintercept = .data$lower), size = size[4], linetype = linetype[2])
-            gg <- gg + ggplot2::geom_vline(data = df.ci, mapping = ggplot2::aes(xintercept = .data$upper), size = size[4], linetype = linetype[2])
-        }
-        gg <- gg  + ggplot2::xlab("") + ggplot2::labs(color = "") + ggplot2::theme(legend.position = "bottom")
-        if(plot>=1){
-            print(gg)
-        }
-        attr(df.profile,"plot") <- gg
-    }
     ## ** export
-    if(plot>=1){
-        return(invisible(df.profile))
-    }else{
-        return(df.profile)
-    }
+    attr(df.profile, "args") <- list(profile.likelihood = profile.likelihood,
+                                     logLik = fitted$logLik,
+                                     maxpts = maxpts,
+                                     name.p = name.p,
+                                     effects = effects,
+                                     conf.level = conf.level,
+                                     ci = p.trans,
+                                     transform.sigma = transform.sigma,
+                                     transform.k = transform.k,
+                                     transform.rho = transform.rho,
+                                     transform.names = transform.names)
+    rownames(attr(df.profile, "args")$ci) <- name.p.trans
+    class(df.profile) <- append("profile_lmm", class(df.profile))
+    return(df.profile)
 }
 
 ##----------------------------------------------------------------------

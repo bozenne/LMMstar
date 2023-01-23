@@ -3381,7 +3381,6 @@ The main differences are:
 - it is faster but provides less support to work with the output of
   the mixed model (e.g. no =residual= method)
 
-
 ** effectsize package (\(R^2\) or \(\eta^2\))
 
 Partial \(\eta^2\) can be computed based on =lmer= using the effectsize package:
@@ -3437,6 +3436,51 @@ cat("\n")
 
 But in that case both may be misleading as the proportion of explained
 variance is not clearly defined.
+
+** MuMIn package (\(R^2\)
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+library(MuMIn)
+r.squaredGLMM(eCS.lmer)
+cat("\n")
+#+END_SRC
+
+#+RESULTS:
+:            R2m       R2c
+: [1,] 0.2163302 0.9764382
+
+To reproduce these R2, we extract from the random intercept model:
+- the residual variance
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+sigmaW <- sigma(eCS.lmm)[1,1]-sigma(eCS.lmm)[1,2]
+#+END_SRC
+
+#+RESULTS:
+
+- the variance of the random effect
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+sigmaB <- sigma(eCS.lmm)[1,2]
+#+END_SRC
+
+#+RESULTS:
+
+- the variance of the fitted values:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+sigma2_XB <- var(fitted(eCS.lmm))
+#+END_SRC
+
+#+RESULTS:
+
+and evalutae the ratios:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+c(R2m = sigma2_XB/(sigmaW + sigmaB + sigma2_XB),
+  R2c = (sigma2_XB + sigmaB)/(sigmaW + sigmaB + sigma2_XB))
+#+END_SRC
+
+#+RESULTS:
+:       R2m       R2c 
+: 0.2163302 0.9764382
+
 
 * CONFIG                                                           :noexport:
 #+LANGUAGE:  en
