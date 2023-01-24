@@ -78,7 +78,7 @@ utils::packageVersion("LMMstar")
 #+END_SRC
 
 #+RESULTS:
-: [1] '0.8.10'
+: [1] '0.9.0'
 
 \clearpage
 
@@ -1312,8 +1312,8 @@ plot(eUN.lmm, type = "correlation", type.residual = "normalized")
 
 #+BEGIN_SRC R :exports none :results output raw drawer :session *R* :cache no
 library(ggpubr)
-gg <- ggarrange(plot(eUN.lmm, type = "correlation", type.residual = "response", plot = FALSE)$plot,
-                plot(eUN.lmm, type = "correlation", type.residual = "normalized", plot = FALSE)$plot,
+gg <- ggarrange(autoplot(eUN.lmm, type = "correlation", type.residual = "response")$plot,
+                autoplot(eUN.lmm, type = "correlation", type.residual = "normalized")$plot,
                 common.legend = TRUE)
 ggsave(gg, filename = "./figures/diag-correlation.pdf", width = 12)
 #+END_SRC
@@ -1321,7 +1321,7 @@ ggsave(gg, filename = "./figures/diag-correlation.pdf", width = 12)
 
 #+RESULTS:
 :results:
-Saving 12 x 6.38 in image
+[1m[22mSaving 12 x 6.38 in image
 :end:
 
 #+ATTR_LaTeX: :width 0.6\textwidth :placement [!h]
@@ -1418,7 +1418,7 @@ fitted values by setting the argument =obs.alpha= to a strictly
 positive value below or equal to 1. This argument controls the
 transparency of the color used to display the observed values:
 #+BEGIN_SRC R :exports code :results output :session *R* :cache no
-gg <- plot(eUN.lmm, type = "fit", obs.alpha = 0.2, ci = FALSE,plot = FALSE)$plot
+gg <- autoplot(eUN.lmm, type = "fit", obs.alpha = 0.25, ci = FALSE)$plot
 gg <- gg + facet_wrap(~id, labeller = label_both)
 gg <- gg + theme(axis.text.x=element_text(angle = 90, hjust = 0))
 gg
@@ -1434,9 +1434,7 @@ ggsave(gg + theme(text = element_text(size=20)), filename = "figures/fit-autoplo
 #+END_SRC
 
 #+RESULTS:
-: Saving 12 x 6.38 in image
-: Advarselsbesked:
-: Removed 2 rows containing missing values (geom_point).
+: [1m[22mSaving 12 x 6.21 in image
 
 \clearpage
 
@@ -1445,8 +1443,8 @@ ggsave(gg + theme(text = element_text(size=20)), filename = "figures/fit-autoplo
 Partial residuals can also be displayed via the =plot= method:
 #+header: :width 12 :height 5
 #+BEGIN_SRC R :file ./figures/fit-pres.pdf :results graphics file :session *R* :cache no
-gg1 <- plot(eUN.lmm, type = "partial", var = "glucagon", plot = FALSE)$plot
-gg2 <- plot(eUN.lmm, type = "partial", var = c("(Intercept)","glucagon"), plot = FALSE)$plot
+gg1 <- autoplot(eUN.lmm, type = "partial", var = "glucagon")$plot
+gg2 <- autoplot(eUN.lmm, type = "partial", var = c("(Intercept)","glucagon"))$plot
 ggarrange(gg1,gg2)
 #+END_SRC
 
@@ -1920,9 +1918,9 @@ model.tables(eC3.lmm)
 : treat20:timeA1w  -0.2395562 0.6484895 17.66860  -1.603816   1.1247037 7.162149e-01
 : treat20:timeA3m  -3.8326086 2.1066817 17.60613  -8.265691   0.6004734 8.592047e-02
 
-One can vizualize the baseline adjustment via the =autoplot= function:
+One can vizualize the baseline adjustment via the =plot= function:
 #+BEGIN_SRC R :file ./figures/gg-baseAdj.pdf :results graphics file :session *R* :cache no
-autoplot(eC3.lmm, color = "group", ci = FALSE, size.text = 20, obs.alpha = 0.1) 
+plot(eC3.lmm, color = "group", ci = FALSE, size.text = 20, obs.alpha = 0.1) 
 #+END_SRC
 
 #+RESULTS:

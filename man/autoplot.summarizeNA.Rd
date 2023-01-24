@@ -17,7 +17,10 @@
 \method{plot}{summarizeNA}(x, ...)
 }
 \arguments{
-\item{object}{a \code{summarizeNA} object, output of the \code{\link{summarizeNA}} function.}
+\item{object, x}{a \code{summarizeNA} object, output of the \code{\link{summarizeNA}} function.}
+
+\item{variable}{[character] variable for which the missing patterns should be displayed.
+Only required when the argument \code{repetition} has been specified when calling \code{summarizeNA}.}
 
 \item{size.text}{[numeric, >0] size of the font used to display text.}
 

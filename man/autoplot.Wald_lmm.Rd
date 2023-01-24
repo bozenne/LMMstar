@@ -10,7 +10,7 @@
 \method{plot}{Wald_lmm}(x, ...)
 }
 \arguments{
-\item{object}{a \code{Wald_lmm} object.}
+\item{object, x}{a \code{Wald_lmm} object.}
 
 \item{type}{[character] what to display: a forest plot (\code{"forest"}) or a heatmap (\code{"heat"}).}
 

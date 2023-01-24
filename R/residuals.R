@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: jan 23 2023 (18:06) 
+## Last-Updated: jan 24 2023 (09:33) 
 ##           By: Brice Ozenne
-##     Update #: 739
+##     Update #: 740
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -73,7 +73,7 @@
 ##'
 ##' ## partial residuals with specific reference
 ##' type <- "partial"
-##' attr(type,"reference") <- data.frame(visit=factor(2,1:3),X2=0,X5=0)
+##' attr(type,"reference") <- data.frame(visit=factor(2,1:3),X2=0,X6=3)
 ##' residuals(e.lm, type = type, var = "X1")
 ##' ## residuals(e.lm) + dL$X1 * coef(e.lm)["X1"] + coef(e.lm)["visit2"]
 ##' 

@@ -19,7 +19,7 @@
 \method{plot}{partialCor}(x, ...)
 }
 \arguments{
-\item{object}{a \code{partialCor} object.}
+\item{object, x}{a \code{partialCor} object.}
 
 \item{size.text}{[numeric, >0] size of the font used to display text.}
 

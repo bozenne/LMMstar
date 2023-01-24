@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: jan  3 2023 (17:57) 
+## Last-Updated: jan 24 2023 (09:38) 
 ##           By: Brice Ozenne
-##     Update #: 135
+##     Update #: 139
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -120,12 +120,7 @@ test_that("lmm - studentized and normalized residuals",{
                     data=dfres.R,
                     df=TRUE)
 
-    dfres.R$fitted <- predict(fit.main, newdata = dfres.R)$estimate
-    dfres.R$residual <- residuals(fit.main, type = 'response')
-    dfres.R$rpearson <- residuals(fit.main, type = 'pearson')
-    dfres.R$rstudent <- residuals(fit.main, type = 'studentized')
-    dfres.R$normalized <- residuals(fit.main, type = 'normalized')
-    dfres.R$rscaled <- residuals(fit.main, type = 'scaled')
+    dfres.R <- residuals(fit.main, type = 'all', keep.data = TRUE)
 
     dfres.SAS <- data.frame("id" = c( 1,  1,  1,  1,  2,  2,  2,  2,  3,  3,  3,  3,  4,  4,  4,  4,  5,  5,  5,  5,  6,  6,  6,  6,  7,  7,  7,  7,  8,  8,  8,  8,  9,  9,  9,  9, 10, 10, 10, 10, 11, 11, 11, 11, 12, 12, 12, 12, 13, 13, 13, 13, 14, 14, 14, 14, 15, 15, 15, 15, 16, 16, 16, 16, 17, 17, 17, 17, 18, 18, 18, 18, 19, 19, 19, 19, 20, 20, 20, 20), 
                             "visit" = c(1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4), 
@@ -144,10 +139,11 @@ test_that("lmm - studentized and normalized residuals",{
                             "StudentResid" = c(-0.08959240, -0.02929788, -0.01122802,  0.34502317,  1.83386018,  1.74485131,  1.88069333,  1.78287040, -0.97539293, -1.06557462, -1.01052179, -0.91835723,  0.87213389,  1.14804271,  1.17894209,  1.24142165, -0.80329454, -0.84855331, -0.88701357, -0.88226065,  1.50991027,  1.21314910,  1.06104788,  0.38111976, -0.68687504, -0.67493626, -0.71297926, -0.81006749, -0.26169078, -0.33312771, -0.19649035, -0.28666703, -1.17279990, -1.04387248, -0.99367976, -0.94843772, -0.55527039, -0.86482991, -0.92069763, -0.68974554,  0.44188792,  0.57836178,  0.59508505,  0.18258855,  0.00151852, -0.02929788,  0.05052609, -0.14228070, -0.58564069, -0.69121286, -0.62876911, -0.41902117, -0.55527039, -0.42536176, -0.41543674, -0.52731092, -0.70712191, -0.62610647, -0.68490921, -0.49723043,  0.11287630,  0.32878728,  0.21333238,  0.06828270, -0.33255483, -0.39823410, -0.37613866, -0.17837728,  1.14546663,  1.18059591,  1.10034595,  0.97069728,  2.22867413,  2.22229818,  2.20630590,  2.74544595, -1.42082405, -1.38568104, -1.44841456, -1.41769330), 
                             "PearsonResid" = c(-0.08732387, -0.02855604, -0.01094372,  0.33628699,  1.78742581,  1.70067068,  1.83307311,  1.73772711, -0.95069543, -1.03859366, -0.98493480, -0.89510391,  0.85005097,  1.11897362,  1.14909060,  1.20998815, -0.78295466, -0.82706746, -0.86455388, -0.85992131,  1.47167849,  1.18243148,  1.03418154,  0.37146959, -0.66948298, -0.65784650, -0.69492622, -0.78955612, -0.25506463, -0.32469272, -0.19151510, -0.27940846, -1.14310394, -1.01744104, -0.96851922, -0.92442274, -0.54121063, -0.84293193, -0.89738504, -0.67228079,  0.43069907,  0.56371733,  0.58001716,  0.17796530,  0.00148007, -0.02855604,  0.04924674, -0.13867807, -0.57081194, -0.67371096, -0.61284832, -0.40841132, -0.54121063, -0.41459136, -0.40491764, -0.51395911, -0.68921718, -0.61025310, -0.66756692, -0.48464028,  0.11001820,  0.32046220,  0.20793068,  0.06655375, -0.32413435, -0.38815058, -0.36661462, -0.17386067,  1.11646276,  1.15070255,  1.07248456,  0.94611868,  2.17224284,  2.16602833,  2.15044099,  2.67592970, -1.38484798, -1.35059482, -1.41173989, -1.38179650))
 
-    expect_equal(dfres.R$residual, dfres.SAS$Resid, tol = 1e-4)
-    expect_equal(dfres.R$rpearson, dfres.SAS$PearsonResid, tol = 1e-3)
-    expect_equal(dfres.R$rstudent, dfres.SAS$StudentResid, tol = 1e-3)
-    expect_equal(dfres.R$rscaled, dfres.SAS$ScaledResid, tol = 1e-3)
+    expect_equal(dfres.R$r.response, dfres.SAS$Resid, tol = 1e-4)
+    expect_equal(dfres.R$r.pearson, dfres.SAS$PearsonResid, tol = 1e-3)
+    expect_equal(dfres.R$r.studentized, dfres.SAS$StudentResid, tol = 1e-3)
+    expect_equal(dfres.R$r.scaled, dfres.SAS$ScaledResid, tol = 1e-3)
+    expect_equal(dfres.R$r.normalized, dfres.SAS$ScaledResid, tol = 1e-3)
 })
 
 test_that("lmm - predicted values",{
@@ -276,8 +272,8 @@ test_that("glht - number of parameters",{
     Mc[,2] <- 1
 
     CI.glht <- multcomp::glht(eUN.lmm, linfct = Mc, rhs = 0, df = 10,
-                              coef. = function(iX){coef.lmm(iX, effects = "all")},
-                              vcov. = function(iX){vcov.lmm(iX, effects = "all")})
+                              coef. = function(iX){coef(iX, effects = "all")},
+                              vcov. = function(iX){vcov(iX, effects = "all")})
     expect_equal(NCOL(CI.glht$linfct),length(coef(eUN.lmm)))
 
     LMMstar.options(effects = c("mean"))
@@ -285,8 +281,8 @@ test_that("glht - number of parameters",{
     Mc[,2] <- 1
 
     CI.glht <- multcomp::glht(eUN.lmm, linfct = Mc, rhs = 0, df = 10,
-                              coef. = function(iX){coef.lmm(iX, effects = "mean")},
-                              vcov. = function(iX){vcov.lmm(iX, effects = "mean")})
+                              coef. = function(iX){coef(iX, effects = "mean")},
+                              vcov. = function(iX){vcov(iX, effects = "mean")})
     expect_equal(NCOL(CI.glht$linfct),length(coef(eUN.lmm)))
 
 })
@@ -496,7 +492,7 @@ test_that("Incorrect ordering of the coefficient in mlmm", {
     dtLS <- summarize(value ~ group+pipeline, dtL)
 
     e.mlmm <- mlmm(value~group, repetition = ~1|id, data = dtL, df = FALSE, robust = TRUE,
-                   by = "pipeline", effects = "groupG2=0")
+                   by = "pipeline", effects = "groupG2=0", trace = FALSE)
 
     expect_equal(as.double(tapply(dtLS$mean,dtLS$pipeline,diff)),
                  as.double(coef(e.mlmm)),

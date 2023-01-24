@@ -9,14 +9,13 @@
   object,
   type = "fit",
   type.residual = "normalized",
-  by.time = TRUE,
   obs.alpha = 0,
   obs.size = c(2, 0.5),
   at = NULL,
   time.var = NULL,
   color = TRUE,
   ci = TRUE,
-  ci.alpha = NA,
+  ci.alpha = 0.25,
   ylim = NULL,
   mean.size = c(3, 1),
   size.text = 16,
@@ -27,7 +26,7 @@
 \method{plot}{lmm}(x, ...)
 }
 \arguments{
-\item{object}{a \code{lmm} object.}
+\item{object, x}{a \code{lmm} object.}
 
 \item{type}{[character] the type of plot \itemize{
 \item \code{"fit"}: fitted values over repetitions.
@@ -40,9 +39,6 @@
 
 \item{type.residual}{[character] the type of residual to be used. Not relevant for \code{type="fit"}.
 By default, normalized residuals are used except when requesting a partial residual plot.}
-
-\item{by.time}{[logical] should a separate plot be made at each repetition or a single plot over all repetitions be used?
-Only relevant for \code{type="qqplot"}, \code{type="scatterplot"}, and \code{type="scatterplot2"}.}
 
 \item{obs.alpha}{[numeric, 0-1] When not NA, transparency parameter used to display the original data by cluster.}
 
@@ -66,7 +62,7 @@ Only relevant for \code{type="qqplot"}, \code{type="scatterplot"}, and \code{typ
 
 \item{position.errorbar}{[character] relative position of the errorbars.}
 
-\item{...}{arguments passed to the predict method.}
+\item{...}{arguments passed to the \code{predict.lmm} or \code{autoplot.residual_lmm} functions.}
 }
 \value{
 A list with two elements \itemize{

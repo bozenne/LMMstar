@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: jan 23 2023 (19:02) 
+## Last-Updated: jan 24 2023 (10:03) 
 ##           By: Brice Ozenne
-##     Update #: 620
+##     Update #: 640
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -79,14 +79,26 @@
 ##' @export
 autoplot.lmm <- function(object, type = "fit", type.residual = "normalized", 
                          obs.alpha = 0, obs.size = c(2,0.5),
-                         at = NULL, time.var = NULL, color = TRUE, ci = TRUE, ci.alpha = NA, 
+                         at = NULL, time.var = NULL, color = TRUE, ci = TRUE, ci.alpha = 0.25, 
                          ylim = NULL, mean.size = c(3, 1), size.text = 16, position.errorbar = "identity", ...){
 
     attr.ref <- attr(type,"reference")
     type <- match.arg(type, c("qqplot","correlation","scatterplot","scatterplot2","fit","partial"))
 
     if(type=="fit"){
-        out <- .autofit(object, ci = ci, ci.alpha = ci.alpha, mean.size = mean.size, size.text = size.text, color = color, ...)
+        out <- .autofit(object,
+                        obs.alpha = obs.alpha,
+                        obs.size = obs.size,
+                        at = at,
+                        time.var = time.var,
+                        color = color,                        
+                        ci = ci,
+                        ci.alpha = ci.alpha,
+                        ylim = ylim,
+                        mean.size = mean.size,
+                        size.text = size.text,
+                        position.errorbar = position.errorbar,
+                        ...)
     }else if(type=="partial"){
         ## prepare
         if(is.null(match.call()$type.residual)){
@@ -157,7 +169,9 @@ autoplot.lmm <- function(object, type = "fit", type.residual = "normalized",
                 }
             }            
         }
-        reference <- attr(rr,"reference")[,setdiff(names(attr(rr,"reference")),type.residual)]
+
+        reference <- attr(rr,"reference")[,setdiff(names(attr(rr,"reference")),type.residual),drop=FALSE]
+        reference <- lapply(reference, function(iRef){if(is.factor(iRef)){as.character(iRef)}else{iRef}})
         gg <- gg + ggplot2::ggtitle(paste0("Reference: ",paste(paste0(names(reference),"=",reference), collapse = ", ")))
         gg <- gg + ggplot2::ylab(paste0("Partial residuals for ",paste(name.var,collapse=", "))) + ggplot2::theme(text = ggplot2::element_text(size=size.text))
         out <- list(data = gg.data,
@@ -174,9 +188,9 @@ autoplot.lmm <- function(object, type = "fit", type.residual = "normalized",
 
 ## ** .autofit (helper to autofit.lmm)
 .autofit <- function(object,
-                     obs.alpha = 0, obs.size = c(2, 0.5),
-                     at = NULL, time.var = NULL, color = TRUE, ci = TRUE, ci.alpha = NA, 
-                     ylim = NULL, mean.size = c(3, 1), size.text = 16, position.errorbar = "identity", ...){
+                     obs.alpha, obs.size,
+                     at, time.var, color, ci, ci.alpha, 
+                     ylim, mean.size, size.text, position.errorbar, ...){
     if(object$time$n==1){
         stop("Cannot display the fitted values over time when there only is a single timepoint. \n")
     }
@@ -245,10 +259,12 @@ autoplot.lmm <- function(object, type = "fit", type.residual = "normalized",
     IX.beta <- interaction(as.data.frame(X.beta), drop = TRUE)
     vec.X.beta <- tapply(IX.beta, data[["XXclusterXX"]],paste, collapse = "_XXX_")
     UX.beta <- unique(vec.X.beta)
-    if(ci && !is.na(ci.alpha)){ ## remove duplicates
-        
+
+    ## remove duplicates due to missing values (unequal number of repetitions)
+    UX.ntime <- table(droplevels(data[["XXclusterXX"]][data[["XXclusterXX"]] %in% names(UX.beta)]))
+    if(length(UX.beta)>1 && length(unique(UX.ntime))>1){
         test.UX.beta <- rep(TRUE, length(UX.beta))
-        for(iUX in 1:length(UX.beta)){
+        for(iUX in 1:length(UX.beta)){ ## iUX <- 2
 
             iX <- IX.beta[data[["XXclusterXX"]] == names(UX.beta)[iUX]]
             iTest <- sapply(names(UX.beta)[-iUX], function(iId){all(iX %in% IX.beta[data[["XXclusterXX"]] == iId])})
@@ -262,7 +278,6 @@ autoplot.lmm <- function(object, type = "fit", type.residual = "normalized",
     
     lsID.beta <- lapply(UX.beta, function(iX.beta){names(iX.beta == vec.X.beta)}) ## cluster(s) within each mean pattern
     newdata <- data[data[["XXclusterXX"]] %in% names(UX.beta),]
-    
     ## pattern.alltimes <- which(object$time$n == sapply(object$design$vcov$X$Upattern$time, length))
     ## if(length(pattern.alltimes)>0){
     ##     index.id <- sapply(pattern.alltimes, function(iP){names(which(object$design$vcov$X$pattern.cluster == object$design$vcov$X$Upattern$name[iP]))[1]})
@@ -453,6 +468,7 @@ autoplot.partialCor <- function(object, size.text = 16,
 ##' @description Graphical representation of the profile likelihood from a linear mixed model
 ##' 
 ##' @param object,x an object of class \code{profile_lmm}, output of the \code{profile.lmm} function.
+##' @param type [character] Should the log-likelihood (\code{"logLik"}) or the ratio to the maximum likelihood (\code{"ratio"}) be displayed?
 ##' @param quadratic [logical] Should a quadratic approximation of the likelihood be displayed?
 ##' @param ci [logical] Should a 95\% confidence intervals obtained from the Wald test (vertical lines) and Likelihood ratio test (horizontal line) be displayed?
 ##' @param size [numeric vector of length 4] Size of the point for the MLE,
@@ -463,6 +479,7 @@ autoplot.partialCor <- function(object, size.text = 16,
 ##' and the confidence intervals.
 ##' @param shape [integer, >0] type of point used to represent the MLE.
 ##' @param scales,nrow,ncol argument passed to \code{ggplot2::facet_wrap}.
+##' @param ... arguments passed to the autoplot function.
 ##' 
 ##' @return A list with three elements \itemize{
 ##' \item \code{data.fit}: data containing the quadratice approximation of the log-likelihood
@@ -580,7 +597,8 @@ autoplot.profile_lmm <- function(object, type = "logLik", quadratic = TRUE, ci =
 ##' No correlation coefficient is displayed when set to 0. Only used when argument \code{plot} is \code{"correlation"}.
 ##' @param size.text [numeric, >0] Size of the font used to displayed text when using ggplot2.
 ##' @param scales,labeller [character] Passed to \code{ggplot2::facet_wrap}.
-##' 
+##' @param ... arguments passed to the autoplot function.
+##'  
 ##' @return A list with two elements \itemize{
 ##' \item \code{data}: data used to generate the plot.
 ##' \item \code{plot}: ggplot object.
@@ -795,6 +813,8 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, by
 ##' @description Graphical representation of the possible missing data patterns in the dataset.
 ##'
 ##' @param object,x a \code{summarizeNA} object, output of the \code{\link{summarizeNA}} function.
+##' @param variable [character] variable for which the missing patterns should be displayed.
+##' Only required when the argument \code{repetition} has been specified when calling \code{summarizeNA}.
 ##' @param size.text [numeric, >0] size of the font used to display text.
 ##' @param add.missing [logical] should the number of missing values per variable be added to the x-axis tick labels.
 ##' @param order.pattern [numeric vector or character] in which order the missing data pattern should be displayed. Can either be a numeric vector indexing the patterns or a character refering to order the patterns per number of missing values (\code{"n.missing"}) or number of observations (\code{"frequency"}).

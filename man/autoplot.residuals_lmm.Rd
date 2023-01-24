@@ -21,9 +21,11 @@
 \method{plot}{residuals_lmm}(x, ...)
 }
 \arguments{
-\item{object}{an object of class \code{residuals_lmm}, output of the \code{residuals.lmm} function.}
+\item{object, x}{an object of class \code{residuals_lmm}, output of the \code{residuals.lmm} function.}
 
-\item{type}{[character] Type of residual for which the graphical representation should be made.}
+\item{type}{[character] Should a qqplot (\code{"qqplot"}), or a heatmap of the correlation between residuals  (\code{"correlation"}, require wide format), or a plot of residuals along the fitted values (\code{"scatterplot"}, require long format) be displayed?}
+
+\item{type.residual}{[character] Type of residual for which the graphical representation should be made.}
 
 \item{by.repetition}{[logical] Should a seperate graphical display be made for each repetition.}
 
@@ -39,6 +41,8 @@ No correlation coefficient is displayed when set to 0. Only used when argument \
 \item{size.text}{[numeric, >0] Size of the font used to displayed text when using ggplot2.}
 
 \item{scales, labeller}{[character] Passed to \code{ggplot2::facet_wrap}.}
+
+\item{...}{arguments passed to the autoplot function.}
 }
 \value{
 A list with two elements \itemize{

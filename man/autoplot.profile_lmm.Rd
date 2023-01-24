@@ -21,7 +21,9 @@
 \method{plot}{profile_lmm}(x, ...)
 }
 \arguments{
-\item{object}{an object of class \code{profile_lmm}, output of the \code{profile.lmm} function.}
+\item{object, x}{an object of class \code{profile_lmm}, output of the \code{profile.lmm} function.}
+
+\item{type}{[character] Should the log-likelihood (\code{"logLik"}) or the ratio to the maximum likelihood (\code{"ratio"}) be displayed?}
 
 \item{quadratic}{[logical] Should a quadratic approximation of the likelihood be displayed?}
 
@@ -38,6 +40,8 @@ and the confidence intervals.}
 \item{shape}{[integer, >0] type of point used to represent the MLE.}
 
 \item{scales, nrow, ncol}{argument passed to \code{ggplot2::facet_wrap}.}
+
+\item{...}{arguments passed to the autoplot function.}
 }
 \value{
 A list with three elements \itemize{
