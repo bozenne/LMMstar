@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: jan 16 2023 (18:04) 
+## Last-Updated: feb  6 2023 (15:46) 
 ##           By: Brice Ozenne
-##     Update #: 2387
+##     Update #: 2394
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -322,7 +322,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     dataCor <- data
     if(length(all.vars(formula.cor))>0 && structure$type %in% c("ID","IND","CS","UN","TOEPLITZ")){
         for(iVar in all.vars(formula.cor)){
-            if(structure$type=="TOEPLITZ" || heterogeneous == FALSE){
+            if(structure$type=="TOEPLITZ" || heterogeneous <= 0){
                 if(iVar == strata.var){
                     dataCor[[iVar]] <- as.factor(data[[iVar]])
                 }else if(is.logical(data[[iVar]])){
@@ -332,7 +332,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
                 }else if(is.numeric(data[[iVar]])){
                     dataCor[[iVar]] <- data[[iVar]] - min(data[[iVar]]) + 1
                 }
-            }else if(heterogeneous){
+            }else if(heterogeneous>0){
                 dataCor[[iVar]] <- as.factor(data[[iVar]])
             }
         }

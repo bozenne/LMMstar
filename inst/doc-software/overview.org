@@ -3335,6 +3335,34 @@ suppressWarnings(anova(eUN2.lmm))
 :    mean: time          87.253 (3,22.5) 1.48e-12 ***
 :        : glucagon      23.198 (1,19.4) 0.000114 ***
 
+It is also possible to fit cross-random effects such as:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+data("Penicillin")
+fm03 <- lmer(diameter ~ 1 + (1|plate) + (1|sample), Penicillin)
+logLik(fm03)
+#+END_SRC
+
+#+RESULTS:
+: 'log Lik.' -165.4303 (df=4)
+
+using =lmm= with a small hack: using a block compound symmetry
+structure with heterogeneous set to -1 to remove the correlation
+coefficient for pairs that have none of the covariate defining the
+blocks in common:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+Penicillin$index <- paste(Penicillin$sample,Penicillin$plate,sep=".")
+Penicillin$id <- 1
+
+e.lmm <- lmm(diameter ~ 1,
+             repetition = ~index|id,
+             structure = CS(list(~1,~plate+sample), heterogeneous = -1),
+             data = Penicillin)
+logLik(e.lmm)
+#+END_SRC
+
+#+RESULTS:
+: [1] -165.4303
+
 ** mmrm package
 
 The package =mmrm= is an alternative implementation of mixed models

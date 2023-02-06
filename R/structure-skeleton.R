@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: nov  3 2022 (11:15) 
+## Last-Updated: feb  6 2023 (15:52) 
 ##           By: Brice Ozenne
-##     Update #: 2346
+##     Update #: 2399
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -123,7 +123,7 @@
                                   k.x = rep(as.character(NA), times = n.param),
                                   k.y = rep(as.character(NA), times = n.param),                                  
                                   stringsAsFactors = FALSE)
-    
+
     structure$param$level <- c(level.sigma,level.k,level.rho)
     attr(structure$param,"level.var") <- outSigma$code
     if(any(structure$param$type=="k")){
@@ -552,9 +552,28 @@
 
                 }else{
                     if(heterogeneous>=1){
-                        if(all(iCX.cor1==iCX.cor2)){return(cbind("R",iCX.cor1))}else{return(cbind(paste0("D",paste(iCX.cor1,collapse="")),iCX.cor2-iCX.cor1))}
-                    }else{
-                        if(all(iCX.cor1==iCX.cor2)){return(matrix(c("R",rep(iStrata,NCOL(iCX.cor1))), nrow = 1, ncol = 1+NCOL(iCX.cor1)))}else{return(matrix(c("D",as.numeric(iCX.cor2!=iCX.cor1)), nrow = 1))}
+                        if(all(iCX.cor1==iCX.cor2)){
+                            return(cbind("R",iCX.cor1))
+                        }else{
+                            return(cbind(paste0("D",paste(iCX.cor1,collapse="")),iCX.cor2-iCX.cor1))
+                        }
+                    }else if(heterogeneous>=0){
+                        if(all(iCX.cor1==iCX.cor2)){
+                            return(matrix(c("R",rep(iStrata,NCOL(iCX.cor1))), nrow = 1, ncol = 1+NCOL(iCX.cor1)))
+                        }else{
+                            return(matrix(c("D",as.numeric(iCX.cor2!=iCX.cor1)), nrow = 1))
+                        }
+                    }else if(heterogeneous<0){
+                        if(all(iCX.cor1==iCX.cor2)){ ## all equal
+                            return(matrix(c("R",rep(iStrata,NCOL(iCX.cor1))), nrow = 1, ncol = 1+NCOL(iCX.cor1)))
+                        }else{ ## at least one equal 
+                            test.common <- setdiff(colnames(iCX.cor1)[which(iCX.cor1==iCX.cor2)], "(Intercept)")
+                            if(length(test.common)>0){
+                                return(matrix(c("D",as.numeric(iCX.cor2!=iCX.cor1)), nrow = 1))
+                            }else{
+                                return(matrix(NA,nrow = 1, ncol = 1+NCOL(iCX.cor1)))
+                            }
+                        }
                     }
 
                     }
@@ -565,7 +584,7 @@
             iName.covcor <- setdiff(names(attr(X.cor,"M.level")),strata.var)
             if(length(iName.covcor)>0){
                 iCov <- as.character(interaction(iData[,iName.covcor,drop=FALSE],drop=TRUE))
-                index.iUCode <- which(!duplicated(iCode))
+                index.iUCode <- intersect(which(!duplicated(iCode)),which(!is.na(iCode)))
                 iULevel <- stats::setNames(sapply(index.iUCode,function(iCol){
                     return(paste0("(",paste(unique(c(iCov[min(iPair.time[,iCol])],iCov[max(iPair.time[,iCol])])),collapse=","),")"))
                 }), iCode[index.iUCode])
@@ -581,7 +600,7 @@
                                 
             iName <- paste0("rho",iLevel)
 
-            index.unique <- which(!duplicated(cbind(iCode, iM)))
+            index.unique <- intersect(which(!duplicated(cbind(iCode, iM))), which(!is.na(iCode)))
             iOut <- data.frame(lp.x = iM[index.unique,"x"],
                                lp.y = iM[index.unique,"y"],
                                strata = iStrata,

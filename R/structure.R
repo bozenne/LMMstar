@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: nov  3 2022 (11:27) 
+## Last-Updated: feb  6 2023 (15:10) 
 ##           By: Brice Ozenne
-##     Update #: 755
+##     Update #: 756
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -108,7 +108,7 @@
     }else{
         if(length(var.strata)==0){
             formula.cor <- stats::as.formula(paste("~",paste(ls.var.X$correlation,collapse="+")))
-        }else if(heterogeneous){
+        }else if(heterogeneous>0){
             formula.cor <- stats::as.formula(paste("~0+",paste(paste(ls.var.X$correlation,var.strata,sep=":"),collapse="+")))
             ## stats::update(terms.var, paste0("~0+",out$name$strata,"+",out$name$strata,":."))
             ## using ".:var.strata" does not work (it gives the same formula - does not invert . var.strata around the : symbol)

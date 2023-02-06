@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: Oct 17 2022 (11:38) 
+## Last-Updated: feb  6 2023 (15:45) 
 ##           By: Brice Ozenne
-##     Update #: 370
+##     Update #: 382
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -246,7 +246,7 @@
             attr(iX, "index.strata") <- unname(index.clusterStrata[iC])
             attr(iX, "index.pair") <- iC.table
             attr(iX, "index.vec2matrix") <- c(iC.table[,"row"] + NROW(iX) * (iC.table[,"col"] - 1))
-            attr(iX, "param") <- unique(iC.param)
+            attr(iX, "param") <- stats::na.omit(unique(iC.param))
             attr(iX, "indicator.param") <- stats::setNames(lapply(attr(iX, "param"),function(iP){
                 if(is.na(iP)){ ## deal with NA for the case prediction where a pair of time may not have been observed
                     return(attr(iX, "index.vec2matrix")[which(is.na(iC.table$param))])
@@ -259,7 +259,6 @@
                 iM[attr(iX,"indicator.param")[[iParam]]] <- 1
                 return(iM)
             }),attr(iX, "param"))
-
             return(iX)
             ## iM <- matrix(0,length(iC.code),length(iC.code)); iM[attr(iX.pairwise, "index.vec2matrix")] <- iX.pairwise %*% 1:NROW(param.rho)
         }),setdiff(name.pattern.cor,""))
