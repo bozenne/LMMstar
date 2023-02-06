@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: feb  6 2023 (15:45) 
+## Last-Updated: feb  6 2023 (17:08) 
 ##           By: Brice Ozenne
-##     Update #: 382
+##     Update #: 388
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -246,7 +246,11 @@
             attr(iX, "index.strata") <- unname(index.clusterStrata[iC])
             attr(iX, "index.pair") <- iC.table
             attr(iX, "index.vec2matrix") <- c(iC.table[,"row"] + NROW(iX) * (iC.table[,"col"] - 1))
-            attr(iX, "param") <- stats::na.omit(unique(iC.param))
+            if(structure$type=="CS" && structure$heterogeneous<0){
+                attr(iX, "param") <- stats::na.omit(unique(iC.param))
+            }else{
+                attr(iX, "param") <- unique(iC.param)
+            }                
             attr(iX, "indicator.param") <- stats::setNames(lapply(attr(iX, "param"),function(iP){
                 if(is.na(iP)){ ## deal with NA for the case prediction where a pair of time may not have been observed
                     return(attr(iX, "index.vec2matrix")[which(is.na(iC.table$param))])
