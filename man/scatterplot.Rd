@@ -87,7 +87,9 @@ scatterplot(gastricbypassL, formula = glucagonAUC~time|id)
 ## coloring per group
 gg <- scatterplot(gastricbypassL, formula = weight~time|id, group = "group")
 gg
+if(require(ggplot2)){
 gg + scale_color_manual(values = c("orange","blue","purple"))
+}
 
 ## only display percentage of NAs
 scatterplot(gastricbypassL, formula = glucagonAUC~time|id, method.cor = NA)
