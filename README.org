@@ -83,3 +83,7 @@ A BibTeX entry for LaTeX users is
 See the vignette "Overview of the package LMMstar" in [[./vignettes/overview.pdf]]
 
 
+* TODO :noexport:
+- update scatterplot depending on ggpubr to get better looking histograms
+- update pool to pool coefficients per type when exporting all values in mlmm
+  

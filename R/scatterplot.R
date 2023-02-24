@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb 16 2023 (09:39) 
 ## Version: 
-## Last-Updated: feb 16 2023 (15:28) 
+## Last-Updated: feb 24 2023 (18:34) 
 ##           By: Brice Ozenne
-##     Update #: 273
+##     Update #: 371
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,12 +26,17 @@
 ##' @param format [character] Is the dataset in the long (\code{"long"}) or wide (\code{"wide"}) format?
 ##' @param group [character] optional group variable used to color the points, stratify the histogram/density and correlation.
 ##' @param transform [character or function] optional transformation to be applied on the outcome.
+##' @param facet [character] whether to use \code{ggplot:::facet_grid} (\code{"grid"}) or \code{ggh4x::facet_grid2} (\code{"grid2"}).
 ##' @param labeller [character] passed to \code{ggplot2::facet_grid} to modify the strip labels. 
 ##' @param alpha.point [numeric] the transparency level used to display the points in the scatterplot.
 ##' @param breaks [character or numeric vector] algorithm or values used to create the histogram cells.
+##' When using \code{facet="grid2"} and \code{density=TRUE} a character of length two indicating the bandwith and the kernel to be used.
+##' See \code{ggplot2::stat_density}.
+##' @param position.bar [character] passed to \code{geom_histogram} (argument \code{position}).
+##' Only relevant when having multiple groups and using \code{ggh4x::facet_grid2}.
 ##' @param size.bar [numeric,>0] width of the bars of the histogram.
 ##' @param density [logical] should the density be displayed instead of an histogram.
-##' @param alpha.area [numeric, 0-1] the transparency level used to display the area under the density curve.
+##' @param alpha.area [numeric, 0-1] the transparency level used to display the area under the density curve or histogram.
 ##' @param method.cor [character] estimator of the correlation. Argument passed to \code{stats::cor}.
 ##' When \code{NA}, the correlation is not displayed.
 ##' @param size.text [numeric,>0] size of the font used to display the correlation or information about missing values.
@@ -81,11 +86,21 @@
 ## * scatterplot (code)
 ##' @export
 scatterplot <- function(data, formula, columns, format = NULL, group = NULL, transform = NULL,
-                        labeller = "label_value", alpha.point = 1,
-                        breaks = "Sturges", size.bar = NULL, density = FALSE, alpha.area = 0.3,
+                        facet = NULL, labeller = "label_value", alpha.point = 1,
+                        breaks = NULL, position.bar = "identity", size.bar = NULL, density = FALSE, alpha.area = NULL,
                         method.cor = "pearson", size.text = 10, digits = c(3,2)){
 
     ## ** normalize user input
+    ## package
+    if(is.null(facet)){
+        test <- try(requireNamespace("ggh4x"), silent = TRUE)
+        if(test==FALSE){
+            message("Use facet_grid from ggplot2. Consider installing the package ggh4x for a nice graphical display. \n")
+            facet <- "grid"
+        }else{
+            facet <- "grid2"
+        }
+    }
     
     ## format
     if(is.null(format)){
@@ -111,8 +126,9 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
                  "Variable(s) \"",paste(invalid, collapse = "\" \""),"\" could not be found in the dataset. \n",
                  sep = "")
         }
-        data <- data[columns]
+        data <- data[union(columns,group)]
     }
+
     if(any(names(data) %in% c("XXtime1XX","XXtime2XX"))){
         invalid <- names(data)[names(data) %in% c("XXtime1XX","XXtime2XX")]
         stop("Name \"",paste(names(data), collapse = "\" \""),"\" is used internally. \n",
@@ -133,7 +149,7 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
         }
         name.Y <- "outcome"
         name.time <- "time"
-        level.time <- names(data)
+        level.time <- setdiff(names(data),group)
         data$XXindexXX <- 1:NROW(data)
         name.id <- "XXindexXX"
 
@@ -211,12 +227,50 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
         }
         level.group <- levels(dataL[[group]])
         if(is.null(size.bar)){
-            size.bar <- 5/length(level.group)
+            if(facet == "grid"){
+                size.bar <- 5/length(level.group)
+            }else if(facet == "grid2"){
+                size.bar <- 1/length(level.group)
+            }
         }
     }else if(is.null(size.bar)){
-        size.bar <- 5
+        if(facet == "grid"){
+            size.bar <- 5
+        }else if(facet == "grid2"){
+            size.bar <- 1
+        }
     }
 
+    ## facet
+    facet <- match.arg(facet, c("grid","grid2"))
+
+    ## breaks
+    if(is.null(breaks)){
+        breaks.hist <- "Sturges"
+
+        if(facet == "grid2" && density){
+            breaks <- c("nrd0","gaussian")           
+        }
+
+    }else{
+        breaks.hist <- breaks
+
+    }
+
+    ## alpha.area
+    if(is.null(alpha.area)){
+        if(density){
+            alpha.area <- 0.3
+        }else if(facet == "grid"){
+            alpha.area  <- 1
+        }else if(facet == "grid2"){
+            if(position.bar=="dodge" || is.null(group)){
+                alpha.area  <- 1
+            }else{
+                alpha.area  <- 0.7
+            }
+        }
+    }
 
     ## ** matrix format
     ls.dataL <- split(dataL, dataL[[name.time]])
@@ -261,10 +315,10 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
         
     
     ## ** prepare histograms
+    dataGrid.diag <- dataGrid[dataGrid$position=="diag",]
     if(n.time>2){
-        dataGrid.diag <- dataGrid[dataGrid$position=="diag",]
         dataHist <- do.call(rbind,by(dataGrid.diag, dataGrid.diag$time1, function(iData){ ## iData <- dataGrid.diag[dataGrid.diag$time1=="12wks",]
-            iHist <- graphics::hist(iData$outcome1, breaks = breaks, plot = FALSE)
+            iHist <- graphics::hist(iData$outcome1, breaks = breaks.hist, plot = FALSE)
             if(is.null(group)){
                 iDf <- data.frame(start = iHist$breaks[-length(iHist$breaks)],
                                   mids = iHist$mids,
@@ -315,13 +369,15 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
         dataCor <- do.call(rbind, by(dataGrid.upper, droplevels(dataGrid.upper$time), function(iData){
             if(is.null(group)){
                 iDF <- data.frame(outcome1 = as.numeric(NA),
-                                  outcome2 = mean(range(iData$outcome2,na.rm=TRUE)),
+                                  outcome2 = as.numeric(NA),
                                   time1 = unique(iData$time1),
                                   time2 = unique(iData$time2),
                                   cor = if(is.na(method.cor)){NA}else{stats::cor(iData$outcome1, iData$outcome2, method = method.cor, use = "pairwise")},
                                   n = NROW(is.na(iData)),
                                   n.NNA = sum(rowSums(is.na(iData))==0)
                                   )
+
+                iDF$outcome2 <- mean(range(iData$outcome2,na.rm=TRUE))
                 if(all(iData$time1 == level.time[1])){
                     if(density){
                         iDF$outcome1 <- mean(range(dataHist[dataHist$time1==level.time[1],"density.norm"]))
@@ -339,11 +395,13 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
                                n.NNA = sum(rowSums(is.na(iiData))==0)
                                )
                 })
-                iDF <- data.frame(outcome1 = NA,
-                                  outcome2 = mean(range(iData$outcome2, na.rm = TRUE)),
+                iDF <- data.frame(outcome1 = as.numeric(NA),
+                                  outcome2 = as.numeric(NA),
                                   time1 = unique(iData$time1),
                                   time2 = unique(iData$time2),
                                   do.call(rbind,iCor))
+
+                iDF$outcome2 <- mean(range(iData$outcome2,na.rm=TRUE))
                 if(all(iData$time1 == level.time[1])){
                     if(density){
                         iRange <- range(dataHist[dataHist$time1==level.time[1],"density.norm"])
@@ -354,11 +412,34 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
                     iRange <- range(iData$outcome1, na.rm = TRUE)
                 }
                 iDF$outcome1 <- seq(from = iRange[1], to = iRange[2], length.out = length(level.group)+2)[2:(1+length(level.group))]
-                                  
             }
             return(iDF)
         }))
     }
+
+    ## ** graphical display
+
+    if(facet=="grid"){
+        gg <- .ggscatterplot(dataHist = dataHist, dataGrid.lower = dataGrid.lower, dataCor = dataCor,
+                             n.time = n.time, group = group, 
+                             labeller = labeller, alpha.point = alpha.point, size.bar = size.bar,
+                             density = density, alpha.area = alpha.area, method.cor = method.cor, size.text = size.text, digits = digits)
+    }else if(facet == "grid2"){
+        gg <- .ggscatterplot2(dataGrid.diag = dataGrid.diag, dataGrid.lower = dataGrid.lower, dataCor = dataCor,
+                              breaks = breaks, n.time = n.time, group = group, 
+                              labeller = labeller, alpha.point = alpha.point, position.bar = position.bar, size.bar = size.bar,
+                              density = density, alpha.area = alpha.area, method.cor = method.cor, size.text = size.text, digits = digits)
+    }
+
+    ## ** export
+    return(gg)
+}
+
+## * .ggscatterplot
+.ggscatterplot <- function(dataHist, dataGrid.lower, dataCor,
+                           n.time, group, 
+                           labeller, alpha.point, size.bar, density, alpha.area, method.cor, size.text, digits){
+
 
     ## ** graphical display
     gg <- ggplot2::ggplot()
@@ -376,15 +457,92 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
             if(density){
                 gg <- gg + ggplot2::geom_line(data = dataHist,
                                               mapping = ggplot2::aes(x = .data$mids, y = .data$density.norm),
-                                              size = 2)
+                                              linewidth = 2)
                 gg <- gg + ggplot2::geom_area(data = dataHist,
                                               mapping = ggplot2::aes(x = .data$mids, y = .data$density.norm),
                                               alpha = alpha.area)
             }else{
                 gg <- gg + ggplot2::geom_segment(data = dataHist,
                                                  mapping = ggplot2::aes(x = .data$mids, xend = .data$mids, y = .data$base, yend = .data$counts.norm),
-                                                 stat = "identity", size = size.bar
+                                                 stat = "identity", linewidth = size.bar, alpha = alpha.area
                                                  )
+            }
+
+            if(is.na(method.cor)){
+                gg <- gg + ggplot2::geom_text(data = dataCor,
+                                              mapping = ggplot2::aes(x = .data$outcome2, y = .data$outcome1,
+                                                                     label = paste0(.data$n-.data$n.NNA," NA (",round(100*(1-.data$n.NNA/.data$n), digits[2]),"%)")),
+                                              size = size.text, vjust = "inward", hjust = "inward")
+            }else{
+                gg <- gg + ggplot2::geom_text(data = dataCor,
+                                              mapping = ggplot2::aes(x = .data$outcome2, y = .data$outcome1,
+                                                                     label = paste0("\u03C1=",round(.data$cor, digits[1]),"\n",round(100*(1-.data$n.NNA/.data$n), digits[2]),"% NA")),
+                                              size = size.text, vjust = "inward", hjust = "inward")
+            }
+        }
+    }else{
+        gg <- gg + ggplot2::geom_point(data = dataGrid.lower,
+                                       mapping = ggplot2::aes(x = .data$outcome2, y = .data$outcome1, color = .data$group, shape = .data$group),
+                                       alpha = alpha.point)
+        if(n.time>2){
+            if(density){
+                gg <- gg + ggplot2::geom_line(data = dataHist,
+                                              mapping = ggplot2::aes(x = .data$mids, y = .data$density.norm, group = .data$group, color = .data$group),
+                                              linewidth = 2)
+                gg <- gg + ggplot2::geom_area(data = dataHist,
+                                              mapping = ggplot2::aes(x = .data$mids, y = .data$density.norm, fill = .data$group),
+                                              alpha = alpha.area, position = "identity")
+            }else{
+                gg <- gg + ggplot2::geom_segment(data = dataHist,
+                                                 mapping = ggplot2::aes(x = .data$mids, xend = .data$mids, y = .data$base, yend = .data$counts.norm, color = .data$group),
+                                                 stat = "identity", linewidth = size.bar)
+            }
+            if(!is.na(method.cor)){
+                gg <- gg + ggplot2::geom_text(data = dataCor,
+                                              mapping = ggplot2::aes(x = .data$outcome2, y = .data$outcome1,
+                                                                     label = paste0("\u03C1=",round(.data$cor, digits[1])), color = .data$group),
+                                              size = size.text, show.legend = FALSE, vjust = "inward", hjust = "inward")
+            }else{
+                gg <- gg + ggplot2::geom_text(data = dataCor,
+                                              mapping = ggplot2::aes(x = .data$outcome2, y = .data$outcome1,
+                                                                     label = paste0(.data$n-.data$n.NNA," NA (",round(100*(1-.data$n.NNA/.data$n), digits[2]),"%)"), color = .data$group),
+                                              size = size.text, show.legend = FALSE, vjust = "inward", hjust = "inward")
+            }
+            
+        }
+    }
+
+    ## ** export
+    return(gg)
+}
+
+## * .ggscatterplot2
+.ggscatterplot2 <- function(dataGrid.diag, dataGrid.lower, dataCor,
+                            breaks, n.time, group, 
+                            labeller, alpha.point, position.bar, size.bar, density, alpha.area, method.cor, size.text, digits){
+
+   ## ** graphical display
+    gg <- ggplot2::ggplot()
+    if(n.time>2){
+        gg <- gg +  ggh4x::facet_grid2(time1~time2, scales = "free", labeller = labeller, independent = "y") + ggplot2::labs(x = "", y = "")
+    }else if(n.time==2){
+        gg <- gg + ggplot2::labs(x = dataGrid.lower$time2[1], y = dataGrid.lower$time1[1])
+    }
+    if(is.null(group)){
+        gg <- gg + ggplot2::geom_point(data = dataGrid.lower,
+                                       mapping = ggplot2::aes(x = .data$outcome2, y = .data$outcome1),
+                                       alpha = alpha.point)
+
+        if(n.time>2){
+            if(density){
+                gg <- gg + ggplot2::geom_density(data = dataGrid.diag,
+                                                 mapping = ggplot2::aes(x = .data$outcome1),
+                                                 bw = breaks[1], kernel = breaks[2], alpha = alpha.area,
+                                                 outline.type = "full", linewidth = size.bar, fill = "black")
+            }else{
+               gg <- gg + ggplot2::geom_histogram(data = dataGrid.diag,
+                                                 mapping = ggplot2::aes(x = .data$outcome1),
+                                                 bins = breaks, alpha = alpha.area, position = position.bar)
             }
 
             if(is.na(method.cor)){
@@ -400,32 +558,32 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
             }
         }
     }else{
-        gg <- gg + ggplot2::geom_point(data = dataGrid[dataGrid$position == "lower",],
+        gg <- gg + ggplot2::geom_point(data = dataGrid.lower,
                                        mapping = ggplot2::aes(x = .data$outcome2, y = .data$outcome1, color = .data$group, shape = .data$group),
                                        alpha = alpha.point)
         if(n.time>2){
             if(density){
-                gg <- gg + ggplot2::geom_line(data = dataHist,
-                                              mapping = ggplot2::aes(x = .data$mids, y = .data$density.norm, group = .data$group, color = .data$group),
-                                              size = 2)
-                gg <- gg + ggplot2::geom_area(data = dataHist,
-                                              mapping = ggplot2::aes(x = .data$mids, y = .data$density.norm, fill = .data$group),
-                                              alpha = alpha.area, position = "identity")
+                gg <- gg + ggplot2::geom_density(data = dataGrid.diag,
+                                                 mapping = ggplot2::aes(x = .data$outcome1, fill = .data$group, color = .data$group),
+                                                 bw = breaks[1], kernel = breaks[2], alpha = alpha.area,
+                                                 outline.type = "full", linewidth = size.bar)
             }else{
-                gg <- gg + ggplot2::geom_segment(data = dataHist,
-                                                 mapping = ggplot2::aes(x = .data$mids, xend = .data$mids, y = .data$base, yend = .data$counts.norm, color = .data$group),
-                                                 stat = "identity", size = size.bar)
+                gg <- gg + ggplot2::geom_histogram(data = dataGrid.diag,
+                                                   mapping = ggplot2::aes(x = .data$outcome1, fill = .data$group),
+                                                   bins = breaks, alpha = alpha.area, position = position.bar)
             }
+
+            print(dataCor)
             if(!is.na(method.cor)){
                 gg <- gg + ggplot2::geom_text(data = dataCor,
                                               mapping = ggplot2::aes(x = .data$outcome2, y = .data$outcome1,
                                                                      label = paste0("\u03C1=",round(.data$cor, digits[1])), color = .data$group),
-                                              size = size.text, show.legend = FALSE)
+                                              size = size.text, show.legend = FALSE, vjust = "inward")
             }else{
                 gg <- gg + ggplot2::geom_text(data = dataCor,
                                               mapping = ggplot2::aes(x = .data$outcome2, y = .data$outcome1,
                                                                      label = paste0(.data$n-.data$n.NNA," NA (",round(100*(1-.data$n.NNA/.data$n), digits[2]),"%)"), color = .data$group),
-                                              size = size.text, show.legend = FALSE)
+                                              size = size.text, show.legend = FALSE, vjust = "inward")
             }
             
         }
@@ -434,8 +592,6 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
     ## ** export
     return(gg)
 }
-
-
 
 ##----------------------------------------------------------------------
 ### scatterplot.R ends here
