@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jan  3 2023 (17:27) 
+## Last-Updated: Feb 26 2023 (11:54) 
 ##           By: Brice Ozenne
-##     Update #: 1180
+##     Update #: 1190
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -570,7 +570,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         }else{
             digits.p.value2 <- digits.p.value
         }
-
+        
         .printStatTable(table = table.univariate, robust = robust, df = df, level = level, type.information = type.information,
                         method.p.adjust = method.p.adjust, factor.p.adjust = factor.p.adjust, error.p.adjust = error, seed = seed, n.sample = n.sample,
                         backtransform = backtransform, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
@@ -729,7 +729,6 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
         }
         cat(" \n")
     }
-
 
     ## ** extract test
     if(any(print>0)){
@@ -1042,11 +1041,19 @@ summary.resample <- function(object, digits = 3, ...){
 
             if(method.p.adjust == "none"){ ## 
                 ## cat(space,txt.cip," not adjusted for multiple comparisons.\n", sep="")
-            }else{ 
-                if(method.p.adjust %in% c("single-step", "single-step2")){
-                    cat(space,txt.cip," adjusted for multiple comparisons -- max-test.\n", sep="")
+            }else{
+                if(!is.null(attr(table,"Madjust-within")) && attr(table,"Madjust-within")){
+                    if(method.p.adjust %in% c("single-step", "single-step2")){
+                        cat(space,txt.cip," adjusted for multiple comparisons (within coefficient) -- max-test.\n", sep="")
+                    }else{
+                        cat(paste0(space,txt.cip," adjusted for multiple comparisons (within coefficient) -- ",method.p.adjust,".\n", sep=""),sep="")
+                    }
                 }else{
-                    cat(paste0(space,txt.cip," adjusted for multiple comparisons -- ",method.p.adjust,".\n", sep=""),sep="")
+                    if(method.p.adjust %in% c("single-step", "single-step2")){
+                        cat(space,txt.cip," adjusted for multiple comparisons -- max-test.\n", sep="")
+                    }else{
+                        cat(paste0(space,txt.cip," adjusted for multiple comparisons -- ",method.p.adjust,".\n", sep=""),sep="")
+                    }
                 }
             }
 

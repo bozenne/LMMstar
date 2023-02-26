@@ -82,7 +82,7 @@ When \code{NA}, the correlation is not displayed.}
 \item{size.facet}{[numeric,>0] size of the font used to display the facets (row and column names).}
 }
 \value{
-a ggplot object
+a list of ggplot objects (\code{facet="grid"}) or a ggplot object (\code{facet="grid2"})
 }
 \description{
 Produce a matrix of plot for continuous variables: scatterplots, histograms, correlation and missing values.

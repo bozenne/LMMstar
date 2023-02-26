@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jan  3 2023 (16:08) 
+## Last-Updated: Feb 26 2023 (11:50) 
 ##           By: Brice Ozenne
-##     Update #: 579
+##     Update #: 583
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -745,7 +745,21 @@ confint.mlmm <- function(object, parm = NULL, level = 0.95, method = NULL, ...){
     if(is.null(method)){
         method <- "none"
     }
-    out <- confint.Wald_lmm(object, parm = parm, level = level, method = method, ...)
+    object$univariate
+    if(is.null(attr(object,"call")$effects) && length(unique(object$univariate$by))>1){
+        Uparameter <- unique(object$univariate$parameter)
+        ls.out <- lapply(Uparameter, function(iParam){ ## iParam <- Uparameter[1]
+            iObject <- object
+            iObject$univariate <- object$univariate[object$univariate$parameter==iParam,,drop=FALSE]
+            confint.Wald_lmm(iObject, parm = parm, level = level, method = method, ...)
+        })
+        out <- do.call(rbind,ls.out)
+        attr(out, "error") <- do.call(c, lapply(ls.out, "attr", "error"))
+        attr(out, "contrast") <- do.call(rbind, lapply(ls.out, "attr", "contrast"))
+        attr(out, "Madjust-within") <- TRUE
+    }else{
+        out <- confint.Wald_lmm(object, parm = parm, level = level, method = method, ...)
+    }
     contrast <- object$glht$all[[1]]$linfct
     if(any(object$glht$all[[1]]$linfct %in% 0:1 == FALSE) || any(rowSums(object$glht$all[[1]]$linfct==1)!=1)){
         out$estimate <- as.double(contrast %*% object$confint.nocontrast$estimate)
