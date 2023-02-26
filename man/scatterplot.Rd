@@ -11,15 +11,23 @@ scatterplot(
   format = NULL,
   group = NULL,
   transform = NULL,
-  labeller = "label_value",
+  facet = "grid",
   alpha.point = 1,
-  breaks = "Sturges",
-  size.bar = NULL,
-  density = FALSE,
-  alpha.area = 0.3,
+  type.diag = "boxplot",
+  bins = NULL,
+  position.bar = "identity",
+  linewidth.density = NULL,
+  alpha.area = NULL,
   method.cor = "pearson",
-  size.text = 10,
-  digits = c(3, 2)
+  size.cor = NULL,
+  digits = c(3, 2),
+  display.NA = NULL,
+  color = NULL,
+  xlim = NULL,
+  ylim = NULL,
+  size.axis = NULL,
+  size.legend = NULL,
+  size.facet = NULL
 )
 }
 \arguments{
@@ -35,24 +43,43 @@ scatterplot(
 
 \item{transform}{[character or function] optional transformation to be applied on the outcome.}
 
-\item{labeller}{[character] passed to \code{ggplot2::facet_grid} to modify the strip labels.}
+\item{facet}{[character] whether to use \code{ggplot:::facet_grid} (\code{"grid"}) or \code{ggh4x::facet_grid2} (\code{"grid2"}).}
 
 \item{alpha.point}{[numeric] the transparency level used to display the points in the scatterplot.}
 
-\item{breaks}{[character or numeric vector] algorithm or values used to create the histogram cells.}
+\item{type.diag}{[character] type of graphical display on the diagonal: \code{"boxplot"},  \code{"histogram"}, or \code{"density"}.}
 
-\item{size.bar}{[numeric,>0] width of the bars of the histogram.}
+\item{bins}{[character or numeric vector] algorithm or values or number of values used to create the histogram cells.
+When using \code{facet="grid2"} and \code{density=TRUE} a character of length two indicating the bandwith and the kernel to be used.
+See \code{ggplot2::stat_density}.}
 
-\item{density}{[logical] should the density be displayed instead of an histogram.}
+\item{position.bar}{[character] passed to \code{geom_histogram} (argument \code{position}).
+Only relevant when having multiple groups and using \code{ggh4x::facet_grid2}.}
 
-\item{alpha.area}{[numeric, 0-1] the transparency level used to display the area under the density curve.}
+\item{linewidth.density}{[numeric,>0] width of the lines on the density plot.}
+
+\item{alpha.area}{[numeric, 0-1] the transparency level used to display the area under the density curve or histogram.}
 
 \item{method.cor}{[character] estimator of the correlation. Argument passed to \code{stats::cor}.
 When \code{NA}, the correlation is not displayed.}
 
-\item{size.text}{[numeric,>0] size of the font used to display the correlation or information about missing values.}
+\item{size.cor}{[numeric,>0] size of the font used to display the correlation or information about missing values.}
 
 \item{digits}{[numeric of length 2] number of digits used to display the correlation or round the percentage of missing values.}
+
+\item{display.NA}{[0:2 or "only"] Should the number of missing values be displayed. When taking value 2, will also display the percentage of missing values.}
+
+\item{color}{[character vector] color used to display the values for each group.}
+
+\item{xlim}{[numeric,>0 or "common"] range of the x-axis.}
+
+\item{ylim}{[numeric,>0 or "common"] range of the y-axis.}
+
+\item{size.axis}{[numeric,>0] size of the font used to display the tick labels.}
+
+\item{size.legend}{[numeric,>0] size of the font used to display the legend. Can have a second element to control the size of the legend key.}
+
+\item{size.facet}{[numeric,>0] size of the font used to display the facets (row and column names).}
 }
 \value{
 a ggplot object
@@ -75,8 +102,13 @@ data(gastricbypassW, package = "LMMstar")
 scatterplot(gastricbypassL, formula = weight~time|id)
 scatterplot(gastricbypassW, columns = paste0("weight",1:4))
 
-## tune histogram
-scatterplot(gastricbypassL, formula = weight~time|id, breaks = 15)
+## use histogram instead of boxplot
+scatterplot(gastricbypassL, formula = weight~time|id, type.diag = "hist")
+scatterplot(gastricbypassL, formula = weight~time|id, type.diag = "hist", bins = 15)
+
+## same scale
+scatterplot(gastricbypassL, formula = weight~time|id,
+            xlim = "common", ylim = "common")
 
 ## transform outcome
 scatterplot(gastricbypassL, formula = weight~time|id, transform = "log")
@@ -85,18 +117,12 @@ scatterplot(gastricbypassL, formula = weight~time|id, transform = "log")
 scatterplot(gastricbypassL, formula = glucagonAUC~time|id)
 
 ## coloring per group
-gg <- scatterplot(gastricbypassL, formula = weight~time|id, group = "group")
-gg
-if(require(ggplot2)){
-gg + scale_color_manual(values = c("orange","blue","purple"))
-}
+scatterplot(gastricbypassL, formula = weight~time|id, group = "group")
 
 ## only display percentage of NAs
-scatterplot(gastricbypassL, formula = glucagonAUC~time|id, method.cor = NA)
-scatterplot(gastricbypassL, formula = glucagonAUC~time|id, method.cor = NA,
-group = "group", size.text = 5)
-
-## simple scatterplot
-scatterplot(gastricbypassW, columns = c("weight2","glucagonAUC1"))
+scatterplot(gastricbypassL, formula = glucagonAUC~time|id,
+            display.NA = "only", group = "group")
+scatterplot(gastricbypassL, formula = glucagonAUC~time|id,
+            display.NA = "only", group = "group", size.legend = c(15,2))
 
 }

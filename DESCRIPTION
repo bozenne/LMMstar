@@ -2,7 +2,7 @@ Package: LMMstar
 Type: Package
 Title: Repeated Measurement Models for Discrete Times
 Version: 0.9.0
-Date: 2023-02-17
+Date: 2023-02-26
 Authors@R: c(
     person("Brice", "Ozenne", role = c("aut", "cre"), email = "brice.mh.ozenne@gmail.com", comment = c(ORCID = "0000-0001-9694-2956")),
     person("Julie", "Forman", role = "aut", email = "jufo@sund.ku.dk", comment = c(ORCID = "0000-0001-7368-0869"))
@@ -25,6 +25,7 @@ Imports:
     copula,
     emmeans,
     ggplot2,
+    grid,
     lava,
     Matrix,
     multcomp,
@@ -37,6 +38,7 @@ Suggests:
     AICcmodavg,
     asht,
     data.table,
+    ggh4x,
     ggpubr,
     lattice,
     mvtnorm,
