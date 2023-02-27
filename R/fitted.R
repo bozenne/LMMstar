@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul  8 2021 (17:09) 
 ## Version: 
-## Last-Updated: Jun  2 2022 (17:25) 
+## Last-Updated: feb 27 2023 (15:56) 
 ##           By: Brice Ozenne
-##     Update #: 137
+##     Update #: 141
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -123,29 +123,32 @@ fitted.lmm <- function(object, newdata = NULL, format = "long",
     ## ** store
     if(impute){ ## store dynamic predictions
 
-            index.NA <- which(!is.na(e.pred$estimate))
-            if(keep.newdata == FALSE){
-                if("se" %in% names(e.pred) == FALSE){
-                    out <- e.pred[index.NA,"estimate"]
-                }else{
-                    out <- stats::rnorm(length(index.NA),
-                                        mean = e.pred[index.NA,"estimate"],
-                                        sd = e.pred[index.NA,"se"])
-                }
-                
-            }else if(length(index.NA) > 0){
-                if("se" %in% names(e.pred) == FALSE){
-                    newdata[index.NA,outcome.var] <- e.pred[index.NA,"estimate"]
-                }else{
-                    newdata[index.NA,outcome.var] <- stats::rnorm(length(index.NA),
-                                                                  mean = e.pred[index.NA,"estimate"],
-                                                                  sd = e.pred[index.NA,"se"])
-                }
-                newdata$imputed <- FALSE
-                newdata$imputed[index.NA] <- TRUE
-                out <- newdata
+        index.NA <- which(!is.na(e.pred$estimate))
+        if(keep.newdata == FALSE){
+            if("se" %in% names(e.pred) == FALSE){
+                out <- e.pred[index.NA,"estimate"]
+            }else{
+                out <- stats::rnorm(length(index.NA),
+                                    mean = e.pred[index.NA,"estimate"],
+                                    sd = e.pred[index.NA,"se"])
             }
-            value.var <- c(outcome.var,"imputed")
+                
+        }else if(length(index.NA) > 0){
+            if("se" %in% names(e.pred) == FALSE){
+                newdata[index.NA,outcome.var] <- e.pred[index.NA,"estimate"]
+            }else{
+                newdata[index.NA,outcome.var] <- stats::rnorm(length(index.NA),
+                                                              mean = e.pred[index.NA,"estimate"],
+                                                              sd = e.pred[index.NA,"se"])
+            }
+            newdata$imputed <- FALSE
+            newdata$imputed[index.NA] <- TRUE
+            out <- newdata
+        }else{
+            newdata$imputed <- FALSE
+            out <- newdata
+        }
+        value.var <- c(outcome.var,"imputed")
     }else{ ## store static predictions
 
         if(keep.newdata == FALSE){

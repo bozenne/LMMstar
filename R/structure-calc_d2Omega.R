@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: okt 12 2022 (17:02) 
+## Last-Updated: feb 27 2023 (17:56) 
 ##           By: Brice Ozenne
-##     Update #: 181
+##     Update #: 195
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -285,7 +285,7 @@
         ## indicator of pattern
         vec.pattern <- unlist(lapply(names(dOmega), function(iName){ ## iName <- names(dOmega)[1]
             iParam <- names(dOmega[[iName]])
-            iTime <- attr(Omega[[iName]],"time") ## warning: may be NULL
+            iTime <- object$X$Upattern$time[[iName]]            
             iNtime <- Upattern[Upattern$name==iName,"n.time"]
             iOut <- lapply(iParam, function(iP){matrix(iName, nrow = iNtime, ncol = iNtime, dimnames = list(iTime,iTime))})
             return(iOut)
@@ -294,7 +294,7 @@
         ## indicator of param
         vec.param <- unlist(lapply(names(dOmega), function(iName){ ## iName <- names(dOmega)[1]
             iParam <- names(dOmega[[iName]])
-            iTime <- attr(Omega[[iName]],"time") ## warning: may be NULL
+            iTime <- object$X$Upattern$time[[iName]]            
             iNtime <- Upattern[Upattern$name==iName,"n.time"]
             iOut <- lapply(iParam, function(iP){matrix(iP, nrow = iNtime, ncol = iNtime, dimnames = list(iTime,iTime))})
             return(iOut)
@@ -335,16 +335,16 @@
             iPattern.var <- object$X$Upattern$var[iPattern]
             iNtime <- object$X$Upattern$n.time[iPattern]
             iX.var <- object$X$Xpattern.var[[iPattern.var]]
-            iTime <- attr(iX.var, "index.time")
+            iTime <- object$X$Upattern$time[[iPattern]]            
             iOmega.sd <- attr(Omega[[iPattern]], "sd")
             idOmega.sd <- dFCT.sigma(p = param[name.sigma], time = iTime, X = iX.var)
             id2Omega.sd <- d2FCT.sigma(p = param[name.sigma], time = iTime, X = iX.var)
 
             if(iNtime > 1 && !is.null(X.cor)){
                 iPattern.cor <- object$X$Upattern$cor[iPattern]
-                iX.cor <- object$X$Xpattern[[iPattern.cor]]
+                iX.cor <- object$X$Xpattern.cor[[iPattern.cor]]
                 iOmega.cor <- attr(Omega[[iPattern]], "cor")
-                idOmega.cor <- dFCT.rho(p = param[name.sigma], time = iTime, X = iX.cor)
+                idOmega.cor <- dFCT.rho(p = param[name.rho], time = iTime, X = iX.cor)
                 id2Omega.cor <- d2FCT.rho(p = param[name.rho], time = iTime, X = iX.cor)
             }
 
@@ -387,6 +387,7 @@
 
         }
     }
+
     return(out)
 }
 

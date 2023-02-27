@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: feb  6 2023 (15:46) 
+## Last-Updated: feb 27 2023 (16:20) 
 ##           By: Brice Ozenne
-##     Update #: 2394
+##     Update #: 2397
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -339,7 +339,10 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     }
     ## ** design matrix
     out <- list(var = NULL, cor = NULL, xfactor = list(var = NULL, cor = NULL))
-    if(is.null(structure$param)){ ## structure
+    if(inherits(structure,"CUSTOM")){
+        out$var <- dataVar[,all.vars(formula.var),drop=FALSE]
+        out$cor <- dataCor[,all.vars(formula.cor),drop=FALSE]
+    }else if(is.null(structure$param)){ ## structure
         out$var <- .colnameOrder(.model.matrix_regularize(formula.var, data = dataVar, augmodel = TRUE, type = "variance", drop.X = drop.X), strata.var = strata.var, n.strata = n.strata)
         out$xfactor$var <- stats::.getXlevels(stats::terms(formula.var),stats::model.frame(formula.var,dataVar))
         if(!is.null(formula.cor) && n.time>1 && any(sapply(index.cluster,length)>1)){  ## at least one individual with more than timepoint

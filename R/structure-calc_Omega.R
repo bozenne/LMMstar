@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: Oct 17 2022 (12:42) 
+## Last-Updated: feb 27 2023 (18:35) 
 ##           By: Brice Ozenne
-##     Update #: 530
+##     Update #: 543
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -74,7 +74,7 @@
     pattern.cluster <- object$X$pattern.cluster
     X.var <- object$X$Xpattern.var
     X.cor <- object$X$Xpattern.cor
-    
+
     Omega <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
         iPattern.var <- Upattern[iPattern,"var"]
         iPattern.cor <- Upattern[iPattern,"cor"]
@@ -108,7 +108,6 @@
         return(Omega)
     }), Upattern$name)
     ## print(Omega)
-
     return(Omega)
 }
 
@@ -189,7 +188,7 @@
 
         if(iNtime > 1 && !is.null(X.cor)){
             iPattern.cor <- object$X$Upattern$cor[iPattern]
-            iX.cor <- object$X$Xpattern[[iPattern.cor]]
+            iX.cor <- object$X$Xpattern.cor[[iPattern.cor]]
             iOmega.cor <- FCT.rho(p = param[name.rho], time = iTime, X = iX.var)
             diag(iOmega.cor) <- 0
             iOmega <- diag(as.double(iOmega.sd)^2, nrow = iNtime, ncol = iNtime) + iOmega.cor * tcrossprod(iOmega.sd)

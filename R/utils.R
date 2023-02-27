@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: Nov 14 2022 (09:41) 
+## Last-Updated: feb 27 2023 (17:46) 
 ##           By: Brice Ozenne
-##     Update #: 92
+##     Update #: 93
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -93,15 +93,18 @@ ncharTable <- function(object, digits){
 
 ## * is.invertible
 is.invertible <- function(object, cov2cor, tol = 10^(-10*sqrt(NCOL(object)))){
+    if(any(is.na(object))){
+        return(FALSE)
+    }
     if(cov2cor){
         if(any(diag(object)<=0)){
             return(FALSE)
         }else{
             object <- stats::cov2cor(object)
+            if(any(is.na(object))){
+                return(FALSE)
+            }
         }
-    }
-    if(any(is.na(object))){
-        return(FALSE)
     }
     return(abs(det(object))>tol)
 }

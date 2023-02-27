@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: okt 12 2022 (17:02) 
+## Last-Updated: feb 27 2023 (17:43) 
 ##           By: Brice Ozenne
-##     Update #: 164
+##     Update #: 176
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -164,7 +164,6 @@
         }
         return(iScore)
     })
-
     ## ** export
     out <- stats::setNames(out,Upattern$name)
     return(out)
@@ -204,7 +203,7 @@
         }, x = param[c(name.sigma,name.rho)])
 
         vec.pattern <- unlist(lapply(names(Omega), function(iName){
-            iTime <- attr(Omega[[iName]],"time") ## warning: may be NULL
+            iTime <- object$X$Upattern$time[[iName]]            
             iNtime <- Upattern[Upattern$name==iName,"n.time"]
             iOut <- matrix(iName, nrow = iNtime, ncol = iNtime, dimnames = list(iTime,iTime))
         }))
@@ -226,19 +225,18 @@
         X.cor <- object$X$cor
 
         out <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
-
             ## derivative of sd with respect to the variance parameters
             iPattern.var <- object$X$Upattern$var[iPattern]
             iNtime <- object$X$Upattern$n.time[iPattern]
             iX.var <- object$X$Xpattern.var[[iPattern.var]]
-            iTime <- attr(iX.var, "index.time")
+            iTime <- object$X$Upattern$time[[iPattern]]
             iOmega.sd <- attr(Omega[[iPattern]], "sd")
             idOmega.sd <- dFCT.sigma(p = param[name.sigma], time = iTime, X = iX.var)
-        
+
             ## derivative of rho with respect to the correlation parameters
             if(iNtime > 1 && !is.null(X.cor)){
                 iPattern.cor <- object$X$Upattern$cor[iPattern]
-                iX.cor <- object$X$Xpattern[[iPattern.cor]]
+                iX.cor <- object$X$Xpattern.cor[[iPattern.cor]]
                 iOmega.cor <- attr(Omega[[iPattern]], "cor")
                 idOmega.cor <- dFCT.rho(p = param[name.rho], time = iTime, X = iX.cor)
             }
@@ -293,7 +291,6 @@
         
         out <- stats::setNames(out,Upattern$name)
     }
-
     return(out)
 }
 
