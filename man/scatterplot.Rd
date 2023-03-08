@@ -102,6 +102,7 @@ data(gastricbypassW, package = "LMMstar")
 scatterplot(gastricbypassL, formula = weight~time|id)
 scatterplot(gastricbypassW, columns = paste0("weight",1:4))
 
+\dontrun{
 ## use histogram instead of boxplot
 scatterplot(gastricbypassL, formula = weight~time|id, type.diag = "hist")
 scatterplot(gastricbypassL, formula = weight~time|id, type.diag = "hist", bins = 15)
@@ -124,5 +125,5 @@ scatterplot(gastricbypassL, formula = glucagonAUC~time|id,
             display.NA = "only", group = "group")
 scatterplot(gastricbypassL, formula = glucagonAUC~time|id,
             display.NA = "only", group = "group", size.legend = c(15,2))
-
+}
 }

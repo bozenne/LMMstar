@@ -15,7 +15,8 @@
   digits.cor = 2,
   size.text = 16,
   scales = "free",
-  labeller = "label_value"
+  labeller = "label_value",
+  ...
 )
 
 \method{plot}{residuals_lmm}(x, ...)
@@ -42,7 +43,7 @@ No correlation coefficient is displayed when set to 0. Only used when argument \
 
 \item{scales, labeller}{[character] Passed to \code{ggplot2::facet_wrap}.}
 
-\item{...}{arguments passed to the autoplot function.}
+\item{...}{Not used. For compatibility with the generic method.}
 }
 \value{
 A list with two elements \itemize{

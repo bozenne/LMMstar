@@ -5,15 +5,9 @@ citHeader(paste("To cite the 'LMMstar' package in publications use the following
 
 
 
-citEntry(entry="Manual",
+bibentry(bibtype="Manual",
          title = "LMMstar: Repeated measurement models for discrete times",
-         author = personList(as.person("Brice Ozenne"),
-                             as.person("Julie Forman")),
+         author = c(person("Brice","Ozenne"),
+                    person("Julie","Forman")),
          year = year,
-         note = vers,
-
-         textVersion =
-         paste("Brice Ozenne and Julie Forman (",
-               year,
-               "). LMMstar: Repeated measurement models for discrete times. ",
-               vers, ".", sep=""))
+         note = vers)

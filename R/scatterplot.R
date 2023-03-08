@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb 16 2023 (09:39) 
 ## Version: 
-## Last-Updated: Feb 26 2023 (11:27) 
+## Last-Updated: mar  8 2023 (14:35) 
 ##           By: Brice Ozenne
-##     Update #: 686
+##     Update #: 687
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -63,6 +63,7 @@
 ##' scatterplot(gastricbypassL, formula = weight~time|id)
 ##' scatterplot(gastricbypassW, columns = paste0("weight",1:4))
 ##'
+##' \dontrun{
 ##' ## use histogram instead of boxplot
 ##' scatterplot(gastricbypassL, formula = weight~time|id, type.diag = "hist")
 ##' scatterplot(gastricbypassL, formula = weight~time|id, type.diag = "hist", bins = 15)
@@ -85,7 +86,7 @@
 ##'             display.NA = "only", group = "group")
 ##' scatterplot(gastricbypassL, formula = glucagonAUC~time|id,
 ##'             display.NA = "only", group = "group", size.legend = c(15,2))
-##' 
+##' }
 
 
 ## * scatterplot (code)

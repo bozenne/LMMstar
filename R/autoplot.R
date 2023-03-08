@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: jan 24 2023 (10:03) 
+## Last-Updated: mar  8 2023 (14:38) 
 ##           By: Brice Ozenne
-##     Update #: 640
+##     Update #: 645
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -479,7 +479,7 @@ autoplot.partialCor <- function(object, size.text = 16,
 ##' and the confidence intervals.
 ##' @param shape [integer, >0] type of point used to represent the MLE.
 ##' @param scales,nrow,ncol argument passed to \code{ggplot2::facet_wrap}.
-##' @param ... arguments passed to the autoplot function.
+##' @param ... Not used. For compatibility with the generic method.
 ##' 
 ##' @return A list with three elements \itemize{
 ##' \item \code{data.fit}: data containing the quadratice approximation of the log-likelihood
@@ -490,9 +490,14 @@ autoplot.partialCor <- function(object, size.text = 16,
 ## * autoplot.profile_lmm (code)
 ##' @export
 autoplot.profile_lmm <- function(object, type = "logLik", quadratic = TRUE, ci = FALSE,
-                                 size = c(3,2,1,1), linetype = c("dashed","dashed","dashed"), shape = 19, scales = "free", nrow = NULL, ncol = NULL){
+                                 size = c(3,2,1,1), linetype = c("dashed","dashed","dashed"), shape = 19, scales = "free", nrow = NULL, ncol = NULL,
+                                 ...){
 
     ## ** normalize arguments
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
     type <- match.arg(type, c("logLik","ratio"))
     args <- attr(object,"args")
     profile.likelihood <- args$profile.likelihood
@@ -597,7 +602,7 @@ autoplot.profile_lmm <- function(object, type = "logLik", quadratic = TRUE, ci =
 ##' No correlation coefficient is displayed when set to 0. Only used when argument \code{plot} is \code{"correlation"}.
 ##' @param size.text [numeric, >0] Size of the font used to displayed text when using ggplot2.
 ##' @param scales,labeller [character] Passed to \code{ggplot2::facet_wrap}.
-##' @param ... arguments passed to the autoplot function.
+##' @param ... Not used. For compatibility with the generic method.
 ##'  
 ##' @return A list with two elements \itemize{
 ##' \item \code{data}: data used to generate the plot.
@@ -608,10 +613,14 @@ autoplot.profile_lmm <- function(object, type = "logLik", quadratic = TRUE, ci =
 ##' @export
 autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, by.repetition = TRUE, 
                                    engine.qqplot = "ggplot2", add.smooth = TRUE, digits.cor = 2, size.text = 16,
-                                   scales = "free", labeller = "label_value"){
+                                   scales = "free", labeller = "label_value",...){
 
 
     ## ** check arguments
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
     args <- attr(object,"args")
     args.type <- args$type
     n.type <- args$n.type
