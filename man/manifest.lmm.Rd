@@ -4,10 +4,10 @@
 \alias{manifest.lmm}
 \title{Variables Involved in a Linear Mixed Model}
 \usage{
-\method{manifest}{lmm}(object, effects = "all", original = TRUE)
+\method{manifest}{lmm}(x, effects = "all", original = TRUE, ...)
 }
 \arguments{
-\item{object}{a \code{lmm} object.}
+\item{x}{a \code{lmm} object.}
 
 \item{effects}{[character] Should all variable be output (\code{"all"}),
 or only those related to the outcome (\code{"outcome"}), mean (\code{"mean"}), variance (\code{"variance"}),
@@ -16,6 +16,8 @@ correlation (\code{"correlation"}), time (\code{"time"}), cluster (\code{"cluste
 \item{original}{[logical] Should only the variables present in the original data be output?
 When \code{NULL}, variables internally created to fill absent variables will be added to the output.
 When \code{FALSE}, variables internally created are output instead of the original variable for time, cluster, and strata.}
+
+\item{...}{not used. For compatibility with the generic function}
 }
 \value{
 A character vector

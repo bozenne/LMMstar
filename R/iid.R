@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  4 2021 (10:04) 
 ## Version: 
-## Last-Updated: feb 14 2022 (12:19) 
+## Last-Updated: mar  8 2023 (09:56) 
 ##           By: Brice Ozenne
-##     Update #: 27
+##     Update #: 30
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,7 +18,7 @@
 ##' @title Extract the Influence Function From a Linear Mixed Model
 ##' @description Extract the influence function from a linear mixed model.
 ##' 
-##' @param object a \code{lmm} object.
+##' @param x a \code{lmm} object.
 ##' @param effects [character] Should the variance-covariance matrix for all coefficients be output (\code{"all"}),
 ##' or only for coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 ##' or only for coefficients relative to the variance structure (\code{"variance"}),
@@ -33,7 +33,7 @@
 ##' @param ... Not used. For compatibility with the generic method.
 
 ##' @export
-iid.lmm <- function(object,
+iid.lmm <- function(x,
                     effects = "mean",
                     robust = TRUE,
                     type.information = NULL,
@@ -55,28 +55,28 @@ iid.lmm <- function(object,
     effects <- match.arg(effects, c("mean","variance","correlation"), several.ok = TRUE)
 
     if(is.null(type.information)){
-        type.information <- attr(object$information,"type.information")
+        type.information <- attr(x$information,"type.information")
     }else{
         type.information <- match.arg(type.information, c("expected","observed"))
     }
 
     init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
-                            x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho)
+                            x.transform.sigma = x$reparametrize$transform.sigma, x.transform.k = x$reparametrize$transform.k, x.transform.rho = x$reparametrize$transform.rho)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
     transform.rho <- init$transform.rho
     test.notransform <- init$test.notransform
 
     ## ** get information and score
-    object.vcov <- stats::vcov(object, effects = effects, robust = FALSE, type.information = type.information, df = FALSE,
+    x.vcov <- stats::vcov(x, effects = effects, robust = FALSE, type.information = type.information, df = FALSE,
                                transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
-    object.score <- lava::score(object, effects = effects, indiv = TRUE, 
+    x.score <- lava::score(x, effects = effects, indiv = TRUE, 
                                 transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
 
     ## ** compute iid
-    out <- object.score %*% object.vcov
+    out <- x.score %*% x.vcov
     if(robust==FALSE){
-        out <- sweep(out, MARGIN = 2, FUN = "*", STATS = sqrt(diag(object.vcov))/sqrt(colSums(out^2, na.rm = TRUE)))
+        out <- sweep(out, MARGIN = 2, FUN = "*", STATS = sqrt(diag(x.vcov))/sqrt(colSums(out^2, na.rm = TRUE)))
     }
 
     ## ** export

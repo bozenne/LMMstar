@@ -5,7 +5,7 @@
 \title{Extract the Influence Function From a Linear Mixed Model}
 \usage{
 \method{iid}{lmm}(
-  object,
+  x,
   effects = "mean",
   robust = TRUE,
   type.information = NULL,
@@ -17,7 +17,7 @@
 )
 }
 \arguments{
-\item{object}{a \code{lmm} object.}
+\item{x}{a \code{lmm} object.}
 
 \item{effects}{[character] Should the variance-covariance matrix for all coefficients be output (\code{"all"}),
 or only for coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
