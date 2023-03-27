@@ -42,7 +42,7 @@
 ##' @importFrom rlang .data
 ##' @importFrom nlme getData getVarCov intervals
 ##' @importFrom stats anova coef confint df dummy.coef fitted logLik model.matrix model.tables nobs profile residuals sigma vcov weights
-##' @importFrom lava estimate iid information manifest score
+##' @importFrom lava bootstrap estimate iid information manifest score
 ##' @importFrom sandwich estfun
 ##' @importFrom emmeans emm_basis recover_data 
 NULL
