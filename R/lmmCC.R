@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 27 2023 (17:33) 
 ## Version: 
-## Last-Updated: mar 27 2023 (18:39) 
+## Last-Updated: mar 28 2023 (20:24) 
 ##           By: Brice Ozenne
-##     Update #: 47
+##     Update #: 152
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,13 +20,14 @@
 ##' @description Fit a linear mixed model on the complete case data.
 ##' Mostly useful as a sanity check, to match the results of a univariate analysis on the change.
 ##' 
-##' @param formula [formula] Specify the model for the mean.
+##' @param object [formula] Specify the model for the mean.
 ##' On the left hand side the outcome and on the right hand side the covariates affecting the mean value.
 ##' E.g. Y ~ Gender + Gene.
 ##' @param repetition [formula] Specify the structure of the data: the time/repetition variable and the grouping variable, e.g. ~ time|id.
 ##' @param data [data.frame] dataset (in the long format) containing the observations.
 ##' @param lm.change [logical] Should a linear model on the change in outcome be estimated. Only possible with two repetitions.
 ##' Will match the mixed model if the later includes repetition-dependent effects for all covariates. 
+##' @param name.time [character] name of the time variable.
 ##' @param df [logical] Should the degree of freedom be computed using a Satterthwaite approximation?
 ##' @param trace [interger, >0] Show the progress of the execution of the function.
 ##' @param control [list] Control values for the optimization method.
@@ -44,9 +45,17 @@
 ##' dW$change3 <- dW$Y3 - dW$Y1
 ##' 
 ##' e.lm2 <- lm(change2 ~ X1 + X2, data = dW)
+##' summary(e.lm2)$coef
 ##' e.lm3 <- lm(change3 ~ X1 + X2, data = dW)
+##' summary(e.lm3)$coef
 ##' 
-##' #### 2- fit Linear Mixed Model ####
+##' #### 2- complete case LMM from LM ####
+##' e.lmmCC2 <- lmmCC(e.lm2, repetition = change2~Y2-Y1)
+##' model.tables(e.lmmCC2)
+##' e.lmmCC3 <- lmmCC(e.lm3, repetition = change3~Y3-Y1)
+##' model.tables(e.lmmCC3)
+##' 
+##' #### 3- complete case LMM ####
 ##' dL <- reshape(dW[,c("id","X1","X2","Y1","Y2","Y3")],
 ##'               direction = "long", 
 ##'               varying = c("Y1","Y2","Y3"), sep = "", idvar = "id")
@@ -54,33 +63,27 @@
 ##' 
 ##' e.lmm2 <- lmmCC(Y ~ time + time*X1 + time*X2, repetition = ~time|id,
 ##'                 data = dL[dL$time %in% 1:2,])
+##' model.tables(e.lmm2)
 ##' e.lmm3 <- lmmCC(Y ~ time + time*X1 + time*X2, repetition = ~time|id,
 ##'                 data = dL[dL$time %in% c(1,3),])
 ##' e.lmm3.bis <- lmmCC(Y ~ time + time*X1 + time*X2, repetition = ~time|id,
 ##'                 data = dL[dL$time %in% c(1,3),], lm.change = TRUE)
 ##'
-##' #### 3- compare ####
-##' model.tables(e.lmm2)
-##' summary(e.lm2)$coef
-##' 
-##' model.tables(e.lmm3)
-##' summary(e.lm3)$coef
-##' summary(e.lmm3.bis$lm.change)
-##' head(e.lmm3.bis$lm.change$data)
-##' head(e.lmm3.bis$data[order(e.lmm3.bis$data$id,e.lmm3.bis$data$time),])
-
-## * lmmCC (code)
 ##' @export
-lmmCC <- function(formula, repetition, data,
-                  lm.change = FALSE,
-                  df = NULL, trace = TRUE, control = NULL){
+`lmmCC` <-
+    function(object, ...) UseMethod("lmmCC")
+
+## * lmmCC.formula (code)
+##' @export
+lmmCC.formula <- function(object, repetition, data,
+                          lm.change = FALSE,
+                          df = NULL, trace = TRUE, control = NULL){
 
     ## ** normalize arguments
-    ## formula
+    ## repetition
     if(!inherits(repetition,"formula")){
         stop("Argument \'repetition\' must be of class formula, something like: ~ time|cluster or strata ~ time|cluster. \n")
     }
-    ## repetition
     res.split <- strsplit(deparse(repetition),"|", fixed = TRUE)[[1]]
     if(length(res.split)!=2){
         stop("Incorrect specification of argument \'repetition\'. \n",
@@ -98,9 +101,15 @@ lmmCC <- function(formula, repetition, data,
     }
     ## data
     data <- as.data.frame(data)
+    if(is.factor(data[[var.time]])){
+        data[[var.time]] <- droplevels(data[[var.time]])
+    }
+    if(is.factor(data[[var.cluster]])){
+        data[[var.cluster]] <- droplevels(data[[var.cluster]])
+    }
     
     ## ** complete case dataset
-    Uvars <- unique(c(all.vars(formula),all.vars(repetition)))
+    Uvars <- unique(c(all.vars(object),all.vars(repetition)))
 
     ## identify clusters with missing values
     test.NA1 <- rowSums(is.na(data[,Uvars,drop=FALSE]))>0
@@ -130,7 +139,7 @@ lmmCC <- function(formula, repetition, data,
     }
         
     ## ** fit LMM
-    out <- lmm(formula = formula, repetition = repetition, data = data.NNA,
+    out <- lmm(formula = object, repetition = repetition, data = data.NNA,
                structure = "UN", method.fit = "REML", df = df, type.information = "observed",
                trace = trace-1, control = control)
 
@@ -147,7 +156,17 @@ lmmCC <- function(formula, repetition, data,
             stop("Can only fit a univariate linear model on the change with two timepoint. \n",
                  "Consider setting argument \'lm.change\' to FALSE. \n")
         }
-        Xvars <- all.vars(stats::delete.response(stats::terms(stats::as.formula(formula))))
+
+        var.X <- attr(out$design$mean,"variable")
+        n.level <- stats::setNames(rep(2, length(var.X)), var.X)
+        if(length(out$xfactor$mean)>0){
+            n.level[names(out$xfactor$mean)] <- (sapply(out$xfactor$mean,length)-1)*2
+        }        
+        if(NCOL(out$design$mean) != sum(n.level)){
+            warning("Number of coefficients in the mixed model is not twice the number of variables. \n",
+                    "Results will likely differ between lmmCC and lm due to missing interactions. \n")
+        }
+        Xvars <- all.vars(stats::delete.response(stats::terms(stats::as.formula(object))))
         Xvars0 <- setdiff(Xvars,var.time)
         if(length(Xvars0)>0){
             test.cstX <- by(data.NNA[Xvars0],data.NNA[[var.cluster]],function(iData){NROW(unique(iData))})
@@ -174,5 +193,160 @@ lmmCC <- function(formula, repetition, data,
     return(out)
 }
 
+## * lmmCC.lm (code)
+##' @export
+lmmCC.lm <- function(object, repetition, data,
+                     name.time = "time",
+                     df = NULL, trace = TRUE, control = NULL){
+
+    ## ** normalize arguments
+    ## data
+    if(missing(data)){
+        data <- try(eval(object$call$data), silent = TRUE)
+        if(inherits(data,"try-error")){
+            stop("Could not recover the original dataset. Consider specifying the argument \'data\'. \n")
+        }
+    }else{
+        test <- update(object, data = data)
+        if(abs(logLik(test)-logLik(object))>1e-12){
+            warning("Argument \'data\' does not match argument \'object\'. \n",
+                    "Difference in log-likelihood of the corresponding linear model of ",as.numeric(logLik(test)-logLik(object)),".\n")
+        }
+    }
+
+    ## repetition
+    if(!is.list(repetition)){
+        repetition <- list(repetition)
+    }
+    if(length(repetition)>2){
+        stop("Cannot handle more than 2 time-varying variables. \n")
+    }
+    if(any(sapply(repetition, inherits,"formula")==FALSE)){
+        stop("Argument \'repetition\' should be formula or list of formula, one for each time varying variable. \n",
+             "Typically Ychange ~ Yfollowup - Ybaseline. \n")
+    }
+    ls.XY <- lapply(repetition, all.vars)
+    if(any(sapply(ls.XY,length)!=3)){
+        stop("Argument \'repetition\' should be formula or list of formula, each containing three variables. \n",
+             "Typically Ychange ~ Yfollowup - Ybaseline. \n")
+    }
+    ls.X <- lapply(repetition, function(iFormula){all.vars(stats::delete.response(stats::terms(stats::as.formula(iFormula))))})
+    if(any(sapply(ls.X,length)!=2)){
+        stop("Argument \'repetition\' should be formula or list of formula, each containing three variables. \n",
+             "Typically Ychange ~ Yfollowup - Ybaseline. \n")
+    }
+    M.XY <- do.call(rbind,ls.XY)
+    if(any(as.character(M.XY) %in% names(data) == FALSE)){
+        stop.miss <- as.character(M.XY)[as.character(M.XY) %in% names(data) == FALSE]
+        stop("Inconsistency between argument \'repetition\' and argument \'data\'. \n",
+             "Could not find variable(s) \"",paste(stop.miss, collapse = "\", \""),"\" in \'data\'. \n")
+    }
+    object.vars <- all.vars(object$terms)
+    if(any(M.XY[,1] %in% object.vars == FALSE)){
+        stop.miss <- M.XY[,1][M.XY[,1] %in% object.vars == FALSE]
+        stop("Inconsistency between argument \'repetition\' and argument \'object\'. \n",
+             "Variable(s) \"",paste(stop.miss, collapse = "\", \""),"\" are not used in \'object\'. \n")
+
+    }
+    if("CCclusterCC" %in% names(data)){
+        stop("Argument \'data\' should not contain a column named \"CCclusterCC\" as this name is used internally by the lmm function. \n")
+    }
+    if(name.time %in% names(data)){
+        stop("Argument \'data\' should not contain a column named \"",name.time,"\" as this name is used internally by the lmm function. \n")
+    }
+    ## ** move from the wide to the long format
+    dataW <- data[,c(setdiff(object.vars,M.XY[,1]),M.XY[,2],M.XY[,3]),drop=FALSE]
+    dataW$CCclusterCC <- 1:NROW(dataW)
+    ## find unique names
+    vec.CS <- apply(M.XY,1,function(iVec){.commonString(iVec[2],iVec[3])})
+    if(any(is.na(vec.CS))){
+        stop.NA <- unlist(vec.CS)[unlist(vec.CS) %in% names(data)]
+        stop("Incorrect argument \'repetition\'. \n",
+             "Could not find a common name between the time varying variables. \n")
+    }
+    if(any(c(vec.CS,paste(vec.CS, collapse=".")) %in% names(data))){
+        stop.com <- c(vec.CS,paste(vec.CS, collapse="."))[c(vec.CS,paste(vec.CS, collapse=".")) %in% names(data)]
+        stop("Column name(s) \"",paste(stop.com, collapse ="\" \""),"\" already exist in argument \'data\'. \n",
+             "These name(s) will be used internally and may conflict with existing data.\n")
+    }
+    index.outcome <- which(M.XY[,1] %in% object.vars[1])
+    if(length(index.outcome)==0){
+        stop("Argument \'repetition\' should specify how the outcome (Ychange) can be split into time-specific variable (Ybaseline, Yfollowup) \n",
+             "Something like Ychange ~ Yfollowup - Ybaseline")
+    }
+    level.time <- rev(unlist(ls.X))
+    name.outcome <- paste(vec.CS,collapse="")
+    dataL <- stats::reshape(dataW, direction = "long",
+                            varying = level.time,
+                            v.names = name.outcome,
+                            timevar = name.time,
+                            idvar = "CCclusterCC")
+    index.X <- setdiff(object.vars[-1], M.XY[,1])
+    if(length(repetition)==2){
+        dataL[[name.time]] <- factor(dataL[[name.time]], labels = level.time)
+        ## dataL[[name.time3]] <- as.numeric(dataL[[name.time]]==level.time[3])
+        ## dataL[[name.time4]] <- as.numeric(dataL[[name.time]]==level.time[4])
+        
+    }
+    ## ** fit LMM
+    formula.txt <- paste0(name.outcome,"~",name.time)
+    if(length(index.X)>0){
+        formula.txt <- paste0(formula.txt,"+",name.time,"*(",paste(index.X, collapse = "+"),")")
+    }
+    repetition.txt <- paste0("~",name.time,"|CCclusterCC")
+    out <- lmmCC(object = stats::as.formula(formula.txt),
+                 repetition = stats::as.formula(repetition.txt),
+                 data = dataL,
+                 lm.change = FALSE,
+                 df = df, trace = trace, control = control)
+    out$lm.change <- object
+    
+    if(length(repetition)>1){
+        M.contrast <- cbind(c(1,-1,0,0),c(0,0,1,-1))
+        ## if(length(index.X)>0){ ## identify variance-covariance covariate on change in X
+        ##     out.X <- model.matrix(out)
+        ##     index.keep.X <- c(grep(paste0(name.time,level.time[1],":"),colnames(out.X)),
+        ##                       grep(paste0(name.time,level.time[2],":"),colnames(out.X)))
+        ##     M.XX <- out.X[dataL[[name.time]] %in% level.time[1:2],index.keep.X,drop=FALSE]
+        ##     Sigma.XX <- var(M.XX)
+        ## }else{
+        ##     index.keep.X <- NULL
+        ## }
+        out$lmm.change <- lava::estimate(out, function(p){ ## p <- coef(out, effects = "all")
+            Sigma.p <- sigma(out, p = p)
+            ## if(length(index.keep.X)>0){
+            ##     Sigma.p[1:2,1:2] <- Sigma.p[1:2,1:2] + tcrossprod(p[index.keep.X])*Sigma.XX
+            ## }
+            Sigma.contrast <- t(M.contrast) %*% sigma(out, p = p) %*% M.contrast
+            cov2cor(Sigma.contrast)[1,2] / Sigma.contrast[2,2]
+        })
+    }
+    
+    ## ** export
+    return(out)
+}
+
+## * .commonString
+## find the common consecutive part between two strings
+## copied from https://stackoverflow.com/questions/35381180/identify-a-common-pattern
+## .commonString("aaachang2","aaabbb")
+## .commonString("aaa235change2","aaachangebbb")
+## .commonString("abcdef","xyz")
+.commonString <- function(string1, string2){
+
+    A <- strsplit(string1, "")[[1]]
+    B <- strsplit(string2, "")[[1]]
+
+    L <- matrix(0, length(A), length(B))
+    ones <- which(outer(A, B, "=="), arr.ind = TRUE)
+    ones <- ones[order(ones[, 1]), ,drop=FALSE]
+    if(NROW(ones)==0){return(NA)}
+    for(i in 1:NROW(ones)) {
+        v <- ones[i, , drop = FALSE]
+        L[v] <- ifelse(any(v == 1), 1, L[v - 1] + 1)
+    }
+    out <- paste0(A[(-max(L) + 1):0 + which(L == max(L), arr.ind = TRUE)[1]], collapse = "")
+    return(out)
+}
 ##----------------------------------------------------------------------
 ### lmmCC.R ends here

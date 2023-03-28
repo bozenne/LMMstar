@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jan  3 2023 (18:41) 
+## Last-Updated: mar 28 2023 (19:43) 
 ##           By: Brice Ozenne
-##     Update #: 2078
+##     Update #: 2083
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -354,6 +354,9 @@ lmm <- function(formula, repetition, structure, data,
     }
     if(any(grepl(":",var.X,fixed=TRUE))){
         stop("Argument \'formula\' should not contain a variable whose name contain \":\". \n")
+    }
+    if(n.time>1 && all(tapply(data[[var.outcome]],data[[var.cluster]],function(iValue){abs(max(iValue)-min(iValue))<1e-12}))){
+        warning("Constant outcome value within cluster. \n")
     }
    
     ## *** optimizer
@@ -1051,8 +1054,8 @@ lmm <- function(formula, repetition, structure, data,
         stop("Argument \'",name.arg,"\' is inconsistent with argument \'data\'. \n",
              "When a variable is used to stratify the variance structure, all observations within a cluster must belong to same strata. \n")
         
-     }
-    
+    }
+
     ## ** export
     return(data)
 }
