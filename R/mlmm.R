@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: mar 29 2023 (14:45) 
+## Last-Updated: mar 29 2023 (14:56) 
 ##           By: Brice Ozenne
-##     Update #: 311
+##     Update #: 316
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -111,7 +111,7 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
         if(by %in% names(data)){
             stop("Argument \'data\' should not contain a column named \"",by,"\" as this name is used internally by the mlmm function. \n")
         }
-        data[[by]] <- interaction(data[by.keep], sep=",")
+        data[[by]] <- interaction(data[by.keep], sep=",", drop = TRUE)
     }else{
         by.keep <- by
         if(is.factor(data[[by]])){
@@ -145,13 +145,12 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
             }
         }
     }
-
     ls.data <- base::split(data, data[[by]])
 
     if(trace>0){
         cat("Fitting linear mixed models:\n")
     }
-    ls.lmm <- lapply(ls.data, function(iData){
+    ls.lmm <- lapply(ls.data, function(iData){ ## iData <- ls.data[[2]]
         if(trace>0.5){
             cat(" - ",by,"=",unique(iData[[by]]),"\n", sep = "")
         }
@@ -341,6 +340,7 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
     if(trace>0){
         cat("\n")
     }
+    out$object$by <- by.keep
     attr(out,"call") <- match.call()
     class(out) <- append("mlmm", class(out))
     return(out)

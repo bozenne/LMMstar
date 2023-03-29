@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: nov  3 2022 (16:09) 
+## Last-Updated: mar 29 2023 (17:22) 
 ##           By: Brice Ozenne
-##     Update #: 274
+##     Update #: 308
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -66,8 +66,10 @@
 ##' .initialize(Sun24, residuals = residuals(eGas.lm))
 `.initialize` <-
     function(object, residuals, Xmean, index.cluster) UseMethod(".initialize")
+`.initialize2` <-
+    function(object, Omega) UseMethod(".initialize2")
 
-## * initialization.ID
+## * initialize.ID
 .initialize.ID <- function(object, residuals, Xmean, index.cluster){
 
     param.type <- stats::setNames(object$param$type,object$param$name)
@@ -178,8 +180,56 @@
     return(out)
 }
 
-## * initialization.IND
+## * initialize2.ID
+.initialize2.ID <- function(object, Omega){
+
+    param.type <- stats::setNames(object$param$type,object$param$name)
+    param.strata <- stats::setNames(object$param$strata,object$param$name)
+    Upattern <- object$X$Upattern
+    Upattern.name <- Upattern$name
+    Omega.diag <- diag(Omega)
+
+    ## ** combine all design matrices
+    ls.XY <- stats::setNames(lapply(Upattern.name, function(iPattern){ ## iPattern <- Upattern.name[1]
+        iX <- object$X$Xpattern.var[[Upattern[Upattern$name==iPattern,"var"]]]
+        attr(iX,c("index.cluster")) <- NULL
+        attr(iX,c("index.strata")) <- NULL
+        attr(iX,c("param")) <- NULL
+        attr(iX,c("indicator.param")) <- NULL
+        attr(iX,c("Mindicator.param")) <- NULL
+        iOut <- list(X = iX,
+                     Y = Omega.diag[object$X$Upattern$time[[iPattern]]],
+                     n = rep(Upattern[Upattern$name==iPattern,"n.cluster"], Upattern[Upattern$name==iPattern,"n.time"])
+                     )
+    }), Upattern.name)
+    
+    X.Omega <- do.call(rbind,lapply(ls.XY,"[[","X"))
+    logY.Omega <- log(do.call(c,lapply(ls.XY,"[[","Y")))
+    n.Omega <- do.call(c,lapply(ls.XY,"[[","n"))
+
+    ## ** log linear regression
+    df.data <- data.frame(Y = logY.Omega, X.Omega)
+    form.txt <- paste0("Y~0+",paste(names(df.data)[-1], collapse = "+")) ## NOTE: normalize name in presence of interactions (sigma:1 -> sigma.1)
+    e.lm <- lm(stats::as.formula(form.txt),
+               data = data.frame(Y = logY.Omega, X.Omega),
+               weights = n.Omega)
+    out <- stats::setNames(sqrt(exp(coef(e.lm))), colnames(X.Omega))
+    
+    ## ** check values
+    param.sigma <- names(param.type)[param.type=="sigma"]
+    if(any(abs(out[param.sigma])<1e-10)){
+        warning("Some of the variance parameter are initialized to a nearly null value. \n",
+                "Parameters: \"",paste(param.sigma[which(abs(out[param.sigma])<1e-10)], collapse = "\", \""),"\". \n")
+    }
+
+    ## ** export
+    return(out)
+}
+
+
+## * initialize.IND, initialize2.IND
 .initialize.IND <- .initialize.ID
+.initialize2.IND <- .initialize2.ID
 
 ## * initialize.CS
 .initialize.CS <- function(object, residuals, Xmean, index.cluster){
@@ -270,11 +320,62 @@
     return(out)
 }
 
-## * initialize.TOEPLITZ
-.initialize.TOEPLITZ <- .initialize.CS
+## * initialize2.CS
+.initialize2.CS <- function(object, Omega){
+    out <- stats::setNames(rep(NA, NROW(object$param)), object$param$name)
 
-## * initialize.UN
+    ## ** extract information
+    param.type <- stats::setNames(object$param$type,object$param$name)
+    param.strata <- stats::setNames(object$param$strata,object$param$name)
+    Upattern <- object$X$Upattern
+    Upattern.name <- Upattern$name
+
+    ## ** variance
+    sigma <- .initialize2.IND(object = object, Omega = Omega)
+    out[names(sigma)] <- sigma
+
+    ## ** correlation
+    Rho <- cov2cor(Omega)
+
+    ls.XY <- stats::setNames(lapply(Upattern.name, function(iPattern){ ## iPattern <- Upattern.name[1]
+        iX <- object$X$Xpattern.cor[[Upattern[Upattern$name==iPattern,"cor"]]]
+        if(NROW(iX)==0){next}
+        index.vec2matrix <- attr(iX, "index.vec2matrix")
+        index.time <- Upattern$time[[iPattern]] ## NOTE: use Upattern instead of attr(iX, "index.time") as the later is not define when there is ambiguity
+                                                ##       e.g. CS with one missing data where the same pattern holds for time 1,2,4 and 1,3,4
+        index.pair <- attr(iX, "index.pair")
+        iOut <- list(X = cbind(param=index.pair$param),
+                     Y = Rho[index.time,index.time][index.vec2matrix],
+                     n = rep(Upattern[Upattern$name==iPattern,"n.cluster"], length(index.vec2matrix))
+                     )
+    }), Upattern.name)
+    X.Omega <- do.call(rbind,lapply(ls.XY,"[[","X"))
+    atanhY.Omega <- atanh(do.call(c,lapply(ls.XY,"[[","Y")))
+    n.Omega <- do.call(c,lapply(ls.XY,"[[","n"))
+
+    ## ** log linear regression
+    df.data <- data.frame(Y = atanhY.Omega, X.Omega)
+    df.data$param <- factor(df.data$param)
+    if(length(levels(df.data$param))==1){
+        out[levels(df.data$param)] <- weighted.mean(tanh(df.data$Y), w = n.Omega)
+    }else{
+        e.lm <- lm(Y~0+param,
+                   data = df.data,
+                   weights = n.Omega)
+        out[levels(df.data$param)] <- as.numeric(tanh(coef(e.lm)))
+    }
+    
+    ## ** export    
+    return(out)
+}
+
+## * initialize.TOEPLITZ, initialize2.TOEPLITZ
+.initialize.TOEPLITZ <- .initialize.CS
+.initialize2.TOEPLITZ <- .initialize2.CS
+
+## * initialize.UN, initialize2.UN
 .initialize.UN <- .initialize.CS
+.initialize2.UN <- .initialize2.CS
 
 ## * initialize.EXP
 .initialize.EXP <- function(object, residuals, Xmean, index.cluster){

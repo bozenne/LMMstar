@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: mar 28 2023 (19:43) 
+## Last-Updated: mar 29 2023 (17:02) 
 ##           By: Brice Ozenne
-##     Update #: 2083
+##     Update #: 2091
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -849,13 +849,19 @@ lmm <- function(formula, repetition, structure, data,
             
             control$init <- c(lmer.beta,init.sigma,init.tau)[out$design$param$name]
         }
+        if(trace>0){
+            if(trace.control>0){cat("\n")}
+            if(trace.control>1){cat("\n")}
+        }
         outEstimate <- .estimate(design = out$design, time = out$time, method.fit = method.fit, type.information = type.information,
                                  transform.sigma = options$transform.sigma, transform.k = options$transform.k, transform.rho = options$transform.rho,
                                  precompute.moments = precompute.moments, 
                                  optimizer = optimizer, init = control$init, n.iter = control$n.iter, tol.score = control$tol.score, tol.param = control$tol.param, trace = trace.control)
         param.value <- outEstimate$estimate
         out$opt <- c(name = optimizer, outEstimate[c("cv","n.iter","score","previous.estimate","previous.logLik","control")])
-        
+        if((trace==0 && trace.control>0)){
+            cat("\n")
+        }
         if(out$opt$cv<=0){
             warning("Convergence issue: no stable solution has been found. \n")
         }

@@ -10,7 +10,7 @@ mlmm(
   by,
   contrast.rbind = NULL,
   effects = NULL,
-  robust = NULL,
+  robust = FALSE,
   df = TRUE,
   ci = TRUE,
   name.short = c(TRUE, TRUE),

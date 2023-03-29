@@ -4,18 +4,10 @@
 \alias{lmmCC}
 \title{Fit Linear Mixed Model on Complete Case data}
 \usage{
-lmmCC(
-  formula,
-  repetition,
-  data,
-  lm.change = FALSE,
-  df = NULL,
-  trace = TRUE,
-  control = NULL
-)
+lmmCC(object, ...)
 }
 \arguments{
-\item{formula}{[formula] Specify the model for the mean.
+\item{object}{[formula] Specify the model for the mean.
 On the left hand side the outcome and on the right hand side the covariates affecting the mean value.
 E.g. Y ~ Gender + Gene.}
 
@@ -25,6 +17,8 @@ E.g. Y ~ Gender + Gene.}
 
 \item{lm.change}{[logical] Should a linear model on the change in outcome be estimated. Only possible with two repetitions.
 Will match the mixed model if the later includes repetition-dependent effects for all covariates.}
+
+\item{name.time}{[character] name of the time variable.}
 
 \item{df}{[logical] Should the degree of freedom be computed using a Satterthwaite approximation?}
 
@@ -49,9 +43,17 @@ dW$change2 <- dW$Y2 - dW$Y1
 dW$change3 <- dW$Y3 - dW$Y1
 
 e.lm2 <- lm(change2 ~ X1 + X2, data = dW)
+summary(e.lm2)$coef
 e.lm3 <- lm(change3 ~ X1 + X2, data = dW)
+summary(e.lm3)$coef
 
-#### 2- fit Linear Mixed Model ####
+#### 2- complete case LMM from LM ####
+e.lmmCC2 <- lmmCC(e.lm2, repetition = change2~Y2-Y1)
+model.tables(e.lmmCC2)
+e.lmmCC3 <- lmmCC(e.lm3, repetition = change3~Y3-Y1)
+model.tables(e.lmmCC3)
+
+#### 3- complete case LMM ####
 dL <- reshape(dW[,c("id","X1","X2","Y1","Y2","Y3")],
               direction = "long", 
               varying = c("Y1","Y2","Y3"), sep = "", idvar = "id")
@@ -59,18 +61,10 @@ dL$time <- as.character(dL$time)
 
 e.lmm2 <- lmmCC(Y ~ time + time*X1 + time*X2, repetition = ~time|id,
                 data = dL[dL$time \%in\% 1:2,])
+model.tables(e.lmm2)
 e.lmm3 <- lmmCC(Y ~ time + time*X1 + time*X2, repetition = ~time|id,
                 data = dL[dL$time \%in\% c(1,3),])
 e.lmm3.bis <- lmmCC(Y ~ time + time*X1 + time*X2, repetition = ~time|id,
                 data = dL[dL$time \%in\% c(1,3),], lm.change = TRUE)
 
-#### 3- compare ####
-model.tables(e.lmm2)
-summary(e.lm2)$coef
-
-model.tables(e.lmm3)
-summary(e.lm3)$coef
-summary(e.lmm3.bis$lm.change)
-head(e.lmm3.bis$lm.change$data)
-head(e.lmm3.bis$data[order(e.lmm3.bis$data$id,e.lmm3.bis$data$time),])
 }

@@ -31,6 +31,9 @@
 \item{keep.data}{[logical] Should the argument \code{data} be output along side the residuals? Only possible in the long format.}
 
 \item{...}{Not used. For compatibility with the generic method.}
+
+\item{keep.by}{[logical or "only"] How should the variable used to index the split of the dataset/LMM be output:
+only the original variable(s) (FALSE), only the by variable (\code{"only"}), or both (TRUE) .}
 }
 \value{
 When argument format is \code{"long"} and type.oobject is \code{"lmm"}, a vector containing the value of the residual realtive to each observation.

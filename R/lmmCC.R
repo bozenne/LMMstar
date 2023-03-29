@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 27 2023 (17:33) 
 ## Version: 
-## Last-Updated: mar 28 2023 (20:24) 
+## Last-Updated: mar 29 2023 (19:10) 
 ##           By: Brice Ozenne
-##     Update #: 152
+##     Update #: 153
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -318,7 +318,7 @@ lmmCC.lm <- function(object, repetition, data,
             ##     Sigma.p[1:2,1:2] <- Sigma.p[1:2,1:2] + tcrossprod(p[index.keep.X])*Sigma.XX
             ## }
             Sigma.contrast <- t(M.contrast) %*% sigma(out, p = p) %*% M.contrast
-            cov2cor(Sigma.contrast)[1,2] / Sigma.contrast[2,2]
+            cov2cor(Sigma.contrast)[1,2] * sqrt(Sigma.contrast[2,2]/Sigma.contrast[1,1])
         })
     }
     

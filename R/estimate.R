@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: jan  3 2023 (17:10) 
+## Last-Updated: mar 29 2023 (17:07) 
 ##           By: Brice Ozenne
-##     Update #: 932
+##     Update #: 960
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -305,25 +305,66 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
     effects <- c("variance","correlation")
 
     ## ** intialization
+    if(!is.null(init)){
+
+        if(is.matrix(init)){
+            if(NROW(init)!=time$n || NCOL(init)!=time$n){
+                stop("When a matrix, initialization should be a square matrix with dimensions compatible with time (",time$n,"x",time$n,"). \n")
+            }
+            init.mu <- NULL
+            init.Omega <- init
+            init <- NULL
+        }else if(!is.vector(init)){
+            stop("Initialization should either be a vector containing value for all, or only mean parameters, \n",
+                 "or be a full data variance-covariance matrix. \n")
+        }else if(any(param.mu2 %in% names(init) == FALSE)){
+            stop("Initialization does not contain value for all mean parameters. \n",
+                 "Missing parameters: \"",paste(param.mu[param.mu %in% names(init) == FALSE], collapse = "\" \""),"\". \n")
+        }else if(all(names(init) %in% param.mu)){
+            init.mu <- init
+            init.Omega <- NULL
+            init <- NULL
+        }else if(any(param.Omega %in% names(init) == FALSE)){
+            stop("Initialization does not contain value for all variance-covariance parameters. \n",
+                 "Missing parameters: \"",paste(param.Omega[param.Omega %in% names(init) == FALSE], collapse = "\" \""),"\". \n")
+        }
+
+    }else{
+        init.mu <- NULL
+        init.Omega <- NULL
+    }
+
     if(is.null(init)){
 
         param.value <- stats::setNames(rep(NA, n.param),param.name)
-        if(trace>1){
-            cat("\n\nInitialization:\n")
-        }
 
         ## mean value
-        start.OmegaM1 <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
-            diag(1, nrow = Upattern[iPattern,"n.time"], ncol = Upattern[iPattern,"n.time"])
-        }), Upattern$name)
-        if(length(param.mu2)>0){
+        if(!is.null(init.mu)){
+            param.value[param.mu2] <- init.mu[param.mu2]
+        }else if(length(param.mu2)>0){
+
+            if(!is.null(init.Omega)){
+                start.OmegaM1 <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
+                    iTime <- Upattern$time[[iPattern]]
+                    return(solve(init.Omega[iTime,iTime,drop=FALSE]))
+                }), Upattern$name)
+            }else{
+                start.OmegaM1 <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
+                    diag(1, nrow = Upattern[iPattern,"n.time"], ncol = Upattern[iPattern,"n.time"])
+                }), Upattern$name)
+            }
             param.value[param.mu2] <- .estimateGLS(OmegaM1 = start.OmegaM1, pattern = Upattern$name, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX,
                                                    Y = partialY, design = design, param.mu = param.mu2)
         }
+
         ## vcov values
         iResiduals.long <- partialY - design$mean[,param.mu2,drop=FALSE] %*% param.value[param.mu2]
         if(length(param.Omega2)>0){
-            outInit <- .initialize(design$vcov, residuals = iResiduals.long, Xmean = design$mean, index.cluster = index.cluster)
+            if(is.null(init.Omega)){
+                outInit <- .initialize(design$vcov, residuals = iResiduals.long, Xmean = design$mean, index.cluster = index.cluster)
+            }else{
+                outInit <- .initialize2(design$vcov, Omega = init.Omega)
+            }
         }else{
             outInit <- NULL
         }
@@ -338,24 +379,12 @@ test.npd <- sapply(initOmega,function(iOmega){any(eigen(iOmega)$values<0)})
         }else{        
             param.value[names(outInit)] <- outInit
         }
-
-        if(trace>1){
-            print(param.value)
-        }
     }else{
-        ## if(length(param.Omega2)==0){
-        ##     stop("No initialization is needed when there are only mean parameters. \n")
-        ## }
-        if(any(param.name %in% names(init) == FALSE)){
-            stop("Initialization does not contain value for all parameters. \n",
-                 "Missing parameters: \"",paste(param.name[param.name %in% names(init) == FALSE], collapse = "\" \""),"\". \n")
-        }
         param.value <- init[param.name]     
-     
-        if(trace>1){
-            cat("\n\nInitialization:\n")
-            print(param.value)
-        }
+    }
+    if(trace>1){
+        cat("Initialization:\n")
+        print(param.value)
     }
 
     ## ** loop
@@ -503,9 +532,7 @@ test.npd <- sapply(initOmega,function(iOmega){any(eigen(iOmega)$values<0)})
         }else if(cv==-2){
             attr(cv,"message") <- "Stop optimization before convergence (log-likelihood=NA based on the initial values)"
         }
-        if(trace==1){
-            cat("\n")
-        }else if(trace>1){
+        if(trace>1){
             if(trace %in% 2:3){
                 cat("\n")
                 print(param.value)

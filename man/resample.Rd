@@ -4,17 +4,7 @@
 \alias{resample}
 \title{Inference via Resampling for Linear Mixed Model}
 \usage{
-resample(
-  object,
-  type,
-  effects,
-  n.sample = 1000,
-  studentized = TRUE,
-  level = 0.95,
-  trace = TRUE,
-  seed = NULL,
-  cpus = 1
-)
+resample(object, type, ...)
 }
 \arguments{
 \item{object}{a \code{lmm} object.}

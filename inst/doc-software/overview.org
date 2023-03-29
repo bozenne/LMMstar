@@ -52,8 +52,8 @@ The user interface of the *LMMstar* package is made of the following functions:
 - the =mlmm= function to fit (distinct) linear mixed models on
   different outcome, and gather the estimated coefficients.
 - the =summarize= function to compute summary statistics, possibly
-  stratified on a categorical variable, and the =summarizeNA= function
-  to identify missing data patterns.
+  stratified on a categorical variable
+- the =summarizeNA= function to identify missing data patterns.
 - the =partialCor= function to compute partial correlation between two variables.
 - the =sampleRem= function to simulate longitudinal data.
 - the =LMMstar.options= function enables the user to display the
@@ -723,6 +723,109 @@ logLik(lmm(value~time,
 : [1] -8186.859
 
 \clearpage
+
+** Estimation procedure
+
+*Initialiation*: by default the mean parameters are initialized using
+ Ordinary Least Squares (OLS) and the variance and correlation
+ parameters are initialized by minimizing the difference between the
+ observed and residuals variance-covariance matrix. These values can
+ be visualized by specifying the argument =control=:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eCS.lmm.bis <- update(eCS.lmm, control = list(trace = 2))
+#+END_SRC
+
+#+RESULTS:
+: Initialization:
+: (Intercept)     timeB1w     timeA1w     timeA3m    glucagon       sigma         rho 
+: 159.1349871  -7.7137607  -2.3202963 -22.9747234  -6.6820191  18.1670760   0.8960476 
+: 
+: Loop:
+: *********
+: (Intercept)     timeB1w     timeA1w     timeA3m    glucagon       sigma         rho 
+: 125.2601602  -7.6194918 -14.4951323 -27.0514694   0.8217879  18.8495686   0.9699341 
+: Convergence after 9 iterations: max score=3.680809e-06 | max change in coefficient=1.877273e-06
+
+It is possible to input user-defined value:
+- for all parameters (vector)
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+init.all <- coef(eCS.lmm, effects = "all")
+eCS.lmm.bis <- update(eCS.lmm, control = list(init = init.all, trace = 2))
+#+END_SRC
+
+#+RESULTS:
+: Initialization:
+: (Intercept)     timeB1w     timeA1w     timeA3m    glucagon       sigma         rho 
+: 125.2601602  -7.6194918 -14.4951323 -27.0514694   0.8217879  18.8495686   0.9699341 
+: 
+: Loop:
+: 
+: (Intercept)     timeB1w     timeA1w     timeA3m    glucagon       sigma         rho 
+: 125.2601602  -7.6194918 -14.4951323 -27.0514694   0.8217879  18.8495686   0.9699341 
+: Convergence after 0 iteration: max score=3.680809e-06
+
+- the mean parameters only (vector)
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+init.mean <- coef(eCS.lmm, effects = "mean")
+eCS.lmm.bis <- update(eCS.lmm, control = list(init = init.mean, trace = 2))
+#+END_SRC
+
+#+RESULTS:
+: Initialization:
+: (Intercept)     timeB1w     timeA1w     timeA3m    glucagon       sigma         rho 
+: 125.2601602  -7.6194918 -14.4951323 -27.0514694   0.8217879  19.0853249   0.9737808 
+: 
+: Loop:
+: *****
+: (Intercept)     timeB1w     timeA1w     timeA3m    glucagon       sigma         rho 
+: 125.2601601  -7.6194918 -14.4951323 -27.0514694   0.8217879  18.8495690   0.9699341 
+: Convergence after 5 iterations: max score=2.820304e-06 | max change in coefficient=4.171839e-06
+
+- a full data variance-covariance matrix (matrix). 
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+init.vcov <- sigma(eCS.lmm)
+eCS.lmm.bis <- update(eSCS.lmm, control = list(init = init.vcov, trace = 2))
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+Initialization:
+  (Intercept)       timeB1w       timeA1w       timeA3m         group timeB1w:group 
+  134.2700000    -8.2800000   -14.1100000   -29.6100000   -10.6000000     1.0505605 
+timeA1w:group timeA3m:group       sigma:0       sigma:1         rho:0         rho:1 
+    1.7562258     6.0100000    18.8495686    18.8495686     0.9699341     0.9699341 
+
+Loop:
+,*******
+  (Intercept)       timeB1w       timeA1w       timeA3m         group timeB1w:group 
+  134.2700000    -8.2800000   -14.1100000   -29.6100000   -10.6000000     1.0444208 
+timeA1w:group timeA3m:group       sigma:0       sigma:1         rho:0         rho:1 
+    1.7525468     6.0100000    18.6568561    18.5899521     0.9616812     0.9842804 
+Convergence after 7 iterations: max score=2.208526e-05 | max change in coefficient=6.343994e-06
+#+end_example
+
+*Optimizer*: by default the optimizer is a Newton Raphson algorithm
+with backtracking. At each iteration:
+- it computes the first two moments (score, information) according to
+  the current parameters values.
+- it updates the variance-covariance parameters according to the
+  gradient multiplied by the inverse of the information.
+- it updates the mean parameters by generalized least squares (using
+  the updated variance-covariance parameters).
+- it checks whether the log-likelihoood at the u.pdated estimates is
+  well defined and higher than at the previous estimates. If this is
+  not the case, the step is re-run with half the update of the
+  variance-covariance parameters (backtracking).
+
+One can modify the maximum number of iterations (=n.iter=), maximum
+number of backtracking steps (=n.backtracking=), the maximum score
+(absolute) value over all parameters (=tol.score=) and (absolute)
+maximum difference in parameter value between to iterations
+(=tol.param=) used to declare convergence. It is also possible to use
+another optimizer (=optimizer=). All these elements should be passed
+to the argument =control= of =lmm= using a list.
+
+ \clearpage
 
 ** Model output
 
@@ -1701,28 +1804,25 @@ analysis:
 #+END_EXPORT
 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-gastricbypassW <- reshape(dfL[,c("id","time","weight","group")],
-                          direction = "wide",
-                          timevar = "time", idvar = c("id","group"))
-e.ANCOVA <- lm(weight.A1w ~ weight.B1w + group, data = gastricbypassW)
+e.ANCOVA <- lm(weight4 ~ weight1 + group, data = gastricbypassW)
 summary(e.ANCOVA)$coef
 #+END_SRC
 
 #+RESULTS:
 :               Estimate Std. Error    t value     Pr(>|t|)
-: (Intercept) -1.0415588 2.40951951 -0.4322682 6.716963e-01
-: weight.B1w   0.9619935 0.01876525 51.2646371 2.901548e-18
-: group        0.4779325 0.71072586  0.6724569 5.115194e-01
+: (Intercept) -5.9285136 8.78006389 -0.6752244 5.086140e-01
+: weight1      0.8236279 0.06411563 12.8459772 3.524665e-10
+: group        4.1404554 2.53335466  1.6343765 1.205604e-01
 
 We can replicate this analysis by first fitting a mixed model:
 #+BEGIN_EXPORT latex
 \[ Y_{ij} = \alpha_j + \gamma_j X_{i} + \varepsilon_{i,j} \text{ where } \varepsilon_i \sim \Gaus \left( \begin{bmatrix} 0 \\ 0 \end{bmatrix}, \begin{bmatrix} \sigma^2_1 & \rho \sigma_1 \sigma_2 \\ \rho \sigma_1 \sigma_2 & \sigma^2_2 \end{bmatrix} \right) \]
 #+END_EXPORT
 #+BEGIN_SRC R :exports code :results output :session *R* :cache no
-dfL23 <- dfL[dfL$visit %in% 2:3,]
-dfL23$time <- droplevels(dfL23$time)
+dfL14 <- dfL[dfL$visit %in% c(1,4),]
+dfL14$time <- droplevels(dfL14$time)
 e.lmmANCOVA <- lmm(weight ~ time+time:group, repetition = ~time|id,
-                   data = dfL23)
+                   data = dfL14)
 #+END_SRC
 
 #+RESULTS:
@@ -1730,15 +1830,15 @@ e.lmmANCOVA <- lmm(weight ~ time+time:group, repetition = ~time|id,
 and then perform a first order delta-method:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 lava::estimate(e.lmmANCOVA, f = function(p){
-  c(Y1 = as.double(p["rho(B1w,A1w)"]*p["k.A1w"]),
-    X1 = as.double(p["timeA1w:group"]-p["rho(B1w,A1w)"]*p["k.A1w"]*p["timeB1w:group"]))
+  c(Y1 = as.double(p["rho(B3m,A3m)"]*p["k.A3m"]),
+    X1 = as.double(p["timeA3m:group"]-p["rho(B3m,A3m)"]*p["k.A3m"]*p["timeB3m:group"]))
 })
 #+END_SRC
 
 #+RESULTS:
-:     estimate         se       df      lower    upper   p.value
-: Y1 0.9618157 0.01816615 14.25606  0.9229188 1.000713 0.0000000
-: X1 0.4678048 0.68803641 14.15158 -1.0064050 1.942015 0.5075303
+:     estimate         se        df      lower     upper      p.value
+: Y1 0.8236279 0.06230919  9.874633  0.6845551 0.9627007 1.332743e-07
+: X1 4.1404554 2.46197819 15.161269 -1.1022695 9.3831803 1.130927e-01
 
 Indeed:
 #+BEGIN_EXPORT latex
@@ -2185,7 +2285,328 @@ as.double(mu2 + Omega_21 * (100 - mu1) / Omega_11)
 
 \clearpage
 
+* Equivalence between LMM and LM
+
+** Regressing the change 
+
+A widely spread approach to analyze longitudinal data is to reduce the
+number of repetitions to 1 by working on the change and then apply
+'usual' statistical methods. For instance one could compare the pre-
+and post- operation values using:
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+gastricbypassW$changeG41 <- gastricbypassW$glucagonAUC4-gastricbypassW$glucagonAUC1
+e.change41 <- lm(changeG41 ~ weight1, data = gastricbypassW)
+summary(e.change41)$coef
+#+END_SRC
+
+#+RESULTS:
+:              Estimate Std. Error   t value   Pr(>|t|)
+: (Intercept) 17865.953 9292.61106  1.922598 0.07050076
+: weight1      -113.696   71.22173 -1.596367 0.12781371
+
+This turns out to be equivalent to the following mixed model:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+gastricbypassL41 <- gastricbypassL[gastricbypassL$visit %in% c(1,4),]
+gastricbypassL41$time <- droplevels(gastricbypassL41$time)
+gastricbypassL41$weight1 <- gastricbypassW$weight1[gastricbypassL41$id]
+
+e.lmm41 <- lmm(glucagonAUC ~ time + time*weight1,
+               repetition =~ time|id, structure = "UN",
+               data = gastricbypassL41)
+model.tables(e.lmm41)
+#+END_SRC
+
+#+RESULTS:
+:                     estimate         se       df       lower       upper    p.value
+: (Intercept)      7730.051990 5737.22268 18.00298 -4323.26268 19783.36666 0.19458155
+: timeA3m         17865.953183 9292.61106 18.00104 -1657.01749 37388.92385 0.07049983
+: weight1             1.011014   43.97202 18.00298   -91.36968    93.39171 0.98190941
+: timeA3m:weight1  -113.695981   71.22173 18.00104  -263.32666    35.93469 0.12781271
+
+This equivalence only holds as there is no missing data.
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+index.missing41 <- which(is.na(gastricbypassW$changeG41))
+index.missing41
+#+END_SRC
+
+#+RESULTS:
+: integer(0)
+
+\clearpage
+
+In the case of missing data:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+index.missing32 <- which(is.na(gastricbypassW$changeG32))
+index.missing32
+#+END_SRC
+
+#+RESULTS:
+: [1]  5 15
+
+LMM uses a full information approach while a linear model perform a
+complete case approach [fn::in the former the likelihood is evaluated
+using all observations, even those from individuals with some (but not
+all) missing outcome values: baseline is used even if follow-up is
+missing. In the later the likelihood is only evaluated on individuals
+with no missing outcome values: if follow-up is missing then baseline
+is not used]:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+gastricbypassW$changeG32 <- gastricbypassW$glucagonAUC3-gastricbypassW$glucagonAUC2
+e.change32 <- lm(changeG32 ~ weight1, data = gastricbypassW)
+summary(e.change32)$coef
+#+END_SRC
+
+#+RESULTS:
+:               Estimate Std. Error   t value     Pr(>|t|)
+: (Intercept) 38101.9400 9417.61506  4.045816 0.0009373023
+: weight1      -217.2672   71.25218 -3.049271 0.0076504030
+
+which is the same as removing the two individuals with missing data:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+coef(lm(changeG32 ~ weight1, data = gastricbypassW[-index.missing32,]))
+#+END_SRC
+
+#+RESULTS:
+: (Intercept)     weight1 
+:  38101.9400   -217.2672
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+yyy <- lmmCC(e.change32, repetition = changeG32 ~ glucagonAUC3-glucagonAUC2)
+model.tables(yyy)
+#+END_SRC
+
+#+RESULTS:
+: Remove 2 clusters (4 observations) 
+:  - 2 observations with missing data (2 clusters) 
+:  - 0 missing repetitions (0 clusters)
+:                 estimate          se       df        lower       upper      p.value
+: (Intercept)  -36283.0356 12841.66795 15.99997 -63506.15929 -9059.91191 0.0121849728
+: time          38101.9400  9417.61506 16.00030  18137.51789 58066.36212 0.0009372705
+: weight1         257.7767    97.15802 15.99997     51.81085   463.74249 0.0173566171
+: time:weight1   -217.2672    71.25218 16.00030   -368.31484   -66.21956 0.0076502759
+
+The LMM would give (here slightly) different estimates:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+gastricbypassL32 <- gastricbypassL[gastricbypassL$visit %in% c(3,2),]
+gastricbypassL32$time <- droplevels(gastricbypassL32$time)
+gastricbypassL32$weight1 <- gastricbypassW$weight1[gastricbypassL32$id]
+
+e.lmm32 <- lmm(glucagonAUC ~ time + time*weight1,
+               repetition =~ time|id, structure = "UN",
+               data = gastricbypassL32)
+model.tables(e.lmm32)
+#+END_SRC
+
+#+RESULTS:
+:                    estimate         se       df       lower       upper      p.value
+: (Intercept)      2226.30678 4973.21491 17.01148 -8265.72037 12718.33393 0.6600471546
+: timeA1w         37469.89400 8950.26818 17.88948 18657.74792 56282.04008 0.0005612515
+: weight1            37.90933   37.87004 17.01113   -41.98548   117.80414 0.3308362562
+: timeA1w:weight1  -213.20181   68.15807 17.71309  -356.56304   -69.84058 0.0058968630
+
+These estimates can be retrived using a linear model where the mixed
+model has imputed the conditional expectation of the missing values
+given the observed value and the estimated model parameters:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+gastricbypassWA <- fitted(e.lmm32, impute = TRUE, keep.newdata = TRUE, format = "wide")
+gastricbypassWA$change32 <- gastricbypassWA$glucagonAUC.A1w - gastricbypassWA$glucagonAUC.B1w
+coef(lm(change32 ~ weight1, data = gastricbypassWA))
+#+END_SRC
+
+#+RESULTS:
+: (Intercept)     weight1 
+:  37469.8940   -213.2018
+
+\Warning Standard errors, confidence intervals, and p-values from this
+linear model should not be trusted as they do not account for the
+uncertainty in the imputed values.
+
+
+
+** Regressing the change against another change 
+
+In some studies, one is interested in studying the relation between
+two evolutions. Say weight and glucagon before and after the
+operation:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+gastricbypassW$changeG41 <- gastricbypassW$glucagonAUC4-gastricbypassW$glucagonAUC1
+gastricbypassW$changeW41 <- gastricbypassW$weight4-gastricbypassW$weight1
+#+END_SRC
+
+One can evaluate their correlation:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+cor.test(gastricbypassW$changeW41, gastricbypassW$changeG41)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+
+	Pearson's product-moment correlation
+
+data:  gastricbypassW$changeW41 and gastricbypassW$changeG41
+t = 1.8667, df = 18, p-value = 0.07831
+alternative hypothesis: true correlation is not equal to 0
+95 percent confidence interval:
+ -0.0484149  0.7174011
+sample estimates:
+      cor 
+0.4027343
+#+end_example
+
+or regress one against the other:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+e2.change41 <- lm(changeG41 ~ changeW41, data = gastricbypassW)
+summary(e2.change41)$coef
+#+END_SRC
+
+#+RESULTS:
+:               Estimate Std. Error  t value   Pr(>|t|)
+: (Intercept) 13321.9427  5592.8058 2.381978 0.02845909
+: changeW41     380.3556   203.7541 1.866738 0.07831464
+
+This problem can be recast using all measurement as outcomes:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+keep.col <- c("id","weight1","weight4","glucagonAUC1","glucagonAUC4")
+gastricbypassL4 <- melt(gastricbypassW[,keep.col], id.vars = "id")
+gastricbypassL4 <- gastricbypassL4[order(gastricbypassL4$id),]
+head(gastricbypassL4)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+   id     variable   value
+1   1      weight1  127.20
+21  1      weight4  108.10
+41  1 glucagonAUC1 5032.50
+61  1 glucagonAUC4 9249.45
+2   2      weight1  165.20
+22  2      weight4  132.00
+#+end_example
+
+fitting an unstructured mixed model:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+e.lmm4 <- lmm(value ~ variable,
+              repetition = ~variable|id, structure = "UN",
+              data = gastricbypassL4)
+#+END_SRC
+
+#+RESULTS:
+
+
+and deducing  change
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+Mcon <- cbind(c(-1,1,0,0),c(0,0,-1,1))
+estimate(e.lmm4, function(p){
+  Sigma.change <- t(Mcon) %*% sigma(e.lmm4, p = p) %*% Mcon
+  k <- sqrt(Sigma.change[2,2]/Sigma.change[1,1])
+  c(cor = cov2cor(Sigma.change)[1,2],
+    beta = k*cov2cor(Sigma.change)[1,2])
+})
+
+#+END_SRC
+
+#+RESULTS:
+:         estimate          se       df        lower       upper   p.value
+: cor    0.4027343   0.1922078 2.660595   -0.2555602    1.061029 0.1386265
+: beta 380.3555798 198.3453360 2.798661 -277.3518013 1038.062961 0.1575655
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+yyy <- lmmCC(e2.change41, repetition = list(changeG41 ~ glucagonAUC4-glucagonAUC1,
+                                            changeW41 ~ weight4-weight1))
+yyy$lmm.change
+#+END_SRC
+
+#+RESULTS:
+:   estimate       se       df     lower    upper   p.value
+: 1 380.3556 198.3453 2.798661 -277.3518 1038.063 0.1575655
+
+\clearpage
+
 * Missing values and imputation
+** Complete case approach
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+gastricbypassW$changeG32 <- gastricbypassW$glucagonAUC3-gastricbypassW$glucagonAUC2
+e.change32 <- lm(changeG32 ~ weight1, data = gastricbypassW)
+e.change32
+#+END_SRC
+
+#+RESULTS:
+: Call:
+: lm(formula = changeG32 ~ weight1, data = gastricbypassW)
+: 
+: Coefficients:
+: (Intercept)      weight1  
+:     38101.9       -217.3
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+xxx <- lmmCC(e.change32, repetition = changeG32 ~ glucagonAUC3-glucagonAUC2)
+coef(xxx)
+#+END_SRC
+
+#+RESULTS:
+: Remove 2 clusters (4 observations) 
+:  - 2 observations with missing data (2 clusters) 
+:  - 0 missing repetitions (0 clusters)
+:  (Intercept)         time      weight1 time:weight1 
+:  -36283.0356   38101.9400     257.7767    -217.2672
+
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+gastricbypassW$changeW32 <- gastricbypassW$weight3-gastricbypassW$weight2
+e2.change32 <- lm(changeG32 ~ changeW32, data = gastricbypassW)
+e2.change32
+#+END_SRC
+
+#+RESULTS:
+: Call:
+: lm(formula = changeG32 ~ changeW32, data = gastricbypassW)
+: 
+: Coefficients:
+: (Intercept)    changeW32  
+:        7963         -320
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+yyy <- lmmCC(e2.change32, repetition = list(changeG32 ~ glucagonAUC3-glucagonAUC2,
+                                            changeW32 ~ weight3-weight2))
+yyy$lmm.change
+#+END_SRC
+
+#+RESULTS:
+: Remove 2 clusters (8 observations) 
+:  - 2 observations with missing data (2 clusters) 
+:  - 0 missing repetitions (0 clusters)
+:    estimate       se       df     lower    upper   p.value
+: 1 -319.9597 1117.962 2.161834 -4801.046 4161.126 0.7998465
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+e2g.change32 <- lm(changeG32 ~ changeW32 + group, data = gastricbypassW)
+e2g.change32
+#+END_SRC
+
+#+RESULTS:
+: 
+: Call:
+: lm(formula = changeG32 ~ changeW32 + group, data = gastricbypassW)
+: 
+: Coefficients:
+: (Intercept)    changeW32        group  
+:      2720.6       -783.9       6059.7
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+yyy <- lmmCC(e2g.change32, repetition = list(changeG32 ~ glucagonAUC3-glucagonAUC2,
+                                             changeW32 ~ weight3-weight2))
+yyy$lmm.change
+#+END_SRC
+
+#+RESULTS:
+: Remove 2 clusters (8 observations) 
+:  - 2 observations with missing data (2 clusters) 
+:  - 0 missing repetitions (0 clusters)
+:    estimate       se       df     lower    upper   p.value
+: 1 -783.8895 1081.557 2.338122 -4848.483 3280.703 0.5342415
+
 ** Full information approach
 
 We now consider the glucagon level as an outcome. The =summarize=
@@ -2203,20 +2624,26 @@ cbind(sss[,1:4], pc = paste0(100 * sss$missing / (sss$missing + sss$observed), "
 : 3 glucagon  A1w       19       1 5%
 : 4 glucagon  A3m       20       0 0%
 
-Further description of the missing data patterns rely on function
-outside the LMMstar package, e.g. appropriate call to =tapply= and
-=table=:
+For more detail about the missing data patters, see the =summarizeNA=
+function:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-vec.pattern <- tapply(as.numeric(is.na(gastricbypassL$glucagon)),
-                      INDEX = gastricbypassL$id,
-                      FUN = paste, collapse=".")
-table(vec.pattern)
+summarizeNA(data = gastricbypassL, repetition = ~ time|id)
 #+END_SRC
 
 #+RESULTS:
-: vec.pattern
-: 0.0.0.0 0.0.1.0 0.1.0.0 
-:      18       1       1
+#+begin_example
+    variable frequency missing.pattern n.missing id B3m B1w A1w A3m
+       visit        20           00000         0  0   0   0   0   0
+      weight        20           00000         0  0   0   0   0   0
+ glucagonAUC        18           00000         0  0   0   0   0   0
+                     1           00100         1  0   0   1   0   0
+                     1           00010         1  0   0   0   1   0
+    baseline        20           00000         0  0   0   0   0   0
+    glucagon        18           00000         0  0   0   0   0   0
+                     1           00100         1  0   0   1   0   0
+                     1           00010         1  0   0   0   1   0
+       group        20           00000         0  0   0   0   0   0
+#+end_example
 
 Linear mixed model can handle missing value in the outcome variable,
 assuming that missigness is random conditional on the covariate and
@@ -2375,6 +2802,8 @@ fitted(eUN.lmmNA, impute = TRUE, se = "total")
 : [1] 4.262434 6.305287
 : [1] 3.858267 5.871642
 : [1] 4.342624 6.905246
+
+\clearpage
 
 ** Multiple imputation
 

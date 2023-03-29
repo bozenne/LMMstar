@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: jan 24 2023 (09:33) 
+## Last-Updated: mar 29 2023 (15:11) 
 ##           By: Brice Ozenne
-##     Update #: 740
+##     Update #: 753
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,6 +26,8 @@
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the residuals. Only relevant if differs from the fitted values.
 ##' @param format [character] Should the residuals be output relative as a vector (\code{"long"}), or as a matrix with in row the clusters and in columns the outcomes (\code{"wide"}).
 ##' @param keep.data [logical] Should the argument \code{data} be output along side the residuals? Only possible in the long format.
+##' @param keep.by [logical or "only"] How should the variable used to index the split of the dataset/LMM be output:
+##' only the original variable(s) (FALSE), only the by variable (\code{"only"}), or both (TRUE) .
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @details The argument \code{type} defines how the residuals are computed:
@@ -524,6 +526,37 @@ residuals.clmm <- function(object, ...){
     out <- residuals.lmm(object, ...)
     return(out)
 
+}
+
+## * residuals.mlmm (code)
+##' @export
+residuals.mlmm <- function(object, keep.by = FALSE, ...){
+    
+    if(identical(keep.by,"only")){
+        id.col <- "by"
+    }else if(keep.by){
+        id.col <- c("by",object$object$by)
+    }else{
+        id.col <- object$object$by
+    }
+        
+    out <- lapply(names(object$model), function(iBy){ ## iBy <- "A"
+        iRes <- residuals(object$model[[iBy]], ...)
+        if(is.data.frame(iRes)==FALSE){
+            iRes <- data.frame(residuals = iRes)
+        }
+        if(identical(keep.by,"only") || keep.by){
+            iRes$by <- iBy
+        }
+        if(!identical(keep.by,"only")){
+            for(iVar in object$object$by){
+                iRes[[iVar]] <- object$univariate[object$univariate$by==iBy,iVar]
+            }
+        }
+        return(iRes[,c(id.col,setdiff(names(iRes),id.col)),drop=FALSE])
+    })
+    
+    return(do.call(rbind,out))
 }
 ##----------------------------------------------------------------------
 ### residuals.R ends here
