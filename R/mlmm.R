@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: Jan  5 2023 (09:15) 
+## Last-Updated: mar 29 2023 (14:45) 
 ##           By: Brice Ozenne
-##     Update #: 292
+##     Update #: 311
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -87,7 +87,7 @@
 
 ## * mlmm (code)
 ##' @export
-mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = NULL, df = TRUE, ci = TRUE,
+mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = FALSE, df = TRUE, ci = TRUE,
                  name.short = c(TRUE,TRUE), transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, trace = TRUE){
 
     ## ** normalizer user input
@@ -301,7 +301,6 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
                    )
     out$model <- ls.lmm
     names(out$univariate)[1] <- "by"
-
     if(!is.null(contrast.rbind)){
         out.notransform <- do.call("rbind.Wald_lmm",
                                    args = c(list(model = ls.anova[[1]], effects = NULL, rhs = rhs.by, name = name.model, sep = sep), unname(ls.anova[-1]))
