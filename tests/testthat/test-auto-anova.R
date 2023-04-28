@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 13 2022 (13:55) 
 ## Version: 
-## Last-Updated: okt 12 2022 (18:16) 
+## Last-Updated: apr 18 2023 (10:27) 
 ##           By: Brice Ozenne
-##     Update #: 45
+##     Update #: 47
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -85,7 +85,6 @@ test_that("LRT", {
 })
 
 ## * Wald test (single model)
-
 e.lmm1 <- lmm(Y ~ X1+X2+X3, repetition = ~visit|id, data = dL,
               structure = "UN", df = FALSE)
 
@@ -204,7 +203,7 @@ test_that("Rubin's rule", {
     ## lmm
     df.NNA <- complete(df.NA, action = "long")
     e.lmm <- mlmm(chl~bmi, by = ".imp", data = df.NNA,
-                  effects = "bmi=0")
+                  effects = "bmi=0", trace = FALSE)
     test <- model.tables(e.lmm, method = "pool.rubin")
 
     expect_equal(as.double(GS[GS$term=="bmi",c("estimate","std.error")]),

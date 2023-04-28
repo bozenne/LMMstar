@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: jan  3 2023 (16:03) 
+## Last-Updated: apr 28 2023 (09:29) 
 ##           By: Brice Ozenne
-##     Update #: 568
+##     Update #: 576
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -134,7 +134,7 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
         if(length(effects)>1){
             stop("Argument \'effects\' should be of length 1 when it contains \"ranef\". \n")
         }
-        return(.ranef(object, p = p))
+        return(ranef(object, p = p))
     }
     effects <- match.arg(effects, c("mean","fixed","variance","correlation","ranef"), several.ok = TRUE)
     effects[effects== "fixed"] <- "mean"
@@ -187,10 +187,6 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
     out <- NULL
     if("mean" %in% effects2){
         out <- c(out, p[param.type=="mu"])
-    }
-
-    if("ranef" %in% effects2){
-        return(.ranef(object, p = p))
     }
     if(any(c("variance","correlation") %in% effects2)){
         pVar <- NULL
@@ -254,6 +250,29 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
         names(out)[match(names(newname),names(out))] <- as.character(newname)
     }
     return(out)
+}
+
+## * coef.lmmCC (code)
+##' @export
+coef.lmmCC <- function(object, effects = NULL, ...){
+
+    if(object$time$n==4 && (is.null(effects) || effects == "change")){
+
+        Mcon <- cbind(c(-1,1,0,0),c(0,0,-1,1))
+        Sigma.change <- t(Mcon) %*% stats::sigma(object) %*% Mcon
+        out <- c(cor = stats::cov2cor(Sigma.change)[1,2],
+                 beta = Sigma.change[1,2]/Sigma.change[1,1])
+        
+    }else{
+
+        class(object) <- setdiff(class(object),"lmmCC")
+        out <- coef(object, effects = effects, ...)
+
+    }
+
+    ## ** export
+    return(out)
+
 }
 
 ## * coef.Wald_lmm

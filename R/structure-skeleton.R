@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: feb  6 2023 (15:52) 
+## Last-Updated: apr 18 2023 (16:58) 
 ##           By: Brice Ozenne
-##     Update #: 2399
+##     Update #: 2412
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -101,7 +101,7 @@
         param.rho <- outRho$param[!duplicated(outRho$code)]
         strata.rho <- outRho$strata[!duplicated(outRho$code)]
         code.rho <- outRho$code[!duplicated(outRho$code)]
-        level.rho <- tapply(outRho$level,outRho$code,function(iX){iX}, simplify = FALSE)[code.rho]
+        level.rho <- split(outRho$level,outRho$code)[code.rho]
     }else{
         param.rho <- NULL
         strata.rho <- NULL
@@ -132,12 +132,12 @@
     }
     if(any(structure$param$type=="rho")){
         structure$param$code.x <- stats::setNames(vector(mode = "list", length = NROW(structure$param)), structure$param$code)
-        ls.tempo <- tapply(factor(outRho$lp.x, levels = 1:length(attr(outRho,"levels")), labels = attr(outRho,"levels")), outRho$code, function(iX){iX}, simplify = FALSE)
+        ls.tempo <- split(factor(outRho$lp.x, levels = 1:length(attr(outRho,"levels")), labels = attr(outRho,"levels")), outRho$code)
         structure$param$code.x[names(ls.tempo)] <- ls.tempo
         names(structure$param$code.x) <- structure$param$name
 
         structure$param$code.y <- stats::setNames(vector(mode = "list", length = NROW(structure$param)), structure$param$code)
-        ls.tempo <- tapply(factor(outRho$lp.y, levels = 1:length(attr(outRho,"levels")), labels = attr(outRho,"levels")), outRho$code, function(iX){iX}, simplify = FALSE)
+        ls.tempo <- split(factor(outRho$lp.y, levels = 1:length(attr(outRho,"levels")), labels = attr(outRho,"levels")), outRho$code)
         structure$param$code.y[names(ls.tempo)] <- ls.tempo
         names(structure$param$code.y) <- structure$param$name
 
@@ -471,8 +471,28 @@
         }
 
         ## **** find unique linear predictor values within cluster
+        ## iULpIndex.cor <- stats::setNames(vector(mode = "list", length = length(iCluster)), iCluster)
+        ## iULpCluster.cor <- stats::setNames(lapply(iCluster, function(iId){ ## iId <- iCluster[1]
+        ##     ## unique levels
+        ##     iTest <- which(!duplicated(iLpnCluster.cor[[iId]]))
+        ##     iCode <- iLpnCluster.cor[[iId]][iTest]
+        ##     ## add duplicates
+        ##     if(length(iTest)>1 && length(iLpnCluster.cor[[iId]])>length(iTest)){
+        ##         iTest2 <- (1:length(iLpnCluster.cor[[iId]]))[-iTest][which(!duplicated(iLpnCluster.cor[[iId]][-iTest]))]
+        ##         iTest <- sort(c(iTest,iTest2))
+        ##         iCode <- iLpnCluster.cor[[iId]][iTest]
+        ##     }
+        ##     fct.envir$iULpIndex.cor[[iId]] <- sort(iTest)
+        ##     return(iCode)
+        ## }), iCluster)
         iULpIndex.cor <- stats::setNames(vector(mode = "list", length = length(iCluster)), iCluster)
-        iULpCluster.cor <- stats::setNames(lapply(iCluster, function(iId){ ## iId <- iCluster[2]
+        iULpCluster.cor <- stats::setNames(vector(mode = "list", length = length(iCluster)), iCluster)
+        
+        iLpnCluster2.cor <- sapply(iLpnCluster.cor, paste, collapse = ".")
+        iPattern.cor <- split(iCluster, iLpnCluster2.cor)
+        for(iP in 1:length(iPattern.cor)){ ## iP <- 2
+            iId <- iPattern.cor[[iP]][1]
+
             ## unique levels
             iTest <- which(!duplicated(iLpnCluster.cor[[iId]]))
             iCode <- iLpnCluster.cor[[iId]][iTest]
@@ -482,9 +502,9 @@
                 iTest <- sort(c(iTest,iTest2))
                 iCode <- iLpnCluster.cor[[iId]][iTest]
             }
-            fct.envir$iULpIndex.cor[[iId]] <- sort(iTest)
-            return(iCode)
-        }), iCluster)
+            iULpIndex.cor[iPattern.cor[[iP]]] <- list(sort(iTest))
+            iULpCluster.cor[iPattern.cor[[iP]]] <- list(sort(iCode))
+        }
 
         ## **** remove cluster with single value or identical to other cluster in term of linear predictors
         iIndex.Nsingle <- which(sapply(iIndex.cluster,length)>1)

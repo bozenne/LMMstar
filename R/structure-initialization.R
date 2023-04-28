@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: mar 29 2023 (17:22) 
+## Last-Updated: apr 18 2023 (09:56) 
 ##           By: Brice Ozenne
-##     Update #: 308
+##     Update #: 312
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -210,9 +210,9 @@
     ## ** log linear regression
     df.data <- data.frame(Y = logY.Omega, X.Omega)
     form.txt <- paste0("Y~0+",paste(names(df.data)[-1], collapse = "+")) ## NOTE: normalize name in presence of interactions (sigma:1 -> sigma.1)
-    e.lm <- lm(stats::as.formula(form.txt),
-               data = data.frame(Y = logY.Omega, X.Omega),
-               weights = n.Omega)
+    e.lm <- stats::lm(stats::as.formula(form.txt),
+                      data = data.frame(Y = logY.Omega, X.Omega),
+                      weights = n.Omega)
     out <- stats::setNames(sqrt(exp(coef(e.lm))), colnames(X.Omega))
     
     ## ** check values
@@ -335,11 +335,11 @@
     out[names(sigma)] <- sigma
 
     ## ** correlation
-    Rho <- cov2cor(Omega)
+    Rho <- stats::cov2cor(Omega)
 
     ls.XY <- stats::setNames(lapply(Upattern.name, function(iPattern){ ## iPattern <- Upattern.name[1]
         iX <- object$X$Xpattern.cor[[Upattern[Upattern$name==iPattern,"cor"]]]
-        if(NROW(iX)==0){next}
+        if(NROW(iX)==0){return(NULL)}
         index.vec2matrix <- attr(iX, "index.vec2matrix")
         index.time <- Upattern$time[[iPattern]] ## NOTE: use Upattern instead of attr(iX, "index.time") as the later is not define when there is ambiguity
                                                 ##       e.g. CS with one missing data where the same pattern holds for time 1,2,4 and 1,3,4
@@ -357,11 +357,11 @@
     df.data <- data.frame(Y = atanhY.Omega, X.Omega)
     df.data$param <- factor(df.data$param)
     if(length(levels(df.data$param))==1){
-        out[levels(df.data$param)] <- weighted.mean(tanh(df.data$Y), w = n.Omega)
+        out[levels(df.data$param)] <- stats::weighted.mean(tanh(df.data$Y), w = n.Omega)
     }else{
-        e.lm <- lm(Y~0+param,
-                   data = df.data,
-                   weights = n.Omega)
+        e.lm <- stats::lm(Y~0+param,
+                          data = df.data,
+                          weights = n.Omega)
         out[levels(df.data$param)] <- as.numeric(tanh(coef(e.lm)))
     }
     

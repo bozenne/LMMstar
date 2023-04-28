@@ -2,14 +2,40 @@
 % Please edit documentation in R/lmmCC.R
 \name{lmmCC}
 \alias{lmmCC}
+\alias{lmmCC.formula}
+\alias{lmmCC.lm}
 \title{Fit Linear Mixed Model on Complete Case data}
 \usage{
 lmmCC(object, ...)
+
+\method{lmmCC}{formula}(
+  object,
+  repetition,
+  data,
+  lm.change = FALSE,
+  df = NULL,
+  trace = TRUE,
+  control = NULL,
+  ...
+)
+
+\method{lmmCC}{lm}(
+  object,
+  repetition,
+  data,
+  name.time = "time",
+  df = NULL,
+  trace = TRUE,
+  control = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{[formula] Specify the model for the mean.
 On the left hand side the outcome and on the right hand side the covariates affecting the mean value.
 E.g. Y ~ Gender + Gene.}
+
+\item{...}{Not used. For compatibility with the generic method.}
 
 \item{repetition}{[formula] Specify the structure of the data: the time/repetition variable and the grouping variable, e.g. ~ time|id.}
 
@@ -18,14 +44,14 @@ E.g. Y ~ Gender + Gene.}
 \item{lm.change}{[logical] Should a linear model on the change in outcome be estimated. Only possible with two repetitions.
 Will match the mixed model if the later includes repetition-dependent effects for all covariates.}
 
-\item{name.time}{[character] name of the time variable.}
-
 \item{df}{[logical] Should the degree of freedom be computed using a Satterthwaite approximation?}
 
 \item{trace}{[interger, >0] Show the progress of the execution of the function.}
 
 \item{control}{[list] Control values for the optimization method.
 The element \code{optimizer} indicates which optimizer to use and additional argument will be pass to the optimizer.}
+
+\item{name.time}{[character] name of the time variable.}
 }
 \value{
 A \code{lmmCC} object, which inherits from \code{lmm}.
@@ -62,9 +88,9 @@ dL$time <- as.character(dL$time)
 e.lmm2 <- lmmCC(Y ~ time + time*X1 + time*X2, repetition = ~time|id,
                 data = dL[dL$time \%in\% 1:2,])
 model.tables(e.lmm2)
-e.lmm3 <- lmmCC(Y ~ time + time*X1 + time*X2, repetition = ~time|id,
-                data = dL[dL$time \%in\% c(1,3),])
 e.lmm3.bis <- lmmCC(Y ~ time + time*X1 + time*X2, repetition = ~time|id,
                 data = dL[dL$time \%in\% c(1,3),], lm.change = TRUE)
+model.tables(e.lmm3.bis)
+e.lmm3.bis$lm.change
 
 }

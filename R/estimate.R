@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: mar 29 2023 (17:07) 
+## Last-Updated: apr 28 2023 (15:35) 
 ##           By: Brice Ozenne
-##     Update #: 960
+##     Update #: 961
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -210,7 +210,7 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
 ##' dL <- sampleRem(100, n.times = 3, format = "long")
 ##' 
 ##' ## fit Linear Mixed Model
-##' LMMstar.options(optimizer = "gls")
+##' LMMstar.options(optimizer = "BFGS")
 ##' eUN.gls <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
 ##' 
 ##' LMMstar.options(optimizer = "FS")

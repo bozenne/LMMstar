@@ -2,14 +2,42 @@
 % Please edit documentation in R/resample.R
 \name{resample}
 \alias{resample}
+\alias{resample.lmm}
+\alias{resample.mlmm}
 \title{Inference via Resampling for Linear Mixed Model}
 \usage{
 resample(object, type, ...)
+
+\method{resample}{lmm}(
+  object,
+  type,
+  effects,
+  n.sample = 1000,
+  studentized = TRUE,
+  level = 0.95,
+  trace = TRUE,
+  seed = NULL,
+  cpus = 1,
+  ...
+)
+
+\method{resample}{mlmm}(
+  object,
+  type,
+  cluster = NULL,
+  n.sample = 1000,
+  trace = TRUE,
+  seed = NULL,
+  cpus = 1,
+  ...
+)
 }
 \arguments{
 \item{object}{a \code{lmm} object.}
 
 \item{type}{[character] should permutation test (\code{"perm-var"} or \code{"perm-res"}) or non-parametric bootstrap (\code{"boot"}) be used?}
+
+\item{...}{Not used. For compatibility with the generic method.}
 
 \item{effects}{[character vector] the variable(s) to be permuted or the effect(s) to be tested via non-parametric bootstrap.}
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: feb  6 2023 (15:10) 
+## Last-Updated: apr 28 2023 (16:35) 
 ##           By: Brice Ozenne
-##     Update #: 756
+##     Update #: 760
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -268,6 +268,7 @@ IND <- function(formula, var.cluster, var.time, add.time){
 ##' @param var.time [character] time variable.
 ##' @param heterogeneous [logical] when covariates are used for the correlation structure,
 ##' should correlation parameters should be specific to each level of the covariate?
+##' @param ranef random effect structure.
 ##' @param add.time not used.
 ##'
 ##' @details A typical formula would be \code{~1}, indicating a variance constant over time and the same correlation between all pairs of times.
@@ -281,7 +282,7 @@ IND <- function(formula, var.cluster, var.time, add.time){
 ##' CS(list(gender~time,gender~1), var.cluster = "id", var.time = "time")
 ##' 
 ##' @export
-CS <- function(formula, var.cluster, var.time, heterogeneous = TRUE, add.time){
+CS <- function(formula, var.cluster, var.time, heterogeneous = TRUE, ranef = NULL, add.time){
     if(missing(formula) || is.null(formula)){
         outCov <- .formulaStructure(~1, heterogeneous = heterogeneous)
     }else if(is.list(formula)){
@@ -309,10 +310,14 @@ CS <- function(formula, var.cluster, var.time, heterogeneous = TRUE, add.time){
                                cor = outCov$formula.cor),
                 heterogeneous = heterogeneous,
                 block = length(outCov$X.cor) > 0,
-                type = "CS")
+                type = "CS",
+                ranef = ranef)
 
     ## export
     class(out) <- append("structure",class(out))
+    if(!is.null(ranef)){
+        class(out) <- append("RE",class(out))
+    }
     class(out) <- append("CS",class(out))
     return(out)
 }

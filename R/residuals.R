@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: mar 29 2023 (15:11) 
+## Last-Updated: apr 18 2023 (10:00) 
 ##           By: Brice Ozenne
-##     Update #: 753
+##     Update #: 754
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,6 +18,7 @@
 ## * residuals.lmm (documentation)
 ##' @title Extract The Residuals From a Linear Mixed Model
 ##' @description Extract or compute the residuals of a linear mixed model.
+##' @name residuals
 ##' 
 ##' @param object a \code{lmm} object.
 ##' @param type [character] type of residual to output: raw residuals (\code{"response"}), Pearson residuals (\code{"pearson"}), normalized residuals (\code{"normalized"}, scaled residual \code{"scaled"}), or partial residuals (\code{"partial"} or \code{"partial-center"}). Can also be \code{"all"} to output all except partial residuals. See detail section.
@@ -104,6 +105,7 @@
 
 ## * residuals.lmm (code)
 ##' @export
+##' @rdname residuals
 residuals.lmm <- function(object, type = "response", var = NULL, 
                           data = NULL, p = NULL, format = "long", keep.data = FALSE, ...){
 
@@ -518,6 +520,7 @@ residuals.lmm <- function(object, type = "response", var = NULL,
 
 ## * residuals.clmm
 ##' @export
+##' @rdname residuals
 residuals.clmm <- function(object, ...){
 
     object$residuals <- object$design$Y - stats::predict(object, newdata = object$data.original, se = FALSE)$estimate
@@ -530,6 +533,7 @@ residuals.clmm <- function(object, ...){
 
 ## * residuals.mlmm (code)
 ##' @export
+##' @rdname residuals
 residuals.mlmm <- function(object, keep.by = FALSE, ...){
     
     if(identical(keep.by,"only")){

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: feb 27 2023 (17:46) 
+## Last-Updated: apr 28 2023 (14:09) 
 ##           By: Brice Ozenne
-##     Update #: 93
+##     Update #: 112
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,51 +15,6 @@
 ## 
 ### Code:
 
-## * rhs.vars
-##' @title Extract Variables in the Right Hand Side of a Formula
-##' @noRd
-##' 
-##' @param formula a formula
-##'
-##' @keywords internal
-##' 
-##' @examples
-##' rhs.vars(~X)
-##' rhs.vars(Y~X)
-##' rhs.vars(Y~X1+X2)
-##' rhs.vars(Y~1)
-##' rhs.vars(Y+Z~1)
-##' rhs.vars(~1|id)
-##' rhs.vars(Y~X|id)
-##' rhs.vars(Y+Z~X|id)
-rhs.vars <- function(formula){
-    group.var <- all.vars(nlme::getGroupsFormula(formula))
-    other.var <- all.vars(nlme::getCovariateFormula(formula))
-    return(stats::setNames(c(other.var,group.var),
-                           c(rep("covariate",length(other.var)),
-                             rep("group",length(group.var)))))
-}
-
-## * lhs.vars
-##' @title Extract Variables in the Left Hand Side of a Formula
-##' @noRd
-##' 
-##' @param formula a formula
-##' 
-##' @keywords internal
-##' 
-##' @examples
-##' lhs.vars(~X)
-##' lhs.vars(Y~X)
-##' lhs.vars(Y~X1+X2)
-##' lhs.vars(Y~1)
-##' lhs.vars(Y+Z~1)
-##' lhs.vars(~1|id)
-##' lhs.vars(Y~X|id)
-##' lhs.vars(Y+Z~X|id)
-lhs.vars <- function(formula){
-    setdiff(all.vars(formula),rhs.vars(formula))
-}
 
 ## * tr
 ## compute the trace
@@ -107,6 +62,52 @@ is.invertible <- function(object, cov2cor, tol = 10^(-10*sqrt(NCOL(object)))){
         }
     }
     return(abs(det(object))>tol)
+}
+
+## * countChar
+## countChar("~1|id","|")
+## countChar("~(1|id) + (time|id)","|")
+## countChar("~(1|id) + (time|id)","time")
+countChar <- function(value, pattern, fixed = TRUE){
+    lengths(regmatches(value, gregexpr(pattern, value, fixed = fixed)))
+}
+
+
+## * updateFormula
+## NOTE: when updating formula not using stats::drop.terms or stats::udpate as it re-write the interaction X1*X2 ---> X1 + X2 + X1:X2
+## stats::drop.terms(terms(Y~X1*X2+(1|id)), dropx = 3)
+## stats::update(terms(Y~X1*X2+(1|id)), .~.-(1|id))
+## updateFormula(Y~X1*X2+(1|id), drop.x = "(1|id)")
+## updateFormula(Y~0+X1*X2+(1|id), drop.x = "(1|id)")
+##
+## updateFormula(Y~X1*X2, add.x = "(1 | id)")
+updateFormula <- function(formula, add.x = NULL, drop.x = NULL){
+
+    drop.x <- gsub(" ","",drop.x)
+    if(!inherits(formula,"formula") || (length(formula) %in% 2:3 == FALSE)){
+        stop("Argument \'formula\' should be a formula with length 2 or 3. \n")
+    }
+    test.response <- length(formula) == 3
+    
+    txt.formula <- as.character(utils::tail(formula,1))
+    term.formula <- gsub(" ","",strsplit(txt.formula, split = "+", fixed = TRUE)[[1]])
+    if(any(drop.x %in% term.formula == FALSE)){
+        stop("Mismatch between argument \'formula\' and \'drop.x\', \n",
+             "Could not find \"",paste(drop.x[drop.x %in% term.formula == FALSE], collapse = "\" \""),"\". \n")
+    }
+
+    if(!is.null(drop.x)){
+        term.formula <- term.formula[term.formula %in% drop.x == FALSE]
+    }
+    if(!is.null(add.x)){
+        term.formula <- c(term.formula, add.x)
+    }
+    if(test.response){
+        txt.new <- paste0(deparse(formula[[2]]),deparse(formula[[1]]),paste0(term.formula, collapse="+"))
+    }else{
+        txt.new <- paste0(deparse(formula[[1]]),paste0(term.formula, collapse="+"))
+    }
+    return(stats::as.formula(txt.new))
 }
 
 ##----------------------------------------------------------------------

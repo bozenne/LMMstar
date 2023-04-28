@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: mar 29 2023 (17:14) 
+## Last-Updated: apr 18 2023 (16:22) 
 ##           By: Brice Ozenne
-##     Update #: 390
+##     Update #: 391
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -120,7 +120,7 @@
                                            index.cluster = NA,
                                            n.cluster = table(pattern.cluster$var)[Upattern.name])
         structure$X$Upattern$param <- list(NULL)
-        structure$X$Upattern$index.cluster <- tapply(pattern.cluster$index.cluster,pattern.cluster$var,function(x){x}, simplify = FALSE)[Upattern.name]
+        structure$X$Upattern$index.cluster <- split(pattern.cluster$index.cluster,pattern.cluster$var)[Upattern.name]
         structure$X$Upattern$time <- lapply(structure$X$Upattern$index.cluster,function(iC){index.clusterTime[[iC[1]]]})
         rownames(structure$X$Upattern) <- NULL
 

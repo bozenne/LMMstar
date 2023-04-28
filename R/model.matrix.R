@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: feb 27 2023 (16:20) 
+## Last-Updated: apr 28 2023 (15:36) 
 ##           By: Brice Ozenne
-##     Update #: 2397
+##     Update #: 2403
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -111,7 +111,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             ## use stats::model.frame to handle spline
             design$mean  <- .mean.matrix.lmm(formula = object$formula$mean.design, colnames = colnames(object$design$mean),
                                              data = stats::model.frame(attr(object$design$mean,"terms"), data = data.mean , na.action = stats::na.pass), 
-                                             stratify = (object$opt$name=="gls") && (object$strata$n>1), name.strata = object$strata$var, U.strata = object$strata$levels) ## only stratify mean if gls optimizer
+                                             stratify = FALSE, name.strata = object$strata$var, U.strata = object$strata$levels) ## only stratify mean if gls optimizer
         }
 
         ## *** variance-covariance
@@ -372,7 +372,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 ## * .model.matrix.lmm
 .model.matrix.lmm <- function(formula.mean, structure,
                               data, var.outcome, var.weights,
-                              stratify.mean, drop.X,
+                              stratify.mean = FALSE, drop.X,
                               precompute.moments){
 
     ## ** indexes
@@ -856,10 +856,10 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     }
 
     ## *** find position of each cluster
-    index.cluster <- tapply(1:NROW(data),data[[cluster.var]],function(iI){iI}, simplify = FALSE)
+    index.cluster <- split(1:NROW(data),data[[cluster.var]])
     
     ## *** find time corresponding to each cluster
-    index.clusterTime <- tapply(as.numeric(factor(data[[time.var]],levels = U.time)),data[[cluster.var]],function(iT){iT})
+    index.clusterTime <- split(as.numeric(factor(data[[time.var]],levels = U.time)),data[[cluster.var]])
 
     ## *** re-order according to time
     order.clusterTime <- lapply(index.clusterTime, order)

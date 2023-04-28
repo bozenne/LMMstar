@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 15 2022 (14:09) 
 ## Version: 
-## Last-Updated: sep 16 2022 (12:13) 
+## Last-Updated: apr 18 2023 (16:23) 
 ##           By: Brice Ozenne
-##     Update #: 33
+##     Update #: 34
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -46,7 +46,7 @@ proportion.mlmm <- function(object, n.sample = 100, trace = TRUE, ...){
         cluster.var <- attr(object$object$cluster.var,"original")
         cluster <- object$object$cluster
         n.cluster <- length(cluster)
-        index.cluster <- tapply(1:NROW(data),data[[cluster.var]],function(x){x})
+        index.cluster <- split(1:NROW(data),data[[cluster.var]])
     }else if(n.sample < 0){
         stop("Argument \'n.sample\' must be a non-negative integer. \n")
     }else{

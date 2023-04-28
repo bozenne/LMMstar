@@ -36,11 +36,11 @@
 ##'
 ##' \strong{Optimizer}: the default optimizer, \code{"FS"}, implements a fisher scoring algorithm descent with back-tracking in case of decreasing or undefined log-likelihood.
 ##' It does not constrain \eqn{\Omega} to be positive definite which may cause problem in small sample or complex models.
-##' It is possible to use other optimizer: \code{nlme::gls} for certain covariance patterns or \code{stats::optim}.
+##' It is possible to use other optimizer inferfaced by \code{optimx::optimx}.
 ##' 
 ##' @importFrom ggplot2 autoplot
 ##' @importFrom rlang .data
-##' @importFrom nlme getData getVarCov intervals
+##' @importFrom nlme ranef
 ##' @importFrom stats anova coef confint df dummy.coef fitted logLik model.matrix model.tables nobs profile residuals sigma vcov weights
 ##' @importFrom lava bootstrap estimate iid information manifest score
 ##' @importFrom sandwich estfun

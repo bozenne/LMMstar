@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 26 2022 (11:18) 
 ## Version: 
-## Last-Updated: Sep 23 2022 (12:24) 
+## Last-Updated: apr 28 2023 (17:00) 
 ##           By: Brice Ozenne
-##     Update #: 167
+##     Update #: 216
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,12 +15,12 @@
 ## 
 ### Code:
 
-## * .ranef
-##' @description estimate random effect in a given strata
+## * ranef.lmm (documentation)
+##' @title Estimate Random Effect From a Linear Mixed Model
+##' @description Recover the random effects from the variance-covariance parameter of a linear mixed model.
 ##' @param object a \code{lmm} object.
 ##' @param p [numeric vector] value of the model coefficients to be used. Only relevant if differs from the fitted values.
 ##' @param nestingStructure [list] output of the \code{.nestingRanef} function.
-##' @noRd
 ##'
 ##' @details Consider the following mixed model:
 ##' \deqn{Y = X\beta + \epsilon}
@@ -30,10 +30,28 @@
 ##' \deqn{Y = X\beta + Z \eta + \varepsilon}
 ##' where \eqn{\varepsilon \sim \mathcal{N}(0, \sigma^2 I)}. So we can estimate the random effets via:
 ##' \deqn{E[Y|\eta] = Z \Sigma_{\eta} \Omega^{-1} (Y-X\beta)}
-.ranef <- function(object, p = NULL, nestingStructure = NULL){
+##'
+##' @examples
+##' data(gastricbypassL, package = "LMMstar")
+##' 
+##' ## random intercept
+##' e.RI <- lmm(weight ~ time + (1|id), data = gastricbypassL)
+##' ranef(e.RI)
+##' 
+##' ## nested random effects
+##'
+##' ## crossed random effects
+##' 
 
+## * ranef.lmm (code)
+##' @export
+ranef.lmm <- function(object, p = NULL){
 
     ## ** extract from object
+    if(!inherits(object$design$vcov,"RE")){
+        stop("Cannot estimate random effects linear mixed models defined by covariance structure (argument \'structure\'). \n",
+             "Consider adding random effects in the argument \'formula\' instead. \n")
+    }
     param.name <- object$design$param$name
     param.type <- stats::setNames(object$design$param$type,param.name)
     param.rho <- param.name[param.type=="rho"]
@@ -63,7 +81,7 @@
         p <- object$param
     }
     cumtau <- coef(object, p = p, transform.rho = "cov", transform.names = FALSE)
-    
+
     ## ** converting correlation parameters into random effect variance
     if(missing(nestingStructure)){
         nestingStructure <- .nestingRanef(object)
@@ -167,7 +185,7 @@
     if(object$design$vcov$type != "CS"){
         stop("Identification of random effect structure only implemented for \"CS\" structure with argument heterogenous=FALSE. \n")
     }
-    if(object$design$vcov$heterogeneous){
+    if(object$design$vcov$heterogeneous>0){
         stop("Identification of random effect structure only implemented for \"CS\" structure with argument heterogenous=FALSE. \n")
     }
     if(any(grepl("_X_XX_X_",colnames(X.cor)))){
@@ -193,14 +211,20 @@
     strata.clusterR <- index.clusterStrata2[U.clusterR]
 
     ## *** pattern of parameters for each representative individual
-    ls.cluster.design <- lapply(U.clusterR, FUN = function(iC){ ## iC <- 2
-
+    ## A list of matrices, one per representative individual.
+    ## Each matrix has as many lines as combinations of parameters in the individual residual correlation matrix
+    ## - binary indicator of correlation coefficients
+    ## - example of observations forming a pair suject to the combination of parameters
+    ## - ???
+    ## - ???
+    ls.cluster.design <- lapply(U.clusterR, FUN = function(iC){ ## iC <- 1
         iPattern <- as.character(pattern.cluster[iC,"cor"])
         iIndex.pair <- attr(Xpattern.cor[[iPattern]],"index.pair")
+        iIndex.pair.NNA <- iIndex.pair[!is.na(iIndex.pair$param),,drop=FALSE]
         if(length(col.within)==0){
             iiDF <- data.frame(matrix(0, nrow = 1, ncol = n.rho), NA, NA, NA)
             names(iiDF) <- c(name.rho, "index", "Z", "value")
-            iiDF[1,unique(iIndex.pair$param)] <- 1
+            iiDF[1,unique(iIndex.pair.NNA$param)] <- 1
             return(iiDF)
         }
         iNtime <- NROW(Xpattern.cor[[iPattern]])
@@ -218,19 +242,21 @@
             }else{
                 iiZindex.obs <- which(iZ[,iiCol]==iiValue)
             }
-            iiZindex.pair <- iIndex.pair[iIndex.pair[,"row"] %in% iiZindex.obs & iIndex.pair[,"col"] %in% iiZindex.obs,]
+            iiZindex.pair <- iIndex.pair.NNA[iIndex.pair.NNA[,"row"] %in% iiZindex.obs & iIndex.pair.NNA[,"col"] %in% iiZindex.obs,]
             iiZindex.pairR <- iiZindex.pair[iiZindex.pair[,"row"]<iiZindex.pair[,"col"],,drop=FALSE]
 
             iiDF <- data.frame(matrix(0, nrow = 1, ncol = n.rho), NA, iiCol, iiValue)
             names(iiDF) <- c(name.rho, "index", "Z", "value")
-            iiDF[1,unique(iiZindex.pairR$param)] <- 1
+            iiDF[1,stats::na.omit(unique(iiZindex.pairR$param))] <- 1
             iiDF$index <- list(unique(c(iiZindex.pairR[,1],iiZindex.pairR[,2])))
-            return(iiDF)
+            return(iiDF[sapply(iiDF$index,length)>0,,drop=FALSE])
         })
 
         return(do.call(rbind,ls.iG))
 
     })
+    head(ls.cluster.design[[1]]$index)
+browser()
 
     ## *** aggregate at strata level
     out <- tapply(1:length(strata.clusterR), strata.clusterR, function(iIndex){ ## iIndex <- 1
@@ -245,9 +271,10 @@
     }, simplify = FALSE)
 
     ## *** associate columns of the design matrix to correlation parameters
-    df.param <- do.call(rbind,lapply(Xpattern.cor, function(iPattern){
+    df.param <- do.call(rbind,lapply(Xpattern.cor, function(iPattern){ ## iPattern <- Xpattern.cor[[1]]
         iIndex.pair <- attr(iPattern,"index.pair")
-        iGrid <- do.call(rbind,lapply(c(col.strata,col.within), function(iiVar){ ## iVar <- col.strata[1]
+        iIndex.pair.NNA <- iIndex.pair[!is.na(iIndex.pair$param),,drop=FALSE]
+        iGrid <- do.call(rbind,lapply(c(col.strata,col.within), function(iiVar){ ## iiVar <- col.strata[1]
             if(all(iPattern[,iiVar]==0)){
                 return(NULL)
             }else{
@@ -262,19 +289,20 @@
             iiVar <- iGrid[iiG,"variable"]
             iiValue <- iGrid[iiG,"value"]
             iiPair <- which(iPattern[,iiVar]==iiValue)
-            iiVec.param <- iIndex.pair[(iIndex.pair[,"row"] %in% iiPair) & (iIndex.pair[,"col"] %in% iiPair),"param"]
+            iiVec.param <- iIndex.pair.NNA[(iIndex.pair.NNA[,"row"] %in% iiPair) & (iIndex.pair.NNA[,"col"] %in% iiPair),"param"]
             return(table(factor(iiVec.param, levels = name.rho)))            
         }))
         return(cbind(strata = index.clusterStrata2[attr(iPattern,"index.cluster")[1]], iGrid[iIndex.grid,,drop=FALSE], iGrid.param>0))
     }))
     rownames(df.param) <- NULL
 
+
     X.cor.assign <- stats::setNames(attr(X.cor,"assign"), colnames(X.cor))
     X.cor.terms <- stats::setNames(attr(X.cor,"term.labels"), colnames(X.cor))
     
     param2variable <- by(df.param, INDICES = df.param$strata, FUN = function(iDF){ ## iDF <- df.param
 
-        ## rownames(iDF) <- NULL
+        ## rownames(iDF) <- NULL        
         iCol <- colSums(iDF[,name.rho,drop=FALSE])
         iCol2 <- iCol[iCol!=0]
         iRow <- stats::setNames(rowSums(iDF[,name.rho,drop=FALSE]), iDF$variable)

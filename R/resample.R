@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: Mar 27 2023 (12:23) 
+## Last-Updated: apr 28 2023 (15:37) 
 ##           By: Brice Ozenne
-##     Update #: 333
+##     Update #: 425
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,6 +18,7 @@
 ## * resample (documentation)
 ##' @title Inference via Resampling for Linear Mixed Model
 ##' @description Non-parametric bootstrap or permutation test for Linear Mixed Models.
+##' @name resample
 ##'
 ##' @param object a \code{lmm} object.
 ##' @param type [character] should permutation test (\code{"perm-var"} or \code{"perm-res"}) or non-parametric bootstrap (\code{"boot"}) be used?
@@ -28,6 +29,7 @@
 ##' @param trace [logical] should the execution of the resampling be traced?
 ##' @param seed [integer] Random number generator (RNG) state used when starting resampling.
 ##' @param cpus [integer] number of child-processes for parallel evaluation.
+##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @details All approach are carried at the cluster level: \itemize{
 ##' \item Bootstrap: sampling with replacement clusters. If a cluster is picked twice then different cluster id is used for each pick.
@@ -56,10 +58,10 @@
 ##' model.tables(e.lm)
 ##'
 ##' ## non-parametric bootstrap
-##' resample(e.lm, type = "boot", effects = c("weight1","glucagonAUC1"))
+##' resample(e.lm, type = "boot", effects = c("weight1","glucagonAUC1"), seed = 10)
 ##' ## permutation test
-##' resample(e.lm, type = "perm-var", effects = "weight1") 
-##' resample(e.lm, type = "perm-var", effects = "glucagonAUC1")
+##' resample(e.lm, type = "perm-var", effects = "weight1", seed = 10) 
+##' resample(e.lm, type = "perm-var", effects = "glucagonAUC1", seed = 10)
 ##' ## using multiple cores
 ##' resample(e.lm, type = "boot", effects = c("weight1","glucagonAUC1"), cpus = 4)
 ##' 
@@ -75,10 +77,10 @@
 ##' model.tables(eCS.lmm)
 ##'
 ##' ## non-parametric bootstrap
-##' resample(eCS.lmm, type = "boot", effects = c("glucagonAUC","gender"))
+##' resample(eCS.lmm, type = "boot", effects = c("glucagonAUC","gender"), seed = 10)
 ##' ## permutation test
-##' resample(eCS.lmm, type = "perm-var", effects = "gender")
-##' resample(eCS.lmm, type = "perm-res", effects = "glucagonAUC") 
+##' resample(eCS.lmm, type = "perm-var", effects = "gender", seed = 10)
+##' resample(eCS.lmm, type = "perm-res", effects = "glucagonAUC", seed = 10) 
 ##' }
 ##' 
 #' @export
@@ -88,9 +90,11 @@
 
 ## * resample.lmm (code)
 ##' @export
+##' @rdname resample
 resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TRUE,
-                         level = 0.95,
-                         trace = TRUE, seed = NULL, cpus = 1){
+                         level = 0.95, correction = TRUE,
+                         trace = TRUE, seed = NULL, cpus = 1,
+                         ...){
 
     ## ** check user input
     alpha <- 1-level
@@ -98,6 +102,9 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
     ## boot: non-parametric bootstrap
     ## perm-var: exchange covariate value between clusters (need to be constant within cluster)
     ## perm-res: outcome becomes permuted normalized residuals under the null to which the (permuted) fixed effect under the null are added.
+    if(!is.logical(correction) || correction %in% 0:1 == FALSE){
+        stop("Argument \'correction\' must be binary or logical. \n")
+    }
 
     name.meanvar <- attr(object$design$mean,"variable")
     value.meancoef <- coef(object, effects = "mean")
@@ -148,9 +155,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
         }
         effects.vcov <- TRUE
         name.keepcoef <- effects
-    }
-    if(object$opt$name=="gls"){
-        stop("Function resample not compatible with \"gls\" optimizer\n.")
+        calc.pvalue <- try(requireNamespace("BuyseTest")) ## to get the p-values
     }
 
     if(length(cpus)!=1){
@@ -161,6 +166,12 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
         stop("Argument \'cpus\' should be a positive integer or \'all\'.\n ")
     }else if(cpus>1 && cpus>parallel::detectCores()){
         stop("Only ",parallel::detectCores()," CPU cores are available. \n")
+    }
+
+    ## dots
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
 
     ## ** initialize
@@ -283,7 +294,6 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
                                          data = iData2,
                                          var.outcome = object$outcome$var,
                                          var.weights = object$weights$var,
-                                         stratify.mean = FALSE,
                                          precompute.moments = precompute.moments,
                                          drop.X = object$design$drop.X)
         }else if(type == "perm-res"){ ## change in the Y values
@@ -442,22 +452,30 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
             Mcv.sample.Wald <- Mcv.sample/Mcv.sample.se
 
             out$se <- as.double(sd.meancoef[name.keepcoef])
-            out$p.value <- (colSums(abs(Mcv.sample.Wald) > abs(Mcv.estimate), na.rm = TRUE)+1)/(colSums(!is.na(Mcv.sample.Wald))+1)
+            out$p.value <- (colSums(abs(Mcv.sample.Wald) > abs(Mcv.estimate), na.rm = TRUE)+correction)/(colSums(!is.na(Mcv.sample.Wald))+correction)
         }else{
             Mcv.estimate <- matrix(value.meancoef[name.keepcoef], nrow = ncv.sample, ncol = length(name.keepcoef), byrow = TRUE,
                                    dimnames = list(NULL,name.keepcoef))
 
-            out$p.value <- (colSums(abs(Mcv.sample) > abs(Mcv.estimate), na.rm = TRUE)+1)/(colSums(!is.na(Mcv.sample))+1)
+            out$p.value <- (colSums(abs(Mcv.sample) > abs(Mcv.estimate), na.rm = TRUE)+correction)/(colSums(!is.na(Mcv.sample))+correction)
         }
     }else if(type == "boot"){
         if(studentized){
             Mcv.sample.Wald0 <- apply(Mcv.sample, MARGIN = 2, FUN = scale, scale = FALSE, center = TRUE)/Mcv.sample.se  ## center around the null
-            statistic.meancoef <- value.meancoef[name.keepcoef]/sd.meancoef[name.keepcoef]
             
             out$se <- as.double(sd.meancoef[name.keepcoef])
             out$lower <- out$estimate + out$se * apply(Mcv.sample.Wald0, MARGIN = 2, FUN = stats::quantile, probs = alpha/2, na.rm = TRUE)
             out$upper <- out$estimate + out$se * apply(Mcv.sample.Wald0, MARGIN = 2, FUN = stats::quantile, probs = 1-alpha/2, na.rm = TRUE)
-            out$p.value <- (colSums(abs(Mcv.sample.Wald0) > abs(statistic.meancoef), na.rm = TRUE)+1)/(colSums(!is.na(Mcv.sample.Wald0))+1)
+
+            if(!inherits(calc.pvalue,"try-error")){
+                out$p.value <- sapply(name.keepcoef, function(iName){
+                    BuyseTest::boot2pvalue(stats::na.omit(out[iName,"estimate"] + out[iName,"se"] * Mcv.sample.Wald0[,iName]),
+                                           null = 0,
+                                           estimate = out[iName,"estimate"],
+                                           alternative = "two.sided",
+                                           add.1 = correction)
+                })
+            }
 
         }else{
             Mcv.estimate <- matrix(value.meancoef[name.keepcoef], nrow = ncv.sample, ncol = length(name.keepcoef), byrow = TRUE,
@@ -466,11 +484,16 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
             out$se <- apply(Mcv.sample, MARGIN = 2, FUN = stats::sd, na.rm = TRUE)
             out$lower <- apply(Mcv.sample, MARGIN = 2, FUN = stats::quantile, probs = alpha/2, na.rm = TRUE)
             out$upper <- apply(Mcv.sample, MARGIN = 2, FUN = stats::quantile, probs = 1-alpha/2, na.rm = TRUE)
-
-            Mcv.sampleH0 <- scale(Mcv.sample, center = TRUE, scale = FALSE)
-            out$p.value <- (colSums(abs(Mcv.sampleH0) > abs(Mcv.estimate), na.rm = TRUE)+1)/(colSums(!is.na(Mcv.sample))+1)
+            if(!inherits(calc.pvalue,"try-error")){
+                out$p.value <- sapply(name.keepcoef, function(iName){
+                    BuyseTest::boot2pvalue(stats::na.omit(Mcv.sample[,iName]),
+                                           null = 0,
+                                           estimate = out[iName,"estimate"],
+                                           alternative = "two.sided",
+                                           add.1 = correction)
+                })
+            }
         }
-        ## out$p.value <- unlist(lapply(name.keepcoef, function(iName){ BuyseTest::boot2pvalue(x = Mcv.sample[,iName], null = 0, estimate = value.meancoef[iName])} ))
     }
 
     ## ** export
@@ -484,7 +507,10 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 }
 
 ## * resample.mlmm
-resample.mlmm <- function(object, type, cluster = NULL, n.sample = 1e3,
+##' @export
+##' @rdname resample
+resample.mlmm <- function(object, type, method = NULL, cluster = NULL, n.sample = 1e3,
+                          level = 0.95, correction = TRUE,
                           trace = TRUE, seed = NULL, cpus = 1,
                           ...){
 
@@ -583,8 +609,10 @@ resample.mlmm <- function(object, type, cluster = NULL, n.sample = 1e3,
                  "This is not support when using permutations. Consider using type=\"boot\" instead of type=\"perm\". \n")
         }
         Uvar <- by(data[[variable.perm]], data[[cluster]], function(iData){iData[1]}, simplify = FALSE)
+    }else if(type=="bootstrap"){
+        calc.pvalue <- try(requireNamespace("BuyseTest")) ## to get the p-values
     }
-
+    
     ## cpus
     if(length(cpus)!=1){
         stop("Argument \'cpus\' should have length 1.\n ")
@@ -596,11 +624,19 @@ resample.mlmm <- function(object, type, cluster = NULL, n.sample = 1e3,
         stop("Only ",parallel::detectCores()," CPU cores are available. \n")
     }
 
-    
+    ## dots
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
     ## ** recover dataset
+    method.merge <- c("average", "pool.fixse", "pool.se", "pool.gls", "pool.gls1", "pool.rubin")
+    keep.cols <- c("by","parameter","estimate","se","df","statistic","lower","upper","null","p.value")
+        
     Ucluster <- sort(unique(unlist(data[[cluster]])))
     n.cluster <- length(Ucluster)
-    index.cluster <- tapply(1:NROW(data), data[[cluster]], identity, simplify = FALSE)
+    index.cluster <- split(1:NROW(data), data[[cluster]], identity)
     template <- list(multivariate = object$multivariate,
                      univariate = object$univariate)
     template$multivariate[,c("statistic","df.num","df.denom","p.value")] <- NULL
@@ -637,12 +673,15 @@ resample.mlmm <- function(object, type, cluster = NULL, n.sample = 1e3,
         
         ## *** export
         ## use merge in case effects for some categories are not estimated
-        keep.cols <- c("by","parameter","estimate","se","df","statistic","lower","upper","null","p.value")
-        iEstimate$univariate2 <- model.tables(iEstimate, columns = keep.cols)
+        iEstimate$univariate2 <- model.tables(iEstimate, columns = keep.cols, method = method)
 
         iOut <- template
-        iOut$multivariate <- merge(iOut$multivariate, iEstimate$multivariate, by = c("type","test","null"), all = TRUE)
-        iOut$univariate <- merge(iOut$univariate, iEstimate$univariate2, by = c("by","parameter"), all = TRUE)
+        if(is.null(method) || (method %in% method.merge == FALSE)){
+            iOut$multivariate <- merge(iOut$multivariate, iEstimate$multivariate, by = c("type","test","null"), all = TRUE)
+            iOut$univariate <- merge(iOut$univariate, iEstimate$univariate2, by = c("by","parameter"), all = TRUE)
+        }else{
+            iOut$univariate <- iEstimate$univariate2
+        }
         return(iOut)
     }
 
@@ -677,38 +716,62 @@ resample.mlmm <- function(object, type, cluster = NULL, n.sample = 1e3,
     }
 
     ## ** post process
+    keep.cols2 <- c("estimate", "se", "df", "statistic", "lower", "upper", "null", "p.value")
+    
+    out <- list()
     sample.multivariate <- do.call(cbind,lapply(ls.sample, function(iSample){iSample$multivariate$statistic}))
     sample.univariate <- do.call(cbind,lapply(ls.sample, function(iSample){iSample$univariate$statistic}))
-
 
     if(type == "permutation"){
         obs.multivariate <- matrix(object$multivariate[,"statistic"], nrow = NROW(object$multivariate), ncol = NCOL(sample.multivariate))
         obs.univariate <- matrix(object$univariate[,"statistic"], nrow = NROW(object$univariate), ncol = NCOL(sample.univariate), byrow = FALSE)
         
-        object$multivariate$p.value <- (rowSums(abs(sample.multivariate) > abs(obs.multivariate), na.rm = TRUE)+1)/(rowSums(!is.na(sample.multivariate))+1)
-        object$univariate$p.value <- (rowSums(abs(sample.univariate) > abs(obs.univariate), na.rm = TRUE)+1)/(rowSums(!is.na(sample.univariate))+1)
+        if(is.null(method) || (method %in% method.merge == FALSE)){
+            out$multivariate <- object$multivariate
+            out$multivariate$df.num <- NA
+            out$multivariate$df.denom <- NA
+            out$multivariate$p.value <- (rowSums(abs(sample.multivariate) > abs(obs.multivariate), na.rm = TRUE)+1)/(rowSums(!is.na(sample.multivariate))+1)
+            attr(out$univariate,"sample") <- sample.multivariate
+        }
+
+        if(is.null(method) || (method %in% method.merge == FALSE)){
+            out$univariate <- object$univariate
+        }else{
+            out$univariate <- model.tables(object, method = method, columns = keep.cols2)
+        }
+        out$univariate$se <- NA
+        out$univariate$df <- NA
+        out$univariate$p.value <- (rowSums(abs(sample.univariate) > abs(obs.univariate), na.rm = TRUE)+1)/(rowSums(!is.na(sample.univariate))+1)
+        attr(out$univariate,"sample") <- sample.univariate
 
     }else if(type == "bootstrap"){
-        alpha <- object$glht[[1]][[1]]$alternative
-        browser()
-        object$multivariate$p.value <- NA
-        object$univariate.value <- NA
+        alpha <- 1-level
 
-        
+        if(is.null(method) || (method %in% method.merge == FALSE)){
+            out$univariate <- object$univariate
+        }else{
+            out$univariate <- model.tables(object, method = method, columns = keep.cols2)
+        }
+        out$univariate$se <- apply(sample.univariate, MARGIN = 1, FUN = stats::sd, na.rm = TRUE)
+        out$univariate$statistic <- out$univariate$estimate/out$univariate$se
+        out$univariate$df <- NA
+        out$univariate$lower <- apply(sample.univariate, MARGIN = 1, FUN = stats::quantile, probs = alpha/2, na.rm = TRUE)
+        out$univariate$upper <- apply(sample.univariate, MARGIN = 1, FUN = stats::quantile, probs = 1-alpha/2, na.rm = TRUE)
 
-            object$univariate$se <- apply(sample.multivariate, MARGIN = 1, FUN = stats::sd, na.rm = TRUE)
-            object$univariate$lower <- apply(sample.multivariate, MARGIN = 1, FUN = stats::quantile, probs = alpha/2, na.rm = TRUE)
-            object$univariate$upper <- apply(sample.multivariate, MARGIN = 1, FUN = stats::quantile, probs = 1-alpha/2, na.rm = TRUE)
-
-            Mcv.sampleH0 <- scale(Mcv.sample, center = TRUE, scale = FALSE)
-            out$p.value <- (colSums(abs(Mcv.sampleH0) > abs(Mcv.estimate), na.rm = TRUE)+1)/(colSums(!is.na(Mcv.sample))+1)
- 
+        if(!inherits(calc.pvalue,"try-error")){
+            out$univariate$p.value <- sapply(name.keepcoef, function(iName){
+                BuyseTest::boot2pvalue(stats::na.omit(sample.univariate[,iName]),
+                                       null = 0,
+                                       estimate = out[iName,"estimate"],
+                                       alternative = "two.sided",
+                                       add.1 = correction)
+            })
+        }
+        attr(out$univariate,"sample") <- sample.univariate
     }
     
-
-
     ## ** export
-    return(object)
+    return(out)
 }
 
 ##----------------------------------------------------------------------

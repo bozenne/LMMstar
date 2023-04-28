@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: Feb 26 2023 (11:50) 
+## Last-Updated: apr 18 2023 (13:21) 
 ##           By: Brice Ozenne
-##     Update #: 583
+##     Update #: 618
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -259,6 +259,34 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     return(out)
 }
 
+## * confint.lmmCC (code)
+##' @export
+confint.lmmCC <- function(object, parm = NULL, level = 0.95, effects = NULL, columns = NULL, ...){
+
+    if(object$time$n==4 && (is.null(effects) || effects == "change")){
+
+        Mcon <- cbind(c(-1,1,0,0),c(0,0,-1,1))
+        out.estimate <- estimate(object, function(p){
+            Sigma.change <- t(Mcon) %*% sigma(object, p = p) %*% Mcon
+            c(cor = stats::cov2cor(Sigma.change)[1,2],
+              beta = Sigma.change[1,2]/Sigma.change[1,1])
+        }, level = level, ...)
+        if(!is.null(columns)){
+            out <- out.estimate[,intersect(names(out.estimate),columns)]
+        }else{
+            out <- out.estimate[,c("estimate","lower","upper")]
+        }
+        
+    }else{
+        class(object) <- setdiff(class(object),"lmmCC")
+        out <- confint(object, parm = parm, effects = effects, level = level, columns = columns, ...)
+    }
+
+    ## ** export
+    return(out)
+
+}
+
 ## * confint.Wald_lmm (documentation)
 ##' @title Confidence Intervals for Multivariate Wald Tests
 ##' @description Compute confidence intervals for linear hypothesis tests, possibly with adjustment for multiple comparisons.
@@ -418,10 +446,10 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
         if(is.null(method)){
             if(NROW(iTable$df)==1){
                 iMethod  <- "none"
-            }else if(length(unique(round(iTable$df)))>1){
-                iMethod <- "single-step2"
-            }else{
+            }else if(df == FALSE || all(abs(iTable$df - round(mean(iTable$df)))<0.1)){
                 iMethod <- "single-step"
+            }else{
+                iMethod <- "single-step2"
             }
         }else{
             if(NROW(iTable$df)==1){

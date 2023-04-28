@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: Feb 26 2023 (11:54) 
+## Last-Updated: apr 28 2023 (18:10) 
 ##           By: Brice Ozenne
-##     Update #: 1190
+##     Update #: 1205
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -34,6 +34,7 @@
 ##' @param type.cor [character] should the correlation matrix be display (\code{"matrix"}) or the parameter values (\code{"param"}).
 ##' @param hide.sd [logical] should information about the standard deviation not be printed.
 ##' @param hide.var [logical] should information about the variance not be printed.
+##' @param hide.re [logical] should information about the random effect not be printed.
 ##' @param hide.mean [logical] should information about the mean structure not be printed.
 ##' @param ... not used. For compatibility with the generic function.
 ##'
@@ -48,7 +49,7 @@
 ##' @export
 summary.lmm <- function(object, level = 0.95, robust = FALSE,
                         print = TRUE, columns = NULL, digits = 3, digits.df = 1, digits.p.value = 3, 
-                        hide.data = FALSE, hide.fit = FALSE, hide.cor = is.null(object$formula$cor), type.cor = NULL, hide.var = TRUE, hide.sd = FALSE, hide.mean = FALSE, ...){
+                        hide.data = FALSE, hide.fit = FALSE, hide.cor = NULL, type.cor = NULL, hide.var = NULL, hide.sd = NULL, hide.re = NULL, hide.mean = FALSE, ...){
 
     ## ** extract from object
     param.value <- object$param
@@ -61,6 +62,7 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
     data <- object$data
     call <- object$call
     structure <- object$design$vcov
+    structure.ranef <- structure$ranef
 
     logLik <- stats::logLik(object)
     nobs <- stats::nobs(object)
@@ -101,6 +103,18 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
 
     if(!is.null(type.cor)){
         type.cor <- match.arg(type.cor, c("matrix","param"))
+    }
+
+    if(inherits(structure,"RE")){
+        if(is.null(hide.cor)){hide.cor <- TRUE}
+        if(is.null(hide.sd)){hide.sd <- TRUE}
+        if(is.null(hide.var)){hide.var <- TRUE}
+        if(is.null(hide.re)){hide.re <- FALSE}
+    }else{
+        if(is.null(hide.cor)){hide.cor <- is.null(object$formula$cor)}
+        if(is.null(hide.sd)){hide.sd <- FALSE}
+        if(is.null(hide.var)){hide.var <- TRUE}
+        if(is.null(hide.re)){hide.re <- TRUE}
     }
 
     ## ** welcome message
@@ -161,22 +175,21 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
         }
         cat("  - log-likelihood :", as.double(logLik), "\n",sep="")
         cat("  - parameters: mean = ",length(param.mu),", variance = ",length(c(param.sigma,param.k)),", correlation = ",length(param.rho),"\n", sep = "")
-        if(object$opt$name!="gls"){
             abs.score <- abs(object$score)
             abs.diff <- abs(object$opt$previous.estimate-object$param)
             name.score <- names(which.max(abs.score))[1]
             name.diff <- names(which.max(abs.diff))[1]
             
-            cat("  - convergence: ",object$opt$cv>0," (",object$opt$n.iter," iterations) \n",
-                "    largest |score| = ",max(abs.score)," for ",name.score,"\n",
-                if(!is.null(name.diff)){paste0("            |change|= ",max(abs.diff)," for ",name.diff,"\n")},
-                sep = "")
-        }
+        cat("  - convergence: ",object$opt$cv>0," (",object$opt$n.iter," iterations) \n",
+            "    largest |score| = ",max(abs.score)," for ",name.score,"\n",
+            if(!is.null(name.diff)){paste0("            |change|= ",max(abs.diff)," for ",name.diff,"\n")},
+            sep = "")
+
         cat(" \n")
     }
 
     ## ** vcov structure
-    if(print && (!hide.cor || !hide.var || !hide.sd)){
+    if(print && (!hide.cor || !hide.var || !hide.sd || !hide.re)){
         cat("Residual variance-covariance: ")
         if(is.na(structure$name$strata)){
             txt.strata <- ""
@@ -188,8 +201,17 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
             hide.sd <- TRUE
             hide.var <- TRUE
         }
-
-        if(length(param.rho)==0){
+        if(inherits(structure,"RE")){
+            if(structure.ranef$type$crossed==FALSE && structure.ranef$type$nested==FALSE){
+                cat("random intercept \n", sep = "")
+            }else if(structure.ranef$type$crossed==FALSE && structure.ranef$type$nested==TRUE){
+                cat("nested random intercepts \n", sep = "")
+            }else if(structure.ranef$type$crossed==TRUE && structure.ranef$type$nested==FALSE){
+                cat("cross random intercepts \n", sep = "")
+            }else{
+                cat("random effects \n", sep = "")
+            }        
+        }else if(length(param.rho)==0){
             if(length(c(param.sigma,param.k))==0){
                 cat(txt.strata,"identity (variance=1) \n\n",sep="")
             }else if(length(c(param.sigma,param.k))==1){
@@ -274,7 +296,7 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
     }
     
 
-    ## *** variance    
+    ## *** variance
     if(!hide.var || !hide.sd){
         name.sigma <- names(coef(object, transform.k = "sd", effects = "variance"))
         index.ref <- which(names(coef(object, effects = "variance", transform.names = FALSE)) %in% names(param.sigma))
@@ -318,7 +340,11 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
         rownames(printtable) <- paste0("    ",name.sigma)
         print(printtable, digits = digits)
     }
-    if(print && (!hide.cor || !hide.var || !hide.sd)){
+    if(print && !hide.re){
+    }
+
+    
+    if(print && (!hide.cor || !hide.var || !hide.sd || !hide.re)){
         cat("\n")
     }
 
@@ -724,9 +750,7 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
         }
         cat("  - log-likelihood :", paste(round(as.double(logLik), digits = digits),collapse = ", "), "\n",sep="")
         cat("  - parameters: mean = ",paste(nparam.mu,collapse = ", "),", variance = ",paste(nparam.sigma+nparam.k,collapse = ", "),", correlation = ",paste(nparam.rho,collapse = ", "),"\n", sep = "")
-        if(optimizer!="gls"){
-            cat("  - convergence: ",paste(cv>0,collapse = ", ")," (",paste(n.iter,collapse = ", ")," iterations) \n", sep = "")
-        }
+        cat("  - convergence: ",paste(cv>0,collapse = ", ")," (",paste(n.iter,collapse = ", ")," iterations) \n", sep = "")
         cat(" \n")
     }
 

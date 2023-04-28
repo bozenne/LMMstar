@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: nov 30 2022 (12:10) 
+## Last-Updated: apr 28 2023 (09:27) 
 ##           By: Brice Ozenne
-##     Update #: 552
+##     Update #: 553
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -241,19 +241,6 @@ sigma.clmm <- function(object, ...){
     out <- sigma.lmm(object, ...)
     return(out)
 
-}
-
-## * getVarCov.lmm
-##' @title Depreciated Extractor of the Residual Variance-Covariance Matrix
-##' @description Depreciated extractor of the residual variance-covariance matrix.
-##' @param obj  a \code{lmm} object.
-##' @param ... other arguments.
-##' @return Nothing
-##' @seealso \code{\link{sigma.lmm}}
-#' @export
-getVarCov.lmm <- function(obj, ...) {
-  .Deprecated("sigma.lmm")
-  NULL
 }
 
 ## * .getUVarPattern

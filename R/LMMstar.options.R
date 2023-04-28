@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: jan  3 2023 (16:34) 
+## Last-Updated: apr 28 2023 (15:34) 
 ##           By: Brice Ozenne
-##     Update #: 115
+##     Update #: 118
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -36,7 +36,7 @@
 #' \item method.fit [character]: objective function when fitting the Linear Mixed Model (REML or ML). Used by \code{lmm}.
 #' \item method.numDeriv [character]: type used to approximate the third derivative of the log-likelihood (when computing the degrees of freedom). Can be \code{"simple"} or \code{"Richardson"}. See \code{numDeriv::jacobian} for more details. Used by \code{lmm}.
 #' \item n.sampleCopula [integer]: number of samples used to compute confidence intervals and p-values adjusted for multiple comparisons via \code{"single-step2"}. Used by \code{confint.Wald_lmm}.
-#' \item optimizer [character]: method used to estimate the model parameters: can the \code{nlme::gls} (\code{"gls"}) or an algorithm combine fisher scoring for the variance parameters and generalized least squares for the mean parameters (\code{"FS"}).
+#' \item optimizer [character]: method used to estimate the model parameters. Either \code{"FS"}, an home-made fisher scoring algorithm, or a method from \code{optimx:optimx} like \code{"BFGS"}or \code{Nelder-Mead}.
 #' \item param.optimizer [numeric vector]: default option for the \code{FS} optimization routine: maximum number of gradient descent iterations (\code{n.iter}), maximum acceptable score value (\code{tol.score}), maximum acceptable change in parameter value (\code{tol.param}).
 #' \item precompute.moments [logical]: Should the cross terms between the residuals and design matrix be pre-computed. Useful when the number of subject is substantially larger than the number of mean paramters.
 #' \item trace [logical]: Should the progress of the execution of the \code{lmm} function be displayed?
@@ -109,7 +109,7 @@ LMMstar.options <- function(..., reinitialise = FALSE){
           }
           if("optimizer" %in% names(args)){
               optimx.method <- c("BFGS", "CG", "Nelder-Mead", "nlminb", "bobyqa")
-              args$optimizer <- match.arg(args$optimizer, c("gls","FS",optimx.method)) ## FS = fisher scoring
+              args$optimizer <- match.arg(args$optimizer, c("FS",optimx.method)) ## FS = fisher scoring
               if(args$optimizer %in% optimx.method){
                   requireNamespace("optimx")
               }
