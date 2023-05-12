@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: apr 28 2023 (15:35) 
+## Last-Updated: maj 10 2023 (10:24) 
 ##           By: Brice Ozenne
-##     Update #: 961
+##     Update #: 965
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,7 +15,7 @@
 ## 
 ### Code:
 
-## * estimate.lmm
+## * estimate.lmm (documentation)
 ##' @title Delta Method for Mixed Models
 ##' @description Perform a first order delta method
 ##'
@@ -71,6 +71,9 @@
 ##' }
 ##'
 ##' }
+
+
+## * estimate.lmm (code)
 ##' @export
 estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.information = NULL, level = 0.95,
                          method.numDeriv = NULL, average = FALSE,
@@ -184,6 +187,71 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
     return(out)
 }
 
+## * estimate.lmm (code)
+##' @export
+estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
+                                   method.numDeriv = NULL, average = FALSE, ...){
+
+    ## ** normalize arguments
+    if(is.null(method.numDeriv)){
+        method.numDeriv <- LMMstar.options()$method.numDeriv
+    }
+
+    ## ** estimate
+    beta <- coef(x)
+    
+    ## ** partial derivative
+    f.formals <- names(formals(f))
+    if(length(f.formals)==1){
+        if(average){
+            fbeta.indiv <- f(beta) 
+            fbeta <- mean(fbeta.indiv)
+            grad <- numDeriv::jacobian(func = function(x){mean(f(x))}, x = beta, method = method.numDeriv)
+        }else{
+            fbeta <- f(beta)
+            grad <- numDeriv::jacobian(func = f, x = beta, method = method.numDeriv)
+        }
+        
+    }else{
+        if(average){
+            fbeta.indiv <- f(beta, ...)
+            fbeta <- mean(fbeta.indiv)
+            grad <- numDeriv::jacobian(func = function(x, ...){mean(f(x, ...))}, x = beta, method = method.numDeriv)
+        }else{
+            fbeta <- f(beta, ...)
+            grad <- numDeriv::jacobian(func = f, x = beta, method = method.numDeriv, ...)
+        }
+    }
+    colnames(grad) <- names(beta)
+    
+    ## ** extract variance-covariance
+    Sigma <- vcov(x)
+
+    ## ** delta-method
+    C.Sigma.C <- grad %*% Sigma %*% t(grad)
+
+    if(average){
+        C.sigma.C <- sqrt(diag(C.Sigma.C) + sum((fbeta.indiv - fbeta)^2)/(length(fbeta.indiv)-1))
+    }else{
+        C.sigma.C <- sqrt(diag(C.Sigma.C))
+    }
+    
+    ## ** export
+    alpha <- 1-level
+    out <- data.frame(estimate = as.double(fbeta),
+                      se = as.double(C.sigma.C),
+                      df = Inf,
+                      lower = as.double(fbeta + stats::qnorm(alpha/2) * C.sigma.C),
+                      upper = as.double(fbeta + stats::qnorm(1-alpha/2) * C.sigma.C),
+                      p.value = as.double(2*(1-stats::pnorm(abs(fbeta/C.sigma.C)))))
+    attr(out,"gradient") <- grad
+    if(!is.null(names(fbeta))){
+        rownames(out) <- names(fbeta)
+        rownames(attr(out,"gradient")) <- names(fbeta)
+    }
+    colnames(attr(out,"gradient")) <- names(beta)
+    return(out)
+}
 
 ## * .estimate (documentation)
 ##' @title Optimizer for mixed models

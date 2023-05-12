@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: apr 18 2023 (13:21) 
+## Last-Updated: maj 12 2023 (11:42) 
 ##           By: Brice Ozenne
-##     Update #: 618
+##     Update #: 622
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -307,7 +307,7 @@ confint.lmmCC <- function(object, parm = NULL, level = 0.95, effects = NULL, col
 ##'  \item \code{"holm"}, \code{"hochberg"}, \code{"hommel"}, \code{"BH"}, \code{"BY"}, \code{"fdr"}: adjustment performed by [stats::p.adjust()], no confidence interval is computed.
 ##'  \item \code{"single-step"}, \code{"free"}, \code{"Westfall"}, \code{"Shaffer"}: adjustment performed by [multcomp::glht()],  for all but the first method no confidence interval is computed.
 ##' }
-##' Note: method \code{"single-step"} adjust for multiple comparisons using quantiles of the multivariate Student's t-distribution, assuming equal degrees of freedom in the marginal.
+##' Note: method \code{"single-step"} adjust for multiple comparisons using equicoordinate quantiles of the multivariate Student's t-distribution over all tests, instead of the univariate quantiles. It assumes equal degrees of freedom in the marginal and is described in section 7.1 of Dmitrienko et al. (2013) under the name single-step Dunnett procedure. The name \code{"single-step"} is borrowed from the multcomp package. In the book Bretz et al. (2010) written by the authors of the package, the procedure is refered to as max-t tests which is the terminology adopted in the LMMstar package.  \cr
 ##' When degrees of freedom differs between individual hypotheses, method \code{"single-step2"} is recommended. It simulates data using copula whose marginal distributions are Student's t-distribution (with possibly different degrees of freedom) and elliptical copula with parameters the estimated correlation between the test statistics (via the copula package). It then computes the frequency at which the simulated maximum exceed the observed maximum and appropriate quantile of simulated maximum for the confidence interval.
 ##'
 ##'  \bold{Pooling estimates}: available methods are:
@@ -320,7 +320,9 @@ confint.lmmCC <- function(object, parm = NULL, level = 0.95, effects = NULL, col
 ##'  \item \code{"pool.rubin"}: average of the estimates and compute the uncertainty according to Rubin's rule (Barnard et al. 1999).
 ##' }
 ##'
-##' @references Barnard and Rubin, Small-sample degrees of freedom with multiple imputation. Biometrika (1999), 86(4):948-955.
+##' @references Barnard and Rubin, \bold{Small-sample degrees of freedom with multiple imputation}. \emph{Biometrika} (1999), 86(4):948-955. \cr
+##' Dmitrienko, A. and D'Agostino, R., Sr (2013), \bold{Traditional multiplicity adjustment methods in clinical trials}. \emph{Statist. Med.}, 32: 5172-5218.
+##' Frank Bretz, Torsten Hothorn and Peter Westfall (2010), \bold{Multiple Comparisons Using R}, \emph{CRC Press}, Boca Raton.
 
 ## * confint.Wald_lmm (code)
 ##' @export

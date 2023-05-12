@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: apr 18 2023 (09:56) 
+## Last-Updated: maj 11 2023 (18:12) 
 ##           By: Brice Ozenne
-##     Update #: 312
+##     Update #: 317
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -73,7 +73,7 @@
 .initialize.ID <- function(object, residuals, Xmean, index.cluster){
 
     param.type <- stats::setNames(object$param$type,object$param$name)
-    param.strata <- stats::setNames(object$param$strata,object$param$name)
+    param.strata <- stats::setNames(object$param$index.strata,object$param$name)
     Upattern.name <- object$X$Upattern$name
 
     ## combine all residuals and all design matrices
@@ -368,6 +368,10 @@
     ## ** export    
     return(out)
 }
+
+## * initialize.RE, initialize2.RE
+.initialize.RE <- .initialize.CS
+.initialize2.RE <- .initialize2.CS
 
 ## * initialize.TOEPLITZ, initialize2.TOEPLITZ
 .initialize.TOEPLITZ <- .initialize.CS

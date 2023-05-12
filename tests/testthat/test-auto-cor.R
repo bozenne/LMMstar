@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 20 2022 (12:12) 
 ## Version: 
-## Last-Updated: Nov 12 2022 (17:03) 
+## Last-Updated: maj 10 2023 (11:58) 
 ##           By: Brice Ozenne
-##     Update #: 66
+##     Update #: 67
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,7 +25,7 @@ if(FALSE){
 }
 
 context("Compare ICC estimation")
-LMMstar.options(optimizer = "gls", method.numDeriv = "simple", precompute.moments = TRUE)
+LMMstar.options(optimizer = "FS", method.numDeriv = "simple", precompute.moments = TRUE)
 
 ## * Correlation
 

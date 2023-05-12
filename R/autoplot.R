@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: mar  8 2023 (14:38) 
+## Last-Updated: maj  4 2023 (12:08) 
 ##           By: Brice Ozenne
-##     Update #: 645
+##     Update #: 690
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -221,7 +221,7 @@ autoplot.lmm <- function(object, type = "fit", type.residual = "normalized",
         xlabel.plot <- time.var
     }
     time.var <- attr(object$time$var,"original") ## need to be after statement on time.var.plot to avoid confusion
-    mu.var <- rhs.vars(object$formula$mean)
+    mu.var <- formula2var(object$formula$mean)$var$regressor
     if(length(time.var) == 0 && length(mu.var) == 0){
         message("There is nothing to be displayed: empty time variable and no covariate for the mean structure. \n")
         return(NULL)
@@ -817,6 +817,91 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, by
 
 }
 
+## * autoplot.summarize (code)
+##' @export
+autoplot.summarize <- function(object, type = "mean", variable = NULL,
+                               size.text = 16, linewidth = 1.25, size = 3,
+                               ...){
+
+    ## ** normalize input
+    name.X <- attr(object, "name.X")
+    name.Y <- attr(object, "name.Y")
+    name.id <- attr(object, "name.id")
+    name.time <- attr(object, "name.time")
+    if(length(name.time)==0){
+        if(length(name.X)>1){
+            stop("Unknown time variable: cannot provide graphical display. \n",
+                 "Consider indicating the cluster variable in the formula when calling summarize. \n",
+                 "Something like Y ~ time | id or Y ~ time + group | id. \n")
+        }
+    }
+    name.stat <- setdiff(names(object), c("outcome",name.X,name.Y))
+    correlation <- attr(object,"correlation")
+
+    ## variable
+    if(is.null(variable)){
+        if(length(name.Y)>1){
+            stop("Missing patterns for several variables could be displayed. \n",
+                 "Consider specifying which one via the argument \'variable\'. \n")
+        }else{
+            variable <- name.Y
+        }
+    }else if(length(variable)!=1){
+        stop("Argument \'variable\' should have length 1. \n")
+    }else{
+        if(variable %in% unique(object$outcome) == FALSE){
+            stop("Incorrect value passed to argument \'variable\'. \n",
+                 "Possible values: \"",paste(unique(object$outcome), collapse = "\", \""),"\"\n")
+        }        
+    }
+
+    ## object
+    object <- object[object$outcome==variable,]
+    if(is.null(correlation)){
+        name.stat.all <- name.stat
+    }else{
+        name.stat.all <- c(name.stat,"correlation")
+        correlation <- correlation[[variable]]
+    }
+
+    ## type
+    type <- match.arg(type, name.stat.all)
+
+    ## ** graph
+    if(type == "correlation"){
+        gg <- .ggHeatmap(correlation, name.time = name.time, ...)
+    }else{
+        dots <- list(...)
+        if(length(dots)>0){
+            stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+        }
+
+        name.group <- setdiff(name.X,name.time)
+        if(length(name.group)==0){
+            gg <- ggplot2::ggplot(object, ggplot2::aes(x = .data[[name.time]], y = .data[[type]]))
+        }else if(length(name.group)==1){
+            gg <- ggplot2::ggplot(object, ggplot2::aes(x = .data[[name.time]], y = .data[[type]],
+                                                       group = .data[[name.group]], color = .data[[name.group]]))
+        }else{
+            name.Group <- as.character(interaction(name.group))
+            object[[name.Group]] <- interaction(object[,name.group])
+            gg <- ggplot2::ggplot(object, ggplot2::aes(x = .data[[name.time]], y = .data[[type]],
+                                                       group = .data[[name.Group]], color = .data[[name.Group]]))
+        }
+        gg <- gg + geom_point(size = size) + geom_line(linewidth = linewidth)
+        gg <- gg + ggplot2::labs(y = variable)
+        if(!is.null(size.text)){
+            gg <- gg + ggplot2::theme(text = ggplot2::element_text(size=size.text))
+        }
+        data <- NULL
+    }
+
+
+    ## ** export
+    return(list(data = data,
+                plot = gg))
+}
+
 ## * autoplot.summarizeNA (documentation)
 ##' @title Graphical Display of Missing Data Pattern
 ##' @description Graphical representation of the possible missing data patterns in the dataset.
@@ -1162,7 +1247,81 @@ autoplot.Wald_lmm <- function(object, type = "forest", size.text = 16, add.args 
     return(list(data = table,
                 plot = gg))
 }
+## * .ggHeatmap
+.ggHeatmap <- function(object, name.time, size.text = 16, digits.cor = 2, name.legend = "Correlation", title = NULL,
+                       scale = ggplot2::scale_fill_gradient2, type.cor = "both",
+                       args.scale = list(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1,1))
+                       ){
 
+    ## ** from matrix/list format to data.frame
+    type.cor <- match.arg(type.cor, c("lower","upper","both"))
+    mat2df <- function(mat){
+        df <- as.data.frame(mat)
+        name.col <- names(df)
+        ind.cor <- !is.na(df)
+        arr.ind.cor <- which(ind.cor, arr.ind = TRUE)
+        arr.ind.cor[] <- name.col[arr.ind.cor]
+
+        df.gg <- data.frame(correlation = df[ind.cor], arr.ind.cor, stringsAsFactors = FALSE)
+        df.gg$col <- factor(df.gg$col, levels = name.col, labels = name.col)
+        df.gg$row <- factor(df.gg$row, levels = rev(name.col), labels = rev(name.col))
+        df.gg$row.index <- match(df.gg$row, name.col)
+        df.gg$col.index <- match(df.gg$col, name.col)
+        if(type.cor=="lower"){
+            df.gg <- df.gg[df.gg$col.index<=df.gg$row.index,,drop=FALSE]
+            rownames(df.gg) <- NULL
+        }else if(type.cor=="upper"){
+            df.gg <- df.gg[df.gg$col.index>=df.gg$row.index,,drop=FALSE]
+            rownames(df.gg) <- NULL
+        }
+        return(df.gg)
+    }
+    if(is.matrix(object) || is.data.frame(object)){
+        name.object <- NULL
+        data <- mat2df(object)
+    }else if(is.list(object) && length(object) == 1 && is.null(names(object))){
+        name.object <- NULL
+        data <- mat2df(object[[1]])
+    }else if(is.list(object)){
+        name.object <- names(object)
+        data <- do.call(rbind,lapply(name.object, function(iName){
+            cbind(iName, mat2df(object[[iName]]))
+        }))        
+    }else {
+        stop("Unknown data type: should be matrix, data.frame, or list. \n")
+    }
+
+    ## ** graphical display
+    gg <- ggplot2::ggplot(data, ggplot2::aes(x = .data$col,
+                                             y = .data$row,
+                                             fill = .data$correlation)) 
+    gg <- gg + ggplot2::geom_tile()
+    if(!is.null(name.object)){
+        gg <- gg + ggplot2::facet_wrap(~iName)
+    }
+    if(!is.null(scale)){
+        gg <- gg + do.call(scale, args.scale)
+    }
+    if(!is.null(name.time)){
+        gg <- gg + ggplot2::labs(x = name.time, y = name.time)
+    }
+    if(!is.null(name.legend)){
+        gg <- gg + ggplot2::labs(fill = name.legend)
+    }
+    if(!is.null(title)){
+        gg <- gg + ggplot2::ggtitle(title)
+    }
+    if(!is.null(size.text)){
+        gg <- gg + ggplot2::theme(text = ggplot2::element_text(size=size.text))
+    }
+    if(!is.null(digits.cor) && !is.na(digits.cor) && digits.cor>0){
+        gg <- gg + ggplot2::geom_text(ggplot2::aes(label = round(.data$correlation,digits.cor)))
+    }
+
+    ## ** export
+    return(gg)
+
+}
 
 
 ##----------------------------------------------------------------------

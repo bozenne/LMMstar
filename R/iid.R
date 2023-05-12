@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  4 2021 (10:04) 
 ## Version: 
-## Last-Updated: mar  8 2023 (09:56) 
+## Last-Updated: maj 10 2023 (10:14) 
 ##           By: Brice Ozenne
-##     Update #: 30
+##     Update #: 32
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,6 +15,7 @@
 ## 
 ### Code:
 
+## * iid.lmm (documentation)
 ##' @title Extract the Influence Function From a Linear Mixed Model
 ##' @description Extract the influence function from a linear mixed model.
 ##' 
@@ -32,6 +33,7 @@
 ##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
 ##' @param ... Not used. For compatibility with the generic method.
 
+## * iid.lmm (code)
 ##' @export
 iid.lmm <- function(x,
                     effects = "mean",
@@ -82,5 +84,20 @@ iid.lmm <- function(x,
     ## ** export
     return(out)
 }
+
+## * iid.Wald_lmm (code)
+##' @export
+iid.Wald_lmm <- function(x, ...){
+
+    ## ** normalize user imput
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
+    ## ** export
+    return(x$iid)
+}
+
 ##----------------------------------------------------------------------
 ### iid.R ends here

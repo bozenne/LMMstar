@@ -1,0 +1,134 @@
+### structure-skeletonK.R --- 
+##----------------------------------------------------------------------
+## Author: Brice Ozenne
+## Created: maj 11 2023 (11:55) 
+## Version: 
+## Last-Updated: maj 11 2023 (17:09) 
+##           By: Brice Ozenne
+##     Update #: 29
+##----------------------------------------------------------------------
+## 
+### Commentary: 
+## 
+### Change Log:
+##----------------------------------------------------------------------
+## 
+### Code:
+
+## * .skeletonK
+##' @title Parametrization of Variance Multiplier Structure.
+##' @description Parametrization of the ratio between the variance for the reference level and the other levels.
+##' @noRd
+##'
+##' @param structure [structure]
+##' @param U.strata [character vector] strata levels
+##' @param sep [character vector of length 2] characters used to name the variance parameters,
+##' the first is used to specify the covariate level whereas
+##' the second is used to specify the strata level (when more than 1 strata).
+##'
+##' @keywords internal
+
+`.skeletonK` <-
+    function(structure, U.strata, n.strata, sep) UseMethod(".skeletonK")
+
+## * .skeletonK.ID
+.skeletonK.ID <- function(structure, U.strata, sep = c(".",":")){
+
+    ## no variance multipler
+    return(structure)
+
+}
+
+## * .skeletonK.IND
+.skeletonK.IND <- function(structure, U.strata, sep = c(".",":")){
+
+    ## ** extract information
+    strata.var <- structure$name$strata
+    X.var <- structure$X$var
+    if(NCOL(X.var)==0){
+        n.strata <- 0
+    }else{
+        n.strata <- length(U.strata)
+    }
+    index.sigma <- structure$param[structure$param$type=="sigma","index.level"]
+    param.sigma <- structure$param[structure$param$type=="sigma","name"]
+    strata.sigma <- structure$param[structure$param$type=="sigma","index.strata"]
+    
+    ## ** identify and name parameters
+    index.k <- which(attr(X.var,"assign")>(n.strata>1)) ## complement with structure$param$$index.level
+    if(length(index.k)==0){return(structure)} ## no variance multiplier
+    
+    M.level.k <- attr(X.var,"M.level")[index.k,,drop=FALSE]
+    vec.level.k <- as.character(interaction(as.data.frame(lapply(1:NCOL(M.level.k), function(iVar){
+        paste0(names(M.level.k)[iVar],M.level.k[,iVar])
+    })), sep = sep[2], drop = TRUE) )
+
+    if(n.strata==1 || NCOL(M.level.k)>1){ ## no strata or strata with covariate
+        level.k <- paste0(sep[1],as.character(interaction(M.level.k, sep = sep[2], drop = TRUE)))
+    }else{ ## only strata
+        level.k <- as.character(interaction(M.level.k, sep = sep[2], drop = TRUE))
+    }
+        
+    if(!identical(colnames(X.var)[index.k],vec.level.k)){
+        stop("Could not find the k parameters in the design matrix for the variance.\n")
+    }    
+    colnames(X.var)[index.k] <- paste0("k",level.k)
+    param.k <- colnames(X.var)[index.k]
+    n.k <- length(param.k)
+
+    ## ** find code associated to each parameter
+    ## subset rows corresponding only to the 'baseline' variance
+    index.keep <- rowSums(abs(X.var[,-index.sigma,drop=FALSE]))
+    X.Uk <- unique(X.var[index.keep>0,,drop=FALSE])
+
+    ## generate code
+    code.k <- stats::setNames(as.character(interaction(as.data.frame(X.Uk), drop = TRUE, sep = sep[2])),
+                              apply(X.Uk[,param.k,drop=FALSE], 1, function(iRow){names(which(iRow==1))}))[param.k]
+    code.k <- as.character(code.k[param.k])
+
+    if(n.strata == 1){
+        strata.k <- stats::setNames(rep(1,n.k),param.k)
+    }else{
+        strata.k <- stats::setNames(match(M.level.k[,strata.var],U.strata),param.k)
+    }
+
+    ## ** update
+    structure$X$var <- X.var
+    structure.k <- data.frame(name = param.k,
+                              index.strata = strata.k,
+                              type = rep("k",length=n.k),
+                              index.level = index.k,
+                              level = level.k,
+                              code = code.k,
+                              code.x = as.character(NA),
+                              code.y = as.character(NA),
+                              sigma = param.sigma[match(strata.k,strata.sigma)],
+                              k.x = as.character(NA),
+                              k.y = as.character(NA),                                  
+                              stringsAsFactors = FALSE)
+    structure$param <- rbind(structure$param, structure.k)
+    ## attr(structure$param,"level.var") <- c(attr(structure$param,"level.var"), outK$code)
+
+    ## ** export
+    return(structure)
+
+}
+
+
+## * skeletonK.CS
+.skeletonK.CS <- .skeletonK.IND
+
+## * skeletonK.RE
+.skeletonK.RE <- .skeletonK.IND
+
+## * skeletonK.TOEPLITZ
+.skeletonK.TOEPLITZ <- .skeletonK.IND
+
+## * skeletonK.UN
+.skeletonK.UN <- .skeletonK.IND
+
+## * skeletonK.EXP
+.skeletonK.UN <- .skeletonK.IND
+
+##----------------------------------------------------------------------
+### structure-skeletonK.R ends here

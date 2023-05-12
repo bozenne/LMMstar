@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb 16 2023 (09:39) 
 ## Version: 
-## Last-Updated: mar  8 2023 (14:35) 
+## Last-Updated: maj  4 2023 (10:59) 
 ##           By: Brice Ozenne
-##     Update #: 687
+##     Update #: 691
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -81,7 +81,7 @@
 ##' ## coloring per group
 ##' scatterplot(gastricbypassL, formula = weight~time|id, group = "group")
 ##' 
-##' ## only display percentage of NAs
+##' ## only display NAs
 ##' scatterplot(gastricbypassL, formula = glucagonAUC~time|id,
 ##'             display.NA = "only", group = "group")
 ##' scatterplot(gastricbypassL, formula = glucagonAUC~time|id,
@@ -183,32 +183,31 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
             warning("Argument \'columns\' is ignored when using the wide format. \n")
         }
 
-        name.all <- all.vars(formula)
+        detail.formula <- formula2var(formula)
+        name.all <- detail.formula$vars$all
         if(any(name.all %in% names(dataL) == FALSE)){
             invalid <- name.all[name.all %in% names(dataL) == FALSE]
             stop("Argument \'formula\' is inconsistent with argument \'data\'. \n",
                  "Variable(s) \"",paste(invalid, collapse = "\" \""),"\" could not be found in the dataset. \n",
                  sep = "")
         }
-        name.Y <- lhs.vars(formula)
+        name.Y <- detail.formula$var$response
         n.Y <- length(name.Y)
         if(n.Y!=1){
             stop("Wrong specification of argument \'formula\'. \n",
                  "There need to be exactly one variable in the left hand side of the formula. \n")
         }
-        index.bar <- grep("|",deparse(formula), fixed = TRUE)
-        if(length(index.bar)>1){
+
+        name.id <- detail.formula$var$cluster
+        if(length(detail.formula$var$ranef)>0){
             stop("Wrong specification of argument \'formula\'. \n",
-                 "There should at most one symbol |. \n")
-        }else if(length(index.bar)==1){
-            formula.split <- strsplit(split = "|",deparse(formula),fixed=TRUE)
-            formula2 <- stats::as.formula(formula.split[[1]][1])
-            name.time <- rhs.vars(formula2)            
-            name.id <- trimws(formula.split[[1]][2], which = "both")
-        }else{
+                 "Should be something like Y ~ time|id. \n")
+        }else if(length(name.id)==0){
             dataL$XXindexXX <- 1:NROW(dataL)
             name.id <- "XXindexXX"
-            name.time <- rhs.vars(formula)
+            name.time <- detail.formula$var$regressor
+        }else{
+            name.time <- detail.formula$var$time
         }
         
         if(length(name.time)==0){

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: dec  7 2022 (19:11) 
+## Last-Updated: maj  4 2023 (11:28) 
 ##           By: Brice Ozenne
-##     Update #: 266
+##     Update #: 279
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -120,25 +120,24 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
              "Variable(s) \"",paste(invalid, collapse = "\" \""),"\" could not be found in the dataset. \n",
              sep = "")
     }
-
-    name.Y <- lhs.vars(formula)
+    detail.formula <- formula2var(formula)
+    name.Y <- detail.formula$var$response
     n.Y <- length(name.Y)
     if(n.Y==0){
         stop("Wrong specification of argument \'formula\'. \n",
              "There need to be at least one variable in the left hand side of the formula. \n")
     }
-    if(length(grep("|",deparse(formula), fixed = TRUE))>1){
+    
+    name.id <- detail.formula$var$cluster
+    if(length(name.id)==0){
+        name.X <- detail.formula$var$regressor
+        formula <- detail.formula$formula$all
+    }else if("ranef" %in% names(detail.formula$vars)){
         stop("Wrong specification of argument \'formula\'. \n",
-             "There should at most one symbol |. \n")
-    }else if(length(grep("|",deparse(formula), fixed = TRUE))==1){
-        formula.split <- strsplit(split = "|",deparse(formula),fixed=TRUE)
-        formula2 <- stats::as.formula(formula.split[[1]][1])
-        name.X <- rhs.vars(formula2)
-        if(length(setdiff(name.all,c(name.Y,name.X)))!=1){
-            stop("Wrong specification of argument \'formula\'. \n",
-                 "There should be exactly one variable on the right hand side of the formula after the symbol |. \n")
-        }
-        name.id <- trimws(formula.split[[1]][2], which = "both")
+             "Should be something like Y ~ time or Y ~ time + G | cluster. \n")
+    }else if(length(name.id)==1){
+        name.X <- detail.formula$var$time
+        formula <- stats::as.formula(paste(name.Y, "~", paste(name.X, collapse = "+")))
 
         test.between <- stats::setNames(sapply(name.X, function(iXvar){
             max(tapply(data[[iXvar]],data[[name.id]], FUN = function(x){sum(!duplicated(x))}), na.rm = TRUE)
@@ -151,12 +150,12 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
             ls.id <- list(unique(as.character(data[[name.id]])))
         }
     }else{
-        name.X <- rhs.vars(formula)
-        name.id <- NULL
-        formula2 <- formula
+        stop("Wrong specification of argument \'formula\'. \n",
+             "There should be exactly one variable on the right hand side of the formula after the symbol |. \n",
+             "Something like Y ~ time + G | cluster. \n")
     }
     n.X <- length(name.Y)
-    
+
     if("which" %in% names(match.call())){
         warning("Argument \'which\' is deprecated. Consider using argument \'columns\' instead. \n")
         columns <- which
@@ -215,13 +214,14 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
                                                            c(name.id,name.X)))
         }
     }else{
+        time <- NULL
         table.id.time <- NULL
     }
         
     
     ## ** compute summary statistics
     out <- NULL
-    iFormula <- stats::update(formula2, paste0("XXindexXX~."))
+    iFormula <- stats::update(formula, paste0("XXindexXX~."))
     iData <- cbind(XXindexXX = 1:NROW(data), data)
     for(iY in 1:n.Y){ ## iY <- 1
 
@@ -360,6 +360,8 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
     }
     attr(out,"name.Y") <- name.Y
     attr(out,"name.X") <- name.X
+    attr(out,"name.time") <- time
+    attr(out,"name.id") <- name.id
     class(out) <- append("summarize",class(out))
     return(out)
 }

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: apr 28 2023 (09:29) 
+## Last-Updated: maj 10 2023 (10:20) 
 ##           By: Brice Ozenne
-##     Update #: 576
+##     Update #: 577
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -258,6 +258,11 @@ coef.lmmCC <- function(object, effects = NULL, ...){
 
     if(object$time$n==4 && (is.null(effects) || effects == "change")){
 
+        dots <- list(...)
+        if(length(dots)>0){
+            stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+        }
+    
         Mcon <- cbind(c(-1,1,0,0),c(0,0,-1,1))
         Sigma.change <- t(Mcon) %*% stats::sigma(object) %*% Mcon
         out <- c(cor = stats::cov2cor(Sigma.change)[1,2],
@@ -278,6 +283,11 @@ coef.lmmCC <- function(object, effects = NULL, ...){
 ## * coef.Wald_lmm
 ##' @export
 coef.Wald_lmm <- function(object, ...){
+
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
 
     if(is.null(object$univariate)){
         return(NULL)

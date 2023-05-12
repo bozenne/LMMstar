@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:53) 
 ## Version: 
-## Last-Updated: apr 28 2023 (15:48) 
+## Last-Updated: maj 10 2023 (15:23) 
 ##           By: Brice Ozenne
-##     Update #: 148
+##     Update #: 162
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -41,7 +41,7 @@ formula.lmm <- function(x, effects = "mean", ...){
     }
 }
 
-## * formula2var
+## * formula2var (examples)
 ##' @examples
 ##'
 ##' formula2var(~X)
@@ -56,6 +56,8 @@ formula.lmm <- function(x, effects = "mean", ...){
 ##' formula2var(Y~(time|id))
 ##' formula2var(Y+Z~X+(1|id)+(1|region))
 ##' formula2var(Y+Z~s(X1)+X2*X3 + (X1|id:baseline))
+
+## * formula2var (code)
 formula2var <- function(formula, specials = NULL, name.argument  = "formula"){
     ## ** normalize user input
     if(!inherits(formula,"formula")){
@@ -156,7 +158,7 @@ formula2var <- function(formula, specials = NULL, name.argument  = "formula"){
         out$formula$regressor <- updateFormula(formula, drop.x = out$terms$all[-out$index.terms$regressor])  
         out$vars$regressor <- all.vars(out$formula$regressor)        
     }
-    
+
     ## *** extract time and cluster variables from special
     if(type.special=="repetition"){
 
@@ -168,7 +170,7 @@ formula2var <- function(formula, specials = NULL, name.argument  = "formula"){
         
         if(countChar(ff.varSPECIAL, pattern = "|", fixed = TRUE)!=1){
             stop("Incorrect value for argument \'",name.argument,"\' \n",
-                 "Right hand side of the formula should only contain on term, e.g. ~time|cluster.")
+                 "Right hand side of the formula should only contain one term, e.g. ~time|cluster.")
         }
 
         ## time
@@ -182,14 +184,14 @@ formula2var <- function(formula, specials = NULL, name.argument  = "formula"){
     }else if(type.special=="ranef"){
         out$formula$ranef <- updateFormula(ff.formulaRHS, drop.x = out$terms$regressor)  
         out$vars$ranef <- all.vars(out$formula$ranef)
-        out$terms$ranef <- out$terms$all[out$terms$all %in% out$terms$regressor == FALSE]
+        out$terms$ranef <- setdiff(out$terms$all[out$terms$all %in% out$terms$regressor == FALSE], c("0","1")) ## drop intercept
         out$index.terms$ranef <- which(out$terms$all %in% out$terms$regressor == FALSE)
-
         ls.timeCluster <- lapply(out$terms$ranef, function(iRanef){ ## iRanef <- out$terms$ranef[[1]]
-            iForm <- as.formula(paste0("~",iRanef))[[2]][[2]]
-            iOut <- list(time = all.vars(iForm[[2]]),
-                         hierarchy = all.vars(iForm[[3]]),
-                         cluster = all.vars(iForm[[3]])[1])
+            iForm <- stats::as.formula(paste0("~",iRanef))
+            iForm2 <- iForm[[2]][[2]] ## select after ~ and inside ()
+            iOut <- list(time = all.vars(iForm2[[2]]),
+                         hierarchy = all.vars(iForm2[[3]]),
+                         cluster = all.vars(iForm2[[3]])[1])
             if(length(iOut$time)==0){
                 iOut$name <- "(Intercept)"
             }else if(length(iOut$time)==1){

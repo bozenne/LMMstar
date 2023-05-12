@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: apr 28 2023 (14:09) 
+## Last-Updated: maj 11 2023 (14:05) 
 ##           By: Brice Ozenne
-##     Update #: 112
+##     Update #: 113
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -108,6 +108,33 @@ updateFormula <- function(formula, add.x = NULL, drop.x = NULL){
         txt.new <- paste0(deparse(formula[[1]]),paste0(term.formula, collapse="+"))
     }
     return(stats::as.formula(txt.new))
+}
+
+## * .unorderedPairs
+##' @title Form All Pairs
+##' @description Form all pairs of values
+##' @noRd
+##'
+##' @param x vector of values
+##' @param distinct [logical] should pairs containing the same value be removed?
+##' 
+##' @details adapted from RecordLinkage package
+##'
+##' @examples
+##' .unorderedPairs(1:5, distinct = TRUE) - utils::combn(5, m = 2)
+##' .unorderedPairs(1:5, distinct = FALSE)
+##' 
+.unorderedPairs <- function(x, distinct = FALSE){
+    n.x <- length(x)
+    out <- do.call(cbind,lapply(1:n.x, function(iK) {
+        rbind(x[iK], x[iK:n.x])
+    }))
+    
+    if(distinct){## same as combn but faster when x is large
+        return(out[,out[1,]!=out[2,],drop=FALSE])
+    }else{
+        return(out)
+    }
 }
 
 ##----------------------------------------------------------------------

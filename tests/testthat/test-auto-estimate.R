@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 31 2022 (11:36) 
 ## Version: 
-## Last-Updated: apr 18 2023 (09:38) 
+## Last-Updated: maj 10 2023 (14:52) 
 ##           By: Brice Ozenne
-##     Update #: 71
+##     Update #: 75
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,7 +25,7 @@ if(FALSE){
 }
 
 context("Check delta method (estimate function) for mixed model")
-LMMstar.options(optimizer = "gls", method.numDeriv = "simple", precompute.moments = TRUE,
+LMMstar.options(optimizer = "FS", method.numDeriv = "simple", precompute.moments = TRUE,
                 columns.confint = c("estimate","se","df","lower","upper","p.value"))
 
 ## * Compare change with complete data
@@ -115,11 +115,11 @@ test_that("delta method for association based on residual variance", {
     ## e.deltaANCOVA2
 
     test <- data.frame("estimate" = c(-0.07833768, -0.16568061), 
-                       "se" = c(0.06440726, 0.34110244), 
-                       "df" = c(386.69874806, 129.57726267), 
-                       "lower" = c(-0.20496993, -0.84053168), 
-                       "upper" = c(0.04829458, 0.50917047), 
-                       "p.value" = c(0.22461774, 0.62798535))
+                       "se" = c(0.06440727, 0.34110244), 
+                       "df" = c(380.89431576, 127.63222867), 
+                       "lower" = c(-0.204976, -0.84062863), 
+                       "upper" = c(0.04830065, 0.50926742), 
+                       "p.value" = c(0.22462908, 0.62799783))
     expect_equal(as.double(unlist(test)), as.double(unlist(e.deltaANCOVA2)), tol = 1e-3)
 })
 
@@ -212,11 +212,19 @@ test_that("delta method for association based on residual variance", {
 ## * Random effects
 set.seed(10)
 dL <- sampleRem(1e2, n.times = 3, format = "long")
+dL$gender <- dL$id %% 2
 
 test_that("single random effect", {
-    e.lmm1 <- lmm(Y ~ X1+X2+X3, repetition = ~visit|id, structure = "CS", data = dL)
+    e.lmm1 <- lmm(Y ~ X1+X2+X3 + (1|id), repetition =~visit|id, data = dL)
+    
+    e.lmm1.strata <- lmm(Y ~ X1+X2+X3 + (1|id), repetition = gender~visit|id, data = dL)
+    e.lmm1.strata$design$vcov$ranef
+    
+    ranef(e.lmm1.strata)
+
+    ranef(e.lmm1)
     e.ranef <- estimate(e.lmm1, f  = function(p){ ## p <- coef(e.lmm1, effects = "all")
-        coef(e.lmm1, p = p, effects = "ranef")
+        ranef(e.lmm1, p = p)
     })
 
     e.lmer <- lme4::lmer(Y ~ X1+X2+X3 + (1|id), data = dL)

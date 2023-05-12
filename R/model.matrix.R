@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: apr 28 2023 (15:36) 
+## Last-Updated: maj 11 2023 (19:37) 
 ##           By: Brice Ozenne
-##     Update #: 2403
+##     Update #: 2450
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -111,7 +111,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             ## use stats::model.frame to handle spline
             design$mean  <- .mean.matrix.lmm(formula = object$formula$mean.design, colnames = colnames(object$design$mean),
                                              data = stats::model.frame(attr(object$design$mean,"terms"), data = data.mean , na.action = stats::na.pass), 
-                                             stratify = FALSE, name.strata = object$strata$var, U.strata = object$strata$levels) ## only stratify mean if gls optimizer
+                                             name.strata = object$strata$var, U.strata = object$strata$levels)
         }
 
         ## *** variance-covariance
@@ -219,54 +219,15 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 
 ## * .mean.matrix.lmm
 .mean.matrix.lmm <- function(formula, colnames, data,
-                             stratify, name.strata, U.strata, drop.X){
+                             name.strata, U.strata, drop.X){
 
 
     ## ** design matrix
-    if(stratify && length(U.strata)>1){
-        n.strata <- length(U.strata)
-
-        ## *** generate design matrix for each strata
-        ls.X.mean <- lapply(U.strata, function(iS){ ## iS <- U.strata[1]
-            if(is.null(colnames)){
-                iX <- .model.matrix_regularize(formula, data = data[data$XXstrataXX==iS,,drop=FALSE], type = "mean", drop.X = drop.X)
-            }else{
-                iX <- stats::model.matrix(formula, data[data$XXstrataXX==iS,,drop=FALSE])
-            }
-            if(name.strata!="XXstrataXX"){
-                colnames(iX) <- paste0(colnames(iX),":",name.strata,iS)
-            }else{
-                colnames(iX) <- paste0(colnames(iX),":",iS)
-            }
-            attr(iX,"index") <- data[data$XXstrataXX==iS,"XXindexXX"]
-            return(iX)
-        })
-
-        ## *** assemble
-        X.mean <- as.matrix(Matrix::bdiag(ls.X.mean))[order(unlist(lapply(ls.X.mean, attr, "index"))),,drop=FALSE]
-        colnames(X.mean) <- unlist(lapply(ls.X.mean,colnames))
-        if(!is.null(colnames)){
-            X.mean <- X.mean[,colnames,drop=FALSE]
-        }
-        attr(X.mean, "assign") <- as.vector(do.call(cbind,lapply(ls.X.mean,attr,"assign")))
-        attr(X.mean, "variable") <- attr(ls.X.mean[[1]],"variable")
-
-        if(is.null(colnames)){
-            strata.mu <- unlist(lapply(1:n.strata, function(iStrata){stats::setNames(rep(iStrata, NCOL(ls.X.mean[[iStrata]])),colnames(ls.X.mean[[iStrata]]))}))
-        }else{
-            attr.assign <- attr(X.mean, "assign")[match(colnames(X.mean),colnames)]
-            attr.variable <- attr(X.mean, "variable")[match(colnames(X.mean),colnames)]
-            X.mean <- X.mean[,colnames,drop=FALSE]
-            attr(X.mean, "assign") <- attr.assign
-            attr(X.mean, "variable") <- attr.assign
-        }
+    if(is.null(colnames)){
+        X.mean <- .model.matrix_regularize(formula, data = data, type = "mean", drop.X = drop.X)
+        strata.mu <- stats::setNames(rep(U.strata,NCOL(X.mean)), colnames(X.mean))
     }else{
-        if(is.null(colnames)){
-            X.mean <- .model.matrix_regularize(formula, data = data, type = "mean", drop.X = drop.X)
-            strata.mu <- stats::setNames(rep(U.strata,NCOL(X.mean)), colnames(X.mean))
-        }else{
-            X.mean <-  stats::model.matrix(formula, data)[,colnames,drop=FALSE]
-        }
+        X.mean <-  stats::model.matrix(formula, data)[,colnames,drop=FALSE]
     }
 
     ## ** export
@@ -345,8 +306,14 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     }else if(is.null(structure$param)){ ## structure
         out$var <- .colnameOrder(.model.matrix_regularize(formula.var, data = dataVar, augmodel = TRUE, type = "variance", drop.X = drop.X), strata.var = strata.var, n.strata = n.strata)
         out$xfactor$var <- stats::.getXlevels(stats::terms(formula.var),stats::model.frame(formula.var,dataVar))
+        if(!is.null(out$var)){
+            out$lp.var <- interaction(as.data.frame(out$var), sep = ":", drop=TRUE)
+            attr(out$lp.var, "cluster") <- lapply(U.cluster, function(iC){ out$lp.var[index.cluster[[iC]]] })
+        }
         if(!is.null(formula.cor) && n.time>1 && any(sapply(index.cluster,length)>1)){  ## at least one individual with more than timepoint
             out$cor <- .colnameOrder(.model.matrix_regularize(formula.cor, data = dataCor, augmodel = TRUE, type = "correlation", drop.X = drop.X), strata.var = strata.var, n.strata = n.strata)
+            out$lp.cor <- interaction(as.data.frame(out$cor), sep = "", drop=TRUE)
+            attr(out$lp.cor, "cluster") <- lapply(U.cluster, function(iC){ out$lp.cor[index.cluster[[iC]]] })
             out$xfactor$cor <- stats::.getXlevels(stats::terms(formula.cor),stats::model.frame(formula.cor,dataCor)) 
         }
     }else{ ## newdata        
@@ -372,7 +339,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 ## * .model.matrix.lmm
 .model.matrix.lmm <- function(formula.mean, structure,
                               data, var.outcome, var.weights,
-                              stratify.mean = FALSE, drop.X,
+                              drop.X, ## drop singular component of the design matrix
                               precompute.moments){
 
     ## ** indexes
@@ -388,7 +355,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     ## use stats::model.frame to handle splines
     data.mf <- stats::model.frame(stats::update(formula.mean,~.+XXindexXX+XXtimeXX+XXclusterXX+XXstrataXX),data)
     X.mean <- .mean.matrix.lmm(formula = formula.mean, colnames = NULL, data = data.mf,
-                               stratify = stratify.mean, name.strata = structure$name$strata, U.strata = U.strata, drop.X = drop.X)  ## only stratify mean if gls optimizer
+                               name.strata = structure$name$strata, U.strata = U.strata, drop.X = drop.X)
     strata.mu <- attr(X.mean,"strata.mu")
     attr(X.mean,"strata.mu") <- NULL
     attr(X.mean,"terms") <- attr(data.mf,"terms")
@@ -400,13 +367,15 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 
     structure$xfactor <- outDesign$xfactor
     structure$X <- list(var = outDesign$var,
-                        cor = outDesign$cor)
+                        lp.var = outDesign$lp.var,
+                        cor = outDesign$cor,
+                        lp.cor = outDesign$lp.cor)
 
     ## *** parametrization and patterns
     structure <- .skeleton(structure = structure, data = data, indexData = outInit)
 
     ## *** covariance pattern
-    structure <- .findUpatterns(structure,
+    structure <- .findUpatterns(structure, 
                                 index.clusterTime = outInit$index.clusterTime, U.time = U.time,
                                 index.cluster = outInit$index.cluster, U.cluster = U.cluster,
                                 index.clusterStrata = outInit$index.clusterStrata, U.strata = U.strata)
@@ -433,7 +402,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         precompute.XY <- NULL
     }
 
-    ## ** pairs
+    ## ** pairs    
     structure$X$pair.varcoef <- stats::setNames(lapply(structure$X$Upattern$name, function(iPattern){## iPattern <- structure$X$Upattern$name[1]
 
         iParamVar <- structure$X$Upattern$param[[iPattern]]
@@ -449,11 +418,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     }),structure$X$Upattern$name)
 
     pair.meanvarcoef <- stats::setNames(lapply(structure$X$Upattern$name, function(iPattern){ ## iPattern <- structure$X$Upattern$name[1]
-        if(stratify.mean){
-            iParamMu <- names(strata.mu)[strata.mu==structure$X$Upattern$index.strata[iPattern]]
-        }else{
-            iParamMu <- names(strata.mu)
-        }
+        iParamMu <- names(strata.mu)
         iParamVar <- structure$X$Upattern$param[[iPattern]]
         if(length(iParamVar)==0){return(NULL)}
         iOut <- unname(t(expand.grid(iParamMu, iParamVar)))
@@ -481,8 +446,9 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
                        })
     if(NCOL(X.mean)>0){
         skeleton.param <- rbind(data.frame(name = colnames(X.mean),
-                                           strata = NA,
+                                           index.strata = NA,
                                            type = "mu",
+                                           index.level = NA,
                                            level = gsub("^:","",gsub(":$","",mu.level)),
                                            code = NA,
                                            code.x = NA,
@@ -495,12 +461,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         skeleton.param <- structure$param
     }
     skeleton.param$fixed <- FALSE
-    if(stratify.mean){
-        skeleton.param$strata[skeleton.param$type=="mu"] <- strata.mu
-        skeleton.param$strata <- as.list(skeleton.param$strata)
-    }else{
-        skeleton.param$strata[skeleton.param$type=="mu"] <- list(as.numeric(unique(stats::na.omit(skeleton.param$strata))))
-    }
+    skeleton.param$strata[skeleton.param$type=="mu"] <- list(as.numeric(unique(stats::na.omit(skeleton.param$strata))))
     rownames(skeleton.param) <- NULL
     attr(skeleton.param, "pair.meanvarcoef") <- pair.meanvarcoef
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: feb 27 2023 (18:35) 
+## Last-Updated: maj 11 2023 (10:48) 
 ##           By: Brice Ozenne
-##     Update #: 543
+##     Update #: 545
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -116,6 +116,9 @@
 
 ## * calc_Omega.CS
 .calc_Omega.CS <- .calc_Omega.ID
+
+## * calc_Omega.RE
+.calc_Omega.RE <- .calc_Omega.ID
 
 ## * calc_Omega.TOEPLITZ
 .calc_Omega.TOEPLITZ <- .calc_Omega.ID

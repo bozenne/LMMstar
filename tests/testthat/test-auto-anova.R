@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 13 2022 (13:55) 
 ## Version: 
-## Last-Updated: apr 18 2023 (10:27) 
+## Last-Updated: maj 10 2023 (12:05) 
 ##           By: Brice Ozenne
-##     Update #: 47
+##     Update #: 48
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -35,8 +35,6 @@ dL$X1 <- as.factor(dL$X1)
 dL$X2 <- as.factor(dL$X2)
 
 ## * Likelihood ratio tests
-
-
 test_that("LRT", {
 
     ## remove variance factor

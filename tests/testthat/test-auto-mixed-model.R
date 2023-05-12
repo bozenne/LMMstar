@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: aug 31 2022 (18:27) 
+## Last-Updated: maj 12 2023 (09:39) 
 ##           By: Brice Ozenne
-##     Update #: 138
+##     Update #: 161
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,7 +26,7 @@ if(FALSE){
 }
 
 context("Check lmm on examples of mixed model")
-LMMstar.options(optimizer = "gls", method.numDeriv = "simple", precompute.moments = TRUE, # "Richardson"
+LMMstar.options(optimizer = "FS", method.numDeriv = "simple", precompute.moments = TRUE, # "Richardson"
                 columns.confint = c("estimate","se","df","lower","upper","p.value"))
 
 ## * Simulate data
@@ -51,7 +51,7 @@ dL$visit <- factor(dL$visit,
                    labels = name.varying)
  
 
-## * Random intercept model / Compound symmetry structure
+## * Compound symmetry structure
 
 test_that("Compound symmetry structure (REML)",{
 
@@ -163,7 +163,7 @@ eUNexp.lmm <- lmm(Y ~ visit + age + gender, repetition = ~visit|id, structure = 
 eUN.lmm <- lmm(Y ~ visit + age + gender, repetition = ~visit|id, structure = "UN", data = dL, trace = 0, method = "REML", type.information = "observed")
 eUN.gls <- gls(Y ~ visit + age + gender, correlation = corSymm(form=~1|id), weights = varIdent(form=~1|visit), data = dL, method = "REML")
 
-## ** coef
+#p# ** coef
 expect_equal(coef(eUN.lmm, effects = "mean"), coef(eUN.gls), tol = 1e-6)
 expect_equal(coef(eUNexp.lmm, effects = "mean"), coef(eUN.gls), tol = 1e-6)
 
@@ -249,7 +249,7 @@ expect_equal(eUN.lmm_anova[eUN.lmm_anova$type=="rho","df.denom"], c(20.66968), t
 sigma(eUN.lmm)
 })
 
-## * Stratified random intercept model / Compound symmetry structure
+## * Stratified compound symmetry structure
 test_that("Stratified compound symmetry structure (REML)",{
 
 ## ** fit
@@ -467,8 +467,148 @@ expect_equal(eSUN.lmm_anova[eSUN.lmm_anova$type=="rho","df.denom"], c(9.100919),
 sigma(eSUN.lmm)
 })
 
-## * Crossed random effects
-data(schoolL, package = "LMMstar")
+## * Random intercept model
+data(Orthodont,package="nlme")
+
+eRI.lmer <- lmer(distance ~ age + (1|Subject), data=Orthodont)
+eRI.lmm <- lmm(distance ~ age + (1|Subject), data=Orthodont,
+               control = list(init = "lmer"))
+
+test_that("Random intercept model",{
+    ## likelihood
+    expect_equal(as.double(logLik(eRI.lmer)), as.double(logLik(eRI.lmm)), tol = 1e-6)
+    ## random effects
+    GS <- as.data.frame(ranef(eRI.lmer))    
+})
+
+## * Stratified random intercept model
+Orthodont$nsex <- as.numeric(Orthodont$Sex=="Male")
+
+eRI.mlmm <- mlmm(distance ~ 1 + (1|Subject), data = Orthodont, by = "nsex", trace = FALSE)
+eSRI.lmm <- lmm(distance ~ nsex + (1|Subject), repetition = nsex~1|Subject, data = Orthodont)
+
+test_that("Random intercept model",{
+    ## likelihood
+    expect_equal(as.double(sum(unlist(logLik(eRI.mlmm)))), as.double(logLik(eSRI.lmm)), tol = 1e-6)
+
+    ## random effects
+    GS <- ranef(eRI.mlmm)
+    test <- ranef(eSRI.lmm)    
+})
+
+## * Crossed random intercept model (2 terms)
+data(Penicillin, package = "lme4")
+Penicillin$id <- 1
+
+eCRI2.lmm0 <- lmm(diameter ~ 1, repetition = ~1|id,
+                  structure = CS(list(~1,~plate+sample), heterogeneous = -1),
+                  data = Penicillin, df = FALSE)
+eCRI2.lmm <- lmm(diameter ~ (1|plate) + (1|sample), data = Penicillin, df = FALSE,
+                 control = list(init = "lmer"))
+eCRI2.lmm <- lmm(diameter ~ (1|plate) + (1|sample), data = Penicillin, df = FALSE)
+eCRI2.lmer <- lmer(diameter ~ (1|plate) + (1|sample), data = Penicillin)
+
+logLik(eCRI2.lmm0)
+logLik(eCRI2.lmm)
+logLik(eCRI2.lmer)
+coef(eCRI2.lmm0, effects = "all")
+
+test_that("Crossed random intercept model (2 terms)",{
+    ## likelihood
+    expect_equal(as.double(logLik(eCRI2.lmer)), as.double(logLik(eCRI2.lmm)), tol = 1e-6)
+
+    ## random effects
+    GS <- as.data.frame(ranef(eCRI2.lmer))    
+    GS <- as.data.frame(ranef(eCRI2.lmm))    
+})
+
+## * Crossed random intercept model (3 terms)
+Sigma.CRI3 <- matrix(0, nrow = 6, ncol = 6)
+Sigma.CRI3[1:3,1:3] <- Sigma.CRI3[1:3,1:3] <- 0.6^2
+diag(Sigma.CRI3[1:3,4:6]) <- diag(Sigma.CRI3[4:6,1:3]) <- 0.4^2
+Sigma.CRI3[1,6] <- Sigma.CRI3[2,4] <- Sigma.CRI3[3,5] <- Sigma.CRI3[6,1] <- Sigma.CRI3[4,2] <- Sigma.CRI3[5,3] <- 0.2^2
+diag(Sigma.CRI3) <- 1
+
+n <- 100
+dfL.CRI3 <- reshape2::melt(data.frame(sample = 1:n,
+                                      mvtnorm::rmvnorm(n, mean = 1:6, sigma = Sigma.CRI3)
+                                      ),
+                           id.vars = "sample")
+dfL.CRI3$patient <- paste(dfL.CRI3$sample,dfL.CRI3$variable %in% paste0("X",4:6)+1, sep = ".")
+dfL.CRI3$day <- paste(dfL.CRI3$sample, sapply(as.character(dfL.CRI3$variable), switch, "X1" = 1, "X2" = 2, "X3" = 3, "X4" = 1, "X5" = 2, "X6" = 3),sep=".")
+dfL.CRI3$batch <- paste(dfL.CRI3$sample, sapply(as.character(dfL.CRI3$variable), switch, "X1" = 1, "X2" = 2, "X3" = 3, "X4" = 2, "X5" = 3, "X6" = 1),sep=".")
+dfL.CRI3 <- dfL.CRI3[order(dfL.CRI3$sample),]
+
+## head(dfL.CRI3,10)
+
+eCRI3.lmer <- lmer(value ~ 0 + variable + (1|patient) + (1|day) + (1|batch), data = dfL.CRI3)
+## as.data.frame(ranef(eCRI3.lmer))
+
+
+set.seed(10)
+df.grow <- expand.grid(plant = as.factor(letters[1:5]),
+                       location = as.factor(LETTERS[1:5]),
+                       climate = 1:5)
+u1 <- rnorm(length(unique(df.grow$plant)), sd = 0.5)
+u2 <- rnorm(length(unique(df.grow$location)), sd = 1)
+u3 <- rnorm(length(unique(df.grow$climate)), sd = 2)
+df.grow$y <- rnorm(NROW(df.grow)) + u1[as.numeric(df.grow$plant)] + u2[as.numeric(df.grow$location)] + u3[df.grow$climate]
+df.grow$id <- 1
+
+eCRI3.lmm.bis <- lmm(y ~ 1, repetition = ~1|id, structure = CS(list(~1,~plant+location+climate), heterogeneous = -1), data = df.grow,
+                     trace = 5)
+coef(eCRI3.lmm.bis, effects = "all")
+
+eCRI3.lmer <- lmer(y ~ (1|plant) + (1|location) + (1|climate), data = df.grow)
+eCRI3.lmm <- lmm(y ~ (1|plant) + (1|location) + (1|climate), data = df.grow,
+                 trace = 5)
+
+
+summary(eCRI3.lmer)
+
+## * Nested random intercept model (2 levels)
+data(cake, package = "lme4")
+
+eNRI2.lmm <- lmm(angle ~ recipe * temperature + (1|recipe:replicate), data = cake, df = FALSE)
+eNRI2.lmer <- lmer(angle ~ recipe * temperature + (1|recipe:replicate), data = cake)
+
+test_that("Nested random intercept model (2 levels)",{
+    ## likelihood
+    expect_equal(as.double(logLik(eNRI2.lmer)), as.double(logLik(eNRI2.lmm)), tol = 1e-6)
+
+    ## random effects
+    GS <- as.data.frame(ranef(eNRI2.lmer))    
+})
+
+LMMstar:::.nestingRanef(eNRI2.lmm)
+eNRI2.lmm$design$vcov$ranef
+eNRI2.lmm$design$vcov$param[,-c(4,6,)]
+LMMstar:::.nestingRanef(eSRI.lmm)
+
+
+LMMstar:::.nestingRanef(eCRI.lmm)
+
+## * Nested random intercept model (3 levels)
+Sigma.NRI3 <- matrix(0, nrow = 8, ncol = 8)
+Sigma.NRI3[5:8,1:4] <- Sigma.NRI3[1:4,5:8] <- 0.25^2
+Sigma.NRI3[1:2,3:4] <- Sigma.NRI3[3:4,1:2] <- Sigma.NRI3[5:6,7:8] <- Sigma.NRI3[7:8,5:6] <- 0.5^2
+Sigma.NRI3[1:2,1:2] <- Sigma.NRI3[3:4,3:4] <- Sigma.NRI3[5:6,5:6] <- Sigma.NRI3[7:8,7:8] <- 0.8^2
+diag(Sigma.NRI3) <- 1
+
+## c(sqrt(0.25^2), sqrt(0.5^2-0.25^2), sqrt(0.8^2-0.5^2-0.25^2))
+n <- 1000
+dfL.NRI3 <- reshape2::melt(data.frame(patient = 1:n,
+                                      mvtnorm::rmvnorm(n, mean = 1:8, sigma = Sigma.NRI3)
+                                      ),
+                           id.vars = "patient")
+dfL.NRI3$day <- dfL.NRI3$variable %in% paste0("X",5:8)+1
+dfL.NRI3$session <- paste(dfL.NRI3$day,dfL.NRI3$variable %in% c(paste0("X",c(3:4,7:8)))+1,sep=".")
+dfL.NRI3 <- dfL.NRI3[order(dfL.NRI3$patient),]
+
+## head(dfL.NRI3,10)
+
+eNRI3.lmer <- lmer(value ~ session + (1|patient/day/session), data = dfL.NRI3)
+## as.data.frame(ranef(eNRI3.lmer))
 
 ## * Missing data
 test_that("missing values",{

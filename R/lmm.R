@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: apr 28 2023 (16:57) 
+## Last-Updated: maj 12 2023 (09:43) 
 ##           By: Brice Ozenne
-##     Update #: 2149
+##     Update #: 2210
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -167,16 +167,22 @@ lmm <- function(formula, repetition, structure, data,
     
     ## ** 1. check and normalize user input
     if(trace>=1){cat("1. Check and normalize user input")}
-    missing.repetition <- missing(repetition) ## will be updated later which can be confusing
-    
+    missing.repetition <- missing(repetition) ## argument repetition will be updated later which can be confusing
+    missing.structure <- missing(structure) ## argument structure will be updated later which can be confusing   
+
     ## *** formula
     detail.formula <- formula2var(formula)
     formula <- detail.formula$formula$regressor ## remove possible random effects
-    
+
     var.all_meanformula <- detail.formula$vars$all 
     var.X <- detail.formula$vars$regressor
     var.outcome <- detail.formula$vars$response
 
+    if(detail.formula$special == "repetition"){
+        stop("Random effects in argument \'formula\' should be wrapped into parentheses. \n",
+             "Something like Y ~ X1 + (1|id). Otherwise consider using argument \'repetition'. \n",
+             sep = "")
+    }
     if(any(var.all_meanformula %in% names(data) == FALSE)){
         invalid <- var.all_meanformula[var.all_meanformula %in% names(data) == FALSE]
         stop("Argument \'formula\' is inconsistent with argument \'data\'. \n",
@@ -196,7 +202,7 @@ lmm <- function(formula, repetition, structure, data,
     }
        
     ## *** structure
-    if(!missing(structure)){
+    if(!missing.structure){
         if(detail.formula$special=="ranef"){
             stop("Argument \'formula\' and \'structure\' are inconsistent. \n",
                  "Either specify random effect (argument \'formula\') or a covariance structure (argument \'structure\') but not both. \n")
@@ -217,16 +223,16 @@ lmm <- function(formula, repetition, structure, data,
             stop("Incorrect argument \'formula\', \n",
                  "Current version cannot handle crossed and nested random effects. \n")
         }
-        if(attr(detail.formula$special,"crossed")){
-            if(missing(repetition)){
-                repetition <- as.formula(paste0("~1|",paste(detail.formula$vars$cluster,collapse="+")))
+        if(attr(detail.formula$special,"crossed")){            
+            if(missing.repetition){
+                repetition <- as.formula(paste0("~",paste(detail.formula$vars$cluster,collapse="+")))
             }
             ff.structure <- paste0("~",paste0(detail.formula$vars$ranef, collapse = "+"))
             structure <- CS(list(~1,as.formula(ff.structure)),
                             heterogeneous = -1,
                             ranef = detail.formula$special)
         }else{
-            if(missing(repetition)){
+            if(missing.repetition){
                 repetition <- as.formula(paste0("~1|",detail.formula$vars$cluster))
             }
             structure.ranef <- list(type = data.frame(crossed = attr(detail.formula$special,"crossed"),
@@ -269,19 +275,23 @@ lmm <- function(formula, repetition, structure, data,
             stop("Could not evaluate argument \'repetition\'. Maybe the symbol \'~\' is missing in the formula. \n")
         }
         if(!inherits(repetition,"formula")){
-            stop("Argument \'repetition\' must be of class formula, something like: ~ time|cluster or strata ~ time|cluster. \n")
+            stop("Argument \'repetition\' must be of class formula, something like: ~ time or ~ time|cluster. \n")
         }
         ## extract variables from formula
         detail.repetition <- formula2var(repetition, name.argument = "repetition")
-        if(detail.repetition$special!="repetition"){
+        if(detail.repetition$special=="ranef"){
             stop("Incorrect specification of argument \'repetition\'. \n",
-                 "The symbol | should only exacly once, something like: ~ time|cluster or strata ~ time|cluster. \n")
+                 "Should be something like: ~ time or ~ time|cluster. \n")
         }
-
-        var.cluster <- detail.repetition$var$cluster
-        var.time <- detail.repetition$var$time
+        if(detail.repetition$special == "repetition"){
+            var.cluster <- detail.repetition$var$cluster
+            var.time <- detail.repetition$var$time
+        }else if(detail.repetition$special=="none"){            
+            var.cluster <- NA
+            var.time <- detail.repetition$var$regressor
+        }
         var.strata2 <- detail.repetition$var$response
-        if(length(var.strata2)>0){
+        if(length(var.strata2)>0){ ## catch strata variable 
             if(any(!is.na(var.strata)) && !identical(var.strata,var.strata2)){
                 stop("Inconsistency between the strata defined via the \'repetition\' and the \'structure\' argument. \n",
                      "\"",paste(var.strata2, collapse = "\" \""),"\" vs. \"",paste(var.strata, collapse = "\" \""),"\" \n")
@@ -293,9 +303,10 @@ lmm <- function(formula, repetition, structure, data,
             update.strataStructure <- FALSE
         }
     }
-    
+
     ## compatibility structure/repetition
-    if(!missing(structure)){
+    if(!missing.structure){
+        
         if(all(is.na(var.cluster)) && structure$type %in% c("CS","UN")){
             stop("Incorrect specification of argument \'repetition\': missing cluster variable. \n",
                  "Should have exactly one variable after the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
@@ -307,34 +318,36 @@ lmm <- function(formula, repetition, structure, data,
     }
 
     ## sanity check: variability within cluster (for clusters with more than a single value)
-    value.cluster <- as.character(data[[var.cluster]])
-    index.clusterMY <- which(value.cluster %in% unique(value.cluster[duplicated(value.cluster)]))
+    if(any(!is.na(var.cluster))){
 
-    test.rep <- tapply(data[[var.outcome]][index.clusterMY],index.clusterMY[index.clusterMY],function(iValue){
-        ## identify clusters with constant value (including all NA)
-        if(length(iValue)==1){
-            return(FALSE)
-        }else if(all(is.na(iValue))){
-            return(TRUE)
-        }else{
-            return(abs(max(iValue,na.rm=TRUE)-min(iValue,na.rm=TRUE))<1e-12)
+        value.cluster <- as.character(interaction(data[var.cluster]))
+        index.clusterMY <- which(value.cluster %in% unique(value.cluster[duplicated(value.cluster)]))
+
+        test.rep <- tapply(data[[var.outcome]][index.clusterMY],index.clusterMY[index.clusterMY],function(iValue){
+            ## identify clusters with constant value (including all NA)
+            if(length(iValue)==1){
+                return(FALSE)
+            }else if(all(is.na(iValue))){
+                return(TRUE)
+            }else{
+                return(abs(max(iValue,na.rm=TRUE)-min(iValue,na.rm=TRUE))<1e-12)
+            }
+        })
+        if(length(test.rep)>0 & all(test.rep)){
+            warning("Constant outcome value within cluster. \n")
         }
-    })    
-    if(all(test.rep)){
-        warning("Constant outcome value within cluster. \n")
     }
-    
 
     ## *** objective function
     if(is.null(method.fit)){
-        if(length(rhs.vars(formula))==0 && attr(stats::terms(formula), "intercept") == 0){
+        if(length(var.X)==0 && attr(stats::terms(formula), "intercept") == 0){
             method.fit <- "ML"
         }else{
             method.fit <- options$method.fit
         }
     }else{
         method.fit <- match.arg(method.fit, choices = c("ML","REML"))
-        if(length(rhs.vars(formula))==0 && method.fit == "REML"){
+        if(length(var.X)==0 && method.fit == "REML"){
             message("Revert back to ML estimation as there is no mean structure. \n")
             method.fit <- "ML"
         }
@@ -690,25 +703,18 @@ lmm <- function(formula, repetition, structure, data,
     if(identical(control$init,"lmer")){
         ## check feasibility
         requireNamespace("lme4")
-        if(out$design$vcov$type!="CS" || out$design$vcov$heterogeneous){
-            stop("Initializer \"lmer\" only available for homegeneous CS structures.")
+        if(inherits(out$design$vcov,"RE")){
+            stop("Initializer \"lmer\" only available for random effect structures.")
         }
         if(n.strata>1){
             stop("Initializer \"lmer\" cannot handle multiple strata.")
         }
-
-        ## identify nesting
-        nesting <- .nestingRanef(out)
-        table.nesting <- attr(nesting,"rho2variable")[[1]]
+        if(attr(detail.formula$special,"crossed") & attr(detail.formula$special,"nested")){
+            stop("Initializer \"lmer\" cannot handle both crossed and random effects. \n")
+        }
 
         ## fit lmer model
-        lmer.formula <- out$formula$mean
-        if(is.null(attr(nesting, "nesting.var"))){
-            lmer.formula <- stats::update(lmer.formula, stats::as.formula(paste0(".~.+(1|",out$cluster$var,")")))
-        }else{
-            lmer.formula <- stats::update(lmer.formula, stats::as.formula(paste0(".~.+(1|",paste(c(out$cluster$var,attr(nesting, "nesting.var")),collapse="/"),")")))
-        }
-        e.lmer <- lme4::lmer(lmer.formula, data = data, REML = method.fit=="REML")
+        e.lmer <- lme4::lmer(detail.formula$formula$all, data = data, REML = method.fit=="REML")
 
         ## extract lmer estimates
         lmer.beta <- lme4::fixef(e.lmer)
@@ -717,7 +723,14 @@ lmm <- function(formula, repetition, structure, data,
 
         ## convert to LMMstar estimates
         init.sigma <- sqrt(lmer.sigma+sum(lmer.tau))
-        init.tau <- cumsum(rev(lmer.tau))/init.sigma^2
+        browser()
+        if(attr(detail.formula$special,"crossed")){
+            init.tau <- cumsum(rev(lmer.tau))/init.sigma^2
+        }else if(attr(detail.formula$special,"crossed")){
+            init.tau <- lmer.tau/lmer.sigma^2
+        }else{
+            init.tau <- lmer.tau/lmer.sigma^2
+        }
         names(init.tau) <- table.nesting$param[match(gsub("(Intercept)",out$cluster$var,table.nesting$variable, fixed = TRUE),names(init.tau))]
         if(!identical(sort(names(c(lmer.beta,init.sigma,init.tau))), sort(out$design$param$name))){
             stop("Could not identify all coefficients from the lmer model. \n")
@@ -845,7 +858,15 @@ lmm <- function(formula, repetition, structure, data,
        
     ## ** cluster
     if(is.na(var.cluster)){
-        data$XXclusterXX <- as.factor(sprintf(paste0("%0",ceiling(log10(NROW(data)))+0.1,"d"), 1:NROW(data)))
+        if(identical(attr(var.cluster,"crossed"),TRUE)){
+            if(any(duplicated(data[,var.time]))){
+                stop("Incorrect specification of argument \'repetition\': missing cluster variable. \n",
+                     "Cannot guess the cluster variable with non-unique levels for the cross random effects. \n")
+            }
+            data$XXclusterXX <- as.factor("1")
+        }else{
+            data$XXclusterXX <- as.factor(sprintf(paste0("%0",ceiling(log10(NROW(data)))+0.1,"d"), 1:NROW(data)))
+        }
     }else if("XXclusterXX" %in% names(data) == FALSE){
         if(is.factor(data[[var.cluster]])){
             if(droplevels){

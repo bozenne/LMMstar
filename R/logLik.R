@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: jan  3 2023 (16:12) 
+## Last-Updated: maj 10 2023 (15:25) 
 ##           By: Brice Ozenne
-##     Update #: 316
+##     Update #: 318
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -30,7 +30,7 @@
 ##' @return A numeric value (total logLikelihood) or a vector of numeric values, one for each cluster (cluster specific logLikelihood).
 ##' 
 
-## * logLik
+## * logLik.lmm (code)
 ##' @export
 logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
 
@@ -82,6 +82,14 @@ logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
 
     ## ** export
     return(out)
+}
+
+## * logLik.mlmm (code)
+##' @export
+logLik.mlmm <- function(object, ...){
+
+    return(lapply(object$model, logLik, ...))
+
 }
 
 ## * .logLik

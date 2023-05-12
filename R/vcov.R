@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: sep  1 2022 (09:54) 
+## Last-Updated: maj 10 2023 (10:22) 
 ##           By: Brice Ozenne
-##     Update #: 515
+##     Update #: 516
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -158,6 +158,11 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strat
 ## * vcov.mlmm
 ##' @export
 vcov.Wald_lmm <- function(object, ...){
+
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
 
     return(object$vcov)
     

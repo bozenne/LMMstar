@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: apr 28 2023 (15:37) 
+## Last-Updated: maj 12 2023 (11:36) 
 ##           By: Brice Ozenne
-##     Update #: 425
+##     Update #: 426
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -42,7 +42,7 @@
 ##'
 ##' P-values for the bootstrap are computed by centering the bootstrap distribution of the estimate or test statistic around 0 and evaluating the frequency at which it takes values more extreme than the observed estimate or test statistics.
 ##' 
-##' @references Oliver E. Lee and Thomas M. Braun (2012), Permutation Tests for Random Effects in Linear Mixed Models. Biometrics, Journal 68(2).
+##' @references Oliver E. Lee and Thomas M. Braun (2012), \bold{Permutation Tests for Random Effects in Linear Mixed Models}. \emph{Biometrics}, Journal 68(2).
 ##'
 ##' @examples
 ##' \dontrun{

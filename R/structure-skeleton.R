@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: apr 18 2023 (16:58) 
+## Last-Updated: maj 12 2023 (10:08) 
 ##           By: Brice Ozenne
-##     Update #: 2412
+##     Update #: 2473
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -23,6 +23,7 @@
 ##'
 ##' @param structure [structure]
 ##' @param data [data.frame] dataset
+##' @param indexData pre-computed quantity
 ##'
 ##' @keywords internal
 ##' 
@@ -32,11 +33,11 @@
 ##' dd <- gastricbypassL[!duplicated(gastricbypassL[,c("time","gender")]),]
 ##' 
 ##' ## independence
-##' .skeleton(IND(~1, var.time = "time"), data = dd)
-##' .skeleton(IND(~time), data = dd)
-##' .skeleton(IND(~time|id), data = dd)
-##' .skeleton(IND(~time+gender|id, var.time = "time"), data = dd)
-##' .skeleton(IND(gender~time|id, var.time = "time"), data = dd)
+##' .skeleton(IND(~1, var.cluster = "id", var.time = "time"), data = dd)
+##' .skeleton(IND(gender~1, var.cluster = "id", var.time = "time"), data = dd)
+##' .skeleton(IND(~time, var.time = "time", var.cluster = "id"), data = dd)
+##' .skeleton(IND(~time+gender, var.time = "time", var.cluster = "id"), data = dd)
+##' .skeleton(IND(gender~time, var.time = "time", var.cluster = "id"), data = dd)
 ##' 
 ##' ## compound symmetry
 ##' .skeleton(CS(~1|id, var.time = "time"), data = gastricbypassL)
@@ -44,10 +45,8 @@
 ##' .skeleton(CS(gender~time|id), data = gastricbypassL)
 ##' 
 ##' ## unstructured
-##' .skeleton(UN(~visit|id), data = gastricbypassL)
-##' .skeleton(UN(~time|id), data = gastricbypassL)
-##' .skeleton(UN(~visit+gender|id, var.time = "time"), data = gastricbypassL)
-##' .skeleton(UN(gender~visit|id), data = gastricbypassL)
+##' .skeleton(UN(NULL, var.cluster = "id", var.time = "visit", TRUE), data = dd)
+##' .skeleton(UN(~gender, var.cluster = "id", var.time = "visit", TRUE), data = dd)
 `.skeleton` <-
     function(structure, data, indexData) UseMethod(".skeleton")
 
@@ -58,7 +57,6 @@
     if(is.null(indexData)){
         indexData <- .extractIndexData(data = data, structure = structure)
     }
-    strata.var <- structure$name$strata
     U.cluster <- indexData$U.cluster
     U.time <- indexData$U.time
     U.strata <- indexData$U.strata
@@ -68,90 +66,27 @@
     index.clusterStrata <- indexData$index.clusterStrata ## vector of index relative to which strata each cluster belong to
     index.cluster <- indexData$index.cluster ## list of positions of the observation belonging to each cluster in the dataset
 
-    X.var <- structure$X$var
-    X.cor <- structure$X$cor
+    if(is.null(structure$X)){
+        outDesign <- .vcov.matrix.lmm(structure = structure, data = data, index.cluster = index.cluster, drop.X = LMMstar.options()$drop.X)
 
-    ## ** param
-    ## *** sigma
-    outSigma <- .initSigma(X.var = X.var, strata.var = strata.var, U.strata = U.strata, n.strata = n.strata)
-    X.var <- outSigma$X    
-    param.sigma <- outSigma$param    
-    strata.sigma <- outSigma$strata    
-    code.sigma <- outSigma$code
-    level.sigma <- stats::setNames(as.list(outSigma$level),param.sigma)
-
-    ## *** k
-    outK <- .initK(X.var = X.var, strata.var = strata.var, U.strata = U.strata, n.strata = n.strata,
-                   param.sigma = param.sigma, strata.sigma = strata.sigma)
-    X.var <- outK$X    
-    param.k <- outK$param    
-    strata.k <- outK$strata    
-    code.k <- outK$code
-    level.k <- stats::setNames(as.list(outK$level),param.k)
-
-    ## *** param rho
-    if(NROW(X.cor)>0){
-        outRho <- .initRho(data = data,
-                           X.cor = X.cor, X.var = c(outK, list(strata.sigma = strata.sigma)),
-                           heterogeneous = structure$heterogeneous, toeplitz = structure$type=="TOEPLITZ", block = structure$block,
-                           U.cluster = U.cluster, index.cluster = index.cluster,
-                           U.time = U.time, index.clusterTime = index.clusterTime, 
-                           strata.var = strata.var, U.strata = U.strata, index.clusterStrata = index.clusterStrata, n.strata = n.strata)
-
-        param.rho <- outRho$param[!duplicated(outRho$code)]
-        strata.rho <- outRho$strata[!duplicated(outRho$code)]
-        code.rho <- outRho$code[!duplicated(outRho$code)]
-        level.rho <- split(outRho$level,outRho$code)[code.rho]
-    }else{
-        param.rho <- NULL
-        strata.rho <- NULL
-        code.rho <- NULL
-        level.rho <- NULL
+        structure$xfactor <- outDesign$xfactor
+        structure$X <- list(var = outDesign$var,
+                            lp.var = outDesign$lp.var,
+                            cor = outDesign$cor,
+                            lp.cor = outDesign$lp.cor)        
     }
 
-    ## ** gather parameters
-    n.param <- length(param.sigma) + length(param.k) + length(param.rho)
-    
-    structure$param <- data.frame(name = c(param.sigma,param.k,param.rho),
-                                  strata = as.numeric(c(strata.sigma,strata.k,strata.rho)),
-                                  type = c(rep("sigma",length=length(param.sigma)),rep("k",length=length(param.k)),rep("rho",length=length(param.rho))),
-                                  level = rep(NA, times = n.param),
-                                  code = c(code.sigma,code.k,code.rho),
-                                  code.x = rep(as.factor(NA), times = n.param),
-                                  code.y = rep(as.factor(NA), times = n.param),
-                                  sigma = rep(as.character(NA), times = n.param),
-                                  k.x = rep(as.character(NA), times = n.param),
-                                  k.y = rep(as.character(NA), times = n.param),                                  
-                                  stringsAsFactors = FALSE)
-
-    structure$param$level <- c(level.sigma,level.k,level.rho)
-    attr(structure$param,"level.var") <- outSigma$code
-    if(any(structure$param$type=="k")){
-        structure$param[structure$param$type=="k","sigma"] <- names(strata.sigma)[structure$param[structure$param$type=="k","strata"]]
-        attr(structure$param,"level.var") <- c(attr(structure$param,"level.var"), outK$code)
-    }
-    if(any(structure$param$type=="rho")){
-        structure$param$code.x <- stats::setNames(vector(mode = "list", length = NROW(structure$param)), structure$param$code)
-        ls.tempo <- split(factor(outRho$lp.x, levels = 1:length(attr(outRho,"levels")), labels = attr(outRho,"levels")), outRho$code)
-        structure$param$code.x[names(ls.tempo)] <- ls.tempo
-        names(structure$param$code.x) <- structure$param$name
-
-        structure$param$code.y <- stats::setNames(vector(mode = "list", length = NROW(structure$param)), structure$param$code)
-        ls.tempo <- split(factor(outRho$lp.y, levels = 1:length(attr(outRho,"levels")), labels = attr(outRho,"levels")), outRho$code)
-        structure$param$code.y[names(ls.tempo)] <- ls.tempo
-        names(structure$param$code.y) <- structure$param$name
-
-        structure$param[structure$param$type=="rho","sigma"] <- outRho$sigma[!duplicated(outRho$code)]
-        structure$param[structure$param$type=="rho","k.x"] <- outRho$k.x[!duplicated(outRho$code)]
-        structure$param[structure$param$type=="rho","k.y"] <- outRho$k.y[!duplicated(outRho$code)]
-        attr(structure$param,"level.cor") <- attr(outRho,"levels")
-    }
-    structure$param <- structure$param[order(structure$param$strata),,drop=FALSE]
-    rownames(structure$param) <- NULL
+    ## **  param
+    structure <- .skeletonSigma(structure, U.strata = U.strata)
+    structure <- .skeletonK(structure, U.strata = U.strata)
+    structure <- .skeletonRho(structure, data = data, 
+                              U.cluster = U.cluster, index.cluster = index.cluster,
+                              U.time = U.time, index.clusterTime = index.clusterTime, 
+                              U.strata = U.strata, index.clusterStrata = index.clusterStrata)
 
     ## ** export
-    structure$X$var <- X.var
-    structure$X$cor <- X.cor
+    structure$param <- structure$param[order(structure$param$index.strata),,drop=FALSE]
+    rownames(structure$param) <- NULL
     return(structure)
 }
 
@@ -160,109 +95,19 @@
 .skeleton.IND <- .skeleton.ID
 
 ## * skeleton.CS
-.skeleton.CS <- .skeleton.IND
+.skeleton.CS <- .skeleton.ID
+
+## * skeleton.RE
+.skeleton.RE <- .skeleton.ID
 
 ## * skeleton.TOEPLITZ
-.skeleton.TOEPLITZ <- .skeleton.IND
+.skeleton.TOEPLITZ <- .skeleton.ID
 
 ## * skeleton.UN
-.skeleton.UN <- .skeleton.CS
+.skeleton.UN <- .skeleton.ID
 
 ## * skeleton.EXP
-.skeleton.EXP <- function(structure, data, indexData = NULL){
-
-    ## ** prepare
-    if(is.null(indexData)){
-        indexData <- .extractIndexData(data = data, structure = structure)
-    }
-    strata.var <- structure$name$strata
-    U.cluster <- indexData$U.cluster
-    U.time <- indexData$U.time
-    U.strata <- indexData$U.strata
-    n.strata <- length(U.strata)
-    
-    index.clusterTime <- indexData$index.clusterTime ## list of index relative to the time at which the observations are made within cluster
-    index.clusterStrata <- indexData$index.clusterStrata ## vector of index relative to which strata each cluster belong to
-    index.cluster <- indexData$index.cluster ## list of positions of the observation belonging to each cluster in the dataset
-
-    X.var <- structure$X$var
-    X.cor <- structure$X$cor
-
-    ## ** param
-    ## *** sigma
-    outSigma <- .initSigma(X.var = X.var, strata.var = strata.var, U.strata = U.strata, n.strata = n.strata)
-    X.var <- outSigma$X    
-    param.sigma <- outSigma$param    
-    strata.sigma <- outSigma$strata    
-    code.sigma <- outSigma$code
-    level.sigma <- stats::setNames(as.list(outSigma$level),param.sigma)
-
-    ## *** k
-    outK <- .initK(X.var = X.var, strata.var = strata.var, U.strata = U.strata, n.strata = n.strata,
-                   param.sigma = param.sigma, strata.sigma = strata.sigma)
-    X.var <- outK$X    
-    param.k <- outK$param    
-    strata.k <- outK$strata    
-    code.k <- outK$code
-    level.k <- stats::setNames(as.list(outK$level),param.k)
-
-    ## *** param rho
-    regressor <- colnames(X.cor)[which(attr(X.cor, "assign") == max(attr(X.cor, "assign")))]
-
-    if(n.strata==1){
-        param.rho <- "lambda"
-        strata.rho <- 1
-        code.rho <- regressor
-        level.rho <- ""
-        if(structure$heterogeneous){
-            param.rho <- c(param.rho,"nugget")
-            strata.rho <- c(strata.rho,1)
-            code.rho <- c(code.rho,NA)
-            level.rho <- c(code.rho,"")
-        }
-    }else{
-        param.rho <- paste0("lambda",U.strata)
-        strata.rho <- 1:n.strata
-        code.rho <- regressor
-        level.rho <- U.strata
-        if(structure$heterogeneous){
-            param.rho <- c(param.rho,paste0("nugget",U.strata))
-            strata.rho <- c(strata.rho,1:n.strata)
-            code.rho <- c(code.rho,rep(NA, n.strata))
-            level.rho <- c(level.rho,U.strata)
-        }
-    }
-
-    ## ** gather parameters
-    n.param <- length(param.sigma) + length(param.k) + length(param.rho)
-    
-    structure$param <- data.frame(name = c(param.sigma,param.k,param.rho),
-                                  strata = as.numeric(c(strata.sigma,strata.k,strata.rho)),
-                                  type = c(rep("sigma",length=length(param.sigma)),rep("k",length=length(param.k)),rep("rho",length=length(param.rho))),
-                                  level = rep(NA, times = n.param),
-                                  code = c(code.sigma,code.k,code.rho),
-                                  code.x = rep(as.factor(NA), times = n.param),
-                                  code.y = rep(as.factor(NA), times = n.param),
-                                  sigma = rep(as.character(NA), times = n.param),
-                                  k.x = rep(as.character(NA), times = n.param),
-                                  k.y = rep(as.character(NA), times = n.param),                                  
-                                  stringsAsFactors = FALSE)
-    
-    structure$param$level <- c(level.sigma,level.k,level.rho)
-    attr(structure$param,"level.var") <- outSigma$code
-    if(any(structure$param$type=="k")){
-        structure$param[structure$param$type=="k","sigma"] <- names(strata.sigma)[structure$param[structure$param$type=="k","strata"]]
-        attr(structure$param,"level.var") <- c(attr(structure$param,"level.var"), outK$code)
-    }
-    structure$param <- structure$param[order(structure$param$strata),,drop=FALSE]
-    rownames(structure$param) <- NULL
-
-    ## ** export
-    structure$X$var <- X.var
-    structure$X$cor <- X.cor
-    return(structure)
-}
-
+.skeleton.EXP <- .skeleton.ID
 
 ## * skeleton.CUSTOM
 .skeleton.CUSTOM <- function(structure, data, indexData = NULL){
@@ -303,389 +148,8 @@
     return(structure)
 }
 
-## * helpers
-## ** .initSigma
-.initSigma <- function(X.var, strata.var, U.strata, n.strata, sep = ":"){
-
-    if(NCOL(X.var)==0){
-        return(list(X = X.var,
-                    param = NULL,
-                    strata = NULL,
-                    code = NULL,
-                    level = NULL))
-    }
-
-    if(n.strata==1){
-        param.sigma <- "sigma"
-        index.sigma <- which(attr(X.var,"assign")==0)
-        if(!identical(colnames(X.var)[index.sigma],"(Intercept)")){
-            stop("Could not find the intercept in the design matrix for the variance.\n")
-        }
-        colnames(X.var)[index.sigma] <- param.sigma
-        strata.sigma <- stats::setNames(1,param.sigma)        
-    }else{
-        param.sigma <- paste0("sigma:",U.strata)
-        index.sigma <- which(attr(X.var,"assign")==1)
-        if(!identical(colnames(X.var)[index.sigma],paste0(strata.var,U.strata))){
-            stop("Could not find the strata-specific intercepts in the design matrix for the variance.\n")
-        }
-        colnames(X.var)[index.sigma] <- param.sigma
-        strata.sigma <- stats::setNames(1:n.strata,param.sigma)
-        attr(X.var,"order")[index.sigma] <- 0
-        
-    }
-
-    ## find code
-    X.varsigma <- unique(X.var[rowSums(X.var[,param.sigma,drop=FALSE])==rowSums(X.var),,drop=FALSE])
-    code.sigma <- stats::setNames(as.character(interaction(as.data.frame(X.varsigma), drop = TRUE, sep = sep)),
-                                  apply(X.varsigma, 1, function(iRow){names(which(iRow==1))}))
-    code.sigma <- as.character(code.sigma[param.sigma])
-
-    ## find level
-    M.level <- attr(X.var,"M.level")
-    if(NCOL(M.level)==0){ ## nothing
-        level.sigma <- ""
-    }else if(n.strata==1 || NCOL(M.level)>1){ ## no strata or strata with covariate
-        level.sigma <- paste0(".",as.character(interaction(M.level[index.sigma,,drop=FALSE],sep=sep, drop = TRUE)))
-    }else{ ## only strata
-        level.sigma <- paste0(sep,as.character(interaction(M.level[index.sigma,,drop=FALSE],sep=sep, drop = TRUE)))
-    }
-
-    return(list(X = X.var,
-                param = param.sigma,
-                strata = strata.sigma,
-                code = code.sigma,
-                level = level.sigma))
-
-}
-
-## ** .initK
-.initK <- function(X.var, strata.var, U.strata, n.strata,
-                   param.sigma, strata.sigma, sep = c(".",":")){
-
-    index.k <- which(attr(X.var,"assign")>(n.strata>1))
-
-    if(length(index.k)>0){
-        M.level <- attr(X.var,"M.level")
-        oldnames <- as.character(interaction(as.data.frame(lapply(1:NCOL(M.level), function(iVar){paste0(names(M.level)[iVar],M.level[index.k,iVar])})), sep = sep[2], drop = TRUE) )
-
-        if(n.strata==1 || NCOL(M.level)>1){ ## no strata or strata with covariate
-            level.k <- paste0(sep[1],as.character(interaction(M.level[index.k,,drop=FALSE], sep = sep[2], drop = TRUE)))
-        }else{ ## only strata
-            level.k <- as.character(interaction(M.level[index.k,,drop=FALSE], sep = sep[2], drop = TRUE))
-        }
-        
-        if(!identical(colnames(X.var)[index.k],oldnames)){
-            stop("Could not find the k parameters in the design matrix for the variance.\n")
-        }
-        colnames(X.var)[index.k] <- paste0("k",level.k)
-        param.k <- colnames(X.var)[index.k]
-
-        ## find code
-        X.vark <- unique(X.var[rowSums(X.var[,param.sigma,drop=FALSE])!=rowSums(X.var),,drop=FALSE])
-        code.k <- stats::setNames(as.character(interaction(as.data.frame(X.vark), drop = TRUE, sep = sep[2])),
-                                  apply(X.vark[,param.k,drop=FALSE], 1, function(iRow){names(which(iRow==1))}))[param.k]
-        code.k <- as.character(code.k[param.k])
-
-        if(n.strata == 1){
-            strata.k <- stats::setNames(rep(1,length(param.k)),param.k)
-        }else{
-            strata.k <- stats::setNames(match(M.level[index.k,strata.var],U.strata),param.k)
-        }
-    }else{
-        param.k <- NULL
-        strata.k <- NULL
-        code.k <- NULL
-        level.k <- NULL
-    }
-
-    return(list(X = X.var,
-                param = param.k,
-                strata = strata.k,
-                code = code.k,
-                level = level.k))
-}
-
-## ** .initRho
-## for each cluster compute all pairwise difference in covariates to find the parameters
-.initRho <- function(data, X.cor, X.var,
-                     heterogeneous, toeplitz, block,
-                     U.cluster, index.cluster,
-                     U.time, index.clusterTime, 
-                     strata.var, U.strata, index.clusterStrata, n.strata, sep = c(":")){
-
-    fct.envir <- environment()
-    n.time <- length(U.time)
-
-    ## *** linear predictor for each observation and then grouped by cluster
-    if(length(all.vars(attr(X.cor,"formula")))>0){
-        ## reorder by cluster and time and then find unique rows
-        nobs.cluster <- table(attr(index.cluster,"vectorwise"))
-        UX.cor <- unique(X.cor[unlist(index.cluster[names(sort(nobs.cluster, decreasing = TRUE))]),,drop=TRUE])
-        Ulp.cor <- sort(as.character(interaction(as.data.frame(UX.cor), sep = sep, drop=TRUE)), decreasing = TRUE)
-    }else{
-        Ulp.cor <- "1"
-    }
-    lpObs.cor <- interaction(as.data.frame(X.cor), sep = sep, drop=TRUE)
-    lpnObs.cor <- as.numeric(factor(lpObs.cor, levels = Ulp.cor))
-    lpnCluster.cor <- stats::setNames(lapply(U.cluster, function(iC){
-        lpnObs.cor[index.cluster[[iC]]]
-    }), U.cluster)
-    attr(lpnCluster.cor, "levels") <- Ulp.cor
-
-    ## *** identify the correlation parameters
-    out <- vector(mode = "list", length = n.strata)
-    if(toeplitz){
-        index.XcolTime <- which(attr(X.cor,"term.labels")==attr(X.cor,"variable")[1])
-        if(block){
-            index.XcolBlock <- which(attr(X.cor,"term.labels")==attr(X.cor,"variable")[2])
-        }else{
-            index.XcolBlock <- NULL
-        }
-    }
-
-    for(iStrata in 1:n.strata){
-
-        ## **** subset relative to strata
-        if(n.strata==1){
-            iCluster <- U.cluster
-            iIndex.cluster <- index.cluster
-            iIndex.clusterTime <- index.clusterTime
-            iLpnCluster.cor <- lpnCluster.cor         
-        }else{
-            iCluster <- names(index.clusterStrata)[which(index.clusterStrata==iStrata)]
-            iIndex.cluster <- index.cluster[iCluster]
-            iIndex.clusterTime <- index.clusterTime[iCluster]
-            iLpnCluster.cor <- lpnCluster.cor[iCluster]            
-        }
-        
-        if(!missing(X.var)){
-            iX.sigma <- X.var$X[,names(which(X.var$strata.sigma==iStrata)),drop=FALSE]
-            iX.k <- X.var$X[,names(which(X.var$strata==iStrata)),drop=FALSE]
-        }
-        
-        
-        ## no replicates
-        if(all(sapply(iLpnCluster.cor,length)<=1)){
-            next
-        }
-
-        ## **** find unique linear predictor values within cluster
-        ## iULpIndex.cor <- stats::setNames(vector(mode = "list", length = length(iCluster)), iCluster)
-        ## iULpCluster.cor <- stats::setNames(lapply(iCluster, function(iId){ ## iId <- iCluster[1]
-        ##     ## unique levels
-        ##     iTest <- which(!duplicated(iLpnCluster.cor[[iId]]))
-        ##     iCode <- iLpnCluster.cor[[iId]][iTest]
-        ##     ## add duplicates
-        ##     if(length(iTest)>1 && length(iLpnCluster.cor[[iId]])>length(iTest)){
-        ##         iTest2 <- (1:length(iLpnCluster.cor[[iId]]))[-iTest][which(!duplicated(iLpnCluster.cor[[iId]][-iTest]))]
-        ##         iTest <- sort(c(iTest,iTest2))
-        ##         iCode <- iLpnCluster.cor[[iId]][iTest]
-        ##     }
-        ##     fct.envir$iULpIndex.cor[[iId]] <- sort(iTest)
-        ##     return(iCode)
-        ## }), iCluster)
-        iULpIndex.cor <- stats::setNames(vector(mode = "list", length = length(iCluster)), iCluster)
-        iULpCluster.cor <- stats::setNames(vector(mode = "list", length = length(iCluster)), iCluster)
-        
-        iLpnCluster2.cor <- sapply(iLpnCluster.cor, paste, collapse = ".")
-        iPattern.cor <- split(iCluster, iLpnCluster2.cor)
-        for(iP in 1:length(iPattern.cor)){ ## iP <- 2
-            iId <- iPattern.cor[[iP]][1]
-
-            ## unique levels
-            iTest <- which(!duplicated(iLpnCluster.cor[[iId]]))
-            iCode <- iLpnCluster.cor[[iId]][iTest]
-            ## add duplicates
-            if(length(iTest)>1 && length(iLpnCluster.cor[[iId]])>length(iTest)){
-                iTest2 <- (1:length(iLpnCluster.cor[[iId]]))[-iTest][which(!duplicated(iLpnCluster.cor[[iId]][-iTest]))]
-                iTest <- sort(c(iTest,iTest2))
-                iCode <- iLpnCluster.cor[[iId]][iTest]
-            }
-            iULpIndex.cor[iPattern.cor[[iP]]] <- list(sort(iTest))
-            iULpCluster.cor[iPattern.cor[[iP]]] <- list(sort(iCode))
-        }
-
-        ## **** remove cluster with single value or identical to other cluster in term of linear predictors
-        iIndex.Nsingle <- which(sapply(iIndex.cluster,length)>1)
-        iIndex.unique <- iIndex.Nsingle[which(!duplicated(iULpCluster.cor[iIndex.Nsingle]))]
-                                   
-        iCluster2 <- iCluster[iIndex.unique]
-
-        iN.pair <- unique(sapply(iULpIndex.cor[iIndex.unique], length))
-        ls.pair <- vector(mode = "list", length = max(iN.pair))
-        ls.pair[iN.pair] <- lapply(iN.pair, function(iN){.unorderedPairs(1:iN, distinct = TRUE)})
-
-        ## **** contrast all pairs
-        for(iC in iCluster2){ ## iC <- iCluster2[1]
-            iCindex  <- index.cluster[[iC]][iULpIndex.cor[[iC]]]
-            iCX.cor <- X.cor[iCindex,,drop=FALSE]
-            iData <- data[iCindex,,drop=FALSE]
-            if(NROW(iCX.cor)==1){
-                iPair.time <- matrix(1, nrow = 2, ncol = 1)
-            }else{
-                iPair.time <- ls.pair[[NROW(iCX.cor)]]
-            }
-            iM <- matrix(lpnCluster.cor[[iC]][iULpIndex.cor[[iC]]][iPair.time], ncol = 2, byrow = TRUE, dimnames = list(NULL, c("x","y")))
-
-            iDF.diff <- as.data.frame(do.call(rbind,lapply(1:NCOL(iPair.time),function(iCol){ ## iCol <- 1
-
-                if(iM[iCol,"x"] < iM[iCol,"y"]){
-                    ## make sure same correlation coefficient for (X=1,X=0) and (X=0,X=1)
-                    iCX.cor1 <- iCX.cor[iPair.time[1,iCol],,drop=FALSE]
-                    iCX.cor2 <- iCX.cor[iPair.time[2,iCol],,drop=FALSE]
-                }else if(iM[iCol,"x"] > iM[iCol,"y"]){
-                    ## make sure same correlation coefficient for (X=1,X=0) and (X=0,X=1)
-                    iCX.cor1 <- iCX.cor[iPair.time[2,iCol],,drop=FALSE]
-                    iCX.cor2 <- iCX.cor[iPair.time[1,iCol],,drop=FALSE]
-                }else{
-                    iCX.cor1 <- iCX.cor[min(iPair.time[,iCol]),,drop=FALSE]
-                    iCX.cor2 <- iCX.cor[max(iPair.time[,iCol]),,drop=FALSE]
-                }
-
-                if(toeplitz){
-                    if(block){
-                        if(iCX.cor2[,index.XcolBlock] == iCX.cor1[,index.XcolBlock]){ ## same block
-                            if(heterogeneous=="UN"){
-                                return(cbind("R",iCX.cor2[,index.XcolBlock],paste(iCX.cor1,collapse=""),iCX.cor2[,index.XcolTime]-iCX.cor1[,index.XcolTime]))
-                            }else if(heterogeneous=="LAG"){
-                                return(cbind("R",iCX.cor2[,index.XcolBlock],abs(iCX.cor2[,index.XcolTime]-iCX.cor1[,index.XcolTime])))
-                            }else if(heterogeneous=="CS"){
-                                return(cbind("R",iCX.cor2[,index.XcolBlock],0))
-                            }
-                        }else{ ## different block
-                            if(heterogeneous=="UN"){
-                                if(iCX.cor2[,index.XcolTime]==iCX.cor1[,index.XcolTime]){
-                                    return(cbind("D",abs(iCX.cor2[,index.XcolBlock]-iCX.cor1[,index.XcolBlock]),"0",iCX.cor2[,index.XcolTime]-iCX.cor1[,index.XcolTime]))
-                                }else{
-                                    return(cbind("D",abs(iCX.cor2[,index.XcolBlock]-iCX.cor1[,index.XcolBlock]),paste(iCX.cor1,collapse=""),iCX.cor2[,index.XcolTime]-iCX.cor1[,index.XcolTime]))
-                                }                                
-                            }else if(heterogeneous=="LAG"){
-                                return(cbind("D",abs(iCX.cor2[,index.XcolBlock]-iCX.cor1[,index.XcolBlock]),abs(iCX.cor2[,index.XcolTime]-iCX.cor1[,index.XcolTime])))
-                            }else if(heterogeneous=="CS"){
-                                return(cbind("D",abs(iCX.cor2[,index.XcolBlock]-iCX.cor1[,index.XcolBlock]),as.numeric(iCX.cor2[,index.XcolTime]!=iCX.cor1[,index.XcolTime])))
-                            }
-                        }
-                    }else{
-                        return(cbind("D",abs(iCX.cor2[,index.XcolTime]-iCX.cor1[,index.XcolTime])))
-                    }
-
-                }else{
-                    if(heterogeneous>=1){
-                        if(all(iCX.cor1==iCX.cor2)){
-                            return(cbind("R",iCX.cor1))
-                        }else{
-                            return(cbind(paste0("D",paste(iCX.cor1,collapse="")),iCX.cor2-iCX.cor1))
-                        }
-                    }else if(heterogeneous>=0){
-                        if(all(iCX.cor1==iCX.cor2)){
-                            return(matrix(c("R",rep(iStrata,NCOL(iCX.cor1))), nrow = 1, ncol = 1+NCOL(iCX.cor1)))
-                        }else{
-                            return(matrix(c("D",as.numeric(iCX.cor2!=iCX.cor1)), nrow = 1))
-                        }
-                    }else if(heterogeneous<0){
-                        if(all(iCX.cor1==iCX.cor2)){ ## all equal
-                            return(matrix(c("R",rep(iStrata,NCOL(iCX.cor1))), nrow = 1, ncol = 1+NCOL(iCX.cor1)))
-                        }else{ ## at least one equal 
-                            test.common <- setdiff(colnames(iCX.cor1)[which(iCX.cor1==iCX.cor2)], "(Intercept)")
-                            if(length(test.common)>0){
-                                return(matrix(c("D",as.numeric(iCX.cor2!=iCX.cor1)), nrow = 1))
-                            }else{
-                                return(matrix(NA,nrow = 1, ncol = 1+NCOL(iCX.cor1)))
-                            }
-                        }
-                    }
-
-                    }
-            })))
-
-            iCode <- as.character(interaction(iDF.diff, drop=TRUE))
-            ## name difference according to the covariate values
-            iName.covcor <- setdiff(names(attr(X.cor,"M.level")),strata.var)
-            if(length(iName.covcor)>0){
-                iCov <- as.character(interaction(iData[,iName.covcor,drop=FALSE],drop=TRUE))
-                index.iUCode <- intersect(which(!duplicated(iCode)),which(!is.na(iCode)))
-                iULevel <- stats::setNames(sapply(index.iUCode,function(iCol){
-                    return(paste0("(",paste(unique(c(iCov[min(iPair.time[,iCol])],iCov[max(iPair.time[,iCol])])),collapse=","),")"))
-                }), iCode[index.iUCode])
-                iLevel <- iULevel[iCode]
-                if(n.strata>1){
-                    iLevel <- paste0(iLevel,":",U.strata[iStrata])
-                }
-            }else if(n.strata==1){
-                iLevel <- ""
-            }else if(n.strata>1){
-                iLevel <- paste0(":",U.strata[iStrata])
-            }
-                                
-            iName <- paste0("rho",iLevel)
-
-            index.unique <- intersect(which(!duplicated(cbind(iCode, iM))), which(!is.na(iCode)))
-            iOut <- data.frame(lp.x = iM[index.unique,"x"],
-                               lp.y = iM[index.unique,"y"],
-                               strata = iStrata,
-                               code = iCode[index.unique],
-                               level = iLevel[index.unique],
-                               param = iName[index.unique],
-                               sigma = NA,
-                               k.x = NA,
-                               k.y = NA)
-
-            if(!missing(X.var)){ ## add corresponding variance parameters
-                iCX.sigma <- iX.sigma[iCindex,,drop=FALSE]
-                if(NCOL(iCX.sigma)>0){
-                    iOut$sigma <- colnames(iCX.sigma)[colSums(iCX.sigma)!=0]
-                }
-
-                if(length(iX.k)>0){
-                    iCX.k <- iX.k[iCindex,,drop=FALSE]
-                    iNames.k <- colnames(iCX.k)
-                    iName2 <- sapply(index.unique,function(iCol){ ## iCol <- 4
-                        iName.x <- iNames.k[which(iCX.k[min(iPair.time[,iCol]),]==1)]
-                        if(length(iName.x)==0){iName.x <- NA}
-                        iName.y <- iNames.k[which(iCX.k[max(iPair.time[,iCol]),]==1)]
-                        if(length(iName.y)==0){iName.y <- NA}
-                        return(c(iName.x,iName.y))
-                    })
-                    iOut$k.x <- iName2[1,]
-                    iOut$k.y <- iName2[2,]
-                }
-            }
-            out[[iStrata]] <- rbind(out[[iStrata]], iOut)
-        }
-        out[[iStrata]] <- out[[iStrata]][!duplicated(out[[iStrata]]),,drop=FALSE]
-    }
-
-    ## ** export
-    out <- do.call(rbind, out)
-    rownames(out) <- NULL
-    out <- out[order(out$lp.x,out$lp.y,out$strata),]
-    attr(out, "levels") <- Ulp.cor
-    return(out)
-}
 
 
-## ** .colnameOrder
-## reorder the variable in the column name
-.colnameOrder <- function(X, strata.var, n.strata){
-
-    attr(X,"original.colnames") <- colnames(X)
-    if(n.strata>1){
-        attr(X,"ls.level") <- lapply(attr(X,"ls.level"), function(iL){
-            iL[,c(setdiff(names(iL),strata.var),strata.var),drop=FALSE]
-        })
-        attr(X,"M.level") <- attr(X,"M.level")[,c(setdiff(names(attr(X,"M.level")),strata.var),strata.var),drop=FALSE]
-        attr(X,"reference.level") <- attr(X,"reference.level")[,c(setdiff(names(attr(X,"M.level")),strata.var),strata.var),drop=FALSE]
-        attr(X,"term.labels") <- unname(unlist(lapply(attr(X,"ls.level"), function(iL){paste(names(iL),collapse = ":")})))
-        X.newname <- unname(sapply(attr(X,"ls.level"), function(iL){ ## iL <- attr(X,"ls.level")[[3]]
-            iL[is.na(iL)] <- ""
-            return(paste(paste0(names(iL),as.character(iL)),collapse = ":"))
-        }))
-        colnames(X) <- X.newname
-    }
-    
-    return(X)    
-}
 
 
 ##----------------------------------------------------------------------

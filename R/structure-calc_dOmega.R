@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: feb 27 2023 (17:43) 
+## Last-Updated: maj 11 2023 (10:48) 
 ##           By: Brice Ozenne
-##     Update #: 176
+##     Update #: 177
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -174,6 +174,9 @@
 
 ## * calc_dOmega.CS
 .calc_dOmega.CS <- .calc_dOmega.ID
+
+## * calc_dOmega.RE
+.calc_dOmega.RE <- .calc_dOmega.ID
 
 ## * calc_dOmega.TOEPLITZ
 .calc_dOmega.TOEPLITZ <- .calc_dOmega.ID
