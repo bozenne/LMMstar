@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: jan 24 2023 (09:38) 
+## Last-Updated: maj 16 2023 (09:39) 
 ##           By: Brice Ozenne
-##     Update #: 139
+##     Update #: 140
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -544,6 +544,20 @@ test_that("Incorrect count of the missing data when duplicated visit within indi
     summarizeNA(dL, repetition = ~visit|id)
 
 })
+
+## * from: Brice tirsdag 23-05-16 at 09:36
+test_that("Incorrect display of the missing data patterns", {
+    data("armd.wide", package = "nlmeU")
+    dataNA <- autoplot(summarizeNA(armd.wide))$data
+    MNA <- do.call(rbind,strsplit(levels(xx$data$variable),"(", fixed = TRUE))
+    df.NA <- data.frame(variable = gsub("\n","",MNA[,1], fixed = TRUE),
+                        value = as.numeric(gsub(" missing)","",MNA[,2], fixed = TRUE))
+                        )
+    expect_equal(unname(colSums(is.na(armd.wide))),
+                 df.NA[match(df.NA$variable,names(armd.wide)),"value"],
+                 tol = 1e-6)
+})
+
 
 ######################################################################
 ### test-auto-previous-bug.R ends here

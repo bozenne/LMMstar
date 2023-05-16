@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: maj  4 2023 (12:08) 
+## Last-Updated: maj 16 2023 (09:34) 
 ##           By: Brice Ozenne
-##     Update #: 690
+##     Update #: 693
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -963,7 +963,7 @@ autoplot.summarizeNA <- function(object, variable = NULL, size.text = 16,
                             timevar = newnames[[1]])
 
     nObs.pattern <- stats::setNames(object[[newnames[2]]], object[[newnames[3]]])
-    nNA.Var <- colSums(data[,keep.cols,drop=FALSE])
+    nNA.Var <- colSums(sweep(data[,keep.cols,drop=FALSE], FUN = "*", MARGIN = 1, STATS = nObs.pattern))
 
     if(!is.null(add.missing) && !is.na(add.missing) && !identical(FALSE,add.missing)){
         dataL[[newnames[1]]] <- factor(dataL[[newnames[1]]], labels = paste0(keep.cols,"\n(",nNA.Var,add.missing,")"))
@@ -981,10 +981,10 @@ autoplot.summarizeNA <- function(object, variable = NULL, size.text = 16,
         }
         dataL[[newnames[3]]] <- factor(dataL[[newnames[3]]], levels = data[[newnames[3]]][order.pattern])
     }
-
     gg.NA <- ggplot2::ggplot(dataL, ggplot2::aes(y = .data[[newnames[3]]], x = .data[[newnames[1]]], fill = .data[[newnames[2]]]))
     gg.NA <- gg.NA + ggplot2::geom_tile(color = "black")
-    gg.NA <- gg.NA + ggplot2::scale_y_discrete(breaks = unique(dataL[[newnames[3]]]), labels = nObs.pattern[unique(dataL[[newnames[3]]])])
+    gg.NA <- gg.NA + ggplot2::scale_y_discrete(breaks = unique(dataL[[newnames[3]]]),
+                                               labels = nObs.pattern[unique(dataL[[newnames[3]]])])
     gg.NA <- gg.NA + ggplot2::labs(fill = "missing", x = "", y = "number of observations")
     gg.NA <- gg.NA + ggplot2::theme(text = ggplot2::element_text(size=size.text))
 
