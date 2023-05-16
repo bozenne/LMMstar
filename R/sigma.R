@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: apr 28 2023 (09:27) 
+## Last-Updated: May 14 2023 (12:01) 
 ##           By: Brice Ozenne
-##     Update #: 553
+##     Update #: 556
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -280,7 +280,8 @@ sigma.clmm <- function(object, ...){
     ## ** identify patterns with unique set of parameters
     all.param <- object$design$vcov$param$name
     table.param <- do.call(rbind,lapply(Upattern$param, function(iParam){table(factor(iParam, levels = all.param))}))
-    
+    rownames(table.param) <- Upattern$name
+
     keep.pattern <- rownames(table.param)[which.max(rowSums(table.param) + pcObs.Xpattern/10)[1]]
     iTable.param <- table.param[setdiff(rownames(table.param),keep.pattern),colSums(table.param[keep.pattern,,drop=FALSE])==0,drop=FALSE]
     iter.max <- NROW(Upattern)-1
@@ -292,7 +293,7 @@ sigma.clmm <- function(object, ...){
     }
 
     ## ** recover time
-    out <- mapply(x = Omega[keep.pattern], y = Upattern$time[match(keep.pattern,Upattern$name)], function(x,y){
+    out <- mapply(x = Omega[keep.pattern], y = Upattern$index.time[match(keep.pattern,Upattern$name)], function(x,y){
         dimnames(x) <- list(U.time[y],U.time[y])
         return(x)
     }, SIMPLIFY = FALSE)

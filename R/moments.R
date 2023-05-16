@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: apr 18 2023 (10:10) 
+## Last-Updated: May 14 2023 (11:53) 
 ##           By: Brice Ozenne
-##     Update #: 444
+##     Update #: 456
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -131,8 +131,8 @@
                                    transform.k = transform.k,
                                    transform.rho = transform.rho)
 
-        attr(out$dOmega, "ls.dOmega_OmegaM1") <- stats::setNames(lapply(design$vcov$X$Upattern$name, function(iPattern){
-            lapply(out$dOmega[[iPattern]], function(iM){
+        attr(out$dOmega, "ls.dOmega_OmegaM1") <- stats::setNames(lapply(design$vcov$X$Upattern$name, function(iPattern){ ## iPattern <- design$vcov$X$Upattern$name[3]
+            lapply(out$dOmega[[iPattern]], function(iM){ ## iM <- out$dOmega[[iPattern]][[2]]
                 if(inherits(out$OmegaM1[[iPattern]],"try-error")){return(NA)}else{iM %*% out$OmegaM1[[iPattern]]}
             })
         }), design$vcov$X$Upattern$name)

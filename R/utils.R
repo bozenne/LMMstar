@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: maj 11 2023 (14:05) 
+## Last-Updated: May 14 2023 (12:27) 
 ##           By: Brice Ozenne
-##     Update #: 113
+##     Update #: 117
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -123,18 +123,24 @@ updateFormula <- function(formula, add.x = NULL, drop.x = NULL){
 ##' @examples
 ##' .unorderedPairs(1:5, distinct = TRUE) - utils::combn(5, m = 2)
 ##' .unorderedPairs(1:5, distinct = FALSE)
+##' .unorderedPairs(rep(1,5), distinct = TRUE) - (utils::combn(5, m = 2)>0)
 ##' 
 .unorderedPairs <- function(x, distinct = FALSE){
     n.x <- length(x)
+    ## work on integers
+    y <- 1:n.x
     out <- do.call(cbind,lapply(1:n.x, function(iK) {
-        rbind(x[iK], x[iK:n.x])
+        rbind(y[iK], y[iK:n.x])
     }))
     
+    ## remove 'diagonal' pairs (e.g. (1,1) or (2,2))
     if(distinct){## same as combn but faster when x is large
-        return(out[,out[1,]!=out[2,],drop=FALSE])
-    }else{
-        return(out)
+        out <- out[,out[1,]!=out[2,],drop=FALSE]
     }
+
+    ## restaure original values
+    out[] <- x[as.vector(out)]
+    return(out)
 }
 
 ##----------------------------------------------------------------------

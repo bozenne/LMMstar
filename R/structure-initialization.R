@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: maj 11 2023 (18:12) 
+## Last-Updated: May 14 2023 (11:19) 
 ##           By: Brice Ozenne
-##     Update #: 317
+##     Update #: 321
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -237,7 +237,7 @@
 
     ## extract information
     param.type <- stats::setNames(object$param$type,object$param$name)
-    param.strata <- stats::setNames(object$param$strata,object$param$name)
+    param.strata <- stats::setNames(object$param$index.strata,object$param$name)
     Upattern.name <- object$X$Upattern$name
 
     ## estimate variance and standardize residuals

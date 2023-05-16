@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: maj 11 2023 (10:48) 
+## Last-Updated: May 14 2023 (11:22) 
 ##           By: Brice Ozenne
-##     Update #: 545
+##     Update #: 549
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -107,6 +107,7 @@
         }
         return(Omega)
     }), Upattern$name)
+    
     ## print(Omega)
     return(Omega)
 }

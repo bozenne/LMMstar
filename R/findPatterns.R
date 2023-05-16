@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: maj 12 2023 (11:35) 
+## Last-Updated: May 14 2023 (13:35) 
 ##           By: Brice Ozenne
-##     Update #: 482
+##     Update #: 517
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -71,14 +71,15 @@
     }
 
     ## ** summarize patterns
-    index.unique <- which(!duplicated(pattern.cluster$pattern))
+    index.unique <- which(!duplicated(pattern.cluster$pattern)) ## index of individuals with distinct patterns
+    index.unique.order <- index.unique[order(pattern.cluster$pattern[index.unique])] ## re-order index so patterns appears in alphabetic order (instead of order driven by the dataset)
     n.pattern.var <- length(name.pattern.var)
 
-    Upattern <- data.frame(name = as.character(pattern.cluster$pattern[index.unique]),
-                           var = as.character(pattern.cluster$var[index.unique]),
+    Upattern <- data.frame(name = as.character(pattern.cluster$pattern[index.unique.order]),
+                           var = as.character(pattern.cluster$var[index.unique.order]),
                            cor = NA,
-                           index.strata = unname(index.clusterStrata[index.unique]),
-                           n.time = unname(sapply(index.clusterTime[index.unique],length)),
+                           index.strata = unname(index.clusterStrata[index.unique.order]),
+                           n.time = unname(sapply(index.clusterTime[index.unique.order],length)),
                            index.time = NA,
                            param  = NA,
                            n.cluster = NA,
@@ -117,8 +118,8 @@
             attr(iX,"indicator.param") <- lapply(attr(iX,"Mindicator.param"),function(iM){which(iM>0)})
         
             return(iX)
-        }),name.pattern.var)
-    
+        }),Upattern$var)
+        
     }else{
         Xpattern.var <- stats::setNames(lapply(Upattern$name, function(iName){
             iM <- matrix(nrow = Upattern[Upattern$name==iName,"n.cluster"], ncol = 0)
@@ -541,22 +542,29 @@
     UpatternCorLP <- patternCorLP.cluster[patternCorLP.index1]
     ## unique design matrix for pairwise comparisons
     UpatternCorDiff <- lapply(patternCorLP.index1, function(iC){ ## iC <- 1
-        iIndex <- .unorderedPairs(1:length(index.cluster[[iC]]), distinct = TRUE)
-        iIndex.cluster <- rbind(index.cluster[[iC]][iIndex[1,]], index.cluster[[iC]][iIndex[2,]])
-        iX.cor1 <- X.cor[iIndex.cluster[1,],,drop=FALSE]
-        iDiff <- X.cor[iIndex.cluster[2,],,drop=FALSE] - iX.cor1
-        iCode <- paste0("D",interaction(as.data.frame(iX.cor1),sep=""),sep[1],interaction(as.data.frame(iDiff),sep=sep[1]))
-        iParam <- structure.param
-        iMatch <- match(iCode,structure.param$code)
-        if(any(is.na(iMatch))){
-            warning("Something went wrong when extracting the correlation patterns. \n")
+        iN <- length(index.cluster[[iC]])
+        if(iN==1){
+            iOut <- data.frame(index1 = NA,
+                               index2 = NA,
+                               code = NA,
+                               param  = NA)
+        }else{
+            iIndex <- .unorderedPairs(1:iN, distinct = TRUE)
+            iIndex.cluster <- rbind(index.cluster[[iC]][iIndex[1,]], index.cluster[[iC]][iIndex[2,]])
+            iX.cor1 <- X.cor[iIndex.cluster[1,],,drop=FALSE]
+            iDiff <- X.cor[iIndex.cluster[2,],,drop=FALSE] - iX.cor1
+            iCode <- paste0("D",interaction(as.data.frame(iX.cor1),sep=""),sep[1],interaction(as.data.frame(iDiff),sep=sep[1]))
+            iParam <- structure.param
+            iMatch <- match(iCode,structure.param$code)
+            if(any(is.na(iMatch))){
+                warning("Something went wrong when extracting the correlation patterns. \n")
+            }
+            iOut <- data.frame(index1 = iIndex[1,],
+                               index2 = iIndex[2,],
+                               code = iCode,
+                               param  = structure.param[iMatch,"name"])
         }
-        return(data.frame(index1 = iIndex[1,],
-                          index2 = iIndex[2,],
-                          ## index.time1 = attr(index.clusterTime,"vectorwise")[iIndex.cluster[1,]],
-                          ## index.time2 = attr(index.clusterTime,"vectorwise")[iIndex.cluster[2,]],
-                          code = iCode,
-                          param  = structure.param[iMatch,"name"]))
+        return(iOut)
     })
     
     ## *** summarize correlation patterns
@@ -571,7 +579,7 @@
                               n.cluster = unname(sapply(patternCorLP.index,length)))
     UpatternCor$index.cluster <- patternCorLP.index[UpatternCor$cor]
     UpatternCor$index.time <- lapply(UpatternCor$index.cluster,function(iC){index.clusterTime[[iC[1]]]})
-    UpatternCor$param <- lapply(UpatternCorDiff,function(iPattern){unique(iPattern$param)})
+    UpatternCor$param <- lapply(UpatternCorDiff,function(iPattern){unique(iPattern$param[!is.na(iPattern$param)])})
 
     patternCor.cluster <- do.call(rbind,lapply(UpatternCorLP, function(iPattern){
         data.frame(index.cluster = patternCorLP.index[[iPattern]], cor = iPattern)
@@ -579,11 +587,12 @@
     patternCor.cluster <- patternCor.cluster[order(patternCor.cluster$index.cluster),,drop=FALSE]
 
     ## *** characterize each correlation pattern
-    Xpattern.cor <- lapply(UpatternCorLP, function(iPattern){ ## iPattern <- UpatternCorLP[1]
+    Xpattern.cor <- stats::setNames(lapply(UpatternCorLP, function(iPattern){ ## iPattern <- UpatternCorLP[1]
 
         iCluster <- patternCorLP.index1[[iPattern]]
         iIndex.cluster <- index.cluster[[iCluster]]
         iRep <- length(iIndex.cluster)
+        if(iRep==1){return(NULL)}
         iOut <- X.cor[iIndex.cluster,,drop=FALSE]
         attr(iOut, "index.cluster") <- patternCorLP.index[[iPattern]]
         attr(iOut, "index.time") <- index.clusterTime[[iCluster]]
@@ -604,10 +613,9 @@
         }, simplify=FALSE)
 
         return(iOut)
-    })
+    }), UpatternCorLP)
 
     ## ** joint variance and correlation patterns
-    
     pattern.name <- paste0(as.numeric(factor(patternVar.cluster$var,attr(UpatternVar,"level.var"))),
                            ":",
                            as.numeric(factor(patternCor.cluster$cor,UpatternCorLP)))
@@ -616,10 +624,11 @@
                                   var = patternVar.cluster$var,
                                   cor = patternCor.cluster$cor)
     index.Upattern <- which(!duplicated(pattern.name))
-    
-    Upattern <- data.frame(name = pattern.cluster$pattern[index.Upattern],
-                           var = pattern.cluster$var[index.Upattern],
-                           cor = pattern.cluster$cor[index.Upattern],
+    index.Upattern.order <- index.Upattern[order(pattern.cluster$pattern[index.Upattern])] ## re-order index so patterns appears in alphabetic order (instead of order driven by the dataset)
+
+    Upattern <- data.frame(name = pattern.cluster$pattern[index.Upattern.order],
+                           var = pattern.cluster$var[index.Upattern.order],
+                           cor = pattern.cluster$cor[index.Upattern.order],
                            index.strata = NA,
                            n.time = NA,
                            index.time = NA,
@@ -632,13 +641,10 @@
     Upattern$index.strata <- unname(index.clusterStrata[Upattern.index.cluster1])
     Upattern$index.time <- unname(index.clusterTime[Upattern.index.cluster1])
     Upattern$n.time <- unname(sapply(Upattern$index.time,length))
-    Upattern$param <- 
-    UpatternVar$param[UpatternVar$var==Upattern$var]
-    UpatternCor$param[UpatternCor$cor==Upattern$cor]
+    Upattern$param <- unname(mapply(x = UpatternVar$param[match(Upattern$var,UpatternVar$var)], y = UpatternCor$param[match(Upattern$cor,UpatternCor$cor)], FUN = function(x,y){unname(c(x,y))}, SIMPLIFY = FALSE))
     attr(Upattern,"level.var") <- attr(UpatternVar,"level.var")
     attr(Upattern,"level.cor") <- UpatternCorLP
-        
-browser()
+
     ## ** export
     structure$X$Upattern <- Upattern
     structure$X$Xpattern.var <- Xpattern.var
