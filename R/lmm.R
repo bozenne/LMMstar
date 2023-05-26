@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: maj 12 2023 (09:43) 
+## Last-Updated: maj 26 2023 (16:37) 
 ##           By: Brice Ozenne
-##     Update #: 2210
+##     Update #: 2225
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -203,10 +203,7 @@ lmm <- function(formula, repetition, structure, data,
        
     ## *** structure
     if(!missing.structure){
-        if(detail.formula$special=="ranef"){
-            stop("Argument \'formula\' and \'structure\' are inconsistent. \n",
-                 "Either specify random effect (argument \'formula\') or a covariance structure (argument \'structure\') but not both. \n")
-        }else if(inherits(structure,"character") || inherits(structure,"function")){
+        if(inherits(structure,"character") || inherits(structure,"function")){
             structure <- do.call(structure, args = list(~1))
         }else if(inherits(structure,"structure")){
             ## nothing
@@ -214,7 +211,10 @@ lmm <- function(formula, repetition, structure, data,
             stop("Argument \'structure\' must either be a character or a structure object. \n")
         }
         var.strata <- structure$name$strata
-    }else if(detail.formula$special=="ranef"){
+    }else{
+        var.strata <- NA
+    }
+    if(detail.formula$special=="ranef"){
         if(length(detail.formula$vars$time)>0){
             stop("Incorrect argument \'formula\', \n",
                  "Current version can only handle random intercepts (i.e. no covariates in random effects). \n")
@@ -223,48 +223,46 @@ lmm <- function(formula, repetition, structure, data,
             stop("Incorrect argument \'formula\', \n",
                  "Current version cannot handle crossed and nested random effects. \n")
         }
-        if(attr(detail.formula$special,"crossed")){            
-            if(missing.repetition){
-                repetition <- as.formula(paste0("~",paste(detail.formula$vars$cluster,collapse="+")))
-            }
-            ff.structure <- paste0("~",paste0(detail.formula$vars$ranef, collapse = "+"))
-            structure <- CS(list(~1,as.formula(ff.structure)),
-                            heterogeneous = -1,
+        if(missing.structure){
+            structure <- RE(~1, 
                             ranef = detail.formula$special)
         }else{
-            if(missing.repetition){
-                repetition <- as.formula(paste0("~1|",detail.formula$vars$cluster))
-            }
-            structure.ranef <- list(type = data.frame(crossed = attr(detail.formula$special,"crossed"),
-                                                      nested = attr(detail.formula$special,"crossed")),
-                                    formula = detail.formula$formula$ranef,
-                                    vars = detail.formula$vars$ranef,
-                                    terms = detail.formula$terms$ranef,
-                                    hierarchy = detail.formula$vars$hierarchy)
-                                            
-            if(attr(detail.formula$special,"nested")){
-                ff.structure <- paste0("~",paste0(detail.formula$vars$ranef[-1], collapse = "+"))
-                structure <- CS(as.formula(ff.structure),
-                                heterogeneous = FALSE,
-                                ranef = structure.ranef)
+            call.structure <- as.list(structure$call)
+            args.structure <- call.structure[-1]
+            args.structure$ranef <- detail.formula$special
+            attr(args.structure$ranef,"formula") <- detail.formula$formula$ranef
+            attr(args.structure$ranef,"vars") <- detail.formula$vars$ranef
+            attr(args.structure$ranef,"terms") <- detail.formula$terms$ranef
+            attr(args.structure$ranef,"vars") <- detail.formula$vars$hierarchy
+            if(inherits(call.structure[[1]], "function")){
+                structure <- do.call(call.structure[[1]], args = args.structure)
             }else{
-                structure <- CS(~1,
-                                ranef = structure.ranef)
+                structure <- do.call(deparse(call.structure[[1]]), args = args.structure)
             }
+
         }
-        var.strata <- NA
-    }else{
-        var.strata <- NA
     }
     
     ## *** repetition
     if(missing(repetition)){
         update.strataStructure <- FALSE
-        if(missing(structure)){
-            var.cluster  <- NA
-            var.time  <- NA
-            var.strata  <- NA
-            structure <- ID(~1)
+        if(missing.structure){
+            if(detail.formula$special=="ranef"){
+                if(attr(detail.formula$special,"crossed")){            
+                    var.cluster <- NA
+                    var.time <- detail.formula$vars$cluster
+                    var.strata <- NA
+                }else{
+                    var.cluster <- detail.formula$vars$cluster
+                    var.time <- NA
+                    var.strata <- NA
+                }                
+            }else{
+                var.cluster  <- NA
+                var.time  <- NA
+                var.strata  <- NA
+                structure <- ID(~1)
+            }
         }else if(inherits(structure,"structure")){
             var.cluster <- structure$name$cluster
             var.time <- structure$name$time
@@ -549,7 +547,6 @@ lmm <- function(formula, repetition, structure, data,
     if(is.na(structure$name$cluster)){
         args.structure$var.time <- "XXtime.indexXX"
     }
-
     ## add strata to the call
     if(update.strataStructure){
         if(is.list(args.structure$formula)){

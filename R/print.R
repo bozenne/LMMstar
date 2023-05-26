@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: apr 28 2023 (17:25) 
+## Last-Updated: maj 25 2023 (16:36) 
 ##           By: Brice Ozenne
-##     Update #: 217
+##     Update #: 219
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -308,6 +308,9 @@ print.summarize <- function(x,...){
         x$outcome <- NULL
     }else{
         x$outcome[duplicated(x$outcome)] <- ""
+    }
+    if("pc.missing" %in% attr(x,"call")$columns == FALSE){
+        x$pc.missing <- NULL
     }
     name.X <-  attr(x,"name.X")
     if(length(name.X)>0){

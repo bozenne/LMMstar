@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: maj  4 2023 (11:28) 
+## Last-Updated: maj 25 2023 (16:35) 
 ##           By: Brice Ozenne
-##     Update #: 279
+##     Update #: 287
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -97,7 +97,7 @@
 ## * summarize (code)
 ##' @export
 summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, level = 0.95,
-                      columns = c("observed","missing","mean","sd","min","q1","median","q3","max","correlation"),
+                      columns = c("observed","missing","pc.missing","mean","sd","min","q1","median","q3","max","correlation"),
                       FUN = NULL,
                       which = NULL,
                       skip.reference = TRUE,
@@ -105,6 +105,7 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
                       ...){
 
     data <- as.data.frame(data)
+    mycall <- match.call()
 
     ## ** check and normalize user imput
     name.all <- all.vars(formula)
@@ -358,6 +359,7 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
     if(!is.null(digits)){
         attr(out,"digits") <- digits
     }
+    attr(out,"call") <- mycall
     attr(out,"name.Y") <- name.Y
     attr(out,"name.X") <- name.X
     attr(out,"name.time") <- time

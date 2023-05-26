@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: May 14 2023 (11:22) 
+## Last-Updated: maj 26 2023 (17:43) 
 ##           By: Brice Ozenne
-##     Update #: 549
+##     Update #: 557
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -79,7 +79,7 @@
         iPattern.var <- Upattern[iPattern,"var"]
         iPattern.cor <- Upattern[iPattern,"cor"]
         iNtime <- Upattern[iPattern,"n.time"]
-
+        
         if(length(X.var[[iPattern.var]])>0){
             Omega.sd <- unname(exp(X.var[[iPattern.var]] %*% log(param[colnames(X.var[[iPattern.var]])])))
         }else{
@@ -88,13 +88,14 @@
         Omega.cor <- diag(0, nrow = iNtime, ncol = iNtime)
         if(!is.null(X.cor) && !is.null(X.cor[[iPattern.cor]])){
             iParam.cor <- attr(X.cor[[iPattern.cor]],"param")
-            for(iiP in 1:length(iParam.cor)){
+            for(iiP in 1:length(iParam.cor)){ ## iiP <- 6
                 iiParam <- iParam.cor[iiP]
-                if(is.na(iiParam)){
+                if(!is.na(iiParam)){
+                    Omega.cor[attr(X.cor[[iPattern.cor]],"indicator.param")[[iiParam]]] <- param[iiParam]
+                }else if(any(is.na(names(attr(X.cor[[iPattern.cor]],"indicator.param"))))){
                     iiParam <- which(is.na(names(attr(X.cor[[iPattern.cor]],"indicator.param")))) 
                     Omega.cor[attr(X.cor[[iPattern.cor]],"indicator.param")[[iiParam]]] <- NA
-                }else{
-                    Omega.cor[attr(X.cor[[iPattern.cor]],"indicator.param")[[iiParam]]] <- param[iiParam]
+                    
                 }
             }
         }

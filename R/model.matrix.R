@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: May 14 2023 (11:27) 
+## Last-Updated: maj 26 2023 (17:08) 
 ##           By: Brice Ozenne
-##     Update #: 2454
+##     Update #: 2476
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,7 +25,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         effects <- c("mean","variance")
     }
     if(is.null(drop.X)){
-        drop.X <- LMMstar.options("drop.X")
+        drop.X <- LMMstar.options()$drop.X
     }
 
     effects <- match.arg(effects, c("mean","variance"), several.ok = TRUE)
@@ -109,7 +109,8 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
                                       droplevels = TRUE)
 
             ## use stats::model.frame to handle spline
-            design$mean  <- .mean.matrix.lmm(formula = object$formula$mean.design, colnames = colnames(object$design$mean),
+            design$mean  <- .mean.matrix.lmm(formula = object$formula$mean.design,
+                                             colnames = colnames(object$design$mean),
                                              data = stats::model.frame(attr(object$design$mean,"terms"), data = data.mean , na.action = stats::na.pass), 
                                              name.strata = object$strata$var, U.strata = object$strata$levels)
         }
@@ -180,10 +181,12 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
                                   pattern.cluster = NULL,
                                   pair.varcoef = object$design$vcov$X$pair.varcoef)
 
-            ## form design matrix    
+            ## form design matrix
             outDesign <- .vcov.matrix.lmm(structure = object$design$vcov, data = data.var, index.cluster = outInit$index.cluster, drop.X = drop.X)
             design$vcov$X$var <- outDesign$var
             design$vcov$X$cor <- outDesign$cor
+            design$vcov$X$lp.var <- outDesign$lp.var
+            design$vcov$X$lp.cor <- outDesign$lp.cor
             ## handle the case where structure is UN even though each cluster contain a single observation
             if(is.null(object$design$vcov$X$cor) && !is.null(outDesign$cor)){
                 stop("Cannot build the design matrix for the covariance structure of clusters containing several obserations. \n",
@@ -300,37 +303,48 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     }
     ## ** design matrix
     out <- list(var = NULL, cor = NULL, xfactor = list(var = NULL, cor = NULL))
+
     if(inherits(structure,"CUSTOM")){
         out$var <- dataVar[,all.vars(formula.var),drop=FALSE]
         out$cor <- dataCor[,all.vars(formula.cor),drop=FALSE]
-    }else if(is.null(structure$param)){ ## structure
-        out$var <- .colnameOrder(.model.matrix_regularize(formula.var, data = dataVar, augmodel = TRUE, type = "variance", drop.X = drop.X), strata.var = strata.var, n.strata = n.strata)
-        out$xfactor$var <- stats::.getXlevels(stats::terms(formula.var),stats::model.frame(formula.var,dataVar))
+    }else{
+        if(is.null(structure$param)){ ## structure
+            if(!is.null(formula.var)){
+                out$var <- .colnameOrder(.model.matrix_regularize(formula.var, data = dataVar, augmodel = TRUE, type = "variance", drop.X = drop.X), strata.var = strata.var, n.strata = n.strata)
+                out$xfactor$var <- stats::.getXlevels(stats::terms(formula.var),stats::model.frame(formula.var,dataVar))
+            }
+            if(!is.null(formula.cor) && n.time>1 && any(sapply(index.cluster,length)>1)){  ## at least one individual with more than timepoint
+                out$cor <- .colnameOrder(.model.matrix_regularize(formula.cor, data = dataCor, augmodel = TRUE, type = "correlation", drop.X = drop.X), strata.var = strata.var, n.strata = n.strata)
+                out$xfactor$cor <- stats::.getXlevels(stats::terms(formula.cor),stats::model.frame(formula.cor,dataCor))
+                
+            }
+        }else{ ## newdata
+            if(!is.null(formula.var)){
+                out$var <- stats::model.matrix(formula.var, data = dataVar)[,attr(structure$X$var,"original.colnames"),drop=FALSE]
+                colnames(out$var) <- colnames(structure$X$var)
+                for(iAssign in setdiff(names(attributes(structure$X$var)), c("dim","dimnames"))){
+                    attr(out$var,iAssign) <- attr(structure$X$var,iAssign)
+                }
+            }
+            if(!is.null(formula.cor) && n.time>1 && any(sapply(index.cluster,length)>1)){  ## at least one individual with more than timepoint
+                out$cor <- stats::model.matrix(formula.cor, data = dataCor)[,attr(structure$X$cor,"original.colnames"),drop=FALSE]
+                colnames(out$cor) <- colnames(structure$X$cor)
+                for(iAssign in setdiff(names(attributes(structure$X$cor)), c("dim","dimnames"))){
+                    attr(out$cor,iAssign) <- attr(structure$X$cor,iAssign)
+                }
+            }
+        }
+
+        ## add linear predictors
         if(!is.null(out$var)){
             out$lp.var <- interaction(as.data.frame(out$var), sep = ":", drop=TRUE)
             attr(out$lp.var, "cluster") <- lapply(U.cluster, function(iC){ out$lp.var[index.cluster[[iC]]] })
         }
         if(!is.null(formula.cor) && n.time>1 && any(sapply(index.cluster,length)>1)){  ## at least one individual with more than timepoint
-            out$cor <- .colnameOrder(.model.matrix_regularize(formula.cor, data = dataCor, augmodel = TRUE, type = "correlation", drop.X = drop.X), strata.var = strata.var, n.strata = n.strata)
             out$lp.cor <- interaction(as.data.frame(out$cor), sep = "", drop=TRUE)
             attr(out$lp.cor, "cluster") <- lapply(U.cluster, function(iC){ out$lp.cor[index.cluster[[iC]]] })
-            out$xfactor$cor <- stats::.getXlevels(stats::terms(formula.cor),stats::model.frame(formula.cor,dataCor)) 
         }
-    }else{ ## newdata        
-        out$var <- stats::model.matrix(formula.var, data = dataVar)[,attr(structure$X$var,"original.colnames"),drop=FALSE]
-        colnames(out$var) <- colnames(structure$X$var)
-        for(iAssign in setdiff(names(attributes(structure$X$var)), c("dim","dimnames"))){
-            attr(out$var,iAssign) <- attr(structure$X$var,iAssign)
-        }
-
-        if(!is.null(formula.cor) && n.time>1 && any(sapply(index.cluster,length)>1)){  ## at least one individual with more than timepoint
-            out$cor <- stats::model.matrix(formula.cor, data = dataCor)[,attr(structure$X$cor,"original.colnames"),drop=FALSE]
-            colnames(out$cor) <- colnames(structure$X$cor)
-            for(iAssign in setdiff(names(attributes(structure$X$cor)), c("dim","dimnames"))){
-                attr(out$cor,iAssign) <- attr(structure$X$cor,iAssign)
-            }
-        }
-    }
+    }   
 
     ## ** export
     return(out)
@@ -364,7 +378,6 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 
     ## *** design matrix
     outDesign <- .vcov.matrix.lmm(structure = structure, data = data, index.cluster = outInit$index.cluster, drop.X = drop.X)
-
     structure$xfactor <- outDesign$xfactor
     structure$X <- list(var = outDesign$var,
                         lp.var = outDesign$lp.var,
@@ -697,6 +710,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     ##              "Variable: \"",paste(names(test1fac)[test1fac==1], collapse = "\" \""),"\". \n")
     ##     }
     ## }
+
     ## ** create design matrix
     X <- stats::model.matrix(formula,data)
     p <- NCOL(X)

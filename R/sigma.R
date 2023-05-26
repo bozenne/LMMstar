@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: May 14 2023 (12:01) 
+## Last-Updated: maj 26 2023 (17:38) 
 ##           By: Brice Ozenne
-##     Update #: 556
+##     Update #: 564
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -114,6 +114,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
             if(any(duplicated(cluster))){
                 stop("Argument \'cluster\' should contain duplicates. \n")
             }
+            newdesign <- NULL
             if(is.numeric(cluster)){
                 if(any(cluster %in% 1:object.n.cluster == FALSE)){ 
                     stop("When numeric, elements in argument \'cluster\' should index the clusters, i.e. be between 1 and ",object.n.cluster,". \n", sep = "")
@@ -131,6 +132,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
             }
         }
     }else{
+        newdesign <- NULL
         test.clusterDF <- FALSE
     }
     
@@ -220,6 +222,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
     }
 
     ## ** export
+    attr(out,"structure") <- newdesign
     if(is.list(out) && length(out)==1 && simplifies){
         out <- out[[1]]
         return(out)

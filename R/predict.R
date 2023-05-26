@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jan 16 2023 (18:08) 
+## Last-Updated: maj 25 2023 (19:43) 
 ##           By: Brice Ozenne
-##     Update #: 728
+##     Update #: 741
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -252,6 +252,7 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
     ## ** identify variance patterns
     if(type.prediction == "dynamic" || factor.residual){
         Omega <- stats::sigma(object, cluster = newdata, simplifies = FALSE)
+        structure <- attr(Omega,"structure")$vcov
         index.cluster <- attr(Omega, "index.cluster")
         index.clusterTime <- attr(Omega, "index.clusterTime")
         U.cluster <- names(index.cluster)
@@ -295,6 +296,7 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
         prediction.var <- rep(NA, n.obs)
         
         for(iC in U.cluster){ ## iC <- U.cluster[1]
+
             iNewdata <- newdata[index.cluster[[iC]],,drop=FALSE] ## subset
             iIndex.con <- which(!is.na(iNewdata[[name.Y]]))
             iPos.con <- index.cluster[[iC]][iIndex.con]
@@ -307,7 +309,7 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
             iX.con <- X[iPos.con,,drop=FALSE]
             iX.pred <- X[iPos.pred,,drop=FALSE]
             iOmega.pred <- Omega[[iC]]
-            
+
             if(length(iPos.pred)>0 && length(iPos.con)==0){ ## static prediction
 
                 prediction[iPos.pred] <- iX.pred %*% mu
@@ -338,8 +340,12 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
                     prediction.var[iPos.pred] <- 0
                 }
                 if(factor.estimation){
-                    calcPred <- function(x){ ## x <- theta 
-                        OO <- stats::sigma(object, p = x, cluster = iNewdata, simplifies = TRUE)
+                    iPattern <- attr(Omega,"pattern")[iC]
+                    iDimnames <- dimnames(Omega[[iC]])
+                    calcPred <- function(x){ ## x <- theta
+                        ## OO <- stats::sigma(object, p = x, cluster = iNewdata, simplifies = TRUE)
+                        OO <- .calc_Omega(structure, param = x, keep.interim = FALSE)[[iPattern]]
+                        dimnames(OO) <- iDimnames
                         rr <- solve(OO[iLevels.con,iLevels.con,drop=FALSE]) %*% (iY - iX.con %*% x[name.mu])
                         pp <- iX.pred %*% x[name.mu] + OO[iLevels.pred,iLevels.con,drop=FALSE] %*% rr
                         return(pp)
@@ -354,8 +360,6 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
                     prediction.var[iPos.pred] <- prediction.var[iPos.pred] + diag(iOmega.pred[iLevels.pred,iLevels.pred,drop=FALSE] - iOmega.predcon %*% iOmegaM1.con %*% iOmega.conpred)
                 }
             }
-
-            
         }
     if(keep.newdata){
             out <- cbind(newdata, estimate = prediction)

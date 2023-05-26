@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: May 14 2023 (13:35) 
+## Last-Updated: maj 26 2023 (18:13) 
 ##           By: Brice Ozenne
-##     Update #: 517
+##     Update #: 529
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -556,9 +556,9 @@
             iCode <- paste0("D",interaction(as.data.frame(iX.cor1),sep=""),sep[1],interaction(as.data.frame(iDiff),sep=sep[1]))
             iParam <- structure.param
             iMatch <- match(iCode,structure.param$code)
-            if(any(is.na(iMatch))){
-                warning("Something went wrong when extracting the correlation patterns. \n")
-            }
+            ## if(any(is.na(iMatch))){
+            ##     warning("Something went wrong when extracting the correlation patterns. \n")
+            ## }
             iOut <- data.frame(index1 = iIndex[1,],
                                index2 = iIndex[2,],
                                code = iCode,
@@ -606,6 +606,9 @@
         attr(iOut, "index.vec2matrix") <- attr(iOut, "index.pair")$row + (attr(iOut, "index.pair")$col-1)*iRep
         attr(iOut, "param") <- unique(UpatternCorDiff[[iPattern]]$param)
         attr(iOut, "indicator.param") <- tapply(attr(iOut, "index.vec2matrix"),attr(iOut, "index.pair")$param,identity,simplify=FALSE)
+        if(any(is.na(attr(iOut, "index.pair")$param))){
+            attr(iOut, "indicator.param")[[as.character(NA)]] <- attr(iOut, "index.vec2matrix")[is.na(attr(iOut, "index.pair")$param)]
+        }
         attr(iOut, "Mindicator.param") <- tapply(attr(iOut, "index.vec2matrix"),attr(iOut, "index.pair")$param,function(iIndex){
             iM <- matrix(0, nrow = iRep, ncol = iRep)
             iM[iIndex] <- 1

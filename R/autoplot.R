@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: maj 16 2023 (09:34) 
+## Last-Updated: maj 25 2023 (16:40) 
 ##           By: Brice Ozenne
-##     Update #: 693
+##     Update #: 696
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -889,7 +889,14 @@ autoplot.summarize <- function(object, type = "mean", variable = NULL,
                                                        group = .data[[name.Group]], color = .data[[name.Group]]))
         }
         gg <- gg + geom_point(size = size) + geom_line(linewidth = linewidth)
-        gg <- gg + ggplot2::labs(y = variable)
+        if(type == "missing"){
+            gg <- gg + ggplot2::labs(y = paste0("number of missing values in ",variable))
+        }else if(type == "pc.missing"){
+            gg <- gg + ggplot2::labs(y = paste0("percentage of missing values in ",variable))
+            gg <- gg + ggplot2::scale_y_continuous(labels = scales::percent)
+        }else{
+            gg <- gg + ggplot2::labs(y = variable)
+        }
         if(!is.null(size.text)){
             gg <- gg + ggplot2::theme(text = ggplot2::element_text(size=size.text))
         }

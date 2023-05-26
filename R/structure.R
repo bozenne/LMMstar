@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: maj 12 2023 (10:02) 
+## Last-Updated: maj 26 2023 (17:11) 
 ##           By: Brice Ozenne
-##     Update #: 788
+##     Update #: 917
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -14,10 +14,6 @@
 ##----------------------------------------------------------------------
 ## 
 ### Code:
-
-
-
-
 
 ## * ID (identity)
 ##' @title identity Structure
@@ -41,18 +37,10 @@
 ##' @export
 ID <- function(formula, var.cluster, var.time, add.time){
 
-    if(missing(formula) || is.null(formula)){
-        outCov <- .formulaStructure(~1)
-    }else if(length(all.vars(formula))==0){
-        if(attr(stats::terms(formula),"intercept")){
-            outCov <- .formulaStructure(~1)
-        }else{
-            outCov <- .formulaStructure(~0)
-        }
-    }else{
-        ## put covariate as strata if in addition to time
-        outCov <- .formulaStructure(stats::as.formula(paste0(paste(all.vars(formula), collapse="+"),"~1")))
-    }
+    ## ** normalize input
+    outCov <- .formulaStructure(formula, add.X = NULL, strata.X = TRUE, correlation = FALSE)
+
+    ## ** create structure
     out <- list(call = match.call(),
                 name = data.frame(cluster = if(!missing(var.cluster)){var.cluster}else{NA},
                                   strata = if(length(outCov$strata)>0){outCov$strata}else{NA},
@@ -62,10 +50,9 @@ ID <- function(formula, var.cluster, var.time, add.time){
                                   stringsAsFactors = FALSE),
                 formula = list(var = outCov$formula.var,
                                cor = NULL),
-                heterogeneous = TRUE,
                 type = "ID")
 
-    ## export
+    ## ** export
     class(out) <- append("structure",class(out))
     class(out) <- append("ID",class(out))
     return(out)
@@ -91,14 +78,13 @@ ID <- function(formula, var.cluster, var.time, add.time){
 ##' IND(NULL, var.cluster = "id", var.time = "time", add.time = TRUE)
 ##' IND(~1, var.cluster = "id", var.time = "time")
 ##' IND(gender~1, var.cluster = "id", var.time = "time")
-##' 
-##' IND(~time, var.cluster = "id")
-##' IND(~time, var.cluster = "id", var.time = "time")
 ##' IND(gender~time, var.cluster = "id", var.time = "time")
-##' IND(~time+gender, var.cluster = "id", var.time = "time")
+##' IND(~gender+time, var.cluster = "id", var.time = "time")
+##' 
 ##' @export
 IND <- function(formula, var.cluster, var.time, add.time){
 
+    ## ** normalize input
     if(!missing(add.time)){
         if(is.character(add.time)){
             add.X <- list(variance = add.time,
@@ -115,31 +101,21 @@ IND <- function(formula, var.cluster, var.time, add.time){
         add.X <- NULL
     }
 
-    if(missing(formula) || is.null(formula)){
-        outCov <- .formulaStructure(~1, add.X = add.X)
-    }else{
+    outCov <- .formulaStructure(formula, add.X = add.X, strata.X = FALSE, correlation = FALSE)
 
-        if(length(all.vars(formula))==0 && attr(stats::terms(formula),"intercept")==0){
-            stop("Incorrect formula for structure IND. \n",
-                 "Must have an intercept or a explanatory variable. \n")
-        }
-        outCov <- .formulaStructure(formula, add.X = add.X)
-
-    }
-
+    ## ** create structure
     out <- list(call = match.call(),
                 name = data.frame(cluster = if(!missing(var.cluster)){var.cluster}else{NA},
-                                  strata = if(!is.null(outCov$strata)){outCov$strata}else{NA},
+                                  strata = if(length(outCov$strata)>0){outCov$strata}else{NA},
                                   time = if(!missing(var.time)){var.time}else{NA},
                                   var = if(length(outCov$X.var)>0){I(list(outCov$X.var))}else{NA},
                                   cor = NA,
                                   stringsAsFactors = FALSE),
                 formula = list(var = outCov$formula.var,
                                cor = NULL),
-                heterogeneous = TRUE,
                 type = "IND")
 
-    ## export
+    ## ** export
     class(out) <- append("structure",class(out))
     class(out) <- append("IND",class(out))
     return(out)
@@ -165,32 +141,29 @@ IND <- function(formula, var.cluster, var.time, add.time){
 ##' @return An object of class \code{CS} that can be passed to the argument \code{structure} of the \code{lmm} function.
 ##' 
 ##' @examples
+##' ## no covariates
 ##' CS(~1, var.cluster = "id", var.time = "time")
 ##' CS(gender~1, var.cluster = "id", var.time = "time")
+##'
+##' ## covariates
+##' CS(~time, var.cluster = "id", var.time = "time")
+##' CS(gender~time, var.cluster = "id", var.time = "time")
 ##' CS(list(~time,~1), var.cluster = "id", var.time = "time")
 ##' CS(list(gender~time,gender~1), var.cluster = "id", var.time = "time")
 ##' 
 ##' @export
 CS <- function(formula, var.cluster, var.time, heterogeneous = TRUE, add.time){
-    if(missing(formula) || is.null(formula)){
-        outCov <- .formulaStructure(~1, heterogeneous = heterogeneous)
-    }else if(is.list(formula)){
-        outCov <- .formulaStructure(formula, heterogeneous = heterogeneous)
-    }else if(heterogeneous){
-        outCov <- .formulaStructure(formula, heterogeneous = heterogeneous)
-    }else{ ## covariate affects only the correlation (keep same variance within strata)
-        if(attr(stats::terms(formula),"response")==1){ # with strata
-            outCov <- .formulaStructure(list(stats::update(formula,.~0),formula), heterogeneous = heterogeneous)
-        }else{
-            outCov <- .formulaStructure(list(~1,formula), heterogeneous = heterogeneous)
-        }
-    }
-    if(length(outCov$X.var)==0 && length(outCov$X.cor)==0){
+
+    ## ** normalize input
+    outCov <- .formulaStructure(formula, add.X = NULL, strata.X = FALSE, correlation = TRUE, heterogeneous = heterogeneous)
+    if(length(outCov$X.cor)==0){
         heterogeneous <- FALSE
     }
+
+    ## ** create structure
     out <- list(call = match.call(),
                 name = data.frame(cluster = if(!missing(var.cluster)){var.cluster}else{NA},
-                                  strata = if(!is.null(outCov$strata)){outCov$strata}else{NA},
+                                  strata = if(length(outCov$strata)>0){outCov$strata}else{NA},
                                   time = if(!missing(var.time)){var.time}else{NA},
                                   var = if(length(outCov$X.var)>0){I(list(outCov$X.var))}else{NA},
                                   cor = if(length(outCov$X.cor)>0){I(list(outCov$X.cor))}else{NA},
@@ -216,6 +189,7 @@ CS <- function(formula, var.cluster, var.time, heterogeneous = TRUE, add.time){
 ##' and variables influencing the residual variance and correlation (right hand side).##' 
 ##' @param var.cluster [character] cluster variable.
 ##' @param var.time [character] time variable.
+##' @param ranef [list] characteristics of the random effects
 ##' @param add.time not used.
 ##'
 ##' @details A typical formula would be \code{~1}, indicating a variance constant over time and the same correlation between all pairs of times.
@@ -223,46 +197,64 @@ CS <- function(formula, var.cluster, var.time, heterogeneous = TRUE, add.time){
 ##' @return An object of class \code{CS} that can be passed to the argument \code{structure} of the \code{lmm} function.
 ##' 
 ##' @examples
-##' CS(~1, var.cluster = "id", var.time = "time")
-##' CS(gender~1, var.cluster = "id", var.time = "time")
-##' CS(list(~time,~1), var.cluster = "id", var.time = "time")
-##' CS(list(gender~time,gender~1), var.cluster = "id", var.time = "time")
+##' RE(~1, var.cluster = "id", var.time = "time")
+##' RE(~gender, var.cluster = "id", var.time = "time")
+##' RE(gender~(1|id), var.cluster = "id", var.time = "time")
 ##' 
 ##' @export
-RE <- function(formula, var.cluster, var.time, add.time){
-    browser()
-    if(missing(formula) || is.null(formula)){
-        outCov <- .formulaStructure(~1, heterogeneous = heterogeneous)
-    }else if(is.list(formula)){
-        outCov <- .formulaStructure(formula, heterogeneous = heterogeneous)
-    }else if(heterogeneous){
-        outCov <- .formulaStructure(formula, heterogeneous = heterogeneous)
-    }else{ ## covariate affects only the correlation (keep same variance within strata)
-        if(attr(stats::terms(formula),"response")==1){ # with strata
-            outCov <- .formulaStructure(list(stats::update(formula,.~0),formula), heterogeneous = heterogeneous)
-        }else{
-            outCov <- .formulaStructure(list(~1,formula), heterogeneous = heterogeneous)
-        }
-    }
-    if(length(outCov$X.var)==0 && length(outCov$X.cor)==0){
-        heterogeneous <- FALSE
-    }
-    out <- list(call = match.call(),
-                name = data.frame(cluster = if(!missing(var.cluster)){var.cluster}else{NA},
-                                  strata = if(!is.null(outCov$strata)){outCov$strata}else{NA},
-                                  time = if(!missing(var.time)){var.time}else{NA},
-                                  var = if(length(outCov$X.var)>0){I(list(outCov$X.var))}else{NA},
-                                  cor = if(length(outCov$X.cor)>0){I(list(outCov$X.cor))}else{NA},
-                                  stringsAsFactors = FALSE),
-                formula = list(var = outCov$formula.var,
-                               cor = outCov$formula.cor),
-                heterogeneous = heterogeneous,
-                block = length(outCov$X.cor) > 0,
-                type = "RE",
-                ranef = ranef)
+RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
 
-    ## export
-    class(out) <- append("structure",class(out))
+    ## ** normalize input
+    if(!inherits(formula,"formula")){
+        stop("Argument \'formula\' must inherits from formula. \n")
+    }
+    detail.formula <- formula2var(formula)
+
+    if(detail.formula$special=="none"){
+        if(length(detail.formula$vars$regressor)>0){
+            if(length(detail.formula$vars$response)>0){
+                stop("The strata variable in argument \'formula\' should be specified on the left or right hand side (not both). \n")
+            }
+            var.strata <- detail.formula$vars$regressor
+        }else{
+            var.strata <- detail.formula$vars$response
+        }
+    }else if(detail.formula$special=="ranef"){
+        var.strata <- detail.formula$vars$response
+    }else{
+        stop("Incorrect argument \'formula\' for structure RE. \n",
+             "Should be something like ~strata or strata ~ (1|id).")
+    }
+
+    ## ** create structure
+    if(length(var.strata)>0){
+        ff.var <- stats::as.formula(paste0(var.strata,"~1"))
+    }else{
+        ff.var <- ~1
+    }
+    if(is.null(ranef) || (attr(ranef,"crossed") == FALSE && attr(ranef,"nested") == FALSE)){
+        ff.cor <- ff.var   
+    }else if(attr(ranef,"crossed")){
+        ff.cor <- paste0(var.strata,"~",paste0(detail.formula$vars$ranef, collapse = "+"))
+    }else if(attr(ranef,"nested")){
+        ff.cor <- paste0(var.strata,"~",paste0(detail.formula$vars$ranef[-1], collapse = "+"))
+    } 
+    out <- CS(list(variance = ff.var, correlation = ff.cor), var.cluster = var.cluster, var.time = var.time)
+
+    if(!is.null(ranef)){
+        out$ranef <- list(type = data.frame(crossed = attr(ranef,"crossed"),
+                                            nested = attr(ranef,"nested")),
+                          formula = attr(ranef,"formula"),
+                          vars = attr(ranef,"vars"),
+                          terms = attr(ranef,"terms"),
+                          hierarchy = attr(ranef,"hierarchy"))
+    }
+
+    ## ** export
+    out$type <- "RE"
+    out$call <- match.call()
+    out$heterogeneous <- NULL
+    out$block <- NULL
     class(out) <- append("RE",class(out))
     return(out)
 }
@@ -312,6 +304,7 @@ RE <- function(formula, var.cluster, var.time, add.time){
 ##' @export
 TOEPLITZ <- function(formula, var.cluster, var.time, heterogeneous = "LAG", add.time){
 
+    ## ** normalize input
     if(is.null(heterogeneous)){
         heterogeneous <- "LAG"
         toeplitz.block <- FALSE
@@ -356,11 +349,7 @@ TOEPLITZ <- function(formula, var.cluster, var.time, heterogeneous = "LAG", add.
         add.X <- NULL
     }
 
-    if(missing(formula) || is.null(formula)){
-        outCov <- .formulaStructure(~1, heterogeneous = TRUE, add.X = add.X)
-    }else{
-        outCov <- .formulaStructure(formula, heterogeneous = TRUE, add.X = add.X)
-    }
+    outCov <- .formulaStructure(formula, add.X = add.X, strata.X = FALSE, correlation = TRUE)
     if(length(outCov$X.var)==0 && length(outCov$X.cor)==0){
         heterogeneous <- NULL
     }
@@ -370,6 +359,7 @@ TOEPLITZ <- function(formula, var.cluster, var.time, heterogeneous = "LAG", add.
         toeplitz.block <- length(outCov$X.cor) > 1
     }
 
+    ## ** create structure
     out <- list(call = match.call(),
                 name = data.frame(cluster = if(!missing(var.cluster)){var.cluster}else{NA},
                                   strata = if(!is.null(outCov$strata)){outCov$strata}else{NA},
@@ -383,7 +373,7 @@ TOEPLITZ <- function(formula, var.cluster, var.time, heterogeneous = "LAG", add.
                 block = toeplitz.block,
                 type = "TOEPLITZ")
 
-    ## export
+    ## ** export
     class(out) <- append("structure",class(out))
     class(out) <- append("TOEPLITZ",class(out))
     return(out)
@@ -407,10 +397,13 @@ TOEPLITZ <- function(formula, var.cluster, var.time, heterogeneous = "LAG", add.
 ##' UN(NULL, var.cluster = "id", var.time = "time", add.time = TRUE)
 ##' UN(~gender, var.cluster = "id", var.time = "time", add.time = TRUE)
 ##' UN(gender ~ 1, var.cluster = "id", var.time = "time", add.time = TRUE)
+##' UN(list(~gender,~1), var.cluster = "id", var.time = "time", add.time = TRUE)
+##' UN(list(gender~age,gender~1), var.cluster = "id", var.time = "time", add.time = TRUE)
 ##' 
 ##' @export
 UN <- function(formula, var.cluster, var.time, add.time){
 
+    ## ** normalize input
     if(!missing(add.time)){
         if(is.character(add.time)){
             add.X <- list(variance = add.time,
@@ -426,32 +419,22 @@ UN <- function(formula, var.cluster, var.time, add.time){
     }else{
         add.X <- NULL
     }
-    
-    if(missing(formula) || is.null(formula) || length(all.vars(formula))==0){
-        outCov <- .formulaStructure(~1, add.X = add.X)
-    }else{
-        outCov <- .formulaStructure(stats::as.formula(paste0(paste(all.vars(formula), collapse="+"),"~1")),
-                                    add.X = add.X)
-    }
 
+    outCov <- .formulaStructure(formula, add.X = add.X, strata.X = inherits(formula,"formula"), correlation = 2) ## 2 for fully stratified structure
+
+    ## ** create structure
     out <- list(call = match.call(),
                 name = data.frame(cluster = if(!missing(var.cluster)){var.cluster}else{NA},
-                                  strata = if(!is.null(outCov$strata)){outCov$strata}else{NA},
+                                  strata = if(length(outCov$strata)>0){outCov$strata}else{NA},
                                   time = if(!missing(var.time)){var.time}else{NA},
-                                  var = if(length(outCov$X.var)>0){I(list(outCov$X.var))}else{NA},
+                                  var = I(list(outCov$X.var)),
                                   cor = I(list(outCov$X.cor)),
                                   stringsAsFactors = FALSE),
                 formula = list(var = outCov$formula.var,
                                cor = outCov$formula.cor),
-                heterogeneous = TRUE,
                 type = "UN")
 
-    ## remove intercept
-    if(length(all.vars(out$formula$cor)>0)){
-        out$formula$cor <- stats::update(out$formula$cor,~0+.)
-    }
-
-    ## export
+    ## ** export
     class(out) <- append("structure",class(out))
     class(out) <- append("UN",class(out))
     return(out)
@@ -695,19 +678,22 @@ CUSTOM <- function(formula, var.cluster, var.time,
 ##' @noRd
 ##'
 ##' @param formula A formula or a list of two formulas.
-##' @param add.X additional covariates to be added to the variance and correlation structure.
-##' @param heterogeneous when \code{FALSE}, main effects are kept in the correlation structure.
+##' @param add.X [character vector] additional covariates to be added to the variance and correlation structure.
+##' @param strata.X [logical] all covariates should be used to stratify the variance and/or correlation structure.
+##' @param correlation [logical] should a correlation structure be output? Otherwise no correlation parameter is considered.
+##' If greater than 1 then all interaction terms are considered when having multiple variables, e.g. time:gender instead of time + gender.
 ##' 
 ##' @keywords internal
 ##' @examples
-##' .formulaStructure(strata ~ time)
-##' .formulaStructure( ~ time)
-##' .formulaStructure(list( ~ gender+time,  ~ time))
-##' .formulaStructure(strata ~ 1)
-.formulaStructure <- function(formula, add.X = NULL, heterogeneous = TRUE){
+.formulaStructure <- function(formula, add.X, strata.X, correlation){
 
     ## ** normalize to formula format
-    if(inherits(formula,"formula")){
+    if(is.null(formula)){
+        formula <- ~1
+    }
+
+    class.formula <- inherits(formula,"formula")
+    if(class.formula){
         detail.formula0 <- formula2var(formula)
 
         formula <- list(variance = formula,
@@ -752,7 +738,6 @@ CUSTOM <- function(formula, var.cluster, var.time,
     ## ** right hand side
     ls.var.X <- list(variance = c(add.X$variance, detail.formula$variance$vars$regressor),
                      correlation = c(add.X$correlation, detail.formula$correlation$vars$regressor))
-
     test.interaction <- sapply(formula, function(iF){
         any(attr(stats::delete.response(stats::terms(iF)),"order")>1)
     })
@@ -760,9 +745,30 @@ CUSTOM <- function(formula, var.cluster, var.time,
         stop("Does not handle interactions in the formula. \n")
     }
 
+    ## right hand side variables define strata
+    if(length(var.strata)==0 && strata.X && length(unlist(ls.var.X))>0){
+        if(length(ls.var.X$variance)>0 && length(ls.var.X$correlation)>0){
+            if(!identical(detail.formula$variance$vars$regressor,detail.formula$correlation$vars$regressor)){
+                stop("The strata variable should not differ between the variance and the correlation structure. \n")
+            }else{
+                var.strata <- detail.formula$variance$vars$regressor
+                ls.var.X$variance <- setdiff(ls.var.X$variance,detail.formula$variance$vars$regressor)
+                ls.var.X$correlation <- setdiff(ls.var.X$correlation,detail.formula$variance$vars$regressor)
+            }
+        }else if(length(ls.var.X$variance)>0){
+            var.strata <- detail.formula$variance$vars$regressor
+            ls.var.X$variance <- setdiff(ls.var.X$variance,detail.formula$variance$vars$regressor)                
+        }else if(length(ls.var.X$correlation)>0){
+            var.strata <- detail.formula$correlation$vars$regressor
+            ls.var.X$correlation <- setdiff(ls.var.X$correlation,detail.formula$correlation$vars$regressor)                
+        }
+
+    }
+
     ## ** combine left and right hand side
     ## *** variance
     if(length(ls.var.X$variance)==0){
+        X.var <- NULL
         if(length(var.strata)==0){            
             if(attr(stats::terms(formula$variance),"intercept")){
                 formula.var <- ~1
@@ -773,6 +779,7 @@ CUSTOM <- function(formula, var.cluster, var.time,
             formula.var <- stats::as.formula(paste("~0+",var.strata))
         }
     }else{
+        X.var <- unname(ls.var.X$variance)
         if(length(var.strata)==0){
             formula.var <- stats::as.formula(paste("~",paste(ls.var.X$variance,collapse=":")))
         }else{
@@ -784,27 +791,43 @@ CUSTOM <- function(formula, var.cluster, var.time,
 
     ## *** correlation
     if(length(ls.var.X$correlation)==0){
-        if(length(var.strata)==0){
-            formula.cor <- ~1 
+        X.cor <- NULL
+        if(correlation==FALSE){
+            formula.cor <- NULL
+        }else if(length(var.strata)==0){
+            formula.cor <- ~1
         }else{
             formula.cor <- stats::as.formula(paste("~0+",var.strata))
         }
     }else{
-        if(length(var.strata)==0){
-            formula.cor <- stats::as.formula(paste("~",paste(ls.var.X$correlation,collapse="+")))
-        }else if(heterogeneous>0){
-            formula.cor <- stats::as.formula(paste("~0+",paste(paste(ls.var.X$correlation,var.strata,sep=":"),collapse="+")))
-            ## stats::update(terms.var, paste0("~0+",out$name$strata,"+",out$name$strata,":."))
-            ## using ".:var.strata" does not work (it gives the same formula - does not invert . var.strata around the : symbol)
+        X.cor <- unname(ls.var.X$correlation)
+        if(correlation==FALSE){
+            formula.cor <- NULL
+            if(!class.formula){
+                warning("Variable(s) \"",paste(ls.var.X$correlation, collapse = "\", \""),"\" in the correlation structure are ignored. \n")
+            }
+        }else if(length(var.strata)==0){
+            if(correlation>1){
+                formula.cor <- stats::as.formula(paste("~0+",paste(ls.var.X$correlation,collapse=":")))
+            }else{
+                formula.cor <- stats::as.formula(paste("~0+",paste(ls.var.X$correlation,collapse="+")))
+            }
         }else{
-            formula.cor <- stats::as.formula(paste("~0+",var.strata,"+",paste(paste(ls.var.X$correlation,var.strata,sep=":"),collapse="+")))
+            if(correlation>1){
+                formula.cor <- stats::as.formula(paste("~0+",paste(c(ls.var.X$correlation,var.strata),collapse=":")))
+                ## formula.cor <- stats::as.formula(paste("~0+",var.strata,"+",paste(paste(ls.var.X$correlation,var.strata,sep=":"),collapse="+")))
+            }else{
+                formula.cor <- stats::as.formula(paste("~0+",paste(paste(ls.var.X$correlation,var.strata,sep=":"),collapse="+")))
+                ## stats::update(terms.var, paste0("~0+",out$name$strata,"+",out$name$strata,":."))
+                ## using ".:var.strata" does not work (it gives the same formula - does not invert . var.strata around the : symbol)
+            }
         }
     }
-    
+
     ## ** export
     out <- list(strata = var.strata,
-                X.var = unname(ls.var.X$variance),
-                X.cor = unname(ls.var.X$correlation),
+                X.var = X.var,
+                X.cor = X.cor,
                 formula.var = formula.var,
                 formula.cor = formula.cor
                 )

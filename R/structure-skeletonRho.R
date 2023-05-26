@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (13:27) 
 ## Version: 
-## Last-Updated: May 14 2023 (13:25) 
+## Last-Updated: maj 26 2023 (17:07) 
 ##           By: Brice Ozenne
-##     Update #: 191
+##     Update #: 208
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -415,7 +415,7 @@ if(toeplitz){
             if(NROW(iM.level)==1){next} ## case where one strata has no repetition
         }
         ## form all unique pairs of covariate values
-        iVec.level <- interaction(iM.level, sep = sep[1])
+        iVec.level <- interaction(iM.level, sep = sep[1], drop = TRUE)
         iM.pairs <- .unorderedPairs(as.character(iVec.level), distinct = TRUE)
         ## deduce parameters        
         iLevel.rho <- paste0("(",iM.pairs[1,],",",iM.pairs[2,],")")
@@ -437,10 +437,12 @@ if(toeplitz){
         iDiff.obs <- as.character(interaction(as.data.frame(XpairPattern$diffU.strata[[iS]]), sep = sep[1], drop= TRUE))
         iMatch.obs <- match(iUlp.diff,iDiff.obs)
 
-        if(any(is.na(iMatch.obs))){
-            stop("Something went wrong when generating the correlation parameters for the UN pattern. \n",
-                 "Missing parameter(s) compared to what is observed. \n")
-        }
+        ## iDiff.obs %in% iUlp.diff
+        ## if(any(is.na(iMatch.obs))){
+        ##     stop("Something went wrong when generating the correlation parameters for the UN pattern. \n",
+        ##          "Missing parameter(s) compared to what is observed. \n")
+        ## }
+
         iIndex.keep <- iUlp.diff %in% iDiff.obs
         iMindex.obs <- attr(XpairPattern$LpU.strata[[iS]],"index")[iMatch.obs,,drop=FALSE]
 
@@ -452,8 +454,8 @@ if(toeplitz){
         code.x.rho <- c(code.x.rho,iCode.x.rho[iIndex.keep])
         code.y.rho <- c(code.y.rho,iCode.y.rho[iIndex.keep])
         if(length(param.k)>0){
-            k.x <- c(k.x, param.k.obs[iMindex.obs[,1]])
-            k.y <- c(k.y, param.k.obs[iMindex.obs[,2]])
+            k.x <- c(k.x, param.k.obs[iMindex.obs[iIndex.keep,1]])
+            k.y <- c(k.y, param.k.obs[iMindex.obs[iIndex.keep,2]])
         }
         
         
