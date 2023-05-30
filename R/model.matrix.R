@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: maj 26 2023 (17:08) 
+## Last-Updated: maj 30 2023 (15:37) 
 ##           By: Brice Ozenne
-##     Update #: 2476
+##     Update #: 2487
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -309,7 +309,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         out$cor <- dataCor[,all.vars(formula.cor),drop=FALSE]
     }else{
         if(is.null(structure$param)){ ## structure
-            if(!is.null(formula.var)){
+            if(!is.null(formula.var)){                
                 out$var <- .colnameOrder(.model.matrix_regularize(formula.var, data = dataVar, augmodel = TRUE, type = "variance", drop.X = drop.X), strata.var = strata.var, n.strata = n.strata)
                 out$xfactor$var <- stats::.getXlevels(stats::terms(formula.var),stats::model.frame(formula.var,dataVar))
             }
@@ -764,7 +764,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     X.level2 <- stats::setNames(lapply(X.names, function(iName){reference2}), X.names)
 
     ## ** loop for each element of the design matrix and identify the right level
-    for(iCol in 1:p){ ## iCol <- 9
+    for(iCol in 1:p){ ## iCol <- 1
 
         if(X.order[iCol]==0){
             ## reference level for intercept
@@ -801,6 +801,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             }
         }
     }
+
     ## ** add attributes
     attr(X,"formula") <- formula
     attr(X,"variable") <- colnames(reference2)

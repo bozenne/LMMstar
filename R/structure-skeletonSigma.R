@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (11:02) 
 ## Version: 
-## Last-Updated: maj 11 2023 (19:09) 
+## Last-Updated: maj 30 2023 (18:19) 
 ##           By: Brice Ozenne
-##     Update #: 44
+##     Update #: 45
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -102,8 +102,8 @@
                               index.level = index.sigma,
                               level = level.sigma,
                               code = code.sigma,
-                              code.x = as.character(NA),
-                              code.y = as.character(NA),
+                              code.x = as.numeric(NA),
+                              code.y = as.numeric(NA),
                               sigma = as.character(NA),
                               k.x = as.character(NA),
                               k.y = as.character(NA),                                  

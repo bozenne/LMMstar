@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: May 14 2023 (12:27) 
+## Last-Updated: maj 30 2023 (18:22) 
 ##           By: Brice Ozenne
-##     Update #: 117
+##     Update #: 119
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -135,7 +135,11 @@ updateFormula <- function(formula, add.x = NULL, drop.x = NULL){
     
     ## remove 'diagonal' pairs (e.g. (1,1) or (2,2))
     if(distinct){## same as combn but faster when x is large
-        out <- out[,out[1,]!=out[2,],drop=FALSE]
+        if(all(out[1,]==out[2,])){
+            return(NULL)
+        }else{
+            out <- out[,out[1,]!=out[2,],drop=FALSE]
+        }
     }
 
     ## restaure original values

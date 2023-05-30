@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (11:55) 
 ## Version: 
-## Last-Updated: maj 11 2023 (17:09) 
+## Last-Updated: maj 30 2023 (18:18) 
 ##           By: Brice Ozenne
-##     Update #: 29
+##     Update #: 31
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -100,12 +100,13 @@
                               index.level = index.k,
                               level = level.k,
                               code = code.k,
-                              code.x = as.character(NA),
-                              code.y = as.character(NA),
+                              code.x = as.numeric(NA),
+                              code.y = as.numeric(NA),
                               sigma = param.sigma[match(strata.k,strata.sigma)],
                               k.x = as.character(NA),
                               k.y = as.character(NA),                                  
                               stringsAsFactors = FALSE)
+    rownames(structure.k) <- NULL
     structure$param <- rbind(structure$param, structure.k)
     ## attr(structure$param,"level.var") <- c(attr(structure$param,"level.var"), outK$code)
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: maj 26 2023 (17:11) 
+## Last-Updated: maj 30 2023 (13:19) 
 ##           By: Brice Ozenne
-##     Update #: 917
+##     Update #: 921
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -155,8 +155,11 @@ IND <- function(formula, var.cluster, var.time, add.time){
 CS <- function(formula, var.cluster, var.time, heterogeneous = TRUE, add.time){
 
     ## ** normalize input
-    outCov <- .formulaStructure(formula, add.X = NULL, strata.X = FALSE, correlation = TRUE, heterogeneous = heterogeneous)
-    if(length(outCov$X.cor)==0){
+    outCov <- .formulaStructure(formula, add.X = NULL, strata.X = FALSE, correlation = TRUE)
+    if(length(formula==1) && heterogeneous == FALSE){
+        outCov$X.var <- NULL
+        outCov$formula.var <- ~1
+    }else if(length(outCov$X.cor)==0){
         heterogeneous <- FALSE
     }
 
