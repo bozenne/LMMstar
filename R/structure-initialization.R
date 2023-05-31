@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: May 14 2023 (11:19) 
+## Last-Updated: maj 31 2023 (18:41) 
 ##           By: Brice Ozenne
-##     Update #: 321
+##     Update #: 327
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -72,8 +72,9 @@
 ## * initialize.ID
 .initialize.ID <- function(object, residuals, Xmean, index.cluster){
 
-    param.type <- stats::setNames(object$param$type,object$param$name)
-    param.strata <- stats::setNames(object$param$index.strata,object$param$name)
+    structure.param <- object$param[is.na(object$param$constraint),,drop=FALSE]
+    param.type <- stats::setNames(structure.param$type,structure.param$name)
+    param.strata <- stats::setNames(structure.param$index.strata,structure.param$name)
     Upattern.name <- object$X$Upattern$name
 
     ## combine all residuals and all design matrices
@@ -183,8 +184,9 @@
 ## * initialize2.ID
 .initialize2.ID <- function(object, Omega){
 
-    param.type <- stats::setNames(object$param$type,object$param$name)
-    param.strata <- stats::setNames(object$param$strata,object$param$name)
+    structure.param <- object$param[is.na(object$param$constraint),,drop=FALSE]
+    param.type <- stats::setNames(structure.param$type,structure.param$name)
+    param.strata <- stats::setNames(structure.param$index.strata,structure.param$name)
     Upattern <- object$X$Upattern
     Upattern.name <- Upattern$name
     Omega.diag <- diag(Omega)
@@ -233,14 +235,16 @@
 
 ## * initialize.CS
 .initialize.CS <- function(object, residuals, Xmean, index.cluster){
-    out <- stats::setNames(rep(NA, NROW(object$param)), object$param$name)
 
-    ## extract information
-    param.type <- stats::setNames(object$param$type,object$param$name)
-    param.strata <- stats::setNames(object$param$index.strata,object$param$name)
+    structure.param <- object$param[is.na(object$param$constraint),,drop=FALSE]
+    out <- stats::setNames(rep(NA, NROW(structure.param)), structure.param$name)
+
+    ## ** extract information
+    param.type <- stats::setNames(structure.param$type,structure.param$name)
+    param.strata <- stats::setNames(structure.param$index.strata,structure.param$name)
     Upattern.name <- object$X$Upattern$name
 
-    ## estimate variance and standardize residuals
+    ## ** estimate variance and standardize residuals
     attr(residuals,"studentized") <- TRUE ## to return studentized residuals
     if("sigma" %in% param.type){
         sigma <- .initialize.IND(object = object, residuals = residuals, Xmean = Xmean, index.cluster = index.cluster)
@@ -252,7 +256,7 @@
     }
 
     if(is.null(object$X$Xpattern.cor)){return(out)}
-    ## combine all residuals and all design matrices
+    ## ** combine all residuals and all design matrices
     M.prodres <- do.call(rbind,lapply(1:length(object$X$Xpattern.cor), function(iPattern){ ## iPattern <- 1
         X.iPattern <- object$X$Xpattern.cor[[iPattern]]
         if(is.null(X.iPattern)){return(NULL)}
@@ -260,7 +264,7 @@
         obs.iPattern <- do.call(rbind,index.cluster[attr(X.iPattern,"index.cluster")])
         ## identify non-duplicated pairs of observation (here restrict matrix to its  upper part)
         iAllPair <- attr(X.iPattern,"index.pair")
-        iPair <- iAllPair[iAllPair[,"col"]<iAllPair[,"row"],,drop=FALSE]
+        iPair <- iAllPair[iAllPair[,"col"]<iAllPair[,"row"] & iAllPair$param %in% structure.param$name,,drop=FALSE]
         iParam <- unique(iPair$param)
         iPair$param <- as.numeric(factor(iPair$param, levels = iParam))
 
@@ -296,7 +300,8 @@
         iDf.out$param <- iParam[iDf.out$param]
         return(iDf.out)
     }))
-    ## estimate correlation
+
+    ## ** estimate correlation
     param.rho <- names(param.type)[param.type=="rho"]
 
     e.rho <- unlist(lapply(split(M.prodres, M.prodres$param), function(iDF){ ## iDF <- split(M.prodres, M.prodres$param)[[3]]
@@ -307,7 +312,7 @@
         return(iNum/sqrt(iDenom1*iDenom2))
     }))
 
-    ## take care of extreme cases, e.g. 0 variability
+    ## ** take care of extreme cases, e.g. 0 variability
     if(any(is.na(e.rho))){
         e.rho[is.na(e.rho)] <- 0
     }
@@ -322,11 +327,12 @@
 
 ## * initialize2.CS
 .initialize2.CS <- function(object, Omega){
-    out <- stats::setNames(rep(NA, NROW(object$param)), object$param$name)
+    structure.param <- object$param[is.na(object$param$constraint),,drop=FALSE]
+    out <- stats::setNames(rep(NA, NROW(structure.param)), structure.param$name)
 
     ## ** extract information
-    param.type <- stats::setNames(object$param$type,object$param$name)
-    param.strata <- stats::setNames(object$param$strata,object$param$name)
+    param.type <- stats::setNames(structure.param$type,structure.param$name)
+    param.strata <- stats::setNames(structure.param$index.strata,structure.param$name)
     Upattern <- object$X$Upattern
     Upattern.name <- Upattern$name
 
@@ -383,11 +389,12 @@
 
 ## * initialize.EXP
 .initialize.EXP <- function(object, residuals, Xmean, index.cluster){
-    out <- stats::setNames(rep(NA, NROW(object$param)), object$param$name)
+    structure.param <- object$param[is.na(object$param$constraint),,drop=FALSE]
+    out <- stats::setNames(rep(NA, NROW(structure.param)), structure.param$name)
 
-    ## extract information
-    param.type <- stats::setNames(object$param$type,object$param$name)
-    param.strata <- stats::setNames(object$param$strata,object$param$name)
+    ## ** extract information
+    param.type <- stats::setNames(structure.param$type,structure.param$name)
+    param.strata <- stats::setNames(structure.param$index.strata,structure.param$name)
     Upattern.name <- object$X$Upattern$name
     regressor <- stats::setNames(object$param[object$param$type=="rho","code"],object$param[object$param$type=="rho","name"])
     

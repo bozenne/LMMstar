@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: maj 30 2023 (17:24) 
+## Last-Updated: maj 31 2023 (16:49) 
 ##           By: Brice Ozenne
-##     Update #: 2479
+##     Update #: 2480
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -119,6 +119,7 @@
                                  data.frame(name = names(structure$init.sigma),
                                             strata = 1,
                                             type = "sigma",
+                                            constraint = as.numeric(NA),
                                             level = as.character(NA),
                                             code = as.character(NA),
                                             code.x = NA,
@@ -133,6 +134,7 @@
                                  data.frame(name = names(structure$init.rho),
                                             strata = 1,
                                             type = "rho",
+                                            constraint = as.numeric(NA),
                                             level = as.character(NA),
                                             code = as.character(NA),
                                             code.x = NA,

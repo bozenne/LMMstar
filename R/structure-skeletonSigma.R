@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (11:02) 
 ## Version: 
-## Last-Updated: maj 30 2023 (18:19) 
+## Last-Updated: maj 31 2023 (16:48) 
 ##           By: Brice Ozenne
-##     Update #: 45
+##     Update #: 50
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -93,13 +93,12 @@
     }else if(n.strata>1){ ## only strata
         level.sigma <- paste0(sep,as.character(interaction(M.level[index.sigma,,drop=FALSE],sep=sep, drop = TRUE)))
     }
-
     ## ** update
     structure$X$var <- X.var
     param.sigma <- data.frame(name = param.sigma,
                               index.strata = strata.sigma,
                               type = rep("sigma",length=n.sigma),
-                              index.level = index.sigma,
+                              constraint = as.numeric(NA),
                               level = level.sigma,
                               code = code.sigma,
                               code.x = as.numeric(NA),

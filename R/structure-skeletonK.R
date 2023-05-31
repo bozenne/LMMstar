@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (11:55) 
 ## Version: 
-## Last-Updated: maj 30 2023 (18:18) 
+## Last-Updated: maj 31 2023 (16:48) 
 ##           By: Brice Ozenne
-##     Update #: 31
+##     Update #: 37
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -50,7 +50,6 @@
     }else{
         n.strata <- length(U.strata)
     }
-    index.sigma <- structure$param[structure$param$type=="sigma","index.level"]
     param.sigma <- structure$param[structure$param$type=="sigma","name"]
     strata.sigma <- structure$param[structure$param$type=="sigma","index.strata"]
     
@@ -77,9 +76,9 @@
     n.k <- length(param.k)
 
     ## ** find code associated to each parameter
-    ## subset rows corresponding only to the 'baseline' variance
-    index.keep <- rowSums(abs(X.var[,-index.sigma,drop=FALSE]))
-    X.Uk <- unique(X.var[index.keep>0,,drop=FALSE])
+    ## subset rows corresponding only to the multipliers i.e. non-0 intercept and covariate value in the design matrix
+    index.keep <- rowSums(abs(X.var))
+    X.Uk <- unique(X.var[index.keep>1,,drop=FALSE])
 
     ## generate code
     code.k <- stats::setNames(as.character(interaction(as.data.frame(X.Uk), drop = TRUE, sep = sep[2])),
@@ -97,7 +96,7 @@
     structure.k <- data.frame(name = param.k,
                               index.strata = strata.k,
                               type = rep("k",length=n.k),
-                              index.level = index.k,
+                              constraint = as.numeric(NA),
                               level = level.k,
                               code = code.k,
                               code.x = as.numeric(NA),

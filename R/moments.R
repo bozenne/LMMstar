@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: May 14 2023 (11:53) 
+## Last-Updated: maj 31 2023 (11:53) 
 ##           By: Brice Ozenne
-##     Update #: 456
+##     Update #: 463
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -212,7 +212,7 @@
                               Upattern.ncluster = Upattern.ncluster, weights = weights.cluster, scale.Omega = scale.cluster,
                               index.variance = design$vcov$X$pattern.cluster$pattern, time.variance = design$index.clusterTime, index.cluster = design$index.cluster,
                               name.allcoef = name.allcoef,
-                              pair.meanvarcoef = attr(design$param, "pair.meanvarcoef"), pair.varcoef = design$vcov$X$pair.varcoef,
+                              pair.meanvarcoef = design$vcov$X$pair.meanvarcoef, pair.varcoef = design$vcov$X$pair.varcoef,
                               indiv = indiv, REML = (method.fit=="REML"), type.information = type.information, effects = effects2, robust = robust,
                               precompute = precompute)
 

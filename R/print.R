@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: maj 25 2023 (16:36) 
+## Last-Updated: maj 31 2023 (18:45) 
 ##           By: Brice Ozenne
-##     Update #: 219
+##     Update #: 230
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -42,6 +42,7 @@ print.lmm <- function(x, ...){
             cat("\t\tLinear regression with heterogeneous residual variance \n")
         }
     }else if(inherits(structure,"RE")){
+        browser()
         structure.ranef <- structure$ranef
         if(structure.ranef$type$crossed==FALSE && structure.ranef$type$nested==FALSE){
             cat("\t\tLinear Mixed Model with a random intercept \n", sep = "")
@@ -53,41 +54,47 @@ print.lmm <- function(x, ...){
             cat("\t\tLinear Mixed Model with random effects \n", sep = "")
         }        
     }else{
-        if(structure$type=="UN"){
+        if(inherits(structure,"UN")){
             if(is.na(structure$name$strata)){
                 txt.strata <- "an"
             }else{
                 txt.strata <- "a stratified"
             }
             cat("\t\tLinear Mixed Model with ",txt.strata," unstructured covariance matrix \n", sep = "")
-        }else if(structure$type=="CS"){
+        }else if(inherits(structure,"CS")){
             if(is.na(structure$name$strata)){
                 txt.strata <- "a"
             }else{
                 txt.strata <- "a stratified"
             }
-            if(!structure$block){
+            if(all(is.na(structure$name$cor))){
                 cat("\t\tLinear Mixed Model with ",txt.strata," compound symmetry covariance matrix \n", sep = "")
-            }else if(structure$heterogeneous){
+            }else if(structure$type == "heterogeneous"){
                 cat("\t\tLinear Mixed Model with ",txt.strata," block unstructured covariance matrix \n", sep = "")
-            }else{
+            }else if(structure$type == "homogeneous"){
                 cat("\t\tLinear Mixed Model with ",txt.strata," block compound symmetry covariance matrix \n", sep = "")
+            }else if(structure$type == "heterogeneous0"){
+                cat("\t\tLinear Mixed Model with ",txt.strata," crossed unstructured covariance matrix \n", sep = "")
+            }else if(structure$type == "homogeneous0"){
+                cat("\t\tLinear Mixed Model with ",txt.strata," crossed compound symmetry covariance matrix \n", sep = "")
             }
-        }else if(structure$type=="TOEPLITZ"){
+        }else if(inherits(structure,"TOEPLITZ")){
             if(is.na(structure$name$strata)){
                 txt.strata <- "a"
             }else{
                 txt.strata <- "a stratified"
             }
-            if(!structure$block){
+            if(all(is.na(structure$name$cor))){
                 cat("\t\tLinear Mixed Model with ",txt.strata," Toeplitz covariance matrix \n", sep = "")
-            }else if(structure$heterogeneous == "UN"){
-                cat("\t\tLinear Mixed Model with ",txt.strata," unstructured covariance matrix with constant subdiagonal \n", sep = "")
-            }else if(structure$heterogeneous == "LAG"){
+            }else if(structure$type == "heterogeneous"){
+                cat("\t\tLinear Mixed Model with ",txt.strata," unstructured covariance matrix with constant subdiagonal \n", sep = "")                
+            }else if(structure$type == "lag"){
                 cat("\t\tLinear Mixed Model with ",txt.strata," block Toeplitz covariance matrix \n", sep = "")
-            }else if(structure$heterogeneous == "CS"){
+            }else if(structure$type == "homogeneous"){
                 cat("\t\tLinear Mixed Model with ",txt.strata," block compound symmetry covariance matrix with specific subdiagonal \n", sep = "")
             }
+        }else if(inherits(structure,"CUSTOM")){
+            cat("\t\tLinear Mixed Model with user-defined covariance matrix \n", sep = "")
         }
     }
 

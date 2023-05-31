@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: apr 28 2023 (18:10) 
+## Last-Updated: maj 31 2023 (18:44) 
 ##           By: Brice Ozenne
-##     Update #: 1205
+##     Update #: 1216
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -202,6 +202,7 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
             hide.var <- TRUE
         }
         if(inherits(structure,"RE")){
+            browser()
             if(structure.ranef$type$crossed==FALSE && structure.ranef$type$nested==FALSE){
                 cat("random intercept \n", sep = "")
             }else if(structure.ranef$type$crossed==FALSE && structure.ranef$type$nested==TRUE){
@@ -211,41 +212,37 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
             }else{
                 cat("random effects \n", sep = "")
             }        
-        }else if(length(param.rho)==0){
-            if(length(c(param.sigma,param.k))==0){
-                cat(txt.strata,"identity (variance=1) \n\n",sep="")
-            }else if(length(c(param.sigma,param.k))==1){
-                cat(txt.strata,"identity \n\n",sep="")
-            }else{
-                cat(txt.strata,"diagonal \n\n",sep="")
-            }
-        }else if(structure$type == "UN"){
+        }else if(inherits(structure,"ID")){
+            cat(txt.strata,"identity \n\n",sep="")         
+        }else if(inherits(structure,"IND")){
+            cat(txt.strata,"diagonal \n\n",sep="")
+        }else if(inherits(structure,"UN")){
             cat(txt.strata,"unstructured \n\n",sep="")
-        }else if(structure$type == "CS"){
-            if(structure$block>=1){
-                if(structure$heterogeneous){
-                    cat(txt.strata,"block unstructured \n\n",sep="")
-                }else{
-                    cat(txt.strata,"block compound symmetry \n\n",sep="")
-                }
-            }else{
+        }else if(inherits(structure,"CS")){
+            if(all(is.na(structure$name$cor))){
                 cat(txt.strata,"compound symmetry \n\n",sep="")
+            }else if(structure$type == "heterogeneous"){
+                cat(txt.strata,"block unstructured \n\n",sep="")
+            }else if(structure$type == "homogeneous"){
+                cat(txt.strata,"block compound symmetry \n\n",sep="")
+            }else if(structure$type == "heterogeneous0"){
+                cat(txt.strata,"crossed unstructured \n\n",sep="")
+            }else if(structure$type == "homogeneous0"){
+                cat(txt.strata,"crossed compound symmetry \n\n",sep="")
             }
-        }else if(structure$type == "TOEPLITZ"){
-            if(structure$block){
-                if(structure$heterogeneous == "UN"){
-                    n.block <- length(unique(structure$X$cor[,3]))-1
-                    cat(txt.strata,paste0("unstructured with ",n.block," constant subdiagonal",if(n.block>1){"s"}," \n\n"),sep="")
-                }else if(structure$heterogeneous == "LAG"){
-                    cat(txt.strata,"block Toeplitz \n\n",sep="")
-                }else if(structure$heterogeneous == "CS"){
-                    n.block <- length(unique(structure$X$cor[,3]))-1
-                    cat(txt.strata,paste0("block compound symmetry with ",n.block," specific subdiagonal",if(n.block>1){"s"}," \n\n"),sep="")
-                }
-            }else{
+        }else if(inherits(structure, "TOEPLITZ")){
+            if(all(is.na(structure$name$cor))){
                 cat(txt.strata,"Toeplitz \n\n",sep="")
+            }else if(structure$type == "heterogeneous"){
+                n.block <- length(unique(structure$X$cor[,3]))-1
+                cat(txt.strata,paste0("unstructured with ",n.block," constant subdiagonal",if(n.block>1){"s"}," \n\n"),sep="")
+            }else if(structure$type == "lag"){
+                cat(txt.strata,"block Toeplitz \n\n",sep="")
+            }else if(structure$type == "homogeneous"){
+                n.block <- length(unique(structure$X$cor[,3]))-1
+                cat(txt.strata,paste0("block compound symmetry with ",n.block," specific subdiagonal",if(n.block>1){"s"}," \n\n"),sep="")
             }
-        }else if(structure$type == "CUSTOM"){
+        }else if(inherits(structure, "CUSTOM")){
             cat("user-defined structure \n\n")
         }
     }

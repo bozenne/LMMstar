@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: maj 26 2023 (16:37) 
+## Last-Updated: maj 31 2023 (10:19) 
 ##           By: Brice Ozenne
-##     Update #: 2225
+##     Update #: 2232
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -305,11 +305,11 @@ lmm <- function(formula, repetition, structure, data,
     ## compatibility structure/repetition
     if(!missing.structure){
         
-        if(all(is.na(var.cluster)) && structure$type %in% c("CS","UN")){
+        if(all(is.na(var.cluster)) && structure$class %in% c("CS","UN")){
             stop("Incorrect specification of argument \'repetition\': missing cluster variable. \n",
                  "Should have exactly one variable after the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
         }
-        if(all(is.na(var.time)) && structure$type %in% c("IND","UN") && all(is.na(structure$name$var[[1]]))){
+        if(all(is.na(var.time)) && structure$class %in% c("IND","UN") && all(is.na(structure$name$var[[1]]))){
             stop("Incorrect specification of argument \'repetition\': missing time variable. \n",
                  "Should have exactly one variable before the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
         }
@@ -530,12 +530,12 @@ lmm <- function(formula, repetition, structure, data,
                     "Not the same cluster variable: ",structure$name$cluster," vs. ",var.cluster,".\n")
         }
     }
-    type.structure <- structure$type
+    type.structure <- structure$class
     call.structure <- as.list(structure$call)
     args.structure <- call.structure[-1]
 
     if(("add.time" %in% names(args.structure) == FALSE || identical(args.structure$add.time,TRUE)) && type.structure %in% c("IND","UN","EXP","TOEPLITZ") && n.time>1){
-        if(type.structure == "TOEPLITZ" && ("heterogeneous" %in% names(args.structure) && is.null(args.structure$heterogeneous))){
+        if(type.structure == "TOEPLITZ" && ("type" %in% names(args.structure) && is.null(args.structure$type))){
             args.structure$add.time <- "XXtimeXX"
         }else{
             args.structure$add.time <- var.time
@@ -561,7 +561,7 @@ lmm <- function(formula, repetition, structure, data,
     }else{
         structure <- do.call(deparse(call.structure[[1]]), args = args.structure)
     }
-    if(structure$type=="CUSTOM"){precompute.moments <- FALSE}
+    if(structure$class=="CUSTOM"){precompute.moments <- FALSE}
     
     out$formula$var.design <- structure$formula$var
     out$formula$cor.design <- structure$formula$cor
@@ -581,7 +581,7 @@ lmm <- function(formula, repetition, structure, data,
     }
 
     ## update transformation
-    if(structure$type=="CUSTOM" && (is.null(structure$d2FCT.sigma) || is.null(structure$d2FCT.rho)) && (df || method.fit=="REML" || type.information=="observed")){
+    if(structure$class=="CUSTOM" && (is.null(structure$d2FCT.sigma) || is.null(structure$d2FCT.rho)) && (df || method.fit=="REML" || type.information=="observed")){
         ## need second derivative but transformation based on dJacobian not implemented!
         options$transform.sigma <- "none"
         options$transform.k <- "none"

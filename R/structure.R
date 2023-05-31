@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: maj 30 2023 (13:19) 
+## Last-Updated: maj 31 2023 (17:28) 
 ##           By: Brice Ozenne
-##     Update #: 921
+##     Update #: 962
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -50,7 +50,7 @@ ID <- function(formula, var.cluster, var.time, add.time){
                                   stringsAsFactors = FALSE),
                 formula = list(var = outCov$formula.var,
                                cor = NULL),
-                type = "ID")
+                class = "ID")
 
     ## ** export
     class(out) <- append("structure",class(out))
@@ -113,7 +113,7 @@ IND <- function(formula, var.cluster, var.time, add.time){
                                   stringsAsFactors = FALSE),
                 formula = list(var = outCov$formula.var,
                                cor = NULL),
-                type = "IND")
+                class = "IND")
 
     ## ** export
     class(out) <- append("structure",class(out))
@@ -124,16 +124,25 @@ IND <- function(formula, var.cluster, var.time, add.time){
 
 ## * CS (compound symmetry)
 ##' @title Compound Symmetry Structure
-##' @description Variance-covariance structure where the residuals have constant variance and correlation,
-##' possibly only within certain covariate levels.
-##' Can be stratified on a categorical variable.
+##' @description Variance-covariance structure where the residuals have constant variance and correlation overall (default) or within covariate levels.
+##' Can be stratified on a categorical variable. 
 ##'
 ##' @param formula formula indicating on which variable to stratify the residual variance and correlation (left hand side)
 ##' and variables influencing the residual variance and correlation (right hand side).
 ##' @param var.cluster [character] cluster variable.
 ##' @param var.time [character] time variable.
-##' @param heterogeneous [logical] when covariates are used for the correlation structure,
-##' should correlation parameters should be specific to each level of the covariate?
+##' @param type [character] \itemize{
+##' \item \code{"ho"}, \code{"homo"}, or \code{"homogeneous"}: constant variance and covariate-specific correlation.
+##' Analogous to nested random effects.
+##' \item \code{"he"}, \code{"hetero"}, or \code{"heterogeneous"}: variance and correlation specific to the level of covariates.
+##' Can be seen as more flexible nested random effects model.
+##' \item \code{"ho0"}, \code{"homo0"}, or \code{"homogeneous0"}: constant variance and covariate-specific correlation
+##' where the correlation is set to 0 when a pair of observations have no covariates with the same level.
+##' Analogous to crossed random effects.
+##' \item \code{"he0"}, \code{"hetero0"}, or \code{"heterogeneous0"}: variance and correlation specific to the level of covariates.
+##' where the correlation is set to 0 when a pair of observations have no covariates with the same level.
+##' Can be seen as more flexible crossed random effects model.
+##' }
 ##' @param add.time not used.
 ##'
 ##' @details A typical formula would be \code{~1}, indicating a variance constant over time and the same correlation between all pairs of times.
@@ -152,16 +161,37 @@ IND <- function(formula, var.cluster, var.time, add.time){
 ##' CS(list(gender~time,gender~1), var.cluster = "id", var.time = "time")
 ##' 
 ##' @export
-CS <- function(formula, var.cluster, var.time, heterogeneous = TRUE, add.time){
+CS <- function(formula, var.cluster, var.time, type = "homogeneous", add.time){
 
     ## ** normalize input
-    outCov <- .formulaStructure(formula, add.X = NULL, strata.X = FALSE, correlation = TRUE)
-    if(length(formula==1) && heterogeneous == FALSE){
-        outCov$X.var <- NULL
-        outCov$formula.var <- ~1
-    }else if(length(outCov$X.cor)==0){
-        heterogeneous <- FALSE
+    type.ho <- c("ho","homo","homogeneous")
+    type.he <- c("he","hetero","heterogeneous")
+    type.ho0 <- paste0(type.ho,0)
+    type.he0 <- paste0(type.he,0)
+    type <- match.arg(type, c(type.ho,type.he,type.ho0,type.he0))
+    if(type %in% type.ho){
+        type <- type.ho[3]
+    }else if(type %in% type.he){
+        type <- type.he[3]
+    }else if(type %in% type.ho0){
+        type <- type.ho0[3]
+    }else if(type %in% type.he0){
+        type <- type.he0[3]
     }
+    if(length(formula==1) && type %in% c("homogeneous","homogeneous0")){
+        if(attr(terms(formula),"response")==0){
+            formula <- list(variance = ~1,
+                            correlation = formula)
+        }else{
+            formula <- list(variance = update(formula,".~0"),
+                            correlation = formula)
+        }        
+    }
+    outCov <- .formulaStructure(formula, add.X = NULL, strata.X = FALSE, correlation = TRUE)
+    if(length(outCov$X.cor)==0){
+        type <- "homogeneous"
+    }
+
 
     ## ** create structure
     out <- list(call = match.call(),
@@ -173,9 +203,8 @@ CS <- function(formula, var.cluster, var.time, heterogeneous = TRUE, add.time){
                                   stringsAsFactors = FALSE),
                 formula = list(var = outCov$formula.var,
                                cor = outCov$formula.cor),
-                heterogeneous = heterogeneous,
-                block = length(outCov$X.cor) > 0,
-                type = "CS")
+                type = type,
+                class = "CS")
 
     ## export
     class(out) <- append("structure",class(out))
@@ -254,10 +283,8 @@ RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
     }
 
     ## ** export
-    out$type <- "RE"
     out$call <- match.call()
-    out$heterogeneous <- NULL
-    out$block <- NULL
+    out$class <- "RE"
     class(out) <- append("RE",class(out))
     return(out)
 }
@@ -374,7 +401,7 @@ TOEPLITZ <- function(formula, var.cluster, var.time, heterogeneous = "LAG", add.
                                cor = outCov$formula.cor),
                 heterogeneous = heterogeneous,
                 block = toeplitz.block,
-                type = "TOEPLITZ")
+                class = "TOEPLITZ")
 
     ## ** export
     class(out) <- append("structure",class(out))
@@ -435,7 +462,7 @@ UN <- function(formula, var.cluster, var.time, add.time){
                                   stringsAsFactors = FALSE),
                 formula = list(var = outCov$formula.var,
                                cor = outCov$formula.cor),
-                type = "UN")
+                class = "UN")
 
     ## ** export
     class(out) <- append("structure",class(out))
@@ -504,7 +531,7 @@ EXP <- function(formula, var.cluster, var.time, nugget = FALSE, add.time){
                 formula = list(var = outCov$formula.var,
                                cor = outCov$formula.cor),
                 heterogeneous = nugget,
-                type = "EXP")
+                class = "EXP")
 
     ## export
     class(out) <- append("structure",class(out))
@@ -616,8 +643,7 @@ CUSTOM <- function(formula, var.cluster, var.time,
                                   stringsAsFactors = FALSE),
                 formula = list(var = outCov$formula.var,
                                cor = outCov$formula.cor),
-                heterogeneous = TRUE,
-                type = "CUSTOM")
+                class = "CUSTOM")
 
     ## param
     if(!missing(FCT.sigma)){

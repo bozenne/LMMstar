@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: maj 30 2023 (15:37) 
+## Last-Updated: maj 31 2023 (18:50) 
 ##           By: Brice Ozenne
-##     Update #: 2487
+##     Update #: 2509
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -268,37 +268,27 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     ## formula
     formula.var <- structure$formula$var
     formula.cor <- structure$formula$cor
-
-    ##  heterogeneous
-    if(!is.null(structure$heterogeneous)){
-        heterogeneous <- structure$heterogeneous
-    }else{
-        heterogeneous <- TRUE
-    }
-
+    
     ## data
     dataVar <- data
-    if(length(all.vars(formula.var))>0 && structure$type %in% c("ID","IND","CS","UN","TOEPLITZ")){
+    if(length(all.vars(formula.var))>0 && structure$class %in% c("ID","IND","CS","UN","TOEPLITZ")){
         for(iVar in all.vars(formula.var)){
             dataVar[[iVar]] <- as.factor(data[[iVar]])
         }
     }
     dataCor <- data
-    if(length(all.vars(formula.cor))>0 && structure$type %in% c("ID","IND","CS","UN","TOEPLITZ")){
+    if(length(all.vars(formula.cor))>0 && structure$class %in% c("CS","UN","TOEPLITZ")){
         for(iVar in all.vars(formula.cor)){
-            if(structure$type=="TOEPLITZ" || heterogeneous <= 0){
-                if(iVar == strata.var){
-                    dataCor[[iVar]] <- as.factor(data[[iVar]])
-                }else if(is.logical(data[[iVar]])){
-                    dataCor[[iVar]] <- as.numeric(data[[iVar]]) + 1
-                }else if(!is.numeric(data[[iVar]])){
-                    dataCor[[iVar]] <- as.numeric(as.factor(data[[iVar]]))
-                }else if(is.numeric(data[[iVar]])){
-                    dataCor[[iVar]] <- data[[iVar]] - min(data[[iVar]]) + 1
-                }
-            }else if(heterogeneous>0){
+            if((structure$class=="UN") || (structure$class=="CS") || (iVar == strata.var)){
                 dataCor[[iVar]] <- as.factor(data[[iVar]])
+            }else if(is.logical(data[[iVar]])){ ## "TOEPLITZ"
+                dataCor[[iVar]] <- as.numeric(data[[iVar]]) + 1
+            }else if(!is.numeric(data[[iVar]])){ ## "TOEPLITZ"
+                dataCor[[iVar]] <- as.numeric(as.factor(data[[iVar]]))
+            }else if(is.numeric(data[[iVar]])){ ## "TOEPLITZ"
+                dataCor[[iVar]] <- data[[iVar]] - min(data[[iVar]]) + 1
             }
+            
         }
     }
     ## ** design matrix
@@ -418,7 +408,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     ## ** pairs
     structure$X$pair.varcoef <- stats::setNames(lapply(structure$X$Upattern$name, function(iPattern){## iPattern <- structure$X$Upattern$name[1]
 
-        iParamVar <- structure$X$Upattern[structure$X$Upattern$name == iPattern,"param"][[1]]
+        iParamVar <- stats::na.omit(structure$X$Upattern[structure$X$Upattern$name == iPattern,"param"][[1]])
         if(length(iParamVar)==0){return(NULL)}
 
         iOut <- .unorderedPairs(iParamVar)
@@ -430,9 +420,9 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         return(iOut)
     }),structure$X$Upattern$name)
 
-    pair.meanvarcoef <- stats::setNames(lapply(structure$X$Upattern$name, function(iPattern){ ## iPattern <- structure$X$Upattern$name[1]
+    structure$X$pair.meanvarcoef <- stats::setNames(lapply(structure$X$Upattern$name, function(iPattern){ ## iPattern <- structure$X$Upattern$name[1]
         iParamMu <- names(strata.mu)
-        iParamVar <- structure$X$Upattern$param[[iPattern]]
+        iParamVar <- structure$X$Upattern$param[[which(structure$X$Upattern$name == iPattern)]]
         if(length(iParamVar)==0){return(NULL)}
         iOut <- unname(t(expand.grid(iParamMu, iParamVar)))
         return(iOut)
@@ -461,7 +451,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         skeleton.param <- rbind(data.frame(name = colnames(X.mean),
                                            index.strata = NA,
                                            type = "mu",
-                                           index.level = NA,
+                                           constraint = NA,
                                            level = gsub("^:","",gsub(":$","",mu.level)),
                                            code = NA,
                                            code.x = NA,
@@ -469,20 +459,20 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
                                            sigma = NA,
                                            k.x = NA,
                                            k.y = NA),
-                                structure$param)
+                                ## only keep free parameters
+                                structure$param[is.na(structure$param$constraint),,drop=FALSE]
+                                )
     }else{
         skeleton.param <- structure$param
     }
     skeleton.param$fixed <- FALSE
     skeleton.param$strata[skeleton.param$type=="mu"] <- list(as.numeric(unique(stats::na.omit(skeleton.param$strata))))
     rownames(skeleton.param) <- NULL
-    attr(skeleton.param, "pair.meanvarcoef") <- pair.meanvarcoef
 
     order.type <- factor(skeleton.param$type, c("mu", "sigma", "k", "rho"))
     if(is.unsorted(order.type)){ ## in presence of strata, typically need to reorder by type
         skeleton.param <- skeleton.param[order(order.type),,drop=FALSE]
     }
-
     ## ** gather and export
     out <- list(mean = X.mean,
                 vcov = structure,

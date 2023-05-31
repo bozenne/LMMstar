@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: maj 10 2023 (10:24) 
+## Last-Updated: maj 31 2023 (18:37) 
 ##           By: Brice Ozenne
-##     Update #: 965
+##     Update #: 967
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -356,7 +356,7 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
                                                pattern = design$vcov$X$Upattern$name,
                                                pattern.ntime = stats::setNames(design$vcov$X$Upattern$n.time, design$vcov$X$Upattern$name),
                                                pattern.cluster = design$vcov$X$Upattern$index.cluster, index.cluster = design$index.cluster)
-            precompute.XY <- mapply(x = design$precompute.XY, y = precompute.Xfixed, FUN = function(x,y){x[,,param.mu2,drop=FALSE]-y}, SIMPLIFY = FALSE)
+            precompute.XY <- mapply(x = design$precompute.XY, y = precompute.Xfixed, FUN = function(x,y){x[,,param.mu2,drop=FALSE]-y}, SIMPLIFY = FALSE)
         }else{
             precompute.XY <- NULL
             precompute.XX <- NULL
@@ -424,7 +424,6 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
             param.value[param.mu2] <- .estimateGLS(OmegaM1 = start.OmegaM1, pattern = Upattern$name, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX,
                                                    Y = partialY, design = design, param.mu = param.mu2)
         }
-
         ## vcov values
         iResiduals.long <- partialY - design$mean[,param.mu2,drop=FALSE] %*% param.value[param.mu2]
         if(length(param.Omega2)>0){

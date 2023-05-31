@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: maj 26 2023 (17:43) 
+## Last-Updated: maj 31 2023 (18:32) 
 ##           By: Brice Ozenne
-##     Update #: 557
+##     Update #: 579
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -85,21 +85,17 @@
         }else{
             Omega.sd <- rep(1, iNtime)
         }
-        Omega.cor <- diag(0, nrow = iNtime, ncol = iNtime)
-        if(!is.null(X.cor) && !is.null(X.cor[[iPattern.cor]])){
+        if(!is.null(X.cor) && !is.null(X.cor[[iPattern.cor]])){            
+            Omega.cor <- attr(X.cor[[iPattern.cor]],"Omega.cor")
             iParam.cor <- attr(X.cor[[iPattern.cor]],"param")
-            for(iiP in 1:length(iParam.cor)){ ## iiP <- 6
-                iiParam <- iParam.cor[iiP]
-                if(!is.na(iiParam)){
-                    Omega.cor[attr(X.cor[[iPattern.cor]],"indicator.param")[[iiParam]]] <- param[iiParam]
-                }else if(any(is.na(names(attr(X.cor[[iPattern.cor]],"indicator.param"))))){
-                    iiParam <- which(is.na(names(attr(X.cor[[iPattern.cor]],"indicator.param")))) 
-                    Omega.cor[attr(X.cor[[iPattern.cor]],"indicator.param")[[iiParam]]] <- NA
-                    
-                }
+            for(iiP in 1:length(iParam.cor)){ ## iiP <- 1
+                Omega.cor[attr(X.cor[[iPattern.cor]],"indicator.param")[[iParam.cor[iiP]]]] <- param[iParam.cor[iiP]]
             }
+            Omega <- Omega.cor * tcrossprod(Omega.sd)
+        }else{
+            Omega.cor <- NULL            
+            Omega <- diag(as.double(Omega.sd)^2, nrow = iNtime, ncol = iNtime)
         }
-        Omega <- diag(as.double(Omega.sd)^2, nrow = iNtime, ncol = iNtime) + Omega.cor * tcrossprod(Omega.sd)
         
         if(keep.interim){
             attr(Omega,"sd") <- Omega.sd
@@ -108,7 +104,7 @@
         }
         return(Omega)
     }), Upattern$name)
-    
+
     ## print(Omega)
     return(Omega)
 }
@@ -170,7 +166,7 @@
     
     return(1)
 }
-## * calc_Omega.CS
+## * calc_Omega.CUSTOM
 .calc_Omega.CUSTOM <- function(object, param, keep.interim = FALSE){
 
     Upattern <- object$X$Upattern

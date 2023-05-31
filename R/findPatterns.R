@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: maj 30 2023 (19:38) 
+## Last-Updated: maj 31 2023 (17:05) 
 ##           By: Brice Ozenne
-##     Update #: 552
+##     Update #: 607
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -34,7 +34,7 @@
     structure.param <- structure$param[structure$param$type %in% c("sigma","k"),]
     param.sigma <- structure.param[structure.param$type=="sigma","name"]
     param.k <- structure.param[structure.param$type=="k","name"]
-    Ulp.var <- structure.param$code[structure.param$index.level]
+    Ulp.var <- structure.param$code
     n.cluster <- length(U.cluster)
 
     ## ** associate a pattern to each cluster
@@ -159,10 +159,8 @@
     ## ** identify unique cor patterns
     X.cor <- structure$X$cor
     structure.param <- structure$param[structure$param$type=="rho",]
-    param.rho <- structure.param$name
-    level.cor <- attr(structure.param,"level.cor")
+    param.rho <- structure.param$name[is.na(structure.param$constraint)] ## index.level=0 indicates correlation fixed to 0, i.e. not a real parameter (e.g. crossed random effects)
     n.cluster <- length(U.cluster)
-
     corLP.cluster <- attr(structure$X$lp.cor,"cluster")
     
     ## *** group clusters by linear predictor patterns
@@ -181,7 +179,7 @@
     ## *** form all pairs of observations within representative cluster
     ## *** and deduce correlation parameter
     ## identify all pairs
-    pattern.pairwise <- do.call(rbind,lapply(patternCorLP.index1[nObs.index1>0], function(iC){ ## iC <- 1
+    pattern.pairwise <- do.call(rbind,lapply(patternCorLP.index1[nObs.index1>1], function(iC){ ## iC <- 5
         iPair <- base::t(.unorderedPairs(1:length(index.cluster[[iC]]), distinct = TRUE))
         data.frame(cluster = iC,
                    index.x = iPair[,1],
@@ -196,14 +194,20 @@
     pattern.pairwise$code.x <- as.character(interaction(as.data.frame(X.cor[pattern.pairwise$obs.x,,drop=FALSE]), sep = ""))
     pattern.pairwise$code.y <- as.character(interaction(as.data.frame(X.cor[pattern.pairwise$obs.y,,drop=FALSE]), sep = ""))
     ## convert linear predictor into correlation parameter
-    indexX.lp <- attr(structure.param,"Xcode.xy")
+    indexX.lp <- stats::setNames(1:length(levels(structure$X$lp.cor)),levels(structure$X$lp.cor))
     n.lp <- max(indexX.lp) ## number of distinct values for the linear predictor
 
     code2param <- do.call(rbind,apply(structure.param, 1, function(iDf){data.frame(code.x = iDf$code.x, code.y = iDf$code.y, name = iDf$name)}))
     M.param <- matrix(as.character(NA), nrow = n.lp, ncol = n.lp)
     M.param[code2param$code.x + (n.lp-1)*code2param$code.y] <- code2param$name
-    
+
     pattern.pairwise$name <- M.param[indexX.lp[pattern.pairwise$code.x] + (n.lp-1)*indexX.lp[pattern.pairwise$code.y]]
+    ## correlation parameter per correlation pattern
+    ## handle correlation pattern with no parameter
+    ## remove correlation parameters fixed to 0 (e.g. crossed random effects)
+    ls.tempo <- tapply(pattern.pairwise$name[pattern.pairwise$name %in% param.rho],pattern.pairwise$pattern[pattern.pairwise$name %in% param.rho],unique, simplify = FALSE)
+    ls.pattern.param <- stats::setNames(vector(mode = "list", length = length(UpatternCorLP)), UpatternCorLP)
+    ls.pattern.param[names(ls.tempo)] <- ls.tempo
 
     ## *** summarize correlation patterns
     UpatternCor <- data.frame(name = NA,
@@ -217,7 +221,7 @@
                               n.cluster = unname(sapply(patternCorLP.index,length)))
     UpatternCor$index.cluster <- patternCorLP.index[UpatternCor$cor]
     UpatternCor$index.time <- lapply(UpatternCor$index.cluster,function(iC){index.clusterTime[[iC[1]]]})
-    UpatternCor$param <- tapply(pattern.pairwise$name,pattern.pairwise$pattern,unique, simplify = FALSE)
+    UpatternCor$param <- ls.pattern.param
 
     patternCor.cluster <- do.call(rbind,lapply(UpatternCorLP, function(iPattern){
         data.frame(index.cluster = patternCorLP.index[[iPattern]], cor = iPattern)
@@ -233,6 +237,7 @@
         if(iRep==1){return(NULL)}
         iOut <- X.cor[iIndex.cluster,,drop=FALSE]
         iPattern.pairwise <- pattern.pairwise[pattern.pairwise$pattern == iPattern,]
+        iUparam <- unique(iPattern.pairwise$name)
         attr(iOut, "index.cluster") <- patternCorLP.index[[iPattern]]
         attr(iOut, "index.time") <- index.clusterTime[[iCluster]]
         attr(iOut, "index.strata") <- index.clusterStrata[[iCluster]]
@@ -243,20 +248,24 @@
                                                      col = iPattern.pairwise$index.x,
                                                      param = iPattern.pairwise$name))
         attr(iOut, "index.vec2matrix") <- attr(iOut, "index.pair")$row + (attr(iOut, "index.pair")$col-1)*iRep
-        attr(iOut, "param") <- unique(iPattern.pairwise$name)
+        attr(iOut, "param") <- intersect(param.rho,iUparam) ## ignore parameter constrained to a specific value
         attr(iOut, "indicator.param") <- tapply(attr(iOut, "index.vec2matrix"),attr(iOut, "index.pair")$param,identity,simplify=FALSE)
-        if(any(is.na(attr(iOut, "index.pair")$param))){
-            attr(iOut, "indicator.param")[[as.character(NA)]] <- attr(iOut, "index.vec2matrix")[is.na(attr(iOut, "index.pair")$param)]
-        }
         attr(iOut, "Mindicator.param") <- tapply(attr(iOut, "index.vec2matrix"),attr(iOut, "index.pair")$param,function(iIndex){
             iM <- matrix(0, nrow = iRep, ncol = iRep)
             iM[iIndex] <- 1
             return(iM)
         }, simplify=FALSE)
-
+        attr(iOut, "Omega.cor") <- matrix(NA, nrow = iRep, ncol = iRep)
+        diag(attr(iOut, "Omega.cor")) <- 1
+        ## case with NA, i.e. correlation parameter constrained to be 0
+        if(any(iUparam  %in% attr(iOut, "param") == FALSE)){
+            for(iParam in setdiff(iUparam,attr(iOut, "param"))){ ## iParam <- iUparam[1]
+                attr(iOut, "Omega.cor")[attr(iOut, "indicator.param")[[iParam]]] <- structure.param[structure.param$name==iParam,"constraint"]
+            }
+        }        
         return(iOut)
     }), UpatternCorLP)
-
+    
     ## ** joint variance and correlation patterns
     pattern.name <- paste0(as.numeric(factor(patternVar.cluster$var,attr(UpatternVar,"level.var"))),
                            ":",
