@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (13:27) 
 ## Version: 
-## Last-Updated: maj 31 2023 (19:10) 
+## Last-Updated: Jun  5 2023 (18:46) 
 ##           By: Brice Ozenne
-##     Update #: 431
+##     Update #: 434
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -235,17 +235,25 @@
 }
 
 ## * skeletonRho.RE
-.skeletonRho.RE <- .skeletonRho.CS
+.skeletonRho.RE <- function(structure, data, 
+                            U.cluster, index.cluster,
+                            U.time, index.clusterTime, 
+                            U.strata, index.clusterStrata, sep = c(".",":")){
 
-## nested
+    ## ** identify variance and correlation parameters
+    structure <- .skeletonRho.CS(structure = structure, data = data, 
+                                 U.cluster = U.cluster, index.cluster = index.cluster,
+                                 U.time = U.time, index.clusterTime = index.clusterTime, 
+                                 U.strata = U.strata, index.clusterStrata = index.clusterStrata, sep = sep)
 
-## crossed:  at least one equal 
-##                     test.common <- setdiff(colnames(iCX.cor1)[which(iCX.cor1==iCX.cor2)], "(Intercept)")
-##                     if(length(test.common)>0){
-##                         return(matrix(c("D",as.numeric(iCX.cor2!=iCX.cor1)), nrow = 1))
-##                     }else{
-##                         return(matrix(NA,nrow = 1, ncol = 1+NCOL(iCX.cor1)))
-##                     }
+    ## ** relate correlation parameters to random effects
+    if(!is.null(structure$ranef$hierarchy)){
+        browser()
+    }
+    
+    ## ** export
+    return(structure)
+}
 
 ## * skeletonRho.TOEPLITZ
 .skeletonRho.TOEPLITZ <- function(structure, data, 

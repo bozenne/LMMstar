@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: maj 31 2023 (18:44) 
+## Last-Updated: Jun  5 2023 (18:46) 
 ##           By: Brice Ozenne
-##     Update #: 1216
+##     Update #: 1217
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -202,7 +202,6 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
             hide.var <- TRUE
         }
         if(inherits(structure,"RE")){
-            browser()
             if(structure.ranef$type$crossed==FALSE && structure.ranef$type$nested==FALSE){
                 cat("random intercept \n", sep = "")
             }else if(structure.ranef$type$crossed==FALSE && structure.ranef$type$nested==TRUE){

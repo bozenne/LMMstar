@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: maj 31 2023 (10:19) 
+## Last-Updated: Jun  5 2023 (22:47) 
 ##           By: Brice Ozenne
-##     Update #: 2232
+##     Update #: 2234
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -223,17 +223,20 @@ lmm <- function(formula, repetition, structure, data,
             stop("Incorrect argument \'formula\', \n",
                  "Current version cannot handle crossed and nested random effects. \n")
         }
+        browser()
+        formula.ranef <- detail.formula$special
+        attr(formula.ranef,"formula") <- detail.formula$formula$ranef
+        attr(formula.ranef,"vars") <- detail.formula$vars$ranef
+        attr(formula.ranef,"terms") <- detail.formula$terms$ranef
+        attr(formula.ranef,"vars") <- detail.formula$vars$hierarchy
+            
         if(missing.structure){
             structure <- RE(~1, 
-                            ranef = detail.formula$special)
+                            ranef = formula.ranef)
         }else{
+            args.structure$ranef <- formula.ranef
             call.structure <- as.list(structure$call)
             args.structure <- call.structure[-1]
-            args.structure$ranef <- detail.formula$special
-            attr(args.structure$ranef,"formula") <- detail.formula$formula$ranef
-            attr(args.structure$ranef,"vars") <- detail.formula$vars$ranef
-            attr(args.structure$ranef,"terms") <- detail.formula$terms$ranef
-            attr(args.structure$ranef,"vars") <- detail.formula$vars$hierarchy
             if(inherits(call.structure[[1]], "function")){
                 structure <- do.call(call.structure[[1]], args = args.structure)
             }else{
