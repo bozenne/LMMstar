@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: maj 31 2023 (18:45) 
+## Last-Updated: jun  1 2023 (15:29) 
 ##           By: Brice Ozenne
-##     Update #: 230
+##     Update #: 232
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -42,13 +42,12 @@ print.lmm <- function(x, ...){
             cat("\t\tLinear regression with heterogeneous residual variance \n")
         }
     }else if(inherits(structure,"RE")){
-        browser()
         structure.ranef <- structure$ranef
-        if(structure.ranef$type$crossed==FALSE && structure.ranef$type$nested==FALSE){
+        if(structure.ranef$crossed==FALSE && structure.ranef$nested==FALSE){
             cat("\t\tLinear Mixed Model with a random intercept \n", sep = "")
-        }else if(structure.ranef$type$crossed==FALSE && structure.ranef$type$nested==TRUE){
+        }else if(structure.ranef$crossed==FALSE && structure.ranef$nested==TRUE){
             cat("\t\tLinear Mixed Model with nested random intercepts \n", sep = "")
-        }else if(structure.ranef$type$crossed==TRUE && structure.ranef$type$nested==FALSE){
+        }else if(structure.ranef$crossed==TRUE && structure.ranef$nested==FALSE){
             cat("\t\tLinear Mixed Model with cross random intercepts \n", sep = "")
         }else{
             cat("\t\tLinear Mixed Model with random effects \n", sep = "")

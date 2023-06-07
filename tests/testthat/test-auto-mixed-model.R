@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: maj 12 2023 (09:39) 
+## Last-Updated: jun  1 2023 (15:05) 
 ##           By: Brice Ozenne
-##     Update #: 161
+##     Update #: 162
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -501,7 +501,7 @@ data(Penicillin, package = "lme4")
 Penicillin$id <- 1
 
 eCRI2.lmm0 <- lmm(diameter ~ 1, repetition = ~1|id,
-                  structure = CS(list(~1,~plate+sample), heterogeneous = -1),
+                  structure = CS(list(~1,~plate+sample), type = "ho0"),
                   data = Penicillin, df = FALSE)
 eCRI2.lmm <- lmm(diameter ~ (1|plate) + (1|sample), data = Penicillin, df = FALSE,
                  control = list(init = "lmer"))

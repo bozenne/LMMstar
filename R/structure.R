@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: maj 31 2023 (17:28) 
+## Last-Updated: jun  1 2023 (15:56) 
 ##           By: Brice Ozenne
-##     Update #: 962
+##     Update #: 1022
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -133,16 +133,12 @@ IND <- function(formula, var.cluster, var.time, add.time){
 ##' @param var.time [character] time variable.
 ##' @param type [character] \itemize{
 ##' \item \code{"ho"}, \code{"homo"}, or \code{"homogeneous"}: constant variance and covariate-specific correlation.
-##' Analogous to nested random effects.
+##' Analogous to crossed or nested random effects.
 ##' \item \code{"he"}, \code{"hetero"}, or \code{"heterogeneous"}: variance and correlation specific to the level of covariates.
-##' Can be seen as more flexible nested random effects model.
-##' \item \code{"ho0"}, \code{"homo0"}, or \code{"homogeneous0"}: constant variance and covariate-specific correlation
-##' where the correlation is set to 0 when a pair of observations have no covariates with the same level.
-##' Analogous to crossed random effects.
-##' \item \code{"he0"}, \code{"hetero0"}, or \code{"heterogeneous0"}: variance and correlation specific to the level of covariates.
-##' where the correlation is set to 0 when a pair of observations have no covariates with the same level.
-##' Can be seen as more flexible crossed random effects model.
+##' Can be seen as more flexible crossed or nested random effects model.
 ##' }
+##' @param group [integer vector] grouping of the regressor for the correlation structure.
+##' A constant value corresponds to nested random effects (default) and a regressor-specific value to crossed random effects
 ##' @param add.time not used.
 ##'
 ##' @details A typical formula would be \code{~1}, indicating a variance constant over time and the same correlation between all pairs of times.
@@ -161,24 +157,18 @@ IND <- function(formula, var.cluster, var.time, add.time){
 ##' CS(list(gender~time,gender~1), var.cluster = "id", var.time = "time")
 ##' 
 ##' @export
-CS <- function(formula, var.cluster, var.time, type = "homogeneous", add.time){
+CS <- function(formula, var.cluster, var.time, type = "homogeneous", group.type = NULL, add.time){
 
     ## ** normalize input
     type.ho <- c("ho","homo","homogeneous")
     type.he <- c("he","hetero","heterogeneous")
-    type.ho0 <- paste0(type.ho,0)
-    type.he0 <- paste0(type.he,0)
-    type <- match.arg(type, c(type.ho,type.he,type.ho0,type.he0))
+    type <- match.arg(type, c(type.ho,type.he))
     if(type %in% type.ho){
         type <- type.ho[3]
     }else if(type %in% type.he){
         type <- type.he[3]
-    }else if(type %in% type.ho0){
-        type <- type.ho0[3]
-    }else if(type %in% type.he0){
-        type <- type.he0[3]
     }
-    if(length(formula==1) && type %in% c("homogeneous","homogeneous0")){
+    if(inherits(formula,"formula") && type == "homogeneous"){
         if(attr(terms(formula),"response")==0){
             formula <- list(variance = ~1,
                             correlation = formula)
@@ -191,7 +181,28 @@ CS <- function(formula, var.cluster, var.time, type = "homogeneous", add.time){
     if(length(outCov$X.cor)==0){
         type <- "homogeneous"
     }
-
+    if(is.null(group.type)){
+        if(length(outCov$X.cor)==0){
+            group.type <- NULL
+        }else{
+            group.type <- stats::setNames(rep(1,length(outCov$X.cor)), outCov$X.cor)
+        }
+    }else{
+        if(length(group.type) != length(outCov$X.cor)){
+            stop("Argument \'group.type\' should have length ",length(outCov$X.cor),", i.e. one value for each variable. \n")
+        }
+        if(any(duplicated(names(group.type)))){
+            stop("Argument \'group.type\' should no have duplicated names. \n")
+        }
+        if(!is.null(names(group.type))){
+            if(any(names(group.type) %in% outCov$X.cor == FALSE)){
+                stop("Argument \'group.type\' should contain regressors for the correlation structure. \n",
+                     "Valid values: \"",paste(outCov$X.cor, collapse = "\", \""),"\". \n")
+            }
+        }else{
+            names(group.type) <- outCov$X.cor
+        }
+    }
 
     ## ** create structure
     out <- list(call = match.call(),
@@ -204,6 +215,7 @@ CS <- function(formula, var.cluster, var.time, type = "homogeneous", add.time){
                 formula = list(var = outCov$formula.var,
                                cor = outCov$formula.cor),
                 type = type,
+                group.type = group.type,
                 class = "CS")
 
     ## export
@@ -240,7 +252,9 @@ RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
     if(!inherits(formula,"formula")){
         stop("Argument \'formula\' must inherits from formula. \n")
     }
+
     detail.formula <- formula2var(formula)
+    test.ranef <- is.null(ranef)
 
     if(detail.formula$special=="none"){
         if(length(detail.formula$vars$regressor)>0){
@@ -264,18 +278,48 @@ RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
     }else{
         ff.var <- ~1
     }
-    if(is.null(ranef) || (attr(ranef,"crossed") == FALSE && attr(ranef,"nested") == FALSE)){
-        ff.cor <- ff.var   
-    }else if(attr(ranef,"crossed")){
-        ff.cor <- paste0(var.strata,"~",paste0(detail.formula$vars$ranef, collapse = "+"))
-    }else if(attr(ranef,"nested")){
-        ff.cor <- paste0(var.strata,"~",paste0(detail.formula$vars$ranef[-1], collapse = "+"))
-    } 
-    out <- CS(list(variance = ff.var, correlation = ff.cor), var.cluster = var.cluster, var.time = var.time)
 
-    if(!is.null(ranef)){
-        out$ranef <- list(type = data.frame(crossed = attr(ranef,"crossed"),
-                                            nested = attr(ranef,"nested")),
+    if(test.ranef && detail.formula$special=="ranef"){
+        ranef <- detail.formula$special
+    }
+    if(is.null(ranef)){
+        ## single random intercept
+        ff.cor <- ff.var
+        group <- NULL
+    }else{
+        ## multiple random intercepts
+        if(any(duplicated(unlist(attr(ranef,"hierarchy"))))){
+            stop("Crossed random effects should be defined relative to distinct variables. \n")
+        }
+        if(!missing(var.cluster) && !is.null(attr(var.cluster,"original"))){
+            Ovar.cluster <- attr(var.cluster,"original")
+            ## remove cluster level from formula 
+            ff.cor <- stats::as.formula(paste0(var.strata,"~",paste0(setdiff(attr(ranef,"vars"),Ovar.cluster), collapse = "+")))
+            ## add cluster level when nested random effects
+            if((attr(ranef,"crossed") == FALSE) && Ovar.cluster %in% attr(ranef,"vars") == FALSE){
+                attr(ranef,"nested") <- TRUE
+                attr(ranef,"vars") <- c(Ovar.cluster, attr(ranef,"vars"))
+                attr(ranef,"hierarchy") <- lapply(attr(ranef,"hierarchy"), function(iVec){c(Ovar.cluster, iVec)})
+            }
+        }else{
+            ff.cor <- stats::as.formula(paste0(var.strata,"~",paste0(attr(ranef,"vars"), collapse = "+")))
+        }
+        n.group <- length(attr(ranef,"hierarchy"))
+        if(n.group==1){
+            group <- NULL
+        }else{
+            group <- unlist(lapply(1:n.group, function(iG){
+                stats::setNames(rep(iG, length(attr(ranef,"hierarchy")[[iG]])), attr(ranef,"hierarchy")[[iG]])
+            }))
+        }
+    }
+    out <- CS(list(variance = ff.var, correlation = ff.cor),
+              var.cluster = var.cluster, var.time = var.time,
+              type = "homogeneous", group.type = group)
+    
+    if(!test.ranef){
+        out$ranef <- list(crossed = attr(ranef,"crossed"),
+                          nested = attr(ranef,"nested"),
                           formula = attr(ranef,"formula"),
                           vars = attr(ranef,"vars"),
                           terms = attr(ranef,"terms"),

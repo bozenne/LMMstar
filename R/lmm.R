@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: maj 31 2023 (10:19) 
+## Last-Updated: jun  1 2023 (15:48) 
 ##           By: Brice Ozenne
-##     Update #: 2232
+##     Update #: 2247
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -219,21 +219,16 @@ lmm <- function(formula, repetition, structure, data,
             stop("Incorrect argument \'formula\', \n",
                  "Current version can only handle random intercepts (i.e. no covariates in random effects). \n")
         }
-        if(attr(detail.formula$special,"crossed") && attr(detail.formula$special,"nested")){
-            stop("Incorrect argument \'formula\', \n",
-                 "Current version cannot handle crossed and nested random effects. \n")
-        }
+        attr(detail.formula$special,"formula") <- detail.formula$formula$ranef
+        attr(detail.formula$special,"vars") <- detail.formula$vars$ranef
+        attr(detail.formula$special,"terms") <- detail.formula$terms$ranef
+        attr(detail.formula$special,"hierarchy") <- detail.formula$vars$hierarchy            
         if(missing.structure){
-            structure <- RE(~1, 
-                            ranef = detail.formula$special)
+            structure <- RE(~1, ranef = detail.formula$special)
         }else{
             call.structure <- as.list(structure$call)
             args.structure <- call.structure[-1]
             args.structure$ranef <- detail.formula$special
-            attr(args.structure$ranef,"formula") <- detail.formula$formula$ranef
-            attr(args.structure$ranef,"vars") <- detail.formula$vars$ranef
-            attr(args.structure$ranef,"terms") <- detail.formula$terms$ranef
-            attr(args.structure$ranef,"vars") <- detail.formula$vars$hierarchy
             if(inherits(call.structure[[1]], "function")){
                 structure <- do.call(call.structure[[1]], args = args.structure)
             }else{
@@ -543,9 +538,11 @@ lmm <- function(formula, repetition, structure, data,
     }
     if(is.na(structure$name$cluster)){
         args.structure$var.cluster <- "XXcluster.indexXX"
+        attr(args.structure$var.cluster,"original") <- attr(var.cluster,"original")
     }
     if(is.na(structure$name$cluster)){
         args.structure$var.time <- "XXtime.indexXX"
+        attr(args.structure$var.time,"original") <- attr(var.time,"original")
     }
     ## add strata to the call
     if(update.strataStructure){

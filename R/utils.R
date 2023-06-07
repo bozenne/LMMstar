@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: maj 30 2023 (18:22) 
+## Last-Updated: jun  1 2023 (11:43) 
 ##           By: Brice Ozenne
-##     Update #: 119
+##     Update #: 126
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,13 +17,15 @@
 
 
 ## * tr
-## compute the trace
+##' @description compute the trace
+##' @noRd
 tr <- function(object){
     sum(diag(object))
 }
 
 ## * tblock
-## transpose by block (depend on the dimension of the matrix)
+##' @description transpose by block (depend on the dimension of the matrix)
+##' @noRd
 tblock <- function(M){
     if(NROW(M)==1){
         return(M)
@@ -34,7 +36,8 @@ tblock <- function(M){
 }
 
 ## * ncharTable
-## compute the width of a table 
+##' @description compute the width of a table 
+##' @noRd
 ncharTable <- function(object, digits){
 
     xplus <- cbind(rownames(object),formatC(as.matrix(object), digits = digits, format = "f"))
@@ -47,6 +50,8 @@ ncharTable <- function(object, digits){
 }
 
 ## * is.invertible
+##' @description check whether a matrix is invertibel
+##' @noRd
 is.invertible <- function(object, cov2cor, tol = 10^(-10*sqrt(NCOL(object)))){
     if(any(is.na(object))){
         return(FALSE)
@@ -65,22 +70,28 @@ is.invertible <- function(object, cov2cor, tol = 10^(-10*sqrt(NCOL(object)))){
 }
 
 ## * countChar
-## countChar("~1|id","|")
-## countChar("~(1|id) + (time|id)","|")
-## countChar("~(1|id) + (time|id)","time")
+##' @description Count the number of time a character appears
+##' @noRd
+##' @examples
+##' countChar("~1|id","|")
+##' countChar("~(1|id) + (time|id)","|")
+##' countChar("~(1|id) + (time|id)","time")
 countChar <- function(value, pattern, fixed = TRUE){
     lengths(regmatches(value, gregexpr(pattern, value, fixed = fixed)))
 }
 
 
 ## * updateFormula
-## NOTE: when updating formula not using stats::drop.terms or stats::udpate as it re-write the interaction X1*X2 ---> X1 + X2 + X1:X2
-## stats::drop.terms(terms(Y~X1*X2+(1|id)), dropx = 3)
-## stats::update(terms(Y~X1*X2+(1|id)), .~.-(1|id))
-## updateFormula(Y~X1*X2+(1|id), drop.x = "(1|id)")
-## updateFormula(Y~0+X1*X2+(1|id), drop.x = "(1|id)")
-##
-## updateFormula(Y~X1*X2, add.x = "(1 | id)")
+##' @description Remove or add a term in a formula while keeping interaction term untouched
+##' @noRd
+##' @examples
+##' NOTE: when updating formula not using stats::drop.terms or stats::udpate as it re-write the interaction X1*X2 ---> X1 + X2 + X1:X2
+##' stats::drop.terms(terms(Y~X1*X2+(1|id)), dropx = 3)
+##' stats::update(terms(Y~X1*X2+(1|id)), .~.-(1|id))
+##' updateFormula(Y~X1*X2+(1|id), drop.x = "(1|id)")
+##' updateFormula(Y~0+X1*X2+(1|id), drop.x = "(1|id)")
+##'
+##' updateFormula(Y~X1*X2, add.x = "(1 | id)")
 updateFormula <- function(formula, add.x = NULL, drop.x = NULL){
 
     drop.x <- gsub(" ","",drop.x)
@@ -147,5 +158,21 @@ updateFormula <- function(formula, add.x = NULL, drop.x = NULL){
     return(out)
 }
 
+## * triplicated
+##' @description identify third (or more) occurence of a value in a vector.
+##' @noRd
+##' @examples
+##' triplicated(c(1:3,1:3))
+##' triplicated(c(1:3,1:3,1:3))
+##' triplicated(c(NA, 1:3, 3, 4:6, 3, NA, 4))
+##' triplicated(c(NA, 1:3, 3, 4:6, 3, NA, 4, 3:4))
+triplicated <- function (x){
+    out <- rep(FALSE,length(x))
+    index.duplicated <- which(base::duplicated(x))
+    if(length(index.duplicated)==0){return(out)}
+    x.duplicated <- x[index.duplicated]
+    out[index.duplicated[base::duplicated(x.duplicated)]] <- TRUE
+    return(out)
+}
 ##----------------------------------------------------------------------
 ### utils-formula.R ends here

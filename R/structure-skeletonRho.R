@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (13:27) 
 ## Version: 
-## Last-Updated: maj 31 2023 (19:10) 
+## Last-Updated: jun  1 2023 (15:49) 
 ##           By: Brice Ozenne
-##     Update #: 431
+##     Update #: 500
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -87,6 +87,7 @@
     ## variables
     strata.var <- structure$name$strata
     reg.var <- setdiff(structure$name$cor[[1]], NA)
+    n.reg <- length(reg.var)
     n.strata <- length(U.strata)
 
     ## levels
@@ -123,54 +124,62 @@
         return(structure)
     }
     
+    
     ## ** identify and name parameters
     
-    ## *** generate code
+    ## *** combine linear predictor accross strata
+    diffLp <- do.call(rbind,XpairPattern$diffU.strata) ## difference in linear predictor index for pair of observation
     indexLp <- do.call(rbind,XpairPattern$LpU.strata) ## linear predictor index for each observation of each pair
     lp.x <- XpairPattern$lp2X[indexLp[,1],,drop=FALSE] ## design matrox for one observation of each pair of observations
     data.x <- XpairPattern$lp2data[indexLp[,1],,drop=FALSE] ## data for one observation of each pair of observations
     data.y <- XpairPattern$lp2data[indexLp[,2],,drop=FALSE] ## data for the other observation of each pair of observations
-    diffLp <- do.call(rbind,XpairPattern$diffU.strata) ## difference in linear predictor index for pair of observation
     strataLp <- XpairPattern$index.strata.lp2X[indexLp[,1]] ## strata for pair of observation (would be the same with indexLp[,2])
-    n.Lp <- NROW(indexLp)
-    n.reg <- length(reg.var)
+    n.Lp <- NROW(lp.x)
 
+    ## *** identify pairs with equal or non-equal linear predictors
+    index.equal <- which(rowSums(diffLp!=0)==0)
+    index.unequal <- setdiff(1:n.Lp, index.equal)
+    index.0 <- NULL ## cells in the design matrix constrained to be 0
+    
+    ## *** generate code
     code.rho <- rep(NA, length = n.Lp)
     level.rho <- rep(NA, length = n.Lp)
-    index.equal <- which(rowSums(diffLp!=0)==0)
     if(length(index.equal)>0){
-        if(structure$type %in% c("homogeneous","homogeneous0")){
+        if(structure$type == "homogeneous"){            
             code.rho[index.equal] <- paste("R",strataLp[index.equal],sep=sep[2])
             level.rho[index.equal] <- ""
-        }else if(structure$type %in% c("heterogeneous","heterogeneous0")){
+        }else if(structure$type == "heterogeneous"){
             code.rho[index.equal] <- paste("R",lp.x[index.equal],sep=sep[2])
             level.rho[index.equal] <- paste0("(",interaction(as.data.frame(data.x[index.equal,,drop=FALSE]), sep = sep[1], drop = TRUE),")")
         } 
     }
-    index.unequal <- setdiff(1:n.Lp, index.equal)
-    index.0 <- NULL ## cells in the design matrix constrained to be 0
     if(length(index.unequal)>0){
-        if(structure$type %in% c("homogeneous","homogeneous0")){
-            code.rho[index.unequal] <- paste("D",strataLp[index.unequal],as.numeric(rowSums(diffLp[index.unequal,,drop=FALSE]!=0)),sep=sep[2])
-
-            iData.x <- data.x[index.unequal,,drop=FALSE]
-            iData.x[,diffLp[index.unequal]==0] <- NA
-            iData.y <- data.y[index.unequal,,drop=FALSE]
-            iData.y[,diffLp[index.unequal]==0] <- NA
-            iSdata.x <- apply(iData.x, MARGIN = 1, function(iVec){paste(stats::na.omit(iVec), sep = sep[1])})
-            iSdata.y <- apply(iData.y, MARGIN = 1, function(iVec){paste(stats::na.omit(iVec), sep = sep[1])})
-            level.rho[index.unequal] <- paste0("(",iSdata.x,",",iSdata.y,")")
+        if(structure$type == "homogeneous"){
+            ## contrast at the design matrix level
+            test.n0 <- 1*(data.x[index.unequal,reg.var,drop=FALSE]!=data.y[index.unequal,reg.var,drop=FALSE])
+            code.rho[index.unequal] <- paste("D",strataLp[index.unequal],interaction(as.data.frame(test.n0),sep=sep[1]),sep=sep[2])
             
-        }else if(structure$type %in% c("heterogeneous","heterogeneous0")){
+            index.unequal.red <- which(!duplicated(code.rho[index.unequal]))
+            code2level <- stats::setNames(sapply(index.unequal.red, function(iUnequal){ ## iUnequal <- index.unequal[1]
+                iData.x <- data.x[iUnequal,,drop=FALSE]
+                iData.y <- data.y[iUnequal,,drop=FALSE]
+                paste0("(",paste(iData.x[iData.x!=iData.y], collapse = sep[1]),",",paste(iData.y[iData.x!=iData.y], collapse = sep[1]),")")                
+            }),code.rho[index.unequal.red])
+            level.rho[index.unequal] <- code2level[code.rho[index.unequal]]
+            
+        }else if(structure$type == "heterogeneous"){
             code.rho[index.unequal] <- paste("D",lp.x[index.unequal],interaction(as.data.frame(diffLp[index.unequal,,drop=FALSE]), sep = sep[1], drop = TRUE),sep=sep[2])
             level.rho[index.unequal] <- paste0("(",interaction(as.data.frame(data.x[index.unequal,,drop=FALSE]), sep = sep[1], drop = TRUE),
                                                ",",interaction(as.data.frame(data.y[index.unequal,,drop=FALSE]), sep = sep[1], drop = TRUE),
                                                ")")
         }
-
-        if(structure$type %in% c("homogeneous0","heterogeneous0")){
+        if(length(unique(structure$group.type))>1){
+            sumGroup.0 <- do.call(cbind,tapply(names(structure$group.type), structure$group.type, function(iCol){
+                rowSums(diffLp[index.unequal,iCol,drop=FALSE]==0)
+            }, simplify = FALSE))
+            
             if(n.strata==1){
-                index.0 <- index.unequal[which(rowSums(diffLp[index.unequal,,drop=FALSE]==0)==0)]
+                index.0 <- index.unequal[which(rowSums(sumGroup.0!=0)==0)]
             }else{
                 if(length(strata.var)>1){
                     stop("Cannot handle multiple strata variables with this covariance structure. \n")
@@ -218,34 +227,29 @@
                                 k.y = k.y[test.rho],                                  
                                 stringsAsFactors = FALSE)
 
-    ## ensure proper ordering
-    code.x <- tapply(indexLp[,1],code.rho,base::identity, simplify = FALSE)
-    code.y <- tapply(indexLp[,2],code.rho,base::identity, simplify = FALSE)
-    structure.rho$code.x[match(names(code.x),structure.rho$code)] <- code.x
-    structure.rho$code.y[match(names(code.y),structure.rho$code)] <- code.y
     ## save information about correlation parameters fixed to 0 (e.g. crossed random effects)
     if(length(index.0)>0){
-        structure.rho$constraint[structure.rho$code %in% code.rho[index.0]] <- 0
+        Ucode.rho0 <- unique(code.rho[index.0])
+        if(length(intersect(Ucode.rho0,code.rho[-index.0]))){
+            stop("Something went wrong with the constraint when identifying the correlation parameters. \n")
+        }
+        structure.rho$constraint[structure.rho$code %in% Ucode.rho0] <- 0
     }
-    rownames(structure.rho) <- NULL
-    structure$param <- rbind(structure$param, structure.rho)
+    ## ensure proper ordering
+    code.x <- tapply(indexLp[,1], code.rho, base::identity, simplify = FALSE)
+    code.y <- tapply(indexLp[,2], code.rho, base::identity, simplify = FALSE)
+    structure.rho$code.x[match(names(code.x),structure.rho$code)] <- code.x
+    structure.rho$code.y[match(names(code.y),structure.rho$code)] <- code.y
 
     ## ** export
+    rownames(structure.rho) <- NULL
+    structure$param <- rbind(structure$param, structure.rho)
     return(structure)
 }
 
 ## * skeletonRho.RE
 .skeletonRho.RE <- .skeletonRho.CS
 
-## nested
-
-## crossed:  at least one equal 
-##                     test.common <- setdiff(colnames(iCX.cor1)[which(iCX.cor1==iCX.cor2)], "(Intercept)")
-##                     if(length(test.common)>0){
-##                         return(matrix(c("D",as.numeric(iCX.cor2!=iCX.cor1)), nrow = 1))
-##                     }else{
-##                         return(matrix(NA,nrow = 1, ncol = 1+NCOL(iCX.cor1)))
-##                     }
 
 ## * skeletonRho.TOEPLITZ
 .skeletonRho.TOEPLITZ <- function(structure, data, 
@@ -318,7 +322,7 @@
     
     ## ** identify and name parameters
     
-    ## *** generate code
+    ## *** extract linear predictor
     indexLp <- do.call(rbind,XpairPattern$LpU.strata) ## linear predictor index for each observation of each pair
     lp.x <- XpairPattern$lp2X[indexLp[,1],,drop=FALSE] ## design matrox for one observation of each pair of observations
     data.x <- XpairPattern$lp2data[indexLp[,1],,drop=FALSE] ## data for one observation of each pair of observations
@@ -328,6 +332,7 @@
     n.Lp <- NROW(indexLp)
     n.reg <- length(reg.var)
         
+    ## *** generate code
     code.rho <- rep(NA, length = n.Lp)
     level.rho <- rep(NA, length = n.Lp)
     index.equal <- which(rowSums(diffLp!=0)==0)
@@ -616,10 +621,29 @@
     ## list containing for each strata the unique pairs of linear predictors
     ## (and the position in the dataset of these linear predictors as an attribute)
     LpU.strata <- lapply(1:n.strata, function(iS){ ## iS <- 1
-        iM <- base::t(do.call(cbind,lapply(lp.cluster[indexLpU.clusterStrata[[iS]]], .unorderedPairs, distinct = TRUE)))
+        iN.cluster <- length(indexLpU.clusterStrata[[iS]])
+        iLp.cluster <- vector(mode = "list", length = iN.cluster)
+        iIndex.cluster <- vector(mode = "list", length = iN.cluster)
+        iTable.cluster <- table(factor(levels = levels(lp.obs)))
+        ## select linear predictor, remove triplicated levels, and only keep levels not already seen
+        for(iC in 1:iN.cluster){ ## iC <- 2
+            iCluster <- indexLpU.clusterStrata[[iS]][iC]
+            iIndex <- which(!triplicated(lp.cluster[[iCluster]]))
+            iTable <- table(lp.cluster[[iCluster]][iIndex])
+            if(any(iTable>iTable.cluster)){
+                iLp.cluster[[iC]] <- lp.cluster[[iCluster]][iIndex]
+                iIndex.cluster[[iC]] <- index.cluster[[iCluster]][iIndex]
+                iTable.cluster <- pmax(iTable,iTable.cluster)
+            }            
+        }
+        iIndex.cluster <- iIndex.cluster[sapply(iLp.cluster,length)>0]
+        iLp.cluster <- iLp.cluster[sapply(iLp.cluster,length)>0]
+
+        ## form all pairs
+        iM <- base::t(do.call(cbind,lapply(iLp.cluster, .unorderedPairs, distinct = TRUE)))
         iTest <- duplicated(iM)
         iOut <- iM[!iTest,,drop=FALSE]
-        attr(iOut,"index") <- base::t(do.call(cbind,lapply(index.cluster[indexLpU.clusterStrata[[iS]]], .unorderedPairs, distinct = TRUE)))[!iTest,,drop=FALSE]
+        attr(iOut,"index") <- base::t(do.call(cbind,lapply(iIndex.cluster, .unorderedPairs, distinct = TRUE)))[!iTest,,drop=FALSE]
         return(iOut)
     })
     ## design matrix associated to each code
@@ -629,7 +653,7 @@
 
     ## list containing for each strata the unique difference in design matrix between pairs
     diffU.strata <- lapply(LpU.strata, function(iS){
-        iM <- object[attr(iS,"index")[,2],] - object[attr(iS,"index")[,1],]
+        iM <- object[attr(iS,"index")[,2],,drop=FALSE] - object[attr(iS,"index")[,1],,drop=FALSE]
         rownames(iM) <- NULL
         return(iM)
     })
