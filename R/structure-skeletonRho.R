@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (13:27) 
 ## Version: 
-## Last-Updated: jun  1 2023 (15:49) 
+## Last-Updated: jun  7 2023 (09:46) 
 ##           By: Brice Ozenne
-##     Update #: 500
+##     Update #: 435
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -248,8 +248,25 @@
 }
 
 ## * skeletonRho.RE
-.skeletonRho.RE <- .skeletonRho.CS
+.skeletonRho.RE <- function(structure, data, 
+                            U.cluster, index.cluster,
+                            U.time, index.clusterTime, 
+                            U.strata, index.clusterStrata, sep = c(".",":")){
 
+    ## ** identify variance and correlation parameters
+    structure <- .skeletonRho.CS(structure = structure, data = data, 
+                                 U.cluster = U.cluster, index.cluster = index.cluster,
+                                 U.time = U.time, index.clusterTime = index.clusterTime, 
+                                 U.strata = U.strata, index.clusterStrata = index.clusterStrata, sep = sep)
+
+    ## ** relate correlation parameters to random effects
+    if(!is.null(structure$ranef$hierarchy)){
+        browser()
+    }
+    
+    ## ** export
+    return(structure)
+}
 
 ## * skeletonRho.TOEPLITZ
 .skeletonRho.TOEPLITZ <- function(structure, data, 

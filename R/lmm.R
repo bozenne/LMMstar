@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jun  1 2023 (15:48) 
+## Last-Updated: jun  7 2023 (09:45) 
 ##           By: Brice Ozenne
-##     Update #: 2247
+##     Update #: 2235
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -219,16 +219,18 @@ lmm <- function(formula, repetition, structure, data,
             stop("Incorrect argument \'formula\', \n",
                  "Current version can only handle random intercepts (i.e. no covariates in random effects). \n")
         }
-        attr(detail.formula$special,"formula") <- detail.formula$formula$ranef
-        attr(detail.formula$special,"vars") <- detail.formula$vars$ranef
-        attr(detail.formula$special,"terms") <- detail.formula$terms$ranef
-        attr(detail.formula$special,"hierarchy") <- detail.formula$vars$hierarchy            
+        formula.ranef <- detail.formula$special
+        attr(formula.ranef,"formula") <- detail.formula$formula$ranef
+        attr(formula.ranef,"vars") <- detail.formula$vars$ranef
+        attr(formula.ranef,"terms") <- detail.formula$terms$ranef
+        attr(formula.ranef,"vars") <- detail.formula$vars$hierarchy
+            
         if(missing.structure){
-            structure <- RE(~1, ranef = detail.formula$special)
+            structure <- RE(~1, ranef = formula.ranef)
         }else{
+            args.structure$ranef <- formula.ranef
             call.structure <- as.list(structure$call)
             args.structure <- call.structure[-1]
-            args.structure$ranef <- detail.formula$special
             if(inherits(call.structure[[1]], "function")){
                 structure <- do.call(call.structure[[1]], args = args.structure)
             }else{
