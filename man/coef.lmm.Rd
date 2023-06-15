@@ -89,3 +89,4 @@ coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "n
 \seealso{
 \code{\link{confint.lmm}} or \code{\link{model.tables.lmm}} for a data.frame containing estimates with their uncertainty. \cr
 }
+\keyword{methods}

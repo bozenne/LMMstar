@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: apr 18 2023 (10:00) 
+## Last-Updated: jun 15 2023 (17:08) 
 ##           By: Brice Ozenne
-##     Update #: 754
+##     Update #: 755
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -58,6 +58,8 @@
 ##' When argument format is \code{"long"} and type.oobject is \code{"lmm"}, a vector containing the value of the residual realtive to each observation.
 ##' It is a matrix if the argument \code{type} contains several values.
 ##' When argument format is \code{"wide"} and type.oobject is \code{"lmm"}, a data.frame with the value of the residual relative to each cluster (in rows) at each timepoint (in columns).
+##' 
+##' @keywords methods
 ##' 
 ##' @examples
 ##' 

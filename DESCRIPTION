@@ -2,7 +2,7 @@ Package: LMMstar
 Type: Package
 Title: Repeated Measurement Models for Discrete Times
 Version: 0.9.1
-Date: 2023-04-18
+Date: 2023-06-15
 Authors@R: c(
     person("Brice", "Ozenne", role = c("aut", "cre"), email = "brice.mh.ozenne@gmail.com", comment = c(ORCID = "0000-0001-9694-2956")),
     person("Julie", "Forman", role = "aut", email = "jufo@sund.ku.dk", comment = c(ORCID = "0000-0001-7368-0869"))
@@ -55,7 +55,7 @@ Suggests:
     rmcorr,
     testthat
 VignetteBuilder: R.rsp
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3
 Collate: 
     '0-onload.R'
     'LMMstar-package.R'
@@ -113,12 +113,14 @@ Collate:
     'structure-calc_dOmega.R'
     'structure-initialization.R'
     'structure-skeleton.R'
+    'structure-skeletonK.R'
+    'structure-skeletonRho.R'
+    'structure-skeletonSigma.R'
     'structure.R'
     'summarize.R'
     'summarizeNA.R'
     'summary.R'
     'terms.R'
-    'unorderedPairs.R'
     'utils.R'
     'vcov.R'
     'weights.R'

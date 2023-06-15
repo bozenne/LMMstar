@@ -30,4 +30,4 @@ This dataset is in the wide format (i.e. one line per patient).
 \references{
 Vonesh and Chinchilli 1997. Linear and Nonlinear models for the analysis of repeated measurement (Table 5.4.1 on page 228). New York: Marcel Dekker.
 }
-\keyword{data}
+\keyword{datasets}

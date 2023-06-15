@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 18 2021 (10:32) 
 ## Version: 
-## Last-Updated: okt 20 2021 (19:08) 
+## Last-Updated: jun 14 2023 (15:05) 
 ##           By: Brice Ozenne
-##     Update #: 12
+##     Update #: 13
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -24,6 +24,9 @@
 ##' \item all: contrast matrix for each categorical or factor variable
 ##' \item reference: reference level: one value for each categorical variable
 ##' }
+##'
+##' @keywords methods
+##' 
 ##' @export
 levels.lmm <- function(x){
     data.X <- x$data[all.vars(stats::delete.response(stats::terms(x$formula$mean)))]

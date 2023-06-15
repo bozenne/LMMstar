@@ -84,3 +84,4 @@ predict(eUN.lmm, newdata = newd.d3, keep.newdata = TRUE, type = "dynamic")
 newd.d4 <- cbind(newd, Y = c(1,1,NA))
 predict(eUN.lmm, newdata = newd.d4, keep.newdata = TRUE, type = "dynamic")
 }
+\keyword{method}

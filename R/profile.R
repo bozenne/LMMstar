@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jun 16 2022 (15:19) 
 ## Version: 
-## Last-Updated: jan 23 2023 (15:36) 
+## Last-Updated: jun 15 2023 (16:25) 
 ##           By: Brice Ozenne
-##     Update #: 300
+##     Update #: 301
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -42,6 +42,8 @@
 ##' }
 ##'
 ##' @return A data.frame object containing the log-likelihood for various parameter values.
+##' 
+##' @keywords htest
 ##' 
 ##' @examples
 ##' data(gastricbypassW, package = "LMMstar")

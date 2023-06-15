@@ -15,6 +15,7 @@ resample(object, type, ...)
   n.sample = 1000,
   studentized = TRUE,
   level = 0.95,
+  correction = TRUE,
   trace = TRUE,
   seed = NULL,
   cpus = 1,
@@ -24,8 +25,11 @@ resample(object, type, ...)
 \method{resample}{mlmm}(
   object,
   type,
+  method = NULL,
   cluster = NULL,
   n.sample = 1000,
+  level = 0.95,
+  correction = TRUE,
   trace = TRUE,
   seed = NULL,
   cpus = 1,
@@ -82,10 +86,10 @@ e.lm <- lmm(weight2~weight1+glucagonAUC1, data = gastricbypassW)
 model.tables(e.lm)
 
 ## non-parametric bootstrap
-resample(e.lm, type = "boot", effects = c("weight1","glucagonAUC1"))
+resample(e.lm, type = "boot", effects = c("weight1","glucagonAUC1"), seed = 10)
 ## permutation test
-resample(e.lm, type = "perm-var", effects = "weight1") 
-resample(e.lm, type = "perm-var", effects = "glucagonAUC1")
+resample(e.lm, type = "perm-var", effects = "weight1", seed = 10) 
+resample(e.lm, type = "perm-var", effects = "glucagonAUC1", seed = 10)
 ## using multiple cores
 resample(e.lm, type = "boot", effects = c("weight1","glucagonAUC1"), cpus = 4)
 
@@ -101,13 +105,14 @@ eCS.lmm <- lmm(weight~glucagonAUC+gender, data = gastricbypassLR,
 model.tables(eCS.lmm)
 
 ## non-parametric bootstrap
-resample(eCS.lmm, type = "boot", effects = c("glucagonAUC","gender"))
+resample(eCS.lmm, type = "boot", effects = c("glucagonAUC","gender"), seed = 10)
 ## permutation test
-resample(eCS.lmm, type = "perm-var", effects = "gender")
-resample(eCS.lmm, type = "perm-res", effects = "glucagonAUC") 
+resample(eCS.lmm, type = "perm-var", effects = "gender", seed = 10)
+resample(eCS.lmm, type = "perm-res", effects = "glucagonAUC", seed = 10) 
 }
 
 }
 \references{
-Oliver E. Lee and Thomas M. Braun (2012), Permutation Tests for Random Effects in Linear Mixed Models. Biometrics, Journal 68(2).
+Oliver E. Lee and Thomas M. Braun (2012), \bold{Permutation Tests for Random Effects in Linear Mixed Models}. \emph{Biometrics}, Journal 68(2).
 }
+\keyword{htest}

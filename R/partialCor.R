@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: jan 11 2023 (19:36) 
+## Last-Updated: jun 15 2023 (16:21) 
 ##           By: Brice Ozenne
-##     Update #: 478
+##     Update #: 479
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -59,6 +59,8 @@
 ##' @references
 ##'  Bland J M, Altman D G. Statistics notes: Calculating correlation coefficients with repeated observations: Part 1—correlation within subjects BMJ 1995; 310 :446 doi:10.1136/bmj.310.6977.446
 ##'  Edwards, L.J., Muller, K.E., Wolfinger, R.D., Qaqish, B.F. and Schabenberger, O. (2008), An R2 statistic for fixed effects in the linear mixed model. Statist. Med., 27: 6137-6157. https://doi.org/10.1002/sim.3429
+##' 
+##' @keywords models
 ##' 
 ##' @examples
 ##' 

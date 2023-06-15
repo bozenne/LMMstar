@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: dec  7 2022 (17:13) 
 ## Version: 
-## Last-Updated: maj  4 2023 (10:41) 
+## Last-Updated: jun 15 2023 (16:55) 
 ##           By: Brice Ozenne
-##     Update #: 49
+##     Update #: 50
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -28,6 +28,8 @@
 ##' @param keep.data [logical] should the indicator of missing data per variable in the original dataset per pattern be output.
 ##'
 ##' @return a data frame
+##' 
+##' @keywords utilities
 ##'
 ##' @seealso
 ##' \code{\link{autoplot.summarizeNA}} for a graphical display.

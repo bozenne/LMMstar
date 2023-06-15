@@ -26,3 +26,4 @@ Extract or compute the log-likelihood of a linear mixed model.
 \details{
 \bold{indiv}: only relevant when using maximum likelihood. Must be \code{FALSE} when using restricted maximum likelihood.
 }
+\keyword{methods}

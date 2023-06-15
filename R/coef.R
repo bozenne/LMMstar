@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: maj 31 2023 (18:36) 
+## Last-Updated: jun 15 2023 (16:16) 
 ##           By: Brice Ozenne
-##     Update #: 579
+##     Update #: 580
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -67,6 +67,8 @@
 ##' 
 ##' @seealso
 ##' \code{\link{confint.lmm}} or \code{\link{model.tables.lmm}} for a data.frame containing estimates with their uncertainty. \cr
+##' 
+##' @keywords methods
 ##' 
 ##' @examples
 ##' ## simulate data in the long format

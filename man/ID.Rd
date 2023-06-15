@@ -31,3 +31,4 @@ ID(~1, var.cluster = "id", var.time = "time")
 ID(~gender, var.cluster = "id", var.time = "time")
 ID(gender~1, var.cluster = "id", var.time = "time")
 }
+\keyword{multivariate}

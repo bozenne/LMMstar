@@ -30,3 +30,4 @@ weights(e.mlmm, method = "pool.fixse")
 weights(e.mlmm, method = "pool.se")
 weights(e.mlmm, method = "pool.gls")
 }
+\keyword{methods}

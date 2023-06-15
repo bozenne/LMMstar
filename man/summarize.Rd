@@ -10,8 +10,8 @@ summarize(
   na.action = stats::na.pass,
   na.rm = FALSE,
   level = 0.95,
-  columns = c("observed", "missing", "mean", "sd", "min", "q1", "median", "q3", "max",
-    "correlation"),
+  columns = c("observed", "missing", "pc.missing", "mean", "sd", "min", "q1", "median",
+    "q3", "max", "correlation"),
   FUN = NULL,
   which = NULL,
   skip.reference = TRUE,
@@ -109,3 +109,4 @@ e.S <- summarize(Y ~ time2 + time3 + X1 | id, data = dL, na.rm = TRUE)
 e.S
 attr(e.S, "correlation")
 }
+\keyword{utilities}

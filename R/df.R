@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (10:34) 
 ## Version: 
-## Last-Updated: Nov 14 2022 (10:15) 
+## Last-Updated: jun 14 2023 (14:52) 
 ##           By: Brice Ozenne
-##     Update #: 202
+##     Update #: 203
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -22,6 +22,8 @@
 ##' @param ... Passed to \code{residuals.lmm}.
 ##'
 ##' @return A numeric value
+##' 
+##' @keywords methods
 ##' @export
 df.residual.lmm <- function(object, ...){
 

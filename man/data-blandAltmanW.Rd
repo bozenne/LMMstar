@@ -22,4 +22,4 @@ This dataset is in the wide format (i.e. one line per patient).
 \references{
 Bland & Altman, Statistical methods for assessing agreement between two methods of clinical measurement, Lancet, 1986; i: 307-310.
 }
-\keyword{data}
+\keyword{datasets}

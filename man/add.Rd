@@ -22,3 +22,4 @@ e.lmm <- lmm(Y~X1, data = dW)
 
 confint(e.lmm, columns = add("statistic"))
 }
+\keyword{utilities}

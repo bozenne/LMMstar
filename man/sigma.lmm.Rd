@@ -53,3 +53,4 @@ sigma(eUN.lmm) ## unique patterns
 sigma(eUN.lmm, cluster = c("id1","id5")) ## existing clusters
 sigma(eUN.lmm, cluster = dL[1:7,,drop=FALSE]) ## new clusters
 }
+\keyword{methods}

@@ -120,10 +120,11 @@ scatterplot(gastricbypassL, formula = glucagonAUC~time|id)
 ## coloring per group
 scatterplot(gastricbypassL, formula = weight~time|id, group = "group")
 
-## only display percentage of NAs
+## only display NAs
 scatterplot(gastricbypassL, formula = glucagonAUC~time|id,
             display.NA = "only", group = "group")
 scatterplot(gastricbypassL, formula = glucagonAUC~time|id,
             display.NA = "only", group = "group", size.legend = c(15,2))
 }
 }
+\keyword{utilities}

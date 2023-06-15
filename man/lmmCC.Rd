@@ -94,3 +94,4 @@ model.tables(e.lmm3.bis)
 e.lmm3.bis$lm.change
 
 }
+\keyword{models}

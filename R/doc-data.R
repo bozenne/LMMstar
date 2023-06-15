@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: jan  3 2023 (15:57) 
+## Last-Updated: jun 14 2023 (14:53) 
 ##           By: Brice Ozenne
-##     Update #: 119
+##     Update #: 120
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -42,7 +42,7 @@
 #' @docType data
 #' @usage data(abetaW)
 #' @references Pech, Josefine, et al. "The impact of a new affective episode on psychosocial functioning, quality of life and perceived stress in newly diagnosed patients with bipolar disorder: A prospective one-year case-control study."Journal of Affective Disorders 277 (2020): 486-494.
-#' @keywords data
+#' @keywords datasets
 NULL
 
 ## ** abetaL
@@ -73,7 +73,7 @@ NULL
 #' @docType data
 #' @usage data(abetaL)
 #' @references Pech, Josefine, et al. The impact of a new affective episode on psychosocial functioning, quality of life and perceived stress in newly diagnosed patients with bipolar disorder: A prospective one-year case-control study.Journal of Affective Disorders 277 (2020): 486-494.
-#' @keywords data
+#' @keywords datasets
 NULL
 
 ## * blandAltman
@@ -96,7 +96,7 @@ NULL
 #' @docType data
 #' @usage data(blandAltmanW)
 #' @references Bland & Altman, Statistical methods for assessing agreement between two methods of clinical measurement, Lancet, 1986; i: 307-310.
-#' @keywords data
+#' @keywords datasets
 NULL
 
 ## ** blandAltmanL
@@ -117,7 +117,7 @@ NULL
 #' @docType data
 #' @usage data(blandAltmanL)
 #' @references Bland & Altman, Statistical methods for assessing agreement between two methods of clinical measurement, Lancet, 1986; i: 307-310.
-#' @keywords data
+#' @keywords datasets
 NULL
 
 ## * bloodpressure
@@ -144,7 +144,7 @@ NULL
 #' @docType data
 #' @usage data(bloodpressureL)
 #' @references TO ADD
-#' @keywords data
+#' @keywords datasets
 NULL
 
 ## * calcium
@@ -175,7 +175,7 @@ NULL
 #' @docType data
 #' @usage data(calciumW)
 #' @references Vonesh and Chinchilli 1997. Linear and Nonlinear models for the analysis of repeated measurement (Table 5.4.1 on page 228). New York: Marcel Dekker.
-#' @keywords data
+#' @keywords datasets
 NULL
 ## calciumW <- read.table("inst/dataTXT/calcium1.txt", header = TRUE, na.string = ".")
 ## calciumW$obstime1 <- as.numeric(calciumW$obstime1)
@@ -206,7 +206,7 @@ NULL
 #' @docType data
 #' @usage data(calciumL)
 #' @references TO ADD
-#' @keywords data
+#' @keywords datasets
 NULL
 ## data("calciumW", package = "LMMstar")
 ## dtW <- data.table::as.data.table(calciumW)
@@ -250,7 +250,7 @@ NULL
 #' @docType data
 #' @usage data(ckdW)
 #' @references TO ADD
-#' @keywords data
+#' @keywords datasets
 NULL
 
 ## ** ckdL
@@ -274,7 +274,7 @@ NULL
 #' @docType data
 #' @usage data(ckdL)
 #' @references TO ADD
-#' @keywords data
+#' @keywords datasets
 NULL
 
 ## * gastricbypass
@@ -302,7 +302,7 @@ NULL
 #' @docType data
 #' @usage data(gastricbypassW)
 #' @references The effect of Roux-en-Y gastric bypass surgery on the gut mucosal gene expression profile and circulating gut hormones. \url{https://easddistribute.m-anage.com/from.storage?image=4iBH9mRQm1kfeEHULC2CxovdlyCtA1EHeVDdoffnZrAUGG9SHTO-U4ItnLU078eVkF1ZUZgYTy7THlTW3KSgFA2}
-#' @keywords data
+#' @keywords datasets
 NULL
 
 ## ** gastricbypassL
@@ -325,7 +325,7 @@ NULL
 #' @docType data
 #' @usage data(gastricbypassL)
 #' @references The effect of Roux-en-Y gastric bypass surgery on the gut mucosal gene expression profile and circulating gut hormones. \url{https://easddistribute.m-anage.com/from.storage?image=4iBH9mRQm1kfeEHULC2CxovdlyCtA1EHeVDdoffnZrAUGG9SHTO-U4ItnLU078eVkF1ZUZgYTy7THlTW3KSgFA2}
-#' @keywords data
+#' @keywords datasets
 NULL
 ## data("gastricbypassW")
 ## dtW <- data.table::as.data.table(gastricbypassW)
@@ -365,7 +365,7 @@ NULL
 #' @docType data
 #' @usage data(ncgsW)
 #' @references Grundy SM, Lan SP, Lachin J. The effects of chenodiol on biliary lipids and their association with gallstone dissolution in the National Cooperative Gallstone Study (NCGS). J Clin Invest. 1984 Apr;73(4):1156-66. doi: 10.1172/JCI111301.  
-#' @keywords data
+#' @keywords datasets
 NULL
 ## ncgsW <- read.table("inst/dataTXT/ncgs.txt", header = TRUE, na.string = ".")
 ## ncgsW$group <- as.factor(ncgsW$group)
@@ -394,7 +394,7 @@ NULL
 #' @docType data
 #' @usage data(ncgsL)
 #' @references Grundy SM, Lan SP, Lachin J. The effects of chenodiol on biliary lipids and their association with gallstone dissolution in the National Cooperative Gallstone Study (NCGS). J Clin Invest. 1984 Apr;73(4):1156-66. doi: 10.1172/JCI111301.  
-#' @keywords data
+#' @keywords datasets
 NULL
 ## data("ncgsW")
 ## ncgsL <- stats::reshape(ncgsW, direction  = "long",
@@ -440,7 +440,7 @@ NULL
 #' @usage data(potassiumSingleW)
 #' @references Dreier et al. Effect of increased potassium intake on the reninangiotensinaldosterone system and subcutaneous resistance arteries: a randomized crossover study,
 #' Nephrol Dial Transplant (2020) 110. doi: 10.1093/ndt/gfaa114
-#' @keywords data
+#' @keywords datasets
 NULL
 
 ## ** potassiumSingleL
@@ -466,7 +466,7 @@ NULL
 #' @usage data(potassiumSingleL)
 #' @references Dreier et al. Effect of increased potassium intake on the reninangiotensinaldosterone system and subcutaneous resistance arteries: a randomized crossover study,
 #' Nephrol Dial Transplant (2020) 110. doi: 10.1093/ndt/gfaa114
-#' @keywords data
+#' @keywords datasets
 NULL
 
 ## ** potassiumRepeatedL
@@ -491,7 +491,7 @@ NULL
 #' @usage data(potassiumRepeatedL)
 #' @references Dreier et al. Effect of increased potassium intake on the reninangiotensinaldosterone system and subcutaneous resistance arteries: a randomized crossover study,
 #' Nephrol Dial Transplant (2020) 110. doi: 10.1093/ndt/gfaa114
-#' @keywords data
+#' @keywords datasets
 NULL
 
 ## * school
@@ -511,7 +511,7 @@ NULL
 #' 
 #' @docType data
 #' @usage data(schoolL)
-#' @keywords data
+#' @keywords datasets
 NULL
 
 ## * swabs
@@ -537,7 +537,7 @@ NULL
 #' @docType data
 #' @usage data(swabsW)
 #' @references Grundy SM, Lan SP, Lachin J. The effects of chenodiol on biliary lipids and their association with gallstone dissolution in the National Cooperative Gallstone Study (SWABS). J Clin Invest. 1984 Apr;73(4):1156-66. doi: 10.1172/JCI111301.  
-#' @keywords data
+#' @keywords datasets
 NULL
 ## library(reshape2)
 ## data(swabsL)
@@ -564,7 +564,7 @@ NULL
 #' @docType data
 #' @usage data(swabsL)
 #' @references TODO
-#' @keywords data
+#' @keywords datasets
 NULL
 ## swabsL <- read.table("inst/dataTXT/swabs.txt", header = TRUE, na.string = ".")
 ## swabsL$family <- as.factor(swabsL$family)
@@ -600,7 +600,7 @@ NULL
 #' @docType data
 #' @usage data(vasscoresW)
 #' @references TODO
-#' @keywords data
+#' @keywords datasets
 NULL
 ## vasscoresW <- read.table("inst/dataTXT/vasscores.txt", header = TRUE, na.string = ".")
 ## vasscoresW$id <- factor(vasscoresW$id)
@@ -632,7 +632,7 @@ NULL
 #' @docType data
 #' @usage data(vasscoresL)
 #' @references TODO
-#' @keywords data
+#' @keywords datasets
 NULL
 ## data("vasscoresW")
 ## ## transform to long format:
@@ -677,7 +677,7 @@ NULL
 #' @docType data
 #' @usage data(vitaminW)
 #' @references TODO
-#' @keywords data
+#' @keywords datasets
 NULL
 ## vitaminW <- read.table("inst/dataTXT/vitamin.txt", header = TRUE, na.string = ".")
 ## vitaminW$group <- as.factor(vitaminW$group)
@@ -708,7 +708,7 @@ NULL
 #' @docType data
 #' @usage data(vitaminL)
 #' @references Crowder and Hand (1990, p. 27) Analysis of Repeated Measures.
-#' @keywords data
+#' @keywords datasets
 NULL
 ## data("vitaminW")
 ## vitaminL <- reshape2::melt(vitaminW, id.vars = c("group","animal"),

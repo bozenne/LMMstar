@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: maj 25 2023 (19:43) 
+## Last-Updated: jun 15 2023 (16:22) 
 ##           By: Brice Ozenne
-##     Update #: 741
+##     Update #: 742
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -46,6 +46,8 @@
 ##' }
 ##' except when the argument \code{se.fit} is specified (see \code{predict.lm} for the output format).
 ##'
+##' @keywords method
+##' 
 ##' @examples
 ##' ## simulate data in the long format
 ##' set.seed(10)

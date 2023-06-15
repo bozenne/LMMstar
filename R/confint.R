@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: maj 12 2023 (11:42) 
+## Last-Updated: jun 14 2023 (14:52) 
 ##           By: Brice Ozenne
-##     Update #: 622
+##     Update #: 624
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -51,6 +51,8 @@
 ##' @seealso
 ##' \code{\link{coef.lmm}} for a simpler output (e.g. only estimates). \cr
 ##' \code{\link{model.tables.lmm}} for a more detailed output (e.g. with p-value). \cr
+##'
+##' @keywords methods
 ##' 
 ##' @examples
 ##' #### simulate data in the long format ####
@@ -323,6 +325,8 @@ confint.lmmCC <- function(object, parm = NULL, level = 0.95, effects = NULL, col
 ##' @references Barnard and Rubin, \bold{Small-sample degrees of freedom with multiple imputation}. \emph{Biometrika} (1999), 86(4):948-955. \cr
 ##' Dmitrienko, A. and D'Agostino, R., Sr (2013), \bold{Traditional multiplicity adjustment methods in clinical trials}. \emph{Statist. Med.}, 32: 5172-5218.
 ##' Frank Bretz, Torsten Hothorn and Peter Westfall (2010), \bold{Multiple Comparisons Using R}, \emph{CRC Press}, Boca Raton.
+##' 
+##' @keywords methods
 
 ## * confint.Wald_lmm (code)
 ##' @export
@@ -767,6 +771,8 @@ confint.LRT_lmm <- function(object, parm, level = 0.95, ...){
 ##'
 ##' @references
 ##' Meng X. L.(1994). Multiple-imputation inferences with uncongenial sources of input. Statist. Sci.9, 538–58.
+##' 
+##' @keywords methods
 
 ## * confint.mlmm (code)
 ##' @export

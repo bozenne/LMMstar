@@ -29,4 +29,4 @@ This dataset is in the wide format (i.e. one line per participant).
 \references{
 Pech, Josefine, et al. "The impact of a new affective episode on psychosocial functioning, quality of life and perceived stress in newly diagnosed patients with bipolar disorder: A prospective one-year case-control study."Journal of Affective Disorders 277 (2020): 486-494.
 }
-\keyword{data}
+\keyword{datasets}

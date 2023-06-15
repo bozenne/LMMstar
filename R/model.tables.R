@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (10:48) 
 ## Version: 
-## Last-Updated: apr 17 2023 (16:17) 
+## Last-Updated: jun 15 2023 (16:17) 
 ##           By: Brice Ozenne
-##     Update #: 38
+##     Update #: 39
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -27,6 +27,8 @@
 ##' @param ... arguments to be passed to the \code{confint} method. Should not contain the argument \code{column}.
 ##' 
 ##' @details This function simply calls \code{\link{confint}} with a specific value for the argument \code{column}.
+##' 
+##' @keywords methods
 ##' 
 ##' @export
 model.tables.lmm <- function(x, columns, ...){

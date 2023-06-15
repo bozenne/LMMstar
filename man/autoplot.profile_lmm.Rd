@@ -59,3 +59,4 @@ Graphical representation of the profile likelihood from a linear mixed model
 \item \code{plot(profile_lmm)}: Display Contour of the log-Likelihood
 
 }}
+\keyword{hplot}

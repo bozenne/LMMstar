@@ -44,3 +44,4 @@ Graphical representation of the possible missing data patterns in the dataset.
 \item \code{plot(summarizeNA)}: Graphical Display of Missing Data Pattern
 
 }}
+\keyword{hplot}

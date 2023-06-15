@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (15:05) 
 ## Version: 
-## Last-Updated: apr 14 2023 (09:47) 
+## Last-Updated: jun 15 2023 (16:16) 
 ##           By: Brice Ozenne
-##     Update #: 18
+##     Update #: 19
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,6 +29,9 @@
 ##' @param ... not used. For compatibility with the generic function
 ##'
 ##' @return A character vector
+##' 
+##' @keywords methods
+##' 
 ##' @export
 manifest.lmm <- function(x, effects = "all", original = TRUE, ...){
 

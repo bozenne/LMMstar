@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jun  7 2023 (09:45) 
+## Last-Updated: jun 14 2023 (15:06) 
 ##           By: Brice Ozenne
-##     Update #: 2235
+##     Update #: 2237
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -65,6 +65,8 @@
 ##' \code{\link{predict.lmm}} for evaluating mean and variance of the outcome conditional on covariates or other outcome values.
 
 ##' @return an object of class \code{lmm} containing the estimated parameter values, the residuals, and relevant derivatives of the likelihood.
+##'
+##' @keywords models
 
 ## * lmm (examples)
 ##' @examples

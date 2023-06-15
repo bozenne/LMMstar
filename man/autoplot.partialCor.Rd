@@ -55,3 +55,4 @@ plot(e.pCor)
 }
 
 }
+\keyword{hplot}

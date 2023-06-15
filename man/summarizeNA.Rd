@@ -50,3 +50,4 @@ summarizeNA(vasscoresW)
 \seealso{
 \code{\link{autoplot.summarizeNA}} for a graphical display.
 }
+\keyword{utilities}

@@ -33,3 +33,4 @@ Can be a vector of length 2 where the first element refer to the global tests an
 \description{
 Estimates, p-values, and confidence intevals for multiple linear mixed models.
 }
+\keyword{methods}

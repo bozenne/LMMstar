@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (14:23) 
 ## Version: 
-## Last-Updated: Jun  2 2022 (14:07) 
+## Last-Updated: jun 15 2023 (17:34) 
 ##           By: Brice Ozenne
-##     Update #: 76
+##     Update #: 78
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -36,6 +36,8 @@
 ##' \eqn{\epsilon_j} and \eqn{\xi} are independent random variables with standard normal distribution.
 ##'
 ##' @return a data.frame
+##' 
+##' @keywords datagen
 
 ## * sampleRem (examples)
 ##' @examples

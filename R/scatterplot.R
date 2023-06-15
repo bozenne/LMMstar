@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb 16 2023 (09:39) 
 ## Version: 
-## Last-Updated: maj  4 2023 (10:59) 
+## Last-Updated: jun 15 2023 (16:26) 
 ##           By: Brice Ozenne
-##     Update #: 691
+##     Update #: 692
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -53,6 +53,8 @@
 ##' The identifier links the outcome values across time.
 ##' 
 ##' @return a list of ggplot objects (\code{facet="grid"}) or a ggplot object (\code{facet="grid2"})
+##' 
+##' @keywords utilities
 ##' 
 ##' @examples
 ##' data(gastricbypassL, package = "LMMstar")

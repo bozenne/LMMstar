@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: Jun  5 2023 (18:46) 
+## Last-Updated: jun 15 2023 (16:57) 
 ##           By: Brice Ozenne
-##     Update #: 1217
+##     Update #: 1219
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -44,6 +44,8 @@
 ##' \item \code{sd}: the variance structure expressed in term of standard deviations.
 ##' \item \code{mean}: the mean structure.
 ##' }
+##'
+##' @keywords methods
 
 ## * summary.lmm (code)
 ##' @export
@@ -404,6 +406,8 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
 ##' Adding the value \code{"type"} in argument \code{"columns"} ensures that the type of parameter that is being test (mean, variance, correlation) is output.
 ##'
 ##' @return \code{NULL}
+##' 
+##' @keywords methods
  
 ## * summary.Wald_lmm (code)
 ##' @export
@@ -675,6 +679,7 @@ summary.LRT_lmm <- function(object, digits = 3, digits.df = 1, digits.p.value = 
 ##' @param hide.fit [logical] should information about the model fit not be printed.
 ##' @param ... other arguments are passed to \code{\link{summary.Wald_lmm}}.
 ##'
+##' @keywords methods
 
 ## * summary.mlmm (code)
 ##' @export
@@ -769,6 +774,8 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
 ##' @param detail [integer,>0] passed to \code{print.confint_lmm}. If above 0.5 also display when a back-transformation has been used.
 ##' @param ... other arguments are passed to \code{print.confint_lmm}.
 ##'
+##' @keywords methods
+##' 
 ##' @export
 summary.partialCor <- function(object, digits = 3, detail = TRUE, ...){
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: okt 12 2022 (17:43) 
+## Last-Updated: jun 14 2023 (15:05) 
 ##           By: Brice Ozenne
-##     Update #: 1078
+##     Update #: 1079
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -38,7 +38,8 @@
 ##' @return
 ##' When argument indiv is \code{FALSE}, a matrix with the value of the infroamtion relative to each pair of coefficient (in rows and columns) and each cluster (in rows).
 ##' When argument indiv is \code{TRUE}, a 3-dimensional array with the value of the information relative to each pair of coefficient (dimension 2 and 3) and each cluster (dimension 1).
-##' 
+##'
+##' @keywords methods
 
 ## * information.lmm (code)
 ##' @export

@@ -28,5 +28,9 @@ A typical formula would be \code{~1}, indicating a time-specific variance parame
 \examples{
 UN(NULL, var.cluster = "id", var.time = "time", add.time = TRUE)
 UN(~gender, var.cluster = "id", var.time = "time", add.time = TRUE)
+UN(gender ~ 1, var.cluster = "id", var.time = "time", add.time = TRUE)
+UN(list(~gender,~1), var.cluster = "id", var.time = "time", add.time = TRUE)
+UN(list(gender~age,gender~1), var.cluster = "id", var.time = "time", add.time = TRUE)
 
 }
+\keyword{multivariate}

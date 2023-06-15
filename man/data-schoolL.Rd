@@ -17,4 +17,4 @@ Simulated data a nested structure: Student/Class/School and one outcome.
 \item \code{outcome}:  
 }
 }
-\keyword{data}
+\keyword{datasets}

@@ -26,3 +26,4 @@ Statistical inference following pooling is performed according to Rubin's rule w
 \references{
 Meng X. L.(1994). Multiple-imputation inferences with uncongenial sources of input. Statist. Sci.9, 538–58.
 }
+\keyword{methods}

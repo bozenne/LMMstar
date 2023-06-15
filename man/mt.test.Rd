@@ -36,7 +36,7 @@ and combine the results, possibly adjusted for multiplicity.
 In presence of missing values, performs a outcome specific complete case analysis.
 }
 \examples{
-data(calciumW)
+data(calciumW, package = "LMMstar")
 
 t.test(bmd1 ~ grp, data = calciumW)
 
@@ -44,3 +44,4 @@ mt.test(bmd1+bmd2+bmd3+bmd4+bmd5 ~ grp, data = calciumW)
 mt.test(bmd1+bmd2+bmd3+bmd4+bmd5 ~ grp|girl, data = calciumW)
 mt.test(bmd1+bmd2+bmd3+bmd4+bmd5 ~ grp|girl, data = calciumW, method = "none")
 }
+\keyword{models}

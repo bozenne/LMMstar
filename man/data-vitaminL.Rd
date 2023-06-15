@@ -27,4 +27,4 @@ This dataset is in the long format (i.e. one line per measurement).
 \references{
 Crowder and Hand (1990, p. 27) Analysis of Repeated Measures.
 }
-\keyword{data}
+\keyword{datasets}

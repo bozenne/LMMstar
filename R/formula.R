@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:53) 
 ## Version: 
-## Last-Updated: maj 10 2023 (15:23) 
+## Last-Updated: jun 15 2023 (17:08) 
 ##           By: Brice Ozenne
-##     Update #: 162
+##     Update #: 163
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -58,6 +58,7 @@ formula.lmm <- function(x, effects = "mean", ...){
 ##' formula2var(Y+Z~s(X1)+X2*X3 + (X1|id:baseline))
 
 ## * formula2var (code)
+##' @noRd
 formula2var <- function(formula, specials = NULL, name.argument  = "formula"){
     ## ** normalize user input
     if(!inherits(formula,"formula")){

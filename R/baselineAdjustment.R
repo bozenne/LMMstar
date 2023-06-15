@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (14:55) 
 ## Version: 
-## Last-Updated: jan  3 2023 (15:43) 
+## Last-Updated: jun 14 2023 (14:49) 
 ##           By: Brice Ozenne
-##     Update #: 75
+##     Update #: 76
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -27,6 +27,8 @@
 ##' @param collapse.time [character] When not \code{NULL} character used to combine the time and argument variable into a new (interaction) variable.
 ##' 
 ##' @return A vector of length the number of rows of the dataset.
+##'
+##' @keywords utilities
 ##' 
 ##' @examples
 ##' data(ncgsL, package = "LMMstar")

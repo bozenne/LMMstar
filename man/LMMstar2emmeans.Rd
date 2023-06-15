@@ -26,3 +26,4 @@ dataset or list used by the emmeans package.
 \description{
 Link to emmeans package. Not meant for direct use.
 }
+\keyword{interface}

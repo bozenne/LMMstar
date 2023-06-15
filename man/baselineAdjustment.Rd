@@ -56,3 +56,4 @@ ncgsL$treattime2 <- baselineAdjustment(ncgsL, variable = "group",
 table(treattime = ncgsL$treattime2, visit = ncgsL$visit, group = ncgsL$group)
 
 }
+\keyword{utilities}

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: maj 31 2023 (10:19) 
+## Last-Updated: jun 15 2023 (16:15) 
 ##           By: Brice Ozenne
-##     Update #: 1248
+##     Update #: 1250
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -56,6 +56,8 @@
 ##' 
 ##' @references Dmitrienko, A. and D'Agostino, R., Sr (2013), Traditional multiplicity adjustment methods in clinical trials. Statist. Med., 32: 5172-5218. https://doi.org/10.1002/sim.5990.
 ##'  
+##' @keywords htest
+##' 
 ##' @examples
 ##' #### simulate data in the long format ####
 ##' set.seed(10)

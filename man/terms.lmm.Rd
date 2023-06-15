@@ -17,3 +17,4 @@ An object of class \code{terms} giving a symbolic representation of the mean str
 \description{
 Model terms for linear mixed models. Used by \code{multcomp::glht}.
 }
+\keyword{interface}

@@ -90,3 +90,4 @@ the function \code{anova} to perform inference about linear combinations of coef
 \code{\link{coef.lmm}} for a simpler output (e.g. only estimates). \cr
 \code{\link{model.tables.lmm}} for a more detailed output (e.g. with p-value). \cr
 }
+\keyword{methods}

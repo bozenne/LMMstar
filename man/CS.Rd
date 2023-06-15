@@ -4,7 +4,14 @@
 \alias{CS}
 \title{Compound Symmetry Structure}
 \usage{
-CS(formula, var.cluster, var.time, heterogeneous = TRUE, add.time)
+CS(
+  formula,
+  var.cluster,
+  var.time,
+  type = "homogeneous",
+  group.type = NULL,
+  add.time
+)
 }
 \arguments{
 \item{formula}{formula indicating on which variable to stratify the residual variance and correlation (left hand side)
@@ -14,26 +21,38 @@ and variables influencing the residual variance and correlation (right hand side
 
 \item{var.time}{[character] time variable.}
 
-\item{heterogeneous}{[logical] when covariates are used for the correlation structure,
-should correlation parameters should be specific to each level of the covariate?}
+\item{type}{[character] \itemize{
+\item \code{"ho"}, \code{"homo"}, or \code{"homogeneous"}: constant variance and covariate-specific correlation.
+Analogous to crossed or nested random effects.
+\item \code{"he"}, \code{"hetero"}, or \code{"heterogeneous"}: variance and correlation specific to the level of covariates.
+Can be seen as more flexible crossed or nested random effects model.
+}}
 
 \item{add.time}{not used.}
+
+\item{group}{[integer vector] grouping of the regressor for the correlation structure.
+A constant value corresponds to nested random effects (default) and a regressor-specific value to crossed random effects}
 }
 \value{
 An object of class \code{CS} that can be passed to the argument \code{structure} of the \code{lmm} function.
 }
 \description{
-Variance-covariance structure where the residuals have constant variance and correlation,
-possibly only within certain covariate levels.
+Variance-covariance structure where the residuals have constant variance and correlation overall (default) or within covariate levels.
 Can be stratified on a categorical variable.
 }
 \details{
 A typical formula would be \code{~1}, indicating a variance constant over time and the same correlation between all pairs of times.
 }
 \examples{
+## no covariates
 CS(~1, var.cluster = "id", var.time = "time")
 CS(gender~1, var.cluster = "id", var.time = "time")
+
+## covariates
+CS(~time, var.cluster = "id", var.time = "time")
+CS(gender~time, var.cluster = "id", var.time = "time")
 CS(list(~time,~1), var.cluster = "id", var.time = "time")
 CS(list(gender~time,gender~1), var.cluster = "id", var.time = "time")
 
 }
+\keyword{multivariate}

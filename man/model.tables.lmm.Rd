@@ -23,3 +23,4 @@ Export estimates, standard errors, degrees of freedom, confidence intervals (CIs
 \details{
 This function simply calls \code{\link{confint}} with a specific value for the argument \code{column}.
 }
+\keyword{methods}

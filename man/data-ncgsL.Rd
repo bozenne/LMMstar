@@ -23,4 +23,4 @@ This dataset is in the long format (i.e. one line per measurement).
 \references{
 Grundy SM, Lan SP, Lachin J. The effects of chenodiol on biliary lipids and their association with gallstone dissolution in the National Cooperative Gallstone Study (NCGS). J Clin Invest. 1984 Apr;73(4):1156-66. doi: 10.1172/JCI111301.
 }
-\keyword{data}
+\keyword{datasets}

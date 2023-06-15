@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: okt 12 2022 (17:43) 
+## Last-Updated: jun 15 2023 (16:27) 
 ##           By: Brice Ozenne
-##     Update #: 572
+##     Update #: 573
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -37,7 +37,8 @@
 ##' @return
 ##' When argument indiv is \code{FALSE}, a vector with the value of the score relative to each coefficient.
 ##' When argument indiv is \code{TRUE}, a matrix with the value of the score relative to each coefficient (in columns) and each cluster (in rows).
-##' 
+##'
+##' @keywords methods
 
 ## * score.lmm (code)
 ##' @export

@@ -15,10 +15,11 @@
   digits.p.value = 3,
   hide.data = FALSE,
   hide.fit = FALSE,
-  hide.cor = is.null(object$formula$cor),
+  hide.cor = NULL,
   type.cor = NULL,
-  hide.var = TRUE,
-  hide.sd = FALSE,
+  hide.var = NULL,
+  hide.sd = NULL,
+  hide.re = NULL,
   hide.mean = FALSE,
   ...
 )
@@ -53,6 +54,8 @@ Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \
 
 \item{hide.sd}{[logical] should information about the standard deviation not be printed.}
 
+\item{hide.re}{[logical] should information about the random effect not be printed.}
+
 \item{hide.mean}{[logical] should information about the mean structure not be printed.}
 
 \item{...}{not used. For compatibility with the generic function.}
@@ -68,3 +71,4 @@ A list containing elements displayed in the summary: \itemize{
 \description{
 Summary output for a linear mixed model fitted with \code{lmm}.
 }
+\keyword{methods}

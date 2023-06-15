@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: maj 12 2023 (11:36) 
+## Last-Updated: jun 15 2023 (16:25) 
 ##           By: Brice Ozenne
-##     Update #: 426
+##     Update #: 427
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -44,6 +44,8 @@
 ##' 
 ##' @references Oliver E. Lee and Thomas M. Braun (2012), \bold{Permutation Tests for Random Effects in Linear Mixed Models}. \emph{Biometrics}, Journal 68(2).
 ##'
+##' @keywords htest
+##' 
 ##' @examples
 ##' \dontrun{
 ##'

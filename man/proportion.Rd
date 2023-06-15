@@ -22,3 +22,4 @@ a data.frame with the estimated proportion (estimate column), standard error and
 \description{
 Evaluate the proportion of test above the statistical significance level
 }
+\keyword{utilities}

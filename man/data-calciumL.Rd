@@ -25,4 +25,4 @@ This dataset is in the long format (i.e. one line per measurement).
 \references{
 TO ADD
 }
-\keyword{data}
+\keyword{datasets}

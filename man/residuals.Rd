@@ -118,3 +118,4 @@ residuals(eUN.lmm, type = "all", keep.data = TRUE)
 residuals(eUN.lmm, type = "partial", var = c("(Intercept)","X6"))
 residuals(eUN.lmm, type = "partial", var = c("X6"))
 }
+\keyword{methods}

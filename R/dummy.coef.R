@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (11:08) 
 ## Version: 
-## Last-Updated: jan  3 2023 (16:09) 
+## Last-Updated: jun 14 2023 (14:54) 
 ##           By: Brice Ozenne
-##     Update #: 41
+##     Update #: 42
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,7 +26,8 @@
 ##' 
 ##' @return A data.frame containing the level for which the means have been computed (if more than one),
 ##' the estimated mean (\code{estimate}), standard error (\code{se}), degree of freedom (\code{df}), and 95\% confidence interval (\code{lower} and \code{upper}).
-##' 
+##'
+##' @keywords methods
 
 
 

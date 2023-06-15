@@ -18,3 +18,4 @@
 \description{
 Display estimated partial correlation and associated p-values and confidence intevals.
 }
+\keyword{methods}

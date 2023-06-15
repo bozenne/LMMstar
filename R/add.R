@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 23 2022 (16:58) 
 ## Version: 
-## Last-Updated: jan  3 2023 (14:54) 
+## Last-Updated: jun 14 2023 (14:40) 
 ##           By: Brice Ozenne
-##     Update #: 4
+##     Update #: 5
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,6 +21,8 @@
 ##' @param ... [character vector] name of the columns to be added to the default output.
 ##'
 ##' @return A character vector
+##'
+##' @keywords utilities
 ##' 
 ##' @examples
 ##' set.seed(10)

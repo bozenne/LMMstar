@@ -31,8 +31,8 @@ or \code{~time} indicating a time dependent variance.
 IND(NULL, var.cluster = "id", var.time = "time", add.time = TRUE)
 IND(~1, var.cluster = "id", var.time = "time")
 IND(gender~1, var.cluster = "id", var.time = "time")
-
-IND(~time, var.cluster = "id", var.time = "time")
 IND(gender~time, var.cluster = "id", var.time = "time")
-IND(~time+gender, var.cluster = "id", var.time = "time")
+IND(~gender+time, var.cluster = "id", var.time = "time")
+
 }
+\keyword{multivariate}

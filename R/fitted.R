@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul  8 2021 (17:09) 
 ## Version: 
-## Last-Updated: feb 27 2023 (15:56) 
+## Last-Updated: jun 14 2023 (14:57) 
 ##           By: Brice Ozenne
-##     Update #: 141
+##     Update #: 142
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -40,6 +40,8 @@
 ##' When \code{keep.newdata==TRUE}, a dataframe with an additional column containing the fitted values (i.e. based on the covariates only).
 ##' If \code{impute=TRUE}, the missing value in the outcome column are replaced by the cluster-specific conditional means
 ##' (i.e. based on the covariates and outcome measurements from the same cluster).
+##' 
+##' @keywords methods
 ##' 
 ##' @examples
 ##' #### simulate data in the long format ####

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: maj 25 2023 (16:35) 
+## Last-Updated: jun 15 2023 (17:16) 
 ##           By: Brice Ozenne
-##     Update #: 287
+##     Update #: 290
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -56,7 +56,9 @@
 ##' Correlation can be assessed when a grouping and ordering variable are given in the formula interface , e.g. Y ~ time|id.
 ##' 
 ##' @return A data frame containing summary statistics (in columns) for each outcome and value of the grouping variables (rows). It has an attribute \code{"correlation"} when it was possible to compute the correlation matrix for each outcome with respect to the grouping variable.
-
+##' 
+##' @keywords utilities
+ 
 ## * summarize (examples)
 ##' @examples
 ##' ## simulate data in the wide format
@@ -128,7 +130,6 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
         stop("Wrong specification of argument \'formula\'. \n",
              "There need to be at least one variable in the left hand side of the formula. \n")
     }
-    
     name.id <- detail.formula$var$cluster
     if(length(name.id)==0){
         name.X <- detail.formula$var$regressor
@@ -138,7 +139,7 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
              "Should be something like Y ~ time or Y ~ time + G | cluster. \n")
     }else if(length(name.id)==1){
         name.X <- detail.formula$var$time
-        formula <- stats::as.formula(paste(name.Y, "~", paste(name.X, collapse = "+")))
+        formula <- stats::as.formula(paste(paste(name.Y, collapse = "+"), "~", paste(name.X, collapse = "+")))
 
         test.between <- stats::setNames(sapply(name.X, function(iXvar){
             max(tapply(data[[iXvar]],data[[name.id]], FUN = function(x){sum(!duplicated(x))}), na.rm = TRUE)

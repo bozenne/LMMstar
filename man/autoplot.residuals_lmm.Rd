@@ -60,3 +60,4 @@ Require a long format (except for the correlation where both format are accepted
 \item \code{plot(residuals_lmm)}: Graphical Display of the Residuals
 
 }}
+\keyword{hplot}

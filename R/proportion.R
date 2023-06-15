@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 15 2022 (14:09) 
 ## Version: 
-## Last-Updated: apr 18 2023 (16:23) 
+## Last-Updated: jun 15 2023 (16:23) 
 ##           By: Brice Ozenne
-##     Update #: 34
+##     Update #: 35
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,6 +26,8 @@
 #' @param ... additional arguments passed to code{confint.Wald_lmm}
 #'
 #' @return a data.frame with the estimated proportion (estimate column), standard error and confidence interval (when boostrap is used).
+#' 
+#' @keywords utilities
 #' 
 #' @export
 `proportion` <-

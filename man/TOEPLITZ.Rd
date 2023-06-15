@@ -4,7 +4,7 @@
 \alias{TOEPLITZ}
 \title{Toeplitz Structure}
 \usage{
-TOEPLITZ(formula, var.cluster, var.time, heterogeneous = "LAG", add.time)
+TOEPLITZ(formula, var.cluster, var.time, type = "LAG", add.time)
 }
 \arguments{
 \item{formula}{formula indicating on which variable to stratify the residual variance and correlation (left hand side)
@@ -14,7 +14,7 @@ and variables influencing the residual variance and correlation (right hand side
 
 \item{var.time}{[character] time variable.}
 
-\item{heterogeneous}{[character] degree of flexibility of the correlation structure within covariate (\code{"UN","LAG","CS"}).
+\item{type}{[character] degree of flexibility of the correlation structure within covariate (\code{"UN","LAG","CS"}).
 Will also affect the variance structure when not explicit.}
 
 \item{add.time}{Should the default formula (i.e. when \code{NULL}) contain a time effect.}
@@ -30,7 +30,7 @@ Can be stratified on a categorical variable.
 \bold{formula}: there can only be at most one covariate for the correlation structure.
 A typical formula would be \code{~1}, indicating a variance constant over time and a correlation specific to each gap time.
 
-\bold{heterogeneous}: for a binary covariate the correlation matrix can be decomposed into four blocs: A, B, B, C.
+\bold{type}: for a binary covariate the correlation matrix can be decomposed into four blocs: A, B, B, C.
 A correspond the correlation within level 0 of the covariate, C within level 1, and B between level 0 and 1.
 Different correlation structures can be specified:\itemize{ 
 \item \code{"UN"}: unstructured matrix except for the diagonal elements of C which are constrained to be equal.
@@ -46,12 +46,13 @@ TOEPLITZ(list(~time,~1), var.cluster = "id", var.time = "time")
 TOEPLITZ(list(gender~time,gender~1), var.cluster = "id", var.time = "time")
 
 ## with covariates
-TOEPLITZ(~1, var.cluster = "id", heterogeneous = "UN",
-         var.time = "time", add.time = c("time","side"))
-TOEPLITZ(~1, var.cluster = "id", heterogeneous = "LAG",
-         var.time = "time", add.time = c("time","side"))
-TOEPLITZ(~1, var.cluster = "id", heterogeneous = "CS",
-         var.time = "time", add.time = c("time","side"))
-TOEPLITZ(gender~1, var.cluster = "id", heterogeneous = "CS",
-         var.time = "time", add.time = c("time","side"))
+TOEPLITZ(~side, var.cluster = "id", type = "UN",
+         var.time = "time", add.time = TRUE)
+TOEPLITZ(~side, var.cluster = "id", type = "LAG",
+         var.time = "time", add.time = TRUE)
+TOEPLITZ(~side, var.cluster = "id", type = "CS",
+         var.time = "time", add.time = TRUE)
+TOEPLITZ(gender~side, var.cluster = "id", type = "CS",
+         var.time = "time", add.time = TRUE)
 }
+\keyword{multivariate}

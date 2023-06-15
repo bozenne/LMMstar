@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 17 2023 (17:11) 
 ## Version: 
-## Last-Updated: apr 18 2023 (09:31) 
+## Last-Updated: jun 15 2023 (16:20) 
 ##           By: Brice Ozenne
-##     Update #: 40
+##     Update #: 43
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -37,10 +37,12 @@
 ##' The data.frame has an attribute \code{mlmm} containing the underlying regression models.
 ##'
 ##' @details In presence of missing values, performs a outcome specific complete case analysis.
+##' 
+##' @keywords models
 
 ## * mt.test (example)
 ##' @examples
-##' data(calciumW)
+##' data(calciumW, package = "LMMstar")
 ##'
 ##' t.test(bmd1 ~ grp, data = calciumW)
 ##' 

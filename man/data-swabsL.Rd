@@ -22,4 +22,4 @@ This dataset is in the long format (i.e. one line per measurement).
 \references{
 TODO
 }
-\keyword{data}
+\keyword{datasets}

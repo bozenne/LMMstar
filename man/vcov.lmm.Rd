@@ -59,3 +59,4 @@ Extract the variance-covariance matrix of the model coefficients of a linear mix
 \details{
 For details about the arguments \bold{transform.sigma}, \bold{transform.k}, \bold{transform.rho}, see the documentation of the \link[LMMstar]{coef.lmm} function.
 }
+\keyword{methods}

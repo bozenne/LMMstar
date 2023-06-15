@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: maj 10 2023 (15:14) 
+## Last-Updated: jun 15 2023 (16:17) 
 ##           By: Brice Ozenne
-##     Update #: 318
+##     Update #: 319
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -48,6 +48,8 @@
 ##' \code{\link{confint.mlmm}} for a data.frame containing estimates with their uncertainty. \cr
 ##' \code{\link{summary.mlmm}} for a summary of the model and estimates. \cr
 ##' \code{\link{autoplot.Wald_lmm}} for a graphical display. \cr
+##' 
+##' @keywords models
 ##' 
 ##' @examples
 ##' #### univariate regression ####

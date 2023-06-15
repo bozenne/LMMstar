@@ -112,3 +112,4 @@ CUSTOM(~variable,
        init.rho = c("rho1"=0.25,"rho2"=0.25,"rho3"=0.25,"rho4"=0.25))
 
 }
+\keyword{multivariate}

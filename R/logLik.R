@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: maj 10 2023 (15:25) 
+## Last-Updated: jun 15 2023 (16:16) 
 ##           By: Brice Ozenne
-##     Update #: 318
+##     Update #: 319
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,6 +29,7 @@
 ##' 
 ##' @return A numeric value (total logLikelihood) or a vector of numeric values, one for each cluster (cluster specific logLikelihood).
 ##' 
+##' @keywords methods
 
 ## * logLik.lmm (code)
 ##' @export

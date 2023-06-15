@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: apr 28 2023 (15:34) 
+## Last-Updated: jun 14 2023 (15:06) 
 ##           By: Brice Ozenne
-##     Update #: 118
+##     Update #: 119
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -46,6 +46,9 @@
 #' }
 #'
 #' @return A list containing the default options.
+#'
+#' @keywords utilities
+
 
  
 ## * LMMstar.options (code)

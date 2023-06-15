@@ -54,3 +54,4 @@ dW <- sampleRem(100, n.times = 3, format = "wide")
 set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
 }
+\keyword{datagen}

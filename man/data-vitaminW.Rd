@@ -27,4 +27,4 @@ This dataset is in the wide format (i.e. one line per patient).
 \references{
 TODO
 }
-\keyword{data}
+\keyword{datasets}

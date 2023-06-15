@@ -87,3 +87,4 @@ if(require(reshape2)){
 
 }
 }
+\keyword{mhtest}

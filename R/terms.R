@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: dec  3 2021 (10:05) 
 ## Version: 
-## Last-Updated: dec  3 2021 (10:59) 
+## Last-Updated: jun 15 2023 (16:57) 
 ##           By: Brice Ozenne
-##     Update #: 6
+##     Update #: 7
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,7 +15,7 @@
 ## 
 ### Code:
 
-## used by mu
+## used by glht
 ##' @title Model Terms For Linear Mixed Models
 ##' @description Model terms for linear mixed models. Used by \code{multcomp::glht}.
 ##' 
@@ -23,6 +23,8 @@
 ##' @param ... not used, for compatibility with the generic method.
 ##'
 ##' @return An object of class \code{terms} giving a symbolic representation of the mean structure.
+##'
+##' @keywords interface
 ##' 
 ##' @export
 terms.lmm <- function(x, ...){

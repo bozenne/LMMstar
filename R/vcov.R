@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: maj 31 2023 (18:33) 
+## Last-Updated: jun 15 2023 (16:58) 
 ##           By: Brice Ozenne
-##     Update #: 518
+##     Update #: 519
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -39,7 +39,8 @@
 ##' @details For details about the arguments \bold{transform.sigma}, \bold{transform.k}, \bold{transform.rho}, see the documentation of the \link[LMMstar]{coef.lmm} function.
 ##'
 ##' @return A matrix with an attribute \code{"df"} when argument df is set to \code{TRUE}.
-##' 
+##'
+##' @keywords methods 
 
 ## * vcov.lmm (code)
 ##' @export

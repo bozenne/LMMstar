@@ -72,3 +72,4 @@ autoplot(e.aovlmm2, add.args = list(color = FALSE, shape = FALSE))
 }
 
 }
+\keyword{hplot}

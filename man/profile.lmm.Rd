@@ -76,3 +76,4 @@ e.sliceLog <- profile(e.lmm, effects = "all", maxpts = 10, transform.sigma = "lo
 plot(e.sliceLog)
 
 }
+\keyword{htest}

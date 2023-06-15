@@ -53,3 +53,4 @@ Extract or compute the (expected) second derivative of the log-likelihood of a l
 \details{
 For details about the arguments \bold{transform.sigma}, \bold{transform.k}, \bold{transform.rho}, see the documentation of the \link[LMMstar]{coef.lmm} function.
 }
+\keyword{methods}

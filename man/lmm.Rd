@@ -56,7 +56,6 @@ g
 
 By default, the estimation of the model parameters will be made using a Newton Raphson algorithm.
 This algorithm does not ensure that the residual covariance matrix is positive definite and therefore may sometimes fail.
-When using an unstructured pattern, i.e. \code{structure="UN"} the \code{nlme::gls} may be preferable as it can ensures positve definitness.
 See argument optimizer in \code{\link{LMMstar.options}}.
 
 \bold{Argument control:} when using the optimizer \code{"FS"}, the following elements can be used
@@ -166,3 +165,4 @@ model.tables(e.lmm0, effects = "all")
 \code{\link{residuals.lmm}} for extracting residuals or creating residual plots (e.g. qqplots). \cr
 \code{\link{predict.lmm}} for evaluating mean and variance of the outcome conditional on covariates or other outcome values.
 }
+\keyword{models}

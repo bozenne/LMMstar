@@ -42,3 +42,4 @@ The correlation however will not (necessarily) match the model-based correlation
 \description{
 Extract the influence function from a linear mixed model.
 }
+\keyword{methods}

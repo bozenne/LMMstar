@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (13:27) 
 ## Version: 
-## Last-Updated: jun  7 2023 (09:46) 
+## Last-Updated: jun 15 2023 (17:28) 
 ##           By: Brice Ozenne
-##     Update #: 435
+##     Update #: 436
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -588,6 +588,7 @@
 
 ## * helper
 ## ** .pairPatternX
+##' @noRd
 ##' @return A list with the following elements \itemize{
 ##' \item LpU.strata [list of matrices] linear predictor (and position of the observations in the attribute index) used for the pairwise differences.
 ##' \item diffU.strata [list of matrices] pairwise difference between the linear predictor index

@@ -80,3 +80,4 @@ dL2.imp2 <- data.frame(imp = "2",
 head(dL2.imp1)
 head(dL2.imp2)
 }
+\keyword{methods}

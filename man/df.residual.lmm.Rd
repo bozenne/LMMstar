@@ -17,3 +17,4 @@ A numeric value
 \description{
 Residuals degrees of freedom. Computed as the sum of squared normalized residuals
 }
+\keyword{methods}

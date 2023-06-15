@@ -105,3 +105,4 @@ plot(eCS.lmm, type = "partial", type.residual = "X1")
 \seealso{
 \code{\link{plot.lmm}} for other graphical display (residual plots, partial residual plots).
 }
+\keyword{hplot}

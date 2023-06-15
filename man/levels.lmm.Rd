@@ -18,3 +18,4 @@ a list with two elements \itemize{
 \description{
 Contrasts and reference level used when modeling the mean in a linear mixed modek.
 }
+\keyword{methods}

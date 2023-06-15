@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: maj 25 2023 (16:40) 
+## Last-Updated: jun 15 2023 (17:27) 
 ##           By: Brice Ozenne
-##     Update #: 696
+##     Update #: 720
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -52,6 +52,8 @@
 ##' @seealso
 ##' \code{\link{plot.lmm}} for other graphical display (residual plots, partial residual plots).
 ##'
+##' @keywords hplot
+##' 
 ##' @examples
 ##' if(require(ggplot2)){
 ##' 
@@ -416,6 +418,8 @@ autoplot.lmm <- function(object, type = "fit", type.residual = "normalized",
 ##' \item \code{plot}: ggplot object.
 ##' }
 ##' 
+##' @keywords hplot
+##' 
 ##' @examples
 ##' if(require(ggplot2)){
 ##' data(gastricbypassL, package = "LMMstar")
@@ -486,6 +490,7 @@ autoplot.partialCor <- function(object, size.text = 16,
 ##' \item \code{data.ci}: data containing the confidence intervals.
 ##' \item \code{plot}: ggplot object.
 ##' }
+##' @keywords hplot
 
 ## * autoplot.profile_lmm (code)
 ##' @export
@@ -608,6 +613,8 @@ autoplot.profile_lmm <- function(object, type = "logLik", quadratic = TRUE, ci =
 ##' \item \code{data}: data used to generate the plot.
 ##' \item \code{plot}: ggplot object.
 ##' }
+##' 
+##' @keywords hplot
 
 ## * autoplot.residuals_lmm (code)
 ##' @export
@@ -817,6 +824,44 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, by
 
 }
 
+
+## * autoplot.summarize (documentation)
+##' @title Graphical Display of the Descriptive Statistics
+##' @description Graphical representation of the descriptive statistics.
+##' 
+##' @param object an object of class \code{summarize}, output of the \code{summarize} function.
+##' @param type [character] the summary statistic that should be displayed: \code{"mean"}, \code{"sd"}, \ldots
+##' @param variable [character] type outcome relative to which the summary statistic should be displayed.
+##' Only relevant when multiple variables have been used on the left hand side of the formula when calling \code{summarize}.
+##' @param size.text [numeric, >0] size of the text in the legend, x- and y- labels.
+##' @param linewidth [numeric, >0] thickness of the line connecting the points.
+##' @param size [numeric, >0] width of the points.
+##' @param ... additional arguments passed to .ggHeatmap when displaying the correlation: \itemize{
+##' \item name.time [character] title for the x- and y- axis.
+##' \item digits.cor [integer, >0] number of digits used to display the correlation.
+##' \item name.legend [character] title for the color scale.
+##' \item title [character] title for the graph.
+##' \item scale [function] color scale used for the correlation.
+##' \item type.cor [character] should the whole correlation matrix be displayed (\code{"both"}),
+##' or only the element in the lower or upper triangle (\code{"lower"}, \code{"upper"}).
+##' \item args.scale [list] arguments to be passed to the color scale.
+##' }
+##'  
+##' @return A list with two elements \itemize{
+##' \item \code{data}: data used to generate the plot.
+##' \item \code{plot}: ggplot object.
+##' }
+##' 
+##' @keywords hplot
+##'
+##' @examples
+##' data(gastricbypassL, package = "LMMstar")
+##' dtS <- summarize(weight ~ time, data = gastricbypassL)
+##' plot(dtS)
+##' dtS <- summarize(glucagonAUC + weight ~ time|id, data = gastricbypassL, na.rm = TRUE)
+##' plot(dtS, variable = "glucagonAUC")
+##' plot(dtS, variable = "glucagonAUC", type = "correlation", size.text = 1)
+
 ## * autoplot.summarize (code)
 ##' @export
 autoplot.summarize <- function(object, type = "mean", variable = NULL,
@@ -833,6 +878,8 @@ autoplot.summarize <- function(object, type = "mean", variable = NULL,
             stop("Unknown time variable: cannot provide graphical display. \n",
                  "Consider indicating the cluster variable in the formula when calling summarize. \n",
                  "Something like Y ~ time | id or Y ~ time + group | id. \n")
+        }else{
+            name.time <- name.X
         }
     }
     name.stat <- setdiff(names(object), c("outcome",name.X,name.Y))
@@ -869,16 +916,15 @@ autoplot.summarize <- function(object, type = "mean", variable = NULL,
 
     ## ** graph
     if(type == "correlation"){
-        gg <- .ggHeatmap(correlation, name.time = name.time, ...)
+        gg <- .ggHeatmap(correlation, name.time = name.time, size.text = size.text, ...)
     }else{
         dots <- list(...)
         if(length(dots)>0){
             stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
         }
-
         name.group <- setdiff(name.X,name.time)
         if(length(name.group)==0){
-            gg <- ggplot2::ggplot(object, ggplot2::aes(x = .data[[name.time]], y = .data[[type]]))
+            gg <- ggplot2::ggplot(object, ggplot2::aes(x = .data[[name.time]], y = .data[[type]], group = ""))
         }else if(length(name.group)==1){
             gg <- ggplot2::ggplot(object, ggplot2::aes(x = .data[[name.time]], y = .data[[type]],
                                                        group = .data[[name.group]], color = .data[[name.group]]))
@@ -926,6 +972,7 @@ autoplot.summarize <- function(object, type = "mean", variable = NULL,
 ##' \item \code{plot}: ggplot object.
 ##' }
 ##'
+##' @keywords hplot
 
 ## * autoplot.summarizeNA (code)
 ##' @export
@@ -1050,6 +1097,7 @@ autoplot.summarizeNA <- function(object, variable = NULL, size.text = 16,
 ##' autoplot(e.aovlmm2, add.args = list(color = FALSE, shape = FALSE))
 ##' }
 ##'
+##' @keywords hplot
 
 ## * autoplot.Wald_lmm (code)
 ##' @export

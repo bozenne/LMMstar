@@ -107,3 +107,4 @@ Dmitrienko, A. and D'Agostino, R., Sr (2013), Traditional multiplicity adjustmen
 \code{\link{autoplot.Wald_lmm}} for a graphical display of the results. \cr
 \code{\link{rbind.Wald_lmm}} for combining result across models and adjust for multiple comparisons. \cr
 }
+\keyword{htest}

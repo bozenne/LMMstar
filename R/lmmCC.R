@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 27 2023 (17:33) 
 ## Version: 
-## Last-Updated: apr 18 2023 (13:56) 
+## Last-Updated: jun 14 2023 (15:05) 
 ##           By: Brice Ozenne
-##     Update #: 178
+##     Update #: 179
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -36,6 +36,8 @@
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @return A \code{lmmCC} object, which inherits from \code{lmm}.
+##'
+##' @keywords models
 
 ## * lmmCC (examples)
 ##' @examples

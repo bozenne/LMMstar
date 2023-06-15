@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 10 2021 (16:08) 
 ## Version: 
-## Last-Updated: sep 10 2022 (16:05) 
+## Last-Updated: jun 14 2023 (14:55) 
 ##           By: Brice Ozenne
-##     Update #: 82
+##     Update #: 83
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,6 +29,8 @@
 ##' @return dataset or list used by the emmeans package.
 ##' 
 ##' @method recover_data lmm
+##'
+##' @keywords interface
 ##' @export
 recover_data.lmm <- function(object, ...){
     fcall <- object$call

@@ -43,3 +43,4 @@ BBB <- anova(e.lmm2, ci = TRUE, effect = c("X1|X8,X9"="X1=0"))
 ZZZ <- rbind(AAA,BBB)
 summary(ZZZ)
 }
+\keyword{methods}

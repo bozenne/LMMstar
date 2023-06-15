@@ -25,3 +25,4 @@ A character vector
 \description{
 Extract the variables used by the linear mixed model.
 }
+\keyword{methods}

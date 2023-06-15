@@ -101,3 +101,4 @@ summary(e.mlmmX1, method = "single-step")
 \code{\link{summary.mlmm}} for a summary of the model and estimates. \cr
 \code{\link{autoplot.Wald_lmm}} for a graphical display. \cr
 }
+\keyword{models}

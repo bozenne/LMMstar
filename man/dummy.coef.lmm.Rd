@@ -21,3 +21,4 @@ the estimated mean (\code{estimate}), standard error (\code{se}), degree of free
 Compute the marginal mean (via the emmeans package) for each combination of categorical covariates.
 When there is no numeric covariate, this outputs all the mean values fitted by the model.
 }
+\keyword{methods}

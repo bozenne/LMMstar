@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  4 2021 (10:04) 
 ## Version: 
-## Last-Updated: maj 10 2023 (10:14) 
+## Last-Updated: jun 14 2023 (15:05) 
 ##           By: Brice Ozenne
-##     Update #: 32
+##     Update #: 34
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -32,6 +32,8 @@
 ##' @param transform.rho [character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"} - see details.
 ##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
 ##' @param ... Not used. For compatibility with the generic method.
+##'
+##' @keywords methods
 
 ## * iid.lmm (code)
 ##' @export

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Oct 11 2022 (10:56) 
 ## Version: 
-## Last-Updated: nov 23 2022 (18:09) 
+## Last-Updated: jun 15 2023 (16:58) 
 ##           By: Brice Ozenne
-##     Update #: 18
+##     Update #: 19
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -24,6 +24,8 @@
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @return a numeric vector whose elements sum to 1.
+##'
+##' @keywords methods
 ##'
 ##' @examples
 ##' set.seed(10)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jan  4 2023 (13:56) 
+## Last-Updated: jun 15 2023 (16:24) 
 ##           By: Brice Ozenne
-##     Update #: 402
+##     Update #: 404
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -28,6 +28,8 @@
 ##' By default, use the name of the outcome of the model.
 ##' @param sep [character] character used to separate the outcome and the covariate when naming the tests.
 ##'
+##' @keywords methods
+##' 
 ##' @examples
 ##' ## simulate data
 ##' set.seed(10)

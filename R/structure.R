@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: jun  7 2023 (09:47) 
+## Last-Updated: jun 15 2023 (17:35) 
 ##           By: Brice Ozenne
-##     Update #: 976
+##     Update #: 982
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,6 +29,8 @@
 ##'
 ##' @return An object of class \code{IND} that can be passed to the argument \code{structure} of the \code{lmm} function.
 ##'
+##' @keywords multivariate
+##' 
 ##' @examples
 ##' ID(NULL, var.cluster = "id", var.time = "time")
 ##' ID(~1, var.cluster = "id", var.time = "time")
@@ -74,6 +76,8 @@ ID <- function(formula, var.cluster, var.time, add.time){
 ##' 
 ##' @return An object of class \code{IND} that can be passed to the argument \code{structure} of the \code{lmm} function.
 ##'
+##' @keywords multivariate
+##' 
 ##' @examples
 ##' IND(NULL, var.cluster = "id", var.time = "time", add.time = TRUE)
 ##' IND(~1, var.cluster = "id", var.time = "time")
@@ -144,6 +148,8 @@ IND <- function(formula, var.cluster, var.time, add.time){
 ##' @details A typical formula would be \code{~1}, indicating a variance constant over time and the same correlation between all pairs of times.
 ##'
 ##' @return An object of class \code{CS} that can be passed to the argument \code{structure} of the \code{lmm} function.
+##' 
+##' @keywords multivariate
 ##' 
 ##' @examples
 ##' ## no covariates
@@ -239,6 +245,8 @@ CS <- function(formula, var.cluster, var.time, type = "homogeneous", group.type 
 ##' @details A typical formula would be \code{~1}, indicating a variance constant over time and the same correlation between all pairs of times.
 ##'
 ##' @return An object of class \code{CS} that can be passed to the argument \code{structure} of the \code{lmm} function.
+##' 
+##' @keywords multivariate
 ##' 
 ##' @examples
 ##' RE(~1, var.cluster = "id", var.time = "time")
@@ -367,6 +375,8 @@ RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
 ##'}
 ##' @return An object of class \code{TOEPLITZ} that can be passed to the argument \code{structure} of the \code{lmm} function.
 ##' 
+##' @keywords multivariate
+##' 
 ##' @examples
 ##' ## no covariate
 ##' TOEPLITZ(~1, var.cluster = "id", var.time = "time")
@@ -474,6 +484,8 @@ TOEPLITZ <- function(formula, var.cluster, var.time, type = "LAG", add.time){
 ##'
 ##' @return An object of class \code{UN} that can be passed to the argument \code{structure} of the \code{lmm} function.
 ##' 
+##' @keywords multivariate
+##' 
 ##' @examples
 ##' UN(NULL, var.cluster = "id", var.time = "time", add.time = TRUE)
 ##' UN(~gender, var.cluster = "id", var.time = "time", add.time = TRUE)
@@ -523,72 +535,74 @@ UN <- function(formula, var.cluster, var.time, add.time){
 
 ## * LV (latent variable)
 
-## * EXP (exponential)
-##' @title Exponential Structure
-##' @description Variance-covariance structure where the residuals have a correlation decreasing exponentially,
-##' Can be stratified on a categorical variable.
-##'
-##' @param formula formula indicating on which variable to stratify the residual variance and correlation (left hand side)
-##' and variables influencing the residual variance and correlation (right hand side).
-##' @param var.cluster [character] cluster variable.
-##' @param var.time [character] time variable.
-##' @param nugget [logical] whether a nugget effect is present.
-##' @param add.time not used.
-##'
-##' @details A typical formula would be \code{~1}, indicating a variance constant over time and correlation with exponential decrease over time.
-##'
-##' Inspired from \code{nlme::corExp} where if \eqn{K} denotes the nugget effect and \eqn{\rho} the time effect,
-##' the correlation between two observations with a time gap \eqn{dt} is \eqn{exp(-\rho dt)} when no nugget effect is present and \eqn{(1-K) exp(-\rho dt)} when a nugget effect is assumed. 
-##'
-##' @return An object of class \code{EXP} that can be passed to the argument \code{structure} of the \code{lmm} function.
-##' 
-##' @examples
-##' EXP(var.cluster = "id", var.time = "time", add.time = TRUE)
-##' EXP(~space, var.cluster = "id", var.time = "time", add.time = TRUE)
-##' EXP(list(~space,~space), var.cluster = "id", var.time = "time", add.time = TRUE)
-##' 
-##' @export
-EXP <- function(formula, var.cluster, var.time, nugget = FALSE, add.time){
+## ## * EXP (exponential)
+## ##' @title Exponential Structure
+## ##' @description Variance-covariance structure where the residuals have a correlation decreasing exponentially,
+## ##' Can be stratified on a categorical variable.
+## ##'
+## ##' @param formula formula indicating on which variable to stratify the residual variance and correlation (left hand side)
+## ##' and variables influencing the residual variance and correlation (right hand side).
+## ##' @param var.cluster [character] cluster variable.
+## ##' @param var.time [character] time variable.
+## ##' @param nugget [logical] whether a nugget effect is present.
+## ##' @param add.time not used.
+## ##'
+## ##' @details A typical formula would be \code{~1}, indicating a variance constant over time and correlation with exponential decrease over time.
+## ##'
+## ##' Inspired from \code{nlme::corExp} where if \eqn{K} denotes the nugget effect and \eqn{\rho} the time effect,
+## ##' the correlation between two observations with a time gap \eqn{dt} is \eqn{exp(-\rho dt)} when no nugget effect is present and \eqn{(1-K) exp(-\rho dt)} when a nugget effect is assumed. 
+## ##'
+## ##' @return An object of class \code{EXP} that can be passed to the argument \code{structure} of the \code{lmm} function.
+## ##' 
+## ##' @keywords multivariate
+## ##' 
+## ##' @examples
+## ##' EXP(var.cluster = "id", var.time = "time", add.time = TRUE)
+## ##' EXP(~space, var.cluster = "id", var.time = "time", add.time = TRUE)
+## ##' EXP(list(~space,~space), var.cluster = "id", var.time = "time", add.time = TRUE)
+## ##' 
+## ##' @export
+## EXP <- function(formula, var.cluster, var.time, nugget = FALSE, add.time){
 
-    if(missing(formula) || is.null(formula)){
-        outCov <- .formulaStructure(list(~1,stats::as.formula(paste0("~",var.time))), heterogeneous = nugget)
-    }else if(is.list(formula)){
-        outCov <- .formulaStructure(formula, heterogeneous = nugget)
-    }else if(!missing(add.time) && (is.character(add.time) || identical(add.time,TRUE)) && length(all.vars(stats::update(formula,0~.)))==0){
-        if(is.character(add.time)){
-            var.time <- add.time
-        }
-        if(attr(stats::terms(formula),"response")==1){ # with strata
-            ff <- stats::as.formula(paste0(all.vars(formula),"~",var.time))
-        }else{
-            ff <- stats::as.formula(paste0("~",var.time))
-        }
-        outCov <- .formulaStructure(list(formula,ff), heterogeneous = nugget)
-    }else{
-        if(attr(stats::terms(formula),"response")==1){ # with strata
-            outCov <- .formulaStructure(list(stats::as.formula(paste0(all.vars(formula),"~1")),formula), heterogeneous = nugget)
-        }else{
-            outCov <- .formulaStructure(list(~1,formula), heterogeneous = nugget)
-        }
-    }
+##     if(missing(formula) || is.null(formula)){
+##         outCov <- .formulaStructure(list(~1,stats::as.formula(paste0("~",var.time))), heterogeneous = nugget)
+##     }else if(is.list(formula)){
+##         outCov <- .formulaStructure(formula, heterogeneous = nugget)
+##     }else if(!missing(add.time) && (is.character(add.time) || identical(add.time,TRUE)) && length(all.vars(stats::update(formula,0~.)))==0){
+##         if(is.character(add.time)){
+##             var.time <- add.time
+##         }
+##         if(attr(stats::terms(formula),"response")==1){ # with strata
+##             ff <- stats::as.formula(paste0(all.vars(formula),"~",var.time))
+##         }else{
+##             ff <- stats::as.formula(paste0("~",var.time))
+##         }
+##         outCov <- .formulaStructure(list(formula,ff), heterogeneous = nugget)
+##     }else{
+##         if(attr(stats::terms(formula),"response")==1){ # with strata
+##             outCov <- .formulaStructure(list(stats::as.formula(paste0(all.vars(formula),"~1")),formula), heterogeneous = nugget)
+##         }else{
+##             outCov <- .formulaStructure(list(~1,formula), heterogeneous = nugget)
+##         }
+##     }
 
-    out <- list(call = match.call(),
-                name = data.frame(cluster = if(!missing(var.cluster)){var.cluster}else{NA},
-                                  strata = if(!is.null(outCov$strata)){outCov$strata}else{NA},
-                                  time = if(!missing(var.time)){var.time}else{NA},
-                                  var = if(length(outCov$X.var)>0){I(list(outCov$X.var))}else{NA},
-                                  cor = if(length(outCov$X.cor)>0){I(list(outCov$X.cor))}else{NA},
-                                  stringsAsFactors = FALSE),
-                formula = list(var = outCov$formula.var,
-                               cor = outCov$formula.cor),
-                heterogeneous = nugget,
-                class = "EXP")
+##     out <- list(call = match.call(),
+##                 name = data.frame(cluster = if(!missing(var.cluster)){var.cluster}else{NA},
+##                                   strata = if(!is.null(outCov$strata)){outCov$strata}else{NA},
+##                                   time = if(!missing(var.time)){var.time}else{NA},
+##                                   var = if(length(outCov$X.var)>0){I(list(outCov$X.var))}else{NA},
+##                                   cor = if(length(outCov$X.cor)>0){I(list(outCov$X.cor))}else{NA},
+##                                   stringsAsFactors = FALSE),
+##                 formula = list(var = outCov$formula.var,
+##                                cor = outCov$formula.cor),
+##                 heterogeneous = nugget,
+##                 class = "EXP")
 
-    ## export
-    class(out) <- append("structure",class(out))
-    class(out) <- append("EXP",class(out))
-    return(out)
-}
+##     ## export
+##     class(out) <- append("structure",class(out))
+##     class(out) <- append("EXP",class(out))
+##     return(out)
+## }
 
 
 ## * CUSTOM (user-specified)
@@ -612,6 +626,8 @@ EXP <- function(formula, var.cluster, var.time, nugget = FALSE, add.time){
 ##'
 ##' @return An object of class \code{CUSTOM} that can be passed to the argument \code{structure} of the \code{lmm} function.
 ##'
+##' @keywords multivariate
+##' 
 ##' @examples
 ##' 
 ##' ## Compound symmetry structure
@@ -764,7 +780,6 @@ CUSTOM <- function(formula, var.cluster, var.time,
 ##' If greater than 1 then all interaction terms are considered when having multiple variables, e.g. time:gender instead of time + gender.
 ##' 
 ##' @keywords internal
-##' @examples
 .formulaStructure <- function(formula, add.X, strata.X, correlation){
 
     ## ** normalize to formula format

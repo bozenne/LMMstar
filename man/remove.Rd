@@ -23,3 +23,4 @@ e.lmm <- lmm(Y~X1, data = dW)
 confint(e.lmm, columns = remove("estimate"))
 
 }
+\keyword{utilities}

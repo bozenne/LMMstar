@@ -26,4 +26,4 @@ C (sustained-release formulation capsule)
 \references{
 TO ADD
 }
-\keyword{data}
+\keyword{datasets}

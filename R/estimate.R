@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: maj 31 2023 (18:37) 
+## Last-Updated: jun 14 2023 (14:56) 
 ##           By: Brice Ozenne
-##     Update #: 967
+##     Update #: 968
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -34,6 +34,8 @@
 ##' @param transform.rho [character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"} - see details.
 ##' @param ... extra arguments passed to \code{f}.
 ##'
+##' @keywords mhtest
+##' 
 ##' @examples
 ##' if(require(lava)){
 ##' 

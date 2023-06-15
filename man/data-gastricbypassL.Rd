@@ -23,4 +23,4 @@ This dataset is in the long format (i.e. one line per measurement).
 \references{
 The effect of Roux-en-Y gastric bypass surgery on the gut mucosal gene expression profile and circulating gut hormones. \url{https://easddistribute.m-anage.com/from.storage?image=4iBH9mRQm1kfeEHULC2CxovdlyCtA1EHeVDdoffnZrAUGG9SHTO-U4ItnLU078eVkF1ZUZgYTy7THlTW3KSgFA2}
 }
-\keyword{data}
+\keyword{datasets}

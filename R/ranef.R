@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 26 2022 (11:18) 
 ## Version: 
-## Last-Updated: maj 10 2023 (19:17) 
+## Last-Updated: jun 15 2023 (16:59) 
 ##           By: Brice Ozenne
-##     Update #: 225
+##     Update #: 228
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,11 +26,13 @@
 ##' \deqn{Y = X\beta + \epsilon}
 ##' where \eqn{\Sigma_{\epsilon}}, the variance of \eqn{\epsilon}, has a (possibly stratified) compound symmetry structure.
 ##' Denoting by \eqn{I} the identity matirx, this mean that \eqn{\Sigma_{\epsilon} = \sigma^2 I + Z \Sigma_{\eta} Z^T}
-##' where \(\Sigma_{\eta}\) is the covariance relative to the design matrix \eqn{Z} (e.g. same student or school). So implicitely we have:
+##' where \eqn{\Sigma_{\eta}} is the covariance relative to the design matrix \eqn{Z} (e.g. same student or school). So implicitely we have:
 ##' \deqn{Y = X\beta + Z \eta + \varepsilon}
 ##' where \eqn{\varepsilon \sim \mathcal{N}(0, \sigma^2 I)}. So we can estimate the random effets via:
 ##' \deqn{E[Y|\eta] = Z \Sigma_{\eta} \Omega^{-1} (Y-X\beta)}
 ##'
+##' @keywords methods
+##' 
 ##' @examples
 ##' data(gastricbypassL, package = "LMMstar")
 ##' 

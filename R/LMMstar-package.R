@@ -26,17 +26,30 @@
 ##' }
 ##'
 ##' \strong{Covariance patterns}: \eqn{\Omega} can be parametrized as: \itemize{
-##' \item \code{"ID"}: identity (no correlation, constant variance).
-##' \item \code{"IND"}: independent (no correlation, time-specific variance).
-##' \item \code{"CS"}: compound symmetry (constant correlation and variance). Can also be used to specify a nested random effect structure or a block specific correlation and variance.
-##' \item \code{"TOEPLITZ"}: toeplitz (lag-specific correlation, time-specific variance).
-##' \item \code{"UN"}: unstructured (time-specific correlation, time-specific variance).
+##' \item \code{\link{ID}}: identity (no correlation, constant variance).
+##' \item \code{\link{IND}}: independent (no correlation, time-specific variance).
+##' \item \code{\link{CS}}: compound symmetry (constant correlation and variance). Can also be used to specify a nested random effect structure or a block specific correlation and variance.
+##' \item \code{\link{RE}}: random effects.
+##' \item \code{\link{TOEPLITZ}}: toeplitz (lag-specific correlation, time-specific variance).
+##' \item \code{\link{UN}}: unstructured (time-specific correlation, time-specific variance).
 ##' }
 ##' It possible to stratify each structure with respect to a categorical variable. \cr \cr
 ##'
 ##' \strong{Optimizer}: the default optimizer, \code{"FS"}, implements a fisher scoring algorithm descent with back-tracking in case of decreasing or undefined log-likelihood.
 ##' It does not constrain \eqn{\Omega} to be positive definite which may cause problem in small sample or complex models.
 ##' It is possible to use other optimizer inferfaced by \code{optimx::optimx}.
+##' 
+##' \strong{Keywords}: documented methods/functions are classified according to the following keywords \itemize{
+##' \item models: function fitting a statistical model based on a dataset (e.g. \code{\link{lmm}}, \code{\link{lmmCC}}, \code{\link{mlmm}}, \code{\link{mt.test}}, \code{\link{partialCor}})
+##' \item htest: methods performing statistical inference based on an existing model (e.g. \code{\link{anova.lmm}}, \code{\link{estimate.lmm}}, \code{\link{profile.lmm}}, \code{\link{resample.lmm}})
+##' \item methods: extractors (e.g. \code{\link{coef.lmm}}, \code{\link{confint.lmm}}, \code{\link{df.lmm}}, \code{\link{dummy.coef.lmm}}, \code{\link{fitted.lmm}}, \code{\link{iid.lmm}}, \code{\link{information.lmm}}, \code{\link{levels.lmm}}, \code{\link{logLik.lmm}}, \code{\link{manifest.lmm}}, \code{\link{model.tables.lmm}}, \code{\link{predict.lmm}}, \code{\link{ranef.lmm}}, \code{\link{rbind.lmm}}, \code{\link{residuals.lmm}}, \code{\link{score.lmm}}, \code{\link{sigma.lmm}}, \code{\link{summary.lmm}}, \code{\link{vcov.lmm}}, \code{\link{weights.Wald_lmm}})
+##' \item utilities: function used to facilitate the user interface (e.g. \code{\link{add}}, \code{\link{baselineAdjustment.lmm}}, \code{\link{LMMstar.options}}, \code{\link{proportion}}, \code{\link{remove}}, \code{\link{scatterplot}}, \code{\link{summarizeNA}}, \code{\link{summarize}})
+##' \item datasets: dataset stored in the package  (e.g. \code{\link{abetaW}})
+##' \item interface: functions used to interface other software packages (e.g. \code{\link{recover_data.lmm}}, \code{\link{estfun.lmm}}, \code{\link{terms.lmm}}). 
+##' \item hplot: graphical display (e.g. \code{\link{autoplot.lmm}})
+##' \item datagen: function for generating data sets (e.g. \code{\link{sampleRem}})
+##' \item multivariate: covariance patterns (e.g. \code{\link{ID}}, \code{\link{IND}}, \code{\link{CS}}, \code{\link{RE}}, \code{\link{TOEPLITZ}}, \code{\link{UN}}, \code{\link{EXP}}, \code{\link{CUSTOM}})
+##' }
 ##' 
 ##' @importFrom ggplot2 autoplot
 ##' @importFrom rlang .data

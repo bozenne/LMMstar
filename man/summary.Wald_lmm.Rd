@@ -55,3 +55,4 @@ The number of tests ajusted for equal the first degree of freedom of the multiva
 
 Adding the value \code{"type"} in argument \code{"columns"} ensures that the type of parameter that is being test (mean, variance, correlation) is output.
 }
+\keyword{methods}
