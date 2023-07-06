@@ -12,7 +12,7 @@
 ##' Statistical inference can be performed for arbitrary linear or non-linear combination(s) of model coefficients.
 ##' Predictions can be computed conditional to covariates only or also to outcome values. \cr \cr
 ##'
-##' \strong{Notations}: the linear mixed model estimated by \code{\link{lmm}} is denoted:
+##' @details \strong{Notations}: the linear mixed model estimated by \code{\link{lmm}} is denoted:
 ##' \deqn{ \mathbf{Y}_{i} = \mathbf{X}_{i}\beta+\boldsymbol{\varepsilon}_i }
 ##' where
 ##' \itemize{

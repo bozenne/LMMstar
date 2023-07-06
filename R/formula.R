@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:53) 
 ## Version: 
-## Last-Updated: jun 15 2023 (17:08) 
+## Last-Updated: jul  6 2023 (10:41) 
 ##           By: Brice Ozenne
-##     Update #: 163
+##     Update #: 206
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -42,6 +42,8 @@ formula.lmm <- function(x, effects = "mean", ...){
 }
 
 ## * formula2var (examples)
+##' @description Extract information from a formula (outcome, regressors, special terms)
+##' @noRd
 ##' @examples
 ##'
 ##' formula2var(~X)
@@ -58,18 +60,19 @@ formula.lmm <- function(x, effects = "mean", ...){
 ##' formula2var(Y+Z~s(X1)+X2*X3 + (X1|id:baseline))
 
 ## * formula2var (code)
-##' @noRd
-formula2var <- function(formula, specials = NULL, name.argument  = "formula"){
+formula2var <- function(formula, specials = NULL, name.argument  = "formula",
+                        suggestion = ""){
+
     ## ** normalize user input
     if(!inherits(formula,"formula")){
-        stop("Incorrect type for argument \'",name.argument,"\' \n",
-             "It must inherit from \"formula\". \n")
+        stop("Incorrect type for argument \'",name.argument,"\': it must inherit from \"formula\". \n",
+             suggestion)
     }
     if(!is.null(specials)){
         stop("Incorrect value for argument \'",name.argument,"\' \n",
              "Current version does not allow specials operator. \n")
     }
-
+        
     ## ** process
     out <- list(formula = list(all = formula), ## note for regressor Y~X1+X2*X3
                 vars = list(), ## X1, X2, X3, time, id
@@ -78,6 +81,7 @@ formula2var <- function(formula, specials = NULL, name.argument  = "formula"){
                 )                                   
     out$vars$all <- all.vars(formula)
     ff.terms <- stats::terms(formula, specials = specials)
+    out$terms$intercept <- as.logical(attr(ff.terms,"intercept"))
 
     ## *** identify response variables
     ff.formulaLHS <- stats::update(formula, ~1)
@@ -86,7 +90,7 @@ formula2var <- function(formula, specials = NULL, name.argument  = "formula"){
     if(n.outcome>0){
         out$vars$response <- ff.varLHS
     }
-    
+
     ## *** restrict to the right hand side
     ff.termsRHS <- stats::delete.response(ff.terms)
     txt.termsRHS <- deparse(ff.termsRHS[[2]])
@@ -140,8 +144,10 @@ formula2var <- function(formula, specials = NULL, name.argument  = "formula"){
 
         if(attr(ff.terms,"intercept")==1){
             out$formula$regressor <- ff.formulaLHS
+            out$formula$design <- ~1
         }else{ ## NOTE: when updating formula not using stats::drop.terms or stats::udpate as it re-writes the interaction X1*X2 ---> X1 + X2 + X1:X2
             out$formula$regressor <- stats::as.formula(paste0(deparse(ff.formulaLHS[[2]]),"~0"))
+            out$formula$design <- ~0
         }
 
     }else if(type.special == "none"){
@@ -150,13 +156,15 @@ formula2var <- function(formula, specials = NULL, name.argument  = "formula"){
         out$terms$regressor <- ff.varREG
         out$vars$regressor <- ff.varRHS
         out$formula$regressor <- formula        
+        out$formula$design <- ff.formulaRHS        
 
     }else if(type.special == "ranef"){
-
         out$index.terms$regressor <- which(split.termsRHS %in% paste0("(",ff.varSPECIAL,")") == FALSE)
         out$terms$regressor <- out$terms$all[out$index.terms$regressor]
-
-        out$formula$regressor <- updateFormula(formula, drop.x = out$terms$all[-out$index.terms$regressor])  
+        out$formula$regressor <- updateFormula(formula, drop.x = out$terms$all[-out$index.terms$regressor])
+        if(n.outcome>0){
+            out$formula$design <- stats::as.formula(paste("~",deparse(out$formula$regressor[[3]]))) ## remove outcome
+        }
         out$vars$regressor <- all.vars(out$formula$regressor)        
     }
 
@@ -183,11 +191,13 @@ formula2var <- function(formula, specials = NULL, name.argument  = "formula"){
         out$vars$cluster <- all.vars(ff.formulaRHS[[2]][[3]])
         
     }else if(type.special=="ranef"){
-        out$formula$ranef <- updateFormula(ff.formulaRHS, drop.x = out$terms$regressor)  
-        out$vars$ranef <- all.vars(out$formula$ranef)
-        out$terms$ranef <- setdiff(out$terms$all[out$terms$all %in% out$terms$regressor == FALSE], c("0","1")) ## drop intercept
-        out$index.terms$ranef <- which(out$terms$all %in% out$terms$regressor == FALSE)
-        ls.timeCluster <- lapply(out$terms$ranef, function(iRanef){ ## iRanef <- out$terms$ranef[[1]]
+
+        out$ranef <- list(formula = updateFormula(ff.formulaRHS, drop.x = out$terms$regressor))
+        out$ranef$vars <- all.vars(out$ranef$formula)
+        out$ranef$terms <- setdiff(out$terms$all[out$terms$all %in% out$terms$regressor == FALSE], c("0","1")) ## drop intercept
+        out$ranef$index.terms <- which(out$terms$all %in% out$terms$regressor == FALSE)
+
+        ls.timeCluster <- lapply(out$ranef$term, function(iRanef){ ## iRanef <- out$terms$ranef[[1]]
             iForm <- stats::as.formula(paste0("~",iRanef))
             iForm2 <- iForm[[2]][[2]] ## select after ~ and inside ()
             iOut <- list(time = all.vars(iForm2[[2]]),
@@ -196,7 +206,7 @@ formula2var <- function(formula, specials = NULL, name.argument  = "formula"){
             if(length(iOut$time)==0){
                 iOut$name <- "(Intercept)"
             }else if(length(iOut$time)==1){
-                iOut$name <- paste(iOut$time,collapse="_")
+                iOut$name <- iOut$time
             }else{
                 stop("Cannot handle multiple covariates in a single random effect. \n")
             }
@@ -206,25 +216,56 @@ formula2var <- function(formula, specials = NULL, name.argument  = "formula"){
         if(length(var.time)>0){
             out$vars$time <- var.time
         }
-        out$vars$cluster <- unique(unlist(lapply(ls.timeCluster,"[[","cluster")))
-        out$vars$hierarchy <- stats::setNames(lapply(ls.timeCluster,"[[","hierarchy"),
-                                              sapply(ls.timeCluster,"[[","name"))
-        if(length(out$vars$cluster)==1){
-            attr(type.special,"crossed") <- FALSE
-        }else{
-            attr(type.special,"crossed") <- TRUE
-        }
-        
-        if(all(sapply(out$vars$hierarchy,length)==1)){
-            attr(type.special,"nested") <- FALSE
-        }else{
-            attr(type.special,"nested") <- TRUE
-        }
+        out$ranef$cluster <- unique(unlist(lapply(ls.timeCluster,"[[","cluster")))
+        out$ranef$hierarchy <- stats::setNames(lapply(ls.timeCluster,"[[","hierarchy"),
+                                               sapply(ls.timeCluster,"[[","name"))
+        out$ranef$crossed <- length(out$ranef$cluster)>1
+        out$ranef$nested <- any(sapply(out$ranef$hierarchy,length)>1)
     }
 
     ## ** export
     out$special <- type.special
     return(out)
+}
+
+## * updateFormula
+##' @description Remove or add a term in a formula while keeping interaction term untouched
+##' @noRd
+##' @examples
+##' NOTE: when updating formula not using stats::drop.terms or stats::udpate as it re-write the interaction X1*X2 ---> X1 + X2 + X1:X2
+##' stats::drop.terms(terms(Y~X1*X2+(1|id)), dropx = 3)
+##' stats::update(terms(Y~X1*X2+(1|id)), .~.-(1|id))
+##' updateFormula(Y~X1*X2+(1|id), drop.x = "(1|id)")
+##' updateFormula(Y~0+X1*X2+(1|id), drop.x = "(1|id)")
+##'
+##' updateFormula(Y~X1*X2, add.x = "(1 | id)")
+updateFormula <- function(formula, add.x = NULL, drop.x = NULL, drop.y = FALSE){
+
+    drop.x <- gsub(" ","",drop.x)
+    if(!inherits(formula,"formula") || (length(formula) %in% 2:3 == FALSE)){
+        stop("Argument \'formula\' should be a formula with length 2 or 3. \n")
+    }
+    test.response <- length(formula) == 3
+    
+    txt.formula <- as.character(utils::tail(formula,1))
+    term.formula <- gsub(" ","",strsplit(txt.formula, split = "+", fixed = TRUE)[[1]])
+    if(any(drop.x %in% term.formula == FALSE)){
+        stop("Mismatch between argument \'formula\' and \'drop.x\', \n",
+             "Could not find \"",paste(drop.x[drop.x %in% term.formula == FALSE], collapse = "\" \""),"\". \n")
+    }
+
+    if(!is.null(drop.x)){
+        term.formula <- term.formula[term.formula %in% drop.x == FALSE]
+    }
+    if(!is.null(add.x)){
+        term.formula <- c(term.formula, add.x)
+    }
+    if(!test.response || drop.y){
+        txt.new <- paste0(deparse(formula[[1]]),paste0(term.formula, collapse="+"))
+    }else{
+        txt.new <- paste0(deparse(formula[[2]]),deparse(formula[[1]]),paste0(term.formula, collapse="+"))
+    }
+    return(stats::as.formula(txt.new))
 }
 
 ##----------------------------------------------------------------------

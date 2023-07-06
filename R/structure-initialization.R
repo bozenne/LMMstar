@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: maj 31 2023 (18:41) 
+## Last-Updated: jul  6 2023 (16:43) 
 ##           By: Brice Ozenne
-##     Update #: 327
+##     Update #: 343
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -531,5 +531,75 @@
 }
 
 
+## * initializeLMER
+.initializeLMER <- function(formula, structure, data,
+                            param, method.fit, weights, scale.Omega){
+
+    ## ** check feasibility
+    requireNamespace("lme4")
+    if(!inherits(structure,"RE")){
+        stop("Initializer \"lmer\" only available for random effect structures.")
+    }
+    if(!is.na(structure$name$strata)){
+        stop("Initializer \"lmer\" cannot handle multiple strata.")
+    }
+
+    if(!is.null(scale.Omega)){
+        stop("Initializer \"lmer\" cannot handle weighted residual variance-covariance matrix (argument \'scale.Omega\'). \n")
+    }
+
+    ## ** estimation via lmer
+    formula.lmer <- updateFormula(formula, add.x = structure$ranef$terms)
+    if(is.null(weights)){
+        e.lmer <- lme4::lmer(formula.lmer, data = data, REML = method.fit=="REML")
+    }else{
+        e.lmer <- lme4::lmer(formula.lmer, data = data, REML = method.fit=="REML", weights = weights)
+    }
+
+    ## ** extract coefficients
+    start <- stats::setNames(rep(as.numeric(NA),length(param$name)), param$name)
+
+    ## *** mean
+    mu.lmer <- nlme::fixef(e.lmer)
+    if(any(sort(names(mu.lmer)) != sort(names(start)[param$type=="mu"]))){
+        stop("Cannot use lmer for initialization: something went wrong when retrieving the mean parameters. \n",
+             "Names with lmer: \"",paste(names(mu.lmer),collapse="\", \""),"\". \n",
+             "Names with lmm: \"",paste(names(start)[param$type=="mu"],collapse="\", \""),"\". \n", sep = "")
+    }
+    start[names(mu.lmer)] <- mu.lmer
+
+    ## *** variance
+    tau.lmer <- as.data.frame(nlme::VarCorr(e.lmer))
+    if(any(sum(param$type=="sigma")!=1)){
+        stop("Cannot use lmer for initialization: something went wrong when retrieving the variance parameter. \n",
+             "Number of variance parameters with lmer: 1. \n",
+             "Number of variance parameters with lmm: ",sum(param$type=="sigma"),". \n", sep = "")
+    }
+    start[param$type=="sigma"] <-  sqrt(sum(tau.lmer$vcov))
+
+    ## *** correlation
+    tau.lmer$name <- sapply(strsplit(tau.lmer$grp, split = ":", fixed = TRUE),"[",1) ## lmer collapse names within the hierarchy session:(day:patient)
+    if(any(sum(param$type=="rho")!=sum(tau.lmer$name!="Residual"))){
+        stop("Cannot use lmer for initialization: something went wrong when retrieving the correlation parameter. \n",
+             "Number of random effect parameters with lmer: ",sum(tau.lmer$name!="Residual"),". \n",
+             "Number of correlation parameters with lmm: ",sum(param$type=="rho"),". \n", sep = "")
+    }
+    if(any(sort(unlist(structure$ranef$hierarchy, use.names = FALSE))!=sort(tau.lmer[tau.lmer$name!="Residual","name"]))){
+        stop("Cannot use lmer for initialization: something went wrong when retrieving the correlation parameter. \n",
+             "Name of the random effect parameters with lmer: \"",paste(tau.lmer[tau.lmer$name!="Residual","name"], collapse = "\", \""),"\". \n",
+             "Name of the correlation parameters with lmm: \"",paste(unlist(structure$ranef$hierarchy, use.names = FALSE), collapse = "\", \""),"\". \n", sep = "")
+    }
+    rho.lmer <- stats::setNames(tau.lmer[tau.lmer$name!="Residual","vcov"] / sum(tau.lmer$vcov), tau.lmer[tau.lmer$name!="Residual","name"])
+
+
+    n.hierarchy <- length(structure$ranef$param)
+    for(iH in 1:n.hierarchy){ ## iH <- 1
+        start[structure$ranef$param[[iH]][,1]] <- cumsum(rho.lmer[rownames(structure$ranef$param[[iH]])])
+    }
+
+    ## ** export
+    return(start)
+    
+}
 ##----------------------------------------------------------------------
 ### structure-initialization.R ends here

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (13:27) 
 ## Version: 
-## Last-Updated: jun 15 2023 (17:28) 
+## Last-Updated: jul  6 2023 (16:05) 
 ##           By: Brice Ozenne
-##     Update #: 436
+##     Update #: 488
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -110,17 +110,17 @@
                                     constraint = as.numeric(NA),
                                     level = level.strataRho,
                                     code = paste0("R.",vec.strataRho,".",vec.strataRho),
-                                    code.x = NA,
-                                    code.y = NA,
+                                    index.lp.x = NA,
+                                    index.lp.y = NA,
                                     sigma = param.sigma[match(vec.strataRho, strata.sigma)],
                                     k.x = NA,
                                     k.y = NA,                                  
                                     stringsAsFactors = FALSE)        
-        structure.rho$code.x <- as.list(vec.strataRho)
-        structure.rho$code.y <- as.list(vec.strataRho)
+        structure.rho$index.lp.x <- as.list(vec.strataRho)
+        structure.rho$index.lp.y <- as.list(vec.strataRho)
         structure$param <- rbind(structure$param, structure.rho)
         rownames(structure$param) <- NULL
-        attr(structure$param, "Xcode.xy") <- setNames(1:NROW(XpairPattern$lp2X),rownames(XpairPattern$lp2X))
+        attr(structure$param, "lp2X") <- XpairPattern$lp2X
         return(structure)
     }
     
@@ -140,10 +140,12 @@
     index.equal <- which(rowSums(diffLp!=0)==0)
     index.unequal <- setdiff(1:n.Lp, index.equal)
     index.0 <- NULL ## cells in the design matrix constrained to be 0
-    
+
     ## *** generate code
     code.rho <- rep(NA, length = n.Lp)
     level.rho <- rep(NA, length = n.Lp)
+
+    ## pairs containing the same linear predictor
     if(length(index.equal)>0){
         if(structure$type == "homogeneous"){            
             code.rho[index.equal] <- paste("R",strataLp[index.equal],sep=sep[2])
@@ -153,17 +155,20 @@
             level.rho[index.equal] <- paste0("(",interaction(as.data.frame(data.x[index.equal,,drop=FALSE]), sep = sep[1], drop = TRUE),")")
         } 
     }
+
+    ## pairs with distinct linear predictors
     if(length(index.unequal)>0){
         if(structure$type == "homogeneous"){
             ## contrast at the design matrix level
             test.n0 <- 1*(data.x[index.unequal,reg.var,drop=FALSE]!=data.y[index.unequal,reg.var,drop=FALSE])
             code.rho[index.unequal] <- paste("D",strataLp[index.unequal],interaction(as.data.frame(test.n0),sep=sep[1]),sep=sep[2])
             
-            index.unequal.red <- which(!duplicated(code.rho[index.unequal]))
-            code2level <- stats::setNames(sapply(index.unequal.red, function(iUnequal){ ## iUnequal <- index.unequal[1]
+            index.unequal.red <- index.unequal[!duplicated(code.rho[index.unequal])]
+            code2level <- stats::setNames(sapply(index.unequal.red, function(iUnequal){ ## iUnequal <- index.unequal.red[1]
                 iData.x <- data.x[iUnequal,,drop=FALSE]
                 iData.y <- data.y[iUnequal,,drop=FALSE]
-                paste0("(",paste(iData.x[iData.x!=iData.y], collapse = sep[1]),",",paste(iData.y[iData.x!=iData.y], collapse = sep[1]),")")                
+                iOut <- paste0("(",paste(iData.x[iData.x!=iData.y], collapse = sep[1]),",",paste(iData.y[iData.x!=iData.y], collapse = sep[1]),")")
+                return(iOut)
             }),code.rho[index.unequal.red])
             level.rho[index.unequal] <- code2level[code.rho[index.unequal]]
             
@@ -173,6 +178,9 @@
                                                ",",interaction(as.data.frame(data.y[index.unequal,,drop=FALSE]), sep = sep[1], drop = TRUE),
                                                ")")
         }
+
+        ## constrain independence in the case of different groups of correlation structure
+        ## i.e. remove some of the correlation parameters
         if(length(unique(structure$group.type))>1){
             sumGroup.0 <- do.call(cbind,tapply(names(structure$group.type), structure$group.type, function(iCol){
                 rowSums(diffLp[index.unequal,iCol,drop=FALSE]==0)
@@ -220,8 +228,8 @@
                                 constraint = as.numeric(NA),
                                 level = level.Urho,
                                 code = code.Urho,
-                                code.x = NA,
-                                code.y = NA,
+                                index.lp.x = NA,
+                                index.lp.y = NA,
                                 sigma = param.sigma[match(strata.Urho,strata.sigma)],
                                 k.x = k.x[test.rho],
                                 k.y = k.y[test.rho],                                  
@@ -238,12 +246,13 @@
     ## ensure proper ordering
     code.x <- tapply(indexLp[,1], code.rho, base::identity, simplify = FALSE)
     code.y <- tapply(indexLp[,2], code.rho, base::identity, simplify = FALSE)
-    structure.rho$code.x[match(names(code.x),structure.rho$code)] <- code.x
-    structure.rho$code.y[match(names(code.y),structure.rho$code)] <- code.y
-
+    structure.rho$index.lp.x[match(names(code.x),structure.rho$code)] <- code.x
+    structure.rho$index.lp.y[match(names(code.y),structure.rho$code)] <- code.y
+    
     ## ** export
     rownames(structure.rho) <- NULL
     structure$param <- rbind(structure$param, structure.rho)
+    attr(structure$param, "lp2X") <- XpairPattern$lp2X
     return(structure)
 }
 
@@ -260,8 +269,70 @@
                                  U.strata = U.strata, index.clusterStrata = index.clusterStrata, sep = sep)
 
     ## ** relate correlation parameters to random effects
-    if(!is.null(structure$ranef$hierarchy)){
-        browser()
+    hierarchy <- structure$ranef$hierarchy
+    n.strata <- length(U.strata)
+    ## per strata
+    name.hierarchy <- unname(unlist(hierarchy))
+    index.hierarchy <- unname(unlist(lapply(1:length(hierarchy), function(iH){rep(iH, length(hierarchy[[iH]]))})))
+    n.hierarchy <- length(name.hierarchy) 
+    if(any(duplicated(name.hierarchy))){
+        stop("Duplicated name(s) for the random effects: \"",paste(name.hierarchy[duplicated(name.hierarchy)], collapse = "\", \""),"\". \n",
+             "Cannot associate correlation parameters and random effects. \n")
+    }
+
+    if(n.hierarchy==1){
+        param.rho <- structure$param[structure$param$type=="rho" & is.na(structure$param$constraint),,drop=FALSE]
+        structure$ranef$param <- list(matrix(param.rho$name[param.rho$index.strata], nrow = n.hierarchy, ncol = n.strata,
+                                             dimnames = list(name.hierarchy,U.strata)))
+    }else{
+        structure$ranef$param <- lapply(hierarchy, function(iH){
+            matrix(as.character(NA), nrow = length(iH), ncol = n.strata,
+                   dimnames = list(iH,U.strata))
+        })
+        
+        ## convert from index of the linear predictor to design matrix
+        lp2X <- attr(structure$param,"lp2X")        
+        var.cluster <- attr(structure$name$cluster,"original")
+        if(!is.null(var.cluster) && var.cluster %in% name.hierarchy && var.cluster %in% colnames(lp2X) == FALSE){
+            ## add cluster variable when missing
+            lp2X <- cbind(1,lp2X)
+            colnames(lp2X)[1] <- var.cluster
+        }
+
+        ## find for each strata and hierarchy of variable the correlation parameter with
+        ## - constant value within the variables of the hierarchy
+        ## - variable values for the variables outside of the hierarchy
+        for(iS in 1:n.strata){ ## iS <- 1
+            iParam.rho <- structure$param[structure$param$type=="rho" & is.na(structure$param$constraint) & structure$param$index.strata==iS,,drop=FALSE]
+            iName.rho <- iParam.rho$name
+            iLevel.rho <- iParam.rho$level
+            iCodeX.rho <- stats::setNames(iParam.rho$index.lp.x, iName.rho)
+            iCodeY.rho <- stats::setNames(iParam.rho$index.lp.y, iName.rho)
+            
+            iEqual <- do.call(rbind,lapply(iName.rho, function(iRho){ ## iRho <- iName.rho[1]
+                colSums(lp2X[iCodeX.rho[[iRho]],,drop=FALSE] - lp2X[iCodeY.rho[[iRho]],,drop=FALSE] != 0)==0
+            }))
+            rownames(iEqual) <- iName.rho
+
+            for(iH in 1:n.hierarchy){ ## iH <- 1
+                iHierarchy <- hierarchy[[index.hierarchy[iH]]]
+                iPosition <- which(iHierarchy==name.hierarchy[iH])
+                iVarIdentical <- iHierarchy[1:iPosition]
+                iVarDifferent <- setdiff(structure$ranef$vars, iVarIdentical)
+                if(length(iVarDifferent)==0){
+                    iTest <- rowSums(iEqual[,iVarIdentical,drop=FALSE]==FALSE)
+                }else{
+                    iTest <- rowSums(iEqual[,iVarIdentical,drop=FALSE]==FALSE) + rowSums(iEqual[,iVarDifferent,drop=FALSE]==TRUE)
+                }
+                iRho <- names(which(iTest==0))
+                if(length(iRho)!=1){
+                    stop("Something when wrong when associating the correlation parameters and random effects. \n",
+                         "hierarchy: ",paste(cumhierarchy[[iH]], collapse="\", \""),"\n",
+                         "correlation parameter(s): \"",paste(iRho, collapse="\", \""),"\"\n")
+                }
+                structure$ranef$param[[index.hierarchy[iH]]][iPosition,iS] <- iRho
+            }
+        }
     }
     
     ## ** export
@@ -323,14 +394,14 @@
                                     index.level = as.numeric(NA),
                                     level = level.strataRho,
                                     code = paste0("R.",vec.strataRho,".",vec.strataRho),
-                                    code.x = NA,
-                                    code.y = NA,
+                                    index.lp.x = NA,
+                                    index.lp.y = NA,
                                     sigma = param.sigma[match(vec.strataRho, strata.sigma)],
                                     k.x = NA,
                                     k.y = NA,                                  
                                     stringsAsFactors = FALSE)        
-        structure.rho$code.x <- as.list(vec.strataRho)
-        structure.rho$code.y <- as.list(vec.strataRho)
+        structure.rho$index.lp.x <- as.list(vec.strataRho)
+        structure.rho$index.lp.y <- as.list(vec.strataRho)
         structure$param <- rbind(structure$param, structure.rho)
         rownames(structure$param) <- NULL
         attr(structure$param, "Xcode.xy") <- setNames(1:NROW(XpairPattern$lp2X),rownames(XpairPattern$lp2X))
@@ -411,8 +482,8 @@
                                 index.level = as.numeric(NA),
                                 level = level.Urho,
                                 code = code.Urho,
-                                code.x = tapply(indexLp[,1],code.rho,base::identity, simplify = FALSE),
-                                code.y = tapply(indexLp[,2],code.rho,base::identity, simplify = FALSE),
+                                index.lp.x = tapply(indexLp[,1],code.rho,base::identity, simplify = FALSE),
+                                index.lp.y = tapply(indexLp[,2],code.rho,base::identity, simplify = FALSE),
                                 sigma = param.sigma[match(strata.Urho,strata.sigma)],
                                 k.x = k.x,
                                 k.y = k.y,                                  
@@ -421,49 +492,8 @@
     structure$param <- rbind(structure$param, structure.rho)
 
     ## ** export
-    attr(structure$param, "Xcode.xy") <- setNames(1:NROW(XpairPattern$lp2X),rownames(XpairPattern$lp2X))
+    attr(structure$param, "lp2X") <- XpairPattern$lp2X
     return(structure)
-
-
-##     if(toeplitz){
-##         index.XcolTime <- which(attr(X.cor,"term.labels")==attr(X.cor,"variable")[1])
-##         if(block){
-##             index.XcolBlock <- which(attr(X.cor,"term.labels")==attr(X.cor,"variable")[2])
-##         }else{
-##             index.XcolBlock <- NULL
-##         }
-##     }
-## if(toeplitz){
-##                     if(block){
-##                         if(iCX.cor2[,index.XcolBlock] == iCX.cor1[,index.XcolBlock]){ ## same block
-##                             if(heterogeneous=="UN"){
-##                                 return(cbind("R",iCX.cor2[,index.XcolBlock],paste(iCX.cor1,collapse=""),iCX.cor2[,index.XcolTime]-iCX.cor1[,index.XcolTime]))
-##                             }else if(heterogeneous=="LAG"){
-##                                 return(cbind("R",iCX.cor2[,index.XcolBlock],abs(iCX.cor2[,index.XcolTime]-iCX.cor1[,index.XcolTime])))
-##                             }else if(heterogeneous=="CS"){
-##                                 return(cbind("R",iCX.cor2[,index.XcolBlock],0))
-##                             }
-##                         }else{ ## different block
-##                             if(heterogeneous=="UN"){
-##                                 if(iCX.cor2[,index.XcolTime]==iCX.cor1[,index.XcolTime]){
-##                                     return(cbind("D",abs(iCX.cor2[,index.XcolBlock]-iCX.cor1[,index.XcolBlock]),"0",iCX.cor2[,index.XcolTime]-iCX.cor1[,index.XcolTime]))
-##                                 }else{
-##                                     return(cbind("D",abs(iCX.cor2[,index.XcolBlock]-iCX.cor1[,index.XcolBlock]),paste(iCX.cor1,collapse=""),iCX.cor2[,index.XcolTime]-iCX.cor1[,index.XcolTime]))
-##                                 }                                
-##                             }else if(heterogeneous=="LAG"){
-##                                 return(cbind("D",abs(iCX.cor2[,index.XcolBlock]-iCX.cor1[,index.XcolBlock]),abs(iCX.cor2[,index.XcolTime]-iCX.cor1[,index.XcolTime])))
-##                             }else if(heterogeneous=="CS"){
-##                                 return(cbind("D",abs(iCX.cor2[,index.XcolBlock]-iCX.cor1[,index.XcolBlock]),as.numeric(iCX.cor2[,index.XcolTime]!=iCX.cor1[,index.XcolTime])))
-##                             }
-##                         }
-##                     }else{
-##                         return(cbind("D",abs(iCX.cor2[,index.XcolTime]-iCX.cor1[,index.XcolTime])))
-##                     }
-
-##                 }
-##     ## no correlation parameter
-##     return(structure)
-
 }
 
 ## * skeletonRho.UN
@@ -535,19 +565,19 @@
                                 constraint = as.numeric(NA),
                                 level = level.rho,
                                 code = code.rho,
-                                code.x = NA,
-                                code.y = NA,
+                                index.lp.x = NA,
+                                index.lp.y = NA,
                                 sigma = param.sigma[match(strata.rho,strata.sigma)],
                                 k.x = k.x,
                                 k.y = k.y,                                  
                                 stringsAsFactors = FALSE)
-    structure.rho$code.x <- as.list(indexLp[,1])
-    structure.rho$code.y <- as.list(indexLp[,2])
+    structure.rho$index.lp.x <- as.list(indexLp[,1])
+    structure.rho$index.lp.y <- as.list(indexLp[,2])
     rownames(structure.rho) <- NULL
     structure$param <- rbind(structure$param, structure.rho)
 
     ## ** export    
-    attr(structure$param, "Xcode.xy") <- setNames(1:NROW(XpairPattern$lp2X),rownames(XpairPattern$lp2X))
+    attr(structure$param, "lp2X") <- XpairPattern$lp2X
     return(structure)
 }
 

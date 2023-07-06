@@ -2,7 +2,7 @@ Package: LMMstar
 Type: Package
 Title: Repeated Measurement Models for Discrete Times
 Version: 0.9.1
-Date: 2023-06-15
+Date: 2023-07-04
 Authors@R: c(
     person("Brice", "Ozenne", role = c("aut", "cre"), email = "brice.mh.ozenne@gmail.com", comment = c(ORCID = "0000-0001-9694-2956")),
     person("Julie", "Forman", role = "aut", email = "jufo@sund.ku.dk", comment = c(ORCID = "0000-0001-7368-0869"))
@@ -22,6 +22,7 @@ Depends:
     R (>= 3.5.0)
 Imports:
     copula,
+    doSNOW,
     emmeans,
     ggplot2,
     grid,
@@ -69,6 +70,7 @@ Collate:
     'confint.R'
     'constrain.R'
     'df.R'
+    'discreteRoot.R'
     'doc-data.R'
     'dummy.coef.R'
     'emmeans.R'

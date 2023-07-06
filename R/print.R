@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jun  7 2023 (09:45) 
+## Last-Updated: jul  5 2023 (19:16) 
 ##           By: Brice Ozenne
-##     Update #: 232
+##     Update #: 237
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -141,26 +141,24 @@ print.lmm <- function(x, ...){
     }
 
     ## ** log-likelihood
-    if(x$method.fit=="ML"){
+    if(x$args$method.fit=="ML"){
         M.print <- rbind(M.print,
                          cbind("log-likelihood",": ",as.double(logLik)))
-    }else if(x$method.fit=="REML"){
+    }else if(x$args$method.fit=="REML"){
         M.print <- rbind(M.print,
                          cbind("log-restr.likelihood",": ",as.double(logLik)))
     }
 
     ## ** optimisation
-    if(x$opt$name!="gls"){
-        if(!is.na(x$opt$n.iter)){
-            M.print <- rbind(M.print,
-                             cbind("convergence",": ",paste0(x$opt$cv>0," (",x$opt$n.iter," iterations)")))
-        }else if(!is.null(attr(x$opt$n.iter,"eval"))){
-            M.print <- rbind(M.print,
-                             cbind("convergence",": ",paste0(x$opt$cv>0," (evaluations: ",attr(x$opt$n.iter,"eval")["logLik"]," likelihood, ",attr(x$opt$n.iter,"eval")["score"]," score)")))
-        }else{
-            M.print <- rbind(M.print,
-                             cbind("convergence",": ",x$opt$cv>0))
-        }
+    if(!is.na(x$opt$n.iter)){
+        M.print <- rbind(M.print,
+                         cbind("convergence",": ",paste0(x$opt$cv>0," (",x$opt$n.iter," iterations)")))
+    }else if(!is.null(attr(x$opt$n.iter,"eval"))){
+        M.print <- rbind(M.print,
+                         cbind("convergence",": ",paste0(x$opt$cv>0," (evaluations: ",attr(x$opt$n.iter,"eval")["logLik"]," likelihood, ",attr(x$opt$n.iter,"eval")["score"]," score)")))
+    }else{
+        M.print <- rbind(M.print,
+                         cbind("convergence",": ",x$opt$cv>0))
     }
 
     ## ** print

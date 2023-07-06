@@ -3872,67 +3872,76 @@ The main differences are:
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
 data <- sampleRem(100, n.times = 4, format = "long")
 data$id.f <- as.factor(data$id)
-system.time({
-  e.lmm1 <- lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = data)
-})
-system.time({
-  e.lmm2 <- mmrm(Y ~ visit*X1 + X6 + us(visit|id.f), data = data)
-})
+e.lmm1 <- lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = data)
+e.lmm2 <- mmrm(Y ~ visit*X1 + X6 + us(visit|id.f), data = data)
 logLik(e.lmm1)
 logLik(e.lmm2)
+microbenchmark::microbenchmark(
+                  lmm = lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = data),
+                  lmm0 = lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = data, df = FALSE),
+                  mmrm = mmrm(Y ~ visit*X1 + X6 + us(visit|id.f), data = data),
+                  times = 10
+                )
 #+END_SRC
 
 #+RESULTS:
-:   bruger   system forløbet 
-:     0.17     0.00     0.18
-:   bruger   system forløbet 
-:     0.03     0.02     0.05
-: [1] -764.2764
-: [1] -764.2765
+: [1] -722.3784
+: [1] -722.3784
+: Unit: milliseconds
+:  expr      min       lq      mean    median       uq      max neval cld
+:   lmm 155.9277 160.9705 167.75602 165.53600 172.6820 187.1011    10 a  
+:  lmm0  74.3712  75.1464  96.71646  78.96735  97.7272 225.0964    10  b 
+:  mmrm  27.4641  27.7218  30.87043  28.17580  33.9412  44.2107    10   c
 
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
 data <- sampleRem(5000, n.times = 3, format = "long")
 data$id.f <- as.factor(data$id)
-system.time({
-  e.lmm1 <- lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = data)
-})
-system.time({
-  e.lmm2 <- mmrm(Y ~ visit*X1 + X6 + us(visit|id.f), data = data)
-})
+e.lmm1 <- lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = data)
+e.lmm2 <- mmrm(Y ~ visit*X1 + X6 + us(visit|id.f), data = data)
 logLik(e.lmm1)
 logLik(e.lmm2)
+microbenchmark::microbenchmark(
+                  lmm = lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = data),
+                  lmm0 = lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = data, df = FALSE),
+                  mmrm = mmrm(Y ~ visit*X1 + X6 + us(visit|id.f), data = data),
+                  times = 10
+                )
 #+END_SRC
 
 #+RESULTS:
-:   bruger   system forløbet 
-:     1.11     0.04     1.17
-:   bruger   system forløbet 
-:     0.90     0.07     0.98
-: [1] -29860.4
-: [1] -29860.4
+: [1] -29950.1
+: [1] -29950.1
+: Unit: milliseconds
+:  expr       min        lq      mean    median        uq       max neval cld
+:   lmm 1044.7837 1090.8184 1149.0196 1153.3452 1213.5370 1263.0315    10 a  
+:  lmm0  724.6425  754.0784  806.0258  793.3437  837.4572  918.1067    10  b 
+:  mmrm  632.5897  636.6736  654.9747  646.7226  658.7775  708.7885    10   c
 
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
 data <- sampleRem(5000, n.times = 4, format = "long")
 data$id.f <- as.factor(data$id)
-system.time({
-  e.lmm1 <- lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = data)
-})
-system.time({
-  e.lmm2 <- mmrm(Y ~ visit*X1 + X6 + us(visit|id.f), data = data)
-})
+e.lmm1 <- lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = data)
+e.lmm2 <- mmrm(Y ~ visit*X1 + X6 + us(visit|id.f), data = data)
 logLik(e.lmm1)
 logLik(e.lmm2)
+microbenchmark::microbenchmark(
+                  lmm = lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = data),
+                  lmm0 = lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = data, df = FALSE),
+                  mmrm = mmrm(Y ~ visit*X1 + X6 + us(visit|id.f), data = data),
+                  times = 10
+                )
 #+END_SRC
 
 #+RESULTS:
-:   bruger   system forløbet 
-:     2.95     0.06     3.10
-:   bruger   system forløbet 
-:     1.80     0.14     1.97
-: [1] -37665.99
-: [1] -37665.99
+: [1] -37811.6
+: [1] -37811.6
+: Unit: milliseconds
+:  expr       min        lq     mean   median       uq      max neval cld
+:   lmm 1406.6300 1496.3176 1552.419 1562.674 1631.387 1695.343    10 a  
+:  lmm0  961.5641  982.7883 1029.493 1014.334 1029.408 1158.969    10  b 
+:  mmrm 1303.6948 1312.4741 1336.604 1331.745 1352.751 1408.501    10   c
 
 ** effectsize package (\(R^2\) or \(\eta^2\))
 

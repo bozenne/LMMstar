@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 26 2022 (11:18) 
 ## Version: 
-## Last-Updated: jun 15 2023 (16:59) 
+## Last-Updated: jul  6 2023 (17:42) 
 ##           By: Brice Ozenne
-##     Update #: 228
+##     Update #: 233
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -59,7 +59,7 @@ ranef.lmm <- function(object, p = NULL){
     param.name <- object$design$param$name
     param.type <- stats::setNames(object$design$param$type,param.name)
     param.rho <- param.name[param.type=="rho"]
-    param.strata <- unlist(object$design$param[param.type=="rho","strata"])
+    param.strata <- unlist(object$design$param[param.type=="rho","index.strata"])
 
     ## cluster 
     cluster.var <- object$cluster$var
@@ -96,11 +96,24 @@ ranef.lmm <- function(object, p = NULL){
     }
     
     ## ** converting correlation parameters into random effect variance
-    cumrho <- coef(object, p = p, effects = "correlation", transform.names = FALSE)
-    cumrho.strata <- tapply(cumrho,param.strata,identity, simplify = FALSE)
-
     cumtau <- coef(object, p = p, effects = "correlation", transform.rho = "cov", transform.names = FALSE)
     cumtau.strata <- tapply(cumtau,param.strata,identity, simplify = FALSE)
+
+    n.hierarchy <- length(infoRanef$param)
+    index.hierarchy <- unlist(lapply(1:n.hierarchy, function(iH){rep(iH, length(infoRanef$param[[iH]]))}))
+    name.RE <- unname(unlist(lapply(infoRanef$param, rownames)))
+    n.RE <- length(name.RE)
+    varRE <- stats::setNames(rep(NA, n.RE), name.RE)
+
+    for(iH in 1:n.hierarchy){ ## iH <- 1
+        iHierarchy <- infoRanef$param[[iH]]
+        iCumTau <- apply(iHierarchy, MARGIN = 2, FUN = function(iName){
+            cumtau[iName] - head(c(0, cumsum(cumtau[iName])), -1)
+        })
+        browser()
+        varRE[] <- iCumTau
+    }
+    
 
     if(infoRanef$type[,"nested"] && infoRanef$type[,"crossed"]){
         stop("Cannot handle nested and crossed random effects. \n")

@@ -14,7 +14,8 @@ is performed based on the observed information and a Satterthwaite approximation
 Normalized residuals are provided to assess model misspecification.
 Statistical inference can be performed for arbitrary linear or non-linear combination(s) of model coefficients.
 Predictions can be computed conditional to covariates only or also to outcome values. \cr \cr
-
+}
+\details{
 \strong{Notations}: the linear mixed model estimated by \code{\link{lmm}} is denoted:
 \deqn{ \mathbf{Y}_{i} = \mathbf{X}_{i}\beta+\boldsymbol{\varepsilon}_i }
 where

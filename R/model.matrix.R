@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: jun  1 2023 (15:28) 
+## Last-Updated: jul  6 2023 (18:03) 
 ##           By: Brice Ozenne
-##     Update #: 2515
+##     Update #: 2535
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -224,7 +224,6 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
 .mean.matrix.lmm <- function(formula, colnames, data,
                              name.strata, U.strata, drop.X){
 
-
     ## ** design matrix
     if(is.null(colnames)){
         X.mean <- .model.matrix_regularize(formula, data = data, type = "mean", drop.X = drop.X)
@@ -268,7 +267,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     ## formula
     formula.var <- structure$formula$var
     formula.cor <- structure$formula$cor
-    
+
     ## data
     dataVar <- data
     if(length(all.vars(formula.var))>0 && structure$class %in% c("ID","IND","CS","RE","UN","TOEPLITZ")){
@@ -279,7 +278,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     dataCor <- data    
     if(length(all.vars(formula.cor))>0 && structure$class %in% c("CS","RE","UN","TOEPLITZ")){
         for(iVar in all.vars(formula.cor)){
-            if((structure$class=="UN") || (structure$class=="CS" && structure$type %in% c("heterogeneous","heterogeneous0")) || (iVar == strata.var)){
+            if((structure$class=="UN") || (structure$class=="CS" && structure$type %in% "heterogeneous") || (iVar == strata.var)){
                 dataCor[[iVar]] <- as.factor(data[[iVar]])
             }else if(is.logical(data[[iVar]])){ ## "TOEPLITZ" or homogeneous "CS"
                 dataCor[[iVar]] <- as.numeric(data[[iVar]]) + 1
@@ -291,6 +290,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
             
         }
     }
+
     ## ** design matrix
     out <- list(var = NULL, cor = NULL, xfactor = list(var = NULL, cor = NULL))
 
@@ -405,7 +405,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
         precompute.XY <- NULL
     }
 
-    ## ** pairs
+    ## ** find all pairs of coefficients
     structure$X$pair.varcoef <- stats::setNames(lapply(structure$X$Upattern$name, function(iPattern){## iPattern <- structure$X$Upattern$name[1]
 
         iParamVar <- stats::na.omit(structure$X$Upattern[structure$X$Upattern$name == iPattern,"param"][[1]])
@@ -429,33 +429,33 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     }), structure$X$Upattern$name)
 
     ## ** param
-    ls.sub <- lapply(as.list(c("(Intercept)",attr(formula.mean,"term.labels"))[attr(X.mean,"assign")+1]),
-                     function(iSub){
-                         if(grepl(":",iSub,fixed = TRUE)){ ## wraper from a package, e.g. stats::poly()
-                             unlist(strsplit(iSub,"::",fixed = TRUE))[-1]
-                         }else if(grepl(":",iSub,fixed = TRUE)){ ## interaction
-                             unlist(strsplit(iSub,":",fixed = TRUE))
-                         }else{
-                             return(iSub)
-                         }
-                     })
-    mu.level <- mapply(sub = ls.sub,
-                       name = colnames(X.mean),
-                       FUN = function(sub,name){
-                           for(iSub in sub){
-                               name <- gsub(iSub,"",name, fixed = TRUE)
-                           }
-                           return(name)
-                       })
     if(NCOL(X.mean)>0){
+        all.terms <- c("(Intercept)",attr(stats::terms(formula.mean),"term.labels"))[attr(X.mean,"assign")+1]
+        ls.sub <- sapply(all.terms, function(iSub){ ## iSub <- "X1:X2"
+            if(grepl("::",iSub,fixed = TRUE)){ ## wraper from a package, e.g. stats::poly()
+                return(unlist(strsplit(iSub,"::",fixed = TRUE))[-1])
+            }else if(grepl(":",iSub,fixed = TRUE)){ ## interaction
+                return(unlist(strsplit(iSub,":",fixed = TRUE)))
+            }else{
+                return(iSub)
+            }
+        }, simplify = FALSE)
+        mu.level <- mapply(sub = ls.sub,
+                           name = colnames(X.mean),
+                           FUN = function(sub,name){
+                               for(iSub in sub){
+                                   name <- gsub(iSub,"",name, fixed = TRUE)
+                               }
+                               return(name)
+                           })
         skeleton.param <- rbind(data.frame(name = colnames(X.mean),
                                            index.strata = NA,
                                            type = "mu",
                                            constraint = NA,
                                            level = gsub("^:","",gsub(":$","",mu.level)),
                                            code = NA,
-                                           code.x = NA,
-                                           code.y = NA,
+                                           index.lp.x = NA,
+                                           index.lp.y = NA,
                                            sigma = NA,
                                            k.x = NA,
                                            k.y = NA),
@@ -473,6 +473,16 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     if(is.unsorted(order.type)){ ## in presence of strata, typically need to reorder by type
         skeleton.param <- skeleton.param[order(order.type),,drop=FALSE]
     }
+
+    ## ** correspondance th original dataset (before removing missing values)
+    dataU.time <- data[!duplicated(data$XXtimeXX),c("XXtimeXX","XXtime.indexXX")]
+    dataU.time <- dataU.time[order(dataU.time$XXtimeXX),]
+    index2original.time <- stats::setNames(as.character(dataU.time$XXtimeXX), dataU.time$XXtime.indexXX)
+
+    dataU.cluster <- data[!duplicated(data$XXclusterXX),c("XXclusterXX","XXcluster.indexXX")]
+    dataU.cluster <- dataU.cluster[order(dataU.cluster$XXclusterXX),]
+    index2original.cluster <- stats::setNames(as.character(dataU.cluster$XXclusterXX), dataU.cluster$XXcluster.indexXX)
+    
     ## ** gather and export
     out <- list(mean = X.mean,
                 vcov = structure,
@@ -482,11 +492,13 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
                 index.cluster = index.cluster,
                 index.clusterTime = index.clusterTime,
                 index.clusterStrata = index.clusterStrata,
-                time = list(n = max(unlist(index.clusterTime)), levels = levels(data$XXtimeXX), levels.original = NULL, nobs = table(unlist(index.clusterTime))),
-                cluster = list(n = length(index.cluster), levels = levels(data$XXclusterXX), levels.original = NULL, nobs = sapply(index.cluster,length)),
+                time = list(n = max(unlist(index.clusterTime)), index2original = index2original.time, nobs = table(unlist(index.clusterTime))),
+                cluster = list(n = length(index.cluster), index2original = index2original.cluster, nobs = sapply(index.cluster,length)),
                 param = skeleton.param,
                 drop.X = drop.X
                 )
+
+
     if(!is.na(var.weights[1])){
         out$weights <- data[[var.weights[1]]]
         ## NOTE: only take first weight for each cluster as weights should be constant within cluster

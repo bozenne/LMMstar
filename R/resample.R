@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: jun 15 2023 (16:25) 
+## Last-Updated: jul  4 2023 (18:58) 
 ##           By: Brice Ozenne
-##     Update #: 427
+##     Update #: 438
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -27,8 +27,10 @@
 ##' @param studentized [logical] should a studentized boostrap or permutation test be used?
 ##' @param level [numeric,0-1] the confidence level of the confidence intervals.
 ##' @param trace [logical] should the execution of the resampling be traced?
-##' @param seed [integer] Random number generator (RNG) state used when starting resampling.
-##' @param cpus [integer] number of child-processes for parallel evaluation.
+##' @param seed [integer, >0] Random number generator (RNG) state used when starting resampling.
+##' @param cpus [integer, >0] number of child-processes for parallel evaluation.
+##' If \code{NULL} no state is set.
+##' @param export.cpus [character vector] name of the variables to export to each cluster.
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @details All approach are carried at the cluster level: \itemize{
@@ -95,7 +97,7 @@
 ##' @rdname resample
 resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TRUE,
                          level = 0.95, correction = TRUE,
-                         trace = TRUE, seed = NULL, cpus = 1,
+                         trace = TRUE, seed = NULL, cpus = 1, export.cpus = NULL,
                          ...){
 
     ## ** check user input
@@ -157,7 +159,6 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
         }
         effects.vcov <- TRUE
         name.keepcoef <- effects
-        calc.pvalue <- try(requireNamespace("BuyseTest")) ## to get the p-values
     }
 
     if(length(cpus)!=1){
@@ -413,25 +414,76 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
         }
     }
     
-    if(!is.null(seed)){set.seed(seed)}
+    if(!is.null(seed)){
+        tol.seed <- 10^(floor(log10(.Machine$integer.max))-1)
+        if(n.sample>tol.seed){
+            stop("Cannot set a seed per simulation when considering more than ",tol.seed," similations. \n")
+        }
+        if(!is.null(get0(".Random.seed"))){ ## avoid error when .Random.seed do not exists, e.g. fresh R session with no call to RNG
+            old <- .Random.seed # to save the current seed
+            on.exit(.Random.seed <<- old) # restore the current seed (before the call to the function)
+        }else{
+            on.exit(rm(.Random.seed, envir=.GlobalEnv))
+        }
+        set.seed(seed)
+        seqSeed <- sample.int(tol.seed, n.sample,  replace = FALSE)        
+    }else{
+        seqSeed <- NULL
+    }
 
-    if(cpus>1){
+    if(cpus==1){
+        if (trace > 0) {
+            requireNamespace("pbapply")
+            method.loop <- pbapply::pblapply
+        }else{
+            method.loop <- lapply
+        }
+    }else if(cpus>1){
         cl <- parallel::makeCluster(cpus)
+        ## link to foreach
+        doSNOW::registerDoSNOW(cl)
+        ## export from user
+        if(!is.null(export.cpus)){
+            parallel::clusterExport(cl, export.cpus)
+        } 
+        ## export seed 
+        if (!is.null(seed)) {
+            parallel::clusterExport(cl, varlist = "seqSeed", envir = environment())
+        }
+        ## export BuyseTest 
         fct2export <- c(".estimate",".precomputeXR",".precomputeXX",".extractIndexData",".model.matrix.lmm",".prepareData")
         parallel::clusterExport(cl = cl, varlist = fct2export, envir = as.environment(asNamespace("LMMstar")))
-    }else{
-        cl <- NULL
+        
     }
 
-    if(!is.null(cl) || trace){
-        ls.sample <- pbapply::pblapply(1:n.sample, warperResample, cl = cl)
-    }else{
-        ls.sample <- lapply(1:n.sample, warperResample)
-    }
+    if (cpus == 1) {
+        ls.sample <- do.call(method.loop,
+                             args = list(X = 1:n.sample,
+                                         FUN = function(X){
+                                             if(!is.null(seed)){set.seed(seqSeed[X])}
+                                             iOut <- warperResample(X)
+                                             return(iOut)
+                                         })
+                             )
+    }else if(cpus > 1){
+        if(trace>0){
+            pb <- utils::txtProgressBar(max = n.sample, style = 3)          
+            progress <- function(n){utils::setTxtProgressBar(pb, n)}
+            opts <- list(progress = progress)
+        }else{
+            opts <- list()
+        }
 
-    if(cpus>1){
+        ls.sample <- foreach::`%dopar%`(
+                                  foreach::foreach(i=1:n.sample, .options.snow = opts), {
+                                      if(!is.null(seed)){set.seed(seqSeed[i])}
+                                      iOut <- warperResample(X)
+                                      return(iOut)
+                                  })
+        if(trace>0){close(pb)}
         parallel::stopCluster(cl)
     }
+
 
     ## ** post-process
     M.sample <- do.call(rbind,ls.sample[sapply(ls.sample, inherits, "try-error")==FALSE])
@@ -468,17 +520,14 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
             out$se <- as.double(sd.meancoef[name.keepcoef])
             out$lower <- out$estimate + out$se * apply(Mcv.sample.Wald0, MARGIN = 2, FUN = stats::quantile, probs = alpha/2, na.rm = TRUE)
             out$upper <- out$estimate + out$se * apply(Mcv.sample.Wald0, MARGIN = 2, FUN = stats::quantile, probs = 1-alpha/2, na.rm = TRUE)
-
-            if(!inherits(calc.pvalue,"try-error")){
-                out$p.value <- sapply(name.keepcoef, function(iName){
-                    BuyseTest::boot2pvalue(stats::na.omit(out[iName,"estimate"] + out[iName,"se"] * Mcv.sample.Wald0[,iName]),
-                                           null = 0,
-                                           estimate = out[iName,"estimate"],
-                                           alternative = "two.sided",
-                                           add.1 = correction)
-                })
-            }
-
+            out$p.value <- sapply(name.keepcoef, function(iName){
+                boot2pvalue(stats::na.omit(out[iName,"estimate"] + out[iName,"se"] * Mcv.sample.Wald0[,iName]),
+                            null = 0,
+                            estimate = out[iName,"estimate"],
+                            alternative = "two.sided",
+                            add.1 = correction)
+            })
+            
         }else{
             Mcv.estimate <- matrix(value.meancoef[name.keepcoef], nrow = ncv.sample, ncol = length(name.keepcoef), byrow = TRUE,
                                    dimnames = list(NULL,name.keepcoef))
@@ -486,15 +535,13 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
             out$se <- apply(Mcv.sample, MARGIN = 2, FUN = stats::sd, na.rm = TRUE)
             out$lower <- apply(Mcv.sample, MARGIN = 2, FUN = stats::quantile, probs = alpha/2, na.rm = TRUE)
             out$upper <- apply(Mcv.sample, MARGIN = 2, FUN = stats::quantile, probs = 1-alpha/2, na.rm = TRUE)
-            if(!inherits(calc.pvalue,"try-error")){
-                out$p.value <- sapply(name.keepcoef, function(iName){
-                    BuyseTest::boot2pvalue(stats::na.omit(Mcv.sample[,iName]),
-                                           null = 0,
-                                           estimate = out[iName,"estimate"],
-                                           alternative = "two.sided",
-                                           add.1 = correction)
-                })
-            }
+            out$p.value <- sapply(name.keepcoef, function(iName){
+                boot2pvalue(stats::na.omit(Mcv.sample[,iName]),
+                            null = 0,
+                            estimate = out[iName,"estimate"],
+                            alternative = "two.sided",
+                            add.1 = correction)
+            })
         }
     }
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: maj 31 2023 (16:49) 
+## Last-Updated: jul  6 2023 (15:46) 
 ##           By: Brice Ozenne
-##     Update #: 2480
+##     Update #: 2484
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -122,8 +122,8 @@
                                             constraint = as.numeric(NA),
                                             level = as.character(NA),
                                             code = as.character(NA),
-                                            code.x = NA,
-                                            code.y = NA,
+                                            index.lp.x = NA,
+                                            index.lp.y = NA,
                                             sigma = as.character(NA),
                                             k.x = as.character(NA),
                                             k.y = as.character(NA)))
@@ -137,14 +137,14 @@
                                             constraint = as.numeric(NA),
                                             level = as.character(NA),
                                             code = as.character(NA),
-                                            code.x = NA,
-                                            code.y = NA,
+                                            index.lp.x = NA,
+                                            index.lp.y = NA,
                                             sigma = as.character(NA),
                                             k.x = as.character(NA),
                                             k.y = as.character(NA)))
     }
-    structure$param$code.x <- rep(list(NULL), NROW(structure$param))
-    structure$param$code.y <- rep(list(NULL), NROW(structure$param))
+    structure$param$index.lp.x <- rep(list(NULL), NROW(structure$param))
+    structure$param$index.lp.y <- rep(list(NULL), NROW(structure$param))
 
     ## ** pattern
     return(structure)

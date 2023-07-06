@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: jun 15 2023 (17:35) 
+## Last-Updated: jul  6 2023 (17:44) 
 ##           By: Brice Ozenne
-##     Update #: 982
+##     Update #: 1048
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -141,7 +141,7 @@ IND <- function(formula, var.cluster, var.time, add.time){
 ##' \item \code{"he"}, \code{"hetero"}, or \code{"heterogeneous"}: variance and correlation specific to the level of covariates.
 ##' Can be seen as more flexible crossed or nested random effects model.
 ##' }
-##' @param group [integer vector] grouping of the regressor for the correlation structure.
+##' @param group.type [integer vector] grouping of the regressor for the correlation structure.
 ##' A constant value corresponds to nested random effects (default) and a regressor-specific value to crossed random effects
 ##' @param add.time not used.
 ##'
@@ -164,7 +164,6 @@ IND <- function(formula, var.cluster, var.time, add.time){
 ##' 
 ##' @export
 CS <- function(formula, var.cluster, var.time, type = "homogeneous", group.type = NULL, add.time){
-
     ## ** normalize input
     type.ho <- c("ho","homo","homogeneous")
     type.he <- c("he","hetero","heterogeneous")
@@ -187,7 +186,8 @@ CS <- function(formula, var.cluster, var.time, type = "homogeneous", group.type 
     if(length(outCov$X.cor)==0){
         type <- "homogeneous"
     }
-    if(is.null(group.type)){
+
+    if(is.null(group.type) || length(group.type) == 0){
         if(length(outCov$X.cor)==0){
             group.type <- NULL
         }else{
@@ -257,12 +257,24 @@ CS <- function(formula, var.cluster, var.time, type = "homogeneous", group.type 
 RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
 
     ## ** normalize input
+    ## ranef
+    test.ranef <- is.null(ranef)
+
+    ## formula
     if(!inherits(formula,"formula")){
         stop("Argument \'formula\' must inherits from formula. \n")
     }
-
     detail.formula <- formula2var(formula)
-    test.ranef <- is.null(ranef)
+
+    ## convert ~1|id to ~(1|id)
+    if(detail.formula$special=="repetition"){
+        if(length(detail.formula$vars$repetition)>2 || length(detail.formula$terms$all)!=1){
+            stop("Something when wrong when identifying the random effects. \n",
+                 "Consider wrapping the random effect term in the formula by parentheses, e.g. ~ (1|id). \n")
+        }
+        newformula <- stats::as.formula(paste0(paste(detail.formula$vars$response, collapse = "+"),"~(",detail.formula$terms$repetition,")"))
+        detail.formula <- formula2var(newformula)
+    }
 
     if(detail.formula$special=="none"){
         if(length(detail.formula$vars$regressor)>0){
@@ -274,73 +286,68 @@ RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
             var.strata <- detail.formula$vars$response
         }
     }else if(detail.formula$special=="ranef"){
-        var.strata <- detail.formula$vars$response
+        var.strata <- detail.formula$vars$response        
     }else{
         stop("Incorrect argument \'formula\' for structure RE. \n",
              "Should be something like ~strata or strata ~ (1|id).")
     }
 
-    ## ** create structure
+    ## ** prepare variance structure
     if(length(var.strata)>0){
         ff.var <- stats::as.formula(paste0(var.strata,"~1"))
     }else{
         ff.var <- ~1
     }
-    if(is.null(ranef) || (attr(ranef,"crossed") == FALSE && attr(ranef,"nested") == FALSE)){
-        ff.cor <- ff.var   
-    }else if(attr(ranef,"crossed")){
-        ff.cor <- paste0(var.strata,"~",paste0(detail.formula$vars$ranef, collapse = "+"))
-    }else if(attr(ranef,"nested")){
-        ff.cor <- paste0(var.strata,"~",paste0(detail.formula$vars$ranef[-1], collapse = "+"))
-    }
-    out <- CS(list(variance = ff.var, correlation = ff.cor), var.cluster = var.cluster, var.time = var.time)
 
+    ## ** prepare correlation / random effect structure
     if(test.ranef && detail.formula$special=="ranef"){
         ranef <- detail.formula$special
     }
-    if(is.null(ranef)){
-        ## single random intercept
-        ff.cor <- ff.var
+
+    if(is.null(ranef) || (ranef$cross == FALSE && ranef$nested == FALSE)){ ## no random effect or random intercept
+        ff.cor <- ff.var   
         group <- NULL
-    }else{
-        ## multiple random intercepts
-        if(any(duplicated(unlist(attr(ranef,"hierarchy"))))){
-            stop("Crossed random effects should be defined relative to distinct variables. \n")
-        }
-        if(!missing(var.cluster) && !is.null(attr(var.cluster,"original"))){
-            Ovar.cluster <- attr(var.cluster,"original")
+    }else if(ranef$cross == FALSE && ranef$nested == TRUE){
+        Ovar.cluster <- attr(var.cluster,"original")
+        if(!is.null(attr(var.cluster,"original")) && attr(var.cluster,"original") %in% ranef$vars){
             ## remove cluster level from formula 
-            ff.cor <- stats::as.formula(paste0(var.strata,"~",paste0(setdiff(attr(ranef,"vars"),Ovar.cluster), collapse = "+")))
-            ## add cluster level when nested random effects
-            if((attr(ranef,"crossed") == FALSE) && Ovar.cluster %in% attr(ranef,"vars") == FALSE){
-                attr(ranef,"nested") <- TRUE
-                attr(ranef,"vars") <- c(Ovar.cluster, attr(ranef,"vars"))
-                attr(ranef,"hierarchy") <- lapply(attr(ranef,"hierarchy"), function(iVec){c(Ovar.cluster, iVec)})
-            }
+            ff.cor <- stats::as.formula(paste0(var.strata,"~",paste0(setdiff(ranef$vars,Ovar.cluster), collapse = "+")))
         }else{
-            ff.cor <- stats::as.formula(paste0(var.strata,"~",paste0(attr(ranef,"vars"), collapse = "+")))
+            stop("Something went wrong when identifying the nested random effects. \n",
+                 "Cluster variable ",attr(var.cluster,"original")," not found among the variables defining the random effects \"",paste(ranef$vars, collapse = "\" \""),"\".\n")
         }
-        n.group <- length(attr(ranef,"hierarchy"))
-        if(n.group==1){
-            group <- NULL
-        }else{
-            group <- unlist(lapply(1:n.group, function(iG){
-                stats::setNames(rep(iG, length(attr(ranef,"hierarchy")[[iG]])), attr(ranef,"hierarchy")[[iG]])
-            }))
-        }
+    }else if(ranef$cross == TRUE && ranef$nested == FALSE){
+        ## crossed random effect: typically each random effect has been specified (e.g. (1|id) and (1|scan))
+        ## but not the overall level (e.g. hospital where specific id and scans are performed)
+        ff.cor <- stats::as.formula(paste0(var.strata,"~",paste0(ranef$vars, collapse = "+")))
+    }else if(ranef$cross == TRUE && ranef$nested == TRUE){
+        stop("Random effect structre with both nested and cross random effect not (yet!) possible. \n")
     }
+        
+    ## groups of random effects
+    n.group <- length(ranef$hierarchy)
+    if(n.group>0){
+        group <- unlist(lapply(1:n.group, function(iG){
+            stats::setNames(rep(iG, length(ranef$hierarchy[[iG]])), ranef$hierarchy[[iG]])
+        }))
+        if(attr(var.cluster,"original") %in% names(group)){
+            groupCS <- group[names(group) != attr(var.cluster,"original")]
+        }else{
+            groupCS <- group
+        }
+    }else{
+        group <- NULL
+        groupCS <- NULL
+    }
+
+    ## ** create structure
+    
     out <- CS(list(variance = ff.var, correlation = ff.cor),
               var.cluster = var.cluster, var.time = var.time,
-              type = "homogeneous", group.type = group)
-    
-    if(!test.ranef){
-        out$ranef <- list(crossed = attr(ranef,"crossed"),
-                          nested = attr(ranef,"nested"),
-                          formula = attr(ranef,"formula"),
-                          vars = attr(ranef,"vars"),
-                          terms = attr(ranef,"terms"),
-                          hierarchy = attr(ranef,"hierarchy"))
-    }
+              type = "homogeneous",
+              group.type = groupCS) ## modify group.type to remove cluster variable (otherwise error as it does not match the design matrix)
+    out$group.type <- group ## use the proper group variable later
+    out$ranef <- ranef
 
     ## ** export
     out$call <- match.call()
@@ -805,12 +812,31 @@ CUSTOM <- function(formula, var.cluster, var.time,
         }else if(all(names(formula) %in% c("variance","correlation"))){
             formula <- formula[c("variance","correlation")]
         }else{
-            stop("Incorrect names associated to the formula for the residual variance-covariance structure. \n",
+            stop("Incorrect names associated to the argument \'formula\' for the residual variance-covariance structure. \n",
                  "Should be \"variance\" and \"correlation\" (or \"var\" and \"cor\"). \n")
         }
         detail.formula <- lapply(formula, formula2var)
     }else{
         stop("Incorrect argument \'formula\': should be a formula or a list of 2 formula (var, cor).\n")
+    }
+
+    if(is.character(add.X)){
+        add.X <- list(variance = add.X,
+                      correlation = add.X)
+    }else if(is.list(add.X) && length(add.X)==2){        
+        if(is.null(names(add.X))){
+            names(add.X) <- c("variance","correlation")
+        }else if(all(names(add.X) %in% c("var","cor"))){
+            names(add.X)[names(add.X)=="var"] <- "variance"
+            names(add.X)[names(add.X)=="cor"] <- "correlation"
+        }else if(all(names(add.X) %in% c("variance","correlation"))){
+            add.X <- add.X[c("variance","correlation")]
+        }else{
+            stop("Incorrect names associated to the argument \'add.X\' for the residual variance-covariance structure. \n",
+                 "Should be \"variance\" and \"correlation\" (or \"var\" and \"cor\"). \n")
+        }
+    }else if(!is.null(add.X)){
+        stop("Incorrect argument \'add.X\': should be a character or a list with 2 elements (var, cor).\n")
     }
 
     ## ** type
@@ -830,7 +856,7 @@ CUSTOM <- function(formula, var.cluster, var.time,
         stop("There should be at most one strata variable. \n")
     }
 
-    ## ** right hand side
+    ## ** right hand side    
     ls.var.X <- list(variance = c(add.X$variance, detail.formula$variance$vars$regressor),
                      correlation = c(add.X$correlation, detail.formula$correlation$vars$regressor))
     test.interaction <- sapply(formula, function(iF){

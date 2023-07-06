@@ -19,6 +19,7 @@ resample(object, type, ...)
   trace = TRUE,
   seed = NULL,
   cpus = 1,
+  export.cpus = NULL,
   ...
 )
 
@@ -53,9 +54,12 @@ resample(object, type, ...)
 
 \item{trace}{[logical] should the execution of the resampling be traced?}
 
-\item{seed}{[integer] Random number generator (RNG) state used when starting resampling.}
+\item{seed}{[integer, >0] Random number generator (RNG) state used when starting resampling.}
 
-\item{cpus}{[integer] number of child-processes for parallel evaluation.}
+\item{cpus}{[integer, >0] number of child-processes for parallel evaluation.
+If \code{NULL} no state is set.}
+
+\item{export.cpus}{[character vector] name of the variables to export to each cluster.}
 }
 \description{
 Non-parametric bootstrap or permutation test for Linear Mixed Models.

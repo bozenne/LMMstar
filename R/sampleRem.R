@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (14:23) 
 ## Version: 
-## Last-Updated: jun 15 2023 (17:34) 
+## Last-Updated: jul  5 2023 (12:30) 
 ##           By: Brice Ozenne
-##     Update #: 78
+##     Update #: 84
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,7 +26,8 @@
 ##' @param lambda [numeric vector] covariance between the measurement at each visit and the individual latent variable. Must have length \code{n.times}.
 ##' @param beta [numeric vector of length 10] regression coefficient between the covariates and the latent variable. 
 ##' @param gamma [numeric matrix with n.times rows and 10 columns] regression coefficient specific to each timepoint (i.e. interaction with time). 
-##' @param format [character] Return the data in the wide format (\code{"wide"}) or long format (\code{"long"})
+##' @param format [character] Return the data in the wide format (\code{"wide"}) or long format (\code{"long"}).
+##' Can also be \code{"wide+"} or \code{"long+"} to export as attributes the function arguments and the latent variable model used to generate the data.
 ##' @param latent [logical] Should the latent variable be output?
 ##'
 ##' @details The generative model is a latent variable model where each outcome (\eqn{Y_j}) load on the latent variable (\eqn{\eta}) with a coefficient lambda:
@@ -62,7 +63,17 @@ sampleRem <- function(n, n.times,
     name.Y <- paste0("Y",1:n.times)
 
     ## ** check arguments
+    if(identical(format,"wide+")){
+        format <- "wide"
+        exportArgs <- TRUE
+    }else if(identical(format,"long+")){
+        format <- "long"
+        exportArgs <- TRUE
+    }else{
+        exportArgs <- FALSE
+    }
     format <- match.arg(format, c("wide","long"))
+    
     if(length(mu)!=n.times){
         stop("Argument \'mu\' must have length argument \'n.times\' \n")
     }
@@ -116,11 +127,15 @@ sampleRem <- function(n, n.times,
     }
     
     ## ** export
-    attr(d,"call") <- match.call()
-    attr(d,"mu") <- mu
-    attr(d,"sigma") <- sigma
-    attr(d,"lambda") <- lambda
-    attr(d,"lvm") <- m
+    if(exportArgs){
+        attr(d,"call") <- match.call()
+        attr(d,"mu") <- mu
+        attr(d,"sigma") <- sigma
+        attr(d,"lambda") <- lambda
+        attr(d,"beta") <- beta
+        attr(d,"gamma") <- gamma
+        attr(d,"lvm") <- m
+    }
     return(d)
 }
 

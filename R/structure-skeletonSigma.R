@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (11:02) 
 ## Version: 
-## Last-Updated: maj 31 2023 (16:48) 
+## Last-Updated: jul  6 2023 (13:41) 
 ##           By: Brice Ozenne
-##     Update #: 50
+##     Update #: 53
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -101,8 +101,8 @@
                               constraint = as.numeric(NA),
                               level = level.sigma,
                               code = code.sigma,
-                              code.x = as.numeric(NA),
-                              code.y = as.numeric(NA),
+                              index.lp.x = as.numeric(NA),
+                              index.lp.y = as.numeric(NA),
                               sigma = as.character(NA),
                               k.x = as.character(NA),
                               k.y = as.character(NA),                                  

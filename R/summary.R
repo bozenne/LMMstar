@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jun 15 2023 (16:57) 
+## Last-Updated: jul  5 2023 (19:16) 
 ##           By: Brice Ozenne
-##     Update #: 1219
+##     Update #: 1220
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -68,8 +68,8 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
 
     logLik <- stats::logLik(object)
     nobs <- stats::nobs(object)
-    method.fit <- object$method
-    type.information <- attr(object$information,"type.information")
+    method.fit <- object$args$method.fit
+    type.information <- object$args$type.information
     nobsByCluster <- object$design$cluster$nobs
     formula <- object$formula
     df <- !is.null(object$df)
@@ -697,7 +697,7 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
     ## extract models
     ls.model <- object$model
     method.fit <- object$object$method.fit
-    optimizer <- ls.model[[1]]$opt$name
+    optimizer <- ls.model[[1]]$args$control$optimizer
     logLik <- sapply(ls.model, logLik)
     cv <- sapply(ls.model, function(iM){iM$opt$cv})
     n.iter <- sapply(ls.model, function(iM){iM$opt$n.iter})

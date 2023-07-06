@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: jun  1 2023 (15:05) 
+## Last-Updated: jul  6 2023 (14:12) 
 ##           By: Brice Ozenne
-##     Update #: 162
+##     Update #: 164
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -471,10 +471,10 @@ sigma(eSUN.lmm)
 data(Orthodont,package="nlme")
 
 eRI.lmer <- lmer(distance ~ age + (1|Subject), data=Orthodont)
-eRI.lmm <- lmm(distance ~ age + (1|Subject), data=Orthodont,
-               control = list(init = "lmer"))
 
 test_that("Random intercept model",{
+    eRI.lmm <- lmm(distance ~ age + (1|Subject), data=Orthodont,
+                   control = list(init = "lmer"))
     ## likelihood
     expect_equal(as.double(logLik(eRI.lmer)), as.double(logLik(eRI.lmm)), tol = 1e-6)
     ## random effects
@@ -484,10 +484,10 @@ test_that("Random intercept model",{
 ## * Stratified random intercept model
 Orthodont$nsex <- as.numeric(Orthodont$Sex=="Male")
 
-eRI.mlmm <- mlmm(distance ~ 1 + (1|Subject), data = Orthodont, by = "nsex", trace = FALSE)
-eSRI.lmm <- lmm(distance ~ nsex + (1|Subject), repetition = nsex~1|Subject, data = Orthodont)
-
 test_that("Random intercept model",{
+    eRI.mlmm <- mlmm(distance ~ 1 + (1|Subject), data = Orthodont, by = "nsex", trace = FALSE)
+    eSRI.lmm <- lmm(distance ~ nsex + (1|Subject), repetition = nsex~1|Subject, data = Orthodont)
+
     ## likelihood
     expect_equal(as.double(sum(unlist(logLik(eRI.mlmm)))), as.double(logLik(eSRI.lmm)), tol = 1e-6)
 
@@ -500,20 +500,21 @@ test_that("Random intercept model",{
 data(Penicillin, package = "lme4")
 Penicillin$id <- 1
 
-eCRI2.lmm0 <- lmm(diameter ~ 1, repetition = ~1|id,
-                  structure = CS(list(~1,~plate+sample), type = "ho0"),
-                  data = Penicillin, df = FALSE)
-eCRI2.lmm <- lmm(diameter ~ (1|plate) + (1|sample), data = Penicillin, df = FALSE,
-                 control = list(init = "lmer"))
-eCRI2.lmm <- lmm(diameter ~ (1|plate) + (1|sample), data = Penicillin, df = FALSE)
 eCRI2.lmer <- lmer(diameter ~ (1|plate) + (1|sample), data = Penicillin)
 
-logLik(eCRI2.lmm0)
-logLik(eCRI2.lmm)
-logLik(eCRI2.lmer)
-coef(eCRI2.lmm0, effects = "all")
-
 test_that("Crossed random intercept model (2 terms)",{
+
+    eCRI2.lmm0 <- lmm(diameter ~ 1, repetition = ~1|id,
+                      structure = CS(list(~1,~plate+sample), type = "ho0"),
+                      data = Penicillin, df = FALSE)
+    eCRI2.lmm <- lmm(diameter ~ (1|plate) + (1|sample), data = Penicillin, df = FALSE,
+                     control = list(init = "lmer"))
+    eCRI2.lmm <- lmm(diameter ~ (1|plate) + (1|sample), data = Penicillin, df = FALSE)
+
+    logLik(eCRI2.lmm0)
+    logLik(eCRI2.lmm)
+    logLik(eCRI2.lmer)
+    coef(eCRI2.lmm0, effects = "all")
     ## likelihood
     expect_equal(as.double(logLik(eCRI2.lmer)), as.double(logLik(eCRI2.lmm)), tol = 1e-6)
 
@@ -569,10 +570,12 @@ summary(eCRI3.lmer)
 ## * Nested random intercept model (2 levels)
 data(cake, package = "lme4")
 
-eNRI2.lmm <- lmm(angle ~ recipe * temperature + (1|recipe:replicate), data = cake, df = FALSE)
 eNRI2.lmer <- lmer(angle ~ recipe * temperature + (1|recipe:replicate), data = cake)
 
 test_that("Nested random intercept model (2 levels)",{
+
+    eNRI2.lmm <- lmm(angle ~ recipe * temperature + (1|recipe:replicate), data = cake, df = FALSE)
+
     ## likelihood
     expect_equal(as.double(logLik(eNRI2.lmer)), as.double(logLik(eNRI2.lmm)), tol = 1e-6)
 

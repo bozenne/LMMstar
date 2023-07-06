@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: maj 31 2023 (17:05) 
+## Last-Updated: jul  6 2023 (14:13) 
 ##           By: Brice Ozenne
-##     Update #: 607
+##     Update #: 610
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -191,17 +191,17 @@
     rownames(pattern.pairwise) <- NULL
 
     ## convert design matrix into linear predictor
-    pattern.pairwise$code.x <- as.character(interaction(as.data.frame(X.cor[pattern.pairwise$obs.x,,drop=FALSE]), sep = ""))
-    pattern.pairwise$code.y <- as.character(interaction(as.data.frame(X.cor[pattern.pairwise$obs.y,,drop=FALSE]), sep = ""))
+    pattern.pairwise$index.lp.x <- as.character(interaction(as.data.frame(X.cor[pattern.pairwise$obs.x,,drop=FALSE]), sep = ""))
+    pattern.pairwise$index.lp.y <- as.character(interaction(as.data.frame(X.cor[pattern.pairwise$obs.y,,drop=FALSE]), sep = ""))
     ## convert linear predictor into correlation parameter
     indexX.lp <- stats::setNames(1:length(levels(structure$X$lp.cor)),levels(structure$X$lp.cor))
     n.lp <- max(indexX.lp) ## number of distinct values for the linear predictor
 
-    code2param <- do.call(rbind,apply(structure.param, 1, function(iDf){data.frame(code.x = iDf$code.x, code.y = iDf$code.y, name = iDf$name)}))
+    code2param <- do.call(rbind,apply(structure.param, 1, function(iDf){data.frame(index.lp.x = iDf$index.lp.x, index.lp.y = iDf$index.lp.y, name = iDf$name)}))
     M.param <- matrix(as.character(NA), nrow = n.lp, ncol = n.lp)
-    M.param[code2param$code.x + (n.lp-1)*code2param$code.y] <- code2param$name
+    M.param[code2param$index.lp.x + (n.lp-1)*code2param$index.lp.y] <- code2param$name
 
-    pattern.pairwise$name <- M.param[indexX.lp[pattern.pairwise$code.x] + (n.lp-1)*indexX.lp[pattern.pairwise$code.y]]
+    pattern.pairwise$name <- M.param[indexX.lp[pattern.pairwise$index.lp.x] + (n.lp-1)*indexX.lp[pattern.pairwise$index.lp.y]]
     ## correlation parameter per correlation pattern
     ## handle correlation pattern with no parameter
     ## remove correlation parameters fixed to 0 (e.g. crossed random effects)

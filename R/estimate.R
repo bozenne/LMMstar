@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: jun 14 2023 (14:56) 
+## Last-Updated: jul  5 2023 (17:43) 
 ##           By: Brice Ozenne
-##     Update #: 968
+##     Update #: 969
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -312,7 +312,7 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
     if(is.null(trace)){
         trace <- FALSE
     }
-
+    
     ## ** prepare
     index.cluster <- design$index.cluster
     

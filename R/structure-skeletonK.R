@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (11:55) 
 ## Version: 
-## Last-Updated: maj 31 2023 (16:48) 
+## Last-Updated: jul  6 2023 (13:41) 
 ##           By: Brice Ozenne
-##     Update #: 37
+##     Update #: 40
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -99,8 +99,8 @@
                               constraint = as.numeric(NA),
                               level = level.k,
                               code = code.k,
-                              code.x = as.numeric(NA),
-                              code.y = as.numeric(NA),
+                              index.lp.x = as.numeric(NA),
+                              index.lp.y = as.numeric(NA),
                               sigma = param.sigma[match(strata.k,strata.sigma)],
                               k.x = as.character(NA),
                               k.y = as.character(NA),                                  
