@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: jul  6 2023 (14:12) 
+## Last-Updated: jul  7 2023 (18:16) 
 ##           By: Brice Ozenne
-##     Update #: 164
+##     Update #: 165
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -568,6 +568,14 @@ eCRI3.lmm <- lmm(y ~ (1|plant) + (1|location) + (1|climate), data = df.grow,
 summary(eCRI3.lmer)
 
 ## * Nested random intercept model (2 levels)
+## https://stats.stackexchange.com/questions/228800/crossed-vs-nested-random-effects-how-do-they-differ-and-how-are-they-specified
+## dt <- read.table("http://bayes.acs.unt.edu:8083/BayesContent/class/Jon/R_SC/Module9/lmm.data.txt",
+##                    header=TRUE, sep=",", na.strings="NA", dec=".", strip.white=TRUE)
+# data was previously publicly available from
+# http://researchsupport.unt.edu/class/Jon/R_SC/Module9/lmm.data.txt
+# but the link is now broken
+## eNRI2.lmer <- lmer(extro ~ open + agree + social + (1 | school/class), data = dt)
+
 data(cake, package = "lme4")
 
 eNRI2.lmer <- lmer(angle ~ recipe * temperature + (1|recipe:replicate), data = cake)
@@ -583,13 +591,6 @@ test_that("Nested random intercept model (2 levels)",{
     GS <- as.data.frame(ranef(eNRI2.lmer))    
 })
 
-LMMstar:::.nestingRanef(eNRI2.lmm)
-eNRI2.lmm$design$vcov$ranef
-eNRI2.lmm$design$vcov$param[,-c(4,6,)]
-LMMstar:::.nestingRanef(eSRI.lmm)
-
-
-LMMstar:::.nestingRanef(eCRI.lmm)
 
 ## * Nested random intercept model (3 levels)
 Sigma.NRI3 <- matrix(0, nrow = 8, ncol = 8)

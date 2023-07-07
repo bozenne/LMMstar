@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: jun 15 2023 (16:28) 
+## Last-Updated: jul  7 2023 (15:22) 
 ##           By: Brice Ozenne
-##     Update #: 565
+##     Update #: 570
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -229,9 +229,15 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
         out <- out[[1]]
         return(out)
     }else{
-        if(simplifies && is.null(cluster)){
-            for(iStrata in 1:length(out)){
-                attr(out[[iStrata]],"pattern") <- NULL
+        if(simplifies){
+            if(is.null(cluster)){
+                for(iStrata in 1:length(out)){
+                    attr(out[[iStrata]],"pattern") <- NULL
+                }
+            }else{
+                attr(out,"index.clusterTime") <- NULL
+                attr(out,"index.cluster") <- NULL
+                attr(out,"pattern") <- NULL
             }
         }
         return(out)

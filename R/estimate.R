@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: jul  5 2023 (17:43) 
+## Last-Updated: jul  7 2023 (18:16) 
 ##           By: Brice Ozenne
-##     Update #: 969
+##     Update #: 972
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -407,7 +407,7 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
     if(is.null(init)){
 
         param.value <- stats::setNames(rep(NA, n.param),param.name)
-
+browser()
         ## mean value
         if(!is.null(init.mu)){
             param.value[param.mu2] <- init.mu[param.mu2]
@@ -415,7 +415,7 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
 
             if(!is.null(init.Omega)){
                 start.OmegaM1 <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
-                    iTime <- Upattern$time[[iPattern]]
+                    iTime <- Upattern$index.time[[iPattern]]
                     return(solve(init.Omega[iTime,iTime,drop=FALSE]))
                 }), Upattern$name)
             }else{

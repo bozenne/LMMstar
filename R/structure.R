@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: jul  6 2023 (17:44) 
+## Last-Updated: jul  7 2023 (14:24) 
 ##           By: Brice Ozenne
-##     Update #: 1048
+##     Update #: 1076
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -301,15 +301,19 @@ RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
 
     ## ** prepare correlation / random effect structure
     if(test.ranef && detail.formula$special=="ranef"){
-        ranef <- detail.formula$special
+        ranef <- detail.formula$ranef
+        if(missing(var.cluster) && ranef$cross == FALSE && ranef$nested == TRUE){
+            var.cluster <- ranef$cluster
+            attr(var.cluster,"original") <- ranef$cluster
+        }
     }
-
+    
     if(is.null(ranef) || (ranef$cross == FALSE && ranef$nested == FALSE)){ ## no random effect or random intercept
         ff.cor <- ff.var   
         group <- NULL
     }else if(ranef$cross == FALSE && ranef$nested == TRUE){
         Ovar.cluster <- attr(var.cluster,"original")
-        if(!is.null(attr(var.cluster,"original")) && attr(var.cluster,"original") %in% ranef$vars){
+        if(!is.null(Ovar.cluster) && Ovar.cluster %in% ranef$vars){
             ## remove cluster level from formula 
             ff.cor <- stats::as.formula(paste0(var.strata,"~",paste0(setdiff(ranef$vars,Ovar.cluster), collapse = "+")))
         }else{
@@ -323,14 +327,14 @@ RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
     }else if(ranef$cross == TRUE && ranef$nested == TRUE){
         stop("Random effect structre with both nested and cross random effect not (yet!) possible. \n")
     }
-        
+
     ## groups of random effects
     n.group <- length(ranef$hierarchy)
     if(n.group>0){
         group <- unlist(lapply(1:n.group, function(iG){
             stats::setNames(rep(iG, length(ranef$hierarchy[[iG]])), ranef$hierarchy[[iG]])
         }))
-        if(attr(var.cluster,"original") %in% names(group)){
+        if(!missing(var.cluster) && attr(var.cluster,"original") %in% names(group)){
             groupCS <- group[names(group) != attr(var.cluster,"original")]
         }else{
             groupCS <- group
@@ -341,7 +345,6 @@ RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
     }
 
     ## ** create structure
-    
     out <- CS(list(variance = ff.var, correlation = ff.cor),
               var.cluster = var.cluster, var.time = var.time,
               type = "homogeneous",
@@ -904,9 +907,7 @@ CUSTOM <- function(formula, var.cluster, var.time,
         if(length(var.strata)==0){
             formula.var <- stats::as.formula(paste("~",paste(ls.var.X$variance,collapse=":")))
         }else{
-            formula.var <- stats::as.formula(paste("~0+",var.strata,"+",paste(paste(ls.var.X$variance,collapse=":"),var.strata,sep=":")))
-            ## stats::update(terms.var, paste0("~0+",out$name$strata,"+",out$name$strata,":."))
-            ## using ".:var.strata" does not work (it gives the same formula - does not invert . var.strata around the : symbol)
+            formula.var <- stats::as.formula(paste("~0+",var.strata,"+ ",paste(c(ls.var.X$variance, var.strata),collapse=":")))            
         }
     }
 
@@ -935,12 +936,15 @@ CUSTOM <- function(formula, var.cluster, var.time,
             }
         }else{
             if(correlation>1){
-                formula.cor <- stats::as.formula(paste("~0+",paste(c(ls.var.X$correlation,var.strata),collapse=":")))
-                ## formula.cor <- stats::as.formula(paste("~0+",var.strata,"+",paste(paste(ls.var.X$correlation,var.strata,sep=":"),collapse="+")))
+                formula.cor <- stats::as.formula(paste("~0 + ",paste(c(ls.var.X$correlation, var.strata), collapse=":")))
             }else{
-                formula.cor <- stats::as.formula(paste("~0+",paste(paste(ls.var.X$correlation,var.strata,sep=":"),collapse="+")))
-                ## stats::update(terms.var, paste0("~0+",out$name$strata,"+",out$name$strata,":."))
-                ## using ".:var.strata" does not work (it gives the same formula - does not invert . var.strata around the : symbol)
+                formula.cor <- stats::as.formula(paste("~0 + (",paste(ls.var.X$correlation, collapse="+"),"):",var.strata))
+                ## NOTE: wrapping the non-strata variable in () ensures proper ordering of the column names (i.e. strata variable at the end)
+                ##' df <- data.frame(day = c(1, 1, 2, 2, 1, 1, 2, 2),
+                ##'                  gender = c("1", "1", "1", "1", "0", "0", "0", "0"),
+                ##'                  session = c(1, 2, 3, 4, 1, 2, 3, 4))
+                ##' X <- stats::model.matrix(~0 + session:gender + day:gender, df)
+                ##' colnames(X) ## "session:gender0" "session:gender1" "gender0:day" "gender1:day"
             }
         }
     }

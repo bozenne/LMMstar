@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jul  6 2023 (18:01) 
+## Last-Updated: jul  7 2023 (18:10) 
 ##           By: Brice Ozenne
-##     Update #: 2613
+##     Update #: 2659
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -191,7 +191,6 @@ lmm <- function(formula, repetition, structure, data,
 
     ## *** Check all arguments, initialize all arguments but data and structure
     if(trace>=2){cat("- normalize argument")}
-
     outArgs <- .lmmNormalizeArgs(formula = formula, repetition = repetition, structure = structure, data = data,
                                  weights = weights, scale.Omega = scale.Omega,
                                  method.fit = method.fit, df = df, type.information = type.information, trace = trace, control = control,
@@ -251,11 +250,11 @@ lmm <- function(formula, repetition, structure, data,
                                         data = data,
                                         ranef = outArgs$ranef,
                                         var.outcome = var.outcome,
-                                        var.cluster = attr(var.cluster,"original"),
+                                        var.cluster = var.cluster,
                                         n.cluster = n.cluster,
-                                        var.time = attr(var.time,"original"),
+                                        var.time = var.time,
                                         n.time = n.time,
-                                        var.strata = attr(var.strata,"original"))
+                                        var.strata = var.strata)
     if(trace>=2){cat("\n")}
 
     ## *** store results
@@ -424,6 +423,12 @@ lmm <- function(formula, repetition, structure, data,
             if(detail.formula$special=="ranef" && !inherits(structure,"RE")){
                 stop("When random effects are specified in the argument \'formula\', argument \'structure\' must be \"RE\". \n")
             }
+            if(detail.formula$special=="ranef" && !is.na(structure$name$cor)){
+                stop("When random effects are specified in the argument \'formula\', argument \'structure\' should not specify the correlation structure. \n")
+            }
+            if(detail.formula$special=="ranef" && !is.na(structure$name$strata) && any(detail.formula$ranef$vars %in% structure$name$strata)){
+                stop("Strata variable in argument \'structure\' should not correspond to any random effect from argument \'formula\'. \n")
+            }
             if(!identical(structure$name$cluster, NA) && structure$name$cluster %in% names(data) == FALSE){
                 stop("Cluster variable in structure inconsistent with argument \'data\'. \n",
                      "Variable \"",structure$name$cluster,"\" could not be found in argument \'data\'. \n",
@@ -478,13 +483,13 @@ lmm <- function(formula, repetition, structure, data,
                 var.strata <- structure$name$strata
                 if(is.na(var.cluster) && !is.na(structure$name$cluster)){
                     var.cluster <- structure$name$cluster
-                }else if(!is.na(var.cluster) && !is.na(structure$name$cluster) && !identical(var.cluster, structure$name$cluster)){
+                }else if(!is.na(var.cluster) && !is.na(structure$name$cluster) && !identical(as.character(var.cluster)==as.character(structure$name$cluster))){
                     stop("Inconsistency between the cluster defined via the \'structure\' and the \'formula\' argument. \n",
                          "\"",paste(structure$name$cluster, collapse = "\" \""),"\" vs. \"",paste(var.cluster, collapse = "\" \""),"\" \n")
                 }
                 if(is.na(var.time) && !is.na(structure$name$time)){
                     var.time <- structure$name$time
-                }else if(!is.na(var.time) && !is.na(structure$name$time) && !identical(var.time, structure$name$time)){
+                }else if(!is.na(var.time) && !is.na(structure$name$time) && !identical(as.character(var.time)==as.character(structure$name$time))){
                     stop("Inconsistency between the time defined via the \'structure\' and the \'formula\' argument. \n",
                          "\"",paste(structure$name$time, collapse = "\" \""),"\" vs. \"",paste(var.time, collapse = "\" \""),"\" \n")
                 }
@@ -535,7 +540,7 @@ lmm <- function(formula, repetition, structure, data,
         ## compatibility structure/repetition
         if(!missing.structure && inherits(structure,"structure")){
             if(!is.na(structure$name$cluster)){
-                if(!is.na(cluster) && !identical(structure$name$cluster,detail.repetition$var$cluster)){
+                if(!is.na(var.cluster) && !identical(as.character(structure$name$cluster),as.character(detail.repetition$var$cluster))){
                     stop("Inconsistency between the cluster defined via the \'structure\' and the \'repetition\' argument. \n",
                          "\"",paste(structure$name$cluster, collapse = "\" \""),"\" vs. \"",paste(detail.repetition$var$cluster, collapse = "\" \""),"\" \n")
                 }else if(is.na(var.cluster)){
@@ -543,7 +548,7 @@ lmm <- function(formula, repetition, structure, data,
                 }
             }
             if(!is.na(structure$name$time)){
-                if(!is.na(time) && !identical(structure$name$time,detail.repetition$var$time)){
+                if(!is.na(var.time) && !identical(as.character(structure$name$time),as.character(detail.repetition$var$time))){
                     stop("Inconsistency between the time defined via the \'structure\' and the \'repetition\' argument. \n",
                          "\"",paste(structure$name$time, collapse = "\" \""),"\" vs. \"",paste(detail.repetition$var$time, collapse = "\" \""),"\" \n")
                 }else if(is.na(var.time)){
@@ -551,7 +556,7 @@ lmm <- function(formula, repetition, structure, data,
                 }
             }
             if(!is.na(structure$name$strata)){
-                if(!is.na(strata) && !identical(structure$name$strata,detail.repetition$var$strata)){
+                if(!is.na(var.strata) && !identical(as.character(structure$name$strata),as.character(detail.repetition$var$strata))){
                     stop("Inconsistency between the strata defined via the \'structure\' and the \'repetition\' argument. \n",
                          "\"",paste(structure$name$strata, collapse = "\" \""),"\" vs. \"",paste(detail.repetition$var$strata, collapse = "\" \""),"\" \n")
                 }else if(is.na(var.strata)){
@@ -811,7 +816,7 @@ lmm <- function(formula, repetition, structure, data,
         ## create new variable summarizing all variables
         data[["XXstrataXX"]] <- interaction(lapply(var.strata, function(iX){as.factor(data[[iX]])}), drop = TRUE)
         attr(var.strata, "original") <- var.strata
-    }else if(is.na(var.strata) || (identical(var.strata,"XXindexXX") && "XXindexXX" %in% names.data == FALSE)){
+    }else if(is.na(var.strata) || (identical(as.character(var.strata),"XXindexXX") && "XXindexXX" %in% names.data == FALSE)){
         data$XXstrataXX <- factor(1)
         var.strata <- "XXstrata.indexXX"
         attr(var.strata, "original") <- NA
@@ -932,17 +937,21 @@ lmm <- function(formula, repetition, structure, data,
 ##' @description Normalize structure argument for lmm
 ##' @noRd
 .lmmNormalizeStructure <- function(structure, data, ranef,
-                          var.outcome,
-                          var.cluster, n.cluster,
-                          var.time, n.time,
-                          var.strata){
+                                   var.outcome,
+                                   var.cluster, n.cluster,
+                                   var.time, n.time,
+                                   var.strata){
+
+    var.cluster.original <- attr(var.cluster,"original")
+    var.time.original <- attr(var.time,"original")
+    var.strata.original <- attr(var.strata,"original")
 
     ## ** initialize structure when not specified
     if(missing(structure) || is.null(structure)){
         if(!is.null(ranef$formula)){
             structure <- "RE"
         }else if(any(duplicated(data[["XXclusterXX"]]))){
-            if(all(is.na(var.time))){
+            if(all(is.na(var.time.original))){
                 structure <- "CS"
             }else{
                 structure <- "UN"
@@ -956,20 +965,20 @@ lmm <- function(formula, repetition, structure, data,
 
     ## ** check that time and cluster are appropriately defined with respect to structure
     if(is.character(structure)){
-        if(all(is.na(var.cluster)) && structure %in% c("CS","TOEPLITZ","UN")){
+        if(all(is.na(var.cluster.original)) && structure %in% c("CS","TOEPLITZ","UN")){
             stop("Incorrect specification of argument \'repetition\': missing cluster variable. \n",
                  "Should have exactly one variable after the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
         }
-        if(all(is.na(var.time)) && structure %in% c("IND","TOEPLITZ","UN")){
+        if(all(is.na(var.time.original)) && structure %in% c("IND","TOEPLITZ","UN")){
             stop("Incorrect specification of argument \'repetition\': missing time variable. \n",
                  "Should have exactly one variable before the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
         }
     }else if(inherits(structure,"structure")){
-        if(all(is.na(var.cluster)) && structure$class %in% c("CS","TOEPLITZ","UN")){
+        if(all(is.na(var.cluster.original)) && structure$class %in% c("CS","TOEPLITZ","UN")){
             stop("Incorrect specification of argument \'repetition\': missing cluster variable. \n",
                  "Should have exactly one variable after the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
         }
-        if(all(is.na(var.time)) && structure$class %in% c("IND","TOEPLITZ","UN") && all(is.na(structure$name$var[[1]]))){
+        if(all(is.na(var.time.original)) && structure$class %in% c("IND","TOEPLITZ","UN") && all(is.na(structure$name$var[[1]]))){
             stop("Incorrect specification of argument \'repetition\': missing time variable. \n",
                  "Should have exactly one variable before the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
         }
@@ -977,15 +986,21 @@ lmm <- function(formula, repetition, structure, data,
 
     ## ** update structure with cluster/time/strata variables
     var.clusterS <- "XXcluster.indexXX"
-    attr(var.clusterS,"original") <- var.cluster
+    attr(var.clusterS,"original") <- var.cluster.original
 
     var.timeS <- "XXtime.indexXX"
-    attr(var.timeS,"original") <- var.time
+    attr(var.timeS,"original") <- var.time.original
+
+    ## random effect not defined in formula or structure but can be guessed from repetition
+    if((inherits(structure,"RE") && is.null(structure$ranef) || identical(structure,"RE")) && is.null(ranef) && !is.null(var.cluster.original)){
+        ranef <- formula2var(stats::as.formula(paste0("~(1|",var.cluster.original,")")))$ranef
+    }
+
     if(inherits(structure,"structure")){
         if(inherits(structure,"RE")){
-            structure <- update(structure, var.cluster = var.clusterS, var.time = var.timeS, var.strata = var.strata, ranef = ranef)
+            structure <- update(structure, var.cluster = var.clusterS, var.time = var.timeS, var.strata = var.strata.original, ranef = ranef)
         }else{
-            structure <- update(structure, var.cluster = var.clusterS, var.time = var.timeS, var.strata = var.strata)
+            structure <- update(structure, var.cluster = var.clusterS, var.time = var.timeS, var.strata = var.strata.original)
         }
         
     }else if(is.character(structure)){
@@ -993,15 +1008,15 @@ lmm <- function(formula, repetition, structure, data,
                                var.time = var.timeS)
 
         if(structure %in% c("IND","UN","EXP","TOEPLITZ")){
-            args.structure$add.time <- var.time
+            args.structure$add.time <- var.time.original
         }else if(structure %in% "RE"){
             args.structure$ranef <- ranef
         }
         
-        if(is.na(var.strata)){
+        if(is.na(var.strata.original)){
             args.structure$formula <- ~1
         }else{
-            args.structure$formula <- stats::as.formula(paste(var.strata,"~1"))
+            args.structure$formula <- stats::as.formula(paste(var.strata.original,"~1"))
         }
         structure <- do.call(structure, args = args.structure)    
     }

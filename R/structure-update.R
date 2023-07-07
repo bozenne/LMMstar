@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul  5 2023 (14:01) 
 ## Version: 
-## Last-Updated: jul  6 2023 (18:03) 
+## Last-Updated: jul  7 2023 (12:01) 
 ##           By: Brice Ozenne
-##     Update #: 37
+##     Update #: 99
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -31,17 +31,18 @@ update.ID <- function(object, var.cluster, var.time, var.strata, ...){
     }
 
     ## ** what to update
-    if(is.na(object$name$strata) && !is.null(attr(var.strata,"original")) && !is.na(attr(var.strata,"original"))){
+    if(is.na(object$name$strata) && !is.null(var.strata) && !is.na(var.strata)){
         add.strata <- TRUE
     }else{
         add.strata <- FALSE
     }
-        
+
     ## ** update
     if(add.strata){
-        call.structure <- as.list(object$call)
-        fct.structure <- eval(call.structure[[1]])
-        args.structure <- eval(call.structure[-1])
+        call.structure <- object$call
+        ls.call.structure <- as.list(call.structure)
+        fct.structure <- eval(ls.call.structure[[1]])
+        args.structure <- lapply(ls.call.structure[-1], eval)
 
         if("var.cluster" %in% names(args.structure) == FALSE){
             args.structure$var.cluster <- var.cluster
@@ -51,14 +52,14 @@ update.ID <- function(object, var.cluster, var.time, var.strata, ...){
         }
 
         if(add.strata && is.list(args.structure$formula)){
-            args.structure$formula <- list(stats::update(stats::as.formula(args.structure$formula[[1]], stats::as.formula(paste0(var.strata,"~.")))),
-                                           stats::update(stats::as.formula(args.structure$formula[[2]], stats::as.formula(paste0(var.strata,"~.")))))
+            args.structure$formula <- list(stats::update(args.structure$formula[[1]], stats::as.formula(paste0(var.strata,"~."))),
+                                           stats::update(args.structure$formula[[2]], stats::as.formula(paste0(var.strata,"~."))))
         }else if(add.strata && inherits(args.structure$formula,"formula")){
-            args.structure$formula <- stats::update(stats::as.formula(args.structure$formula), stats::as.formula(paste0(var.strata2,"~.")))
+            args.structure$formula <- stats::update(args.structure$formula, stats::as.formula(paste0(var.strata,"~.")))
         }
 
         object <- do.call(fct.structure, args = args.structure)
-
+        object$call <- call.structure
     }else{
         if(is.na(object$name$cluster) && !is.na(var.cluster)){
             object$name$cluster <- var.cluster
@@ -87,7 +88,7 @@ update.IND <- function(object, var.cluster, var.time, var.strata, ...){
         add.time <- FALSE
     }
 
-    if(is.na(object$name$strata) && !is.null(attr(var.strata,"original")) && !is.na(attr(var.strata,"original"))){
+    if(is.na(object$name$strata) && !is.null(var.strata) && !is.na(var.strata)){
         add.strata <- TRUE
     }else{
         add.strata <- FALSE
@@ -95,9 +96,10 @@ update.IND <- function(object, var.cluster, var.time, var.strata, ...){
 
     ## ** update
     if(add.time || add.strata){
-        call.structure <- as.list(object$call)
-        fct.structure <- eval(call.structure[[1]])
-        args.structure <- eval(call.structure[-1])
+        call.structure <- object$call
+        ls.call.structure <- as.list(call.structure)
+        fct.structure <- eval(ls.call.structure[[1]])
+        args.structure <- lapply(ls.call.structure[-1], eval)
 
         if("var.cluster" %in% names(args.structure) == FALSE){
             args.structure$var.cluster <- var.cluster
@@ -108,16 +110,15 @@ update.IND <- function(object, var.cluster, var.time, var.strata, ...){
         if("add.time" %in% names(args.structure) == FALSE){
             args.structure$add.time <- attr(var.time,"original")
         }
-
         if(add.strata && is.list(args.structure$formula)){
-            args.structure$formula <- list(stats::update(stats::as.formula(args.structure$formula[[1]], stats::as.formula(paste0(var.strata,"~.")))),
-                                           stats::update(stats::as.formula(args.structure$formula[[2]], stats::as.formula(paste0(var.strata,"~.")))))
+            args.structure$formula <- list(stats::update(args.structure$formula[[1]], stats::as.formula(paste0(var.strata,"~."))),
+                                           stats::update(args.structure$formula[[2]], stats::as.formula(paste0(var.strata,"~."))))
         }else if(add.strata && inherits(args.structure$formula,"formula")){
-            args.structure$formula <- stats::update(stats::as.formula(args.structure$formula), stats::as.formula(paste0(var.strata2,"~.")))
+            args.structure$formula <- stats::update(args.structure$formula, stats::as.formula(paste0(var.strata,"~.")))
         }
 
         object <- do.call(fct.structure, args = args.structure)
-
+        object$call <- call.structure
     }else{
         if(is.na(object$name$cluster) && !is.na(var.cluster)){
             object$name$cluster <- var.cluster
@@ -135,17 +136,83 @@ update.IND <- function(object, var.cluster, var.time, var.strata, ...){
 update.CS <- update.ID
 
 ## * update.RE
+##' @param ranef Random effect structure identified via the formula argument of lmm (mean structure).
+##' @noRd
 update.RE <- function(object, var.cluster, var.time, var.strata, ranef, ...){
-    browser()
-    if(!missing(ranef)){
-        object$name$strata <- NA ## will be updated via var.strata
-        object$name$cor <- list(setdiff(ranef$vars,attr(var.cluster,"original")))
-        object$formula$var <- ~1
-        object$formula$cor <- stats::as.formula(paste("~0 +", paste(object$name$cor[[1]], collapse = "+")))
+
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
 
-    object <- update.ID(object = object, var.cluster = var.cluster, var.time = var.time, var.strata = var.strata, ...)
-    
+    ## ** what to update
+    if(is.na(object$name$strata) && !is.null(var.strata) && !is.na(var.strata)){
+        add.strata <- TRUE
+    }else{
+        add.strata <- FALSE
+    }
+
+    if(!missing(ranef) && !is.null(ranef) && is.null(object$ranef)){
+        ## handle the case where structure = RE(~strata) or RE(strata~1) whereas formula = Y ~ (1|id/session)
+        ## one needs to update the correlation formula with the ranef
+        add.RE <- TRUE
+    }else{
+        add.RE <- FALSE
+    }
+
+    ## ** update
+    if(add.strata || add.RE){
+        call.structure <- object$call
+        ranef.structure <- object$ranef
+
+        ls.call.structure <- as.list(call.structure)
+        fct.structure <- eval(ls.call.structure[[1]])
+        args.structure <- lapply(ls.call.structure[-1], eval)
+
+        if("var.cluster" %in% names(args.structure) == FALSE){
+            args.structure$var.cluster <- var.cluster
+        }
+        if("var.time" %in% names(args.structure) == FALSE){
+            args.structure$var.time <- var.time
+        }
+        if(add.RE){
+            if(add.strata==FALSE){
+                if(is.na(object$name$strata)){
+                    var.strata <- NULL
+                }else{
+                    var.strata <- object$name$strata
+                }
+            }
+            if(is.list(args.structure$formula)){
+                args.structure$formula <- list(stats::as.formula(paste0(var.strata,"~",paste(ranef$term,collapse=" + "))),
+                                               stats::as.formula(paste0(var.strata,"~",paste(ranef$term,collapse=" + "))))
+            }else if(inherits(args.structure$formula,"formula")){
+                args.structure$formula <- stats::as.formula(paste0(var.strata,"~",paste(ranef$term,collapse=" + ")))
+            }
+        }else if(add.strata){
+            if(is.list(args.structure$formula)){
+                args.structure$formula <- list(stats::update(args.structure$formula[[1]], stats::as.formula(paste0(var.strata,"~."))),
+                                               stats::update(args.structure$formula[[2]], stats::as.formula(paste0(var.strata,"~."))))
+            }else if(inherits(args.structure$formula,"formula")){
+                args.structure$formula <- stats::update(args.structure$formula, stats::as.formula(paste0(var.strata,"~.")))
+            }
+        }
+        object <- do.call(fct.structure, args = args.structure)
+        object$call <- call.structure
+        if(add.RE){
+            object$ranef <- ranef
+        }
+    }else{
+        if(is.na(object$name$cluster) && !is.na(var.cluster)){
+            object$name$cluster <- var.cluster
+        }
+        if(is.na(object$name$time) && !is.na(var.time)){
+            object$name$time <- var.time
+        }
+    }
+
+    ## ** export
+    return(object)
 
 }
 

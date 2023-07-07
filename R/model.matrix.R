@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: jul  6 2023 (18:03) 
+## Last-Updated: jul  7 2023 (14:21) 
 ##           By: Brice Ozenne
-##     Update #: 2535
+##     Update #: 2551
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -300,11 +300,11 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     }else{
         if(is.null(structure$param)){ ## structure
             if(!is.null(formula.var)){                
-                out$var <- .colnameOrder(.model.matrix_regularize(formula.var, data = dataVar, augmodel = TRUE, type = "variance", drop.X = drop.X), strata.var = strata.var, n.strata = n.strata)
+                out$var <- .model.matrix_regularize(formula.var, data = dataVar, augmodel = TRUE, type = "variance", drop.X = drop.X)
                 out$xfactor$var <- stats::.getXlevels(stats::terms(formula.var),stats::model.frame(formula.var,dataVar))
             }
             if(!is.null(formula.cor) && n.time>1 && any(sapply(index.cluster,length)>1)){  ## at least one individual with more than timepoint
-                out$cor <- .colnameOrder(.model.matrix_regularize(formula.cor, data = dataCor, augmodel = TRUE, type = "correlation", drop.X = drop.X), strata.var = strata.var, n.strata = n.strata)
+                out$cor <- .model.matrix_regularize(formula.cor, data = dataCor, augmodel = TRUE, type = "correlation", drop.X = drop.X)
                 out$xfactor$cor <- stats::.getXlevels(stats::terms(formula.cor),stats::model.frame(formula.cor,dataCor))
                 
             }
@@ -714,6 +714,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplifies =
     ## }
 
     ## ** create design matrix
+    ## order(data[,all.vars(formula)])
     X <- stats::model.matrix(formula,data)
     p <- NCOL(X)
 

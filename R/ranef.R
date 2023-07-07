@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 26 2022 (11:18) 
 ## Version: 
-## Last-Updated: jul  6 2023 (17:42) 
+## Last-Updated: jul  7 2023 (18:16) 
 ##           By: Brice Ozenne
-##     Update #: 233
+##     Update #: 264
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -62,15 +62,16 @@ ranef.lmm <- function(object, p = NULL){
     param.strata <- unlist(object$design$param[param.type=="rho","index.strata"])
 
     ## cluster 
-    cluster.var <- object$cluster$var
-    U.cluster <- object$design$cluster$levels
-    attr(cluster.var,"original") <- NULL
+    var.cluster <- object$cluster$var
+    n.cluster <- object$design$cluster$n
     index.cluster <- object$design$index.cluster
     Vindex.cluster <- attr(index.cluster, "vectorwise")
     
     ## strata
-    strata.var <- object$design$vcov$name$strata
-    indexCluster.strata <- tapply(object$design$vcov$X$Upattern$index.cluster,object$design$vcov$X$Upattern$index.strata,unlist, simplify = FALSE)
+    var.strata <- object$design$vcov$name$strata
+    index.clusterStrata <- object$design$index.clusterStrata
+    U.strata <- object$strata$levels
+    n.strata <- length(U.strata)
 
     ## design
     X.cor <- object$design$vcov$X$cor
@@ -78,6 +79,7 @@ ranef.lmm <- function(object, p = NULL){
     pattern.cluster <- object$design$vcov$X$pattern.cluster$pattern
     Upattern <- object$design$vcov$X$Upattern
     infoRanef <- object$design$vcov$ranef
+    name.hierarchy <- unlist(infoRanef$hierarchy, use.names = FALSE)
 
     ## missing values
     index.na <- object$index.na
@@ -103,110 +105,80 @@ ranef.lmm <- function(object, p = NULL){
     index.hierarchy <- unlist(lapply(1:n.hierarchy, function(iH){rep(iH, length(infoRanef$param[[iH]]))}))
     name.RE <- unname(unlist(lapply(infoRanef$param, rownames)))
     n.RE <- length(name.RE)
-    varRE <- stats::setNames(rep(NA, n.RE), name.RE)
-
+    varRE <- matrix(NA, nrow = n.RE, ncol = n.strata,
+                    dimnames =  list(name.RE, U.strata))
     for(iH in 1:n.hierarchy){ ## iH <- 1
         iHierarchy <- infoRanef$param[[iH]]
-        iCumTau <- apply(iHierarchy, MARGIN = 2, FUN = function(iName){
-            cumtau[iName] - head(c(0, cumsum(cumtau[iName])), -1)
+        varRE[rownames(iHierarchy),] <- apply(iHierarchy, MARGIN = 2, FUN = function(iName){
+            cumtau[iName] - c(0,utils::head(cumtau[iName],-1))
         })
-        browser()
-        varRE[] <- iCumTau
     }
     
-
-    if(infoRanef$type[,"nested"] && infoRanef$type[,"crossed"]){
-        stop("Cannot handle nested and crossed random effects. \n")
-    }else if(infoRanef$type[,"nested"]){
-        rho.strata <- cumrho.strata
-        tau.strata <- cumtau.strata
-    }else if(infoRanef$type[,"crossed"]){
-        rho.strata <- cumrho.strata
-        tau.strata <- cumtau.strata
-    }else{
-        rho.strata <- cumrho.strata
-        tau.strata <- cumtau.strata
+    if(any(varRE<=0)){
+        stop("Variance for the random effects is found to be negative - cannot estimate the random effects. \n")
     }
-
-ranefStructure <- object$design$vcov$ranef
     
-    
-    browser()
-
-    
-
-
-    nestingStructure <- .nestingRanef(object)
-    nesting.var <- attr(nestingStructure,"nesting.var")
-    index.clusterStrata <- as.character(attr(nestingStructure,"index.clusterStrata"))
-
-    ls.tau <- lapply(nestingStructure, function(iVec){ ## iVec <- nestingStructure[[1]]
-        iTau <- rev(c(utils::tail(cumtau[iVec],1),diff(rev(cumtau[iVec]))))
-        if(any(iTau<0)){
-            stop("Variance for the random effects is found to be negative - cannot estimate the random effects. \n")
-        }
-        return(iTau)
-    })
-    tau <- unlist(unname(ls.tau))
-
     ## ** extract raw residuals
     df.epsilon <- stats::residuals(object, p = p, keep.data = TRUE, type = "response", format = "long")
     if(length(index.na)>0){
         df.epsilon <- df.epsilon[-index.na,,drop=FALSE]
     }
+    df.epsilon.order <- df.epsilon[order(df.epsilon$XXcluster.indexXX),,drop=FALSE]
+    
     ## ** extract inverse residual variance-covariance matrix
-    U.indexcluster <- sort(unique(df.epsilon$XXcluster.indexXX))
-    ls.OmegaM1 <- stats::sigma(object, p = p, cluster = U.indexcluster, inverse = TRUE, simplifies = FALSE)
+    ls.OmegaM1 <- stats::sigma(object, p = p, cluster = unique(df.epsilon$XXcluster.indexXX), inverse = TRUE, simplifies = FALSE)
     ls.epsilon <- base::tapply(df.epsilon$r.response,df.epsilon$XXcluster.indexXX,list)## split residuals by id
 
     ## ** design matrix
-    OmegaM1epsilon <- mapply(x = ls.OmegaM1, y = ls.epsilon, FUN = `%*%`, SIMPLIFY = FALSE)
+    OmegaM1epsilon <- mapply(x = ls.OmegaM1 , y = ls.epsilon, FUN = `%*%`, SIMPLIFY = FALSE)
 
-    ## ** estimate first random effect
-    ls.tau1 <- lapply(ls.tau,function(iTau){utils::tail(iTau,1)})
-    G <- unlist(ls.tau1[index.clusterStrata])
-    out <- cbind(G * sapply(OmegaM1epsilon, colSums))
-    colnames(out) <- cluster.var
-    rownames(out) <- U.cluster[U.indexcluster]
+    ## ** estimate random effects
         
-    ## ** estimate following random effects
-    if(length(nesting.var)>0){
-        ls.rho2variable <- attr(nestingStructure, "rho2variable")
-        rho2variable <- do.call(rbind, ls.rho2variable)
-        rho2variable <- rho2variable[rho2variable$param %in% sapply(ls.tau1, names) == FALSE,,drop=FALSE]
+    ## flatten residuals
+    vec.OmegaM1epsilon <- unlist(OmegaM1epsilon)
+    out <- stats::setNames(vector(mode = "list", length = n.hierarchy),
+                           sapply(infoRanef$hierarchy,paste,collapse=":"))
 
-        ## flatten residuals
-        vec.OmegaM1epsilon <- unlist(OmegaM1epsilon)
-        Vindex.cluster.sorted <- Vindex.cluster[unlist(index.cluster)]
+    if(infoRanef$crossed == FALSE && infoRanef$nested == FALSE){
+        name.hierarchy <- infoRanef$hierarchy[[1]]
+        out[[1]] <- tapply(vec.OmegaM1epsilon, df.epsilon.order[[name.hierarchy]], sum) * varRE[,tapply(df.epsilon.order$XXstrataXX, df.epsilon.order[[name.hierarchy]], "[", 1)]
+        out[[1]] <- out[[1]][unique(df.epsilon[[name.hierarchy]])] ## re-order according to original data
+        
+    }else{
+        X.corA <- cbind(attr(index.cluster,"vectorwise"), X.cor)
+        colnames(X.corA)[1] <- var.cluster
 
-        ## align design matrix with residuals
-        X.cor.sorted <- X.cor[unlist(index.cluster),rho2variable$variable,drop=FALSE]
-        index.nesting.var <- which(colnames(X.cor.sorted) %in% nesting.var)
-        colnames(X.cor.sorted) <- stats::setNames(rho2variable$variable2, rho2variable$variable)[colnames(X.cor.sorted)]
+        if(infoRanef$nested == FALSE){
+            ## variance-covariance of the random effects per strata
+            ls.Tau <- apply(varRE, MARGIN = 2, diag, nrow = n.hierarchy, simplify = FALSE)        
+        }else{
+        }
+    
+    browser()
+    lapply(1:n.cluster, function(iC){ ## iC <- 1
+        iTau <- ls.Tau[[index.clusterStrata[iC]]]
+        iX <- X.corA[index.cluster[[iC]], name.hierarchy,drop=FALSE]
+        iZ1 <- model.matrix(~0+plate, data = data.frame(plate = as.factor(iX[,"plate"])))
+        iZ2 <- model.matrix(~0+sample, data = data.frame(sample = as.factor(iX[,"sample"])))
 
-        ## for each level of nesting
-        ls.ranef <- lapply(unique(rho2variable$assign), function(iV){ ## iV <- 1
+         t(iZ1) %*% vec.OmegaM1epsilon[index.cluster[[iC]]] / GS$plate
+         t(iZ2) %*% vec.OmegaM1epsilon[index.cluster[[iC]]] / GS$sample
+    })
+    ## tapply(vec.OmegaM1epsilon, df.epsilon.order$XXcluster.indexXX, function(iEp))
+
+    for(iH in 1:n.hierarchy){ ## iH <- 1
+        iVarH <- 
+        if(length(iVarH)==1){
+            browser()
             
-            iTable <- rho2variable[rho2variable$assign == iV,,drop=FALSE]
-            ## combine X across strata
-            iVec <- rowSums(X.cor.sorted[,iTable$variable2,drop=FALSE])
-            ## convert to factor and rename
-            iDf <- stats::setNames(list(as.factor(iVec)), rho2variable$term.labels2[iV])
-            ## expand design matrix relative to each factor level
-            iX <- model.matrix(stats::as.formula(paste("~ 0+",names(iDf))), iDf)[,paste0(names(iDf),setdiff(sort(unique(iVec)),0))]
-            ## find variance parameters (one for each strata)
-            iParam <- stats::setNames(tau[iTable$param], iTable$strata)
-            ## expand variance parameters across strata
-            iG <- iParam[index.clusterStrata]
-            ## compute random effects
-            iLs.zranef <- by(sweep(iX, MARGIN = 1, FUN = "*", STATS = vec.OmegaM1epsilon), INDICES = Vindex.cluster.sorted, FUN = colSums, simplify = FALSE)
-            iRanef <- sweep(do.call(rbind,iLs.zranef), MARGIN = 1, FUN = "*", STATS = iG)
-            colnames(iRanef) <- gsub("_X_XX_X_",":",colnames(iRanef))
-            rownames(iRanef) <- U.cluster[U.indexcluster]
-            return(iRanef)
 
-        })
-        out <- cbind(out,do.call(cbind,ls.ranef))
+            tapply(unlist(ls.epsilon), df.epsilon.order[[iVarH]], mean) / coef(object, effects = "variance")
+            
+            
+        }else if(length(iVarH)>1){
+            browser()
+        }
+    }
     }
 
     ## ** export

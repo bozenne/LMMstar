@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (13:27) 
 ## Version: 
-## Last-Updated: jul  6 2023 (16:05) 
+## Last-Updated: jul  7 2023 (14:31) 
 ##           By: Brice Ozenne
-##     Update #: 488
+##     Update #: 509
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -256,7 +256,7 @@
     return(structure)
 }
 
-## * skeletonRho.RE
+## * .skeletonRho.RE
 .skeletonRho.RE <- function(structure, data, 
                             U.cluster, index.cluster,
                             U.time, index.clusterTime, 
@@ -269,11 +269,11 @@
                                  U.strata = U.strata, index.clusterStrata = index.clusterStrata, sep = sep)
 
     ## ** relate correlation parameters to random effects
-    hierarchy <- structure$ranef$hierarchy
     n.strata <- length(U.strata)
-    ## per strata
+
+    ## *** extract hierarchy
+    hierarchy <- structure$ranef$hierarchy
     name.hierarchy <- unname(unlist(hierarchy))
-    index.hierarchy <- unname(unlist(lapply(1:length(hierarchy), function(iH){rep(iH, length(hierarchy[[iH]]))})))
     n.hierarchy <- length(name.hierarchy) 
     if(any(duplicated(name.hierarchy))){
         stop("Duplicated name(s) for the random effects: \"",paste(name.hierarchy[duplicated(name.hierarchy)], collapse = "\", \""),"\". \n",
@@ -285,23 +285,46 @@
         structure$ranef$param <- list(matrix(param.rho$name[param.rho$index.strata], nrow = n.hierarchy, ncol = n.strata,
                                              dimnames = list(name.hierarchy,U.strata)))
     }else{
+
+        ## prepare output
         structure$ranef$param <- lapply(hierarchy, function(iH){
             matrix(as.character(NA), nrow = length(iH), ncol = n.strata,
                    dimnames = list(iH,U.strata))
         })
         
-        ## convert from index of the linear predictor to design matrix
+        ## *** convert from index of the linear predictor to design matrix
+        M.level <- attr(structure$X$cor,"M.level")
         lp2X <- attr(structure$param,"lp2X")        
         var.cluster <- attr(structure$name$cluster,"original")
         if(!is.null(var.cluster) && var.cluster %in% name.hierarchy && var.cluster %in% colnames(lp2X) == FALSE){
             ## add cluster variable when missing
             lp2X <- cbind(1,lp2X)
             colnames(lp2X)[1] <- var.cluster
+            M.level <- cbind(TRUE,M.level)
+            colnames(M.level)[1] <- var.cluster
         }
-
-        ## find for each strata and hierarchy of variable the correlation parameter with
+        ## split hierarchy by strata (since the variable are name time:strata0 and time:strata1 instead of time)
+        if(n.strata==1){
+            name.hierarchy.strata <- list(stats::setNames(name.hierarchy,name.hierarchy))
+        }else{
+            name.hierarchy.strata <- lapply(U.strata, function(iStrata){ ## iStrata <- U.strata[1]
+                iM.level <- M.level[M.level[[structure$name$strata]]==iStrata,setdiff(name.hierarchy, var.cluster),drop=FALSE]
+                if(var.cluster %in% name.hierarchy){
+                    iOut <- stats::setNames(c(var.cluster,rownames(iM.level)),
+                                            c(var.cluster,colnames(iM.level)[which(iM.level==TRUE, arr.ind = TRUE)[,"col"]]))
+                }else{
+                    iOut <- stats::setNames(rownames(iM.level),
+                                            colnames(iM.level)[which(iM.level==TRUE, arr.ind = TRUE)[,"col"]])
+                }
+                return(iOut)
+            })
+        }
+        
+        ## *** find for each strata and hierarchy of variable the correlation parameter with
         ## - constant value within the variables of the hierarchy
         ## - variable values for the variables outside of the hierarchy
+        index.hierarchy <- unname(unlist(lapply(1:length(hierarchy), function(iH){rep(iH, length(hierarchy[[iH]]))})))
+
         for(iS in 1:n.strata){ ## iS <- 1
             iParam.rho <- structure$param[structure$param$type=="rho" & is.na(structure$param$constraint) & structure$param$index.strata==iS,,drop=FALSE]
             iName.rho <- iParam.rho$name
@@ -310,7 +333,7 @@
             iCodeY.rho <- stats::setNames(iParam.rho$index.lp.y, iName.rho)
             
             iEqual <- do.call(rbind,lapply(iName.rho, function(iRho){ ## iRho <- iName.rho[1]
-                colSums(lp2X[iCodeX.rho[[iRho]],,drop=FALSE] - lp2X[iCodeY.rho[[iRho]],,drop=FALSE] != 0)==0
+                colSums(lp2X[iCodeX.rho[[iRho]],name.hierarchy.strata[[iS]],drop=FALSE] - lp2X[iCodeY.rho[[iRho]],name.hierarchy.strata[[iS]],drop=FALSE] != 0)==0
             }))
             rownames(iEqual) <- iName.rho
 
@@ -319,10 +342,12 @@
                 iPosition <- which(iHierarchy==name.hierarchy[iH])
                 iVarIdentical <- iHierarchy[1:iPosition]
                 iVarDifferent <- setdiff(structure$ranef$vars, iVarIdentical)
+                iVarIdentical2 <- name.hierarchy.strata[[iS]][iVarIdentical]
+                iVarDifferent2 <- name.hierarchy.strata[[iS]][iVarDifferent]
                 if(length(iVarDifferent)==0){
-                    iTest <- rowSums(iEqual[,iVarIdentical,drop=FALSE]==FALSE)
+                    iTest <- rowSums(iEqual[,iVarIdentical2,drop=FALSE]==FALSE)
                 }else{
-                    iTest <- rowSums(iEqual[,iVarIdentical,drop=FALSE]==FALSE) + rowSums(iEqual[,iVarDifferent,drop=FALSE]==TRUE)
+                    iTest <- rowSums(iEqual[,iVarIdentical2,drop=FALSE]==FALSE) + rowSums(iEqual[,iVarDifferent2,drop=FALSE]==TRUE)
                 }
                 iRho <- names(which(iTest==0))
                 if(length(iRho)!=1){
@@ -334,12 +359,12 @@
             }
         }
     }
-    
+
     ## ** export
     return(structure)
 }
 
-## * skeletonRho.TOEPLITZ
+## * .skeletonRho.TOEPLITZ
 .skeletonRho.TOEPLITZ <- function(structure, data, 
                                 U.cluster, index.cluster,
                                 U.time, index.clusterTime, 
@@ -496,7 +521,7 @@
     return(structure)
 }
 
-## * skeletonRho.UN
+## * .skeletonRho.UN
 .skeletonRho.UN <- function(structure, data, 
                             U.cluster, index.cluster,
                             U.time, index.clusterTime, 
@@ -581,7 +606,7 @@
     return(structure)
 }
 
-## * skeletonRho.EXP
+## * .skeletonRho.EXP
 .skeletonRho.EXP <- function(structure, data, 
                            U.cluster, index.cluster,
                            U.time, index.clusterTime, 
@@ -728,9 +753,25 @@
 }
 
 ## ** .colnameOrder
-## reorder the variable in the column name
-.colnameOrder <- function(X, strata.var, n.strata){
+##' @description Reorder the column names such that the strata variable is at the end
+##' @noRd
+##' 
+##' @examples
+##' df <- data.frame(day = c(1, 1, 2, 2, 1, 1, 2, 2),
+##'                  gender = c("1", "1", "1", "1", "0", "0", "0", "0"),
+##'                  session = c(1, 2, 3, 4, 1, 2, 3, 4))
+##' X <- stats::model.matrix(~0 + session:gender + day:gender, df)
+##' colnames(X) ## "session:gender0" "session:gender1" "gender0:day" "gender1:day"
+##'
+##' X2 <- .model.matrix_regularize(~0 + session:gender + day:gender, df, augmodel = TRUE)
+##' colnames(X2) ## "session:gender0" "session:gender1" "gender0:day" "gender1:day"
+##' 
+##' X3 <- .colnameOrder(X2, strata.var = "gender", n.strata = 2)
+##' colnames(X3) ## "session:gender0" "session:gender1" "day:gender0" "day:gender1"    
+##'
+##' stats::model.matrix(~ 0+(day+session):gender, df[order(df$gender),])
 
+.colnameOrder <- function(X, strata.var, n.strata){
     attr(X,"original.colnames") <- colnames(X)
     if(n.strata>1){
         attr(X,"ls.level") <- lapply(attr(X,"ls.level"), function(iL){
@@ -744,6 +785,8 @@
             return(paste(paste0(names(iL),as.character(iL)),collapse = ":"))
         }))
         colnames(X) <- X.newname
+        rownames(attr(X,"M.level")) <- X.newname
+        names(attr(X,"ls.level")) <- X.newname
     }
     
     return(X)    
