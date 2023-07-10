@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: jul  7 2023 (18:16) 
+## Last-Updated: Jul 10 2023 (12:40) 
 ##           By: Brice Ozenne
-##     Update #: 165
+##     Update #: 166
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -501,6 +501,61 @@ data(Penicillin, package = "lme4")
 Penicillin$id <- 1
 
 eCRI2.lmer <- lmer(diameter ~ (1|plate) + (1|sample), data = Penicillin)
+y.lmer <- as.matrix(getME(eCRI2.lmer, "y") )
+X.lmer <- as.matrix(getME(eCRI2.lmer, "X") )
+Z.lmer <- as.matrix(getME(eCRI2.lmer, "Z") )
+Lambda.lmer <- as.matrix(getME(eCRI2.lmer,"Lambda"))
+G.lmer <- as.matrix(sigma(eCRI2.lmer)^2*crossprod(t(Lambda.lmer)))
+Omega.lmer <- Z.lmer %*% G.lmer %*% t(Z.lmer) + sigma(eCRI2.lmer)^2*diag(NROW(Z.lmer))
+epsilon.lmer <- residuals(eCRI2.lmer)
+
+test <- G.lmer %*% t(Z.lmer) %*% solve(Omega.lmer) %*% epsilon.lmer
+GS <- do.call(rbind,ranef(eCRI2.lmer))
+cbind(test,GS,test/GS)
+
+LHS <- c(t(Lambda.lmer) %*% t(Z.lmer) %*% y.lmer, t(X.lmer) %*% y.lmer)
+B1 <- crossprod(Z.lmer %*% Lambda.lmer) + diag(1, NCOL(Z.lmer))
+B2 <- t(X.lmer) %*% Z.lmer %*% Lambda.lmer
+B3 <- crossprod(X.lmer)
+solve(B3) %*% tail(LHS,1)
+
+RHS <- rbind(cbind(B1,t(B2)),
+             cbind(B2, B3))
+hat <- solve(RHS) %*% LHS
+
+Lambda.lmer %*% head(,-1)
+
+GS.u
+GS.b
+
+table(G.lmer)
+
+residuals(eCRI2.lmm)
+
+L <- getME(eCRI2.lmer,"L")
+Lambdat <- getME(eCRI2.lmer,"Lambdat")
+Zt <- getME(eCRI2.lmer,"Zt")
+X <- getME(eCRI2.lmer,"X")
+y <- getME(eCRI2.lmer,"y")
+W <- diag(1, NROW(X))
+ZtWy <- Zt %*% W %*% y
+
+ZtWX <- Zt %*% W %*% X
+XtWy <- t(X) %*% W %*% y
+XtWX <- t(X) %*% W %*% X
+
+cu <- as.vector(solve(L, solve(L, Lambdat %*% ZtWy, system="P"), system="L"))
+RZX <- as.vector(solve(L, solve(L, Lambdat %*% ZtWX,
+                                system="P"), system="L"))
+RXtRX <- as(XtWX - crossprod(RZX), "dpoMatrix")
+beta <- as.vector(solve(RXtRX, XtWy - crossprod(RZX, cu)))
+GS.u <- as.vector(solve(L, solve(L, cu - RZX * beta, system = "Lt"), system="Pt"))
+GS.b <- as.vector(crossprod(Lambdat,GS.u))
+GS.b
+
+u/b
+b/u
+do.call(rbind,ranef(eCRI2.lmer))
 
 test_that("Crossed random intercept model (2 terms)",{
 
@@ -569,16 +624,23 @@ summary(eCRI3.lmer)
 
 ## * Nested random intercept model (2 levels)
 ## https://stats.stackexchange.com/questions/228800/crossed-vs-nested-random-effects-how-do-they-differ-and-how-are-they-specified
-## dt <- read.table("http://bayes.acs.unt.edu:8083/BayesContent/class/Jon/R_SC/Module9/lmm.data.txt",
-##                    header=TRUE, sep=",", na.strings="NA", dec=".", strip.white=TRUE)
-# data was previously publicly available from
-# http://researchsupport.unt.edu/class/Jon/R_SC/Module9/lmm.data.txt
-# but the link is now broken
+## df.school <- read.table("http://bayes.acs.unt.edu:8083/BayesContent/class/Jon/R_SC/Module9/lmm.data.txt",
+##                  header=TRUE, sep=",", na.strings="NA", dec=".", strip.white=TRUE)
 ## eNRI2.lmer <- lmer(extro ~ open + agree + social + (1 | school/class), data = dt)
+## dt.red <- as.data.table(dt)[,.SD[1:10,.(id,extro=round(extro,2))],by = c("class","school")]
+## setkeyv(dt.red, c("school","class"))
+## dt.red$id <- 1:NROW(dt.red)
 
-data(cake, package = "lme4")
+dt.red <- data.table("class" = rep(unlist(lapply(c("a","b","c","d"),rep,10)), 6), 
+           "school" = unlist(lapply(c("I","II","III","IV","V","VI"),rep,40)), 
+           "id" = 1:240, 
+           "extro" = c(41.10, 43.24, 42.15, 43.72, 40.59, 41.38, 35.43, 39.46, 41.06, 38.96, 47.24, 45.77, 44.32, 47.34, 45.06, 47.01, 46.07, 44.41, 45.30, 45.20, 47.65, 47.76, 48.59, 47.46, 48.63, 48.31, 49.28, 47.81, 49.01, 48.00, 50.97, 49.28, 49.66, 50.32, 49.33, 49.87, 50.87, 51.43, 50.95, 50.87, 52.02, 51.67, 52.62, 51.96, 51.88, 52.56, 51.54, 52.08, 52.76, 52.69, 53.69, 54.10, 54.07, 53.70, 53.03, 53.88, 53.80, 53.50, 53.42, 53.17, 55.17, 54.58, 55.06, 54.40, 54.86, 54.45, 55.27, 54.60, 55.33, 54.81, 55.63, 55.65, 55.96, 56.01, 55.58, 56.01, 56.08, 55.47, 56.07, 55.56, 56.68, 57.30, 56.84, 57.24, 56.57, 56.94, 56.81, 57.11, 57.04, 56.35, 57.75, 57.84, 57.66, 58.03, 58.22, 57.50, 57.54, 57.42, 58.11, 58.08, 59.03, 58.41, 59.04, 59.09, 58.94, 58.39, 58.30, 58.80, 58.95, 58.35, 60.15, 59.45, 59.43, 59.98, 59.40, 60.05, 60.00, 59.90, 59.93, 59.80, 60.65, 60.84, 60.66, 60.31, 60.98, 60.75, 60.60, 60.42, 60.74, 60.17, 62.29, 61.84, 61.57, 61.17, 62.12, 61.59, 61.42, 61.36, 61.67, 62.12, 62.97, 63.15, 62.82, 62.84, 63.29, 62.68, 62.45, 63.21, 62.80, 62.75, 63.69, 64.25, 64.18, 64.14, 63.72, 63.42, 64.18, 63.68, 63.48, 64.04, 64.62, 65.13, 65.40, 65.23, 64.56, 64.63, 64.81, 64.31, 64.76, 64.44, 65.92, 66.49, 66.28, 65.68, 66.03, 66.46, 65.62, 66.01, 65.61, 66.10, 66.57, 66.98, 66.55, 66.96, 66.64, 67.24, 67.23, 67.34, 66.94, 67.30, 67.94, 68.01, 68.73, 68.61, 68.89, 68.91, 68.84, 68.06, 68.13, 68.93, 69.48, 70.12, 70.17, 70.67, 70.60, 69.62, 70.16, 70.65, 70.34, 69.87, 71.79, 71.36, 72.45, 71.07, 70.87, 70.94, 71.25, 72.48, 72.04, 71.67, 74.35, 74.70, 73.14, 74.44, 73.98, 75.03, 74.21, 76.51, 75.94, 73.42, 79.74, 78.15, 78.19, 83.34, 80.11, 79.73, 80.64, 77.07, 78.02, 82.25))
 
-eNRI2.lmer <- lmer(angle ~ recipe * temperature + (1|recipe:replicate), data = cake)
+
+eNRI2.lmer <- lmer(extro ~ (1|school/class), data = dt.red)
+ranef(eNRI2.lmer)
+
+
 
 test_that("Nested random intercept model (2 levels)",{
 
