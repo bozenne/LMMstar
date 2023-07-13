@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jul  5 2023 (19:16) 
+## Last-Updated: jul 11 2023 (11:37) 
 ##           By: Brice Ozenne
-##     Update #: 1220
+##     Update #: 1233
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -77,6 +77,7 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
 
     n.cluster.original <- object$cluster$n
     n.cluster.design <- object$design$cluster$n
+    n.strata <- object$strata$n
     
     ## ** normalize user input
     dots <- list(...)
@@ -204,11 +205,11 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
             hide.var <- TRUE
         }
         if(inherits(structure,"RE")){
-            if(structure.ranef$type$crossed==FALSE && structure.ranef$type$nested==FALSE){
+            if(structure.ranef$crossed==FALSE && structure.ranef$nested==FALSE){
                 cat("random intercept \n", sep = "")
-            }else if(structure.ranef$type$crossed==FALSE && structure.ranef$type$nested==TRUE){
+            }else if(structure.ranef$crossed==FALSE && structure.ranef$nested==TRUE){
                 cat("nested random intercepts \n", sep = "")
-            }else if(structure.ranef$type$crossed==TRUE && structure.ranef$type$nested==FALSE){
+            }else if(structure.ranef$crossed==TRUE && structure.ranef$nested==FALSE){
                 cat("cross random intercepts \n", sep = "")
             }else{
                 cat("random effects \n", sep = "")
@@ -339,6 +340,34 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
         print(printtable, digits = digits)
     }
     if(print && !hide.re){
+        cat("  - variance decomposition:",deparse(structure.ranef$formula),"\n")
+        e.sigma2 <- coef(object, effects = "variance")^2
+        e.tauL <- nlme::ranef(object, effects = "variance", format = "long", keep.strata = TRUE)
+        e.tauW <- stats::reshape(e.tauL[e.tauL$type == "variance",],
+                                 direction = "wide",
+                                 idvar = "variable",
+                                 timevar = ifelse(n.strata==1,"XXstrataXX",object$strata$var),
+                                 times = object$strata$levels,
+                                 sep = ".")
+        rownames(e.tauW) <- e.tauW$variable
+        e.residual <- e.sigma2 - colSums(e.tauW[paste("estimate",object$strata$levels,sep=".")])
+
+        table.re <- as.data.frame(rbind(total = e.sigma2,
+                                        e.tauW[paste("estimate",object$strata$levels,sep=".")],
+                                        residual = e.residual))
+        if(n.strata==1){
+            names(table.re) <- "variance"
+            table.re <- cbind(table.re, "%" = 100*table.re$variance/table.re["total","variance"], sd = sqrt(table.re$variance))
+            printtable <- table.re
+            printtable["total","%"] <- NA
+            rownames(printtable) <- paste0("    ",rownames(printtable))
+        }else{
+            browser()
+            names(table.re) <- colnames(e.tau)
+        }
+        print(as.matrix(printtable), digits = digits, na.print = "" , quote = FALSE)
+    }else{
+        table.re <- NULL
     }
 
     
@@ -376,6 +405,7 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
     return(invisible(list(correlation = table.cor,
                           variance = table.var,
                           sd = table.sd,
+                          re = table.re,
                           mean = table.mean)))
 }
 

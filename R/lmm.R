@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jul  7 2023 (18:10) 
+## Last-Updated: jul 12 2023 (10:38) 
 ##           By: Brice Ozenne
-##     Update #: 2659
+##     Update #: 2707
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -210,8 +210,7 @@ lmm <- function(formula, repetition, structure, data,
                                  var.time = outArgs$var.time,
                                  var.strata = outArgs$var.strata,                         
                                  droplevels = TRUE,
-                                 initialize.cluster = outArgs$ranef$crossed,
-                                 from = "lmm")
+                                 initialize.cluster = outArgs$ranef$crossed)
     data <- outData$data
     var.cluster <- outData$var.cluster
     var.time <- outData$var.time
@@ -300,7 +299,8 @@ lmm <- function(formula, repetition, structure, data,
 
     ## *** update xfactor according to factors used in the vcov structure
     ## NOTE: use model.frame to handline splines in the formula
-    out$xfactor <- c(list(mean = stats::.getXlevels(stats::terms(out$formula$mean.design),stats::model.frame(out$formula$mean.design,data))),
+    out$xfactor <- c(list(mean = stats::.getXlevels(stats::terms(out$formula$mean.design),
+                                                    stats::model.frame(out$formula$mean.design,data))),
                      out$design$vcov$xfactor)
     out$design$vcov$xfactor <- NULL
     
@@ -682,17 +682,22 @@ lmm <- function(formula, repetition, structure, data,
 ##' @param droplevels [logical] should un-used levels in cluster/time/strata be removed?
 ##' @param initalize.cluster [logical] when the cluster variable is NA/NULL,
 ##' should a different cluster per observation be used (0) or the same cluster for all observations (1)
-##' @param from [character] can be from \code{"lmm"} or \code{"model.matrix"}.
-##' In the latter case not all the data preparation is necessary and empty levels should be kept.
 ##' 
 ##' @noRd
-.lmmNormalizeData <- function(data, var.outcome, var.cluster, var.time, var.strata, droplevels, initialize.cluster, from){
+.lmmNormalizeData <- function(data, var.outcome, var.cluster, var.time, var.strata, droplevels, initialize.cluster){
 
-    ## ** tests
+
+    ## ** normalize
     if(is.null(var.outcome)){var.outcome <- NA}
     if(is.null(var.cluster)){var.cluster <- NA}
     if(is.null(var.time)){var.time <- NA}
     if(is.null(var.strata)){var.strata <- NA}
+
+    out <- list(var.cluster = var.cluster,
+                var.time = var.time,
+                var.strata = var.strata)
+
+    ## ** test
     names.data <- names(data)
     if("XXindexXX" %in% names.data){
         stop("Argument \'data\' should not contain a column named \"XXindexXX\" as this name is used internally by the lmm function. \n")
@@ -738,17 +743,18 @@ lmm <- function(formula, repetition, structure, data,
 
     ## ** cluster
     if(is.na(var.cluster)){
-        if(initialize.cluster==1){
+        if(!is.null(initialize.cluster) && initialize.cluster==1){
             if(any(duplicated(data[,var.time]))){
                 stop("Incorrect specification of argument \'repetition\': missing cluster variable. \n",
                      "Cannot guess the cluster variable with non-unique levels for the cross random effects. \n")
             }
             data$XXclusterXX <- as.factor("1")
         }else{
-            data$XXclusterXX <- as.factor(sprintf(paste0("%0",ceiling(log10(NROW(data)))+0.1,"d"), 1:NROW(data)))
+            data$XXclusterXX <- addLeading0(1:NROW(data), as.factor = TRUE, code = attr(var.cluster,"code"))
         }
-        var.cluster <- "XXclusterXX"
-        attr(var.cluster, "original") <- NA
+
+        out$var.cluster <- "XXclusterXX"
+        attr(out$var.cluster, "original") <- NA
     }else{
         if(is.factor(data[[var.cluster]])){
             if(droplevels){
@@ -757,44 +763,26 @@ lmm <- function(formula, repetition, structure, data,
                 data$XXclusterXX <- data[[var.cluster]]
             }
         }else if(is.numeric(data[[var.cluster]]) && all(data[[var.cluster]] %% 1 == 0)){
-            data$XXclusterXX <- as.factor(sprintf(paste0("%0",ceiling(log10(max(abs(data[[var.cluster]])))+0.1),"d"), data[[var.cluster]]))
+            data$XXclusterXX <- addLeading0(data[[var.cluster]], as.factor = TRUE, code = attr(var.cluster,"code"))
         }else{
             data$XXclusterXX <- factor(data[[var.cluster]], levels = sort(unique(data[[var.cluster]])))
         }
-        attr(var.cluster, "original") <- var.cluster
+        attr(out$var.cluster, "original") <- var.cluster
     }
-    data$XXcluster.indexXX <- as.numeric(droplevels(data$XXclusterXX))
 
     ## ** time
     if(length(var.time)>1){
         ## create new variable summarizing all variables
-        data[["XXtimeXX"]] <- interaction(lapply(var.time, function(iX){as.factor(data[[iX]])}), drop = TRUE)
-        attr(var.time, "original") <- var.time
-        
-        ## ## try to handle the case where time in cluster 1 is (C1,S1) (C1,S2) (C1,S3) while it is (C2,S1) (C2,S2) (C2,S3)
-        ## ## i.e. unify time across clusters
-        ## interaction.tempo <-  <- interaction(lapply(var.time, function(iX){as.factor(data[[iX]])}), drop = TRUE)
-        ## data[["XXtime.indexXX"]] <- NA
-        ## for(iCluster in unique(data[[var.cluster]])){ ## iCluster <- 1
-        ##     data[["XXtime.indexXX"]][data[[var.cluster]]==iCluster] <- as.numeric(droplevels(interaction.tempo[data[[var.cluster]]==iCluster]))
-        ## }
-        ## data[["XXtimeXX"]] <- factor(data[["XXtime.indexXX"]], labels = levels(interaction.tempo)[1:max(data[["XXtime.indexXX"]])])
+        data[["XXtimeXX"]] <- nlme::collapse(lapply(var.time, function(iX){as.factor(data[[iX]])}), as.factor = TRUE)
 
+        out$var.time <- "XXtimeXX"
+        attr(out$var.time, "original") <- var.time     
     }else if(is.na(var.time)){
-        iTime <- tapply(data$XXclusterXX, data$XXclusterXX, function(iC){1:length(iC)})
-        iIndex <- split(1:NROW(data), data$XXclusterXX)
-        if(is.list(iIndex)){
-            iIndex <- unlist(iIndex)
-            iTime <- unlist(iTime)
-        }
-        data[iIndex,"XXtimeXX"] <- as.factor(sprintf(paste0("%0",ceiling(log10(max(iTime))+0.1),"d"), iTime))
-        data$XXtime.indexXX <- as.numeric(droplevels(data$XXtimeXX))
-
-        var.time <- "XXtimeXX"
-        attr(var.time, "original") <- NA
-    }else if(from=="model.matrix"){
-        ## from model.matrix: prediction for new data where the time variable has already be nicely reformated to factor
-        data$XXtimeXX <- data[[var.time]]
+        iSplit <- do.call(rbind,by(data, data$XXclusterXX, FUN = function(iDF){cbind(XXindexXX = iDF$XXindexXX, XXtimeXX = 1:NROW(iDF))}))
+        data[iSplit[,"XXindexXX"],"XXtimeXX"] <- addLeading0(iSplit[,"XXtimeXX"], as.factor = TRUE, code = attr(var.time,"code"))
+        
+        out$var.time <- "XXtimeXX"
+        attr(out$var.time, "original") <- NA
     }else{
         if(is.factor(data[[var.time]])){
             if(droplevels){
@@ -803,37 +791,45 @@ lmm <- function(formula, repetition, structure, data,
                 data$XXtimeXX <- data[[var.time]]
             }
         }else if(is.numeric(data[[var.time]]) && all(data[[var.time]] %% 1 == 0)){
-            data$XXtimeXX <- as.factor(sprintf(paste0("%0",ceiling(log10(max(abs(data[[var.time]])))+0.1),"d"), data[[var.time]]))
+            data$XXtimeXX <- addLeading0(data[[var.time]], as.factor = TRUE, code = attr(var.time,"code"))
         }else{
             data$XXtimeXX <- factor(data[[var.time]], levels = sort(unique(data[[var.time]])))
         }
-        attr(var.time, "original") <- var.time
+        attr(out$var.time, "original") <- var.time
     }
-    data$XXtime.indexXX <- as.numeric(data$XXtimeXX)
+
+    if(!is.null(attr(var.time,"level"))){ ## from model.matrix to restaure levels used when fitting the lmm
+        data$XXtimeXX <- factor(data$XXtimeXX, attr(var.time,"level"))
+    }
 
     ## ** strata
-    if(length(var.strata)>1){
-        ## create new variable summarizing all variables
-        data[["XXstrataXX"]] <- interaction(lapply(var.strata, function(iX){as.factor(data[[iX]])}), drop = TRUE)
-        attr(var.strata, "original") <- var.strata
-    }else if(is.na(var.strata) || (identical(as.character(var.strata),"XXindexXX") && "XXindexXX" %in% names.data == FALSE)){
+    ## NOTE: .formulaStructure makes sure that there is at most 1 strata variable
+    if(is.na(var.strata)){
         data$XXstrataXX <- factor(1)
-        var.strata <- "XXstrata.indexXX"
-        attr(var.strata, "original") <- NA
+
+        out$var.strata <- "XXstrata.indexXX"
+        attr(out$var.strata, "original") <- NA
     }else{
-        if(is.factor(data[[var.strata]]) && from == "lmm"){
+        if(is.factor(data[[var.strata]])){
             if(droplevels){
                 data$XXstrataXX <- droplevels(data[[var.strata]])
             }else{
                 data$XXstrataXX <- data[[var.strata]]
             }
         }else if(is.numeric(data[[var.strata]]) && all(data[[var.strata]] %% 1 == 0)){
-            data$XXstrataXX <- as.factor(sprintf(paste0("%0",ceiling(log10(max(abs(data[[var.strata]])))+0.1),"d"), data[[var.strata]]))
+            data$XXstrataXX <- addLeading0(data[[var.strata]], as.factor = TRUE, code = attr(var.strata,"code"))
         }else{
             data$XXstrataXX <- factor(data[[var.strata]], levels = sort(unique(data[[var.strata]])))
         }
-        attr(var.strata, "original") <- var.strata
+        attr(out$var.strata, "original") <- var.strata
     }
+    if(!is.null(attr(var.time,"level"))){ ## from model.matrix to restaure levels used when fitting the lmm
+        data$XXstrataXX <- factor(data$XXstrataXX, attr(var.time,"level"))
+    }
+
+    ## ** indicators
+    data$XXcluster.indexXX <- as.numeric(data$XXclusterXX)
+    data$XXtime.indexXX <- as.numeric(data$XXtimeXX)
     data$XXstrata.indexXX <- as.numeric(data$XXstrataXX)
 
     ## ** check distinct time and unique strata values within clusters
@@ -926,11 +922,9 @@ lmm <- function(formula, repetition, structure, data,
     }
 
     ## ** export
-    return(list(data = data,
-                var.cluster = var.cluster,
-                var.time = var.time,
-                var.strata = var.strata,
-                index.na = index.na))
+    out$data <- data
+    out$index.na <- index.na
+    return(out)
 }
 
 ## * .lmmNormalizeStructure

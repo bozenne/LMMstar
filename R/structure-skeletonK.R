@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (11:55) 
 ## Version: 
-## Last-Updated: jul  6 2023 (13:41) 
+## Last-Updated: jul 12 2023 (18:42) 
 ##           By: Brice Ozenne
-##     Update #: 40
+##     Update #: 54
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -44,7 +44,8 @@
 
     ## ** extract information
     strata.var <- structure$name$strata
-    X.var <- structure$X$var
+    X.var <- structure$var$X
+    lp2X.var <- structure$var$lp2X
     if(NCOL(X.var)==0){
         n.strata <- 0
     }else{
@@ -54,34 +55,34 @@
     strata.sigma <- structure$param[structure$param$type=="sigma","index.strata"]
     
     ## ** identify and name parameters
-    index.k <- which(attr(X.var,"assign")>(n.strata>1)) ## complement with structure$param$$index.level
+    index.k <- which(attr(X.var,"assign")>(n.strata>1)) ## complement with structure$param$index.level
     if(length(index.k)==0){return(structure)} ## no variance multiplier
-    
+
     M.level.k <- attr(X.var,"M.level")[index.k,,drop=FALSE]
-    vec.level.k <- as.character(interaction(as.data.frame(lapply(1:NCOL(M.level.k), function(iVar){
+    vec.level.k <- nlme::collapse(lapply(1:NCOL(M.level.k), function(iVar){
         paste0(names(M.level.k)[iVar],M.level.k[,iVar])
-    })), sep = sep[2], drop = TRUE) )
+    }), sep = sep[2], as.factor = FALSE) 
 
     if(n.strata==1 || NCOL(M.level.k)>1){ ## no strata or strata with covariate
-        level.k <- paste0(sep[1],as.character(interaction(M.level.k, sep = sep[2], drop = TRUE)))
+        level.k <- paste0(sep[1],nlme::collapse(M.level.k, sep = sep[2], as.factor = FALSE))
     }else{ ## only strata
-        level.k <- as.character(interaction(M.level.k, sep = sep[2], drop = TRUE))
+        level.k <- nlme::collapse(M.level.k, sep = sep[2], as.factor = FALSE)
     }
         
     if(!identical(colnames(X.var)[index.k],vec.level.k)){
         stop("Could not find the k parameters in the design matrix for the variance.\n")
     }    
     colnames(X.var)[index.k] <- paste0("k",level.k)
+    colnames(lp2X.var)[index.k] <- paste0("k",level.k)
     param.k <- colnames(X.var)[index.k]
     n.k <- length(param.k)
 
     ## ** find code associated to each parameter
     ## subset rows corresponding only to the multipliers i.e. non-0 intercept and covariate value in the design matrix
-    index.keep <- rowSums(abs(X.var))
-    X.Uk <- unique(X.var[index.keep>1,,drop=FALSE])
+    X.Uk <- lp2X.var[rowSums(abs(lp2X.var))>1,,drop=FALSE]
 
     ## generate code
-    code.k <- stats::setNames(as.character(interaction(as.data.frame(X.Uk), drop = TRUE, sep = sep[2])),
+    code.k <- stats::setNames(rownames(X.Uk),
                               apply(X.Uk[,param.k,drop=FALSE], 1, function(iRow){names(which(iRow==1))}))[param.k]
     code.k <- as.character(code.k[param.k])
 
@@ -92,15 +93,16 @@
     }
 
     ## ** update
-    structure$X$var <- X.var
+    structure$var$X <- X.var
+    structure$var$lp2X <- lp2X.var
     structure.k <- data.frame(name = param.k,
                               index.strata = strata.k,
                               type = rep("k",length=n.k),
                               constraint = as.numeric(NA),
                               level = level.k,
                               code = code.k,
-                              index.lp.x = as.numeric(NA),
-                              index.lp.y = as.numeric(NA),
+                              lp.x = as.numeric(NA),
+                              lp.y = as.numeric(NA),
                               sigma = param.sigma[match(strata.k,strata.sigma)],
                               k.x = as.character(NA),
                               k.y = as.character(NA),                                  

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: jun 15 2023 (17:08) 
+## Last-Updated: jul 13 2023 (13:12) 
 ##           By: Brice Ozenne
-##     Update #: 755
+##     Update #: 791
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -38,7 +38,7 @@
 ##' \item \code{"pearson"}: each raw residual is divided by its modeled standard deviation \eqn{\varepsilon_{ij} = \frac{Y_{ij} - X_{ij} \hat{\beta}}{\sqrt{\hat{\omega}_{ij}}}}.
 ##' \item \code{"studentized"}: same as \code{"pearson"} but excluding the contribution of the cluster in the modeled standard deviation  \eqn{\varepsilon_{ij} = \frac{Y_{ij} - X_{ij} \hat{\beta}}{\sqrt{\hat{\omega}_{ij}-\hat{q}_{ij}}}}.
 ##' \item \code{"normalized"}: raw residuals are multiplied, within clusters, by the inverse of the (upper) Cholesky factor of the modeled residual variance covariance matrix \eqn{\varepsilon_{ij} = ( Y_{i} - X_{i} \hat{\beta} )\hat{C}^{-1}}.
-##' \item \code{"normalized2"}: same as \code{"normalized"} but excluding the contribution of the cluster in the modeled residual variance covariance matrix \eqn{\varepsilon_{ij} = ( Y_{i} - X_{i} \hat{\beta} ) \hat{D}_i^{-1}}.
+##' \item \code{"normalized2"}: raw residuals are multiplied, within clusters, by the inverse of the modeled residual variance covariance matrix \eqn{\varepsilon_{ij} = ( Y_{i} - X_{i} \hat{\beta} )\hat{Omega}^{-1}}.
 ##' \item \code{"scaled"}: scaled residuals (see PROC MIXED in SAS). Numerically identical to \code{"normalized"} but computed by sequentially scaling and centering the residuals, to make them conditionally independent of previous residuals from the same cluster at previous repetitions.
 ##' \item \code{"partial"}: partial residuals (\eqn{\gamma E + \hat{\varepsilon}}). A reference level can be also be specified via the attribute \code{"reference"} to change the absolute level of the partial residuals.
 ##' \code{"partial-center"}: partial residuals with centered covariates (\eqn{\gamma E + \hat{\varepsilon}} where \eqn{E} has been centered, i.e., has 0-mean)
@@ -152,11 +152,13 @@ residuals.lmm <- function(object, type = "response", var = NULL,
     }
     ## check type.residuals
     if(identical("all",tolower(type.residual))){        
-        type.residual <- c("response","studentized","pearson","normalized","normalized2","scaled")
+        type.residual <- c("response","studentized","pearson","normalized")
     }
     attr.ref <- attr(type.residual,"reference")
-    type.residual <- match.arg(type.residual, c("response","studentized","pearson","normalized","normalized2","scaled","partial","partial-center"), several.ok = (format=="long"))
-    if(any(type.residual %in% c("studentized","pearson","normalized","normalized2","scaled"))){
+    valid.normresiduals  <- c("studentized","pearson","normalized","normalized2","normastudentized","scaled")
+    valid.residuals <- c("response",valid.normresiduals,"partial","partial-center")
+    type.residual <- match.arg(type.residual, valid.residuals, several.ok = (format=="long"))
+    if(any(type.residual %in% valid.normresiduals)){
         effects <- c("mean","variance")
     }else{
         effects <- "mean"
@@ -266,13 +268,14 @@ residuals.lmm <- function(object, type = "response", var = NULL,
     Y <- design$Y
     X <- design$mean
     structure <- design$vcov
+    Omega.index.time <- stats::setNames(structure$Upattern$index.time, structure$Upattern$name)
     n.cluster <- design$cluster$n
     precompute.XX <- design$precompute.XX
     cluster.level <- design$cluster$levels
     index.cluster <- attr(design$index.cluster,"vectorwise")
     index.time <- attr(design$index.clusterTime,"vectorwise")
-    index.variance <- as.character(structure$X$pattern.cluster$pattern)
-    n.pattern <-  NROW(structure$X$Upattern)
+    index.variance <- as.character(structure$pattern)
+    n.pattern <-  NROW(structure$Upattern)
 
     ## ** update Omega
     if(!is.null(p)){
@@ -283,13 +286,13 @@ residuals.lmm <- function(object, type = "response", var = NULL,
             stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(param.type)[names(param.type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
         }
         beta <- p[names(which(param.type=="mu"))]
-        if(any(type.residual %in% c("studentized","pearson","normalized","normalized2","scaled"))){
+        if(any(type.residual %in% valid.normresiduals)){
             Omega <- .calc_Omega(object = structure, param = p)
             precision <- lapply(Omega, solve)
         }
     }else{
         beta <- param.value[param.type=="mu"]
-        if(any(type.residual %in% c("studentized","pearson","normalized","normalized2","scaled"))){
+        if(any(type.residual %in% valid.normresiduals)){
             Omega <- object.Omega
             precision <- object.OmegaM1
         }
@@ -300,7 +303,7 @@ residuals.lmm <- function(object, type = "response", var = NULL,
     if("pearson" %in% type.residual){
         sqrtPrecision$pearson <- lapply(Omega,function(iM){1/sqrt(diag(iM))})
     }
-    if("studentized" %in% type.residual || "normalized2" %in% type.residual){
+    if("studentized" %in% type.residual || "normastudentized" %in% type.residual){
         tX.precision.X <- matrix(0, nrow = NCOL(X), ncol = NCOL(X), dimnames = list(colnames(X),colnames(X)))
 
             if(!is.null(precompute.XX)){
@@ -367,9 +370,12 @@ residuals.lmm <- function(object, type = "response", var = NULL,
         M.res[,"r.partial"] <- design2$mean[,index.col,drop=FALSE] %*% beta[index.col] + res
         attr(M.res,"centering") <- centering
     }
-    if (any(type.residual %in% c("studentized", "pearson", "normalized", "normalized2", "scaled"))) {
+    if (any(type.residual %in% valid.normresiduals)) {
         for(iId in 1:n.cluster){ ## iId <- 7
+            
             iIndex <- which(index.cluster==iId)
+            ## iOrder <- match(Omega.index.time[[index.variance[iId]]],index.time[iIndex])
+            ## iOrder <- match(index.time[iIndex], Omega.index.time[[index.variance[iId]]])
             iOrder <- order(index.time[iIndex])
             iResidual <- res[iIndex[iOrder]]
             iN.time <- length(iIndex)
@@ -377,24 +383,28 @@ residuals.lmm <- function(object, type = "response", var = NULL,
             for(iType in type.residual){
                 if("pearson" %in% type.residual){
                     resnorm <- iResidual * sqrtPrecision$pearson[[index.variance[iId]]]
-                    M.res[iIndex,"r.pearson"] <- resnorm[order(iOrder)]
+                    M.res[iIndex[iOrder],"r.pearson"] <- resnorm
                 }
                 if("studentized" %in% type.residual){
                     iX <- X[iIndex[iOrder],,drop=FALSE]
                     iQ <- iX %*% tX.precision.X.M1 %*% t(iX)
                     resnorm <- iResidual / sqrt(diag(Omega[[index.variance[iId]]] - iQ))
-                    M.res[iIndex,"r.studentized"] <- resnorm[order(iOrder)]
+                    M.res[iIndex[iOrder],"r.studentized"] <- resnorm
                 }
                 if("normalized" %in% type.residual){
                     ## resnorm <- as.double(sqrtPrecision$normalized[[index.variance[iId]]] %*% iResidual)
                     resnorm <- as.double(iResidual %*% sqrtPrecision$normalized[[index.variance[iId]]])
-                    M.res[iIndex,"r.normalized"] <- resnorm[order(iOrder)]
+                    M.res[iIndex[iOrder],"r.normalized"] <- resnorm
                 }
                 if("normalized2" %in% type.residual){
+                    resnorm <- as.double(iResidual %*% precision[[index.variance[iId]]])
+                    M.res[iIndex[iOrder],"r.normalized2"] <- resnorm
+                }
+                if("normastudentized" %in% type.residual){
                     iX <- X[iIndex[iOrder],,drop=FALSE]
                     iQ <- iX %*% tX.precision.X.M1 %*% t(iX)
                     resnorm <- as.double(iResidual %*% solve(chol(Omega[[index.variance[iId]]] - iQ)))
-                    M.res[iIndex,"r.normalized2"] <- resnorm[order(iOrder)]
+                    M.res[iIndex[iOrder],"r.normalized2"] <- resnorm
                 }
                 if("scaled" %in% type.residual){
                     M.res[iIndex[iOrder][1],"r.scaled"] <- iResidual[1]/attr(Omega[[index.variance[iId]]],"sd")[1]
@@ -442,7 +452,7 @@ residuals.lmm <- function(object, type = "response", var = NULL,
         }else{
             level.time <- rep(NA, n.allobs)
             if(NCOL(attr(index.na,"time"))>1){
-                level.time[index.na] <- factor(interaction(attr(index.na,"time")), levels = U.time)
+                level.time[index.na] <- factor(nlme::collapse(attr(index.na,"time"), as.factor = FALSE), levels = U.time)
                 level.time[-index.na] <- factor(index.time, levels = 1:length(U.time), labels = U.time) ## time.levels.original
             }else{
                 level.time[index.na] <- factor(attr(index.na,"time"), levels = U.time)

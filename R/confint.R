@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jun 14 2023 (14:52) 
+## Last-Updated: jul 10 2023 (18:26) 
 ##           By: Brice Ozenne
-##     Update #: 624
+##     Update #: 625
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -569,7 +569,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
                     iVcov.vcov <- attr(out.save$df,"vcov")
                     iPair <- expand.grid(names(iCvar.pool),names(iCvar.pool))
 
-                    idXTX.dT <- matrix(NA, nrow = 1, ncol = NROW(iPair), dimnames = list(NULL,interaction(iPair,sep=".")))
+                    idXTX.dT <- matrix(NA, nrow = 1, ncol = NROW(iPair), dimnames = list(NULL,nlme::collapse(iPair,sep=".")))
                     for(iP in 1:NROW(iPair)){ ## iP <- 35
                         idXTX.dT[,iP] <- iCvar.pool[iPair[iP,1]] * iCvar.pool[iPair[iP,2]]
                     }

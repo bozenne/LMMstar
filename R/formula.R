@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:53) 
 ## Version: 
-## Last-Updated: jul  6 2023 (10:41) 
+## Last-Updated: jul 12 2023 (09:36) 
 ##           By: Brice Ozenne
-##     Update #: 206
+##     Update #: 209
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -72,7 +72,7 @@ formula2var <- function(formula, specials = NULL, name.argument  = "formula",
         stop("Incorrect value for argument \'",name.argument,"\' \n",
              "Current version does not allow specials operator. \n")
     }
-        
+
     ## ** process
     out <- list(formula = list(all = formula), ## note for regressor Y~X1+X2*X3
                 vars = list(), ## X1, X2, X3, time, id
@@ -105,7 +105,15 @@ formula2var <- function(formula, specials = NULL, name.argument  = "formula",
     ff.varREG <- ff.gvarRHS[test.special==FALSE] 
     n.regressor <- length(ff.varREG)
     ff.varSPECIAL <- ff.gvarRHS[test.special]
-    
+
+    if(any(grepl(pattern = "||", x = ff.varSPECIAL, fixed = TRUE))){
+        stop("Incorrect value for argument \'",name.argument,"\' \n",
+             "Current version does not handle || for random effects. Use something like Y~X+(1|id). \n")
+    }
+    if(any(grepl(pattern = ":", x = ff.varSPECIAL, fixed = TRUE))){
+        stop("Incorrect value for argument \'",name.argument,"\' \n",
+             "Current version does not handle : for random effects. Use something like Y~X+(1|region/city). \n")
+    }
 
     ## *** distinguish special (between repetition and ranef)
     ## repetition: single |, no regressor, e.g. ~time|id

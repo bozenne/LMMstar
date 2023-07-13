@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: jul  6 2023 (15:46) 
+## Last-Updated: jul 11 2023 (12:14) 
 ##           By: Brice Ozenne
-##     Update #: 2484
+##     Update #: 2486
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -66,14 +66,11 @@
     index.clusterStrata <- indexData$index.clusterStrata ## vector of index relative to which strata each cluster belong to
     index.cluster <- indexData$index.cluster ## list of positions of the observation belonging to each cluster in the dataset
 
-    if(is.null(structure$X)){
+    if(is.null(structure$var) && is.null(structure$cor)){
         outDesign <- .vcov.matrix.lmm(structure = structure, data = data, index.cluster = index.cluster, drop.X = LMMstar.options()$drop.X)
-
         structure$xfactor <- outDesign$xfactor
-        structure$X <- list(var = outDesign$var,
-                            lp.var = outDesign$lp.var,
-                            cor = outDesign$cor,
-                            lp.cor = outDesign$lp.cor)        
+        structure$var <- outDesign$var
+        structure$cor <- outDesign$cor
     }
 
     ## **  param

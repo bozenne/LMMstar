@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: dec  7 2022 (17:13) 
 ## Version: 
-## Last-Updated: jun 15 2023 (16:55) 
+## Last-Updated: jul 10 2023 (18:16) 
 ##           By: Brice Ozenne
-##     Update #: 50
+##     Update #: 51
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -115,7 +115,7 @@ summarizeNA <- function(data, repetition = NULL, sep = "",
 
     warper.pattern <- function(iData, sep){ ## iData <- ls.data[[1]]
         iMtest <- is.na(iData)*1.0
-        iVtest <- interaction(as.data.frame(iMtest), sep = sep, drop = TRUE)
+        iVtest <- nlme::collapse(iMtest, sep = sep, as.factor = TRUE)
         iUpattern <- levels(iVtest)
         iUpattern.nobs <- unname(table(iVtest))
     

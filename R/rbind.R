@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jun 15 2023 (16:24) 
+## Last-Updated: jul 10 2023 (18:08) 
 ##           By: Brice Ozenne
-##     Update #: 404
+##     Update #: 406
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -250,13 +250,13 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
         }
     }
     col.nametest <- colnames(gridTest)
-    name.test <- unique(as.character(interaction(gridTest[,col.nametest,drop=FALSE])))
+    name.test <- unique(nlme::collapse(gridTest[,col.nametest,drop=FALSE], as.factor = FALSE))
 
     ## ** Extract elements from anova object
     ## *** univariate Wald test
     table.univariate <- do.call(rbind,lapply(1:n.object,function(iO){ ## iO <- 1
         iTable <- cbind(outcome = unname(outcome[iO]), ls.object[[iO]]$univariate)
-        iTable$name.test <- factor(as.character(interaction(iTable[,col.nametest,drop=FALSE])),levels = name.test)
+        iTable$name.test <- factor(nlme::collapse(iTable[,col.nametest,drop=FALSE], as.factor = FALSE),levels = name.test)
         rownames(iTable) <- rownames(ls.object[[iO]]$univariate)
         return(iTable)
     }))

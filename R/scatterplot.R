@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb 16 2023 (09:39) 
 ## Version: 
-## Last-Updated: jun 15 2023 (16:26) 
+## Last-Updated: jul 10 2023 (18:10) 
 ##           By: Brice Ozenne
-##     Update #: 692
+##     Update #: 694
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -231,7 +231,7 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
                      "Consider renaming the variable in the dataset. \n",
                      sep = "")
             }
-            dataL$XXtimeXX <- interaction(dataL[name.time], drop = TRUE)
+            dataL$XXtimeXX <- nlme::collapse(dataL[name.time], as.factor = TRUE)
             name.time <- "XXtimeXX"
         }
         if(!is.factor(dataL[[name.time]])){
@@ -298,7 +298,7 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
     dataGrid$position[dataGrid$time1==dataGrid$time2] <- "diag"
     dataGrid$position[as.numeric(dataGrid$time1)>as.numeric(dataGrid$time2)] <- "lower"
     dataGrid$position[as.numeric(dataGrid$time1)<as.numeric(dataGrid$time2)] <- "upper"
-    dataGrid$time <- interaction(dataGrid$time1,dataGrid$time2)
+    dataGrid$time <- as.factor(paste(dataGrid$time1,dataGrid$time2, sep ="."))
 
     ## ** prepare outcome
     n.time <- length(level.time)

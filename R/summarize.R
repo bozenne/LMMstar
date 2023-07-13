@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jun 15 2023 (17:16) 
+## Last-Updated: jul 10 2023 (18:16) 
 ##           By: Brice Ozenne
-##     Update #: 290
+##     Update #: 293
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -146,7 +146,7 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
         })==1,name.X)
         
         if(any(test.between)){
-            vec.split <- interaction(data[names(which(test.between))], drop = TRUE)
+            vec.split <- nlme::collapse(data[names(which(test.between))], as.factor = TRUE)
             ls.id <- tapply(as.character(data[[name.id]]), vec.split, unique)
         }else{
             ls.id <- list(unique(as.character(data[[name.id]])))
@@ -237,7 +237,7 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
             if(!is.null(table.id.time) && all(table.id.time %in% 0:1) && ("missing" %in% columns || "pc.missing" %in% columns)){
 
                 if(any(test.between)){
-                    iIndex <- which(names(ls.id)==levels(interaction(data[x,names(which(test.between))], drop = TRUE)))
+                    iIndex <- which(names(ls.id)==levels(nlme::collapse(data[x,names(which(test.between))], as.factor = TRUE)))
                     n.missing <- n.missing + sum(ls.id[[iIndex]] %in% unique(as.character(data[x,name.id])) == FALSE)
                 }else{
                     n.missing <- n.missing + sum(ls.id[[1]] %in% unique(as.character(data[x,name.id])) == FALSE)
@@ -332,7 +332,7 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
                 attr(out,"correlation")[[iY]] <- stats::setNames(lapply(ls.id, function(iId){ ## iId <- ls.id[[1]]
                     iDataL <- data[data[[name.id]] %in% iId,,drop = FALSE]
                     if(length(time)>1){
-                        iDataL[[paste(time, collapse = "_X_XX_X_")]] <- interaction(iDataL[,time, drop=FALSE])
+                        iDataL[[paste(time, collapse = "_X_XX_X_")]] <- nlme::collapse(iDataL[,time, drop=FALSE], as.factor = TRUE)
                         Utime <- paste(time, collapse = "_X_XX_X_")
                     }else{
                         Utime <- time

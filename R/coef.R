@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: jun 15 2023 (16:16) 
+## Last-Updated: jul 13 2023 (11:30) 
 ##           By: Brice Ozenne
-##     Update #: 580
+##     Update #: 584
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -110,11 +110,11 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
     U.cluster.original <- object$design$cluster$levels.original
     cluster.var <- object$cluster$var
     n.cluster <- object$cluster$n
-    X.cor <- object$design$vcov$X$cor
-    Xpattern.cor <- object$design$vcov$X$Xpattern.cor
+    X.cor <- object$design$vcov$cor$X
+    Xpattern.cor <- object$design$vcov$cor$Xpattern
     index.cluster <- object$design$index.cluster
-    pattern.cluster <- object$design$vcov$X$pattern.cluster$pattern
-    Upattern <- object$design$vcov$X$Upattern
+    pattern.cluster <- object$design$vcov$pattern
+    Upattern <- object$design$vcov$Upattern
 
     ## ** normalize user imput
     dots <- list(...)

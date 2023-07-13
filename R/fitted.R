@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul  8 2021 (17:09) 
 ## Version: 
-## Last-Updated: jun 14 2023 (14:57) 
+## Last-Updated: jul 10 2023 (18:05) 
 ##           By: Brice Ozenne
-##     Update #: 142
+##     Update #: 148
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -106,22 +106,26 @@ fitted.lmm <- function(object, newdata = NULL, format = "long",
 
     format <- match.arg(format, c("wide","long"))
     
-    test.original.data <- is.null(newdata)
-    if(test.original.data){
-        newdata <- object.data.original
-    }
 
     if((format == "wide") && (keep.newdata == FALSE)) {
         keep.newdata <- 0.5
     }
-
     ## ** compute predictions
     e.pred <- stats::predict(object,
                              newdata = newdata,
                              type = type.prediction,
                              se = se.impute,
                              keep.newdata = keep.newdata)
-    
+
+    if(is.null(newdata)){
+        ## after predict to avoid recomputing fitted values
+        if(keep.newdata){
+            newdata <- e.pred
+        }else{
+            newdata <- object.data.original
+        }
+    }
+
     ## ** store
     if(impute){ ## store dynamic predictions
 
@@ -181,7 +185,7 @@ fitted.lmm <- function(object, newdata = NULL, format = "long",
                 stop("Argument \'newdata\' should not contain a column called \"XXtimeXX\". \n")
             }
             
-            out$XXtimeXX <- interaction(out[,attr(time.var,"original")])
+            out$XXtimeXX <- nlme::collapse(out[,attr(time.var,"original")], as.factor = TRUE)
             out <- stats::reshape(data = out[,union(add.col,c(value.var, attr(cluster.var,"original"), "XXtimeXX")),drop=FALSE], 
                                   direction = "wide", timevar = "XXtimeXX", idvar = attr(cluster.var,"original"), v.names = value.var)
         }else{

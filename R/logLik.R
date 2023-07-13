@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: jun 15 2023 (16:16) 
+## Last-Updated: jul 10 2023 (17:33) 
 ##           By: Brice Ozenne
-##     Update #: 319
+##     Update #: 320
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -59,7 +59,7 @@ logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
         }else{
             p <- object$param
         }
-        out <- .moments.lmm(value = p, design = design, time = object$time, method.fit = object$method.fit,
+        out <- .moments.lmm(value = p, design = design, time = object$time, method.fit = object$args$method.fit,
                             transform.sigma = "none", transform.k = "none", transform.rho = "none",
                             logLik = TRUE, score = FALSE, information = FALSE, vcov = FALSE, df = FALSE, indiv = indiv, 
                             trace = FALSE, precompute.moments = test.precompute)$logLik

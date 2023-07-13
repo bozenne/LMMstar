@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: May 14 2023 (11:17) 
+## Last-Updated: jul 13 2023 (13:14) 
 ##           By: Brice Ozenne
-##     Update #: 198
+##     Update #: 208
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -91,11 +91,10 @@
                                transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
     }
 
-    Upattern <- object$X$Upattern
+    Upattern <- object$Upattern
     n.Upattern <- NROW(Upattern)
-    pattern.cluster <- object$X$pattern.cluster$pattern
-    X.var <- object$X$Xpattern.var
-    X.cor <- object$X$Xpattern.cor
+    X.var <- object$var$Xpattern
+    X.cor <- object$cor$Xpattern
     if(identical(transform.sigma,"log") && identical(transform.k,"log") && identical(transform.rho,"atanh")){
         Jacobian <- NULL
         dJacobian <- NULL
@@ -132,7 +131,7 @@
 
         iScore <- stats::setNames(vector(mode = "list", length = length(iName.param)), iName.param)
 
-        iPair <- object$X$pair.varcoef[[Upattern[iPattern,"name"]]]
+        iPair <- object$pair.vcov[[Upattern[iPattern,"name"]]]
         n.iPair <- NCOL(iPair)
 
         iHess <- lapply(1:n.iPair, function(iPair){matrix(0, nrow = iNtime, ncol = iNtime)})
@@ -264,7 +263,7 @@
 .calc_d2Omega.CUSTOM <- function(object, param, Omega, dOmega, Jacobian = NULL, dJacobian = NULL,
                                  transform.sigma = NULL, transform.k = NULL, transform.rho = NULL){
 
-    Upattern <- object$X$Upattern
+    Upattern <- object$Upattern
     n.Upattern <- NROW(Upattern)
      
     FCT.sigma <- object$FCT.sigma
@@ -275,7 +274,7 @@
     d2FCT.rho <- object$d2FCT.rho
     name.sigma <- names(object$init.sigma)
     name.rho <- names(object$init.rho)
-    pair.varcoef <- object$X$pair.varcoef
+    pair.varcoef <- object$pair.vcov
 
     if(!is.null(FCT.sigma) && is.null(d2FCT.sigma) || !is.null(FCT.rho) && is.null(d2FCT.rho) ){
 
@@ -288,7 +287,7 @@
         ## indicator of pattern
         vec.pattern <- unlist(lapply(names(dOmega), function(iName){ ## iName <- names(dOmega)[1]
             iParam <- names(dOmega[[iName]])
-            iTime <- object$X$Upattern$time[[iName]]            
+            iTime <- Upattern$time[[iName]]            
             iNtime <- Upattern[Upattern$name==iName,"n.time"]
             iOut <- lapply(iParam, function(iP){matrix(iName, nrow = iNtime, ncol = iNtime, dimnames = list(iTime,iTime))})
             return(iOut)
@@ -328,7 +327,6 @@
 
         }
     }else{
-        pattern.cluster <- object$X$pattern.cluster
         X.var <- object$X$var
         X.cor <- object$X$cor
 

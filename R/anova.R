@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jun 15 2023 (16:15) 
+## Last-Updated: jul 13 2023 (11:29) 
 ##           By: Brice Ozenne
-##     Update #: 1250
+##     Update #: 1254
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -149,13 +149,13 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                 subeffect <- iLabels[effects == paste0("mean_",iLabels)]
                 effects <- "mean"
             }
-        }else if(grepl("^variance_",effects) && !is.null(object$design$vcov$X$var)){
+        }else if(grepl("^variance_",effects) && !is.null(object$design$vcov$var$X)){
             iLabels <- attr(stats::terms(object$formula$var.design),"term.labels")
             if(any(effects == paste0("variance_",iLabels))){
                 subeffect <- iLabels[effects == paste0("variance_",iLabels)]
                 effects <- "variance"
             }
-        }else if(grepl("^cor_",effects) && !is.null(object$design$vcov$X$cor.pairwise)){
+        }else if(grepl("^cor_",effects) && !is.null(object$design$vcov$cor$X)){
             iLabels <- attr(stats::terms(object$formula$cor.design),"term.labels")
             if(any(effects == paste0("correlation_",iLabels))){
                 subeffect <- iLabels[effects == paste0("correlation_",iLabels)]
@@ -258,7 +258,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         }
         if("variance" %in% effects){
             type <- c(type, "variance")
-            ls.assign$variance <- attr(object$design$vcov$X$var,"assign")            
+            ls.assign$variance <- attr(object$design$vcov$var$X,"assign")            
             ls.nameTerms$variance <- attr(stats::terms(object$formula$var.design),"term.labels")
             if(!is.na(object$design$vcov$name$strata)){
                 ls.assign$variance[ls.nameTerms$variance[ls.assign$variance]==object$design$vcov$name$strata] <- 0
@@ -363,7 +363,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     }
 
     ## ** prepare
-    if(robust && object$method.fit=="REML"){
+    if(robust && object$args$method.fit=="REML"){
         name.mean <- names(coef(object, effects = "mean"))
         if(all(effects %in% c("mean","variance","correlation"))){
             if(all(effects %in% c("variance","correlation"))){
@@ -393,7 +393,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     vcov.param <- vcov(object, df = df*2, effects = effects, robust = robust,
                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
     dVcov.param <- attr(vcov.param,"dVcov")
-    if(df>0 && object$method.fit=="REML" && type.information == "expected"){
+    if(df>0 && object$args$method.fit=="REML" && type.information == "expected"){
         warning("when using REML with expected information, the degree of freedom of the F-statistic may depend on the parametrisation of the variance parameters. \n")
     }
     if(any(sapply(ls.contrast, function(iC){is.null(iC) || identical(colnames(iC), names(param))}) == FALSE)){
@@ -545,7 +545,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     ## ** save some of the objects for possible use of rbind.Wald_lmm
     if(ci > 0.5){
         out$object <- list(outcome = object$outcome$var,
-                           method.fit = object$method.fit,
+                           method.fit = object$args$method.fit,
                            type.information = type.information,
                            cluster.var = object$cluster$var,
                            structure = c(type = object$design$vcov$type, class = object$design$vcov$class))
@@ -564,10 +564,10 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                                          transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE) %*% t(globalC)
             robust2 <- TRUE
         }
-        if(object$method.fit == "ML"){
+        if(object$args$method.fit == "ML"){
             out$iid <- iid(object, effects = effects, robust = robust2, 
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names) %*% t(globalC)
-        }else if(object$method.fit == "REML" && all(type.param[which(colSums(globalC!=0)>0)]=="mu")){
+        }else if(object$args$method.fit == "REML" && all(type.param[which(colSums(globalC!=0)>0)]=="mu")){
             globalC <- globalC[,name.param[type.param=="mu"],drop=FALSE]
             out$iid <- iid(object, effects = "mean", robust = robust2, 
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names) %*% t(globalC)
@@ -646,10 +646,10 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     current.mismatchH1 <- mismatchH1
 
     ## *** objective function
-    if(object1$method.fit!=object2$method.fit){
+    if(object1$args$method.fit!=object2$args$method.fit){
         stop("The two models should use the same type of objective function for the likelihood ratio test to be valid. \n")
     }
-    if(objectH1$method.fit=="REML" && (any(type.paramH1[mismatchH1]=="mu") || any(type.paramH0[mismatchH0]=="mu"))){
+    if(objectH1$args$method.fit=="REML" && (any(type.paramH1[mismatchH1]=="mu") || any(type.paramH0[mismatchH0]=="mu"))){
         objectH0$call$method.fit <- "ML"
         objectH1$call$method.fit <- "ML"
         message("Cannot use a likelihood ratio test to compare mean parameters when the objective function is REML. \n",
@@ -736,8 +736,8 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
              
             if(identical(objectH1$design$vcov$name$strata,objectH0$design$vcov$name$strata)){
                 
-                XH0ksigma <- model.matrix(objectH0, effects = "variance")$X$var
-                XH1ksigma <- model.matrix(objectH1, effects = "variance")$X$var
+                XH0ksigma <- model.matrix(objectH0, effects = "variance")$var$X
+                XH1ksigma <- model.matrix(objectH1, effects = "variance")$var$X
                 H.X0ksigma <- XH0ksigma %*% solve(crossprod(XH0ksigma)) %*% t(XH0ksigma)
                 H.X1ksigma <- XH1ksigma %*% solve(crossprod(XH1ksigma)) %*% t(XH1ksigma)
 

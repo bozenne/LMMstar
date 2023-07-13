@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jun 15 2023 (16:22) 
+## Last-Updated: jul 10 2023 (18:08) 
 ##           By: Brice Ozenne
-##     Update #: 742
+##     Update #: 743
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -434,7 +434,7 @@ p        }else{
     ## Cov[Sigma_\beta,Sigma_\beta'] = [dSigma_\beta/d\beta] [Sigma_\theta] [dSigma_\beta'/d\beta']
     n.beta2 <- n.beta^2
     Mname.beta2 <- expand.grid(name.beta,name.beta)
-    name.beta2 <- interaction(Mname.beta2)
+    name.beta2 <- nlme::collapse(Mname.beta2, as.factor = TRUE)
     
     Mpair_dVcov.param <- do.call(rbind,lapply(1:n.beta2, function(iIndex){dVcov.param[Mname.beta2[iIndex,1],Mname.beta2[iIndex,2],]})) ## iIndex <- 240
     vcov.vcovbeta <- Mpair_dVcov.param %*% vcov.param %*% t(Mpair_dVcov.param)

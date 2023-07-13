@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: jun 15 2023 (16:17) 
+## Last-Updated: jul 10 2023 (18:07) 
 ##           By: Brice Ozenne
-##     Update #: 319
+##     Update #: 321
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -113,7 +113,7 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
         if(by %in% names(data)){
             stop("Argument \'data\' should not contain a column named \"",by,"\" as this name is used internally by the mlmm function. \n")
         }
-        data[[by]] <- interaction(data[by.keep], sep=",", drop = TRUE)
+        data[[by]] <- nlme::collapse(data[by.keep], sep=",", as.factor = TRUE)
     }else{
         by.keep <- by
         if(is.factor(data[[by]])){
@@ -156,7 +156,7 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
         if(trace>0.5){
             cat(" - ",by,"=",unique(iData[[by]]),"\n", sep = "")
         }
-        return(lmm(..., data = iData, df = df, trace = trace-1))
+        return(lmm(..., data = iData, df = df, trace = max(0,trace-1)))
     })
     name.lmm <- names(ls.lmm)
     n.lmm <- length(name.lmm)

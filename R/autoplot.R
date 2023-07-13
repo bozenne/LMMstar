@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: jun 15 2023 (17:27) 
+## Last-Updated: jul 13 2023 (11:30) 
 ##           By: Brice Ozenne
-##     Update #: 720
+##     Update #: 730
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -133,7 +133,7 @@ autoplot.lmm <- function(object, type = "fit", type.residual = "normalized",
         }else if(sum(type.var=="categorical")==1){
             name.varcat <- paste(name.var[type.var=="categorical"],collapse = ", ")
             if(sum(type.var=="categorical")>1){
-                gg.data[[name.varcat]] <- interaction(gg.data[name.var[type.var=="categorical"]], sep = ",")
+                gg.data[[name.varcat]] <- nlme::collapse(gg.data[name.var[type.var=="categorical"]], sep = ",", as.factor = TRUE)
             }
         }
         if(sum(type.var=="numeric")==0){
@@ -199,8 +199,8 @@ autoplot.lmm <- function(object, type = "fit", type.residual = "normalized",
 
     ## ** extract from object
     object.data <- object$data
-    Upattern <- object$design$vcov$X$Upattern
-    pattern.cluster <- object$design$vcov$X$pattern.cluster
+    Upattern <- object$design$vcov$Upattern
+    pattern.cluster <- object$design$vcov$pattern
 
     outcome.var <- object$outcome$var
     if(is.null(time.var)){
@@ -258,7 +258,7 @@ autoplot.lmm <- function(object, type = "fit", type.residual = "normalized",
     timemu.var <- stats::na.omit(union(time.var, mu.var))
     X.beta <- stats::model.matrix(object, effects = "mean",
                                   data = data[,timemu.var, drop=FALSE])
-    IX.beta <- interaction(as.data.frame(X.beta), drop = TRUE)
+    IX.beta <- nlme::collapse(X.beta, as.factor = TRUE)
     vec.X.beta <- tapply(IX.beta, data[["XXclusterXX"]],paste, collapse = "_XXX_")
     UX.beta <- unique(vec.X.beta)
 
@@ -280,18 +280,6 @@ autoplot.lmm <- function(object, type = "fit", type.residual = "normalized",
     
     lsID.beta <- lapply(UX.beta, function(iX.beta){names(iX.beta == vec.X.beta)}) ## cluster(s) within each mean pattern
     newdata <- data[data[["XXclusterXX"]] %in% names(UX.beta),]
-    ## pattern.alltimes <- which(object$time$n == sapply(object$design$vcov$X$Upattern$time, length))
-    ## if(length(pattern.alltimes)>0){
-    ##     index.id <- sapply(pattern.alltimes, function(iP){names(which(object$design$vcov$X$pattern.cluster == object$design$vcov$X$Upattern$name[iP]))[1]})
-    ##     newdata <- data[data[["XXclusterXX"]] %in% index.id,]
-    ## }else{
-    ##     warning("No cluster with all timepoints. Generate an artificial cluster. \n")
-    ##     X.vars <- all.vars(stats::delete.response(stats::terms(object$formula$mean)))
-
-    ##     data.order <- data[rowSums(is.na(data[X.vars]))==0,] ## rm NA in X
-    ##     data.order <- data.order[order(data.order[["XXclusterXX"]],data.order[["XXtimeXX"]]),] ## order data
-    ##     newdata <- data.order[!duplicated(data.order[["XXtimeXX"]]),,drop=FALSE]
-    ## }
 
     if(identical(color,TRUE)){
         mean.var <- all.vars(stats::delete.response(stats::terms(stats::formula(object, effects = "mean"))))
@@ -309,7 +297,7 @@ autoplot.lmm <- function(object, type = "fit", type.residual = "normalized",
                 stop("Cannot use argument \'color\'=TRUE when the dataset contain a column ",paste(color,collapse="."),". \n",
                      "This name is used internally. \n")
             }
-            newdata[[paste(color,collapse=".")]] <- interaction(newdata[,color,drop=FALSE])
+            newdata[[paste(color,collapse=".")]] <- nlme::collapse(newdata[,color,drop=FALSE], as.factor = TRUE)
             color <- paste(color,collapse=".")
         }else if(length(color)==0){
             color <-  NULL
@@ -317,12 +305,12 @@ autoplot.lmm <- function(object, type = "fit", type.residual = "normalized",
     }
     if(!is.na(obs.alpha) && obs.alpha>0 && length(color)>1 && color %in% names(data) == FALSE){
         ls.UX <- lapply(as.character(unique(newdata[["XXclusterXX"]])), function(iC){
-            iVec <- as.character(interaction(data[data[["XXclusterXX"]] %in% iC,mu.var,drop=FALSE]))
+            iVec <- nlme::collapse(data[data[["XXclusterXX"]] %in% iC,mu.var,drop=FALSE], as.factor = FALSE)
             cbind(repetition = data[data[["XXclusterXX"]] %in% iC,"XXtimeXX",drop=FALSE], lp = iVec)
         })
     
         index.X <- unlist(lapply(as.character(unique(data[["XXclusterXX"]])), function(iC){
-            iVec <- as.character(interaction(data[data[["XXclusterXX"]] %in% iC,mu.var,drop=FALSE]))
+            iVec <- nlme::collapse(data[data[["XXclusterXX"]] %in% iC,mu.var,drop=FALSE], as.factor = FALSE)
             iM <- cbind(repetition = data[data[["XXclusterXX"]] %in% iC,"XXtimeXX",drop=FALSE], lp = iVec)
             iScore <- unlist(lapply(ls.UX, function(iUX){sum(iUX[match(iM[,"Days"],iUX[,"Days"]),"lp"]==iM[,"lp"])}))
             which.max(iScore)
@@ -929,8 +917,8 @@ autoplot.summarize <- function(object, type = "mean", variable = NULL,
             gg <- ggplot2::ggplot(object, ggplot2::aes(x = .data[[name.time]], y = .data[[type]],
                                                        group = .data[[name.group]], color = .data[[name.group]]))
         }else{
-            name.Group <- as.character(interaction(name.group))
-            object[[name.Group]] <- interaction(object[,name.group])
+            name.Group <- nlme::collapse(name.group, as.factor = TRUE)
+            object[[name.Group]] <- nlme::collapse(object[,name.group], as.factor = TRUE)
             gg <- ggplot2::ggplot(object, ggplot2::aes(x = .data[[name.time]], y = .data[[type]],
                                                        group = .data[[name.Group]], color = .data[[name.Group]]))
         }

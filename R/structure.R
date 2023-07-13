@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: jul  7 2023 (14:24) 
+## Last-Updated: jul 11 2023 (16:21) 
 ##           By: Brice Ozenne
-##     Update #: 1076
+##     Update #: 1082
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -41,6 +41,10 @@ ID <- function(formula, var.cluster, var.time, add.time){
 
     ## ** normalize input
     outCov <- .formulaStructure(formula, add.X = NULL, strata.X = TRUE, correlation = FALSE)
+    if(!missing(var.cluster) && inherits(var.cluster,"formula")){ ## possible user mistake ID(~1,~1) instead of ID(list(~1,~1))
+        stop("Argument \'var.cluster\' should not be a formula. \n",
+             "Consider using a list to collect the formula for the variance and correlation structure. \n")
+    }
 
     ## ** create structure
     out <- list(call = match.call(),
@@ -106,6 +110,10 @@ IND <- function(formula, var.cluster, var.time, add.time){
     }
 
     outCov <- .formulaStructure(formula, add.X = add.X, strata.X = FALSE, correlation = FALSE)
+    if(!missing(var.cluster) && inherits(var.cluster,"formula")){ ## possible user mistake IND(~1,~1) instead of IND(list(~1,~1))
+        stop("Argument \'var.cluster\' should not be a formula. \n",
+             "Consider using a list to collect the formula for the variance and correlation structure. \n")
+    }
 
     ## ** create structure
     out <- list(call = match.call(),
@@ -209,6 +217,10 @@ CS <- function(formula, var.cluster, var.time, type = "homogeneous", group.type 
             names(group.type) <- outCov$X.cor
         }
     }
+    if(!missing(var.cluster) && inherits(var.cluster,"formula")){ ## possible user mistake CS(~1,~1) instead of CS(list(~1,~1))
+        stop("Argument \'var.cluster\' should not be a formula. \n",
+             "Consider using a list to collect the formula for the variance and correlation structure. \n")
+    }
 
     ## ** create structure
     out <- list(call = match.call(),
@@ -259,6 +271,12 @@ RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
     ## ** normalize input
     ## ranef
     test.ranef <- is.null(ranef)
+
+    ## var.cluster
+    if(!missing(var.cluster) && inherits(var.cluster,"formula")){ ## possible user mistake RE(~1,~1) instead of RE(list(~1,~1))
+        stop("Argument \'var.cluster\' should not be a formula. \n",
+             "Consider using a list to collect the formula for the variance and correlation structure. \n")
+    }
 
     ## formula
     if(!inherits(formula,"formula")){
@@ -460,6 +478,11 @@ TOEPLITZ <- function(formula, var.cluster, var.time, type = "LAG", add.time){
         toeplitz.block <- length(outCov$X.cor) > 1
     }
 
+    if(!missing(var.cluster) && inherits(var.cluster,"formula")){ ## possible user mistake TOEPLITZ(~1,~1) instead of TOEPLITZ(list(~1,~1))
+        stop("Argument \'var.cluster\' should not be a formula. \n",
+             "Consider using a list to collect the formula for the variance and correlation structure. \n")
+    }
+
     ## ** create structure
     out <- list(call = match.call(),
                 name = data.frame(cluster = if(!missing(var.cluster)){var.cluster}else{NA},
@@ -524,6 +547,11 @@ UN <- function(formula, var.cluster, var.time, add.time){
     }
 
     outCov <- .formulaStructure(formula, add.X = add.X, strata.X = inherits(formula,"formula"), correlation = 2) ## 2 for fully stratified structure
+
+    if(!missing(var.cluster) && inherits(var.cluster,"formula")){ ## possible user mistake UN(~1,~1) instead of UN(list(~1,~1))
+        stop("Argument \'var.cluster\' should not be a formula. \n",
+             "Consider using a list to collect the formula for the variance and correlation structure. \n")
+    }
 
     ## ** create structure
     out <- list(call = match.call(),

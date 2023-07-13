@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (11:08) 
 ## Version: 
-## Last-Updated: jun 14 2023 (14:54) 
+## Last-Updated: jul 10 2023 (18:04) 
 ##           By: Brice Ozenne
-##     Update #: 42
+##     Update #: 44
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -60,8 +60,8 @@ dummy.coef.lmm <- function(object, drop = TRUE,...){
         if(drop){
             var.ff <- attr(out,"pri.vars")
             data.original <- as.data.frame(object$data.original)
-            existing.levels <- unique(as.character(interaction(data.original[,var.ff,drop=FALSE])))
-            out <- out[as.character(interaction(out[,var.ff,drop=FALSE])) %in% existing.levels,,drop=FALSE]
+            existing.levels <- unique(nlme::collapse(data.original[,var.ff,drop=FALSE], as.factor = FALSE))
+            out <- out[nlme::collapse(out[,var.ff,drop=FALSE], as.factor = FALSE) %in% existing.levels,,drop=FALSE]
         }
 
         attr(out,"estName") <- NULL

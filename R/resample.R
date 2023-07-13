@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: jul  4 2023 (18:58) 
+## Last-Updated: jul 13 2023 (13:11) 
 ##           By: Brice Ozenne
-##     Update #: 438
+##     Update #: 451
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -212,7 +212,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 
     ## ## *** missing patterns
     ## if(type == "perm-var"){
-    ##     Upattern <- object$design$vcov$X$Upattern
+    ##     Upattern <- object$design$vcov$Upattern
     ##     ## find patterns sharing the same times 
     ##     ls.time.pattern <- unique(Upattern$time)  
     ##     time.pattern <- lapply(ls.time.pattern, paste, collapse="|")
@@ -282,9 +282,10 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
         if(effects.vcov){
             ## update design according to the permutation (mean and variance)
             iStructure <- object$design$vcov
-            iStructure$X <- NULL
+            iStructure$var <- NULL
+            iStructure$cor <- NULL
             iStructure$param <- NULL
-
+            browser()
             iData2 <- .prepareData(iData[,var.all,drop=FALSE],
                                    var.cluster = attr(var.cluster, "original"),
                                    var.time = attr(object$time$var, "original"),
@@ -311,9 +312,10 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
                 }else{
                     iwY <- cbind(iData[[var.outcome]]*sqrt(iData[[var.weights[1]]]))
                 }
+                browser() ## Upattern$index.cluster
                 iDesign$precompute.XY <- .precomputeXR(X = iDesign$precompute.XX$Xpattern, residuals = iwY, pattern = iDesign$vcov$X$Upattern$name,
-                                                       pattern.ntime = stats::setNames(iDesign$vcov$X$Upattern$n.time, iDesign$vcov$X$Upattern$name),
-                                                       pattern.cluster = iDesign$vcov$X$Upattern$index.cluster, index.cluster = iDesign$index.cluster)
+                                                       pattern.ntime = stats::setNames(iDesign$vcov$Upattern$n.time, iDesign$vcov$X$Upattern$name),
+                                                       pattern.cluster = iDesign$vcov$Upattern$index.cluster, index.cluster = iDesign$index.cluster)
             }
 
         }else{ ## change in the X values
@@ -335,13 +337,14 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
                     iwY <- cbind(iData[[var.outcome]]*sqrt(iData[[var.weights[1]]]))
                 }
                 iIndex.cluster <- .extractIndexData(data = iData, structure = iDesign$vcov)$index.cluster
-                iDesign$precompute.XX <- .precomputeXX(X = iwX.mean, pattern = iDesign$vcov$X$Upattern$name, 
-                                                       pattern.ntime = stats::setNames(iDesign$vcov$X$Upattern$n.time, iDesign$vcov$X$Upattern$name),
-                                                       pattern.cluster = iDesign$vcov$X$Upattern$index.cluster, index.cluster = iIndex.cluster)
-
+                browser() ## Upattern$index.cluster
+                iDesign$precompute.XX <- .precomputeXX(X = iwX.mean, pattern = iDesign$vcov$Upattern$name, 
+                                                       pattern.ntime = stats::setNames(iDesign$vcov$Upattern$n.time, iDesign$vcov$X$Upattern$name),
+                                                       pattern.cluster = iDesign$vcov$Upattern$index.cluster, index.cluster = iIndex.cluster)
+                browser() ## Upattern$index.cluster
                 iDesign$precompute.XY <- .precomputeXR(X = iDesign$precompute.XX$Xpattern, residuals = iwY, pattern = iDesign$vcov$X$Upattern$name,
-                                                       pattern.ntime = stats::setNames(iDesign$vcov$X$Upattern$n.time, iDesign$vcov$X$Upattern$name),
-                                                       pattern.cluster = iDesign$vcov$X$Upattern$index.cluster, index.cluster = iIndex.cluster)
+                                                       pattern.ntime = stats::setNames(iDesign$vcov$Upattern$n.time, iDesign$vcov$X$Upattern$name),
+                                                       pattern.cluster = iDesign$vcov$Upattern$index.cluster, index.cluster = iIndex.cluster)
             }
         }
 

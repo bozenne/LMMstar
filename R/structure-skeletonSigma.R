@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (11:02) 
 ## Version: 
-## Last-Updated: jul  6 2023 (13:41) 
+## Last-Updated: jul 12 2023 (16:33) 
 ##           By: Brice Ozenne
-##     Update #: 53
+##     Update #: 60
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -35,7 +35,8 @@
 
     ## ** extract information
     strata.var <- structure$name$strata
-    X.var <- structure$X$var
+    X.var <- structure$var$X
+    lp2X.var <- structure$var$lp2X
     if(NCOL(X.var)==0){
         n.strata <- 0
     }else{
@@ -56,6 +57,7 @@
             stop("Could not find the intercept in the design matrix for the variance.\n")
         }
         colnames(X.var)[index.sigma] <- param.sigma
+        colnames(lp2X.var)[index.sigma] <- param.sigma
         strata.sigma <- 1
     }else if(n.strata>1){
         param.sigma <- paste0("sigma:",U.strata)
@@ -64,6 +66,7 @@
             stop("Could not find the strata-specific intercepts in the design matrix for the variance.\n")
         }
         colnames(X.var)[index.sigma] <- param.sigma
+        colnames(lp2X.var)[index.sigma] <- param.sigma
         strata.sigma <- 1:n.strata
         attr(X.var,"order")[index.sigma] <- 0
         
@@ -73,36 +76,37 @@
     ## ** find code associated to each parameter
     ## subset rows corresponding only to the 'baseline' variance
     if(NCOL(X.var)>length(param.sigma)){
-        index.keep <- rowSums(abs(X.var[,-index.sigma,drop=FALSE]))==0
-        X.Usigma <- unique(X.var[index.keep,,drop=FALSE])
+        X.Usigma <- lp2X.var[rowSums(abs(lp2X.var[,-index.sigma,drop=FALSE]))==0,,drop=FALSE]
     }else{
-        X.Usigma <- unique(X.var)
+        X.Usigma <- lp2X.var
     }
         
     ## generate code
-    code.sigma <- stats::setNames(as.character(interaction(as.data.frame(X.Usigma), drop = TRUE, sep = sep)),
+    code.sigma <- stats::setNames(nlme::collapse(X.Usigma, as.factor = FALSE, sep = sep),
                                   apply(X.Usigma, 1, function(iRow){names(which(iRow==1))}))
     code.sigma <- as.character(code.sigma[param.sigma])
 
-    ## ** find level
+    ## ** find level    
     M.level <- attr(X.var,"M.level")
     if(length(M.level)==0){ ## no strata nor covariate
         level.sigma <- ""
     }else if(n.strata==1 || NCOL(M.level)>1){ ## no strata or strata with covariate
-        level.sigma <- paste0(".",as.character(interaction(M.level[index.sigma,,drop=FALSE],sep=sep, drop = TRUE)))
+        level.sigma <- paste0(".",nlme::collapse(M.level[index.sigma,,drop=FALSE],sep=sep, as.factor = FALSE))
     }else if(n.strata>1){ ## only strata
-        level.sigma <- paste0(sep,as.character(interaction(M.level[index.sigma,,drop=FALSE],sep=sep, drop = TRUE)))
+        level.sigma <- paste0(sep,nlme::collapse(M.level[index.sigma,,drop=FALSE],sep=sep, as.factor = FALSE))
     }
+
     ## ** update
-    structure$X$var <- X.var
+    structure$var$lp2X <- lp2X.var
+    structure$var$X <- X.var
     param.sigma <- data.frame(name = param.sigma,
                               index.strata = strata.sigma,
                               type = rep("sigma",length=n.sigma),
                               constraint = as.numeric(NA),
                               level = level.sigma,
                               code = code.sigma,
-                              index.lp.x = as.numeric(NA),
-                              index.lp.y = as.numeric(NA),
+                              lp.x = as.numeric(NA),
+                              lp.y = as.numeric(NA),
                               sigma = as.character(NA),
                               k.x = as.character(NA),
                               k.y = as.character(NA),                                  

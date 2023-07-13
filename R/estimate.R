@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: jul  7 2023 (18:16) 
+## Last-Updated: jul 13 2023 (11:24) 
 ##           By: Brice Ozenne
-##     Update #: 972
+##     Update #: 983
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -315,7 +315,7 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
     
     ## ** prepare
     index.cluster <- design$index.cluster
-    
+
     param.mu <- design$param[design$param$type=="mu","name"]
     param.sigma <- design$param[design$param$type=="sigma","name"]
     param.k <- design$param[design$param$type=="k","name"]
@@ -323,16 +323,15 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
     param.Omega <- c(param.sigma,param.k,param.rho)
     param.name <- c(param.mu,param.Omega)
 
-    param.fixed <- design$param[design$param$fixed,"name"]
+    param.fixed <- design$param[!is.na(design$param$constraint),"name"]
     param.Omega2 <- setdiff(param.Omega,param.fixed)
     param.mu2 <- setdiff(param.mu,param.fixed)
     param.fixed.mu <- setdiff(param.mu,param.mu2)
     design.param2 <- design$param[match(param.Omega2, design$param$name),,drop=FALSE]
     
     n.param <- length(param.name)
-    Upattern <- design$vcov$X$Upattern
+    Upattern <- design$vcov$Upattern
     n.Upattern <- NROW(Upattern)
-
 
     if(length(param.fixed.mu)>0){
         partialHat <- design$mean[,param.fixed.mu,drop=FALSE] %*% init[param.fixed.mu]
@@ -355,10 +354,10 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
             ## update XY with X(Y-Xb(fixed))
             precompute.Xfixed <- .precomputeXR(X = precompute.XXpattern,
                                                residuals = partialHat,
-                                               pattern = design$vcov$X$Upattern$name,
-                                               pattern.ntime = stats::setNames(design$vcov$X$Upattern$n.time, design$vcov$X$Upattern$name),
-                                               pattern.cluster = design$vcov$X$Upattern$index.cluster, index.cluster = design$index.cluster)
-            precompute.XY <- mapply(x = design$precompute.XY, y = precompute.Xfixed, FUN = function(x,y){x[,,param.mu2,drop=FALSE]-y}, SIMPLIFY = FALSE)
+                                               pattern = design$vcov$Upattern$name,
+                                               pattern.ntime = stats::setNames(design$vcov$Upattern$n.time, design$vcov$Upattern$name),
+                                               pattern.cluster = design$vcov$Upattern$index.cluster, index.cluster = design$index.cluster)
+            precompute.XY <- mapply(x = design$precompute.XY, y = precompute.Xfixed, FUN = function(x,y){x[,,param.mu2,drop=FALSE]-y}, SIMPLIFY = FALSE)
         }else{
             precompute.XY <- NULL
             precompute.XX <- NULL
@@ -407,7 +406,7 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
     if(is.null(init)){
 
         param.value <- stats::setNames(rep(NA, n.param),param.name)
-browser()
+
         ## mean value
         if(!is.null(init.mu)){
             param.value[param.mu2] <- init.mu[param.mu2]
@@ -440,7 +439,7 @@ browser()
 
         ## check initialization leads to a positive definite matrix 
         initOmega <- .calc_Omega(object = design$vcov, param = outInit, keep.interim = TRUE)        
-test.npd <- sapply(initOmega,function(iOmega){any(eigen(iOmega)$values<0)})
+        test.npd <- sapply(initOmega,function(iOmega){any(eigen(iOmega)$values<0)})
         if(any(test.npd)){ ## otherwise initialize as compound symmetry
             param.value[setdiff(param.sigma,param.fixed)] <- outInit[setdiff(param.sigma,param.fixed)]
             param.value[setdiff(param.k,param.fixed)] <- outInit[setdiff(param.k,param.fixed)]
@@ -731,6 +730,7 @@ test.npd <- sapply(initOmega,function(iOmega){any(eigen(iOmega)$values<0)})
     if(!is.null(key.XX)){
         max.key <- key.XX[n.param,n.param]
     }
+    
     for(iPattern in pattern){ ## iPattern <- pattern[1]
         if(!is.null(precompute.XX) && !is.null(precompute.XY)){
             iVec.Omega <- as.double(OmegaM1[[iPattern]])

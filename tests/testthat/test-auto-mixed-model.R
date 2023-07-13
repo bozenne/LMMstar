@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: Jul 10 2023 (12:40) 
+## Last-Updated: jul 11 2023 (15:33) 
 ##           By: Brice Ozenne
-##     Update #: 166
+##     Update #: 182
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,6 +21,8 @@ if(FALSE){
     library(lava)
     library(multcomp)
     library(emmeans)
+    library(lme4)
+    library(lmerTest)
 
     library(LMMstar)
 }
@@ -470,15 +472,23 @@ sigma(eSUN.lmm)
 ## * Random intercept model
 data(Orthodont,package="nlme")
 
-eRI.lmer <- lmer(distance ~ age + (1|Subject), data=Orthodont)
-
 test_that("Random intercept model",{
+    eRI.lmer <- lmer(distance ~ age + (1|Subject), data=Orthodont)
     eRI.lmm <- lmm(distance ~ age + (1|Subject), data=Orthodont,
                    control = list(init = "lmer"))
+    summary(eRI.lmm)
     ## likelihood
     expect_equal(as.double(logLik(eRI.lmer)), as.double(logLik(eRI.lmm)), tol = 1e-6)
-    ## random effects
-    GS <- as.data.frame(ranef(eRI.lmer))    
+
+    ## random effects (conditional mean)
+    u.GS <- as.data.frame(ranef(eRI.lmer))    
+    u.test <- ranef(eRI.lmm, effects = "mean", format = "long")
+    expect_equal(as.double(u.GS$condval[match(u.test$level,u.GS$grp)]), as.double(u.test$estimate), tol = 1e-6)
+
+    ## random effects (conditional variance)
+    tau.GS <- as.data.frame(VarCorr(eRI.lmer))
+    tau.test <- ranef(eRI.lmm, effects = "variance", format = "long")
+    expect_equal(as.double(tau.GS[1,"vcov"]), as.double(tau.test[tau.test$type=="variance","estimate"]), tol = 1e-6)
 })
 
 ## * Stratified random intercept model
@@ -487,95 +497,48 @@ Orthodont$nsex <- as.numeric(Orthodont$Sex=="Male")
 test_that("Random intercept model",{
     eRI.mlmm <- mlmm(distance ~ 1 + (1|Subject), data = Orthodont, by = "nsex", trace = FALSE)
     eSRI.lmm <- lmm(distance ~ nsex + (1|Subject), repetition = nsex~1|Subject, data = Orthodont)
-
+    
     ## likelihood
     expect_equal(as.double(sum(unlist(logLik(eRI.mlmm)))), as.double(logLik(eSRI.lmm)), tol = 1e-6)
 
-    ## random effects
-    GS <- ranef(eRI.mlmm)
-    test <- ranef(eSRI.lmm)    
+    ## random effects (conditional mean)
+    u.GS <- unlist(unname(unlist(unname(ranef(eRI.mlmm)), recursive = FALSE)), recursive = FALSE)
+    u.test <- ranef(eSRI.lmm, effects = "mean", format = "long")
+    expect_equal(as.double(u.GS[names(test)]), as.double(test), tol = 1e-6)
+
+    ## random effects (conditional variance)
+    tua.GS <- ranef(eRI.mlmm, effects = "variance")
+    tau.test <- ranef(eSRI.lmm, effects = "variance", format = "long")
+    expect_equal(as.double(GS), as.double(test), tol = 1e-5)
 })
 
 ## * Crossed random intercept model (2 terms)
 data(Penicillin, package = "lme4")
 Penicillin$id <- 1
 
-eCRI2.lmer <- lmer(diameter ~ (1|plate) + (1|sample), data = Penicillin)
-y.lmer <- as.matrix(getME(eCRI2.lmer, "y") )
-X.lmer <- as.matrix(getME(eCRI2.lmer, "X") )
-Z.lmer <- as.matrix(getME(eCRI2.lmer, "Z") )
-Lambda.lmer <- as.matrix(getME(eCRI2.lmer,"Lambda"))
-G.lmer <- as.matrix(sigma(eCRI2.lmer)^2*crossprod(t(Lambda.lmer)))
-Omega.lmer <- Z.lmer %*% G.lmer %*% t(Z.lmer) + sigma(eCRI2.lmer)^2*diag(NROW(Z.lmer))
-epsilon.lmer <- residuals(eCRI2.lmer)
-
-test <- G.lmer %*% t(Z.lmer) %*% solve(Omega.lmer) %*% epsilon.lmer
-GS <- do.call(rbind,ranef(eCRI2.lmer))
-cbind(test,GS,test/GS)
-
-LHS <- c(t(Lambda.lmer) %*% t(Z.lmer) %*% y.lmer, t(X.lmer) %*% y.lmer)
-B1 <- crossprod(Z.lmer %*% Lambda.lmer) + diag(1, NCOL(Z.lmer))
-B2 <- t(X.lmer) %*% Z.lmer %*% Lambda.lmer
-B3 <- crossprod(X.lmer)
-solve(B3) %*% tail(LHS,1)
-
-RHS <- rbind(cbind(B1,t(B2)),
-             cbind(B2, B3))
-hat <- solve(RHS) %*% LHS
-
-Lambda.lmer %*% head(,-1)
-
-GS.u
-GS.b
-
-table(G.lmer)
-
-residuals(eCRI2.lmm)
-
-L <- getME(eCRI2.lmer,"L")
-Lambdat <- getME(eCRI2.lmer,"Lambdat")
-Zt <- getME(eCRI2.lmer,"Zt")
-X <- getME(eCRI2.lmer,"X")
-y <- getME(eCRI2.lmer,"y")
-W <- diag(1, NROW(X))
-ZtWy <- Zt %*% W %*% y
-
-ZtWX <- Zt %*% W %*% X
-XtWy <- t(X) %*% W %*% y
-XtWX <- t(X) %*% W %*% X
-
-cu <- as.vector(solve(L, solve(L, Lambdat %*% ZtWy, system="P"), system="L"))
-RZX <- as.vector(solve(L, solve(L, Lambdat %*% ZtWX,
-                                system="P"), system="L"))
-RXtRX <- as(XtWX - crossprod(RZX), "dpoMatrix")
-beta <- as.vector(solve(RXtRX, XtWy - crossprod(RZX, cu)))
-GS.u <- as.vector(solve(L, solve(L, cu - RZX * beta, system = "Lt"), system="Pt"))
-GS.b <- as.vector(crossprod(Lambdat,GS.u))
-GS.b
-
-u/b
-b/u
-do.call(rbind,ranef(eCRI2.lmer))
 
 test_that("Crossed random intercept model (2 terms)",{
 
-    eCRI2.lmm0 <- lmm(diameter ~ 1, repetition = ~1|id,
-                      structure = CS(list(~1,~plate+sample), type = "ho0"),
-                      data = Penicillin, df = FALSE)
-    eCRI2.lmm <- lmm(diameter ~ (1|plate) + (1|sample), data = Penicillin, df = FALSE,
-                     control = list(init = "lmer"))
+    eCRI2.lmer <- lmer(diameter ~ (1|plate) + (1|sample), data = Penicillin)
+    ## eCRI2.lmm0 <- lmm(diameter ~ 1, repetition = ~1|id,
+    ##                   structure = CS(list(~1,~plate+sample), type = "ho", group = 1:2),
+    ##                   data = Penicillin, df = FALSE)
+    ## eCRI2.lmm <- lmm(diameter ~ (1|plate) + (1|sample), data = Penicillin, df = FALSE,
+    ##                  control = list(init = "lmer"), trace = 5)
     eCRI2.lmm <- lmm(diameter ~ (1|plate) + (1|sample), data = Penicillin, df = FALSE)
 
-    logLik(eCRI2.lmm0)
-    logLik(eCRI2.lmm)
-    logLik(eCRI2.lmer)
-    coef(eCRI2.lmm0, effects = "all")
     ## likelihood
     expect_equal(as.double(logLik(eCRI2.lmer)), as.double(logLik(eCRI2.lmm)), tol = 1e-6)
 
-    ## random effects
-    GS <- as.data.frame(ranef(eCRI2.lmer))    
-    GS <- as.data.frame(ranef(eCRI2.lmm))    
+    ## random effects (conditional mean)
+    GS <- do.call(rbind,ranef(eCRI2.lmer))
+    test <- do.call(c,ranef(eCRI2.lmm))
+    expect_equal(as.double(GS[,1]), as.double(test), tol = 1e-6)
+
+    ## random effects (conditional variance)
+    GS <- as.data.frame(VarCorr(eCRI2.lmer))
+    test <- ranef(eCRI2.lmm, effects = "variance")
+    expect_equal(as.double(test), as.double(GS[1:2,"vcov"]), tol = 1e-3)
 })
 
 ## * Crossed random intercept model (3 terms)
@@ -597,7 +560,26 @@ dfL.CRI3 <- dfL.CRI3[order(dfL.CRI3$sample),]
 
 ## head(dfL.CRI3,10)
 
-eCRI3.lmer <- lmer(value ~ 0 + variable + (1|patient) + (1|day) + (1|batch), data = dfL.CRI3)
+test_that("Crossed random intercept model (3 terms)",{
+
+    eCRI3.lmer <- lmer(value ~ 0 + variable + (1|patient) + (1|day) + (1|batch), data = dfL.CRI3)
+    eCRI3.lmm <- lmm(value ~ 0 + variable + (1|patient) + (1|day) + (1|batch), data = dfL.CRI3, df = FALSE,
+                     trace = 5)
+
+    ## likelihood
+    expect_equal(as.double(logLik(eCRI3.lmer)), as.double(logLik(eCRI3.lmm)), tol = 1e-6)
+
+    ## random effects (conditional mean)
+    GS <- do.call(rbind,ranef(eCRI3.lmer))
+    test <- do.call(c,ranef(eCRI3.lmm))
+    expect_equal(as.double(GS[,1]), as.double(test), tol = 1e-6)
+
+    ## random effects (conditional variance)
+    GS <- as.data.frame(VarCorr(eCRI3.lmer))
+    test <- ranef(eCRI3.lmm, effects = "variance")
+    expect_equal(as.double(test), as.double(GS[1:2,"vcov"]), tol = 1e-3)
+})
+
 ## as.data.frame(ranef(eCRI3.lmer))
 
 

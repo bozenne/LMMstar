@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: jun 15 2023 (16:21) 
+## Last-Updated: jul 13 2023 (15:25) 
 ##           By: Brice Ozenne
-##     Update #: 479
+##     Update #: 484
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -311,7 +311,7 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
  
             M.time <- attr(e.lmm$time$levels,"original")
             U.time <- unique(M.time[,1])
-            tentative.rho <- sapply(U.time, function(iT){paste0("rho(",paste(interaction(M.time)[M.time[,1]==iT],collapse=","),")")})
+            tentative.rho <- sapply(U.time, function(iT){paste0("rho(",paste(nlme::collapse(M.time)[M.time[,1]==iT],collapse=","),")")})
 
             if(any(tentative.rho %in% rownames(out))){
                 keep.rho <- intersect(tentative.rho,rownames(out))
@@ -557,7 +557,7 @@ partialCor.lmm <- function(object, level = 0.95, R2 = FALSE, se = TRUE, df = TRU
 ## ## ** partial percentage of variance explained (R2)
 ## index.cluster <- object$design$index.cluster
 ## index.clusterTime <- attr(object$design$index.clusterTime,"vectorwise")
-## X.pattern <- object$design$vcov$X$Upattern
+## X.pattern <- object$design$vcov$Upattern
 ## name.pattern <- X.pattern$name
 
 ## ## design matrix
@@ -572,7 +572,7 @@ partialCor.lmm <- function(object, level = 0.95, R2 = FALSE, se = TRUE, df = TRU
 ## Xbeta2.assign <- Xbeta.assign^2
     
 ## ## variance pattern
-## Xpattern.var <- object$design$vcov$X$Xpattern.var
+## Xpattern.var <- object$design$vcov$var$Xpattern
 ## nXpattern.var <- length(Xpattern.var)
 ## nameXpattern.var <- names(Xpattern.var)
 ## ls.nameXpattern.var <- strsplit(nameXpattern.var, split = ".", fixed = TRUE)
@@ -585,9 +585,9 @@ partialCor.lmm <- function(object, level = 0.95, R2 = FALSE, se = TRUE, df = TRU
 ##                   )
     
 ## for(iPattern in 1:nXpattern.var){
-##     iIndex.pattern <- which(object$design$vcov$X$Upattern$var == nameXpattern.var[iPattern])[1]
-##     iIndex.time <- object$design$vcov$X$Upattern$time[[iIndex.pattern]]
-##     iIndex.cluster <- object$design$vcov$X$Upattern$index.cluster[[iIndex.pattern]]
+##     iIndex.pattern <- which(object$design$vcov$Upattern$var == nameXpattern.var[iPattern])[1]
+##     iIndex.time <- object$design$vcov$Upattern$time[[iIndex.pattern]]
+##     iIndex.cluster <- object$design$vcov$Upattern$index.cluster[[iIndex.pattern]]
 ##     iMindex.cluster <- do.call(rbind,index.cluster[iIndex.cluster])
 
 ##     M.timevar$pattern[iPattern,iIndex.time] <- ls.nameXpattern.var[[iPattern]]

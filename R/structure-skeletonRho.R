@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (13:27) 
 ## Version: 
-## Last-Updated: jul  7 2023 (14:31) 
+## Last-Updated: jul 13 2023 (11:01) 
 ##           By: Brice Ozenne
-##     Update #: 509
+##     Update #: 610
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -66,23 +66,17 @@
     param.sigma <- structure$param[structure$param$type=="sigma","name"]
     strata.sigma <- structure$param[structure$param$type=="sigma","index.strata"]
 
-    index.k <- structure$param[structure$param$type=="k","index.level"]
     param.k <- structure$param[structure$param$type=="k","name"]
     strata.k <- structure$param[structure$param$type=="k","index.strata"]
 
     ## design matrix (reduce sample size to unique replicates)
-    cor.column <- colnames(structure$X$cor)
-    XpairPattern <- .pairPatternX(structure$X$cor, data = data, lp.obs = structure$X$lp.cor,
+    XpairPattern <- .pairPatternX(structure$cor,
                                   U.cluster = U.cluster, index.cluster = index.cluster,
                                   U.strata = U.strata, index.clusterStrata = index.clusterStrata)
 
-    if(length(index.k)>0){
-        X.var.k <- rowSums(sweep(structure$X$var[,param.k,drop=FALSE], FUN = "*", STATS = 1:length(param.k), MARGIN = 2))
-        if(any(X.var.k>length(param.k))){
-            stop("Something went wrong when identifying the variance multiplier parameters. \n")
-        }
-        param.k.obs <- c(NA, param.k)[X.var.k+1]
-    }
+    ## k parameters
+    param.k.augmented <- structure$param$name[match(rownames(structure$var$lp2X)[structure$var$lp],structure$param$code)]
+    param.k.augmented[param.k.augmented %in% param.sigma] <- NA
 
     ## variables
     strata.var <- structure$name$strata
@@ -91,11 +85,10 @@
     n.strata <- length(U.strata)
 
     ## levels
-    X.level <- XpairPattern$lp2X
-    M.level <- XpairPattern$lp2data
-    strata.level <- XpairPattern$index.strata.lp2X
-    level.cor <- rownames(X.level)
-
+    M.level.cor <- structure$cor$lp2data
+    lp2X.cor <- structure$cor$lp2X
+    lp2data.cor <- structure$cor$lp2data
+    
     ## ** special case (no strata, no covariate)
     if(length(reg.var)==0){
         vec.strataRho <- which(sapply(XpairPattern$LpU.strata,length)>0)
@@ -110,30 +103,29 @@
                                     constraint = as.numeric(NA),
                                     level = level.strataRho,
                                     code = paste0("R.",vec.strataRho,".",vec.strataRho),
-                                    index.lp.x = NA,
-                                    index.lp.y = NA,
+                                    lp.x = NA,
+                                    lp.y = NA,
                                     sigma = param.sigma[match(vec.strataRho, strata.sigma)],
                                     k.x = NA,
                                     k.y = NA,                                  
                                     stringsAsFactors = FALSE)        
-        structure.rho$index.lp.x <- as.list(vec.strataRho)
-        structure.rho$index.lp.y <- as.list(vec.strataRho)
+        structure.rho$lp.x <- as.list(vec.strataRho)
+        structure.rho$lp.y <- as.list(vec.strataRho)
         structure$param <- rbind(structure$param, structure.rho)
         rownames(structure$param) <- NULL
-        attr(structure$param, "lp2X") <- XpairPattern$lp2X
         return(structure)
     }
     
     
     ## ** identify and name parameters
-    
+
     ## *** combine linear predictor accross strata
     diffLp <- do.call(rbind,XpairPattern$diffU.strata) ## difference in linear predictor index for pair of observation
     indexLp <- do.call(rbind,XpairPattern$LpU.strata) ## linear predictor index for each observation of each pair
-    lp.x <- XpairPattern$lp2X[indexLp[,1],,drop=FALSE] ## design matrox for one observation of each pair of observations
-    data.x <- XpairPattern$lp2data[indexLp[,1],,drop=FALSE] ## data for one observation of each pair of observations
-    data.y <- XpairPattern$lp2data[indexLp[,2],,drop=FALSE] ## data for the other observation of each pair of observations
-    strataLp <- XpairPattern$index.strata.lp2X[indexLp[,1]] ## strata for pair of observation (would be the same with indexLp[,2])
+    lp.x <- lp2X.cor[indexLp[,1],,drop=FALSE] ## design matrox for one observation of each pair of observations
+    data.x <- lp2data.cor[indexLp[,1],,drop=FALSE] ## data for one observation of each pair of observations
+    data.y <- lp2data.cor[indexLp[,2],,drop=FALSE] ## data for the other observation of each pair of observations
+    strataLp <- index.clusterStrata[attr(index.cluster,"vectorwise")[indexLp[,1]]] ## strata for pair of observation (would be the same with indexLp[,2])
     n.Lp <- NROW(lp.x)
 
     ## *** identify pairs with equal or non-equal linear predictors
@@ -152,7 +144,7 @@
             level.rho[index.equal] <- ""
         }else if(structure$type == "heterogeneous"){
             code.rho[index.equal] <- paste("R",lp.x[index.equal],sep=sep[2])
-            level.rho[index.equal] <- paste0("(",interaction(as.data.frame(data.x[index.equal,,drop=FALSE]), sep = sep[1], drop = TRUE),")")
+            level.rho[index.equal] <- paste0("(",nlme::collapse(data.x[index.equal,,drop=FALSE], sep = sep[1], as.factor = FALSE),")")
         } 
     }
 
@@ -161,7 +153,7 @@
         if(structure$type == "homogeneous"){
             ## contrast at the design matrix level
             test.n0 <- 1*(data.x[index.unequal,reg.var,drop=FALSE]!=data.y[index.unequal,reg.var,drop=FALSE])
-            code.rho[index.unequal] <- paste("D",strataLp[index.unequal],interaction(as.data.frame(test.n0),sep=sep[1]),sep=sep[2])
+            code.rho[index.unequal] <- paste("D",strataLp[index.unequal],nlme::collapse(test.n0,sep=sep[1],as.factor=FALSE),sep=sep[2])
             
             index.unequal.red <- index.unequal[!duplicated(code.rho[index.unequal])]
             code2level <- stats::setNames(sapply(index.unequal.red, function(iUnequal){ ## iUnequal <- index.unequal.red[1]
@@ -173,9 +165,9 @@
             level.rho[index.unequal] <- code2level[code.rho[index.unequal]]
             
         }else if(structure$type == "heterogeneous"){
-            code.rho[index.unequal] <- paste("D",lp.x[index.unequal],interaction(as.data.frame(diffLp[index.unequal,,drop=FALSE]), sep = sep[1], drop = TRUE),sep=sep[2])
-            level.rho[index.unequal] <- paste0("(",interaction(as.data.frame(data.x[index.unequal,,drop=FALSE]), sep = sep[1], drop = TRUE),
-                                               ",",interaction(as.data.frame(data.y[index.unequal,,drop=FALSE]), sep = sep[1], drop = TRUE),
+            code.rho[index.unequal] <- paste("D",lp.x[index.unequal],nlme::collapse(diffLp[index.unequal,,drop=FALSE], sep = sep[1], as.factor = FALSE),sep=sep[2])
+            level.rho[index.unequal] <- paste0("(",nlme::collapse(data.x[index.unequal,,drop=FALSE], sep = sep[1], as.factor = FALSE),
+                                               ",",nlme::collapse(data.y[index.unequal,,drop=FALSE], sep = sep[1], as.factor = FALSE),
                                                ")")
         }
 
@@ -192,7 +184,7 @@
                 if(length(strata.var)>1){
                     stop("Cannot handle multiple strata variables with this covariance structure. \n")
                 }
-                col.strata <- attr(structure$X$cor,"M.level")[strata.var]
+                col.strata <- M.level.cor[strata.var]
                 index.0 <- unlist(lapply(1:n.strata, FUN = function(iS){ ## iS <- 1
                     iCol <- rownames(col.strata)[col.strata==U.strata[iS]] ## columns in the design matrix corresponding 
                     iIndex <- index.unequal[strataLp[index.unequal]==iS]
@@ -206,13 +198,13 @@
     
     ## ***  name parameters
     level.Urho <-  level.rho[test.rho]
-    strata.Urho <- XpairPattern$index.strata.lp2X[indexLp[test.rho,1]]
+    strata.Urho <- strataLp[test.rho]
     if(n.strata>1){
         level.Urho <- paste0(level.Urho,sep[2],strata.Urho)
     }
 
     ## ***  retrive k
-    if(length(index.k)>0){
+    if(length(param.k)>0){
         indexObs <- do.call(rbind,lapply(XpairPattern$LpU.strata,attr,"index"))
         k.x <- param.k.obs[indexObs[,1]]
         k.y <- param.k.obs[indexObs[,2]]
@@ -228,8 +220,8 @@
                                 constraint = as.numeric(NA),
                                 level = level.Urho,
                                 code = code.Urho,
-                                index.lp.x = NA,
-                                index.lp.y = NA,
+                                lp.x = NA,
+                                lp.y = NA,
                                 sigma = param.sigma[match(strata.Urho,strata.sigma)],
                                 k.x = k.x[test.rho],
                                 k.y = k.y[test.rho],                                  
@@ -246,13 +238,12 @@
     ## ensure proper ordering
     code.x <- tapply(indexLp[,1], code.rho, base::identity, simplify = FALSE)
     code.y <- tapply(indexLp[,2], code.rho, base::identity, simplify = FALSE)
-    structure.rho$index.lp.x[match(names(code.x),structure.rho$code)] <- code.x
-    structure.rho$index.lp.y[match(names(code.y),structure.rho$code)] <- code.y
-    
+    structure.rho$lp.x[match(names(code.x),structure.rho$code)] <- code.x
+    structure.rho$lp.y[match(names(code.y),structure.rho$code)] <- code.y
+
     ## ** export
     rownames(structure.rho) <- NULL
     structure$param <- rbind(structure$param, structure.rho)
-    attr(structure$param, "lp2X") <- XpairPattern$lp2X
     return(structure)
 }
 
@@ -285,7 +276,6 @@
         structure$ranef$param <- list(matrix(param.rho$name[param.rho$index.strata], nrow = n.hierarchy, ncol = n.strata,
                                              dimnames = list(name.hierarchy,U.strata)))
     }else{
-
         ## prepare output
         structure$ranef$param <- lapply(hierarchy, function(iH){
             matrix(as.character(NA), nrow = length(iH), ncol = n.strata,
@@ -293,22 +283,22 @@
         })
         
         ## *** convert from index of the linear predictor to design matrix
-        M.level <- attr(structure$X$cor,"M.level")
-        lp2X <- attr(structure$param,"lp2X")        
+        M.level.cor <- attr(structure$cor$X,"M.level")
+        lp2X.cor <- structure$cor$lp2X
         var.cluster <- attr(structure$name$cluster,"original")
-        if(!is.null(var.cluster) && var.cluster %in% name.hierarchy && var.cluster %in% colnames(lp2X) == FALSE){
+        if(!is.null(var.cluster) && var.cluster %in% name.hierarchy && var.cluster %in% colnames(lp2X.cor) == FALSE){
             ## add cluster variable when missing
-            lp2X <- cbind(1,lp2X)
-            colnames(lp2X)[1] <- var.cluster
-            M.level <- cbind(TRUE,M.level)
-            colnames(M.level)[1] <- var.cluster
+            lp2X.cor <- cbind(1,lp2X.cor)
+            colnames(lp2X.cor)[1] <- var.cluster
+            M.level.cor <- cbind(TRUE,M.level.cor)
+            colnames(M.level.cor)[1] <- var.cluster
         }
         ## split hierarchy by strata (since the variable are name time:strata0 and time:strata1 instead of time)
         if(n.strata==1){
             name.hierarchy.strata <- list(stats::setNames(name.hierarchy,name.hierarchy))
         }else{
             name.hierarchy.strata <- lapply(U.strata, function(iStrata){ ## iStrata <- U.strata[1]
-                iM.level <- M.level[M.level[[structure$name$strata]]==iStrata,setdiff(name.hierarchy, var.cluster),drop=FALSE]
+                iM.level <- M.level.cor[M.level.cor[[structure$name$strata]]==iStrata,setdiff(name.hierarchy, var.cluster),drop=FALSE]
                 if(var.cluster %in% name.hierarchy){
                     iOut <- stats::setNames(c(var.cluster,rownames(iM.level)),
                                             c(var.cluster,colnames(iM.level)[which(iM.level==TRUE, arr.ind = TRUE)[,"col"]]))
@@ -319,7 +309,7 @@
                 return(iOut)
             })
         }
-        
+
         ## *** find for each strata and hierarchy of variable the correlation parameter with
         ## - constant value within the variables of the hierarchy
         ## - variable values for the variables outside of the hierarchy
@@ -329,11 +319,11 @@
             iParam.rho <- structure$param[structure$param$type=="rho" & is.na(structure$param$constraint) & structure$param$index.strata==iS,,drop=FALSE]
             iName.rho <- iParam.rho$name
             iLevel.rho <- iParam.rho$level
-            iCodeX.rho <- stats::setNames(iParam.rho$index.lp.x, iName.rho)
-            iCodeY.rho <- stats::setNames(iParam.rho$index.lp.y, iName.rho)
+            iCodeX.rho <- stats::setNames(iParam.rho$lp.x, iName.rho)
+            iCodeY.rho <- stats::setNames(iParam.rho$lp.y, iName.rho)
             
             iEqual <- do.call(rbind,lapply(iName.rho, function(iRho){ ## iRho <- iName.rho[1]
-                colSums(lp2X[iCodeX.rho[[iRho]],name.hierarchy.strata[[iS]],drop=FALSE] - lp2X[iCodeY.rho[[iRho]],name.hierarchy.strata[[iS]],drop=FALSE] != 0)==0
+                colSums(lp2X.cor[iCodeX.rho[[iRho]],name.hierarchy.strata[[iS]],drop=FALSE] - lp2X.cor[iCodeY.rho[[iRho]],name.hierarchy.strata[[iS]],drop=FALSE] != 0)==0
             }))
             rownames(iEqual) <- iName.rho
 
@@ -366,9 +356,9 @@
 
 ## * .skeletonRho.TOEPLITZ
 .skeletonRho.TOEPLITZ <- function(structure, data, 
-                                U.cluster, index.cluster,
-                                U.time, index.clusterTime, 
-                                U.strata, index.clusterStrata, sep = c(".",":")){
+                                  U.cluster, index.cluster,
+                                  U.time, index.clusterTime, 
+                                  U.strata, index.clusterStrata, sep = c(".",":")){
 
     ## ** extract information
     ## parameters
@@ -376,17 +366,15 @@
     param.sigma <- structure$param[structure$param$type=="sigma","name"]
     strata.sigma <- structure$param[structure$param$type=="sigma","index.strata"]
 
-    index.k <- structure$param[structure$param$type=="k","index.level"]
     param.k <- structure$param[structure$param$type=="k","name"]
     strata.k <- structure$param[structure$param$type=="k","index.strata"]
 
     ## design matrix (reduce sample size to unique replicates)
-    cor.column <- colnames(structure$X$cor)
-    XpairPattern <- .pairPatternX(structure$X$cor, data = data, lp.obs = structure$X$lp.cor,
+    XpairPattern <- .pairPatternX(structure$cor,
                                   U.cluster = U.cluster, index.cluster = index.cluster,
                                   U.strata = U.strata, index.clusterStrata = index.clusterStrata)
 
-    if(length(index.k)>0){
+    if(length(param.k)>0){
         X.var.k <- rowSums(sweep(structure$X$var[,param.k,drop=FALSE], FUN = "*", STATS = 1:length(param.k), MARGIN = 2))
         if(any(X.var.k>length(param.k))){
             stop("Something went wrong when identifying the variance multiplier parameters. \n")
@@ -398,12 +386,6 @@
     strata.var <- structure$name$strata
     reg.var <- setdiff(structure$name$cor[[1]], NA)
     n.strata <- length(U.strata)
-
-    ## levels
-    X.level <- XpairPattern$lp2X
-    M.level <- XpairPattern$lp2data
-    strata.level <- XpairPattern$index.strata.lp2X
-    level.cor <- rownames(X.level)
 
     ## ** special case (no strata, no covariate)
     if(length(reg.var)==0){
@@ -419,14 +401,14 @@
                                     index.level = as.numeric(NA),
                                     level = level.strataRho,
                                     code = paste0("R.",vec.strataRho,".",vec.strataRho),
-                                    index.lp.x = NA,
-                                    index.lp.y = NA,
+                                    lp.x = NA,
+                                    lp.y = NA,
                                     sigma = param.sigma[match(vec.strataRho, strata.sigma)],
                                     k.x = NA,
                                     k.y = NA,                                  
                                     stringsAsFactors = FALSE)        
-        structure.rho$index.lp.x <- as.list(vec.strataRho)
-        structure.rho$index.lp.y <- as.list(vec.strataRho)
+        structure.rho$lp.x <- as.list(vec.strataRho)
+        structure.rho$lp.y <- as.list(vec.strataRho)
         structure$param <- rbind(structure$param, structure.rho)
         rownames(structure$param) <- NULL
         attr(structure$param, "Xcode.xy") <- setNames(1:NROW(XpairPattern$lp2X),rownames(XpairPattern$lp2X))
@@ -452,7 +434,7 @@
     if(length(index.equal)>0){        
         if(structure$heterogeneous){
             code.rho[index.equal] <- paste("R",lp.x[index.equal],sep=sep[2])
-            level.rho[index.equal] <- paste0("(",interaction(as.data.frame(data.x[index.equal,,drop=FALSE]), sep = sep[1], drop = TRUE),")")
+            level.rho[index.equal] <- paste0("(",nlme::collapse(data.x[index.equal,,drop=FALSE], sep = sep[1], as.factor = FALSE),")")
         }else{
             code.rho[index.equal] <- paste("R",strataLp[index.equal],sep=sep[2])
             level.rho[index.equal] <- ""
@@ -463,8 +445,8 @@
     if(length(index.unequal)>0){
         if(structure$heterogeneous){
             code.rho[index.unequal] <- paste("D",lp.x[index.unequal],diffLp[index.unequal],sep=sep[2])
-            level.rho[index.unequal] <- paste0("(",interaction(as.data.frame(data.x[index.unequal,,drop=FALSE]), sep = sep[1], drop = TRUE),
-                                              ",",interaction(as.data.frame(data.y[index.unequal,,drop=FALSE]), sep = sep[1], drop = TRUE),
+            level.rho[index.unequal] <- paste0("(",nlme::collapse(data.x[index.unequal,,drop=FALSE], sep = sep[1], as.factor = FALSE),
+                                              ",",nlme::collapse(data.y[index.unequal,,drop=FALSE], sep = sep[1], as.factor = FALSE),
                                               ")")
         }else{
             code.rho[index.unequal] <- paste("D",strataLp[index.unequal],as.numeric(diffLp[index.unequal]!=0),sep=sep[2])
@@ -473,8 +455,8 @@
             iData.x[,diffLp[index.unequal]==0] <- ""
             iData.y <- data.y[index.unequal,,drop=FALSE]
             iData.y[,diffLp[index.unequal]==0] <- ""
-            level.rho[index.unequal] <- paste0("(",interaction(as.data.frame(iData.x), sep = sep[1], drop = TRUE),
-                                              ",",interaction(as.data.frame(iData.y), sep = sep[1], drop = TRUE),
+            level.rho[index.unequal] <- paste0("(",nlme::collapse(iData.x, sep = sep[1], as.factor = FALSE),
+                                              ",",nlme::collapse(iData.y, sep = sep[1], as.factor = FALSE),
                                               ")")
         }            
         
@@ -491,7 +473,7 @@
     }
 
     ## ***  retrive k
-    if(length(index.k)>0){
+    if(length(param.k)>0){
         indexObs <- do.call(rbind,lapply(XpairPattern$LpU.strata,attr,"index"))
         k.x <- param.k.obs[indexObs[,1]]
         k.y <- param.k.obs[indexObs[,2]]
@@ -507,8 +489,8 @@
                                 index.level = as.numeric(NA),
                                 level = level.Urho,
                                 code = code.Urho,
-                                index.lp.x = tapply(indexLp[,1],code.rho,base::identity, simplify = FALSE),
-                                index.lp.y = tapply(indexLp[,2],code.rho,base::identity, simplify = FALSE),
+                                lp.x = tapply(indexLp[,1],code.rho,base::identity, simplify = FALSE),
+                                lp.y = tapply(indexLp[,2],code.rho,base::identity, simplify = FALSE),
                                 sigma = param.sigma[match(strata.Urho,strata.sigma)],
                                 k.x = k.x,
                                 k.y = k.y,                                  
@@ -517,7 +499,6 @@
     structure$param <- rbind(structure$param, structure.rho)
 
     ## ** export
-    attr(structure$param, "lp2X") <- XpairPattern$lp2X
     return(structure)
 }
 
@@ -533,51 +514,46 @@
     param.sigma <- structure$param[structure$param$type=="sigma","name"]
     strata.sigma <- structure$param[structure$param$type=="sigma","index.strata"]
 
-    index.k <- structure$param[structure$param$type=="k","index.level"]
+    param.k <- structure$param[structure$param$type=="k","index.level"]
     param.k <- structure$param[structure$param$type=="k","name"]
     strata.k <- structure$param[structure$param$type=="k","index.strata"]
 
     ## design matrix (reduce sample size to unique replicates)
-    cor.column <- colnames(structure$X$cor)
-    XpairPattern <- .pairPatternX(structure$X$cor, data = data, lp.obs = structure$X$lp.cor,
+    XpairPattern <- .pairPatternX(structure$cor,
                                   U.cluster = U.cluster, index.cluster = index.cluster,
                                   U.strata = U.strata, index.clusterStrata = index.clusterStrata)
-    if(length(index.k)>0){
-        param.k.obs <- structure$param$name[match(structure$X$lp.var, structure$param$code)]
-        if(any(is.na(param.k.obs))){
-            stop("Something went wrong when identifying the variance parameters. \n")
-        }
-        param.k.obs[param.k.obs %in% param.sigma] <- NA
-    }
+
+    ## k parameters
+    param.k.augmented <- structure$param$name[match(rownames(structure$var$lp2X)[structure$var$lp],structure$param$code)]
+    param.k.augmented[param.k.augmented %in% param.sigma] <- NA
+
     ## variables
     time.var <- structure$name$cor[[1]]
     strata.var <- structure$name$strata
     n.strata <- length(U.strata)
 
     ## levels
-    X.level <- XpairPattern$lp2X
-    M.level <- XpairPattern$lp2data
-    strata.level <- XpairPattern$index.strata.lp2X
-    level.cor <- rownames(X.level)
-    
+    M.level <- structure$cor$lp2data
+
     ## ** identify and name parameters
     ## name parameters
     indexLp <- do.call(rbind,XpairPattern$LpU.strata)
-    level.rho <- paste0("(",XpairPattern$lp2data[indexLp[,1],time.var],",",XpairPattern$lp2data[indexLp[,2],time.var],")")
-    strata.rho <- XpairPattern$index.strata.lp2X[indexLp[,1]]
-    if(n.strata>1){
-        level.rho <- paste0(level.rho,sep[2],strata.rho)
+    level.rho <- paste0("(",M.level[indexLp[,1],time.var],",",M.level[indexLp[,2],time.var],")")
+    if(n.strata==1){
+        strata.rho <- U.strata
+    }else if(n.strata>1){
+        strata.rho <- M.level[indexLp[,1],strata.var]
+        level.rho <- paste0(level.rho,sep[2],strata.rho)        
     }
-
     ## generate code
     diffLp <- do.call(rbind,XpairPattern$diffU.strata)
-    code.rho <- paste("D",strata.rho,interaction(as.data.frame(diffLp),drop=TRUE,sep=sep[1]), sep = sep[2])
+    code.rho <- paste("D",strata.rho,nlme::collapse(diffLp, as.factor=FALSE, sep=sep[1]), sep = sep[2])
 
     ## retrive k
-    if(length(index.k)>0){
+    if(length(param.k)>0){
         indexObs <- do.call(rbind,lapply(XpairPattern$LpU.strata,attr,"index"))
-        k.x <- param.k.obs[indexObs[,1]]
-        k.y <- param.k.obs[indexObs[,2]]
+        k.x <- param.k.augmented[indexObs[,1]]
+        k.y <- param.k.augmented[indexObs[,2]]
     }else{
         k.x <- NA
         k.y <- NA
@@ -590,19 +566,19 @@
                                 constraint = as.numeric(NA),
                                 level = level.rho,
                                 code = code.rho,
-                                index.lp.x = NA,
-                                index.lp.y = NA,
+                                lp.x = NA,
+                                lp.y = NA,
                                 sigma = param.sigma[match(strata.rho,strata.sigma)],
                                 k.x = k.x,
                                 k.y = k.y,                                  
                                 stringsAsFactors = FALSE)
-    structure.rho$index.lp.x <- as.list(indexLp[,1])
-    structure.rho$index.lp.y <- as.list(indexLp[,2])
+
+    structure.rho$lp.x <- as.list(indexLp[,1])
+    structure.rho$lp.y <- as.list(indexLp[,2])
     rownames(structure.rho) <- NULL
     structure$param <- rbind(structure$param, structure.rho)
 
     ## ** export    
-    attr(structure$param, "lp2X") <- XpairPattern$lp2X
     return(structure)
 }
 
@@ -648,9 +624,6 @@
 ##' \item LpU.strata [list of matrices] linear predictor (and position of the observations in the attribute index) used for the pairwise differences.
 ##' \item diffU.strata [list of matrices] pairwise difference between the linear predictor index
 ##' \item indexCluster.LpU.strata [list of vectors] index of the clusters involved in the linear predictor, by strata.
-##' \item lp2data [data.frame] dataset (columns) associated to each linear predictor (rows)
-##' \item lp2X [matrix] design matrix (columns) associated to each linear predictor (rows)
-##' \item index.strata.lp2X [vector] strata associated with each lp level.
 ##' }
 ##' @examples
 ##' data(gastricbypassL, package = "LMMstar")
@@ -662,93 +635,84 @@
 ##'               U.strata = "1", index.clusterStrata = rep(1, length(unique(gastricbypassL$id))))
 ##' 
 ##' X.cor <- model.matrix(~visit, data = gastricbypassL)
-##' .pairPatternX(X.cor,
+##' .pairPatternX(list(X=X.cor),
 ##'               U.cluster = unique(gastricbypassL$id),
 ##'               index.cluster = tapply(1:NROW(gastricbypassL), gastricbypassL$id, identity),
 ##'               U.strata = "1", index.clusterStrata = rep(1, length(unique(gastricbypassL$id))))
-.pairPatternX <- function(object, data, lp.obs = NULL,
+.pairPatternX <- function(object, 
                           U.cluster, index.cluster,
                           U.strata, index.clusterStrata,
                           sep = c("")){
 
     ## ** normalize user input
+    object.X <- object$X
+    object.lp <- object$lp
+    object.pattern <- object$pattern
+    object.pattern2lp <- object$pattern2lp
     n.strata <- length(U.strata)
 
     ## code for linear predictor for each observation
-    if(is.null(lp.obs)){
-        lp.obs <- interaction(as.data.frame(object), sep = "", drop=TRUE)
-    }
-    ## same but grouped by cluster
-    if(!is.null(attr(lp.obs, "cluster"))){
-        lp.cluster <- attr(lp.obs, "cluster")
+    if(is.null(object.lp)){
+        lp.obs <- nlme::collapse(object.X, sep = "", as.factor = TRUE)
     }else{
-        lp.cluster <- lapply(U.cluster, function(iC){ lp.obs[index.cluster[[iC]]] })
+        lp.obs <- object.lp
+    }
+
+    ## same but grouped by cluster
+    if(is.null(object.pattern)){
+        pattern <- lapply(U.cluster, function(iC){ lp.obs[index.cluster[[iC]]] })
+    }else{
+        pattern <- object.pattern
     }
 
     ## ** extract pattern
     ## list containing for each strata the index of the clusters with unique linear predictor pattern
     indexLpU.clusterStrata <- lapply(1:n.strata, function(iS){ ## iS <- 1
         iIndex.cluster <- which(index.clusterStrata[U.cluster]==iS)
-        return(as.double(iIndex.cluster[which(!duplicated(lp.cluster[iIndex.cluster]))]))
+        return(as.double(iIndex.cluster[which(!duplicated(pattern[iIndex.cluster]))]))
     })
     ## list containing for each strata the unique pairs of linear predictors
     ## (and the position in the dataset of these linear predictors as an attribute)
     LpU.strata <- lapply(1:n.strata, function(iS){ ## iS <- 1
         iN.cluster <- length(indexLpU.clusterStrata[[iS]])
-        iLp.cluster <- vector(mode = "list", length = iN.cluster)
+        iPattern <- vector(mode = "list", length = iN.cluster)
         iIndex.cluster <- vector(mode = "list", length = iN.cluster)
-        iTable.cluster <- table(factor(levels = levels(lp.obs)))
+        iTable.cluster <- table(factor(levels = sort(unique(lp.obs))))
         ## select linear predictor, remove triplicated levels, and only keep levels not already seen
-        for(iC in 1:iN.cluster){ ## iC <- 2
+        for(iC in 1:iN.cluster){ ## iC <- 1
             iCluster <- indexLpU.clusterStrata[[iS]][iC]
-            iIndex <- which(!triplicated(lp.cluster[[iCluster]]))
-            iTable <- table(lp.cluster[[iCluster]][iIndex])
-            if(any(iTable>iTable.cluster)){
-                iLp.cluster[[iC]] <- lp.cluster[[iCluster]][iIndex]
+            iLp <- object.pattern2lp[[pattern[[iCluster]]]]
+            iIndex <- which(!triplicated(iLp))
+            iTable <- table(iLp[iIndex])
+            if(any(iTable>iTable.cluster[names(iTable)])){
+                iPattern[[iC]] <- iLp[iIndex]
                 iIndex.cluster[[iC]] <- index.cluster[[iCluster]][iIndex]
-                iTable.cluster <- pmax(iTable,iTable.cluster)
+                iTable.cluster[names(iTable)] <- pmax(iTable,iTable.cluster[names(iTable)])
             }            
         }
-        iIndex.cluster <- iIndex.cluster[sapply(iLp.cluster,length)>0]
-        iLp.cluster <- iLp.cluster[sapply(iLp.cluster,length)>0]
+        iIndex.cluster <- iIndex.cluster[sapply(iPattern,length)>0]
+        iPattern <- iPattern[sapply(iPattern,length)>0]
 
         ## form all pairs
-        iM <- base::t(do.call(cbind,lapply(iLp.cluster, .unorderedPairs, distinct = TRUE)))
+        iM <- base::t(do.call(cbind,lapply(iPattern, unorderedPairs, distinct = TRUE)))
         iTest <- duplicated(iM)
         iOut <- iM[!iTest,,drop=FALSE]
-        attr(iOut,"index") <- base::t(do.call(cbind,lapply(iIndex.cluster, .unorderedPairs, distinct = TRUE)))[!iTest,,drop=FALSE]
+        attr(iOut,"index") <- base::t(do.call(cbind,lapply(iIndex.cluster, unorderedPairs, distinct = TRUE)))[!iTest,,drop=FALSE]
         return(iOut)
     })
-    ## design matrix associated to each code
-    index.duplicated <- duplicated(lp.obs)
-    UX.obs <- object[!index.duplicated,,drop=FALSE]
-    rownames(UX.obs) <- lp.obs[!index.duplicated]
 
     ## list containing for each strata the unique difference in design matrix between pairs
     diffU.strata <- lapply(LpU.strata, function(iS){
-        iM <- object[attr(iS,"index")[,2],,drop=FALSE] - object[attr(iS,"index")[,1],,drop=FALSE]
+        iM <- object.X[attr(iS,"index")[,2],,drop=FALSE] - object.X[attr(iS,"index")[,1],,drop=FALSE]
         rownames(iM) <- NULL
         return(iM)
     })
 
-    ## data corresponding to each linear predictor
-    M.lp2index <- do.call(rbind,lapply(LpU.strata, function(iM){
-        rbind(data.frame(index.lp = iM[,1,drop=FALSE], index = attr(iM,"index")[,1,drop=FALSE]),
-              data.frame(index.lp = iM[,2,drop=FALSE], index = attr(iM,"index")[,2,drop=FALSE]))
-    }))
-    M.Ulp2index <- M.lp2index[!duplicated(M.lp2index$index.lp),,drop=FALSE]
-    M.Ulp2index$lp <- factor(levels(lp.obs)[M.Ulp2index$index.lp], levels = levels(lp.obs))
-    M.Ulp2index$index.strata <- index.clusterStrata[attr(index.cluster,"vectorwise")[M.Ulp2index$index]]
-
     ## ** export    
     out <- list(LpU.strata = stats::setNames(LpU.strata, U.strata),
                 diffU.strata = stats::setNames(diffU.strata, U.strata),
-                indexCluster.LpU.strata = stats::setNames(indexLpU.clusterStrata, U.strata),
-                lp2data = data[M.Ulp2index[match(levels(lp.obs),M.Ulp2index$lp),"index"],attr(object,"variable"),drop=FALSE],
-                lp2X = UX.obs[levels(lp.obs),,drop=FALSE],
-                index.strata.lp2X = M.Ulp2index[match(levels(lp.obs),M.Ulp2index$lp),"index.strata"]
+                indexCluster.LpU.strata = stats::setNames(indexLpU.clusterStrata, U.strata)
                 )
-    rownames(out$lp2data) <- levels(lp.obs)
     return(out)
 }
 

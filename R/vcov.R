@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: jun 15 2023 (16:58) 
+## Last-Updated: jul 10 2023 (17:17) 
 ##           By: Brice Ozenne
-##     Update #: 519
+##     Update #: 523
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -127,8 +127,7 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strat
             }else{
                 p <- object$param
             }
-
-            outMoments <- .moments.lmm(value = p, design = design, time = object$time, method.fit = object$method.fit, type.information = type.information,
+            outMoments <- .moments.lmm(value = p, design = design, time = object$time, method.fit = object$args$method.fit, type.information = type.information,
                                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                        logLik = FALSE, score = FALSE, information = FALSE, vcov = TRUE, df = df, indiv = FALSE, effects = effects, robust = robust,
                                        trace = FALSE, precompute.moments = test.precompute, method.numDeriv = options$method.numDeriv, transform.names = transform.names)

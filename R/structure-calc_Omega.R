@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: maj 31 2023 (18:32) 
+## Last-Updated: jul 13 2023 (13:13) 
 ##           By: Brice Ozenne
-##     Update #: 579
+##     Update #: 588
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -69,11 +69,10 @@
 ## * calc_Omega.ID
 .calc_Omega.ID <- function(object, param, keep.interim = FALSE){
 
-    Upattern <- object$X$Upattern
+    Upattern <- object$Upattern
     n.Upattern <- NROW(Upattern)
-    pattern.cluster <- object$X$pattern.cluster
-    X.var <- object$X$Xpattern.var
-    X.cor <- object$X$Xpattern.cor
+    X.var <- object$var$Xpattern
+    X.cor <- object$cor$Xpattern
 
     Omega <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
         iPattern.var <- Upattern[iPattern,"var"]
@@ -127,11 +126,10 @@
 ## * calc_Omega.EXP
 .calc_Omega.EXP <- function(object, param, keep.interim = FALSE){
 
-    Upattern <- object$X$Upattern
+    Upattern <- object$Upattern
     n.Upattern <- NROW(Upattern)
-    pattern.cluster <- object$X$pattern.cluster
-    X.var <- object$X$Xpattern.var
-    X.cor <- object$X$Xpattern.cor
+    X.var <- object$var$Xpattern
+    X.cor <- object$cor$Xpattern
     regressor <- stats::setNames(object$param[object$param$type=="rho","code"],object$param[object$param$type=="rho","name"])
     
     Omega <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
@@ -169,11 +167,10 @@
 ## * calc_Omega.CUSTOM
 .calc_Omega.CUSTOM <- function(object, param, keep.interim = FALSE){
 
-    Upattern <- object$X$Upattern
+    Upattern <- object$Upattern
     n.Upattern <- NROW(Upattern)
-    pattern.cluster <- object$X$pattern.cluster
-    X.var <- object$X$var
-    X.cor <- object$X$cor
+    X.var <- object$var$X
+    X.cor <- object$cor$X
     FCT.sigma <- object$FCT.sigma
     FCT.rho <- object$FCT.rho
     name.sigma <- names(object$init.sigma)
@@ -181,15 +178,15 @@
 
     Omega <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
 
-        iPattern.var <- object$X$Upattern$var[iPattern]
-        iNtime <- object$X$Upattern$n.time[iPattern]
-        iX.var <- object$X$Xpattern.var[[iPattern.var]]
-        iTime <- object$X$Upattern$time[[iPattern]]
+        iPattern.var <- object$Upattern$var[iPattern]
+        iNtime <- object$Upattern$n.time[iPattern]
+        iX.var <- object$Xpattern.var[[iPattern.var]]
+        iTime <- object$Upattern$time[[iPattern]]
         iOmega.sd <- FCT.sigma(p = param[name.sigma], time = iTime, X = iX.var)
 
         if(iNtime > 1 && !is.null(X.cor)){
-            iPattern.cor <- object$X$Upattern$cor[iPattern]
-            iX.cor <- object$X$Xpattern.cor[[iPattern.cor]]
+            iPattern.cor <- object$Upattern$cor[iPattern]
+            iX.cor <- object$cor$Xpattern[[iPattern.cor]]
             iOmega.cor <- FCT.rho(p = param[name.rho], time = iTime, X = iX.var)
             diag(iOmega.cor) <- 0
             iOmega <- diag(as.double(iOmega.sd)^2, nrow = iNtime, ncol = iNtime) + iOmega.cor * tcrossprod(iOmega.sd)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: jul  6 2023 (16:43) 
+## Last-Updated: jul 13 2023 (11:21) 
 ##           By: Brice Ozenne
-##     Update #: 343
+##     Update #: 352
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -75,11 +75,11 @@
     structure.param <- object$param[is.na(object$param$constraint),,drop=FALSE]
     param.type <- stats::setNames(structure.param$type,structure.param$name)
     param.strata <- stats::setNames(structure.param$index.strata,structure.param$name)
-    Upattern.name <- object$X$Upattern$name
+    Upattern.name <- object$Upattern$name
 
     ## combine all residuals and all design matrices
-    M.res <- do.call(rbind,lapply(1:length(object$X$Xpattern.var), function(iPattern){ ## iPattern <- 1
-        X.iPattern <- object$X$Xpattern.var[[iPattern]]
+    M.res <- do.call(rbind,lapply(1:length(object$var$Xpattern), function(iPattern){ ## iPattern <- 1
+        X.iPattern <- object$var$Xpattern[[iPattern]]
         cluster.iPattern <- attr(X.iPattern,"index.cluster")
         obs.iPattern <- unlist(index.cluster[cluster.iPattern])
         iOut <- cbind(index.pattern = iPattern, index.obs = obs.iPattern,
@@ -101,9 +101,9 @@
         ## vec.hat <- diag(Xmean %*% solve(t(Xmean) %*% Xmean) %*% t(Xmean))
         vec.hat <- rowSums(Xmean %*% solve(t(Xmean) %*% Xmean) * Xmean)
         
-        M.indexsigma <- do.call(rbind,lapply(object$X$Xpattern.var, function(iPattern){ ## iPattern <- object$X$Xpattern.var[[1]]
+        M.indexsigma <- do.call(rbind,lapply(object$var$Xpattern, function(iPattern){ ## iPattern <- object$X$Xpattern.var[[1]]
             
-            iUX <- interaction(as.data.frame(iPattern), drop = TRUE, sep = ":")
+            iUX <- nlme::collapse(iPattern, as.factor = TRUE, sep = ":")
             ## NEW
             iCluster <- attr(iPattern, "index.cluster")
             iNCluster <- length(iCluster)
@@ -187,7 +187,7 @@
     structure.param <- object$param[is.na(object$param$constraint),,drop=FALSE]
     param.type <- stats::setNames(structure.param$type,structure.param$name)
     param.strata <- stats::setNames(structure.param$index.strata,structure.param$name)
-    Upattern <- object$X$Upattern
+    Upattern <- object$Upattern
     Upattern.name <- Upattern$name
     Omega.diag <- diag(Omega)
 
@@ -242,7 +242,7 @@
     ## ** extract information
     param.type <- stats::setNames(structure.param$type,structure.param$name)
     param.strata <- stats::setNames(structure.param$index.strata,structure.param$name)
-    Upattern.name <- object$X$Upattern$name
+    Upattern.name <- object$Upattern$name
 
     ## ** estimate variance and standardize residuals
     attr(residuals,"studentized") <- TRUE ## to return studentized residuals
@@ -257,8 +257,8 @@
 
     if(is.null(object$X$Xpattern.cor)){return(out)}
     ## ** combine all residuals and all design matrices
-    M.prodres <- do.call(rbind,lapply(1:length(object$X$Xpattern.cor), function(iPattern){ ## iPattern <- 1
-        X.iPattern <- object$X$Xpattern.cor[[iPattern]]
+    M.prodres <- do.call(rbind,lapply(1:length(object$cor$Xpattern), function(iPattern){ ## iPattern <- 1
+        X.iPattern <- object$cor$Xpattern[[iPattern]]
         if(is.null(X.iPattern)){return(NULL)}
         ## index of the residuals belonging to each individual
         obs.iPattern <- do.call(rbind,index.cluster[attr(X.iPattern,"index.cluster")])

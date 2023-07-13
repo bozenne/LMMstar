@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: jul  7 2023 (15:22) 
+## Last-Updated: jul 13 2023 (13:12) 
 ##           By: Brice Ozenne
-##     Update #: 570
+##     Update #: 576
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -190,8 +190,8 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
                 attr(Omega[[iO]], "time") <- NULL
             }
         }
-        
-        pattern.cluster <- as.character(object.structure$X$pattern.cluster$pattern[match(cluster,object.structure$X$pattern.cluster$index.cluster)])
+        browser() ## index.cluster
+        pattern.cluster <- as.character(object.structure$pattern[match(cluster,object.structure$X$pattern.cluster$index.cluster)])
         index.cluster <- object.index.cluster[cluster]
         index.clusterTime <- object.index.clusterTime[cluster]
     }
@@ -263,9 +263,9 @@ sigma.clmm <- function(object, ...){
     heterogeneous <- object$design$vcov$heterogeneous
     n.time <- object$time$n
     U.time <- object$time$level
-    Upattern <- object$design$vcov$X$Upattern
-    Xpattern.var <- object$design$vcov$X$Xpattern.var
-    Xpattern.cor <- object$design$vcov$X$Xpattern.cor
+    Upattern <- object$design$vcov$Upattern
+    Xpattern.var <- object$design$vcov$var$Xpattern
+    Xpattern.cor <- object$design$vcov$cor$Xpattern
     data <- object$data
     if(length(object$index.na)){
         data <- data[-object$index.na,,drop=FALSE]
@@ -318,7 +318,7 @@ sigma.clmm <- function(object, ...){
         Ucov.pattern <- which(colSums(is.na(Ucov.cluster))==0)
         if(length(Ucov.pattern)>0){
             iIndex.cluster <- sapply(Upattern[match(names(out),Upattern$name),"index.cluster"],"[",1)
-            covname.pattern <- as.character(interaction(Ucov.cluster[iIndex.cluster,Ucov.pattern,drop=FALSE], sep = sep[1], drop=TRUE))
+            covname.pattern <- nlme::collapse(Ucov.cluster[iIndex.cluster,Ucov.pattern,drop=FALSE], sep = sep[1], as.factor=TRUE)
             names(out) <- covname.pattern
         }
     }
