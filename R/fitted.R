@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul  8 2021 (17:09) 
 ## Version: 
-## Last-Updated: jul 10 2023 (18:05) 
+## Last-Updated: jul 21 2023 (18:24) 
 ##           By: Brice Ozenne
-##     Update #: 148
+##     Update #: 196
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,13 +20,19 @@
 ##'
 ##' @param object a \code{lmm} object.
 ##' @param newdata [data.frame] the covariate values for each cluster.
-##' @param format [character] Should the predicted mean be output relative as a vector (\code{"long"}), or as a matrix with in row the clusters and in columns the outcomes (\code{"wide"}).
-##' @param keep.newdata [logical] Should the argument \code{newdata} be output along side the predicted values? The output will then be a \code{data.frame}.
 ##' @param impute [logical] Should the missing data in the outcome be imputed based on covariates and other outcome values from the same cluster.
 ##' @param se.impute [character] If \code{FALSE} the most likely value is imputed. Otherwise the imputed value is sampled from a normal distribution.
 ##' The value of the argument determine which standard deviation is used: all uncertainty about the predicted value (\code{"total"}),
 ##' only uncertainty related to the estimation of the model parameters (\code{"estimate"}), or only uncertainty related to the residual variance of the outcome (\code{"residual"}).
 ##' Passed to \code{predict.lmm}.
+##' @param format [character] Should the prediction be output
+##' in a matrix format with clusters in row and timepoints in columns (\code{"wide"}),
+##' or in a data.frame/vector with as many rows as observations (\code{"long"})
+##' @param keep.newdata [logical] Should the dataset relative to which the predictions are evaluated be output along side the predicted values?
+##' Only possible in the long format.
+##' @param simplify [logical] Simplify the data format (vector instead of data.frame) and column names (no mention of the time variable) when possible.
+##' @param seed [integer, >0] Random number generator (RNG) state used when starting imputation.
+##' If \code{NULL} no state is set. 
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @return When \code{format="wide"}, a data.frame with as many rows as clusters.
@@ -77,14 +83,26 @@
 
 ## * fitted.lmm (code)
 ##' @export
-fitted.lmm <- function(object, newdata = NULL, format = "long",
-                       keep.newdata = FALSE, impute = FALSE, se.impute = FALSE, ...){
+fitted.lmm <- function(object, newdata = NULL, impute = FALSE, se.impute = "estimation", 
+                       keep.newdata = FALSE, format = "long", simplify = TRUE, seed = NULL, ...){
+
+    ## ** special case: no imputation
+    if(impute == FALSE){
+        return(stats::predict(object,
+                              newdata = newdata,
+                              se = FALSE,
+                              type = "static",
+                              df = FALSE,
+                              keep.newdata = keep.newdata,
+                              format = format,
+                              simplify = simplify,
+                              ...))
+    }
 
     ## ** extract from object
     outcome.var <- object$outcome$var
     cluster.var <- object$cluster$var
     time.var <- object$time$var
-    object.fitted <- object$fitted
     object.data <- object$data ## with columns XXindexXX, XXclusterXX, ... and all observations (including NAs)
     object.data.original <- object$data.original 
 
@@ -96,103 +114,89 @@ fitted.lmm <- function(object, newdata = NULL, format = "long",
     if(!is.logical(impute)){
         stop("Argument \'impute\' should be TRUE or FALSE. \n")
     }
-    if(impute && "imputed" %in% names(newdata)){
+    if("imputed" %in% names(newdata)){
         stop("Argument \'newdata\' should not contain a column called \"imputed\". \n")
-    }
-    if(!impute){
-        se.impute <- FALSE
     }
     type.prediction <- ifelse(impute,"dynamic", "static")
 
     format <- match.arg(format, c("wide","long"))
-    
 
-    if((format == "wide") && (keep.newdata == FALSE)) {
-        keep.newdata <- 0.5
+    if(is.null(newdata)){
+        newdata <- object$data.original
     }
+
     ## ** compute predictions
     e.pred <- stats::predict(object,
                              newdata = newdata,
-                             type = type.prediction,
                              se = se.impute,
-                             keep.newdata = keep.newdata)
+                             type = type.prediction,
+                             df = FALSE,
+                             keep.newdata = TRUE,
+                             format = "long",
+                             simplify = FALSE)
+    se.impute <- attr(e.pred,"args")$se
+    
+    ## ** update dynamic predictions
+    index.NA <- which(is.na(newdata[[outcome.var]]))
+    n.NA <- length(index.NA)
 
-    if(is.null(newdata)){
-        ## after predict to avoid recomputing fitted values
-        if(keep.newdata){
-            newdata <- e.pred
+    ## set seed for reproducibility
+    if(n.NA>0 && !is.null(se.impute) && !is.null(seed)){
+        if(!is.null(get0(".Random.seed"))){ ## avoid error when .Random.seed do not exists, e.g. fresh R session with no call to RNG
+            old <- .Random.seed # to save the current seed
+            on.exit(.Random.seed <<- old) # restore the current seed (before the call to the function)
         }else{
-            newdata <- object.data.original
+            on.exit(rm(.Random.seed, envir=.GlobalEnv))
         }
+        set.seed(seed)        
     }
-
-    ## ** store
-    if(impute){ ## store dynamic predictions
-
-        index.NA <- which(!is.na(e.pred$estimate))
-        if(keep.newdata == FALSE){
-            if("se" %in% names(e.pred) == FALSE){
-                out <- e.pred[index.NA,"estimate"]
+    
+    if(keep.newdata == FALSE){
+        out <- newdata[[outcome.var]]
+        if(n.NA>0){
+            if(is.null(se.impute)){
+                out[index.NA] <- e.pred[index.NA,"estimate"]
             }else{
-                out <- stats::rnorm(length(index.NA),
-                                    mean = e.pred[index.NA,"estimate"],
-                                    sd = e.pred[index.NA,"se"])
+                out[index.NA] <- stats::rnorm(n.NA, mean = e.pred[index.NA,"estimate"], sd = e.pred[index.NA,"se"])
             }
-                
-        }else if(length(index.NA) > 0){
-            if("se" %in% names(e.pred) == FALSE){
+        }
+        if(format == "long"){
+            if(simplify){
+                return(out)
+            }else{
+                out <- data.frame(out, impute = FALSE)
+                names(out)[1] <- outcome.var
+                out$impute[index.NA] <- TRUE
+                return(out)
+            }
+        }
+    }else if(keep.newdata){ ## must be the long format
+        if(n.NA>0){
+            if(is.null(se.impute)){
                 newdata[index.NA,outcome.var] <- e.pred[index.NA,"estimate"]
             }else{
-                newdata[index.NA,outcome.var] <- stats::rnorm(length(index.NA),
-                                                              mean = e.pred[index.NA,"estimate"],
-                                                              sd = e.pred[index.NA,"se"])
+                newdata[index.NA,outcome.var] <- stats::rnorm(n.NA, mean = e.pred[index.NA,"estimate"], sd = e.pred[index.NA,"se"])
             }
             newdata$imputed <- FALSE
             newdata$imputed[index.NA] <- TRUE
-            out <- newdata
         }else{
             newdata$imputed <- FALSE
-            out <- newdata
         }
-        value.var <- c(outcome.var,"imputed")
-    }else{ ## store static predictions
-
-        if(keep.newdata == FALSE){
-            out <- e.pred[["estimate"]]
-        }else{
-            out <- e.pred
-        }
-        value.var <- "estimate"
-
+        return(newdata)
     }
 
     ## ** convert to wide format
-    if(format=="wide"){
+    ## only case as otherwise the long format is dealt with before: keep.newdata == FALSE or keep.newdata == TRUE
+    newdata.design <- model.matrix(object, data = newdata, effects = "index")
+    newdata.index.cluster <- attr(newdata.design$index.cluster, "vectorwise")
+    newdata.index.time <- attr(newdata.design$index.clusterTime, "vectorwise")        
 
-        if(keep.newdata>=1){
-            vec.lU <- sapply(colnames(out), function(iVar){max(tapply(out[[iVar]],out[[attr(cluster.var,"original")]],function(iValue){length(unique(iValue))}))})
-            if(any(vec.lU==1)){
-                add.col  <- names(vec.lU)[vec.lU==1]
-            }else{
-                add.col  <- NULL
-            }
-        }else{
-            add.col <- NULL
-        }
+    out <- .reformat(out, name = outcome.var, format = format, simplify = simplify,
+                     keep.data = keep.newdata, data = newdata, index.na = NULL,
+                     object.cluster = object$cluster, index.cluster = newdata.index.cluster,
+                     object.time = object$time, index.time = newdata.index.time,
+                     call = match.call())
 
-        if(length(attr(time.var,"original"))>1){
-            if("XXtimeXX" %in% names(newdata)){
-                stop("Argument \'newdata\' should not contain a column called \"XXtimeXX\". \n")
-            }
-            
-            out$XXtimeXX <- nlme::collapse(out[,attr(time.var,"original")], as.factor = TRUE)
-            out <- stats::reshape(data = out[,union(add.col,c(value.var, attr(cluster.var,"original"), "XXtimeXX")),drop=FALSE], 
-                                  direction = "wide", timevar = "XXtimeXX", idvar = attr(cluster.var,"original"), v.names = value.var)
-        }else{
-            out <- stats::reshape(data = out[,union(add.col,c(attr(time.var,"original"), attr(cluster.var,"original"), value.var)),drop=FALSE], 
-                                  direction = "wide", timevar = attr(time.var,"original"), idvar = attr(cluster.var,"original"), v.names = value.var)
-        }
-    }
 
     ## ** export
     return(out)
@@ -200,6 +204,10 @@ fitted.lmm <- function(object, newdata = NULL, format = "long",
 }
 
 
-
+## * fitted.mlmm (code)
+##' @export
+fitted.mlmm <- function(object, ...){
+    stop("No \'fitted\' method for mlmm objects, consider using lmm instead of mlmm. \n")
+}
 ##----------------------------------------------------------------------
 ### fitted.R ends here

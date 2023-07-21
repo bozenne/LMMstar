@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: jul 13 2023 (13:05) 
+## Last-Updated: jul 21 2023 (15:02) 
 ##           By: Brice Ozenne
-##     Update #: 681
+##     Update #: 741
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,7 +26,6 @@
                               index.clusterTime, U.time,
                               index.cluster, U.cluster,
                               index.clusterStrata, U.strata){
-
 
     ## ** extract from object
     X.var <- structure$var$X
@@ -96,22 +95,48 @@
         })
     }
 
+    ## ** rename patterns
+    if(!is.na(structure$name$strata)){ ## WARNING may not be unique, e.g. in presence of missing values
+        Upattern$group <- as.character(U.strata[Upattern$index.strata])
+    }
+
     ## ** export
     structure$pattern <- as.character(pattern.var)
+    attr(structure$pattern,"list") <- tapply(1:n.cluster, structure$pattern, base::identity)
     structure$Upattern <- Upattern
-    structure$var$pattern <- Xpattern.var
+    structure$var$Xpattern <- Xpattern.var
     return(structure)
 }
 
 ## * .findUpatterns.IND
-.findUpatterns.IND <- .findUpatterns.ID
-
-## * .findUpatterns.CS
-.findUpatterns.CS <- function(structure, 
+.findUpatterns.IND <- function(structure, 
                               index.clusterTime, U.time,
                               index.cluster, U.cluster,
-                              index.clusterStrata, U.strata,
-                              sep = ":"){
+                              index.clusterStrata, U.strata){
+
+    sep <- LMMstar.options()$sep["pattern"]
+
+    structure <- .findUpatterns.ID(structure = structure, 
+                                   index.clusterTime = index.clusterTime, U.time = U.time,
+                                   index.cluster = index.cluster, U.cluster = U.cluster,
+                                   index.clusterStrata = index.clusterStrata, U.strata = U.strata)
+
+    ## rename patterns (to add possible extra covariates)
+    structure$Upattern$group <- .namePatternCov(Upattern = structure$Upattern, structure = structure, sep = sep)
+
+    ## export
+    return(structure)
+
+}
+
+
+## * .findUpatterns.UN
+.findUpatterns.UN <- function(structure, 
+                              index.clusterTime, U.time,
+                              index.cluster, U.cluster,
+                              index.clusterStrata, U.strata){
+
+    sep <- LMMstar.options()$sep["pattern"]
 
     ## ** identify unique var patterns
     Upatterns.init <- .findUpatterns.IND(structure = structure, 
@@ -119,8 +144,8 @@
                                          index.cluster = index.cluster, U.cluster = U.cluster,
                                          index.clusterStrata = index.clusterStrata, U.strata = U.strata)
     UpatternVar <- Upatterns.init$Upattern
-    Xpattern.var <- Upatterns.init$var$pattern
-
+    Xpattern.var <- Upatterns.init$var$Xpattern
+    
     ## ** identify unique cor patterns
     X.cor <- structure$cor$X
     structure.param <- structure$param[structure$param$type=="rho",]
@@ -129,6 +154,7 @@
 
     ## *** group clusters by linear predictor patterns
     ## *** (to later work on a single representative cluster per pattern)
+
     ## linear predictor per observation
     lp.cor <- structure$cor$lp
     n.lp.cor <- NROW(structure$cor$lp2X)
@@ -163,16 +189,15 @@
         return(iDf)
     }))
     rownames(pattern.pairwise) <- NULL
-    
+
     ## matrix converting the pair of linear predictors into correlation parameters
     M.lp2rho <- matrix(as.character(NA), nrow = n.lp.cor, ncol = n.lp.cor)
     for(iR in 1:NROW(structure.param)){
         M.lp2rho[structure.param$lp.x[[iR]] + n.lp.cor*(structure.param$lp.y[[iR]]-1)] <- structure.param$name[[iR]]
     }
-
     ## convert linear predictor into correlation parameter
     pattern.pairwise$name <- M.lp2rho[pattern.pairwise$lp.x + n.lp.cor*(pattern.pairwise$lp.y-1)]
-    
+
     ## remove correlation parameters fixed to 0 (e.g. crossed random effects)
     pattern.pairwise <- pattern.pairwise[pattern.pairwise$name %in% param.rho,,drop=FALSE]
     ## Upattern.pairwise <- pattern.pairwise[!duplicated(pattern.pairwise[,c("pattern","name")]),]
@@ -245,41 +270,64 @@
     Upattern$n.time <- UpatternCor[matchCor,"n.time"]
     Upattern$param <- unname(mapply(x = UpatternVar$param[matchVar], y = UpatternCor$param[matchCor], FUN = function(x,y){unname(c(x,y))}, SIMPLIFY = FALSE))
 
+    ## ** rename patterns
+    if(!is.na(structure$name$strata)){ ## WARNING may not be unique, e.g. in presence of missing values
+        Upattern$group <- as.character(U.strata[Upattern$index.strata])
+    }
+
     ## ** export
     structure$pattern <- vec.pattern
+    attr(structure$pattern,"list") <- tapply(1:n.cluster, vec.pattern, base::identity)
     structure$Upattern <- Upattern
+    attr(structure$Upattern,"sep") <- sep
     structure$var$Xpattern <- Xpattern.var
     structure$cor$Xpattern <- Xpattern.cor
     return(structure)
 }
 
 ## * .findUpatterns.RE
-.findUpatterns.RE <- .findUpatterns.CS
+.findUpatterns.RE <- .findUpatterns.UN
 
 ## * .findUpatterns.TOEPLITZ
-.findUpatterns.TOEPLITZ <- .findUpatterns.CS
-
-## * .findUpatterns.UN
-.findUpatterns.UN <- .findUpatterns.CS
+.findUpatterns.TOEPLITZ <- .findUpatterns.UN
 
 ## * .findUpatterns.EXP
-.findUpatterns.EXP <- .findUpatterns.CS
+.findUpatterns.EXP <- .findUpatterns.UN
+
+## * .findUpatterns.CS
+.findUpatterns.CS <- function(structure = structure, 
+                              index.clusterTime, U.time,
+                              index.cluster, U.cluster,
+                              index.clusterStrata, U.strata){
+
+    structure <- .findUpatterns.UN(structure = structure, 
+                                   index.clusterTime = index.clusterTime, U.time = U.time,
+                                   index.cluster = index.cluster, U.cluster = U.cluster,
+                                   index.clusterStrata = index.clusterStrata, U.strata = U.strata)
+
+    ## rename patterns (to add possible extra covariates)
+    structure$Upattern$nameCov <- .namePatternCov(Upattern = structure$Upattern, structure = structure, sep = attr(structure$Upattern,"sep"))
+
+    ## export
+    return(structure)
+
+}
 
 ## * .findUpatterns_CUSTOM
 .findUpatterns.CUSTOM <- function(structure, 
                                   index.clusterTime, U.time,
                                   index.cluster, U.cluster,
-                                  index.clusterStrata, U.strata,
-                                  sep = c(":","::X::")){
+                                  index.clusterStrata, U.strata){
 
     X.var <- structure$var$X
     X.cor <- structure$cor$X
     param <- structure$param
+    sep <- LMMstar.options()$sep["pattern"]
 
     ## ** identify unique patterns
 
     ## *** var
-    lpObs.var <- nlme::collapse(X.var, sep = sep[1], as.factor = TRUE)
+    lpObs.var <- nlme::collapse(X.var, sep = sep, as.factor = TRUE)
     lpnObs.var <- as.numeric(lpObs.var)
     lpnCluster.var <- stats::setNames(sapply(U.cluster, function(iC){
         paste(lpnObs.var[index.cluster[[iC]]], collapse=".")
@@ -292,7 +340,7 @@
 
     ## *** cor
     if(!is.null(X.cor)){
-        lpObs.cor <- nlme::collapse(X.cor, sep = sep[1], as.factor = TRUE)
+        lpObs.cor <- nlme::collapse(X.cor, sep = sep, as.factor = TRUE)
         lpnObs.cor <- as.numeric(lpObs.cor)
         lpnCluster.cor0 <- stats::setNames(lapply(U.cluster, function(iC){
             if(length(index.cluster[[iC]])>1){
@@ -316,7 +364,7 @@
     if(!is.null(X.cor)){
         lpnCluster <- paste(as.numeric(factor(lpnCluster.var, name.pattern.var)),
                             as.numeric(factor(lpnCluster.cor, name.pattern.cor)),
-                            sep = sep[1])       
+                            sep = sep)       
     }else{
         lpnCluster <- as.character(as.numeric(factor(lpnCluster.var, name.pattern.var)))
     }
@@ -407,5 +455,27 @@
     return(structure)
 }
 
+## * .namePatternCov
+.namePatternCov <- function(Upattern, structure, sep){
+
+    all.cov <- structure$name$strata
+    if(all(!is.na(Upattern$var))){
+        all.cov <- c(all.cov,structure$name$var[[1]])
+    }
+    if(all(!is.na(Upattern$cor))){
+        all.cov <- c(all.cov,structure$name$cor[[1]])
+    }
+    all.Ucov <- setdiff(unique(stats::na.omit(all.cov)),c(structure$name$time,attr(structure$name$time,"original")))
+    if(length(all.cov)>0){
+        out <- sapply(structure$var$pattern2lp, function(iLp){ ## iLp <- 1:4
+            iX <- structure$var$lp2data[iLp,all.Ucov,drop=FALSE]
+            iName <- sapply(iX, function(iVec){if(length(unique(iVec))>1){NA}else{as.character(iVec[1])}})
+            return(paste(na.omit(iName), collapse = sep))
+        })        
+    }else{
+        out <- NULL
+    }
+    return(out)
+}
 ##----------------------------------------------------------------------
 ### findPatterns.R ends here

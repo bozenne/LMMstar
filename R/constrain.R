@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 17 2022 (05:36) 
 ## Version: 
-## Last-Updated: jan  3 2023 (17:08) 
+## Last-Updated: jul 21 2023 (15:56) 
 ##           By: Brice Ozenne
-##     Update #: 65
+##     Update #: 71
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -36,10 +36,11 @@
     }
     init[name.effects] <- effects
 
-    ## ** refit model
-    x$design$param[x$design$param$name %in% name.effects,"fixed"] <- TRUE
-
-    eee <- .estimate(design = x$design, time = x$time, method.fit = x$method.fit, type.information = x$type.information,
+    ## ** update model
+    ## add constrain
+    x$design$param[match(name.effects,x$design$param$name),"constraint"] <- effects
+    ## refit
+    eee <- .estimate(design = x$design, time = x$time, method.fit = x$args$method.fit, type.information = x$args$type.information,
                      transform.sigma = x$reparametrize$transform.sigma, transform.k = x$reparametrize$transform.k, transform.rho = x$reparametrize$transform.rho,
                      precompute.moments = "precompute.XX" %in% names(x$design),
                      optimizer = "FS", init = init, n.iter = x$opt$control["n.iter"], tol.score = x$opt$control["tol.score"], tol.param = x$opt$control["tol.param"], trace = trace)

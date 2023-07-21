@@ -33,6 +33,7 @@ The options are: \itemize{
 \item optimizer [character]: method used to estimate the model parameters. Either \code{"FS"}, an home-made fisher scoring algorithm, or a method from \code{optimx:optimx} like \code{"BFGS"}or \code{Nelder-Mead}.
 \item param.optimizer [numeric vector]: default option for the \code{FS} optimization routine: maximum number of gradient descent iterations (\code{n.iter}), maximum acceptable score value (\code{tol.score}), maximum acceptable change in parameter value (\code{tol.param}).
 \item precompute.moments [logical]: Should the cross terms between the residuals and design matrix be pre-computed. Useful when the number of subject is substantially larger than the number of mean paramters.
+\item sep [character vector]: character used to combined two strings of characters in various functions (lp: .vcov.model.matrix, k.cov/k.strata: .skeletonK, pattern: .findUpatterns, rho.name/rho.strata: .skeletonRho, reformat: .reformat ).
 \item trace [logical]: Should the progress of the execution of the \code{lmm} function be displayed?
 \item tranform.sigma, tranform.k, tranform.rho: transformation used to compute the confidence intervals/p-values for the variance and correlation parameters. See the detail section of the coef function for more information.
 Used by \code{lmm}, \code{anova} and \code{confint}.

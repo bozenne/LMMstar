@@ -15,6 +15,7 @@
   p = NULL,
   format = "long",
   keep.data = FALSE,
+  simplify = TRUE,
   ...
 )
 
@@ -33,9 +34,15 @@
 
 \item{p}{[numeric vector] value of the model coefficients at which to evaluate the residuals. Only relevant if differs from the fitted values.}
 
-\item{format}{[character] Should the residuals be output relative as a vector (\code{"long"}), or as a matrix with in row the clusters and in columns the outcomes (\code{"wide"}).}
+\item{format}{[character] Should the residuals be output
+in a matrix format with clusters in row and timepoints in columns (\code{"wide"}),
+or in a data.frame/vector with as many rows as observations (\code{"long"})}
 
-\item{keep.data}{[logical] Should the argument \code{data} be output along side the residuals? Only possible in the long format.}
+\item{keep.data}{[logical] Should the dataset relative to which the residuals are evaluated be output along side the residual values?
+Only possible in the long format.}
+
+\item{simplify}{[logical] Simplify the data format (vector instead of data.frame) and column names (no mention of the time variable) when possible.
+Otherwise, information about the call and reference values used for partial residuals be added as an attribute.}
 
 \item{...}{Not used. For compatibility with the generic method.}
 
@@ -43,9 +50,8 @@
 only the original variable(s) (FALSE), only the by variable (\code{"only"}), or both (TRUE) .}
 }
 \value{
-When argument format is \code{"long"} and type.oobject is \code{"lmm"}, a vector containing the value of the residual realtive to each observation.
-It is a matrix if the argument \code{type} contains several values.
-When argument format is \code{"wide"} and type.oobject is \code{"lmm"}, a data.frame with the value of the residual relative to each cluster (in rows) at each timepoint (in columns).
+\bold{lmm}: a vector or a data.frame when \code{format="long"} (one line per observation, one column per type of residual),
+a matrix when \code{format="wide"}  (one line per cluster, one column per timepoint).
 }
 \description{
 Extract or compute the residuals of a linear mixed model.
@@ -58,7 +64,7 @@ The argument \code{type} defines how the residuals are computed:
 \item \code{"pearson"}: each raw residual is divided by its modeled standard deviation \eqn{\varepsilon_{ij} = \frac{Y_{ij} - X_{ij} \hat{\beta}}{\sqrt{\hat{\omega}_{ij}}}}.
 \item \code{"studentized"}: same as \code{"pearson"} but excluding the contribution of the cluster in the modeled standard deviation  \eqn{\varepsilon_{ij} = \frac{Y_{ij} - X_{ij} \hat{\beta}}{\sqrt{\hat{\omega}_{ij}-\hat{q}_{ij}}}}.
 \item \code{"normalized"}: raw residuals are multiplied, within clusters, by the inverse of the (upper) Cholesky factor of the modeled residual variance covariance matrix \eqn{\varepsilon_{ij} = ( Y_{i} - X_{i} \hat{\beta} )\hat{C}^{-1}}.
-\item \code{"normalized2"}: same as \code{"normalized"} but excluding the contribution of the cluster in the modeled residual variance covariance matrix \eqn{\varepsilon_{ij} = ( Y_{i} - X_{i} \hat{\beta} ) \hat{D}_i^{-1}}.
+\item \code{"normalized2"}: raw residuals are multiplied, within clusters, by the inverse of the modeled residual variance covariance matrix \eqn{\varepsilon_{ij} = ( Y_{i} - X_{i} \hat{\beta} )\hat{Omega}^{-1}}.
 \item \code{"scaled"}: scaled residuals (see PROC MIXED in SAS). Numerically identical to \code{"normalized"} but computed by sequentially scaling and centering the residuals, to make them conditionally independent of previous residuals from the same cluster at previous repetitions.
 \item \code{"partial"}: partial residuals (\eqn{\gamma E + \hat{\varepsilon}}). A reference level can be also be specified via the attribute \code{"reference"} to change the absolute level of the partial residuals.
 \code{"partial-center"}: partial residuals with centered covariates (\eqn{\gamma E + \hat{\varepsilon}} where \eqn{E} has been centered, i.e., has 0-mean)

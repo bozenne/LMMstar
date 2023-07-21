@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jul 13 2023 (11:29) 
+## Last-Updated: jul 21 2023 (18:24) 
 ##           By: Brice Ozenne
-##     Update #: 1254
+##     Update #: 1275
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -824,6 +824,38 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     return(out)
 }
 
+## * anova.mlmm
+anova.mlmm <- function(object, effects = NULL, rhs = NULL, contrast = NULL, ...){
+
+    if(is.null(effects)){
+        class(object) <- setdiff(class(object), c("mlmm"))
+        return(object)
+    }
+
+    ## ** test linear combinations
+    robust <- object$args$robust
+    df <- object$args$df 
+    ci <- object$args$ci
+    transform.sigma <- if(is.na(object$args$transform.sigma)){NULL}else{object$args$transform.sigma}
+    transform.k <- if(is.na(object$args$transform.k)){NULL}else{object$args$transform.k}
+    transform.rho <- if(is.na(object$args$transform.rho)){NULL}else{object$args$transform.rho}
+    transform.names <- if(is.na(object$args$transform.names)){NULL}else{object$args$transform.names}
+    
+    ls.lmm <- object$model
+    name.lmm <- names(ls.lmm)
+    ls.anova <- stats::setNames(lapply(name.lmm, function(iName){ ## iName <- name.lmm[1]
+        anova(ls.lmm[[iName]], effects = effects, rhs = rhs, df = df, ci = ci, robust = robust,
+              transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+    }), name.lmm)
+
+    ## ** regenerate a new mlmm object
+    out <- do.call("rbind.Wald_lmm",
+                   args = c(list(model = ls.anova[[1]], effects = attr(effects,"contrast"), rhs = rhs, name = names(object$model), sep = object$args$sep), unname(ls.anova[-1]))
+                   )
+    
+    return(out)
+    
+}
 
 
 ## * dfSigma

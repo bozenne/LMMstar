@@ -7,10 +7,12 @@
 \method{fitted}{lmm}(
   object,
   newdata = NULL,
-  format = "long",
-  keep.newdata = FALSE,
   impute = FALSE,
-  se.impute = FALSE,
+  se.impute = "estimation",
+  keep.newdata = FALSE,
+  format = "long",
+  simplify = TRUE,
+  seed = NULL,
   ...
 )
 }
@@ -19,16 +21,24 @@
 
 \item{newdata}{[data.frame] the covariate values for each cluster.}
 
-\item{format}{[character] Should the predicted mean be output relative as a vector (\code{"long"}), or as a matrix with in row the clusters and in columns the outcomes (\code{"wide"}).}
-
-\item{keep.newdata}{[logical] Should the argument \code{newdata} be output along side the predicted values? The output will then be a \code{data.frame}.}
-
 \item{impute}{[logical] Should the missing data in the outcome be imputed based on covariates and other outcome values from the same cluster.}
 
 \item{se.impute}{[character] If \code{FALSE} the most likely value is imputed. Otherwise the imputed value is sampled from a normal distribution.
 The value of the argument determine which standard deviation is used: all uncertainty about the predicted value (\code{"total"}),
 only uncertainty related to the estimation of the model parameters (\code{"estimate"}), or only uncertainty related to the residual variance of the outcome (\code{"residual"}).
 Passed to \code{predict.lmm}.}
+
+\item{keep.newdata}{[logical] Should the dataset relative to which the predictions are evaluated be output along side the predicted values?
+Only possible in the long format.}
+
+\item{format}{[character] Should the prediction be output
+in a matrix format with clusters in row and timepoints in columns (\code{"wide"}),
+or in a data.frame/vector with as many rows as observations (\code{"long"})}
+
+\item{simplify}{[logical] Simplify the data format (vector instead of data.frame) and column names (no mention of the time variable) when possible.}
+
+\item{seed}{[integer, >0] Random number generator (RNG) state used when starting imputation.
+If \code{NULL} no state is set.}
 
 \item{...}{Not used. For compatibility with the generic method.}
 }

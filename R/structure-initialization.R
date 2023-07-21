@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: jul 13 2023 (11:21) 
+## Last-Updated: jul 21 2023 (11:55) 
 ##           By: Brice Ozenne
-##     Update #: 352
+##     Update #: 373
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -100,24 +100,18 @@
         ## n - df
         ## vec.hat <- diag(Xmean %*% solve(t(Xmean) %*% Xmean) %*% t(Xmean))
         vec.hat <- rowSums(Xmean %*% solve(t(Xmean) %*% Xmean) * Xmean)
-        
-        M.indexsigma <- do.call(rbind,lapply(object$var$Xpattern, function(iPattern){ ## iPattern <- object$X$Xpattern.var[[1]]
-            
-            iUX <- nlme::collapse(iPattern, as.factor = TRUE, sep = ":")
-            ## NEW
-            iCluster <- attr(iPattern, "index.cluster")
-            iNCluster <- length(iCluster)
-            iDL <- data.frame(UX = rep(1:NROW(iUX), iNCluster), X = rep(iUX, iNCluster), index = unlist(index.cluster[attr(iPattern, "index.cluster")]))
-            ## OLD 
-            ## iDW <- data.frame(UX = 1:NROW(iUX), X = iUX, do.call(cbind,index.cluster[attr(iPattern, "index.cluster")]))
-            ## iDL2 <- stats::reshape(iDW, direction = "long", idvar = "UX", varying = setdiff(names(iDW),c("UX","X")), v.names = "index")
-            ## all(iDL2$X==iDL$X);all(iDL2$index==iDL$index)
-            return(iDL[,c("X","index")])
-        }))
-        p <- tapply(M.indexsigma$index,M.indexsigma$X,function(iIndex){sum(vec.hat[iIndex])})
-        n.UX <- table(M.indexsigma$X)
-        ## range(M.res[,"index"] - M.indexsigma[,"index"])
-        epsilon2.ssc <- epsilon2 * (n.UX/(n.UX-p))[M.indexsigma$X]
+        strata.mu <- attr(Xmean,"strata")
+        if(any(is.na(strata.mu))){ ## partially or non-stratified mean structure: considered as non-stratified
+            index.clusterStrata <-  sapply(object$var$Xpattern,attr,"index.strata")[object$var$pattern]
+            index.strata <- index.clusterStrata[attr(index.cluster,"vectorwise")]
+            p <- tapply(1:n.obs,index.strata,function(iIndex){sum(vec.hat[iIndex])})
+            n.UX <- table(index.strata)
+            epsilon2.ssc <- epsilon2 * (n.UX/(n.UX-p))[index.strata]
+        }else{ ## fully stratified mean and variance structure
+            p <- tapply(1:n.obs,object$var$lp,function(iIndex){sum(vec.hat[iIndex])})
+            n.UX <- table(object$var$lp)
+            epsilon2.ssc <- epsilon2 * (n.UX/(n.UX-p))[object$var$lp]
+        }
     }else{
         epsilon2.ssc <- epsilon2
     }
@@ -193,7 +187,7 @@
 
     ## ** combine all design matrices
     ls.XY <- stats::setNames(lapply(Upattern.name, function(iPattern){ ## iPattern <- Upattern.name[1]
-        iX <- object$X$Xpattern.var[[Upattern[Upattern$name==iPattern,"var"]]]
+        iX <- object$var$Xpattern[[Upattern[Upattern$name==iPattern,"var"]]]
         attr(iX,c("index.cluster")) <- NULL
         attr(iX,c("index.strata")) <- NULL
         attr(iX,c("param")) <- NULL
@@ -255,7 +249,6 @@
         residuals.studentized <- residuals
     }
 
-    if(is.null(object$X$Xpattern.cor)){return(out)}
     ## ** combine all residuals and all design matrices
     M.prodres <- do.call(rbind,lapply(1:length(object$cor$Xpattern), function(iPattern){ ## iPattern <- 1
         X.iPattern <- object$cor$Xpattern[[iPattern]]
@@ -303,7 +296,6 @@
 
     ## ** estimate correlation
     param.rho <- names(param.type)[param.type=="rho"]
-
     e.rho <- unlist(lapply(split(M.prodres, M.prodres$param), function(iDF){ ## iDF <- split(M.prodres, M.prodres$param)[[3]]
         iN <- sum(iDF$n)
         iNum <- sum(iDF$prod)/iN-(sum(iDF$sum1)/iN)*(sum(iDF$sum2)/iN)

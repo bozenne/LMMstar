@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: jul 13 2023 (13:13) 
+## Last-Updated: jul 21 2023 (14:30) 
 ##           By: Brice Ozenne
-##     Update #: 588
+##     Update #: 592
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -78,7 +78,7 @@
         iPattern.var <- Upattern[iPattern,"var"]
         iPattern.cor <- Upattern[iPattern,"cor"]
         iNtime <- Upattern[iPattern,"n.time"]
-        
+
         if(length(X.var[[iPattern.var]])>0){
             Omega.sd <- unname(exp(X.var[[iPattern.var]] %*% log(param[colnames(X.var[[iPattern.var]])])))
         }else{

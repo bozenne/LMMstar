@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (13:27) 
 ## Version: 
-## Last-Updated: jul 13 2023 (11:01) 
+## Last-Updated: jul 21 2023 (14:52) 
 ##           By: Brice Ozenne
-##     Update #: 610
+##     Update #: 716
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -38,13 +38,13 @@
     function(structure, data, 
              U.cluster, index.cluster,
              U.time, index.clusterTime, 
-             U.strata, index.clusterStrata, sep) UseMethod(".skeletonRho")
+             U.strata, index.clusterStrata) UseMethod(".skeletonRho")
 
 ## * .skeletonRho.ID
 .skeletonRho.ID <- function(structure, data, 
                             U.cluster, index.cluster,
                             U.time, index.clusterTime, 
-                            U.strata, index.clusterStrata, sep){
+                            U.strata, index.clusterStrata){
 
     ## no correlation parameter
     return(structure)
@@ -58,7 +58,7 @@
 .skeletonRho.CS <- function(structure, data, 
                             U.cluster, index.cluster,
                             U.time, index.clusterTime, 
-                            U.strata, index.clusterStrata, sep = c(".",":")){
+                            U.strata, index.clusterStrata){
 
     ## ** extract information
     ## parameters
@@ -89,13 +89,16 @@
     lp2X.cor <- structure$cor$lp2X
     lp2data.cor <- structure$cor$lp2data
     
+    ## sep
+    sep <- LMMstar.options()$sep[c("rho.name","rho.strata")]
+
     ## ** special case (no strata, no covariate)
     if(length(reg.var)==0){
         vec.strataRho <- which(sapply(XpairPattern$LpU.strata,length)>0)
         if(n.strata==1){
             level.strataRho <- ""
         }else{
-            level.strataRho <- paste0(":",U.strata[vec.strataRho])
+            level.strataRho <- paste0(sep[2],U.strata[vec.strataRho])
         }
         structure.rho <- data.frame(name = paste0("rho",level.strataRho),
                                     index.strata = vec.strataRho,
@@ -251,13 +254,13 @@
 .skeletonRho.RE <- function(structure, data, 
                             U.cluster, index.cluster,
                             U.time, index.clusterTime, 
-                            U.strata, index.clusterStrata, sep = c(".",":")){
+                            U.strata, index.clusterStrata){
 
     ## ** identify variance and correlation parameters
     structure <- .skeletonRho.CS(structure = structure, data = data, 
                                  U.cluster = U.cluster, index.cluster = index.cluster,
                                  U.time = U.time, index.clusterTime = index.clusterTime, 
-                                 U.strata = U.strata, index.clusterStrata = index.clusterStrata, sep = sep)
+                                 U.strata = U.strata, index.clusterStrata = index.clusterStrata)
 
     ## ** relate correlation parameters to random effects
     n.strata <- length(U.strata)
@@ -358,7 +361,7 @@
 .skeletonRho.TOEPLITZ <- function(structure, data, 
                                   U.cluster, index.cluster,
                                   U.time, index.clusterTime, 
-                                  U.strata, index.clusterStrata, sep = c(".",":")){
+                                  U.strata, index.clusterStrata){
 
     ## ** extract information
     ## parameters
@@ -386,6 +389,9 @@
     strata.var <- structure$name$strata
     reg.var <- setdiff(structure$name$cor[[1]], NA)
     n.strata <- length(U.strata)
+
+    ## sep
+    sep <- LMMstar.options()$sep[c("rho.name","rho.strata")]
 
     ## ** special case (no strata, no covariate)
     if(length(reg.var)==0){
@@ -506,7 +512,7 @@
 .skeletonRho.UN <- function(structure, data, 
                             U.cluster, index.cluster,
                             U.time, index.clusterTime, 
-                            U.strata, index.clusterStrata, sep = c(".",":")){
+                            U.strata, index.clusterStrata){
 
     ## ** extract information
     ## parameters
@@ -535,10 +541,15 @@
     ## levels
     M.level <- structure$cor$lp2data
 
+    ## sep
+    sep <- LMMstar.options()$sep[c("rho.name","rho.strata")]
+
     ## ** identify and name parameters
     ## name parameters
     indexLp <- do.call(rbind,XpairPattern$LpU.strata)
-    level.rho <- paste0("(",M.level[indexLp[,1],time.var],",",M.level[indexLp[,2],time.var],")")
+    level.rho <- paste0("(",nlme::collapse(M.level[indexLp[,1],time.var,drop=FALSE], sep = sep[1], as.factor = FALSE),
+                        ",",nlme::collapse(M.level[indexLp[,2],time.var,drop=FALSE], sep = sep[1], as.factor = FALSE),
+                        ")")
     if(n.strata==1){
         strata.rho <- U.strata
     }else if(n.strata>1){
@@ -586,7 +597,7 @@
 .skeletonRho.EXP <- function(structure, data, 
                            U.cluster, index.cluster,
                            U.time, index.clusterTime, 
-                           U.strata, index.clusterStrata, sep = c(".",":")){
+                           U.strata, index.clusterStrata){
 
     ## *** param rho
     regressor <- colnames(X.cor)[which(attr(X.cor, "assign") == max(attr(X.cor, "assign")))]
@@ -619,11 +630,12 @@
 
 ## * helper
 ## ** .pairPatternX
+##' @description Generate unique combinations of pairwise differences from linear predictors
+##' 
 ##' @noRd
 ##' @return A list with the following elements \itemize{
 ##' \item LpU.strata [list of matrices] linear predictor (and position of the observations in the attribute index) used for the pairwise differences.
 ##' \item diffU.strata [list of matrices] pairwise difference between the linear predictor index
-##' \item indexCluster.LpU.strata [list of vectors] index of the clusters involved in the linear predictor, by strata.
 ##' }
 ##' @examples
 ##' data(gastricbypassL, package = "LMMstar")
@@ -666,96 +678,131 @@
     }
 
     ## ** extract pattern
-    ## list containing for each strata the index of the clusters with unique linear predictor pattern
-    indexLpU.clusterStrata <- lapply(1:n.strata, function(iS){ ## iS <- 1
-        iIndex.cluster <- which(index.clusterStrata[U.cluster]==iS)
-        return(as.double(iIndex.cluster[which(!duplicated(pattern[iIndex.cluster]))]))
-    })
     ## list containing for each strata the unique pairs of linear predictors
     ## (and the position in the dataset of these linear predictors as an attribute)
-    LpU.strata <- lapply(1:n.strata, function(iS){ ## iS <- 1
-        iN.cluster <- length(indexLpU.clusterStrata[[iS]])
-        iPattern <- vector(mode = "list", length = iN.cluster)
-        iIndex.cluster <- vector(mode = "list", length = iN.cluster)
-        iTable.cluster <- table(factor(levels = sort(unique(lp.obs))))
-        ## select linear predictor, remove triplicated levels, and only keep levels not already seen
-        for(iC in 1:iN.cluster){ ## iC <- 1
-            iCluster <- indexLpU.clusterStrata[[iS]][iC]
-            iLp <- object.pattern2lp[[pattern[[iCluster]]]]
-            iIndex <- which(!triplicated(iLp))
-            iTable <- table(iLp[iIndex])
-            if(any(iTable>iTable.cluster[names(iTable)])){
-                iPattern[[iC]] <- iLp[iIndex]
-                iIndex.cluster[[iC]] <- index.cluster[[iCluster]][iIndex]
-                iTable.cluster[names(iTable)] <- pmax(iTable,iTable.cluster[names(iTable)])
-            }            
-        }
-        iIndex.cluster <- iIndex.cluster[sapply(iPattern,length)>0]
-        iPattern <- iPattern[sapply(iPattern,length)>0]
-
+    lpU.clusterStrata <- lapply(1:n.strata, function(iS){ ## iS <- 1
+        ## index of the clusters in the strata
+        iIndex.clusterStrata <- which(index.clusterStrata==iS)
+        ## index of the clusters with unique linear predictor pattern
+        iIndex.clusterU <- iIndex.clusterStrata[.patternINtable12(pattern = pattern[iIndex.clusterStrata], pattern2lp = object.pattern2lp)]
+        ## linear predictor for each cluster
+        iLs.lp.clusterU <- object.pattern2lp[pattern[iIndex.clusterU]]
+        ## remove triplicates
+        iLs.lpU.clusterU <- lapply(1:length(iIndex.clusterU),function(iC){ ## iC <- 1
+            iIndex <- which(!triplicated(iLs.lp.clusterU[[iC]]))
+            iOut <- iLs.lp.clusterU[[iC]][iIndex]
+            attr(iOut,"index") <- index.cluster[[iIndex.clusterU[[iC]]]][iIndex]
+            attr(iOut,"cluster") <- rep(iIndex.clusterU[[iC]],length(iIndex))
+            return(iOut)
+        })
+        iVec.lpU.clusterU <- do.call(c,iLs.lpU.clusterU)
+        
         ## form all pairs
-        iM <- base::t(do.call(cbind,lapply(iPattern, unorderedPairs, distinct = TRUE)))
-        iTest <- duplicated(iM)
-        iOut <- iM[!iTest,,drop=FALSE]
-        attr(iOut,"index") <- base::t(do.call(cbind,lapply(iIndex.cluster, unorderedPairs, distinct = TRUE)))[!iTest,,drop=FALSE]
+        iM <- base::t(do.call(cbind,lapply(iLs.lpU.clusterU, unorderedPairs, distinct = TRUE)))
+        iMatch.lpU.clusterU <- match(iM[],iVec.lpU.clusterU)
+
+        attr(iM,"index") <- matrix(do.call(c,lapply(iLs.lpU.clusterU,attr,"index"))[iMatch.lpU.clusterU],
+                                   nrow = NROW(iM), ncol = NCOL(iM))
+        attr(iM,"cluster") <- matrix(do.call(c,lapply(iLs.lpU.clusterU,attr,"cluster"))[iMatch.lpU.clusterU],
+                                     nrow = NROW(iM), ncol = NCOL(iM))
+
+        ## remove duplicates
+        iIndex.Upairs <- which(!duplicated(iM))
+        iOut <- iM[iIndex.Upairs,,drop=FALSE]
+        attr(iOut,"index") <- attr(iM,"index")[iIndex.Upairs,,drop=FALSE]
+        attr(iOut,"cluster") <- attr(iM,"cluster")[iIndex.Upairs,,drop=FALSE]
         return(iOut)
     })
 
     ## list containing for each strata the unique difference in design matrix between pairs
-    diffU.strata <- lapply(LpU.strata, function(iS){
+    diffU.strata <- lapply(lpU.clusterStrata, function(iS){
         iM <- object.X[attr(iS,"index")[,2],,drop=FALSE] - object.X[attr(iS,"index")[,1],,drop=FALSE]
         rownames(iM) <- NULL
         return(iM)
     })
 
     ## ** export    
-    out <- list(LpU.strata = stats::setNames(LpU.strata, U.strata),
-                diffU.strata = stats::setNames(diffU.strata, U.strata),
-                indexCluster.LpU.strata = stats::setNames(indexLpU.clusterStrata, U.strata)
-                )
+    out <- list(LpU.strata = stats::setNames(lpU.clusterStrata, U.strata),
+                diffU.strata = stats::setNames(diffU.strata, U.strata))
     return(out)
 }
 
-## ** .colnameOrder
-##' @description Reorder the column names such that the strata variable is at the end
+## ** .patternINtable12
+##' @description Find the subset with unique pairs from a table
+##'
+##' @return column/cluster index for which unique pairs are observed
 ##' @noRd
-##' 
 ##' @examples
-##' df <- data.frame(day = c(1, 1, 2, 2, 1, 1, 2, 2),
-##'                  gender = c("1", "1", "1", "1", "0", "0", "0", "0"),
-##'                  session = c(1, 2, 3, 4, 1, 2, 3, 4))
-##' X <- stats::model.matrix(~0 + session:gender + day:gender, df)
-##' colnames(X) ## "session:gender0" "session:gender1" "gender0:day" "gender1:day"
 ##'
-##' X2 <- .model.matrix_regularize(~0 + session:gender + day:gender, df, augmodel = TRUE)
-##' colnames(X2) ## "session:gender0" "session:gender1" "gender0:day" "gender1:day"
+##' M1 <- cbind(c(1,0,0,0),c(1,1,1,1),c(1,0,1,0))
+##' .patternINtable12(M1)
 ##' 
-##' X3 <- .colnameOrder(X2, strata.var = "gender", n.strata = 2)
-##' colnames(X3) ## "session:gender0" "session:gender1" "day:gender0" "day:gender1"    
+##' M2 <- cbind(c(1,0,0,0,0,0),c(1,1,1,0,0,0),c(0,0,0,1,1,1),c(0,1,0,0,1,1))
+##' .patternINtable12(M2)
+##' 
+##' M3 <- cbind(c(1,0,0,0,0,0),c(1,1,1,0,0,0),c(0,0,0,1,1,1),c(0,2,0,0,1,1))
+##' .patternINtable12(M3)
+##' 
+##' M3.bis <- cbind(c(0,0,0,2,1,1),c(1,0,0,0,0,0),c(1,1,1,0,0,0),c(0,0,0,1,1,1))
+##' .patternINtable12(M3.bis)
 ##'
-##' stats::model.matrix(~ 0+(day+session):gender, df[order(df$gender),])
-
-.colnameOrder <- function(X, strata.var, n.strata){
-    attr(X,"original.colnames") <- colnames(X)
-    if(n.strata>1){
-        attr(X,"ls.level") <- lapply(attr(X,"ls.level"), function(iL){
-            iL[,c(setdiff(names(iL),strata.var),strata.var),drop=FALSE]
-        })
-        attr(X,"M.level") <- attr(X,"M.level")[,c(setdiff(names(attr(X,"M.level")),strata.var),strata.var),drop=FALSE]
-        attr(X,"reference.level") <- attr(X,"reference.level")[,c(setdiff(names(attr(X,"M.level")),strata.var),strata.var),drop=FALSE]
-        attr(X,"term.labels") <- unname(unlist(lapply(attr(X,"ls.level"), function(iL){paste(names(iL),collapse = ":")})))
-        X.newname <- unname(sapply(attr(X,"ls.level"), function(iL){ ## iL <- attr(X,"ls.level")[[3]]
-            iL[is.na(iL)] <- ""
-            return(paste(paste0(names(iL),as.character(iL)),collapse = ":"))
-        }))
-        colnames(X) <- X.newname
-        rownames(attr(X,"M.level")) <- X.newname
-        names(attr(X,"ls.level")) <- X.newname
-    }
+##' M4 <- cbind(c(0,0,0,1,1,1),c(2,0,0,0,0,0),c(1,1,1,0,0,0),c(0,0,0,1,1,1))
+##' .patternINtable12(M4)
+.patternINtable12 <- function(object, pattern = NULL, pattern2lp = NULL){
     
-    return(X)    
-}
+    ## *** initialization
+    if(missing(object) && !is.null(pattern) && !is.null(pattern2lp)){
 
+        index.unique <- which(!duplicated(pattern)) ## only keep one cluster per pattern
+        Upattern <- pattern[index.unique] ## find unique patterns
+        Upattern2lp <- pattern2lp[Upattern] ## find linear predictor per pattern
+        Ulp <- unique(unlist(Upattern2lp)) ## find unique linear predictor
+
+        tablePatternLp <- do.call(cbind,lapply(Upattern2lp, function(iVec){table(factor(iVec, levels = Ulp))})) ## table of linear predictors per patterns
+        object <- pmin(tablePatternLp,2) ## observing more than twice a linear predictor does not lead to different parameter
+                                         ## but observing twice may lead to \rho(lp1,lp1) instead of \rho(lp1,lp2)
+    }else{
+        index.unique <- 1:NCOL(object)
+    }
+
+    ## *** special case 1: single pattern
+    n.pattern <- NCOL(object)
+    if(n.pattern==1){
+        return(1)
+    }
+
+    ## *** special case 2: single linear predictor
+    n.lp <- NROW(object)
+    if(n.lp==1){
+        return(which.max(object[1,]))
+    }
+
+
+    ## *** find unique patterns
+    index.current <- 1:n.pattern
+    index.keep <- NULL
+    ## max.row <- apply(object,1,max)
+    ## max.current <- rep(0,n.lp)
+
+    for(iP in 1:n.pattern){ ## iP <- 1
+        iNewKeep <- index.current[which.max(colSums(object[,index.current,drop=FALSE]))]
+        index.keep <- c(index.keep,iNewKeep)
+
+        ## update remaining patterns
+        index.current <- setdiff(index.current,iNewKeep)
+        if(length(index.current)>0){
+            ## also remove patterns nested in the current one
+            iDiff <- sweep(object[,index.current,drop=FALSE], FUN = "-", MARGIN = 1, STATS = object[,iNewKeep])
+            index.current <- index.current[which(colSums(iDiff>0)>0)]
+        }
+        if(length(index.current)==0){ ## no other pattern remaining
+            break
+        }
+    }
+
+    ## *** export
+    return(index.unique[index.keep])
+}
 
 ##----------------------------------------------------------------------
 ### structure-skeletonRho.R ends here

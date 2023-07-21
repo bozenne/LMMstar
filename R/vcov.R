@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: jul 10 2023 (17:17) 
+## Last-Updated: jul 19 2023 (17:29) 
 ##           By: Brice Ozenne
-##     Update #: 523
+##     Update #: 524
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -111,7 +111,7 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strat
             test.precompute <- !is.null(object$design$precompute.XX)
          
             if(!is.null(data)){
-                design <- stats::model.matrix(object, data = data, effects = "all", simplifies = FALSE)
+                design <- stats::model.matrix(object, data = data, effects = "all", simplify = FALSE)
             }else{
                 design <- object$design
             }

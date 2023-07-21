@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: jul 13 2023 (13:12) 
+## Last-Updated: jul 21 2023 (17:37) 
 ##           By: Brice Ozenne
-##     Update #: 791
+##     Update #: 907
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,10 +25,14 @@
 ##' @param var [character vector] name of the variable relative to which the partial residuals should be computed.
 ##' @param data [data.frame] dataset relative to which the residuals should be computed. Only relevant if differs from the dataset used to fit the model.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the residuals. Only relevant if differs from the fitted values.
-##' @param format [character] Should the residuals be output relative as a vector (\code{"long"}), or as a matrix with in row the clusters and in columns the outcomes (\code{"wide"}).
-##' @param keep.data [logical] Should the argument \code{data} be output along side the residuals? Only possible in the long format.
-##' @param keep.by [logical or "only"] How should the variable used to index the split of the dataset/LMM be output:
-##' only the original variable(s) (FALSE), only the by variable (\code{"only"}), or both (TRUE) .
+##' @param format [character] Should the residuals be output
+##' in a matrix format with clusters in row and timepoints in columns (\code{"wide"}),
+##' or in a data.frame/vector with as many rows as observations (\code{"long"})
+##' @param keep.data [logical] Should the dataset relative to which the residuals are evaluated be output along side the residual values?
+##' Only possible in the long format.
+##' @param simplify [logical] Simplify the data format (vector instead of data.frame) and column names (no mention of the time variable) when possible.
+##' Otherwise, information about the call and reference values used for partial residuals be added as an attribute.
+##' 
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @details The argument \code{type} defines how the residuals are computed:
@@ -55,9 +59,8 @@
 ##' }
 ##'
 ##' @return
-##' When argument format is \code{"long"} and type.oobject is \code{"lmm"}, a vector containing the value of the residual realtive to each observation.
-##' It is a matrix if the argument \code{type} contains several values.
-##' When argument format is \code{"wide"} and type.oobject is \code{"lmm"}, a data.frame with the value of the residual relative to each cluster (in rows) at each timepoint (in columns).
+##' \bold{lmm}: a vector or a data.frame when \code{format="long"} (one line per observation, one column per type of residual),
+##' a matrix when \code{format="wide"}  (one line per cluster, one column per timepoint).
 ##' 
 ##' @keywords methods
 ##' 
@@ -109,10 +112,12 @@
 ##' @export
 ##' @rdname residuals
 residuals.lmm <- function(object, type = "response", var = NULL, 
-                          data = NULL, p = NULL, format = "long", keep.data = FALSE, ...){
+                          data = NULL, p = NULL, format = "long", keep.data = FALSE, simplify = TRUE, ...){
 
+    mycall <- match.call()
     options <- LMMstar.options()
     type.residual <- type
+    sep <- options$sep["residuals"]
     
     ## ** extract from object
     xfactorMu <- object$xfactor$mean
@@ -124,17 +129,18 @@ residuals.lmm <- function(object, type = "response", var = NULL,
     param.type <- stats::setNames(object$design$param$type,param.name)
     param.value <- object$param
 
-    U.time <- object$time$levels
-    name.time <- object$time$var
     n.time <- object$time$n
     index.na <- object$index.na
     X.mean <- object$design$mean
-    object.residuals <- object$residuals
     object.Omega <- object$Omega
     object.OmegaM1 <- object$OmegaM1
 
-    cluster.levels.original <- object$design$cluster$levels.original
-    ## time.levels.original <- object$design$time$levels.original
+    object.cluster <- object$cluster
+    object.time <- object$time
+    object.index.na <- object$index.na
+    U.cluster <- object$cluster$levels
+    U.time <- object$time$levels
+    name.time <- object$time$var
     
     ## ** normalize user imput
     dots <- list(...)
@@ -207,9 +213,9 @@ residuals.lmm <- function(object, type = "response", var = NULL,
         if(is.null(data)){
             data <- stats::model.frame(object)
             data <- data[,setdiff(colnames(data),c("XXindexXX",  "XXstrataXX", "XXstrata.indexXX", "XXtimeXX", "XXtime.indexXX", "XXclusterXX", "XXcluster.indexXX")),drop=FALSE]
-            design <- stats::model.matrix(object, effects = effects, simplifies = FALSE)
+            design <- stats::model.matrix(object, effects = effects, simplify = FALSE)
         }else{
-            design <- stats::model.matrix(object, data = data, effects = effects, simplifies = FALSE)
+            design <- stats::model.matrix(object, data = data, effects = effects, simplify = FALSE)
         }
 
         ## design matrix relative to the data where the effect of variables no in var has been removed
@@ -244,7 +250,7 @@ residuals.lmm <- function(object, type = "response", var = NULL,
                 }
             }
             ## build design matrix
-            design2 <- stats::model.matrix(object, data = data, effects = effects, simplifies = FALSE)
+            design2 <- stats::model.matrix(object, data = data, effects = effects, simplify = FALSE)
             if(!is.null(index.na)){ 
                 design2$mean <- design2$mean[-index.na,,drop=FALSE]
             }
@@ -259,7 +265,7 @@ residuals.lmm <- function(object, type = "response", var = NULL,
         }
         
     }else{
-        design <- stats::model.matrix(object, data = data, effects = effects, simplifies = FALSE)
+        design <- stats::model.matrix(object, data = data, effects = effects, simplify = FALSE)
         if(keep.data){
             data <- stats::model.frame(object)
             data <- data[,setdiff(colnames(data),c("XXindexXX", "XXstrata.indexXX", "XXvisit.indexXX")),drop=FALSE]
@@ -268,13 +274,11 @@ residuals.lmm <- function(object, type = "response", var = NULL,
     Y <- design$Y
     X <- design$mean
     structure <- design$vcov
-    Omega.index.time <- stats::setNames(structure$Upattern$index.time, structure$Upattern$name)
-    n.cluster <- design$cluster$n
+    n.cluster <- length(design$index.cluster)
     precompute.XX <- design$precompute.XX
-    cluster.level <- design$cluster$levels
     index.cluster <- attr(design$index.cluster,"vectorwise")
     index.time <- attr(design$index.clusterTime,"vectorwise")
-    index.variance <- as.character(structure$pattern)
+    pattern <- as.character(structure$pattern)
     n.pattern <-  NROW(structure$Upattern)
 
     ## ** update Omega
@@ -320,7 +324,7 @@ residuals.lmm <- function(object, type = "response", var = NULL,
                     iIndex <- which(index.cluster==iId)
                     iOrder <- order(index.time[iIndex])
                     iX <- X[iIndex[iOrder],,drop=FALSE]
-                    tX.precision.X <- tX.precision.X + t(iX) %*% precision[[index.variance[iId]]] %*% iX
+                    tX.precision.X <- tX.precision.X + t(iX) %*% precision[[pattern[iId]]] %*% iX
                 }
             }
         ## equal if proper ordering
@@ -348,12 +352,9 @@ residuals.lmm <- function(object, type = "response", var = NULL,
         res <-  as.vector(Y - fitted)
         M.res <- matrix(NA, nrow = NROW(X), ncol = length(type.residual), dimnames = list(NULL, name.residual))
     }else{
-        fitted <- stats::fitted(object)
-        if(!is.null(index.na)){ ## make sure to be consistent with X %*% beta
-            fitted <- fitted[-index.na]
-        }
-        res <- as.vector(object.residuals)
-        M.res <- matrix(NA, nrow = NROW(object.residuals), ncol = length(type.residual), dimnames = list(NULL, name.residual))
+        fitted <- object$fitted
+        res <- object$residuals
+        M.res <- matrix(NA, nrow = length(res), ncol = length(type.residual), dimnames = list(NULL, name.residual))
     }
 
     ## ** normalization
@@ -374,46 +375,44 @@ residuals.lmm <- function(object, type = "response", var = NULL,
         for(iId in 1:n.cluster){ ## iId <- 7
             
             iIndex <- which(index.cluster==iId)
-            ## iOrder <- match(Omega.index.time[[index.variance[iId]]],index.time[iIndex])
-            ## iOrder <- match(index.time[iIndex], Omega.index.time[[index.variance[iId]]])
             iOrder <- order(index.time[iIndex])
             iResidual <- res[iIndex[iOrder]]
             iN.time <- length(iIndex)
 
             for(iType in type.residual){
                 if("pearson" %in% type.residual){
-                    resnorm <- iResidual * sqrtPrecision$pearson[[index.variance[iId]]]
+                    resnorm <- iResidual * sqrtPrecision$pearson[[pattern[iId]]]
                     M.res[iIndex[iOrder],"r.pearson"] <- resnorm
                 }
                 if("studentized" %in% type.residual){
                     iX <- X[iIndex[iOrder],,drop=FALSE]
                     iQ <- iX %*% tX.precision.X.M1 %*% t(iX)
-                    resnorm <- iResidual / sqrt(diag(Omega[[index.variance[iId]]] - iQ))
+                    resnorm <- iResidual / sqrt(diag(Omega[[pattern[iId]]] - iQ))
                     M.res[iIndex[iOrder],"r.studentized"] <- resnorm
                 }
                 if("normalized" %in% type.residual){
-                    ## resnorm <- as.double(sqrtPrecision$normalized[[index.variance[iId]]] %*% iResidual)
-                    resnorm <- as.double(iResidual %*% sqrtPrecision$normalized[[index.variance[iId]]])
+                    ## resnorm <- as.double(sqrtPrecision$normalized[[pattern[iId]]] %*% iResidual)
+                    resnorm <- as.double(iResidual %*% sqrtPrecision$normalized[[pattern[iId]]])
                     M.res[iIndex[iOrder],"r.normalized"] <- resnorm
                 }
                 if("normalized2" %in% type.residual){
-                    resnorm <- as.double(iResidual %*% precision[[index.variance[iId]]])
+                    resnorm <- as.double(iResidual %*% precision[[pattern[iId]]])
                     M.res[iIndex[iOrder],"r.normalized2"] <- resnorm
                 }
                 if("normastudentized" %in% type.residual){
                     iX <- X[iIndex[iOrder],,drop=FALSE]
                     iQ <- iX %*% tX.precision.X.M1 %*% t(iX)
-                    resnorm <- as.double(iResidual %*% solve(chol(Omega[[index.variance[iId]]] - iQ)))
+                    resnorm <- as.double(iResidual %*% solve(chol(Omega[[pattern[iId]]] - iQ)))
                     M.res[iIndex[iOrder],"r.normalized2"] <- resnorm
                 }
                 if("scaled" %in% type.residual){
-                    M.res[iIndex[iOrder][1],"r.scaled"] <- iResidual[1]/attr(Omega[[index.variance[iId]]],"sd")[1]
+                    M.res[iIndex[iOrder][1],"r.scaled"] <- iResidual[1]/attr(Omega[[pattern[iId]]],"sd")[1]
                     if(iN.time>1){
                         for(iTime in 2:iN.time){ ## iTime <- 2
-                            iVar <- Omega[[index.variance[iId]]][iTime,iTime]
-                            iPrecision_kk <- solve(Omega[[index.variance[iId]]][1:(iTime-1),1:(iTime-1),drop=FALSE])
-                            iOmega_lk <- Omega[[index.variance[iId]]][iTime,1:(iTime-1),drop=FALSE]
-                            iOmega_kl <- Omega[[index.variance[iId]]][1:(iTime-1),iTime,drop=FALSE]
+                            iVar <- Omega[[pattern[iId]]][iTime,iTime]
+                            iPrecision_kk <- solve(Omega[[pattern[iId]]][1:(iTime-1),1:(iTime-1),drop=FALSE])
+                            iOmega_lk <- Omega[[pattern[iId]]][iTime,1:(iTime-1),drop=FALSE]
+                            iOmega_kl <- Omega[[pattern[iId]]][1:(iTime-1),iTime,drop=FALSE]
                                 
                             num <- iResidual[iTime] - iOmega_lk %*% as.double(iPrecision_kk %*% iResidual[1:(iTime-1)])
                             denom <- iVar - as.double(iOmega_lk %*% iPrecision_kk %*% iOmega_kl)
@@ -426,82 +425,84 @@ residuals.lmm <- function(object, type = "response", var = NULL,
     }
 
     ## ** restaure NA
-    if(is.null(match.call()$data) && length(index.na)>0){
-        n.allobs <- NROW(M.res)+length(index.na)
-
-        Msave.res <- M.res
-        M.res <- matrix(NA, nrow = n.allobs, ncol = NCOL(Msave.res), dimnames = list(NULL, colnames(Msave.res)))
-        M.res[-index.na,] <- Msave.res
-        attr(M.res,"centering") <- attr(Msave.res,"centering")
-        attr(M.res,"reference") <- attr(Msave.res,"reference")
-
-        Msave.fit <- fitted
-        fitted <- matrix(NA, nrow = n.allobs, ncol = NCOL(Msave.fit), dimnames = list(NULL, colnames(Msave.fit)))
-        fitted[-index.na,] <- Msave.fit
-
-        if(is.null(cluster.levels.original)){
-            level.cluster <- levels(attr(index.na,"cluster"))
-        }else{
-            level.cluster <- rep(NA, n.allobs)
-            level.cluster[index.na] <- factor(attr(index.na,"cluster"), levels = cluster.levels.original)
-            level.cluster[-index.na] <- factor(index.cluster, levels = 1:length(cluster.levels.original), labels = cluster.levels.original)
-        }
-
-        if(is.null(cluster.levels.original)){
-            level.time <- levels(attr(index.na,"time"))
-        }else{
-            level.time <- rep(NA, n.allobs)
-            if(NCOL(attr(index.na,"time"))>1){
-                level.time[index.na] <- factor(nlme::collapse(attr(index.na,"time"), as.factor = FALSE), levels = U.time)
-                level.time[-index.na] <- factor(index.time, levels = 1:length(U.time), labels = U.time) ## time.levels.original
-            }else{
-                level.time[index.na] <- factor(attr(index.na,"time"), levels = U.time)
-                level.time[-index.na] <- factor(index.time, levels = 1:length(U.time), labels = U.time) ## time.levels.original
-            }
-            
-        }
-    }else{
-        level.cluster <- index.cluster
-        level.time <- index.time
-    }
-
-    ## ** export
-    if(format=="wide"){
-        dfL.res <- data.frame(residuals = as.vector(M.res), cluster = level.cluster, time = factor(U.time[level.time], U.time), stringsAsFactors = FALSE)
-        out <- stats::reshape(data = dfL.res[,c("cluster","time","residuals"),drop=FALSE], 
-                              direction = "wide", timevar = "time", idvar = "cluster", v.names = "residuals")
-        colnames(out)[-1] <- gsub("^residuals.","",colnames(out)[-1])
-        if(n.time==1){
-            names(out)[-1] <- name.residual
-        }else{
-            names(out)[-1] <- paste0(name.residual,".",names(out)[-1])
-        }
-    }else if(format == "long"){
-
+    if(is.null(mycall$data)){
+               
+        M.res <- addNA(M.res, index.na = index.na,
+                       level = "obs", cluster = object$cluster)
+        fitted <- addNA(fitted, index.na = index.na,
+                        level = "obs", cluster = object$cluster)
         if(keep.data){
-            out <- cbind(data, fitted = fitted, M.res)
-        }else if(length(type.residual)==1){
-            out <- as.vector(M.res)
-        }else{
-            out <- M.res
+            ## even when no NA, use the initial dataset instead of the augmented one
+            data <- object$data.original
+            if(format == "long"){
+                data <- cbind(data, fitted = fitted)
+            }
         }
-
 
     }
 
     ## ** export
-    attr(out,"reference") <- attr(M.res,"reference")
-    attr(out,"centering") <- attr(M.res,"centering")
-    attr(out,"args") <- list(type = type, format = format, keep.data = keep.data, var = var, n.time = n.time, name.time = name.time)
-    if(format == "long"){
-        attr(out,"args")$name.colres <- colnames(M.res)
-    }else if(format == "wide"){
-        attr(out,"args")$name.colres <- names(out)[-1]
+    out <- .reformat(M.res, name = names(type), format = format, simplify = simplify,
+                     keep.data = keep.data, data = data, index.na = object.index.na,
+                     object.cluster = object.cluster, index.cluster = index.cluster,
+                     object.time = object.time, index.time = index.time,                     
+                     call = mycall)
+
+    if(!simplify){
+        attr(out,"reference") <- attr(M.res,"reference")
+        attr(out,"centering") <- attr(M.res,"centering")
+        attr(out,"args") <- list(type = type, format = format, keep.data = keep.data, var = var, n.time = n.time, name.time = name.time)
+        if(format == "long"){
+            attr(out,"args")$name.colres <- colnames(M.res)
+        }else if(format == "wide"){
+            attr(out,"args")$name.colres <- names(out)[-1]
+        }
     }
     class(out) <- append("residuals_lmm",class(out))
     return(out)
 }
 
+## * residuals.clmm (code)
+##' @export
+##' @rdname residuals
+residuals.clmm <- function(object, ...){
+
+    object$residuals <- object$design$Y - stats::predict(object, newdata = object$data.original, se = FALSE)$estimate
+    object$Omega <- .calc_Omega(object$design$vcov, param = object$param, keep.interim = FALSE)
+    object$OmegaM1 <- lapply(object$Omega, solve)
+    out <- residuals.lmm(object, ...)
+    return(out)
+
+}
+
+## * residuals.mlmm (code)
+##' @export
+##' @rdname residuals
+residuals.mlmm <- function(object, simplify = TRUE, ...){
+
+    ## ** extract
+    ls.out <- lapply(names(object$model), function(iBy){ ## iBy <- "A"
+        residuals(object$model[[iBy]], simplify = simplify, ...)
+    })
+
+    ## ** reshape
+    test.2D <- any(sapply(ls.out, inherits, "data.frame")) || any(sapply(ls.out, inherits, "matrix"))
+    if(test.2D){
+        out <- do.call(rbind,ls.out)
+        if(simplify && is.data.frame(out)){
+            object.manifest <- manifest(object)
+            rm.manifest <- attributes(object.manifest)[setdiff(names(attributes(object.manifest)),c("by","cluster","time"))]
+            out[unique(unlist(rm.manifest))] <- NULL
+        }
+    }else{
+        out <- do.call(c,ls.out)
+    }
+
+    ## ** export
+    return(out)
+}
+
+## * Note about normalizing the residuals
 ## NOTE: normalizing the residuals can be done by inverting, taking the cholesky transform, possibly transpose
 ##       but it is not clear in which order to do that
 ##       here is a small simulation study indicating the "best" solution
@@ -530,49 +531,6 @@ residuals.lmm <- function(object, type = "response", var = NULL,
 ## 
 ## quantile(var(t(SigmaM12 %*% t(X))) - diag(1,4))
 
-## * residuals.clmm
-##' @export
-##' @rdname residuals
-residuals.clmm <- function(object, ...){
 
-    object$residuals <- object$design$Y - stats::predict(object, newdata = object$data.original, se = FALSE)$estimate
-    object$Omega <- .calc_Omega(object$design$vcov, param = object$param, keep.interim = FALSE)
-    object$OmegaM1 <- lapply(object$Omega, solve)
-    out <- residuals.lmm(object, ...)
-    return(out)
-
-}
-
-## * residuals.mlmm (code)
-##' @export
-##' @rdname residuals
-residuals.mlmm <- function(object, keep.by = FALSE, ...){
-    
-    if(identical(keep.by,"only")){
-        id.col <- "by"
-    }else if(keep.by){
-        id.col <- c("by",object$object$by)
-    }else{
-        id.col <- object$object$by
-    }
-        
-    out <- lapply(names(object$model), function(iBy){ ## iBy <- "A"
-        iRes <- residuals(object$model[[iBy]], ...)
-        if(is.data.frame(iRes)==FALSE){
-            iRes <- data.frame(residuals = iRes)
-        }
-        if(identical(keep.by,"only") || keep.by){
-            iRes$by <- iBy
-        }
-        if(!identical(keep.by,"only")){
-            for(iVar in object$object$by){
-                iRes[[iVar]] <- object$univariate[object$univariate$by==iBy,iVar]
-            }
-        }
-        return(iRes[,c(id.col,setdiff(names(iRes),id.col)),drop=FALSE])
-    })
-    
-    return(do.call(rbind,out))
-}
 ##----------------------------------------------------------------------
 ### residuals.R ends here

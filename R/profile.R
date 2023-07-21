@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jun 16 2022 (15:19) 
 ## Version: 
-## Last-Updated: jun 15 2023 (16:25) 
+## Last-Updated: jul 21 2023 (15:53) 
 ##           By: Brice Ozenne
-##     Update #: 301
+##     Update #: 306
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -107,7 +107,7 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
     }
     n.effects <- length(effects)
 
-    if(fitted$opt$name!="FS" && profile.likelihood>0){
+    if(fitted$args$control$optimizer!="FS" && profile.likelihood>0){
         stop("Argument \'profile.likelihood\' can only be TRUE when \"FS\" optimizer is used. \n",
              "Consider adding the argument control = list(optimizer = \"FS\") when fitting the mixed model with lmm. \n")
     }

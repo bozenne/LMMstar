@@ -28,10 +28,10 @@ Analogous to crossed or nested random effects.
 Can be seen as more flexible crossed or nested random effects model.
 }}
 
-\item{add.time}{not used.}
-
-\item{group}{[integer vector] grouping of the regressor for the correlation structure.
+\item{group.type}{[integer vector] grouping of the regressor for the correlation structure.
 A constant value corresponds to nested random effects (default) and a regressor-specific value to crossed random effects}
+
+\item{add.time}{not used.}
 }
 \value{
 An object of class \code{CS} that can be passed to the argument \code{structure} of the \code{lmm} function.

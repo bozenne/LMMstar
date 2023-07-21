@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jul 11 2023 (11:37) 
+## Last-Updated: jul 21 2023 (17:32) 
 ##           By: Brice Ozenne
-##     Update #: 1233
+##     Update #: 1261
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -70,13 +70,11 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
     nobs <- stats::nobs(object)
     method.fit <- object$args$method.fit
     type.information <- object$args$type.information
-    nobsByCluster <- object$design$cluster$nobs
+    nobsByCluster <- sapply(object$design$index.cluster,length)
     formula <- object$formula
     df <- !is.null(object$df)
     options <- LMMstar.options()
 
-    n.cluster.original <- object$cluster$n
-    n.cluster.design <- object$design$cluster$n
     n.strata <- object$strata$n
     
     ## ** normalize user input
@@ -138,16 +136,16 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
         }else{
             cat("Dataset:\n\n")
         }
-        if(nobs["missing"]>0){
-            if(n.cluster.original-n.cluster.design>0){
-                cat("  - ", nobs["cluster"], " clusters were analyzed, ",n.cluster.original-n.cluster.design," were excluded because of missing values \n" , sep = "")
+        if(nobs["missing.obs"]>0){
+            if(nobs["missing.cluster"]>0){
+                cat("  - ", nobs["cluster"], " clusters were analyzed, ",nobs["missing.cluster"]," were excluded because of missing values \n" , sep = "")
             }else{
                 cat("  - ", nobs["cluster"], " clusters \n" , sep = "")
             }
-            cat("  - ", sum(nobsByCluster), " observations were analyzed, ",nobs["missing"]," were excluded because of missing values \n",  sep = "")
+            cat("  - ", nobs["obs"], " observations were analyzed, ",nobs["missing.obs"]," were excluded because of missing values \n",  sep = "")
         }else{
             cat("  - ", nobs["cluster"], " clusters \n" , sep = "")
-            cat("  - ", sum(nobsByCluster), " observations \n",  sep = "")
+            cat("  - ", nobs["obs"], " observations \n",  sep = "")
         }
         if(length(unique(nobsByCluster))==1){
             cat("  - ", nobsByCluster[1], " observations per cluster \n", sep = "")
@@ -258,7 +256,7 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
         if(identical(type.cor,"param") || (is.null(type.cor) && object$time$n>10)){
             table.cor <- rbind(coef(object,effect="correlation"))
         }else{
-            table.cor <- lapply(stats::sigma(object, simplifies = FALSE), stats::cov2cor)
+            table.cor <- lapply(stats::sigma(object, simplify = FALSE), stats::cov2cor)
         }
         if(print){
             if(identical(type.cor,"param") || (is.null(type.cor) && object$time$n>10)){
@@ -294,13 +292,12 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
         table.cor <- NULL
     }
     
-
     ## *** variance
     if(!hide.var || !hide.sd){
         name.sigma <- names(coef(object, transform.k = "sd", effects = "variance"))
         index.ref <- which(names(coef(object, effects = "variance", transform.names = FALSE)) %in% names(param.sigma))
         if(print){
-            cat("  - variance structure:",deparse(formula$var.design),"\n")
+            cat("  - variance structure:",deparse(formula$var),"\n")
         }
     }
 
@@ -738,17 +735,12 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
     nparam.k  <- sapply(ls.model, function(iM){sum(iM$design$param$type=="k")})
     nparam.rho  <- sapply(ls.model, function(iM){sum(iM$design$param$type=="rho")})
 
-    M.nobs <- do.call(rbind,lapply(ls.model, stats::nobs))
-    vec.nobs <- apply(M.nobs,2,paste,collapse = ", ")
-    nobsByCluster <- lapply(ls.model,function(iM){iM$design$cluster$nobs})
-    n.cluster.original <- sapply(ls.model,function(iM){iM$design$cluster$n})
-    n.cluster.design <- sapply(ls.model,function(iM){iM$design$cluster$n})
-
+    M.nobs <- stats::nobs(object)
     call <- attr(object,"call")
-    
+
     ## ** welcome message
     if(any(print>0)){
-        cat("	Linear Mixed Models stratified according to \"",call$by,"\" \n\n",sep="")
+        cat("	Linear Mixed Models stratified according to \"",eval(call$by),"\" \n\n",sep="")
     }
 
     ## ** data message    
@@ -757,16 +749,18 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
             cat("Dataset:", deparse(call$data), "\n")
         }
         cat("Strata : \"",paste(names(ls.model),collapse = "\", \""),"\"\n\n",sep="")
-        if(any(M.nobs[,"missing"]>0)){
-            if(any(n.cluster.original-n.cluster.design>0)){
-                cat("  - ", vec.nobs["cluster"], " clusters were analyzed, ",paste(n.cluster.original-n.cluster.design,collapse=", ")," were excluded because of missing values \n" , sep = "")
+        if(any(M.nobs[,"missing.obs"]>0)){
+            if(any(M.nobs[,"missing.cluster"])){
+                cat("  - ", paste(M.nobs[,"cluster"], collapse=", "), " clusters were analyzed \n",
+                    "    ", paste(M.nobs[,"missing.cluster"], collapse=", "), " were excluded because of missing values \n" , sep = "")
             }else{
-                cat("  - ", vec.nobs["cluster"], " clusters \n" , sep = "")
+                cat("  - ", paste(M.nobs["cluster"], collapse=", "), " clusters \n" , sep = "")
             }
-            cat("  - ", paste(sapply(nobsByCluster,sum), collapse = ", "), " observations were analyzed, ",vec.nobs["missing"]," were excluded because of missing values \n",  sep = "")
+            cat("  - ", paste(M.nobs[,"obs"], collapse = ", "), " observations were analyzed \n",
+                "    ", paste(M.nobs[,"missing.obs"],collapse=", "), " were excluded because of missing values \n",  sep = "")
         }else{
-            cat("  - ", vec.nobs["cluster"], " clusters \n" , sep = "")
-            cat("  - ", paste(sapply(nobsByCluster,sum), collapse = ", "), " observations \n",  sep = "")
+            cat("  - ", paste(M.nobs[,"cluster"], collapse=", "), " clusters \n" , sep = "")
+            cat("  - ", paste(M.nobs[,"obs"], collapse = ", "), " observations \n", sep = "")
         }
         cat("\n")
     }
@@ -787,7 +781,12 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
 
     ## ** extract test
     if(any(print>0)){
-        cat("Statistical inference \n\n")
+        name.param <- unique(object$univariate$parameter)
+        if(length(name.param)==1){
+            cat("Statistical inference for ",name.param," \n\n",sep="")
+        }else{
+            cat("Statistical inference \n\n")
+        }
         out <- summary.Wald_lmm(object, method = method, print = print, ...)
     }
 

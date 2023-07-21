@@ -10,7 +10,7 @@
   p = NULL,
   chol = FALSE,
   inverse = FALSE,
-  simplifies = TRUE,
+  simplify = TRUE,
   ...
 )
 }
@@ -27,13 +27,13 @@ When \code{NULL}, will output complete data covariance patterns.}
 
 \item{inverse}{[logical] Output the matrix inverse of the variance-covariance matrix.}
 
-\item{simplifies}{[logical] When there is only one variance-covariance matrix, output a matrix instead of a list of matrices.}
+\item{simplify}{[logical] When there is only one variance-covariance matrix, output a matrix instead of a list of matrices.}
 
 \item{...}{Not used. For compatibility with the generic method.}
 }
 \value{
 A list where each element contains a residual variance-covariance matrix.
-Can also be directly a matrix when argument is \code{simplifies=TRUE} and there is a single residual variance-covariance matrix.
+Can also be directly a matrix when argument is \code{simplify=TRUE} and there is a single residual variance-covariance matrix.
 }
 \description{
 Extract the unique set of residuals variance-covariance matrices or the one relative to specific clusters.

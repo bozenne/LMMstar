@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (10:34) 
 ## Version: 
-## Last-Updated: jun 14 2023 (14:52) 
+## Last-Updated: jul 19 2023 (10:21) 
 ##           By: Brice Ozenne
-##     Update #: 203
+##     Update #: 205
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -34,7 +34,7 @@ df.residual.lmm <- function(object, ...){
 
 ## * .df_analytic
 .df_analytic <- function(residuals, precision, dOmega, d2Omega, vcov, Upattern.ncluster,
-                         index.variance, time.variance, index.cluster, name.varcoef, name.allcoef,
+                         pattern, index.cluster, name.varcoef, name.allcoef,
                          pair.meanvarcoef, pair.varcoef, indiv, REML, type.information, name.effects, robust, diag,
                          precompute){
     
@@ -43,7 +43,7 @@ df.residual.lmm <- function(object, ...){
              "Use the function LMMstar.options to update \'precompute.moments\'. \n")
     }
     n.obs <- length(index.cluster)
-    n.cluster <- length(index.variance)
+    n.cluster <- length(pattern)
     n.varcoef <- lapply(name.varcoef, length)
     n.allcoef <- length(name.allcoef)
     name.allvarcoef <- name.allcoef[name.allcoef %in% unique(unlist(name.varcoef))] ## make sure the ordering is correct

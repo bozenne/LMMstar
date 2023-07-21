@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: maj 31 2023 (15:34) 
+## Last-Updated: jul 19 2023 (11:14) 
 ##           By: Brice Ozenne
-##     Update #: 181
+##     Update #: 198
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -76,18 +76,17 @@
     name.k <- object$param$name[type=="k"]
     name.rho <- object$param$name[type=="rho"]
     name.paramVar <- c(name.sigma,name.k,name.rho)
-
     param <- param[name.paramVar]
     name.param <- names(param)
     if(missing(Omega)){
         Omega <- .calc_Omega(object, param = param, keep.interim = TRUE)
     }
     
-    Upattern <- object$X$Upattern
+    Upattern <- object$Upattern
     n.Upattern <- NROW(Upattern)
-    pattern.cluster <- object$X$pattern.cluster$pattern
-    X.var <- object$X$Xpattern.var
-    X.cor <- object$X$Xpattern.cor
+    pattern.cluster <- object$pattern
+    X.var <- object$var$Xpattern
+    X.cor <- object$cor$Xpattern
 
     if(identical(transform.sigma,"log") && identical(transform.k,"log") && identical(transform.rho,"atanh")){
         Jacobian <- NULL
@@ -164,6 +163,7 @@
         }
         return(iScore)
     })
+
     ## ** export
     out <- stats::setNames(out,Upattern$name)
     return(out)
@@ -188,7 +188,7 @@
 .calc_dOmega.CUSTOM <- function(object, param, Omega, Jacobian = NULL,
                                 transform.sigma = NULL, transform.k = NULL, transform.rho = NULL){
 
-    Upattern <- object$X$Upattern
+    Upattern <- object$Upattern
     n.Upattern <- NROW(Upattern)
 
     FCT.sigma <- object$FCT.sigma
@@ -223,23 +223,22 @@
 
     }else{
 
-        pattern.cluster <- object$X$pattern.cluster
-        X.var <- object$X$var
-        X.cor <- object$X$cor
+        X.var <- object$var$X
+        X.cor <- object$cor$X
 
         out <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
             ## derivative of sd with respect to the variance parameters
             iPattern.var <- object$X$Upattern$var[iPattern]
-            iNtime <- object$X$Upattern$n.time[iPattern]
-            iX.var <- object$X$Xpattern.var[[iPattern.var]]
-            iTime <- object$X$Upattern$time[[iPattern]]
+            iNtime <- object$Upattern$n.time[iPattern]
+            iTime <- object$Upattern$time[[iPattern]]
+            iX.var <- object$var$Xpattern[[iPattern.var]]
             iOmega.sd <- attr(Omega[[iPattern]], "sd")
             idOmega.sd <- dFCT.sigma(p = param[name.sigma], time = iTime, X = iX.var)
 
             ## derivative of rho with respect to the correlation parameters
             if(iNtime > 1 && !is.null(X.cor)){
-                iPattern.cor <- object$X$Upattern$cor[iPattern]
-                iX.cor <- object$X$Xpattern.cor[[iPattern.cor]]
+                iPattern.cor <- object$cor$Upattern[iPattern]
+                iX.cor <- object$cor$Xpattern[[iPattern.cor]]
                 iOmega.cor <- attr(Omega[[iPattern]], "cor")
                 idOmega.cor <- dFCT.rho(p = param[name.rho], time = iTime, X = iX.cor)
             }

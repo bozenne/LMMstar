@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: jun 14 2023 (15:06) 
+## Last-Updated: jul 21 2023 (09:48) 
 ##           By: Brice Ozenne
-##     Update #: 119
+##     Update #: 133
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -39,6 +39,7 @@
 #' \item optimizer [character]: method used to estimate the model parameters. Either \code{"FS"}, an home-made fisher scoring algorithm, or a method from \code{optimx:optimx} like \code{"BFGS"}or \code{Nelder-Mead}.
 #' \item param.optimizer [numeric vector]: default option for the \code{FS} optimization routine: maximum number of gradient descent iterations (\code{n.iter}), maximum acceptable score value (\code{tol.score}), maximum acceptable change in parameter value (\code{tol.param}).
 #' \item precompute.moments [logical]: Should the cross terms between the residuals and design matrix be pre-computed. Useful when the number of subject is substantially larger than the number of mean paramters.
+#' \item sep [character vector]: character used to combined two strings of characters in various functions (lp: .vcov.model.matrix, k.cov/k.strata: .skeletonK, pattern: .findUpatterns, rho.name/rho.strata: .skeletonRho, reformat: .reformat ).
 #' \item trace [logical]: Should the progress of the execution of the \code{lmm} function be displayed?
 #' \item tranform.sigma, tranform.k, tranform.rho: transformation used to compute the confidence intervals/p-values for the variance and correlation parameters. See the detail section of the coef function for more information.
 #' Used by \code{lmm}, \code{anova} and \code{confint}.
@@ -65,12 +66,13 @@ LMMstar.options <- function(..., reinitialise = FALSE){
                     drop.X = TRUE,
                     effects = "mean",
                     min.df = 1,
-                    n.sampleCopula = 1e5,
                     method.fit = "REML",
                     method.numDeriv = "simple",
+                    n.sampleCopula = 1e5,
                     optimizer = "FS",
                     param.optimizer = c(n.iter = 100, tol.score = 1e-4, tol.param = 1e-5, n.backtracking = 10),
                     precompute.moments = TRUE,
+                    sep = c(lp = ":", k.cov = ".", k.strata = ":", pattern = ":", rho.name = ".", rho.strata = ":", reformat = "_"),
                     trace = FALSE,
                     transform.sigma = "log",
                     transform.k = "log",
@@ -146,6 +148,12 @@ LMMstar.options <- function(..., reinitialise = FALSE){
           }
           if("method.numDeriv" %in% names(args)){
               args$method.numDeriv <- match.arg(args$method.numDeriv, c("simple","Richardson","complex"))
+          }
+          if("sep" %in% names(args)){
+              sep.save <- args$sep
+              check <- match.arg(sort(names(sep.save)), c("lp","kname.cov","kname.strata","pattern","rho.name","reformat"), several.ok = TRUE)
+              args$sep <- object$sep
+              args$sep[names(sep.save)] <- sep.save              
           }
           if("transform.sigma" %in% names(args)){
               args$transform.sigma <- match.arg(args$transform.sigma, c("none","log","square","logsquare"))

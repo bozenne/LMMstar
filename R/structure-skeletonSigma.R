@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (11:02) 
 ## Version: 
-## Last-Updated: jul 12 2023 (16:33) 
+## Last-Updated: jul 20 2023 (10:13) 
 ##           By: Brice Ozenne
-##     Update #: 60
+##     Update #: 70
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -31,7 +31,7 @@
     function(structure, U.strata, sep) UseMethod(".skeletonSigma")
 
 ## * .skeletonSigma.ID
-.skeletonSigma.ID <- function(structure, U.strata, sep = ":"){
+.skeletonSigma.ID <- function(structure, U.strata, sep = c(".",":")){
 
     ## ** extract information
     strata.var <- structure$name$strata
@@ -80,20 +80,22 @@
     }else{
         X.Usigma <- lp2X.var
     }
-        
+
     ## generate code
-    code.sigma <- stats::setNames(nlme::collapse(X.Usigma, as.factor = FALSE, sep = sep),
+    code.sigma <- stats::setNames(rownames(X.Usigma),
                                   apply(X.Usigma, 1, function(iRow){names(which(iRow==1))}))
     code.sigma <- as.character(code.sigma[param.sigma])
 
     ## ** find level    
-    M.level <- attr(X.var,"M.level")
-    if(length(M.level)==0){ ## no strata nor covariate
+    M.level.sigma <- attr(X.var,"M.level")[index.sigma,,drop=FALSE]
+    if(length(M.level.sigma)==0){ ## no strata nor covariate
         level.sigma <- ""
-    }else if(n.strata==1 || NCOL(M.level)>1){ ## no strata or strata with covariate
-        level.sigma <- paste0(".",nlme::collapse(M.level[index.sigma,,drop=FALSE],sep=sep, as.factor = FALSE))
+    }else if(n.strata==1){ ## no strata
+        level.sigma <- paste0(sep[1],nlme::collapse(M.level.sigma,sep=sep[2], as.factor = FALSE))
+    }else if(any(colnames(M.level.sigma) %in% strata.var == FALSE)){
+        level.sigma <- paste0(sep[1],nlme::collapse(M.level.sigma[,c(setdiff(colnames(M.level.sigma),strata.var),strata.var),drop=FALSE], sep = sep[2], as.factor = FALSE))
     }else if(n.strata>1){ ## only strata
-        level.sigma <- paste0(sep,nlme::collapse(M.level[index.sigma,,drop=FALSE],sep=sep, as.factor = FALSE))
+        level.sigma <- paste0(sep[2],nlme::collapse(M.level.sigma,sep=sep[2], as.factor = FALSE))
     }
 
     ## ** update

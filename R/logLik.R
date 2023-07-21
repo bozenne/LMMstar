@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: jul 10 2023 (17:33) 
+## Last-Updated: jul 20 2023 (16:11) 
 ##           By: Brice Ozenne
-##     Update #: 320
+##     Update #: 349
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -41,9 +41,9 @@ logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
         out <- object$logLik
     }else{
         test.precompute <- !is.null(object$design$precompute.XX) && !indiv
-            
+
         if(!is.null(data)){
-            design <- stats::model.matrix(object, data = data, effects = "all", simplifies = FALSE)
+            design <- stats::model.matrix(object, data = data, effects = "all", simplify = FALSE)
         }else{
             design <- object$design
         }
@@ -65,20 +65,15 @@ logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
                             trace = FALSE, precompute.moments = test.precompute)$logLik
     } 
 
-    ## ** restaure NAs and name
+    ## ** name and restaure NAs
     if(indiv){
-        if(is.null(data) && length(object$index.na)>0 && any(is.na(attr(object$index.na,"cluster.index")))){
-            names(out) <- object$design$cluster$levels
-            out.save <- out
-            out <- stats::setNames(rep(NA, times = object$cluster$n), object$cluster$levels)
-            out[rownames(out.save)] <- out.save
 
-            if(is.numeric(design$cluster$levels.original)){
-                names(out) <- NULL
-            }
-        }else if(!is.numeric(design$cluster$levels.original)){
-            names(out) <- design$cluster$levels.original
+        if(!is.numeric(object$cluster$levels)){
+            names(out) <- x$cluster$levels[match(1:length(out),x$cluster$index)]
         }
+        out <- addNA(out, index.na = object$index.na,
+                     level = "cluster", cluster = object$cluster)        
+
     }
 
     ## ** export
@@ -95,8 +90,7 @@ logLik.mlmm <- function(object, ...){
 
 ## * .logLik
 .logLik <- function(X, residuals, precision, Upattern.ncluster, weights, scale.Omega,
-                    index.variance, time.variance, index.cluster,
-                    indiv, REML, precompute){
+                    pattern, index.cluster, indiv, REML, precompute){
 
     ## ** extract information
     if(indiv && REML){##  https://towardsdatascience.com/maximum-likelihood-ml-vs-reml-78cf79bef2cf
@@ -105,11 +99,13 @@ logLik.mlmm <- function(object, ...){
     test.loopIndiv <- indiv || is.null(precompute)
 
     n.obs <- length(index.cluster)
-    n.cluster <- length(index.variance)
+    n.cluster <- length(pattern) ## number of clusters, may different from Upattern.ncluster which is the weight of each cluster
     n.mucoef <- NCOL(X)
     name.mucoef <- colnames(X)
     log2pi <- log(2*pi)
-    REML.det <- matrix(0, nrow = n.mucoef, ncol = n.mucoef, dimnames = list(name.mucoef, name.mucoef))
+    if(REML){
+        REML.det <- matrix(0, nrow = n.mucoef, ncol = n.mucoef, dimnames = list(name.mucoef, name.mucoef))
+    }
     logdet.precision <- attr(precision, "logdet")
 
     ## ** prepare output
@@ -134,13 +130,13 @@ logLik.mlmm <- function(object, ...){
             iIndex <- index.cluster[[iId]]
             iResidual <- residuals[iIndex, , drop = FALSE]
             iX <- X[iIndex, , drop = FALSE]
-            iOmegaM1 <- precision[[index.variance[iId]]] * scale.Omega[iId]
+            iOmegaM1 <- precision[[pattern[iId]]] * scale.Omega[iId]
             iWeight <- weights[iId]
-            ll[iId] <- - iWeight * (NCOL(iOmegaM1) * (log2pi-log(scale.Omega[iId])) - logdet.precision[[index.variance[iId]]] + t(iResidual) %*% iOmegaM1 %*% iResidual)/2
+            ll[iId] <- - iWeight * (NCOL(iOmegaM1) * (log2pi-log(scale.Omega[iId])) - logdet.precision[[pattern[iId]]] + t(iResidual) %*% iOmegaM1 %*% iResidual)/2
             if (REML) {
                 REML.det <- REML.det + iWeight * (t(iX) %*% iOmegaM1 %*% iX)
             }
-            ## log(det(iOmegaM1)) - NCOL(iOmegaM1)*log(scale.Omega[iId])+logdet.precision[[index.variance[iId]]]
+            ## log(det(iOmegaM1)) - NCOL(iOmegaM1)*log(scale.Omega[iId])+logdet.precision[[pattern[iId]]]
         }
         if(!indiv){
             ll <- sum(ll)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 10 2023 (18:26) 
+## Last-Updated: jul 21 2023 (17:16) 
 ##           By: Brice Ozenne
-##     Update #: 625
+##     Update #: 635
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -776,27 +776,20 @@ confint.LRT_lmm <- function(object, parm, level = 0.95, ...){
 
 ## * confint.mlmm (code)
 ##' @export
-confint.mlmm <- function(object, parm = NULL, level = 0.95, method = NULL, ...){
+confint.mlmm <- function(object, parm = NULL, level = 0.95, method = NULL, ordering = "parameter", ...){
 
+    ## ** normalize user input
     if(is.null(method)){
         method <- "none"
     }
-    object$univariate
-    if(is.null(attr(object,"call")$effects) && length(unique(object$univariate$by))>1){
-        Uparameter <- unique(object$univariate$parameter)
-        ls.out <- lapply(Uparameter, function(iParam){ ## iParam <- Uparameter[1]
-            iObject <- object
-            iObject$univariate <- object$univariate[object$univariate$parameter==iParam,,drop=FALSE]
-            confint.Wald_lmm(iObject, parm = parm, level = level, method = method, ...)
-        })
-        out <- do.call(rbind,ls.out)
-        attr(out, "error") <- do.call(c, lapply(ls.out, "attr", "error"))
-        attr(out, "contrast") <- do.call(rbind, lapply(ls.out, "attr", "contrast"))
-        attr(out, "Madjust-within") <- TRUE
-    }else{
-        out <- confint.Wald_lmm(object, parm = parm, level = level, method = method, ...)
-    }
-    contrast <- object$glht$all[[1]]$linfct
+    ordering <- match.arg(ordering, c("by","parameter"))
+
+    ## ** extract confidence intervals
+    out.confint <- confint.Wald_lmm(object, parm = parm, level = level, method = method, ...)
+    reorder <- order(object$univariate[[ordering]])
+    out <- out.confint[reorder,,drop=FALSE]
+        
+    contrast <- object$glht$all[[1]]$linfct[reorder,,drop=FALSE]
     if(any(object$glht$all[[1]]$linfct %in% 0:1 == FALSE) || any(rowSums(object$glht$all[[1]]$linfct==1)!=1)){
         out$estimate <- as.double(contrast %*% object$confint.nocontrast$estimate)
         out$se <- NA
@@ -806,6 +799,8 @@ confint.mlmm <- function(object, parm = NULL, level = 0.95, method = NULL, ...){
         attr(out,"backtransform") <- attr(object$confint.nocontrast,"backtransform")
         attr(out,"backtransform")[,c("se","lower","upper")] <- FALSE
     }
+
+    ## ** export
     return(out)
 }
 

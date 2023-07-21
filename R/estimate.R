@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: jul 13 2023 (11:24) 
+## Last-Updated: jul 21 2023 (16:03) 
 ##           By: Brice Ozenne
-##     Update #: 983
+##     Update #: 991
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -356,7 +356,7 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
                                                residuals = partialHat,
                                                pattern = design$vcov$Upattern$name,
                                                pattern.ntime = stats::setNames(design$vcov$Upattern$n.time, design$vcov$Upattern$name),
-                                               pattern.cluster = design$vcov$Upattern$index.cluster, index.cluster = design$index.cluster)
+                                               pattern.cluster = attr(design$vcov$pattern,"list"), index.cluster = design$index.cluster)
             precompute.XY <- mapply(x = design$precompute.XY, y = precompute.Xfixed, FUN = function(x,y){x[,,param.mu2,drop=FALSE]-y}, SIMPLIFY = FALSE)
         }else{
             precompute.XY <- NULL

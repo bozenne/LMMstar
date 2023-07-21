@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jul  5 2023 (19:16) 
+## Last-Updated: jul 19 2023 (17:44) 
 ##           By: Brice Ozenne
-##     Update #: 237
+##     Update #: 241
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -115,7 +115,7 @@ print.lmm <- function(x, ...){
 
     ## ** dataset
     M.print <- rbind(M.print,
-                     cbind("data",": ",paste(nobs["obs"], " observations and distributed in ", nobs["cluster"], " clusters",sep="")))
+                     cbind("data",": ",paste(nobs["obs"], " observations from ", nobs["cluster"], " clusters",sep="")))
 
     ## ** parameters
     ls.printparam <- list(c("parameter",": "),

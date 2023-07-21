@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: jun 15 2023 (16:27) 
+## Last-Updated: jul 21 2023 (16:06) 
 ##           By: Brice Ozenne
-##     Update #: 573
+##     Update #: 591
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -80,7 +80,7 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
         test.precompute <- !is.null(x$design$precompute.XX) && !indiv
 
         if(!is.null(data)){
-            design <- stats::model.matrix(x, data = data, effects = "all", simplifies = FALSE)
+            design <- stats::model.matrix(x, data = data, effects = "all", simplify = FALSE)
         }else{
             design <- x$design
         }
@@ -96,27 +96,21 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
         }else{
             p <- x$param
         }
-        out <- .moments.lmm(value = p, design = design, time = x$time, method.fit = x$method.fit,
+        out <- .moments.lmm(value = p, design = design, time = x$time, method.fit = x$args$method.fit,
                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                             logLik = FALSE, score = TRUE, information = FALSE, vcov = FALSE, df = FALSE, indiv = indiv, effects = effects,
                             trace = FALSE, precompute.moments = test.precompute, transform.names = transform.names)$score
     }
 
-    ## ** restaure NAs and name
+    ## ** name and restaure NAs
     if(indiv){
-        if(is.null(data) && length(x$index.na)>0 && any(is.na(attr(x$index.na,"cluster.index")))){
-            rownames(out) <- x$design$cluster$levels
-            out.save <- out
-            out <- matrix(NA, nrow = x$cluster$n, ncol = NCOL(out),
-                          dimnames = list(x$cluster$levels, colnames(out)))
-            out[rownames(out.save),] <- out.save
 
-            if(is.numeric(design$cluster$levels)){
-                rownames(out) <- NULL
-            }
-        }else if(!is.numeric(design$cluster$levels)){
-            rownames(out) <- design$cluster$levels
+        if(!is.numeric(x$cluster$levels)){
+            rownames(out) <- x$cluster$levels[match(1:NROW(out),x$cluster$index)]
         } 
+        out <- addNA(out, index.na = x$index.na,
+                     level = "cluster", cluster = x$cluster)        
+        
     }
 
     ## ** export
@@ -126,7 +120,7 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
 ## * .score
 .score <- function(X, residuals, precision, dOmega,
                    Upattern.ncluster, weights, scale.Omega,
-                   index.variance, time.variance, index.cluster, name.allcoef,
+                   pattern, index.cluster, name.allcoef,
                    indiv, REML, effects,
                    precompute){
 
@@ -134,7 +128,7 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
     ## ** extract information
     test.loopIndiv <- indiv || is.null(precompute)
     n.obs <- length(index.cluster)
-    n.cluster <- length(index.variance)
+    n.cluster <- length(pattern)
     name.mucoef <- colnames(X)
     n.mucoef <- length(name.mucoef)
     name.varcoef <- lapply(dOmega,names)
@@ -208,12 +202,10 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
         
         ## loop
         for(iId in 1:n.cluster){ ## iId <- 7
-            iPattern <- index.variance[iId]
+            iPattern <- pattern[iId]
             iIndex <- index.cluster[[iId]]
             iWeight <- weights[iId]
-            iOmegaM1 <- precision[[index.variance[iId]]] * scale.Omega[iId]
-            ## iIndex <- which(index.cluster==iId)
-            ## iIndex <- iIndex[order(time.variance[iIndex])] ## re-order observations according to the variance-covariance matrix
+            iOmegaM1 <- precision[[pattern[iId]]] * scale.Omega[iId]
 
             iResidual <- residuals[iIndex,,drop=FALSE]
             iX <- X[iIndex,,drop=FALSE]
@@ -237,6 +229,7 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
                 }
             }
         }
+
         if(!indiv){
             Score <- colSums(Score)
         }

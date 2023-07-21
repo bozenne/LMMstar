@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: jul 13 2023 (11:30) 
+## Last-Updated: jul 21 2023 (17:03) 
 ##           By: Brice Ozenne
-##     Update #: 584
+##     Update #: 602
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -30,6 +30,7 @@
 ##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
 ##' @param transform.rho [character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"} - see details.
 ##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
+##' @param ordering [character] According to which variable the coefficient should be ordered in the output: \code{"by"} or \code{"parameter"}.
 ##' @param ... Not used. For compatibility with the generic method.
 ##' 
 ##'
@@ -93,28 +94,12 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
     param.type <- stats::setNames(object$design$param$type,param.name)
     param.level <- stats::setNames(object$design$param$level,param.name)
     param.sigma <- stats::setNames(object$design$param$sigma,param.name)
-    param.strata <- stats::setNames(object$design$param$strata,param.name)
     param.k.x <- stats::setNames(object$design$param$k.x,param.name)
     param.k.y <- stats::setNames(object$design$param$k.y,param.name)
 
     object.reparametrize.name <- names(object$reparametrize$p)
     object.reparametrize.value <- object$reparametrize$p
     object.reparametrize.newname <- object$reparametrize$newname
-
-    index.na <- object$index.na
-    type.pattern <- object$design$vcov$type
-    
-    U.strata <- object$strata$levels
-    strata.var <- object$strata$var
-    n.strata <- object$strata$n
-    U.cluster.original <- object$design$cluster$levels.original
-    cluster.var <- object$cluster$var
-    n.cluster <- object$cluster$n
-    X.cor <- object$design$vcov$cor$X
-    Xpattern.cor <- object$design$vcov$cor$Xpattern
-    index.cluster <- object$design$index.cluster
-    pattern.cluster <- object$design$vcov$pattern
-    Upattern <- object$design$vcov$Upattern
 
     ## ** normalize user imput
     dots <- list(...)
@@ -140,7 +125,7 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
     }
     effects <- match.arg(effects, c("mean","fixed","variance","correlation","ranef"), several.ok = TRUE)
     effects[effects== "fixed"] <- "mean"
-    
+
     init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
                             x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho)
     transform.sigma <- init$transform.sigma
@@ -304,14 +289,26 @@ coef.LRT_lmm <- function(object, ...){
     message("No effect size available for likelihood ratio tests.")
     return(NULL)
 }
+
 ## * coef.mlmm
 ##' @export
-coef.mlmm <- function(object, effects = "contrast", ...){
-
+coef.mlmm <- function(object, effects = "contrast", ordering = "parameter", ...){
+    ordering <- match.arg(ordering, c("by","parameter"))
+    
     if(!is.null(effects) && effects=="contrast"){
-        return(stats::setNames(object$univariate$estimate,rownames(object$univariate)))
+        table.order <- object$univariate[order(object$univariate[[ordering]]),,drop=FALSE]
+        return(stats::setNames(table.order$estimate,rownames(table.order)))
     }else{
-        return(lapply(object$model, coef, effects = effects, ...))
+        ls.out <- lapply(object$model, coef, effects = effects, ...)
+        if(ordering == "by"){
+            return(ls.out)
+        }else if(ordering == "parameter"){
+            Uname <- unique(unlist(lapply(ls.out,names)))
+            ls.out2 <- stats::setNames(lapply(Uname, function(iName){ ## iName <- "X1"
+                unlist(lapply(ls.out,function(iVec){unname(iVec[iName])}))
+            }), Uname)
+            return(ls.out2)
+        }
     }
     
 }

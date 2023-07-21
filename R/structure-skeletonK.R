@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (11:55) 
 ## Version: 
-## Last-Updated: jul 12 2023 (18:42) 
+## Last-Updated: jul 20 2023 (17:16) 
 ##           By: Brice Ozenne
-##     Update #: 54
+##     Update #: 73
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,10 +29,10 @@
 ##' @keywords internal
 
 `.skeletonK` <-
-    function(structure, U.strata, n.strata, sep) UseMethod(".skeletonK")
+    function(structure, U.strata) UseMethod(".skeletonK")
 
 ## * .skeletonK.ID
-.skeletonK.ID <- function(structure, U.strata, sep = c(".",":")){
+.skeletonK.ID <- function(structure, U.strata){
 
     ## no variance multipler
     return(structure)
@@ -40,7 +40,7 @@
 }
 
 ## * .skeletonK.IND
-.skeletonK.IND <- function(structure, U.strata, sep = c(".",":")){
+.skeletonK.IND <- function(structure, U.strata){
 
     ## ** extract information
     strata.var <- structure$name$strata
@@ -54,6 +54,8 @@
     param.sigma <- structure$param[structure$param$type=="sigma","name"]
     strata.sigma <- structure$param[structure$param$type=="sigma","index.strata"]
     
+    sep <- LMMstar.options()$sep[c("k.cov","k.strata")]
+
     ## ** identify and name parameters
     index.k <- which(attr(X.var,"assign")>(n.strata>1)) ## complement with structure$param$index.level
     if(length(index.k)==0){return(structure)} ## no variance multiplier
@@ -63,12 +65,13 @@
         paste0(names(M.level.k)[iVar],M.level.k[,iVar])
     }), sep = sep[2], as.factor = FALSE) 
 
-    if(n.strata==1 || NCOL(M.level.k)>1){ ## no strata or strata with covariate
+    if(n.strata==1){ ## no strata
         level.k <- paste0(sep[1],nlme::collapse(M.level.k, sep = sep[2], as.factor = FALSE))
+    }else if(any(colnames(M.level.k) %in% strata.var == FALSE)){ ## strata with covariate(s) - make sure the strata variable is at the end
+        level.k <- paste0(sep[1],nlme::collapse(M.level.k[,c(setdiff(colnames(M.level.k),strata.var),strata.var),drop=FALSE], sep = sep[2], as.factor = FALSE))
     }else{ ## only strata
-        level.k <- nlme::collapse(M.level.k, sep = sep[2], as.factor = FALSE)
+        level.k <- paste0(sep[2],nlme::collapse(M.level.k, sep = sep[2], as.factor = FALSE))
     }
-        
     if(!identical(colnames(X.var)[index.k],vec.level.k)){
         stop("Could not find the k parameters in the design matrix for the variance.\n")
     }    

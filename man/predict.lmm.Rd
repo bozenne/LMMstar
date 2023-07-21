@@ -13,7 +13,8 @@
   type = "static",
   level = 0.95,
   keep.newdata = FALSE,
-  se.fit,
+  format = "long",
+  simplify = TRUE,
   ...
 )
 }
@@ -34,21 +35,26 @@ Can also output the model term (\code{"terms"}, similarly to \code{stats::predic
 
 \item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
 
-\item{keep.newdata}{[logical] Should the argument \code{newdata} be output along side the predicted values?}
+\item{keep.newdata}{[logical] Should the dataset relative to which the predicted means are evaluated be output along side the predicted values?
+Only possible in the long format.}
 
-\item{se.fit}{For internal use. When not missing mimic the output of \code{predict.se}. Overwrite argument \code{se}.}
+\item{format}{[character] Should the prediction be output
+in a matrix format with clusters in row and timepoints in columns (\code{"wide"}),
+or in a data.frame/vector with as many rows as observations (\code{"long"})}
+
+\item{simplify}{[logical] Simplify the data format (vector instead of data.frame) and column names (no mention of the time variable) when possible.}
 
 \item{...}{Not used. For compatibility with the generic method.}
 }
 \value{
-A data.frame with 5 columns:\itemize{
+When \code{format="long"}, a data.frame containing the following columns:\itemize{
 \item \code{estimate}: predicted mean.
 \item \code{se}: uncertainty about the predicted mean.
 \item \code{df}: degree of freedom
 \item \code{lower}: lower bound of the confidence interval of the predicted mean
 \item \code{upper}: upper bound of the confidence interval of the predicted mean
 }
-except when the argument \code{se.fit} is specified (see \code{predict.lm} for the output format).
+When \code{format="wide"}, a matrix containing the predict means (one line per cluster, one column per timepoint).
 }
 \description{
 Predicted mean value conditional on covariates or on covariates and other outcome values.

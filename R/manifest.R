@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (15:05) 
 ## Version: 
-## Last-Updated: jun 15 2023 (16:16) 
+## Last-Updated: jul 21 2023 (17:33) 
 ##           By: Brice Ozenne
-##     Update #: 19
+##     Update #: 31
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,7 +15,7 @@
 ## 
 ### Code:
 
-## * manifest
+## * manifest (documentation)
 ##' @title Variables Involved in a Linear Mixed Model
 ##' @description Extract the variables used by the linear mixed model.
 ##'
@@ -31,7 +31,8 @@
 ##' @return A character vector
 ##' 
 ##' @keywords methods
-##' 
+
+## * manifest.lmm 
 ##' @export
 manifest.lmm <- function(x, effects = "all", original = TRUE, ...){
 
@@ -59,6 +60,8 @@ manifest.lmm <- function(x, effects = "all", original = TRUE, ...){
         }
     }
     valid.effects <- names(ls.out)
+    ## normalize numeric(0) and NA into NULL
+    ls.out[sapply(ls.out, function(iE){sum(!is.na(iE))==0})] <- list(NULL)
 
     ## ** check user input
     dots <- list(...)
@@ -66,13 +69,27 @@ manifest.lmm <- function(x, effects = "all", original = TRUE, ...){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
     if(length(effects)==1 && effects == "all"){
-        out <- unlist(ls.out)
+        out <- unname(sort(unique(unlist(ls.out))))
+        attributes(out) <- c(attributes(out),ls.out[sapply(ls.out,length)>0])
     }else{
         effects <-  match.arg(effects, valid.effects, several.ok = TRUE)
-        out <- unlist(ls.out[effects])
+        out <- ls.out[effects]
     }
-    return(out[!is.na(out)])
+    return(out)
 }
 
+## * manifest.mlmm 
+##' @export
+manifest.mlmm <- function(x, ...){
+    ls.manifest <- lapply(x$model, manifest)
+
+    if(any(sapply(ls.manifest,identical,ls.manifest[[1]])==FALSE)){
+        stop("Difference in manifest variables between the LMM. \n",
+             "Cannot provide a single output for all models.")
+    }
+    out <- union(ls.manifest[[1]], x$object$by)
+    attributes(out) <- c(attributes(ls.manifest[[1]]), list(by = x$object$by))
+    return(out)
+}
 ##----------------------------------------------------------------------
 ### manifest.R ends here
