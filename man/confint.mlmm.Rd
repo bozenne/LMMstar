@@ -4,7 +4,14 @@
 \alias{confint.mlmm}
 \title{Confidence Intervals for Multiple Linear Mixed Model.}
 \usage{
-\method{confint}{mlmm}(object, parm = NULL, level = 0.95, method = NULL, ...)
+\method{confint}{mlmm}(
+  object,
+  parm = NULL,
+  level = 0.95,
+  method = NULL,
+  ordering = "parameter",
+  ...
+)
 }
 \arguments{
 \item{object}{an \code{mlmm} object, output of \code{mlmm}.}

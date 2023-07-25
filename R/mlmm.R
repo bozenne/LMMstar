@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: jul 10 2023 (18:07) 
+## Last-Updated: jul 25 2023 (10:23) 
 ##           By: Brice Ozenne
-##     Update #: 321
+##     Update #: 363
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -66,10 +66,13 @@
 ##' d <- rbind(d1,d2,d3)
 ##' 
 ##' e.mlmm <- mlmm(Y~X1, data = d, by = "group", effects = "X1=0")
+##' summary(e.mlmm)
 ##' summary(e.mlmm, method = "single-step")
-##' summary(e.mlmm, method = "bonferroni")
 ##' summary(e.mlmm, method = "single-step2")
-##' ## summary(e.mlmm)
+##'
+##' ## re-work contrast
+##' summary(anova(e.mlmm, effects = mcp(X1 = "Dunnett")), method = "none")
+##' ## summary(mlmm(Y~X1, data = d, by = "group", effects = mcp(X1="Dunnett")))
 ##' }
 ##' 
 ##' #### multivariate regression ####
@@ -78,8 +81,7 @@
 ##'
 ##' e.mlmm <- mlmm(Y~X1+X2+X6, repetition = ~visit|id, data = dL,
 ##'                by = "X4", structure = "CS")
-##' summary(e.mlmm, method = "none")
-##' confint(e.mlmm, method = "none")
+##' summary(e.mlmm)
 ##' 
 ##' e.mlmmX1 <- mlmm(Y~X1+X2+X6, repetition = ~visit|id, data = dL,
 ##'                by = "X4", effects = "X1=0", structure = "CS")
@@ -123,14 +125,6 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
     if(length(name.short)==1){
         name.short <- c(name.short, name.short)
     }
-    ## used to decide on the null hypothesis of k parameters
-    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
-                            x.transform.sigma = options$transform.sigma, x.transform.k = options$transform.k, x.transform.rho = options$transform.rho)
-    
-    transform.sigma <- init$transform.sigma
-    transform.k <- init$transform.k
-    transform.rho <- init$transform.rho
-    transform <- init$transform
 
     ## ** fit mixed models
     repetition <- list(...)$repetition
@@ -172,6 +166,22 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
     if(trace>0.5){
         cat(" - generate contrast matrix\n")
     }
+    if(inherits(effects,"mcp")){
+        if(length(effects)!=1){
+            stop("Argument \'effects\' must specify a single hypothesis test when being of class \"mcp\". \n",
+                 "Something like mcp(group = \"Dunnett\") or mcp(group = \"Tukey\") \n")
+        }
+        if(!is.null(contrast.rbind)){
+            message("Argument \'contrast.rbind\' ignored when argument \'effects\' inherits from class \"mcp\". \n")
+        }
+        effects.save <- effects
+        contrast.rbind <- effects.save[[1]]
+        effects <- names(effects.save)
+        if(!grepl("=",effects)){
+            effects <- paste0(effects,"=0")
+        }
+    }
+    
     if(is.null(effects)){
 
         name.contrastCoef <- lapply(ls.lmm, function(iLMM){names(coef(iLMM, effects = options$effects))})
@@ -302,41 +312,34 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
                    )
     out$model <- ls.lmm
     names(out$univariate)[1] <- "by"
-    if(!is.null(contrast.rbind)){
-        out.notransform <- do.call("rbind.Wald_lmm",
-                                   args = c(list(model = ls.anova[[1]], effects = NULL, rhs = rhs.by, name = name.model, sep = sep), unname(ls.anova[-1]))
-                                   )
-        out$confint.nocontrast <-  confint(out.notransform)
-    }
-
+    
     ## add covariate values
     keep.rowname <- rownames(out$univariate)
     if(is.null(contrast.rbind)){
-        out$univariate <- merge(out$univariate,
-                                data.frame(by = name.model, keep.by.level),
-                                by = "by", sort = FALSE)
+        rownames(keep.by.level) <- name.model
+        out$univariate[colnames(keep.by.level)] <- keep.by.level[out$univariate$by,,drop=FALSE]
+
         if(name.short[2]){
-            if(all(duplicated(out$univariate$by)==FALSE)){
+            if(all(duplicated(out$univariate$by)==FALSE)){ ## by uniquely identify the hypotheses
                 rownames(out$univariate) <- out$univariate$by
                 dimnames(out$vcov) <- list(out$univariate$by,out$univariate$by)
-            }else{
-                rownames(out$univariate) <- keep.rowname
+                if(!is.null(attr(out$univariate,"backtransform"))){
+                    names(attr(out$univariate,"backtransform")) <- out$univariate$by
+                }                
             }
             test.global <- unique(paste0(out$univariate$parameter,"=",out$univariate$null))
             if(length(test.global)==1 && NROW(out$multivariate)){
                 out$multivariate$null <- test.global
             }
-        }else{
-            rownames(out$univariate) <- keep.rowname
         }
-    }else if(name.short[2] && all(duplicated(out.notransform$univariate$outcome)==FALSE)){
-
-        try(rownames(out$univariate) <- unlist(lapply(strsplit(split = "-",rownames(out$glht$all[[1]]$linfct),fixed=TRUE), function(iVec){
-            iOutcome <- stats::setNames(out.notransform$univariate$outcome, colnames(out$glht$all[[1]]$linfct))
-            paste(iOutcome[trimws(iVec, which = "both")], collapse = " - ")
-        })), silent = TRUE)
-
+    }else if(name.short[2] && length(contrast.rbind)==1 && contrast.rbind %in% c("Dunnett","Tukey","Sequen") && !is.list(out$univariate$parameter) && length(unique(out$univariate$parameter))==1){
+        M.by <- do.call(rbind, out$univariate$by)
+        rownames(out$univariate) <- paste(M.by[,2],"-",M.by[,1])
+        if(!is.null(attr(out$univariate,"backtransform"))){
+            names(attr(out$univariate,"backtransform")) <- rownames(out$univariate)
+        }
     }
+    
 
     ## ** export
     if(trace>0){

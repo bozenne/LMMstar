@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 21 2023 (17:16) 
+## Last-Updated: jul 24 2023 (17:04) 
 ##           By: Brice Ozenne
-##     Update #: 635
+##     Update #: 658
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -346,6 +346,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
     pool.method <- c("average","pool.fixse","pool.se","pool.gls","pool.gls1","pool.rubin")
     adj.method <- c(stats::p.adjust.methods,"single-step", "Westfall", "Shaffer", "free", "single-step2")
 
+    ## handle multiple types of adjustment for multiplicty
     if(!is.null(method)){
         if(length(method)>1){
             method <- match.arg(method, c(pool.method,adj.method), several.ok = TRUE)
@@ -413,14 +414,16 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
     }else if(is.numeric(backtransform)){
         backtransform <- as.logical(backtransform)
     }
-    if((is.null(backtransform) || is.logical(backtransform)) && (is.na(transform.sigma) && is.na(transform.k) && is.na(transform.rho))){
-        backtransform <- FALSE
-    }else if(is.null(backtransform)){
-        if(all(object$univariate$type %in% c("mu","all"))){
-            backtransform <- FALSE ## no need for back-transformation
+
+    test.backtransform <- stats::na.omit(c(sigma = transform.sigma, k = transform.k, rho = transform.rho))    
+    if(is.null(backtransform)){            
+        if(options$backtransform.confint==FALSE || length(test.backtransform[test.backtransform != "none"])==0){
+            backtransform <- FALSE
         }else{
-            backtransform <- options$backtransform.confint
+            backtransform <- object$args$backtransform
         }
+    }else if(is.logical(backtransform) && length(test.backtransform[test.backtransform != "none"])==0){
+        backtransform <- FALSE
     }
     n.model <- length(object$model)
 
@@ -735,6 +738,18 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
                                   transform.k = object$args$transform.k,
                                   transform.rho = object$args$transform.rho)
 
+            vec.backtransform <- attr(object$univariate,"backtransform")
+            if(!is.null(vec.backtransform)){
+                ## case where a contrast is performed on transformed coefficients (e.g. sigma:male vs sigma:female)
+                ## the back transformed version exp(log(sigma:male) - log(sigma:female)) differs from the original version sigma:male - sigma:female
+                ## thus without further indication the original version is output
+                out[names(vec.backtransform),"estimate"] <- unname(vec.backtransform)
+                out[names(vec.backtransform),"se"] <- NA
+                out[names(vec.backtransform),"df"] <- NA
+                out[names(vec.backtransform),"lower"] <- NA
+                out[names(vec.backtransform),"upper"] <- NA
+            }
+
         }
     }
 
@@ -783,22 +798,18 @@ confint.mlmm <- function(object, parm = NULL, level = 0.95, method = NULL, order
         method <- "none"
     }
     ordering <- match.arg(ordering, c("by","parameter"))
-
+    table.transform <- attr(object$confint.nocontrast,"backtransform")
+    
     ## ** extract confidence intervals
-    out.confint <- confint.Wald_lmm(object, parm = parm, level = level, method = method, ...)
-    reorder <- order(object$univariate[[ordering]])
-    out <- out.confint[reorder,,drop=FALSE]
-        
-    contrast <- object$glht$all[[1]]$linfct[reorder,,drop=FALSE]
-    if(any(object$glht$all[[1]]$linfct %in% 0:1 == FALSE) || any(rowSums(object$glht$all[[1]]$linfct==1)!=1)){
-        out$estimate <- as.double(contrast %*% object$confint.nocontrast$estimate)
-        out$se <- NA
-        out$df <- NA
-        out$lower <- NA
-        out$upper <- NA
-        attr(out,"backtransform") <- attr(object$confint.nocontrast,"backtransform")
-        attr(out,"backtransform")[,c("se","lower","upper")] <- FALSE
+    out.confint <- confint.Wald_lmm(object, parm = parm, level = level, method = method, backtransform = object$args$backtransform, ...)
+    if(ordering=="by"){
+        reorder <- order(object$univariate$by)
+    }else if(is.list(object$univariate$parameter)){
+        reorder <- order(object$univariate$type,sapply(object$univariate$parameter, paste, collapse = ";"))
+    }else{
+        reorder <- order(object$univariate$type,object$univariate$parameter)
     }
+    out <- out.confint[reorder,,drop=FALSE]
 
     ## ** export
     return(out)

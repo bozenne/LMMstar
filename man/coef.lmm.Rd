@@ -35,6 +35,8 @@ Can also be \code{"ranef"} to output random effect (only for \code{CS} structure
 \item{transform.names}{[logical] Should the name of the coefficients be updated to reflect the transformation that has been used?}
 
 \item{...}{Not used. For compatibility with the generic method.}
+
+\item{ordering}{[character] According to which variable the coefficient should be ordered in the output: \code{"by"} or \code{"parameter"}.}
 }
 \value{
 A vector with the value of the model coefficients.

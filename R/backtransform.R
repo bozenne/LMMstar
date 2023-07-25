@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 15 2022 (10:04) 
 ## Version: 
-## Last-Updated: sep  2 2022 (10:33) 
+## Last-Updated: jul 24 2023 (10:43) 
 ##           By: Brice Ozenne
-##     Update #: 44
+##     Update #: 50
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -126,7 +126,7 @@
         }
         
     }
-        
+
     ## ** rename
     if(!is.null(backtransform.names)){
         rownames(object) <- backtransform.names

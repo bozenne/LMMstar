@@ -11,7 +11,7 @@
   transform = (effects == "variance"),
   p = NULL,
   format = "long",
-  keep.strata = FALSE,
+  simplify = TRUE,
   ...
 )
 }

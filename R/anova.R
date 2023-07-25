@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jul 21 2023 (18:24) 
+## Last-Updated: jul 25 2023 (15:07) 
 ##           By: Brice Ozenne
-##     Update #: 1275
+##     Update #: 1331
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -136,7 +136,10 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
 
     options <- LMMstar.options()
     type.information <- attr(object$information,"type.information")    
-
+    original.transform.sigma <- transform.sigma
+    original.transform.k <- transform.k
+    original.transform.rho <- transform.rho
+    
     ## ** normalized user input
     terms.mean <- attr(stats::terms(object$formula$mean.design),"term.labels")
     subeffect <- NULL
@@ -259,7 +262,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         if("variance" %in% effects){
             type <- c(type, "variance")
             ls.assign$variance <- attr(object$design$vcov$var$X,"assign")            
-            ls.nameTerms$variance <- attr(stats::terms(object$formula$var.design),"term.labels")
+            ls.nameTerms$variance <- attr(stats::terms(object$formula$var),"term.labels")
             if(!is.na(object$design$vcov$name$strata)){
                 ls.assign$variance[ls.nameTerms$variance[ls.assign$variance]==object$design$vcov$name$strata] <- 0
             }
@@ -574,34 +577,65 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         }
     }
 
-    ## ** export
+    ## ** prepare for back-transformation
     out$args <- data.frame(type = NA, robust = robust, df = df, ci = ci,
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                            transform.names = transform.names)
-    if(ci && transform.names && is.null(names(effects))){
-            backtransform.names <- names(coef(object,
-                                              effects = effects, 
-                                              transform.sigma = gsub("log","",transform.sigma),
-                                              transform.k = gsub("log","",transform.k),
-                                              transform.rho = gsub("atanh","",transform.rho),
-                                              transform.names = transform.names))
-        
-            out$args$backtransform.names <- list(stats::setNames(rownames(out$univariate),rownames(out$univariate)))
-            index <- match(newname,out$args$backtransform.names[[1]])
-            out$args$backtransform.names[[1]][stats::na.omit(index)] <- backtransform.names[which(!is.na(index))]
+
+    if(all(name.paramSigma %in% colnames(globalC) == FALSE) || all(globalC[,name.paramSigma,drop=FALSE]==0)){
+        out$args$transform.sigma <- NA
     }
-    if(ci){
-        if(all(name.paramSigma %in% colnames(globalC) == FALSE) || all(globalC[,name.paramSigma,drop=FALSE]==0)){
-            out$args$transform.sigma <- NA
-        }
-        if(all(name.paramK %in% colnames(globalC) == FALSE) || all(globalC[,name.paramK,drop=FALSE]==0)){
-            out$args$transform.k <- NA
-        }
-        if(all(name.paramRho %in% colnames(globalC) == FALSE) || all(globalC[,name.paramRho,drop=FALSE]==0)){
-            out$args$transform.rho <- NA
-        }
+    if(all(name.paramK %in% colnames(globalC) == FALSE) || all(globalC[,name.paramK,drop=FALSE]==0)){
+        out$args$transform.k <- NA
+    }
+    if(all(name.paramRho %in% colnames(globalC) == FALSE) || all(globalC[,name.paramRho,drop=FALSE]==0)){
+        out$args$transform.rho <- NA
     }
 
+    test.original <- is.null(original.transform.sigma) && is.null(original.transform.k) && is.null(original.transform.rho)
+    test.backtransform <- stats::na.omit(c(sigma = out$args$transform.sigma, k = out$args$transform.k, rho = out$args$transform.rho))
+    ## should back transformation be performed when latter calling coef/confint?
+    ## - no if no sigma/k/rho parameters in the linear hypotheses
+    ## - no for the p-value, yes for the estimate, and NA for CI when evaluating a contrast on a tranformed scaled
+    out$args$backtransform <- length(test.backtransform[test.backtransform != "none"])>0
+    
+    if(test.original && out$args$backtransform){ 
+        
+        ## find parameters subject to backtransformation
+        param.with.backtransform <- object$design$param[object$design$param$type %in% names(test.backtransform)[test.backtransform!="none"],"name"]
+
+        ## restrict contrast matrix to hypotheses with backtransformation
+        M.allContrast <- do.call(rbind,lapply(out$glht, function(iLs){do.call(rbind,lapply(iLs,"[[","linfct"))}))
+        col.with.backtransform <- intersect(colnames(M.allContrast),param.with.backtransform)
+        row.with.backtransform <- rowSums(M.allContrast[,col.with.backtransform,drop=FALSE]!=0)>0
+        Mback.allContrast <- M.allContrast[row.with.backtransform,,drop=FALSE]
+
+        ## sanity check
+        if(any(rowSums(M.allContrast[row.with.backtransform,setdiff(colnames(M.allContrast),param.with.backtransform),drop=FALSE]!=0)>0)){
+            warning("Hypothesis with mean and variance-covariance parameter(s): possible misleading results due to transformation of the variance-covariance parameter(s). \n")
+        }
+
+        ## evaluate un-transformed value
+        paramMback.allContrast <- rowSums(Mback.allContrast!=0)
+        if(any(paramMback.allContrast>1)){
+            param.untransformed <- coef(object, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none")
+            attr(out$univariate,"backtransform") <- (Mback.allContrast[paramMback.allContrast>1,,drop=FALSE] %*% param.untransformed)[,1]
+        }        
+    }
+
+    ## nice naming
+    if(transform.names && is.null(names(effects))){
+        backtransform.names <- names(coef(object,
+                                          effects = effects, 
+                                          transform.sigma = gsub("log","",transform.sigma),
+                                          transform.k = gsub("log","",transform.k),
+                                          transform.rho = gsub("atanh","",transform.rho),
+                                          transform.names = transform.names))
+        out$args$backtransform.names <- list(stats::setNames(rownames(out$univariate),rownames(out$univariate)))
+        index <- match(newname,out$args$backtransform.names[[1]])
+        out$args$backtransform.names[[1]][stats::na.omit(index)] <- backtransform.names[which(!is.na(index))]
+    }
+    
     if(identical(type,"all")){
         out$args$type <- list("all")
     }else{
@@ -825,32 +859,47 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
 }
 
 ## * anova.mlmm
-anova.mlmm <- function(object, effects = NULL, rhs = NULL, contrast = NULL, ...){
+anova.mlmm <- function(object, effects = NULL, rhs = NULL, ...){
 
+    ## ** normalize argument
     if(is.null(effects)){
         class(object) <- setdiff(class(object), c("mlmm"))
         return(object)
+    }
+    if(inherits(effects, "mcp")){
+        if(length(effects)!=1){
+            stop("Argument \'effects\' must specify a single hypothesis test when being of class \"mcp\". \n",
+                 "Something like mcp(group = \"Dunnett\") or mcp(group = \"Tukey\") \n")
+        }
+        effects.save <- effects
+        constraint <- effects.save[[1]]
+        effects <- names(effects.save)
+        if(!grepl("=",effects)){
+            effects <- paste0(effects,"=0")
+        }
+    }else{
+        constraint <- NULL
     }
 
     ## ** test linear combinations
     robust <- object$args$robust
     df <- object$args$df 
     ci <- object$args$ci
+
     transform.sigma <- if(is.na(object$args$transform.sigma)){NULL}else{object$args$transform.sigma}
     transform.k <- if(is.na(object$args$transform.k)){NULL}else{object$args$transform.k}
     transform.rho <- if(is.na(object$args$transform.rho)){NULL}else{object$args$transform.rho}
-    transform.names <- if(is.na(object$args$transform.names)){NULL}else{object$args$transform.names}
-    
+
     ls.lmm <- object$model
     name.lmm <- names(ls.lmm)
     ls.anova <- stats::setNames(lapply(name.lmm, function(iName){ ## iName <- name.lmm[1]
         anova(ls.lmm[[iName]], effects = effects, rhs = rhs, df = df, ci = ci, robust = robust,
-              transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+              transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
     }), name.lmm)
 
     ## ** regenerate a new mlmm object
     out <- do.call("rbind.Wald_lmm",
-                   args = c(list(model = ls.anova[[1]], effects = attr(effects,"contrast"), rhs = rhs, name = names(object$model), sep = object$args$sep), unname(ls.anova[-1]))
+                   args = c(list(model = ls.anova[[1]], effects = constraint, rhs = rhs, name = names(object$model), sep = object$args$sep), unname(ls.anova[-1]))
                    )
     
     return(out)
@@ -891,6 +940,9 @@ dfSigma <- function(contrast, vcov, dVcov, keep.param){
 .simplifyContrast <- function(object, rhs, tol = 1e-10, trace = TRUE){
     object.eigen <- eigen(tcrossprod(object))
     n.zero <- sum(abs(object.eigen$values) < tol)
+    if(length(rhs)==1 && NROW(object)>1){
+        rhs <- rep(rhs, NROW(object))
+    }
 
     if(n.zero==0){return(list(C = object, rhs = rhs, dim = NROW(object), rm = 0))}
     

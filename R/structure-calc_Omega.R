@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: jul 21 2023 (14:30) 
+## Last-Updated: jul 25 2023 (11:17) 
 ##           By: Brice Ozenne
-##     Update #: 592
+##     Update #: 594
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -95,7 +95,6 @@
             Omega.cor <- NULL            
             Omega <- diag(as.double(Omega.sd)^2, nrow = iNtime, ncol = iNtime)
         }
-        
         if(keep.interim){
             attr(Omega,"sd") <- Omega.sd
             attr(Omega,"cor") <- Omega.cor

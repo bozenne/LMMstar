@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: jul 21 2023 (17:03) 
+## Last-Updated: jul 25 2023 (15:06) 
 ##           By: Brice Ozenne
-##     Update #: 602
+##     Update #: 670
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -269,19 +269,37 @@ coef.lmmCC <- function(object, effects = NULL, ...){
 
 ## * coef.Wald_lmm
 ##' @export
-coef.Wald_lmm <- function(object, ...){
+coef.Wald_lmm <- function(object, backtransform = object$args$backtransform, ...){
 
     dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
+    table.univariate <- object$univariate
 
-    if(is.null(object$univariate)){
+    if(is.null(table.univariate)){
         return(NULL)
-    }else{
-        return(stats::setNames(object$univariate$estimate, rownames(object$univariate)))
+    }else if(!backtransform){
+        return(stats::setNames(table.univariate$estimate, rownames(table.univariate)))
+    }else{ ## backtransformation
+        tableBack.univariate <- .backtransform(table.univariate, type.param = table.univariate$type,  
+                                               backtransform = TRUE, backtransform.names = object$args$backtransform.names[[1]],
+                                               transform.mu = "none",
+                                               transform.sigma = object$args$transform.sigma,
+                                               transform.k = object$args$transform.k,
+                                               transform.rho = object$args$transform.rho)
+
+        vec.backtransform <- attr(table.univariate,"backtransform")
+        if(!is.null(vec.backtransform)){
+            ## case where a contrast is performed on transformed coefficients (e.g. sigma:male vs sigma:female)
+            ## the back transformed version exp(log(sigma:male) - log(sigma:female)) differs from the original version sigma:male - sigma:female
+            ## thus without further indication the original version is output
+            tableBack.univariate[names(vec.backtransform),"estimate"] <- unname(vec.backtransform)
+        }
+
+
+        return(stats::setNames(tableBack.univariate$estimate, rownames(tableBack.univariate)))
     }
-    
 }
 ## * coef.LRT_lmm
 ##' @export
@@ -293,11 +311,23 @@ coef.LRT_lmm <- function(object, ...){
 ## * coef.mlmm
 ##' @export
 coef.mlmm <- function(object, effects = "contrast", ordering = "parameter", ...){
+
     ordering <- match.arg(ordering, c("by","parameter"))
-    
-    if(!is.null(effects) && effects=="contrast"){
-        table.order <- object$univariate[order(object$univariate[[ordering]]),,drop=FALSE]
-        return(stats::setNames(table.order$estimate,rownames(table.order)))
+
+    if(!is.null(effects) && length(effects)==1 && effects=="contrast"){
+
+        out <- coef.Wald_lmm(object, backtransform = object$args$backtransform, ...)
+        
+        if(ordering=="by"){
+            return(out[order(object$univariate[["by"]])])
+        }else if(is.list(object$univariate$parameter)){
+            return(out[order(object$univariate$type,sapply(object$univariate$parameter, paste, collapse=";"))])
+        }else{
+            return(out[order(object$univariate$type,object$univariate$parameter)])
+
+        }
+        
+        
     }else{
         ls.out <- lapply(object$model, coef, effects = effects, ...)
         if(ordering == "by"){

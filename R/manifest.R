@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (15:05) 
 ## Version: 
-## Last-Updated: jul 21 2023 (17:33) 
+## Last-Updated: jul 24 2023 (17:39) 
 ##           By: Brice Ozenne
-##     Update #: 31
+##     Update #: 37
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,15 +26,16 @@
 ##' @param original [logical] Should only the variables present in the original data be output?
 ##' When \code{NULL}, variables internally created to fill absent variables will be added to the output.
 ##' When \code{FALSE}, variables internally created are output instead of the original variable for time, cluster, and strata.
+##' @param simplify [logical] Should the list be converted into a vector if a single \code{effects} is requested?
 ##' @param ... not used. For compatibility with the generic function
 ##'
-##' @return A character vector
+##' @return A list of character vectors or a character vector.
 ##' 
 ##' @keywords methods
 
 ## * manifest.lmm 
 ##' @export
-manifest.lmm <- function(x, effects = "all", original = TRUE, ...){
+manifest.lmm <- function(x, effects = "all", original = TRUE, simplify = TRUE, ...){
 
     ## ** extract variables
     if(!is.null(original) && original){
@@ -68,11 +69,17 @@ manifest.lmm <- function(x, effects = "all", original = TRUE, ...){
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
-    if(length(effects)==1 && effects == "all"){
-        out <- unname(sort(unique(unlist(ls.out))))
-        attributes(out) <- c(attributes(out),ls.out[sapply(ls.out,length)>0])
+    effects <-  match.arg(effects, c("all",valid.effects), several.ok = TRUE)
+        
+    if(simplify && length(effects)==1){
+        if(effects=="all"){
+            out <- unname(sort(unique(unlist(ls.out))))
+            attributes(out) <- c(attributes(out),ls.out[sapply(ls.out,length)>0])
+        }else{
+            out <- unname(sort(unique(unlist(ls.out[effects]))))
+        }
+        
     }else{
-        effects <-  match.arg(effects, valid.effects, several.ok = TRUE)
         out <- ls.out[effects]
     }
     return(out)

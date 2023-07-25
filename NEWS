@@ -1,0 +1,8 @@
+# -*- mode: org -*-
+
+* Version 1.0.0
+** User visible changes
+   - NEW FEATURE: support lme4 syntax for random intercepts
+
+** Internal change
+   - substantial re-wrote of the functions for handling covariance patterns

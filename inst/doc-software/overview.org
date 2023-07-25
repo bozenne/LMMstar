@@ -78,7 +78,7 @@ utils::packageVersion("LMMstar")
 #+END_SRC
 
 #+RESULTS:
-: [1] '0.9.1'
+: [1] '1.0.0'
 
 \clearpage
 
@@ -519,7 +519,7 @@ symmetry structure may depend on covariates:
   nested random effects]:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 eBCS.lmm <- lmm(weight ~ time*group,repetition = ~time|id,
-                structure = CS(~baseline, heterogeneous = FALSE), data = dfL)
+                structure = CS(~baseline, type = "homogeneous"), data = dfL)
 eBCS.lmm
 cat(" covariance structure: \n");sigma(eBCS.lmm)
 #+END_SRC
@@ -555,7 +555,7 @@ logLik(e.lmer)
 - e.g. to obtain a *block unstructured* covariance matrix:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 eBUN.lmm <- lmm(weight ~ time*group, repetition = ~time|id,
-                structure = CS(~baseline, heterogeneous = TRUE), data = dfL)
+                structure = CS(~baseline, type = "heterogeneous"), data = dfL)
 eBUN.lmm
 cat(" covariance structure: \n");sigma(eBUN.lmm)
 #+END_SRC

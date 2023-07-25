@@ -75,10 +75,13 @@ d3$id <- 1:NROW(d3)
 d <- rbind(d1,d2,d3)
 
 e.mlmm <- mlmm(Y~X1, data = d, by = "group", effects = "X1=0")
+summary(e.mlmm)
 summary(e.mlmm, method = "single-step")
-summary(e.mlmm, method = "bonferroni")
 summary(e.mlmm, method = "single-step2")
-## summary(e.mlmm)
+
+## re-work contrast
+summary(anova(e.mlmm, effects = mcp(X1 = "Dunnett")), method = "none")
+## summary(mlmm(Y~X1, data = d, by = "group", effects = mcp(X1="Dunnett")))
 }
 
 #### multivariate regression ####
@@ -87,8 +90,7 @@ dL <- sampleRem(250, n.times = 3, format = "long")
 
 e.mlmm <- mlmm(Y~X1+X2+X6, repetition = ~visit|id, data = dL,
                by = "X4", structure = "CS")
-summary(e.mlmm, method = "none")
-confint(e.mlmm, method = "none")
+summary(e.mlmm)
 
 e.mlmmX1 <- mlmm(Y~X1+X2+X6, repetition = ~visit|id, data = dL,
                by = "X4", effects = "X1=0", structure = "CS")

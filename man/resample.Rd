@@ -109,7 +109,7 @@ eCS.lmm <- lmm(weight~glucagonAUC+gender, data = gastricbypassLR,
 model.tables(eCS.lmm)
 
 ## non-parametric bootstrap
-resample(eCS.lmm, type = "boot", effects = c("glucagonAUC","gender"), seed = 10)
+resample(eCS.lmm, type = "boot", effects = c("glucagonAUC","gender"), seed = 10, trace = FALSE)
 ## permutation test
 resample(eCS.lmm, type = "perm-var", effects = "gender", seed = 10)
 resample(eCS.lmm, type = "perm-res", effects = "glucagonAUC", seed = 10) 

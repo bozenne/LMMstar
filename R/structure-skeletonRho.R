@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (13:27) 
 ## Version: 
-## Last-Updated: jul 21 2023 (14:52) 
+## Last-Updated: jul 25 2023 (18:28) 
 ##           By: Brice Ozenne
-##     Update #: 716
+##     Update #: 762
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -119,7 +119,6 @@
         return(structure)
     }
     
-    
     ## ** identify and name parameters
 
     ## *** combine linear predictor accross strata
@@ -206,11 +205,12 @@
         level.Urho <- paste0(level.Urho,sep[2],strata.Urho)
     }
 
-    ## ***  retrive k
+    ## ***  retrieve k
     if(length(param.k)>0){
         indexObs <- do.call(rbind,lapply(XpairPattern$LpU.strata,attr,"index"))
-        k.x <- param.k.obs[indexObs[,1]]
-        k.y <- param.k.obs[indexObs[,2]]
+        
+        k.x <- param.k.augmented[indexObs[,1]]
+        k.y <- param.k.augmented[indexObs[,2]]
     }else{
         k.x <- NA
         k.y <- NA
@@ -377,134 +377,151 @@
                                   U.cluster = U.cluster, index.cluster = index.cluster,
                                   U.strata = U.strata, index.clusterStrata = index.clusterStrata)
 
-    if(length(param.k)>0){
-        X.var.k <- rowSums(sweep(structure$X$var[,param.k,drop=FALSE], FUN = "*", STATS = 1:length(param.k), MARGIN = 2))
-        if(any(X.var.k>length(param.k))){
-            stop("Something went wrong when identifying the variance multiplier parameters. \n")
-        }
-        param.k.obs <- c(NA, param.k)[X.var.k+1]
-    }
+    ## k parameters
+    param.k.augmented <- structure$param$name[match(rownames(structure$var$lp2X)[structure$var$lp],structure$param$code)]
+    param.k.augmented[param.k.augmented %in% param.sigma] <- NA
 
     ## variables
     strata.var <- structure$name$strata
     reg.var <- setdiff(structure$name$cor[[1]], NA)
+    n.reg <- length(reg.var)
     n.strata <- length(U.strata)
-
+    
+    ## levels
+    M.level.cor <- structure$cor$lp2data
+    lp2X.cor <- structure$cor$lp2X
+    lp2data.cor <- structure$cor$lp2data
+    
     ## sep
     sep <- LMMstar.options()$sep[c("rho.name","rho.strata")]
 
-    ## ** special case (no strata, no covariate)
-    if(length(reg.var)==0){
-        vec.strataRho <- which(sapply(XpairPattern$LpU.strata,length)>0)
-        if(n.strata==1){
-            level.strataRho <- ""
-        }else{
-            level.strataRho <- paste0(":",U.strata[vec.strataRho])
-        }
-        structure.rho <- data.frame(name = paste0("rho",level.strataRho),
-                                    index.strata = vec.strataRho,
-                                    type = "rho",
-                                    index.level = as.numeric(NA),
-                                    level = level.strataRho,
-                                    code = paste0("R.",vec.strataRho,".",vec.strataRho),
-                                    lp.x = NA,
-                                    lp.y = NA,
-                                    sigma = param.sigma[match(vec.strataRho, strata.sigma)],
-                                    k.x = NA,
-                                    k.y = NA,                                  
-                                    stringsAsFactors = FALSE)        
-        structure.rho$lp.x <- as.list(vec.strataRho)
-        structure.rho$lp.y <- as.list(vec.strataRho)
-        structure$param <- rbind(structure$param, structure.rho)
-        rownames(structure$param) <- NULL
-        attr(structure$param, "Xcode.xy") <- setNames(1:NROW(XpairPattern$lp2X),rownames(XpairPattern$lp2X))
-        return(structure)
-    }
+    ## type
+    type <- structure$type
     
     ## ** identify and name parameters
-    
-    ## *** extract linear predictor
-    indexLp <- do.call(rbind,XpairPattern$LpU.strata) ## linear predictor index for each observation of each pair
-    lp.x <- XpairPattern$lp2X[indexLp[,1],,drop=FALSE] ## design matrox for one observation of each pair of observations
-    data.x <- XpairPattern$lp2data[indexLp[,1],,drop=FALSE] ## data for one observation of each pair of observations
-    data.y <- XpairPattern$lp2data[indexLp[,2],,drop=FALSE] ## data for the other observation of each pair of observations
+
+    ## *** combine linear predictor accross strata
     diffLp <- do.call(rbind,XpairPattern$diffU.strata) ## difference in linear predictor index for pair of observation
-    strataLp <- XpairPattern$index.strata.lp2X[indexLp[,1]] ## strata for pair of observation (would be the same with indexLp[,2])
-    n.Lp <- NROW(indexLp)
-    n.reg <- length(reg.var)
-        
+    indexLp <- do.call(rbind,XpairPattern$LpU.strata) ## linear predictor index for each observation of each pair
+    lp.x <- lp2X.cor[indexLp[,1],,drop=FALSE] ## design matrox for one observation of each pair of observations
+    data.x <- lp2data.cor[indexLp[,1],,drop=FALSE] ## data for one observation of each pair of observations
+    data.y <- lp2data.cor[indexLp[,2],,drop=FALSE] ## data for the other observation of each pair of observations
+    strataLp <- index.clusterStrata[attr(index.cluster,"vectorwise")[indexLp[,1]]] ## strata for pair of observation (would be the same with indexLp[,2])
+    n.Lp <- NROW(lp.x)
+
+    ## *** identify pairs with equal or non-equal linear predictors
+    index.equal <- which(rowSums(diffLp!=0)==0)
+    index.unequal <- setdiff(1:n.Lp, index.equal)
+    index.0 <- NULL ## cells in the design matrix constrained to be 0
+
+
     ## *** generate code
     code.rho <- rep(NA, length = n.Lp)
     level.rho <- rep(NA, length = n.Lp)
-    index.equal <- which(rowSums(diffLp!=0)==0)
-    if(length(index.equal)>0){        
-        if(structure$heterogeneous){
-            code.rho[index.equal] <- paste("R",lp.x[index.equal],sep=sep[2])
-            level.rho[index.equal] <- paste0("(",nlme::collapse(data.x[index.equal,,drop=FALSE], sep = sep[1], as.factor = FALSE),")")
-        }else{
-            code.rho[index.equal] <- paste("R",strataLp[index.equal],sep=sep[2])
-            level.rho[index.equal] <- ""
-        }
+    ## pairs containing the same linear predictor
+    if(length(index.equal)>0){
+        stop("Something went wrong when identifying the linear predictors for the TOEPLITZ structure. \n",
+             "Any two pairs of observations should have distinct linear predictors")        
     }
-        
-    index.unequal <- setdiff(1:n.Lp, index.equal)
-    if(length(index.unequal)>0){
-        if(structure$heterogeneous){
-            code.rho[index.unequal] <- paste("D",lp.x[index.unequal],diffLp[index.unequal],sep=sep[2])
-            level.rho[index.unequal] <- paste0("(",nlme::collapse(data.x[index.unequal,,drop=FALSE], sep = sep[1], as.factor = FALSE),
-                                              ",",nlme::collapse(data.y[index.unequal,,drop=FALSE], sep = sep[1], as.factor = FALSE),
-                                              ")")
-        }else{
-            code.rho[index.unequal] <- paste("D",strataLp[index.unequal],as.numeric(diffLp[index.unequal]!=0),sep=sep[2])
 
-            iData.x <- data.x[index.unequal,,drop=FALSE]
-            iData.x[,diffLp[index.unequal]==0] <- ""
-            iData.y <- data.y[index.unequal,,drop=FALSE]
-            iData.y[,diffLp[index.unequal]==0] <- ""
-            level.rho[index.unequal] <- paste0("(",nlme::collapse(iData.x, sep = sep[1], as.factor = FALSE),
-                                              ",",nlme::collapse(iData.y, sep = sep[1], as.factor = FALSE),
-                                              ")")
-        }            
-        
+    ## pairs with distinct linear predictors
+    if(length(index.unequal)>0){
+        if(structure$bloc){ ## block
+            block.var <- reg.var[1]
+            time.var <- reg.var[2]
+            test.diffBlock <- rowSums(diffLp[,block.var,drop=FALSE]!=0)
+            
+            ## same block
+            index.sameBlock <- index.unequal[which(test.diffBlock==0)]
+            if(type=="UN"){
+                code.rho[index.sameBlock] <- paste("R",indexLp[index.sameBlock,1],indexLp[index.sameBlock,2],sep=sep[2])
+                level.rho[index.sameBlock] <- paste(data.x[index.sameBlock,block.var],paste("(",data.x[index.sameBlock,time.var],",",data.y[index.sameBlock,time.var],")",sep=""),sep=sep[2])
+            }else if(type=="LAG"){
+                code.rho[index.sameBlock] <- paste("R",strataLp[index.sameBlock],data.x[index.sameBlock,block.var],diffLp[index.sameBlock,time.var],sep=sep[2])
+                level.rho[index.sameBlock] <- paste(data.x[index.sameBlock,block.var],paste("(dt=",diffLp[index.sameBlock,time.var],")",sep=""),sep=sep[2])
+            }else if(type=="CS"){
+                code.rho[index.sameBlock] <- paste("R",strataLp[index.sameBlock],data.x[index.sameBlock,block.var],sep=sep[2])
+                level.rho[index.sameBlock] <- paste0(data.x[index.sameBlock,block.var]) ## convert to character
+            }
+
+            ## different blocks
+            index.diffBlock <- index.unequal[which(test.diffBlock!=0)]
+            if(type=="UN"){
+                ## constrain constant correlation when measured at the same time \rho = cor(X(t),Y(t))
+                indexLp.diffBlock <- indexLp[index.diffBlock,,drop=FALSE]
+                indexLp.diffBlock[data.x[index.diffBlock,time.var] == data.y[index.diffBlock,time.var],] <- 0
+                txt.diffBlock <- ifelse(indexLp.diffBlock[,1]==0,"dt=0",paste0(data.x[index.diffBlock,time.var],",",data.y[index.diffBlock,time.var]))
+                
+                code.rho[index.diffBlock] <- paste("D",indexLp.diffBlock[,1],indexLp.diffBlock[,2],sep=sep[2])
+                level.rho[index.diffBlock] <- paste("(",data.x[index.diffBlock,block.var],",",data.y[index.diffBlock,block.var],
+                                                    ",",txt.diffBlock,")",sep="")
+            }else if(type=="LAG"){
+                code.rho[index.diffBlock] <- paste("D",strataLp[index.diffBlock],data.x[index.diffBlock,block.var],data.y[index.diffBlock,block.var],
+                                                   abs(diffLp[index.diffBlock,time.var]),sep=sep[2])
+                level.rho[index.diffBlock] <- paste("(",data.x[index.diffBlock,block.var],",",data.y[index.diffBlock,block.var],",dt=",abs(diffLp[index.diffBlock,time.var]),")",sep="")
+            }else if(type=="CS"){
+                code.rho[index.diffBlock] <- paste("D",strataLp[index.diffBlock],data.x[index.diffBlock,block.var],data.y[index.diffBlock,block.var],
+                                                   diffLp[index.diffBlock,time.var]==0,sep=sep[2])
+                level.rho[index.diffBlock] <- paste("(",data.x[index.diffBlock,block.var],",",data.y[index.diffBlock,block.var],",dt=",as.numeric(diffLp[index.diffBlock,time.var]==0),")",sep="")
+            }
+
+        }else{ ## no block: base correlation coefficient on the time difference            
+            code.rho[index.unequal] <- paste("D",strataLp[index.unequal],diffLp[,time.var],sep=sep[2])
+            level.rho[index.unequal] <- paste("(",diffLp[,time.var],")",sep="")
+        }        
     }
     test.rho <- !duplicated(code.rho)
     code.Urho <- code.rho[test.rho]
-
     
     ## ***  name parameters
     level.Urho <-  level.rho[test.rho]
-    strata.Urho <- XpairPattern$index.strata.lp2X[indexLp[test.rho,1]]
+    strata.Urho <- strataLp[test.rho]
     if(n.strata>1){
-        level.Urho <- paste0(level.Urho,sep[2],strata.rho)
+        level.Urho <- paste0(level.Urho,sep[2],strata.Urho)
     }
 
-    ## ***  retrive k
+    ## ***  retrieve k
     if(length(param.k)>0){
         indexObs <- do.call(rbind,lapply(XpairPattern$LpU.strata,attr,"index"))
-        k.x <- param.k.obs[indexObs[,1]]
-        k.y <- param.k.obs[indexObs[,2]]
+        
+        k.x <- param.k.augmented[indexObs[,1]]
+        k.y <- param.k.augmented[indexObs[,2]]
     }else{
         k.x <- NA
         k.y <- NA
     }
-    
-    ## ***  collect
+
+    ## ***  collect    
     structure.rho <- data.frame(name = paste0("rho",level.Urho),
                                 index.strata = strata.Urho,
                                 type = rep("rho",length=length(level.Urho)),
-                                index.level = as.numeric(NA),
+                                constraint = as.numeric(NA),
                                 level = level.Urho,
                                 code = code.Urho,
-                                lp.x = tapply(indexLp[,1],code.rho,base::identity, simplify = FALSE),
-                                lp.y = tapply(indexLp[,2],code.rho,base::identity, simplify = FALSE),
+                                lp.x = NA,
+                                lp.y = NA,
                                 sigma = param.sigma[match(strata.Urho,strata.sigma)],
-                                k.x = k.x,
-                                k.y = k.y,                                  
+                                k.x = k.x[test.rho],
+                                k.y = k.y[test.rho],                                  
                                 stringsAsFactors = FALSE)
-    rownames(structure.rho) <- NULL
-    structure$param <- rbind(structure$param, structure.rho)
+
+    ## save information about correlation parameters fixed to 0 (e.g. crossed random effects)
+    if(length(index.0)>0){
+        Ucode.rho0 <- unique(code.rho[index.0])
+        if(length(intersect(Ucode.rho0,code.rho[-index.0]))){
+            stop("Something went wrong with the constraint when identifying the correlation parameters. \n")
+        }
+        structure.rho$constraint[structure.rho$code %in% Ucode.rho0] <- 0
+    }
+    ## ensure proper ordering
+    code.x <- tapply(indexLp[,1], code.rho, base::identity, simplify = FALSE)
+    code.y <- tapply(indexLp[,2], code.rho, base::identity, simplify = FALSE)
+    structure.rho$lp.x[match(names(code.x),structure.rho$code)] <- code.x
+    structure.rho$lp.y[match(names(code.y),structure.rho$code)] <- code.y
 
     ## ** export
+    rownames(structure.rho) <- NULL
+    structure$param <- rbind(structure$param, structure.rho)
     return(structure)
 }
 
@@ -690,13 +707,14 @@
         ## remove triplicates
         iLs.lpU.clusterU <- lapply(1:length(iIndex.clusterU),function(iC){ ## iC <- 1
             iIndex <- which(!triplicated(iLs.lp.clusterU[[iC]]))
-            iOut <- iLs.lp.clusterU[[iC]][iIndex]
-            attr(iOut,"index") <- index.cluster[[iIndex.clusterU[[iC]]]][iIndex]
-            attr(iOut,"cluster") <- rep(iIndex.clusterU[[iC]],length(iIndex))
+            iIndex2 <- iIndex[order(iLs.lp.clusterU[[iC]][iIndex])]
+            iOut <- iLs.lp.clusterU[[iC]][iIndex2]
+            attr(iOut,"index") <- index.cluster[[iIndex.clusterU[[iC]]]][iIndex2]
+            attr(iOut,"cluster") <- rep(iIndex.clusterU[[iC]],length(iIndex2))
             return(iOut)
         })
         iVec.lpU.clusterU <- do.call(c,iLs.lpU.clusterU)
-        
+
         ## form all pairs
         iM <- base::t(do.call(cbind,lapply(iLs.lpU.clusterU, unorderedPairs, distinct = TRUE)))
         iMatch.lpU.clusterU <- match(iM[],iVec.lpU.clusterU)

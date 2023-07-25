@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 10 2023 (18:08) 
+## Last-Updated: jul 25 2023 (15:13) 
 ##           By: Brice Ozenne
-##     Update #: 406
+##     Update #: 486
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -77,10 +77,9 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
                         })))
 
     Utype <- unique(unlist(table.args$type))
-    
-    newtable.args <- data.frame(type = ifelse(length(Utype)>1,"all",Utype), sep = sep,
-                                table.args[1,c("robust","df","ci","transform.sigma","transform.k","transform.rho","transform.names")]
-                                )
+
+    newtable.args <- data.frame(type = ifelse(length(Utype)>1,"all",Utype), sep = sep, 
+                                table.args[1,c("robust","df","ci","transform.sigma","transform.k","transform.rho","backtransform")])
 
     newobject <- list()
     if(length(unique(table.args$outcome))==1){
@@ -111,8 +110,8 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
     if(!all(is.na(table.args$transform.rho)) && any(newtable.args$transform.rho!=table.args$transform.rho[-1])){
         stop("Element \'transform.rho\' should take the same value for all objects. \n")
     }
-    if(any(newtable.args$transform.names!=table.args$transform.names[-1])){
-        stop("Element \'transform.names\' should take the same value for all objects. \n")
+    if(any(newtable.args$backtransform!=table.args$backtransform[-1])){
+        stop("Element \'backtransform\' should take the same value for all objects. \n")
     }
     ls.glht <- unname(unlist(unlist(lapply(ls.object,"[[","glht"),recursive = FALSE),recursive = FALSE))
     alternative <- ls.glht[[1]]$alternative
@@ -136,8 +135,11 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
         }
     }else{
         name.modelparam <- unlist(lapply(1:n.object, function(iO){paste0(name[iO],sep,rownames(ls.object[[iO]]$univariate))}))
-        for(iO in 1:n.object){
+        for(iO in 1:n.object){ ## iO <- 1
             rownames(ls.object[[iO]]$univariate) <- paste0(name[iO],sep,rownames(ls.object[[iO]]$univariate))
+            if(!is.null(attr(ls.object[[iO]]$univariate, "backtransform"))){
+                names(attr(ls.object[[iO]]$univariate, "backtransform")) <- paste0(name[iO],sep,attr(ls.object[[iO]]$univariate, "backtransform"))
+            }
         }
         if(any(duplicated(name.modelparam))){
             stop("Univariate test should have distinct names. \n",
@@ -176,11 +178,6 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
             try(rownames(contrast) <- unlist(lapply(strsplit(split = "-",rownames(contrast),fixed=TRUE), function(iVec){
                 paste(name.modelparam[as.numeric(trimws(iVec))], collapse = " - ")
             })), silent = TRUE)
-        }
-        if(any(rowSums(contrast!=0)>0) || any(contrast!=1)){
-            newtable.args$transform.sigma <- NA
-            newtable.args$transform.k <- NA
-            newtable.args$transform.rho <- NA
         }
     }else{
         contrast <- diag(1, nrow = n.modelparam, ncol = n.modelparam)
@@ -254,12 +251,15 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
 
     ## ** Extract elements from anova object
     ## *** univariate Wald test
-    table.univariate <- do.call(rbind,lapply(1:n.object,function(iO){ ## iO <- 1
+    ls.univariate <- lapply(1:n.object,function(iO){ ## iO <- 1
         iTable <- cbind(outcome = unname(outcome[iO]), ls.object[[iO]]$univariate)
         iTable$name.test <- factor(nlme::collapse(iTable[,col.nametest,drop=FALSE], as.factor = FALSE),levels = name.test)
         rownames(iTable) <- rownames(ls.object[[iO]]$univariate)
+        attr(iTable,"backtransform") <- attr(ls.object[[iO]]$univariate, "backtransform")
         return(iTable)
-    }))
+    })
+    table.univariate <- do.call(rbind,ls.univariate)
+    attr(table.univariate, "backtransform") <- unlist(lapply(ls.univariate,attr,"backtransform"))
 
     ## *** cluster
     ls.cluster <- lapply(ls.object, function(iO){iO$object$cluster})
@@ -356,8 +356,20 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
                                           null = rhs,
                                           p.value = NA)
         rownames(newtable.univariate) <- rownames(contrast)
+        newtable.univariate$outcome <- lapply(1:NROW(contrast), function(iRow){table.univariate[colnames(contrast)[contrast[iRow,]!=0],"outcome"]})
         newtable.univariate$statistic <- newtable.univariate$estimate/newtable.univariate$se
         newtable.args$df <- FALSE
+
+        ## take care of parameters subject to transformation for statistical inference
+        if(!is.null(attr(table.univariate,"backtransform"))){ ## previously already a linear combination 
+            param.untransformed <- stats::setNames(attr(table.univariate,"backtransform"),name.modelparam)
+            attr(newtable.univariate,"backtransform") <- (contrast %*% param.untransformed[colnames(contrast)])[,1]
+
+        }else if(newtable.args$backtransform && (any(contrast %in% 0:1 == FALSE) || any(rowSums(contrast != 0)>1))){ ## only now a linear combinations (backtransform no more ok)
+            index.nobacktransform <- apply(contrast, MARGIN = 1, function(iRow){sum(iRow %in% 0:1 == FALSE) + sum(iRow != 0)>1})
+            param.untransformed <- stats::setNames(unlist(lapply(ls.object, coef.Wald_lmm, backtransform = TRUE)), name.modelparam)
+            attr(newtable.univariate,"backtransform") <- (contrast %*% param.untransformed[colnames(contrast)])[index.nobacktransform,1]
+        }
     }else{
         C.vcov.C <- beta.vcov
         newtable.univariate <- table.univariate
@@ -377,15 +389,27 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
     }
     class(e.glht) <- "glht"
 
-    ## ** Export
-    M.testname <- do.call(rbind,lapply(paste0(name,sep), grepl, x = colnames(contrast), fixed = TRUE))
-    if(all(contrast %in% 0:1) && all(rowSums(contrast)==1) && all(colSums(M.testname)==1)){
-        vec.prefix <- paste0(name,sep)[apply(M.testname,2,which)]
-        newtable.univariate$parameter <- unname(mapply(vec.prefix, colnames(contrast), FUN = function(x,y){gsub(x,"",y,fixed=TRUE)}))
+    ## ** retrieve parameter associated to each test
+    nParam.hypo <- unlist(lapply(ls.glht,function(iO){rowSums(iO$linfct!=0)}))
+    if(all(contrast %in% 0:1) && all(rowSums(contrast)==1) && all(nParam.hypo==1)){ ## single parameter per test
+        index.param <- which(contrast==1, arr.ind = TRUE)[,"col"]
+        newtable.univariate[,"parameter"] <- names(nParam.hypo[index.param])
     }else{
-        newtable.univariate$parameter <- as.character(NA)
+        ls.names <- do.call(c, lapply(ls.glht, FUN = function(iO){
+            lapply(1:NROW(iO$linfct), FUN = function(iRow){colnames(iO$linfct)[iO$linfct[iRow,]!=0]})
+        }))
+        if(all(contrast %in% 0:1) && all(rowSums(contrast)==1)){  ## several parameters per test but all from the same model
+            newtable.univariate$parameter <- ls.names
+        }else if(length(unique(ls.names))==1){  
+            if(length(ls.names[[1]])==1){ ## contrasting one parameter accross models
+                newtable.univariate$parameter <- ls.names[[1]]
+            }else{ ## contrasting one set of parameters accross models
+                newtable.univariate$parameter <- ls.names[1]
+            }
+        }
     }
 
+    ## ** export
     e.glht$linfct.original <- lapply(ls.glht, "[[", "linfct")
     out <- list(multivariate = newtable.multivariate[,names(model$multivariate),drop=FALSE],
                 univariate = newtable.univariate[,c("outcome","parameter",names(model$univariate)),drop=FALSE],
@@ -393,6 +417,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
                 object = newobject,
                 args = newtable.args,
                 vcov = C.vcov.C)
+    attr(out$univariate,"backtransform") <- attr(newtable.univariate,"backtransform")
     attr(out$object,"independence") <- independence
     attr(out,"call") <- list(anova = lapply(ls.object,attr,"call"),
                              rbind = match.call())

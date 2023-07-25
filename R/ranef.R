@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 26 2022 (11:18) 
 ## Version: 
-## Last-Updated: jul 13 2023 (13:10) 
+## Last-Updated: jul 25 2023 (14:11) 
 ##           By: Brice Ozenne
-##     Update #: 374
+##     Update #: 417
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -96,7 +96,7 @@
 ## * ranef.lmm (code)
 ##' @export
 ranef.lmm <- function(object, effects = "mean", ci = FALSE, transform = (effects=="variance"),
-                      p = NULL, format = "long", keep.strata = FALSE, ...){
+                      p = NULL, format = "long", simplify = TRUE, ...){
 
 
 
@@ -185,7 +185,7 @@ ranef.lmm <- function(object, effects = "mean", ci = FALSE, transform = (effects
     Vindex.cluster <- attr(index.cluster, "vectorwise")
     
     ## strata
-    var.strata <- object$design$vcov$name$strata
+    var.strata <- object$strata$var
     index.clusterStrata <- object$design$index.clusterStrata
     U.strata <- object$strata$levels
     n.strata <- length(U.strata)
@@ -197,6 +197,7 @@ ranef.lmm <- function(object, effects = "mean", ci = FALSE, transform = (effects
     Upattern <- object$design$vcov$Upattern
     infoRanef <- object$design$vcov$ranef
     name.hierarchy <- unlist(infoRanef$hierarchy, use.names = FALSE)
+    index.hierarchy <- unlist(lapply(1:length(infoRanef$hierarchy), function(iH){rep(iH,length(infoRanef$hierarchy[[iH]]))}))
 
     ## missing values
     index.na <- object$index.na
@@ -226,35 +227,37 @@ ranef.lmm <- function(object, effects = "mean", ci = FALSE, transform = (effects
     }
     if(effects == "variance"){
         sigma2 <- coef(object, effects = "variance", transform.sigma = "square")
-        if(n.strata==1){
-            if(format=="long"){
-                out <- rbind(data.frame(variable = rownames(varRE),
-                                        XXstrataXX = colnames(varRE),
-                                        type = "variance",
-                                        estimate = varRE[,1]),
-                             data.frame(variable = rownames(varRE),
-                                        XXstrataXX = colnames(varRE),
-                                        type = "relative",
-                                        estimate = varRE[,1]/sigma2)
-                             )
-            }else if(format=="wide"){
-                out <- data.frame(variable = rownames(varRE),
-                                  XXstrataXX = colnames(varRE),
-                                  variance = varRE[,1],
-                                  relative= varRE[,1]/sigma2)                
-            }
-            rownames(out) <- NULL
-        }else{
-            browser()
-            out.wide <- data.frame(variable = rownames(varRE),
-                                   varRE, check.names = FALSE)
-            stats::reshape(out.wide, direction = "long", idvar = "variable", timevar = object$strata,
-                           times = colnames(varRE))
+
+        if(format=="long"){
+            out <- do.call(rbind,lapply(1:n.strata, function(iStrata){
+                rbind(data.frame(variable = rownames(varRE),
+                                 strata = U.strata[iStrata],
+                                 type = "variance",
+                                 estimate = varRE[,iStrata]),
+                      data.frame(variable = rownames(varRE),
+                                 strata = U.strata[iStrata],
+                                 type = "relative",
+                                 estimate = varRE[,iStrata]/sigma2[iStrata])
+                      )
+            }))
+        }else if(format=="wide"){
+            out <- do.call(rbind,lapply(1:n.strata, function(iStrata){ ## iStrata <- 1
+                iOut <- data.frame(variable = rownames(varRE),
+                                   strata = U.strata[iStrata],
+                                   variance = varRE[,iStrata],
+                                   relative = varRE[,iStrata]/sigma2[iStrata])
+                if(simplify == FALSE){
+                    iOut <- rbind(data.frame(variable = "total", strata = U.strata[iStrata], variance = sigma2[iStrata], relative = 1),
+                                  iOut,
+                                  data.frame(variable = "residual", strata = U.strata[iStrata], variance = sigma2[iStrata]-sum(iOut$variance), relative = 1-sum(iOut$relative))
+                                  )
+                }
+                return(iOut)
+            }))
         }
-        if(keep.strata==FALSE){
-            out$XXstrataXX <- NULL
-        }else if(n.strata>1){
-            browser()
+        rownames(out) <- NULL
+        if(simplify && n.strata==1){
+            out$strata <- NULL
         }
         return(out)
     }
@@ -262,45 +265,58 @@ ranef.lmm <- function(object, effects = "mean", ci = FALSE, transform = (effects
     ## ** extract normalized residuals
     ## head(stats::residuals(object, p = p, keep.data = TRUE, type = "response", format = "long"))
     df.epsilon <- stats::residuals(object, p = p, keep.data = TRUE, type = "normalized2", format = "long")
+    if(object$strata$n==1){
+        df.epsilon$XXstrata.indexXX <- U.strata
+    }
     if(length(index.na)>0){
         df.epsilon <- df.epsilon[-index.na,,drop=FALSE]
     }
     
     ## ** estimate random effects
-    out <- do.call(rbind,lapply(name.hierarchy, function(iName){ ## iName <- name.hierarchy[1]        
-        iOut <- do.call(rbind,by(df.epsilon, df.epsilon[[iName]], function(iDF){ ## iDF <- df.epsilon[13:18,]
-            iTau <- varRE[iName,iDF$XXstrataXX[1]]
-            iOut <- cbind(variable = unname(iName),
-                          XXstrataXX = iDF$XXstrataXX[1],
-                          level = unname(iDF[1,iName,drop=FALSE]),
-                          estimate = unname(sum(iDF$r.normalized)*iTau))
+    grid.ranef <- unlist(lapply(1:n.hierarchy, function(iH){ ## iH <- 1
+        stats::setNames(lapply(1:length(infoRanef$hierarchy[[iH]]), function(iP){
+            infoRanef$hierarchy[[iH]][1:iP]
+        }), infoRanef$hierarchy[[iH]])
+    }), recursive = FALSE)
+    
+    ls.out <- lapply(1:length(grid.ranef), function(iR){ ## iR <- 1
+        do.call(rbind,by(df.epsilon, df.epsilon[grid.ranef[[iR]]], function(iDF){
+            iNames <- grid.ranef[[iR]]
+            iTau <- varRE[names(grid.ranef)[iR],iDF[[var.strata]][1]]
+            iOut <- data.frame(variable = NA,
+                               strata = iDF[[var.strata]][1],
+                               level = NA,
+                               estimate = unname(sum(iDF$r.normalized)*iTau))
+            iOut$variable <- list(iNames)
+            iOut$level <- list(unlist(iDF[1,iNames,drop=FALSE]))
             return(iOut)
         }))
-        return(iOut[match(unique(df.epsilon[[iName]]),iOut$level),,drop=FALSE])
-    }))            
-    
+    })
+
     ## ** export
+    out <- do.call(rbind,ls.out)
     rownames(out) <- NULL
     if(format == "wide"){
-        
-        out <- stats::setNames(lapply(infoRanef$hierarchy, function(iH){
-            iOut <- out[out$variable == iH[1],"estimate",drop=FALSE]
-            rownames(iOut) <- out$level
-            if(infoRanef$cross){
-                browser()
-            }
-            return(iOut)
+        out <- stats::setNames(lapply(1:n.hierarchy, function(iH){ ## iH <- 1
+            iOut <- out[sapply(out$variable, utils::tail,1) %in% infoRanef$hierarchy[[iH]],,drop=FALSE]
+            iOut$col <- sapply(iOut$level, function(iLevel){paste0(iLevel[-1], collapse = ":")})
+            iOut$level <- sapply(iOut$level, utils::head, 1)
+            iOutW <- stats::reshape(iOut, direction = "wide", 
+                                    idvar = "level", timevar = "col", times = unique(iOut$col), drop = c("strata","variable"))
+            colnames(iOutW)[2] <- "estimate"
+            return(iOutW)
         }), sapply(infoRanef$hierarchy,"[",1))
         
     }else if(format == "long"){
-        if(keep.strata == FALSE){
-            out$XXstrataXX <- NULL
-        }else if(n.strata>1){
+        if(simplify && n.strata == 1){
+            out$strata <- NULL
+        }
+        if(simplify && all(sapply(infoRanef$hierarchy,length)==1)){
+            out$variable <- unlist(out$variable)
+            out$level <- unlist(out$level)
         }
     }
-
     return(out)
-
 }
 
 ## * ranef.mlmm (code)

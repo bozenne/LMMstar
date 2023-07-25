@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: jul 21 2023 (13:21) 
+## Last-Updated: jul 24 2023 (18:27) 
 ##           By: Brice Ozenne
-##     Update #: 181
+##     Update #: 184
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -164,8 +164,8 @@ ncharTable <- function(object, digits, format = "f"){
         }
     }
     nchar.colnames <- c(0,nchar(colnames(object)))
-    width <- apply(xplus,1, function(iRow){ ## iRow <- xplus[2,]
-        sum(pmax(nchar.colnames,nchar(trimws(iRow)))+1)-1
+    width <- apply(xplus,1, function(iRow){ ## iRow <- xplus[1,]
+        sum(pmax(nchar.colnames,nchar(trimws(iRow)))+1, na.rm = TRUE)-1
     })
     return(max(width))
    
@@ -239,6 +239,9 @@ tr <- function(object){
 ##' @details adapted from RecordLinkage package
 ##'
 ##' @examples
+##' unorderedPairs(1, distinct = FALSE)
+##' unorderedPairs(1, distinct = TRUE)
+##' 
 ##' unorderedPairs(1:5, distinct = TRUE) - utils::combn(5, m = 2)
 ##' unorderedPairs(1:5, distinct = FALSE)
 ##' unorderedPairs(rep(1,5), distinct = TRUE) - (utils::combn(5, m = 2)>0)

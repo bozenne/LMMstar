@@ -21,7 +21,7 @@
 
 \method{residuals}{clmm}(object, ...)
 
-\method{residuals}{mlmm}(object, keep.by = FALSE, ...)
+\method{residuals}{mlmm}(object, simplify = TRUE, ...)
 }
 \arguments{
 \item{object}{a \code{lmm} object.}
@@ -45,9 +45,6 @@ Only possible in the long format.}
 Otherwise, information about the call and reference values used for partial residuals be added as an attribute.}
 
 \item{...}{Not used. For compatibility with the generic method.}
-
-\item{keep.by}{[logical or "only"] How should the variable used to index the split of the dataset/LMM be output:
-only the original variable(s) (FALSE), only the by variable (\code{"only"}), or both (TRUE) .}
 }
 \value{
 \bold{lmm}: a vector or a data.frame when \code{format="long"} (one line per observation, one column per type of residual),

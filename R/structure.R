@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: jul 11 2023 (16:21) 
+## Last-Updated: jul 25 2023 (17:29) 
 ##           By: Brice Ozenne
-##     Update #: 1082
+##     Update #: 1113
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,7 +17,7 @@
 
 ## * ID (identity)
 ##' @title identity Structure
-##' @description Variance-covariance structure where the residuals are independent and identically distribution.
+##' @description Variance-covariance structure where the residuals are independent and identically distributed.
 ##' Can be stratified on a categorical variable.
 ##' 
 ##' @param formula formula indicating on which variable to stratify the residual variance (left hand side).
@@ -66,7 +66,7 @@ ID <- function(formula, var.cluster, var.time, add.time){
 
 ## * IND (independence)
 ##' @title Independence Structure
-##' @description Variance-covariance structure where the residuals are independent.
+##' @description Variance-covariance structure where the residuals are independent but may have different variance.
 ##' Can be stratified on a categorical variable.
 ##'
 ##' @param formula formula indicating variables influencing the residual variance,
@@ -136,8 +136,9 @@ IND <- function(formula, var.cluster, var.time, add.time){
 
 ## * CS (compound symmetry)
 ##' @title Compound Symmetry Structure
-##' @description Variance-covariance structure where the residuals have constant variance and correlation overall (default) or within covariate levels.
-##' Can be stratified on a categorical variable. 
+##' @description Variance-covariance structure where the variance and correlation of the residuals is constant within covariate levels.
+##' Can be stratified on a categorical variable.
+##' The default has no covariate and therefore the variance and correlation are constant within cluster.
 ##'
 ##' @param formula formula indicating on which variable to stratify the residual variance and correlation (left hand side)
 ##' and variables influencing the residual variance and correlation (right hand side).
@@ -171,28 +172,57 @@ IND <- function(formula, var.cluster, var.time, add.time){
 ##' CS(list(gender~time,gender~1), var.cluster = "id", var.time = "time")
 ##' 
 ##' @export
-CS <- function(formula, var.cluster, var.time, type = "homogeneous", group.type = NULL, add.time){
+CS <- function(formula, var.cluster, var.time, type = NULL, group.type = NULL, add.time){
+
     ## ** normalize input
     type.ho <- c("ho","homo","homogeneous")
     type.he <- c("he","hetero","heterogeneous")
-    type <- match.arg(type, c(type.ho,type.he))
-    if(type %in% type.ho){
+    if(!is.null(type)){
+        type <- match.arg(type, c(type.ho,type.he))
+        if(type %in% type.ho){
+            type <- type.ho[3]
+        }else if(type %in% type.he){
+            type <- type.he[3]
+        }
+    }else if(inherits(formula,"formula") || (is.list(formula) && length(formula)==1)){
         type <- type.ho[3]
-    }else if(type %in% type.he){
+    }else if((is.list(formula) && length(formula)==2)){
         type <- type.he[3]
     }
-    if(inherits(formula,"formula") && type == "homogeneous"){
-        if(attr(terms(formula),"response")==0){
-            formula <- list(variance = ~1,
-                            correlation = formula)
-        }else{
-            formula <- list(variance = update(formula,".~0"),
-                            correlation = formula)
-        }        
+    if(!missing(formula) && inherits(formula,"formula")){
+        if(type == "homogeneous"){
+            if(attr(terms(formula),"response")==0){
+                formula <- list(variance = ~1,
+                                correlation = formula)
+            }else{
+                formula <- list(variance = update(formula,".~0"),
+                                correlation = formula)
+            }        
+        }else if(type == "heterogeneous" && !missing(var.time)){
+            var.f <- all.vars(formula)
+            if(length(var.f)>0 && any(var.f %in% c(var.time,attr(var.time,"original")))){
+                formula <- list(variance = ~formula,
+                                correlation = formula)
+            }else{
+                add.var <- c(attr(var.time,"original"),var.time)[1]
+                if(attr(terms(formula),"response")==0){
+                    formula <- list(variance = update(formula,paste0("~.+",add.var)),
+                                    correlation = formula)
+                }else{
+                    formula <- list(variance = update(formula,paste0(".~.+",add.var)),
+                                    correlation = formula)
+                }
+            }
+        }
     }
-    outCov <- .formulaStructure(formula, add.X = NULL, strata.X = FALSE, correlation = TRUE)
-    if(length(outCov$X.cor)==0){
-        type <- "homogeneous"
+
+    if(!missing(formula)){
+        outCov <- .formulaStructure(formula, add.X = NULL, strata.X = FALSE, correlation = TRUE)
+        if(length(outCov$X.cor)==0){
+            type <- "homogeneous"
+        }
+    }else{
+        outCov <- NULL
     }
 
     if(is.null(group.type) || length(group.type) == 0){
@@ -320,7 +350,7 @@ RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
     ## ** prepare correlation / random effect structure
     if(test.ranef && detail.formula$special=="ranef"){
         ranef <- detail.formula$ranef
-        if(missing(var.cluster) && ranef$cross == FALSE && ranef$nested == TRUE){
+        if(missing(var.cluster) && ranef$cross == FALSE){
             var.cluster <- ranef$cluster
             attr(var.cluster,"original") <- ranef$cluster
         }
@@ -348,18 +378,13 @@ RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
 
     ## groups of random effects
     n.group <- length(ranef$hierarchy)
-    if(n.group>0){
-        group <- unlist(lapply(1:n.group, function(iG){
-            stats::setNames(rep(iG, length(ranef$hierarchy[[iG]])), ranef$hierarchy[[iG]])
-        }))
-        if(!missing(var.cluster) && attr(var.cluster,"original") %in% names(group)){
-            groupCS <- group[names(group) != attr(var.cluster,"original")]
-        }else{
-            groupCS <- group
-        }
+    group <- unlist(lapply(1:n.group, function(iG){
+        stats::setNames(rep(iG, length(ranef$hierarchy[[iG]])), ranef$hierarchy[[iG]])
+    }))
+    if(!missing(var.cluster) && attr(var.cluster,"original") %in% names(group)){
+        groupCS <- group[names(group) != attr(var.cluster,"original")]
     }else{
-        group <- NULL
-        groupCS <- NULL
+        groupCS <- group
     }
 
     ## ** create structure
@@ -380,7 +405,7 @@ RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
 
 ## * TOEPLITZ (Toeplitz)
 ##' @title Toeplitz Structure
-##' @description Variance-covariance structure for stationnary processes.
+##' @description Variance-covariance structure where the correlation depends on time elapsed between two repetitions.
 ##' Can be stratified on a categorical variable.
 ##'
 ##' @param formula formula indicating on which variable to stratify the residual variance and correlation (left hand side)
@@ -432,13 +457,12 @@ TOEPLITZ <- function(formula, var.cluster, var.time, type = "LAG", add.time){
         type <- match.arg(type, c("UN","LAG","CS"))
         toeplitz.block <- NULL
     }
-    
     if(!missing(add.time)){
         if(is.character(add.time)){
-            if(is.null(type) || type == "UN"){
+            if(type == "UN" || type == "LAG"){
                 add.X <- list(variance = add.time,
                               correlation = add.time)
-            }else if(type %in% c("LAG","CS")){
+            }else if(type == "CS"){
                 if(length(add.time)>1){
                     add.X <- list(variance = utils::tail(add.time,1),
                                   correlation = add.time)
@@ -448,10 +472,10 @@ TOEPLITZ <- function(formula, var.cluster, var.time, type = "LAG", add.time){
                 }
             }
         }else if(add.time){
-            if(is.null(type) || type == "UN"){
+            if(type == "UN" || type == "LAG"){
                 add.X <- list(variance = var.time,
                               correlation = var.time)
-            }else if(type %in% c("LAG","CS")){
+            }else if(type == "CS"){
                 if(length(var.time)>1){
                     add.X <- list(variance = utils::tail(var.time,1),
                                   correlation = var.time)
@@ -469,13 +493,17 @@ TOEPLITZ <- function(formula, var.cluster, var.time, type = "LAG", add.time){
         add.X <- NULL
     }
 
-    outCov <- .formulaStructure(formula, add.X = add.X, strata.X = FALSE, correlation = TRUE)
-    if(length(outCov$X.cor)==0){
-        stop("TOEPLITZ covariance structure does not support no covariates for the correlation structure. \n")
-    }else if(length(outCov$X.cor)>2){
-        stop("TOEPLITZ covariance structure does not support more than 2 covariates for the correlation structure. \n")
-    }else if(is.null(toeplitz.block)){
-        toeplitz.block <- length(outCov$X.cor) > 1
+    if(!missing(formula)){
+        outCov <- .formulaStructure(formula, add.X = add.X, strata.X = FALSE, correlation = TRUE)
+        if(length(outCov$X.cor)==0){
+            stop("TOEPLITZ covariance structure does not support no covariates for the correlation structure. \n")
+        }else if(length(outCov$X.cor)>2){
+            stop("TOEPLITZ covariance structure does not support more than 2 covariates for the correlation structure. \n")
+        }else if(is.null(toeplitz.block)){
+            toeplitz.block <- length(outCov$X.cor) > 1
+        }
+    }else{
+        outCov <- NULL
     }
 
     if(!missing(var.cluster) && inherits(var.cluster,"formula")){ ## possible user mistake TOEPLITZ(~1,~1) instead of TOEPLITZ(list(~1,~1))

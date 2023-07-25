@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jul 21 2023 (17:32) 
+## Last-Updated: jul 25 2023 (14:55) 
 ##           By: Brice Ozenne
-##     Update #: 1261
+##     Update #: 1283
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -337,32 +337,25 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
         print(printtable, digits = digits)
     }
     if(print && !hide.re){
-        cat("  - variance decomposition:",deparse(structure.ranef$formula),"\n")
-        e.sigma2 <- coef(object, effects = "variance")^2
-        e.tauL <- nlme::ranef(object, effects = "variance", format = "long", keep.strata = TRUE)
-        e.tauW <- stats::reshape(e.tauL[e.tauL$type == "variance",],
-                                 direction = "wide",
-                                 idvar = "variable",
-                                 timevar = ifelse(n.strata==1,"XXstrataXX",object$strata$var),
-                                 times = object$strata$levels,
-                                 sep = ".")
-        rownames(e.tauW) <- e.tauW$variable
-        e.residual <- e.sigma2 - colSums(e.tauW[paste("estimate",object$strata$levels,sep=".")])
-
-        table.re <- as.data.frame(rbind(total = e.sigma2,
-                                        e.tauW[paste("estimate",object$strata$levels,sep=".")],
-                                        residual = e.residual))
         if(n.strata==1){
-            names(table.re) <- "variance"
-            table.re <- cbind(table.re, "%" = 100*table.re$variance/table.re["total","variance"], sd = sqrt(table.re$variance))
-            printtable <- table.re
-            printtable["total","%"] <- NA
-            rownames(printtable) <- paste0("    ",rownames(printtable))
+            cat("  - variance decomposition: ",deparse(structure.ranef$formula),"\n",sep="")
         }else{
-            browser()
-            names(table.re) <- colnames(e.tau)
+            cat("  - variance decomposition: ",paste0(object$strata$var," ",deparse(structure.ranef$formula)),"\n",sep="")
         }
-        print(as.matrix(printtable), digits = digits, na.print = "" , quote = FALSE)
+        table.re <- nlme::ranef(object, effects = "variance", format = "wide", simplify = FALSE)
+        if(n.strata==1){
+            printtable <- cbind(variance = table.re$variance, "%" = 100*table.re$relative, sd = sqrt(table.re$variance))
+            rownames(printtable) <- paste0("    ",table.re$variable)
+        }else{
+            printtable <- unclass(by(table.re,table.re$strata, function(iDF){
+                iPrintTable <- data.frame(variance = iDF$variance, "%" = 100*iDF$relative, sd = sqrt(iDF$variance),
+                                          check.names = FALSE)
+                rownames(iPrintTable) <- paste0("    ",iDF$variable)
+                return(as.matrix(iPrintTable))
+            }, simplify = FALSE))
+            attr(printtable,"call") <- NULL
+        }
+        print(printtable, digits = digits, na.print = "" , quote = FALSE)
     }else{
         table.re <- NULL
     }
@@ -381,7 +374,7 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
                               columns = c("estimate","se","df","lower","upper","statistic","null","p.value"))
 
         if(print){
-            cat("Fixed effects:",deparse(call$formula),"\n\n")
+            cat("Fixed effects:",deparse(formula$mean),"\n\n")
             .printStatTable(table = table.mean, df = df, level = level, robust = robust,
                             method.p.adjust = NULL,
                             backtransform = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL,
@@ -551,7 +544,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
     }
 
     ## *** local tests
-    if(print.univariate>0 && ci){
+    if(print.univariate>0 && ci){        
         table.univariate <- confint(object, columns = union(setdiff(columns.univariate,""),"type"), ...)
         if(is.null(columns) && all(is.na(table.univariate$lower)) && all(is.na(table.univariate$upper))){
             columns.univariate <- setdiff(columns.univariate, c("lower","upper"))
@@ -754,7 +747,7 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
                 cat("  - ", paste(M.nobs[,"cluster"], collapse=", "), " clusters were analyzed \n",
                     "    ", paste(M.nobs[,"missing.cluster"], collapse=", "), " were excluded because of missing values \n" , sep = "")
             }else{
-                cat("  - ", paste(M.nobs["cluster"], collapse=", "), " clusters \n" , sep = "")
+                cat("  - ", paste(M.nobs[,"cluster"], collapse=", "), " clusters \n" , sep = "")
             }
             cat("  - ", paste(M.nobs[,"obs"], collapse = ", "), " observations were analyzed \n",
                 "    ", paste(M.nobs[,"missing.obs"],collapse=", "), " were excluded because of missing values \n",  sep = "")

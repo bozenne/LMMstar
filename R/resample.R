@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: jul 13 2023 (13:11) 
+## Last-Updated: jul 25 2023 (11:54) 
 ##           By: Brice Ozenne
-##     Update #: 451
+##     Update #: 513
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -81,7 +81,7 @@
 ##' model.tables(eCS.lmm)
 ##'
 ##' ## non-parametric bootstrap
-##' resample(eCS.lmm, type = "boot", effects = c("glucagonAUC","gender"), seed = 10)
+##' resample(eCS.lmm, type = "boot", effects = c("glucagonAUC","gender"), seed = 10, trace = FALSE)
 ##' ## permutation test
 ##' resample(eCS.lmm, type = "perm-var", effects = "gender", seed = 10)
 ##' resample(eCS.lmm, type = "perm-res", effects = "glucagonAUC", seed = 10) 
@@ -203,13 +203,16 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
     var.outcome <- object$outcome$var
 
     ## *** parameters
-    param.init <- object$param
-    if(type == "perm-var"){
-        param.init[name.keepcoef] <- 0
-    }else if(type == "perm-res"){
-        param.init[effects] <- 0
+    if(inherits(object$design$vcov,"ID") || inherits(object$design$vcov,"IND")){
+        param.init <- NULL ## OLS solver + empirical residual standard deviation can directly find the solution
+    }else{
+        param.init <- object$param
+        if(type == "perm-var"){
+            param.init[name.keepcoef] <- 0
+        }else if(type == "perm-res"){
+            param.init[effects] <- 0
+        }
     }
-
     ## ## *** missing patterns
     ## if(type == "perm-var"){
     ##     Upattern <- object$design$vcov$Upattern
@@ -233,7 +236,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
             call0$data <- object$data.original[-object$index.na,,drop=FALSE]
         }
         object0 <- eval(call0)
-        Xbeta0 <- stats::predict(object0, newdata = data[,var.mean,drop=FALSE], se = FALSE, df = FALSE)[,1]
+        Xbeta0 <- stats::predict(object0, newdata = data[var.mean], se = FALSE, df = FALSE, simplify = TRUE)
         epsilon0.norm <- stats::residuals(object0, type = "normalized")
         OmegaChol0 <- lapply(stats::sigma(object0, chol = TRUE, cluster = as.character(vec.Uid)), FUN = base::t)
     }
@@ -246,10 +249,8 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
             ## permute X-values (constant within cluster)
             iPerm <- sample(n.cluster, replace = FALSE)
             iData <- data
-            for(iCluster in 1:n.cluster){ ## iCluster <- 1
-                iData[index.cluster[[iCluster]],effects] <- Uvar[[iPerm[iCluster]]] ## seems to properly expand Uvar over multiple timepoints
-            }
-            
+            iData[unlist(index.cluster),effects] <- unlist(mapply(x = index.cluster, y = Uvar[iPerm], FUN = function(x,y){rep(y,length(x))}))
+                        
             ## permute X-values between individuals with same missing data pattern
             ## iData <- data
             ## for(iPattern in 1:n.patterns){ ## iPattern <- 1
@@ -257,7 +258,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
             ##     iPatternindex.cluster <-  index.cluster[ls.indexcluster.pattern[[iPattern]]]
             ##     iData[[effects]][unlist(iPatternindex.cluster)] <- data[[effects]][unlist(iPatternindex.cluster[iPerm])]
             ## }
-        }else if(type == "perm-res"){
+        }else if(type == "perm-res"){            
             iData <- data
             ## permute residuals (including the fixed effect to be tested)
             iPerm <- sample(1:n.obs, replace = FALSE)
@@ -269,11 +270,10 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
             ## range(iData[[var.outcome]] - data[,var.outcome])
         }else if(type == "boot"){
             ils.Boot <- index.cluster[sample(n.cluster, replace = TRUE)]
-            names(ils.Boot) <- 1:n.cluster
             iBoot <- unlist(ils.Boot)
             
             iData <- data[iBoot,,drop=FALSE]
-            iData[[var.cluster]] <- as.numeric(factor(names(iBoot), levels = unique(names(iBoot))))
+            iData[[var.cluster]] <- unlist(lapply(1:n.cluster, function(iC){rep(iC,length(ils.Boot[[iC]]))}))
             rownames(iData) <- NULL
             ## lmm(Y~X1*X2+X5,data = iData[,c("Y","X1","X2","X5")])
         }
@@ -285,14 +285,20 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
             iStructure$var <- NULL
             iStructure$cor <- NULL
             iStructure$param <- NULL
-            browser()
-            iData2 <- .prepareData(iData[,var.all,drop=FALSE],
-                                   var.cluster = attr(var.cluster, "original"),
-                                   var.time = attr(object$time$var, "original"),
-                                   var.strata = attr(object$strata$var, "original"),
-                                   missing.repetition = object$time$n>1,
-                                   droplevels = TRUE)
+            iStructure$pattern <- NULL
+            iStructure$Upattern <- NULL
+            iStructure$pair.vcov <- NULL
+            iStructure$pair.meanvcov <- NULL
             
+            iData2 <- .lmmNormalizeData(iData[,var.all,drop=FALSE],
+                                        var.outcome = var.outcome,
+                                        var.cluster = attr(var.cluster, "original"),
+                                        var.time = attr(object$time$var, "original"),
+                                        var.strata = attr(object$strata$var, "original"),
+                                        droplevels = TRUE,
+                                        initialize.cluster = iStructure$ranef$crossed,
+                                        initialize.time = setdiff(iStructure$ranef$vars, iStructure$var.cluster))$data
+
             iDesign <- .model.matrix.lmm(formula.mean = object$formula$mean.design,
                                          structure = iStructure,
                                          data = iData2,
@@ -300,6 +306,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
                                          var.weights = object$weights$var,
                                          precompute.moments = precompute.moments,
                                          drop.X = object$design$drop.X)
+
         }else if(type == "perm-res"){ ## change in the Y values
 
             iDesign <- object$design
@@ -312,10 +319,9 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
                 }else{
                     iwY <- cbind(iData[[var.outcome]]*sqrt(iData[[var.weights[1]]]))
                 }
-                browser() ## Upattern$index.cluster
-                iDesign$precompute.XY <- .precomputeXR(X = iDesign$precompute.XX$Xpattern, residuals = iwY, pattern = iDesign$vcov$X$Upattern$name,
-                                                       pattern.ntime = stats::setNames(iDesign$vcov$Upattern$n.time, iDesign$vcov$X$Upattern$name),
-                                                       pattern.cluster = iDesign$vcov$Upattern$index.cluster, index.cluster = iDesign$index.cluster)
+                iDesign$precompute.XY <- .precomputeXR(X = iDesign$precompute.XX$Xpattern, residuals = iwY, pattern = iDesign$vcov$Upattern$name,
+                                                       pattern.ntime = stats::setNames(iDesign$vcov$Upattern$n.time, iDesign$vcov$Upattern$name),
+                                                       pattern.cluster = attr(iDesign$vcov$pattern,"list"), index.cluster = iDesign$index.cluster)
             }
 
         }else{ ## change in the X values
@@ -337,27 +343,25 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
                     iwY <- cbind(iData[[var.outcome]]*sqrt(iData[[var.weights[1]]]))
                 }
                 iIndex.cluster <- .extractIndexData(data = iData, structure = iDesign$vcov)$index.cluster
-                browser() ## Upattern$index.cluster
                 iDesign$precompute.XX <- .precomputeXX(X = iwX.mean, pattern = iDesign$vcov$Upattern$name, 
-                                                       pattern.ntime = stats::setNames(iDesign$vcov$Upattern$n.time, iDesign$vcov$X$Upattern$name),
-                                                       pattern.cluster = iDesign$vcov$Upattern$index.cluster, index.cluster = iIndex.cluster)
-                browser() ## Upattern$index.cluster
-                iDesign$precompute.XY <- .precomputeXR(X = iDesign$precompute.XX$Xpattern, residuals = iwY, pattern = iDesign$vcov$X$Upattern$name,
-                                                       pattern.ntime = stats::setNames(iDesign$vcov$Upattern$n.time, iDesign$vcov$X$Upattern$name),
-                                                       pattern.cluster = iDesign$vcov$Upattern$index.cluster, index.cluster = iIndex.cluster)
+                                                       pattern.ntime = stats::setNames(iDesign$vcov$Upattern$n.time, iDesign$vcov$Upattern$name),
+                                                       pattern.cluster = attr(iDesign$vcov$pattern,"list"), index.cluster = iIndex.cluster)
+                iDesign$precompute.XY <- .precomputeXR(X = iDesign$precompute.XX$Xpattern, residuals = iwY, pattern = iDesign$vcov$Upattern$name,
+                                                       pattern.ntime = stats::setNames(iDesign$vcov$Upattern$n.time, iDesign$vcov$Upattern$name),
+                                                       pattern.cluster = attr(iDesign$vcov$pattern,"list"), index.cluster = iIndex.cluster)
             }
         }
 
         ## *** re-estimate
         iEstimate <- try(.estimate(design = iDesign,
                                    time = object$time,
-                                   method.fit = object$method.fit,
-                                   type.information = attr(object$information,"type.information"),
+                                   method.fit = object$args$method.fit,
+                                   type.information = object$args$type.information,
                                    transform.sigma = object$reparametrize$transform.sigma,
                                    transform.k = object$reparametrize$transform.k,
                                    transform.rho = object$reparametrize$transform.rho,
                                    precompute.moments = precompute.moments, 
-                                   optimizer = object$opt$name,
+                                   optimizer = object$args$control$optimizer,
                                    init = param.init,
                                    n.iter = object$opt$control["n.iter"],
                                    tol.score = object$opt$control["tol.score"],
@@ -369,8 +373,8 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
             iVcov <- .moments.lmm(value = iEstimate$estimate,
                                   design = iDesign,
                                   time = object$time,
-                                  method.fit = object$method.fit,
-                                  type.information = attr(object$information,"type.information"),
+                                  method.fit = object$args$method.fit,
+                                  type.information = object$args$type.information,
                                   transform.sigma = object$reparametrize$transform.sigma,
                                   transform.k = object$reparametrize$transform.k,
                                   transform.rho = object$reparametrize$transform.rho,
@@ -395,7 +399,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
         if(type == "perm-var"){
             if(studentized){
                 cat("\tStudentized permutation test with ",n.sample," replicates \n",
-                    "\tn(permutation of the regressor values between clusters)\n\n", sep = "")
+                    "\t(permutation of the regressor values between clusters)\n\n", sep = "")
             }else{
                 cat("\tPermutation test with ",n.sample," replicates \n",
                     "\t(permutation of the regressor values between clusters)\n\n", sep = "")
@@ -454,7 +458,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
             parallel::clusterExport(cl, varlist = "seqSeed", envir = environment())
         }
         ## export BuyseTest 
-        fct2export <- c(".estimate",".precomputeXR",".precomputeXX",".extractIndexData",".model.matrix.lmm",".prepareData")
+        fct2export <- c(".estimate",".precomputeXR",".precomputeXX",".extractIndexData",".model.matrix.lmm",".lmmNormalizeData",".moments.lmm")
         parallel::clusterExport(cl = cl, varlist = fct2export, envir = as.environment(asNamespace("LMMstar")))
         
     }
@@ -478,7 +482,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
         }
 
         ls.sample <- foreach::`%dopar%`(
-                                  foreach::foreach(i=1:n.sample, .options.snow = opts), {
+                                  foreach::foreach(i=1:n.sample, .options.snow = opts, .packages = c("LMMstar","nlme")), {
                                       if(!is.null(seed)){set.seed(seqSeed[i])}
                                       iOut <- warperResample(X)
                                       return(iOut)

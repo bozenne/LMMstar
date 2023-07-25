@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jul 21 2023 (15:51) 
+## Last-Updated: jul 25 2023 (17:38) 
 ##           By: Brice Ozenne
-##     Update #: 2770
+##     Update #: 2839
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -180,11 +180,13 @@ lmm <- function(formula, repetition, structure, data,
     }
 
     ## handle the case where structure is defined as a function
-    if(!missing(structure) && inherits(out$call$structure,"name")){ ## instead of a character
-        structure <- deparse(out$call$structure)
-    }else if(!missing(structure) && inherits(structure,"function")){ ## instead of a structure object
-        structure <- do.call(structure, args = list(~1))
-    }   
+    if(!missing(structure) && !is.character(structure)){
+        if(inherits(out$call$structure,"name")){ ## instead of a character
+            structure <- deparse(out$call$structure)
+        }else if(inherits(structure,"function")){ ## instead of a structure object
+            structure <- do.call(structure, args = list(~1))
+        }
+    }
     
     ## ** 1. check and normalize user input
     if(trace>=1){cat("1. Check and normalize user input")}
@@ -194,7 +196,7 @@ lmm <- function(formula, repetition, structure, data,
     outArgs <- .lmmNormalizeArgs(formula = formula, repetition = repetition, structure = structure, data = data,
                                  weights = weights, scale.Omega = scale.Omega,
                                  method.fit = method.fit, df = df, type.information = type.information, trace = trace, control = control,
-                                 options = options)
+                                 options = options)    
     var.outcome <- outArgs$var.outcome
     if(trace>=2){cat("\n")}
 
@@ -210,7 +212,8 @@ lmm <- function(formula, repetition, structure, data,
                                  var.time = outArgs$var.time,
                                  var.strata = outArgs$var.strata,                         
                                  droplevels = TRUE,
-                                 initialize.cluster = outArgs$ranef$crossed)
+                                 initialize.cluster = outArgs$ranef$crossed,
+                                 initialize.time = setdiff(outArgs$ranef$vars, outArgs$var.cluster))
     data <- outData$data
     var.cluster <- outData$var.cluster
     var.time <- outData$var.time
@@ -250,6 +253,7 @@ lmm <- function(formula, repetition, structure, data,
                                         var.time = var.time,
                                         n.time = n.time,
                                         var.strata = var.strata)
+
     if(trace>=2){cat("\n")}
 
     ## *** store results
@@ -395,6 +399,8 @@ lmm <- function(formula, repetition, structure, data,
                  "Current version can only handle random intercepts (i.e. no covariates in random effects). \n")
         }
         detail.ranef <- detail.formula$ranef
+    }else if(!missing(structure) && inherits(structure,"RE")){
+        detail.ranef <- structure$ranef
     }else{
         detail.ranef <- NULL
     }
@@ -470,7 +476,6 @@ lmm <- function(formula, repetition, structure, data,
             stop("Argument \'structure\' must be a character or a structure object. \n")
         }
     }
-
     ## ** repetition
     if(!missing(repetition) && inherits(try(repetition,silent=TRUE),"try-error")){ ## handle typical user mis-communication
         stop("Could not evaluate argument \'repetition\': maybe the symbol \'~\' is missing. \n",
@@ -691,11 +696,14 @@ lmm <- function(formula, repetition, structure, data,
 ##' @param droplevels [logical] should un-used levels in cluster/time/strata be removed?
 ##' @param initalize.cluster [logical] when the cluster variable is NA/NULL,
 ##' should a different cluster per observation be used (0) or the same cluster for all observations (1)
+##' @param initalize.time [logical] when the time variable is NA/NULL,
+##' how should the observations be ordered
 ##'
 ##' @details Argument \code{var.outcome} is NA when the function is called by \code{model.matrix.lmm}
 ##' 
 ##' @noRd
-.lmmNormalizeData <- function(data, var.outcome, var.cluster, var.time, var.strata, droplevels, initialize.cluster){
+.lmmNormalizeData <- function(data, var.outcome, var.cluster, var.time, var.strata, droplevels,
+                              initialize.cluster, initialize.time){
 
 
     ## ** normalize
@@ -797,7 +805,14 @@ lmm <- function(formula, repetition, structure, data,
         out$var.time <- "XXtimeXX"
         attr(out$var.time, "original") <- var.time     
     }else if(is.na(var.time)){
-        iSplit <- do.call(rbind,by(data, data$XXclusterXX, FUN = function(iDF){cbind(XXindexXX = iDF$XXindexXX, XXtimeXX = 1:NROW(iDF))}))
+        if(length(initialize.time)==0){
+            iSplit <- do.call(rbind,by(data, data$XXclusterXX, FUN = function(iDF){cbind(XXindexXX = iDF$XXindexXX, XXtimeXX = 1:NROW(iDF))}))
+        }else{ ## re-order dataset according to variables defining the variance-covariance pattern to minimize the number of patterns
+            iSplit <- do.call(rbind,by(data, data$XXclusterXX, FUN = function(iDF){ ## iDF <- data[data$XXclusterXX==data$XXclusterXX[1],]
+                iOrder <- do.call(order,iDF[initialize.time])
+                cbind(XXindexXX = iDF[iOrder,"XXindexXX"], XXtimeXX = 1:NROW(iDF))
+            }))
+        }
         data[iSplit[,"XXindexXX"],"XXtimeXX"] <- addLeading0(iSplit[,"XXtimeXX"], as.factor = TRUE, code = attr(var.time,"code"))
         
         out$var.time <- "XXtimeXX"
@@ -946,7 +961,7 @@ lmm <- function(formula, repetition, structure, data,
     }
 
     ## ** export
-    out$data <- data 
+    out$data <- data
     out$index.na <- index.na
     return(out)
 }
@@ -1013,9 +1028,21 @@ lmm <- function(formula, repetition, structure, data,
     if((inherits(structure,"RE") && is.null(structure$ranef) || identical(structure,"RE")) && is.null(ranef) && !is.null(var.cluster.original)){
         ranef <- formula2var(stats::as.formula(paste0("~(1|",var.cluster.original,")")))$ranef
     }
-
+    
+    ## special case where no formula in structure and only type as an argument of structure
+    if(inherits(structure,"structure")){
+        if(is.null(structure$formula$var) && is.null(structure$formula$cor) && identical("type", setdiff(names(structure$call),""))){
+            type <- structure$type
+            structure <- structure$class
+        }else{
+            type <- NULL
+        }
+    }else{
+        type <- NULL
+    }
     if(inherits(structure,"structure")){
         if(inherits(structure,"RE")){
+            ## special case with random effects
             structure <- update(structure, var.cluster = var.clusterS, var.time = var.timeS, var.strata = var.strata.original, ranef = ranef)
         }else{
             structure <- update(structure, var.cluster = var.clusterS, var.time = var.timeS, var.strata = var.strata.original)
@@ -1024,6 +1051,10 @@ lmm <- function(formula, repetition, structure, data,
     }else if(is.character(structure)){
         args.structure <- list(var.cluster = var.clusterS,
                                var.time = var.timeS)
+
+        if(!is.null(type)){
+            args.structure$type <- type
+        }
 
         if(structure %in% c("IND","UN","EXP","TOEPLITZ")){
             args.structure$add.time <- var.time.original
@@ -1050,7 +1081,7 @@ lmm <- function(formula, repetition, structure, data,
                 check <- TRUE
                 break
             }
-        }
+        }        
         if(check == FALSE){
             warning("Constant outcome values within cluster. \n")
         }

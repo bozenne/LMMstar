@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: jul 21 2023 (16:12) 
+## Last-Updated: jul 25 2023 (12:01) 
 ##           By: Brice Ozenne
-##     Update #: 2855
+##     Update #: 2872
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -73,7 +73,8 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
                                              var.strata = var.strata,
                                              droplevels = list(time = object$time$levels,
                                                                strata = object$strata$levels),
-                                             initialize.cluster = object$design$vcov$ranef$crossed)$data
+                                             initialize.cluster = object$design$vcov$ranef$crossed,
+                                             initialize.time = setdiff(object$design$vcov$ranef$vars, object$design$vcov$ranef$var.cluster))$data
             
             ## extract indexes
             outInit <- .extractIndexData(data = data.Nindex, structure = design$vcov)
@@ -410,7 +411,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
     structure$xfactor <- outDesign$xfactor
     structure$var <- outDesign$var
     structure$cor <- outDesign$cor
-    
+
     ## *** parametrization and patterns
     structure <- .skeleton(structure = structure, data = data, indexData = outInit)
 
@@ -825,14 +826,14 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
 
     ## *** find position of each cluster
     index.cluster <- unname(split(1:NROW(data),data[[var.cluster]]))
-    
+
     ## *** find time corresponding to each cluster
     index.clusterTime <- unname(split(as.numeric(factor(data[[var.time]],levels = U.time)),data[[var.cluster]]))
 
     ## *** re-order according to time
     order.clusterTime <- lapply(index.clusterTime, order)
     index.cluster <- mapply(x = index.cluster, y = order.clusterTime, function(x,y){x[y]}, SIMPLIFY = FALSE)
-    attr(index.cluster, "vectorwise") <- data[[var.cluster]]
+    attr(index.cluster, "vectorwise") <- as.numeric(factor(data[[var.cluster]], levels = U.cluster))
     index.clusterTime <- mapply(x = index.clusterTime, y = order.clusterTime, function(x,y){x[y]}, SIMPLIFY = FALSE)
     attr(index.clusterTime, "vectorwise") <- as.numeric(factor(data[[var.time]], levels = U.time))
 

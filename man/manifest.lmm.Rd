@@ -4,7 +4,7 @@
 \alias{manifest.lmm}
 \title{Variables Involved in a Linear Mixed Model}
 \usage{
-\method{manifest}{lmm}(x, effects = "all", original = TRUE, ...)
+\method{manifest}{lmm}(x, effects = "all", original = TRUE, simplify = TRUE, ...)
 }
 \arguments{
 \item{x}{a \code{lmm} object.}
@@ -17,10 +17,12 @@ correlation (\code{"correlation"}), time (\code{"time"}), cluster (\code{"cluste
 When \code{NULL}, variables internally created to fill absent variables will be added to the output.
 When \code{FALSE}, variables internally created are output instead of the original variable for time, cluster, and strata.}
 
+\item{simplify}{[logical] Should the list be converted into a vector if a single \code{effects} is requested?}
+
 \item{...}{not used. For compatibility with the generic function}
 }
 \value{
-A character vector
+A list of character vectors or a character vector.
 }
 \description{
 Extract the variables used by the linear mixed model.

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: jul 13 2023 (15:25) 
+## Last-Updated: jul 25 2023 (15:15) 
 ##           By: Brice Ozenne
-##     Update #: 484
+##     Update #: 498
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -353,8 +353,8 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
 
             
         }else{
-            e.lmm <- mlmm(formula.mean, df = df, repetition = formula.repetition, data = dataL, structure = structure2, control = list(optimizer = "FS"),                          
-                          by = by, effects = "correlation", contrast.rbind = effects, trace = FALSE)
+            e.lmm <- mlmm(formula.mean, df = df, repetition = formula.repetition, data = dataL, structure = structure2, transform.rho = transform.rho, 
+                          by = by, effects = "correlation", contrast.rbind = effects, control = list(optimizer = "FS"), trace = FALSE)
             out <- confint(e.lmm, df = df, columns = c("estimate","se","df","lower","upper","p.value"), ...)
 
         }
@@ -413,7 +413,7 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
                 attr(out,"backtransform")[,"estimate"] <- FALSE
             }
         }else{
-            e.lmm <- mlmm(formula.mean, df = df, repetition = formula.repetition, data = dataL, structure = structure,
+            e.lmm <- mlmm(formula.mean, df = df, repetition = formula.repetition, data = dataL, structure = structure, transform.rho = transform.rho,
                           by = by, effects = "correlation", contrast.rbind = effects, name.short = name.short, trace = FALSE)
             out <- confint(e.lmm, columns = c("estimate","se","df","lower","upper","p.value"))
         }
@@ -540,7 +540,7 @@ partialCor.lmm <- function(object, level = 0.95, R2 = FALSE, se = TRUE, df = TRU
     }
     
     ## ** warning
-    if(object$design$vcov$type %in% c("ID","CS") == FALSE){
+    if(sum(object$design$param$type=="sigma")>1){
         warning("Formula for the partial correlation",if(R2){" and R2"}," may not lead to meaningful estimates with heteroschedastic residuals. \n",
                 "Use the estimated values at your own risk. \n", sep = "")
     }
