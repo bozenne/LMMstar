@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: jul 21 2023 (16:06) 
+## Last-Updated: jul 26 2023 (11:08) 
 ##           By: Brice Ozenne
-##     Update #: 591
+##     Update #: 592
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -132,7 +132,7 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
     name.mucoef <- colnames(X)
     n.mucoef <- length(name.mucoef)
     name.varcoef <- lapply(dOmega,names)
-    n.varcoef <- lapply(name.varcoef, length)
+    n.varcoef <- lengths(name.varcoef)
     name.allvarcoef <- unique(unlist(name.varcoef))
     U.pattern <- names(dOmega)
     n.pattern <- length(U.pattern)
@@ -161,7 +161,7 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
         if(("variance" %in% effects == FALSE) || ("correlation" %in% effects == FALSE)){
             name.varcoef <- stats::setNames(lapply(U.pattern,function(iPattern){intersect(name.effects,name.varcoef[[iPattern]])}),
                                      U.pattern)
-            n.varcoef <- lapply(name.varcoef, length)
+            n.varcoef <- lengths(name.varcoef)
             name.allvarcoef <- unique(unlist(name.varcoef))
         }
         if("mean" %in% effects == FALSE){ ## compute score only for variance and/or correlation parameters
@@ -169,12 +169,12 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
                 stop("Not possible to compute individual score for variance and/or correlation coefficients when using REML.\n")
             }
 
-            test.vcov <- any(unlist(n.varcoef)>0)
+            test.vcov <- any(n.varcoef>0)
             test.mean <- FALSE
 
         }else{ ## compute score all parameters
      
-            test.vcov <- any(unlist(n.varcoef)>0)
+            test.vcov <- any(n.varcoef>0)
             test.mean <- n.mucoef>0
         }
     }

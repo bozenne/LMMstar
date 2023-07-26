@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: jul 21 2023 (16:06) 
+## Last-Updated: jul 26 2023 (14:22) 
 ##           By: Brice Ozenne
-##     Update #: 1108
+##     Update #: 1114
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -155,13 +155,12 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
     name.mucoef <- colnames(X)
     n.mucoef <- length(name.mucoef)
     name.varcoef <- lapply(dOmega, names)
-    n.varcoef <- lapply(name.varcoef, length)
+    n.varcoef <- lengths(name.varcoef)
     n.allcoef <- length(name.allcoef)
     name.allvarcoef <- name.allcoef[name.allcoef %in% unique(unlist(name.varcoef))] ## make sure the ordering is correct
     n.allvarcoef <- length(name.allvarcoef)
     U.pattern <- names(Upattern.ncluster)
     n.pattern <- length(U.pattern)
-        
     npair.meanvcov <- lapply(pair.meanvcov, NCOL)
     npair.vcov <- lapply(pair.vcov, NCOL)
 
@@ -213,7 +212,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
                 return(d2Omega[[iPattern]][attr(pair.vcov[[iPattern]],"subset")])
             }), U.pattern)
 
-            n.varcoef <- lapply(name.varcoef, length)
+            n.varcoef <- lengths(name.varcoef)
             name.allvarcoef <- unique(unlist(name.varcoef))
             n.allvarcoef <- length(name.allvarcoef)
             npair.meanvcov <- lapply(pair.meanvcov, NCOL)
@@ -224,12 +223,12 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
                 stop("Not possible to compute individual hessian for variance and/or correlation coefficients when using REML.\n")
             }
 
-            test.vcov <- any(unlist(n.varcoef)>0)
+            test.vcov <- any(n.varcoef>0)
             test.mean <- FALSE
 
         }else{ ## compute hessian all parameters
      
-            test.vcov <- any(unlist(n.varcoef)>0)
+            test.vcov <- any(n.varcoef>0)
             test.mean <- n.mucoef>0
         }
     }

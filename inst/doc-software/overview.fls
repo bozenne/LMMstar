@@ -1115,17 +1115,6 @@ INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\tex\latex\fancyvrb\fancyvrb.sty
 INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\tex\latex\fancyvrb\fancyvrb.sty
 INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\tex\latex\fancyvrb\fancyvrb.sty
 INPUT C:\Program Files\MiKTeX 2.9\tex\latex\graphics\keyval.sty
-INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\tex\latex\enumitem\enumitem.sty
-INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\tex\latex\enumitem\enumitem.sty
-INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\tex\latex\enumitem\enumitem.sty
-INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\tex\latex\enumitem\enumitem.sty
-INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\tex\latex\enumitem\enumitem.sty
-INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\tex\latex\enumitem\enumitem.sty
-INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\tex\latex\enumitem\enumitem.sty
-INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\tex\latex\enumitem\enumitem.sty
-INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\tex\latex\enumitem\enumitem.sty
-INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\tex\latex\enumitem\enumitem.sty
-INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\tex\latex\enumitem\enumitem.sty
 INPUT C:\Program Files\MiKTeX 2.9\tex\latex\epstopdf-pkg\epstopdf.sty
 INPUT C:\Program Files\MiKTeX 2.9\tex\latex\epstopdf-pkg\epstopdf.sty
 INPUT C:\Program Files\MiKTeX 2.9\tex\latex\epstopdf-pkg\epstopdf.sty
@@ -1494,39 +1483,10 @@ INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\fonts\tfm\public\prodint\prodin
 INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\fonts\tfm\public\prodint\prodint.tfm
 INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\fonts\tfm\public\prodint\prodint.tfm
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmbx12.tfm
-INPUT C:\Program Files\MiKTeX 2.9\tex\latex\lm\ts1lmr.fd
-INPUT C:\Program Files\MiKTeX 2.9\tex\latex\lm\ts1lmr.fd
-INPUT C:\Program Files\MiKTeX 2.9\tex\latex\lm\ts1lmr.fd
-INPUT C:\Program Files\MiKTeX 2.9\tex\latex\lm\ts1lmr.fd
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ts1-lmr12.tfm
-INPUT C:\Program Files\MiKTeX 2.9\tex\latex\lm\t1lmtt.fd
-INPUT C:\Program Files\MiKTeX 2.9\tex\latex\lm\t1lmtt.fd
-INPUT C:\Program Files\MiKTeX 2.9\tex\latex\lm\t1lmtt.fd
-INPUT C:\Program Files\MiKTeX 2.9\tex\latex\lm\t1lmtt.fd
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmtt12.tfm
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmri12.tfm
-INPUT C:\Users\hpl802\AppData\Local\MiKTeX\2.9\pdftex\config\pdftex.map
-INPUT C:\Program Files\MiKTeX 2.9\tex\latex\listings\lstlang1.sty
-INPUT C:\Program Files\MiKTeX 2.9\tex\latex\listings\lstlang1.sty
-INPUT C:\Program Files\MiKTeX 2.9\tex\latex\listings\lstlang1.sty
-INPUT C:\Program Files\MiKTeX 2.9\tex\latex\listings\lstlang1.sty
-INPUT C:\Program Files\MiKTeX 2.9\tex\latex\listings\lstlang2.sty
-INPUT C:\Program Files\MiKTeX 2.9\tex\latex\listings\lstlang2.sty
-INPUT C:\Program Files\MiKTeX 2.9\tex\latex\listings\lstlang2.sty
-INPUT C:\Program Files\MiKTeX 2.9\tex\latex\listings\lstlang2.sty
-INPUT C:\Program Files\MiKTeX 2.9\tex\latex\listings\lstlang3.sty
-INPUT C:\Program Files\MiKTeX 2.9\tex\latex\listings\lstlang3.sty
-INPUT C:\Program Files\MiKTeX 2.9\tex\latex\listings\lstlang3.sty
-INPUT C:\Program Files\MiKTeX 2.9\tex\latex\listings\lstlang3.sty
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmtt10.tfm
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmr10.tfm
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmr17.tfm
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmbx12.tfm
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmbx12.tfm
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\rm-lmr10.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\rm-lmr12.tfm
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\rm-lmr8.tfm
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\rm-lmr6.tfm
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmmi10.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmmi12.tfm
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmmi8.tfm
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmmi6.tfm
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmsy10.tfm
@@ -1544,29 +1504,6 @@ INPUT C:\Users\hpl802\AppData\Local\MiKTeX\2.9\fonts\tfm\public\stmaryrd\stmary6
 INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\fonts\tfm\public\prodint\prodint.tfm
 INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\fonts\tfm\public\prodint\prodint.tfm
 INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\fonts\tfm\public\prodint\prodint.tfm
-INPUT .\figures\summarizeNA.pdf
-INPUT .\figures\summarizeNA.pdf
-INPUT figures\summarizeNA.pdf
-INPUT .\figures\summarizeNA.pdf
-INPUT .\figures\summarizeNA.pdf
-INPUT .\figures\summarizeNA.pdf
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\rm-lmr12.tfm
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmmi12.tfm
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmsy10.tfm
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\amsfonts\symbols\msam10.tfm
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\amsfonts\symbols\msbm10.tfm
-INPUT C:\Users\hpl802\AppData\Local\MiKTeX\2.9\fonts\tfm\public\stmaryrd\stmary10.tfm
-INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\fonts\tfm\public\prodint\prodint.tfm
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmr8.tfm
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmr10.tfm
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\rm-lmr5.tfm
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmmi5.tfm
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmsy5.tfm
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\amsfonts\symbols\msam5.tfm
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\amsfonts\symbols\msbm5.tfm
-INPUT C:\Users\hpl802\AppData\Local\MiKTeX\2.9\fonts\tfm\public\stmaryrd\stmary5.tfm
-INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\fonts\tfm\public\prodint\prodint.tfm
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmr7.tfm
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\rm-lmbx12.tfm
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\rm-lmbx8.tfm
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\rm-lmbx6.tfm
@@ -1576,8 +1513,60 @@ INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmmib7.tfm
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmbsy10.tfm
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmbsy10.tfm
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmbsy7.tfm
-INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmtt10.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmr8.tfm
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmr6.tfm
+INPUT C:\Program Files\MiKTeX 2.9\tex\latex\lm\ts1lmr.fd
+INPUT C:\Program Files\MiKTeX 2.9\tex\latex\lm\ts1lmr.fd
+INPUT C:\Program Files\MiKTeX 2.9\tex\latex\lm\ts1lmr.fd
+INPUT C:\Program Files\MiKTeX 2.9\tex\latex\lm\ts1lmr.fd
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ts1-lmr12.tfm
+INPUT C:\Program Files\MiKTeX 2.9\tex\latex\listings\lstlang1.sty
+INPUT C:\Program Files\MiKTeX 2.9\tex\latex\listings\lstlang1.sty
+INPUT C:\Program Files\MiKTeX 2.9\tex\latex\listings\lstlang1.sty
+INPUT C:\Program Files\MiKTeX 2.9\tex\latex\listings\lstlang1.sty
+INPUT C:\Program Files\MiKTeX 2.9\tex\latex\listings\lstlang2.sty
+INPUT C:\Program Files\MiKTeX 2.9\tex\latex\listings\lstlang2.sty
+INPUT C:\Program Files\MiKTeX 2.9\tex\latex\listings\lstlang2.sty
+INPUT C:\Program Files\MiKTeX 2.9\tex\latex\listings\lstlang2.sty
+INPUT C:\Program Files\MiKTeX 2.9\tex\latex\listings\lstlang3.sty
+INPUT C:\Program Files\MiKTeX 2.9\tex\latex\listings\lstlang3.sty
+INPUT C:\Program Files\MiKTeX 2.9\tex\latex\listings\lstlang3.sty
+INPUT C:\Program Files\MiKTeX 2.9\tex\latex\listings\lstlang3.sty
+INPUT C:\Program Files\MiKTeX 2.9\tex\latex\lm\t1lmtt.fd
+INPUT C:\Program Files\MiKTeX 2.9\tex\latex\lm\t1lmtt.fd
+INPUT C:\Program Files\MiKTeX 2.9\tex\latex\lm\t1lmtt.fd
+INPUT C:\Program Files\MiKTeX 2.9\tex\latex\lm\t1lmtt.fd
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmtt12.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmtt10.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmr10.tfm
+INPUT C:\Users\hpl802\AppData\Local\MiKTeX\2.9\pdftex\config\pdftex.map
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmri12.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmr17.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmbx12.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmbx12.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\rm-lmr10.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmmi10.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmsy10.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\amsfonts\symbols\msam10.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\amsfonts\symbols\msbm10.tfm
+INPUT C:\Users\hpl802\AppData\Local\MiKTeX\2.9\fonts\tfm\public\stmaryrd\stmary10.tfm
+INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\fonts\tfm\public\prodint\prodint.tfm
+INPUT .\figures\summarizeNA.pdf
+INPUT .\figures\summarizeNA.pdf
+INPUT figures\summarizeNA.pdf
+INPUT .\figures\summarizeNA.pdf
+INPUT .\figures\summarizeNA.pdf
+INPUT .\figures\summarizeNA.pdf
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmr10.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\rm-lmr5.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmmi5.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\lmsy5.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\amsfonts\symbols\msam5.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\amsfonts\symbols\msbm5.tfm
+INPUT C:\Users\hpl802\AppData\Local\MiKTeX\2.9\fonts\tfm\public\stmaryrd\stmary5.tfm
+INPUT C:\Users\hpl802\AppData\Roaming\MiKTeX\2.9\fonts\tfm\public\prodint\prodint.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmr7.tfm
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmtt10.tfm
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ec-lmbx6.tfm
 INPUT .\figures\diag-scatterplot.pdf
 INPUT .\figures\diag-scatterplot.pdf
@@ -1705,6 +1694,8 @@ INPUT C:\Program Files\MiKTeX 2.9\fonts\type1\public\lm\lmr17.pfb
 INPUT C:\Program Files\MiKTeX 2.9\fonts\type1\public\lm\lmr17.pfb
 INPUT C:\Program Files\MiKTeX 2.9\fonts\type1\public\lm\lmr5.pfb
 INPUT C:\Program Files\MiKTeX 2.9\fonts\type1\public\lm\lmr5.pfb
+INPUT C:\Program Files\MiKTeX 2.9\fonts\type1\public\lm\lmr6.pfb
+INPUT C:\Program Files\MiKTeX 2.9\fonts\type1\public\lm\lmr6.pfb
 INPUT C:\Program Files\MiKTeX 2.9\fonts\type1\public\lm\lmr7.pfb
 INPUT C:\Program Files\MiKTeX 2.9\fonts\type1\public\lm\lmr7.pfb
 INPUT C:\Program Files\MiKTeX 2.9\fonts\type1\public\lm\lmr8.pfb

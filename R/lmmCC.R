@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 27 2023 (17:33) 
 ## Version: 
-## Last-Updated: jun 14 2023 (15:05) 
+## Last-Updated: jul 26 2023 (11:07) 
 ##           By: Brice Ozenne
-##     Update #: 179
+##     Update #: 184
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -171,7 +171,7 @@ lmmCC.formula <- function(object, repetition, data,
         var.X <- attr(out$design$mean,"variable")
         n.level <- stats::setNames(rep(2, length(var.X)), var.X)
         if(length(out$xfactor$mean)>0){
-            n.level[names(out$xfactor$mean)] <- (sapply(out$xfactor$mean,length)-1)*2
+            n.level[names(out$xfactor$mean)] <- (lengths(out$xfactor$mean)-1)*2
         }        
         if(NCOL(out$design$mean) != sum(n.level)){
             warning("Number of coefficients in the mixed model is not twice the number of variables. \n",
@@ -242,12 +242,12 @@ lmmCC.lm <- function(object, repetition, data,
     test.id <- sapply(repetition.char, grepl, pattern = "|", fixed = TRUE)
     if(any(test.id)){
         ls.var.cluster <- lapply(repetition.char[test.id], function(iRep){trimws(strsplit(iRep, split = "|", fixed = TRUE)[[1]][2])})
-        if(any(lapply(ls.var.cluster,length)!=1)){
+        if(any(lengths(ls.var.cluster)!=1)){
             stop("Incorrect argument \'formula\': there must be a single cluster variable per formula. \n",
                  "Typically Ychange ~ Yfollowup - Ybaseline|id. \n")
         }
         var.cluster <- unique(unlist(ls.var.cluster))
-        if(any(lapply(ls.var.cluster,length)!=1)){
+        if(any(lengths(ls.var.cluster)!=1)){
             stop("Incorrect argument \'formula\': the cluster variable must be the same for all formula. \n",
                  "Typically Ychange ~ Yfollowup - Ybaseline|id and Zchange ~ Zfollowup - Zbaseline|id. \n")
         }        
@@ -264,12 +264,12 @@ lmmCC.lm <- function(object, repetition, data,
         data$CCclusterCC <- 1:NROW(data)
     }
     ls.XY <- lapply(repetition, all.vars)
-    if(any(sapply(ls.XY,length)!=3)){
+    if(any(lengths(ls.XY)!=3)){
         stop("Argument \'repetition\' should be formula or list of formula, each containing three variables. \n",
              "Typically Ychange ~ Yfollowup - Ybaseline. \n")
     }
     ls.X <- lapply(repetition, function(iFormula){all.vars(stats::delete.response(stats::terms(stats::as.formula(iFormula))))})
-    if(any(sapply(ls.X,length)!=2)){
+    if(any(lengths(ls.X)!=2)){
         stop("Argument \'repetition\' should be formula or list of formula, each containing three variables. \n",
              "Typically Ychange ~ Yfollowup - Ybaseline. \n")
     }

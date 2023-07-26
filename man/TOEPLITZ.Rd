@@ -23,7 +23,7 @@ Will also affect the variance structure when not explicit.}
 An object of class \code{TOEPLITZ} that can be passed to the argument \code{structure} of the \code{lmm} function.
 }
 \description{
-Variance-covariance structure for stationnary processes.
+Variance-covariance structure where the correlation depends on time elapsed between two repetitions.
 Can be stratified on a categorical variable.
 }
 \details{

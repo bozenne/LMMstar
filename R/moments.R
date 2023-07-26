@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: jul 21 2023 (10:27) 
+## Last-Updated: jul 26 2023 (14:24) 
 ##           By: Brice Ozenne
-##     Update #: 502
+##     Update #: 506
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -92,17 +92,18 @@
         
     }else{
         precompute <- NULL
-        Upattern.ncluster <- NULL
         if(is.null(design$weights)){
             weights.cluster <- rep(1, n.cluster)
+            Upattern.ncluster <- stats::setNames(design$vcov$Upattern$n.cluster,design$vcov$Upattern$name)
         }else{
             weights.cluster <- design$weights[sapply(design$index.cluster,"[[",1)]
+            Upattern.ncluster <- tapply(tapply(design$weight,design$index.cluster,unique),design$vcov$pattern.cluster$pattern,sum)[design$vcov$Upattern$name]
         }
         if(is.null(design$scale.Omega)){
             scale.cluster <- rep(1, n.cluster)
         }else{
             scale.cluster <- design$scale.Omega[sapply(design$index.cluster,"[[",1)]
-        }
+        }        
     }
 
     if(trace>=1){cat("- Omega \n")}

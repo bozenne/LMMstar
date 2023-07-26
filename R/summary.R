@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jul 25 2023 (14:55) 
+## Last-Updated: jul 26 2023 (11:08) 
 ##           By: Brice Ozenne
-##     Update #: 1283
+##     Update #: 1284
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -70,7 +70,7 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
     nobs <- stats::nobs(object)
     method.fit <- object$args$method.fit
     type.information <- object$args$type.information
-    nobsByCluster <- sapply(object$design$index.cluster,length)
+    nobsByCluster <- lengths(object$design$index.cluster)
     formula <- object$formula
     df <- !is.null(object$df)
     options <- LMMstar.options()

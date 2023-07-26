@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: jul 24 2023 (18:27) 
+## Last-Updated: jul 26 2023 (17:29) 
 ##           By: Brice Ozenne
-##     Update #: 184
+##     Update #: 185
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -77,7 +77,7 @@ collapse.data.frame <- function(value, sep = ".", as.factor = TRUE, ...){
 
 collapse.list <- collapse.data.frame
 collapse.matrix <- function(value, ...){
-    return(collapse(as.data.frame(value), ...))
+    return(nlme::collapse(as.data.frame(value), ...))
 }
 
 ## * countChar
@@ -194,7 +194,7 @@ orderLtoR <- function(object, strata = NULL){
     }else{
         new.order <- unlist(rev(tapply(colnames(object),strata,rev, simplify = FALSE)))
     }
-    out <- as.numeric(collapse(object[,new.order,drop=FALSE], sep=""))
+    out <- as.numeric(nlme::collapse(object[,new.order,drop=FALSE], sep=""))
     ## object[order(out),]
     return(out)
 

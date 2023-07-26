@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: jul 25 2023 (11:17) 
+## Last-Updated: jul 26 2023 (14:30) 
 ##           By: Brice Ozenne
-##     Update #: 594
+##     Update #: 600
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -168,25 +168,25 @@
 
     Upattern <- object$Upattern
     n.Upattern <- NROW(Upattern)
-    X.var <- object$var$X
-    X.cor <- object$cor$X
+    X.var <- object$var$Xpattern
+    X.cor <- object$cor$Xpattern
     FCT.sigma <- object$FCT.sigma
     FCT.rho <- object$FCT.rho
-    name.sigma <- names(object$init.sigma)
-    name.rho <- names(object$init.rho)
+    name.sigma <- object$param[object$param$type=="sigma","name"]
+    name.rho <- object$param[object$param$type=="rho","name"]
 
     Omega <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
 
-        iPattern.var <- object$Upattern$var[iPattern]
-        iNtime <- object$Upattern$n.time[iPattern]
-        iX.var <- object$Xpattern.var[[iPattern.var]]
-        iTime <- object$Upattern$time[[iPattern]]
-        iOmega.sd <- FCT.sigma(p = param[name.sigma], time = iTime, X = iX.var)
+        iPattern.var <- Upattern$var[iPattern]
+        iNtime <- Upattern$n.time[iPattern]
+        iX.var <- X.var[[iPattern.var]]
+        iTime <- Upattern$time[[iPattern]]
+        iOmega.sd <- FCT.sigma(p = param[name.sigma], n.time = iNtime, X = iX.var)
 
-        if(iNtime > 1 && !is.null(X.cor)){
-            iPattern.cor <- object$Upattern$cor[iPattern]
-            iX.cor <- object$cor$Xpattern[[iPattern.cor]]
-            iOmega.cor <- FCT.rho(p = param[name.rho], time = iTime, X = iX.var)
+        if(iNtime > 1 && !is.na(Upattern$cor[iPattern])){
+            iPattern.cor <- Upattern$cor[iPattern]
+            iX.cor <- X.cor[[iPattern.var]]
+            iOmega.cor <- FCT.rho(p = param[name.rho], n.time = iNtime, X = iX.cor)
             diag(iOmega.cor) <- 0
             iOmega <- diag(as.double(iOmega.sd)^2, nrow = iNtime, ncol = iNtime) + iOmega.cor * tcrossprod(iOmega.sd)
         }else{
@@ -197,7 +197,6 @@
         if(keep.interim){
             attr(iOmega,"sd") <- iOmega.sd
             attr(iOmega,"cor") <- iOmega.cor
-            attr(iOmega,"time") <- iTime
         }
         return(iOmega)
     }), Upattern$name)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: jul 25 2023 (11:54) 
+## Last-Updated: jul 26 2023 (11:07) 
 ##           By: Brice Ozenne
-##     Update #: 513
+##     Update #: 515
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -192,7 +192,6 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
     for(iCluster in names(index.cluster)){
         names(index.cluster[[iCluster]]) <- rep(iCluster, length(index.cluster[[iCluster]]))
     }
-    nTime.cluster <- lapply(index.cluster,length)
     precompute.moments <- !is.null(object$design$precompute.XX)
   
     var.all <- manifest(object, effects = "all")
@@ -587,7 +586,7 @@ resample.mlmm <- function(object, type, method = NULL, cluster = NULL, n.sample 
     ## cluster
     if(is.null(cluster)){
         ls.nameCluster <- lapply(object$model, function(iModel){manifest(iModel)["cluster"]})
-        if(length(unique(unlist(ls.nameCluster)))==1 && all(sapply(ls.nameCluster,length)==1)){
+        if(length(unique(unlist(ls.nameCluster)))==1 && all(lengths(ls.nameCluster)==1)){
             cluster <- unname(ls.nameCluster[[1]])
         }else{
             stop("Argument \'cluster\' cannot be guessed from the object. \n")

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: jul 13 2023 (11:30) 
+## Last-Updated: jul 26 2023 (11:05) 
 ##           By: Brice Ozenne
-##     Update #: 730
+##     Update #: 731
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -1251,7 +1251,7 @@ autoplot.Wald_lmm <- function(object, type = "forest", size.text = 16, add.args 
         ## rename
         if(!is.null(object$args$sep) && all(colnames(Sigma_t) == rownames(Sigma_t))){
             splitname <- strsplit(colnames(Sigma_t),split = object$args$sep, fixed = TRUE)
-            if(all(sapply(splitname,length)==2) && length(unique(sapply(splitname,"[",2)))==1){
+            if(all(lengths(splitname)==2) && length(unique(sapply(splitname,"[",2)))==1){
                 name.x <- splitname[[1]][2]
                 name.y <- splitname[[1]][2]
                 table$col <- sapply(splitname,"[",1)[table$col]

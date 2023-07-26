@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: jul 21 2023 (15:40) 
+## Last-Updated: jul 26 2023 (15:44) 
 ##           By: Brice Ozenne
-##     Update #: 659
+##     Update #: 663
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -62,6 +62,8 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
     param.k.x <- stats::setNames(object$design$param$k.x,param.name)
     param.k.y <- stats::setNames(object$design$param$k.y,param.name)
 
+    outcome.var <- object$outcome$var
+
     strata <- object$strata$levels
     n.strata <- length(strata)
 
@@ -93,7 +95,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
     object.cluster.num <- object$cluster$index
     object.index.cluster <- object$design$index.cluster
     object.index.clusterTime <- object$design$index.clusterTime
-
+    
     ## find cluster index associated to each pattern
     pattern.index.cluster1 <- sapply(attr(object.structure$pattern,"list")[Upattern$name],"[",1)
     ## find time associated to each pattern
@@ -116,6 +118,9 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
     if(!is.null(cluster)){
         test.clusterDF <- inherits(cluster, "data.frame")
         if(test.clusterDF){
+            if(outcome.var %in% names(cluster) == FALSE){
+                cluster[[outcome.var]] <- NA
+            }
             newdesign <- stats::model.matrix(object, data = cluster, effect = "variance", simplify = FALSE)            
             cluster.num <- 1:length(newdesign$index.cluster)
             if(!is.null(attr(object$cluster$var,"original"))){

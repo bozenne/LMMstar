@@ -16,41 +16,115 @@ library(LMMstar, quietly = TRUE, verbose = FALSE)
 #+END_SRC
 
 #+RESULTS:
+#+begin_example
+Advarselsbesked:
+pakke 'ggplot2' blev bygget under R version 4.2.3
+
+Vedhæfter pakke: 'MASS'
+
+Det følgende objekt er maskeret fra 'package:qqtest':
+
+    bacteria
+
+
+Vedhæfter pakke: 'TH.data'
+
+Det følgende objekt er maskeret fra 'package:MASS':
+
+    geyser
+
+Advarselsbesked:
+pakke 'multcomp' blev bygget under R version 4.2.2
+#+end_example
 
 This vignette describes the main functionalities of the *LMMstar*
 package. This package implements specific types of linear mixed
 models, mainly useful when having repeated observations over a
-discrete variable (e.g. time, brain region, ...). Key assumptions are
-that at the cluster level, observation are independent and that the
-mean and variance are independent (conditionally on covariates). In
-particular, in large samples the residuals do not have to be normally
-distributed.
+discrete variable: \(\VY=(Y_1,\ldots,Y_T)\) where \(T\) can be
+for example be time (chronological ordering of the repetitions) or
+brain region (arbitrary ordering of the repetitions). Denoting by
+\(X\) the associated covariates and \(\boldsymbol{\varepsilon} =
+(\varepsilon_1,\ldots,\varepsilon_T)\), the model can be written:
+#+BEGIN_EXPORT latex
+\[ \VY = X \beta + \boldsymbol{\varepsilon} \text{ where } \varepsilon \sim \Gaus(0,\Omega) \]
+#+END_EXPORT
+where \(\beta\) are the mean parameters and the residual
+variance-covariance matrix, \(\Omega\), depends on a set of
+variance-covariance parameters (say \(\gamma\)) distinct of
+\(\beta\). Key assumptions are:
+- we observe \(n\) independent replicates of
+  \(\mathcal{O}=(\VY,X)\), i.e. at the cluster level,
+  observations \(\left(\mathcal{O}_1,\ldots,\mathcal{O}_n\right)\) are
+  independent. The replicates should also be identically distributed
+  up to a categorical variable (called strata variable in the following).
+- the residual variance is independent of the mean value.
+Additional assumptions are necessary in presence of missing values,
+typically correct specification of the conditional mean to have
+consistent estimates of the mean parameters. This case will sometimes
+be examplified by considering that only last outcome may be missing:
+the conditional mean \(\Esp[Y_T|Y_1,Y_2,\ldots,Y_{T-1}]\) is then
+abreviated as \(\Esp[Y_T|Y_{T-1}]\). Note that we do not require the
+residuals to be normally distributed to have valid estimates or
+statistical inference in large samples.
 
 \bigskip
 
-The user interface of the *LMMstar* package is made of the following functions:
+To get start, one should load the *LMMstar* package in the \Rlogo session:
+#+BEGIN_SRC R :exports code :results silent :session *R* :cache no
+library(LMMstar)
+#+END_SRC
+
+This package is under active development. Newer package versions may
+include additional functionalities and fix previous bugs. The version
+of the package that is being used for this overview is:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+utils::packageVersion("LMMstar")
+#+END_SRC
+
+#+RESULTS:
+: [1] '1.0.0'
+
+\clearpage
+
+The user interface of the *LMMstar* package is made of the following
+functions:
 - the function =lmm= is the main function of the package which fits
   linear mixed models. The user can interact with /lmm/ objects using:
-    + =anova= to test linear combinations of coefficients (Wald test
-      or Likelihood ratio tests). \newline The output be combined via =rbind=.
-    + =coef= to extract the estimates.
+    + =anova= to perform Wald tests, i.e. test linear combinations of
+      coefficients (\(\widehat{\beta}_1+\widehat{\beta}_2=0\) or
+      \(\widehat{\beta}_1=\widehat{\beta}_2=0\)). The output obtained
+      with different =lmm= can be combined using =rbind=.
+    + =coef= to extract the estimated model parameters (\(\widehat{\beta}\) and possibly \(\widehat{\gamma}\)).
     + =confint= to extract the estimates with their confidence intervals.
     + =dummy.coef= to extract the estimated (marginal) mean for each combination of categorical covariate.
-    + =estimate= to test non-linear combinations of coefficients (Wald test via a first order delta method).
+    + =estimate= to test non-linear combinations of coefficients (Wald test via a first order delta method, e.g. \(\widehat{\beta}_1/\widehat{\beta}_2=1\)).
+    + =fitted= to output the fitted mean (\(X\widehat{\beta}\)) or the
+      conditional mean for observations with missing outcome
+      (e.g. \(X\widehat{\beta} +
+      \widehat{\Esp}[\varepsilon_T|\varepsilon_{-T}]\)).
+    + =iid= to extract the influence function of the estimated
+      parameters (\(\varphi\)), which satisfies \newline
+      \(\sqrt{n}(\widehat{\beta}-\beta) = \frac{1}{\sqrt{n}}
+      \sum_{i=1}^n \varphi\left(\mathcal{O}_i\right) +o_p(1)\)
     + =levels= to extract the reference level for the mean structure.
       (i.e. what =(Intercept)= refers to in presence of categorical.
       covariates).
     + =logLik= to output the log-likelihood of the estimated model.
     + =model.tables= to extract the estimates, standard errors, p-value, and confidence intervals.
     + =plot= to obtain a diagnostic plots, partial residual plots, or a graphical display of the fitted values.
-    + =predict= to compute the conditional mean for new observations.
+    + =predict= to compute the mean conditional on covariates and
+      possible outcome values.
     + =profile= to display the likelihood or profile likelihood of the model.
     + =resample= to use non-parametric bootstrap or permutation test for statistical inference.
-    + =residuals= to extract the observed residuals of the fitted model.
-    + =sigma= to extract the modeled residual variance covariance matrix.
+    + =residuals= to extract the observed residuals of the fitted
+      model, possibly normalized
+      (\(\widehat{\Omega}^{-\frac{1}{2}}\widehat{\varepsilon}\)).
+    + =sigma= to extract the modeled residual variance covariance matrix (\(\widehat{\Omega}\)).
     + =summary= to obtain a summary of the input, model fit, and estimated values.
-- the =mlmm= function to fit (distinct) linear mixed models on
-  different outcome, and gather the estimated coefficients.
+    + =vcov= to extract the variance-covariance matrix of the mean
+      parameters (\(\widehat{\Sigma}_{\widehat{\beta}}\)).
+- the =mlmm= function to fit group-specific linear mixed models and
+  gather the estimated coefficients.
 - the =summarize= function to compute summary statistics, possibly
   stratified on a categorical variable
 - the =summarizeNA= function to identify missing data patterns.
@@ -60,25 +134,6 @@ The user interface of the *LMMstar* package is made of the following functions:
   default values used in the *LMMstar* package. The function
   can also change the default values to better match the user needs.
 
-\bigskip
-
-Before going further we need to load the *LMMstar* package in the R
-session:
-#+BEGIN_SRC R  :results silent   :exports code  :session *R* :cache no
-library(LMMstar)
-#+END_SRC
-
-\bigskip
-
-_Note:_ the *LMMstar* package is under active development. Newer
-package versions may include additional functionalities and fix
-previous bugs. The version of the package that is being used is:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-utils::packageVersion("LMMstar")
-#+END_SRC
-
-#+RESULTS:
-: [1] '1.0.0'
 
 \clearpage
 
@@ -286,7 +341,7 @@ linear model. The most basic ones are the *identity* structure:
 eId.lmm <- lmm(weight ~ time + glucagon, repetition = ~time|id, 
                structure = "ID", data = dfL)
 eId.lmm
-cat(" covariance structure: \n");sigma(eId.lmm)
+cat(" modeled residual variance-covariance: \n");sigma(eId.lmm)
 #+END_SRC
 
 #+RESULTS:
@@ -294,12 +349,12 @@ cat(" covariance structure: \n");sigma(eId.lmm)
 		Linear regression 
 
  outcome/cluster/time: weight/id/time 
- data                : 78 observations and distributed in 20 clusters 
+ data                : 78 observations from 20 clusters 
  parameter           : 5 mean ((Intercept) timeB1w timeA1w timeA3m glucagon) 
                        1 variance (sigma) 
  log-restr.likelihood: -323.086426918519 
  convergence         : TRUE (0 iterations)
- covariance structure: 
+ modeled residual variance-covariance: 
          B3m      B1w      A1w      A3m
 B3m 330.0427   0.0000   0.0000   0.0000
 B1w   0.0000 330.0427   0.0000   0.0000
@@ -312,7 +367,7 @@ and the *independence* structure:
 eInd.lmm <- lmm(weight ~ time + glucagon, repetition = ~time|id, 
                structure = "IND", data = dfL)
 eInd.lmm
-cat(" covariance structure: \n");sigma(eInd.lmm)
+cat(" modeled residual variance-covariance: \n");sigma(eInd.lmm)
 #+END_SRC
 
 #+RESULTS:
@@ -320,12 +375,12 @@ cat(" covariance structure: \n");sigma(eInd.lmm)
 		Linear regression with heterogeneous residual variance 
 
  outcome/cluster/time: weight/id/time 
- data                : 78 observations and distributed in 20 clusters 
+ data                : 78 observations from 20 clusters 
  parameter           : 5 mean ((Intercept) timeB1w timeA1w timeA3m glucagon) 
                        4 variance (sigma k.B1w k.A1w k.A3m) 
  log-restr.likelihood: -321.457830361849 
  convergence         : TRUE (8 iterations)
- covariance structure: 
+ modeled residual variance-covariance: 
          B3m      B1w      A1w      A3m
 B3m 442.6475   0.0000   0.0000   0.0000
 B1w   0.0000 418.9934   0.0000   0.0000
@@ -340,7 +395,7 @@ The most common linear mixed model uses a *compound symmetry* structure:
 eCS.lmm <- lmm(weight ~ time + glucagon, repetition = ~time|id,
                structure = "CS", data = dfL)
 eCS.lmm
-cat(" covariance structure: \n");sigma(eCS.lmm)
+cat(" modeled residual variance-covariance: \n");sigma(eCS.lmm)
 #+END_SRC
 
 #+RESULTS:
@@ -348,13 +403,13 @@ cat(" covariance structure: \n");sigma(eCS.lmm)
 		Linear Mixed Model with a compound symmetry covariance matrix 
 
  outcome/cluster/time: weight/id/time 
- data                : 78 observations and distributed in 20 clusters 
+ data                : 78 observations from 20 clusters 
  parameter           : 5 mean ((Intercept) timeB1w timeA1w timeA3m glucagon) 
                        1 variance (sigma) 
                        1 correlation (rho) 
  log-restr.likelihood: -243.600523870252 
  convergence         : TRUE (9 iterations)
- covariance structure: 
+ modeled residual variance-covariance: 
          B3m      B1w      A1w      A3m
 B3m 355.3062 344.6236 344.6236 344.6236
 B1w 344.6236 355.3062 344.6236 344.6236
@@ -367,21 +422,20 @@ A3m 344.6236 344.6236 344.6236 355.3062
 eTOE.lmm <- lmm(weight ~ time*group, repetition = ~time|id,
                 structure = "TOEPLITZ", data = dfL)
 eTOE.lmm
-cat(" correlation structure: \n");cov2cor(sigma(eTOE.lmm))
+cat(" modeled residual correlation: \n");cov2cor(sigma(eTOE.lmm))
 #+END_SRC
 
 #+RESULTS:
 #+begin_example
-		Linear Mixed Model with a Toeplitz covariance matrix 
 
  outcome/cluster/time: weight/id/time 
- data                : 78 observations and distributed in 20 clusters 
+ data                : 78 observations from 20 clusters 
  parameter           : 8 mean ((Intercept) timeB1w timeA1w timeA3m group timeB1w:group timeA1w:group timeA3m:group) 
                        4 variance (sigma k.B1w k.A1w k.A3m) 
-                       3 correlation (rho(B3m,B1w) rho(B3m,A1w) rho(B3m,A3m)) 
+                       3 correlation (rho(1) rho(2) rho(3)) 
  log-restr.likelihood: -221.152940926053 
  convergence         : TRUE (21 iterations)
- correlation structure: 
+ modeled residual correlation: 
           B3m       B1w       A1w       A3m
 B3m 1.0000000 0.9854133 0.9676223 0.9489216
 B1w 0.9854133 1.0000000 0.9854133 0.9676223
@@ -398,7 +452,7 @@ A3m 0.9489216 0.9676223 0.9854133 1.0000000
 eUN.lmm <- lmm(weight ~ time + glucagon, repetition = ~time|id,
                structure = "UN", data = dfL)
 eUN.lmm
-cat(" covariance structure: \n");sigma(eUN.lmm)
+cat(" modeled residual variance-covariance: \n");sigma(eUN.lmm)
 #+END_SRC
 
 #+RESULTS:
@@ -406,13 +460,13 @@ cat(" covariance structure: \n");sigma(eUN.lmm)
 		Linear Mixed Model with an unstructured covariance matrix 
 
  outcome/cluster/time: weight/id/time 
- data                : 78 observations and distributed in 20 clusters 
+ data                : 78 observations from 20 clusters 
  parameter           : 5 mean ((Intercept) timeB1w timeA1w timeA3m glucagon) 
                        4 variance (sigma k.B1w k.A1w k.A3m) 
                        6 correlation (rho(B3m,B1w) rho(B3m,A1w) rho(B3m,A3m) rho(B1w,A1w) rho(B1w,A3m) rho(A1w,A3m)) 
- log-restr.likelihood: -216.318937004306 
+ log-restr.likelihood: -216.318937004305 
  convergence         : TRUE (22 iterations)
- covariance structure: 
+ modeled residual variance-covariance: 
          B3m      B1w      A1w      A3m
 B3m 411.3114 381.9734 352.6400 318.8573
 B1w 381.9734 362.7326 335.4649 304.6314
@@ -434,7 +488,7 @@ eSCS.lmm
 : 		Linear Mixed Model with a stratified compound symmetry covariance matrix 
 : 
 :  outcome/cluster/time: weight/id/time 
-:  data                : 78 observations and distributed in 20 clusters 
+:  data                : 78 observations from 20 clusters 
 :  parameter           : 8 mean ((Intercept) timeB1w timeA1w timeA3m group timeB1w:group timeA1w:group timeA3m:group) 
 :                        2 variance (sigma:0 sigma:1) 
 :                        2 correlation (rho:0 rho:1) 
@@ -454,15 +508,15 @@ eSUN.lmm
 : 		Linear Mixed Model with a stratified unstructured covariance matrix 
 : 
 :  outcome/cluster/time: weight/id/time 
-:  data                : 78 observations and distributed in 20 clusters 
+:  data                : 78 observations from 20 clusters 
 :  parameter           : 9 mean ((Intercept) timeB1w timeA1w timeA3m group glucagon timeB1w:group timeA1w:group timeA3m:group) 
 :                        8 variance (sigma:0 sigma:1 k.B1w:0 k.A1w:0 k.A3m:0 k.B1w:1 k.A1w:1 k.A3m:1) 
 :                        12 correlation (rho(B3m,B1w):0 rho(B3m,A1w):0 rho(B3m,A3m):0 rho(B1w,A1w):0 rho(B1w,A3m):0 rho(A1w,A3m):0 rho(B3m,B1w):1 rho(B3m,A1w):1 rho(B3m,A3m):1 rho(B1w,A1w):1 rho(B1w,A3m):1 rho(A1w,A3m):1) 
-:  log-restr.likelihood: -197.171312062213 
+:  log-restr.likelihood: -197.171312062211 
 :  convergence         : TRUE (50 iterations)
 
 
-with covariance structure:
+with modeled residual variance-covariance:
 
 \bigskip
 
@@ -521,7 +575,7 @@ symmetry structure may depend on covariates:
 eBCS.lmm <- lmm(weight ~ time*group,repetition = ~time|id,
                 structure = CS(~baseline, type = "homogeneous"), data = dfL)
 eBCS.lmm
-cat(" covariance structure: \n");sigma(eBCS.lmm)
+cat(" modeled residual variance-covariance: \n");sigma(eBCS.lmm)
 #+END_SRC
 
 #+RESULTS:
@@ -529,13 +583,13 @@ cat(" covariance structure: \n");sigma(eBCS.lmm)
 		Linear Mixed Model with a block compound symmetry covariance matrix 
 
  outcome/cluster/time: weight/id/time 
- data                : 78 observations and distributed in 20 clusters 
+ data                : 78 observations from 20 clusters 
  parameter           : 8 mean ((Intercept) timeB1w timeA1w timeA3m group timeB1w:group timeA1w:group timeA3m:group) 
                        1 variance (sigma) 
-                       2 correlation (rho(TRUE) rho(TRUE,FALSE)) 
+                       2 correlation (rho rho(FALSE,TRUE)) 
  log-restr.likelihood: -230.532819632968 
  convergence         : TRUE (6 iterations)
- covariance structure: 
+ modeled residual variance-covariance: 
          B3m      B1w      A1w      A3m
 B3m 346.7441 339.3256 336.1825 336.1825
 B1w 339.3256 346.7441 336.1825 336.1825
@@ -557,7 +611,7 @@ logLik(e.lmer)
 eBUN.lmm <- lmm(weight ~ time*group, repetition = ~time|id,
                 structure = CS(~baseline, type = "heterogeneous"), data = dfL)
 eBUN.lmm
-cat(" covariance structure: \n");sigma(eBUN.lmm)
+cat(" modeled residual variance-covariance: \n");sigma(eBUN.lmm)
 #+END_SRC
 
 #+RESULTS:
@@ -565,13 +619,13 @@ cat(" covariance structure: \n");sigma(eBUN.lmm)
 		Linear Mixed Model with a block unstructured covariance matrix 
 
  outcome/cluster/time: weight/id/time 
- data                : 78 observations and distributed in 20 clusters 
+ data                : 78 observations from 20 clusters 
  parameter           : 8 mean ((Intercept) timeB1w timeA1w timeA3m group timeB1w:group timeA1w:group timeA3m:group) 
                        2 variance (sigma k.TRUE) 
-                       3 correlation (rho(TRUE) rho(TRUE,FALSE) rho(FALSE)) 
+                       3 correlation (rho(FALSE) rho(FALSE,TRUE) rho(TRUE)) 
  log-restr.likelihood: -227.461008305704 
  convergence         : TRUE (6 iterations)
- covariance structure: 
+ modeled residual variance-covariance: 
          B3m      B1w      A1w      A3m
 B3m 378.0328 372.8100 336.3064 336.3064
 B1w 372.8100 378.0328 336.3064 336.3064
@@ -599,8 +653,7 @@ following model for the residuals: \[\Omega =
 
 To be more concrete, consider the following correlation matrix
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-rho.2block <- function(p,time,...){
-  n.time <- length(time)
+rho.2block <- function(p,n.time,X){
   rho <- matrix(1, nrow = n.time, ncol = n.time)
   rho[1,2] <- rho[2,1] <- rho[4,5] <- rho[5,4] <- p["rho1"]
   rho[1,3] <- rho[3,1] <- rho[4,6] <- rho[6,4] <- p["rho2"]
@@ -609,7 +662,7 @@ rho.2block <- function(p,time,...){
   return(rho)
 }
 Rho <- rho.2block(p = c(rho1=0.25,rho2=0.5,rho3=0.4,rho4=0.1),
-                  time = 1:6)
+                  n.time = 6)
 Rho
 #+END_SRC
 
@@ -644,11 +697,11 @@ dfL2[1:8,]
 : 2     2       V1  1.2402726   V1
 : 1002  2       V2  0.6494215   V2
 
-To fit the corresponding mixed model, we first define a specific
-covariance structure using the =CUSTOM= function:
+To estimate the corresponding mixed model we first define a new
+covariance structure:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 myStruct <- CUSTOM(~variable,
-                   FCT.sigma = function(p,time,X){rep(p,length(time))}, ## function f
+                   FCT.sigma = function(p,n.time,X){rep(p,n.time)}, ## function f
                    init.sigma = c("sigma"=1),
                    FCT.rho = rho.2block, ## function g
                    init.rho = c("rho1"=0.25,"rho2"=0.25,"rho3"=0.25,"rho4"=0.25))
@@ -669,8 +722,8 @@ logLik(e.lmmCUSTOM)
 #+RESULTS:
 : [1] -7962.243
 
-The optimization procedure is not very fast but eventually reaches an
-optimum. We can then output the estimated correlation matrix:
+The optimization procedure may be slow but should eventually reaches
+an optimum. We can then output the estimated correlation matrix:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 cov2cor(sigma(e.lmmCUSTOM))
 #+END_SRC
@@ -686,40 +739,99 @@ cov2cor(sigma(e.lmmCUSTOM))
 
 \clearpage
 
-Note that specifying a classical structure (e.g. compound symmetry):
+*Comparison to build-in structure*: consider the following model using
+a build-in compound symmetry structure:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+system.time(
+  e.lmmDEFAULT.CS <- lmm(value~time,
+                         repetition = ~time|id,
+                         structure = "CS", 
+                         data = dfL2, df = FALSE)
+)
+#+END_SRC
+
+#+RESULTS:
+:   bruger   system forløbet 
+:     0.17     0.00     0.18
+
+
+Using instead =CUSTOM= to specifying this structure:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 myCS <- CUSTOM(~1,
-       FCT.sigma = function(p,time,X){rep(p,length(time))},
-       init.sigma = c("sigma"=1),
-       FCT.rho = function(p,time,X){matrix(p,length(time),length(time))+diag(1-p,length(time),length(time))},
-       init.rho = c("rho"=0.5))
+               FCT.sigma = function(p,n.time,X){rep(p,n.time)},
+               init.sigma = c("sigma"=1), 
+               FCT.rho = function(p,n.time,X){p+diag(1-p,n.time,n.time)},
+               init.rho = c("rho"=0.5))
 #+END_SRC
 
 #+RESULTS:
 
-via =CUSTOM=:
+is considerably slower than using the pre-specified structure:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-logLik(lmm(value~time,
-           repetition = ~time|id,
-           structure = myCS, 
-           data = dfL2, df = FALSE
-           ))
+system.time(
+  e.lmmCUSTOM.CS <- lmm(value~time,
+                        repetition = ~time|id,
+                        structure = myCS, 
+                        data = dfL2, df = FALSE
+                        )
+)
+#+END_SRC
+
+#+RESULTS:
+:   bruger   system forløbet 
+:     1.16     0.02     1.17
+
+
+but will lead to the same estimates:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+logLik(e.lmmDEFAULT.CS)
+logLik(e.lmmCUSTOM.CS)
+
 #+END_SRC
 
 #+RESULTS:
 : [1] -8186.859
+: [1] -8186.859
 
-will be the same as using the pre-specified structure (up the certain
-user-friendly displays):
+There are two reasons for the slower execution time: slower evaluation
+of the derivatives (since they are obtained by numerical
+differentiation) and worse starting point, as reflected by the larger
+number of interations needed to reach convergence:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-logLik(lmm(value~time,
-           repetition = ~time|id,
-           structure = "CS", 
-           data = dfL2, df = FALSE))
+e.lmmDEFAULT.CS$opt$n.iter
+e.lmmCUSTOM.CS$opt$n.iter
 #+END_SRC
 
 #+RESULTS:
-: [1] -8186.859
+: [1] 1
+: [1] 4
+
+Faster execution time can be obtained by specifying the first and
+second derivative regarding each parameter:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+myCS.wD <- CUSTOM(~1,
+                  FCT.sigma = function(p,n.time,X){rep(p,n.time)},
+                  dFCT.sigma = function(p,n.time,X){list(sigma = rep(1,n.time))},
+                  d2FCT.sigma = function(p,n.time,X){list(sigma = rep(0,n.time))},
+                  init.sigma = c("sigma"=1),
+                  FCT.rho = function(p,n.time,X){p+diag(1-p,n.time,n.time)},
+                  dFCT.rho = function(p,n.time,X){list(rho = 1-diag(1,n.time,n.time))},
+                  d2FCT.rho = function(p,n.time,X){list(rho = matrix(0,n.time,n.time))},
+                  init.rho = c("rho"=0.5))
+
+system.time(
+  e.lmmCUSTOMwD.CS <- lmm(value~time,
+                          repetition = ~time|id,
+                          structure = myCS.wD, 
+                          data = dfL2, df = FALSE
+                          )
+)
+#+END_SRC
+
+#+RESULTS:
+:   bruger   system forløbet 
+:     0.84     0.02     0.87
+
 
 \clearpage
 
@@ -860,12 +972,12 @@ Estimation procedure
   - log-likelihood :-216.3189
   - parameters: mean = 5, variance = 4, correlation = 6
   - convergence: TRUE (22 iterations) 
-    largest |score| = 7.034659e-05 for k.A1w
-            |change|= 1.09738491005373e-06 for (Intercept)
+    largest |score| = 7.024709e-05 for k.A1w
+            |change|= 1.0958537757233e-06 for (Intercept)
  
 Residual variance-covariance: unstructured 
 
-  - correlation structure: ~time - 1 
+  - correlation structure: ~0 + time 
           B3m   B1w   A1w   A3m
     B3m 1.000 0.989 0.985 0.938
     B1w 0.989 1.000 0.998 0.954
@@ -983,16 +1095,16 @@ timeB1w       -7.8822331 7.131797e-01 19.17147  -9.3740323  -6.3904339 9.273644e
 timeA1w      -11.7879545 1.017513e+00 21.64404 -13.9001622  -9.6757467 9.552470e-11
 timeA3m      -26.1223908 1.656408e+00 18.84049 -29.5912795 -22.6535021 2.617462e-12
 glucagon      -0.8883081 2.416081e-01 13.70759  -1.4075449  -0.3690712 2.571605e-03
-sigma         20.2808131 1.042207e+08 17.94875  14.4225149  28.5187002           NA
-k.B1w          0.9390916 8.746246e-02 19.25090   0.8742815   1.0087060 8.159292e-02
-k.A1w          0.8705176 9.733113e-02 20.32066   0.7996375   0.9476805 2.778018e-03
+sigma         20.2808131 1.042207e+08 17.94875  14.4225150  28.5187001           NA
+k.B1w          0.9390916 8.746246e-02 19.25090   0.8742815   1.0087060 8.159293e-02
+k.A1w          0.8705176 9.733113e-02 20.32066   0.7996375   0.9476805 2.778019e-03
 k.A3m          0.8264480 1.820402e-01 19.48030   0.6997216   0.9761257 2.692889e-02
 rho(B3m,B1w)   0.9889048 9.815766e-02 32.79091   0.9719687   0.9956310 7.778223e-13
 rho(B3m,A1w)   0.9848800 9.911546e-02 26.28819   0.9614535   0.9941119 5.780221e-11
-rho(B3m,A3m)   0.9380157 1.061121e-01 23.56848   0.8470249   0.9755995 1.153943e-07
+rho(B3m,A3m)   0.9380157 1.061121e-01 23.56847   0.8470249   0.9755995 1.153945e-07
 rho(B1w,A1w)   0.9976791 9.925175e-02 27.01628   0.9939113   0.9991163 3.730349e-14
-rho(B1w,A3m)   0.9542904 1.035349e-01 24.72225   0.8860968   0.9820453 1.782701e-08
-rho(A1w,A3m)   0.9658511 1.015050e-01 27.88668   0.9147964   0.9865286 1.450022e-09
+rho(B1w,A3m)   0.9542904 1.035349e-01 24.72224   0.8860968   0.9820453 1.782705e-08
+rho(A1w,A3m)   0.9658511 1.015050e-01 27.88667   0.9147964   0.9865286 1.450026e-09
 #+end_example
 
 Because these parameters are constrained (e.g. strictly positive),
@@ -1081,80 +1193,144 @@ sigma(eUN.lmm, cluster = newdata)
 ** Random effects
 
 Mixed model having a compound symmetry structure with positive
-correlation parameters are equivalent to random intercept models,
-possibly with nested random effects. Indeed the residual
+correlation parameters may be equivalent to random intercept models,
+possibly with nested random effects. Indeed in some case the residual
 variance-covariance matrix can then be decomposed as:
 #+BEGIN_EXPORT latex
-\[ \Omega = Z \Omega_1 \trans{Z} + \Omega_2 \]
+\[ \Omega = Z \Psi \trans{Z} + \Delta \]
 #+END_EXPORT
 where:
-- \(Z\) is the design matrix associated to the possibly nested clustering factors
-- \(\Omega_1\) is the variance-covariance of the random effects
-- \(\Omega_2\) the residual-variance covariance conditional to the random effects.
-The joint distribution between the outcome \(\VY\) and the random
-effects \(\Veta\) is
-#+BEGIN_EXPORT latex
-\[
-\begin{bmatrix} \VY \\ \Veta \end{bmatrix} \sim \Gaus\left(\begin{bmatrix} \boldsymbol{\mu} \\ \mathbf{0} \end{bmatrix}, \begin{bmatrix} \Omega & Z \Omega_1 \\ \Omega_1 \trans{Z} & \Omega_1 \end{bmatrix}\right)
-\]
-#+END_EXPORT
+- \(Z\) is the design matrix associated to the random effect (e.g. patient id)
+- \(\Psi\) is the variance-covariance of the random effects
+- \(\Delta\) the residual variance covariance conditional to the random effects.
+One can the use =lme4= syntax to fit random intercept models with
+=lmm=:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eRI.lmm <- eCS.lmm <- lmm(weight ~ time + glucagon + (1|id), data = dfL)
+eRI.lmm
+#+END_SRC
 
+#+RESULTS:
+: 		Linear Mixed Model with a random intercept 
+: 
+:  outcome/cluster/time: weight/id/XXtimeXX 
+:  data                : 78 observations from 20 clusters 
+:  parameter           : 5 mean ((Intercept) timeB1w timeA1w timeA3m glucagon) 
+:                        1 variance (sigma) 
+:                        1 correlation (rho) 
+:  log-restr.likelihood: -243.600523870252 
+:  convergence         : TRUE (9 iterations)
 
-Denoting by \(\varepsilon_i=\VY_i-\boldsymbol{\mu}_i\) the vector of
-marginal residuals relative to individual \(i\) with
-variance-covariance matrix \(\Omega_i\), the \(j\)-th random effect is
-the expected value given the residual:
-#+BEGIN_EXPORT latex
-\[ \eta_{ij} = \omega_{1j} Z_{ij} \Omega_i^{-1}\varepsilon_i \]
-#+END_EXPORT
-where \(\omega_{1j}\) the variance of the random effect. This is what
-the =coef= method returns when setting the argument =effects= to
-="ranef"=:
+It is also possible to specify cross or nested random effects, e.g.:
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eNRI.lmm <- lmm(weight ~ time*group + (1|id/baseline), data = dfL)
+eNRI.lmm
+#+END_SRC
+
+#+RESULTS:
+: 		Linear Mixed Model with nested random intercepts 
+: 
+:  outcome/cluster/time: weight/id/XXtimeXX 
+:  data                : 78 observations from 20 clusters 
+:  parameter           : 8 mean ((Intercept) timeB1w timeA1w timeA3m group timeB1w:group timeA1w:group timeA3m:group) 
+:                        1 variance (sigma) 
+:                        2 correlation (rho rho(FALSE,TRUE)) 
+:  log-restr.likelihood: -230.532819632968 
+:  convergence         : TRUE (6 iterations)
+
+We obtain the same log-likelihood as, respectively, =eCS.lmm= and
+=eBCS.lmm=. Indeed, as previously mentioned, with positive residual
+correlation the random effect structure is equivalent to a compound
+symmetry structure. \newline \Warning random slopes are not currently
+supported in LMMstar. \newline \Warning the proposed implementation can
+be very inefficient compared to =lme4=.
 
 \bigskip
 
-#+LaTeX: \begin{minipage}{0.45\linewidth} 
+The joint distribution between the outcome \(\VY\)
+and the random effects \(\Veta\) can be explicit as:
+#+BEGIN_EXPORT latex
+\[
+\begin{bmatrix} \VY \\ \Veta \end{bmatrix} \sim \Gaus\left(\begin{bmatrix} \boldsymbol{\mu} \\ \mathbf{0} \end{bmatrix}, \begin{bmatrix} \Omega & Z \Psi \\ \Psi \trans{Z} & \Psi \end{bmatrix}\right)
+\]
+#+END_EXPORT
+Denote by \(\varepsilon_i=\VY_i-\boldsymbol{\mu}_i\) the vector of
+marginal residuals relative to individual \(i\), \(\Omega_i\) its
+variance-covariance matrix, and \(\psi_j=(\Psi)_{jj}\) the variance of the
+\(j\)-th random effect. We can re-express the expected value of the
+\(j\)-th random effect for individual \(i\) as:
+#+BEGIN_EXPORT latex
+\[ \eta_{ij} = \psi_{j} Z_{ij} \Omega_i^{-1}\varepsilon_i \]
+#+END_EXPORT
+This is what the =ranef= method returns:
+
+\bigskip
+
+#+LaTeX: \begin{minipage}{0.48\linewidth} 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-head(coef(eCS.lmm, effects = "ranef"))
+head(ranef(eCS.lmm, format = "wide"))
 #+END_SRC
 
 #+RESULTS:
-:            id
-: 1   0.9036038
-: 2  32.5542378
-: 3 -18.3099658
-: 4  20.2561307
-: 5 -15.4258816
-: 6  19.3751847
+:   id    estimate
+: 1  1   0.9036038
+: 2  2  32.5542378
+: 3  3 -18.3099658
+: 4  4  20.2561307
+: 5  5 -15.4258816
+: 6  6  19.3751847
 #+LaTeX: \end{minipage}
-#+LaTeX: \begin{minipage}{0.5\linewidth} 
+#+LaTeX: \begin{minipage}{0.48\linewidth} 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-head(coef(eBCS.lmm, effects = "ranef"))
+head(ranef(eNRI.lmm, format = "wide"))
 #+END_SRC
 
 #+RESULTS:
-:           id   baseline1  baseline2
-: 1   4.931442  0.52901983 -0.4829138
-: 2  28.390660 -0.09204109  0.3574766
-: 3 -13.728389  0.18951039 -0.3178625
-: 4  15.645550  0.82309894 -0.6768225
-: 5 -11.246852 -0.30658155  0.2014303
-: 6  15.002108 -2.64303027  2.7832909
-
+:   id   estimate  estimate.0 estimate.1
+: 1  1   4.931442  0.52901983 -0.4829138
+: 2  2  28.390660 -0.09204109  0.3574766
+: 3  3 -13.728389  0.18951039 -0.3178625
+: 4  4  15.645550  0.82309894 -0.6768225
+: 5  5 -11.246852 -0.30658155  0.2014303
+: 6  6  15.002108 -2.64303027  2.7832909
 #+LaTeX: \end{minipage}
+
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
 library(lme4)
 e.lmer <- lmer(weight ~ time + glucagon + (1|id), data = dfL)
-range(ranef(e.lmer)[[1]][,1]-coef(eCS.lmm, effects = "ranef"))
+range(ranef(e.lmer)[[1]][,1]-ranef(eCS.lmm)$estimate)
 e.lmer2 <- lmer(weight ~ time*group + (1|id/baseline), data = dfL)
-range(matrix(c(ranef(e.lmer2)[[2]][,1],ranef(e.lmer2)[[1]][,1]), ncol = 3, byrow = FALSE)-coef(eBCS.lmm, effects = "ranef"))
+range(matrix(c(ranef(e.lmer2)[[2]][,1],ranef(e.lmer2)[[1]][,1]), ncol = 3, byrow = FALSE)-ranef(eNRI.lmm, format = "wide")[,-1])
 #+END_SRC
 
 #+RESULTS:
-: [1] -2.406745e-08  3.167863e-08
+: [1] -2.406756e-08  3.167867e-08
 : [1] -0.0001182242  0.0001493705
 
+It is also possible to extract the variance decomposition by setting
+the argument =effects= to ="variance"=: 
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+ranef(eCS.lmm, effects = "variance", format = "wide", simplify = FALSE)
+#+END_SRC
+
+#+RESULTS:
+:   variable strata  variance   relative
+: 1    total      1 355.30623 1.00000000
+: 2       id      1 344.62363 0.96993408
+: 3 residual      1  10.68261 0.03006592
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+ranef(eNRI.lmm, effects = "variance", format = "wide", simplify = FALSE)
+#+END_SRC
+
+#+RESULTS:
+:   variable strata   variance    relative
+: 1    total      1 346.744085 1.000000000
+: 2       id      1 336.182537 0.969540799
+: 3 baseline      1   3.143104 0.009064622
+: 4 residual      1   7.418444 0.021394579
 
 \clearpage
 
@@ -1169,8 +1345,8 @@ positive correlation) structure, sum of squares can be deduced from
 the =lmm= object - see appendix [[#SM:sumSquares]] for the theoretical
 derivations. Importantly, with these structures the residuals can be
 reparametrised as random effects plus independent residuals,
-i.e. \(\Omega = Z \Omega_1 \trans{Z} + \omega I\) where \(I\) is the
-identity matrix and \(\omega\) the variance of these independent
+i.e. \(\Omega = Z \Psi \trans{Z} + \delta I\) where \(I\) is the
+identity matrix and \(\delta\) the variance of these independent
 residuals.
 
 \bigskip
@@ -1179,11 +1355,11 @@ Appendix [[#SM:sumSquares]] illustrate how to extract the sum of squares
 for univariate linear regression (i.e. independence structure) and
 here we illustrate the case of a compound symmetry structure.  A key
 step is to extract from the =lmm= object the conditional variance
-\(\omega\):
+\(\delta\):
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 sigma2 <- coef(eCS.lmm, effect = "variance")^2
 tau <- coef(eCS.lmm, effect = "correlation")*sigma2
-omega <- unname(sigma2 - tau)
+delta <- unname(sigma2 - tau)
 #+END_SRC
 
 #+RESULTS:
@@ -1193,7 +1369,7 @@ residual sum of squares (SSE) equals the residual degrees of freedom
 times the conditional variance:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 df.res <- df.residual(eCS.lmm)
-SSE <- df.res * omega
+SSE <- df.res * delta
 c(df.res = df.res, SSE = SSE)
 #+END_SRC
 
@@ -1231,8 +1407,8 @@ SSRstar.glucagon <- eBeta.lmm[5] %*% solve(eVcov.lmm[5,5]) %*% eBeta.lmm[5]
 The SSR is obtained by multiplying the normalized SSR by the
 conditional variance:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-SSR.time <- as.double(SSRstar.time * omega)
-SSR.glucagon <- as.double(SSRstar.glucagon * omega)
+SSR.time <- as.double(SSRstar.time * delta)
+SSR.glucagon <- as.double(SSRstar.glucagon * delta)
 c(time = SSR.time, glucagon = SSR.glucagon)
 #+END_SRC
 #+RESULTS:
@@ -1267,8 +1443,8 @@ independence and compound symmetry (with positive correlation)
 structure, explained variance and partial correlation can be deduced
 from the =lmm= object. Importantly, with these structures the
 residuals can be reparametrised as random effects plus independent
-residuals, i.e. \(\Omega = Z \Omega_1 \trans{Z} + \omega I\) where
-\(I\) is the identity matrix and \(\omega\) the variance of these
+residuals, i.e. \(\Omega = Z \Psi \trans{Z} + \delta I\) where
+\(I\) is the identity matrix and \(\delta\) the variance of these
 independent residuals.
 
 \bigskip
@@ -1348,12 +1524,12 @@ SSR and SSE.
 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 aCS.aov <- anova(eCS.lmm)$multivariate
-setNames(aCS.aov$statistic/(aCS.aov$statistic+aCS.aov$df.denom), aCS.aov$test)
+setNames(with(aCS.aov, statistic*df.num/(statistic*df.num+df.denom)), aCS.aov$test)
 #+END_SRC
 
 #+RESULTS:
 :       time   glucagon 
-: 0.80163957 0.03162017
+: 0.92380363 0.03162017
 
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
@@ -3444,11 +3620,11 @@ The previous to last line uses that: \((I_{nT}-\trans{H}) \Omega^{-1}
 \(\trans{H} \Omega^{-1} H = \Omega^{-1}HH=\Omega^{-1}H\) since \(H\)
 is a projector. Note that compared to the "traditional" SSE defined
 for linear regression and random effect models (e.g. see
-cite:christensen2002plane section 2.7), \(SSE=\omega SSE^{*}\) where
-\(\omega\) is the residual variance conditional on any random effects,
+cite:christensen2002plane section 2.7), \(SSE=\delta SSE^{*}\) where
+\(\delta\) is the residual variance conditional on any random effects,
 i.e. \(SSE^{*}\) are the residual degrees of freedom. This is because
 the same definition for the sum of squares is used except that
-\(\varepsilon_{i} \sim \Gaus\left(0,\omega\Omega\right)\).
+\(\varepsilon_{i} \sim \Gaus\left(0,\delta\Omega\right)\).
 
 \bigskip
 
@@ -3466,7 +3642,7 @@ expected information \(SSR^* = \widehat{\beta}
 \Sigma^{-1}_{\widehat{\beta}} \widehat{\beta} \), i.e. it is the
 F-statistics times the number of parameters. Again the "traditional"
 SSR defined for linear regression and random effect models is
-proportional to this normalized SSR: \(SSR=\omega SSR^{*}\).
+proportional to this normalized SSR: \(SSR=\delta SSR^{*}\).
 
 \bigskip
 
@@ -3870,53 +4046,53 @@ The main differences are:
   function in the current CRAN version 0.2.2)
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
-data <- sampleRem(100, n.times = 4, format = "long")
-data$id.f <- as.factor(data$id)
-e.lmm1 <- lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = data)
-e.lmm2 <- mmrm(Y ~ visit*X1 + X6 + us(visit|id.f), data = data)
+dataS4 <- sampleRem(100, n.times = 4, format = "long")
+dataS4$id.f <- as.factor(dataS4$id)
+e.lmm1 <- lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = dataS4)
+e.lmm2 <- mmrm(Y ~ visit*X1 + X6 + us(visit|id.f), data = dataS4)
 logLik(e.lmm1)
 logLik(e.lmm2)
 microbenchmark::microbenchmark(
-                  lmm = lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = data),
-                  lmm0 = lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = data, df = FALSE),
-                  mmrm = mmrm(Y ~ visit*X1 + X6 + us(visit|id.f), data = data),
-                  times = 10
+                  lmm = lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = dataS4),
+                  lmm0 = lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = dataS4, df = FALSE),
+                  mmrm = mmrm(Y ~ visit*X1 + X6 + us(visit|id.f), data = dataS4),
+                  times = 50
                 )
 #+END_SRC
 
 #+RESULTS:
-: [1] -722.3784
-: [1] -722.3784
+: [1] -716.1794
+: [1] -716.1794
 : Unit: milliseconds
 :  expr      min       lq      mean    median       uq      max neval cld
-:   lmm 155.9277 160.9705 167.75602 165.53600 172.6820 187.1011    10 a  
-:  lmm0  74.3712  75.1464  96.71646  78.96735  97.7272 225.0964    10  b 
-:  mmrm  27.4641  27.7218  30.87043  28.17580  33.9412  44.2107    10   c
+:   lmm 154.5435 163.3803 168.12818 166.68985 172.8021 190.9734    50 a  
+:  lmm0  70.6504  73.2240  83.42176  76.96115  82.5822 324.1908    50  b 
+:  mmrm  30.1044  30.5351  32.60750  31.45955  32.4190  48.7795    50   c
 
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
-data <- sampleRem(5000, n.times = 3, format = "long")
-data$id.f <- as.factor(data$id)
-e.lmm1 <- lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = data)
-e.lmm2 <- mmrm(Y ~ visit*X1 + X6 + us(visit|id.f), data = data)
+dataL3 <- sampleRem(5000, n.times = 3, format = "long")
+dataL3$id.f <- as.factor(dataL3$id)
+e.lmm1 <- lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = dataL3)
+e.lmm2 <- mmrm(Y ~ visit*X1 + X6 + us(visit|id.f), data = dataL3)
 logLik(e.lmm1)
 logLik(e.lmm2)
 microbenchmark::microbenchmark(
-                  lmm = lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = data),
-                  lmm0 = lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = data, df = FALSE),
-                  mmrm = mmrm(Y ~ visit*X1 + X6 + us(visit|id.f), data = data),
-                  times = 10
+                  lmm = lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = dataL3),
+                  lmm0 = lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = dataL3, df = FALSE),
+                  mmrm = mmrm(Y ~ visit*X1 + X6 + us(visit|id.f), data = dataL3),
+                  times = 20
                 )
 #+END_SRC
 
 #+RESULTS:
-: [1] -29950.1
-: [1] -29950.1
+: [1] -29929.47
+: [1] -29929.47
 : Unit: milliseconds
-:  expr       min        lq      mean    median        uq       max neval cld
-:   lmm 1044.7837 1090.8184 1149.0196 1153.3452 1213.5370 1263.0315    10 a  
-:  lmm0  724.6425  754.0784  806.0258  793.3437  837.4572  918.1067    10  b 
-:  mmrm  632.5897  636.6736  654.9747  646.7226  658.7775  708.7885    10   c
+:  expr      min       lq     mean   median       uq       max neval cld
+:   lmm 852.9435 878.4181 909.1854 892.9624 906.9167 1164.7141    20 a  
+:  lmm0 563.8959 587.0884 637.6633 603.6918 633.1166  857.8971    20  b 
+:  mmrm 669.4953 678.5426 704.9954 687.4764 703.5992  966.9066    20   c
 
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
@@ -3930,18 +4106,18 @@ microbenchmark::microbenchmark(
                   lmm = lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = data),
                   lmm0 = lmm(Y ~ visit*X1 + X6, repetition = ~visit|id, data = data, df = FALSE),
                   mmrm = mmrm(Y ~ visit*X1 + X6 + us(visit|id.f), data = data),
-                  times = 10
+                  times = 20
                 )
 #+END_SRC
 
 #+RESULTS:
-: [1] -37811.6
-: [1] -37811.6
+: [1] -37769.25
+: [1] -37769.25
 : Unit: milliseconds
-:  expr       min        lq     mean   median       uq      max neval cld
-:   lmm 1406.6300 1496.3176 1552.419 1562.674 1631.387 1695.343    10 a  
-:  lmm0  961.5641  982.7883 1029.493 1014.334 1029.408 1158.969    10  b 
-:  mmrm 1303.6948 1312.4741 1336.604 1331.745 1352.751 1408.501    10   c
+:  expr      min        lq      mean    median        uq      max neval cld
+:   lmm 1144.132 1438.2282 1493.0397 1472.8144 1549.4191 1886.949    20  a 
+:  lmm0  739.710  885.3336  907.0729  895.3615  914.7741 1176.493    20   b
+:  mmrm 1260.906 1522.0530 1554.2281 1550.6463 1574.8884 1932.091    20  a
 
 ** effectsize package (\(R^2\) or \(\eta^2\))
 
@@ -4106,8 +4282,7 @@ c(R2m = sigma2_XB/(sigmaW + sigmaB + sigma2_XB),
 #+LaTeX_HEADER:   \scaleto{\stackon[1.3pt]{\color{red}$\triangle$}{\tiny\bfseries !}}{#1}%
 #+LaTeX_HEADER:   \xspace
 #+LaTeX_HEADER: }
-# # R Software
-#+LATEX_HEADER: \newcommand\Rlogo{\textbf{\textsf{R}}\xspace} % 
+
 ** Code
 :PROPERTIES:
 :ID: 2ec77c4b-f83d-4612-9a89-a96ba1b7bf70
@@ -4131,8 +4306,39 @@ c(R2m = sigma2_XB/(sigmaW + sigmaB + sigma2_XB),
 # ## #+ATTR_LATEX: :options basicstyle=\ttfamily\scriptsize
 # ## change font size output (global change)
 # ## \RecustomVerbatimEnvironment{verbatim}{Verbatim}{fontsize=\tiny,formatcom = {\color[rgb]{0.5,0,0}}}
-** Lists
-#+LATEX_HEADER: \RequirePackage{enumitem} % better than enumerate
+** Rlogo
+#+LATEX_HEADER:\definecolor{grayR}{HTML}{8A8990}
+#+LATEX_HEADER:\definecolor{grayL}{HTML}{C4C7C9}
+#+LATEX_HEADER:\definecolor{blueM}{HTML}{1F63B5}   
+#+LATEX_HEADER: \newcommand{\Rlogo}[1][0.07]{
+#+LATEX_HEADER: \begin{tikzpicture}[scale=#1]
+#+LATEX_HEADER: \shade [right color=grayR,left color=grayL,shading angle=60] 
+#+LATEX_HEADER: (-3.55,0.3) .. controls (-3.55,1.75) 
+#+LATEX_HEADER: and (-1.9,2.7) .. (0,2.7) .. controls (2.05,2.7)  
+#+LATEX_HEADER: and (3.5,1.6) .. (3.5,0.3) .. controls (3.5,-1.2) 
+#+LATEX_HEADER: and (1.55,-2) .. (0,-2) .. controls (-2.3,-2) 
+#+LATEX_HEADER: and (-3.55,-0.75) .. cycle;
+#+LATEX_HEADER: 
+#+LATEX_HEADER: \fill[white] 
+#+LATEX_HEADER: (-2.15,0.2) .. controls (-2.15,1.2) 
+#+LATEX_HEADER: and (-0.7,1.8) .. (0.5,1.8) .. controls (2.2,1.8) 
+#+LATEX_HEADER: and (3.1,1.2) .. (3.1,0.2) .. controls (3.1,-0.75) 
+#+LATEX_HEADER: and (2.4,-1.45) .. (0.5,-1.45) .. controls (-1.1,-1.45) 
+#+LATEX_HEADER: and (-2.15,-0.7) .. cycle;
+#+LATEX_HEADER: 
+#+LATEX_HEADER: \fill[blueM] 
+#+LATEX_HEADER: (1.75,1.25) -- (-0.65,1.25) -- (-0.65,-2.75) -- (0.55,-2.75) -- (0.55,-1.15) -- 
+#+LATEX_HEADER: (0.95,-1.15)  .. controls (1.15,-1.15) 
+#+LATEX_HEADER: and (1.5,-1.9) .. (1.9,-2.75) -- (3.25,-2.75)  .. controls (2.2,-1) 
+#+LATEX_HEADER: and (2.5,-1.2) .. (1.8,-0.95) .. controls (2.6,-0.9) 
+#+LATEX_HEADER: and (2.85,-0.35) .. (2.85,0.2) .. controls (2.85,0.7) 
+#+LATEX_HEADER: and (2.5,1.2) .. cycle;
+#+LATEX_HEADER: 
+#+LATEX_HEADER: \fill[white]  (1.4,0.4) -- (0.55,0.4) -- (0.55,-0.3) -- (1.4,-0.3).. controls (1.75,-0.3) 
+#+LATEX_HEADER: and (1.75,0.4) .. cycle;
+#+LATEX_HEADER: 
+#+LATEX_HEADER: \end{tikzpicture}
+#+LATEX_HEADER: }
 ** Image and graphs
 #+LATEX_HEADER: \RequirePackage{epstopdf} % to be able to convert .eps to .pdf image files
 #+LATEX_HEADER: \RequirePackage{capt-of} % 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: jul 25 2023 (10:23) 
+## Last-Updated: jul 26 2023 (11:07) 
 ##           By: Brice Ozenne
-##     Update #: 363
+##     Update #: 364
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -199,7 +199,7 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
 
     }else if(is.matrix(effects)){
 
-        if(length(unique(sapply(ls.name.allCoef,length)))>1){
+        if(length(unique(lengths(ls.name.allCoef)))>1){
             stop("Cannot use matrix interface for argument \'effects\' when the number of model parameters varies over splits. \n")
         }
         if(any(sapply(ls.name.allCoef[-1],identical,ls.name.allCoef[[1]])==FALSE)){

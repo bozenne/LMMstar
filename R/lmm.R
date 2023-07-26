@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jul 25 2023 (17:38) 
+## Last-Updated: jul 26 2023 (18:42) 
 ##           By: Brice Ozenne
-##     Update #: 2839
+##     Update #: 2856
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -180,7 +180,7 @@ lmm <- function(formula, repetition, structure, data,
     }
 
     ## handle the case where structure is defined as a function
-    if(!missing(structure) && !is.character(structure)){
+    if(!missing(structure) && !is.character(structure) && !inherits(structure,"structure")){
         if(inherits(out$call$structure,"name")){ ## instead of a character
             structure <- deparse(out$call$structure)
         }else if(inherits(structure,"function")){ ## instead of a structure object
@@ -289,17 +289,16 @@ lmm <- function(formula, repetition, structure, data,
     if(trace>=1){cat("2. Design matrix and precomputations \n")}
 
     ## *** update transformation and precompute moments
-    if(structure$class=="CUSTOM" && (is.null(structure$d2FCT.sigma) || is.null(structure$d2FCT.rho)) && (df || method.fit=="REML" || type.information=="observed")){
-        ## need second derivative but transformation based on dJacobian not implemented!
-        options$transform.sigma <- "none"
-        options$transform.k <- "none"
-        options$transform.rho <- "none"
-    }
-    if(structure$class=="CUSTOM" || !is.na(out$weights$var["Omega"])){
+    if(structure$class=="CUSTOM"){
         precompute.moments <- FALSE
+        if((is.null(structure$d2FCT.sigma) || is.null(structure$d2FCT.rho)) && (outArgs$df || outArgs$method.fit=="REML" || outArgs$type.information=="observed")){
+            ## need second derivative but transformation based on dJacobian not implemented!
+            options$transform.sigma <- "none"
+            options$transform.k <- "none"
+            options$transform.rho <- "none"
+        }
     }else{
-        precompute.moments <- options$precompute.moments
-
+        precompute.moments <- is.na(out$weights$var["Omega"]) && options$precompute.moments        
     }
 
     ## *** design matrix
@@ -329,6 +328,10 @@ lmm <- function(formula, repetition, structure, data,
     if(identical(out$args$control$init,"lmer")){
         out$args$control$init <- .initializeLMER(formula = out$formula$mean, structure = out$design$vcov, data = data,
                                                  param = out$design$param, method.fit = out$args$method.fit, weights = out$design$weights, scale.Omega = out$design$scale.Omega)
+    }else if(inherits(out$design$vcov,"CUSTOM")){
+        init.Omega <- .calc_Omega(out$design$vcov, param = c(out$design$vcov$init.sigma,out$design$vcov$init.rho), keep.interim = FALSE)
+        out$args$control$init <- init.Omega[[which.max(out$design$vcov$Upattern$n.time)]]
+        
     }
 
     if(trace>0){
@@ -1028,7 +1031,6 @@ lmm <- function(formula, repetition, structure, data,
     if((inherits(structure,"RE") && is.null(structure$ranef) || identical(structure,"RE")) && is.null(ranef) && !is.null(var.cluster.original)){
         ranef <- formula2var(stats::as.formula(paste0("~(1|",var.cluster.original,")")))$ranef
     }
-    
     ## special case where no formula in structure and only type as an argument of structure
     if(inherits(structure,"structure")){
         if(is.null(structure$formula$var) && is.null(structure$formula$cor) && identical("type", setdiff(names(structure$call),""))){
@@ -1081,7 +1083,7 @@ lmm <- function(formula, repetition, structure, data,
                 check <- TRUE
                 break
             }
-        }        
+        }
         if(check == FALSE){
             warning("Constant outcome values within cluster. \n")
         }

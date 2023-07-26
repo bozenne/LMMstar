@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: jul 11 2023 (12:14) 
+## Last-Updated: jul 26 2023 (13:40) 
 ##           By: Brice Ozenne
-##     Update #: 2486
+##     Update #: 2495
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -109,41 +109,80 @@
 ## * skeleton.CUSTOM
 .skeleton.CUSTOM <- function(structure, data, indexData = NULL){
 
+    ## ** prepare
+    var.strata <- structure$name$strata
+    if(is.null(indexData)){
+        indexData <- .extractIndexData(data = data, structure = structure)
+    }
+    U.cluster <- indexData$U.cluster
+    U.time <- indexData$U.time
+    U.strata <- indexData$U.strata
+    n.strata <- length(U.strata)
+    
+    options <- LMMstar.options()
+    sep.strata <- c(sigma = unname(options$sep["k.strata"]),
+                    rho = unname(options$sep["rho.strata"]))
+    
     ## ** gather parameters
     structure$param <- NULL
     if(!is.null(structure$FCT.sigma)){
+        if(is.na(var.strata)){
+            name.sigma <- names(structure$init.sigma)
+            strata.sigma <- 1
+        }else{
+            init.name.sigma <- names(structure$init.sigma)
+            init.n.sigma <- length(init.name.sigma)
+
+            ls.name.sigma <- lapply(U.strata, function(iStrata){setNames(paste(init.name.sigma,iStrata,sep=sep.strata["sigma"]), rep(iStrata, init.n.sigma))})
+            name.sigma <- unname(unlist(ls.name.sigma, use.names = FALSE))
+            strata.sigma <- match(unlist(lapply(ls.name.sigma, names)), U.strata)
+
+            structure$init.sigma <- unlist(lapply(U.strata, function(iStrata){setNames(structure$init.sigma[init.name.sigma],paste(init.name.sigma,iStrata,sep=sep.strata["sigma"]))}))
+        }
         structure$param <- rbind(structure$param,
-                                 data.frame(name = names(structure$init.sigma),
-                                            strata = 1,
+                                 data.frame(name = name.sigma,
+                                            index.strata = strata.sigma,
                                             type = "sigma",
                                             constraint = as.numeric(NA),
                                             level = as.character(NA),
                                             code = as.character(NA),
-                                            index.lp.x = NA,
-                                            index.lp.y = NA,
+                                            lp.x = NA,
+                                            lp.y = NA,
                                             sigma = as.character(NA),
                                             k.x = as.character(NA),
                                             k.y = as.character(NA)))
+        
     }
 
     if(!is.null(structure$FCT.rho)){
+        if(is.na(var.strata)){
+            name.rho <- names(structure$init.rho)
+            strata.rho <- 1
+        }else{
+            init.name.rho <- names(structure$init.rho)
+            init.n.rho <- length(init.name.rho)
+
+            ls.name.rho <- lapply(U.strata, function(iStrata){setNames(paste(init.name.rho,iStrata,sep=sep.strata["rho"]), rep(iStrata, init.n.rho))})
+            name.rho <- unname(unlist(ls.name.rho, use.names = FALSE))
+            strata.rho <- match(unlist(lapply(ls.name.rho, names)), U.strata)
+
+            structure$init.rho <- unlist(lapply(U.strata, function(iStrata){setNames(structure$init.rho[init.name.rho],paste(init.name.rho,iStrata,sep=sep.strata["rho"]))}))
+        }
         structure$param <- rbind(structure$param,
-                                 data.frame(name = names(structure$init.rho),
-                                            strata = 1,
+                                 data.frame(name = name.rho,
+                                            index.strata = strata.rho,
                                             type = "rho",
                                             constraint = as.numeric(NA),
                                             level = as.character(NA),
                                             code = as.character(NA),
-                                            index.lp.x = NA,
-                                            index.lp.y = NA,
+                                            lp.x = NA,
+                                            lp.y = NA,
                                             sigma = as.character(NA),
                                             k.x = as.character(NA),
                                             k.y = as.character(NA)))
     }
-    structure$param$index.lp.x <- rep(list(NULL), NROW(structure$param))
-    structure$param$index.lp.y <- rep(list(NULL), NROW(structure$param))
 
-    ## ** pattern
+    ## ** export
     return(structure)
 }
 

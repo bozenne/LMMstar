@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: jul 19 2023 (11:14) 
+## Last-Updated: jul 26 2023 (14:26) 
 ##           By: Brice Ozenne
-##     Update #: 198
+##     Update #: 211
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -190,13 +190,14 @@
 
     Upattern <- object$Upattern
     n.Upattern <- NROW(Upattern)
-
+    X.var <- object$var$Xpattern
+    X.cor <- object$cor$Xpattern
     FCT.sigma <- object$FCT.sigma
     FCT.rho <- object$FCT.rho
     dFCT.sigma <- object$dFCT.sigma
     dFCT.rho <- object$dFCT.rho
-    name.sigma <- names(object$init.sigma)
-    name.rho <- names(object$init.rho)
+    name.sigma <- object$param[object$param$type=="sigma","name"]
+    name.rho <- object$param[object$param$type=="rho","name"]
 
     if(!is.null(FCT.sigma) && is.null(dFCT.sigma) || !is.null(FCT.rho) && is.null(dFCT.rho) ){
 
@@ -206,10 +207,10 @@
         }, x = param[c(name.sigma,name.rho)])
 
         vec.pattern <- unlist(lapply(names(Omega), function(iName){
-            iTime <- object$X$Upattern$time[[iName]]            
             iNtime <- Upattern[Upattern$name==iName,"n.time"]
-            iOut <- matrix(iName, nrow = iNtime, ncol = iNtime, dimnames = list(iTime,iTime))
+            iOut <- matrix(iName, nrow = iNtime, ncol = iNtime)
         }))
+        
         out <- by(data = vec.dOmega, INDICES = vec.pattern, FUN = function(idOmega){ ## idOmega <- vec.dOmega[1:16,]
             iOut <- apply(idOmega, MARGIN = 2, simplify = FALSE, function(iVec){
                 iNtime <- sqrt(length(iVec))
@@ -217,34 +218,31 @@
             })
             names(iOut) <- c(name.sigma,name.rho)
             return(iOut)
-        })
+        }, simplify = FALSE)
         class(out) <- "list"
         attr(out,"call") <- NULL
 
     }else{
 
-        X.var <- object$var$X
-        X.cor <- object$cor$X
-
         out <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
+
             ## derivative of sd with respect to the variance parameters
-            iPattern.var <- object$X$Upattern$var[iPattern]
-            iNtime <- object$Upattern$n.time[iPattern]
-            iTime <- object$Upattern$time[[iPattern]]
-            iX.var <- object$var$Xpattern[[iPattern.var]]
+            iPattern.var <- Upattern$var[iPattern]
+            iNtime <- Upattern$n.time[iPattern]
+            iX.var <- X.var[[iPattern.var]]
             iOmega.sd <- attr(Omega[[iPattern]], "sd")
-            idOmega.sd <- dFCT.sigma(p = param[name.sigma], time = iTime, X = iX.var)
+            idOmega.sd <- dFCT.sigma(p = param[name.sigma], n.time = iNtime, X = iX.var)
 
             ## derivative of rho with respect to the correlation parameters
-            if(iNtime > 1 && !is.null(X.cor)){
-                iPattern.cor <- object$cor$Upattern[iPattern]
-                iX.cor <- object$cor$Xpattern[[iPattern.cor]]
+            if(iNtime > 1 && !is.na(Upattern$cor[iPattern])){
+                iPattern.cor <- Upattern$cor[iPattern]
+                iX.cor <- X.cor[[iPattern.cor]]
                 iOmega.cor <- attr(Omega[[iPattern]], "cor")
-                idOmega.cor <- dFCT.rho(p = param[name.rho], time = iTime, X = iX.cor)
+                idOmega.cor <- dFCT.rho(p = param[name.rho], n.time = iNtime, X = iX.cor)
             }
 
             ## derivative of Omega with respect to the variance and correlation parameters
-            if(iNtime > 1 && !is.null(X.cor)){
+            if(iNtime > 1 && !is.na(Upattern$cor[iPattern])){
                 iOut <- c(
                     lapply(idOmega.sd, function(iDeriv){
                         iDeriv <- unname(iDeriv)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (15:05) 
 ## Version: 
-## Last-Updated: jul 24 2023 (17:39) 
+## Last-Updated: jul 26 2023 (11:07) 
 ##           By: Brice Ozenne
-##     Update #: 37
+##     Update #: 38
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -74,7 +74,7 @@ manifest.lmm <- function(x, effects = "all", original = TRUE, simplify = TRUE, .
     if(simplify && length(effects)==1){
         if(effects=="all"){
             out <- unname(sort(unique(unlist(ls.out))))
-            attributes(out) <- c(attributes(out),ls.out[sapply(ls.out,length)>0])
+            attributes(out) <- c(attributes(out),ls.out[lengths(ls.out)>0])
         }else{
             out <- unname(sort(unique(unlist(ls.out[effects]))))
         }

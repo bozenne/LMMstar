@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 24 2023 (17:04) 
+## Last-Updated: jul 26 2023 (11:05) 
 ##           By: Brice Ozenne
-##     Update #: 658
+##     Update #: 661
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -497,10 +497,10 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
             pool.splitname <- strsplit(pool.name, split = sep, fixed = TRUE)
             if(!is.null(name.method)){
                 rownames(out)[iIndex.table[1]] <- name.method
-            }else if(all(sapply(pool.splitname,length)==2)){
+            }else if(all(lengths(pool.splitname)==2)){
                 Mpool.splitname <- do.call(rbind,pool.splitname)
                 pool.splitname2 <- strsplit(Mpool.splitname[,1],split="=", fixed = TRUE)
-                if(all(sapply(pool.splitname2,length)==2)){
+                if(all(lengths(pool.splitname2)==2)){
                     Mpool.splitname2 <- do.call(rbind,pool.splitname2)
                     if(length(unique(Mpool.splitname2[,1]))==1){
                         rownames(out)[iIndex.table[1]] <- paste0(Mpool.splitname2[1,1],"=<",paste(Mpool.splitname2[1,2],Mpool.splitname2[NROW(Mpool.splitname2),2],sep=":"),">",sep,Mpool.splitname[1,2])                   
@@ -601,7 +601,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
                 iLS.tCoriginal <- lapply(iLS.Coriginal,t)
                 iVEC.beta <- cbind(out.save[iIndex.table,"estimate"]-out.save[iIndex.table,"null"])
 
-                if(all(sapply(iLS.meancoef,length) == sapply(iLS.Coriginal,NCOL))){
+                if(all(lengths(iLS.meancoef) == sapply(iLS.Coriginal,NCOL))){
                     effects.vcov <- "mean"
                 }else{
                     effects.vcov <- "all"

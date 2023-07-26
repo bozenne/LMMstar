@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: jul 24 2023 (18:19) 
+## Last-Updated: jul 26 2023 (15:15) 
 ##           By: Brice Ozenne
-##     Update #: 993
+##     Update #: 1017
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -413,8 +413,9 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
         }else if(length(param.mu2)>0){
 
             if(!is.null(init.Omega)){
-                start.OmegaM1 <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
-                    iTime <- Upattern$index.time[[iPattern]]
+                start.OmegaM1 <- stats::setNames(lapply(Upattern$name, function(iPattern){ ## iPattern <- 1
+                    iCluster <- attr(design$vcov$pattern,"list")[[iPattern]][1]
+                    iTime <- design$index.clusterTime[[iCluster]]
                     return(solve(init.Omega[iTime,iTime,drop=FALSE]))
                 }), Upattern$name)
             }else{
@@ -431,7 +432,7 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
             if(is.null(init.Omega)){
                 outInit <- .initialize(design$vcov, residuals = iResiduals.long, Xmean = design$mean, index.cluster = index.cluster)
             }else{
-                outInit <- .initialize2(design$vcov, Omega = init.Omega)
+                outInit <- .initialize2(design$vcov, index.clusterTime = design$index.clusterTime, Omega = init.Omega)
             }
         }else{
             outInit <- NULL
@@ -730,7 +731,7 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
     if(!is.null(key.XX)){
         max.key <- key.XX[n.param,n.param]
     }
-    
+
     for(iPattern in pattern){ ## iPattern <- pattern[1]
         if(!is.null(precompute.XX) && !is.null(precompute.XY)){
             iVec.Omega <- as.double(OmegaM1[[iPattern]])
@@ -739,7 +740,7 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
             denominator  <- denominator + as.double(iVec.Omega %*%  matrix(precompute.XX[[iPattern]], nrow = iTime2, ncol = max.key))[key.XX]
         }else{
             iOmegaM1 <- OmegaM1[[iPattern]]
-            iIndexCluster <- design$index.cluster[which(design$vcov$X$pattern.cluster$pattern==iPattern)]
+            iIndexCluster <- design$index.cluster[design$vcov$pattern == which(pattern==iPattern)]
             for(iId in 1:length(iIndexCluster)){ ## iId <- 2
                 iX <- design$mean[iIndexCluster[[iId]],param.mu,drop=FALSE]
                 if(is.null(design$weight)){

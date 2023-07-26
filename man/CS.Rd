@@ -4,14 +4,7 @@
 \alias{CS}
 \title{Compound Symmetry Structure}
 \usage{
-CS(
-  formula,
-  var.cluster,
-  var.time,
-  type = "homogeneous",
-  group.type = NULL,
-  add.time
-)
+CS(formula, var.cluster, var.time, type = NULL, group.type = NULL, add.time)
 }
 \arguments{
 \item{formula}{formula indicating on which variable to stratify the residual variance and correlation (left hand side)
@@ -37,8 +30,9 @@ A constant value corresponds to nested random effects (default) and a regressor-
 An object of class \code{CS} that can be passed to the argument \code{structure} of the \code{lmm} function.
 }
 \description{
-Variance-covariance structure where the residuals have constant variance and correlation overall (default) or within covariate levels.
+Variance-covariance structure where the variance and correlation of the residuals is constant within covariate levels.
 Can be stratified on a categorical variable.
+The default has no covariate and therefore the variance and correlation are constant within cluster.
 }
 \details{
 A typical formula would be \code{~1}, indicating a variance constant over time and the same correlation between all pairs of times.

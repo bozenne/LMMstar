@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 26 2022 (11:18) 
 ## Version: 
-## Last-Updated: jul 25 2023 (14:11) 
+## Last-Updated: jul 26 2023 (17:14) 
 ##           By: Brice Ozenne
-##     Update #: 417
+##     Update #: 424
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -268,9 +268,6 @@ ranef.lmm <- function(object, effects = "mean", ci = FALSE, transform = (effects
     if(object$strata$n==1){
         df.epsilon$XXstrata.indexXX <- U.strata
     }
-    if(length(index.na)>0){
-        df.epsilon <- df.epsilon[-index.na,,drop=FALSE]
-    }
     
     ## ** estimate random effects
     grid.ranef <- unlist(lapply(1:n.hierarchy, function(iH){ ## iH <- 1
@@ -278,7 +275,7 @@ ranef.lmm <- function(object, effects = "mean", ci = FALSE, transform = (effects
             infoRanef$hierarchy[[iH]][1:iP]
         }), infoRanef$hierarchy[[iH]])
     }), recursive = FALSE)
-    
+
     ls.out <- lapply(1:length(grid.ranef), function(iR){ ## iR <- 1
         do.call(rbind,by(df.epsilon, df.epsilon[grid.ranef[[iR]]], function(iDF){
             iNames <- grid.ranef[[iR]]
@@ -293,6 +290,7 @@ ranef.lmm <- function(object, effects = "mean", ci = FALSE, transform = (effects
         }))
     })
 
+    
     ## ** export
     out <- do.call(rbind,ls.out)
     rownames(out) <- NULL
@@ -306,12 +304,16 @@ ranef.lmm <- function(object, effects = "mean", ci = FALSE, transform = (effects
             colnames(iOutW)[2] <- "estimate"
             return(iOutW)
         }), sapply(infoRanef$hierarchy,"[",1))
+        if(simplify && n.hierarchy == 1){
+            names(out[[1]])[1] <- names(out)
+            out <- out[[1]]            
+        }
         
     }else if(format == "long"){
         if(simplify && n.strata == 1){
             out$strata <- NULL
         }
-        if(simplify && all(sapply(infoRanef$hierarchy,length)==1)){
+        if(simplify && all(lengths(infoRanef$hierarchy)==1)){
             out$variable <- unlist(out$variable)
             out$level <- unlist(out$level)
         }

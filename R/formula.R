@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:53) 
 ## Version: 
-## Last-Updated: jul 12 2023 (09:36) 
+## Last-Updated: jul 26 2023 (11:06) 
 ##           By: Brice Ozenne
-##     Update #: 209
+##     Update #: 210
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -228,7 +228,7 @@ formula2var <- function(formula, specials = NULL, name.argument  = "formula",
         out$ranef$hierarchy <- stats::setNames(lapply(ls.timeCluster,"[[","hierarchy"),
                                                sapply(ls.timeCluster,"[[","name"))
         out$ranef$crossed <- length(out$ranef$cluster)>1
-        out$ranef$nested <- any(sapply(out$ranef$hierarchy,length)>1)
+        out$ranef$nested <- any(lengths(out$ranef$hierarchy)>1)
     }
 
     ## ** export

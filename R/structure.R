@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: jul 25 2023 (17:29) 
+## Last-Updated: jul 26 2023 (17:28) 
 ##           By: Brice Ozenne
-##     Update #: 1113
+##     Update #: 1123
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -757,14 +757,11 @@ UN <- function(formula, var.cluster, var.time, add.time){
 CUSTOM <- function(formula, var.cluster, var.time,
                    FCT.sigma, dFCT.sigma = NULL, d2FCT.sigma = NULL, init.sigma,
                    FCT.rho, dFCT.rho = NULL, d2FCT.rho = NULL, init.rho, add.time){
-    if(is.null(formula)){
-        outCov <- .formulaStructure(~1)
-    }else{
-        outCov <- .formulaStructure(formula)
-    }
 
-    if(!is.null(outCov$strata)){
-        stop("CUSTOM structures not (yet?) compatible with stratification. \n")
+    if(is.null(formula)){
+        outCov <- .formulaStructure(~1, add.X = NULL, strata.X = FALSE, correlation = TRUE)
+    }else{
+        outCov <- .formulaStructure(formula, add.X = NULL, strata.X = FALSE, correlation = TRUE)
     }
 
     out <- list(call = match.call(),
@@ -779,15 +776,18 @@ CUSTOM <- function(formula, var.cluster, var.time,
                 class = "CUSTOM")
 
     ## param
+    ## if(!is.na(out$name$strata)){
+    ##     stop("CUSTOM structure cannot (yet?) handle strata. \n")
+    ## }
     if(!missing(FCT.sigma)){
-        if(any(names(formals(FCT.sigma)) %in% c("p","time","X","...") == FALSE)){
-            stop("Incorrect argument in \'FCT.sigma\': can be \"p\", \"time\", or \"X\". \n")
+        if(any(names(formals(FCT.sigma)) %in% c("p","n.time","X","...") == FALSE)){
+            stop("Incorrect argument in \'FCT.sigma\': can be \"p\", \"n.time\", or \"X\". \n")
         }
-        if(!is.null(dFCT.sigma) && any(names(formals(dFCT.sigma)) %in% c("p","time","X","...") == FALSE)){
-            stop("Incorrect argument in \'dFCT.sigma\': can be \"p\", \"time\", or \"X\". \n")
+        if(!is.null(dFCT.sigma) && any(names(formals(dFCT.sigma)) %in% c("p","n.time","X","...") == FALSE)){
+            stop("Incorrect argument in \'dFCT.sigma\': can be \"p\", \"n.time\", or \"X\". \n")
         }
-        if(!is.null(d2FCT.sigma) && any(names(formals(d2FCT.sigma)) %in% c("p","time","X","...") == FALSE)){
-            stop("Incorrect argument in \'d2FCT.sigma\': can be \"p\", \"time\", or \"X\". \n")
+        if(!is.null(d2FCT.sigma) && any(names(formals(d2FCT.sigma)) %in% c("p","n.time","X","...") == FALSE)){
+            stop("Incorrect argument in \'d2FCT.sigma\': can be \"p\", \"n.time\", or \"X\". \n")
         }
         out$FCT.sigma <- FCT.sigma
         out$dFCT.sigma <- dFCT.sigma
@@ -800,17 +800,17 @@ CUSTOM <- function(formula, var.cluster, var.time,
         out$FCT.sigma <- function(p,time,X){rep(p,length(time))}
         out$dFCT.sigma <- function(p,time,X){list(rep(1,length(time)))}
         out$d2FCT.sigma <- function(p,time,X){list(rep(0,length(time)))}
-        out$init.sigma <- c(sigma = NA)
+        out$init.sigma <- c(sigma = NA)        
     }
     if(!missing(FCT.rho)){
-        if(any(names(formals(FCT.rho)) %in% c("p","time","X","...") == FALSE)){
-            stop("Incorrect argument in \'FCT.rho\': can be \"p\", \"time\", or \"X\". \n")
+        if(any(names(formals(FCT.rho)) %in% c("p","n.time","X","...") == FALSE)){
+            stop("Incorrect argument in \'FCT.rho\': can be \"p\", \"n.time\", or \"X\". \n")
         }
-        if(!is.null(dFCT.rho) && any(names(formals(dFCT.rho)) %in% c("p","time","X","...") == FALSE)){
-            stop("Incorrect argument in \'dFCT.rho\': can be \"p\", \"time\", or \"X\". \n")
+        if(!is.null(dFCT.rho) && any(names(formals(dFCT.rho)) %in% c("p","n.time","X","...") == FALSE)){
+            stop("Incorrect argument in \'dFCT.rho\': can be \"p\", \"n.time\", or \"X\". \n")
         }
-        if(!is.null(d2FCT.rho) && any(names(formals(d2FCT.rho)) %in% c("p","time","X","...") == FALSE)){
-            stop("Incorrect argument in \'d2FCT.rho\': can be \"p\", \"time\", or \"X\". \n")
+        if(!is.null(d2FCT.rho) && any(names(formals(d2FCT.rho)) %in% c("p","n.time","X","...") == FALSE)){
+            stop("Incorrect argument in \'d2FCT.rho\': can be \"p\", \"n.time\", or \"X\". \n")
         }
         
         out$FCT.rho <- FCT.rho
@@ -825,6 +825,7 @@ CUSTOM <- function(formula, var.cluster, var.time,
         out$dFCT.rho <- NULL
         out$d2FCT.rho <- NULL
         out$init.rho <- NULL
+        out$formula$cor <- NULL
     }
 
     ## export

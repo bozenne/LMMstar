@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (13:27) 
 ## Version: 
-## Last-Updated: jul 25 2023 (18:28) 
+## Last-Updated: jul 26 2023 (18:56) 
 ##           By: Brice Ozenne
-##     Update #: 762
+##     Update #: 794
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -94,7 +94,7 @@
 
     ## ** special case (no strata, no covariate)
     if(length(reg.var)==0){
-        vec.strataRho <- which(sapply(XpairPattern$LpU.strata,length)>0)
+        vec.strataRho <- which(lengths(XpairPattern$LpU.strata)>0)
         if(n.strata==1){
             level.strataRho <- ""
         }else{
@@ -433,46 +433,52 @@
             
             ## same block
             index.sameBlock <- index.unequal[which(test.diffBlock==0)]
+            block.sameBlock <- data.x[index.sameBlock,block.var]
+            dt.sameBlock <- diffLp[index.sameBlock,time.var]
             if(type=="UN"){
                 code.rho[index.sameBlock] <- paste("R",indexLp[index.sameBlock,1],indexLp[index.sameBlock,2],sep=sep[2])
-                level.rho[index.sameBlock] <- paste(data.x[index.sameBlock,block.var],paste("(",data.x[index.sameBlock,time.var],",",data.y[index.sameBlock,time.var],")",sep=""),sep=sep[2])
+                level.rho[index.sameBlock] <- paste(block.sameBlock,paste("(",data.x[index.sameBlock,time.var],",",data.y[index.sameBlock,time.var],")",sep=""),sep=sep[2])                
             }else if(type=="LAG"){
-                code.rho[index.sameBlock] <- paste("R",strataLp[index.sameBlock],data.x[index.sameBlock,block.var],diffLp[index.sameBlock,time.var],sep=sep[2])
-                level.rho[index.sameBlock] <- paste(data.x[index.sameBlock,block.var],paste("(dt=",diffLp[index.sameBlock,time.var],")",sep=""),sep=sep[2])
+                code.rho[index.sameBlock] <- paste("R",strataLp[index.sameBlock],block.sameBlock,dt.sameBlock,sep=sep[2])
+                level.rho[index.sameBlock] <- paste(block.sameBlock,paste("(dt=",dt.sameBlock,")",sep=""),sep=sep[2])
             }else if(type=="CS"){
-                code.rho[index.sameBlock] <- paste("R",strataLp[index.sameBlock],data.x[index.sameBlock,block.var],sep=sep[2])
-                level.rho[index.sameBlock] <- paste0(data.x[index.sameBlock,block.var]) ## convert to character
+                code.rho[index.sameBlock] <- paste("R",strataLp[index.sameBlock],block.sameBlock,sep=sep[2])
+                level.rho[index.sameBlock] <- paste0(block.sameBlock) ## convert to character
             }
 
-            ## different blocks
+            ## different blocks (with ordered times and block, e.g. block (A,B) and (B,A) are the same)
             index.diffBlock <- index.unequal[which(test.diffBlock!=0)]
+            rev.diffBlock <- data.x[index.diffBlock,block.var] > data.y[index.diffBlock,block.var]
+            block.diffBlock <- data.frame(x = data.x[index.diffBlock,block.var], y = data.y[index.diffBlock,block.var])
+            block.diffBlock[rev.diffBlock,] <- block.diffBlock[rev.diffBlock,c("y","x")]
+            t.diffBlock <- data.frame(x = data.x[index.diffBlock,time.var], y = data.y[index.diffBlock,time.var])
+            t.diffBlock[rev.diffBlock,] <- t.diffBlock[rev.diffBlock,c("y","x")]
+            dt.diffBlock <- diffLp[index.diffBlock,time.var]
             if(type=="UN"){
                 ## constrain constant correlation when measured at the same time \rho = cor(X(t),Y(t))
                 indexLp.diffBlock <- indexLp[index.diffBlock,,drop=FALSE]
                 indexLp.diffBlock[data.x[index.diffBlock,time.var] == data.y[index.diffBlock,time.var],] <- 0
-                txt.diffBlock <- ifelse(indexLp.diffBlock[,1]==0,"dt=0",paste0(data.x[index.diffBlock,time.var],",",data.y[index.diffBlock,time.var]))
-                
+                txt.diffBlock <- ifelse(indexLp.diffBlock[,1]==0,"dt=0",paste0(t.diffBlock$x,",",t.diffBlock$y))
+            
                 code.rho[index.diffBlock] <- paste("D",indexLp.diffBlock[,1],indexLp.diffBlock[,2],sep=sep[2])
-                level.rho[index.diffBlock] <- paste("(",data.x[index.diffBlock,block.var],",",data.y[index.diffBlock,block.var],
-                                                    ",",txt.diffBlock,")",sep="")
+                level.rho[index.diffBlock] <- paste("(",block.diffBlock$x,",",block.diffBlock$y,",",txt.diffBlock,")",sep="")
             }else if(type=="LAG"){
-                code.rho[index.diffBlock] <- paste("D",strataLp[index.diffBlock],data.x[index.diffBlock,block.var],data.y[index.diffBlock,block.var],
-                                                   abs(diffLp[index.diffBlock,time.var]),sep=sep[2])
-                level.rho[index.diffBlock] <- paste("(",data.x[index.diffBlock,block.var],",",data.y[index.diffBlock,block.var],",dt=",abs(diffLp[index.diffBlock,time.var]),")",sep="")
+                code.rho[index.diffBlock] <- paste("D",strataLp[index.diffBlock],block.diffBlock$x,block.diffBlock$y,abs(dt.diffBlock),sep=sep[2])
+                level.rho[index.diffBlock] <- paste("(",block.diffBlock$x,",",block.diffBlock$y,",dt=",abs(dt.diffBlock),")",sep="")
             }else if(type=="CS"){
-                code.rho[index.diffBlock] <- paste("D",strataLp[index.diffBlock],data.x[index.diffBlock,block.var],data.y[index.diffBlock,block.var],
-                                                   diffLp[index.diffBlock,time.var]==0,sep=sep[2])
-                level.rho[index.diffBlock] <- paste("(",data.x[index.diffBlock,block.var],",",data.y[index.diffBlock,block.var],",dt=",as.numeric(diffLp[index.diffBlock,time.var]==0),")",sep="")
+                code.rho[index.diffBlock] <- paste("D",strataLp[index.diffBlock],block.diffBlock$x,block.diffBlock$y,as.numeric(dt.diffBlock!=0),sep=sep[2])
+                level.rho[index.diffBlock] <- paste("(",block.diffBlock$x,",",block.diffBlock$y,",dt=",as.numeric(dt.diffBlock!=0),")",sep="")
             }
 
         }else{ ## no block: base correlation coefficient on the time difference            
+            time.var <- reg.var[1]
             code.rho[index.unequal] <- paste("D",strataLp[index.unequal],diffLp[,time.var],sep=sep[2])
             level.rho[index.unequal] <- paste("(",diffLp[,time.var],")",sep="")
         }        
     }
     test.rho <- !duplicated(code.rho)
     code.Urho <- code.rho[test.rho]
-    
+
     ## ***  name parameters
     level.Urho <-  level.rho[test.rho]
     strata.Urho <- strataLp[test.rho]

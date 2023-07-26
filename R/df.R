@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (10:34) 
 ## Version: 
-## Last-Updated: jul 19 2023 (10:21) 
+## Last-Updated: jul 26 2023 (11:09) 
 ##           By: Brice Ozenne
-##     Update #: 205
+##     Update #: 206
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -44,7 +44,6 @@ df.residual.lmm <- function(object, ...){
     }
     n.obs <- length(index.cluster)
     n.cluster <- length(pattern)
-    n.varcoef <- lapply(name.varcoef, length)
     n.allcoef <- length(name.allcoef)
     name.allvarcoef <- name.allcoef[name.allcoef %in% unique(unlist(name.varcoef))] ## make sure the ordering is correct
     n.allvarcoef <- length(name.allvarcoef)

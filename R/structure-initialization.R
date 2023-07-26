@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: jul 21 2023 (11:55) 
+## Last-Updated: jul 26 2023 (15:38) 
 ##           By: Brice Ozenne
-##     Update #: 373
+##     Update #: 398
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -67,7 +67,7 @@
 `.initialize` <-
     function(object, residuals, Xmean, index.cluster) UseMethod(".initialize")
 `.initialize2` <-
-    function(object, Omega) UseMethod(".initialize2")
+    function(object, index.clusterTime, Omega) UseMethod(".initialize2")
 
 ## * initialize.ID
 .initialize.ID <- function(object, residuals, Xmean, index.cluster){
@@ -176,7 +176,7 @@
 }
 
 ## * initialize2.ID
-.initialize2.ID <- function(object, Omega){
+.initialize2.ID <- function(object, index.clusterTime, Omega){
 
     structure.param <- object$param[is.na(object$param$constraint),,drop=FALSE]
     param.type <- stats::setNames(structure.param$type,structure.param$name)
@@ -188,15 +188,26 @@
     ## ** combine all design matrices
     ls.XY <- stats::setNames(lapply(Upattern.name, function(iPattern){ ## iPattern <- Upattern.name[1]
         iX <- object$var$Xpattern[[Upattern[Upattern$name==iPattern,"var"]]]
+
+        ## NOTE: this handles the case where the pattern is the same for time 1,2,4 and 1,2,3 but maybe not the initialization matrix
+        iIndex.cluster <- attr(iX,"index.cluster")
+        iIndex.clusterTime <- index.clusterTime[iIndex.cluster]
+        iPattern.clusterTime <- nlme::collapse(do.call(rbind,iIndex.clusterTime), as.factor = TRUE)
+        iPatternTime.n <- table(iPattern.clusterTime)
+        
         attr(iX,c("index.cluster")) <- NULL
         attr(iX,c("index.strata")) <- NULL
         attr(iX,c("param")) <- NULL
         attr(iX,c("indicator.param")) <- NULL
         attr(iX,c("Mindicator.param")) <- NULL
-        iOut <- list(X = iX,
-                     Y = Omega.diag[object$X$Upattern$time[[iPattern]]],
-                     n = rep(Upattern[Upattern$name==iPattern,"n.cluster"], Upattern[Upattern$name==iPattern,"n.time"])
-                     )
+
+        iOut <- list(X = NULL, Y = NULL, n = NULL)
+        for(iPattern.time in levels(iPattern.clusterTime)){ ## iPattern.time <- levels(iPattern.clusterTime)[1]
+            iOut$X <- rbind(iOut$X,iX)
+            iOut$Y <- c(iOut$Y,Omega.diag[iIndex.clusterTime[[which(iPattern.clusterTime==iPattern.time)[1]]]])
+            iOut$n <- c(iOut$n,rep(iPatternTime.n[[iPattern.time]], Upattern[Upattern$name==iPattern,"n.time"]))
+        }
+        return(iOut)
     }), Upattern.name)
     
     X.Omega <- do.call(rbind,lapply(ls.XY,"[[","X"))
@@ -318,35 +329,47 @@
 }
 
 ## * initialize2.CS
-.initialize2.CS <- function(object, Omega){
+.initialize2.CS <- function(object, index.clusterTime, Omega){
+
     structure.param <- object$param[is.na(object$param$constraint),,drop=FALSE]
     out <- stats::setNames(rep(NA, NROW(structure.param)), structure.param$name)
 
     ## ** extract information
     param.type <- stats::setNames(structure.param$type,structure.param$name)
     param.strata <- stats::setNames(structure.param$index.strata,structure.param$name)
-    Upattern <- object$X$Upattern
+    Upattern <- object$Upattern
     Upattern.name <- Upattern$name
 
     ## ** variance
-    sigma <- .initialize2.IND(object = object, Omega = Omega)
+    sigma <- .initialize2.IND(object = object, index.clusterTime = index.clusterTime, Omega = Omega)
     out[names(sigma)] <- sigma
 
     ## ** correlation
     Rho <- stats::cov2cor(Omega)
 
-    ls.XY <- stats::setNames(lapply(Upattern.name, function(iPattern){ ## iPattern <- Upattern.name[1]
-        iX <- object$X$Xpattern.cor[[Upattern[Upattern$name==iPattern,"cor"]]]
+    ls.XY <- stats::setNames(lapply(Upattern.name, function(iPattern){ ## iPattern <- Upattern.name[2]
+        iX <- object$cor$Xpattern[[Upattern[Upattern$name==iPattern,"cor"]]]
         if(NROW(iX)==0){return(NULL)}
         index.vec2matrix <- attr(iX, "index.vec2matrix")
-        index.time <- Upattern$time[[iPattern]] ## NOTE: use Upattern instead of attr(iX, "index.time") as the later is not define when there is ambiguity
-                                                ##       e.g. CS with one missing data where the same pattern holds for time 1,2,4 and 1,3,4
         index.pair <- attr(iX, "index.pair")
-        iOut <- list(X = cbind(param=index.pair$param),
-                     Y = Rho[index.time,index.time][index.vec2matrix],
-                     n = rep(Upattern[Upattern$name==iPattern,"n.cluster"], length(index.vec2matrix))
-                     )
+
+        ## NOTE: this handles the case where the pattern is the same for time 1,2,4 and 1,2,3 but maybe not the initialization matrix
+        iIndex.cluster <- attr(iX,"index.cluster")
+        iIndex.clusterTime <- index.clusterTime[iIndex.cluster]
+        iPattern.clusterTime <- nlme::collapse(do.call(rbind,iIndex.clusterTime), as.factor = TRUE)
+        iPatternTime.n <- table(iPattern.clusterTime)
+
+        iOut <- list(X = NULL, Y = NULL, n = NULL)
+        for(iPattern.time in levels(iPattern.clusterTime)){ ## iPattern.time <- levels(iPattern.clusterTime)[1]
+            iIndex.time <- iIndex.clusterTime[[which(iPattern.clusterTime==iPattern.time)[1]]]
+
+            iOut$X <- rbind(iOut$X,cbind(param = index.pair$param))
+            iOut$Y <- c(iOut$Y, Rho[iIndex.time,iIndex.time,drop=FALSE][index.vec2matrix])
+            iOut$n <- c(iOut$n,rep(iPatternTime.n[[iPattern.time]], NROW(index.pair)))
+        }
+        return(iOut)
     }), Upattern.name)
+
     X.Omega <- do.call(rbind,lapply(ls.XY,"[[","X"))
     atanhY.Omega <- atanh(do.call(c,lapply(ls.XY,"[[","Y")))
     n.Omega <- do.call(c,lapply(ls.XY,"[[","n"))
@@ -508,8 +531,8 @@
 }
 
 
-## * initialize.CUSTOM
-.initialize.CUSTOM <- function(object, residuals, Xmeans, index.cluster){
+## * initialize2.CUSTOM
+.initialize2.CUSTOM <- function(object, index.clusterTime, Omega){
 
     out <- stats::setNames(rep(NA, NROW(object$param)), object$param$name)
     if(!is.null(object$init.sigma) && any(!is.na(object$init.sigma))){

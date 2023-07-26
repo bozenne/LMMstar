@@ -19,7 +19,7 @@ ID(formula, var.cluster, var.time, add.time)
 An object of class \code{IND} that can be passed to the argument \code{structure} of the \code{lmm} function.
 }
 \description{
-Variance-covariance structure where the residuals are independent and identically distribution.
+Variance-covariance structure where the residuals are independent and identically distributed.
 Can be stratified on a categorical variable.
 }
 \details{
