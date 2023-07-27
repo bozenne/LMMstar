@@ -1595,6 +1595,12 @@ INPUT figures\diag-qqplot.pdf
 INPUT .\figures\diag-qqplot.pdf
 INPUT .\figures\diag-qqplot.pdf
 INPUT .\figures\diag-qqplot.pdf
+INPUT .\figures\diag-profileUN.pdf
+INPUT .\figures\diag-profileUN.pdf
+INPUT figures\diag-profileUN.pdf
+INPUT .\figures\diag-profileUN.pdf
+INPUT .\figures\diag-profileUN.pdf
+INPUT .\figures\diag-profileUN.pdf
 INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\rm-lmbx10.tfm
 INPUT .\figures\fit-autoplot.pdf
 INPUT .\figures\fit-autoplot.pdf
@@ -1608,6 +1614,18 @@ INPUT figures\fit-emmip.pdf
 INPUT .\figures\fit-emmip.pdf
 INPUT .\figures\fit-emmip.pdf
 INPUT .\figures\fit-emmip.pdf
+INPUT .\figures\fit10-autoplot.pdf
+INPUT .\figures\fit10-autoplot.pdf
+INPUT figures\fit10-autoplot.pdf
+INPUT .\figures\fit10-autoplot.pdf
+INPUT .\figures\fit10-autoplot.pdf
+INPUT .\figures\fit10-autoplot.pdf
+INPUT .\figures\fitAll-autoplot.pdf
+INPUT .\figures\fitAll-autoplot.pdf
+INPUT figures\fitAll-autoplot.pdf
+INPUT .\figures\fitAll-autoplot.pdf
+INPUT .\figures\fitAll-autoplot.pdf
+INPUT .\figures\fitAll-autoplot.pdf
 INPUT .\figures\fit-autoplot-indiv.pdf
 INPUT .\figures\fit-autoplot-indiv.pdf
 INPUT figures\fit-autoplot-indiv.pdf

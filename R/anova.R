@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jul 25 2023 (15:07) 
+## Last-Updated: jul 27 2023 (17:46) 
 ##           By: Brice Ozenne
-##     Update #: 1331
+##     Update #: 1333
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -177,7 +177,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     name.coef <- names(stats::coef(object, effects = "all"))
     out <- list(multivariate = NULL, univariate = NULL, glht = NULL)
 
-    if(inherits(effects,"mcp")){        
+    if(inherits(effects,"mcp")){
         out.glht <- try(multcomp::glht(object, linfct = effects), ## only used for generating contrast matrix
                         silent = TRUE)
         if(inherits(out.glht,"try-error")){

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 21 2023 (09:28) 
 ## Version: 
-## Last-Updated: jul 21 2023 (13:44) 
+## Last-Updated: jul 27 2023 (10:47) 
 ##           By: Brice Ozenne
-##     Update #: 49
+##     Update #: 51
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -83,9 +83,8 @@
                                      stats::setNames(list(NA), names(object2list)))
                                )
         }
-
         out <- stats::reshape(data = df.object[order(df.object$XXtimeXX),], direction = "wide",
-                              timevar = "XXtimeXX", idvar = "cluster", v.names = names(object2list), sep = sep)
+                              timevar = "XXtimeXX", idvar = "cluster", v.names = names(object2list), times = U.time, sep = sep)
         if(!is.null(name)){ ## in case the user specify name <- " " to only keep the time levels (otherwise leads to " time1" as column names instead of "time1")
             names(out)[-1] <- trimws(names(out)[-1], which = "left")
         }

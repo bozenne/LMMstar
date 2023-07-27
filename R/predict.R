@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jul 21 2023 (17:40) 
+## Last-Updated: jul 27 2023 (14:52) 
 ##           By: Brice Ozenne
-##     Update #: 857
+##     Update #: 866
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -113,6 +113,28 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
         keep.intercept <- TRUE
     }
 
+    ## standard error
+    if(identical(se,FALSE)){
+        se <- NULL
+    }else if(!is.null(se)){
+        if(identical(se,TRUE)){
+            stop("Argument \'se\' should not be TRUE but one of \"estimation\", \"residual\", or \"total\".\n",
+                 "Typically \"estimation\" will account for uncertainty about the fitted mean, \n",
+                 "While \"total\" will reflect the prediction error. \n")
+        }
+        se <- match.arg(se, c("estimation","residual","total"))
+    }
+    if(!is.null(se)){
+        factor.estimation <- se %in% c("estimation","total")
+    }else{
+        factor.estimation <- FALSE
+    }
+    if(!is.null(se)){
+        factor.residual <- se %in% c("residual","total")
+    }else{
+        factor.residual <- FALSE
+    }
+
     ## dataset
     if(is.null(newdata)){
         index.na <- object$index.na
@@ -120,8 +142,24 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
         newdata.index.time <- attr(object$design$index.clusterTime,"vectorwise")                    
     }else{
         index.na <- NULL
-     
-        if(identical(newdata,"unique")){
+
+        if(is.matrix(newdata)){
+            if(type == "dynamic"){
+                stop("Argument \'newdata\' cannot be a matrix when asking for dynamic predictions. \n",
+                     "It should be a data.frame. \n")
+            }
+            if(format == "wide"){
+                stop("Argument \'newdata\' cannot be a matrix when requesting a wide format. \n",
+                     "It should be a data.frame. \n")
+            }
+            if(keep.newdata == TRUE){
+                stop("Argument \'keep.newdata\' should be FALSE when argument \'newdata\' is a matrix. \n")
+            }
+            if(!is.null(se) && se != "estimation"){
+                stop("Argument \'se\' should be \"estimation\" or NULL when argument \'newdata\' is a matrix. \n")
+            }
+            ## used by residuals for type = partial-center
+        }else if(identical(newdata,"unique")){
             if(type.prediction %in% c("static","terms")){
                 ## reorder by cluster and time
                 data.index.cluster <- attr(object$design$index.cluster,"vectorwise")
@@ -145,27 +183,6 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
         }
     }
         
-    ## standard error
-    if(identical(se,FALSE)){
-        se <- NULL
-    }else if(!is.null(se)){
-        if(identical(se,TRUE)){
-            stop("Argument \'se\' should not be TRUE but one of \"estimation\", \"residual\", or \"total\".\n",
-                 "Typically \"estimation\" will account for uncertainty about the fitted mean, \n",
-                 "While \"total\" will reflect the prediction error. \n")
-        }
-        se <- match.arg(se, c("estimation","residual","total"))
-    }
-    if(!is.null(se)){
-        factor.estimation <- se %in% c("estimation","total")
-    }else{
-        factor.estimation <- FALSE
-    }
-    if(!is.null(se)){
-        factor.residual <- se %in% c("residual","total")
-    }else{
-        factor.residual <- FALSE
-    }
     ## check format
     format <- match.arg(format, c("wide","long"))
     if(keep.newdata && format == "wide"){
@@ -181,15 +198,15 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
     }
 
     ## impute cluster when missing (if static) and unambiguous, i.e. no repeated times (id dynamic)
-    if(!is.na(name.cluster)){
-        if(is.null(newdata[[name.cluster]]) && type.prediction == "dynamic" && all(!is.na(name.time)) && all(name.time %in% names(newdata))){
+    if(inherits(newdata,"data.frame") && !is.na(name.cluster)){
+        if(type.prediction == "dynamic" && is.null(newdata[[name.cluster]]) && all(!is.na(name.time)) && all(name.time %in% names(newdata))){
             if(any(duplicated(newdata[,name.time, drop=FALSE]))){
                 stop("Duplicated time values found in column ",name.time,".\n",
                      "Consider specifying the cluster variable in argument \'newdata\'. \n")
             }else{
                 newdata[[name.cluster]] <- "1"
             }
-        }else if((is.factor(newdata[[name.cluster]]) || is.numeric(newdata[[name.cluster]]))){
+        }else if(name.cluster %in% names(newdata) && (is.factor(newdata[[name.cluster]]) || is.numeric(newdata[[name.cluster]]))){
             newdata[[name.cluster]] <- as.character(newdata[[name.cluster]])
         }
     }
@@ -226,7 +243,7 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
 
     }else if(type.prediction == "static"){
         
-        if(all(!is.na(name.time)) && any(name.time %in% names(newdata) == FALSE) && !is.null(se) && se %in% c("residual","total")){
+        if(!is.null(se) && se %in% c("residual","total") && all(!is.na(name.time)) && any(name.time %in% names(newdata) == FALSE)){
             stop("The time column \"",paste(name.time[name.time %in% names(newdata) == FALSE], collapse = "\", \""),"\" in missing from argument \'newdata\'. \n",
                  "It is necessary for uncertainty calculation involving the residual variance. \n")
         }
@@ -264,7 +281,11 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
     }
 
     ## ** design matrix
-    X <- stats::model.matrix(object, data = newdata, effects = "mean")
+    if(is.matrix(newdata)){
+        X <- newdata
+    }else{    
+        X <- stats::model.matrix(object, data = newdata, effects = "mean")
+    }
     if(!keep.intercept && "(Intercept)" %in% colnames(X)){
         X[,"(Intercept)"] <- 0
     }
@@ -440,7 +461,7 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
         alpha <- 1-level
         M.pred <- cbind(estimate = prediction, se = prediction.se, df = prediction.df,
                         lower = prediction + stats::qt(alpha/2, df = prediction.df) * prediction.se,
-                        upper = prediction + stats::qt(alpha/2, df = prediction.df) * prediction.se)
+                        upper = prediction + stats::qt(1-alpha/2, df = prediction.df) * prediction.se)
     }else{
         M.pred <- cbind(estimate = prediction)
     }
@@ -450,7 +471,6 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
         ## even when no NA, use the initial dataset instead of the augmented one
         newdata <- object$data.original
     }
-
     out <- .reformat(M.pred, name = names(type), format = format, simplify = simplify,
                      keep.data = keep.newdata, data = newdata, index.na = object$index.na,
                      object.cluster = object$cluster, index.cluster = newdata.index.cluster,
@@ -458,6 +478,8 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
                      call = mycall)
     if(simplify==FALSE){
         attr(out,"args") <- list(se = se, df = df, type = type.prediction, level = level, keep.newdata = keep.newdata, format = format, simplify = simplify)
+    }else if(simplify && is.null(se) && keep.newdata == FALSE && format == "long"){
+        out <- out$estimate
     }
     return(out)
 }

@@ -5,6 +5,14 @@ Christensen, R. (2011).
 \newblock {\em Plane answers to complex questions (4th edition)}, volume~35.
 \newblock Springer.
 
+\bibitem[Geyer, 2013]{geyer2013asymptotics}
+Geyer, C.~J. (2013).
+\newblock Asymptotics of maximum likelihood without the lln or clt or sample
+  size going to infinity.
+\newblock In {\em Advances in Modern Statistical Theory and Applications: A
+  Festschrift in honor of Morris L. Eaton}, volume~10, pages 1--25. Institute
+  of Mathematical Statistics.
+
 \bibitem[Lakens, 2013]{lakens2013calculating}
 Lakens, D. (2013).
 \newblock Calculating and reporting effect sizes to facilitate cumulative

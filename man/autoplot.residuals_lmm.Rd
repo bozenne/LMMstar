@@ -14,6 +14,8 @@
   add.smooth = TRUE,
   digits.cor = 2,
   size.text = 16,
+  mean.size = c(3, 1),
+  ci.alpha = 0.25,
   scales = "free",
   labeller = "label_value",
   ...
@@ -40,6 +42,10 @@ Only relevant for when argument \code{type} is \code{"scatterplot"}.}
 No correlation coefficient is displayed when set to 0. Only used when argument \code{plot} is \code{"correlation"}.}
 
 \item{size.text}{[numeric, >0] Size of the font used to displayed text when using ggplot2.}
+
+\item{mean.size}{[numeric vector of length 2] size of the point and line for the mean trajectory.}
+
+\item{ci.alpha}{[numeric, 0-1] When not NA, transparency parameter used to display the confidence intervals.}
 
 \item{scales, labeller}{[character] Passed to \code{ggplot2::facet_wrap}.}
 

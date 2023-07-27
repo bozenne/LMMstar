@@ -1,4 +1,4 @@
-% Created 2023-07-26 on 17:39
+% Created 2023-07-27 to 17:32
 % Intended LaTeX compiler: pdflatex
 \documentclass[12pt]{article}
 
@@ -363,7 +363,7 @@ can also change the default values to better match the user needs.
 \clearpage
 
 \section{Illustrative dataset}
-\label{sec:org3113bf3}
+\label{sec:org11d3ca6}
 To illustrate the functionalities of the package, we will use the
 gastricbypass dataset. The long format can be imported using:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -439,9 +439,9 @@ dfL <- gastricbypassL[!is.na(gastricbypassL$glucagonAUC),]
 \clearpage
 
 \section{Descriptive statistics}
-\label{sec:orgc3db9b0}
+\label{sec:org942cde6}
 \subsection{Summary statistics}
-\label{sec:orgbcd7df7}
+\label{sec:orgaf0fa3d}
 
 Mean, standard deviation, and other summary statistic can be computed
 with respect to a categorical variable (typically time) using the
@@ -544,7 +544,7 @@ partialCor(weight + glucagonAUC ~ 1, by = "group", effects = "Dunnett",
 \end{verbatim}
 
 \subsection{Missing data patterns}
-\label{sec:orgd81ea70}
+\label{sec:orge858451}
 
 The \texttt{summarizeNA} identify the possible combinations of
 observed/missing data:
@@ -576,9 +576,9 @@ plot(mp)
 \clearpage
 
 \section{Linear mixed model (LMM)}
-\label{sec:orgb93a61a}
+\label{sec:orgb79bc20}
 \subsection{Classical covariance patterns}
-\label{sec:orgd832233}
+\label{sec:org8292ffa}
 
 Several build-in covariance patterns can be used when specifying the
 linear model. The most basic ones are the \textbf{identity} structure:
@@ -782,14 +782,14 @@ sigma(eSCS.lmm)
 \end{lstlisting}
 
 \begin{verbatim}
-$`0`
+$`1:1`
          B3m      B1w      A1w      A3m
 B3m 348.0783 334.7404 334.7404 334.7404
 B1w 334.7404 348.0783 334.7404 334.7404
 A1w 334.7404 334.7404 348.0783 334.7404
 A3m 334.7404 334.7404 334.7404 348.0783
 
-$`1`
+$`3:3`
          B3m      B1w      A1w      A3m
 B3m 345.5863 340.1538 340.1538 340.1538
 B1w 340.1538 345.5863 340.1538 340.1538
@@ -804,14 +804,14 @@ sigma(eSUN.lmm)
 \end{lstlisting}
 
 \begin{verbatim}
-$`0`
+$`1:1`
          B3m      B1w      A1w      A3m
 B3m 417.3374 382.8829 362.5674 301.7430
 B1w 382.8829 364.4515 346.4039 292.7507
 A1w 362.5674 346.4039 331.1789 282.9301
 A3m 301.7430 292.7507 282.9301 253.3324
 
-$`1`
+$`2:2`
          B3m      B1w      A1w      A3m
 B3m 383.8877 363.6405 336.5771 350.0416
 B1w 363.6405 347.9898 321.5908 331.5182
@@ -886,7 +886,7 @@ A3m 336.3064 336.3064 306.0647 315.6358
 \clearpage
 
 \subsection{User-specific covariance patterns}
-\label{sec:org2ea98ef}
+\label{sec:org8afce91}
 
 It is possible input user-specific covariance patterns under the
 following model for the residuals: \[\Omega =
@@ -1017,7 +1017,7 @@ system.time(
 
 \begin{verbatim}
 bruger   system forløbet 
-  0.17     0.00     0.18
+  0.19     0.00     0.18
 \end{verbatim}
 
 
@@ -1046,7 +1046,7 @@ system.time(
 
 \begin{verbatim}
 bruger   system forløbet 
-  1.16     0.02     1.17
+  1.20     0.02     1.24
 \end{verbatim}
 
 
@@ -1106,7 +1106,7 @@ system.time(
 
 \begin{verbatim}
 bruger   system forløbet 
-  0.84     0.02     0.87
+  0.83     0.05     0.89
 \end{verbatim}
 
 
@@ -1114,7 +1114,7 @@ bruger   system forløbet
 \clearpage
 
 \subsection{Estimation procedure}
-\label{sec:org66e0891}
+\label{sec:org494dc27}
 
 \textbf{Initialiation}: by default the mean parameters are initialized using
  Ordinary Least Squares (OLS) and the variance and correlation
@@ -1235,7 +1235,7 @@ to the argument \texttt{control} of \texttt{lmm} using a list.
 \clearpage
 
 \subsection{Model output}
-\label{sec:orgaac6a79}
+\label{sec:org6c1ea93}
 
 The \texttt{summary} method can be used to display the main information
 relative to the model fit:
@@ -1310,7 +1310,7 @@ arguments \texttt{df} to \texttt{FALSE} and \texttt{type.information} to \texttt
 calling \texttt{lmm} should lead to a more reasonnable computation time.
 
 \subsection{Extract estimated coefficients}
-\label{sec:orgdd84480}
+\label{sec:org4cb71db}
 The value of the estimated coefficients can be output using \texttt{coef}:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -1365,7 +1365,7 @@ dummy.coef(eUN.lmm)
 \end{verbatim}
 
 \subsection{Extract estimated coefficient and associated uncertainty}
-\label{sec:orgf27bd6f}
+\label{sec:org3322bdb}
 
 The uncertainty about the mean coefficients can be obtained using the
 \texttt{model.tables} method \footnote{it is equivalent to \texttt{confint} method
@@ -1447,7 +1447,7 @@ glucagon     -0.8883081 0.2416081  -3.676648 13.70759  -1.407545  -0.3690712 2.5
 \end{verbatim}
 
 \subsection{Extract estimated residual variance-covariance structure}
-\label{sec:org29f0ee8}
+\label{sec:org317ca90}
 
 The method \texttt{sigma} can be used to output the modeled residual
 covariance structure:
@@ -1512,7 +1512,7 @@ A3m 318.8573 304.6314 285.8077 280.9323
 \end{verbatim}
 
 \subsection{Random effects}
-\label{sec:org3617207}
+\label{sec:org13a0e44}
 
 Mixed model having a compound symmetry structure with positive
 correlation parameters may be equivalent to random intercept models,
@@ -1659,7 +1659,7 @@ ranef(eNRI.lmm, effects = "variance", format = "wide", simplify = FALSE)
 \clearpage
 
 \subsection{Sum of squares}
-\label{sec:org63f9afc}
+\label{sec:orgf10f863}
 
 \Warning The definition of the sum of squares is not straightforward with mixed
 models. Intuitively summing residuals across several outcomes will be
@@ -1746,7 +1746,7 @@ c(time = SSR.time, glucagon = SSR.glucagon)
 \end{verbatim}
 
 \subsection{Proportion of explained variance and partial correlation}
-\label{sec:org3874964}
+\label{sec:orgbbce183}
 
 \Warning The definition of explained variance is not straightforward
 with mixed models. Intuitively considering the variance across several
@@ -1855,9 +1855,49 @@ setNames(with(aCS.aov, statistic*df.num/(statistic*df.num+df.denom)), aCS.aov$te
 \clearpage
 
 \subsection{Model diagnostic}
-\label{sec:orgddd79ce}
+\label{sec:org0d042da}
 
-The method \texttt{plot} can be used to display diagnostic plots about:
+The method \texttt{residuals} returns the residuals in the wide format:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+eUN.diagW <- residuals(eUN.lmm, type = "normalized", format = "wide")
+colnames(eUN.diagW) <- gsub("normalized.","",colnames(eUN.diagW))
+head(eUN.diagW)
+\end{lstlisting}
+
+\begin{verbatim}
+  cluster      r.B3m      r.B1w      r.A1w       r.A3m
+1       1 -0.1082872  0.4283943  0.7477306  0.91794015
+2       2  1.8182348 -0.3516996  1.5698307 -0.98743171
+3       3 -0.9318737 -0.7728221  0.6315751  0.16549699
+4       4  0.8408969  1.8695564  0.3485784 -0.09662565
+5       5 -0.7882340         NA -0.6128276  0.09933842
+6       6  1.4896141 -1.9727358 -1.9672939 -1.37068983
+\end{verbatim}
+
+
+or in the long format:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+eUN.diagL <- residuals(eUN.lmm, type = "normalized", format = "long", keep.data = TRUE)
+head(eUN.diagL)
+\end{lstlisting}
+
+\begin{verbatim}
+  id visit time weight glucagonAUC baseline glucagon group   fitted r.normalized
+1  1     1  B3m  127.2     5032.50     TRUE 4.034616     1 129.3962   -0.1082872
+2  2     1  B3m  165.2    12142.50     TRUE 5.240766     0 128.3247    1.8182348
+3  3     1  B3m  109.7    10321.35     TRUE 4.931824     1 128.5992   -0.9318737
+4  4     1  B3m  146.2     6693.00     TRUE 4.316306     0 129.1459    0.8408969
+5  5     1  B3m  113.1     7090.50     TRUE 4.383738     1 129.0860   -0.7882340
+6  6     1  B3m  158.8    10386.00     TRUE 4.942791     0 128.5894    1.4896141
+\end{verbatim}
+
+
+Various type of residuals can be extract but the normalized one are
+recommanded when doing model checking. Diagnostic plots can then be
+generated by the user, or directly from the \texttt{lmm} object via the
+method \texttt{plot} (which internally calls the \texttt{residuals} method):
 \begin{itemize}
 \item misspecification of the mean structure
 \end{itemize}
@@ -1870,6 +1910,8 @@ plot(eUN.lmm, type = "scatterplot")
 \includegraphics[width=0.4\textwidth]{./figures/diag-scatterplot.pdf}
 \end{center}
 
+\clearpage
+
 \begin{itemize}
 \item misspecification of the variance structure
 \end{itemize}
@@ -1881,8 +1923,6 @@ plot(eUN.lmm, type = "scatterplot2")
 \begin{center}
 \includegraphics[width=0.4\textwidth]{./figures/diag-scatterplot2.pdf}
 \end{center}
-
-\clearpage
 
 \begin{itemize}
 \item misspecification of the correlation structure
@@ -1912,44 +1952,30 @@ plot(eUN.lmm, type = "qqplot", engine.qqplot = "qqtest")
 \includegraphics[width=0.5\textwidth]{./figures/diag-qqplot.pdf}
 \end{center}
 
+\Warning Deviation from the normal distribution does not necessarily
+question the validity of the statistical inference. Moreover, for
+variance and correlation parameters, normally distributed data is not
+enought to ensure valid statistical inference. Instead one could
+assess whether the log-likelihood is locally quadratic as this ensures
+normally distributed estimates in finite samples
+\citep{geyer2013asymptotics}. Since the likelihood function is a
+multi-dimensional function this is not an easy task but one can look
+at specific 'slices' using the \texttt{profile} method:
+
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+plot(profile(eUN.lmm, effects = c("sigma","rho(B1w,A1w)")))
+\end{lstlisting}
+
+
+\begin{center}
+\includegraphics[width=0.5\textwidth]{./figures/diag-profileUN.pdf}
+\end{center}
+
 \clearpage
 
-The method \texttt{residuals} returns the residulas in the wide format:
-\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
-\begin{lstlisting}
-eUN.diagW <- residuals(eUN.lmm, type = "normalized", format = "wide")
-colnames(eUN.diagW) <- gsub("normalized.","",colnames(eUN.diagW))
-head(eUN.diagW)
-\end{lstlisting}
-
-\begin{verbatim}
-  cluster      r.B3m      r.B1w      r.A1w       r.A3m
-1       1 -0.1082872  0.4283943  0.7477306  0.91794015
-2       2  1.8182348 -0.3516996  1.5698307 -0.98743171
-3       3 -0.9318737 -0.7728221  0.6315751  0.16549699
-4       4  0.8408969  1.8695564  0.3485784 -0.09662565
-5       5 -0.7882340         NA -0.6128276  0.09933842
-6       6  1.4896141 -1.9727358 -1.9672939 -1.37068983
-\end{verbatim}
-
-
-or in the long format:
-\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
-\begin{lstlisting}
-eUN.diagL <- residuals(eUN.lmm, type = "normalized", format = "long")
-head(eUN.diagL)
-\end{lstlisting}
-
-\begin{verbatim}
-[1] -0.1082872  1.8182348 -0.9318737  0.8408969 -0.7882340  1.4896141
-\end{verbatim}
-
-
-Various type of residuals can be extract but the normalized one are
-recommanded when doing model checking.
-
 \subsection{Model fit}
-\label{sec:org7e959e0}
+\label{sec:org17ea87e}
 
 The fitted values can be displayed via the \texttt{plot} method or using the \texttt{emmeans} package:
 
@@ -1982,8 +2008,8 @@ it is possible to display a curve specific to a glucagon value via the
 argument \texttt{at}:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-plot(eUN.lmm, type = "fit", at = data.frame(glucagon = 10), color = "glucagon")
-## result not shown
+## left panel
+plot(eUN.lmm, type = "fit", at = data.frame(glucagon = 10), color = "glucagon") 
 \end{lstlisting}
 
 It is also possible to display the observed values along with the
@@ -1992,10 +2018,29 @@ positive value below or equal to 1. This argument controls the
 transparency of the color used to display the observed values:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-gg <- autoplot(eUN.lmm, type = "fit", obs.alpha = 0.25, ci = FALSE)$plot
-gg <- gg + facet_wrap(~id, labeller = label_both)
-gg <- gg + theme(axis.text.x=element_text(angle = 90, hjust = 0))
-gg
+## right panel
+gg.spafit <- plot(eUN.lmm, type = "fit", obs.alpha = 0.25, ci = FALSE)$plot
+\end{lstlisting}
+
+\begin{minipage}{0.45\linewidth}
+\begin{center}
+\includegraphics[width=\textwidth]{./figures/fit10-autoplot.pdf}
+\end{center}
+\end{minipage}
+\begin{minipage}{0.45\linewidth}
+\begin{center}
+\includegraphics[width=\textwidth]{./figures/fitAll-autoplot.pdf}
+\end{center}
+\end{minipage}
+
+The \texttt{plot} element output by the \texttt{plot} method can be manipulated as a ggplot object
+to modify the visual appearance, e.g. to compare each individual
+trajectory to the model fit:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+gg.traj <- gg.spafit + facet_wrap(~id, labeller = label_both)
+gg.traj <- gg.traj + theme(axis.text.x=element_text(angle = 90, hjust = 0))
+gg.traj
 \end{lstlisting}
 
 \begin{center}
@@ -2005,13 +2050,13 @@ gg
 \clearpage
 
 \subsection{Partial residuals}
-\label{sec:org37f1c0c}
+\label{sec:orgb015605}
 
 Partial residuals can also be displayed via the \texttt{plot} method:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-gg1 <- autoplot(eUN.lmm, type = "partial", var = "glucagon")$plot
-gg2 <- autoplot(eUN.lmm, type = "partial", var = c("(Intercept)","glucagon"))$plot
+gg1 <- plot(eUN.lmm, type = "partial", var = "glucagon")$plot
+gg2 <- plot(eUN.lmm, type = "partial", var = c("(Intercept)","glucagon"))$plot
 ggarrange(gg1,gg2)
 \end{lstlisting}
 
@@ -2027,13 +2072,13 @@ head(df.pres)
 \end{lstlisting}
 
 \begin{verbatim}
-  id visit time weight glucagonAUC baseline glucagon group  r.partial
-1  1     1  B3m  127.2     5032.50     TRUE 4.034616     1  -5.780135
-2  2     1  B3m  165.2    12142.50     TRUE 5.240766     0  32.219865
-3  3     1  B3m  109.7    10321.35     TRUE 4.931824     1 -23.280135
-4  4     1  B3m  146.2     6693.00     TRUE 4.316306     0  13.219865
-5  5     1  B3m  113.1     7090.50     TRUE 4.383738     1 -19.880135
-6  6     1  B3m  158.8    10386.00     TRUE 4.942791     0  25.819865
+  id visit time weight glucagonAUC baseline glucagon group    fitted  r.partial
+1  1     1  B3m  127.2     5032.50     TRUE 4.034616     1 -3.583982  -5.780136
+2  2     1  B3m  165.2    12142.50     TRUE 5.240766     0 -4.655415  32.219864
+3  3     1  B3m  109.7    10321.35     TRUE 4.931824     1 -4.380979 -23.280136
+4  4     1  B3m  146.2     6693.00     TRUE 4.316306     0 -3.834209  13.219864
+5  5     1  B3m  113.1     7090.50     TRUE 4.383738     1 -3.894110 -19.880136
+6  6     1  B3m  158.8    10386.00     TRUE 4.942791     0 -4.390721  25.819864
 \end{verbatim}
 
 
@@ -2042,38 +2087,26 @@ This matches manual calculation:
 \begin{lstlisting}
 m.pres <- dfL$weight - model.matrix(~time,dfL) %*% coef(eUN.lmm)[1:4]
 range(df.pres$r.partial - m.pres, na.rm = TRUE)
+
+m.pfit <- model.matrix(~0+glucagon,dfL) %*% coef(eUN.lmm)["glucagon"]
+range(df.pres$fitted - m.pfit, na.rm = TRUE)
 \end{lstlisting}
 
 \begin{verbatim}
-[1] -1.065814e-14  1.421085e-14
+[1] -1.421085e-14  1.421085e-14
+[1] 0 0
 \end{verbatim}
 
 
-Note: to match the partial residuals obtained from \texttt{lm}:
-\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
-\begin{lstlisting}
-eIID.lm <- lm(glucagon ~ time + weight, data = dfL)
-pRes.lm <- residuals(eIID.lm, type = "partial")[,"weight"]
-\end{lstlisting}
-
-one should use \texttt{type} equal to \texttt{"partial-center"} which also removes
-the average effect of the covariate:
-\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
-\begin{lstlisting}
-eIID.lmm <- lmm(glucagon ~ time + weight, data = dfL)
-pRes.lmm <- residuals(eIID.lmm, type = "partial-center", var = "weight")
-range(pRes.lm-na.omit(pRes.lmm))
-\end{lstlisting}
-
-\begin{verbatim}
-[1] -6.883383e-15  8.881784e-15
-\end{verbatim}
-
+The \texttt{plot} methods can handle one continuous and one categorical
+covariate (in addition to the intercept) to display interaction
+plots. In that case each observation/fitted line is colored according
+to the categorical covariate.
 
 \clearpage
 
 \subsection{Statistical inference (linear)}
-\label{sec:org5f571e6}
+\label{sec:orgea58eef}
 
 The \texttt{anova} method can be use to test one or several linear
 combinations of the model coefficients using Wald tests. By default,
@@ -2270,7 +2303,7 @@ summary(Manova)
 \clearpage
 
 \subsection{Statistical inference (non-linear)}
-\label{sec:org84f14c9}
+\label{sec:orge6eb555}
 
 The \texttt{estimate} function can be used to test one or several non-linear
 combinations of model coefficients, using a first order delta method
@@ -2336,7 +2369,7 @@ variable.
 \clearpage
 
 \subsection{Baseline adjustment}
-\label{sec:orgf1beecf}
+\label{sec:orge191b89}
 
 In clinical trial the group and intervention variable often do not
 coincide, e.g., in presence of baseline measurement. In our running
@@ -2528,7 +2561,7 @@ plot(eC3.lmm, color = "group", ci = FALSE, size.text = 20, obs.alpha = 0.1)
 \end{center}
 
 \subsection{Marginal means}
-\label{sec:org673381d}
+\label{sec:orge9b5daf}
 
 The \texttt{emmeans} package can be used to output marginal means. Consider
 the following model:
@@ -2708,7 +2741,7 @@ P value adjustment: sidak method for 4 tests
 \clearpage
 
 \subsection{Predictions}
-\label{sec:org50c259f}
+\label{sec:org6ba3bdc}
 
 Two types of predictions can be performed with the \texttt{predict} method:
 \begin{itemize}
@@ -2818,9 +2851,9 @@ as.double(mu2 + Omega_21 * (100 - mu1) / Omega_11)
 \clearpage
 
 \section{Equivalence with other statistical methods}
-\label{sec:org7a61f29}
+\label{sec:orgc984ae3}
 \subsection{T-test}
-\label{sec:orgdc4b6b1}
+\label{sec:org38a45eb}
 A t-test:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -2925,7 +2958,7 @@ mt.test(weight1+weight2+weight3+weight4~group, data = gastricbypassW)
 \end{verbatim}
 
 \subsection{Linear regression on the change}
-\label{sec:orgfd280ab}
+\label{sec:org1c38d44}
 
 A widely spread approach to analyze longitudinal data is to reduce the
 number of repetitions to 1 by working on the change and then apply
@@ -2982,7 +3015,7 @@ integer(0)
 \end{verbatim}
 
 \subsection{Correlation between changes}
-\label{sec:orgc6197e1}
+\label{sec:org3468dc9}
 
 In some studies, one is interested in studying the relation between
 two evolutions. Say weight and glucagon before and after the
@@ -3129,7 +3162,7 @@ technic.
 \clearpage
 
 \section{Missing values and imputation}
-\label{sec:org55d6eaa}
+\label{sec:org842497a}
 
 We reconsider the example of the previous section, but now in presence
 of missing values. The \texttt{summarize} function can be used to describe
@@ -3185,7 +3218,7 @@ gastricbypassW$changeG32 <- gastricbypassW$glucagonAUC3-gastricbypassW$glucagonA
 \clearpage
 
 \subsection{Full information approach}
-\label{sec:org1c04800}
+\label{sec:orgfadfa18}
 
 LMM uses a full information approach:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -3259,7 +3292,7 @@ linear model should not be trusted as they do not account for the
 uncertainty in the imputed values.
 
 \subsection{Complete case approach}
-\label{sec:org1018362}
+\label{sec:orgadca288}
 
 The \texttt{lmmCC} can be used to obtain the LMM that is equivalent to a
 linear regression. In the case of the comparing the change between
@@ -3410,7 +3443,7 @@ fitted(eUN.lmmNA, impute = TRUE, se = "total")
 \clearpage
 
 \subsection{Multiple imputation}
-\label{sec:org8817c6e}
+\label{sec:orga363f5f}
 
 The \texttt{mlmm} function can used to perform stratify analyses, typically
 useful when performing multiple imputations. Consider the wide format
@@ -3510,7 +3543,7 @@ plot(e.mlmm, method = c("pool.rubin","none"))
 \clearpage
 
 \section{Data generation}
-\label{sec:org72d1274}
+\label{sec:org9b73e9b}
 Simulate some data in the wide format:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -3557,7 +3590,7 @@ head(dL)
 \clearpage
 
 \section{Modifying default options}
-\label{sec:orge60a630}
+\label{sec:org8f6f95a}
 The \texttt{LMMstar.options} method enable to get and set the default options
 used by the package. For instance, the default option for the information matrix is:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -3586,7 +3619,7 @@ LMMstar.options(reinitialise = TRUE)
 \clearpage
 
 \section{R session}
-\label{sec:org3bc3774}
+\label{sec:orgd0438b1}
 Details of the R session used to generate this document:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -3639,7 +3672,7 @@ loaded via a namespace (and not attached):
 \clearpage
 
 \section*{References}
-\label{sec:org30390e2}
+\label{sec:orged159ed}
 \begingroup
 \renewcommand{\section}[2]{}
 
@@ -3672,7 +3705,7 @@ consider \(n\) replicates (i.e. \(\VY_1,\ldots,\VY_n)\) and
 \(\omega=(w_1,\ldots,w_n)\), which are by default all equal to 1.
 
 \subsection{Log-likelihood}
-\label{sec:org25f52bd}
+\label{sec:org1cadfee}
 
 The restricted log-likelihood in a linear mixed model can then be
 written:
@@ -3703,7 +3736,7 @@ when setting the argument \texttt{indiv} to \texttt{TRUE}.
 \bigskip
 
 \subsection{Score}
-\label{sec:orge4678f2}
+\label{sec:org2e5dd6d}
 
  Using that \(\partial \log(\det(X))=tr(X^{-1}\partial(X))\), the
 score is obtained by derivating once the log-likelihood, i.e., for
@@ -3726,7 +3759,7 @@ what \texttt{score} outputs for the ML criteria when setting the argument
 \clearpage
 
 \subsection{Hessian}
-\label{sec:org0299395}
+\label{sec:org0d6d1c6}
 
 Derivating a second time the log-likelihood gives the hessian, \(\Hessian(\Vparam)\), with element\footnote{if one is relative to the mean and the other to the variance then they are respectively \(\theta\) and \(\theta'\)}:
 \begin{align*}
@@ -3774,7 +3807,7 @@ is set to \texttt{"expected"} (up to a factor -1).
 \clearpage
 
 \subsection{Degrees of freedom}
-\label{sec:org1a3c526}
+\label{sec:org4ab6d4c}
 
 Degrees of freedom are computed using a Satterthwaite approximation,
 i.e. for an estimate coefficient \(\widehat{\beta}\in\widehat{\Vparam}\) with standard
@@ -4179,10 +4212,10 @@ summary(partialCor(e.lmm, R2 = TRUE))
 \clearpage
 
 \section{Equivalent with other R packages}
-\label{sec:orgfaaea55}
+\label{sec:org168be0d}
 
 \subsection{nlme package}
-\label{sec:org828ef19}
+\label{sec:org5910f3c}
 
 The model class obtained with the \texttt{lmm} function overlaps the model
 class of the \texttt{lme} and \texttt{gls} functions from the nlme package.
@@ -4244,7 +4277,7 @@ logLik(eUN.lmm)
 \clearpage
 
 \subsection{lme4 package}
-\label{sec:org12f39e0}
+\label{sec:org52973a2}
 
 The model class obtained with the \texttt{lmm} function overlaps the model
 class of the \texttt{lmer} function from the lme4 package.
@@ -4415,7 +4448,7 @@ logLik(e.lmm)
 \end{verbatim}
 
 \subsection{mmrm package}
-\label{sec:orgde7ab92}
+\label{sec:orge268d99}
 
 The package \texttt{mmrm} is an alternative implementation of mixed models
 specified via covariance structures:
@@ -4464,7 +4497,7 @@ function in the current CRAN version 0.2.2)
 \end{itemize}
 
 \subsection{effectsize package (\(R^2\) or \(\eta^2\))}
-\label{sec:org1f39760}
+\label{sec:orgf4e20d0}
 
 Partial \(\eta^2\) can be computed based on \texttt{lmer} using the effectsize package:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
@@ -4533,7 +4566,7 @@ But in that case both may be misleading as the proportion of explained
 variance is not clearly defined.
 
 \subsection{MuMIn package (\(R^2\))}
-\label{sec:org4ba274f}
+\label{sec:org35899a3}
 
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -4584,4 +4617,74 @@ c(R2m = sigma2_XB/(sigmaW + sigmaB + sigma2_XB),
       R2m       R2c 
 0.2163302 0.9764382
 \end{verbatim}
+
+\subsection{stats package (partial residuals)}
+\label{sec:org7ce175f}
+
+The function \texttt{residuals.lm} can be used to extract partial residuals
+from \texttt{lm} objects:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+eIID.lm <- lm(weight ~ time + glucagon, data = dfL)
+pRes.lm <- residuals(eIID.lm, type = "partial")
+head(pRes.lm)
+\end{lstlisting}
+
+\begin{verbatim}
+       time   glucagon
+1  3.359543   1.475108
+2 49.419060  39.475108
+3 -8.145299 -16.024892
+4 24.241798  20.475108
+5 -8.407618 -12.624892
+6 41.027985  33.075108
+\end{verbatim}
+
+
+Those generally differ (by a constant) from the one provided by
+\texttt{residuals.lmm}:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+eIID.lmm <- lmm(weight ~ time + glucagon, data = dfL)
+head(residuals(eIID.lmm, type = "partial", var = "glucagon"))
+\end{lstlisting}
+
+\begin{verbatim}
+[1] -31.9349871   6.0650129 -49.4349871 -12.9349871 -46.0349871  -0.3349871
+\end{verbatim}
+
+
+Indeed, \texttt{residuals.lm} centers the design matrix of the variable
+relative to which the partial residuals are computed:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+m.pres2 <- dfL$weight - cbind(model.matrix(~time,dfL), mean(dfL$glucagon)) %*% coef(eIID.lmm)
+range(pRes.lm[,"glucagon"] - m.pres2, na.rm = TRUE)
+\end{lstlisting}
+
+\begin{verbatim}
+[1] -3.348433e-13  4.654055e-13
+\end{verbatim}
+
+
+For continuous variable with a linear effect, these residuals can be
+obtained by setting the \texttt{type} argument to \texttt{"partial-center"}:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+eIID.lmm <- lmm(weight ~ time + glucagon, data = dfL)
+pRes.lmm <- residuals(eIID.lmm, type = "partial-center", var = "glucagon")
+range(pRes.lm[,"glucagon"]-pRes.lmm)
+\end{lstlisting}
+
+\begin{verbatim}
+[1] -3.330669e-13  4.725109e-13
+\end{verbatim}
+
+
+\Warning When evaluating the partial residuals relative to categorical
+variables, interactions, or non-linear terms, the output obtained with
+\texttt{partial-center} will not match the one of \texttt{residuals.lm}. Indeed
+\texttt{partial-center} will, when numeric, center the original variable
+whereas \texttt{residuals.lm} will center the column relative to the
+coefficient in the design matrix.
 \end{document}

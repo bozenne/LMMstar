@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (11:00) 
 ## Version: 
-## Last-Updated: maj  4 2023 (11:14) 
+## Last-Updated: jul 27 2023 (13:50) 
 ##           By: Brice Ozenne
-##     Update #: 111
+##     Update #: 119
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -19,11 +19,10 @@
 ##' @describeIn autoplot.lmm Graphical Display For Linear Mixed Models
 ##' @export
 plot.lmm <- function(x, ...){
-
     out <- autoplot.lmm(x, ...)
     if(!is.null(out$plot)){
         ## if ggplot then the graph is stored in out and should be displayed here
-        ## otherwise the graph has already been displayed but could not be stored in the object
+        ## otherwise the graph has already been displayed but could not be stored in the object (e.g. when using qqtest)
         print(out$plot)
     }
     return(invisible(out))

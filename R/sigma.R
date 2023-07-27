@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: jul 26 2023 (15:44) 
+## Last-Updated: jul 27 2023 (10:58) 
 ##           By: Brice Ozenne
-##     Update #: 663
+##     Update #: 669
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -277,7 +277,18 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
 
         ## subset
         out <- Omega[vec.Upattern]
-        names(out) <- names(vec.Upattern)        
+        names(out) <- vec.Upattern        
+
+        ## add possibly missing times
+        for(iPattern  in vec.Upattern){
+            if(!identical(colnames(out[[iPattern]]),U.time) || !identical(rownames(out[[iPattern]]),U.time)){
+                iOmega.save <- out[[iPattern]]
+                out[[iPattern]] <- matrix(NA, nrow = n.time, ncol = n.time, dimnames = list(U.time,U.time))
+                out[[iPattern]][rownames(iOmega.save),colnames(iOmega.save)] <- iOmega.save
+            }
+        }
+
+        ## prepare for export
         if(!simplify){
             attr(out,"pattern") <- vec.Upattern
         }
