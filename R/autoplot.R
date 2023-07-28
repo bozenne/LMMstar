@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: jul 27 2023 (17:23) 
+## Last-Updated: jul 28 2023 (11:18) 
 ##           By: Brice Ozenne
-##     Update #: 880
+##     Update #: 892
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -149,6 +149,7 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
 
     ## ** extract from object
     object.data <- object$data
+        
     Upattern <- object$design$vcov$Upattern
     pattern.cluster <- object$design$vcov$pattern
 
@@ -164,10 +165,15 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
         
     }else{
         if(length(time.var)>1){
-            stop("Argument \'time.var\' should have length 1 or be NULL. \n")
-        }
-        if(time.var %in% names(object$data) == FALSE){
-            stop("Could not find the variable \"",time.var,"\" defined by the \'time.var\' argument in the data used to fit the lmm. \n")
+            stop("Argument \'time.var\' should either be NULL \n",
+                 "        or have length 1 and be a variable name in the data used to fit the lmm. \n")
+        }else if(length(time.var)==1 && time.var %in% names(data) == FALSE){
+            if(time.var %in% names(object$data.original)){
+                object.data[[time.var]] <- object$data.original[[time.var]][object.data$XXindexXX]
+            }else{
+                stop("Incorrect value for argument \'time.var\'. \n",
+                     "No column ",time.var," found in the dataset used to fit the lmm. \n")
+            }
         }
         time.var.plot <- time.var
         xlabel.plot <- time.var
@@ -178,6 +184,26 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
         message("There is nothing to be displayed: empty time variable and no covariate for the mean structure. \n")
         return(NULL)
     }
+
+    if(length(color) == 0){
+        color <- NULL
+    }else if(length(color) == 1){
+        if(is.character(color) && (color %in% names(object.data) == FALSE)){
+            if(color %in% names(object$data.original)){
+                object.data[[color]] <- object$data.original[[color]][object.data$XXindexXX]
+            }else{
+                stop("Incorrect value for argument \'color\'. \n",
+                     "No column ",color," found in the dataset used to fit the lmm. \n")
+            }
+        }else if(!identical(color,TRUE)){
+            stop("Argument \'color\' should either be NULL \n",
+                 "        or have length 1 and be TRUE or a variable name in the data used to fit the lmm. \n")
+        }
+    }else if(length(color)>1){
+        stop("Argument \'color\' should either be NULL \n",
+             "        or have length 1 and be TRUE or a variable name in the data used to fit the lmm. \n")
+    }
+    
 
     ## ** find representative individuals
     order.nrep <- names(sort(stats::setNames(Upattern$n.time, Upattern$name), decreasing = TRUE))

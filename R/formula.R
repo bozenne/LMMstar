@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:53) 
 ## Version: 
-## Last-Updated: jul 26 2023 (11:06) 
+## Last-Updated: jul 28 2023 (16:44) 
 ##           By: Brice Ozenne
-##     Update #: 210
+##     Update #: 221
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -239,39 +239,55 @@ formula2var <- function(formula, specials = NULL, name.argument  = "formula",
 ## * updateFormula
 ##' @description Remove or add a term in a formula while keeping interaction term untouched
 ##' @noRd
+##' @details when updating formula not using stats::drop.terms or stats::udpate as it re-write the interaction X1*X2 ---> X1 + X2 + X1:X2
 ##' @examples
-##' NOTE: when updating formula not using stats::drop.terms or stats::udpate as it re-write the interaction X1*X2 ---> X1 + X2 + X1:X2
+##' ## issue 
 ##' stats::drop.terms(terms(Y~X1*X2+(1|id)), dropx = 3)
 ##' stats::update(terms(Y~X1*X2+(1|id)), .~.-(1|id))
+##'
+##' ## solution
 ##' updateFormula(Y~X1*X2+(1|id), drop.x = "(1|id)")
 ##' updateFormula(Y~0+X1*X2+(1|id), drop.x = "(1|id)")
-##'
 ##' updateFormula(Y~X1*X2, add.x = "(1 | id)")
-updateFormula <- function(formula, add.x = NULL, drop.x = NULL, drop.y = FALSE){
+##'
+##' ## other cases
+##' updateFormula(Y~X1+X2+X3, drop.x = "X1")
+##' updateFormula(Y~X1*X2+X3, drop.x = "X1") ## WARNING DO NOT DROP THE INTERACTION
+##' updateFormula(Y~X1*X2+X3, drop.x = "X1*X2")
+##' 
+##' updateFormula(Y~X1, drop.x="X1")
+##' updateFormula(Y~X1, drop.y = TRUE, drop.x="X1")
+##' 
+updateFormula <- function(formula, add.x = NULL, drop.x = NULL, add.y = NULL, drop.y = FALSE){
 
     drop.x <- gsub(" ","",drop.x)
     if(!inherits(formula,"formula") || (length(formula) %in% 2:3 == FALSE)){
         stop("Argument \'formula\' should be a formula with length 2 or 3. \n")
     }
     test.response <- length(formula) == 3
-    
+
     txt.formula <- as.character(utils::tail(formula,1))
     term.formula <- gsub(" ","",strsplit(txt.formula, split = "+", fixed = TRUE)[[1]])
-    if(any(drop.x %in% term.formula == FALSE)){
-        stop("Mismatch between argument \'formula\' and \'drop.x\', \n",
-             "Could not find \"",paste(drop.x[drop.x %in% term.formula == FALSE], collapse = "\" \""),"\". \n")
-    }
-
+    ## if(any(drop.x %in% term.formula == FALSE)){
+    ##     stop("Mismatch between argument \'formula\' and \'drop.x\', \n",
+    ##          "Could not find \"",paste(drop.x[drop.x %in% term.formula == FALSE], collapse = "\" \""),"\". \n")
+    ## }
     if(!is.null(drop.x)){
         term.formula <- term.formula[term.formula %in% drop.x == FALSE]
     }
     if(!is.null(add.x)){
         term.formula <- c(term.formula, add.x)
     }
+    if(length(term.formula)==0){
+        term.formula <- 1
+    }
     if(!test.response || drop.y){
         txt.new <- paste0(deparse(formula[[1]]),paste0(term.formula, collapse="+"))
     }else{
         txt.new <- paste0(deparse(formula[[2]]),deparse(formula[[1]]),paste0(term.formula, collapse="+"))
+    }
+    if(!is.null(add.y) && length(add.y)>0){
+        txt.new <- paste0(paste0(add.y,collapse="+"),txt.new)
     }
     return(stats::as.formula(txt.new))
 }

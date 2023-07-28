@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: jul 27 2023 (11:06) 
+## Last-Updated: jul 28 2023 (12:02) 
 ##           By: Brice Ozenne
-##     Update #: 2922
+##     Update #: 2929
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -166,9 +166,9 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
         design2 <- list(mean = design$mean,
                         variance = design$vcov$var$X,
                         correlation = design$vcov$cor$X)
-        attributes(design2$mean) <- attributes(design$mean)[c("dim","dimnames","assign")]
-        attributes(design2$variance) <- attributes(design$variance)[c("dim","dimnames","assign")]
-        attributes(design2$correlation) <- attributes(design$correlation)[c("dim","dimnames","assign")]
+        attributes(design2$mean) <- attributes(design$mean)[c("dim","dimnames","assign","contrasts")]
+        attributes(design2$variance) <- attributes(design$variance)[c("dim","dimnames","assign","contrasts")]
+        attributes(design2$correlation) <- attributes(design$correlation)[c("dim","dimnames","assign","contrasts")]
         if(length(effects)>1){
             return(design2[effects])
         }else{

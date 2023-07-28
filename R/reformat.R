@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 21 2023 (09:28) 
 ## Version: 
-## Last-Updated: jul 27 2023 (10:47) 
+## Last-Updated: jul 28 2023 (17:34) 
 ##           By: Brice Ozenne
-##     Update #: 51
+##     Update #: 56
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -74,8 +74,9 @@
         }else{
             names(object2list) <- colnames(object)
         }
-
+        
         df.object <- cbind(data.frame(cluster = indexAll.cluster, XXtimeXX = indexAll.time), object2list, stringsAsFactors = FALSE)
+        names(df.object)[1] <- object.cluster$var
         if((simplify == FALSE) && any(U.time %in% unique(df.object$XXtimeXX) == FALSE)){
             ## add missing times
             df.object <- rbind(df.object,
@@ -84,7 +85,7 @@
                                )
         }
         out <- stats::reshape(data = df.object[order(df.object$XXtimeXX),], direction = "wide",
-                              timevar = "XXtimeXX", idvar = "cluster", v.names = names(object2list), times = U.time, sep = sep)
+                              timevar = "XXtimeXX", idvar = object.cluster$var, v.names = names(object2list), times = U.time, sep = sep)
         if(!is.null(name)){ ## in case the user specify name <- " " to only keep the time levels (otherwise leads to " time1" as column names instead of "time1")
             names(out)[-1] <- trimws(names(out)[-1], which = "left")
         }

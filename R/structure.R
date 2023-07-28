@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: jul 26 2023 (17:28) 
+## Last-Updated: jul 28 2023 (16:51) 
 ##           By: Brice Ozenne
-##     Update #: 1123
+##     Update #: 1134
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -189,6 +189,7 @@ CS <- function(formula, var.cluster, var.time, type = NULL, group.type = NULL, a
     }else if((is.list(formula) && length(formula)==2)){
         type <- type.he[3]
     }
+
     if(!missing(formula) && inherits(formula,"formula")){
         if(type == "homogeneous"){
             if(attr(terms(formula),"response")==0){
@@ -201,7 +202,7 @@ CS <- function(formula, var.cluster, var.time, type = NULL, group.type = NULL, a
         }else if(type == "heterogeneous" && !missing(var.time)){
             var.f <- all.vars(formula)
             if(length(var.f)>0 && any(var.f %in% c(var.time,attr(var.time,"original")))){
-                formula <- list(variance = ~formula,
+                formula <- list(variance = formula,
                                 correlation = formula)
             }else{
                 add.var <- c(attr(var.time,"original"),var.time)[1]
@@ -917,8 +918,8 @@ CUSTOM <- function(formula, var.cluster, var.time,
     }
 
     ## ** right hand side    
-    ls.var.X <- list(variance = c(add.X$variance, detail.formula$variance$vars$regressor),
-                     correlation = c(add.X$correlation, detail.formula$correlation$vars$regressor))
+    ls.var.X <- list(variance = unique(c(add.X$variance, detail.formula$variance$vars$regressor)),
+                     correlation = unique(c(add.X$correlation, detail.formula$correlation$vars$regressor)))
     test.interaction <- sapply(formula, function(iF){
         any(attr(stats::delete.response(stats::terms(iF)),"order")>1)
     })

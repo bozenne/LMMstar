@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: jul 27 2023 (17:23) 
+## Last-Updated: jul 28 2023 (17:29) 
 ##           By: Brice Ozenne
-##     Update #: 1030
+##     Update #: 1033
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -148,7 +148,7 @@ residuals.lmm <- function(object, type = "response", var = NULL,
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
     ## check format
-    format <- match.arg(sort(unique(format)), c("wide","long"), several.ok = TRUE)
+    format[] <- match.arg(sort(unique(format)), c("wide","long"), several.ok = TRUE)  ## use 'format[] <-' instead of 'format <-' to keep the name that will be transferd to .reformat(
     if(length(format)>1){
         format <- format[1]
         attr(format,"original") <- c("wide","long")
@@ -481,7 +481,7 @@ residuals.lmm <- function(object, type = "response", var = NULL,
     }
 
     ## ** export
-    out <- .reformat(M.res, name = names(type), format = format, simplify = simplify,
+    out <- .reformat(M.res, name = names(format), format = format, simplify = simplify,
                      keep.data = keep.data, data = data.reference, index.na = object.index.na,
                      object.cluster = object.cluster, index.cluster = index.cluster,
                      object.time = object.time, index.time = index.time,                     
@@ -506,7 +506,7 @@ residuals.lmm <- function(object, type = "response", var = NULL,
             attr(out,"args")$nameW.colres <- stats::setNames(names(out)[-1], object.time$levels)
 
         }else if(format == "long" && !is.null(attr(format,"original"))){
-            attr(out,"wide") <- .reformat(M.res, name = names(type), format = "wide", simplify = simplify,
+            attr(out,"wide") <- .reformat(M.res, name = names(format), format = "wide", simplify = simplify,
                                           keep.data = FALSE, data = data, index.na = object.index.na,
                                           object.cluster = object.cluster, index.cluster = index.cluster,
                                           object.time = object.time, index.time = index.time,                     

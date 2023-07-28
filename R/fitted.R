@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul  8 2021 (17:09) 
 ## Version: 
-## Last-Updated: jul 21 2023 (18:24) 
+## Last-Updated: jul 28 2023 (17:37) 
 ##           By: Brice Ozenne
-##     Update #: 196
+##     Update #: 207
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -83,7 +83,7 @@
 
 ## * fitted.lmm (code)
 ##' @export
-fitted.lmm <- function(object, newdata = NULL, impute = FALSE, se.impute = "estimation", 
+fitted.lmm <- function(object, newdata = NULL, impute = FALSE, se.impute = FALSE, 
                        keep.newdata = FALSE, format = "long", simplify = TRUE, seed = NULL, ...){
 
     ## ** special case: no imputation
@@ -119,8 +119,12 @@ fitted.lmm <- function(object, newdata = NULL, impute = FALSE, se.impute = "esti
     }
     type.prediction <- ifelse(impute,"dynamic", "static")
 
-    format <- match.arg(format, c("wide","long"))
+    format[] <- match.arg(format, c("wide","long")) ## use 'format[] <-' instead of 'format <-' to keep the name that will be transferd to .reformat(
 
+    if(keep.newdata && format == "wide"){
+        stop("Argument \'keep.newdata\' must be FALSE when using the wide format. \n")
+    }    
+    
     if(is.null(newdata)){
         newdata <- object$data.original
     }
@@ -189,9 +193,11 @@ fitted.lmm <- function(object, newdata = NULL, impute = FALSE, se.impute = "esti
     ## only case as otherwise the long format is dealt with before: keep.newdata == FALSE or keep.newdata == TRUE
     newdata.design <- model.matrix(object, data = newdata, effects = "index")
     newdata.index.cluster <- attr(newdata.design$index.cluster, "vectorwise")
-    newdata.index.time <- attr(newdata.design$index.clusterTime, "vectorwise")        
+    newdata.index.time <- attr(newdata.design$index.clusterTime, "vectorwise")
+    Mout <- cbind(out)
+    colnames(Mout) <- outcome.var
 
-    out <- .reformat(out, name = outcome.var, format = format, simplify = simplify,
+    out <- .reformat(Mout, name = names(format), format = format, simplify = simplify,
                      keep.data = keep.newdata, data = newdata, index.na = NULL,
                      object.cluster = object$cluster, index.cluster = newdata.index.cluster,
                      object.time = object$time, index.time = newdata.index.time,

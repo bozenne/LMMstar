@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: jul 26 2023 (11:07) 
+## Last-Updated: jul 28 2023 (11:28) 
 ##           By: Brice Ozenne
-##     Update #: 364
+##     Update #: 368
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -141,7 +141,12 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
             }
         }
     }
-    ls.data <- base::split(data, data[[by]])
+    ls.data <- by(data, data[[by]], function(iDF){
+        if(is.factor(iDF[[by]])){ ## ensure that by variable is a character and no a factor
+            iDF[[by]] <- as.character(iDF[[by]])
+        }
+        return(iDF)
+    })
 
     if(trace>0){
         cat("Fitting linear mixed models:\n")

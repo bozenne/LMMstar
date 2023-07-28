@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul  5 2023 (14:01) 
 ## Version: 
-## Last-Updated: jul  7 2023 (12:01) 
+## Last-Updated: jul 28 2023 (17:11) 
 ##           By: Brice Ozenne
-##     Update #: 99
+##     Update #: 125
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -23,22 +23,23 @@
 ##' @noRd
 
 ## * update.ID
-update.ID <- function(object, var.cluster, var.time, var.strata, ...){
+update.ID <- function(object, var.cluster, var.time, var.strata, n.time, ...){
 
     dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
-
+    
     ## ** what to update
-    if(is.na(object$name$strata) && !is.null(var.strata) && !is.na(var.strata)){
-        add.strata <- TRUE
+    if(!identical(sort(object$name$strata),sort(var.strata))){
+        update.strata <- TRUE
+        rm.strata <- unique(stats::na.omit(c(object$name$strata,var.strata)))
     }else{
-        add.strata <- FALSE
+        update.strata <- FALSE
     }
 
     ## ** update
-    if(add.strata){
+    if(update.strata){
         call.structure <- object$call
         ls.call.structure <- as.list(call.structure)
         fct.structure <- eval(ls.call.structure[[1]])
@@ -51,11 +52,13 @@ update.ID <- function(object, var.cluster, var.time, var.strata, ...){
             args.structure$var.time <- var.time
         }
 
-        if(add.strata && is.list(args.structure$formula)){
-            args.structure$formula <- list(stats::update(args.structure$formula[[1]], stats::as.formula(paste0(var.strata,"~."))),
-                                           stats::update(args.structure$formula[[2]], stats::as.formula(paste0(var.strata,"~."))))
-        }else if(add.strata && inherits(args.structure$formula,"formula")){
-            args.structure$formula <- stats::update(args.structure$formula, stats::as.formula(paste0(var.strata,"~.")))
+        if(update.strata){
+            if(is.list(args.structure$formula)){
+                args.structure$formula <- list(updateFormula(args.structure$formula[[1]], drop.y = TRUE, drop.x = rm.strata, add.y = var.strata),
+                                               updateFormula(args.structure$formula[[2]], drop.y = TRUE, drop.x = rm.strata, add.y = var.strata))
+            }else if(inherits(args.structure$formula,"formula")){
+                args.structure$formula <- updateFormula(args.structure$formula, drop.y = TRUE, drop.x = rm.strata, add.y = var.strata)
+            }
         }
 
         object <- do.call(fct.structure, args = args.structure)
@@ -74,7 +77,7 @@ update.ID <- function(object, var.cluster, var.time, var.strata, ...){
 }
 
 ## * update.IND
-update.IND <- function(object, var.cluster, var.time, var.strata, ...){
+update.IND <- function(object, var.cluster, var.time, var.strata, n.time, ...){
 
     dots <- list(...)
     if(length(dots)>0){
@@ -82,20 +85,21 @@ update.IND <- function(object, var.cluster, var.time, var.strata, ...){
     }
 
     ## ** what to update
-    if(is.na(object$name$time) && !is.null(attr(var.time,"original")) && !is.na(attr(var.time,"original"))){
+    if(n.time>1 && is.na(object$name$time) && !is.null(attr(var.time,"original")) && !is.na(attr(var.time,"original"))){
         add.time <- TRUE
     }else{
         add.time <- FALSE
     }
 
-    if(is.na(object$name$strata) && !is.null(var.strata) && !is.na(var.strata)){
-        add.strata <- TRUE
+    if(!identical(sort(object$name$strata),sort(var.strata))){
+        update.strata <- TRUE
+        rm.strata <- unique(stats::na.omit(c(object$name$strata,var.strata)))
     }else{
-        add.strata <- FALSE
+        update.strata <- FALSE
     }
 
     ## ** update
-    if(add.time || add.strata){
+    if(add.time || update.strata){
         call.structure <- object$call
         ls.call.structure <- as.list(call.structure)
         fct.structure <- eval(ls.call.structure[[1]])
@@ -110,11 +114,15 @@ update.IND <- function(object, var.cluster, var.time, var.strata, ...){
         if("add.time" %in% names(args.structure) == FALSE){
             args.structure$add.time <- attr(var.time,"original")
         }
-        if(add.strata && is.list(args.structure$formula)){
-            args.structure$formula <- list(stats::update(args.structure$formula[[1]], stats::as.formula(paste0(var.strata,"~."))),
-                                           stats::update(args.structure$formula[[2]], stats::as.formula(paste0(var.strata,"~."))))
-        }else if(add.strata && inherits(args.structure$formula,"formula")){
-            args.structure$formula <- stats::update(args.structure$formula, stats::as.formula(paste0(var.strata,"~.")))
+
+        if(update.strata){
+            if(is.list(args.structure$formula)){
+                
+                args.structure$formula <- list(updateFormula(args.structure$formula[[1]], drop.y = TRUE, drop.x = rm.strata, add.y = var.strata),
+                                               updateFormula(args.structure$formula[[2]], drop.y = TRUE, drop.x = rm.strata, add.y = var.strata))
+            }else if(inherits(args.structure$formula,"formula")){
+                args.structure$formula <- updateFormula(args.structure$formula, drop.y = TRUE, drop.x = rm.strata, add.y = var.strata)
+            }
         }
 
         object <- do.call(fct.structure, args = args.structure)
@@ -146,10 +154,11 @@ update.RE <- function(object, var.cluster, var.time, var.strata, ranef, ...){
     }
 
     ## ** what to update
-    if(is.na(object$name$strata) && !is.null(var.strata) && !is.na(var.strata)){
-        add.strata <- TRUE
+    if(!identical(sort(object$name$strata),sort(var.strata))){
+        update.strata <- TRUE
+        rm.strata <- unique(stats::na.omit(c(object$name$strata,var.strata)))
     }else{
-        add.strata <- FALSE
+        update.strata <- FALSE
     }
 
     if(!missing(ranef) && !is.null(ranef) && is.null(object$ranef)){
@@ -175,28 +184,16 @@ update.RE <- function(object, var.cluster, var.time, var.strata, ranef, ...){
         if("var.time" %in% names(args.structure) == FALSE){
             args.structure$var.time <- var.time
         }
-        if(add.RE){
-            if(add.strata==FALSE){
-                if(is.na(object$name$strata)){
-                    var.strata <- NULL
-                }else{
-                    var.strata <- object$name$strata
-                }
-            }
+
+        if(update.strata){
             if(is.list(args.structure$formula)){
-                args.structure$formula <- list(stats::as.formula(paste0(var.strata,"~",paste(ranef$term,collapse=" + "))),
-                                               stats::as.formula(paste0(var.strata,"~",paste(ranef$term,collapse=" + "))))
+                args.structure$formula <- list(updateFormula(args.structure$formula[[1]], drop.y = TRUE, drop.x = rm.strata, add.y = var.strata),
+                                               updateFormula(args.structure$formula[[2]], drop.y = TRUE, drop.x = rm.strata, add.y = var.strata, add.x = ranef$term))
             }else if(inherits(args.structure$formula,"formula")){
-                args.structure$formula <- stats::as.formula(paste0(var.strata,"~",paste(ranef$term,collapse=" + ")))
-            }
-        }else if(add.strata){
-            if(is.list(args.structure$formula)){
-                args.structure$formula <- list(stats::update(args.structure$formula[[1]], stats::as.formula(paste0(var.strata,"~."))),
-                                               stats::update(args.structure$formula[[2]], stats::as.formula(paste0(var.strata,"~."))))
-            }else if(inherits(args.structure$formula,"formula")){
-                args.structure$formula <- stats::update(args.structure$formula, stats::as.formula(paste0(var.strata,"~.")))
+                args.structure$formula <- updateFormula(args.structure$formula, drop.y = TRUE, drop.x = rm.strata, add.y = var.strata, add.x = ranef$term)
             }
         }
+
         object <- do.call(fct.structure, args = args.structure)
         object$call <- call.structure
         if(add.RE){

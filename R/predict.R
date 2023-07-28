@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jul 27 2023 (14:52) 
+## Last-Updated: jul 28 2023 (17:28) 
 ##           By: Brice Ozenne
-##     Update #: 866
+##     Update #: 870
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -184,9 +184,9 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
     }
         
     ## check format
-    format <- match.arg(format, c("wide","long"))
+    format[] <- match.arg(format, c("wide","long"))  ## use 'format[] <-' instead of 'format <-' to keep the name that will be transferd to .reformat(
     if(keep.newdata && format == "wide"){
-        stop("Argument \'keep.data\' must be \"FALSE\" when using the wide format. \n")
+        stop("Argument \'keep.newdata\' must be FALSE when using the wide format. \n")
     }    
     if(format == "wide" && (df==TRUE||!is.null(se))){
         if("df" %in% names(mycall) || "se" %in% names(mycall)){
@@ -471,7 +471,7 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
         ## even when no NA, use the initial dataset instead of the augmented one
         newdata <- object$data.original
     }
-    out <- .reformat(M.pred, name = names(type), format = format, simplify = simplify,
+    out <- .reformat(M.pred, name = names(format), format = format, simplify = simplify,
                      keep.data = keep.newdata, data = newdata, index.na = object$index.na,
                      object.cluster = object$cluster, index.cluster = newdata.index.cluster,
                      object.time = object$time, index.time = newdata.index.time,                     

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: jul 26 2023 (18:59) 
+## Last-Updated: jul 28 2023 (16:47) 
 ##           By: Brice Ozenne
-##     Update #: 826
+##     Update #: 834
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -408,7 +408,7 @@
 .namePatternCov <- function(Upattern, structure, sep){
 
     ## ** variance
-    if(any(!is.na(Upattern$var))){
+    if(any(!is.na(Upattern$var)) && NROW(structure$var$lp2X)>1){ ## if variance structure and variables in the variable structure
         variable.variance <- setdiff(unique(stats::na.omit(c(structure$name$strata,structure$name$var[[1]]))),c(structure$name$time,attr(structure$name$time,"original")))
         if(length(variable.variance)>0){
             out.var <- sapply(structure$var$pattern2lp, function(iLp){ ## iLp <- structure$var$pattern2lp[[1]]
@@ -424,9 +424,9 @@
     }
 
     ## ** correlation
-    if(any(!is.na(Upattern$var))){
+    if(any(!is.na(Upattern$var)) && NROW(structure$cor$lp2X)){
         variable.correlation <- setdiff(unique(stats::na.omit(c(structure$name$strata,structure$name$cor[[1]]))),c(structure$name$time,attr(structure$name$time,"original")))
-        if(length(variable.variance)>0){
+        if(length(variable.correlation)>0){
             out.cor <- sapply(structure$cor$pattern2lp, function(iLp){ ## iLp <- structure$cor$pattern2lp[[1]]
                 iX <- structure$cor$lp2data[iLp,variable.correlation,drop=FALSE]
                 iName <- sapply(iX, function(iVec){if(length(unique(iVec))>1){NA}else{as.character(iVec[1])}})
