@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  4 2021 (10:04) 
 ## Version: 
-## Last-Updated: jun 14 2023 (15:05) 
+## Last-Updated: Jul 29 2023 (21:24) 
 ##           By: Brice Ozenne
-##     Update #: 34
+##     Update #: 35
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -59,7 +59,7 @@ iid.lmm <- function(x,
     effects <- match.arg(effects, c("mean","variance","correlation"), several.ok = TRUE)
 
     if(is.null(type.information)){
-        type.information <- attr(x$information,"type.information")
+        type.information <- x$args$type.information
     }else{
         type.information <- match.arg(type.information, c("expected","observed"))
     }

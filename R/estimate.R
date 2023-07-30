@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: jul 26 2023 (15:15) 
+## Last-Updated: Jul 30 2023 (16:13) 
 ##           By: Brice Ozenne
-##     Update #: 1017
+##     Update #: 1018
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -430,7 +430,7 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
         iResiduals.long <- partialY - design$mean[,param.mu2,drop=FALSE] %*% param.value[param.mu2]
         if(length(param.Omega2)>0){
             if(is.null(init.Omega)){
-                outInit <- .initialize(design$vcov, residuals = iResiduals.long, Xmean = design$mean, index.cluster = index.cluster)
+                outInit <- .initialize(design$vcov, method.fit = method.fit, residuals = iResiduals.long, Xmean = design$mean, index.cluster = index.cluster)
             }else{
                 outInit <- .initialize2(design$vcov, index.clusterTime = design$index.clusterTime, Omega = init.Omega)
             }

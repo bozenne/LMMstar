@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: jul 11 2023 (15:33) 
+## Last-Updated: Jul 30 2023 (16:04) 
 ##           By: Brice Ozenne
-##     Update #: 182
+##     Update #: 183
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -456,11 +456,7 @@ test <- confint(eSUN.lmm, effects = "all")[,"df", drop=FALSE]
 
 ## ** anova
 eSUN.lmm_anova <- anova(eSUN.lmm, effects = "all", ci = TRUE)$multivariate
-if(eSUN.lmm$opt$name=="gls"){
-    expect_equal(eSUN.lmm_anova[eSUN.lmm_anova$type=="mu","df.denom"], c(47.63744, 42.53266), tol = 1e-1)
-}else{
-    expect_equal(eSUN.lmm_anova[eSUN.lmm_anova$type=="mu","df.denom"], c(57.00206139, 55.02679117, 67.96985137, 93.51660476, 54.92384757), tol = 1e-1)
-}
+expect_equal(eSUN.lmm_anova[eSUN.lmm_anova$type=="mu","df.denom"], c(57.00206139, 55.02679117, 67.96985137, 93.51660476, 54.92384757), tol = 1e-1)
 expect_equal(eSUN.lmm_anova[eSUN.lmm_anova$type=="k","df.denom"], c(86.07826), tol = 1e-1)
 expect_equal(eSUN.lmm_anova[eSUN.lmm_anova$type=="rho","df.denom"], c(9.100919), tol = 1e-1)
 

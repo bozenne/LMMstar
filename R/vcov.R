@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: jul 19 2023 (17:29) 
+## Last-Updated: Jul 29 2023 (21:31) 
 ##           By: Brice Ozenne
-##     Update #: 524
+##     Update #: 527
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -68,11 +68,11 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strat
     }
 
     if(is.null(type.information)){
-        type.information <- attr(object$information,"type.information")
+        type.information <- object$args$type.information
     }else{
         type.information <- match.arg(type.information, c("expected","observed"))
     }
-    if(df && robust && object$method.fit == "REML"){
+    if(df && robust && object$args$method.fit == "REML"){
         stop("Cannot compute degrees of freedom under REML for robust standard errors. \n",
              "Consider setting the argument df to FALSE",
              " \n or using ML estimation by setting the argument method.fit=\"ML\" when calling lmm.")
@@ -87,7 +87,7 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strat
 
     ## ** extract or recompute variance covariance matrix
 
-    if(is.null(data) && is.null(p) && test.notransform && (df == FALSE || !is.null(object$df)) && (robust == FALSE) && attr(object$information,"type.information")==type.information){
+    if(is.null(data) && is.null(p) && test.notransform && (df == FALSE || !is.null(object$df)) && (robust == FALSE) && object$args$type.information==type.information){
         keep.name <- stats::setNames(names(coef(object, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE)),
                                      names(coef(object, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)))    
 

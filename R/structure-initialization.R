@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: jul 26 2023 (15:38) 
+## Last-Updated: Jul 30 2023 (16:15) 
 ##           By: Brice Ozenne
-##     Update #: 398
+##     Update #: 409
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -65,12 +65,12 @@
 ##' .initialize(Sun4, residuals = residuals(eGas.lm))
 ##' .initialize(Sun24, residuals = residuals(eGas.lm))
 `.initialize` <-
-    function(object, residuals, Xmean, index.cluster) UseMethod(".initialize")
+    function(object, method.fit, residuals, Xmean, index.cluster) UseMethod(".initialize")
 `.initialize2` <-
     function(object, index.clusterTime, Omega) UseMethod(".initialize2")
 
 ## * initialize.ID
-.initialize.ID <- function(object, residuals, Xmean, index.cluster){
+.initialize.ID <- function(object, method.fit, residuals, Xmean, index.cluster){
 
     structure.param <- object$param[is.na(object$param$constraint),,drop=FALSE]
     param.type <- stats::setNames(structure.param$type,structure.param$name)
@@ -82,21 +82,24 @@
         X.iPattern <- object$var$Xpattern[[iPattern]]
         cluster.iPattern <- attr(X.iPattern,"index.cluster")
         obs.iPattern <- unlist(index.cluster[cluster.iPattern])
-        iOut <- cbind(index.pattern = iPattern, index.obs = obs.iPattern,
-                      residuals = residuals[obs.iPattern], do.call(rbind,rep(list(X.iPattern),length(cluster.iPattern))))
+        iOut <- cbind(index.pattern = iPattern,
+                      index.obs = obs.iPattern,
+                      index.strata = attr(X.iPattern,"index.strata"),
+                      residuals = residuals[obs.iPattern],
+                      do.call(rbind,rep(list(X.iPattern),length(cluster.iPattern))))
         return(iOut)
     }))
 
     ## extract information
     epsilon2 <- M.res[,"residuals"]^2
-    X <- M.res[,-(1:3),drop=FALSE]
+    X <- M.res[,-(1:4),drop=FALSE]
     paramVar.type <- param.type[colnames(X)]
     paramVar.strata <- param.strata[colnames(X)]
     n.strata <- length(unique(paramVar.strata))
     n.obs <- NROW(X)
 
     ## small sample correction (inflate residuals)
-    if(!is.null(Xmean) && NCOL(Xmean)>0){
+    if(method.fit == "REML" && !is.null(Xmean) && NCOL(Xmean)>0){
         ## n - df
         ## vec.hat <- diag(Xmean %*% solve(t(Xmean) %*% Xmean) %*% t(Xmean))
         vec.hat <- rowSums(Xmean %*% solve(t(Xmean) %*% Xmean) * Xmean)
@@ -104,13 +107,13 @@
         if(any(is.na(strata.mu))){ ## partially or non-stratified mean structure: considered as non-stratified
             index.clusterStrata <-  sapply(object$var$Xpattern,attr,"index.strata")[object$var$pattern]
             index.strata <- index.clusterStrata[attr(index.cluster,"vectorwise")]
-            p <- tapply(1:n.obs,index.strata,function(iIndex){sum(vec.hat[iIndex])})
+            p <- tapply(vec.hat,index.strata,sum)
             n.UX <- table(index.strata)
-            epsilon2.ssc <- epsilon2 * (n.UX/(n.UX-p))[index.strata]
+            epsilon2.ssc <- epsilon2 * (n.UX/(n.UX-p))[M.res[,"index.strata"]]
         }else{ ## fully stratified mean and variance structure
             p <- tapply(1:n.obs,object$var$lp,function(iIndex){sum(vec.hat[iIndex])})
             n.UX <- table(object$var$lp)
-            epsilon2.ssc <- epsilon2 * (n.UX/(n.UX-p))[object$var$lp]
+            epsilon2.ssc <- epsilon2 * (n.UX/(n.UX-p))[M.res[,"index.pattern"]]
         }
     }else{
         epsilon2.ssc <- epsilon2
@@ -239,7 +242,7 @@
 .initialize2.IND <- .initialize2.ID
 
 ## * initialize.CS
-.initialize.CS <- function(object, residuals, Xmean, index.cluster){
+.initialize.CS <- function(object, method.fit, residuals, Xmean, index.cluster){
 
     structure.param <- object$param[is.na(object$param$constraint),,drop=FALSE]
     out <- stats::setNames(rep(NA, NROW(structure.param)), structure.param$name)
@@ -251,8 +254,8 @@
 
     ## ** estimate variance and standardize residuals
     attr(residuals,"studentized") <- TRUE ## to return studentized residuals
-    if("sigma" %in% param.type){
-        sigma <- .initialize.IND(object = object, residuals = residuals, Xmean = Xmean, index.cluster = index.cluster)
+    if("sigma" %in% param.type || "k" %in% param.type){
+        sigma <- .initialize.IND(object = object, method.fit = method.fit, residuals = residuals, Xmean = Xmean, index.cluster = index.cluster)
         residuals.studentized <- attr(sigma, "studentized")
         attr(sigma, "studentized") <- NULL
         out[names(sigma)] <- sigma

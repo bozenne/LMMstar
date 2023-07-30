@@ -8,7 +8,7 @@
   object,
   newdata = NULL,
   impute = FALSE,
-  se.impute = "estimation",
+  se.impute = FALSE,
   keep.newdata = FALSE,
   format = "long",
   simplify = TRUE,

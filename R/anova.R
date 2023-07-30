@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jul 27 2023 (17:46) 
+## Last-Updated: Jul 29 2023 (21:23) 
 ##           By: Brice Ozenne
-##     Update #: 1333
+##     Update #: 1335
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -135,7 +135,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                         transform.sigma, transform.k, transform.rho, transform.names){
 
     options <- LMMstar.options()
-    type.information <- attr(object$information,"type.information")    
+    type.information <- object$args$type.information
     original.transform.sigma <- transform.sigma
     original.transform.k <- transform.k
     original.transform.rho <- transform.rho

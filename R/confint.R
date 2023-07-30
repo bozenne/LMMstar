@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 26 2023 (11:05) 
+## Last-Updated: Jul 29 2023 (21:33) 
 ##           By: Brice Ozenne
-##     Update #: 661
+##     Update #: 665
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -134,7 +134,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     transform <- init$transform
 
     if(is.null(type.information)){
-        type.information <- attr(object$information,"type.information")
+        type.information <- object$args$type.information
     }else{
         type.information <- match.arg(type.information, c("expected","observed"))
     }
@@ -172,7 +172,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     if(df){
         df <- pmax(attr(vcov.beta,"df"), options$min.df)
         attr(vcov.beta,"df") <- NULL
-        if((object$method.fit=="REML") && (type.information != "observed") && ("mean" %in% effects)){
+        if((object$args$method.fit=="REML") && (type.information != "observed") && ("mean" %in% effects)){
             warning("when using REML with expected information, the degree of freedom of the mean parameters may depend on the parametrisation of the variance parameters. \n")
         }
     }else{
@@ -342,7 +342,6 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
     alpha <- 1-level
-    method.fit <- object$object$method.fit
     pool.method <- c("average","pool.fixse","pool.se","pool.gls","pool.gls1","pool.rubin")
     adj.method <- c(stats::p.adjust.methods,"single-step", "Westfall", "Shaffer", "free", "single-step2")
 

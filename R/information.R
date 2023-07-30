@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: jul 26 2023 (14:22) 
+## Last-Updated: Jul 29 2023 (21:28) 
 ##           By: Brice Ozenne
-##     Update #: 1114
+##     Update #: 1118
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -53,11 +53,11 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
     if(is.null(type.information)){
-        type.information <- attr(x$information,"type.information")
         robust <- FALSE
+        type.information <- x$args$type.information
     }else{
-        type.information <- match.arg(type.information, c("expected","observed"))
         robust <- identical(attr(type.information,"robust"),TRUE)
+        type.information <- match.arg(type.information, c("expected","observed"))
     }
     if(is.null(effects)){
         effects <- options$effects
@@ -75,7 +75,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
     test.notransform <- init$test.notransform
     
     ## ** extract or recompute information
-    if(is.null(data) && is.null(p) && (indiv == FALSE) && test.notransform && (robust==FALSE) && attr(x$information,"type.information")==type.information){
+    if(is.null(data) && is.null(p) && (indiv == FALSE) && test.notransform && (robust==FALSE) && x$args$type.information==type.information){
         keep.name <- stats::setNames(names(coef(x, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE)),
                                      names(coef(x, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)))    
 

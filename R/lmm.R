@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jul 28 2023 (17:14) 
+## Last-Updated: Jul 30 2023 (16:00) 
 ##           By: Brice Ozenne
-##     Update #: 2945
+##     Update #: 2950
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -192,7 +192,7 @@ lmm <- function(formula, repetition, structure, data,
     if(trace>=1){cat("1. Check and normalize user input")}
 
     ## *** Check all arguments, initialize all arguments but data and structure
-    if(trace>=2){cat("- normalize argument")}
+    if(trace>=2){cat("\n- normalize argument")}
     outArgs <- .lmmNormalizeArgs(formula = formula, repetition = repetition, structure = structure, data = data,
                                  weights = weights, scale.Omega = scale.Omega,
                                  method.fit = method.fit, df = df, type.information = type.information, trace = trace, control = control,
@@ -1075,7 +1075,7 @@ lmm <- function(formula, repetition, structure, data,
         if(!is.null(type)){
             args.structure$type <- type
         }
-        
+
         if(is.na(var.strata.original)){
             args.structure$formula <- ~1
         }else{ ## exclude useless strata variables
@@ -1087,7 +1087,7 @@ lmm <- function(formula, repetition, structure, data,
                 message("Remove strata variable \"",paste(var.strata.original[test.uniqueStrata==1], collapse = "\", \""),"\" as it takes a single distinct value. \n")
                 args.structure$formula <- stats::as.formula(paste(var.strata.original[test.uniqueStrata!=1],"~1"))
             }else{
-                args.structure$formula <- stats::as.formula(paste("~",var.strata.original))
+                args.structure$formula <- stats::as.formula(paste(var.strata.original,"~1"))
             }
         }
 
