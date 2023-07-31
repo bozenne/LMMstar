@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (13:27) 
 ## Version: 
-## Last-Updated: jul 26 2023 (18:56) 
+## Last-Updated: jul 31 2023 (17:56) 
 ##           By: Brice Ozenne
-##     Update #: 794
+##     Update #: 940
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -79,6 +79,7 @@
     param.k.augmented[param.k.augmented %in% param.sigma] <- NA
 
     ## variables
+    cluster.var <- stats::na.omit(c(attr(structure$name$cluster,"original"),structure$name$cluster))[1]
     strata.var <- structure$name$strata
     reg.var <- setdiff(structure$name$cor[[1]], NA)
     n.reg <- length(reg.var)
@@ -118,7 +119,7 @@
         rownames(structure$param) <- NULL
         return(structure)
     }
-    
+
     ## ** identify and name parameters
 
     ## *** combine linear predictor accross strata
@@ -128,6 +129,7 @@
     data.x <- lp2data.cor[indexLp[,1],,drop=FALSE] ## data for one observation of each pair of observations
     data.y <- lp2data.cor[indexLp[,2],,drop=FALSE] ## data for the other observation of each pair of observations
     strataLp <- index.clusterStrata[attr(index.cluster,"vectorwise")[indexLp[,1]]] ## strata for pair of observation (would be the same with indexLp[,2])
+
     n.Lp <- NROW(lp.x)
 
     ## *** identify pairs with equal or non-equal linear predictors
@@ -143,7 +145,7 @@
     if(length(index.equal)>0){
         if(structure$type == "homogeneous"){            
             code.rho[index.equal] <- paste("R",strataLp[index.equal],sep=sep[2])
-            level.rho[index.equal] <- ""
+            level.rho[index.equal] <- ""            
         }else if(structure$type == "heterogeneous"){
             code.rho[index.equal] <- paste("R",lp.x[index.equal],sep=sep[2])
             level.rho[index.equal] <- paste0("(",nlme::collapse(data.x[index.equal,,drop=FALSE], sep = sep[1], as.factor = FALSE),")")
@@ -151,21 +153,29 @@
     }
 
     ## pairs with distinct linear predictors
-    if(length(index.unequal)>0){
+    if(length(index.unequal)>0){        
         if(structure$type == "homogeneous"){
             ## contrast at the design matrix level
             test.n0 <- 1*(data.x[index.unequal,reg.var,drop=FALSE]!=data.y[index.unequal,reg.var,drop=FALSE])
             code.rho[index.unequal] <- paste("D",strataLp[index.unequal],nlme::collapse(test.n0,sep=sep[1],as.factor=FALSE),sep=sep[2])
-            
-            index.unequal.red <- index.unequal[!duplicated(code.rho[index.unequal])]
-            code2level <- stats::setNames(sapply(index.unequal.red, function(iUnequal){ ## iUnequal <- index.unequal.red[1]
-                iData.x <- data.x[iUnequal,,drop=FALSE]
-                iData.y <- data.y[iUnequal,,drop=FALSE]
-                iOut <- paste0("(",paste(iData.x[iData.x!=iData.y], collapse = sep[1]),",",paste(iData.y[iData.x!=iData.y], collapse = sep[1]),")")
-                return(iOut)
-            }),code.rho[index.unequal.red])
-            level.rho[index.unequal] <- code2level[code.rho[index.unequal]]
-            
+
+            ## name according to the constant variables
+            index.example <- !duplicated(code.rho[index.unequal])
+            ls.rhovar <- apply(diffLp[index.unequal[index.example],,drop=FALSE], MARGIN = 1, function(iRow){
+                if(all(iRow!=0)){
+                    ## crossed random effects: observation (1,a) and (2,b) have nothing in common but the cluster variable
+                    return(cluster.var)
+                }else{
+                    return(paste(names(which(iRow==0)),collapse=sep[2]))
+                }
+            }, simplify = FALSE)
+            label.Urho.unequal <- stats::setNames(paste0("(",unlist(ls.rhovar),")"), code.rho[index.unequal][index.example])
+            level.rho[index.unequal] <- unname(label.Urho.unequal[code.rho[index.unequal]])
+
+            ## the remaining variable (if any) should be used to name the other correlation parameter (if any)
+            if(length(index.equal) && length(setdiff(reg.var,unlist(ls.rhovar)))==1){
+                level.rho[index.equal] <- paste0("(",setdiff(reg.var,unlist(ls.rhovar)),")")
+            }
         }else if(structure$type == "heterogeneous"){
             code.rho[index.unequal] <- paste("D",lp.x[index.unequal],nlme::collapse(diffLp[index.unequal,,drop=FALSE], sep = sep[1], as.factor = FALSE),sep=sep[2])
             level.rho[index.unequal] <- paste0("(",nlme::collapse(data.x[index.unequal,,drop=FALSE], sep = sep[1], as.factor = FALSE),
@@ -173,38 +183,48 @@
                                                ")")
         }
 
-        ## constrain independence in the case of different groups of correlation structure
-        ## i.e. remove some of the correlation parameters
-        if(length(unique(structure$group.type))>1){
-            sumGroup.0 <- do.call(cbind,tapply(names(structure$group.type), structure$group.type, function(iCol){
-                rowSums(diffLp[index.unequal,iCol,drop=FALSE]==0)
-            }, simplify = FALSE))
-            
-            if(n.strata==1){
-                index.0 <- index.unequal[which(rowSums(sumGroup.0!=0)==0)]
-            }else{
-                if(length(strata.var)>1){
-                    stop("Cannot handle multiple strata variables with this covariance structure. \n")
-                }
-                col.strata <- M.level.cor[strata.var]
-                index.0 <- unlist(lapply(1:n.strata, FUN = function(iS){ ## iS <- 1
-                    iCol <- rownames(col.strata)[col.strata==U.strata[iS]] ## columns in the design matrix corresponding 
-                    iIndex <- index.unequal[strataLp[index.unequal]==iS]
-                    iIndex[which(rowSums(diffLp[iIndex,iCol,drop=FALSE]==0)==0)]
-                }))
-            }            
-        }
+    
     }
+
+    ## *** unique correlation coefficients
     test.rho <- !duplicated(code.rho)
     code.Urho <- code.rho[test.rho]
-    
-    ## ***  name parameters
     level.Urho <-  level.rho[test.rho]
     strata.Urho <- strataLp[test.rho]
     if(n.strata>1){
         level.Urho <- paste0(level.Urho,sep[2],strata.Urho)
     }
 
+    
+    ## find which columns in the design matrix are identical between the pairs relative to a given correlation coefficients
+    cstCol.Urho <- cbind(TRUE,do.call(rbind,by(diffLp[test.rho,,drop=FALSE], code.rho[test.rho], function(iM){
+        apply(iM, MARGIN = 2, function(iCol){all(iCol==0)})
+    }, simplify = FALSE)))[code.Urho,,drop=FALSE]
+    colnames(cstCol.Urho)[1] <- cluster.var
+    ## convertion between variables and columns names (useful in presence of strata: time --> id:strataA, id:strataB)
+    attr(cstCol.Urho,"col2var") <- lapply(attr(structure$cor$X,"ls.level"), function(iVec){setdiff(names(iVec),strata.var)})
+    attr(cstCol.Urho,"var2col") <- c(stats::setNames(list(cluster.var),cluster.var),
+                                     tapply(names(unlist(attr(cstCol.Urho,"col2var"))),unlist(attr(cstCol.Urho,"col2var")), base::identity, simplify = FALSE)
+                                     )
+
+    ## constrain independence in the case of different groups of correlation parameters
+    ## i.e. remove some of the correlation parameters
+    if(length(unique(structure$group.type))>1){
+
+        var2col <- attr(cstCol.Urho,"var2col")
+        ## parameters with non-identical variables accross different groups of correlation parameters should be removed
+        ls.index.0 <- tapply(names(structure$group.type),structure$group.type, function(iVar){ ## iVar <- names(structure$group.type)[1]
+            iCol.group <- unlist(var2col[names(var2col) %in% iVar])
+            iCol.othergroup <- unlist(var2col[names(var2col) %in% setdiff(names(structure$group.type),iVar)])
+            iRho.group <- intersect(which(rowSums(cstCol.Urho[,iCol.group,drop=FALSE]==TRUE)>0), ## at least one non-identical variable
+                                    which(rowSums(cstCol.Urho[,iCol.othergroup,drop=FALSE]==TRUE)>0)) ## some variables corresponding to other groups are not identical
+            return(iRho.group)
+        }, simplify = FALSE)
+
+        
+        index.0 <- sort(unique(c(unlist(ls.index.0), which(rowSums(cstCol.Urho[,-1,drop=FALSE]==TRUE)==0)))) ## add parameter corresponding to pairs that are all different
+    }
+    
     ## ***  retrieve k
     if(length(param.k)>0){
         indexObs <- do.call(rbind,lapply(XpairPattern$LpU.strata,attr,"index"))
@@ -232,12 +252,9 @@
 
     ## save information about correlation parameters fixed to 0 (e.g. crossed random effects)
     if(length(index.0)>0){
-        Ucode.rho0 <- unique(code.rho[index.0])
-        if(length(intersect(Ucode.rho0,code.rho[-index.0]))){
-            stop("Something went wrong with the constraint when identifying the correlation parameters. \n")
-        }
-        structure.rho$constraint[structure.rho$code %in% Ucode.rho0] <- 0
+        structure.rho$constraint[structure.rho$code %in% code.Urho[index.0]] <- 0
     }
+
     ## ensure proper ordering
     code.x <- tapply(indexLp[,1], code.rho, base::identity, simplify = FALSE)
     code.y <- tapply(indexLp[,2], code.rho, base::identity, simplify = FALSE)
@@ -247,6 +264,7 @@
     ## ** export
     rownames(structure.rho) <- NULL
     structure$param <- rbind(structure$param, structure.rho)
+    structure$rho$param2var <- cstCol.Urho
     return(structure)
 }
 
@@ -267,88 +285,62 @@
 
     ## *** extract hierarchy
     hierarchy <- structure$ranef$hierarchy
-    name.hierarchy <- unname(unlist(hierarchy))
-    n.hierarchy <- length(name.hierarchy) 
-    if(any(duplicated(name.hierarchy))){
-        stop("Duplicated name(s) for the random effects: \"",paste(name.hierarchy[duplicated(name.hierarchy)], collapse = "\", \""),"\". \n",
+    n.hierarchy <- length(hierarchy) 
+    name.ranef <- unname(unlist(hierarchy))
+    n.ranef <- length(name.ranef) 
+    if(any(duplicated(name.ranef))){
+        stop("Duplicated name(s) for the random effects: \"",paste(name.ranef[duplicated(name.ranef)], collapse = "\", \""),"\". \n",
              "Cannot associate correlation parameters and random effects. \n")
     }
 
-    if(n.hierarchy==1){
+    if(n.ranef==1){
         param.rho <- structure$param[structure$param$type=="rho" & is.na(structure$param$constraint),,drop=FALSE]
-        structure$ranef$param <- list(matrix(param.rho$name[param.rho$index.strata], nrow = n.hierarchy, ncol = n.strata,
-                                             dimnames = list(name.hierarchy,U.strata)))
+        structure$ranef$param <- list(matrix(param.rho$name[param.rho$index.strata], nrow = n.ranef, ncol = n.strata,
+                                             dimnames = list(name.ranef,U.strata)))
     }else{
-        ## prepare output
+
+        ## *** prepare output
         structure$ranef$param <- lapply(hierarchy, function(iH){
             matrix(as.character(NA), nrow = length(iH), ncol = n.strata,
                    dimnames = list(iH,U.strata))
         })
+
+        ## *** check crossed random effects structure
+        ## it is expected to have perfectly crossed factors, e.g. (a,1) (a,2) (a,3) ... (a,n) (b,1) (b,2) ... (b,n)
+        ##                                                 , e.g. (A,a,1) (A,b,2) (A,c,3) ... (B,a,2)
+        ## but not (a,1) (a,1) or (A,a,1) (A,a,2)
+        var2col <- attr(structure$rho$param2var, "var2col")
+        if(length(unique(structure$ranef$index.terms))>1){
+            param.constraint <- structure$param[!is.na(structure$param$constraint) & structure$param$type == "rho",c("name","index.strata","level","code"),]
+            param2var.contraint <- structure$rho$param2var[param.constraint$code,,drop=FALSE]
+
+            if(any(param2var.contraint[,-1])){ ## first column corresponds to cluster
+                warning("Crossed random effects have been specified but the associated factors are not perfectly crossed. \n",
+                        "Corresponding correlation parameter have been constrain to 0 but may lead to a rank-deficient variance-covariance matrix. \n")
+            }
+        }
         
-        ## *** convert from index of the linear predictor to design matrix
-        M.level.cor <- attr(structure$cor$X,"M.level")
-        lp2X.cor <- structure$cor$lp2X
-        var.cluster <- attr(structure$name$cluster,"original")
-        if(!is.null(var.cluster) && var.cluster %in% name.hierarchy && var.cluster %in% colnames(lp2X.cor) == FALSE){
-            ## add cluster variable when missing
-            lp2X.cor <- cbind(1,lp2X.cor)
-            colnames(lp2X.cor)[1] <- var.cluster
-            M.level.cor <- cbind(TRUE,M.level.cor)
-            colnames(M.level.cor)[1] <- var.cluster
-        }
-        ## split hierarchy by strata (since the variable are name time:strata0 and time:strata1 instead of time)
-        if(n.strata==1){
-            name.hierarchy.strata <- list(stats::setNames(name.hierarchy,name.hierarchy))
-        }else{
-            name.hierarchy.strata <- lapply(U.strata, function(iStrata){ ## iStrata <- U.strata[1]
-                iM.level <- M.level.cor[M.level.cor[[structure$name$strata]]==iStrata,setdiff(name.hierarchy, var.cluster),drop=FALSE]
-                if(var.cluster %in% name.hierarchy){
-                    iOut <- stats::setNames(c(var.cluster,rownames(iM.level)),
-                                            c(var.cluster,colnames(iM.level)[which(iM.level==TRUE, arr.ind = TRUE)[,"col"]]))
-                }else{
-                    iOut <- stats::setNames(rownames(iM.level),
-                                            colnames(iM.level)[which(iM.level==TRUE, arr.ind = TRUE)[,"col"]])
-                }
-                return(iOut)
-            })
-        }
 
-        ## *** find for each strata and hierarchy of variable the correlation parameter with
-        ## - constant value within the variables of the hierarchy
-        ## - variable values for the variables outside of the hierarchy
-        index.hierarchy <- unname(unlist(lapply(1:length(hierarchy), function(iH){rep(iH, length(hierarchy[[iH]]))})))
+        ## *** identify the variable constant outside the hierarchy and varying inside the hierarchy
+        structure.activeRho <- structure$param[which(structure$param$type == "rho" & is.na(structure$param$constrain)),c("name","index.strata","code")]
+        activeRho2var <- structure$rho$param2var[structure.activeRho$code,,drop=FALSE]
+        code2name <- stats::setNames(structure.activeRho$name, structure.activeRho$code)
 
-        for(iS in 1:n.strata){ ## iS <- 1
-            iParam.rho <- structure$param[structure$param$type=="rho" & is.na(structure$param$constraint) & structure$param$index.strata==iS,,drop=FALSE]
-            iName.rho <- iParam.rho$name
-            iLevel.rho <- iParam.rho$level
-            iCodeX.rho <- stats::setNames(iParam.rho$lp.x, iName.rho)
-            iCodeY.rho <- stats::setNames(iParam.rho$lp.y, iName.rho)
-            
-            iEqual <- do.call(rbind,lapply(iName.rho, function(iRho){ ## iRho <- iName.rho[1]
-                colSums(lp2X.cor[iCodeX.rho[[iRho]],name.hierarchy.strata[[iS]],drop=FALSE] - lp2X.cor[iCodeY.rho[[iRho]],name.hierarchy.strata[[iS]],drop=FALSE] != 0)==0
-            }))
-            rownames(iEqual) <- iName.rho
+        for(iStrata in 1:n.strata){ ## iStrata <- 1
+            iActiveRho2var <- activeRho2var[structure.activeRho$index.strata==iStrata,,drop=FALSE]
 
             for(iH in 1:n.hierarchy){ ## iH <- 1
-                iHierarchy <- hierarchy[[index.hierarchy[iH]]]
-                iPosition <- which(iHierarchy==name.hierarchy[iH])
-                iVarIdentical <- iHierarchy[1:iPosition]
-                iVarDifferent <- setdiff(structure$ranef$vars, iVarIdentical)
-                iVarIdentical2 <- name.hierarchy.strata[[iS]][iVarIdentical]
-                iVarDifferent2 <- name.hierarchy.strata[[iS]][iVarDifferent]
-                if(length(iVarDifferent)==0){
-                    iTest <- rowSums(iEqual[,iVarIdentical2,drop=FALSE]==FALSE)
-                }else{
-                    iTest <- rowSums(iEqual[,iVarIdentical2,drop=FALSE]==FALSE) + rowSums(iEqual[,iVarDifferent2,drop=FALSE]==TRUE)
-                }
-                iRho <- names(which(iTest==0))
-                if(length(iRho)!=1){
+                iHierarchy <- hierarchy[[iH]]
+                iIndex.equal <- which(rowSums(iActiveRho2var[,unlist(var2col[iHierarchy]),drop=FALSE])>0)
+                if(length(iIndex.equal)!=length(iHierarchy)){
                     stop("Something when wrong when associating the correlation parameters and random effects. \n",
-                         "hierarchy: ",paste(cumhierarchy[[iH]], collapse="\", \""),"\n",
-                         "correlation parameter(s): \"",paste(iRho, collapse="\", \""),"\"\n")
+                         "hierarchy: ",paste(iHierarchy, collapse="\", \""),"\n",
+                         "correlation parameter(s): \"",paste(rownames(iActiveRho2var)[iIndex.equal], collapse="\", \""),"\"\n")
                 }
-                structure$ranef$param[[index.hierarchy[iH]]][iPosition,iS] <- iRho
+
+                ## with multiple variable inside a hierarchy, random effects are ordered according to how many variables vary within the hierarchy
+                iOrder.ranef <- sort(rowSums(iActiveRho2var[iIndex.equal,,drop=FALSE]))
+                structure$ranef$param[[iH]][,iStrata] <-  code2name[names(iOrder.ranef)]
             }
         }
     }
@@ -710,6 +702,7 @@
         iIndex.clusterU <- iIndex.clusterStrata[.patternINtable12(pattern = pattern[iIndex.clusterStrata], pattern2lp = object.pattern2lp)]
         ## linear predictor for each cluster
         iLs.lp.clusterU <- object.pattern2lp[pattern[iIndex.clusterU]]
+
         ## remove triplicates
         iLs.lpU.clusterU <- lapply(1:length(iIndex.clusterU),function(iC){ ## iC <- 1
             iIndex <- which(!triplicated(iLs.lp.clusterU[[iC]]))

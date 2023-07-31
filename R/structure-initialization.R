@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: Jul 30 2023 (16:15) 
+## Last-Updated: jul 31 2023 (16:35) 
 ##           By: Brice Ozenne
-##     Update #: 409
+##     Update #: 422
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -611,7 +611,7 @@
 
 
     n.hierarchy <- length(structure$ranef$param)
-    for(iH in 1:n.hierarchy){ ## iH <- 1
+    for(iH in 1:n.hierarchy){ ## iH <- 3
         start[structure$ranef$param[[iH]][,1]] <- cumsum(rho.lmer[rownames(structure$ranef$param[[iH]])])
     }
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: Jul 29 2023 (21:33) 
+## Last-Updated: jul 31 2023 (18:12) 
 ##           By: Brice Ozenne
-##     Update #: 665
+##     Update #: 669
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -798,17 +798,21 @@ confint.mlmm <- function(object, parm = NULL, level = 0.95, method = NULL, order
     }
     ordering <- match.arg(ordering, c("by","parameter"))
     table.transform <- attr(object$confint.nocontrast,"backtransform")
-    
+
     ## ** extract confidence intervals
     out.confint <- confint.Wald_lmm(object, parm = parm, level = level, method = method, backtransform = object$args$backtransform, ...)
-    if(ordering=="by"){
-        reorder <- order(object$univariate$by)
-    }else if(is.list(object$univariate$parameter)){
-        reorder <- order(object$univariate$type,sapply(object$univariate$parameter, paste, collapse = ";"))
+    if(method %in% c("average","pool.se","pool.gls","pool.gls1","pool.rubin") == FALSE){
+        if(ordering=="by"){
+            reorder <- order(object$univariate$by)
+        }else if(is.list(object$univariate$parameter)){
+            reorder <- order(object$univariate$type,sapply(object$univariate$parameter, paste, collapse = ";"))
+        }else{
+            reorder <- order(object$univariate$type,object$univariate$parameter)
+        }
+        out <- out.confint[reorder,,drop=FALSE]
     }else{
-        reorder <- order(object$univariate$type,object$univariate$parameter)
+        out <- out.confint
     }
-    out <- out.confint[reorder,,drop=FALSE]
 
     ## ** export
     return(out)

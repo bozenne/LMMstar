@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: aug 31 2022 (17:31) 
+## Last-Updated: jul 31 2023 (18:07) 
 ##           By: Brice Ozenne
-##     Update #: 55
+##     Update #: 56
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,7 +25,7 @@ if(FALSE){
 }
 
 context("Check lmm on examples of t-tests")
-LMMstar.options(optimizer = "gls", method.numDeriv = "Richardson", precompute.moments = TRUE,
+LMMstar.options(optimizer = "FS", method.numDeriv = "Richardson", precompute.moments = TRUE,
                 columns.confint = c("estimate","se","df","lower","upper","p.value"))
 
 ## * single t-test

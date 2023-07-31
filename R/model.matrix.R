@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Jul 30 2023 (15:55) 
+## Last-Updated: jul 31 2023 (12:33) 
 ##           By: Brice Ozenne
-##     Update #: 2933
+##     Update #: 2940
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -272,7 +272,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
                 if(structure.class == "CUSTOM"){
                     out[[iMoment]]$X <- iData[,all.vars(iFormula),drop=FALSE]                    
                 }else{
-                    out[[iMoment]]$X <- .model.matrix_regularize(iFormula, data = iData, augmodel = TRUE, type = iMoment.txt, drop.X = drop.X)                    
+                    out[[iMoment]]$X <- .model.matrix_regularize(iFormula, data = iData, augmodel = TRUE, type = iMoment.txt, drop.X = drop.X)
                 }
                 attr(out[[iMoment]]$X, "original.colnames") <- colnames(out[[iMoment]]$X)
                 out$xfactor[[iMoment]] <- stats::.getXlevels(stats::terms(iFormula),stats::model.frame(iFormula,iData))

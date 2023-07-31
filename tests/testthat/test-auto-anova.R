@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 13 2022 (13:55) 
 ## Version: 
-## Last-Updated: maj 10 2023 (12:05) 
+## Last-Updated: jul 31 2023 (18:16) 
 ##           By: Brice Ozenne
-##     Update #: 48
+##     Update #: 50
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,7 +25,7 @@ if(FALSE){
     library(LMMstar)
 }
 
-context("Check anova method")
+context("Check LRT and Wald tests")
 
 ## * Simulate data
 set.seed(10)
@@ -38,15 +38,15 @@ dL$X2 <- as.factor(dL$X2)
 test_that("LRT", {
 
     ## remove variance factor
-    e0 <- suppressMessages(anova(lmm(Y ~ X1 + X2, data = dL),
-                                 lmm(Y ~ X1 + X2, repetition = ~visit, structure = "IND", data = dL)))
+    e0 <- anova(lmm(Y ~ X1 + X2, data = dL),
+                lmm(Y ~ X1 + X2, repetition = ~visit, structure = "IND", data = dL))
     expect_equal(list(e0[,c("null")], e0[,c("df")], e0[,c("statistic")], e0[,c("p.value")]),
                  list("k.2==0, k.3==0", 2, 0.1421563, 0.9313891), tol = 1e-4)
 
     dL$id2 <- 1:NROW(dL)
     dL$time2 <- 1
-    e00 <- suppressMessages(anova(lmm(Y ~ X1 + X2, data = dL),
-                                  lmm(Y ~ X1 + X2, repetition = ~time2|id2, structure = IND(visit~1), data = dL, control = list(optimizer = "FS"))))
+    e00 <- anova(lmm(Y ~ X1 + X2, data = dL),
+                 lmm(Y ~ X1 + X2, repetition = ~time2|id2, structure = ID(visit~1), data = dL, control = list(optimizer = "FS")))
     expect_equal(list(e00[,c("null")], e00[,c("df")], e00[,c("statistic")], e00[,c("p.value")]),
                  list("sigma:1==sigma, sigma:2==sigma, sigma:3==sigma", 2, 0.1421563, 0.9313891), tol = 1e-4)
 

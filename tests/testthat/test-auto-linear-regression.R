@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: Jul 30 2023 (23:14) 
+## Last-Updated: jul 31 2023 (10:17) 
 ##           By: Brice Ozenne
-##     Update #: 210
+##     Update #: 215
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -27,7 +27,7 @@ if(FALSE){
     library(LMMstar)
 }
 
-context("Check lmm on examples of linear regression")
+context("Check lmm on linear regressions")
 LMMstar.options(optimizer = "FS", method.numDeriv = "Richardson", precompute.moments = TRUE,
                 columns.confint = c("estimate","se","df","lower","upper","p.value"))
 
@@ -93,21 +93,21 @@ test_that("single variance parameter (ML)",{
     ## no transformation
     newp <- coef(e.lmm, effects = "all", transform.sigma = "none")+1
     ## GS <- jacobian(func = function(p){logLik(e.lmm, p = p)}, x = newp)
-    GS <- cbind(c(-25.87627956),c(-15.79878208),c(-11.78725113),c(-12.99280729),c(-7.23996332),c(18.51219198))
+    GS <- rbind(c(-25.87627956, -15.79878208, -11.78725113, -12.99280729, -7.23996332, 18.51219198))
     test <- score(e.lmm, effects = "all", p = newp, transform.sigma = "none")
     expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
     ## log transformation
     newp.log <- newp; newp.log["sigma"] <- log(newp["sigma"])
     ## GS <- jacobian(func = function(p){p["sigma"] <- exp(p["sigma"]); logLik(e.lmm, p = p)}, x = newp.log)
-    GS <- cbind(c(-25.87627956),c(-15.79878208),c(-11.78725113),c(-12.99280729),c(-7.23996332),c(34.25729653))
+    GS <- rbind(c(-25.87627956, -15.79878208, -11.78725113, -12.99280729, -7.23996332, 34.25729653))
     test <- score(e.lmm, effects = "all", p = newp, transform.sigma = "log")
     expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
     ## lava transformation
     newp.2 <- newp; newp.2["sigma"] <- newp["sigma"]^2
     ## GS <- jacobian(func = function(p){p["sigma"] <- sqrt(p["sigma"]); logLik(e.lmm, p = p)}, x = newp.2)
-    GS <- cbind(c(-25.87627956),c(-15.79878208),c(-11.78725113),c(-12.99280729),c(-7.23996332),c(5.0018724))
+    GS <- rbind(c(-25.87627956, -15.79878208, -11.78725113, -12.99280729, -7.23996332, 5.0018724))
     GS0 <- score(e.lava, p = newp.2)
     test <- score(e.lmm, effects = "all", p = newp, transform.sigma = "square")
     expect_equal(as.double(test), as.double(GS), tol = 1e-6)
@@ -263,14 +263,14 @@ test_that("single variance parameter (REML)",{
     ## no transformation
     newp <- coef(e.lmm, effects = "all", transform.sigma = "none")+1
     ## GS <- jacobian(func = function(p){logLik(e.lmm, p = p)}, x = newp)
-    GS <- cbind(c(-24.6360655), c(-15.04156844), c(-11.22230459), c(-12.37008012), c(-6.89296196), c(18.57017787))
+    GS <- rbind(c(-24.6360655, -15.04156844, -11.22230459, -12.37008012, -6.89296196, 18.57017787))
     test <- score(e.lmm, effects = "all", p = newp, transform.sigma = "none")
     expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
     ## transformation
     newp.log <- newp; newp.log["sigma"] <- log(newp.log["sigma"])
     ## GS <- jacobian(func = function(p){p["sigma"] <- exp(p["sigma"]); logLik(e.lmm, p = p)}, x = newp.log)
-    GS <- cbind(c(-24.6360655), c(-15.04156844), c(-11.22230459), c(-12.37008012), c(-6.89296196), c(35.2189616))
+    GS <- rbind(c(-24.6360655, -15.04156844, -11.22230459, -12.37008012, -6.89296196, 35.2189616))
     test <- score(e.lmm, effects = "all", p = newp, transform.sigma = "log")
     expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
@@ -422,25 +422,29 @@ test_that("multiple variance parameter (ML)",{
 
     ## ** score
     test <- score(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none")
-    GS <- jacobian(func = function(p){logLik(e.lmm, p = p)}, x = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"))
+    ## GS <- jacobian(func = function(p){logLik(e.lmm, p = p)}, x = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"))
+    GS <- rbind(c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
     expect_equal(as.double(test), as.double(GS), tol = 1e-6)
     expect_true(all(abs(test) < 1e-4))
 
     ## no transformation
     newp <- coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none")+1
-    GS <- jacobian(func = function(p){logLik(e.lmm, p = p)}, x = newp)
+    ## GS <- jacobian(func = function(p){logLik(e.lmm, p = p)}, x = newp)
+    GS <- rbind(c(-12.59534519, -3.67518576, -4.45620371, -3.12477721, -5.02017891, -1.86951941, -7.25091419, -1.59294925, -4.04666275, -0.88593539, 0.42454894, -7.10232389))
     test <- score(e.lmm, effects = "all", p = newp, transform.sigma = "none", transform.k = "none")
     expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
     ## log transformation
     newp.log <- newp; newp.log["sigma"] <- log(newp["sigma"]); newp.log["k.F"] <- log(newp["k.F"])
-    GS <- jacobian(func = function(p){p[c("sigma","k.F")] <- exp(p[c("sigma","k.F")]); logLik(e.lmm, p = p)}, x = newp.log)
+    ## GS <- jacobian(func = function(p){p[c("sigma","k.F")] <- exp(p[c("sigma","k.F")]); logLik(e.lmm, p = p)}, x = newp.log)
+    GS <- rbind(c(-12.59534519, -3.67518576, -4.45620371, -3.12477721, -5.02017891, -1.86951941, -7.25091419, -1.59294925, -4.04666275, -0.88593539, 0.78245096, -13.60825916))
     test <- score(e.lmm, effects = "all", p = newp, transform.sigma = "log", transform.k = "log")
     expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
     ## lava transformation
     newp.2 <- newp; newp.2["sigma"] <- newp["sigma"]^2; newp.2["k.F"] <- newp["k.F"]^2*newp["sigma"]^2
-    GS <- jacobian(func = function(p){p[c("sigma","k.F")] <- c(sqrt(p["sigma"]),sqrt(p["k.F"]/p["sigma"])); logLik(e.lmm, p = p, transform.sigma = "none")}, x = newp.2)
+    ## GS <- jacobian(func = function(p){p[c("sigma","k.F")] <- c(sqrt(p["sigma"]),sqrt(p["k.F"]/p["sigma"])); logLik(e.lmm, p = p, transform.sigma = "none")}, x = newp.2)
+    GS <- rbind(c(-12.59534519, -3.67518576, -4.45620371, -3.12477721, -5.02017891, -1.86951941, -7.25091419, -1.59294925, -4.04666275, -0.88593539, 2.11832942, -0.54564433))
     test <- score(e.lmm, effects = "all", p = newp, transform.k = "var")
     expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
@@ -460,17 +464,56 @@ test_that("multiple variance parameter (ML)",{
     test <- information(e.lmm, effects = "all",
                         p = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"),
                         transform.sigma = "none", transform.k = "none", type.information = "observed")
-    GS <- -hessian(func = function(p){logLik(e.lmm, p = p)}, x = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"))
+    ## GS <- -hessian(func = function(p){logLik(e.lmm, p = p)}, x = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"))
+    GS <- cbind(c(33.77057622, 0, 0.88985514, 0, -1.19553421, 0, 16.88528811, 0, 9.8497514, 0, 0, 0), 
+                c(0, 43.59955426, 0, 4.65756814, 0, 3.44053616, 0, 16.76905933, 0, 8.38452966, 0, 0), 
+                c(0.88985514, 0, 21.70660151, 0, -3.46195721, 0, 0.25820444, 0, 1.90589312, 0, 0, 0), 
+                c(0, 4.65756814, 0, 52.88654407, 0, 0.16173647, 0, 2.7186085, 0, 4.91728133, 0, 0), 
+                c(-1.19553421, 0, -3.46195721, 0, 30.28860275, 0, 0.62724252, 0, -2.2642157, 0, 0, 0), 
+                c(0, 3.44053616, 0, 0.16173647, 0, 41.59845209, 0, -2.94680881, 0, -3.16068124, 0, 0), 
+                c(16.88528811, 0, 0.25820444, 0, 0.62724252, 0, 16.88528811, 0, 0, 0, 0, 0), 
+                c(0, 16.76905933, 0, 2.7186085, 0, -2.94680881, 0, 16.76905933, 0, 0, 0, 0), 
+                c(9.8497514, 0, 1.90589312, 0, -2.2642157, 0, 0, 0, 9.8497514, 0, 0, 0), 
+                c(0, 8.38452966, 0, 4.91728133, 0, -3.16068124, 0, 0, 0, 8.38452966, 0, 0), 
+                c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 140.71073425, 67.33760941), 
+                c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 67.33760941, 61.97047366)
+                )
     expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
     test0 <- information(e.lmm, effects = "all", p = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"), transform.sigma = "log", transform.k = "log", type.information = "expected") ## using log(sigma) and log(k)
     test <- information(e.lmm, effects = "all", p = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"), transform.sigma = "log", transform.k = "log", type.information = "observed") ## using log(sigma) and log(k)
-    GS <- -hessian(func = function(p){p[c("sigma","k.F")] <- exp(p[c("sigma","k.F")]);logLik(e.lmm, p = p, transform.sigma = "none", transform.k = "none")}, x = coef(e.lmm, transform.sigma = "log", transform.k = "log", transform.names = FALSE))
+    ## GS <- -hessian(func = function(p){p[c("sigma","k.F")] <- exp(p[c("sigma","k.F")]);logLik(e.lmm, p = p, transform.sigma = "none", transform.k = "none")}, x = coef(e.lmm, transform.sigma = "log", transform.k = "log", transform.names = FALSE))
+    GS <- cbind(c(33.77057622, 0, 0.88985514, 0, -1.19553421, 0, 16.88528811, 0, 9.8497514, 0, 0, 0), 
+                c(0, 43.59955426, 0, 4.65756814, 0, 3.44053616, 0, 16.76905933, 0, 8.38452966, 0, -1e-08), 
+                c(0.88985514, 0, 21.70660151, 0, -3.46195721, 0, 0.25820444, 0, 1.90589312, 0, 0, 0), 
+                c(0, 4.65756814, 0, 52.88654407, 0, 0.16173647, 0, 2.7186085, 0, 4.91728133, 0, 0), 
+                c(-1.19553421, 0, -3.46195721, 0, 30.28860275, 0, 0.62724252, 0, -2.2642157, 0, 0, 0), 
+                c(0, 3.44053616, 0, 0.16173647, 0, 41.59845209, 0, -2.94680881, 0, -3.16068124, 0, 0), 
+                c(16.88528811, 0, 0.25820444, 0, 0.62724252, 0, 16.88528811, 0, 0, 0, 0, 0), 
+                c(0, 16.76905933, 0, 2.7186085, 0, -2.94680881, 0, 16.76905933, 0, 0, 0, 0), 
+                c(9.8497514, 0, 1.90589312, 0, -2.2642157, 0, 0, 0, 9.8497514, 0, 0, 0), 
+                c(0, 8.38452966, 0, 4.91728133, 0, -3.16068124, 0, 0, 0, 8.38452966, 0, 0), 
+                c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 99.99999999, 52), 
+                c(0, -1e-08, 0, 0, 0, 0, 0, 0, 0, 0, 52, 52)
+                )
     expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
     test0 <- information(e.lmm, effects = "all", p = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"), transform.k = "var", type.information = "expected") ## using sigma^2 and sigma^2 k^2
     test <- information(e.lmm, effects = "all", p = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"), transform.k = "var", type.information = "observed") ## using sigma^2 and sigma^2 k^2
-    GS <- -hessian(func = function(p){p[c("sigma","k.F")] <- c(sqrt(p["sigma"]),sqrt(p["k.F"]/p["sigma"]));logLik(e.lmm, p = p, transform.sigma = "none", transform.k = "none")}, x = coef(e.lmm, transform.k = "var", transform.names = FALSE))
+    ## GS <- -hessian(func = function(p){p[c("sigma","k.F")] <- c(sqrt(p["sigma"]),sqrt(p["k.F"]/p["sigma"]));logLik(e.lmm, p = p, transform.sigma = "none", transform.k = "none")}, x = coef(e.lmm, transform.k = "var", transform.names = FALSE))
+    GS <- cbind(c(33.77057622, 0, 0.88985514, 0, -1.19553421, 0, 16.88528811, 0, 9.8497514, 0, 0, 0), 
+                c(0, 43.59955426, 0, 4.65756814, 0, 3.44053616, 0, 16.76905933, 0, 8.38452966, 0, 0), 
+                c(0.88985514, 0, 21.70660151, 0, -3.46195721, 0, 0.25820444, 0, 1.90589312, 0, 0, 0), 
+                c(0, 4.65756814, 0, 52.88654407, 0, 0.16173647, 0, 2.7186085, 0, 4.91728133, 0, 0), 
+                c(-1.19553421, 0, -3.46195721, 0, 30.28860275, 0, 0.62724252, 0, -2.2642157, 0, 0, 0), 
+                c(0, 3.44053616, 0, 0.16173647, 0, 41.59845209, 0, -2.94680881, 0, -3.16068124, 0, 0), 
+                c(16.88528811, 0, 0.25820444, 0, 0.62724252, 0, 16.88528811, 0, 0, 0, 0, 0), 
+                c(0, 16.76905933, 0, 2.7186085, 0, -2.94680881, 0, 16.76905933, 0, 0, 0, 0), 
+                c(9.8497514, 0, 1.90589312, 0, -2.2642157, 0, 0, 0, 9.8497514, 0, 0, 0), 
+                c(0, 8.38452966, 0, 4.91728133, 0, -3.16068124, 0, 0, 0, 8.38452966, 0, 0), 
+                c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 23.75941288, 0), 
+                c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 36.5561756)
+                )
     expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
     ## ** degree of freedom
@@ -529,6 +572,10 @@ test_that("multiple variance parameters (REML)",{
     n.sigma <- length(coef(e.lmm, effects = "variance"))
     n.param <- length(coef(e.lmm, effects = "all"))
 
+    ## ** iteration
+    expect_equal(e.lmm$opt$n.iter,0)
+    expect_equal(e.lmm2$opt$n.iter,0)
+
     ## ** coef
     expect_equal(coef(e.lmm, effects = "mean")[names(coef(e.gls))], coef(e.gls), tol = 1e-6)
     ## coef(e.lmm, transform = 2)
@@ -543,25 +590,29 @@ test_that("multiple variance parameters (REML)",{
 
     ## ** score
     test <- score(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none")
-    GS <- jacobian(func = function(p){logLik(e.lmm, p = p)}, x = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"))
+    ## GS <- jacobian(func = function(p){logLik(e.lmm, p = p)}, x = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"))
+    GS <- rbind(c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
     expect_true(all(abs(test) < 1e-6))
     expect_equal(as.double(GS),as.double(test))
 
     ## no transformation
     newp <- coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none")+1
-    GS <- jacobian(func = function(p){logLik(e.lmm, p = p)}, x = newp)
+    ## GS <- jacobian(func = function(p){logLik(e.lmm, p = p)}, x = newp)
+    GS <- rbind(c(-11.28047812, -3.32312688, -3.99100681, -2.82544388, -4.4961069, -1.69043162, -6.49396881, -1.44035508, -3.6242191, -0.80106854, 2.86919921, -5.13678117))
     test <- score(e.lmm, effects = "all", p = newp, transform.sigma = "none", transform.k = "none")
     expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
     ## log transformation
     newp.log <- newp; newp.log["sigma"] <- log(newp["sigma"]); newp.log["k.F"] <- log(newp["k.F"])
-    GS <- jacobian(func = function(p){p[c("sigma","k.F")] <- exp(p[c("sigma","k.F")]); logLik(e.lmm, p = p)}, x = newp.log)
+    ## GS <- jacobian(func = function(p){p[c("sigma","k.F")] <- exp(p[c("sigma","k.F")]); logLik(e.lmm, p = p)}, x = newp.log)
+    GS <- rbind(c(-11.28047812, -3.32312688, -3.99100681, -2.82544388, -4.4961069, -1.69043162, -6.49396881, -1.44035508, -3.6242191, -0.80106854, 5.58767775, -9.79530729))
     test <- score(e.lmm, effects = "all", p = newp, transform.sigma = "log", transform.k = "log")
     expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
     ## lava transformation
     newp.2 <- newp; newp.2["sigma"] <- newp["sigma"]^2; newp.2["k.F"] <- newp["k.F"]^2*newp["sigma"]^2
-    GS <- jacobian(func = function(p){p[c("sigma","k.F")] <- c(sqrt(p["sigma"]),sqrt(p["k.F"]/p["sigma"])); logLik(e.lmm, p = p, transform.sigma = "none")}, x = newp.2)
+    ## GS <- jacobian(func = function(p){p[c("sigma","k.F")] <- c(sqrt(p["sigma"]),sqrt(p["k.F"]/p["sigma"])); logLik(e.lmm, p = p, transform.sigma = "none")}, x = newp.2)
+    GS <- rbind(c(-11.28047812, -3.32312688, -3.99100681, -2.82544388, -4.4961069, -1.69043162, -6.49396881, -1.44035508, -3.6242191, -0.80106854, 2.02800642, -0.35513442))
     test <- score(e.lmm, effects = "all", p = newp, transform.k = "var")
     expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
@@ -572,17 +623,56 @@ test_that("multiple variance parameters (REML)",{
                          
     test <- information(e.lmm, effects = "all", p = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"),
                         transform.sigma = "none", transform.k = "none", type.information = "observed")
-    GS <- -hessian(func = function(p){logLik(e.lmm, p = p)}, x = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"))
+    ## GS <- -hessian(func = function(p){logLik(e.lmm, p = p)}, x = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"))
+    GS <- cbind(c(26.73503951, 0, 0.70446865, 0, -0.94646459, 0, 13.36751975, 0, 7.79771986, 0, 0, 0), 
+                c(0, 35.21502459, 0, 3.76188196, 0, 2.77889459, 0, 13.54424023, 0, 6.77212011, 0, 0), 
+                c(0.70446865, 0, 17.18439286, 0, -2.74071613, 0, 0.20441185, 0, 1.50883205, 0, 0, 0), 
+                c(0, 3.76188196, 0, 42.71605483, 0, 0.1306333, 0, 2.19579918, 0, 3.97165031, 0, 0), 
+                c(-0.94646459, 0, -2.74071613, 0, 23.97847718, 0, 0.496567, 0, -1.79250409, 0, 0, 0), 
+                c(0, 2.77889459, 0, 0.1306333, 0, 33.59874977, 0, -2.38011481, 0, -2.55285792, 0, 0), 
+                c(13.36751975, 0, 0.20441185, 0, 0.496567, 0, 13.36751975, 0, 0, 0, 0, 0), 
+                c(0, 13.54424023, 0, 2.19579918, 0, -2.38011481, 0, 13.54424023, 0, 0, 0, 0), 
+                c(7.79771986, 0, 1.50883205, 0, -1.79250409, 0, 0, 0, 7.79771986, 0, 0, 0), 
+                c(0, 6.77212011, 0, 3.97165031, 0, -2.55285792, 0, 0, 0, 6.77212011, 0, 0), 
+                c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 89.11679836, 48.8794842), 
+                c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 48.8794842, 51.06629502)
+                )
     expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
     test0 <- information(e.lmm, effects = "all", p = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"), transform.sigma = "log", transform.k = "log", type.information = "expected") ## using log(sigma) and log(k)
     test <- information(e.lmm, effects = "all", p = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"), transform.sigma = "log", transform.k = "log", type.information = "observed") ## using log(sigma) and log(k)
-    GS <- -hessian(func = function(p){p[c("sigma","k.F")] <- exp(p[c("sigma","k.F")]);logLik(e.lmm, p = p, transform.sigma = "none", transform.k = "none")}, x = coef(e.lmm, effects = "all", transform.sigma = "log", transform.k = "log", transform.names = FALSE))
+    ## GS <- -hessian(func = function(p){p[c("sigma","k.F")] <- exp(p[c("sigma","k.F")]);logLik(e.lmm, p = p, transform.sigma = "none", transform.k = "none")}, x = coef(e.lmm, effects = "all", transform.sigma = "log", transform.k = "log", transform.names = FALSE))
+    GS <- cbind(c(26.73503951, 0, 0.70446865, 0, -0.94646459, 0, 13.36751975, 0, 7.79771986, 0, 0, 0), 
+                c(0, 35.21502459, 0, 3.76188196, 0, 2.77889459, 0, 13.54424023, 0, 6.77212011, 1e-08, 0), 
+                c(0.70446865, 0, 17.18439286, 0, -2.74071613, 0, 0.20441185, 0, 1.50883205, 0, 0, 0), 
+                c(0, 3.76188196, 0, 42.71605483, 0, 0.1306333, 0, 2.19579918, 0, 3.97165031, 0, 0), 
+                c(-0.94646459, 0, -2.74071613, 0, 23.97847718, 0, 0.496567, 0, -1.79250409, 0, 0, 0), 
+                c(0, 2.77889459, 0, 0.1306333, 0, 33.59874977, 0, -2.38011481, 0, -2.55285792, 0, 0), 
+                c(13.36751975, 0, 0.20441185, 0, 0.496567, 0, 13.36751975, 0, 0, 0, 0, 0), 
+                c(0, 13.54424023, 0, 2.19579918, 0, -2.38011481, 0, 13.54424023, 0, 0, 0, 0), 
+                c(7.79771986, 0, 1.50883205, 0, -1.79250409, 0, 0, 0, 7.79771986, 0, 0, 0), 
+                c(0, 6.77212011, 0, 3.97165031, 0, -2.55285792, 0, 0, 0, 6.77212011, 0, 0), 
+                c(0, 1e-08, 0, 0, 0, 0, 0, 0, 0, 0, 79.99999991, 42.00000002), 
+                c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 42.00000002, 41.99999999)
+                )
     expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
     test0 <- information(e.lmm, effects = "all", p = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"), transform.k = "var", type.information = "expected") ## using sigma^2 and sigma^2 k^2
     test <- information(e.lmm, effects = "all", p = coef(e.lmm, effects = "all", transform.sigma = "none", transform.k = "none"), transform.k = "var", type.information = "observed") ## using sigma^2 and sigma^2 k^2
-    GS <- -hessian(func = function(p){p[c("sigma","k.F")] <- c(sqrt(p["sigma"]),sqrt(p["k.F"]/p["sigma"]));logLik(e.lmm, p = p, transform.sigma = "none", transform.k = "none")}, x = coef(e.lmm, effects = "all", transform.k = "var", transform.names = FALSE))
+    ## GS <- -hessian(func = function(p){p[c("sigma","k.F")] <- c(sqrt(p["sigma"]),sqrt(p["k.F"]/p["sigma"]));logLik(e.lmm, p = p, transform.sigma = "none", transform.k = "none")}, x = coef(e.lmm, effects = "all", transform.k = "var", transform.names = FALSE))
+    GS <- cbind(c(26.73503951, 0, 0.70446865, 0, -0.94646459, 0, 13.36751975, 0, 7.79771986, 0, 0, 0), 
+                c(0, 35.21502459, 0, 3.76188196, 0, 2.77889459, 0, 13.54424023, 0, 6.77212011, 0, 0), 
+                c(0.70446865, 0, 17.18439286, 0, -2.74071613, 0, 0.20441185, 0, 1.50883205, 0, 0, 0), 
+                c(0, 3.76188196, 0, 42.71605483, 0, 0.1306333, 0, 2.19579918, 0, 3.97165031, 0, 0), 
+                c(-0.94646459, 0, -2.74071613, 0, 23.97847718, 0, 0.496567, 0, -1.79250409, 0, 0, 0), 
+                c(0, 2.77889459, 0, 0.1306333, 0, 33.59874977, 0, -2.38011481, 0, -2.55285792, 0, 0), 
+                c(13.36751975, 0, 0.20441185, 0, 0.496567, 0, 13.36751975, 0, 0, 0, 0, 0), 
+                c(0, 13.54424023, 0, 2.19579918, 0, -2.38011481, 0, 13.54424023, 0, 0, 0, 0), 
+                c(7.79771986, 0, 1.50883205, 0, -1.79250409, 0, 0, 0, 7.79771986, 0, 0, 0), 
+                c(0, 6.77212011, 0, 3.97165031, 0, -2.55285792, 0, 0, 0, 6.77212011, 0, 0), 
+                c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11.78861494, 0), 
+                c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 19.26187655)
+                )
     expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
     ## ** degree of freedom

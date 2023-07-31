@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: jul 26 2023 (14:30) 
+## Last-Updated: jul 31 2023 (16:29) 
 ##           By: Brice Ozenne
-##     Update #: 600
+##     Update #: 606
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -87,7 +87,7 @@
         if(!is.null(X.cor) && !is.null(X.cor[[iPattern.cor]])){            
             Omega.cor <- attr(X.cor[[iPattern.cor]],"Omega.cor")
             iParam.cor <- attr(X.cor[[iPattern.cor]],"param")
-            for(iiP in 1:length(iParam.cor)){ ## iiP <- 1
+            for(iiP in 1:length(iParam.cor)){ ## iiP <- 3
                 Omega.cor[attr(X.cor[[iPattern.cor]],"indicator.param")[[iParam.cor[iiP]]]] <- param[iParam.cor[iiP]]
             }
             Omega <- Omega.cor * tcrossprod(Omega.sd)

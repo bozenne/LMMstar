@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: nov  4 2021 (11:49) 
 ## Version: 
-## Last-Updated: May 29 2022 (17:03) 
+## Last-Updated: jul 31 2023 (18:13) 
 ##           By: Brice Ozenne
-##     Update #: 21
+##     Update #: 22
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -24,7 +24,7 @@ if(FALSE){
 
 
 context("Check partial residuals calculation")
-LMMstar.options(optimizer = "gls", method.numDeriv = "simple", precompute.moments = TRUE,
+LMMstar.options(optimizer = "FS", method.numDeriv = "simple", precompute.moments = TRUE,
                 columns.confint = c("estimate","se","df","lower","upper","p.value"))
 
 ## * Linear model

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: maj 10 2023 (11:58) 
+## Last-Updated: jul 31 2023 (18:14) 
 ##           By: Brice Ozenne
-##     Update #: 58
+##     Update #: 59
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -87,7 +87,7 @@ test_that("estimate for rbind.anova",{
     })
 
     expect_equal(as.double(GS$coef)[1:3], as.double(test$estimate)[c(3,1,2)], tol = 1e-5)
-}
+})
 
 ##----------------------------------------------------------------------
 ### test-auto-mmm.R ends here

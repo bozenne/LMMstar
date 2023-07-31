@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: Jul 30 2023 (15:55) 
+## Last-Updated: jul 31 2023 (10:15) 
 ##           By: Brice Ozenne
-##     Update #: 842
+##     Update #: 843
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -253,11 +253,6 @@
 
         ## table(attr(iOut, "Omega.cor")[unlist(attr(iOut, "indicator.param"))], useNA = "always")
         ## table(attr(iOut, "Omega.cor")[-unlist(attr(iOut, "indicator.param"))], useNA = "always")
-        if(sum(is.na(attr(iOut, "Omega.cor"))) != sum(lengths(attr(iOut, "indicator.param")))){
-            warning("Something went wrong when defining the correlation pattern. \n",
-                    "Number of pairs of timepoints in the correlation matrix: ",sum(is.na(attr(iOut, "Omega.cor"))),".\n",
-                    "Number of positions for the correlation parameters: ",sum(lengths(attr(iOut, "indicator.param"))),"\n")
-        }
 
         return(iOut)
     })

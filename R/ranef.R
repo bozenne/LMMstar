@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 26 2022 (11:18) 
 ## Version: 
-## Last-Updated: jul 26 2023 (17:14) 
+## Last-Updated: jul 31 2023 (10:25) 
 ##           By: Brice Ozenne
-##     Update #: 424
+##     Update #: 426
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -277,9 +277,9 @@ ranef.lmm <- function(object, effects = "mean", ci = FALSE, transform = (effects
     }), recursive = FALSE)
 
     ls.out <- lapply(1:length(grid.ranef), function(iR){ ## iR <- 1
-        do.call(rbind,by(df.epsilon, df.epsilon[grid.ranef[[iR]]], function(iDF){
+        do.call(rbind,by(df.epsilon, df.epsilon[grid.ranef[[iR]]], function(iDF){ ## iDF <- df.epsilon[df.epsilon$Subject == "F10",]
             iNames <- grid.ranef[[iR]]
-            iTau <- varRE[names(grid.ranef)[iR],iDF[[var.strata]][1]]
+            iTau <- varRE[names(grid.ranef)[iR],which(iDF[[var.strata]][1]==U.strata)]
             iOut <- data.frame(variable = NA,
                                strata = iDF[[var.strata]][1],
                                level = NA,
