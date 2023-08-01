@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: jul 31 2023 (16:34) 
+## Last-Updated: aug  1 2023 (15:39) 
 ##           By: Brice Ozenne
-##     Update #: 1022
+##     Update #: 1036
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -37,14 +37,14 @@
 ##' @keywords mhtest
 ##' 
 ##' @examples
-##' if(require(lava)){
+##' if(require(lava) && require(nlme)){
 ##' 
 ##' #### Random effect ####
 ##' set.seed(10)
 ##' dL <- sampleRem(1e2, n.times = 3, format = "long")
-##' e.lmm1 <- lmm(Y ~ X1+X2+X3, repetition = ~visit|id, structure = "CS", data = dL)
-##' coef(e.lmm1, effects = "ranef")
-##' e.ranef <- estimate(e.lmm1, f  = function(p){coef(e.lmm1, p = p, effects = "ranef")})
+##' e.lmm1 <- lmm(Y ~ X1+X2+X3 + (1|id), repetition = ~visit|id, data = dL)
+##' nlme::ranef(e.lmm1)
+##' e.ranef <- estimate(e.lmm1, f  = function(p){nlme::ranef(e.lmm1, p = p)$estimate})
 ##' e.ranef
 ##'
 ##' if(require(ggplot2)){
@@ -518,7 +518,7 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
             }else if(iiIter == 0 && is.na(logLik.value)){
                 cv <- -2
                 break
-            }else if(is.na(logLik.value) || (logLik.value < logLik.valueM1)){ ## decrease in likelihood - try partial update
+            }else if(is.na(logLik.value) || (logLik.value < logLik.valueM1)){ ## decrease in likelihood - try partial update                
                 outMoments <- .backtracking(valueM1 = param.valueM1, update = update.value, n.iter = n.backtracking,
                                             design = design, time = time, method.fit = method.fit, type.information = type.information,
                                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
@@ -562,7 +562,7 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
                                                        Y = partialY, design = design,
                                                        param.mu = param.mu2)
             }
-            
+     
             ## *** display
             iIter <- iIter+1
             if(trace > 0 && trace < 3){
@@ -678,7 +678,7 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
         if(trace<=0){trace <- 0}
         res.optim <- optimx::optimx(par = param.value.trans, fn = warper_obj, gr = warper_grad, hess = warper_hess,
                                     method = optimizer, itnmax = n.iter, control = list(trace = trace))
-        ## solution <- setNames(as.double(res.optim[1,1:length(param.value.trans)]), names(param.value.trans))
+        ## solution <- stats::setNames(as.double(res.optim[1,1:length(param.value.trans)]), names(param.value.trans))
         ## warper_obj(solution)
         ## warper_grad(solution)
 
@@ -758,6 +758,7 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
         }
 
     }
+
     out <- solve(denominator, numerator)    
     return(stats::setNames(as.double(out), name.param))
 }
@@ -833,7 +834,7 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
         ## update mean parameters
         if(length(param.mu)>0){
             valueNEW[param.mu] <- .estimateGLS(OmegaM1 = stats::setNames(lapply(iOmega, solve), names(iOmega)),
-                                               pattern = design$vcov$X$Upattern$name,
+                                               pattern = design$vcov$Upattern$name,
                                                precompute.XY = precompute.XY,
                                                precompute.XX = precompute.XX,
                                                key.XX = key.XX,

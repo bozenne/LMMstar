@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: jul 31 2023 (16:35) 
+## Last-Updated: aug  1 2023 (11:57) 
 ##           By: Brice Ozenne
-##     Update #: 422
+##     Update #: 424
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -82,7 +82,7 @@
         X.iPattern <- object$var$Xpattern[[iPattern]]
         cluster.iPattern <- attr(X.iPattern,"index.cluster")
         obs.iPattern <- unlist(index.cluster[cluster.iPattern])
-        iOut <- cbind(index.pattern = iPattern,
+        iOut <- cbind(index.lp = object$var$lp[obs.iPattern],
                       index.obs = obs.iPattern,
                       index.strata = attr(X.iPattern,"index.strata"),
                       residuals = residuals[obs.iPattern],
@@ -113,7 +113,7 @@
         }else{ ## fully stratified mean and variance structure
             p <- tapply(1:n.obs,object$var$lp,function(iIndex){sum(vec.hat[iIndex])})
             n.UX <- table(object$var$lp)
-            epsilon2.ssc <- epsilon2 * (n.UX/(n.UX-p))[M.res[,"index.pattern"]]
+            epsilon2.ssc <- epsilon2 * (n.UX/(n.UX-p))[M.res[,"index.lp"]]
         }
     }else{
         epsilon2.ssc <- epsilon2

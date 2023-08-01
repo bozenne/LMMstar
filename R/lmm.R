@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Jul 30 2023 (16:00) 
+## Last-Updated: aug  1 2023 (14:34) 
 ##           By: Brice Ozenne
-##     Update #: 2950
+##     Update #: 2964
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -60,7 +60,7 @@
 ##' \code{\link{plot.lmm}} for a graphical display of the model fit or diagnostic plots. \cr
 ##' \code{\link{levels.lmm}} to display the reference level. \cr
 ##' \code{\link{anova.lmm}} for testing linear combinations of coefficients (F-test, multiple Wald tests) \cr
-##' \code{\link{getVarCov.lmm}} for extracting estimated residual variance-covariance matrices. \cr
+##' \code{\link{sigma.lmm}} for extracting estimated residual variance-covariance matrices. \cr
 ##' \code{\link{residuals.lmm}} for extracting residuals or creating residual plots (e.g. qqplots). \cr
 ##' \code{\link{predict.lmm}} for evaluating mean and variance of the outcome conditional on covariates or other outcome values.
 
@@ -479,6 +479,7 @@ lmm <- function(formula, repetition, structure, data,
             stop("Argument \'structure\' must be a character or a structure object. \n")
         }
     }
+
     ## ** repetition
     if(!missing(repetition) && inherits(try(repetition,silent=TRUE),"try-error")){ ## handle typical user mis-communication
         stop("Could not evaluate argument \'repetition\': maybe the symbol \'~\' is missing. \n",
@@ -532,7 +533,7 @@ lmm <- function(formula, repetition, structure, data,
         if(any(detail.repetition$vars$all %in% names(data) == FALSE)){
             invalid <- detail.repetition$vars$all[detail.repetition$vars$all %in% names(data) == FALSE]
             if(identical(invalid,"repetition")){
-                   stop("Argument \'repetition\' is inconsistent with argument \'data\'. \n",
+                stop("Argument \'repetition\' is inconsistent with argument \'data\'. \n",
                      "A variable \"repetition\" is used in the \'repetition\' argument, but that may be due to a missing \"=\" sign. \n",
                      sep = "")
             }else{
@@ -553,7 +554,7 @@ lmm <- function(formula, repetition, structure, data,
         }else{
             var.strata <- NA
         }
-
+        
         ## compatibility structure/repetition
         if(!missing.structure && inherits(structure,"structure")){
             if(!is.na(structure$name$cluster)){
@@ -580,7 +581,14 @@ lmm <- function(formula, repetition, structure, data,
                     var.strata <- structure$name$strata
                 }
             }
-        }        
+            ## Covariates from certain structures contains missing time variables
+            test.timecluster <- length(var.time)==1 && !is.na(var.time) && length(var.cluster)==1 && !is.na(var.cluster)
+            if(test.timecluster && structure$class %in% c("TOEPLITZ","LV") && identical(structure$name$var,structure$name$cor) && length(structure$name$var[[1]]==1)){
+                if(any(tapply(data[[var.time]],data[[var.cluster]], function(iVec){any(duplicated(iVec))}))){
+                    var.time <- c(structure$name$var[[1]], var.time)
+                }                
+            }
+        }
     }
 
     ## ** weights
@@ -926,7 +934,7 @@ lmm <- function(formula, repetition, structure, data,
         }else{
             attr(index.na, "cluster") <- data[index.na,"XXclusterXX"]
         }
-        if(!is.na(var.time)){
+        if(length(var.time)==1 && !is.na(var.time)){
             attr(index.na, "time") <- data[index.na,var.time]
         }else{
             attr(index.na, "time") <- data[index.na,"XXtimeXX"]
@@ -1063,9 +1071,9 @@ lmm <- function(formula, repetition, structure, data,
 
         if(inherits(structure,"RE")){
             ## special case with random effects
-            structure <- update(structure, var.cluster = var.clusterS, var.time = var.timeS, var.strata = var.strata.original, ranef = ranef)
+            structure <- stats::update(structure, var.cluster = var.clusterS, var.time = var.timeS, var.strata = var.strata.original, ranef = ranef)
         }else{
-            structure <- update(structure, var.cluster = var.clusterS, var.time = var.timeS, var.strata = var.strata.original, n.time = n.time)
+            structure <- stats::update(structure, var.cluster = var.clusterS, var.time = var.timeS, var.strata = var.strata.original, n.time = n.time)
         }
 
     }else if(is.character(structure)){

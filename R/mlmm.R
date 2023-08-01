@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: jul 28 2023 (11:28) 
+## Last-Updated: aug  1 2023 (15:51) 
 ##           By: Brice Ozenne
-##     Update #: 368
+##     Update #: 369
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -53,7 +53,7 @@
 ##' 
 ##' @examples
 ##' #### univariate regression ####
-##' if(require(lava)){
+##' if(require(lava) && require(multcomp)){
 ##' 
 ##' set.seed(10)
 ##' d1 <- cbind(sim(lvm(Y~0.5*X1), 25), group = "A")

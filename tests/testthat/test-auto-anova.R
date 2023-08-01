@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 13 2022 (13:55) 
 ## Version: 
-## Last-Updated: jul 31 2023 (18:16) 
+## Last-Updated: aug  1 2023 (12:00) 
 ##           By: Brice Ozenne
-##     Update #: 50
+##     Update #: 51
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,6 +26,8 @@ if(FALSE){
 }
 
 context("Check LRT and Wald tests")
+LMMstar.options(optimizer = "FS", precompute.moments = TRUE,
+                columns.confint = c("estimate","se","df","lower","upper","p.value"))
 
 ## * Simulate data
 set.seed(10)

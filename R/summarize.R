@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jul 10 2023 (18:16) 
+## Last-Updated: aug  1 2023 (13:20) 
 ##           By: Brice Ozenne
-##     Update #: 293
+##     Update #: 303
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -139,12 +139,15 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
              "Should be something like Y ~ time or Y ~ time + G | cluster. \n")
     }else if(length(name.id)==1){
         name.X <- detail.formula$var$time
-        formula <- stats::as.formula(paste(paste(name.Y, collapse = "+"), "~", paste(name.X, collapse = "+")))
+        if(is.null(name.X)){
+            formula <- stats::as.formula(paste(paste(name.Y, collapse = "+"), "~1"))
+        }else{
+            formula <- stats::as.formula(paste(paste(name.Y, collapse = "+"), "~", paste(name.X, collapse = "+")))
+        }
 
         test.between <- stats::setNames(sapply(name.X, function(iXvar){
             max(tapply(data[[iXvar]],data[[name.id]], FUN = function(x){sum(!duplicated(x))}), na.rm = TRUE)
         })==1,name.X)
-        
         if(any(test.between)){
             vec.split <- nlme::collapse(data[names(which(test.between))], as.factor = TRUE)
             ls.id <- tapply(as.character(data[[name.id]]), vec.split, unique)
@@ -237,7 +240,7 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
             if(!is.null(table.id.time) && all(table.id.time %in% 0:1) && ("missing" %in% columns || "pc.missing" %in% columns)){
 
                 if(any(test.between)){
-                    iIndex <- which(names(ls.id)==levels(nlme::collapse(data[x,names(which(test.between))], as.factor = TRUE)))
+                    iIndex <- which(names(ls.id)==unique(nlme::collapse(data[x,names(which(test.between)),drop=FALSE], as.factor = FALSE)))
                     n.missing <- n.missing + sum(ls.id[[iIndex]] %in% unique(as.character(data[x,name.id])) == FALSE)
                 }else{
                     n.missing <- n.missing + sum(ls.id[[1]] %in% unique(as.character(data[x,name.id])) == FALSE)

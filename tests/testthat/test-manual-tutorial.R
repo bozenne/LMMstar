@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: nov 13 2021 (16:47) 
 ## Version: 
-## Last-Updated: jan  4 2023 (10:53) 
+## Last-Updated: aug  1 2023 (14:05) 
 ##           By: Brice Ozenne
-##     Update #: 27
+##     Update #: 28
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,7 +25,7 @@ if(FALSE){
 }
 
 context("Check lmm on Julie tutorial")
-LMMstar.options(optimizer = "gls", method.numDeriv = "simple", precompute.moments = TRUE)
+LMMstar.options(optimizer = "FS", method.numDeriv = "simple", precompute.moments = TRUE)
 test.practical <- FALSE
 
 ## * section 4: Preparing data for analysis
@@ -54,6 +54,7 @@ test_that("summarize", {
                      "time" = as.factor(c("-3 month", "-1 week", "+1 week", "+3 month")), 
                      "observed" = c(20, 20, 20, 20), 
                      "missing" = c(0, 0, 0, 0), 
+                     "pc.missing" = c(0, 0, 0, 0), 
                      "mean" = c(128.970, 121.240, 115.700, 102.365), 
                      "sd" = c(20.26937, 18.91019, 18.27532, 17.05389), 
                      "min" = c(100.9,  95.7,  89.9,  78.8),
@@ -79,7 +80,7 @@ test_that("plot parametrisation", {
                     df=TRUE,
                     data=long)
 
-    ggParam <- autoplot(fit.main, ci = FALSE, plot = FALSE, mean.size = c(4, 1.5), size.text = 20)$plot
+    ggParam <- autoplot(fit.main, ci = FALSE, mean.size = c(4, 1.5), size.text = 20)$plot
     ggParam <- ggParam + coord_cartesian(ylim = c(0,1.2*coef(fit.main)[1]), xlim = c(0.5,4))
     ## ggParam <- ggParam + geom_curve(aes(x = 1, y = 0, xend = 1, yend = 125),
     ##                       arrow = arrow(length = unit(0.03, "npc"), type="closed"),
@@ -134,10 +135,10 @@ test_that("Dynamic predictions", {
     ## head(dfFit)
     ## sqrt(prod(coef(fit.main, effects = "all")[c("sigma","k.2")])^2*(1-coef(fit.main, effects = "all")[c("rho(1,2)")]^2))
 
-    dfFit <- cbind(weight = newd[newd$visit==1,"weight"],
-                   res = predict(fit.main, newdata = newd, type = "dynamic", se = "res"),
-                   total = predict(fit.main, newdata = newd, type = "dynamic", se = "total")
-                   )
+    dfFit <- merge(newd[newd$time=="-3 month",c("id","weight")],
+                   cbind(res = predict(fit.main, newdata = newd, type = "dynamic", se = "res", keep.newdata = TRUE)[newd$time=="-1 week",c("id","estimate","lower","upper")],
+                         total = predict(fit.main, newdata = newd, type = "dynamic", se = "total", keep.newdata = TRUE)[newd$time=="-1 week",c("estimate","lower","upper")]),
+                   by.x = "id", by.y = "res.id")
 
     dfData <- reshape2::dcast(data = long[long$time %in% c("-3 month","-1 week"),], formula = id~time, value.var = "weight")
     colnames(dfData) <- c("id","w1","w2")
@@ -145,10 +146,10 @@ test_that("Dynamic predictions", {
     ggDyn <- ggplot()
     ggDyn <- ggDyn + geom_point(data = dfData, aes(x=w1,y=w2))
     ggDyn <- ggDyn + geom_line(data = dfFit, aes(x=weight,y=res.estimate))
-    ggDyn <- ggDyn + geom_line(data = dfFit, aes(x=weight,y=res.upper, color = "residual variance"), linetype = 2, size = 1.1)
-    ggDyn <- ggDyn + geom_line(data = dfFit, aes(x=weight,y=res.lower, color = "residual variance"), linetype = 2, size = 1.1)
-    ggDyn <- ggDyn + geom_line(data = dfFit, aes(x=weight,y=total.upper, color = "residual variance and estimation uncertainty"), linetype = 3, size = 1.1)
-    ggDyn <- ggDyn + geom_line(data = dfFit, aes(x=weight,y=total.lower, color = "residual variance and estimation uncertainty"), linetype = 3, size = 1.1)
+    ggDyn <- ggDyn + geom_line(data = dfFit, aes(x=weight,y=res.upper, color = "residual variance"), linetype = 2, linewidth = 1.1)
+    ggDyn <- ggDyn + geom_line(data = dfFit, aes(x=weight,y=res.lower, color = "residual variance"), linetype = 2, linewidth = 1.1)
+    ggDyn <- ggDyn + geom_line(data = dfFit, aes(x=weight,y=total.upper, color = "residual variance and estimation uncertainty"), linetype = 3, linewidth = 1.1)
+    ggDyn <- ggDyn + geom_line(data = dfFit, aes(x=weight,y=total.lower, color = "residual variance and estimation uncertainty"), linetype = 3, linewidth = 1.1)
     ggDyn <- ggDyn + labs(x = "weight 3 months before", y = "weight 1 week before", color = "95% prediction limit accounting for")
     ggDyn <- ggDyn + theme(legend.position = "bottom", legend.direction = "vertical",
                            text = element_text(size=15),
@@ -173,7 +174,7 @@ test_that("Residuals", {
     gg.res1 <- ggplot(df.allres, aes(x=time,y = weight, group = id, color = id)) + geom_line() + geom_point()
     gg.res2 <- ggplot(df.allres, aes(x=time,y = r.response, group = id, color = id)) + geom_line() + geom_point() + ylab("raw residuals")
     gg.res3 <- ggplot(df.allres, aes(x=time,y = r.studentized, group = id, color = id)) + geom_line() + geom_point() + ylab("studentized residuals")
-    gg.res4 <- ggplot(df.allres, aes(x=time,y = r.scaled, group = id, color = id)) + geom_line() + geom_point() + ylab("scaled residuals")
+    gg.res4 <- ggplot(df.allres, aes(x=time,y = r.normalized, group = id, color = id)) + geom_line() + geom_point() + ylab("scaled residuals")
 
     library(ggpubr)
     gg.res <- ggarrange(gg.res1,gg.res2,gg.res3,gg.res4, legend = "none")
@@ -186,10 +187,10 @@ test_that("Residuals", {
                      "r.response" = c(36.230, 32.160, 33.500, 29.635), 
                      "r.pearson" = c(1.787422, 1.700667, 1.833070, 1.737725), 
                      "r.studentized" = c(1.833856, 1.744848, 1.880690, 1.782868), 
-                     "r.scaled" = c( 1.7874218, -0.4780950,  1.8805374, -0.4578838))
+                     "r.normalized" = c( 1.7874218, -0.4780950,  1.8805374, -0.4578838))
 
     expect_equivalent(GS,
-                      df.allres[df.allres$id=="2", c("visit","weight","fitted","r.response","r.pearson","r.studentized","r.scaled")],
+                      df.allres[df.allres$id=="2", c("visit","weight","fitted","r.response","r.pearson","r.studentized","r.normalized")],
                       tol = 1e-5)
 
 })
@@ -276,8 +277,8 @@ test_that("Extactors for lmm", {
 
     ## Note: Scaled residuals look good.
     ##residuals(fit.main, format = "long", type = "normalized", plot = "scatterplot")
-    residuals(fit.main, format = "long", type = "normalized", plot = "qqplot", engine.qqplot = "qqtest")
-    residuals(fit.main, format = "wide", type = "normalized", plot = "qqplot", engine.qqplot = "qqtest")
+    plot(fit.main, type = "qqplot", engine.qqplot = "qqtest", by.repetition = TRUE)
+    plot(fit.main, type = "qqplot", engine.qqplot = "qqtest", by.repetition = FALSE)
 
     ## ** section 7.5
     ## Fit the model without an intercept using -1 in the model formula:

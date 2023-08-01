@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul  5 2023 (14:01) 
 ## Version: 
-## Last-Updated: jul 28 2023 (17:11) 
+## Last-Updated: aug  1 2023 (14:26) 
 ##           By: Brice Ozenne
-##     Update #: 125
+##     Update #: 139
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -67,7 +67,7 @@ update.ID <- function(object, var.cluster, var.time, var.strata, n.time, ...){
         if(is.na(object$name$cluster) && !is.na(var.cluster)){
             object$name$cluster <- var.cluster
         }
-        if(is.na(object$name$time) && !is.na(var.time)){
+        if(length(object$name$time)==1 && is.na(object$name$time) && all(!is.na(var.time))){
             object$name$time <- var.time
         }
     }
@@ -85,7 +85,7 @@ update.IND <- function(object, var.cluster, var.time, var.strata, n.time, ...){
     }
 
     ## ** what to update
-    if(n.time>1 && is.na(object$name$time) && !is.null(attr(var.time,"original")) && !is.na(attr(var.time,"original"))){
+    if(n.time>1 && length(object$name$time)==1 && is.na(object$name$time) && !is.null(attr(var.time,"original")) && all(!is.na(attr(var.time,"original")))){
         add.time <- TRUE
     }else{
         add.time <- FALSE
@@ -111,27 +111,25 @@ update.IND <- function(object, var.cluster, var.time, var.strata, n.time, ...){
         if("var.time" %in% names(args.structure) == FALSE){
             args.structure$var.time <- var.time
         }
-        if("add.time" %in% names(args.structure) == FALSE){
+        if("add.time" %in% names(args.structure) == FALSE && !is.list(args.structure$formula)){
             args.structure$add.time <- attr(var.time,"original")
         }
 
         if(update.strata){
             if(is.list(args.structure$formula)){
-                
                 args.structure$formula <- list(updateFormula(args.structure$formula[[1]], drop.y = TRUE, drop.x = rm.strata, add.y = var.strata),
                                                updateFormula(args.structure$formula[[2]], drop.y = TRUE, drop.x = rm.strata, add.y = var.strata))
             }else if(inherits(args.structure$formula,"formula")){
                 args.structure$formula <- updateFormula(args.structure$formula, drop.y = TRUE, drop.x = rm.strata, add.y = var.strata)
             }
         }
-
         object <- do.call(fct.structure, args = args.structure)
         object$call <- call.structure
     }else{
         if(is.na(object$name$cluster) && !is.na(var.cluster)){
             object$name$cluster <- var.cluster
         }
-        if(is.na(object$name$time) && !is.na(var.time)){
+        if(length(object$name$time)==1 && is.na(object$name$time) && all(!is.na(var.time))){
             object$name$time <- var.time
         }
     }
@@ -170,7 +168,7 @@ update.RE <- function(object, var.cluster, var.time, var.strata, ranef, ...){
     }
 
     ## ** update
-    if(add.strata || add.RE){
+    if(update.strata || add.RE){
         call.structure <- object$call
         ranef.structure <- object$ranef
 
@@ -203,7 +201,7 @@ update.RE <- function(object, var.cluster, var.time, var.strata, ranef, ...){
         if(is.na(object$name$cluster) && !is.na(var.cluster)){
             object$name$cluster <- var.cluster
         }
-        if(is.na(object$name$time) && !is.na(var.time)){
+        if(length(object$name$time)==1 && is.na(object$name$time) && all(!is.na(var.time))){
             object$name$time <- var.time
         }
     }

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: Jul 29 2023 (21:23) 
+## Last-Updated: aug  1 2023 (15:45) 
 ##           By: Brice Ozenne
-##     Update #: 1335
+##     Update #: 1346
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -406,7 +406,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     ## ** F-tests
     out$glht <- stats::setNames(vector(mode = "list", length = length(type)), type)
 
-    for(iType in type){ ## iType <- "correlation"
+    for(iType in type){ ## iType <- "variance"
         ## skip empty type
         if(length(ls.nameTerms.num[[iType]])==0 || (is.null(ls.contrast[[iType]]) && (all(ls.assign[[iType]]==0)))){ next }
 
@@ -600,12 +600,12 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     out$args$backtransform <- length(test.backtransform[test.backtransform != "none"])>0
     
     if(test.original && out$args$backtransform){ 
-        
+
         ## find parameters subject to backtransformation
         param.with.backtransform <- object$design$param[object$design$param$type %in% names(test.backtransform)[test.backtransform!="none"],"name"]
 
         ## restrict contrast matrix to hypotheses with backtransformation
-        M.allContrast <- do.call(rbind,lapply(out$glht, function(iLs){do.call(rbind,lapply(iLs,"[[","linfct"))}))
+        M.allContrast <- do.call(rbind,lapply(out$glht[lengths(out$glht)>0], function(iLs){do.call(rbind,lapply(iLs,"[[","linfct"))}))
         col.with.backtransform <- intersect(colnames(M.allContrast),param.with.backtransform)
         row.with.backtransform <- rowSums(M.allContrast[,col.with.backtransform,drop=FALSE]!=0)>0
         Mback.allContrast <- M.allContrast[row.with.backtransform,,drop=FALSE]
@@ -814,12 +814,12 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
             if(identical(objectH1$design$vcov$name$strata,objectH0$design$vcov$name$strata)){
                 ## no strata or same strata: effect of the type of  structure
                 n.strata <- objectH1$strata$n
-                test.nested1 <- objectH1$design$vcov$type=="UN" && objectH0$design$vcov$type=="CS" && is.na(objectH0$design$vcov$name$var) && is.na(objectH0$design$vcov$name$cor)
+                test.nested1 <- objectH1$design$vcov$class=="UN" && objectH0$design$vcov$class=="CS" && is.na(objectH0$design$vcov$name$var) && is.na(objectH0$design$vcov$name$cor)
                 if(test.nested1){
                     mismatchH0 <- setdiff(mismatchH0,mismatchH0.rho)                
                     for(iS in 1:n.strata){
-                        iRhoH0 <- table.paramH0[which((table.paramH0$type=="rho")*(table.paramH0$strata==1)==1),"name"]
-                        iRhoH1 <- table.paramH1[which((table.paramH1$type=="rho")*(table.paramH1$strata==1)==1),"name"]
+                        iRhoH0 <- table.paramH0[which((table.paramH0$type=="rho")*(table.paramH0$index.strata==1)==1),"name"]
+                        iRhoH1 <- table.paramH1[which((table.paramH1$type=="rho")*(table.paramH1$index.strata==1)==1),"name"]
                         rhs[iRhoH1] <- iRhoH0
                     }
                 }else{
@@ -859,6 +859,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
 }
 
 ## * anova.mlmm
+##' @export
 anova.mlmm <- function(object, effects = NULL, rhs = NULL, ...){
 
     ## ** normalize argument

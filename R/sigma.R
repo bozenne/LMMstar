@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: jul 27 2023 (10:58) 
+## Last-Updated: aug  1 2023 (14:20) 
 ##           By: Brice Ozenne
-##     Update #: 669
+##     Update #: 670
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -135,7 +135,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
             }
             newdesign <- NULL
             if(is.numeric(cluster)){ ## numeric matching the XXcluster.indexXX variable
-                if(any(cluster %in% na.omit(object.cluster.num) == FALSE)){ 
+                if(any(cluster %in% stats::na.omit(object.cluster.num) == FALSE)){ 
                     stop("When numeric, elements in argument \'cluster\' should index the clusters, i.e. be between 1 and ",max(object.cluster.num, na.rm = TRUE),". \n", sep = "")
                 }
                 cluster.num <- cluster

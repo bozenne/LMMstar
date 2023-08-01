@@ -31,7 +31,7 @@ A typical formula would be \code{~1}, indicating a variance constant over time a
 \examples{
 RE(~1, var.cluster = "id", var.time = "time")
 RE(~gender, var.cluster = "id", var.time = "time")
-RE(gender~(1|id), var.cluster = "id", var.time = "time")
+RE(gender~(1|id), var.time = "time")
 
 }
 \keyword{multivariate}

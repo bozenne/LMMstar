@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: nov  4 2021 (11:49) 
 ## Version: 
-## Last-Updated: jul 31 2023 (18:13) 
+## Last-Updated: aug  1 2023 (11:51) 
 ##           By: Brice Ozenne
-##     Update #: 22
+##     Update #: 24
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -38,102 +38,68 @@ test_that("linear model",{
 
     ## single variable
     e.lmm <- lmm(Y~visit+X1+X2+X6, data = dL)
-    test1 <- residuals(e.lmm, type = "partial-center", var = "visit")
-    test1.bis <- residuals(e.lmm, type = "partial-center", var = "visit", format = "wide")
-    test2 <- residuals(e.lmm, type = "partial-center", var = "X1")
-    expect_equal(as.double(test1), as.double(GS[,"visit"]), tol = 1e-6)
-    expect_equal(as.double(test2), as.double(GS[,"X1"]), tol = 1e-6)
+    test1 <- residuals(e.lmm, type = "partial-center", var = "X1")
+    expect_equal(as.double(test1), as.double(GS[,"X1"]), tol = 1e-6)
 
     ## same but with another reference
-    test3 <- residuals(e.lmm, type = "partial", var = "visit")
-    e.diff <- mean(e.lmm$design$mean[,c("visit2","visit3")] %*% coef(e.lmm)[c("visit2","visit3")]) ## expected difference
-    expect_equal(as.double(test3-test1), rep(e.diff,length(test1)), tol = 1e-6)
+    test2 <- residuals(e.lmm, type = "partial", var = "X1")
+    e.diff <- mean(e.lmm$design$mean[,"X1"] * coef(e.lmm)["X1"]) ## expected difference
+    expect_equal(as.double(test2-test1), rep(e.diff,length(test1)), tol = 1e-6)
 
-    ## plot(e.lmm, type = "partial", var = "X6")
-    ## plot(e.lmm, type = "partial", var = c("(Intercept)","X6"))
-    
-    ## ## manual plot
-    ## rr <- residuals(e.lmm, type = "partial", var = "X6", keep.data = TRUE)
-    ## dd.gg <- predict(e.lmm, newdata = rr, keep.newdata = TRUE, type = "static0")
-    ## gg <- ggplot(dd.gg)
-    ## gg <- gg + geom_point(aes(x = X6, y = r.partial)) + geom_line(aes(x = X6, y = estimate))
-    ## gg <- gg + geom_ribbon(aes(x = X6, ymin = lower, ymax = upper), alpha = 0.4)
-    ## gg
-    ## gg + geom_smooth(aes(x = X6, y = r.partial), method = "lm")
-    ## termplot(e.lm, terms = c("X6"), partial.resid = TRUE, se = TRUE)
+    ## note: only match with continuous covariate
+    test1.bis <- residuals(e.lmm, type = "partial-center", var = "visit")
+    e.diff.bis <- mean(e.lmm$design$mean[,c("visit2","visit3"),drop=FALSE] %*% coef(e.lmm)[c("visit2","visit3")]) ## expected difference
+    expect_equal(as.double(test1.bis - GS[,"visit"]), rep(e.diff.bis,length(test1)), tol = 1e-6)
+    ## plot(e.lmm, type = "partial", var = "X1")
+    ## plot(e.lmm, type = "partial", var = c("(Intercept)","X1"))
 })
 
 test_that("linear model with interaction",{
 
-    e.lm <- lm(Y~visit*X6+X2+X5, data = dL)
-    GS <- residuals(e.lm, type = "partial")
-    
-    ## single variable
     e.lmm <- lmm(Y~visit*X6+X2+X5, data = dL)
-    test1 <- residuals(e.lmm, type = "partial-center", var = "visit")
-    test1.bis <- residuals(e.lmm, type = "partial-center", var = "visit", format = "wide")
-    test2 <- residuals(e.lmm, type = "partial-center", var = "X6")
-    expect_equal(as.double(test1), as.double(GS[,"visit"]), tol = 1e-6)
-    expect_equal(as.double(test2), as.double(GS[,"X6"]), tol = 1e-6)
-
-    ## multiple variables
-    test3 <- residuals(e.lmm, type = "partial-center", var = c("visit","X6"))
-    
     ## plot(e.lmm, type = "partial", var = c("visit","X6"))
+    ## plot(e.lmm, type = "partial", var = c("visit","X6","(Intercept)"))
+    
+    test1 <- residuals(e.lmm, type = "partial", var = c("visit","X6"))
+    GS1 <- dL$Y - coef(e.lmm)["(Intercept)"] - coef(e.lmm)["X2"]*dL$X2 - coef(e.lmm)["X5"]*dL$X5
+    expect_equal(as.double(test1), as.double(GS1), tol = 1e-6)
 
-    ## ## manual plot
-    ## rr <- residuals(e.lmm, type = c("partial-ref"), var = c("visit","X6"), keep.data = TRUE)
-    ## dd.gg <- predict(e.lmm, newdata = rr, keep.newdata = TRUE, type = "static0")
-    ## gg <- ggplot(dd.gg)
-    ## gg <- gg + geom_point(aes(x = X6, y = r.partial)) + geom_line(aes(x = X6, y = estimate, group = visit, color = visit))
-    ## gg <- gg + geom_ribbon(aes(x = X6, ymin = lower, ymax = upper, group = visit), alpha = 0.2)
-    ## gg
-
+    test2 <- residuals(e.lmm, type = "partial", var = c("visit","X6","(Intercept)"))
+    GS2 <- dL$Y - coef(e.lmm)["X2"]*dL$X2 - coef(e.lmm)["X5"]*dL$X5
+    expect_equal(as.double(test2), as.double(GS2), tol = 1e-6)
 })
 
 test_that("linear model with splines",{
 
     ## 1- poly
-    e.lm <- lm(Y~visit+X1+stats::poly(X6,4), data = dL)
-    e.lmm <- lmm(Y~visit+X1+stats::poly(X6, 4), data = dL)
+    ePOLY.lm <- lm(Y~visit+X1+stats::poly(X6,4), data = dL)
+    ePOLY.lmm <- lmm(Y~visit+X1+stats::poly(X6, 4), data = dL)
+    ## plot(ePOLY.lmm, type = "partial", var = "X6")
 
     ## compare predictions
-    model.matrix(e.lmm, data = dL[1:2,])
-
-    GS <- predict(e.lm, newdata = dL[1:2,])
-    test <- predict(e.lmm, newdata = dL[1:2,])
-    expect_equal(as.double(test$estimate), as.double(GS), tol = 1e-6)
+    GS.POLY <- predict(ePOLY.lm, newdata = dL[1:2,])
+    test.POLY <- predict(ePOLY.lmm, newdata = dL[1:2,])
+    expect_equal(as.double(test.POLY$estimate), as.double(GS.POLY), tol = 1e-6)
     
     ## compare partial residuals
-    GS <- residuals(e.lm, type = "partial")
-    test <- residuals(e.lmm, type = "partial-center", var = "X6")
-    expect_equal(as.double(test), as.double(GS[,"stats::poly(X6, 4)"]), tol = 1e-6)
-
-    ## plot(e.lmm, type = "partial", var = "X6")
-
-    ## ## manual plot
-    ## rr <- residuals(e.lmm, type = "partial", var = "X6", keep.data = TRUE)
-    ## dd.gg <- predict(e.lmm, newdata = rr, keep.newdata = TRUE, type = "static0")
-    ## gg <- ggplot(dd.gg)
-    ## gg <- gg + geom_point(aes(x = X6, y = r.partial)) + geom_line(aes(x = X6, y = estimate))
-    ## gg <- gg + geom_ribbon(aes(x = X6, ymin = lower, ymax = upper), alpha = 0.4)
-    ## gg
-    ## gg + geom_smooth(aes(x = X6, y = r.partial), method = "lm")
-    ## termplot(e.lm, terms = c("X6"), partial.resid = TRUE, se = TRUE)
+    test.POLY <- residuals(ePOLY.lmm, type = "partial", var = "X6")
+    GS.POLY <- dL$Y - coef(ePOLY.lm)["(Intercept)"] - dL$X1 * coef(ePOLY.lm)["X1"] - c(0,coef(ePOLY.lm)[c("visit2","visit3")])[as.numeric(dL$visit)]
+    expect_equal(as.double(GS.POLY), as.double(test.POLY), tol = 1e-6)
 
     ## ## 2- ns
-    ## e.lm <- lm(Y~visit+X1+splines::ns(X6,4), data = dL)
-    ## e.lmm <- lmm(Y~visit+X1+splines::ns(X6, 4), data = dL)
+    eNS.lm <- lm(Y~visit+X1+splines::ns(X6,4), data = dL)
+    eNS.lmm <- lmm(Y~visit+X1+splines::ns(X6, 4), data = dL)
+    ## plot(eNS.lmm, type = "partial", var = "X6")
 
     ## ## compare predictions
-    ## GS <- predict(e.lm, newdata = dL[1:2,])
-    ## test <- predict(e.lmm, newdata = dL[1:2,])
-    ## expect_equal(as.double(test$estimate), as.double(GS), tol = 1e-6)
+    GS.NS <- predict(eNS.lm, newdata = dL[1:2,])
+    test.NS <- predict(eNS.lmm, newdata = dL[1:2,])
+    expect_equal(as.double(test.NS$estimate), as.double(GS.NS), tol = 1e-6)
     
     ## ## compare partial residuals
-    ## GS <- residuals(e.lm, type = "partial")
-    ## test <- residuals(e.lmm, type = "partial-mean", var = "X6")
-    ## expect_equal(as.double(test), as.double(GS[,"splines::ns(X6, 4)"]), tol = 1e-6)
+    test.NS <- residuals(eNS.lmm, type = "partial", var = "X6")
+    GS.NS <- dL$Y - coef(eNS.lm)["(Intercept)"] - dL$X1 * coef(eNS.lm)["X1"] - c(0,coef(eNS.lm)[c("visit2","visit3")])[as.numeric(dL$visit)]
+    expect_equal(as.double(GS.NS), as.double(test.NS), tol = 1e-6)
 })
 
 ##----------------------------------------------------------------------

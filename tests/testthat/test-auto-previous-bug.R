@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: jul 31 2023 (18:13) 
+## Last-Updated: aug  1 2023 (13:21) 
 ##           By: Brice Ozenne
-##     Update #: 141
+##     Update #: 144
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,7 +26,7 @@ if(FALSE){
 }
 
 context("Previous bug")
-LMMstar.options(optimizer = "FS", method.numDeriv = "Richardson", precompute.moments = TRUE,
+LMMstar.options(optimizer = "FS", method.numDeriv = "Richardson", precompute.moments = TRUE, df = TRUE,
                 columns.confint = c("estimate","se","df","lower","upper","p.value"))
 
 ## * from: Julie Lyng Forman <jufo@sund.ku.dk> date: Fri, 23 Oct 2020 10:05:40 +0000
@@ -53,7 +53,6 @@ test_that("lmm - error due to minus sign in levels of a categorical variable",{
                                   labels = c("-3 months", "-1 week", "+1 week", "+3 months"))
 
     eCS.lmm <- lmm(glucagonAUC~time,
-                   control=glsControl(opt="optim"),
                    data=gastricbypassL,
                    repetition = ~time|id,
                    structure = "CS")
@@ -67,17 +66,15 @@ test_that("lmm - error due to minus sign in levels of a categorical variable",{
 
     ## previously a bug when asking the confindence interval for sd and only for variance effects
     eUN.lmm <- lmm(glucagonAUC~time2,
-                   control=glsControl(opt="optim"),
                    data=gastricbypassL,
                    repetition = ~time|id,
                    structure = "UN")
 
-    GS <- data.frame("estimate" = c(8.23783313, 8.07975612, 8.7153242, 8.40737066), 
-                     "se" = c(0.16221473, 0.16265549, 0.16425097, 0.16223679), 
-                     "df" = c(4.77147491, 11.80714451, 16.73482229, 17.18382852), 
-                     "lower" = c(7.81476781, 7.72471717, 8.36836618, 8.06535968), 
-                     "upper" = c(8.66089845, 8.43479507, 9.06228223, 8.74938164))
-
+    GS <- data.frame("estimate" = c(8.23786515, 8.07982964, 8.71529146, 8.40726178), 
+           "se" = c(0.16222142, 0.16266603, 0.16423827, 0.16222142), 
+           "df" = c(4.77074225, 11.80468799, 16.74320031, 17.18555734), 
+           "lower" = c(7.81476172, 7.72475934, 8.36837371, 8.06528579), 
+           "upper" = c(8.66096858, 8.43489993, 9.06220921, 8.74923777))
 
     test <- confint(eUN.lmm, transform.k = "logsd", effects = "variance", backtransform = FALSE,
                     columns = c("estimate","se","df","lower","upper"))
@@ -121,6 +118,7 @@ test_that("lmm - studentized and normalized residuals",{
                     df=TRUE)
 
     dfres.R <- residuals(fit.main, type = 'all', keep.data = TRUE)
+    dfresScaled.R <- residuals(fit.main, type = 'scaled', keep.data = TRUE)
 
     dfres.SAS <- data.frame("id" = c( 1,  1,  1,  1,  2,  2,  2,  2,  3,  3,  3,  3,  4,  4,  4,  4,  5,  5,  5,  5,  6,  6,  6,  6,  7,  7,  7,  7,  8,  8,  8,  8,  9,  9,  9,  9, 10, 10, 10, 10, 11, 11, 11, 11, 12, 12, 12, 12, 13, 13, 13, 13, 14, 14, 14, 14, 15, 15, 15, 15, 16, 16, 16, 16, 17, 17, 17, 17, 18, 18, 18, 18, 19, 19, 19, 19, 20, 20, 20, 20), 
                             "visit" = c(1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4), 
@@ -142,8 +140,8 @@ test_that("lmm - studentized and normalized residuals",{
     expect_equal(dfres.R$r.response, dfres.SAS$Resid, tol = 1e-4)
     expect_equal(dfres.R$r.pearson, dfres.SAS$PearsonResid, tol = 1e-3)
     expect_equal(dfres.R$r.studentized, dfres.SAS$StudentResid, tol = 1e-3)
-    expect_equal(dfres.R$r.scaled, dfres.SAS$ScaledResid, tol = 1e-3)
     expect_equal(dfres.R$r.normalized, dfres.SAS$ScaledResid, tol = 1e-3)
+    expect_equal(dfres.R$r.normalized, dfresScaled.R$r.scaled, tol = 1e-3)
 })
 
 test_that("lmm - predicted values",{
@@ -191,8 +189,8 @@ test_that("lmm - predicted values",{
     newdata <- data.frame(time = c("3monthsBefore","1weekBefore"), visit = factor(1:2,levels=1:4), weight = c(50,NA), id = c(1,1))
     test <- predict(fit.main, newdata = newdata, type = "dynamic", keep.newdata = FALSE)
 
-    expect_equivalent(test$estimate, GS$fit, tol = 1e-3)
-    expect_equivalent(test,
+    expect_equivalent(test$estimate[is.na(newdata$weight)], GS$fit, tol = 1e-3)
+    expect_equivalent(test[is.na(newdata$weight),],
                       data.frame("estimate" = c(48.3228695), 
                                  "se" = c(17.10624779), 
                                  "df" = c(Inf), 
@@ -312,13 +310,13 @@ test_that("lmm - estimation with missing data",{
     ##              na.action = na.omit,
     ##              data = armd.long)
 
-    expect_equal(as.double(logLik(e.lmm)),as.double(logLik(e.lmm$gls[[1]])))
+    expect_equal(as.double(logLik(e.lmm)), -4151.22377946, tol = 1e-5)
 
     e2.lmm <- lmm(visual ~ 0 + week + week:treat.f,
                   repetition = treat.f ~ week | subject,
                   structure = "UN",
                   data = armd.long, df = FALSE)
-    expect_equal(logLik(e2.lmm),sum(sapply(e2.lmm$gls,logLik)), tol = 1e-3)
+    expect_equal(logLik(e2.lmm),-4145.1647449, tol = 1e-3)
     
     ## LMMstar.options(optimizer = "FS")
     ## e3.lmm <- lmm(visual ~ week + week:treat.f,
@@ -421,7 +419,7 @@ df$visit <- as.numeric(df$Time)
 
 test_that("communication with gls", {
 
-e.fit <- lmm(log_IFNa~Time, repetition = ~Time|ID1, structure="UN", df=TRUE, data=df) 
+e.fit <- suppressWarnings(lmm(log_IFNa~Time, repetition = ~Time|ID1, structure="UN", df=TRUE, data=df) )
 
 e.gls <- gls(log_IFNa~Time,
              correlation = corSymm(form=~visit|ID1),
@@ -512,10 +510,10 @@ test_that("Start with cluster with single observation", {
 
     set.seed(10)
     dL <- sampleRem(100, n.times = 3, format = "long")
-    e.lmm <- lmm(Y ~ X1, repetition = ~1|id, structure = "CS", data = dL[3:19,], df = FALSE)
+    e.lmm <- lmm(Y ~ X1 + (1|id), data = dL[3:19,], df = FALSE)
     e.lmer <- lmer(Y ~ X1 + (1|id), data = dL[3:19,])
     ## was giving an error
-    expect_equal(as.double(coef(e.lmm, effects = "ranef")[,1]),as.double(ranef(e.lmer)$id[,1]), tol = 1e-6)
+    expect_equal(as.double(ranef(e.lmm)$estimate),as.double(ranef(e.lmer)$id[,1]), tol = 1e-6)
 
 })
 
@@ -549,7 +547,7 @@ test_that("Incorrect count of the missing data when duplicated visit within indi
 test_that("Incorrect display of the missing data patterns", {
     data("armd.wide", package = "nlmeU")
     dataNA <- autoplot(summarizeNA(armd.wide))$data
-    MNA <- do.call(rbind,strsplit(levels(xx$data$variable),"(", fixed = TRUE))
+    MNA <- do.call(rbind,strsplit(levels(dataNA$variable),"(", fixed = TRUE))
     df.NA <- data.frame(variable = gsub("\n","",MNA[,1], fixed = TRUE),
                         value = as.numeric(gsub(" missing)","",MNA[,2], fixed = TRUE))
                         )

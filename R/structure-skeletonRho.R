@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (13:27) 
 ## Version: 
-## Last-Updated: jul 31 2023 (17:56) 
+## Last-Updated: aug  1 2023 (14:22) 
 ##           By: Brice Ozenne
-##     Update #: 940
+##     Update #: 950
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -419,10 +419,10 @@
     ## pairs with distinct linear predictors
     if(length(index.unequal)>0){
         if(structure$bloc){ ## block
-            block.var <- reg.var[1]
             time.var <- reg.var[2]
+            block.var <- reg.var[1]
             test.diffBlock <- rowSums(diffLp[,block.var,drop=FALSE]!=0)
-            
+
             ## same block
             index.sameBlock <- index.unequal[which(test.diffBlock==0)]
             block.sameBlock <- data.x[index.sameBlock,block.var]
@@ -608,40 +608,40 @@
     return(structure)
 }
 
-## * .skeletonRho.EXP
-.skeletonRho.EXP <- function(structure, data, 
-                           U.cluster, index.cluster,
-                           U.time, index.clusterTime, 
-                           U.strata, index.clusterStrata){
+## ## * .skeletonRho.EXP
+## .skeletonRho.EXP <- function(structure, data, 
+##                            U.cluster, index.cluster,
+##                            U.time, index.clusterTime, 
+##                            U.strata, index.clusterStrata){
 
-    ## *** param rho
-    regressor <- colnames(X.cor)[which(attr(X.cor, "assign") == max(attr(X.cor, "assign")))]
+##     ## *** param rho
+##     regressor <- colnames(X.cor)[which(attr(X.cor, "assign") == max(attr(X.cor, "assign")))]
 
-    if(n.strata==1){
-        param.rho <- "lambda"
-        strata.rho <- 1
-        code.rho <- regressor
-        level.rho <- ""
-        if(structure$heterogeneous){
-            param.rho <- c(param.rho,"nugget")
-            strata.rho <- c(strata.rho,1)
-            code.rho <- c(code.rho,NA)
-            level.rho <- c(code.rho,"")
-        }
-    }else{
-        param.rho <- paste0("lambda",U.strata)
-        strata.rho <- 1:n.strata
-        code.rho <- regressor
-        level.rho <- U.strata
-        if(structure$heterogeneous){
-            param.rho <- c(param.rho,paste0("nugget",U.strata))
-            strata.rho <- c(strata.rho,1:n.strata)
-            code.rho <- c(code.rho,rep(NA, n.strata))
-            level.rho <- c(level.rho,U.strata)
-        }
-    }
+##     if(n.strata==1){
+##         param.rho <- "lambda"
+##         strata.rho <- 1
+##         code.rho <- regressor
+##         level.rho <- ""
+##         if(structure$heterogeneous){
+##             param.rho <- c(param.rho,"nugget")
+##             strata.rho <- c(strata.rho,1)
+##             code.rho <- c(code.rho,NA)
+##             level.rho <- c(code.rho,"")
+##         }
+##     }else{
+##         param.rho <- paste0("lambda",U.strata)
+##         strata.rho <- 1:n.strata
+##         code.rho <- regressor
+##         level.rho <- U.strata
+##         if(structure$heterogeneous){
+##             param.rho <- c(param.rho,paste0("nugget",U.strata))
+##             strata.rho <- c(strata.rho,1:n.strata)
+##             code.rho <- c(code.rho,rep(NA, n.strata))
+##             level.rho <- c(level.rho,U.strata)
+##         }
+##     }
 
-}
+## }
 
 ## * helper
 ## ** .pairPatternX

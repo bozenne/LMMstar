@@ -23,10 +23,13 @@
 \item{ci}{[logical] should standard error and confidence intervals be evaluated using a delta method?
 Will slow down the execution of the function.}
 
+\item{transform}{[logical] should confidence intervals for the variance estimates (resp. relative variance estimates) be evaluated using a log-transform (resp. atanh transformation)?}
+
 \item{p}{[numeric vector] value of the model coefficients to be used. Only relevant if differs from the fitted values.}
 
-\item{format}{[character] should each type of random effect be output in a data.frame (\code{format="long"})
-or using a list where the random effect are grouped by nesting factors (\code{format="wide"}).}
+\item{format}{[character] should each type of random effect be output in a data.frame (\code{format="long"})}
+
+\item{simplify}{[logical] when relevant will convert list with a single element to vectors and omit unessential output.}
 
 \item{...}{for internal use.}
 }
@@ -46,57 +49,14 @@ The random effets are estimating according to:
 \deqn{E[Y|\eta] = \Omega_{\eta} Z^{t} \Omega^{-1} (Y-X\beta)}
 }
 \examples{
+if(require(nlme)){
 data(gastricbypassL, package = "LMMstar")
 
 ## random intercept
 e.RI <- lmm(weight ~ time + (1|id), data = gastricbypassL)
-ranef(e.RI)
+ranef(e.RI, effects = "mean")
+ranef(e.RI, effects = "variance")
 
-## nested random effects
-
-## crossed random effects
-
-
-#### random effect calculation in lme4 ####
-if(require(lme4)){
-data(Penicillin, package = "lme4")
-
-e.lmer <- lmer(diameter ~ (1|plate) + (1|sample), data = Penicillin)
-y.lmer <- as.matrix(getME(e.lmer, "y") )
-X.lmer <- as.matrix(getME(e.lmer, "X") )
-Z.lmer <- as.matrix(getME(e.lmer, "Z") )
-Lambda.lmer <- as.matrix(getME(e.lmer,"Lambda"))
-sigma2.lmer <- getME(e.lmer,"sigma")^2
-
-G.lmer <- sigma2.lmer*crossprod(t(Lambda.lmer))
-Omega.lmer <- Z.lmer \%*\% G.lmer \%*\% t(Z.lmer) + sigma2.lmer*diag(NROW(Z.lmer))
-epsilon.lmer <- Penicillin$diameter  - predict(e.lmer, re.form = ~0)
-
-## solve system 17 in lme4 vignette
-LHS <- c(t(Lambda.lmer) \%*\% t(Z.lmer) \%*\% y.lmer, t(X.lmer) \%*\% y.lmer)
-B1 <- crossprod(Z.lmer \%*\% Lambda.lmer) + diag(1, NCOL(Z.lmer))
-B2 <- t(X.lmer) \%*\% Z.lmer \%*\% Lambda.lmer
-B3 <- crossprod(X.lmer) 
-RHS <- rbind(cbind(B1,t(B2)), cbind(B2, B3))
-hat <- solve(RHS) \%*\% cbind(LHS)
-tail(hat,1) ## intercept
-GS <- Lambda.lmer \%*\% head(hat,-1) ## random effects
-GS - do.call(rbind,ranef(e.lmer))
-
-## inuitive formula
-test <- G.lmer \%*\% t(Z.lmer) \%*\% solve(Omega.lmer) \%*\% epsilon.lmer
-(test / GS)
-
-## in lmm
-e.lmm <- lmm(diameter ~ (1|plate) + (1|sample), data = Penicillin, df = FALSE)
-Tau <- ranef(e.lmm, effects = "variance")
-OmegaM1epsilon.lmm <- residuals(e.lmm, type = "normalized2")
-range(OmegaM1epsilon.lmm - solve(Omega.lmer) \%*\% epsilon.lmer)
-
-sum(OmegaM1epsilon.lmm[Penicillin$plate=="a"])*Tau[1]
-sum(OmegaM1epsilon.lmm[Penicillin$sample=="F"])*Tau[2]
-ranef(e.lmm)
-ranef(e.lmer)
 }
 }
 \keyword{methods}

@@ -18,7 +18,7 @@
 \method{plot}{summarize}(x, ...)
 }
 \arguments{
-\item{object}{an object of class \code{summarize}, output of the \code{summarize} function.}
+\item{object, x}{an object of class \code{summarize}, output of the \code{summarize} function.}
 
 \item{type}{[character] the summary statistic that should be displayed: \code{"mean"}, \code{"sd"}, \ldots}
 

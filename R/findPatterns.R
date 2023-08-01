@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: jul 31 2023 (10:15) 
+## Last-Updated: aug  1 2023 (14:20) 
 ##           By: Brice Ozenne
-##     Update #: 843
+##     Update #: 847
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -89,6 +89,7 @@
     }else{
         Xpattern.var <- lapply(Upattern$var, function(iP){
             iC.all <- which(pattern.var==iP)
+            iC <- iC.all[1]
             iM <- matrix(nrow = length(index.cluster[[iC]]), ncol = 0)
             attr(iM,"index.cluster") <- iC.all
             return(iM)
@@ -409,7 +410,7 @@
             out.var <- sapply(structure$var$pattern2lp, function(iLp){ ## iLp <- structure$var$pattern2lp[[1]]
                 iX <- structure$var$lp2data[iLp,variable.variance,drop=FALSE]
                 iName <- sapply(iX, function(iVec){if(length(unique(iVec))>1){NA}else{as.character(iVec[1])}})
-                return(paste(na.omit(iName), collapse = sep))
+                return(paste(stats::na.omit(iName), collapse = sep))
             })        
         }else{
             out.var <- NULL
@@ -425,7 +426,7 @@
             out.cor <- sapply(structure$cor$pattern2lp, function(iLp){ ## iLp <- structure$cor$pattern2lp[[1]]
                 iX <- structure$cor$lp2data[iLp,variable.correlation,drop=FALSE]
                 iName <- sapply(iX, function(iVec){if(length(unique(iVec))>1){NA}else{as.character(iVec[1])}})
-                return(paste(na.omit(iName), collapse = sep))
+                return(paste(stats::na.omit(iName), collapse = sep))
             })        
         }else{
             out.cor <- NULL

@@ -3,7 +3,6 @@
 \name{resample}
 \alias{resample}
 \alias{resample.lmm}
-\alias{resample.mlmm}
 \title{Inference via Resampling for Linear Mixed Model}
 \usage{
 resample(object, type, ...)
@@ -22,20 +21,6 @@ resample(object, type, ...)
   export.cpus = NULL,
   ...
 )
-
-\method{resample}{mlmm}(
-  object,
-  type,
-  method = NULL,
-  cluster = NULL,
-  n.sample = 1000,
-  level = 0.95,
-  correction = TRUE,
-  trace = TRUE,
-  seed = NULL,
-  cpus = 1,
-  ...
-)
 }
 \arguments{
 \item{object}{a \code{lmm} object.}
@@ -51,6 +36,8 @@ resample(object, type, ...)
 \item{studentized}{[logical] should a studentized boostrap or permutation test be used?}
 
 \item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
+
+\item{correction}{[logical] correction to ensure non-0 p-values, e.g. with permutations the p.value is evaluated as (#more extreme + 1)/(n.sample + 1) instead of (#more extreme)/(n.sample).}
 
 \item{trace}{[logical] should the execution of the resampling be traced?}
 

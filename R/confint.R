@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 31 2023 (18:12) 
+## Last-Updated: aug  1 2023 (14:41) 
 ##           By: Brice Ozenne
-##     Update #: 669
+##     Update #: 670
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -779,6 +779,8 @@ confint.LRT_lmm <- function(object, parm, level = 0.95, ...){
 ##' @param parm Not used. For compatibility with the generic method.
 ##' @param level [numeric,0-1] the confidence level of the confidence intervals.
 ##' @param method [character] type of adjustment for multiple comparisons: one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}, \code{"single-step2"}, or \code{"pool"}.
+##' @param ordering [character] should the output be ordered by type of parameter (\code{parameter}) or by model (\code{by}).
+##' Only relevant for \code{mlmm} objects.
 ##' @param ... other arguments are passed to \code{\link{confint.Wald_lmm}}.
 ##'
 ##' @details Statistical inference following pooling is performed according to Rubin's rule whose validity requires the congeniality condition of Meng (1994).

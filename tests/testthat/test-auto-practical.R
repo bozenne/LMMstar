@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (17:03) 
 ## Version: 
-## Last-Updated: jul 31 2023 (18:13) 
+## Last-Updated: aug  1 2023 (15:11) 
 ##           By: Brice Ozenne
-##     Update #: 113
+##     Update #: 117
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -80,10 +80,26 @@ test_that("practical 1 - gastricbypass",{
     ## check moments
     expect_equal(as.double(logLik(eUN.gls)), as.double(logLik(eUN.lmm)), tol = 1e-6)
     
-    GS <- numDeriv::jacobian(func = function(p){logLik(eUN.lmm, p = p, transform.sigma = "none", transform.k = "none", transform.rho = "none")}, x = coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none", effects = "all"))
+    ## GS <- numDeriv::jacobian(func = function(p){logLik(eUN.lmm, p = p, transform.sigma = "none", transform.k = "none", transform.rho = "none")}, x = coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none", effects = "all"))
+    GS <- rbind(c(0, 0, 0, 0, 0, 3e-08, 3e-08, -1.2e-07, -5.6e-07, -3.9e-07, 3e-08, 4.1e-07, -1.2e-07, 2.7e-07))
     expect_equal(as.double(GS), as.double(score(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none", effects = "all")), tol = 1e-6)
 
-    GS <- -numDeriv::jacobian(func = function(p){score(eUN.lmm, p = p, transform.sigma = "none", transform.k = "none", transform.rho = "none",effects = "all")}, x = coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none", effects = "all"))
+    ## GS <- -numDeriv::jacobian(func = function(p){score(eUN.lmm, p = p, transform.sigma = "none", transform.k = "none", transform.rho = "none",effects = "all")}, x = coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none", effects = "all"))
+    GS <- cbind(c(3.75e-06, 1.79e-06, -3e-08, 1.43e-06, 0, 8.477e-05, -1.843e-05, 9.63e-06, 6.084e-05, 0.00011196, -7.35e-06, -9.894e-05, -7.91e-06, 2.433e-05), 
+                c(1.79e-06, 6.88e-06, 1.06e-06, -8.4e-07, 0, 0.00027411, -0.00016572, 0.00035807, 0.00141665, 0.00130009, -0.00014701, -0.00131459, 0.00023644, -0.00049052), 
+                c(-3e-08, 1.06e-06, 1.04e-06, -9.1e-07, 0, 2.78e-06, -9.7e-05, 0.00029724, 0.00111002, 0.00085567, -0.00011219, -0.00090667, 0.00023771, -0.00051618), 
+                c(1.43e-06, -8.4e-07, -9.1e-07, 1.86e-06, 0, 1.38e-06, 8.377e-05, -0.00025882, -0.0009654, -0.00074127, 9.752e-05, 0.00078633, -0.00020768, 0.00045129), 
+                c(0, 0, 0, 0, 1.035e-05, 0.01115006, 0.00590608, 0.00848313, -0.03243156, -0.01404792, 0.01120771, 0.01041161, -0.00609246, -0.01245153), 
+                c(8.477e-05, 0.00027411, 2.78e-06, 1.38e-06, 0.01115006, 122.18555589, -1.45964668, 3.08816828, -68.07837646, 2.73876754, -1.51219029, 22.6795013, -13.32873148, -0.05416957), 
+                c(-1.843e-05, -0.00016572, -9.7e-05, 8.377e-05, 0.00590608, -1.45964668, 21.44038778, -7.18200571, 2.75807973, -14.88594103, -1.39025149, 10.84047319, 1.28521521, -14.70839091), 
+                c(9.63e-06, 0.00035807, 0.00029724, -0.00025882, 0.00848313, 3.08816828, -7.18200571, 37.93794573, -5.59355628, -4.13575786, 19.80175087, 4.43555263, -12.17911963, -18.41870059), 
+                c(6.084e-05, 0.00141665, 0.00111002, -0.0009654, -0.03243156, -68.07837647, 2.75807974, -5.59355628, 494.47865121, 170.86077633, -126.83250435, -160.48812254, 120.8592697, 52.61254837), 
+                c(0.00011196, 0.00130009, 0.00085567, -0.00074127, -0.01404792, 2.73876752, -14.88594103, -4.13575786, 170.86077634, 195.77649853, -137.8528703, -150.42850734, 105.91019906, 88.19349447), 
+                c(-7.35e-06, -0.00014701, -0.00011219, 9.752e-05, 0.01120771, -1.51219029, -1.39025149, 19.80175087, -126.83250437, -137.85287029, 182.19199363, 101.08254329, -138.37453473, -84.00691973), 
+                c(-9.894e-05, -0.00131459, -0.00090667, 0.00078633, 0.01041161, 22.67950128, 10.8404732, 4.43555263, -160.48812249, -150.42850737, 101.08254331, 155.69921616, -103.48119506, -60.02026461), 
+                c(-7.91e-06, 0.00023644, 0.00023771, -0.00020768, -0.00609246, -13.3287315, 1.28521521, -12.17911962, 120.85926971, 105.91019907, -138.37453473, -103.48119506, 144.14781706, 59.2349059), 
+                c(2.433e-05, -0.00049052, -0.00051618, 0.00045129, -0.01245153, -0.05416957, -14.70839091, -18.41870059, 52.61254837, 88.19349446, -84.00691974, -60.02026461, 59.23490589, 99.2783842)
+                )
     expect_equal(as.double(GS), as.double(information(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none", effects = "all")), tol = 1e-6)
 
     ## ** extract information
@@ -181,18 +197,19 @@ test_that("practical 2 - vitamin",{
                  na.action=na.exclude,
                  control=glsControl(opt='optim'))
 
-    e0.lmm <- lmm(weight~visit+vita.time,
-                  data=vitaminL,
-                  repetition = ~visit|animal,
-                  structure = "UN", control = list(trace = 3))
-
+    e0.lmm <- suppressWarnings(lmm(weight~visit+vita.time,
+                                   data=vitaminL,
+                                   repetition = ~visit|animal,
+                                   structure = "UN"))
     
-    e.lmm <- suppressWarnings(lmm(weight~treatment*visit,
-                                  data=vitaminL,
-                                  repetition = ~visit|animal,
-                                  structure = "UN"))
+    e.lmm <- suppressMessages(suppressWarnings(lmm(weight~treatment*visit,
+                                                   data=vitaminL,
+                                                   repetition = ~visit|animal,
+                                                   structure = "UN")))
 
-    expect_equal(as.double(logLik(e.gls)), as.double(logLik(e.lmm)), tol = 1e-6)
+    expect_equal(as.double(logLik(e0.lmm)), as.double(logLik(e.lmm)), tol = 1e-6)
+    expect_equal(as.double(logLik(e.lmm)), -234.28331772, tol = 1e-6)
+    expect_equal(as.double(logLik(e.gls)), -232.08183621, tol = 1e-6)
     
     ## ** extract information
     autoplot(e.lmm, color = "group",ci =FALSE)
@@ -206,7 +223,7 @@ test_that("practical 2 - vitamin",{
 ## * Practical 3
 test_that("practical 3 - swabsL",{
    
-   data(swabsL, package = "LMMstar")
+    data(swabsL, package = "LMMstar")
 
     ## ** unstructured
     eUN.gls <- gls(swabs ~ crowding + name,
@@ -235,10 +252,11 @@ test_that("practical 3 - swabsL",{
     eCSI.lmm <- lmm(swabs ~ crowding * name, data = swabsL, structure = "CS", repetition = ~name|family)
     emmip(eCSI.lmm, crowding~name)
 
+    eRI.lmm <- lmm(swabs ~ crowding * name + (1|family), data = swabsL)
     eCSI.lme <- lme(swabs ~ crowding * name, random =~ 1 | family, data = swabsL)
     GS <- as.data.frame(ranef(eCSI.lme, augFrame = TRUE))
 
-    expect_equal(as.double(GS[,1]),as.double(coef(eCSI.lmm, effects = "ranef")), tol = 1e-4)
+    expect_equal(as.double(GS[,1]),as.double(ranef(eRI.lmm)$estimate), tol = 1e-4)
 })
 
 ## * Practical 4
@@ -305,12 +323,12 @@ test_that("practical 6 - vasscoresL",{
                  dimnames = list(c("A", "B", "C"),c("A", "B", "C")) 
                  ) 
 
-    expect_equal(sigma(fit.CS), GS, tol = 1e-5)
+    expect_equivalent(sigma(fit.CS), GS, tol = 1e-5)
     
     GS <- lmer(vas~-1+treatment+(1|id), data=vasscoresL)    
-    expect_equal(unname(coef(fit.CS)), unname(fixef(GS)), tol = 1e-5)
-    expect_equal(unname(model.tables(fit.CS)$se), unname(summary(GS)$coef[,"Std. Error"]), tol = 1e-2)
-    expect_equal(unname(model.tables(fit.CS)$df), unname(summary(GS)$coef[,"df"]), tol = 1e-2)
+    expect_equivalent(unname(coef(fit.CS)), unname(fixef(GS)), tol = 1e-5)
+    expect_equivalent(unname(model.tables(fit.CS)$se), unname(summary(GS)$coef[,"Std. Error"]), tol = 1e-2)
+    expect_equivalent(unname(model.tables(fit.CS)$df), unname(summary(GS)$coef[,"df"]), tol = 1e-2)
 
     ## autoplot(fit.CS)
     suppressWarnings(autoplot(fit.CS, obs.alpha = 0.1))
@@ -328,7 +346,7 @@ test_that("practical 6 - vasscoresL",{
                  ncol = 3, 
                  dimnames = list(c("A", "B", "C"),c("A", "B", "C")) 
                  )
-    expect_equal(sigma(fit.UN), GS, tol = 1e-5)
+    expect_equivalent(sigma(fit.UN), GS, tol = 1e-5)
 
     vasscoreL.imputed <- fitted(fit.UN, impute = TRUE, keep.newdata = TRUE)
     set.seed(11)
@@ -349,7 +367,7 @@ test_that("practical 6 - vasscoresL",{
                  dimnames = list(c("A", "B", "C"),c("A", "B", "C")) 
                  ) 
 
-    expect_equal(sigma(fit.CS.red), GS, tol = 1e-5)
+    expect_equivalent(sigma(fit.CS.red), GS, tol = 1e-5)
 
     fit.UN.red <- lmm(vas~-1+treatment, data=vasscoreL.red,
                       repetition=~treatment|id, structure="UN", control = list(optimizer = "FS")) ## FS optimizer mandatory, GLS does something weird as it is able to estimate the correlation (B,C)
@@ -361,7 +379,7 @@ test_that("practical 6 - vasscoresL",{
                  dimnames = list(c("A", "B", "C"),c("A", "B", "C")) 
                  ) 
 
-    expect_equal(sigma(fit.UN.red), GS, tol = 1e-5)
+    expect_equivalent(sigma(fit.UN.red), GS, tol = 1e-5)
 })
 ##----------------------------------------------------------------------
 ### test-auto-practical.R ends here

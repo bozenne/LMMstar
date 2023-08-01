@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: jul 28 2023 (17:29) 
+## Last-Updated: aug  1 2023 (16:44) 
 ##           By: Brice Ozenne
-##     Update #: 1033
+##     Update #: 1037
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -76,7 +76,7 @@
 ##' ## partial residuals
 ##' residuals(e.lm, type = "partial", var = "X6")
 ##' ## residuals(e.lm) + dL$X6 * coef(e.lm)["X6"]
-##' e.reslm <- residuals(e.lm, type = "partial", var = "X6", keep.data = TRUE)
+##' e.reslm <- residuals(e.lm, type = "partial", var = "X6", keep.data = TRUE, simplify = FALSE)
 ##' plot(e.reslm)
 ##'
 ##' ## partial residuals with specific reference
@@ -94,11 +94,13 @@
 ##'                repetition = ~visit|id, structure = "UN", data = dL)
 ##'
 ##' ## residuals
-##' e.reslmm <- residuals(eUN.lmm, type = "normalized", keep.data = TRUE)
-##' plot(e.reslmm)
-##' plot(e.reslmm, type = "correlation")
-##' plot(e.reslmm, type = "scatterplot", labeller = ggplot2::label_both)
-##' residuals(eUN.lmm, format = "wide", type = "normalized")
+##' e.resL <- residuals(eUN.lmm, type = "normalized",
+##'                     keep.data = TRUE, simplify = FALSE)
+##' plot(e.resL, type = "qqplot")
+##' plot(e.resL, type = "scatterplot", labeller = ggplot2::label_both)
+##' e.resW <- residuals(eUN.lmm, format = "wide", type = "normalized",
+##'                     simplify = FALSE)
+##' plot(e.resW, type = "correlation")
 ##'
 ##' ## residuals and predicted values
 ##' residuals(eUN.lmm, type = "all")
@@ -383,9 +385,9 @@ residuals.lmm <- function(object, type = "response", var = NULL,
         res <- object$residuals
         M.res <- matrix(NA, nrow = length(res), ncol = length(type.residual), dimnames = list(NULL, name.residual))
     }
-    if(ci || type.residual %in% c("partial","partial-center")){
+    if(ci || "partial" %in% type.residual || "partial-center" %in% type.residual){
 
-        df.fitted <- predict(object, newdata = design.reference, type = type.fit, se = ifelse(ci,"estimation",FALSE),
+        df.fitted <- stats::predict(object, newdata = design.reference, type = type.fit, se = ifelse(ci,"estimation",FALSE),
                              keep.newdata = FALSE, format = "long", simplify = FALSE)
 
         if(ci){

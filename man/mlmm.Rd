@@ -62,7 +62,7 @@ This is why the grouping variable should preferably be of type character or fact
 }
 \examples{
 #### univariate regression ####
-if(require(lava)){
+if(require(lava) && require(multcomp)){
 
 set.seed(10)
 d1 <- cbind(sim(lvm(Y~0.5*X1), 25), group = "A")

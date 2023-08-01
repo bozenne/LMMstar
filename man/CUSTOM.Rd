@@ -56,23 +56,22 @@ Variance-covariance structure specified by the user.
 
 ## Compound symmetry structure
 CUSTOM(~1,
-       FCT.sigma = function(p,time,X){rep(p,length(time))},
+       FCT.sigma = function(p,n.time,X){rep(p,n.time)},
        init.sigma = c("sigma"=1),
-       dFCT.sigma = function(p,time,X){list(sigma = rep(1,length(time)))},  
-       d2FCT.sigma = function(p,time,X){list(sigma = rep(0,length(time)))},  
-       FCT.rho = function(p,time,X){
-           matrix(p,length(time),length(time))+diag(1-p,length(time),length(time))
+       dFCT.sigma = function(p,n.time,X){list(sigma = rep(1,n.time))},  
+       d2FCT.sigma = function(p,n.time,X){list(sigma = rep(0,n.time))},  
+       FCT.rho = function(p,n.time,X){
+           matrix(p,n.time,n.time)+diag(1-p,n.time,n.time)
        },
        init.rho = c("rho"=0.5),
-       dFCT.rho = function(p,time,X){
-            list(rho = matrix(1,length(time),length(time))-diag(1,length(time),length(time)))
+       dFCT.rho = function(p,n.time,X){
+            list(rho = matrix(1,n.time,n.time)-diag(1,n.time,n.time))
        },
-       d2FCT.rho = function(p,time,X){list(rho = matrix(0,length(time),length(time)))}
+       d2FCT.rho = function(p,n.time,X){list(rho = matrix(0,n.time,n.time))}
 )
 
 ## 2 block structure
-rho.2block <- function(p,time,X){
-   n.time <- length(time)
+rho.2block <- function(p,n.time,X){
    rho <- matrix(0, nrow = n.time, ncol = n.time)
    rho[1,2] <- rho[2,1] <- rho[4,5] <- rho[5,4] <- p["rho1"]
    rho[1,3] <- rho[3,1] <- rho[4,6] <- rho[6,4] <- p["rho2"]
@@ -80,8 +79,7 @@ rho.2block <- function(p,time,X){
    rho[4:6,1:3] <- rho[1:3,4:6] <- p["rho4"]
    return(rho)
 }
-drho.2block <- function(p,time,X){
-   n.time <- length(time)
+drho.2block <- function(p,n.time,X){
    drho <- list(rho1 = matrix(0, nrow = n.time, ncol = n.time),
                 rho2 = matrix(0, nrow = n.time, ncol = n.time),
                 rho3 = matrix(0, nrow = n.time, ncol = n.time),
@@ -92,8 +90,7 @@ drho.2block <- function(p,time,X){
    drho$rho4[4:6,1:3] <- drho$rho4[1:3,4:6] <- 1
    return(drho)
 }
-d2rho.2block <- function(p,time,X){
-   n.time <- length(time)
+d2rho.2block <- function(p,n.time,X){
    d2rho <- list(rho1 = matrix(0, nrow = n.time, ncol = n.time),
                  rho2 = matrix(0, nrow = n.time, ncol = n.time),
                  rho3 = matrix(0, nrow = n.time, ncol = n.time),
@@ -102,9 +99,9 @@ d2rho.2block <- function(p,time,X){
 }
 
 CUSTOM(~variable,
-       FCT.sigma = function(p,time,X){rep(p,length(time))},
-       dFCT.sigma = function(p,time,X){list(sigma=rep(1,length(time)))},
-       d2FCT.sigma = function(p,time,X){list(sigma=rep(0,length(time)))},
+       FCT.sigma = function(p,n.time,X){rep(p,n.time)},
+       dFCT.sigma = function(p,n.time,X){list(sigma=rep(1,n.time))},
+       d2FCT.sigma = function(p,n.time,X){list(sigma=rep(0,n.time))},
        init.sigma = c("sigma"=1),
        FCT.rho = rho.2block,
        dFCT.rho = drho.2block,

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Dec 19 2021 (17:07) 
 ## Version: 
-## Last-Updated: jan 23 2023 (19:03) 
+## Last-Updated: aug  1 2023 (13:53) 
 ##           By: Brice Ozenne
-##     Update #: 29
+##     Update #: 32
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -35,11 +35,11 @@ data(armd.wide, package = "nlmeU")
 
 ## and move to long format
 library(reshape2)
-armd.long <- melt(armd.wide,
-                  measure.vars = paste0("visual",c(0,4,12,24,52)),
-                  id.var = c("subject","lesion","treat.f","miss.pat"),
-                  variable.name = "week",
-                  value.name = "visual")
+armd.long <- reshape2::melt(armd.wide,
+                            measure.vars = paste0("visual",c(0,4,12,24,52)),
+                            id.var = c("subject","lesion","treat.f","miss.pat"),
+                            variable.name = "week",
+                            value.name = "visual")
 
 armd.long$week <- factor(armd.long$week, 
                          level = paste0("visual",c(0,4,12,24,52)),
@@ -93,7 +93,7 @@ test_that("lmm 2 times", {
     ## chunk 24
     
     expect_equivalent(predict(e052.lmm, newdata = armd.114, type = "dynamic")$estimate,
-                      unname(alpha52 + rho * sigma52/sigma0 * (armd.114$visual[1]-alpha0)),
+                      c(NA,unname(alpha52 + rho * sigma52/sigma0 * (armd.114$visual[1]-alpha0))),
                       tol = 1e-4)
 
 
@@ -114,6 +114,7 @@ test_that("lmm 4 times", {
                      repetition = ~ week | subject, structure = "UN",
                      data = armd.long)
     model.tables(eFlex.lmm)
+    ## plot(eFlex.lmm, ci = FALSE, obs.alpha = 0.1)
 
     armd.long.imp <- fitted(eFlex.lmm, impute = TRUE, keep.newdata = TRUE)
     gg <- autoplot(eFlex.lmm, obs.alpha = 0.1, ci = FALSE)$plot
@@ -197,10 +198,10 @@ test_that("lmm - predict", {
     armd.longRa$visual[armd.longRa$week != 0] <- NA
 
     ## ANCOVA with homogenous variance/correlation
-    pred.longRpl <- predict(e.UN, newdata = armd.longRpl, type = "dynamic", se = FALSE)
-    pred.longRa <- predict(e.UN, newdata = armd.longRa, type = "dynamic", se = FALSE)
+    pred.longRpl <- predict(e.UN, newdata = armd.longRpl, type = "dynamic", se = FALSE, keep.newdata = TRUE)
+    pred.longRa <- predict(e.UN, newdata = armd.longRa, type = "dynamic", se = FALSE, keep.newdata = TRUE)
 
-    expect_equal(as.double(coef(e.ANCOVA)["treat.fActive"]), as.double(mean(pred.longRa$estimate - pred.longRpl$estimate)), tol = 1e-5)
+    expect_true(all(abs(pred.longRa[pred.longRpl$week!=0,"estimate"]-pred.longRpl[pred.longRpl$week!=0,"estimate"]-coef(e.ANCOVA)["treat.fActive"])<1e-5))
 
     ## lava::estimate(e.UN, function(p){
     ##     pred.longRpl <- predict(e.UN, p = p, newdata = armd.longRpl, type = "dynamic", se = FALSE)
@@ -209,10 +210,10 @@ test_that("lmm - predict", {
     ## }, method.numDeriv = "simple", average = TRUE)
 
     ## ANCOVA with heterogenous variance/correlation
-    pred.longRpl <- predict(e.SUN, newdata = armd.longRpl, type = "dynamic", se = FALSE)
-    pred.longRa <- predict(e.SUN, newdata = armd.longRa, type = "dynamic", se = FALSE)
+    pred.longRpl <- predict(e.SUN, newdata = armd.longRpl, type = "dynamic", se = FALSE, keep.newdata = TRUE)
+    pred.longRa <- predict(e.SUN, newdata = armd.longRa, type = "dynamic", se = FALSE, keep.newdata = TRUE)
 
-    expect_equal(-4.3300289,mean(pred.longRa$estimate - pred.longRpl$estimate), tol = 1e-5)
+    expect_equal(-4.3300289,mean(pred.longRa[pred.longRpl$week!=0,"estimate"]-pred.longRpl[pred.longRpl$week!=0,"estimate"]), tol = 1e-5)
 
     ## lava::estimate(e.SUN, function(p){
     ##     pred.longRpl <- predict(e.SUN, p = p, newdata = armd.longRpl, type = "dynamic", se = FALSE)
@@ -231,12 +232,12 @@ test_that("lmm - baseline constrain", {
     armd.long$treat[armd.long$week == 0] <- "Placebo"
     
     e.lmm <- lmm(visual ~ week:treat,
-                 repetition = ~week:treat|subject,
+                 repetition = ~week+treat|subject,
                  structure = UN,
                  control = list(optimizer = "FS"), data = armd.long)
     expect_equal(logLik(e.lmm), -4146.824, tol = 1e-5)
     ## plot(e.lmm)
-    plot(e.lmm, color = "treat.f")
+    plot(e.lmm, color = "treat.f", time.var = 'week')
     plot(e.lmm, type = "correlation")
     sigma(e.lmm)
     

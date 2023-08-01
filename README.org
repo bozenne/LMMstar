@@ -14,22 +14,29 @@ options(width = 100)
 
 * LMMstar: Repeated Measurement Models for Discrete Times
 
-*LMMstar* stands for Linear mixed models - statistical analysis in
+*LMMstar* stands for Linear Mixed Models - statistical analysis in
 R. It is companion R package for the course "Statistical analysis of
 correlated and repeated measurements for health science researchers"
 taught by the section of Biostatistics of the University of
 Copenhagen. It provides functions for computing summary statistics and
 obtaining graphical displays of longitudinal data, as well as for
-statistical modeling and statistical inference using mixed models.
+statistical modeling and statistical inference using mixed models. In
+particular, it implements linear mixed models where the model for the
+variance-covariance of the residuals is specified via patterns
+(compound symmetry, toeplitz, unstructured, ...), possibly stratified
+on a categorical variable. Statistical uncertainty for mean, variance,
+and correlation parameters is performed based on the observed
+information. Statistical testing can be performed for arbitrary linear
+or non-linear combination(s) of model coefficients. For linear
+combinations, a Satterthwaite approximation of the degrees of freedom
+is available.  Normalized residuals are provided to assess model
+misspecification. Predictions can be computed conditional to
+covariates only or also to outcome values.
 
-This package builds on existing methods and softwares, e.g.:
-- =emmeans= for computing marginal means
+This package builds on existing software:
 - =lava= for simulating data
 - =multcomp= for adjusting for multiple comparisons
-- =nlme= for fitting mixed model
 - =ggplot2= for graphical displays
-The main feature of the package is to provide a convenient user
-interface.
 
 ** Installation
 
@@ -82,8 +89,4 @@ A BibTeX entry for LaTeX users is
 ** Functionalities
 See the vignette "Overview of the package LMMstar" in [[./vignettes/overview.pdf]]
 
-
-* TODO :noexport:
-- update scatterplot depending on ggpubr to get better looking histograms
-- update pool to pool coefficients per type when exporting all values in mlmm
   

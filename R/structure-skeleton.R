@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: jul 26 2023 (13:40) 
+## Last-Updated: aug  1 2023 (14:22) 
 ##           By: Brice Ozenne
-##     Update #: 2495
+##     Update #: 2498
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -133,11 +133,11 @@
             init.name.sigma <- names(structure$init.sigma)
             init.n.sigma <- length(init.name.sigma)
 
-            ls.name.sigma <- lapply(U.strata, function(iStrata){setNames(paste(init.name.sigma,iStrata,sep=sep.strata["sigma"]), rep(iStrata, init.n.sigma))})
+            ls.name.sigma <- lapply(U.strata, function(iStrata){stats::setNames(paste(init.name.sigma,iStrata,sep=sep.strata["sigma"]), rep(iStrata, init.n.sigma))})
             name.sigma <- unname(unlist(ls.name.sigma, use.names = FALSE))
             strata.sigma <- match(unlist(lapply(ls.name.sigma, names)), U.strata)
 
-            structure$init.sigma <- unlist(lapply(U.strata, function(iStrata){setNames(structure$init.sigma[init.name.sigma],paste(init.name.sigma,iStrata,sep=sep.strata["sigma"]))}))
+            structure$init.sigma <- unlist(lapply(U.strata, function(iStrata){stats::setNames(structure$init.sigma[init.name.sigma],paste(init.name.sigma,iStrata,sep=sep.strata["sigma"]))}))
         }
         structure$param <- rbind(structure$param,
                                  data.frame(name = name.sigma,
@@ -162,12 +162,12 @@
             init.name.rho <- names(structure$init.rho)
             init.n.rho <- length(init.name.rho)
 
-            ls.name.rho <- lapply(U.strata, function(iStrata){setNames(paste(init.name.rho,iStrata,sep=sep.strata["rho"]), rep(iStrata, init.n.rho))})
+            ls.name.rho <- lapply(U.strata, function(iStrata){stats::setNames(paste(init.name.rho,iStrata,sep=sep.strata["rho"]), rep(iStrata, init.n.rho))})
             name.rho <- unname(unlist(ls.name.rho, use.names = FALSE))
             strata.rho <- match(unlist(lapply(ls.name.rho, names)), U.strata)
 
-            structure$init.rho <- unlist(lapply(U.strata, function(iStrata){setNames(structure$init.rho[init.name.rho],paste(init.name.rho,iStrata,sep=sep.strata["rho"]))}))
-        }
+            structure$init.rho <- unlist(lapply(U.strata, function(iStrata){stats::setNames(structure$init.rho[init.name.rho],paste(init.name.rho,iStrata,sep=sep.strata["rho"]))}))
+         }
         structure$param <- rbind(structure$param,
                                  data.frame(name = name.rho,
                                             index.strata = strata.rho,

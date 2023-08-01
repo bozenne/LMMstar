@@ -1794,25 +1794,6 @@ gg.traj <- gg.traj + theme(axis.text.x=element_text(angle = 90, hjust = 0))
 gg.traj
 #+END_SRC
 
-#+RESULTS:
-#+begin_example
-NULL
-windows 
-      2
-windows 
-      2 
-Advarselsbesked:
-[1m[22mRemoved 7 rows containing missing values (`geom_line()`).
-windows 
-      2
-windows 
-      2
-windows 
-      2
-windows 
-      2
-#+end_example
-
 #+ATTR_LaTeX: :width \textwidth :placement [!h]
 [[./figures/fit-autoplot-indiv.pdf]]
 
@@ -3516,22 +3497,28 @@ formula. To obtain the later we first notice that:
 #+END_EXPORT
 where
 #+BEGIN_EXPORT latex
-\[  \Esp[\Hessian(\theta,\theta^{\prime})|\VX] = \textcolor{\darkred}{\frac{1}{2} tr \left(A(\Vparam)^{-1} \left(\sum_{i=1}^n w_i b_i(\Vparam) B_i(\Vparam) \trans{b}_i(\Vparam) + C(\Vparam)A(\Vparam)^{-1} \trans{C}(\Vparam) \right)\right)}
- + \textcolor{\darkblue}{E(\Vparam)}
-\]
+\begin{align*}
+\Esp[\Hessian(\theta,\theta^{\prime})|\VX] &=& \textcolor{\darkred}{
+\frac{1}{2} tr \left(A(\Vparam)^{-1} \left(\sum_{i=1}^n w_i b_i(\Vparam) B_i(\Vparam) \trans{b}_i(\Vparam) + C(\Vparam)A(\Vparam)^{-1} \trans{C}(\Vparam) \right)\right)
+}  + \sum_{i=1}^n w_i \textcolor{\darkblue}{E_i(\Vparam)} \\
+\textcolor{\darkblue}{E_i(\Vparam)} &=& \textcolor{\darkblue}{\frac{1}{2} tr\left(\Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta]\right)
+                                        - \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \trans{\dpartial[\mu(\Vparam,\VX_i)][\theta^{\prime}]}} \\
+\textcolor{\darkred}{A(\Theta)} &=& \textcolor{\darkred}{\sum_{i=1}^n w_i \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i }\\
+\textcolor{\darkred}{B(\Theta)} &=& \textcolor{\darkred}{\ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] - 2 \dpartial[\Omega_i(\Vparam)][\theta]  \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] }\\
+\textcolor{\darkred}{b_i(\Theta)} &=& \textcolor{\darkred}{\VX_i \Omega_i^{-1} }\\
+\textcolor{\darkred}{C(\Theta)} &=& \textcolor{\darkred}{\sum_{i=1}^n w_i \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{\VX}_i }
+\end{align*}
 #+END_EXPORT
 So we will first derive the derivative of
-\(\Hessian(\theta,\theta^{\prime})\) and then the one of the blue term
-in autoref:eq:diffInfo.  To simplify the derivation of the
+\(\Esp[\Hessian(\theta,\theta^{\prime})|\VX]\) and then the one of the
+blue term in autoref:eq:diffInfo.  To simplify the derivation of the
 formula we will only derive them at the maximum likelihood, i.e. when
 \(\Esp\left[\dpartial[\Hessian(\theta,\theta^{\prime}|\VX)][\theta^{\prime\prime}]\right]=\frac{\partial
 \Esp[\Hessian(\theta,\theta^{\prime}|\VX)]}{\partial
 \theta^{\prime\prime}}\) where the expectation is taken over
-\(\VX\). To find the derivative of
-\(\Hessian(\theta,\theta^{\prime})\) we can therefore take the
-derivative of formula eqref:eq:expectedInfo. Its derivative with respect
-to the mean parameters is 0. So we just need to compute the derivative
-with respect to a variance parameter \(\theta^{\prime\prime}\):
+\(\VX\). We first notice that the derivative with respect to the mean
+parameters is 0. So we just need to compute the derivative with
+respect to a variance parameter \(\theta^{\prime\prime}\):
 #+BEGIN_EXPORT latex
 \begin{align*}
  & \frac{\partial \textcolor{\darkred}{ A(\Vparam)^{-1} \left(\sum_{i=1}^n w_i b_i(\Vparam) B_i(\Vparam) \trans{b}_i(\Vparam) + C(\Vparam)A(\Vparam)^{-1} \trans{C}(\Vparam) \right)}}{\partial \theta^{\prime\prime}} \\

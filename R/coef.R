@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: jul 25 2023 (15:06) 
+## Last-Updated: aug  1 2023 (15:03) 
 ##           By: Brice Ozenne
-##     Update #: 670
+##     Update #: 674
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -30,7 +30,6 @@
 ##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
 ##' @param transform.rho [character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"} - see details.
 ##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
-##' @param ordering [character] According to which variable the coefficient should be ordered in the output: \code{"by"} or \code{"parameter"}.
 ##' @param ... Not used. For compatibility with the generic method.
 ##' 
 ##'
@@ -309,6 +308,17 @@ coef.LRT_lmm <- function(object, ...){
 }
 
 ## * coef.mlmm
+##' @title Extract Coefficients From a Linear Mixed Model
+##' @description Extract coefficients from a linear mixed model.
+##'
+##' @param object a \code{mlmm} object.
+##' @param effects [character] By default will output the estimate for the hypothesis being tests.
+##' But can also output all model coefficients (\code{"all"}),
+##' or only coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
+##' or only coefficients relative to the variance structure (\code{"variance"}),
+##' or only coefficients relative to the correlation structure (\code{"correlation"}).
+##' @param ordering [character] should the output be ordered by type of parameter (\code{parameter}) or by model (\code{by}).
+##' @param ... passed to \code{coef.Wald_lmm}.
 ##' @export
 coef.mlmm <- function(object, effects = "contrast", ordering = "parameter", ...){
 

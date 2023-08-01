@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: jul 26 2023 (11:07) 
+## Last-Updated: aug  1 2023 (14:48) 
 ##           By: Brice Ozenne
-##     Update #: 515
+##     Update #: 524
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -28,6 +28,7 @@
 ##' @param level [numeric,0-1] the confidence level of the confidence intervals.
 ##' @param trace [logical] should the execution of the resampling be traced?
 ##' @param seed [integer, >0] Random number generator (RNG) state used when starting resampling.
+##' @param correction [logical] correction to ensure non-0 p-values, e.g. with permutations the p.value is evaluated as (#more extreme + 1)/(n.sample + 1) instead of (#more extreme)/(n.sample).
 ##' @param cpus [integer, >0] number of child-processes for parallel evaluation.
 ##' If \code{NULL} no state is set.
 ##' @param export.cpus [character vector] name of the variables to export to each cluster.
@@ -464,10 +465,10 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 
     if (cpus == 1) {
         ls.sample <- do.call(method.loop,
-                             args = list(X = 1:n.sample,
-                                         FUN = function(X){
-                                             if(!is.null(seed)){set.seed(seqSeed[X])}
-                                             iOut <- warperResample(X)
+                             args = list(iX = 1:n.sample,
+                                         FUN = function(iX){
+                                             if(!is.null(seed)){set.seed(seqSeed[iX])}
+                                             iOut <- warperResample(iX)
                                              return(iOut)
                                          })
                              )
@@ -480,10 +481,11 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
             opts <- list()
         }
 
+        iX <- NULL ## [:forCRANcheck:] foreach        
         ls.sample <- foreach::`%dopar%`(
-                                  foreach::foreach(i=1:n.sample, .options.snow = opts, .packages = c("LMMstar","nlme")), {
-                                      if(!is.null(seed)){set.seed(seqSeed[i])}
-                                      iOut <- warperResample(X)
+                                  foreach::foreach(iX=1:n.sample, .options.snow = opts, .packages = c("LMMstar","nlme")), {
+                                      if(!is.null(seed)){set.seed(seqSeed[iX])}
+                                      iOut <- warperResample(iX)
                                       return(iOut)
                                   })
         if(trace>0){close(pb)}
@@ -561,273 +563,274 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 
 }
 
-## * resample.mlmm
-##' @export
-##' @rdname resample
-resample.mlmm <- function(object, type, method = NULL, cluster = NULL, n.sample = 1e3,
-                          level = 0.95, correction = TRUE,
-                          trace = TRUE, seed = NULL, cpus = 1,
-                          ...){
+## ## * resample.mlmm
+## ##' @export
+## ##' @rdname resample
+## resample.mlmm <- function(object, type, method = NULL, cluster = NULL, n.sample = 1e3,
+##                           level = 0.95, correction = TRUE,
+##                           trace = TRUE, seed = NULL, cpus = 1,
+##                           ...){
+##     browser()
 
-    ## ** normalize arguments
-    ## alternative
-    if(object$glht[[1]][[1]]$alternative!="two.sided"){
-        stop("Can only perform two sided tests. \n")
-    }
+##     ## ** normalize arguments
+##     ## alternative
+##     if(object$glht[[1]][[1]]$alternative!="two.sided"){
+##         stop("Can only perform two sided tests. \n")
+##     }
     
-    ## n.sample
-    if(length(n.sample)!=1){
-        stop("Argument \'n.sample\' should have lenght 1. \n")
-    }
-    if(!is.numeric(n.sample) || n.sample<0 || n.sample %% 1 >0 ){
-        stop("Argument \'n.sample\' should be a positive integer. \n")
-    }
+##     ## n.sample
+##     if(length(n.sample)!=1){
+##         stop("Argument \'n.sample\' should have lenght 1. \n")
+##     }
+##     if(!is.numeric(n.sample) || n.sample<0 || n.sample %% 1 >0 ){
+##         stop("Argument \'n.sample\' should be a positive integer. \n")
+##     }
     
-    ## cluster
-    if(is.null(cluster)){
-        ls.nameCluster <- lapply(object$model, function(iModel){manifest(iModel)["cluster"]})
-        if(length(unique(unlist(ls.nameCluster)))==1 && all(lengths(ls.nameCluster)==1)){
-            cluster <- unname(ls.nameCluster[[1]])
-        }else{
-            stop("Argument \'cluster\' cannot be guessed from the object. \n")
-        }
+##     ## cluster
+##     if(is.null(cluster)){
+##         ls.nameCluster <- lapply(object$model, function(iModel){manifest(iModel)["cluster"]})
+##         if(length(unique(unlist(ls.nameCluster)))==1 && all(lengths(ls.nameCluster)==1)){
+##             cluster <- unname(ls.nameCluster[[1]])
+##         }else{
+##             stop("Argument \'cluster\' cannot be guessed from the object. \n")
+##         }
         
-    }
-    if(length(cluster)!=1){
-        stop("Argument \'cluster\' should have lenght 1. \n")
-    }
-    if(!is.character(cluster)){
-        stop("Argument \'cluster\' should be a character. \n")
-    }
+##     }
+##     if(length(cluster)!=1){
+##         stop("Argument \'cluster\' should have lenght 1. \n")
+##     }
+##     if(!is.character(cluster)){
+##         stop("Argument \'cluster\' should be a character. \n")
+##     }
     
-    ## data    
-    object.call <- attr(object, "call")
-    by <- object.call$by
-    level.by <- names(object$model)
-    data <- try(eval(object.call$data), silent = TRUE)
+##     ## data    
+##     object.call <- attr(object, "call")
+##     by <- object.call$by
+##     level.by <- names(object$model)
+##     data <- try(eval(object.call$data), silent = TRUE)
 
-    if(inherits(data, "try-error")){ ## reconstruct dataset based on what was stored in the object
-        object.model <- object$model
-        n.model <- length(object.model)
-        object.manifest <- lapply(object.model, manifest)
-        object.data <- lapply(object.model, "[[", "data")
+##     if(inherits(data, "try-error")){ ## reconstruct dataset based on what was stored in the object
+##         object.model <- object$model
+##         n.model <- length(object.model)
+##         object.manifest <- lapply(object.model, manifest)
+##         object.data <- lapply(object.model, "[[", "data")
 
-        if(any(sapply(object.data, function(iData){cluster %in% names(iData)})==FALSE)){
-            stop("Argument \'cluster\' could not be found in the dataset(s) stored in the object. \n")
-        }
-        object.Udata <- mapply(FUN = function(iData,iName,iBy){
-            iOut <- cbind(iBy,iData[c(cluster,iName)])
-            names(iOut)[1] <- by
-            return(iOut)
-        }, iData = object.data, iName = object.manifest, iBy = level.by, SIMPLIFY = FALSE)
-        data <- object.Udata[[1]]
+##         if(any(sapply(object.data, function(iData){cluster %in% names(iData)})==FALSE)){
+##             stop("Argument \'cluster\' could not be found in the dataset(s) stored in the object. \n")
+##         }
+##         object.Udata <- mapply(FUN = function(iData,iName,iBy){
+##             iOut <- cbind(iBy,iData[c(cluster,iName)])
+##             names(iOut)[1] <- by
+##             return(iOut)
+##         }, iData = object.data, iName = object.manifest, iBy = level.by, SIMPLIFY = FALSE)
+##         data <- object.Udata[[1]]
 
-        if(n.model>1){
-            for(iModel in 2:n.model){ ## iModel <- 3
-                data <- merge(data, object.Udata[[iModel]], by = intersect(names(data),c(object.manifest[[iModel]],by,cluster)), all=TRUE)
-            }
-        }
+##         if(n.model>1){
+##             for(iModel in 2:n.model){ ## iModel <- 3
+##                 data <- merge(data, object.Udata[[iModel]], by = intersect(names(data),c(object.manifest[[iModel]],by,cluster)), all=TRUE)
+##             }
+##         }
     
-    }else{
-        if(cluster %in% names(data)==FALSE){
-            stop("Argument \'cluster\' could not be found in the dataset. \n")
-        }
-    }
+##     }else{
+##         if(cluster %in% names(data)==FALSE){
+##             stop("Argument \'cluster\' could not be found in the dataset. \n")
+##         }
+##     }
 
-    ## type
-    if(tolower(type) == "perm"){
-        type <- "permutation"
-    }else if(tolower(type) == "boot"){
-        type <- "bootstrap"
-    }
-    type <- match.arg(type, c("permutation","bootstrap"))
-    if(type=="permutation"){
+##     ## type
+##     if(tolower(type) == "perm"){
+##         type <- "permutation"
+##     }else if(tolower(type) == "boot"){
+##         type <- "bootstrap"
+##     }
+##     type <- match.arg(type, c("permutation","bootstrap"))
+##     if(type=="permutation"){
 
-        effect.param <- object$univariate$parameter
-        if(any(object$univariate$type!="mu")){
-            stop("Can only test mean parameters when using permutations. \n")
-        }
-        ls.variable.perm <- mapply(FUN = function(iParam,iObject){ ## iParam <- "X2b" ## iObject <- object$model[[1]]
-            iX <- iObject$design$mean 
-            attr(iX,"variable")[attr(iX,"assign")[colnames(iX)==iParam]]
-        }, iParam = effect.param, iObject = object$model, SIMPLIFY = FALSE)
-        variable.perm <- unname(unique(unlist(ls.variable.perm)))
-        if(length(variable.perm)>1){
-            stop("Permutation test not available for effects depending on more than one variable. \n",
-                 "Can only permute a single variable. \n")
-        }
+##         effect.param <- object$univariate$parameter
+##         if(any(object$univariate$type!="mu")){
+##             stop("Can only test mean parameters when using permutations. \n")
+##         }
+##         ls.variable.perm <- mapply(FUN = function(iParam,iObject){ ## iParam <- "X2b" ## iObject <- object$model[[1]]
+##             iX <- iObject$design$mean 
+##             attr(iX,"variable")[attr(iX,"assign")[colnames(iX)==iParam]]
+##         }, iParam = effect.param, iObject = object$model, SIMPLIFY = FALSE)
+##         variable.perm <- unname(unique(unlist(ls.variable.perm)))
+##         if(length(variable.perm)>1){
+##             stop("Permutation test not available for effects depending on more than one variable. \n",
+##                  "Can only permute a single variable. \n")
+##         }
 
-        ## test whether the covariate is constant within cluster
-        test.Wvar <- unlist(by(data[[variable.perm]], data[[cluster]], function(iData){sum(!duplicated(iData))>1}, simplify = FALSE))
-        if(any(test.Wvar)){
-            stop("The covariate(s) indicated by the argument \"effects\" vary within cluster. \n",
-                 "This is not support when using permutations. Consider using type=\"boot\" instead of type=\"perm\". \n")
-        }
-        Uvar <- by(data[[variable.perm]], data[[cluster]], function(iData){iData[1]}, simplify = FALSE)
-    }else if(type=="bootstrap"){
-        calc.pvalue <- try(requireNamespace("BuyseTest")) ## to get the p-values
-    }
+##         ## test whether the covariate is constant within cluster
+##         test.Wvar <- unlist(by(data[[variable.perm]], data[[cluster]], function(iData){sum(!duplicated(iData))>1}, simplify = FALSE))
+##         if(any(test.Wvar)){
+##             stop("The covariate(s) indicated by the argument \"effects\" vary within cluster. \n",
+##                  "This is not support when using permutations. Consider using type=\"boot\" instead of type=\"perm\". \n")
+##         }
+##         Uvar <- by(data[[variable.perm]], data[[cluster]], function(iData){iData[1]}, simplify = FALSE)
+##     }else if(type=="bootstrap"){
+##         calc.pvalue <- try(requireNamespace("BuyseTest")) ## to get the p-values
+##     }
     
-    ## cpus
-    if(length(cpus)!=1){
-        stop("Argument \'cpus\' should have length 1.\n ")
-    }else if(identical(cpus,"all")){
-        cpus <- parallel::detectCores()
-    }else if(!is.numeric(cpus) || cpus <=0 || cpus %% 1 != 0){
-        stop("Argument \'cpus\' should be a positive integer or \'all\'.\n ")
-    }else if(cpus>1 && cpus>parallel::detectCores()){
-        stop("Only ",parallel::detectCores()," CPU cores are available. \n")
-    }
+##     ## cpus
+##     if(length(cpus)!=1){
+##         stop("Argument \'cpus\' should have length 1.\n ")
+##     }else if(identical(cpus,"all")){
+##         cpus <- parallel::detectCores()
+##     }else if(!is.numeric(cpus) || cpus <=0 || cpus %% 1 != 0){
+##         stop("Argument \'cpus\' should be a positive integer or \'all\'.\n ")
+##     }else if(cpus>1 && cpus>parallel::detectCores()){
+##         stop("Only ",parallel::detectCores()," CPU cores are available. \n")
+##     }
 
-    ## dots
-    dots <- list(...)
-    if(length(dots)>0){
-        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
-    }
+##     ## dots
+##     dots <- list(...)
+##     if(length(dots)>0){
+##         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+##     }
 
-    ## ** recover dataset
-    method.merge <- c("average", "pool.fixse", "pool.se", "pool.gls", "pool.gls1", "pool.rubin")
-    keep.cols <- c("by","parameter","estimate","se","df","statistic","lower","upper","null","p.value")
+##     ## ** recover dataset
+##     method.merge <- c("average", "pool.fixse", "pool.se", "pool.gls", "pool.gls1", "pool.rubin")
+##     keep.cols <- c("by","parameter","estimate","se","df","statistic","lower","upper","null","p.value")
         
-    Ucluster <- sort(unique(unlist(data[[cluster]])))
-    n.cluster <- length(Ucluster)
-    index.cluster <- split(1:NROW(data), data[[cluster]], identity)
-    template <- list(multivariate = object$multivariate,
-                     univariate = object$univariate)
-    template$multivariate[,c("statistic","df.num","df.denom","p.value")] <- NULL
-    template$univariate[,c("estimate","se","df","statistic","lower","upper","p.value")] <- NULL
+##     Ucluster <- sort(unique(unlist(data[[cluster]])))
+##     n.cluster <- length(Ucluster)
+##     index.cluster <- split(1:NROW(data), data[[cluster]], identity)
+##     template <- list(multivariate = object$multivariate,
+##                      univariate = object$univariate)
+##     template$multivariate[,c("statistic","df.num","df.denom","p.value")] <- NULL
+##     template$univariate[,c("estimate","se","df","statistic","lower","upper","p.value")] <- NULL
                      
-    warperResample <- function(iSample){
+##     warperResample <- function(iSample){
 
-        ## *** resample
-        iNewCluster <- stats::setNames(sample(n.cluster, n.cluster, replace = TRUE),
-                                       1:n.cluster)
-        iNewData <- data[]
-        if(type == "permutation"){
-            ## permute X-values (constant within cluster)
-            iPerm <- sample(n.cluster, replace = FALSE)
-            iData <- data
-            for(iCluster in 1:n.cluster){ ## iCluster <- 1
-                iData[index.cluster[[iCluster]],variable.perm] <- Uvar[[iPerm[iCluster]]] ## seems to properly expand Uvar over multiple timepoints
-            }
-        }else if(type == "bootstrap"){
-            ils.Boot <- index.cluster[sample(n.cluster, replace = TRUE)]
-            names(ils.Boot) <- 1:n.cluster
-            iBoot <- unlist(ils.Boot)
+##         ## *** resample
+##         iNewCluster <- stats::setNames(sample(n.cluster, n.cluster, replace = TRUE),
+##                                        1:n.cluster)
+##         iNewData <- data[]
+##         if(type == "permutation"){
+##             ## permute X-values (constant within cluster)
+##             iPerm <- sample(n.cluster, replace = FALSE)
+##             iData <- data
+##             for(iCluster in 1:n.cluster){ ## iCluster <- 1
+##                 iData[index.cluster[[iCluster]],variable.perm] <- Uvar[[iPerm[iCluster]]] ## seems to properly expand Uvar over multiple timepoints
+##             }
+##         }else if(type == "bootstrap"){
+##             ils.Boot <- index.cluster[sample(n.cluster, replace = TRUE)]
+##             names(ils.Boot) <- 1:n.cluster
+##             iBoot <- unlist(ils.Boot)
             
-            iData <- data[iBoot,,drop=FALSE]
-            iData[[cluster]] <- as.numeric(factor(names(iBoot), levels = unique(names(iBoot))))
-            rownames(iData) <- NULL            
-        }
+##             iData <- data[iBoot,,drop=FALSE]
+##             iData[[cluster]] <- as.numeric(factor(names(iBoot), levels = unique(names(iBoot))))
+##             rownames(iData) <- NULL            
+##         }
 
-        ## *** re-estimate
-        iCall <- object.call
-        iCall$trace <- 0
-        iCall$data <- iData
-        iEstimate <- eval(iCall)
+##         ## *** re-estimate
+##         iCall <- object.call
+##         iCall$trace <- 0
+##         iCall$data <- iData
+##         iEstimate <- eval(iCall)
         
-        ## *** export
-        ## use merge in case effects for some categories are not estimated
-        iEstimate$univariate2 <- model.tables(iEstimate, columns = keep.cols, method = method)
+##         ## *** export
+##         ## use merge in case effects for some categories are not estimated
+##         iEstimate$univariate2 <- model.tables(iEstimate, columns = keep.cols, method = method)
 
-        iOut <- template
-        if(is.null(method) || (method %in% method.merge == FALSE)){
-            iOut$multivariate <- merge(iOut$multivariate, iEstimate$multivariate, by = c("type","test","null"), all = TRUE)
-            iOut$univariate <- merge(iOut$univariate, iEstimate$univariate2, by = c("by","parameter"), all = TRUE)
-        }else{
-            iOut$univariate <- iEstimate$univariate2
-        }
-        return(iOut)
-    }
+##         iOut <- template
+##         if(is.null(method) || (method %in% method.merge == FALSE)){
+##             iOut$multivariate <- merge(iOut$multivariate, iEstimate$multivariate, by = c("type","test","null"), all = TRUE)
+##             iOut$univariate <- merge(iOut$univariate, iEstimate$univariate2, by = c("by","parameter"), all = TRUE)
+##         }else{
+##             iOut$univariate <- iEstimate$univariate2
+##         }
+##         return(iOut)
+##     }
 
-    ## ** run
-    if(trace){
-        if(type == "permutation"){
-            cat("\tPermutation test with ",n.sample," replicates \n",
-                "\t(permutation of ",variable.perm," values between clusters)\n\n", sep = "")
-        }else if(type == "boot"){
-            cat("\tNon-parametric bootstrap with ",n.sample," replicates \n\n", sep = "")
-        }
-    }
+##     ## ** run
+##     if(trace){
+##         if(type == "permutation"){
+##             cat("\tPermutation test with ",n.sample," replicates \n",
+##                 "\t(permutation of ",variable.perm," values between clusters)\n\n", sep = "")
+##         }else if(type == "boot"){
+##             cat("\tNon-parametric bootstrap with ",n.sample," replicates \n\n", sep = "")
+##         }
+##     }
     
-    if(!is.null(seed)){set.seed(seed)}
+##     if(!is.null(seed)){set.seed(seed)}
 
-    if(cpus>1){
-        cl <- parallel::makeCluster(cpus)
-        fct2export <- NULL
-        parallel::clusterExport(cl = cl, varlist = fct2export, envir = as.environment(asNamespace("LMMstar")))
-    }else{
-        cl <- NULL
-    }
+##     if(cpus>1){
+##         cl <- parallel::makeCluster(cpus)
+##         fct2export <- NULL
+##         parallel::clusterExport(cl = cl, varlist = fct2export, envir = as.environment(asNamespace("LMMstar")))
+##     }else{
+##         cl <- NULL
+##     }
 
-    if(!is.null(cl) || trace){
-        ls.sample <- pbapply::pblapply(1:n.sample, warperResample, cl = cl)
-    }else{
-        ls.sample <- lapply(1:n.sample, warperResample)
-    }
+##     if(!is.null(cl) || trace){
+##         ls.sample <- pbapply::pblapply(1:n.sample, warperResample, cl = cl)
+##     }else{
+##         ls.sample <- lapply(1:n.sample, warperResample)
+##     }
 
-    if(cpus>1){
-        parallel::stopCluster(cl)
-    }
+##     if(cpus>1){
+##         parallel::stopCluster(cl)
+##     }
 
-    ## ** post process
-    keep.cols2 <- c("estimate", "se", "df", "statistic", "lower", "upper", "null", "p.value")
+##     ## ** post process
+##     keep.cols2 <- c("estimate", "se", "df", "statistic", "lower", "upper", "null", "p.value")
     
-    out <- list()
-    sample.multivariate <- do.call(cbind,lapply(ls.sample, function(iSample){iSample$multivariate$statistic}))
-    sample.univariate <- do.call(cbind,lapply(ls.sample, function(iSample){iSample$univariate$statistic}))
+##     out <- list()
+##     sample.multivariate <- do.call(cbind,lapply(ls.sample, function(iSample){iSample$multivariate$statistic}))
+##     sample.univariate <- do.call(cbind,lapply(ls.sample, function(iSample){iSample$univariate$statistic}))
 
-    if(type == "permutation"){
-        obs.multivariate <- matrix(object$multivariate[,"statistic"], nrow = NROW(object$multivariate), ncol = NCOL(sample.multivariate))
-        obs.univariate <- matrix(object$univariate[,"statistic"], nrow = NROW(object$univariate), ncol = NCOL(sample.univariate), byrow = FALSE)
+##     if(type == "permutation"){
+##         obs.multivariate <- matrix(object$multivariate[,"statistic"], nrow = NROW(object$multivariate), ncol = NCOL(sample.multivariate))
+##         obs.univariate <- matrix(object$univariate[,"statistic"], nrow = NROW(object$univariate), ncol = NCOL(sample.univariate), byrow = FALSE)
         
-        if(is.null(method) || (method %in% method.merge == FALSE)){
-            out$multivariate <- object$multivariate
-            out$multivariate$df.num <- NA
-            out$multivariate$df.denom <- NA
-            out$multivariate$p.value <- (rowSums(abs(sample.multivariate) > abs(obs.multivariate), na.rm = TRUE)+1)/(rowSums(!is.na(sample.multivariate))+1)
-            attr(out$univariate,"sample") <- sample.multivariate
-        }
+##         if(is.null(method) || (method %in% method.merge == FALSE)){
+##             out$multivariate <- object$multivariate
+##             out$multivariate$df.num <- NA
+##             out$multivariate$df.denom <- NA
+##             out$multivariate$p.value <- (rowSums(abs(sample.multivariate) > abs(obs.multivariate), na.rm = TRUE)+1)/(rowSums(!is.na(sample.multivariate))+1)
+##             attr(out$univariate,"sample") <- sample.multivariate
+##         }
 
-        if(is.null(method) || (method %in% method.merge == FALSE)){
-            out$univariate <- object$univariate
-        }else{
-            out$univariate <- model.tables(object, method = method, columns = keep.cols2)
-        }
-        out$univariate$se <- NA
-        out$univariate$df <- NA
-        out$univariate$p.value <- (rowSums(abs(sample.univariate) > abs(obs.univariate), na.rm = TRUE)+1)/(rowSums(!is.na(sample.univariate))+1)
-        attr(out$univariate,"sample") <- sample.univariate
+##         if(is.null(method) || (method %in% method.merge == FALSE)){
+##             out$univariate <- object$univariate
+##         }else{
+##             out$univariate <- model.tables(object, method = method, columns = keep.cols2)
+##         }
+##         out$univariate$se <- NA
+##         out$univariate$df <- NA
+##         out$univariate$p.value <- (rowSums(abs(sample.univariate) > abs(obs.univariate), na.rm = TRUE)+1)/(rowSums(!is.na(sample.univariate))+1)
+##         attr(out$univariate,"sample") <- sample.univariate
 
-    }else if(type == "bootstrap"){
-        alpha <- 1-level
+##     }else if(type == "bootstrap"){
+##         alpha <- 1-level
 
-        if(is.null(method) || (method %in% method.merge == FALSE)){
-            out$univariate <- object$univariate
-        }else{
-            out$univariate <- model.tables(object, method = method, columns = keep.cols2)
-        }
-        out$univariate$se <- apply(sample.univariate, MARGIN = 1, FUN = stats::sd, na.rm = TRUE)
-        out$univariate$statistic <- out$univariate$estimate/out$univariate$se
-        out$univariate$df <- NA
-        out$univariate$lower <- apply(sample.univariate, MARGIN = 1, FUN = stats::quantile, probs = alpha/2, na.rm = TRUE)
-        out$univariate$upper <- apply(sample.univariate, MARGIN = 1, FUN = stats::quantile, probs = 1-alpha/2, na.rm = TRUE)
+##         if(is.null(method) || (method %in% method.merge == FALSE)){
+##             out$univariate <- object$univariate
+##         }else{
+##             out$univariate <- model.tables(object, method = method, columns = keep.cols2)
+##         }
+##         out$univariate$se <- apply(sample.univariate, MARGIN = 1, FUN = stats::sd, na.rm = TRUE)
+##         out$univariate$statistic <- out$univariate$estimate/out$univariate$se
+##         out$univariate$df <- NA
+##         out$univariate$lower <- apply(sample.univariate, MARGIN = 1, FUN = stats::quantile, probs = alpha/2, na.rm = TRUE)
+##         out$univariate$upper <- apply(sample.univariate, MARGIN = 1, FUN = stats::quantile, probs = 1-alpha/2, na.rm = TRUE)
 
-        if(!inherits(calc.pvalue,"try-error")){
-            out$univariate$p.value <- sapply(name.keepcoef, function(iName){
-                BuyseTest::boot2pvalue(stats::na.omit(sample.univariate[,iName]),
-                                       null = 0,
-                                       estimate = out[iName,"estimate"],
-                                       alternative = "two.sided",
-                                       add.1 = correction)
-            })
-        }
-        attr(out$univariate,"sample") <- sample.univariate
-    }
+##         if(!inherits(calc.pvalue,"try-error")){
+##             out$univariate$p.value <- sapply(name.keepcoef, function(iName){
+##                 boot2pvalue(stats::na.omit(sample.univariate[,iName]),
+##                             null = 0,
+##                             estimate = out[iName,"estimate"],
+##                             alternative = "two.sided",
+##                             add.1 = correction)
+##             })
+##         }
+##         attr(out$univariate,"sample") <- sample.univariate
+##     }
     
-    ## ** export
-    return(out)
-}
+##     ## ** export
+##     return(out)
+## }
 
 ##----------------------------------------------------------------------
 ### resample.R ends here

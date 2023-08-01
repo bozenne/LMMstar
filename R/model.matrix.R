@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: jul 31 2023 (12:33) 
+## Last-Updated: aug  1 2023 (11:48) 
 ##           By: Brice Ozenne
-##     Update #: 2940
+##     Update #: 2949
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -117,9 +117,16 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
             ## convert to factor with the right levels
             data.mean <- .updateFactor(data, xfactor = object$xfactor$mean)
 
+            ## update formula with attributes from the design matrix
+            ff.mean <- attr(object$design$mean,"terms") ## instead of object$formula$mean.design to handle spline (add attributes predvars with the position of the knots)
+            data.mean$XXindexXX <- 1 ## add latent variables used when terms where defined
+            data.mean$XXtimeXX <- 1
+            data.mean$XXclusterXX <- 1
+            data.mean$XXstrataXX <- 1
+
             ## use stats::model.frame to handle spline
-            data.mf.mean <- stats::model.frame(object$formula$mean.design, data = data.mean, na.action = stats::na.pass)
-            design$mean  <- stats::model.matrix(object$formula$mean.design, data.mf.mean)[,colnames(object$design$mean),drop=FALSE]
+            data.mf.mean <- stats::model.frame(ff.mean, data = data.mean, na.action = stats::na.pass)
+            design$mean  <- stats::model.matrix(ff.mean, data.mf.mean)[,colnames(object$design$mean),drop=FALSE]
         }
 
         ## *** variance-covariance
@@ -328,7 +335,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
                 }else{
                     out[[iMoment]]$lp2X <- out[[iMoment]]$X[iIndex.Ulp,,drop=FALSE]
                     rownames(out[[iMoment]]$lp2X) <- iLp[iIndex.Ulp]
-                    out[[iMoment]]$lp2data <- data[iIndex.Ulp,attr(out[[iMoment]]$X,"variable"),drop=FALSE]
+                    out[[iMoment]]$lp2data <- iData[iIndex.Ulp,attr(out[[iMoment]]$X,"variable"),drop=FALSE]
                     rownames(out[[iMoment]]$lp2data) <- iLp[iIndex.Ulp]
                 }
             }else{
@@ -412,8 +419,6 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
                                   constraint = NA,
                                   level = gsub("^:","",gsub(":$","",mu.level)),
                                   code = NA,
-                                  lp.x = NA,
-                                  lp.y = NA,
                                   sigma = NA,
                                   k.x = NA,
                                   k.y = NA)
@@ -495,7 +500,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
 
     ## ** param
     skeleton.param <- rbind(skeleton.mu,                            
-                            structure$param[is.na(structure$param$constraint),,drop=FALSE] ## only keep free parameters
+                            structure$param[is.na(structure$param$constraint),names(skeleton.mu),drop=FALSE] ## only keep free parameters
                             )
     rownames(skeleton.param) <- NULL
 

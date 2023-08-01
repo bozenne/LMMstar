@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: jul 31 2023 (18:06) 
+## Last-Updated: aug  1 2023 (15:07) 
 ##           By: Brice Ozenne
-##     Update #: 199
+##     Update #: 200
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -242,7 +242,7 @@ test_that("Nested random intercept model (2 levels)",{
 
         ## ** iteration
     expect_equal(eNRI3.lmm0$opt$n.iter,4)
-    expect_equal(eNRI3.lmm$opt$n.iter,2)
+    expect_equal(eNRI3.lmm$opt$n.iter,1)
 
     ## ** likelihood
     expect_equal(as.double(logLik(eNRI3.lmer)), as.double(logLik(eNRI3.lmm0)), tol = 1e-6)

@@ -50,14 +50,14 @@ Otherwise consider each individual output of argument \code{f}.}
 Perform a first order delta method
 }
 \examples{
-if(require(lava)){
+if(require(lava) && require(nlme)){
 
 #### Random effect ####
 set.seed(10)
 dL <- sampleRem(1e2, n.times = 3, format = "long")
-e.lmm1 <- lmm(Y ~ X1+X2+X3, repetition = ~visit|id, structure = "CS", data = dL)
-coef(e.lmm1, effects = "ranef")
-e.ranef <- estimate(e.lmm1, f  = function(p){coef(e.lmm1, p = p, effects = "ranef")})
+e.lmm1 <- lmm(Y ~ X1+X2+X3 + (1|id), repetition = ~visit|id, data = dL)
+nlme::ranef(e.lmm1)
+e.ranef <- estimate(e.lmm1, f  = function(p){nlme::ranef(e.lmm1, p = p)$estimate})
 e.ranef
 
 if(require(ggplot2)){

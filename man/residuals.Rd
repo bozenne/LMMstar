@@ -89,7 +89,7 @@ e.lm <- lmm(Y ~ visit + X1 + X2 + X6, data = dL)
 ## partial residuals
 residuals(e.lm, type = "partial", var = "X6")
 ## residuals(e.lm) + dL$X6 * coef(e.lm)["X6"]
-e.reslm <- residuals(e.lm, type = "partial", var = "X6", keep.data = TRUE)
+e.reslm <- residuals(e.lm, type = "partial", var = "X6", keep.data = TRUE, simplify = FALSE)
 plot(e.reslm)
 
 ## partial residuals with specific reference
@@ -107,11 +107,13 @@ eUN.lmm <- lmm(Y ~ visit + X1 + X2 + X5 + X6,
                repetition = ~visit|id, structure = "UN", data = dL)
 
 ## residuals
-e.reslmm <- residuals(eUN.lmm, type = "normalized", keep.data = TRUE)
-plot(e.reslmm)
-plot(e.reslmm, type = "correlation")
-plot(e.reslmm, type = "scatterplot", labeller = ggplot2::label_both)
-residuals(eUN.lmm, format = "wide", type = "normalized")
+e.resL <- residuals(eUN.lmm, type = "normalized",
+                    keep.data = TRUE, simplify = FALSE)
+plot(e.resL, type = "qqplot")
+plot(e.resL, type = "scatterplot", labeller = ggplot2::label_both)
+e.resW <- residuals(eUN.lmm, format = "wide", type = "normalized",
+                    simplify = FALSE)
+plot(e.resW, type = "correlation")
 
 ## residuals and predicted values
 residuals(eUN.lmm, type = "all")

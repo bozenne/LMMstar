@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: Jul 30 2023 (16:00) 
+## Last-Updated: aug  1 2023 (15:19) 
 ##           By: Brice Ozenne
-##     Update #: 1136
+##     Update #: 1159
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -192,11 +192,11 @@ CS <- function(formula, var.cluster, var.time, type = NULL, group.type = NULL, a
 
     if(!missing(formula) && inherits(formula,"formula")){
         if(type == "homogeneous"){
-            if(attr(terms(formula),"response")==0){
+            if(attr(stats::terms(formula),"response")==0){
                 formula <- list(variance = ~1,
                                 correlation = formula)
             }else{
-                formula <- list(variance = update(formula,".~0"),
+                formula <- list(variance = stats::update(formula,".~0"),
                                 correlation = formula)
             }        
         }else if(type == "heterogeneous" && !missing(var.time)){
@@ -206,11 +206,11 @@ CS <- function(formula, var.cluster, var.time, type = NULL, group.type = NULL, a
                                 correlation = formula)
             }else{
                 add.var <- c(attr(var.time,"original"),var.time)[1]
-                if(attr(terms(formula),"response")==0){
-                    formula <- list(variance = update(formula,paste0("~.+",add.var)),
+                if(attr(stats::terms(formula),"response")==0){
+                    formula <- list(variance = stats::update(formula,paste0("~.+",add.var)),
                                     correlation = formula)
                 }else{
-                    formula <- list(variance = update(formula,paste0(".~.+",add.var)),
+                    formula <- list(variance = stats::update(formula,paste0(".~.+",add.var)),
                                     correlation = formula)
                 }
             }
@@ -294,7 +294,7 @@ CS <- function(formula, var.cluster, var.time, type = NULL, group.type = NULL, a
 ##' @examples
 ##' RE(~1, var.cluster = "id", var.time = "time")
 ##' RE(~gender, var.cluster = "id", var.time = "time")
-##' RE(gender~(1|id), var.cluster = "id", var.time = "time")
+##' RE(gender~(1|id), var.time = "time")
 ##' 
 ##' @export
 RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
@@ -382,7 +382,7 @@ RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
     group <- unlist(lapply(1:n.group, function(iG){
         stats::setNames(rep(iG, length(ranef$hierarchy[[iG]])), ranef$hierarchy[[iG]])
     }))
-    if(!missing(var.cluster) && attr(var.cluster,"original") %in% names(group)){
+    if(!missing(var.cluster) && !is.null(attr(var.cluster,"original")) && attr(var.cluster,"original") %in% names(group)){
         groupCS <- group[names(group) != attr(var.cluster,"original")]
     }else{
         groupCS <- group
@@ -433,10 +433,10 @@ RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
 ##' 
 ##' @examples
 ##' ## no covariate
-##' TOEPLITZ(~1, var.cluster = "id", var.time = "time")
-##' TOEPLITZ(gender~1, var.cluster = "id", var.time = "time")
-##' TOEPLITZ(list(~time,~1), var.cluster = "id", var.time = "time")
-##' TOEPLITZ(list(gender~time,gender~1), var.cluster = "id", var.time = "time")
+##' TOEPLITZ(~time, var.cluster = "id", var.time = "time")
+##' TOEPLITZ(gender~time, var.cluster = "id", var.time = "time")
+##' TOEPLITZ(list(~time,~time), var.cluster = "id", var.time = "time")
+##' TOEPLITZ(list(gender~time,gender~time), var.cluster = "id", var.time = "time")
 ##'
 ##' ## with covariates
 ##' TOEPLITZ(~side, var.cluster = "id", type = "UN",
@@ -465,7 +465,7 @@ TOEPLITZ <- function(formula, var.cluster, var.time, type = "LAG", add.time){
                               correlation = add.time)
             }else if(type == "CS"){
                 if(length(add.time)>1){
-                    add.X <- list(variance = utils::tail(add.time,1),
+                    add.X <- list(variance = utils::head(add.time,1),
                                   correlation = add.time)
                 }else{
                     add.X <- list(variance = NULL,
@@ -478,7 +478,7 @@ TOEPLITZ <- function(formula, var.cluster, var.time, type = "LAG", add.time){
                               correlation = var.time)
             }else if(type == "CS"){
                 if(length(var.time)>1){
-                    add.X <- list(variance = utils::tail(var.time,1),
+                    add.X <- list(variance = utils::head(var.time,1),
                                   correlation = var.time)
                 }else{
                     add.X <- list(variance = NULL,
@@ -699,23 +699,22 @@ UN <- function(formula, var.cluster, var.time, add.time){
 ##' 
 ##' ## Compound symmetry structure
 ##' CUSTOM(~1,
-##'        FCT.sigma = function(p,time,X){rep(p,length(time))},
+##'        FCT.sigma = function(p,n.time,X){rep(p,n.time)},
 ##'        init.sigma = c("sigma"=1),
-##'        dFCT.sigma = function(p,time,X){list(sigma = rep(1,length(time)))},  
-##'        d2FCT.sigma = function(p,time,X){list(sigma = rep(0,length(time)))},  
-##'        FCT.rho = function(p,time,X){
-##'            matrix(p,length(time),length(time))+diag(1-p,length(time),length(time))
+##'        dFCT.sigma = function(p,n.time,X){list(sigma = rep(1,n.time))},  
+##'        d2FCT.sigma = function(p,n.time,X){list(sigma = rep(0,n.time))},  
+##'        FCT.rho = function(p,n.time,X){
+##'            matrix(p,n.time,n.time)+diag(1-p,n.time,n.time)
 ##'        },
 ##'        init.rho = c("rho"=0.5),
-##'        dFCT.rho = function(p,time,X){
-##'             list(rho = matrix(1,length(time),length(time))-diag(1,length(time),length(time)))
+##'        dFCT.rho = function(p,n.time,X){
+##'             list(rho = matrix(1,n.time,n.time)-diag(1,n.time,n.time))
 ##'        },
-##'        d2FCT.rho = function(p,time,X){list(rho = matrix(0,length(time),length(time)))}
+##'        d2FCT.rho = function(p,n.time,X){list(rho = matrix(0,n.time,n.time))}
 ##' )
 ##' 
 ##' ## 2 block structure
-##' rho.2block <- function(p,time,X){
-##'    n.time <- length(time)
+##' rho.2block <- function(p,n.time,X){
 ##'    rho <- matrix(0, nrow = n.time, ncol = n.time)
 ##'    rho[1,2] <- rho[2,1] <- rho[4,5] <- rho[5,4] <- p["rho1"]
 ##'    rho[1,3] <- rho[3,1] <- rho[4,6] <- rho[6,4] <- p["rho2"]
@@ -723,8 +722,7 @@ UN <- function(formula, var.cluster, var.time, add.time){
 ##'    rho[4:6,1:3] <- rho[1:3,4:6] <- p["rho4"]
 ##'    return(rho)
 ##' }
-##' drho.2block <- function(p,time,X){
-##'    n.time <- length(time)
+##' drho.2block <- function(p,n.time,X){
 ##'    drho <- list(rho1 = matrix(0, nrow = n.time, ncol = n.time),
 ##'                 rho2 = matrix(0, nrow = n.time, ncol = n.time),
 ##'                 rho3 = matrix(0, nrow = n.time, ncol = n.time),
@@ -735,8 +733,7 @@ UN <- function(formula, var.cluster, var.time, add.time){
 ##'    drho$rho4[4:6,1:3] <- drho$rho4[1:3,4:6] <- 1
 ##'    return(drho)
 ##' }
-##' d2rho.2block <- function(p,time,X){
-##'    n.time <- length(time)
+##' d2rho.2block <- function(p,n.time,X){
 ##'    d2rho <- list(rho1 = matrix(0, nrow = n.time, ncol = n.time),
 ##'                  rho2 = matrix(0, nrow = n.time, ncol = n.time),
 ##'                  rho3 = matrix(0, nrow = n.time, ncol = n.time),
@@ -745,9 +742,9 @@ UN <- function(formula, var.cluster, var.time, add.time){
 ##' }
 ##'
 ##' CUSTOM(~variable,
-##'        FCT.sigma = function(p,time,X){rep(p,length(time))},
-##'        dFCT.sigma = function(p,time,X){list(sigma=rep(1,length(time)))},
-##'        d2FCT.sigma = function(p,time,X){list(sigma=rep(0,length(time)))},
+##'        FCT.sigma = function(p,n.time,X){rep(p,n.time)},
+##'        dFCT.sigma = function(p,n.time,X){list(sigma=rep(1,n.time))},
+##'        d2FCT.sigma = function(p,n.time,X){list(sigma=rep(0,n.time))},
 ##'        init.sigma = c("sigma"=1),
 ##'        FCT.rho = rho.2block,
 ##'        dFCT.rho = drho.2block,

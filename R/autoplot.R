@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: jul 28 2023 (11:18) 
+## Last-Updated: aug  1 2023 (16:44) 
 ##           By: Brice Ozenne
-##     Update #: 892
+##     Update #: 932
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -64,7 +64,7 @@
 ##' dL$X1 <- as.factor(dL$X1)
 ##' 
 ##' #### fit Linear Mixed Model ####
-##' eCS.lmm <- lmm(Y ~ visit + X1,
+##' eCS.lmm <- lmm(Y ~ visit + X1 + X6,
 ##'                repetition = ~visit|id, structure = "CS", data = dL, df = FALSE)
 ##' 
 ##' plot(eCS.lmm, type = "fit")
@@ -76,6 +76,7 @@
 ##' plot(eCS.lmm, type = "scatterplot2") 
 ##' plot(eCS.lmm, type = "partial", type.residual = "visit") 
 ##' plot(eCS.lmm, type = "partial", type.residual = "X1") 
+##' plot(eCS.lmm, type = "partial", type.residual = "X6") 
 ##' }
 
 ## * autoplot.lmm (code)
@@ -123,14 +124,14 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
         }
         ## extract partial residuals
         outRes <- stats::residuals(object, type = type2, format = c("wide","long"), var = type.residual, keep.data = TRUE, simplify = FALSE)
-        out <- do.call(plot, args = c(list(outRes, type = type, size.text = size.text), dots))
+        out <- do.call(autoplot.residuals_lmm, args = c(list(outRes, type = type, size.text = size.text), dots))
 
     }else{ ## residual plot
         if(is.null(type.residual)){
             type.residual <- "normalized"
         }
         outRes <- residuals(object, type = type.residual, format = c("wide","long"), keep.data = TRUE, simplify = FALSE)
-        out <- plot(outRes, type = type, size.text = size.text, mean.size = mean.size, ci.alpha = ci.alpha, ...)
+        out <- autoplot.residuals_lmm(outRes, type = type, size.text = size.text, mean.size = mean.size, ci.alpha = ci.alpha, ...)
     }
 
     ## ** export
@@ -300,7 +301,39 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
     }else{
         preddata <- cbind(newdata, stats::predict(object, newdata = newdata[,timemu.var, drop=FALSE], ...))
     }
+    if("lower" %in% names(preddata) == FALSE){
+        preddata$lower <- NA
+    }
+    if("upper" %in% names(preddata) == FALSE){
+        preddata$upper <- NA
+    }
+    preddata <- preddata[c("XXclusterXX",time.var.plot,color,outcome.var,"estimate","lower","upper")]
 
+    ## ** add missing times (if any)
+    if(is.factor(preddata[[time.var.plot]])){
+        U.time <- levels(preddata[[time.var.plot]])
+    }else{
+        U.time <- sort(unique(preddata[[time.var.plot]]))
+    }
+
+    preddata <- do.call(rbind,by(preddata, preddata$XXclusterXX, function(iDF){
+        if(all(U.time %in% iDF[[time.var.plot]])){
+            return(iDF)
+        }else{
+            ls.iDFextra <- list(XXclusterXX=iDF$XXclusterXX[1],                                   
+                                estimate = NA,
+                                lower = NA,
+                                upper = NA)
+            ls.iDFextra[[time.var.plot]] <- setdiff(U.time,iDF[[time.var.plot]])
+            ls.iDFextra[[outcome.var]] <- NA
+                                   
+            if(!is.null(color)){
+                ls.iDFextra[[color]] <- NA
+            }
+            return(rbind(iDF,as.data.frame(ls.iDFextra[names(iDF)])))
+        }
+    }))
+    
     ## ** generate plot
     gg <- ggplot2::ggplot(preddata, ggplot2::aes(x = .data[[time.var.plot]],
                                                  y = .data$estimate,
@@ -595,12 +628,23 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, by
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
+
+    ## args
     args <- attr(object,"args")
+    if(is.null(args)){
+        stop("The argument \'simplify\' must be to FALSE when calling residuals() to obtain a graphical display. \n")
+    }
+    args.type <- args$type
+    n.type <- length(args.type)
+    
     index.time <- attr(object,"index.time") ## save in case no missing time variable in the long format
 
     ## type of residual
-    args.type <- args$type
-    n.type <- length(args.type)
+    if(is.null(type.residual) && is.null(type) && "partial" %in% args.type){
+        type <- "partial"
+        type.residual <- "partial"
+    }
+
     if(is.null(type.residual)){
         if(type == "partial"){
             type.residual <- "partial"
@@ -611,7 +655,7 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, by
                  "Select one type via the argument \'type.residual\'. \n")
         }
     }else if(n.type==1){
-        if(type == "partial"){
+        if(type == "partial" && !identical(type.residual,"partial")){
             message("Argument \'type.residual\' ignored when displaying partial residuals. \n")
             type.residual <- "partial"
         }else if(type.residual %in% args$type == FALSE){
@@ -686,23 +730,25 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, by
     if((format == "long") && (name.time %in% names(object)==FALSE) && !is.null(index.time)){
         object[[name.time]] <- index.time
     }
-    
-    if(type %in% c("scatterplot","scatterplot2") && args$keep.data == FALSE){
-        stop("Cannot display a scatterplot of the residuals without the original data/fitted values. \n",
-             "Consider setting argument \'keep.data\' to TRUE when calling residuals(). \n")
-    }
-    if(by.repetition){
+
+    if(type %in% c("scatterplot","scatterplot2")){
         if(args$keep.data == FALSE){
-            stop("Cannot display a scatterplot of the residuals per repetition without the original data/fitted values. \n",
+            stop("Cannot display a scatterplot of the residuals without the original data/fitted values. \n",
                  "Consider setting argument \'keep.data\' to TRUE when calling residuals(). \n")
         }
-        if(name.time %in% names(object) == FALSE){
-            if(all(is.na(attr(name.time,"original")))){
-                stop("Cannot display a scatterplot of the residuals per repetition without the repetition variable. \n",
-                     "Consider specifying argument \'repetition\' when calling lmm(), something like repetition = ~time|id. \n")
+        if(by.repetition){
+            if(args$keep.data == FALSE){
+                stop("Cannot display a scatterplot of the residuals per repetition without the original data/fitted values. \n",
+                     "Consider setting argument \'keep.data\' to TRUE when calling residuals(). \n")
             }
-            if(length(attr(name.time,"original"))>1){
-                name.time <- attr(name.time,"original")
+            if(name.time %in% names(object) == FALSE){
+                if(all(is.na(attr(name.time,"original")))){
+                    stop("Cannot display a scatterplot of the residuals per repetition without the repetition variable. \n",
+                         "Consider specifying argument \'repetition\' when calling lmm(), something like repetition = ~time|id. \n")
+                }
+                if(length(attr(name.time,"original"))>1){
+                    name.time <- attr(name.time,"original")
+                }
             }
         }
     }
@@ -823,7 +869,7 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, by
             if(ci){
                 gg <- gg + ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$lower, ymax = .data$upper))
             }
-            gg <- gg + ggplot2::geom_point(ggplot2::aes(y = .data$estimate), size = mean.size[1], shape = 21, fill = "white")
+            gg <- gg + ggplot2::geom_point(ggplot2::aes(y = .data$fitted), size = mean.size[1], shape = 21, fill = "white")
         }else if(length(type.var)==1){
             gg <- ggplot2::ggplot(data = df.gg, mapping = ggplot2::aes(x = .data[[name.varnum]]))
             gg <- gg + ggplot2::geom_point(ggplot2::aes(y = .data$r.partial), color = "gray")
@@ -935,7 +981,7 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, by
 ##' @title Graphical Display of the Descriptive Statistics
 ##' @description Graphical representation of the descriptive statistics.
 ##' 
-##' @param object an object of class \code{summarize}, output of the \code{summarize} function.
+##' @param object,x an object of class \code{summarize}, output of the \code{summarize} function.
 ##' @param type [character] the summary statistic that should be displayed: \code{"mean"}, \code{"sd"}, \ldots
 ##' @param variable [character] type outcome relative to which the summary statistic should be displayed.
 ##' Only relevant when multiple variables have been used on the left hand side of the formula when calling \code{summarize}.
@@ -1040,7 +1086,7 @@ autoplot.summarize <- function(object, type = "mean", variable = NULL,
             gg <- ggplot2::ggplot(object, ggplot2::aes(x = .data[[name.time]], y = .data[[type]],
                                                        group = .data[[name.Group]], color = .data[[name.Group]]))
         }
-        gg <- gg + geom_point(size = size) + geom_line(linewidth = linewidth)
+        gg <- gg + ggplot2::geom_point(size = size) + ggplot2::geom_line(linewidth = linewidth)
         if(type == "missing"){
             gg <- gg + ggplot2::labs(y = paste0("number of missing values in ",variable))
         }else if(type == "pc.missing"){

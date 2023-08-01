@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (10:34) 
 ## Version: 
-## Last-Updated: jul 26 2023 (11:09) 
+## Last-Updated: aug  1 2023 (16:45) 
 ##           By: Brice Ozenne
-##     Update #: 206
+##     Update #: 211
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,6 +18,7 @@
 ## * df.residual
 ##' @title Residuals Degrees of Freedom
 ##' @description Residuals degrees of freedom. Computed as the sum of squared normalized residuals
+##' 
 ##' @param object a \code{lmm} object.
 ##' @param ... Passed to \code{residuals.lmm}.
 ##'
@@ -38,6 +39,7 @@ df.residual.lmm <- function(object, ...){
                          pair.meanvarcoef, pair.varcoef, indiv, REML, type.information, name.effects, robust, diag,
                          precompute){
     
+    ## ** extract information
     if(is.null(precompute)){
         stop("Cannot compute degrees of freedom analytically when \'precompute.moments\' is set to FALSE. \n",
              "Use the function LMMstar.options to update \'precompute.moments\'. \n")
@@ -52,6 +54,13 @@ df.residual.lmm <- function(object, ...){
     U.pattern <- names(dOmega)
     n.pattern <- length(U.pattern)
 
+    ## ** prepare
+    ## *** third derivative of Omega
+    if(type.information == "observed" || REML){
+        browser()
+    }
+
+    ## *** sets of parameters
     if(type.information == "expected"){
         triplet.meanvarcoef <- stats::setNames(lapply(U.pattern, function(iPattern){ ## iPattern <- "1.1"
             iGrid <- expand.grid(1:NCOL(pair.varcoef[[iPattern]]),name.allcoef)
@@ -122,6 +131,7 @@ df.residual.lmm <- function(object, ...){
             }
         }
     }
+    
     ## ** derivative of the variance covariance matrix
     n.effects <- length(name.effects)
     vcov.effects <- vcov[name.effects,name.effects,drop=FALSE]

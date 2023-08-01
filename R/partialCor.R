@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: jul 25 2023 (15:15) 
+## Last-Updated: aug  1 2023 (14:25) 
 ##           By: Brice Ozenne
-##     Update #: 498
+##     Update #: 518
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -280,77 +280,78 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
         ## *** TOEPLITZ mixed model (repetition)
         dataL <- dataL[order(dataL[[name.id]],dataL$CCvariableCC),]
         dataL$CCrepetitionCC <- unlist(tapply(dataL[[name.id]],dataL[[name.id]],function(iId){1:length(iId)}))
-        formula.repetition <- stats::as.formula(paste("~",name.time,"+CCvariableCC|",name.id))
-        
+        formula.repetition <- stats::as.formula(paste("~ CCvariableCC + ",name.time,"|",name.id))
         if(is.null(structure)){
             structure <- "CS"
         }else{
             structure <- match.arg(structure, c("UN","PEARSON","HLAG","LAG","HCS","CS"))
         }
-        if(structure=="HLAG"){
-            structure2 <- do.call(TOEPLITZ, args = list(formula = stats::as.formula(paste("~",name.time,"+CCvariableCC")), heterogeneous = "LAG", add.time = FALSE))
-        }else if(structure=="PEARSON"){
-            structure2 <- do.call(TOEPLITZ, args = list(formula = list(~CCvariableCC,stats::as.formula(paste("~",name.time,"+CCvariableCC"))), heterogeneous = "UN", add.time = FALSE))
+
+
+        if(structure == "UN"){
+            structure2 <- do.call(TOEPLITZ, args = list(formula = list(stats::as.formula(paste("~CCvariableCC+",name.time)),
+                                                                       stats::as.formula(paste("~CCvariableCC+",name.time))),
+                                                        type = "UN", add.time = FALSE))
+        }else if(structure == "PEARSON"){
+            structure2 <- do.call(TOEPLITZ, args = list(formula = list(~CCvariableCC,
+                                                                       stats::as.formula(paste("~CCvariableCC+",name.time))),
+                                                        type = "UN", add.time = FALSE))
+        }else if(structure=="HLAG"){
+            structure2 <- do.call(TOEPLITZ, args = list(formula = list(stats::as.formula(paste("~CCvariableCC+",name.time)),
+                                                                       stats::as.formula(paste("~CCvariableCC+",name.time))),
+                                                        type = "LAG", add.time = FALSE))
+        }else if(structure=="LAG"){
+            structure2 <- do.call(TOEPLITZ, args = list(formula = list(~CCvariableCC,
+                                                                       stats::as.formula(paste("~CCvariableCC+",name.time))),
+                                                        type = "LAG", add.time = FALSE))
         }else if(structure=="HCS"){
-            structure2 <- do.call(TOEPLITZ, args = list(formula = list(stats::as.formula(paste("~",name.time,"+CCvariableCC")),
-                                                                       stats::as.formula(paste("~",name.time,"+CCvariableCC"))),
-                                                        heterogeneous = "CS", add.time = FALSE))
-        }else{
-            structure2 <- do.call(TOEPLITZ, args = list(heterogeneous = structure))
+            structure2 <- do.call(TOEPLITZ, args = list(formula = list(stats::as.formula(paste("~CCvariableCC+",name.time)),
+                                                                       stats::as.formula(paste("~CCvariableCC+",name.time))),
+                                                        type = "CS", add.time = FALSE))
+        }else if(structure=="CS"){
+            structure2 <- do.call(TOEPLITZ, args = list(formula = list(~CCvariableCC,
+                                                                       stats::as.formula(paste("~CCvariableCC+",name.time))),
+                                                        type = "CS", add.time = FALSE))
         }
         if(is.null(by)){
-
             e.lmm <- lmm(formula.mean, df = df, repetition = formula.repetition,
                          data = dataL, structure = structure2,
                          control = list(optimizer = "FS"))
-            out <- confint(e.lmm, df = df, columns = c("estimate","se","df","lower","upper","p.value"), effects = "correlation", transform.rho = transform.rho, ...)
+            out.confint <- confint(e.lmm, df = df, columns = c("estimate","se","df","lower","upper","p.value"), effects = "correlation", transform.rho = transform.rho, ...)
 
-            ## identify the right correlation coefficient
-            code.rho <- e.lmm$design$param[e.lmm$design$param$type=="rho","code"]
-            name.rho <- e.lmm$design$param[e.lmm$design$param$type=="rho","name"][grepl("D.",code.rho)]
- 
-            M.time <- attr(e.lmm$time$levels,"original")
-            U.time <- unique(M.time[,1])
-            tentative.rho <- sapply(U.time, function(iT){paste0("rho(",paste(nlme::collapse(M.time)[M.time[,1]==iT],collapse=","),")")})
+            ## identify the marginal correlation coefficient
+            name.rho <- e.lmm$design$param[e.lmm$design$param$type=="rho","name"]
+            name.rho.marginal <- grep("dt=0", name.rho, fixed=TRUE, value = TRUE)
+            out <- out.confint[name.rho.marginal,,drop=FALSE]
+            rownames(out) <- "marginal"
 
-            if(any(tentative.rho %in% rownames(out))){
-                keep.rho <- intersect(tentative.rho,rownames(out))
-                out <- cbind(type = "marginal",out[keep.rho,,drop=FALSE])
-                level.rho <- e.lmm$design$param[e.lmm$design$param$name==keep.rho,"level"][[1]][1]
-                rownames(out) <- paste0("marginal",level.rho)
-                
-                ## compute conditional correlation
-                if((length(keep.rho)==1) && (structure %in% c("CS","HCS"))){
-                    name.rho2 <- e.lmm$design$param[e.lmm$design$param$type=="rho","name"][grepl("R.",code.rho)]
-                    sub.rho <- setdiff(name.rho, keep.rho)
+            ## compute conditional correlation
+            if(structure %in% c("CS","HCS")){
+                code.rho <- e.lmm$design$param[e.lmm$design$param$type=="rho","code"]
+                name.rhoWithinBlock <- name.rho[grepl("R.",code.rho)]
+                name.rhoAcrossBlock <- setdiff(name.rho, c(name.rhoWithinBlock, name.rho.marginal))
 
-                    test.atanh <- identical(attr(out,"backtransform")$FUN,"tanh")
-                    out2 <- estimate(e.lmm, df = df, f = function(p){
-                        if(any(p[name.rho2]<0)){
-                            iOut <- c(NA,NA)
-                        }else{
-                            iOut <- c((p[keep.rho]-p[sub.rho])/sqrt(prod(1-p[name.rho2])),
-                                      p[sub.rho]/sqrt(prod(p[name.rho2])))
-                            if(test.atanh){iOut <- atanh(iOut)}
-                        }
-                        return(iOut)                        
-                    }, ...)
-
-                    if(test.atanh){
-                        out2 <- .backtransform(out2, type.param = "rho", backtransform.names = NULL, backtransform = c(FALSE,FALSE,FALSE,TRUE),
-                                               transform.mu = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = "atanh")
-                        
+                test.atanh <- identical(attr(out,"backtransform")$FUN,"tanh")
+                out2 <- estimate(e.lmm, df = df, f = function(p){
+                    if(any(p[name.rhoWithinBlock]<0)){
+                        iOut <- c(NA,NA)
+                    }else{
+                        iOut <- c((p[name.rho.marginal]-p[name.rhoAcrossBlock])/sqrt(prod(1-p[name.rhoWithinBlock])),
+                                  p[name.rhoAcrossBlock]/sqrt(prod(p[name.rhoWithinBlock])))
+                        if(test.atanh){iOut <- atanh(iOut)}
                     }
-                    rownames(out2)[1] <- paste0("conditional",level.rho)
-                    rownames(out2)[2] <- paste0("latent",level.rho)
-                    out <- rbind(out, cbind(type = c("conditional","latent"),out2))
-                }
-                attr(out,"parameter") <- level.rho
-            }else{
-                out <- out[name.rho,,drop=FALSE]
-                attr(out,"parameter") <- name.rho
-            }
+                    return(iOut)                        
+                }, ...)
 
+                if(test.atanh){
+                    out2 <- .backtransform(out2, type.param = "rho", backtransform.names = NULL, backtransform = c(FALSE,FALSE,FALSE,TRUE),
+                                           transform.mu = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = "atanh")
+                        
+                }
+                rownames(out2) <- c("conditional","latent")
+                out <- rbind(out, out2)
+            }            
+            attr(out,"name.rho") <- name.rho.marginal
             
         }else{
             e.lmm <- mlmm(formula.mean, df = df, repetition = formula.repetition, data = dataL, structure = structure2, transform.rho = transform.rho, 

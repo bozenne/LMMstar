@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: jul 31 2023 (10:17) 
+## Last-Updated: aug  1 2023 (11:59) 
 ##           By: Brice Ozenne
-##     Update #: 215
+##     Update #: 216
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,7 +29,7 @@ if(FALSE){
 
 context("Check lmm on linear regressions")
 LMMstar.options(optimizer = "FS", method.numDeriv = "Richardson", precompute.moments = TRUE,
-                columns.confint = c("estimate","se","df","lower","upper","p.value"))
+                columns.confint = c("estimate","se","df","lower","upper","p.value"), df = TRUE)
 
 ## * simulate data
 n <- 5e1

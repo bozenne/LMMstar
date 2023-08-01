@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: jul 26 2023 (14:24) 
+## Last-Updated: aug  1 2023 (16:45) 
 ##           By: Brice Ozenne
-##     Update #: 506
+##     Update #: 507
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -155,19 +155,6 @@
                                      transform.k = transform.k,
                                      transform.rho = transform.rho)
     }
-    ## param.value
-    ##     MM <- numDeriv::jacobian(func = function(iP){
-    ##         as.vector(.calc_Omega(object = design$vcov, param = iP)[[1]])
-    ##     }, x = param.value)
-    ##     matrix(MM[,7],4,4)
-    ##     matrix(MM[,8],4,4)
-
-    ## MM <- numDeriv::jacobian(func = function(iP){
-    ##     as.vector(.calc_dOmega(object = design$vcov, param = iP, 
-    ##                            Jacobian = out$reparametrize$Jacobian)[[1]]$sigma)
-    ## }, x = param.value)
-    ## matrix(MM[,7],4,4)
-    ## matrix(MM[,8],4,4)
 
     ## ** 3- compute likelihood derivatives
     if(indiv == FALSE && method.fit == "REML" && !is.null(precompute)){

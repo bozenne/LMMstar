@@ -89,7 +89,7 @@ dL <- sampleRem(100, n.times = 3, format = "long")
 dL$X1 <- as.factor(dL$X1)
 
 #### fit Linear Mixed Model ####
-eCS.lmm <- lmm(Y ~ visit + X1,
+eCS.lmm <- lmm(Y ~ visit + X1 + X6,
                repetition = ~visit|id, structure = "CS", data = dL, df = FALSE)
 
 plot(eCS.lmm, type = "fit")
@@ -101,6 +101,7 @@ plot(eCS.lmm, type = "scatterplot")
 plot(eCS.lmm, type = "scatterplot2") 
 plot(eCS.lmm, type = "partial", type.residual = "visit") 
 plot(eCS.lmm, type = "partial", type.residual = "X1") 
+plot(eCS.lmm, type = "partial", type.residual = "X6") 
 }
 }
 \seealso{

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 20 2022 (12:12) 
 ## Version: 
-## Last-Updated: maj 10 2023 (11:58) 
+## Last-Updated: aug  1 2023 (11:16) 
 ##           By: Brice Ozenne
-##     Update #: 67
+##     Update #: 71
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -163,34 +163,53 @@ cov2cor(Sigma.GS)
 
 test_that("estimate partial correlation via lmm (cluster)", {
 
-    ## eWrong.lmm <- lmm(value ~ variable, repetition = ~time+variable|id, data = df.L,
-    ##                   structure = CS(~variable, heterogeneous = TRUE), control = list(optimizer = "FS"))
-    ## eOK.lmm <- lmm(value ~ variable, repetition = ~time2|id, data = df.L,
-    ##                   structure = "UN", control = list(optimizer = "FS", trace = 2))
+    test.UN <- partialCor(c(X1,X2)~1, data = df.W, repetition = ~time|id, structure = "UN")
+    ## eTopUN.lmm <- lmm(value ~ variable, repetition = ~variable+time|id, data = df.L,
+    ##                   structure = TOEPLITZ(type = "UN"),
+    ##                   control = list(optimizer = "FS"))
+    ## confint(eTopUN.lmm, effects = "correlation")["rho(1,2,dt=0)",]
+    GS.UN <- data.frame("estimate" = c(0.47476928), "se" = c(0.04966774), "df" = c(12.4303314), "lower" = c(0.36463913), "upper" = c(0.57179996), "p.value" = c(1.87e-06))
+    expect_equivalent(test.UN["marginal",], GS.UN, tol = 1e-5)
 
-    ## partialCor(c(X1,X2)~1, data = df.W, repetition = ~time|id, structure = "HLAG")
-    test.hetero <- partialCor(c(X1,X2)~1, data = df.W, repetition = ~time|id, structure = "LAG")
-    test.homo <- partialCor(c(X1,X2)~1, data = df.W, repetition = ~time|id, structure = "CS")
-    
-    ## eTopHetero2.lmm <- lmm(value ~ variable, repetition = ~time+variable|id, data = df.L,
-    ##                        structure = TOEPLITZ(list(~time+variable,~time+variable), add.time = FALSE, heterogeneous = "LAG"),
+    test.PEARSON <- partialCor(c(X1,X2)~1, data = df.W, repetition = ~time|id, structure = "PEARSON")
+    ## eTopPEARSON.lmm <- lmm(value ~ variable, repetition = ~variable+time|id, data = df.L,
+    ##                        structure = TOEPLITZ(list(~variable,~variable+time), type = "UN"),
     ##                        control = list(optimizer = "FS"))
-    eTopHetero.lmm <- lmm(value ~ variable, repetition = ~time+variable|id, data = df.L,
-                          structure = TOEPLITZ(heterogeneous = "LAG"),
-                          control = list(optimizer = "FS"))
-    eTopHomo.lmm <- lmm(value ~ variable, repetition = ~time+variable|id, data = df.L,
-                        structure = TOEPLITZ(heterogeneous = "CS"),
-                        control = list(optimizer = "FS"))
+    ## confint(eTopPEARSON.lmm, effects = "correlation")["rho(1,2,dt=0)",]
+    GS.PEARSON <- data.frame("estimate" = c(0.47638071), "se" = c(0.05005333), "df" = c(12.52209613), "lower" = c(0.36546699), "upper" = c(0.57395625), "p.value" = c(1.88e-06))
+    expect_equivalent(test.PEARSON["marginal",], GS.PEARSON, tol = 1e-5)
 
-    expect_equal(as.double(model.tables(eTopHetero.lmm, effects = "correlation")["rho(1.X1,1.X2)",]),
-                 as.double(test.hetero[,c("estimate","se","df","lower","upper","p.value")]), tol = 1e-6)
-    expect_equal(c(0.47388305, 0.04995313, 13.80173649, 0.36429768, 0.57052434, 9.8e-07),
-                 as.double(test.hetero[,c("estimate","se","df","lower","upper","p.value")]), tol = 1e-6)
-    expect_equal(as.double(model.tables(eTopHomo.lmm, effects = "correlation")["rho(1.X1,1.X2)",]),
-                 as.double(test.homo["marginal(1.X1,1.X2)",c("estimate","se","df","lower","upper","p.value")]), tol = 1e-6)
-    expect_equal(c(0.4732798, 0.04992003, 14.13096784, 0.36401686, 0.56969305, 8.3e-07),
-                 as.double(test.homo["marginal(1.X1,1.X2)",c("estimate","se","df","lower","upper","p.value")]), tol = 1e-6)
+    test.HLAG <- partialCor(c(X1,X2)~1, data = df.W, repetition = ~time|id, structure = "HLAG")
+    ## eTopHLAG.lmm <- lmm(value ~ variable, repetition = ~variable+time|id, data = df.L,
+    ##                     structure = TOEPLITZ(type = "LAG"),
+    ##                     control = list(optimizer = "FS"))
+    ## confint(eTopHLAG.lmm, effects = "correlation")["rho(1,2,dt=0)",]
+    GS.HLAG <- data.frame("estimate" = c(0.47549331), "se" = c(0.04987419), "df" = c(13.38669723), "lower" = c(0.36577561), "upper" = c(0.572176), "p.value" = c(1.16e-06))
+    expect_equivalent(test.HLAG["marginal",], GS.HLAG, tol = 1e-5)
+
+    test.LAG <- partialCor(c(X1,X2)~1, data = df.W, repetition = ~time|id, structure = "LAG")
+    ## eTopLAG.lmm <- lmm(value ~ variable, repetition = ~variable+time|id, data = df.L,
+    ##                     structure = TOEPLITZ(list(~variable,~variable+time), type = "LAG"),
+    ##                     control = list(optimizer = "FS"))
+    ## confint(eTopLAG.lmm, effects = "correlation")["rho(1,2,dt=0)",]
+    GS.LAG <- data.frame("estimate" = c(0.47388305),"se" = c(0.04995313),"df" = c(13.80173648),"lower" = c(0.36429768),"upper" = c(0.57052434),"p.value" = c(9.8e-07))
+    expect_equivalent(test.LAG["marginal",], GS.LAG, tol = 1e-5)
     
+    test.HCS <- partialCor(c(X1,X2)~1, data = df.W, repetition = ~time|id, structure = "HCS")
+    ## eTopHCS.lmm <- lmm(value ~ variable, repetition = ~variable+time|id, data = df.L,
+    ##                    structure = TOEPLITZ(list(~variable+time,~variable+time),type = "CS"),
+    ##                    control = list(optimizer = "FS"))
+    ## confint(eTopHCS.lmm, effects = "correlation")["rho(1,2,dt=0)",]
+    GS.HCS <- data.frame("estimate" = c(0.47549676),"se" = c(0.04989398),"df" = c(13.5961607),"lower" = c(0.3659086),"upper" = c(0.57207872),"p.value" = c(1.04e-06))
+    expect_equivalent(test.HCS["marginal",], GS.HCS, tol = 1e-5)
+
+    test.CS <- partialCor(c(X1,X2)~1, data = df.W, repetition = ~time|id, structure = "CS")
+    ## eTopCS.lmm <- lmm(value ~ variable, repetition = ~variable+time|id, data = df.L,
+    ##                   structure = TOEPLITZ(type = "CS"),
+    ##                   control = list(optimizer = "FS"))
+    ## confint(eTopCS.lmm, effects = "correlation")["rho(1,2,dt=0)",]
+    GS.CS <- data.frame("estimate" = c(0.4732798),"se" = c(0.04992003),"df" = c(14.13096783),"lower" = c(0.36401686),"upper" = c(0.56969305),"p.value" = c(8.3e-07))
+    expect_equivalent(test.CS["marginal",], GS.CS, tol = 1e-5)
 })
 
 

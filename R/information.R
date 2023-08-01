@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: Jul 29 2023 (21:28) 
+## Last-Updated: aug  1 2023 (16:45) 
 ##           By: Brice Ozenne
-##     Update #: 1118
+##     Update #: 1119
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -207,8 +207,7 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
                 }
                 return(iOut)
             }), U.pattern)
-            d2Omega <- stats::setNames(lapply(U.pattern,function(iPattern){
-                
+            d2Omega <- stats::setNames(lapply(U.pattern,function(iPattern){                
                 return(d2Omega[[iPattern]][attr(pair.vcov[[iPattern]],"subset")])
             }), U.pattern)
 

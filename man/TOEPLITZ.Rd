@@ -40,10 +40,10 @@ Different correlation structures can be specified:\itemize{
 }
 \examples{
 ## no covariate
-TOEPLITZ(~1, var.cluster = "id", var.time = "time")
-TOEPLITZ(gender~1, var.cluster = "id", var.time = "time")
-TOEPLITZ(list(~time,~1), var.cluster = "id", var.time = "time")
-TOEPLITZ(list(gender~time,gender~1), var.cluster = "id", var.time = "time")
+TOEPLITZ(~time, var.cluster = "id", var.time = "time")
+TOEPLITZ(gender~time, var.cluster = "id", var.time = "time")
+TOEPLITZ(list(~time,~time), var.cluster = "id", var.time = "time")
+TOEPLITZ(list(gender~time,gender~time), var.cluster = "id", var.time = "time")
 
 ## with covariates
 TOEPLITZ(~side, var.cluster = "id", type = "UN",

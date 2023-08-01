@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jul 28 2023 (17:28) 
+## Last-Updated: aug  1 2023 (16:11) 
 ##           By: Brice Ozenne
-##     Update #: 870
+##     Update #: 880
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -176,10 +176,21 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
                 stop("Argument \'type\' cannot be ",type.prediction," when argument \'newdata\' is set to \"unique\". \n",
                      "Should be either \"static\" or \"terms\". \n")
             }
-        }else if(format == "wide"){        
-            newdata.design <- model.matrix(object, data = newdata, effects = "index")
-            newdata.index.cluster <- attr(newdata.design$index.cluster, "vectorwise")
-            newdata.index.time <- attr(newdata.design$index.clusterTime, "vectorwise")        
+        }else{
+            if("dynamic" %in% type.prediction == FALSE && (!is.null(se) && se != "estimation") && name.cluster %in% names(newdata) == FALSE ){
+                ## add cluster variable if missing and no duplicated time
+                if(any(!is.na(name.time)) && all(name.time %in% names(newdata)) && all(duplicated(newdata[name.time])==FALSE)){
+                    newdata[[name.cluster]] <- 1
+                }else{
+                    stop("Incorrect argument 'newdata': missing cluster variable \"",name.cluster,"\". \n")
+                }
+            }
+            
+            if(format == "wide"){
+                newdata.design <- model.matrix(object, data = newdata, effects = "index")
+                newdata.index.cluster <- attr(newdata.design$index.cluster, "vectorwise")
+                newdata.index.time <- attr(newdata.design$index.clusterTime, "vectorwise")        
+            }
         }
     }
         
