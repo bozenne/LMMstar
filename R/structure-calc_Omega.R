@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: jul 31 2023 (16:29) 
+## Last-Updated: aug  4 2023 (16:30) 
 ##           By: Brice Ozenne
-##     Update #: 606
+##     Update #: 639
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -86,10 +86,8 @@
         }
         if(!is.null(X.cor) && !is.null(X.cor[[iPattern.cor]])){            
             Omega.cor <- attr(X.cor[[iPattern.cor]],"Omega.cor")
-            iParam.cor <- attr(X.cor[[iPattern.cor]],"param")
-            for(iiP in 1:length(iParam.cor)){ ## iiP <- 3
-                Omega.cor[attr(X.cor[[iPattern.cor]],"indicator.param")[[iParam.cor[iiP]]]] <- param[iParam.cor[iiP]]
-            }
+            df.info <- attr(X.cor[[iPattern.cor]],"df.index.pair")
+            Omega.cor[unique(df.info$position)] <- tapply(param[df.info$param]^df.info$value, df.info$position, prod)
             Omega <- Omega.cor * tcrossprod(Omega.sd)
         }else{
             Omega.cor <- NULL            
@@ -98,7 +96,6 @@
         if(keep.interim){
             attr(Omega,"sd") <- Omega.sd
             attr(Omega,"cor") <- Omega.cor
-            attr(Omega,"time") <- attr(X.var[[iPattern.var]], "index.time")
         }
         return(Omega)
     }), Upattern$name)
@@ -153,7 +150,6 @@
         if(keep.interim){
             attr(Omega,"sd") <- Omega.sd
             attr(Omega,"cor") <- Omega.cor
-            attr(Omega,"time") <- attr(X.var[[iPattern.var]], "index.time")
         }
         return(Omega)
     }), Upattern$name)

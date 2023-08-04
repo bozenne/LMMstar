@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: jul 21 2023 (09:48) 
+## Last-Updated: aug  3 2023 (11:06) 
 ##           By: Brice Ozenne
-##     Update #: 133
+##     Update #: 135
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -37,7 +37,7 @@
 #' \item method.numDeriv [character]: type used to approximate the third derivative of the log-likelihood (when computing the degrees of freedom). Can be \code{"simple"} or \code{"Richardson"}. See \code{numDeriv::jacobian} for more details. Used by \code{lmm}.
 #' \item n.sampleCopula [integer]: number of samples used to compute confidence intervals and p-values adjusted for multiple comparisons via \code{"single-step2"}. Used by \code{confint.Wald_lmm}.
 #' \item optimizer [character]: method used to estimate the model parameters. Either \code{"FS"}, an home-made fisher scoring algorithm, or a method from \code{optimx:optimx} like \code{"BFGS"}or \code{Nelder-Mead}.
-#' \item param.optimizer [numeric vector]: default option for the \code{FS} optimization routine: maximum number of gradient descent iterations (\code{n.iter}), maximum acceptable score value (\code{tol.score}), maximum acceptable change in parameter value (\code{tol.param}).
+#' \item param.optimizer [numeric vector]: default option for the \code{FS} optimization routine: maximum number of gradient descent iterations (\code{n.iter}), maximum acceptable score value (\code{tol.score}), maximum acceptable change in parameter value (\code{tol.param}), second derivative based on expected (0) or observed (1) information (\code{type.information}).
 #' \item precompute.moments [logical]: Should the cross terms between the residuals and design matrix be pre-computed. Useful when the number of subject is substantially larger than the number of mean paramters.
 #' \item sep [character vector]: character used to combined two strings of characters in various functions (lp: .vcov.model.matrix, k.cov/k.strata: .skeletonK, pattern: .findUpatterns, rho.name/rho.strata: .skeletonRho, reformat: .reformat ).
 #' \item trace [logical]: Should the progress of the execution of the \code{lmm} function be displayed?
@@ -70,7 +70,7 @@ LMMstar.options <- function(..., reinitialise = FALSE){
                     method.numDeriv = "simple",
                     n.sampleCopula = 1e5,
                     optimizer = "FS",
-                    param.optimizer = c(n.iter = 100, tol.score = 1e-4, tol.param = 1e-5, n.backtracking = 10),
+                    param.optimizer = c(n.iter = 100, tol.score = 1e-4, tol.param = 1e-5, n.backtracking = 10, type.information = 0),
                     precompute.moments = TRUE,
                     sep = c(lp = ":", k.cov = ".", k.strata = ":", pattern = ":", rho.name = ".", rho.strata = ":", reformat = "_"),
                     trace = FALSE,
@@ -127,17 +127,20 @@ LMMstar.options <- function(..., reinitialise = FALSE){
               if(is.null(args$param.optimizer) || any(names(args$param.optimizer) %in% valid.args == FALSE)){
                   stop("Argument \'param.optimizer\' must contain elements named \"",paste(valid.args,collapse ="\" \""),"\". \n")
               }
-              if(("n.iter" %in% names(args$param.optimizer)) && (args$param.optimizer["n.iter"]<=0)){
+              if(("n.iter" %in% names(args$param.optimizer)) && (args$param.optimizer[["n.iter"]]<=0)){
                   stop("Element \"n.iter\" in argument \'param.optimizer\' should be strictly positive. \n")
               }
-              if(("n.backtracking" %in% names(args$param.optimizer)) && (args$param.optimizer["n.backtracking"]<=0)){
+              if(("n.backtracking" %in% names(args$param.optimizer)) && (args$param.optimizer[["n.backtracking"]]<=0)){
                   stop("Element \"n.backtracking\" in argument \'param.optimizer\' should be strictly positive. \n")
               }
-              if(("tol.score" %in% names(args$param.optimizer)) && (args$param.optimizer["tol.score"]<=0)){
+              if(("tol.score" %in% names(args$param.optimizer)) && (args$param.optimizer[["tol.score"]]<=0)){
                   stop("Element \"tol.score\" in argument \'param.optimizer\' should be strictly positive. \n")
               }
-              if(("tol.param" %in% names(args$param.optimizer)) && (args$param.optimizer["tol.param"]<=0)){
+              if(("tol.param" %in% names(args$param.optimizer)) && (args$param.optimizer[["tol.param"]]<=0)){
                   stop("Element \"tol.param\" in argument \'param.optimizer\' should be strictly positive. \n")
+              }
+              if(("tol.param" %in% names(args$param.optimizer)) && (args$param.optimizer[["type.information"]] %in% 0:1 == FALSE)){
+                  stop("Element \"type.information\" in argument \'param.optimizer\' must be 0 (expected information) or 1 (observed information). \n")
               }
               param.optimizer.save <- args$param.optimizer
               args$param.optimizer <- get(".LMMstar-options", envir = LMMstar.env)$param.optimizer

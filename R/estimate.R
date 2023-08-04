@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: aug  1 2023 (15:39) 
+## Last-Updated: aug  4 2023 (15:03) 
 ##           By: Brice Ozenne
-##     Update #: 1036
+##     Update #: 1055
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -289,26 +289,28 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
 ##' @keywords internal
 
 ## * .estimate (code)
-.estimate <- function(design, time, method.fit, type.information, 
+.estimate <- function(design, time, method.fit, 
                       transform.sigma, transform.k, transform.rho,
-                      precompute.moments, optimizer, init, n.iter, tol.score, tol.param, n.backtracking = NULL, trace){
+                      precompute.moments, optimizer, init,
+                      n.iter, tol.score, tol.param, n.backtracking, type.information, options, trace){
 
     ## ** apply default values
-    if(is.null(n.iter) || is.null(tol.score) || is.null(tol.param) || is.null(n.backtracking)){
-        options <- LMMstar.options()
-    }
     if(is.null(n.iter)){
-        n.iter <- as.double(options$param.optimizer["n.iter"])
+        n.iter <- options$param.optimizer[["n.iter"]]
     }
     if(is.null(tol.score)){
-        tol.score <- as.double(options$param.optimizer["tol.score"])
+        tol.score <- options$param.optimizer[["tol.score"]]
     }
     if(is.null(tol.param)){
-        tol.param <- as.double(options$param.optimizer["tol.param"])
+        tol.param <- options$param.optimizer[["tol.param"]]
     }
     if(is.null(n.backtracking)){
-        n.backtracking <- as.double(options$param.optimizer["n.backtracking"])
+        n.backtracking <- options$param.optimizer[["n.backtracking"]]
     }
+    if(is.null(type.information)){
+        type.information <- options$param.optimizer[["type.information"]]
+    }
+    type.information <- c("expected","observed")[c(type.information+1)]
     if(is.null(trace)){
         trace <- FALSE
     }
@@ -333,47 +335,15 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
     Upattern <- design$vcov$Upattern
     n.Upattern <- NROW(Upattern)
 
-    if(length(param.fixed.mu)>0){
-        partialHat <- design$mean[,param.fixed.mu,drop=FALSE] %*% init[param.fixed.mu]
-        partialY <- design$Y - partialHat
-            
-        if(!is.null(design$precompute.XX) && !is.null(design$precompute.XY)){
-            ## remove XX involving fixed parameters
-            key.XX <- design$precompute.XX$key[param.mu2,param.mu2,drop=FALSE]
-            index.precompute <- unique(as.double(design$precompute.XX$key[param.mu2,param.mu2]))
-            key.XX[] <- stats::setNames(1:length(index.precompute),index.precompute)[as.character(design$precompute.XX$key[param.mu2,param.mu2])]        
-            precompute.XX <- lapply(design$precompute.XX$pattern, function(iX){iX[,index.precompute,drop=FALSE]})
-
-            precompute.XXpattern <- lapply(design$precompute.XX$Xpattern, function(iM){
-                if(length(dim(iM))==2){
-                    return(iM[,param.mu2,drop=FALSE])
-                }else{
-                    return(iM[,param.mu2,,drop=FALSE])
-                }
-            })
-            ## update XY with X(Y-Xb(fixed))
-            precompute.Xfixed <- .precomputeXR(X = precompute.XXpattern,
-                                               residuals = partialHat,
-                                               pattern = design$vcov$Upattern$name,
-                                               pattern.ntime = stats::setNames(design$vcov$Upattern$n.time, design$vcov$Upattern$name),
-                                               pattern.cluster = attr(design$vcov$pattern,"list"), index.cluster = design$index.cluster)
-            precompute.XY <- mapply(x = design$precompute.XY, y = precompute.Xfixed, FUN = function(x,y){x[,,param.mu2,drop=FALSE]-y}, SIMPLIFY = FALSE)
-        }else{
-            precompute.XY <- NULL
-            precompute.XX <- NULL
-            key.XX <- NULL
-        }
-        
-    }else{
-        partialY <- design$Y
-        precompute.XY <- design$precompute.XY
-        precompute.XX <- design$precompute.XX$pattern
-        key.XX <- design$precompute.XX$key
-    }
+    partialY <- design$Y
+    precompute.wXY <- design$precompute.wXY
+    precompute.wXX <- design$precompute.wXX$pattern
+    key.wXX <- design$precompute.wXX$key
     
     effects <- c("variance","correlation")
 
     ## ** intialization
+    ## *** normalize user input
     if(!is.null(init)){
 
         if(is.matrix(init)){
@@ -393,11 +363,13 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
             init.mu <- init
             init.Omega <- NULL
             init <- NULL
-        }else if(any(param.Omega %in% names(init) == FALSE)){
-            stop("Initialization does not contain value for all variance-covariance parameters. \n",
-                 "Missing parameters: \"",paste(param.Omega[param.Omega %in% names(init) == FALSE], collapse = "\" \""),"\". \n")
+        }else{
+            if(any(param.Omega2 %in% names(init) == FALSE)){
+                stop("Initialization does not contain value for all variance-covariance parameters. \n",
+                     "Missing parameters: \"",paste(param.Omega2[param.Omega2 %in% names(init) == FALSE], collapse = "\" \""),"\". \n")
+            }
+            init <- init[c(param.mu2,param.Omega2)]
         }
-
     }else{
         init.mu <- NULL
         init.Omega <- NULL
@@ -407,7 +379,7 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
 
         param.value <- stats::setNames(rep(NA, n.param),param.name)
 
-        ## mean value
+        ## *** initialize mean parameters
         if(!is.null(init.mu)){
             param.value[param.mu2] <- init.mu[param.mu2]
         }else if(length(param.mu2)>0){
@@ -423,10 +395,10 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
                     diag(1, nrow = Upattern[iPattern,"n.time"], ncol = Upattern[iPattern,"n.time"])
                 }), Upattern$name)
             }
-            param.value[param.mu2] <- .estimateGLS(OmegaM1 = start.OmegaM1, pattern = Upattern$name, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX,
+            param.value[param.mu2] <- .estimateGLS(OmegaM1 = start.OmegaM1, pattern = Upattern$name, precompute.wXY = precompute.wXY, precompute.wXX = precompute.wXX, key.wXX = key.wXX,
                                                    Y = partialY, design = design, param.mu = param.mu2)
         }
-        ## vcov values
+        ## *** initialize variance-covariance parameters
         iResiduals.long <- partialY - design$mean[,param.mu2,drop=FALSE] %*% param.value[param.mu2]
         if(length(param.Omega2)>0){
             if(is.null(init.Omega)){
@@ -438,8 +410,8 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
             outInit <- NULL
         }
 
-        ## check initialization leads to a positive definite matrix 
-        initOmega <- .calc_Omega(object = design$vcov, param = outInit, keep.interim = TRUE)        
+        ## *** check initialization leads to a positive definite matrix
+        initOmega <- .calc_Omega(object = design$vcov, param = outInit, keep.interim = FALSE)        
         test.npd <- sapply(initOmega,function(iOmega){any(eigen(iOmega)$values<0)})
         if(any(test.npd)){ ## otherwise initialize as compound symmetry
             param.value[setdiff(param.sigma,param.fixed)] <- outInit[setdiff(param.sigma,param.fixed)]
@@ -473,7 +445,6 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
         logLik.value <- -Inf
         score.value <- stats::setNames(rep(Inf, length(param.value)), names(param.value))
         information.value <- NULL
-        type.information <- "expected"
         ## wolfe.c1 <- 1e-4
         ## wolfe.c2 <- 0.9
         iIter <- 0
@@ -523,7 +494,7 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
                                             design = design, time = time, method.fit = method.fit, type.information = type.information,
                                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                             logLikM1 = logLik.valueM1, scoreM1 = score.valueM1, informationM1 = information.valueM1, effects = effects, precompute.moments = precompute.moments,
-                                            precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX, Y = partialY, param.mu = param.mu2, param.Omega = param.Omega2)
+                                            precompute.wXY = precompute.wXY, precompute.wXX = precompute.wXX, key.wXX = key.wXX, Y = partialY, param.mu = param.mu2, param.Omega = param.Omega2)
                 
                 if(attr(outMoments,"cv")==FALSE){
                     cv <- -1
@@ -541,6 +512,7 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
             param.valueM1 <- param.value
             if(length(param.Omega2)>0){
                 ## update variance-covariance parameters (transform scale)
+                browser()
                 update.value <- stats::setNames(as.double(score.value[param.Omega2] %*% solve(information.value[param.Omega2,param.Omega2,drop=FALSE])), param.Omega2)
                 param.newvalue.trans <- outMoments$reparametrize$p[param.Omega2] + update.value
                 ## back to original (transform scale)
@@ -558,7 +530,7 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
                 iOmega <- .calc_Omega(object = design$vcov, param = param.value, keep.interim = TRUE)
                 ## eigen(iOmega[[1]])
                 param.value[param.mu2] <- .estimateGLS(OmegaM1 = stats::setNames(lapply(iOmega, solve), names(iOmega)),
-                                                       pattern = Upattern$name, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX,
+                                                       pattern = Upattern$name, precompute.wXY = precompute.wXY, precompute.wXX = precompute.wXX, key.wXX = key.wXX,
                                                        Y = partialY, design = design,
                                                        param.mu = param.mu2)
             }
@@ -715,29 +687,28 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
                 score = score.value,
                 n.iter = iIter,                
                 cv = cv,
-                control = c(n.iter = as.double(n.iter), tol.score = as.double(tol.score), tol.param = as.double(tol.param),
-                            n.backtracking = as.double(n.backtracking))
+                control = c(n.iter = n.iter, tol.score = tol.score, tol.param = tol.param, n.backtracking = n.backtracking, type.information = as.numeric(type.information=="expected"))
                 ))
 }
 
 ## * .estimateGLS
 ## Implement GLS estimator i.e. \beta = (tX \OmegaM1 X)^{1} tX \OmegaM1 Y
-.estimateGLS <- function(OmegaM1, pattern, precompute.XY, precompute.XX, key.XX, Y, design, param.mu){
+.estimateGLS <- function(OmegaM1, pattern, precompute.wXY, precompute.wXX, key.wXX, Y, design, param.mu){
     name.param <- param.mu
     n.param <- length(name.param)
     numerator <- matrix(0, nrow = n.param, ncol = 1)
     denominator <- matrix(0, nrow = n.param, ncol = n.param)
 
-    if(!is.null(key.XX)){
-        max.key <- key.XX[n.param,n.param]
+    if(!is.null(key.wXX)){
+        max.key <- key.wXX[n.param,n.param]
     }
 
     for(iPattern in pattern){ ## iPattern <- pattern[1]
-        if(!is.null(precompute.XX) && !is.null(precompute.XY)){
+        if(!is.null(precompute.wXX) && !is.null(precompute.wXY)){
             iVec.Omega <- as.double(OmegaM1[[iPattern]])
             iTime2 <- length(iVec.Omega)
-            numerator  <- numerator + t(iVec.Omega %*%  matrix(precompute.XY[[iPattern]], nrow = iTime2, ncol = n.param))
-            denominator  <- denominator + as.double(iVec.Omega %*%  matrix(precompute.XX[[iPattern]], nrow = iTime2, ncol = max.key))[key.XX]
+            numerator  <- numerator + t(iVec.Omega %*%  matrix(precompute.wXY[[iPattern]], nrow = iTime2, ncol = n.param))
+            denominator  <- denominator + as.double(iVec.Omega %*%  matrix(precompute.wXX[[iPattern]], nrow = iTime2, ncol = max.key))[key.wXX]
         }else{
             iOmegaM1 <- OmegaM1[[iPattern]]
             iIndexCluster <- design$index.cluster[design$vcov$pattern == which(pattern==iPattern)]
@@ -790,7 +761,7 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
                           design, time, method.fit, type.information,
                           transform.sigma, transform.k, transform.rho, 
                           logLikM1, scoreM1, informationM1, information, effects, precompute.moments,
-                          precompute.XY, precompute.XX, key.XX, Y, param.mu, param.Omega){
+                          precompute.wXY, precompute.wXX, key.wXX, Y, param.mu, param.Omega){
 
     if(n.iter<=0){return(list(cv = FALSE))}
     
@@ -835,9 +806,9 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
         if(length(param.mu)>0){
             valueNEW[param.mu] <- .estimateGLS(OmegaM1 = stats::setNames(lapply(iOmega, solve), names(iOmega)),
                                                pattern = design$vcov$Upattern$name,
-                                               precompute.XY = precompute.XY,
-                                               precompute.XX = precompute.XX,
-                                               key.XX = key.XX,
+                                               precompute.wXY = precompute.wXY,
+                                               precompute.wXX = precompute.wXX,
+                                               key.wXX = key.wXX,
                                                Y = Y,
                                                design = design,
                                                param.mu = param.mu)

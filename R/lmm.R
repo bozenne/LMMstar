@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: aug  1 2023 (14:34) 
+## Last-Updated: aug  3 2023 (13:30) 
 ##           By: Brice Ozenne
-##     Update #: 2964
+##     Update #: 2974
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -320,7 +320,7 @@ lmm <- function(formula, repetition, structure, data,
     ## ** 3. Estimate model parameters
     if(trace>=1){cat("3. Estimate model parameters")}
 
-    valid.control <- c("init","n.iter","optimizer","tol.score","tol.param","trace")
+    valid.control <- c("init","n.iter","optimizer","tol.score","tol.param","n.backtracking","type.information","trace")
     if(any(names(out$args$control) %in% valid.control  == FALSE)){
         stop("Incorrect elements in argument \'control\': \"",paste(names(out$args$control)[names(out$args$control) %in% valid.control  == FALSE], collapse = "\" \""),"\". \n",
              "Valid elements: \"",paste(valid.control, collapse = "\" \""),"\".\n")
@@ -330,19 +330,21 @@ lmm <- function(formula, repetition, structure, data,
                                                  param = out$design$param, method.fit = out$args$method.fit, weights = out$design$weights, scale.Omega = out$design$scale.Omega)
     }else if(inherits(out$design$vcov,"CUSTOM")){
         init.Omega <- .calc_Omega(out$design$vcov, param = c(out$design$vcov$init.sigma,out$design$vcov$init.rho), keep.interim = FALSE)
-        out$args$control$init <- init.Omega[[which.max(out$design$vcov$Upattern$n.time)]]
-        
+        out$args$control$init <- init.Omega[[which.max(out$design$vcov$Upattern$n.time)]]        
     }
 
     if(trace>0){
         if(out$args$control$trace>0){cat("\n")}
         if(out$args$control$trace>1){cat("\n")}
     }
-    outEstimate <- .estimate(design = out$design, time = out$time, method.fit = out$args$method.fit, type.information = out$args$type.information,
+
+    outEstimate <- .estimate(design = out$design, time = out$time, method.fit = out$args$method.fit, 
                              transform.sigma = options$transform.sigma, transform.k = options$transform.k, transform.rho = options$transform.rho,
                              precompute.moments = precompute.moments, 
                              optimizer = out$args$control$optimizer, init = out$args$control$init, n.iter = out$args$control$n.iter,
-                             tol.score = out$args$control$tol.score, tol.param = out$args$control$tol.param, trace = out$args$control$trace)
+                             tol.score = out$args$control$tol.score, tol.param = out$args$control$tol.param,
+                             n.backtracking = out$args$control$n.backtracking, type.information = out$args$control$type.information,
+                             options = options, trace = out$args$control$trace)
     param.value <- outEstimate$estimate
     out$opt <- outEstimate[c("cv","n.iter","score","previous.estimate","previous.logLik","control")]
     if((trace==0 && out$args$control$trace>0)){
@@ -679,11 +681,20 @@ lmm <- function(formula, repetition, structure, data,
     }
 
     ## ** control
+    if(!is.null(control) && !is.list(control)){
+        stop("Argument \'control\' should be a list. \n")
+    }
     if(is.null(control$optimizer)){
         control$optimizer <- options$optimizer
     }else{
         optimx.method <- c("BFGS", "CG", "Nelder-Mead", "nlminb", "bobyqa")
         control$optimizer <- match.arg(control$optimizer, c("FS",optimx.method)) ## FS = fisher scoring
+    }
+    if(!is.null(control$type.information) && is.character(control$type.information)){
+        if(length(control$type.information)!=1 || (control$type.information %in% c("expected","observed")==FALSE)){
+            stop("When character, the element \"type.information\" of argument \'control\' must be \"expected\" or \"observed\". ")
+        }
+        control$type.information <- as.numeric(control$type.information=="observed")
     }
     if(is.null(control$trace)){
         control$trace <- trace-1

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: aug  1 2023 (11:48) 
+## Last-Updated: aug  4 2023 (12:51) 
 ##           By: Brice Ozenne
-##     Update #: 2949
+##     Update #: 2976
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -195,8 +195,14 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
     var.cluster <- structure$name$cluster
     var.time <- structure$name$time
     var.strata <- structure$name$strata
+
     U.cluster <- sort(unique(data[[var.cluster]]))
+    n.cluster <- length(U.cluster)
+    n.timeCluster <- lengths(index.cluster)
+
     U.time <- sort(unique(data[[var.time]]))
+    n.time <- length(U.time)
+
     structure.class <- structure$class
     structure.type <- structure$type
     formula <- structure$formula
@@ -344,9 +350,19 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
                 out[[iMoment]]$lp2data <- structure[[iMoment]]$lp2data
             }
             ##------## pattern for each cluster
-            out[[iMoment]]$pattern <- as.numeric(as.factor(sapply(index.cluster, function(iC){paste(out[[iMoment]]$lp[iC], collapse = ".")})))
-            ## Note: tapply(out[[iMoment]]$lp, attr(index.cluster,"vectorwise"), paste, collapse = ".")
-            ## does not work when the time are not ordered in the initial dataset
+            if(n.time>n.cluster){
+                out[[iMoment]]$pattern <- as.numeric(as.factor(sapply(index.cluster, function(iC){paste(out[[iMoment]]$lp[iC], collapse = ".")})))
+                ## Note: tapply(out[[iMoment]]$lp, attr(index.cluster,"vectorwise"), paste, collapse = ".")
+                ## does not work when the time are not ordered in the initial dataset
+            }else{                
+                M.pattern <- do.call(rbind,tapply(1:n.cluster, n.timeCluster, function(iIndex){ ## iIndex <- 1:n.cluster
+                    iLp <- out[[iMoment]]$lp[unlist(index.cluster[iIndex])]
+                    iPattern <- collapse(matrix(iLp, nrow = length(iIndex), ncol = length(index.cluster[[iIndex[1]]]), byrow =TRUE), as.factor = FALSE)
+                    data.frame(index = iIndex, pattern = iPattern)
+                }, simplify = FALSE))
+                out[[iMoment]]$pattern <- as.numeric(as.factor(M.pattern[order(M.pattern[,"index"]),"pattern"]))
+                ## Note: this is an alternative implementation looping over time sets instead of clusters 
+            }
             if(is.null(structure[[iMoment]]$pattern2lp)){
                 ## position of the cluster with distinct patterns
                 iIndex.pattern <- which(!duplicated(out[[iMoment]]$pattern))
@@ -454,6 +470,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
                                 index.clusterTime = outInit$index.clusterTime, U.time = U.time,
                                 index.cluster = outInit$index.cluster, U.cluster = U.cluster,
                                 index.clusterStrata = outInit$index.clusterStrata, U.strata = U.strata)
+    
     ## ** prepare calculation of the score
     if(precompute.moments && NCOL(X.mean)>0){
         if(is.na(var.weights[1])){
@@ -464,39 +481,17 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
             wY <- cbind(data[[var.outcome]]*sqrt(data[[var.weights[1]]]))
         }
 
-        precompute.XX <-  .precomputeXX(X = wX.mean, pattern = structure$Upattern$name, 
+        precompute.wXX <-  .precomputeXX(X = wX.mean, pattern = structure$Upattern$name, 
                                         pattern.ntime = stats::setNames(structure$Upattern$n.time, structure$Upattern$name),
                                         pattern.cluster = attr(structure$pattern,"list"), index.cluster = index.cluster)
 
-        precompute.XY <-  .precomputeXR(X = precompute.XX$Xpattern, residuals = wY, pattern = structure$Upattern$name,
+        precompute.wXY <-  .precomputeXR(X = precompute.wXX$Xpattern, residuals = wY, pattern = structure$Upattern$name,
                                         pattern.ntime = stats::setNames(structure$Upattern$n.time, structure$Upattern$name),
                                         pattern.cluster = attr(structure$pattern,"list"), index.cluster = index.cluster)
     }else{
-        precompute.XX <- NULL
-        precompute.XY <- NULL
+        precompute.wXX <- NULL
+        precompute.wXY <- NULL
     }
-
-    ## ** find all pairs of coefficients
-    structure$pair.vcov <- stats::setNames(lapply(structure$Upattern$name, function(iName){## iName <- structure$Upattern$name[1]
-        iParamVcov <- structure$Upattern[structure$Upattern$name == iName,"param"][[1]]
-        if(length(iParamVcov)==0){return(NULL)}
-
-        iOut <- unorderedPairs(iParamVcov)
-        attr(iOut, "key") <- matrix(NA, nrow = length(iParamVcov), ncol = length(iParamVcov), dimnames = list(iParamVcov,iParamVcov))
-        for(iCol in 1:NCOL(iOut)){
-            attr(iOut, "key")[iOut[1,iCol],iOut[2,iCol]] <- iCol
-            attr(iOut, "key")[iOut[2,iCol],iOut[1,iCol]] <- iCol
-        }
-        return(iOut)
-    }),structure$Upattern$name)
-
-    structure$pair.meanvcov <- stats::setNames(lapply(structure$Upattern$name, function(iName){ ## iName <- structure$Upattern$name[1]
-        iPattern <- structure$Upattern[structure$Upattern$name == iName,,drop=FALSE]
-        if(length(iPattern$param[[1]])==0){return(NULL)}
-        iParamMu <- c(skeleton.mu$name[which(skeleton.mu$index.strata == iPattern$index.strata)],skeleton.mu$name[is.na(skeleton.mu$index.strata)>0])
-        iOut <- unname(t(expand.grid(iParamMu, iPattern$param[[1]])))
-        return(iOut)
-    }), structure$Upattern$name)
 
     ## ** param
     skeleton.param <- rbind(skeleton.mu,                            
@@ -509,12 +504,19 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
         skeleton.param <- skeleton.param[order(order.type),,drop=FALSE]
     }
 
+    ## ** find all pairs of coefficient
+    ## variance-variance
+    structure$pair.vcov <- .precomputePairParam(structure, skeleton.param = skeleton.param, type = "vcov")
+
+    ## mean-variance
+    structure$pair.meanvcov <- .precomputePairParam(structure, skeleton.param = skeleton.param, type = "meanvcov")
+
     ## ** gather and export
     out <- list(mean = X.mean,
                 vcov = structure,
                 Y = data[[var.outcome]],
-                precompute.XX = precompute.XX,
-                precompute.XY = precompute.XY,
+                precompute.wXX = precompute.wXX,
+                precompute.wXY = precompute.wXY,
                 index.cluster = index.cluster,
                 index.clusterTime = index.clusterTime,
                 index.clusterStrata = index.clusterStrata,

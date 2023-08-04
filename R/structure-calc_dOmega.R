@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: jul 26 2023 (14:26) 
+## Last-Updated: aug  4 2023 (16:19) 
 ##           By: Brice Ozenne
-##     Update #: 211
+##     Update #: 272
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -69,22 +69,19 @@
 ## * calc_dOmega.ID
 .calc_dOmega.ID <- function(object, param, Omega, Jacobian = NULL,
                             transform.sigma = NULL, transform.k = NULL, transform.rho = NULL){
-
     ## ** prepare
-    type <- object$param$type
-    name.sigma <- object$param$name[type=="sigma"]
-    name.k <- object$param$name[type=="k"]
-    name.rho <- object$param$name[type=="rho"]
-    name.paramVar <- c(name.sigma,name.k,name.rho)
-    param <- param[name.paramVar]
-    name.param <- names(param)
     if(missing(Omega)){
         Omega <- .calc_Omega(object, param = param, keep.interim = TRUE)
     }
+
+    object.param <- object$param[is.na(object$param$constraint),,drop=FALSE]
+    name.sigma <- object.param[object.param$type=="sigma","name"]
+    name.k <- object.param[object.param$type=="k","name"]
+    name.rho <- object.param[object.param$type=="rho","name"]
+    name.paramVar <- c(name.sigma,name.k,name.rho)
     
     Upattern <- object$Upattern
     n.Upattern <- NROW(Upattern)
-    pattern.cluster <- object$pattern
     X.var <- object$var$Xpattern
     X.cor <- object$cor$Xpattern
 
@@ -95,59 +92,42 @@
         transform.k <- "none"
         transform.rho <- "none"
     }
-    log.param <- log(param[c(name.sigma,name.k)])
 
     ## ** loop over covariance patterns
     out <- lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
 
         iPattern.var <- Upattern[iPattern,"var"]
         iPattern.cor <- Upattern[iPattern,"cor"]
-        iNtime <- Upattern[iPattern,"n.time"]
         iName.param <- Upattern[iPattern,"param"][[1]]
-        if(is.null(iName.param)){return(NULL)}
+        iN.time <- Upattern[iPattern,"n.time"]
+        if(length(iName.param)==0){return(NULL)}
 
-        iOmega.sd <- attr(Omega[[iPattern]],"sd")
-        iOmega.cor <- attr(Omega[[iPattern]],"cor")
-        iOmega <- Omega[[iPattern]] ; attr(iOmega,"sd") <- NULL; attr(iOmega,"cor") <- NULL; attr(iOmega,"time") <- NULL;
-        iParam.sigma <- intersect(iName.param, name.sigma)
-        n.iParam.sigma <- length(iParam.sigma)
-        iParam.k <- intersect(iName.param, name.k)
-        n.iParam.k <- length(iParam.k)
+        iParam.sigmak <- intersect(iName.param, c(name.sigma, name.k))
         iParam.rho <- intersect(iName.param, name.rho)
-        n.iParam.rho <- length(iParam.rho)
+        iScore <- stats::setNames(lapply(1:length(iName.param), function(iP){matrix(0, nrow = iN.time, ncol = iN.time)}), iName.param)
 
-        iScore <- stats::setNames(vector(mode = "list", length = length(iName.param)), iName.param)
-        iIndicator.cor <- attr(X.cor[[iPattern.cor]],"indicator.param")
-        iMindicator.var <- attr(X.var[[iPattern.var]],"Mindicator.param")
+        iOmega <- Omega[[iPattern]]
 
-        if(n.iParam.sigma>0){
-            if(transform.sigma == "log"){
-                iScore[[iParam.sigma]] <- 2 * iOmega
-            }else{ ## no transformation  (other transformations are made through jacobian)
-                iScore[[iParam.sigma]] <- 2 * iOmega / param[iParam.sigma]
-            }
-        }
-
-        if(n.iParam.k>0){
-            if(transform.k == "log"){
-                iScore[names(iMindicator.var)] <- lapply(iMindicator.var, function(iM){iM * iOmega})
-            }else{ ## no transformation  (other transformations are made through jacobian)
-                iScore[names(iMindicator.var)] <- lapply(names(iMindicator.var), function(iParam){iMindicator.var[[iParam]] * iOmega / param[iParam]})
-            }
-        }
-
-        if(n.iParam.rho>0){
-            iOmega.var <- tcrossprod(iOmega.sd)
-            
-            for(iRho in iParam.rho){ ## iRho <- iParam.rho[1]
-                iScore[[iRho]] <- diag(0, nrow = iNtime, ncol = iNtime)
-                if(transform.rho == "atanh"){
-                    iScore[[iRho]][iIndicator.cor[[iRho]]] <- iOmega.var[iIndicator.cor[[iRho]]] * (1-param[iRho]^2)
-                }else{ ## no transformation (other transformations are made through jacobian)
-                    iScore[[iRho]][iIndicator.cor[[iRho]]] <- iOmega.var[iIndicator.cor[[iRho]]]
+        if(length(iParam.sigmak) > 0){
+            for(iiParam in iParam.sigmak){ ## iiParam <- iParam.sigmak[1]
+                iDf.info <- attr(X.var[[iPattern.var]],"ls.index.pair")[[iiParam]]
+                if(transform.k == "log"){
+                    iScore[[iiParam]][iDf.info$position] <- iDf.info$value * iOmega[iDf.info$position]
+                }else{ ## no transformation  (other transformations are made through jacobian)
+                    iScore[[iiParam]][iDf.info$position] <- iDf.info$value * iOmega[iDf.info$position] / param[iiParam]
                 }
             }
+        }
 
+        if(length(iParam.rho)>0){
+            for(iiParam in iParam.rho){
+                iDf.info <- attr(X.cor[[iPattern.cor]],"ls.index.pair")[[iiParam]]
+                if(transform.rho == "atanh"){
+                    iScore[[iiParam]][iDf.info$position] <- iDf.info$value * iOmega[iDf.info$position] * (1-param[iiParam]^2)/param[iiParam]
+                }else{ ## no transformation (other transformations are made through jacobian)
+                    iScore[[iiParam]][iDf.info$position] <- iDf.info$value * iOmega[iDf.info$position] / param[iiParam]
+                }
+            }
         }
         ## apply transformation
         if(!is.null(Jacobian)){
@@ -166,6 +146,7 @@
 
     ## ** export
     out <- stats::setNames(out,Upattern$name)
+    attr(out,"param") <- name.paramVar
     return(out)
 }
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: jul 26 2023 (14:27) 
+## Last-Updated: aug  4 2023 (17:05) 
 ##           By: Brice Ozenne
-##     Update #: 217
+##     Update #: 307
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -75,14 +75,6 @@
                               transform.sigma = NULL, transform.k = NULL, transform.rho = NULL){
 
     ## ** prepare
-    type <- stats::setNames(object$param$type,object$param$name) 
-    name.sigma <- object$param$name[type=="sigma"]
-    name.k <- object$param$name[type=="k"]
-    name.rho <- object$param$name[type=="rho"]
-    name.paramVar <- c(name.sigma,name.k,name.rho)
-
-    param <- param[name.paramVar]
-    name.param <- names(param)
     if(missing(Omega)){
         Omega <- .calc_Omega(object, param = param, keep.interim = TRUE)
     }
@@ -91,18 +83,31 @@
                                transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
     }
 
+    object.param <- object$param[is.na(object$param$constraint),,drop=FALSE]
+    type <- stats::setNames(object.param$type,object.param$name)
+    name.sigma <- object.param[object.param$type=="sigma","name"]
+    name.k <- object.param[object.param$type=="k","name"]
+    name.rho <- object.param[object.param$type=="rho","name"]
+    name.paramVar <- c(name.sigma,name.k,name.rho)
+
     Upattern <- object$Upattern
     n.Upattern <- NROW(Upattern)
     X.var <- object$var$Xpattern
     X.cor <- object$cor$Xpattern
+
+    pair.vcov <- object$pair.vcov
+
     if(identical(transform.sigma,"log") && identical(transform.k,"log") && identical(transform.rho,"atanh")){
         Jacobian <- NULL
         dJacobian <- NULL
+        transform <- TRUE
     }else{
         transform.sigma <- "none"
         transform.k <- "none"
         transform.rho <- "none"
+        transform <- FALSE
     }
+
     if(!is.null(Jacobian)){
         test.nooffdiag <- all(abs(c(Jacobian[lower.tri(Jacobian,diag=FALSE)],Jacobian[upper.tri(Jacobian,diag=FALSE)]))<1e-10)
         if(test.nooffdiag){
@@ -120,87 +125,72 @@
 
         iPattern.var <- Upattern[iPattern,"var"]
         iPattern.cor <- Upattern[iPattern,"cor"]
-        iNtime <- Upattern[iPattern,"n.time"]
         iName.param <- Upattern[iPattern,"param"][[1]]
+        iN.time <- Upattern[iPattern,"n.time"]
         if(is.null(iName.param)){return(NULL)}
 
-        iOmega.sd <- attr(Omega[[iPattern]],"sd")
-        iOmega.var <- tcrossprod(iOmega.sd)
-        iOmega.cor <- attr(Omega[[iPattern]],"cor")
-        iOmega <- Omega[[iPattern]] ; attr(iOmega,"sd") <- NULL; attr(iOmega,"cor") <- NULL; attr(iOmega,"time") <- NULL;
+        iPair <- pair.vcov[[Upattern[iPattern,"name"]]]
+        iPair.type <- attr(iPair,"typetype")
+        iHess <- stats::setNames(lapply(1:NCOL(iPair), function(iP){matrix(0, nrow = iN.time, ncol = iN.time)}), colnames(iPair))
+        
+        iOmega <- Omega[[iPattern]]
 
-        iScore <- stats::setNames(vector(mode = "list", length = length(iName.param)), iName.param)
+        if("sigmak.sigmak" %in% names(iPair.type)){
 
-        iPair <- object$pair.vcov[[Upattern[iPattern,"name"]]]
-        n.iPair <- NCOL(iPair)
-
-        iHess <- lapply(1:n.iPair, function(iPair){matrix(0, nrow = iNtime, ncol = iNtime)})
-
-        for(iiPair in 1:n.iPair){ ## iiPair <- 2
-
-            ## name of parameters
-            iCoef1 <- iPair[1,iiPair]
-            iCoef2 <- iPair[2,iiPair]
-
-            ## type of parameters
-            iType1 <- type[iCoef1]
-            iType2 <- type[iCoef2]
-
-            ## indicators
-            iMindicator.var1 <- attr(X.var[[iPattern.var]],"Mindicator.param")[[iCoef1]]
-            iMindicator.var2 <- attr(X.var[[iPattern.var]],"Mindicator.param")[[iCoef2]]
-            iIndicator.cor2 <- attr(X.cor[[iPattern.cor]],"indicator.param")[[iCoef2]]
-
-            if(iType1 == "sigma"){
-                if(iType2 == "sigma"){
-                    if(iCoef1!=iCoef2){
-                        stop("Cannot compute the Hessian with interacting sigma coefficients. \n")
-                    }
-                    if(transform.sigma == "log"){
-                        iHess[[iiPair]] <- 4 * iOmega
-                    }else{ ## no transformation  (other transformations are made through jacobian)
-                        iHess[[iiPair]] <- 2 * iOmega / param[iCoef1]^2
-                    }
-                }else if(iType2 == "k"){
-                    if(transform.k == "log"){
-                        iHess[[iiPair]] <- iMindicator.var1 * iMindicator.var2 * iOmega
-                    }else{ ## no transformation  (other transformations are made through jacobian)
-                        iHess[[iiPair]] <- iMindicator.var1 * iMindicator.var2 * iOmega / (param[iCoef1]*param[iCoef2])
-                    }
-                }else if(iType2 == "rho"){
-                    if(transform.rho == "atanh"){
-                        iHess[[iiPair]][iIndicator.cor2] <- 2 * iOmega.var[iIndicator.cor2] * (1-param[iCoef2]^2)
-                    }else{ ## no transformation (other transformations are made through jacobian)
-                        iHess[[iiPair]][iIndicator.cor2] <- 2 * iOmega.var[iIndicator.cor2] / param[iCoef1]
-                    }
+            for(iiPair in iPair.type$sigmak.sigmak){ ## iiPair <- iPair.type$sigmak.sigmak[1]
+                iDf.info <- attr(iPair,"index.pair")[[iiPair]]
+                if(transform){
+                    iHess[[iiPair]][iDf.info$position] <- iDf.info$value1 * iDf.info$value2 * iOmega[iDf.info$position]
+                }else{ ## no transformation  (other transformations are made through jacobian)
+                    if(iPair[1,iiPair]==iPair[2,iiPair]){
+                        iHess[[iiPair]][iDf.info$position] <- iDf.info$value1 * (iDf.info$value1-1) * iOmega[iDf.info$position] / param[iPair[1,iiPair]]^2
+                    }else if(iPair[1,iiPair]!=iPair[2,iiPair]){
+                        iHess[[iiPair]][iDf.info$position] <- iDf.info$value1 * iDf.info$value2 * iOmega[iDf.info$position] / (param[iPair[1,iiPair]] * param[iPair[2,iiPair]])
+                    }                    
                 }
-            }else if(iType1 == "k"){                    
-                if(iType2 == "k"){
-                    if(transform.k == "log"){
-                        iHess[[iiPair]] <- iMindicator.var1 * iMindicator.var2 * iOmega
-                    }else{ ## no transformation  (other transformations are made through jacobian)
-                        if(iCoef1==iCoef2){
-                            iHess[[iiPair]] <- iMindicator.var1*(iMindicator.var1-1) * iOmega / param[iCoef1]^2
-                        }else{
-                            iHess[[iiPair]] <- iMindicator.var1 * iMindicator.var2 * iOmega / (param[iCoef1]*param[iCoef2])
-                        }
-                    }
-                }else if(iType2 == "rho"){
-                    if(transform.k == "log"){
-                        iHess[[iiPair]][iIndicator.cor2] <- iMindicator.var1[iIndicator.cor2] * iOmega.var[iIndicator.cor2] * (1-param[iCoef2]^2)
-                    }else{ ## no transformation  (other transformations are made through jacobian)
-                        iHess[[iiPair]][iIndicator.cor2] <- iMindicator.var1[iIndicator.cor2] * iOmega.var[iIndicator.cor2] / param[iCoef1]
-                    }
-                }
-            }else if(transform.rho == "atanh" && iType1 == "rho" && iType2 == "rho" && iCoef1 == iCoef2){
-                iHess[[iiPair]][iIndicator.cor2] <- - 2 * iOmega.var[iIndicator.cor2] * param[iCoef2] * (1 - param[iCoef2]^2)
             }
-                 
+            
+        }
+
+        if("sigmak.rho" %in% names(iPair.type)){
+
+            for(iiPair in iPair.type$sigmak.rho){ ## iiPair <- iPair.type$sigmak.rho[1]
+                iDf.info <- attr(iPair,"index.pair")[[iiPair]]
+                if(transform){
+                    iHess[[iiPair]][iDf.info$position] <- iDf.info$value1 * iDf.info$value2 * iOmega[iDf.info$position] * (1-param[iPair[2,iiPair]]^2) / param[iPair[2,iiPair]]
+                }else{ ## no transformation (other transformations are made through jacobian)
+                    iHess[[iiPair]][iDf.info$position] <- iDf.info$value1 * iDf.info$value2 * iOmega[iDf.info$position] / (param[iPair[1,iiPair]] * param[iPair[2,iiPair]])
+                }
+            }
+
+        }
+
+        if("rho.rho" %in% names(iPair.type)){
+            for(iiPair in iPair.type$rho.rho){ ## iiPair <- iPair.type$rho.rho[1]
+                iDf.info <- attr(iPair,"index.pair")[[iiPair]]
+                if(transform){
+                    if(iPair[1,iiPair]==iPair[2,iiPair]){
+                        ## \rho = tanh(x), x = atanh(\rho), dx/d\rho = 1/(1-\rho^2) so d\rho/dx = 1-\rho^2
+                        ## \dOmega/\dx = d\rho^a/dx = a \rho^{a-1} (1-\rho^2) = a (\rho^{a-1}-\rho^{a+1})
+                        ## \d^2Omega/\dx^2 = a ((a-1)\rho^{a-2}-(a+1)\rho^{a})(1-\rho^2)=a(1-\rho^2)\rho^2((a-1)/\rho^2-(a+1))
+                        iHess[[iiPair]][iDf.info$position] <- iDf.info$value1 * iOmega[iDf.info$position] * (1-param[iPair[2,iiPair]]^2) * ((iDf.info$value1-1)/param[iPair[1,iiPair]]^2 - (iDf.info$value1+1))
+                    }else if(iPair[1,iiPair]!=iPair[2,iiPair]){
+                        iHess[[iiPair]][iDf.info$position] <- iDf.info$value1 * iDf.info$value2 * iOmega[iDf.info$position] * (1-param[iPair[1,iiPair]]^2) * (1-param[iPair[2,iiPair]]^2) / (param[iPair[1,iiPair]] * param[iPair[2,iiPair]])
+                    }
+                    
+                }else{ ## no transformation  (other transformations are made through jacobian)
+                    if(iPair[1,iiPair]==iPair[2,iiPair]){
+                        iHess[[iiPair]][iDf.info$position] <- iDf.info$value1 * (iDf.info$value1-1) * iOmega[iDf.info$position] / param[iPair[1,iiPair]]^2
+                    }else if(iPair[1,iiPair]!=iPair[2,iiPair]){
+                        iHess[[iiPair]][iDf.info$position] <- iDf.info$value1 * iDf.info$value2 * iOmega[iDf.info$position] / (param[iPair[1,iiPair]] * param[iPair[2,iiPair]])
+                    }                    
+                }
+            }
+            
         }
 
         ## apply transformation
         if(!is.null(Jacobian) || !is.null(dJacobian)){
-
             iParamVar <- Upattern[iPattern,"param"][[1]]
             n.iParamVar <- length(iParamVar)
             
@@ -235,12 +225,13 @@
             }
             iHess <- iHess2
         }
-
-        return(iHess)        
+        
+        return(stats::setNames(iHess,colnames(iPair)))        
     })
-    
+
     ## ** export
     out <- stats::setNames(out,Upattern$name)
+    attr(out, "pair") <- pair.vcov
     return(out)
 } 
 

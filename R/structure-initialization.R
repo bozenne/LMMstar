@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: aug  1 2023 (11:57) 
+## Last-Updated: aug  4 2023 (15:23) 
 ##           By: Brice Ozenne
-##     Update #: 424
+##     Update #: 439
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -198,12 +198,6 @@
         iPattern.clusterTime <- nlme::collapse(do.call(rbind,iIndex.clusterTime), as.factor = TRUE)
         iPatternTime.n <- table(iPattern.clusterTime)
         
-        attr(iX,c("index.cluster")) <- NULL
-        attr(iX,c("index.strata")) <- NULL
-        attr(iX,c("param")) <- NULL
-        attr(iX,c("indicator.param")) <- NULL
-        attr(iX,c("Mindicator.param")) <- NULL
-
         iOut <- list(X = NULL, Y = NULL, n = NULL)
         for(iPattern.time in levels(iPattern.clusterTime)){ ## iPattern.time <- levels(iPattern.clusterTime)[1]
             iOut$X <- rbind(iOut$X,iX)
@@ -269,25 +263,26 @@
         if(is.null(X.iPattern)){return(NULL)}
         ## index of the residuals belonging to each individual
         obs.iPattern <- do.call(rbind,index.cluster[attr(X.iPattern,"index.cluster")])
+        nobs.iPattern <- NROW(obs.iPattern)
         ## identify non-duplicated pairs of observation (here restrict matrix to its  upper part)
-        iAllPair <- attr(X.iPattern,"index.pair")
+        iAllPair <- attr(X.iPattern,"df.index.pair")
         iPair <- iAllPair[iAllPair[,"col"]<iAllPair[,"row"] & iAllPair$param %in% structure.param$name,,drop=FALSE]
-        iParam <- unique(iPair$param)
-        iPair$param <- as.numeric(factor(iPair$param, levels = iParam))
-
-        if(NROW(iPair)<=NROW(obs.iPattern)){ ## more individuals than pairs
-            iLs.out <- apply(iPair, 1, function(iRow){
-                iOut <- data.frame(prod = sum(residuals.studentized[obs.iPattern[,iRow[1]]]*residuals.studentized[obs.iPattern[,iRow[2]]]),
-                                   sum1 = sum(residuals.studentized[obs.iPattern[,iRow[1]]]),
-                                   sum2 = sum(residuals.studentized[obs.iPattern[,iRow[2]]]),
-                                   sums1 = sum(residuals.studentized[obs.iPattern[,iRow[1]]]^2),
-                                   sums2 = sum(residuals.studentized[obs.iPattern[,iRow[2]]]^2),
-                                   n = NROW(obs.iPattern),
-                                   param = iRow[3])
+                
+        if(NROW(iPair)<=nobs.iPattern){ ## more individuals than pairs
+            iLs.out <- lapply(1:NROW(iPair), function(iiP){ ## iiP <- 1
+                iRes1 <- residuals.studentized[obs.iPattern[,iPair[iiP,"row"]]]
+                iRes2 <- residuals.studentized[obs.iPattern[,iPair[iiP,"col"]]]
+                iOut <- data.frame(prod = sum(iRes1*iRes2),
+                                   sum1 = sum(iRes1),
+                                   sum2 = sum(iRes2),
+                                   sums1 = sum(iRes1^2),
+                                   sums2 = sum(iRes2^2),
+                                   n = nobs.iPattern,
+                                   param = iPair[iiP,"param"])
                 return(iOut)
-            }, simplify = FALSE)
+            })
         }else{ ## more pairs than individuals
-            iLs.out <- apply(obs.iPattern, 1, function(iRow){ ## iRow <- obs.iPattern[1,]
+            iLs.out <- apply(obs.iPattern, 1, function(iRow){ ## iRow, <- obs.iPattern[1,]
                 iLSDF <- split(data.frame(row = residuals.studentized[iRow[iPair[,"row"]]],
                                           col = residuals.studentized[iRow[iPair[,"col"]]],
                                           param = iPair[,"param"]),
@@ -304,7 +299,7 @@
             }, simplify = FALSE)
         }
         iDf.out <- do.call(rbind,iLs.out)
-        iDf.out$param <- iParam[iDf.out$param]
+        rownames(iDf.out) <- NULL
         return(iDf.out)
     }))
 
@@ -353,9 +348,8 @@
     ls.XY <- stats::setNames(lapply(Upattern.name, function(iPattern){ ## iPattern <- Upattern.name[2]
         iX <- object$cor$Xpattern[[Upattern[Upattern$name==iPattern,"cor"]]]
         if(NROW(iX)==0){return(NULL)}
-        index.vec2matrix <- attr(iX, "index.vec2matrix")
-        index.pair <- attr(iX, "index.pair")
-
+        index.pair <- attr(iX, "df.index.pair")
+        
         ## NOTE: this handles the case where the pattern is the same for time 1,2,4 and 1,2,3 but maybe not the initialization matrix
         iIndex.cluster <- attr(iX,"index.cluster")
         iIndex.clusterTime <- index.clusterTime[iIndex.cluster]
@@ -367,7 +361,7 @@
             iIndex.time <- iIndex.clusterTime[[which(iPattern.clusterTime==iPattern.time)[1]]]
 
             iOut$X <- rbind(iOut$X,cbind(param = index.pair$param))
-            iOut$Y <- c(iOut$Y, Rho[iIndex.time,iIndex.time,drop=FALSE][index.vec2matrix])
+            iOut$Y <- c(iOut$Y, Rho[iIndex.time,iIndex.time,drop=FALSE][index.pair$position])
             iOut$n <- c(iOut$n,rep(iPatternTime.n[[iPattern.time]], NROW(index.pair)))
         }
         return(iOut)
@@ -435,7 +429,7 @@
         ## index of the residuals belonging to each individual
         obs.iPattern <- do.call(rbind,index.cluster[attr(X.iPattern,"index.cluster")])
         ## identify non-duplicated pairs of observation (here restrict matrix to its  upper part)
-        iAllPair <- attr(X.iPattern,"index.pair")
+        iAllPair <- attr(X.iPattern,"df.index.pair")
         iPair <- iAllPair[iAllPair[,"col"]<iAllPair[,"row"],,drop=FALSE]
         iParam <- unique(iPair$param)
         iPair$param <- as.numeric(factor(iPair$param, levels = iParam))

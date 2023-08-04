@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: jul 26 2023 (17:29) 
+## Last-Updated: aug  4 2023 (17:35) 
 ##           By: Brice Ozenne
-##     Update #: 185
+##     Update #: 209
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -229,8 +229,8 @@ tr <- function(object){
 }
 
 ## * unorderedPairs
-##' @title Form All Pairs
-##' @description Form all pairs of values
+##' @title Form All unordered Pairs
+##' @description Form all unique pairs of values regardless to ordering.
 ##' @noRd
 ##'
 ##' @param x vector of values
@@ -266,6 +266,64 @@ unorderedPairs <- function(x, distinct = FALSE){
     ## restaure original values
     out[] <- x[as.vector(out)]
     return(out)
+}
+
+## * unorderedTriplet
+##' @title Form All Triplet
+##' @description Form all unique triplet of values regardless to ordering.
+##' @noRd
+##'
+##' @param x vector of values
+##' @param distinct [logical] should triplets containing the same value be removed?
+##' 
+##' @examples
+##' unorderedTriplet(1, distinct = FALSE)
+##' unorderedTriplet(1, distinct = TRUE)
+##' 
+##' unorderedTriplet(1:2)
+##' unorderedTriplet(1:3)
+##' 
+##' unorderedTriplet(1:5, distinct = TRUE)
+##' unorderedTriplet(1:5, distinct = FALSE)
+##' 
+unorderedTriplet <- function(x, distinct = FALSE){
+
+    ## work on integers
+    size <- length(x)
+    y <- 1:size
+
+    out <- do.call(cbind,lapply(1:size, function(iK) { ## iK <- 2
+        do.call(cbind,lapply(y[iK:size], function(iiK) {
+            rbind(y[iK], y[iiK], y[iiK:size])
+        }))
+    }))
+    
+    ## remove 'diagonal' pairs (e.g. (1,1) or (2,2))
+    if(distinct){## same as combn but faster when x is large
+        index.keep <- which(out[1,]!=out[2,] | out[1,]!=out[3,])
+        if(length(index.keep)==0){
+            return(NULL)
+        }else{
+            out <- out[,index.keep,drop=FALSE]
+        }
+    }
+
+    ## restaure original values
+    out[] <- x[as.vector(out)]
+    return(out)
+}
+
+## * colrowMultiply
+colrowMultiply <- function(object, row = NULL, col = NULL){
+    object.nrow <- NROW(object)
+    object.ncol <- NCOL(object)
+    if(!is.null(row)){        
+        object <- object * matrix(row, byrow = TRUE, nrow = object.nrow, ncol = object.ncol) 
+    }
+    if(!is.null(col)){
+        object <- object * matrix(col, byrow = FALSE, nrow = object.nrow, ncol = object.ncol) 
+    }
+    return(object)
 }
 ##----------------------------------------------------------------------
 ### utils-formula.R ends here

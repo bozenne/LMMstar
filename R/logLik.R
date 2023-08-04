@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: aug  1 2023 (14:25) 
+## Last-Updated: aug  3 2023 (16:16) 
 ##           By: Brice Ozenne
-##     Update #: 350
+##     Update #: 390
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -89,87 +89,53 @@ logLik.mlmm <- function(object, ...){
 }
 
 ## * .logLik
-.logLik <- function(X, residuals, precision, Upattern.ncluster, weights, scale.Omega,
-                    pattern, index.cluster, indiv, REML, precompute){
-
+.logLik <- function(X, residuals, precompute,
+                    Upattern.ncluster, Upattern.ntime, weights, scale.Omega, 
+                    pattern, index.cluster, indiv, REML){
+    
     ## ** extract information
-    if(indiv && REML){##  https://towardsdatascience.com/maximum-likelihood-ml-vs-reml-78cf79bef2cf
-        stop("Cannot compute individual likelihood contribution with REML. \n")
+    if(indiv && REML){
+        stop("Cannot compute cluster-specific likelihood contributions when using REML. \n")
     }
-    test.loopIndiv <- indiv || is.null(precompute)
-
-    n.obs <- length(index.cluster)
-    n.cluster <- length(pattern) ## number of clusters, may different from Upattern.ncluster which is the weight of each cluster
-    n.mucoef <- NCOL(X)
-    name.mucoef <- colnames(X)
+    test.loopIndiv <- indiv || !attr(precompute,"moments")
     log2pi <- log(2*pi)
-    if(REML){
-        REML.det <- matrix(0, nrow = n.mucoef, ncol = n.mucoef, dimnames = list(name.mucoef, name.mucoef))
-    }
-    logdet.precision <- attr(precision, "logdet")
 
-    ## ** prepare output
-    if(test.loopIndiv){
-        ll <- rep(NA, n.cluster)
-    }else{
-        ll <- 0
-    }
-    if(any(is.na(logdet.precision))){ ## non positive definite residual variance covariance
-        if(indiv){
-            return(ll*NA)
-        }else{
-            return(NA)
-        }
+    if(!indiv && any(is.na(precompute$Omega.logdet))){ ## non positive definite residual variance covariance
+        return(NA)
     }
 
     ## ** compute log-likelihood
     ## *** looping over individuals
     if(test.loopIndiv){
-        ## loop
+        n.cluster <- length(pattern) ## number of clusters, may different from Upattern.ncluster which is the weight of each cluster
+        ll <- rep(NA, n.cluster)
+        
         for (iId in 1:n.cluster) { ## iId <- 1
-            iIndex <- index.cluster[[iId]]
-            iResidual <- residuals[iIndex, , drop = FALSE]
-            iX <- X[iIndex, , drop = FALSE]
-            iOmegaM1 <- precision[[pattern[iId]]] * scale.Omega[iId]
-            iWeight <- weights[iId]
-            ll[iId] <- - iWeight * (NCOL(iOmegaM1) * (log2pi-log(scale.Omega[iId])) - logdet.precision[[pattern[iId]]] + t(iResidual) %*% iOmegaM1 %*% iResidual)/2
-            if (REML) {
-                REML.det <- REML.det + iWeight * (t(iX) %*% iOmegaM1 %*% iX)
-            }
-            ## log(det(iOmegaM1)) - NCOL(iOmegaM1)*log(scale.Omega[iId])+logdet.precision[[pattern[iId]]]
+            iResidual <- residuals[index.cluster[[iId]], , drop = FALSE]
+            iOmegaM1 <- precompute$precision[[pattern[iId]]] * scale.Omega[iId]
+            ll[iId] <- - weights[iId] * (NCOL(iOmegaM1) * (log2pi-log(scale.Omega[iId])) + precompute$Omega.logdet[[pattern[iId]]] + t(iResidual) %*% iOmegaM1 %*% iResidual)/2            
         }
         if(!indiv){
             ll <- sum(ll)
         }
     }
-    
+
     ## *** looping over covariance patterns
     if(!test.loopIndiv){
-        ## precompute
-        n.pattern <- length(Upattern.ncluster)
+        term1 <- Upattern.ncluster * (Upattern.ntime * log2pi + precompute$Omega.logdet)/2
+        term2 <- sum(do.call(rbind,lapply(precompute$wRR,attr,"vectorwise")) * do.call(rbind,lapply(precompute$OmegaM1,attr,"vectorwise")))
+        ll <- - term1 - term2
 
-        ## loop
-        for (iPattern in 1:n.pattern) { ## iPattern <- 1
-            iOmegaM1 <- precision[[iPattern]]
-            ll <- ll - 0.5 * unname(Upattern.ncluster[iPattern]) * (NCOL(iOmegaM1) * log2pi - logdet.precision[[iPattern]]) - 0.5 * sum(precompute$RR[[iPattern]] * iOmegaM1)
-            if (REML) {
-                ## compute (unique contribution, i.e. only lower part of the matrix)
-                if(is.null(precompute$X.OmegaM1.X)){
-                    iContribution <- as.double(iOmegaM1) %*% precompute$XX$pattern[[iPattern]]
-                }else{
-                    iContribution <- precompute$X.OmegaM1.X[[iPattern]]
-                }
-                ## fill the matrix
-                REML.det <- REML.det + iContribution[as.vector(precompute$XX$key)]
-            }
-        }
+        ## microbenchmark(a = sum(do.call(rbind,lapply(precompute$wRR,attr,"vectorwise")) *do.call(rbind,lapply(precompute$OmegaM1,attr,"vectorwise"))),
+        ##                b = mapply(x = precompute$wRR, y = precompute$OmegaM1, function(x,y){sum(attr(x,"vectorwise")*attr(y,"vectorwise"))}),
+        ##                c = mapply(x = precompute$wRR, y = precompute$OmegaM1, function(x,y){sum(x*y)}))
     }
 
     ## ** export
     if(REML){
-        ll <- ll - log(det(REML.det))/2 + n.mucoef * log2pi/2
+        ll <- ll - precompute$wXOmegaM1X.logdet/2 + NCOL(X) * log2pi/2
     }
-    return(ll)
+    return(unname(ll))
 }
 
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: aug  1 2023 (14:20) 
+## Last-Updated: aug  4 2023 (16:30) 
 ##           By: Brice Ozenne
-##     Update #: 847
+##     Update #: 883
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -72,6 +72,7 @@
             iC.all <- which(pattern.var==iP)
             iC <- iC.all[1]
             iX <- X.var[index.cluster[[iC]],,drop=FALSE]
+            iRep <- NROW(iX)
             iIndex.param <- which(colSums(abs(iX))!=0)
             iParam.k <- intersect(names(iIndex.param),param.k)
             iParam.sigma <- intersect(names(iIndex.param),param.sigma)
@@ -79,10 +80,15 @@
             attr(iX,"index.cluster") <- iC.all
             attr(iX,"index.strata") <- unname(index.clusterStrata[iC])
             attr(iX,"param") <- names(iIndex.param)
-            attr(iX,"Mindicator.param") <- stats::setNames(lapply(iIndex.param,function(iCol){tcrossprod(iX[,iCol],rep(1,NROW(iX))) + t(tcrossprod(iX[,iCol],rep(1,NROW(iX))))}),
-                                                           names(iIndex.param))
-            ## attr(iX,"indicator.param") <- lapply(attr(iX,"Mindicator.param"),function(iM){which(iM>0)})
-        
+            
+            attr(iX,"ls.index.pair") <- stats::setNames(lapply(attr(iX,"param"),function(iCol){ ## iCol <- "sigma"
+                iVec <- as.vector(tcrossprod(iX[,iCol],rep(1,iRep)) + t(tcrossprod(iX[,iCol],rep(1,iRep))))
+                iIndex <- which(iVec!=0)
+                return(data.frame(position = iIndex, row = (iIndex-1) %% iRep + 1, col = (iIndex-1) %/% iRep +1, param = iCol, value = iVec[iIndex]))
+            }), attr(iX,"param"))
+            attr(iX,"df.index.pair") <- do.call(rbind,attr(iX,"ls.index.pair"))
+            rownames(attr(iX,"df.index.pair")) <- NULL
+                    
             return(iX)
         })
         
@@ -217,7 +223,6 @@
     
     ## *** characterize each correlation pattern
     Xpattern.cor <- lapply(Upattern.cor, function(iPattern){ ## iPattern <- Upattern.cor[1]
-
         iCluster <- indexPatternCluster1.cor[[iPattern]]
         iIndex.cluster <- index.cluster[[iCluster]]
         iRep <- length(iIndex.cluster)        
@@ -229,20 +234,20 @@
         attr(iOut, "index.cluster") <- ls.indexPatternCluster.cor[[iPattern]]
         attr(iOut, "index.time") <- index.clusterTime[[iCluster]]
         attr(iOut, "index.strata") <- index.clusterStrata[[iCluster]]
-        attr(iOut, "index.pair") <- rbind(data.frame(row =  iPattern.pairwise$index.x,
-                                                     col = iPattern.pairwise$index.y,
-                                                     param = iPattern.pairwise$name),
-                                          data.frame(row =  iPattern.pairwise$index.y,
-                                                     col = iPattern.pairwise$index.x,
-                                                     param = iPattern.pairwise$name))
-        attr(iOut, "index.vec2matrix") <- attr(iOut, "index.pair")$row + (attr(iOut, "index.pair")$col-1)*iRep
+        attr(iOut, "df.index.pair") <- rbind(data.frame(position = NA,
+                                                        row =  iPattern.pairwise$index.x,
+                                                        col = iPattern.pairwise$index.y,
+                                                        param = iPattern.pairwise$name,
+                                                        value = 1),
+                                             data.frame(position = NA, 
+                                                        row =  iPattern.pairwise$index.y,
+                                                        col = iPattern.pairwise$index.x,
+                                                        param = iPattern.pairwise$name,
+                                                        value = 1))
+        attr(iOut, "df.index.pair")$position <- attr(iOut, "df.index.pair")$row + (attr(iOut, "df.index.pair")$col-1)*iRep
+        attr(iOut, "df.index.pair") <- attr(iOut, "df.index.pair")[order(attr(iOut, "df.index.pair")$position),]
+        attr(iOut, "ls.index.pair") <- split(attr(iOut, "df.index.pair"), attr(iOut, "df.index.pair")$param)
         attr(iOut, "param") <- intersect(param.rho,iUparam) ## ignore parameter constrained to a specific value
-        attr(iOut, "indicator.param") <- tapply(attr(iOut, "index.vec2matrix"),attr(iOut, "index.pair")$param,identity,simplify=FALSE)
-        ## attr(iOut, "Mindicator.param") <- tapply(attr(iOut, "index.vec2matrix"),attr(iOut, "index.pair")$param,function(iIndex){
-        ##     iM <- matrix(0, nrow = iRep, ncol = iRep)
-        ##     iM[iIndex] <- 1
-        ##     return(iM)
-        ## }, simplify=FALSE)
         attr(iOut, "Omega.cor") <- matrix(NA, nrow = iRep, ncol = iRep)
         diag(attr(iOut, "Omega.cor")) <- 1
         ## case with NA, i.e. correlation parameter constrained to be 0
