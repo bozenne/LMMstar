@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: aug  3 2023 (13:30) 
+## Last-Updated: aug  9 2023 (13:18) 
 ##           By: Brice Ozenne
-##     Update #: 2974
+##     Update #: 2978
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -328,6 +328,10 @@ lmm <- function(formula, repetition, structure, data,
     if(identical(out$args$control$init,"lmer")){
         out$args$control$init <- .initializeLMER(formula = out$formula$mean, structure = out$design$vcov, data = data,
                                                  param = out$design$param, method.fit = out$args$method.fit, weights = out$design$weights, scale.Omega = out$design$scale.Omega)
+    }else if(identical(out$args$control$init,"complete.case")){
+        browser()
+    }else if(identical(out$args$control$init,"CS")){
+        browser()
     }else if(inherits(out$design$vcov,"CUSTOM")){
         init.Omega <- .calc_Omega(out$design$vcov, param = c(out$design$vcov$init.sigma,out$design$vcov$init.rho), keep.interim = FALSE)
         out$args$control$init <- init.Omega[[which.max(out$design$vcov$Upattern$n.time)]]        

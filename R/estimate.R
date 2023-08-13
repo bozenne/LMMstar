@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: aug  4 2023 (15:03) 
+## Last-Updated: aug  9 2023 (13:16) 
 ##           By: Brice Ozenne
-##     Update #: 1055
+##     Update #: 1056
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -567,7 +567,7 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
         if(cv>0){
             attr(cv,"message") <- "Convergence"
         }else if(cv==0){
-            attr(cv,"message") <- "Stop optimization before convergence (maximum number of iterations reached)"
+            attr(cv,"message") <- paste0("Stop optimization before convergence (maximum number of iterations reached). \n Consider increasing the number of iterations, e.g. setting the \'control\' to list(n.iter = 2*",n.iter,")")
         }else if(cv==-1){
             attr(cv,"message") <- "Stop optimization before convergence (decreasing log-likelihood)"
         }else if(cv==-2){

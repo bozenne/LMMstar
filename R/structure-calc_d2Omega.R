@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: aug  4 2023 (17:05) 
+## Last-Updated: aug  8 2023 (18:41) 
 ##           By: Brice Ozenne
-##     Update #: 307
+##     Update #: 327
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -135,58 +135,59 @@
         
         iOmega <- Omega[[iPattern]]
 
-        if("sigmak.sigmak" %in% names(iPair.type)){
+        if(transform){
+            if("sigmak.sigmak" %in% names(iPair.type)){
 
-            for(iiPair in iPair.type$sigmak.sigmak){ ## iiPair <- iPair.type$sigmak.sigmak[1]
-                iDf.info <- attr(iPair,"index.pair")[[iiPair]]
-                if(transform){
-                    iHess[[iiPair]][iDf.info$position] <- iDf.info$value1 * iDf.info$value2 * iOmega[iDf.info$position]
-                }else{ ## no transformation  (other transformations are made through jacobian)
-                    if(iPair[1,iiPair]==iPair[2,iiPair]){
-                        iHess[[iiPair]][iDf.info$position] <- iDf.info$value1 * (iDf.info$value1-1) * iOmega[iDf.info$position] / param[iPair[1,iiPair]]^2
-                    }else if(iPair[1,iiPair]!=iPair[2,iiPair]){
-                        iHess[[iiPair]][iDf.info$position] <- iDf.info$value1 * iDf.info$value2 * iOmega[iDf.info$position] / (param[iPair[1,iiPair]] * param[iPair[2,iiPair]])
-                    }                    
+                for(iiPair in iPair.type$sigmak.sigmak){ ## iiPair <- iPair.type$sigmak.sigmak[1]
+                    iiPosition <- attr(iPair,"index.pair")[[iiPair]]$position
+                    iiValue1 <- attr(iPair,"index.pair")[[iiPair]]$value1
+                    iiValue2 <- attr(iPair,"index.pair")[[iiPair]]$value2
+                    iHess[[iiPair]][iiPosition] <- iiValue1 * iiValue2 * iOmega[iiPosition]
                 }
-            }
             
-        }
-
-        if("sigmak.rho" %in% names(iPair.type)){
-
-            for(iiPair in iPair.type$sigmak.rho){ ## iiPair <- iPair.type$sigmak.rho[1]
-                iDf.info <- attr(iPair,"index.pair")[[iiPair]]
-                if(transform){
-                    iHess[[iiPair]][iDf.info$position] <- iDf.info$value1 * iDf.info$value2 * iOmega[iDf.info$position] * (1-param[iPair[2,iiPair]]^2) / param[iPair[2,iiPair]]
-                }else{ ## no transformation (other transformations are made through jacobian)
-                    iHess[[iiPair]][iDf.info$position] <- iDf.info$value1 * iDf.info$value2 * iOmega[iDf.info$position] / (param[iPair[1,iiPair]] * param[iPair[2,iiPair]])
-                }
             }
 
-        }
+            if("sigmak.rho" %in% names(iPair.type)){
 
-        if("rho.rho" %in% names(iPair.type)){
-            for(iiPair in iPair.type$rho.rho){ ## iiPair <- iPair.type$rho.rho[1]
-                iDf.info <- attr(iPair,"index.pair")[[iiPair]]
-                if(transform){
+                for(iiPair in iPair.type$sigmak.rho){ ## iiPair <- iPair.type$sigmak.rho[1]
+                    iiPosition <- attr(iPair,"index.pair")[[iiPair]]$position
+                    iiValue1 <- attr(iPair,"index.pair")[[iiPair]]$value1
+                    iiValue2 <- attr(iPair,"index.pair")[[iiPair]]$value2
+                    iiParam2 <- param[iPair[2,iiPair]]
+                    iHess[[iiPair]][iiPosition] <- iiValue1 * iiValue2 * iOmega[iiPosition] * (1-iiParam2^2) / iiParam2
+                }
+
+            }
+
+            if("rho.rho" %in% names(iPair.type)){
+
+                for(iiPair in iPair.type$rho.rho){ ## iiPair <- iPair.type$rho.rho[1]
+                    iiPosition <- attr(iPair,"index.pair")[[iiPair]]$position
                     if(iPair[1,iiPair]==iPair[2,iiPair]){
                         ## \rho = tanh(x), x = atanh(\rho), dx/d\rho = 1/(1-\rho^2) so d\rho/dx = 1-\rho^2
                         ## \dOmega/\dx = d\rho^a/dx = a \rho^{a-1} (1-\rho^2) = a (\rho^{a-1}-\rho^{a+1})
-                        ## \d^2Omega/\dx^2 = a ((a-1)\rho^{a-2}-(a+1)\rho^{a})(1-\rho^2)=a(1-\rho^2)\rho^2((a-1)/\rho^2-(a+1))
-                        iHess[[iiPair]][iDf.info$position] <- iDf.info$value1 * iOmega[iDf.info$position] * (1-param[iPair[2,iiPair]]^2) * ((iDf.info$value1-1)/param[iPair[1,iiPair]]^2 - (iDf.info$value1+1))
+                        ## \d^2Omega/\dx^2 = a ((a-1)\rho^{a-2}-(a+1)\rho^{a})(1-\rho^2)=a(1-\rho^2)\rho^a((a-1)/\rho^2-(a+1))
+                        iiValue <- attr(iPair,"index.pair")[[iiPair]]$value1
+                        iiParam <- param[iPair[1,iiPair]]                        
+                        iHess[[iiPair]][iiPosition] <- iiValue * (1-iiParam^2) * iOmega[iiPosition] * ((iiValue-1)/iiParam^2 - (iiValue+1))
                     }else if(iPair[1,iiPair]!=iPair[2,iiPair]){
-                        iHess[[iiPair]][iDf.info$position] <- iDf.info$value1 * iDf.info$value2 * iOmega[iDf.info$position] * (1-param[iPair[1,iiPair]]^2) * (1-param[iPair[2,iiPair]]^2) / (param[iPair[1,iiPair]] * param[iPair[2,iiPair]])
+                        iiValue1 <- attr(iPair,"index.pair")[[iiPair]]$value1
+                        iiValue2 <- attr(iPair,"index.pair")[[iiPair]]$value2
+                        iiParam <- param[iPair[,iiPair]]
+                        iHess[[iiPair]][iiPosition] <- iiValue1 * iiValue2 * iOmega[iiPosition] * prod(1-iiParam^2) / prod(iiParam)
                     }
-                    
-                }else{ ## no transformation  (other transformations are made through jacobian)
-                    if(iPair[1,iiPair]==iPair[2,iiPair]){
-                        iHess[[iiPair]][iDf.info$position] <- iDf.info$value1 * (iDf.info$value1-1) * iOmega[iDf.info$position] / param[iPair[1,iiPair]]^2
-                    }else if(iPair[1,iiPair]!=iPair[2,iiPair]){
-                        iHess[[iiPair]][iDf.info$position] <- iDf.info$value1 * iDf.info$value2 * iOmega[iDf.info$position] / (param[iPair[1,iiPair]] * param[iPair[2,iiPair]])
-                    }                    
                 }
-            }
             
+            }
+        }else{ ## no transformation  (other transformations are made through jacobian)
+
+            for(iiPair in NCOL(iPair)){ ## iiPair <- 1
+                iiPosition <- attr(iPair,"index.pair")[[iiPair]]$position
+                iiDvalue <- attr(iPair,"index.pair")[[iiPair]]$dvalue                    
+                iiParam <- param[iPair[,iiPair]]    
+                iHess[[iiPair]][iiPosition] <- iiDvalue * iOmega[iiPosition] / prod(iiParam)                
+            }
+
         }
 
         ## apply transformation
@@ -231,7 +232,7 @@
 
     ## ** export
     out <- stats::setNames(out,Upattern$name)
-    attr(out, "pair") <- pair.vcov
+    attr(out, "pair") <- attr(pair.vcov,"global")
     return(out)
 } 
 

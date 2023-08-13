@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: aug  4 2023 (17:08) 
 ## Version: 
-## Last-Updated: aug  4 2023 (17:35) 
+## Last-Updated: aug  8 2023 (18:42) 
 ##           By: Brice Ozenne
-##     Update #: 11
+##     Update #: 60
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -107,31 +107,124 @@
         iName.param <- Upattern[iPattern,"param"][[1]]
         iN.time <- Upattern[iPattern,"n.time"]
         if(is.null(iName.param)){return(NULL)}
-browser()
+
         iTriplet <- triplet.vcov[[Upattern[iPattern,"name"]]]
         iTriplet.type <- attr(iTriplet,"typetype")
         iDhess <- stats::setNames(lapply(1:NCOL(iTriplet), function(iP){matrix(0, nrow = iN.time, ncol = iN.time)}), colnames(iTriplet))
-        
         iOmega <- Omega[[iPattern]]
 
-        if("sigmak.sigmak.sigma.k" %in% names(iTriplet.type)){
+        if(transform){
+
+            if("sigmak.sigmak.sigmak" %in% names(iTriplet.type)){
+
+                for(iiTriplet in iTriplet.type$sigmak.sigmak.sigmak){ ## iiTriplet <- iTriplet.type$sigmak.sigmak.sigmak[1]
+                    iiPosition <- attr(iTriplet,"index.triplet")[[iiTriplet]]$position
+                    iiValue1 <- attr(iTriplet,"index.triplet")[[iiTriplet]]$value1
+                    iiValue2 <- attr(iTriplet,"index.triplet")[[iiTriplet]]$value2
+                    iiValue3 <- attr(iTriplet,"index.triplet")[[iiTriplet]]$value3                
+                    iDhess[[iiTriplet]][iiPosition] <- iiValue1 * iiValue2 * iiValue3 * iOmega[iiPosition]
+                }
+            
+            }
+                
+            if("sigmak.sigmak.rho" %in% names(iTriplet.type)){
+
+                for(iiTriplet in iTriplet.type$sigmak.sigmak.rho){ ## iiTriplet <- iTriplet.type$sigmak.sigmak.rho[1]
+                    iiPosition <- attr(iTriplet,"index.triplet")[[iiTriplet]]$position
+                    iiValue1 <- attr(iTriplet,"index.triplet")[[iiTriplet]]$value1
+                    iiValue2 <- attr(iTriplet,"index.triplet")[[iiTriplet]]$value2
+                    iiValue3 <- attr(iTriplet,"index.triplet")[[iiTriplet]]$value3
+                    iiParam3 <- param[iTriplet[3,iiTriplet]]                
+                    iDhess[[iiTriplet]][iiPosition] <- iiValue1 * iiValue2 * iiValue3 * iOmega[iiPosition] * (1-iiParam3^2) / iiParam3
+                }
+
+            }
+
+            if("sigmak.rho.rho" %in% names(iTriplet.type)){
+
+                for(iiTriplet in iTriplet.type$sigmak.rho.rho){ ## iiTriplet <- iTriplet.type$sigmak.rho.rho[1]
+                    iiPosition <- attr(iTriplet,"index.triplet")[[iiTriplet]]$position
+                    iiValue1 <- attr(iTriplet,"index.triplet")[[iiTriplet]]$value1
+                    iiValue2 <- attr(iTriplet,"index.triplet")[[iiTriplet]]$value2
+                    if(iTriplet[2,iiTriplet]==iTriplet[3,iiTriplet]){
+                        iiParam2 <- param[iTriplet[2,iiTriplet]]                
+                        iDhess[[iiTriplet]][iiPosition] <- iiValue1 * iiValue2 * (1-iiParam2^2) * iOmega[iiPosition] * ((iiValue2-1)/iiParam2^2 - (iiValue2+1))
+                    }else if(iTriplet[2,iiTriplet]!=iTriplet[3,iiTriplet]){
+                        iiValue3 <- attr(iTriplet,"index.triplet")[[iiTriplet]]$value3                    
+                        iiParam23 <- param[iTriplet[2:3,iiTriplet]]                
+                        iDhess[[iiTriplet]][iiPosition] <- iiValue1 * iiValue2 * iiValue3 * iOmega[iiPosition] * prod(1-iiParam23^2) / prod(iiParam23)
+                    }
+                }
+
+            }
+
+            if("rho.rho.rho" %in% names(iTriplet.type)){
+
+                for(iiTriplet in iTriplet.type$rho.rho.rho){ ## iiTriplet <- iTriplet.type$rho.rho.rho[1]
+                    iiPosition <- attr(iTriplet,"index.triplet")[[iiTriplet]]$position
+
+                    if(iTriplet[1,iiTriplet]==iTriplet[2,iiTriplet] && iTriplet[1,iiTriplet]==iTriplet[3,iiTriplet]){
+                        ## \rho = tanh(x), x = atanh(\rho), dx/d\rho = 1/(1-\rho^2) so d\rho/dx = 1-\rho^2
+                        ## \dOmega/\dx = d\rho^a/dx = a \rho^{a-1} (1-\rho^2) = a (\rho^{a-1}-\rho^{a+1})
+                        ## \d^2Omega/\dx^2 = a ((a-1)\rho^{a-2}-(a+1)\rho^{a})(1-\rho^2)=a(1-\rho^2)\rho^a((a-1)/\rho^2-(a+1))
+                        ##                 = a (a-1) \rho^{a-2} - a (a-1) \rho^a - a (a+1) \rho^a + a (a+1) \rho^{a+2}
+                        ##                 = a (a-1) \rho^{a-2} - 2 a^2 \rho^a + a (a+1) \rho^{a+2}
+                        ## \d^3Omega/\dx^3 = (a (a-1) (a-2) \rho^{a-3} - 2 a^3  \rho^{a-1} + a (a+1) (a+2) \rho^{a+1} )(1-\rho^2)
+                        ##                 = a \rho^{a} ((a-1) (a-2) \rho^{-3} - 2 a^2  \rho^{-1} + (a+1) (a+2) \rho )(1-\rho^2)
+                        iiValue <- attr(iTriplet,"index.triplet")[[iiTriplet]]$value1
+                        iiParam <- param[iTriplet[1,iiTriplet]]
+                        iDhess[[iiTriplet]][iiPosition] <- iiValue * iOmega[iiPosition] * ((iiValue-1)*(iiValue-2)/iiParam^3 - 2*iiValue^2/iiParam + (iiValue+1)*(iiValue+2)*iiParam)
+                            
+                    }else if(iTriplet[1,iiTriplet]==iTriplet[2,iiTriplet]){
+                        iiValue1 <- attr(iTriplet,"index.triplet")[[iiTriplet]]$value1
+                        iiValue3 <- attr(iTriplet,"index.triplet")[[iiTriplet]]$value3                    
+                        iiParam1 <- param[iTriplet[1,iiTriplet]]                
+                        iiParam3 <- param[iTriplet[3,iiTriplet]]                
+                            
+                        iDhess[[iiTriplet]][iiPosition] <- iiValue1 * iiValue3 * iOmega[iiPosition] * prod(1-c(iiParam1,iiParam3)^2) * ((iiValue1-1)/iiParam1^2 - (iiValue1+1)) / iiParam3
+                    }else if(iTriplet[1,iiTriplet]==iTriplet[3,iiTriplet]){
+                        iiValue1 <- attr(iTriplet,"index.triplet")[[iiTriplet]]$value1
+                        iiValue2 <- attr(iTriplet,"index.triplet")[[iiTriplet]]$value2                    
+                        iiParam1 <- param[iTriplet[1,iiTriplet]]                
+                        iiParam2 <- param[iTriplet[2,iiTriplet]]                
+                            
+                        iDhess[[iiTriplet]][iiPosition] <- iiValue1 * iiValue2 * iOmega[iiPosition] * prod(1-c(iiParam1,iiParam2)^2) * ((iiValue1-1)/iiParam1^2 - (iiValue1+1)) / iiParam2
+                    }else if(iTriplet[2,iiTriplet]==iTriplet[3,iiTriplet]){                            
+                        iiValue1 <- attr(iTriplet,"index.triplet")[[iiTriplet]]$value1
+                        iiValue2 <- attr(iTriplet,"index.triplet")[[iiTriplet]]$value2                   
+                        iiParam1 <- param[iTriplet[1,iiTriplet]]                
+                        iiParam2 <- param[iTriplet[2,iiTriplet]]                
+                            
+                        iDhess[[iiTriplet]][iiPosition] <- iiValue1 * iiValue2 * iOmega[iiPosition] * prod(1-c(iiParam1,iiParam2)^2) * ((iiValue2-1)/iiParam2^2 - (iiValue2+1)) / iiParam1
+                    }else{ ## all different
+                        iiValue1 <- attr(iTriplet,"index.triplet")[[iiTriplet]]$value1
+                        iiValue2 <- attr(iTriplet,"index.triplet")[[iiTriplet]]$value3                    
+                        iiValue3 <- attr(iTriplet,"index.triplet")[[iiTriplet]]$value3                    
+                        iiParam <- param[iTriplet[,iiTriplet]]                
+                    
+                        iDhess[[iiTriplet]][iiPosition] <- iiValue1 * iiValue2 * iiValue3 * iOmega[iiPosition] * prod(1-iiParam^2) / prod(iiParam)
+                    }
+                }
+                
+            }
+
+        }else{ ## no transformation
+
+            for(iiTriplet in NCOL(iTriplet)){ ## iiTriplet <- 1
+                iiPosition <- attr(iTriplet,"index.triplet")[[iiTriplet]]$position
+                iiD2value <- attr(iTriplet,"index.triplet")[[iiTriplet]]$dvalue
+                iiParam <- param[iTriplet[,iiTriplet]]    
+                iDhess[[iiTriplet]][iiPosition] <- iiD2value * iOmega[iiPosition] / prod(iiParam)                
+            }
+
         }
 
-        if("sigmak.sigmak.rho" %in% names(iPair.type)){
-        }
-
-        if("sigmak.rho.rho" %in% names(iPair.type)){
-        }
-
-        if("rho.rho.rho" %in% names(iPair.type)){
-        }
-
-        return(stats::setNames(iHess,colnames(iPair)))        
+        return(stats::setNames(iDhess,colnames(iTriplet)))        
     })
 
     ## ** export
     out <- stats::setNames(out,Upattern$name)
-    attr(out, "pair") <- pair.vcov
+    attr(out, "triplet") <- attr(triplet.vcov,"global")
     return(out)
 } 
 

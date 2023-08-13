@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: aug  4 2023 (17:59) 
+## Last-Updated: aug  8 2023 (19:30) 
 ##           By: Brice Ozenne
-##     Update #: 667
+##     Update #: 676
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -98,28 +98,21 @@
                                      transform.rho = transform.rho)
     }
     
-    ## if(df && (type.information == "observed" || method.fit == "REML")){
+    if(df && (type.information == "observed" || method.fit == "REML")){
         if(trace>=1){cat("- d3Omega \n")}
         design$vcov$triplet.vcov <- .precomputeTripletParam(design$vcov)
-
-        
         
         out$d3Omega <- .calc_d3Omega(object = design$vcov, param = param.value, Omega = out$Omega, 
                                      transform.sigma = transform.sigma,
                                      transform.k = transform.k,
                                      transform.rho = transform.rho)        
-  ## }
-    browser()
+  }
 
     ## ** 3- Precompute useful quantities
-    ## *** Omega and its derivatives
-    precompute <- .precomputeOmega(Omega = out$Omega, dOmega = out$dOmega, d2Omega = out$d2Omega, 
-                                   method.fit = method.fit, type.information = type.information,
-                                   score = score, information = information, vcov = vcov, df = df)
     
     ## *** design matrix and residuals
     if(precompute.moments){
-        precompute$wXX <- design$precompute.wXX
+        precompute <- list(wXX = design$precompute.wXX)
         weights.cluster <- NULL ## weights are integrated in the residuals/number of clusters
         scale.cluster <- NULL ## does not handle scaled Omega
         
@@ -156,24 +149,24 @@
         }else{
             scale.cluster <- design$scale.Omega[sapply(design$index.cluster,"[[",1)]
         }
+        precompute <- list()
         attr(precompute,"moments") <- FALSE
     }
 
-    ## *** REML term and its derivatives
-    if(method.fit == "REML"){
-
-        if(precompute.moments){
-            wX.mean <- NULL ## no need since wXX is in precompute
-        }else{
-            wX.mean <- lapply(attr(design$vcov$pattern,"list"), function(iCs){
-                lapply(iCs, function(iC){sqrt(weights.cluster[iC]) * design$mean[design$index.cluster[[iC]],,drop=FALSE]})
-            })
-        }
-        precompute$REML <- .precomputeREML(wX = wX.mean, precompute = precompute, 
-                                           Omega = out$Omega, dOmega = out$dOmega, d2Omega = out$d2Omega,
-                                           score = score, information = information, vcov = vcov, df = df)
+    ## *** Omega and its derivatives
+    if(method.fit == "REML" && !precompute.moments){
+        precompute$wX <- lapply(attr(design$vcov$pattern,"list"), function(iCs){
+            lapply(iCs, function(iC){sqrt(weights.cluster[iC]) * design$mean[design$index.cluster[[iC]],,drop=FALSE]})
+        })
     }
+browser()
+    resPrecomputeO <- .precomputeOmega(precompute = precompute,
+                                       Omega = out$Omega, dOmega = out$dOmega, d2Omega = out$d2Omega, 
+                                       method.fit = method.fit, type.information = type.information,
+                                       score = score, information = information, vcov = vcov, df = df)
+    precompute[names(resPrecomputeO)] <- resPrecomputeO
 
+    
     ## ** 4- compute likelihood derivatives
     if(logLik){
         if(trace>=1){cat("- log-likelihood \n")}

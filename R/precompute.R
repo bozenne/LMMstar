@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 22 2021 (13:47) 
 ## Version: 
-## Last-Updated: aug  4 2023 (18:08) 
+## Last-Updated: aug  8 2023 (19:29) 
 ##           By: Brice Ozenne
-##     Update #: 248
+##     Update #: 298
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -111,37 +111,72 @@
 
 ## * .precomputeOmega
 ## Precompute functions of the residual variance-covariance matrix and its derivates
-.precomputeOmega <- function(Omega, dOmega, d2Omega, 
+.precomputeOmega <- function(precompute, Omega, dOmega, d2Omega, 
                              method.fit, type.information, 
                              score, information, vcov, df){
 
     ## ** extract information
     n.pattern <- length(Omega)
     name.pattern <- names(Omega)
-    
+    if(method.fit == "REML"){
+        vec.key <- as.vector(precompute$wXX$key)
+        name.muparam <- colnames(precompute$wXX$key)
+        n.muparam <- length(name.muparam)
+        name.vcovparam <- attr(dOmega,"param")
+        n.vcovparam <- length(name.vcovparam)
+        name.pattern <- names(Omega)
+        n.pattern <- length(name.pattern)
+        allpair.vcov <- attr(d2Omega,"pair")
+        nAllpair.vcov <- NCOL(allpair.vcov)
+        precompute.moments <- attr(precompute,"moments")
+    }
+
     ## ** prepare output
     out <- list(Omega.chol = stats::setNames(vector(mode = "list", length = n.pattern), name.pattern),
                 OmegaM1 = stats::setNames(vector(mode = "list", length = n.pattern), name.pattern),
                 Omega.logdet = stats::setNames(rep(NA, times = n.pattern), name.pattern))
-
+    if(method.fit=="REML"){
+        wXOmegaM1X <- matrix(0, nrow = n.muparam, ncol = n.muparam, dimnames = list(name.muparam, name.muparam))
+        out$REML <- list(logdet = 0)
+    }
+    
     if(!is.null(dOmega) && (score || information || vcov || df)){
         ## !is.null(dOmega) for the case where only the mean parameters for the scores are asked
 
-        out$dOmega_OmegaM1 <- stats::setNames(vector(mode = "list", length = n.pattern), name.pattern)
+        ## trace
+        out$dOmega_OmegaM1 <- matrix(NA, nrow = n.pattern, ncol = n.vcovparam, dimnames = list(name.pattern, name.vcovparam))
+        ## full matrix
         out$OmegaM1_dOmega_OmegaM1 <- stats::setNames(vector(mode = "list", length = n.pattern), name.pattern)
-        
+
+        if(method.fit=="REML"){
+            wXOmegaM1X.M1 <- matrix(0, nrow = n.muparam, ncol = n.muparam, dimnames = list(name.muparam, name.muparam))
+            wXOmegaM1dOmegaOmegaM1X <- matrix(0, nrow = n.muparam, ncol = n.muparam, dimnames = list(name.muparam, name.muparam))
+            out$REML$dOmega <- stats::setNames(rep(0, times = n.vcovparam), name.vcovparam)            
+        }        
     }
+
     if(information || vcov || df){
+        ## trace
+        out$OmegaM1_dOmega_OmegaM1_dOmega <- array(NA, dim = c(n.pattern, n.vcovparam, n.vcovparam), dimnames = list(name.pattern, name.vcovparam, name.vcovparam))
 
-        out$OmegaM1_dOmega_OmegaM1_dOmega <- stats::setNames(vector(mode = "list", length = n.pattern), name.pattern)
+        if(df || (method.fit == "REML" || type.information == "observed")){
+            ## full matrix
+            out$d2Omega_dOmega_OmegaM1_dOmega <- stats::setNames(vector(mode = "list", length = n.pattern), name.pattern)
+            pair.vcov <- attr(d2Omega,"pair")
+        }
+
+        if(method.fit=="REML"){
+            wXOmegaM1d2OmegaAndCoOmegaM1X <- matrix(0, nrow = n.muparam, ncol = n.muparam, dimnames = list(name.muparam, name.muparam))
+            out$REML$d2OmegaAndCo <- stats::setNames(rep(0, times = n.vcovparam), name.vcovparam)            
+        }        
     }
 
-    if(df || ((vcov || information) && (method.fit == "REML" || type.information == "observed"))){
-        pair.vcov <- attr(d2Omega,"pair")
-        out$d2Omega_dOmega_OmegaM1_dOmega <- stats::setNames(vector(mode = "list", length = n.pattern), name.pattern)
+    if(df){
+        browser()
     }
 
-    ## ** loop over patterns
+    ## ** Likelihood
+    index.pattern <- 1:n.pattern
     for(iPattern in 1:n.pattern){ ## iPattern <- 1
         iOmega <- Omega[[iPattern]]
         attr(iOmega,"sd") <- NULL
@@ -149,60 +184,123 @@
 
         ## *** Omega^{1/2}
         out$Omega.chol[[iPattern]] <- try(chol(iOmega), silent = TRUE)
-        if(inherits(out$Omega.chol[[iPattern]],"try-error")){next}
 
-        ## *** det(Omega)
-        out$Omega.logdet[iPattern] <- 2*sum(log(diag(out$Omega.chol[[iPattern]])))
-        ## log(det(iOmega)) - out$Omega.logdet[[iPattern]]
+        if(!inherits(out$Omega.chol[[iPattern]],"try-error")){
+            ## *** det(Omega)
+            out$Omega.logdet[iPattern] <- 2*sum(log(diag(out$Omega.chol[[iPattern]])))
+            ## log(det(iOmega)) - out$Omega.logdet[[iPattern]]
         
-        ## *** Omega^{-1}
-        out$OmegaM1[[iPattern]] <- chol2inv(out$Omega.chol[[iPattern]])
-        attr(out$OmegaM1[[iPattern]],"vectorwise") <- as.vector(out$OmegaM1[[iPattern]])
+            ## *** Omega^{-1}
+            out$OmegaM1[[iPattern]] <- chol2inv(out$Omega.chol[[iPattern]])
+            attr(out$OmegaM1[[iPattern]],"vectorwise") <- as.vector(out$OmegaM1[[iPattern]])
+
+            ## *** REML
+            if(method.fit=="REML"){
+                if(precompute.moments){
+                    iwXX <- precompute$wXX$pattern[[iPattern]]
+                    wXOmegaM1X <- wXOmegaM1X + (attr(out$OmegaM1[[iPattern]],"vectorwise") %*% iwXX)[vec.key]
+                }else{
+                    iwX <- precompute$wX[[iPattern]]
+                    wXOmegaM1X <- wXOmegaM1X + Reduce("+", lapply(iwX, function(iX){t(iX) %*% precompute$OmegaM1[[iPattern]] %*% iX}))
+                }
+            }
+        }else{
+            index.pattern <- setdiff(index.pattern, iPattern)
+        }
         ## iOmega %*% out$OmegaM1[[iPattern]]
         ## out$OmegaM1[[iPattern]] %*% iOmega
+    }
 
-        ## *** Omega^{-1} d(Omega)/d(theta) and Omega^{-1} d(Omega)/d(theta) Omega^{-1}
-        if(!is.null(dOmega) && (score || information || vcov || df)){
-            out$dOmega_OmegaM1[[iPattern]] <- lapply(dOmega[[iPattern]], function(iM){iM %*% out$OmegaM1[[iPattern]]})
-            attr(out$dOmega_OmegaM1[[iPattern]],"tr") <- sapply(out$dOmega_OmegaM1[[iPattern]],tr)
+    if(method.fit=="REML"){
+        out$REML$logdet <- log(det(wXOmegaM1X))
+    }
+    if(!information && !vcov && !df && (!score || is.null(dOmega))){
+        return(out)
+    }
+    
+    ## *** Score
+    if(method.fit=="REML"){
+        wXOmegaM1X.M1 <- solve(wXOmegaM1X)
+        attr(wXOmegaM1X.M1,"vectorwise") <- as.vector(wXOmegaM1X.M1)
+    }
+    
+    for(iParam1 in name.vcovparam){
+    
+        for(iPattern in index.pattern){
+            dOmega_OmegaM1 <- dOmega[[iPattern]][[iParam1]] %*% out$OmegaM1[[iPattern]]
+            out$dOmega_OmegaM1[iPattern,iParam1] <- tr(dOmega_OmegaM1[[iPattern]])
 
-            out$OmegaM1_dOmega_OmegaM1[[iPattern]] <- lapply(out$dOmega_OmegaM1[[iPattern]], function(iM){out$OmegaM1[[iPattern]] %*% iM})
-            attr(out$OmegaM1_dOmega_OmegaM1[[iPattern]], "vectorwise") <- do.call(rbind,lapply(out$OmegaM1_dOmega_OmegaM1[[iPattern]], function(iM){ as.vector(iM) }))
+            out$OmegaM1_dOmega_OmegaM1[[iPattern]][[iParam1]] <- out$OmegaM1[[iPattern]] %*% dOmega_OmegaM1
         }
-        
-        ## *** Omega^{-1} d(Omega)/d(theta') Omega^{-1} d(Omega)/d(theta)
-        if(information || vcov || df){
 
-            iPair.vcov <- pair.vcov[[iPattern]]
-            iN.pair <- NCOL(iPair.vcov)
-
-            if(df || ((vcov || information) && (method.fit == "REML" || type.information == "observed"))){
-                out$OmegaM1_dOmega_OmegaM1_dOmega[[iPattern]] <- stats::setNames(lapply(1:iN.pair, function(iPair){ ## iPair <- 1
-                    return(out$OmegaM1_dOmega_OmegaM1[[iPattern]][[iPair.vcov[2,iPair]]] %*% dOmega[[iPattern]][[iPair.vcov[1,iPair]]])
-                }), colnames(iPair.vcov))
-                attr(out$OmegaM1_dOmega_OmegaM1_dOmega[[iPattern]],"tr") <- sapply(out$OmegaM1_dOmega_OmegaM1_dOmega[[iPattern]],tr)
-
+        if(method.fit == "REML"){
+            if(precompute.moments){
+                wXOmegaM1dOmegaOmegaM1X <- wXOmegaM1dOmegaOmegaM1X + (as.double(out$OmegaM1_dOmega_OmegaM1[[iPattern]][[iParam1]]) %*% iwXX)[vec.key]
             }else{
-                out$OmegaM1_dOmega_OmegaM1_dOmega[[iPattern]] <- list()
-                attr(out$OmegaM1_dOmega_OmegaM1_dOmega[[iPattern]],"tr") <- stats::setNames(sapply(1:iN.pair, function(iPair){ ## fast trace calculation tr(AB) = sum(A*B)
-                    return(sum(out$OmegaM1_dOmega_OmegaM1[[iPattern]][[iPair.vcov[2,iPair]]] * dOmega[[iPattern]][[iPair.vcov[1,iPair]]]))
-                }), colnames(iPair.vcov))
+                wXOmegaM1dOmegaOmegaM1X <- wXOmegaM1dOmegaOmegaM1X + t(wX[[iPattern]]) %*% precompute$OmegaM1_dOmega_OmegaM1[[iPattern]][[iiParam]] %*% wX[[iPattern]]
             }
         }
+    }
 
-        ## *** Omega^{-1} (d2Omega/d(theta'theta) - d(Omega)/d(theta') Omega^{-1} d(Omega)/d(theta)) Omega^{-1}
-        if(df || ((vcov || information) && (method.fit == "REML" || type.information == "observed"))){
-            out$d2Omega_dOmega_OmegaM1_dOmega[[iPattern]] <- stats::setNames(lapply(1:iN.pair, function(iPair){ ## iPair <- 5                
-                iOmega_M1_d2Omega <- out$OmegaM1[[iPattern]] %*% d2Omega[[iPattern]][[iPair]]
-                term1 <- out$OmegaM1_dOmega_OmegaM1_dOmega[[iPattern]][[iPair]] %*% out$OmegaM1[[iPattern]]
-                iOut <- iOmega_M1_d2Omega %*% out$OmegaM1[[iPattern]] - term1 - t(term1)
-                attr(iOut,"trModified") <- tr(out$OmegaM1_dOmega_OmegaM1_dOmega[[iPattern]][[iPair]] - iOmega_M1_d2Omega)
-                return(iOut)
-            }), colnames(iPair.vcov))
-            attr(out$d2Omega_dOmega_OmegaM1_dOmega[[iPattern]], "trModified") <- sapply(out$d2Omega_dOmega_OmegaM1_dOmega[[iPattern]], attr, "trModified")
-            attr(out$d2Omega_dOmega_OmegaM1_dOmega[[iPattern]], "vectorwise") <- do.call(rbind,lapply(out$d2Omega_dOmega_OmegaM1_dOmega[[iPattern]], function(iM){ as.vector(iM) }))
+    if(!information && !vcov && !df){
+        return(out)
+    }
+
+    ## *** Information
+    for(iPair in xxx){
+        browser()
+    }
+
+    if(!df){
+        return(out)
+    }
+
+    ## *** Df (i.e. -dInformation)
+    if(df){
+        for(iTriplet in yyy){
+            browser()
         }
     }
+    ## for(iPattern in 1:n.pattern){ ## iPattern <- 1
+    ##     iOmega <- Omega[[iPattern]]
+    ##     attr(iOmega,"sd") <- NULL
+    ##     attr(iOmega,"cor") <- NULL
+
+        
+        
+    ##     ## *** Omega^{-1} d(Omega)/d(theta') Omega^{-1} d(Omega)/d(theta)
+    ##     if(information || vcov || df){
+
+    ##         iPair.vcov <- pair.vcov[[iPattern]]
+    ##         iN.pair <- NCOL(iPair.vcov)
+
+    ##         if(df || ((vcov || information) && (method.fit == "REML" || type.information == "observed"))){
+    ##             out$OmegaM1_dOmega_OmegaM1_dOmega[[iPattern]] <- stats::setNames(lapply(1:iN.pair, function(iPair){ ## iPair <- 1
+    ##                 return(out$OmegaM1_dOmega_OmegaM1[[iPattern]][[iPair.vcov[2,iPair]]] %*% dOmega[[iPattern]][[iPair.vcov[1,iPair]]])
+    ##             }), colnames(iPair.vcov))
+    ##             attr(out$OmegaM1_dOmega_OmegaM1_dOmega[[iPattern]],"tr") <- sapply(out$OmegaM1_dOmega_OmegaM1_dOmega[[iPattern]],tr)
+
+    ##         }else{
+    ##             out$OmegaM1_dOmega_OmegaM1_dOmega[[iPattern]] <- list()
+    ##             attr(out$OmegaM1_dOmega_OmegaM1_dOmega[[iPattern]],"tr") <- stats::setNames(sapply(1:iN.pair, function(iPair){ ## fast trace calculation tr(AB) = sum(A*B)
+    ##                 return(sum(out$OmegaM1_dOmega_OmegaM1[[iPattern]][[iPair.vcov[2,iPair]]] * dOmega[[iPattern]][[iPair.vcov[1,iPair]]]))
+    ##             }), colnames(iPair.vcov))
+    ##         }
+    ##     }
+
+    ##     ## *** Omega^{-1} (d2Omega/d(theta'theta) - d(Omega)/d(theta') Omega^{-1} d(Omega)/d(theta)) Omega^{-1}
+    ##     if(df || ((vcov || information) && (method.fit == "REML" || type.information == "observed"))){
+    ##         out$d2Omega_dOmega_OmegaM1_dOmega[[iPattern]] <- stats::setNames(lapply(1:iN.pair, function(iPair){ ## iPair <- 5                
+    ##             iOmega_M1_d2Omega <- out$OmegaM1[[iPattern]] %*% d2Omega[[iPattern]][[iPair]]
+    ##             term1 <- out$OmegaM1_dOmega_OmegaM1_dOmega[[iPattern]][[iPair]] %*% out$OmegaM1[[iPattern]]
+    ##             iOut <- iOmega_M1_d2Omega %*% out$OmegaM1[[iPattern]] - term1 - t(term1)
+    ##             attr(iOut,"trModified") <- tr(out$OmegaM1_dOmega_OmegaM1_dOmega[[iPattern]][[iPair]] - iOmega_M1_d2Omega)
+    ##             return(iOut)
+    ##         }), colnames(iPair.vcov))
+    ##         attr(out$d2Omega_dOmega_OmegaM1_dOmega[[iPattern]], "trModified") <- sapply(out$d2Omega_dOmega_OmegaM1_dOmega[[iPattern]], attr, "trModified")
+    ##         attr(out$d2Omega_dOmega_OmegaM1_dOmega[[iPattern]], "vectorwise") <- do.call(rbind,lapply(out$d2Omega_dOmega_OmegaM1_dOmega[[iPattern]], function(iM){ as.vector(iM) }))
+    ##     }
+    ## }
 
     ## ** export
     return(out)
@@ -216,15 +314,6 @@
                             score, information, vcov, df){
 
     ## ** extract information
-    vec.key <- as.vector(precompute$wXX$key)
-    name.muparam <- colnames(precompute$wXX$key)
-    n.muparam <- length(name.muparam)
-    name.vcovparam <- attr(dOmega,"param")
-    n.vcovparam <- length(name.vcovparam)
-    name.pattern <- names(Omega)
-    n.pattern <- length(name.pattern)
-    allpair.vcov <- attr(attr(d2Omega,"pair"),"global")
-    nAllpair.vcov <- NCOL(allpair.vcov)
 
     ## ** prepare output
     wXOmegaM1X <- matrix(0, nrow = n.muparam, ncol = n.muparam, dimnames = list(name.muparam, name.muparam))
@@ -259,7 +348,8 @@
     for(iPattern in 1:n.pattern){ ## iPattern <- 1
         if(inherits(precompute$Omega.chol[[iPattern]],"try-error")){next}
         iwXX <- precompute$wXX$pattern[[iPattern]]
-        iParam.vcov <- precompute$OmegaM1_dOmega_OmegaM1[[iPattern]]
+        iParam.vcov <- precompute$OmegaM1_dOmega_O
+megaM1[[iPattern]]
 
         if(is.null(wX)){
             wXOmegaM1X <- wXOmegaM1X + (attr(precompute$OmegaM1[[iPattern]],"vectorwise") %*% iwXX)[vec.key]
@@ -409,11 +499,14 @@
                     if(length(xy.position)==0){
                         return(NULL)
                     }else{
+                        index.x <- match(xy.position, x$position)
+                        index.y <- match(xy.position, y$position)
                         data.frame(position = xy.position,
-                                   value1 = x[match(xy.position, x$position),"value"],
-                                   value2 = y[match(xy.position, y$position),"value"])
+                                   value1 = x[index.x,"value"],
+                                   value2 = y[index.y,"value"],
+                                   dvalue = x[index.x,"value"] * (y[index.y,"value"]-(x[index.x,"param"]==y[index.y,"param"])))
                     }
-                }, SIMPLIFY = FALSE)
+                }, SIMPLIFY = FALSE)                
                 iTest.rm <- lengths(iOut.Mindicator)
                 iOut <- iOut.all[,iTest.rm>0,drop=FALSE] ## remove combinaisons with no common times
                 attr(iOut, "index.pair") <- stats::setNames(iOut.Mindicator[iTest.rm>0], colnames(iOut))
@@ -448,7 +541,7 @@
     skeleton.type <- c(sigma = "sigmak", k = "sigmak", rho = "rho")[skeleton.vcov$type]
     param2type <- stats::setNames(skeleton.type, skeleton.vcov$name)
     
-    ## ** form all pairs
+    ## ** form all triplets
     alltriplet <- unorderedTriplet(freeparam.vcov)
     colnames(alltriplet) <- nlme::collapse(t(alltriplet), as.factor = FALSE)
     if(any(duplicated(colnames(alltriplet)))){
@@ -479,7 +572,7 @@
                 c(attr(x, "ls.index.pair"), attr(y, "ls.index.pair"))
             }, SIMPLIFY = FALSE), Upattern$name)
         }
-        if(all(lengths(Mindicator)==0)){ ## CUSTOM structure without ls.index.pair
+        if(all(lengths(Mindicator)==0)){ ## CUSTOM structure without ls.index.triplet
             Mindicator <- NULL
         }
     }
@@ -488,7 +581,7 @@
         iPattern <- Upattern[Upattern$name == iName,,drop=FALSE]
         iParamVcov <- setdiff(iPattern$param[[1]], param.constraint)
         if(length(iParamVcov)==0){return(NULL)}
-browser()
+
         iOut.all <- unorderedTriplet(iParamVcov)
         colnames(iOut.all) <- nlme::collapse(t(iOut.all), as.factor = FALSE)
         if(is.null(Mindicator)){
@@ -499,26 +592,35 @@ browser()
                 if(length(xyz.position)==0){
                     return(NULL)
                 }else{
+                    index.x <- match(xyz.position, x$position)
+                    index.y <- match(xyz.position, y$position)
+                    index.z <- match(xyz.position, z$position)
                     data.frame(position = xyz.position,
-                               value1 = x[match(xyz.position, x$position),"value"],
-                               value2 = y[match(xyz.position, y$position),"value"],
-                               value3 = z[match(xyz.position, y$position),"value"])
+                               value1 = x[index.x,"value"],
+                               value2 = y[index.y,"value"],
+                               value3 = z[index.z,"value"],
+                               d2value = x[index.x,"value"] * (y[index.y,"value"] - (x[index.x,"param"]==y[index.y,"param"])) * (z[index.z,"value"] - (x[index.x,"param"]==z[index.z,"param"]) - (y[index.y,"param"]==z[index.z,"param"])))
                 }
             }, SIMPLIFY = FALSE)
             iTest.rm <- lengths(iOut.Mindicator)
             iOut <- iOut.all[,iTest.rm>0,drop=FALSE] ## remove combinaisons with no common times
-            attr(iOut, "index.pair") <- stats::setNames(iOut.Mindicator[iTest.rm>0], colnames(iOut))
+            attr(iOut, "index.triplet") <- stats::setNames(iOut.Mindicator[iTest.rm>0], colnames(iOut))
         }
-        attr(iOut, "key") <- matrix(0, nrow = length(iParamVcov), ncol = length(iParamVcov), dimnames = list(iParamVcov,iParamVcov))
+        
+        attr(iOut, "key") <- array(0, dim = rep(length(iParamVcov), 3), dimnames = list(iParamVcov,iParamVcov,iParamVcov))
         for(iCol in 1:NCOL(iOut)){
-            attr(iOut, "key")[iOut[1,iCol],iOut[2,iCol]] <- iCol
-            attr(iOut, "key")[iOut[2,iCol],iOut[1,iCol]] <- iCol
+            attr(iOut, "key")[iOut[1,iCol],iOut[2,iCol],iOut[3,iCol]] <- iCol
+            attr(iOut, "key")[iOut[1,iCol],iOut[3,iCol],iOut[2,iCol]] <- iCol
+            attr(iOut, "key")[iOut[2,iCol],iOut[1,iCol],iOut[3,iCol]] <- iCol
+            attr(iOut, "key")[iOut[2,iCol],iOut[3,iCol],iOut[1,iCol]] <- iCol
+            attr(iOut, "key")[iOut[3,iCol],iOut[1,iCol],iOut[2,iCol]] <- iCol
+            attr(iOut, "key")[iOut[3,iCol],iOut[2,iCol],iOut[1,iCol]] <- iCol
         }
-        attr(iOut,"type") <- matrix(param2type[as.vector(iOut)], nrow = 2, ncol = NCOL(iOut),
+        attr(iOut,"type") <- matrix(param2type[as.vector(iOut)], nrow = 3, ncol = NCOL(iOut),
                                     dimnames = dimnames(iOut))
         collapse.type <- nlme::collapse(t(attr(iOut,"type")), as.factor = FALSE)
         attr(iOut,"typetype") <- tapply(1:length(collapse.type),collapse.type,base::identity,simplify = FALSE)
-        attr(iOut,"index.global") <- match(colnames(iOut), colnames(allpair))        
+        attr(iOut,"index.global") <- match(colnames(iOut), colnames(alltriplet))        
         return(iOut)
     }),Upattern$name)
 

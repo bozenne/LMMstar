@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: aug  4 2023 (16:19) 
+## Last-Updated: aug  8 2023 (17:47) 
 ##           By: Brice Ozenne
-##     Update #: 272
+##     Update #: 277
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -110,25 +110,28 @@
 
         if(length(iParam.sigmak) > 0){
             for(iiParam in iParam.sigmak){ ## iiParam <- iParam.sigmak[1]
-                iDf.info <- attr(X.var[[iPattern.var]],"ls.index.pair")[[iiParam]]
+                iiPosition <- attr(X.var[[iPattern.var]],"ls.index.pair")[[iiParam]]$position
+                iiValue <- attr(X.var[[iPattern.var]],"ls.index.pair")[[iiParam]]$value
                 if(transform.k == "log"){
-                    iScore[[iiParam]][iDf.info$position] <- iDf.info$value * iOmega[iDf.info$position]
+                    iScore[[iiParam]][iiPosition] <- iiValue * iOmega[iiPosition]
                 }else{ ## no transformation  (other transformations are made through jacobian)
-                    iScore[[iiParam]][iDf.info$position] <- iDf.info$value * iOmega[iDf.info$position] / param[iiParam]
+                    iScore[[iiParam]][iiPosition] <- iiValue * iOmega[iiPosition] / param[iiParam]
                 }
             }
         }
 
         if(length(iParam.rho)>0){
             for(iiParam in iParam.rho){
-                iDf.info <- attr(X.cor[[iPattern.cor]],"ls.index.pair")[[iiParam]]
+                iiPosition <- attr(X.var[[iPattern.var]],"ls.index.pair")[[iiParam]]$position
+                iiValue <- attr(X.var[[iPattern.var]],"ls.index.pair")[[iiParam]]$value
                 if(transform.rho == "atanh"){
-                    iScore[[iiParam]][iDf.info$position] <- iDf.info$value * iOmega[iDf.info$position] * (1-param[iiParam]^2)/param[iiParam]
+                    iScore[[iiParam]][iiPosition] <- iiValue * iOmega[iiPosition] * (1-param[iiParam]^2)/param[iiParam]
                 }else{ ## no transformation (other transformations are made through jacobian)
-                    iScore[[iiParam]][iDf.info$position] <- iDf.info$value * iOmega[iDf.info$position] / param[iiParam]
+                    iScore[[iiParam]][iiPosition] <- iiValue * iOmega[iiPosition] / param[iiParam]
                 }
             }
         }
+        
         ## apply transformation
         if(!is.null(Jacobian)){
             ## [dOmega_[11]/d theta_1] ... [dOmega_[11]/d theta_p] %*% Jacobian
