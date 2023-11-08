@@ -49,9 +49,10 @@ Estimates, p-values, and confidence intevals for linear hypothesis testing, poss
 }
 \details{
 By default adjustment for multiple comparisons via a single step max-test adjustment,
-either using the multcomp package (equal degrees of freedom) or the copula package (unequal degrees of freedom).
+ either using the multcomp package (equal degrees of freedom, \code{method="single-step"}) or the copula package (unequal degrees of freedom, \code{method="single-step2"}).
+See the argument \code{method} of \code{\link{confint.Wald_lmm}} for other adjustments for multiple comparisons. \cr
 When multiple multivariate Wald tests are performed, adjustment for multiple comparisons for the univariate Wald tests is performed within each multivariate Wald test.
-The number of tests ajusted for equal the first degree of freedom of the multivariate Wald statistic.
+The number of tests ajusted for equal the first degree of freedom of the multivariate Wald statistic. \cr
 
 Adding the value \code{"type"} in argument \code{"columns"} ensures that the type of parameter that is being test (mean, variance, correlation) is output.
 }

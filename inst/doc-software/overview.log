@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.23 (MiKTeX 21.8) (preloaded format=pdflatex 2021.8.26)  1 AUG 2023 16:09
+This is pdfTeX, Version 3.141592653-2.6-1.40.23 (MiKTeX 21.8) (preloaded format=pdflatex 2021.8.26)  8 NOV 2023 15:31
 entering extended mode
 **c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/overview.tex
 (c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/overview.tex
@@ -1319,258 +1319,258 @@ LaTeX Font Info:    External font `lmex10' loaded for size
 
 ] [17] [18
 
-] [19]
-[20] [21
+] [19
 
-] [22] [23] [24]
-Overfull \hbox (2.1203pt too wide) in paragraph at lines 1683--1686
+]
+[20] [21] [22]
+Overfull \hbox (2.1203pt too wide) in paragraph at lines 1630--1633
 []\T1/lmr/m/n/12 It is also pos-si-ble to ex-tract the vari-ance de-com-po-si-t
 ion by set-ting the ar-gu-ment \T1/lmtt/m/n/12 effects \T1/lmr/m/n/12 to \T1/lm
 tt/m/n/12 "variance"\T1/lmr/m/n/12 :
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1683--1686
+Underfull \hbox (badness 10000) in paragraph at lines 1630--1633
 
  []
 
-[25] [26
+[23] [24
 
-] [27
+] [25
 
-] [28]
-<./figures/diag-scatterplot.pdf, id=616, 505.89pt x 505.89pt>
+] [26]
+<./figures/diag-scatterplot.pdf, id=608, 505.89pt x 505.89pt>
 File: ./figures/diag-scatterplot.pdf Graphic file (type pdf)
 <use ./figures/diag-scatterplot.pdf>
-Package pdftex.def Info: ./figures/diag-scatterplot.pdf  used on input line 196
-3.
+Package pdftex.def Info: ./figures/diag-scatterplot.pdf  used on input line 191
+0.
 (pdftex.def)             Requested size: 216.23764pt x 216.23933pt.
- [29
+ [27
 
  <./figures/diag-scatterplot.pdf>]
-<./figures/diag-scatterplot2.pdf, id=638, 505.89pt x 505.89pt>
+<./figures/diag-scatterplot2.pdf, id=630, 505.89pt x 505.89pt>
 File: ./figures/diag-scatterplot2.pdf Graphic file (type pdf)
 <use ./figures/diag-scatterplot2.pdf>
 Package pdftex.def Info: ./figures/diag-scatterplot2.pdf  used on input line 19
-77.
+24.
 (pdftex.def)             Requested size: 216.23764pt x 216.23933pt.
-<./figures/diag-correlation.pdf, id=639, 867.24pt x 460.72125pt>
+<./figures/diag-correlation.pdf, id=631, 867.24pt x 460.72125pt>
 File: ./figures/diag-correlation.pdf Graphic file (type pdf)
 <use ./figures/diag-correlation.pdf>
-Package pdftex.def Info: ./figures/diag-correlation.pdf  used on input line 199
-1.
+Package pdftex.def Info: ./figures/diag-correlation.pdf  used on input line 193
+8.
 (pdftex.def)             Requested size: 324.36473pt x 172.32011pt.
-<./figures/diag-qqplot.pdf, id=643, 505.89pt x 505.89pt>
+<./figures/diag-qqplot.pdf, id=635, 505.89pt x 505.89pt>
 File: ./figures/diag-qqplot.pdf Graphic file (type pdf)
 <use ./figures/diag-qqplot.pdf>
-Package pdftex.def Info: ./figures/diag-qqplot.pdf  used on input line 2005.
+Package pdftex.def Info: ./figures/diag-qqplot.pdf  used on input line 1952.
 (pdftex.def)             Requested size: 270.3012pt x 270.30496pt.
- [30
+ [28
 
  <./figures/diag-scatterplot2.pdf> <./figures/diag-correlation.pdf>]
-<./figures/diag-profileUN.pdf, id=674, 578.16pt x 361.35pt>
+<./figures/diag-profileUN.pdf, id=666, 578.16pt x 361.35pt>
 File: ./figures/diag-profileUN.pdf Graphic file (type pdf)
 <use ./figures/diag-profileUN.pdf>
-Package pdftex.def Info: ./figures/diag-profileUN.pdf  used on input line 2025.
+Package pdftex.def Info: ./figures/diag-profileUN.pdf  used on input line 1972.
 
 (pdftex.def)             Requested size: 270.3012pt x 168.93578pt.
- [31 <./figures/diag-qqplot.pdf> <./figures/diag-profileUN.pdf>]
-<./figures/fit-autoplot.pdf, id=705, 505.89pt x 505.89pt>
+ [29 <./figures/diag-qqplot.pdf> <./figures/diag-profileUN.pdf>]
+<./figures/fit-autoplot.pdf, id=696, 505.89pt x 505.89pt>
 File: ./figures/fit-autoplot.pdf Graphic file (type pdf)
 <use ./figures/fit-autoplot.pdf>
-Package pdftex.def Info: ./figures/fit-autoplot.pdf  used on input line 2049.
+Package pdftex.def Info: ./figures/fit-autoplot.pdf  used on input line 1996.
 (pdftex.def)             Requested size: 243.26941pt x 243.27214pt.
-<./figures/fit-emmip.pdf, id=706, 505.89pt x 505.89pt>
+<./figures/fit-emmip.pdf, id=697, 505.89pt x 505.89pt>
 File: ./figures/fit-emmip.pdf Graphic file (type pdf)
 <use ./figures/fit-emmip.pdf>
-Package pdftex.def Info: ./figures/fit-emmip.pdf  used on input line 2054.
+Package pdftex.def Info: ./figures/fit-emmip.pdf  used on input line 2001.
 (pdftex.def)             Requested size: 243.26941pt x 243.27214pt.
-<./figures/fit10-autoplot.pdf, id=707, 505.89pt x 505.89pt>
+<./figures/fit10-autoplot.pdf, id=698, 505.89pt x 505.89pt>
 File: ./figures/fit10-autoplot.pdf Graphic file (type pdf)
 <use ./figures/fit10-autoplot.pdf>
-Package pdftex.def Info: ./figures/fit10-autoplot.pdf  used on input line 2080.
+Package pdftex.def Info: ./figures/fit10-autoplot.pdf  used on input line 2027.
 
 (pdftex.def)             Requested size: 243.26941pt x 243.27214pt.
-<./figures/fitAll-autoplot.pdf, id=708, 505.89pt x 505.89pt>
+<./figures/fitAll-autoplot.pdf, id=699, 505.89pt x 505.89pt>
 File: ./figures/fitAll-autoplot.pdf Graphic file (type pdf)
 <use ./figures/fitAll-autoplot.pdf>
-Package pdftex.def Info: ./figures/fitAll-autoplot.pdf  used on input line 2085
+Package pdftex.def Info: ./figures/fitAll-autoplot.pdf  used on input line 2032
 .
 (pdftex.def)             Requested size: 243.26941pt x 243.27214pt.
- [32
+ [30
 
  <./figures/fit-autoplot.pdf> <./figures/fit-emmip.pdf>]
-<./figures/fit-autoplot-indiv.pdf, id=735, 867.24pt x 460.72125pt>
+<./figures/fit-autoplot-indiv.pdf, id=726, 867.24pt x 460.72125pt>
 File: ./figures/fit-autoplot-indiv.pdf Graphic file (type pdf)
 <use ./figures/fit-autoplot-indiv.pdf>
 Package pdftex.def Info: ./figures/fit-autoplot-indiv.pdf  used on input line 2
-100.
+047.
 (pdftex.def)             Requested size: 540.60239pt x 287.20488pt.
- [33 <./figures/fit10-autoplot.pdf> <./figures/fitAll-autoplot.pdf> <./figures/
+ [31 <./figures/fit10-autoplot.pdf> <./figures/fitAll-autoplot.pdf> <./figures/
 fit-autoplot-indiv.pdf>]
-<./figures/fit-pres.pdf, id=771, 867.24pt x 361.35pt>
+<./figures/fit-pres.pdf, id=763, 867.24pt x 361.35pt>
 File: ./figures/fit-pres.pdf Graphic file (type pdf)
 <use ./figures/fit-pres.pdf>
-Package pdftex.def Info: ./figures/fit-pres.pdf  used on input line 2117.
+Package pdftex.def Info: ./figures/fit-pres.pdf  used on input line 2064.
 (pdftex.def)             Requested size: 405.45178pt x 168.9413pt.
- [34
+ [32
 
- <./figures/fit-pres.pdf>] [35
+ <./figures/fit-pres.pdf>] [33
 
 ]
-[36
+[34
+
+] [35
+
+] [36
 
 ] [37
 
-] [38
-
-] [39
-
-] [40]
-<./figures/gg-baseAdj.pdf, id=883, 505.89pt x 505.89pt>
+] [38]
+<./figures/gg-baseAdj.pdf, id=875, 505.89pt x 505.89pt>
 File: ./figures/gg-baseAdj.pdf Graphic file (type pdf)
 <use ./figures/gg-baseAdj.pdf>
-Package pdftex.def Info: ./figures/gg-baseAdj.pdf  used on input line 2614.
+Package pdftex.def Info: ./figures/gg-baseAdj.pdf  used on input line 2561.
 (pdftex.def)             Requested size: 216.23764pt x 216.23933pt.
- [41] [42 <./figures/gg-baseAdj.pdf>] [43] [44
+ [39] [40 <./figures/gg-baseAdj.pdf>] [41] [42
 
 ]
-[45
+[43
 
-] [46
+] [44
 
-] [47
+] [45
 
-] [48] [49
+] [46] [47
 
-] [50
+] [48
 
-] [51] [52
+] [49] [50
 
-] [53
+] [51
 
-] [54]
-<./figures/imputation.pdf, id=1130, 867.24pt x 460.72125pt>
+] [52]
+<./figures/imputation.pdf, id=1122, 867.24pt x 460.72125pt>
 File: ./figures/imputation.pdf Graphic file (type pdf)
 <use ./figures/imputation.pdf>
-Package pdftex.def Info: ./figures/imputation.pdf  used on input line 3480.
+Package pdftex.def Info: ./figures/imputation.pdf  used on input line 3427.
 (pdftex.def)             Requested size: 540.60239pt x 287.20488pt.
- [55] [56 <./figures/imputation.pdf>] [57
+ [53] [54 <./figures/imputation.pdf>] [55
 
-] [58]
-<./figures/forestplot.pdf, id=1187, 867.24pt x 460.72125pt>
+] [56]
+<./figures/forestplot.pdf, id=1179, 867.24pt x 460.72125pt>
 File: ./figures/forestplot.pdf Graphic file (type pdf)
 <use ./figures/forestplot.pdf>
-Package pdftex.def Info: ./figures/forestplot.pdf  used on input line 3598.
+Package pdftex.def Info: ./figures/forestplot.pdf  used on input line 3545.
 (pdftex.def)             Requested size: 540.60239pt x 287.20488pt.
- [59
+ [57
 
- <./figures/forestplot.pdf>] [60
+ <./figures/forestplot.pdf>] [58
 
-] [61
+] [59
 
-] [62
+] [60
 
-] (overview.bbl) [63
+] (overview.bbl) [61
 
 ]
-Underfull \hbox (badness 10000) in paragraph at lines 3791--3791
+Underfull \hbox (badness 10000) in paragraph at lines 3738--3738
 [][]\T1/lmr/m/n/10 The REML is the like-li-hood of the ob-ser-va-tions di-vided
  by the prior on the es-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 3791--3791
+Underfull \hbox (badness 10000) in paragraph at lines 3738--3738
 \T1/lmr/m/n/10 ti-mated mean pa-ram-e-ters $[][] \OMS/lmsy/m/n/10  N\OT1/lmr/m
 /n/10 (\OML/lmm/m/it/10 ; [][]\OT1/lmr/m/n/10 )$\T1/lmr/m/n/10 . This cor-re-s
 ponds to
  []
 
 
-Underfull \hbox (badness 2591) in paragraph at lines 3791--3791
+Underfull \hbox (badness 2591) in paragraph at lines 3738--3738
 [] [] []$ \T1/lmr/m/n/10 Since $\OML/lmm/m/it/10 $ \T1/lmr/m/n/10 will be es-t
 i-mated to be
+ []
+
+[62
+
+]
+Overfull \hbox (31.8687pt too wide) detected at line 3777
+[]
+ []
+
+
+Overfull \hbox (22.72969pt too wide) detected at line 3807
+[]
+ []
+
+[63
+
+]
+Overfull \hbox (4.43532pt too wide) detected at line 3846
+[]
  []
 
 [64
 
 ]
-Overfull \hbox (31.8687pt too wide) detected at line 3830
+Overfull \hbox (0.37851pt too wide) detected at line 3881
 []
  []
 
 
-Overfull \hbox (22.72969pt too wide) detected at line 3860
+Overfull \hbox (15.46007pt too wide) detected at line 3914
 []
  []
 
-[65
+[65] [66
 
-]
-Overfull \hbox (4.43532pt too wide) detected at line 3899
-[]
- []
+] [67] [68
 
-[66
+] [69] [70] [71
 
-]
-Overfull \hbox (0.37851pt too wide) detected at line 3934
-[]
- []
+] [72
 
+] [73
 
-Overfull \hbox (15.46007pt too wide) detected at line 3967
-[]
- []
-
-[67] [68
-
-] [69] [70
-
-] [71] [72] [73
-
-] [74
-
-] [75
-
-] [76]
+] [74]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 4563.
+(hyperref)                removing `math shift' on input line 4510.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `superscript' on input line 4563.
+(hyperref)                removing `superscript' on input line 4510.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 4563.
+(hyperref)                removing `math shift' on input line 4510.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\eta' on input line 4563.
+(hyperref)                removing `\eta' on input line 4510.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `superscript' on input line 4563.
+(hyperref)                removing `superscript' on input line 4510.
 
-[77]
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 4632.
-
+[75]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `superscript' on input line 4632.
+(hyperref)                removing `math shift' on input line 4579.
 
-[78]
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `superscript' on input line 4579.
+
+[76]
 \Changes@OutFile=\write6
 \openout6 = `overview.soc'.
 
 \tf@loc=\write7
 \openout7 = `overview.loc'.
 
- [79] (overview.aux)
+ [77] (overview.aux)
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
@@ -1578,9 +1578,9 @@ Package rerunfilecheck Info: File `overview.out' has not changed.
 (rerunfilecheck)             Checksum: 05B7E03E6594730A0069C3B8C3B8D817;8742.
  ) 
 Here is how much of TeX's memory you used:
- 31634 strings out of 478868
- 553525 string characters out of 2856724
- 1325994 words of memory out of 3000000
+ 31632 strings out of 478868
+ 553511 string characters out of 2856724
+ 1325996 words of memory out of 3000000
  47969 multiletter control sequences out of 15000+600000
  512194 words of font info for 127 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
@@ -1634,9 +1634,9 @@ eX 2.9/fonts/type1/public/lm/lmtt10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type
 mbols/msam5.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/symbol
 s/msam7.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/symbols/ms
 bm10.pfb>
-Output written on overview.pdf (79 pages, 958147 bytes).
+Output written on overview.pdf (77 pages, 955578 bytes).
 PDF statistics:
- 1846 PDF objects out of 2073 (max. 8388607)
- 922 named destinations out of 1000 (max. 500000)
+ 1837 PDF objects out of 2073 (max. 8388607)
+ 920 named destinations out of 1000 (max. 500000)
  486 words of extra memory for PDF output out of 10000 (max. 10000000)
 

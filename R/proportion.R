@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 15 2022 (14:09) 
 ## Version: 
-## Last-Updated: jun 15 2023 (16:23) 
+## Last-Updated: nov  8 2023 (16:02) 
 ##           By: Brice Ozenne
-##     Update #: 35
+##     Update #: 36
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -23,7 +23,7 @@
 #' @param n.sample [numeric,>=0] number of bootstrap sample used to assess the uncertainty.
 #' If 0, then only the point estimate is computed.
 #' @param trace [logical] shoudl the execution of the boostrap be trace.
-#' @param ... additional arguments passed to code{confint.Wald_lmm}
+#' @param ... additional arguments passed to \code{confint.Wald_lmm}
 #'
 #' @return a data.frame with the estimated proportion (estimate column), standard error and confidence interval (when boostrap is used).
 #' 

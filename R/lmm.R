@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: aug  1 2023 (14:34) 
+## Last-Updated: nov  8 2023 (15:05) 
 ##           By: Brice Ozenne
-##     Update #: 2964
+##     Update #: 2965
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -583,7 +583,7 @@ lmm <- function(formula, repetition, structure, data,
             }
             ## Covariates from certain structures contains missing time variables
             test.timecluster <- length(var.time)==1 && !is.na(var.time) && length(var.cluster)==1 && !is.na(var.cluster)
-            if(test.timecluster && structure$class %in% c("TOEPLITZ","LV") && identical(structure$name$var,structure$name$cor) && length(structure$name$var[[1]]==1)){
+            if(test.timecluster && !inherits(structure,"CUSTOM") && identical(structure$name$var,structure$name$cor) && length(structure$name$var[[1]]==1)){
                 if(any(tapply(data[[var.time]],data[[var.cluster]], function(iVec){any(duplicated(iVec))}))){
                     var.time <- c(structure$name$var[[1]], var.time)
                 }                

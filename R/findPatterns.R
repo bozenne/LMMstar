@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: aug  1 2023 (14:20) 
+## Last-Updated: nov  8 2023 (16:04) 
 ##           By: Brice Ozenne
-##     Update #: 847
+##     Update #: 848
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,8 +18,9 @@
 `.findUpatterns` <-function(structure, 
                             index.clusterTime, U.time,
                             index.cluster, U.cluster,
-                            index.clusterStrata, U.strata,
-                            sep) UseMethod(".findUpatterns")
+                            index.clusterStrata, U.strata){
+    UseMethod(".findUpatterns")
+}
 
 ## * .findUpatterns.ID
 .findUpatterns.ID <- function(structure, 

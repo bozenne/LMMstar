@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: aug  1 2023 (16:44) 
+## Last-Updated: nov  8 2023 (16:00) 
 ##           By: Brice Ozenne
-##     Update #: 932
+##     Update #: 940
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -139,7 +139,7 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
 
 }
 
-## ** .autofit (helper to autofit.lmm)
+## ** .autofit (helper to autoplot.lmm)
 .autofit <- function(object,
                      obs.alpha, obs.size,
                      at, time.var, color, ci, ci.alpha, 
@@ -185,22 +185,22 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
         message("There is nothing to be displayed: empty time variable and no covariate for the mean structure. \n")
         return(NULL)
     }
-
+    
     if(length(color) == 0){
         color <- NULL
-    }else if(length(color) == 1){
-        if(is.character(color) && (color %in% names(object.data) == FALSE)){
+    }else if(length(color)>1){
+        stop("Argument \'color\' should either be NULL \n",
+             "        or have length 1 and be TRUE or a variable name in the data used to fit the lmm. \n")
+    }else if(length(color) == 1 && is.character(color)){
+        if(color %in% names(object.data) == FALSE){
             if(color %in% names(object$data.original)){
                 object.data[[color]] <- object$data.original[[color]][object.data$XXindexXX]
             }else{
                 stop("Incorrect value for argument \'color\'. \n",
                      "No column ",color," found in the dataset used to fit the lmm. \n")
             }
-        }else if(!identical(color,TRUE)){
-            stop("Argument \'color\' should either be NULL \n",
-                 "        or have length 1 and be TRUE or a variable name in the data used to fit the lmm. \n")
         }
-    }else if(length(color)>1){
+    }else if(!identical(color,TRUE)){
         stop("Argument \'color\' should either be NULL \n",
              "        or have length 1 and be TRUE or a variable name in the data used to fit the lmm. \n")
     }
@@ -1389,7 +1389,7 @@ autoplot.Wald_lmm <- function(object, type = "forest", size.text = 16, add.args 
     }
     gg <- gg + ggplot2::geom_point(size = size.estimate) + ggplot2::labs(x = "", y = "")
     if(ci){
-        gg <- gg + ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$lower, ymax = .data$upper), size = size.ci, width = width.ci)
+        gg <- gg + ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$lower, ymax = .data$upper), linewidth = size.ci, width = width.ci)
     }
     if(size.null>0 && length(rhs)==1){
         gg <- gg + ggplot2::geom_hline(yintercept=rhs, lty=2, linewidth = size.null)

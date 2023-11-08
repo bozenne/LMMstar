@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 25 2023 (15:13) 
+## Last-Updated: nov  8 2023 (15:09) 
 ##           By: Brice Ozenne
-##     Update #: 486
+##     Update #: 489
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -28,6 +28,10 @@
 ##' By default, use the name of the outcome of the model.
 ##' @param sep [character] character used to separate the outcome and the covariate when naming the tests.
 ##'
+##' @details WARNING: in presence of measurements from the same cluster across several models,
+##' the influence function is used to estimate the covariance between the model parameters.
+##' This is why the (robust) standard errors may not match the (model-based) standard error from the linear mixed
+##' Setting the argument \code{robust} to \code{FALSE} when calling \code{anova.lmm} will rescale the (robust) standard errors to mimic the original model-based standard errors.
 ##' @keywords methods
 ##' 
 ##' @examples
@@ -40,14 +44,22 @@
 ##'               structure = "CS", df = FALSE)
 ##' e.lmm2 <- lmm(Y ~ X1+X8+X9, repetition = ~visit|id, data = dL,
 ##'               structure = "CS", df = FALSE)
-##'
-##' ## select null hypotheses
+##' 
+##' model.tables(e.lmm1) ## model-based standard errors
+##' model.tables(e.lmm1, robust = TRUE) ## robust standard errors
+##' 
+##' ## select null hypotheses & combine (robust standard errors)
 ##' AAA <- anova(e.lmm1, ci = TRUE, effect = c("X1|X2,X3"="X1=0","X2|X1,X3"="X2=0"))
 ##' BBB <- anova(e.lmm2, ci = TRUE, effect = c("X1|X8,X9"="X1=0"))
 ##'
-##' ## combine
 ##' ZZZ <- rbind(AAA,BBB)
-##' summary(ZZZ)
+##'
+##' ## select null hypotheses & combine (model-based like standard errors)
+##' AA <- anova(e.lmm1, ci = TRUE, effect = c("X1|X2,X3"="X1=0","X2|X1,X3"="X2=0"),
+##'              robust = FALSE)
+##' BB <- anova(e.lmm2, ci = TRUE, effect = c("X1|X8,X9"="X1=0"),
+##'              robust = FALSE)
+##' ZZ <- rbind(AA,BB)
 
 ## * rbind.Wald_lmm (code)
 ##' @export

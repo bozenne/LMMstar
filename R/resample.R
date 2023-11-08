@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: aug  1 2023 (14:48) 
+## Last-Updated: nov  8 2023 (18:12) 
 ##           By: Brice Ozenne
-##     Update #: 524
+##     Update #: 566
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -433,8 +433,10 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
             on.exit(rm(.Random.seed, envir=.GlobalEnv))
         }
         set.seed(seed)
+        test.seed <- TRUE
         seqSeed <- sample.int(tol.seed, n.sample,  replace = FALSE)        
     }else{
+        test.seed <- FALSE
         seqSeed <- NULL
     }
 
@@ -448,13 +450,13 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
     }else if(cpus>1){
         cl <- parallel::makeCluster(cpus)
         ## link to foreach
-        doSNOW::registerDoSNOW(cl)
+        doParallel::registerDoParallel(cl)
         ## export from user
         if(!is.null(export.cpus)){
             parallel::clusterExport(cl, export.cpus)
         } 
         ## export seed 
-        if (!is.null(seed)) {
+        if (test.seed) {
             parallel::clusterExport(cl, varlist = "seqSeed", envir = environment())
         }
         ## export BuyseTest 
@@ -465,9 +467,9 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 
     if (cpus == 1) {
         ls.sample <- do.call(method.loop,
-                             args = list(iX = 1:n.sample,
+                             args = list(X = 1:n.sample,
                                          FUN = function(iX){
-                                             if(!is.null(seed)){set.seed(seqSeed[iX])}
+                                             if(test.seed){set.seed(seqSeed[iX])}
                                              iOut <- warperResample(iX)
                                              return(iOut)
                                          })
@@ -484,7 +486,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
         iX <- NULL ## [:forCRANcheck:] foreach        
         ls.sample <- foreach::`%dopar%`(
                                   foreach::foreach(iX=1:n.sample, .options.snow = opts, .packages = c("LMMstar","nlme")), {
-                                      if(!is.null(seed)){set.seed(seqSeed[iX])}
+                                      if(test.seed){set.seed(seqSeed[iX])}
                                       iOut <- warperResample(iX)
                                       return(iOut)
                                   })
@@ -555,7 +557,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 
     ## ** export
     attr(out,"call") <- match.call()
-    attr(out,"args") <- list(type = type, effects = effects, n.sample = n.sample, studentized = studentized, seed = seed)
+    attr(out,"args") <- list(type = type, effects = effects, n.sample = n.sample, studentized = studentized, seed = seqSeed)
     attr(out,"M.sample") <- M.sample
     attr(out,"n.sample") <- n.sample
     class(out) <- append("resample",class(out))
@@ -570,7 +572,6 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 ##                           level = 0.95, correction = TRUE,
 ##                           trace = TRUE, seed = NULL, cpus = 1,
 ##                           ...){
-##     browser()
 
 ##     ## ** normalize arguments
 ##     ## alternative
@@ -588,7 +589,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
     
 ##     ## cluster
 ##     if(is.null(cluster)){
-##         ls.nameCluster <- lapply(object$model, function(iModel){manifest(iModel)["cluster"]})
+##         ls.nameCluster <- lapply(object$model, function(iModel){attr(manifest(iModel),"cluster")})
 ##         if(length(unique(unlist(ls.nameCluster)))==1 && all(lengths(ls.nameCluster)==1)){
 ##             cluster <- unname(ls.nameCluster[[1]])
 ##         }else{
@@ -602,7 +603,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 ##     if(!is.character(cluster)){
 ##         stop("Argument \'cluster\' should be a character. \n")
 ##     }
-    
+
 ##     ## data    
 ##     object.call <- attr(object, "call")
 ##     by <- object.call$by
@@ -636,6 +637,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 ##             stop("Argument \'cluster\' could not be found in the dataset. \n")
 ##         }
 ##     }
+##     data <- as.data.frame(data)
 
 ##     ## type
 ##     if(tolower(type) == "perm"){
@@ -670,7 +672,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 ##     }else if(type=="bootstrap"){
 ##         calc.pvalue <- try(requireNamespace("BuyseTest")) ## to get the p-values
 ##     }
-    
+
 ##     ## cpus
 ##     if(length(cpus)!=1){
 ##         stop("Argument \'cpus\' should have length 1.\n ")
@@ -703,9 +705,6 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 ##     warperResample <- function(iSample){
 
 ##         ## *** resample
-##         iNewCluster <- stats::setNames(sample(n.cluster, n.cluster, replace = TRUE),
-##                                        1:n.cluster)
-##         iNewData <- data[]
 ##         if(type == "permutation"){
 ##             ## permute X-values (constant within cluster)
 ##             iPerm <- sample(n.cluster, replace = FALSE)
@@ -714,12 +713,13 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 ##                 iData[index.cluster[[iCluster]],variable.perm] <- Uvar[[iPerm[iCluster]]] ## seems to properly expand Uvar over multiple timepoints
 ##             }
 ##         }else if(type == "bootstrap"){
+##             browser()
 ##             ils.Boot <- index.cluster[sample(n.cluster, replace = TRUE)]
-##             names(ils.Boot) <- 1:n.cluster
 ##             iBoot <- unlist(ils.Boot)
-            
+##             iBoot.cl <- unlist(mapply(x = 1:n.cluster, y = lengths(ils.Boot), function(x,y){rep(x,y)}, SIMPLIFY = FALSE))
+
 ##             iData <- data[iBoot,,drop=FALSE]
-##             iData[[cluster]] <- as.numeric(factor(names(iBoot), levels = unique(names(iBoot))))
+##             iData[[cluster]] <- iBoot.cl
 ##             rownames(iData) <- NULL            
 ##         }
 
@@ -728,13 +728,13 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 ##         iCall$trace <- 0
 ##         iCall$data <- iData
 ##         iEstimate <- eval(iCall)
-        
+
 ##         ## *** export
 ##         ## use merge in case effects for some categories are not estimated
 ##         iEstimate$univariate2 <- model.tables(iEstimate, columns = keep.cols, method = method)
 
 ##         iOut <- template
-##         if(is.null(method) || (method %in% method.merge == FALSE)){
+##         if(is.null(method) || all(method %in% method.merge == FALSE)){
 ##             iOut$multivariate <- merge(iOut$multivariate, iEstimate$multivariate, by = c("type","test","null"), all = TRUE)
 ##             iOut$univariate <- merge(iOut$univariate, iEstimate$univariate2, by = c("by","parameter"), all = TRUE)
 ##         }else{
@@ -753,26 +753,79 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 ##         }
 ##     }
     
-##     if(!is.null(seed)){set.seed(seed)}
+##     ## seed
+##     if(!is.null(seed)){
+##         tol.seed <- 10^(floor(log10(.Machine$integer.max))-1)
+##         if(n.sample>tol.seed){
+##             stop("Cannot set a seed per simulation when considering more than ",tol.seed," similations. \n")
+##         }
+##         if(!is.null(get0(".Random.seed"))){ ## avoid error when .Random.seed do not exists, e.g. fresh R session with no call to RNG
+##             old <- .Random.seed # to save the current seed
+##             on.exit(.Random.seed <<- old) # restore the current seed (before the call to the function)
+##         }else{
+##             on.exit(rm(.Random.seed, envir=.GlobalEnv))
+##         }
+##         set.seed(seed)
+##         test.seed <- TRUE
+##         seqSeed <- sample.int(tol.seed, n.sample,  replace = FALSE)        
+##     }else{
+##         seqSeed <- NULL
+##         test.seed <- FALSE
+##     }
 
-##     if(cpus>1){
+##     if(cpus==1){
+##         if (trace > 0) {
+##             requireNamespace("pbapply")
+##             method.loop <- pbapply::pblapply
+##         }else{
+##             method.loop <- lapply
+##         }
+##     }else if(cpus>1){
 ##         cl <- parallel::makeCluster(cpus)
+##         ## link to foreach
+##         doParallel::registerDoParallel(cl)
+##         ## export from user
+##         if(!is.null(export.cpus)){
+##             parallel::clusterExport(cl, export.cpus)
+##         } 
+##         ## export seed 
+##         if (test.seed) {
+##             parallel::clusterExport(cl, varlist = "seqSeed", envir = environment())
+##         }
+##         ## export BuyseTest 
 ##         fct2export <- NULL
 ##         parallel::clusterExport(cl = cl, varlist = fct2export, envir = as.environment(asNamespace("LMMstar")))
-##     }else{
-##         cl <- NULL
+        
 ##     }
+##     if (cpus == 1) {
+##         ls.sample <- do.call(method.loop,
+##                              args = list(X = 1:n.sample,
+##                                          FUN = function(iX){ ## iX <- 1
+##                                              if(test.seed){set.seed(seqSeed[iX])}
+##                                              iOut <- warperResample(iX)
+##                                              return(iOut)
+##                                          })
+##                              )
+##     }else if(cpus > 1){
+##         if(trace>0){
+##             pb <- utils::txtProgressBar(max = n.sample, style = 3)          
+##             progress <- function(n){utils::setTxtProgressBar(pb, n)}
+##             opts <- list(progress = progress)
+##         }else{
+##             opts <- list()
+##         }
 
-##     if(!is.null(cl) || trace){
-##         ls.sample <- pbapply::pblapply(1:n.sample, warperResample, cl = cl)
-##     }else{
-##         ls.sample <- lapply(1:n.sample, warperResample)
-##     }
-
-##     if(cpus>1){
+##         iX <- NULL ## [:forCRANcheck:] foreach        
+##         ls.sample <- foreach::`%dopar%`(
+##                                   foreach::foreach(iX=1:n.sample, .options.snow = opts, .packages = c("LMMstar","nlme")), {
+##                                       if(test.seed){set.seed(seqSeed[iX])}
+##                                       iOut <- warperResample(iX)
+##                                       return(iOut)
+##                                   })
+##         if(trace>0){close(pb)}
 ##         parallel::stopCluster(cl)
 ##     }
-
+    
 ##     ## ** post process
 ##     keep.cols2 <- c("estimate", "se", "df", "statistic", "lower", "upper", "null", "p.value")
     
@@ -784,7 +837,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 ##         obs.multivariate <- matrix(object$multivariate[,"statistic"], nrow = NROW(object$multivariate), ncol = NCOL(sample.multivariate))
 ##         obs.univariate <- matrix(object$univariate[,"statistic"], nrow = NROW(object$univariate), ncol = NCOL(sample.univariate), byrow = FALSE)
         
-##         if(is.null(method) || (method %in% method.merge == FALSE)){
+##         if(is.null(method) || all(method %in% method.merge == FALSE)){
 ##             out$multivariate <- object$multivariate
 ##             out$multivariate$df.num <- NA
 ##             out$multivariate$df.denom <- NA
@@ -792,7 +845,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 ##             attr(out$univariate,"sample") <- sample.multivariate
 ##         }
 
-##         if(is.null(method) || (method %in% method.merge == FALSE)){
+##         if(is.null(method) || all(method %in% method.merge == FALSE)){
 ##             out$univariate <- object$univariate
 ##         }else{
 ##             out$univariate <- model.tables(object, method = method, columns = keep.cols2)
@@ -805,11 +858,12 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 ##     }else if(type == "bootstrap"){
 ##         alpha <- 1-level
 
-##         if(is.null(method) || (method %in% method.merge == FALSE)){
+##         if(is.null(method) || all(method %in% method.merge == FALSE)){
 ##             out$univariate <- object$univariate
 ##         }else{
 ##             out$univariate <- model.tables(object, method = method, columns = keep.cols2)
 ##         }
+
 ##         out$univariate$se <- apply(sample.univariate, MARGIN = 1, FUN = stats::sd, na.rm = TRUE)
 ##         out$univariate$statistic <- out$univariate$estimate/out$univariate$se
 ##         out$univariate$df <- NA
@@ -817,10 +871,10 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 ##         out$univariate$upper <- apply(sample.univariate, MARGIN = 1, FUN = stats::quantile, probs = 1-alpha/2, na.rm = TRUE)
 
 ##         if(!inherits(calc.pvalue,"try-error")){
-##             out$univariate$p.value <- sapply(name.keepcoef, function(iName){
-##                 boot2pvalue(stats::na.omit(sample.univariate[,iName]),
+##             out$univariate$p.value <- sapply(1:NROW(sample.univariate), function(iE){
+##                 boot2pvalue(stats::na.omit(sample.univariate[iE,]),
 ##                             null = 0,
-##                             estimate = out[iName,"estimate"],
+##                             estimate = out$univariate[iE,"estimate"],
 ##                             alternative = "two.sided",
 ##                             add.1 = correction)
 ##             })
@@ -829,6 +883,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 ##     }
     
 ##     ## ** export
+##     attr(out,"seed") <- seqSeed
 ##     return(out)
 ## }
 

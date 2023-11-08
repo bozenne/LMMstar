@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb 16 2023 (09:39) 
 ## Version: 
-## Last-Updated: jul 10 2023 (18:10) 
+## Last-Updated: nov  8 2023 (15:18) 
 ##           By: Brice Ozenne
-##     Update #: 694
+##     Update #: 699
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -38,6 +38,7 @@
 ##' @param alpha.area [numeric, 0-1] the transparency level used to display the area under the density curve or histogram.
 ##' @param method.cor [character] estimator of the correlation. Argument passed to \code{stats::cor}.
 ##' When \code{NA}, the correlation is not displayed.
+##' @param name.cor [character] character used to represent the correlation. By default \code{"r"} but can be changed to \code{"\u03C1"} to display the greek letter \eqn{\rho}.
 ##' @param size.cor [numeric,>0] size of the font used to display the correlation or information about missing values.
 ##' @param digits [numeric of length 2] number of digits used to display the correlation or round the percentage of missing values.
 ##' @param display.NA [0:2 or "only"] Should the number of missing values be displayed. When taking value 2, will also display the percentage of missing values.
@@ -97,7 +98,7 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
                         facet = "grid", 
                         alpha.point = 1,
                         type.diag = "boxplot", bins = NULL, position.bar = "identity", linewidth.density = NULL, alpha.area = NULL,
-                        method.cor = "pearson", size.cor = NULL, digits = c(3,2), display.NA = NULL,
+                        method.cor = "pearson", name.cor = "r", size.cor = NULL, digits = c(3,2), display.NA = NULL,
                         color = NULL, xlim = NULL, ylim = NULL, size.axis = NULL, size.legend = NULL, size.facet = NULL){
 
     ## ** normalize user input
@@ -357,7 +358,8 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
     }
 
     if(!is.na(method.cor)){
-        dataCor$label <- paste0("\u03C1=",round(dataCor$cor, digits[1]))
+        dataCor$label <- paste0(name.cor,"=",round(dataCor$cor, digits[1]))
+        ## dataCor$label <- paste0("\u03C1=",round(dataCor$cor, digits[1])) ## NOT DONE BY DEFAULT DUE TO ERROR RUNNING CRAN CHECK ON LINUX
         if(display.NA==1){
             dataCor$label <- paste0(dataCor$label, "; ",n.NA," NA")
         }else if(display.NA>1){
@@ -376,7 +378,7 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
     }else{
         size.cor <- 10
     }
-    
+
     if(facet=="grid"){
         gg <- .ggscatterplot(dataGrid.diag = dataGrid.diag, dataGrid.lower = dataGrid.lower, dataCor = dataCor,
                              bins = bins, level.time = level.time, n.time = n.time, group = group, 

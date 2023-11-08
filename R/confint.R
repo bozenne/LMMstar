@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: aug  1 2023 (14:41) 
+## Last-Updated: nov  8 2023 (15:59) 
 ##           By: Brice Ozenne
-##     Update #: 670
+##     Update #: 672
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -803,7 +803,7 @@ confint.mlmm <- function(object, parm = NULL, level = 0.95, method = NULL, order
 
     ## ** extract confidence intervals
     out.confint <- confint.Wald_lmm(object, parm = parm, level = level, method = method, backtransform = object$args$backtransform, ...)
-    if(method %in% c("average","pool.se","pool.gls","pool.gls1","pool.rubin") == FALSE){
+    if(all(method %in% c("average","pool.se","pool.gls","pool.gls1","pool.rubin") == FALSE)){
         if(ordering=="by"){
             reorder <- order(object$univariate$by)
         }else if(is.list(object$univariate$parameter)){

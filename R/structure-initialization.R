@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: aug  1 2023 (11:57) 
+## Last-Updated: nov  8 2023 (16:03) 
 ##           By: Brice Ozenne
-##     Update #: 424
+##     Update #: 425
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -406,132 +406,132 @@
 .initialize2.UN <- .initialize2.CS
 
 ## * initialize.EXP
-.initialize.EXP <- function(object, residuals, Xmean, index.cluster){
-    structure.param <- object$param[is.na(object$param$constraint),,drop=FALSE]
-    out <- stats::setNames(rep(NA, NROW(structure.param)), structure.param$name)
+## .initialize.EXP <- function(object, residuals, Xmean, index.cluster){
+##     structure.param <- object$param[is.na(object$param$constraint),,drop=FALSE]
+##     out <- stats::setNames(rep(NA, NROW(structure.param)), structure.param$name)
 
-    ## ** extract information
-    param.type <- stats::setNames(structure.param$type,structure.param$name)
-    param.strata <- stats::setNames(structure.param$index.strata,structure.param$name)
-    Upattern.name <- object$X$Upattern$name
-    regressor <- stats::setNames(object$param[object$param$type=="rho","code"],object$param[object$param$type=="rho","name"])
+##     ## ** extract information
+##     param.type <- stats::setNames(structure.param$type,structure.param$name)
+##     param.strata <- stats::setNames(structure.param$index.strata,structure.param$name)
+##     Upattern.name <- object$X$Upattern$name
+##     regressor <- stats::setNames(object$param[object$param$type=="rho","code"],object$param[object$param$type=="rho","name"])
     
-    ## estimate variance and standardize residuals
-    attr(residuals,"studentized") <- TRUE ## to return studentized residuals
-    if("sigma" %in% param.type){
-        sigma <- .initialize.IND(object = object, residuals = residuals, Xmean = Xmean, index.cluster = index.cluster)
-        residuals.studentized <- attr(sigma, "studentized")
-        attr(sigma, "studentized") <- NULL
-        out[names(sigma)] <- sigma
-    }else{
-        residuals.studentized <- residuals
-    }
+##     ## estimate variance and standardize residuals
+##     attr(residuals,"studentized") <- TRUE ## to return studentized residuals
+##     if("sigma" %in% param.type){
+##         sigma <- .initialize.IND(object = object, residuals = residuals, Xmean = Xmean, index.cluster = index.cluster)
+##         residuals.studentized <- attr(sigma, "studentized")
+##         attr(sigma, "studentized") <- NULL
+##         out[names(sigma)] <- sigma
+##     }else{
+##         residuals.studentized <- residuals
+##     }
 
-    if(is.null(object$X$Xpattern.cor)){return(out)}
-    ## combine all residuals and all design matrices
-    M.prodres <- do.call(rbind,lapply(1:length(object$X$Xpattern.cor), function(iPattern){ ## iPattern <- 1
-        X.iPattern <- object$X$Xpattern.cor[[iPattern]]
-        if(is.null(X.iPattern)){return(NULL)}
-        ## index of the residuals belonging to each individual
-        obs.iPattern <- do.call(rbind,index.cluster[attr(X.iPattern,"index.cluster")])
-        ## identify non-duplicated pairs of observation (here restrict matrix to its  upper part)
-        iAllPair <- attr(X.iPattern,"index.pair")
-        iPair <- iAllPair[iAllPair[,"col"]<iAllPair[,"row"],,drop=FALSE]
-        iParam <- unique(iPair$param)
-        iPair$param <- as.numeric(factor(iPair$param, levels = iParam))
-        iPair$time <- X.iPattern[,regressor[iParam]]
+##     if(is.null(object$X$Xpattern.cor)){return(out)}
+##     ## combine all residuals and all design matrices
+##     M.prodres <- do.call(rbind,lapply(1:length(object$X$Xpattern.cor), function(iPattern){ ## iPattern <- 1
+##         X.iPattern <- object$X$Xpattern.cor[[iPattern]]
+##         if(is.null(X.iPattern)){return(NULL)}
+##         ## index of the residuals belonging to each individual
+##         obs.iPattern <- do.call(rbind,index.cluster[attr(X.iPattern,"index.cluster")])
+##         ## identify non-duplicated pairs of observation (here restrict matrix to its  upper part)
+##         iAllPair <- attr(X.iPattern,"index.pair")
+##         iPair <- iAllPair[iAllPair[,"col"]<iAllPair[,"row"],,drop=FALSE]
+##         iParam <- unique(iPair$param)
+##         iPair$param <- as.numeric(factor(iPair$param, levels = iParam))
+##         iPair$time <- X.iPattern[,regressor[iParam]]
 
-        ## if(NROW(iPair)<=NROW(obs.iPattern)){ ## more individuals than pairs
-            iLs.out <- apply(iPair, 1, function(iRow){
-                iOut <- data.frame(prod = sum(residuals.studentized[obs.iPattern[,iRow[1]]]*residuals.studentized[obs.iPattern[,iRow[2]]]),
-                                   sum1 = sum(residuals.studentized[obs.iPattern[,iRow[1]]]),
-                                   sum2 = sum(residuals.studentized[obs.iPattern[,iRow[2]]]),
-                                   sums1 = sum(residuals.studentized[obs.iPattern[,iRow[1]]]^2),
-                                   sums2 = sum(residuals.studentized[obs.iPattern[,iRow[2]]]^2),
-                                   n = NROW(obs.iPattern),
-                                   param = iRow[3],
-                                   time = iRow[4])
-                return(iOut)
-            }, simplify = FALSE)
-        ## }else{ ## more pairs than individuals
-        ##     iLs.out <- apply(obs.iPattern, 1, function(iRow){ ## iRow <- obs.iPattern[1,]
-        ##         iLSDF <- split(data.frame(row = residuals.studentized[iRow[iPair[,"row"]]],
-        ##                                   col = residuals.studentized[iRow[iPair[,"col"]]],
-        ##                                   param = iPair[,"param"],
-        ##                                   time = iPair[,"time"]),
-        ##                        iPair[,"time"])
-        ##         iOut <- lapply(iLSDF, function(iiDF){
-        ##             data.frame(prod = sum(iiDF[,1]*iiDF[,2]),
-        ##                        sum1 = sum(iiDF[,1]),
-        ##                        sum2 = sum(iiDF[,2]),
-        ##                        sums1 = sum(iiDF[,1]^2),
-        ##                        sums2 = sum(iiDF[,2]^2),
-        ##                        n=NROW(iiDF),
-        ##                        param = iiDF[1,3],
-        ##                        time = iiDF[1,4])})
-        ##         return(do.call(rbind,iOut))
-        ##     }, simplify = FALSE)
-        ## }
-        iDf.out <- do.call(rbind,iLs.out)
-        iDf.out$param <- iParam[iDf.out$param]
-        return(iDf.out)
-    }))
+##         ## if(NROW(iPair)<=NROW(obs.iPattern)){ ## more individuals than pairs
+##             iLs.out <- apply(iPair, 1, function(iRow){
+##                 iOut <- data.frame(prod = sum(residuals.studentized[obs.iPattern[,iRow[1]]]*residuals.studentized[obs.iPattern[,iRow[2]]]),
+##                                    sum1 = sum(residuals.studentized[obs.iPattern[,iRow[1]]]),
+##                                    sum2 = sum(residuals.studentized[obs.iPattern[,iRow[2]]]),
+##                                    sums1 = sum(residuals.studentized[obs.iPattern[,iRow[1]]]^2),
+##                                    sums2 = sum(residuals.studentized[obs.iPattern[,iRow[2]]]^2),
+##                                    n = NROW(obs.iPattern),
+##                                    param = iRow[3],
+##                                    time = iRow[4])
+##                 return(iOut)
+##             }, simplify = FALSE)
+##         ## }else{ ## more pairs than individuals
+##         ##     iLs.out <- apply(obs.iPattern, 1, function(iRow){ ## iRow <- obs.iPattern[1,]
+##         ##         iLSDF <- split(data.frame(row = residuals.studentized[iRow[iPair[,"row"]]],
+##         ##                                   col = residuals.studentized[iRow[iPair[,"col"]]],
+##         ##                                   param = iPair[,"param"],
+##         ##                                   time = iPair[,"time"]),
+##         ##                        iPair[,"time"])
+##         ##         iOut <- lapply(iLSDF, function(iiDF){
+##         ##             data.frame(prod = sum(iiDF[,1]*iiDF[,2]),
+##         ##                        sum1 = sum(iiDF[,1]),
+##         ##                        sum2 = sum(iiDF[,2]),
+##         ##                        sums1 = sum(iiDF[,1]^2),
+##         ##                        sums2 = sum(iiDF[,2]^2),
+##         ##                        n=NROW(iiDF),
+##         ##                        param = iiDF[1,3],
+##         ##                        time = iiDF[1,4])})
+##         ##         return(do.call(rbind,iOut))
+##         ##     }, simplify = FALSE)
+##         ## }
+##         iDf.out <- do.call(rbind,iLs.out)
+##         iDf.out$param <- iParam[iDf.out$param]
+##         return(iDf.out)
+##     }))
     
-    ## estimate correlation
-    param.rho <- names(param.type)[param.type=="rho"]
+##     ## estimate correlation
+##     param.rho <- names(param.type)[param.type=="rho"]
 
-    e.rho <- unlist(lapply(split(M.prodres, M.prodres$param), function(iDF){ ## iDF <- split(M.prodres, M.prodres$param)[[3]]
+##     e.rho <- unlist(lapply(split(M.prodres, M.prodres$param), function(iDF){ ## iDF <- split(M.prodres, M.prodres$param)[[3]]
 
-        iNum <- iDF$prod/iDF$n-(iDF$sum1/iDF$n)*(iDF$sum2/iDF$n)
-        iDenom1 <- iDF$sums1/iDF$n-(iDF$sum1/iDF$n)^2
-        iDenom2 <- iDF$sums2/iDF$n-(iDF$sum2/iDF$n)^2
-        iRho <- iNum/sqrt(iDenom1*iDenom2)
+##         iNum <- iDF$prod/iDF$n-(iDF$sum1/iDF$n)*(iDF$sum2/iDF$n)
+##         iDenom1 <- iDF$sums1/iDF$n-(iDF$sum1/iDF$n)^2
+##         iDenom2 <- iDF$sums2/iDF$n-(iDF$sum2/iDF$n)^2
+##         iRho <- iNum/sqrt(iDenom1*iDenom2)
         
-        ## rougth approximation
-        iRho.initMin <- -log(max(iRho))/mean(iDF$time) 
-        iRho.initMean <- -log(mean(iRho))/mean(iDF$time) 
-        iRho.initMax <- -log(min(iRho))/mean(iDF$time) 
-        if(iRho.initMax<=0){return(0)}
+##         ## rougth approximation
+##         iRho.initMin <- -log(max(iRho))/mean(iDF$time) 
+##         iRho.initMean <- -log(mean(iRho))/mean(iDF$time) 
+##         iRho.initMax <- -log(min(iRho))/mean(iDF$time) 
+##         if(iRho.initMax<=0){return(0)}
 
-        errorFun <- function(x){sum(iRho - exp(-x*iDF$time))}
-        error.initMin <- errorFun(iRho.initMin)
-        error.initMean <- errorFun(iRho.initMean)
-        error.initMax <- errorFun(iRho.initMax)
-        if(error.initMean<0){
-            lower <- iRho.initMean
-            if(error.initMax>0){
-                upper <- iRho.initMax
-            }else{
-                return(0)
-            }
-        }else if(error.initMin<0){
-            lower <- iRho.initMin
-            if(error.initMean>0){
-                upper <- iRho.initMean
-            }else if(error.initMax>0){
-                upper <- iRho.initMax
-            }else{
-                return(0)
-            }
-        }else{
-            return(0)
-        }
+##         errorFun <- function(x){sum(iRho - exp(-x*iDF$time))}
+##         error.initMin <- errorFun(iRho.initMin)
+##         error.initMean <- errorFun(iRho.initMean)
+##         error.initMax <- errorFun(iRho.initMax)
+##         if(error.initMean<0){
+##             lower <- iRho.initMean
+##             if(error.initMax>0){
+##                 upper <- iRho.initMax
+##             }else{
+##                 return(0)
+##             }
+##         }else if(error.initMin<0){
+##             lower <- iRho.initMin
+##             if(error.initMean>0){
+##                 upper <- iRho.initMean
+##             }else if(error.initMax>0){
+##                 upper <- iRho.initMax
+##             }else{
+##                 return(0)
+##             }
+##         }else{
+##             return(0)
+##         }
 
-        return(stats::uniroot(f = errorFun, lower = lower, upper = upper)$root)
-    }))
+##         return(stats::uniroot(f = errorFun, lower = lower, upper = upper)$root)
+##     }))
 
-    ## take care of extreme cases, e.g. 0 variability
-    if(any(is.na(e.rho))){
-        e.rho[is.na(e.rho)] <- 0
-    }
-    if(any(is.infinite(e.rho))){
-        e.rho[is.infinite(e.rho)] <- 0
-    }
-    out[names(e.rho)] <- e.rho
+##     ## take care of extreme cases, e.g. 0 variability
+##     if(any(is.na(e.rho))){
+##         e.rho[is.na(e.rho)] <- 0
+##     }
+##     if(any(is.infinite(e.rho))){
+##         e.rho[is.infinite(e.rho)] <- 0
+##     }
+##     out[names(e.rho)] <- e.rho
 
-    ## export
-    return(out)
-}
+##     ## export
+##     return(out)
+## }
 
 
 ## * initialize2.CUSTOM

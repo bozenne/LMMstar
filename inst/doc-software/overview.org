@@ -444,7 +444,7 @@ cat(" modeled residual variance-covariance: \n");sigma(eUN.lmm)
  parameter           : 5 mean ((Intercept) timeB1w timeA1w timeA3m glucagon) 
                        4 variance (sigma k.B1w k.A1w k.A3m) 
                        6 correlation (rho(B3m,B1w) rho(B3m,A1w) rho(B3m,A3m) rho(B1w,A1w) rho(B1w,A3m) rho(A1w,A3m)) 
- log-restr.likelihood: -216.318937004305 
+ log-restr.likelihood: -216.318937004306 
  convergence         : TRUE (22 iterations)
  modeled residual variance-covariance: 
          B3m      B1w      A1w      A3m
@@ -492,7 +492,7 @@ eSUN.lmm
 :  parameter           : 9 mean ((Intercept) timeB1w timeA1w timeA3m group glucagon timeB1w:group timeA1w:group timeA3m:group) 
 :                        8 variance (sigma:0 sigma:1 k.B1w:0 k.A1w:0 k.A3m:0 k.B1w:1 k.A1w:1 k.A3m:1) 
 :                        12 correlation (rho(B3m,B1w):0 rho(B3m,A1w):0 rho(B3m,A3m):0 rho(B1w,A1w):0 rho(B1w,A3m):0 rho(A1w,A3m):0 rho(B3m,B1w):1 rho(B3m,A1w):1 rho(B3m,A3m):1 rho(B1w,A1w):1 rho(B1w,A3m):1 rho(A1w,A3m):1) 
-:  log-restr.likelihood: -197.171312062211 
+:  log-restr.likelihood: -197.171312062212 
 :  convergence         : TRUE (50 iterations)
 
 
@@ -566,7 +566,7 @@ cat(" modeled residual variance-covariance: \n");sigma(eBCS.lmm)
  data                : 78 observations from 20 clusters 
  parameter           : 8 mean ((Intercept) timeB1w timeA1w timeA3m group timeB1w:group timeA1w:group timeA3m:group) 
                        1 variance (sigma) 
-                       2 correlation (rho rho(FALSE,TRUE)) 
+                       2 correlation (rho(baseline) rho(id)) 
  log-restr.likelihood: -230.532819632968 
  convergence         : TRUE (6 iterations)
  modeled residual variance-covariance: 
@@ -735,7 +735,7 @@ system.time(
 
 #+RESULTS:
 :   bruger   system forløbet 
-:     0.14     0.00     0.16
+:     0.15     0.00     0.15
 
 
 Using instead =CUSTOM= to specifying this structure:
@@ -762,7 +762,7 @@ system.time(
 
 #+RESULTS:
 :   bruger   system forløbet 
-:     1.13     0.01     1.14
+:     1.13     0.02     1.20
 
 
 but will lead to the same estimates:
@@ -813,7 +813,7 @@ system.time(
 
 #+RESULTS:
 :   bruger   system forløbet 
-:     0.84     0.04     0.87
+:     0.89     0.00     0.89
 
 
 \clearpage
@@ -955,61 +955,8 @@ Estimation procedure
   - log-likelihood :-216.3189
   - parameters: mean = 5, variance = 4, correlation = 6
   - convergence: TRUE (22 iterations) 
-    largest |score| = 7.024709e-05 for k.A1w
-            |change|= 1.0958537757233e-06 for (Intercept)
- 
-Residual variance-covariance: unstructured 
-
-  - correlation structure: ~0 + time 
-          B3m   B1w   A1w   A3m
-    B3m 1.000 0.989 0.985 0.938
-    B1w 0.989 1.000 0.998 0.954
-    A1w 0.985 0.998 1.000 0.966
-    A3m 0.938 0.954 0.966 1.000
-
-  - variance structure: ~time 
-              standard.deviation ratio
-    sigma.B3m               20.3 1.000
-    sigma.B1w               19.0 0.939
-    sigma.A1w               17.7 0.871
-    sigma.A3m               16.8 0.826
-
-Fixed effects: weight ~ time + glucagon 
-
-               estimate    se   df   lower   upper  p.value    
-   (Intercept)   132.98 4.664 19.8 123.243 142.717  < 2e-16 ***
-   timeB1w       -7.882 0.713 19.2  -9.374   -6.39 9.27e-10 ***
-   timeA1w      -11.788 1.018 21.6   -13.9  -9.676 9.55e-11 ***
-   timeA3m      -26.122 1.656 18.8 -29.591 -22.654 2.62e-12 ***
-   glucagon      -0.888 0.242 13.7  -1.408  -0.369  0.00257  **
-   ----------------------------------------------------------- 
-  Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
-  Columns lower and upper contain 95% pointwise confidence intervals for each coefficient.
-  Model-based standard errors are derived from the observed information (column se). 
-  Degrees of freedom were computed using a Satterthwaite approximation (column df).
-		Linear Mixed Model 
- 
-Dataset: dfL 
-
-  - 20 clusters 
-  - 78 observations 
-  - between 3 and 4 observations per cluster 
-
-Summary of the outcome and covariates: 
-
-    $ weight  : num  127 165 110 146 113 ...
-    $ time    : Factor w/ 4 levels "B3m","B1w","A1w",..: 1 1 1 1 1 1 1 1 1 1 ...
-    $ glucagon: num  4.03 5.24 4.93 4.32 4.38 ...
-    reference level: time=B3m 
-
-Estimation procedure 
-
-  - Restricted Maximum Likelihood (REML) 
-  - log-likelihood :-216.3189
-  - parameters: mean = 5, variance = 4, correlation = 6
-  - convergence: TRUE (22 iterations) 
-    largest |score| = 7.024709e-05 for k.A1w
-            |change|= 1.0958537757233e-06 for (Intercept)
+    largest |score| = 7.034659e-05 for k.A1w
+            |change|= 1.09738491005373e-06 for (Intercept)
  
 Residual variance-covariance: unstructured 
 
@@ -1131,16 +1078,16 @@ timeB1w       -7.8822331 7.131797e-01 19.17147  -9.3740323  -6.3904339 9.273644e
 timeA1w      -11.7879545 1.017513e+00 21.64404 -13.9001622  -9.6757467 9.552470e-11
 timeA3m      -26.1223908 1.656408e+00 18.84049 -29.5912795 -22.6535021 2.617462e-12
 glucagon      -0.8883081 2.416081e-01 13.70759  -1.4075449  -0.3690712 2.571605e-03
-sigma         20.2808131 1.042207e+08 17.94875  14.4225150  28.5187001           NA
-k.B1w          0.9390916 8.746246e-02 19.25090   0.8742815   1.0087060 8.159293e-02
-k.A1w          0.8705176 9.733113e-02 20.32066   0.7996375   0.9476805 2.778019e-03
+sigma         20.2808131 1.042207e+08 17.94875  14.4225149  28.5187002           NA
+k.B1w          0.9390916 8.746246e-02 19.25090   0.8742815   1.0087060 8.159292e-02
+k.A1w          0.8705176 9.733113e-02 20.32066   0.7996375   0.9476805 2.778018e-03
 k.A3m          0.8264480 1.820402e-01 19.48030   0.6997216   0.9761257 2.692889e-02
 rho(B3m,B1w)   0.9889048 9.815766e-02 32.79091   0.9719687   0.9956310 7.778223e-13
 rho(B3m,A1w)   0.9848800 9.911546e-02 26.28819   0.9614535   0.9941119 5.780221e-11
-rho(B3m,A3m)   0.9380157 1.061121e-01 23.56847   0.8470249   0.9755995 1.153945e-07
+rho(B3m,A3m)   0.9380157 1.061121e-01 23.56848   0.8470249   0.9755995 1.153943e-07
 rho(B1w,A1w)   0.9976791 9.925175e-02 27.01628   0.9939113   0.9991163 3.730349e-14
-rho(B1w,A3m)   0.9542904 1.035349e-01 24.72224   0.8860968   0.9820453 1.782705e-08
-rho(A1w,A3m)   0.9658511 1.015050e-01 27.88667   0.9147964   0.9865286 1.450026e-09
+rho(B1w,A3m)   0.9542904 1.035349e-01 24.72225   0.8860968   0.9820453 1.782701e-08
+rho(A1w,A3m)   0.9658511 1.015050e-01 27.88668   0.9147964   0.9865286 1.450022e-09
 #+end_example
 
 Because these parameters are constrained (e.g. strictly positive),
@@ -1242,7 +1189,7 @@ where:
 One can the use =lme4= syntax to fit random intercept models with
 =lmm=:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eRI.lmm <- eCS.lmm <- lmm(weight ~ time + glucagon + (1|id), data = dfL)
+eRI.lmm <- lmm(weight ~ time + glucagon + (1|id), data = dfL)
 eRI.lmm
 #+END_SRC
 
@@ -1271,7 +1218,7 @@ eNRI.lmm
 :  data                : 78 observations from 20 clusters 
 :  parameter           : 8 mean ((Intercept) timeB1w timeA1w timeA3m group timeB1w:group timeA1w:group timeA3m:group) 
 :                        1 variance (sigma) 
-:                        2 correlation (rho rho(FALSE,TRUE)) 
+:                        2 correlation (rho(baseline) rho(id)) 
 :  log-restr.likelihood: -230.532819632968 
 :  convergence         : TRUE (6 iterations)
 
@@ -1305,7 +1252,7 @@ This is what the =ranef= method returns:
 
 #+LaTeX: \begin{minipage}{0.48\linewidth} 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-head(ranef(eCS.lmm, format = "wide"))
+head(ranef(eRI.lmm, format = "wide"))
 #+END_SRC
 
 #+RESULTS:
@@ -1336,7 +1283,7 @@ head(ranef(eNRI.lmm, format = "wide"))
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
 library(lme4)
 e.lmer <- lmer(weight ~ time + glucagon + (1|id), data = dfL)
-range(ranef(e.lmer)[[1]][,1]-ranef(eCS.lmm)$estimate)
+range(ranef(e.lmer)[[1]][,1]-ranef(eRI.lmm)$estimate)
 e.lmer2 <- lmer(weight ~ time*group + (1|id/baseline), data = dfL)
 range(matrix(c(ranef(e.lmer2)[[2]][,1],ranef(e.lmer2)[[1]][,1]), ncol = 3, byrow = FALSE)-ranef(eNRI.lmm, format = "wide")[,-1])
 #+END_SRC
@@ -1348,7 +1295,7 @@ range(matrix(c(ranef(e.lmer2)[[2]][,1],ranef(e.lmer2)[[1]][,1]), ncol = 3, byrow
 It is also possible to extract the variance decomposition by setting
 the argument =effects= to ="variance"=: 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-ranef(eCS.lmm, effects = "variance", format = "wide", simplify = FALSE)
+ranef(eRI.lmm, effects = "variance", format = "wide", simplify = FALSE)
 #+END_SRC
 
 #+RESULTS:
@@ -1598,13 +1545,13 @@ head(eUN.diagW)
 #+END_SRC
 
 #+RESULTS:
-:   cluster      r.B3m      r.B1w      r.A1w       r.A3m
-: 1       1 -0.1082872  0.4283943  0.7477306  0.91794015
-: 2       2  1.8182348 -0.3516996  1.5698307 -0.98743171
-: 3       3 -0.9318737 -0.7728221  0.6315751  0.16549699
-: 4       4  0.8408969  1.8695564  0.3485784 -0.09662565
-: 5       5 -0.7882340         NA -0.6128276  0.09933842
-: 6       6  1.4896141 -1.9727358 -1.9672939 -1.37068983
+:   id      r.B3m      r.B1w      r.A1w       r.A3m
+: 1  1 -0.1082872  0.4283943  0.7477306  0.91794015
+: 2  2  1.8182348 -0.3516996  1.5698307 -0.98743171
+: 3  3 -0.9318737 -0.7728221  0.6315751  0.16549699
+: 4  4  0.8408969  1.8695564  0.3485784 -0.09662565
+: 5  5 -0.7882340         NA -0.6128276  0.09933842
+: 6  6  1.4896141 -1.9727358 -1.9672939 -1.37068983
 
 or in the long format:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -1835,13 +1782,12 @@ head(df.pres)
 
 #+RESULTS:
 :   id visit time weight glucagonAUC baseline glucagon group    fitted  r.partial
-: 1  1     1  B3m  127.2     5032.50     TRUE 4.034616     1 -3.583982  -5.780136
-: 2  2     1  B3m  165.2    12142.50     TRUE 5.240766     0 -4.655415  32.219864
-: 3  3     1  B3m  109.7    10321.35     TRUE 4.931824     1 -4.380979 -23.280136
-: 4  4     1  B3m  146.2     6693.00     TRUE 4.316306     0 -3.834209  13.219864
-: 5  5     1  B3m  113.1     7090.50     TRUE 4.383738     1 -3.894110 -19.880136
-: 6  6     1  B3m  158.8    10386.00     TRUE 4.942791     0 -4.390721  25.819864
-: NULL
+: 1  1     1  B3m  127.2     5032.50     TRUE 4.034616     1 -3.583982  -5.780135
+: 2  2     1  B3m  165.2    12142.50     TRUE 5.240766     0 -4.655415  32.219865
+: 3  3     1  B3m  109.7    10321.35     TRUE 4.931824     1 -4.380979 -23.280135
+: 4  4     1  B3m  146.2     6693.00     TRUE 4.316306     0 -3.834209  13.219865
+: 5  5     1  B3m  113.1     7090.50     TRUE 4.383738     1 -3.894110 -19.880135
+: 6  6     1  B3m  158.8    10386.00     TRUE 4.942791     0 -4.390721  25.819865
 
 This matches manual calculation:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -1853,7 +1799,7 @@ range(df.pres$fitted - m.pfit, na.rm = TRUE)
 #+END_SRC
 
 #+RESULTS:
-: [1] -1.421085e-14  1.421085e-14
+: [1] -1.065814e-14  1.421085e-14
 : [1] 0 0
 
 The =plot= methods can handle one continuous and one categorical
@@ -1912,8 +1858,8 @@ summary(e.anova)
 		Univariate Wald test 
 
                      estimate    se   df   lower   upper p.value    
-   timeA1w - timeB1w   -3.906 0.595 17.9  -5.329  -2.482  <1e-05 ***
-   timeA3m - timeB1w   -18.24 1.323   19 -21.407 -15.073  <1e-05 ***
+   timeA1w - timeB1w   -3.906 0.595 17.9  -5.325  -2.487   3e-05 ***
+   timeA3m - timeB1w   -18.24 1.323   19 -21.397 -15.083  <1e-05 ***
    --------------------------------------------------------------- 
   Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
   Columns lower/upper/p.value adjusted for multiple comparisons -- max-test.
@@ -1946,12 +1892,12 @@ Singular contrast matrix: contrasts "A1w - B1w" "A3m - B1w" "A3m - A1w" have bee
 		Univariate Wald test 
 
              estimate    se   df   lower   upper p.value    
-   B1w - B3m   -7.882 0.713 19.2  -9.821  -5.944  <1e-05 ***
-   A1w - B3m  -11.788 1.018 21.6 -14.554  -9.022  <1e-05 ***
-   A3m - B3m  -26.122 1.656 18.8 -30.625  -21.62  <1e-05 ***
-   A1w - B1w   -3.906 0.595 17.9  -5.522  -2.289  <1e-05 ***
-   A3m - B1w   -18.24 1.323   19 -21.836 -14.644  <1e-05 ***
-   A3m - A1w  -14.334 1.057 20.3 -17.206 -11.463  <1e-05 ***
+   B1w - B3m   -7.882 0.713 19.2  -9.817  -5.947  <1e-05 ***
+   A1w - B3m  -11.788 1.018 21.6 -14.549  -9.027  <1e-05 ***
+   A3m - B3m  -26.122 1.656 18.8 -30.617 -21.628  <1e-05 ***
+   A1w - B1w   -3.906 0.595 17.9  -5.519  -2.292  <1e-05 ***
+   A3m - B1w   -18.24 1.323   19 -21.829 -14.651  <1e-05 ***
+   A3m - A1w  -14.334 1.057 20.3 -17.201 -11.468  <1e-05 ***
    --------------------------------------------------------- 
   Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
   Columns lower/upper/p.value adjusted for multiple comparisons -- max-test.
@@ -2013,9 +1959,9 @@ objects. To do so, one first fit the mixed models, then use the
 =anova= method to indicate which hypotheses are being tested, and
 combine them using =rbind=. Here is an (artificial) example:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-Manova <- rbind(anova(eInd.lmm, effects = "glucagon = 0"),
-                anova(eCS.lmm, effects = "glucagon = 0"),
-                anova(eUN.lmm, effects = "glucagon = 0"),
+Manova <- rbind(anova(eInd.lmm, effects = "glucagon = 0", robust = FALSE),
+                anova(eCS.lmm, effects = "glucagon = 0", robust = FALSE),
+                anova(eUN.lmm, effects = "glucagon = 0", robust = FALSE),
                 name = c("Ind","CS","UN"))
 summary(Manova) 
 #+END_SRC
@@ -2025,21 +1971,21 @@ summary(Manova)
 		Multivariate Wald test 
 
           Chi2-statistic      df  p.value    
-   all: 1          6.393 (3,Inf) 0.000251 ***
+   all: 1          8.893 (3,Inf) 6.88e-06 ***
    ------------------------------------------ 
   Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
 
 		Univariate Wald test 
 
-                 estimate    se   df   lower  upper p.value   
-   Ind: glucagon    -8.27 2.574 34.2 -14.403 -2.137 0.00395 **
-   CS: glucagon     0.822  0.59 53.8  -0.584  2.228 0.40724   
-   UN: glucagon    -0.888 0.353 13.7  -1.729 -0.047 0.03475  *
-   ----------------------------------------------------------- 
+                 estimate    se   df   lower  upper  p.value    
+   Ind: glucagon    -8.27 2.579 34.2 -14.414 -2.126 0.003988  **
+   CS: glucagon     0.822  0.62 53.8  -0.655  2.299 0.450012    
+   UN: glucagon    -0.888 0.242 13.7  -1.464 -0.313 0.000711 ***
+   ------------------------------------------------------------ 
   Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
   Columns lower/upper/p.value adjusted for multiple comparisons -- max-test.
-  (error when computing the adjusted columns lower/upper/p.value by numerical integration: 6.6e-05)
-  Robust standard errors are derived from the observed information (column se).
+  (error when computing the adjusted columns lower/upper/p.value by numerical integration: 1.52e-05)
+  Model-based standard errors are derived from the observed information (column se).
 #+end_example
 
 \clearpage
@@ -2263,7 +2209,7 @@ model.tables(eC3.lmm)
 
 #+RESULTS:
 :                    estimate        se       df      lower       upper      p.value
-: (Intercept)     128.9700000 4.5323695 18.98130 119.483009 138.4569911 0.000000e+00
+: (Intercept)     128.9700000 4.5323695 18.98130 119.483009 138.4569912 0.000000e+00
 : timeB1w          -7.7300000 0.6974427 18.97552  -9.189892  -6.2701082 9.938186e-10
 : timeA1w         -13.1502219 0.8970429 22.87334 -15.006465 -11.2939786 4.058975e-13
 : timeA3m         -24.6886957 1.7751662 22.25061 -28.367762 -21.0096290 1.863398e-12
@@ -2319,7 +2265,7 @@ summarize(formula = estimate~time, data = df.pred)
 :   time observed missing     mean        sd      min       q1   median       q3      max
 : 1  B3m       20       0 4.514352 0.1502565 4.290643 4.290643 4.610227 4.610227 4.610227
 : 2  B1w       19       0 4.384638 0.1643256 4.149209 4.149209 4.493298 4.493298 4.493298
-: 3  A1w       19       0 6.060587 0.2030009 5.729961 5.954314 6.178668 6.178668 6.178668
+: 3  A1w       19       0 6.060587 0.2030012 5.729961 5.954314 6.178668 6.178668 6.178668
 : 4  A3m       20       0 5.057642 0.1465315 4.964144 4.964144 4.964144 5.275805 5.275805
 
 as the groups are not balanced:
@@ -2414,10 +2360,10 @@ summary(epairs.group, by = NULL, adjust = "mvt", infer = TRUE)
 
 #+RESULTS:
 :  contrast     time estimate    SE   df lower.CL upper.CL t.ratio p.value
-:  TRUE - FALSE B3m    -0.320 0.313 18.0    -1.16    0.518  -1.022  0.6928
-:  TRUE - FALSE B1w    -0.344 0.262 18.0    -1.05    0.359  -1.311  0.5066
-:  TRUE - FALSE A1w    -0.449 0.525 18.4    -1.86    0.958  -0.855  0.7961
-:  TRUE - FALSE A3m     0.312 0.374 18.0    -0.69    1.314   0.834  0.8085
+:  TRUE - FALSE B3m    -0.320 0.313 18.0   -1.156    0.517  -1.022  0.6926
+:  TRUE - FALSE B1w    -0.344 0.262 18.0   -1.046    0.358  -1.311  0.5061
+:  TRUE - FALSE A1w    -0.449 0.525 18.4   -1.853    0.955  -0.855  0.7960
+:  TRUE - FALSE A3m     0.312 0.374 18.0   -0.689    1.312   0.834  0.8084
 : 
 : Confidence level used: 0.95 
 : Conf-level adjustment: mvt method for 4 estimates 
@@ -2436,10 +2382,10 @@ summary(pairs(emmeans(eC3.lmm , specs = ~treat2|time), reverse = TRUE), by = NUL
 :  contrast          time estimate    SE  df t.ratio p.value
 :  treat20 - treat21 B3m      0.00 0.000 Inf     NaN     NaN
 :  treat20 - treat21 B1w      0.00 0.000 Inf     NaN     NaN
-:  treat20 - treat21 A1w     -0.24 0.648  18  -0.369  0.9935
-:  treat20 - treat21 A3m     -3.83 2.107  18  -1.819  0.3019
+:  treat20 - treat21 A1w     -0.24 0.648  18  -0.369  0.9195
+:  treat20 - treat21 A3m     -3.83 2.107  18  -1.819  0.1645
 : 
-: P value adjustment: sidak method for 4 tests
+: P value adjustment: sidak method for 2 tests
 
 \clearpage
 
@@ -2615,10 +2561,10 @@ model.tables(e.mttest2, method = "single-step2")
 
 #+RESULTS:
 :    by parameter estimate       se       df     lower     upper   p.value
-: 1 B3m     group   -10.60 8.971747 17.96464 -30.89407  9.694068 0.3155368
-: 2 B1w     group    -9.50 8.395143 17.98540 -28.48979  9.489791 0.3387166
-: 3 A1w     group    -8.92 8.129458 17.95876 -27.30881  9.468813 0.3554664
-: 4 A3m     group    -4.59 7.760674 17.68244 -22.14462 12.964624 0.6640334
+: 1 B3m     group   -10.60 8.971747 17.96464 -30.90465  9.704648 0.3166268
+: 2 B1w     group    -9.50 8.395143 17.98540 -28.49969  9.499691 0.3400966
+: 3 A1w     group    -8.92 8.129458 17.95876 -27.31840  9.478400 0.3566864
+: 4 A3m     group    -4.59 7.760674 17.68244 -22.15378 12.973775 0.6673833
 
 or call the dedicated function =mt.test=:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -2627,10 +2573,10 @@ mt.test(weight1+weight2+weight3+weight4~group, data = gastricbypassW)
 
 #+RESULTS:
 :        by parameter estimate       se       df     lower     upper   p.value
-: 1 weight1     group   -10.60 8.971747 17.96464 -30.97670  9.776698 0.3197968
-: 2 weight2     group    -9.50 8.395143 17.98540 -28.56711  9.567110 0.3423566
-: 3 weight3     group    -8.92 8.129458 17.95876 -27.38368  9.543685 0.3584364
-: 4 weight4     group    -4.59 7.760674 17.68244 -22.21610 13.036099 0.6649434
+: 1 weight1     group   -10.60 8.971747 17.96464 -30.92628  9.726280 0.3200568
+: 2 weight2     group    -9.50 8.395143 17.98540 -28.51993  9.519932 0.3433166
+: 3 weight3     group    -8.92 8.129458 17.95876 -27.33800  9.498000 0.3602064
+: 4 weight4     group    -4.59 7.760674 17.68244 -22.17249 12.992487 0.6654633
 
 ** Linear regression on the change 
 
@@ -2811,7 +2757,6 @@ technic.
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
 yyy <- lmmCC(e2.change41, repetition = list(changeG41 ~ glucagonAUC4-glucagonAUC1|id,
                                             changeW41 ~ weight4-weight1|id))
-yyy$lmm.change
 model.tables(yyy)
 confint(yyy)
 cat("\n")
@@ -2819,19 +2764,15 @@ coef(yyy)
 #+END_SRC
 
 #+RESULTS:
-#+begin_example
-  estimate       se       df     lower    upper   p.value
-1 380.3556 198.3453 2.798661 -277.3518 1038.063 0.1575655
-        estimate          se       df        lower       upper   p.value
-cor    0.4027343   0.1922078 2.660595   -0.2555602    1.061029 0.1386265
-beta 380.3555798 198.3453360 2.798661 -277.3518013 1038.062961 0.1575655
-        estimate        lower       upper
-cor    0.4027343   -0.2555602    1.061029
-beta 380.3555798 -277.3518013 1038.062961
-
-        cor        beta 
-  0.4027343 380.3555798
-#+end_example
+:         estimate          se       df        lower       upper   p.value
+: cor    0.4027343   0.1922078 2.660595   -0.2555602    1.061029 0.1386265
+: beta 380.3555798 198.3453360 2.798661 -277.3518013 1038.062961 0.1575655
+:         estimate        lower       upper
+: cor    0.4027343   -0.2555602    1.061029
+: beta 380.3555798 -277.3518013 1038.062961
+: 
+:         cor        beta 
+:   0.4027343 380.3555798
 
 \clearpage
 
@@ -2923,7 +2864,6 @@ likelihood is only evaluated on individuals with no missing outcome
 values: if follow-up is missing then baseline is not used. Indeed:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 coef(lm(changeG32 ~ weight1, data = gastricbypassW[-c(5,15),]))
-
 #+END_SRC
 
 #+RESULTS:
@@ -3045,15 +2985,15 @@ eData[eData$id %in% eData[eData$imputed,"id"],]
 #+END_SRC
 
 #+RESULTS:
-:    id visit time weight glucagonAUC baseline glucagon group group2 imputed
-: 5   5     1  B3m  113.1      7090.5     TRUE 4.383738     1  FALSE   FALSE
-: 15 15     1  B3m  115.0      5410.5     TRUE 4.098741     1   TRUE   FALSE
-: 25  5     2  B1w  105.6          NA     TRUE 4.256984     1  FALSE    TRUE
-: 35 15     2  B1w  109.7      7833.0     TRUE 4.509697     1   TRUE   FALSE
-: 45  5     3  A1w   99.9     19155.0    FALSE 6.430376     1  FALSE   FALSE
-: 55 15     3  A1w  103.5          NA    FALSE 6.497856     1   TRUE    TRUE
-: 65  5     4  A3m   87.7     12345.0    FALSE 5.275118     1  FALSE   FALSE
-: 75 15     4  A3m   94.1     18148.5    FALSE 6.259632     1   TRUE   FALSE
+:    id visit time weight glucagonAUC baseline glucagon group imputed
+: 5   5     1  B3m  113.1      7090.5     TRUE 4.383738     1   FALSE
+: 15 15     1  B3m  115.0      5410.5     TRUE 4.098741     1   FALSE
+: 25  5     2  B1w  105.6          NA     TRUE 4.256984     1    TRUE
+: 35 15     2  B1w  109.7      7833.0     TRUE 4.509697     1   FALSE
+: 45  5     3  A1w   99.9     19155.0    FALSE 6.430376     1   FALSE
+: 55 15     3  A1w  103.5          NA    FALSE 6.497856     1    TRUE
+: 65  5     4  A3m   87.7     12345.0    FALSE 5.275118     1   FALSE
+: 75 15     4  A3m   94.1     18148.5    FALSE 6.259632     1   FALSE
 
 Missing outcome values in the dataset have been replaced by its most
 likely value (which is the same as the dynamic prediction, describedy
@@ -3082,9 +3022,10 @@ missing value instead of using the most likely value, e.g. accounting
 for residual variance and uncertainty related to parameter estimation:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 set.seed(10)
-fitted(eUN.lmmNA, impute = TRUE, se = "total")
-fitted(eUN.lmmNA, impute = TRUE, se = "total")
-fitted(eUN.lmmNA, impute = TRUE, se = "total")
+index.na <- which(is.na(gastricbypassL$glucagonAUC))
+fitted(eUN.lmmNA, impute = TRUE, se.impute = "total")[index.na]
+fitted(eUN.lmmNA, impute = TRUE, se.impute = "total")[index.na]
+fitted(eUN.lmmNA, impute = TRUE, se.impute = "total")[index.na]
 #+END_SRC
 
 #+RESULTS:
@@ -3172,6 +3113,11 @@ plot(e.mlmm, method = c("pool.rubin","none"))
 #+END_SRC
 
 #+RESULTS:
+: Advarselsbesked:
+: [1m[22mUsing `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
+: [36mℹ[39m Please use `linewidth` instead.
+: [90mThis warning is displayed once every 8 hours.[39m
+: [90mCall `lifecycle::last_lifecycle_warnings()` to see where this warning was generated.[39m
 
 
 #+BEGIN_SRC R :exports none :results output raw drawer :session *R* :cache no
@@ -3274,35 +3220,42 @@ locale:
 [4] LC_NUMERIC=C                    LC_TIME=Danish_Denmark.utf8    
 
 attached base packages:
-[1] stats     graphics  grDevices utils     datasets  methods   base     
+[1] parallel  grid      stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
- [1] mice_3.14.0         lme4_1.1-29         Matrix_1.5-1        LMMstar_0.8.10     
- [5] nlme_3.1-158        ggpubr_0.4.0        multcomp_1.4-20     TH.data_1.1-1      
- [9] MASS_7.3-57         survival_3.3-1      mvtnorm_1.1-3       qqtest_1.2.0       
-[13] emmeans_1.8.1-90002 ggplot2_3.4.0      
+ [1] mice_3.14.0          sandwich_3.0-2       scales_1.2.1         rlang_1.1.1         
+ [5] pbapply_1.7-0        numDeriv_2016.8-1.1  nlme_3.1-158         lava_1.7.2.1        
+ [9] doSNOW_1.0.20        snow_0.4-4           iterators_1.0.14     foreach_1.5.2       
+[13] copula_1.1-2         lme4_1.1-29          Matrix_1.5-1         LMMstar_1.0.0       
+[17] ggpubr_0.4.0         multcomp_1.4-22      TH.data_1.1-1        MASS_7.3-57         
+[21] survival_3.3-1       mvtnorm_1.2-3        qqtest_1.2.0         emmeans_1.8.8-090002
+[25] ggplot2_3.4.3       
 
 loaded via a namespace (and not attached):
- [1] tidyr_1.2.0         splines_4.2.0       carData_3.0-5       datawizard_0.6.1   
- [5] assertthat_0.2.1    stats4_4.2.0        bayestestR_0.13.0   globals_0.16.1     
- [9] numDeriv_2016.8-1.1 pillar_1.8.1        backports_1.4.1     lattice_0.20-45    
-[13] glue_1.6.2          digest_0.6.29       ggsignif_0.6.3      minqa_1.2.4        
-[17] colorspace_2.0-3    sandwich_3.0-2      cowplot_1.1.1       plyr_1.8.7         
-[21] pcaPP_2.0-2         pkgconfig_2.0.3     broom_0.8.0         listenv_0.8.0      
-[25] purrr_0.3.4         xtable_1.8-4        scales_1.2.1        copula_1.1-0       
-[29] lava_1.6.10         tibble_3.1.8        ADGofTest_0.3       mgcv_1.8-40        
-[33] generics_0.1.2      farver_2.1.1        car_3.1-0           withr_2.5.0        
-[37] cli_3.4.1           effectsize_0.7.0.5  magrittr_2.0.3      estimability_1.4.1 
-[41] future_1.28.0       fansi_1.0.3         parallelly_1.32.1   gsl_2.1-7.1        
-[45] rstatix_0.7.0       textshaping_0.3.6   tools_4.2.0         lifecycle_1.0.3    
-[49] pspline_1.0-19      stringr_1.4.0       munsell_0.5.0       stabledist_0.7-1   
-[53] compiler_4.2.0      systemfonts_1.0.4   rlang_1.0.6         grid_4.2.0         
-[57] nloptr_2.0.3        parameters_0.18.2   labeling_0.4.2      boot_1.3-28        
-[61] lmerTest_3.1-3      gtable_0.3.1        codetools_0.2-18    abind_1.4-5        
-[65] DBI_1.1.3           reshape2_1.4.4      R6_2.5.1            zoo_1.8-11         
-[69] dplyr_1.0.9         future.apply_1.9.1  utf8_1.2.2          insight_0.18.4     
-[73] ragg_1.2.2          stringi_1.7.6       parallel_4.2.0      Rcpp_1.0.8.3       
-[77] vctrs_0.5.1         tidyselect_1.1.2    coda_0.19-4
+ [1] butils.base_1.2     minqa_1.2.4         colorspace_2.1-0    ggsignif_0.6.3     
+ [5] ellipsis_0.3.2      estimability_1.4.1  parameters_0.18.2   fs_1.6.3           
+ [9] listenv_0.9.0       farver_2.1.1        remotes_2.4.2       gsl_2.1-8          
+[13] fansi_1.0.4         codetools_0.2-18    splines_4.2.0       doParallel_1.0.17  
+[17] cachem_1.0.8        pkgload_1.3.0       nloptr_2.0.3        broom_0.8.0        
+[21] stabledist_0.7-1    effectsize_0.7.0.5  shiny_1.7.2         compiler_4.2.0     
+[25] backports_1.4.1     fastmap_1.1.1       cli_3.6.1           later_1.3.0        
+[29] htmltools_0.5.6     prettyunits_1.1.1   tools_4.2.0         lmerTest_3.1-3     
+[33] coda_0.19-4         gtable_0.3.4        glue_1.6.2          reshape2_1.4.4     
+[37] dplyr_1.1.3         Rcpp_1.0.11         carData_3.0-5       vctrs_0.6.3        
+[41] insight_0.18.4      stringr_1.5.0       globals_0.16.2      ps_1.7.1           
+[45] mime_0.12           miniUI_0.1.1.1      lifecycle_1.0.3     devtools_2.4.4     
+[49] rstatix_0.7.0       future_1.31.0       zoo_1.8-11          promises_1.2.0.1   
+[53] memoise_2.0.1       gridExtra_2.3       stringi_1.7.12      bayestestR_0.13.0  
+[57] pcaPP_2.0-3         boot_1.3-28         pkgbuild_1.3.1      pkgconfig_2.0.3    
+[61] lattice_0.20-45     purrr_1.0.2         htmlwidgets_1.6.2   labeling_0.4.3     
+[65] cowplot_1.1.1       tidyselect_1.2.0    processx_3.6.1      parallelly_1.34.0  
+[69] plyr_1.8.7          magrittr_2.0.3      R6_2.5.1            generics_0.1.3     
+[73] profvis_0.3.7       ADGofTest_0.3       pillar_1.9.0        withr_2.5.1        
+[77] mgcv_1.8-40         datawizard_0.6.1    abind_1.4-5         pspline_1.0-19     
+[81] tibble_3.2.1        future.apply_1.10.0 crayon_1.5.1        car_3.1-0          
+[85] utf8_1.2.3          urlchecker_1.0.1    usethis_2.1.6       data.table_1.14.2  
+[89] callr_3.7.2         digest_0.6.33       xtable_1.8-4        tidyr_1.3.0        
+[93] httpuv_1.6.5        stats4_4.2.0        munsell_0.5.0       sessioninfo_1.2.2
 #+end_example
 
 \clearpage
@@ -3922,11 +3875,11 @@ logLik(eCS.lmm)
 
 The estimated random effect also match:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-range(coef(eCS.lmm, effects = "ranef")-ranef(eCS.lme))
+range(ranef(eCS.lmm)$estimate-ranef(eCS.lme))
 #+END_SRC
 
 #+RESULTS:
-: [1] -3.136988e-08  2.384361e-08
+: [1] -3.136991e-08  2.384372e-08
 
 Unstructured residual covariance matrix can also be obtained with
 =gls=:
@@ -3959,10 +3912,10 @@ library(lmerTest)
 For instance, the compound symmetry is equivalent to a random
 intercept model (when the within subject correlation is positive):
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eCS.lmer <- lmer(weight ~ time + glucagon + (1|id),
+eRI.lmer <- lmer(weight ~ time + glucagon + (1|id),
                  data = dfL)
-logLik(eCS.lmer)
-logLik(eCS.lmm)
+logLik(eRI.lmer)
+logLik(eRI.lmm)
 #+END_SRC
 
 #+RESULTS:
@@ -3971,18 +3924,18 @@ logLik(eCS.lmm)
 
 The estimated random effects match:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-range(coef(eCS.lmm, effects = "ranef")-ranef(eCS.lmer)$id)
+range(ranef(eRI.lmm)$estimate-ranef(eRI.lmer)$id)
 #+END_SRC
 
 #+RESULTS:
-: [1] -3.167863e-08  2.406745e-08
+: [1] -3.167867e-08  2.406756e-08
 
 Nested random effects correspond to block unstructured:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eBCS.lmer <- lmer(weight ~ time*group + (1|id/baseline),
+eNRI.lmer <- lmer(weight ~ time*group + (1|id/baseline),
                   data = dfL)
-logLik(eBCS.lmer)
-logLik(eBCS.lmm)
+logLik(eNRI.lmer)
+logLik(eNRI.lmm)
 #+END_SRC
 
 #+RESULTS:
@@ -3991,12 +3944,12 @@ logLik(eBCS.lmm)
 
 And the estimated random effects still match:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eRanefBCS.lmm <- coef(eBCS.lmm, effects = "ranef")
-eRanefBCS.lmer <- ranef(eBCS.lmer)
+eRanefNRI.lmm <- ranef(eNRI.lmm)
+eRanefNRI.lmer <- ranef(eNRI.lmer)
 ## id
-range(eRanefBCS.lmm[,"id"]-eRanefBCS.lmer$id)
+range(eRanefNRI.lmm[eRanefNRI.lmm$variable=="id","estimate"]-eRanefNRI.lmer$id)
 ## baseline
-range(c(eRanefBCS.lmm[,"baseline1"],eRanefBCS.lmm[,"baseline2"])-ranef(eBCS.lmer)$`baseline:id`)
+range(eRanefNRI.lmm[eRanefNRI.lmm$variable!="id","estimate"]-ranef(eNRI.lmer)$`baseline:id`)
 #+END_SRC
 
 #+RESULTS:
@@ -4062,30 +4015,36 @@ suppressWarnings(anova(eUN2.lmm))
 It is also possible to fit cross-random effects such as:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 data("Penicillin")
-fm03 <- lmer(diameter ~ 1 + (1|plate) + (1|sample), Penicillin)
-logLik(fm03)
+eCRI.lmer <- lmer(diameter ~ 1 + (1|plate) + (1|sample), Penicillin)
+logLik(eCRI.lmer)
 #+END_SRC
 
 #+RESULTS:
 : 'log Lik.' -165.4303 (df=4)
 
-using =lmm= with a small hack: using a block compound symmetry
-structure with heterogeneous set to -1 to remove the correlation
-coefficient for pairs that have none of the covariate defining the
-blocks in common:
+
+#+RESULTS:
+
+using =lmm=:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 Penicillin$index <- paste(Penicillin$sample,Penicillin$plate,sep=".")
 Penicillin$id <- 1
 
-e.lmm <- lmm(diameter ~ 1,
-             repetition = ~index|id,
-             structure = CS(list(~1,~plate+sample), heterogeneous = -1),
-             data = Penicillin)
-logLik(e.lmm)
+eCRI.lmm <- lmm(diameter ~ 1 + (1|plate) + (1|sample), data = Penicillin)
+logLik(eCRI.lmm)
 #+END_SRC
 
 #+RESULTS:
 : [1] -165.4303
+
+Despite being significantly slower, the loglikelihood and random
+effect still match:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+range(ranef(eCRI.lmm)$estimate-rbind(ranef(eCRI.lmer)$plate,ranef(eCRI.lmer)$sample))
+#+END_SRC
+
+#+RESULTS:
+: [1] -4.381305e-07  6.017161e-07
 
 ** mmrm package
 
@@ -4100,6 +4059,7 @@ e.mmrm <- mmrm(
 #+END_SRC
 
 #+RESULTS:
+: mmrm() registered as emmeans extension
 
 It leads nearly identical results compared to =lmm=:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -4110,6 +4070,9 @@ e.lmm <- lmm(
 )
 #+END_SRC
 #+RESULTS:
+: Advarselsbesked:
+: I .lmmNormalizeData(as.data.frame(data)[unique(stats::na.omit(var.all))],  :
+:     3 clusters have been removed.
 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 logLik(e.mmrm) - logLik(e.lmm)
@@ -4118,7 +4081,7 @@ range(vcov(e.mmrm) - vcov(e.lmm))
 #+END_SRC
 
 #+RESULTS:
-: [1] -2.541298e-06
+: [1] -2.541278e-06
 : [1] -0.0001830095  0.0001626755
 : [1] -0.0003971008  0.0002047941
 

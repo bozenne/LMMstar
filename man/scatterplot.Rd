@@ -19,6 +19,7 @@ scatterplot(
   linewidth.density = NULL,
   alpha.area = NULL,
   method.cor = "pearson",
+  name.cor = "r",
   size.cor = NULL,
   digits = c(3, 2),
   display.NA = NULL,
@@ -62,6 +63,8 @@ Only relevant when having multiple groups and using \code{ggh4x::facet_grid2}.}
 
 \item{method.cor}{[character] estimator of the correlation. Argument passed to \code{stats::cor}.
 When \code{NA}, the correlation is not displayed.}
+
+\item{name.cor}{[character] character used to represent the correlation. By default \code{"r"} but can be changed to \code{"\u03C1"} to display the greek letter \eqn{\rho}.}
 
 \item{size.cor}{[numeric,>0] size of the font used to display the correlation or information about missing values.}
 
