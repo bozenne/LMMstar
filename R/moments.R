@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: aug  8 2023 (19:30) 
+## Last-Updated: sep  7 2023 (16:05) 
 ##           By: Brice Ozenne
-##     Update #: 676
+##     Update #: 678
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -207,7 +207,6 @@ browser()
                               Upattern.ncluster = Upattern.ncluster, weights = weights.cluster, scale.Omega = scale.cluster,
                               pattern = design$vcov$pattern, index.cluster = design$index.cluster, 
                               indiv = indiv, REML = (method.fit=="REML"), type.information = type.information, effects = effects2, robust = robust)
-
         if(information){
             if(indiv){
                 out$information <- Minfo[,attr(effects, "original.names"),attr(effects, "original.names"),drop=FALSE]

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: aug  1 2023 (13:20) 
+## Last-Updated: sep 11 2023 (18:06) 
 ##           By: Brice Ozenne
-##     Update #: 303
+##     Update #: 304
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -259,7 +259,11 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
                 tty <- list(estimate = NA, parameter = NA, stderr = NA, conf.int = c(NA, NA))
             }
             if(("median.lower" %in% columns || "median.upper" %in% columns) && requireNamespace("asht") && !all(y %in% 0:1)){
-                wty <- asht::medianTest(y, conf.level = level, alternative = "two.sided")
+                if(na.rm){
+                    wty <- asht::medianTest(stats::na.omit(y), conf.level = level, alternative = "two.sided")
+                }else{
+                    wty <- asht::medianTest(y, conf.level = level, alternative = "two.sided")
+                }
             }else{
                 wty <- list(estimate = NA, parameter = NA, stderr = NA, conf.int = c(NA, NA))
             }
