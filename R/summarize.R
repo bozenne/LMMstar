@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: nov  8 2023 (15:07) 
+## Last-Updated: jan 10 2024 (15:18) 
 ##           By: Brice Ozenne
-##     Update #: 304
+##     Update #: 305
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -364,6 +364,7 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
     }
 
     ## ** export
+
     if(!is.null(digits)){
         attr(out,"digits") <- digits
     }

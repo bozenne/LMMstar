@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jul 25 2023 (10:05) 
+## Last-Updated: jan 10 2024 (15:18) 
 ##           By: Brice Ozenne
-##     Update #: 243
+##     Update #: 245
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -295,7 +295,7 @@ print.resample <- function(x, digits = 3, ...){
     return(invisible(NULL))
 }
 
-## * print.summarize
+## * print.residuals_lmm
 #' @export
 print.residuals_lmm <- function(x, ...){
     x.print <- x
@@ -313,7 +313,7 @@ print.summarize <- function(x,...){
     }else{
         x$outcome[duplicated(x$outcome)] <- ""
     }
-    if("pc.missing" %in% attr(x,"call")$columns == FALSE){
+    if("pc.missing" %in% eval(attr(x,"call")$columns) == FALSE){
         x$pc.missing <- NULL
     }
     name.X <-  attr(x,"name.X")
