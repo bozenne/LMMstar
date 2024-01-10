@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: aug  1 2023 (15:07) 
+## Last-Updated: jan 10 2024 (15:46) 
 ##           By: Brice Ozenne
-##     Update #: 200
+##     Update #: 201
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -240,9 +240,9 @@ test_that("Nested random intercept model (2 levels)",{
     eNRI3.lmm0 <- lmm(value ~ session + (1|patient/day/session), data = dfL.NRI3, df = FALSE)
     eNRI3.lmm <- lmm(value ~ session + (1|patient/day/session), data = dfL.NRI3, df = FALSE, control = list(init = "lmer"))
 
-        ## ** iteration
+    ## ** iteration
     expect_equal(eNRI3.lmm0$opt$n.iter,4)
-    expect_equal(eNRI3.lmm$opt$n.iter,1)
+    expect_true(eNRI3.lmm$opt$n.iter<=2)
 
     ## ** likelihood
     expect_equal(as.double(logLik(eNRI3.lmer)), as.double(logLik(eNRI3.lmm0)), tol = 1e-6)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jan 10 2024 (15:18) 
+## Last-Updated: jan 10 2024 (15:44) 
 ##           By: Brice Ozenne
-##     Update #: 305
+##     Update #: 309
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -48,7 +48,8 @@
 ##' @param digits [integer, >=0] the minimum number of significant digits to be used to display the results. Passed to \code{print.data.frame}
 ##' @param ... additional arguments passed to argument \code{FUN}.
 ##'
-##' @details This function is essentially an interface to the \code{stats::aggregate} function.
+##' @details This function is essentially an interface to the \code{stats::aggregate} function. \cr
+##' \bold{WARNING:} it has the same name as a function from the dplyr package. If you have loaded dplyr already, you should use \code{:::} to call summarize i.e. use \code{LMMstar:::summarize}.
 ##' 
 ##' Confidence intervals (CI) and prediction intervals (PI) for the mean are computed via \code{stats::t.test}.
 ##' Confidence intervals (CI) for the median are computed via \code{asht::medianTest}.
