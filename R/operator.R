@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: nov  8 2023 (15:05) 
 ## Version: 
-## Last-Updated: nov  8 2023 (15:05) 
+## Last-Updated: jan 15 2024 (15:33) 
 ##           By: Brice Ozenne
-##     Update #: 2
+##     Update #: 10
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,8 +16,10 @@
 ### Code:
 
 ## * [.summarize
+##' @export
 `[.summarize` <- function(x, i, j, ...){
-  as.data.frame(x)[i,j,...]
+    y <- as.data.frame(x)[i,j,...]
+    return(y)
 }
 
 

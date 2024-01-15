@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 10 2024 (15:10) 
 ## Version: 
-## Last-Updated: jan 10 2024 (15:20) 
+## Last-Updated: jan 15 2024 (15:39) 
 ##           By: Brice Ozenne
-##     Update #: 6
+##     Update #: 7
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,7 +17,6 @@
 
 if(FALSE){
     library(testthat)
-
     library(LMMstar)
 }
 
@@ -37,6 +36,7 @@ test_that("summarize full data, extract columns",{
 
     summarize(Y ~ 1, data = dL)[,c("mean","sd")]
     summarize(Y ~ 1, data = dL, columns = c("mean","sd"))
+    summarize(Y ~ 1, data = dL, columns = c("mean","sd"))[,2:3]
 
     summarize(Y ~ visit, data = dL)
 
