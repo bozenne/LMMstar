@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: nov  8 2023 (16:00) 
+## Last-Updated: jan 18 2024 (09:33) 
 ##           By: Brice Ozenne
-##     Update #: 940
+##     Update #: 942
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -1162,7 +1162,7 @@ autoplot.summarizeNA <- function(object, variable = NULL, size.text = 16,
         stop("Argument \'keep.data\' should be set to TRUE when calling summarizeNA to obtain a graphical display. \n")
     }
 
-    keep.cols <- setdiff(names(object),newnames)
+    keep.cols <- setdiff(names(object),c(newnames,all.vars(attr(object,"args")$repetition)))
     data <- as.data.frame(object[,c(newnames[3],keep.cols),drop=FALSE])
     dataL <- stats::reshape(data, direction = "long", idvar = newnames[3], varying = keep.cols,
                             v.names = newnames[[2]],
@@ -1187,6 +1187,7 @@ autoplot.summarizeNA <- function(object, variable = NULL, size.text = 16,
         }
         dataL[[newnames[3]]] <- factor(dataL[[newnames[3]]], levels = data[[newnames[3]]][order.pattern])
     }
+
     gg.NA <- ggplot2::ggplot(dataL, ggplot2::aes(y = .data[[newnames[3]]], x = .data[[newnames[1]]], fill = .data[[newnames[2]]]))
     gg.NA <- gg.NA + ggplot2::geom_tile(color = "black")
     gg.NA <- gg.NA + ggplot2::scale_y_discrete(breaks = unique(dataL[[newnames[3]]]),

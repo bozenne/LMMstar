@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: dec  7 2022 (17:13) 
 ## Version: 
-## Last-Updated: jul 10 2023 (18:16) 
+## Last-Updated: jan 18 2024 (09:35) 
 ##           By: Brice Ozenne
-##     Update #: 51
+##     Update #: 54
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -36,11 +36,13 @@
 ##' 
 ##' @examples
 ##' data(gastricbypassW, package = "LMMstar")
-##' summarizeNA(gastricbypassW) 
+##' e.SNA <- summarizeNA(gastricbypassW) 
+##' plot(e.SNA)
 ##' summarizeNA(gastricbypassW, keep.data = FALSE)
 ##' 
 ##' data(gastricbypassL, package = "LMMstar")
-##' summarizeNA(gastricbypassL, repetition = ~time|id)
+##' e.SNAL <- summarizeNA(gastricbypassL, repetition = ~time|id)
+##' plot(e.SNAL, variable = "glucagonAUC")
 ##' 
 ##' data(calciumL, package = "LMMstar")
 ##' mp <- summarizeNA(calciumL, repetition = ~visit|girl)
@@ -105,7 +107,7 @@ summarizeNA <- function(data, repetition = NULL, sep = "",
             data[[var.time]] <- as.factor(data[[var.time]])
         }
         Utime <- levels(data[[var.time]])
-            
+      
         ls.data <- stats::setNames(lapply(name.Y, function(iY){ ## iY <- name.Y[1]
             stats::reshape(data[,c(var.cluster,var.time,iY)], direction = "wide", timevar = var.time, idvar = var.cluster, varying = Utime)
         }), name.Y)
