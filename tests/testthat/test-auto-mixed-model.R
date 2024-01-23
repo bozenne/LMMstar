@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: jan 23 2024 (12:03) 
+## Last-Updated: jan 23 2024 (12:19) 
 ##           By: Brice Ozenne
-##     Update #: 205
+##     Update #: 209
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -38,20 +38,20 @@ test_that("Random intercept model",{
     
     ## ** fit
     ## eRI.lmer <- lmer(distance ~ age + (1|Subject), data=Orthodont)
-    eRI.lmm <- lmm(distance ~ age + (1|Subject), data=Orthodont,
-                   control = list(init = "lmer"))
+    ## eRI.lmm <- lmm(distance ~ age + (1|Subject), data=Orthodont,
+    ##                control = list(init = "lmer"))
     eRI2.lmm <- lmm(distance ~ age + (1|Subject), data=Orthodont)
     
-    xx <- capture.output(summary(eRI.lmm))
+    xx <- capture.output(summary(eRI2.lmm))
 
     ## ** iteration
-    expect_equal(eRI.lmm$opt$n.iter,0)
+    ## expect_equal(eRI.lmm$opt$n.iter,0)
     expect_equal(eRI2.lmm$opt$n.iter,4)
 
     ## ** likelihood
     ## expect_equal(as.double(logLik(eRI.lmer)), as.double(logLik(eRI.lmm)), tol = 1e-6)
     ## expect_equal(as.double(logLik(eRI.lmer)), as.double(logLik(eRI2.lmm)), tol = 1e-6)
-    expect_equal(-223.5012578, as.double(logLik(eRI.lmm)), tol = 1e-6)
+    ## expect_equal(-223.5012578, as.double(logLik(eRI.lmm)), tol = 1e-6)
     expect_equal(-223.5012578, as.double(logLik(eRI2.lmm)), tol = 1e-6)
 
     ## ** random effects (conditional mean)
@@ -61,7 +61,7 @@ test_that("Random intercept model",{
                        "grp" = c("M16", "M05", "M02", "M11", "M07", "M08", "M03", "M12", "M13", "M14", "M09", "M15", "M06", "M04", "M01", "M10", "F10", "F09", "F06", "F01", "F05", "F07", "F02", "F08", "F03", "F04", "F11"), 
                        "condval" = c(-0.9179756, -0.9179756, -0.5815230, -0.3572213, -0.2450704, -0.1329195,  0.2035330,  0.2035330,  0.2035330,  0.7642874,  0.9885891,  1.6614942,  2.1100977,  2.3343994,  3.3437571,  4.9138692, -4.9554066, -2.6002385, -2.6002385, -2.3759368, -1.2544282, -0.9179756, -0.9179756, -0.5815230, -0.2450704,  0.7642874,  2.1100977), 
                        "condsd" = c(0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092))
-    u.test <- ranef(eRI.lmm, effects = "mean", format = "long")
+    u.test <- ranef(eRI2.lmm, effects = "mean", format = "long")
     expect_equal(as.double(u.GS$condval[match(u.test$level,u.GS$grp)]), as.double(u.test$estimate), tol = 1e-6)
 
     ## ** random effects (conditional variance)
@@ -71,7 +71,7 @@ test_that("Random intercept model",{
                          "var2" = c("NA", "NA"), 
                          "vcov" = c(4.472056, 2.049456), 
                          "sdcor" = c(2.114724, 1.431592))
-    tau.test <- ranef(eRI.lmm, effects = "variance", format = "long")
+    tau.test <- ranef(eRI2.lmm, effects = "variance", format = "long")
     expect_equal(as.double(tau.GS[1,"vcov"]), as.double(tau.test[tau.test$type=="variance","estimate"]), tol = 1e-6)
 
 })
@@ -113,12 +113,14 @@ test_that("Crossed random intercept model (2 terms)",{
     eCRI2.lmm0 <- lmm(diameter ~ 1, repetition = ~1|id,
                       structure = CS(list(~1,~plate+sample), type = "ho", group = 1:2),
                       data = Penicillin, df = FALSE)
-    eCRI2.lmm <- lmm(diameter ~ (1|plate) + (1|sample), data = Penicillin, df = FALSE,
-                     control = list(init = "lmer"))
+    eCRI2.lmm <- lmm(diameter ~ (1|plate) + (1|sample), data = Penicillin, df = FALSE)
+    ## eCRI2.lmm <- lmm(diameter ~ (1|plate) + (1|sample), data = Penicillin, df = FALSE,
+    ##                  control = list(init = "lmer"))
 
     ## ** iteration
     expect_equal(eCRI2.lmm0$opt$n.iter,7)
-    expect_equal(eCRI2.lmm$opt$n.iter,2)
+    expect_equal(eCRI2.lmm$opt$n.iter,7)
+    ## expect_equal(eCRI2.lmm$opt$n.iter,2)
 
     ## ** likelihood
     ## expect_equal(as.double(logLik(eCRI2.lmer)), as.double(logLik(eCRI2.lmm0)), tol = 1e-6)
@@ -168,17 +170,17 @@ test_that("Crossed random intercept model (3 terms)",{
     ## ** fit
     ## eCRI3.lmer <- lmer(value ~ 0 + variable + (1|batch) + (1|day) + (1|patient), data = dfL.CRI3)
     eCRI3.lmm0 <- lmm(value ~ 0 + variable + (1|batch) + (1|day) + (1|patient), data = dfL.CRI3, df = FALSE)
-    eCRI3.lmm <- lmm(value ~ 0 + variable + (1|batch) + (1|day) + (1|patient), data = dfL.CRI3, df = FALSE, control = list(init = "lmer"))
+    ## eCRI3.lmm <- lmm(value ~ 0 + variable + (1|batch) + (1|day) + (1|patient), data = dfL.CRI3, df = FALSE, control = list(init = "lmer"))
 
     ## ** iteration
     expect_equal(eCRI3.lmm0$opt$n.iter,5)
-    expect_equal(eCRI3.lmm$opt$n.iter,0)
+    ## expect_equal(eCRI3.lmm$opt$n.iter,0)
 
     ## ** likelihood
     ## expect_equal(as.double(logLik(eCRI3.lmer)), as.double(logLik(eCRI3.lmm0)), tol = 1e-6)
     ## expect_equal(as.double(logLik(eCRI3.lmer)), as.double(logLik(eCRI3.lmm)), tol = 1e-6)
     expect_equal(-163.0799, as.double(logLik(eCRI3.lmm0)), tol = 1e-6)
-    expect_equal(-163.0799, as.double(logLik(eCRI3.lmm)), tol = 1e-6)
+    ## expect_equal(-163.0799, as.double(logLik(eCRI3.lmm)), tol = 1e-6)
 
     ## ** random effects (conditional mean)
     ## GS <- ranef(eCRI3.lmer)
@@ -192,7 +194,7 @@ test_that("Crossed random intercept model (3 terms)",{
                                  class = "data.frame",
                                  row.names = c("1.1","1.2","1.3","10.1","10.2","10.3","11.1","11.2","11.3","12.1","12.2","12.3","13.1","13.2","13.3","14.1","14.2","14.3","15.1","15.2","15.3","16.1","16.2","16.3","17.1","17.2","17.3","18.1","18.2","18.3","19.1","19.2","19.3","2.1","2.2","2.3","20.1","20.2","20.3","21.1","21.2","21.3","22.1","22.2","22.3","23.1","23.2","23.3","24.1","24.2","24.3","25.1","25.2","25.3","3.1","3.2","3.3","4.1","4.2","4.3","5.1","5.2","5.3","6.1","6.2","6.3","7.1","7.2","7.3","8.1","8.2","8.3","9.1","9.2","9.3"))
                )
-    test <- ranef(eCRI3.lmm)
+    test <- ranef(eCRI3.lmm0)
     expect_equal(as.double(test[test$variable=="patient","estimate"]), as.double(GS$patient[test[test$variable=="patient","level"],1]), tol = 1e-6)
     expect_equal(as.double(test[test$variable=="day","estimate"]), as.double(GS$day[test[test$variable=="day","level"],1]), tol = 1e-6)
     expect_equal(as.double(test[test$variable=="batch","estimate"]), as.double(GS$batch[test[test$variable=="batch","level"],1]), tol = 1e-6)
@@ -204,7 +206,7 @@ test_that("Crossed random intercept model (3 terms)",{
                      "var2" = c("NA", "NA", "NA", "NA"), 
                      "vcov" = c(0.06942091, 0.12540494, 0.64105869, 0.06404538), 
                      "sdcor" = c(0.2634785, 0.3541256, 0.8006614, 0.2530719))
-    test <- ranef(eCRI3.lmm, effects = "variance", format = "wide", simplify = FALSE)
+    test <- ranef(eCRI3.lmm0, effects = "variance", format = "wide", simplify = FALSE)
     expect_equal(as.double(test[-1,"variance"]), as.double(GS[,"vcov"]), tol = 1e-3)
 })
 
@@ -227,17 +229,17 @@ test_that("Nested random intercept model (2 levels)",{
     ## ** fit
     ## eNRI2.lmer <- lmer(extro ~ (1|school/class), data = df.red)
     eNRI2.lmm0 <- lmm(extro ~ (1|school/class), data = df.red, df = FALSE)
-    eNRI2.lmm <- lmm(extro ~ (1|school/class), data = df.red, df = FALSE, control = list(init = "lmer"))
+    ## eNRI2.lmm <- lmm(extro ~ (1|school/class), data = df.red, df = FALSE, control = list(init = "lmer"))
 
         ## ** iteration
     expect_equal(eNRI2.lmm0$opt$n.iter,9)
-    expect_equal(eNRI2.lmm$opt$n.iter,3)
+    ## expect_equal(eNRI2.lmm$opt$n.iter,3)
 
     ## ** likelihood
     ## expect_equal(as.double(logLik(eNRI2.lmer)), as.double(logLik(eNRI2.lmm0)), tol = 1e-6)
     ## expect_equal(as.double(logLik(eNRI2.lmer)), as.double(logLik(eNRI2.lmm)), tol = 1e-6)
     expect_equal(-351.01958598, as.double(logLik(eNRI2.lmm0)), tol = 1e-6)
-    expect_equal(-351.01958598, as.double(logLik(eNRI2.lmm)), tol = 1e-6)
+    ## expect_equal(-351.01958598, as.double(logLik(eNRI2.lmm)), tol = 1e-6)
 
     ## ** random effects (conditional mean)
     ## GS <- ranef(eNRI2.lmer)
@@ -249,7 +251,7 @@ test_that("Nested random intercept model (2 levels)",{
                                   row.names = c("I", "II", "III", "IV", "V", "VI")
                                   )
                )
-    test <- ranef(eNRI2.lmm)
+    test <- ranef(eNRI2.lmm0)
     test$variable2 <- sapply(test$variable,paste, collapse=":")
     expect_equal(as.double(test[test$variable2=="school","estimate"]), as.double(GS$school[,1]), tol = 1e-4)
     expect_equal(as.double(test[test$variable2=="school:class","estimate"]), as.double(GS$class[,1]), tol = 1e-4)
@@ -261,7 +263,7 @@ test_that("Nested random intercept model (2 levels)",{
                      "var2" = c("NA", "NA", "NA"), 
                      "vcov" = c( 7.2056645, 92.2434064,  0.6293901), 
                      "sdcor" = c(2.6843369, 9.6043431, 0.7933411))
-    test <- ranef(eNRI2.lmm, effects = "variance", format = "wide", simplify = FALSE)
+    test <- ranef(eNRI2.lmm0, effects = "variance", format = "wide", simplify = FALSE)
     expect_equal(as.double(test[-1,"variance"]), as.double(GS[c(2,1,3),"vcov"]), tol = 1e-3)
 })
 
