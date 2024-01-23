@@ -33,11 +33,13 @@ Summarize missing data patterns.
 }
 \examples{
 data(gastricbypassW, package = "LMMstar")
-summarizeNA(gastricbypassW) 
+e.SNA <- summarizeNA(gastricbypassW) 
+plot(e.SNA)
 summarizeNA(gastricbypassW, keep.data = FALSE)
 
 data(gastricbypassL, package = "LMMstar")
-summarizeNA(gastricbypassL, repetition = ~time|id)
+e.SNAL <- summarizeNA(gastricbypassL, repetition = ~time|id)
+plot(e.SNAL, variable = "glucagonAUC")
 
 data(calciumL, package = "LMMstar")
 mp <- summarizeNA(calciumL, repetition = ~visit|girl)

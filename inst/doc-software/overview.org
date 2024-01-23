@@ -60,7 +60,7 @@ utils::packageVersion("LMMstar")
 #+END_SRC
 
 #+RESULTS:
-: [1] '1.0.0'
+: [1] '1.0.2'
 
 \clearpage
 
@@ -3843,7 +3843,7 @@ summary(partialCor(e.lmm, R2 = TRUE))
 
 \clearpage
 
-* Equivalent with other R packages
+* Equivalence with other R packages
 
 ** nlme package
 
@@ -4092,8 +4092,11 @@ The main differences are:
   freedom and not only the Satterthwaite approximation
 - =mmrm= implements different covariance patterns
 - =mmrm= is faster and probably more memorry efficient
-- =mmrm= have fewer post-processing methods (e.g. no =residuals=
-  function in the current CRAN version 0.2.2)
+- =mmrm= has currently fewer post-processing methods (e.g. adjustment
+  multiple comparisons when testing several model parameters). This
+  being said, the latest version of the package (0.3.7) included
+  several additional extractor of model feature so this may be
+  improved in the future.
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
 set.seed(10)
@@ -4269,6 +4272,89 @@ c(R2m = sigma2_XB/(sigmaW + sigmaB + sigma2_XB),
 #+RESULTS:
 :       R2m       R2c 
 : 0.2163302 0.9764382
+
+** EMAtools for Cohen's D :noexport:
+
+Consider again the random intercept model:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eRI.lmm <- lmm(weight ~ time + glucagon + (1|id), data = dfL)
+eRI.lmer <- lmer(weight ~ time + glucagon + (1|id), data = dfL)
+eRI.lme <- lme(weight ~ time + glucagon, random =~ 1|id, data = dfL)
+#+END_SRC
+
+#+RESULTS:
+To estimate standardized effect sizes one can use the function
+=lme.dscore= of the EMAtools packages that calculate Cohen's D:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+library(EMAtools)
+## lme.dscore(eRI.lmer, type = "lme4") ## error
+lme.dscore(weight ~ time + glucagon + (1|id), data = dfL, type = "lme4")
+## lme.dscore(eRI.lme, type = "nlme") ## very simular but warning
+#+END_SRC
+
+#+RESULTS:
+:                   t       df          d
+: timeB1w   -7.230297 53.97873 -1.9682252
+: timeA1w  -10.159167 54.20609 -2.7597138
+: timeA3m  -24.888739 54.01461 -6.7729406
+: glucagon   1.327685 54.45612  0.3598336
+
+Internally the Cohen's D is evaluated as twice the test statistic
+divided by the number of degrees of freedom:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eRI.lmertable <- summary(eRI.lmer)$coefficient[-1,]
+eRI.lmmtable <- model.tables(eRI.lmm, columns = add("statistic"))[-1,]
+
+rbind(lmer = 2*eRI.lmertable[,"t value"]/sqrt(eRI.lmertable[,"df"]),
+      lmm = 2*eRI.lmmtable$statistic/sqrt(eRI.lmmtable$df))
+## small difference due to expected vs. observed information
+#+END_SRC
+
+#+RESULTS:
+:        timeB1w   timeA1w   timeA3m  glucagon
+: lmer -1.968225 -2.759714 -6.772941 0.3598336
+: lmm  -1.968416 -2.765843 -6.776385 0.3614009
+
+I am a bit surprised by the formula as to me an analogue of the
+Cohen's d with a random intercept model would simply be the estimated
+coefficient divided by the residual standard deviation:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+coef(eRI.lmm)["glucagon"]/sqrt(sigma(eRI.lmm)[1,1])
+#+END_SRC
+
+#+RESULTS:
+:   glucagon 
+: 0.04359717
+
+
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+library(mvtnorm)
+n <- 1e4
+mu <- c(0,0,0)
+sigma <- diag(0.5,3) + 0.5
+dfW.sim <- rbind(data.frame(id = 1:n, group = "C", rmvnorm(n, mean = mu, sigma = sigma)),
+                 data.frame(id = n+(1:n), group = "T", rmvnorm(n, mean = mu+1, sigma = sigma))
+                 )
+dfL.sim <- reshape2::melt(dfW.sim, id.vars = c("id","group"))
+lme.dscore(value ~ group + (1|id), data = dfL.sim, type = "lme4")
+eSim.lmer <- lmer(value ~ group + (1|id), data = dfL.sim)
+
+eSim.lmm <- lmm(value ~ group + (1|id), data = dfL.sim)
+coef(eSim.lmm)["groupT"]/sqrt(sigma(eSim.lmm)[1,1])
+
+1/c(sqrt(1),sqrt(0.5))
+#+END_SRC
+
+#+RESULTS:
+:               t    df        d
+: groupT 86.16901 19998 1.218675
+:   groupT 
+: 1.408396
+:    groupT 
+: 0.9952911
+: [1] 1.000000 1.414214
+
 
 ** stats package (partial residuals)
 

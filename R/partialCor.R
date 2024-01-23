@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: aug  1 2023 (14:25) 
+## Last-Updated: jan 23 2024 (10:07) 
 ##           By: Brice Ozenne
-##     Update #: 518
+##     Update #: 523
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -344,7 +344,7 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
                 }, ...)
 
                 if(test.atanh){
-                    out2 <- .backtransform(out2, type.param = "rho", backtransform.names = NULL, backtransform = c(FALSE,FALSE,FALSE,TRUE),
+                    out2 <- .backtransform(out2, type.param = rep("rho",NROW(out2)), backtransform.names = NULL, backtransform = c(FALSE,FALSE,FALSE,TRUE),
                                            transform.mu = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = "atanh")
                         
                 }
