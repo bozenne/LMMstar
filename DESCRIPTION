@@ -28,7 +28,7 @@ Imports:
     ggplot2,
     grid,
     lava,
-    Matrix (>= 1.6.3),
+    Matrix (>= 1.6-3),
     multcomp,
     nlme,
     numDeriv,
