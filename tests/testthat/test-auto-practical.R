@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (17:03) 
 ## Version: 
-## Last-Updated: aug  1 2023 (15:11) 
+## Last-Updated: jan 23 2024 (12:00) 
 ##           By: Brice Ozenne
-##     Update #: 117
+##     Update #: 118
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -325,10 +325,13 @@ test_that("practical 6 - vasscoresL",{
 
     expect_equivalent(sigma(fit.CS), GS, tol = 1e-5)
     
-    GS <- lmer(vas~-1+treatment+(1|id), data=vasscoresL)    
+    ## GS <- lmer(vas~-1+treatment+(1|id), data=vasscoresL)    
+    GS <- lme(vas~-1+treatment, random =~ 1|id, data=vasscoresL, na.action = na.omit)    
     expect_equivalent(unname(coef(fit.CS)), unname(fixef(GS)), tol = 1e-5)
-    expect_equivalent(unname(model.tables(fit.CS)$se), unname(summary(GS)$coef[,"Std. Error"]), tol = 1e-2)
-    expect_equivalent(unname(model.tables(fit.CS)$df), unname(summary(GS)$coef[,"df"]), tol = 1e-2)
+    ## expect_equivalent(unname(model.tables(fit.CS)$se), unname(summary(GS)$coef[,"Std. Error"]), tol = 1e-2)
+    ## expect_equivalent(unname(model.tables(fit.CS)$df), unname(summary(GS)$coef[,"df"]), tol = 1e-2)
+    expect_equivalent(unname(model.tables(fit.CS)$se), unname(summary(GS)$tTable[,"Std.Error"]), tol = 1e-2)
+    expect_equivalent(unname(model.tables(fit.CS)$df), c(43.64236203, 43.64236203, 43.64236203), tol = 1e-2)
 
     ## autoplot(fit.CS)
     suppressWarnings(autoplot(fit.CS, obs.alpha = 0.1))

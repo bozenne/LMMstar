@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: aug  1 2023 (13:21) 
+## Last-Updated: jan 23 2024 (11:58) 
 ##           By: Brice Ozenne
-##     Update #: 144
+##     Update #: 145
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -511,9 +511,11 @@ test_that("Start with cluster with single observation", {
     set.seed(10)
     dL <- sampleRem(100, n.times = 3, format = "long")
     e.lmm <- lmm(Y ~ X1 + (1|id), data = dL[3:19,], df = FALSE)
-    e.lmer <- lmer(Y ~ X1 + (1|id), data = dL[3:19,])
+    ## e.lmer <- lmer(Y ~ X1 + (1|id), data = dL[3:19,])
+    e.lme <- lme(Y ~ X1, random =~ 1|id, data = dL[3:19,])
     ## was giving an error
-    expect_equal(as.double(ranef(e.lmm)$estimate),as.double(ranef(e.lmer)$id[,1]), tol = 1e-6)
+    ## expect_equal(as.double(ranef(e.lmm)$estimate),as.double(ranef(e.lmer)$id[,1]), tol = 1e-6)
+    expect_equal(as.double(ranef(e.lmm)$estimate),as.double(ranef(e.lme)[,1]), tol = 1e-6)
 
 })
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: jan 23 2024 (11:03) 
+## Last-Updated: jan 23 2024 (12:03) 
 ##           By: Brice Ozenne
-##     Update #: 203
+##     Update #: 205
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -275,6 +275,7 @@ diag(Sigma.NRI3) <- 1
 
 ## c(sqrt(0.25^2), sqrt(0.5^2-0.25^2), sqrt(0.8^2-0.5^2-0.25^2))
 n <- 1000
+set.seed(10)
 dfL.NRI3 <- reshape2::melt(data.frame(patient = 1:n,
                                       mvtnorm::rmvnorm(n, mean = 1:8, sigma = Sigma.NRI3)
                                       ),
@@ -290,17 +291,17 @@ test_that("Nested random intercept model (2 levels)",{
     ## ** fit
     ## eNRI3.lmer <- lmer(value ~ session + (1|patient/day/session), data = dfL.NRI3)
     eNRI3.lmm0 <- lmm(value ~ session + (1|patient/day/session), data = dfL.NRI3, df = FALSE)
-    eNRI3.lmm <- lmm(value ~ session + (1|patient/day/session), data = dfL.NRI3, df = FALSE, control = list(init = "lmer"))
+    ## eNRI3.lmm <- lmm(value ~ session + (1|patient/day/session), data = dfL.NRI3, df = FALSE, control = list(init = "lmer"))
 
     ## ** iteration
     expect_equal(eNRI3.lmm0$opt$n.iter,4)
-    expect_true(eNRI3.lmm$opt$n.iter<=2)
+    ## expect_true(eNRI3.lmm$opt$n.iter<=2)
 
     ## ** likelihood
     ## expect_equal(as.double(logLik(eNRI3.lmer)), as.double(logLik(eNRI3.lmm0)), tol = 1e-6)
     ## expect_equal(as.double(logLik(eNRI3.lmer)), as.double(logLik(eNRI3.lmm)), tol = 1e-6)
-    expect_equal(-12026.18758783, as.double(logLik(eNRI3.lmm0)), tol = 1e-6)
-    expect_equal(-12026.18758783, as.double(logLik(eNRI3.lmm)), tol = 1e-6)
+    expect_equal(-12046.61, as.double(logLik(eNRI3.lmm0)), tol = 1e-6)
+    ## expect_equal(-12046.61, as.double(logLik(eNRI3.lmm)), tol = 1e-6)
 
     ## ** random effects (conditional mean)
     ## slow!!
@@ -316,9 +317,9 @@ test_that("Nested random intercept model (2 levels)",{
     GS <- data.frame("grp" = c("session:(day:patient)", "day:patient", "patient", "Residual"), 
                      "var1" = c("(Intercept)", "(Intercept)", "(Intercept)", "NA"), 
                      "var2" = c("NA", "NA", "NA", "NA"), 
-                     "vcov" = c(0.1267922, 0.1688594, 0.1154126, 0.8792780), 
-                     "sdcor" = c(0.3560789, 0.4109250, 0.3397243, 0.9376982))
-    test <- ranef(eNRI3.lmm, effects = "variance", format = "wide", simplify = FALSE)
+                     "vcov" = c(0.14345485, 0.16865260, 0.09309796, 0.88206248), 
+                     "sdcor" = c(0.3787543, 0.4106733, 0.3051196, 0.9391818))
+    test <- ranef(eNRI3.lmm0, effects = "variance", format = "wide", simplify = FALSE)
     expect_equal(as.double(test[-1,"variance"]), as.double(GS[c(3,2,1,4),"vcov"]), tol = 1e-3)
 })
 
