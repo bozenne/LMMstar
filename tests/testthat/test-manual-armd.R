@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Dec 19 2021 (17:07) 
 ## Version: 
-## Last-Updated: aug  1 2023 (13:53) 
+## Last-Updated: jan 26 2024 (17:31) 
 ##           By: Brice Ozenne
-##     Update #: 32
+##     Update #: 34
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -109,11 +109,15 @@ test_that("lmm 4 times", {
     model.tables(eLin.lmm)
 
     levels(eLin.lmm)$reference
+    summary(anova(eLin.lmm, effects = "ACO_treat.f"), method = "none")
+    summary(anova(eLin.lmm, effects = "ATE_treat.f"), method = "none")
 
     eFlex.lmm <- lmm(visual ~ week*treat.f,
                      repetition = ~ week | subject, structure = "UN",
                      data = armd.long)
     model.tables(eFlex.lmm)
+    summary(anova(eFlex.lmm, effects = "ACO_treat.f"), method = "none")
+    summary(anova(eFlex.lmm, effects = "ATE_treat.f"), method = "none")
     ## plot(eFlex.lmm, ci = FALSE, obs.alpha = 0.1)
 
     armd.long.imp <- fitted(eFlex.lmm, impute = TRUE, keep.newdata = TRUE)

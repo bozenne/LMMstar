@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: aug  1 2023 (15:45) 
+## Last-Updated: jan 26 2024 (18:03) 
 ##           By: Brice Ozenne
-##     Update #: 1346
+##     Update #: 1402
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -24,6 +24,8 @@
 ##' or only variables relative to the mean (\code{"mean"} or \code{"fixed"}),
 ##' or only variables relative to the variance structure (\code{"variance"}),
 ##' or only variables relative to the correlation structure (\code{"correlation"}).
+##' or average counterfactual outcome with respect to the value of a covariate X at each repetition  (\code{"ACO_X"}),
+##' or the contrast between average counterfactual outcome for any pair of value of a covariate X (\code{"ATE_X"}).
 ##' Can also be use to specify linear combinations of coefficients or a contrast matrix, similarly to the \code{linfct} argument of the \code{multcomp::glht} function.
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
 ##' @param rhs [numeric vector] the right hand side of the hypothesis. Only used when the argument effects is a matrix.
@@ -77,6 +79,12 @@
 ##' ## user defined F-test
 ##' summary(anova(eUN.lmm, effects = c("X1=0","X2+X5=10")))
 ##' print(anova(eUN.lmm, effects = "mean_visit"), columns = add("null"))
+##' 
+##' ## Average counterfactual outcome
+##' summary(anova(eUN.lmm, effects = "ACO_X1"))
+##' 
+##' ## Average treatment effect
+##' summary(anova(eUN.lmm, effects = "ATE_X1"))
 ##' 
 ##' ## chi2-tests
 ##' anova(eUN.lmm, df = FALSE)
@@ -143,6 +151,9 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     ## ** normalized user input
     terms.mean <- attr(stats::terms(object$formula$mean.design),"term.labels")
     subeffect <- NULL
+    type.ACO <- FALSE
+    type.ATE <- FALSE
+    treatment <- NULL
     if(!inherits(effects,"mcp") && length(effects)==1){
         if(identical(effects,"all")){
             effects <- c("mean","variance","correlation")
@@ -164,6 +175,56 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                 subeffect <- iLabels[effects == paste0("correlation_",iLabels)]
                 effects <- "correlation"
             }
+        }else if(grepl("^ACO_",effects)){
+            treatment <- gsub("^ACO_","",effects,fixed = FALSE)
+            if(treatment %in% attr(object$design$mean,"variable") == FALSE){
+                stop("Unknown treatment variable: \"",treatment,"\". \n",
+                     "Possible treatment variables: \"",paste(attr(object$design$mean,"variable"), collapse ="\" \""),"\"\n")
+            }
+            if(treatment %in% names(object$xfactor$mean)){
+                Ulevel.treatment <- object$xfactor$mean[[treatment]]
+            }else{
+                Ulevel.treatment <- sort(unique(object$data[[treatment]]))
+            }
+            ls.indexTime <- tapply(object$data$XXindexXX,object$data$XXtime.indexXX,identity)
+            
+            ls.C <- lapply(Ulevel.treatment, function(iLevel){ ## iLevel <- 0
+                iData <- object$data
+                iData[[treatment]][] <- iLevel
+                iX <- model.matrix(object$formula$mean, iData)[,colnames(object$design$mean),drop=FALSE] ## remove uncessary columns in case of (baseline) constraint
+                iC <- do.call(rbind,by(iX,object$data$XXtime.indexXX,colMeans))
+                rownames(iC) <- paste0(iLevel,"(",object$time$levels,")")
+                return(iC)
+            })
+            effects <- do.call(rbind,ls.C)
+            type.ACO <- TRUE
+        }else if(grepl("^ATE_",effects)){
+            treatment <- gsub("^ATE_","",effects,fixed = FALSE)
+            if(treatment %in% attr(object$design$mean,"variable") == FALSE){
+                stop("Unknown treatment variable: \"",treatment,"\". \n",
+                     "Possible treatment variables: \"",paste(attr(object$design$mean,"variable"), collapse ="\" \""),"\"\n")
+            }
+            if(treatment %in% names(object$xfactor$mean)){
+                Ulevel.treatment <- object$xfactor$mean[[treatment]]
+            }else{
+                Ulevel.treatment <- sort(unique(object$data[[treatment]]))
+            }
+            Upair.treatment <- unorderedPairs(Ulevel.treatment, distinct = TRUE)
+            ls.indexTime <- tapply(object$data$XXindexXX,object$data$XXtime.indexXX,identity)
+
+            ls.C <- lapply(1:NCOL(Upair.treatment), function(iPair){ ## iPair <- 1
+                iData1 <- object$data
+                iData2 <- object$data
+                iData1[[treatment]][] <- Upair.treatment[1,iPair]
+                iData2[[treatment]][] <- Upair.treatment[2,iPair]
+                iX1 <- model.matrix(object$formula$mean, iData1)[,colnames(object$design$mean),drop=FALSE] ## remove uncessary columns in case of (baseline) constraint
+                iX2 <- model.matrix(object$formula$mean, iData2)[,colnames(object$design$mean),drop=FALSE] ## remove uncessary columns in case of (baseline) constraint
+                iC <- do.call(rbind,by(iX2,object$data$XXtime.indexXX,colMeans)) - do.call(rbind,by(iX1,object$data$XXtime.indexXX,colMeans))
+                rownames(iC) <- paste0(Upair.treatment[2,iPair],"-",Upair.treatment[1,iPair],"(",object$time$levels,")")
+                return(iC)
+            })
+            effects <- do.call(rbind,ls.C)
+            type.ATE <- TRUE
         }
     }
 
@@ -206,7 +267,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
                 stop("Argument \'effect\' should not have duplicated column names when a matrix. \n")
             }
             if(any(colnames(effects) %in% name.coef == FALSE)){
-                stop("Argument \'effect\' should not have column names matching the coefficient names when a matrix. \n")
+                stop("Argument \'effect\' should have column names matching the coefficient names when a matrix. \n")
             }
             effects.save <- effects
             effects <- matrix(0, nrow = NROW(effects.save), ncol = length(name.coef), dimnames = list(rownames(effects.save),name.coef))
@@ -224,12 +285,12 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
             stop("Possible mispecification of the argument \'effects\' as running mulcomp::glht lead to the following error: \n",
                  out.glht)
         }
-        type <- "all"
         ls.nameTerms <- list(all = NULL)
         ls.nameTerms.num <- list(all = 1)
         ls.contrast <- list(all = out.glht$linfct)
         ls.null  <- list(all = out.glht$rhs)        
         name.effects <- rownames(effects)
+        type <- "all"
 
     }else if(all(tolower(effects) %in% c("mean","fixed","variance","correlation"))){
         
@@ -524,8 +585,16 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
             ## DOI: 10.1002/sim.3429
             if(iType=="all"){
                 iType2 <- apply(iC, MARGIN = 1, FUN = function(iRow){
+                    ## type of parameter for the given contrast
                     iType <- unique(type.param[names(iRow)[which(abs(iRow)>0)]])
-                    if(length(iType)>1){return("all")}else{return(iType)}
+                    if(length(iType)==0){ ## if the contrast includes no parameter uses the type of parameter for the whole contrast matrix
+                        iType <- unique(type.param[names(which(colSums(abs(iC)>0)>0))])
+                    }
+                    if(length(iType)>1){
+                        return("all")
+                    }else{
+                        return(iType)
+                    }
                 })
             }else{
                 iType2 <- switch(iType,
@@ -578,7 +647,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     }
 
     ## ** prepare for back-transformation
-    out$args <- data.frame(type = NA, robust = robust, df = df, ci = ci,
+    out$args <- data.frame(type = NA, ACO = type.ACO, ATE = type.ATE, treatment = treatment, robust = robust, df = df, ci = ci,
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                            transform.names = transform.names)
 
@@ -635,7 +704,6 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
         index <- match(newname,out$args$backtransform.names[[1]])
         out$args$backtransform.names[[1]][stats::na.omit(index)] <- backtransform.names[which(!is.na(index))]
     }
-    
     if(identical(type,"all")){
         out$args$type <- list("all")
     }else{

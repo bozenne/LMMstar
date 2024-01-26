@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: aug  1 2023 (15:39) 
+## Last-Updated: jan 26 2024 (15:51) 
 ##           By: Brice Ozenne
-##     Update #: 1036
+##     Update #: 1042
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -59,17 +59,28 @@
 ##' e.ANCOVA1 <- lm(Y2~Y1+X1, data = d)
 ##'
 ##' if(require(reshape2)){
-##'    dL2 <- melt(d, id.vars = c("id","Y1","X1"),  measure.vars = c("Y1","Y2"))
-##'    e.lmm <- lmm(value ~ variable + variable:X1, data = dL2, repetition = ~variable|id)
+##'    dL2 <- melt(d, id.vars = c("id","X1"),  measure.vars = c("Y1","Y2"),
+##'                value.name = "Y", variable.name = "time")
+##'    dL2$time <- factor(dL2$time, levels = c("Y1","Y2"), labels = c("1","2"))
+##'
+##'    ## estimated treatment effect (no baseline constraint)
+##'    e.lmm <- lmm(Y ~ time + time:X1, data = dL2, repetition = ~time|id)
 ##' 
 ##'    e.delta <- estimate(e.lmm, function(p){
-##'        c(Y1 = p["rho(Y1,Y2)"]*p["k.Y2"],
-##'          X1 = p["variableY2:X1"]-p["k.Y2"]*p["rho(Y1,Y2)"]*p["variableY1:X1"])
-##' })
-##'    ## same estimate and similar standard errors. 
-##'    e.delta
-##'    summary(e.ANCOVA1)$coef
-##'    ## Degrees of freedom are a bit off though
+##'        c(Y1 = p["rho(1,2)"]*p["k.2"],
+##'          X1 = p["time2:X1"]-p["k.2"]*p["rho(1,2)"]*p["time1:X1"])
+##'    }) ## same estimate and similar standard errors. 
+##'    e.delta ## Degrees of freedom are a bit off though
+##'    cbind(summary(e.ANCOVA1)$coef, df = df.residual(e.ANCOVA1))
+##'
+##'    ## estimated treatment effect (baseline constraint)
+##'    dL2$time2 <- as.numeric(dL2$time=="2")
+##'    e.lmmC <- lmm(Y ~ time2 + time2:X1, data = dL2, repetition = ~time|id)
+##'    e.deltaC <- estimate(e.lmmC, function(p){
+##'        c(Y1 = p["rho(1,2)"]*p["k.2"],
+##'          X1 = p["time2:X1"])
+##'    })
+##'    e.deltaC ## Degrees of freedom are a bit more accurate
 ##' }
 ##'
 ##' }

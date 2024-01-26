@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: nov  8 2023 (15:06) 
+## Last-Updated: jan 26 2024 (17:31) 
 ##           By: Brice Ozenne
-##     Update #: 1285
+##     Update #: 1312
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -510,13 +510,13 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
 
     ## ** extract information
     ## *** multivariate tests
-    if(print.multivariate>0){
+    if(print.multivariate>0 && (object$args$ACO == FALSE && object$args$ATE == FALSE)){
         table.multivariate <- object$multivariate[,setdiff(columns.multivariate,c("type","")),drop=FALSE]
         nchar.type <- nchar(object$args$type[[1]])
         maxchar.type <- max(nchar.type)
         if("type" %in% columns.multivariate){
             vec.white <- sapply(maxchar.type-nchar.type, function(iN){paste(rep(" ", iN), collapse = "")})
-            sparsetype <- object$args$type[[1]]
+            sparsetype <- object$args$type[[1]]            
             sparsetype[duplicated(sparsetype)] <- sapply(sparsetype[duplicated(sparsetype)], function(iWord){paste(rep(" ", times = nchar(iWord)), collapse="")})
             rownames(table.multivariate) <- paste(vec.white,sparsetype,sep,object$multivariate$test,sep="")
         }else if(any(duplicated(object$multivariate$test))){
@@ -585,7 +585,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
             rownames(table.univariate) <- paste(vec.white,table.univariate$type,sep,rownames(table.univariate),sep="")
         }else if(length(unique(table.univariate$type))>1){
             test.nduplicated <- !duplicated(table.univariate$type)            
-            rownames(table.univariate) <- sapply(1:NROW(table.univariate), function(iIndex){
+            rownames(table.univariate) <- sapply(1:NROW(table.univariate), function(iIndex){ ## iIndex <- 1
                 if(test.nduplicated[iIndex]){
                     paste(paste(rep(" ", maxchar.type-nchar.type[iIndex]), collapse = ""),table.univariate$type[iIndex],sep,rownames(table.univariate)[iIndex],sep="")
                 }else{
@@ -598,7 +598,14 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
             warning("Different methods have been used to adjust for multiple comparisons - text describing the adjustment will not be accurate.")
         }
         if(print.univariate>0.5){
+            
+            if(object$args$ACO){
+            cat("\t\tAverage counterfactual outcome w.r.t \'",object$args$treatment,"\' values \n\n", sep = "")
+            }else if(object$args$ATE){
+            cat("\t\tAverage treatment effect with \'",object$args$treatment,"\' as the treatment variable \n\n", sep = "")
+            }else{
             cat("\t\tUnivariate Wald test \n\n")
+            }
         }
         if(attr(object$object,"independence")==FALSE && method.p.adjust == "pool.se"){
             attr(method.p.adjust,"warning") <- "WARNING: uncertainty about the weights assumes independence between parameters from different models.\n"
@@ -958,25 +965,30 @@ summary.resample <- function(object, digits = 3, ...){
     if(length(digits.p.value)==1){
         digits.p.value <- c(digits.p.value,.Machine$double.eps)
     }
-    
-    ## ** add stars
+
+    ## ** add stars    
     if("p.value" %in% names(table)){
-        table.print <- cbind(table,
-                             stats::symnum(table$p.value, corr = FALSE, na = FALSE,
-                                           cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1),
-                                           symbols = c("***", "**", "*", ".", " "))
-                             )
-        names(table.print)[NCOL(table.print)] <- ""
+        if(all(is.na(table$p.value))){
+            table.print <- table[,setdiff(names(table),"p.value"),drop=FALSE]
+        }else{
+            table.print <- cbind(table,
+                                 stats::symnum(table$p.value, corr = FALSE, na = FALSE,
+                                               cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1),
+                                               symbols = c("***", "**", "*", ".", " "))
+                                 )
+            names(table.print)[NCOL(table.print)] <- ""
+        }
     }else{
         table.print <- table
     }
+    
 
     ## ** round
     columns.num <- intersect(setdiff(columns,c(col.df,"null","p.value")), names(table))
     for(iCol in columns.num){
         table.print[[iCol]] <- as.character(round(table.print[[iCol]], digits = digits))
     }
-    if("p.value" %in% names(table)){
+    if("p.value" %in% names(table.print)){
         table.print$p.value <- as.character(format.pval(table.print$p.value, digits = digits.p.value[1], eps = digits.p.value[2]))
     }
     if(!is.null(col.df) && all(col.df %in% columns)){
