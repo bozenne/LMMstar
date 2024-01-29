@@ -25,6 +25,8 @@
 or only variables relative to the mean (\code{"mean"} or \code{"fixed"}),
 or only variables relative to the variance structure (\code{"variance"}),
 or only variables relative to the correlation structure (\code{"correlation"}).
+or average counterfactual outcome with respect to the value of a covariate X at each repetition  (\code{"ACO_X"}),
+or the contrast between average counterfactual outcome for any pair of value of a covariate X (\code{"ATE_X"}).
 Can also be use to specify linear combinations of coefficients or a contrast matrix, similarly to the \code{linfct} argument of the \code{multcomp::glht} function.}
 
 \item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.}
@@ -80,6 +82,12 @@ summary(anova(eUN.lmm))
 ## user defined F-test
 summary(anova(eUN.lmm, effects = c("X1=0","X2+X5=10")))
 print(anova(eUN.lmm, effects = "mean_visit"), columns = add("null"))
+
+## Average counterfactual outcome
+summary(anova(eUN.lmm, effects = "ACO_X1"))
+
+## Average treatment effect
+summary(anova(eUN.lmm, effects = "ATE_X1"))
 
 ## chi2-tests
 anova(eUN.lmm, df = FALSE)

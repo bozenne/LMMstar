@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jan 26 2024 (18:03) 
+## Last-Updated: Jan 28 2024 (23:28) 
 ##           By: Brice Ozenne
-##     Update #: 1402
+##     Update #: 1404
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -153,7 +153,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, rhs = NULL, df = !
     subeffect <- NULL
     type.ACO <- FALSE
     type.ATE <- FALSE
-    treatment <- NULL
+    treatment <- NA
     if(!inherits(effects,"mcp") && length(effects)==1){
         if(identical(effects,"all")){
             effects <- c("mean","variance","correlation")

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: jan 18 2024 (09:33) 
+## Last-Updated: Jan 28 2024 (23:47) 
 ##           By: Brice Ozenne
-##     Update #: 942
+##     Update #: 965
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -144,7 +144,8 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
                      obs.alpha, obs.size,
                      at, time.var, color, ci, ci.alpha, 
                      ylim, mean.size, size.text, position.errorbar, ...){
-    if(object$time$n==1){
+
+    if(is.null(time.var) && object$time$n==1){
         stop("Cannot display the fitted values over time when there only is a single timepoint. \n")
     }
 
@@ -157,7 +158,6 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
     outcome.var <- object$outcome$var
     if(is.null(time.var)){
         time.var.plot <- "XXtimeXX" ## nice as it sure to be a categorical variable
-
         if(!is.null(attr(object$time$var,"original")) && all(!is.na(attr(object$time$var,"original")))){
             xlabel.plot <- attr(object$time$var,"original")
         }else{
@@ -165,9 +165,21 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
         }
         
     }else{
+
         if(length(time.var)>1){
-            stop("Argument \'time.var\' should either be NULL \n",
-                 "        or have length 1 and be a variable name in the data used to fit the lmm. \n")
+            if("sep" %in% names(time.var)){
+                sep.time.var <- time.var["sep"]
+                time.var <- time.var[names(time.var) != "sep"]
+            }else{
+                sep.time.var <- ", "
+            }
+            if(all(time.var %in% names(object$data.original))){
+                object.data$XXtimeXX <- interaction(object$data.original[time.var], sep = sep.time.var)[object.data$XXindexXX]
+                time.var <- "XXtimeXX"
+            }else{
+                stop("Incorrect value for argument \'time.var\'. \n",
+                     "No column ",time.var," found in the dataset used to fit the lmm. \n")
+            }
         }else if(length(time.var)==1 && time.var %in% names(data) == FALSE){
             if(time.var %in% names(object$data.original)){
                 object.data[[time.var]] <- object$data.original[[time.var]][object.data$XXindexXX]
@@ -265,7 +277,11 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
             order.cluster <- droplevels(newdata[["XXclusterXX"]][order(newdata[["XXclusterXX"]])])
 
             M.duplicated <- apply(newdataRed, 2, function(iCol){unlist(tapply(iCol, order.cluster, function(iColCluster){duplicated(iColCluster)[-1]}))})
-            color <- names(which(colSums(M.duplicated)==NROW(M.duplicated)))
+            if(length(M.duplicated)==0){
+                color <- NULL
+            }else{
+                color <- names(which(colSums(M.duplicated)==NROW(M.duplicated)))
+            }
         }else{
             color <- NULL
         }
@@ -338,6 +354,8 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
     gg <- ggplot2::ggplot(preddata, ggplot2::aes(x = .data[[time.var.plot]],
                                                  y = .data$estimate,
                                                  group = .data$XXclusterXX))
+    test.line <- any(tapply(preddata[["XXclusterXX"]],preddata[[time.var.plot]], function(iX){any(duplicated(iX))}))
+
     if(!is.na(obs.alpha) && obs.alpha>0){
         if(!is.null(color)){
             gg <- gg + ggplot2::geom_point(data = data,
@@ -347,13 +365,15 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
                                                                   color = .data[[color]]),
                                            alpha = obs.alpha,
                                            size = obs.size[1])
-            gg <- gg + ggplot2::geom_line(data = data,
-                                          mapping = ggplot2::aes(x = .data[[time.var.plot]],
-                                                                 y = .data[[outcome.var]],
-                                                                 group = .data$XXclusterXX,
-                                                                 color = .data[[color]]),
-                                          alpha = obs.alpha,
-                                          linewidth = obs.size[2])
+            if(test.line){
+                gg <- gg + ggplot2::geom_line(data = data,
+                                              mapping = ggplot2::aes(x = .data[[time.var.plot]],
+                                                                     y = .data[[outcome.var]],
+                                                                     group = .data$XXclusterXX,
+                                                                     color = .data[[color]]),
+                                              alpha = obs.alpha,
+                                              linewidth = obs.size[2])
+            }
             ## gg + facet_wrap(~XXclusterXX)
         }else{
             gg <- gg + ggplot2::geom_point(data = data,
@@ -362,12 +382,14 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
                                                                   group = .data$XXclusterXX),
                                            alpha = obs.alpha,
                                            size = obs.size[1])
-            gg <- gg + ggplot2::geom_line(data = data,
-                                          mapping = ggplot2::aes(x = .data[[time.var.plot]],
-                                                                 y = .data[[outcome.var]],
-                                                                 group = .data$XXclusterXX),
-                                          alpha = obs.alpha,
-                                          linewidth = obs.size[2])
+            if(test.line){
+                gg <- gg + ggplot2::geom_line(data = data,
+                                              mapping = ggplot2::aes(x = .data[[time.var.plot]],
+                                                                     y = .data[[outcome.var]],
+                                                                     group = .data$XXclusterXX),
+                                              alpha = obs.alpha,
+                                              linewidth = obs.size[2])
+            }
         }
     }
     if(ci){
@@ -382,13 +404,23 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
         }
     }
     if(!is.null(color)){
-        gg <- gg + ggplot2::geom_point(ggplot2::aes(color = .data[[color]]), size = mean.size[1]) + ggplot2::geom_line(ggplot2::aes(color = .data[[color]]), linewidth = mean.size[2])
+        gg <- gg + ggplot2::geom_point(ggplot2::aes(color = .data[[color]]), size = mean.size[1])
+        if(test.line){
+            gg <- gg + ggplot2::geom_line(ggplot2::aes(color = .data[[color]]), linewidth = mean.size[2])
+        }
     }else{
-        gg <- gg + ggplot2::geom_point(size = mean.size[1]) + ggplot2::geom_line(linewidth = mean.size[2])
+        gg <- gg + ggplot2::geom_point(size = mean.size[1])
+        if(test.line){
+            gg <- gg + ggplot2::geom_line(linewidth = mean.size[2])
+        }
     }
     gg  <- gg + ggplot2::ylab(outcome.var) + ggplot2::theme(text = ggplot2::element_text(size=size.text))
     if(!is.null(time.var.plot) && any(!is.na(time.var.plot))){
-        gg  <- gg + ggplot2::xlab(paste(stats::na.omit(xlabel.plot), collapse = ", "))
+        if(time.var.plot=="XXtimeXX"){
+            gg  <- gg + ggplot2::xlab(NULL)
+        }else{
+            gg  <- gg + ggplot2::xlab(paste(stats::na.omit(xlabel.plot), collapse = ", "))
+        }
     }
     if(!is.null(ylim)){
         gg <- gg + ggplot2::coord_cartesian(ylim = ylim)
