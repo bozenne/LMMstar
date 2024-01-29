@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jan 10 2024 (15:18) 
+## Last-Updated: jan 29 2024 (13:04) 
 ##           By: Brice Ozenne
-##     Update #: 245
+##     Update #: 249
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -264,6 +264,14 @@ print.LRT_lmm <- function(x, ...){
     return(invisible(NULL))
 }
 
+
+## * print.Wald_lmm
+##' @export
+print.effect_lmm <- function(x, ...){
+    dots <- list(...)
+    dots$print <- c(0,0.5)
+    return(do.call(summary, c(list(object = x, legend = FALSE), dots)))
+}
 
 
 ## * print.mlmm

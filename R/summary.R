@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jan 26 2024 (17:31) 
+## Last-Updated: jan 29 2024 (13:57) 
 ##           By: Brice Ozenne
-##     Update #: 1312
+##     Update #: 1340
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -510,7 +510,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
 
     ## ** extract information
     ## *** multivariate tests
-    if(print.multivariate>0 && (object$args$ACO == FALSE && object$args$ATE == FALSE)){
+    if(print.multivariate>0 && any(!is.na(object$multivariate$df.num))){
         table.multivariate <- object$multivariate[,setdiff(columns.multivariate,c("type","")),drop=FALSE]
         nchar.type <- nchar(object$args$type[[1]])
         maxchar.type <- max(nchar.type)
@@ -545,7 +545,8 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
     }
 
     ## *** local tests
-    if(print.univariate>0 && ci){        
+    if(print.univariate>0 && ci){
+
         table.univariate <- confint(object, columns = union(setdiff(columns.univariate,""),"type"), ...)
         if(is.null(columns) && all(is.na(table.univariate$lower)) && all(is.na(table.univariate$upper))){
             columns.univariate <- setdiff(columns.univariate, c("lower","upper"))
@@ -598,14 +599,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
             warning("Different methods have been used to adjust for multiple comparisons - text describing the adjustment will not be accurate.")
         }
         if(print.univariate>0.5){
-            
-            if(object$args$ACO){
-            cat("\t\tAverage counterfactual outcome w.r.t \'",object$args$treatment,"\' values \n\n", sep = "")
-            }else if(object$args$ATE){
-            cat("\t\tAverage treatment effect with \'",object$args$treatment,"\' as the treatment variable \n\n", sep = "")
-            }else{
             cat("\t\tUnivariate Wald test \n\n")
-            }
         }
         if(attr(object$object,"independence")==FALSE && method.p.adjust == "pool.se"){
             attr(method.p.adjust,"warning") <- "WARNING: uncertainty about the weights assumes independence between parameters from different models.\n"
@@ -624,14 +618,13 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         }else{
             digits.p.value2 <- digits.p.value
         }
-        
         .printStatTable(table = table.univariate, robust = robust, df = df, level = level, type.information = type.information,
                         method.p.adjust = method.p.adjust, factor.p.adjust = factor.p.adjust, error.p.adjust = error, seed = seed, n.sample = n.sample,
                         backtransform = backtransform, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                         columns = setdiff(columns.univariate,"type"), col.df = c("df"), name.statistic = c("t-statistic","z-statistic"),
                         digits = digits, digits.df = digits.df, digits.p.value = digits.p.value2,
                         decoration = legend, legend = legend)
-
+        
         if(print.univariate>0.5){
             cat("\n")
         }
@@ -694,6 +687,28 @@ summary.LRT_lmm <- function(object, digits = 3, digits.df = 1, digits.p.value = 
     return(invisible(NULL))
 }
 
+## * summary.effect_lmm (code)
+##' @export
+summary.effect_lmm <- function(object, columns = NULL, print = TRUE, ...){
+
+    if("print" %in% names(match.call())==FALSE && all(is.na(object$multivariate$df.num))){
+        print <- c(0,0.5)        
+    }
+    if(object$args$effect == "aco" && "columns" %in% names(match.call())==FALSE){
+        columns <- c("estimate","se","lower","upper")
+    }
+
+    if(object$args$effect=="aco"){
+        cat("\t\tAverage counterfactual outcome w.r.t \'",object$args$variable,"\' values \n\n", sep = "")
+        object$univariate$p.value <- NULL
+    }else if(object$args$effect=="ate"){
+        cat("\t\tAverage treatment effect with \'",object$args$variable,"\' as the treatment variable \n\n", sep = "")
+    }
+
+    class(object) <- setdiff(class(object), "effect_lmm")
+    summary.Wald_lmm(object, print = print, columns = columns, ...)
+}
+
 ## * summary.mlmm (documentation)
 ##' @title Summary of Multiple Linear Mixed Models
 ##' @description Estimates, p-values, and confidence intevals for multiple linear mixed models.
@@ -714,7 +729,7 @@ summary.LRT_lmm <- function(object, digits = 3, digits.df = 1, digits.p.value = 
 summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.data = FALSE, hide.fit = FALSE, ...){
 
     options <- LMMstar.options()
-            
+
     if(is.null(method)){
         method <- "none"
     }

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jan 26 2024 (17:30) 
+## Last-Updated: jan 29 2024 (13:13) 
 ##           By: Brice Ozenne
-##     Update #: 686
+##     Update #: 689
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -474,14 +474,11 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
         }
         iTable$p.value <- 2*(1-stats::pt( abs(iTable$statistic), df = iTable$df))
 
-        
         if(iMethod == "none"){
             
             out[iIndex.table,"lower"] <- iTable$estimate + iTable$se * stats::qt(alpha/2, df = iTable$df)
             out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * stats::qt(1-alpha/2, df = iTable$df)
-            if(object$args$ACO == FALSE){
-                out[iIndex.table,"p.value"] <- iTable$p.value
-            }
+            out[iIndex.table,"p.value"] <- iTable$p.value
             
         }else if(iMethod %in% c("average","pool.fixse","pool.se","pool.gls","pool.gls1","pool.rubin")){
 
@@ -670,9 +667,8 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
 
             out[iIndex.table,"lower"] <- iCi$confint[,"lwr"]
             out[iIndex.table,"upper"] <- iCi$confint[,"upr"]
-            if(object$args$ACO == FALSE){
-                out[iIndex.table,"p.value"] <- as.double(iP$test$pvalues)
-            }
+            out[iIndex.table,"p.value"] <- as.double(iP$test$pvalues)
+            
             if(df){
                 out[iIndex.table,"df"] <- iGlht$df
             }
@@ -682,9 +678,8 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
         }else if(iMethod %in% c("Westfall","Shaffer","free")){
 
             iP <- summary(iGlht, test = multcomp::adjusted(iMethod))
-            if(object$args$ACO == FALSE){
-                out[iIndex.table,"p.value"] <- as.double(iP$test$pvalues)
-            }
+            out[iIndex.table,"p.value"] <- as.double(iP$test$pvalues)
+            
             out[iIndex.table,"lower"] <- NA
             out[iIndex.table,"upper"] <- NA
             if(df){
@@ -708,9 +703,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
             }
             cH0 <- stats::quantile(maxH0, 1-alpha)  ## attr(confint(iGlht)$confint,"calpha")
 
-            if(object$args$ACO == FALSE){
-                out[iIndex.table,"p.value"] <- sapply(abs(iTable$statistic), function(iT){(sum(iT <= maxH0)+1)/(n.sample+1)})
-            }
+            out[iIndex.table,"p.value"] <- sapply(abs(iTable$statistic), function(iT){(sum(iT <= maxH0)+1)/(n.sample+1)})
             out[iIndex.table,"lower"] <- iTable$estimate - iTable$se * cH0
             out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * cH0                
             attr(out, "n.sample") <-  n.sample
@@ -720,17 +713,13 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
                 
                 out[iIndex.table,"lower"] <- iTable$estimate + iTable$se * stats::qt(alpha/(2*iN.test), df = iTable$df)
                 out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * stats::qt(1-alpha/(2*iN.test), df = iTable$df)
-                if(object$args$ACO == FALSE){
-                    out[iIndex.table,"p.value"] <- pmin(1,iN.test*iTable$p.value)
-                }
+                out[iIndex.table,"p.value"] <- pmin(1,iN.test*iTable$p.value)
                 
             }else{
                 
                 out[iIndex.table,"lower"] <- NA
                 out[iIndex.table,"upper"] <- NA
-                if(object$args$ACO == FALSE){
-                    out[iIndex.table,"p.value"] <- stats::p.adjust(iTable$p.value, method = iMethod)
-                }
+                out[iIndex.table,"p.value"] <- stats::p.adjust(iTable$p.value, method = iMethod)
                 
             }
     }

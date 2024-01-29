@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: jul 21 2023 (09:48) 
+## Last-Updated: jan 29 2024 (09:38) 
 ##           By: Brice Ozenne
-##     Update #: 133
+##     Update #: 136
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -55,10 +55,8 @@
 ## * LMMstar.options (code)
 #' @export
 LMMstar.options <- function(..., reinitialise = FALSE){
-  
-    if (reinitialise == TRUE) {
-        assign(".LMMstar-options", 
-               list(backtransform.confint = TRUE,
+
+    default <- list(backtransform.confint = TRUE,
                     columns.anova = c("estimate","se","df","lower","upper","p.value",""),
                     columns.confint = c("estimate","lower","upper"),
                     columns.summary = c("estimate","se","df","lower","upper","p.value",""),
@@ -77,15 +75,25 @@ LMMstar.options <- function(..., reinitialise = FALSE){
                     transform.sigma = "log",
                     transform.k = "log",
                     transform.rho = "atanh",
-                    type.information = "observed"),
-               envir = LMMstar.env)
+                    type.information = "observed")
+
+    if (reinitialise == TRUE) {
+        assign(".LMMstar-options", value = default, envir = LMMstar.env)
     
     return(invisible(get(".LMMstar-options", envir = LMMstar.env)))
     
   }else{
     
-    args <- list(...)
-    object <- get(".LMMstar-options", envir = LMMstar.env)
+      args <- list(...)
+
+      if(!is.null(names(args))){
+          object <- get(".LMMstar-options", envir = LMMstar.env)
+      }else{
+          object <- try(get(".LMMstar-options", envir = LMMstar.env))
+          if(inherits(object,"try-error")){
+              object <- default
+          }
+      }
 
       if(length(args)==0){ ## read all
           return(object)
