@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jan 29 2024 (12:55) 
+## Last-Updated: Feb 11 2024 (18:39) 
 ##           By: Brice Ozenne
-##     Update #: 1410
+##     Update #: 1416
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -79,13 +79,6 @@
 ##' 
 ##' ## user defined F-test
 ##' summary(anova(eUN.lmm, effects = c("X1=0","X2+X5=10")))
-##' print(anova(eUN.lmm, effects = "mean_visit"), columns = add("null"))
-##' 
-##' ## Average counterfactual outcome
-##' summary(anova(eUN.lmm, effects = "ACO_X1"))
-##' 
-##' ## Average treatment effect
-##' summary(anova(eUN.lmm, effects = "ATE_X1"))
 ##' 
 ##' ## chi2-tests
 ##' anova(eUN.lmm, df = FALSE)
@@ -217,8 +210,11 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, multivariate = TRU
         name.effects <- rownames(effects)
         type <- "all"
 
-    }else if(all(tolower(effects) %in% c("mean","fixed","variance","correlation"))){
-        
+    }else if(all(tolower(effects) %in% c("all","mean","fixed","variance","correlation"))){
+
+        if("all" %in% effects){
+            effects <- c("mean","variance","correlation")
+        }
         if(transform.k %in% c("sd","var","logsd","logvar")){
             stop("Cannot use \'transform.rho\' equal \"sd\", \"var\", \"logsd\", or \"logvar\". \n",
                  "anova does not handle tests where the null hypothesis is at a boundary of the support of a random variable. \n")
@@ -228,7 +224,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, multivariate = TRU
                  "anova does not handle tests where the null hypothesis is at a boundary of the support of a random variable. \n")
         }
         
-        effects <- match.arg(effects, c("mean","fixed","variance","correlation"), several.ok = TRUE)
+        effects <- match.arg(effects, c("all","mean","fixed","variance","correlation"), several.ok = TRUE)
         effects[effects=="fixed"] <- "mean"
         name.effects <- NULL
         

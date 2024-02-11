@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: jan 23 2024 (11:58) 
+## Last-Updated: Feb 11 2024 (23:45) 
 ##           By: Brice Ozenne
-##     Update #: 145
+##     Update #: 147
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -558,6 +558,15 @@ test_that("Incorrect display of the missing data patterns", {
                  tol = 1e-6)
 })
 
+## * from: Brice Sunday 24-02-11 at 23:42
+test_that("Partial residuals in presence of missing covariate values", {
+    data("abetaW", package = "LMMstar")
+    e.lmm <- lmm(qol1 ~ sex + age + group, data = abetaW)
+    
+    expect_equivalent(abetaW$qol1 - coef(e.lmm)["sexM"] * (abetaW$sex=="M") - coef(e.lmm)["age"] * abetaW$age,
+                      as.double(residuals(e.lmm, type = "partial", var = c("(Intercept)","group"))), tol = 1e-5)
 
+
+})
 ######################################################################
 ### test-auto-previous-bug.R ends here
