@@ -8,6 +8,7 @@
   object,
   effects = NULL,
   robust = FALSE,
+  multivariate = TRUE,
   rhs = NULL,
   df = !is.null(object$df),
   ci = TRUE,
@@ -30,6 +31,8 @@ or the contrast between average counterfactual outcome for any pair of value of 
 Can also be use to specify linear combinations of coefficients or a contrast matrix, similarly to the \code{linfct} argument of the \code{multcomp::glht} function.}
 
 \item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.}
+
+\item{multivariate}{[logical] Should all hypotheses be simultaneously tested using a multivariate Wald test?}
 
 \item{rhs}{[numeric vector] the right hand side of the hypothesis. Only used when the argument effects is a matrix.}
 

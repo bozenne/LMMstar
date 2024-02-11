@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: Jan 28 2024 (23:47) 
+## Last-Updated: feb  6 2024 (16:12) 
 ##           By: Brice Ozenne
-##     Update #: 965
+##     Update #: 967
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -349,12 +349,12 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
             return(rbind(iDF,as.data.frame(ls.iDFextra[names(iDF)])))
         }
     }))
-    
+
     ## ** generate plot
     gg <- ggplot2::ggplot(preddata, ggplot2::aes(x = .data[[time.var.plot]],
                                                  y = .data$estimate,
                                                  group = .data$XXclusterXX))
-    test.line <- any(tapply(preddata[["XXclusterXX"]],preddata[[time.var.plot]], function(iX){any(duplicated(iX))}))
+    test.line <- all(tapply(preddata[["XXclusterXX"]],preddata[[time.var.plot]], function(iX){any(duplicated(iX))})==FALSE)
 
     if(!is.na(obs.alpha) && obs.alpha>0){
         if(!is.null(color)){

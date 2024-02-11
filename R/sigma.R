@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: aug  1 2023 (14:20) 
+## Last-Updated: feb  6 2024 (16:55) 
 ##           By: Brice Ozenne
-##     Update #: 670
+##     Update #: 679
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -264,15 +264,39 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
 
     ## ** subset residual variance-covariance matrix
     if(is.null(cluster)){ ## find unique covariance patterns 
-
+        
         if(!is.null(Upattern$nameCov)){
             vec.Upattern <- unlist(by(Upattern,Upattern$nameCov,function(iDf){
                 iDf$name[which.max(iDf$n.time)]
             }, simplify = FALSE))
-        }else{
+        }else if(any(Upattern$index.strata>1)){
             vec.Upattern <- unlist(by(Upattern,U.strata[Upattern$index.strata],function(iDf){
                 iDf$name[which.max(iDf$n.time)]
             }, simplify = FALSE))
+        }else{
+            ## all variance-covariance parameters
+            param.vcov <- unique(unlist(Upattern$param))
+            ## TRUE/FALSE matrix of whether the parameter is active for the pattern
+            test.param <- do.call(rbind,lapply(Upattern$param, function(iParam){param.vcov %in% iParam}))
+            dimnames(test.param) <- list(Upattern$name, param.vcov)
+            ## find subsets
+            n.pattern <- NROW(test.param)
+            missing.param <- param.vcov
+            vec.Upattern <- numeric(0)
+            potential.pattern <- Upattern$name
+            for(iSubset in 1:n.pattern){
+                iSums <- rowSums(test.param[potential.pattern,missing.param,drop=FALSE])
+                iPattern <- names(which.max(iSums))
+                vec.Upattern <- c(vec.Upattern,iPattern)
+                missing.param <- setdiff(missing.param, names(which(test.param[iPattern,]==TRUE)))
+
+                if(length(missing.param)==0){break}
+                potential.pattern <- names(which(rowSums(test.param[potential.pattern,missing.param,drop=FALSE])>0))
+                if(length(potential.pattern)==0 && iSubset != n.pattern){
+                    warning("Something went wrong when identifying the unique covariance patterns. \n")
+                    break
+                }
+            }            
         }
 
         ## subset

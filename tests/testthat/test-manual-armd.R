@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Dec 19 2021 (17:07) 
 ## Version: 
-## Last-Updated: jan 26 2024 (17:31) 
+## Last-Updated: feb  6 2024 (18:50) 
 ##           By: Brice Ozenne
-##     Update #: 34
+##     Update #: 35
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -51,7 +51,7 @@ test_that("summarize", {
     armd.sum <- summarize(visual ~ week * treat.f | subject, ## value ~ group
                           data = armd.long, ## dataset
                           na.rm = TRUE) ## additional argument
-    expect_equivalent(attr(armd.sum,"correlation")$visual$Placebo,
+p    expect_equivalent(attr(armd.sum,"correlation")$visual$Placebo,
                       cor(armd.wide[armd.wide$treat.f=="Placebo",paste0("visual",c(0,4,12,24,52))], use = "pairwise"),
                       tol = 1e-4)
 
