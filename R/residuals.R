@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: feb 13 2024 (17:51) 
+## Last-Updated: feb 13 2024 (18:50) 
 ##           By: Brice Ozenne
-##     Update #: 1051
+##     Update #: 1045
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -292,6 +292,9 @@ residuals.lmm <- function(object, type = "response", var = NULL,
         
         ## build design matrix
         design.reference <- stats::model.matrix(object, data = data.reference, effects = effects, simplify = TRUE)
+        if(length(object$index.na)>0){
+            design.reference <- design.reference[-object$index.na,,drop=FALSE]
+        }
         ## handle intercept term
         if(keep.intercept==FALSE && "(Intercept)" %in% colnames(design.reference)){
             design.reference[,"(Intercept)"] <- 0
@@ -462,7 +465,7 @@ residuals.lmm <- function(object, type = "response", var = NULL,
 
     ## ** restaure NA
     if(is.null(mycall$data)){
-               
+
         M.res <- addNA(M.res, index.na = index.na,
                        level = "obs", cluster = object$cluster)
         

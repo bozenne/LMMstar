@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jan 29 2024 (09:46) 
+## Last-Updated: Feb 11 2024 (23:31) 
 ##           By: Brice Ozenne
-##     Update #: 494
+##     Update #: 502
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -64,6 +64,7 @@
 ## * rbind.Wald_lmm (code)
 ##' @export
 rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, sep = ": "){
+
     default <- LMMstar.options()
     call <- match.call()
     
@@ -92,7 +93,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
 
     newtable.args <- data.frame(type = ifelse(length(Utype)>1,"all",Utype),
                                 sep = sep, 
-                                table.args[1,c("ACO","ATE","robust","df","ci","transform.sigma","transform.k","transform.rho","backtransform")])
+                                table.args[1,c("robust","df","ci","transform.sigma","transform.k","transform.rho","backtransform")])
 
     newobject <- list()
     if(length(unique(table.args$outcome))==1){

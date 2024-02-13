@@ -84,13 +84,6 @@ summary(anova(eUN.lmm))
 
 ## user defined F-test
 summary(anova(eUN.lmm, effects = c("X1=0","X2+X5=10")))
-print(anova(eUN.lmm, effects = "mean_visit"), columns = add("null"))
-
-## Average counterfactual outcome
-summary(anova(eUN.lmm, effects = "ACO_X1"))
-
-## Average treatment effect
-summary(anova(eUN.lmm, effects = "ATE_X1"))
 
 ## chi2-tests
 anova(eUN.lmm, df = FALSE)
