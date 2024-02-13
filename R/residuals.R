@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: aug  1 2023 (16:44) 
+## Last-Updated: feb 13 2024 (17:51) 
 ##           By: Brice Ozenne
-##     Update #: 1037
+##     Update #: 1051
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -30,6 +30,7 @@
 ##' or in a data.frame/vector with as many rows as observations (\code{"long"})
 ##' @param keep.data [logical] Should the dataset relative to which the residuals are evaluated be output along side the residual values?
 ##' Only possible in the long format.
+##' @param fitted.ci [logical] Should the confidence intervals relative to the fitted values be added to the output. Only relevant when argument \code{keep.data=TRUE}.
 ##' @param simplify [logical] Simplify the data format (vector instead of data.frame) and column names (no mention of the time variable) when possible.
 ##' Otherwise, information about the call and reference values used for partial residuals be added as an attribute.
 ##' 
@@ -114,7 +115,7 @@
 ##' @export
 ##' @rdname residuals
 residuals.lmm <- function(object, type = "response", var = NULL, 
-                          data = NULL, p = NULL, format = "long", keep.data = FALSE, simplify = TRUE, ...){
+                          data = NULL, p = NULL, format = "long", keep.data = FALSE, fitted.ci = FALSE, simplify = TRUE, ...){
 
     mycall <- match.call()
     options <- LMMstar.options()
@@ -169,12 +170,6 @@ residuals.lmm <- function(object, type = "response", var = NULL,
     attr.ref <- attr(type.residual,"reference")
     valid.normresiduals  <- c("studentized","pearson","normalized","normalized2","normastudentized","scaled")
     valid.residuals <- c("response",valid.normresiduals,"partial","partial-center")
-    if(any(grepl("-ci$", type.residual))){
-        type.residual <- gsub("-ci$","",type.residual)
-        ci <- TRUE ## hidden ci argument
-    }else{
-        ci <- FALSE
-    }
     type.residual <- match.arg(type.residual, valid.residuals, several.ok = (format=="long"))
     if(any(type.residual %in% valid.normresiduals)){
         effects <- c("mean","variance")
@@ -278,7 +273,11 @@ residuals.lmm <- function(object, type = "response", var = NULL,
         for(iVar in names(reference.effective)){
 
             if(is.factor(data.reference[[iVar]]) && !is.factor(reference[[iVar]])){
-                stop("The reference value of variable ",iVar," should be a factor. \n")
+                if(all(reference[[iVar]] %in% levels(data.reference[[iVar]]))){
+                    reference[[iVar]] <- factor(reference[[iVar]], levels = levels(data.reference[[iVar]]))
+                }else{
+                    stop("The reference value of variable ",iVar," should be a factor. \n")
+                }
             }
             if(is.factor(data.reference[[iVar]]) && !identical(levels(reference[[iVar]]),levels(data.reference[[iVar]]))){
                 stop("Levels of the reference value of variable \'",iVar,"\' should match those of the original data. \n",
@@ -299,6 +298,7 @@ residuals.lmm <- function(object, type = "response", var = NULL,
         }
     }else{
         design <- stats::model.matrix(object, data = data, effects = effects, simplify = FALSE)
+        design.reference <- stats::model.matrix(object, data = data, effects = effects, simplify = TRUE)
     }
     Y <- design$Y
     X <- design$mean
@@ -385,12 +385,12 @@ residuals.lmm <- function(object, type = "response", var = NULL,
         res <- object$residuals
         M.res <- matrix(NA, nrow = length(res), ncol = length(type.residual), dimnames = list(NULL, name.residual))
     }
-    if(ci || "partial" %in% type.residual || "partial-center" %in% type.residual){
+    if(fitted.ci || "partial" %in% type.residual || "partial-center" %in% type.residual){
 
-        df.fitted <- stats::predict(object, newdata = design.reference, type = type.fit, se = ifelse(ci,"estimation",FALSE),
-                             keep.newdata = FALSE, format = "long", simplify = FALSE)
+        df.fitted <- stats::predict(object, p = p, newdata = design.reference, type = type.fit, se = ifelse(fitted.ci,"estimation",FALSE),
+                                    keep.newdata = FALSE, format = "long", simplify = FALSE)
 
-        if(ci){
+        if(fitted.ci){
             fitted <- cbind(fitted = df.fitted$estimate,
                             fitted.lower = df.fitted$lower,
                             fitted.upper = df.fitted$upper)

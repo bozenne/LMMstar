@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: feb  6 2024 (16:12) 
+## Last-Updated: feb 13 2024 (17:47) 
 ##           By: Brice Ozenne
-##     Update #: 967
+##     Update #: 970
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -87,7 +87,9 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
                          ylim = NULL, mean.size = c(3, 1), size.text = 16, position.errorbar = "identity", ...){
 
     ## use [] to keep attribute reference for partial residuals
-    type[] <- match.arg(type, c("fit","partial","partial-center","qqplot","correlation","scatterplot","scatterplot2")) 
+    type[] <- match.arg(type, c("fit",
+                                "partial","partial-center",
+                                "qqplot","correlation","scatterplot","scatterplot2")) 
 
     if(type=="fit"){ ## model fit
         if(is.null(ci.alpha)){ci.alpha <- 0.25}
@@ -119,11 +121,12 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
         type2 <- type
         if(is.null(ci.alpha)){
             ci.alpha <- 0.25
+            fitted.ci <- FALSE
         }else if(!is.na(ci.alpha) && ci.alpha>0 && type %in% c("partial","partial-center")){
-            type2 <- paste0(type2,"-ci")
+            fitted.ci <- TRUE
         }
         ## extract partial residuals
-        outRes <- stats::residuals(object, type = type2, format = c("wide","long"), var = type.residual, keep.data = TRUE, simplify = FALSE)
+        outRes <- stats::residuals(object, type = type2, format = c("wide","long"), var = type.residual, keep.data = TRUE, simplify = FALSE, fitted.ci = fitted.ci)
         out <- do.call(autoplot.residuals_lmm, args = c(list(outRes, type = type, size.text = size.text), dots))
 
     }else{ ## residual plot

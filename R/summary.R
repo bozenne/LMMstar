@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jan 29 2024 (13:57) 
+## Last-Updated: feb 13 2024 (16:19) 
 ##           By: Brice Ozenne
-##     Update #: 1340
+##     Update #: 1347
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -1000,8 +1000,11 @@ summary.resample <- function(object, digits = 3, ...){
 
     ## ** round
     columns.num <- intersect(setdiff(columns,c(col.df,"null","p.value")), names(table))
-    for(iCol in columns.num){
-        table.print[[iCol]] <- as.character(round(table.print[[iCol]], digits = digits))
+    for(iCol in columns.num){        
+        table.print[[iCol]] <- as.character(round(table[[iCol]], digits = digits))
+        if(any(table[[iCol]]!=0 & table.print[[iCol]] == "0")){
+            table.print[[iCol]][table[[iCol]]!=0 & table.print[[iCol]] == "0"] <- paste0("<0.",paste0(rep(0,digits-1),collapse=""),"1")
+        }
     }
     if("p.value" %in% names(table.print)){
         table.print$p.value <- as.character(format.pval(table.print$p.value, digits = digits.p.value[1], eps = digits.p.value[2]))
