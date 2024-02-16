@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: aug  1 2023 (16:45) 
+## Last-Updated: feb 15 2024 (15:52) 
 ##           By: Brice Ozenne
-##     Update #: 1119
+##     Update #: 1120
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -117,8 +117,8 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
             dimnames(out)[[1]] <- x$cluster$levels[match(1:dim(out)[[1]],x$cluster$index)]
 
         } 
-        out <- addNA(out, index.na = x$index.na,
-                     level = "cluster", cluster = x$cluster)
+        out <- restaureNA(out, index.na = x$index.na,
+                          level = "cluster", cluster = x$cluster)
         
     }
 

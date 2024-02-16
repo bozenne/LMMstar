@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: nov  8 2023 (18:12) 
+## Last-Updated: feb 15 2024 (15:54) 
 ##           By: Brice Ozenne
-##     Update #: 566
+##     Update #: 567
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -713,7 +713,6 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 ##                 iData[index.cluster[[iCluster]],variable.perm] <- Uvar[[iPerm[iCluster]]] ## seems to properly expand Uvar over multiple timepoints
 ##             }
 ##         }else if(type == "bootstrap"){
-##             browser()
 ##             ils.Boot <- index.cluster[sample(n.cluster, replace = TRUE)]
 ##             iBoot <- unlist(ils.Boot)
 ##             iBoot.cl <- unlist(mapply(x = 1:n.cluster, y = lengths(ils.Boot), function(x,y){rep(x,y)}, SIMPLIFY = FALSE))

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: aug  1 2023 (16:11) 
+## Last-Updated: feb 15 2024 (15:53) 
 ##           By: Brice Ozenne
-##     Update #: 880
+##     Update #: 881
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -458,16 +458,16 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
     ## }
 
     ## ** restaure NA
-    prediction <- addNA(unname(prediction), index.na = index.na,
-                        level = "obs", cluster = object$cluster)
+    prediction <- restaureNA(unname(prediction), index.na = index.na,
+                             level = "obs", cluster = object$cluster)
     if(format == "long"){
         if(simplify && is.null(se) && df==FALSE && keep.newdata == FALSE){
             return(prediction)
         }
-        prediction.se <- sqrt(addNA(unname(prediction.var), index.na = index.na,
-                                    level = "obs", cluster = object$cluster))
-        prediction.df <- addNA(unname(prediction.df), index.na = index.na,
-                               level = "obs", cluster = object$cluster)
+        prediction.se <- sqrt(restaureNA(unname(prediction.var), index.na = index.na,
+                                         level = "obs", cluster = object$cluster))
+        prediction.df <- restaureNA(unname(prediction.df), index.na = index.na,
+                                    level = "obs", cluster = object$cluster)
     
         alpha <- 1-level
         M.pred <- cbind(estimate = prediction, se = prediction.se, df = prediction.df,

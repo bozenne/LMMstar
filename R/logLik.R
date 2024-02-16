@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: aug  1 2023 (14:25) 
+## Last-Updated: feb 15 2024 (15:53) 
 ##           By: Brice Ozenne
-##     Update #: 350
+##     Update #: 352
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -71,8 +71,8 @@ logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
         if(!is.numeric(object$cluster$levels)){
             names(out) <- object$cluster$levels[match(1:length(out),object$cluster$index)]
         }
-        out <- addNA(out, index.na = object$index.na,
-                     level = "cluster", cluster = object$cluster)        
+        out <- restaureNA(out, index.na = object$index.na,
+                          level = "cluster", cluster = object$cluster)        
 
     }
 

@@ -11,10 +11,12 @@
   object,
   type = "response",
   var = NULL,
+  at = NULL,
   data = NULL,
   p = NULL,
   format = "long",
   keep.data = FALSE,
+  fitted.ci = FALSE,
   simplify = TRUE,
   ...
 )
@@ -30,6 +32,8 @@
 
 \item{var}{[character vector] name of the variable relative to which the partial residuals should be computed.}
 
+\item{at}{[data.frame] values for the covariates at which to evaluate the partial residuals.}
+
 \item{data}{[data.frame] dataset relative to which the residuals should be computed. Only relevant if differs from the dataset used to fit the model.}
 
 \item{p}{[numeric vector] value of the model coefficients at which to evaluate the residuals. Only relevant if differs from the fitted values.}
@@ -40,6 +44,8 @@ or in a data.frame/vector with as many rows as observations (\code{"long"})}
 
 \item{keep.data}{[logical] Should the dataset relative to which the residuals are evaluated be output along side the residual values?
 Only possible in the long format.}
+
+\item{fitted.ci}{[logical] Should the confidence intervals relative to the fitted values be added to the output. Only relevant when argument \code{keep.data=TRUE}.}
 
 \item{simplify}{[logical] Simplify the data format (vector instead of data.frame) and column names (no mention of the time variable) when possible.
 Otherwise, information about the call and reference values used for partial residuals be added as an attribute.}

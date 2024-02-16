@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: feb 13 2024 (18:50) 
+## Last-Updated: feb 16 2024 (11:31) 
 ##           By: Brice Ozenne
-##     Update #: 1045
+##     Update #: 1066
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -23,6 +23,7 @@
 ##' @param object a \code{lmm} object.
 ##' @param type [character] type of residual to output: raw residuals (\code{"response"}), Pearson residuals (\code{"pearson"}), normalized residuals (\code{"normalized"}, scaled residual \code{"scaled"}), or partial residuals (\code{"partial"} or \code{"partial-center"}). Can also be \code{"all"} to output all except partial residuals. See detail section.
 ##' @param var [character vector] name of the variable relative to which the partial residuals should be computed.
+##' @param at [data.frame] values for the covariates at which to evaluate the partial residuals.
 ##' @param data [data.frame] dataset relative to which the residuals should be computed. Only relevant if differs from the dataset used to fit the model.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the residuals. Only relevant if differs from the fitted values.
 ##' @param format [character] Should the residuals be output
@@ -114,7 +115,7 @@
 ## * residuals.lmm (code)
 ##' @export
 ##' @rdname residuals
-residuals.lmm <- function(object, type = "response", var = NULL, 
+residuals.lmm <- function(object, type = "response", var = NULL, at = NULL,
                           data = NULL, p = NULL, format = "long", keep.data = FALSE, fitted.ci = FALSE, simplify = TRUE, ...){
 
     mycall <- match.call()
@@ -167,7 +168,6 @@ residuals.lmm <- function(object, type = "response", var = NULL,
     if(identical("all",tolower(type.residual))){        
         type.residual <- c("response","studentized","pearson","normalized")
     }
-    attr.ref <- attr(type.residual,"reference")
     valid.normresiduals  <- c("studentized","pearson","normalized","normalized2","normastudentized","scaled")
     valid.residuals <- c("response",valid.normresiduals,"partial","partial-center")
     type.residual <- match.arg(type.residual, valid.residuals, several.ok = (format=="long"))
@@ -186,9 +186,8 @@ residuals.lmm <- function(object, type = "response", var = NULL,
         if(is.null(var)){
             stop("Argument \'var\' should indicate the covariate effects to preserve when computing the partial residuals. \n")
         }
-        if(!is.null(attr.ref) && "partial-center" %in% type.residual){
-            message("Attribute \'attr.ref\' of argument \'type\' is ignored when \'type\' equals \"partial-center\". \n")
-            attr.ref <- NULL
+        if(!is.null(at) && "partial-center" %in% type.residual){
+            message("Argument \'at\' is ignored when \'type\' equals \"partial-center\". \n")
         }
         keep.intercept <- "(Intercept)" %in% var
         if(keep.intercept && "(Intercept)" %in%  param.name == FALSE){
@@ -203,8 +202,11 @@ residuals.lmm <- function(object, type = "response", var = NULL,
         type.var <- c("numeric","categorical")[var %in% names(object$xfactor$mean) + 1]
         type.fit <- ifelse(keep.intercept,"static","static0")
     }else{
+        if(!is.null(at)){
+            message("Argument \'at\' is ignored when computing residuals other than partial residuals. \n")
+        }
         if(!is.null(var)){
-            warning("Argument \'var\' ignored when computing residuals other than partial residuals. \n")
+            message("Argument \'var\' is ignored when computing residuals other than partial residuals. \n")
         }
         keep.intercept <- TRUE
         type.var <- NULL        
@@ -240,7 +242,7 @@ residuals.lmm <- function(object, type = "response", var = NULL,
         ## *** design matrix relative to a reference value
         reference <- stats::setNames(as.list(rep(NA, length = length(variableMu.name))), variableMu.name)
         ## reference: reference level of all variables not in var
-        if(is.null(attr.ref)){
+        if(is.null(at)){
             if(length(setdiff(variableMuFac.name,var))>0){
                 reference[setdiff(variableMuFac.name,var)] <- lapply(setdiff(variableMuFac.name,var),function(iName){factor(xfactorMu[[iName]][1], levels = xfactorMu[[iName]])})
             }
@@ -254,15 +256,15 @@ residuals.lmm <- function(object, type = "response", var = NULL,
                 reference[intersect(variableMuNum.name, var)] <- lapply(intersect(variableMuNum.name, var), function(iName){mean(object$data[[iName]])})
             }
             reference <- data.frame(reference, stringsAsFactors = FALSE)
-        }else if(!is.data.frame(attr.ref)){
-            stop("Attribute \'reference\' form argument \'type\' must inherit from data.frame. \n")
+        }else if(!is.data.frame(at)){
+            stop("Argument \'at\' must inherit from data.frame. \n")
         }else{
-            reference <- attr.ref
+            reference <- at
             if(NROW(reference)!=1){
-                stop("Attribute \'reference\' from argument \'type\' must be a single row data.frame. \n")
+                stop("Argument \'at\' must be a single row data.frame. \n")
             }
             if(any(names(reference) %in% variableMu.name == FALSE)){
-                stop("Incorrect column names in attribute \'reference\' from argument \'type\'. \n",
+                stop("Incorrect column names in argument \'at\'. \n",
                      "Valid column names: \"",paste(variableMu.name, collapse = "\", \""),"\". \n")
             }
         }
@@ -276,11 +278,11 @@ residuals.lmm <- function(object, type = "response", var = NULL,
                 if(all(reference[[iVar]] %in% levels(data.reference[[iVar]]))){
                     reference[[iVar]] <- factor(reference[[iVar]], levels = levels(data.reference[[iVar]]))
                 }else{
-                    stop("The reference value of variable ",iVar," should be a factor. \n")
+                    stop("Value relative to the variable ",iVar," in argument \'at\' should be a factor. \n")
                 }
             }
             if(is.factor(data.reference[[iVar]]) && !identical(levels(reference[[iVar]]),levels(data.reference[[iVar]]))){
-                stop("Levels of the reference value of variable \'",iVar,"\' should match those of the original data. \n",
+                stop("Levels of thevariable \'",iVar,"\' in argument \'at\' should match those of the original data. \n",
                      "Levels: \"",paste(levels(data[[iVar]]), collapse = "\" \""),"\"\n")
             }
             if(iVar %in% var){
@@ -465,15 +467,14 @@ residuals.lmm <- function(object, type = "response", var = NULL,
 
     ## ** restaure NA
     if(is.null(mycall$data)){
-
-        M.res <- addNA(M.res, index.na = index.na,
-                       level = "obs", cluster = object$cluster)
+        M.res <- restaureNA(M.res, index.na = index.na,
+                            level = "obs", cluster = object$cluster)
         
         if(keep.data){
 
             if(format == "long"){
-                fitted <- addNA(fitted, index.na = index.na, 
-                                level = "obs", cluster = object$cluster)
+                fitted <- restaureNA(fitted, index.na = index.na, 
+                                     level = "obs", cluster = object$cluster)
 
                 if(is.matrix(fitted)){ ## when using partial residuals with ci for the fitted values
                     data.reference <- cbind(data.reference, fitted)
@@ -494,17 +495,18 @@ residuals.lmm <- function(object, type = "response", var = NULL,
 
 
     if(!simplify){
-        
         attr(out,"reference") <- attr(M.res,"reference")
         attr(out,"centering") <- attr(M.res,"centering")
-        attr(out,"args") <- list(type = type, format = format, keep.data = keep.data, var = var, type.var = type.var, n.time = n.time, name.time = name.time,
+        attr(out,"args") <- list(type = type, format = format, keep.data = keep.data, var = var, type.var = type.var,
+                                 n.time = n.time, name.time = name.time,
+                                 name.cluster = object$cluster$var,
                                  outcome = object$outcome$var, intercept = "(Intercept)" %in% names(object$param))
         if(keep.intercept){
             attr(out,"args")$var <- c("(Intercept)",attr(out,"args")$var)
         }
         if(all(is.na(attr(object.time$var,"original")))){
-            attr(out,"index.time") <- addNA(as.character(index.time), index.na = index.na,
-                                            level = "obs", cluster = object$cluster)
+            attr(out,"index.time") <- restaureNA(as.character(index.time), index.na = index.na,
+                                                 level = "obs", cluster = object$cluster)
         }
         attr(out,"args")$nameL.colres <- colnames(M.res)
         if(format == "wide"){

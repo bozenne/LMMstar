@@ -103,8 +103,8 @@ coef(e.lm) - coef(lm(lifeExp ~ income + illiteracy + murder + edu, data = df1))
 : -2.700062e-13  2.033929e-13 -2.898792e-13  6.272760e-15 -4.223843e-13 -5.306866e-13
 
 A graphical display can now be obtained by modifying the original
-outcome, life expectancy, had every state had the same Illiteracy and
-Murder:
+outcome, life expectancy, had every state had the same illiteracy and
+murder rate:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 df1$pres <- residuals(e.lm, type = "partial", var = c("(Intercept)","income"))
 head(df1)
@@ -148,13 +148,11 @@ keep a plausible range of values for the outcome.
 One may wish to compute the life expectancy had every state got a
 specific illiteracy, murder rate, and education. Say the most common
 in the sample: 1.17, 7.378, and (50,60] based on the descriptive
-statistics. This can be obtained by specifying an attribute to the
-argument type:
+statistics. This can be obtained by specifying these values in the
+argument =at=:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-type <- "partial"
-attr(type, "reference") <- data.frame(illiteracy = 1.17, murder = 7.378,
-                                      edu = factor("(50,60]",levels(df1$edu)))
-df1$pres2 <- residuals(e.lm, type = type, var = c("(Intercept)","income"))
+df1$pres2 <- residuals(e.lm, type = "partial", var = c("(Intercept)","income"),
+                       at = data.frame(illiteracy = 1.17, murder = 7.378, edu = "(50,60]"))
 head(df1)
 #+END_SRC
 
@@ -167,7 +165,7 @@ head(df1)
 : California   71.71        1.1  5.114   10.3 (60,100] 73.60914 72.06363
 : Colorado     72.06        0.7  4.884    6.8 (60,100] 73.05572 71.51021
 
-or computing by hand accounting for the reference level:
+or doing the calcuation by hand:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 c(69.05 - 0.17590 * (2.1-1.170) - (-0.27822) * (15.1-7.378) + 0.30141,
   69.31 - 0.17590 * (1.5-1.170) - (-0.27822) * (11.3-7.378) + 0.30141 - 0.77306)
@@ -176,8 +174,8 @@ c(69.05 - 0.17590 * (2.1-1.170) - (-0.27822) * (15.1-7.378) + 0.30141,
 #+RESULTS:
 : [1] 71.33624 69.87148
 
-Note that changing the reference level only shift the partial residual
-value by a constant, here:
+Note that changing in counterfactual only shifts the partial residuals
+by a constant, here:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 unique(df1$pres2 - df1$pres)
 #+END_SRC
@@ -185,9 +183,9 @@ unique(df1$pres2 - df1$pres)
 #+RESULTS:
 : [1] -1.545513
 
-so does not affect the relation between the outcome (here =LifeExp=)
-and the exposure of interest (here =Income=). One can then get a
-graphical display either manually using ggplot:
+so does not affect the relation between the counterfactual outcome
+(here =lifeExp=) and the exposure of interest (here =income=). One can
+then get a graphical display either manually using ggplot:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 gg.pres <- ggplot(df1) + geom_point(aes(x=income, y=pres))
 gg.pres <- gg.pres + geom_abline(intercept = coef(e.lm)["(Intercept)"],
@@ -200,8 +198,9 @@ gg.pres
 
 or directly via the plot function:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-plot(e.lm, time = "income", type = "partial", var = c("(Intercept)","income")) # C
-plot(e.lm, time = "income", type = type, var = c("(Intercept)","income")) # D
+plot(e.lm, type = "partial", var = c("(Intercept)","income")) # C
+plot(e.lm, type = "partial", var = c("(Intercept)","income"),
+     at = data.frame(illiteracy = 1.17, murder = 7.378, edu = "(50,60]")) # D
 #+END_SRC
 
 #+RESULTS:
@@ -223,10 +222,13 @@ been normalized and exhibit less variability.
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
 pdf("figures/gg-lmpres-comparisons.pdf", width = 10, height = 5)
-ggarrange(gg.obs + coord_cartesian(ylim=c(68,74)) + theme(plot.title = element_text(size = 10)),
-          gg.pres + coord_cartesian(ylim=c(68,74)) + theme(plot.title = element_text(size = 10)),
-          autoplot(e.lm, time = "income", type = "partial", var = c("(Intercept)","income"))$plot + coord_cartesian(ylim=c(68,74)) + ggtitle("(C):  had states no illiteracy, no murder, low education - same as (B)") + theme(plot.title = element_text(size = 10)),
-          autoplot(e.lm, time = "income", type = type, var = c("(Intercept)","income"))$plot + coord_cartesian(ylim=c(68,74)) + ggtitle("(D): had states average illiteracy, murder rate, and education") + theme(plot.title = element_text(size = 10)),
+autogg.pres <- autoplot(e.lm, type = "partial", var = c("(Intercept)","income"))$plot
+autogg.presC <- autoplot(e.lm, type = "partial", var = c("(Intercept)","income"),
+                         at = data.frame(illiteracy = 1.17, murder = 7.378, edu = "(50,60]"))$plot
+ggarrange(gg.obs + coord_cartesian(ylim=c(68,74)) + theme(plot.title = element_text(size = 11), text = element_text(size = 10)),
+          gg.pres + coord_cartesian(ylim=c(68,74)) + theme(plot.title = element_text(size = 11), text = element_text(size = 10)),
+          autogg.pres + coord_cartesian(ylim=c(68,74)) + ggtitle(paste("(C): ",autogg.pres$labels$title)) + theme(plot.title = element_text(size = 11), text = element_text(size = 10)),
+          autogg.presC + coord_cartesian(ylim=c(68,74)) + ggtitle(paste("(D): ",autogg.presC$labels$title)) + theme(plot.title = element_text(size = 11), text = element_text(size = 10)),
           nrow = 2, ncol = 2)
 dev.off()
 #+END_SRC
@@ -240,23 +242,22 @@ dev.off()
 
 The output of the =plot= method is a list containing an element plot
 with the ggplot object and an element data with the dataset. To avoid
-actually displaying the graph one can use =autoplot= to only output the result:
+actually displaying the graph one can use the method =autoplot= to
+only save the ggplot object:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-ls.plot <- autoplot(e.lm, time = "income", type = "partial", var = c("(Intercept)","income"))
-str(ls.plot$data)
-class(ls.plot$plot)
+ls.plot <- autoplot(e.lm, type = "partial", var = c("(Intercept)","income"))
+lapply(ls.plot, class)
 #+END_SRC
 
 #+RESULTS:
-: Classes 'residuals_lmm' and 'data.frame':	50 obs. of  3 variables:
-:  $ income   : num  3.62 6.32 4.53 3.38 5.11 ...
-:  $ fitted   : num  72.3 72.8 72.5 72.2 72.6 ...
-:  $ r.partial: num  72.9 71.4 72.1 73.1 73.6 ...
+: $data
+: [1] "residuals_lmm" "data.frame"   
+: 
+: $plot
 : [1] "gg"     "ggplot"
 
 One can re-create the plot based on the data argument or modify the
-existing plot based on the ggplot object, e.g. display with the y axis
-between 68 and 74:
+existing plot, e.g. displaying with the y axis between 68 and 74:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 ls.plot$plot  + coord_cartesian(ylim=c(68,74))
 #+END_SRC
@@ -271,8 +272,7 @@ A common question is whether one can display confidence intervals for
 the regression line. It is possible to add confidence intervals on the
 plot either via the argument =ci.alpha=:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-plot(e.lm, time = "income", type = "partial", var = c("(Intercept)","income"),
-     ci.alpha = 0.25)
+plot(e.lm, type = "partial", var = c("(Intercept)","income"), ci.alpha = 0.25) ## E
 #+END_SRC
 
 #+RESULTS:
@@ -296,7 +296,7 @@ head(pres.ci)
 
 which can be added to the previous graphical display, e.g.:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-gg.pres + geom_ribbon(data = pres.ci, alpha = 0.1,
+gg.pres + geom_ribbon(data = pres.ci, alpha = 0.25,
                       aes(ymin = fitted.lower, ymax = fitted.upper, x = income))
 #+END_SRC
 
@@ -307,9 +307,10 @@ similar partial residual plot but now for the =murder= variable is
 displayed in the right panel.
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
+autogg.presCI <- autoplot(e.lm, type = "partial", var = c("(Intercept)","income"), ci.alpha = 0.25)$plot
 pdf("figures/gg-lmpres-cifit.pdf", width = 10, height = 4)
-ggarrange(autoplot(e.lm, time = "income", type = "partial", var = c("(Intercept)","income"), ci.alpha = 0.25)$plot + theme(plot.title = element_text(size = 10)),
-          autoplot(e.lm, time = "murder", type = "partial", var = c("(Intercept)","murder"), ci.alpha = 0.25)$plot + theme(plot.title = element_text(size = 10)))
+ggarrange(autogg.presCI + ggtitle(paste("(E): ",autogg.presCI$labels$title)) + theme(plot.title = element_text(size = 12), text = element_text(size = 14)),
+          autoplot(e.lm, type = "partial", var = c("(Intercept)","murder"), ci.alpha = 0.25)$plot + theme(plot.title = element_text(size = 12), text = element_text(size = 14)))
 dev.off()
 #+END_SRC
 
@@ -329,8 +330,8 @@ capture the uncertainty relative to the =income= or =murder= variable
 one should remove the intercept value, e.g. by omitting
 ="(Intercept)"= from the =var= argument:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-plot(e.lm, time = "income", type = "partial", var = "income", ci.alpha = 0.25)
-plot(e.lm, time = "murder", type = "partial", var = "murder", ci.alpha = 0.25)
+plot(e.lm, type = "partial", var = "income", ci.alpha = 0.25) ## F
+plot(e.lm, type = "partial", var = "murder", ci.alpha = 0.25) ## G
 #+END_SRC
 #+RESULTS:
 
@@ -339,8 +340,10 @@ plot(e.lm, time = "murder", type = "partial", var = "murder", ci.alpha = 0.25)
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
 pdf("figures/gg-lmpres-cicov.pdf", width = 10, height = 4)
-ggarrange(autoplot(e.lm, time = "income", type = "partial", var = "income", ci.alpha = 0.25)$plot + theme(plot.title = element_text(size = 10)),
-          autoplot(e.lm, time = "murder", type = "partial", var = "murder", ci.alpha = 0.25)$plot + theme(plot.title = element_text(size = 10)))
+autogg.presCCI.income <- autoplot(e.lm, type = "partial", var = "income", ci.alpha = 0.25)$plot
+autogg.presCCI.murder <- autoplot(e.lm, type = "partial", var = "murder", ci.alpha = 0.25)$plot
+ggarrange(autogg.presCCI.income + ggtitle(paste("(F): ",autogg.presCCI.income$labels$title)) + theme(plot.title = element_text(size = 12), text = element_text(size = 14)),
+          autogg.presCCI.murder + ggtitle(paste("(G): ",autogg.presCCI.murder$labels$title)) + theme(plot.title = element_text(size = 12), text = element_text(size = 14)))
 dev.off()
 #+END_SRC
 
@@ -392,19 +395,24 @@ illiteracy + murder, data = df1)= but uses a different parametrisation.
 Similarly as before, we can use the =plot= function to display the
 partial residuals with respect to both =income= and =edu=:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-plot(e.lmI, time = "income", type = "partial", var = c("(Intercept)","income","edu"))
+plot(e.lmI, type = "partial", var = c("(Intercept)","income","edu")) ## H
 #+END_SRC
+
+#+RESULTS:
 
 which can be compared to a plot assuming no interaction:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-plot(e.lm, time = "income", type = "partial", var = c("(Intercept)","income","edu"))
+plot(e.lm, type = "partial", var = c("(Intercept)","income","edu")) ## I
 #+END_SRC
 
 #+RESULTS:
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
-gg <- ggarrange(autoplot(e.lmI, time = "income", type = "partial", var = c("(Intercept)","income","edu"))$plot + ggtitle("Reference: illiteracy=0, murder=0 (interaction model)") + theme(plot.title = element_text(size = 10)),
-                autoplot(e.lm, time = "income", type = "partial", var = c("(Intercept)","income","edu"))$plot + ggtitle("Reference: illiteracy=0, murder=0 (no interaction model)") + theme(plot.title = element_text(size = 10)),
+autogg.presI.income <- autoplot(e.lmI, type = "partial", var = c("(Intercept)","income","edu"))$plot
+autogg.presnoI.income <- autoplot(e.lm, type = "partial", var = c("(Intercept)","income","edu"))$plot
+  
+gg <- ggarrange(autogg.presI.income + ggtitle(paste("(H): ",autogg.presI.income$labels$title)) + theme(plot.title = element_text(size = 12), text = element_text(size = 14)),
+                autogg.presnoI.income + ggtitle(paste("(I): ",autogg.presnoI.income$labels$title)) + theme(plot.title = element_text(size = 12), text = element_text(size = 14)),
                 common.legend = TRUE, legend = "bottom")
 
 pdf("figures/gg-lmpres-interaction.pdf", width = 10, height = 4)
@@ -441,12 +449,10 @@ c(69.05 - 0.12870 * 2.1 - (-0.27940) * 15.1,
 
 Here we computed partial residuals representing the life expectancy in
 the states had there be no murder nor illiteracy. We could also
-consider the case of average murder rate and illiteracy. We would need
-to define a new reference (i.e. drop =edu=):
+consider the case of average murder rate and illiteracy:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-typeI <- "partial"
-attr(typeI, "reference") <- data.frame(illiteracy = 1.17, murder = 7.378)
-residuals(e.lmI, type = typeI, var = c("(Intercept)","income"))[1:5]
+residuals(e.lmI, type = "partial", var = c("(Intercept)","income"),
+          at = data.frame(illiteracy = 1.17, murder = 7.378))[1:5]
 #+END_SRC
 
 #+RESULTS:
@@ -472,50 +478,182 @@ of patients under placebo vs. active drug. We first re-shape the data:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 data(armd.wide, package = "nlmeU")
 library(reshape2)
-armd.long <- reshape2::melt(armd.wide,
-                            measure.vars = paste0("visual",c(0,4,12,24,52)),
-                            id.var = c("subject","lesion","treat.f","miss.pat"),
-                            variable.name = "week",
-                            value.name = "visual")
+armd.long <- melt(armd.wide, measure.vars = paste0("visual",c(0,4,12,24,52)),
+                  id.var = c("subject","lesion","treat.f","miss.pat"),
+                  variable.name = "week", value.name = "visual")
 armd.long$week <- factor(armd.long$week, 
                          level = paste0("visual",c(0,4,12,24,52)),
                          labels = c(0,4,12,24,52))
-
-#+END_SRC
-
-and make sure that the covariates (here =lesion=) has no missing values:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-summarize(visual+treat.f+week+lesion~1, data = armd.long, na.rm = TRUE)
-#+END_SRC
-
-#+RESULTS:
-:          outcome observed missing       mean         sd min q1 median q3 max
-: 1         visual     1107      93 49.8590786 17.5374055   3 37     51 63  85
-: 2         lesion     1195       5  1.8912134  0.9314250   1  1      2  3   4
-: 3 treat.f:Active     1200       0  0.5041667  0.5001911   0  0      1  1   1
-: 4         week:4     1200       0  0.2000000  0.4001668   0  0      0  0   1
-: 5        week:12     1200       0  0.2000000  0.4001668   0  0      0  0   1
-: 6        week:24     1200       0  0.2000000  0.4001668   0  0      0  0   1
-: 7        week:52     1200       0  0.2000000  0.4001668   0  0      0  0   1
-
-This is not the case here so we will subset the dataset to exclude missing values in the covariates:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-armd.longCC <- armd.long[!is.na(armd.long$lesion),]
 #+END_SRC
 
 #+RESULTS:
 
-Then we can fit a linear mixed model:
+and notice that mainly the outcome (=visual=) can be missing but also
+in a few instances the covariate =lesion= can be missing:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-e.lmm <- lmm(visual ~ week + week:treat.f + lesion, data = armd.longCC,
+summarizeNA(armd.long)
+#+END_SRC
+
+#+RESULTS:
+:  frequency missing.pattern n.missing subject lesion treat.f miss.pat week visual
+:       1106          000000         0       0      0       0        0    0      0
+:         89          000001         1       0      0       0        0    0      1
+:          1          010000         1       0      1       0        0    0      0
+:          4          010001         2       0      1       0        0    0      1
+
+This is why when fitting the linear mixed model:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+e.lmm <- lmm(visual ~ week*treat.f + lesion, data = armd.long,
              repetition = ~week|subject)
 #+END_SRC
 
 #+RESULTS:
+: Advarselsbesked:
+: I .lmmNormalizeData(as.data.frame(data)[unique(stats::na.omit(var.all))],  :
+:   Can only handle missing values in the outcome variable visual. 
+:   5 observations with missing values in "lesion" have been removed. 
+:   1 cluster has been removed.
 
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-plot(e.lmm, type = "partial", var = c("(Intercept)","week","treat.f"))
+To visualize the model fit, we can display the fitted mean for each
+level of baseline lesion:
+#+BEGIN_SRC R :exports code :results output :session *R* :cache no
+plot(e.lmm, facet = ~lesion, labeller = label_both)
 #+END_SRC
+
+#+RESULTS:
+
+With the estimated coefficients in mind:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+round(coef(e.lmm),2)
+#+END_SRC
+
+#+RESULTS:
+:          (Intercept)                week4               week12               week24 
+:                61.33                -1.28                -2.35                -6.03 
+:               week52        treat.fActive               lesion  week4:treat.fActive 
+:               -11.31                -0.84                -3.19                -2.19 
+: week12:treat.fActive week24:treat.fActive week52:treat.fActive 
+:                -3.47                -3.03                -4.84
+
+we for instance retrive that:
+- in the Placebo group with lesion=1, the estimated average baseline mean
+  is =(Intercept)+1*lesion=, i.e. 61.33-3.19=58.14. When lesion=4, the
+  estimated average baseline mean is =(Intercept)+4*lesion=,
+  i.e. 61.33-4*3.19=48.57.
+- the estimated average baseline mean in the Active group is shifted
+  by =treat.fActive= i.e. -0.84 from the Placebo group.
+- in the Placebo group with lesion=1, the estimated average week 52
+  mean is \newline =(Intercept)+week52+1*lesion=,
+  i.e. 61.33-11.31-3.19=46.83. 
+- the estimated average week 52 mean in the Active group is shifted by \newline
+  =treat.fActive+week52:treat.fActive= i.e. -0.84-4.84=-5.68 from the
+  Placebo group.
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+pdf("figures/gg-lmm-fit.pdf", width = 10, height = 6)
+plot(e.lmm, facet = ~lesion, labeller = label_both)
+dev.off()
+#+END_SRC
+
+#+RESULTS:
+: windows 
+:       2
+
+#+ATTR_LaTeX: :width 1\textwidth :options trim={0 0 0 0} :placement [!h]
+[[./figures/gg-lmm-fit.pdf]]
+
+This type of display would however not generalize well with more
+covariates or more covariate levels. Instead one can once more
+consider partial residuals, i.e. the outcome and fitted values had
+there be no lesion:
+- either with a separate panel for each timepoint:
+#+BEGIN_SRC R :exports code :results output :session *R* :cache no
+plot(e.lmm, type = "partial", var = c("(Intercept)","week","treat.f"),
+     at = data.frame(lesion = 2))
+#+END_SRC
+
+#+RESULTS:
+: Advarselsbeskeder:
+: 1: [1m[22mRemoved 94 rows containing missing values (`geom_point()`). 
+: 2: [1m[22mRemoved 94 rows containing missing values (`geom_point()`).
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+pdf("figures/gg-lmm-presFacet.pdf", width = 10, height = 6)
+plot(e.lmm, type = "partial", var = c("(Intercept)","week","treat.f"),
+     at = data.frame(lesion = 2))
+dev.off()
+#+END_SRC
+
+#+RESULTS:
+: Advarselsbeskeder:
+: 1: [1m[22mRemoved 94 rows containing missing values (`geom_point()`). 
+: 2: [1m[22mRemoved 94 rows containing missing values (`geom_point()`).
+: windows 
+:       2
+
+#+ATTR_LaTeX: :width 1\textwidth :options trim={0 0 0 0} :placement [!h]
+[[./figures/gg-lmm-presFacet.pdf]]
+
+- or on the same panel but with a difference color for each treatment group:   
+#+BEGIN_SRC R :exports code :results output :session *R* :cache no
+plot(e.lmm, type = "partial", var = c("(Intercept)","week","treat.f"),
+     color = "treat.f", facet =~1, at = data.frame(lesion = 2))
+#+END_SRC
+
+#+RESULTS:
+: Advarselsbeskeder:
+: 1: [1m[22mRemoved 94 rows containing missing values (`geom_point()`). 
+: 2: [1m[22mRemoved 85 rows containing missing values (`geom_line()`). 
+: 3: [1m[22mRemoved 94 rows containing missing values (`geom_point()`).
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+pdf("figures/gg-lmm-presTraj.pdf", width = 10, height = 4)
+plot(e.lmm, type = "partial", var = c("(Intercept)","week","treat.f"),
+     color = "treat.f", facet =~1, at = data.frame(lesion = 2))
+dev.off()
+#+END_SRC
+
+#+RESULTS:
+: Advarselsbeskeder:
+: 1: [1m[22mRemoved 94 rows containing missing values (`geom_point()`). 
+: 2: [1m[22mRemoved 85 rows containing missing values (`geom_line()`). 
+: 3: [1m[22mRemoved 94 rows containing missing values (`geom_point()`).
+: windows 
+:       2
+
+#+ATTR_LaTeX: :width 1\textwidth :options trim={0 0 0 0} :placement [!h]
+[[./figures/gg-lmm-presTraj.pdf]]
+
+The calculation of the partial residuals is similar to the univariate regression:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+armd.long$pres <- residuals(e.lmm, type = "partial", 
+                            var = c("(Intercept)","week","treat.f"),
+                            at = data.frame(lesion = 2))
+head(armd.long)
+#+END_SRC
+
+#+RESULTS:
+:   subject lesion treat.f miss.pat week visual     pres
+: 1       1      3  Active     --XX    0     59 62.18656
+: 2       2      1  Active     ----    0     65 61.81344
+: 3       3      4 Placebo     ---X    0     40 46.37313
+: 4       4      2 Placebo     ----    0     67 67.00000
+: 5       5      1  Active     XXXX    0     70 66.81344
+: 6       6      3  Active     ----    0     59 62.18656
+
+here substract the estimated lesion effect from the observed outcome:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+c(59 - (-3.19) * (3-2),
+  65 - (-3.19) * (1-2))
+#+END_SRC
+
+#+RESULTS:
+: [1] 62.19 61.81
+
+In particular, the partial residuals for patient with lesion equal to
+two is the observed outcome.
+
+ \clearpage
 
 * R session
 Details of the R session used to generate this document:
@@ -536,42 +674,24 @@ locale:
 [4] LC_NUMERIC=C                    LC_TIME=Danish_Denmark.utf8    
 
 attached base packages:
-[1] parallel  grid      stats     graphics  grDevices utils     datasets  methods   base     
+[1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
- [1] mice_3.14.0          sandwich_3.0-2       scales_1.2.1         rlang_1.1.1         
- [5] pbapply_1.7-0        numDeriv_2016.8-1.1  nlme_3.1-158         lava_1.7.2.1        
- [9] doSNOW_1.0.20        snow_0.4-4           iterators_1.0.14     foreach_1.5.2       
-[13] copula_1.1-2         lme4_1.1-29          Matrix_1.5-1         LMMstar_1.0.0       
-[17] ggpubr_0.4.0         multcomp_1.4-22      TH.data_1.1-1        MASS_7.3-57         
-[21] survival_3.3-1       mvtnorm_1.2-3        qqtest_1.2.0         emmeans_1.8.8-090002
-[25] ggplot2_3.4.3       
+[1] LMMstar_1.0.3 ggplot2_3.4.3
 
 loaded via a namespace (and not attached):
- [1] butils.base_1.2     minqa_1.2.4         colorspace_2.1-0    ggsignif_0.6.3     
- [5] ellipsis_0.3.2      estimability_1.4.1  parameters_0.18.2   fs_1.6.3           
- [9] listenv_0.9.0       farver_2.1.1        remotes_2.4.2       gsl_2.1-8          
-[13] fansi_1.0.4         codetools_0.2-18    splines_4.2.0       doParallel_1.0.17  
-[17] cachem_1.0.8        pkgload_1.3.0       nloptr_2.0.3        broom_0.8.0        
-[21] stabledist_0.7-1    effectsize_0.7.0.5  shiny_1.7.2         compiler_4.2.0     
-[25] backports_1.4.1     fastmap_1.1.1       cli_3.6.1           later_1.3.0        
-[29] htmltools_0.5.6     prettyunits_1.1.1   tools_4.2.0         lmerTest_3.1-3     
-[33] coda_0.19-4         gtable_0.3.4        glue_1.6.2          reshape2_1.4.4     
-[37] dplyr_1.1.3         Rcpp_1.0.11         carData_3.0-5       vctrs_0.6.3        
-[41] insight_0.18.4      stringr_1.5.0       globals_0.16.2      ps_1.7.1           
-[45] mime_0.12           miniUI_0.1.1.1      lifecycle_1.0.3     devtools_2.4.4     
-[49] rstatix_0.7.0       future_1.31.0       zoo_1.8-11          promises_1.2.0.1   
-[53] memoise_2.0.1       gridExtra_2.3       stringi_1.7.12      bayestestR_0.13.0  
-[57] pcaPP_2.0-3         boot_1.3-28         pkgbuild_1.3.1      pkgconfig_2.0.3    
-[61] lattice_0.20-45     purrr_1.0.2         htmlwidgets_1.6.2   labeling_0.4.3     
-[65] cowplot_1.1.1       tidyselect_1.2.0    processx_3.6.1      parallelly_1.34.0  
-[69] plyr_1.8.7          magrittr_2.0.3      R6_2.5.1            generics_0.1.3     
-[73] profvis_0.3.7       ADGofTest_0.3       pillar_1.9.0        withr_2.5.1        
-[77] mgcv_1.8-40         datawizard_0.6.1    abind_1.4-5         pspline_1.0-19     
-[81] tibble_3.2.1        future.apply_1.10.0 crayon_1.5.1        car_3.1-0          
-[85] utf8_1.2.3          urlchecker_1.0.1    usethis_2.1.6       data.table_1.14.2  
-[89] callr_3.7.2         digest_0.6.33       xtable_1.8-4        tidyr_1.3.0        
-[93] httpuv_1.6.5        stats4_4.2.0        munsell_0.5.0       sessioninfo_1.2.2
+ [1] pillar_1.9.0         compiler_4.2.0       tools_4.2.0          digest_0.6.33       
+ [5] nlme_3.1-158         lifecycle_1.0.3      tibble_3.2.1         gtable_0.3.4        
+ [9] lattice_0.20-45      pkgconfig_2.0.3      rlang_1.1.1          Matrix_1.5-1        
+[13] cli_3.6.1            parallel_4.2.0       mvtnorm_1.2-3        coda_0.19-4         
+[17] withr_2.5.1          dplyr_1.1.3          globals_0.16.2       generics_0.1.3      
+[21] vctrs_0.6.3          grid_4.2.0           tidyselect_1.2.0     glue_1.6.2          
+[25] listenv_0.9.0        R6_2.5.1             parallelly_1.34.0    future.apply_1.10.0 
+[29] fansi_1.0.4          survival_3.3-1       multcomp_1.4-22      lava_1.7.2.1        
+[33] TH.data_1.1-1        magrittr_2.0.3       scales_1.2.1         codetools_0.2-18    
+[37] emmeans_1.8.8-090002 splines_4.2.0        MASS_7.3-57          future_1.31.0       
+[41] colorspace_2.1-0     xtable_1.8-4         sandwich_3.0-2       utf8_1.2.3          
+[45] estimability_1.4.1   munsell_0.5.0        zoo_1.8-11
 #+end_example
 
 \clearpage

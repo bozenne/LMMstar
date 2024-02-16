@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: jan 23 2024 (10:07) 
+## Last-Updated: feb 15 2024 (15:53) 
 ##           By: Brice Ozenne
-##     Update #: 523
+##     Update #: 524
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -663,7 +663,6 @@ partialCor.lmm <- function(object, level = 0.95, R2 = FALSE, se = TRUE, df = TRU
   
 ##                     partial.r2 <- sum(Mpartial.R2[,"R2"] * (Mpartial.R2[,"n"] / sum(Mpartial.R2[,"n"])))
 
-## browser()
 ##                 }else{
 ##                     partial.r2 <- NA
 ##                 }

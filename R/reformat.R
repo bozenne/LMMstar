@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 21 2023 (09:28) 
 ## Version: 
-## Last-Updated: jul 28 2023 (17:34) 
+## Last-Updated: feb 15 2024 (17:39) 
 ##           By: Brice Ozenne
-##     Update #: 56
+##     Update #: 65
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -47,18 +47,17 @@
         ## normalize cluster and time variables (in case of NAs)
         if(is.null(data) || (is.null(call$data) && is.null(call$newdata))){
             U.cluster <- object.cluster$levels
-        
             if(length(index.na)==0){
                 indexAll.cluster <- U.cluster[index.cluster]
                 indexAll.time <- factor(U.time[index.time], U.time)
             }else{
                 indexAll.cluster <- rep(NA, NROW(object))
-                indexAll.cluster[-index.na] <- U.cluster[match(index.cluster, object.cluster$index)]
-                indexAll.cluster[index.na] <- U.cluster[as.numeric(attr(index.na,"cluster"))]
+                indexAll.cluster[-unname(index.na)] <- U.cluster[match(index.cluster, object.cluster$index)]
+                indexAll.cluster[unname(index.na)] <- as.character(attr(index.na,"cluster"))
 
                 indexAll.time <- factor(rep(NA, NROW(object)), U.time)
-                indexAll.time[-index.na] <- U.time[match(index.time, object.time$index)]
-                indexAll.time[index.na] <- U.time[as.numeric(attr(index.na,"time"))]
+                indexAll.time[-unname(index.na)] <- U.time[match(index.time, object.time$index)]
+                indexAll.time[unname(index.na)] <- as.character(attr(index.na,"time"))
             }           
             
         }else{
@@ -74,7 +73,7 @@
         }else{
             names(object2list) <- colnames(object)
         }
-        
+
         df.object <- cbind(data.frame(cluster = indexAll.cluster, XXtimeXX = indexAll.time), object2list, stringsAsFactors = FALSE)
         names(df.object)[1] <- object.cluster$var
         if((simplify == FALSE) && any(U.time %in% unique(df.object$XXtimeXX) == FALSE)){

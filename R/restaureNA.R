@@ -1,11 +1,11 @@
-### addNA.R --- 
+### restaureNA.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
 ## Created: jul 20 2023 (15:31) 
 ## Version: 
-## Last-Updated: jul 20 2023 (18:35) 
+## Last-Updated: feb 15 2024 (15:54) 
 ##           By: Brice Ozenne
-##     Update #: 43
+##     Update #: 46
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,14 +15,14 @@
 ## 
 ### Code:
 
-## * addNA (documentation)
+## * restaureNA (documentation)
 ##' @description Restaure NA in the user output that have been excluded when fitting the LMM.
 ##' @noRd
-`addNA` <-
-  function(object, index.na, level, cluster) UseMethod("addNA")
+`restaureNA` <-
+  function(object, index.na, level, cluster) UseMethod("restaureNA")
 
-## * addNA.vector
-addNA.numeric <- function(object, index.na, level, cluster){
+## * restaureNA.vector
+restaureNA.numeric <- function(object, index.na, level, cluster){
 
     if(length(object)==0){
         return(object)
@@ -54,13 +54,13 @@ addNA.numeric <- function(object, index.na, level, cluster){
     }
 
 }
-addNA.character <- addNA.numeric
-addNA.factor <- addNA.numeric
-addNA.integer <- addNA.numeric
-addNA.logical <- addNA.numeric
+restaureNA.character <- restaureNA.numeric
+restaureNA.factor <- restaureNA.numeric
+restaureNA.integer <- restaureNA.numeric
+restaureNA.logical <- restaureNA.numeric
 
-## * addNA.matrix
-addNA.matrix <- function(object, index.na, level, cluster){
+## * restaureNA.matrix
+restaureNA.matrix <- function(object, index.na, level, cluster){
 
     if(level == "cluster" && any(is.na(cluster$index))){
         ## expand to store NAs
@@ -93,8 +93,8 @@ addNA.matrix <- function(object, index.na, level, cluster){
 
 }
 
-## * addNA.array
-addNA.array <- function(object, index.na, level, cluster){
+## * restaureNA.array
+restaureNA.array <- function(object, index.na, level, cluster){
 
     if(level == "cluster" && any(is.na(cluster$index))){
         ## expand to store NAs
@@ -109,7 +109,7 @@ addNA.array <- function(object, index.na, level, cluster){
         
         return(out)
     }else if(level == "obs" && length(index.na)>0){
-        browser()
+        stop("Not yet implemented - contact the package maintainer")
     }else{
         return(object)
     }
@@ -117,4 +117,4 @@ addNA.array <- function(object, index.na, level, cluster){
 }
 
 ##----------------------------------------------------------------------
-### addNA.R ends here
+### restaureNA.R ends here

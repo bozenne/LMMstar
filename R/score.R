@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: jul 26 2023 (11:08) 
+## Last-Updated: feb 15 2024 (15:53) 
 ##           By: Brice Ozenne
-##     Update #: 592
+##     Update #: 593
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -108,8 +108,8 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
         if(!is.numeric(x$cluster$levels)){
             rownames(out) <- x$cluster$levels[match(1:NROW(out),x$cluster$index)]
         } 
-        out <- addNA(out, index.na = x$index.na,
-                     level = "cluster", cluster = x$cluster)        
+        out <- restaureNA(out, index.na = x$index.na,
+                          level = "cluster", cluster = x$cluster)        
         
     }
 

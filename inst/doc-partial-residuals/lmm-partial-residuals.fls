@@ -1574,6 +1574,29 @@ INPUT figures\gg-lmpres-interaction.pdf
 INPUT .\figures\gg-lmpres-interaction.pdf
 INPUT .\figures\gg-lmpres-interaction.pdf
 INPUT .\figures\gg-lmpres-interaction.pdf
+INPUT C:\Program Files\MiKTeX 2.9\tex\latex\lm\ts1lmr.fd
+INPUT C:\Program Files\MiKTeX 2.9\tex\latex\lm\ts1lmr.fd
+INPUT C:\Program Files\MiKTeX 2.9\tex\latex\lm\ts1lmr.fd
+INPUT C:\Program Files\MiKTeX 2.9\tex\latex\lm\ts1lmr.fd
+INPUT C:\Program Files\MiKTeX 2.9\fonts\tfm\public\lm\ts1-lmr12.tfm
+INPUT .\figures\gg-lmm-fit.pdf
+INPUT .\figures\gg-lmm-fit.pdf
+INPUT figures\gg-lmm-fit.pdf
+INPUT .\figures\gg-lmm-fit.pdf
+INPUT .\figures\gg-lmm-fit.pdf
+INPUT .\figures\gg-lmm-fit.pdf
+INPUT .\figures\gg-lmm-presFacet.pdf
+INPUT .\figures\gg-lmm-presFacet.pdf
+INPUT figures\gg-lmm-presFacet.pdf
+INPUT .\figures\gg-lmm-presFacet.pdf
+INPUT .\figures\gg-lmm-presFacet.pdf
+INPUT .\figures\gg-lmm-presFacet.pdf
+INPUT .\figures\gg-lmm-presTraj.pdf
+INPUT .\figures\gg-lmm-presTraj.pdf
+INPUT figures\gg-lmm-presTraj.pdf
+INPUT .\figures\gg-lmm-presTraj.pdf
+INPUT .\figures\gg-lmm-presTraj.pdf
+INPUT .\figures\gg-lmm-presTraj.pdf
 INPUT .\lmm-partial-residuals.bbl
 INPUT lmm-partial-residuals.bbl
 INPUT .\lmm-partial-residuals.bbl
@@ -1583,6 +1606,7 @@ OUTPUT lmm-partial-residuals.loc
 INPUT lmm-partial-residuals.aux
 INPUT .\lmm-partial-residuals.out
 INPUT .\lmm-partial-residuals.out
+INPUT C:\Program Files\MiKTeX 2.9\fonts\enc\dvips\lm\lm-ts1.enc
 INPUT C:\Program Files\MiKTeX 2.9\fonts\enc\dvips\lm\lm-rm.enc
 INPUT C:\Program Files\MiKTeX 2.9\fonts\enc\dvips\lm\lm-mathit.enc
 INPUT C:\Program Files\MiKTeX 2.9\fonts\enc\dvips\lm\lm-mathsy.enc

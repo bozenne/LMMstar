@@ -10,10 +10,14 @@
   type = "fit",
   type.residual = NULL,
   obs.alpha = 0,
-  obs.size = c(2, 0.5),
+  obs.size = NULL,
+  facet = NULL,
+  scales = "fixed",
+  labeller = "label_value",
   at = NULL,
   time.var = NULL,
-  color = TRUE,
+  color = NULL,
+  position = NULL,
   ci = TRUE,
   ci.alpha = NULL,
   ylim = NULL,
@@ -45,11 +49,18 @@ where this argument specify the variable relative to which the partial residuals
 
 \item{obs.size}{[numeric vector of length 2] size of the point and line for the original data.}
 
-\item{at}{[data.frame] values for the covariates at which to evaluate the fitted values.}
+\item{facet}{[formula] split the plot into a matrix of panels defined by the variables in the formula.
+Internally it calls \code{ggplot2::facet_wrap} or \code{ggplot2::facet_grid} depending on whether the formula contains a variable on the left hand side.}
+
+\item{scales, labeller}{[character] Passed to \code{ggplot2::facet_wrap}.}
+
+\item{at}{[data.frame] values for the covariates at which to evaluate the fitted values or partial residuals.}
 
 \item{time.var}{[character] x-axis variable for the plot.}
 
 \item{color}{[character] name of the variable in the dataset used to color the curve.}
+
+\item{position}{[character] relative position of the points when colored according to a variable.}
 
 \item{ci}{[logical] should confidence intervals be displayed?}
 
@@ -92,16 +103,21 @@ dL$X1 <- as.factor(dL$X1)
 eCS.lmm <- lmm(Y ~ visit + X1 + X6,
                repetition = ~visit|id, structure = "CS", data = dL, df = FALSE)
 
-plot(eCS.lmm, type = "fit")
-autoplot(eCS.lmm, type = "fit")$plot + facet_wrap(~X1)
-plot(eCS.lmm, type = "qqplot") ## engine.qqplot = "qqtest"
+plot(eCS.lmm, type = "fit", facet =~X1)
+gg <- autoplot(eCS.lmm, type = "fit", facet =~X1)$plot
+gg + coord_cartesian(ylim = c(0,6))
+plot(eCS.lmm, type = "fit", at = data.frame(X6=1), color = "X1")
+plot(eCS.lmm, type = "qqplot")
 plot(eCS.lmm, type = "qqplot", engine.qqplot = "qqtest")
 plot(eCS.lmm, type = "correlation") 
 plot(eCS.lmm, type = "scatterplot") 
 plot(eCS.lmm, type = "scatterplot2") 
-plot(eCS.lmm, type = "partial", type.residual = "visit") 
 plot(eCS.lmm, type = "partial", type.residual = "X1") 
 plot(eCS.lmm, type = "partial", type.residual = "X6") 
+plot(eCS.lmm, type = "partial", type.residual = "visit") 
+plot(eCS.lmm, type = "partial", type.residual = c("(Intercept)","X1","visit"))
+plot(eCS.lmm, type = "partial", type.residual = c("(Intercept)","X1","visit"),
+     color = "X1", facet =~1)
 }
 }
 \seealso{
