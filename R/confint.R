@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jan 29 2024 (13:13) 
+## Last-Updated: mar  4 2024 (12:22) 
 ##           By: Brice Ozenne
-##     Update #: 689
+##     Update #: 702
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -125,7 +125,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     }
 
     ## used to decide on the null hypothesis of k parameters
-    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
+    init <- .init_transform(p = NULL, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
                             x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho)
     
     transform.sigma <- init$transform.sigma
@@ -452,9 +452,9 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, method = NULL, columns 
 
         ## *** method for multiple comparisons adjustment
         if(is.null(method)){
-            if(NROW(iTable$df)==1){
+            if(NROW(iTable$df)==1 || all(is.na(iTable$statistic))){
                 iMethod  <- "none"
-            }else if(df == FALSE || all(abs(iTable$df - round(mean(iTable$df)))<0.1)){
+            }else if(df == FALSE || all(is.infinite(iTable$df)) || all(abs(iTable$df - round(mean(iTable$df)))<0.1)){
                 iMethod <- "single-step"
             }else{
                 iMethod <- "single-step2"
@@ -778,6 +778,13 @@ confint.LRT_lmm <- function(object, parm, level = 0.95, ...){
     message("No confidence interval available for likelihood ratio tests.")
     return(NULL)
 }
+
+## * confint.effect_lmm
+##' @export
+confint.effect_lmm <- function(object, parm, level = 0.95, method = "none", ...){
+    return(confint.Wald_lmm(object, parm, level = 0.95, method = method,  ...))
+}
+
 
 ## * confint.mlmm (documentation)
 ##' @title Confidence Intervals for Multiple Linear Mixed Model.

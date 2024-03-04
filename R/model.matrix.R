@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: jan 29 2024 (12:43) 
+## Last-Updated: mar  4 2024 (15:47) 
 ##           By: Brice Ozenne
-##     Update #: 2950
+##     Update #: 2975
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -35,11 +35,11 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
 
-    ## ** update design matrix with new dataset
+    ## ** update design matrix with new dataset    
     if(!is.null(data)){
 
         data <- as.data.frame(data)
-
+        
         ## *** prepare output
         design <- object$design
         design[setdiff(names(design),c("vcov","param","drop.X"))] <- list(NULL)
@@ -50,11 +50,8 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
         var.strata <- attr(object$strata$var,"original")
 
         ## *** outcome
-        if(!simplify){
-            if(any(object$outcome$var %in% names(data) == FALSE)){
-                stop("Incorrect argument \'data\': missing outcome variable \"",object$outcome$var,"\".\n")
-            }
-            design$Y <- data[[object$outcome$var]]
+        if(!simplify && object$outcome$var %in% names(data)){
+                design$Y <- data[[object$outcome$var]]
         }
 
         ## *** index
@@ -389,6 +386,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
     ## use stats::model.frame to handle splines
     data.mf <- stats::model.frame(stats::update(formula.mean,~.+XXindexXX+XXtimeXX+XXclusterXX+XXstrataXX),data)
     X.mean <- .model.matrix_regularize(formula.mean, data = data.mf, type = "mean", drop.X = drop.X)
+    attr(X.mean,"term.labels") <- setdiff(attr(attr(data.mf,"terms"),"term.labels"),c("XXindexXX","XXtimeXX","XXclusterXX","XXstrataXX"))
     attr(X.mean,"terms") <- attr(data.mf,"terms")
 
     if(NCOL(X.mean)>0){
@@ -914,6 +912,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
 
     return(data)
 }
+
 
 ##----------------------------------------------------------------------
 ### model.matrix.R ends here

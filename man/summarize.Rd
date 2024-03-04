@@ -13,9 +13,9 @@ summarize(
   columns = c("observed", "missing", "pc.missing", "mean", "sd", "min", "q1", "median",
     "q3", "max", "correlation"),
   FUN = NULL,
-  which = NULL,
   skip.reference = TRUE,
   digits = NULL,
+  filter = NULL,
   ...
 )
 }
@@ -51,11 +51,12 @@ When specifying a grouping variable, it will also attempt to count missing rows 
 \item{FUN}{[function] user-defined function for computing summary statistics.
 It should take a vector as an argument and output a named single value or a named vector.}
 
-\item{which}{deprecated, use the argument columns instead.}
-
 \item{skip.reference}{[logical] should the summary statistics for the reference level of categorical variables be omitted?}
 
 \item{digits}{[integer, >=0] the minimum number of significant digits to be used to display the results. Passed to \code{print.data.frame}}
+
+\item{filter}{[character] a regular expression passed to \code{grep} to filter the columns of the dataset.
+Relevant when using \code{.} to indicate all other variables.}
 
 \item{...}{additional arguments passed to argument \code{FUN}.}
 }
@@ -88,10 +89,12 @@ d2[1,"Y2"] <- NA
 summarize(Y1 ~ 1, data = d)
 summarize(Y1 ~ 1, data = d, FUN = quantile, p = c(0.25,0.75))
 summarize(Y1+Y2 ~ X1, data = d)
+summarize(treat ~ 1, data = d)
 summarize(treat ~ 1, skip.reference = FALSE, data = d)
 
 summarize(Y1 ~ X1, data = d2)
 summarize(Y1+Y2 ~ X1, data = d2, na.rm = TRUE)
+summarize(. ~ treat, data = d2, na.rm = TRUE, filter = "Y")
 
 ## long format
 dL <- reshape(d, idvar = "id", direction = "long",
@@ -109,5 +112,6 @@ dL$time3 <- dL$time == 3
 e.S <- summarize(Y ~ time2 + time3 + X1 | id, data = dL, na.rm = TRUE)
 e.S
 attr(e.S, "correlation")
+
 }
 \keyword{utilities}

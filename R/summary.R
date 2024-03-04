@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: feb 13 2024 (16:19) 
+## Last-Updated: mar  4 2024 (15:41) 
 ##           By: Brice Ozenne
-##     Update #: 1347
+##     Update #: 1378
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -691,21 +691,31 @@ summary.LRT_lmm <- function(object, digits = 3, digits.df = 1, digits.p.value = 
 ##' @export
 summary.effect_lmm <- function(object, columns = NULL, print = TRUE, ...){
 
+    ## ** normalize user input
     if("print" %in% names(match.call())==FALSE && all(is.na(object$multivariate$df.num))){
         print <- c(0,0.5)        
     }
-    if(object$args$effect == "aco" && "columns" %in% names(match.call())==FALSE){
-        columns <- c("estimate","se","lower","upper")
-    }
-
-    if(object$args$effect=="aco"){
-        cat("\t\tAverage counterfactual outcome w.r.t \'",object$args$variable,"\' values \n\n", sep = "")
+    if(object$args$effect[[1]][1]=="identity" && "columns" %in% names(match.call())==FALSE){
         object$univariate$p.value <- NULL
-    }else if(object$args$effect=="ate"){
-        cat("\t\tAverage treatment effect with \'",object$args$variable,"\' as the treatment variable \n\n", sep = "")
+        columns <- c("estimate","se","df","lower","upper")
     }
 
-    class(object) <- setdiff(class(object), "effect_lmm")
+    ## ** prepare
+    outcome.txt <- switch(object$args$effect[[1]][2],
+                          "none" = "outcome",
+                          "change" = "change in outcome",
+                          "auc" = "area under the outcome curve",
+                          "auc-b" = "area under the outcome curve above baseline")
+    contrast.txt <- switch(object$args$effect[[1]][1],
+                           "identity" = "Average",
+                           "difference" = "Difference in average")
+
+    ## ** display
+    if(is.null(object$args$variable)){
+        cat("\t\t",contrast.txt," counterfactual ",outcome.txt,"\n\n", sep = "")
+    }else{
+        cat("\t\t",contrast.txt," counterfactual ",outcome.txt,"\n\t\t w.r.t \'",object$args$variable,"\' values \n\n", sep = "")
+    }
     summary.Wald_lmm(object, print = print, columns = columns, ...)
 }
 

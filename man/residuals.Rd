@@ -10,7 +10,7 @@
 \method{residuals}{lmm}(
   object,
   type = "response",
-  var = NULL,
+  variable = NULL,
   at = NULL,
   data = NULL,
   p = NULL,
@@ -30,7 +30,7 @@
 
 \item{type}{[character] type of residual to output: raw residuals (\code{"response"}), Pearson residuals (\code{"pearson"}), normalized residuals (\code{"normalized"}, scaled residual \code{"scaled"}), or partial residuals (\code{"partial"} or \code{"partial-center"}). Can also be \code{"all"} to output all except partial residuals. See detail section.}
 
-\item{var}{[character vector] name of the variable relative to which the partial residuals should be computed.}
+\item{variable}{[character vector] name of the variable relative to which the partial residuals should be computed.}
 
 \item{at}{[data.frame] values for the covariates at which to evaluate the partial residuals.}
 
@@ -74,7 +74,7 @@ The argument \code{type} defines how the residuals are computed:
 }
 where
 \itemize{
-\item \eqn{X=(E,W)} the design matrix. For partial residuals, it is split according to the variable(s) in argument \code{var} (\eqn{E}) and the rest (\eqn{W}).
+\item \eqn{X=(E,W)} the design matrix. For partial residuals, it is split according to the variable(s) in argument \code{variable} (\eqn{E}) and the rest (\eqn{W}).
 \item \eqn{Y} the outcome
 \item \eqn{\hat{\beta}=(\hat{\gamma},\hat{\delta})} the estimated mean coefficients relative to \eqn{X=(E,W)}
 \item \eqn{\hat{\Omega}} the modeled variance-covariance of the residuals and \eqn{\hat{\omega}} its diagonal elements
@@ -93,20 +93,17 @@ dL <- sampleRem(100, n.times = 3, format = "long")
 e.lm <- lmm(Y ~ visit + X1 + X2 + X6, data = dL)
 
 ## partial residuals
-residuals(e.lm, type = "partial", var = "X6")
-## residuals(e.lm) + dL$X6 * coef(e.lm)["X6"]
-e.reslm <- residuals(e.lm, type = "partial", var = "X6", keep.data = TRUE, simplify = FALSE)
+pRes <- residuals(e.lm, type = "partial", variable = "X6")
+range(residuals(e.lm) + dL$X6 * coef(e.lm)["X6"] - pRes)
+e.reslm <- residuals(e.lm, type = "partial", variable = "X6", keep.data = TRUE, simplify = FALSE)
 plot(e.reslm)
 
 ## partial residuals with specific reference
-type <- "partial"
-attr(type,"reference") <- data.frame(visit=factor(2,1:3),X2=0,X6=3)
-residuals(e.lm, type = type, var = "X1")
-## residuals(e.lm) + dL$X1 * coef(e.lm)["X1"] + coef(e.lm)["visit2"]
+residuals(e.lm, type = "partial", variable = "X1",
+          at = data.frame(visit=factor(2,1:3),X2=0,X6=3))
 
 ## partial residuals with centered covariates
-residuals(e.lm, type = "partial-center", var = "X1")
-## residuals(e.lm) + (dL$X1-mean(dL$X1)) * coef(e.lm)["X1"]
+residuals(e.lm, type = "partial-center", variable = "X1")
 
 #### Linear Mixed Model ####
 eUN.lmm <- lmm(Y ~ visit + X1 + X2 + X5 + X6,
@@ -126,7 +123,7 @@ residuals(eUN.lmm, type = "all")
 residuals(eUN.lmm, type = "all", keep.data = TRUE)
 
 ## partial residuals
-residuals(eUN.lmm, type = "partial", var = c("(Intercept)","X6"))
-residuals(eUN.lmm, type = "partial", var = c("X6"))
+residuals(eUN.lmm, type = "partial", variable = c("(Intercept)","X6"))
+residuals(eUN.lmm, type = "partial", variable = c("X6"))
 }
 \keyword{methods}

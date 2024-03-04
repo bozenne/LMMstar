@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: nov  8 2023 (16:04) 
+## Last-Updated: feb 29 2024 (18:57) 
 ##           By: Brice Ozenne
-##     Update #: 848
+##     Update #: 860
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -124,7 +124,10 @@
                                    index.clusterStrata = index.clusterStrata, U.strata = U.strata)
 
     ## rename patterns (to add possible extra covariates)
-    structure$Upattern$group <- .namePatternCov(Upattern = structure$Upattern, structure = structure, sep = sep)
+    Upattern.group <- .namePatternCov(Upattern = structure$Upattern, structure = structure, sep = sep)
+    if(length(Upattern.group)==NROW(structure$Upattern)){
+        structure$Upattern$group <- Upattern.group
+    }
 
     ## export
     return(structure)
@@ -315,7 +318,10 @@
                                    index.clusterStrata = index.clusterStrata, U.strata = U.strata)
 
     ## rename patterns (to add possible extra covariates)
-    structure$Upattern$nameCov <- .namePatternCov(Upattern = structure$Upattern, structure = structure, sep = attr(structure$Upattern,"sep"))
+    Upattern.group <- .namePatternCov(Upattern = structure$Upattern, structure = structure, sep = attr(structure$Upattern,"sep"))
+    if(length(Upattern.group)==NROW(structure$Upattern)){
+        structure$Upattern$group <- Upattern.group
+    }
 
     ## export
     return(structure)
@@ -421,7 +427,7 @@
     }
 
     ## ** correlation
-    if(any(!is.na(Upattern$var)) && NROW(structure$cor$lp2X)){
+    if(any(!is.na(Upattern$var)) && any(!is.na(Upattern$cor)) && NROW(structure$cor$lp2X)>0){
         variable.correlation <- setdiff(unique(stats::na.omit(c(structure$name$strata,structure$name$cor[[1]]))),c(structure$name$time,attr(structure$name$time,"original")))
         if(length(variable.correlation)>0){
             out.cor <- sapply(structure$cor$pattern2lp, function(iLp){ ## iLp <- structure$cor$pattern2lp[[1]]

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: feb 15 2024 (15:53) 
+## Last-Updated: mar  4 2024 (15:59) 
 ##           By: Brice Ozenne
-##     Update #: 881
+##     Update #: 1390
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -23,22 +23,30 @@
 ##' @param newdata [data.frame] the covariate values for each cluster.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the predictions. Only relevant if differs from the fitted values.
 ##' @param level [numeric,0-1] the confidence level of the confidence intervals.
-##' @param se [character] Type of uncertainty to be accounted for: estimation of the regression parameters (\code{"estimation"}), residual variance (\code{"residual"}), or both (\code{"total"}).
-##' Can also be \code{NULL} to not compute standard error, p-values, and confidence intervals.
-##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the predicted mean. Otherwise a normal distribution is used.
-##' @param type [character] Should prediction be made conditional on the covariates only (\code{"static"}) or also on outcome values at other timepoints (\code{"dynamic"}).
-##' Can also output the model term (\code{"terms"}, similarly to \code{stats::predict.lm}.
-##' @param format [character] Should the prediction be output
+##' @param se [logical] should the standard error and confidence intervals for the predictions be output?
+##' It can also be a logical vector of length 2 to indicate the type of uncertainty to be accounted for: estimation and residual variance.
+##' In particular \code{c(TRUE,TRUE)} provides prediction intervals.
+##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
+##' Not feasible for dynamic predictions when using REML.
+##' @param vcov [logical] should the variance-covariance matrix of the predictions be output as an attribute.
+##' @param df [logical] should a Student's t-distribution be used to model the distribution of the predicted mean. Otherwise a normal distribution is used.
+##' @param type [character] evaluate the expected outcome conditional on covariates only (\code{"static"}),
+##' the contribution of each variable to this 'static' prediction (\code{"terms"}),
+##' or the expected outcome conditional covariates and outcome values at other timepoints (\code{"dynamic"}).
+##' Based on the observed outcome and the 'dynamic' prediction for the missing outcome,
+##' can also evaluate the change from first repetitition (\code{"change"}), area under the curve (\code{"auc"}), and the area under the curve minus baseline (\code{"auc-b"}).
+##' @param format [character] should the prediction be output
 ##' in a matrix format with clusters in row and timepoints in columns (\code{"wide"}),
 ##' or in a data.frame/vector with as many rows as observations (\code{"long"})
-##' @param keep.newdata [logical] Should the dataset relative to which the predicted means are evaluated be output along side the predicted values?
+##' @param keep.newdata [logical] should the dataset relative to which the predicted means are evaluated be output along side the predicted values?
 ##' Only possible in the long format.
-##' @param simplify [logical] Simplify the data format (vector instead of data.frame) and column names (no mention of the time variable) when possible.
+##' @param export.vcov [logical] should the variance-covariance matrix of the prediction error be outcome as an attribute (\code{"vcov"})?
+##' @param simplify [logical] simplify the data format (vector instead of data.frame) and column names (no mention of the time variable) when possible.
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @details Static prediction are made using the linear predictor \eqn{X\beta} while dynamic prediction uses the conditional normal distribution of the missing outcome given the observed outcomes. So if outcome 1 is observed but not 2, prediction for outcome 2 is obtain by \eqn{X_2\beta + \sigma_{21}\sigma^{-1}_{22}(Y_1-X_1\beta)}. In that case, the uncertainty is computed as the sum of the conditional variance \eqn{\sigma_{22}-\sigma_{21}\sigma^{-1}_{22}\sigma_{12}} plus the uncertainty about the estimated conditional mean (obtained via delta method using numerical derivatives).
 ##'
-##' The model terms are computing by centering the design matrix around the mean value of the covariates used to fit the model.
+##' The model terms are computing similarly to \code{stats::predict.lm}, by centering the design matrix around the mean value of the covariates used to fit the model.
 ##' Then the centered design matrix is multiplied by the mean coefficients and columns assigned to the same variable (e.g. three level factor variable) are summed together.
 ##' 
 ##' @return When \code{format="long"}, a data.frame containing the following columns:\itemize{
@@ -79,8 +87,9 @@
 
 ## * predict.lmm (code)
 ##' @export
-predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.null(object$df), type = "static",
-                        level = 0.95, keep.newdata = FALSE, format = "long", simplify = TRUE, ...){
+predict.lmm <- function(object, newdata, type = "static", p = NULL,
+                        se = NULL, robust = FALSE, df = NULL, 
+                        level = 0.95, keep.newdata = NULL, format = "long", export.vcov = FALSE, simplify = TRUE, ...){
     
     ## ** extract from object
     mycall <- match.call()
@@ -93,15 +102,39 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
 
     table.param <- object$design$param
     name.mu <- table.param$name[table.param$type=="mu"]
+    index.vcov <- which(table.param$type %in% c("sigma","k","rho"))
     name.theta <- table.param$name
+    n.theta <- length(name.theta)
+
 
     ## ** normalize user imput
-    dots <- list(...)    
+    dots <- list(...)
+
+    ## hidden arguments
+    if("transform.sigma" %in% names(dots)){
+        transform.sigma <- dots$transform.sigma
+        dots$transform.sigma <- NULL
+    }else{
+        transform.sigma <- NULL
+    }
+    if("transform.k" %in% names(dots)){
+        transform.k <- dots$transform.k
+        dots$transform.k <- NULL
+    }else{
+        transform.k <- NULL
+    }
+    if("transform.rho" %in% names(dots)){
+        transform.rho <- dots$transform.rho
+        dots$transform.rho <- NULL
+    }else{
+        transform.rho <- NULL
+    }
+
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
     ## type of prediction
-    type.prediction <- match.arg(type, c("static0","static","terms","dynamic")) ## static0: no intercept
+    type.prediction <- match.arg(type, c("static0","static","terms","dynamic","change","auc","auc-b")) ## static0: no intercept
     if((type.prediction == "dynamic") && ("rho" %in% table.param$type == FALSE)){
         type.prediction <- "static"
         message("Move to static prediction as there is no correlation parameter in the model. \n")
@@ -111,40 +144,50 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
         keep.intercept <- FALSE
     }else{
         keep.intercept <- TRUE
-    }
-
-    ## standard error
-    if(identical(se,FALSE)){
-        se <- NULL
-    }else if(!is.null(se)){
-        if(identical(se,TRUE)){
-            stop("Argument \'se\' should not be TRUE but one of \"estimation\", \"residual\", or \"total\".\n",
-                 "Typically \"estimation\" will account for uncertainty about the fitted mean, \n",
-                 "While \"total\" will reflect the prediction error. \n")
+        n.time <- object$time$n
+        if(n.time==1 && type %in% c("change","auc","auc-b")){
+            stop("Cannot evaluate ",type," when there is a single timepoint. \n",
+                 "Considering setting argument \'type\' to \"static\" or specifying the argument \'repetition\' when calling lmm. \n")
         }
-        se <- match.arg(se, c("estimation","residual","total"))
+        if(type.prediction == "dynamic"){
+            M.contrast <- diag(1, n.time, n.time)
+            dimnames(M.contrast) <- list(U.time, U.time)
+        }else if(type.prediction == "change"){
+            M.contrast <- matrix(c(-1,rep(0,n.time-1)), byrow = TRUE, nrow = n.time, ncol = n.time) + diag(1, n.time, n.time)
+            dimnames(M.contrast) <- list(U.time, U.time)
+        }else if(type.prediction %in% c("auc","auc-b")){
+            time.num <- as.numeric(U.time)
+            dtime.num <- diff(c(utils::head(time.num,1),time.num))/2 + diff(c(time.num,utils::tail(time.num,1)))/2
+            if(type.prediction == "auc-b"){
+                dtime.num[1] <- dtime.num[1] - sum(dtime.num)
+            }
+            M.contrast <- matrix(dtime.num, byrow = TRUE, nrow = n.time, ncol = n.time)
+            dimnames(M.contrast) <- list(U.time, U.time)
+            if(any(is.na(time.num))){
+                stop("Cannot evaluate the area under the curve of the outcome. \n",
+                     "When calling lmm, argument \'repetition\'(=~time|cluster) must contain a numeric time variable. \n",
+                     "Or a factor variable whose levels can be converted as numeric")
+            }
+            if(is.unsorted(time.num)){
+                warning("The levels of the time variable do not correspond to numeric values in increasing order. \n",
+                        "Can be an issue when evaluating the area under the curve.")
+            }
+        }                
     }
-    if(!is.null(se)){
-        factor.estimation <- se %in% c("estimation","total")
-    }else{
-        factor.estimation <- FALSE
-    }
-    if(!is.null(se)){
-        factor.residual <- se %in% c("residual","total")
-    }else{
-        factor.residual <- FALSE
-    }
-
+       
     ## dataset
     if(is.null(newdata)){
         index.na <- object$index.na
         newdata.index.cluster <- attr(object$design$index.cluster,"vectorwise")
-        newdata.index.time <- attr(object$design$index.clusterTime,"vectorwise")                    
+        newdata.index.time <- attr(object$design$index.clusterTime,"vectorwise")
+        if(is.null(keep.newdata)){
+            keep.newdata <- FALSE
+        }
     }else{
         index.na <- NULL
 
         if(is.matrix(newdata)){
-            if(type == "dynamic"){
+            if(type %in% c("dynamic","change","auc","auc-b")){
                 stop("Argument \'newdata\' cannot be a matrix when asking for dynamic predictions. \n",
                      "It should be a data.frame. \n")
             }
@@ -155,29 +198,17 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
             if(keep.newdata == TRUE){
                 stop("Argument \'keep.newdata\' should be FALSE when argument \'newdata\' is a matrix. \n")
             }
-            if(!is.null(se) && se != "estimation"){
-                stop("Argument \'se\' should be \"estimation\" or NULL when argument \'newdata\' is a matrix. \n")
+            if(length(se)==2 && se[2]>0){
+                stop("Argument \'se\' should be have length 1 or its second element should be FALSE when argument \'newdata\' is a matrix. \n",
+                     "(cannot associate observation to the repetition structure with matrix input - consider using data.frame) \n")
+            }
+            if(is.null(keep.newdata)){
+                keep.newdata <- FALSE
             }
             ## used by residuals for type = partial-center
-        }else if(identical(newdata,"unique")){
-            if(type.prediction %in% c("static","terms")){
-                ## reorder by cluster and time
-                data.index.cluster <- attr(object$design$index.cluster,"vectorwise")
-                data.index.time <- attr(object$design$index.clusterTime,"vectorwise")                    
-                vec.reorder <- order(data.index.cluster, data.index.time)
-                data.reorder <- object$data[vec.reorder, attr(object$design$mean,"variable"),drop=FALSE]
-                ## extract unique mean values
-                newdata.index.obs <- which(!duplicated(data.reorder))
-                newdata.index.cluster <- attr(object$design$index.cluster,"vectorwise")[vec.reorder][newdata.index.obs]
-                newdata.index.time <- attr(object$design$index.clusterTime,"vectorwise")[vec.reorder][newdata.index.obs]                    
-                newdata <- data.reorder[newdata.index.obs,,drop=FALSE]
-                rownames(newdata) <- NULL
-            }else{
-                stop("Argument \'type\' cannot be ",type.prediction," when argument \'newdata\' is set to \"unique\". \n",
-                     "Should be either \"static\" or \"terms\". \n")
-            }
         }else{
-            if("dynamic" %in% type.prediction == FALSE && (!is.null(se) && se != "estimation") && name.cluster %in% names(newdata) == FALSE ){
+            newdata <- as.data.frame(newdata)
+            if(type.prediction %in% c("dynamic","change","auc","auc-b") == FALSE && (length(se)==2 && se[2] && export.vcov==FALSE) && name.cluster %in% names(newdata) == FALSE ){
                 ## add cluster variable if missing and no duplicated time
                 if(any(!is.na(name.time)) && all(name.time %in% names(newdata)) && all(duplicated(newdata[name.time])==FALSE)){
                     newdata[[name.cluster]] <- 1
@@ -185,32 +216,68 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
                     stop("Incorrect argument 'newdata': missing cluster variable \"",name.cluster,"\". \n")
                 }
             }
-            
-            if(format == "wide"){
-                newdata.design <- model.matrix(object, data = newdata, effects = "index")
-                newdata.index.cluster <- attr(newdata.design$index.cluster, "vectorwise")
-                newdata.index.time <- attr(newdata.design$index.clusterTime, "vectorwise")        
+            if(is.null(keep.newdata)){
+                keep.newdata <- FALSE
             }
+        }
+        if(format == "wide"){            
+            newdata.design <- model.matrix(object, data = newdata, effects = "index")
+            newdata.index.cluster <- attr(newdata.design$index.cluster, "vectorwise")
+            newdata.index.time <- attr(newdata.design$index.clusterTime, "vectorwise")        
+        }
+    }
+
+    ## standard error
+    if(is.null(se)){
+        se <- c((!simplify || keep.newdata) && !(format == "wide"),FALSE)
+    }else{
+        if(!is.logical(se) & !is.numeric(se)){
+            stop("Argument \'se\' should be TRUE or FALSE, or a logical vector of length 2. \n")
+        }
+        if(length(se)==1){
+            se <- c(se,FALSE)
+        }else if(length(se)!=2){
+            stop("Argument \'se\' should have length 1 or 2. \n")
+        }
+    }
+    init <- .init_transform(p = p, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
+                            x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho)
+    transform.sigma <- init$transform.sigma
+    transform.k <- init$transform.k
+    transform.rho <- init$transform.rho
+    test.notransform <- init$test.notransform
+
+    ## degrees of freedom
+    if(is.null(df)){
+        df <- !is.null(object$df) & se[1]
+    }else if(!is.logical(df) & !is.numeric(df)){
+        stop("Argument \'df\' should be TRUE or FALSE. \n")
+    }else{
+        df <- as.logical(df)
+        if(se[1]==FALSE && df){
+            message("Argument \'df\' ignored when the first element of argument \'se\' is FALSE. \n",
+                    "(can only evaluate degrees of freedom relative to the estimation error)\n")
+            df <- FALSE
         }
     }
         
     ## check format
     format[] <- match.arg(format, c("wide","long"))  ## use 'format[] <-' instead of 'format <-' to keep the name that will be transferd to .reformat(
-    if(keep.newdata && format == "wide"){
-        stop("Argument \'keep.newdata\' must be FALSE when using the wide format. \n")
+    if(keep.newdata && format == "wide" && is.null(attr(keep.newdata, "var"))){
+        attr(keep.newdata, "var") <- .baselineVar.lmm(e.lmm)
     }    
-    if(format == "wide" && (df==TRUE||!is.null(se))){
+    if(format == "wide" && (df==TRUE||sum(se)>0)){
         if("df" %in% names(mycall) || "se" %in% names(mycall)){
             message("When using the wide format arguments \'se\' and \'df\' are ignored. \n",
                     "(i.e. set to NULL and FALSE, respectively). \n")
         }
         df <- FALSE
-        se <- NULL
+        se <- c(FALSE, FALSE)
     }
 
     ## impute cluster when missing (if static) and unambiguous, i.e. no repeated times (id dynamic)
     if(inherits(newdata,"data.frame") && !is.na(name.cluster)){
-        if(type.prediction == "dynamic" && is.null(newdata[[name.cluster]]) && all(!is.na(name.time)) && all(name.time %in% names(newdata))){
+        if(type.prediction %in% c("dynamic","change","auc","auc-b") && is.null(newdata[[name.cluster]]) && all(!is.na(name.time)) && all(name.time %in% names(newdata))){
             if(any(duplicated(newdata[,name.time, drop=FALSE]))){
                 stop("Duplicated time values found in column ",name.time,".\n",
                      "Consider specifying the cluster variable in argument \'newdata\'. \n")
@@ -223,7 +290,7 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
     }
 
     ## check data
-    if(type.prediction == "dynamic"){
+    if(type.prediction %in% c("dynamic","change","auc","auc-b")){
 
         if(!is.null(newdata) && name.Y %in% names(newdata) == FALSE){
             stop("The outcome column \"",name.Y,"\" in argument \'newdata\' is missing and necessary when doing dynamic predictions. \n")
@@ -254,7 +321,7 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
 
     }else if(type.prediction == "static"){
         
-        if(!is.null(se) && se %in% c("residual","total") && all(!is.na(name.time)) && any(name.time %in% names(newdata) == FALSE)){
+        if(se[2] && all(!is.na(name.time)) && any(name.time %in% names(newdata) == FALSE)){
             stop("The time column \"",paste(name.time[name.time %in% names(newdata) == FALSE], collapse = "\", \""),"\" in missing from argument \'newdata\'. \n",
                  "It is necessary for uncertainty calculation involving the residual variance. \n")
         }
@@ -275,20 +342,57 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
     ## ** parameters
     if(is.null(p)){
         mu <- coef(object, effects = "mean")
-        if(type.prediction == "dynamic"){
-            theta <- coef(object, effects = "all")
-        }
-        if(!is.null(se) || type.prediction == "dynamic"){
-            vcov.mu <- vcov(object, effects = "mean")
-            vcov.theta <- vcov(object, effects = "all")
-        }
     }else{
-        theta <- p
         mu <- p[name.mu]
-        if(!is.null(se) || type.prediction == "dynamic"){
-            vcov.theta <- vcov(object, p = p, effects = "all")
-            vcov.mu <- vcov(object, p = p, effects = "mean")
+    }
+
+    if(se[2] || type.prediction %in% c("dynamic","change","auc","auc-b")){
+        ## estimate and transformation
+        if(is.null(p)){
+            theta.trans <- coef(object, effects = "all", transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
+            theta <- object$p
+            if(test.notransform){
+                reparametrize <- object$reparametrize
+            }else{
+                reparametrize <- .reparametrize(p = theta[index.vcov], type = table.param$type[index.vcov], level = table.param$level[index.vcov], 
+                                                sigma = table.param$sigma[index.vcov], k.x = table.param$sigma[index.vcov], k.y = table.param$sigma[index.vcov],
+                                                Jacobian = TRUE, dJacobian = FALSE, inverse = FALSE, 
+                                                transform.sigma = transform.sigma,
+                                                transform.k = transform.k,
+                                                transform.rho = transform.rho,
+                                                transform.names = FALSE)
+            }
+        }else{            
+            theta.trans <- p
+            theta <- c(mu,.reparametrize(p = theta.trans[index.vcov], type = table.param$type[index.vcov], level = table.param$level[index.vcov], 
+                                         sigma = table.param$sigma[index.vcov], k.x = table.param$sigma[index.vcov], k.y = table.param$sigma[index.vcov],
+                                         Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE, 
+                                         transform.sigma = transform.sigma,
+                                         transform.k = transform.k,
+                                         transform.rho = transform.rho,
+                                         transform.names = FALSE)$p)
+            reparametrize <- .reparametrize(p = theta[index.vcov], type = table.param$type[index.vcov], level = table.param$level[index.vcov], 
+                                            sigma = table.param$sigma[index.vcov], k.x = table.param$sigma[index.vcov], k.y = table.param$sigma[index.vcov],
+                                            Jacobian = TRUE, dJacobian = FALSE, inverse = FALSE, 
+                                            transform.sigma = transform.sigma,
+                                            transform.k = transform.k,
+                                            transform.rho = transform.rho,
+                                            transform.names = FALSE)
         }
+    }
+
+    ## vcov of the estimates
+    if(se[1]>0 && type.prediction == "static"){
+        vcov.mu <- vcov(object, effects = "mean", robust = robust)
+    }
+    if(df || se[2]>0 || type.prediction %in% c("dynamic","change","auc","auc-b")){
+        vcov.theta <- vcov(object, effects = "all", robust = robust, df = 2*df, ## 2* to extract dVcov and no only df
+                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
+        if(df){
+            dVcov.theta <- attr(vcov.theta,"dVcov")
+            attr(vcov.theta, "df") <- NULL
+            attr(vcov.theta, "dVcov") <- NULL
+        }        
     }
 
     ## ** design matrix
@@ -308,15 +412,15 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
         Xc <- sweep(X, FUN = "-", MARGIN = 2, STATS = Xmean)
         Xcmu <- sweep(Xc, FUN = "*", MARGIN = 2,  STATS = mu)
 
-            index.n0 <- which(attr(object.mean,"assign")!=0)
-            if(length(index.n0)==0){
-                Xterm <- matrix(nrow = NROW(newdata), ncol = 0)
-            }else{
-                Xterm <- do.call(cbind,tapply(index.n0,attr(object.mean,"assign")[index.n0],function(iCol){
-                    list(rowSums(Xcmu[,iCol,drop=FALSE]))
-                }))
-                colnames(Xterm) <- attr(object.mean,"variable")                
-            }
+        index.n0 <- which(attr(object.mean,"assign")!=0)
+        if(length(index.n0)==0){
+            Xterm <- matrix(nrow = NROW(newdata), ncol = 0)
+        }else{
+            Xterm <- do.call(cbind,tapply(index.n0,attr(object.mean,"assign")[index.n0],function(iCol){
+                list(rowSums(Xcmu[,iCol,drop=FALSE]))
+            }))
+            colnames(Xterm) <- attr(object.mean,"term.labels")
+        }
 
         if(any(attr(object.mean,"assign")==0)){
             attr(Xterm, "constant") <- sum(Xmean*mu)
@@ -325,145 +429,231 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
     }
 
     ## ** identify variance patterns
-    if(type.prediction == "dynamic" || factor.residual){
-        Omega <- stats::sigma(object, cluster = newdata, simplify = FALSE)
-        design <- attr(Omega,"design")
-        attr(Omega,"design") <- NULL
-        index.cluster <- design$index.cluster
-        index.clusterTime <- design$index.clusterTime
+    if(type.prediction %in% c("dynamic","change","auc","auc-b") || se[2]){
+
+        newdesign <- stats::model.matrix(object, data = newdata, effect = "variance", simplify = FALSE)
+        index.cluster <- newdesign$index.cluster
+        index.clusterTime <- newdesign$index.clusterTime
         n.cluster <- length(index.cluster)
 
+        Omega <- .calc_Omega(newdesign$vcov, param = theta, keep.interim = TRUE)
+        if(se[1]){
+            dOmega <- .calc_dOmega(newdesign$vcov, param = theta, Omega = Omega,
+                                   Jacobian = reparametrize$Jacobian,
+                                   transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)            
+        }
+        
         if(!is.na(name.cluster) && length(unique(newdata[[name.cluster]]))!=n.cluster){
             stop("Something went wrong when extracting the residual variance-covariance matrices from newdata. \n")
         }
 
     }
 
-    ## ** compute predictions
+    ## ** prediction with uncertainty
+    if(se[1]>0 & (type.prediction %in% c("dynamic","change","auc","auc-b") | !simplify | df) ){
+        grad.var <- matrix(0, nrow = n.obs, ncol = n.theta,
+                           dimnames = list(NULL, name.theta))
+    }else{
+        grad.var <- NULL
+    }
+        
+
     if(type.prediction == "static"){
         ## compute predictions
         prediction <- (X %*% mu)[,1]
+
         ## compute uncertainty about the predictions
-        ## prediction.se <- sqrt(diag(X %*% vcov.mu %*% t(X)))
-        if(!is.null(se)){
+        if(sum(se)>0){
             prediction.var <- rep(0, times = n.obs)
-            if(factor.estimation){
-                prediction.var <- prediction.var + rowSums((X %*% vcov.mu) * X)
+            if(export.vcov){
+                attr(prediction.var,"vcov") <- matrix(0, n.obs, n.obs)
             }
-            if(factor.residual){
-                for(iCluster in 1:n.cluster){ ## iCluster <- 1
-                    prediction.var[index.cluster[[iCluster]]] <- prediction.var[index.cluster[[iCluster]]] + diag(Omega[[iCluster]])
+            if(se[1]){ ## same as diag(X %*% vcov.mu %*% t(X))
+                prediction.var <- prediction.var + rowSums((X %*% vcov.mu) * X)
+                if(!simplify || df){
+                    grad.var[,name.mu] <- X
                 }
-            }            
+                if(export.vcov){
+                    attr(prediction.var,"vcov") <- attr(prediction.var,"vcov") + X %*% vcov.mu %*% t(X)
+                }
+            }
+            if(se[2]){
+                prediction.var[unlist(index.cluster)] <- prediction.var[unlist(index.cluster)] + unlist(lapply(Omega,diag))
+                if(export.vcov){
+                    for(iC in 1:n.cluster){ 
+                        attr(prediction.var,"vcov")[index.cluster[[iC]],index.cluster[[iC]]] <- attr(prediction.var,"vcov")[index.cluster[[iC]],index.cluster[[iC]]] + Omega[[iC]]
+                    }
+                }
+            }
+                        
         }else{
             prediction.var <- rep(NA, times = n.obs)
         }
-    }else if(type.prediction == "dynamic"){
+
+        
+    }else if(type.prediction %in% c("dynamic","change","auc","auc-b")){
 
         ## prepare
         prediction <- rep(NA, times = n.obs)
         prediction.var <- rep(NA, times = n.obs)
-        
+        if(se[1]>0){
+            grad.var <- matrix(0, nrow = n.obs, ncol = n.theta,
+                               dimnames = list(NULL, name.theta))
+        }
+        if(export.vcov){
+            attr(prediction.var,"vcov") <- matrix(0, n.obs, n.obs) ## ok when factor.residual but should be NA otherwise where no inputation is used. This is done below 
+
+        }
+        iX <- matrix(0, nrow = n.time, ncol = length(mu), dimnames = list(NULL, name.mu))
+        iY <- stats::setNames(rep(0, n.time), U.time)
+                
         for(iC in 1:n.cluster){ ## iC <- 1
 
-            iNewdata <- newdata[index.cluster[[iC]],,drop=FALSE] ## subset
-            iIndex.con <- which(!is.na(iNewdata[[name.Y]]))
-            iPos.con <- index.cluster[[iC]][iIndex.con]
-            iLevels.con <- U.time[index.clusterTime[[iC]][iIndex.con]]
-            
-            iIndex.pred <- which(is.na(iNewdata[[name.Y]])) ## position in the individal specific dataset
-            iPos.pred <- index.cluster[[iC]][iIndex.pred]
-            iLevels.pred <- U.time[index.clusterTime[[iC]][iIndex.pred]]
+            iNewdata <- newdata[index.cluster[[iC]],,drop=FALSE] ## subset, making sure that time are in increasing order via index.cluster
+            iOmega <- Omega[[newdesign$vcov$pattern[iC]]]
 
+            iIndex.con <- which(!is.na(iNewdata[[name.Y]])) ## position of the condition set in the specific dataset
+            iTime.con <- index.clusterTime[[iC]][iIndex.con] ## timepoints of the condition set in the specific dataset
+            iPos.con <- index.cluster[[iC]][iIndex.con] ## position of the condition set in the original dataset
             iX.con <- X[iPos.con,,drop=FALSE]
+            
+            iIndex.pred <- which(is.na(iNewdata[[name.Y]])) ## position of the predictions required by the user in the specific dataset
+            iTime.pred <- index.clusterTime[[iC]][iIndex.pred] ## timepoints of the predictions required by the user in the specific dataset
+            iPos.pred <- index.cluster[[iC]][iIndex.pred]## position of the predictions required by the user in the original dataset
             iX.pred <- X[iPos.pred,,drop=FALSE]
-            iOmega.pred <- Omega[[iC]]
 
-            if(length(iPos.pred)>0 && length(iPos.con)==0){ ## static prediction
-
-                prediction[iPos.pred] <- iX.pred %*% mu
-                ## iPred.var <- diag(iX.pred %*% vcov.mu %*% t(iX.pred)) + diag(iOmega.pred)
-                if(factor.estimation || factor.residual){
-                    prediction.var[iPos.pred] <- 0
+            if(type.prediction == "dynamic"){
+                iIndex.contrast <- iIndex.pred
+                iPos.contrast <- iPos.pred
+            }else if(type.prediction %in% c("change","auc","auc-b")){
+                iIndex.contrast <- 1:length(index.cluster[[iC]])
+                iPos.contrast <- index.cluster[[iC]]
+            }
+            iM.contrast <- M.contrast[index.clusterTime[[iC]][iIndex.contrast],,drop=FALSE]
+            
+            if(type.prediction == "change"){
+                if(1 %in% iIndex.pred){
+                    iIndex.varcontrast <- iIndex.contrast[-1] ## do not store uncertainty relative to change between baseline and baseline which is precisely 0
+                    iPos.varcontrast <- iPos.contrast[-1]
+                }else{
+                    iIndex.varcontrast <- iIndex.pred
+                    iPos.varcontrast <- iPos.pred
                 }
-                if(factor.estimation){
-                    prediction.var[iPos.pred] <- prediction.var[iPos.pred] + rowSums((iX.pred %*% vcov.mu) * iX.pred)
-                }
-                if(factor.residual){
-                    prediction.var[iPos.pred] <- prediction.var[iPos.pred] + diag(iOmega.pred)
+            }else if(sum(se)>0){
+                iIndex.varcontrast <- iIndex.contrast
+                iPos.varcontrast <- iPos.contrast
+            }
+            if(sum(se)>0){
+                ## if not all necessary timepoint will be set to NA at the end
+                iM.varcontrast <- M.contrast[index.clusterTime[[iC]][iIndex.varcontrast],index.clusterTime[[iC]],drop=FALSE]
+            }
+            
+            if(length(iPos.con)>0 && length(iPos.pred)==0 && type.prediction %in% c("change","auc","auc-b")){ ## no prediction but contrast observations
+                ##-- compute predictions
+                prediction[iPos.contrast] <- iM.contrast %*% iNewdata[[name.Y]]
+
+            }else if(length(iPos.pred)>0 && length(iPos.con)==0){ ## static prediction
+
+                ##-- compute predictions (all observations)
+                ## Here we use that iIndex.pred = index.cluster[[iC]] since length(iIndex.con)=0
+                ## so iX = iX.pred and prediction[iPos.pred] is prediction[index.cluster[[iC]]]
+                iX[index.clusterTime[[iC]],] <- iX.pred
+                iX[-index.clusterTime[[iC]],] <- 0  ## make sure no confusion between individuals
+                prediction[iPos.pred] <- iM.contrast %*% iX %*% mu
+                
+                ##-- compute uncertainty about the predictions (all observations except for the baseline when evaluating change - no uncertainty)                
+                if(se[1]){
+                    grad.var[iPos.varcontrast,name.mu] <- iM.varcontrast %*% iX.pred
                 }
 
-            }else if(length(iPos.pred)>0){ ## dynamic prediction
-                iOmegaM1.con <- solve(iOmega.pred[iLevels.con,iLevels.con,drop=FALSE])
-                iOmega.predcon <- iOmega.pred[iLevels.pred,iLevels.con,drop=FALSE]
-                iOmega.conpred <- iOmega.pred[iLevels.con,iLevels.pred,drop=FALSE]
-
-                ## extract current outcome
-                iY <- iNewdata[iIndex.con,name.Y]
-                ## compute normalized residuals
-                iResiduals <- iOmegaM1.con %*% (iY - iX.con %*% mu)
-                ## deduce prediction
-                prediction[iPos.pred] <- iX.pred %*% mu + iOmega.predcon %*% iResiduals
-
-                if(factor.estimation || factor.residual){
-                    prediction.var[iPos.pred] <- 0
-                }
-                if(factor.estimation){
-                    iPattern <- attr(Omega,"pattern")[iC]
-                    iDimnames <- dimnames(Omega[[iC]])
-                    calcPred <- function(x){ ## x <- theta
-                        ## OO <- stats::sigma(object, p = x, cluster = iNewdata, simplify = TRUE)
-                        OO <- .calc_Omega(design$vcov, param = x, keep.interim = FALSE)[[iPattern]]
-                        dimnames(OO) <- iDimnames
-                        rr <- solve(OO[iLevels.con,iLevels.con,drop=FALSE]) %*% (iY - iX.con %*% x[name.mu])
-                        pp <- iX.pred %*% x[name.mu] + OO[iLevels.pred,iLevels.con,drop=FALSE] %*% rr
-                        return(pp)
+                if(se[2]){
+                    prediction.var[iPos.varcontrast] <- rowSums((iM.varcontrast %*% iOmega)*iM.varcontrast)
+                    if(export.vcov){
+                        attr(prediction.var,"vcov")[iPos.varcontrast,iPos.varcontrast] <- iM.varcontrast %*% iOmega %*% t(iM.varcontrast)
                     }
-                    ## calcPred(theta)
-                    iGrad <- numDeriv::jacobian(x = theta, func = calcPred, method = options$method.numDeriv)
-                    ## colnames(iGrad) <- names(name.theta)
-                    prediction.var[iPos.pred] <- prediction.var[iPos.pred] + rowSums((iGrad %*% vcov.theta)*iGrad)
+                }else if(se[1] || type.prediction=="change"){
+                    prediction.var[iPos.varcontrast] <- 0
                 }
-                if(factor.residual){
-                    ## iOmega.pred[2,2]*(1-attr(iOmega.pred,"cor")[1,2]^2)
-                    prediction.var[iPos.pred] <- prediction.var[iPos.pred] + diag(iOmega.pred[iLevels.pred,iLevels.pred,drop=FALSE] - iOmega.predcon %*% iOmegaM1.con %*% iOmega.conpred)
+                
+            }else if(length(iPos.pred)>0){ ## dynamic prediction
+
+                iY[index.clusterTime[[iC]]] <- iNewdata[[name.Y]]
+                iY[-index.clusterTime[[iC]]] <- 0 ## make sure no confusion between individuals
+
+                iY.con <- iY[iIndex.con]
+                iOmegaM1.con <- solve(iOmega[iIndex.con,iIndex.con,drop=FALSE])
+                iResiduals.norm <- iOmegaM1.con %*% (iY.con - iX.con %*% mu)
+                iOmega.predcon <- iOmega[iIndex.pred,iIndex.con,drop=FALSE]
+
+                ##-- compute prediction
+                iY[iTime.pred] <-  iX.pred %*% mu + iOmega.predcon %*% iResiduals.norm
+                prediction[iPos.contrast] <- iM.contrast %*% iY
+
+                ##-- compute uncertainty about the predictions
+                if(sum(se)>0){
+                    iOmega.OmegaM1 <- iOmega.predcon %*% iOmegaM1.con
+                }
+                
+                if(se[1]>0){
+                    idOmega <- dOmega[[newdesign$vcov$pattern[iC]]]
+                
+                    iGrad <- matrix(0, nrow = length(index.cluster[[iC]]), ncol = n.theta,
+                                    dimnames = list(NULL, name.theta))
+                    iGrad[iIndex.pred,name.mu] <- iX.pred - iOmega.OmegaM1 %*% iX.con
+                    for(iParam in names(idOmega)){ ## iParam <- name.theta[index.vcov][1]
+                        ## NOTE: may not contain all vcov parameters when only a subset of the timepoints is passed as dataset
+                        iGrad[iIndex.pred,iParam] <- (idOmega[[iParam]][iIndex.pred,iIndex.con,drop=FALSE] - iOmega.OmegaM1 %*% idOmega[[iParam]][iIndex.con,iIndex.con,drop=FALSE]) %*% iResiduals.norm
+                    }
+                    grad.var[iPos.varcontrast,] <- iM.varcontrast %*% iGrad
+                }
+                if(se[2]){
+                    iOmega.conditional <- iOmega[iIndex.pred, iIndex.pred, drop = FALSE] - iOmega.OmegaM1 %*% t(iOmega.predcon)
+                    prediction.var[iPos.varcontrast] <- rowSums((iM.varcontrast[,iIndex.pred,drop=FALSE] %*% iOmega.conditional)*iM.varcontrast[,iIndex.pred,drop=FALSE])
+                    if(export.vcov){
+                        attr(prediction.var,"vcov")[iPos.varcontrast,iPos.varcontrast] <- iM.varcontrast[,iIndex.pred,drop=FALSE] %*% iOmega.conditional %*% t(iM.varcontrast[,iIndex.pred,drop=FALSE])
+                    }
+                }else if(se[1] || type.prediction=="change"){
+                    prediction.var[iPos.varcontrast] <- 0
+                }
+            }
+
+            if(type.prediction %in% c("change","auc","auc-b") && (length(iTime.pred) + length(iTime.con) != n.time)){
+                iTime.missing <- setdiff(1:n.time, c(iTime.pred,iTime.con))
+                test.NAcontrast <- rowSums(abs(iM.contrast[,iTime.missing,drop=FALSE]))>1e-12
+                if(any(test.NAcontrast)){ ## add NA if not enough information is provided,
+                    ## e.g. only rows for second and third follow-up but no baseline row in the dataset when computing the change
+                    prediction[iPos.contrast[test.NAcontrast]] <- NA
+                    prediction.var[iPos.contrast[test.NAcontrast]] <- NA
+                    grad.var[iPos.contrast[test.NAcontrast],] <- NA
                 }
             }
         }
+
+        if(se[1]){
+            prediction.var <- prediction.var + rowSums((grad.var %*% vcov.theta) * grad.var)
+            if(export.vcov){
+                attr(prediction.var,"vcov") <- attr(prediction.var,"vcov") + grad.var %*% vcov.theta %*% t(grad.var)
+            }
+        }else if(sum(se)==0 & type.prediction == "change"){
+            grad.var <- !is.na(prediction.var) ## imputed changes ['hidden' output]
+            prediction.var[] <- NA
+        }
+            
     }
 
-
     ## ** df
-    if(df && !is.null(se) && type.prediction == "static" && se == "estimation"){
-        vcov.param <- vcov(object, effects = "all", df = 2, transform.names = FALSE)
-        dVcov <- attr(vcov.param,"dVcov")
-        attr(vcov.param, "df") <- NULL
-        attr(vcov.param, "dVcov") <- NULL
-        prediction.df <- pmax(.dfX(X.beta = X, vcov.param = vcov.param, dVcov.param = dVcov), options$min.df)
+    if(df){
+        prediction.df <- pmax(.dfX(X.beta = grad.var, vcov.param = vcov.theta, dVcov.param = dVcov.theta), options$min.df)
         prediction.df[is.na(prediction) | is.na(prediction.var)] <- NA        
     }else{
         prediction.df <- rep(Inf, length(prediction))
     }
 
-    ## ## ** special case
-    ## if(!missing(se.fit)){
-    ##     out <- list(fit = prediction,
-    ##                 se.fit = sqrt(prediction.var),
-    ##                 df = prediction.df,
-    ##                 residual.scale = coef(object, effects = "variance"))
-    ##     if(sum(!duplicated(round(prediction.df, digits = 5)))==1){
-    ##         out$df <- unname(out$df[1])
-    ##     }
-    ##     return(out)
-    ## }
-
     ## ** restaure NA
     prediction <- restaureNA(unname(prediction), index.na = index.na,
                              level = "obs", cluster = object$cluster)
-    if(format == "long"){
-        if(simplify && is.null(se) && df==FALSE && keep.newdata == FALSE){
-            return(prediction)
-        }
+
+    if(format == "long" && sum(se)>0){
         prediction.se <- sqrt(restaureNA(unname(prediction.var), index.na = index.na,
                                          level = "obs", cluster = object$cluster))
         prediction.df <- restaureNA(unname(prediction.df), index.na = index.na,
@@ -483,15 +673,19 @@ predict.lmm <- function(object, newdata, p = NULL, se = "estimation", df = !is.n
         newdata <- object$data.original
     }
     out <- .reformat(M.pred, name = names(format), format = format, simplify = simplify,
-                     keep.data = keep.newdata, data = newdata, index.na = object$index.na,
+                     keep.data = keep.newdata, data = newdata, index.na = index.na,
                      object.cluster = object$cluster, index.cluster = newdata.index.cluster,
                      object.time = object$time, index.time = newdata.index.time,                     
                      call = mycall)
+
     if(simplify==FALSE){
+        attr(out,"grad") <- grad.var
         attr(out,"args") <- list(se = se, df = df, type = type.prediction, level = level, keep.newdata = keep.newdata, format = format, simplify = simplify)
-    }else if(simplify && is.null(se) && keep.newdata == FALSE && format == "long"){
-        out <- out$estimate
     }
+    if(export.vcov){
+        attr(out,"vcov") <- attr(prediction.var,"vcov")
+    }
+
     return(out)
 }
 
@@ -570,6 +764,46 @@ predict.mlmm <- function(object, ...){
         attr(out,"vcov") <- vcov.vcovbeta
         attr(out,"contrast") <- X.beta
     }
+    return(out)
+}
+
+## * .baselineVar.lmm
+##' @description Find covariates that do not vary over repetitions.
+##' Used when reshaping to wide format while keeping original data (i.e. cannot keep time-varying covariates)
+##' @noRd
+.baselineVar.lmm <- function(object){
+
+    ## ** extract from object
+    outcome.var <- object$outcome$var
+    time.var <- object$time$var
+    n.time <- object$time$n
+    cluster.var <- object$cluster$var
+    data <- object$data
+    all.var <- intersect(names(object$data.original),names(object$data))
+
+    ## ** filter variables
+    time.vars <- unique(c(time.var,attr(time.var,"original")))
+    out <- setdiff(all.var,c(cluster.var,time.vars,outcome.var))
+    if(length(out)>0){
+        ## exclude covariates that are a simple transformation of time
+        cov.levels <- apply(data[out], MARGIN = 2, function(iCol){length(unique(iCol))})
+        if(any(cov.levels <= n.time)){ ## needs to have less levels than time
+            possibleTime.vars <- out[cov.levels <= n.time]
+            test.trans <- sapply(possibleTime.vars, function(iVar){ ## iCol <- object.data[,"week2"]
+                iTable <- table(data[[iVar]],data$XXtime.indexXX)
+                sum(iTable[upper.tri(iTable,diag=FALSE)])+sum(iTable[lower.tri(iTable,diag=FALSE)])
+            })
+            out <- setdiff(out, possibleTime.vars[test.trans==0])
+        }
+
+        ## exclude time varying covariates
+        test.timevar <- sapply(out, function(iVar){
+            any(tapply(data[[iVar]],data$XXcluster.indexXX, function(iVec){sum(!duplicated(iVec))>1}))
+        })
+        out <- out[test.timevar == FALSE]
+    }
+
+    ## ** export 
     return(out)
 }
 

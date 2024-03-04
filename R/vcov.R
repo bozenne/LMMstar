@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: Jul 29 2023 (21:31) 
+## Last-Updated: mar  1 2024 (11:24) 
 ##           By: Brice Ozenne
-##     Update #: 527
+##     Update #: 530
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -78,7 +78,7 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strat
              " \n or using ML estimation by setting the argument method.fit=\"ML\" when calling lmm.")
     }
 
-    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
+    init <- .init_transform(p = p, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
                             x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k

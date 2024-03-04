@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: Feb 11 2024 (18:39) 
+## Last-Updated: mar  4 2024 (14:01) 
 ##           By: Brice Ozenne
-##     Update #: 1416
+##     Update #: 1424
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -75,14 +75,13 @@
 ##' anova(eUN.lmm)
 ##' anova(eUN.lmm, effects = "all")
 ##' anova(eUN.lmm, robust = TRUE, df = FALSE)
-##' summary(anova(eUN.lmm))
+##' summary(anova(eUN.lmm), method = "bonferroni")
 ##' 
 ##' ## user defined F-test
 ##' summary(anova(eUN.lmm, effects = c("X1=0","X2+X5=10")))
 ##' 
 ##' ## chi2-tests
 ##' anova(eUN.lmm, df = FALSE)
-##' 
 ##' 
 ##' ## with standard contrast
 ##' if(require(multcomp)){
@@ -146,7 +145,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, multivariate = TRU
     terms.mean <- attr(stats::terms(object$formula$mean.design),"term.labels")
     subeffect <- NULL
     
-    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
+    init <- .init_transform(p = NULL, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
                             x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho)
     
     transform.sigma <- init$transform.sigma
@@ -269,11 +268,24 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, multivariate = TRU
         }
         ls.nameTerms.num <- lapply(ls.nameTerms, function(iName){as.numeric(factor(iName, levels = iName))})
         
-    }else if(all(grepl("=",effects)==FALSE)){
-        stop("Incorrect argument \'effects\': can be \"mean\", \"variance\", \"correlation\", \"all\", \n",
-             "or something compatible with the argument \'linfct\' of multcomp::glht \n ",
-             "or a contrast matrix. \n")
-    }else{ ## symbolic definition of effects using equations (characters)
+    }else{
+
+        if(all(grepl("=",effects)==FALSE)){
+            X <- object$design$mean
+            if(all(effects %in% attr(X,"variable"))){
+                assign <- which(attr(X,"variable") %in% effects)
+                labels <- colnames(X)[attr(X,"assign") %in% assign]
+                if(is.null(rhs)){
+                    rhs <- rep(0, NROW(effects))
+                }
+                effects <- paste0(labels,"=",rhs)
+            }else{
+                stop("Incorrect argument \'effects\': can be \"mean\", \"variance\", \"correlation\", \"all\", \n",
+                     "or an equation such compatible with the argument \'linfct\' of multcomp::glht \n ",
+                     "or a contrast matrix. \n",
+                     "or covariate names \n ")
+            }
+        }
 
         ## run glht
         out.glht <- try(multcomp::glht(object, linfct = effects,  ## only used for generating contrast matrix
@@ -517,7 +529,9 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, multivariate = TRU
                     if(length(iType)==0){ ## if the contrast includes no parameter uses the type of parameter for the whole contrast matrix
                         iType <- unique(type.param[names(which(colSums(abs(iC)>0)>0))])
                     }
-                    if(length(iType)>1){
+                    if(length(iType)==0){ ## use by effects.lmm when asking for the treatment effect on the change from baseline in a lmm without interaction: no coefficient to test.
+                        return("all")
+                    }else if(length(iType)>1){
                         return("all")
                     }else{
                         return(iType)

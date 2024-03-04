@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (15:05) 
 ## Version: 
-## Last-Updated: jul 26 2023 (11:07) 
+## Last-Updated: feb 22 2024 (18:44) 
 ##           By: Brice Ozenne
-##     Update #: 38
+##     Update #: 48
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -98,5 +98,7 @@ manifest.mlmm <- function(x, ...){
     attributes(out) <- c(attributes(ls.manifest[[1]]), list(by = x$object$by))
     return(out)
 }
+
+
 ##----------------------------------------------------------------------
 ### manifest.R ends here

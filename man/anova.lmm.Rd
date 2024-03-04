@@ -80,14 +80,13 @@ eUN.lmm <- lmm(Y ~ visit + X1 + X2 + X5,
 anova(eUN.lmm)
 anova(eUN.lmm, effects = "all")
 anova(eUN.lmm, robust = TRUE, df = FALSE)
-summary(anova(eUN.lmm))
+summary(anova(eUN.lmm), method = "bonferroni")
 
 ## user defined F-test
 summary(anova(eUN.lmm, effects = c("X1=0","X2+X5=10")))
 
 ## chi2-tests
 anova(eUN.lmm, df = FALSE)
-
 
 ## with standard contrast
 if(require(multcomp)){

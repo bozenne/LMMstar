@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jan 10 2024 (15:44) 
+## Last-Updated: mar  4 2024 (15:52) 
 ##           By: Brice Ozenne
-##     Update #: 309
+##     Update #: 390
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -42,10 +42,11 @@
 ##' }
 ##' @param FUN [function] user-defined function for computing summary statistics.
 ##' It should take a vector as an argument and output a named single value or a named vector.
-##' @param which deprecated, use the argument columns instead.
 ##' @param level [numeric,0-1] the confidence level of the confidence intervals.
 ##' @param skip.reference [logical] should the summary statistics for the reference level of categorical variables be omitted?
 ##' @param digits [integer, >=0] the minimum number of significant digits to be used to display the results. Passed to \code{print.data.frame}
+##' @param filter [character] a regular expression passed to \code{grep} to filter the columns of the dataset.
+##' Relevant when using \code{.} to indicate all other variables.
 ##' @param ... additional arguments passed to argument \code{FUN}.
 ##'
 ##' @details This function is essentially an interface to the \code{stats::aggregate} function. \cr
@@ -75,10 +76,12 @@
 ##' summarize(Y1 ~ 1, data = d)
 ##' summarize(Y1 ~ 1, data = d, FUN = quantile, p = c(0.25,0.75))
 ##' summarize(Y1+Y2 ~ X1, data = d)
+##' summarize(treat ~ 1, data = d)
 ##' summarize(treat ~ 1, skip.reference = FALSE, data = d)
 ##' 
 ##' summarize(Y1 ~ X1, data = d2)
 ##' summarize(Y1+Y2 ~ X1, data = d2, na.rm = TRUE)
+##' summarize(. ~ treat, data = d2, na.rm = TRUE, filter = "Y")
 ##' 
 ##' ## long format
 ##' dL <- reshape(d, idvar = "id", direction = "long",
@@ -96,22 +99,27 @@
 ##' e.S <- summarize(Y ~ time2 + time3 + X1 | id, data = dL, na.rm = TRUE)
 ##' e.S
 ##' attr(e.S, "correlation")
+##'
 
 ## * summarize (code)
 ##' @export
 summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, level = 0.95,
                       columns = c("observed","missing","pc.missing","mean","sd","min","q1","median","q3","max","correlation"),
                       FUN = NULL,
-                      which = NULL,
                       skip.reference = TRUE,
-                      digits = NULL,                      
+                      digits = NULL,
+                      filter = NULL,
                       ...){
 
     data <- as.data.frame(data)
     mycall <- match.call()
 
     ## ** check and normalize user imput
-    name.all <- all.vars(formula)
+    name.all <- setdiff(all.vars(formula), ".")
+    if(!is.null(filter)){
+        data <- data[union(name.all,grep(filter,names(data),value=TRUE))]
+    }
+
     if(any(name.all %in% c("XXindexXX"))){
         invalid <- name.all[name.all %in% c("XXindexXX")]
         stop("Name(s) \"",paste(invalid, collapse = "\" \""),"\" are used internally. \n",
@@ -124,14 +132,56 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
              "Variable(s) \"",paste(invalid, collapse = "\" \""),"\" could not be found in the dataset. \n",
              sep = "")
     }
-    detail.formula <- formula2var(formula)
-    name.Y <- detail.formula$var$response
+
+    detail.formula <- formula2var(formula, data = data)
+    ## handle .~Group or Y~.
+    if(identical(detail.formula$vars$response,".") & identical(detail.formula$vars$regressor,".")){
+        stop("Argument \'formula\' cannot be .~. as the left or right hand side need to be explicit \n",
+             "Consider for instance using .~1. \n",sep = "")
+    }else if(identical(detail.formula$vars$response,".")){
+        name.Y <- setdiff(names(data),c(detail.formula$vars$regressor,detail.formula$var$repetition))
+        if(length(name.Y)==0){
+            stop("Incorrect argument \'formula\': no variable on the left hand side of the formula. \n")
+        }
+        if(!is.null(detail.formula$vars$cluster)){
+            termlabels <- ifelse(is.null(detail.formula$vars$time),
+                                 paste0("1|",detail.formula$vars$cluster),
+                                 paste0(paste(detail.formula$vars$time,collapse="+"),"|",detail.formula$vars$cluster))
+        }else{
+            termlabels <- ifelse(is.null(detail.formula$vars$regressor),"1",paste(detail.formula$vars$regressor,collapse="+"))
+        }
+        formula <- stats::reformulate(response = paste0(name.Y,collapse="+"), termlabels = termlabels)
+        detail.formula <- formula2var(formula)
+    }else{
+        name.Y <- detail.formula$var$response
+        if(length(name.Y)==0){
+            stop("Incorrect argument \'formula\': no variable on the left hand side of the formula. \n")
+        }
+        if(detail.formula$special=="none"){
+            if(utils::tail(detail.formula$vars$all,1)=="."){
+                formula <- stats::formula(stats::terms(formula, data = data))
+                detail.formula <- formula2var(formula)
+            }
+        }else if(detail.formula$special=="repetition"){
+            if(!is.null(detail.formula$vars$time[1]) && detail.formula$vars$time[1]=="."){
+                name.X <- setdiff(names(data),c(detail.formula$vars$response,detail.formula$var$cluster))
+                if(length(name.X)==0){
+                    formula <- reformulate(response = paste0(name.Y,collapse="+"), termlabels = paste0("1|",detail.formula$var$cluster))
+                }else{
+                    formula <- reformulate(response = paste0(name.Y,collapse="+"), termlabels = paste0(paste(name.X,collapse="+"),"|",detail.formula$var$cluster))
+                }
+                detail.formula <- formula2var(formula)
+            }
+        }
+    }
+
     n.Y <- length(name.Y)
     if(n.Y==0){
         stop("Wrong specification of argument \'formula\'. \n",
              "There need to be at least one variable in the left hand side of the formula. \n")
     }
     name.id <- detail.formula$var$cluster
+
     if(length(name.id)==0){
         name.X <- detail.formula$var$regressor
         formula <- detail.formula$formula$all
@@ -160,12 +210,7 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
              "There should be exactly one variable on the right hand side of the formula after the symbol |. \n",
              "Something like Y ~ time + G | cluster. \n")
     }
-    n.X <- length(name.Y)
 
-    if("which" %in% names(match.call())){
-        warning("Argument \'which\' is deprecated. Consider using argument \'columns\' instead. \n")
-        columns <- which
-    }
     valid.columns <- c("observed","missing","pc.missing",
                        "mean","mean.lower","mean.upper","predict.lower","predict.upper",
                        "sd","min","q1","median","q3","median.upper","median.lower","IQR","max","correlation")

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: feb 16 2024 (16:18) 
+## Last-Updated: mar  4 2024 (14:14) 
 ##           By: Brice Ozenne
-##     Update #: 1154
+##     Update #: 1160
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -376,9 +376,9 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
 
     ## ** compute fitted curve
     if(!is.na(obs.alpha) && obs.alpha>0){
-        preddata <- cbind(data, stats::predict(object, newdata = data[,timemu.var, drop=FALSE], ...))
+        preddata <- cbind(data, stats::predict(object, newdata = data[,timemu.var, drop=FALSE], simplify = FALSE, ...))
     }else{
-        preddata <- cbind(newdata, stats::predict(object, newdata = newdata[,timemu.var, drop=FALSE], ...))
+        preddata <- cbind(newdata, stats::predict(object, newdata = newdata[,timemu.var, drop=FALSE], simplify = FALSE, ...))
     }
     if("lower" %in% names(preddata) == FALSE){
         preddata$lower <- NA
@@ -394,7 +394,8 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
         U.time <- sort(unique(preddata[[time.var.plot]]))
     }
 
-    preddata <- do.call(rbind,by(preddata, preddata$XXclusterXX, function(iDF){
+    keep.col <- c("XXclusterXX",time.var.plot,outcome.var,color,"estimate","lower","upper")
+    preddata <- do.call(rbind,by(preddata[keep.col], preddata$XXclusterXX, function(iDF){ ## iDF <- preddata[preddata$XXclusterXX==1,]
         if(all(U.time %in% iDF[[time.var.plot]])){
             return(iDF)
         }else{
@@ -408,7 +409,7 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
             if(!is.null(color)){
                 ls.iDFextra[[color]] <- NA
             }
-            return(rbind(iDF,as.data.frame(ls.iDFextra[names(iDF)])))
+            return(rbind(iDF,as.data.frame(ls.iDFextra[keep.col])))
         }
     }))
 
@@ -479,7 +480,7 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
         }
     }
     if(!is.null(facet) & length(all.vars(facet))>0){
-        if(attr(terms(facet),"response")==0){
+        if(attr(stats::terms(facet),"response")==0){
             gg  <- gg + ggplot2::facet_wrap(facet, scales = scales, labeller = labeller)
         }else{
             gg  <- gg + ggplot2::facet_grid(facet, scales = scales, labeller = labeller)
@@ -747,7 +748,7 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, fa
     if(is.null(args)){
         stop("The argument \'simplify\' must be to FALSE when calling residuals() to obtain a graphical display. \n")
     }
-    if(args$keep.data == FALSE){
+    if(args$keep.data == FALSE && type != "correlation"){
         stop("The argument \'keep.data\' must be to TRUE when calling residuals() to obtain a graphical display. \n")
     }
     args.type <- args$type

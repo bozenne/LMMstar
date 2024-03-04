@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: feb 16 2024 (11:31) 
+## Last-Updated: mar  4 2024 (15:54) 
 ##           By: Brice Ozenne
-##     Update #: 1066
+##     Update #: 1074
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -22,7 +22,7 @@
 ##' 
 ##' @param object a \code{lmm} object.
 ##' @param type [character] type of residual to output: raw residuals (\code{"response"}), Pearson residuals (\code{"pearson"}), normalized residuals (\code{"normalized"}, scaled residual \code{"scaled"}), or partial residuals (\code{"partial"} or \code{"partial-center"}). Can also be \code{"all"} to output all except partial residuals. See detail section.
-##' @param var [character vector] name of the variable relative to which the partial residuals should be computed.
+##' @param variable [character vector] name of the variable relative to which the partial residuals should be computed.
 ##' @param at [data.frame] values for the covariates at which to evaluate the partial residuals.
 ##' @param data [data.frame] dataset relative to which the residuals should be computed. Only relevant if differs from the dataset used to fit the model.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the residuals. Only relevant if differs from the fitted values.
@@ -51,7 +51,7 @@
 ##' }
 ##' where
 ##' \itemize{
-##' \item \eqn{X=(E,W)} the design matrix. For partial residuals, it is split according to the variable(s) in argument \code{var} (\eqn{E}) and the rest (\eqn{W}).
+##' \item \eqn{X=(E,W)} the design matrix. For partial residuals, it is split according to the variable(s) in argument \code{variable} (\eqn{E}) and the rest (\eqn{W}).
 ##' \item \eqn{Y} the outcome
 ##' \item \eqn{\hat{\beta}=(\hat{\gamma},\hat{\delta})} the estimated mean coefficients relative to \eqn{X=(E,W)}
 ##' \item \eqn{\hat{\Omega}} the modeled variance-covariance of the residuals and \eqn{\hat{\omega}} its diagonal elements
@@ -76,20 +76,17 @@
 ##' e.lm <- lmm(Y ~ visit + X1 + X2 + X6, data = dL)
 ##'
 ##' ## partial residuals
-##' residuals(e.lm, type = "partial", var = "X6")
-##' ## residuals(e.lm) + dL$X6 * coef(e.lm)["X6"]
-##' e.reslm <- residuals(e.lm, type = "partial", var = "X6", keep.data = TRUE, simplify = FALSE)
+##' pRes <- residuals(e.lm, type = "partial", variable = "X6")
+##' range(residuals(e.lm) + dL$X6 * coef(e.lm)["X6"] - pRes)
+##' e.reslm <- residuals(e.lm, type = "partial", variable = "X6", keep.data = TRUE, simplify = FALSE)
 ##' plot(e.reslm)
 ##'
 ##' ## partial residuals with specific reference
-##' type <- "partial"
-##' attr(type,"reference") <- data.frame(visit=factor(2,1:3),X2=0,X6=3)
-##' residuals(e.lm, type = type, var = "X1")
-##' ## residuals(e.lm) + dL$X1 * coef(e.lm)["X1"] + coef(e.lm)["visit2"]
+##' residuals(e.lm, type = "partial", variable = "X1",
+##'           at = data.frame(visit=factor(2,1:3),X2=0,X6=3))
 ##' 
 ##' ## partial residuals with centered covariates
-##' residuals(e.lm, type = "partial-center", var = "X1")
-##' ## residuals(e.lm) + (dL$X1-mean(dL$X1)) * coef(e.lm)["X1"]
+##' residuals(e.lm, type = "partial-center", variable = "X1")
 ##'
 ##' #### Linear Mixed Model ####
 ##' eUN.lmm <- lmm(Y ~ visit + X1 + X2 + X5 + X6,
@@ -109,13 +106,13 @@
 ##' residuals(eUN.lmm, type = "all", keep.data = TRUE)
 ##' 
 ##' ## partial residuals
-##' residuals(eUN.lmm, type = "partial", var = c("(Intercept)","X6"))
-##' residuals(eUN.lmm, type = "partial", var = c("X6"))
+##' residuals(eUN.lmm, type = "partial", variable = c("(Intercept)","X6"))
+##' residuals(eUN.lmm, type = "partial", variable = c("X6"))
 
 ## * residuals.lmm (code)
 ##' @export
 ##' @rdname residuals
-residuals.lmm <- function(object, type = "response", var = NULL, at = NULL,
+residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
                           data = NULL, p = NULL, format = "long", keep.data = FALSE, fitted.ci = FALSE, simplify = TRUE, ...){
 
     mycall <- match.call()
@@ -183,34 +180,34 @@ residuals.lmm <- function(object, type = "response", var = NULL, at = NULL,
             stop("Argument \'type.residual\' should have length 1 when it contains \"partial\" or  \"partial-center\". \n",
                  "It can also have length 2 but then the second element should be \"response\". \n")
         }
-        if(is.null(var)){
-            stop("Argument \'var\' should indicate the covariate effects to preserve when computing the partial residuals. \n")
+        if(is.null(variable)){
+            stop("Argument \'variable\' should indicate the covariate effects to preserve when computing the partial residuals. \n")
         }
         if(!is.null(at) && "partial-center" %in% type.residual){
             message("Argument \'at\' is ignored when \'type\' equals \"partial-center\". \n")
         }
-        keep.intercept <- "(Intercept)" %in% var
+        keep.intercept <- "(Intercept)" %in% variable
         if(keep.intercept && "(Intercept)" %in%  param.name == FALSE){
-            stop("Argument \'var\' cannot contain \"(Intercept)\" when the model does no include an intercept. \n")
+            stop("Argument \'variable\' cannot contain \"(Intercept)\" when the model does no include an intercept. \n")
         }
-        var <- setdiff(var,"(Intercept)")
-        if(any(var %in% variableMu.name == FALSE)){
-            stop("Argument \'var\' should refer to covariate(s) of the mean structure. \n",
+        variable <- setdiff(variable,"(Intercept)")
+        if(any(variable %in% variableMu.name == FALSE)){
+            stop("Argument \'variable\' should refer to covariate(s) of the mean structure. \n",
                  "Valid covariates: \"",paste(variableMu.name, collapse = "\" \""),"\". \n",
-                 "Invalid covariates: \"",paste(var[var %in% variableMu.name == FALSE],collapse="\" \""),"\". \n")
+                 "Invalid covariates: \"",paste(variable[variable %in% variableMu.name == FALSE],collapse="\" \""),"\". \n")
         }
-        type.var <- c("numeric","categorical")[var %in% names(object$xfactor$mean) + 1]
+        type.var <- c("numeric","categorical")[variable %in% names(object$xfactor$mean) + 1]
         type.fit <- ifelse(keep.intercept,"static","static0")
     }else{
         if(!is.null(at)){
             message("Argument \'at\' is ignored when computing residuals other than partial residuals. \n")
         }
-        if(!is.null(var)){
-            message("Argument \'var\' is ignored when computing residuals other than partial residuals. \n")
+        if(!is.null(variable)){
+            message("Argument \'variable\' is ignored when computing residuals other than partial residuals. \n")
         }
         keep.intercept <- TRUE
         type.var <- NULL        
-        var <- NULL
+        variable <- NULL
         type.fit <- "static"
     }
 
@@ -243,17 +240,17 @@ residuals.lmm <- function(object, type = "response", var = NULL, at = NULL,
         reference <- stats::setNames(as.list(rep(NA, length = length(variableMu.name))), variableMu.name)
         ## reference: reference level of all variables not in var
         if(is.null(at)){
-            if(length(setdiff(variableMuFac.name,var))>0){
-                reference[setdiff(variableMuFac.name,var)] <- lapply(setdiff(variableMuFac.name,var),function(iName){factor(xfactorMu[[iName]][1], levels = xfactorMu[[iName]])})
+            if(length(setdiff(variableMuFac.name,variable))>0){
+                reference[setdiff(variableMuFac.name,variable)] <- lapply(setdiff(variableMuFac.name,variable),function(iName){factor(xfactorMu[[iName]][1], levels = xfactorMu[[iName]])})
             }
-            if(length(setdiff(variableMuNum.name,var))>0){
-                reference[setdiff(variableMuNum.name,var)] <- as.list(stats::setNames(rep(0, length(setdiff(variableMuNum.name,var))), setdiff(variableMuNum.name,var)))
+            if(length(setdiff(variableMuNum.name,variable))>0){
+                reference[setdiff(variableMuNum.name,variable)] <- as.list(stats::setNames(rep(0, length(setdiff(variableMuNum.name,variable))), setdiff(variableMuNum.name,variable)))
             }
             if("partial-center" %in% type.residual){
                 ## do nothing for categorical variables
 
                 ## center numeric variables
-                reference[intersect(variableMuNum.name, var)] <- lapply(intersect(variableMuNum.name, var), function(iName){mean(object$data[[iName]])})
+                reference[intersect(variableMuNum.name, variable)] <- lapply(intersect(variableMuNum.name, variable), function(iName){mean(object$data[[iName]])})
             }
             reference <- data.frame(reference, stringsAsFactors = FALSE)
         }else if(!is.data.frame(at)){
@@ -285,7 +282,7 @@ residuals.lmm <- function(object, type = "response", var = NULL, at = NULL,
                 stop("Levels of thevariable \'",iVar,"\' in argument \'at\' should match those of the original data. \n",
                      "Levels: \"",paste(levels(data[[iVar]]), collapse = "\" \""),"\"\n")
             }
-            if(iVar %in% var){
+            if(iVar %in% variable){
                 data.reference[[iVar]] <- data.reference[[iVar]] - reference[[iVar]]
             }else{
                 data.reference[[iVar]] <- reference[[iVar]]
@@ -392,7 +389,7 @@ residuals.lmm <- function(object, type = "response", var = NULL, at = NULL,
     }
     if(fitted.ci || "partial" %in% type.residual || "partial-center" %in% type.residual){
 
-        df.fitted <- stats::predict(object, p = p, newdata = design.reference, type = type.fit, se = ifelse(fitted.ci,"estimation",FALSE),
+        df.fitted <- stats::predict(object, p = p, newdata = design.reference, type = type.fit, se = fitted.ci,
                                     keep.newdata = FALSE, format = "long", simplify = FALSE)
 
         if(fitted.ci){
@@ -497,7 +494,7 @@ residuals.lmm <- function(object, type = "response", var = NULL, at = NULL,
     if(!simplify){
         attr(out,"reference") <- attr(M.res,"reference")
         attr(out,"centering") <- attr(M.res,"centering")
-        attr(out,"args") <- list(type = type, format = format, keep.data = keep.data, var = var, type.var = type.var,
+        attr(out,"args") <- list(type = type, format = format, keep.data = keep.data, var = variable, type.var = type.var,
                                  n.time = n.time, name.time = name.time,
                                  name.cluster = object$cluster$var,
                                  outcome = object$outcome$var, intercept = "(Intercept)" %in% names(object$param))

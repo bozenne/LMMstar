@@ -7,13 +7,15 @@
 \method{predict}{lmm}(
   object,
   newdata,
-  p = NULL,
-  se = "estimation",
-  df = !is.null(object$df),
   type = "static",
+  p = NULL,
+  se = NULL,
+  robust = FALSE,
+  df = NULL,
   level = 0.95,
-  keep.newdata = FALSE,
+  keep.newdata = NULL,
   format = "long",
+  export.vcov = FALSE,
   simplify = TRUE,
   ...
 )
@@ -23,28 +25,39 @@
 
 \item{newdata}{[data.frame] the covariate values for each cluster.}
 
+\item{type}{[character] evaluate the expected outcome conditional on covariates only (\code{"static"}),
+the contribution of each variable to this 'static' prediction (\code{"terms"}),
+or the expected outcome conditional covariates and outcome values at other timepoints (\code{"dynamic"}).
+Based on the observed outcome and the 'dynamic' prediction for the missing outcome,
+can also evaluate the change from first repetitition (\code{"change"}), area under the curve (\code{"auc"}), and the area under the curve minus baseline (\code{"auc-b"}).}
+
 \item{p}{[numeric vector] value of the model coefficients at which to evaluate the predictions. Only relevant if differs from the fitted values.}
 
-\item{se}{[character] Type of uncertainty to be accounted for: estimation of the regression parameters (\code{"estimation"}), residual variance (\code{"residual"}), or both (\code{"total"}).
-Can also be \code{NULL} to not compute standard error, p-values, and confidence intervals.}
+\item{se}{[logical] should the standard error and confidence intervals for the predictions be output?
+It can also be a logical vector of length 2 to indicate the type of uncertainty to be accounted for: estimation and residual variance.
+In particular \code{c(TRUE,TRUE)} provides prediction intervals.}
 
-\item{df}{[logical] Should a Student's t-distribution be used to model the distribution of the predicted mean. Otherwise a normal distribution is used.}
+\item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
+Not feasible for dynamic predictions when using REML.}
 
-\item{type}{[character] Should prediction be made conditional on the covariates only (\code{"static"}) or also on outcome values at other timepoints (\code{"dynamic"}).
-Can also output the model term (\code{"terms"}, similarly to \code{stats::predict.lm}.}
+\item{df}{[logical] should a Student's t-distribution be used to model the distribution of the predicted mean. Otherwise a normal distribution is used.}
 
 \item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
 
-\item{keep.newdata}{[logical] Should the dataset relative to which the predicted means are evaluated be output along side the predicted values?
+\item{keep.newdata}{[logical] should the dataset relative to which the predicted means are evaluated be output along side the predicted values?
 Only possible in the long format.}
 
-\item{format}{[character] Should the prediction be output
+\item{format}{[character] should the prediction be output
 in a matrix format with clusters in row and timepoints in columns (\code{"wide"}),
 or in a data.frame/vector with as many rows as observations (\code{"long"})}
 
-\item{simplify}{[logical] Simplify the data format (vector instead of data.frame) and column names (no mention of the time variable) when possible.}
+\item{export.vcov}{[logical] should the variance-covariance matrix of the prediction error be outcome as an attribute (\code{"vcov"})?}
+
+\item{simplify}{[logical] simplify the data format (vector instead of data.frame) and column names (no mention of the time variable) when possible.}
 
 \item{...}{Not used. For compatibility with the generic method.}
+
+\item{vcov}{[logical] should the variance-covariance matrix of the predictions be output as an attribute.}
 }
 \value{
 When \code{format="long"}, a data.frame containing the following columns:\itemize{
@@ -62,7 +75,7 @@ Predicted mean value conditional on covariates or on covariates and other outcom
 \details{
 Static prediction are made using the linear predictor \eqn{X\beta} while dynamic prediction uses the conditional normal distribution of the missing outcome given the observed outcomes. So if outcome 1 is observed but not 2, prediction for outcome 2 is obtain by \eqn{X_2\beta + \sigma_{21}\sigma^{-1}_{22}(Y_1-X_1\beta)}. In that case, the uncertainty is computed as the sum of the conditional variance \eqn{\sigma_{22}-\sigma_{21}\sigma^{-1}_{22}\sigma_{12}} plus the uncertainty about the estimated conditional mean (obtained via delta method using numerical derivatives).
 
-The model terms are computing by centering the design matrix around the mean value of the covariates used to fit the model.
+The model terms are computing similarly to \code{stats::predict.lm}, by centering the design matrix around the mean value of the covariates used to fit the model.
 Then the centered design matrix is multiplied by the mean coefficients and columns assigned to the same variable (e.g. three level factor variable) are summed together.
 }
 \examples{

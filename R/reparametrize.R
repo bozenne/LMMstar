@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: jun 16 2022 (15:03) 
+## Last-Updated: mar  1 2024 (10:51) 
 ##           By: Brice Ozenne
-##     Update #: 735
+##     Update #: 741
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -107,7 +107,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
         }
 
     }else{
-        init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
+        init <- .init_transform(p = NULL, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
                                 x.transform.sigma = options$transform.sigma, x.transform.k = options$transform.k, x.transform.rho = options$transform.rho)
         attr(init$transform.sigma,"arg") <- transform.sigma
         attr(init$transform.k,"arg") <- transform.k
@@ -272,13 +272,17 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
 }
 
 ## * .init_transform
-.init_transform <- function(transform.sigma, transform.k, transform.rho, 
+.init_transform <- function(p, transform.sigma, transform.k, transform.rho, 
                             x.transform.sigma, x.transform.k, x.transform.rho){
 
     ## ** transform
     if(is.null(transform.sigma)){
         transform.sigma.save <- transform.sigma
-        transform.sigma <- x.transform.sigma
+        if(is.null(attr(p,"transform.sigma"))){
+            transform.sigma <- x.transform.sigma
+        }else{
+            transform.sigma <- attr(p,"transform.sigma")
+        }
         attr(transform.sigma,"arg") <- transform.sigma.save
     }else{
         if(identical(transform.sigma,"")){
@@ -289,7 +293,11 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
     }
     if(is.null(transform.k)){
         transform.k.save <- transform.k
-        transform.k <- x.transform.k
+        if(is.null(attr(p,"transform.k"))){
+            transform.k <- x.transform.k
+        }else{
+            transform.k <- attr(p,"transform.k")
+        }
         attr(transform.k,"arg") <- transform.k.save
     }else{
         if(identical(transform.k,"")){
@@ -300,7 +308,11 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
     }
     if(is.null(transform.rho)){
         transform.rho.save <- transform.rho
-        transform.rho <- x.transform.rho
+        if(is.null(attr(p,"transform.rho"))){
+            transform.rho <- x.transform.rho
+        }else{
+            transform.rho <- attr(p,"transform.rho")
+        }
         attr(transform.rho,"arg") <- transform.rho.save
     }else{
         if(identical(transform.rho,"")){

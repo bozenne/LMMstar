@@ -6,13 +6,13 @@
 \usage{
 \method{effects}{lmm}(
   object,
-  type,
+  type = c("identity", "none"),
   variable,
   conditional = NULL,
   rhs = NULL,
   repetition = NULL,
   multivariate = FALSE,
-  prefix.time = "t=",
+  prefix.time = NULL,
   prefix.var = TRUE,
   sep.var = ",",
   ...
@@ -21,8 +21,12 @@
 \arguments{
 \item{object}{a \code{lmm} object.}
 
-\item{type}{[character] should all mean coefficients with respect to a variable be tested (\code{"mean"})
-or the average counterfactual outcome (\code{"aoc"}) or average treatment effect (\code{"ate"}) be estimated?}
+\item{type}{[character] should the average counterfactual outcome for each variable level be evaluated (\code{"identity"})?
+Or the difference in average counterfactual outcome between each pair of  variable level (\code{"difference"})?
+Can have an second element to consider a transformation of the outcome:
+the change from baseline (\code{"change"}),
+area under the outcome curve (\code{"auc"}),
+or area under the outcome curve minus baseline (\code{"auc-b"}).}
 
 \item{variable}{[character] the variable relative to which the effect should be computed.}
 
@@ -45,30 +49,55 @@ Only relevant when \code{type = "aoc"} or \code{type = "ate"}.}
 \item{...}{Arguments passed to \code{\link{anova.lmm}}.}
 }
 \description{
-Estimate mean effects from linear mixed models relative to a variable.
+Estimate average counterfactual outcome or contrast of outcome from linear mixed models.
 }
 \examples{
 #### simulate data in the long format ####
 set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
 
-#### fit Linear Mixed Model ####
+#### Linear Mixed Model ####
 eUN.lmm <- lmm(Y ~ visit + X1 + X2 + X5,
                repetition = ~visit|id, structure = "UN", data = dL)
 
-effects(eUN.lmm, type = "mean", variable = "X1")
-effects(eUN.lmm, type = "aco", variable = "X1")
-effects(eUN.lmm, type = "ate", variable = "X1")
-effects(eUN.lmm, type = "ate", variable = "X1", repetition = "3")
+## outcome
+effects(eUN.lmm, variable = "X1")
+effects(eUN.lmm, type = "difference", variable = "X1")
+effects(eUN.lmm, type = "difference", variable = "X1", repetition = "3")
+
+## change
+effects(eUN.lmm, type = "change", variable = "X1")
+effects(eUN.lmm, type = c("change","difference"), variable = "X1")
+
+## auc
+effects(eUN.lmm, type = "auc", variable = "X1")
+effects(eUN.lmm, type = c("auc","difference"), variable = "X1")
 
 #### fit Linear Mixed Model with interaction ####
 dL$X1.factor <- as.factor(dL$X1)
 dL$X2.factor <- as.factor(dL$X2)
-eUN.lmmI <- lmm(Y ~ visit + X1.factor * X2.factor + X5,
+eUN.lmmI <- lmm(Y ~ visit * X1.factor + X2.factor + X5,
                repetition = ~visit|id, structure = "UN", data = dL)
 
-effects(eUN.lmmI, type = "aco", variable = "X1.factor", conditional = c("X2.factor"), repetition = "3")
-effects(eUN.lmmI, type = "ate", variable = "X1.factor", conditional = c("X2.factor"), repetition = "3")
-effects(eUN.lmmI, type = "ate", variable = "X1.factor", conditional = list(X5=0:1), repetition = "3")
-effects(eUN.lmmI, type = "ate", variable = "X1.factor", conditional = list(X5=0:5), repetition = "3")
+## average counterfactual conditional to a categorical covariate
+effects(eUN.lmmI, variable = "X1.factor",
+        conditional = c("X2.factor"), repetition = "3")
+effects(eUN.lmmI, type = "change", variable = "X1.factor",
+        conditional = c("X2.factor"), repetition = "3")
+effects(eUN.lmmI, type = "auc", variable = "X1.factor",
+        conditional = c("X2.factor"), repetition = "3")
+
+## average difference in counterfactual conditional to a categorical covariate
+effects(eUN.lmmI, type = "difference", variable = "X1.factor",
+        conditional = c("X2.factor"), repetition = "3")
+effects(eUN.lmmI, type = c("change","difference"), variable = "X1.factor",
+        conditional = c("X2.factor"), repetition = "3")
+effects(eUN.lmmI, type = c("auc","difference"), variable = "X1.factor",
+        conditional = c("X2.factor"), repetition = "3")
+
+## average difference in counterfactual conditional to a covariate
+effects(eUN.lmmI, type = "difference", variable = "X1.factor",
+        conditional = list(X5=0:2), repetition = "3")
+effects(eUN.lmmI, type = c("difference","change"), variable = "X1.factor",
+        conditional = list(X5=0:2))
 }

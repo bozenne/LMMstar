@@ -3,6 +3,7 @@
 * Version 1.1.0
 ** User visible changes
    - Argument at for partial residual calculation (instead of using an attribute on argument type).
+   - remove method dummy.coef.lmm and introduce instead effects.lmm to evaluate average counterfactuals.
 
 * Version 1.0.0
 ** User visible changes

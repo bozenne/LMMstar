@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (13:27) 
 ## Version: 
-## Last-Updated: aug  1 2023 (14:22) 
+## Last-Updated: feb 29 2024 (18:08) 
 ##           By: Brice Ozenne
-##     Update #: 950
+##     Update #: 952
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -712,7 +712,7 @@
             attr(iOut,"cluster") <- rep(iIndex.clusterU[[iC]],length(iIndex2))
             return(iOut)
         })
-        iVec.lpU.clusterU <- do.call(c,iLs.lpU.clusterU)
+        iVec.lpU.clusterU <- do.call(base::c,iLs.lpU.clusterU)
 
         ## form all pairs
         iM <- base::t(do.call(cbind,lapply(iLs.lpU.clusterU, unorderedPairs, distinct = TRUE)))

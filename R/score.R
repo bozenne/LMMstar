@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: feb 15 2024 (15:53) 
+## Last-Updated: mar  1 2024 (10:49) 
 ##           By: Brice Ozenne
-##     Update #: 593
+##     Update #: 594
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -58,7 +58,7 @@ score.lmm <- function(x, effects = "mean", data = NULL, p = NULL, indiv = FALSE,
     effects <- match.arg(effects, c("mean","fixed","variance","correlation"), several.ok = TRUE)
     effects[effects== "fixed"] <- "mean"
 
-    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
+    init <- .init_transform(p = p, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
                             x.transform.sigma = x$reparametrize$transform.sigma, x.transform.k = x$reparametrize$transform.k, x.transform.rho = x$reparametrize$transform.rho)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k

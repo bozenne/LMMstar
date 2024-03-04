@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: jan 26 2024 (15:51) 
+## Last-Updated: mar  1 2024 (10:43) 
 ##           By: Brice Ozenne
-##     Update #: 1042
+##     Update #: 1044
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -115,6 +115,9 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
 
     ## ** estimate
     beta <- coef(x, effects = "all", transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho, transform.names = FALSE)
+    attr(beta, "transform.sigma") <- transform2.sigma
+    attr(beta, "transform.k") <- transform2.k
+    attr(beta, "transform.rho") <- transform2.rho
     type.beta <- stats::setNames(x$design$param$type,x$design$param$name)[names(beta)]
 
     ## ** partial derivative

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: jan 29 2024 (09:40) 
+## Last-Updated: mar  1 2024 (10:49) 
 ##           By: Brice Ozenne
-##     Update #: 676
+##     Update #: 677
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -125,7 +125,7 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
     effects <- match.arg(effects, c("mean","fixed","variance","correlation","ranef"), several.ok = TRUE)
     effects[effects== "fixed"] <- "mean"
 
-    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
+    init <- .init_transform(p = NULL, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
                             x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k

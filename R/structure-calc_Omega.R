@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: jul 31 2023 (16:29) 
+## Last-Updated: feb 28 2024 (13:55) 
 ##           By: Brice Ozenne
-##     Update #: 606
+##     Update #: 613
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -23,6 +23,8 @@
 ##' @param structure [structure]
 ##' @param param [named numeric vector] values of the parameters.
 ##' @param keep.interim [logical] should the correlation matrix and variance matrix be output
+##' @param Upattern [data.frame] Optional, used to only evaluate the residual variance-covariance with respect to a subset of patterns.
+##' Should contain the name of the pattern, the index of the variance pattern, the index of the correlation pattern.
 ##' 
 ##' @keywords internal
 ##'
@@ -63,13 +65,15 @@
 ##' .calc_Omega(Sun4, param = param4)
 ##' .calc_Omega(Sun24, param = param24, keep.interim = TRUE)
 `.calc_Omega` <-
-    function(object, param, keep.interim) UseMethod(".calc_Omega")
+    function(object, param, keep.interim, Upattern) UseMethod(".calc_Omega")
 
 
 ## * calc_Omega.ID
-.calc_Omega.ID <- function(object, param, keep.interim = FALSE){
+.calc_Omega.ID <- function(object, param, keep.interim = FALSE, Upattern = NULL){
 
-    Upattern <- object$Upattern
+    if(is.null(Upattern)){
+        Upattern <- object$Upattern
+    }
     n.Upattern <- NROW(Upattern)
     X.var <- object$var$Xpattern
     X.cor <- object$cor$Xpattern
@@ -123,9 +127,11 @@
 .calc_Omega.UN <- .calc_Omega.ID
 
 ## * calc_Omega.EXP
-.calc_Omega.EXP <- function(object, param, keep.interim = FALSE){
+.calc_Omega.EXP <- function(object, param, keep.interim = FALSE, Upattern = NULL){
 
-    Upattern <- object$Upattern
+    if(is.null(Upattern)){
+        Upattern <- object$Upattern
+    }
     n.Upattern <- NROW(Upattern)
     X.var <- object$var$Xpattern
     X.cor <- object$cor$Xpattern
@@ -164,9 +170,11 @@
     return(1)
 }
 ## * calc_Omega.CUSTOM
-.calc_Omega.CUSTOM <- function(object, param, keep.interim = FALSE){
+.calc_Omega.CUSTOM <- function(object, param, keep.interim = FALSE, Upattern = NULL){
 
-    Upattern <- object$Upattern
+    if(is.null(Upattern)){
+        Upattern <- object$Upattern
+    }
     n.Upattern <- NROW(Upattern)
     X.var <- object$var$Xpattern
     X.cor <- object$cor$Xpattern
@@ -180,7 +188,6 @@
         iPattern.var <- Upattern$var[iPattern]
         iNtime <- Upattern$n.time[iPattern]
         iX.var <- X.var[[iPattern.var]]
-        iTime <- Upattern$time[[iPattern]]
         iOmega.sd <- FCT.sigma(p = param[name.sigma], n.time = iNtime, X = iX.var)
 
         if(iNtime > 1 && !is.na(Upattern$cor[iPattern])){

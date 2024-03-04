@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jun 16 2022 (15:19) 
 ## Version: 
-## Last-Updated: jul 27 2023 (16:45) 
+## Last-Updated: mar  1 2024 (10:50) 
 ##           By: Brice Ozenne
-##     Update #: 314
+##     Update #: 315
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -83,7 +83,7 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
     name.p <- rownames(p)
     type.p <- stats::setNames(fitted$design$param$type, name.p)
 
-    init <- .init_transform(transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
+    init <- .init_transform(p = NULL, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
                             x.transform.sigma = fitted$reparametrize$transform.sigma, x.transform.k = fitted$reparametrize$transform.k, x.transform.rho = fitted$reparametrize$transform.rho)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k

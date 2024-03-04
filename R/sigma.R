@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: feb  6 2024 (16:55) 
+## Last-Updated: mar  4 2024 (15:41) 
 ##           By: Brice Ozenne
-##     Update #: 679
+##     Update #: 686
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -264,7 +264,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
 
     ## ** subset residual variance-covariance matrix
     if(is.null(cluster)){ ## find unique covariance patterns 
-        
+
         if(!is.null(Upattern$nameCov)){
             vec.Upattern <- unlist(by(Upattern,Upattern$nameCov,function(iDf){
                 iDf$name[which.max(iDf$n.time)]
@@ -284,8 +284,8 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
             missing.param <- param.vcov
             vec.Upattern <- numeric(0)
             potential.pattern <- Upattern$name
-            for(iSubset in 1:n.pattern){
-                iSums <- rowSums(test.param[potential.pattern,missing.param,drop=FALSE])
+            for(iSubset in 1:n.pattern){ ## iSubset <- 1
+                iSums <- rowSums(test.param[potential.pattern,missing.param,drop=FALSE]) + Upattern$n.time/(10*object$time$n)
                 iPattern <- names(which.max(iSums))
                 vec.Upattern <- c(vec.Upattern,iPattern)
                 missing.param <- setdiff(missing.param, names(which(test.param[iPattern,]==TRUE)))

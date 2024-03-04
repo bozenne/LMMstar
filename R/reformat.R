@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 21 2023 (09:28) 
 ## Version: 
-## Last-Updated: feb 15 2024 (17:39) 
+## Last-Updated: mar  1 2024 (13:48) 
 ##           By: Brice Ozenne
-##     Update #: 65
+##     Update #: 72
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -61,7 +61,11 @@
             }           
             
         }else{
-            indexAll.cluster <- index.cluster
+            if(!is.null(data[[object.cluster$var]])){
+                indexAll.cluster <- data[[object.cluster$var]]
+            }else{
+                indexAll.cluster <- index.cluster
+            }
             indexAll.time <- U.time[index.time]
         }
 
@@ -83,7 +87,7 @@
                                      stats::setNames(list(NA), names(object2list)))
                                )
         }
-        out <- stats::reshape(data = df.object[order(df.object$XXtimeXX),], direction = "wide",
+        out <- stats::reshape(data = df.object[order(factor(df.object$XXtimeXX, levels = object.time$levels)),], direction = "wide",
                               timevar = "XXtimeXX", idvar = object.cluster$var, v.names = names(object2list), times = U.time, sep = sep)
         if(!is.null(name)){ ## in case the user specify name <- " " to only keep the time levels (otherwise leads to " time1" as column names instead of "time1")
             names(out)[-1] <- trimws(names(out)[-1], which = "left")
@@ -92,6 +96,15 @@
         ## use nicer column names
         if(simplify && length(object.time$levels)==1){
             names(out)[-1] <- names(object2list)
+        }
+
+        ## restaure covariates
+        keep.var <- attr(keep.data,"var")
+        if(keep.data && length(keep.var)>0){
+            out <- merge(x = unique(data[,c(object.cluster$var, keep.var),drop=FALSE]),
+                         y = out,
+                         by = object.cluster$var,
+                         sort = FALSE)
         }
     }
 
