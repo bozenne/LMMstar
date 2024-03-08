@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: mar  1 2024 (10:43) 
+## Last-Updated: mar  6 2024 (13:17) 
 ##           By: Brice Ozenne
-##     Update #: 1044
+##     Update #: 1059
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -23,6 +23,7 @@
 ##' @param f [function] function of the model coefficient computing the parameter(s) of interest. Can accept extra-arguments.
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
 ##' @param df [logical] Should degree of freedom, computed using Satterthwaite approximation, for the parameter of interest be output.
+##' Can also be a numeric vector providing providing the degrees of freedom relative to each estimate.
 ##' @param type.information [character] Should the expected information be used  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
 ##' @param level [numeric,0-1] the confidence level of the confidence intervals.
 ##' @param average [logical] is the estimand the average output of argument \code{f}?
@@ -112,6 +113,14 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
     }else{
         transform2.rho <- transform.rho
     }
+    if(is.numeric(df)){
+        e.df <- df
+        df <- FALSE
+    }else if(is.logical(df) && length(df)==1){
+        e.df <- NULL
+    }else{
+        stop("Argument \'df\' must be a logical value or a numeric vector. \n")
+    }
 
     ## ** estimate
     beta <- coef(x, effects = "all", transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho, transform.names = FALSE)
@@ -125,20 +134,32 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
     if(length(f.formals)==1){
         if(average){
             fbeta.indiv <- f(beta) 
+            if(!is.vector(fbeta.indiv) || !is.numeric(fbeta.indiv)){
+                stop("The output of the function defined in the argument \'FUN\' must be a numeric vector. \n")
+            }
             fbeta <- mean(fbeta.indiv)
             grad <- numDeriv::jacobian(func = function(x){mean(f(x))}, x = beta, method = method.numDeriv)
         }else{
             fbeta <- f(beta)
+            if(!is.vector(fbeta) || !is.numeric(fbeta)){
+                stop("The output of the function defined in the argument \'FUN\' must be a numeric vector. \n")
+            }
             grad <- numDeriv::jacobian(func = f, x = beta, method = method.numDeriv)
         }
         
     }else{
         if(average){
             fbeta.indiv <- f(beta, ...)
+            if(!is.vector(fbeta.indiv) || !is.numeric(fbeta.indiv)){
+                stop("The output of the function defined in the argument \'FUN\' must be a numeric vector. \n")
+            }
             fbeta <- mean(fbeta.indiv)
             grad <- numDeriv::jacobian(func = function(x, ...){mean(f(x, ...))}, x = beta, method = method.numDeriv)
         }else{
             fbeta <- f(beta, ...)
+            if(!is.vector(fbeta) || !is.numeric(fbeta)){
+                stop("The output of the function defined in the argument \'FUN\' must be a numeric vector. \n")
+            }
             grad <- numDeriv::jacobian(func = f, x = beta, method = method.numDeriv, ...)
         }
     }
@@ -178,22 +199,29 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
         C.sigma.C <- sqrt(diag(C.Sigma.C))
     }
     
-    ## ** df 
-    if(!is.null(attr(Sigma, "dVcov"))){
+    ## ** df
+    if(!is.null(e.df)){
+        if(length(e.df)==1 & length(fbeta)>1){
+            e.df <- rep(e.df,length(fbeta))
+        }else if(length(e.df) != length(fbeta)){
+            stop("Incorrect length of argument \'df\': when a numeric vector it should have same length as the number of estimates. \n",
+                 "Valid length: ",length(fbeta),". \n")
+        }
+    }else if(!is.null(attr(Sigma, "dVcov"))){
         colnames(grad) <- colnames(Sigma)
-        df <- .dfX(X.beta = grad, vcov.param = Sigma, dVcov.param = attr(Sigma, "dVcov"))
+        e.df <- .dfX(X.beta = grad, vcov.param = Sigma, dVcov.param = attr(Sigma, "dVcov"))
     }else{
-        df <- rep(Inf, NROW(grad))
+        e.df <- rep(Inf, NROW(grad))
     }
 
     ## ** export
     alpha <- 1-level
     out <- data.frame(estimate = as.double(fbeta),
                       se = as.double(C.sigma.C),
-                      df = as.double(df),
-                      lower = as.double(fbeta + stats::qt(alpha/2, df = df) * C.sigma.C),
-                      upper = as.double(fbeta + stats::qt(1-alpha/2, df = df) * C.sigma.C),
-                      p.value = as.double(2*(1-stats::pt(abs(fbeta/C.sigma.C), df = df))))
+                      df = as.double(e.df),
+                      lower = as.double(fbeta + stats::qt(alpha/2, df = e.df) * C.sigma.C),
+                      upper = as.double(fbeta + stats::qt(1-alpha/2, df = e.df) * C.sigma.C),
+                      p.value = as.double(2*(1-stats::pt(abs(fbeta/C.sigma.C), df = e.df))))
     attr(out,"gradient") <- grad
     if(!is.null(names(fbeta))){
         rownames(out) <- names(fbeta)

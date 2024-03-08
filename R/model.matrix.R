@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: mar  4 2024 (15:47) 
+## Last-Updated: mar  8 2024 (11:51) 
 ##           By: Brice Ozenne
-##     Update #: 2975
+##     Update #: 2989
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -115,15 +115,18 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
             data.mean <- .updateFactor(data, xfactor = object$xfactor$mean)
 
             ## update formula with attributes from the design matrix
-            ff.mean <- attr(object$design$mean,"terms") ## instead of object$formula$mean.design to handle spline (add attributes predvars with the position of the knots)
+            
             data.mean$XXindexXX <- 1 ## add latent variables used when terms where defined
             data.mean$XXtimeXX <- 1
             data.mean$XXclusterXX <- 1
             data.mean$XXstrataXX <- 1
 
-            ## use stats::model.frame to handle spline
-            data.mf.mean <- stats::model.frame(ff.mean, data = data.mean, na.action = stats::na.pass)
-            design$mean  <- stats::model.matrix(ff.mean, data.mf.mean)[,colnames(object$design$mean),drop=FALSE]
+            ## use stats::model.frame, attr(object$design$mean,"terms") to handle spline (add attributes predvars with the position of the knots)
+            data.mf.mean <- stats::model.frame(attr(object$design$mean,"terms"),
+                                               data = data.mean, na.action = stats::na.pass)
+            ## use object$formula$mean.design to handle interactions
+            ## e.g. B:C + A:B:C does lead to the right names (otherwise can lead to names like B:C:A)
+            design$mean  <- stats::model.matrix(object$formula$mean.design, data.mf.mean)[,colnames(object$design$mean),drop=FALSE]
         }
 
         ## *** variance-covariance

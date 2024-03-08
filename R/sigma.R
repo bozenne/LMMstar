@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: mar  4 2024 (15:41) 
+## Last-Updated: mar  8 2024 (17:48) 
 ##           By: Brice Ozenne
-##     Update #: 686
+##     Update #: 697
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -265,8 +265,8 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
     ## ** subset residual variance-covariance matrix
     if(is.null(cluster)){ ## find unique covariance patterns 
 
-        if(!is.null(Upattern$nameCov)){
-            vec.Upattern <- unlist(by(Upattern,Upattern$nameCov,function(iDf){
+        if(!is.null(Upattern$group)){
+            vec.Upattern <- unlist(by(Upattern,Upattern$group,function(iDf){
                 iDf$name[which.max(iDf$n.time)]
             }, simplify = FALSE))
         }else if(any(Upattern$index.strata>1)){
@@ -301,10 +301,12 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
 
         ## subset
         out <- Omega[vec.Upattern]
-        names(out) <- vec.Upattern        
+        if(!is.null(names(vec.Upattern))){
+            names(out) <- names(vec.Upattern)
+        }
 
         ## add possibly missing times
-        for(iPattern  in vec.Upattern){
+        for(iPattern  in 1:length(vec.Upattern)){
             if(!identical(colnames(out[[iPattern]]),U.time) || !identical(rownames(out[[iPattern]]),U.time)){
                 iOmega.save <- out[[iPattern]]
                 out[[iPattern]] <- matrix(NA, nrow = n.time, ncol = n.time, dimnames = list(U.time,U.time))

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: mar  4 2024 (15:54) 
+## Last-Updated: mar  8 2024 (09:16) 
 ##           By: Brice Ozenne
-##     Update #: 1074
+##     Update #: 1080
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -34,7 +34,7 @@
 ##' @param fitted.ci [logical] Should the confidence intervals relative to the fitted values be added to the output. Only relevant when argument \code{keep.data=TRUE}.
 ##' @param simplify [logical] Simplify the data format (vector instead of data.frame) and column names (no mention of the time variable) when possible.
 ##' Otherwise, information about the call and reference values used for partial residuals be added as an attribute.
-##' 
+##' @param var [Deprecated] Not used anymore, replaced by argument variable. 
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @details The argument \code{type} defines how the residuals are computed:
@@ -113,13 +113,21 @@
 ##' @export
 ##' @rdname residuals
 residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
-                          data = NULL, p = NULL, format = "long", keep.data = FALSE, fitted.ci = FALSE, simplify = TRUE, ...){
+                          data = NULL, p = NULL, format = "long", keep.data = FALSE, fitted.ci = FALSE, simplify = TRUE, var, ...){
 
     mycall <- match.call()
     options <- LMMstar.options()
     type.residual <- type
     sep <- options$sep["residuals"]
-    
+    if (!missing(var)) {
+        if(is.null(variable)){
+            warning("Deprecated argument 'var': use instead argument 'variable'. \n")
+            variable <- var
+        }else{
+            stop("Deprecated argument 'var': use instead argument 'variable'. \n")
+        }
+    }
+
     ## ** extract from object
     xfactorMu <- object$xfactor$mean
     variableMu.name <- attr(object$design$mean,"variable")

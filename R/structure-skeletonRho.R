@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (13:27) 
 ## Version: 
-## Last-Updated: feb 29 2024 (18:08) 
+## Last-Updated: mar  8 2024 (17:57) 
 ##           By: Brice Ozenne
-##     Update #: 952
+##     Update #: 957
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -147,7 +147,7 @@
             code.rho[index.equal] <- paste("R",strataLp[index.equal],sep=sep[2])
             level.rho[index.equal] <- ""            
         }else if(structure$type == "heterogeneous"){
-            code.rho[index.equal] <- paste("R",lp.x[index.equal],sep=sep[2])
+            code.rho[index.equal] <- paste("R",rownames(lp.x)[index.equal],sep=sep[2])
             level.rho[index.equal] <- paste0("(",nlme::collapse(data.x[index.equal,,drop=FALSE], sep = sep[1], as.factor = FALSE),")")
         } 
     }
@@ -177,7 +177,7 @@
                 level.rho[index.equal] <- paste0("(",setdiff(reg.var,unlist(ls.rhovar)),")")
             }
         }else if(structure$type == "heterogeneous"){
-            code.rho[index.unequal] <- paste("D",lp.x[index.unequal],nlme::collapse(diffLp[index.unequal,,drop=FALSE], sep = sep[1], as.factor = FALSE),sep=sep[2])
+            code.rho[index.unequal] <- paste("D",rownames(lp.x)[index.unequal],nlme::collapse(diffLp[index.unequal,,drop=FALSE], sep = sep[1], as.factor = FALSE),sep=sep[2])
             level.rho[index.unequal] <- paste0("(",nlme::collapse(data.x[index.unequal,,drop=FALSE], sep = sep[1], as.factor = FALSE),
                                                ",",nlme::collapse(data.y[index.unequal,,drop=FALSE], sep = sep[1], as.factor = FALSE),
                                                ")")
