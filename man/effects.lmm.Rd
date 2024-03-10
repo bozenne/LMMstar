@@ -101,3 +101,4 @@ effects(eUN.lmmI, type = "difference", variable = "X1.factor",
 effects(eUN.lmmI, type = c("difference","change"), variable = "X1.factor",
         conditional = list(X5=0:2))
 }
+\keyword{htest}

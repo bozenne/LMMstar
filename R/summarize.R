@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: mar  4 2024 (15:52) 
+## Last-Updated: Mar 10 2024 (15:08) 
 ##           By: Brice Ozenne
-##     Update #: 390
+##     Update #: 391
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -166,9 +166,9 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
             if(!is.null(detail.formula$vars$time[1]) && detail.formula$vars$time[1]=="."){
                 name.X <- setdiff(names(data),c(detail.formula$vars$response,detail.formula$var$cluster))
                 if(length(name.X)==0){
-                    formula <- reformulate(response = paste0(name.Y,collapse="+"), termlabels = paste0("1|",detail.formula$var$cluster))
+                    formula <- stats::reformulate(response = paste0(name.Y,collapse="+"), termlabels = paste0("1|",detail.formula$var$cluster))
                 }else{
-                    formula <- reformulate(response = paste0(name.Y,collapse="+"), termlabels = paste0(paste(name.X,collapse="+"),"|",detail.formula$var$cluster))
+                    formula <- stats::reformulate(response = paste0(name.Y,collapse="+"), termlabels = paste0(paste(name.X,collapse="+"),"|",detail.formula$var$cluster))
                 }
                 detail.formula <- formula2var(formula)
             }

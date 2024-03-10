@@ -24,7 +24,8 @@
 
 \item{f}{[function] function of the model coefficient computing the parameter(s) of interest. Can accept extra-arguments.}
 
-\item{df}{[logical] Should degree of freedom, computed using Satterthwaite approximation, for the parameter of interest be output.}
+\item{df}{[logical] Should degree of freedom, computed using Satterthwaite approximation, for the parameter of interest be output.
+Can also be a numeric vector providing providing the degrees of freedom relative to each estimate.}
 
 \item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.}
 

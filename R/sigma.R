@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: mar  8 2024 (17:48) 
+## Last-Updated: Mar 10 2024 (16:39) 
 ##           By: Brice Ozenne
-##     Update #: 697
+##     Update #: 699
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -264,7 +264,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
 
     ## ** subset residual variance-covariance matrix
     if(is.null(cluster)){ ## find unique covariance patterns 
-
+        browser()
         if(!is.null(Upattern$group)){
             vec.Upattern <- unlist(by(Upattern,Upattern$group,function(iDf){
                 iDf$name[which.max(iDf$n.time)]

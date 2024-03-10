@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: feb 29 2024 (18:57) 
+## Last-Updated: Mar 11 2024 (00:32) 
 ##           By: Brice Ozenne
-##     Update #: 860
+##     Update #: 899
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -124,7 +124,7 @@
                                    index.clusterStrata = index.clusterStrata, U.strata = U.strata)
 
     ## rename patterns (to add possible extra covariates)
-    Upattern.group <- .namePatternCov(Upattern = structure$Upattern, structure = structure, sep = sep)
+    Upattern.group <- .namePatternCov(structure = structure, sep = sep)
     if(length(Upattern.group)==NROW(structure$Upattern)){
         structure$Upattern$group <- Upattern.group
     }
@@ -317,8 +317,8 @@
                                    index.cluster = index.cluster, U.cluster = U.cluster,
                                    index.clusterStrata = index.clusterStrata, U.strata = U.strata)
 
-    ## rename patterns (to add possible extra covariates)
-    Upattern.group <- .namePatternCov(Upattern = structure$Upattern, structure = structure, sep = attr(structure$Upattern,"sep"))
+    ## rename patterns (to add possible extra covariates)    
+    Upattern.group <- .namePatternCov(structure = structure, sep = attr(structure$Upattern,"sep"))
     if(length(Upattern.group)==NROW(structure$Upattern)){
         structure$Upattern$group <- Upattern.group
     }
@@ -408,59 +408,82 @@
 }
 
 ## * .namePatternCov
-.namePatternCov <- function(Upattern, structure, sep){
+.namePatternCov <- function(structure, sep){
 
-    ## ** variance
-    if(any(!is.na(Upattern$var)) && NROW(structure$var$lp2X)>1){ ## if variance structure and variables in the variable structure
-        variable.variance <- setdiff(unique(stats::na.omit(c(structure$name$strata,structure$name$var[[1]]))),c(structure$name$time,attr(structure$name$time,"original")))
-        if(length(variable.variance)>0){
-            out.var <- sapply(structure$var$pattern2lp, function(iLp){ ## iLp <- structure$var$pattern2lp[[1]]
-                iX <- structure$var$lp2data[iLp,variable.variance,drop=FALSE]
-                iName <- sapply(iX, function(iVec){if(length(unique(iVec))>1){NA}else{as.character(iVec[1])}})
-                return(paste(stats::na.omit(iName), collapse = sep))
-            })        
-        }else{
-            out.var <- NULL
-        }
-    }else{
-        out.var <- NULL
+    
+    ## patterns, with the one(s) associated to the largest number of cluster first
+    Uorder <- order(structure$Upattern$n.time, decreasing = TRUE)
+    Upattern <- structure$Upattern[Uorder,,drop=FALSE]
+    n.Upattern <- NROW(Upattern)
+    Uparam <- unique(unlist(Upattern$param))
+    n.Uparam <- length(Uparam)
+
+    ## ** deal with special case
+    if(n.Upattern==1){
+        return(1)
     }
 
-    ## ** correlation
-    if(any(!is.na(Upattern$var)) && any(!is.na(Upattern$cor)) && NROW(structure$cor$lp2X)>0){
-        variable.correlation <- setdiff(unique(stats::na.omit(c(structure$name$strata,structure$name$cor[[1]]))),c(structure$name$time,attr(structure$name$time,"original")))
-        if(length(variable.correlation)>0){
-            out.cor <- sapply(structure$cor$pattern2lp, function(iLp){ ## iLp <- structure$cor$pattern2lp[[1]]
-                iX <- structure$cor$lp2data[iLp,variable.correlation,drop=FALSE]
-                iName <- sapply(iX, function(iVec){if(length(unique(iVec))>1){NA}else{as.character(iVec[1])}})
-                return(paste(stats::na.omit(iName), collapse = sep))
-            })        
-        }else{
-            out.cor <- NULL
-        }
-    }else{
-        out.cor <- NULL
-    }
+    ## ** find representative patterns
+    Upattern$group <- c(1, rep(NA, n.Upattern-1))
+    M.group <- rbind(Uparam %in% Upattern$param[[1]])
+    index.group <- 1
 
-    ## ** merge
-    if((is.null(out.var) && is.null(out.cor)) || (all(out.var=="") && all(out.cor==""))){
-        return(NULL)
-    }else if(!is.null(out.var) && (is.null(out.cor) || all(out.cor==""))){
-        return(out.var)
-    }else if((is.null(out.var) || all(out.var=="")) && !is.null(out.cor)){
-        return(out.cor)
-    }else if(!is.null(out.var) && !is.null(out.cor)){
-        if(identical(out.var,out.cor)){
-            return(out.var)
-        }else if(all(variable.correlation %in% variable.variance)){
-            return(out.var)
-        }else if(all(variable.variance %in% variable.correlation)){
-            return(out.cor)
-        }else{
-            return(paste(out.var,out.cor,sep = paste0(sep,sep)))
+    for(iPattern in 2:n.Upattern){ ## iPattern <- 2
+
+        iParam.test <- Uparam %in% Upattern$param[[iPattern]]
+        iContrast <- sweep(M.group, MARGIN = 2, FUN = "-", STATS = iParam.test)
+        if(any(rowSums(iContrast>0)==0)){ ## subset of another pattern (possibly several but label as first one)
+            Upattern$group[iPattern] <- index.group[which(rowSums(iContrast>0)==0)[1]]
+        }else if(any(rowSums(iContrast<0)==0)){ ## contain other patterns
+            iMerge <- which(rowSums(iContrast<0)==0)
+
+            Upattern[iPattern,"group"] <- Upattern[index.group[iMerge[1]],"group"]
+            index.group[iMerge[1]] <- iPattern
+            M.group[iMerge[1],] <- iParam.test 
+            if(length(iMerge)>1){ ## handle the case where merging two covaraince structures into a bigger one, e.g. A,B and A,C into A,B,C
+                index.group <- index.group[-iMerge[-1]]
+                M.group <- M.group[-iMerge[-1],,drop=FALSE]
+                Upattern[iPattern,"group"] <- as.numeric(as.factor(Upattern[iPattern,"group"]))
+            }
+        }else{ ## new pattern
+            Upattern[iPattern,"group"] <- length(index.group)+1
+            index.group <- c(index.group, iPattern)
+            M.group <- rbind(M.group, iParam.test)
         }
     }
 
+    ## ** find pattern name
+    cor.onlyvar <- setdiff(structure$name$cor[[1]], structure$name$var[[1]])
+    vcov.var <- stats::na.omit(c(structure$name$var[[1]], cor.onlyvar))
+    test.varstructure <- any(!is.na(Upattern$var)) && NROW(structure$var$lp2X)>1
+    test.corstructure <- any(!is.na(Upattern$cor)) && NROW(structure$cor$lp2X)>0
+    
+    if(length(vcov.var)>0){
+        ls.name <- by(Upattern, Upattern$group, function(iUpattern){ ## iUpattern <- Upattern[Upattern$group == 1,]
+            iData <- NULL
+            if(test.varstructure){
+                iUlp.var <- unique(unlist(structure$var$pattern2lp[unique(iUpattern$var)]))
+                iData <- structure$var$lp2data[iUlp.var,,drop=FALSE]              
+            }
+            if(test.corstructure && length(cor.onlyvar)>0){
+                iUlp.cor <- unique(unlist(structure$cor$pattern2lp[unique(iUpattern$cor)]))
+                if(is.null(iData)){
+                    iData <- structure$cor$lp2data[iUlp.var,,drop=FALSE]              
+                }else{
+                    iData <- cbind(iData, structure$cor$lp2data[iUlp.var,cor.onlyvar,drop=FALSE])
+                }
+                
+            }
+            iKeep.col <- apply(iData, MARGIN = 2, function(iCol){length(unique(iCol))==1})
+            return(paste(iData[1,iKeep.col], collapse = sep))
+        })
+        Upattern$group <- factor(Upattern$group, labels = unlist(ls.name))
+    }
+
+    ## ** export
+    ## Upattern[order(Uorder),]
+    return(Upattern$group[order(Uorder)])
+    
 }
 ##----------------------------------------------------------------------
 ### findPatterns.R ends here

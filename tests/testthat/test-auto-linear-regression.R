@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: aug  1 2023 (11:59) 
+## Last-Updated: Mar 10 2024 (16:01) 
 ##           By: Brice Ozenne
-##     Update #: 216
+##     Update #: 219
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -380,7 +380,7 @@ test_that("single variance parameter (REML)",{
     expect_equal(test$multivariate$p.value,GS[["p-value"]][-1], tol = 1e-6)
 
     ## ** predictions
-    test <- predict(e.lmm, newdata = d)
+    test <- predict(e.lmm, newdata = d, se = TRUE)
     GS <- predict(e.lm, newdata = d, se = TRUE)
     expect_equal(test$estimate,as.double(GS$fit), tol = 1e-7)
     expect_equal(test$se,as.double(GS$se.fit), tol = 1e-7)
@@ -690,11 +690,11 @@ test_that("multiple variance parameters (REML)",{
     ## ** predictions
     if(require(AICcmodavg)){
         GS <- AICcmodavg::predictSE(e.gls2, newdata = d)
-        pp1 <- predict(e.lmm, newdata = d)
-        pp2 <- predict(e.lmm2, newdata = d)
+        pp1 <- predict(e.lmm, newdata = d, se = TRUE)
+        pp2 <- predict(e.lmm2, newdata = d, se = TRUE)
         set.seed(10)
         index <- sample.int(NROW(d))
-        pp3 <- predict(e.lmm, newdata = d[index,,drop=FALSE])
+        pp3 <- predict(e.lmm, newdata = d[index,,drop=FALSE], se = TRUE)
         expect_equivalent(pp1$estimate,GS$fit, tol = 1e-5)
         expect_equivalent(pp1$se,GS$se.fit, tol = 1e-5)
         expect_equal(pp1,pp2, tol = 1e-5)

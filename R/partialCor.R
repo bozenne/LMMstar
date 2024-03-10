@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: feb 15 2024 (15:53) 
+## Last-Updated: Mar 10 2024 (15:59) 
 ##           By: Brice Ozenne
-##     Update #: 524
+##     Update #: 528
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -330,9 +330,8 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
                 code.rho <- e.lmm$design$param[e.lmm$design$param$type=="rho","code"]
                 name.rhoWithinBlock <- name.rho[grepl("R.",code.rho)]
                 name.rhoAcrossBlock <- setdiff(name.rho, c(name.rhoWithinBlock, name.rho.marginal))
-
                 test.atanh <- identical(attr(out,"backtransform")$FUN,"tanh")
-                out2 <- estimate(e.lmm, df = df, f = function(p){
+                out2 <- estimate(e.lmm, df = df, f = function(p){ ## p <- coef(e.lmm, effects = "all")
                     if(any(p[name.rhoWithinBlock]<0)){
                         iOut <- c(NA,NA)
                     }else{

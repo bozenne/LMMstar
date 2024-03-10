@@ -18,6 +18,7 @@
   keep.data = FALSE,
   fitted.ci = FALSE,
   simplify = TRUE,
+  var,
   ...
 )
 
@@ -49,6 +50,8 @@ Only possible in the long format.}
 
 \item{simplify}{[logical] Simplify the data format (vector instead of data.frame) and column names (no mention of the time variable) when possible.
 Otherwise, information about the call and reference values used for partial residuals be added as an attribute.}
+
+\item{var}{[Deprecated] Not used anymore, replaced by argument variable.}
 
 \item{...}{Not used. For compatibility with the generic method.}
 }

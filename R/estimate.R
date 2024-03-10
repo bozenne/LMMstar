@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: mar  6 2024 (13:17) 
+## Last-Updated: Mar 10 2024 (15:59) 
 ##           By: Brice Ozenne
-##     Update #: 1059
+##     Update #: 1063
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -134,14 +134,14 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
     if(length(f.formals)==1){
         if(average){
             fbeta.indiv <- f(beta) 
-            if(!is.vector(fbeta.indiv) || !is.numeric(fbeta.indiv)){
+            if(!is.vector(fbeta.indiv) || (!is.numeric(fbeta.indiv) && !is.logical(fbeta.indiv))){
                 stop("The output of the function defined in the argument \'FUN\' must be a numeric vector. \n")
             }
             fbeta <- mean(fbeta.indiv)
             grad <- numDeriv::jacobian(func = function(x){mean(f(x))}, x = beta, method = method.numDeriv)
         }else{
             fbeta <- f(beta)
-            if(!is.vector(fbeta) || !is.numeric(fbeta)){
+            if(!is.vector(fbeta) || (!is.numeric(fbeta) && !is.logical(fbeta))){
                 stop("The output of the function defined in the argument \'FUN\' must be a numeric vector. \n")
             }
             grad <- numDeriv::jacobian(func = f, x = beta, method = method.numDeriv)
@@ -150,14 +150,14 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
     }else{
         if(average){
             fbeta.indiv <- f(beta, ...)
-            if(!is.vector(fbeta.indiv) || !is.numeric(fbeta.indiv)){
+            if(!is.vector(fbeta.indiv) || (!is.numeric(fbeta.indiv) && !is.logical(fbeta.indiv))){
                 stop("The output of the function defined in the argument \'FUN\' must be a numeric vector. \n")
             }
             fbeta <- mean(fbeta.indiv)
             grad <- numDeriv::jacobian(func = function(x, ...){mean(f(x, ...))}, x = beta, method = method.numDeriv)
         }else{
             fbeta <- f(beta, ...)
-            if(!is.vector(fbeta) || !is.numeric(fbeta)){
+            if(!is.vector(fbeta) || (!is.numeric(fbeta) && !is.logical(fbeta))){
                 stop("The output of the function defined in the argument \'FUN\' must be a numeric vector. \n")
             }
             grad <- numDeriv::jacobian(func = f, x = beta, method = method.numDeriv, ...)

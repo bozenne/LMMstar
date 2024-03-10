@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: mar  4 2024 (16:47) 
+## Last-Updated: Mar 10 2024 (23:04) 
 ##           By: Brice Ozenne
-##     Update #: 154
+##     Update #: 157
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -564,7 +564,7 @@ test_that("Partial residuals in presence of missing covariate values", {
     e.lmm <- suppressWarnings(lmm(qol1 ~ sex + age + group, data = abetaW))
     
     expect_equivalent(abetaW$qol1 - coef(e.lmm)["sexM"] * (abetaW$sex=="M") - coef(e.lmm)["age"] * abetaW$age,
-                      as.double(residuals(e.lmm, type = "partial", var = c("(Intercept)","group"))), tol = 1e-5)
+                      as.double(residuals(e.lmm, type = "partial", variable = c("(Intercept)","group"))), tol = 1e-5)
 
 
 })
@@ -578,10 +578,19 @@ test_that("lmm with missing values", {
                      "value" = c(0.05018746, 0.10815747, 0.14628669, 0.12400832, 0.17294545, 0.06389794, 0.13791924, 0.14636324, 0.05373327, 0.02743522, 0.07101780, 0.05755782, 0.02761766, NA, 0.08741390, 0.07089347, 0.04045056, 0.06804850, 0.09925521, 0.16482979, NA, 0.06814713, 0.20325134), 
                      "repetition" = c("1.1", "2.1", "1.2", "2.2", "1.1", "2.1", "1.2", "2.2", "1.1", "1.2", "2.2", "1.2", "2.2", "1.1", "2.1", "1.2", "2.2", "1.1", "2.1", "1.2", "2.2", "1.2", "2.2"))
 
+    df$Sex <- df$patient %% 2
+    xxx <- lmm(value ~ week,
+               repetition = ~repetition|patient,
+               structure = CS(list(~week+Sex,~week+Sex)),
+               data = df, df = FALSE)
+
     xxx <- lmm(value ~ week,
                repetition = ~repetition|patient,
                structure = CS(list(~1,~week)),
                data = df, df = FALSE)
+
+    sigma(xxx)
+    
     yyy <- lmm(value ~ week,
                repetition = ~repetition|patient,
                structure = CS(list(~week,~week)),

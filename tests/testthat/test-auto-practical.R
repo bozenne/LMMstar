@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (17:03) 
 ## Version: 
-## Last-Updated: jan 23 2024 (12:00) 
+## Last-Updated: Mar 10 2024 (16:23) 
 ##           By: Brice Ozenne
-##     Update #: 118
+##     Update #: 120
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -335,7 +335,7 @@ test_that("practical 6 - vasscoresL",{
 
     ## autoplot(fit.CS)
     suppressWarnings(autoplot(fit.CS, obs.alpha = 0.1))
-    dummy.coef(fit.CS)
+
     fit.UN <- lmm(vas~-1+treatment, data=vasscoresL,
                   repetition=~treatment|id, structure="UN")
     capture.output(summary(fit.UN))
@@ -351,10 +351,10 @@ test_that("practical 6 - vasscoresL",{
                  )
     expect_equivalent(sigma(fit.UN), GS, tol = 1e-5)
 
-    vasscoreL.imputed <- fitted(fit.UN, impute = TRUE, keep.newdata = TRUE)
+    vasscoreL.imputed <- fitted(fit.UN, type = "outcome", keep.newdata = TRUE)
     set.seed(11)
-    gg <- ggplot(vasscoreL.imputed, aes(x=treatment, y = vas, group = id))
-    gg + geom_jitter(aes(color = imputed), height = 1, width = 0) + geom_line()
+    gg <- ggplot(vasscoreL.imputed, aes(x = treatment, y = vas, group = id))
+    gg + geom_point(aes(color = impute)) + geom_line()
 
     ## ** model some pairs: AB, AC
     ## IMPORTANT: check extraction of the residual variance-covariance matrix when not all pairs of time are analyzed

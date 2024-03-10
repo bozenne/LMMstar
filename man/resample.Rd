@@ -29,7 +29,8 @@ resample(object, type, ...)
 
 \item{...}{Not used. For compatibility with the generic method.}
 
-\item{effects}{[character vector] the variable(s) to be permuted or the effect(s) to be tested via non-parametric bootstrap.}
+\item{effects}{[character vector] the variable(s) to be permuted or the effect(s) to be tested via non-parametric bootstrap.
+Can also be a function of the model parameters when performing non-parametric bootstrap.}
 
 \item{n.sample}{[integer] the number of samples used.}
 

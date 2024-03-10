@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: mar  4 2024 (15:59) 
+## Last-Updated: Mar 10 2024 (15:08) 
 ##           By: Brice Ozenne
-##     Update #: 1390
+##     Update #: 1391
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -264,7 +264,7 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
     ## check format
     format[] <- match.arg(format, c("wide","long"))  ## use 'format[] <-' instead of 'format <-' to keep the name that will be transferd to .reformat(
     if(keep.newdata && format == "wide" && is.null(attr(keep.newdata, "var"))){
-        attr(keep.newdata, "var") <- .baselineVar.lmm(e.lmm)
+        attr(keep.newdata, "var") <- .baselineVar.lmm(object)
     }    
     if(format == "wide" && (df==TRUE||sum(se)>0)){
         if("df" %in% names(mycall) || "se" %in% names(mycall)){

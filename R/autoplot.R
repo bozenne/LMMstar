@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: mar  4 2024 (14:14) 
+## Last-Updated: Mar 10 2024 (15:38) 
 ##           By: Brice Ozenne
-##     Update #: 1160
+##     Update #: 1188
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -70,22 +70,35 @@
 ##' #### fit Linear Mixed Model ####
 ##' eCS.lmm <- lmm(Y ~ visit + X1 + X6,
 ##'                repetition = ~visit|id, structure = "CS", data = dL, df = FALSE)
-##' 
+##'
+##' #### model fit ####
 ##' plot(eCS.lmm, type = "fit", facet =~X1)
+##' ## customize display
 ##' gg <- autoplot(eCS.lmm, type = "fit", facet =~X1)$plot
 ##' gg + coord_cartesian(ylim = c(0,6))
+##' ## restrict to specific covariate value
 ##' plot(eCS.lmm, type = "fit", at = data.frame(X6=1), color = "X1")
+##'
+##' #### qqplot ####
 ##' plot(eCS.lmm, type = "qqplot")
 ##' plot(eCS.lmm, type = "qqplot", engine.qqplot = "qqtest")
-##' plot(eCS.lmm, type = "correlation") 
-##' plot(eCS.lmm, type = "scatterplot") 
-##' plot(eCS.lmm, type = "scatterplot2") 
+##'
+##' #### residual correlation ####
+##' plot(eCS.lmm, type = "correlation")
+##'
+##' #### residual trend ####
+##' plot(eCS.lmm, type = "scatterplot")
+##' 
+##' #### residual heteroschedasticity ####
+##' plot(eCS.lmm, type = "scatterplot2")
+##'
+##' #### partial residuals ####
 ##' plot(eCS.lmm, type = "partial", type.residual = "X1") 
 ##' plot(eCS.lmm, type = "partial", type.residual = "X6") 
 ##' plot(eCS.lmm, type = "partial", type.residual = "visit") 
 ##' plot(eCS.lmm, type = "partial", type.residual = c("(Intercept)","X1","visit"))
 ##' plot(eCS.lmm, type = "partial", type.residual = c("(Intercept)","X1","visit"),
-##'      color = "X1", facet =~1)
+##' facet = ~X1)
 ##' }
 
 ## * autoplot.lmm (code)
@@ -140,7 +153,7 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
         }
 
         ## extract partial residuals
-        outRes <- stats::residuals(object, type = type, format = c("wide","long"), var = type.residual, at = at, keep.data = TRUE, simplify = FALSE,
+        outRes <- stats::residuals(object, type = type, format = c("wide","long"), variable = type.residual, at = at, keep.data = TRUE, simplify = FALSE,
                                    fitted.ci = !is.null(ci.alpha) && !is.na(ci.alpha))
         out <- do.call(autoplot.residuals_lmm, args = c(list(outRes,
                                                              type = type,
@@ -393,8 +406,7 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
     }else{
         U.time <- sort(unique(preddata[[time.var.plot]]))
     }
-
-    keep.col <- c("XXclusterXX",time.var.plot,outcome.var,color,"estimate","lower","upper")
+    keep.col <- c("XXclusterXX",time.var.plot,outcome.var,color,all.vars(facet),"estimate","lower","upper")
     preddata <- do.call(rbind,by(preddata[keep.col], preddata$XXclusterXX, function(iDF){ ## iDF <- preddata[preddata$XXclusterXX==1,]
         if(all(U.time %in% iDF[[time.var.plot]])){
             return(iDF)
@@ -808,7 +820,7 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, fa
         if(any(all.vars(facet) %in% names(object) == FALSE) && any(all.vars(facet) %in% names(attr(object,"wide")) == FALSE)){
             hide.name <- c(paste0("XX",c("index","cluster","time","strata"),"XX"),
                            paste0("XX",c("index","cluster","time","strata"),".indexXX"),
-                           attr(object,"args")$name.time,attr(object,"args")$outcome,attr(object,"args")$nameL.cores,attr(object,"args")$nameW.cores)
+                           name.time, args$outcome, args$nameL.cores, args$nameW.cores)
             missing.var1 <- setdiff(all.vars(facet), names(object))
             missing.var2 <- setdiff(all.vars(facet), names(attr(object,"wide")))
             missing.var <- c(missing.var1,missing.var2)[which.min(c(length(missing.var1),length(missing.var2)))]
@@ -816,8 +828,8 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, fa
                  "Unknown variable(s): \"",paste(missing.var, collapse = "\" \""),"\" \n")
         }
         
-    }else if(type %in% c("partial","partial-center") && n.time > 1 && !all(args$var %in% c(args$name.time,attr(args$name.time,"original")))){
-        facet <- stats::as.formula(paste0("~",name.time))
+    }else if(type %in% c("partial","partial-center")){
+        facet <- NULL
     }
 
     ## format
@@ -846,12 +858,12 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, fa
         
         
     }else if(type == "qqplot"){
-        by.repetition <- any(all.vars(facet) %in% c(attr(object,"args")$name.time,attr(attr(object,"args")$name.time,"original")))
+        by.repetition <- any(all.vars(facet) %in% c(name.time,attr(name.time,"original")))
         
         if(engine.qqplot == "qqtest"){
-            if(any(all.vars(facet) %in% c(attr(object,"args")$name.time,attr(attr(object,"args")$name.time,"original")) == FALSE)){
+            if(any(all.vars(facet) %in% c(name.time,attr(name.time,"original")) == FALSE)){
                 stop("Can only stratify the display regarding the time variable when using engine.qqplot=\"qqtest\". \n",
-                     "time variable: \"",paste(union(attr(object,"args")$name.time,attr(attr(object,"args")$name.time,"original")), collapse = "\", \""),"\"\n",
+                     "time variable: \"",paste(union(name.time,attr(name.time,"original")), collapse = "\", \""),"\"\n",
                      "Consider using engine.qqplot=\"ggplot2\". \n")
             }
             if(by.repetition){
@@ -883,7 +895,7 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, fa
     }
 
     if(type %in% c("scatterplot","scatterplot2")){
-        by.repetition <- any(all.vars(facet) %in% c(attr(object,"args")$name.time,attr(attr(object,"args")$name.time,"original")))
+        by.repetition <- any(all.vars(facet) %in% c(name.time,attr(name.time,"original")))
 
         if(by.repetition){
             if(name.time %in% names(object) == FALSE){
@@ -899,8 +911,8 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, fa
     }
 
     if(is.null(color)){ ## necessary when function called from autplot.lmm
-        if(type %in% c("partial","partial-center") && n.time>1 && length(setdiff(args$var,"(Intercept)"))==2 && args$name.time %in% args$var){
-            color <- setdiff(args$var, c(args$name.time,"(Intercept)"))
+        if(type %in% c("partial","partial-center") && n.time>1 && length(setdiff(args$var,"(Intercept)"))==2 && name.time %in% args$var){
+            color <- setdiff(args$var, c(name.time,"(Intercept)"))
         }else{
             color <- switch(type,
                             scatterplot = "black",
@@ -1019,27 +1031,37 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, fa
             }
         }
         ## display
-        if(all(type.var=="categorical")){
+        if(all(type.var == "categorical")){
             gg <- ggplot2::ggplot(data = df.gg, mapping = ggplot2::aes(x = .data[[name.varcat]]))
+
+            ## observations
             if(color[1] %in% names(df.gg)){
                 gg <- gg + ggplot2::geom_point(ggplot2::aes(y = .data$r.partial, color = .data[[color[1]]]), size = obs.size, position = position)
             }else{
                 gg <- gg + ggplot2::geom_point(ggplot2::aes(y = .data$r.partial), color = color[1], size = obs.size)
             }
+
+            ## fit
+            if(utils::tail(color,1) %in% names(df.gg)){
+                gg <- gg + ggplot2::geom_point(ggplot2::aes(y = .data$fitted, fill = .data[[utils::tail(color,1)]]), size = mean.size[1], shape = 21, position = position)
+            }else{
+                gg <- gg + ggplot2::geom_point(ggplot2::aes(y = .data$fitted), size = mean.size[1], shape = 21, fill = utils::tail(color,1))
+            }
+
+            ## uncertainty about the fit
             if(ci){
                 gg <- gg + ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$lower, ymax = .data$upper))
             }
-            if(utils::tail(color,1) %in% names(df.gg)){
-                if(args$name.cluster %in% names(df.gg) && (name.varcat == name.time || all(attr(name.time,"original") %in% name.varcat0))){
+
+            ## connect lines
+            ## if cluster variable available, time is an x-variable not in facet
+            if((args$name.cluster %in% names(df.gg)) && (any(name.varcat %in% name.time) && all(all.vars(facet) %in% name.time == FALSE))){
+                if(utils::tail(color,1) %in% names(df.gg)){
                     gg <- gg + ggplot2::geom_line(ggplot2::aes(y = .data$fitted, group = .data[[args$name.cluster]], color = .data[[utils::tail(color,1)]]),
                                                   linewidth = mean.size[2], position = position)
-                }            
-                gg <- gg + ggplot2::geom_point(ggplot2::aes(y = .data$fitted, fill = .data[[utils::tail(color,1)]]), size = mean.size[1], shape = 21, position = position)
-            }else{
-                if(args$name.cluster %in% names(df.gg) && (all(name.time %in% name.varcat) || all(name.varcat0 %in% attr(name.time,"original")))){
+                }else{
                     gg <- gg + ggplot2::geom_line(ggplot2::aes(y = .data$fitted, group = .data[[args$name.cluster]]), linewidth = mean.size[2])
                 }            
-                gg <- gg + ggplot2::geom_point(ggplot2::aes(y = .data$fitted), size = mean.size[1], shape = 21, fill = utils::tail(color,1))
             }
 
         }else if(length(type.var)==1){

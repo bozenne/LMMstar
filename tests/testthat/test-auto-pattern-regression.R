@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 31 2023 (09:54) 
 ## Version: 
-## Last-Updated: jul 31 2023 (10:29) 
+## Last-Updated: Mar 10 2024 (16:21) 
 ##           By: Brice Ozenne
-##     Update #: 10
+##     Update #: 12
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -196,9 +196,9 @@ test_that("Compound symmetry structure (REML)",{
     sigma(eCS.lmm)
 
     ## ** prediction
-    test <- predict(eCS.lmm, newdata = dL)
+    test <- predict(eCS.lmm, newdata = dL, se = TRUE)
     index <- sample.int(NROW(dL))
-    test2 <- predict(eCS.lmm, newdata = dL[index,,drop=FALSE])
+    test2 <- predict(eCS.lmm, newdata = dL[index,,drop=FALSE], se = TRUE)
     if(require(AICcmodavg)){
         GS <- AICcmodavg::predictSE(eCS.gls, newdata = dL)
         expect_equivalent(test$estimate,GS$fit, tol = 1e-7)
