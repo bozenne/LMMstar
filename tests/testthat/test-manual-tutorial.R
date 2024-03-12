@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: nov 13 2021 (16:47) 
 ## Version: 
-## Last-Updated: aug  1 2023 (14:05) 
+## Last-Updated: mar 12 2024 (10:26) 
 ##           By: Brice Ozenne
-##     Update #: 28
+##     Update #: 30
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -19,7 +19,6 @@ if(FALSE){
     library(testthat)
     library(lattice) 
     library(psych)   
-    library(emmeans) 
 
     library(LMMstar)
 }
@@ -258,10 +257,6 @@ test_that("Extactors for lmm", {
     ## Plot predicted means
     xyplot(estimate~time, data=pred, type='b')
     xyplot(se~time, data=pred, type='b')
-
-    ## OPTIONAL: Picture including 95% CIs (emmeans-package)
-    emmip(fit.main, ~time, CIs=TRUE, xlab='Time', ylab='Mean weight')
-
 
     ## Residual diagnostics
     par(mfrow=c(2,2))

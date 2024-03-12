@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (11:59) 
 ## Version: 
-## Last-Updated: May 27 2021 (17:31) 
+## Last-Updated: mar 12 2024 (09:55) 
 ##           By: Brice Ozenne
-##     Update #: 7
+##     Update #: 8
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -19,9 +19,6 @@ LMMstar.env <- new.env() # create a specific environment for the package
 .onAttach <- function(lib, pkg="LMMstar") {
     desc <- utils::packageDescription(pkg)
     packageStartupMessage(desc$Package, " version ",desc$Version)
-    if (requireNamespace("emmeans", quietly = TRUE)){
-        emmeans::.emm_register("lmm", "LMMstar")
-    }
     LMMstar.options(reinitialise = TRUE) # generate .LMMstar-options when loading the package   
 }
 

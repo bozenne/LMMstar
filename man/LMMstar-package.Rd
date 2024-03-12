@@ -45,12 +45,12 @@ It is possible to use other optimizer inferfaced by \code{optimx::optimx}.
 
 \strong{Keywords}: documented methods/functions are classified according to the following keywords \itemize{
 \item models: function fitting a statistical model based on a dataset (e.g. \code{\link{lmm}}, \code{\link{lmmCC}}, \code{\link{mlmm}}, \code{\link{mt.test}}, \code{\link{partialCor}})
-\item htest: methods performing statistical inference based on an existing model (e.g. \code{\link{anova.lmm}}, \code{\link{estimate.lmm}}, \code{\link{profile.lmm}}, \code{\link{rbind.Wald_lmm}}, \code{\link{resample.lmm}})
-\item methods: extractors (e.g. \code{\link{coef.lmm}}, \code{\link{confint.lmm}}, \code{\link{df.residual.lmm}}, \code{\link{dummy.coef.lmm}}, \code{\link{fitted.lmm}}, \code{\link{iid.lmm}}, \code{\link{information.lmm}}, \code{\link{levels.lmm}}, \code{\link{logLik.lmm}}, \code{\link{manifest.lmm}}, \code{\link{model.tables.lmm}}, \code{\link{predict.lmm}}, \code{\link{ranef.lmm}}, \code{\link{residuals.lmm}}, \code{\link{score.lmm}}, \code{\link{sigma.lmm}}, \code{\link{summary.lmm}}, \code{\link{vcov.lmm}}, \code{\link{weights.Wald_lmm}})
-\item utilities: function used to facilitate the user interface (e.g. \code{\link{add}}, \code{\link{baselineAdjustment}}, \code{\link{LMMstar.options}}, \code{\link{proportion}}, \code{\link{remove}}, \code{\link{scatterplot}}, \code{\link{summarizeNA}}, \code{\link{summarize}})
+\item htest: methods performing statistical inference based on an existing model (e.g. \code{\link{anova.lmm}}, \code{\link{estimate.lmm}}, \code{\link{effects.lmm}}, \code{\link{profile.lmm}}, \code{\link{proportion}}, \code{\link{rbind.Wald_lmm}}, \code{\link{resample.lmm}})
+\item methods: extractors (e.g. \code{\link{coef.lmm}}, \code{\link{confint.lmm}}, \code{\link{df.residual.lmm}}, \code{\link{fitted.lmm}}, \code{\link{iid.lmm}}, \code{\link{information.lmm}}, \code{\link{levels.lmm}}, \code{\link{logLik.lmm}}, \code{\link{manifest.lmm}}, \code{\link{model.frame.lmm}}, \code{\link{model.matrix.lmm}}, \code{\link{model.tables.lmm}}, \code{\link{nobs.lmm}}, \code{\link{predict.lmm}}, \code{\link{ranef.lmm}}, \code{\link{residuals.lmm}}, \code{\link{score.lmm}}, \code{\link{sigma.lmm}}, \code{\link{summary.lmm}}, \code{\link{vcov.lmm}}, \code{\link{weights.Wald_lmm}})
+\item utilities: function used to facilitate the user interface (e.g. \code{\link{add}}, \code{\link{baselineAdjustment}}, \code{\link{LMMstar.options}}, \code{\link{remove}}, \code{\link{scatterplot}}, \code{\link{summarize}}, \code{\link{summarizeNA}})
 \item datasets: dataset stored in the package  (e.g. \code{\link{abetaW}})
-\item interface: functions used to interface other software packages (e.g. \code{\link{recover_data.lmm}}, \code{\link{estfun.lmm}}, \code{\link{terms.lmm}}). 
-\item hplot: graphical display (e.g. \code{\link{autoplot.lmm}})
+\item interface: functions used to interface other software packages (e.g. \code{\link{estfun.lmm}}, \code{\link{terms.lmm}}). 
+\item hplot: graphical display (e.g. \code{\link{autoplot.lmm}} or \code{\link{plot.lmm}})
 \item datagen: function for generating data sets (e.g. \code{\link{sampleRem}})
 \item multivariate: covariance patterns (e.g. \code{\link{ID}}, \code{\link{IND}}, \code{\link{CS}}, \code{\link{RE}}, \code{\link{TOEPLITZ}}, \code{\link{UN}}, \code{\link{CUSTOM}})
 }

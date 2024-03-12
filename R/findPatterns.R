@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: Mar 11 2024 (00:32) 
+## Last-Updated: mar 11 2024 (14:54) 
 ##           By: Brice Ozenne
-##     Update #: 899
+##     Update #: 914
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -97,11 +97,6 @@
         })
     }
 
-    ## ** rename patterns
-    if(!is.na(structure$name$strata)){ ## WARNING may not be unique, e.g. in presence of missing values
-        Upattern$group <- as.character(U.strata[Upattern$index.strata])
-    }
-
     ## ** export
     structure$pattern <- as.character(pattern.var)
     attr(structure$pattern,"list") <- tapply(1:n.cluster, structure$pattern, base::identity)
@@ -111,28 +106,7 @@
 }
 
 ## * .findUpatterns.IND
-.findUpatterns.IND <- function(structure, 
-                              index.clusterTime, U.time,
-                              index.cluster, U.cluster,
-                              index.clusterStrata, U.strata){
-
-    sep <- LMMstar.options()$sep["pattern"]
-
-    structure <- .findUpatterns.ID(structure = structure, 
-                                   index.clusterTime = index.clusterTime, U.time = U.time,
-                                   index.cluster = index.cluster, U.cluster = U.cluster,
-                                   index.clusterStrata = index.clusterStrata, U.strata = U.strata)
-
-    ## rename patterns (to add possible extra covariates)
-    Upattern.group <- .namePatternCov(structure = structure, sep = sep)
-    if(length(Upattern.group)==NROW(structure$Upattern)){
-        structure$Upattern$group <- Upattern.group
-    }
-
-    ## export
-    return(structure)
-
-}
+.findUpatterns.IND <- .findUpatterns.ID
 
 
 ## * .findUpatterns.UN
@@ -281,12 +255,7 @@
     Upattern$n.cluster <- UpatternCor[matchCor,"n.cluster"]
     Upattern$n.time <- UpatternCor[matchCor,"n.time"]
     Upattern$param <- unname(mapply(x = UpatternVar$param[matchVar], y = UpatternCor$param[matchCor], FUN = function(x,y){unname(c(x,y))}, SIMPLIFY = FALSE))
-
-    ## ** rename patterns
-    if(!is.na(structure$name$strata)){ ## WARNING may not be unique, e.g. in presence of missing values
-        Upattern$group <- as.character(U.strata[Upattern$index.strata])
-    }
-
+    
     ## ** export
     structure$pattern <- vec.pattern
     attr(structure$pattern,"list") <- tapply(1:n.cluster, vec.pattern, base::identity)
@@ -297,6 +266,9 @@
     return(structure)
 }
 
+## * .findUpatterns.CS
+.findUpatterns.CS <- .findUpatterns.UN
+
 ## * .findUpatterns.RE
 .findUpatterns.RE <- .findUpatterns.UN
 
@@ -306,27 +278,6 @@
 ## * .findUpatterns.EXP
 .findUpatterns.EXP <- .findUpatterns.UN
 
-## * .findUpatterns.CS
-.findUpatterns.CS <- function(structure = structure, 
-                              index.clusterTime, U.time,
-                              index.cluster, U.cluster,
-                              index.clusterStrata, U.strata){
-
-    structure <- .findUpatterns.UN(structure = structure, 
-                                   index.clusterTime = index.clusterTime, U.time = U.time,
-                                   index.cluster = index.cluster, U.cluster = U.cluster,
-                                   index.clusterStrata = index.clusterStrata, U.strata = U.strata)
-
-    ## rename patterns (to add possible extra covariates)    
-    Upattern.group <- .namePatternCov(structure = structure, sep = attr(structure$Upattern,"sep"))
-    if(length(Upattern.group)==NROW(structure$Upattern)){
-        structure$Upattern$group <- Upattern.group
-    }
-
-    ## export
-    return(structure)
-
-}
 
 ## * .findUpatterns_CUSTOM
 .findUpatterns.CUSTOM <- function(structure, 
@@ -407,83 +358,5 @@
     return(structure)
 }
 
-## * .namePatternCov
-.namePatternCov <- function(structure, sep){
-
-    
-    ## patterns, with the one(s) associated to the largest number of cluster first
-    Uorder <- order(structure$Upattern$n.time, decreasing = TRUE)
-    Upattern <- structure$Upattern[Uorder,,drop=FALSE]
-    n.Upattern <- NROW(Upattern)
-    Uparam <- unique(unlist(Upattern$param))
-    n.Uparam <- length(Uparam)
-
-    ## ** deal with special case
-    if(n.Upattern==1){
-        return(1)
-    }
-
-    ## ** find representative patterns
-    Upattern$group <- c(1, rep(NA, n.Upattern-1))
-    M.group <- rbind(Uparam %in% Upattern$param[[1]])
-    index.group <- 1
-
-    for(iPattern in 2:n.Upattern){ ## iPattern <- 2
-
-        iParam.test <- Uparam %in% Upattern$param[[iPattern]]
-        iContrast <- sweep(M.group, MARGIN = 2, FUN = "-", STATS = iParam.test)
-        if(any(rowSums(iContrast>0)==0)){ ## subset of another pattern (possibly several but label as first one)
-            Upattern$group[iPattern] <- index.group[which(rowSums(iContrast>0)==0)[1]]
-        }else if(any(rowSums(iContrast<0)==0)){ ## contain other patterns
-            iMerge <- which(rowSums(iContrast<0)==0)
-
-            Upattern[iPattern,"group"] <- Upattern[index.group[iMerge[1]],"group"]
-            index.group[iMerge[1]] <- iPattern
-            M.group[iMerge[1],] <- iParam.test 
-            if(length(iMerge)>1){ ## handle the case where merging two covaraince structures into a bigger one, e.g. A,B and A,C into A,B,C
-                index.group <- index.group[-iMerge[-1]]
-                M.group <- M.group[-iMerge[-1],,drop=FALSE]
-                Upattern[iPattern,"group"] <- as.numeric(as.factor(Upattern[iPattern,"group"]))
-            }
-        }else{ ## new pattern
-            Upattern[iPattern,"group"] <- length(index.group)+1
-            index.group <- c(index.group, iPattern)
-            M.group <- rbind(M.group, iParam.test)
-        }
-    }
-
-    ## ** find pattern name
-    cor.onlyvar <- setdiff(structure$name$cor[[1]], structure$name$var[[1]])
-    vcov.var <- stats::na.omit(c(structure$name$var[[1]], cor.onlyvar))
-    test.varstructure <- any(!is.na(Upattern$var)) && NROW(structure$var$lp2X)>1
-    test.corstructure <- any(!is.na(Upattern$cor)) && NROW(structure$cor$lp2X)>0
-    
-    if(length(vcov.var)>0){
-        ls.name <- by(Upattern, Upattern$group, function(iUpattern){ ## iUpattern <- Upattern[Upattern$group == 1,]
-            iData <- NULL
-            if(test.varstructure){
-                iUlp.var <- unique(unlist(structure$var$pattern2lp[unique(iUpattern$var)]))
-                iData <- structure$var$lp2data[iUlp.var,,drop=FALSE]              
-            }
-            if(test.corstructure && length(cor.onlyvar)>0){
-                iUlp.cor <- unique(unlist(structure$cor$pattern2lp[unique(iUpattern$cor)]))
-                if(is.null(iData)){
-                    iData <- structure$cor$lp2data[iUlp.var,,drop=FALSE]              
-                }else{
-                    iData <- cbind(iData, structure$cor$lp2data[iUlp.var,cor.onlyvar,drop=FALSE])
-                }
-                
-            }
-            iKeep.col <- apply(iData, MARGIN = 2, function(iCol){length(unique(iCol))==1})
-            return(paste(iData[1,iKeep.col], collapse = sep))
-        })
-        Upattern$group <- factor(Upattern$group, labels = unlist(ls.name))
-    }
-
-    ## ** export
-    ## Upattern[order(Uorder),]
-    return(Upattern$group[order(Uorder)])
-    
-}
 ##----------------------------------------------------------------------
 ### findPatterns.R ends here

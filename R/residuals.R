@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: mar  8 2024 (09:16) 
+## Last-Updated: mar 11 2024 (17:56) 
 ##           By: Brice Ozenne
-##     Update #: 1080
+##     Update #: 1084
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -296,7 +296,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
                 data.reference[[iVar]] <- reference[[iVar]]
             }
         }
-        
+
         ## build design matrix
         design.reference <- stats::model.matrix(object, data = data.reference, effects = effects, simplify = TRUE)
         if(length(object$index.na)>0){

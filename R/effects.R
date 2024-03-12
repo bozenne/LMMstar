@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 29 2024 (09:47) 
 ## Version: 
-## Last-Updated: mar  4 2024 (14:02) 
+## Last-Updated: mar 11 2024 (10:09) 
 ##           By: Brice Ozenne
-##     Update #: 317
+##     Update #: 320
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -220,13 +220,13 @@ effects.lmm <- function(object, type = c("identity","none"), variable, condition
         stop("Argument \'conditional\' must either be NULL, or a character vector indicating factor variables, or a named list of covariate values. \n")
     }
     if(!is.null(conditional)){            
-        key.conditional <- interaction(grid.conditional, sep = sep.var)
-        key.original <- levels(key.conditional)[match(interaction(data.original[names(grid.conditional)], sep =  sep.var), key.conditional)]
+        key.conditional <- nlme::collapse(grid.conditional, sep = sep.var)
+        key.original <- levels(key.conditional)[match(nlme::collapse(data.original[names(grid.conditional)], sep =  sep.var), key.conditional)]
         if(prefix.var){
             if(length(grid.conditional)==1){
                 data.original$XXstrataXX <- paste0(names(grid.conditional),"=",key.original)
             }else{
-                newlevel <- interaction(as.data.frame(lapply(names(grid.conditional), function(iName){paste0(iName,"=",grid.conditional[,iName])})), sep = sep.var)
+                newlevel <- nlme::collapse(as.data.frame(lapply(names(grid.conditional), function(iName){paste0(iName,"=",grid.conditional[,iName])})), sep = sep.var)
                 data.original$XXstrataXX <- factor(key.original, levels = levels(key.conditional), labels = newlevel)
             }
         }else{

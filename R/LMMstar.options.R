@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: jan 29 2024 (09:38) 
+## Last-Updated: mar 11 2024 (10:06) 
 ##           By: Brice Ozenne
-##     Update #: 136
+##     Update #: 148
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -63,14 +63,22 @@ LMMstar.options <- function(..., reinitialise = FALSE){
                     df = TRUE,
                     drop.X = TRUE,
                     effects = "mean",
-                    min.df = 1,
+                    min.df = 1, ## smallest degree of freedom to be used when performing Satterthwaite approximation
                     method.fit = "REML",
                     method.numDeriv = "simple",
                     n.sampleCopula = 1e5,
                     optimizer = "FS",
                     param.optimizer = c(n.iter = 100, tol.score = 1e-4, tol.param = 1e-5, n.backtracking = 10),
                     precompute.moments = TRUE,
-                    sep = c(lp = ":", k.cov = ".", k.strata = ":", pattern = ":", rho.name = ".", rho.strata = ":", reformat = "_"),
+                    sep = c(lp = ":", ## (.vcov.matrix.lmm) separator between the linear predictor when aggregated across repetitions
+                            k.cov = ".", ## (.skeletonK) separator between the letter k and the covariate levels, e.g. k?2.1 
+                            k.strata = ":", ## (.skeletonK) separtor between the covariate level(s), e.g. k.2?1
+                            pattern = ":", ## (.findUpatterns) separtor between the index of the variance and index of the correlation pattern when forming the overall pattern name, e.g. 1?1 
+                            Gpattern.var = ":", ## separtor between variable when naming pattern groups
+                            Gpattern.level = ",", ## separtor between variable levels when naming pattern groups
+                            rho.name = ".", ## (.skeletonRho) separator between the covariate levels, e.g. rho(1?1)
+                            rho.strata = ":", ## (.skeletonRho) separator between the covariate levels and the strata, e.g. rho(1.1)?:1
+                            reformat = "_"),
                     trace = FALSE,
                     transform.sigma = "log",
                     transform.k = "log",
@@ -159,7 +167,7 @@ LMMstar.options <- function(..., reinitialise = FALSE){
           }
           if("sep" %in% names(args)){
               sep.save <- args$sep
-              check <- match.arg(sort(names(sep.save)), c("lp","kname.cov","kname.strata","pattern","rho.name","reformat"), several.ok = TRUE)
+              check <- match.arg(sort(names(sep.save)), c("lp","kname.cov","kname.strata","pattern","pattern.var","pattern.level","rho.name","reformat"), several.ok = TRUE)
               args$sep <- object$sep
               args$sep[names(sep.save)] <- sep.save              
           }

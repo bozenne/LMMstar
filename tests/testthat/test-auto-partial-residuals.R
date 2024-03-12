@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: nov  4 2021 (11:49) 
 ## Version: 
-## Last-Updated: Mar 10 2024 (16:20) 
+## Last-Updated: mar 11 2024 (18:42) 
 ##           By: Brice Ozenne
-##     Update #: 27
+##     Update #: 32
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -54,6 +54,7 @@ test_that("linear model",{
     ## plot(e.lmm, type = "partial", variable = c("(Intercept)","X1"))
 })
 
+## ** Linear model with interaction
 test_that("linear model with interaction",{
 
     e.lmm <- lmm(Y~visit*X6+X2+X5, data = dL)
@@ -67,7 +68,10 @@ test_that("linear model with interaction",{
     test2 <- residuals(e.lmm, type = "partial", variable = c("visit","X6","(Intercept)"))
     GS2 <- dL$Y - coef(e.lmm)["X2"]*dL$X2 - coef(e.lmm)["X5"]*dL$X5
     expect_equal(as.double(test2), as.double(GS2), tol = 1e-6)
+
 })
+
+## ** Linear model with splines
 
 test_that("linear model with splines",{
 
@@ -102,5 +106,35 @@ test_that("linear model with splines",{
     expect_equal(as.double(GS.NS), as.double(test.NS), tol = 1e-6)
 })
 
+
+## * Linear mixed model
+test_that("linear mixed model",{
+
+    ## without missing values
+    e.lmm <- lmm(Y~visit+X1+X2+X5, repetition = ~visit|id, data = dL)
+    pRes <- residuals(e.lmm, type = "partial", variable = c("(Intercept)","visit","X1"), keep.data = TRUE)
+    GS <- coef(e.lmm)
+    test <- coef(lmm(r.partial ~ visit + X1, repetition = ~visit|id, data = pRes))
+    expect_equal(GS[names(test)],test, tol = 1e-4)
+
+    ## only match lm when full interaction with time due to unstructure covariance matrix
+    expect_equal(coef(lm(r.partial ~ visit + X1, data = pRes))[c("visit2","visit3")],
+                 test[c("visit2","visit3")], tol = 1e-3)
+
+    ## with missing values (only approximate equality)
+    dLNA <- dL
+    dLNA$Y[c(79, 13, 191, 139, 75, 213, 78, 4, 246, 274)] <- NA
+
+    e.lmmNA <- lmm(Y~visit:X1+X2+X5, repetition = ~visit|id, data = dLNA)
+    pResNA <- residuals(e.lmmNA, type = "partial", variable = c("(Intercept)","visit","X1"), keep.data = TRUE)
+    GS <- coef(e.lmmNA)
+    test <- coef(lmm(r.partial ~ visit:X1, repetition = ~visit|id, data = pResNA))
+    expect_equal(GS[names(test)],test, tol = 1e-2)
+
+    ## pResNA2 <- fitted(e.lmmNA, type = "outcome", keep.newdata = TRUE)
+    ## pResNA2$r.partial <- pResNA2$Y - coef(e.lmmNA)["X2"]*pResNA2$X2 - coef(e.lmmNA)["X5"]*pResNA2$X5
+    ## test2 <- coef(lmm(r.partial ~ visit:X1, repetition = ~visit|id, data = pResNA2))
+    ## expect_equal(GS[names(test2)],test2, tol = 1e-3)
+})
 ##----------------------------------------------------------------------
 ### test-auto-partial-residuals.R ends here

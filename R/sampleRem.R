@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (14:23) 
 ## Version: 
-## Last-Updated: jul  5 2023 (12:30) 
+## Last-Updated: mar 12 2024 (18:12) 
 ##           By: Brice Ozenne
-##     Update #: 84
+##     Update #: 85
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -58,8 +58,6 @@ sampleRem <- function(n, n.times,
                       format = "wide",
                       latent = FALSE){
 
-    requireNamespace("lava")
-    
     name.Y <- paste0("Y",1:n.times)
 
     ## ** check arguments

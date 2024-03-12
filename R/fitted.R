@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul  8 2021 (17:09) 
 ## Version: 
-## Last-Updated: mar  4 2024 (19:23) 
+## Last-Updated: mar 11 2024 (19:02) 
 ##           By: Brice Ozenne
-##     Update #: 384
+##     Update #: 385
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -63,10 +63,12 @@
 ##' fitted(eUN.lmm, type = "outcome")
 ##' gastricbypassL.O <- fitted(eUN.lmm, type = "outcome", keep.newdata = TRUE)
 ##'
+##' if(require(ggplot2)){
 ##' gg.outcome <- ggplot(gastricbypassL.O,
 ##'                      aes(x=time, y = glucagonAUC, color = impute, group = id))
 ##' gg.outcome <- gg.outcome + geom_point() + geom_line()## + facet_wrap(~id)
 ##' gg.outcome
+##' }
 ##'
 ##' tapply(gastricbypassL.O$glucagonAUC, gastricbypassL.O$time, mean)
 ##' effects(eUN.lmm, variable = NULL)
@@ -74,10 +76,12 @@
 ##' ## fitted change value (conditional on covariates and covariates)
 ##' gastricbypassL.C <- fitted(eUN.lmm, type = "change", keep.newdata = TRUE)
 ##'
+##' if(require(ggplot2)){
 ##' gg.change <- ggplot(gastricbypassL.C,
 ##'                     aes(x=time, y = glucagonAUC, color = impute, group = id))
 ##' gg.change <- gg.change + geom_point() + geom_line()
 ##' gg.change
+##' }
 ##' 
 ##' tapply(gastricbypassL.C$glucagonAUC, gastricbypassL.O$time, mean)
 ##' effects(eUN.lmm, type = "change", variable = NULL)
@@ -85,10 +89,12 @@
 ##' ## fitted auc (conditional on covariates and covariates)
 ##' gastricbypassL.AUC <- fitted(eUN.lmm, type = "auc", keep.newdata = TRUE)
 ##'
+##' if(require(ggplot2)){
 ##' gg.auc <- ggplot(gastricbypassL.AUC,
 ##'                     aes(x = "auc", y = glucagonAUC, color = impute))
 ##' gg.auc <- gg.auc + geom_point()
 ##' gg.auc
+##' }
 ##'
 ##' mean(gastricbypassL.AUC$glucagonAUC)
 ##' effects(eUN.lmm, type = "auc", variable = NULL)

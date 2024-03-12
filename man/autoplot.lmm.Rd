@@ -103,21 +103,34 @@ dL$X1 <- as.factor(dL$X1)
 eCS.lmm <- lmm(Y ~ visit + X1 + X6,
                repetition = ~visit|id, structure = "CS", data = dL, df = FALSE)
 
+#### model fit ####
 plot(eCS.lmm, type = "fit", facet =~X1)
+## customize display
 gg <- autoplot(eCS.lmm, type = "fit", facet =~X1)$plot
 gg + coord_cartesian(ylim = c(0,6))
+## restrict to specific covariate value
 plot(eCS.lmm, type = "fit", at = data.frame(X6=1), color = "X1")
+
+#### qqplot ####
 plot(eCS.lmm, type = "qqplot")
 plot(eCS.lmm, type = "qqplot", engine.qqplot = "qqtest")
-plot(eCS.lmm, type = "correlation") 
-plot(eCS.lmm, type = "scatterplot") 
-plot(eCS.lmm, type = "scatterplot2") 
+
+#### residual correlation ####
+plot(eCS.lmm, type = "correlation")
+
+#### residual trend ####
+plot(eCS.lmm, type = "scatterplot")
+
+#### residual heteroschedasticity ####
+plot(eCS.lmm, type = "scatterplot2")
+
+#### partial residuals ####
 plot(eCS.lmm, type = "partial", type.residual = "X1") 
 plot(eCS.lmm, type = "partial", type.residual = "X6") 
 plot(eCS.lmm, type = "partial", type.residual = "visit") 
 plot(eCS.lmm, type = "partial", type.residual = c("(Intercept)","X1","visit"))
 plot(eCS.lmm, type = "partial", type.residual = c("(Intercept)","X1","visit"),
-     color = "X1", facet =~1)
+facet = ~X1)
 }
 }
 \seealso{

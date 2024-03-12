@@ -93,10 +93,6 @@ coef(eCS.lmm)
 model.tables(eCS.lmm)
 confint(eCS.lmm)
 
-if(require(emmeans)){
-  dummy.coef(eCS.lmm)
-}
-
 ## all parameters
 coef(eCS.lmm, effects = "all")
 model.tables(eCS.lmm, effects = "all")

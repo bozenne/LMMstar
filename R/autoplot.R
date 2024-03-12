@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: Mar 10 2024 (15:38) 
+## Last-Updated: mar 11 2024 (10:09) 
 ##           By: Brice Ozenne
-##     Update #: 1188
+##     Update #: 1192
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -233,7 +233,7 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
                 sep.time.var <- ", "
             }
             if(all(time.var %in% names(object$data.original))){
-                object.data$XXtimeXX <- interaction(object$data.original[time.var], sep = sep.time.var)[object.data$XXindexXX]
+                object.data$XXtimeXX <- nlme::collapse(object$data.original[time.var], sep = sep.time.var)[object.data$XXindexXX]
                 time.var <- "XXtimeXX"
             }else{
                 stop("Incorrect value for argument \'time.var\'. \n",

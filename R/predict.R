@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: Mar 10 2024 (15:08) 
+## Last-Updated: mar 12 2024 (11:08) 
 ##           By: Brice Ozenne
-##     Update #: 1391
+##     Update #: 1392
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -73,7 +73,7 @@
 ##' newd <- data.frame(X1 = 1, X2 = 2, X5 = 3, visit = factor(1:3, levels = 1:3))
 ##' predict(eUN.lmm, newdata = newd)
 ##' predict(eUN.lmm, newdata = newd, keep.newdata = TRUE)
-##' predict(eUN.lmm, newdata = newd, keep.newdata = TRUE, se = "total")
+##' predict(eUN.lmm, newdata = newd, keep.newdata = TRUE, se = c(TRUE,TRUE))
 ##'
 ##' ## dynamic prediction
 ##' newd.d1 <- cbind(newd, Y = c(NA,NA,NA))

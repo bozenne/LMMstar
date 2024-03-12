@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: mar  5 2024 (18:40) 
+## Last-Updated: mar 12 2024 (18:25) 
 ##           By: Brice Ozenne
-##     Update #: 603
+##     Update #: 606
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -101,6 +101,8 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
                          level = 0.95, correction = TRUE,
                          trace = TRUE, seed = NULL, cpus = 1, export.cpus = NULL,
                          ...){
+
+    options <- LMMstar.options()
 
     ## ** check user input
     alpha <- 1-level
@@ -350,7 +352,8 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
                                          var.outcome = object$outcome$var,
                                          var.weights = object$weights$var,
                                          precompute.moments = precompute.moments,
-                                         drop.X = object$design$drop.X)
+                                         drop.X = object$design$drop.X,
+                                         options = options)
 
         }else if(type == "perm-res"){ ## change in the Y values
 
@@ -495,9 +498,8 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
     }
 
     if(cpus==1){
-        if (trace > 0) {
-            requireNamespace("pbapply")
-            method.loop <- pbapply::pblapply
+        if (trace > 0 & requireNamespace("pbapply")) {
+            method.loop <- pbapply::pbapply
         }else{
             method.loop <- lapply
         }

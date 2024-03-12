@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: mar  4 2024 (12:22) 
+## Last-Updated: mar 12 2024 (16:46) 
 ##           By: Brice Ozenne
-##     Update #: 702
+##     Update #: 705
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -246,12 +246,12 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
                                               transform.sigma = gsub("log","",transform.sigma), transform.k = gsub("log","",transform.k), transform.rho = gsub("atanh","",transform.rho), transform.names = transform.names))
 
             out <- .backtransform(out,
-                                   type.param = type.param[match(nameNoTransform.beta, names(type.param))],
-                                   backtransform = backtransform, backtransform.names = backtransform.names,
-                                   transform.mu = "none",
-                                   transform.sigma = transform.sigma,
-                                   transform.k = transform.k,
-                                   transform.rho = transform.rho)            
+                                  type.param = type.param[match(nameNoTransform.beta, names(type.param))],
+                                  backtransform = backtransform, backtransform.names = backtransform.names,
+                                  transform.mu = "none",
+                                  transform.sigma = transform.sigma,
+                                  transform.k = transform.k,
+                                  transform.rho = transform.rho)            
         }
     }
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: aug  1 2023 (14:22) 
+## Last-Updated: mar 11 2024 (10:17) 
 ##           By: Brice Ozenne
-##     Update #: 2498
+##     Update #: 2500
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -48,12 +48,15 @@
 ##' .skeleton(UN(NULL, var.cluster = "id", var.time = "visit", TRUE), data = dd)
 ##' .skeleton(UN(~gender, var.cluster = "id", var.time = "visit", TRUE), data = dd)
 `.skeleton` <-
-    function(structure, data, indexData) UseMethod(".skeleton")
+    function(structure, data, indexData, options) UseMethod(".skeleton")
 
 ## * skeleton.ID
-.skeleton.ID <- function(structure, data, indexData = NULL){
+.skeleton.ID <- function(structure, data, indexData = NULL, options = NULL){
 
     ## ** prepare
+    if(is.null(options)){
+        options <- LMMstar.options()
+    }
     if(is.null(indexData)){
         indexData <- .extractIndexData(data = data, structure = structure)
     }
@@ -67,7 +70,7 @@
     index.cluster <- indexData$index.cluster ## list of positions of the observation belonging to each cluster in the dataset
 
     if(is.null(structure$var) && is.null(structure$cor)){
-        outDesign <- .vcov.matrix.lmm(structure = structure, data = data, index.cluster = index.cluster, drop.X = LMMstar.options()$drop.X)
+        outDesign <- .vcov.matrix.lmm(structure = structure, data = data, index.cluster = index.cluster, drop.X = options$drop.X, sep = options$sep["lp"])
         structure$xfactor <- outDesign$xfactor
         structure$var <- outDesign$var
         structure$cor <- outDesign$cor
@@ -107,10 +110,13 @@
 .skeleton.EXP <- .skeleton.ID
 
 ## * skeleton.CUSTOM
-.skeleton.CUSTOM <- function(structure, data, indexData = NULL){
+.skeleton.CUSTOM <- function(structure, data, indexData = NULL, options = NULL){
 
     ## ** prepare
     var.strata <- structure$name$strata
+    if(is.null(options)){
+        options <- LMMstar.options()
+    }
     if(is.null(indexData)){
         indexData <- .extractIndexData(data = data, structure = structure)
     }
@@ -119,7 +125,6 @@
     U.strata <- indexData$U.strata
     n.strata <- length(U.strata)
     
-    options <- LMMstar.options()
     sep.strata <- c(sigma = unname(options$sep["k.strata"]),
                     rho = unname(options$sep["rho.strata"]))
     

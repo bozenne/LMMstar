@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: Mar 10 2024 (16:39) 
+## Last-Updated: mar 11 2024 (18:07) 
 ##           By: Brice Ozenne
-##     Update #: 699
+##     Update #: 737
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -175,25 +175,29 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
                 }
             }
             Omega.time <- pattern.Utime[names(Omega)]
-            
+
         }else{
-            ## Create an artifical cluster agregating all timepoints
+            ## find group pattern (ignoring the time variable)
+            Upattern$group <- .nameUpatterns(object$design$vcov, xfactor = object$xfactor, ignore.time = TRUE, sep = LMMstar.options()$sep[c("Gpattern.var","Gpattern.level")])
+            Ugroup <- unique(Upattern$group)
+            cluster.var <- attr(object$design$vcov$name$cluster,"original")
+            vcov.var <- unique(stats::na.omit(c(attr(object$design$vcov$name$time,"original"),
+                                                object$design$vcov$name$strata,
+                                                object$design$vcov$name$var[[1]],
+                                                object$design$vcov$name$cor[[1]])))
+            
+            
+            ## Create artifical clusters agregating patterns
             ## (typically usefull in presence of missing values, e.g. only observe time A-B or time A-C but not A-B-C together)
-            keep.index.strata <- which(vec.ntime < n.time)
-            df.fulltime <- do.call(rbind,lapply(keep.index.strata, function(iStrata){ ## iStrata <- keep.index.strata[1]
-                if(!is.na(attr(strata.var,"original"))){
-                    ## NOTE: use U.time.original instead of U.time in case multiple time variables
-                    iDF <- data.frame(U.strata[iStrata],
-                                      U.time.original, 
-                                      object$cluster$levels[iStrata])
-                    names(iDF) <- c(attr(strata.var,"original"),time.var,cluster.var)
-                }else{
-                    iDF <- data.frame(U.time.original,object$cluster$levels[iStrata])
-                    names(iDF) <- c(time.var,cluster.var)
+            df.fulltime <- do.call(rbind,lapply(Ugroup, function(iGroup){ ## iGroup <- Ugroup[1]
+                iPattern <- Upattern[Upattern$group==iGroup,c("name","n.time")]
+                iCluster <- unlist(attr(object$design$vcov$pattern,"list")[iPattern$name])
+                iDF <- object$data[object$data$XXcluster.indexXX %in% iCluster,c("XXtime.indexXX",vcov.var),drop=FALSE]
+                if(!is.na(cluster.var)){
+                    iDF[[cluster.var]] <- iGroup
                 }
-                return(iDF)
+                return(unique(iDF)[c(cluster.var,vcov.var)])
             }))
-            df.fulltime[[object$outcome$var]] <- NA
             ## update structure
             object$design <- model.matrix(object, data = df.fulltime, effects = "variance", simplify = FALSE)
             ## evaluate residual varince covariance matrix
@@ -208,6 +212,10 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
                                              Upattern$name)
             Omega.time <- pattern.Utime[names(Omega)]
         }
+
+        ## add groups
+        Upattern$group <- .nameUpatterns(object$design$vcov, xfactor = object$xfactor, ignore.time = FALSE,
+                                         sep = LMMstar.options()$sep[c("Gpattern.var","Gpattern.level")])
 
     }else if(test.clusterDF){ ## for new clusters/times
 
@@ -263,42 +271,12 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
     }
 
     ## ** subset residual variance-covariance matrix
-    if(is.null(cluster)){ ## find unique covariance patterns 
-        browser()
-        if(!is.null(Upattern$group)){
-            vec.Upattern <- unlist(by(Upattern,Upattern$group,function(iDf){
-                iDf$name[which.max(iDf$n.time)]
-            }, simplify = FALSE))
-        }else if(any(Upattern$index.strata>1)){
-            vec.Upattern <- unlist(by(Upattern,U.strata[Upattern$index.strata],function(iDf){
-                iDf$name[which.max(iDf$n.time)]
-            }, simplify = FALSE))
-        }else{
-            ## all variance-covariance parameters
-            param.vcov <- unique(unlist(Upattern$param))
-            ## TRUE/FALSE matrix of whether the parameter is active for the pattern
-            test.param <- do.call(rbind,lapply(Upattern$param, function(iParam){param.vcov %in% iParam}))
-            dimnames(test.param) <- list(Upattern$name, param.vcov)
-            ## find subsets
-            n.pattern <- NROW(test.param)
-            missing.param <- param.vcov
-            vec.Upattern <- numeric(0)
-            potential.pattern <- Upattern$name
-            for(iSubset in 1:n.pattern){ ## iSubset <- 1
-                iSums <- rowSums(test.param[potential.pattern,missing.param,drop=FALSE]) + Upattern$n.time/(10*object$time$n)
-                iPattern <- names(which.max(iSums))
-                vec.Upattern <- c(vec.Upattern,iPattern)
-                missing.param <- setdiff(missing.param, names(which(test.param[iPattern,]==TRUE)))
+    if(is.null(cluster)){ ## find unique covariance patterns
 
-                if(length(missing.param)==0){break}
-                potential.pattern <- names(which(rowSums(test.param[potential.pattern,missing.param,drop=FALSE])>0))
-                if(length(potential.pattern)==0 && iSubset != n.pattern){
-                    warning("Something went wrong when identifying the unique covariance patterns. \n")
-                    break
-                }
-            }            
-        }
-
+        vec.Upattern <- unlist(by(Upattern,Upattern$group,function(iDf){
+            iDf$name[which.max(iDf$n.time)]
+        }, simplify = FALSE))
+        
         ## subset
         out <- Omega[vec.Upattern]
         if(!is.null(names(vec.Upattern))){

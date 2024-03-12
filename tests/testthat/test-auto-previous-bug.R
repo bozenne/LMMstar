@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: Mar 10 2024 (23:04) 
+## Last-Updated: mar 11 2024 (18:45) 
 ##           By: Brice Ozenne
-##     Update #: 157
+##     Update #: 161
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -464,9 +464,6 @@ test_that("0 variability in the outcome", {
 })
 
 ## * from: Brice, Monday 22-10-10 at 11:18
-library(mvtnorm)
-library(data.table)
-
 test_that("Incorrect ordering of the coefficient in mlmm", {
     ## confusion of the order 1, 10, 2, 3 instead of 1, 2, 3, ...
     n <- 25
@@ -578,19 +575,11 @@ test_that("lmm with missing values", {
                      "value" = c(0.05018746, 0.10815747, 0.14628669, 0.12400832, 0.17294545, 0.06389794, 0.13791924, 0.14636324, 0.05373327, 0.02743522, 0.07101780, 0.05755782, 0.02761766, NA, 0.08741390, 0.07089347, 0.04045056, 0.06804850, 0.09925521, 0.16482979, NA, 0.06814713, 0.20325134), 
                      "repetition" = c("1.1", "2.1", "1.2", "2.2", "1.1", "2.1", "1.2", "2.2", "1.1", "1.2", "2.2", "1.2", "2.2", "1.1", "2.1", "1.2", "2.2", "1.1", "2.1", "1.2", "2.2", "1.2", "2.2"))
 
-    df$Sex <- df$patient %% 2
-    xxx <- lmm(value ~ week,
-               repetition = ~repetition|patient,
-               structure = CS(list(~week+Sex,~week+Sex)),
-               data = df, df = FALSE)
-
     xxx <- lmm(value ~ week,
                repetition = ~repetition|patient,
                structure = CS(list(~1,~week)),
                data = df, df = FALSE)
 
-    sigma(xxx)
-    
     yyy <- lmm(value ~ week,
                repetition = ~repetition|patient,
                structure = CS(list(~week,~week)),

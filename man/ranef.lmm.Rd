@@ -8,7 +8,7 @@
   object,
   effects = "mean",
   ci = FALSE,
-  transform = (effects == "variance"),
+  transform = (effects \%in\% c("std", "variance")),
   p = NULL,
   format = "long",
   simplify = TRUE,
@@ -18,7 +18,7 @@
 \arguments{
 \item{object}{a \code{lmm} object.}
 
-\item{effects}{[character] should the estimated random effects (\code{"mean"}) or the estimated variance of the random effects (\code{"variance"}) be output?}
+\item{effects}{[character] should the estimated random effects (\code{"mean"}) or the estimated variance/standard deviation of the random effects (\code{"variance"},\code{"std"}) be output?}
 
 \item{ci}{[logical] should standard error and confidence intervals be evaluated using a delta method?
 Will slow down the execution of the function.}

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 20 2022 (12:12) 
 ## Version: 
-## Last-Updated: aug  1 2023 (11:16) 
+## Last-Updated: mar 12 2024 (18:17) 
 ##           By: Brice Ozenne
-##     Update #: 71
+##     Update #: 72
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -168,7 +168,7 @@ test_that("estimate partial correlation via lmm (cluster)", {
     ##                   structure = TOEPLITZ(type = "UN"),
     ##                   control = list(optimizer = "FS"))
     ## confint(eTopUN.lmm, effects = "correlation")["rho(1,2,dt=0)",]
-    GS.UN <- data.frame("estimate" = c(0.47476928), "se" = c(0.04966774), "df" = c(12.4303314), "lower" = c(0.36463913), "upper" = c(0.57179996), "p.value" = c(1.87e-06))
+    GS.UN <- data.frame("estimate" = c(0.47476928), "se" = c(0.0478157), "df" = c(12.4303314), "lower" = c(0.36463913), "upper" = c(0.57179996), "p.value" = c(1.87e-06))
     expect_equivalent(test.UN["marginal",], GS.UN, tol = 1e-5)
 
     test.PEARSON <- partialCor(c(X1,X2)~1, data = df.W, repetition = ~time|id, structure = "PEARSON")
@@ -176,7 +176,7 @@ test_that("estimate partial correlation via lmm (cluster)", {
     ##                        structure = TOEPLITZ(list(~variable,~variable+time), type = "UN"),
     ##                        control = list(optimizer = "FS"))
     ## confint(eTopPEARSON.lmm, effects = "correlation")["rho(1,2,dt=0)",]
-    GS.PEARSON <- data.frame("estimate" = c(0.47638071), "se" = c(0.05005333), "df" = c(12.52209613), "lower" = c(0.36546699), "upper" = c(0.57395625), "p.value" = c(1.88e-06))
+    GS.PEARSON <- data.frame("estimate" = c(0.47638071), "se" = c(0.04816023), "df" = c(12.52209613), "lower" = c(0.36546699), "upper" = c(0.57395625), "p.value" = c(1.88e-06))
     expect_equivalent(test.PEARSON["marginal",], GS.PEARSON, tol = 1e-5)
 
     test.HLAG <- partialCor(c(X1,X2)~1, data = df.W, repetition = ~time|id, structure = "HLAG")
@@ -184,7 +184,7 @@ test_that("estimate partial correlation via lmm (cluster)", {
     ##                     structure = TOEPLITZ(type = "LAG"),
     ##                     control = list(optimizer = "FS"))
     ## confint(eTopHLAG.lmm, effects = "correlation")["rho(1,2,dt=0)",]
-    GS.HLAG <- data.frame("estimate" = c(0.47549331), "se" = c(0.04987419), "df" = c(13.38669723), "lower" = c(0.36577561), "upper" = c(0.572176), "p.value" = c(1.16e-06))
+    GS.HLAG <- data.frame("estimate" = c(0.47549331), "se" = c(0.04800254), "df" = c(13.38669723), "lower" = c(0.36577561), "upper" = c(0.572176), "p.value" = c(1.16e-06))
     expect_equivalent(test.HLAG["marginal",], GS.HLAG, tol = 1e-5)
 
     test.LAG <- partialCor(c(X1,X2)~1, data = df.W, repetition = ~time|id, structure = "LAG")
@@ -192,7 +192,7 @@ test_that("estimate partial correlation via lmm (cluster)", {
     ##                     structure = TOEPLITZ(list(~variable,~variable+time), type = "LAG"),
     ##                     control = list(optimizer = "FS"))
     ## confint(eTopLAG.lmm, effects = "correlation")["rho(1,2,dt=0)",]
-    GS.LAG <- data.frame("estimate" = c(0.47388305),"se" = c(0.04995313),"df" = c(13.80173648),"lower" = c(0.36429768),"upper" = c(0.57052434),"p.value" = c(9.8e-07))
+    GS.LAG <- data.frame("estimate" = c(0.47388305),"se" = c(0.04810496),"df" = c(13.80173648),"lower" = c(0.36429768),"upper" = c(0.57052434),"p.value" = c(9.8e-07))
     expect_equivalent(test.LAG["marginal",], GS.LAG, tol = 1e-5)
     
     test.HCS <- partialCor(c(X1,X2)~1, data = df.W, repetition = ~time|id, structure = "HCS")
@@ -200,7 +200,7 @@ test_that("estimate partial correlation via lmm (cluster)", {
     ##                    structure = TOEPLITZ(list(~variable+time,~variable+time),type = "CS"),
     ##                    control = list(optimizer = "FS"))
     ## confint(eTopHCS.lmm, effects = "correlation")["rho(1,2,dt=0)",]
-    GS.HCS <- data.frame("estimate" = c(0.47549676),"se" = c(0.04989398),"df" = c(13.5961607),"lower" = c(0.3659086),"upper" = c(0.57207872),"p.value" = c(1.04e-06))
+    GS.HCS <- data.frame("estimate" = c(0.47549676),"se" = c(0.04802152),"df" = c(13.5961607),"lower" = c(0.3659086),"upper" = c(0.57207872),"p.value" = c(1.04e-06))
     expect_equivalent(test.HCS["marginal",], GS.HCS, tol = 1e-5)
 
     test.CS <- partialCor(c(X1,X2)~1, data = df.W, repetition = ~time|id, structure = "CS")
@@ -208,7 +208,7 @@ test_that("estimate partial correlation via lmm (cluster)", {
     ##                   structure = TOEPLITZ(type = "CS"),
     ##                   control = list(optimizer = "FS"))
     ## confint(eTopCS.lmm, effects = "correlation")["rho(1,2,dt=0)",]
-    GS.CS <- data.frame("estimate" = c(0.4732798),"se" = c(0.04992003),"df" = c(14.13096783),"lower" = c(0.36401686),"upper" = c(0.56969305),"p.value" = c(8.3e-07))
+    GS.CS <- data.frame("estimate" = c(0.4732798),"se" = c(0.04808291),"df" = c(14.13096783),"lower" = c(0.36401686),"upper" = c(0.56969305),"p.value" = c(8.3e-07))
     expect_equivalent(test.CS["marginal",], GS.CS, tol = 1e-5)
 })
 

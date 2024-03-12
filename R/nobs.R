@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:41) 
 ## Version: 
-## Last-Updated: jul 21 2023 (17:31) 
+## Last-Updated: mar 12 2024 (11:35) 
 ##           By: Brice Ozenne
-##     Update #: 21
+##     Update #: 24
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,6 +16,19 @@
 ### Code:
 
 ## * nobs.lmm
+##' @title Number of Observations from a Linear Mixed Model
+##' @description Extract the number of observations from a Linear Mixed Model
+##'
+##' @param object an lmm object.
+##' @param ... Not used. For compatibility with the generic method.
+##'
+##' @return A vector with 4 elements: \itemize{
+##' \item \code{obs}: the number of repetitions with full data
+##' \item \code{cluster}: the number of clusters with a least one repetition with full data
+##' \item \code{missing.obs}: the number of repetitions with missing data
+##' \item \code{missing.cluster}: the number of cluster with only missing data
+##' }
+##' @keywords methods
 ##' @export
 nobs.lmm <- function(object, ...){
     

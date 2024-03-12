@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Dec 19 2021 (17:07) 
 ## Version: 
-## Last-Updated: mar  4 2024 (15:34) 
+## Last-Updated: mar 12 2024 (10:52) 
 ##           By: Brice Ozenne
-##     Update #: 39
+##     Update #: 41
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -19,11 +19,10 @@ if(FALSE){
     library(testthat)
     library(lattice) 
     library(psych)   
-    library(emmeans) 
     library(ggplot2) 
 
     library(LMMstar)
-}
+} 
 
 context("Check lmm on Basic Statistic course")
 LMMstar.options(optimizer = "FS", method.numDeriv = "simple", precompute.moments = TRUE, df = TRUE)

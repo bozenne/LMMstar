@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: Mar 10 2024 (16:01) 
+## Last-Updated: mar 12 2024 (09:59) 
 ##           By: Brice Ozenne
-##     Update #: 219
+##     Update #: 220
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,7 +20,6 @@ if(FALSE){
     library(numDeriv)
     library(lava)
     library(multcomp)
-    library(emmeans)
     library(nlme)
     library(AICcmodavg)
 

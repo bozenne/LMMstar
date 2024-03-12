@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: jan 23 2024 (12:19) 
+## Last-Updated: mar 12 2024 (09:59) 
 ##           By: Brice Ozenne
-##     Update #: 209
+##     Update #: 210
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,7 +20,6 @@ if(FALSE){
     library(numDeriv)
     library(lava)
     library(multcomp)
-    library(emmeans)
     library(lme4) ## remove due to error in appveyer and Github action (change of Matrix package version)
     library(lmerTest)
 

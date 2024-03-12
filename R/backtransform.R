@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 15 2022 (10:04) 
 ## Version: 
-## Last-Updated: jul 24 2023 (10:43) 
+## Last-Updated: mar 12 2024 (16:56) 
 ##           By: Brice Ozenne
-##     Update #: 50
+##     Update #: 54
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -108,13 +108,13 @@
 
         iIndex.type <- which(type.param==iType)
 
+        if("se" %in% names(object)){ ## needs to be before estimate otherwise iDbacktransform is applied to the already transformed estimate
+            object$se[iIndex.type] <- object$se[iIndex.type]*iDbacktransform(object$estimate[iIndex.type])
+            message[iType,"se"] <- TRUE
+        }
         if("estimate" %in% names(object)){
             object$estimate[iIndex.type] <- iBacktransform(object$estimate[iIndex.type])
             message[iType,"estimate"] <- TRUE
-        }
-        if("se" %in% names(object)){
-            object$se[iIndex.type] <- object$se[iIndex.type]*iDbacktransform(object$estimate[iIndex.type])
-            message[iType,"se"] <- TRUE
         }
         if("lower" %in% names(object)){
             object$lower[iIndex.type] <- iBacktransform(object$lower[iIndex.type])

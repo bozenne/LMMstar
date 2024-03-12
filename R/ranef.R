@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 26 2022 (11:18) 
 ## Version: 
-## Last-Updated: aug  1 2023 (16:17) 
+## Last-Updated: mar 12 2024 (18:10) 
 ##           By: Brice Ozenne
-##     Update #: 433
+##     Update #: 446
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -19,7 +19,7 @@
 ##' @title Estimate Random Effect From a Linear Mixed Model
 ##' @description Recover the random effects from the variance-covariance parameter of a linear mixed model.
 ##' @param object a \code{lmm} object.
-##' @param effects [character] should the estimated random effects (\code{"mean"}) or the estimated variance of the random effects (\code{"variance"}) be output?
+##' @param effects [character] should the estimated random effects (\code{"mean"}) or the estimated variance/standard deviation of the random effects (\code{"variance"},\code{"std"}) be output?
 ##' @param p [numeric vector] value of the model coefficients to be used. Only relevant if differs from the fitted values.
 ##' @param ci [logical] should standard error and confidence intervals be evaluated using a delta method?
 ##' Will slow down the execution of the function.
@@ -53,7 +53,7 @@
 
 ## * ranef.lmm (code)
 ##' @export
-ranef.lmm <- function(object, effects = "mean", ci = FALSE, transform = (effects=="variance"),
+ranef.lmm <- function(object, effects = "mean", ci = FALSE, transform = (effects %in% c("std","variance")),
                       p = NULL, format = "long", simplify = TRUE, ...){
 
 
@@ -64,7 +64,7 @@ ranef.lmm <- function(object, effects = "mean", ci = FALSE, transform = (effects
         stop("Cannot estimate random effects linear mixed models defined by covariance structure (argument \'structure\'). \n",
              "Consider adding random effects in the argument \'formula\' instead. \n")
     }
-    effects <- match.arg(effects, c("mean","variance"))
+    effects <- match.arg(effects, c("mean","std","variance"))
     format <- match.arg(format, c("wide","long"))
 
     param.name <- object$design$param$name
@@ -109,13 +109,13 @@ ranef.lmm <- function(object, effects = "mean", ci = FALSE, transform = (effects
         if(transform){ ## recompute only CIs (backtransforming the se is not exact)
             eTrans.delta <- lava::estimate(object, f = function(newp){
                 iE <- nlme::ranef(object, effects = effects, ci = FALSE, p = newp, format = format)
-                iE[iE$type=="variance","estimate"] <- log(iE[iE$type=="variance","estimate"])
+                iE[iE$type==effects,"estimate"] <- log(iE[iE$type==effects,"estimate"])
                 iE[iE$type=="relative","estimate"] <- atanh(iE[iE$type=="relative","estimate"])
                 return(iE$estimate)
             }, df = df)
             ## absolute
-            e.delta$lower[e.ranef$type=="variance"] <- exp(eTrans.delta$lower[e.ranef$type=="variance"])
-            e.delta$upper[e.ranef$type=="variance"] <- exp(eTrans.delta$upper[e.ranef$type=="variance"])
+            e.delta$lower[e.ranef$type==effects] <- exp(eTrans.delta$lower[e.ranef$type==effects])
+            e.delta$upper[e.ranef$type==effects] <- exp(eTrans.delta$upper[e.ranef$type==effects])
             ## relative
             e.delta$lower[e.ranef$type=="relative"] <- tanh(eTrans.delta$lower[e.ranef$type=="relative"])
             e.delta$upper[e.ranef$type=="relative"] <- tanh(eTrans.delta$upper[e.ranef$type=="relative"])
@@ -165,7 +165,6 @@ ranef.lmm <- function(object, effects = "mean", ci = FALSE, transform = (effects
     
     ## ** converting correlation parameters into random effect variance
     cumtau <- coef(object, p = p, effects = "correlation", transform.rho = "cov", transform.names = FALSE)
-    cumtau.strata <- tapply(cumtau,param.strata,identity, simplify = FALSE)
 
     n.hierarchy <- length(infoRanef$param)
     index.hierarchy <- unlist(lapply(1:n.hierarchy, function(iH){rep(iH, length(infoRanef$param[[iH]]))}))
@@ -183,14 +182,14 @@ ranef.lmm <- function(object, effects = "mean", ci = FALSE, transform = (effects
     if(any(varRE<=0)){
         stop("Variance for the random effects is found to be negative - cannot estimate the random effects. \n")
     }
-    if(effects == "variance"){
+    if(effects %in% c("std","variance")){
         sigma2 <- coef(object, effects = "variance", transform.sigma = "square")
 
         if(format=="long"){
             out <- do.call(rbind,lapply(1:n.strata, function(iStrata){
                 rbind(data.frame(variable = rownames(varRE),
                                  strata = U.strata[iStrata],
-                                 type = "variance",
+                                 type = effects,
                                  estimate = varRE[,iStrata]),
                       data.frame(variable = rownames(varRE),
                                  strata = U.strata[iStrata],
@@ -198,6 +197,9 @@ ranef.lmm <- function(object, effects = "mean", ci = FALSE, transform = (effects
                                  estimate = varRE[,iStrata]/sigma2[iStrata])
                       )
             }))
+            if(effects == "std"){
+                out$estimate <- sqrt(out$estimate)
+            }
         }else if(format=="wide"){
             out <- do.call(rbind,lapply(1:n.strata, function(iStrata){ ## iStrata <- 1
                 iOut <- data.frame(variable = rownames(varRE),
@@ -212,6 +214,10 @@ ranef.lmm <- function(object, effects = "mean", ci = FALSE, transform = (effects
                 }
                 return(iOut)
             }))
+            if(effects == "std"){
+                out$variance <- sqrt(out$variance)
+                out$relative <- sqrt(out$relative)
+            }
         }
         rownames(out) <- NULL
         if(simplify && n.strata==1){

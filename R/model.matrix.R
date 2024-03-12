@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: mar  8 2024 (11:51) 
+## Last-Updated: mar 12 2024 (11:35) 
 ##           By: Brice Ozenne
-##     Update #: 2989
+##     Update #: 3038
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,17 +15,52 @@
 ## 
 ### Code:
 
+## * model.matrix.lmm (documentation)
+##' @title Design Matrix for Linear Mixed Model
+##' @description Extract or construct design matrices for Linear Mixed Model.
+##'
+##' @param object an lmm object
+##' @param data [data.frame] dataset relative to which the design matrix should be constructed.
+##' @param effects [character] design matrix relative to the mean model (\code{"mean"}), variance model (\code{"variance"}), correlation model (\code{"correlation"}),
+##' or all the previous (\code{"all"}).
+##' Can also be \code{"index"} to only output the normalize data and the cluster, time, strata indexes.
+##' @param simplify [logical] simplify the data format of the output (matrix instead of a list of matrix) when possible.
+##' @param drop.X [logical] when the design matrix does not have full rank, should columns be dropped? 
+##' @param ... Not used. For compatibility with the generic method.
+##' 
+##' @return When \code{simplify} is \code{FALSE}, a list with the followin elements: \itemize{
+##' \item \code{mean}: design matrix for the mean model
+##' \item \code{Y}: vector of outcome values
+##' \item \code{vcov}: list of elements for the variance and correlation models.
+##' \item \code{index.cluster}: list containing, for each cluster, the location of the corresponding observations in the processed dataset.
+##' \item \code{index.clusterTime}: list containing, for each cluster, the repetition index corresponding observations.
+##' \item \code{index.clusterStrata}: list containing, for each cluster, the strata index corresponding observations.
+##' \item \code{param}: data.frame describing the modle parameters.
+##' \item \code{drop.X}: logical value indicating whether columns in the design matrix should be dropped if it has not full rank.
+##' \item \code{precompute.XX}, \code{precompute.XY}: moments of X and Y 
+##' }
+##'
+##' When \code{simplify} is \code{TRUE}, this list will be simplified into a list with three elements: \itemize{
+##' \item \code{mean}: design matrix for the mean model
+##' \item \code{variance}: design matrix for the variance model
+##' \item \code{correlation}: design matrix for the correlation model
+##' }
+##' or a single design matrixx.
+##' 
+##' @keywords methods
 
 ## * model.matrix.lmm (code)
 ##' @export
 model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = TRUE, drop.X = NULL, ...){
 
-    ## ** normalize user imput
+    options <- LMMstar.options()
+
+    ## ** normalize user input
     if(identical(effects,"all")){
         effects <- c("mean","variance","correlation")
     }
     if(is.null(drop.X)){
-        drop.X <- LMMstar.options()$drop.X
+        drop.X <- options$drop.X
     }
     if(!identical(effects,"index")){
         effects <- match.arg(effects, c("mean","variance","correlation"), several.ok = TRUE)
@@ -148,7 +183,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
                                     X.attr = attributes(object$design$vcov$cor$X))
             
             ## form design matrix
-            outDesign <- .vcov.matrix.lmm(structure = design$vcov, data = data.Nindex, index.cluster = outInit$index.cluster, drop.X = drop.X)
+            outDesign <- .vcov.matrix.lmm(structure = design$vcov, data = data.Nindex, index.cluster = outInit$index.cluster, drop.X = drop.X, sep = options$sep["lp"])
             design$vcov$var <- outDesign$var
             design$vcov$cor <- outDesign$cor
 
@@ -162,7 +197,7 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
             design$vcov <- .findUpatterns(design$vcov,
                                           index.clusterTime = outInit$index.clusterTime, U.time = outInit$U.time,
                                           index.cluster = outInit$index.cluster, U.cluster = outInit$U.cluster,
-                                          index.clusterStrata = outInit$index.clusterStrata, U.strata = outInit$U.strata)            
+                                          index.clusterStrata = outInit$index.clusterStrata, U.strata = outInit$U.strata)
         }
     }else{
         design <- object$design
@@ -189,9 +224,8 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
 
 ## * .vcov.matrix.lmm
 ## output observation specific design matrix (but no covariance pattern)
-.vcov.matrix.lmm <- function(structure, data, index.cluster, drop.X){
+.vcov.matrix.lmm <- function(structure, data, index.cluster, drop.X, sep){
 
-    sep <- LMMstar.options()$sep["lp"]
     var.cluster <- structure$name$cluster
     var.time <- structure$name$time
     var.strata <- structure$name$strata
@@ -373,7 +407,8 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
 .model.matrix.lmm <- function(formula.mean, structure,
                               data, var.outcome, var.weights,
                               drop.X, ## drop singular component of the design matrix
-                              precompute.moments){
+                              precompute.moments,
+                              options){
 
     ## ** indexes
     outInit <- .extractIndexData(data = data, structure = structure)
@@ -442,19 +477,20 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
 
     ## ** variance
     ## *** design matrix
-    outDesign <- .vcov.matrix.lmm(structure = structure, data = data, index.cluster = outInit$index.cluster, drop.X = drop.X)
+    outDesign <- .vcov.matrix.lmm(structure = structure, data = data, index.cluster = outInit$index.cluster, drop.X = drop.X, sep = options$sep["lp"])
     structure$xfactor <- outDesign$xfactor
     structure$var <- outDesign$var
     structure$cor <- outDesign$cor
 
     ## *** parametrization and patterns
-    structure <- .skeleton(structure = structure, data = data, indexData = outInit)
+    structure <- .skeleton(structure = structure, data = data, indexData = outInit, options = options)
 
     ## *** covariance pattern
     structure <- .findUpatterns(structure, 
                                 index.clusterTime = outInit$index.clusterTime, U.time = U.time,
                                 index.cluster = outInit$index.cluster, U.cluster = U.cluster,
                                 index.clusterStrata = outInit$index.clusterStrata, U.strata = U.strata)
+
     ## ** prepare calculation of the score
     if(precompute.moments && NCOL(X.mean)>0){
         if(is.na(var.weights[1])){
@@ -534,7 +570,6 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
         ## NOTE: only take first weight for each cluster as weights should be constant within cluster
         ## out$scale.Omega <- sapply(index.cluster, function(iIndex){data[iIndex[1],var.weights[2]]})
     }
-
     return(out)
 }
 

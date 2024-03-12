@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: mar  5 2024 (17:39) 
+## Last-Updated: mar 12 2024 (09:46) 
 ##           By: Brice Ozenne
-##     Update #: 2971
+##     Update #: 2990
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -91,10 +91,6 @@
 ##' model.tables(eCS.lmm)
 ##' confint(eCS.lmm)
 ##'
-##' if(require(emmeans)){
-##'   dummy.coef(eCS.lmm)
-##' }
-##' 
 ##' ## all parameters
 ##' coef(eCS.lmm, effects = "all")
 ##' model.tables(eCS.lmm, effects = "all")
@@ -306,7 +302,8 @@ lmm <- function(formula, repetition, structure, data,
                                     structure = structure,
                                     data = data, var.outcome = out$outcome$var, var.weights = out$weights$var,
                                     precompute.moments = precompute.moments,
-                                    drop.X = options$drop.X)
+                                    drop.X = options$drop.X,
+                                    options = options)
 
     ## *** update xfactor according to factors used in the vcov structure
     ## NOTE: use model.frame to handline splines in the formula
@@ -777,6 +774,12 @@ lmm <- function(formula, repetition, structure, data,
              "There should be exactly one variable after the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n", sep = "")
     }
 
+    ## ** convert logical into factor
+    test.logical <- sapply(data,is.logical)
+    if(any(test.logical)){ ## avoid an error when computing partial residuals since the formula interface treat logical as factor 
+        data[test.logical] <- lapply(data[test.logical], as.factor)
+    }
+    
     ## ** index
     data$XXindexXX <- 1:NROW(data)
 
@@ -970,6 +973,7 @@ lmm <- function(formula, repetition, structure, data,
     }else{
         index.na <- NULL
     }
+
 
     ## ** export
     out$data <- data

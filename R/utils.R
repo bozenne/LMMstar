@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: jul 26 2023 (17:29) 
+## Last-Updated: mar 11 2024 (11:29) 
 ##           By: Brice Ozenne
-##     Update #: 185
+##     Update #: 241
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -267,5 +267,96 @@ unorderedPairs <- function(x, distinct = FALSE){
     out[] <- x[as.vector(out)]
     return(out)
 }
+
+
+## * groupSet
+##' @title Group Sets
+##' @description Find groups of sets sharing the same values
+##' @noRd
+##'
+##' @param object a list
+##'
+##'
+##' @examples
+##' mylistA <- list(1:2,3:4,1:5)
+##' groupSet(mylistA)
+##'
+##' mylistB <- list(1:2,2:3,2,3)
+##' groupSet(mylistB)
+##' 
+##' mylistC <- list(1:2,1,2,2,3,2:3)
+##' groupSet(mylistC, strata = c(1,1,1,2,2,2))
+##' 
+##' mylistD <- list(1:2,1,2,2,3,2:3,4,4:5,6)
+##' groupSet(mylistD, strata = c(1,1,1,2,2,2,2,2,3))
+groupSet <- function(object, strata = NULL){
+
+    n.set <- length(object)
+    out <- rep(NA, n.set)
+
+    ## ** handle strata
+    if(!is.null(strata)){
+        previous.group <- 0
+        U.strata <- unique(strata)
+        n.strata <- length(U.strata)
+        index.strata <- tapply(1:length(object), strata, identity)
+        for(iS in 1:n.strata){ ## iS <- 1
+            iOut <- groupSet(object[index.strata[[iS]]])
+            out[index.strata[[iS]]] <- iOut + previous.group
+            previous.group <- previous.group + max(iOut)
+        }
+        return(out)
+    }
+
+    ## ** initialize with the largest element
+    order.set <- order(lengths(object), decreasing = TRUE)
+    out[order.set[1]] <- 1
+    
+    ## ** deal with special case
+    if(n.set==1){
+        return(out)
+    }
+
+    ## ** find representative patterns
+    Uvalue <- unique(unlist(object))
+
+    M.group <- rbind(Uvalue %in% object[[order.set[1]]])
+    index.group <- order.set[1]
+    if(all(M.group)){ ## another special case
+        out[] <- 1
+        return(out)
+    }
+
+    for(iSet in order.set[-1]){ ## iSet <- 2
+        iTest <- Uvalue %in% object[[iSet]]
+        iContrast <- sweep(M.group, MARGIN = 2, FUN = "-", STATS = iTest)
+
+        if(any(rowSums(iContrast!=0)==0)){ ## since patterns are looped over with decreasing length, equality can only mean pattern with fewer elements
+            out[iSet] <- out[index.group[which(rowSums(iContrast!=0)==0)[1]]]
+        }else if(any(rowSums(iContrast<0)==0)){ ## subset of another pattern (possibly several but label as first one)
+            out[iSet] <- out[index.group[which(rowSums(iContrast<0)==0)[1]]]
+        }else if(any(rowSums(iContrast>0)==0)){ ## contain other patterns 
+            iMerge <- which(rowSums(iContrast>0)==0)
+
+            out[c(which(out %in% iMerge),iSet)] <- out[index.group[iMerge[1]]]
+            index.group[iMerge[1]] <- iSet
+            M.group[iMerge[1],] <- iTest
+            if(length(iMerge)>1){ ## handle the case where merging two covaraince structures into a bigger one, e.g. A,B and A,C into A,B,C
+                index.group <- index.group[-iMerge[-1]]
+                M.group <- M.group[-iMerge[-1],,drop=FALSE]
+                out <- as.numeric(as.factor(out))
+            }
+        }else{ ## new pattern
+            out[iSet] <- length(index.group)+1
+            index.group <- c(index.group, iSet)
+            M.group <- rbind(M.group, iTest)
+        }
+    }
+
+    ## ** export
+    return(out)
+    
+}
+
 ##----------------------------------------------------------------------
 ### utils-formula.R ends here

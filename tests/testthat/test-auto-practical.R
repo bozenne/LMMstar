@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (17:03) 
 ## Version: 
-## Last-Updated: Mar 10 2024 (16:23) 
+## Last-Updated: mar 12 2024 (10:26) 
 ##           By: Brice Ozenne
-##     Update #: 120
+##     Update #: 126
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,7 +20,6 @@ if(FALSE){
     library(numDeriv)
     library(lava)
     library(multcomp)
-    library(emmeans)
     library(nlme)
     library(qqtest)
     library(ggplot2)
@@ -109,8 +108,6 @@ test_that("practical 1 - gastricbypass",{
     expect_equal(unname(coef(eUN.lmm, effects = "variance", transform.k = "sd")),
                  unname(coef(eUN.lmm, effects = "variance")[1]*c(1,coef(eUN.lmm, effects = "variance")[-1])),
                  tol = 1e-6)
-    ## emmeans(eUN.lmm, specs = ~time)
-    ## emmip(eUN.lmm, ~time)
     autoplot(eUN.lmm)
 
     apply(residuals(eUN.lmm, type = "normalized", format = "wide"),2,sd,na.rm=TRUE)
@@ -246,11 +243,9 @@ test_that("practical 3 - swabsL",{
     capture.output(summary(eCS.lmm))
     sigma(eCS.lmm)
     autoplot(eCS.lmm)
-    ## emmip(eCS.lmm, crowding~name)
 
     ## with interaction
     eCSI.lmm <- lmm(swabs ~ crowding * name, data = swabsL, structure = "CS", repetition = ~name|family)
-    emmip(eCSI.lmm, crowding~name)
 
     eRI.lmm <- lmm(swabs ~ crowding * name + (1|family), data = swabsL)
     eCSI.lme <- lme(swabs ~ crowding * name, random =~ 1 | family, data = swabsL)
@@ -277,7 +272,6 @@ test_that("practical 4 - bloodpressureL",{
     plot(eCS.lmm, color = "sequence", obs.alpha = 0.25, ci.alpha = 0.05)
     confint(eCS.gls)
     confint(eCS.lmm)
-    emmip(eCS.lmm, treatment~period)
 
     ## ** unstructured
     eUNP.gls <- gls(duration ~ period + treatment,
@@ -334,12 +328,12 @@ test_that("practical 6 - vasscoresL",{
     expect_equivalent(unname(model.tables(fit.CS)$df), c(43.64236203, 43.64236203, 43.64236203), tol = 1e-2)
 
     ## autoplot(fit.CS)
-    suppressWarnings(autoplot(fit.CS, obs.alpha = 0.1))
+    suppressWarnings(plot(fit.CS, obs.alpha = 0.1))
 
     fit.UN <- lmm(vas~-1+treatment, data=vasscoresL,
                   repetition=~treatment|id, structure="UN")
     capture.output(summary(fit.UN))
-    
+
     ## GS <- lmm(vas~-1+treatment, data=vasscoresL,
     ##               repetition=~treatment|id, structure="UN",
     ##               control = list(optimizer = "FS"))

@@ -3,13 +3,13 @@
 ## Author: Brice Ozenne
 ## Created: May 10 2021 (16:08) 
 ## Version: 
-## Last-Updated: jun 14 2023 (14:55) 
+## Last-Updated: mar 12 2024 (18:25) 
 ##           By: Brice Ozenne
-##     Update #: 83
+##     Update #: 93
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
-## 
+##  No exported anymore to avoid dependency on emmeans
 ### Change Log:
 ##----------------------------------------------------------------------
 ## 
@@ -18,7 +18,7 @@
 ## * recover_data.lmm (code)
 ##' @title Link to emmeans package
 ##' @description Link to emmeans package. Not meant for direct use.
-##' @rdname LMMstar2emmeans
+##' @noRd
 ##' 
 ##' @param object a \code{lmm} object.
 ##' @param trms see \code{emmeans::emm_basis} documentation 
@@ -27,25 +27,19 @@
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @return dataset or list used by the emmeans package.
-##' 
-##' @method recover_data lmm
-##'
-##' @keywords interface
-##' @export
 recover_data.lmm <- function(object, ...){
+    requireNamespace("emmeans")
     fcall <- object$call
     ff <- stats::formula(object, effects = "mean")
     data <- object$data
     
     oterms <- stats::terms(stats::model.frame(ff, data = data))
-    out <- recover_data(fcall, trms = stats::delete.response(oterms), na.action = NULL, frame = data)
+    
+    out <- emmeans::recover_data(fcall, trms = stats::delete.response(oterms), na.action = NULL, frame = data)
     return(out)
 }
 
 ## * emm_basis.lmm (code)
-##' @rdname LMMstar2emmeans
-##' @method emm_basis lmm
-##' @export
 emm_basis.lmm <- function(object, trms, xlev, grid, ...){
 
     out <- list()

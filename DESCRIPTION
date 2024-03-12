@@ -2,7 +2,7 @@ Package: LMMstar
 Type: Package
 Title: Repeated Measurement Models for Discrete Times
 Version: 1.1.0
-Date: 2024-03-10
+Date: 2024-03-12
 Authors@R: c(
     person("Brice", "Ozenne", role = c("aut", "cre"), email = "brice.mh.ozenne@gmail.com", comment = c(ORCID = "0000-0001-9694-2956")),
     person("Julie", "Forman", role = "aut", email = "jufo@sund.ku.dk", comment = c(ORCID = "0000-0001-7368-0869"))
@@ -23,7 +23,6 @@ Depends:
 Imports:
     copula,
     doParallel,
-    emmeans,
     foreach,
     ggplot2,
     grid,
@@ -33,14 +32,13 @@ Imports:
     nlme,
     numDeriv,
     parallel,
-    pbapply,
     rlang,
-    scales,
     sandwich
 Suggests:
     AICcmodavg,
     asht,
     data.table,
+    emmeans,
     ggh4x,
     ggpubr,
     lattice,
@@ -50,12 +48,14 @@ Suggests:
     mice,
     nlmeU,
     optimx,
+    pbapply,
     psych,
     Publish,
     qqtest,
     R.rsp,
     reshape2,
     rmcorr,
+    scales,
     testthat
 VignetteBuilder: R.rsp
 RoxygenNote: 7.2.3
@@ -95,6 +95,7 @@ Collate:
     'moments.R'
     'mt.test.R'
     'multcomp.R'
+    'namePatterns.R'
     'nobs.R'
     'operator.R'
     'partialCor.R'
