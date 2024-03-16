@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 26 2022 (11:18) 
 ## Version: 
-## Last-Updated: mar 12 2024 (18:10) 
+## Last-Updated: mar 15 2024 (17:20) 
 ##           By: Brice Ozenne
-##     Update #: 446
+##     Update #: 528
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,8 +20,10 @@
 ##' @description Recover the random effects from the variance-covariance parameter of a linear mixed model.
 ##' @param object a \code{lmm} object.
 ##' @param effects [character] should the estimated random effects (\code{"mean"}) or the estimated variance/standard deviation of the random effects (\code{"variance"},\code{"std"}) be output?
+##' @param scale [character] should the total variance, variance relative to each random effect, and residual variance be output (\code{"absolute"}).
+##' Or the ratio of these variances relative to the total variance (\code{"relative"}).
 ##' @param p [numeric vector] value of the model coefficients to be used. Only relevant if differs from the fitted values.
-##' @param ci [logical] should standard error and confidence intervals be evaluated using a delta method?
+##' @param se [logical] should standard error and confidence intervals be evaluated using a delta method?
 ##' Will slow down the execution of the function.
 ##' @param format [character] should each type of random effect be output in a data.frame (\code{format="long"})
 ##' @param transform [logical] should confidence intervals for the variance estimates (resp. relative variance estimates) be evaluated using a log-transform (resp. atanh transformation)?
@@ -53,21 +55,45 @@
 
 ## * ranef.lmm (code)
 ##' @export
-ranef.lmm <- function(object, effects = "mean", ci = FALSE, transform = (effects %in% c("std","variance")),
-                      p = NULL, format = "long", simplify = TRUE, ...){
+ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = (format=="long"), transform = (effects %in% c("std","variance")),
+                      p = NULL, newdata = NULL, format = "long", simplify = TRUE, ...){
 
 
 
     ## ** normalize user input
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
     mycall <- match.call()
     if(!inherits(object$design$vcov,"RE")){
         stop("Cannot estimate random effects linear mixed models defined by covariance structure (argument \'structure\'). \n",
              "Consider adding random effects in the argument \'formula\' instead. \n")
     }
     effects <- match.arg(effects, c("mean","std","variance"))
+    if(length(scale)==1 && scale == "all"){
+        scale <- c("absolute","relative")
+    }
+    scale <- match.arg(scale, c("absolute","relative"), several.ok = TRUE)
     format <- match.arg(format, c("wide","long"))
+    if(length(transform)!=1 || (!is.numeric(transform) && !is.logical(transform))){
+        stop("Argument \'transform\' must be a logical value. \n")
+    }
+    if(length(se)!=1 || (!is.numeric(se) && !is.logical(se))){
+        stop("Argument \'transform\' must be a logical value. \n")
+    }
+    if(!is.null(mycall$se) && se == TRUE && format == "wide"){
+        se <- FALSE
+        message("Argument \'se\' ignored when using the wide format. \n",
+                "Considering setting argument \'format\' to \"long\". \n")
+    }
+    if(!is.null(mycall$scale) && effects == "mean"){
+        message("Argument \'scale\' ignored when argument \'effects\' is set to \"mean\". \n")
+    }
 
-    param.name <- object$design$param$name
+    table.param <- object$design$param
+    param.name <- table.param$name
     if(!is.null(p)){
         if(any(duplicated(names(p)))){
             stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
@@ -75,66 +101,27 @@ ranef.lmm <- function(object, effects = "mean", ci = FALSE, transform = (effects
         if(any(param.name %in% names(p) == FALSE)){
             stop("Incorrect argument \'p\': missing parameter(s) \"",paste(param.name[param.name %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
         }
+        new.p <- TRUE
         p <- p[param.name]
     }else{
+        new.p <- FALSE
         p <- object$param
     }
 
-    if(format == "wide" && "ci" %in% names(mycall) && ci == TRUE){
-        message("Argument \'format\' ignored when argument \'ci\' is TRUE. \n")
-        format <- "long"
-    }
-        
-    if(transform && effects == "mean" && ci){
-        stop("Argument \'transform\' should be FALSE when evaluating confidence intervals for the random effects. \n")
+    if(transform && se && effects == "mean"){
+        transform <- FALSE
+        message("Argument \'transform\' is ignore when evaluating confidence intervals for the random effects. \n")
     }
 
-    ## ** ci
-    if(ci){
-        ## by default do not compute degrees of freedom (not reliable)
-        dots <- list(...)
-        df <- dots$df
-        if(is.null(df)){
-            df <- FALSE
-        }else{
-            dots$df <- NULL
-        }
-
-        e.ranef <- nlme::ranef(object, effects = effects, ci = FALSE, p = p, format = format)
-        e.delta <- lava::estimate(object, f = function(newp){
-            iE <- nlme::ranef(object, effects = effects, ci = FALSE, p = newp, format = format)
-            return(iE$estimate)
-        }, df = df)
-            
-        if(transform){ ## recompute only CIs (backtransforming the se is not exact)
-            eTrans.delta <- lava::estimate(object, f = function(newp){
-                iE <- nlme::ranef(object, effects = effects, ci = FALSE, p = newp, format = format)
-                iE[iE$type==effects,"estimate"] <- log(iE[iE$type==effects,"estimate"])
-                iE[iE$type=="relative","estimate"] <- atanh(iE[iE$type=="relative","estimate"])
-                return(iE$estimate)
-            }, df = df)
-            ## absolute
-            e.delta$lower[e.ranef$type==effects] <- exp(eTrans.delta$lower[e.ranef$type==effects])
-            e.delta$upper[e.ranef$type==effects] <- exp(eTrans.delta$upper[e.ranef$type==effects])
-            ## relative
-            e.delta$lower[e.ranef$type=="relative"] <- tanh(eTrans.delta$lower[e.ranef$type=="relative"])
-            e.delta$upper[e.ranef$type=="relative"] <- tanh(eTrans.delta$upper[e.ranef$type=="relative"])
-        }
-
-        out <- cbind(e.ranef, e.delta[,c("se","df","lower","upper")])
-
-        return(out)
-    }else{
-        dots <- list(...)
-        if(length(dots)>0){
-            stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
-        }
+    if(any(object$design$vcov$name$cor[[1]] %in% c("total","relative"))){
+        stop("The ranef function cannot be used when the variable(s) w.r.t. which the random are defined are called \"total\" or \"relative\". \n")
     }
-
+    
+    ## ** extract from object    
     ## param
-    param.type <- stats::setNames(object$design$param$type,param.name)
+    param.type <- stats::setNames(table.param$type,param.name)
     param.rho <- param.name[param.type=="rho"]
-    param.strata <- unlist(object$design$param[param.type=="rho","index.strata"])
+    param.sigma <- param.name[param.type=="sigma"]
 
     ## cluster 
     var.cluster <- object$cluster$var
@@ -164,96 +151,191 @@ ranef.lmm <- function(object, effects = "mean", ci = FALSE, transform = (effects
     var.all <- unique(lava::manifest(object))
     
     ## ** converting correlation parameters into random effect variance
-    cumtau <- coef(object, p = p, effects = "correlation", transform.rho = "cov", transform.names = FALSE)
+    ## convert coefficients into variance
+    theta <- coef(object, p = p, effects = c("variance","correlation"), transform.sigma = "square", transform.rho = "cov", transform.names = FALSE)
+    if(se){
+        theta.var <- switch(effects,
+                            "mean" = vcov(object, p = p, effects = c("all"), transform.sigma = "square", transform.rho = "cov", transform.names = FALSE),
+                            vcov(object, p = p, effects = c("variance","correlation"), transform.sigma = "square", transform.rho = "cov", transform.names = FALSE)
+                            )
+    }
 
+    ## *** prepare contrast matrix
     n.hierarchy <- length(infoRanef$param)
     index.hierarchy <- unlist(lapply(1:n.hierarchy, function(iH){rep(iH, length(infoRanef$param[[iH]]))}))
     name.RE <- unname(unlist(lapply(infoRanef$param, rownames)))
     n.RE <- length(name.RE)
-    varRE <- matrix(NA, nrow = n.RE, ncol = n.strata,
-                    dimnames =  list(name.RE, U.strata))
+    contrastRE <- array(0, dim = c(n.RE+2, length(theta), n.strata),
+                        dimnames = list(c("total",name.RE,"residual"), names(theta), U.strata))
+
+    ## total variance
+    tableSigma.param <- table.param[match(param.sigma,table.param$name),,drop=FALSE]
+    if(n.strata==1){
+        contrastRE["total",param.sigma,U.strata] <- 1
+    }else{
+        diag(contrastRE["total",tableSigma.param[order(tableSigma.param$index.strata),"name"],U.strata]) <- 1
+    }
+    ## change in variance within hierarchy
     for(iH in 1:n.hierarchy){ ## iH <- 1
         iHierarchy <- infoRanef$param[[iH]]
-        varRE[rownames(iHierarchy),] <- apply(iHierarchy, MARGIN = 2, FUN = function(iName){
-            cumtau[iName] - c(0,utils::head(cumtau[iName],-1))
-        })
+        iContrast <- diag(1, nrow = NROW(iHierarchy), ncol = NROW(iHierarchy))        
+        iContrast[lower.tri(iContrast, diag = FALSE)] <- -1
+        for(iS in 1:n.strata){ ## iS <- 1
+            contrastRE[rownames(iHierarchy),iHierarchy[,U.strata[iS]],U.strata[iS]] <- iContrast
+        }        
     }
-    
-    if(any(varRE<=0)){
+    ## residual variance
+    if(length(name.RE)==1){
+        contrastRE["residual",,] <- contrastRE["total",,] - contrastRE[name.RE,,]
+    }else{
+        for(iS in 1:n.strata){ ## iS <- 1
+            contrastRE["residual",,iS] <- contrastRE["total",,iS] - colSums(contrastRE[name.RE,,iS])
+        }
+    }
+
+    ## *** variance decomposition
+    varDecomp <- apply(contrastRE, MARGIN = 3, FUN = `%*%`, theta)
+    rownames(varDecomp) <- c("total",name.RE,"residual")
+    if(any(varDecomp<=0)){
         stop("Variance for the random effects is found to be negative - cannot estimate the random effects. \n")
     }
-    if(effects %in% c("std","variance")){
-        sigma2 <- coef(object, effects = "variance", transform.sigma = "square")
 
-        if(format=="long"){
-            out <- do.call(rbind,lapply(1:n.strata, function(iStrata){
-                rbind(data.frame(variable = rownames(varRE),
-                                 strata = U.strata[iStrata],
-                                 type = effects,
-                                 estimate = varRE[,iStrata]),
-                      data.frame(variable = rownames(varRE),
-                                 strata = U.strata[iStrata],
-                                 type = "relative",
-                                 estimate = varRE[,iStrata]/sigma2[iStrata])
-                      )
+    if(effects %in% c("std","variance")){
+
+        ## absolute
+        if(se){
+            varDecomp.vcov <- apply(contrastRE, MARGIN = 3, FUN = function(iM){iM %*% theta.var %*% t(iM)}, simplify = FALSE)
+            varDecomp.var <- do.call(cbind,lapply(varDecomp.vcov,diag))
+        }else{
+            varDecomp.var <- stats::setNames(vector(mode =  "numeric", length = n.strata), U.strata)
+        }
+
+        ## relative
+        RvarDecomp <- sweep(varDecomp, FUN = "/", MARGIN = 2, STATS = varDecomp["total",])
+        if(se){
+            RvarDecomp.var <- do.call(cbind,lapply(1:n.strata, function(iS){ ## iS <- 1
+                A <- varDecomp[-1,iS]
+                B <- varDecomp["total",iS]
+                c(total = 0,diag(varDecomp.vcov[[iS]])[-1]/B^2 + varDecomp.vcov[[iS]]["total","total"]*A^2/B^4 - 2*varDecomp.vcov[[iS]][-1,"total"]*A/B^3)
             }))
-            if(effects == "std"){
-                out$estimate <- sqrt(out$estimate)
+            colnames(RvarDecomp.var) <- U.strata
+        }else{
+            RvarDecomp.var <- stats::setNames(vector(mode =  "numeric", length = n.strata), U.strata)
+        }
+
+        ## take square root
+        if(effects=="std"){
+            varDecomp <- sqrt(varDecomp)
+            RvarDecomp <- sqrt(RvarDecomp)            
+
+            if(se){
+                varDecomp.var <- varDecomp.var/(2*varDecomp)^2
+                RvarDecomp.var <- RvarDecomp.var/(2*RvarDecomp)^2
+            }
+        }
+
+        ## gather results into a single data.frame
+        out <- do.call(rbind,mapply(u = as.data.frame(varDecomp), v = as.data.frame(varDecomp.var),
+                                    x = as.data.frame(RvarDecomp), y = as.data.frame(RvarDecomp.var), s = colnames(varDecomp),
+                                    FUN = function(u,v,x,y,s){ ## x <-
+                                        iDF <- data.frame(strata = s,
+                                                          type = rep(c("total",name.RE,"residual"),2),
+                                                          scale = c(rep("absolute",n.RE+2),rep("relative",n.RE+2)),
+                                                          estimate = c(u,x))
+                                        if(se){iDF$se <- sqrt(c(v,y))}
+                                        return(iDF)
+                                    }, SIMPLIFY = FALSE))
+        if(se & transform){
+            out$lower = exp(log(out$estimate) + stats::qnorm(0.025)*out$se/out$estimate)
+            out$upper = exp(log(out$estimate) + stats::qnorm(0.975)*out$se/out$estimate)
+        }else if(se){
+            out$lower <- out$estimate + stats::qnorm(0.025)*out$se
+            out$upper <- out$estimate + stats::qnorm(0.975)*out$se
+        }
+        
+        if(format=="long"){
+            out <- out[out$scale %in% scale,,drop=FALSE]
+            rownames(out) <- NULL
+            if(simplify){
+                if(length(scale)==1){
+                    out$scale <- NULL
+                }
+                if(n.strata==1){
+                    out$strata <- NULL
+                }
+                if(se == FALSE && n.strata==1 && length(scale)==1){
+                    out <- stats::setNames(out$estimate,out$type)
+                }
             }
         }else if(format=="wide"){
-            out <- do.call(rbind,lapply(1:n.strata, function(iStrata){ ## iStrata <- 1
-                iOut <- data.frame(variable = rownames(varRE),
-                                   strata = U.strata[iStrata],
-                                   variance = varRE[,iStrata],
-                                   relative = varRE[,iStrata]/sigma2[iStrata])
-                if(simplify == FALSE){
-                    iOut <- rbind(data.frame(variable = "total", strata = U.strata[iStrata], variance = sigma2[iStrata], relative = 1),
-                                  iOut,
-                                  data.frame(variable = "residual", strata = U.strata[iStrata], variance = sigma2[iStrata]-sum(iOut$variance), relative = 1-sum(iOut$relative))
-                                  )
-                }
-                return(iOut)
-            }))
-            if(effects == "std"){
-                out$variance <- sqrt(out$variance)
-                out$relative <- sqrt(out$relative)
+            if(!simplify || n.strata>1){
+                out$scale <- paste(out$scale,out$strata,sep=".")
             }
-        }
-        rownames(out) <- NULL
-        if(simplify && n.strata==1){
             out$strata <- NULL
+            out <- stats::reshape(out, direction  = "wide",
+                                  idvar = "type", timevar = "scale",
+                                  varying = unique(out$scale))
+            rownames(out) <- NULL
+        
         }
         return(out)
+
+    }else if(effects == "mean"){
+
+        ## gradient w.r.t. variance/covariance parameters
+        contrastRE2 <- array(0, dim = c(length(name.RE),length(param.name),n.strata), dimnames = list(name.RE,param.name,U.strata))
+        contrastRE2[,names(theta),] <- contrastRE[name.RE,,]
+
+        df.epsilon <- stats::residuals(object, p = p, keep.data = TRUE, type = "normalized2", format = "long", simplify = FALSE)
+            
+        if(se){
+            ## derivative of chol(Omega^(-1))(Y-XB)
+            ## = chol(Omega^(-1))(Y-XB) - chol(Omega^(-1))X
+            grad <- matrix(0, nrow = NROW(df.epsilon), ncol = length(p), dimnames = list(NULL, names(p)))
+            
+            if(!is.null(newdata) || new.p){
+                design <- model.matrix(object, data = newdata, effects = "variance")
+                Omega <- .calc_Omega(object = structure, param = p)
+                precision <- lapply(Omega, solve)
+            }else{
+                precision <- object.OmegaM1
+            }
+        }
+        
+
+        
+        sqrtPrecision$normalized <- lapply(Omega,function(iP){solve(chol(iP))})
+        precision <- lapply(Omega, solve)
+        resnorm <- as.double(iResidual %*% precision[[pattern[iId]]])
+                    
+
+
+        
+        grid.ranef <- unlist(lapply(1:n.hierarchy, function(iH){ ## iH <- 1
+            stats::setNames(lapply(1:length(infoRanef$hierarchy[[iH]]), function(iP){
+                infoRanef$hierarchy[[iH]][1:iP]
+            }), infoRanef$hierarchy[[iH]])
+        }), recursive = FALSE)
+
+        ls.out <- lapply(1:length(grid.ranef), function(iR){ ## iR <- 1
+            do.call(rbind,by(df.epsilon, df.epsilon[grid.ranef[[iR]]], function(iDF){ ## iDF <- df.epsilon[df.epsilon$school == "I",]
+                iNames <- grid.ranef[[iR]]
+                iTau <- varDecomp[names(grid.ranef)[iR],which(iDF[[var.strata]][1]==U.strata)]
+                iOut <- data.frame(variable = NA,
+                                   strata = iDF[[var.strata]][1],
+                                   level = NA,
+                                   estimate = unname(sum(iDF$r.normalized)*iTau))
+                iOut$variable <- list(iNames)
+                iOut$level <- list(unlist(iDF[1,iNames,drop=FALSE]))
+                return(iOut)
+            }))
+        })
+        browser()
     }
 
     ## ** extract normalized residuals
     ## head(stats::residuals(object, p = p, keep.data = TRUE, type = "response", format = "long"))
-    df.epsilon <- stats::residuals(object, p = p, keep.data = TRUE, type = "normalized2", format = "long")
-    if(object$strata$n==1){
-        df.epsilon$XXstrata.indexXX <- U.strata
-    }
     
-    ## ** estimate random effects
-    grid.ranef <- unlist(lapply(1:n.hierarchy, function(iH){ ## iH <- 1
-        stats::setNames(lapply(1:length(infoRanef$hierarchy[[iH]]), function(iP){
-            infoRanef$hierarchy[[iH]][1:iP]
-        }), infoRanef$hierarchy[[iH]])
-    }), recursive = FALSE)
-
-    ls.out <- lapply(1:length(grid.ranef), function(iR){ ## iR <- 1
-        do.call(rbind,by(df.epsilon, df.epsilon[grid.ranef[[iR]]], function(iDF){ ## iDF <- df.epsilon[df.epsilon$Subject == "F10",]
-            iNames <- grid.ranef[[iR]]
-            iTau <- varRE[names(grid.ranef)[iR],which(iDF[[var.strata]][1]==U.strata)]
-            iOut <- data.frame(variable = NA,
-                               strata = iDF[[var.strata]][1],
-                               level = NA,
-                               estimate = unname(sum(iDF$r.normalized)*iTau))
-            iOut$variable <- list(iNames)
-            iOut$level <- list(unlist(iDF[1,iNames,drop=FALSE]))
-            return(iOut)
-        }))
-    })
-
     
     ## ** export
     out <- do.call(rbind,ls.out)

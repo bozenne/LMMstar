@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: mar 12 2024 (09:46) 
+## Last-Updated: mar 13 2024 (13:42) 
 ##           By: Brice Ozenne
-##     Update #: 2990
+##     Update #: 2991
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -735,6 +735,9 @@ lmm <- function(formula, repetition, structure, data,
 
     ## ** test
     names.data <- names(data)
+    if(NROW(data)==0){
+        stop("Argument \'data\' has 0 rows. \n")
+    }
     if("XXindexXX" %in% names.data){
         stop("Argument \'data\' should not contain a column named \"XXindexXX\" as this name is used internally by the lmm function. \n")
     }

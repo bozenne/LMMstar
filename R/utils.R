@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: mar 11 2024 (11:29) 
+## Last-Updated: mar 16 2024 (16:12) 
 ##           By: Brice Ozenne
-##     Update #: 241
+##     Update #: 299
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -356,6 +356,94 @@ groupSet <- function(object, strata = NULL){
     ## ** export
     return(out)
     
+}
+## * dchol
+##' @title Jacobian of the Cholesky factor
+##' @description Jacobian of the Cholesky factor
+##' @noRd 
+##' @examples
+##' p <- 5
+##' Msym <- cov(matrix(rnorm(1000*p),ncol=p))
+##' chol(Msym)
+##' test <- dchol(chol(Msym))
+##' test
+##'
+##' ## comparison with numerical derivative
+##' mychol <- function(x){
+##' vec(chol(matrix(x, nrow = sqrt(length(x)), ncol = sqrt(length(x)))))
+##' }
+##' range(numDeriv::jacobian(mychol, vec(Msym)) - test)
+dchol <- function(object, ...){
+
+    ## ** normalize user input
+    if(!is.matrix(object)){
+        stop("Argument \'object\' should be a matrix. \n")
+    }
+    p <- dim(object)
+    if(p[1]!=p[2]){
+        stop("Argument \'object\' should be a squared matrix (same number of rows and columns). \n")
+    }
+    p2 <- prod(p)
+    if(any(abs(object[lower.tri(object)]>1e-12))){
+        stop("Argument \'object\' should be the (upper) cholesky factor of a squared symmetric matrix. \n")
+    }
+
+    ## ** deal with special case
+    if(p[1]==1){
+        return(1/(2*object))
+    }    
+
+    ## ** commutation matrix (K)
+    ## such that vec(C) = K vec(\trans(C))
+    indexN0.com <- expand.grid(row = 1:p[1], col = 1:p[1])
+    indexN0.com$comrow <- p[1]*(indexN0.com[,"row"]-1)+indexN0.com[,"col"]    
+    indexN0.com$comcol <- p[1]*(indexN0.com[,"col"]-1)+indexN0.com[,"row"]
+
+    ## sanity check
+    ## Mcom <- matrix(0, nrow = p2, ncol = p2)
+    ## Mcom[indexN0.com$comrow + (indexN0.com$comcol-1)*p2] <- 1
+    ## range(Mcom - matrixcalc::commutation.matrix(p[1]))
+
+    ## ** elimination matrix (E)
+    ## such athat vech(dX) = E vec(X)
+    ## [a b b c] --> [a b c]
+    p.n0 <- p[1]*(p[1]+1)/2
+    indexN0.elim <- indexN0.com[indexN0.com$row >= indexN0.com$col,,drop=FALSE]
+
+    ## sanity check
+    ## Melim <- matrix(0, nrow = p.n0, ncol = p2)
+    ## Melim[1:p.n0 + (indexN0.elim$comcol-1)*p.n0] <- 1
+    ## tMelim <- matrix(0, nrow = p2, ncol = p.n0)
+    ## tMelim[indexN0.elim$comcol + (1:p.n0-1)*p2] <- 1
+    ## range(Melim - matrixcalc::elimination.matrix(p[1]))
+    ## range(t(Melim) - tMelim)
+    ## Melim %*% vec(x)
+
+    ## ** differentiation choleski transform
+    Minterim <- t(object) %x% diag(1,nrow=p[1])
+    out <- matrix(0, nrow = p2, ncol = p2)
+    out[indexN0.elim$comrow,indexN0.elim$comrow] <- solve((Minterim + Minterim[indexN0.com$comrow,])[indexN0.elim$comrow,][,indexN0.elim$comcol])
+
+    ## SHORT FOR
+    ## https://mathoverflow.net/questions/150427/the-derivative-of-the-cholesky-factor
+    ## GS <- solve(Melim %*% (diag(1,nrow=p2) + Mcom) %*% (t(object) %x% diag(1,nrow=p[1])) %*% tMelim)
+    ## range(GS - solve((Minterim + Minterim[indexN0.com$comrow,])[indexN0.elim$comrow,][,indexN0.elim$comcol]))
+
+    ## INCOMPLETE JUSTIFICATION
+    ## https://math.stackexchange.com/questions/2158399/derivative-of-symmetric-positive-definite-matrix-w-r-t-to-its-lower-triangular
+    ## X = C\trans{C}
+    ## dX = dC\trans{C} + Cd\trans{C}
+    ##
+    ## use that vec(ABC) = (\trans(C) %x% A) vec(B)
+    ##
+    ## vec(dX) = (C %x% I) vec(dC) + (I %x% C) vec(d\trans{C})
+    ##         =  [ (C %x% I) + (I %x% C)K ] vec(dC)
+    ## vech(dX) = Ex vec(X) = Ex [ (C %x% I) + (I %x% C)K ] vec(dC)
+    ##          = Ex [ (C %x% I) + (I %x% C)K ] Ec vech(dC)
+    ## vech(dX)/vech(dC) = = Ex [ (C %x% I) + (I %x% C)K ] Ec
+
+    ## ** export
+    return(out)
 }
 
 ##----------------------------------------------------------------------
