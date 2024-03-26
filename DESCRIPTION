@@ -33,7 +33,6 @@ Imports:
     numDeriv,
     parallel,
     rlang,
-    sandwich
 Suggests:
     AICcmodavg,
     asht,

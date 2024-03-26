@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: Mar 10 2024 (15:59) 
+## Last-Updated: Mar 26 2024 (12:12) 
 ##           By: Brice Ozenne
-##     Update #: 1063
+##     Update #: 1077
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -144,6 +144,9 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
             if(!is.vector(fbeta) || (!is.numeric(fbeta) && !is.logical(fbeta))){
                 stop("The output of the function defined in the argument \'FUN\' must be a numeric vector. \n")
             }
+            if(!is.null(names(fbeta)) && any(duplicated(names(fbeta)))){
+                stop("The output of the function defined in the argument \'FUN\' should not contain duplicated names. \n")
+            }
             grad <- numDeriv::jacobian(func = f, x = beta, method = method.numDeriv)
         }
         
@@ -159,6 +162,9 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
             fbeta <- f(beta, ...)
             if(!is.vector(fbeta) || (!is.numeric(fbeta) && !is.logical(fbeta))){
                 stop("The output of the function defined in the argument \'FUN\' must be a numeric vector. \n")
+            }
+            if(!is.null(names(fbeta)) && any(duplicated(names(fbeta)))){
+                stop("The output of the function defined in the argument \'FUN\' should not contain duplicated names. \n")
             }
             grad <- numDeriv::jacobian(func = f, x = beta, method = method.numDeriv, ...)
         }

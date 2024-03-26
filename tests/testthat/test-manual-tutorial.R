@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: nov 13 2021 (16:47) 
 ## Version: 
-## Last-Updated: mar 12 2024 (10:26) 
+## Last-Updated: Mar 26 2024 (09:54) 
 ##           By: Brice Ozenne
-##     Update #: 30
+##     Update #: 31
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -135,8 +135,8 @@ test_that("Dynamic predictions", {
     ## sqrt(prod(coef(fit.main, effects = "all")[c("sigma","k.2")])^2*(1-coef(fit.main, effects = "all")[c("rho(1,2)")]^2))
 
     dfFit <- merge(newd[newd$time=="-3 month",c("id","weight")],
-                   cbind(res = predict(fit.main, newdata = newd, type = "dynamic", se = "res", keep.newdata = TRUE)[newd$time=="-1 week",c("id","estimate","lower","upper")],
-                         total = predict(fit.main, newdata = newd, type = "dynamic", se = "total", keep.newdata = TRUE)[newd$time=="-1 week",c("estimate","lower","upper")]),
+                   cbind(res = predict(fit.main, newdata = newd, type = "dynamic", se = "res", keep.data = TRUE)[newd$time=="-1 week",c("id","estimate","lower","upper")],
+                         total = predict(fit.main, newdata = newd, type = "dynamic", se = "total", keep.data = TRUE)[newd$time=="-1 week",c("estimate","lower","upper")]),
                    by.x = "id", by.y = "res.id")
 
     dfData <- reshape2::dcast(data = long[long$time %in% c("-3 month","-1 week"),], formula = id~time, value.var = "weight")

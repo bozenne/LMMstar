@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb 22 2024 (10:15) 
 ## Version: 
-## Last-Updated: Mar 10 2024 (16:36) 
+## Last-Updated: Mar 26 2024 (09:54) 
 ##           By: Brice Ozenne
-##     Update #: 28
+##     Update #: 29
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -93,7 +93,7 @@ test_that("predict/fitted (lmm)", {
                       data.frame(estimate = nd.X %*% coef(e.lmm),
                                  se = sqrt(diag(nd.X %*% vcov(e.lmm) %*% t(nd.X)))),
                       tol = 1e-6)
-    expect_visible(predict(e.lmm, newdata = nd, type = "static", format = "long", se = TRUE, keep.newdata = TRUE))
+    expect_visible(predict(e.lmm, newdata = nd, type = "static", format = "long", se = TRUE, keep.data = TRUE))
     expect_visible(predict(e.lmm, newdata = nd, type = "static", format = "wide"))
     GS <- data.frame("subject" = c("2", "10"), 
                      "lesion" = c(1, 1), 
@@ -103,7 +103,7 @@ test_that("predict/fitted (lmm)", {
                      "estimate_12" = c(51.62498, 55.84074), 
                      "estimate_24" = c(48.38935, 52.16911), 
                      "estimate_52" = c(41.27514, 46.88251))
-    expect_equivalent(predict(e.lmm, newdata = nd, type = "static", format = "wide", keep.newdata = TRUE), GS, tol = 1e-6)
+    expect_equivalent(predict(e.lmm, newdata = nd, type = "static", format = "wide", keep.data = TRUE), GS, tol = 1e-6)
 
     ##-- time ordering
     test1 <- predict(e.lmm, newdata = nd[NROW(nd):1,], se = c(TRUE,TRUE))
@@ -112,31 +112,31 @@ test_that("predict/fitted (lmm)", {
     ## sqrt(diag(attr(predict(e.lmm, newdata = nd, se = "total2", simplify = FALSE),"vcov")))
 
     ##-- static NA
-    expect_equivalent(predict(e.lmmNNA, newdata = nd, type = "static", format = "wide", keep.newdata = TRUE), GS, tol = 1e-6)
+    expect_equivalent(predict(e.lmmNNA, newdata = nd, type = "static", format = "wide", keep.data = TRUE), GS, tol = 1e-6)
     GSNNA <- GS
     GSNNA[2,"estimate_52"] <- NA
-    expect_equivalent(predict(e.lmmNNA, newdata = ndNNA[ndNNA$subject %in% GSNNA$subject,,drop=FALSE], type = "static", format = "wide", keep.newdata = TRUE),
+    expect_equivalent(predict(e.lmmNNA, newdata = ndNNA[ndNNA$subject %in% GSNNA$subject,,drop=FALSE], type = "static", format = "wide", keep.data = TRUE),
                       GSNNA, tol = 1e-6)
 
     ##-- unique static
     Ufit <- fitted(e.lmm, newdata = "unique")
     
     ##-- dynamic
-    predL <- predict(e.lmm, newdata = nd2, type = "dynamic", keep.newdata = TRUE)
+    predL <- predict(e.lmm, newdata = nd2, type = "dynamic", keep.data = TRUE)
     expect_equal(is.na(nd2$visual),!is.na(predL$estimate))
     expect_equal(c(NA, 1.5957344, NA, NA, 1.66930219, NA, NA, 1.78849944, NA, NA, 1.92606744, 1.07271763, NA, 2.00302196, 1.50857931),predL$se, tol = 1e-6)
     expect_equal(c(NA, 243.9075, NA, NA, 257.7478, NA, NA, 272.432, NA, NA, 275.4818, 174.074, NA, 263.3198, 198.7918), predL$df, tol = 1e-1)
     ## similar to not using a transformation
     ## predL2 <- predict(e.lmm, newdata = nd2, type = "dynamic", transform.sigma = "none", transform.k = "none", transform.rho = "none",
-    ##                   keep.newdata = TRUE)
+    ##                   keep.data = TRUE)
     ## expect_equal(predL2$estimate,predL$estimate, tol = 1e-6)
     ## expect_equal(predL2$se,predL$se, tol = 1e-3)
     ## expect_equal(predL2$df,predL$df, tol = 1e-1)
 
     predLse2 <- predict(e.lmm, newdata = nd2, type = "dynamic", se = c(TRUE,TRUE))
-    predW <- predict(e.lmm, newdata = nd2, type = "dynamic", format = "wide", keep.newdata = TRUE)
+    predW <- predict(e.lmm, newdata = nd2, type = "dynamic", format = "wide", keep.data = TRUE)
     expect_equal(colnames(predW), c("subject", "lesion", "treat.f", "estimate_0", "estimate_4", "estimate_12", "estimate_24", "estimate_52"))
-    fitL <- fitted(e.lmm, newdata = nd2, type = "outcome", format = "long", keep.newdata = TRUE, export.vcov = TRUE)
+    fitL <- fitted(e.lmm, newdata = nd2, type = "outcome", format = "long", keep.data = TRUE, export.vcov = TRUE)
     ## GS <- estimate(e.lmm, function(p){ ## p <- NULL
     ##     predict(e.lmm, p = p, newdata = nd2, type = "dynamic")
     ## })
@@ -150,7 +150,7 @@ test_that("predict/fitted (lmm)", {
     imputeL <- fitted(e.lmm, newdata = nd2, type = "impute", format = "long")
    
     ##-- change
-    changeL <- fitted(e.lmm, newdata = nd2, type = "change", format = "long", keep.newdata = TRUE)
+    changeL <- fitted(e.lmm, newdata = nd2, type = "change", format = "long", keep.data = TRUE)
     expect_equal(fitL[fitL$subject==3,"se"], changeL[changeL$subject==3,"se"])
     expect_equal(fitL[fitL$subject==3,"df"], changeL[changeL$subject==3,"df"])
 
@@ -167,8 +167,8 @@ test_that("predict/fitted (lmm)", {
     expect_equal(changeW$visual_12, fitW$visual_12-fitW$visual_0, tol = 1e-6)
    
     ## auc
-    aucL <- fitted(e.lmm, newdata = nd2, type = "auc", format = "long", keep.newdata = TRUE)
-    aucbL <- fitted(e.lmm, newdata = nd2, type = "auc-b", format = "long", keep.newdata = TRUE)
+    aucL <- fitted(e.lmm, newdata = nd2, type = "auc", format = "long", keep.data = TRUE)
+    aucbL <- fitted(e.lmm, newdata = nd2, type = "auc-b", format = "long", keep.data = TRUE)
 })
 
 

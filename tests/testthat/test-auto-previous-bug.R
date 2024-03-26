@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: mar 11 2024 (18:45) 
+## Last-Updated: Mar 26 2024 (09:54) 
 ##           By: Brice Ozenne
-##     Update #: 161
+##     Update #: 162
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -187,7 +187,7 @@ test_that("lmm - predicted values",{
     data("gastricbypassW", package = "LMMstar")
     GS <- predict(lm(weight2 ~ weight1, data = gastricbypassW), newdata = data.frame(weight1 = 50), se = TRUE)
     newdata <- data.frame(time = c("3monthsBefore","1weekBefore"), visit = factor(1:2,levels=1:4), weight = c(50,NA), id = c(1,1))
-    test <- predict(fit.main, newdata = newdata, type = "dynamic", keep.newdata = TRUE)
+    test <- predict(fit.main, newdata = newdata, type = "dynamic", keep.data = TRUE)
 
     expect_equivalent(test$estimate[is.na(newdata$weight)], GS$fit, tol = 1e-3)
     expect_equivalent(test[is.na(newdata$weight),c("estimate","se","df","lower","upper")],

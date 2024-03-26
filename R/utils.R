@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: mar 16 2024 (16:12) 
+## Last-Updated: Mar 25 2024 (10:21) 
 ##           By: Brice Ozenne
-##     Update #: 299
+##     Update #: 324
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -360,12 +360,14 @@ groupSet <- function(object, strata = NULL){
 ## * dchol
 ##' @title Jacobian of the Cholesky factor
 ##' @description Jacobian of the Cholesky factor
+##' @param object [matrix] matrix relative to which the cholesky factor and its derivative should be evaluated.
+##' @param chol [logical] Is the argument object the cholesky factor?
 ##' @noRd 
 ##' @examples
 ##' p <- 5
 ##' Msym <- cov(matrix(rnorm(1000*p),ncol=p))
 ##' chol(Msym)
-##' test <- dchol(chol(Msym))
+##' test <- dchol(Msym)
 ##' test
 ##'
 ##' ## comparison with numerical derivative
@@ -373,7 +375,20 @@ groupSet <- function(object, strata = NULL){
 ##' vec(chol(matrix(x, nrow = sqrt(length(x)), ncol = sqrt(length(x)))))
 ##' }
 ##' range(numDeriv::jacobian(mychol, vec(Msym)) - test)
-dchol <- function(object, ...){
+##' 
+##' ## delta method
+##' data(gastricbypassL, package = "LMMstar")
+##' e.lmm <- lmm(weight ~ visit + (1|id), data = gastricbypassL)
+##'
+##' GS <- estimate(e.lmm, transform.sigma = "log", transform.rho = "atanh", function(p){ ## p <- NULL
+##'    as.vector(chol(sigma(e.lmm, p = p)))
+##' }, method.numDeriv = "Richardson")
+##' dOmega.chol <- dchol(e.lmm$Omega[[1]], dobject = e.lmm$dOmega[[1]], chol = FALSE)
+##' 
+##' range(dOmega.chol$sigma - matrix(attr(GS,"grad")[,"sigma"],e.lmm$time$n,e.lmm$time$n))
+##' range(dOmega.chol[["rho(id)"]] - matrix(attr(GS,"grad")[,"rho(id)"],e.lmm$time$n,e.lmm$time$n))
+##'
+dchol <- function(object, dobject = NULL, chol = FALSE, ...){
 
     ## ** normalize user input
     if(!is.matrix(object)){
@@ -384,13 +399,19 @@ dchol <- function(object, ...){
         stop("Argument \'object\' should be a squared matrix (same number of rows and columns). \n")
     }
     p2 <- prod(p)
-    if(any(abs(object[lower.tri(object)]>1e-12))){
-        stop("Argument \'object\' should be the (upper) cholesky factor of a squared symmetric matrix. \n")
+    if(chol){
+        object.chol <- object
+        object <- crossprod(object.chol)
+    }else{
+        object.chol <- chol(object)
+    }
+    if(any(abs(object.chol[lower.tri(object.chol)]>1e-12))){
+        stop("Argument \'object\' should be the (upper) cholesky factor of a squared symmetric matrix when argument \'chol\' is TRUE. \n")
     }
 
     ## ** deal with special case
     if(p[1]==1){
-        return(1/(2*object))
+        return(1/(2*object.chol))
     }    
 
     ## ** commutation matrix (K)
@@ -420,13 +441,13 @@ dchol <- function(object, ...){
     ## Melim %*% vec(x)
 
     ## ** differentiation choleski transform
-    Minterim <- t(object) %x% diag(1,nrow=p[1])
+    Minterim <- t(object.chol) %x% diag(1,nrow=p[1])
     out <- matrix(0, nrow = p2, ncol = p2)
     out[indexN0.elim$comrow,indexN0.elim$comrow] <- solve((Minterim + Minterim[indexN0.com$comrow,])[indexN0.elim$comrow,][,indexN0.elim$comcol])
 
     ## SHORT FOR
     ## https://mathoverflow.net/questions/150427/the-derivative-of-the-cholesky-factor
-    ## GS <- solve(Melim %*% (diag(1,nrow=p2) + Mcom) %*% (t(object) %x% diag(1,nrow=p[1])) %*% tMelim)
+    ## GS <- solve(Melim %*% (diag(1,nrow=p2) + Mcom) %*% (t(object.chol) %x% diag(1,nrow=p[1])) %*% tMelim)
     ## range(GS - solve((Minterim + Minterim[indexN0.com$comrow,])[indexN0.elim$comrow,][,indexN0.elim$comcol]))
 
     ## INCOMPLETE JUSTIFICATION
@@ -441,6 +462,30 @@ dchol <- function(object, ...){
     ## vech(dX) = Ex vec(X) = Ex [ (C %x% I) + (I %x% C)K ] vec(dC)
     ##          = Ex [ (C %x% I) + (I %x% C)K ] Ec vech(dC)
     ## vech(dX)/vech(dC) = = Ex [ (C %x% I) + (I %x% C)K ] Ec
+
+    ## ** dobject
+    if(!is.null(dobject)){
+        if(is.matrix(dobject)){
+            dobject <- list(dobject)
+        }else if(any(unlist(lapply(dobject,is.matrix))==FALSE)){
+            stop("Argument \'dobject\' should be a matrix or list of matrix. \n")
+        }
+        if(any(unlist(lapply(dobject,function(iO){identical(dim(iO),p)}))==FALSE)){
+            stop("Argument \'dobject\' has dimensions incompatible with argument \'object\'. \n")
+        }
+        index.upperTri <- which(upper.tri(object, diag = TRUE))
+        out.upperTri <- out[index.upperTri,index.upperTri,drop=FALSE]
+        out <- lapply(dobject, FUN = function(iM){ ## iM <- dobject[[1]]
+            iOut <- matrix(0, nrow = p[1], ncol = p[2])
+            iOut[index.upperTri] <- rowSums(sweep(out.upperTri, MARGIN = 2, FUN = "*", STATS = iM[index.upperTri]))
+            return(iOut)
+        })
+        ## out <- lapply(dobject, FUN = function(iM){ ## iM <- dobject[[1]]
+        ##     iOut <- matrix(rowSums(sweep(out, MARGIN = 2, FUN = "*", STATS = as.double(iM))),
+        ##                    nrow = p[1], ncol = p[2])
+        ##     return(iOut)
+        ## })
+    }
 
     ## ** export
     return(out)

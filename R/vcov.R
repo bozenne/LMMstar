@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: mar  1 2024 (11:24) 
+## Last-Updated: Mar 26 2024 (09:52) 
 ##           By: Brice Ozenne
-##     Update #: 530
+##     Update #: 536
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,7 +26,7 @@
 ##' or only for coefficients relative to the correlation structure (\code{"correlation"}).
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. Not feasible for variance or correlation coefficients estimated by REML.
 ##' @param df [logical] Should degree of freedom, computed using Satterthwaite approximation, for the model parameters be output.
-##' @param data [data.frame] dataset relative to which the information should be computed. Only relevant if differs from the dataset used to fit the model.
+##' @param newdata [data.frame] dataset relative to which the information should be computed. Only relevant if differs from the dataset used to fit the model.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the information. Only relevant if differs from the fitted values.
 ##' @param strata [character vector] When not \code{NULL}, only output the variance-covariance matrix for the estimated parameters relative to specific levels of the variable used to stratify the mean and covariance structure.
 ##' @param type.information [character] Should the expected information be used  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
@@ -44,7 +44,7 @@
 
 ## * vcov.lmm (code)
 ##' @export
-vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strata = NULL, data = NULL, p = NULL,
+vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strata = NULL, newdata = NULL, p = NULL,
                      type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
     
     options <- LMMstar.options()
@@ -79,79 +79,74 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strat
     }
 
     init <- .init_transform(p = p, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
-                            x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho)
+                            x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
+                            table.param = object$design$param)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
     transform.rho <- init$transform.rho
     test.notransform <- init$test.notransform
+    if(is.null(p)){
+        theta <- object$param
+    }else{
+        theta <- init$p
+    }    
 
     ## ** extract or recompute variance covariance matrix
 
-    if(is.null(data) && is.null(p) && test.notransform && (df == FALSE || !is.null(object$df)) && (robust == FALSE) && object$args$type.information==type.information){
+    if(is.null(newdata) && is.null(p) && test.notransform && (df == FALSE || !is.null(object$df)) && (robust == FALSE) && object$args$type.information==type.information){
         keep.name <- stats::setNames(names(coef(object, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE)),
                                      names(coef(object, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)))    
 
-            vcov <- object$vcov[keep.name,keep.name,drop=FALSE]
+        vcov <- object$vcov[keep.name,keep.name,drop=FALSE]
+        if(transform.names){
+            dimnames(vcov) <- list(names(keep.name),names(keep.name))
+        }
+        if(df>0){
+            attr(vcov,"df") <- object$df[keep.name]
             if(transform.names){
-                dimnames(vcov) <- list(names(keep.name),names(keep.name))
-            }
-            if(df>0){
-                attr(vcov,"df") <- object$df[keep.name]
-                if(transform.names){
-                    names(attr(vcov,"df")) <- names(keep.name)
-                }
-            }
-            if(df>1){
-                attr(vcov,"dVcov") <- object$dVcov[keep.name,keep.name,keep.name,drop=FALSE]
-                if(transform.names){
-                    dimnames(attr(vcov,"dVcov")) <- list(names(keep.name),names(keep.name),names(keep.name))
-                }
-            }
-        }else{
-            test.precompute <- !is.null(object$design$precompute.XX)
-         
-            if(!is.null(data)){
-                design <- stats::model.matrix(object, data = data, effects = "all", simplify = FALSE)
-            }else{
-                design <- object$design
-            }
-
-            if(!is.null(p)){
-                if(any(duplicated(names(p)))){
-                    stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
-                }
-                if(any(names(object$param) %in% names(p) == FALSE)){
-                    stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param)[names(object$param) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
-                }
-                p <- p[names(object$param)]
-            }else{
-                p <- object$param
-            }
-            outMoments <- .moments.lmm(value = p, design = design, time = object$time, method.fit = object$args$method.fit, type.information = type.information,
-                                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                       logLik = FALSE, score = FALSE, information = FALSE, vcov = TRUE, df = df, indiv = FALSE, effects = effects, robust = robust,
-                                       trace = FALSE, precompute.moments = test.precompute, method.numDeriv = options$method.numDeriv, transform.names = transform.names)
-
-            if("variance" %in% effects && transform.k %in% c("sd","var","logsd","logvar") && object$strata$n>1 && transform.names){
-                ## re-order values when converting to sd with strata (avoid sd0:0 sd0:1 sd1:0 sd1:1 sd2:0 sd2:1 ...)
-                out.name <- names(stats::coef(object, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = TRUE))
-                vcov <- outMoments$vcov[out.name,out.name,drop=FALSE]
-                if(df>0){
-                    attr(vcov,"df") <- outMoments$df[out.name]
-                }
-                if(df>1){
-                    attr(vcov,"dVcov") <- outMoments$dVcov[out.name,out.name,out.name,drop=FALSE]
-                }
-            }else{
-                vcov <- outMoments$vcov
-                if(df>0){
-                    attr(vcov,"df") <- outMoments$df
-                }
-                if(df>1){
-                    attr(vcov,"dVcov") <- outMoments$dVcov
-                }
+                names(attr(vcov,"df")) <- names(keep.name)
             }
         }
+        if(df>1){
+            attr(vcov,"dVcov") <- object$dVcov[keep.name,keep.name,keep.name,drop=FALSE]
+            if(transform.names){
+                dimnames(attr(vcov,"dVcov")) <- list(names(keep.name),names(keep.name),names(keep.name))
+            }
+        }
+    }else{
+        test.precompute <- !is.null(object$design$precompute.XX)
+         
+        if(!is.null(newdata)){
+            design <- stats::model.matrix(object, newdata = newdata, effects = "all", simplify = FALSE)
+        }else{
+            design <- object$design
+        }
+
+        outMoments <- .moments.lmm(value = theta, design = design, time = object$time, method.fit = object$args$method.fit, type.information = type.information,
+                                   transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                                   logLik = FALSE, score = FALSE, information = FALSE, vcov = TRUE, df = df, indiv = FALSE, effects = effects, robust = robust,
+                                   trace = FALSE, precompute.moments = test.precompute, method.numDeriv = options$method.numDeriv, transform.names = transform.names)
+
+        if("variance" %in% effects && transform.k %in% c("sd","var","logsd","logvar") && object$strata$n>1 && transform.names){
+            ## re-order values when converting to sd with strata (avoid sd0:0 sd0:1 sd1:0 sd1:1 sd2:0 sd2:1 ...)
+            out.name <- names(stats::coef(object, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = TRUE))
+            vcov <- outMoments$vcov[out.name,out.name,drop=FALSE]
+            if(df>0){
+                attr(vcov,"df") <- outMoments$df[out.name]
+            }
+            if(df>1){
+                attr(vcov,"dVcov") <- outMoments$dVcov[out.name,out.name,out.name,drop=FALSE]
+            }
+        }else{
+            vcov <- outMoments$vcov
+            if(df>0){
+                attr(vcov,"df") <- outMoments$df
+            }
+            if(df>1){
+                attr(vcov,"dVcov") <- outMoments$dVcov
+            }
+        }
+    }
     return(vcov)    
 }
 

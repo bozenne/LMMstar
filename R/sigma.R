@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: mar 11 2024 (18:07) 
+## Last-Updated: Mar 25 2024 (09:51) 
 ##           By: Brice Ozenne
-##     Update #: 737
+##     Update #: 751
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -103,15 +103,21 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
                                     Upattern$name)
 
     ## ** normalize user imput
-    ## dot
+
+    ## dots
     dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
-
+    
     ## p
-    if(!is.null(p) && any(names(which(param.type %in% c("sigma","k","rho"))) %in% names(p) == FALSE)){
-        stop("Incorrect argument \'p\' - it should be a vector with names containing all variance and correlation parameters. \n")
+    if(!is.null(p)){
+        init <- .init_transform(p = p, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, 
+                                x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
+                                table.param = object$design$param)
+        theta <- init$p
+    }else{
+        theta <- object$param
     }
 
     ## cluster    
@@ -165,7 +171,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
 
             if(!is.null(p)){
                 Omega <- .calc_Omega(object = object.structure,
-                                     param = p,
+                                     param = theta,
                                      keep.interim = FALSE)
             }else{
                 Omega <- object.Omega
@@ -202,7 +208,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
             object$design <- model.matrix(object, data = df.fulltime, effects = "variance", simplify = FALSE)
             ## evaluate residual varince covariance matrix
             Omega <- .calc_Omega(object = object$design$vcov,
-                                 param = if(is.null(p)){object$param}else{p},
+                                 param = theta,
                                  keep.interim = FALSE)
             ## identify timepoints
             Upattern <- object$design$vcov$Upattern
@@ -219,11 +225,8 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
 
     }else if(test.clusterDF){ ## for new clusters/times
 
-        if(is.null(p)){
-            p <- coef(object, effects = "all")
-        }
         Omega <- .calc_Omega(object = newdesign$vcov,
-                             param = p,
+                             param = theta,
                              keep.interim = FALSE)
         ## identify timepoints
         Unewpattern <- newdesign$vcov$Upattern
@@ -241,7 +244,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
 
         if(!is.null(p)){
             Omega <- .calc_Omega(object = object.structure,
-                                 param = p,
+                                 param = theta,
                                  keep.interim = FALSE)
         }else{
             Omega <- object.Omega

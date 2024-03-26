@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul  8 2021 (17:09) 
 ## Version: 
-## Last-Updated: mar 11 2024 (19:02) 
+## Last-Updated: Mar 26 2024 (09:53) 
 ##           By: Brice Ozenne
-##     Update #: 385
+##     Update #: 394
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -31,15 +31,15 @@
 ##' @param format [character] Should the prediction be output
 ##' in a matrix format with clusters in row and timepoints in columns (\code{"wide"}),
 ##' or in a data.frame/vector with as many rows as observations (\code{"long"})
-##' @param keep.newdata [logical] Should the dataset relative to which the predictions are evaluated be output along side the predicted values?
+##' @param keep.data [logical] Should the dataset relative to which the predictions are evaluated be output along side the predicted values?
 ##' Only possible in the long format.
 ##' @param seed [integer, >0] Random number generator (RNG) state used when starting imputation. If NULL no state is set.
 ##' @param simplify [logical] Simplify the data format (vector instead of data.frame) and column names (no mention of the time variable) when possible.
 ##' @param ... Additional argument passed the \code{\link{predict.lmm}}.
 ##'
 ##' @return When \code{format="wide"}, a data.frame with as many rows as clusters.
-##' When \code{format="long"}, a data.frame with as many rows as observations (\code{keep.newdata==TRUE})
-##' or a vector of length the number of observations (\code{keep.newdata==TRUE}).
+##' When \code{format="long"}, a data.frame with as many rows as observations (\code{keep.data==TRUE})
+##' or a vector of length the number of observations (\code{keep.data==TRUE}).
 ##' 
 ##' @keywords methods
 ##' 
@@ -57,11 +57,11 @@
 ##' fitted(eUN.lmm)
 ##' fitted(eUN.lmm, newdata = data.frame(time = "1weekAfter", weight0 = 0))
 ##' fitted(eUN.lmm, newdata = data.frame(time = "1weekAfter", weight0 = 0),
-##'        keep.newdata = TRUE)
+##'        keep.data = TRUE)
 ##' 
 ##' ## fitted outcome value (conditional on covariates and covariates)
 ##' fitted(eUN.lmm, type = "outcome")
-##' gastricbypassL.O <- fitted(eUN.lmm, type = "outcome", keep.newdata = TRUE)
+##' gastricbypassL.O <- fitted(eUN.lmm, type = "outcome", keep.data = TRUE)
 ##'
 ##' if(require(ggplot2)){
 ##' gg.outcome <- ggplot(gastricbypassL.O,
@@ -74,7 +74,7 @@
 ##' effects(eUN.lmm, variable = NULL)
 ##' 
 ##' ## fitted change value (conditional on covariates and covariates)
-##' gastricbypassL.C <- fitted(eUN.lmm, type = "change", keep.newdata = TRUE)
+##' gastricbypassL.C <- fitted(eUN.lmm, type = "change", keep.data = TRUE)
 ##'
 ##' if(require(ggplot2)){
 ##' gg.change <- ggplot(gastricbypassL.C,
@@ -87,7 +87,7 @@
 ##' effects(eUN.lmm, type = "change", variable = NULL)
 ##' 
 ##' ## fitted auc (conditional on covariates and covariates)
-##' gastricbypassL.AUC <- fitted(eUN.lmm, type = "auc", keep.newdata = TRUE)
+##' gastricbypassL.AUC <- fitted(eUN.lmm, type = "auc", keep.data = TRUE)
 ##'
 ##' if(require(ggplot2)){
 ##' gg.auc <- ggplot(gastricbypassL.AUC,
@@ -119,7 +119,7 @@
 ##' 
 ##' ## fitted outcome value (conditional on covariates and covariates)
 ##' fitted(eUN2.lmm, type = "outcome")
-##' armd.O <- fitted(eUN2.lmm, type = "outcome", keep.newdata = TRUE)
+##' armd.O <- fitted(eUN2.lmm, type = "outcome", keep.data = TRUE)
 ##'
 ##' gg2.outcome <- ggplot(armd.O,
 ##'                      aes(x=week, y = visual, color = impute, group = subject))
@@ -130,7 +130,7 @@
 ##' effects(eUN2.lmm, variable = "treat.f") ## mismatch due to adjustment on lesion
 ##' 
 ##' ## fitted change value (conditional on covariates and covariates)
-##' armd.C <- fitted(eUN2.lmm, type = "change", keep.newdata = TRUE)
+##' armd.C <- fitted(eUN2.lmm, type = "change", keep.data = TRUE)
 ##'
 ##' gg.change <- ggplot(armd.C,
 ##'                     aes(x=week, y = visual, color = impute, group = subject))
@@ -142,7 +142,7 @@
 ##' effects(eUN2.lmm, type = c("change","difference"), variable = "treat.f")
 ##'
 ##' ## fitted auc (conditional on covariates and covariates)
-##' armd.AUC <- fitted(eUN2.lmm, type = "auc", keep.newdata = TRUE)
+##' armd.AUC <- fitted(eUN2.lmm, type = "auc", keep.data = TRUE)
 ##'
 ##' gg.auc <- ggplot(armd.AUC, aes(x = treat.f, y = visual, color = impute))
 ##' gg.auc <- gg.auc + geom_point()
@@ -156,7 +156,7 @@
 ## * fitted.lmm (code)
 ##' @export
 fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NULL,
-                       keep.newdata = NULL, format = "long", seed = NULL, simplify = TRUE, ...){
+                       keep.data = NULL, format = "long", seed = NULL, simplify = TRUE, ...){
 
     ## ** extract from object
     mycall <- match.call()
@@ -183,8 +183,8 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
         if(type != "mean"){
             stop("Argument \'newdata\' equals \"unique\" is only valid when argument \'type\' equals \"mean\". \n")
         }
-        if(is.null(keep.newdata)){
-            keep.newdata <- TRUE
+        if(is.null(keep.data)){
+            keep.data <- TRUE
         }
         if(is.null(se)){
             se <- FALSE
@@ -202,25 +202,16 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
         newdata.index.time <- attr(newdata.design$index.clusterTime, "vectorwise")        
     }
 
-    if(is.null(keep.newdata)){
-        keep.newdata <- FALSE
+    if(is.null(keep.data)){
+        keep.data <- FALSE
     }
     index.NA <- which(is.na(newdata[[outcome.var]]))
     n.NA <- length(index.NA)
 
     if(n.NA==0 && type %in% c("outcome","impute")){
         message("No fit to return since there are no missing outcome values")
-        stats::predict(object,
-                       newdata = newdata,
-                       se = FALSE,
-                       type = type.prediction,
-                       df = FALSE,
-                       keep.newdata = keep.newdata,
-                       format = format,
-                       simplify = simplify,
-                       ...)
         if(format == "long"){
-            if(keep.newdata){
+            if(keep.data){
                 return(newdata)
             }else if(simplify){
                 return(newdata[[outcome.var]])
@@ -231,7 +222,7 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
             M.pred <- cbind(newdata[[outcome.var]])
             colnames(M.pred) <- outcome.var
             out <- .reformat(M.pred, name = outcome.var, format = format, simplify = simplify,
-                             keep.data = keep.newdata, data = newdata, index.na = index.na,
+                             keep.data = keep.data, data = newdata, index.na = index.na,
                              object.cluster = object$cluster, index.cluster = newdata.index.cluster,
                              object.time = object$time, index.time = newdata.index.time,                     
                              call = mycall)
@@ -250,7 +241,7 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
             df <- FALSE
         }
     }else if(is.null(se)){
-        se <- (!simplify || keep.newdata) && !(format == "wide")
+        se <- (!simplify || keep.data) && !(format == "wide")
         if(is.null(df)){
             df <- se[1]
         }
@@ -273,14 +264,14 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
                              se = se,
                              type = type.prediction,
                              df = df,
-                             keep.newdata = TRUE,
+                             keep.data = TRUE,
                              format = "long",
                              simplify = FALSE,
                              ...)
 
     ## ** evaluate the different types
     if(type == "mean"){
-        e.fit <- e.pred
+        e.fit <- e.pred[setdiff(names(e.pred),outcome.var)]
         names(e.fit)[names(e.fit) == "estimate"] <- outcome.var
     }else if(type == "outcome"){
         e.fit <- cbind(e.pred[,setdiff(names(e.pred),"estimate")],
@@ -325,10 +316,10 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
         e.fit[index.NA,outcome.var] <- stats::rnorm(n.NA, mean = e.pred[index.NA,"estimate"], sd = e.pred[index.NA,"se"])
         e.fit[index.NA,"impute"] <- TRUE
     }
-    
+
     ## ** reformat
     if(format == "long"){
-        if(keep.newdata){
+        if(keep.data){
             out <- e.fit
         }else{
             out <- e.fit[,intersect(names(e.fit),c(outcome.var,"se","df","lower","upper")),drop=FALSE]
@@ -338,14 +329,14 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
         colnames(M.pred) <- outcome.var
 
         out <- .reformat(M.pred, name = names(format), format = format, simplify = simplify,
-                         keep.data = keep.newdata, data = newdata, index.na = index.na,
+                         keep.data = keep.data, data = newdata, index.na = index.na,
                          object.cluster = object$cluster, index.cluster = newdata.index.cluster,
                          object.time = object$time, index.time = newdata.index.time,                     
                          call = mycall)
     }
 
     
-    if(simplify && (sum(se)==0 | type == "impute") && keep.newdata == FALSE && format == "long"){
+    if(simplify && (sum(se)==0 | type == "impute") && keep.data == FALSE && format == "long"){
         out <- out[[outcome.var]]
     }else{
         attr(out,"vcov") <- attr(e.pred,"vcov")

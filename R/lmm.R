@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: mar 13 2024 (13:42) 
+## Last-Updated: Mar 26 2024 (09:53) 
 ##           By: Brice Ozenne
-##     Update #: 2991
+##     Update #: 2992
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -125,11 +125,11 @@
 ##' #### 6- prediction ####
 ##' ## conditional on covariates
 ##' newd <- dL[1:3,]
-##' predict(eCS.lmm, newdata = newd, keep.newdata = TRUE)
+##' predict(eCS.lmm, newdata = newd, keep.data = TRUE)
 ##' ## conditional on covariates and outcome
 ##' newd <- dL[1:3,]
 ##' newd$Y[3] <- NA
-##' predict(eCS.lmm, newdata = newd, type = "dynamic", keep.newdata = TRUE)
+##' predict(eCS.lmm, newdata = newd, type = "dynamic", keep.data = TRUE)
 ##'
 ##' #### EXTRA ####
 ##' if(require(mvtnorm)){

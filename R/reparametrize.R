@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: mar  1 2024 (10:51) 
+## Last-Updated: Mar 25 2024 (09:53) 
 ##           By: Brice Ozenne
-##     Update #: 741
+##     Update #: 764
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -271,74 +271,6 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
     return(out)
 }
 
-## * .init_transform
-.init_transform <- function(p, transform.sigma, transform.k, transform.rho, 
-                            x.transform.sigma, x.transform.k, x.transform.rho){
-
-    ## ** transform
-    if(is.null(transform.sigma)){
-        transform.sigma.save <- transform.sigma
-        if(is.null(attr(p,"transform.sigma"))){
-            transform.sigma <- x.transform.sigma
-        }else{
-            transform.sigma <- attr(p,"transform.sigma")
-        }
-        attr(transform.sigma,"arg") <- transform.sigma.save
-    }else{
-        if(identical(transform.sigma,"")){
-            transform.sigma <- "none"
-        }
-        transform.sigma <- match.arg(transform.sigma, c("none","one","log","square","logsquare"))
-        attr(transform.sigma,"arg") <- NULL
-    }
-    if(is.null(transform.k)){
-        transform.k.save <- transform.k
-        if(is.null(attr(p,"transform.k"))){
-            transform.k <- x.transform.k
-        }else{
-            transform.k <- attr(p,"transform.k")
-        }
-        attr(transform.k,"arg") <- transform.k.save
-    }else{
-        if(identical(transform.k,"")){
-            transform.k <- "none"
-        }
-        transform.k <- match.arg(transform.k, c("none","log","square","logsquare","sd","logsd","var","logvar"))
-        attr(transform.k,"arg") <- NULL
-    }
-    if(is.null(transform.rho)){
-        transform.rho.save <- transform.rho
-        if(is.null(attr(p,"transform.rho"))){
-            transform.rho <- x.transform.rho
-        }else{
-            transform.rho <- attr(p,"transform.rho")
-        }
-        attr(transform.rho,"arg") <- transform.rho.save
-    }else{
-        if(identical(transform.rho,"")){
-            transform.rho <- "none"
-        }
-        transform.rho <- match.arg(transform.rho, c("none","atanh", "cov"))
-        attr(transform.rho,"arg") <- NULL
-    }
-
-    ## ** x.transform
-    if(!is.null(x.transform.sigma) && !is.null(x.transform.k) && !is.null(x.transform.rho)){
-        if(is.function(transform.sigma) || is.function(transform.k) || is.function(transform.rho)){
-            test.notransform <- FALSE
-        }else{
-            test.notransform <- (transform.sigma==x.transform.sigma) && (transform.k==x.transform.k) && (transform.rho==x.transform.rho)
-        }
-    }else{
-        test.notransform <- NULL
-    }
-
-    ## ** export
-    return(list(transform.sigma = transform.sigma,
-                transform.k = transform.k,
-                transform.rho = transform.rho,
-                test.notransform = test.notransform))
-}
 
 ## * .reparametrize.none
 .reparametrize.none <- function(p, out, index, indexSigma, indexKx, indexKy, level, inverse, type,
@@ -1014,9 +946,122 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
             }
         }
     }
-    
+  
     return(out)
 }
 
+## * .init_transform
+##' @description Initalize the transformations for the variance and correlation coefficients.
+##' Can also reparametrise the input p to no transformation (used by estimate when the user ask for certain transformations)
+##' @param p [numeric vector] value for the model parameters 
+##' @param transform.sigma,transform.k,transform.rho [character] user input for the transformations
+##' @param x.transform.sigma,x.transform.k,x.transform.rho [character] transformations used when fitting the object
+##' @param normalize.p [logical] should the model parameter be re-parametrized to no transformation
+##' @noRd
+.init_transform <- function(p, transform.sigma, transform.k, transform.rho, 
+                            x.transform.sigma, x.transform.k, x.transform.rho,
+                            table.param){
+
+    ## ** normalize input
+    ## several way to say no transform
+    if(identical(transform.sigma,"") || identical(transform.sigma,"no") || identical(transform.sigma,FALSE)){
+        transform.sigma <- "none"
+    }
+    if(identical(transform.k,"") || identical(transform.k,"no") || identical(transform.k,FALSE)){
+        transform.k <- "none"
+    }
+    if(identical(transform.rho,"") || identical(transform.rho,"no") || identical(transform.rho,FALSE)){
+        transform.rho <- "none"
+    }
+
+    ## get attributes
+    p.transform.sigma <- attr(p,"transform.sigma")
+    p.transform.k <- attr(p,"transform.k")
+    p.transform.rho <- attr(p,"transform.rho")
+        
+    ## ** transform
+    ## transformation attribute given to p by the estimate function overrule object transformation
+    if(is.null(transform.sigma)){
+        if(!is.null(p.transform.sigma)){
+            transform.sigma <- p.transform.sigma
+        }else{
+            transform.sigma <- x.transform.sigma
+        }
+        attr(transform.sigma,"arg") <- NULL 
+    }else{
+        transform.sigma.save <- transform.sigma
+        transform.sigma <- match.arg(transform.sigma, c("none","one","log","square","logsquare"))
+        attr(transform.sigma,"arg") <- transform.sigma.save
+    }
+    if(is.null(transform.k)){
+        if(!is.null(p.transform.k)){
+            transform.k <- p.transform.k
+        }else{
+            transform.k <- x.transform.k
+        }
+        attr(transform.k,"arg") <- NULL
+    }else{
+        transform.k.save <- transform.k
+        transform.k <- match.arg(transform.k, c("none","log","square","logsquare","sd","logsd","var","logvar"))
+        attr(transform.k,"arg") <- transform.k.save
+    }
+    if(is.null(transform.rho)){
+        if(!is.null(p.transform.rho)){
+            transform.rho <- p.transform.rho
+        }else{
+            transform.rho <- x.transform.rho
+        }
+        attr(transform.rho,"arg") <- NULL
+    }else{
+        transform.rho.save <- transform.rho
+        transform.rho <- match.arg(transform.rho, c("none","atanh", "cov"))
+        attr(transform.rho,"arg") <- transform.rho.save
+    }
+
+    ## ** x.transform
+    if(!is.null(x.transform.sigma) && !is.null(x.transform.k) && !is.null(x.transform.rho)){
+        if(is.function(transform.sigma) || is.function(transform.k) || is.function(transform.rho)){
+            test.notransform <- FALSE
+        }else{
+            test.notransform <- (transform.sigma==x.transform.sigma) && (transform.k==x.transform.k) && (transform.rho==x.transform.rho)
+        }
+    }else{
+        test.notransform <- NULL
+    }
+
+    ## ** reparametrisation
+    if(!is.null(p)){
+        param.name <- table.param$name
+        if(any(duplicated(names(p)))){
+            stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
+        }
+        if(any(param.name %in% names(p) == FALSE)){
+            stop("Incorrect argument \'p\': missing parameter(s) \"",paste(param.name[param.name %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
+        }
+
+        if((!is.null(p.transform.sigma) && p.transform.sigma!="none") || (!is.null(p.transform.k) && p.transform.k!="none") || (!is.null(p.transform.rho) && p.transform.rho!="none")){
+            indexVcov <- which(table.param$type %in% c("sigma","k","rho"))
+            paramVcov.name <- table.param$name[indexVcov]
+
+            p <- c(p[table.param$name[table.param$type=="mu"]],
+                   .reparametrize(p = p[paramVcov.name], type = table.param$type[indexVcov], level = table.param$level[indexVcov], 
+                                  sigma = table.param$sigma[indexVcov], k.x = table.param$sigma[indexVcov], k.y = table.param$sigma[indexVcov],
+                                  Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE, 
+                                  transform.sigma = p.transform.sigma,
+                                  transform.k = p.transform.k,
+                                  transform.rho = p.transform.rho,
+                                  transform.names = FALSE)$p)
+        }else{
+            p <- p[param.name]
+        }        
+    }
+    
+    ## ** export
+    return(list(p = p,
+                transform.sigma = transform.sigma,
+                transform.k = transform.k,
+                transform.rho = transform.rho,
+                test.notransform = test.notransform))
+}
 ##----------------------------------------------------------------------
 ### reparametrize.R ends here

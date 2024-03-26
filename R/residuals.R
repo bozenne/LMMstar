@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: mar 11 2024 (17:56) 
+## Last-Updated: Mar 26 2024 (13:03) 
 ##           By: Brice Ozenne
-##     Update #: 1084
+##     Update #: 1266
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,10 +21,11 @@
 ##' @name residuals
 ##' 
 ##' @param object a \code{lmm} object.
-##' @param type [character] type of residual to output: raw residuals (\code{"response"}), Pearson residuals (\code{"pearson"}), normalized residuals (\code{"normalized"}, scaled residual \code{"scaled"}), or partial residuals (\code{"partial"} or \code{"partial-center"}). Can also be \code{"all"} to output all except partial residuals. See detail section.
+##' @param type [character] type of residual to output such as raw residuals (\code{"response"}), normalized residuals (\code{"normalized"}, partial residuals (\code{"partial"}).
+##' Can also be \code{"all"} to output all except partial residuals. See detail section.
 ##' @param variable [character vector] name of the variable relative to which the partial residuals should be computed.
 ##' @param at [data.frame] values for the covariates at which to evaluate the partial residuals.
-##' @param data [data.frame] dataset relative to which the residuals should be computed. Only relevant if differs from the dataset used to fit the model.
+##' @param newdata [data.frame] dataset relative to which the residuals should be computed. Only relevant if differs from the dataset used to fit the model.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the residuals. Only relevant if differs from the fitted values.
 ##' @param format [character] Should the residuals be output
 ##' in a matrix format with clusters in row and timepoints in columns (\code{"wide"}),
@@ -113,7 +114,7 @@
 ##' @export
 ##' @rdname residuals
 residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
-                          data = NULL, p = NULL, format = "long", keep.data = FALSE, fitted.ci = FALSE, simplify = TRUE, var, ...){
+                          newdata = NULL, p = NULL, format = "long", keep.data = FALSE, fitted.ci = FALSE, simplify = TRUE, var, ...){
 
     mycall <- match.call()
     options <- LMMstar.options()
@@ -136,13 +137,12 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
 
     param.name <- object$design$param$name
     param.type <- stats::setNames(object$design$param$type,param.name)
-    param.value <- object$param
-
+    paramMu.name <- param.name[param.type=="mu"]
+    paramVcov.name <- param.name[param.type %in% c("sigma","k","rho")]
+    
     n.time <- object$time$n
     index.na <- object$index.na
     X.mean <- object$design$mean
-    object.Omega <- object$Omega
-    object.OmegaM1 <- object$OmegaM1
 
     object.cluster <- object$cluster
     object.time <- object$time
@@ -156,6 +156,20 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
+    ## p
+    if(!is.null(p)){
+        init <- .init_transform(p = p, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, 
+                                x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
+                                table.param = object$design$param)
+        theta <- init$p
+    }else{
+        init <- list(transform.sigma = object$reparametrize$transform.sigma,
+                     transform.k = object$reparametrize$transform.k,
+                     transform.rho = object$reparametrize$transform.rho,
+                     test.notransform = TRUE)
+        theta <- object$param
+    }
+
     ## check format
     format[] <- match.arg(sort(unique(format)), c("wide","long"), several.ok = TRUE)  ## use 'format[] <-' instead of 'format <-' to keep the name that will be transferd to .reformat(
     if(length(format)>1){
@@ -225,23 +239,29 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
     }
 
     ## check data and create data.reference used for export and for partial residuals 
-    if(!is.null(data)){
-        data.reference <- as.data.frame(data)
+    if(!is.null(newdata)){
+        data.reference <- as.data.frame(newdata)
         if(keep.data && any(colnames(data.reference) %in% name.residual)){
-            stop("Argument \'data\' should not contain a column named \"",paste(name.residual[name.residual %in% colnames(data.reference)], collapse = "\" \""),"\". \n",
+            stop("Argument \'newdata\' should not contain a column named \"",paste(name.residual[name.residual %in% colnames(data.reference)], collapse = "\" \""),"\". \n",
                  "This name is used to export the residuals. \n")
         }        
     }else{
         data.reference <- object$data.original
     }
 
+    ## partial derivative w.r.t. each model parameter
+    keep.grad <- (simplify<0 & format=="long")
+    if(keep.grad && ("scaled" %in% type.residual)){
+        message("Gradient for scaled residuals not implemented. Consider using normalized residuals instead. \n")
+    }
+    
     ## ** update design
     if("partial" %in% type.residual || "partial-center" %in% type.residual){
         ## extract data and design matrix
-        if(is.null(data)){
+        if(is.null(newdata)){
             design <- stats::model.matrix(object, effects = effects, simplify = FALSE)
         }else{
-            design <- stats::model.matrix(object, data = data, effects = effects, simplify = FALSE)
+            design <- stats::model.matrix(object, newdata = newdata, effects = effects, simplify = FALSE)
         }
 
         ## *** design matrix relative to a reference value
@@ -298,7 +318,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         }
 
         ## build design matrix
-        design.reference <- stats::model.matrix(object, data = data.reference, effects = effects, simplify = TRUE)
+        design.reference <- stats::model.matrix(object, newdata = data.reference, effects = effects, simplify = TRUE)
         if(length(object$index.na)>0){
             design.reference <- design.reference[-object$index.na,,drop=FALSE]
         }
@@ -307,70 +327,119 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
             design.reference[,"(Intercept)"] <- 0
         }
     }else{
-        design <- stats::model.matrix(object, data = data, effects = effects, simplify = FALSE)
-        design.reference <- stats::model.matrix(object, data = data, effects = effects, simplify = TRUE)
+        object.manifest <- lava::manifest(object)
+        outcome.var <- attr(object.manifest,"outcome")
+
+        if(is.null(newdata)){
+            design <- stats::model.matrix(object, effects = effects, simplify = FALSE)
+            design.reference <- stats::model.matrix(object, effects = effects, simplify = TRUE)
+        }else{
+            df.newdata <- as.data.frame(newdata)
+        
+            index.NNA <- which(rowSums(is.na(df.newdata[intersect(names(df.newdata),object.manifest)]))==0)
+            design <- stats::model.matrix(object, newdata = df.newdata[index.NNA,,drop = FALSE], effects = effects, simplify = FALSE)
+            index.na <- setdiff(1:NROW(df.newdata),index.NNA)
+
+            index.NNA.reference <- which(rowSums(is.na(df.newdata[intersect(names(df.newdata),setdiff(object.manifest,outcome.var))]))==0)
+            design.reference <- stats::model.matrix(object, newdata = df.newdata[index.NNA.reference,,drop=FALSE], effects = effects, simplify = TRUE)
+            index.na.reference <- setdiff(1:NROW(df.newdata),index.NNA.reference)
+        }
     }
+
     Y <- design$Y
     X <- design$mean
-    structure <- design$vcov
     n.cluster <- length(design$index.cluster)
+    if(n.cluster==1 && ("studentized" %in% type.residual || "normastudentized" %in% type.residual)){
+        warning(paste(intersect(type.residual,c("studentized","normastudentized")), collapse = " and ")," residuals are typically not meaningful when considering a single cluster. \n")
+    }
     precompute.XX <- design$precompute.XX
     index.cluster <- attr(design$index.cluster,"vectorwise")
     index.time <- attr(design$index.clusterTime,"vectorwise")
-    pattern <- as.character(structure$pattern)
-    n.pattern <-  NROW(structure$Upattern)
+    pattern <- as.character(design$vcov$pattern)
+    n.pattern <-  NROW(design$vcov$Upattern)
 
     ## ** update Omega
-    if(!is.null(p)){
-        if(any(duplicated(names(p)))){
-            stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
-        }
-        if(any(names(param.type) %in% names(p) == FALSE)){
-            stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(param.type)[names(param.type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
-        }
-        beta <- p[names(which(param.type=="mu"))]
-        if(any(type.residual %in% valid.normresiduals)){
-            Omega <- .calc_Omega(object = structure, param = p)
+    beta <- theta[paramMu.name]
+    if(any(type.residual %in% valid.normresiduals)){
+        if(!is.null(p) || !is.null(newdata)){
+            Omega <- .calc_Omega(object = design$vcov, param = theta, keep.interim = keep.grad)
+            if(keep.grad){
+                dOmega <- .calc_dOmega(object = design$vcov, param = theta, Omega = Omega,
+                                       ## Jacobian = object$reparametrize$Jacobian, ## not needed
+                                       transform.sigma = init$transform.sigma, transform.k = init$transform.k, transform.rho = init$transform.rho)
+            }
             precision <- lapply(Omega, solve)
+        }else{
+            Omega <- object$Omega
+            precision <- object$OmegaM1
+            if(keep.grad){
+                dOmega <- object$dOmega
+            }            
         }
-    }else{
-        beta <- param.value[param.type=="mu"]
-        if(any(type.residual %in% valid.normresiduals)){
-            Omega <- object.Omega
-            precision <- object.OmegaM1
+
+        if(keep.grad && any(c("studentized","normastudentized","normalized2") %in% type.residual)){
+            dprecision <- mapply(iOO = precision, dOO = dOmega, function(iOO, dOO){ lapply(dOO, function(dd){- iOO %*% dd %*% iOO}) }, SIMPLIFY = FALSE)
         }
     }
 
     ## ** pre-compute
     sqrtPrecision <- list()
+    if(keep.grad){
+        dsqrtPrecision <- list()
+    }
+
     if("pearson" %in% type.residual){
         sqrtPrecision$pearson <- lapply(Omega,function(iM){1/sqrt(diag(iM))})
+        if(keep.grad){
+            dsqrtPrecision$pearson <- mapply(OO = sqrtPrecision$pearson, dOO = dOmega, function(OO, dOO){ lapply(dOO, function(dd){-0.5 * diag(dd)*OO^3}) }, SIMPLIFY = FALSE)
+        }
     }
+
     if("studentized" %in% type.residual || "normastudentized" %in% type.residual){
-        tX.precision.X <- matrix(0, nrow = NCOL(X), ncol = NCOL(X), dimnames = list(colnames(X),colnames(X)))
+        tX.precision.X <- matrix(0, nrow = NCOL(X), ncol = NCOL(X), dimnames = list(paramMu.name,paramMu.name))
+        if(keep.grad){
+            dtX.precision.X <- array(0, dim = c(NCOL(X), NCOL(X), length(paramVcov.name)), dimnames = list(paramMu.name,paramMu.name, paramVcov.name))
+        }
 
-            if(!is.null(precompute.XX)){
+        if(!is.null(precompute.XX)){
 
-                for (iPattern in 1:n.pattern) { ## iPattern <- 1
-                    iOmega <- precision[[iPattern]]
-                    iTime <- NCOL(iOmega)
-                    iTime2 <- length(iOmega)
-                    iX <- precompute.XX$pattern[[iPattern]]
-                    tX.precision.X <- tX.precision.X + (as.double(iOmega) %*% iX)[as.double(precompute.XX$key)]
-                }
-            }else{
-                for(iId in 1:n.cluster){
-                    iIndex <- which(index.cluster==iId)
-                    iOrder <- order(index.time[iIndex])
-                    iX <- X[iIndex[iOrder],,drop=FALSE]
-                    tX.precision.X <- tX.precision.X + t(iX) %*% precision[[pattern[iId]]] %*% iX
+            for (iPattern in 1:n.pattern) { ## iPattern <- 1
+                iOmega <- precision[[iPattern]]
+                iTime <- NCOL(iOmega)
+                iTime2 <- length(iOmega)
+                iX <- precompute.XX$pattern[[iPattern]]
+                tX.precision.X <- tX.precision.X + (as.double(iOmega) %*% iX)[as.double(precompute.XX$key)]
+                if(keep.grad){
+                    i2add <- do.call(rbind,lapply(dprecision[[iPattern]], as.double)) %*% iX
+                    for(iParam in paramVcov.name){ ## iParam <- paramVcov.name[1]
+                        dtX.precision.X[,,iParam] <- dtX.precision.X[,,iParam] + i2add[iParam,as.double(precompute.XX$key)]
+                    }
                 }
             }
+
+        }else{
+
+            for(iId in 1:n.cluster){ ## iId <- 1
+                iIndex <- which(index.cluster==iId)
+                iOrder <- order(index.time[iIndex])
+                iX <- X[iIndex[iOrder],,drop=FALSE]
+                tX.precision.X <- tX.precision.X + t(iX) %*% precision[[pattern[iId]]] %*% iX
+                if(keep.grad){
+                    for(iParam in paramVcov.name){ ## iParam <- paramVcov.name[1]
+                        dtX.precision.X[,,iParam] <- dtX.precision.X[,,iParam] + t(iX) %*% dprecision[[pattern[iId]]][[iParam]] %*% iX
+                    }
+                }
+            }
+
+        }
         ## equal if proper ordering
         ## t(X) %*% bdiag(lapply(1:n.cluster,function(x){precision[[1]]})) %*% X - tX.precision.X
         ## equal in large samples or when using observed information
         ## information(object, effects = "mean") - tX.precision.X
         tX.precision.X.M1 <- solve(tX.precision.X)
+        if(keep.grad){
+            dtX.precision.X.M1 <- apply(dtX.precision.X, MARGIN = 3, function(dd){- tX.precision.X.M1 %*% dd %*% tX.precision.X.M1}, simplify = FALSE)
+        }
         ## vcov(object, effects = "mean") - tX.precision.X.M1            
     }
     if("normalized" %in% type.residual){
@@ -383,10 +452,15 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         ## However later on we use X A i.e. X[1,] %*% A i.e. t(A) %*% t(X[1,])
         ## but chol(B) = A' A in R (instead of A A') so we do have A = solve(chol(\Omega))
         sqrtPrecision$normalized <- lapply(Omega,function(iP){solve(chol(iP))})
+        if(keep.grad){
+            dsqrtPrecision$normalized <- mapply(OO = Omega, iOO = sqrtPrecision$normalized, dOO = dOmega, function(OO,iOO,dOO){
+                lapply(dchol(OO, dobject = dOO, chol = FALSE), function(dd){- iOO %*% dd %*% iOO})
+            }, SIMPLIFY = FALSE)            
+        }
     }
 
     ## ** raw residuals
-    if(!is.null(data) || !is.null(p)){
+    if(!is.null(newdata) || !is.null(p)){
         fitted <- (X %*% beta)[,1]
         res <-  as.vector(Y - fitted)
         M.res <- matrix(NA, nrow = NROW(X), ncol = length(type.residual), dimnames = list(NULL, name.residual))
@@ -395,10 +469,18 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         res <- object$residuals
         M.res <- matrix(NA, nrow = length(res), ncol = length(type.residual), dimnames = list(NULL, name.residual))
     }
-    if(fitted.ci || "partial" %in% type.residual || "partial-center" %in% type.residual){
+    if(keep.grad){
+        if(keep.data){
+            attr(M.res,"grad") <- array(0, dim = c(length(res), length(param.name), length(type.residual)+1), dimnames = list(NULL, param.name, c("fitted",name.residual)))
+            attr(M.res,"grad")[,paramMu.name,"fitted"] <- X
+        }else{
+            attr(M.res,"grad") <- array(0, dim = c(length(res), length(param.name), length(type.residual)), dimnames = list(NULL, param.name, c(name.residual)))
+        }
+    }
 
+    if(fitted.ci || "partial" %in% type.residual || "partial-center" %in% type.residual){
         df.fitted <- stats::predict(object, p = p, newdata = design.reference, type = type.fit, se = fitted.ci,
-                                    keep.newdata = FALSE, format = "long", simplify = FALSE)
+                                    keep.data = FALSE, format = "long", simplify = FALSE)
 
         if(fitted.ci){
             fitted <- cbind(fitted = df.fitted$estimate,
@@ -412,58 +494,81 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
     ## ** normalization
     if ("response" %in% type.residual) {
         M.res[,"r.response"] <- res
+        if(keep.grad){
+            attr(M.res,"grad")[,paramMu.name,"r.response"] <- -X
+        }
     }
     if ("partial" %in% type.residual || "partial-center" %in% type.residual){
-        M.res[,"r.partial"] <- design.reference %*% beta + res
+        M.res[,"r.partial"] <-  design.reference %*% beta + res
         attr(M.res,"reference") <- reference
+        if(keep.grad){
+            attr(M.res,"grad")[,paramMu.name,"r.partial"] <- design.reference-X
+        }
     }
     if (any(type.residual %in% valid.normresiduals)) {
         for(iId in 1:n.cluster){ ## iId <- 7
-            
+
             iIndex <- which(index.cluster==iId)
             iOrder <- order(index.time[iIndex])
             iResidual <- res[iIndex[iOrder]]
             iN.time <- length(iIndex)
-
-            for(iType in type.residual){
-                if("pearson" %in% type.residual){
-                    resnorm <- iResidual * sqrtPrecision$pearson[[pattern[iId]]]
-                    M.res[iIndex[iOrder],"r.pearson"] <- resnorm
+            if("pearson" %in% type.residual){
+                M.res[iIndex[iOrder],"r.pearson"] <- iResidual * sqrtPrecision$pearson[[pattern[iId]]]
+                if(keep.grad){
+                    attr(M.res,"grad")[iIndex[iOrder],paramMu.name,"r.pearson"] <- -X[iIndex[iOrder],,drop=FALSE] * sqrtPrecision$pearson[[pattern[iId]]]
+                    attr(M.res,"grad")[iIndex[iOrder],paramVcov.name,"r.pearson"] <- do.call(cbind,dsqrtPrecision$pearson[[pattern[iId]]]) * iResidual
                 }
-                if("studentized" %in% type.residual){
-                    iX <- X[iIndex[iOrder],,drop=FALSE]
-                    iQ <- iX %*% tX.precision.X.M1 %*% t(iX)
-                    resnorm <- iResidual / sqrt(diag(Omega[[pattern[iId]]] - iQ))
-                    M.res[iIndex[iOrder],"r.studentized"] <- resnorm
+            }
+            if("studentized" %in% type.residual){
+                iX <- X[iIndex[iOrder],,drop=FALSE]
+                iQ <- iX %*% tX.precision.X.M1 %*% t(iX)
+                iDenom <- sqrt(diag(Omega[[pattern[iId]]] - iQ))
+                M.res[iIndex[iOrder],"r.studentized"] <- iResidual / iDenom
+                if(keep.grad){
+                    attr(M.res,"grad")[iIndex[iOrder],paramMu.name,"r.studentized"] <- -X[iIndex[iOrder],,drop=FALSE] / iDenom
+                    iGrad.denom <- mapply(dOO = dOmega[[pattern[iId]]], dQ = dtX.precision.X.M1,  function(dOO,dQ){-0.5*diag(dOO - iX %*% dQ %*% t(iX))/iDenom^3}, SIMPLIFY = FALSE)
+                    attr(M.res,"grad")[iIndex[iOrder],paramVcov.name,"r.studentized"] <- do.call(cbind,iGrad.denom) * iResidual
                 }
-                if("normalized" %in% type.residual){
-                    ## resnorm <- as.double(sqrtPrecision$normalized[[pattern[iId]]] %*% iResidual)
-                    resnorm <- as.double(iResidual %*% sqrtPrecision$normalized[[pattern[iId]]])
-                    M.res[iIndex[iOrder],"r.normalized"] <- resnorm
+            }
+            if("normalized" %in% type.residual){
+                M.res[iIndex[iOrder],"r.normalized"] <- as.double(iResidual %*% sqrtPrecision$normalized[[pattern[iId]]])
+                if(keep.grad){
+                    attr(M.res,"grad")[iIndex[iOrder],paramMu.name,"r.normalized"] <- - t(sqrtPrecision$normalized[[pattern[iId]]]) %*% X[iIndex[iOrder],,drop=FALSE]
+                    attr(M.res,"grad")[iIndex[iOrder],paramVcov.name,"r.normalized"] <- do.call(cbind,lapply(dsqrtPrecision$normalized[[pattern[iId]]], function(iO){t(iO) %*% iResidual}))
                 }
-                if("normalized2" %in% type.residual){
-                    resnorm <- as.double(iResidual %*% precision[[pattern[iId]]])
-                    M.res[iIndex[iOrder],"r.normalized2"] <- resnorm
+            }
+            if("normalized2" %in% type.residual){
+                M.res[iIndex[iOrder],"r.normalized2"] <- as.double(iResidual %*% precision[[pattern[iId]]])
+                if(keep.grad){
+                    attr(M.res,"grad")[iIndex[iOrder],paramMu.name,"r.normalized2"] <- - precision[[pattern[iId]]] %*% X[iIndex[iOrder],,drop=FALSE]
+                    attr(M.res,"grad")[iIndex[iOrder],paramVcov.name,"r.normalized2"] <- do.call(cbind,lapply(dprecision[[pattern[iId]]], FUN = `%*%`, iResidual))
                 }
-                if("normastudentized" %in% type.residual){
-                    iX <- X[iIndex[iOrder],,drop=FALSE]
-                    iQ <- iX %*% tX.precision.X.M1 %*% t(iX)
-                    resnorm <- as.double(iResidual %*% solve(chol(Omega[[pattern[iId]]] - iQ)))
-                    M.res[iIndex[iOrder],"r.normalized2"] <- resnorm
+            }
+            if("normastudentized" %in% type.residual){
+                iX <- X[iIndex[iOrder],,drop=FALSE]
+                iQ <- iX %*% tX.precision.X.M1 %*% t(iX)
+                iDenom <- solve(chol(Omega[[pattern[iId]]] - iQ))
+                M.res[iIndex[iOrder],"r.normastudentized"] <- as.double(iResidual %*% iDenom)
+                if(keep.grad){
+                    attr(M.res,"grad")[iIndex[iOrder],paramMu.name,"r.normastudentized"] <- - t(iDenom) %*% X[iIndex[iOrder],,drop=FALSE]
+                    iGrad.denom <- dchol(Omega[[pattern[iId]]] - iQ,
+                                         dobject = mapply(dOO = dOmega[[pattern[iId]]], dQ = dtX.precision.X.M1,  function(dOO,dQ){dOO - iX %*% dQ %*% t(iX)}, SIMPLIFY = FALSE),
+                                         chol = FALSE)
+                    attr(M.res,"grad")[iIndex[iOrder],paramVcov.name,"r.normastudentized"] <- do.call(cbind,lapply(iGrad.denom, FUN = function(iGrad){- t(iDenom) %*% t(iGrad) %*% t(iDenom) %*% iResidual}))
                 }
-                if("scaled" %in% type.residual){
-                    M.res[iIndex[iOrder][1],"r.scaled"] <- iResidual[1]/attr(Omega[[pattern[iId]]],"sd")[1]
-                    if(iN.time>1){
-                        for(iTime in 2:iN.time){ ## iTime <- 2
-                            iVar <- Omega[[pattern[iId]]][iTime,iTime]
-                            iPrecision_kk <- solve(Omega[[pattern[iId]]][1:(iTime-1),1:(iTime-1),drop=FALSE])
-                            iOmega_lk <- Omega[[pattern[iId]]][iTime,1:(iTime-1),drop=FALSE]
-                            iOmega_kl <- Omega[[pattern[iId]]][1:(iTime-1),iTime,drop=FALSE]
+            }
+            if("scaled" %in% type.residual){
+                M.res[iIndex[iOrder][1],"r.scaled"] <- iResidual[1]/attr(Omega[[pattern[iId]]],"sd")[1]
+                if(iN.time>1){
+                    for(iTime in 2:iN.time){ ## iTime <- 2
+                        iVar <- Omega[[pattern[iId]]][iTime,iTime]
+                        iPrecision_kk <- solve(Omega[[pattern[iId]]][1:(iTime-1),1:(iTime-1),drop=FALSE])
+                        iOmega_lk <- Omega[[pattern[iId]]][iTime,1:(iTime-1),drop=FALSE]
+                        iOmega_kl <- Omega[[pattern[iId]]][1:(iTime-1),iTime,drop=FALSE]
                                 
-                            num <- iResidual[iTime] - iOmega_lk %*% as.double(iPrecision_kk %*% iResidual[1:(iTime-1)])
-                            denom <- iVar - as.double(iOmega_lk %*% iPrecision_kk %*% iOmega_kl)
-                            M.res[iIndex[iOrder][iTime],"r.scaled"] <- num/sqrt(denom) ## issue in term of dimension
-                        }
+                        num <- iResidual[iTime] - iOmega_lk %*% as.double(iPrecision_kk %*% iResidual[1:(iTime-1)])
+                        denom <- iVar - as.double(iOmega_lk %*% iPrecision_kk %*% iOmega_kl)
+                        M.res[iIndex[iOrder][iTime],"r.scaled"] <- num/sqrt(denom) ## issue in term of dimension
                     }
                 }
             }
@@ -471,26 +576,25 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
     }
 
     ## ** restaure NA
-    if(is.null(mycall$data)){
-        M.res <- restaureNA(M.res, index.na = index.na,
-                            level = "obs", cluster = object$cluster)
-        
-        if(keep.data){
 
-            if(format == "long"){
-                fitted <- restaureNA(fitted, index.na = index.na, 
-                                     level = "obs", cluster = object$cluster)
-
-                if(is.matrix(fitted)){ ## when using partial residuals with ci for the fitted values
-                    data.reference <- cbind(data.reference, fitted)
-                }else{ ## normal case
-                    data.reference <- cbind(data.reference, fitted = fitted)
-                }
-            }
+    if(length(index.na)>0){
+        M.res <- restaureNA(M.res, index.na = index.na, level = "obs")
+        if(keep.grad){
+            attr(M.res,"grad") <- array( unlist(apply(attr(M.res,"grad"), MARGIN = 3, restaureNA, index.na = index.na, level = "obs", simplify = FALSE)),
+                                        dim = c(NROW(M.res), dim(attr(M.res,"grad"))[-1]), dimnames = c(list(NULL),dimnames(attr(M.res,"grad"))[-1]))
         }
 
-    }
+        if(keep.data && format == "long"){
+            fitted <- restaureNA(fitted, index.na = index.na, level = "obs")
 
+            if(is.matrix(fitted)){ ## when using partial residuals with ci for the fitted values
+                data.reference <- cbind(data.reference, fitted)
+            }else{ ## normal case
+                data.reference <- cbind(data.reference, fitted = fitted)
+            }
+        }
+    }
+        
     ## ** export
     out <- .reformat(M.res, name = names(format), format = format, simplify = simplify,
                      keep.data = keep.data, data = data.reference, index.na = object.index.na,
@@ -498,20 +602,24 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
                      object.time = object.time, index.time = index.time,                     
                      call = mycall)
 
-
-    if(!simplify){
-        attr(out,"reference") <- attr(M.res,"reference")
+    if(simplify<=0){
+        if(keep.grad){
+            attr(out,"grad") <- attr(M.res,"grad")
+        }
         attr(out,"centering") <- attr(M.res,"centering")
         attr(out,"args") <- list(type = type, format = format, keep.data = keep.data, var = variable, type.var = type.var,
                                  n.time = n.time, name.time = name.time,
                                  name.cluster = object$cluster$var,
-                                 outcome = object$outcome$var, intercept = "(Intercept)" %in% names(object$param))
+                                 outcome = object$outcome$var, intercept = "(Intercept)" %in% param.name)
         if(keep.intercept){
             attr(out,"args")$var <- c("(Intercept)",attr(out,"args")$var)
         }
         if(all(is.na(attr(object.time$var,"original")))){
-            attr(out,"index.time") <- restaureNA(as.character(index.time), index.na = index.na,
-                                                 level = "obs", cluster = object$cluster)
+            if(is.null(mycall$newdata)){
+                attr(out,"index.time") <- restaureNA(as.character(index.time), index.na = index.na, level = "obs", cluster = object$cluster)
+            }else{
+                attr(out,"index.time") <- restaureNA(as.character(index.time), index.na = numeric(0), level = "obs", cluster = object$cluster)
+            }
         }
         attr(out,"args")$nameL.colres <- colnames(M.res)
         if(format == "wide"){
@@ -519,12 +627,12 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
 
         }else if(format == "long" && !is.null(attr(format,"original"))){
             attr(out,"wide") <- .reformat(M.res, name = names(format), format = "wide", simplify = simplify,
-                                          keep.data = FALSE, data = data, index.na = object.index.na,
+                                          keep.data = FALSE, data = newdata, index.na = object.index.na,
                                           object.cluster = object.cluster, index.cluster = index.cluster,
                                           object.time = object.time, index.time = index.time,                     
                                           call = mycall)
             attr(out,"args")$nameW.colres <- stats::setNames(names(attr(out,"wide"))[-1], object.time$levels)
-        }
+        }        
     }
     class(out) <- append("residuals_lmm",class(out))
     return(out)

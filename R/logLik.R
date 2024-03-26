@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: feb 15 2024 (15:53) 
+## Last-Updated: Mar 26 2024 (09:40) 
 ##           By: Brice Ozenne
-##     Update #: 352
+##     Update #: 357
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,7 +20,7 @@
 ##' @description Extract or compute the log-likelihood of a linear mixed model.
 ##' 
 ##' @param object a \code{lmm} object.
-##' @param data [data.frame] dataset relative to which the log-likelihood should be computed. Only relevant if differs from the dataset used to fit the model.
+##' @param newdata [data.frame] dataset relative to which the log-likelihood should be computed. Only relevant if differs from the dataset used to fit the model.
 ##' @param indiv [logical] Should the contribution of each cluster to the log-likelihood be output? Otherwise output the sum of all clusters of the derivatives. 
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the log-likelihood. Only relevant if differs from the fitted values.
 ##' @param ... Not used. For compatibility with the generic method.
@@ -33,33 +33,34 @@
 
 ## * logLik.lmm (code)
 ##' @export
-logLik.lmm <- function(object, data = NULL, p = NULL, indiv = FALSE, ...){
+logLik.lmm <- function(object, newdata = NULL, p = NULL, indiv = FALSE, ...){
 
     ## ** extract or recompute log-likelihood
-    if(is.null(data) && is.null(p) && indiv == FALSE){
+    if(is.null(newdata) && is.null(p) && indiv == FALSE){
         design <- object$design ## useful in case of NA
         out <- object$logLik
     }else{
         test.precompute <- !is.null(object$design$precompute.XX) && !indiv
 
-        if(!is.null(data)){
-            design <- stats::model.matrix(object, data = data, effects = "all", simplify = FALSE)
+        ## normalize newdata argument
+        if(!is.null(newdata)){
+            design <- stats::model.matrix(object, newdata = newdata, effects = "all", simplify = FALSE)
         }else{
             design <- object$design
         }
-          
+
+        ## normalize p argument
         if(!is.null(p)){
-            if(any(duplicated(names(p)))){
-                stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
-            }
-            if(any(names(object$param) %in% names(p) == FALSE)){
-                stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(object$param)[names(object$param) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
-            }
-            p <- p[names(object$param)]
+            init <- .init_transform(p = p, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, 
+                                    x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
+                                    table.param = object$design$param)
+            theta <- init$p
         }else{
-            p <- object$param
+            theta <- object$param
         }
-        out <- .moments.lmm(value = p, design = design, time = object$time, method.fit = object$args$method.fit,
+
+        ## evaluate log-lik
+        out <- .moments.lmm(value = theta, design = design, time = object$time, method.fit = object$args$method.fit,
                             transform.sigma = "none", transform.k = "none", transform.rho = "none",
                             logLik = TRUE, score = FALSE, information = FALSE, vcov = FALSE, df = FALSE, indiv = indiv, 
                             trace = FALSE, precompute.moments = test.precompute)$logLik

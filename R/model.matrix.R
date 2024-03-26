@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: mar 12 2024 (11:35) 
+## Last-Updated: Mar 26 2024 (09:47) 
 ##           By: Brice Ozenne
-##     Update #: 3038
+##     Update #: 3039
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,7 +20,7 @@
 ##' @description Extract or construct design matrices for Linear Mixed Model.
 ##'
 ##' @param object an lmm object
-##' @param data [data.frame] dataset relative to which the design matrix should be constructed.
+##' @param newdata [data.frame] dataset relative to which the design matrix should be constructed.
 ##' @param effects [character] design matrix relative to the mean model (\code{"mean"}), variance model (\code{"variance"}), correlation model (\code{"correlation"}),
 ##' or all the previous (\code{"all"}).
 ##' Can also be \code{"index"} to only output the normalize data and the cluster, time, strata indexes.
@@ -51,7 +51,7 @@
 
 ## * model.matrix.lmm (code)
 ##' @export
-model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = TRUE, drop.X = NULL, ...){
+model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify = TRUE, drop.X = NULL, ...){
 
     options <- LMMstar.options()
 
@@ -71,9 +71,9 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
     }
 
     ## ** update design matrix with new dataset    
-    if(!is.null(data)){
+    if(!is.null(newdata)){
 
-        data <- as.data.frame(data)
+        newdata <- as.data.frame(newdata)
         
         ## *** prepare output
         design <- object$design
@@ -85,8 +85,8 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
         var.strata <- attr(object$strata$var,"original")
 
         ## *** outcome
-        if(!simplify && object$outcome$var %in% names(data)){
-                design$Y <- data[[object$outcome$var]]
+        if(!simplify && object$outcome$var %in% names(newdata)){
+                design$Y <- newdata[[object$outcome$var]]
         }
 
         ## *** index
@@ -94,11 +94,11 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
         if(("index" %in% effects) || ("variance" %in% effects) || ("correlation" %in% effects) || !simplify){
 
             ## check dataset
-            if(any(structure.var %in% names(data) == FALSE)){
-                stop("Incorrect argument \'data\': missing variable(s) for the data structure \"",paste(structure.var[structure.var %in% names(data) == FALSE], collapse = "\" \""),"\".\n")
+            if(any(structure.var %in% names(newdata) == FALSE)){
+                stop("Incorrect argument \'newdata\': missing variable(s) for the data structure \"",paste(structure.var[structure.var %in% names(newdata) == FALSE], collapse = "\" \""),"\".\n")
             }
             ## generate cluster/time/strata variables
-            data.Nindex <- .lmmNormalizeData(data = data[stats::na.omit(c(var.cluster,var.time,var.strata))],
+            data.Nindex <- .lmmNormalizeData(data = newdata[stats::na.omit(c(var.cluster,var.time,var.strata))],
                                              var.outcome = NA,
                                              var.cluster = var.cluster,
                                              var.time = var.time,
@@ -122,18 +122,18 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
         ## *** weights
         if(!simplify){
             if(!is.na(object$weight$var[1])){
-                if(any(object$weight$var[1] %in% names(data) == FALSE)){
-                    stop("Incorrect argument \'data\': missing weight variable \"",object$weight$var[1],"\".\n")
+                if(any(object$weight$var[1] %in% names(newdata) == FALSE)){
+                    stop("Incorrect argument \'newdata\': missing weight variable \"",object$weight$var[1],"\".\n")
                 }
-                design$weight <- data[[object$weight$var[1]]]
+                design$weight <- newdata[[object$weight$var[1]]]
             }
         }
         if(!simplify){
             if(!is.na(object$weight$var[2])){
-                if(any(object$weight$var[2] %in% names(data) == FALSE)){
-                    stop("Incorrect argument \'data\': missing weight variable \"",object$weight$var[2],"\".\n")
+                if(any(object$weight$var[2] %in% names(newdata) == FALSE)){
+                    stop("Incorrect argument \'newdata\': missing weight variable \"",object$weight$var[2],"\".\n")
                 }
-                design$scale.Omega <- data[[object$weight$var[2]]]
+                design$scale.Omega <- newdata[[object$weight$var[2]]]
             }
         }
         
@@ -142,12 +142,12 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
             
             ## check dataset
             ff.allvars <- all.vars(object$formula$mean.design)
-            if(any(ff.allvars %in% names(data) == FALSE)){
-                stop("Incorrect argument \'data\': missing variable(s) for the mean structure \"",paste(ff.allvars[ff.allvars %in% names(data) == FALSE], collapse = "\" \""),"\".\n")
+            if(any(ff.allvars %in% names(newdata) == FALSE)){
+                stop("Incorrect argument \'newdata\': missing variable(s) for the mean structure \"",paste(ff.allvars[ff.allvars %in% names(newdata) == FALSE], collapse = "\" \""),"\".\n")
             }
 
             ## convert to factor with the right levels
-            data.mean <- .updateFactor(data, xfactor = object$xfactor$mean)
+            data.mean <- .updateFactor(newdata, xfactor = object$xfactor$mean)
 
             ## update formula with attributes from the design matrix
             
@@ -168,16 +168,16 @@ model.matrix.lmm <- function(object, data = NULL, effects = "mean", simplify = T
         if("variance" %in% effects){
             ## check dataset
             ff.allvars <- c(all.vars(object$formula$var),all.vars(object$formula$cor))
-            if(any(ff.allvars %in% names(data) == FALSE)){
-                stop("Incorrect argument \'data\': missing variable(s) for the variance-covariance structure \"",paste(ff.allvars[ff.allvars %in% names(data) == FALSE], collapse = "\" \""),"\".\n")
+            if(any(ff.allvars %in% names(newdata) == FALSE)){
+                stop("Incorrect argument \'newdata\': missing variable(s) for the variance-covariance structure \"",paste(ff.allvars[ff.allvars %in% names(newdata) == FALSE], collapse = "\" \""),"\".\n")
             }
 
             ## update levels
-            design$vcov$var <- list(data = .updateFactor(data, xfactor = object$xfactor$var),
+            design$vcov$var <- list(data = .updateFactor(newdata, xfactor = object$xfactor$var),
                                     lp2X = object$design$vcov$var$lp2X,
                                     lp2data = object$design$vcov$var$lp2data,
                                     X.attr = attributes(object$design$vcov$var$X))
-            design$vcov$cor <- list(data = .updateFactor(data, xfactor = object$xfactor$cor),
+            design$vcov$cor <- list(data = .updateFactor(newdata, xfactor = object$xfactor$cor),
                                     lp2X = object$design$vcov$cor$lp2X,
                                     lp2data = object$design$vcov$cor$lp2data,
                                     X.attr = attributes(object$design$vcov$cor$X))

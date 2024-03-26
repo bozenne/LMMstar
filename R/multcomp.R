@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 10 2021 (15:57) 
 ## Version: 
-## Last-Updated: jul 27 2023 (17:46) 
+## Last-Updated: Mar 26 2024 (08:26) 
 ##           By: Brice Ozenne
-##     Update #: 25
+##     Update #: 26
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,6 +18,7 @@
 ## * estfun.lmm
 ##' @title Extract the Score Function for Multcomp
 ##' @description Extract the Score Function for Multcomp. For internal use.
+##' @noRd
 ##' 
 ##' @param x  a \code{lmm} object.
 ##' @param ... Not used. For compatibility with the generic method.
@@ -42,7 +43,6 @@
 #' @method estfun lmm
 #' 
 #' @keywords interface
-#' @export
 estfun.lmm <- function(x, ...){
     U <- lava::score(x, indiv = TRUE)
     return(U)

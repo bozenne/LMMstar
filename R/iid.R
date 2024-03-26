@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  4 2021 (10:04) 
 ## Version: 
-## Last-Updated: mar  1 2024 (10:50) 
+## Last-Updated: Mar 24 2024 (21:20) 
 ##           By: Brice Ozenne
-##     Update #: 36
+##     Update #: 39
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -73,9 +73,9 @@ iid.lmm <- function(x,
 
     ## ** get information and score
     x.vcov <- stats::vcov(x, effects = effects, robust = FALSE, type.information = type.information, df = FALSE,
-                               transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
+                          transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
     x.score <- lava::score(x, effects = effects, indiv = TRUE, 
-                                transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
+                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
 
     ## ** compute iid
     out <- x.score %*% x.vcov

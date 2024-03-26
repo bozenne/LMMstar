@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (17:03) 
 ## Version: 
-## Last-Updated: mar 12 2024 (10:26) 
+## Last-Updated: Mar 26 2024 (09:54) 
 ##           By: Brice Ozenne
-##     Update #: 126
+##     Update #: 127
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -345,7 +345,7 @@ test_that("practical 6 - vasscoresL",{
                  )
     expect_equivalent(sigma(fit.UN), GS, tol = 1e-5)
 
-    vasscoreL.imputed <- fitted(fit.UN, type = "outcome", keep.newdata = TRUE)
+    vasscoreL.imputed <- fitted(fit.UN, type = "outcome", keep.data = TRUE)
     set.seed(11)
     gg <- ggplot(vasscoreL.imputed, aes(x = treatment, y = vas, group = id))
     gg + geom_point(aes(color = impute)) + geom_line()

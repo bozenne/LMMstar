@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 21 2023 (09:28) 
 ## Version: 
-## Last-Updated: mar  1 2024 (13:48) 
+## Last-Updated: Mar 25 2024 (10:30) 
 ##           By: Brice Ozenne
-##     Update #: 72
+##     Update #: 73
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -30,7 +30,7 @@
     if(format == "long"){
         if(keep.data){
             out <- cbind(data, object)
-        }else if(simplify && NCOL(object)==1){
+        }else if(simplify>0 && NCOL(object)==1){
             out <- as.vector(object)
         }else{
             out <- as.data.frame(object)
@@ -80,7 +80,7 @@
 
         df.object <- cbind(data.frame(cluster = indexAll.cluster, XXtimeXX = indexAll.time), object2list, stringsAsFactors = FALSE)
         names(df.object)[1] <- object.cluster$var
-        if((simplify == FALSE) && any(U.time %in% unique(df.object$XXtimeXX) == FALSE)){
+        if((simplify <= 0) && any(U.time %in% unique(df.object$XXtimeXX) == FALSE)){
             ## add missing times
             df.object <- rbind(df.object,
                                cbind(data.frame(cluster = indexAll.cluster[1], XXtimeXX = setdiff(U.time, unique(df.object$XXtimeXX))),
@@ -94,7 +94,7 @@
         }
 
         ## use nicer column names
-        if(simplify && length(object.time$levels)==1){
+        if(simplify>0 && length(object.time$levels)==1){
             names(out)[-1] <- names(object2list)
         }
 

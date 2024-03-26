@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: mar 12 2024 (11:08) 
+## Last-Updated: Mar 26 2024 (13:09) 
 ##           By: Brice Ozenne
-##     Update #: 1392
+##     Update #: 1415
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -38,7 +38,7 @@
 ##' @param format [character] should the prediction be output
 ##' in a matrix format with clusters in row and timepoints in columns (\code{"wide"}),
 ##' or in a data.frame/vector with as many rows as observations (\code{"long"})
-##' @param keep.newdata [logical] should the dataset relative to which the predicted means are evaluated be output along side the predicted values?
+##' @param keep.data [logical] should the dataset relative to which the predicted means are evaluated be output along side the predicted values?
 ##' Only possible in the long format.
 ##' @param export.vcov [logical] should the variance-covariance matrix of the prediction error be outcome as an attribute (\code{"vcov"})?
 ##' @param simplify [logical] simplify the data format (vector instead of data.frame) and column names (no mention of the time variable) when possible.
@@ -72,25 +72,25 @@
 ##' ## prediction
 ##' newd <- data.frame(X1 = 1, X2 = 2, X5 = 3, visit = factor(1:3, levels = 1:3))
 ##' predict(eUN.lmm, newdata = newd)
-##' predict(eUN.lmm, newdata = newd, keep.newdata = TRUE)
-##' predict(eUN.lmm, newdata = newd, keep.newdata = TRUE, se = c(TRUE,TRUE))
+##' predict(eUN.lmm, newdata = newd, keep.data = TRUE)
+##' predict(eUN.lmm, newdata = newd, keep.data = TRUE, se = c(TRUE,TRUE))
 ##'
 ##' ## dynamic prediction
 ##' newd.d1 <- cbind(newd, Y = c(NA,NA,NA))
-##' predict(eUN.lmm, newdata = newd.d1, keep.newdata = TRUE, type = "dynamic")
+##' predict(eUN.lmm, newdata = newd.d1, keep.data = TRUE, type = "dynamic")
 ##' newd.d2 <- cbind(newd, Y = c(6.61,NA,NA))
-##' predict(eUN.lmm, newdata = newd.d2, keep.newdata = TRUE, type = "dynamic")
+##' predict(eUN.lmm, newdata = newd.d2, keep.data = TRUE, type = "dynamic")
 ##' newd.d3 <- cbind(newd, Y = c(1,NA,NA))
-##' predict(eUN.lmm, newdata = newd.d3, keep.newdata = TRUE, type = "dynamic")
+##' predict(eUN.lmm, newdata = newd.d3, keep.data = TRUE, type = "dynamic")
 ##' newd.d4 <- cbind(newd, Y = c(1,1,NA))
-##' predict(eUN.lmm, newdata = newd.d4, keep.newdata = TRUE, type = "dynamic")
+##' predict(eUN.lmm, newdata = newd.d4, keep.data = TRUE, type = "dynamic")
 
 ## * predict.lmm (code)
 ##' @export
 predict.lmm <- function(object, newdata, type = "static", p = NULL,
                         se = NULL, robust = FALSE, df = NULL, 
-                        level = 0.95, keep.newdata = NULL, format = "long", export.vcov = FALSE, simplify = TRUE, ...){
-    
+                        level = 0.95, keep.data = NULL, format = "long", export.vcov = FALSE, simplify = TRUE, ...){
+
     ## ** extract from object
     mycall <- match.call()
     options <- LMMstar.options()
@@ -180,8 +180,8 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
         index.na <- object$index.na
         newdata.index.cluster <- attr(object$design$index.cluster,"vectorwise")
         newdata.index.time <- attr(object$design$index.clusterTime,"vectorwise")
-        if(is.null(keep.newdata)){
-            keep.newdata <- FALSE
+        if(is.null(keep.data)){
+            keep.data <- FALSE
         }
     }else{
         index.na <- NULL
@@ -195,15 +195,15 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
                 stop("Argument \'newdata\' cannot be a matrix when requesting a wide format. \n",
                      "It should be a data.frame. \n")
             }
-            if(keep.newdata == TRUE){
-                stop("Argument \'keep.newdata\' should be FALSE when argument \'newdata\' is a matrix. \n")
+            if(keep.data == TRUE){
+                stop("Argument \'keep.data\' should be FALSE when argument \'newdata\' is a matrix. \n")
             }
             if(length(se)==2 && se[2]>0){
                 stop("Argument \'se\' should be have length 1 or its second element should be FALSE when argument \'newdata\' is a matrix. \n",
                      "(cannot associate observation to the repetition structure with matrix input - consider using data.frame) \n")
             }
-            if(is.null(keep.newdata)){
-                keep.newdata <- FALSE
+            if(is.null(keep.data)){
+                keep.data <- FALSE
             }
             ## used by residuals for type = partial-center
         }else{
@@ -216,8 +216,8 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
                     stop("Incorrect argument 'newdata': missing cluster variable \"",name.cluster,"\". \n")
                 }
             }
-            if(is.null(keep.newdata)){
-                keep.newdata <- FALSE
+            if(is.null(keep.data)){
+                keep.data <- FALSE
             }
         }
         if(format == "wide"){            
@@ -229,7 +229,7 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
 
     ## standard error
     if(is.null(se)){
-        se <- c((!simplify || keep.newdata) && !(format == "wide"),FALSE)
+        se <- c((!simplify || keep.data) && !(format == "wide") && is.null(p), FALSE)
     }else{
         if(!is.logical(se) & !is.numeric(se)){
             stop("Argument \'se\' should be TRUE or FALSE, or a logical vector of length 2. \n")
@@ -239,13 +239,25 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
         }else if(length(se)!=2){
             stop("Argument \'se\' should have length 1 or 2. \n")
         }
+        if(any(se>0) && !is.null(p)){
+            stop("Cannot evaluate the uncertainty when the argument \'p\' is specified")
+        }    
     }
+
+    ## parameter value and transformation
     init <- .init_transform(p = p, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
-                            x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho)
+                            x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
+                            table.param = object$design$param)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
     transform.rho <- init$transform.rho
     test.notransform <- init$test.notransform
+    if(is.null(p)){
+        theta <- object$param
+    }else{
+        theta <- init$p
+    }    
+    mu <- theta[name.mu]
 
     ## degrees of freedom
     if(is.null(df)){
@@ -263,8 +275,8 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
         
     ## check format
     format[] <- match.arg(format, c("wide","long"))  ## use 'format[] <-' instead of 'format <-' to keep the name that will be transferd to .reformat(
-    if(keep.newdata && format == "wide" && is.null(attr(keep.newdata, "var"))){
-        attr(keep.newdata, "var") <- .baselineVar.lmm(object)
+    if(keep.data && format == "wide" && is.null(attr(keep.data, "var"))){
+        attr(keep.data, "var") <- .baselineVar.lmm(object)
     }    
     if(format == "wide" && (df==TRUE||sum(se)>0)){
         if("df" %in% names(mycall) || "se" %in% names(mycall)){
@@ -328,49 +340,15 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
 
     }
 
-    if(keep.newdata && any(c("estimate","se","df","lower","upper") %in% names(newdata))){
+    if(keep.data && any(c("estimate","se","df","lower","upper") %in% names(newdata))){
         stop("Argument \'newdata\' should not contain a column named \"estimate\", \"se\", \"lower\", \"upper\", or \"df\" as those names are used internally. \n")
     }
 
-    ## p
-    if(!is.null(p) && any(name.theta %in% names(p) == FALSE)){
-        stop("Incorrect argument \'p\' - it should be a vector with names containing all parameters. \n",
-             "Missing parameter(s): \"",paste(name.theta[name.theta %in% names(p) == FALSE], collapse ="\" \""),"\"")
-    }
-
-
     ## ** parameters
-    if(is.null(p)){
-        mu <- coef(object, effects = "mean")
-    }else{
-        mu <- p[name.mu]
-    }
-
     if(se[2] || type.prediction %in% c("dynamic","change","auc","auc-b")){
-        ## estimate and transformation
-        if(is.null(p)){
-            theta.trans <- coef(object, effects = "all", transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
-            theta <- object$p
-            if(test.notransform){
-                reparametrize <- object$reparametrize
-            }else{
-                reparametrize <- .reparametrize(p = theta[index.vcov], type = table.param$type[index.vcov], level = table.param$level[index.vcov], 
-                                                sigma = table.param$sigma[index.vcov], k.x = table.param$sigma[index.vcov], k.y = table.param$sigma[index.vcov],
-                                                Jacobian = TRUE, dJacobian = FALSE, inverse = FALSE, 
-                                                transform.sigma = transform.sigma,
-                                                transform.k = transform.k,
-                                                transform.rho = transform.rho,
-                                                transform.names = FALSE)
-            }
-        }else{            
-            theta.trans <- p
-            theta <- c(mu,.reparametrize(p = theta.trans[index.vcov], type = table.param$type[index.vcov], level = table.param$level[index.vcov], 
-                                         sigma = table.param$sigma[index.vcov], k.x = table.param$sigma[index.vcov], k.y = table.param$sigma[index.vcov],
-                                         Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE, 
-                                         transform.sigma = transform.sigma,
-                                         transform.k = transform.k,
-                                         transform.rho = transform.rho,
-                                         transform.names = FALSE)$p)
+        if(is.null(p) && test.notransform){
+            reparametrize <- object$reparametrize
+        }else{
             reparametrize <- .reparametrize(p = theta[index.vcov], type = table.param$type[index.vcov], level = table.param$level[index.vcov], 
                                             sigma = table.param$sigma[index.vcov], k.x = table.param$sigma[index.vcov], k.y = table.param$sigma[index.vcov],
                                             Jacobian = TRUE, dJacobian = FALSE, inverse = FALSE, 
@@ -383,10 +361,10 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
 
     ## vcov of the estimates
     if(se[1]>0 && type.prediction == "static"){
-        vcov.mu <- vcov(object, effects = "mean", robust = robust)
+        vcov.mu <- vcov(object, effects = "mean", p = p, robust = robust)
     }
     if(df || se[2]>0 || type.prediction %in% c("dynamic","change","auc","auc-b")){
-        vcov.theta <- vcov(object, effects = "all", robust = robust, df = 2*df, ## 2* to extract dVcov and no only df
+        vcov.theta <- vcov(object, effects = "all", p = p, robust = robust, df = 2*df, ## 2* to extract dVcov and no only df
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
         if(df){
             dVcov.theta <- attr(vcov.theta,"dVcov")
@@ -668,19 +646,19 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
     }
 
     ## ** export
-    if(is.null(newdata) && keep.newdata){
+    if(is.null(newdata) && keep.data){
         ## even when no NA, use the initial dataset instead of the augmented one
         newdata <- object$data.original
     }
     out <- .reformat(M.pred, name = names(format), format = format, simplify = simplify,
-                     keep.data = keep.newdata, data = newdata, index.na = index.na,
+                     keep.data = keep.data, data = newdata, index.na = index.na,
                      object.cluster = object$cluster, index.cluster = newdata.index.cluster,
                      object.time = object$time, index.time = newdata.index.time,                     
                      call = mycall)
 
     if(simplify==FALSE){
         attr(out,"grad") <- grad.var
-        attr(out,"args") <- list(se = se, df = df, type = type.prediction, level = level, keep.newdata = keep.newdata, format = format, simplify = simplify)
+        attr(out,"args") <- list(se = se, df = df, type = type.prediction, level = level, keep.data = keep.data, format = format, simplify = simplify)
     }
     if(export.vcov){
         attr(out,"vcov") <- attr(prediction.var,"vcov")

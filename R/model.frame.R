@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (14:57) 
 ## Version: 
-## Last-Updated: mar  8 2024 (09:50) 
+## Last-Updated: Mar 26 2024 (09:46) 
 ##           By: Brice Ozenne
-##     Update #: 122
+##     Update #: 124
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -19,7 +19,7 @@
 ##' @title Extracting the Model Frame from a Linear Mixed Model
 ##' @description Variables needed to fit the Linear Mixed Model.
 ##' @param formula [lmm] linear mixed model object
-##' @param data [data.frame]
+##' @param newdata [data.frame] dataset relative to which the model frame should be constructed.
 ##' @param type [character] By default returns the processed dataset used to fit the Linear Mixed Model (\code{NULL}).
 ##' Can be used to add rows relative to missing repetitions (\code{"add.NA"})
 ##' or obtain a dataset with unique sets of covariates (\code{"unique"}) with respect to the mean structure.
@@ -48,7 +48,7 @@
 
 ## * model.frame.lmm (code)
 ##' @export
-model.frame.lmm <- function(formula, data = NULL, type = NULL, add.index = FALSE, ...){
+model.frame.lmm <- function(formula, newdata = NULL, type = NULL, add.index = FALSE, ...){
 
     ## ** extract from object
     manifest.var <- lava::manifest(formula)
@@ -70,17 +70,17 @@ model.frame.lmm <- function(formula, data = NULL, type = NULL, add.index = FALSE
     ## ** generate data.frame
     if(is.null(type) || type[1]=="add.NA"){
 
-        ## *** reformat data
-        if(is.null(data)){
-            newdata <- formula$data
+        ## *** reformat newdata
+        if(is.null(newdata)){
+            newdata.norm <- formula$data
             design <- formula$design
         }else{
-            if(any(setdiff(manifest.var,outcome.var) %in% names(data) == FALSE)){
-                missing.col <- setdiff(manifest.var,outcome.var)[setdiff(manifest.var,outcome.var) %in% names(data)]
-                stop("Incorrect argument \'data\' due to missing column(s): \"",paste(missing.col, collapse = "\", \""),"\". \n")
+            if(any(setdiff(manifest.var,outcome.var) %in% names(newdata) == FALSE)){
+                missing.col <- setdiff(manifest.var,outcome.var)[setdiff(manifest.var,outcome.var) %in% names(newdata)]
+                stop("Incorrect argument \'newdata\' due to missing column(s): \"",paste(missing.col, collapse = "\", \""),"\". \n")
             }
-            design <- model.matrix(formula, data = data, effects = "index")
-            newdata <- .lmmNormalizeData(data, var.outcome = outcome.var,
+            design <- model.matrix(formula, newdata = newdata, effects = "index")
+            newdata.norm <- .lmmNormalizeData(newdata, var.outcome = outcome.var,
                                          var.time = attr(formula$time$var,"original"),
                                          var.cluster = attr(formula$cluster$var,"original"),                         
                                          var.strata = attr(formula$strata$var,"original"),                         
@@ -122,7 +122,7 @@ model.frame.lmm <- function(formula, data = NULL, type = NULL, add.index = FALSE
                                                       "XXclusterXX","XXstrataXX","XXcluster.indexXX","XXstrata.indexXX")))
 
             ls.newrow <- lapply(incomplete.cluster, function(iC){ ## iC <- 5
-                iDF <- newdata[newdata$XXcluster.indexXX == iC,,drop=FALSE]
+                iDF <- newdata.norm[newdata.norm$XXcluster.indexXX == iC,,drop=FALSE]
                 iN.missingTime <- n.time - NROW(iDF)
                     
                 iOut <- stats::setNames(vector(mode = "list", length = NCOL(iDF)), colnames(iDF))
@@ -142,8 +142,8 @@ model.frame.lmm <- function(formula, data = NULL, type = NULL, add.index = FALSE
                 })
                 return(as.data.frame(iOut))
             })
-            newdata <- rbind(newdata, do.call(rbind,ls.newrow))
-            newdata[is.na(newdata$XXindexXX),"XXindexXX"] <- -(1:sum(is.na(newdata$XXindexXX)))
+            out <- rbind(newdata.norm, do.call(rbind,ls.newrow))
+            out[is.na(out$XXindexXX),"XXindexXX"] <- -(1:sum(is.na(out$XXindexXX)))
         }
 
         
@@ -160,27 +160,26 @@ model.frame.lmm <- function(formula, data = NULL, type = NULL, add.index = FALSE
             }
         }   
 
-        if(is.null(data)){
+        if(is.null(newdata)){
             design <- formula$design
         }else{
-            design <- model.matrix(formula, data = data, effects = "index")
+            design <- model.matrix(formula, data = newdata, effects = "index")
         }
         cluster.var <- formula$cluster$var
         time.var <- formula$time$var
 
         
         ## *** reorder data by cluster and time
-        data.index.cluster <- attr(design$index.cluster,"vectorwise")
-        data.index.time <- attr(design$index.clusterTime,"vectorwise")                    
-        vec.reorder <- order(data.index.cluster, data.index.time)
-        if(is.null(data)){
-            data <- formula$data[vec.reorder,,drop=FALSE]
+        newdata.index.cluster <- attr(design$index.cluster,"vectorwise")
+        newdata.index.time <- attr(design$index.clusterTime,"vectorwise")                    
+        vec.reorder <- order(newdata.index.cluster, newdata.index.time)
+        if(is.null(newdata)){
+            newdata <- formula$newdata[vec.reorder,,drop=FALSE]
         }
 
-        newdata <- NULL
         if("variance" %in% effects || "correlation" %in% effects){
             keep.cluster <- sapply(attr(design$vcov$pattern,"list"),"[[",1)
-            newdata.row <- which(data$XXcluster.indexXX %in% keep.cluster)
+            newdata.row <- which(newdata$XXcluster.indexXX %in% keep.cluster)
             vcov.var <- lava::manifest(formula, effects = setdiff(effects, "mean"))
             newdata.col <- stats::na.omit(unique(c(attr(cluster.var,"original"),unlist(vcov.var))))
         }else{
@@ -194,19 +193,19 @@ model.frame.lmm <- function(formula, data = NULL, type = NULL, add.index = FALSE
             ## but putting first clusters (possibly) kept for the covariance covariates
             vec.reorder2 <- c(newdata.row,setdiff(vec.reorder,newdata.row))
             ## extract unique mean covariate sets
-            newdata.row <- sort(union(newdata.row, which(!duplicated(data[,names(data) %in% mean.var,drop=FALSE]))))
+            newdata.row <- sort(union(newdata.row, which(!duplicated(newdata[,names(newdata) %in% mean.var,drop=FALSE]))))
             newdata.col <- union(newdata.col, mean.var)
         }
         ## *** subset
-        newdata <- data[newdata.row,,drop=FALSE]
+        out <- newdata[newdata.row,,drop=FALSE]
    
     }
 
     ## ** export
     if(add.index==FALSE){
-        newdata <- newdata[manifest.var]
+        out <- out[manifest.var]
     }
-    return(newdata)
+    return(out)
 
 }
 

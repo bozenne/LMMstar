@@ -1,11 +1,11 @@
-### test-auto-partial-residuals.R --- 
+### test-auto-residuals.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
 ## Created: nov  4 2021 (11:49) 
 ## Version: 
-## Last-Updated: mar 11 2024 (18:42) 
+## Last-Updated: Mar 26 2024 (09:55) 
 ##           By: Brice Ozenne
-##     Update #: 32
+##     Update #: 36
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -23,7 +23,7 @@ if(FALSE){
 }
 
 
-context("Check partial residuals calculation")
+context("Check residuals and partial residuals calculation")
 LMMstar.options(optimizer = "FS", method.numDeriv = "simple", precompute.moments = TRUE,
                 columns.confint = c("estimate","se","df","lower","upper","p.value"))
 
@@ -131,10 +131,42 @@ test_that("linear mixed model",{
     test <- coef(lmm(r.partial ~ visit:X1, repetition = ~visit|id, data = pResNA))
     expect_equal(GS[names(test)],test, tol = 1e-2)
 
-    ## pResNA2 <- fitted(e.lmmNA, type = "outcome", keep.newdata = TRUE)
+    ## pResNA2 <- fitted(e.lmmNA, type = "outcome", keep.data = TRUE)
     ## pResNA2$r.partial <- pResNA2$Y - coef(e.lmmNA)["X2"]*pResNA2$X2 - coef(e.lmmNA)["X5"]*pResNA2$X5
     ## test2 <- coef(lmm(r.partial ~ visit:X1, repetition = ~visit|id, data = pResNA2))
     ## expect_equal(GS[names(test2)],test2, tol = 1e-3)
 })
+
+## * Linear mixed model (gradient)
+data(gastricbypassL, package = "LMMstar")
+e.lmm <- lmm(glucagonAUC ~ weight + visit + (1|id), data = gastricbypassL)
+test_that("gradient of the residuals in lmm",{
+
+    test <- residuals(e.lmm, type = c("response","pearson","studentized","normalized","normastudentized"), simplify = -1, keep.data = TRUE) 
+    GS <- estimate(e.lmm, transform.sigma = "log", transform.rho = "atanh", function(p){ ## p <- NULL
+        iRes <- residuals(e.lmm, type = c("response","pearson","studentized","normalized","normastudentized"), p = p, keep.data = TRUE)
+        c(iRes$fitted,iRes$r.response,iRes$r.pearson,iRes$r.studentized,iRes$r.normalized,iRes$r.normastudentized)
+    }, method.numDeriv = "Richardson")
+    expect_equivalent(attr(GS,"grad")[1:80,], attr(test,"grad")[,,"fitted"], tol = 1e-6)
+    expect_equivalent(attr(GS,"grad")[81:160,], attr(test,"grad")[,,"r.response"], tol = 1e-6)
+    expect_equivalent(attr(GS,"grad")[161:240,], attr(test,"grad")[,,"r.pearson"], tol = 1e-6)
+    expect_equivalent(attr(GS,"grad")[241:320,], attr(test,"grad")[,,"r.studentized"], tol = 1e-6)
+    expect_equivalent(attr(GS,"grad")[321:400,], attr(test,"grad")[,,"r.normalized"], tol = 1e-6)
+    expect_equivalent(attr(GS,"grad")[401:480,], attr(test,"grad")[,,"r.normastudentized"], tol = 1e-6)
+
+    test.se <- sqrt(diag(attr(test,"grad")[,,"r.normalized"] %*% vcov(e.lmm, effects = "all") %*% t(attr(test,"grad")[,,"r.normalized"])))
+    expect_equivalent(GS$se[321:400], test.se, tol = 1e-6)
+
+    test2 <- residuals(e.lmm, variable = "weight", type = "partial", simplify = -1, keep.data = TRUE)
+    grad.NA <- attr(test2,"grad")[is.na(gastricbypassL$glucagonAUC),,"r.partial"]
+    grad.NNA <- attr(test2,"grad")[!is.na(gastricbypassL$glucagonAUC),,"r.partial"]
+    expect_true(all(is.na(grad.NA)))
+    expect_true(all(grad.NNA[,"(Intercept)"]==-1))
+    expect_true(all(grad.NNA[,"visit2"]==-(gastricbypassL$visit[!is.na(gastricbypassL$glucagonAUC)]=="2")))
+    expect_true(all(grad.NNA[,"visit3"]==-(gastricbypassL$visit[!is.na(gastricbypassL$glucagonAUC)]=="3")))
+    expect_true(all(grad.NNA[,"visit4"]==-(gastricbypassL$visit[!is.na(gastricbypassL$glucagonAUC)]=="4")))
+    expect_true(all(grad.NNA[,c("weight","sigma","rho(id)")]==0))
+    
+})
 ##----------------------------------------------------------------------
-### test-auto-partial-residuals.R ends here
+### test-auto-residuals.R ends here

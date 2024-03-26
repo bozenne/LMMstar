@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: mar  1 2024 (10:49) 
+## Last-Updated: Mar 26 2024 (09:39) 
 ##           By: Brice Ozenne
-##     Update #: 1121
+##     Update #: 1128
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,7 +20,7 @@
 ##' @description Extract or compute the (expected) second derivative of the log-likelihood of a linear mixed model.
 ##' 
 ##' @param x a \code{lmm} object.
-##' @param data [data.frame] dataset relative to which the information should be computed. Only relevant if differs from the dataset used to fit the model.
+##' @param newdata [data.frame] dataset relative to which the information should be computed. Only relevant if differs from the dataset used to fit the model.
 ##' @param indiv [logical] Should the contribution of each cluster to the information be output? Otherwise output the sum of all clusters of the derivatives.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the information. Only relevant if differs from the fitted values.
 ##' @param effects [character] Should the information relative to all coefficients be output (\code{"all"} or \code{"fixed"}),
@@ -43,7 +43,7 @@
 
 ## * information.lmm (code)
 ##' @export
-information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FALSE, type.information = NULL,
+information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv = FALSE, type.information = NULL,
                             transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
 
     ## ** normalize user input
@@ -68,14 +68,20 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
     effects[effects== "fixed"] <- "mean"
 
     init <- .init_transform(p = p, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
-                            x.transform.sigma = x$reparametrize$transform.sigma, x.transform.k = x$reparametrize$transform.k, x.transform.rho = x$reparametrize$transform.rho)
+                            x.transform.sigma = x$reparametrize$transform.sigma, x.transform.k = x$reparametrize$transform.k, x.transform.rho = x$reparametrize$transform.rho,
+                            table.param = x$design$param)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
     transform.rho <- init$transform.rho
     test.notransform <- init$test.notransform
+    if(is.null(p)){
+        theta <- x$param
+    }else{
+        theta <- init$p
+    }
     
     ## ** extract or recompute information
-    if(is.null(data) && is.null(p) && (indiv == FALSE) && test.notransform && (robust==FALSE) && x$args$type.information==type.information){
+    if(is.null(newdata) && is.null(p) && (indiv == FALSE) && test.notransform && (robust==FALSE) && x$args$type.information==type.information){
         keep.name <- stats::setNames(names(coef(x, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE)),
                                      names(coef(x, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)))    
 
@@ -87,24 +93,13 @@ information.lmm <- function(x, effects = NULL, data = NULL, p = NULL, indiv = FA
     }else{
         test.precompute <- !is.null(x$design$precompute.XX) && !indiv
          
-        if(!is.null(data)){
-            design <- stats::model.matrix(x, data = data, effects = "all", simplify = FALSE)
+        if(!is.null(newdata)){
+            design <- stats::model.matrix(x, newdata = newdata, effects = "all", simplify = FALSE)
         }else{
             design <- x$design
         }
 
-        if(!is.null(p)){
-            if(any(duplicated(names(p)))){
-                stop("Incorrect argument \'p\': contain duplicated names \"",paste(unique(names(p)[duplicated(names(p))]), collapse = "\" \""),"\".\n")
-            }
-            if(any(names(x$param) %in% names(p) == FALSE)){
-                stop("Incorrect argument \'p\': missing parameter(s) \"",paste(names(x$param)[names(x$param$type) %in% names(p) == FALSE], collapse = "\" \""),"\".\n")
-            }
-            p <- p[names(x$param)]
-        }else{
-            p <- x$param
-        }
-        out <- .moments.lmm(value = p, design = design, time = x$time, method.fit = x$args$method.fit, type.information = type.information,
+        out <- .moments.lmm(value = theta, design = design, time = x$time, method.fit = x$args$method.fit, type.information = type.information,
                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                             logLik = FALSE, score = FALSE, information = TRUE, vcov = FALSE, df = FALSE, indiv = indiv, effects = effects, robust = robust,
                             trace = FALSE, precompute.moments = test.precompute, transform.names = transform.names)$information
