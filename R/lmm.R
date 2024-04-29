@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Mar 26 2024 (09:53) 
+## Last-Updated: Mar 27 2024 (08:55) 
 ##           By: Brice Ozenne
-##     Update #: 2992
+##     Update #: 3001
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -209,7 +209,8 @@ lmm <- function(formula, repetition, structure, data,
                                  var.strata = outArgs$var.strata,                         
                                  droplevels = TRUE,
                                  initialize.cluster = outArgs$ranef$crossed,
-                                 initialize.time = setdiff(outArgs$ranef$vars, outArgs$var.cluster))
+                                 initialize.time = setdiff(outArgs$ranef$vars, outArgs$var.cluster),
+                                 na.rm = TRUE)
     data <- outData$data
     var.cluster <- outData$var.cluster
     var.time <- outData$var.time
@@ -704,14 +705,14 @@ lmm <- function(formula, repetition, structure, data,
 ##' @param droplevels [logical] should un-used levels in cluster/time/strata be removed?
 ##' @param initalize.cluster [logical] when the cluster variable is NA/NULL,
 ##' should a different cluster per observation be used (0) or the same cluster for all observations (1)
-##' @param initalize.time [logical] when the time variable is NA/NULL,
-##' how should the observations be ordered
+##' @param initalize.time [logical] when the time variable is NA/NULL, ##' how should the observations be ordered
+##' @param na.rm [logical] should row containing missing values be removed from the design matrix?
 ##'
 ##' @details Argument \code{var.outcome} is NA when the function is called by \code{model.matrix.lmm}
 ##' 
 ##' @noRd
 .lmmNormalizeData <- function(data, var.outcome, var.cluster, var.time, var.strata, droplevels,
-                              initialize.cluster, initialize.time){
+                              initialize.cluster, initialize.time, na.rm){
 
 
     ## ** normalize
@@ -945,38 +946,40 @@ lmm <- function(formula, repetition, structure, data,
         }else{
             attr(index.na, "time") <- data[index.na,"XXtimeXX"]
         }
-        keep <- list(nlevel.cluster = max(data$XXcluster.indexXX),
-                     nlevel.time = max(data$XXtime.indexXX),
-                     nlevel.strata = max(data$XXstrata.indexXX))
-        data <- data[-index.na,, drop=FALSE]
-        data$XXcluster.indexXX <- as.numeric(droplevels(data$XXclusterXX))
-        if(droplevels){
-            data$XXtime.indexXX <- as.numeric(droplevels(data$XXtimeXX))
-            data$XXstrata.indexXX <- as.numeric(droplevels(data$XXstrataXX))
-        }
 
-        loss.cluster <- keep$nlevel.cluster - max(data$XXcluster.indexXX)
-        loss.time <- keep$nlevel.time - max(data$XXtime.indexXX) 
-        loss.strata <- keep$nlevel.strata - max(data$XXstrata.indexXX)
-        if(loss.cluster>0){
-            warning <- TRUE
-            text.warning <- c(text.warning,paste0("  ",loss.cluster," cluster",ifelse(loss.cluster==1," has","s have")," been removed. \n"))
-        }
-        if(loss.time>0){
-            warning <- TRUE
-            text.warning <- c(text.warning,paste0("  ",loss.time," timepoint",ifelse(loss.time==1," has","s have")," been removed. \n"))
-        }
-        if(loss.strata>0){
-            warning <- TRUE
-            text.warning <- c(text.warning,paste0("  ",loss.strata," strata",ifelse(loss.strata==1," has"," have")," been removed. \n"))
-        }
-        if(warning){
-            warning(text.warning)
+        if(na.rm){
+            keep <- list(nlevel.cluster = max(data$XXcluster.indexXX),
+                         nlevel.time = max(data$XXtime.indexXX),
+                         nlevel.strata = max(data$XXstrata.indexXX))
+            data <- data[-index.na,, drop=FALSE]
+            data$XXcluster.indexXX <- as.numeric(droplevels(data$XXclusterXX))
+            if(droplevels){
+                data$XXtime.indexXX <- as.numeric(droplevels(data$XXtimeXX))
+                data$XXstrata.indexXX <- as.numeric(droplevels(data$XXstrataXX))
+            }
+
+            loss.cluster <- keep$nlevel.cluster - max(data$XXcluster.indexXX)
+            loss.time <- keep$nlevel.time - max(data$XXtime.indexXX) 
+            loss.strata <- keep$nlevel.strata - max(data$XXstrata.indexXX)
+            if(loss.cluster>0){
+                warning <- TRUE
+                text.warning <- c(text.warning,paste0("  ",loss.cluster," cluster",ifelse(loss.cluster==1," has","s have")," been removed. \n"))
+            }
+            if(loss.time>0){
+                warning <- TRUE
+                text.warning <- c(text.warning,paste0("  ",loss.time," timepoint",ifelse(loss.time==1," has","s have")," been removed. \n"))
+            }
+            if(loss.strata>0){
+                warning <- TRUE
+                text.warning <- c(text.warning,paste0("  ",loss.strata," strata",ifelse(loss.strata==1," has"," have")," been removed. \n"))
+            }
+            if(warning){
+                warning(text.warning)
+            }
         }
     }else{
         index.na <- NULL
     }
-
 
     ## ** export
     out$data <- data

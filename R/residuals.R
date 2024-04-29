@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: Mar 26 2024 (13:03) 
+## Last-Updated: Mar 27 2024 (08:48) 
 ##           By: Brice Ozenne
-##     Update #: 1266
+##     Update #: 1272
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -141,12 +141,10 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
     paramVcov.name <- param.name[param.type %in% c("sigma","k","rho")]
     
     n.time <- object$time$n
-    index.na <- object$index.na
     X.mean <- object$design$mean
 
     object.cluster <- object$cluster
     object.time <- object$time
-    object.index.na <- object$index.na
     U.cluster <- object$cluster$levels
     U.time <- object$time$levels
     name.time <- object$time$var
@@ -256,6 +254,20 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
     }
     
     ## ** update design
+    if(is.null(newdata)){
+        design <- stats::model.matrix(object, effects = effects, simplify = FALSE)
+        index.na <- object$index.na
+    }else{
+
+        ## rm.na
+        object.manifest <- lava::manifest(object)
+        df.newdata <- as.data.frame(newdata)
+        index.NNA <- which(rowSums(is.na(df.newdata[intersect(names(df.newdata),object.manifest)]))==0)
+
+        design <- stats::model.matrix(object, newdata = df.newdata[index.NNA,,drop = FALSE], effects = effects, simplify = FALSE)
+        index.na <- setdiff(1:NROW(df.newdata),index.NNA)
+    }
+
     if("partial" %in% type.residual || "partial-center" %in% type.residual){
         ## extract data and design matrix
         if(is.null(newdata)){
@@ -318,6 +330,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         }
 
         ## build design matrix
+        browser()
         design.reference <- stats::model.matrix(object, newdata = data.reference, effects = effects, simplify = TRUE)
         if(length(object$index.na)>0){
             design.reference <- design.reference[-object$index.na,,drop=FALSE]
@@ -332,17 +345,12 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
 
         if(is.null(newdata)){
             design <- stats::model.matrix(object, effects = effects, simplify = FALSE)
-            design.reference <- stats::model.matrix(object, effects = effects, simplify = TRUE)
         }else{
             df.newdata <- as.data.frame(newdata)
-        
+
             index.NNA <- which(rowSums(is.na(df.newdata[intersect(names(df.newdata),object.manifest)]))==0)
             design <- stats::model.matrix(object, newdata = df.newdata[index.NNA,,drop = FALSE], effects = effects, simplify = FALSE)
             index.na <- setdiff(1:NROW(df.newdata),index.NNA)
-
-            index.NNA.reference <- which(rowSums(is.na(df.newdata[intersect(names(df.newdata),setdiff(object.manifest,outcome.var))]))==0)
-            design.reference <- stats::model.matrix(object, newdata = df.newdata[index.NNA.reference,,drop=FALSE], effects = effects, simplify = TRUE)
-            index.na.reference <- setdiff(1:NROW(df.newdata),index.NNA.reference)
         }
     }
 
@@ -460,6 +468,8 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
     }
 
     ## ** raw residuals
+    newdata
+    browser()
     if(!is.null(newdata) || !is.null(p)){
         fitted <- (X %*% beta)[,1]
         res <-  as.vector(Y - fitted)
@@ -479,6 +489,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
     }
 
     if(fitted.ci || "partial" %in% type.residual || "partial-center" %in% type.residual){
+        browser()
         df.fitted <- stats::predict(object, p = p, newdata = design.reference, type = type.fit, se = fitted.ci,
                                     keep.data = FALSE, format = "long", simplify = FALSE)
 

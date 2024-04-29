@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: Mar 26 2024 (13:09) 
+## Last-Updated: Mar 27 2024 (12:25) 
 ##           By: Brice Ozenne
-##     Update #: 1415
+##     Update #: 1422
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -221,7 +221,7 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
             }
         }
         if(format == "wide"){            
-            newdata.design <- model.matrix(object, data = newdata, effects = "index")
+            newdata.design <- model.matrix(object, newdata = newdata, effects = "index")
             newdata.index.cluster <- attr(newdata.design$index.cluster, "vectorwise")
             newdata.index.time <- attr(newdata.design$index.clusterTime, "vectorwise")        
         }
@@ -276,7 +276,8 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
     ## check format
     format[] <- match.arg(format, c("wide","long"))  ## use 'format[] <-' instead of 'format <-' to keep the name that will be transferd to .reformat(
     if(keep.data && format == "wide" && is.null(attr(keep.data, "var"))){
-        attr(keep.data, "var") <- .baselineVar.lmm(object)
+        mean.type <- lava::manifest(test, effects = "mean.type")
+        attr(keep.data, "var") <- names(mean.type)[mean.type=="baseline"]
     }    
     if(format == "wide" && (df==TRUE||sum(se)>0)){
         if("df" %in% names(mycall) || "se" %in% names(mycall)){
@@ -376,8 +377,8 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
     ## ** design matrix
     if(is.matrix(newdata)){
         X <- newdata
-    }else{    
-        X <- stats::model.matrix(object, data = newdata, effects = "mean")
+    }else{
+        X <- stats::model.matrix(object, newdata = newdata, effects = "mean")
     }
     if(!keep.intercept && "(Intercept)" %in% colnames(X)){
         X[,"(Intercept)"] <- 0
@@ -745,45 +746,6 @@ predict.mlmm <- function(object, ...){
     return(out)
 }
 
-## * .baselineVar.lmm
-##' @description Find covariates that do not vary over repetitions.
-##' Used when reshaping to wide format while keeping original data (i.e. cannot keep time-varying covariates)
-##' @noRd
-.baselineVar.lmm <- function(object){
-
-    ## ** extract from object
-    outcome.var <- object$outcome$var
-    time.var <- object$time$var
-    n.time <- object$time$n
-    cluster.var <- object$cluster$var
-    data <- object$data
-    all.var <- intersect(names(object$data.original),names(object$data))
-
-    ## ** filter variables
-    time.vars <- unique(c(time.var,attr(time.var,"original")))
-    out <- setdiff(all.var,c(cluster.var,time.vars,outcome.var))
-    if(length(out)>0){
-        ## exclude covariates that are a simple transformation of time
-        cov.levels <- apply(data[out], MARGIN = 2, function(iCol){length(unique(iCol))})
-        if(any(cov.levels <= n.time)){ ## needs to have less levels than time
-            possibleTime.vars <- out[cov.levels <= n.time]
-            test.trans <- sapply(possibleTime.vars, function(iVar){ ## iCol <- object.data[,"week2"]
-                iTable <- table(data[[iVar]],data$XXtime.indexXX)
-                sum(iTable[upper.tri(iTable,diag=FALSE)])+sum(iTable[lower.tri(iTable,diag=FALSE)])
-            })
-            out <- setdiff(out, possibleTime.vars[test.trans==0])
-        }
-
-        ## exclude time varying covariates
-        test.timevar <- sapply(out, function(iVar){
-            any(tapply(data[[iVar]],data$XXcluster.indexXX, function(iVec){sum(!duplicated(iVec))>1}))
-        })
-        out <- out[test.timevar == FALSE]
-    }
-
-    ## ** export 
-    return(out)
-}
 
 ##----------------------------------------------------------------------
 ### predict.R ends here

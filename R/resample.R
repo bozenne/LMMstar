@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: mar 12 2024 (18:25) 
+## Last-Updated: Mar 27 2024 (08:49) 
 ##           By: Brice Ozenne
-##     Update #: 606
+##     Update #: 607
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -344,7 +344,8 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
                                         var.strata = attr(object$strata$var, "original"),
                                         droplevels = TRUE,
                                         initialize.cluster = iStructure$ranef$crossed,
-                                        initialize.time = setdiff(iStructure$ranef$vars, iStructure$var.cluster))$data
+                                        initialize.time = setdiff(iStructure$ranef$vars, iStructure$var.cluster),
+                                        na.rm = TRUE)$data
 
             iDesign <- .model.matrix.lmm(formula.mean = object$formula$mean.design,
                                          structure = iStructure,
