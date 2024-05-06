@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: Mar 27 2024 (12:25) 
+## Last-Updated: May  6 2024 (11:40) 
 ##           By: Brice Ozenne
-##     Update #: 1422
+##     Update #: 1433
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -221,7 +221,7 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
             }
         }
         if(format == "wide"){            
-            newdata.design <- model.matrix(object, newdata = newdata, effects = "index")
+            newdata.design <- stats::model.matrix(object, newdata = newdata, effects = "index", na.rm = FALSE)
             newdata.index.cluster <- attr(newdata.design$index.cluster, "vectorwise")
             newdata.index.time <- attr(newdata.design$index.clusterTime, "vectorwise")        
         }
@@ -276,7 +276,7 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
     ## check format
     format[] <- match.arg(format, c("wide","long"))  ## use 'format[] <-' instead of 'format <-' to keep the name that will be transferd to .reformat(
     if(keep.data && format == "wide" && is.null(attr(keep.data, "var"))){
-        mean.type <- lava::manifest(test, effects = "mean.type")
+        mean.type <- lava::manifest(object, effects = "mean.type")
         attr(keep.data, "var") <- names(mean.type)[mean.type=="baseline"]
     }    
     if(format == "wide" && (df==TRUE||sum(se)>0)){
@@ -378,7 +378,7 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
     if(is.matrix(newdata)){
         X <- newdata
     }else{
-        X <- stats::model.matrix(object, newdata = newdata, effects = "mean")
+        X <- stats::model.matrix(object, newdata = newdata, effects = "mean", na.rm = FALSE)
     }
     if(!keep.intercept && "(Intercept)" %in% colnames(X)){
         X[,"(Intercept)"] <- 0
@@ -410,7 +410,7 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
     ## ** identify variance patterns
     if(type.prediction %in% c("dynamic","change","auc","auc-b") || se[2]){
 
-        newdesign <- stats::model.matrix(object, data = newdata, effect = "variance", simplify = FALSE)
+        newdesign <- stats::model.matrix(object, newdata = newdata, effect = "variance", simplify = FALSE, na.rm = FALSE)
         index.cluster <- newdesign$index.cluster
         index.clusterTime <- newdesign$index.clusterTime
         n.cluster <- length(index.cluster)

@@ -12,7 +12,7 @@
   type = "response",
   variable = NULL,
   at = NULL,
-  data = NULL,
+  newdata = NULL,
   p = NULL,
   format = "long",
   keep.data = FALSE,
@@ -29,13 +29,14 @@
 \arguments{
 \item{object}{a \code{lmm} object.}
 
-\item{type}{[character] type of residual to output: raw residuals (\code{"response"}), Pearson residuals (\code{"pearson"}), normalized residuals (\code{"normalized"}, scaled residual \code{"scaled"}), or partial residuals (\code{"partial"} or \code{"partial-center"}). Can also be \code{"all"} to output all except partial residuals. See detail section.}
+\item{type}{[character] type of residual to output such as raw residuals (\code{"response"}), normalized residuals (\code{"normalized"}, partial residuals (\code{"partial"}).
+Can also be \code{"all"} to output all except partial residuals. See detail section.}
 
 \item{variable}{[character vector] name of the variable relative to which the partial residuals should be computed.}
 
 \item{at}{[data.frame] values for the covariates at which to evaluate the partial residuals.}
 
-\item{data}{[data.frame] dataset relative to which the residuals should be computed. Only relevant if differs from the dataset used to fit the model.}
+\item{newdata}{[data.frame] dataset relative to which the residuals should be computed. Only relevant if differs from the dataset used to fit the model.}
 
 \item{p}{[numeric vector] value of the model coefficients at which to evaluate the residuals. Only relevant if differs from the fitted values.}
 
@@ -65,7 +66,6 @@ Extract or compute the residuals of a linear mixed model.
 \details{
 The argument \code{type} defines how the residuals are computed:
 \itemize{
-\item \code{"fitted"}: fitted value \eqn{X_{ij} \hat{\beta}}.
 \item \code{"response"}: raw residual, i.e. observed outcome minus fitted value \eqn{\varepsilon_{ij} = Y_{ij} - X_{ij} \hat{\beta}}.
 \item \code{"pearson"}: each raw residual is divided by its modeled standard deviation \eqn{\varepsilon_{ij} = \frac{Y_{ij} - X_{ij} \hat{\beta}}{\sqrt{\hat{\omega}_{ij}}}}.
 \item \code{"studentized"}: same as \code{"pearson"} but excluding the contribution of the cluster in the modeled standard deviation  \eqn{\varepsilon_{ij} = \frac{Y_{ij} - X_{ij} \hat{\beta}}{\sqrt{\hat{\omega}_{ij}-\hat{q}_{ij}}}}.
@@ -85,6 +85,8 @@ where
 \item \eqn{\hat{Q}_i= X_i (X^{t}\hat{\Omega}X)^{-1}X_i^{t}} a cluster specific correction factor, approximating the contribution of cluster i to \eqn{\hat{\Omega}}. Its diagonal elements are denoted \eqn{\hat{q}_i}.
 \item \eqn{\hat{D}_i} the upper Cholesky factor of \eqn{\hat{\Omega}-\hat{Q}_i}
 }
+
+Setting argument \code{fitted.ci} to \code{TRUE}, \code{simplify} to \code{FALSE}, \code{format} to \code{"long"} returns an attribute \code{"grad"} containing the first order partial derivatives of the residuals with respect to the model parameters.
 }
 \examples{
 
@@ -126,7 +128,6 @@ residuals(eUN.lmm, type = "all")
 residuals(eUN.lmm, type = "all", keep.data = TRUE)
 
 ## partial residuals
-residuals(eUN.lmm, type = "partial", variable = c("(Intercept)","X6"))
-residuals(eUN.lmm, type = "partial", variable = c("X6"))
+residuals(eUN.lmm, type = "partial", variable = c("(Intercept)","visit","X6"))
 }
 \keyword{methods}

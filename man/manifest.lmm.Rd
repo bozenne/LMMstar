@@ -14,7 +14,6 @@ or only those related to the outcome (\code{"outcome"}), mean (\code{"mean"}), v
 correlation (\code{"correlation"}), time (\code{"time"}), cluster (\code{"cluster"}), strata (\code{"strata"})?}
 
 \item{original}{[logical] Should only the variables present in the original data be output?
-When \code{NULL}, variables internally created to fill absent variables will be added to the output.
 When \code{FALSE}, variables internally created are output instead of the original variable for time, cluster, and strata.}
 
 \item{simplify}{[logical] Should the list be converted into a vector if a single \code{effects} is requested?}

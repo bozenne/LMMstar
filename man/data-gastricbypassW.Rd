@@ -18,10 +18,10 @@ This dataset is in the wide format (i.e. one line per patient).
 \item \code{weight2}: bodyweight (in kg) 1 week before surgery.
 \item \code{weight3}: bodyweight (in kg) 1 week after surgery.
 \item \code{weight4}: bodyweight (in kg) 3 months after surgery.
-\item \code{glucagonAUC1}: glucagon value 3 months before surgery.
-\item \code{glucagonAUC2}: glucagon value 1 week before surgery.
-\item \code{glucagonAUC3}: glucagon value 1 week after surgery.
-\item \code{glucagonAUC4}: glucagon value 3 months after surgery.
+\item \code{glucagonAUC1}: glucagon  (in pmol/l x hours) 3 months before surgery.
+\item \code{glucagonAUC2}: glucagon  (in pmol/l x hours) 1 week before surgery.
+\item \code{glucagonAUC3}: glucagon  (in pmol/l x hours) 1 week after surgery.
+\item \code{glucagonAUC4}: glucagon  (in pmol/l x hours) 3 months after surgery.
 }
 }
 \references{

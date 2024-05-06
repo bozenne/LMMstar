@@ -43,7 +43,7 @@
 
 \item{type.residual}{[character] the type of residual to be used. Not relevant for \code{type="fit"}.
 By default, normalized residuals are used except when requesting a partial residual plot
-where this argument specify the variable relative to which the partial residuals are computed (argument \code{var} in \code{\link{residuals.lmm}}).}
+where this argument specify the variable relative to which the partial residuals are computed (argument \code{variable} in \code{\link{residuals.lmm}}).}
 
 \item{obs.alpha}{[numeric, 0-1] When not NA, transparency parameter used to display the original data by cluster.}
 
@@ -125,8 +125,6 @@ plot(eCS.lmm, type = "scatterplot")
 plot(eCS.lmm, type = "scatterplot2")
 
 #### partial residuals ####
-plot(eCS.lmm, type = "partial", type.residual = "X1") 
-plot(eCS.lmm, type = "partial", type.residual = "X6") 
 plot(eCS.lmm, type = "partial", type.residual = "visit") 
 plot(eCS.lmm, type = "partial", type.residual = c("(Intercept)","X1","visit"))
 plot(eCS.lmm, type = "partial", type.residual = c("(Intercept)","X1","visit"),

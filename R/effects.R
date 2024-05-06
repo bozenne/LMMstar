@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 29 2024 (09:47) 
 ## Version: 
-## Last-Updated: mar 11 2024 (10:09) 
+## Last-Updated: May  6 2024 (11:57) 
 ##           By: Brice Ozenne
-##     Update #: 320
+##     Update #: 334
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -93,7 +93,7 @@
 
 ## * effects.lmm (code)
 ##' @export
-effects.lmm <- function(object, type = c("identity","none"), variable, conditional = NULL, rhs = NULL, repetition = NULL, multivariate = FALSE,
+effects.lmm <- function(object, variable, newdata = NULL, type = c("identity","none"), conditional = NULL, rhs = NULL, repetition = NULL, multivariate = FALSE,
                         prefix.time = NULL, prefix.var = TRUE, sep.var = ",", ...){
 
     call <- match.call()
@@ -172,9 +172,12 @@ effects.lmm <- function(object, type = c("identity","none"), variable, condition
     ## recover the time variable
     U.time <- object$time$levels
     n.time <- length(U.time)
-    index.original <- model.matrix(object, data = object$data.original, effects = "index")
-    time.original <- U.time[attr(index.original$index.clusterTime,"vectorwise")]
-
+    if(is.null(newdata)){
+        data.augmented <- stats::model.frame(object, type = "add.NA", add.index = TRUE)
+    }else{
+        data.augmented <- stats::model.frame(object, newdata = newdata, add.index = TRUE)
+    }
+    
     ## only consider requested times
     if(!is.null(repetition)){
         if(!all(repetition %in%  U.time) &&  !all(repetition %in%  1:n.time)){
@@ -191,11 +194,7 @@ effects.lmm <- function(object, type = c("identity","none"), variable, condition
             message("Argument \'repetition\' ignored when argument \'type\' contains \"auc\" or \"auc-b\". \n")
             repetition <- U.time
         }
-        subset.repetition <- which(time.original %in% repetition)
-        data.original <- cbind(object$data.original, XXtimeXX = time.original)[subset.repetition,,drop=FALSE]
-    }else{
-        subset.repetition <- NULL
-        data.original <- cbind(object$data.original, XXtimeXX = time.original)
+        data.augmented <- data.augmented[data.augmented$XXtimeXX %in% repetition,,drop=FALSE]
     }
 
     ## define conditioning set (normalize user input)
@@ -221,21 +220,21 @@ effects.lmm <- function(object, type = c("identity","none"), variable, condition
     }
     if(!is.null(conditional)){            
         key.conditional <- nlme::collapse(grid.conditional, sep = sep.var)
-        key.original <- levels(key.conditional)[match(nlme::collapse(data.original[names(grid.conditional)], sep =  sep.var), key.conditional)]
+        key.original <- levels(key.conditional)[match(nlme::collapse(data.augmented[names(grid.conditional)], sep =  sep.var), key.conditional)]
         if(prefix.var){
             if(length(grid.conditional)==1){
-                data.original$XXstrataXX <- paste0(names(grid.conditional),"=",key.original)
+                data.augmented$XXstrataXX <- paste0(names(grid.conditional),"=",key.original)
             }else{
                 newlevel <- nlme::collapse(as.data.frame(lapply(names(grid.conditional), function(iName){paste0(iName,"=",grid.conditional[,iName])})), sep = sep.var)
-                data.original$XXstrataXX <- factor(key.original, levels = levels(key.conditional), labels = newlevel)
+                data.augmented$XXstrataXX <- factor(key.original, levels = levels(key.conditional), labels = newlevel)
             }
         }else{
-            data.original$XXstrataXX <- key.original
+            data.augmented$XXstrataXX <- key.original
         }
         if(any(is.na(key.original))){
-            data.original <- data.original[!is.na(key.original),,drop=FALSE]
+            data.augmented <- data.augmented[!is.na(key.original),,drop=FALSE]
         }
-        U.strata <- unique(data.original$XXstrataXX)
+        U.strata <- unique(data.augmented$XXstrataXX)
         n.strata <- length(U.strata)
         U.timestrata <- unlist(lapply(U.strata, function(iS){paste(U.time, iS, sep = sep.var)}))
     }
@@ -300,11 +299,11 @@ effects.lmm <- function(object, type = c("identity","none"), variable, condition
     ## ** perform average
     if(type[1] == "identity"){
         ls.C <- lapply(Ulevel.variable, function(iLevel){ ## iLevel <- 0
-            iData <- data.original
+            iData <- data.augmented
             if(!is.null(variable)){
                 iData[[variable]][] <- iLevel
-            }
-            iX <- model.matrix(object$formula$mean.design, iData)[,colnames(object$design$mean),drop=FALSE] ## remove uncessary columns in case of (baseline) constraint
+            }            
+            iX <- stats::model.matrix(object$formula$mean.design, iData)[,colnames(object$design$mean),drop=FALSE] ## remove uncessary columns in case of (baseline) constraint
 
             if(is.null(conditional)){                
                 iStrata <- droplevels(factor(iData$XXtimeXX, levels = U.time))
@@ -337,14 +336,14 @@ effects.lmm <- function(object, type = c("identity","none"), variable, condition
         Upair.variable <- unorderedPairs(Ulevel.variable, distinct = TRUE)
 
         ls.C <- lapply(1:NCOL(Upair.variable), function(iPair){ ## iPair <- 1
-            iData1 <- data.original
-            iData2 <- data.original
+            iData1 <- data.augmented
+            iData2 <- data.augmented
 
             iData1[[variable]][] <- Upair.variable[1,iPair]
             iData2[[variable]][] <- Upair.variable[2,iPair]
 
-            iX1 <- model.matrix(object$formula$mean.design, iData1)[,colnames(object$design$mean),drop=FALSE] ## remove uncessary columns in case of (baseline) constraint
-            iX2 <- model.matrix(object$formula$mean.design, iData2)[,colnames(object$design$mean),drop=FALSE] ## remove uncessary columns in case of (baseline) constraint
+            iX1 <- stats::model.matrix(object$formula$mean.design, iData1)[,colnames(object$design$mean),drop=FALSE] ## remove uncessary columns in case of (baseline) constraint
+            iX2 <- stats::model.matrix(object$formula$mean.design, iData2)[,colnames(object$design$mean),drop=FALSE] ## remove uncessary columns in case of (baseline) constraint
 
             if(is.null(conditional)){
                 iStrata <- droplevels(factor(paste0(Upair.variable[2,iPair],"-",Upair.variable[1,iPair],"(",prefix.time,iData1$XXtimeXX,")"),

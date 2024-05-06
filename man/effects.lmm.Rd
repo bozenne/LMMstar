@@ -6,8 +6,9 @@
 \usage{
 \method{effects}{lmm}(
   object,
-  type = c("identity", "none"),
   variable,
+  newdata = NULL,
+  type = c("identity", "none"),
   conditional = NULL,
   rhs = NULL,
   repetition = NULL,
@@ -21,14 +22,14 @@
 \arguments{
 \item{object}{a \code{lmm} object.}
 
+\item{variable}{[character] the variable relative to which the effect should be computed.}
+
 \item{type}{[character] should the average counterfactual outcome for each variable level be evaluated (\code{"identity"})?
 Or the difference in average counterfactual outcome between each pair of  variable level (\code{"difference"})?
 Can have an second element to consider a transformation of the outcome:
 the change from baseline (\code{"change"}),
 area under the outcome curve (\code{"auc"}),
 or area under the outcome curve minus baseline (\code{"auc-b"}).}
-
-\item{variable}{[character] the variable relative to which the effect should be computed.}
 
 \item{conditional}{[character] variable conditional to which the average conterfactual outcome or treatment effect should be computed.}
 

@@ -2,7 +2,7 @@ Package: LMMstar
 Type: Package
 Title: Repeated Measurement Models for Discrete Times
 Version: 1.1.0
-Date: 2024-03-12
+Date: 2024-05-06
 Authors@R: c(
     person("Brice", "Ozenne", role = c("aut", "cre"), email = "brice.mh.ozenne@gmail.com", comment = c(ORCID = "0000-0001-9694-2956")),
     person("Julie", "Forman", role = "aut", email = "jufo@sund.ku.dk", comment = c(ORCID = "0000-0001-7368-0869"))
@@ -37,7 +37,6 @@ Suggests:
     AICcmodavg,
     asht,
     data.table,
-    emmeans,
     ggh4x,
     ggpubr,
     lattice,
@@ -57,7 +56,7 @@ Suggests:
     scales,
     testthat
 VignetteBuilder: R.rsp
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.1
 Collate: 
     '0-onload.R'
     'BuyseTest_discreteRoot.R'
@@ -75,7 +74,6 @@ Collate:
     'discreteRoot.R'
     'doc-data.R'
     'effects.R'
-    'emmeans.R'
     'estimate.R'
     'findPatterns.R'
     'fitted.R'

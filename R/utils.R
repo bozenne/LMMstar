@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: Mar 25 2024 (10:21) 
+## Last-Updated: May  5 2024 (20:12) 
 ##           By: Brice Ozenne
-##     Update #: 324
+##     Update #: 325
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -75,7 +75,10 @@ collapse.data.frame <- function(value, sep = ".", as.factor = TRUE, ...){
     }
 }
 
+##' @noRd
 collapse.list <- collapse.data.frame
+
+##' @noRd
 collapse.matrix <- function(value, ...){
     return(nlme::collapse(as.data.frame(value), ...))
 }

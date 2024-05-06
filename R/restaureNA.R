@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 20 2023 (15:31) 
 ## Version: 
-## Last-Updated: feb 15 2024 (15:54) 
+## Last-Updated: May  4 2024 (10:09) 
 ##           By: Brice Ozenne
-##     Update #: 46
+##     Update #: 48
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -22,6 +22,7 @@
   function(object, index.na, level, cluster) UseMethod("restaureNA")
 
 ## * restaureNA.vector
+##' @noRd
 restaureNA.numeric <- function(object, index.na, level, cluster){
 
     if(length(object)==0){
@@ -54,12 +55,22 @@ restaureNA.numeric <- function(object, index.na, level, cluster){
     }
 
 }
+
+## * restaureNA.character
+##' @noRd
 restaureNA.character <- restaureNA.numeric
+## * restaureNA.factor
+##' @noRd
 restaureNA.factor <- restaureNA.numeric
+## * restaureNA.integer
+##' @noRd
 restaureNA.integer <- restaureNA.numeric
+## * restaureNA.logical
+##' @noRd
 restaureNA.logical <- restaureNA.numeric
 
 ## * restaureNA.matrix
+##' @noRd
 restaureNA.matrix <- function(object, index.na, level, cluster){
 
     if(level == "cluster" && any(is.na(cluster$index))){
@@ -94,6 +105,7 @@ restaureNA.matrix <- function(object, index.na, level, cluster){
 }
 
 ## * restaureNA.array
+##' @noRd
 restaureNA.array <- function(object, index.na, level, cluster){
 
     if(level == "cluster" && any(is.na(cluster$index))){

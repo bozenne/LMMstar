@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 10 2021 (15:57) 
 ## Version: 
-## Last-Updated: Mar 26 2024 (08:26) 
+## Last-Updated: May  5 2024 (20:14) 
 ##           By: Brice Ozenne
-##     Update #: 26
+##     Update #: 29
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,7 +18,6 @@
 ## * estfun.lmm
 ##' @title Extract the Score Function for Multcomp
 ##' @description Extract the Score Function for Multcomp. For internal use.
-##' @noRd
 ##' 
 ##' @param x  a \code{lmm} object.
 ##' @param ... Not used. For compatibility with the generic method.

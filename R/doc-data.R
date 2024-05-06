@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: jun 14 2023 (14:53) 
+## Last-Updated: May  5 2024 (21:16) 
 ##           By: Brice Ozenne
-##     Update #: 120
+##     Update #: 123
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -293,10 +293,10 @@ NULL
 #' \item \code{weight2}: bodyweight (in kg) 1 week before surgery.
 #' \item \code{weight3}: bodyweight (in kg) 1 week after surgery.
 #' \item \code{weight4}: bodyweight (in kg) 3 months after surgery.
-#' \item \code{glucagonAUC1}: glucagon value 3 months before surgery.
-#' \item \code{glucagonAUC2}: glucagon value 1 week before surgery.
-#' \item \code{glucagonAUC3}: glucagon value 1 week after surgery.
-#' \item \code{glucagonAUC4}: glucagon value 3 months after surgery.
+#' \item \code{glucagonAUC1}: glucagon  (in pmol/l x hours) 3 months before surgery.
+#' \item \code{glucagonAUC2}: glucagon  (in pmol/l x hours) 1 week before surgery.
+#' \item \code{glucagonAUC3}: glucagon  (in pmol/l x hours) 1 week after surgery.
+#' \item \code{glucagonAUC4}: glucagon  (in pmol/l x hours) 3 months after surgery.
 #' }
 #' 
 #' @docType data
@@ -316,8 +316,8 @@ NULL
 #'
 #' \itemize{
 #' \item \code{id}: patient identifier.
-#' \item \code{visit}: the visit index.
-#' \item \code{time}: the time at which the visit took place.
+#' \item \code{visit}: the visit index (factor).
+#' \item \code{time}: the week at which the visit took place (numeric).
 #' \item \code{weight}: bodyweight (in kg) measured during the visit.
 #' \item \code{glucagonAUC}: glucagon measured during the visit.
 #' }

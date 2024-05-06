@@ -14,8 +14,8 @@ This dataset is in the long format (i.e. one line per measurement).
 
 \itemize{
 \item \code{id}: patient identifier.
-\item \code{visit}: the visit index.
-\item \code{time}: the time at which the visit took place.
+\item \code{visit}: the visit index (factor).
+\item \code{time}: the week at which the visit took place (numeric).
 \item \code{weight}: bodyweight (in kg) measured during the visit.
 \item \code{glucagonAUC}: glucagon measured during the visit.
 }

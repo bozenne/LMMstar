@@ -4,12 +4,12 @@
 \alias{logLik.lmm}
 \title{Extract The Log-Likelihood From a Linear Mixed Model}
 \usage{
-\method{logLik}{lmm}(object, data = NULL, p = NULL, indiv = FALSE, ...)
+\method{logLik}{lmm}(object, newdata = NULL, p = NULL, indiv = FALSE, ...)
 }
 \arguments{
 \item{object}{a \code{lmm} object.}
 
-\item{data}{[data.frame] dataset relative to which the log-likelihood should be computed. Only relevant if differs from the dataset used to fit the model.}
+\item{newdata}{[data.frame] dataset relative to which the log-likelihood should be computed. Only relevant if differs from the dataset used to fit the model.}
 
 \item{p}{[numeric vector] value of the model coefficients at which to evaluate the log-likelihood. Only relevant if differs from the fitted values.}
 

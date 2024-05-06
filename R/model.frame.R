@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (14:57) 
 ## Version: 
-## Last-Updated: Mar 27 2024 (12:35) 
+## Last-Updated: May  6 2024 (11:33) 
 ##           By: Brice Ozenne
-##     Update #: 209
+##     Update #: 234
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -52,6 +52,9 @@
 ##' @export
 model.frame.lmm <- function(formula, newdata = NULL, type = NULL, add.index = FALSE, na.rm = TRUE, ...){
 
+
+    mycall <- match.call()
+
     ## ** extract from object
     var.manifest <- lava::manifest(formula)
     var.outcome <- formula$outcome$var
@@ -69,7 +72,10 @@ model.frame.lmm <- function(formula, newdata = NULL, type = NULL, add.index = FA
         type[1] <- match.arg(type[1], c("add.NA","unique"))
     }
     if(!is.null(type) && type[1]=="add.NA"){
-        na.rm <- FALSE
+        if("na.rm" %in% names(mycall) && mycall$na.rm){
+            stop("Argument \'na.rm\' must be FALSE when arguement \'type\' equals \"add.NA\". \n")
+        }
+        na.rm <- FALSE        
     }
 
     ## ** generate data.frame
@@ -79,34 +85,22 @@ model.frame.lmm <- function(formula, newdata = NULL, type = NULL, add.index = FA
         if(is.null(newdata) && (is.null(formula$index.na) || na.rm)){
             out <- formula$data
             index.na <- formula$index.na
-            design <- formula$design
+            index.data <- formula$design[c("index.cluster","index.clusterTime","index.clusterStrata")]
         }else{ ## new data or obtain model frame without removing the row with missing values
-
+            
             if(is.null(newdata)){
                 newdata <- formula$data.original
             }else if(any(setdiff(var.manifest,var.outcome) %in% names(newdata) == FALSE)){
                 missing.col <- setdiff(var.manifest,var.outcome)[setdiff(var.manifest,var.outcome) %in% names(newdata)]
                 stop("Incorrect argument \'newdata\' due to missing column(s): \"",paste(missing.col, collapse = "\", \""),"\". \n")
             }
-
-            if(na.rm>1){
-                keep.col_testNA <- intersect(names(newdata),var.manifest)
+            index.data <- model.matrix(formula, newdata = newdata, effects = "index", na.rm = na.rm, simplify = FALSE)
+            out <- index.data$data
+            if(na.rm){
+                index.na <- index.data$index.na
             }else{
-                keep.col_testNA <- setdiff(intersect(names(newdata),var.manifest),var.outcome)
+                index.na <- NULL
             }
-
-            newdata.norm <- .lmmNormalizeData(newdata[keep.col_testNA],
-                                              var.outcome = ifelse(var.outcome %in% names(newdata), var.outcome, NA),
-                                              var.time = attr(formula$time$var,"original"),
-                                              var.cluster = attr(formula$cluster$var,"original"),                         
-                                              var.strata = attr(formula$strata$var,"original"),                         
-                                              droplevels = list(time = formula$time$levels,
-                                                                strata = formula$strata$levels),
-                                              initialize.cluster = formula$design$vcov$ranef$crossed,
-                                              initialize.time = setdiff(formula$design$vcov$ranef$vars, formula$cluster$var),
-                                              na.rm = na.rm)
-            out <- newdata.norm$data
-            index.na <- newdata.norm$index.na            
         }
         
     }else if(type[1]=="unique"){
@@ -168,8 +162,7 @@ model.frame.lmm <- function(formula, newdata = NULL, type = NULL, add.index = FA
     ## ** add missing row (NA outcome)
     if(!is.null(type) && type[1]=="add.NA"){
 
-        design <- model.matrix(formula, newdata = out, effects = "index", )            
-        n.clusterTime <- lengths(design$index.clusterTime)
+        n.clusterTime <- lengths(index.data$index.clusterTime)
         incomplete.cluster <- which(n.clusterTime!=n.time)
 
         if(length(incomplete.cluster)>0){
@@ -185,7 +178,6 @@ model.frame.lmm <- function(formula, newdata = NULL, type = NULL, add.index = FA
             var.meanTime <- names(mean.type)[mean.type=="time"] ## time covariate or simple transformation of time
             var.meanTimeVar <- names(mean.type)[mean.type=="timevar"] ## time varying covariate
             ls.tableTime.var <- attr(mean.type,"table") ## conversion from time variable to covariate 
-            if(length(var.meanTime)>0)
             
             ## *** augment dataset
             var2.meanBaseline <- unique(stats::na.omit(c(var.meanBaseline, attr(var.cluster, "original"), attr(var.strata, "original"), "XXclusterXX", "XXstrataXX", "XXcluster.indexXX", "XXstrata.indexXX")))
@@ -196,13 +188,14 @@ model.frame.lmm <- function(formula, newdata = NULL, type = NULL, add.index = FA
                     attr(formula$time$level,"original")[,iVar]
                 })
             }
-            ls.newrow <- lapply(incomplete.cluster, function(iC){ ## iC <- 5
-                iDF <- out[out$XXcluster.indexXX == iC,,drop=FALSE]
+
+            ls.newrow <- lapply(incomplete.cluster, function(iC){ ## iC <- 1
+                iDF <- out[index.data$index.cluster[[iC]],,drop=FALSE]
                 iN.missingTime <- n.time - NROW(iDF)
-                    
+
                 iOut <- stats::setNames(vector(mode = "list", length = NCOL(iDF)), colnames(iDF))
                 iOut[[var.outcome]] <- rep(as.numeric(NA), iN.missingTime)
-                iOut$XXindexXX <- as.numeric(NA)
+                iOut$XXindexXX <- rep(as.numeric(NA), iN.missingTime)
                 iOut$XXtime.indexXX <- setdiff(1:n.time,iDF$XXtime.indexXX)
                 iOut$XXtimeXX <- formula$time$levels[iOut$XXtime.indexXX]
                 

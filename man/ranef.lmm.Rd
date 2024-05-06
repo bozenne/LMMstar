@@ -7,9 +7,12 @@
 \method{ranef}{lmm}(
   object,
   effects = "mean",
-  ci = FALSE,
+  scale = "absolute",
+  se = FALSE,
+  df = NULL,
   transform = (effects \%in\% c("std", "variance")),
   p = NULL,
+  newdata = NULL,
   format = "long",
   simplify = TRUE,
   ...
@@ -20,12 +23,19 @@
 
 \item{effects}{[character] should the estimated random effects (\code{"mean"}) or the estimated variance/standard deviation of the random effects (\code{"variance"},\code{"std"}) be output?}
 
-\item{ci}{[logical] should standard error and confidence intervals be evaluated using a delta method?
+\item{scale}{[character] should the total variance, variance relative to each random effect, and residual variance be output (\code{"absolute"}).
+Or the ratio of these variances relative to the total variance (\code{"relative"}).}
+
+\item{se}{[logical] should standard error and confidence intervals be evaluated using a delta method?
 Will slow down the execution of the function.}
+
+\item{df}{[logical] Should degrees of freedom, computed using Satterthwaite approximation, be output.}
 
 \item{transform}{[logical] should confidence intervals for the variance estimates (resp. relative variance estimates) be evaluated using a log-transform (resp. atanh transformation)?}
 
 \item{p}{[numeric vector] value of the model coefficients to be used. Only relevant if differs from the fitted values.}
+
+\item{newdata}{[data.frame] dataset relative to which the random effects should be computed. Only relevant if differs from the dataset used to fit the model.}
 
 \item{format}{[character] should each type of random effect be output in a data.frame (\code{format="long"})}
 

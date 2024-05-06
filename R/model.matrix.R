@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Mar 27 2024 (12:30) 
+## Last-Updated: May  6 2024 (11:30) 
 ##           By: Brice Ozenne
-##     Update #: 3084
+##     Update #: 3127
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -91,7 +91,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
         var.time <- attr(object$time$var,"original")
         var.manifest.newdata <- intersect(names(newdata),var.manifest)
 
-        if(na.rm == TRUE && any(is.na(newdata[var.manifest.newdata]))){
+        if(na.rm == TRUE){
             na.rm <- any(is.na(newdata[var.manifest.newdata]))
         }
 
@@ -104,19 +104,14 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
         var.strata <- attr(object$strata$var,"original")
         var.outcome <- object$outcome$var
         structure.var <- stats::na.omit(c(var.cluster, var.time, var.strata))
-        if(na.rm>1){
-            keep.col_testNA <- intersect(names(newdata),var.manifest)
-        }else{
-            keep.col_testNA <- setdiff(intersect(names(newdata),var.manifest),var.outcome)
-        }
-        
+        keep.col_testNA <- intersect(names(newdata), var.manifest)
+
         if(any(c("index","variance","correlation") %in% effects) || (!simplify && all(structure.var %in% names(newdata))) || (na.rm && all(structure.var %in% names(newdata)))){
 
             ## check dataset
             if(any(structure.var %in% names(newdata) == FALSE)){
                 stop("Incorrect argument \'newdata\': missing variable(s) for the data structure \"",paste(structure.var[structure.var %in% names(newdata) == FALSE], collapse = "\" \""),"\".\n")
             }
-
             ## generate cluster/time/strata variables
             newdata.norm <- .lmmNormalizeData(data = newdata[keep.col_testNA],
                                               var.outcome = NA,
@@ -127,19 +122,25 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
                                                                 strata = object$strata$levels),
                                               initialize.cluster = object$design$vcov$ranef$crossed,
                                               initialize.time = setdiff(object$design$vcov$ranef$vars, object$design$vcov$ranef$var.cluster),
-                                              na.rm = TRUE)
-            
+                                              na.rm = na.rm)
+
             ## extract indexes
             outInit <- .extractIndexData(data = newdata.norm$data, structure = design$vcov)
             if(identical(effects,"index")){
-                return(outInit)
+                if(simplify){
+                    return(outInit)
+                }else{
+                    return(c(outInit, newdata.norm))
+                }
             }
             design$index.cluster <- outInit$index.cluster
             design$index.clusterStrata <- outInit$index.clusterStrata
             design$index.clusterTime <- outInit$index.clusterTime
             design$index.na <- newdata.norm$index.na
-            newdata <- newdata.norm$data
-
+            newdata <- newdata.norm$data 
+            
+            
+            
         }else if(na.rm){
             ## same as before but does not require all cluster/time/strata variables as input
 
@@ -171,7 +172,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
             design$index.na <- data.Nindex$index.na
             newdata <- data.Nindex$data
         }
-        
+
         ## *** outcome
         if(!simplify && var.outcome %in% names(newdata)){
             design$Y <- newdata[[var.outcome]]
@@ -229,9 +230,9 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
                                     lp2X = object$design$vcov$cor$lp2X,
                                     lp2data = object$design$vcov$cor$lp2data,
                                     X.attr = attributes(object$design$vcov$cor$X))
-            
+
             ## form design matrix
-            outDesign <- .vcov.matrix.lmm(structure = design$vcov, data = data.Nindex$data, index.cluster = outInit$index.cluster, drop.X = drop.X, sep = options$sep["lp"])
+            outDesign <- .vcov.matrix.lmm(structure = design$vcov, data = newdata, index.cluster = outInit$index.cluster, drop.X = drop.X, sep = options$sep["lp"])
             design$vcov$var <- outDesign$var
             design$vcov$cor <- outDesign$cor
 

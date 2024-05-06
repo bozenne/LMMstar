@@ -2,6 +2,7 @@
 % Please edit documentation in R/LMMstar-package.R
 \docType{package}
 \name{LMMstar-package}
+\alias{LMMstar}
 \alias{LMMstar-package}
 \title{LMMstar package: repeated measurement models for discrete times}
 \description{
@@ -49,9 +50,26 @@ It is possible to use other optimizer inferfaced by \code{optimx::optimx}.
 \item methods: extractors (e.g. \code{\link{coef.lmm}}, \code{\link{confint.lmm}}, \code{\link{df.residual.lmm}}, \code{\link{fitted.lmm}}, \code{\link{iid.lmm}}, \code{\link{information.lmm}}, \code{\link{levels.lmm}}, \code{\link{logLik.lmm}}, \code{\link{manifest.lmm}}, \code{\link{model.frame.lmm}}, \code{\link{model.matrix.lmm}}, \code{\link{model.tables.lmm}}, \code{\link{nobs.lmm}}, \code{\link{predict.lmm}}, \code{\link{ranef.lmm}}, \code{\link{residuals.lmm}}, \code{\link{score.lmm}}, \code{\link{sigma.lmm}}, \code{\link{summary.lmm}}, \code{\link{vcov.lmm}}, \code{\link{weights.Wald_lmm}})
 \item utilities: function used to facilitate the user interface (e.g. \code{\link{add}}, \code{\link{baselineAdjustment}}, \code{\link{LMMstar.options}}, \code{\link{remove}}, \code{\link{scatterplot}}, \code{\link{summarize}}, \code{\link{summarizeNA}})
 \item datasets: dataset stored in the package  (e.g. \code{\link{abetaW}})
-\item interface: functions used to interface other software packages (e.g. \code{\link{estfun.lmm}}, \code{\link{terms.lmm}}). 
 \item hplot: graphical display (e.g. \code{\link{autoplot.lmm}} or \code{\link{plot.lmm}})
 \item datagen: function for generating data sets (e.g. \code{\link{sampleRem}})
 \item multivariate: covariance patterns (e.g. \code{\link{ID}}, \code{\link{IND}}, \code{\link{CS}}, \code{\link{RE}}, \code{\link{TOEPLITZ}}, \code{\link{UN}}, \code{\link{CUSTOM}})
 }
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/bozenne/LMMstar}
+  \item Report bugs at \url{https://github.com/bozenne/LMMstar/issues}
+}
+
+}
+\author{
+\strong{Maintainer}: Brice Ozenne \email{brice.mh.ozenne@gmail.com} (\href{https://orcid.org/0000-0001-9694-2956}{ORCID})
+
+Authors:
+\itemize{
+  \item Julie Forman \email{jufo@sund.ku.dk} (\href{https://orcid.org/0000-0001-7368-0869}{ORCID})
+}
+
+}
+\keyword{internal}

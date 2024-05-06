@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 26 2022 (11:18) 
 ## Version: 
-## Last-Updated: Mar 26 2024 (12:41) 
+## Last-Updated: May  5 2024 (20:11) 
 ##           By: Brice Ozenne
-##     Update #: 645
+##     Update #: 655
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -22,9 +22,11 @@
 ##' @param effects [character] should the estimated random effects (\code{"mean"}) or the estimated variance/standard deviation of the random effects (\code{"variance"},\code{"std"}) be output?
 ##' @param scale [character] should the total variance, variance relative to each random effect, and residual variance be output (\code{"absolute"}).
 ##' Or the ratio of these variances relative to the total variance (\code{"relative"}).
-##' @param p [numeric vector] value of the model coefficients to be used. Only relevant if differs from the fitted values.
 ##' @param se [logical] should standard error and confidence intervals be evaluated using a delta method?
 ##' Will slow down the execution of the function.
+##' @param df [logical] Should degrees of freedom, computed using Satterthwaite approximation, be output.
+##' @param p [numeric vector] value of the model coefficients to be used. Only relevant if differs from the fitted values.
+##' @param newdata [data.frame] dataset relative to which the random effects should be computed. Only relevant if differs from the dataset used to fit the model.
 ##' @param format [character] should each type of random effect be output in a data.frame (\code{format="long"})
 ##' @param transform [logical] should confidence intervals for the variance estimates (resp. relative variance estimates) be evaluated using a log-transform (resp. atanh transformation)?
 ##' @param simplify [logical] when relevant will convert list with a single element to vectors and omit unessential output.
@@ -293,7 +295,8 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
     }else if(effects == "mean"){
 
         ## extract normalized residuals
-        df.epsilon <- stats::residuals(object, newdata = newdata, p = p, keep.data = TRUE, type = "normalized2", format = "long", simplify = ifelse(se>0,-1,FALSE))
+        df.epsilon <- stats::residuals(object, newdata = newdata, p = p, keep.data = TRUE, type = "normalized2", format = "long",
+                                       simplify = (se==FALSE), fitted.ci = se) ## obtain gradient
         if (n.strata == 1) {
             df.epsilon$XXstrata.indexXX <- U.strata
         }
@@ -345,6 +348,7 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
             }
             iData <- as.data.frame(matrix(NA, nrow = NCOL(iSplit.Mdummy), ncol = length(keep.datacol),
                                           dimnames = list(NULL,keep.datacol)))
+            
             iData[iHvar] <- df.epsilon[apply(iSplit.Mdummy>0, 2, function(iVec){which(iVec)[1]}),iHvar,drop=FALSE]
             iEpsilon.normalized2.sum <- as.double(rbind(df.epsilon$r.normalized2) %*% iSplit.Mdummy)
 
@@ -363,7 +367,7 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
                                         iData,
                                         estimate = iTau.strata * iEpsilon.normalized2.sum)
             
-            if(se>0){                
+            if(se>0){
                 iGrad <- (t(iSplit.Mdummy) %*% grad.epsilon) * iTau.strata
                 if(n.strata==1){
                     iGrad[,dimnames(contrastRE2)[[2]]] <- iGrad[,dimnames(contrastRE2)[[2]]] + tcrossprod(iEpsilon.normalized2.sum, contrastRE2[iVar,,])
@@ -379,8 +383,8 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
                 }else{
                     ls.out[[iRE]]$df <- Inf
                 }
-                ls.out[[iRE]]$lower <- ls.out[[iRE]]$estimate + qt(0.025, df = ls.out[[iRE]]$df) * ls.out[[iRE]]$se
-                ls.out[[iRE]]$upper <- ls.out[[iRE]]$estimate + qt(0.975, df = ls.out[[iRE]]$df) * ls.out[[iRE]]$se
+                ls.out[[iRE]]$lower <- ls.out[[iRE]]$estimate + stats::qt(0.025, df = ls.out[[iRE]]$df) * ls.out[[iRE]]$se
+                ls.out[[iRE]]$upper <- ls.out[[iRE]]$estimate + stats::qt(0.975, df = ls.out[[iRE]]$df) * ls.out[[iRE]]$se
             }
         }
     }

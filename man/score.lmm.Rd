@@ -7,7 +7,7 @@
 \method{score}{lmm}(
   x,
   effects = "mean",
-  data = NULL,
+  newdata = NULL,
   p = NULL,
   indiv = FALSE,
   transform.sigma = NULL,
@@ -24,7 +24,7 @@
 or only coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 or only coefficients relative to the variance and correlation structure (\code{"variance"} or \code{"correlation"}).}
 
-\item{data}{[data.frame] dataset relative to which the score should be computed. Only relevant if differs from the dataset used to fit the model.}
+\item{newdata}{[data.frame] dataset relative to which the score should be computed. Only relevant if differs from the dataset used to fit the model.}
 
 \item{p}{[numeric vector] value of the model coefficients at which to evaluate the score. Only relevant if differs from the fitted values.}
 

@@ -7,7 +7,7 @@
 \method{information}{lmm}(
   x,
   effects = NULL,
-  data = NULL,
+  newdata = NULL,
   p = NULL,
   indiv = FALSE,
   type.information = NULL,
@@ -25,7 +25,7 @@
 or only coefficients relative to the mean (\code{"mean"}),
 or only coefficients relative to the variance and correlation structure (\code{"variance"} or \code{"correlation"}).}
 
-\item{data}{[data.frame] dataset relative to which the information should be computed. Only relevant if differs from the dataset used to fit the model.}
+\item{newdata}{[data.frame] dataset relative to which the information should be computed. Only relevant if differs from the dataset used to fit the model.}
 
 \item{p}{[numeric vector] value of the model coefficients at which to evaluate the information. Only relevant if differs from the fitted values.}
 

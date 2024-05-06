@@ -10,7 +10,7 @@
   type = "mean",
   se = NULL,
   df = NULL,
-  keep.newdata = NULL,
+  keep.data = NULL,
   format = "long",
   seed = NULL,
   simplify = TRUE,
@@ -31,7 +31,7 @@ or the area under the curve of the outcome (\code{"auc"}, require a numeric repe
 
 \item{df}{[logical] should a Student's t-distribution be used to model the distribution of the predicted mean. Otherwise a normal distribution is used.}
 
-\item{keep.newdata}{[logical] Should the dataset relative to which the predictions are evaluated be output along side the predicted values?
+\item{keep.data}{[logical] Should the dataset relative to which the predictions are evaluated be output along side the predicted values?
 Only possible in the long format.}
 
 \item{format}{[character] Should the prediction be output
@@ -46,8 +46,8 @@ or in a data.frame/vector with as many rows as observations (\code{"long"})}
 }
 \value{
 When \code{format="wide"}, a data.frame with as many rows as clusters.
-When \code{format="long"}, a data.frame with as many rows as observations (\code{keep.newdata==TRUE})
-or a vector of length the number of observations (\code{keep.newdata==TRUE}).
+When \code{format="long"}, a data.frame with as many rows as observations (\code{keep.data==TRUE})
+or a vector of length the number of observations (\code{keep.data==TRUE}).
 }
 \description{
 Evaluate the expected mean conditional to covariates or the expected outcome values when missing conditional to observed outcome and covariates.
@@ -55,23 +55,23 @@ Similar to \code{\link{predict.lmm}} where the values to condition on are, by de
 }
 \examples{
 #### single arm trial ####
-data(gastricbypassL)
+data(gastricbypassL, package = "LMMstar")
 gastricbypassL <- gastricbypassL[order(gastricbypassL$id,gastricbypassL$visit),]
 gastricbypassL$weight0 <- unlist(tapply(gastricbypassL$weight,gastricbypassL$id,
 function(x){rep(x[1],length(x))}))
 
-eUN.lmm <- lmm(glucagonAUC ~ time + weight0, repetition = ~visit|id,
+eUN.lmm <- lmm(glucagonAUC ~ visit + weight0, repetition = ~visit|id,
                data = gastricbypassL, df = FALSE)
 
 ## fitted mean (conditional on covariates only)
 fitted(eUN.lmm)
-fitted(eUN.lmm, newdata = data.frame(time = "1weekAfter", weight0 = 0))
-fitted(eUN.lmm, newdata = data.frame(time = "1weekAfter", weight0 = 0),
-       keep.newdata = TRUE)
+fitted(eUN.lmm, newdata = data.frame(visit = "3", weight0 = 0))
+fitted(eUN.lmm, newdata = data.frame(visit = "3", weight0 = 0),
+       keep.data = TRUE)
 
 ## fitted outcome value (conditional on covariates and covariates)
 fitted(eUN.lmm, type = "outcome")
-gastricbypassL.O <- fitted(eUN.lmm, type = "outcome", keep.newdata = TRUE)
+gastricbypassL.O <- fitted(eUN.lmm, type = "outcome", keep.data = TRUE)
 
 if(require(ggplot2)){
 gg.outcome <- ggplot(gastricbypassL.O,
@@ -84,7 +84,7 @@ tapply(gastricbypassL.O$glucagonAUC, gastricbypassL.O$time, mean)
 effects(eUN.lmm, variable = NULL)
 
 ## fitted change value (conditional on covariates and covariates)
-gastricbypassL.C <- fitted(eUN.lmm, type = "change", keep.newdata = TRUE)
+gastricbypassL.C <- fitted(eUN.lmm, type = "change", keep.data = TRUE)
 
 if(require(ggplot2)){
 gg.change <- ggplot(gastricbypassL.C,
@@ -97,7 +97,7 @@ tapply(gastricbypassL.C$glucagonAUC, gastricbypassL.O$time, mean)
 effects(eUN.lmm, type = "change", variable = NULL)
 
 ## fitted auc (conditional on covariates and covariates)
-gastricbypassL.AUC <- fitted(eUN.lmm, type = "auc", keep.newdata = TRUE)
+gastricbypassL.AUC <- fitted(eUN.lmm, type = "auc", keep.data = TRUE)
 
 if(require(ggplot2)){
 gg.auc <- ggplot(gastricbypassL.AUC,
@@ -128,8 +128,7 @@ eUN2.lmm <- lmm(visual ~ treat.f*week + lesion,
                data = armd.long)
 
 ## fitted outcome value (conditional on covariates and covariates)
-fitted(eUN2.lmm, type = "outcome")
-armd.O <- fitted(eUN2.lmm, type = "outcome", keep.newdata = TRUE)
+armd.O <- fitted(eUN2.lmm, type = "outcome", keep.data = TRUE)
 
 gg2.outcome <- ggplot(armd.O,
                      aes(x=week, y = visual, color = impute, group = subject))
@@ -140,7 +139,7 @@ aggregate(visual ~ week + treat.f, FUN = mean, data = armd.O)
 effects(eUN2.lmm, variable = "treat.f") ## mismatch due to adjustment on lesion
 
 ## fitted change value (conditional on covariates and covariates)
-armd.C <- fitted(eUN2.lmm, type = "change", keep.newdata = TRUE)
+armd.C <- fitted(eUN2.lmm, type = "change", keep.data = TRUE)
 
 gg.change <- ggplot(armd.C,
                     aes(x=week, y = visual, color = impute, group = subject))
@@ -152,7 +151,7 @@ effects(eUN2.lmm, type = "change", variable = "treat.f")
 effects(eUN2.lmm, type = c("change","difference"), variable = "treat.f")
 
 ## fitted auc (conditional on covariates and covariates)
-armd.AUC <- fitted(eUN2.lmm, type = "auc", keep.newdata = TRUE)
+armd.AUC <- fitted(eUN2.lmm, type = "auc", keep.data = TRUE)
 
 gg.auc <- ggplot(armd.AUC, aes(x = treat.f, y = visual, color = impute))
 gg.auc <- gg.auc + geom_point()

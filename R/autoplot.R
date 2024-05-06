@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: mar 11 2024 (10:09) 
+## Last-Updated: May  5 2024 (20:47) 
 ##           By: Brice Ozenne
-##     Update #: 1192
+##     Update #: 1199
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -31,7 +31,7 @@
 ##' }
 ##' @param type.residual [character] the type of residual to be used. Not relevant for \code{type="fit"}.
 ##' By default, normalized residuals are used except when requesting a partial residual plot
-##' where this argument specify the variable relative to which the partial residuals are computed (argument \code{var} in \code{\link{residuals.lmm}}).
+##' where this argument specify the variable relative to which the partial residuals are computed (argument \code{variable} in \code{\link{residuals.lmm}}).
 ##' @param at [data.frame] values for the covariates at which to evaluate the fitted values or partial residuals.
 ##' @param time.var [character] x-axis variable for the plot.
 ##' @param obs.alpha [numeric, 0-1] When not NA, transparency parameter used to display the original data by cluster.
@@ -93,8 +93,6 @@
 ##' plot(eCS.lmm, type = "scatterplot2")
 ##'
 ##' #### partial residuals ####
-##' plot(eCS.lmm, type = "partial", type.residual = "X1") 
-##' plot(eCS.lmm, type = "partial", type.residual = "X6") 
 ##' plot(eCS.lmm, type = "partial", type.residual = "visit") 
 ##' plot(eCS.lmm, type = "partial", type.residual = c("(Intercept)","X1","visit"))
 ##' plot(eCS.lmm, type = "partial", type.residual = c("(Intercept)","X1","visit"),
@@ -322,7 +320,7 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
     ## design matrix: find unique combinations of covariates
     timemu.var <- stats::na.omit(union(time.var, mu.var))
     X.beta <- stats::model.matrix(object, effects = "mean",
-                                  data = data[,timemu.var, drop=FALSE])
+                                  newdata = data[,timemu.var, drop=FALSE])
     IX.beta <- nlme::collapse(X.beta, as.factor = TRUE)
     vec.X.beta <- tapply(IX.beta, data[["XXclusterXX"]],paste, collapse = "_XXX_")
     UX.beta <- unique(vec.X.beta)

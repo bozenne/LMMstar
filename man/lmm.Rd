@@ -127,11 +127,11 @@ summary(anova(eCS.lmm, effects = c("X11=0","X21=0")))
 #### 6- prediction ####
 ## conditional on covariates
 newd <- dL[1:3,]
-predict(eCS.lmm, newdata = newd, keep.newdata = TRUE)
+predict(eCS.lmm, newdata = newd, keep.data = TRUE)
 ## conditional on covariates and outcome
 newd <- dL[1:3,]
 newd$Y[3] <- NA
-predict(eCS.lmm, newdata = newd, type = "dynamic", keep.newdata = TRUE)
+predict(eCS.lmm, newdata = newd, type = "dynamic", keep.data = TRUE)
 
 #### EXTRA ####
 if(require(mvtnorm)){

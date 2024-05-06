@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: Mar 27 2024 (08:48) 
+## Last-Updated: May  5 2024 (20:50) 
 ##           By: Brice Ozenne
-##     Update #: 1272
+##     Update #: 1320
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -40,7 +40,6 @@
 ##'
 ##' @details The argument \code{type} defines how the residuals are computed:
 ##' \itemize{
-##' \item \code{"fitted"}: fitted value \eqn{X_{ij} \hat{\beta}}.
 ##' \item \code{"response"}: raw residual, i.e. observed outcome minus fitted value \eqn{\varepsilon_{ij} = Y_{ij} - X_{ij} \hat{\beta}}.
 ##' \item \code{"pearson"}: each raw residual is divided by its modeled standard deviation \eqn{\varepsilon_{ij} = \frac{Y_{ij} - X_{ij} \hat{\beta}}{\sqrt{\hat{\omega}_{ij}}}}.
 ##' \item \code{"studentized"}: same as \code{"pearson"} but excluding the contribution of the cluster in the modeled standard deviation  \eqn{\varepsilon_{ij} = \frac{Y_{ij} - X_{ij} \hat{\beta}}{\sqrt{\hat{\omega}_{ij}-\hat{q}_{ij}}}}.
@@ -60,6 +59,8 @@
 ##' \item \eqn{\hat{Q}_i= X_i (X^{t}\hat{\Omega}X)^{-1}X_i^{t}} a cluster specific correction factor, approximating the contribution of cluster i to \eqn{\hat{\Omega}}. Its diagonal elements are denoted \eqn{\hat{q}_i}.
 ##' \item \eqn{\hat{D}_i} the upper Cholesky factor of \eqn{\hat{\Omega}-\hat{Q}_i}
 ##' }
+##'
+##' Setting argument \code{fitted.ci} to \code{TRUE}, \code{simplify} to \code{FALSE}, \code{format} to \code{"long"} returns an attribute \code{"grad"} containing the first order partial derivatives of the residuals with respect to the model parameters.
 ##'
 ##' @return
 ##' \bold{lmm}: a vector or a data.frame when \code{format="long"} (one line per observation, one column per type of residual),
@@ -107,8 +108,7 @@
 ##' residuals(eUN.lmm, type = "all", keep.data = TRUE)
 ##' 
 ##' ## partial residuals
-##' residuals(eUN.lmm, type = "partial", variable = c("(Intercept)","X6"))
-##' residuals(eUN.lmm, type = "partial", variable = c("X6"))
+##' residuals(eUN.lmm, type = "partial", variable = c("(Intercept)","visit","X6"))
 
 ## * residuals.lmm (code)
 ##' @export
@@ -194,6 +194,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         effects <- "mean"
     }    
     name.residual <- paste0("r.",gsub("-center","",type.residual,fixed = TRUE))
+
     ## special checks for partial residuals
     if("partial" %in% type.residual || "partial-center" %in% type.residual){
         if((length(type.residual)>2) || (length(type.residual) == 2 && "response" %in% type.residual == FALSE)){
@@ -202,6 +203,10 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         }
         if(is.null(variable)){
             stop("Argument \'variable\' should indicate the covariate effects to preserve when computing the partial residuals. \n")
+        }
+        if(any(!is.na(attr(name.time,"original"))) && any(attr(name.time,"original") %in% variable == FALSE)){
+            stop("Argument \'variable\' should contain the time variable \"",paste(attr(name.time,"original"), collapse ="\" \""),"\" when computing the partial residuals. \n",
+                 "Alternatively, consider refitting the lmm with a difference names for variables in the mean structure and repetition argument. \n")
         }
         if(!is.null(at) && "partial-center" %in% type.residual){
             message("Argument \'at\' is ignored when \'type\' equals \"partial-center\". \n")
@@ -248,7 +253,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
     }
 
     ## partial derivative w.r.t. each model parameter
-    keep.grad <- (simplify<0 & format=="long")
+    keep.grad <- fitted.ci && (simplify<=0 & format=="long")
     if(keep.grad && ("scaled" %in% type.residual)){
         message("Gradient for scaled residuals not implemented. Consider using normalized residuals instead. \n")
     }
@@ -258,7 +263,6 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         design <- stats::model.matrix(object, effects = effects, simplify = FALSE)
         index.na <- object$index.na
     }else{
-
         ## rm.na
         object.manifest <- lava::manifest(object)
         df.newdata <- as.data.frame(newdata)
@@ -319,8 +323,8 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
                 }
             }
             if(is.factor(data.reference[[iVar]]) && !identical(levels(reference[[iVar]]),levels(data.reference[[iVar]]))){
-                stop("Levels of thevariable \'",iVar,"\' in argument \'at\' should match those of the original data. \n",
-                     "Levels: \"",paste(levels(data[[iVar]]), collapse = "\" \""),"\"\n")
+                stop("Levels of the variable \'",iVar,"\' in argument \'at\' should match those of the original data. \n",
+                     "Levels: \"",paste(levels(reference[[iVar]]), collapse = "\" \""),"\"\n")
             }
             if(iVar %in% variable){
                 data.reference[[iVar]] <- data.reference[[iVar]] - reference[[iVar]]
@@ -330,7 +334,6 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         }
 
         ## build design matrix
-        browser()
         design.reference <- stats::model.matrix(object, newdata = data.reference, effects = effects, simplify = TRUE)
         if(length(object$index.na)>0){
             design.reference <- design.reference[-object$index.na,,drop=FALSE]
@@ -352,6 +355,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
             design <- stats::model.matrix(object, newdata = df.newdata[index.NNA,,drop = FALSE], effects = effects, simplify = FALSE)
             index.na <- setdiff(1:NROW(df.newdata),index.NNA)
         }
+        design.reference <- design$mean
     }
 
     Y <- design$Y
@@ -467,29 +471,8 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         }
     }
 
-    ## ** raw residuals
-    newdata
-    browser()
-    if(!is.null(newdata) || !is.null(p)){
-        fitted <- (X %*% beta)[,1]
-        res <-  as.vector(Y - fitted)
-        M.res <- matrix(NA, nrow = NROW(X), ncol = length(type.residual), dimnames = list(NULL, name.residual))
-    }else{
-        fitted <- object$fitted
-        res <- object$residuals
-        M.res <- matrix(NA, nrow = length(res), ncol = length(type.residual), dimnames = list(NULL, name.residual))
-    }
-    if(keep.grad){
-        if(keep.data){
-            attr(M.res,"grad") <- array(0, dim = c(length(res), length(param.name), length(type.residual)+1), dimnames = list(NULL, param.name, c("fitted",name.residual)))
-            attr(M.res,"grad")[,paramMu.name,"fitted"] <- X
-        }else{
-            attr(M.res,"grad") <- array(0, dim = c(length(res), length(param.name), length(type.residual)), dimnames = list(NULL, param.name, c(name.residual)))
-        }
-    }
-
+    ## ** (partially) fitted values
     if(fitted.ci || "partial" %in% type.residual || "partial-center" %in% type.residual){
-        browser()
         df.fitted <- stats::predict(object, p = p, newdata = design.reference, type = type.fit, se = fitted.ci,
                                     keep.data = FALSE, format = "long", simplify = FALSE)
 
@@ -497,12 +480,43 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
             fitted <- cbind(fitted = df.fitted$estimate,
                             fitted.lower = df.fitted$lower,
                             fitted.upper = df.fitted$upper)
+            grad.fitted <- attr(df.fitted,"grad")[,paramMu.name,drop=FALSE]
+            res <-  as.vector(Y - fitted[,"fitted"])
         }else{
             fitted <- df.fitted$estimate
+            res <-  as.vector(Y - fitted)
+        }
+    }else{
+        if(!is.null(newdata) || !is.null(p)){
+            fitted <- (X %*% beta)[,1]
+        }else{
+            fitted <- object$fitted
+        }
+        grad.fitted <- X
+    }
+
+    ## ** raw residuals
+    if(is.null(newdata) && is.null(p)){
+        res <- object$residuals        
+    }else if("partial" %in% type.residual || "partial-center" %in% type.residual){
+        res <- as.vector(Y - (X %*% beta)[,1])
+    }else{
+        res <-  as.vector(Y - fitted)        
+    }
+    
+    ## ** normalization of the residuals 
+    M.res <- matrix(NA, nrow = length(res), ncol = length(type.residual), dimnames = list(NULL, name.residual))
+    ## fitted save via data.reference
+    if(keep.grad){
+        if(keep.data){
+            attr(M.res,"grad") <- array(0, dim = c(length(res), length(param.name), length(type.residual)+1), dimnames = list(NULL, param.name, c("fitted",name.residual)))
+            attr(M.res,"grad")[,paramMu.name,"fitted"] <- grad.fitted
+        }else{
+            attr(M.res,"grad") <- array(0, dim = c(length(res), length(param.name), length(type.residual)), dimnames = list(NULL, param.name, c(name.residual)))
         }
     }
 
-    ## ** normalization
+
     if ("response" %in% type.residual) {
         M.res[,"r.response"] <- res
         if(keep.grad){
@@ -516,6 +530,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
             attr(M.res,"grad")[,paramMu.name,"r.partial"] <- design.reference-X
         }
     }
+
     if (any(type.residual %in% valid.normresiduals)) {
         for(iId in 1:n.cluster){ ## iId <- 7
 
@@ -587,7 +602,6 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
     }
 
     ## ** restaure NA
-
     if(length(index.na)>0){
         M.res <- restaureNA(M.res, index.na = index.na, level = "obs")
         if(keep.grad){
@@ -597,18 +611,18 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
 
         if(keep.data && format == "long"){
             fitted <- restaureNA(fitted, index.na = index.na, level = "obs")
-
-            if(is.matrix(fitted)){ ## when using partial residuals with ci for the fitted values
-                data.reference <- cbind(data.reference, fitted)
-            }else{ ## normal case
-                data.reference <- cbind(data.reference, fitted = fitted)
-            }
         }
     }
         
     ## ** export
+    if(is.matrix(fitted)){ ## when using partial residuals with ci for the fitted values
+        data.reference <- cbind(data.reference, fitted)
+    }else{ ## normal case
+        data.reference <- cbind(data.reference, fitted = fitted)
+    }
+
     out <- .reformat(M.res, name = names(format), format = format, simplify = simplify,
-                     keep.data = keep.data, data = data.reference, index.na = object.index.na,
+                     keep.data = keep.data, data = data.reference, index.na = index.na,
                      object.cluster = object.cluster, index.cluster = index.cluster,
                      object.time = object.time, index.time = index.time,                     
                      call = mycall)
@@ -617,7 +631,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         if(keep.grad){
             attr(out,"grad") <- attr(M.res,"grad")
         }
-        attr(out,"centering") <- attr(M.res,"centering")
+        attr(out,"reference") <- attr(M.res,"reference")
         attr(out,"args") <- list(type = type, format = format, keep.data = keep.data, var = variable, type.var = type.var,
                                  n.time = n.time, name.time = name.time,
                                  name.cluster = object$cluster$var,
@@ -638,7 +652,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
 
         }else if(format == "long" && !is.null(attr(format,"original"))){
             attr(out,"wide") <- .reformat(M.res, name = names(format), format = "wide", simplify = simplify,
-                                          keep.data = FALSE, data = newdata, index.na = object.index.na,
+                                          keep.data = FALSE, data = newdata, index.na = index.na,
                                           object.cluster = object.cluster, index.cluster = index.cluster,
                                           object.time = object.time, index.time = index.time,                     
                                           call = mycall)

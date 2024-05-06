@@ -13,7 +13,7 @@
   robust = FALSE,
   df = NULL,
   level = 0.95,
-  keep.newdata = NULL,
+  keep.data = NULL,
   format = "long",
   export.vcov = FALSE,
   simplify = TRUE,
@@ -44,7 +44,7 @@ Not feasible for dynamic predictions when using REML.}
 
 \item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
 
-\item{keep.newdata}{[logical] should the dataset relative to which the predicted means are evaluated be output along side the predicted values?
+\item{keep.data}{[logical] should the dataset relative to which the predicted means are evaluated be output along side the predicted values?
 Only possible in the long format.}
 
 \item{format}{[character] should the prediction be output
@@ -90,17 +90,17 @@ eUN.lmm <- lmm(Y ~ visit + X1 + X2 + X5,
 ## prediction
 newd <- data.frame(X1 = 1, X2 = 2, X5 = 3, visit = factor(1:3, levels = 1:3))
 predict(eUN.lmm, newdata = newd)
-predict(eUN.lmm, newdata = newd, keep.newdata = TRUE)
-predict(eUN.lmm, newdata = newd, keep.newdata = TRUE, se = c(TRUE,TRUE))
+predict(eUN.lmm, newdata = newd, keep.data = TRUE)
+predict(eUN.lmm, newdata = newd, keep.data = TRUE, se = c(TRUE,TRUE))
 
 ## dynamic prediction
 newd.d1 <- cbind(newd, Y = c(NA,NA,NA))
-predict(eUN.lmm, newdata = newd.d1, keep.newdata = TRUE, type = "dynamic")
+predict(eUN.lmm, newdata = newd.d1, keep.data = TRUE, type = "dynamic")
 newd.d2 <- cbind(newd, Y = c(6.61,NA,NA))
-predict(eUN.lmm, newdata = newd.d2, keep.newdata = TRUE, type = "dynamic")
+predict(eUN.lmm, newdata = newd.d2, keep.data = TRUE, type = "dynamic")
 newd.d3 <- cbind(newd, Y = c(1,NA,NA))
-predict(eUN.lmm, newdata = newd.d3, keep.newdata = TRUE, type = "dynamic")
+predict(eUN.lmm, newdata = newd.d3, keep.data = TRUE, type = "dynamic")
 newd.d4 <- cbind(newd, Y = c(1,1,NA))
-predict(eUN.lmm, newdata = newd.d4, keep.newdata = TRUE, type = "dynamic")
+predict(eUN.lmm, newdata = newd.d4, keep.data = TRUE, type = "dynamic")
 }
 \keyword{method}

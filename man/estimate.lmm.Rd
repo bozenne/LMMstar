@@ -57,8 +57,8 @@ if(require(lava) && require(nlme)){
 set.seed(10)
 dL <- sampleRem(1e2, n.times = 3, format = "long")
 e.lmm1 <- lmm(Y ~ X1+X2+X3 + (1|id), repetition = ~visit|id, data = dL)
-nlme::ranef(e.lmm1)
-e.ranef <- estimate(e.lmm1, f  = function(p){nlme::ranef(e.lmm1, p = p)$estimate})
+nlme::ranef(e.lmm1, se = TRUE)
+e.ranef <- estimate(e.lmm1, f  = function(p){nlme::ranef(e.lmm1, p = p)})
 e.ranef
 
 if(require(ggplot2)){

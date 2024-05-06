@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul  8 2021 (17:09) 
 ## Version: 
-## Last-Updated: Mar 26 2024 (09:53) 
+## Last-Updated: May  6 2024 (11:42) 
 ##           By: Brice Ozenne
-##     Update #: 394
+##     Update #: 400
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -45,18 +45,18 @@
 ##' 
 ##' @examples
 ##' #### single arm trial ####
-##' data(gastricbypassL)
+##' data(gastricbypassL, package = "LMMstar")
 ##' gastricbypassL <- gastricbypassL[order(gastricbypassL$id,gastricbypassL$visit),]
 ##' gastricbypassL$weight0 <- unlist(tapply(gastricbypassL$weight,gastricbypassL$id,
 ##' function(x){rep(x[1],length(x))}))
 ##' 
-##' eUN.lmm <- lmm(glucagonAUC ~ time + weight0, repetition = ~visit|id,
+##' eUN.lmm <- lmm(glucagonAUC ~ visit + weight0, repetition = ~visit|id,
 ##'                data = gastricbypassL, df = FALSE)
 ##'
 ##' ## fitted mean (conditional on covariates only)
 ##' fitted(eUN.lmm)
-##' fitted(eUN.lmm, newdata = data.frame(time = "1weekAfter", weight0 = 0))
-##' fitted(eUN.lmm, newdata = data.frame(time = "1weekAfter", weight0 = 0),
+##' fitted(eUN.lmm, newdata = data.frame(visit = "3", weight0 = 0))
+##' fitted(eUN.lmm, newdata = data.frame(visit = "3", weight0 = 0),
 ##'        keep.data = TRUE)
 ##' 
 ##' ## fitted outcome value (conditional on covariates and covariates)
@@ -118,7 +118,6 @@
 ##'                data = armd.long)
 ##' 
 ##' ## fitted outcome value (conditional on covariates and covariates)
-##' fitted(eUN2.lmm, type = "outcome")
 ##' armd.O <- fitted(eUN2.lmm, type = "outcome", keep.data = TRUE)
 ##'
 ##' gg2.outcome <- ggplot(armd.O,
@@ -197,7 +196,7 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
         newdata.index.time <- attr(object$design$index.clusterTime,"vectorwise")                    
     }else if(format == "wide"){
         index.na <- NULL
-        newdata.design <- model.matrix(object, data = newdata, effects = "index")
+        newdata.design <- stats::model.matrix(object, newdata = newdata, effects = "index")
         newdata.index.cluster <- attr(newdata.design$index.cluster, "vectorwise")
         newdata.index.time <- attr(newdata.design$index.clusterTime, "vectorwise")        
     }

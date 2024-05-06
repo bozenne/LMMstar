@@ -6,17 +6,18 @@
 \usage{
 \method{model.matrix}{lmm}(
   object,
-  data = NULL,
+  newdata = NULL,
   effects = "mean",
   simplify = TRUE,
   drop.X = NULL,
+  na.rm = TRUE,
   ...
 )
 }
 \arguments{
 \item{object}{an lmm object}
 
-\item{data}{[data.frame] dataset relative to which the design matrix should be constructed.}
+\item{newdata}{[data.frame] dataset relative to which the design matrix should be constructed.}
 
 \item{effects}{[character] design matrix relative to the mean model (\code{"mean"}), variance model (\code{"variance"}), correlation model (\code{"correlation"}),
 or all the previous (\code{"all"}).
@@ -25,6 +26,8 @@ Can also be \code{"index"} to only output the normalize data and the cluster, ti
 \item{simplify}{[logical] simplify the data format of the output (matrix instead of a list of matrix) when possible.}
 
 \item{drop.X}{[logical] when the design matrix does not have full rank, should columns be dropped?}
+
+\item{na.rm}{[logical] Should row containing missing values for the variables used in the linear mixed model be removed?}
 
 \item{...}{Not used. For compatibility with the generic method.}
 }
