@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: nov  4 2021 (11:49) 
 ## Version: 
-## Last-Updated: Mar 26 2024 (09:55) 
+## Last-Updated: maj  7 2024 (13:58) 
 ##           By: Brice Ozenne
-##     Update #: 36
+##     Update #: 37
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -140,9 +140,10 @@ test_that("linear mixed model",{
 ## * Linear mixed model (gradient)
 data(gastricbypassL, package = "LMMstar")
 e.lmm <- lmm(glucagonAUC ~ weight + visit + (1|id), data = gastricbypassL)
+
 test_that("gradient of the residuals in lmm",{
 
-    test <- residuals(e.lmm, type = c("response","pearson","studentized","normalized","normastudentized"), simplify = -1, keep.data = TRUE) 
+    test <- residuals(e.lmm, type = c("response","pearson","studentized","normalized","normastudentized"), simplify = FALSE, keep.data = TRUE, fitted.ci = TRUE) 
     GS <- estimate(e.lmm, transform.sigma = "log", transform.rho = "atanh", function(p){ ## p <- NULL
         iRes <- residuals(e.lmm, type = c("response","pearson","studentized","normalized","normastudentized"), p = p, keep.data = TRUE)
         c(iRes$fitted,iRes$r.response,iRes$r.pearson,iRes$r.studentized,iRes$r.normalized,iRes$r.normastudentized)
@@ -157,7 +158,7 @@ test_that("gradient of the residuals in lmm",{
     test.se <- sqrt(diag(attr(test,"grad")[,,"r.normalized"] %*% vcov(e.lmm, effects = "all") %*% t(attr(test,"grad")[,,"r.normalized"])))
     expect_equivalent(GS$se[321:400], test.se, tol = 1e-6)
 
-    test2 <- residuals(e.lmm, variable = "weight", type = "partial", simplify = -1, keep.data = TRUE)
+    test2 <- residuals(e.lmm, variable = "weight", type = "partial", simplify = FALSE, keep.data = TRUE, fitted.ci = TRUE)
     grad.NA <- attr(test2,"grad")[is.na(gastricbypassL$glucagonAUC),,"r.partial"]
     grad.NNA <- attr(test2,"grad")[!is.na(gastricbypassL$glucagonAUC),,"r.partial"]
     expect_true(all(is.na(grad.NA)))

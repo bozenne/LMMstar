@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul  8 2021 (17:09) 
 ## Version: 
-## Last-Updated: May  6 2024 (11:42) 
+## Last-Updated: maj  7 2024 (14:50) 
 ##           By: Brice Ozenne
-##     Update #: 400
+##     Update #: 404
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -196,7 +196,7 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
         newdata.index.time <- attr(object$design$index.clusterTime,"vectorwise")                    
     }else if(format == "wide"){
         index.na <- NULL
-        newdata.design <- stats::model.matrix(object, newdata = newdata, effects = "index")
+        newdata.design <- stats::model.matrix(object, newdata = newdata, effects = "index", na.rm = FALSE)
         newdata.index.cluster <- attr(newdata.design$index.cluster, "vectorwise")
         newdata.index.time <- attr(newdata.design$index.clusterTime, "vectorwise")        
     }

@@ -2,13 +2,18 @@
 
 * Version 1.1.0
 ** User visible changes
-   - Rename argument data into newdata in extractors such as logLik, information, model.frame, model.matrix, residuals, score, vcov
-   - Rename argument keep.newdata into keep.data
+   - NEW FEATURE effects.lmm to evaluate average counterfactuals.
    - FIX: reparametrisation when using sigma() inside estimate
-   - Argument at for partial residual calculation (instead of using an attribute on argument type).
+   - CHANGE: Rename argument data into newdata in extractors such as logLik, information, model.frame, model.matrix, residuals, score, vcov
+   - CHANGE: Rename argument keep.newdata into keep.data
+   - CHANGE: Argument at for partial residual calculation (instead of using an attribute on argument type).
    - REMOVE: method dummy.coef.lmm.
-     NEW FEATURE effects.lmm to evaluate average counterfactuals.
-   - REMOVE: dependency on emmeans and sandwich. The functions/methods stay but are not more exported nor documented.
+   - REMOVE: dependency on emmeans and sandwich.
+
+** Internal change
+   - partial derivative of the residuals w.r.t. model parameters can be exported as an attribute grad.
+   - standard deviation for random effect computed via delta method instead of numerical differentiation
+
 
 * Version 1.0.0
 ** User visible changes

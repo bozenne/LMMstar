@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: Mar 27 2024 (08:49) 
+## Last-Updated: maj  7 2024 (10:11) 
 ##           By: Brice Ozenne
-##     Update #: 607
+##     Update #: 624
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -140,7 +140,11 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 
         index.keepcoef <- which(colSums(M.factor[effects,,drop=FALSE]!=0)>0)
         name.keepcoef <- names(index.keepcoef)
-        effects.vcov <- any(effects %in% manifest(object, effects = c("variance","correlation")))
+        if(!is.null(manifest(object, effects = "variance")) & !is.null(manifest(object, effects = "correlation"))){
+            effects.vcov <- any(effects %in% union(manifest(object, effects = "variance"),manifest(object, effects = "correlation")))
+        }else{
+            effects.vcov <- FALSE
+        }
         effects.fct <- FALSE
 
         ## test whether the covariate is constant within cluster
@@ -320,7 +324,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
         }else if(type == "boot"){
             iIndex.bootcluster <- index.cluster[sample(n.cluster, replace = TRUE)]
             iData <- data[unlist(iIndex.bootcluster),,drop=FALSE]
-            iData[[var.cluster]] <- unlist(mapply(x=1:n.cluster, times=lengths(iIndex.bootcluster), FUN = rep))
+            iData[[var.cluster]] <- unlist(mapply(x=1:n.cluster, times=lengths(iIndex.bootcluster), FUN = rep, SIMPLIFY = FALSE))
             rownames(iData) <- NULL
             ## lmm(Y~X1*X2+X5,data = iData[,c("Y","X1","X2","X5")])
         }
@@ -376,7 +380,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
         }else{ ## change in the X values
             ## update design matrix according to the permutation (only mean)
             iDesign <- object$design
-            iDesign$mean <- model.matrix(object, data = iData[,var.mean,drop=FALSE])
+            iDesign$mean <- stats::model.matrix(object, newdata = iData[,var.mean,drop=FALSE])
             attr(iDesign$mean, "assign") <- attr(object$design$mean, "assign")
             attr(iDesign$mean, "contrasts") <- attr(object$design$mean, "contrasts")
             attr(iDesign$mean, "variable") <- attr(object$design$mean, "variable")
@@ -500,7 +504,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 
     if(cpus==1){
         if (trace > 0 & requireNamespace("pbapply")) {
-            method.loop <- pbapply::pbapply
+            method.loop <- pbapply::pblapply
         }else{
             method.loop <- lapply
         }

@@ -50,9 +50,14 @@ The latent variable is related to the covariates (\eqn{X_1,\ldots,X_(10)}):
 \eqn{\epsilon_j} and \eqn{\xi} are independent random variables with standard normal distribution.
 }
 \examples{
+#### generate data in the wide format ####
 set.seed(10)
 dW <- sampleRem(100, n.times = 3, format = "wide")
+head(dW)
+
+#### generate data in the long format ####
 set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
+head(dL)
 }
 \keyword{datagen}

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: Mar 24 2024 (21:20) 
+## Last-Updated: maj  7 2024 (11:20) 
 ##           By: Brice Ozenne
-##     Update #: 706
+##     Update #: 720
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -241,7 +241,6 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
                                   transform.rho = backtransform)
 
         }else{
-
             backtransform.names <- names(coef(object, effects = effects, 
                                               transform.sigma = gsub("log","",transform.sigma), transform.k = gsub("log","",transform.k), transform.rho = gsub("atanh","",transform.rho), transform.names = transform.names))
 

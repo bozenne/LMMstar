@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: Mar 25 2024 (08:25) 
+## Last-Updated: maj  7 2024 (11:31) 
 ##           By: Brice Ozenne
-##     Update #: 702
+##     Update #: 707
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -88,6 +88,8 @@
 coef.lmm <- function(object, effects = NULL, p = NULL,
                      transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE, ...){
 
+    mycall <- match.call()
+    
     ## ** extract from object
     param.name <- object$design$param$name
     param.type <- stats::setNames(object$design$param$type,param.name)
@@ -130,6 +132,25 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
                             x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
                             table.param = object$design$param)
     test.notransform <- init$test.notransform
+    transform.sigma <- init$transform.sigma
+    transform.k <- init$transform.k
+    transform.rho <- init$transform.rho
+    if(transform.rho=="cov"){
+        if("transform.k" %in% names(mycall) == FALSE){
+            transform.k <- "var"
+        }
+        if("transform.sigma" %in% names(mycall) == FALSE){
+            transform.sigma <- "square"
+        }
+    }
+    if(transform.k %in% c("logsd","var","logvar") && "transform.sigma" %in% names(mycall) == FALSE){
+        transform.sigma <- switch(transform.k,
+                                  "logsd" = "log",
+                                  "var" = "square",
+                                  "logvar" = "logsquare")
+                                      
+    }
+    transform <- init$transform
     if(!is.null(p)){
         theta <- init$p
     }else{
@@ -153,7 +174,7 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
         if(transform.names){
             names(theta.trans)[match(object.reparametrize.name, names(theta))] <- object.reparametrize.newname
         }        
-    }else if((init$transform.sigma == "none" || "variance" %in% effects2 == FALSE) && (init$transform.k == "none" || "variance" %in% effects2 == FALSE) && (init$transform.rho == "none" || "correlation" %in% effects2 == FALSE)){
+    }else if((transform.sigma == "none" || "variance" %in% effects2 == FALSE) && (transform.k == "none" || "variance" %in% effects2 == FALSE) && (transform.rho == "none" || "correlation" %in% effects2 == FALSE)){
         theta.trans <- theta
     }else{
         reparam <- .reparametrize(p = theta[object.reparametrize.name],  

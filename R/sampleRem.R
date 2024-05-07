@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (14:23) 
 ## Version: 
-## Last-Updated: mar 12 2024 (18:12) 
+## Last-Updated: maj  7 2024 (10:13) 
 ##           By: Brice Ozenne
-##     Update #: 85
+##     Update #: 86
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -42,10 +42,15 @@
 
 ## * sampleRem (examples)
 ##' @examples
+##' #### generate data in the wide format ####
 ##' set.seed(10)
 ##' dW <- sampleRem(100, n.times = 3, format = "wide")
+##' head(dW)
+##'
+##' #### generate data in the long format ####
 ##' set.seed(10)
 ##' dL <- sampleRem(100, n.times = 3, format = "long")
+##' head(dL)
 
 ## * sampleRem (code)
 ##' @export

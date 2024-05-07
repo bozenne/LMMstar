@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: Mar 25 2024 (09:51) 
+## Last-Updated: maj  7 2024 (10:15) 
 ##           By: Brice Ozenne
-##     Update #: 751
+##     Update #: 752
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -127,7 +127,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
             if(outcome.var %in% names(cluster) == FALSE){
                 cluster[[outcome.var]] <- NA
             }
-            newdesign <- stats::model.matrix(object, data = cluster, effect = "variance", simplify = FALSE)            
+            newdesign <- stats::model.matrix(object, newdata = cluster, effect = "variance", simplify = FALSE)            
             cluster.num <- 1:length(newdesign$index.cluster)
             if(!is.null(attr(object$cluster$var,"original"))){
                 cluster.level <- cluster[sapply(newdesign$index.cluster, "[", 1), attr(object$cluster$var,"original")]                
@@ -205,7 +205,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
                 return(unique(iDF)[c(cluster.var,vcov.var)])
             }))
             ## update structure
-            object$design <- model.matrix(object, data = df.fulltime, effects = "variance", simplify = FALSE)
+            object$design <- stats::model.matrix(object, newdata = df.fulltime, effects = "variance", simplify = FALSE)
             ## evaluate residual varince covariance matrix
             Omega <- .calc_Omega(object = object$design$vcov,
                                  param = theta,

@@ -76,7 +76,7 @@ Confidence intervals (CI) for the median are computed via \code{asht::medianTest
 Correlation can be assessed when a grouping and ordering variable are given in the formula interface , e.g. Y ~ time|id.
 }
 \examples{
-## simulate data in the wide format
+#### simulate data (wide format) ####
 set.seed(10)
 d <- sampleRem(1e2, n.times = 3)
 d$treat <-  sample(LETTERS[1:3], NROW(d), replace=TRUE, prob=c(0.3, 0.3, 0.4) )
@@ -85,7 +85,7 @@ d$treat <-  sample(LETTERS[1:3], NROW(d), replace=TRUE, prob=c(0.3, 0.3, 0.4) )
 d2 <- d
 d2[1,"Y2"] <- NA
 
-## run summarize
+#### summarize (wide format) ####
 summarize(Y1 ~ 1, data = d)
 summarize(Y1 ~ 1, data = d, FUN = quantile, p = c(0.25,0.75))
 summarize(Y1+Y2 ~ X1, data = d)
@@ -96,7 +96,7 @@ summarize(Y1 ~ X1, data = d2)
 summarize(Y1+Y2 ~ X1, data = d2, na.rm = TRUE)
 summarize(. ~ treat, data = d2, na.rm = TRUE, filter = "Y")
 
-## long format
+#### summarize (long format) ####
 dL <- reshape(d, idvar = "id", direction = "long",
              v.names = "Y", varying = c("Y1","Y2","Y3"))
 summarize(Y ~ time + X1, data = dL)

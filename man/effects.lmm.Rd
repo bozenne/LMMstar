@@ -24,6 +24,8 @@
 
 \item{variable}{[character] the variable relative to which the effect should be computed.}
 
+\item{newdata}{[data.frame] a dataset reflecting the covariate distribution relative to which the average outcome or contrast should be computed.}
+
 \item{type}{[character] should the average counterfactual outcome for each variable level be evaluated (\code{"identity"})?
 Or the difference in average counterfactual outcome between each pair of  variable level (\code{"difference"})?
 Can have an second element to consider a transformation of the outcome:

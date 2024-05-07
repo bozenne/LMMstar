@@ -32,20 +32,25 @@ a data frame
 Summarize missing data patterns.
 }
 \examples{
+#### display missing data pattern (wide format) ####
 data(gastricbypassW, package = "LMMstar")
 e.SNA <- summarizeNA(gastricbypassW) 
 plot(e.SNA)
 summarizeNA(gastricbypassW, keep.data = FALSE)
 
+#### display missing data pattern (long format) ####
+## example 1
 data(gastricbypassL, package = "LMMstar")
 e.SNAL <- summarizeNA(gastricbypassL, repetition = ~time|id)
 plot(e.SNAL, variable = "glucagonAUC")
 
+## example 2
 data(calciumL, package = "LMMstar")
 mp <- summarizeNA(calciumL, repetition = ~visit|girl)
 plot(mp, variable = "bmd")
 summarizeNA(calciumL[,c("visit","girl","bmd")], repetition = ~visit|girl)
 
+## example 3
 data(vasscoresW, package = "LMMstar")
 summarizeNA(vasscoresW)
 }

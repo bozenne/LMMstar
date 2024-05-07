@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: mar  4 2024 (15:41) 
+## Last-Updated: maj  7 2024 (15:56) 
 ##           By: Brice Ozenne
-##     Update #: 1378
+##     Update #: 1391
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -76,6 +76,7 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
     options <- LMMstar.options()
 
     n.strata <- object$strata$n
+    U.strata <- object$strata$levels
     
     ## ** normalize user input
     dots <- list(...)
@@ -342,18 +343,19 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
         }else{
             cat("  - variance decomposition: ",paste0(object$strata$var," ",deparse(structure.ranef$formula)),"\n",sep="")
         }
-        table.re <- nlme::ranef(object, effects = "variance", format = "wide", simplify = FALSE)
+        table.reA <- nlme::ranef(object, effects = "variance", format = "long", scale = "absolute", simplify = FALSE)
+        table.reR <- nlme::ranef(object, effects = "variance", format = "long", scale = "relative", simplify = FALSE)
         if(n.strata==1){
-            printtable <- cbind(variance = table.re$variance, "%" = 100*table.re$relative, sd = sqrt(table.re$variance))
-            rownames(printtable) <- paste0("    ",table.re$variable)
+            printtable <- cbind(variance = table.reA$estimate, "%" = 100*table.reR$estimate, sd = sqrt(table.reA$estimate))
+            rownames(printtable) <- paste0("    ",table.reA$type)
         }else{
-            printtable <- unclass(by(table.re,table.re$strata, function(iDF){
-                iPrintTable <- data.frame(variance = iDF$variance, "%" = 100*iDF$relative, sd = sqrt(iDF$variance),
-                                          check.names = FALSE)
-                rownames(iPrintTable) <- paste0("    ",iDF$variable)
-                return(as.matrix(iPrintTable))
-            }, simplify = FALSE))
-            attr(printtable,"call") <- NULL
+            printtable <- stats::setNames(lapply(U.strata, function(iU){ ## iU <- "Male"
+                iPrintTable <- cbind(variance = table.reA[table.reA$strata==iU,"estimate"],
+                                     "%" = 100*table.reR[table.reA$strata==iU,"estimate"],
+                                     sd = sqrt(table.reA[table.reA$strata==iU,"estimate"]))
+                rownames(iPrintTable) <- paste0("    ",table.reA[table.reA$strata==iU,"type"])
+                return(iPrintTable)
+            }), U.strata)
         }
         print(printtable, digits = digits, na.print = "" , quote = FALSE)
     }else{
@@ -988,7 +990,7 @@ summary.resample <- function(object, digits = 3, ...){
     }
 
     if(length(digits.p.value)==1){
-        digits.p.value <- c(digits.p.value,.Machine$double.eps)
+        digits.p.value <- c(digits.p.value,1e-4)
     }
 
     ## ** add stars    

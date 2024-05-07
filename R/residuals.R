@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: May  5 2024 (20:50) 
+## Last-Updated: maj  7 2024 (15:37) 
 ##           By: Brice Ozenne
-##     Update #: 1320
+##     Update #: 1340
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -257,7 +257,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
     if(keep.grad && ("scaled" %in% type.residual)){
         message("Gradient for scaled residuals not implemented. Consider using normalized residuals instead. \n")
     }
-    
+
     ## ** update design
     if(is.null(newdata)){
         design <- stats::model.matrix(object, effects = effects, simplify = FALSE)
@@ -277,7 +277,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         if(is.null(newdata)){
             design <- stats::model.matrix(object, effects = effects, simplify = FALSE)
         }else{
-            design <- stats::model.matrix(object, newdata = newdata, effects = effects, simplify = FALSE)
+            design <- stats::model.matrix(object, newdata = newdata, effects = effects, simplify = FALSE, rm.na = TRUE)
         }
 
         ## *** design matrix relative to a reference value
@@ -334,10 +334,9 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         }
 
         ## build design matrix
-        design.reference <- stats::model.matrix(object, newdata = data.reference, effects = effects, simplify = TRUE)
-        if(length(object$index.na)>0){
-            design.reference <- design.reference[-object$index.na,,drop=FALSE]
-        }
+        suppressWarnings( ## rm warning about "XX clusters have been removed." due to missing values
+            design.reference <- stats::model.matrix(object, newdata = data.reference, effects = effects, simplify = TRUE, na.rm = TRUE)
+        )
         ## handle intercept term
         if(keep.intercept==FALSE && "(Intercept)" %in% colnames(design.reference)){
             design.reference[,"(Intercept)"] <- 0
@@ -604,16 +603,13 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
     ## ** restaure NA
     if(length(index.na)>0){
         M.res <- restaureNA(M.res, index.na = index.na, level = "obs")
+        fitted <- restaureNA(fitted, index.na = index.na, level = "obs")
         if(keep.grad){
             attr(M.res,"grad") <- array( unlist(apply(attr(M.res,"grad"), MARGIN = 3, restaureNA, index.na = index.na, level = "obs", simplify = FALSE)),
                                         dim = c(NROW(M.res), dim(attr(M.res,"grad"))[-1]), dimnames = c(list(NULL),dimnames(attr(M.res,"grad"))[-1]))
         }
-
-        if(keep.data && format == "long"){
-            fitted <- restaureNA(fitted, index.na = index.na, level = "obs")
-        }
     }
-        
+       
     ## ** export
     if(is.matrix(fitted)){ ## when using partial residuals with ci for the fitted values
         data.reference <- cbind(data.reference, fitted)

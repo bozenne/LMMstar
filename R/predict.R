@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: May  6 2024 (11:40) 
+## Last-Updated: maj  7 2024 (14:50) 
 ##           By: Brice Ozenne
-##     Update #: 1433
+##     Update #: 1439
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,7 +20,8 @@
 ##' @description Predicted mean value conditional on covariates or on covariates and other outcome values.
 ##'
 ##' @param object a \code{lmm} object.
-##' @param newdata [data.frame] the covariate values for each cluster.
+##' @param newdata [data.frame] a dataset containing covariate values to condition on.
+##' When setting the argument 'dynamic' predictions should also contain cluster, timepoint, and outcome values.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the predictions. Only relevant if differs from the fitted values.
 ##' @param level [numeric,0-1] the confidence level of the confidence intervals.
 ##' @param se [logical] should the standard error and confidence intervals for the predictions be output?

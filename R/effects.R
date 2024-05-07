@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 29 2024 (09:47) 
 ## Version: 
-## Last-Updated: May  6 2024 (11:57) 
+## Last-Updated: maj  7 2024 (09:43) 
 ##           By: Brice Ozenne
-##     Update #: 334
+##     Update #: 335
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,13 +20,14 @@
 ##' @description Estimate average counterfactual outcome or contrast of outcome from linear mixed models.
 
 ##' @param object a \code{lmm} object. 
+##' @param variable [character] the variable relative to which the effect should be computed.
 ##' @param type [character] should the average counterfactual outcome for each variable level be evaluated (\code{"identity"})?
 ##' Or the difference in average counterfactual outcome between each pair of  variable level (\code{"difference"})?
 ##' Can have an second element to consider a transformation of the outcome:
 ##' the change from baseline (\code{"change"}),
 ##' area under the outcome curve (\code{"auc"}),
 ##' or area under the outcome curve minus baseline (\code{"auc-b"}).
-##' @param variable [character] the variable relative to which the effect should be computed.
+##' @param newdata [data.frame] a dataset reflecting the covariate distribution relative to which the average outcome or contrast should be computed.
 ##' @param conditional [character] variable conditional to which the average conterfactual outcome or treatment effect should be computed.
 ##' @param rhs [numeric] the right hand side of the hypothesis.
 ##' @param repetition [character vector] repetition at which the effect should be assessed. By default it will be assessed at all repetitions.

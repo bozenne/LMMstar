@@ -23,7 +23,8 @@
 \arguments{
 \item{object}{a \code{lmm} object.}
 
-\item{newdata}{[data.frame] the covariate values for each cluster.}
+\item{newdata}{[data.frame] a dataset containing covariate values to condition on.
+When setting the argument 'dynamic' predictions should also contain cluster, timepoint, and outcome values.}
 
 \item{type}{[character] evaluate the expected outcome conditional on covariates only (\code{"static"}),
 the contribution of each variable to this 'static' prediction (\code{"terms"}),

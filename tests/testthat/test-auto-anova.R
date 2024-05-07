@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 13 2022 (13:55) 
 ## Version: 
-## Last-Updated: aug  1 2023 (12:00) 
+## Last-Updated: maj  7 2024 (10:27) 
 ##           By: Brice Ozenne
-##     Update #: 51
+##     Update #: 52
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -69,7 +69,7 @@ test_that("LRT", {
                 lmm(Y ~ X1*X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, method.fit = "ML"))
 
     expect_equal(list(e2[,c("null")], e2[,c("df")], e2[,c("statistic")], e2[,c("p.value")]),
-                 list("k.2==0, k.3==0, rho(1,2)==rho, rho(1,3)==rho, rho(2,3)==rho", 4, 29.66939, 5.714571e-06), tol = 1e-4)
+                 list("k.2==0, k.3==0, rho(1,2)==rho(id), rho(1,3)==rho(id), rho(2,3)==rho(id)", 4, 29.66939, 5.714571e-06), tol = 1e-4)
 
     ## via strata
     e3 <- anova(lmm(Y ~ X1 + X5, repetition = ~visit|id, structure = "UN", data = dL, method.fit = "ML", control = list(optimizer = "FS")),

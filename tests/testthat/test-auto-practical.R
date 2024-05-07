@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (17:03) 
 ## Version: 
-## Last-Updated: Mar 26 2024 (09:54) 
+## Last-Updated: maj  7 2024 (15:18) 
 ##           By: Brice Ozenne
-##     Update #: 127
+##     Update #: 131
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -38,41 +38,37 @@ test_that("practical 1 - gastricbypass",{
 
     ## ** data
     data(gastricbypassL, package = "LMMstar")
-    gastricbypassL$time <- factor(gastricbypassL$time,
-                                  levels = c("3monthsBefore", "1weekBefore", "1weekAfter", "3monthsAfter"),
-                                  labels = c("m3B","w1B","w1A","m3A"))
-    gastricbypassL$visit <- as.numeric(gastricbypassL$visit)
 
     ## ** summarize
     summarize(glucagonAUC~time, data = gastricbypassL, na.rm=TRUE)
     summarize(glucagonAUC~time|id, data = gastricbypassL, na.rm=TRUE)
     
     ## ** compound symmetry
-    eCS.gls <- gls(glucagonAUC~time,
+    eCS.gls <- gls(glucagonAUC~visit,
                    data=gastricbypassL,
                    correlation=corCompSymm(form=~visit|id),
                    na.action=na.exclude,
                    control=glsControl(opt="optim"))
 
-    eCS.lmm <- lmm(glucagonAUC~time,
+    eCS.lmm <- lmm(glucagonAUC~visit,
                    data=gastricbypassL,
-                   repetition = ~time|id,
+                   repetition = ~visit|id,
                    structure = "CS")
     
     expect_equal(as.double(logLik(eCS.gls)), as.double(logLik(eCS.lmm)), tol = 1e-6)
 
     ## ** unstructured with missing data
-    eUN.gls <- gls(glucagonAUC~time,
+    eUN.gls <- gls(glucagonAUC~visit,
                    data=gastricbypassL,
-                   correlation=corSymm(form=~visit|id),
+                   correlation=corSymm(form=~as.numeric(visit)|id),
                    weights=varIdent(form=~1|time),
                    na.action=na.exclude,
                    control=glsControl(opt="optim"),
                    method = "REML")
 
-    eUN.lmm <- lmm(glucagonAUC~time,
+    eUN.lmm <- lmm(glucagonAUC~visit,
                    data=gastricbypassL,
-                   repetition = ~time|id,
+                   repetition = ~visit|id,
                    structure = "UN",
                    method.fit = "REML", trace = 0)
 
@@ -80,25 +76,15 @@ test_that("practical 1 - gastricbypass",{
     expect_equal(as.double(logLik(eUN.gls)), as.double(logLik(eUN.lmm)), tol = 1e-6)
     
     ## GS <- numDeriv::jacobian(func = function(p){logLik(eUN.lmm, p = p, transform.sigma = "none", transform.k = "none", transform.rho = "none")}, x = coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none", effects = "all"))
-    GS <- rbind(c(0, 0, 0, 0, 0, 3e-08, 3e-08, -1.2e-07, -5.6e-07, -3.9e-07, 3e-08, 4.1e-07, -1.2e-07, 2.7e-07))
+    GS <- rbind(c("(Intercept)" = 0, "visit2" = 0, "visit3" = 0, "visit4" = 0, "sigma" = 2e-08, "k.2" = 7.85e-06, "k.3" = 5.37e-06, "k.4" = -2.109e-05, "rho(1,2)" = -0.00011073, "rho(1,3)" = -7.107e-05, "rho(1,4)" = 9.35e-06, "rho(2,3)" = 7.852e-05, "rho(2,4)" = -2.407e-05, "rho(3,4)" = 4.945e-05))
     expect_equal(as.double(GS), as.double(score(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none", effects = "all")), tol = 1e-6)
 
     ## GS <- -numDeriv::jacobian(func = function(p){score(eUN.lmm, p = p, transform.sigma = "none", transform.k = "none", transform.rho = "none",effects = "all")}, x = coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none", effects = "all"))
-    GS <- cbind(c(3.75e-06, 1.79e-06, -3e-08, 1.43e-06, 0, 8.477e-05, -1.843e-05, 9.63e-06, 6.084e-05, 0.00011196, -7.35e-06, -9.894e-05, -7.91e-06, 2.433e-05), 
-                c(1.79e-06, 6.88e-06, 1.06e-06, -8.4e-07, 0, 0.00027411, -0.00016572, 0.00035807, 0.00141665, 0.00130009, -0.00014701, -0.00131459, 0.00023644, -0.00049052), 
-                c(-3e-08, 1.06e-06, 1.04e-06, -9.1e-07, 0, 2.78e-06, -9.7e-05, 0.00029724, 0.00111002, 0.00085567, -0.00011219, -0.00090667, 0.00023771, -0.00051618), 
-                c(1.43e-06, -8.4e-07, -9.1e-07, 1.86e-06, 0, 1.38e-06, 8.377e-05, -0.00025882, -0.0009654, -0.00074127, 9.752e-05, 0.00078633, -0.00020768, 0.00045129), 
-                c(0, 0, 0, 0, 1.035e-05, 0.01115006, 0.00590608, 0.00848313, -0.03243156, -0.01404792, 0.01120771, 0.01041161, -0.00609246, -0.01245153), 
-                c(8.477e-05, 0.00027411, 2.78e-06, 1.38e-06, 0.01115006, 122.18555589, -1.45964668, 3.08816828, -68.07837646, 2.73876754, -1.51219029, 22.6795013, -13.32873148, -0.05416957), 
-                c(-1.843e-05, -0.00016572, -9.7e-05, 8.377e-05, 0.00590608, -1.45964668, 21.44038778, -7.18200571, 2.75807973, -14.88594103, -1.39025149, 10.84047319, 1.28521521, -14.70839091), 
-                c(9.63e-06, 0.00035807, 0.00029724, -0.00025882, 0.00848313, 3.08816828, -7.18200571, 37.93794573, -5.59355628, -4.13575786, 19.80175087, 4.43555263, -12.17911963, -18.41870059), 
-                c(6.084e-05, 0.00141665, 0.00111002, -0.0009654, -0.03243156, -68.07837647, 2.75807974, -5.59355628, 494.47865121, 170.86077633, -126.83250435, -160.48812254, 120.8592697, 52.61254837), 
-                c(0.00011196, 0.00130009, 0.00085567, -0.00074127, -0.01404792, 2.73876752, -14.88594103, -4.13575786, 170.86077634, 195.77649853, -137.8528703, -150.42850734, 105.91019906, 88.19349447), 
-                c(-7.35e-06, -0.00014701, -0.00011219, 9.752e-05, 0.01120771, -1.51219029, -1.39025149, 19.80175087, -126.83250437, -137.85287029, 182.19199363, 101.08254329, -138.37453473, -84.00691973), 
-                c(-9.894e-05, -0.00131459, -0.00090667, 0.00078633, 0.01041161, 22.67950128, 10.8404732, 4.43555263, -160.48812249, -150.42850737, 101.08254331, 155.69921616, -103.48119506, -60.02026461), 
-                c(-7.91e-06, 0.00023644, 0.00023771, -0.00020768, -0.00609246, -13.3287315, 1.28521521, -12.17911962, 120.85926971, 105.91019907, -138.37453473, -103.48119506, 144.14781706, 59.2349059), 
-                c(2.433e-05, -0.00049052, -0.00051618, 0.00045129, -0.01245153, -0.05416957, -14.70839091, -18.41870059, 52.61254837, 88.19349446, -84.00691974, -60.02026461, 59.23490589, 99.2783842)
-                )
+    GS <- matrix(c(0.2000435, 0.10068008, -0.00122474, 0.0667917, 0, 0.01960874, -0.00398498, 0.00220684, 0.015223, 0.02694338, -0.00181844, -0.02394494, -0.00163313, 0.00522044, 0.10068008, 0.39828548, 0.05620903, -0.04323161, 0, 0.06528472, -0.03616399, 0.07545552, 0.34097272, 0.31291727, -0.03538287, -0.31640674, 0.0569075, -0.1180618, -0.00122474, 0.05620903, 0.05070213, -0.04276096, 0, 0.00060657, -0.01939405, 0.0573912, 0.24479209, 0.18869963, -0.02474055, -0.19994584, 0.05242174, -0.1138332, 0.0667917, -0.04323161, -0.04276096, 0.08432189, 0, 0.00029111, 0.01617431, -0.04825539, -0.20558724, -0.15785621, 0.02076676, 0.16745253, -0.04422625, 0.09610526, 0, 0, 0, 0, 0.61232751, 2.68368828, 1.30246228, 1.80652473, -7.88842064, -3.41692146, 2.72607489, 2.53245722, -1.48188657, -3.02859195, 0.01960874, 0.06528472, 0.00060657, 0.00029111, 2.68368828, 119.6435905, -1.30957174, 2.67549682, -67.36667611, 2.7100885, -1.4963409, 22.4424789, -13.18941762, -0.05361995, -0.00398498, -0.03616399, -0.01939405, 0.01617431, 1.30246228, -1.30957174, 17.62474246, -5.70108564, 2.50057785, -13.49661757, -1.26046703, 9.8287541, 1.16522916, -13.33546581, 0.00220684, 0.07545552, 0.0573912, -0.04825539, 1.80652473, 2.67549682, -5.70108564, 29.08095721, -4.89725928, -3.62086875, 17.33682661, 3.88337218, -10.663066, -16.12586692, 0.015223, 0.34097272, 0.24479209, -0.20558724, -7.88842064, -67.36667611, 2.50057785, -4.89725928, 494.48230881, 170.86268327, -126.83334603, -160.48986839, 120.86002165, 52.61300133, 0.02694338, 0.31291727, 0.18869963, -0.15785621, -3.41692146, 2.7100885, -13.49661757, -3.62086875, 170.86268327, 195.7773562, -137.85293967, -150.42933562, 105.91037437, 88.19350765, -0.00181844, -0.03538287, -0.02474055, 0.02076676, 2.72607489, -1.4963409, -1.26046703, 17.33682661, -126.83334603, -137.85293967, 182.19196649, 101.08267288, -138.37463781, -84.00686145, -0.02394494, -0.31640674, -0.19994584, 0.16745253, 2.53245722, 22.4424789, 9.8287541, 3.88337218, -160.48986839, -150.42933562, 101.08267288, 155.69993421, -103.48124038, -60.02043103, -0.00163313, 0.0569075, 0.05242174, -0.04422625, -1.48188657, -13.18941762, 1.16522916, -10.663066, 120.86002165, 105.91037437, -138.37463781, -103.48124038, 144.14781848, 59.2350391, 0.00522044, -0.1180618, -0.1138332, 0.09610526, -3.02859195, -0.05361995, -13.33546581, -16.12586692, 52.61300133, 88.19350765, -84.00686145, -60.02043103, 59.2350391, 99.27770758), 
+                 nrow = 14, 
+                 ncol = 14, 
+                 dimnames = list(c("(Intercept)", "visit2", "visit3", "visit4", "sigma", "k.2", "k.3", "k.4", "rho(1,2)", "rho(1,3)", "rho(1,4)", "rho(2,3)", "rho(2,4)", "rho(3,4)"),c("(Intercept)", "visit2", "visit3", "visit4", "sigma", "k.2", "k.3", "k.4", "rho(1,2)", "rho(1,3)", "rho(1,4)", "rho(2,3)", "rho(2,4)", "rho(3,4)")) 
+                 )
     expect_equal(as.double(GS), as.double(information(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none", effects = "all")), tol = 1e-6)
 
     ## ** extract information
@@ -110,14 +96,14 @@ test_that("practical 1 - gastricbypass",{
                  tol = 1e-6)
     autoplot(eUN.lmm)
 
-    apply(residuals(eUN.lmm, type = "normalized", format = "wide"),2,sd,na.rm=TRUE)
+    apply(residuals(eUN.lmm, type = "normalized", format = "wide")[,-1],2,sd,na.rm=TRUE)
     cor(residuals(eUN.lmm, type = "normalized", format = "wide")[,-1], use = "pairwise")
     qqtest::qqtest(na.omit(residuals(eUN.lmm, type = "normalized")))
 
-    eUN.lmm_anova <- anova(eUN.lmm, effects = c("timew1A-timew1B=0"), ci = TRUE)
+    eUN.lmm_anova <- anova(eUN.lmm, effects = c("visit3-visit2=0"), ci = TRUE)
     capture.output(eUN.lmm_anova)
     capture.output(summary(eUN.lmm_anova))
-    expect_equal(eUN.lmm_anova$multivariate$df.denom, 19.24699, tol = 1e-1) ## Richardson
+    expect_equal(eUN.lmm_anova$multivariate$df.denom, 19.20982, tol = 1e-1) ## Richardson
 })
 
 ## * Practical 2
@@ -251,7 +237,7 @@ test_that("practical 3 - swabsL",{
     eCSI.lme <- lme(swabs ~ crowding * name, random =~ 1 | family, data = swabsL)
     GS <- as.data.frame(ranef(eCSI.lme, augFrame = TRUE))
 
-    expect_equal(as.double(GS[,1]),as.double(ranef(eRI.lmm)$estimate), tol = 1e-4)
+    expect_equal(as.double(GS[,1]),as.double(ranef(eRI.lmm)), tol = 1e-4)
 })
 
 ## * Practical 4

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 20 2023 (15:31) 
 ## Version: 
-## Last-Updated: May  4 2024 (10:09) 
+## Last-Updated: maj  7 2024 (12:30) 
 ##           By: Brice Ozenne
-##     Update #: 48
+##     Update #: 51
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -48,7 +48,10 @@ restaureNA.numeric <- function(object, index.na, level, cluster){
         if(length(restaure.attributes)>0){
             attributes(out) <- c(attributes(out), attributes(object)[restaure.attributes])
         }
-
+        if(!is.null(names(object))){
+            names(out)[-index.na] <- names(object)
+            names(out)[index.na] <- "NA"
+        }
         return(out)
     }else{
         return(object)

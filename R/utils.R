@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: May  5 2024 (20:12) 
+## Last-Updated: maj  7 2024 (15:16) 
 ##           By: Brice Ozenne
-##     Update #: 325
+##     Update #: 333
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -23,12 +23,19 @@
 ##' @examples
 ##' addLeading0(c(1,9,19))
 ##' addLeading0(c(1,9,100))
+##' addLeading0(c(-13,-1,1,13))
 addLeading0 <- function(object, as.factor = FALSE, code = NULL){
+    if(!is.numeric(object)){
+        stop("Argument \'object\' must be a numeric vector. \n")
+    }
     if(is.null(code)){
         n.0 <- ceiling(log10(max(abs(object)))+0.1)
         code <- paste0("%0",n.0,"d")
+    }    
+    out <- sprintf(code, abs(object))
+    if(any(object<0)){
+        out[object<0] <- paste0("-",out[object<0])
     }
-    out <- sprintf(code, object)
     if(as.factor){
         out <- as.factor(out)
     }
@@ -494,5 +501,32 @@ dchol <- function(object, dobject = NULL, chol = FALSE, ...){
     return(out)
 }
 
+## * sdiag (copied from the mgcv package)
+##' @title Index of Diagonals of a Matrix
+##' @description index of the diagonal, sub-diagonal, or super diagonal.
+##' @param A [matrix]
+##' @param k [integer] type of diagonal to be consider
+##' @noRd
+##' @examples
+##'
+##' sdiag(matrix(NA, 3, 3), 1)
+sdiag <- function (A, k = 0){
+    p <- ncol(A)
+    n <- nrow(A)
+    if (k > p - 1 || -k > n - 1) 
+        return()
+    if (k >= 0) {
+        i <- 1:n
+        j <- (k + 1):p
+    }
+    else {
+        i <- (-k + 1):n
+        j <- 1:p
+    }
+    if (length(i) > length(j)) 
+        i <- i[1:length(j)]
+    else j <- j[1:length(i)]
+    return(i + (j - 1) * n)
+}
 ##----------------------------------------------------------------------
 ### utils-formula.R ends here

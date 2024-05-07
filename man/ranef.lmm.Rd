@@ -65,7 +65,10 @@ data(gastricbypassL, package = "LMMstar")
 ## random intercept
 e.RI <- lmm(weight ~ time + (1|id), data = gastricbypassL)
 ranef(e.RI, effects = "mean")
+ranef(e.RI, effects = "mean", se = TRUE)
+
 ranef(e.RI, effects = "variance")
+ranef(e.RI, effects = "variance", format = "wide")
 
 }
 }

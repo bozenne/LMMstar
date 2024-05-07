@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 31 2023 (09:54) 
 ## Version: 
-## Last-Updated: mar 12 2024 (10:25) 
+## Last-Updated: maj  7 2024 (12:22) 
 ##           By: Brice Ozenne
-##     Update #: 15
+##     Update #: 16
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -101,7 +101,7 @@ test_that("Compound symmetry structure (REML)",{
     newp.cov <- newp; newp.cov[c("sigma","rho")] <- c(newp["sigma"]^2,newp["rho"]*newp["sigma"]^2)
     ## GS <- jacobian(func = function(p){p[c("sigma","rho")] <- c(sqrt(p["sigma"]),p["rho"]/p["sigma"]); logLik(eCS.lmm, p = p, transform.sigma = "none", transform.k = "none", transform.rho = "cov")}, x = newp.cov)
     GS <- rbind(c(-1434.54797024, -360.96098759, -360.9609876, -360.96098776, -75945.93430486, -597.3281072, 2657.67539179, 8019.18564457))
-    test <- score(eCS.lmm, effects = "all", p = newp, transform.sigma = "none", transform.k = "none", transform.rho = "cov")
+    test <- score(eCS.lmm, effects = "all", p = newp, transform.rho = "cov")
     expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
     ## ** information
@@ -163,7 +163,7 @@ test_that("Compound symmetry structure (REML)",{
                 c(-973.19305846, -245.45864557, -245.45864555, -245.45864554, -51521.49497161, -405.22560363, 3750.76786163, 10824.81657287), 
                 c(-2919.57917442, -727.73441273, -727.73441286, -727.7344128, -154564.4849145, -1215.67681085, 10824.81657287, 32901.93673129)
                 )
-    test <- information(eCS.lmm, p = newp, effects = "all", transform.sigma = "none", transform.k = "none", transform.rho = "cov")
+    test <- information(eCS.lmm, p = newp, effects = "all", transform.rho = "cov")
     expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
     ## no transformation 

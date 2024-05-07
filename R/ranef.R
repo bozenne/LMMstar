@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 26 2022 (11:18) 
 ## Version: 
-## Last-Updated: May  5 2024 (20:11) 
+## Last-Updated: maj  7 2024 (12:19) 
 ##           By: Brice Ozenne
-##     Update #: 655
+##     Update #: 673
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -51,7 +51,10 @@
 ##' ## random intercept
 ##' e.RI <- lmm(weight ~ time + (1|id), data = gastricbypassL)
 ##' ranef(e.RI, effects = "mean")
+##' ranef(e.RI, effects = "mean", se = TRUE)
+##' 
 ##' ranef(e.RI, effects = "variance")
+##' ranef(e.RI, effects = "variance", format = "wide")
 ##'
 ##' }
 
@@ -189,8 +192,8 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
     ## change in variance within hierarchy
     for(iH in 1:n.hierarchy){ ## iH <- 1
         iHierarchy <- infoRanef$param[[iH]]
-        iContrast <- diag(1, nrow = NROW(iHierarchy), ncol = NROW(iHierarchy))        
-        iContrast[lower.tri(iContrast, diag = FALSE)] <- -1
+        iContrast <- diag(1, nrow = NROW(iHierarchy), ncol = NROW(iHierarchy))
+        iContrast[sdiag(iContrast,-1)] <- -1
         for(iS in 1:n.strata){ ## iS <- 1
             contrastRE[rownames(iHierarchy),iHierarchy[,U.strata[iS]],U.strata[iS]] <- iContrast
         }        
@@ -264,7 +267,7 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
             out$lower <- out$estimate + stats::qnorm(0.025)*out$se
             out$upper <- out$estimate + stats::qnorm(0.975)*out$se
         }
-        
+ 
         if(format=="long"){
             out <- out[out$scale %in% scale,,drop=FALSE]
             rownames(out) <- NULL
@@ -356,10 +359,10 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
                 iStrata <- df.epsilon[[var.strata]][1]
                 iTau.strata <- varDecomp[iVar,]
             }else{
-                iStrata <- tapply(df.epsilon[[var.strata]],iSplit,unique)
+                iStrata <- tapply(df.epsilon[[var.strata]], INDEX = iSplit, FUN = unique, simplify = TRUE)
                 iStrata.Mdummy <- model.matrix(~0+strata, data.frame(strata = as.factor(iStrata)))
-                iTau.strata <- as.double(iStrata.Mdummy %*% varDecomp[iVar,])
-                iData[attr(var.strata,"original")] <- attr(U.strata,"original")[iStrata,,drop=FALSE]
+                iTau.strata <- as.double(iStrata.Mdummy %*% cbind(varDecomp[iVar,]))
+                iData[attr(var.strata,"original")] <- iStrata ## attr(U.strata,"original")[iStrata,,drop=FALSE]
             }
             ls.out[[iRE]] <- data.frame(hierarchy = iHierarchy,
                                         level = iLevel,
@@ -391,6 +394,7 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
 
     ## ** export
     out <- do.call(rbind,ls.out)
+    out <- out[do.call(order, out[df.hierarchy$variable]),,drop=FALSE]
     rownames(out) <- NULL
     if(se>0){
         if(simplify<=0){

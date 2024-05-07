@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: Mar 25 2024 (09:53) 
+## Last-Updated: maj  7 2024 (11:27) 
 ##           By: Brice Ozenne
-##     Update #: 764
+##     Update #: 791
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -249,7 +249,6 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
 
     ## *** rho
     if(length(index.rho)>0){
-
         transform.rho <- switch(transform.rho,
                                 "none" = .reparametrize.none,
                                 "atanh" = .reparametrize.atanh,
@@ -264,7 +263,6 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
                              index = index.rho, indexSigma = match(sigma[index.rho], name.p), indexKx = match(k.x[index.rho], name.p), indexKy = match(k.y[index.rho], name.p),
                              level = level.rho, type = "rho",
                              inverse = inverse, transform.names = transform.names, Jacobian = Jacobian, dJacobian = dJacobian)
-
     }     
 
     ## ** export
@@ -964,13 +962,14 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
 
     ## ** normalize input
     ## several way to say no transform
-    if(identical(transform.sigma,"") || identical(transform.sigma,"no") || identical(transform.sigma,FALSE)){
+    ## do not use identical(,) because transform.sigma/k/rho may contain an attribute
+    if(length(transform.sigma==1) && ((transform.sigma == "") || (transform.sigma == "no") || (transform.sigma == FALSE))){
         transform.sigma <- "none"
     }
-    if(identical(transform.k,"") || identical(transform.k,"no") || identical(transform.k,FALSE)){
+    if(length(transform.k==1) && ((transform.k == "") || (transform.k == "no") || (transform.k == FALSE))){
         transform.k <- "none"
     }
-    if(identical(transform.rho,"") || identical(transform.rho,"no") || identical(transform.rho,FALSE)){
+    if(length(transform.rho==1) && ((transform.rho == "") || (transform.rho == "no") || (transform.rho == FALSE))){
         transform.rho <- "none"
     }
 
@@ -981,30 +980,6 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
         
     ## ** transform
     ## transformation attribute given to p by the estimate function overrule object transformation
-    if(is.null(transform.sigma)){
-        if(!is.null(p.transform.sigma)){
-            transform.sigma <- p.transform.sigma
-        }else{
-            transform.sigma <- x.transform.sigma
-        }
-        attr(transform.sigma,"arg") <- NULL 
-    }else{
-        transform.sigma.save <- transform.sigma
-        transform.sigma <- match.arg(transform.sigma, c("none","one","log","square","logsquare"))
-        attr(transform.sigma,"arg") <- transform.sigma.save
-    }
-    if(is.null(transform.k)){
-        if(!is.null(p.transform.k)){
-            transform.k <- p.transform.k
-        }else{
-            transform.k <- x.transform.k
-        }
-        attr(transform.k,"arg") <- NULL
-    }else{
-        transform.k.save <- transform.k
-        transform.k <- match.arg(transform.k, c("none","log","square","logsquare","sd","logsd","var","logvar"))
-        attr(transform.k,"arg") <- transform.k.save
-    }
     if(is.null(transform.rho)){
         if(!is.null(p.transform.rho)){
             transform.rho <- p.transform.rho
@@ -1014,8 +989,45 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
         attr(transform.rho,"arg") <- NULL
     }else{
         transform.rho.save <- transform.rho
+        attr(transform.rho.save,"arg") <- NULL
         transform.rho <- match.arg(transform.rho, c("none","atanh", "cov"))
         attr(transform.rho,"arg") <- transform.rho.save
+    }
+
+    if(is.null(transform.k)){
+        if(!is.null(p.transform.k)){
+            transform.k <- p.transform.k
+        }else if(transform.rho == "cov"){
+            transform.k <- "var"
+        }else{
+            transform.k <- x.transform.k
+        }
+        attr(transform.k,"arg") <- NULL
+    }else{
+        transform.k.save <- transform.k
+        attr(transform.k.save,"arg") <- NULL
+        transform.k <- match.arg(transform.k, c("none","log","square","logsquare","sd","logsd","var","logvar"))
+        attr(transform.k,"arg") <- transform.k.save
+    }
+    
+    if(is.null(transform.sigma)){
+        if(!is.null(p.transform.sigma)){
+            transform.sigma <- p.transform.sigma
+        }else if(transform.k %in% c("sd","logsd","var","logvar")){
+            transform.sigma <- switch(transform.k,
+                                      "sd" = "none",
+                                      "logsd" = "log",
+                                      "var" = "square",
+                                      "logvar" = "logsquare")
+        }else{
+            transform.sigma <- x.transform.sigma
+        }
+        attr(transform.sigma,"arg") <- NULL 
+    }else{
+        transform.sigma.save <- transform.sigma
+        attr(transform.sigma.save,"arg") <- NULL
+        transform.sigma <- match.arg(transform.sigma, c("none","one","log","square","logsquare"))
+        attr(transform.sigma,"arg") <- transform.sigma.save
     }
 
     ## ** x.transform

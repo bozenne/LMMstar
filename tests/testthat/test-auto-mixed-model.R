@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: mar 13 2024 (11:22) 
+## Last-Updated: maj  7 2024 (12:20) 
 ##           By: Brice Ozenne
-##     Update #: 211
+##     Update #: 217
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,7 +20,7 @@ if(FALSE){
     library(numDeriv)
     library(lava)
     library(multcomp)
-    library(lme4) ## remove due to error in appveyer and Github action (change of Matrix package version)
+    library(lme4) ## removed due to error in appveyer and Github action (change of Matrix package version)
     library(lmerTest)
 
     library(LMMstar)
@@ -60,8 +60,8 @@ test_that("Random intercept model",{
                        "grp" = c("M16", "M05", "M02", "M11", "M07", "M08", "M03", "M12", "M13", "M14", "M09", "M15", "M06", "M04", "M01", "M10", "F10", "F09", "F06", "F01", "F05", "F07", "F02", "F08", "F03", "F04", "F11"), 
                        "condval" = c(-0.9179756, -0.9179756, -0.5815230, -0.3572213, -0.2450704, -0.1329195,  0.2035330,  0.2035330,  0.2035330,  0.7642874,  0.9885891,  1.6614942,  2.1100977,  2.3343994,  3.3437571,  4.9138692, -4.9554066, -2.6002385, -2.6002385, -2.3759368, -1.2544282, -0.9179756, -0.9179756, -0.5815230, -0.2450704,  0.7642874,  2.1100977), 
                        "condsd" = c(0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092, 0.6780092))
-    u.test <- ranef(eRI2.lmm, effects = "mean", format = "long")
-    expect_equal(as.double(u.GS$condval[match(u.test$level,u.GS$grp)]), as.double(u.test$estimate), tol = 1e-6)
+    u.test <- ranef(eRI2.lmm, effects = "mean", format = "long", simplify = FALSE)
+    expect_equal(as.double(u.GS$condval[match(u.test$Subject,u.GS$grp)]), as.double(u.test$estimate), tol = 1e-6)
 
     ## ** random effects (conditional variance)
     ## tau.GS <- as.data.frame(VarCorr(eRI.lmer))
@@ -71,7 +71,7 @@ test_that("Random intercept model",{
                          "vcov" = c(4.472056, 2.049456), 
                          "sdcor" = c(2.114724, 1.431592))
     tau.test <- ranef(eRI2.lmm, effects = "variance", format = "long")
-    expect_equal(as.double(tau.GS[1,"vcov"]), as.double(tau.test[tau.test$type=="variance","estimate"]), tol = 1e-6)
+    expect_equal(as.double(tau.GS[,"vcov"]), as.double(tau.test[-1]), tol = 1e-6)
 
 })
 
@@ -91,14 +91,16 @@ test_that("Stratified random intercept model",{
     expect_equal(as.double(sum(unlist(logLik(eRI.mlmm)))), as.double(logLik(eSRI.lmm)), tol = 1e-6)
 
     ## ** random effects (conditional mean)
-    u.GS <- do.call(rbind,ranef(eRI.mlmm))
-    u.test <- ranef(eSRI.lmm, effects = "mean", format = "long")
-    expect_equal(as.double(u.GS[match(u.test$level,u.GS$level),"estimate"]), as.double(u.test$estimate), tol = 1e-6)
+    u.GS <- do.call(rbind,ranef(eRI.mlmm, simplify = FALSE))
+    u.test <- ranef(eSRI.lmm, effects = "mean", format = "long", simplify = FALSE)
+    expect_equal(as.double(u.GS[match(u.test$Subject,u.GS$Subject),"estimate"]), as.double(u.test$estimate), tol = 1e-6)
 
     ## ** random effects (conditional variance)
-    tau.GS <- do.call(rbind,ranef(eRI.mlmm, effects = "variance"))
-    tau.test <- ranef(eSRI.lmm, effects = "variance", format = "long")
-    expect_equal(as.double(tau.GS$estimate), as.double(tau.test$estimate), tol = 1e-5)
+    tau.GS <- as.data.frame(do.call(rbind,ranef(eRI.mlmm, effects = "variance")))
+    tau.test <- ranef(eSRI.lmm, effects = "variance", format = "wide")
+    expect_equal(as.double(tau.GS$total), as.double(tau.test[tau.test$type=="total",c("absolute.0","absolute.1")]), tol = 1e-5)
+    expect_equal(as.double(tau.GS$Subject), as.double(tau.test[tau.test$type=="Subject",c("absolute.0","absolute.1")]), tol = 1e-5)
+    expect_equal(as.double(tau.GS$residual), as.double(tau.test[tau.test$type=="residual",c("absolute.0","absolute.1")]), tol = 1e-5)
 })
 
 ## * Crossed random intercept model (2 terms)
@@ -141,7 +143,7 @@ test_that("Crossed random intercept model (2 terms)",{
                      "vcov" = c(0.7169051, 3.7311318, 0.3024150), 
                      "sdcor" = c(0.8467025, 1.9316138, 0.5499227))
     test <- ranef(eCRI2.lmm, effects = "variance", simplify = FALSE, format = "wide")
-    expect_equal(as.double(test$variance[-1]), as.double(GS$vcov), tol = 1e-2)
+    expect_equal(as.double(test$absolute.1[-1]), as.double(GS$vcov), tol = 1e-2)
 })
 
 ## * Crossed random intercept model (3 terms)
@@ -206,7 +208,7 @@ test_that("Crossed random intercept model (3 terms)",{
                      "vcov" = c(0.06942091, 0.12540494, 0.64105869, 0.06404538), 
                      "sdcor" = c(0.2634785, 0.3541256, 0.8006614, 0.2530719))
     test <- ranef(eCRI3.lmm0, effects = "variance", format = "wide", simplify = FALSE)
-    expect_equal(as.double(test[-1,"variance"]), as.double(GS[,"vcov"]), tol = 1e-3)
+    expect_equal(as.double(test[-1,"absolute.1"]), as.double(GS[,"vcov"]), tol = 1e-3)
 })
 
 ## * Nested random intercept model (2 levels)
@@ -251,9 +253,9 @@ test_that("Nested random intercept model (2 levels)",{
                                   )
                )
     test <- ranef(eNRI2.lmm0)
-    test$variable2 <- sapply(test$variable,paste, collapse=":")
-    expect_equal(as.double(test[test$variable2=="school","estimate"]), as.double(GS$school[,1]), tol = 1e-4)
-    expect_equal(as.double(test[test$variable2=="school:class","estimate"]), as.double(GS$class[,1]), tol = 1e-4)
+    test$label <- ifelse(!is.na(test$class),paste0(test$class,":",test$school),test$school)
+    expect_equal(as.double(test[is.na(test$class),"estimate"]), as.double(GS$school[,1]), tol = 1e-4)
+    expect_equal(as.double(test[match(rownames(GS$class),test$label),"estimate"]), as.double(GS$class[,1]), tol = 1e-4)
 
     ## ** random effects (conditional variance)
     ## GS <- as.data.frame(VarCorr(eNRI2.lmer))
@@ -263,7 +265,7 @@ test_that("Nested random intercept model (2 levels)",{
                      "vcov" = c( 7.2056645, 92.2434064,  0.6293901), 
                      "sdcor" = c(2.6843369, 9.6043431, 0.7933411))
     test <- ranef(eNRI2.lmm0, effects = "variance", format = "wide", simplify = FALSE)
-    expect_equal(as.double(test[-1,"variance"]), as.double(GS[c(2,1,3),"vcov"]), tol = 1e-3)
+    expect_equal(as.double(test[-1,"absolute.1"]), as.double(GS[c(2,1,3),"vcov"]), tol = 1e-3)
 })
 
 
@@ -293,7 +295,7 @@ test_that("Nested random intercept model (2 levels)",{
     ## eNRI3.lmer <- lmer(value ~ session + (1|patient/day/session), data = dfL.NRI3)
     eNRI3.lmm0 <- lmm(value ~ session + (1|patient/day/session), data = dfL.NRI3, df = FALSE)
     ## eNRI3.lmm <- lmm(value ~ session + (1|patient/day/session), data = dfL.NRI3, df = FALSE, control = list(init = "lmer"))
-
+    
     ## ** iteration
     expect_equal(eNRI3.lmm0$opt$n.iter,4)
     ## expect_true(eNRI3.lmm$opt$n.iter<=2)
@@ -307,7 +309,7 @@ test_that("Nested random intercept model (2 levels)",{
     ## ** random effects (conditional mean)
     ## slow!!
     ## GS <- ranef(eNRI3.lmer)
-    ## test <- ranef(eNRI3.lmm)
+    ## test <- ranef(eNRI3.lmm0)
     ## test$variable2 <- sapply(test$variable,paste, collapse=":")
     ## expect_equal(as.double(test[test$variable2=="patient","estimate"]), as.double(GS$patient[,1]), tol = 1e-4)
     ## expect_equal(as.double(test[test$variable2=="patient:day","estimate"]), as.double(GS$day[,1]), tol = 1e-4)
@@ -321,7 +323,7 @@ test_that("Nested random intercept model (2 levels)",{
                      "vcov" = c(0.14345485, 0.16865260, 0.09309796, 0.88206248), 
                      "sdcor" = c(0.3787543, 0.4106733, 0.3051196, 0.9391818))
     test <- ranef(eNRI3.lmm0, effects = "variance", format = "wide", simplify = FALSE)
-    expect_equal(as.double(test[-1,"variance"]), as.double(GS[c(3,2,1,4),"vcov"]), tol = 1e-3)
+    expect_equal(as.double(test[-1,"absolute.1"]), as.double(GS[c(3,2,1,4),"vcov"]), tol = 1e-3)
 })
 
 

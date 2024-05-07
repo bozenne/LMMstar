@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Mar 27 2024 (08:55) 
+## Last-Updated: maj  7 2024 (15:16) 
 ##           By: Brice Ozenne
-##     Update #: 3001
+##     Update #: 3018
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -842,8 +842,12 @@ lmm <- function(formula, repetition, structure, data,
             }else{
                 data$XXtimeXX <- data[[var.time]]
             }
-        }else if(is.numeric(data[[var.time]]) && all(data[[var.time]] %% 1 == 0)){
-            data$XXtimeXX <- addLeading0(data[[var.time]], as.factor = TRUE, code = attr(var.time,"code"))
+        }else if(is.numeric(data[[var.time]])){
+            if(all(data[[var.time]]>=0) && all(data[[var.time]] %% 1 == 0)){
+                data$XXtimeXX <- addLeading0(data[[var.time]], as.factor = TRUE, code = attr(var.time,"code"))
+            }else{
+                data$XXtimeXX <- factor(data[[var.time]], levels = unique(sort(data[[var.time]])))
+            }
         }else{
             data$XXtimeXX <- factor(data[[var.time]], levels = sort(unique(data[[var.time]])))
         }
@@ -908,7 +912,7 @@ lmm <- function(formula, repetition, structure, data,
 
     ## ** missing data
     index.na <- which(rowSums(is.na(data[names.data]))>0)
-    if(length(index.na) == NROW(data)){
+    if(na.rm && length(index.na) == NROW(data)){
         var.na <- names.data[colSums(!is.na(data))==0]
         if(length(var.na)==0){
             stop("All observations have at least one missing data. \n")

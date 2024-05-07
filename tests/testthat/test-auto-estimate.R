@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 31 2022 (11:36) 
 ## Version: 
-## Last-Updated: aug  1 2023 (11:22) 
+## Last-Updated: maj  7 2024 (10:35) 
 ##           By: Brice Ozenne
-##     Update #: 80
+##     Update #: 81
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -195,28 +195,33 @@ dL$gender <- dL$id %% 2
 
 test_that("delta method for random effects", {
     eRI.lmm <- lmm(Y ~ X1+X2+X3 + (1|id), repetition =~visit|id, data = dL)
-    eRI.ranef <- ranef(eRI.lmm, effects = "mean", ci = TRUE)
-    eRI.tau <- ranef(eRI.lmm, effects = "variance", ci = TRUE)
+    eRI.ranef <- ranef(eRI.lmm, effects = "mean", se = TRUE)
+    eRI.tauA <- ranef(eRI.lmm, effects = "variance", scale = "absolute", se = TRUE)
+    eRI.tauR <- ranef(eRI.lmm, effects = "variance", scale = "relative", se = TRUE)
 
-    GS.ranef <- data.frame("variable" = c("id", "id", "id", "id", "id", "id"), 
-                           "level" = c(1, 2, 3, 4, 5, 6), 
-                           "estimate" = c( 0.8108642,  1.3374212, -2.5898626, -0.4176681,  6.6307802,  0.1501507), 
-                           "se" = c(0.4033886, 0.4036581, 0.6467241, 0.5926320, 0.6522401, 0.4470301), 
-                           "df" = c(Inf, Inf, Inf, Inf, Inf, Inf), 
-                           "lower" = c( 0.02023712,  0.54626591, -3.85741859, -1.57920549,  5.35241311, -0.72601219), 
-                           "upper" = c( 1.6014912,  2.1285765, -1.3223067,  0.7438694,  7.9091473,  1.0263136))
+    GS.ranef <- data.frame("id" = c(1, 2, 3, 4, 5, 6), 
+                           "estimate" = c(0.81086415, 1.33742122, -2.58986262, -0.41766805, 6.63078022, 0.15015072), 
+                           "se" = c(0.40338857, 0.40365815, 0.64672426, 0.59263204, 0.65224109, 0.44703011), 
+                           "df" = c(95.8304692, 95.50855669, 95.27569894, 95.99610407, 91.49541552, 96.01409382), 
+                           "lower" = c(0.01012608, 0.53611351, -3.8737247, -1.59403396, 5.33527792, -0.73719536), 
+                           "upper" = c(1.61160221, 2.13872893, -1.30600054, 0.75869785, 7.92628253, 1.03749681))
 
     expect_equivalent(head(eRI.ranef), GS.ranef, tol = 1e-5)
 
-    GS.tau <- data.frame("variable" = c("id", "id"), 
-                         "type" = c("variance", "relative"), 
-                         "estimate" = c(9.4133642, 0.8084482), 
-                         "se" = c(1.4679125, 0.1260688), 
-                         "df" = c(Inf, Inf), 
-                         "lower" = c(6.934480, 0.387752), 
-                         "upper" = c(12.7783801,  0.9504015))
-    expect_equivalent(eRI.tau, GS.tau, tol = 1e-5)
-    ## expect_equal(e.ranef[,"se"], GS$condsd, tol = 1e-5) ## completely off
+
+    GS.tauA <- data.frame("type" = c("total", "id", "residual"), 
+                          "estimate" = c(11.643744,  9.413364,  2.230380), 
+                          "se" = c(1.473533, 1.467895, 0.223038), 
+                          "lower" = c(9.085982, 6.934429, 1.833406), 
+                          "upper" = c(14.921532, 12.778474,  2.713307))
+    expect_equivalent(eRI.tauA, GS.tauA, tol = 1e-5)
+
+    GS.tauR <- data.frame("type" = c("total", "id", "residual"), 
+                          "estimate" = c(1.0000000, 0.8084482, 0.1915518), 
+                          "se" = c(0.00000000, 0.02934011, 0.02934011), 
+                          "lower" = c(1.0000000, 0.7529402, 0.1418754), 
+                          "upper" = c(1.0000000, 0.8680484, 0.2586219))
+    expect_equivalent(eRI.tauR, GS.tauR, tol = 1e-5)
 })
 
 ##----------------------------------------------------------------------
