@@ -21,17 +21,17 @@ models, mainly useful when having repeated observations over a
 discrete variable: \(\VY=(Y_1,\ldots,Y_T)\) where \(T\) can be
 for example be time (chronological ordering of the repetitions) or
 brain region (arbitrary ordering of the repetitions). Denoting by
-\(X\) the associated covariates and \(\boldsymbol{\varepsilon} =
+\(\VX\) the associated covariates and \(\boldsymbol{\varepsilon} =
 (\varepsilon_1,\ldots,\varepsilon_T)\), the model can be written:
 #+BEGIN_EXPORT latex
-\[ \VY = X \beta + \boldsymbol{\varepsilon} \text{ where } \varepsilon \sim \Gaus(0,\Omega) \]
+\[ \VY = \VX \beta + \boldsymbol{\varepsilon} \text{ where } \varepsilon \sim \Gaus(0,\Omega) \]
 #+END_EXPORT
 where \(\beta\) are the mean parameters and the residual
 variance-covariance matrix, \(\Omega\), depends on a set of
 variance-covariance parameters (say \(\gamma\)) distinct of
 \(\beta\). Key assumptions are:
 - we observe \(n\) independent replicates of
-  \(\mathcal{O}=(\VY,X)\), i.e. at the cluster level,
+  \(\mathcal{O}=(\VY,\VX)\), i.e. at the cluster level,
   observations \(\left(\mathcal{O}_1,\ldots,\mathcal{O}_n\right)\) are
   independent. The replicates should also be identically distributed
   up to a categorical variable (called strata variable in the following).
@@ -74,7 +74,7 @@ functions:
       with different =lmm= can be combined using =rbind=.
     + =coef= to extract the estimated model parameters (\(\widehat{\beta}\) and possibly \(\widehat{\gamma}\)).
     + =confint= to extract the estimates with their confidence intervals.
-    + =dummy.coef= to extract the estimated (marginal) mean for each combination of categorical covariate.
+    + =effects= to evaluate marginal effects, e.g. \(\Esp\left[\Esp[Y|X_1=1]-\Esp[Y|X_1=0]\right]\) when \(\VX=(X_1,X_2)\).
     + =estimate= to test non-linear combinations of coefficients (Wald test via a first order delta method, e.g. \(\widehat{\beta}_1/\widehat{\beta}_2=1\)).
     + =fitted= to output the fitted mean (\(X\widehat{\beta}\)) or the
       conditional mean for observations with missing outcome
@@ -660,6 +660,7 @@ Rho
 
 and the corresponding dataset:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
+library(mvtnorm)
 set.seed(11)
 n <- 1000
 Y <- rmvnorm(n, mean = rep(0,6), sigma = Rho)

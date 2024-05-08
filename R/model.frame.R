@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (14:57) 
 ## Version: 
-## Last-Updated: May  6 2024 (11:33) 
+## Last-Updated: maj  8 2024 (14:47) 
 ##           By: Brice Ozenne
-##     Update #: 234
+##     Update #: 240
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -184,7 +184,7 @@ model.frame.lmm <- function(formula, newdata = NULL, type = NULL, add.index = FA
             var2.meanTime <- unique(stats::na.omit(c(var.meanTime, attr(var.time, "original"))))
             if(any(var2.meanTime %in% names(ls.tableTime.var) == FALSE)){
                 var.newtime <- var2.meanTime[var2.meanTime %in% names(ls.tableTime.var) == FALSE]
-                ls.tableTime.var[var.newtime] <- lapply(var.newtime, function(iVar){
+                ls.tableTime.var[var.newtime] <- lapply(var.newtime, function(iVar){ ## iVar <- var.newtime
                     attr(formula$time$level,"original")[,iVar]
                 })
             }
@@ -198,7 +198,7 @@ model.frame.lmm <- function(formula, newdata = NULL, type = NULL, add.index = FA
                 iOut$XXindexXX <- rep(as.numeric(NA), iN.missingTime)
                 iOut$XXtime.indexXX <- setdiff(1:n.time,iDF$XXtime.indexXX)
                 iOut$XXtimeXX <- formula$time$levels[iOut$XXtime.indexXX]
-                
+       
                 iOut[var2.meanBaseline] <-  lapply(var2.meanBaseline, function(iVar){
                     rep(iDF[1,iVar], iN.missingTime)
                 })

@@ -3,7 +3,6 @@ library(testthat)
 library(LMMstar)
 
 library(data.table)
-library(emmeans)
 library(ggplot2)
 library(lava)
 library(lme4)

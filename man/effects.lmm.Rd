@@ -70,6 +70,7 @@ effects(eUN.lmm, type = "difference", variable = "X1", repetition = "3")
 
 ## change
 effects(eUN.lmm, type = "change", variable = "X1")
+effects(eUN.lmm, type = "change", variable = "X1", conditional = NULL)
 effects(eUN.lmm, type = c("change","difference"), variable = "X1")
 
 ## auc

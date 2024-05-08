@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 11 2024 (09:49) 
 ## Version: 
-## Last-Updated: mar 11 2024 (18:11) 
+## Last-Updated: maj  7 2024 (16:24) 
 ##           By: Brice Ozenne
-##     Update #: 70
+##     Update #: 77
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -120,15 +120,20 @@
             }else{
                 paste(xfactor$var[[iCol]][xfactor$var[[iCol]] %in% iData.var[[iCol]]], collapse = sep[2])
             }
-        })
-
+        })        
         iUlp.cor <- unique(unlist(pattern2lp.cor[unique(iUpattern$cor)]))
         iData.cor <- lp2data.cor[iUlp.cor,,drop=FALSE]
-        iName.cor <- lapply(colnames(iData.cor), function(iCol){
-            if(all(xfactor$cor[[iCol]] %in% iData.cor[[iCol]])){
-                return(NULL)
+        iName.cor <- lapply(colnames(iData.cor), function(iCol){ ## iCol <- colnames(iData.cor)
+            if(iCol %in% names(xfactor$cor)){
+                if(all(xfactor$cor[[iCol]] %in% iData.cor[[iCol]])){
+                    return(NULL)
+                }else{
+                    paste(xfactor$cor[[iCol]][xfactor$cor[[iCol]] %in% iData.cor[[iCol]]], collapse = sep[2])
+                }
+            }else if(length(iData.cor)==1){
+                return(unlist(iData.cor))
             }else{
-                paste(xfactor$cor[[iCol]][xfactor$cor[[iCol]] %in% iData.cor[[iCol]]], collapse = sep[2])
+                return(NULL)
             }
         })
         

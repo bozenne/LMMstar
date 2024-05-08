@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 29 2024 (09:47) 
 ## Version: 
-## Last-Updated: maj  7 2024 (09:43) 
+## Last-Updated: maj  8 2024 (17:45) 
 ##           By: Brice Ozenne
-##     Update #: 335
+##     Update #: 539
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,7 +18,6 @@
 ## * effects.lmm (documentation)
 ##' @title Effects Derived For Linear Mixed Model
 ##' @description Estimate average counterfactual outcome or contrast of outcome from linear mixed models.
-
 ##' @param object a \code{lmm} object. 
 ##' @param variable [character] the variable relative to which the effect should be computed.
 ##' @param type [character] should the average counterfactual outcome for each variable level be evaluated (\code{"identity"})?
@@ -57,6 +56,7 @@
 ##'
 ##' ## change
 ##' effects(eUN.lmm, type = "change", variable = "X1")
+##' effects(eUN.lmm, type = "change", variable = "X1", conditional = NULL)
 ##' effects(eUN.lmm, type = c("change","difference"), variable = "X1")
 ##'
 ##' ## auc
@@ -175,8 +175,13 @@ effects.lmm <- function(object, variable, newdata = NULL, type = c("identity","n
     n.time <- length(U.time)
     if(is.null(newdata)){
         data.augmented <- stats::model.frame(object, type = "add.NA", add.index = TRUE)
+        if(any(is.na(data.augmented[manifest(object, effects = "mean")]))){
+            warning("Missing value(s) among covariates used to estimate the average effects. \n",
+                    "Corresponding lines in the dataset will be removed. \n",
+                    "Consider specifying the argument \'newdata\' to specifying the marginal covariate distribution. \n")
+        }
     }else{
-        data.augmented <- stats::model.frame(object, newdata = newdata, add.index = TRUE)
+        data.augmented <- stats::model.frame(object, newdata = newdata, add.index = TRUE, na.rm = FALSE)
     }
     
     ## only consider requested times
@@ -199,27 +204,52 @@ effects.lmm <- function(object, variable, newdata = NULL, type = c("identity","n
     }
 
     ## define conditioning set (normalize user input)
-    if(is.character(conditional)){
-        if(any(conditional %in% setdiff(names(object$xfactor$mean),variable) == FALSE)){
+    if("conditional" %in% names(call) == FALSE){
+        conditional <- switch(type[2],
+                              "none" = object$time$var,
+                              "change" = object$time$var,
+                              "auc" = NULL,
+                              "auc-b" = NULL)
+    }
+
+    if(is.null(conditional) || length(conditional)==0){
+        conditional.time <- FALSE
+        grid.conditional <- NULL
+    }else if(is.character(conditional)){
+        valid.conditional <- setdiff(c(object$time$var,names(object$xfactor$mean)),variable)
+        if(any(conditional %in% valid.conditional == FALSE)){
             stop("Incorrect value for argument \'conditional\'. \n",
-                 "If a character should only include factor variables influencing the mean structure.\n",
-                 "Valid values: \"",paste0(setdiff(names(object$xfactor$mean),variable), collapse = "\" \""),"\".\n")
+                 "If a character, it should only include the time variable and factor variables influencing the mean structure.\n",
+                 "Valid values: \"",paste0(valid.conditional, collapse = "\" \""),"\".\n")
         }
-        grid.conditional <- expand.grid(object$xfactor$mean[conditional])
+        conditional.time <- object$time$var %in% conditional
+        grid.conditional <- expand.grid(object$xfactor$mean[setdiff(conditional,object$time$var)])
     }else if(is.list(conditional)){
+        valid.conditional <- setdiff(c(object$time$var,valid.variable),variable)
         if(is.null(names(conditional))){
             stop("Missing names for argument \'conditional\'. \n",
-                 "Valid values: \"",paste0(setdiff(valid.variable, variable), collapse = "\" \""),"\".\n")
+                 "Valid values: \"",paste0(valid.conditional, collapse = "\" \""),"\".\n")
         }
-        if(any(names(conditional) %in% setdiff(valid.variable, variable) == FALSE)){
+        if(any(names(conditional) %in% valid.conditional == FALSE)){
             stop("Incorrect names for argument \'conditional\'. \n",
-                 "Valid values: \"",paste0(setdiff(valid.variable, variable), collapse = "\" \""),"\".\n")
+                 "It should only include the time variable and variables influencing the mean structure.\n",
+                 "Valid values: \"",paste0(valid.conditional, collapse = "\" \""),"\".\n")
         }
-        grid.conditional <- expand.grid(conditional)
+        conditional.time <- object$time$var %in% names(conditional)
+        if(conditional.time & "repetition" %in% names(call) & !identical(sort(unname(conditional[[object$time$var]])),sort(unname(repetition)))){
+            stop("Mismatch between argument \'repetition\' and \'conditional\' regarding timepoint values. \n")
+        }
+        grid.conditional <- expand.grid(conditional[setdiff(names(conditional),object$time$var)])
     }else if(!is.null(conditional)){
         stop("Argument \'conditional\' must either be NULL, or a character vector indicating factor variables, or a named list of covariate values. \n")
     }
-    if(!is.null(conditional)){            
+    if(conditional.time && type[2] %in% c("auc","auc-b")){
+        stop("Incompatibility between arguments \'conditional\' and \'type\'. \n",
+             "Cannot condition on the time variable \"",object$time$var,"\" when type is \"auc\" or \"auc-b\". ")
+    }
+        
+
+    if(length(grid.conditional)>0){            
         key.conditional <- nlme::collapse(grid.conditional, sep = sep.var)
         key.original <- levels(key.conditional)[match(nlme::collapse(data.augmented[names(grid.conditional)], sep =  sep.var), key.conditional)]
         if(prefix.var){
@@ -236,101 +266,68 @@ effects.lmm <- function(object, variable, newdata = NULL, type = c("identity","n
             data.augmented <- data.augmented[!is.na(key.original),,drop=FALSE]
         }
         U.strata <- unique(data.augmented$XXstrataXX)
+        ## identify combination of timepoints and strata that never occur in the observed data (to be removed from the contrast matrix) 
+        attr(U.strata,"table") <- table(data.augmented$XXtimeXX,data.augmented$XXstrataXX)
+        if(!is.null(repetition)){
+            attr(U.strata,"table") <- attr(U.strata,"table")[repetition,,drop=FALSE]
+        }
         n.strata <- length(U.strata)
-        U.timestrata <- unlist(lapply(U.strata, function(iS){paste(U.time, iS, sep = sep.var)}))
+        
     }
 
     ## define contrast matrix
+    if(is.null(prefix.time)){
+        if(conditional.time){
+            prefix.time <- switch(type[2],
+                                  "none" = "t=",
+                                  "change" = "dt=",
+                                  "auc" = "auc",
+                                  "auc-b" = "auc-b",
+                                  NA)
+        }else{
+            prefix.time <- switch(type[2],
+                                  "none" = "t",
+                                  "change" = "dt",
+                                  "auc" = "auc",
+                                  "auc-b" = "auc-b",
+                                  NA)
+        }                              
+    }
+
     if(n.time==1 && type[2] %in% c("change","auc","auc-b")){
         stop("Cannot evaluate ",type[2]," when there is a single timepoint. \n",
              "Considering setting argument \'type\' to \"static\" or specifying the argument \'repetition\' when calling lmm. \n")
     }
-
-    if(type[2] == "none"){
-        if(is.null(prefix.time)){
-            prefix.time <- "t="
-        }
-    }else if(type[2] == "change"){        
-        M.contrast0 <- matrix(c(-1,rep(0,n.time-1)), byrow = TRUE, nrow = n.time, ncol = n.time) + diag(1, n.time, n.time)
-        dimnames(M.contrast0) <- list(U.time, U.time)
-        if(is.null(repetition)){
-            M.contrast <- M.contrast0[-1,,drop=FALSE]
-        }else{
-            M.contrast <- M.contrast0[setdiff(repetition,U.time[1]),repetition,drop=FALSE]
-        }
-        if(is.null(prefix.time)){
-            prefix.time <- "dt="
-        }        
-        if(is.null(conditional)){
-            rownames(M.contrast) <- paste0(prefix.time,rownames(M.contrast))
-        }else{
-            M.contrastC <- as.matrix(Matrix::bdiag(replicate(n = n.strata, M.contrast, simplify = FALSE)))
-            rownames(M.contrastC) <- paste0(prefix.time,rep(rownames(M.contrast), times = n.strata),sep.var,unlist(lapply(U.strata, rep, times = NROW(M.contrast))))
-            neworder.contrastC <- unlist(lapply(U.strata, function(iStrata){paste(colnames(M.contrast), iStrata, sep = sep.var)})) ## reorder C matrix to stack w.r.t. conditional                    
-        }
-    }else if(type[2] %in% c("auc","auc-b")){
-        time.num <- as.numeric(U.time)
-        dtime.num <- diff(c(utils::head(time.num,1),time.num))/2 + diff(c(time.num,utils::tail(time.num,1)))/2
-        if(type[2] == "auc-b"){
-            dtime.num[1] <- dtime.num[1] - sum(dtime.num)
-        }
-        M.contrast <- matrix(dtime.num, byrow = TRUE, nrow = 1, ncol = n.time)
-        dimnames(M.contrast) <- list(NULL, U.time)
-        if(any(is.na(time.num))){
-            stop("Cannot evaluate the area under the curve of the outcome. \n",
-                 "When calling lmm, argument \'repetition\'(=~time|cluster) must contain a numeric time variable. \n",
-                 "Or a factor variable whose levels can be converted as numeric")
-        }
-        if(is.unsorted(time.num)){
-            warning("The levels of the time variable do not correspond to numeric values in increasing order. \n",
-                    "Can be an issue when evaluating the area under the curve.")
-        }
-        if(is.null(prefix.time)){
-            prefix.time <- type[2]
-        }
-        if(is.null(conditional)){
-            rownames(M.contrast) <- prefix.time            
-        }else{
-            M.contrastC <- as.matrix(Matrix::bdiag(replicate(n = n.strata, M.contrast, simplify = FALSE)))
-            rownames(M.contrastC) <- paste0(prefix.time,sep.var,U.strata)
-            neworder.contrastC <- unlist(lapply(U.strata, function(iStrata){paste(colnames(M.contrast), iStrata, sep = sep.var)})) ## reorder C matrix to stack w.r.t. conditional                    
-        }
-    }
+    M.contrast <- .effects_contrast(type = type, grid.conditional = grid.conditional, conditional.time = conditional.time, repetition = repetition, 
+                                    U.strata = U.strata, n.strata = n.strata, 
+                                    U.time = U.time, n.time = n.time,
+                                    prefix.time = prefix.time, sep.var = sep.var)
 
     ## ** perform average
     if(type[1] == "identity"){
         ls.C <- lapply(Ulevel.variable, function(iLevel){ ## iLevel <- 0
             iData <- data.augmented
+            ## iData <- data.augmented[data.augmented$subject==data.augmented$subject[1],]
             if(!is.null(variable)){
                 iData[[variable]][] <- iLevel
-            }            
+            }
+
             iX <- stats::model.matrix(object$formula$mean.design, iData)[,colnames(object$design$mean),drop=FALSE] ## remove uncessary columns in case of (baseline) constraint
 
-            if(is.null(conditional)){                
-                iStrata <- droplevels(factor(iData$XXtimeXX, levels = U.time))
+            if(length(grid.conditional)==0){
+                iStrata <- droplevels(factor(iData$XXtimeXX, 
+                                             levels = attr(M.contrast,"time.col")))
             }else{
-                iStrata <- droplevels(factor(paste(iData$XXtimeXX, iData$XXstrataXX, sep = sep.var), levels = U.timestrata))
+                iStrata <- droplevels(factor(paste0(iData$XXtimeXX, sep.var, iData$XXstrataXX),
+                                             levels = paste0(attr(M.contrast,"time.col"), sep.var, attr(M.contrast,"strata.col"))))
             }
 
             if(NROW(iX)!=NROW(iData)){
                 ## handle missing values in covariates, i.e. rows removed by model.matrix
                 iStrata <- iStrata[as.numeric(rownames(iX))]
             }
-
-            iC <- do.call(rbind,by(iX,iStrata,colMeans))
-            if(type[2] == "none"){
-                rownames(iC) <- paste0(iLevel,"(",prefix.time,rownames(iC),")")
-            }else{
-                if(is.null(conditional)){
-                    iC <- M.contrast %*% iC
-                }else{
-                    iC <- M.contrastC %*% iC[neworder.contrastC,,drop=FALSE]
-                }                
-                rownames(iC) <- paste0(iLevel,"(",rownames(iC),")")
-            }
-            if(!is.null(variable) && prefix.var){
-                rownames(iC) <- paste0(variable,"=",rownames(iC))
-            }    
+            iC <- M.contrast[,levels(iStrata),drop=FALSE] %*% do.call(rbind,by(iX,iStrata,colMeans))
+            rownames(iC) <- paste0(iLevel,rownames(iC))
             return(iC)
         })
     }else if(type[1] == "difference"){
@@ -345,40 +342,30 @@ effects.lmm <- function(object, variable, newdata = NULL, type = c("identity","n
 
             iX1 <- stats::model.matrix(object$formula$mean.design, iData1)[,colnames(object$design$mean),drop=FALSE] ## remove uncessary columns in case of (baseline) constraint
             iX2 <- stats::model.matrix(object$formula$mean.design, iData2)[,colnames(object$design$mean),drop=FALSE] ## remove uncessary columns in case of (baseline) constraint
-
-            if(is.null(conditional)){
-                iStrata <- droplevels(factor(paste0(Upair.variable[2,iPair],"-",Upair.variable[1,iPair],"(",prefix.time,iData1$XXtimeXX,")"),
-                                             paste0(Upair.variable[2,iPair],"-",Upair.variable[1,iPair],"(",prefix.time,U.time,")")))
+            
+            if(length(grid.conditional)==0){
+                iStrata <- droplevels(factor(iData1$XXtimeXX,
+                                             levels = attr(M.contrast,"time.col")))
             }else{
-                iStrata <- droplevels(factor(paste0(Upair.variable[2,iPair],"-",Upair.variable[1,iPair],"(",prefix.time,iData1$XXtimeXX, sep.var, iData1$XXstrataXX,")"),
-                                             paste0(Upair.variable[2,iPair],"-",Upair.variable[1,iPair],"(",prefix.time,U.timestrata,")")))
-                if(type[2] != "none"){
-                    iNeworder.contrastC <- paste0(Upair.variable[2,iPair],"-",Upair.variable[1,iPair],"(",prefix.time,neworder.contrastC,")")
-                }
+                iStrata <- droplevels(factor(paste0(iData1$XXtimeXX,sep.var,iData1$XXstrataXX),
+                                             levels = paste0(attr(M.contrast,"time.col"),sep.var,attr(M.contrast,"strata.col"))))
             }
+
 
             if(NROW(iX1)!=NROW(iData1)){
                 ## handle missing values in covariates, i.e. rows removed by model.matrix
                 iStrata <- iStrata[as.numeric(rownames(iX1))]
             }
-
-            iC <- do.call(rbind,by(iX2-iX1,iStrata,colMeans))
-            if(type[2] != "none"){
-                if(is.null(conditional)){
-                    iC <- M.contrast %*% iC
-                    rownames(iC) <- paste0(Upair.variable[2,iPair],"-",Upair.variable[1,iPair],"(",rownames(M.contrast),")")
-                }else{
-                    iC <- M.contrastC %*% iC[iNeworder.contrastC,,drop=FALSE]
-                    rownames(iC) <- paste0(Upair.variable[2,iPair],"-",Upair.variable[1,iPair],"(",rownames(M.contrastC),")")                    
-                }
-            }            
-            if(prefix.var){
-                rownames(iC) <- paste0(variable,"=",rownames(iC))
-            }
+            iC <- M.contrast[,levels(iStrata),drop=FALSE] %*% do.call(rbind,by(iX2-iX1,iStrata,colMeans))
+            rownames(iC) <- paste0(Upair.variable[2,iPair],"-",Upair.variable[1,iPair],rownames(M.contrast))
             return(iC)
         })
     }
+
     effect <- do.call(rbind,ls.C)
+    if(prefix.var){
+        rownames(effect) <- paste0(variable,"=",rownames(effect))
+    }
 
     ## ** check arguments
     out <- anova(object, effect = effect, multivariate = multivariate, ...)
@@ -387,6 +374,143 @@ effects.lmm <- function(object, variable, newdata = NULL, type = c("identity","n
 
     ## ** export
     attr(out,"class") <- append("effect_lmm",attr(out,"class"))
+    return(out)
+}
+
+## * .effects_contrast
+##' @description Generate contrast matrix
+##' @noRd
+.effects_contrast <- function(type, grid.conditional, conditional.time, repetition,
+                              U.strata, n.strata, 
+                              U.time, n.time,
+                              prefix.time, sep.var){
+
+    ## ** generate contrast matrix according to type across repetitions
+    if(type[2] == "none"){
+        M.contrast <- diag(1, n.time, n.time)
+        dimnames(M.contrast) <- list(U.time, U.time)
+        if(!is.null(repetition)){
+            M.contrast <- M.contrast[repetition, ,drop=FALSE]
+        }
+    }else if(type[2] == "change"){        
+        M.contrast0 <- matrix(c(-1,rep(0,n.time-1)), byrow = TRUE, nrow = n.time, ncol = n.time) + diag(1, n.time, n.time)
+        dimnames(M.contrast0) <- list(U.time, U.time)
+        if(is.null(repetition)){
+            M.contrast <- M.contrast0[-1,,drop=FALSE]
+        }else{
+            M.contrast <- M.contrast0[setdiff(repetition,U.time[1]),,drop=FALSE]
+        }
+    }else if(type[2] %in% c("auc","auc-b")){
+        time.num <- as.numeric(U.time)
+        if(any(is.na(time.num))){
+            stop("Cannot evaluate the area under the curve of the outcome. \n",
+                 "When calling lmm, argument \'repetition\'(=~time|cluster) must contain a numeric time variable. \n",
+                 "Or a factor variable whose levels can be converted as numeric")
+        }
+        if(is.unsorted(time.num)){
+            warning("The levels of the time variable do not correspond to numeric values in increasing order. \n",
+                    "Can be an issue when evaluating the area under the curve.")
+        }
+        dtime.num <- diff(c(utils::head(time.num,1),time.num))/2 + diff(c(time.num,utils::tail(time.num,1)))/2
+        if(type[2] == "auc-b"){
+            dtime.num[1] <- dtime.num[1] - sum(dtime.num)
+        }
+        M.contrast <- matrix(dtime.num, byrow = TRUE, nrow = 1, ncol = n.time)
+        dimnames(M.contrast) <- list(NULL, U.time)
+    }
+
+    ## ** possible stratification
+    if(length(grid.conditional)>0){
+ 
+        if(any(attr(U.strata,"table")==0)){
+            ## in cross-over designs, there will be no observation at period drug=placebo under condition=active
+            ## this case should be removed from the contrast matrix
+            ls.contractC <- lapply(1:n.strata, function(iS){ ## iS <- 1
+                iIndex <- which(attr(U.strata,"table")[,U.strata[iS]]>0)
+                if(type[2] == "none"){
+                    iM <- M.contrast[iIndex,iIndex,drop=FALSE]
+                    attr(iM,"time.row") <- U.time[iIndex]
+                }else if(type[2] == "change"){
+                    if(1 %in% iIndex){
+                        iM <- M.contrast[setdiff(iIndex,1)-1,iIndex,drop=FALSE]
+                        attr(iM,"time.row") <- U.time[setdiff(iIndex,1)-1]
+                    }else{
+                        stop("Cannot evaluate the effect (no baseline measurement under condition ",U.strata[iS],"). \n")
+                    }
+                }else if(type[2] %in% c("auc","auc-b")){
+                    iM <- M.contrast[,iIndex,drop=FALSE]
+                }
+                attr(iM,"time.col") <- U.time[iIndex]
+                attr(iM,"strata.col") <- rep(U.strata[iS],length(iIndex))
+                attr(iM,"strata.row") <- rep(U.strata[iS],NROW(iM))
+                return(iM)
+            })
+            M.contrastC <- as.matrix(Matrix::bdiag(ls.contractC))
+            attr(M.contrastC,"time.col") <- unlist(lapply(ls.contractC,"attr","time.col")) ## wil be NULL in the case of auc,auc-b
+            attr(M.contrastC,"strata.col") <- unlist(lapply(ls.contractC,"attr","strata.col"))
+            attr(M.contrastC,"time.row") <- unlist(lapply(ls.contractC,"attr","time.row"))
+            attr(M.contrastC,"strata.row") <- unlist(lapply(ls.contractC,"attr","strata.row"))
+        }else{
+            M.contrastC <- as.matrix(Matrix::bdiag(replicate(n = n.strata, M.contrast, simplify = FALSE)))
+            attr(M.contrastC,"time.col") <- rep(U.time, times = n.strata) ## wil be NULL in the case of auc,auc-b
+            attr(M.contrastC,"strata.col") <- unlist(lapply(U.strata, rep, times = NCOL(M.contrast)))
+            attr(M.contrastC,"time.row") <- rep(rownames(M.contrast), times = n.strata) ## wil be NULL in the case of auc,auc-b
+            attr(M.contrastC,"strata.row") <- unlist(lapply(U.strata, rep, times = NROW(M.contrast)))
+        }
+        colnames(M.contrastC) <- paste0(attr(M.contrastC,"time.col"), sep.var, attr(M.contrastC,"strata.col"))
+        
+        if(type[2] %in% c("none","change")){
+            rownames(M.contrastC) <- paste0("(",prefix.time,attr(M.contrastC,"time.row"),sep.var,attr(M.contrastC,"strata.row"),")")
+        }else if(type[2]%in%c("auc","auc-b")){
+            if(nchar(prefix.time)==0){
+                rownames(M.contrastC) <- paste0("(",attr(M.contrastC,"strata.row"),")")
+            }else{
+                rownames(M.contrastC) <- paste0("(",prefix.time,sep.var,attr(M.contrastC,"strata.row"),")")
+            }
+        }
+
+        
+    }else{
+        M.contrastC <- M.contrast
+        attr(M.contrastC,"time.row") <- rownames(M.contrast) ## wil be NULL in the case of auc,auc-b
+        attr(M.contrastC,"time.col") <- U.time
+        colnames(M.contrastC) <- attr(M.contrastC,"time.col")
+
+        if(type[2] %in% c("none","change")){
+            rownames(M.contrastC) <- paste0("(",prefix.time,attr(M.contrastC,"time.row"),")")
+        }else if(type[2] %in% c("auc","auc-b")){
+            if(nchar(prefix.time)==0){
+                rownames(M.contrastC) <- ""
+            }else{
+                rownames(M.contrastC) <- paste0("(",prefix.time,")")
+            }
+        }
+    }
+
+    ## ** collapse across timepoints
+    if(conditional.time || type[2] %in% c("auc","auc-b")){
+        out <- M.contrastC
+    }else if(length(grid.conditional)==0 && type[2] %in% c("none","change")){
+        out <- rbind(colMeans(M.contrastC))
+        if(nchar(prefix.time)==0){
+            rownames(out) <- ""
+        }else{
+            rownames(out) <- paste0("(",prefix.time,")")
+        }
+        attr(out,"time.col") <- attr(M.contrastC,"time.col")
+    }else if(length(grid.conditional)>0 && type[2] %in% c("none","change")){
+        ls.out <- by(M.contrastC, attr(M.contrastC,"strata.row"), colMeans)
+        out <- do.call(rbind,ls.out)
+        if(nchar(prefix.time)==0){
+            rownames(out) <- paste0("(",names(ls.out),")")
+        }else{
+            rownames(out) <- paste0("(",prefix.time,sep.var,names(ls.out),")")
+        }
+        attr(out,"time.col") <- attr(M.contrastC,"time.col")
+        attr(out,"strata.row") <- names(ls.out)
+        attr(out,"strata.col") <- attr(M.contrastC,"strata.col")
+    }
+    ## ** export
     return(out)
 }
 ##----------------------------------------------------------------------

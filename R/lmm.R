@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: maj  7 2024 (15:16) 
+## Last-Updated: maj  8 2024 (14:38) 
 ##           By: Brice Ozenne
-##     Update #: 3018
+##     Update #: 3027
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -228,14 +228,14 @@ lmm <- function(formula, repetition, structure, data,
     ## time
     U.time <- levels(data$XXtimeXX)
     if(length(var.time.original)>=1 && any(!is.na(var.time.original))){
-        attr(U.time,"original") <- unique(data[var.time.original])
+        attr(U.time,"original") <- unique(data[do.call(order,data[var.time.original]),var.time.original,drop=FALSE])
     }
     n.time <- max(data$XXtime.indexXX) ## may not match U.time in presence of missing values
 
     ## strata
     U.strata <- levels(data$XXstrataXX)
     if(length(var.strata.original)>=1 && any(!is.na(var.strata.original))){
-        attr(U.strata,"original") <- unique(data[var.strata.original])
+        attr(U.strata,"original") <- unique(data[do.call(order,data[var.strata.original]),var.strata.original,drop=FALSE])
     }
     n.strata <- max(data$XXstrata.indexXX) ## may not match U.strata in presence of missing values
 

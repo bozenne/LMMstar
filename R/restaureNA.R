@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 20 2023 (15:31) 
 ## Version: 
-## Last-Updated: maj  7 2024 (12:30) 
+## Last-Updated: maj  8 2024 (18:09) 
 ##           By: Brice Ozenne
-##     Update #: 51
+##     Update #: 61
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,13 +16,22 @@
 ### Code:
 
 ## * restaureNA (documentation)
+##' @title Restaure NA
 ##' @description Restaure NA in the user output that have been excluded when fitting the LMM.
-##' @noRd
+##' @param object results when NA should be added to match the user input.
+##' @param index.na [integer vector] index of the missing values.
+##' @param level [character] Should missing observations, indicated by the argument \code{index.na}, be restaured (\code{"obs"})
+##' or should missing clusters, indicated by the discrepancy between the name of the object and the argument \code{cluster}, be restaured (\code{"cluster"}).
+##' @param cluster [list] list containing the number of cluster (\code{n}), name of the clusters (\code{levels}), and integer associated with each clusters (\code{index}).
+##'
+##' @keywords internal
+##' 
+##' @export
 `restaureNA` <-
   function(object, index.na, level, cluster) UseMethod("restaureNA")
 
-## * restaureNA.vector
-##' @noRd
+## * restaureNA.numeric
+##' @export
 restaureNA.numeric <- function(object, index.na, level, cluster){
 
     if(length(object)==0){
@@ -60,20 +69,23 @@ restaureNA.numeric <- function(object, index.na, level, cluster){
 }
 
 ## * restaureNA.character
-##' @noRd
+##' @export
 restaureNA.character <- restaureNA.numeric
+
 ## * restaureNA.factor
-##' @noRd
+##' @export
 restaureNA.factor <- restaureNA.numeric
+
 ## * restaureNA.integer
-##' @noRd
+##' @export
 restaureNA.integer <- restaureNA.numeric
+
 ## * restaureNA.logical
-##' @noRd
+##' @export
 restaureNA.logical <- restaureNA.numeric
 
 ## * restaureNA.matrix
-##' @noRd
+##' @export
 restaureNA.matrix <- function(object, index.na, level, cluster){
 
     if(level == "cluster" && any(is.na(cluster$index))){
@@ -108,7 +120,7 @@ restaureNA.matrix <- function(object, index.na, level, cluster){
 }
 
 ## * restaureNA.array
-##' @noRd
+##' @export
 restaureNA.array <- function(object, index.na, level, cluster){
 
     if(level == "cluster" && any(is.na(cluster$index))){
