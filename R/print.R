@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jan 29 2024 (13:04) 
+## Last-Updated: May  9 2024 (13:18) 
 ##           By: Brice Ozenne
-##     Update #: 249
+##     Update #: 252
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -77,7 +77,7 @@ print.lmm <- function(x, ...){
             }else if(structure$type == "homogeneous0"){
                 cat("\t\tLinear Mixed Model with ",txt.strata," crossed compound symmetry covariance matrix \n", sep = "")
             }
-        }else if(inherits(structure,"TOEPLITZ")){
+        }else if(inherits(structure,"TOEPLITZ")){            
             if(is.na(structure$name$strata)){
                 txt.strata <- "a"
             }else{
@@ -87,7 +87,7 @@ print.lmm <- function(x, ...){
                 cat("\t\tLinear Mixed Model with ",txt.strata," Toeplitz covariance matrix \n", sep = "")
             }else if(structure$type == "heterogeneous"){
                 cat("\t\tLinear Mixed Model with ",txt.strata," unstructured covariance matrix with constant subdiagonal \n", sep = "")                
-            }else if(structure$type == "lag"){
+            }else if(tolower(structure$type) == "lag"){
                 cat("\t\tLinear Mixed Model with ",txt.strata," block Toeplitz covariance matrix \n", sep = "")
             }else if(structure$type == "homogeneous"){
                 cat("\t\tLinear Mixed Model with ",txt.strata," block compound symmetry covariance matrix with specific subdiagonal \n", sep = "")

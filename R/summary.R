@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: maj  7 2024 (15:56) 
+## Last-Updated: May  9 2024 (13:17) 
 ##           By: Brice Ozenne
-##     Update #: 1391
+##     Update #: 1397
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -231,13 +231,13 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
             }else if(structure$type == "homogeneous0"){
                 cat(txt.strata,"crossed compound symmetry \n\n",sep="")
             }
-        }else if(inherits(structure, "TOEPLITZ")){
+        }else if(inherits(structure, "TOEPLITZ")){            
             if(all(is.na(structure$name$cor))){
                 cat(txt.strata,"Toeplitz \n\n",sep="")
             }else if(structure$type == "heterogeneous"){
                 n.block <- length(unique(structure$X$cor[,3]))-1
                 cat(txt.strata,paste0("unstructured with ",n.block," constant subdiagonal",if(n.block>1){"s"}," \n\n"),sep="")
-            }else if(structure$type == "lag"){
+            }else if(tolower(structure$type) == "lag"){
                 cat(txt.strata,"block Toeplitz \n\n",sep="")
             }else if(structure$type == "homogeneous"){
                 n.block <- length(unique(structure$X$cor[,3]))-1
@@ -359,7 +359,8 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
         }
         print(printtable, digits = digits, na.print = "" , quote = FALSE)
     }else{
-        table.re <- NULL
+        table.reA <- NULL
+        table.reR <- NULL
     }
 
     
@@ -397,7 +398,8 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
     return(invisible(list(correlation = table.cor,
                           variance = table.var,
                           sd = table.sd,
-                          re = table.re,
+                          reA = table.reA,
+                          reR = table.reR,
                           mean = table.mean)))
 }
 

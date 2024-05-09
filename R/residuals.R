@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: maj  8 2024 (18:06) 
+## Last-Updated: May  9 2024 (10:39) 
 ##           By: Brice Ozenne
-##     Update #: 1347
+##     Update #: 1351
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -605,8 +605,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         M.res <- restaureNA(M.res, index.na = index.na, level = "obs")
         fitted <- restaureNA(fitted, index.na = index.na, level = "obs")
         if(keep.grad){
-            attr(M.res,"grad") <- array(unlist(apply(attr(M.res,"grad"), MARGIN = 3, restaureNA, index.na = index.na, level = "obs", simplify = FALSE)),
-                                        dim = c(NROW(M.res), dim(attr(M.res,"grad"))[-1]), dimnames = c(list(NULL),dimnames(attr(M.res,"grad"))[-1]))
+            attr(M.res,"grad") <- restaureNA(attr(M.res,"grad"), index.na = index.na, level = "obs") 
         }
     }
        

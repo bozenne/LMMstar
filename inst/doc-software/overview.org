@@ -7,12 +7,7 @@ if(system("whoami",intern=TRUE)=="bozenne"){
 }else if(system("whoami",intern=TRUE)=="unicph\\hpl802"){  
   setwd("c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/")
 }
-library(ggplot2, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
-library(emmeans, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
-library(qqtest, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
-library(multcomp, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
 library(ggpubr, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
-library(LMMstar, quietly = TRUE, verbose = FALSE)
 #+END_SRC
 
 This vignette describes the main functionalities of the *LMMstar*
@@ -60,12 +55,28 @@ utils::packageVersion("LMMstar")
 #+END_SRC
 
 #+RESULTS:
-: [1] '1.0.2'
+: [1] ‘1.1.0’
+
+It is recommanded to also the following packages, as some of the
+methods implemented in the package are relative to a generic method
+implmented in other packages:
+#+BEGIN_SRC R :exports code :results silent :session *R* :cache no
+library(ggplot2) ## autoplot method
+library(nlme) ## ranef method
+library(lava) ## iid, information, manifest methods
+#+END_SRC
 
 \clearpage
 
 The user interface of the *LMMstar* package is made of the following
 functions:
+- functions to describe or visualize the dataset: 
+    + =scatterplot= to visualize the marginal and bivariate distribution of continuous variables.
+    + =summarize= to compute summary statistics, possibly stratified on a categorical variable.
+    + =summarizeNA= to identify missing data patterns.
+    + =partialCor= to compute partial correlation between two variables.
+- the function =mt.test= to perform multiple Student's t-Tests and
+  adjust the results for multiple testing.
 - the function =lmm= is the main function of the package which fits
   linear mixed models. The user can interact with /lmm/ objects using:
     + =anova= to perform Wald tests, i.e. test linear combinations of
@@ -103,10 +114,6 @@ functions:
       parameters (\(\widehat{\Sigma}_{\widehat{\beta}}\)).
 - the =mlmm= function to fit group-specific linear mixed models and
   gather the estimated coefficients.
-- the =summarize= function to compute summary statistics, possibly
-  stratified on a categorical variable
-- the =summarizeNA= function to identify missing data patterns.
-- the =partialCor= function to compute partial correlation between two variables.
 - the =sampleRem= function to simulate longitudinal data.
 - the =LMMstar.options= function enables the user to display the
   default values used in the *LMMstar* package. The function
@@ -124,36 +131,33 @@ head(gastricbypassL)
 #+END_SRC
 
 #+RESULTS:
-:   id visit          time weight glucagonAUC
-: 1  1     1 3monthsBefore  127.2     5032.50
-: 2  2     1 3monthsBefore  165.2    12142.50
-: 3  3     1 3monthsBefore  109.7    10321.35
-: 4  4     1 3monthsBefore  146.2     6693.00
-: 5  5     1 3monthsBefore  113.1     7090.50
-: 6  6     1 3monthsBefore  158.8    10386.00
+:   id visit time weight glucagonAUC
+: 1  1     1  -13  127.2    20.69014
+: 2  2     1  -13  165.2    49.92151
+: 3  3     1  -13  109.7    42.43420
+: 4  4     1  -13  146.2    27.51696
+: 5  5     1  -13  113.1    29.15120
+: 6  6     1  -13  158.8    42.70000
 
-See =?gastricbypassL= for a presentation of the dataset. We will
-shorten the values of the time variable:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-gastricbypassL$time <- factor(gastricbypassL$time,
-                              levels = c("3monthsBefore", "1weekBefore",
-                                         "1weekAfter", "3monthsAfter" ),
-                              labels = c("B3m","B1w","A1w","A3m"))
-gastricbypassL$visit <- as.numeric(gastricbypassL$time) ## convert to numeric
-gastricbypassL$baseline <- gastricbypassL$visit<=2
-#+END_SRC
-#+RESULTS:
+See =?gastricbypassL= for a presentation of the dataset. It is
+convenient to encode the time variable in two formats:
+- numeric, e.g. here with the time in week since surgery (=time=
+  variable taking values -13,-1,1,13 - negative times refering to
+  before an intervention and positive times after the intervention).
+- factor, e.g. here with the visit index (=visit= variable taking
+  value 1,2,3,4)
 
-rescale the glucagon values
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-gastricbypassL$glucagon <- as.double(scale(gastricbypassL$glucagonAUC))+5
-#+END_SRC
-
-#+RESULTS:
-
-and add a group variable:
+To illustrate certain functionalities we will use an (artificial)
+group variable:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 gastricbypassL$group <- as.numeric(gastricbypassL$id)%%2
+#+END_SRC
+
+#+RESULTS:
+
+and dichotomize time as before and after the intervention:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+gastricbypassL$baseline <- gastricbypassL$time<0
 #+END_SRC
 
 #+RESULTS:
@@ -166,12 +170,12 @@ head(gastricbypassW)
 
 #+RESULTS:
 :   id weight1 weight2 weight3 weight4 glucagonAUC1 glucagonAUC2 glucagonAUC3 glucagonAUC4
-: 1  1   127.2   120.7   115.5   108.1      5032.50       4942.5      20421.0      9249.45
-: 2  2   165.2   153.4   149.2   132.0     12142.50      14083.5      10945.5      7612.50
-: 3  3   109.7   101.6    97.7    87.1     10321.35       6202.5      20121.0     17704.50
-: 4  4   146.2   142.4   136.7   123.0      6693.00       6631.5      13090.5      4551.00
-: 5  5   113.1   105.6    99.9    87.7      7090.50           NA      19155.0     12345.00
-: 6  6   158.8   143.6   134.6   108.7     10386.00       7609.5      11778.0      8014.80
+: 1  1   127.2   120.7   115.5   108.1     20.69014     20.53486     92.60017     43.43377
+: 2  2   165.2   153.4   149.2   132.0     49.92151     58.51346     49.63298     35.74695
+: 3  3   109.7   101.6    97.7    87.1     42.43420     25.76985     91.23980     83.13719
+: 4  4   146.2   142.4   136.7   123.0     27.51696     27.55224     59.35960     21.37069
+: 5  5   113.1   105.6    99.9    87.7     29.15120           NA     86.85942     57.96993
+: 6  6   158.8   143.6   134.6   108.7     42.70000     31.61559     53.40800     37.63608
 
 for which we can also add the group variable:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -180,107 +184,100 @@ gastricbypassW$group <- as.numeric(gastricbypassW$id)%%2
 
 #+RESULTS:
 
-Finally we will remove observation with missing glucagon values:
+In some cases we will, for comparison, perform complete case analyses
+with the following dataset:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-dfL <- gastricbypassL[!is.na(gastricbypassL$glucagonAUC),]
+gastricbypassL.NNA <- gastricbypassL[!is.na(gastricbypassL$glucagonAUC),]
 #+END_SRC
 
 #+RESULTS:
 
 \clearpage
 
-* Descriptive statistics
-** Summary statistics
+* Visualization & descriptive statistics
+** Graphical display
 
-Mean, standard deviation, and other summary statistic can be computed
-with respect to a categorical variable (typically time) using the
-=summarize= function:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-sss <- summarize(weight+glucagon ~ time, data = gastricbypassL, na.rm = TRUE)
-print(sss, digits = 3)
+A scatterplot of the data can obtained by specifying which columns to
+display when using the wide format:
+#+BEGIN_SRC R :exports code :results output :session *R* :cache no
+scatterplot(gastricbypassW, ## left panel
+            columns = c("weight1","weight2","weight3","weight4")) 
 #+END_SRC
 
 #+RESULTS:
-:    outcome time observed missing   mean     sd    min     q1 median     q3    max
-: 1   weight  B3m       20       0 128.97 20.269 100.90 115.30 123.10 139.82 173.00
-: 2           B1w       20       0 121.24 18.910  95.70 107.78 114.50 134.53 162.20
-: 3           A1w       20       0 115.70 18.275  89.90 102.22 110.60 128.38 155.00
-: 4           A3m       20       0 102.36 17.054  78.80  90.40  98.50 108.25 148.00
-: 5 glucagon  B3m       20       0   4.51  0.641   3.61   4.06   4.33   4.93   6.03
-: 6           B1w       19       1   4.39  0.558   3.58   4.05   4.23   4.55   5.95
-: 7           A1w       19       1   6.06  1.044   4.52   5.30   5.94   6.62   8.27
-: 8           A3m       20       0   5.06  0.760   3.95   4.52   5.03   5.27   7.12
 
-Correlation matrices are also ouput when a cluster and ordering
-variable have been specified (here respectively =id= and =time=):
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-sss <- summarize(weight ~ time|id, data = gastricbypassL, na.rm = TRUE)
-print(sss, digits = 3)
+\noindent When using the long format, a formula should describe the
+structure of the data: =outcome ~ order|cluster=
+- the left hand side indicates the values to be displayed (here weight)
+- the right hand side indicates the ordering of the repetitions (here over time) and
+  how the repetitions are grouped within clusters (here within subject).
+
+When calling =scatterplot=, the argument =group= leads to different
+color per group and the argument =type.diag= enables to use histograms
+(or density plots) instead of boxplots:
+#+BEGIN_SRC R :exports code :results output :session *R* :cache no
+scatterplot(weight~time|id, data = gastricbypassL, ## right panel
+            type.diag = "hist", group = "group")
 #+END_SRC
 
 #+RESULTS:
-#+begin_example
-  time observed missing mean   sd   min    q1 median  q3 max
-1  B3m       20       0  129 20.3 100.9 115.3  123.1 140 173
-2  B1w       20       0  121 18.9  95.7 107.8  114.5 135 162
-3  A1w       20       0  116 18.3  89.9 102.2  110.6 128 155
-4  A3m       20       0  102 17.1  78.8  90.4   98.5 108 148
 
- Pearson's correlation: 
-      B3m   B1w   A1w   A3m
-B3m 1.000 0.990 0.986 0.946
-B1w 0.990 1.000 0.997 0.959
-A1w 0.986 0.997 1.000 0.966
-A3m 0.946 0.959 0.966 1.000
-#+end_example
 
-Alternatively, the =partialCor= function can be used to compute
-correlation from the wide format, e.g.:
+\bigskip
+
+#+LaTeX: \begin{minipage}{0.48\linewidth} 
+#+ATTR_LaTeX: :width \textwidth :options trim={0 0 0 0} :placement [!h]
+[[./figures/scatterplot.pdf]]
+#+LaTeX: \end{minipage}
+#+LaTeX: \begin{minipage}{0.48\linewidth} 
+#+ATTR_LaTeX: :width \textwidth :options trim={0 0 0 0} :placement [!h]
+[[./figures/scatterplot-group.pdf]]
+#+LaTeX: \end{minipage}
+
+
+#+RESULTS:
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+pdf("./figures/scatterplot.pdf", width = 6.5, height = 6)
+scatterplot(weight~time|id, data = gastricbypassL, size.cor = 6)
+dev.off()
+
+pdf("./figures/scatterplot-group.pdf", width = 6.5, height = 6)
+scatterplot(weight~time|id, data = gastricbypassL, size.cor = 6, type.diag = "hist", group = "group")
+dev.off()
+#+END_SRC
+
+
+#+RESULTS:
+: null device 
+:           1
+: null device 
+:           1
+
+\bigskip
+
+By default the resulting object will be of class =list=. A =ggplot2=
+object can be obtained by setting the argument =facet= to
+="grid2"=. This requires to have installed the package ggh4x and will
+produce a slightly different graphical display.
+
+\bigskip
+
+There is (currently) not dedicated function to obtain spaghetti
+plots. Instead one can use the ggplot2 package with the long format, e.g.:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-partialCor(weight1 + weight4 ~ 1, data = gastricbypassW)
+gg.spa <- ggplot(gastricbypassL, aes(x=time,y=weight,group=id,color=id))
+gg.spa <- gg.spa + geom_point() + geom_line()
+gg.spa
 #+END_SRC
 
 #+RESULTS:
-:                      estimate    se   df lower upper  p.value
-: rho(weight1,weight4)    0.946 0.105 31.1 0.867 0.978 8.46e-09
 
 \clearpage
-
-Partial correlations can be also computed, e.g.:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-partialCor(list(weight1 ~ glucagonAUC1, weight4 ~ glucagonAUC4),
-           data = gastricbypassW)
-#+END_SRC
-
-#+RESULTS:
-:                      estimate    se   df lower upper  p.value
-: rho(weight1,weight4)    0.946 0.109 19.6 0.859  0.98 3.62e-07
-
-The =partialCor= function can also be used to obtain group-specific
-correlations:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-partialCor(weight + glucagonAUC ~ 1, by = "group", data = gastricbypassL)
-#+END_SRC
-
-#+RESULTS:
-:                            estimate    se   df  lower   upper p.value
-: 0: rho(weight,glucagonAUC)   -0.281 0.148 21.1 -0.552  0.0442  0.0858
-: 1: rho(weight,glucagonAUC)   -0.336 0.144 22.2 -0.594 -0.0156  0.0410
-
-A p-value for the difference can be obtained specifying the argument
-=effects=:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-partialCor(weight + glucagonAUC ~ 1, by = "group", effects = "Dunnett",
-           data = gastricbypassL)
-#+END_SRC
-
-#+RESULTS:
-:                                                       estimate se df lower upper p.value
-: 1:rho(weight,glucagonAUC) - 0:rho(weight,glucagonAUC)   -0.055 NA NA    NA    NA   0.789
 
 ** Missing data patterns
 
-The =summarizeNA= identify the possible combinations of
+The =summarizeNA= function identifies the possible combinations of
 observed/missing data:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 mp <- summarizeNA(gastricbypassL)
@@ -288,14 +285,19 @@ mp
 #+END_SRC
 
 #+RESULTS:
-:  frequency missing.pattern n.missing id visit time weight glucagonAUC baseline glucagon group
-:         78        00000000         0  0     0    0      0           0        0        0     0
-:          2        00001010         2  0     0    0      0           1        0        1     0
+:  frequency missing.pattern n.missing id visit time weight glucagonAUC group baseline
+:         78         0000000         0  0     0    0      0           0     0        0
+:          2         0000100         1  0     0    0      0           1     0        0
 
 A graphical representation can be obtained using =plot=:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 plot(mp)
 #+END_SRC
+
+#+RESULTS:
+
+See =help(plot.summarizeNA)= for options to customize the graphical
+display.
 
 #+RESULTS:
 
@@ -308,7 +310,213 @@ plot(mp)
 ggsave(autoplot(mp)$plot, filename = "./figures/summarizeNA.pdf", width = 12)
 #+END_SRC
 #+RESULTS:
-: [1m[22mSaving 12 x 6.38 in image
+: [1m[22mSaving 12 x 7 in image
+
+\clearpage
+
+** Summary statistics
+
+Mean, standard deviation, and other summary statistic can be computed
+with respect to a categorical variable (typically time) using the
+=summarize= function: \newline (\Warning this function has the same
+name as a function from the dplyr package. If you have loaded dplyr,
+you should use =LMMstar:::summarize=)
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+sss <- summarize(weight+glucagonAUC ~ time, data = gastricbypassL, na.rm = TRUE)
+print(sss, digits = 3)
+#+END_SRC
+
+#+RESULTS:
+:       outcome time observed missing  mean   sd    min    q1 median    q3   max
+: 1      weight  -13       20       0 129.0 20.3 100.90 115.3  123.1 139.8 173.0
+: 2               -1       20       0 121.2 18.9  95.70 107.8  114.5 134.5 162.2
+: 3                1       20       0 115.7 18.3  89.90 102.2  110.6 128.4 155.0
+: 4               13       20       0 102.4 17.1  78.80  90.4   98.5 108.2 148.0
+: 5 glucagonAUC  -13       20       0  32.3 15.5  10.28  21.3   27.9  42.5  69.1
+: 6               -1       19       1  29.7 13.7   9.87  21.2   25.8  33.6  67.7
+: 7                1       19       1  76.9 27.9  35.85  56.5   73.8  91.9 135.9
+: 8               13       20       0  52.0 21.0  21.37  37.2   51.2  57.9 109.2
+
+\noindent Specifying a cluster (=id=) and ordering variable (=time=)
+enable to output correlation matrices: \newline (\Warning there should be
+no duplicated value of the ordering variable within cluster)
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+sss2 <- summarize(weight ~ time|id, data = gastricbypassL, na.rm = TRUE)
+print(sss2, digits = 3)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+  time observed missing mean   sd   min    q1 median  q3 max
+1  -13       20       0  129 20.3 100.9 115.3  123.1 140 173
+2   -1       20       0  121 18.9  95.7 107.8  114.5 135 162
+3    1       20       0  116 18.3  89.9 102.2  110.6 128 155
+4   13       20       0  102 17.1  78.8  90.4   98.5 108 148
+
+ Pearson's correlation: 
+      -13    -1     1    13
+-13 1.000 0.990 0.986 0.946
+-1  0.990 1.000 0.997 0.959
+1   0.986 0.997 1.000 0.966
+13  0.946 0.959 0.966 1.000
+#+end_example
+
+Graphical displays of the summary statistics can be obtained via the
+=plot= method, where the argument =type= specifies the summary
+statistic to be displayed:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+plot(sss2, type = "mean") ## left panel
+plot(sss2, type = "sd") ## middle panel
+plot(sss2, type = "cor") ## right panel
+#+END_SRC
+
+#+RESULTS:
+
+See =help(plot.summarize)= for options to customize the graphical
+display.
+
+#+ATTR_LaTeX: :width 1\textwidth :options trim={0 0 0 0} :placement [!h]
+[[./figures/summarize.pdf]]
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+pdf("./figures/summarize.pdf", width = 12)
+ggarrange(autoplot(sss2,type="mean")$plot + ggtitle("mean"),
+          autoplot(sss2,type="sd")$plot + ggtitle("sd"),
+          autoplot(sss2,type="cor")$plot + ggtitle("cor") + theme(legend.position ="bottom"),
+          nrow = 1)
+dev.off()
+#+END_SRC
+
+#+RESULTS:
+: X11cairo 
+:        2
+
+\clearpage
+
+** Correlation and partial correlations
+
+The =partialCor= function can be used to evaluate group-specific
+correlations, e.g.:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+partialCor(weight + glucagonAUC ~ 1, by = "group", data = gastricbypassL)
+#+END_SRC
+
+#+RESULTS:
+:                            estimate    se   df  lower    upper p.value
+: 0: rho(weight,glucagonAUC)   -0.328 0.143 21.8 -0.587 -0.00886  0.0447
+: 1: rho(weight,glucagonAUC)   -0.354 0.141 22.5 -0.607 -0.03631  0.0313
+
+This willl lead to the same estimate as the =cor.test= function
+(Pearson correlation):
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+gastricbypassL.0 <- gastricbypassL[gastricbypassL$group==0,]
+rho <- cor.test(gastricbypassL.0$weight, gastricbypassL.0$glucagonAUC)
+c(rho$estimate, p.value = rho$p.value)
+#+END_SRC
+
+#+RESULTS:
+:         cor     p.value 
+: -0.32848119  0.03850536
+
+However the p-value may differ, especially in small samples, as
+=partialCor= uses a different (and probably more crude) small sample
+approximation for the estimator's distribution. Nevertheless
+=partialCor= enables to compare correlation coefficients across
+groups, by specifying the argument =effects=:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+partialCor(weight + glucagonAUC ~ 1, by = "group", effects = "Dunnett",
+           data = gastricbypassL)
+#+END_SRC
+
+#+RESULTS:
+:                                                       estimate se df lower upper p.value
+: 1:rho(weight,glucagonAUC) - 0:rho(weight,glucagonAUC)  -0.0255 NA NA    NA    NA   0.899
+
+
+Partial correlations can be also computed by specifying covariate to
+adjust for on the right-hand side:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+partialCor(weight4 + glucagonAUC4 ~ weight1,
+           data = gastricbypassW)
+#+END_SRC
+
+#+RESULTS:
+:                           estimate    se   df  lower upper p.value
+: rho(weight4,glucagonAUC4)    0.112 0.233 9.12 -0.397 0.568   0.645
+
+When the set of covariates is outcome-dependent, a list of formulas
+can be used instead:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+partialCor(list(weight1 ~ glucagonAUC1, weight4 ~ glucagonAUC4),
+           data = gastricbypassW)
+#+END_SRC
+
+#+RESULTS:
+:                      estimate     se   df lower upper  p.value
+: rho(weight1,weight4)    0.946 0.0252 26.4 0.861 0.979 5.51e-08
+
+These partial correlations are defined as the residual correlation
+between the outcomes, i.e. the correlation once the covariate effects
+have been substracted from the outcome, and a linear mixed model is
+used to estimated them.
+
+\clearpage
+
+* Multiple Student's t-tests
+
+When working with multiple outcomes and having no missing data, mean
+comparisons between exposure groups can be carried out using Student's
+t-tests at each timepoint, e.g.:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+restt <- t.test(weight1 ~ group, data = gastricbypassW)
+c(estimate = unname(diff(restt$estimate)), p.value = restt$p.value)
+#+END_SRC
+
+#+RESULTS:
+:    estimate     p.value 
+: -10.6000000   0.2528174
+
+And so on for the three other timepoints. Morever results would
+typically need to be adjusted for multiple comparisons, e.g. when
+looking for any mean difference. This can be faciliated by
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+## single step max-test adjustment (see help(confint.Wald_lmm) for details)
+mt.test(weight1+weight2+weight3+weight4~group, data = gastricbypassW)
+#+END_SRC
+
+#+RESULTS:
+:        by parameter estimate       se       df     lower     upper   p.value
+: 1 weight1     group   -10.60 8.971747 17.96464 -30.93243  9.732430 0.3160768
+: 2 weight2     group    -9.50 8.395143 17.98540 -28.52569  9.525687 0.3399966
+: 3 weight3     group    -8.92 8.129458 17.95876 -27.34357  9.503573 0.3569464
+: 4 weight4     group    -4.59 7.760674 17.68244 -22.17781 12.997807 0.6640834
+
+The method used to adjust confidence intervals and p-values for
+multiple comparisons can be specified via the =method= argument, e.g.:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+## no adjustment
+mt.test(weight1+weight2+weight3+weight4~group, data = gastricbypassW, method = "none")
+#+END_SRC
+
+#+RESULTS:
+:        by parameter estimate       se       df     lower     upper   p.value
+: 1 weight1     group   -10.60 8.971747 17.96464 -29.45160  8.251601 0.2528144
+: 2 weight2     group    -9.50 8.395143 17.98540 -27.13857  8.138567 0.2726630
+: 3 weight3     group    -8.92 8.129458 17.95876 -26.00217  8.162169 0.2870297
+: 4 weight4     group    -4.59 7.760674 17.68244 -20.91558 11.735584 0.5617090
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+## bonferroni adjustment
+mt.test(weight1+weight2+weight3+weight4~group, data = gastricbypassW, method = "bonferroni")
+#+END_SRC
+
+#+RESULTS:
+:        by parameter estimate       se       df     lower    upper p.value
+: 1 weight1     group   -10.60 8.971747 17.96464 -35.49775 14.29775       1
+: 2 weight2     group    -9.50 8.395143 17.98540 -32.79464 13.79464       1
+: 3 weight3     group    -8.92 8.129458 17.95876 -31.48110 13.64110       1
+: 4 weight4     group    -4.59 7.760674 17.68244 -26.16472 16.98472       1
+
 
 \clearpage
 
@@ -318,8 +526,8 @@ ggsave(autoplot(mp)$plot, filename = "./figures/summarizeNA.pdf", width = 12)
 Several build-in covariance patterns can be used when specifying the
 linear model. The most basic ones are the *identity* structure:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eId.lmm <- lmm(weight ~ time + glucagon, repetition = ~time|id, 
-               structure = "ID", data = dfL)
+eId.lmm <- lmm(glucagonAUC ~ visit*group, repetition = ~time|id, 
+               structure = "ID", data = gastricbypassL)
 eId.lmm
 cat(" modeled residual variance-covariance: \n");sigma(eId.lmm)
 #+END_SRC
@@ -328,24 +536,24 @@ cat(" modeled residual variance-covariance: \n");sigma(eId.lmm)
 #+begin_example
 		Linear regression 
 
- outcome/cluster/time: weight/id/time 
+ outcome/cluster/time: glucagonAUC/id/time 
  data                : 78 observations from 20 clusters 
- parameter           : 5 mean ((Intercept) timeB1w timeA1w timeA3m glucagon) 
+ parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group visit2:group visit3:group visit4:group) 
                        1 variance (sigma) 
- log-restr.likelihood: -323.086426918519 
+ log-restr.likelihood: -316.461119970244 
  convergence         : TRUE (0 iterations)
  modeled residual variance-covariance: 
-         B3m      B1w      A1w      A3m
-B3m 330.0427   0.0000   0.0000   0.0000
-B1w   0.0000 330.0427   0.0000   0.0000
-A1w   0.0000   0.0000 330.0427   0.0000
-A3m   0.0000   0.0000   0.0000 330.0427
+         -13       -1        1       13
+-13 381.3536   0.0000   0.0000   0.0000
+-1    0.0000 381.3536   0.0000   0.0000
+1     0.0000   0.0000 381.3536   0.0000
+13    0.0000   0.0000   0.0000 381.3536
 #+end_example
 
 and the *independence* structure:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eInd.lmm <- lmm(weight ~ time + glucagon, repetition = ~time|id, 
-               structure = "IND", data = dfL)
+eInd.lmm <- lmm(glucagonAUC ~ visit*group, repetition = ~time|id, 
+                structure = "IND", data = gastricbypassL)
 eInd.lmm
 cat(" modeled residual variance-covariance: \n");sigma(eInd.lmm)
 #+END_SRC
@@ -354,26 +562,26 @@ cat(" modeled residual variance-covariance: \n");sigma(eInd.lmm)
 #+begin_example
 		Linear regression with heterogeneous residual variance 
 
- outcome/cluster/time: weight/id/time 
+ outcome/cluster/time: glucagonAUC/id/time 
  data                : 78 observations from 20 clusters 
- parameter           : 5 mean ((Intercept) timeB1w timeA1w timeA3m glucagon) 
-                       4 variance (sigma k.B1w k.A1w k.A3m) 
- log-restr.likelihood: -321.457830361849 
- convergence         : TRUE (8 iterations)
+ parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group visit2:group visit3:group visit4:group) 
+                       4 variance (sigma k.-1 k.1 k.13) 
+ log-restr.likelihood: -310.428096419287 
+ convergence         : TRUE (0 iterations)
  modeled residual variance-covariance: 
-         B3m      B1w      A1w      A3m
-B3m 442.6475   0.0000   0.0000   0.0000
-B1w   0.0000 418.9934   0.0000   0.0000
-A1w   0.0000   0.0000 222.8463   0.0000
-A3m   0.0000   0.0000   0.0000 237.2049
+         -13       -1        1       13
+-13 209.4422   0.0000   0.0000   0.0000
+-1    0.0000 174.8103   0.0000   0.0000
+1     0.0000   0.0000 768.2278   0.0000
+13    0.0000   0.0000   0.0000 382.9524
 #+end_example
 
 \clearpage
 
 The most common linear mixed model uses a *compound symmetry* structure:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eCS.lmm <- lmm(weight ~ time + glucagon, repetition = ~time|id,
-               structure = "CS", data = dfL)
+eCS.lmm <- lmm(glucagonAUC ~ visit*group, repetition = ~time|id,
+               structure = "CS", data = gastricbypassL)
 eCS.lmm
 cat(" modeled residual variance-covariance: \n");sigma(eCS.lmm)
 #+END_SRC
@@ -382,45 +590,46 @@ cat(" modeled residual variance-covariance: \n");sigma(eCS.lmm)
 #+begin_example
 		Linear Mixed Model with a compound symmetry covariance matrix 
 
- outcome/cluster/time: weight/id/time 
+ outcome/cluster/time: glucagonAUC/id/time 
  data                : 78 observations from 20 clusters 
- parameter           : 5 mean ((Intercept) timeB1w timeA1w timeA3m glucagon) 
+ parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group visit2:group visit3:group visit4:group) 
                        1 variance (sigma) 
-                       1 correlation (rho) 
- log-restr.likelihood: -243.600523870252 
- convergence         : TRUE (9 iterations)
+                       1 correlation (rho(id)) 
+ log-restr.likelihood: -314.394203759159 
+ convergence         : TRUE (6 iterations)
  modeled residual variance-covariance: 
-         B3m      B1w      A1w      A3m
-B3m 355.3062 344.6236 344.6236 344.6236
-B1w 344.6236 355.3062 344.6236 344.6236
-A1w 344.6236 344.6236 355.3062 344.6236
-A3m 344.6236 344.6236 344.6236 355.3062
+          -13        -1         1        13
+-13 380.57991  82.74055  82.74055  82.74055
+-1   82.74055 380.57991  82.74055  82.74055
+1    82.74055  82.74055 380.57991  82.74055
+13   82.74055  82.74055  82.74055 380.57991
 #+end_example
 
 \noindent A more flexible model can be obtained with a *toeplitz* covariance matrix:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eTOE.lmm <- lmm(weight ~ time*group, repetition = ~time|id,
-                structure = "TOEPLITZ", data = dfL)
+eTOE.lmm <- lmm(glucagonAUC ~ visit*group, repetition = ~time|id,
+                structure = "TOEPLITZ", data = gastricbypassL)
 eTOE.lmm
 cat(" modeled residual correlation: \n");cov2cor(sigma(eTOE.lmm))
 #+END_SRC
 
 #+RESULTS:
 #+begin_example
+		Linear Mixed Model with a block Toeplitz covariance matrix 
 
- outcome/cluster/time: weight/id/time 
+ outcome/cluster/time: glucagonAUC/id/time 
  data                : 78 observations from 20 clusters 
- parameter           : 8 mean ((Intercept) timeB1w timeA1w timeA3m group timeB1w:group timeA1w:group timeA3m:group) 
-                       4 variance (sigma k.B1w k.A1w k.A3m) 
-                       3 correlation (rho(1) rho(2) rho(3)) 
- log-restr.likelihood: -221.152940926053 
- convergence         : TRUE (21 iterations)
+ parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group visit2:group visit3:group visit4:group) 
+                       4 variance (sigma k.-1 k.1 k.13) 
+                       4 correlation (rho(12) rho(14) rho(26) rho(2)) 
+ log-restr.likelihood: -297.525485582536 
+ convergence         : TRUE (15 iterations)
  modeled residual correlation: 
-          B3m       B1w       A1w       A3m
-B3m 1.0000000 0.9854133 0.9676223 0.9489216
-B1w 0.9854133 1.0000000 0.9854133 0.9676223
-A1w 0.9676223 0.9854133 1.0000000 0.9854133
-A3m 0.9489216 0.9676223 0.9854133 1.0000000
+            -13         -1          1          13
+-13  1.00000000 0.70001988 0.09361507 -0.08296276
+-1   0.70001988 1.00000000 0.01679455  0.09361507
+1    0.09361507 0.01679455 1.00000000  0.70001988
+13  -0.08296276 0.09361507 0.70001988  1.00000000
 #+end_example
 
 \clearpage
@@ -429,8 +638,8 @@ A3m 0.9489216 0.9676223 0.9854133 1.0000000
 *unstructured* covariance matrix:
 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eUN.lmm <- lmm(weight ~ time + glucagon, repetition = ~time|id,
-               structure = "UN", data = dfL)
+eUN.lmm <- lmm(glucagonAUC ~ visit*group, repetition = ~time|id,
+               structure = "UN", data = gastricbypassL)
 eUN.lmm
 cat(" modeled residual variance-covariance: \n");sigma(eUN.lmm)
 #+END_SRC
@@ -439,62 +648,59 @@ cat(" modeled residual variance-covariance: \n");sigma(eUN.lmm)
 #+begin_example
 		Linear Mixed Model with an unstructured covariance matrix 
 
- outcome/cluster/time: weight/id/time 
+ outcome/cluster/time: glucagonAUC/id/time 
  data                : 78 observations from 20 clusters 
- parameter           : 5 mean ((Intercept) timeB1w timeA1w timeA3m glucagon) 
-                       4 variance (sigma k.B1w k.A1w k.A3m) 
-                       6 correlation (rho(B3m,B1w) rho(B3m,A1w) rho(B3m,A3m) rho(B1w,A1w) rho(B1w,A3m) rho(A1w,A3m)) 
- log-restr.likelihood: -216.318937004306 
- convergence         : TRUE (22 iterations)
+ parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group visit2:group visit3:group visit4:group) 
+                       4 variance (sigma k.-1 k.1 k.13) 
+                       6 correlation (rho(-13,-1) rho(-13,1) rho(-13,13) rho(-1,1) rho(-1,13) rho(1,13)) 
+ log-restr.likelihood: -295.314056198772 
+ convergence         : TRUE (8 iterations)
  modeled residual variance-covariance: 
-         B3m      B1w      A1w      A3m
-B3m 411.3114 381.9734 352.6400 318.8573
-B1w 381.9734 362.7326 335.4649 304.6314
-A1w 352.6400 335.4649 311.6921 285.8077
-A3m 318.8573 304.6314 285.8077 280.9323
+          -13         -1          1        13
+-13 209.44221 150.250246 106.399969 -24.20227
+-1  150.25025 168.113758   1.306397 -23.88443
+1   106.39997   1.306397 748.076864 288.18395
+13  -24.20227 -23.884434 288.183947 382.95234
 #+end_example
 
 \noindent Stratification of the covariance structure on a categorical
 variable is also possible:
 - e.g. to get a *stratified compound symmetry*
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eSCS.lmm <- lmm(weight ~ time*group,
-                repetition = ~time|id, structure = CS(group~1),
-                data = dfL)
+eSCS.lmm <- lmm(glucagonAUC ~ visit*group, repetition = ~time|id,
+                structure = CS(group~1), data = gastricbypassL)
 eSCS.lmm
 #+END_SRC
 
 #+RESULTS:
 : 		Linear Mixed Model with a stratified compound symmetry covariance matrix 
 : 
-:  outcome/cluster/time: weight/id/time 
+:  outcome/cluster/time: glucagonAUC/id/time 
 :  data                : 78 observations from 20 clusters 
-:  parameter           : 8 mean ((Intercept) timeB1w timeA1w timeA3m group timeB1w:group timeA1w:group timeA3m:group) 
+:  parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group visit2:group visit3:group visit4:group) 
 :                        2 variance (sigma:0 sigma:1) 
-:                        2 correlation (rho:0 rho:1) 
-:  log-restr.likelihood: -229.203435252784 
-:  convergence         : TRUE (6 iterations)
+:                        2 correlation (rho(id):0 rho(id):1) 
+:  log-restr.likelihood: -314.123797063042 
+:  convergence         : TRUE (7 iterations)
 
 \clearpage
 
 - e.g. *stratified unstructured* covariance matrix:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eSUN.lmm <- lmm(weight ~ time*group + glucagon,
-                repetition = ~time|id, structure = UN(~group),
-                data = dfL)
+eSUN.lmm <- lmm(glucagonAUC ~ visit*group, repetition = ~time|id,
+                structure = UN(group~1), data = gastricbypassL)
 eSUN.lmm
 #+END_SRC
 #+RESULTS:
 : 		Linear Mixed Model with a stratified unstructured covariance matrix 
 : 
-:  outcome/cluster/time: weight/id/time 
+:  outcome/cluster/time: glucagonAUC/id/time 
 :  data                : 78 observations from 20 clusters 
-:  parameter           : 9 mean ((Intercept) timeB1w timeA1w timeA3m group glucagon timeB1w:group timeA1w:group timeA3m:group) 
-:                        8 variance (sigma:0 sigma:1 k.B1w:0 k.A1w:0 k.A3m:0 k.B1w:1 k.A1w:1 k.A3m:1) 
-:                        12 correlation (rho(B3m,B1w):0 rho(B3m,A1w):0 rho(B3m,A3m):0 rho(B1w,A1w):0 rho(B1w,A3m):0 rho(A1w,A3m):0 rho(B3m,B1w):1 rho(B3m,A1w):1 rho(B3m,A3m):1 rho(B1w,A1w):1 rho(B1w,A3m):1 rho(A1w,A3m):1) 
-:  log-restr.likelihood: -197.171312062212 
-:  convergence         : TRUE (50 iterations)
-
+:  parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group visit2:group visit3:group visit4:group) 
+:                        8 variance (sigma:0 sigma:1 k.-1:0 k.1:0 k.13:0 k.-1:1 k.1:1 k.13:1) 
+:                        12 correlation (rho(-13,-1):0 rho(-13,1):0 rho(-13,13):0 rho(-1,1):0 rho(-1,13):0 rho(1,13):0 rho(-13,-1):1 rho(-13,1):1 rho(-13,13):1 rho(-1,1):1 rho(-1,13):1 rho(1,13):1) 
+:  log-restr.likelihood: -286.536815485471 
+:  convergence         : TRUE (10 iterations)
 
 with modeled residual variance-covariance:
 
@@ -507,19 +713,19 @@ sigma(eSCS.lmm)
 
 #+RESULTS:
 #+begin_example
-$`1:1`
-         B3m      B1w      A1w      A3m
-B3m 348.0783 334.7404 334.7404 334.7404
-B1w 334.7404 348.0783 334.7404 334.7404
-A1w 334.7404 334.7404 348.0783 334.7404
-A3m 334.7404 334.7404 334.7404 348.0783
+$`0`
+          -13        -1         1        13
+-13 334.28864  50.78164  50.78164  50.78164
+-1   50.78164 334.28864  50.78164  50.78164
+1    50.78164  50.78164 334.28864  50.78164
+13   50.78164  50.78164  50.78164 334.28864
 
-$`3:3`
-         B3m      B1w      A1w      A3m
-B3m 345.5863 340.1538 340.1538 340.1538
-B1w 340.1538 345.5863 340.1538 340.1538
-A1w 340.1538 340.1538 345.5863 340.1538
-A3m 340.1538 340.1538 340.1538 345.5863
+$`1`
+         -13       -1        1       13
+-13 428.4618 115.0917 115.0917 115.0917
+-1  115.0917 428.4618 115.0917 115.0917
+1   115.0917 115.0917 428.4618 115.0917
+13  115.0917 115.0917 115.0917 428.4618
 #+end_example
 #+LaTeX: \end{minipage}
 #+LaTeX: \begin{minipage}{0.47\linewidth} 
@@ -529,19 +735,19 @@ sigma(eSUN.lmm)
 
 #+RESULTS:
 #+begin_example
-$`1:1`
-         B3m      B1w      A1w      A3m
-B3m 417.3374 382.8829 362.5674 301.7430
-B1w 382.8829 364.4515 346.4039 292.7507
-A1w 362.5674 346.4039 331.1789 282.9301
-A3m 301.7430 292.7507 282.9301 253.3324
+$`0`
+         -13        -1         1        13
+-13 309.8534 251.51195 102.18885 -42.24970
+-1  251.5120 274.75220 -79.81124 -90.71752
+1   102.1888 -79.81124 579.10966 163.76749
+13  -42.2497 -90.71752 163.76749 173.43923
 
-$`2:2`
-         B3m      B1w      A1w      A3m
-B3m 383.8877 363.6405 336.5771 350.0416
-B1w 363.6405 347.9898 321.5908 331.5182
-A1w 336.5771 321.5908 297.5329 308.1345
-A3m 350.0416 331.5182 308.1345 334.8267
+$`1`
+           -13       -1         1         13
+-13 109.030904 48.66651 104.90774  -6.154856
+-1   48.666509 59.39530  93.97619  43.214357
+1   104.907735 93.97619 967.58280 450.889944
+13   -6.154856 43.21436 450.88994 592.465459
 #+end_example
 #+LaTeX: \end{minipage}
 
@@ -552,8 +758,8 @@ symmetry structure may depend on covariates:
 - e.g. to obtain a *block compound symmetry* structure[fn::similar to
   nested random effects]:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eBCS.lmm <- lmm(weight ~ time*group,repetition = ~time|id,
-                structure = CS(~baseline, type = "homogeneous"), data = dfL)
+eBCS.lmm <- lmm(glucagonAUC ~ visit*group, repetition = ~time|id,
+                structure = CS(~baseline, type = "homogeneous"), data = gastricbypassL)
 eBCS.lmm
 cat(" modeled residual variance-covariance: \n");sigma(eBCS.lmm)
 #+END_SRC
@@ -562,37 +768,34 @@ cat(" modeled residual variance-covariance: \n");sigma(eBCS.lmm)
 #+begin_example
 		Linear Mixed Model with a block compound symmetry covariance matrix 
 
- outcome/cluster/time: weight/id/time 
+ outcome/cluster/time: glucagonAUC/id/time 
  data                : 78 observations from 20 clusters 
- parameter           : 8 mean ((Intercept) timeB1w timeA1w timeA3m group timeB1w:group timeA1w:group timeA3m:group) 
+ parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group visit2:group visit3:group visit4:group) 
                        1 variance (sigma) 
-                       2 correlation (rho(baseline) rho(id)) 
- log-restr.likelihood: -230.532819632968 
+                       2 correlation (rho(id/baseline) rho(id)) 
+ log-restr.likelihood: -308.994835006264 
  convergence         : TRUE (6 iterations)
  modeled residual variance-covariance: 
-         B3m      B1w      A1w      A3m
-B3m 346.7441 339.3256 336.1825 336.1825
-B1w 339.3256 346.7441 336.1825 336.1825
-A1w 336.1825 336.1825 346.7441 339.3256
-A3m 336.1825 336.1825 339.3256 346.7441
+          -13        -1         1        13
+-13 380.95687 226.40271  15.46503  15.46503
+-1  226.40271 380.95687  15.46503  15.46503
+1    15.46503  15.46503 380.95687 226.40271
+13   15.46503  15.46503 226.40271 380.95687
 #+end_example
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
 library(lme4)
-e.lmer <- lmer(weight ~ time*group + (1|id/baseline), data = dfL)
+e.lmer <- lmer(glucagonAUC ~ visit*group + (1|id/baseline), data = gastricbypassL)
 logLik(e.lmer)
 #+END_SRC
 
 #+RESULTS:
-: Indlæser krævet pakke: Matrix
-: Advarselsbesked:
-: pakke 'Matrix' blev bygget under R version 4.2.1
-: 'log Lik.' -230.5328 (df=11)
+: 'log Lik.' -308.9948 (df=11)
 
 - e.g. to obtain a *block unstructured* covariance matrix:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eBUN.lmm <- lmm(weight ~ time*group, repetition = ~time|id,
-                structure = CS(~baseline, type = "heterogeneous"), data = dfL)
+eBUN.lmm <- lmm(glucagonAUC ~ visit*group, repetition = ~time|id,
+                structure = CS(~baseline, type = "heterogeneous"), data = gastricbypassL)
 eBUN.lmm
 cat(" modeled residual variance-covariance: \n");sigma(eBUN.lmm)
 #+END_SRC
@@ -601,19 +804,19 @@ cat(" modeled residual variance-covariance: \n");sigma(eBUN.lmm)
 #+begin_example
 		Linear Mixed Model with a block unstructured covariance matrix 
 
- outcome/cluster/time: weight/id/time 
+ outcome/cluster/time: glucagonAUC/id/time 
  data                : 78 observations from 20 clusters 
- parameter           : 8 mean ((Intercept) timeB1w timeA1w timeA3m group timeB1w:group timeA1w:group timeA3m:group) 
+ parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group visit2:group visit3:group visit4:group) 
                        2 variance (sigma k.TRUE) 
                        3 correlation (rho(FALSE) rho(FALSE,TRUE) rho(TRUE)) 
- log-restr.likelihood: -227.461008305704 
- convergence         : TRUE (6 iterations)
+ log-restr.likelihood: -300.047474124556 
+ convergence         : TRUE (7 iterations)
  modeled residual variance-covariance: 
-         B3m      B1w      A1w      A3m
-B3m 378.0328 372.8100 336.3064 336.3064
-B1w 372.8100 378.0328 336.3064 336.3064
-A1w 336.3064 336.3064 315.6358 306.0647
-A3m 336.3064 336.3064 306.0647 315.6358
+          -13        -1         1        13
+-13 189.41998 150.35555  15.35285  15.35285
+-1  150.35555 189.41998  15.35285  15.35285
+1    15.35285  15.35285 570.90792 300.07084
+13   15.35285  15.35285 300.07084 570.90792
 #+end_example
 
 \clearpage
@@ -622,7 +825,7 @@ A3m 336.3064 336.3064 306.0647 315.6358
 
 It is possible input user-specific covariance patterns under the
 following model for the residuals: \[\Omega =
-\trans{\boldsymbol{\sigma}} R \boldsymbol{\sigma}\] where:
+\trans{\boldsymbol{\sigma}} R \boldsymbol{\sigma}\]
 - \(\boldsymbol{\sigma}=f(\boldsymbol{\theta}_{\sigma},Z_{\sigma})\)
   is a vector of residual standard errors depending on a vector of
   parameters \(\boldsymbol{\theta}_{\sigma}\) and possible covariates
@@ -659,32 +862,68 @@ Rho
 : [6,] 0.10 0.10  0.1 0.50 0.40  1.0
 
 and the corresponding dataset:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-library(mvtnorm)
+#+BEGIN_SRC R :exports code :results output :session *R* :cache no
 set.seed(11)
-n <- 1000
-Y <- rmvnorm(n, mean = rep(0,6), sigma = Rho)
-dfL2 <- reshape2::melt(cbind(id = 1:n, as.data.frame(Y)), id.vars = "id")
-dfL2$time  <- dfL2$variable
-dfL2 <- dfL2[order(dfL2$id),]
-dfL2[1:8,]
+Y <- mvtnorm::rmvnorm(1000, mean = rep(0,6), sigma = Rho)
+dfW <- cbind(id = 1:NROW(Y), as.data.frame(Y))
+dfL <- reshape2::melt(dfW, id.vars = "id", variable.name = "time")
+dfL[dfL$id %in% 1:2,]
 #+END_SRC
 
 #+RESULTS:
-:      id variable      value time
-: 1     1       V1 -0.9842079   V1
-: 1001  1       V2 -0.3681245   V2
-: 2001  1       V3 -1.6174652   V3
-: 3001  1       V4 -1.4994103   V4
-: 4001  1       V5  0.7493107   V5
-: 5001  1       V6 -1.0719657   V6
-: 2     2       V1  1.2402726   V1
-: 1002  2       V2  0.6494215   V2
+#+begin_example
+     id time      value
+1     1   V1 -0.9842079
+2     2   V1  1.2402726
+1001  1   V2 -0.3681245
+1002  2   V2  0.6494215
+2001  1   V3 -1.6174652
+2002  2   V3  0.3272105
+3001  1   V4 -1.4994103
+3002  2   V4 -1.0626973
+4001  1   V5  0.7493107
+4002  2   V5 -0.9013244
+5001  1   V6 -1.0719657
+5002  2   V6 -0.6696714
+#+end_example
+
+#+LaTeX: \begin{minipage}{0.45\linewidth} 
+#+BEGIN_SRC R :exports results :results output :session *R* :cache no
+dfL[dfL$id==1,]
+#+END_SRC
+
+#+RESULTS:
+:      id time      value
+: 1     1   V1 -0.9842079
+: 1001  1   V2 -0.3681245
+: 2001  1   V3 -1.6174652
+: 3001  1   V4 -1.4994103
+: 4001  1   V5  0.7493107
+: 5001  1   V6 -1.0719657
+
+#+LaTeX: \end{minipage}
+#+LaTeX: \begin{minipage}{0.45\linewidth} 
+#+BEGIN_SRC R :exports results :results output :session *R* :cache no
+dfL[dfL$id==2,]
+#+END_SRC
+
+#+RESULTS:
+:      id time      value
+: 2     2   V1  1.2402726
+: 1002  2   V2  0.6494215
+: 2002  2   V3  0.3272105
+: 3002  2   V4 -1.0626973
+: 4002  2   V5 -0.9013244
+: 5002  2   V6 -0.6696714
+
+#+LaTeX: \end{minipage}
+
+\clearpage
 
 To estimate the corresponding mixed model we first define a new
 covariance structure:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-myStruct <- CUSTOM(~variable,
+myStruct <- CUSTOM(~time,
                    FCT.sigma = function(p,n.time,X){rep(p,n.time)}, ## function f
                    init.sigma = c("sigma"=1),
                    FCT.rho = rho.2block, ## function g
@@ -695,10 +934,8 @@ myStruct <- CUSTOM(~variable,
 
 and then call =lmm= with this structure structure:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-e.lmmCUSTOM <- lmm(value~time,
-                   repetition=~time|id,
-                   structure = myStruct,
-                   data=dfL2,
+e.lmmCUSTOM <- lmm(value~time, repetition=~time|id,
+                   structure = myStruct, data=dfL,
                    df = FALSE) ## df = FALSE to save computation time
 logLik(e.lmmCUSTOM)
 #+END_SRC
@@ -721,23 +958,19 @@ cov2cor(sigma(e.lmmCUSTOM))
 : V5 0.09053785 0.09053785 0.09053785 0.24898095 1.00000000 0.36110943
 : V6 0.09053785 0.09053785 0.09053785 0.50058994 0.36110943 1.00000000
 
-\clearpage
-
 *Comparison to build-in structure*: consider the following model using
 a build-in compound symmetry structure:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 system.time(
-  e.lmmDEFAULT.CS <- lmm(value~time,
-                         repetition = ~time|id,
-                         structure = "CS", 
-                         data = dfL2, df = FALSE)
+  e.lmmDEFAULT.CS <- lmm(value~time, repetition = ~time|id,
+                         structure = "CS", data = dfL,
+                         df = FALSE)
 )
 #+END_SRC
 
 #+RESULTS:
-:   bruger   system forløbet 
-:     0.15     0.00     0.15
-
+:    user  system elapsed 
+:   0.097   0.000   0.097
 
 Using instead =CUSTOM= to specifying this structure:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -753,24 +986,21 @@ myCS <- CUSTOM(~1,
 is considerably slower than using the pre-specified structure:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 system.time(
-  e.lmmCUSTOM.CS <- lmm(value~time,
-                        repetition = ~time|id,
-                        structure = myCS, 
-                        data = dfL2, df = FALSE
-                        )
+  e.lmmCUSTOM.CS <- lmm(value~time, repetition = ~time|id,
+                        structure = myCS, data = dfL,
+                        df = FALSE)
 )
 #+END_SRC
 
 #+RESULTS:
-:   bruger   system forløbet 
-:     1.13     0.02     1.20
+:    user  system elapsed 
+:   0.952   0.019   0.972
 
 
 but will lead to the same estimates:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 logLik(e.lmmDEFAULT.CS)
 logLik(e.lmmCUSTOM.CS)
-
 #+END_SRC
 
 #+RESULTS:
@@ -802,19 +1032,23 @@ myCS.wD <- CUSTOM(~1,
                   dFCT.rho = function(p,n.time,X){list(rho = 1-diag(1,n.time,n.time))},
                   d2FCT.rho = function(p,n.time,X){list(rho = matrix(0,n.time,n.time))},
                   init.rho = c("rho"=0.5))
+#+END_SRC
 
+#+RESULTS:
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
 system.time(
   e.lmmCUSTOMwD.CS <- lmm(value~time,
                           repetition = ~time|id,
                           structure = myCS.wD, 
-                          data = dfL2, df = FALSE
+                          data = dfL, df = FALSE
                           )
 )
 #+END_SRC
 
 #+RESULTS:
-:   bruger   system forløbet 
-:     0.89     0.00     0.89
+:    user  system elapsed 
+:   0.699   0.004   0.703
 
 
 \clearpage
@@ -831,33 +1065,31 @@ eCS.lmm.bis <- update(eCS.lmm, control = list(trace = 2))
 #+END_SRC
 
 #+RESULTS:
-: Initialization:
-: (Intercept)     timeB1w     timeA1w     timeA3m    glucagon       sigma         rho 
-: 159.1349871  -7.7137607  -2.3202963 -22.9747234  -6.6820191  18.1670760   0.8960476 
-: 
-: Loop:
-: *********
-: (Intercept)     timeB1w     timeA1w     timeA3m    glucagon       sigma         rho 
-: 125.2601602  -7.6194918 -14.4951323 -27.0514694   0.8217879  18.8495686   0.9699341 
-: Convergence after 9 iterations: max score=3.680809e-06 | max change in coefficient=1.877273e-06
+#+begin_example
+Initialization:
+ (Intercept)       visit2       visit3       visit4        group visit2:group visit3:group 
+  38.7289746   -4.7343331   31.4330293    4.5213806  -12.8246159    3.7594585   27.0014967 
+visit4:group        sigma      rho(id) 
+  30.2239055   19.5282760    0.2281903 
+
+Loop:
+,******
+ (Intercept)       visit2       visit3       visit4        group visit2:group visit3:group 
+  38.7289746   -4.7343331   31.4330293    4.5213806  -12.8246159    3.8033683   27.4810338 
+visit4:group        sigma      rho(id) 
+  30.2239055   19.5084575    0.2174065 
+Convergence after 6 iterations: max score=1.241263e-05 | max change in coefficient=4.516656e-06
+#+end_example
 
 It is possible to input user-defined value:
 - for all parameters (vector)
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 init.all <- coef(eCS.lmm, effects = "all")
-eCS.lmm.bis <- update(eCS.lmm, control = list(init = init.all, trace = 2))
+eCS.lmm.bis <- update(eCS.lmm, control = list(init = init.all, trace = 1))
 #+END_SRC
 
 #+RESULTS:
-: Initialization:
-: (Intercept)     timeB1w     timeA1w     timeA3m    glucagon       sigma         rho 
-: 125.2601602  -7.6194918 -14.4951323 -27.0514694   0.8217879  18.8495686   0.9699341 
-: 
-: Loop:
-: 
-: (Intercept)     timeB1w     timeA1w     timeA3m    glucagon       sigma         rho 
-: 125.2601602  -7.6194918 -14.4951323 -27.0514694   0.8217879  18.8495686   0.9699341 
-: Convergence after 0 iteration: max score=3.680809e-06
+: Convergence after 0 iteration: max score=1.241263e-05
 
 - the mean parameters only (vector)
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -866,38 +1098,30 @@ eCS.lmm.bis <- update(eCS.lmm, control = list(init = init.mean, trace = 2))
 #+END_SRC
 
 #+RESULTS:
-: Initialization:
-: (Intercept)     timeB1w     timeA1w     timeA3m    glucagon       sigma         rho 
-: 125.2601602  -7.6194918 -14.4951323 -27.0514694   0.8217879  19.0853249   0.9737808 
-: 
-: Loop:
-: *****
-: (Intercept)     timeB1w     timeA1w     timeA3m    glucagon       sigma         rho 
-: 125.2601601  -7.6194918 -14.4951323 -27.0514694   0.8217879  18.8495690   0.9699341 
-: Convergence after 5 iterations: max score=2.820304e-06 | max change in coefficient=4.171839e-06
+#+begin_example
+Initialization:
+ (Intercept)       visit2       visit3       visit4        group visit2:group visit3:group 
+  38.7289746   -4.7343331   31.4330293    4.5213806  -12.8246159    3.8033683   27.4810338 
+visit4:group        sigma      rho(id) 
+  30.2239055   19.5290394    0.2284891 
+
+Loop:
+,******
+ (Intercept)       visit2       visit3       visit4        group visit2:group visit3:group 
+  38.7289746   -4.7343331   31.4330293    4.5213806  -12.8246159    3.8033683   27.4810339 
+visit4:group        sigma      rho(id) 
+  30.2239055   19.5084576    0.2174065 
+Convergence after 6 iterations: max score=1.489256e-05 | max change in coefficient=5.386569e-06
+#+end_example
 
 - a full data variance-covariance matrix (matrix). 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 init.vcov <- sigma(eCS.lmm)
-eCS.lmm.bis <- update(eSCS.lmm, control = list(init = init.vcov, trace = 2))
+eCS.lmm.bis <- update(eCS.lmm, control = list(init = init.vcov, trace = 1))
 #+END_SRC
 
 #+RESULTS:
-#+begin_example
-Initialization:
-  (Intercept)       timeB1w       timeA1w       timeA3m         group timeB1w:group timeA1w:group 
-  134.2700000    -8.2800000   -14.1100000   -29.6100000   -10.6000000     1.0505605     1.7562258 
-timeA3m:group       sigma:0       sigma:1         rho:0         rho:1 
-    6.0100000    18.8495686    18.8495686     0.9699341     0.9699341 
-
-Loop:
-,*******
-  (Intercept)       timeB1w       timeA1w       timeA3m         group timeB1w:group timeA1w:group 
-  134.2700000    -8.2800000   -14.1100000   -29.6100000   -10.6000000     1.0444208     1.7525468 
-timeA3m:group       sigma:0       sigma:1         rho:0         rho:1 
-    6.0100000    18.6568561    18.5899521     0.9616812     0.9842804 
-Convergence after 7 iterations: max score=2.208526e-05 | max change in coefficient=6.343994e-06
-#+end_example
+: Convergence after 0 iteration: max score=1.241263e-05
 
 *Optimizer*: by default the optimizer is a Newton Raphson algorithm
 with backtracking. At each iteration:
@@ -907,7 +1131,7 @@ with backtracking. At each iteration:
   gradient multiplied by the inverse of the information.
 - it updates the mean parameters by generalized least squares (using
   the updated variance-covariance parameters).
-- it checks whether the log-likelihoood at the u.pdated estimates is
+- it checks whether the log-likelihoood at the updated estimates is
   well defined and higher than at the previous estimates. If this is
   not the case, the step is re-run with half the update of the
   variance-covariance parameters (backtracking).
@@ -937,43 +1161,43 @@ summary(eUN.lmm, hide.mean = TRUE)
 #+begin_example
 		Linear Mixed Model 
  
-Dataset: dfL 
+Dataset: gastricbypassL 
 
   - 20 clusters 
-  - 78 observations 
+  - 78 observations were analyzed, 2 were excluded because of missing values 
   - between 3 and 4 observations per cluster 
 
 Summary of the outcome and covariates: 
 
-    $ weight  : num  127 165 110 146 113 ...
-    $ time    : Factor w/ 4 levels "B3m","B1w","A1w",..: 1 1 1 1 1 1 1 1 1 1 ...
-    $ glucagon: num  4.03 5.24 4.93 4.32 4.38 ...
-    reference level: time=B3m 
+    $ glucagonAUC: num  20.7 49.9 42.4 27.5 29.2 ...
+    $ visit      : Factor w/ 4 levels "1","2","3","4": 1 1 1 1 1 1 1 1 1 1 ...
+    $ group      : num  1 0 1 0 1 0 1 0 1 0 ...
+    reference level: visit=1 
 
 Estimation procedure 
 
   - Restricted Maximum Likelihood (REML) 
-  - log-likelihood :-216.3189
-  - parameters: mean = 5, variance = 4, correlation = 6
-  - convergence: TRUE (22 iterations) 
-    largest |score| = 7.034659e-05 for k.A1w
-            |change|= 1.09738491005373e-06 for (Intercept)
+  - log-likelihood :-295.3141
+  - parameters: mean = 8, variance = 4, correlation = 6
+  - convergence: TRUE (8 iterations) 
+    largest |score| = 4.677128e-05 for rho(-1,1)
+            |change|= 1.68033723859651e-05 for visit3:group
  
 Residual variance-covariance: unstructured 
 
   - correlation structure: ~0 + time 
-          B3m   B1w   A1w   A3m
-    B3m 1.000 0.989 0.985 0.938
-    B1w 0.989 1.000 0.998 0.954
-    A1w 0.985 0.998 1.000 0.966
-    A3m 0.938 0.954 0.966 1.000
+            -13       -1       1      13
+    -13  1.0000  0.80072 0.26880 -0.0855
+    -1   0.8007  1.00000 0.00368 -0.0941
+    1    0.2688  0.00368 1.00000  0.5384
+    13  -0.0855 -0.09413 0.53842  1.0000
 
   - variance structure: ~time 
               standard.deviation ratio
-    sigma.B3m               20.3 1.000
-    sigma.B1w               19.0 0.939
-    sigma.A1w               17.7 0.871
-    sigma.A3m               16.8 0.826
+    sigma.-13               14.5 1.000
+    sigma.-1                13.0 0.896
+    sigma.1                 27.4 1.890
+    sigma.13                19.6 1.352
 #+end_example
 
 \clearpage
@@ -985,15 +1209,18 @@ cat(sapply(oo[-(1:2)],paste0,"\n"))
 
 #+RESULTS:
 #+begin_example
-Fixed effects: weight ~ time + glucagon 
+Fixed effects: glucagonAUC ~ visit * group 
  
-                estimate    se   df   lower   upper  p.value    
-    (Intercept)   132.98 4.664 19.8 123.243 142.717  < 2e-16 ***
-    timeB1w       -7.882 0.713 19.2  -9.374   -6.39 9.27e-10 ***
-    timeA1w      -11.788 1.018 21.6   -13.9  -9.676 9.55e-11 ***
-    timeA3m      -26.122 1.656 18.8 -29.591 -22.654 2.62e-12 ***
-    glucagon      -0.888 0.242 13.7  -1.408  -0.369  0.00257  **
-    ----------------------------------------------------------- 
+                 estimate     se   df   lower  upper p.value    
+    (Intercept)    38.729  4.576   18  29.114 48.344 < 1e-04 ***
+    visit2         -4.734  2.776 17.5 -10.577  1.109 0.10574    
+    visit3         31.433   8.63 17.6  13.272 49.594 0.00192  **
+    visit4          4.521  8.005   18 -12.297  21.34 0.57917    
+    group         -12.825  6.472   18 -26.422  0.773 0.06302   .
+    visit2:group    3.987  3.996 17.9   -4.41 12.383 0.33169    
+    visit3:group   27.571  12.42 17.8   1.461 53.682 0.03963   *
+    visit4:group   30.224 11.321   18   6.439 54.008 0.01562   *
+    ------------------------------------------------------- 
    Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
    Columns lower and upper contain 95% pointwise confidence intervals for each coefficient.
    Model-based standard errors are derived from the observed information (column se). 
@@ -1012,8 +1239,10 @@ coef(eUN.lmm)
 #+END_SRC
 
 #+RESULTS:
-: (Intercept)     timeB1w     timeA1w     timeA3m    glucagon 
-: 132.9801355  -7.8822331 -11.7879545 -26.1223908  -0.8883081
+:  (Intercept)       visit2       visit3       visit4        group visit2:group visit3:group 
+:    38.728975    -4.734333    31.433029     4.521381   -12.824616     3.986559    27.571424 
+: visit4:group 
+:    30.223906
 
 Variance coefficients can be output by specifying the =effects= argument:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -1021,32 +1250,22 @@ coef(eUN.lmm, effects = "variance")
 #+END_SRC
 
 #+RESULTS:
-:      sigma      k.B1w      k.A1w      k.A3m 
-: 20.2808131  0.9390916  0.8705176  0.8264480
+:      sigma       k.-1        k.1       k.13 
+: 14.4721183  0.8959206  1.8899095  1.3521979
 
-
-It is possible to apply specific transformation on the variance
-coefficients, for instance to obtain the residual variance relative to
-each outcome:
+The first coefficient is the residual standard deviation at the
+reference timepoint (here -13 week) and the remaining coefficient the
+residual standard deviation at later timepoints relative to the
+reference timepoint. It is possible to apply specific transformation
+on the variance coefficients, for instance to obtain the residual
+variance at each timepoint:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 coef(eUN.lmm, effects = "variance", transform.k = "sd")
 #+END_SRC
 
 #+RESULTS:
-: sigma.B3m sigma.B1w sigma.A1w sigma.A3m 
-:  20.28081  19.04554  17.65480  16.76104
-
-The marginal means at each timepoint can be obtained using =dummy.coef=:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-dummy.coef(eUN.lmm)
-#+END_SRC
-
-#+RESULTS:
-:   time estimate       se       df     lower    upper
-: 1  B3m 128.5386 4.536445 18.97584 119.04289 138.0343
-: 2  B1w 120.6564 4.261691 19.04078 111.73783 129.5749
-: 3  A1w 116.7506 3.956964 19.04925 108.47007 125.0312
-: 4  A3m 102.4162 3.747908 19.05531  94.57328 110.2591
+: sigma.-13  sigma.-1   sigma.1  sigma.13 
+:  14.47212  12.96587  27.35099  19.56917
 
 ** Extract estimated coefficient and associated uncertainty
 
@@ -1058,37 +1277,35 @@ model.tables(eUN.lmm)
 #+END_SRC
 
 #+RESULTS:
-:                estimate        se       df      lower       upper      p.value
-: (Intercept) 132.9801355 4.6642475 19.75815 123.243045 142.7172256 0.000000e+00
-: timeB1w      -7.8822331 0.7131797 19.17147  -9.374032  -6.3904339 9.273644e-10
-: timeA1w     -11.7879545 1.0175135 21.64404 -13.900162  -9.6757467 9.552470e-11
-: timeA3m     -26.1223908 1.6564077 18.84049 -29.591280 -22.6535021 2.617462e-12
-: glucagon     -0.8883081 0.2416081 13.70759  -1.407545  -0.3690712 2.571605e-03
+:                estimate        se       df      lower      upper      p.value
+: (Intercept)   38.728975  4.576486 18.00314  29.114255 48.3436939 1.089106e-07
+: visit2        -4.734333  2.775887 17.54267 -10.577172  1.1085054 1.057398e-01
+: visit3        31.433029  8.629711 17.58484  13.271949 49.5941098 1.922898e-03
+: visit4         4.521381  8.004993 17.99506 -12.296816 21.3395773 5.791699e-01
+: group        -12.824616  6.472128 18.00316 -26.421881  0.7726496 6.301532e-02
+: visit2:group   3.986559  3.995676 17.93653  -4.410175 12.3832925 3.316866e-01
+: visit3:group  27.571424 12.419868 17.83119   1.460532 53.6823152 3.963353e-02
+: visit4:group  30.223906 11.320769 17.99537   6.439413 54.0083977 1.562388e-02
 
 Values for the all correlation parameters can be displayed
-too, by specifying @@latex:\texttt{effect="all"}@@:
+too, by specifying @@latex:\texttt{effect=c("variance","correlation")}@@:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-model.tables(eUN.lmm, effect = "all")
+model.tables(eUN.lmm, effect = c("variance","correlation"))
 #+END_SRC
 
 #+RESULTS:
 #+begin_example
-                estimate           se       df       lower       upper      p.value
-(Intercept)  132.9801355 4.664247e+00 19.75815 123.2430454 142.7172256 0.000000e+00
-timeB1w       -7.8822331 7.131797e-01 19.17147  -9.3740323  -6.3904339 9.273644e-10
-timeA1w      -11.7879545 1.017513e+00 21.64404 -13.9001622  -9.6757467 9.552470e-11
-timeA3m      -26.1223908 1.656408e+00 18.84049 -29.5912795 -22.6535021 2.617462e-12
-glucagon      -0.8883081 2.416081e-01 13.70759  -1.4075449  -0.3690712 2.571605e-03
-sigma         20.2808131 1.042207e+08 17.94875  14.4225149  28.5187002           NA
-k.B1w          0.9390916 8.746246e-02 19.25090   0.8742815   1.0087060 8.159292e-02
-k.A1w          0.8705176 9.733113e-02 20.32066   0.7996375   0.9476805 2.778018e-03
-k.A3m          0.8264480 1.820402e-01 19.48030   0.6997216   0.9761257 2.692889e-02
-rho(B3m,B1w)   0.9889048 9.815766e-02 32.79091   0.9719687   0.9956310 7.778223e-13
-rho(B3m,A1w)   0.9848800 9.911546e-02 26.28819   0.9614535   0.9941119 5.780221e-11
-rho(B3m,A3m)   0.9380157 1.061121e-01 23.56848   0.8470249   0.9755995 1.153943e-07
-rho(B1w,A1w)   0.9976791 9.925175e-02 27.01628   0.9939113   0.9991163 3.730349e-14
-rho(B1w,A3m)   0.9542904 1.035349e-01 24.72225   0.8860968   0.9820453 1.782701e-08
-rho(A1w,A3m)   0.9658511 1.015050e-01 27.88668   0.9147964   0.9865286 1.450022e-09
+                estimate         se        df       lower      upper      p.value
+sigma       14.472118325 2.41202002 15.315761 10.15147605 20.6317000           NA
+k.-1         0.895920602 0.12703190 20.267083  0.66669608  1.2039575 0.4472196321
+k.1          1.889909495 0.43109758 25.915694  1.18243799  3.0206725 0.0097415223
+k.13         1.352197903 0.31755015 29.807376  0.83693748  2.1846783 0.2087440682
+rho(-13,-1)  0.800721445 0.08517658 13.414224  0.52948759  0.9234265 0.0004292266
+rho(-13,1)   0.268804346 0.21919999  7.928565 -0.26374140  0.6757630 0.2773574833
+rho(-13,13) -0.085457774 0.23398096  8.588214 -0.55306416  0.4230915 0.7250514470
+rho(-1,1)    0.003683836 0.23723671  8.148741 -0.49424281  0.4997905 0.9879844454
+rho(-1,13)  -0.094132798 0.23364886  8.919109 -0.55696763  0.4133142 0.6982138069
+rho(1,13)    0.538423876 0.17622066 10.223258  0.05058039  0.8188256 0.0352264245
 #+end_example
 
 Because these parameters are constrained (e.g. strictly positive),
@@ -1101,25 +1318,33 @@ model.tables(eUN.lmm, columns = c("estimate","p.value"))
 
 #+RESULTS:
 :                estimate      p.value
-: (Intercept) 132.9801355 0.000000e+00
-: timeB1w      -7.8822331 9.273644e-10
-: timeA1w     -11.7879545 9.552470e-11
-: timeA3m     -26.1223908 2.617462e-12
-: glucagon     -0.8883081 2.571605e-03
+: (Intercept)   38.728975 1.089106e-07
+: visit2        -4.734333 1.057398e-01
+: visit3        31.433029 1.922898e-03
+: visit4         4.521381 5.791699e-01
+: group        -12.824616 6.301532e-02
+: visit2:group   3.986559 3.316866e-01
+: visit3:group  27.571424 3.963353e-02
+: visit4:group  30.223906 1.562388e-02
 
-The functions =add= (resp. =remove=) can be used to add (resp. remove)
-one or several columns from the default display, e.g.:
+All parameters can be displayed by specifying
+@@latex:\texttt{effect="all"}@@.  The functions =add= (resp. =remove=)
+can be used to add (resp. remove) one or several columns from the
+default display, e.g.:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 model.tables(eUN.lmm, columns = add("statistic"))
 #+END_SRC
 
 #+RESULTS:
-:                estimate        se  statistic       df      lower       upper      p.value
-: (Intercept) 132.9801355 4.6642475  28.510523 19.75815 123.243045 142.7172256 0.000000e+00
-: timeB1w      -7.8822331 0.7131797 -11.052240 19.17147  -9.374032  -6.3904339 9.273644e-10
-: timeA1w     -11.7879545 1.0175135 -11.585060 21.64404 -13.900162  -9.6757467 9.552470e-11
-: timeA3m     -26.1223908 1.6564077 -15.770508 18.84049 -29.591280 -22.6535021 2.617462e-12
-: glucagon     -0.8883081 0.2416081  -3.676648 13.70759  -1.407545  -0.3690712 2.571605e-03
+:                estimate        se  statistic       df      lower      upper      p.value
+: (Intercept)   38.728975  4.576486  8.4626016 18.00314  29.114255 48.3436939 1.089106e-07
+: visit2        -4.734333  2.775887 -1.7055210 17.54267 -10.577172  1.1085054 1.057398e-01
+: visit3        31.433029  8.629711  3.6424197 17.58484  13.271949 49.5941098 1.922898e-03
+: visit4         4.521381  8.004993  0.5648201 17.99506 -12.296816 21.3395773 5.791699e-01
+: group        -12.824616  6.472128 -1.9815145 18.00316 -26.421881  0.7726496 6.301532e-02
+: visit2:group   3.986559  3.995676  0.9977182 17.93653  -4.410175 12.3832925 3.316866e-01
+: visit3:group  27.571424 12.419868  2.2199451 17.83119   1.460532 53.6823152 3.963353e-02
+: visit4:group  30.223906 11.320769  2.6697749 17.99537   6.439413 54.0083977 1.562388e-02
 
 ** Extract estimated residual variance-covariance structure
 
@@ -1131,11 +1356,11 @@ Sigma
 #+END_SRC
 
 #+RESULTS:
-:          B3m      B1w      A1w      A3m
-: B3m 411.3114 381.9734 352.6400 318.8573
-: B1w 381.9734 362.7326 335.4649 304.6314
-: A1w 352.6400 335.4649 311.6921 285.8077
-: A3m 318.8573 304.6314 285.8077 280.9323
+:           -13         -1          1        13
+: -13 209.44221 150.250246 106.399969 -24.20227
+: -1  150.25025 168.113758   1.306397 -23.88443
+: 1   106.39997   1.306397 748.076864 288.18395
+: 13  -24.20227 -23.884434 288.183947 382.95234
 
 and then converted to a correlation matrix using =cov2cor=:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -1143,11 +1368,11 @@ cov2cor(Sigma)
 #+END_SRC
 
 #+RESULTS:
-:           B3m       B1w       A1w       A3m
-: B3m 1.0000000 0.9889048 0.9848800 0.9380157
-: B1w 0.9889048 1.0000000 0.9976791 0.9542904
-: A1w 0.9848800 0.9976791 1.0000000 0.9658511
-: A3m 0.9380157 0.9542904 0.9658511 1.0000000
+:             -13           -1           1          13
+: -13  1.00000000  0.800721445 0.268804346 -0.08545777
+: -1   0.80072145  1.000000000 0.003683836 -0.09413280
+: 1    0.26880435  0.003683836 1.000000000  0.53842388
+: 13  -0.08545777 -0.094132798 0.538423876  1.00000000
 
 The method can also be used to extract the residual covariance
 relative to a "known" individual:
@@ -1156,23 +1381,23 @@ sigma(eUN.lmm, cluster = 5)
 #+END_SRC
 
 #+RESULTS:
-:          B3m      A1w      A3m
-: B3m 411.3114 352.6400 318.8573
-: A1w 352.6400 311.6921 285.8077
-: A3m 318.8573 285.8077 280.9323
+:           -13        1        13
+: -13 209.44221 106.4000 -24.20227
+: 1   106.39997 748.0769 288.18395
+: 13  -24.20227 288.1839 382.95234
 
 or for a new individual:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-newdata <- data.frame(id = "X", time = c("B3m","B1w","A1w","A3m"))
+newdata <- data.frame(id = "X", time = c("-13","-1","1","13"))
 sigma(eUN.lmm, cluster = newdata)
 #+END_SRC
 
 #+RESULTS:
-:          B3m      B1w      A1w      A3m
-: B3m 411.3114 381.9734 352.6400 318.8573
-: B1w 381.9734 362.7326 335.4649 304.6314
-: A1w 352.6400 335.4649 311.6921 285.8077
-: A3m 318.8573 304.6314 285.8077 280.9323
+:           -13         -1          1        13
+: -13 209.44221 150.250246 106.399969 -24.20227
+: -1  150.25025 168.113758   1.306397 -23.88443
+: 1   106.39997   1.306397 748.076864 288.18395
+: 13  -24.20227 -23.884434 288.183947 382.95234
 
 ** Random effects
 
@@ -1190,37 +1415,36 @@ where:
 One can the use =lme4= syntax to fit random intercept models with
 =lmm=:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eRI.lmm <- lmm(weight ~ time + glucagon + (1|id), data = dfL)
+eRI.lmm <- lmm(glucagonAUC ~ visit*group + (1|id), data = gastricbypassL)
 eRI.lmm
 #+END_SRC
 
 #+RESULTS:
 : 		Linear Mixed Model with a random intercept 
 : 
-:  outcome/cluster/time: weight/id/XXtimeXX 
+:  outcome/cluster/time: glucagonAUC/id/XXtimeXX 
 :  data                : 78 observations from 20 clusters 
-:  parameter           : 5 mean ((Intercept) timeB1w timeA1w timeA3m glucagon) 
+:  parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group visit2:group visit3:group visit4:group) 
 :                        1 variance (sigma) 
-:                        1 correlation (rho) 
-:  log-restr.likelihood: -243.600523870252 
-:  convergence         : TRUE (9 iterations)
+:                        1 correlation (rho(id)) 
+:  log-restr.likelihood: -314.394203759159 
+:  convergence         : TRUE (6 iterations)
 
 It is also possible to specify cross or nested random effects, e.g.:
-
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eNRI.lmm <- lmm(weight ~ time*group + (1|id/baseline), data = dfL)
+eNRI.lmm <- lmm(glucagonAUC ~ visit*group + (1|id/baseline), data = gastricbypassL)
 eNRI.lmm
 #+END_SRC
 
 #+RESULTS:
 : 		Linear Mixed Model with nested random intercepts 
 : 
-:  outcome/cluster/time: weight/id/XXtimeXX 
+:  outcome/cluster/time: glucagonAUC/id/XXtimeXX 
 :  data                : 78 observations from 20 clusters 
-:  parameter           : 8 mean ((Intercept) timeB1w timeA1w timeA3m group timeB1w:group timeA1w:group timeA3m:group) 
+:  parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group visit2:group visit3:group visit4:group) 
 :                        1 variance (sigma) 
-:                        2 correlation (rho(baseline) rho(id)) 
-:  log-restr.likelihood: -230.532819632968 
+:                        2 correlation (rho(id/baseline) rho(id)) 
+:  log-restr.likelihood: -308.994835006264 
 :  convergence         : TRUE (6 iterations)
 
 We obtain the same log-likelihood as, respectively, =eCS.lmm= and
@@ -1604,16 +1828,6 @@ plot(eUN.lmm, type = "correlation", type.residual = "response")
 plot(eUN.lmm, type = "correlation", type.residual = "normalized")
 #+END_SRC
 
-#+RESULTS:
-: [1m[22m`geom_smooth()` using method = 'loess' and formula = 'y ~ x'
-: [1m[22m`geom_smooth()` using method = 'loess' and formula = 'y ~ x'
-: windows 
-:       2
-: [1m[22m`geom_smooth()` using method = 'loess' and formula = 'y ~ x'
-: [1m[22m`geom_smooth()` using method = 'loess' and formula = 'y ~ x'
-: windows 
-:       2
-
 #+BEGIN_SRC R :exports none :results output raw drawer :session *R* :cache no
 library(ggpubr)
 gg <- ggarrange(autoplot(eUN.lmm, type = "correlation", type.residual = "response")$plot,
@@ -1673,7 +1887,6 @@ plot(profile(eUN.lmm, effects = c("sigma","rho(B1w,A1w)")))
 The fitted values can be displayed via the =plot= method or using the =emmeans= package:
 
 #+BEGIN_SRC R :file ./figures/fit-autoplot.pdf :results graphics file :session *R* :cache no
-library(ggplot2) ## left panel
 plot(eUN.lmm, type = "fit", color = "id", ci.alpha = NA, size.text = 20)
 #+END_SRC
 
@@ -3109,17 +3322,9 @@ summary(pool(e.mice))
 
 One can use the =plot= function to obtain a forest plot of the
 individual estimates along with the pooled estimate:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+#+BEGIN_SRC R :exports both :results code :session *R* :cache no
 plot(e.mlmm, method = c("pool.rubin","none"))
 #+END_SRC
-
-#+RESULTS:
-: Advarselsbesked:
-: [1m[22mUsing `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
-: [36mℹ[39m Please use `linewidth` instead.
-: [90mThis warning is displayed once every 8 hours.[39m
-: [90mCall `lifecycle::last_lifecycle_warnings()` to see where this warning was generated.[39m
-
 
 #+BEGIN_SRC R :exports none :results output raw drawer :session *R* :cache no
 ggsave(plot(e.mlmm, method = c("pool.rubin","none"), plot = FALSE)$plot + theme(text = element_text(size=20)), filename = "./figures/forestplot.pdf", width = 12)

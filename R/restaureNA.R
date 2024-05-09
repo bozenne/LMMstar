@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 20 2023 (15:31) 
 ## Version: 
-## Last-Updated: maj  8 2024 (18:09) 
+## Last-Updated: May  9 2024 (10:38) 
 ##           By: Brice Ozenne
-##     Update #: 61
+##     Update #: 65
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -136,7 +136,18 @@ restaureNA.array <- function(object, index.na, level, cluster){
         
         return(out)
     }else if(level == "obs" && length(index.na)>0){
-        stop("Not yet implemented - contact the package maintainer")
+
+        ## expand to store NAs
+        nobs <- dim(object)[1] + length(index.na)
+        out <- array(NA, dim = c(nobs, dim(object)[-1]),
+                      dimnames = c(list(NULL), dimnames(object)[-1]))
+        out[-index.na,,] <- as.double(object)
+        ## put back attributes
+        restaure.attributes <- setdiff(names(attributes(object)), names(attributes(out)))
+        if(length(restaure.attributes)>0){
+            attributes(out) <- c(attributes(out), attributes(object)[restaure.attributes])
+        }
+        return(out)
     }else{
         return(object)
     }

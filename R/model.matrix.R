@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: maj  7 2024 (16:54) 
+## Last-Updated: May  9 2024 (15:20) 
 ##           By: Brice Ozenne
-##     Update #: 3134
+##     Update #: 3141
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -112,6 +112,17 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
             if(any(structure.var %in% names(newdata) == FALSE)){
                 stop("Incorrect argument \'newdata\': missing variable(s) for the data structure \"",paste(structure.var[structure.var %in% names(newdata) == FALSE], collapse = "\" \""),"\".\n")
             }
+            if(any(!is.na(var.time)) && any(var.time %in% keep.col_testNA)){
+                test <- lapply(intersect(keep.col_testNA, var.time), function(iTime){ ## iTime <- "time"
+                    if(any(newdata[[iTime]] %in% attr(object$time$levels,"original")[[iTime]] == FALSE)){
+                        stop("Incorrect argument \'newdata\': invalid time variable ",iTime,". \n",
+                             "Proposed value: \"",paste(setdiff(newdata[[iTime]],attr(object$time$levels,"original")[[iTime]]), collapse ="\" \""),"\"\n",
+                             "Valid values: \"",paste(attr(object$time$levels,"original")[[iTime]], collapse ="\" \""),"\"\n")
+                    }
+                })
+                
+            }
+
             ## generate cluster/time/strata variables
             newdata.norm <- .lmmNormalizeData(data = newdata[keep.col_testNA],
                                               var.outcome = NA,

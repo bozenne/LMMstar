@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb 16 2023 (09:39) 
 ## Version: 
-## Last-Updated: nov  8 2023 (15:18) 
+## Last-Updated: May  9 2024 (11:32) 
 ##           By: Brice Ozenne
-##     Update #: 699
+##     Update #: 705
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,8 +21,8 @@
 ##' Inspired from the \code{ggpairs} function of the R package GGally.
 ##' 
 ##' @param data [data.frame] dataset containing the variables to be displayed.
-##' @param columns [character vector] Columns whose numerical values are to be displayed. Wide format only.
 ##' @param formula [formula] formula indicating the variables to be used (outcome~time|id). Long format only.
+##' @param columns [character vector] Columns whose numerical values are to be displayed. Wide format only.
 ##' @param format [character] Is the dataset in the long (\code{"long"}) or wide (\code{"wide"}) format?
 ##' @param group [character] optional group variable used to color the points, stratify the histogram/density and correlation.
 ##' @param transform [character or function] optional transformation to be applied on the outcome.
@@ -373,12 +373,13 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
 
     ## ** graphical display
     ## size.cor
-    if(is.null(size.cor) && display.NA && !is.na(method.cor)){
-        size.cor <- 7 
-    }else{
-        size.cor <- 10
+    if(is.null(size.cor)){
+        if(display.NA && !is.na(method.cor)){
+            size.cor <- 7 
+        }else{
+            size.cor <- 10
+        }
     }
-
     if(facet=="grid"){
         gg <- .ggscatterplot(dataGrid.diag = dataGrid.diag, dataGrid.lower = dataGrid.lower, dataCor = dataCor,
                              bins = bins, level.time = level.time, n.time = n.time, group = group, 
@@ -682,7 +683,7 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
                                          mapping = ggplot2::aes(x = .data$outcome1, fill = .data$group, color = .data$group),
                                          alpha = alpha.area, show.legend = !is.null(group))
     }
-            
+
     if(!is.na(method.cor)){
         gg <- gg + ggplot2::geom_text(data = dataCor,
                                       mapping = ggplot2::aes(x = .data$outcome2, y = .data$outcome1,

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: maj  7 2024 (16:14) 
+## Last-Updated: May  9 2024 (15:20) 
 ##           By: Brice Ozenne
-##     Update #: 763
+##     Update #: 764
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -127,7 +127,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
             if(outcome.var %in% names(cluster) == FALSE){
                 cluster[[outcome.var]] <- NA
             }
-            newdesign <- stats::model.matrix(object, newdata = cluster, effect = "variance", simplify = FALSE)            
+            newdesign <- stats::model.matrix(object, newdata = cluster, effect = "variance", simplify = FALSE, na.rm = FALSE)            
             cluster.num <- 1:length(newdesign$index.cluster)
             if(!is.null(attr(object$cluster$var,"original"))){
                 cluster.level <- cluster[sapply(newdesign$index.cluster, "[", 1), attr(object$cluster$var,"original")]                

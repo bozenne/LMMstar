@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: May  5 2024 (20:55) 
+## Last-Updated: May  9 2024 (13:40) 
 ##           By: Brice Ozenne
-##     Update #: 1078
+##     Update #: 1079
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -649,7 +649,7 @@ estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
         }else if(cv==-2){
             attr(cv,"message") <- "Stop optimization before convergence (log-likelihood=NA based on the initial values)"
         }
-        if(trace>1){
+        if(trace>=1){
             if(trace %in% 2:3){
                 cat("\n")
                 print(param.value)
