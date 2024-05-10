@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (13:27) 
 ## Version: 
-## Last-Updated: mar 14 2024 (18:08) 
+## Last-Updated: maj 10 2024 (11:43) 
 ##           By: Brice Ozenne
-##     Update #: 1077
+##     Update #: 1083
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -59,6 +59,9 @@
                             U.cluster, index.cluster,
                             U.time, index.clusterTime, 
                             U.strata, index.clusterStrata){
+
+    ## ** handle special case (no repetition)
+    if(all(lengths(index.cluster)==1)){return(structure)}
 
     ## ** extract information
     ## parameters
@@ -303,6 +306,9 @@
                             U.time, index.clusterTime, 
                             U.strata, index.clusterStrata){
 
+    ## ** handle special case (no repetition)
+    if(all(lengths(index.cluster)==1)){return(structure)}
+
     ## ** identify variance and correlation parameters
     structure <- .skeletonRho.CS(structure = structure, data = data, 
                                  U.cluster = U.cluster, index.cluster = index.cluster,
@@ -383,6 +389,9 @@
                                   U.cluster, index.cluster,
                                   U.time, index.clusterTime, 
                                   U.strata, index.clusterStrata){
+
+    ## ** handle special case (no repetition)
+    if(all(lengths(index.cluster)==1)){return(structure)}
 
     ## ** extract information
     ## parameters
@@ -558,6 +567,9 @@
                             U.time, index.clusterTime, 
                             U.strata, index.clusterStrata){
 
+    ## ** handle special case (no repetition)
+    if(all(lengths(index.cluster)==1)){return(structure)}
+
     ## ** extract information
     ## parameters
     index.sigma <- structure$param[structure$param$type=="sigma","index.level"]
@@ -725,6 +737,7 @@
     ## list containing for each strata the unique pairs of linear predictors
     ## (and the position in the dataset of these linear predictors as an attribute)
     lpU.clusterStrata <- lapply(1:n.strata, function(iS){ ## iS <- 1
+
         ## index of the clusters in the strata
         iIndex.clusterStrata <- which(index.clusterStrata==iS)
         ## index of the clusters with unique linear predictor pattern

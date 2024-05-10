@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:53) 
 ## Version: 
-## Last-Updated: feb 21 2024 (15:08) 
+## Last-Updated: maj 10 2024 (17:39) 
 ##           By: Brice Ozenne
-##     Update #: 229
+##     Update #: 237
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -90,7 +90,12 @@ formula2var <- function(formula, data = NULL, specials = NULL, name.argument  = 
     ff.formulaLHS <- stats::update(formula, ~1)
     ff.varLHS <- all.vars(ff.formulaLHS)
     n.outcome <- length(ff.varLHS)
+
     if(n.outcome>0){
+        if(grepl("(",deparse(ff.formulaLHS), fixed = TRUE)){
+            stop("The left hand side of the formula should not contain any parenthesis. \n",
+                 "Consider adding a transformed variable in the dataset instead of via the formula interface. \n")
+        }
         out$vars$response <- ff.varLHS
     }
 

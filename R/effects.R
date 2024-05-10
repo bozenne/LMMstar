@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 29 2024 (09:47) 
 ## Version: 
-## Last-Updated: maj  8 2024 (17:45) 
+## Last-Updated: maj 10 2024 (16:02) 
 ##           By: Brice Ozenne
-##     Update #: 539
+##     Update #: 572
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -298,6 +298,7 @@ effects.lmm <- function(object, variable, newdata = NULL, type = c("identity","n
         stop("Cannot evaluate ",type[2]," when there is a single timepoint. \n",
              "Considering setting argument \'type\' to \"static\" or specifying the argument \'repetition\' when calling lmm. \n")
     }
+
     M.contrast <- .effects_contrast(type = type, grid.conditional = grid.conditional, conditional.time = conditional.time, repetition = repetition, 
                                     U.strata = U.strata, n.strata = n.strata, 
                                     U.time = U.time, n.time = n.time,
@@ -328,6 +329,9 @@ effects.lmm <- function(object, variable, newdata = NULL, type = c("identity","n
             }
             iC <- M.contrast[,levels(iStrata),drop=FALSE] %*% do.call(rbind,by(iX,iStrata,colMeans))
             rownames(iC) <- paste0(iLevel,rownames(iC))
+            attr(iC, "time") <- attr(M.contrast,"time.row")
+            attr(iC, "strata") <- attr(M.contrast,"strata.row")
+            attr(iC, "variable") <- rep(iLevel, NROW(M.contrast))
             return(iC)
         })
     }else if(type[1] == "difference"){
@@ -358,12 +362,20 @@ effects.lmm <- function(object, variable, newdata = NULL, type = c("identity","n
             }
             iC <- M.contrast[,levels(iStrata),drop=FALSE] %*% do.call(rbind,by(iX2-iX1,iStrata,colMeans))
             rownames(iC) <- paste0(Upair.variable[2,iPair],"-",Upair.variable[1,iPair],rownames(M.contrast))
+            attr(iC, "time") <- attr(M.contrast,"time.row")
+            attr(iC, "strata") <- attr(M.contrast,"strata.row")
+            attr(iC, "variable") <- lapply(1:NROW(M.contrast), function(ii){Upair.variable[1:2,iPair]})
             return(iC)
         })
     }
 
     effect <- do.call(rbind,ls.C)
-    if(prefix.var){
+    effect.time <- unlist(lapply(ls.C,attr,"time"))
+    attr(effect.time,"original") <- do.call(rbind,lapply(lapply(ls.C,attr,"time"),attr,"original"))
+    effect.strata <- unlist(lapply(ls.C,attr,"strata"))
+    effect.variable <- do.call(c,lapply(ls.C,attr,"variable"))
+
+    if(prefix.var && !is.null(variable)){
         rownames(effect) <- paste0(variable,"=",rownames(effect))
     }
 
@@ -371,6 +383,21 @@ effects.lmm <- function(object, variable, newdata = NULL, type = c("identity","n
     out <- anova(object, effect = effect, multivariate = multivariate, ...)
     out$args$effect <- list(type)
     out$args$variable <- variable
+    out$args$time <- object$time$var
+    if(!is.null(effect.strata)){
+        out$args$strata <- paste(colnames(grid.conditional), collapse = ", ")
+    }
+    add <- data.frame(matrix(NA, nrow = NROW(out$univariate)))
+    names(add) <- variable
+    add[] <- list(effect.variable)
+    if(conditional.time){
+        add <- cbind(add, stats::setNames(as.data.frame(effect.time), out$args$time))
+    }
+    if(!is.null(effect.strata)){
+        add <- cbind(add, stats::setNames(as.data.frame(effect.strata), out$args$strata))
+    }
+    out$univariate <- cbind(add, out$univariate)
+    rownames(out$univariate) <- rownames(effect)
 
     ## ** export
     attr(out,"class") <- append("effect_lmm",attr(out,"class"))
@@ -385,7 +412,9 @@ effects.lmm <- function(object, variable, newdata = NULL, type = c("identity","n
                               U.time, n.time,
                               prefix.time, sep.var){
 
+
     ## ** generate contrast matrix according to type across repetitions
+    attr(U.time,"original") <- NULL
     if(type[2] == "none"){
         M.contrast <- diag(1, n.time, n.time)
         dimnames(M.contrast) <- list(U.time, U.time)

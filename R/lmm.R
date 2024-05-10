@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: maj  8 2024 (14:38) 
+## Last-Updated: maj 10 2024 (17:40) 
 ##           By: Brice Ozenne
-##     Update #: 3027
+##     Update #: 3059
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -203,7 +203,7 @@ lmm <- function(formula, repetition, structure, data,
         var.all <- c(var.all, unlist(structure$name))
     }
     outData <- .lmmNormalizeData(as.data.frame(data)[unique(stats::na.omit(var.all))],
-                                 var.outcome = var.outcome,
+                                 var.outcome = var.outcome, 
                                  var.cluster = outArgs$var.cluster,
                                  var.time = outArgs$var.time,
                                  var.strata = outArgs$var.strata,                         
@@ -211,7 +211,7 @@ lmm <- function(formula, repetition, structure, data,
                                  initialize.cluster = outArgs$ranef$crossed,
                                  initialize.time = setdiff(outArgs$ranef$vars, outArgs$var.cluster),
                                  na.rm = TRUE)
-    data <- outData$data
+    data <- outData$data    
     var.cluster <- outData$var.cluster
     var.time <- outData$var.time
     var.time.original <- attr(var.time,"original")
@@ -255,6 +255,7 @@ lmm <- function(formula, repetition, structure, data,
 
     ## *** store results
     out$formula <- list(mean = outArgs$formula,
+                        mean.outcome = outArgs$formula.outcome,
                         mean.design = outArgs$formula.design,
                         var = structure$formula$var,
                         cor = structure$formula$cor)
@@ -689,7 +690,7 @@ lmm <- function(formula, repetition, structure, data,
     }
 
     ## ** export
-    return(list(formula = formula, formula.design = detail.formula$formula$design, ranef = detail.ranef,
+    return(list(formula = formula, formula.outcome = stats::update(formula,.~1), formula.design = detail.formula$formula$design, ranef = detail.ranef,
                 var.outcome = var.outcome, var.X = var.X, var.cluster = var.cluster, var.time = var.time, var.strata = var.strata,
                 var.weights = var.weights, var.scale.Omega = var.scale.Omega,
                 method.fit = method.fit,
@@ -711,7 +712,9 @@ lmm <- function(formula, repetition, structure, data,
 ##' @details Argument \code{var.outcome} is NA when the function is called by \code{model.matrix.lmm}
 ##' 
 ##' @noRd
-.lmmNormalizeData <- function(data, var.outcome, var.cluster, var.time, var.strata, droplevels,
+.lmmNormalizeData <- function(data,
+                              var.outcome, 
+                              var.cluster, var.time, var.strata, droplevels,
                               initialize.cluster, initialize.time, na.rm){
 
 
@@ -786,6 +789,14 @@ lmm <- function(formula, repetition, structure, data,
     
     ## ** index
     data$XXindexXX <- 1:NROW(data)
+
+    ## ** outcome
+    ## handle a possible transformation of the outcome
+    ## (model.frame excludes NAs - this is avoided by removing NAs before hand)
+    ## if(!is.na(var.outcome)){
+    ##     indexY.NNA <- which(!is.na(data[[var.outcome]]))
+    ##     data[indexY.NNA,var.outcome] <- stats::model.response(stats::model.frame(formula.outcome, data[indexY.NNA,,drop=FALSE]))
+    ## }
 
     ## ** cluster
     if(is.na(var.cluster)){
@@ -1112,10 +1123,12 @@ lmm <- function(formula, repetition, structure, data,
                 args.structure$formula <- stats::as.formula(paste(var.strata.original,"~1"))
             }
         }
-
         if(n.time==1 && (structure %in% structure1time2ID || (structure == "IND" && all(all.vars(args.structure$formula) %in% var.time.original)))){
             message("Single timepoint: move from ",structure," to ID structure. \n")
             structure <- "ID"
+        }else if(structure == "UN" && all(table(data[[var.cluster]])<2)){
+            message("Single repetition per cluster: move from ",structure," to IND structure. \n")
+            structure <- "IND"
         }
 
         if(structure %in% c("UN","EXP","TOEPLITZ") || (n.time>1 && structure == "IND")){
@@ -1130,18 +1143,22 @@ lmm <- function(formula, repetition, structure, data,
 
     ## *** Variability within cluster (for clusters with more than a single value)
     if(!is.null(structure$formula$cor)){
-        check <- FALSE
-        for(iC in 1:n.cluster){ ## iC <- 1
-            iData <- data[data$XXcluster.indexXX==iC,var.outcome]
-            if(length(iData)==1 || all(is.na(iData))){
-                next
-            }else if(max(iData, na.rm = TRUE)-min(iData, na.rm = TRUE)>1e-12){
-                check <- TRUE
-                break
+        if(all(table(data$XXcluster.indexXX)<2)){
+            warning("Single observation per cluster: will not be able to estimate correlation parameters. \n")
+        }else{
+            check <- FALSE
+            for(iC in 1:n.cluster){ ## iC <- 1
+                iData <- data[data$XXcluster.indexXX==iC,var.outcome]
+                if(length(iData)==1 || all(is.na(iData))){
+                    next
+                }else if(max(iData, na.rm = TRUE)-min(iData, na.rm = TRUE)>1e-12){
+                    check <- TRUE
+                    break
+                }
             }
-        }
-        if(check == FALSE){
-            warning("Constant outcome values within cluster. \n")
+            if(check == FALSE){
+                warning("Constant outcome values within cluster. \n")
+            }
         }
     }
 

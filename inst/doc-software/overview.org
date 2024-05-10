@@ -55,7 +55,7 @@ utils::packageVersion("LMMstar")
 #+END_SRC
 
 #+RESULTS:
-: [1] ‘1.1.0’
+: [1] '1.1.0'
 
 It is recommanded to also the following packages, as some of the
 methods implemented in the package are relative to a generic method
@@ -169,13 +169,22 @@ head(gastricbypassW)
 #+END_SRC
 
 #+RESULTS:
-:   id weight1 weight2 weight3 weight4 glucagonAUC1 glucagonAUC2 glucagonAUC3 glucagonAUC4
-: 1  1   127.2   120.7   115.5   108.1     20.69014     20.53486     92.60017     43.43377
-: 2  2   165.2   153.4   149.2   132.0     49.92151     58.51346     49.63298     35.74695
-: 3  3   109.7   101.6    97.7    87.1     42.43420     25.76985     91.23980     83.13719
-: 4  4   146.2   142.4   136.7   123.0     27.51696     27.55224     59.35960     21.37069
-: 5  5   113.1   105.6    99.9    87.7     29.15120           NA     86.85942     57.96993
-: 6  6   158.8   143.6   134.6   108.7     42.70000     31.61559     53.40800     37.63608
+#+begin_example
+  id weight1 weight2 weight3 weight4 glucagonAUC1 glucagonAUC2 glucagonAUC3
+1  1   127.2   120.7   115.5   108.1     20.69014     20.53486     92.60017
+2  2   165.2   153.4   149.2   132.0     49.92151     58.51346     49.63298
+3  3   109.7   101.6    97.7    87.1     42.43420     25.76985     91.23980
+4  4   146.2   142.4   136.7   123.0     27.51696     27.55224     59.35960
+5  5   113.1   105.6    99.9    87.7     29.15120           NA     86.85942
+6  6   158.8   143.6   134.6   108.7     42.70000     31.61559     53.40800
+  glucagonAUC4
+1     43.43377
+2     35.74695
+3     83.13719
+4     21.37069
+5     57.96993
+6     37.63608
+#+end_example
 
 for which we can also add the group variable:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -790,6 +799,9 @@ logLik(e.lmer)
 #+END_SRC
 
 #+RESULTS:
+: Indlæser krævet pakke: Matrix
+: Advarselsbesked:
+: pakke 'Matrix' blev bygget under R version 4.2.1
 : 'log Lik.' -308.9948 (df=11)
 
 - e.g. to obtain a *block unstructured* covariance matrix:
@@ -1349,30 +1361,47 @@ model.tables(eUN.lmm, columns = add("statistic"))
 ** Extract estimated residual variance-covariance structure
 
 The method =sigma= can be used to output the modeled residual
-covariance structure:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+covariance structure and then converted to a correlation matrix using
+=cov2cor=:
+
+\medskip
+
+#+LaTeX: \begin{minipage}{0.45\linewidth} 
+#+BEGIN_SRC R :exports code :results silent :session *R* :cache no
 Sigma <- sigma(eUN.lmm)
 Sigma
 #+END_SRC
 
-#+RESULTS:
-:           -13         -1          1        13
-: -13 209.44221 150.250246 106.399969 -24.20227
-: -1  150.25025 168.113758   1.306397 -23.88443
-: 1   106.39997   1.306397 748.076864 288.18395
-: 13  -24.20227 -23.884434 288.183947 382.95234
-
-and then converted to a correlation matrix using =cov2cor=:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-cov2cor(Sigma)
+#+BEGIN_SRC R :exports results :results output :session *R* :cache no
+round(Sigma,3)
 #+END_SRC
 
 #+RESULTS:
-:             -13           -1           1          13
-: -13  1.00000000  0.800721445 0.268804346 -0.08545777
-: -1   0.80072145  1.000000000 0.003683836 -0.09413280
-: 1    0.26880435  0.003683836 1.000000000  0.53842388
-: 13  -0.08545777 -0.094132798 0.538423876  1.00000000
+:         -13      -1       1      13
+: -13 209.442 150.250 106.400 -24.202
+: -1  150.250 168.114   1.306 -23.884
+: 1   106.400   1.306 748.077 288.184
+: 13  -24.202 -23.884 288.184 382.952
+#+LaTeX: \end{minipage}
+#+LaTeX: \begin{minipage}{0.05\linewidth}
+#+LaTeX:\hphantom{x}
+#+LaTeX: \end{minipage}
+#+LaTeX: \begin{minipage}{0.45\linewidth} 
+#+BEGIN_SRC R :exports code :results silent :session *R* :cache no
+cov2cor(Sigma)
+#+END_SRC
+
+#+BEGIN_SRC R :exports results :results output :session *R* :cache no
+round(cov2cor(Sigma), 3)
+#+END_SRC
+
+#+RESULTS:
+:        -13     -1     1     13
+: -13  1.000  0.801 0.269 -0.085
+: -1   0.801  1.000 0.004 -0.094
+: 1    0.269  0.004 1.000  0.538
+: 13  -0.085 -0.094 0.538  1.000
+#+LaTeX: \end{minipage}
 
 The method can also be used to extract the residual covariance
 relative to a "known" individual:
@@ -1399,6 +1428,113 @@ sigma(eUN.lmm, cluster = newdata)
 : 1   106.39997   1.306397 748.076864 288.18395
 : 13  -24.20227 -23.884434 288.183947 382.95234
 
+\clearpage
+
+** Marginal effects
+
+The =effects= method can be used to evaluate marginal means with
+respect to a categorical variable:
+- \(\Esp[Y_t \mid \text{group}]\)
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+effects(eUN.lmm, variable = "group")
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+		Average counterfactual outcome
+		 w.r.t 'group' values 
+
+                  estimate    se   df  lower   upper
+   group=0(t=-13)   38.729 4.576   18 29.114  48.344
+   group=0(t=-1)    33.995   4.1 17.9 25.377  42.612
+   group=0(t=1)     70.162 8.649 17.7 51.968  88.356
+   group=0(t=13)     43.25 6.188   18 30.249  56.251
+   group=1(t=-13)   25.904 4.576   18  16.29  35.519
+   group=1(t=-1)    25.157 4.167 18.7 16.425  33.889
+   group=1(t=1)     84.909 8.951 18.2 66.115 103.702
+   group=1(t=13)     60.65 6.188   18 47.649  73.651
+#+end_example
+
+- \(\Esp[Y_t-Y_0 \mid \text{group}]\)
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+effects(eUN.lmm, type = "change", variable = "group")
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+		Average counterfactual change in outcome
+		 w.r.t 'group' values 
+
+                  estimate    se   df   lower  upper
+   group=0(dt=-1)   -4.734 2.776 17.5 -10.577  1.109
+   group=0(dt=1)    31.433  8.63 17.6  13.272 49.594
+   group=0(dt=13)    4.521 8.005   18 -12.297  21.34
+   group=1(dt=-1)   -0.748 2.874 18.3  -6.779  5.283
+   group=1(dt=1)    59.004 8.932   18  40.242 77.767
+   group=1(dt=13)   34.745 8.005   18  17.927 51.563
+#+end_example
+
+- \(\Esp[\int_0^T Y_t dt \mid \text{group}]\)
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+effects(eUN.lmm, type = "auc", variable = "group")
+#+END_SRC
+
+#+RESULTS:
+: 		Average counterfactual area under the outcome curve
+: 		 w.r.t 'group' values 
+: 
+:                 estimate      se   df    lower    upper
+:    group=0(auc) 1220.972 104.098 17.8 1002.072 1439.873
+:    group=1(auc) 1289.782 105.512 18.5 1068.508 1511.056
+
+It can also be used to contrast these marginal means:
+- \(\Esp[Y_t \mid \text{group}=1]-\Esp[Y_t \mid \text{group}=0]\)
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+effects(eUN.lmm, type = "difference", variable = "group")
+#+END_SRC
+
+#+RESULTS:
+: 		Difference in average counterfactual outcome
+: 		 w.r.t 'group' values 
+: 
+:                     estimate     se   df   lower  upper p.value  
+:    group=1-0(t=-13)  -12.825  6.472   18 -26.422  0.773  0.0630 .
+:    group=1-0(t=-1)    -8.838  5.846 18.3 -21.106   3.43  0.1477  
+:    group=1-0(t=1)     14.747 12.447 17.9 -11.409 40.903  0.2516  
+:    group=1-0(t=13)    17.399  8.752   18  -0.987 35.785  0.0622 .
+
+- \(\Esp[Y_t-Y_0 \mid \text{group}=1]-\Esp[Y_t-Y_0 \mid \text{group}=0]\)
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+effects(eUN.lmm, type = c("change","difference"), variable = "group")
+#+END_SRC
+
+#+RESULTS:
+: 		Difference in average counterfactual change in outcome
+: 		 w.r.t 'group' values 
+: 
+:                     estimate     se   df lower  upper p.value  
+:    group=1-0(dt=-1)    3.987  3.996 17.9 -4.41 12.383  0.3317  
+:    group=1-0(dt=1)    27.571  12.42 17.8 1.461 53.682  0.0396 *
+:    group=1-0(dt=13)   30.224 11.321   18 6.439 54.008  0.0156 *
+
+- \(\Esp[\int_0^T Y_t dt \mid \text{group}=1]-\Esp[\int_0^T Y_t dt \mid \text{group}=0]\)
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+effects(eUN.lmm, type = c("auc","difference"), variable = "group")
+#+END_SRC
+
+#+RESULTS:
+: 		Difference in average counterfactual area under the outcome curve
+: 		 w.r.t 'group' values 
+: 
+:                   estimate     se   df   lower   upper p.value  
+:    group=1-0(auc)   68.809 148.22 18.1 -242.44 380.059   0.648
+
+It is possible to control the set of covariates used to condition on
+via the =conditional= argument. This can be useful when considering an
+interaction with a biomarker to obtain biomarker-specific effects.
+
+\clearpage
+
 ** Random effects
 
 Mixed model having a compound symmetry structure with positive
@@ -1408,7 +1544,6 @@ variance-covariance matrix can then be decomposed as:
 #+BEGIN_EXPORT latex
 \[ \Omega = Z \Psi \trans{Z} + \Delta \]
 #+END_EXPORT
-where:
 - \(Z\) is the design matrix associated to the random effect (e.g. patient id)
 - \(\Psi\) is the variance-covariance of the random effects
 - \(\Delta\) the residual variance covariance conditional to the random effects.
@@ -1457,7 +1592,7 @@ be very inefficient compared to =lme4=.
 \bigskip
 
 The joint distribution between the outcome \(\VY\)
-and the random effects \(\Veta\) can be explicit as:
+and the random effects \(\Veta\) can be expressed as:
 #+BEGIN_EXPORT latex
 \[
 \begin{bmatrix} \VY \\ \Veta \end{bmatrix} \sim \Gaus\left(\begin{bmatrix} \boldsymbol{\mu} \\ \mathbf{0} \end{bmatrix}, \begin{bmatrix} \Omega & Z \Psi \\ \Psi \trans{Z} & \Psi \end{bmatrix}\right)
@@ -1481,13 +1616,13 @@ head(ranef(eRI.lmm, format = "wide"))
 #+END_SRC
 
 #+RESULTS:
-:   id    estimate
-: 1  1   0.9036038
-: 2  2  32.5542378
-: 3  3 -18.3099658
-: 4  4  20.2561307
-: 5  5 -15.4258816
-: 6  6  19.3751847
+:   id   estimate
+: 1  1 -2.5115379
+: 2  2  1.0104263
+: 3  3  6.0838394
+: 4  4 -6.6235023
+: 5  5  0.3951887
+: 6  6 -2.7338407
 #+LaTeX: \end{minipage}
 #+LaTeX: \begin{minipage}{0.48\linewidth} 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -1495,50 +1630,81 @@ head(ranef(eNRI.lmm, format = "wide"))
 #+END_SRC
 
 #+RESULTS:
-:   id   estimate  estimate.0 estimate.1
-: 1  1   4.931442  0.52901983 -0.4829138
-: 2  2  28.390660 -0.09204109  0.3574766
-: 3  3 -13.728389  0.18951039 -0.3178625
-: 4  4  15.645550  0.82309894 -0.6768225
-: 5  5 -11.246852 -0.30658155  0.2014303
-: 6  6  15.002108 -2.64303027  2.7832909
+:   id    estimate estimate.FALSE estimate.TRUE
+: 1  1 -0.49427090     -3.5095911    -3.2320942
+: 2  2  0.18605134    -10.3943084    12.9319849
+: 3  3  1.08840900      9.3632739     5.4822512
+: 4  4 -1.21959556    -11.0670290    -5.5678358
+: 5  5  0.08168627     -0.7125446     1.8267173
+: 6  6 -0.50338625     -7.8169964     0.9509808
 #+LaTeX: \end{minipage}
 
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
 library(lme4)
-e.lmer <- lmer(weight ~ time + glucagon + (1|id), data = dfL)
-range(ranef(e.lmer)[[1]][,1]-ranef(eRI.lmm)$estimate)
-e.lmer2 <- lmer(weight ~ time*group + (1|id/baseline), data = dfL)
+e.lmer <- lmer(glucagonAUC ~ visit*group + (1|id), data = gastricbypassL)
+range(ranef(e.lmer)[[1]][,1]-ranef(eRI.lmm))
+e.lmer2 <- lmer(glucagonAUC ~ visit*group + (1|id/baseline), data = gastricbypassL)
 range(matrix(c(ranef(e.lmer2)[[2]][,1],ranef(e.lmer2)[[1]][,1]), ncol = 3, byrow = FALSE)-ranef(eNRI.lmm, format = "wide")[,-1])
 #+END_SRC
 
 #+RESULTS:
-: [1] -2.406756e-08  3.167867e-08
-: [1] -0.0001182242  0.0001493705
+: [1] -5.696047e-06  5.886729e-06
+: [1] -3.841253e-05  4.003857e-05
 
 It is also possible to extract the variance decomposition by setting
-the argument =effects= to ="variance"=: 
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-ranef(eRI.lmm, effects = "variance", format = "wide", simplify = FALSE)
+the argument =effects= to ="variance"=:
+
+\medskip
+
+#+LaTeX: \begin{minipage}{0.47\linewidth} 
+#+BEGIN_SRC R :exports code :results silent :session *R* :cache no
+ranef(eRI.lmm, effects = "variance",
+      format = "wide")
+#+END_SRC
+
+#+BEGIN_SRC R :exports results :results output :session *R* :cache no
+ranef(eRI.lmm, effects = "variance", format = "wide")
+cat(" \n")
+cat(" \n")
 #+END_SRC
 
 #+RESULTS:
-:   variable strata  variance   relative
-: 1    total      1 355.30623 1.00000000
-: 2       id      1 344.62363 0.96993408
-: 3 residual      1  10.68261 0.03006592
-
+:       type  absolute  relative
+: 1    total 380.57991 1.0000000
+: 2       id  82.74055 0.2174065
+: 3 residual 297.83936 0.7825935
+: 
+#+LaTeX: \end{minipage}
+#+LaTeX: \begin{minipage}{0.47\linewidth} 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-ranef(eNRI.lmm, effects = "variance", format = "wide", simplify = FALSE)
+ranef(eNRI.lmm, effects = "variance",
+      format = "wide")
 #+END_SRC
 
 #+RESULTS:
-:   variable strata   variance    relative
-: 1    total      1 346.744085 1.000000000
-: 2       id      1 336.182537 0.969540799
-: 3 baseline      1   3.143104 0.009064622
-: 4 residual      1   7.418444 0.021394579
+:       type  absolute   relative
+: 1    total 380.95687 1.00000000
+: 2       id  15.46503 0.04059522
+: 3 baseline 210.93768 0.55370488
+: 4 residual 154.55416 0.40569990
+#+LaTeX: \end{minipage}
+
+
+Confidence intervals can also be obtained setting the argument =se= to
+=TRUE= and =format= equal to ="long"=:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+head(ranef(eRI.lmm, se = TRUE))
+#+END_SRC
+
+#+RESULTS:
+:   id   estimate       se        df      lower     upper
+: 1  1 -2.5115379 2.301903 11.130230  -7.570770  2.547694
+: 2  2  1.0104263 2.116338 15.735483  -3.482148  5.503001
+: 3  3  6.0838394 2.977148  6.208501  -1.142085 13.309764
+: 4  4 -6.6235023 3.111364  5.831923 -14.290240  1.043235
+: 5  5  0.3951887 1.966059 23.844585  -3.663958  4.454335
+: 6  6 -2.7338407 2.293956 10.018912  -7.843785  2.376103
 
 \clearpage
 
@@ -1562,7 +1728,7 @@ residuals.
 Appendix [[#SM:sumSquares]] illustrate how to extract the sum of squares
 for univariate linear regression (i.e. independence structure) and
 here we illustrate the case of a compound symmetry structure.  A key
-step is to extract from the =lmm= object the conditional variance
+step is to extract from the =lmm= object the conditional residual variance
 \(\delta\):
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 sigma2 <- coef(eCS.lmm, effect = "variance")^2
@@ -1583,7 +1749,7 @@ c(df.res = df.res, SSE = SSE)
 
 #+RESULTS:
 :   df.res      SSE 
-:  73.0000 779.8304
+:    70.00 20848.76
 
 For the regression sum of squares (SSR), we first extract the mean
 parameters and their variance-covariance based on the expected
@@ -1601,14 +1767,14 @@ attr(model.matrix(eCS.lmm),"assign")
 #+END_SRC
 
 #+RESULTS:
-: [1] 0 1 1 1 2
+: [1] 0 1 1 1 2 3 3 3
 
-\clearpage
+\bigskip
 
 So we respect this grouping when computing the normalized SSR: 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 SSRstar.time <- eBeta.lmm[2:4] %*% solve(eVcov.lmm[2:4,2:4]) %*% eBeta.lmm[2:4] 
-SSRstar.glucagon <- eBeta.lmm[5] %*% solve(eVcov.lmm[5,5]) %*% eBeta.lmm[5] 
+SSRstar.group <- eBeta.lmm[5] %*% solve(eVcov.lmm[5,5]) %*% eBeta.lmm[5] 
 #+END_SRC
 #+RESULTS:
 
@@ -1616,48 +1782,40 @@ The SSR is obtained by multiplying the normalized SSR by the
 conditional variance:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 SSR.time <- as.double(SSRstar.time * delta)
-SSR.glucagon <- as.double(SSRstar.glucagon * delta)
-c(time = SSR.time, glucagon = SSR.glucagon)
+SSR.group <- as.double(SSRstar.group * delta)
+c(time = SSR.time, group = SSR.group)
 #+END_SRC
 #+RESULTS:
-:       time   glucagon 
-: 6986.78351   18.83074
+:      time     group 
+: 7872.1883  643.5688
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
 library(lme4) ## note type I anova so only look at the last line
-anova(lmer(weight ~ time + glucagon + (1|id), data = dfL))
-anova(lmer(weight ~ glucagon + time + (1|id), data = dfL))
+df.tempo <- gastricbypassL
+df.tempo$visit.group <- df.tempo$visit
+df.tempo[df.tempo$group==0,"visit.group"] <- levels(df.tempo$visit)[1]
+anova(lmer(glucagonAUC ~ visit.group + visit + group + (1|id), data = df.tempo))
+anova(lmer(glucagonAUC ~ visit.group + group + visit + (1|id), data = df.tempo))
 #+END_SRC
 
 #+RESULTS:
-: Analysis of Variance Table
-:          npar Sum Sq Mean Sq  F value
-: time        3 7516.7 2505.57 234.5468
-: glucagon    1   18.8   18.83   1.7627
-: Analysis of Variance Table
-:          npar Sum Sq Mean Sq F value
-: glucagon    1  548.8  548.76   51.37
-: time        3 6986.8 2328.93  218.01
+#+begin_example
+Analysis of Variance Table
+            npar  Sum Sq Mean Sq F value
+visit.group    3 20839.9  6946.6 23.3234
+visit          3  9585.6  3195.2 10.7280
+group          1   643.6   643.6  2.1608
+Analysis of Variance Table
+            npar  Sum Sq Mean Sq F value
+visit.group    3 20839.9  6946.6 23.3234
+group          1  2357.0  2357.0  7.9137
+visit          3  7872.2  2624.1  8.8103
+#+end_example
 
 ** Proportion of explained variance and partial correlation
 
-\Warning The definition of explained variance is not straightforward
-with mixed models. Intuitively considering the variance across several
-outcomes will be hard to interpret unless all outcomes have the same
-variance. Similar consideration holds for partial correlation. This
-is why LMMstar does not output these quantities by
-default. Nevertheless for specific covariance structure, namely
-independence and compound symmetry (with positive correlation)
-structure, explained variance and partial correlation can be deduced
-from the =lmm= object. Importantly, with these structures the
-residuals can be reparametrised as random effects plus independent
-residuals, i.e. \(\Omega = Z \Psi \trans{Z} + \delta I\) where
-\(I\) is the identity matrix and \(\delta\) the variance of these
-independent residuals.
-
-\bigskip
-
-The proportion of explained variance, also called partial \(R^2\) or
+For a univariate linear model with homoschedastic residual variance,
+the proportion of explained variance, also called partial \(R^2\) or
 partial \(\eta^2\), is defined as the ratio between sum of squares
 (e.g. cite:lakens2013calculating, equation 12):
 #+BEGIN_EXPORT latex
@@ -1666,15 +1824,21 @@ partial \(\eta^2\), is defined as the ratio between sum of squares
 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 c(SSR.time/ (SSR.time + SSE),
-  SSR.glucagon/ (SSR.glucagon + SSE))
+  SSR.group/ (SSR.group + SSE))
 #+END_SRC
 
 #+RESULTS:
-: [1] 0.89959197 0.02357789
+: [1] 0.27409225 0.02994412
 
 Computing the SSR for each individual coefficients, taking its squared
 root, and multiplying by the sign of the corresponding coefficient
-leads to the partial correlation
+leads to the partial correlation. This procedure extends to covariance
+structures that can be reparametrised as random effects plus
+independent residuals (see previous subsection) such as the compound
+symmetry with non-negative correlation.
+- \Warning :: for other covariance structures, especially when the
+  variance may be repetition-dependent, the definition of explained
+  variance/partial correlation is not straightforward.
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 eCS.R2 <- partialCor(eCS.lmm, R2 = TRUE)
 summary(eCS.R2)
@@ -1685,35 +1849,36 @@ summary(eCS.R2)
 
 		Partial correlation 
 
-            estimate    se   df  lower  upper  p.value
-   timeB1w    -0.646 0.055 18.6 -0.762  -0.53 5.11e-10
-   timeA1w    -0.765 0.035  9.5 -0.845 -0.686 2.07e-09
-   timeA3m    -0.946 0.006  2.4 -0.969 -0.923 6.80e-06
-   glucagon    0.154 0.114 45.3 -0.076  0.383    0.184
-   ------------------------------------------------- 
+                estimate    se   df  lower upper p.value
+   visit2         -0.073 0.119 52.4 -0.311 0.165 0.54028
+   visit3          0.438 0.089 51.4   0.26 0.616 < 1e-04
+   visit4           0.07 0.119 52.4 -0.168 0.308 0.55876
+   group          -0.173 0.114 60.7 -0.402 0.056 0.13527
+   visit2:group    0.041 0.119 52.8 -0.198  0.28 0.73256
+   visit3:group    0.284 0.106   52  0.071 0.497 0.01007
+   visit4:group    0.314 0.103   52  0.107 0.521 0.00365
+   ----------------------------------------------------- 
   Columns lower and upper contain 95% pointwise confidence intervals for each coefficient.
   Degrees of freedom were computed using a Satterthwaite approximation (column df). 
 
 		Coefficient of determination (R2)
 
-            estimate    se   df  lower upper  p.value
-   time          0.9 0.011  2.4  0.857 0.942 4.09e-05
-   glucagon    0.024 0.035 45.3 -0.047 0.094    0.503
-   global      0.906 0.011  2.3  0.866 0.946 4.51e-05
-   ------------------------------------------------- 
+               estimate    se   df  lower upper p.value
+   visit          0.274  0.08 50.5  0.114 0.434  0.0012
+   group           0.03  0.04 60.7 -0.049 0.109  0.4520
+   visit:group    0.147 0.073 51.7 <0.001 0.295  0.0500
+   global         0.598 0.053 40.4  0.492 0.705  <1e-04
+   ---------------------------------------------------- 
   Columns lower and upper contain 95% pointwise confidence intervals for each coefficient.
   Degrees of freedom were computed using a Satterthwaite approximation (column df).
 #+end_example
 
 Here the line "global" refer to the R2 for all covariates, computed
 based on the SSR relative to all mean parameters but the intercept.
-
-\bigskip
-
-\Warning =partialCor= will compute values for all types of mixed
-models. But their interpretation as partial correlation and proportion
-of explained variance outside the covariance structures mentioned in
-this section is questionnable.
+ - \Warning :: =partialCor= will compute values for all types of mixed
+   models. But their interpretation as partial correlation and
+   proportion of explained variance outside the compound symmetry with
+   non-negative correlation is questionnable.
 
 \bigskip
 
@@ -1736,22 +1901,23 @@ setNames(with(aCS.aov, statistic*df.num/(statistic*df.num+df.denom)), aCS.aov$te
 #+END_SRC
 
 #+RESULTS:
-:       time   glucagon 
-: 0.92380363 0.03162017
+:       visit       group visit:group 
+:  0.33537363  0.03381098  0.18628988
 
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
-effectsize::eta_squared(lmer(weight ~ time + glucagon + (1|id), data = dfL))
+effectsize::eta_squared(lmer(glucagonAUC ~ visit*group + (1|id), data = gastricbypassL))
 cat("\n")
 #+END_SRC
 
 #+RESULTS:
 : # Effect Size for ANOVA (Type III)
 : 
-: Parameter | Eta2 (partial) |       95% CI
-: -----------------------------------------
-: time      |           0.92 | [0.89, 1.00]
-: glucagon  |           0.03 | [0.00, 1.00]
+: Parameter   | Eta2 (partial) |       95% CI
+: -------------------------------------------
+: visit       |           0.34 | [0.15, 1.00]
+: group       |           0.01 | [0.00, 1.00]
+: visit:group |           0.19 | [0.03, 1.00]
 : 
 : - One-sided CIs: upper bound fixed at [1.00].>
 
@@ -1770,13 +1936,13 @@ head(eUN.diagW)
 #+END_SRC
 
 #+RESULTS:
-:   id      r.B3m      r.B1w      r.A1w       r.A3m
-: 1  1 -0.1082872  0.4283943  0.7477306  0.91794015
-: 2  2  1.8182348 -0.3516996  1.5698307 -0.98743171
-: 3  3 -0.9318737 -0.7728221  0.6315751  0.16549699
-: 4  4  0.8408969  1.8695564  0.3485784 -0.09662565
-: 5  5 -0.7882340         NA -0.6128276  0.09933842
-: 6  6  1.4896141 -1.9727358 -1.9672939 -1.37068983
+:   id      r.-13       r.-1         r.1       r.13
+: 1  1 -0.3602944 -0.1134444  0.37717680 -1.4553910
+: 2  2  0.7733858  2.1230094 -0.23290770 -0.1070804
+: 3  3  1.1421857 -1.4477806 -0.65487596  2.0125923
+: 4  4 -0.7747324  0.2061159 -0.12711744 -1.3951941
+: 5  5  0.2243514         NA  0.01143165 -0.1539782
+: 6  6  0.2743915 -0.6730753 -1.03113140  0.4272387
 
 or in the long format:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -1785,13 +1951,13 @@ head(eUN.diagL)
 #+END_SRC
 
 #+RESULTS:
-:   id visit time weight glucagonAUC baseline glucagon group   fitted r.normalized
-: 1  1     1  B3m  127.2     5032.50     TRUE 4.034616     1 129.3962   -0.1082872
-: 2  2     1  B3m  165.2    12142.50     TRUE 5.240766     0 128.3247    1.8182348
-: 3  3     1  B3m  109.7    10321.35     TRUE 4.931824     1 128.5992   -0.9318737
-: 4  4     1  B3m  146.2     6693.00     TRUE 4.316306     0 129.1459    0.8408969
-: 5  5     1  B3m  113.1     7090.50     TRUE 4.383738     1 129.0860   -0.7882340
-: 6  6     1  B3m  158.8    10386.00     TRUE 4.942791     0 128.5894    1.4896141
+:   id visit time weight glucagonAUC group baseline   fitted r.normalized
+: 1  1     1  -13  127.2    20.69014     1     TRUE 25.90436   -0.3602944
+: 2  2     1  -13  165.2    49.92151     0     TRUE 38.72897    0.7733858
+: 3  3     1  -13  109.7    42.43420     1     TRUE 25.90436    1.1421857
+: 4  4     1  -13  146.2    27.51696     0     TRUE 38.72897   -0.7747324
+: 5  5     1  -13  113.1    29.15120     1     TRUE 25.90436    0.2243514
+: 6  6     1  -13  158.8    42.70000     0     TRUE 38.72897    0.2743915
 
 Various type of residuals can be extract but the normalized one are
 recommanded when doing model checking. Diagnostic plots can then be
@@ -1828,6 +1994,8 @@ plot(eUN.lmm, type = "correlation", type.residual = "response")
 plot(eUN.lmm, type = "correlation", type.residual = "normalized")
 #+END_SRC
 
+#+RESULTS:
+
 #+BEGIN_SRC R :exports none :results output raw drawer :session *R* :cache no
 library(ggpubr)
 gg <- ggarrange(autoplot(eUN.lmm, type = "correlation", type.residual = "response")$plot,
@@ -1839,6 +2007,9 @@ ggsave(gg, filename = "./figures/diag-correlation.pdf", width = 12)
 
 #+RESULTS:
 :results:
+Indlæser krævet pakke: ggplot2
+Advarselsbesked:
+pakke 'ggplot2' blev bygget under R version 4.2.3
 [1m[22mSaving 12 x 6.38 in image
 :end:
 
@@ -1861,7 +2032,7 @@ plot(eUN.lmm, type = "qqplot", engine.qqplot = "qqtest")
 \Warning Deviation from the normal distribution does not necessarily
 question the validity of the statistical inference. Moreover, for
 variance and correlation parameters, normally distributed data is not
-enought to ensure valid statistical inference. Instead one could
+enougth to ensure valid statistical inference. Instead one could
 assess whether the log-likelihood is locally quadratic as this ensures
 normally distributed estimates in finite samples
 citep:geyer2013asymptotics. Since the likelihood function is a
@@ -1870,48 +2041,32 @@ at specific 'slices' using the =profile= method:
 
 #+header: :width 8 :height 5
 #+BEGIN_SRC R :file ./figures/diag-profileUN.pdf :results graphics file :session *R* :cache no
-plot(profile(eUN.lmm, effects = c("sigma","rho(B1w,A1w)")))
+eUN.lmm_profile <- profile(eUN.lmm, effects = c("sigma","rho(-13,-1)"))
+plot(eUN.lmm_profile)
 #+END_SRC
 
 #+RESULTS:
 [[file:./figures/diag-profileUN.pdf]]
 
 
-#+ATTR_LaTeX: :width 0.5\textwidth :placement [!h]
+#+ATTR_LaTeX: :width 0.75\textwidth :placement [!h]
 [[./figures/diag-profileUN.pdf]]
 
 \clearpage
 
 ** Model fit
 
-The fitted values can be displayed via the =plot= method or using the =emmeans= package:
+The fitted values can be displayed via the =plot= method:
 
 #+BEGIN_SRC R :file ./figures/fit-autoplot.pdf :results graphics file :session *R* :cache no
 plot(eUN.lmm, type = "fit", color = "id", ci.alpha = NA, size.text = 20)
 #+END_SRC
 
+# TODO: add back plot
+
 #+RESULTS:
 [[file:./figures/fit-autoplot.pdf]]
 
-#+BEGIN_SRC R :file ./figures/fit-emmip.pdf :results graphics file :session *R* :cache no
-library(emmeans) ## right panel
-emmip(eUN.lmm, ~time) + theme(text = element_text(size=20))
-#+END_SRC
-
-#+RESULTS:
-[[file:./figures/fit-emmip.pdf]]
-
-#+latex: \begin{minipage}{0.45\linewidth}
-#+ATTR_LaTeX: :width \textwidth :placement [!h]
-[[./figures/fit-autoplot.pdf]]
-#+latex: \end{minipage}
-#+latex: \begin{minipage}{0.45\linewidth}
-#+ATTR_LaTeX: :width \textwidth :placement [!h]
-[[./figures/fit-emmip.pdf]]
-#+latex: \end{minipage}
-
-# ## ggsave(emmip(eUN.lmm, ~time) + theme(text = element_text(size=20)), filename = "figures/fit-emmip.pdf")
-# ## ggsave(autoplot(eUN.lmm, color = "id", plot = FALSE)$plot + theme(text = element_text(size=20)), filename = "figures/fit-autoplot.pdf")
 
 In the first case each possible curve is displayed while in the latter
 the average curve (over glucagon values). With the =plot= method,

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: mar 11 2024 (14:54) 
+## Last-Updated: maj 10 2024 (11:45) 
 ##           By: Brice Ozenne
-##     Update #: 914
+##     Update #: 916
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -130,6 +130,7 @@
     structure.param <- structure$param[structure$param$type=="rho",]
     param.rho <- structure.param$name[is.na(structure.param$constraint)] ## index.level=0 indicates correlation fixed to 0, i.e. not a real parameter (e.g. crossed random effects)
     n.cluster <- length(U.cluster)
+    if(length(param.rho)==0){return(Upatterns.init)}
 
     ## *** group clusters by linear predictor patterns
     ## *** (to later work on a single representative cluster per pattern)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jun 16 2022 (15:19) 
 ## Version: 
-## Last-Updated: mar  1 2024 (10:50) 
+## Last-Updated: maj 10 2024 (19:46) 
 ##           By: Brice Ozenne
-##     Update #: 315
+##     Update #: 319
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -101,7 +101,12 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
     }else if(identical(effects,"all")){
         effects <- c("mean","variance","correlation")
     }
-    effects <- match.arg(effects, c("mean","fixed","variance","correlation",name.p), several.ok = TRUE)
+    valid.effects <- c("mean","fixed","variance","correlation",name.p)
+    if(any(effects %in% valid.effects == FALSE)){
+        stop("Argument \'effects\' contains incorrect values. \n",
+             "Incorrect value: \"",paste(setdiff(effects,valid.effects), collapse = "\", \""),"\"\n",
+             "Possible value: \"",paste(setdiff(name.p,effects), collapse = "\", \""),"\"\n")
+    }
     if(any(effects %in% name.p == FALSE)){
         effects <- names(coef(fitted, effects = effects))
     }

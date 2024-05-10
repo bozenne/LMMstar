@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: nov  8 2023 (16:03) 
+## Last-Updated: maj 10 2024 (11:47) 
 ##           By: Brice Ozenne
-##     Update #: 425
+##     Update #: 427
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -310,6 +310,8 @@
 
     ## ** estimate correlation
     param.rho <- names(param.type)[param.type=="rho"]
+    if(length(param.rho)==0){return(out)}
+
     e.rho <- unlist(lapply(split(M.prodres, M.prodres$param), function(iDF){ ## iDF <- split(M.prodres, M.prodres$param)[[3]]
         iN <- sum(iDF$n)
         iNum <- sum(iDF$prod)/iN-(sum(iDF$sum1)/iN)*(sum(iDF$sum2)/iN)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: May  9 2024 (15:20) 
+## Last-Updated: maj 10 2024 (17:40) 
 ##           By: Brice Ozenne
-##     Update #: 3141
+##     Update #: 3157
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -187,6 +187,8 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
         ## *** outcome
         if(!simplify && var.outcome %in% names(newdata)){
             design$Y <- newdata[[var.outcome]]
+            ## indexY.NNA <- which(!is.na(newdata[[var.outcome]]))
+            ## design$Y[indexY.NNA] <- stats::model.response(stats::model.frame(object$formula$mean.outcome, newdata[indexY.NNA,var.outcome,drop=FALSE]))
         }
 
         ## *** weights

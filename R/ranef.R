@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 26 2022 (11:18) 
 ## Version: 
-## Last-Updated: maj  7 2024 (12:19) 
+## Last-Updated: maj 10 2024 (19:09) 
 ##           By: Brice Ozenne
-##     Update #: 673
+##     Update #: 703
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -342,8 +342,8 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
             iLevel <- df.hierarchy[iRE,"level"]
             iVar <- df.hierarchy[iRE,"variable"]
             iHvar <- df.hierarchy[df.hierarchy$hierarchy == iHierarchy & df.hierarchy$level <= iLevel,"variable"]
-         
-            iSplit <- nlme::collapse(df.epsilon[iHvar], as.factor = FALSE)
+
+            iSplit <- nlme::collapse(as.data.frame(df.epsilon[iHvar]), as.factor = FALSE)
             if(length(unique(iSplit))==1){
                 iSplit.Mdummy <- model.matrix(~1, data.frame(split = iSplit))
             }else{
@@ -353,7 +353,13 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
                                           dimnames = list(NULL,keep.datacol)))
             
             iData[iHvar] <- df.epsilon[apply(iSplit.Mdummy>0, 2, function(iVec){which(iVec)[1]}),iHvar,drop=FALSE]
-            iEpsilon.normalized2.sum <- as.double(rbind(df.epsilon$r.normalized2) %*% iSplit.Mdummy)
+            iIndex.NNA <- which(!is.na(df.epsilon$r.normalized2))
+            if(length(iIndex.NNA)==0){
+                iEpsilon.normalized2.sum <- as.double(rbind(df.epsilon$r.normalized2) %*% iSplit.Mdummy)
+            }else{
+                iEpsilon.normalized2.sum <- as.double(rbind(df.epsilon$r.normalized2[iIndex.NNA]) %*% iSplit.Mdummy[iIndex.NNA,,drop=FALSE])
+                iEpsilon.normalized2.sum[colSums(iSplit.Mdummy[iIndex.NNA,,drop=FALSE])==0] <- NA
+            }
 
             if(n.strata==1){
                 iStrata <- df.epsilon[[var.strata]][1]
@@ -371,7 +377,12 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
                                         estimate = iTau.strata * iEpsilon.normalized2.sum)
             
             if(se>0){
-                iGrad <- (t(iSplit.Mdummy) %*% grad.epsilon) * iTau.strata
+                if(length(iIndex.NNA)==0){
+                    iGrad <- (t(iSplit.Mdummy) %*% grad.epsilon) * iTau.strata
+                }else{
+                    iGrad <- (t(iSplit.Mdummy[iIndex.NNA,,drop=FALSE]) %*% grad.epsilon[iIndex.NNA,,drop=FALSE]) * iTau.strata
+                    iGrad[colSums(iSplit.Mdummy[iIndex.NNA,,drop=FALSE])==0,] <- NA
+                }
                 if(n.strata==1){
                     iGrad[,dimnames(contrastRE2)[[2]]] <- iGrad[,dimnames(contrastRE2)[[2]]] + tcrossprod(iEpsilon.normalized2.sum, contrastRE2[iVar,,])
                 }else{
@@ -406,12 +417,16 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
 
     if(format == "wide"){
         out <- stats::setNames(lapply(1:n.hierarchy, function(iH){ ## iH <- 1
-            iOut <- out[sapply(out$variable, utils::tail,1) %in% infoRanef$hierarchy[[iH]],,drop=FALSE]
-            iOut$col <- sapply(iOut$level, function(iLevel){paste0(iLevel[-1], collapse = ":")})
-            iOut$level <- sapply(iOut$level, utils::head, 1)
-            iOutW <- stats::reshape(iOut, direction = "wide", 
-                                    idvar = "level", timevar = "col", times = unique(iOut$col), drop = c("strata","variable"))
-            colnames(iOutW)[2] <- "estimate"
+            iVar.cluster <- df.hierarchy[df.hierarchy$hierarchy==iH,"cluster"][1]
+            iVar.sub <- setdiff(df.hierarchy[df.hierarchy$hierarchy==iH,"variable"],iVar.cluster)
+
+            iOut <- out[out$hierarchy==iH,,drop=FALSE]
+            iOut.order <- iOut[order(iOut$level),,drop=FALSE]
+            iOut.order$col <- ifelse(iOut.order$level==1,"",paste0(".",nlme::collapse(iOut.order[iVar.sub],sep=":")))
+            
+            iOutW <- stats::reshape(iOut.order[c(iVar.cluster,"col","estimate")], direction = "wide", 
+                                    idvar = iVar.cluster, timevar = "col", sep="")
+            rownames(iOutW) <- NULL
             return(iOutW)
         }), sapply(infoRanef$hierarchy,"[",1))
         if(simplify && n.hierarchy == 1){
