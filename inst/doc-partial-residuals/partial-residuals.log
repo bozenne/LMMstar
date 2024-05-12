@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2024.4.4)  12 MAY 2024 16:47
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2024.4.4)  12 MAY 2024 23:07
 entering extended mode
  \write18 enabled.
  %&-line parsing enabled.
@@ -1387,7 +1387,7 @@ hare/texmf/fonts/type1/public/lm/lmr6.pfb></usr/share/texmf/fonts/type1/public/
 lm/lmr8.pfb></usr/share/texmf/fonts/type1/public/lm/lmsy10.pfb></usr/share/texm
 f/fonts/type1/public/lm/lmtt10.pfb></usr/share/texmf/fonts/type1/public/lm/lmtt
 12.pfb>
-Output written on partial-residuals.pdf (11 pages, 402770 bytes).
+Output written on partial-residuals.pdf (11 pages, 402835 bytes).
 PDF statistics:
  346 PDF objects out of 1000 (max. 8388607)
  290 compressed objects within 3 object streams

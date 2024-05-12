@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2024.4.4)  12 MAY 2024 19:49
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2024.4.4)  12 MAY 2024 23:07
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1444,18 +1444,18 @@ utoplot.pdf>]
 File: ./figures/fit-baseline-autoplot.pdf Graphic file (type pdf)
 <use ./figures/fit-baseline-autoplot.pdf>
 Package pdftex.def Info: ./figures/fit-baseline-autoplot.pdf  used on input lin
-e 2437.
+e 2435.
 (pdftex.def)             Requested size: 162.18236pt x 162.18143pt.
 File: ./figures/fitAll-autoplot.pdf Graphic file (type pdf)
 <use ./figures/fitAll-autoplot.pdf>
-Package pdftex.def Info: ./figures/fitAll-autoplot.pdf  used on input line 2442
+Package pdftex.def Info: ./figures/fitAll-autoplot.pdf  used on input line 2440
 .
 (pdftex.def)             Requested size: 162.18236pt x 162.18143pt.
 <./figures/fit-autoplot-indiv.pdf, id=865, 361.35pt x 361.35pt>
 File: ./figures/fit-autoplot-indiv.pdf Graphic file (type pdf)
 <use ./figures/fit-autoplot-indiv.pdf>
 Package pdftex.def Info: ./figures/fit-autoplot-indiv.pdf  used on input line 2
-447.
+445.
 (pdftex.def)             Requested size: 162.18236pt x 162.18144pt.
  [35
 
@@ -1463,7 +1463,7 @@ Package pdftex.def Info: ./figures/fit-autoplot-indiv.pdf  used on input line 2
 <./figures/fit-pres.pdf, id=887, 867.24pt x 361.35pt>
 File: ./figures/fit-pres.pdf Graphic file (type pdf)
 <use ./figures/fit-pres.pdf>
-Package pdftex.def Info: ./figures/fit-pres.pdf  used on input line 2497.
+Package pdftex.def Info: ./figures/fit-pres.pdf  used on input line 2495.
 (pdftex.def)             Requested size: 405.45178pt x 168.9413pt.
  [36
 
@@ -1481,7 +1481,7 @@ Package pdftex.def Info: ./figures/fit-pres.pdf  used on input line 2497.
 <./figures/gg-baseAdj.pdf, id=1016, 505.89pt x 505.89pt>
 File: ./figures/gg-baseAdj.pdf Graphic file (type pdf)
 <use ./figures/gg-baseAdj.pdf>
-Package pdftex.def Info: ./figures/gg-baseAdj.pdf  used on input line 3019.
+Package pdftex.def Info: ./figures/gg-baseAdj.pdf  used on input line 3017.
 (pdftex.def)             Requested size: 216.23764pt x 216.23933pt.
  [44 <./figures/gg-baseAdj.pdf>] [45
 
@@ -1508,7 +1508,7 @@ Package pdftex.def Info: ./figures/gg-baseAdj.pdf  used on input line 3019.
 <./figures/imputation.pdf, id=1247, 867.24pt x 505.89pt>
 File: ./figures/imputation.pdf Graphic file (type pdf)
 <use ./figures/imputation.pdf>
-Package pdftex.def Info: ./figures/imputation.pdf  used on input line 3819.
+Package pdftex.def Info: ./figures/imputation.pdf  used on input line 3817.
 (pdftex.def)             Requested size: 540.60239pt x 315.36221pt.
  [57] [58 <./figures/imputation.pdf>] [59
 
@@ -1516,7 +1516,7 @@ Package pdftex.def Info: ./figures/imputation.pdf  used on input line 3819.
 <./figures/forestplot.pdf, id=1297, 867.24pt x 505.89pt>
 File: ./figures/forestplot.pdf Graphic file (type pdf)
 <use ./figures/forestplot.pdf>
-Package pdftex.def Info: ./figures/forestplot.pdf  used on input line 3940.
+Package pdftex.def Info: ./figures/forestplot.pdf  used on input line 3938.
 (pdftex.def)             Requested size: 540.60239pt x 315.36221pt.
  [60
 
@@ -1530,20 +1530,20 @@ Package pdftex.def Info: ./figures/forestplot.pdf  used on input line 3940.
 (./overview.bbl) [65
 
 ]
-Underfull \hbox (badness 10000) in paragraph at lines 4146--4146
+Underfull \hbox (badness 10000) in paragraph at lines 4144--4144
 [][]\T1/lmr/m/n/10 The REML is the like-li-hood of the ob-ser-va-tions di-vided
  by the prior on the es-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 4146--4146
+Underfull \hbox (badness 10000) in paragraph at lines 4144--4144
 \T1/lmr/m/n/10 ti-mated mean pa-ram-e-ters $[][] \OMS/lmsy/m/n/10 ^^X N\OT1/lmr
 /m/n/10 (\OML/lmm/m/it/10 ^^V; [][]\OT1/lmr/m/n/10 )$\T1/lmr/m/n/10 . This cor-
 re-sponds to
  []
 
 
-Underfull \hbox (badness 2591) in paragraph at lines 4146--4146
+Underfull \hbox (badness 2591) in paragraph at lines 4144--4144
 [] [] []$ \T1/lmr/m/n/10 Since $\OML/lmm/m/it/10 ^^V$ \T1/lmr/m/n/10 will be es
 -ti-mated to be
  []
@@ -1551,31 +1551,31 @@ Underfull \hbox (badness 2591) in paragraph at lines 4146--4146
 [66
 
 ]
-Overfull \hbox (31.8687pt too wide) detected at line 4185
+Overfull \hbox (31.8687pt too wide) detected at line 4183
 []
  []
 
 
-Overfull \hbox (22.72969pt too wide) detected at line 4215
+Overfull \hbox (22.72969pt too wide) detected at line 4213
 []
  []
 
 [67
 
 ]
-Overfull \hbox (4.43532pt too wide) detected at line 4254
+Overfull \hbox (4.43532pt too wide) detected at line 4252
 []
  []
 
 [68
 
 ]
-Overfull \hbox (0.37851pt too wide) detected at line 4289
+Overfull \hbox (0.37851pt too wide) detected at line 4287
 []
  []
 
 
-Overfull \hbox (15.46007pt too wide) detected at line 4322
+Overfull \hbox (15.46007pt too wide) detected at line 4320
 []
  []
 
@@ -1592,31 +1592,31 @@ Overfull \hbox (15.46007pt too wide) detected at line 4322
 ] [77] [78] [79] [80]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 5071.
+(hyperref)                removing `math shift' on input line 5069.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `superscript' on input line 5071.
+(hyperref)                removing `superscript' on input line 5069.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 5071.
+(hyperref)                removing `math shift' on input line 5069.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\eta' on input line 5071.
+(hyperref)                removing `\eta' on input line 5069.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `superscript' on input line 5071.
+(hyperref)                removing `superscript' on input line 5069.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 5142.
+(hyperref)                removing `math shift' on input line 5140.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `superscript' on input line 5142.
+(hyperref)                removing `superscript' on input line 5140.
 
 [81
 
@@ -1683,7 +1683,7 @@ s/type1/public/amsfonts/symbols/msam10.pfb></usr/share/texlive/texmf-dist/fonts
 /type1/public/amsfonts/symbols/msam5.pfb></usr/share/texlive/texmf-dist/fonts/t
 ype1/public/amsfonts/symbols/msam7.pfb></usr/share/texlive/texmf-dist/fonts/typ
 e1/public/amsfonts/symbols/msbm10.pfb>
-Output written on overview.pdf (83 pages, 814699 bytes).
+Output written on overview.pdf (83 pages, 814515 bytes).
 PDF statistics:
  2020 PDF objects out of 2073 (max. 8388607)
  1807 compressed objects within 19 object streams

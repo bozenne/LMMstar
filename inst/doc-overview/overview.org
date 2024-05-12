@@ -790,13 +790,6 @@ logLik(e.lmer)
 #+END_SRC
 
 #+RESULTS:
-: Loading required package: Matrix
-: 
-: Attaching package: ‘lme4’
-: 
-: The following object is masked from ‘package:nlme’:
-: 
-:     lmList
 : 'log Lik.' -308.99 (df=11)
 
 - e.g. to obtain a *block unstructured* covariance matrix:
@@ -2131,10 +2124,8 @@ plot(eUN.lmmB, type = "fit", color = "group", ci = FALSE, size.text = 20)
 #+RESULTS:
 [[file:./figures/fit-baseline-autoplot.pdf]]
 
-Two subjects stands out: it is those with only 3 out 4 measurements
-for which glucagon values from non-consecutive timepoints have been
-connected due to missing values. It is possible to restrict the
-display specific to a covariate value via the argument =at=:
+It is possible to restrict the display specific to a covariate value
+via the argument =at=:
 #+BEGIN_SRC R :file ./figures/fit10-autoplot.pdf :results graphics file :session *R* :cache no
 ## middel panel
 plot(eUN.lmmB, type = "fit", color = "group", ci = FALSE, size.text = 20,

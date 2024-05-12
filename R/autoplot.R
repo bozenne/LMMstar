@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: May 12 2024 (16:45) 
+## Last-Updated: May 12 2024 (23:04) 
 ##           By: Brice Ozenne
-##     Update #: 1302
+##     Update #: 1306
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -420,7 +420,7 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
             iDFextra <- as.data.frame(lapply(names(iDF), function(iVar){
                 if(iVar == time.var.plot){
                     return(iNewTime)
-                }else if(iVar %in% c("XXcluster",color,all.vars(facet))){
+                }else if(iVar %in% c("XXclusterXX",color,all.vars(facet))){
                     return(rep(iDF[[iVar]][1], length(iNewTime)))
                 }else{
                     return(rep(NA, length(iNewTime)))

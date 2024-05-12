@@ -1,14 +1,14 @@
 # Fdb version 3
-["bibtex overview"] 1715536142 "overview.aux" "overview.bbl" "overview" 1715536149
+["bibtex overview"] 1715548036 "overview.aux" "overview.bbl" "overview" 1715548042
   "/usr/share/texlive/texmf-dist/bibtex/bst/base/apalike.bst" 1292289607 24635 604dafcc79f521a11ea73e506e1fbd98 ""
   "bibliography.bib" 1690616478 1516 9c762b625ff06c67dd285d924668bbca ""
-  "overview.aux" 1715536149 13544 6d318f24eae0af9561d35b8199918b2e "pdflatex"
+  "overview.aux" 1715548042 13544 ba3cba8f1845f75a95674d69090d5630 "pdflatex"
   (generated)
   "overview.bbl"
   "overview.blg"
-["pdflatex"] 1715536146 "/home/bozenne/Documents/GitHub/LMMstar/inst/doc-overview/overview.tex" "overview.pdf" "overview" 1715536149
+["pdflatex"] 1715548039 "/home/bozenne/Documents/GitHub/LMMstar/inst/doc-overview/overview.tex" "overview.pdf" "overview" 1715548042
   "/etc/texmf/web2c/texmf.cnf" 1712233310 475 c0e671620eb5563b2130f56340a5fde8 ""
-  "/home/bozenne/Documents/GitHub/LMMstar/inst/doc-overview/overview.tex" 1715536134 195310 e779fca5d58aa522782cd883607d8e36 ""
+  "/home/bozenne/Documents/GitHub/LMMstar/inst/doc-overview/overview.tex" 1715548024 195141 f878c2151a1b412565f0cbdea25391b5 ""
   "/usr/share/texlive/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/share/texlive/texmf-dist/fonts/tfm/adobe/symbol/psyr.tfm" 1136768653 1408 5937f58aa508ea2cea4901c07d10f5fe ""
   "/usr/share/texlive/texmf-dist/fonts/tfm/adobe/zapfding/pzdr.tfm" 1136768653 1528 f853c4d1b4e0550255e02831fdc8496f ""
@@ -314,7 +314,7 @@
   "figures/fit-autoplot-indiv.pdf" 1715525458 13324 4d892c31d3380eb61ef60ed573445ee6 ""
   "figures/fit-autoplot.pdf" 1715525456 5736 ca4f40cb47b8ce67327d0ba7ec7f53d6 ""
   "figures/fit-autoplot2.pdf" 1715525457 5542 e5eb81e2af4ef32dec52fc4b72e6ca28 ""
-  "figures/fit-baseline-autoplot.pdf" 1715525457 9097 5a831d9c5cf169d4924b9fe7e179c0bd ""
+  "figures/fit-baseline-autoplot.pdf" 1715548015 9093 c6b2893913279f649087b9ddc4cef78d ""
   "figures/fit-pres.pdf" 1715525465 13326 9ce31deee1d903772f5785c9e074eb25 ""
   "figures/fitAll-autoplot.pdf" 1715525457 10455 b3af36677fe14bdf74181bf243a7a253 ""
   "figures/forestplot.pdf" 1715532988 5062 f0596ef7ed48f078bd0a247a0dea4f31 ""
@@ -324,10 +324,10 @@
   "figures/scatterplot.pdf" 1715427889 14219 9731844343f669c5986372095562168d ""
   "figures/summarize.pdf" 1715427889 7173 008e115e60bd4ed748a9ed65c83417ee ""
   "figures/summarizeNA.pdf" 1715427889 4702 c202a7a887ee01eeb4dc3c296f3104cb ""
-  "overview.aux" 1715536149 13544 6d318f24eae0af9561d35b8199918b2e "pdflatex"
-  "overview.bbl" 1715536142 1309 0c510437e171b61c7e5a5dc1669c717b "bibtex overview"
-  "overview.out" 1715536149 10743 773d7485a3ee7d9c0f3819b041a176ae "pdflatex"
-  "overview.tex" 1715536134 195310 e779fca5d58aa522782cd883607d8e36 ""
+  "overview.aux" 1715548042 13544 ba3cba8f1845f75a95674d69090d5630 "pdflatex"
+  "overview.bbl" 1715548036 1309 0c510437e171b61c7e5a5dc1669c717b "bibtex overview"
+  "overview.out" 1715548042 10743 773d7485a3ee7d9c0f3819b041a176ae "pdflatex"
+  "overview.tex" 1715548024 195141 f878c2151a1b412565f0cbdea25391b5 ""
   (generated)
   "overview.aux"
   "overview.loc"
