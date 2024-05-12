@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: maj 10 2024 (17:40) 
+## Last-Updated: May 12 2024 (12:42) 
 ##           By: Brice Ozenne
-##     Update #: 3059
+##     Update #: 3062
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,7 +18,7 @@
 ## * lmm (documentation)
 ##' @title Fit Linear Mixed Model
 ##' @description Fit a linear mixed model defined by a mean and a covariance structure.
-##'g
+##'
 ##' @param formula [formula] Specify the model for the mean.
 ##' On the left hand side the outcome and on the right hand side the covariates affecting the mean value.
 ##' E.g. Y ~ Gender + Gene.
@@ -60,6 +60,7 @@
 ##' \code{\link{plot.lmm}} for a graphical display of the model fit or diagnostic plots. \cr
 ##' \code{\link{levels.lmm}} to display the reference level. \cr
 ##' \code{\link{anova.lmm}} for testing linear combinations of coefficients (F-test, multiple Wald tests) \cr
+##' \code{\link{effects.lmm}} for evaluating average marginal or counterfactual effects \cr
 ##' \code{\link{sigma.lmm}} for extracting estimated residual variance-covariance matrices. \cr
 ##' \code{\link{residuals.lmm}} for extracting residuals or creating residual plots (e.g. qqplots). \cr
 ##' \code{\link{predict.lmm}} for evaluating mean and variance of the outcome conditional on covariates or other outcome values.

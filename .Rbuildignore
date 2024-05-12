@@ -1,7 +1,7 @@
-.travis.yml
-.git
-.github
-README.org
+\.travis\.yml
+\.git
+\.github
+README\.org
 LICENSE
 ^appveyor\.yml$
 ^doc$

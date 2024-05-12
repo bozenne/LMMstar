@@ -469,7 +469,7 @@ c(69.05 - 0.12870 * (2.1-1.170) - (-0.27940) * (15.1-7.378),
 
 \clearpage
 
-* Linear mixed model
+* Linear mixed model :noexport:
 
 To illustrate the use of partial residuals we will use data from a
 two-arm randomized trial comparing the quality of the vision over time

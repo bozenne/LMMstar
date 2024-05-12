@@ -1,4 +1,4 @@
-% Created 2024-05-11 Sat 16:31
+% Created 2024-05-12 Sun 09:58
 % Intended LaTeX compiler: pdflatex
 \documentclass[12pt]{article}
 
@@ -266,7 +266,7 @@ library(ggplot2)
 
 
 \section{Univariate linear regression}
-\label{sec:org6344a7c}
+\label{sec:orgeddb687}
 
 To illustrate the use of partial residuals we will use the \texttt{state.x77}
 dataset:
@@ -316,7 +316,7 @@ covariates the mean indicates the relative frequency of occurrence
 (56\% and 16\%) and other columns like \texttt{sd} should be ignored.
 
 \subsection{No interaction}
-\label{sec:orgef935af}
+\label{sec:org6834e19}
 
 Suppose we are interested in relating life expectancy (\(Y\)) to
 income (\(X\)). We cannot directly illustrate this relationship, as it
@@ -509,7 +509,7 @@ ls.plot$plot  + coord_cartesian(ylim=c(68,74))
 \bigskip
 
 \subsection{What about confidence intervals?}
-\label{sec:orgb9e026b}
+\label{sec:org0263f16}
 
 A common question is whether one can display confidence intervals for
 the regression line. It is possible to add confidence intervals on the
@@ -578,7 +578,7 @@ p-values related to the covariate effect and keeping the partial
 residual plot free of confidence intervals.
 
 \subsection{Interaction with a categorical variable}
-\label{sec:org2d7675a}
+\label{sec:org6b2ccf9}
 
 Suppose that we are now interested in relating life expectancy (\(Y\))
 to both income (\(X_1\)) for various level of education (\(X_2 \in
@@ -684,168 +684,8 @@ c(69.05 - 0.12870 * (2.1-1.170) - (-0.27940) * (15.1-7.378),
 
 \clearpage
 
-\section{Linear mixed model}
-\label{sec:orgfdcce79}
-
-To illustrate the use of partial residuals we will use data from a
-two-arm randomized trial comparing the quality of the vision over time
-of patients under placebo vs. active drug. We first re-shape the data:
-\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
-\begin{lstlisting}
-data(armd.wide, package = "nlmeU")
-library(reshape2)
-armd.long <- melt(armd.wide, measure.vars = paste0("visual",c(0,4,12,24,52)),
-                  id.var = c("subject","lesion","treat.f","miss.pat"),
-                  variable.name = "week", value.name = "visual")
-armd.long$week <- factor(armd.long$week, 
-                         level = paste0("visual",c(0,4,12,24,52)),
-                         labels = c(0,4,12,24,52))
-\end{lstlisting}
-
-and notice that mainly the outcome (\texttt{visual}) can be missing but also
-in a few instances the covariate \texttt{lesion} can be missing:
-\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
-\begin{lstlisting}
-summarizeNA(armd.long)
-\end{lstlisting}
-
-\begin{verbatim}
-frequency missing.pattern n.missing subject lesion treat.f miss.pat week visual
-     1106          000000         0       0      0       0        0    0      0
-       89          000001         1       0      0       0        0    0      1
-        1          010000         1       0      1       0        0    0      0
-        4          010001         2       0      1       0        0    0      1
-\end{verbatim}
-
-
-This is why when fitting the linear mixed model:
-\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
-\begin{lstlisting}
-e.lmm <- lmm(visual ~ week*treat.f + lesion, data = armd.long,
-             repetition = ~week|subject)
-\end{lstlisting}
-
-\begin{verbatim}
-Advarselsbesked:
-I .lmmNormalizeData(as.data.frame(data)[unique(stats::na.omit(var.all))],  :
-  Can only handle missing values in the outcome variable visual. 
-  5 observations with missing values in "lesion" have been removed. 
-  1 cluster has been removed.
-\end{verbatim}
-
-
-To visualize the model fit, we can display the fitted mean for each
-level of baseline lesion:
-\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
-\begin{lstlisting}
-plot(e.lmm, facet = ~lesion, labeller = label_both)
-\end{lstlisting}
-
-With the estimated coefficients in mind:
-\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
-\begin{lstlisting}
-round(coef(e.lmm),2)
-\end{lstlisting}
-
-\begin{verbatim}
-         (Intercept)                week4               week12               week24 
-               61.33                -1.28                -2.35                -6.03 
-              week52        treat.fActive               lesion  week4:treat.fActive 
-              -11.31                -0.84                -3.19                -2.19 
-week12:treat.fActive week24:treat.fActive week52:treat.fActive 
-               -3.47                -3.03                -4.84
-\end{verbatim}
-
-
-we for instance retrive that:
-\begin{itemize}
-\item in the Placebo group with lesion=1, the estimated average baseline mean
-is \texttt{(Intercept)+1*lesion}, i.e. 61.33-3.19=58.14. When lesion=4, the
-estimated average baseline mean is \texttt{(Intercept)+4*lesion},
-i.e. 61.33-4*3.19=48.57.
-\item the estimated average baseline mean in the Active group is shifted
-by \texttt{treat.fActive} i.e. -0.84 from the Placebo group.
-\item in the Placebo group with lesion=1, the estimated average week 52
-mean is \newline \texttt{(Intercept)+week52+1*lesion},
-i.e. 61.33-11.31-3.19=46.83.
-\item the estimated average week 52 mean in the Active group is shifted by \newline
-\texttt{treat.fActive+week52:treat.fActive} i.e. -0.84-4.84=-5.68 from the
-Placebo group.
-\end{itemize}
-
-\begin{center}
-\includegraphics[trim={0 0 0 0},width=1\textwidth]{./figures/gg-lmm-fit.pdf}
-\end{center}
-
-This type of display would however not generalize well with more
-covariates or more covariate levels. Instead one can once more
-consider partial residuals, i.e. the outcome and fitted values had
-there be no lesion:
-\begin{itemize}
-\item either with a separate panel for each timepoint:
-\end{itemize}
-\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
-\begin{lstlisting}
-plot(e.lmm, type = "partial", var = c("(Intercept)","week","treat.f"),
-     at = data.frame(lesion = 2))
-\end{lstlisting}
-
-\begin{center}
-\includegraphics[trim={0 0 0 0},width=1\textwidth]{./figures/gg-lmm-presFacet.pdf}
-\end{center}
-
-\begin{itemize}
-\item or on the same panel but with a difference color for each treatment group:
-\end{itemize}
-\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
-\begin{lstlisting}
-plot(e.lmm, type = "partial", var = c("(Intercept)","week","treat.f"),
-     color = "treat.f", facet =~1, at = data.frame(lesion = 2))
-\end{lstlisting}
-
-\begin{center}
-\includegraphics[trim={0 0 0 0},width=1\textwidth]{./figures/gg-lmm-presTraj.pdf}
-\end{center}
-
-The calculation of the partial residuals is similar to the univariate regression:
-\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
-\begin{lstlisting}
-armd.long$pres <- residuals(e.lmm, type = "partial", 
-                            var = c("(Intercept)","week","treat.f"),
-                            at = data.frame(lesion = 2))
-head(armd.long)
-\end{lstlisting}
-
-\begin{verbatim}
-  subject lesion treat.f miss.pat week visual     pres
-1       1      3  Active     --XX    0     59 62.18656
-2       2      1  Active     ----    0     65 61.81344
-3       3      4 Placebo     ---X    0     40 46.37313
-4       4      2 Placebo     ----    0     67 67.00000
-5       5      1  Active     XXXX    0     70 66.81344
-6       6      3  Active     ----    0     59 62.18656
-\end{verbatim}
-
-
-here substract the estimated lesion effect from the observed outcome:
-\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
-\begin{lstlisting}
-c(59 - (-3.19) * (3-2),
-  65 - (-3.19) * (1-2))
-\end{lstlisting}
-
-\begin{verbatim}
-[1] 62.19 61.81
-\end{verbatim}
-
-
-In particular, the partial residuals for patient with lesion equal to
-two is the observed outcome.
-
-\clearpage
-
 \section{R session}
-\label{sec:org164cd31}
+\label{sec:org6b6b7ec}
 Details of the R session used to generate this document:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -887,7 +727,7 @@ loaded via a namespace (and not attached):
 \clearpage
 
 \section*{References}
-\label{sec:orge8b796f}
+\label{sec:org714551f}
 \begingroup
 \renewcommand{\section}[2]{}
 

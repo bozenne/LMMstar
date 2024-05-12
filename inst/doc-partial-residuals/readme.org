@@ -1,0 +1,29 @@
+Instructions to run to prepare the vignette (to run before installing the package)
+
+- export R code
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+## devtools::build_vignettes("LMMstar", quiet = FALSE) ## generate the META & DOC folder
+library(butils.base)
+setwd(pathGitHub())
+extractRchunk(file = "./LMMstar/inst/doc-partial-residuals/partial-residuals.org",
+              newfile = "./LMMstar/vignettes/partial-residuals.pdf.asis",
+              header = c("%\\VignetteIndexEntry{LMMstar: partial residuals}",
+                         "%\\VignetteEngine{R.rsp::asis}",
+                         "%\\VignetteKeyword{PDF}",
+                         "%\\VignetteKeyword{vignette}",
+                         "%\\VignetteKeyword{package}",
+                         ""),
+              overwrite = TRUE)
+#+END_SRC
+
+#+RESULTS:
+
+- move to directory containing the package, compress vignette pdf file, and copy to =doc= and =vignettes= directories
+#+BEGIN_SRC shell
+cd ~/Documents/GitHub/LMMstar/inst/doc-partial-residuals/
+gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/printer -dNOPAUSE -dQUIET -dBATCH -sOutputFile=partial-residuals-compress.pdf partial-residuals.pdf
+cp partial-residuals-compress.pdf ../../vignettes/partial-residuals.pdf 
+#+END_SRC
+
+#+RESULTS:
+

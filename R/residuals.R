@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: May 11 2024 (16:11) 
+## Last-Updated: May 12 2024 (12:32) 
 ##           By: Brice Ozenne
-##     Update #: 1359
+##     Update #: 1362
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -215,9 +215,10 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
                  "Valid covariates: \"",paste(variableMu.name, collapse = "\" \""),"\". \n",
                  "Invalid covariates: \"",paste(variable[variable %in% variableMu.name == FALSE],collapse="\" \""),"\". \n")
         }
-        if(any(!is.na(attr(name.time,"original"))) && any(attr(name.time,"original") %in% variable)){
-            stop("Argument \'variable\' should not contain the time variable \"",paste(attr(name.time,"original"), collapse ="\" \""),"\" when computing the partial residuals. \n",
-                 "Consider refitting the lmm with a difference names for variables in the mean structure and repetition argument. \n")
+        
+        if(any(variableMu.name %in% name.time) && (name.time %in% variable == FALSE)){
+            stop("Argument \'variable\' should not contain the time variable \"",name.time,"\" when computing the partial residuals. \n",
+                 "Consider refitting the lmm with a different name for variables in the mean structure and repetition argument. \n")
         }
 
         type.var <- c("numeric","categorical")[variable %in% names(object$xfactor$mean) + 1]
