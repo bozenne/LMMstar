@@ -58,7 +58,7 @@ Internally it calls \code{ggplot2::facet_wrap} or \code{ggplot2::facet_grid} dep
 
 \item{time.var}{[character] x-axis variable for the plot.}
 
-\item{color}{[character] name of the variable in the dataset used to color the curve.}
+\item{color}{[character] name of the variable in the dataset used to color the curve. No color is used when set to \code{FALSE}.}
 
 \item{position}{[character] relative position of the points when colored according to a variable.}
 

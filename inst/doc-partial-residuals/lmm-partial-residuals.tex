@@ -1,4 +1,4 @@
-% Created 2024-02-16 fr 16:03
+% Created 2024-05-11 Sat 16:31
 % Intended LaTeX compiler: pdflatex
 \documentclass[12pt]{article}
 
@@ -249,7 +249,7 @@ and (1.75,0.4) .. cycle;
  pdftitle={Overview of the package LMMstar},
  pdfkeywords={},
  pdfsubject={},
- pdfcreator={Emacs 27.2 (Org mode 9.5.2)},
+ pdfcreator={Emacs 27.1 (Org mode 9.4.6)},
  pdflang={English}
  }
 \begin{document}
@@ -257,15 +257,16 @@ and (1.75,0.4) .. cycle;
 \maketitle
 This vignette details how partial residuals can be used to illustrate
 model fit in a linear regression and a linear mixed model when using
-the package LMMstar. We thus start by loading the package:
+the package LMMstar. We thus start by loading the necessary packages:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
 library(LMMstar)
+library(ggplot2)
 \end{lstlisting}
 
 
 \section{Univariate linear regression}
-\label{sec:org57e6b9c}
+\label{sec:org6344a7c}
 
 To illustrate the use of partial residuals we will use the \texttt{state.x77}
 dataset:
@@ -300,13 +301,13 @@ summarize(lifeExp + illiteracy + income + murder + edu ~ 1, data = df1,
 \end{lstlisting}
 
 \begin{verbatim}
-       outcome observed missing    mean    min    max        sd
-1      lifeExp       50       0 70.8786 67.960 73.600 1.3423936
-2   illiteracy       50       0  1.1700  0.500  2.800 0.6095331
-3       income       50       0  4.4358  3.098  6.315 0.6144699
-4       murder       50       0  7.3780  1.400 15.100 3.6915397
-5  edu:(50,60]       50       0  0.5600  0.000  1.000 0.5014265
-6 edu:(60,100]       50       0  0.1600  0.000  1.000 0.3703280
+       outcome observed missing    mean    min    max      sd
+1      lifeExp       50       0 70.8786 67.960 73.600 1.34239
+2   illiteracy       50       0  1.1700  0.500  2.800 0.60953
+3       income       50       0  4.4358  3.098  6.315 0.61447
+4       murder       50       0  7.3780  1.400 15.100 3.69154
+5  edu:(50,60]       50       0  0.5600  0.000  1.000 0.50143
+6 edu:(60,100]       50       0  0.1600  0.000  1.000 0.37033
 \end{verbatim}
 
 
@@ -315,7 +316,7 @@ covariates the mean indicates the relative frequency of occurrence
 (56\% and 16\%) and other columns like \texttt{sd} should be ignored.
 
 \subsection{No interaction}
-\label{sec:org98082ae}
+\label{sec:orgef935af}
 
 Suppose we are interested in relating life expectancy (\(Y\)) to
 income (\(X\)). We cannot directly illustrate this relationship, as it
@@ -333,13 +334,13 @@ model.tables(e.lm)
 \end{lstlisting}
 
 \begin{verbatim}
-              estimate         se      df      lower      upper      p.value
-(Intercept) 71.5782755 1.13848841 44.0088 69.2838158 73.8727352 0.000000e+00
-income       0.1926977 0.25264925 44.0088 -0.3164805  0.7018759 4.497063e-01
-illiteracy   0.1759019 0.32096701 44.0088 -0.4709610  0.8227647 5.864356e-01
-murder      -0.2782232 0.04785536 44.0088 -0.3746688 -0.1817776 6.328010e-07
-edu(50,60]   0.3014130 0.41401530 44.0088 -0.5329753  1.1358013 4.704551e-01
-edu(60,100]  0.7730650 0.51311796 44.0088 -0.2610505  1.8071804 1.390575e-01
+            estimate       se     df    lower    upper    p.value
+(Intercept) 71.57828 1.138488 44.009 69.28382 73.87274 0.0000e+00
+income       0.19270 0.252649 44.009 -0.31648  0.70188 4.4971e-01
+illiteracy   0.17590 0.320967 44.009 -0.47096  0.82276 5.8644e-01
+murder      -0.27822 0.047855 44.009 -0.37467 -0.18178 6.3280e-07
+edu(50,60]   0.30141 0.414015 44.009 -0.53298  1.13580 4.7046e-01
+edu(60,100]  0.77306 0.513118 44.009 -0.26105  1.80718 1.3906e-01
 \end{verbatim}
 
 
@@ -351,8 +352,8 @@ coef(e.lm) - coef(lm(lifeExp ~ income + illiteracy + murder + edu, data = df1))
 \end{lstlisting}
 
 \begin{verbatim}
-  (Intercept)        income    illiteracy        murder    edu(50,60]   edu(60,100] 
--2.700062e-13  2.033929e-13 -2.898792e-13  6.272760e-15 -4.223843e-13 -5.306866e-13
+(Intercept)      income  illiteracy      murder  edu(50,60] edu(60,100] 
+-2.7001e-13  2.0345e-13 -2.9035e-13  6.3283e-15 -4.2277e-13 -5.3091e-13
 \end{verbatim}
 
 
@@ -361,18 +362,18 @@ outcome, life expectancy, had every state had the same illiteracy and
 murder rate:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-df1$pres <- residuals(e.lm, type = "partial", var = c("(Intercept)","income"))
+df1$pres <- residuals(e.lm, type = "partial", variable = c("(Intercept)","income"))
 head(df1)
 \end{lstlisting}
 
 \begin{verbatim}
-           lifeExp illiteracy income murder      edu     pres
-Alabama      69.05        2.1  3.624   15.1   (0,50] 72.88178
-Alaska       69.31        1.5  6.315   11.3 (60,100] 71.41700
-Arizona      70.55        1.8  4.530    7.8  (50,60] 72.10210
-Arkansas     70.66        1.9  3.378   10.1   (0,50] 73.13584
-California   71.71        1.1  5.114   10.3 (60,100] 73.60914
-Colorado     72.06        0.7  4.884    6.8 (60,100] 73.05572
+           lifeExp illiteracy income murder      edu   pres
+Alabama      69.05        2.1  3.624   15.1   (0,50] 72.882
+Alaska       69.31        1.5  6.315   11.3 (60,100] 71.417
+Arizona      70.55        1.8  4.530    7.8  (50,60] 72.102
+Arkansas     70.66        1.9  3.378   10.1   (0,50] 73.136
+California   71.71        1.1  5.114   10.3 (60,100] 73.609
+Colorado     72.06        0.7  4.884    6.8 (60,100] 73.056
 \end{verbatim}
 
 
@@ -386,13 +387,13 @@ c(69.05 - 0.17590 * 2.1 - (-0.27822) * 15.1,
 \end{lstlisting}
 
 \begin{verbatim}
-[1] 72.88173 71.41698
+[1] 72.882 71.417
 \end{verbatim}
 
 
-This is why the element \texttt{"(Intercept)"} is specified in the \texttt{var}
-argument: to avoid to substract the mean value from the outcome and
-keep a plausible range of values for the outcome.
+The element \texttt{"(Intercept)"} was specified in the \texttt{variable} argument
+to avoid to substract the mean value from the outcome and keep a
+plausible range of values for the outcome.
 
 \bigskip
 
@@ -403,19 +404,19 @@ statistics. This can be obtained by specifying these values in the
 argument \texttt{at}:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-df1$pres2 <- residuals(e.lm, type = "partial", var = c("(Intercept)","income"),
+df1$pres2 <- residuals(e.lm, type = "partial", variable = c("(Intercept)","income"),
                        at = data.frame(illiteracy = 1.17, murder = 7.378, edu = "(50,60]"))
 head(df1)
 \end{lstlisting}
 
 \begin{verbatim}
-           lifeExp illiteracy income murder      edu     pres    pres2
-Alabama      69.05        2.1  3.624   15.1   (0,50] 72.88178 71.33626
-Alaska       69.31        1.5  6.315   11.3 (60,100] 71.41700 69.87149
-Arizona      70.55        1.8  4.530    7.8  (50,60] 72.10210 70.55659
-Arkansas     70.66        1.9  3.378   10.1   (0,50] 73.13584 71.59033
-California   71.71        1.1  5.114   10.3 (60,100] 73.60914 72.06363
-Colorado     72.06        0.7  4.884    6.8 (60,100] 73.05572 71.51021
+           lifeExp illiteracy income murder      edu   pres  pres2
+Alabama      69.05        2.1  3.624   15.1   (0,50] 72.882 71.336
+Alaska       69.31        1.5  6.315   11.3 (60,100] 71.417 69.871
+Arizona      70.55        1.8  4.530    7.8  (50,60] 72.102 70.557
+Arkansas     70.66        1.9  3.378   10.1   (0,50] 73.136 71.590
+California   71.71        1.1  5.114   10.3 (60,100] 73.609 72.064
+Colorado     72.06        0.7  4.884    6.8 (60,100] 73.056 71.510
 \end{verbatim}
 
 
@@ -427,7 +428,7 @@ c(69.05 - 0.17590 * (2.1-1.170) - (-0.27822) * (15.1-7.378) + 0.30141,
 \end{lstlisting}
 
 \begin{verbatim}
-[1] 71.33624 69.87148
+[1] 71.336 69.871
 \end{verbatim}
 
 
@@ -439,7 +440,7 @@ unique(df1$pres2 - df1$pres)
 \end{lstlisting}
 
 \begin{verbatim}
-[1] -1.545513
+[1] -1.5455
 \end{verbatim}
 
 
@@ -458,8 +459,8 @@ gg.pres
 or directly via the plot function:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-plot(e.lm, type = "partial", var = c("(Intercept)","income")) # C
-plot(e.lm, type = "partial", var = c("(Intercept)","income"),
+plot(e.lm, type = "partial", variable = c("(Intercept)","income")) # C
+plot(e.lm, type = "partial", variable = c("(Intercept)","income"),
      at = data.frame(illiteracy = 1.17, murder = 7.378, edu = "(50,60]")) # D
 \end{lstlisting}
 
@@ -485,7 +486,7 @@ actually displaying the graph one can use the method \texttt{autoplot} to
 only save the ggplot object:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-ls.plot <- autoplot(e.lm, type = "partial", var = c("(Intercept)","income"))
+ls.plot <- autoplot(e.lm, type = "partial", variable = c("(Intercept)","income"))
 lapply(ls.plot, class)
 \end{lstlisting}
 
@@ -508,33 +509,33 @@ ls.plot$plot  + coord_cartesian(ylim=c(68,74))
 \bigskip
 
 \subsection{What about confidence intervals?}
-\label{sec:org6cb8d6e}
+\label{sec:orgb9e026b}
 
 A common question is whether one can display confidence intervals for
 the regression line. It is possible to add confidence intervals on the
 plot either via the argument \texttt{ci.alpha}:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-plot(e.lm, type = "partial", var = c("(Intercept)","income"), ci.alpha = 0.25) ## E
+plot(e.lm, type = "partial", variable = c("(Intercept)","income"), ci.alpha = 0.25) ## E
 \end{lstlisting}
 
 or by requesting confidence intervals for the fitted lines via the
 argument \texttt{pres.ci} when calling \texttt{residuals}:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-pres.ci <- residuals(e.lm, type = "partial", var = c("(Intercept)","income"),
+pres.ci <- residuals(e.lm, type = "partial", variable = c("(Intercept)","income"),
                      keep.data = TRUE, fitted.ci = TRUE)
 head(pres.ci)
 \end{lstlisting}
 
 \begin{verbatim}
-  lifeExp illiteracy income murder    edu   fitted fitted.lower fitted.upper r.partial
-1   69.05          0  3.624      0 (0,50] 72.27661     71.11458     73.43864  72.88178
-2   69.31          0  6.315      0 (0,50] 72.79516     71.10708     74.48324  71.41700
-3   70.55          0  4.530      0 (0,50] 72.45120     71.25294     73.64945  72.10210
-4   70.66          0  3.378      0 (0,50] 72.22921     71.04575     73.41266  73.13584
-5   71.71          0  5.114      0 (0,50] 72.56373     71.25357     73.87389  73.60914
-6   72.06          0  4.884      0 (0,50] 72.51941     71.26050     73.77832  73.05572
+  lifeExp illiteracy income murder    edu fitted fitted.lower fitted.upper r.partial
+1   69.05          0  3.624      0 (0,50] 72.277       71.115       73.439    72.882
+2   69.31          0  6.315      0 (0,50] 72.795       71.107       74.483    71.417
+3   70.55          0  4.530      0 (0,50] 72.451       71.253       73.649    72.102
+4   70.66          0  3.378      0 (0,50] 72.229       71.046       73.413    73.136
+5   71.71          0  5.114      0 (0,50] 72.564       71.254       73.874    73.609
+6   72.06          0  4.884      0 (0,50] 72.519       71.261       73.778    73.056
 \end{verbatim}
 
 
@@ -563,8 +564,8 @@ one should remove the intercept value, e.g. by omitting
 \texttt{"(Intercept)"} from the \texttt{var} argument:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-plot(e.lm, type = "partial", var = "income", ci.alpha = 0.25) ## F
-plot(e.lm, type = "partial", var = "murder", ci.alpha = 0.25) ## G
+plot(e.lm, type = "partial", variable = "income", ci.alpha = 0.25) ## F
+plot(e.lm, type = "partial", variable = "murder", ci.alpha = 0.25) ## G
 \end{lstlisting}
 \begin{center}
 \includegraphics[trim={0 0 0 0},width=1\textwidth]{./figures/gg-lmpres-cicov.pdf}
@@ -577,7 +578,7 @@ p-values related to the covariate effect and keeping the partial
 residual plot free of confidence intervals.
 
 \subsection{Interaction with a categorical variable}
-\label{sec:orga396bef}
+\label{sec:org2d7675a}
 
 Suppose that we are now interested in relating life expectancy (\(Y\))
 to both income (\(X_1\)) for various level of education (\(X_2 \in
@@ -597,13 +598,13 @@ model.tables(e.lmI)
 \end{lstlisting}
 
 \begin{verbatim}
-                     estimate         se      df      lower      upper      p.value
-(Intercept)        71.7858373 1.20951681 44.0088 69.3482301 74.2234444 0.000000e+00
-illiteracy          0.1286978 0.31914517 44.0088 -0.5144934  0.7718890 6.887110e-01
-murder             -0.2794017 0.04820845 44.0088 -0.3765589 -0.1822445 6.727632e-07
-income:edu(0,50]    0.1714686 0.29772543 44.0088 -0.4285542  0.7714914 5.675972e-01
-income:edu(50,60]   0.2252558 0.25210982 44.0088 -0.2828353  0.7333469 3.764587e-01
-income:edu(60,100]  0.3037682 0.23692879 44.0088 -0.1737277  0.7812641 2.065179e-01
+                   estimate       se     df    lower    upper    p.value
+(Intercept)        71.78584 1.209517 44.009 69.34823 74.22344 0.0000e+00
+illiteracy          0.12870 0.319145 44.009 -0.51449  0.77189 6.8871e-01
+murder             -0.27940 0.048208 44.009 -0.37656 -0.18224 6.7276e-07
+income:edu(0,50]    0.17147 0.297725 44.009 -0.42855  0.77149 5.6760e-01
+income:edu(50,60]   0.22526 0.252110 44.009 -0.28284  0.73335 3.7646e-01
+income:edu(60,100]  0.30377 0.236929 44.009 -0.17373  0.78126 2.0652e-01
 \end{verbatim}
 
 
@@ -616,13 +617,13 @@ Similarly as before, we can use the \texttt{plot} function to display the
 partial residuals with respect to both \texttt{income} and \texttt{edu}:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-plot(e.lmI, type = "partial", var = c("(Intercept)","income","edu")) ## H
+plot(e.lmI, type = "partial", variable = c("(Intercept)","income","edu")) ## H
 \end{lstlisting}
 
 which can be compared to a plot assuming no interaction:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-plot(e.lm, type = "partial", var = c("(Intercept)","income","edu")) ## I
+plot(e.lm, type = "partial", variable = c("(Intercept)","income","edu")) ## I
 \end{lstlisting}
 
 \begin{center}
@@ -633,11 +634,11 @@ plot(e.lm, type = "partial", var = c("(Intercept)","income","edu")) ## I
 The partial residuals can also be output via the \texttt{residuals} method:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-residuals(e.lmI, type = "partial", var = c("(Intercept)","income","edu"))[1:5]
+residuals(e.lmI, type = "partial", variable = c("(Intercept)","income","edu"))[1:5]
 \end{lstlisting}
 
 \begin{verbatim}
-[1] 72.99870 72.27419 72.49768 73.23743 74.44627
+[1] 72.999 72.274 72.498 73.237 74.446
 \end{verbatim}
 
 
@@ -650,7 +651,7 @@ c(69.05 - 0.12870 * 2.1 - (-0.27940) * 15.1,
 \end{lstlisting}
 
 \begin{verbatim}
-[1] 72.99867 72.27417
+[1] 72.999 72.274
 \end{verbatim}
 
 
@@ -659,12 +660,12 @@ the states had there be no murder nor illiteracy. We could also
 consider the case of average murder rate and illiteracy:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
-residuals(e.lmI, type = "partial", var = c("(Intercept)","income"),
+residuals(e.lmI, type = "partial", variable = c("(Intercept)","income"),
           at = data.frame(illiteracy = 1.17, murder = 7.378))[1:5]
 \end{lstlisting}
 
 \begin{verbatim}
-[1] 71.08785 70.36334 70.58683 71.32658 72.53542
+[1] 71.088 70.363 70.587 71.327 72.535
 \end{verbatim}
 
 
@@ -676,7 +677,7 @@ c(69.05 - 0.12870 * (2.1-1.170) - (-0.27940) * (15.1-7.378),
 \end{lstlisting}
 
 \begin{verbatim}
-[1] 71.08784 70.36334
+[1] 71.088 70.363
 \end{verbatim}
 
 
@@ -684,7 +685,7 @@ c(69.05 - 0.12870 * (2.1-1.170) - (-0.27940) * (15.1-7.378),
 \clearpage
 
 \section{Linear mixed model}
-\label{sec:org4437425}
+\label{sec:orgfdcce79}
 
 To illustrate the use of partial residuals we will use data from a
 two-arm randomized trial comparing the quality of the vision over time
@@ -844,7 +845,7 @@ two is the observed outcome.
 \clearpage
 
 \section{R session}
-\label{sec:org90e4d45}
+\label{sec:org164cd31}
 Details of the R session used to generate this document:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -886,7 +887,7 @@ loaded via a namespace (and not attached):
 \clearpage
 
 \section*{References}
-\label{sec:org7c32d70}
+\label{sec:orge8b796f}
 \begingroup
 \renewcommand{\section}[2]{}
 

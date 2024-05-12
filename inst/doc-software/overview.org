@@ -8,6 +8,7 @@ if(system("whoami",intern=TRUE)=="bozenne"){
   setwd("c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-software/")
 }
 library(ggpubr, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
+options(digits = 5)
 #+END_SRC
 
 This vignette describes the main functionalities of the *LMMstar*
@@ -123,6 +124,7 @@ functions:
 \clearpage
 
 * Illustrative dataset
+
 To illustrate the functionalities of the package, we will use the
 gastricbypass dataset. The long format can be imported using:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -132,12 +134,12 @@ head(gastricbypassL)
 
 #+RESULTS:
 :   id visit time weight glucagonAUC
-: 1  1     1  -13  127.2    20.69014
-: 2  2     1  -13  165.2    49.92151
-: 3  3     1  -13  109.7    42.43420
-: 4  4     1  -13  146.2    27.51696
-: 5  5     1  -13  113.1    29.15120
-: 6  6     1  -13  158.8    42.70000
+: 1  1     1  -13  127.2      20.690
+: 2  2     1  -13  165.2      49.922
+: 3  3     1  -13  109.7      42.434
+: 4  4     1  -13  146.2      27.517
+: 5  5     1  -13  113.1      29.151
+: 6  6     1  -13  158.8      42.700
 
 See =?gastricbypassL= for a presentation of the dataset. It is
 convenient to encode the time variable in two formats:
@@ -150,7 +152,7 @@ convenient to encode the time variable in two formats:
 To illustrate certain functionalities we will use an (artificial)
 group variable:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-gastricbypassL$group <- as.numeric(gastricbypassL$id)%%2
+gastricbypassL$group <- as.factor(as.numeric(gastricbypassL$id)%%2)
 #+END_SRC
 
 #+RESULTS:
@@ -169,22 +171,13 @@ head(gastricbypassW)
 #+END_SRC
 
 #+RESULTS:
-#+begin_example
-  id weight1 weight2 weight3 weight4 glucagonAUC1 glucagonAUC2 glucagonAUC3
-1  1   127.2   120.7   115.5   108.1     20.69014     20.53486     92.60017
-2  2   165.2   153.4   149.2   132.0     49.92151     58.51346     49.63298
-3  3   109.7   101.6    97.7    87.1     42.43420     25.76985     91.23980
-4  4   146.2   142.4   136.7   123.0     27.51696     27.55224     59.35960
-5  5   113.1   105.6    99.9    87.7     29.15120           NA     86.85942
-6  6   158.8   143.6   134.6   108.7     42.70000     31.61559     53.40800
-  glucagonAUC4
-1     43.43377
-2     35.74695
-3     83.13719
-4     21.37069
-5     57.96993
-6     37.63608
-#+end_example
+:   id weight1 weight2 weight3 weight4 glucagonAUC1 glucagonAUC2 glucagonAUC3 glucagonAUC4
+: 1  1   127.2   120.7   115.5   108.1       20.690       20.535       92.600       43.434
+: 2  2   165.2   153.4   149.2   132.0       49.922       58.513       49.633       35.747
+: 3  3   109.7   101.6    97.7    87.1       42.434       25.770       91.240       83.137
+: 4  4   146.2   142.4   136.7   123.0       27.517       27.552       59.360       21.371
+: 5  5   113.1   105.6    99.9    87.7       29.151           NA       86.859       57.970
+: 6  6   158.8   143.6   134.6   108.7       42.700       31.616       53.408       37.636
 
 for which we can also add the group variable:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -424,8 +417,8 @@ c(rho$estimate, p.value = rho$p.value)
 #+END_SRC
 
 #+RESULTS:
-:         cor     p.value 
-: -0.32848119  0.03850536
+:       cor   p.value 
+: -0.328481  0.038505
 
 However the p-value may differ, especially in small samples, as
 =partialCor= uses a different (and probably more crude) small sample
@@ -482,8 +475,8 @@ c(estimate = unname(diff(restt$estimate)), p.value = restt$p.value)
 #+END_SRC
 
 #+RESULTS:
-:    estimate     p.value 
-: -10.6000000   0.2528174
+:  estimate   p.value 
+: -10.60000   0.25282
 
 And so on for the three other timepoints. Morever results would
 typically need to be adjusted for multiple comparisons, e.g. when
@@ -494,11 +487,11 @@ mt.test(weight1+weight2+weight3+weight4~group, data = gastricbypassW)
 #+END_SRC
 
 #+RESULTS:
-:        by parameter estimate       se       df     lower     upper   p.value
-: 1 weight1     group   -10.60 8.971747 17.96464 -30.93243  9.732430 0.3160768
-: 2 weight2     group    -9.50 8.395143 17.98540 -28.52569  9.525687 0.3399966
-: 3 weight3     group    -8.92 8.129458 17.95876 -27.34357  9.503573 0.3569464
-: 4 weight4     group    -4.59 7.760674 17.68244 -22.17781 12.997807 0.6640834
+:        by parameter estimate     se     df   lower   upper p.value
+: 1 weight1     group   -10.60 8.9717 17.965 -30.968  9.7680 0.31894
+: 2 weight2     group    -9.50 8.3951 17.985 -28.559  9.5590 0.34164
+: 3 weight3     group    -8.92 8.1295 17.959 -27.376  9.5358 0.35891
+: 4 weight4     group    -4.59 7.7607 17.682 -22.209 13.0286 0.66331
 
 The method used to adjust confidence intervals and p-values for
 multiple comparisons can be specified via the =method= argument, e.g.:
@@ -508,11 +501,11 @@ mt.test(weight1+weight2+weight3+weight4~group, data = gastricbypassW, method = "
 #+END_SRC
 
 #+RESULTS:
-:        by parameter estimate       se       df     lower     upper   p.value
-: 1 weight1     group   -10.60 8.971747 17.96464 -29.45160  8.251601 0.2528144
-: 2 weight2     group    -9.50 8.395143 17.98540 -27.13857  8.138567 0.2726630
-: 3 weight3     group    -8.92 8.129458 17.95876 -26.00217  8.162169 0.2870297
-: 4 weight4     group    -4.59 7.760674 17.68244 -20.91558 11.735584 0.5617090
+:        by parameter estimate     se     df   lower   upper p.value
+: 1 weight1     group   -10.60 8.9717 17.965 -29.452  8.2516 0.25281
+: 2 weight2     group    -9.50 8.3951 17.985 -27.139  8.1386 0.27266
+: 3 weight3     group    -8.92 8.1295 17.959 -26.002  8.1622 0.28703
+: 4 weight4     group    -4.59 7.7607 17.682 -20.916 11.7356 0.56171
 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 ## bonferroni adjustment
@@ -520,11 +513,11 @@ mt.test(weight1+weight2+weight3+weight4~group, data = gastricbypassW, method = "
 #+END_SRC
 
 #+RESULTS:
-:        by parameter estimate       se       df     lower    upper p.value
-: 1 weight1     group   -10.60 8.971747 17.96464 -35.49775 14.29775       1
-: 2 weight2     group    -9.50 8.395143 17.98540 -32.79464 13.79464       1
-: 3 weight3     group    -8.92 8.129458 17.95876 -31.48110 13.64110       1
-: 4 weight4     group    -4.59 7.760674 17.68244 -26.16472 16.98472       1
+:        by parameter estimate     se     df   lower  upper p.value
+: 1 weight1     group   -10.60 8.9717 17.965 -35.498 14.298       1
+: 2 weight2     group    -9.50 8.3951 17.985 -32.795 13.795       1
+: 3 weight3     group    -8.92 8.1295 17.959 -31.481 13.641       1
+: 4 weight4     group    -4.59 7.7607 17.682 -26.165 16.985       1
 
 
 \clearpage
@@ -547,16 +540,16 @@ cat(" modeled residual variance-covariance: \n");sigma(eId.lmm)
 
  outcome/cluster/time: glucagonAUC/id/time 
  data                : 78 observations from 20 clusters 
- parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group visit2:group visit3:group visit4:group) 
+ parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group1 visit2:group1 visit3:group1 visit4:group1) 
                        1 variance (sigma) 
  log-restr.likelihood: -316.461119970244 
  convergence         : TRUE (0 iterations)
  modeled residual variance-covariance: 
-         -13       -1        1       13
--13 381.3536   0.0000   0.0000   0.0000
--1    0.0000 381.3536   0.0000   0.0000
-1     0.0000   0.0000 381.3536   0.0000
-13    0.0000   0.0000   0.0000 381.3536
+       -13     -1      1     13
+-13 381.35   0.00   0.00   0.00
+-1    0.00 381.35   0.00   0.00
+1     0.00   0.00 381.35   0.00
+13    0.00   0.00   0.00 381.35
 #+end_example
 
 and the *independence* structure:
@@ -573,16 +566,16 @@ cat(" modeled residual variance-covariance: \n");sigma(eInd.lmm)
 
  outcome/cluster/time: glucagonAUC/id/time 
  data                : 78 observations from 20 clusters 
- parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group visit2:group visit3:group visit4:group) 
+ parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group1 visit2:group1 visit3:group1 visit4:group1) 
                        4 variance (sigma k.-1 k.1 k.13) 
  log-restr.likelihood: -310.428096419287 
  convergence         : TRUE (0 iterations)
  modeled residual variance-covariance: 
-         -13       -1        1       13
--13 209.4422   0.0000   0.0000   0.0000
--1    0.0000 174.8103   0.0000   0.0000
-1     0.0000   0.0000 768.2278   0.0000
-13    0.0000   0.0000   0.0000 382.9524
+       -13     -1      1     13
+-13 209.44   0.00   0.00   0.00
+-1    0.00 174.81   0.00   0.00
+1     0.00   0.00 768.23   0.00
+13    0.00   0.00   0.00 382.95
 #+end_example
 
 \clearpage
@@ -601,17 +594,17 @@ cat(" modeled residual variance-covariance: \n");sigma(eCS.lmm)
 
  outcome/cluster/time: glucagonAUC/id/time 
  data                : 78 observations from 20 clusters 
- parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group visit2:group visit3:group visit4:group) 
+ parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group1 visit2:group1 visit3:group1 visit4:group1) 
                        1 variance (sigma) 
                        1 correlation (rho(id)) 
  log-restr.likelihood: -314.394203759159 
  convergence         : TRUE (6 iterations)
  modeled residual variance-covariance: 
-          -13        -1         1        13
--13 380.57991  82.74055  82.74055  82.74055
--1   82.74055 380.57991  82.74055  82.74055
-1    82.74055  82.74055 380.57991  82.74055
-13   82.74055  82.74055  82.74055 380.57991
+        -13      -1       1      13
+-13 380.580  82.741  82.741  82.741
+-1   82.741 380.580  82.741  82.741
+1    82.741  82.741 380.580  82.741
+13   82.741  82.741  82.741 380.580
 #+end_example
 
 \noindent A more flexible model can be obtained with a *toeplitz* covariance matrix:
@@ -628,17 +621,17 @@ cat(" modeled residual correlation: \n");cov2cor(sigma(eTOE.lmm))
 
  outcome/cluster/time: glucagonAUC/id/time 
  data                : 78 observations from 20 clusters 
- parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group visit2:group visit3:group visit4:group) 
+ parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group1 visit2:group1 visit3:group1 visit4:group1) 
                        4 variance (sigma k.-1 k.1 k.13) 
                        4 correlation (rho(12) rho(14) rho(26) rho(2)) 
  log-restr.likelihood: -297.525485582536 
  convergence         : TRUE (15 iterations)
  modeled residual correlation: 
-            -13         -1          1          13
--13  1.00000000 0.70001988 0.09361507 -0.08296276
--1   0.70001988 1.00000000 0.01679455  0.09361507
-1    0.09361507 0.01679455 1.00000000  0.70001988
-13  -0.08296276 0.09361507 0.70001988  1.00000000
+          -13       -1        1        13
+-13  1.000000 0.700020 0.093615 -0.082963
+-1   0.700020 1.000000 0.016795  0.093615
+1    0.093615 0.016795 1.000000  0.700020
+13  -0.082963 0.093615 0.700020  1.000000
 #+end_example
 
 \clearpage
@@ -659,17 +652,17 @@ cat(" modeled residual variance-covariance: \n");sigma(eUN.lmm)
 
  outcome/cluster/time: glucagonAUC/id/time 
  data                : 78 observations from 20 clusters 
- parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group visit2:group visit3:group visit4:group) 
+ parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group1 visit2:group1 visit3:group1 visit4:group1) 
                        4 variance (sigma k.-1 k.1 k.13) 
                        6 correlation (rho(-13,-1) rho(-13,1) rho(-13,13) rho(-1,1) rho(-1,13) rho(1,13)) 
  log-restr.likelihood: -295.314056198772 
  convergence         : TRUE (8 iterations)
  modeled residual variance-covariance: 
-          -13         -1          1        13
--13 209.44221 150.250246 106.399969 -24.20227
--1  150.25025 168.113758   1.306397 -23.88443
-1   106.39997   1.306397 748.076864 288.18395
-13  -24.20227 -23.884434 288.183947 382.95234
+        -13       -1        1      13
+-13 209.442 150.2502 106.4000 -24.202
+-1  150.250 168.1138   1.3064 -23.884
+1   106.400   1.3064 748.0769 288.184
+13  -24.202 -23.8844 288.1839 382.952
 #+end_example
 
 \noindent Stratification of the covariance structure on a categorical
@@ -686,7 +679,7 @@ eSCS.lmm
 : 
 :  outcome/cluster/time: glucagonAUC/id/time 
 :  data                : 78 observations from 20 clusters 
-:  parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group visit2:group visit3:group visit4:group) 
+:  parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group1 visit2:group1 visit3:group1 visit4:group1) 
 :                        2 variance (sigma:0 sigma:1) 
 :                        2 correlation (rho(id):0 rho(id):1) 
 :  log-restr.likelihood: -314.123797063042 
@@ -705,7 +698,7 @@ eSUN.lmm
 : 
 :  outcome/cluster/time: glucagonAUC/id/time 
 :  data                : 78 observations from 20 clusters 
-:  parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group visit2:group visit3:group visit4:group) 
+:  parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group1 visit2:group1 visit3:group1 visit4:group1) 
 :                        8 variance (sigma:0 sigma:1 k.-1:0 k.1:0 k.13:0 k.-1:1 k.1:1 k.13:1) 
 :                        12 correlation (rho(-13,-1):0 rho(-13,1):0 rho(-13,13):0 rho(-1,1):0 rho(-1,13):0 rho(1,13):0 rho(-13,-1):1 rho(-13,1):1 rho(-13,13):1 rho(-1,1):1 rho(-1,13):1 rho(1,13):1) 
 :  log-restr.likelihood: -286.536815485471 
@@ -723,18 +716,18 @@ sigma(eSCS.lmm)
 #+RESULTS:
 #+begin_example
 $`0`
-          -13        -1         1        13
--13 334.28864  50.78164  50.78164  50.78164
--1   50.78164 334.28864  50.78164  50.78164
-1    50.78164  50.78164 334.28864  50.78164
-13   50.78164  50.78164  50.78164 334.28864
+        -13      -1       1      13
+-13 334.289  50.782  50.782  50.782
+-1   50.782 334.289  50.782  50.782
+1    50.782  50.782 334.289  50.782
+13   50.782  50.782  50.782 334.289
 
 $`1`
-         -13       -1        1       13
--13 428.4618 115.0917 115.0917 115.0917
--1  115.0917 428.4618 115.0917 115.0917
-1   115.0917 115.0917 428.4618 115.0917
-13  115.0917 115.0917 115.0917 428.4618
+       -13     -1      1     13
+-13 428.46 115.09 115.09 115.09
+-1  115.09 428.46 115.09 115.09
+1   115.09 115.09 428.46 115.09
+13  115.09 115.09 115.09 428.46
 #+end_example
 #+LaTeX: \end{minipage}
 #+LaTeX: \begin{minipage}{0.47\linewidth} 
@@ -745,18 +738,18 @@ sigma(eSUN.lmm)
 #+RESULTS:
 #+begin_example
 $`0`
-         -13        -1         1        13
--13 309.8534 251.51195 102.18885 -42.24970
--1  251.5120 274.75220 -79.81124 -90.71752
-1   102.1888 -79.81124 579.10966 163.76749
-13  -42.2497 -90.71752 163.76749 173.43923
+       -13      -1       1      13
+-13 309.85 251.512 102.189 -42.250
+-1  251.51 274.752 -79.811 -90.718
+1   102.19 -79.811 579.110 163.767
+13  -42.25 -90.718 163.767 173.439
 
 $`1`
-           -13       -1         1         13
--13 109.030904 48.66651 104.90774  -6.154856
--1   48.666509 59.39530  93.97619  43.214357
-1   104.907735 93.97619 967.58280 450.889944
-13   -6.154856 43.21436 450.88994 592.465459
+         -13     -1       1       13
+-13 109.0309 48.667 104.908  -6.1549
+-1   48.6665 59.395  93.976  43.2144
+1   104.9077 93.976 967.583 450.8899
+13   -6.1549 43.214 450.890 592.4655
 #+end_example
 #+LaTeX: \end{minipage}
 
@@ -779,17 +772,17 @@ cat(" modeled residual variance-covariance: \n");sigma(eBCS.lmm)
 
  outcome/cluster/time: glucagonAUC/id/time 
  data                : 78 observations from 20 clusters 
- parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group visit2:group visit3:group visit4:group) 
+ parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group1 visit2:group1 visit3:group1 visit4:group1) 
                        1 variance (sigma) 
                        2 correlation (rho(id/baseline) rho(id)) 
  log-restr.likelihood: -308.994835006264 
  convergence         : TRUE (6 iterations)
  modeled residual variance-covariance: 
-          -13        -1         1        13
--13 380.95687 226.40271  15.46503  15.46503
--1  226.40271 380.95687  15.46503  15.46503
-1    15.46503  15.46503 380.95687 226.40271
-13   15.46503  15.46503 226.40271 380.95687
+        -13      -1       1      13
+-13 380.957 226.403  15.465  15.465
+-1  226.403 380.957  15.465  15.465
+1    15.465  15.465 380.957 226.403
+13   15.465  15.465 226.403 380.957
 #+end_example
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
@@ -799,10 +792,7 @@ logLik(e.lmer)
 #+END_SRC
 
 #+RESULTS:
-: Indlæser krævet pakke: Matrix
-: Advarselsbesked:
-: pakke 'Matrix' blev bygget under R version 4.2.1
-: 'log Lik.' -308.9948 (df=11)
+: 'log Lik.' -308.99 (df=11)
 
 - e.g. to obtain a *block unstructured* covariance matrix:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -818,17 +808,17 @@ cat(" modeled residual variance-covariance: \n");sigma(eBUN.lmm)
 
  outcome/cluster/time: glucagonAUC/id/time 
  data                : 78 observations from 20 clusters 
- parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group visit2:group visit3:group visit4:group) 
+ parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group1 visit2:group1 visit3:group1 visit4:group1) 
                        2 variance (sigma k.TRUE) 
                        3 correlation (rho(FALSE) rho(FALSE,TRUE) rho(TRUE)) 
  log-restr.likelihood: -300.047474124556 
  convergence         : TRUE (7 iterations)
  modeled residual variance-covariance: 
-          -13        -1         1        13
--13 189.41998 150.35555  15.35285  15.35285
--1  150.35555 189.41998  15.35285  15.35285
-1    15.35285  15.35285 570.90792 300.07084
-13   15.35285  15.35285 300.07084 570.90792
+        -13      -1       1      13
+-13 189.420 150.356  15.353  15.353
+-1  150.356 189.420  15.353  15.353
+1    15.353  15.353 570.908 300.071
+13   15.353  15.353 300.071 570.908
 #+end_example
 
 \clearpage
@@ -1079,18 +1069,18 @@ eCS.lmm.bis <- update(eCS.lmm, control = list(trace = 2))
 #+RESULTS:
 #+begin_example
 Initialization:
- (Intercept)       visit2       visit3       visit4        group visit2:group visit3:group 
-  38.7289746   -4.7343331   31.4330293    4.5213806  -12.8246159    3.7594585   27.0014967 
-visit4:group        sigma      rho(id) 
-  30.2239055   19.5282760    0.2281903 
+  (Intercept)        visit2        visit3        visit4        group1 visit2:group1 visit3:group1 
+     38.72897      -4.73433      31.43303       4.52138     -12.82462       3.75946      27.00150 
+visit4:group1         sigma       rho(id) 
+     30.22391      19.52828       0.22819 
 
 Loop:
 ,******
- (Intercept)       visit2       visit3       visit4        group visit2:group visit3:group 
-  38.7289746   -4.7343331   31.4330293    4.5213806  -12.8246159    3.8033683   27.4810338 
-visit4:group        sigma      rho(id) 
-  30.2239055   19.5084575    0.2174065 
-Convergence after 6 iterations: max score=1.241263e-05 | max change in coefficient=4.516656e-06
+  (Intercept)        visit2        visit3        visit4        group1 visit2:group1 visit3:group1 
+     38.72897      -4.73433      31.43303       4.52138     -12.82462       3.80337      27.48103 
+visit4:group1         sigma       rho(id) 
+     30.22391      19.50846       0.21741 
+Convergence after 6 iterations: max score=1.2413e-05 | max change in coefficient=4.5167e-06
 #+end_example
 
 It is possible to input user-defined value:
@@ -1101,7 +1091,7 @@ eCS.lmm.bis <- update(eCS.lmm, control = list(init = init.all, trace = 1))
 #+END_SRC
 
 #+RESULTS:
-: Convergence after 0 iteration: max score=1.241263e-05
+: Convergence after 0 iteration: max score=1.2413e-05
 
 - the mean parameters only (vector)
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -1112,18 +1102,18 @@ eCS.lmm.bis <- update(eCS.lmm, control = list(init = init.mean, trace = 2))
 #+RESULTS:
 #+begin_example
 Initialization:
- (Intercept)       visit2       visit3       visit4        group visit2:group visit3:group 
-  38.7289746   -4.7343331   31.4330293    4.5213806  -12.8246159    3.8033683   27.4810338 
-visit4:group        sigma      rho(id) 
-  30.2239055   19.5290394    0.2284891 
+  (Intercept)        visit2        visit3        visit4        group1 visit2:group1 visit3:group1 
+     38.72897      -4.73433      31.43303       4.52138     -12.82462       3.80337      27.48103 
+visit4:group1         sigma       rho(id) 
+     30.22391      19.52904       0.22849 
 
 Loop:
 ,******
- (Intercept)       visit2       visit3       visit4        group visit2:group visit3:group 
-  38.7289746   -4.7343331   31.4330293    4.5213806  -12.8246159    3.8033683   27.4810339 
-visit4:group        sigma      rho(id) 
-  30.2239055   19.5084576    0.2174065 
-Convergence after 6 iterations: max score=1.489256e-05 | max change in coefficient=5.386569e-06
+  (Intercept)        visit2        visit3        visit4        group1 visit2:group1 visit3:group1 
+     38.72897      -4.73433      31.43303       4.52138     -12.82462       3.80337      27.48103 
+visit4:group1         sigma       rho(id) 
+     30.22391      19.50846       0.21741 
+Convergence after 6 iterations: max score=1.4893e-05 | max change in coefficient=5.3866e-06
 #+end_example
 
 - a full data variance-covariance matrix (matrix). 
@@ -1133,7 +1123,7 @@ eCS.lmm.bis <- update(eCS.lmm, control = list(init = init.vcov, trace = 1))
 #+END_SRC
 
 #+RESULTS:
-: Convergence after 0 iteration: max score=1.241263e-05
+: Convergence after 0 iteration: max score=1.2413e-05
 
 *Optimizer*: by default the optimizer is a Newton Raphson algorithm
 with backtracking. At each iteration:
@@ -1183,17 +1173,17 @@ Summary of the outcome and covariates:
 
     $ glucagonAUC: num  20.7 49.9 42.4 27.5 29.2 ...
     $ visit      : Factor w/ 4 levels "1","2","3","4": 1 1 1 1 1 1 1 1 1 1 ...
-    $ group      : num  1 0 1 0 1 0 1 0 1 0 ...
-    reference level: visit=1 
+    $ group      : Factor w/ 2 levels "0","1": 2 1 2 1 2 1 2 1 2 1 ...
+    reference level: visit=1;group=0 
 
 Estimation procedure 
 
   - Restricted Maximum Likelihood (REML) 
-  - log-likelihood :-295.3141
+  - log-likelihood :-295.31
   - parameters: mean = 8, variance = 4, correlation = 6
   - convergence: TRUE (8 iterations) 
-    largest |score| = 4.677128e-05 for rho(-1,1)
-            |change|= 1.68033723859651e-05 for visit3:group
+    largest |score| = 4.6771e-05 for rho(-1,1)
+            |change|= 1.68033723859651e-05 for visit3:group1
  
 Residual variance-covariance: unstructured 
 
@@ -1223,16 +1213,16 @@ cat(sapply(oo[-(1:2)],paste0,"\n"))
 #+begin_example
 Fixed effects: glucagonAUC ~ visit * group 
  
-                 estimate     se   df   lower  upper p.value    
-    (Intercept)    38.729  4.576   18  29.114 48.344 < 1e-04 ***
-    visit2         -4.734  2.776 17.5 -10.577  1.109 0.10574    
-    visit3         31.433   8.63 17.6  13.272 49.594 0.00192  **
-    visit4          4.521  8.005   18 -12.297  21.34 0.57917    
-    group         -12.825  6.472   18 -26.422  0.773 0.06302   .
-    visit2:group    3.987  3.996 17.9   -4.41 12.383 0.33169    
-    visit3:group   27.571  12.42 17.8   1.461 53.682 0.03963   *
-    visit4:group   30.224 11.321   18   6.439 54.008 0.01562   *
-    ------------------------------------------------------- 
+                  estimate     se   df   lower  upper p.value    
+    (Intercept)     38.729  4.576   18  29.114 48.344 < 1e-04 ***
+    visit2          -4.734  2.776 17.5 -10.577  1.109 0.10574    
+    visit3          31.433   8.63 17.6  13.272 49.594 0.00192  **
+    visit4           4.521  8.005   18 -12.297  21.34 0.57917    
+    group1         -12.825  6.472   18 -26.422  0.773 0.06302   .
+    visit2:group1    3.987  3.996 17.9   -4.41 12.383 0.33169    
+    visit3:group1   27.571  12.42 17.8   1.461 53.682 0.03963   *
+    visit4:group1   30.224 11.321   18   6.439 54.008 0.01562   *
+    -------------------------------------------------------- 
    Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
    Columns lower and upper contain 95% pointwise confidence intervals for each coefficient.
    Model-based standard errors are derived from the observed information (column se). 
@@ -1251,10 +1241,10 @@ coef(eUN.lmm)
 #+END_SRC
 
 #+RESULTS:
-:  (Intercept)       visit2       visit3       visit4        group visit2:group visit3:group 
-:    38.728975    -4.734333    31.433029     4.521381   -12.824616     3.986559    27.571424 
-: visit4:group 
-:    30.223906
+:   (Intercept)        visit2        visit3        visit4        group1 visit2:group1 visit3:group1 
+:       38.7290       -4.7343       31.4330        4.5214      -12.8246        3.9866       27.5714 
+: visit4:group1 
+:       30.2239
 
 Variance coefficients can be output by specifying the =effects= argument:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -1262,8 +1252,8 @@ coef(eUN.lmm, effects = "variance")
 #+END_SRC
 
 #+RESULTS:
-:      sigma       k.-1        k.1       k.13 
-: 14.4721183  0.8959206  1.8899095  1.3521979
+:    sigma     k.-1      k.1     k.13 
+: 14.47212  0.89592  1.88991  1.35220
 
 The first coefficient is the residual standard deviation at the
 reference timepoint (here -13 week) and the remaining coefficient the
@@ -1277,7 +1267,7 @@ coef(eUN.lmm, effects = "variance", transform.k = "sd")
 
 #+RESULTS:
 : sigma.-13  sigma.-1   sigma.1  sigma.13 
-:  14.47212  12.96587  27.35099  19.56917
+:    14.472    12.966    27.351    19.569
 
 ** Extract estimated coefficient and associated uncertainty
 
@@ -1289,15 +1279,15 @@ model.tables(eUN.lmm)
 #+END_SRC
 
 #+RESULTS:
-:                estimate        se       df      lower      upper      p.value
-: (Intercept)   38.728975  4.576486 18.00314  29.114255 48.3436939 1.089106e-07
-: visit2        -4.734333  2.775887 17.54267 -10.577172  1.1085054 1.057398e-01
-: visit3        31.433029  8.629711 17.58484  13.271949 49.5941098 1.922898e-03
-: visit4         4.521381  8.004993 17.99506 -12.296816 21.3395773 5.791699e-01
-: group        -12.824616  6.472128 18.00316 -26.421881  0.7726496 6.301532e-02
-: visit2:group   3.986559  3.995676 17.93653  -4.410175 12.3832925 3.316866e-01
-: visit3:group  27.571424 12.419868 17.83119   1.460532 53.6823152 3.963353e-02
-: visit4:group  30.223906 11.320769 17.99537   6.439413 54.0083977 1.562388e-02
+:               estimate      se     df    lower    upper    p.value
+: (Intercept)    38.7290  4.5765 18.003  29.1143 48.34369 1.0891e-07
+: visit2         -4.7343  2.7759 17.543 -10.5772  1.10851 1.0574e-01
+: visit3         31.4330  8.6297 17.585  13.2719 49.59411 1.9229e-03
+: visit4          4.5214  8.0050 17.995 -12.2968 21.33958 5.7917e-01
+: group1        -12.8246  6.4721 18.003 -26.4219  0.77265 6.3015e-02
+: visit2:group1   3.9866  3.9957 17.937  -4.4102 12.38329 3.3169e-01
+: visit3:group1  27.5714 12.4199 17.831   1.4605 53.68232 3.9634e-02
+: visit4:group1  30.2239 11.3208 17.995   6.4394 54.00840 1.5624e-02
 
 Values for the all correlation parameters can be displayed
 too, by specifying @@latex:\texttt{effect=c("variance","correlation")}@@:
@@ -1307,17 +1297,17 @@ model.tables(eUN.lmm, effect = c("variance","correlation"))
 
 #+RESULTS:
 #+begin_example
-                estimate         se        df       lower      upper      p.value
-sigma       14.472118325 2.41202002 15.315761 10.15147605 20.6317000           NA
-k.-1         0.895920602 0.12703190 20.267083  0.66669608  1.2039575 0.4472196321
-k.1          1.889909495 0.43109758 25.915694  1.18243799  3.0206725 0.0097415223
-k.13         1.352197903 0.31755015 29.807376  0.83693748  2.1846783 0.2087440682
-rho(-13,-1)  0.800721445 0.08517658 13.414224  0.52948759  0.9234265 0.0004292266
-rho(-13,1)   0.268804346 0.21919999  7.928565 -0.26374140  0.6757630 0.2773574833
-rho(-13,13) -0.085457774 0.23398096  8.588214 -0.55306416  0.4230915 0.7250514470
-rho(-1,1)    0.003683836 0.23723671  8.148741 -0.49424281  0.4997905 0.9879844454
-rho(-1,13)  -0.094132798 0.23364886  8.919109 -0.55696763  0.4133142 0.6982138069
-rho(1,13)    0.538423876 0.17622066 10.223258  0.05058039  0.8188256 0.0352264245
+              estimate       se      df    lower    upper    p.value
+sigma       14.4721183 2.412020 15.3158 10.15148 20.63170         NA
+k.-1         0.8959206 0.127032 20.2671  0.66670  1.20396 0.44721963
+k.1          1.8899095 0.431098 25.9157  1.18244  3.02067 0.00974152
+k.13         1.3521979 0.317550 29.8074  0.83694  2.18468 0.20874407
+rho(-13,-1)  0.8007214 0.085177 13.4142  0.52949  0.92343 0.00042923
+rho(-13,1)   0.2688043 0.219200  7.9286 -0.26374  0.67576 0.27735748
+rho(-13,13) -0.0854578 0.233981  8.5882 -0.55306  0.42309 0.72505145
+rho(-1,1)    0.0036838 0.237237  8.1487 -0.49424  0.49979 0.98798445
+rho(-1,13)  -0.0941328 0.233649  8.9191 -0.55697  0.41331 0.69821381
+rho(1,13)    0.5384239 0.176221 10.2233  0.05058  0.81883 0.03522642
 #+end_example
 
 Because these parameters are constrained (e.g. strictly positive),
@@ -1329,15 +1319,15 @@ model.tables(eUN.lmm, columns = c("estimate","p.value"))
 #+END_SRC
 
 #+RESULTS:
-:                estimate      p.value
-: (Intercept)   38.728975 1.089106e-07
-: visit2        -4.734333 1.057398e-01
-: visit3        31.433029 1.922898e-03
-: visit4         4.521381 5.791699e-01
-: group        -12.824616 6.301532e-02
-: visit2:group   3.986559 3.316866e-01
-: visit3:group  27.571424 3.963353e-02
-: visit4:group  30.223906 1.562388e-02
+:               estimate    p.value
+: (Intercept)    38.7290 1.0891e-07
+: visit2         -4.7343 1.0574e-01
+: visit3         31.4330 1.9229e-03
+: visit4          4.5214 5.7917e-01
+: group1        -12.8246 6.3015e-02
+: visit2:group1   3.9866 3.3169e-01
+: visit3:group1  27.5714 3.9634e-02
+: visit4:group1  30.2239 1.5624e-02
 
 All parameters can be displayed by specifying
 @@latex:\texttt{effect="all"}@@.  The functions =add= (resp. =remove=)
@@ -1348,15 +1338,15 @@ model.tables(eUN.lmm, columns = add("statistic"))
 #+END_SRC
 
 #+RESULTS:
-:                estimate        se  statistic       df      lower      upper      p.value
-: (Intercept)   38.728975  4.576486  8.4626016 18.00314  29.114255 48.3436939 1.089106e-07
-: visit2        -4.734333  2.775887 -1.7055210 17.54267 -10.577172  1.1085054 1.057398e-01
-: visit3        31.433029  8.629711  3.6424197 17.58484  13.271949 49.5941098 1.922898e-03
-: visit4         4.521381  8.004993  0.5648201 17.99506 -12.296816 21.3395773 5.791699e-01
-: group        -12.824616  6.472128 -1.9815145 18.00316 -26.421881  0.7726496 6.301532e-02
-: visit2:group   3.986559  3.995676  0.9977182 17.93653  -4.410175 12.3832925 3.316866e-01
-: visit3:group  27.571424 12.419868  2.2199451 17.83119   1.460532 53.6823152 3.963353e-02
-: visit4:group  30.223906 11.320769  2.6697749 17.99537   6.439413 54.0083977 1.562388e-02
+:               estimate      se statistic     df    lower    upper    p.value
+: (Intercept)    38.7290  4.5765   8.46260 18.003  29.1143 48.34369 1.0891e-07
+: visit2         -4.7343  2.7759  -1.70552 17.543 -10.5772  1.10851 1.0574e-01
+: visit3         31.4330  8.6297   3.64242 17.585  13.2719 49.59411 1.9229e-03
+: visit4          4.5214  8.0050   0.56482 17.995 -12.2968 21.33958 5.7917e-01
+: group1        -12.8246  6.4721  -1.98151 18.003 -26.4219  0.77265 6.3015e-02
+: visit2:group1   3.9866  3.9957   0.99772 17.937  -4.4102 12.38329 3.3169e-01
+: visit3:group1  27.5714 12.4199   2.21995 17.831   1.4605 53.68232 3.9634e-02
+: visit4:group1  30.2239 11.3208   2.66977 17.995   6.4394 54.00840 1.5624e-02
 
 ** Extract estimated residual variance-covariance structure
 
@@ -1410,10 +1400,10 @@ sigma(eUN.lmm, cluster = 5)
 #+END_SRC
 
 #+RESULTS:
-:           -13        1        13
-: -13 209.44221 106.4000 -24.20227
-: 1   106.39997 748.0769 288.18395
-: 13  -24.20227 288.1839 382.95234
+:         -13      1      13
+: -13 209.442 106.40 -24.202
+: 1   106.400 748.08 288.184
+: 13  -24.202 288.18 382.952
 
 or for a new individual:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -1422,11 +1412,11 @@ sigma(eUN.lmm, cluster = newdata)
 #+END_SRC
 
 #+RESULTS:
-:           -13         -1          1        13
-: -13 209.44221 150.250246 106.399969 -24.20227
-: -1  150.25025 168.113758   1.306397 -23.88443
-: 1   106.39997   1.306397 748.076864 288.18395
-: 13  -24.20227 -23.884434 288.183947 382.95234
+:         -13       -1        1      13
+: -13 209.442 150.2502 106.4000 -24.202
+: -1  150.250 168.1138   1.3064 -23.884
+: 1   106.400   1.3064 748.0769 288.184
+: 13  -24.202 -23.8844 288.1839 382.952
 
 \clearpage
 
@@ -1559,7 +1549,7 @@ eRI.lmm
 : 
 :  outcome/cluster/time: glucagonAUC/id/XXtimeXX 
 :  data                : 78 observations from 20 clusters 
-:  parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group visit2:group visit3:group visit4:group) 
+:  parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group1 visit2:group1 visit3:group1 visit4:group1) 
 :                        1 variance (sigma) 
 :                        1 correlation (rho(id)) 
 :  log-restr.likelihood: -314.394203759159 
@@ -1576,7 +1566,7 @@ eNRI.lmm
 : 
 :  outcome/cluster/time: glucagonAUC/id/XXtimeXX 
 :  data                : 78 observations from 20 clusters 
-:  parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group visit2:group visit3:group visit4:group) 
+:  parameter           : 8 mean ((Intercept) visit2 visit3 visit4 group1 visit2:group1 visit3:group1 visit4:group1) 
 :                        1 variance (sigma) 
 :                        2 correlation (rho(id/baseline) rho(id)) 
 :  log-restr.likelihood: -308.994835006264 
@@ -1616,13 +1606,13 @@ head(ranef(eRI.lmm, format = "wide"))
 #+END_SRC
 
 #+RESULTS:
-:   id   estimate
-: 1  1 -2.5115379
-: 2  2  1.0104263
-: 3  3  6.0838394
-: 4  4 -6.6235023
-: 5  5  0.3951887
-: 6  6 -2.7338407
+:   id estimate
+: 1  1 -2.51154
+: 2  2  1.01043
+: 3  3  6.08384
+: 4  4 -6.62350
+: 5  5  0.39519
+: 6  6 -2.73384
 #+LaTeX: \end{minipage}
 #+LaTeX: \begin{minipage}{0.48\linewidth} 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -1630,13 +1620,13 @@ head(ranef(eNRI.lmm, format = "wide"))
 #+END_SRC
 
 #+RESULTS:
-:   id    estimate estimate.FALSE estimate.TRUE
-: 1  1 -0.49427090     -3.5095911    -3.2320942
-: 2  2  0.18605134    -10.3943084    12.9319849
-: 3  3  1.08840900      9.3632739     5.4822512
-: 4  4 -1.21959556    -11.0670290    -5.5678358
-: 5  5  0.08168627     -0.7125446     1.8267173
-: 6  6 -0.50338625     -7.8169964     0.9509808
+:   id  estimate estimate.FALSE estimate.TRUE
+: 1  1 -0.494271       -3.50959      -3.23209
+: 2  2  0.186051      -10.39431      12.93198
+: 3  3  1.088409        9.36327       5.48225
+: 4  4 -1.219596      -11.06703      -5.56784
+: 5  5  0.081686       -0.71254       1.82672
+: 6  6 -0.503386       -7.81700       0.95098
 #+LaTeX: \end{minipage}
 
 
@@ -1649,8 +1639,8 @@ range(matrix(c(ranef(e.lmer2)[[2]][,1],ranef(e.lmer2)[[1]][,1]), ncol = 3, byrow
 #+END_SRC
 
 #+RESULTS:
-: [1] -5.696047e-06  5.886729e-06
-: [1] -3.841253e-05  4.003857e-05
+: [1] -5.6960e-06  5.8867e-06
+: [1] -0.00027523  0.00028697
 
 It is also possible to extract the variance decomposition by setting
 the argument =effects= to ="variance"=:
@@ -1670,10 +1660,10 @@ cat(" \n")
 #+END_SRC
 
 #+RESULTS:
-:       type  absolute  relative
-: 1    total 380.57991 1.0000000
-: 2       id  82.74055 0.2174065
-: 3 residual 297.83936 0.7825935
+:       type absolute relative
+: 1    total  380.580  1.00000
+: 2       id   82.741  0.21741
+: 3 residual  297.839  0.78259
 : 
 #+LaTeX: \end{minipage}
 #+LaTeX: \begin{minipage}{0.47\linewidth} 
@@ -1683,11 +1673,11 @@ ranef(eNRI.lmm, effects = "variance",
 #+END_SRC
 
 #+RESULTS:
-:       type  absolute   relative
-: 1    total 380.95687 1.00000000
-: 2       id  15.46503 0.04059522
-: 3 baseline 210.93768 0.55370488
-: 4 residual 154.55416 0.40569990
+:       type absolute relative
+: 1    total  380.957 1.000000
+: 2       id   15.465 0.040595
+: 3 baseline  210.938 0.553705
+: 4 residual  154.554 0.405700
 #+LaTeX: \end{minipage}
 
 
@@ -1698,13 +1688,13 @@ head(ranef(eRI.lmm, se = TRUE))
 #+END_SRC
 
 #+RESULTS:
-:   id   estimate       se        df      lower     upper
-: 1  1 -2.5115379 2.301903 11.130230  -7.570770  2.547694
-: 2  2  1.0104263 2.116338 15.735483  -3.482148  5.503001
-: 3  3  6.0838394 2.977148  6.208501  -1.142085 13.309764
-: 4  4 -6.6235023 3.111364  5.831923 -14.290240  1.043235
-: 5  5  0.3951887 1.966059 23.844585  -3.663958  4.454335
-: 6  6 -2.7338407 2.293956 10.018912  -7.843785  2.376103
+:   id estimate     se      df    lower   upper
+: 1  1 -2.51154 2.3019 11.1302  -7.5708  2.5477
+: 2  2  1.01043 2.1163 15.7355  -3.4821  5.5030
+: 3  3  6.08384 2.9771  6.2085  -1.1421 13.3098
+: 4  4 -6.62350 3.1114  5.8319 -14.2902  1.0432
+: 5  5  0.39519 1.9661 23.8446  -3.6640  4.4543
+: 6  6 -2.73384 2.2940 10.0189  -7.8438  2.3761
 
 \clearpage
 
@@ -1748,8 +1738,8 @@ c(df.res = df.res, SSE = SSE)
 #+END_SRC
 
 #+RESULTS:
-:   df.res      SSE 
-:    70.00 20848.76
+: df.res    SSE 
+:     70  20849
 
 For the regression sum of squares (SSR), we first extract the mean
 parameters and their variance-covariance based on the expected
@@ -1786,8 +1776,8 @@ SSR.group <- as.double(SSRstar.group * delta)
 c(time = SSR.time, group = SSR.group)
 #+END_SRC
 #+RESULTS:
-:      time     group 
-: 7872.1883  643.5688
+:    time   group 
+: 7872.19  643.57
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
 library(lme4) ## note type I anova so only look at the last line
@@ -1801,15 +1791,15 @@ anova(lmer(glucagonAUC ~ visit.group + group + visit + (1|id), data = df.tempo))
 #+RESULTS:
 #+begin_example
 Analysis of Variance Table
-            npar  Sum Sq Mean Sq F value
-visit.group    3 20839.9  6946.6 23.3234
-visit          3  9585.6  3195.2 10.7280
-group          1   643.6   643.6  2.1608
+            npar Sum Sq Mean Sq F value
+visit.group    3  20840    6947   23.32
+visit          3   9586    3195   10.73
+group          1    644     644    2.16
 Analysis of Variance Table
-            npar  Sum Sq Mean Sq F value
-visit.group    3 20839.9  6946.6 23.3234
-group          1  2357.0  2357.0  7.9137
-visit          3  7872.2  2624.1  8.8103
+            npar Sum Sq Mean Sq F value
+visit.group    3  20840    6947   23.32
+group          1   2357    2357    7.91
+visit          3   7872    2624    8.81
 #+end_example
 
 ** Proportion of explained variance and partial correlation
@@ -1828,7 +1818,7 @@ c(SSR.time/ (SSR.time + SSE),
 #+END_SRC
 
 #+RESULTS:
-: [1] 0.27409225 0.02994412
+: [1] 0.274092 0.029944
 
 Computing the SSR for each individual coefficients, taking its squared
 root, and multiplying by the sign of the corresponding coefficient
@@ -1849,15 +1839,15 @@ summary(eCS.R2)
 
 		Partial correlation 
 
-                estimate    se   df  lower upper p.value
-   visit2         -0.073 0.119 52.4 -0.311 0.165 0.54028
-   visit3          0.438 0.089 51.4   0.26 0.616 < 1e-04
-   visit4           0.07 0.119 52.4 -0.168 0.308 0.55876
-   group          -0.173 0.114 60.7 -0.402 0.056 0.13527
-   visit2:group    0.041 0.119 52.8 -0.198  0.28 0.73256
-   visit3:group    0.284 0.106   52  0.071 0.497 0.01007
-   visit4:group    0.314 0.103   52  0.107 0.521 0.00365
-   ----------------------------------------------------- 
+                 estimate    se   df  lower upper p.value
+   visit2          -0.073 0.119 52.4 -0.311 0.165 0.54028
+   visit3           0.438 0.089 51.4   0.26 0.616 < 1e-04
+   visit4            0.07 0.119 52.4 -0.168 0.308 0.55876
+   group1          -0.173 0.114 60.7 -0.402 0.056 0.13527
+   visit2:group1    0.041 0.119 52.8 -0.198  0.28 0.73256
+   visit3:group1    0.284 0.106   52  0.071 0.497 0.01007
+   visit4:group1    0.314 0.103   52  0.107 0.521 0.00365
+   ------------------------------------------------------ 
   Columns lower and upper contain 95% pointwise confidence intervals for each coefficient.
   Degrees of freedom were computed using a Satterthwaite approximation (column df). 
 
@@ -1902,7 +1892,7 @@ setNames(with(aCS.aov, statistic*df.num/(statistic*df.num+df.denom)), aCS.aov$te
 
 #+RESULTS:
 :       visit       group visit:group 
-:  0.33537363  0.03381098  0.18628988
+:    0.335374    0.033811    0.186290
 
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
@@ -1911,15 +1901,26 @@ cat("\n")
 #+END_SRC
 
 #+RESULTS:
-: # Effect Size for ANOVA (Type III)
-: 
-: Parameter   | Eta2 (partial) |       95% CI
-: -------------------------------------------
-: visit       |           0.34 | [0.15, 1.00]
-: group       |           0.01 | [0.00, 1.00]
-: visit:group |           0.19 | [0.03, 1.00]
-: 
-: - One-sided CIs: upper bound fixed at [1.00].>
+#+begin_example
+# Effect Size for ANOVA (Type III)
+
+Parameter   | Eta2 (partial) |       95% CI
+-------------------------------------------
+visit       |           0.64 | [0.50, 1.00]
+group       |           0.01 | [0.00, 1.00]
+visit:group |           0.19 | [0.03, 1.00]
+
+- One-sided CIs: upper bound fixed at
+# Effect Size for ANOVA (Type III)
+
+Parameter               | Eta2 (partial) |       95% CI
+-------------------------------------------------------
+visit                   |           0.06 | [0.00, 1.00]
+as.numeric(group)       |           0.01 | [0.00, 1.00]
+visit:as.numeric(group) |           0.19 | [0.03, 1.00]
+
+- One-sided CIs: upper bound fixed at
+#+end_example
 
 \bigskip
 
@@ -1936,13 +1937,13 @@ head(eUN.diagW)
 #+END_SRC
 
 #+RESULTS:
-:   id      r.-13       r.-1         r.1       r.13
-: 1  1 -0.3602944 -0.1134444  0.37717680 -1.4553910
-: 2  2  0.7733858  2.1230094 -0.23290770 -0.1070804
-: 3  3  1.1421857 -1.4477806 -0.65487596  2.0125923
-: 4  4 -0.7747324  0.2061159 -0.12711744 -1.3951941
-: 5  5  0.2243514         NA  0.01143165 -0.1539782
-: 6  6  0.2743915 -0.6730753 -1.03113140  0.4272387
+:   id    r.-13     r.-1       r.1     r.13
+: 1  1 -0.36029 -0.11344  0.377177 -1.45539
+: 2  2  0.77339  2.12301 -0.232908 -0.10708
+: 3  3  1.14219 -1.44778 -0.654876  2.01259
+: 4  4 -0.77473  0.20612 -0.127117 -1.39519
+: 5  5  0.22435       NA  0.011432 -0.15398
+: 6  6  0.27439 -0.67308 -1.031131  0.42724
 
 or in the long format:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -1951,13 +1952,13 @@ head(eUN.diagL)
 #+END_SRC
 
 #+RESULTS:
-:   id visit time weight glucagonAUC group baseline   fitted r.normalized
-: 1  1     1  -13  127.2    20.69014     1     TRUE 25.90436   -0.3602944
-: 2  2     1  -13  165.2    49.92151     0     TRUE 38.72897    0.7733858
-: 3  3     1  -13  109.7    42.43420     1     TRUE 25.90436    1.1421857
-: 4  4     1  -13  146.2    27.51696     0     TRUE 38.72897   -0.7747324
-: 5  5     1  -13  113.1    29.15120     1     TRUE 25.90436    0.2243514
-: 6  6     1  -13  158.8    42.70000     0     TRUE 38.72897    0.2743915
+:   id visit time weight glucagonAUC group baseline fitted r.normalized
+: 1  1     1  -13  127.2      20.690     1     TRUE 25.904     -0.36029
+: 2  2     1  -13  165.2      49.922     0     TRUE 38.729      0.77339
+: 3  3     1  -13  109.7      42.434     1     TRUE 25.904      1.14219
+: 4  4     1  -13  146.2      27.517     0     TRUE 38.729     -0.77473
+: 5  5     1  -13  113.1      29.151     1     TRUE 25.904      0.22435
+: 6  6     1  -13  158.8      42.700     0     TRUE 38.729      0.27439
 
 Various type of residuals can be extract but the normalized one are
 recommanded when doing model checking. Diagnostic plots can then be
@@ -1988,7 +1989,6 @@ plot(eUN.lmm, type = "scatterplot2")
 [[./figures/diag-scatterplot2.pdf]]
 
 - misspecification of the correlation structure
-
 #+BEGIN_SRC R :exports code :results output :session *R* :cache no
 plot(eUN.lmm, type = "correlation", type.residual = "response")
 plot(eUN.lmm, type = "correlation", type.residual = "normalized")
@@ -2007,10 +2007,7 @@ ggsave(gg, filename = "./figures/diag-correlation.pdf", width = 12)
 
 #+RESULTS:
 :results:
-Indlæser krævet pakke: ggplot2
-Advarselsbesked:
-pakke 'ggplot2' blev bygget under R version 4.2.3
-[1m[22mSaving 12 x 6.38 in image
+[1m[22mSaving 12 x 7 in image
 :end:
 
 #+ATTR_LaTeX: :width 0.6\textwidth :placement [!h]
@@ -2018,15 +2015,17 @@ pakke 'ggplot2' blev bygget under R version 4.2.3
 
 - residual distribution vs. normal distribution [fn::see cite:oldford2016self for guidance
   about how to read quantile-quantile plots.]:
-#+BEGIN_SRC R :file ./figures/diag-qqplot.pdf :results graphics file :session *R* :cache no
-plot(eUN.lmm, type = "qqplot", engine.qqplot = "qqtest")
+
+#+BEGIN_SRC R :file ./figures/diag-qqplot.pdf :results graphics file :session *R* :cache no :width 10 :height 4
+plot(eUN.lmm, type = "qqplot", engine = "qqtest",
+     facet = ~time, labeller = "label_both", facet_nrow=1)
 ## Note: the qqtest package to be installed to use the argument engine.plot = "qqtest" 
 #+END_SRC
 
 #+RESULTS:
 [[file:./figures/diag-qqplot.pdf]]
 
-#+ATTR_LaTeX: :width 0.5\textwidth :placement [!h]
+#+ATTR_LaTeX: :width \textwidth :placement [!h]
 [[./figures/diag-qqplot.pdf]]
 
 \Warning Deviation from the normal distribution does not necessarily
@@ -2054,86 +2053,163 @@ plot(eUN.lmm_profile)
 
 \clearpage
 
-** Model fit
+** Visualize model fit
 
 The fitted values can be displayed via the =plot= method:
-
 #+BEGIN_SRC R :file ./figures/fit-autoplot.pdf :results graphics file :session *R* :cache no
-plot(eUN.lmm, type = "fit", color = "id", ci.alpha = NA, size.text = 20)
+## left panel
+plot(eUN.lmm, type = "fit", color = "group", size.text = 20)
 #+END_SRC
-
-# TODO: add back plot
 
 #+RESULTS:
 [[file:./figures/fit-autoplot.pdf]]
 
+\Warning the shaded area represent 95% confidence intervals (CIs),
+  i.e. is not adjusted for multiplicity over time. More explicit (but
+  sometimes less readable) representation of the CIs can be obtained
+  by setting the argument =ci.alpha= to =NA=:
 
-In the first case each possible curve is displayed while in the latter
-the average curve (over glucagon values). With the =plot= method,
-it is possible to display a curve specific to a glucagon value via the
-argument =at=:
-#+BEGIN_SRC R :file ./figures/fit10-autoplot.pdf :results graphics file :session *R* :cache no
-## left panel
-plot(eUN.lmm, type = "fit", at = data.frame(glucagon = 10), color = "glucagon") 
+#+BEGIN_SRC R :file ./figures/fit-autoplot2.pdf :results graphics file :session *R* :cache no
+## middle panel
+plot(eUN.lmm, type = "fit", color = "group", ci.alpha = NA, size.text = 20)
 #+END_SRC
 
 #+RESULTS:
-[[file:./figures/fit10-autoplot.pdf]]
+[[file:./figures/fit-autoplot2.pdf]]
 
-It is also possible to display the observed values along with the
+\noindent It is also possible to display the observed values along with the
 fitted values by setting the argument =obs.alpha= to a strictly
 positive value below or equal to 1. This argument controls the
 transparency of the color used to display the observed values:
 #+BEGIN_SRC R :file ./figures/fitAll-autoplot.pdf :results graphics file :session *R* :cache no
 ## right panel
-gg.spafit <- plot(eUN.lmm, type = "fit", obs.alpha = 0.25, ci = FALSE)$plot
+plot(eUN.lmm, type = "fit", obs.alpha = 0.25, ci = FALSE, size.text = 20)
 #+END_SRC
 
 #+RESULTS:
 [[file:./figures/fitAll-autoplot.pdf]]
 
-#+latex: \begin{minipage}{0.45\linewidth}
+#+latex: \begin{minipage}{0.3\linewidth}
 #+ATTR_LaTeX: :width \textwidth :placement [!h]
-[[./figures/fit10-autoplot.pdf]]
+[[./figures/fit-autoplot.pdf]]
 #+latex: \end{minipage}
-#+latex: \begin{minipage}{0.45\linewidth}
+#+latex: \begin{minipage}{0.3\linewidth}
+#+ATTR_LaTeX: :width \textwidth :placement [!h]
+[[./figures/fit-autoplot2.pdf]]
+#+latex: \end{minipage}
+#+latex: \begin{minipage}{0.3\linewidth}
 #+ATTR_LaTeX: :width \textwidth :placement [!h]
 [[./figures/fitAll-autoplot.pdf]]
 #+latex: \end{minipage}
 
-The =plot= element output by the =plot= method can be manipulated as a ggplot object
-to modify the visual appearance, e.g. to compare each individual
-trajectory to the model fit:
+
+When considering continuous covariates, e.g.:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-gg.traj <- gg.spafit + facet_wrap(~id, labeller = label_both)
-gg.traj <- gg.traj + theme(axis.text.x=element_text(angle = 90, hjust = 0))
-gg.traj
-#+END_SRC
+## add baseline weight
+gastricbypassLB <- merge(gastricbypassL, gastricbypassW[c("id","weight1")], by = "id")
 
-#+ATTR_LaTeX: :width \textwidth :placement [!h]
-[[./figures/fit-autoplot-indiv.pdf]]
-
-#+BEGIN_SRC R :exports none :results output :session *R* :cache no
-ggsave(gg.traj + theme(text = element_text(size=20)), filename = "figures/fit-autoplot-indiv.pdf", width = 12)
+eUN.lmmB <- lmm(glucagonAUC ~ weight1 + visit*group, repetition = ~time|id,
+                structure = "UN", data = gastricbypassLB)
 #+END_SRC
 
 #+RESULTS:
-: [1m[22mSaving 12 x 6.38 in image
+
+\noindent The default graphical display can be confusing as it shows one curve per distinct set of covariate values: 
+#+BEGIN_SRC R :file ./figures/fit-baseline-autoplot.pdf :results graphics file :session *R* :cache no
+## left panel
+plot(eUN.lmmB, type = "fit", color = "group", ci = FALSE, size.text = 20)
+#+END_SRC
+
+#+RESULTS:
+[[file:./figures/fit-baseline-autoplot.pdf]]
+
+However it is possible to restrict the display specific to a covariate
+value via the argument =at=:
+#+BEGIN_SRC R :file ./figures/fit10-autoplot.pdf :results graphics file :session *R* :cache no
+## middel panel
+plot(eUN.lmmB, type = "fit", color = "group", ci = FALSE, size.text = 20,
+     at = data.frame(weight1 = 150))
+#+END_SRC
+
+#+RESULTS:
+[[file:./figures/fit10-autoplot.pdf]]
+
+\clearpage
+
+The =plot= method calls the =autoplot= methods which returns a list
+containing:
+- a ggplot2 object (element =plot=)
+- the dataset used to generate the ggplot2 object (element =data=)
+This should ease further customization of the graphical display, e.g.:
+#+BEGIN_SRC R :file ./figures/fit-autoplot-indiv.pdf :results graphics file :session *R* :cache no :height 5 :width 5
+## right panel
+gg.traj <- autoplot(eUN.lmmB, type = "fit", color = "group", size.text = 20, facet =~id)
+gg.traj$plot %+% gg.traj$data[gg.traj$data$id %in% 1:4,]
+#+END_SRC
+
+#+RESULTS:
+[[file:./figures/fit-autoplot-indiv.pdf]]
+
+#+latex: \begin{minipage}{0.3\linewidth}
+#+ATTR_LaTeX: :width \textwidth :placement [!h]
+[[./figures/fit-baseline-autoplot.pdf]]
+#+latex: \end{minipage}
+#+latex: \begin{minipage}{0.3\linewidth}
+#+ATTR_LaTeX: :width \textwidth :placement [!h]
+[[./figures/fitAll-autoplot.pdf]]
+#+latex: \end{minipage}
+#+latex: \begin{minipage}{0.3\linewidth}
+#+ATTR_LaTeX: :width \textwidth :placement [!h]
+[[./figures/fit-autoplot-indiv.pdf]]
+#+latex: \end{minipage}
 
 \clearpage
 
 ** Partial residuals
 
-Partial residuals can also be displayed via the =plot= method:
+In a linear model where we split the covariates and mean parameters into two sets:
+#+BEGIN_EXPORT latex
+\begin{align*}
+Y_i = X_{1,i} \beta_1 + X_{2,i} \beta_2 + \varepsilon_i
+\end{align*}
+#+END_EXPORT
+
+\noindent the partial residuals w.r.t. to the covariate(s) \(X_2\) are defined
+by \(\varepsilon^{X_2}_{i} = Y_i - X_{1,i} \beta_1\). \newline They can be
+computed via the =residuals= method:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-gg1 <- plot(eUN.lmm, type = "partial", var = "glucagon")$plot
-gg2 <- plot(eUN.lmm, type = "partial", var = c("(Intercept)","glucagon"))$plot
-ggarrange(gg1,gg2)
+df.pres <- residuals(eUN.lmmB, type = "partial", variable = "weight1", keep.data = TRUE)
+head(df.pres)
+#+END_SRC
+
+#+RESULTS:
+:   id visit time weight glucagonAUC group baseline weight1  fitted r.partial
+: 1  1     1  -13  127.2      20.690     0     TRUE   127.2 -20.684  -25.3242
+: 2  1     1    1  115.5      92.600     0    FALSE   127.2 -20.684  -12.2923
+: 3  1     1   -1  120.7      20.535     0     TRUE   127.2 -20.684  -24.7703
+: 4  1     1   13  108.1      43.434     0    FALSE   127.2 -20.684  -37.3259
+: 5 10     1   13   90.9      57.942     0    FALSE   118.0 -19.188   -7.1423
+: 6 10     1    1   99.3     103.728     0    FALSE   118.0 -19.188   11.7323
+
+In the output, the \(X_1\) covariates (=time= and =group=) have been
+set to the reference level (=-13= and =0=) for all
+observations. Confusion with the ordering variable from the
+=repetition= argument of =lmm= was avoided by using a different 'time'
+variable in the mean (=time=) and repetition argument (=visit=) when
+calling =lmm=.  These residuals can be directly displayed via the
+=plot= method:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+## left panel
+plot(eUN.lmmB, type = "partial", variable = "weight1")
+## right panel
+plot(eUN.lmmB, type = "partial", variable = c("(Intercept)","weight1"))
 #+END_SRC
 
 #+RESULTS:
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
+gg1 <- autoplot(eUN.lmmB, type = "partial", variable = "weight1")$plot
+gg2 <- autoplot(eUN.lmmB, type = "partial", variable = c("(Intercept)","weight1"))$plot
 ggexport(ggarrange(gg1,gg2), filename = "./figures/fit-pres.pdf", width = 12, height = 5)
 #+END_SRC
 
@@ -2142,34 +2218,6 @@ ggexport(ggarrange(gg1,gg2), filename = "./figures/fit-pres.pdf", width = 12, he
 
 #+ATTR_LaTeX: :width 0.75\textwidth :placement [!h]
 [[./figures/fit-pres.pdf]]
-
-Their value can be extracted via the =residuals= method, e.g.:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-df.pres <- residuals(eUN.lmm, type = "partial", var = "glucagon", keep.data = TRUE)
-head(df.pres)
-#+END_SRC
-
-#+RESULTS:
-:   id visit time weight glucagonAUC baseline glucagon group    fitted  r.partial
-: 1  1     1  B3m  127.2     5032.50     TRUE 4.034616     1 -3.583982  -5.780135
-: 2  2     1  B3m  165.2    12142.50     TRUE 5.240766     0 -4.655415  32.219865
-: 3  3     1  B3m  109.7    10321.35     TRUE 4.931824     1 -4.380979 -23.280135
-: 4  4     1  B3m  146.2     6693.00     TRUE 4.316306     0 -3.834209  13.219865
-: 5  5     1  B3m  113.1     7090.50     TRUE 4.383738     1 -3.894110 -19.880135
-: 6  6     1  B3m  158.8    10386.00     TRUE 4.942791     0 -4.390721  25.819865
-
-This matches manual calculation:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-m.pres <- dfL$weight - model.matrix(~time,dfL) %*% coef(eUN.lmm)[1:4]
-range(df.pres$r.partial - m.pres, na.rm = TRUE)
-
-m.pfit <- model.matrix(~0+glucagon,dfL) %*% coef(eUN.lmm)["glucagon"]
-range(df.pres$fitted - m.pfit, na.rm = TRUE)
-#+END_SRC
-
-#+RESULTS:
-: [1] -1.065814e-14  1.421085e-14
-: [1] 0 0
 
 The =plot= methods can handle one continuous and one categorical
 covariate (in addition to the intercept) to display interaction

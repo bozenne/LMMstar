@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: May  9 2024 (10:39) 
+## Last-Updated: May 11 2024 (16:11) 
 ##           By: Brice Ozenne
-##     Update #: 1351
+##     Update #: 1359
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -178,9 +178,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         message("Move to wide format to output all types of residuals. \n")
         format <- "long"
     }
-    if(keep.data && format == "wide"){
-        stop("Argument \'keep.data\' must be \"FALSE\" when using the wide format. \n")
-    }
+
     ## check type.residuals
     if(identical("all",tolower(type.residual))){        
         type.residual <- c("response","studentized","pearson","normalized")
@@ -204,10 +202,6 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         if(is.null(variable)){
             stop("Argument \'variable\' should indicate the covariate effects to preserve when computing the partial residuals. \n")
         }
-        if(any(!is.na(attr(name.time,"original"))) && any(attr(name.time,"original") %in% variable == FALSE)){
-            stop("Argument \'variable\' should contain the time variable \"",paste(attr(name.time,"original"), collapse ="\" \""),"\" when computing the partial residuals. \n",
-                 "Alternatively, consider refitting the lmm with a difference names for variables in the mean structure and repetition argument. \n")
-        }
         if(!is.null(at) && "partial-center" %in% type.residual){
             message("Argument \'at\' is ignored when \'type\' equals \"partial-center\". \n")
         }
@@ -221,6 +215,11 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
                  "Valid covariates: \"",paste(variableMu.name, collapse = "\" \""),"\". \n",
                  "Invalid covariates: \"",paste(variable[variable %in% variableMu.name == FALSE],collapse="\" \""),"\". \n")
         }
+        if(any(!is.na(attr(name.time,"original"))) && any(attr(name.time,"original") %in% variable)){
+            stop("Argument \'variable\' should not contain the time variable \"",paste(attr(name.time,"original"), collapse ="\" \""),"\" when computing the partial residuals. \n",
+                 "Consider refitting the lmm with a difference names for variables in the mean structure and repetition argument. \n")
+        }
+
         type.var <- c("numeric","categorical")[variable %in% names(object$xfactor$mean) + 1]
         type.fit <- ifelse(keep.intercept,"static","static0")
     }else{

@@ -10,6 +10,8 @@
   type = NULL,
   type.residual = NULL,
   facet = NULL,
+  facet_nrow = NULL,
+  facet_ncol = NULL,
   engine.qqplot = "ggplot2",
   add.smooth = TRUE,
   digits.cor = 2,
@@ -35,6 +37,10 @@
 
 \item{facet}{[formula] split the plot into a matrix of panels defined by the variables in the formula.
 Internally it calls \code{ggplot2::facet_wrap} or \code{ggplot2::facet_grid} depending on whether the formula contains a variable on the left hand side.}
+
+\item{facet_nrow}{[integer] number of rows of panels in the graphical display.}
+
+\item{facet_ncol}{[integer] number of columns of panels  in the graphical display.}
 
 \item{engine.qqplot}{[character] Should ggplot2 or qqtest be used to display quantile-quantile plots?
 Only used when argument \code{type} is \code{"qqplot"}.}

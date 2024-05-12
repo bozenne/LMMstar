@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: May  5 2024 (20:47) 
+## Last-Updated: May 11 2024 (16:05) 
 ##           By: Brice Ozenne
-##     Update #: 1199
+##     Update #: 1237
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -39,7 +39,7 @@
 ##' @param facet [formula] split the plot into a matrix of panels defined by the variables in the formula.
 ##' Internally it calls \code{ggplot2::facet_wrap} or \code{ggplot2::facet_grid} depending on whether the formula contains a variable on the left hand side.
 ##' @param scales,labeller [character] Passed to \code{ggplot2::facet_wrap}.
-##' @param color [character] name of the variable in the dataset used to color the curve.
+##' @param color [character] name of the variable in the dataset used to color the curve. No color is used when set to \code{FALSE}.
 ##' @param position [character] relative position of the points when colored according to a variable.
 ##' @param ci [logical] should confidence intervals be displayed?
 ##' @param ci.alpha [numeric, 0-1] When not NA, transparency parameter used to display the confidence intervals.
@@ -143,8 +143,8 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
         if(is.null(type.residual)){
             ## handle the case where the user is specifying the argument var (from residuals.lmm) instead of type.residuals
             if(!is.null(dots$var)){
-                type.residual <- dots$var
-                dots$var <- NULL
+                type.residual <- dots$variable
+                dots$variable <- NULL
             }else{
                 type.residual <- attr(object$design$mean,"variable")[1]
             }            
@@ -153,6 +153,7 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
         ## extract partial residuals
         outRes <- stats::residuals(object, type = type, format = c("wide","long"), variable = type.residual, at = at, keep.data = TRUE, simplify = FALSE,
                                    fitted.ci = !is.null(ci.alpha) && !is.na(ci.alpha))
+
         out <- do.call(autoplot.residuals_lmm, args = c(list(outRes,
                                                              type = type,
                                                              size.text = size.text,
@@ -270,7 +271,7 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
                      "No column ",color," found in the dataset used to fit the lmm. \n")
             }
         }
-    }else if(!identical(color,TRUE)){
+    }else if(!identical(color,FALSE) && !identical(color,TRUE)){
         stop("Argument \'color\' should either be NULL \n",
              "        or have length 1 and be TRUE or a variable name in the data used to fit the lmm. \n")
     }
@@ -369,7 +370,10 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
         }else if(length(color)==0){
             color <-  NULL
         }
+    }else if(identical(color,FALSE)){
+        color <- NULL
     }
+
     if(!is.na(obs.alpha) && obs.alpha>0 && length(color)>1 && color %in% names(data) == FALSE){
         ls.UX <- lapply(as.character(unique(newdata[["XXclusterXX"]])), function(iC){
             iVec <- nlme::collapse(data[data[["XXclusterXX"]] %in% iC,mu.var,drop=FALSE], as.factor = FALSE)
@@ -409,17 +413,19 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
         if(all(U.time %in% iDF[[time.var.plot]])){
             return(iDF)
         }else{
-            ls.iDFextra <- list(XXclusterXX=iDF$XXclusterXX[1],                                   
-                                estimate = NA,
-                                lower = NA,
-                                upper = NA)
-            ls.iDFextra[[time.var.plot]] <- setdiff(U.time,iDF[[time.var.plot]])
-            ls.iDFextra[[outcome.var]] <- NA
-                                   
-            if(!is.null(color)){
-                ls.iDFextra[[color]] <- NA
-            }
-            return(rbind(iDF,as.data.frame(ls.iDFextra[keep.col])))
+            iNewTime <- setdiff(U.time,iDF[[time.var.plot]])
+
+            iDFextra <- as.data.frame(lapply(names(iDF), function(iVar){
+                if(iVar == time.var.plot){
+                    return(iNewTime)
+                }else if(iVar %in% c("XXcluster",color,all.vars(facet))){
+                    return(rep(iDF[[iVar]][1], length(iNewTime)))
+                }else{
+                    return(rep(NA, length(iNewTime)))
+                } 
+            }))
+            names(iDFextra) <- names(iDF)
+            return(rbind(iDF,iDFextra))
         }
     }))
 
@@ -722,6 +728,8 @@ autoplot.profile_lmm <- function(object, type = "logLik", quadratic = TRUE, ci =
 ##' @param size.text [numeric, >0] Size of the font used to displayed text when using ggplot2.
 ##' @param facet [formula] split the plot into a matrix of panels defined by the variables in the formula.
 ##' Internally it calls \code{ggplot2::facet_wrap} or \code{ggplot2::facet_grid} depending on whether the formula contains a variable on the left hand side.
+##' @param facet_nrow [integer] number of rows of panels in the graphical display.
+##' @param facet_ncol [integer] number of columns of panels  in the graphical display.
 ##' @param scales,labeller [character] Passed to \code{ggplot2::facet_wrap}.
 ##' @param color [character] color of the dots representing the observations.
 ##' When displaying partial residuals, should contain a second color indicating how to display the model fit.  
@@ -740,12 +748,13 @@ autoplot.profile_lmm <- function(object, type = "logLik", quadratic = TRUE, ci =
 
 ## * autoplot.residuals_lmm (code)
 ##' @export
-autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, facet = NULL,
+autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, facet = NULL, facet_nrow = NULL, facet_ncol = NULL,
                                    engine.qqplot = "ggplot2", add.smooth = TRUE, digits.cor = 2, size.text = 16,
                                    color = NULL, obs.size = NULL, mean.size = c(3, 1), ci.alpha = 0.25, 
-                                   position = NULL, scales = "fixed", labeller = "label_value",...){
+                                   position = NULL, scales = "fixed", labeller = "label_value", ...){
 
     ## ** check arguments
+    call <- match.call()
 
     ## dots
     dots <- list(...)
@@ -763,7 +772,6 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, fa
     }
     args.type <- args$type
     n.type <- length(args.type)
-    
     index.time <- attr(object,"index.time") ## save in case no missing time variable in the long format
 
     ## type of residual
@@ -830,7 +838,7 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, fa
         facet <- NULL
     }
 
-    ## format
+    ## format    
     format <- args$format
     if(is.null(attr(format,"original"))){
         original.format <- format
@@ -857,7 +865,7 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, fa
         
     }else if(type == "qqplot"){
         by.repetition <- any(all.vars(facet) %in% c(name.time,attr(name.time,"original")))
-        
+
         if(engine.qqplot == "qqtest"){
             if(any(all.vars(facet) %in% c(name.time,attr(name.time,"original")) == FALSE)){
                 stop("Can only stratify the display regarding the time variable when using engine.qqplot=\"qqtest\". \n",
@@ -867,7 +875,7 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, fa
             if(by.repetition){
                 if("wide" %in% original.format == FALSE){
                     stop("Residuals must be in the wide format to display qqplots per repetition via the qqtest package. \n",
-                         "Consider setting the argument \'format\' to \"long\" when calling residuals(). \n")
+                         "Consider setting the argument \'format\' to \"wide\" when calling residuals(). \n")
                 }
                 if(format == "long"){
                     object <- attr(object,"wide")
@@ -880,7 +888,7 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, fa
         if("long" %in% original.format == FALSE){
             stop("Residuals must be in the long format to obtain scatterplots of the residuals \n",
                  "or qqplots of the residuals (except when using the qqtest package for repetition specific qqplots). \n",
-                 "Consider setting the argument \'format\' to \"wide\" when calling residuals(). \n")
+                 "Consider setting the argument \'format\' to \"long\" when calling residuals(). \n")
         }
         if(format == "wide"){
             object <- attr(object,"long")
@@ -941,7 +949,7 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, fa
         name.residual <- args$nameW.colres
     }
 
-    formula.time <- paste("~",paste(name.time,collapse="+"))    
+    formula.time <- paste("~",paste(name.time,collapse="+"))
     if(format == "long" && by.repetition && any(rowSums(is.na(object[name.time]))>0)){
         object <- object[rowSums(is.na(object[name.time]))==0,,drop=FALSE]
     }
@@ -958,23 +966,30 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, fa
             gg <- gg + ggplot2::ggtitle(label.residual) + ggplot2::theme(text = ggplot2::element_text(size=size.text))
             if(!is.null(facet) & length(all.vars(facet))>0){
                 if(attr(stats::terms(facet),"response")==0){
-                    gg <- gg + ggplot2::facet_wrap(facet, scales = scales, labeller = labeller)
+                    gg <- gg + ggplot2::facet_wrap(facet, scales = scales, labeller = labeller, nrow = facet_nrow, ncol = facet_ncol)
                 }else{
-                    gg <- gg + ggplot2::facet_grid(facet, scales = scales, labeller = labeller)
+                    gg <- gg + ggplot2::facet_grid(facet, scales = scales, labeller = labeller, nrow = facet_nrow, ncol = facet_ncol)
                 }
             }
         }else if(engine.qqplot=="qqtest"){
 
             requireNamespace("qqtest")
-
             if(by.repetition){
-                sqrt.round <- ceiling(sqrt(n.time))
-                sqrt.round2 <- ceiling(n.time/sqrt.round)
-                Utime <- unique(object$XXtimeXX)
+                if(is.null(facet_nrow)){
+                    facet_nrow <- ceiling(sqrt(n.time))
+                }
+                if(is.null(facet_ncol)){
+                    facet_ncol <- ceiling(n.time/facet_nrow)
+                }
 
+                Utime <- attr(object,"reshapeWide")$times
+                if(is.character(labeller) && labeller == "label_both"){
+                    Utime <- paste0(name.time,": ",Utime)
+                }
+                
                 oldpar <- graphics::par(no.readonly = TRUE)   
                 on.exit(graphics::par(oldpar))            
-                graphics::par(mfrow = c(sqrt.round,sqrt.round2))                
+                graphics::par(mfrow = c(facet_nrow,facet_ncol))                
                 tempo <- lapply(1:n.time,function(iCol){
                     qqtest::qqtest(stats::na.omit(object[,iCol+1]), main = Utime[iCol])
                     graphics::mtext(label.residual, side = 3)
@@ -1011,7 +1026,7 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, fa
         }else{
             ci <- FALSE
         }
-        df.gg <- object
+        df.gg <- object[!is.na(object$fitted),,drop=FALSE]
 
         ## identify continuous and categorical covariates
         if(sum(type.var=="numeric")==0){
@@ -1090,9 +1105,9 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, fa
         }        
         if(!is.null(facet) & length(all.vars(facet))>0){
             if(attr(stats::terms(facet),"response")==0){
-                gg <- gg + ggplot2::facet_wrap(facet, scales = scales, labeller = labeller)
+                gg <- gg + ggplot2::facet_wrap(facet, scales = scales, labeller = labeller, nrow = facet_nrow, ncol = facet_ncol)
             }else{
-                gg <- gg + ggplot2::facet_grid(facet, scales = scales, labeller = labeller)
+                gg <- gg + ggplot2::facet_grid(facet, scales = scales, labeller = labeller, nrow = facet_nrow, ncol = facet_ncol)
             }
         }
         reference <- attr(object,"reference")[,!is.na(attr(object,"reference")),drop=FALSE]
@@ -1147,9 +1162,9 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, fa
 
         if(!is.null(facet) & length(all.vars(facet))>0){
             if(attr(stats::terms(facet),"response")==0){
-                gg <- gg + ggplot2::facet_wrap(facet, scales = scales, labeller = labeller)
+                gg <- gg + ggplot2::facet_wrap(facet, scales = scales, labeller = labeller, nrow = facet_nrow, ncol = facet_ncol)
             }else{
-                gg <- gg + ggplot2::facet_grid(facet, scales = scales, labeller = labeller)
+                gg <- gg + ggplot2::facet_grid(facet, scales = scales, labeller = labeller, nrow = facet_nrow, ncol = facet_ncol)
             }
         }
         df.gg <- NULL
