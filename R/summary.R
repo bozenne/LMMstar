@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: maj 10 2024 (15:35) 
+## Last-Updated: May 12 2024 (17:05) 
 ##           By: Brice Ozenne
-##     Update #: 1401
+##     Update #: 1408
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -538,6 +538,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         if(print.multivariate>0.5){
             cat("\t\tMultivariate Wald test \n\n")
         }
+
         .printStatTable(table = table.multivariate, robust = robust, df = df, level = NULL, type.information = type.information,
                         method.p.adjust = NULL,
                         backtransform = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL,
@@ -1014,9 +1015,9 @@ summary.resample <- function(object, digits = 3, ...){
 
     ## ** round
     columns.num <- intersect(setdiff(columns,c(col.df,"null","p.value")), names(table))
-    for(iCol in columns.num){        
+    for(iCol in columns.num){ 
         table.print[[iCol]] <- as.character(round(table[[iCol]], digits = digits))
-        if(any(table[[iCol]]!=0 & table.print[[iCol]] == "0")){
+        if(any(!is.na(table[[iCol]])) && any(table[[iCol]]!=0 & table.print[[iCol]] == "0")){
             table.print[[iCol]][table[[iCol]]!=0 & table.print[[iCol]] == "0"] <- paste0("<0.",paste0(rep(0,digits-1),collapse=""),"1")
         }
     }

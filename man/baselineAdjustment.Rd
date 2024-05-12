@@ -34,10 +34,11 @@ Create a new variable based on a time variable and a group variable where groups
 }
 \examples{
 data(ncgsL, package = "LMMstar")
+ncgsL$group <- relevel(ncgsL$group, "placebo")
 
 ## baseline adjustment 1
 ncgsL$treat <- baselineAdjustment(ncgsL, variable = "group",
-                 repetition= ~ visit|id, constrain = 1)
+               repetition= ~ visit|id, constrain = 1)
 table(treat = ncgsL$treat, visit = ncgsL$visit, group = ncgsL$group)
 
 ncgsL$treattime <- baselineAdjustment(ncgsL, variable = "group",

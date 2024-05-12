@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (14:55) 
 ## Version: 
-## Last-Updated: jun 14 2023 (14:49) 
+## Last-Updated: May 12 2024 (17:30) 
 ##           By: Brice Ozenne
-##     Update #: 76
+##     Update #: 88
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -32,10 +32,11 @@
 ##' 
 ##' @examples
 ##' data(ncgsL, package = "LMMstar")
+##' ncgsL$group <- relevel(ncgsL$group, "placebo")
 ##' 
 ##' ## baseline adjustment 1
 ##' ncgsL$treat <- baselineAdjustment(ncgsL, variable = "group",
-##'                  repetition= ~ visit|id, constrain = 1)
+##'                repetition= ~ visit|id, constrain = 1)
 ##' table(treat = ncgsL$treat, visit = ncgsL$visit, group = ncgsL$group)
 ##'
 ##' ncgsL$treattime <- baselineAdjustment(ncgsL, variable = "group",
@@ -125,7 +126,7 @@ baselineAdjustment <- function(object, variable, repetition, constrain, new.leve
     ## if(!is.null(new.level) && new.level %in% level.variable){
     ##     stop("Argument \'new.level\' should not correspond to a value of variable ",variable,"in argument \'object\'.")
     ## }
-    
+
     ## ** perform baseline adjustment
     object[[variable]] <- droplevels(as.factor(object[[variable]]))
     object[[var.time]] <- droplevels(as.factor(object[[var.time]]))
@@ -142,10 +143,12 @@ baselineAdjustment <- function(object, variable, repetition, constrain, new.leve
         ## iterate over reverse order to get the new levels in the right order
 
         if(is.null(new.level)){
-            iNewLevel <- out.prepare2[object[[var.time]] == constrain[iC]][1]
+            iNewLevel <- levels(droplevels(out.prepare2[object[[var.time]] == constrain[iC]]))[1]
             out <- factor(out, levels = union(iNewLevel,levels(out)))
             out[object[[var.time]] == constrain[iC]] <- iNewLevel
+            
         }else{
+            
             out[object[[var.time]] == constrain[iC]] <- new.level
         }
         

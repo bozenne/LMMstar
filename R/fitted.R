@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul  8 2021 (17:09) 
 ## Version: 
-## Last-Updated: maj  7 2024 (14:50) 
+## Last-Updated: May 12 2024 (18:55) 
 ##           By: Brice Ozenne
-##     Update #: 404
+##     Update #: 405
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -232,7 +232,7 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
     if(type == "impute"){
         if(is.null(se)){
             se <- TRUE
-        }else if(se == FALSE){
+        }else if(all(se == FALSE)){
             stop("Argument \'se\' should not be FALSE when argument \'type\' equals to \"impute\". \n",
                  "The standard error of the fitted outcome is needed to perform imputation. \n")
         }

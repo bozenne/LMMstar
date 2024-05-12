@@ -1,4 +1,4 @@
-% Created 2024-05-12 Sun 09:58
+% Created 2024-05-12 Sun 16:47
 % Intended LaTeX compiler: pdflatex
 \documentclass[12pt]{article}
 
@@ -242,11 +242,11 @@ and (1.75,0.4) .. cycle;
 \newcommand{\Vvarepsilon}{\boldsymbol{\varepsilon}}
 \author{Brice Ozenne}
 \date{\today}
-\title{Overview of the package LMMstar}
+\title{Partial residuals with the package LMMstar}
 \hypersetup{
  colorlinks=true,
  pdfauthor={Brice Ozenne},
- pdftitle={Overview of the package LMMstar},
+ pdftitle={Partial residuals with the package LMMstar},
  pdfkeywords={},
  pdfsubject={},
  pdfcreator={Emacs 27.1 (Org mode 9.4.6)},
@@ -266,7 +266,7 @@ library(ggplot2)
 
 
 \section{Univariate linear regression}
-\label{sec:orgeddb687}
+\label{sec:org5329f14}
 
 To illustrate the use of partial residuals we will use the \texttt{state.x77}
 dataset:
@@ -316,7 +316,7 @@ covariates the mean indicates the relative frequency of occurrence
 (56\% and 16\%) and other columns like \texttt{sd} should be ignored.
 
 \subsection{No interaction}
-\label{sec:org6834e19}
+\label{sec:org6d98c77}
 
 Suppose we are interested in relating life expectancy (\(Y\)) to
 income (\(X\)). We cannot directly illustrate this relationship, as it
@@ -509,7 +509,7 @@ ls.plot$plot  + coord_cartesian(ylim=c(68,74))
 \bigskip
 
 \subsection{What about confidence intervals?}
-\label{sec:org0263f16}
+\label{sec:orgcf3935a}
 
 A common question is whether one can display confidence intervals for
 the regression line. It is possible to add confidence intervals on the
@@ -578,7 +578,7 @@ p-values related to the covariate effect and keeping the partial
 residual plot free of confidence intervals.
 
 \subsection{Interaction with a categorical variable}
-\label{sec:org6b2ccf9}
+\label{sec:orgb5858dc}
 
 Suppose that we are now interested in relating life expectancy (\(Y\))
 to both income (\(X_1\)) for various level of education (\(X_2 \in
@@ -684,8 +684,167 @@ c(69.05 - 0.12870 * (2.1-1.170) - (-0.27940) * (15.1-7.378),
 
 \clearpage
 
+\section{Linear mixed model}
+\label{sec:orgb4095f6}
+
+To illustrate the use of partial residuals we will use data from a
+two-arm randomized trial comparing the quality of the vision over time
+of patients under placebo vs. active drug. We first re-shape the data:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+data(armd.wide, package = "nlmeU")
+armd.long <- reshape(armd.wide, direction ="long",
+                     varying = paste0("visual",c(0,4,12,24,52)), times = c(0,4,12,24,52),
+                     timevar = "week.num", v.names = "visual")
+armd.long$week <- as.factor(armd.long$week.num)
+\end{lstlisting}
+
+and notice that the outcome (\texttt{visual}) and the covariate \texttt{lesion} can be missing:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+summarizeNA(armd.long)
+\end{lstlisting}
+
+\begin{verbatim}
+frequency missing.pattern n.missing subject lesion line0 treat.f miss.pat week.num visual id week
+     1106       000000000         0       0      0     0       0        0        0      0  0    0
+       89       000000100         1       0      0     0       0        0        0      1  0    0
+        1       010000000         1       0      1     0       0        0        0      0  0    0
+        4       010000100         2       0      1     0       0        0        0      1  0    0
+\end{verbatim}
+
+
+This is why a warning is displayed when fitting the linear mixed
+model:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+e.lmm <- lmm(visual ~ week*treat.f + lesion, data = armd.long, repetition =~week|subject)
+\end{lstlisting}
+
+\begin{verbatim}
+Warning message:
+In .lmmNormalizeData(as.data.frame(data)[unique(stats::na.omit(var.all))],  :
+  Can only handle missing values in the outcome variable visual. 
+  5 observations with missing values in "lesion" have been removed. 
+  1 cluster has been removed.
+\end{verbatim}
+
+
+To visualize the model fit, we can display the fitted mean for each
+level of baseline lesion:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+plot(e.lmm, facet = ~lesion, labeller = label_both, facet_ncol = 4)
+\end{lstlisting}
+
+\begin{center}
+\includegraphics[trim={0 0 0 0},width=\textwidth]{./figures/gg-lmmfit.pdf}
+\end{center}
+
+
+We can retrive the fitted values from the estimated coefficients:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+round(coef(e.lmm),2)
+\end{lstlisting}
+
+\begin{verbatim}
+         (Intercept)                week4               week12               week24 
+               61.33                -1.28                -2.35                -6.03 
+              week52        treat.fActive               lesion  week4:treat.fActive 
+              -11.31                -0.84                -3.19                -2.19 
+week12:treat.fActive week24:treat.fActive week52:treat.fActive 
+               -3.47                -3.03                -4.84
+\end{verbatim}
+
+
+\begin{itemize}
+\item in the Placebo group with lesion=1, the estimated average baseline mean
+is \texttt{(Intercept)+1*lesion}, i.e. 61.33-3.19=58.14. When lesion=4, the
+estimated average baseline mean is \texttt{(Intercept)+4*lesion},
+i.e. 61.33-4*3.19=48.57.
+\item the estimated average baseline mean in the Active group is shifted
+by \texttt{treat.fActive} i.e. -0.84 from the Placebo group.
+\item in the Placebo group with lesion=1, the estimated average week 52
+mean is \newline \texttt{(Intercept)+week52+1*lesion},
+i.e. 61.33-11.31-3.19=46.83.
+\item the estimated average week 52 mean in the Active group is shifted by \newline
+\texttt{treat.fActive+week52:treat.fActive} i.e. -0.84-4.84=-5.68 from the
+Placebo group.
+\end{itemize}
+
+Unfortunately, the display of the fitted value becomes overwhelming
+with considering more covariates or more covariate levels. Instead can
+visualize the partial residuals, e.g. here the outcome and fitted
+values had there be no lesion:
+\begin{itemize}
+\item on the same panel with a difference color for each treatment group:
+\end{itemize}
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+plot(e.lmm, type = "partial", variable = c("(Intercept)","week","treat.f"),
+     at = data.frame(lesion = 2))
+\end{lstlisting}
+
+\begin{center}
+\includegraphics[trim={0 0 0 0},width=.8\textwidth]{./figures/gg-lmm-presTraj.pdf}
+\end{center}
+
+
+
+\begin{itemize}
+\item on a separate panel for each timepoint:
+\end{itemize}
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+plot(e.lmm, type = "partial", variable = c("(Intercept)","week","treat.f"),
+     facet =~week, facet_nrow = 1, time.var = "treat.f", color = FALSE,
+     at = data.frame(lesion = 2))
+\end{lstlisting}
+
+\begin{center}
+\includegraphics[trim={0 0 0 0},width=1\textwidth]{./figures/gg-lmm-presFacet.pdf}
+\end{center}
+
+The calculation of the partial residuals is similar to the univariate regression:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+armd.long$pres <- residuals(e.lmm, type = "partial", 
+                            variable = c("(Intercept)","week","treat.f"),
+                            at = data.frame(lesion = 2))
+head(armd.long)
+\end{lstlisting}
+
+\begin{verbatim}
+    subject lesion line0 treat.f miss.pat week.num visual id week   pres
+1.0       1      3    12  Active     --XX        0     59  1    0 62.187
+2.0       2      1    13  Active     ----        0     65  2    0 61.813
+3.0       3      4     8 Placebo     ---X        0     40  3    0 46.373
+4.0       4      2    13 Placebo     ----        0     67  4    0 67.000
+5.0       5      1    14  Active     XXXX        0     70  5    0 66.813
+6.0       6      3    12  Active     ----        0     59  6    0 62.187
+\end{verbatim}
+
+
+here substract the estimated lesion effect from the observed outcome:
+\lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
+\begin{lstlisting}
+c(59 - (-3.19) * (3-2),
+  65 - (-3.19) * (1-2))
+\end{lstlisting}
+
+\begin{verbatim}
+[1] 62.19 61.81
+\end{verbatim}
+
+
+In particular, the partial residuals for patient with lesion equal to
+two is the observed outcome.
+
+\clearpage
+
 \section{R session}
-\label{sec:org6b6b7ec}
+\label{sec:org1a2cb97}
 Details of the R session used to generate this document:
 \lstset{language=r,label= ,caption= ,captionpos=b,numbers=none}
 \begin{lstlisting}
@@ -693,60 +852,44 @@ sessionInfo()
 \end{lstlisting}
 
 \begin{verbatim}
-R version 4.2.0 (2022-04-22 ucrt)
-Platform: x86_64-w64-mingw32/x64 (64-bit)
-Running under: Windows 10 x64 (build 19045)
+R version 4.3.3 (2024-02-29)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Ubuntu 22.04.4 LTS
 
 Matrix products: default
+BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.10.0 
+LAPACK: /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.10.0
 
 locale:
-[1] LC_COLLATE=Danish_Denmark.utf8  LC_CTYPE=Danish_Denmark.utf8    LC_MONETARY=Danish_Denmark.utf8
-[4] LC_NUMERIC=C                    LC_TIME=Danish_Denmark.utf8    
+ [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C               LC_TIME=en_US.UTF-8       
+ [4] LC_COLLATE=en_US.UTF-8     LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+ [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                  LC_ADDRESS=C              
+[10] LC_TELEPHONE=C             LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+
+time zone: Europe/Copenhagen
+tzcode source: system (glibc)
 
 attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
-[1] LMMstar_1.0.3 ggplot2_3.4.3
+[1] LMMstar_1.1.0 ggpubr_0.6.0  ggplot2_3.5.1
 
 loaded via a namespace (and not attached):
- [1] pillar_1.9.0         compiler_4.2.0       tools_4.2.0          digest_0.6.33       
- [5] nlme_3.1-158         lifecycle_1.0.3      tibble_3.2.1         gtable_0.3.4        
- [9] lattice_0.20-45      pkgconfig_2.0.3      rlang_1.1.1          Matrix_1.5-1        
-[13] cli_3.6.1            parallel_4.2.0       mvtnorm_1.2-3        coda_0.19-4         
-[17] withr_2.5.1          dplyr_1.1.3          globals_0.16.2       generics_0.1.3      
-[21] vctrs_0.6.3          grid_4.2.0           tidyselect_1.2.0     glue_1.6.2          
-[25] listenv_0.9.0        R6_2.5.1             parallelly_1.34.0    future.apply_1.10.0 
-[29] fansi_1.0.4          survival_3.3-1       multcomp_1.4-22      lava_1.7.2.1        
-[33] TH.data_1.1-1        magrittr_2.0.3       scales_1.2.1         codetools_0.2-18    
-[37] emmeans_1.8.8-090002 splines_4.2.0        MASS_7.3-57          future_1.31.0       
-[41] colorspace_2.1-0     xtable_1.8-4         sandwich_3.0-2       utf8_1.2.3          
-[45] estimability_1.4.1   munsell_0.5.0        zoo_1.8-11
+ [1] utf8_1.2.4          future_1.33.2       generics_0.1.3      tidyr_1.3.1        
+ [5] rstatix_0.7.2       lattice_0.22-5      listenv_0.9.1       digest_0.6.35      
+ [9] magrittr_2.0.3      grid_4.3.3          Matrix_1.6-5        backports_1.4.1    
+[13] survival_3.5-8      gridExtra_2.3       purrr_1.0.2         fansi_1.0.6        
+[17] scales_1.3.0        codetools_0.2-19    numDeriv_2016.8-1.1 abind_1.4-5        
+[21] lava_1.8.0          cli_3.6.2           rlang_1.1.3         parallelly_1.37.1  
+[25] future.apply_1.11.2 cowplot_1.1.3       munsell_0.5.1       splines_4.3.3      
+[29] withr_3.0.0         tools_4.3.3         parallel_4.3.3      ggsignif_0.6.4     
+[33] dplyr_1.1.4         colorspace_2.1-0    globals_0.16.3      broom_1.0.5        
+[37] vctrs_0.6.5         R6_2.5.1            lifecycle_1.0.4     car_3.1-2          
+[41] pkgconfig_2.0.3     pillar_1.9.0        gtable_0.3.5        glue_1.7.0         
+[45] tibble_3.2.1        tidyselect_1.2.1    farver_2.1.1        nlme_3.1-163       
+[49] carData_3.0-5       labeling_0.4.3      compiler_4.3.3
 \end{verbatim}
 
 \clearpage
-
-\section*{References}
-\label{sec:org714551f}
-\begingroup
-\renewcommand{\section}[2]{}
-
-\bibliographystyle{apalike}
-\bibliography{bibliography}
-
-\endgroup
-
-\clearpage
-
-\appendix
-\titleformat{\section}
-{\normalfont\Large\bfseries}{Appendix~\thesection}{1em}{}
-
-\renewcommand{\thefigure}{\Alph{figure}}
-\renewcommand{\thetable}{\Alph{table}}
-\renewcommand{\theequation}{\Alph{equation}}
-
-\setcounter{figure}{0}    
-\setcounter{table}{0}    
-\setcounter{equation}{0}    
 \end{document}

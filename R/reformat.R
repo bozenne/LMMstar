@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 21 2023 (09:28) 
 ## Version: 
-## Last-Updated: Mar 25 2024 (10:30) 
+## Last-Updated: May 12 2024 (14:50) 
 ##           By: Brice Ozenne
-##     Update #: 73
+##     Update #: 77
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -47,10 +47,11 @@
         ## normalize cluster and time variables (in case of NAs)
         if(is.null(data) || (is.null(call$data) && is.null(call$newdata))){
             U.cluster <- object.cluster$levels
+            
             if(length(index.na)==0){
                 indexAll.cluster <- U.cluster[index.cluster]
                 indexAll.time <- factor(U.time[index.time], U.time)
-            }else{
+            }else{                
                 indexAll.cluster <- rep(NA, NROW(object))
                 indexAll.cluster[-unname(index.na)] <- U.cluster[match(index.cluster, object.cluster$index)]
                 indexAll.cluster[unname(index.na)] <- as.character(attr(index.na,"cluster"))
