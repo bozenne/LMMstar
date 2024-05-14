@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:53) 
 ## Version: 
-## Last-Updated: maj 10 2024 (17:39) 
+## Last-Updated: maj 14 2024 (17:03) 
 ##           By: Brice Ozenne
-##     Update #: 237
+##     Update #: 246
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -92,7 +92,8 @@ formula2var <- function(formula, data = NULL, specials = NULL, name.argument  = 
     n.outcome <- length(ff.varLHS)
 
     if(n.outcome>0){
-        if(grepl("(",deparse(ff.formulaLHS), fixed = TRUE)){
+        ## any is necessary when the formula is long when desparse will be a vector with pieces of the formula
+        if(any(grepl("(",deparse(ff.formulaLHS), fixed = TRUE))){
             stop("The left hand side of the formula should not contain any parenthesis. \n",
                  "Consider adding a transformed variable in the dataset instead of via the formula interface. \n")
         }
