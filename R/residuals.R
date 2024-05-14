@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: May 12 2024 (12:32) 
+## Last-Updated: May 12 2024 (14:53) 
 ##           By: Brice Ozenne
-##     Update #: 1362
+##     Update #: 1382
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -334,9 +334,11 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         }
 
         ## build design matrix
-        suppressWarnings( ## rm warning about "XX clusters have been removed." due to missing values
-            design.reference <- stats::model.matrix(object, newdata = data.reference, effects = effects, simplify = TRUE, na.rm = TRUE)
-        )
+        design.reference <- stats::model.matrix(object, newdata = data.reference, effects = effects, simplify = TRUE, na.rm = FALSE)
+        if(length(object$index.na)>0){ ## handle missing values
+            design.reference <- design.reference[-object$index.na,,drop=FALSE]
+        }
+
         ## handle intercept term
         if(keep.intercept==FALSE && "(Intercept)" %in% colnames(design.reference)){
             design.reference[,"(Intercept)"] <- 0

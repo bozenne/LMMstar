@@ -499,12 +499,12 @@ plot(eUN.lmmB, type = "fit", color = "group", ci = FALSE, size.text = 20)
 ## chunk 116
 ## middel panel
 plot(eUN.lmmB, type = "fit", color = "group", ci = FALSE, size.text = 20,
-     at = data.frame(weight1 = 150))
+     at = data.frame(weight1 = 150), obs.alpha = 0.2)
 
 ## chunk 117
 ## right panel
 gg.traj <- autoplot(eUN.lmmB, type = "fit", color = "group", size.text = 20, facet =~id)
-gg.traj$plot %+% gg.traj$data[gg.traj$data$id %in% 1:4,]
+gg.traj$plot + theme(legend.position = "bottom")
 
 ## ** Partial residuals
 
@@ -518,26 +518,26 @@ plot(eUN.lmmB, type = "partial", variable = "weight1")
 ## right panel
 plot(eUN.lmmB, type = "partial", variable = c("(Intercept)","weight1"))
 
-## ** Statistical inference (linear)
+## ** Statistical inference (single model, linear)
 
 ## chunk 121
 anova(eUN.lmm)
 
 ## chunk 122
-anova(eUN.lmm, effects = c("timeA1w-timeB1w=0"))
+anova(eUN.lmm, effects = c("visit3-visit2=0"))
 
 ## chunk 123
-e.anova <- anova(eUN.lmm, effects = c("timeA1w-timeB1w=0","timeA3m-timeB1w=0"))
+e.anova <- anova(eUN.lmm, effects = c("visit3-visit2=0","visit4-visit2=0"))
 summary(e.anova)
 
 ## chunk 124
 library(multcomp)
-summary(anova(eUN.lmm, effects = mcp(time = "Tukey")))
+summary(anova(eUN.lmm, effects = mcp(visit = "Tukey")))
 
 ## chunk 125
 try(
   anova(eUN.lmm,
-        effects = c("log(k).B1w=0","log(k).A1w=0","log(k).A3m=0"))
+        effects = c("log(k).-1=0","log(k).1=0","log(k).13=0"))
 )
 
 ## chunk 126
@@ -550,153 +550,170 @@ C[,1:9]
 ## chunk 127
 anova(eUN.lmm, effects = C)
 
+## ** Statistical inference (multiple models, linear)
+
 ## chunk 128
-Manova <- rbind(anova(eInd.lmm, effects = "glucagon = 0", robust = FALSE),
-                anova(eCS.lmm, effects = "glucagon = 0", robust = FALSE),
-                anova(eUN.lmm, effects = "glucagon = 0", robust = FALSE),
+Manova <- rbind(anova(eInd.lmm, effects = "visit3:group1 = 0", robust = FALSE),
+                anova(eCS.lmm, effects = "visit3:group1 = 0", robust = FALSE),
+                anova(eUN.lmm, effects = "visit3:group1 = 0", robust = FALSE),
                 name = c("Ind","CS","UN"))
 summary(Manova) 
 
-## ** Statistical inference (non-linear)
+## ** Statistical inference (single model, non-linear)
 
 ## chunk 129
 e.ANCOVA <- lm(weight4 ~ weight1 + group, data = gastricbypassW)
 summary(e.ANCOVA)$coef
 
 ## chunk 130
-dfL14 <- dfL[dfL$visit %in% c(1,4),]
-dfL14$time <- droplevels(dfL14$time)
-e.lmmANCOVA <- lmm(weight ~ time+time:group, repetition = ~time|id,
-                   data = dfL14)
+gastricbypassL14 <- gastricbypassL[gastricbypassL$visit %in% c(1,4),]
+gastricbypassL14$visit <- droplevels(gastricbypassL14$visit)
+e.lmmANCOVA <- lmm(weight ~ visit + visit:group, repetition = ~visit|id,
+                   data = gastricbypassL14)
 
 ## chunk 131
 lava::estimate(e.lmmANCOVA, f = function(p){
-  c(Y1 = as.double(p["rho(B3m,A3m)"]*p["k.A3m"]),
-    X1 = as.double(p["timeA3m:group"]-p["rho(B3m,A3m)"]*p["k.A3m"]*p["timeB3m:group"]))
+  c(Y1 = as.double(p["rho(1,4)"]*p["k.4"]),
+    X1 = as.double(p["visit4:group1"]-p["rho(1,4)"]*p["k.4"]*p["visit1:group1"]))
 })
 
 ## ** Baseline adjustment
 
 ## chunk 132
 gastricbypassL$treat <- baselineAdjustment(gastricbypassL, variable = "group",
-                                repetition = ~time|id, constrain = c("B3m","B1w"),
+                                repetition = ~visit|id, constrain = c("1","2"),
                                 new.level = "none")
-table(treat = gastricbypassL$treat, time = gastricbypassL$time, group = gastricbypassL$group)
+table(treat = gastricbypassL$treat,
+      visit = gastricbypassL$visit,
+      group = gastricbypassL$group)
 
 ## chunk 133
-gastricbypassL$treat2 <- baselineAdjustment(gastricbypassL, variable = "group",
-                                            repetition = ~time|id, constrain = c("B3m","B1w"))
-table(treat = gastricbypassL$treat2, time = gastricbypassL$time, group = gastricbypassL$group)
+table(treat = gastricbypassL$treat, visit = gastricbypassL$visit, group = gastricbypassL$group)[,,1,drop=FALSE]
 
 ## chunk 134
-gastricbypassL$timeXtreat <- baselineAdjustment(gastricbypassL, variable = "group",
-                                                repetition = ~time|id, constrain = c("B3m","B1w"),
-                                                collapse.time = ".")
-
-table(treat = gastricbypassL$timeXtreat, time = gastricbypassL$time, group = gastricbypassL$group)
+table(treat = gastricbypassL$treat, visit = gastricbypassL$visit, group = gastricbypassL$group)[,,2,drop=FALSE]
 
 ## chunk 135
-eC.lmm <- lmm(weight ~ timeXtreat, data = gastricbypassL,
-              repetition = ~time|id, structure = "UN")
-coef(eC.lmm) ## change from baseline
+gastricbypassL$treat2 <- baselineAdjustment(gastricbypassL, variable = "group",
+                                 repetition = ~visit|id, constrain = c("1","2"))
+table(treat = gastricbypassL$treat2,
+      visit = gastricbypassL$visit,
+      group = gastricbypassL$group)
 
 ## chunk 136
-eC2.lmm <- lmm(weight ~ 0 + timeXtreat, data = gastricbypassL,
-              repetition = ~time|id, structure = "UN")
-coef(eC2.lmm) ## absolute value
+table(treat = gastricbypassL$treat2, visit = gastricbypassL$visit, group = gastricbypassL$group)[,,1,drop=FALSE]
 
 ## chunk 137
-colnames(model.matrix(weight ~ treat*time, data = gastricbypassL))
+table(treat = gastricbypassL$treat2, visit = gastricbypassL$visit, group = gastricbypassL$group)[,,2,drop=FALSE]
 
 ## chunk 138
-eC3.lmm <- lmm(weight ~ treat2*time, data = gastricbypassL,
-               repetition = ~time|id, structure = "UN")
+gastricbypassL$visitXtreat <- baselineAdjustment(gastricbypassL, variable = "group",
+                                      repetition = ~visit|id, constrain = c("1","2"),
+                                      collapse.time = ".")
+
+table(treat = gastricbypassL$visitXtreat,
+      visit = gastricbypassL$visit,
+      group = gastricbypassL$group)
 
 ## chunk 139
-model.tables(eC3.lmm)
+table(treat = gastricbypassL$visitXtreat, visit = gastricbypassL$visit, group = gastricbypassL$group)[,,1,drop=FALSE]
 
 ## chunk 140
-plot(eC3.lmm, color = "group", ci = FALSE, size.text = 20, obs.alpha = 0.1)
-
-## ** Marginal means
+table(treat = gastricbypassL$visitXtreat, visit = gastricbypassL$visit, group = gastricbypassL$group)[,,2,drop=FALSE]
 
 ## chunk 141
-dfL$group2 <- as.numeric(dfL$id) %% 3 == 0
-e.group <- lmm(glucagon ~ time*group2, data = dfL,
-               repetition = ~time|id, structure = "UN")
+eC.lmm <- lmm(glucagonAUC ~ visitXtreat, data = gastricbypassL,
+              repetition = ~visit|id, structure = "UN")
+coef(eC.lmm) ## change from baseline
 
 ## chunk 142
-emmeans(e.group, specs=~time)
+eC2.lmm <- lmm(glucagonAUC ~ 0 + visitXtreat, data = gastricbypassL,
+              repetition = ~visit|id, structure = "UN")
+coef(eC2.lmm) ## absolute value
 
 ## chunk 143
-df.pred <- predict(e.group, newdata = dfL, keep.newdata = TRUE)
-summarize(formula = estimate~time, data = df.pred)
+colnames(model.matrix(glucagonAUC ~ treat*visit, data = gastricbypassL))
 
 ## chunk 144
-table(group = dfL$group2, time = dfL$time)
+eC3.lmm <- lmm(glucagonAUC ~ treat2*visit, data = gastricbypassL,
+               repetition = ~visit|id, structure = "UN")
 
 ## chunk 145
-mu.group1 <-  as.double(coef(e.group)["(Intercept)"])
-mu.group2 <-  as.double(coef(e.group)["(Intercept)"] + coef(e.group)["group2TRUE"])
-p.group1 <- 14/20          ; p.group2 <- 6/20
-c(emmeans = (mu.group1+mu.group2)/2, predict = mu.group1 * p.group1 + mu.group2 * p.group2)
+model.tables(eC3.lmm)
 
 ## chunk 146
-emmeans.group <- emmeans(e.group, specs = ~group2|time)
-emmeans.group
+plot(eC3.lmm, color = "group", ci = FALSE, size.text = 20, obs.alpha = 0.1)
 
 ## chunk 147
-epairs.group <- pairs(emmeans.group, reverse = TRUE)
-epairs.group
-
-## chunk 148
-summary(epairs.group, by = NULL, adjust = "mvt", infer = TRUE)
-
-## chunk 149
-summary(pairs(emmeans(eC3.lmm , specs = ~treat2|time), reverse = TRUE), by = NULL)
+effects(eC3.lmm, variable = "treat2", type = "difference")
 
 ## ** Predictions
 
-## chunk 150
-news <- dfL[dfL$id==1,]
+## chunk 148
+news <- gastricbypassL[gastricbypassL$id==2,]
 news$glucagon <- 0
-predict(eUN.lmm, newdata = news)
+predict(eUN.lmm, newdata = news, se = TRUE)
 
-## chunk 151
+## chunk 149
 X.12 <- model.matrix(formula(eUN.lmm), news)
 X.12
 
-## chunk 152
+## chunk 150
 X.12 %*% coef(eUN.lmm)
 
-## chunk 153
+## chunk 151
 newd <- rbind(
-  data.frame(id = 1, time = "B3m", weight = coef(eUN.lmm)["(Intercept)"], glucagon = 0),
-  data.frame(id = 1, time = "B1w", weight = NA, glucagon = 0),
-  data.frame(id = 2, time = "B3m", weight = 100, glucagon = 0),
-  data.frame(id = 2, time = "B1w", weight = NA, glucagon = 0)
+  data.frame(id = 1, time = -13, visit = "1", group = 0, glucagonAUC = coef(eUN.lmm)["(Intercept)"]),
+  data.frame(id = 1, time = 1, visit = "3", group = 0, glucagonAUC = NA),
+  data.frame(id = 2, time = -13, visit = "1", group = 0, glucagonAUC = 50),
+  data.frame(id = 2, time = 1, visit = "3", group = 0, glucagonAUC = NA)
 )
-predict(eUN.lmm, newdata = newd, type = "dynamic", keep.newdata = TRUE)
+predict(eUN.lmm, newdata = newd, type = "dynamic", keep.data = TRUE)
 
-## chunk 154
-mu1 <- coef(eUN.lmm)[1]
-mu2 <- sum(coef(eUN.lmm)[1:2])
-Omega_11 <- sigma(eUN.lmm)["B3m","B3m"]
-Omega_21 <- sigma(eUN.lmm)["B1w","B3m"]
-as.double(mu2 + Omega_21 * (100 - mu1) / Omega_11)
+## chunk 152
+mu1 <- coef(eUN.lmm)["(Intercept)"]
+mu3 <- mu1 + coef(eUN.lmm)["visit3"]
+Omega_11 <- sigma(eUN.lmm)[1,1]
+Omega_31 <- sigma(eUN.lmm)[3,1]
+as.double(mu3 + Omega_31 * (50 - mu1) / Omega_11)
 
 ## * Equivalence with other statistical methods
-## ** T-test
+## ** Welch two sample t-test
 
-## chunk 155
+## chunk 153
 t.test(weight4 ~ group, data = gastricbypassW)
 
-## chunk 156
+## chunk 154
 e.ttest4 <- lmm(weight4 ~ group, structure = IND(~group), 
                data = gastricbypassW, trace = FALSE)
 model.tables(e.ttest4)
 
+## ** Paired t-test
+
+## chunk 155
+t.test(gastricbypassW$weight4, gastricbypassW$weight1, paired = TRUE)
+
+## chunk 156
+e.lmm2tt <- lmm(weight ~ visit, repetition = ~visit|id, structure = "UN",
+                data = gastricbypassL)
+model.tables(e.lmm2tt)["visit4",,drop=FALSE]
+
+## ** Welch two sample t-test on the change
+
 ## chunk 157
+gastricbypassW.0 <- gastricbypassW[gastricbypassW$group==0,]
+gastricbypassW.1 <- gastricbypassW[gastricbypassW$group==1,]
+t.test(gastricbypassW.0$weight4-gastricbypassW.0$weight1,
+       gastricbypassW.1$weight4-gastricbypassW.1$weight1)
+
+## chunk 158
+e.lmm2tt2 <- lmm(weight ~ visit*group, repetition = ~visit|id, structure = UN(~group),
+                 data = gastricbypassL)
+model.tables(e.lmm2tt2)["visit4:group1",,drop=FALSE]
+
+## ** Multiple Student's t-test
+
+## chunk 159
 e.ttest1 <- lmm(weight1 ~ group, structure = IND(~group), 
                 data = gastricbypassW, trace = FALSE)
 e.ttest2 <- lmm(weight2 ~ group, structure = IND(~group), 
@@ -704,57 +721,57 @@ e.ttest2 <- lmm(weight2 ~ group, structure = IND(~group),
 e.ttest3 <- lmm(weight3 ~ group, structure = IND(~group), 
                 data = gastricbypassW, trace = FALSE)
 
-## chunk 158
+## chunk 160
 e.mttest <- rbind(anova(e.ttest1, effects = "group=0"),
                   anova(e.ttest2, effects = "group=0"),
                   anova(e.ttest3, effects = "group=0"),
                   anova(e.ttest4, effects = "group=0"))
 model.tables(e.mttest, method = "bonferroni")
 
-## chunk 159
+## chunk 161
 e.mttest2 <- mlmm(weight ~ group, structure = IND(~group),
                   data = gastricbypassL, trace = FALSE,
-                  effects = "group=0", by = "time", repetition = ~time|id)
+                  effects = "group1=0", by = "time", repetition = ~time|id)
 model.tables(e.mttest2, method = "single-step2")
 
-## chunk 160
+## chunk 162
 mt.test(weight1+weight2+weight3+weight4~group, data = gastricbypassW)
 
 ## ** Linear regression on the change 
 
-## chunk 161
+## chunk 163
 gastricbypassW$changeG41 <- gastricbypassW$glucagonAUC4-gastricbypassW$glucagonAUC1
 e.change41 <- lm(changeG41 ~ weight1, data = gastricbypassW)
 summary(e.change41)$coef
 
-## chunk 162
+## chunk 164
 gastricbypassL41 <- gastricbypassL[gastricbypassL$visit %in% c(1,4),]
-gastricbypassL41$time <- droplevels(gastricbypassL41$time)
+gastricbypassL41$visit <- droplevels(gastricbypassL41$visit)
 gastricbypassL41$weight1 <- gastricbypassW$weight1[gastricbypassL41$id]
 
-e.lmm41 <- lmm(glucagonAUC ~ time + time*weight1,
-               repetition =~ time|id, structure = "UN",
+e.lmm41 <- lmm(glucagonAUC ~ visit + visit*weight1,
+               repetition =~ visit|id, structure = "UN",
                data = gastricbypassL41)
 model.tables(e.lmm41)
 
-## chunk 163
+## chunk 165
 index.missing41 <- which(is.na(gastricbypassW$changeG41))
 index.missing41
 
 ## ** Correlation between changes 
 
-## chunk 164
+## chunk 166
 gastricbypassW$changeG41 <- gastricbypassW$glucagonAUC4-gastricbypassW$glucagonAUC1
 gastricbypassW$changeW41 <- gastricbypassW$weight4-gastricbypassW$weight1
 
-## chunk 165
+## chunk 167
 cor.test(gastricbypassW$changeW41, gastricbypassW$changeG41)
 
-## chunk 166
+## chunk 168
 e2.change41 <- lm(changeG41 ~ changeW41, data = gastricbypassW)
 summary(e2.change41)$coef
 
-## chunk 167
+## chunk 169
 keep.col <- c("id","weight1","weight4","glucagonAUC1","glucagonAUC4")
 gastricbypassL4 <- reshape(gastricbypassW[,keep.col], direction = "long",
                            idvar = "id", varying = 2:5, timevar = "type", v.names = "value")
@@ -762,27 +779,27 @@ gastricbypassL4$type <- factor(gastricbypassL4$type, labels = keep.col[-1])
 gastricbypassL4 <- gastricbypassL4[order(gastricbypassL4$id),]
 head(gastricbypassL4)
 
-## chunk 168
+## chunk 170
 e.lmm4 <- lmm(value ~ type,
               repetition = ~type|id, structure = "UN",
               data = gastricbypassL4)
 
-## chunk 169
+## chunk 171
 sigma.lmm4 <- sigma(e.lmm4)
 sigma.lmm4
 
-## chunk 170
+## chunk 172
 Mcon <- cbind(c(-1,1,0,0),c(0,0,-1,1))
 sigmeChange.lmm4 <- t(Mcon) %*% sigma.lmm4 %*% Mcon
 dimnames(sigmeChange.lmm4) <- list(c("d.weight","d.glucagonAUC"),
                                    c("d.weight","d.glucagonAUC"))
 sigmeChange.lmm4
 
-## chunk 171
+## chunk 173
 cov2cor(sigmeChange.lmm4)[1,2]
 sigmeChange.lmm4[1,2]/sigmeChange.lmm4[1,1]
 
-## chunk 172
+## chunk 174
 estimate(e.lmm4, function(p){
   Sigma.change <- t(Mcon) %*% sigma(e.lmm4, p = p) %*% Mcon
   c(cor = cov2cor(Sigma.change)[1,2],
@@ -791,114 +808,116 @@ estimate(e.lmm4, function(p){
 
 ## * Missing values and imputation
 
-## chunk 174
-sss <- summarize(glucagon ~ time, data = gastricbypassL, na.rm = TRUE)
+## chunk 175
+sss <- summarize(glucagonAUC ~ time, data = gastricbypassL, na.rm = TRUE)
 cbind(sss[,1:4], pc = paste0(100 * sss$missing / (sss$missing + sss$observed), "%"))
 
-## chunk 175
+## chunk 176
 summarizeNA(data = gastricbypassL, repetition = ~ time|id)
 
-## chunk 176
+## chunk 177
 ## long format
 gastricbypassL32 <- gastricbypassL[gastricbypassL$visit %in% c(3,2),]
-gastricbypassL32$time <- droplevels(gastricbypassL32$time)
+gastricbypassL32$visit <- droplevels(gastricbypassL32$visit)
 gastricbypassL32$weight1 <- gastricbypassW$weight1[gastricbypassL32$id]
 ## wide format
 gastricbypassW$changeG32 <- gastricbypassW$glucagonAUC3-gastricbypassW$glucagonAUC2
 
 ## ** Full information approach
 
-## chunk 177
-e.lmm32 <- lmm(glucagonAUC ~ time + time*weight1,
-               repetition =~ time|id, structure = "UN",
+## chunk 178
+e.lmm32 <- lmm(glucagonAUC ~ visit + visit*weight1,
+               repetition =~ visit|id, structure = "UN",
                data = gastricbypassL32)
 model.tables(e.lmm32)
 
-## chunk 178
+## chunk 179
 e.change32 <- lm(changeG32 ~ weight1, data = gastricbypassW)
 summary(e.change32)$coef
 
-## chunk 179
+## chunk 180
 coef(lm(changeG32 ~ weight1, data = gastricbypassW[-c(5,15),]))
 
-## chunk 180
-gastricbypassWA <- fitted(e.lmm32, impute = TRUE, format = "wide")
-gastricbypassWA$change32 <- gastricbypassWA$glucagonAUC_A1w - gastricbypassWA$glucagonAUC_B1w
+## chunk 181
+gastricbypassWA <- fitted(e.lmm32, type = "outcome", format = "wide")
+gastricbypassWA$change32 <- gastricbypassWA$glucagonAUC_3 - gastricbypassWA$glucagonAUC_2
 gastricbypassWA$weight1 <- gastricbypassW$weight1[match(gastricbypassW$id,gastricbypassWA$id)]
 coef(lm(change32 ~ weight1, data = gastricbypassWA))
 
 ## ** Complete case approach
 
-## chunk 181
+## chunk 182
 e.lmmCC <- lmmCC(e.change32, repetition = changeG32 ~ glucagonAUC3-glucagonAUC2|id)
 model.tables(e.lmmCC)
 
-## chunk 182
+## chunk 183
 summary(e.change32)$coef
 
-## chunk 183
+## chunk 184
 gastricbypassW$changeW32 <- gastricbypassW$weight3 - gastricbypassW$weight2
 
 e2g.change32 <- lm(changeG32 ~ changeW32 + group, data = gastricbypassW)
 summary(e2g.change32)$coef
 
-## chunk 184
+## chunk 185
 e2.lmmCC <-  lmmCC(e2g.change32, repetition = list(changeG32 ~ glucagonAUC3-glucagonAUC2|id,
                                                    changeW32 ~ weight3-weight2|id))
 model.tables(e2.lmmCC)
 
 ## ** Imputation 
 
-## chunk 185
-eUN.lmmNA <- lmm(glucagon ~ time, repetition = ~time|id, data = gastricbypassL)
+## chunk 186
+eUN.lmmNA <- lmm(glucagonAUC ~ time, repetition = ~time|id, data = gastricbypassL)
 nobs(eUN.lmmNA)
 
-## chunk 186
-eData <- fitted(eUN.lmmNA, impute = TRUE, keep.newdata = TRUE)
-eData$treat <- eData$treat2 <- eData$timeXtreat <- NULL
-eData[eData$id %in% eData[eData$imputed,"id"],]
-
 ## chunk 187
-ggplot(eData, aes(x=time,y=glucagon, group=id)) + geom_line() + geom_point(aes(color=imputed))
+eData <- fitted(eUN.lmmNA, type = "outcome", keep.data = TRUE)
+eData <- eData[order(eData$id,eData$time),]
+eData[eData$id %in% eData[eData$impute,"id"],c("id","visit","time","glucagonAUC","impute")]
 
-## chunk 189
-set.seed(10)
+## chunk 188
+ggplot(eData, aes(x=time,y=glucagonAUC, group=id)) + geom_line() + geom_point(aes(color=impute))
+
+## chunk 190
 index.na <- which(is.na(gastricbypassL$glucagonAUC))
-fitted(eUN.lmmNA, impute = TRUE, se.impute = "total")[index.na]
-fitted(eUN.lmmNA, impute = TRUE, se.impute = "total")[index.na]
-fitted(eUN.lmmNA, impute = TRUE, se.impute = "total")[index.na]
+set.seed(1)
+fitted(eUN.lmmNA, type = "impute", se = c(TRUE,TRUE))[index.na]
+set.seed(2)
+fitted(eUN.lmmNA, type = "impute", se = c(TRUE,TRUE))[index.na]
+set.seed(3)
+fitted(eUN.lmmNA, type = "impute", se = c(TRUE,TRUE))[index.na]
 
 ## ** Multiple imputation
 
-## chunk 190
+## chunk 191
 data(gastricbypassW, package = "LMMstar")
 colSums(is.na(gastricbypassW))
 
-## chunk 191
+## chunk 192
 library(mice)
 set.seed(10)
 gastricbypassW.mice <- mice(gastricbypassW, m = 5, printFlag = FALSE)
 gastricbypassW.NNA <- complete(gastricbypassW.mice, action = "long")
 table(gastricbypassW.NNA$.imp)
 
-## chunk 192
+## chunk 193
 e.mlmm <- mlmm(glucagonAUC3~glucagonAUC2+weight2, data=gastricbypassW.NNA,
                by = ".imp", effects = "weight2=0", trace = FALSE)
 model.tables(e.mlmm)
 
-## chunk 193
+## chunk 194
 model.tables(e.mlmm, method = "pool.rubin")
 
-## chunk 194
+## chunk 195
 e.mice <- with(data=gastricbypassW.mice,exp=lm(glucagonAUC3~glucagonAUC2+weight2))
 summary(pool(e.mice))
 
-## chunk 195
+## chunk 196
 plot(e.mlmm, method = c("pool.rubin","none"))
 
 ## * Data generation
 
-## chunk 197
+## chunk 198
 set.seed(10) ## ensure reproductibility
 n.obs <- 100
 n.times <- 4
@@ -908,25 +927,25 @@ gamma[,6] <- c(0,1,1.5,1.5)
 dW <- sampleRem(n.obs, n.times = n.times, mu = mu, gamma = gamma, format = "wide")
 head(round(dW,3))
 
-## chunk 198
+## chunk 199
 set.seed(10) ## ensure reproductibility
 dL <- sampleRem(n.obs, n.times = n.times, mu = mu, gamma = gamma, format = "long")
 head(dL)
 
 ## * Modifying default options
 
-## chunk 199
+## chunk 200
 LMMstar.options("type.information")
 
-## chunk 200
+## chunk 201
 LMMstar.options(type.information = "expected")
 
-## chunk 201
+## chunk 202
 LMMstar.options(reinitialise = TRUE)
 
 ## * R session
 
-## chunk 202
+## chunk 203
 sessionInfo()
 
 ## * References
@@ -937,57 +956,52 @@ sessionInfo()
 ## ** Degrees of freedom
 ## * Likelihood ratio test with the REML criterion
 
-## chunk 203
-## data(dfL, package = "LMMstar")
-dfTest <- dfL
-dfTest$glucagon2 <- dfTest$glucagon*2
-
 ## chunk 204
-eML.lmmUN <- lmm(weight ~ time+glucagon, data = dfTest, repetition = ~time|id, method = "ML")
-eML.lmmUN2 <- lmm(weight ~ time+glucagon2, data = dfTest, repetition = ~time|id, method = "ML")
+## data(dfL, package = "LMMstar")
+dfTest <- gastricbypassL[!is.na(gastricbypassL$glucagonAUC),]
+dfTest$gluc <- dfTest$glucagonAUC
+dfTest$gluc2 <- dfTest$glucagonAUC*2
 
 ## chunk 205
-logLik(eML.lmmUN)
-logLik(eML.lmmUN2)
+eML.UN <- lmm(weight ~ time+gluc, data = dfTest, repetition = ~time|id, method = "ML")
+eML.UN2 <- lmm(weight ~ time+gluc, data = dfTest, repetition = ~time|id, method = "ML")
+c(logLik(eML.UN), logLik(eML.UN2), logLik(eML.UN) - logLik(eML.UN2))
 
 ## chunk 206
-eREML.lmmUN <- lmm(weight ~ time + glucagon, data = dfTest, repetition = ~time|id, method = "REML")
-eREML.lmmUN2 <- lmm(weight ~ time + glucagon2, data = dfTest, repetition = ~time|id, method = "REML")
+eREML.UN <- lmm(weight ~ time + gluc, data = dfTest, repetition = ~time|id, method = "REML")
+eREML.UN2 <- lmm(weight ~ time + gluc2, data = dfTest, repetition = ~time|id, method = "REML")
+c(logLik(eREML.UN), logLik(eREML.UN2), logLik(eREML.UN) - logLik(eREML.UN2), log(2))
 
 ## chunk 207
-logLik(eREML.lmmUN)-logLik(eREML.lmmUN2)
-log(2)
-
-## chunk 208
 set.seed(5) 
 dfTest$ff <- rbinom(NROW(dfTest), size = 1, prob = 0.5)
-logLik(lmm(weight ~ time+glucagon, data = dfTest, repetition = ~time|id, method = "REML"))
-logLik(lmm(weight ~ time+glucagon*ff, data = dfTest, repetition = ~time|id, method = "REML"))
+logLik(lmm(weight ~ time+gluc, data = dfTest, repetition = ~time|id, method = "REML"))
+logLik(lmm(weight ~ time+gluc*ff, data = dfTest, repetition = ~time|id, method = "REML"))
 
-## chunk 209
-logLik(lmm(weight ~ time + glucagon, data = dfTest, repetition = ~time|id, method = "ML"))
-logLik(lmm(weight ~ time + glucagon*ff, data = dfTest, repetition = ~time|id, method = "ML"))
+## chunk 208
+logLik(lmm(weight ~ time + gluc, data = dfTest, repetition = ~time|id, method = "ML"))
+logLik(lmm(weight ~ time + gluc*ff, data = dfTest, repetition = ~time|id, method = "ML"))
 
 ## * Sum of squares in a linear mixed model
 
-## chunk 210
-df.aov <- dfL[!is.na(dfL$glucagon),]
+## chunk 209
+df.aov <- gastricbypassL[!is.na(gastricbypassL$glucagon),]
 
-## chunk 211
-e.lm <- lm(weight ~ time + glucagon, data = df.aov)
+## chunk 210
+e.lm <- lm(weight ~ visit + glucagonAUC, data = df.aov)
 car::Anova(e.lm, type = "II")
 
-## chunk 213
-e.lmm <- lmm(weight ~ time + glucagon, data = df.aov)
+## chunk 212
+e.lmm <- lmm(weight ~ visit + glucagonAUC, data = df.aov)
 
-## chunk 214
+## chunk 213
 SSEstar <- crossprod(residuals(e.lmm, type = "normalized"))
 c(SSEstar = SSEstar, SSE = SSEstar * sigma(e.lmm))
 
-## chunk 215
+## chunk 214
 df.residual(e.lmm)
 
-## chunk 216
+## chunk 215
 eBeta.lmm <- coef(e.lmm)
 eVcov.lmm <- vcov(e.lmm, type.information = "expected")
 
@@ -998,180 +1012,220 @@ c(SSR.glucagon = SSRstar.glucagon * sigma(e.lmm),
   F.glucagon = SSRstar.glucagon,
   F.time = SSRstar.time/3)
 
-## chunk 217
+## chunk 216
 R2.glucagon <- SSRstar.glucagon/(SSRstar.glucagon+SSEstar)
 R2.glucagon
 
-## chunk 218
-sign(coef(e.lmm)["glucagon"])*sqrt(R2.glucagon)
+## chunk 217
+sign(coef(e.lmm)["glucagonAUC"])*sqrt(R2.glucagon)
 
-## chunk 219
+## chunk 218
 summary(partialCor(e.lmm, R2 = TRUE))
 
 ## * Equivalence with other R packages
 ## ** nlme package
 
-## chunk 220
+## chunk 219
 library(nlme)
 
-## chunk 221
-eCS.gls <- gls(weight ~ time + glucagon, correlation = corCompSymm(form=~time|id),
-               data = dfL, na.action = na.omit)
-eCS.lme <- lme(weight ~ time + glucagon, random = ~1|id,
-               data = dfL, na.action = na.omit)
+## chunk 220
+eRI.lmm <- lmm(weight ~ visit*group, structure = "RE",
+               data = gastricbypassL, repetition = ~visit|id)
+eCS.gls <- gls(weight ~ visit*group, correlation = corCompSymm(form=~visit|id),
+               data = gastricbypassL, na.action = na.omit)
+eCS.lme <- lme(weight ~ visit*group, random = ~1|id,
+               data = gastricbypassL, na.action = na.omit)
+logLik(eRI.lmm)
 logLik(eCS.lme)
 logLik(eCS.gls)
-logLik(eCS.lmm)
+
+## chunk 221
+range(ranef(eRI.lmm)-ranef(eCS.lme))
 
 ## chunk 222
-range(ranef(eCS.lmm)$estimate-ranef(eCS.lme))
-
-## chunk 223
-eUN.gls <- gls(weight ~ time + glucagon,
-               correlation = corSymm(form=~as.numeric(time)|id),
-               weights = varIdent(form=~1|time),
-               data = dfL, na.action = na.omit)
+eUN.gls <- gls(glucagonAUC ~ visit*group,
+               correlation = corSymm(form=~as.numeric(visit)|id),
+               weights = varIdent(form=~1|visit),
+               data = gastricbypassL, na.action = na.omit)
 logLik(eUN.gls)
 logLik(eUN.lmm)
 
 ## ** lme4 package
 
-## chunk 224
+## chunk 223
 library(lme4)
 library(lmerTest)
 
-## chunk 225
-eRI.lmer <- lmer(weight ~ time + glucagon + (1|id),
-                 data = dfL)
+## chunk 224
+eRI.lmer <- lmer(weight ~ visit*group + (1|id),
+                 data = gastricbypassL)
 logLik(eRI.lmer)
 logLik(eRI.lmm)
 
-## chunk 226
-range(ranef(eRI.lmm)$estimate-ranef(eRI.lmer)$id)
+## chunk 225
+range(ranef(eRI.lmm)-ranef(eRI.lmer)$id)
 
-## chunk 227
-eNRI.lmer <- lmer(weight ~ time*group + (1|id/baseline),
-                  data = dfL)
+## chunk 226
+eNRI.lmm <- lmm(weight ~ visit*group, structure = RE(~(1|id/baseline)),
+               data = gastricbypassL, repetition = ~visit|id)
+eNRI.lmer <- lmer(weight ~ visit*group + (1|id/baseline),
+                  data = gastricbypassL)
 logLik(eNRI.lmer)
 logLik(eNRI.lmm)
 
-## chunk 228
-eRanefNRI.lmm <- ranef(eNRI.lmm)
+## chunk 227
+eRanefNRI.lmm <- ranef(eNRI.lmm, format = "wide")
 eRanefNRI.lmer <- ranef(eNRI.lmer)
 ## id
-range(eRanefNRI.lmm[eRanefNRI.lmm$variable=="id","estimate"]-eRanefNRI.lmer$id)
+range(eRanefNRI.lmm$estimate-eRanefNRI.lmer$id)
 ## baseline
-range(eRanefNRI.lmm[eRanefNRI.lmm$variable!="id","estimate"]-ranef(eNRI.lmer)$`baseline:id`)
+range(c(eRanefNRI.lmm$estimate.FALSE,eRanefNRI.lmm$estimate.TRUE)-ranef(eNRI.lmer)$`baseline:id`)
 
-## chunk 229
-eUN.lmer <- lmer(weight ~ time + glucagon + (0 + time|id),
-                 data = dfL, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+## chunk 228
+eUN.lmer <- lmer(glucagonAUC ~ visit*group + (0 + visit|id),
+                 data = gastricbypassL,
+                 control = lmerControl(check.nobs.vs.nRE = "ignore"))
 logLik(eUN.lmer)
 logLik(eUN.lmm)
 
-## chunk 230
+## chunk 229
 anova(eUN.lmm)
 
-## chunk 231
+## chunk 230
+## only the last line is comparable
 anova(eUN.lmer)
 
-## chunk 232
-eUN2.lmm <- lmm(weight ~ time + glucagon, repetition = ~time|id,
-                structure = "UN", data = dfL, type.information = "expected")
-suppressWarnings(anova(eUN2.lmm))
-
-## chunk 233
+## chunk 231
 data("Penicillin")
 eCRI.lmer <- lmer(diameter ~ 1 + (1|plate) + (1|sample), Penicillin)
 logLik(eCRI.lmer)
 
-## chunk 234
+## chunk 232
 Penicillin$index <- paste(Penicillin$sample,Penicillin$plate,sep=".")
 Penicillin$id <- 1
 
 eCRI.lmm <- lmm(diameter ~ 1 + (1|plate) + (1|sample), data = Penicillin)
 logLik(eCRI.lmm)
 
-## chunk 235
+## chunk 233
 range(ranef(eCRI.lmm)$estimate-rbind(ranef(eCRI.lmer)$plate,ranef(eCRI.lmer)$sample))
 
 ## ** mmrm package
 
-## chunk 236
+## chunk 234
 library(mmrm)
 e.mmrm <- mmrm(
   formula = FEV1 ~ RACE + SEX + ARMCD * AVISIT + us(AVISIT | USUBJID),
   data = fev_data
 )
 
-## chunk 237
+## chunk 235
 e.lmm <- lmm(
   formula = FEV1 ~ RACE + SEX + ARMCD * AVISIT,
   repetition = ~ AVISIT | USUBJID, structure = "UN",
   data = fev_data, type.information = "expected"
 )
 
-## chunk 238
+## chunk 236
 logLik(e.mmrm) - logLik(e.lmm)
 range(coef(e.mmrm) - coef(e.lmm))
 range(vcov(e.mmrm) - vcov(e.lmm))
 
-## ** effectsize package (\(R^2\) or \(\eta^2\))
+## ** emmeans package
+
+## chunk 240
+gastricbypassLB$group2 <- gastricbypassLB$weight1>150
+
+## chunk 241
+eCS.lmm_2 <- lmm(glucagonAUC ~ visit*group2, repetition =~visit|id, structure = "CS", data = gastricbypassLB)
+logLik(eCS.lmm_2)
 
 ## chunk 242
+eRI.lmer_2 <- lmer(glucagonAUC ~ visit*group2 + (1|id), data = gastricbypassLB)
+logLik(eRI.lmer_2)
+
+## chunk 243
+effects(eCS.lmm_2, variable = NULL)
+
+## chunk 244
+library(emmeans)
+emmeans(eRI.lmer_2, specs=~visit)
+
+## chunk 245
+table(gastricbypassLB$group2)/NROW(gastricbypassLB)
+
+## chunk 246
+eCS.elmm_2 <- model.tables(effects(eCS.lmm_2, variable = "group2"))
+eCS.elmm_2
+
+## chunk 247
+0.5*eCS.elmm_2[eCS.elmm_2$group2==FALSE,"estimate"]+0.5*eCS.elmm_2[eCS.elmm_2$group2==TRUE,"estimate"]
+
+## chunk 248
+0.8*eCS.elmm_2[eCS.elmm_2$group2==FALSE,"estimate"]+0.2*eCS.elmm_2[eCS.elmm_2$group2==TRUE,"estimate"]
+
+## chunk 249
+mu.group1 <-  as.double(coef(e.group)["(Intercept)"])
+mu.group2 <-  as.double(coef(e.group)["(Intercept)"] + coef(e.group)["group2TRUE"])
+p.group1 <- 14/20          ; p.group2 <- 6/20
+c(emmeans = (mu.group1+mu.group2)/2, predict = mu.group1 * p.group1 + mu.group2 * p.group2)
+
+## ** effectsize package (\(R^2\) or \(\eta^2\))
+
+## chunk 250
 library(effectsize)
 eta_squared(eCS.lmer)
 cat("\n")
 
-## chunk 243
+## chunk 251
 eCS.Wald <- anova(eCS.lmm)$multivariate
 eCS.Wald$df.num*eCS.Wald$statistic/(eCS.Wald$df.num*eCS.Wald$statistic+eCS.Wald$df.denom)
 
-## chunk 244
+## chunk 252
 eUN.Wald <- anova(eUN.lmm)$multivariate
 eUN.Wald$df.num*eUN.Wald$statistic/(eUN.Wald$df.num*eUN.Wald$statistic+eUN.Wald$df.denom)
 
-## chunk 245
+## chunk 253
 eta_squared(eUN.lmer)
 cat("\n")
 
 ## ** MuMIn package (\(R^2\))
 
-## chunk 246
+## chunk 254
 library(MuMIn)
 r.squaredGLMM(eCS.lmer)
 cat("\n")
 
-## chunk 247
+## chunk 255
 sigmaW <- sigma(eCS.lmm)[1,1]-sigma(eCS.lmm)[1,2]
 
-## chunk 248
+## chunk 256
 sigmaB <- sigma(eCS.lmm)[1,2]
 
-## chunk 249
+## chunk 257
 sigma2_XB <- var(fitted(eCS.lmm))
 
-## chunk 250
+## chunk 258
 c(R2m = sigma2_XB/(sigmaW + sigmaB + sigma2_XB),
   R2c = (sigma2_XB + sigmaB)/(sigmaW + sigmaB + sigma2_XB))
 
 ## ** stats package (partial residuals)
 
-## chunk 256
-eIID.lm <- lm(weight ~ time + glucagon, data = dfL)
+## chunk 264
+gastricbypassW$group <- as.factor(as.numeric(gastricbypassW$id)%%2)
+eIID.lm <- lm(weight4 ~ group + weight1, data = gastricbypassW)
 pRes.lm <- residuals(eIID.lm, type = "partial")
 head(pRes.lm)
 
-## chunk 257
-eIID.lmm <- lmm(weight ~ time + glucagon, data = dfL)
-head(residuals(eIID.lmm, type = "partial", var = "glucagon"))
+## chunk 265
+eIID.lmm <- lmm(weight4 ~ group + weight1, data = gastricbypassW)
+(residuals(eIID.lmm, type = "partial", variable = "group") - pRes.lm[,"group"])
+(residuals(eIID.lmm, type = "partial", variable = "weight1") - pRes.lm[,"weight1"])
 
-## chunk 258
-m.pres2 <- dfL$weight - cbind(model.matrix(~time,dfL), mean(dfL$glucagon)) %*% coef(eIID.lmm)
-range(pRes.lm[,"glucagon"] - m.pres2, na.rm = TRUE)
+## chunk 266
+coef(eIID.lm)["group1"] * mean(gastricbypassW$group=="1")
+coef(eIID.lm)["weight1"] * mean(gastricbypassW$weight1)
 
-## chunk 259
-eIID.lmm <- lmm(weight ~ time + glucagon, data = dfL)
-pRes.lmm <- residuals(eIID.lmm, type = "partial-center", var = "glucagon")
-range(pRes.lm[,"glucagon"]-pRes.lmm)
+## chunk 267
+(residuals(eIID.lmm, type = "partial-center", variable = "weight1") - pRes.lm[,"weight1"])
 

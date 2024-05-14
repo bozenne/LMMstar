@@ -12,6 +12,8 @@
   obs.alpha = 0,
   obs.size = NULL,
   facet = NULL,
+  facet_nrow = NULL,
+  facet_ncol = NULL,
   scales = "fixed",
   labeller = "label_value",
   at = NULL,
@@ -51,6 +53,10 @@ where this argument specify the variable relative to which the partial residuals
 
 \item{facet}{[formula] split the plot into a matrix of panels defined by the variables in the formula.
 Internally it calls \code{ggplot2::facet_wrap} or \code{ggplot2::facet_grid} depending on whether the formula contains a variable on the left hand side.}
+
+\item{facet_nrow}{[integer] number of rows of panels in the graphical display.}
+
+\item{facet_ncol}{[integer] number of columns of panels  in the graphical display.}
 
 \item{scales, labeller}{[character] Passed to \code{ggplot2::facet_wrap}.}
 

@@ -1,7 +1,7 @@
-#+TITLE: Overview of the package LMMstar
+#+TITLE: Partial residuals with the package LMMstar
 #+Author: Brice Ozenne
 #+BEGIN_SRC R :exports none :results silent :session *R* :cache no
-options(width = 100)
+options(width = 100, digits = 5)
 if(system("whoami",intern=TRUE)=="bozenne"){  
   setwd("~/Documents/GitHub/LMMstar/inst/doc-partial-residuals/")
 }else if(system("whoami",intern=TRUE)=="unicph\\hpl802"){  
@@ -236,6 +236,7 @@ dev.off()
 : X11cairo 
 :        2
 
+
 #+ATTR_LaTeX: :width 1\textwidth :options trim={0 0 0 0} :placement [!h]
 [[./figures/gg-lmpres-comparisons.pdf]]
 
@@ -317,6 +318,7 @@ dev.off()
 : X11cairo 
 :        2
 
+
 #+ATTR_LaTeX: :width 1\textwidth :options trim={0 0 0 0} :placement [!h]
 [[./figures/gg-lmpres-cifit.pdf]]
 
@@ -345,7 +347,6 @@ ggarrange(autogg.presCCI.income + ggtitle(paste("(F): ",autogg.presCCI.income$la
           autogg.presCCI.murder + ggtitle(paste("(G): ",autogg.presCCI.murder$labels$title)) + theme(plot.title = element_text(size = 12), text = element_text(size = 14)))
 dev.off()
 #+END_SRC
-
 
 #+RESULTS:
 : X11cairo 
@@ -419,10 +420,10 @@ print(gg)
 dev.off()
 #+END_SRC
 
-
 #+RESULTS:
 : X11cairo 
 :        2
+
 
 #+ATTR_LaTeX: :width 1\textwidth :options trim={0 0 0 0} :placement [!h]
 [[./figures/gg-lmpres-interaction.pdf]]
@@ -469,42 +470,37 @@ c(69.05 - 0.12870 * (2.1-1.170) - (-0.27940) * (15.1-7.378),
 
 \clearpage
 
-* Linear mixed model :noexport:
+* Linear mixed model 
 
 To illustrate the use of partial residuals we will use data from a
 two-arm randomized trial comparing the quality of the vision over time
 of patients under placebo vs. active drug. We first re-shape the data:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 data(armd.wide, package = "nlmeU")
-library(reshape2)
-armd.long <- melt(armd.wide, measure.vars = paste0("visual",c(0,4,12,24,52)),
-                  id.var = c("subject","lesion","treat.f","miss.pat"),
-                  variable.name = "week", value.name = "visual")
-armd.long$week <- factor(armd.long$week, 
-                         level = paste0("visual",c(0,4,12,24,52)),
-                         labels = c(0,4,12,24,52))
+armd.long <- reshape(armd.wide, direction ="long",
+                     varying = paste0("visual",c(0,4,12,24,52)), times = c(0,4,12,24,52),
+                     timevar = "week.num", v.names = "visual")
+armd.long$week <- as.factor(armd.long$week.num)
 #+END_SRC
 
 #+RESULTS:
 
-and notice that mainly the outcome (=visual=) can be missing but also
-in a few instances the covariate =lesion= can be missing:
+and notice that the outcome (=visual=) and the covariate =lesion= can be missing:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 summarizeNA(armd.long)
 #+END_SRC
 
 #+RESULTS:
-:  frequency missing.pattern n.missing subject lesion treat.f miss.pat week visual
-:       1106          000000         0       0      0       0        0    0      0
-:         89          000001         1       0      0       0        0    0      1
-:          1          010000         1       0      1       0        0    0      0
-:          4          010001         2       0      1       0        0    0      1
+:  frequency missing.pattern n.missing subject lesion line0 treat.f miss.pat week.num visual id week
+:       1106       000000000         0       0      0     0       0        0        0      0  0    0
+:         89       000000100         1       0      0     0       0        0        0      1  0    0
+:          1       010000000         1       0      1     0       0        0        0      0  0    0
+:          4       010000100         2       0      1     0       0        0        0      1  0    0
 
 This is why a warning is displayed when fitting the linear mixed
 model:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-e.lmm <- lmm(visual ~ week*treat.f + lesion, data = armd.long,
-             repetition = ~week|subject)
+e.lmm <- lmm(visual ~ week*treat.f + lesion, data = armd.long, repetition =~week|subject)
 #+END_SRC
 
 #+RESULTS:
@@ -516,13 +512,18 @@ e.lmm <- lmm(visual ~ week*treat.f + lesion, data = armd.long,
 
 To visualize the model fit, we can display the fitted mean for each
 level of baseline lesion:
-#+BEGIN_SRC R :exports code :results output :session *R* :cache no
-plot(e.lmm, facet = ~lesion, labeller = label_both)
+#+BEGIN_SRC R :file ./figures/gg-lmmfit.pdf :results graphics file :session *R* :cache no :width 10 :height 4
+plot(e.lmm, facet = ~lesion, labeller = label_both, facet_ncol = 4)
 #+END_SRC
 
 #+RESULTS:
+[[file:./figures/gg-lmmfit.pdf]]
 
-With the estimated coefficients in mind:
+#+ATTR_LaTeX: :width \textwidth :options trim={0 0 0 0} :placement [!h]
+[[./figures/gg-lmmfit.pdf]]
+
+
+We can retrive the fitted values from the estimated coefficients:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 round(coef(e.lmm),2)
 #+END_SRC
@@ -535,7 +536,6 @@ round(coef(e.lmm),2)
 : week12:treat.fActive week24:treat.fActive week52:treat.fActive 
 :                -3.47                -3.03                -4.84
 
-we for instance retrive that:
 - in the Placebo group with lesion=1, the estimated average baseline mean
   is =(Intercept)+1*lesion=, i.e. 61.33-3.19=58.14. When lesion=4, the
   estimated average baseline mean is =(Intercept)+4*lesion=,
@@ -549,97 +549,59 @@ we for instance retrive that:
   =treat.fActive+week52:treat.fActive= i.e. -0.84-4.84=-5.68 from the
   Placebo group.
 
-#+BEGIN_SRC R :exports none :results output :session *R* :cache no
-pdf("figures/gg-lmm-fit.pdf", width = 10, height = 6)
-plot(e.lmm, facet = ~lesion, labeller = label_both)
-dev.off()
-#+END_SRC
-
-#+RESULTS:
-: windows 
-:       2
-
-#+ATTR_LaTeX: :width 1\textwidth :options trim={0 0 0 0} :placement [!h]
-[[./figures/gg-lmm-fit.pdf]]
-
-This type of display would however not generalize well with more
-covariates or more covariate levels. Instead one can once more
-consider partial residuals, i.e. the outcome and fitted values had
-there be no lesion:
-- either with a separate panel for each timepoint:
-#+BEGIN_SRC R :exports code :results output :session *R* :cache no
-plot(e.lmm, type = "partial", var = c("(Intercept)","week","treat.f"),
+Unfortunately, the display of the fitted value becomes overwhelming
+with considering more covariates or more covariate levels. Instead can
+visualize the partial residuals, e.g. here the outcome and fitted
+values had there be no lesion:
+- on the same panel with a difference color for each treatment group:   
+#+BEGIN_SRC R :file ./figures/gg-lmm-presTraj.pdf :results graphics file :session *R* :cache no :width 10 :height 6
+plot(e.lmm, type = "partial", variable = c("(Intercept)","week","treat.f"),
      at = data.frame(lesion = 2))
 #+END_SRC
 
 #+RESULTS:
-: Advarselsbeskeder:
-: 1: [1m[22mRemoved 94 rows containing missing values (`geom_point()`). 
-: 2: [1m[22mRemoved 94 rows containing missing values (`geom_point()`).
+[[file:./figures/gg-lmm-presTraj.pdf]]
 
-#+BEGIN_SRC R :exports none :results output :session *R* :cache no
-pdf("figures/gg-lmm-presFacet.pdf", width = 10, height = 6)
-plot(e.lmm, type = "partial", var = c("(Intercept)","week","treat.f"),
+#+ATTR_LaTeX: :width .8\textwidth :options trim={0 0 0 0} :placement [!h]
+[[./figures/gg-lmm-presTraj.pdf]]
+
+
+
+- on a separate panel for each timepoint:
+#+BEGIN_SRC R :file ./figures/gg-lmm-presFacet.pdf :results graphics file :session *R* :cache no :width 10 :height 4
+plot(e.lmm, type = "partial", variable = c("(Intercept)","week","treat.f"),
+     facet =~week, facet_nrow = 1, time.var = "treat.f", color = FALSE,
      at = data.frame(lesion = 2))
-dev.off()
 #+END_SRC
 
 #+RESULTS:
-: Advarselsbeskeder:
-: 1: [1m[22mRemoved 94 rows containing missing values (`geom_point()`). 
-: 2: [1m[22mRemoved 94 rows containing missing values (`geom_point()`).
-: windows 
-:       2
+[[file:./figures/gg-lmm-presFacet.pdf]]
 
 #+ATTR_LaTeX: :width 1\textwidth :options trim={0 0 0 0} :placement [!h]
 [[./figures/gg-lmm-presFacet.pdf]]
 
-- or on the same panel but with a difference color for each treatment group:   
-#+BEGIN_SRC R :exports code :results output :session *R* :cache no
-plot(e.lmm, type = "partial", var = c("(Intercept)","week","treat.f"),
-     color = "treat.f", facet =~1, at = data.frame(lesion = 2))
-#+END_SRC
-
-#+RESULTS:
-: Advarselsbeskeder:
-: 1: [1m[22mRemoved 94 rows containing missing values (`geom_point()`). 
-: 2: [1m[22mRemoved 85 rows containing missing values (`geom_line()`). 
-: 3: [1m[22mRemoved 94 rows containing missing values (`geom_point()`).
-
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
-pdf("figures/gg-lmm-presTraj.pdf", width = 10, height = 4)
-plot(e.lmm, type = "partial", var = c("(Intercept)","week","treat.f"),
-     color = "treat.f", facet =~1, at = data.frame(lesion = 2))
-dev.off()
+## keep after export to handle warning output
 #+END_SRC
 
 #+RESULTS:
-: Advarselsbeskeder:
-: 1: [1m[22mRemoved 94 rows containing missing values (`geom_point()`). 
-: 2: [1m[22mRemoved 85 rows containing missing values (`geom_line()`). 
-: 3: [1m[22mRemoved 94 rows containing missing values (`geom_point()`).
-: windows 
-:       2
-
-#+ATTR_LaTeX: :width 1\textwidth :options trim={0 0 0 0} :placement [!h]
-[[./figures/gg-lmm-presTraj.pdf]]
 
 The calculation of the partial residuals is similar to the univariate regression:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 armd.long$pres <- residuals(e.lmm, type = "partial", 
-                            var = c("(Intercept)","week","treat.f"),
+                            variable = c("(Intercept)","week","treat.f"),
                             at = data.frame(lesion = 2))
 head(armd.long)
 #+END_SRC
 
 #+RESULTS:
-:   subject lesion treat.f miss.pat week visual     pres
-: 1       1      3  Active     --XX    0     59 62.18656
-: 2       2      1  Active     ----    0     65 61.81344
-: 3       3      4 Placebo     ---X    0     40 46.37313
-: 4       4      2 Placebo     ----    0     67 67.00000
-: 5       5      1  Active     XXXX    0     70 66.81344
-: 6       6      3  Active     ----    0     59 62.18656
+:     subject lesion line0 treat.f miss.pat week.num visual id week   pres
+: 1.0       1      3    12  Active     --XX        0     59  1    0 62.187
+: 2.0       2      1    13  Active     ----        0     65  2    0 61.813
+: 3.0       3      4     8 Placebo     ---X        0     40  3    0 46.373
+: 4.0       4      2    13 Placebo     ----        0     67  4    0 67.000
+: 5.0       5      1    14  Active     XXXX        0     70  5    0 66.813
+: 6.0       6      3    12  Active     ----        0     59  6    0 62.187
 
 here substract the estimated lesion effect from the observed outcome:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -663,40 +625,50 @@ sessionInfo()
 
 #+RESULTS:
 #+begin_example
-R version 4.2.0 (2022-04-22 ucrt)
-Platform: x86_64-w64-mingw32/x64 (64-bit)
-Running under: Windows 10 x64 (build 19045)
+R version 4.3.3 (2024-02-29)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Ubuntu 22.04.4 LTS
 
 Matrix products: default
+BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.10.0 
+LAPACK: /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.10.0
 
 locale:
-[1] LC_COLLATE=Danish_Denmark.utf8  LC_CTYPE=Danish_Denmark.utf8    LC_MONETARY=Danish_Denmark.utf8
-[4] LC_NUMERIC=C                    LC_TIME=Danish_Denmark.utf8    
+ [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C               LC_TIME=en_US.UTF-8       
+ [4] LC_COLLATE=en_US.UTF-8     LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+ [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                  LC_ADDRESS=C              
+[10] LC_TELEPHONE=C             LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+
+time zone: Europe/Copenhagen
+tzcode source: system (glibc)
 
 attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
-[1] LMMstar_1.0.3 ggplot2_3.4.3
+[1] lava_1.8.0    nlme_3.1-163  LMMstar_1.1.0 lme4_1.1-35.2 Matrix_1.6-5  ggpubr_0.6.0 
+[7] ggplot2_3.5.1
 
 loaded via a namespace (and not attached):
- [1] pillar_1.9.0         compiler_4.2.0       tools_4.2.0          digest_0.6.33       
- [5] nlme_3.1-158         lifecycle_1.0.3      tibble_3.2.1         gtable_0.3.4        
- [9] lattice_0.20-45      pkgconfig_2.0.3      rlang_1.1.1          Matrix_1.5-1        
-[13] cli_3.6.1            parallel_4.2.0       mvtnorm_1.2-3        coda_0.19-4         
-[17] withr_2.5.1          dplyr_1.1.3          globals_0.16.2       generics_0.1.3      
-[21] vctrs_0.6.3          grid_4.2.0           tidyselect_1.2.0     glue_1.6.2          
-[25] listenv_0.9.0        R6_2.5.1             parallelly_1.34.0    future.apply_1.10.0 
-[29] fansi_1.0.4          survival_3.3-1       multcomp_1.4-22      lava_1.7.2.1        
-[33] TH.data_1.1-1        magrittr_2.0.3       scales_1.2.1         codetools_0.2-18    
-[37] emmeans_1.8.8-090002 splines_4.2.0        MASS_7.3-57          future_1.31.0       
-[41] colorspace_2.1-0     xtable_1.8-4         sandwich_3.0-2       utf8_1.2.3          
-[45] estimability_1.4.1   munsell_0.5.0        zoo_1.8-11
+ [1] utf8_1.2.4          future_1.33.2       generics_0.1.3      tidyr_1.3.1        
+ [5] rstatix_0.7.2       lattice_0.22-5      listenv_0.9.1       digest_0.6.35      
+ [9] magrittr_2.0.3      grid_4.3.3          backports_1.4.1     survival_3.5-8     
+[13] gridExtra_2.3       purrr_1.0.2         fansi_1.0.6         scales_1.3.0       
+[17] numDeriv_2016.8-1.1 codetools_0.2-19    abind_1.4-5         cli_3.6.2          
+[21] rlang_1.1.3         parallelly_1.37.1   future.apply_1.11.2 cowplot_1.1.3      
+[25] munsell_0.5.1       splines_4.3.3       withr_3.0.0         tools_4.3.3        
+[29] parallel_4.3.3      nloptr_2.0.3        ggsignif_0.6.4      minqa_1.2.6        
+[33] dplyr_1.1.4         colorspace_2.1-0    boot_1.3-30         globals_0.16.3     
+[37] broom_1.0.5         vctrs_0.6.5         R6_2.5.1            lifecycle_1.0.4    
+[41] car_3.1-2           MASS_7.3-60.0.1     pkgconfig_2.0.3     pillar_1.9.0       
+[45] gtable_0.3.5        glue_1.7.0          Rcpp_1.0.12         tibble_3.2.1       
+[49] tidyselect_1.2.1    farver_2.1.1        labeling_0.4.3      carData_3.0-5      
+[53] compiler_4.3.3
 #+end_example
 
 \clearpage
 
-* References
+* References :noexport:
 :PROPERTIES:
 :UNNUMBERED: t
 :END:

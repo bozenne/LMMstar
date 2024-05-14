@@ -9,6 +9,7 @@
   object,
   type = NULL,
   type.residual = NULL,
+  time.var = NULL,
   facet = NULL,
   facet_nrow = NULL,
   facet_ncol = NULL,
@@ -34,6 +35,8 @@
 \item{type}{[character] Should a qqplot (\code{"qqplot"}), or a heatmap of the correlation between residuals  (\code{"correlation"}, require wide format), or a plot of residuals along the fitted values (\code{"scatterplot"}, require long format) be displayed?}
 
 \item{type.residual}{[character] Type of residual for which the graphical representation should be made.}
+
+\item{time.var}{[character] x-axis variable for the plot. Only relevant when argument type is one of \code{"scatterplot"}, \code{"scatterplot2"}, \code{"partial"}, \code{"partial-center"},}
 
 \item{facet}{[formula] split the plot into a matrix of panels defined by the variables in the formula.
 Internally it calls \code{ggplot2::facet_wrap} or \code{ggplot2::facet_grid} depending on whether the formula contains a variable on the left hand side.}

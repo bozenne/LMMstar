@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: May 12 2024 (12:42) 
+## Last-Updated: May 12 2024 (19:18) 
 ##           By: Brice Ozenne
-##     Update #: 3062
+##     Update #: 3070
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -952,16 +952,8 @@ lmm <- function(formula, repetition, structure, data,
                                      "  ",nobs.naOther," observation",if(nobs.naOther>1){"s"}," with missing values in \"",paste(name.naOther2, collapse="\" \""),"\" ",ifelse(nobs.naOther==1,"has","have")," been removed. \n", sep = ""))
         }
 
-        if(!is.na(var.cluster)){
-            attr(index.na, "cluster") <- data[index.na,var.cluster]
-        }else{
-            attr(index.na, "cluster") <- data[index.na,"XXclusterXX"]
-        }
-        if(length(var.time)==1 && !is.na(var.time)){
-            attr(index.na, "time") <- data[index.na,var.time]
-        }else{
-            attr(index.na, "time") <- data[index.na,"XXtimeXX"]
-        }
+        attr(index.na, "cluster") <- data[index.na,"XXclusterXX"]
+        attr(index.na, "time") <- data[index.na,"XXtimeXX"]
 
         if(na.rm){
             keep <- list(nlevel.cluster = max(data$XXcluster.indexXX),

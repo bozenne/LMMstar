@@ -87,6 +87,8 @@ A BibTeX entry for LaTeX users is
 #+end_example
 
 ** Functionalities
-See the vignette "Overview of the package LMMstar" in [[./vignettes/overview.pdf]]
+For an overview of the package see the following vignette [[./vignettes/overview.pdf]].
+
+For an introduction to partial residual see this other vignette [[./vignettes/partial-residuals.pdf]]
 
   

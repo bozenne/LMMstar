@@ -20,7 +20,7 @@ extractRchunk(file = "./LMMstar/inst/doc-overview/overview.org",
 
 - move to directory containing the package, compress vignette pdf file, and copy to =doc= and =vignettes= directories
 #+BEGIN_SRC shell
-cd ~/Documents/GitHub/LMMstar/inst/doc-software/
+cd ~/Documents/GitHub/LMMstar/inst/doc-overview/
 gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/printer -dNOPAUSE -dQUIET -dBATCH -sOutputFile=overview-compress.pdf overview.pdf
 cp overview-compress.pdf ../../vignettes/overview.pdf 
 #+END_SRC

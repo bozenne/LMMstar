@@ -120,9 +120,48 @@ residuals(e.lmI, type = "partial", variable = c("(Intercept)","income"),
 c(69.05 - 0.12870 * (2.1-1.170) - (-0.27940) * (15.1-7.378),
   69.31 - 0.12870 * (1.5-1.170) - (-0.27940) * (11.3-7.378))
 
+## * Linear mixed model 
+
+## chunk 33
+data(armd.wide, package = "nlmeU")
+armd.long <- reshape(armd.wide, direction ="long",
+                     varying = paste0("visual",c(0,4,12,24,52)), times = c(0,4,12,24,52),
+                     timevar = "week.num", v.names = "visual")
+armd.long$week <- as.factor(armd.long$week.num)
+
+## chunk 34
+summarizeNA(armd.long)
+
+## chunk 35
+e.lmm <- lmm(visual ~ week*treat.f + lesion, data = armd.long, repetition =~week|subject)
+
+## chunk 36
+plot(e.lmm, facet = ~lesion, labeller = label_both, facet_ncol = 4)
+
+## chunk 37
+round(coef(e.lmm),2)
+
+## chunk 38
+plot(e.lmm, type = "partial", variable = c("(Intercept)","week","treat.f"),
+     at = data.frame(lesion = 2))
+
+## chunk 39
+plot(e.lmm, type = "partial", variable = c("(Intercept)","week","treat.f"),
+     facet =~week, facet_nrow = 1, time.var = "treat.f", color = FALSE,
+     at = data.frame(lesion = 2))
+
+## chunk 41
+armd.long$pres <- residuals(e.lmm, type = "partial", 
+                            variable = c("(Intercept)","week","treat.f"),
+                            at = data.frame(lesion = 2))
+head(armd.long)
+
+## chunk 42
+c(59 - (-3.19) * (3-2),
+  65 - (-3.19) * (1-2))
+
 ## * R session
 
-## chunk 45
+## chunk 43
 sessionInfo()
 
-## * References

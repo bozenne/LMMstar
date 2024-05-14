@@ -1,9 +1,9 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2024.4.4)  12 MAY 2024 09:58
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2024.4.4)  12 MAY 2024 23:07
 entering extended mode
  \write18 enabled.
  %&-line parsing enabled.
-**lmm-partial-residuals.tex
-(./lmm-partial-residuals.tex
+**partial-residuals.tex
+(./partial-residuals.tex
 LaTeX2e <2021-11-15> patch level 1
 L3 programming layer <2022-01-21>
 (/usr/share/texlive/texmf-dist/tex/latex/base/article.cls
@@ -1105,8 +1105,8 @@ File: l3backend-pdftex.def 2022-01-12 L3 backend support: PDF output (pdfTeX)
 \l__color_backend_stack_int=\count372
 \l__pdf_internal_box=\box132
 )
-(./lmm-partial-residuals.aux)
-\openout1 = `lmm-partial-residuals.aux'.
+(./partial-residuals.aux)
+\openout1 = `partial-residuals.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 255.
 LaTeX Font Info:    ... okay on input line 255.
@@ -1198,9 +1198,9 @@ LaTeX Info: Redefining \ref on input line 255.
 LaTeX Info: Redefining \pageref on input line 255.
 LaTeX Info: Redefining \nameref on input line 255.
 
-(./lmm-partial-residuals.out) (./lmm-partial-residuals.out)
+(./partial-residuals.out) (./partial-residuals.out)
 \@outlinefile=\write5
-\openout5 = `lmm-partial-residuals.out'.
+\openout5 = `partial-residuals.out'.
 
 Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: float package is loaded.
@@ -1283,7 +1283,7 @@ LaTeX Font Warning: Font shape `U/stmry/b/n' undefined
 (Font)              using `U/stmry/m/n' instead on input line 325.
 
 [2] [3]
-<./figures/gg-lmpres-comparisons.pdf, id=93, 722.7pt x 361.35pt>
+<./figures/gg-lmpres-comparisons.pdf, id=97, 722.7pt x 361.35pt>
 File: ./figures/gg-lmpres-comparisons.pdf Graphic file (type pdf)
 <use ./figures/gg-lmpres-comparisons.pdf>
 Package pdftex.def Info: ./figures/gg-lmpres-comparisons.pdf  used on input lin
@@ -1292,14 +1292,14 @@ e 480.
  [4
 
  <./figures/gg-lmpres-comparisons.pdf>]
-<./figures/gg-lmpres-cifit.pdf, id=112, 722.7pt x 289.08pt>
+<./figures/gg-lmpres-cifit.pdf, id=116, 722.7pt x 289.08pt>
 File: ./figures/gg-lmpres-cifit.pdf Graphic file (type pdf)
 <use ./figures/gg-lmpres-cifit.pdf>
 Package pdftex.def Info: ./figures/gg-lmpres-cifit.pdf  used on input line 554.
 
 (pdftex.def)             Requested size: 540.60239pt x 216.24043pt.
  [5 <./figures/gg-lmpres-cifit.pdf>]
-<./figures/gg-lmpres-cicov.pdf, id=135, 722.7pt x 289.08pt>
+<./figures/gg-lmpres-cicov.pdf, id=139, 722.7pt x 289.08pt>
 File: ./figures/gg-lmpres-cicov.pdf Graphic file (type pdf)
 <use ./figures/gg-lmpres-cicov.pdf>
 Package pdftex.def Info: ./figures/gg-lmpres-cicov.pdf  used on input line 571.
@@ -1311,58 +1311,86 @@ LaTeX Font Info:    Trying to load font information for U+dsrom on input line 5
 File: Udsrom.fd 1995/08/01 v0.1 Double stroke roman font definitions
 )
 [6 <./figures/gg-lmpres-cicov.pdf>]
-<./figures/gg-lmpres-interaction.pdf, id=157, 722.7pt x 289.08pt>
+<./figures/gg-lmpres-interaction.pdf, id=161, 722.7pt x 289.08pt>
 File: ./figures/gg-lmpres-interaction.pdf Graphic file (type pdf)
 <use ./figures/gg-lmpres-interaction.pdf>
 Package pdftex.def Info: ./figures/gg-lmpres-interaction.pdf  used on input lin
 e 630.
 (pdftex.def)             Requested size: 540.60239pt x 216.24043pt.
  [7 <./figures/gg-lmpres-interaction.pdf>]
+<./figures/gg-lmmfit.pdf, id=187, 722.7pt x 289.08pt>
+File: ./figures/gg-lmmfit.pdf Graphic file (type pdf)
+<use ./figures/gg-lmmfit.pdf>
+Package pdftex.def Info: ./figures/gg-lmmfit.pdf  used on input line 741.
+(pdftex.def)             Requested size: 540.60239pt x 216.24043pt.
+
 [8
 
-] (./lmm-partial-residuals.bbl
+ <./figures/gg-lmmfit.pdf>]
+LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 7
+62.
+ (/usr/share/texmf/tex/latex/lm/ts1lmr.fd
+File: ts1lmr.fd 2009/10/30 v1.6 Font defs for Latin Modern
+)
+Overfull \hbox (9.46173pt too wide) in paragraph at lines 762--766
+\T1/lmr/m/n/12 i.e. 61.33-3.19=58.14. When le-sion=4, the es-ti-mated av-er-age
+ base-line mean is \T1/lmtt/m/n/12 (Intercept)+4*lesion\T1/lmr/m/n/12 ,
+ []
 
-Package natbib Warning: Empty `thebibliography' environment on input line 3.
+<./figures/gg-lmm-presTraj.pdf, id=212, 722.7pt x 433.62pt>
+File: ./figures/gg-lmm-presTraj.pdf Graphic file (type pdf)
+<use ./figures/gg-lmm-presTraj.pdf>
+Package pdftex.def Info: ./figures/gg-lmm-presTraj.pdf  used on input line 790.
 
-) [9
+(pdftex.def)             Requested size: 432.48355pt x 259.49251pt.
+[9 <./figures/gg-lmm-presTraj.pdf>]
+<./figures/gg-lmm-presFacet.pdf, id=228, 722.7pt x 289.08pt>
+File: ./figures/gg-lmm-presFacet.pdf Graphic file (type pdf)
+<use ./figures/gg-lmm-presFacet.pdf>
+Package pdftex.def Info: ./figures/gg-lmm-presFacet.pdf  used on input line 806
+.
+(pdftex.def)             Requested size: 540.60239pt x 216.24043pt.
+ [10 <./figures/gg-lmm-presFacet.pdf>]
+[11
 
 ]
 \Changes@OutFile=\write6
-\openout6 = `lmm-partial-residuals.soc'.
+\openout6 = `partial-residuals.soc'.
 
 \tf@loc=\write7
-\openout7 = `lmm-partial-residuals.loc'.
+\openout7 = `partial-residuals.loc'.
 
- (./lmm-partial-residuals.aux)
+ (./partial-residuals.aux)
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
-Package rerunfilecheck Info: File `lmm-partial-residuals.out' has not changed.
-(rerunfilecheck)             Checksum: E22435D05B56DC1F0621F598A9565823;900.
+Package rerunfilecheck Info: File `partial-residuals.out' has not changed.
+(rerunfilecheck)             Checksum: A43C2A0AEA2B11652F4E9B4CB0F98B2E;1039.
  ) 
 Here is how much of TeX's memory you used:
- 30909 strings out of 478287
- 563821 string characters out of 5849290
- 1271257 words of memory out of 5000000
- 48374 multiletter control sequences out of 15000+600000
- 534502 words of font info for 105 fonts, out of 8000000 for 9000
+ 31049 strings out of 478287
+ 566227 string characters out of 5849290
+ 1271333 words of memory out of 5000000
+ 48478 multiletter control sequences out of 15000+600000
+ 534877 words of font info for 106 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 114i,9n,117p,616b,1822s stack positions out of 5000i,500n,10000p,200000b,80000s
-{/usr/share/texmf/fonts/enc/dvips/lm/lm-rm.enc}{/usr/share/texmf/fonts/enc/dv
-ips/lm/lm-mathit.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-mathsy.enc}{/usr/s
-hare/texmf/fonts/enc/dvips/lm/lm-ec.enc}</usr/share/texlive/texmf-dist/fonts/ty
-pe1/public/doublestroke/dsrom12.pfb></usr/share/texmf/fonts/type1/public/lm/lmb
-x12.pfb></usr/share/texmf/fonts/type1/public/lm/lmmi12.pfb></usr/share/texmf/fo
-nts/type1/public/lm/lmmi8.pfb></usr/share/texmf/fonts/type1/public/lm/lmmib10.p
-fb></usr/share/texmf/fonts/type1/public/lm/lmr12.pfb></usr/share/texmf/fonts/ty
-pe1/public/lm/lmr17.pfb></usr/share/texmf/fonts/type1/public/lm/lmr6.pfb></usr/
-share/texmf/fonts/type1/public/lm/lmr8.pfb></usr/share/texmf/fonts/type1/public
-/lm/lmsy10.pfb></usr/share/texmf/fonts/type1/public/lm/lmtt10.pfb></usr/share/t
-exmf/fonts/type1/public/lm/lmtt12.pfb>
-Output written on lmm-partial-residuals.pdf (9 pages, 276497 bytes).
+ 114i,9n,117p,612b,1822s stack positions out of 5000i,500n,10000p,200000b,80000s
+{/usr/share/texmf/fonts/enc/dvips/lm/lm-ts1.enc}{/usr/share/texmf/fonts/enc/d
+vips/lm/lm-rm.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-mathit.enc}{/usr/shar
+e/texmf/fonts/enc/dvips/lm/lm-mathsy.enc}{/usr/share/texmf/fonts/enc/dvips/lm/l
+m-ec.enc}</usr/share/texlive/texmf-dist/fonts/type1/public/doublestroke/dsrom12
+.pfb></usr/share/texmf/fonts/type1/public/lm/lmbx12.pfb></usr/share/texmf/fonts
+/type1/public/lm/lmmi12.pfb></usr/share/texmf/fonts/type1/public/lm/lmmi8.pfb><
+/usr/share/texmf/fonts/type1/public/lm/lmmib10.pfb></usr/share/texmf/fonts/type
+1/public/lm/lmr12.pfb></usr/share/texmf/fonts/type1/public/lm/lmr17.pfb></usr/s
+hare/texmf/fonts/type1/public/lm/lmr6.pfb></usr/share/texmf/fonts/type1/public/
+lm/lmr8.pfb></usr/share/texmf/fonts/type1/public/lm/lmsy10.pfb></usr/share/texm
+f/fonts/type1/public/lm/lmtt10.pfb></usr/share/texmf/fonts/type1/public/lm/lmtt
+12.pfb>
+Output written on partial-residuals.pdf (11 pages, 402835 bytes).
 PDF statistics:
- 274 PDF objects out of 1000 (max. 8388607)
- 227 compressed objects within 3 object streams
- 99 named destinations out of 1000 (max. 500000)
- 73 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 346 PDF objects out of 1000 (max. 8388607)
+ 290 compressed objects within 3 object streams
+ 131 named destinations out of 1000 (max. 500000)
+ 96 words of extra memory for PDF output out of 10000 (max. 10000000)
 

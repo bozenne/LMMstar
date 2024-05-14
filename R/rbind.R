@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: Feb 11 2024 (23:31) 
+## Last-Updated: May 12 2024 (17:06) 
 ##           By: Brice Ozenne
-##     Update #: 502
+##     Update #: 505
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -347,6 +347,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
     if(inherits(C.vcov.C_M1,"try-error")){
         multistat <- NA
         attr(multistat,"error") <- "\n  Could not invert the covariance matrix for the proposed contrast."
+        warning(attr(multistat,"error"))
     }else{
         multistat <- as.double(t(outSimp$C %*% beta.estimate - outSimp$rhs) %*% C.vcov.C_M1 %*% (outSimp$C %*% beta.estimate - outSimp$rhs))/outSimp$dim 
     }

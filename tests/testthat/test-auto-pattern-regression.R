@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 31 2023 (09:54) 
 ## Version: 
-## Last-Updated: maj  7 2024 (12:22) 
+## Last-Updated: May 12 2024 (20:35) 
 ##           By: Brice Ozenne
-##     Update #: 16
+##     Update #: 18
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,6 +20,7 @@ if(FALSE){
     library(numDeriv)
     library(lava)
     library(multcomp)
+    library(nlme)
 
     library(LMMstar)
 }
@@ -198,12 +199,12 @@ test_that("Compound symmetry structure (REML)",{
     test <- predict(eCS.lmm, newdata = dL, se = TRUE)
     index <- sample.int(NROW(dL))
     test2 <- predict(eCS.lmm, newdata = dL[index,,drop=FALSE], se = TRUE)
-    if(require(AICcmodavg)){
-        GS <- AICcmodavg::predictSE(eCS.gls, newdata = dL)
-        expect_equivalent(test$estimate,GS$fit, tol = 1e-7)
-        expect_equivalent(test$se,GS$se.fit, tol = 1e-7)
-        expect_equivalent(test[index,,drop=FALSE],test2, tol = 1e-7)
-    }
+    ## GS <- AICcmodavg::predictSE(eCS.gls, newdata = dL)
+    GS <- list(fit = c("1" = 2.78132573, "2" = 3.04660727, "3" = 3.47291713, "4" = 3.30670866, "5" = 2.74336483, "6" = 3.19347129) ,
+               se.fit = c("1" = 0.11128311, "2" = 0.11700474, "3" = 0.11383802, "4" = 0.11360494, "5" = 0.11036375, "6" = 0.12667589) )
+    expect_equivalent(head(test$estimate),GS$fit, tol = 1e-7)
+    expect_equivalent(head(test$se),GS$se.fit, tol = 1e-7)
+    expect_equivalent(test[index,,drop=FALSE],test2, tol = 1e-7)
 
 })
 
