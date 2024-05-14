@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (10:48) 
 ## Version: 
-## Last-Updated: maj 10 2024 (16:12) 
+## Last-Updated: maj 14 2024 (09:52) 
 ##           By: Brice Ozenne
-##     Update #: 62
+##     Update #: 73
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -114,10 +114,12 @@ model.tables.effect_lmm <- function(x, columns, ...){
     extra.var <- c(x$args$variable,unlist(x$args$time),x$args$strata)
     
     ## ** usual model.tables
-    newcolumns <- c("estimate","se","df","lower","upper","p.value")
+    newcolumns <- c("estimate","se","df","lower","upper")
+    if(x$args$effect[[1]][1]=="difference"){
+        newcolumns <- c(newcolumns,"p.value")
+    }
 
     if(!missing(columns)){
-        
         if(!is.null(names(columns)) && all(names(columns)=="add")){
             newcolumns <- union(c(newcolumns, extra.var), unname(columns))
         }else if(!is.null(names(columns)) && all(names(columns)=="remove")){

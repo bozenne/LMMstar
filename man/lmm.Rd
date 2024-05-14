@@ -156,6 +156,7 @@ model.tables(e.lmm0, effects = "all")
 \code{\link{plot.lmm}} for a graphical display of the model fit or diagnostic plots. \cr
 \code{\link{levels.lmm}} to display the reference level. \cr
 \code{\link{anova.lmm}} for testing linear combinations of coefficients (F-test, multiple Wald tests) \cr
+\code{\link{effects.lmm}} for evaluating average marginal or counterfactual effects \cr
 \code{\link{sigma.lmm}} for extracting estimated residual variance-covariance matrices. \cr
 \code{\link{residuals.lmm}} for extracting residuals or creating residual plots (e.g. qqplots). \cr
 \code{\link{predict.lmm}} for evaluating mean and variance of the outcome conditional on covariates or other outcome values.

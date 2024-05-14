@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 23 2022 (16:58) 
 ## Version: 
-## Last-Updated: jun 14 2023 (14:40) 
+## Last-Updated: maj 13 2024 (17:20) 
 ##           By: Brice Ozenne
-##     Update #: 5
+##     Update #: 7
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -34,7 +34,7 @@
 ##' @export
 add <- function(...){
     dots <- list(...)
-    return(stats::setNames(unlist(dots),rep("add",length(dots))))
+    return(stats::setNames(unlist(dots),rep("add",length(unlist(dots)))))
 }
     
 

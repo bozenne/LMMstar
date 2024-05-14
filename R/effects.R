@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 29 2024 (09:47) 
 ## Version: 
-## Last-Updated: maj 10 2024 (16:02) 
+## Last-Updated: maj 14 2024 (09:51) 
 ##           By: Brice Ozenne
-##     Update #: 572
+##     Update #: 574
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -194,7 +194,7 @@ effects.lmm <- function(object, variable, newdata = NULL, type = c("identity","n
         if(is.numeric(repetition)){
             repetition <- U.time[repetition]
         }
-        if(type[2]=="change" && repetition %in% U.time[1] == FALSE){
+        if((type[2]=="change") && (U.time[1] %in% repetition == FALSE)){
             repetition <- c(U.time[1],repetition)
         }else if(type[2] %in% c("auc","auc-b") && any(U.time %in% repetition == FALSE)){
             message("Argument \'repetition\' ignored when argument \'type\' contains \"auc\" or \"auc-b\". \n")
@@ -383,17 +383,16 @@ effects.lmm <- function(object, variable, newdata = NULL, type = c("identity","n
     out <- anova(object, effect = effect, multivariate = multivariate, ...)
     out$args$effect <- list(type)
     out$args$variable <- variable
-    out$args$time <- object$time$var
-    if(!is.null(effect.strata)){
-        out$args$strata <- paste(colnames(grid.conditional), collapse = ", ")
-    }
+    
     add <- data.frame(matrix(NA, nrow = NROW(out$univariate)))
     names(add) <- variable
     add[] <- list(effect.variable)
     if(conditional.time){
+        out$args$time <- object$time$var
         add <- cbind(add, stats::setNames(as.data.frame(effect.time), out$args$time))
     }
     if(!is.null(effect.strata)){
+        out$args$strata <- paste(colnames(grid.conditional), collapse = ", ")
         add <- cbind(add, stats::setNames(as.data.frame(effect.strata), out$args$strata))
     }
     out$univariate <- cbind(add, out$univariate)

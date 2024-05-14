@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: May  5 2024 (21:16) 
+## Last-Updated: maj 13 2024 (19:16) 
 ##           By: Brice Ozenne
-##     Update #: 123
+##     Update #: 124
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -319,7 +319,7 @@ NULL
 #' \item \code{visit}: the visit index (factor).
 #' \item \code{time}: the week at which the visit took place (numeric).
 #' \item \code{weight}: bodyweight (in kg) measured during the visit.
-#' \item \code{glucagonAUC}: glucagon measured during the visit.
+#' \item \code{glucagonAUC}: glucagon measured during the visit (in pmol/l x hours).
 #' }
 #' 
 #' @docType data
