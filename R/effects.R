@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 29 2024 (09:47) 
 ## Version: 
-## Last-Updated: maj 14 2024 (09:51) 
+## Last-Updated: maj 17 2024 (19:18) 
 ##           By: Brice Ozenne
-##     Update #: 574
+##     Update #: 668
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -265,15 +265,14 @@ effects.lmm <- function(object, variable, newdata = NULL, type = c("identity","n
         if(any(is.na(key.original))){
             data.augmented <- data.augmented[!is.na(key.original),,drop=FALSE]
         }
-        U.strata <- unique(data.augmented$XXstrataXX)
-        ## identify combination of timepoints and strata that never occur in the observed data (to be removed from the contrast matrix) 
-        attr(U.strata,"table") <- table(data.augmented$XXtimeXX,data.augmented$XXstrataXX)
-        if(!is.null(repetition)){
-            attr(U.strata,"table") <- attr(U.strata,"table")[repetition,,drop=FALSE]
-        }
-        n.strata <- length(U.strata)
-        
     }
+    U.strata <- sort(unique(data.augmented$XXstrataXX))
+    ## identify combination of timepoints and strata that never occur in the observed data (to be removed from the contrast matrix) 
+    attr(U.strata,"table") <- table(data.augmented$XXtimeXX,data.augmented$XXstrataXX)
+    if(!is.null(repetition)){
+        attr(U.strata,"table") <- attr(U.strata,"table")[repetition,,drop=FALSE]
+    }
+    n.strata <- length(U.strata)        
 
     ## define contrast matrix
     if(is.null(prefix.time)){
@@ -298,10 +297,9 @@ effects.lmm <- function(object, variable, newdata = NULL, type = c("identity","n
         stop("Cannot evaluate ",type[2]," when there is a single timepoint. \n",
              "Considering setting argument \'type\' to \"static\" or specifying the argument \'repetition\' when calling lmm. \n")
     }
-
     M.contrast <- .effects_contrast(type = type, grid.conditional = grid.conditional, conditional.time = conditional.time, repetition = repetition, 
                                     U.strata = U.strata, n.strata = n.strata, 
-                                    U.time = U.time, n.time = n.time,
+                                    U.time = U.time, n.time = n.time, nobs.time = attr(U.strata,"table"),
                                     prefix.time = prefix.time, sep.var = sep.var)
 
     ## ** perform average
@@ -322,13 +320,13 @@ effects.lmm <- function(object, variable, newdata = NULL, type = c("identity","n
                 iStrata <- droplevels(factor(paste0(iData$XXtimeXX, sep.var, iData$XXstrataXX),
                                              levels = paste0(attr(M.contrast,"time.col"), sep.var, attr(M.contrast,"strata.col"))))
             }
-
             if(NROW(iX)!=NROW(iData)){
                 ## handle missing values in covariates, i.e. rows removed by model.matrix
                 iStrata <- iStrata[as.numeric(rownames(iX))]
             }
             iC <- M.contrast[,levels(iStrata),drop=FALSE] %*% do.call(rbind,by(iX,iStrata,colMeans))
             rownames(iC) <- paste0(iLevel,rownames(iC))
+            attr(iC, "n") <- rowSums(sweep(M.contrast[,levels(iStrata),drop=FALSE], MARGIN = 1, FUN = "*", STATS = attr(M.contrast,"n")))
             attr(iC, "time") <- attr(M.contrast,"time.row")
             attr(iC, "strata") <- attr(M.contrast,"strata.row")
             attr(iC, "variable") <- rep(iLevel, NROW(M.contrast))
@@ -361,6 +359,7 @@ effects.lmm <- function(object, variable, newdata = NULL, type = c("identity","n
                 iStrata <- iStrata[as.numeric(rownames(iX1))]
             }
             iC <- M.contrast[,levels(iStrata),drop=FALSE] %*% do.call(rbind,by(iX2-iX1,iStrata,colMeans))
+            attr(iC, "n") <- rowSums(sweep(M.contrast[,levels(iStrata),drop=FALSE], MARGIN = 1, FUN = "*", STATS = attr(M.contrast,"n")))
             rownames(iC) <- paste0(Upair.variable[2,iPair],"-",Upair.variable[1,iPair],rownames(M.contrast))
             attr(iC, "time") <- attr(M.contrast,"time.row")
             attr(iC, "strata") <- attr(M.contrast,"strata.row")
@@ -368,8 +367,8 @@ effects.lmm <- function(object, variable, newdata = NULL, type = c("identity","n
             return(iC)
         })
     }
-
     effect <- do.call(rbind,ls.C)
+    effect.n <- unlist(lapply(ls.C,attr,"n"))
     effect.time <- unlist(lapply(ls.C,attr,"time"))
     attr(effect.time,"original") <- do.call(rbind,lapply(lapply(ls.C,attr,"time"),attr,"original"))
     effect.strata <- unlist(lapply(ls.C,attr,"strata"))
@@ -383,10 +382,11 @@ effects.lmm <- function(object, variable, newdata = NULL, type = c("identity","n
     out <- anova(object, effect = effect, multivariate = multivariate, ...)
     out$args$effect <- list(type)
     out$args$variable <- variable
-    
+
     add <- data.frame(matrix(NA, nrow = NROW(out$univariate)))
     names(add) <- variable
     add[] <- list(effect.variable)
+    add <- cbind(add, n = effect.n)
     if(conditional.time){
         out$args$time <- object$time$var
         add <- cbind(add, stats::setNames(as.data.frame(effect.time), out$args$time))
@@ -408,7 +408,7 @@ effects.lmm <- function(object, variable, newdata = NULL, type = c("identity","n
 ##' @noRd
 .effects_contrast <- function(type, grid.conditional, conditional.time, repetition,
                               U.strata, n.strata, 
-                              U.time, n.time,
+                              U.time, n.time, nobs.time,
                               prefix.time, sep.var){
 
 
@@ -518,8 +518,17 @@ effects.lmm <- function(object, variable, newdata = NULL, type = c("identity","n
     ## ** collapse across timepoints
     if(conditional.time || type[2] %in% c("auc","auc-b")){
         out <- M.contrastC
+        if(length(grid.conditional)==0){
+            attr(out,"n") <- nobs.time[attr(M.contrastC,"time.row"),]
+        }else{
+            attr(out,"n") <- mapply(x = attr(M.contrastC,"time.row"), y = attr(M.contrastC,"strata.row"), FUN = function(x,y){nobs.time[x,y]})
+        }
     }else if(length(grid.conditional)==0 && type[2] %in% c("none","change")){
-        out <- rbind(colMeans(M.contrastC))
+        ## weight ensure that we average giving the same weight to each observation
+        ## 1/(n1+n2) (\sum_i=1^n1 X_i + \sum_j=1^n2 Y_j) = 1/n1 \sum_i=1^n1 (n1/(n1+n2)) X_i + \sum_j=1^n2 (n2/(n1+n2)) Y_j
+        weight <- nobs.time[attr(M.contrastC,"time.col"),]/sum(nobs.time[attr(M.contrastC,"time.col"),])
+        out <- rbind(unname(weight)*colSums(M.contrastC))
+        attr(out,"n") <- sum(nobs.time[attr(M.contrastC,"time.col"),])
         if(nchar(prefix.time)==0){
             rownames(out) <- ""
         }else{
@@ -527,17 +536,26 @@ effects.lmm <- function(object, variable, newdata = NULL, type = c("identity","n
         }
         attr(out,"time.col") <- attr(M.contrastC,"time.col")
     }else if(length(grid.conditional)>0 && type[2] %in% c("none","change")){
-        ls.out <- by(M.contrastC, attr(M.contrastC,"strata.row"), colMeans)
+        ls.out <- lapply(U.strata, function(iStrata){ ## iStrata <- U.strata[1]
+            iStrata.row <- attr(M.contrastC,"strata.row") == iStrata
+            iNobs.time <- nobs.time[attr(M.contrastC,"time.row"),iStrata]
+            iC <- unname(iNobs.time/sum(iNobs.time))*colSums(M.contrastC[iStrata.row,,drop=FALSE])
+            attr(iC,"n") <- sum(iNobs.time)
+            return(iC)
+        })
         out <- do.call(rbind,ls.out)
+        colnames(out) <- colnames(M.contrastC)
         if(nchar(prefix.time)==0){
-            rownames(out) <- paste0("(",names(ls.out),")")
+            rownames(out) <- paste0("(",U.strata,")")
         }else{
-            rownames(out) <- paste0("(",prefix.time,sep.var,names(ls.out),")")
+            rownames(out) <- paste0("(",prefix.time,sep.var,U.strata,")")
         }
+        attr(out,"n") <- sapply(ls.out,attr,"n")
         attr(out,"time.col") <- attr(M.contrastC,"time.col")
-        attr(out,"strata.row") <- names(ls.out)
+        attr(out,"strata.row") <- U.strata
         attr(out,"strata.col") <- attr(M.contrastC,"strata.col")
     }
+
     ## ** export
     return(out)
 }

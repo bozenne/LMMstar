@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: maj 16 2024 (19:05) 
+## Last-Updated: maj 17 2024 (17:01) 
 ##           By: Brice Ozenne
-##     Update #: 253
+##     Update #: 254
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -270,7 +270,7 @@ print.LRT_lmm <- function(x, ...){
 print.effect_lmm <- function(x, ...){
     dots <- list(...)
     dots$print <- c(0,0.5)
-    return(do.call(summary, c(list(object = x, legend = FALSE), dots)))
+    return(do.call(summary, c(list(object = x, columns = remove("n"), legend = FALSE), dots)))
 }
 
 

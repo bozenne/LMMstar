@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: maj 16 2024 (14:27) 
+## Last-Updated: maj 17 2024 (19:29) 
 ##           By: Brice Ozenne
-##     Update #: 1409
+##     Update #: 1415
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -465,7 +465,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         }
     }else{
         columns.univariate <- tolower(columns)
-        if(any(columns.univariate %in% valid.columns == FALSE)){
+        if(any(columns.univariate %in% valid.columns == FALSE) && any(columns.univariate %in% names(object$univariate) == FALSE)){
             stop("Incorrect value(s) \"",paste(columns.univariate[columns.univariate %in% valid.columns == FALSE], collapse ="\" \""),"\" for argument \'columns\'. \n",
                  "Valid values: \"",paste(setdiff(valid.columns, columns.univariate), collapse ="\" \""),"\".\n")
         }
@@ -700,9 +700,13 @@ summary.effect_lmm <- function(object, columns = NULL, print = TRUE, ...){
     if("print" %in% names(match.call())==FALSE && all(is.na(object$multivariate$df.num))){
         print <- c(0,0.5)        
     }
-    if(object$args$effect[[1]][1]=="identity" && "columns" %in% names(match.call())==FALSE){
-        object$univariate$p.value <- NULL
-        columns <- c("estimate","se","df","lower","upper")
+    if("columns" %in% names(match.call())==FALSE){
+        if(object$args$effect[[1]][1]=="identity"){
+            object$univariate$p.value <- NULL
+            columns <- c("n","estimate","se","df","lower","upper")
+        }else{
+            columns <- c("n","estimate","se","df","lower","upper","p.value")
+        }
     }
 
     ## ** prepare
