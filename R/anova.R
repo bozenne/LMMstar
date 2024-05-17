@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: Mar 24 2024 (21:19) 
+## Last-Updated: maj 16 2024 (14:26) 
 ##           By: Brice Ozenne
-##     Update #: 1429
+##     Update #: 1453
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -675,184 +675,41 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, multivariate = TRU
         objectH1 <- object1
     }
 
-    ## *** extract coefficients
-    name.paramH0 <- names(coef(objectH0, effects = "all"))   
-    name.paramH1 <- names(coef(objectH1, effects = "all"))
-    table.paramH0 <- objectH0$design$param
-    table.paramH1 <- objectH1$design$param
-    type.paramH0 <- stats::setNames(table.paramH0[match(name.paramH0, table.paramH0$name),"type"], name.paramH0)
-    type.paramH1 <- stats::setNames(table.paramH1[match(name.paramH1, table.paramH1$name),"type"], name.paramH1)
-    mismatchH0 <- stats::setNames(name.paramH0 %in% name.paramH1 == FALSE, name.paramH0)
-    mismatchH1 <- stats::setNames(name.paramH1 %in% name.paramH0 == FALSE, name.paramH1)
-    rhs <- stats::setNames(rep("0", sum(mismatchH1)), names(which(mismatchH1)))
-    current.mismatchH0 <- mismatchH0
-    current.mismatchH1 <- mismatchH1
+    ## ** check nesting
+    testEqual <- .checkNesting(objectH0, objectH1)
+    rhs <- attr(testEqual,"rhs")
 
-    ## *** objective function
-    if(object1$args$method.fit!=object2$args$method.fit){
+    ## ** objective function
+    if(objectH0$args$method.fit!=objectH1$args$method.fit){
         stop("The two models should use the same type of objective function for the likelihood ratio test to be valid. \n")
     }
-    if(objectH1$args$method.fit=="REML" && (any(type.paramH1[mismatchH1]=="mu") || any(type.paramH0[mismatchH0]=="mu"))){
+     if(objectH1$args$method.fit=="REML" && (testEqual["mean"]==FALSE)){
         objectH0$call$method.fit <- "ML"
         objectH1$call$method.fit <- "ML"
-        message("Cannot use a likelihood ratio test to compare mean parameters when the objective function is REML. \n",
-                "Will re-estimate the model via ML and re-run the likelihood ratio test. \n")
+        if(testEqual["var"] && testEqual["cor"]){
+            message("Cannot use a likelihood ratio test to compare mean parameters when the objective function is REML. \n",
+                    "Will re-estimate the model via ML and re-run the likelihood ratio test. \n")
+        }else{
+            message("Cannot use a likelihood ratio test to compare mean parameters when the objective function is REML. \n",
+                    "Will re-estimate the model via ML and re-run the likelihood ratio test. \n",
+                    "This will affect the estimation of the variance and correlation parameters. \n")
+        }
         out <- anova(eval(objectH0$call),eval(objectH1$call))
         attr(out,"type") <- type
         return(out)
     }
 
-    ## *** number of observations
-    nobsH0 <- nobs(objectH0)
-    nobsH1 <- nobs(objectH1)
-    if(any(nobsH0 != nobsH1)){
-        if(nobsH0["missing"]!=nobsH1["missing"]){
-            stop("Mismatch between the number of observations between the two models - could be due to missing data. \n",
-                 "H0: ",paste(paste(names(nobsH0),"=",nobsH0), collapse = ", "),".\n",
-                 "H1: ",paste(paste(names(nobsH1),"=",nobsH0), collapse = ", "),".\n")
-        }else{
-            stop("Mismatch between the number of observations between the two models. \n",
-                 "H0: ",paste(paste(names(nobsH0),"=",nobsH0), collapse = ", "),".\n",
-                 "H1: ",paste(paste(names(nobsH1),"=",nobsH0), collapse = ", "),".\n")
-        }
-    }
-
-    ## *** check nesting
-    if(any(abs(objectH1$design$Y-objectH0$design$Y)>tol)){
-            stop("Mismatch in outcome between the two models. \n")
-    }
-
-    diff.strata <- setdiff(objectH0$design$vcov$name$strata,objectH0$design$vcov$name$strata)
-    if(length(diff.strata)){
-        stop("Cannot perform a likelihood ratio test when the model are not nested. \n",
-             "Variance-covariance parameters are stratified with respect to \"",diff.strata,"\" in the model with the smallest likelihood but not in the model with the largest likelihood. \n",sep="")
-    }
-
-    if(any(mismatchH0)){
-        ## name may not match even with nested model when using different covariance patterns
-        ## e.g. CS: rho while UN gives rho(1,2), rho(1,3), ...
-        response <- objectH1$design$Y
-        
-        if(length(name.paramH0)==length(name.paramH1)){
-            stop("Cannot perform a likelihood ratio test when the model are not nested. \n",
-                 "The two models have the same number of parameters. \n")
-        }
-        if(length(name.paramH0)>length(name.paramH1)){
-            stop("Cannot perform a likelihood ratio test when the model are not nested. \n",
-                 "The model with the largest likelihood had less parameters than the model with the smallest likelihood. \n")
-        }
-        
-        ## mean
-        if("mu" %in% type.paramH0[mismatchH0]){
-            mismatchH0.mu <- names(type.paramH0[mismatchH0])[type.paramH0[mismatchH0] %in% c("mu")]
-            mismatchH1.mu <- names(type.paramH1[mismatchH1])[type.paramH1[mismatchH1] %in% c("mu")]
-            if(length(mismatchH0.mu)>length(mismatchH1.mu)){
-                stop("Cannot perform a likelihood ratio test when the model are not nested. \n",
-                     "The model with the largest likelihood has less mean parameters than the model with the smallest likelihood. \n")
-            }
-
-            XH0mu <- model.matrix(objectH0, effects = "mean")
-            XH1mu <- model.matrix(objectH1, effects = "mean")
-            H.X0mu <- XH0mu %*% solve(crossprod(XH0mu)) %*% t(XH0mu)
-            H.X1mu <- XH1mu %*% solve(crossprod(XH1mu)) %*% t(XH1mu)
-            
-            ## attempt to check whether the design matrices are equivalent
-            if(any(abs(H.X0mu-H.X1mu)>tol)){
-                stop("Do not understand how the two models are nested. \n",
-                     "The model with the lowest likelihood had mean parameters \"",paste(mismatchH0.mu, collapse="\" \""),"\" that were not present in the model with the largest likelihood. \n",
-                     "Consider reparametrizing the mean structure so the nesting is more obvious.\n")
-            }else{
-                current.mismatchH0[mismatchH0.mu] <- FALSE
-                current.mismatchH1[mismatchH1.mu] <- FALSE
-                rhs <- rhs[names(current.mismatchH1)[current.mismatchH1]]
-            }            
-        }
-
-        ## variance
-        if("sigma" %in% type.paramH0[mismatchH0] || "k" %in% type.paramH0[mismatchH0]){
-            mismatchH0.ksigma <- names(type.paramH0[mismatchH0])[type.paramH0[mismatchH0] %in% c("sigma","k")]
-            mismatchH1.ksigma <- names(type.paramH1[mismatchH1])[type.paramH1[mismatchH1] %in% c("sigma","k")]
-            if(length(mismatchH0.ksigma)>length(mismatchH1.ksigma)){
-                stop("Cannot perform a likelihood ratio test when the model are not nested. \n",
-                     "The model with the largest likelihood has less variance parameters than the model with the smallest likelihood. \n")
-            }
-             
-            if(identical(objectH1$design$vcov$name$strata,objectH0$design$vcov$name$strata)){
-                
-                XH0ksigma <- model.matrix(objectH0, effects = "variance")$var$X
-                XH1ksigma <- model.matrix(objectH1, effects = "variance")$var$X
-                H.X0ksigma <- XH0ksigma %*% solve(crossprod(XH0ksigma)) %*% t(XH0ksigma)
-                H.X1ksigma <- XH1ksigma %*% solve(crossprod(XH1ksigma)) %*% t(XH1ksigma)
-
-                ## attempt to check whether the design matrices are equivalent
-                if(any(abs(H.X0ksigma-H.X1ksigma)>tol)){
-                    stop("Do not understand how the two models are nested. \n",
-                         "The model with the lowest likelihood had variance parameters \"",paste(mismatchH0.ksigma, collapse="\" \""),"\" that were not present in the model with the largest likelihood. \n",
-                         "Consider reparametrizing the mean structure so the nesting is more obvious.\n")
-                }else{
-                    current.mismatchH0[mismatchH0.ksigma] <- FALSE
-                    current.mismatchH1[mismatchH1.ksigma] <- FALSE
-                    rhs <- rhs[names(current.mismatchH1)[current.mismatchH1]]
-                }
-            }else if(all(is.na(objectH0$design$vcov$name$strata))){
-                mismatchH1.ksigma2 <- sapply(strsplit(mismatchH1.ksigma,":",fixed = TRUE),"[[",1)
-                if(all(mismatchH1.ksigma2 %in% mismatchH0.ksigma)){
-                    current.mismatchH0[mismatchH0.ksigma] <- FALSE
-                    rhs[mismatchH1.ksigma[mismatchH1.ksigma2 %in% mismatchH0.ksigma]] <- mismatchH1.ksigma2[mismatchH1.ksigma2 %in% mismatchH0.ksigma]
-                }else{
-                    stop("Do not understand how the two models are nested. \n",
-                         "The model with the lowest likelihood had variance parameters \"",paste(mismatchH0.ksigma, collapse="\" \""),"\" that were not present in the model with the largest likelihood. \n",
-                         "Consider reparametrizing the mean structure so the nesting is more obvious.\n")
-                }
-            }else{
-                stop("Do not understand how the two models are nested. \n",
-                     "The model with the lowest likelihood had variance parameters \"",paste(mismatchH0.ksigma, collapse="\" \""),"\" that were not present in the model with the largest likelihood. \n",
-                     "Consider reparametrizing the mean structure so the nesting is more obvious.\n")
-            }
-        }
-
-        ## correlation
-        if("rho" %in% type.paramH0[mismatchH0]){
-            mismatchH0.rho <- names(type.paramH0[mismatchH0])[type.paramH0[mismatchH0] %in% c("rho")]
-            mismatchH1.rho <- names(type.paramH1[mismatchH1])[type.paramH1[mismatchH1] %in% c("rho")]
-            if(length(mismatchH0.rho)>length(mismatchH1.rho)){
-                stop("Cannot perform a likelihood ratio test when the model are not nested. \n",
-                     "The model with the largest likelihood has less correlation parameters than the model with the smallest likelihood. \n")
-            }
-
-            if(identical(objectH1$design$vcov$name$strata,objectH0$design$vcov$name$strata)){
-                ## no strata or same strata: effect of the type of  structure
-                n.strata <- objectH1$strata$n
-                test.nested1 <- objectH1$design$vcov$class=="UN" && objectH0$design$vcov$class=="CS" && is.na(objectH0$design$vcov$name$var) && is.na(objectH0$design$vcov$name$cor)
-                if(test.nested1){
-                    mismatchH0 <- setdiff(mismatchH0,mismatchH0.rho)                
-                    for(iS in 1:n.strata){
-                        iRhoH0 <- table.paramH0[which((table.paramH0$type=="rho")*(table.paramH0$index.strata==1)==1),"name"]
-                        iRhoH1 <- table.paramH1[which((table.paramH1$type=="rho")*(table.paramH1$index.strata==1)==1),"name"]
-                        rhs[iRhoH1] <- iRhoH0
-                    }
-                }else{
-                    stop("Do not understand how the two models are nested. \n",
-                         "The model with the lowest likelihood had correlation parameters \"",paste(mismatchH0.rho, collapse="\" \""),"\" that were not present in the model with the largest likelihood. \n")
-                }
-            }else{
-                ## effect of strata
-                mismatchH1.rho2 <- sapply(strsplit(mismatchH1.rho,":",fixed = TRUE),"[[",1)
-                if(all(mismatchH1.rho2 %in% mismatchH0.rho)){
-                    current.mismatchH0[mismatchH0.rho] <- FALSE
-                    rhs[mismatchH1.rho[mismatchH1.rho2 %in% mismatchH0.rho]] <- mismatchH1.rho2[mismatchH1.rho2 %in% mismatchH0.rho]
-                }else{
-                    stop("Do not understand how the two models are nested. \n",
-                         "The model with the lowest likelihood had correlation parameters \"",paste(mismatchH0.rho, collapse="\" \""),"\" that were not present in the model with the largest likelihood. \n")
-                }
-            }
-        }
-    }
-
+    ## ** LRT
+    name.paramH0 <- names(coef(objectH0, effects = "all"))   
+    name.paramH1 <- names(coef(objectH1, effects = "all"))
     n.paramTest <- length(name.paramH1)-length(name.paramH0)
 
-    ## ** LRT
-    out <- data.frame(null = paste(paste0(names(rhs),"==",rhs), collapse = ", "),
+    if(is.null(rhs)){
+        null <- ""
+    }else{
+        null <- paste(paste0(names(rhs),"==",rhs), collapse = "\n                   ")
+    }
+    out <- data.frame(null = null,
                       logLikH1 = stats::logLik(objectH1),
                       logLikH0 = stats::logLik(objectH0),
                       statistic = NA,

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (13:27) 
 ## Version: 
-## Last-Updated: maj 10 2024 (11:43) 
+## Last-Updated: maj 16 2024 (13:56) 
 ##           By: Brice Ozenne
-##     Update #: 1083
+##     Update #: 1119
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -65,12 +65,10 @@
 
     ## ** extract information
     ## parameters
-    index.sigma <- structure$param[structure$param$type=="sigma","index.level"]
     param.sigma <- structure$param[structure$param$type=="sigma","name"]
-    strata.sigma <- structure$param[structure$param$type=="sigma","index.strata"]
+    strataIndex.sigma <- structure$param[structure$param$type=="sigma","index.strata"]
 
     param.k <- structure$param[structure$param$type=="k","name"]
-    strata.k <- structure$param[structure$param$type=="k","index.strata"]
 
     ## design matrix (reduce sample size to unique replicates)
     XpairPattern <- .pairPatternX(structure$cor,
@@ -120,7 +118,7 @@
                                     code = paste0("R.",vec.strataRho,".",vec.strataRho),
                                     lp.x = NA,
                                     lp.y = NA,
-                                    sigma = param.sigma[match(vec.strataRho, strata.sigma)],
+                                    sigma = param.sigma[match(vec.strataRho, strataIndex.sigma)],
                                     k.x = NA,
                                     k.y = NA,                                  
                                     stringsAsFactors = FALSE)        
@@ -277,7 +275,7 @@
                                 code = code.Urho,
                                 lp.x = NA,
                                 lp.y = NA,
-                                sigma = param.sigma[match(strata.Urho,strata.sigma)],
+                                sigma = param.sigma[match(strata.Urho,strataIndex.sigma)],
                                 k.x = k.x[test.rho],
                                 k.y = k.y[test.rho],                                  
                                 stringsAsFactors = FALSE)
@@ -395,12 +393,10 @@
 
     ## ** extract information
     ## parameters
-    index.sigma <- structure$param[structure$param$type=="sigma","index.level"]
     param.sigma <- structure$param[structure$param$type=="sigma","name"]
-    strata.sigma <- structure$param[structure$param$type=="sigma","index.strata"]
+    strataIndex.sigma <- structure$param[structure$param$type=="sigma","index.strata"]
 
     param.k <- structure$param[structure$param$type=="k","name"]
-    strata.k <- structure$param[structure$param$type=="k","index.strata"]
 
     ## design matrix (reduce sample size to unique replicates)
     XpairPattern <- .pairPatternX(structure$cor,
@@ -433,17 +429,20 @@
     ## *** combine linear predictor accross strata
     diffLp <- do.call(rbind,XpairPattern$diffU.strata) ## difference in linear predictor index for pair of observation
     indexLp <- do.call(rbind,XpairPattern$LpU.strata) ## linear predictor index for each observation of each pair
-    lp.x <- lp2X.cor[indexLp[,1],,drop=FALSE] ## design matrox for one observation of each pair of observations
+    lp.x <- lp2X.cor[indexLp[,1],,drop=FALSE] ## design matrix for one observation of each pair of observations
     data.x <- lp2data.cor[indexLp[,1],,drop=FALSE] ## data for one observation of each pair of observations
     data.y <- lp2data.cor[indexLp[,2],,drop=FALSE] ## data for the other observation of each pair of observations
-    strataLp <- index.clusterStrata[attr(index.cluster,"vectorwise")[indexLp[,1]]] ## strata for pair of observation (would be the same with indexLp[,2])
+    if(n.strata>1){
+        strataLp <- data.x[[strata.var]]
+    }else{
+        strataLp <- rep(1, NROW(data.x))
+    }
     n.Lp <- NROW(lp.x)
 
     ## *** identify pairs with equal or non-equal linear predictors
     index.equal <- which(rowSums(diffLp!=0)==0)
     index.unequal <- setdiff(1:n.Lp, index.equal)
     index.0 <- NULL ## cells in the design matrix constrained to be 0
-
 
     ## *** generate code
     code.rho <- rep(NA, length = n.Lp)
@@ -456,18 +455,31 @@
 
     ## pairs with distinct linear predictors
     if(length(index.unequal)>0){
+        time.var <- utils::tail(reg.var,1)
+        if(n.strata==1){
+            coltime.var <- time.var
+        }else{
+            ## in case of strata, possible duplicated time column (one for each strata)
+            factor.corterm <- attr(attr(structure$cor$X,"formula"),"factor")
+            ## identify column time
+            index.coltime <- attr(structure$cor$X,"term.labels") %in% colnames(factor.corterm)[factor.corterm[time.var,]>0]
+            ## redefine time.var
+            coltime.var <- colnames(structure$cor$X)[index.coltime]
+        }
+        
         if(structure$bloc){ ## block
-            time.var <- reg.var[2]
-            block.var <- reg.var[1]
+            block.var <- setdiff(reg.var, time.var)
             test.diffBlock <- rowSums(diffLp[,block.var,drop=FALSE]!=0)
 
             ## same block
             index.sameBlock <- index.unequal[which(test.diffBlock==0)]
             block.sameBlock <- data.x[index.sameBlock,block.var]
-            dt.sameBlock <- diffLp[index.sameBlock,time.var]
+            dt.sameBlock <- nlme::collapse(diffLp[index.sameBlock,time.var], sep = sep[1])
             if(type=="UN"){
                 code.rho[index.sameBlock] <- paste("R",indexLp[index.sameBlock,1],indexLp[index.sameBlock,2],sep=sep[2])
-                level.rho[index.sameBlock] <- paste(block.sameBlock,paste("(",data.x[index.sameBlock,time.var],",",data.y[index.sameBlock,time.var],")",sep=""),sep=sep[2])                
+                level.rho[index.sameBlock] <- paste(block.sameBlock,paste("(",nlme::collapse(data.x[index.sameBlock,time.var], sep = sep[1]),
+                                                                          ",",nlme::collapse(data.y[index.sameBlock,time.var], sep = sep[1]),")",sep=""),
+                                                    sep=sep[2])                
             }else if(type=="LAG"){
                 code.rho[index.sameBlock] <- paste("R",strataLp[index.sameBlock],block.sameBlock,dt.sameBlock,sep=sep[2])
                 level.rho[index.sameBlock] <- paste(block.sameBlock,paste("(dt=",dt.sameBlock,")",sep=""),sep=sep[2])
@@ -481,13 +493,14 @@
             rev.diffBlock <- data.x[index.diffBlock,block.var] > data.y[index.diffBlock,block.var]
             block.diffBlock <- data.frame(x = data.x[index.diffBlock,block.var], y = data.y[index.diffBlock,block.var])
             block.diffBlock[rev.diffBlock,] <- block.diffBlock[rev.diffBlock,c("y","x")]
-            t.diffBlock <- data.frame(x = data.x[index.diffBlock,time.var], y = data.y[index.diffBlock,time.var])
+            t.diffBlock <- data.frame(x = nlme::collapse(data.x[index.diffBlock,time.var], sep = sep[1]),
+                                      y = nlme::collapse(data.y[index.diffBlock,time.var], sep = sep[1]))
             t.diffBlock[rev.diffBlock,] <- t.diffBlock[rev.diffBlock,c("y","x")]
-            dt.diffBlock <- diffLp[index.diffBlock,time.var]
+            dt.diffBlock <- nlme::collapse(diffLp[index.diffBlock,time.var], sep = sep[1])
             if(type=="UN"){
                 ## constrain constant correlation when measured at the same time \rho = cor(X(t),Y(t))
                 indexLp.diffBlock <- indexLp[index.diffBlock,,drop=FALSE]
-                indexLp.diffBlock[data.x[index.diffBlock,time.var] == data.y[index.diffBlock,time.var],] <- 0
+                indexLp.diffBlock[nlme::collapse(data.x[index.diffBlock,time.var], sep = sep[1]) == nlme::collapse(data.y[index.diffBlock,time.var], sep = sep[1]),] <- 0
                 txt.diffBlock <- ifelse(indexLp.diffBlock[,1]==0,"dt=0",paste0(t.diffBlock$x,",",t.diffBlock$y))
             
                 code.rho[index.diffBlock] <- paste("D",indexLp.diffBlock[,1],indexLp.diffBlock[,2],sep=sep[2])
@@ -500,10 +513,9 @@
                 level.rho[index.diffBlock] <- paste("(",block.diffBlock$x,",",block.diffBlock$y,",dt=",as.numeric(dt.diffBlock!=0),")",sep="")
             }
 
-        }else{ ## no block: base correlation coefficient on the time difference            
-            time.var <- reg.var[1]
-            code.rho[index.unequal] <- paste("D",strataLp[index.unequal],diffLp[,time.var],sep=sep[2])
-            level.rho[index.unequal] <- paste("(",diffLp[,time.var],")",sep="")
+        }else{ ## no block: base correlation coefficient on the time difference
+            code.rho[index.unequal] <- paste("D",strataLp[index.unequal],nlme::collapse(diffLp[,coltime.var,drop=FALSE], sep = sep[1]),sep=sep[2])
+            level.rho[index.unequal] <- paste("(",rowSums(diffLp[,coltime.var,drop=FALSE]),")",sep="")
         }        
     }
     test.rho <- !duplicated(code.rho)
@@ -528,15 +540,16 @@
     }
 
     ## ***  collect    
+    strataIndex.rho <- match(strata.Urho,U.strata)
     structure.rho <- data.frame(name = paste0("rho",level.Urho),
-                                index.strata = strata.Urho,
+                                index.strata = strataIndex.rho,
                                 type = rep("rho",length=length(level.Urho)),
                                 constraint = as.numeric(NA),
                                 level = level.Urho,
                                 code = code.Urho,
                                 lp.x = NA,
                                 lp.y = NA,
-                                sigma = param.sigma[match(strata.Urho,strata.sigma)],
+                                sigma = param.sigma[match(strataIndex.rho,strataIndex.sigma)],
                                 k.x = k.x[test.rho],
                                 k.y = k.y[test.rho],                                  
                                 stringsAsFactors = FALSE)
@@ -572,13 +585,10 @@
 
     ## ** extract information
     ## parameters
-    index.sigma <- structure$param[structure$param$type=="sigma","index.level"]
     param.sigma <- structure$param[structure$param$type=="sigma","name"]
-    strata.sigma <- structure$param[structure$param$type=="sigma","index.strata"]
+    strataIndex.sigma <- structure$param[structure$param$type=="sigma","index.strata"]
 
-    param.k <- structure$param[structure$param$type=="k","index.level"]
     param.k <- structure$param[structure$param$type=="k","name"]
-    strata.k <- structure$param[structure$param$type=="k","index.strata"]
 
     ## design matrix (reduce sample size to unique replicates)
     XpairPattern <- .pairPatternX(structure$cor,
@@ -627,15 +637,16 @@
     }
 
     ## collect
+    strataIndex.rho <- match(strata.rho,U.strata)
     structure.rho <- data.frame(name = paste0("rho",level.rho),
-                                index.strata = strata.rho,
+                                index.strata = strataIndex.rho,
                                 type = rep("rho",length=length(level.rho)),
                                 constraint = as.numeric(NA),
                                 level = level.rho,
                                 code = code.rho,
                                 lp.x = NA,
                                 lp.y = NA,
-                                sigma = param.sigma[match(strata.rho,strata.sigma)],
+                                sigma = param.sigma[match(strataIndex.rho,strataIndex.sigma)],
                                 k.x = k.x,
                                 k.y = k.y,                                  
                                 stringsAsFactors = FALSE)
@@ -649,7 +660,7 @@
     return(structure)
 }
 
-## ## * .skeletonRho.EXP
+## * .skeletonRho.EXP
 ## .skeletonRho.EXP <- function(structure, data, 
 ##                            U.cluster, index.cluster,
 ##                            U.time, index.clusterTime, 

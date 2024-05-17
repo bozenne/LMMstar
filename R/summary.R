@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: May 12 2024 (17:05) 
+## Last-Updated: maj 16 2024 (14:27) 
 ##           By: Brice Ozenne
-##     Update #: 1408
+##     Update #: 1409
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -673,7 +673,7 @@ summary.LRT_lmm <- function(object, digits = 3, digits.df = 1, digits.p.value = 
     table <- as.data.frame(object)
     if("null" %in% columns){
         table$null
-        cat("  ","Null hypothesis: ",table$null,".\n\n",sep="")
+        cat("  ","Null hypothesis: ",table$null,"\n\n",sep="")
     }
 
     table[names(table)[names(table) %in% setdiff(columns,"null") == FALSE]] <- NULL

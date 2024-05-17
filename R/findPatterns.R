@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: maj 10 2024 (11:45) 
+## Last-Updated: maj 15 2024 (17:03) 
 ##           By: Brice Ozenne
-##     Update #: 916
+##     Update #: 918
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -66,7 +66,7 @@
     }else{
         Upattern$param <- vector(mode = "list", length = n.pattern.var)
     }
-    
+
     ## ** characterize each pattern
     if(NCOL(X.var)>0){
         Xpattern.var <- lapply(Upattern$var,function(iP){ ## iP <- Upattern$name[1]

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: aug  1 2023 (15:19) 
+## Last-Updated: maj 16 2024 (09:41) 
 ##           By: Brice Ozenne
-##     Update #: 1159
+##     Update #: 1170
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -459,6 +459,7 @@ TOEPLITZ <- function(formula, var.cluster, var.time, type = "LAG", add.time){
         toeplitz.block <- NULL
     }
     if(!missing(add.time)){
+        
         if(is.character(add.time)){
             if(type == "UN" || type == "LAG"){
                 add.X <- list(variance = add.time,
@@ -496,9 +497,9 @@ TOEPLITZ <- function(formula, var.cluster, var.time, type = "LAG", add.time){
 
     if(!missing(formula)){
         outCov <- .formulaStructure(formula, add.X = add.X, strata.X = FALSE, correlation = TRUE)
-        if(length(outCov$X.cor)==0){
-            stop("TOEPLITZ covariance structure does not support no covariates for the correlation structure. \n")
-        }else if(length(outCov$X.cor)>2){
+
+        ## NOTE: if length(outCov$X.cor)==0 i.e. not time has (yet) be defined, no error is output since time will be automatically added later on
+        if(length(outCov$X.cor)>2){
             stop("TOEPLITZ covariance structure does not support more than 2 covariates for the correlation structure. \n")
         }else if(is.null(toeplitz.block)){
             toeplitz.block <- length(outCov$X.cor) > 1
@@ -915,8 +916,8 @@ CUSTOM <- function(formula, var.cluster, var.time,
     }
 
     ## ** right hand side    
-    ls.var.X <- list(variance = unique(c(add.X$variance, detail.formula$variance$vars$regressor)),
-                     correlation = unique(c(add.X$correlation, detail.formula$correlation$vars$regressor)))
+    ls.var.X <- list(variance = unique(c(detail.formula$variance$vars$regressor, add.X$variance)),
+                     correlation = unique(c(detail.formula$correlation$vars$regressor, add.X$correlation)))
     test.interaction <- sapply(formula, function(iF){
         any(attr(stats::delete.response(stats::terms(iF)),"order")>1)
     })
