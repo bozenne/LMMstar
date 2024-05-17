@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: maj 13 2024 (19:16) 
+## Last-Updated: maj 17 2024 (11:33) 
 ##           By: Brice Ozenne
-##     Update #: 124
+##     Update #: 125
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -408,7 +408,7 @@ NULL
 ##                             "1" = 0,
 ##                             "2" = 6,
 ##                             "3" = 12,
-##                             "4" = 18,
+##                             "4" = 20,
 ##                             "5" = 24)
 ## save(ncgsL, file = "data/ncgsL.rda")
 ##
