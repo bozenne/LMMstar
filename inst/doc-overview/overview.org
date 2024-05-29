@@ -55,7 +55,7 @@ utils::packageVersion("LMMstar")
 #+END_SRC
 
 #+RESULTS:
-: [1] ‘1.1.0’
+: [1] '1.1.0'
 
 It is recommanded to also the following packages, as some of the
 methods implemented in the package are relative to a generic method
@@ -866,25 +866,27 @@ and the corresponding dataset:
 set.seed(11)
 Y <- mvtnorm::rmvnorm(1000, mean = rep(0,6), sigma = Rho)
 dfW <- cbind(id = 1:NROW(Y), as.data.frame(Y))
-dfL <- reshape2::melt(dfW, id.vars = "id", variable.name = "time")
+dfL <- reshape(dfW, direction = "long", idvar = "id",
+               timevar = "time", times = paste0("V",1:6),
+               varying = paste0("V",1:6),  v.names = "value")
 dfL[dfL$id %in% 1:2,]
 #+END_SRC
 
 #+RESULTS:
 #+begin_example
-     id time      value
-1     1   V1 -0.9842079
-2     2   V1  1.2402726
-1001  1   V2 -0.3681245
-1002  2   V2  0.6494215
-2001  1   V3 -1.6174652
-2002  2   V3  0.3272105
-3001  1   V4 -1.4994103
-3002  2   V4 -1.0626973
-4001  1   V5  0.7493107
-4002  2   V5 -0.9013244
-5001  1   V6 -1.0719657
-5002  2   V6 -0.6696714
+     id time    value
+1.V1  1   V1 -0.98421
+2.V1  2   V1  1.24027
+1.V2  1   V2 -0.36812
+2.V2  2   V2  0.64942
+1.V3  1   V3 -1.61747
+2.V3  2   V3  0.32721
+1.V4  1   V4 -1.49941
+2.V4  2   V4 -1.06270
+1.V5  1   V5  0.74931
+2.V5  2   V5 -0.90132
+1.V6  1   V6 -1.07197
+2.V6  2   V6 -0.66967
 #+end_example
 
 #+LaTeX: \begin{minipage}{0.45\linewidth} 
@@ -893,13 +895,13 @@ dfL[dfL$id==1,]
 #+END_SRC
 
 #+RESULTS:
-:      id time      value
-: 1     1   V1 -0.9842079
-: 1001  1   V2 -0.3681245
-: 2001  1   V3 -1.6174652
-: 3001  1   V4 -1.4994103
-: 4001  1   V5  0.7493107
-: 5001  1   V6 -1.0719657
+:      id time    value
+: 1.V1  1   V1 -0.98421
+: 1.V2  1   V2 -0.36812
+: 1.V3  1   V3 -1.61747
+: 1.V4  1   V4 -1.49941
+: 1.V5  1   V5  0.74931
+: 1.V6  1   V6 -1.07197
 
 #+LaTeX: \end{minipage}
 #+LaTeX: \begin{minipage}{0.45\linewidth} 
@@ -908,13 +910,13 @@ dfL[dfL$id==2,]
 #+END_SRC
 
 #+RESULTS:
-:      id time      value
-: 2     2   V1  1.2402726
-: 1002  2   V2  0.6494215
-: 2002  2   V3  0.3272105
-: 3002  2   V4 -1.0626973
-: 4002  2   V5 -0.9013244
-: 5002  2   V6 -0.6696714
+:      id time    value
+: 2.V1  2   V1  1.24027
+: 2.V2  2   V2  0.64942
+: 2.V3  2   V3  0.32721
+: 2.V4  2   V4 -1.06270
+: 2.V5  2   V5 -0.90132
+: 2.V6  2   V6 -0.66967
 
 #+LaTeX: \end{minipage}
 
@@ -4857,7 +4859,9 @@ sigma <- diag(0.5,3) + 0.5
 dfW.sim <- rbind(data.frame(id = 1:n, group = "C", rmvnorm(n, mean = mu, sigma = sigma)),
                  data.frame(id = n+(1:n), group = "T", rmvnorm(n, mean = mu+1, sigma = sigma))
                  )
-dfL.sim <- reshape2::melt(dfW.sim, id.vars = c("id","group"))
+dfL.sim <- reshape(dfW.sim, direction = "long", idvar = "id",
+                   timevar = "time", times = paste0("X",1:3),
+                   varying = paste0("X",1:3), v.names = "value")
 lme.dscore(value ~ group + (1|id), data = dfL.sim, type = "lme4")
 eSim.lmer <- lmer(value ~ group + (1|id), data = dfL.sim)
 
