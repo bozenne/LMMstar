@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: May 12 2024 (18:23) 
+## Last-Updated: jun 28 2024 (09:59) 
 ##           By: Brice Ozenne
-##     Update #: 1443
+##     Update #: 1445
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -277,7 +277,7 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
     ## check format
     format[] <- match.arg(format, c("wide","long"))  ## use 'format[] <-' instead of 'format <-' to keep the name that will be transferd to .reformat(
     if(keep.data && format == "wide" && is.null(attr(keep.data, "var"))){
-        mean.type <- lava::manifest(object, effects = "mean.type")
+        mean.type <- stats::variable.names(object, effects = "mean.type")
         attr(keep.data, "var") <- names(mean.type)[mean.type=="baseline"]
     }    
     if(format == "wide" && (df==TRUE||sum(se)>0)){

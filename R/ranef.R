@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 26 2022 (11:18) 
 ## Version: 
-## Last-Updated: maj 10 2024 (19:09) 
+## Last-Updated: jun 28 2024 (09:59) 
 ##           By: Brice Ozenne
-##     Update #: 703
+##     Update #: 705
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -174,7 +174,7 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
     index.na <- object$index.na
 
     ## all vars
-    var.all <- unique(lava::manifest(object))
+    var.all <- unique(stats::variable.names(object))
 
     ## ** converting correlation parameters into random effect variance
 

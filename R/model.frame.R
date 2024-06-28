@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (14:57) 
 ## Version: 
-## Last-Updated: maj  8 2024 (14:47) 
+## Last-Updated: jun 28 2024 (09:59) 
 ##           By: Brice Ozenne
-##     Update #: 240
+##     Update #: 244
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -56,7 +56,7 @@ model.frame.lmm <- function(formula, newdata = NULL, type = NULL, add.index = FA
     mycall <- match.call()
 
     ## ** extract from object
-    var.manifest <- lava::manifest(formula)
+    var.manifest <- stats::variable.names(formula)
     var.outcome <- formula$outcome$var
     var.cluster <- formula$cluster$var
     var.time <- formula$time$var
@@ -137,7 +137,7 @@ model.frame.lmm <- function(formula, newdata = NULL, type = NULL, add.index = FA
         if("variance" %in% effects || "correlation" %in% effects){
             keep.cluster <- sapply(attr(design$vcov$pattern,"list"),"[[",1)
             newdata.row <- which(newdata$XXcluster.indexXX %in% keep.cluster)
-            var.vcov <- lava::manifest(formula, effects = setdiff(effects, "mean"))
+            var.vcov <- stats::variable.names(formula, effects = setdiff(effects, "mean"))
             newdata.col <- stats::na.omit(unique(c(attr(var.cluster,"original"),unlist(var.vcov))))
         }else{
             newdata.row <- NULL
@@ -145,7 +145,7 @@ model.frame.lmm <- function(formula, newdata = NULL, type = NULL, add.index = FA
         }
 
         if("mean" %in% effects){
-            var.mean <- lava::manifest(formula, effects = "mean")
+            var.mean <- stats::variable.names(formula, effects = "mean")
 
             ## but putting first clusters (possibly) kept for the covariance covariates
             vec.reorder2 <- c(newdata.row,setdiff(vec.reorder,newdata.row))
@@ -173,7 +173,7 @@ model.frame.lmm <- function(formula, newdata = NULL, type = NULL, add.index = FA
             }
 
             ## *** classify covariates
-            mean.type <- lava::manifest(formula, effects = "mean.type")
+            mean.type <- stats::variable.names(formula, effects = "mean.type")
             var.meanBaseline <- names(mean.type)[mean.type=="baseline"] ## baseline covariate
             var.meanTime <- names(mean.type)[mean.type=="time"] ## time covariate or simple transformation of time
             var.meanTimeVar <- names(mean.type)[mean.type=="timevar"] ## time varying covariate

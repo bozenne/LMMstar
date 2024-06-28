@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: maj 17 2024 (19:29) 
+## Last-Updated: jun 28 2024 (19:23) 
 ##           By: Brice Ozenne
-##     Update #: 1415
+##     Update #: 1477
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -545,7 +545,9 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
                         columns = setdiff(columns.multivariate,"type"), col.df = c("df.num","df.denom"), name.statistic = c("Chi2-statistic","F-statistic"),
                         digits = digits, digits.df = c(df.num = 0, df.denom = digits.df), digits.p.value = digits.p.value,
                         decoration = legend, legend = legend)
-        
+        if(!is.null(attr(print,"message")) && !(print.univariate>0 && ci)){
+            cat(attr(print,"message"))
+        }
         cat("\n")
     }
 
@@ -629,7 +631,10 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
                         columns = setdiff(columns.univariate,"type"), col.df = c("df"), name.statistic = c("t-statistic","z-statistic"),
                         digits = digits, digits.df = digits.df, digits.p.value = digits.p.value2,
                         decoration = legend, legend = legend)
-        
+
+        if(!is.null(attr(print,"message"))){
+            cat(attr(print,"message"))
+        }
         if(print.univariate>0.5){
             cat("\n")
         }
@@ -698,10 +703,11 @@ summary.effect_lmm <- function(object, columns = NULL, print = TRUE, ...){
 
     ## ** normalize user input
     if("print" %in% names(match.call())==FALSE && all(is.na(object$multivariate$df.num))){
-        print <- c(0,0.5)        
+        print <- c(0,1.5)        
     }
+    
     if("columns" %in% names(match.call())==FALSE){
-        if(object$args$effect[[1]][1]=="identity"){
+        if(object$args$type=="outcome"){
             object$univariate$p.value <- NULL
             columns <- c("n","estimate","se","df","lower","upper")
         }else{
@@ -710,22 +716,68 @@ summary.effect_lmm <- function(object, columns = NULL, print = TRUE, ...){
     }
 
     ## ** prepare
-    outcome.txt <- switch(object$args$effect[[1]][2],
-                          "none" = "outcome",
+    outcome.txt <- switch(object$args$type,
+                          "outcome" = "outcome",
                           "change" = "change in outcome",
                           "auc" = "area under the outcome curve",
                           "auc-b" = "area under the outcome curve above baseline")
-    contrast.txt <- switch(object$args$effect[[1]][1],
+    contrast.txt <- switch(object$args$effect,
                            "identity" = "Average",
                            "difference" = "Difference in average")
 
-    ## ** display
-    if(is.null(object$args$variable)){
-        cat("\t\t",contrast.txt," counterfactual ",outcome.txt,"\n\n", sep = "")
+    if(object$args$type=="change" & length(object$args$ref.repetition[[1]]==1) & max(print) > 0.7){
+        if(length(attr(object$args$time,"original"))>1){
+            vec.ref <- unlist(attr(object$args$ref.repetition,"original"))
+            reference.txt <- paste0("  Reference repetition: ",paste(paste0(names(vec.ref),"=",vec.ref), collapse=", "),"\n",sep="")
+        }else{
+            reference.txt <- paste0("  Reference repetition: ",object$args$time,"=",object$args$ref.repetition[[1]],"\n",sep="")
+        }            
     }else{
-        cat("\t\t",contrast.txt," counterfactual ",outcome.txt,"\n\t\t w.r.t \'",object$args$variable,"\' values \n\n", sep = "")
+        reference.txt <- NULL
     }
-    summary.Wald_lmm(object, print = print, columns = columns, ...)
+
+    ## ** display
+    if(max(print)>0){
+        ## Note: print calls summary with argument print 0.5
+        if(is.null(object$args$variable) || max(print) < 0.7){
+            cat("\t\t",contrast.txt," counterfactual ",outcome.txt,"\n\n", sep = "")
+        }else{
+            cat("\t\t",contrast.txt," counterfactual ",outcome.txt,"\n\t\t w.r.t \'",object$args$variable,"\' values \n\n", sep = "")
+        }
+    }
+
+    ## ** contrast
+    contrast <- object$glht$all[[1]]$linfct
+    if(max(print)>=1){
+        cat("\tPlanned contrast: \n")
+        contrast.print <- contrast
+        rownames(contrast.print) <- paste0("   ",rownames(contrast.print))
+        print(contrast.print[,colSums(abs(contrast))>0,drop=FALSE])
+        cat("\n")
+    }
+
+
+
+    if(print[1]==0){
+        if(NROW(object$univariate)==1){
+            cat("\tUnivariate Wald test: \n")
+        }else if(NROW(object$univariate)>1){
+            cat("\tUnivariate Wald tests: \n")
+        }
+        out <- summary.Wald_lmm(object, print = c(0,0.4), columns = columns, ...)
+        if(!is.null(reference.txt)){
+            cat(reference.txt)
+        }
+        cat("\n")
+    }else{
+        if(!is.null(reference.txt)){
+            attr(print,"message") <- reference
+        }
+        out <- summary.Wald_lmm(object, print = print, columns = columns, ...)
+    }
+
+    ## ** export
+    return(invisible(contrast))
 }
 
 ## * summary.mlmm (documentation)

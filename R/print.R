@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: maj 17 2024 (17:01) 
+## Last-Updated: jun 27 2024 (15:31) 
 ##           By: Brice Ozenne
-##     Update #: 254
+##     Update #: 262
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -114,9 +114,17 @@ print.lmm <- function(x, ...){
                      cbind(Ctxt.var,": ",paste(value.var, collapse="/")))
 
     ## ** dataset
-    M.print <- rbind(M.print,
-                     cbind("data",": ",paste(nobs["obs"], " observations from ", nobs["cluster"], " clusters",sep="")))
-
+    if(length(param.rho) == 0){
+        if(x$time$n==1){
+            M.print <- rbind(M.print, cbind("data",": ",paste(nobs["obs"], " observations",sep="")))
+        }else{
+            M.print <- rbind(M.print, cbind("data",": ",paste(nobs["obs"], " observations measured at ",x$time$n," occasions",sep="")))
+        }
+    }else{
+        M.print <- rbind(M.print,
+                         cbind("data",": ",paste(nobs["obs"], " observations from ", nobs["cluster"], " clusters measured at ",x$time$n," occasions",sep="")))
+    }
+    
     ## ** parameters
     ls.printparam <- list(c("parameter",": "),
                           c("","  "),
@@ -270,7 +278,12 @@ print.LRT_lmm <- function(x, ...){
 print.effect_lmm <- function(x, ...){
     dots <- list(...)
     dots$print <- c(0,0.5)
-    return(do.call(summary, c(list(object = x, columns = remove("n"), legend = FALSE), dots)))
+    if(x$args$type=="outcome"){
+        columns <- c("estimate","se","df","lower","upper")
+    }else{
+        columns <- c("estimate","se","df","lower","upper","p.value")
+    }
+    return(do.call(summary, c(list(object = x, columns = columns, legend = FALSE), dots)))
 }
 
 

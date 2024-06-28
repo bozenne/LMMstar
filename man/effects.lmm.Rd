@@ -7,11 +7,14 @@
 \method{effects}{lmm}(
   object,
   variable,
-  newdata = NULL,
-  type = c("identity", "none"),
-  conditional = NULL,
-  rhs = NULL,
+  effects = "identity",
+  type = "outcome",
   repetition = NULL,
+  conditional = NULL,
+  ref.repetition = 1,
+  ref.variable = 1,
+  newdata = NULL,
+  rhs = NULL,
   multivariate = FALSE,
   prefix.time = NULL,
   prefix.var = TRUE,
@@ -22,22 +25,33 @@
 \arguments{
 \item{object}{a \code{lmm} object.}
 
-\item{variable}{[character] the variable relative to which the effect should be computed.}
+\item{variable}{[character/list] exposure variable relative to which the effect should be computed.
+Can also be a list with two elements: the first being the variable (i.e. a character) and the second the levels or values for this variable to be considered.}
 
-\item{newdata}{[data.frame] a dataset reflecting the covariate distribution relative to which the average outcome or contrast should be computed.}
+\item{effects}{[character] should the average counterfactual outcome for each variable level be evaluated (\code{"identity"})?
+Or the difference in average counterfactual outcome between each pair of variable level (\code{"difference"})?}
 
-\item{type}{[character] should the average counterfactual outcome for each variable level be evaluated (\code{"identity"})?
-Or the difference in average counterfactual outcome between each pair of  variable level (\code{"difference"})?
-Can have an second element to consider a transformation of the outcome:
-the change from baseline (\code{"change"}),
+\item{type}{[character/numeric vector] Possible transformation of the outcome: no transformation (\code{"outcome"}),
+change from baseline (\code{"change"}),
 area under the outcome curve (\code{"auc"}),
-or area under the outcome curve minus baseline (\code{"auc-b"}).}
+or area under the outcome curve minus baseline (\code{"auc-b"}).
+Alternatively can be a numeric vector indicating how to weight each timepoint.}
+
+\item{repetition}{[character vector] repetition at which the effect should be assessed. By default it will be assessed at all repetitions.}
 
 \item{conditional}{[character] variable conditional to which the average conterfactual outcome or treatment effect should be computed.}
 
-\item{rhs}{[numeric] the right hand side of the hypothesis.}
+\item{ref.repetition}{[numeric or character] index or value of the reference level for the repetition variable.
+Only relevant when \code{type} equal to \code{"change"}.
+Can be \code{NA} to evaluate change relative to all possible reference levels.}
 
-\item{repetition}{[character vector] repetition at which the effect should be assessed. By default it will be assessed at all repetitions.}
+\item{ref.variable}{[numeric or character] index or value of the reference level for the exposure variable.
+Only relevant when \code{effects} equal to \code{"difference"}.
+Can be \code{NA} to evaluate the difference relative to all possible reference levels.}
+
+\item{newdata}{[data.frame] a dataset reflecting the covariate distribution relative to which the average outcome or contrast should be computed.}
+
+\item{rhs}{[numeric] the right hand side of the hypothesis.}
 
 \item{multivariate}{[logical] should a multivariate Wald test be used to simultaneously test all null hypotheses.}
 
@@ -65,17 +79,18 @@ eUN.lmm <- lmm(Y ~ visit + X1 + X2 + X5,
 
 ## outcome
 effects(eUN.lmm, variable = "X1")
-effects(eUN.lmm, type = "difference", variable = "X1")
-effects(eUN.lmm, type = "difference", variable = "X1", repetition = "3")
+effects(eUN.lmm, effects = "difference", variable = "X1")
+effects(eUN.lmm, effects = "difference", variable = "X1", repetition = "3")
 
 ## change
 effects(eUN.lmm, type = "change", variable = "X1")
+effects(eUN.lmm, type = "change", variable = "X1", ref.repetition = 2)
 effects(eUN.lmm, type = "change", variable = "X1", conditional = NULL)
-effects(eUN.lmm, type = c("change","difference"), variable = "X1")
+effects(eUN.lmm, type = "change", effects = "difference", variable = "X1")
 
 ## auc
 effects(eUN.lmm, type = "auc", variable = "X1")
-effects(eUN.lmm, type = c("auc","difference"), variable = "X1")
+effects(eUN.lmm, type = "auc", effects = "difference", variable = "X1")
 
 #### fit Linear Mixed Model with interaction ####
 dL$X1.factor <- as.factor(dL$X1)
@@ -85,24 +100,23 @@ eUN.lmmI <- lmm(Y ~ visit * X1.factor + X2.factor + X5,
 
 ## average counterfactual conditional to a categorical covariate
 effects(eUN.lmmI, variable = "X1.factor",
-        conditional = c("X2.factor"), repetition = "3")
+        conditional = "X2.factor", repetition = "3")
 effects(eUN.lmmI, type = "change", variable = "X1.factor",
-        conditional = c("X2.factor"), repetition = "3")
-effects(eUN.lmmI, type = "auc", variable = "X1.factor",
-        conditional = c("X2.factor"), repetition = "3")
+        conditional = "X2.factor", repetition = "3")
+effects(eUN.lmmI, type = "auc", variable = "X1.factor", conditional = "X2.factor")
 
 ## average difference in counterfactual conditional to a categorical covariate
-effects(eUN.lmmI, type = "difference", variable = "X1.factor",
+effects(eUN.lmmI, effects = "difference", variable = "X1.factor",
         conditional = c("X2.factor"), repetition = "3")
-effects(eUN.lmmI, type = c("change","difference"), variable = "X1.factor",
+effects(eUN.lmmI, effects = "difference", type = "change", variable = "X1.factor",
         conditional = c("X2.factor"), repetition = "3")
-effects(eUN.lmmI, type = c("auc","difference"), variable = "X1.factor",
-        conditional = c("X2.factor"), repetition = "3")
+effects(eUN.lmmI, effects = "difference", type = "auc", variable = "X1.factor",
+        conditional = "X2.factor")
 
 ## average difference in counterfactual conditional to a covariate
-effects(eUN.lmmI, type = "difference", variable = "X1.factor",
+effects(eUN.lmmI, effect = "difference", variable = "X1.factor",
         conditional = list(X5=0:2), repetition = "3")
-effects(eUN.lmmI, type = c("difference","change"), variable = "X1.factor",
+effects(eUN.lmmI, effect = "difference", type = "change", variable = "X1.factor",
         conditional = list(X5=0:2))
 }
 \keyword{htest}

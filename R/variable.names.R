@@ -1,11 +1,11 @@
-### manifest.R --- 
+### variable.names.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (15:05) 
 ## Version: 
-## Last-Updated: Mar 27 2024 (12:22) 
+## Last-Updated: jun 27 2024 (11:40) 
 ##           By: Brice Ozenne
-##     Update #: 93
+##     Update #: 98
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,11 +15,11 @@
 ## 
 ### Code:
 
-## * manifest (documentation)
+## * variable.names (documentation)
 ##' @title Variables Involved in a Linear Mixed Model
 ##' @description Extract the variables used by the linear mixed model.
 ##'
-##' @param x a \code{lmm} object.
+##' @param object a \code{lmm} object.
 ##' @param effects [character] Should all variable be output (\code{"all"}),
 ##' or only those related to the outcome (\code{"outcome"}), mean (\code{"mean"}), variance (\code{"variance"}),
 ##' correlation (\code{"correlation"}), time (\code{"time"}), cluster (\code{"cluster"}), strata (\code{"strata"})?
@@ -32,21 +32,21 @@
 ##' 
 ##' @keywords methods
 
-## * manifest.lmm 
+## * variable.names.lmm 
 ##' @export
-manifest.lmm <- function(x, effects = "all", original = TRUE, simplify = TRUE, ...){
+variable.names.lmm <- function(object, effects = "all", original = TRUE, simplify = TRUE, ...){
 
     ## ** extract variables
-    var.outcome <- x$outcome$var
-    var.cluster <- x$cluster$var
-    var.time <- x$time$var
-    var.strata <- x$strata$var
-    n.time <- x$time$n
+    var.outcome <- object$outcome$var
+    var.cluster <- object$cluster$var
+    var.time <- object$time$var
+    var.strata <- object$strata$var
+    n.time <- object$time$n
 
     ls.out <- list(outcome = var.outcome,
-                   mean = attr(x$design$mean, "variable"),
-                   variance = all.vars(x$design$vcov$formula$var),
-                   correlation = all.vars(x$design$vcov$formula$cor),
+                   mean = attr(object$design$mean, "variable"),
+                   variance = all.vars(object$design$vcov$formula$var),
+                   correlation = all.vars(object$design$vcov$formula$cor),
                    time = var.time,
                    cluster = var.cluster,
                    strata = var.strata)
@@ -63,11 +63,11 @@ manifest.lmm <- function(x, effects = "all", original = TRUE, simplify = TRUE, .
     if("mean.type" %in% effects){
         ## hidden: no returned by effects = "all" to save computation time
         ## only internal function need effects="mean.type" (predict,model.frame) for reshaping data
-        n.time <- x$time$n
+        n.time <- object$time$n
         vars.time <- stats::na.omit(unique(c(var.time,attr(var.time,"original"))))
         vars.cluster <- stats::na.omit(unique(c(var.cluster,attr(var.cluster,"original"))))
         vars.mean_notime <- ls.out$mean
-        data <- x$data
+        data <- object$data
 
         ls.out$mean.type <- stats::setNames(rep("baseline", length(ls.out$mean)), ls.out$mean)
         if(length(vars.mean_notime)>0){
@@ -82,8 +82,8 @@ manifest.lmm <- function(x, effects = "all", original = TRUE, simplify = TRUE, .
                     iOut <- all(colSums(iTable>0)==1) ## no time value leading to two different covariate values
                     if(iOut){ ## explicit the transformation
                         iIndex.level <- apply(iTable>0, MARGIN = 2, FUN = which)
-                        if(iVar %in% names(x$xfactor$mean)){
-                            attr(iOut,"table") <- x$xfactor$mean[[iVar]][iIndex.level]
+                        if(iVar %in% names(object$xfactor$mean)){
+                            attr(iOut,"table") <- object$xfactor$mean[[iVar]][iIndex.level]
                         }else{
                             attr(iOut,"table") <- unique(data[[iVar]])[iIndex.level]
                         }                        
@@ -131,18 +131,18 @@ manifest.lmm <- function(x, effects = "all", original = TRUE, simplify = TRUE, .
 
 ## * manifest.mlmm 
 ##' @export
-manifest.mlmm <- function(x, ...){
-    ls.manifest <- lapply(x$model, manifest)
+variable.names.mlmm <- function(object, ...){
+    ls.manifest <- lapply(object$model, manifest, ...)
 
     if(any(sapply(ls.manifest,identical,ls.manifest[[1]])==FALSE)){
         stop("Difference in manifest variables between the LMM. \n",
              "Cannot provide a single output for all models.")
     }
-    out <- union(ls.manifest[[1]], x$object$by)
-    attributes(out) <- c(attributes(ls.manifest[[1]]), list(by = x$object$by))
+    out <- union(ls.manifest[[1]], object$object$by)
+    attributes(out) <- c(attributes(ls.manifest[[1]]), list(by = object$object$by))
     return(out)
 }
 
 
 ##----------------------------------------------------------------------
-### manifest.R ends here
+### variable.names.R ends here

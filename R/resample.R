@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: maj  7 2024 (10:11) 
+## Last-Updated: jun 28 2024 (09:59) 
 ##           By: Brice Ozenne
-##     Update #: 624
+##     Update #: 632
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -140,8 +140,10 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 
         index.keepcoef <- which(colSums(M.factor[effects,,drop=FALSE]!=0)>0)
         name.keepcoef <- names(index.keepcoef)
-        if(!is.null(manifest(object, effects = "variance")) & !is.null(manifest(object, effects = "correlation"))){
-            effects.vcov <- any(effects %in% union(manifest(object, effects = "variance"),manifest(object, effects = "correlation")))
+        ls.variableName <- list(variance = stats::variable.names(object, effects = "variance"),
+                                correlation = stats::variable.names(object, effects = "correlation"))
+        if(!is.null(ls.variableName$variance) & !is.null(ls.variableName$correlation)){
+            effects.vcov <- any(effects %in% union(ls.variableName$variance, ls.variableName$correlation))
         }else{
             effects.vcov <- FALSE
         }
@@ -248,8 +250,8 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
     }
     precompute.moments <- !is.null(object$design$precompute.XX)
   
-    var.all <- manifest(object, effects = "all")
-    var.mean <- manifest(object, effects = "mean")
+    var.all <- stats::variable.names(object, effects = "all")
+    var.mean <- stats::variable.names(object, effects = "mean")
     XX.all <- c("XXindexXX", "XXclusterXX", "XXcluster.indexXX", "XXtimeXX", "XXtime.indexXX", "XXstrataXX", "XXstrata.indexXX")
 
     var.weights <- object$weights$var

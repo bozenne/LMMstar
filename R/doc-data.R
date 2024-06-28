@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: maj 17 2024 (11:33) 
+## Last-Updated: jun 21 2024 (14:59) 
 ##           By: Brice Ozenne
-##     Update #: 125
+##     Update #: 148
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -277,6 +277,11 @@ NULL
 #' @keywords datasets
 NULL
 
+## data("ckdL", package = "LMMstar")
+## ckdL$visit <- as.factor(ckdL$visit)
+## ckdL$time <- as.numeric(as.character(ckdL$time))
+## save(ckdL, file = "data/ckdL.rda")
+
 ## * gastricbypass
 ## ** gastricbypassW
 #' @title Data From The Gastric Bypass Study (Wide Format)
@@ -414,6 +419,63 @@ NULL
 ##
 ## str(ncgsL)
 
+## * onycholysis
+## ** onycholysisW
+#' @title Data From The toenail onycholysis Study (Wide Format)
+#' @name onycholysisW
+#' @rdname data-onycholysisW
+#'
+#' @description  Data from the toenail onychomycosis study,
+#' a randomized double-blind comparative study comparing Terbinafine (250 mg/day) against Itraconazole (200 mg/day) over 7 weeks.
+#' This dataset is in the wide format (i.e. one line per patient).
+#'
+#' \itemize{
+#' \item \code{id}: patient identifier.
+#' \item \code{group}: treatment arm to which the patient has been randomized.
+#' \item \code{response1},...,\code{response7}: degree of onycholysis (separation of the nail plate from the nail-bed). Can be 0 for none or mild, 1 for moderate or severe.
+#' \item \code{time1},...,\code{time7}: time elapsed between baseline and the measurement (in months).
+#' }
+#' 
+#' @docType data
+#' @usage data(onycholysisW)
+#' @references De Backer et al. Twelve weeks of continuous oral therapy for toenail onychomycosis caused by dermatophytes: A double-blind comparative trial of terbinafine 250 mg/day versus itraconazole 200 mg/day,  Journal of the American Academy of Dermatology, (2020) 110. doi: 10.1016/s0190-9622(98)70486-4
+#' @keywords datasets
+NULL
+
+## data(onycholysisW)
+## onycholysisL <- reshape(onycholysisW, direction = "long", idvar = "id", varying = list(paste0("response",1:7),paste0("time",1:7)), v.names = c("response","obstime"), times = c(0,4,8,12,24,36,48))
+## onycholysisL$treatment <- factor(onycholysisL$group, levels = c("none",levels(onycholysisL$group)))
+## onycholysisL$treatment[onycholysisL$time==0] <- "none"
+## onycholysisL$visit <- as.factor(as.numeric(as.factor(onycholysisL$time)))
+## rownames(onycholysisL) <- NULL
+## onycholysisL <- onycholysisL[,c("id","group","treatment","visit","time","obstime","response")]
+## save(onycholysisL, file = "data/onycholysisL.rda")
+
+## ** onycholysisL
+#' @title Data From The toenail onycholysis Study (Long Format)
+#' @name onycholysisL
+#' @rdname data-onycholysisL
+#'
+#' @description  Data from the toenail onychomycosis study,
+#' a randomized double-blind comparative study comparing Terbinafine (250 mg/day) against Itraconazole (200 mg/day) over 7 weeks.
+#' This dataset is in the long format (i.e. one line per measurement).
+#'
+#' \itemize{
+#' \item \code{id}: patient identifier.
+#' \item \code{group}: treatment arm to which the patient has been randomized (\code{"itraconazole"} or \code{"terbinafine"}).
+#' \item \code{treatment}: treatment recieved by the patient at a given timepoint (\code{"none"}, \code{"itraconazole"}, or \code{"terbinafine"}).
+#' \item \code{visit}: index of time at which the measurement was taken (\code{1} to \code{7}).
+#' \item \code{time}: scheduled time, in months, for each measurement (\code{0}, \code{4}, \code{8}, \code{12}, \code{24}, \code{36}, \code{48}).
+#' \item \code{obstime}: time, in months, at which the measurement was taken (numeric between \code{0} and \code{18.5}).
+#' \item \code{response}: degree of onycholysis (separation of the nail plate from the nail-bed). Can be 0 for none or mild, 1 for moderate or severe.
+#' }
+#' 
+#' @docType data
+#' @usage data(onycholysisL)
+#' @references De Backer et al. Twelve weeks of continuous oral therapy for toenail onychomycosis caused by dermatophytes: A double-blind comparative trial of terbinafine 250 mg/day versus itraconazole 200 mg/day,  Journal of the American Academy of Dermatology, (2020) 110. doi: 10.1016/s0190-9622(98)70486-4
+#' @keywords datasets
+NULL
+
 ## * potassium
 ## ** potassiumSingleW
 #' @title Data From The Potassium Intake Study (Wide Format)
@@ -439,7 +501,7 @@ NULL
 #' @docType data
 #' @usage data(potassiumSingleW)
 #' @references Dreier et al. Effect of increased potassium intake on the reninangiotensinaldosterone system and subcutaneous resistance arteries: a randomized crossover study,
-#' Nephrol Dial Transplant (2020) 110. doi: 10.1093/ndt/gfaa114
+#' Nephrol Dial Transplant (1998) 110. doi: 10.1093/ndt/gfaa114
 #' @keywords datasets
 NULL
 

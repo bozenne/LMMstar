@@ -26,6 +26,6 @@ This dataset is in the wide format (i.e. one line per patient).
 }
 \references{
 Dreier et al. Effect of increased potassium intake on the reninangiotensinaldosterone system and subcutaneous resistance arteries: a randomized crossover study,
-Nephrol Dial Transplant (2020) 110. doi: 10.1093/ndt/gfaa114
+Nephrol Dial Transplant (1998) 110. doi: 10.1093/ndt/gfaa114
 }
 \keyword{datasets}

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: May 12 2024 (18:25) 
+## Last-Updated: jun 28 2024 (09:41) 
 ##           By: Brice Ozenne
-##     Update #: 3159
+##     Update #: 3164
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -86,7 +86,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
         }
 
         ## *** detect missing values
-        var.manifest <- lava::manifest(object)
+        var.manifest <- stats::variable.names(object)
         var.cluster <- attr(object$cluster$var,"original")
         var.time <- attr(object$time$var,"original")
         var.manifest.newdata <- intersect(names(newdata),var.manifest)
@@ -758,6 +758,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
         attr(X,"contrasts") <- attr(X.old,"contrasts")
         attr(X,"variable") <- attr(X.old,"variable")
         if(augmodel || X.qr$rank!=NCOL(X.qr$qr)){
+            attr(X,"original.colnames") <- colnames(X.old)
             attr(X,"formula") <- attr(X.old,"formula")
             attr(X,"term.labels") <- attr(X.old,"term.labels")[test.keep]
             attr(X,"order") <- attr(X.old,"order")[test.keep]
@@ -791,6 +792,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
             attr(X,"contrast") <- keep.attr$contrasts
             attr(X,"variable") <- keep.attr$variable
             if(augmodel){
+                attr(X,"original.colnames") <- keep.attr$original.colnames
                 attr(X,"formula") <- keep.attr$formula
                 attr(X,"term.labels") <- keep.attr$term.labels[iIndex]
                 attr(X,"order") <- keep.attr$order[iIndex]
@@ -804,6 +806,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
         message("Design matrix for the ",type," structure is singular. \n",
                 "Coefficient",if(length(rmX)>1){"s"}," \"",paste(rmX, collapse = "\" \""),"\" has been removed. \n")
     } else if(!augmodel){
+        attr(X,"original.colnames") <- NULL
         attr(X,"formula") <- NULL
         attr(X,"term.labels") <- NULL
         attr(X,"order") <- NULL

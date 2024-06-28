@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: May 12 2024 (14:53) 
+## Last-Updated: jun 27 2024 (11:45) 
 ##           By: Brice Ozenne
-##     Update #: 1382
+##     Update #: 1385
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -264,7 +264,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         index.na <- object$index.na
     }else{
         ## rm.na
-        object.manifest <- lava::manifest(object)
+        object.manifest <- stats::variable.names(object)
         df.newdata <- as.data.frame(newdata)
         index.NNA <- which(rowSums(is.na(df.newdata[intersect(names(df.newdata),object.manifest)]))==0)
 
@@ -344,7 +344,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
             design.reference[,"(Intercept)"] <- 0
         }
     }else{
-        object.manifest <- lava::manifest(object)
+        object.manifest <- stats::variable.names(object)
         outcome.var <- attr(object.manifest,"outcome")
 
         if(is.null(newdata)){
@@ -688,7 +688,7 @@ residuals.mlmm <- function(object, simplify = TRUE, ...){
     if(test.2D){
         out <- do.call(rbind,ls.out)
         if(simplify && is.data.frame(out)){
-            object.manifest <- manifest(object)
+            object.manifest <- stats::variable.names(object)
             rm.manifest <- attributes(object.manifest)[setdiff(names(attributes(object.manifest)),c("by","cluster","time"))]
             out[unique(unlist(rm.manifest))] <- NULL
         }
