@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: maj  7 2024 (10:11) 
+## Last-Updated: Jul  1 2024 (12:27) 
 ##           By: Brice Ozenne
-##     Update #: 624
+##     Update #: 691
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -140,6 +140,13 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 
         index.keepcoef <- which(colSums(M.factor[effects,,drop=FALSE]!=0)>0)
         name.keepcoef <- names(index.keepcoef)
+        if(any(name.keepcoef %in% c("seed","sample","convergence"))){
+            stop("The exported coefficient(s) should not be named \"",paste(c("seed","sample","convergence")[c("seed","sample","convergence") %in% name.keepcoef], collapse = "\" \""),"\". \n",
+                 "This name is reserved for internally use and storage of the results. \n")
+        }
+        if(any(name.keepcoef %in% paste0("se.",name.keepcoef))){
+            stop("The exported coefficient(s) should not be named with the prefix \".se\" at it will be used internally to store the standard errors. \n")
+        }
         if(!is.null(manifest(object, effects = "variance")) & !is.null(manifest(object, effects = "correlation"))){
             effects.vcov <- any(effects %in% union(manifest(object, effects = "variance"),manifest(object, effects = "correlation")))
         }else{
@@ -294,6 +301,44 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
         OmegaChol0 <- lapply(stats::sigma(object0, chol = TRUE, cluster = as.character(vec.Uid)), FUN = base::t)
     }
 
+    ## *** seed
+    if(!is.null(seed)){
+
+        if(length(seed)!=1 && length(seed) != n.sample){
+         
+            stop("Incorrect length for argumnet \'seed\': should either have length 1 or the number of simulations (here ",n.sample,"). \n",
+                 "Current length: ",length(seed),". \n")
+
+        }else if(length(seed)==n.sample){
+
+            test.seed <- TRUE
+            seqSeed <- seed
+
+        }else if(length(seed)==1){
+
+            tol.seed <- 10^(floor(log10(.Machine$integer.max))-1)
+            if(n.sample>tol.seed){
+                stop("Cannot set a seed per simulation when considering more than ",tol.seed," similations. \n")
+            }
+            set.seed(seed)
+            test.seed <- TRUE
+            seqSeed <- sample.int(tol.seed, n.sample,  replace = FALSE)
+
+        }
+
+        if(!is.null(get0(".Random.seed"))){ ## avoid error when .Random.seed do not exists, e.g. fresh R session with no call to RNG
+            old <- .Random.seed # to save the current seed
+            on.exit(try(.Random.seed <<- old, silent = TRUE)) # restore the current seed (before the call to the function)
+        }else{
+            on.exit(rm(.Random.seed, envir=.GlobalEnv))
+        }
+            
+    }else{
+        test.seed <- FALSE
+        seqSeed <- NULL
+    }
+
+
     ## ** function
     warperResample <- function(iSample){
 
@@ -441,16 +486,16 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
             return(iEstimate)
         }else if(!studentized){
             if(effects.fct){
-                return(c(iEstimate$cv, effects(iEstimate$estimate)))
+                return(c(convergence = iEstimate$cv, effects(iEstimate$estimate)))
             }else{
-                return(c(iEstimate$cv, iEstimate$estimate[name.keepcoef]))
+                return(c(convergence = iEstimate$cv, iEstimate$estimate[name.keepcoef]))
             }
         }else if(studentized){
             if(effects.fct){
                 iRes <- effects(iEstimate$estimate, iVcov)
-                return(c(iEstimate$cv, iRes[1,], se = iRes[2,]))
+                return(c(convergence = iEstimate$cv, iRes[1,], se = iRes[2,]))
             }else{
-                c(iEstimate$cv, iEstimate$estimate[name.keepcoef], se = sqrt(diag(iVcov)[name.keepcoef]))
+                return(c(convergence = iEstimate$cv, iEstimate$estimate[name.keepcoef], se = sqrt(diag(iVcov)[name.keepcoef])))
             }
         }
 
@@ -483,156 +528,177 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
         }
     }
     
-    if(!is.null(seed)){
-        tol.seed <- 10^(floor(log10(.Machine$integer.max))-1)
-        if(n.sample>tol.seed){
-            stop("Cannot set a seed per simulation when considering more than ",tol.seed," similations. \n")
-        }
-        if(!is.null(get0(".Random.seed"))){ ## avoid error when .Random.seed do not exists, e.g. fresh R session with no call to RNG
-            old <- .Random.seed # to save the current seed
-            on.exit(.Random.seed <<- old) # restore the current seed (before the call to the function)
-        }else{
-            on.exit(rm(.Random.seed, envir=.GlobalEnv))
-        }
-        set.seed(seed)
-        test.seed <- TRUE
-        seqSeed <- sample.int(tol.seed, n.sample,  replace = FALSE)        
-    }else{
-        test.seed <- FALSE
-        seqSeed <- NULL
-    }
-
+    
     if(cpus==1){
         if (trace > 0 & requireNamespace("pbapply")) {
             method.loop <- pbapply::pblapply
         }else{
             method.loop <- lapply
         }
-    }else if(cpus>1){
-        cl <- parallel::makeCluster(cpus)
-        ## link to foreach
-        doParallel::registerDoParallel(cl)
-        ## export from user
-        if(!is.null(export.cpus)){
-            parallel::clusterExport(cl, export.cpus)
-        } 
-        ## export seed 
-        if (test.seed) {
-            parallel::clusterExport(cl, varlist = "seqSeed", envir = environment())
-        }
-        ## export BuyseTest 
-        fct2export <- c(".estimate",".precomputeXR",".precomputeXX",".extractIndexData",".model.matrix.lmm",".lmmNormalizeData",".moments.lmm")
-        parallel::clusterExport(cl = cl, varlist = fct2export, envir = as.environment(asNamespace("LMMstar")))
-        
-    }
-
-    if (cpus == 1) {
         ls.sample <- do.call(method.loop,
                              args = list(X = 1:n.sample,
                                          FUN = function(iX){
                                              if(test.seed){set.seed(seqSeed[iX])}
                                              iOut <- warperResample(iX)
-                                             return(iOut)
+                                             if(!is.null(seed)){
+                                                 return(c(sample = iX, seed = seqSeed[iX],iOut))
+                                             }else{
+                                                 return(c(sample = iX, iOut))
+                                             }
                                          })
                              )
-    }else if(cpus > 1){
+    }else if(cpus>1){
+        ## split into a 100 jobs
+        split.resampling <- parallel::splitIndices(nx = n.sample, ncl = min(max(100,10*cpus), n.sample))
+        nsplit.resampling <- length(split.resampling)
+
+        ## define cluster
+        if(trace>1){
+            ## display all output from each core
+            cl <- parallel::makeCluster(cpus, outfile = "")
+        }else{
+            cl <- parallel::makeCluster(cpus)
+        }
+
+        ## progress bar
         if(trace>0){
-            pb <- utils::txtProgressBar(max = n.sample, style = 3)          
+            pb <- utils::txtProgressBar(max = nsplit.resampling, style = 3)          
             progress <- function(n){utils::setTxtProgressBar(pb, n)}
             opts <- list(progress = progress)
         }else{
             opts <- list()
         }
 
-        iX <- NULL ## [:forCRANcheck:] foreach        
-        ls.sample <- foreach::`%dopar%`(
-                                  foreach::foreach(iX=1:n.sample, .options.snow = opts, .packages = c("LMMstar","nlme")), {
-                                      if(test.seed){set.seed(seqSeed[iX])}
-                                      iOut <- warperResample(iX)
-                                      return(iOut)
-                                  })
+        ## link to foreach
+        doSNOW::registerDoSNOW(cl)
+        ## to export from current environment and private functions from the package
+        LMMstar.fct <- ls(asNamespace("LMMstar"), all.names = TRUE)
+
+        toExport <- c("addLeading0",".augmodel.matrix",
+                      grep("^collapse",LMMstar.fct, value = TRUE),
+                      ".estimate",".extractIndexData",
+                      grep("^\\.findUpatterns",LMMstar.fct, value = TRUE),
+                      ".model.matrix.lmm",".model.matrix_regularize",".lmmNormalizeData",".moments.lmm",
+                      ".precomputeXR",".precomputeXX",
+                      grep("^\\.skeleton",LMMstar.fct, value = TRUE),
+                      "unorderedPairs",
+                      ".vcov.matrix.lmm")
+        if(!is.null(export.cpus)){
+            toExport <- c(toExport, "export.cpus")
+        } 
+
+        ## run
+        iBlock <- NULL ## [:forCRANcheck:] foreach        a
+        ls2.sample <- foreach::`%dopar%`(
+                                   foreach::foreach(iBlock=1:nsplit.resampling,
+                                                    .export = toExport,
+                                                    .packages = c("LMMstar","nlme"),
+                                                    .options.snow = opts), {
+
+                                                       iOut <- lapply(split.resampling[[iBlock]], function(iSplit){
+                                                           if(!is.null(seed)){set.seed(seqSeed[iSplit])}
+                                                           iOut <- warperResample(iSplit)                                                       
+                                                           if(!is.null(seed) && !inherits(iOut,"try-error")){
+                                                               return(c(sample = iSplit, seed = seqSeed[iSplit],iOut))
+                                                           }else{
+                                                               return(c(sample = iSplit, iOut))
+                                                           }
+                                                       })
+
+                                                   })
         if(trace>0){close(pb)}
         parallel::stopCluster(cl)
+
+        ## collect
+        ls.sample <- do.call("c",ls2.sample)
     }
 
 
     ## ** post-process
-    M.sample <- do.call(rbind,ls.sample[sapply(ls.sample, inherits, "try-error")==FALSE])
-    Mcv.sample <- M.sample[M.sample[,1]==1,-1,drop=FALSE]
-    ncv.sample <- NROW(Mcv.sample)
-
-    if(studentized){
-        Mcv.sample.se <- Mcv.sample[,(length(name.keepcoef)+1):(2*length(name.keepcoef)),drop=FALSE]
-        Mcv.sample <- Mcv.sample[,1:length(name.keepcoef),drop=FALSE]
-    }
+    index.noerror <- which(sapply(ls.sample, inherits, "try-error")==FALSE)
+    M.sample <- do.call(rbind,ls.sample[index.noerror])
     
-    out <- as.data.frame(matrix(NA, nrow = length(name.keepcoef), ncol = 6,
-                                dimnames = list(name.keepcoef, c("estimate","se","df","lower","upper","p.value"))))
+    out <- list(call = match.call(),
+                args = list(type = type, effects = effects, n.sample = n.sample, studentized = studentized, seed = seed))
+    
     if(effects.fct){
+        browser()
+        out$estimate <- effects.estimate[1]
         if(studentized){
-            out$estimate <- effects.estimate[1,]
-            out$se <- effects.estimate[2,]
-        }else{
-            out$estimate <- effects.estimate
+            out$se <- effects.estimate[2]
         }
     }else{
-        out$estimate <- as.double(value.meancoef[name.keepcoef])
-        if(studentized){
-            out$se <- as.double(sd.meancoef[name.keepcoef])
-        }
+        out$estimate <- value.meancoef[name.keepcoef]
+        out$se <- sd.meancoef[name.keepcoef]
+    }
+
+    out$sample.estimate <- matrix(NA, nrow = n.sample, ncol = length(name.keepcoef),
+                                  dimnames = list(NULL,name.keepcoef))
+    out$sample.estimate[M.sample[,"sample"],] <- M.sample[,name.keepcoef,drop=FALSE]
+
+    if(studentized){
+        out$sample.se <- matrix(NA, nrow = n.sample, ncol = length(name.keepcoef),
+                                dimnames = list(NULL,name.keepcoef))
+        out$sample.se[M.sample[,"sample"],] <- M.sample[,paste0("se.",name.keepcoef),drop=FALSE]
+    }
+
+    out$cv <- rep(FALSE, length = n.sample)
+    out$cv[M.sample[,"sample"]] <- out$cv[M.sample[,"convergence"]]
+
+    if(!is.null(seqSeed)){
+        out$seed <- seqSeed
     }
     
-    if(type %in% c("perm-var","perm-res") ){
     
-        if(studentized){
-            Mcv.estimate <- matrix(value.meancoef[name.keepcoef]/sd.meancoef[name.keepcoef], nrow = ncv.sample, ncol = length(name.keepcoef), byrow = TRUE,
-                                   dimnames = list(NULL,name.keepcoef))
-            Mcv.sample.Wald <- Mcv.sample/Mcv.sample.se
-
-            out$p.value <- (colSums(abs(Mcv.sample.Wald) > abs(Mcv.estimate), na.rm = TRUE)+correction)/(colSums(!is.na(Mcv.sample.Wald))+correction)
-        }else{
-            Mcv.estimate <- matrix(value.meancoef[name.keepcoef], nrow = ncv.sample, ncol = length(name.keepcoef), byrow = TRUE,
-                                   dimnames = list(NULL,name.keepcoef))
-
-            out$p.value <- (colSums(abs(Mcv.sample) > abs(Mcv.estimate), na.rm = TRUE)+correction)/(colSums(!is.na(Mcv.sample))+correction)
-        }
-    }else if(type == "boot"){
-
-        if(studentized){
-            Mcv.sample.Wald0 <- sweep(Mcv.sample, MARGIN = 2, FUN = "-", STATS = out$estimate)/Mcv.sample.se  ## center around the null
-            out$lower <- out$estimate + out$se * apply(Mcv.sample.Wald0, MARGIN = 2, FUN = stats::quantile, probs = alpha/2, na.rm = TRUE)
-            out$upper <- out$estimate + out$se * apply(Mcv.sample.Wald0, MARGIN = 2, FUN = stats::quantile, probs = 1-alpha/2, na.rm = TRUE)
-            out$p.value <- sapply(name.keepcoef, function(iName){
-                boot2pvalue(stats::na.omit(out[iName,"estimate"] + out[iName,"se"] * Mcv.sample.Wald0[,iName]),
-                            null = 0,
-                            estimate = out[iName,"estimate"],
-                            alternative = "two.sided",
-                            add.1 = correction)
-            })
-            
-        }else{
-            out$se <- apply(Mcv.sample, MARGIN = 2, FUN = stats::sd, na.rm = TRUE)
-            out$lower <- apply(Mcv.sample, MARGIN = 2, FUN = stats::quantile, probs = alpha/2, na.rm = TRUE)
-            out$upper <- apply(Mcv.sample, MARGIN = 2, FUN = stats::quantile, probs = 1-alpha/2, na.rm = TRUE)
-            out$p.value <- sapply(name.keepcoef, function(iName){
-                boot2pvalue(stats::na.omit(Mcv.sample[,iName]),
-                            null = 0,
-                            estimate = out[iName,"estimate"],
-                            alternative = "two.sided",
-                            add.1 = correction)
-            })
-        }
-    }
 
     ## ** export
-    attr(out,"call") <- match.call()
-    attr(out,"args") <- list(type = type, effects = effects, n.sample = n.sample, studentized = studentized, seed = seqSeed)
-    attr(out,"M.sample") <- M.sample
-    attr(out,"n.sample") <- n.sample
     class(out) <- append("resample",class(out))
     return(out)
-
 }
+
+    ## if(type %in% c("perm-var","perm-res") ){
+    
+    ##     if(studentized){
+    ##         Mcv.estimate <- matrix(value.meancoef[name.keepcoef]/sd.meancoef[name.keepcoef], nrow = ncv.sample, ncol = length(name.keepcoef), byrow = TRUE,
+    ##                                dimnames = list(NULL,name.keepcoef))
+    ##         Mcv.sample.Wald <- Mcv.sample/Mcv.sample.se
+
+    ##         out$p.value <- (colSums(abs(Mcv.sample.Wald) > abs(Mcv.estimate), na.rm = TRUE)+correction)/(colSums(!is.na(Mcv.sample.Wald))+correction)
+    ##     }else{
+    ##         Mcv.estimate <- matrix(value.meancoef[name.keepcoef], nrow = ncv.sample, ncol = length(name.keepcoef), byrow = TRUE,
+    ##                                dimnames = list(NULL,name.keepcoef))
+
+    ##         out$p.value <- (colSums(abs(Mcv.sample) > abs(Mcv.estimate), na.rm = TRUE)+correction)/(colSums(!is.na(Mcv.sample))+correction)
+    ##     }
+    ## }else if(type == "boot"){
+
+    ##     if(studentized){
+    ##         Mcv.sample.Wald0 <- sweep(Mcv.sample, MARGIN = 2, FUN = "-", STATS = out$estimate)/Mcv.sample.se  ## center around the null
+    ##         out$lower <- out$estimate + out$se * apply(Mcv.sample.Wald0, MARGIN = 2, FUN = stats::quantile, probs = alpha/2, na.rm = TRUE)
+    ##         out$upper <- out$estimate + out$se * apply(Mcv.sample.Wald0, MARGIN = 2, FUN = stats::quantile, probs = 1-alpha/2, na.rm = TRUE)
+    ##         out$p.value <- sapply(name.keepcoef, function(iName){
+    ##             boot2pvalue(stats::na.omit(out[iName,"estimate"] + out[iName,"se"] * Mcv.sample.Wald0[,iName]),
+    ##                         null = 0,
+    ##                         estimate = out[iName,"estimate"],
+    ##                         alternative = "two.sided",
+    ##                         add.1 = correction)
+    ##         })
+            
+    ##     }else{
+    ##         out$se <- apply(Mcv.sample, MARGIN = 2, FUN = stats::sd, na.rm = TRUE)
+    ##         out$lower <- apply(Mcv.sample, MARGIN = 2, FUN = stats::quantile, probs = alpha/2, na.rm = TRUE)
+    ##         out$upper <- apply(Mcv.sample, MARGIN = 2, FUN = stats::quantile, probs = 1-alpha/2, na.rm = TRUE)
+    ##         out$p.value <- sapply(name.keepcoef, function(iName){
+    ##             boot2pvalue(stats::na.omit(Mcv.sample[,iName]),
+    ##                         null = 0,
+    ##                         estimate = out[iName,"estimate"],
+    ##                         alternative = "two.sided",
+    ##                         add.1 = correction)
+    ##         })
+    ##     }
+    ## }
+
+
 
 ## ## * resample.mlmm
 ## ##' @export
