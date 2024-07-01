@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: jun 21 2024 (14:59) 
+## Last-Updated: jul  1 2024 (13:53) 
 ##           By: Brice Ozenne
-##     Update #: 148
+##     Update #: 149
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -405,7 +405,7 @@ NULL
 ## ncgsL <- stats::reshape(ncgsW, direction  = "long",
 ##                         idvar = "id",
 ##                         varying = paste0("cholest",1:5),
-##                         v.names = "choltest",
+##                         v.names = "cholest",
 ##                         timevar = "visit")
 ## ncgsL$visit <- as.factor(ncgsL$visit)
 ## rownames(ncgsL) <- NULL

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (13:27) 
 ## Version: 
-## Last-Updated: maj 16 2024 (13:56) 
+## Last-Updated: May 18 2024 (12:47) 
 ##           By: Brice Ozenne
-##     Update #: 1119
+##     Update #: 1132
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -456,8 +456,11 @@
     ## pairs with distinct linear predictors
     if(length(index.unequal)>0){
         time.var <- utils::tail(reg.var,1)
+        block.var <- setdiff(reg.var, time.var)
+
         if(n.strata==1){
             coltime.var <- time.var
+            colblock.var <- block.var
         }else{
             ## in case of strata, possible duplicated time column (one for each strata)
             factor.corterm <- attr(attr(structure$cor$X,"formula"),"factor")
@@ -465,20 +468,20 @@
             index.coltime <- attr(structure$cor$X,"term.labels") %in% colnames(factor.corterm)[factor.corterm[time.var,]>0]
             ## redefine time.var
             coltime.var <- colnames(structure$cor$X)[index.coltime]
+            colblock.var <- setdiff(colnames(structure$cor$X), coltime.var)
         }
-        
+
         if(structure$bloc){ ## block
-            block.var <- setdiff(reg.var, time.var)
-            test.diffBlock <- rowSums(diffLp[,block.var,drop=FALSE]!=0)
+            test.diffBlock <- rowSums(diffLp[,colblock.var,drop=FALSE]!=0)
 
             ## same block
             index.sameBlock <- index.unequal[which(test.diffBlock==0)]
             block.sameBlock <- data.x[index.sameBlock,block.var]
-            dt.sameBlock <- nlme::collapse(diffLp[index.sameBlock,time.var], sep = sep[1])
+            dt.sameBlock <- rowSums(diffLp[index.sameBlock,coltime.var,drop=FALSE]) ## 0 value in the other strata so summing is like taking the strata-specific value
             if(type=="UN"){
                 code.rho[index.sameBlock] <- paste("R",indexLp[index.sameBlock,1],indexLp[index.sameBlock,2],sep=sep[2])
-                level.rho[index.sameBlock] <- paste(block.sameBlock,paste("(",nlme::collapse(data.x[index.sameBlock,time.var], sep = sep[1]),
-                                                                          ",",nlme::collapse(data.y[index.sameBlock,time.var], sep = sep[1]),")",sep=""),
+                level.rho[index.sameBlock] <- paste(block.sameBlock,paste("(",data.x[index.sameBlock,time.var],
+                                                                          ",",data.y[index.sameBlock,time.var],")",sep=""),
                                                     sep=sep[2])                
             }else if(type=="LAG"){
                 code.rho[index.sameBlock] <- paste("R",strataLp[index.sameBlock],block.sameBlock,dt.sameBlock,sep=sep[2])
@@ -493,14 +496,14 @@
             rev.diffBlock <- data.x[index.diffBlock,block.var] > data.y[index.diffBlock,block.var]
             block.diffBlock <- data.frame(x = data.x[index.diffBlock,block.var], y = data.y[index.diffBlock,block.var])
             block.diffBlock[rev.diffBlock,] <- block.diffBlock[rev.diffBlock,c("y","x")]
-            t.diffBlock <- data.frame(x = nlme::collapse(data.x[index.diffBlock,time.var], sep = sep[1]),
-                                      y = nlme::collapse(data.y[index.diffBlock,time.var], sep = sep[1]))
+            t.diffBlock <- data.frame(x = data.x[index.diffBlock,time.var],
+                                      y = data.y[index.diffBlock,time.var])
             t.diffBlock[rev.diffBlock,] <- t.diffBlock[rev.diffBlock,c("y","x")]
-            dt.diffBlock <- nlme::collapse(diffLp[index.diffBlock,time.var], sep = sep[1])
+            dt.diffBlock <- rowSums(diffLp[index.diffBlock,coltime.var,drop=FALSE])
             if(type=="UN"){
                 ## constrain constant correlation when measured at the same time \rho = cor(X(t),Y(t))
                 indexLp.diffBlock <- indexLp[index.diffBlock,,drop=FALSE]
-                indexLp.diffBlock[nlme::collapse(data.x[index.diffBlock,time.var], sep = sep[1]) == nlme::collapse(data.y[index.diffBlock,time.var], sep = sep[1]),] <- 0
+                indexLp.diffBlock[data.x[index.diffBlock,time.var] == data.y[index.diffBlock,time.var],] <- 0
                 txt.diffBlock <- ifelse(indexLp.diffBlock[,1]==0,"dt=0",paste0(t.diffBlock$x,",",t.diffBlock$y))
             
                 code.rho[index.diffBlock] <- paste("D",indexLp.diffBlock[,1],indexLp.diffBlock[,2],sep=sep[2])
@@ -514,7 +517,8 @@
             }
 
         }else{ ## no block: base correlation coefficient on the time difference
-            code.rho[index.unequal] <- paste("D",strataLp[index.unequal],nlme::collapse(diffLp[,coltime.var,drop=FALSE], sep = sep[1]),sep=sep[2])
+            ## 0 value in the other strata so summing is like taking the strata-specific value
+            code.rho[index.unequal] <- paste("D",strataLp[index.unequal],rowSums(diffLp[,coltime.var,drop=FALSE]),sep=sep[2])
             level.rho[index.unequal] <- paste("(",rowSums(diffLp[,coltime.var,drop=FALSE]),")",sep="")
         }        
     }

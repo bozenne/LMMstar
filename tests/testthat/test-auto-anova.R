@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 13 2022 (13:55) 
 ## Version: 
-## Last-Updated: maj  7 2024 (10:27) 
+## Last-Updated: May 18 2024 (12:31) 
 ##           By: Brice Ozenne
-##     Update #: 52
+##     Update #: 53
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -43,14 +43,14 @@ test_that("LRT", {
     e0 <- anova(lmm(Y ~ X1 + X2, data = dL),
                 lmm(Y ~ X1 + X2, repetition = ~visit, structure = "IND", data = dL))
     expect_equal(list(e0[,c("null")], e0[,c("df")], e0[,c("statistic")], e0[,c("p.value")]),
-                 list("k.2==0, k.3==0", 2, 0.1421563, 0.9313891), tol = 1e-4)
+                 list("k.2==1\n                   k.3==1", 2, 0.1421563, 0.9313891), tol = 1e-4)
 
     dL$id2 <- 1:NROW(dL)
     dL$time2 <- 1
     e00 <- anova(lmm(Y ~ X1 + X2, data = dL),
                  lmm(Y ~ X1 + X2, repetition = ~time2|id2, structure = ID(visit~1), data = dL, control = list(optimizer = "FS")))
     expect_equal(list(e00[,c("null")], e00[,c("df")], e00[,c("statistic")], e00[,c("p.value")]),
-                 list("sigma:1==sigma, sigma:2==sigma, sigma:3==sigma", 2, 0.1421563, 0.9313891), tol = 1e-4)
+                 list("sigma:2==sigma:3==sigma:1", 2, 0.1421563, 0.9313891), tol = 1e-4)
 
     ## remove mean factor
     e1 <- anova(lmm(Y ~ X1 + X2, repetition = ~visit|id, structure = "CS", data = dL, method.fit = "ML"),
@@ -69,14 +69,14 @@ test_that("LRT", {
                 lmm(Y ~ X1*X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, method.fit = "ML"))
 
     expect_equal(list(e2[,c("null")], e2[,c("df")], e2[,c("statistic")], e2[,c("p.value")]),
-                 list("k.2==0, k.3==0, rho(1,2)==rho(id), rho(1,3)==rho(id), rho(2,3)==rho(id)", 4, 29.66939, 5.714571e-06), tol = 1e-4)
+                 list("k.2==1\n                   k.3==1\n                   rho(1,2)==rho(1,3)==rho(2,3)", 4, 29.66939, 5.714571e-06), tol = 1e-4)
 
     ## via strata
     e3 <- anova(lmm(Y ~ X1 + X5, repetition = ~visit|id, structure = "UN", data = dL, method.fit = "ML", control = list(optimizer = "FS")),
                 lmm(Y ~ X1 + X5, repetition = X2~visit|id, structure = "UN", data = dL, method.fit = "ML", control = list(optimizer = "FS")))
 
     expect_equal(list(e3[,c("null")], e3[,c("df")], e3[,c("statistic")], e3[,c("p.value")]),
-                 list("sigma:0==sigma, sigma:1==sigma, k.2:0==k.2, k.3:0==k.3, k.2:1==k.2, k.3:1==k.3, rho(1,2):0==rho(1,2), rho(1,3):0==rho(1,3), rho(2,3):0==rho(2,3), rho(1,2):1==rho(1,2), rho(1,3):1==rho(1,3), rho(2,3):1==rho(2,3)", 6, 0.5038597, 0.9977912), tol = 1e-4)
+                 list("sigma:1==sigma:0\n                   k.2:1==k.2:0\n                   k.3:1==k.3:0\n                   rho(1,2):1==rho(1,2):0\n                   rho(1,3):1==rho(1,3):0\n                   rho(2,3):1==rho(2,3):0", 6, 0.5038597, 0.9977912), tol = 1e-4)
 
     ## both (does not work for now)
     ## anova(lmm(Y ~ X1 + X5, repetition = ~visit|id, structure = "CS", data = dL, method.fit = "ML", control = list(optimizer = "FS")),

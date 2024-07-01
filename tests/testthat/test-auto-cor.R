@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 20 2022 (12:12) 
 ## Version: 
-## Last-Updated: mar 12 2024 (18:17) 
+## Last-Updated: May 18 2024 (12:47) 
 ##           By: Brice Ozenne
-##     Update #: 72
+##     Update #: 73
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -75,7 +75,7 @@ test_that("estimate partial correlation via lmm (independence)", {
     ## library(r2glmm); setNames(r2beta(e.lmer, method = "kr")[2:4,"Rsq"],r2beta(e.lmer, method = "kr")[2:4,"Effect"])
 
     GS <- c("age" = 0.57834264, "Sex:age" = 0.07388639, "Sex" = 0.00431524)
-    GS - attr(e.R2lmm, "R2")[names(GS)] ## some difference in age effect
+    GS - attr(e.R2lmm, "R2")[names(GS),"estimate"] ## some difference in age effect
 })
 
 ## * ICC
@@ -180,7 +180,7 @@ test_that("estimate partial correlation via lmm (cluster)", {
     expect_equivalent(test.PEARSON["marginal",], GS.PEARSON, tol = 1e-5)
 
     test.HLAG <- partialCor(c(X1,X2)~1, data = df.W, repetition = ~time|id, structure = "HLAG")
-    ## eTopHLAG.lmm <- lmm(value ~ variable, repetition = ~variable+time|id, data = df.L,
+    ## eTopHLAG.lmm <- lmm(value ~ variable, repetition = sex~variable+time|id, data = df.L,
     ##                     structure = TOEPLITZ(type = "LAG"),
     ##                     control = list(optimizer = "FS"))
     ## confint(eTopHLAG.lmm, effects = "correlation")["rho(1,2,dt=0)",]

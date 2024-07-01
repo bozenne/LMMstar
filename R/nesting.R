@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 15 2024 (11:57) 
 ## Version: 
-## Last-Updated: maj 16 2024 (15:13) 
+## Last-Updated: May 18 2024 (12:22) 
 ##           By: Brice Ozenne
-##     Update #: 140
+##     Update #: 144
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,10 +21,11 @@
 ##'
 ##' @param objectH0 [lmm]
 ##' @param objectH1 [lmm]
+##' @param sep [character] character used to combine covariate values.
 ##' @param tol [numeric] tolerance when comparing mean and variance structure.
 ##' 
 ##' @noRd
-.checkNesting <- function(objectH0, objectH1, tol = 1e-8){
+.checkNesting <- function(objectH0, objectH1, sep = ".", tol = 1e-8){
    
     ## ** number of observations
     nobsH0 <- nobs(objectH0)

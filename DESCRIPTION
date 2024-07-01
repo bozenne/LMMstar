@@ -22,7 +22,7 @@ Depends:
     R (>= 3.5.0)
 Imports:
     copula,
-    doParallel,
+    doSNOW,
     foreach,
     ggplot2,
     grid,
@@ -67,6 +67,7 @@ Collate:
     'backtransform.R'
     'baselineAdjustment.R'
     'coef.R'
+    'collapse.R'
     'confint.R'
     'constrain.R'
     'df.R'
