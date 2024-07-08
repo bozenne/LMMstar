@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  4 2021 (10:04) 
 ## Version: 
-## Last-Updated: Mar 24 2024 (21:20) 
+## Last-Updated: jul  4 2024 (12:31) 
 ##           By: Brice Ozenne
-##     Update #: 39
+##     Update #: 64
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,12 +18,15 @@
 ## * iid.lmm (documentation)
 ##' @title Extract the Influence Function From a Linear Mixed Model
 ##' @description Extract the influence function from a linear mixed model.
+##' @rdname iid.lmm
+##' @rdname influence.lmm
 ##' 
 ##' @param x a \code{lmm} object.
 ##' @param effects [character] Should the variance-covariance matrix for all coefficients be output (\code{"all"}),
 ##' or only for coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 ##' or only for coefficients relative to the variance structure (\code{"variance"}),
 ##' or only for coefficients relative to the correlation structure (\code{"correlation"}).
+##' @param p [numeric vector] value of the model coefficients at which to evaluate the influence function. Only relevant if differs from the fitted values.
 ##' @param robust [logical] If \code{FALSE} the influence function is rescaled to match the model-based standard errors.
 ##' The correlation however will not (necessarily) match the model-based correlation.
 ##' @param type.information [character] Should the expected information be used  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
@@ -39,6 +42,7 @@
 ##' @export
 iid.lmm <- function(x,
                     effects = "mean",
+                    p = NULL,
                     robust = TRUE,
                     type.information = NULL,
                     transform.sigma = NULL,
@@ -72,10 +76,10 @@ iid.lmm <- function(x,
     test.notransform <- init$test.notransform
 
     ## ** get information and score
-    x.vcov <- stats::vcov(x, effects = effects, robust = FALSE, type.information = type.information, df = FALSE,
+    x.vcov <- vcov.lmm(x, effects = effects, p = p, robust = FALSE, type.information = type.information, df = FALSE,
                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
-    x.score <- lava::score(x, effects = effects, indiv = TRUE, 
-                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
+    x.score <- score.lmm(x, effects = effects, p = p, indiv = TRUE, 
+                         transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
 
     ## ** compute iid
     out <- x.score %*% x.vcov
@@ -99,6 +103,61 @@ iid.Wald_lmm <- function(x, ...){
 
     ## ** export
     return(x$iid)
+}
+
+## * iid.mlmm (code)
+##' @export
+iid.mlmm <- function(x, effects = "contrast", robust = TRUE, ...){
+
+    ## ** normalize use input
+
+    ## effects
+    if(!is.null(effects)){
+        effects <- match.arg(effects, c("contrast","mean","fixed","variance","correlation","all"), several.ok = TRUE)
+    }
+    if(!is.null(effects) && length(effects)==1 && effects=="contrast"){
+        if(!is.null(x$univariate) & all(x$univariate$type=="mu")){
+            effects2 <- "mean"
+        }else{
+            effects2 <- "all"
+        }
+    }else{
+        effects2 <- effects
+    }
+
+    ## ** get information and score
+    x.score <- score.mlmm(x, effects = effects2, indiv = TRUE, ordering = "by", ...)
+    x.vcov <- vcov.mlmm(x, effects = effects2, robust = FALSE, ...)
+
+    ## ** compute iid
+    ls.out <- mapply(iScore = x.score, iVcov = x.vcov, function(iScore, iVcov){
+        iIID <- iScore %*% iVcov
+        if(robust==FALSE){
+            return(sweep(iIID, MARGIN = 2, FUN = "*", STATS = sqrt(diag(iVcov))/sqrt(colSums(iIID^2, na.rm = TRUE))))
+        }else{
+            return(iIID)
+        }
+    }, SIMPLIFY = FALSE)
+
+    ## ** export
+    if(!is.null(effects) && length(effects)==1 && effects=="contrast"){
+
+        M.contrast <- stats::coef(x, type = "contrast")
+        lsM.contrast <- stats::coef(x, type = "ls.contrast")
+
+        ls.Cout <- mapply(iIID = ls.out, iC = lsM.contrast, function(iIID,iC){ ## iIID <- ls.out[[1]] ; iC <- lsM.contrast[[1]]
+            iIID %*% t(iC[,colnames(iIID),drop=FALSE])
+        }, SIMPLIFY = FALSE)
+
+        out <- do.call(cbind,ls.Cout) %*% M.contrast
+        colnames(out) <- names(stats::coef(x))
+        
+    }else{
+        out <- ls.out
+    }
+
+    return(out)
+    
 }
 
 ##----------------------------------------------------------------------

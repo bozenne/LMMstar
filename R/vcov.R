@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: maj  7 2024 (10:58) 
+## Last-Updated: jul  5 2024 (19:08) 
 ##           By: Brice Ozenne
-##     Update #: 543
+##     Update #: 599
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -24,10 +24,11 @@
 ##' or only for coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 ##' or only for coefficients relative to the variance structure (\code{"variance"}),
 ##' or only for coefficients relative to the correlation structure (\code{"correlation"}).
-##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. Not feasible for variance or correlation coefficients estimated by REML.
+##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
+##' Not feasible for variance or correlation coefficients estimated by REML.
 ##' @param df [logical] Should degree of freedom, computed using Satterthwaite approximation, for the model parameters be output.
 ##' @param newdata [data.frame] dataset relative to which the information should be computed. Only relevant if differs from the dataset used to fit the model.
-##' @param p [numeric vector] value of the model coefficients at which to evaluate the information. Only relevant if differs from the fitted values.
+##' @param p [numeric vector] value of the model coefficients at which to evaluate the variance-covariance matrix. Only relevant if differs from the fitted values.
 ##' @param strata [character vector] When not \code{NULL}, only output the variance-covariance matrix for the estimated parameters relative to specific levels of the variable used to stratify the mean and covariance structure.
 ##' @param type.information [character] Should the expected information be used  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
 ##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
@@ -44,7 +45,8 @@
 
 ## * vcov.lmm (code)
 ##' @export
-vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strata = NULL, newdata = NULL, p = NULL,
+vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strata = NULL,
+                     newdata = NULL, p = NULL,
                      type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
     
     options <- LMMstar.options()
@@ -162,17 +164,112 @@ vcov.Wald_lmm <- function(object, ...){
     
 }
 
-## * vcov.mlmm
-##' @export
-vcov.mlmm <- function(object, effects = "contrast", ...){
+## * vcov.mlmm (documentation)
+##' @title Extract The Variance-Covariance Matrix From Multiple Linear Mixed Models
+##' @description Extract the variance-covariance matrix of the model coefficients from multiple linear mixed models.
+##'
+##' @param object a \code{mlmm} object.
+##' @param effects [character] By default will output the estimates relative to the hypotheses being tested (\code{"contrast"}).
+##' But can also output all model coefficients (\code{"all"}),
+##' or only coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
+##' or only coefficients relative to the variance structure (\code{"variance"}),
+##' or only coefficients relative to the correlation structure (\code{"correlation"}).
+##' @param p [list of numeric vector] list of model coefficients to be used. Only relevant if differs from the fitted values.
+##' @param newdata [NULL] Not used. For compatibility with the generic method.
+##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
+##' Not feasible for variance or correlation coefficients estimated by REML.
+##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
+##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
+##' @param transform.rho [character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"} - see details.
+##' @param ... passed to \code{vcov.lmm}.
 
-    if(!is.null(effects) && effects=="contrast"){
-        return(object$vcov)
+## * vcov.mlmm (code)
+##' @export
+vcov.mlmm <- function(object, effects = "contrast", method = "none", robust = object$args$robust,
+                      newdata = NULL, p = NULL,
+                      type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, ...){
+
+    options <- LMMstar.options()
+    pool.method <- options$pool.method
+    adj.method <- options$adj.method
+
+    ## ** normalize use input
+
+    ## effects
+    if(!is.null(effects)){
+        effects <- match.arg(effects, c("contrast","mean","fixed","variance","correlation","all"), several.ok = TRUE)
+    }
+
+    ## method
+    if(method != "none"){
+        if(!is.null(effects) && length(effects)==1 && effects=="contrast"){
+            method <- match.arg(method, c(adj.method,pool.method), several.ok = TRUE)
+        }else{
+            message("Argument \'method\' is ignored when argument \'effects\' differs from contrast. \n")
+        }
+    }
+
+    ## p
+    if(!is.null(p)){
+        if(!is.list(p)){
+            stop("Argument \'p\' should either be NULL or a list. \n")
+        }
+        if(is.null(names(p))){
+            stop("Argument \'p\' should either be NULL or a named list. \n")
+        }
+        if(any(names(p) %in% names(object$model) == FALSE)){
+            stop("Incorrect names for argument \'p\': \"",paste(setdiff(names(p),names(object$model)), collapse = "\", \""),"\". \n", 
+                 "Should be among \"",paste(names(object$model), collapse = "\", \""),"\". \n")
+        }
+        ls.init <- lapply(names(object$model),function(iM){ ## iM <- names(object$model)[1]
+            .init_transform(p = p[[iM]], transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
+                            x.transform.sigma = object$args$transform.sigma, x.transform.k = object$args$transform.k, x.transform.rho = object$args$transform.rho,
+                            table.param = object$model[[iM]]$design$param)
+        })
+        theta <- setNames(lapply(ls.init, "[[","p"),names(object$model))
     }else{
-        return(lapply(object$model, vcov, effects = effects, ...))
+        effects2 <- effects
+        theta <- stats::setNames(vector(mode = "list", length = length(object$model)), names(object$model))
     }
     
+    ## newdata
+    if(!is.null(newdata)){
+        message("Argument \'newdata\' is being ignored. \n")
+    }
+
+    ## ** extract
+    if(!is.null(effects) && length(effects)==1 && effects=="contrast"){
+        if(is.null(p) && (robust == object$args$robust) && method %in% adj.method){
+            out <- object$vcov
+        }else if(method %in% adj.method){
+
+            out <- crossprod(iid.mlmm(object, effects = effects, robust = robust, p = theta))
+            
+        }else if(method %in% pool.method){
+
+                table.univariate <- object$univariate
+
+                grid <- unique(table.univariate[,c("type","test"),drop=FALSE])
+                n.grid <- NROW(grid)
+                table.out <- do.call(rbind,lapply(1:n.grid , function(iGrid){
+                    if(n.grid>1){
+                        iIndex.table <- intersect(which(table.univariate$type==grid$type[iGrid]),
+                                                  which(table.univariate$test==grid$test[iGrid]))
+                    }else{
+                        iIndex.table <- 1:NROW(table.univariate)
+                    }
+
+                    contrastWald_pool(object = object, index = iIndex.table, method = method, name.method = NULL, ci = TRUE, df = FALSE, alpha = 0.05)
+                }))
+        }
+    }else{
+        out <- mapply(object = object$model, p = theta, FUN = vcov, effects = effects, robust = robust, ..., SIMPLIFY = FALSE)
+    }
+
+    ## ** export
+    return(out)
 }
+
 
 ##----------------------------------------------------------------------
 ### vcov.R ends here

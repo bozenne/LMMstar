@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Oct 11 2022 (10:56) 
 ## Version: 
-## Last-Updated: jun 15 2023 (16:58) 
+## Last-Updated: jul  5 2024 (10:25) 
 ##           By: Brice Ozenne
-##     Update #: 19
+##     Update #: 20
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -42,17 +42,19 @@
 ##' @export
 weights.Wald_lmm <- function(object, method, ...){
 
-    valid.method <- c("average","pool.fixse","pool.se","pool.gls","pool.gls1","pool.rubin")
+    options <- LMMstar.options()
+    pool.method <- options$pool.method
+
     if(missing(method)){
         stop("Argument \'method\' is missing.\n",
-             "Should be one of \"",paste(valid.method, collapse = "\" \""),"\".\n")
+             "Should be one of \"",paste(pool.method, collapse = "\" \""),"\".\n")
     }
     if(length(method)!=1){
         stop("Argument \'method\' should have lenght 1.\n")
     }    
-    if(method %in% valid.method == FALSE){
+    if(method %in% pool.method == FALSE){
         stop("Argument \'method\' is missing.\n",
-             "Should be one of \"",paste(valid.method, collapse = "\" \""),"\".\n")
+             "Should be one of \"",paste(pool.method, collapse = "\" \""),"\".\n")
     }    
     object.confint <- confint(object, method = method, ...)
     out <- stats::setNames(attr(object.confint,"contrast")[1,], names(coef(object)))

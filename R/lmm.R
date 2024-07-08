@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: maj 16 2024 (09:36) 
+## Last-Updated: jul  5 2024 (12:16) 
 ##           By: Brice Ozenne
-##     Update #: 3072
+##     Update #: 3073
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -63,7 +63,8 @@
 ##' \code{\link{effects.lmm}} for evaluating average marginal or counterfactual effects \cr
 ##' \code{\link{sigma.lmm}} for extracting estimated residual variance-covariance matrices. \cr
 ##' \code{\link{residuals.lmm}} for extracting residuals or creating residual plots (e.g. qqplots). \cr
-##' \code{\link{predict.lmm}} for evaluating mean and variance of the outcome conditional on covariates or other outcome values.
+##' \code{\link{predict.lmm}} for evaluating mean and variance of the outcome conditional on covariates or other outcome values. \cr
+##' \code{\link{ranef.lmm}} for evaluating random effects and variance components in random effects models.
 
 ##' @return an object of class \code{lmm} containing the estimated parameter values, the residuals, and relevant derivatives of the likelihood.
 ##'

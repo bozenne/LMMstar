@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (10:48) 
 ## Version: 
-## Last-Updated: maj 14 2024 (09:52) 
+## Last-Updated: jul  5 2024 (10:24) 
 ##           By: Brice Ozenne
-##     Update #: 73
+##     Update #: 83
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,7 +15,46 @@
 ## 
 ### Code:
 
-## * model.tables.lmm (documentation)
+## * model.tables.effect_lmm
+##' @export
+model.tables.effect_lmm <- function(x, columns, ...){
+
+    extra.var <- c(x$args$variable,unlist(x$args$time),x$args$strata)
+    
+    ## ** usual model.tables
+    newcolumns <- c("estimate","se","df","lower","upper")
+    if(x$args$effect[[1]][1]=="difference"){
+        newcolumns <- c(newcolumns,"p.value")
+    }
+
+    if(!missing(columns)){
+        if(!is.null(names(columns)) && all(names(columns)=="add")){
+            newcolumns <- union(c(newcolumns, extra.var), unname(columns))
+        }else if(!is.null(names(columns)) && all(names(columns)=="remove")){
+            newcolumns <- setdiff(c(newcolumns, extra.var), unname(columns))
+        }else{
+            newcolumns <- c(newcolumns, extra.var)
+        }
+        if(any(newcolumns %in% extra.var)){
+            add <- x$univariate[intersect(newcolumns,extra.var)]
+            newcolumns <- setdiff(newcolumns,extra.var)
+        }else{
+            add <- NULL
+        }
+    }else{
+        add <- x$univariate[extra.var]
+    }
+
+    out <- cbind(add, confint(x, ..., columns = newcolumns))
+    attr(out, "backtransform") <- NULL
+    attr(out, "error") <- NULL
+    attr(out, "level") <- NULL
+    attr(out, "method") <- NULL
+    class(out) <- "data.frame"
+
+    return(out)
+}
+## * model.tables.lmm
 ##' @title Statistical Inference for Linear Mixed Model
 ##' @description Export estimates, standard errors, degrees of freedom, confidence intervals (CIs) and p-values for the mean coefficients of a linear mixed model. 
 ##'
@@ -51,36 +90,14 @@ model.tables.lmm <- function(x, columns, ...){
     return(out)
 }
 
-## * model.tables.Wald_lmm (documentation)
-##' @export
-model.tables.Wald_lmm <- function(x, columns, ...){
-
-    newcolumns <- c("estimate","se","df","lower","upper","p.value")
-
-    if(!missing(columns)){
-        if(!is.null(names(columns)) && all(names(columns)=="add")){
-            newcolumns <- union(newcolumns, unname(columns))
-        }else if(!is.null(names(columns)) && all(names(columns)=="remove")){
-            newcolumns <- setdiff(newcolumns, unname(columns))
-        }else{
-            newcolumns <- columns
-        }
-    }
-
-    out <- confint(x, ..., columns = newcolumns)
-    attr(out, "backtransform") <- NULL
-    attr(out, "error") <- NULL
-    attr(out, "level") <- NULL
-    attr(out, "method") <- NULL
-    class(out) <- "data.frame"
-    return(out)
-}
-
-## * model.tables.mlmm (documentation)
+## * model.tables.mlmm
 ##' @export
 model.tables.mlmm <- function(x, columns, method = NULL, ...){
 
-    if(!is.null(method) && all(method %in% c("average","pool.fixse","pool.se","pool.gls","pool.gls1","pool.rubin"))){
+    options <- LMMstar.options()
+    pool.method <- options$pool.method
+
+    if(!is.null(method) && all(method %in% pool.method)){
         newcolumns <- c("estimate","se","df","lower","upper","p.value")
         rm.rownames <- FALSE
     }else{
@@ -107,46 +124,52 @@ model.tables.mlmm <- function(x, columns, method = NULL, ...){
     return(out)
 }
 
-## * model.tables.effect_lmm
+## * model.tables.resample
 ##' @export
-model.tables.effect_lmm <- function(x, columns, ...){
+model.tables.resample <- function(x, columns, ...){
 
-    extra.var <- c(x$args$variable,unlist(x$args$time),x$args$strata)
-    
-    ## ** usual model.tables
-    newcolumns <- c("estimate","se","df","lower","upper")
-    if(x$args$effect[[1]][1]=="difference"){
-        newcolumns <- c(newcolumns,"p.value")
-    }
+    newcolumns <- c("estimate","sample.estimate","se","sample.se","lower","upper","p.value")
 
     if(!missing(columns)){
         if(!is.null(names(columns)) && all(names(columns)=="add")){
-            newcolumns <- union(c(newcolumns, extra.var), unname(columns))
+            newcolumns <- union(newcolumns, unname(columns))
         }else if(!is.null(names(columns)) && all(names(columns)=="remove")){
-            newcolumns <- setdiff(c(newcolumns, extra.var), unname(columns))
+            newcolumns <- setdiff(newcolumns, unname(columns))
         }else{
-            newcolumns <- c(newcolumns, extra.var)
+            newcolumns <- columns
         }
-        if(any(newcolumns %in% extra.var)){
-            add <- x$univariate[intersect(newcolumns,extra.var)]
-            newcolumns <- setdiff(newcolumns,extra.var)
-        }else{
-            add <- NULL
-        }
-    }else{
-        add <- x$univariate[extra.var]
     }
 
-    out <- cbind(add,
-                 confint(x, ..., columns = newcolumns))
-    rownames(out) <- NULL
+    out <- confint(x, ..., columns = newcolumns)
+    class(out) <- "data.frame"
+    return(out)
+}
+
+## * model.tables.Wald_lmm
+##' @export
+model.tables.Wald_lmm <- function(x, columns, ...){
+
+    newcolumns <- c("estimate","se","df","lower","upper","p.value")
+
+    if(!missing(columns)){
+        if(!is.null(names(columns)) && all(names(columns)=="add")){
+            newcolumns <- union(newcolumns, unname(columns))
+        }else if(!is.null(names(columns)) && all(names(columns)=="remove")){
+            newcolumns <- setdiff(newcolumns, unname(columns))
+        }else{
+            newcolumns <- columns
+        }
+    }
+
+    out <- confint(x, ..., columns = newcolumns)
     attr(out, "backtransform") <- NULL
     attr(out, "error") <- NULL
     attr(out, "level") <- NULL
     attr(out, "method") <- NULL
     class(out) <- "data.frame"
-
     return(out)
 }
+
+
 ##----------------------------------------------------------------------
 ### model.tables.R ends here

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: May 18 2024 (12:17) 
+## Last-Updated: jul  8 2024 (17:42) 
 ##           By: Brice Ozenne
-##     Update #: 336
+##     Update #: 339
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -41,6 +41,85 @@ addLeading0 <- function(object, as.factor = FALSE, code = NULL){
     }
     attr(out,"code") <- code
     return(out)
+}
+
+
+## * approxAUC (documentation)
+##' @title AUC: numerical integral of a function
+##' @description Evaluate the Area Under the Curve (AUC) based on discrete observations y = f(x),
+##' using interpolation of order 0 (step), 1 (trapezoidal), or 3 (natural cubic splines).
+##' The AUC is the integral of a function over an interval [from,to].
+##'
+##' @param x [numeric vector] x-values.  
+##' @param y [numeric vector] image of the x-values by the function.
+##' @param from [numeric] lower border of the intergration domain
+##' @param to [numeric] upper border of the intergration domain
+##' @param method [character] the type of interpolation: \code{"trapezoid"}, \code{"step"} or \code{"spline"}.
+##' @param subdivisions [integer] number of subdivisions to be used when performing numerical integration of the spline.
+##' Only relevant when \code{method="spline"}.
+##' @param name [character] how to name the output. Can be set to \code{NULL} or \code{FALSE} to output a numeric without name.
+##' @param na.rm [logical] in presence of missing values, should complete.cases of \code{x} and \code{y} will be used?
+##' 
+##' @details This function is a simplified version of the \code{AUC} function from the DescTools package.
+##'
+##' @return a numeric value.
+##' 
+##' @examples
+##' ## same examples as DescTools::AUC
+##' approxAUC(x=c(1,3), y=c(1,1), from = 1, to = 3)
+##' 
+##' approxAUC(x=1:3, y=c(1,2,4), from = 1, to = 3)
+##' approxAUC(x=1:3, y=c(1,2,4), from = 1, to = 3, method = "step")
+##'
+##' x <- seq(0, pi, length.out=200)
+##' approxAUC(x=x, y=sin(x), from = 0, to = pi)
+##' approxAUC(x=x, y=sin(x), from = 0, to = pi, method = "spline")
+##'
+
+## * approxAUC (code)
+##' @export
+approxAUC <- function (x, y, from, to,  method = "trapezoid", subdivisions = 100, name = "AUC", na.rm = FALSE){
+    
+    ## ** normalize user input
+    if (na.rm & (any(is.na(x)) | any(is.na(y)))) {
+        idx <- stats::complete.cases(cbind(x, y))
+        x <- x[idx]
+        y <- y[idx]
+    }
+    if (length(x) < 2){
+        stop("Cannot compute an area under the curve with 2 or less timpoints. \n")
+    }
+    if(from < min(x) | to > max(x)){
+        message("Cannot compute an area under the curve w.r.t. timepoints before the first observation or after the last observation. \n")
+    }
+    method <- match.arg(method, choices = c("trapezoid", "step", "spline"))
+
+    ## ** evalute auc
+    neworder <- order(x)
+    x.order <- x[neworder]
+    y.order <- y[neworder]
+
+    if (method == "trapezoid") {
+
+        values <- stats::approx(x.order, y.order, xout = sort(unique(c(from, to, x.order[x.order > from & x.order < to]))))
+        res <- 0.5 * sum(diff(values$x) * (values$y[-1] + values$y[-length(values$y)]))
+
+    }else if (method == "step") {
+
+        values <- stats::approx(x.order, y.order, xout = sort(unique(c(from, to, x.order[x.order > from & x.order < to]))))
+        res <- sum(diff(values$x) * values$y[-length(values$y)])
+
+    }else if (method == "spline") {
+
+        res <- stats::integrate(stats::splinefun(x.order, y.order, method = "natural"), lower = from, upper = to, subdivisions = subdivisions)$value
+
+    }
+
+    ## ** output
+    if(!is.null(name) && !identical(name,FALSE)){
+        names(res) <- name
+    }
+    return(res)
 }
 
 

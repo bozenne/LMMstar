@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: May  9 2024 (13:40) 
+## Last-Updated: jul  4 2024 (09:36) 
 ##           By: Brice Ozenne
-##     Update #: 1079
+##     Update #: 1082
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -237,16 +237,16 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
     return(out)
 }
 
-## * estimate.lmm (code)
+## * estimate.rbindWald_lmm (code)
 ##' @export
 estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
-                                   method.numDeriv = NULL, average = FALSE, ...){
+                                   method.numDeriv = NULL, average = FALSE, allparam = FALSE, ...){
 
     ## ** normalize arguments
     if(is.null(method.numDeriv)){
         method.numDeriv <- LMMstar.options()$method.numDeriv
     }
-
+browser()
     ## ** estimate
     beta <- coef(x)
     

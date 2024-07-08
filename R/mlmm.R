@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: Feb 11 2024 (23:28) 
+## Last-Updated: jul  4 2024 (16:41) 
 ##           By: Brice Ozenne
-##     Update #: 373
+##     Update #: 396
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -91,7 +91,7 @@
 
 ## * mlmm (code)
 ##' @export
-mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = FALSE, df = TRUE, ci = TRUE,
+mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = FALSE, df = NULL, ci = TRUE,
                  name.short = c(TRUE,TRUE), transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, trace = TRUE){
 
     ## ** normalizer user input
@@ -125,7 +125,10 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
     if(length(name.short)==1){
         name.short <- c(name.short, name.short)
     }
-
+    if(is.null(df)){
+        df <- options$df
+    }
+    
     ## ** fit mixed models
     repetition <- list(...)$repetition
     if(!is.null(repetition)){
@@ -159,7 +162,8 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
     })
     name.lmm <- names(ls.lmm)
     n.lmm <- length(name.lmm)
-    
+    variable.lmm <- variable.names(ls.lmm[[1]])
+
     ## ** test linear combinations
     if(trace>0){
         cat("\nHypothesis test:\n")
@@ -271,10 +275,10 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
     ls.anova <- stats::setNames(lapply(name.lmm, function(iName){ ## iName <- name.lmm[1]
 
         if(is.null(robust)){
-            anova(ls.lmm[[iName]], effects = ls.Cmat[[iName]], rhs = rhs[[iName]], df = df, ci = ci,
+            anova(ls.lmm[[iName]], effects = ls.Cmat[[iName]], rhs = rhs[[iName]], ci = ci, df = df, 
                   transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
         }else{
-            anova(ls.lmm[[iName]], effects = ls.Cmat[[iName]], rhs = rhs[[iName]], robust = robust, df = df, ci = ci,
+            anova(ls.lmm[[iName]], effects = ls.Cmat[[iName]], rhs = rhs[[iName]], robust = robust, ci = ci, df = df, 
                   transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
         }
 
@@ -317,7 +321,7 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
                    )
     out$model <- ls.lmm
     names(out$univariate)[1] <- "by"
-    
+
     ## add covariate values
     keep.rowname <- rownames(out$univariate)
     if(is.null(contrast.rbind)){

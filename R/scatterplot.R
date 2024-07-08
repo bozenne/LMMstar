@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb 16 2023 (09:39) 
 ## Version: 
-## Last-Updated: May  9 2024 (11:32) 
+## Last-Updated: jul  5 2024 (14:25) 
 ##           By: Brice Ozenne
-##     Update #: 705
+##     Update #: 753
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -46,8 +46,10 @@
 ##' @param xlim [numeric,>0 or "common"] range of the x-axis.
 ##' @param ylim [numeric,>0 or "common"] range of the y-axis.
 ##' @param size.axis [numeric,>0] size of the font used to display the tick labels.
-##' @param size.legend [numeric,>0] size of the font used to display the legend. Can have a second element to control the size of the legend key.
+##' @param size.legend [numeric,>0] size of the font used to display the legend.
+##' When argument \code{facet="grid"}, can have a second element to control the size of the legend key and a third to control the width of the legend.
 ##' @param size.facet [numeric,>0] size of the font used to display the facets (row and column names).
+##' When argument \code{facet="grid"}, can have a second and third elements to control the width and height of the facets.
 ##' 
 ##' @details In the long format, the outcome variable contains the numerical values to be displayed.
 ##' The time variable will be used to spit outcome and display each split separately or jointly with one other split.
@@ -65,11 +67,16 @@
 ##' ## single group (wide or long format)
 ##' scatterplot(gastricbypassL, formula = weight~time|id)
 ##' scatterplot(gastricbypassW, columns = paste0("weight",1:4))
-##'
+##' 
 ##' \dontrun{
-##' ## use histogram instead of boxplot
-##' scatterplot(gastricbypassL, formula = weight~time|id, type.diag = "hist")
+##' ## change the number of bins
 ##' scatterplot(gastricbypassL, formula = weight~time|id, type.diag = "hist", bins = 15)
+##' 
+##' ## remove variable name in facet
+##' scatterplot(gastricbypassL, formula = weight~time|id, facet = "grid")
+##' 
+##' ## use boxplot instead of histogram
+##' scatterplot(gastricbypassL, formula = weight~time|id, type.diag = "boxplot")
 ##'
 ##' ## same scale
 ##' scatterplot(gastricbypassL, formula = weight~time|id,
@@ -87,17 +94,19 @@
 ##' ## only display NAs
 ##' scatterplot(gastricbypassL, formula = glucagonAUC~time|id,
 ##'             display.NA = "only", group = "group")
+##'
+##' ## increase size of the legend (text, symbol, width)
 ##' scatterplot(gastricbypassL, formula = glucagonAUC~time|id,
-##'             display.NA = "only", group = "group", size.legend = c(15,2))
+##'             display.NA = "only", group = "group", size.legend = c(20,3,0.5))
 ##' }
 
 
 ## * scatterplot (code)
 ##' @export
 scatterplot <- function(data, formula, columns, format = NULL, group = NULL, transform = NULL,
-                        facet = "grid", 
+                        facet = "grid_both", 
                         alpha.point = 1,
-                        type.diag = "boxplot", bins = NULL, position.bar = "identity", linewidth.density = NULL, alpha.area = NULL,
+                        type.diag = "histogram", bins = NULL, position.bar = "identity", linewidth.density = NULL, alpha.area = NULL,
                         method.cor = "pearson", name.cor = "r", size.cor = NULL, digits = c(3,2), display.NA = NULL,
                         color = NULL, xlim = NULL, ylim = NULL, size.axis = NULL, size.legend = NULL, size.facet = NULL){
 
@@ -109,7 +118,7 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
     }
 
     ## facet
-    facet <- match.arg(facet, c("grid","grid2"))
+    facet <- match.arg(facet, c("grid","grid_both","grid2"))
 
     ## display.NA
     if(identical(display.NA,"only")){
@@ -264,9 +273,9 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
         if(type.diag == "density" || type.diag == "boxplot"){
             alpha.area <- 0.3
         }else if(position.bar=="dodge" || is.null(group)){
-            alpha.area  <- 1
+            alpha.area  <- 0.5
         }else{
-            alpha.area  <- 0.7
+            alpha.area  <- 0.35
         }
     }
 
@@ -375,14 +384,14 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
     ## size.cor
     if(is.null(size.cor)){
         if(display.NA && !is.na(method.cor)){
-            size.cor <- 7 
+            size.cor <- 5
         }else{
-            size.cor <- 10
+            size.cor <- 5
         }
     }
-    if(facet=="grid"){
+    if(facet %in% c("grid","grid_both")){
         gg <- .ggscatterplot(dataGrid.diag = dataGrid.diag, dataGrid.lower = dataGrid.lower, dataCor = dataCor,
-                             bins = bins, level.time = level.time, n.time = n.time, group = group, 
+                             bins = bins, var.time = ifelse(facet == "grid_both", paste0(name.time,": "), ""), level.time = level.time, n.time = n.time, group = group, 
                              alpha.point = alpha.point, position.bar = position.bar, linewidth.density = linewidth.density,
                              type.diag = type.diag, alpha.area = alpha.area, method.cor = method.cor, size.cor = size.cor, display.NA = display.NA, 
                              color = color, xlim = xlim, ylim = ylim, size.axis = size.axis, size.legend = size.legend, size.facet = size.facet)
@@ -400,19 +409,21 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
 
 ## * .ggscatterplot
 .ggscatterplot <- function(dataGrid.diag, dataGrid.lower, dataCor,
-                           bins, level.time, n.time, group, 
+                           bins, var.time, level.time, n.time, group, 
                            alpha.point, position.bar, linewidth.density, type.diag, alpha.area, method.cor, size.cor, display.NA, 
                            color, xlim, ylim, size.axis, size.legend, size.facet){
 
     if(is.null(size.legend) || length(size.legend) %in% 1:2){
         ratio.legend <- 1/4
     }else{
-        ratio.facet <- ratio.legend[3]
+        ratio.legend <- size.legend[3]
     }
-    if(is.null(size.facet) || length(size.facet)==1){
-        ratio.facet <- 1/8
-    }else{
-        ratio.facet <- size.facet[2]
+    if(is.null(size.facet) || (length(size.facet) %in% 2:3 == FALSE)){
+        ratio.facet <- c(1/8,1/8)
+    }else if(length(size.facet)==2){
+        ratio.facet <- rep(size.facet[2],2)
+    }else if(length(size.facet)==3){
+        ratio.facet <- size.facet[2:3]
     }
 
     ## ** create each graphical display
@@ -567,32 +578,33 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
     if(!is.null(group)){
         panelVP <- grid::viewport(layout = grid::grid.layout(nrow = n.time+1,
                                                              ncol = n.time+2,
-                                                             width = ggplot2::unit(c(ratio.legend,rep(1, n.time),ratio.legend), "null"),
-                                                             height = ggplot2::unit(c(rep(1, n.time),ratio.legend), "null")))
+                                                             width = ggplot2::unit(c(ratio.facet[2],rep(1, n.time),ratio.legend), "null"),
+                                                             height = ggplot2::unit(c(ratio.facet[1],rep(1, n.time)), "null")))
         
     }else{
         panelVP <- grid::viewport(layout = grid::grid.layout(nrow = n.time+1,
                                                              ncol = n.time+1,
-                                                             width = ggplot2::unit(c(ratio.facet,rep(1, n.time)), "null"),
-                                                             height = ggplot2::unit(c(rep(1, n.time),ratio.facet), "null")))
+                                                             width = ggplot2::unit(c(ratio.facet[1],rep(1, n.time)), "null"),
+                                                             height = ggplot2::unit(c(ratio.facet[2],rep(1, n.time)), "null")))
     }
     grid::pushViewport(panelVP)
     ## grid::showViewport()
+
     for(iTime in 1:n.time){
         grid::grid.rect(gp = grid::gpar(fill="grey"),
-                        vp = grid::viewport(layout.pos.row = iTime, layout.pos.col = 1))
-        grid::grid.text(level.time[iTime],
-                        vp = grid::viewport(layout.pos.row = iTime, layout.pos.col = 1),
+                        vp = grid::viewport(layout.pos.row = iTime+1, layout.pos.col = 1))
+        grid::grid.text(paste0(var.time,level.time[iTime]),
+                        vp = grid::viewport(layout.pos.row = iTime+1, layout.pos.col = 1),
                         rot = 90,
                         gp = grid::gpar(fontsize = size.facet[1]))
         grid::grid.rect(gp = grid::gpar(fill="grey"),
-                        vp = grid::viewport(layout.pos.row = n.time+1, layout.pos.col = iTime+1))
-        grid::grid.text(level.time[iTime],
-                        vp = grid::viewport(layout.pos.row = n.time+1, layout.pos.col = iTime+1),
+                        vp = grid::viewport(layout.pos.row = 1, layout.pos.col = iTime+1))
+        grid::grid.text(paste0(var.time,level.time[iTime]),
+                        vp = grid::viewport(layout.pos.row = 1, layout.pos.col = iTime+1),
                         rot = 0,
                         gp = grid::gpar(fontsize = size.facet[1]))
     }
-    
+
     ## display plots
     for(iGrid in 1:n.grid){ ## iGrid <- 5
         if(!is.null(xlim) || !is.null(ylim)){
@@ -603,7 +615,7 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
             }
         }
         print(vec.plot[[iGrid]],
-              vp = grid::viewport(layout.pos.row = grid[iGrid,1], layout.pos.col = grid[iGrid,2]+1))
+              vp = grid::viewport(layout.pos.row = grid[iGrid,1]+1, layout.pos.col = grid[iGrid,2]+1))
     }
 
     ## display legend

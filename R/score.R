@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: Mar 26 2024 (09:51) 
+## Last-Updated: jul  4 2024 (12:25) 
 ##           By: Brice Ozenne
-##     Update #: 599
+##     Update #: 637
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -104,6 +104,130 @@ score.lmm <- function(x, effects = "mean", newdata = NULL, p = NULL, indiv = FAL
         out <- restaureNA(out, index.na = x$index.na,
                           level = "cluster", cluster = x$cluster)        
         
+    }
+
+    ## ** export
+    return(out)
+}
+
+## * score.mlmm (documentation)
+##' @title Extract The Score From Multiple Linear Mixed Models
+##' @description Extract or compute the first derivative of the log-likelihood of each linear mixed model.
+##'
+##' @param object a \code{mlmm} object.
+##' @param effects [character] By default will output the estimates relative to the hypotheses being tested (\code{"contrast"}).
+##' But can also output all model coefficients (\code{"all"}),
+##' or only coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
+##' or only coefficients relative to the variance structure (\code{"variance"}),
+##' or only coefficients relative to the correlation structure (\code{"correlation"}).
+##' @param p [list of numeric vector] list of model coefficients to be used. Only relevant if differs from the fitted values.
+##' @param newdata [NULL] Not used. For compatibility with the generic method.
+##' @param ordering [character] should the output be ordered by type of parameter (\code{parameter}) or by model (\code{by}).
+##' @param ... passed to \code{score.lmm}.
+
+## * score.mlmm (code)
+##' @export
+score.mlmm <- function(object, effects = "contrast", p = NULL, newdata = NULL, ordering = "parameter", ...){
+
+    ## ** normalize use input
+
+    ## effects
+    if(!is.null(effects)){
+        effects <- match.arg(effects, c("contrast","mean","fixed","variance","correlation","all"), several.ok = TRUE)
+    }
+
+    ## p
+    if(!is.null(p)){
+        if(!is.list(p)){
+            stop("Argument \'p\' should either be NULL or a list. \n")
+        }
+        if(is.null(names(p))){
+            stop("Argument \'p\' should either be NULL or a named list. \n")
+        }
+        if(any(names(p) %in% names(object$model) == FALSE)){
+            stop("Incorrect names for argument \'p\': \"",paste(setdiff(names(p),names(object$model)), collapse = "\", \""),"\". \n", 
+                 "Should be among \"",paste(names(object$model), collapse = "\", \""),"\". \n")
+        }
+        if(!is.null(object$univariate) & all(object$univariate$type=="mu")){
+            effects2 <- "mean"
+        }else{
+            effects2 <- "all"
+        }
+        p2 <- p
+    }else{
+        effects2 <- effects
+        p2 <- stats::setNames(vector(mode = "list", length = length(object$model)), names(object$model))
+    }
+
+    ## newdata
+    if(!is.null(newdata)){
+        message("Argument \'newdata\' is being ignored. \n")
+    }
+
+    ## ordering    
+    ordering <- match.arg(ordering, c("by","parameter"))
+        
+    ## ** extract
+    if(!is.null(effects) && length(effects)==1 && effects=="contrast"){
+        ls.contrast <- stats::coef(object, type = "ls.contrast")
+
+        if(all(object$univariate$type=="mu")){
+            ls.score <- mapply(x = object$model, p = p2, FUN = score, effects = "mean", ..., SIMPLIFY = FALSE)
+        }else if(all(object$univariate$type=="variance")){
+            ls.score <- mapply(x = object$model, p = p2, FUN = score, effects = "variance", ..., SIMPLIFY = FALSE)
+        }else if(all(object$univariate$type=="correlation")){
+            ls.score <- mapply(x = object$model, p = p2, FUN = score, effects = "variance", ..., SIMPLIFY = FALSE)
+        }
+        indiv <- is.matrix(ls.score[[1]])
+    
+        ls.out <- mapply(iScore = ls.score, iC = ls.contrast, FUN = function(iScore,iC){ ## iScore <- ls.score[[1]] ; iC <- ls.contrast[[1]]
+            if(indiv){
+                iOut <- iScore %*% t(iC[,colnames(iScore), drop = FALSE])
+                return(iOut)
+            }else{
+                iOut <- iScore %*% t(iC[,names(iScore), drop = FALSE])
+                return(iOut[1,])
+            }
+        }, SIMPLIFY = FALSE)
+    }else{
+        ls.out <- mapply(x = object$model, p = p2, FUN = score, effects = effects, ..., SIMPLIFY = FALSE)
+        indiv <- is.matrix(ls.out[[1]])
+    }
+
+    ## ** reshape
+    ## vector when indiv = FALSE or matrix when indiv = TRUE
+    cluster <- object$object$cluster
+    n.cluster <- length(cluster)
+            
+    if(ordering == "by"){
+        if(indiv){
+            out <- lapply(ls.out, function(iOut){
+                iM <- matrix(0, nrow = n.cluster, ncol = NCOL(iOut), dimnames = list(cluster, colnames(iOut)))
+                iM[rownames(iOut),] <- iOut
+                return(iM)
+            })
+        }else{
+            out <- ls.out
+        }
+    }else if(ordering == "parameter"){
+        ## unique parameters
+        Uname <- unique(unlist(lapply(ls.out,function(iOut){
+            if(indiv){colnames(iOut)}else{names(iOut)}
+        })))
+        ## combine score
+        if(indiv){
+            out <- stats::setNames(lapply(Uname, function(iName){ ## iName <- "X1"
+                do.call(cbind,lapply(ls.out ,function(iOut){
+                    iM <- matrix(0, nrow = n.cluster, ncol = 1, dimnames = list(cluster, iName))
+                    iM[rownames(iOut),] <- iOut[,iName,drop=FALSE]
+                    return(iM)
+                }))
+            }), Uname)
+        }else{
+            out <- stats::setNames(lapply(Uname, function(iName){ ## iName <- "X1"
+                unlist(lapply(ls.out,function(iOut){unname(iOut[iName])}))
+            }), Uname)
+        }        
     }
 
     ## ** export

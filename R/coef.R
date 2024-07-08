@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: maj  7 2024 (11:31) 
+## Last-Updated: jul  5 2024 (10:58) 
 ##           By: Brice Ozenne
-##     Update #: 707
+##     Update #: 765
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -234,40 +234,6 @@ coef.lmmCC <- function(object, effects = NULL, ...){
 
 }
 
-## * coef.Wald_lmm
-##' @export
-coef.Wald_lmm <- function(object, backtransform = object$args$backtransform, ...){
-
-    dots <- list(...)
-    if(length(dots)>0){
-        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
-    }
-    table.univariate <- object$univariate
-
-    if(is.null(table.univariate)){
-        return(NULL)
-    }else if(!backtransform){
-        return(stats::setNames(table.univariate$estimate, rownames(table.univariate)))
-    }else{ ## backtransformation
-        tableBack.univariate <- .backtransform(table.univariate, type.param = table.univariate$type,  
-                                               backtransform = TRUE, backtransform.names = object$args$backtransform.names[[1]],
-                                               transform.mu = "none",
-                                               transform.sigma = object$args$transform.sigma,
-                                               transform.k = object$args$transform.k,
-                                               transform.rho = object$args$transform.rho)
-
-        vec.backtransform <- attr(table.univariate,"backtransform")
-        if(!is.null(vec.backtransform)){
-            ## case where a contrast is performed on transformed coefficients (e.g. sigma:male vs sigma:female)
-            ## the back transformed version exp(log(sigma:male) - log(sigma:female)) differs from the original version sigma:male - sigma:female
-            ## thus without further indication the original version is output
-            tableBack.univariate[names(vec.backtransform),"estimate"] <- unname(vec.backtransform)
-        }
-
-
-        return(stats::setNames(tableBack.univariate$estimate, rownames(tableBack.univariate)))
-    }
-}
 ## * coef.LRT_lmm
 ##' @export
 coef.LRT_lmm <- function(object, ...){
@@ -275,50 +241,183 @@ coef.LRT_lmm <- function(object, ...){
     return(NULL)
 }
 
-## * coef.mlmm
-##' @title Extract Coefficients From a Linear Mixed Model
-##' @description Extract coefficients from a linear mixed model.
+## * coef.mlmm (documentation)
+##' @title Extract Coefficients From Multiple Linear Mixed Models
+##' @description Extract coefficient or constrast coefficients from multiple linear mixed models.
 ##'
 ##' @param object a \code{mlmm} object.
-##' @param effects [character] By default will output the estimate for the hypothesis being tests.
+##' @param effects [character] By default will output the estimates relative to the hypotheses being tested (\code{"contrast"}).
 ##' But can also output all model coefficients (\code{"all"}),
 ##' or only coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 ##' or only coefficients relative to the variance structure (\code{"variance"}),
 ##' or only coefficients relative to the correlation structure (\code{"correlation"}).
+##' Not relevant when \code{type="contrast"} or \code{type="ls.contrast"}.
+##' @param p [list of numeric vector] list of model coefficients to be used. Only relevant if differs from the fitted values.
+##' @param type [character] Should the coefficients be extracted (\code{"coef"}) or the contrast matrix (\code{"contrast"} or \code{"ls.contrast"}).
+##' \code{"contrast"} will extract the contrast matrix acrossed models (typically identity when testing an exposure effect in each model separately)
+##' whereas \code{"ls.contrast"} will extract the contrast matrix applied to each model as a list.
 ##' @param ordering [character] should the output be ordered by type of parameter (\code{parameter}) or by model (\code{by}).
 ##' @param ... passed to \code{coef.Wald_lmm}.
+
+## * coef.mlmm (code)
 ##' @export
-coef.mlmm <- function(object, effects = "contrast", ordering = "parameter", ...){
+coef.mlmm <- function(object, effects = "contrast", p = NULL, type = "coef", ordering = "parameter", ...){
+
+    ## ** normalize user input
+
+    ## effects
+    if(!is.null(effects)){
+        effects <- match.arg(effects, c("contrast","mean","fixed","variance","correlation","all"), several.ok = TRUE)
+    }
+
+    ## p
+    if(!is.null(p)){
+        if(!is.list(p)){
+            stop("Argument \'p\' should either be NULL or a list. \n")
+        }
+        if(is.null(names(p))){
+            stop("Argument \'p\' should either be NULL or a named list. \n")
+        }
+        if(any(names(p) %in% names(object$model) == FALSE)){
+            stop("Incorrect names for argument \'p\': \"",paste(setdiff(names(p),names(object$model)), collapse = "\", \""),"\". \n", 
+                 "Should be among \"",paste(names(object$model), collapse = "\", \""),"\". \n")
+        }
+        if(!is.null(object$univariate) & all(object$univariate$type=="mu")){
+            effects2 <- "mean"
+        }else{
+            effects2 <- "all"
+        }
+    }else{
+        effects2 <- effects
+    }
 
     ordering <- match.arg(ordering, c("by","parameter"))
+    type <- match.arg(type, c("coef","contrast","ls.contrast"))
+    
 
-    if(!is.null(effects) && length(effects)==1 && effects=="contrast"){
-
+    ## ** extract
+    if(type == "contrast"){
+        out <- object$glht$all[[1]]$linfct
+    }else if(type == "ls.contrast"){
+        out <- object$glht$all[[1]]$linfct.original
+        names(out) <- names(object$model)
+    }else if(!is.null(effects) && length(effects)==1 && effects=="contrast" && is.null(p)){
         out <- coef.Wald_lmm(object, backtransform = object$args$backtransform, ...)
-        
-        if(ordering=="by"){
-            return(out[order(object$univariate[["by"]])])
-        }else if(is.list(object$univariate$parameter)){
-            return(out[order(object$univariate$type,sapply(object$univariate$parameter, paste, collapse=";"))])
-        }else{
-            return(out[order(object$univariate$type,object$univariate$parameter)])
-
+        if(length(out) == NROW(object$univariate)){
+            ## only reorder when no pooling
+            if(ordering=="by"){
+                out <- out[order(object$univariate[["by"]])]
+            }else if(is.list(object$univariate$parameter)){
+                out <- out[order(object$univariate$type,sapply(object$univariate$parameter, paste, collapse=";"))]
+            }else{
+                out <- out[order(object$univariate$type,object$univariate$parameter)]
+            }
         }
-        
-        
     }else{
-        ls.out <- lapply(object$model, coef, effects = effects, ...)
-        if(ordering == "by"){
-            return(ls.out)
+        if(is.null(p)){
+            ls.out <- lapply(object$model, coef, effects = effects, ...)
+        }else{
+            ls.out <- mapply(object = object$model, p = p, FUN = coef, effects = effects2, ..., SIMPLIFY = FALSE)
+        }
+        if(!is.null(effects) && length(effects)==1 && effects=="contrast"){
+            out <- mapply(iC = coef(object, type = "ls.contrast"), iMu = ls.out, FUN = function(iC,iMu){iC[,names(iMu),drop=FALSE] %*% cbind(iMu)})
+        }else if(ordering == "by"){
+            out <- ls.out
         }else if(ordering == "parameter"){
             Uname <- unique(unlist(lapply(ls.out,names)))
             ls.out2 <- stats::setNames(lapply(Uname, function(iName){ ## iName <- "X1"
                 unlist(lapply(ls.out,function(iVec){unname(iVec[iName])}))
             }), Uname)
-            return(ls.out2)
+            out <- ls.out2
         }
     }
-    
+
+    ## ** export
+    return(out)
+}
+## * coef.Wald_lmm
+##' @title Extract Coefficients From Wald Tests for Linear Mixed Model
+##' @description Extract coefficients from Wald tests applied to a linear mixed model.
+##'
+##' @param object a \code{Wald_lmm} object.
+##' @param type [character] Should the coefficients be extracted (\code{"coef"}) or the contrast matrix (\code{"contrast"} or \code{"ls.contrast"}).
+##' \code{"contrast"} will try to simplify the output into a matrix whereas \code{"ls.contrast"} will keep the original format (list of list of matrix).
+##' @param backtransform [logical] should the estimate, standard error, and confidence interval be back-transformed?
+##' @param ... Not used. For compatibility with the generic method.
+##' 
+##' @export
+coef.Wald_lmm <- function(object, type = "coef", method = "none", backtransform = object$args$backtransform, ...){
+
+    options <- LMMstar.options()
+    pool.method <- options$pool.method
+    table.univariate <- object$univariate
+
+    ## ** normalize user input
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+    type <- match.arg(type, c("coef","contrast","ls.contrast"))
+
+    ## ** extract from object
+    if(type %in% c("contrast","ls.contrast")){
+        out <- lapply(object$glht, function(iGlht){lapply(iGlht,"[[","linfct")})
+        if(type == "contrast"){
+            if(length(out)==1){
+                out <- out[[1]]
+                if(length(out)==1){
+                    out <- out[[1]]
+                }
+            }else{
+                out <- lapply(out, function(iOut){if(length(iOut)==1){iOut[[1]]}else{iOut}})
+            }
+        }
+    }else if(type == "coef"){
+
+        if(method %in% pool.method){
+
+            grid <- unique(table.univariate[,c("type","test"),drop=FALSE])
+            n.grid <- NROW(grid)
+            table.out <- do.call(rbind,lapply(1:n.grid , function(iGrid){
+                if(n.grid>1){
+                    iIndex.table <- intersect(which(table.univariate$type==grid$type[iGrid]),
+                                              which(table.univariate$test==grid$test[iGrid]))
+                }else{
+                    iIndex.table <- 1:NROW(table.univariate)
+                }
+
+                contrastWald_pool(object = object, index = iIndex.table, method = method, name.method = NULL, ci = FALSE, df = FALSE, alpha = NA)
+            }))
+            out <- stats::setNames(table.out[,"estimate"],rownames(table.out))
+            
+        }else{
+
+            if(is.null(table.univariate)){
+                out <- NULL
+            }else if(!backtransform){
+                out <- stats::setNames(table.univariate$estimate, rownames(table.univariate))
+            }else{ ## backtransformation
+                tableBack.univariate <- .backtransform(table.univariate, type.param = table.univariate$type,  
+                                                       backtransform = TRUE, backtransform.names = object$args$backtransform.names[[1]],
+                                                       transform.mu = "none",
+                                                       transform.sigma = object$args$transform.sigma,
+                                                       transform.k = object$args$transform.k,
+                                                       transform.rho = object$args$transform.rho)
+
+                vec.backtransform <- attr(table.univariate,"backtransform")
+                if(!is.null(vec.backtransform)){
+                    ## case where a contrast is performed on transformed coefficients (e.g. sigma:male vs sigma:female)
+                    ## the back transformed version exp(log(sigma:male) - log(sigma:female)) differs from the original version sigma:male - sigma:female
+                    ## thus without further indication the original version is output
+                    tableBack.univariate[names(vec.backtransform),"estimate"] <- unname(vec.backtransform)
+                }
+                out <- stats::setNames(tableBack.univariate$estimate, rownames(tableBack.univariate))
+            }
+        }
+    }
+
+    ## ** export
+    return(out)
 }
 
 

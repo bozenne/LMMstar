@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:53) 
 ## Version: 
-## Last-Updated: maj 14 2024 (17:03) 
+## Last-Updated: jul  8 2024 (12:24) 
 ##           By: Brice Ozenne
-##     Update #: 246
+##     Update #: 259
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -243,6 +243,96 @@ formula2var <- function(formula, data = NULL, specials = NULL, name.argument  = 
     ## ** export
     out$special <- type.special
     return(out)
+}
+
+## * formula2repetition
+##' @description Normalize the formula and repetition arguments.
+##' In particular if repetition is missing but formula contains a cluster variable, it will try to re-create the repetition variable
+##'
+##' @param formula [formula]  Y ~ X1 + X2 
+##' @param data [data.frame]
+##' @param repetition [formula] ~ time | cluster
+##' @param keep.time [logical] if formula = Y ~ time|cluster should the new formula be Y ~ time or Y ~ 1
+##' 
+##' @noRd
+formula2repetition <- function(formula, data, repetition, keep.time){
+
+    ## ** formula
+    if(!inherits(formula,"formula")){
+        stop("Argument \'formula\' should inherit from formula. \n")
+    }
+    detail.formula <- formula2var(formula, data = data)
+    if(any(setdiff(detail.formula$var$all,".") %in% names(data) == FALSE)){
+        stop("Argument \'formula\' incompatible with argument \'data\': could not find column(s) \"",paste(setdiff(detail.formula$var$all,names(data)), collapse ="\", \""),"\".\n")
+    }
+    if(detail.formula$special=="ranef"){
+        stop("Argument \'formula\' should not contain any random effect. \n",
+             "Should be something like Y ~ time or Y ~ time + group, i.e., without ",detail.formula$ranef$terms[1],". \n")
+    }
+    if(detail.formula$special=="repetition"){
+        if(missing(repetition) || is.null(repetition)){
+            terms.formula <- stats::terms(formula)
+            repetition <- stats::reformulate(attr(stats::delete.response(terms.formula),"term.labels"))
+            if(keep.time){
+                formula <- stats::reformulate(termlabels = detail.formula$vars$time, response = paste(detail.formula$vars$response, collapse = " + "))
+            }else{
+                formula <- stats::reformulate(termlabels = "1", response = paste(detail.formula$vars$response, collapse = " + "))
+            }
+            detail.formula <- formula2var(formula, data = data)
+        }else{
+            stop("Argument \'formula\' should not contain any grouping variable. \n",
+                 "The argument \'repetition\' should be used instead. \n")
+        }
+    }
+
+    ## ** repetition
+    if(missing(repetition) || !is.null(repetition)){
+        if(!inherits(repetition,"formula")){
+            stop("Argument \'repetition\' should inherit from formula. \n")
+        }
+        detail.repetition <- formula2var(repetition, data = data)
+        if(any(detail.repetition$var$all %in% names(data) == FALSE)){
+            stop("Argument \'repetition\' incompatible with argument \'data\': could not find column(s) \"",paste(setdiff(detail.repetition$var$all,names(data)), collapse ="\", \""),"\".\n")
+        }
+        if(detail.repetition$special!="repetition"){
+            stop("Could not identifying the cluster variable in argument \'repetition\'. \n",
+                 "Should be a formula such as Y~time|id. \n")
+        }
+        if(length(detail.repetition$vars$cluster)==0){
+            stop("Could not identifying the cluster variable in argument \'repetition\'. \n",
+                 "Should be a formula such as Y~time|id. \n")
+        }
+        if(length(detail.repetition$vars$cluster)>1){
+            stop("Cannot handle multiple cluster variable in argument \'repetition\'. \n",
+                 "Should be a formula such as Y~time|id. \n")
+        }
+        if(length(detail.repetition$vars$time)==0){
+            stop("Could not identifying the time variable in argument \'repetition\'. \n",
+                 "Should be a formula such as Y~time|id. \n")
+        }
+
+        if(length(detail.repetition$vars$time)==1){
+            if(any(unlist(tapply(data[[detail.repetition$vars$time]],data[[detail.repetition$vars$cluster]],duplicated, simplify = FALSE)))){
+                stop("Mismatch between argument \'repetition\' and argument \'data\'. \n",
+                     "There should no duplicated \"",detail.repetition$vars$time,"\" value (timepoint) within observations with the same \"",detail.repetition$vars$cluster,"\" value (cluster). \n")
+            }
+        }else{
+            if(any(unlist(tapply(interaction(data[,detail.repetition$vars$time,drop=FALSE],drop=TRUE),data[[detail.repetition$vars$cluster]],duplicated, simplify = FALSE)))){
+                stop("Mismatch between argument \'repetition\' and argument \'data\'. \n",
+                     "There should no duplicated \"",detail.repetition$vars$time,"\" value (timepoint) within observations with the same \"",detail.repetition$vars$cluster,"\" value (cluster). \n")
+            }
+        }
+
+    }else{
+        detail.repetition <- NULL
+    }
+
+    ## ** return
+    return(list(formula = formula,
+                detail.formula = detail.formula,
+                repetition = repetition,
+                detail.repetition = detail.repetition))
+
 }
 
 ## * updateFormula

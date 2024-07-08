@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: mar 11 2024 (10:06) 
+## Last-Updated: jul  5 2024 (16:38) 
 ##           By: Brice Ozenne
-##     Update #: 148
+##     Update #: 153
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,9 +25,11 @@
 #' @param reinitialise should all the global parameters be set to their default value
 #'
 #' @details The options are: \itemize{
+#' \item adj.method [character vector]: possible methods to adjust for multiple comparisons. NOT MEANT TO BE CHANGED BY THE USER.
 #' \item backtransform.confint [logical]: should variance/covariance/correlation estimates be back-transformed when they are transformed on the log or atanh scale. Used by \code{confint}.
 #' \item columns.anova [character vector]: columns to ouput when using \code{anova} with argument \code{ci=TRUE}.
 #' \item columns.confint [character vector]: columns to ouput when using \code{confint}.
+#' \item columns.summarize [character vector]: columns to ouput when displaying descriptive statistics using \code{summarize}.
 #' \item columns.summary [character vector]: columns to ouput when displaying the model coefficients using \code{summary}.
 #' \item df [logical]: should approximate degrees of freedom be computed for Wald and F-tests. Used by \code{lmm}, \code{anova}, \code{predict}, and \code{confint}.
 #' \item drop.X [logical]: should columns causing non-identifiability of the model coefficients be dropped from the design matrix. Used by \code{lmm}.
@@ -38,6 +40,7 @@
 #' \item n.sampleCopula [integer]: number of samples used to compute confidence intervals and p-values adjusted for multiple comparisons via \code{"single-step2"}. Used by \code{confint.Wald_lmm}.
 #' \item optimizer [character]: method used to estimate the model parameters. Either \code{"FS"}, an home-made fisher scoring algorithm, or a method from \code{optimx:optimx} like \code{"BFGS"}or \code{Nelder-Mead}.
 #' \item param.optimizer [numeric vector]: default option for the \code{FS} optimization routine: maximum number of gradient descent iterations (\code{n.iter}), maximum acceptable score value (\code{tol.score}), maximum acceptable change in parameter value (\code{tol.param}).
+#' \item pool.method [character vector]: possible methods to pool estimates. NOT MEANT TO BE CHANGED BY THE USER.
 #' \item precompute.moments [logical]: Should the cross terms between the residuals and design matrix be pre-computed. Useful when the number of subject is substantially larger than the number of mean paramters.
 #' \item sep [character vector]: character used to combined two strings of characters in various functions (lp: .vcov.model.matrix, k.cov/k.strata: .skeletonK, pattern: .findUpatterns, rho.name/rho.strata: .skeletonRho, reformat: .reformat ).
 #' \item trace [logical]: Should the progress of the execution of the \code{lmm} function be displayed?
@@ -56,9 +59,11 @@
 #' @export
 LMMstar.options <- function(..., reinitialise = FALSE){
 
-    default <- list(backtransform.confint = TRUE,
+    default <- list(adj.method = c(stats::p.adjust.methods,"single-step", "Westfall", "Shaffer", "free", "single-step2"),
+                    backtransform.confint = TRUE,
                     columns.anova = c("estimate","se","df","lower","upper","p.value",""),
                     columns.confint = c("estimate","lower","upper"),
+                    columns.summarize = c("observed","missing","pc.missing","mean","sd","min","q1","median","q3","max"),
                     columns.summary = c("estimate","se","df","lower","upper","p.value",""),
                     df = TRUE,
                     drop.X = TRUE,
@@ -69,6 +74,7 @@ LMMstar.options <- function(..., reinitialise = FALSE){
                     n.sampleCopula = 1e5,
                     optimizer = "FS",
                     param.optimizer = c(n.iter = 100, tol.score = 1e-4, tol.param = 1e-5, n.backtracking = 10),
+                    pool.method = c("average","pool.fixse","pool.se","pool.gls","pool.gls1","pool.rubin"),
                     precompute.moments = TRUE,
                     sep = c(lp = ":", ## (.vcov.matrix.lmm) separator between the linear predictor when aggregated across repetitions
                             k.cov = ".", ## (.skeletonK) separator between the letter k and the covariate levels, e.g. k?2.1 
@@ -121,6 +127,14 @@ LMMstar.options <- function(..., reinitialise = FALSE){
           }
           if("columns.summary" %in% names(args) && any(args$columns.summary %in% c(ok.column,"") == FALSE)){
               stop("Argument \'columns.summary\' must be a character vector with values among \"",paste(c(ok.column,""), collapse = "\" \""),"\". \n")
+          }
+          ok.column2 <- c("observed","missing","pc.missing",
+                          "mean","mean.lower","mean.upper","predict.lower","predict.upper",
+                          "sd","sd.lower","sd.upper", "sd0","sd0.lower","sd0.upper",
+                          "min","q1","median","q3","median.upper","median.lower","IQR","max",
+                          "correlation")
+          if("columns.summarize" %in% names(args) && any(args$columns.summarize %in% c(ok.column2,"") == FALSE)){
+              stop("Argument \'columns.summarize\' must be a character vector with values among \"",paste(c(ok.column2,""), collapse = "\" \""),"\". \n")
           }
           if("df" %in% names(args) && !is.logical(args$df)){
               stop("Argument \'df\' must be of type logical. \n")

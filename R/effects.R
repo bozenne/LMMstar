@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 29 2024 (09:47) 
 ## Version: 
-## Last-Updated: jun 28 2024 (19:28) 
+## Last-Updated: jul  4 2024 (10:24) 
 ##           By: Brice Ozenne
-##     Update #: 1117
+##     Update #: 1118
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -63,7 +63,11 @@
 ##'                repetition = ~visit|id, structure = "UN", data = dL)
 ##'
 ##' ## outcome
-##' effects(eUN.lmm, variable = "X1")
+##' e.YbyX1 <- effects(eUN.lmm, variable = "X1")
+##' e.YbyX1
+##' summary(e.YbyX1)
+##' model.tables(e.YbyX1)
+##' coef(e.YbyX1, type = "contrast")
 ##' effects(eUN.lmm, effects = "difference", variable = "X1")
 ##' effects(eUN.lmm, effects = "difference", variable = "X1", repetition = "3")
 ##'

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jun 28 2024 (19:23) 
+## Last-Updated: jul  5 2024 (10:25) 
 ##           By: Brice Ozenne
-##     Update #: 1477
+##     Update #: 1500
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -440,6 +440,9 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
                              digits = 3, digits.df = 1, digits.p.value = 3, sep = ": ",
                              ...){
 
+    options <- LMMstar.options()
+    pool.method <- options$pool.method
+
     ## ** normalize input
     if(length(print)==1){
         print.univariate <- print
@@ -451,7 +454,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         print.multivariate <- print[1]
         print.univariate <- print[2]
     }
-    options <- LMMstar.options()
+
     valid.columns <- c("null","estimate","se","statistic","df","lower","upper","p.value","","type")
     if(identical(columns,"all")){
         columns.multivariate <- setdiff(valid.columns, c("estimate", "se", "lower", "upper"))
@@ -583,7 +586,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         }
 
         ## incorporate type
-        if(method.p.adjust %in% c("average","pool.fixse","pool.se","pool.gls","pool.gls1","pool.rubin") == FALSE){
+        if(method.p.adjust %in% pool.method == FALSE){
             table.univariate$type <-  c("mu" = "mean", "sigma" = "variance", "k" = "variance", "rho" = "correlation")[object$univariate$type]
         }
         nchar.type <- nchar(table.univariate$type)
@@ -747,7 +750,7 @@ summary.effect_lmm <- function(object, columns = NULL, print = TRUE, ...){
     }
 
     ## ** contrast
-    contrast <- object$glht$all[[1]]$linfct
+    contrast <- coef(object, type = "contrast")
     if(max(print)>=1){
         cat("\tPlanned contrast: \n")
         contrast.print <- contrast
@@ -965,31 +968,49 @@ summary.partialCor <- function(object, digits = 3, detail = TRUE, ...){
 
 
 
-## * print.resample
+## * summary.resample
 ##' @export
 summary.resample <- function(object, digits = 3, ...){
-    args <- attr(object,"args")
-    n.sample <- attr(object,"n.sample")
 
-    if(args$type %in% c("perm-var","perm-res")){
-        if(args$studentized){
-            cat("\tStudentized permutation test\n\n", sep = "")
-        }else{
-            cat("\tPermutation test\n\n", sep = "")
-        }
-    }else if(args$type == "boot"){
-        if(args$studentized){
-            cat("\tNon-parametric studentized bootstrap\n\n", sep = "")
-        }else{
-            cat("\tNon-parametric bootstrap\n\n", sep = "")
-        }
+    object.type <- object$args$type
+    n.sample <- object$args$n.sample
+    
+    ## ** check cv
+    n.cv <- sum(object$cv)
+
+    ## ** compute CI/pvalue
+    table.object <- model.tables(object, ...)
+
+    txt.type <- switch(object.type,
+                       "perm-var" = "permutation",
+                       "perm-res" = "permutation",
+                       "boot" = "bootstrap")
+    txt.method <- switch(object.type,
+                         "perm-var" = paste0("p-value computed using ", attr(table.object,"method")," method"),
+                         "perm-res" = paste0("p-value computed using ", attr(table.object,"method")," method"),
+                         "boot" = paste0("lower,upper,p-value computed using ", attr(table.object,"method")," method"))
+
+    ## ** display
+    if(object.type == "perm-var"){
+        cat("\tPermutation test (",n.sample," samples) \n\n", sep = "")
+    }else if(object.type == "perm-res"){
+        cat("\tResidual Permutation test (",n.sample," samples) \n\n", sep = "")
+    }else if(object.type == "boot"){
+        cat("\tNon-parametric bootstrap (",n.sample," samples)\n\n", sep = "")
     }
 
-    
-    base::print.data.frame(object, digits = digits)
+    rownames(table.object) <- paste0("   ",rownames(table.object))
+    base::print.data.frame(table.object, digits = digits)
 
-    cat(rep("-",ncharTable(object, digits = digits)),"\n",sep="")
-    cat(paste0("(based on ",n.sample," samples - ",round((1-n.sample/args$n.sample)*100, digits = digits),"% failed) \n"))
+    cat("   ",rep("-",ncharTable(table.object, digits = digits)),"\n",sep="")
+    cat("  ",txt.method,"\n")
+    if(n.sample!=n.cv){
+        cat(paste0("   Based on ",n.cv," ",txt.type," samples - ",round((1-n.cv/n.sample)*100, digits = digits),"% failed\n"))
+    }else{
+        cat(paste0("   All ",txt.type," samples were successful\n"))
+    }
+
+
     cat("\n")
     return(invisible(NULL))
 }
@@ -1152,7 +1173,7 @@ summary.resample <- function(object, digits = 3, ...){
             }else if("upper" %in% columns){
                 cat(space,"Column upper contains ",100*level,"% ",txt.ci,".\n", sep = "")
             }
-        }else if(!is.null(method.p.adjust) && method.p.adjust %in% c("average","pool.se","pool.fixse","pool.gls","pool.gls1","pool.rubin")){
+        }else if(!is.null(method.p.adjust) && method.p.adjust %in% pool.method){
 
             if(method.p.adjust == "average"){
                 if(NROW(table)>1){

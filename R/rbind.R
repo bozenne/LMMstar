@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: May 12 2024 (17:06) 
+## Last-Updated: jul  4 2024 (15:34) 
 ##           By: Brice Ozenne
-##     Update #: 505
+##     Update #: 519
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -291,9 +291,10 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
     if(all(sapply(ls.object, function(iO){attr(iO$args$robust,"call")})==FALSE)){
         newtable.args$robust <- independence==FALSE
     }
-
+    
     ## *** estimate
     beta.estimate <- stats::setNames(table.univariate$estimate, name.modelparam)
+    
     if(independence){
         
         beta.vcov <- as.matrix(do.call(Matrix::bdiag,lapply(ls.object, "[[", "vcov")))

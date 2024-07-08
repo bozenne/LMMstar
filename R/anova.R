@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: maj 16 2024 (14:26) 
+## Last-Updated: jul  4 2024 (15:49) 
 ##           By: Brice Ozenne
-##     Update #: 1453
+##     Update #: 1469
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -482,13 +482,13 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, multivariate = TRU
             ## *** confidence interval
             if(ci>0){
                 if(df>0){
-                    ci.df <-  .dfX(X.beta = iC.uni, vcov.param = vcov.param, dVcov.param = dVcov.param, return.vcov = ci>0.5)
+                    ci.df <-  .dfX(X.beta = iC.uni, vcov.param = vcov.param, dVcov.param = dVcov.param)
                 }else{
                     ci.df <- Inf
                 }
                 CI <- data.frame(estimate = as.double(iC %*% param),
                                  se = sqrt(diag(iC %*% vcov.param %*% t(iC))),
-                                 df = ci.df,
+                                 df = as.double(ci.df),
                                  statistic = NA,
                                  lower = NA,
                                  upper = NA,
@@ -585,20 +585,22 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, multivariate = TRU
             out$iid <- iid(object, effects = "mean", robust = robust2, 
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names) %*% t(globalC)
         }
-    }
+   }
+
 
     ## ** prepare for back-transformation
     out$args <- data.frame(type = NA, robust = robust, df = df, ci = ci,
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                            transform.names = transform.names)
 
-    if(all(name.paramSigma %in% colnames(globalC) == FALSE) || all(globalC[,name.paramSigma,drop=FALSE]==0)){
+    active.param <- unlist(lapply(ls.contrast, function(iC){colnames(iC)[colSums(iC!=0)>0]}))
+    if(any(name.paramSigma %in% active.param)){
         out$args$transform.sigma <- NA
     }
-    if(all(name.paramK %in% colnames(globalC) == FALSE) || all(globalC[,name.paramK,drop=FALSE]==0)){
+    if(any(name.paramK %in% active.param)){
         out$args$transform.k <- NA
     }
-    if(all(name.paramRho %in% colnames(globalC) == FALSE) || all(globalC[,name.paramRho,drop=FALSE]==0)){
+    if(any(name.paramRho %in% active.param)){
         out$args$transform.rho <- NA
     }
 

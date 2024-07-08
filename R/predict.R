@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jun 28 2024 (09:59) 
+## Last-Updated: jul  4 2024 (16:06) 
 ##           By: Brice Ozenne
-##     Update #: 1445
+##     Update #: 1447
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -742,7 +742,7 @@ predict.mlmm <- function(object, ...){
     ## ** export
     if(return.vcov){
         attr(out,"vcov") <- vcov.vcovbeta
-        attr(out,"contrast") <- X.beta
+        attr(out,"denum") <- denum
     }
     return(out)
 }

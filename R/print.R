@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jun 27 2024 (15:31) 
+## Last-Updated: jul  8 2024 (12:08) 
 ##           By: Brice Ozenne
-##     Update #: 262
+##     Update #: 304
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,6 +15,48 @@
 ## 
 ### Code:
 
+## * print.correlate
+#' @export
+print.correlate <- function(x,...){
+
+    ## ** prepare
+    if(length(x)==1){ ## outcome
+        ls.cor <- x[[1]]
+        if(length(ls.cor)==1){ ## group
+            ls.cor <- ls.cor[[1]]
+            rownames(ls.cor) <- paste("  ", rownames(ls.cor))
+        }else{
+            ls.cor <- lapply(ls.cor, function(iCor){
+                rownames(iCor) <- paste("  ", rownames(iCor))
+                return(iCor)
+            })
+        }
+    }else{
+        ls.cor <- lapply(x, function(iCor){
+            if(length(iCor)==1){ ## group
+                rownames(iCor[[1]]) <- paste("  ", rownames(iCor[[1]]))
+                return(iCor[[1]])
+            }else{
+                iCor <- lapply(iCor, function(iiCor){
+                    rownames(iiCor) <- paste("  ", rownames(iiCor))
+                    return(iiCor)
+                })
+                return(iCor)
+            }
+        })
+        names(ls.cor) <- names(x)
+    }
+    
+    Method <- attr(x,"method")
+    substr(Method, 1, 1) <- toupper(substr(Method, 1, 1))
+    
+    ## ** print
+    cat("    ",Method," correlation: \n",sep="")
+    print(ls.cor, ...)
+
+    ## ** export
+    return(invisible(NULL))
+}
 ## * print.lmm (code)
 ##' @export
 print.lmm <- function(x, ...){
@@ -306,12 +348,23 @@ print.partialCor <- function(x, digits = 3, ...){
 ## * print.resample
 ##' @export
 print.resample <- function(x, digits = 3, ...){
-    args <- attr(x,"args")
-    n.sample <- attr(x,"n.sample")
-    
-    base::print.data.frame(x, digits = digits)
-    if(n.sample!=args$n.sample){
-        cat(paste0("(based on ",n.sample," samples - ",round((1-n.sample/args$n.sample)*100, digits = digits),"% failed) \n"))
+
+    ## ** check cv
+    n.sample <- x$args$n.sample
+    n.cv <- sum(x$cv)
+
+    ## ** compute CI/pvalue
+    table.x <- model.tables(x, ...)
+
+    ## ** display
+    base::print.data.frame(table.x, digits = digits)
+
+    if(n.sample!=n.cv){
+        type <- switch(x$args$type,
+                       "perm-var" = "permutation",
+                       "perm-res" = "permutation",
+                       "boot" = "bootstrap")
+        cat(paste0("(based on ",n.cv," ",type," samples - ",round((1-n.cv/n.sample)*100, digits = digits),"% failed)\n"))
     }
     return(invisible(NULL))
 }
@@ -327,19 +380,22 @@ print.residuals_lmm <- function(x, ...){
 }
 ## * print.summarize
 #' @export
-print.summarize <- function(x,...){
+print.summarize <- function(x, simplify = TRUE,...){
+    
     ## remove duplicated values
-    if(length(unique(x$outcome))==1){
-        x$outcome <- NULL
-    }else{
-        x$outcome[duplicated(x$outcome)] <- ""
+    if(!is.null(attr(x,"name.Y")) && simplify){
+        if(length(unique(x$outcome))==1){
+            x$outcome <- NULL
+        }else{
+            x$outcome[duplicated(x$outcome)] <- ""
+        }
     }
     if("pc.missing" %in% eval(attr(x,"call")$columns) == FALSE){
         x$pc.missing <- NULL
     }
     name.X <-  attr(x,"name.X")
-    if(length(name.X)>0){
-        for(iX in name.X){ ## iX <- name.X[2]
+    if(length(name.X)>1 && simplify){
+        for(iX in name.X[-1]){ ## iX <- name.X[2]
             iX.value <- as.numeric(as.factor(x[[iX]]))
             iLevels <- cumsum(iX.value!=c(0,iX.value[-length(iX.value)]))
             if(any(duplicated(iLevels))){
@@ -355,17 +411,8 @@ print.summarize <- function(x,...){
         print(as.data.frame(x), ...)
     }
     if(!is.null(attr(x,"correlation"))){
-        cat("\n Pearson's correlation: \n")
-        ls.cor <- attr(x,"correlation")
-        if(length(ls.cor)==1){ ## outcome
-            ls.cor <- ls.cor[[1]]
-            if(length(ls.cor)==1){ ## group
-                ls.cor <- ls.cor[[1]]
-            }
-        }else{
-            ls.cor <- unlist(ls.cor, recursive = FALSE)
-        }
-        print(ls.cor, ...)
+        cat("\n")
+        print(attr(x, "correlation"))
     }
     return(invisible(NULL))
 }
