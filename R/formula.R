@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:53) 
 ## Version: 
-## Last-Updated: jul  8 2024 (12:24) 
+## Last-Updated: jul  9 2024 (16:55) 
 ##           By: Brice Ozenne
-##     Update #: 259
+##     Update #: 281
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -255,7 +255,10 @@ formula2var <- function(formula, data = NULL, specials = NULL, name.argument  = 
 ##' @param keep.time [logical] if formula = Y ~ time|cluster should the new formula be Y ~ time or Y ~ 1
 ##' 
 ##' @noRd
-formula2repetition <- function(formula, data, repetition, keep.time){
+##'
+##' @examples
+##' 
+formula2repetition <- function(formula, data, repetition, keep.time, filter){
 
     ## ** formula
     if(!inherits(formula,"formula")){
@@ -271,8 +274,32 @@ formula2repetition <- function(formula, data, repetition, keep.time){
     }
     if(detail.formula$special=="repetition"){
         if(missing(repetition) || is.null(repetition)){
+
+            if(length(detail.formula$var$time)==0){
+                stop("Argument \'formula\' contain a cluster but no repetition variable. \n",
+                     "Should be something like Y ~ time or Y ~ time + group, i.e., without |",detail.formula$var$cluster[1],". \n",
+                     "Use the argument \'repetition\' to define the repetition and cluster variables. \n")
+            }
             terms.formula <- stats::terms(formula)
-            repetition <- stats::reformulate(attr(stats::delete.response(terms.formula),"term.labels"))
+            
+            ## check variables that are constant within individuals: should be excluded from the time variables
+            Mduplicated <- do.call(rbind,by(data[detail.formula$var$time], data[detail.formula$var$cluster], function(iDF){
+                apply(iDF, MARGIN = 2, FUN = function(iX){sum(!duplicated(iX))})
+            }, simplify = FALSE))
+            
+            test.duplicated <- colSums(Mduplicated!=1)
+            if(all(test.duplicated==0)){
+                stop("Argument \'formula\' contain a cluster but all possible repetition variables are constant within cluster. \n",
+                     "Should be something like Y ~ time or Y ~ time + group, i.e., without |",detail.formula$var$cluster[1],". \n",
+                     "Use the argument \'repetition\' to define the repetition and cluster variables. \n")
+            }else if(any(test.duplicated==0)){
+                term.rm <- names(test.duplicated)[test.duplicated==0]
+                repetition <- stats::reformulate(termlabels = paste(paste(setdiff(detail.formula$vars$time,term.rm),collapse="+"),"|",detail.formula$vars$cluster))
+            }else{
+                term.rm <- NULL
+                repetition <- stats::reformulate(attr(stats::delete.response(terms.formula),"term.labels"))
+            }
+            
             if(keep.time){
                 formula <- stats::reformulate(termlabels = detail.formula$vars$time, response = paste(detail.formula$vars$response, collapse = " + "))
             }else{
@@ -327,6 +354,26 @@ formula2repetition <- function(formula, data, repetition, keep.time){
         detail.repetition <- NULL
     }
 
+    ## ** handle dots (.~Group or Y~.)
+    browser()
+    if(identical(detail.formula$vars$response,".") & identical(detail.formula$vars$regressor,".")){
+        stop("Argument \'formula\' cannot be .~. as the left or right hand side need to be explicit \n",
+             "Consider for instance using .~1. \n",sep = "")
+    }else if(identical(detail.formula$vars$response,".")){
+        name.X <- detail.formula$var$regressor
+        name.Y <- setdiff(names(data),c(name.X,detail.repetition$var$all))
+        if(length(name.Y)==0){
+            stop("Incorrect argument \'formula\': no variable on the left hand side of the formula. \n")
+        }
+        termlabels <- ifelse(is.null(detail.formula$vars$regressor),"1",paste(detail.formula$vars$regressor,collapse="+"))
+        formula <- stats::reformulate(response = paste0(name.Y,collapse="+"), termlabels = termlabels)
+        detail.formula <- formula2var(formula)$detail.formula
+    }else if(identical(detail.formula$vars$regressor,".")){
+        name.Y <- detail.formula$var$response
+        formula <- stats::formula(stats::terms(formula, data = data))
+        detail.formula <- formula2var(formula)
+    }
+    
     ## ** return
     return(list(formula = formula,
                 detail.formula = detail.formula,

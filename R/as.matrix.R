@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul  5 2024 (18:56) 
 ## Version: 
-## Last-Updated: jul  5 2024 (18:58) 
+## Last-Updated: jul  9 2024 (15:16) 
 ##           By: Brice Ozenne
-##     Update #: 6
+##     Update #: 13
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,11 +17,34 @@
 
 ## * as.matrix.correlate
 ## ' @export
-as.matrix.correlate <- function(x, ...){
-    if(length(x)>1 || length(x[[1]])>1){
-        message("Only the first correlation matrix was extracted. \n")
-    }    
-    return(x[[1]][[1]])
+as.matrix.correlate <- function(x, index, ...){
+
+    ## ** check and normalize user imput
+    ## dots
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown arguments \'",paste(names(dots), collapse = "\' \'"),"\'. \n")
+    }
+
+    ## ** subset
+    if(!missing(index)){
+        x.array <- as.array(x)
+        if(is.numeric(index) && index %in% 1:dim(x.array)[3] == FALSE){
+            stop("Incorrect argumnet \'index\': when numeric it should take integer value between 1 and the number of correlation matrix (here ",dim(x.array)[3],"). \n")
+        }else if(is.character(index) && index %in% dimnames(x.array)[[3]] == FALSE){
+            stop("Incorrect argumnet \'index\': when character it should refer to the name of the correlation matrix. \n",
+                 "Possible names: \"",paste(dimnames(x.array)[[3]], collapse = "\", \""),"\". \n")
+        }
+        out <- x[,,index]
+    }else{
+        if(length(x)>1 || length(x[[1]])>1){
+            message("Only the first correlation matrix was extracted. \n")
+        }
+        out <- x[[1]][[1]]
+    }
+
+    ## ** export
+    return(out)
 }
 
 

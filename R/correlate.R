@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul  5 2024 (16:41) 
 ## Version: 
-## Last-Updated: jul  8 2024 (12:39) 
+## Last-Updated: jul  9 2024 (15:17) 
 ##           By: Brice Ozenne
-##     Update #: 51
+##     Update #: 88
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,19 +15,58 @@
 ## 
 ### Code:
 
-##' attr(e.S, "correlation")
+## * correlate (documentation)
+##' @title Compute correlation matrix
+##' @description Compute correlation matrix for multiple variables and/or multiple groups.
+##'
+##' @param formula [formula] on the left hand side the outcome(s) and on the right hand side the grouping variables.
+##' E.g. Y1+Y2 ~ Gender will compute for each gender the correlation matrix for Y1 and the correaltion matrix for Y2.
+##' @param data [data.frame] dataset containing the observations.
+##' @param repetition [formula] Specify the structure of the data: the time/repetition variable and the grouping variable, e.g. ~ time|id.
+##' @param use [character] method for computing correlation in the presence of missing values: \code{"everything"}, \code{"all.obs"}, \code{"complete.obs"}, \code{"na.or.complete"}, or \code{"pairwise.complete.obs"}.
+##' Passed to \code{\link{stats::cor}}.
+##' @param method [character] type of correlation coefficient: \code{"pearson"}, \code{"kendall"}, \code{"spearman"}.
+##' Passed to \code{\link{stats::cor}}.
+##' @param collapse.value [character] symbol used to combine covariate values when using multiple grouping variables.
+##' @param collapse.var [character] symbol used to combine variable names to be pasted left of the covariate values when using multiple grouping variables.
+##' Can be disabled setting it to \code{NULL} or \code{FALSE}.
+##' @param na.rm [logical] not used. The user may expect this argument though so it is added to help the user with a message pointing toward the argument \code{use}.
+##'
+##' @seealso
+##' \code{\link{as.array}} to convert the output to an array or \code{\link{as.matrix}} to convert the output to a matrix (when a single outcome and no grouping variable). \cr
+##' \code{\link{summarize}} for other summary statistics (e.g. mean, standard deviation, ...). 
+##' 
+##' @examples 
+##' #### simulate data (wide format) ####
+##' data(gastricbypassL, package = "LMMstar")
 ##' 
 ##' ## compute correlations (composite time variable)
-##' dL$time2 <- dL$time == 2
-##' dL$time3 <- dL$time == 3
-##' e.S <- summarize(Y ~ time2 + time3 + X1 | id, data = dL, na.rm = TRUE)
+##' e.S <- correlate(weight ~ 1, data = gastricbypassL, repetition = ~time|id)
 ##' e.S
-##' attr(e.S, "correlation")
+##' as.matrix(e.S)
+##' 
+##' e.S21 <- correlate(glucagonAUC + weight ~ 1, data = gastricbypassL,
+##'                   repetition = ~time|id, use = "pairwise")
+##' e.S21
+##' as.array(e.S21)
+##' as.matrix(e.S21, index = "weight")
+##'
+##' gastricbypassL$sex <- as.numeric(gastricbypassL$id) %% 2
+##' e.S12 <- correlate(weight ~ sex, data = gastricbypassL,
+##'                    repetition = ~time|id, use = "pairwise")
+##' e.S12
+##' as.array(e.S12)
+##' 
+##' e.S22 <- correlate(glucagonAUC + weight ~ sex, data = gastricbypassL,
+##'                    repetition = ~time|id, use = "pairwise")
+##' e.S22
+##' as.array(e.S22)
 
 
 ## * correlate (code)
 ##' @export
-correlate <- function(formula, data, repetition, use = "everything", method = "pearson", keep.name = TRUE, na.rm){
+correlate <- function(formula, data, repetition, use = "everything", method = "pearson",
+                      collapse.value = ".", collapse.var = ".", na.rm){
 
     mycall <- match.call()
     options <- LMMstar.options()
@@ -63,14 +102,17 @@ correlate <- function(formula, data, repetition, use = "everything", method = "p
     if(is.null(name.X)){
         ls.cluster <- list(unique(data[[name.cluster]]))
     }else{
-        ls.cluster <- tapply(data[[name.cluster]],data[,name.X],unique)
+        ls.cluster <- tapply(data[[name.cluster]], INDEX = interaction(data[name.X],drop=FALSE,sep=collapse.value), FUN = unique, simplify = FALSE)
         if(any(duplicated(unlist(ls.cluster)))){
             stop("Argument \'formula\' incompatible with argument \'repetition\': covariate values should not change within cluster. \n")
         }
+        if(!is.null(collapse.var) & !identical(collapse.var,FALSE)){
+            names(ls.cluster) <- paste(paste(name.X, collapse = collapse.var), names(ls.cluster), sep = "=")
+        }
     }
-
+    
     for(iY in 1:n.Y){ ## iY <- 1
-        
+     
         out[[iY]] <- stats::setNames(lapply(ls.cluster, function(iId){ ## iId <- cluster[1]
             iDataL <- data[data[[name.cluster]] %in% iId,,drop = FALSE]
             if(length(name.time)>1){
@@ -79,6 +121,7 @@ correlate <- function(formula, data, repetition, use = "everything", method = "p
             }else{
                 Utime <- name.time
             }
+            
             iDataW <- stats::reshape(data = iDataL[,c(name.cluster, Utime, name.Y[iY])],
                                      direction = "wide", timevar = Utime, idvar = name.cluster, v.names = name.Y[iY])
 

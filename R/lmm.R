@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jul  5 2024 (12:16) 
+## Last-Updated: jul  9 2024 (15:19) 
 ##           By: Brice Ozenne
-##     Update #: 3073
+##     Update #: 3074
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -153,7 +153,7 @@
 
 ## * lmm (code)
 ##' @export
-lmm <- function(formula, repetition, structure, data,
+lmm <- function(formula, data, repetition, structure, 
                 weights = NULL, scale.Omega = NULL,
                 method.fit = NULL, df = NULL, type.information = NULL, trace = NULL, control = NULL){
 

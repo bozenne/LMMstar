@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jul  8 2024 (17:53) 
+## Last-Updated: jul  9 2024 (17:00) 
 ##           By: Brice Ozenne
-##     Update #: 738
+##     Update #: 750
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,8 +21,9 @@
 ##'
 ##' @param formula [formula] on the left hand side the outcome(s) and on the right hand side the grouping variables.
 ##' E.g. Y1+Y2 ~ Gender + Gene will compute for each gender and gene the summary statistics for Y1 and for Y2.
-##' Passed to the \code{stats::aggregate} function.
 ##' @param data [data.frame] dataset containing the observations.
+##' @param repetition [formula] Specify the structure of the data: the time/repetition variable and the grouping variable, e.g. ~ time|id.
+##' Used in the long format to count the number of missing values (i.e. add the number of missing rows) and evaluate the correlation.
 ##' @param na.action [function] a function which indicates what should happen when the data contain 'NA' values.
 ##' Passed to the \code{stats::aggregate} function. 
 ##' @param na.rm [logical] Should the summary statistics be computed by omitting the missing values.
@@ -122,10 +123,9 @@
 
 ## * summarize (code)
 ##' @export
-summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, level = 0.95,
-                      columns = NULL,
-                      repetition = NULL,
-                      FUN = NULL,
+summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NULL,
+                      na.action = stats::na.pass, na.rm = FALSE,
+                      level = 0.95,
                       skip.reference = FALSE,
                       digits = NULL,
                       filter = NULL,
@@ -168,7 +168,7 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
 
     
     ## filter
-    name.all <- setdiff(all.vars(formula), ".")
+    name.all <- setdiff(c(all.vars(formula),all.vars(repetition)), ".")
     if(!is.null(filter)){
         data <- data[union(name.all,grep(filter,names(data),value=TRUE))]
     }
@@ -195,30 +195,7 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
     name.cluster <- detail.repetition$var$cluster
     name.time <- detail.repetition$var$time
     
-    ## handle .~Group or Y~.
-    if(identical(detail.formula$vars$response,".") & identical(detail.formula$vars$regressor,".")){
-        stop("Argument \'formula\' cannot be .~. as the left or right hand side need to be explicit \n",
-             "Consider for instance using .~1. \n",sep = "")
-    }else if(identical(detail.formula$vars$response,".")){
-        name.X <- detail.formula$var$regressor
-        name.Y <- setdiff(names(data),c(name.X,detail.repetition$var$all))
-        if(length(name.Y)==0){
-            stop("Incorrect argument \'formula\': no variable on the left hand side of the formula. \n")
-        }
-        termlabels <- ifelse(is.null(detail.formula$vars$regressor),"1",paste(detail.formula$vars$regressor,collapse="+"))
-        ls.init$formula <- stats::reformulate(response = paste0(name.Y,collapse="+"), termlabels = termlabels)
-        ls.init$detail.formula <- formula2var(ls.init$formula)
-        detail.formula <- ls.init$detail.formula
-    }else if(identical(detail.formula$vars$regressor,".")){
-        name.Y <- detail.formula$var$response
-        ls.init$formula <- stats::formula(stats::terms(formula, data = data))
-        ls.init$detail.formula <- formula2var(ls.init$formula)
-        detail.formula <- ls.init$detail.formula
-        name.X <- detail.formula$var$regressor        
-    }else{
-        name.Y <- detail.formula$var$response
-        name.X <- detail.formula$var$regressor
-    }
+    
     n.Y <- length(name.Y)
     if(n.Y == 0){
         n.Y <- 1
@@ -337,7 +314,7 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
     }
 
     ## all output names
-    name.out <- c(columns, name.outFUN)
+    name.out <- setdiff(c(columns, name.outFUN), "correlation")
 
     ## type.Y
     if(!is.null(name.Y)){
@@ -530,11 +507,16 @@ summarize <- function(formula, data, na.action = stats::na.pass, na.rm = FALSE, 
 
     ## ** correlation
     if("correlation" %in% columns){
-        if(na.rm == TRUE){
-            attr(out,"correlation") <- correlate(formula = ls.init$formula, data = data, repetition = ls.init$repetition, use = "pairwise.complete.obs")
-        }else{
-            attr(out,"correlation") <- correlate(formula = ls.init$formula, data = data, repetition = ls.init$repetition, use = "everything")
+        if(all(ls.init$detail.formula$var$regressor %in% ls.init$detail.repetition$var$time)){
+            ls.init$formula <- stats::reformulate("1", response = name.Y)
+        }else if(any(ls.init$detail.formula$var$regressor %in% ls.init$detail.repetition$var$time)){
+            terms.rm <- intersect(ls.init$detail.formula$var$regressor, ls.init$detail.repetition$var$time)
+            formula.terms <- terms(ls.init$formula)            
+            ls.init$formula <- stats::drop.terms(formula.terms, dropx = which(attr(formula.terms,"term.labels") %in% terms.rm), keep.response = TRUE)
         }
+        use <- ifelse(na.rm, "pairwise.complete.obs", "everything")
+        attr(out,"correlation") <- correlate(formula = ls.init$formula, data = data, repetition = ls.init$repetition, use = use)
+        
     }
 
     ## ** export
