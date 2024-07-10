@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: jul  5 2024 (11:46) 
+## Last-Updated: jul 10 2024 (17:57) 
 ##           By: Brice Ozenne
-##     Update #: 1314
+##     Update #: 1548
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -14,6 +14,89 @@
 ##----------------------------------------------------------------------
 ## 
 ### Code:
+
+## * autoplot.correlate (documentation)
+##' @title Graphical Display For Correlation Matrix
+##' @description Graphical representation for correlation matrix
+##'
+##' @param object [correlate] list of list of correlation matrix
+##' @param index [character vector] optional vector used to select some of the correlation matrix.
+##' @param size.text [numeric, >0] size of the font used to display text.
+##' @param name.legend  [character] title for the color scale.
+##' @param title [character] title for the graph.
+##' @param scale [function] color scale used for the correlation.
+##' @param type.cor  [character] should the whole correlation matrix be displayed (\code{"both"}),
+##' or only the element in the lower or upper triangle (\code{"lower"}, \code{"upper"}).
+##' @param low [character] color used to represent low correlation.
+##' @param mid [character] color used to represent moderate correlation.
+##' @param high [character] color used to represent high correlation.
+##' @param midpoint [numeric] value defining a modereate correlation.
+##' @param limits [numeric vector of length 2] values defining a low and high correlation.
+##' 
+
+## * autoplot.correlate (code)
+##' @export
+autoplot.correlate <- function(object, index,
+                               size.text = 16, name.legend = "Correlation", title = NULL,
+                               scale = ggplot2::scale_fill_gradient2, type.cor = "both",
+                               low = "blue", high = "red", mid = "white", midpoint = mean(limits), limits = c(-1,1),
+                               ...){
+
+
+    name.time <- attr(object,"name.time")
+    mycall <- match.call()
+
+    ## ** normalize user input
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
+    if("limits" %in% names(mycall) & ("midpoint" %in% names(mycall)==FALSE)){
+        midpoint <- mean(limits)
+    }
+
+    ## ** extract correlation
+    if(!missing(index)){
+        name1 <- names(object)
+        name2 <- unlist(lapply(object,names))
+        if(!is.null(name1) && all(index %in% name1)){
+            data.cor <- object[[index]]
+        }else if(!is.null(name2) && all(index %in% name2)){
+            data.cor <- lapply(object, function(iO){iO[index]})
+            names(data.cor) <- names(object)
+        }else{
+            data.cor <- lapply(index, function(iI){as.matrix(object, index = iI)})
+        }
+        if(is.null(title) && length(index)==1){
+            title <- index
+        }
+    }else{
+        data.cor <- object
+    }
+
+    ## ** simplify if possible
+    if(is.matrix(data.cor)){
+        ## nothing
+    }else if(length(data.cor)==1){
+        data.cor <- data.cor[[1]]
+        if(!is.matrix(data.cor) && length(data.cor[[1]])==1){
+            data.cor <- data.cor[[1]]
+        }
+    }else{
+        data.cor <- unlist(data.cor, recursive = FALSE)
+    }
+
+    ## ** graphical display
+    gg <- .ggHeatmap(data.cor, name.time = name.time, 
+                     size.text = size.text, name.legend = name.legend, title = title,
+                     scale = scale, type.cor = type.cor,
+                     low = low, high = high, mid = mid, midpoint = midpoint, limits = limits)
+
+    ## ** export
+    return(list(data = data.cor,
+                plot = gg))    
+}
 
 ## * autoplot.lmm (documentation)
 ##' @title Graphical Display For Linear Mixed Models
@@ -24,14 +107,15 @@
 ##' @param type [character] the type of plot \itemize{
 ##' \item \code{"fit"}: fitted values over repetitions.
 ##' \item \code{"qqplot"}: quantile quantile plot of the normalized residuals
-##' \item \code{"correlation"}: residual correlation over repetitions
+##' \item \code{"covariance"}: model (when \code{type.residual=NULL}) or residual correlation over repetitions
+##' \item \code{"correlation"}: model (when \code{type.residual=NULL}) or residual correlation over repetitions
 ##' \item \code{"scatterplot"}: normalized residuals vs. fitted values (diagnostic for missing non-linear effects),
 ##' \item \code{"scatterplot2"}: square root of the normalized residuals vs. fitted values (diagnostic for heteroschedasticity),
 ##' \item \code{"partial"}: partial residual plot.
 ##' }
-##' @param type.residual [character] the type of residual to be used. Not relevant for \code{type="fit"}.
-##' By default, normalized residuals are used except when requesting a partial residual plot
-##' where this argument specify the variable relative to which the partial residuals are computed (argument \code{variable} in \code{\link{residuals.lmm}}).
+##' @param type.residual [character] the type of residual to be used or,
+##' when \code{type="partial"}, variable relative to which the partial residuals are computed (argument \code{variable} in \code{\link{residuals.lmm}}).
+##' Not relevant for \code{type="fit"}.
 ##' @param at [data.frame] values for the covariates at which to evaluate the fitted values or partial residuals.
 ##' @param time.var [character] x-axis variable for the plot.
 ##' @param obs.alpha [numeric, 0-1] When not NA, transparency parameter used to display the original data by cluster.
@@ -48,8 +132,8 @@
 ##' @param size.text [numeric, >0] size of the font used to display text.
 ##' @param position.errorbar [character] relative position of the errorbars.
 ##' @param mean.size [numeric vector of length 2] size of the point and line for the mean trajectory.
-##' @param ylim [numeric vector of length 2] the lower and higher value of the vertical axis.
-##' @param ... arguments passed to the \code{predict.lmm} or \code{autoplot.residual_lmm} functions.
+##' @param ylim [numeric vector of length 2] the lower and higher value of the vertical axis, or the range of the color scale for correlation or covariance plot.
+##' @param ... arguments passed to the \code{.autofit}, \code{.ggHeatmap} or \code{autoplot.residual_lmm} functions.
 ##'
 ##' @return A list with two elements \itemize{
 ##' \item \code{data}: data used to create the graphical display.
@@ -111,7 +195,7 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
     ## use [] to keep attribute reference for partial residuals
     type[] <- match.arg(type, c("fit",
                                 "partial","partial-center",
-                                "qqplot","correlation","scatterplot","scatterplot2")) 
+                                "qqplot","covariance","correlation","scatterplot","scatterplot2")) 
 
     if(type=="fit"){ ## model fit
         if(is.null(ci.alpha)){ci.alpha <- 0.25}
@@ -168,7 +252,40 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
                                                              ci.alpha = ci.alpha),
                                                         dots))
 
-    }else{ ## residual plot
+    }else if(type %in% c("covariance","correlation") && (is.null(type.residual) || is.na(type.residual) || identical(type.residual,FALSE))){
+        
+        object.sigma <- sigma(object)        
+        if(type == "correlation"){
+            name.legend <- "Correlation"
+            if(is.matrix(object.sigma)){
+                object.sigma <- cov2cor(object.sigma)
+            }else{
+                name.sigma <- names(object.sigma)
+                object.sigma <- lapply(object.sigma, cov2cor)
+                names(object.sigma) <- name.sigma
+            }
+            if(is.null(ylim)){
+                ylim <- c(-1,1)
+            }
+            name.facet <- na.omit(union(object$design$vcov$name$cor,object$design$vcov$name$strata))
+        }else{
+            name.legend <- "Covariance"
+            if(is.null(ylim)){
+                ylim <- range(unlist(object.sigma,recursive = TRUE), na.rm = TRUE)
+            }
+            name.facet <- unique(na.omit(c(object$design$vcov$name$cor,object$design$vcov$name$var,object$design$vcov$name$strata)))
+        }
+
+        if(is.null(attr(object$time$var,"original"))){
+            name.time <- ""
+        }else{
+            name.time <- paste(attr(object$time$var,"original"), collapse = " ")
+        }
+        out <- list(data = object.sigma,
+                    plot = .ggHeatmap(object.sigma, name.time = name.time, name.legend = name.legend, name.facet = name.facet,
+                                      size.text = size.text, labeller = labeller, limits = ylim, ...))
+        
+    }else { ## residual plot
         test <- c(obs.alpha = !is.null(obs.alpha) & abs(obs.alpha)>0,
                   at = !is.null(at))
         if(any(test)){
@@ -177,6 +294,7 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
         if(is.null(type.residual)){
             type.residual <- "normalized"
         }
+
         outRes <- residuals(object, type = type.residual, format = c("wide","long"), keep.data = TRUE, simplify = FALSE)
         out <- autoplot.residuals_lmm(outRes,
                                       type = type,
@@ -190,6 +308,7 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
                                       color = color,
                                       position = position,                        
                                       obs.size = obs.size,
+                                      ylim = ylim,
                                       ...)
     }
 
@@ -720,7 +839,13 @@ autoplot.profile_lmm <- function(object, type = "logLik", quadratic = TRUE, ci =
 ##' @param object,x an object of class \code{residuals_lmm}, output of the \code{residuals.lmm} function.
 ##' @param type [character] Should a qqplot (\code{"qqplot"}), or a heatmap of the correlation between residuals  (\code{"correlation"}, require wide format), or a plot of residuals along the fitted values (\code{"scatterplot"}, require long format) be displayed?
 ##' @param type.residual [character] Type of residual for which the graphical representation should be made.
-##' @param time.var [character] x-axis variable for the plot. Only relevant when argument type is one of \code{"scatterplot"}, \code{"scatterplot2"}, \code{"partial"}, \code{"partial-center"},
+##' @param time.var [character] x-axis variable for the plot.
+##' Only relevant when argument type is one of \code{"scatterplot"}, \code{"scatterplot2"}, \code{"partial"}, \code{"partial-center"},
+##' @param facet [formula] split the plot into a matrix of panels defined by the variables in the formula.
+##' Internally it calls \code{ggplot2::facet_wrap} or \code{ggplot2::facet_grid} depending on whether the formula contains a variable on the left hand side.
+##' @param facet_nrow [integer] number of rows of panels in the graphical display.
+##' @param facet_ncol [integer] number of columns of panels  in the graphical display.
+##' @param scales,labeller [character] Passed to \code{ggplot2::facet_wrap}.
 ##' @param engine.qqplot [character] Should ggplot2 or qqtest be used to display quantile-quantile plots?
 ##' Only used when argument \code{type} is \code{"qqplot"}.
 ##' @param add.smooth [logical] should a local smoother be used to display the mean of the residual values across the fitted values.
@@ -728,17 +853,13 @@ autoplot.profile_lmm <- function(object, type = "logLik", quadratic = TRUE, ci =
 ##' @param digits.cor [integer, >0] Number of digit used to display the correlation coefficients?
 ##' No correlation coefficient is displayed when set to 0. Only used when argument \code{plot} is \code{"correlation"}.
 ##' @param size.text [numeric, >0] Size of the font used to displayed text when using ggplot2.
-##' @param facet [formula] split the plot into a matrix of panels defined by the variables in the formula.
-##' Internally it calls \code{ggplot2::facet_wrap} or \code{ggplot2::facet_grid} depending on whether the formula contains a variable on the left hand side.
-##' @param facet_nrow [integer] number of rows of panels in the graphical display.
-##' @param facet_ncol [integer] number of columns of panels  in the graphical display.
-##' @param scales,labeller [character] Passed to \code{ggplot2::facet_wrap}.
 ##' @param color [character] color of the dots representing the observations.
 ##' When displaying partial residuals, should contain a second color indicating how to display the model fit.  
-##' @param position [character] relative position of the points when colored according to a variable.
 ##' @param obs.size [numeric vector] size of the dots representing the observations.
 ##' @param mean.size [numeric vector of length 2] size of the point and line for the mean trajectory.
 ##' @param ci.alpha [numeric, 0-1] When not NA, transparency parameter used to display the confidence intervals.
+##' @param ylim [numeric vector of length 2] the lower and higher value of the vertical axis, or the range of the color scale for correlation or covariance plot.
+##' @param position [character] relative position of the points when colored according to a variable.
 ##' @param ... Not used. For compatibility with the generic method.
 ##'  
 ##' @return A list with two elements \itemize{
@@ -750,10 +871,11 @@ autoplot.profile_lmm <- function(object, type = "logLik", quadratic = TRUE, ci =
 
 ## * autoplot.residuals_lmm (code)
 ##' @export
-autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, time.var = NULL, facet = NULL, facet_nrow = NULL, facet_ncol = NULL,
+autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, time.var = NULL,
+                                   facet = NULL, facet_nrow = NULL, facet_ncol = NULL, scales = "fixed", labeller = "label_value",
                                    engine.qqplot = "ggplot2", add.smooth = TRUE, digits.cor = 2, size.text = 16,
                                    color = NULL, obs.size = NULL, mean.size = c(3, 1), ci.alpha = 0.25, 
-                                   position = NULL, scales = "fixed", labeller = "label_value", ...){
+                                   ylim = NULL, position = NULL, ...){
 
     ## ** check arguments
     call <- match.call()
@@ -769,7 +891,7 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, ti
     if(is.null(args)){
         stop("The argument \'simplify\' must be to FALSE when calling residuals() to obtain a graphical display. \n")
     }
-    if(args$keep.data == FALSE && type != "correlation"){
+    if(args$keep.data == FALSE && c(type %in% c("correlation","covariance") == FALSE)){
         stop("The argument \'keep.data\' must be to TRUE when calling residuals() to obtain a graphical display. \n")
     }
     args.type <- args$type
@@ -808,14 +930,14 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, ti
     if(is.null(type)){
         type <- "qqplot"
     }else{
-        type <- match.arg(type, c("qqplot","correlation","scatterplot","scatterplot2","partial","partial-center"))
+        type <- match.arg(type, c("qqplot","correlation","covariance","scatterplot","scatterplot2","partial","partial-center"))
     }
     if(length(add.smooth)==1){
         add.smooth <- rep(add.smooth,2)
     }
 
     ## time.var
-    if(!is.null(time.var) && type %in% c("qqplot","correlation")){
+    if(!is.null(time.var) && type %in% c("qqplot","correlation","covariance")){
         message("Argument \'time.var\' is ignored when type is ",type,". \n")
     }
     if(length(time.var)>1){
@@ -830,19 +952,23 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, ti
     n.time <- args$n.time
     name.time <- args$name.time
 
+    ## cluster var
+    name.cluster <- args$name.cluster
+
     ## facet
+    var.facet <- all.vars(facet)
     if(!is.null(facet)){
         if(!inherits(facet,"formula")){
             stop("Argument \'facet\' must either be NULL or a formula. \n",
                  "It will be passed to ggplot2::facet_wrap or ggplot2::facet_grid,\n",
                  " depending on whether there are variables on the left hand side of the formula. \n")
         }
-        if(any(all.vars(facet) %in% names(object) == FALSE) && any(all.vars(facet) %in% names(attr(object,"wide")) == FALSE)){
+        if(any(var.facet %in% names(object) == FALSE) && any(var.facet %in% names(attr(object,"wide")) == FALSE)){
             hide.name <- c(paste0("XX",c("index","cluster","time","strata"),"XX"),
                            paste0("XX",c("index","cluster","time","strata"),".indexXX"),
                            name.time, args$outcome, args$nameL.cores, args$nameW.cores)
-            missing.var1 <- setdiff(all.vars(facet), names(object))
-            missing.var2 <- setdiff(all.vars(facet), names(attr(object,"wide")))
+            missing.var1 <- setdiff(var.facet, names(object))
+            missing.var2 <- setdiff(var.facet, names(attr(object,"wide")))
             missing.var <- c(missing.var1,missing.var2)[which.min(c(length(missing.var1),length(missing.var2)))]
             stop("When a formula, argument \'facet\' should contain variables available in the dataset used to fit the model. \n",
                  "Unknown variable(s): \"",paste(missing.var, collapse = "\" \""),"\" \n")
@@ -862,26 +988,34 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, ti
     
 
     by.repetition <- FALSE
-    if(type == "correlation"){
+    if(type %in% c("correlation","covariance")){
 
         if(n.time == 1){
-            stop("Cannot display the residual correlation over time when there is only a single timepoint. \n")
+            stop("Cannot display the residual ",type," over time when there is only a single timepoint. \n")
         }
         if("wide" %in% original.format == FALSE){
             stop("Residuals must be in the wide format to display the residual correlation. \n",
                  "Consider setting the argument \'format\' to \"wide\" when calling residuals(). \n")
         }
         if(format == "long"){
-            object <- attr(object,"wide")
+            if(is.null(facet)){
+                object <- attr(object,"wide")
+            }else{
+                Uobject <- object[!duplicated(object[[name.cluster]]),c(name.cluster, var.facet),]
+                if(is.numeric(Uobject[[name.cluster]]) && is.character(attr(object,"wide")[[name.cluster]])){
+                    attr(object,"wide")[[name.cluster]] <- as.numeric(attr(object,"wide")[[name.cluster]])
+                }
+                object <- merge(Uobject, attr(object,"wide"), by = name.cluster)
+            }
             format <- "wide"
         }
         
         
     }else if(type == "qqplot"){
-        by.repetition <- any(all.vars(facet) %in% c(name.time,attr(name.time,"original")))
+        by.repetition <- any(var.facet %in% c(name.time,attr(name.time,"original")))
 
         if(engine.qqplot == "qqtest"){
-            if(any(all.vars(facet) %in% c(name.time,attr(name.time,"original")) == FALSE)){
+            if(any(var.facet %in% c(name.time,attr(name.time,"original")) == FALSE)){
                 stop("Can only stratify the display regarding the time variable when using engine.qqplot=\"qqtest\". \n",
                      "time variable: \"",paste(union(name.time,attr(name.time,"original")), collapse = "\", \""),"\"\n",
                      "Consider using engine.qqplot=\"ggplot2\". \n")
@@ -915,7 +1049,7 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, ti
     }
 
     if(type %in% c("scatterplot","scatterplot2")){
-        by.repetition <- any(all.vars(facet) %in% c(name.time,attr(name.time,"original")))
+        by.repetition <- any(var.facet %in% c(name.time,attr(name.time,"original")))
 
         if(by.repetition){
             if(name.time %in% names(object) == FALSE){
@@ -940,7 +1074,8 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, ti
                             partial = c("gray","white"),
                             "partial-center" = c("gray","white"),
                             qqplot = NA,
-                            correlation = NA
+                            correlation = NA,
+                            covariance = NA
                             )
         }
     } 
@@ -978,7 +1113,7 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, ti
             gg <- gg + ggplot2::stat_qq() + ggplot2::stat_qq_line()
             gg <- gg + ggplot2::labs(x = "Theoretical quantiles", y = "Sample quantiles")
             gg <- gg + ggplot2::ggtitle(label.residual) + ggplot2::theme(text = ggplot2::element_text(size=size.text))
-            if(!is.null(facet) & length(all.vars(facet))>0){
+            if(!is.null(facet) & length(var.facet)>0){
                 if(attr(stats::terms(facet),"response")==0){
                     gg <- gg + ggplot2::facet_wrap(facet, scales = scales, labeller = labeller, nrow = facet_nrow, ncol = facet_ncol)
                 }else{
@@ -1019,10 +1154,9 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, ti
     }else if(type.residual %in% c("partial","partial-center")){ ## must be type="scatterplot"
 
         ## *** partial residual plot
-        name.facet <- all.vars(facet)
         names.time <- union(name.time,attr(name.time,"original"))
         ## only variables varying within panel and color
-        name.var <- setdiff(args$var,c("(Intercept)",color,setdiff(name.facet,names.time)))
+        name.var <- setdiff(args$var,c("(Intercept)",color,setdiff(var.facet,names.time)))
         type.var <- args$type.var[match(name.var,setdiff(args$var,"(Intercept)"))]
         if(sum(type.var=="numeric")>1){
             stop("Cannot simulatenously display partial residuals for more than 1 numeric variable. \n")
@@ -1107,12 +1241,12 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, ti
 
             ## connect lines
             ## if cluster variable available, time is an x-variable not in facet
-            if((args$name.cluster %in% names(df.gg)) && (any(name.varcat %in% name.time) && all(all.vars(facet) %in% name.time == FALSE))){
+            if((name.cluster %in% names(df.gg)) && (any(name.varcat %in% name.time) && all(var.facet %in% name.time == FALSE))){
                 if(utils::tail(color,1) %in% names(df.gg)){
-                    gg <- gg + ggplot2::geom_line(ggplot2::aes(y = .data$fitted, group = .data[[args$name.cluster]], color = .data[[utils::tail(color,1)]]),
+                    gg <- gg + ggplot2::geom_line(ggplot2::aes(y = .data$fitted, group = .data[[name.cluster]], color = .data[[utils::tail(color,1)]]),
                                                   linewidth = mean.size[2], position = position)
                 }else{
-                    gg <- gg + ggplot2::geom_line(ggplot2::aes(y = .data$fitted, group = .data[[args$name.cluster]]), linewidth = mean.size[2])
+                    gg <- gg + ggplot2::geom_line(ggplot2::aes(y = .data$fitted, group = .data[[name.cluster]]), linewidth = mean.size[2])
                 }            
             }
 
@@ -1145,7 +1279,7 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, ti
                 }
             }
         }        
-        if(!is.null(facet) & length(all.vars(facet))>0){
+        if(!is.null(facet) & length(var.facet)>0){
             if(attr(stats::terms(facet),"response")==0){
                 gg <- gg + ggplot2::facet_wrap(facet, scales = scales, labeller = labeller, nrow = facet_nrow, ncol = facet_ncol)
             }else{
@@ -1169,6 +1303,9 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, ti
             gg <- gg + ggplot2::labs(x = paste0(time.var, " (observed)"), y = paste0(args$outcome, " (counterfactual)")) + ggplot2::theme(text = ggplot2::element_text(size=size.text))
         }
 
+        if(!is.null(ylim)){
+            gg <- gg + ggplot2::coord_cartesian(ylim = ylim)
+        }
         gg <- gg + ggplot2::theme(text = ggplot2::element_text(size=size.text))
 
     }else if(type %in% c("scatterplot","scatterplot2")){ ## overall timepoints
@@ -1209,44 +1346,68 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, ti
             }
         }
 
-        if(!is.null(facet) & length(all.vars(facet))>0){
+        if(!is.null(facet) & length(var.facet)>0){
             if(attr(stats::terms(facet),"response")==0){
                 gg <- gg + ggplot2::facet_wrap(facet, scales = scales, labeller = labeller, nrow = facet_nrow, ncol = facet_ncol)
             }else{
                 gg <- gg + ggplot2::facet_grid(facet, scales = scales, labeller = labeller, nrow = facet_nrow, ncol = facet_ncol)
             }
         }
+
+        if(!is.null(ylim)){
+            gg <- gg + ggplot2::coord_cartesian(ylim = ylim)
+        }
         df.gg <- NULL
 
-    }else if(type == "correlation"){
+    }else if(type %in% c("correlation","covariance")){
 
         ## *** residual correlation heatmap
-        M.cor  <- stats::cor(object[,-1], use = "pairwise")
-        arr.ind.cor <- rbind(which(is.na(M.cor*NA), arr.ind = TRUE))
-        arr.ind.cor[] <- name.residual[arr.ind.cor]
-        
-        df.gg <- data.frame(correlation = as.double(M.cor), arr.ind.cor, stringsAsFactors = FALSE)
-        label.time <- names(name.residual)
-        df.gg$col <- factor(df.gg$col, levels = name.residual, labels = label.time)
-        df.gg$row <- factor(df.gg$row, levels = name.residual, labels = label.time)
-        df.gg$row.index <- match(df.gg$row, label.time)
-        df.gg$col.index <- match(df.gg$col, label.time)
-        dfR.gg <- df.gg[df.gg$col.index>=df.gg$row.index,,drop=FALSE]
-        gg <- ggplot2::ggplot(dfR.gg, ggplot2::aes(x = .data$col,
-                                                   y = .data$row,
-                                                   fill = .data$correlation)) 
-        gg <- gg + ggplot2::geom_tile() + ggplot2::scale_fill_gradient2(low = "blue",
-                                                                        high = "red",
-                                                                        mid = "white",
-                                                                        midpoint = 0,
-                                                                        limit = c(-1,1),
-                                                                        space = "Lab",
-                                                                        name="Correlation")
-        gg <- gg + ggplot2::labs(x = NULL, y = NULL) + ggplot2::ggtitle(label.residual)
-        gg <- gg + ggplot2::theme(text = ggplot2::element_text(size=size.text))
-        if(!is.na(digits.cor) && digits.cor>0){
-            gg <- gg + ggplot2::geom_text(ggplot2::aes(label = round(.data$correlation,digits.cor)))
+
+        if(type == "correlation"){
+            name.legend <- "Correlation"
+            if(is.null(facet)){
+                M.heatmap  <- stats::cor(object[,-1], use = "pairwise")
+            }else{
+                M.heatmap  <- by(object[setdiff(names(object),c(var.facet,name.cluster))], nlme::collapse(object[var.facet]), stats::cor, use = "pairwise")
+            }
+            if(is.null(ylim)){
+                ylim <- c(-1,1)
+            }
+        }else if(type == "covariance"){
+            name.legend <- "Covariance"
+            if(is.null(facet)){
+                M.heatmap  <- stats::cov(object[,-1], use = "pairwise")
+            }else{
+                M.heatmap  <- by(object[setdiff(names(object),c(var.facet,name.cluster))], nlme::collapse(object[var.facet]), stats::cov, use = "pairwise")
+            }
+            if(is.null(ylim)){
+                ylim <- range(M.heatmap, na.rm = TRUE)
+            }
         }
+
+        if(is.null(attr(name.time,"original"))){
+            name.original.time <- ""
+        }else{
+            name.original.time <- paste(attr(name.time,"original"), collapse = " ")
+        }
+        name.facet <- paste(var.facet,collapse=", ")
+
+        if(!is.null(names(args$nameW.colres))){
+            if(is.null(facet)){
+                dimnames(M.heatmap) <- list(names(args$nameW.colres),names(args$nameW.colres))
+            }else{
+                M.heatmap <- lapply(M.heatmap, function(iM){
+                    dimnames(iM) <- list(names(args$nameW.colres),names(args$nameW.colres))
+                    return(iM)
+                })
+            }
+        }
+        
+        title <- paste(type.residual, "residuals")
+        substr(title,1,1) <- toupper(substr(title,1,1))
+        df.gg <- M.heatmap
+        gg <- .ggHeatmap(M.heatmap, name.time = name.original.time, name.facet = name.facet, name.legend = name.legend,
+                         size.text = size.text, digits.cor = digits.cor, labeller = labeller, title = title, limits = ylim)
 
     }
 
@@ -1276,7 +1437,11 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, ti
 ##' \item scale [function] color scale used for the correlation.
 ##' \item type.cor [character] should the whole correlation matrix be displayed (\code{"both"}),
 ##' or only the element in the lower or upper triangle (\code{"lower"}, \code{"upper"}).
-##' \item args.scale [list] arguments to be passed to the color scale.
+##' \item low [character] color used to represent low correlation.
+##' \item mid [character] color used to represent moderate correlation.
+##' \item high [character] color used to represent high correlation.
+##' \item midpoint [numeric] value defining a modereate correlation.
+##' \item limits [numeric vector of length 2] values defining a low and high correlation.
 ##' }
 ##'  
 ##' @return A list with two elements \itemize{
@@ -1334,21 +1499,29 @@ autoplot.summarize <- function(object, type = "mean", variable = NULL,
         }        
     }
 
-    ## object
-    object <- object[object$outcome==variable,]
-    if(is.null(correlation)){
-        name.stat.all <- name.stat
-    }else{
-        name.stat.all <- c(name.stat,"correlation")
-        correlation <- correlation[[variable]]
+    ## type
+    if(length(type)!=1){
+        stop("Incorrect argument \'type\': it should have length 1. \n")
+    }
+    if(!is.character(type)){
+        stop("Incorrect argument \'type\': it should be a character. \n")
     }
 
-    ## type
-    type <- match.arg(type, name.stat.all)
-
+    ## object
+    if(type == "correlation"){
+        if(is.null(attr(object, "correlation"))){
+            stop("Cannot display the correlation as no correlation matrix has been stored. \n",
+                 "Consider setting the argument \'columns\' to add(\"correlation\") when calling summarize. \n")
+        }
+        object <- attr(object, "correlation")
+    }else{
+        type <- match.arg(type, name.stat)
+        object <- object[object$outcome==variable,]
+    }
+    
     ## ** graph
     if(type == "correlation"){
-        gg <- .ggHeatmap(correlation, name.time = name.time, size.text = size.text, ...)
+        return(autoplot(object, index = variable, size.text = size.text, ...))
     }else{
         dots <- list(...)
         if(length(dots)>0){
@@ -1397,6 +1570,10 @@ autoplot.summarize <- function(object, type = "mean", variable = NULL,
 ##' @param size.text [numeric, >0] size of the font used to display text.
 ##' @param add.missing [logical] should the number of missing values per variable be added to the x-axis tick labels.
 ##' @param order.pattern [numeric vector or character] in which order the missing data pattern should be displayed. Can either be a numeric vector indexing the patterns or a character refering to order the patterns per number of missing values (\code{"n.missing"}) or number of observations (\code{"frequency"}).
+##' @param decreasing [logical] when ordering the missing data pattern (see argument \code{order.pattern}) should the sort order be decreasing?
+##' Passed to \code{base::order}.
+##' @param title [character] title of the graphical display. Passed to \code{ggplot2::ggtitle}.
+##' @param labeller [character] how to label each facet: only the value (\code{"label_value"}) or with also the variable name (\code{"label_both"}). Passed to \code{ggplot2::facet_wrap}.
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @return A list with two elements \itemize{
@@ -1409,72 +1586,161 @@ autoplot.summarize <- function(object, type = "mean", variable = NULL,
 ## * autoplot.summarizeNA (code)
 ##' @export
 autoplot.summarizeNA <- function(object, variable = NULL, size.text = 16,
-                                 add.missing = " missing", order.pattern = NULL, ...){
+                                 add.missing = " missing", order.pattern = NULL, decreasing.order = FALSE,
+                                 title = NULL, labeller = "label_value", ...){
 
+    ## ** extract information
     newnames <- attr(object,"args")$newnames
     keep.data <- attr(object,"args")$keep.data
+    name.Y <- attr(object,"args")$name.Y
+    name.X <- attr(object,"args")$name.X
+    name.time <- attr(object,"args")$name.time
+    name.cluster <- attr(object,"args")$name.cluster
     dots <- list(...)
+
+    ## ** normalize user input
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
-    if(!is.null(object$variable) && length(unique(object$variable))>1){
+    if(keep.data == FALSE){
+        stop("Argument \'keep.data\' should be set to TRUE when calling summarizeNA to obtain a graphical display. \n")
+    }
+    if(is.null(title) && !is.null(variable)){
+        title <- variable
+    }
+    internal.name <- c("XXstrataXX","XXindicatorXX")
+    name.all <- c(name.Y,name.X,name.time,name.cluster)
+    if(any(internal.name %in% name.all)){
+        stop("Incorrect argument \'data\': name \"",paste(intersect(internal.name,name.all),collapse = "\", \""),"\" is used internally. \n",
+             "Consider renaming the variables in the dataset before calling summarizeNA. \n",
+             sep = "")
+    }
+    if(any(internal.name %in% newnames)){
+        stop("Incorrect argument \'newname\': name \"",paste(intersect(internal.name,newnames),collapse = "\", \""),"\" is used internally. \n",
+             "Consider changing its values when calling summarizeNA. \n",
+             sep = "")
+    }
+
+    ## ** subject object to focus on a single 'outcome'
+    if(!is.null(object[[newnames[1]]]) && length(unique(object[[newnames[1]]]))>1){
         if(is.null(variable)){
-            stop("Missing patterns for several variables could be displayed. \n",
+            stop("Missing patterns for several ",newnames[1]," could be displayed. \n",
                  "Consider specifying which one via the argument \'variable\'. \n")
         }else if(length(variable)!=1){
             stop("Argument \'variable\' should have length 1. \n")
         }else{
-            if(variable %in% object$variable == FALSE){
+            if(variable %in% object[[newnames[1]]] == FALSE){
                 stop("Incorrect value passed to argument \'variable\'. \n",
-                     "Possible values: \"",paste(unique(object$variable), collapse = "\", \""),"\"\n")
+                     "Possible values: \"",paste(unique(object[[newnames[1]]]), collapse = "\", \""),"\"\n")
             }
-            object <- object[object$variable == variable,,drop=FALSE]
+            object1 <- object[object[[newnames[1]]] == variable,,drop=FALSE]
+        ## NOTE: print may not work because object1 is of class summarizeNA but without all necessary variables for a nice print
         }
+    }else{
+        object1 <- object
+        ## NOTE: print may not work because object1 is of class summarizeNA but without all necessary variables for a nice print
     }
-    if(identical(order.pattern,newnames[4])){
-        order.pattern <- order(object[[newnames[4]]])
-    }
-    if(identical(order.pattern,newnames[2])){
-        order.pattern <- order(object[[newnames[2]]])
+    class(object1) <- setdiff(class(object1),"summarizeNA")
+    if(newnames[1] %in% names(object1)==FALSE){
+        object1[[newnames[1]]] <- "1"
     }
     
-    if(keep.data == FALSE){
-        stop("Argument \'keep.data\' should be set to TRUE when calling summarizeNA to obtain a graphical display. \n")
+    name.varying <- setdiff(names(object1), c(newnames,name.X))
+
+    ## ** add strata (X-variabel)
+    if(is.null(name.X)){
+        object1$XXstrataXX <- 1        
+    }else{
+        object1$XXstrataXX <- as.numeric(interaction(object1[name.X],drop=TRUE,sep="XX_._XX"))      
     }
+    n.X <- max(object1$XXstrataXX)
 
-    keep.cols <- setdiff(names(object),c(newnames,all.vars(attr(object,"args")$repetition)))
-    data <- as.data.frame(object[,c(newnames[3],keep.cols),drop=FALSE])
-    dataL <- stats::reshape(data, direction = "long", idvar = newnames[3], varying = keep.cols,
-                            v.names = newnames[[2]],
-                            timevar = newnames[[1]])
+    ## ** move to long format
+    dataL <- stats::reshape(object1[c(newnames,"XXstrataXX",name.varying,name.X)], direction = "long",
+                            idvar = c(newnames[3],"XXstrataXX"), varying = name.varying,
+                            v.names = "XXindicatorXX", timevar = newnames[1], times = name.varying)
 
-    nObs.pattern <- stats::setNames(object[[newnames[2]]], object[[newnames[3]]])
-    nNA.Var <- colSums(sweep(data[,keep.cols,drop=FALSE], FUN = "*", MARGIN = 1, STATS = nObs.pattern))
+    ## normalize names
+    old2new.names <- stats::setNames(rep(NA, NCOL(dataL)),names(dataL))
+    old2new.names[names(old2new.names)==newnames[1]] <- "variable"
+    old2new.names[names(old2new.names)==newnames[2]] <- "frequency"
+    old2new.names[names(old2new.names)==newnames[3]] <- "missing.pattern"
+    old2new.names[names(old2new.names)==newnames[4]] <- "n.missing"
+    old2new.names[match(name.X,names(old2new.names))] <- name.X
+    old2new.names[names(old2new.names)=="XXstrataXX"] <- "strata"
+    old2new.names[names(old2new.names)=="XXindicatorXX"] <- "indicator"
+    names(dataL) <- old2new.names
+
+    ## re-order dataset
+    if(is.character(order.pattern)){
+        if(length(order.pattern)!=1){
+            stop("Incorrect argument \'order.pattern\': should have length 1 when a character. \n")
+        }else if(order.pattern %in% newnames){
+                dataL <- dataL[order(dataL[[old2new.names[order.pattern]]], decreasing = decreasing.order),,drop=FALSE]
+        }else{
+            stop("Incorrect value for argument \'order.pattern\'. \n",
+                 "When a character should be one of \"",paste(newnames,collapse ="\" \""),"\".\n")
+        }
+         
+    }else if(!is.null(order.pattern)){
+        if(!is.numeric(order.pattern)){
+            stop("Argument \'order.pattern\' should either be a numeric vector or a character (\"",paste(newnames,collapse ="\" \""),"\").\n ")
+        }
+        if(length(order.pattern)!=NROW(object1)){
+            stop("Argument \'order.pattern\' should have length ",NROW(object1),".\n",sep="")
+        }
+        if(any(sort(order.pattern)!=1:NROW(object1))){
+            stop("Argument \'order.pattern\' should be a vector containing integers from 1 to ",NROW(object1),".\n",sep="")
+        }
+        index.order <- order(factor(paste(dataL$missing.pattern,dataL$strata,sep="."), levels = paste(object1[[newnames[3]]],object1$XXstrataXX,sep=".")[order.pattern]))
+        dataL <- dataL[index.order,,drop=FALSE]
+    }else if(decreasing.order){
+        dataL <- dataL[NROW(dataL):1,,drop=FALSE]
+    }
+    rownames(dataL) <- NULL
+
+    ## ** add the number of missing values
+    dataL$variable.strata <- paste(as.numeric(as.factor(dataL$variable)),dataL$strata,sep=".")
+    dataL$missing.pattern.strata <- paste(dataL$missing.pattern,dataL$strata,sep=".")
+    dataL$nX.NA <- tapply(dataL$frequency*dataL$indicator,dataL$variable.strata,sum)[dataL$variable.strata]
+    dataL$nY.NA <- tapply(dataL$frequency,dataL$missing.pattern.strata,unique)[dataL$missing.pattern.strata]
+        
+    ## ** re-order variables
+    ## re-order X axis
+    dataL$variable.strata <- factor(dataL$variable.strata, levels = unique(dataL$variable.strata))
+    ## re-order color variables
+    dataL$indicator <- factor(dataL$indicator, levels = 1:0, labels = c("yes","no"))
+    ## ## re-order Y axis
+    dataL$missing.pattern.strata <- factor(dataL$missing.pattern.strata, levels = unique(dataL$missing.pattern.strata))
+    
+
+    ## ** graphical display
+    gg.NA <- ggplot2::ggplot(dataL, ggplot2::aes(y = missing.pattern.strata, x = variable.strata, fill = indicator))
+    gg.NA <- gg.NA + ggplot2::geom_tile(color = "black")
+        
+    if(!is.null(name.X)){
+        gg.NA <- gg.NA + ggplot2::facet_wrap(stats::reformulate(name.X), labeller = labeller, scales = "free")
+    }
 
     if(!is.null(add.missing) && !is.na(add.missing) && !identical(FALSE,add.missing)){
-        dataL[[newnames[1]]] <- factor(dataL[[newnames[1]]], labels = paste0(keep.cols,"\n(",nNA.Var,add.missing,")"))
+        gg.NA <- gg.NA + ggplot2::scale_x_discrete(breaks = levels(dataL$variable.strata),
+                                                   labels = stats::setNames(paste0(dataL$variable,"\n(",dataL$nX.NA,add.missing,")"),dataL$variable.strata)[levels(dataL$variable.strata)])
     }else{
-        dataL[[newnames[1]]] <- factor(dataL[[newnames[1]]], labels = keep.cols)
+        gg.NA <- gg.NA + ggplot2::scale_x_discrete(breaks = levels(dataL$variable.strata),
+                                                   labels = stats::setNames(dataL$nX.NA,dataL$variable.strata)[levels(dataL$variable.strata)])
     }
-    dataL[[newnames[2]]] <- factor(dataL[[newnames[2]]], levels = 1:0, labels = c("yes","no"))
+    gg.NA <- gg.NA + ggplot2::scale_y_discrete(breaks = levels(dataL$missing.pattern.strata),
+                                               labels = stats::setNames(dataL$nY.NA,dataL$missing.pattern.strata)[levels(dataL$missing.pattern.strata)])
 
-    if(!is.null(order.pattern)){
-        if(length(order.pattern)!=NROW(data)){
-            stop("Argument \'order.pattern\' should have length ",NROW(data),".\n",sep="")
-        }
-        if(any(sort(order.pattern)!=1:NROW(data))){
-            stop("Argument \'order.pattern\' should be a vector containing integers from 1 to ",NROW(data),".\n",sep="")
-        }
-        dataL[[newnames[3]]] <- factor(dataL[[newnames[3]]], levels = data[[newnames[3]]][order.pattern])
+    gg.NA <- gg.NA + ggplot2::labs(fill = "missing",
+                                   x = ifelse(is.null(name.time),"",name.time),
+                                   y = ifelse(is.null(name.cluster),"number of observations",paste0("number of ",name.cluster))
+                                   )
+    if(!is.null(title) & !identical(title,NA) & !identical(title,FALSE)){
+        gg.NA <- gg.NA + ggplot2::ggtitle(title)
     }
-
-    gg.NA <- ggplot2::ggplot(dataL, ggplot2::aes(y = .data[[newnames[3]]], x = .data[[newnames[1]]], fill = .data[[newnames[2]]]))
-    gg.NA <- gg.NA + ggplot2::geom_tile(color = "black")
-    gg.NA <- gg.NA + ggplot2::scale_y_discrete(breaks = unique(dataL[[newnames[3]]]),
-                                               labels = nObs.pattern[unique(dataL[[newnames[3]]])])
-    gg.NA <- gg.NA + ggplot2::labs(fill = "missing", x = "", y = "number of observations")
     gg.NA <- gg.NA + ggplot2::theme(text = ggplot2::element_text(size=size.text))
-
+    
     ## ** export
     return(list(data = dataL,
                 plot = gg.NA))
@@ -1736,10 +2002,10 @@ autoplot.Wald_lmm <- function(object, type = "forest", size.text = 16, add.args 
                 plot = gg))
 }
 ## * .ggHeatmap
-.ggHeatmap <- function(object, name.time, size.text = 16, digits.cor = 2, name.legend = "Correlation", title = NULL,
-                       scale = ggplot2::scale_fill_gradient2, type.cor = "both",
-                       args.scale = list(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1,1))
-                       ){
+.ggHeatmap <- function(object, name.time, type.cor = "both", 
+                       name.facet = "facet", labeller = "label_value",
+                       name.legend = "Correlation", scale = ggplot2::scale_fill_gradient2, low = "blue", high = "red", mid = "white", midpoint = mean(limits), limits = c(-1,1),
+                       size.text = 16, digits.cor = 2, title = NULL){
 
     ## ** from matrix/list format to data.frame
     type.cor <- match.arg(type.cor, c("lower","upper","both"))
@@ -1774,7 +2040,8 @@ autoplot.Wald_lmm <- function(object, type = "forest", size.text = 16, add.args 
         name.object <- names(object)
         data <- do.call(rbind,lapply(name.object, function(iName){
             cbind(iName, mat2df(object[[iName]]))
-        }))        
+        }))
+        names(data)[1] <- name.facet
     }else {
         stop("Unknown data type: should be matrix, data.frame, or list. \n")
     }
@@ -1785,10 +2052,10 @@ autoplot.Wald_lmm <- function(object, type = "forest", size.text = 16, add.args 
                                              fill = .data$correlation)) 
     gg <- gg + ggplot2::geom_tile()
     if(!is.null(name.object)){
-        gg <- gg + ggplot2::facet_wrap(~iName)
+        gg <- gg + ggplot2::facet_wrap(stats::reformulate(name.facet), labeller = labeller)
     }
     if(!is.null(scale)){
-        gg <- gg + do.call(scale, args.scale)
+        gg <- gg + do.call(scale, list(low = low, high = high, mid = mid, midpoint = midpoint, limits = limits))
     }
     if(!is.null(name.time)){
         gg <- gg + ggplot2::labs(x = name.time, y = name.time)

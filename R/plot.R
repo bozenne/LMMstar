@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (11:00) 
 ## Version: 
-## Last-Updated: jul 27 2023 (13:50) 
+## Last-Updated: jul 10 2024 (17:56) 
 ##           By: Brice Ozenne
-##     Update #: 119
+##     Update #: 124
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -14,6 +14,20 @@
 ##----------------------------------------------------------------------
 ## 
 ### Code:
+
+## * plot.correlate (code)
+##' @describeIn autoplot.correlate Graphical Display For Correlation Matrix
+##' @export
+plot.correlate <- function(x, ...){
+    out <- autoplot.correlate(x, ...)
+    if(!is.null(out$plot)){
+        ## if ggplot then the graph is stored in out and should be displayed here
+        ## otherwise the graph has already been displayed but could not be stored in the object (e.g. when using qqtest)
+        print(out$plot)
+    }
+    return(invisible(out))
+
+}
 
 ## * plot.lmm (code)
 ##' @describeIn autoplot.lmm Graphical Display For Linear Mixed Models

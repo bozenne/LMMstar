@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul  5 2024 (18:56) 
 ## Version: 
-## Last-Updated: jul  9 2024 (15:16) 
+## Last-Updated: jul 10 2024 (15:31) 
 ##           By: Brice Ozenne
-##     Update #: 13
+##     Update #: 14
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,10 +29,12 @@ as.matrix.correlate <- function(x, index, ...){
     ## ** subset
     if(!missing(index)){
         x.array <- as.array(x)
-        if(is.numeric(index) && index %in% 1:dim(x.array)[3] == FALSE){
-            stop("Incorrect argumnet \'index\': when numeric it should take integer value between 1 and the number of correlation matrix (here ",dim(x.array)[3],"). \n")
+        if(length(index)>1){
+            stop("Incorrect argument \'index\': should have length 1. \n")
+        }else if(is.numeric(index) && index %in% 1:dim(x.array)[3] == FALSE){
+            stop("Incorrect argument \'index\': when numeric it should take integer value between 1 and the number of correlation matrix (here ",dim(x.array)[3],"). \n")
         }else if(is.character(index) && index %in% dimnames(x.array)[[3]] == FALSE){
-            stop("Incorrect argumnet \'index\': when character it should refer to the name of the correlation matrix. \n",
+            stop("Incorrect argument \'index\': when character it should refer to the name of the correlation matrix. \n",
                  "Possible names: \"",paste(dimnames(x.array)[[3]], collapse = "\", \""),"\". \n")
         }
         out <- x[,,index]

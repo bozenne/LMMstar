@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jul  9 2024 (17:00) 
+## Last-Updated: jul 10 2024 (10:44) 
 ##           By: Brice Ozenne
-##     Update #: 750
+##     Update #: 765
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -84,42 +84,46 @@
 ##' summarize(Y1 ~ 1, data = d)
 ##' ## stratified summary statistic (single variable)
 ##' summarize(Y1 ~ X1, data = d2)
+##' ## stratified summary statistic (multiple variable)
+##' summarize(Y1+Y2 ~ X1, data = d)
 ##' ## categorical variable
 ##' summarize(treat ~ 1, data = d)
 ##' summarize(treat ~ 1, skip.reference = TRUE, data = d)
 ##' ## aggregate data
 ##' summarize( ~ X1 + treat, data = d)
 ##' ## user defined summary statistic
+##' summarize(Y1 ~ 1, data = d, FUN = quantile)
 ##' summarize(Y1 ~ 1, data = d, FUN = quantile, p = c(0.25,0.75))
-##' summarize(Y1 ~ 1, data = d, FUN = stats:::quantile.default, p = c(0.25,0.75))
-##' ## stratified summary statistic (multiple variable)
-##' summarize(Y1+Y2 ~ X1, data = d)
 ##' ## complete case summary statistic
 ##' summarize(Y1+Y2 ~ X1, data = d2, na.rm = TRUE)
 ##' ## shortcut to consider all outcomes with common naming 
 ##' summarize(. ~ treat, data = d2, na.rm = TRUE, filter = "Y")
 ##' 
 ##' #### summarize (long format) ####
-##' dL <- reshape(d, idvar = "id", direction = "long",
+##' dL <- reshape(d2, idvar = "id", direction = "long",
 ##'              v.names = "Y", varying = c("Y1","Y2","Y3"))
-##' summarize(Y ~ time + X1, data = dL)
+##' summarize(Y ~ time + X1, data = dL, na.rm  = TRUE)
 ##' 
 ##' ## user defined summary statistic (outlier)
 ##' summarize(Y ~ time + X1, data = dL, FUN = function(x){
-##'    c(outlier.down = sum(x<mean(x,na.rm=TRUE)-2*sd(x,na.rm=TRUE)),
-##'      outlier.up = sum(x>mean(x,na.rm=TRUE)+2*sd(x,na.rm=TRUE)))
-##' })
+##'    c(outlier.down = sum(x<mean(x,na.rm=TRUE)-2*sd(x,na.rm=TRUE), na.rm=TRUE),
+##'      outlier.up = sum(x>mean(x,na.rm=TRUE)+2*sd(x,na.rm=TRUE), na.rm=TRUE))
+##' }, na.rm = TRUE)
 ##'
 ##' ## user defined summary statistic (auc)
 ##' myAUC <- function(Y,time){approxAUC(x = time, y = Y, from = 1, to = 3)}
 ##' myAUC(Y = dL[dL$id==1,"Y"], time = dL[dL$id==1,"time"])
-##' summarize(Y ~ id, data = dL, FUN = myAUC)
+##' summarize(Y ~ id, data = dL, FUN = myAUC, na.rm = TRUE)
 ##'
-##' ## compute correlations (single time variable)
-##' e.S <- summarize(Y ~ X1, data = dL, repetition = ~time|id,
-##'                  na.rm = TRUE, columns = add("correlation"))
+##' ## add correlation (see correlate function)
+##' e.S <- summarize(Y ~ time + X1, data = dL, repetition = ~time|id,
+##'                  na.rm = TRUE, columns = add("correlation"), na.rm = TRUE)
 ##' e.S
-##' ## other see correlate function
+##' 
+##' #### summarize (long format, missing lines) ####
+##' ## use repetition argument to count missing lines in the number of missing values
+##' dL.NNA <- dL[rowSums(is.na(dL))==0,]
+##' summarize(Y ~ time + X1, data = dL.NNA, repetition =~time|id, na.rm  = TRUE)
 
 ## * summarize (code)
 ##' @export
@@ -136,13 +140,13 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
     options <- LMMstar.options()
 
     ## ** check and normalize user imput
-    ## dots
+    ## *** dots
     dots <- list(...)
     if(length(dots)>0 && is.null(FUN)){
         stop("Unknown arguments \'",paste(names(dots), collapse = "\' \'"),"\'. \n")
     }
 
-    ## columns
+    ## *** columns
     valid.columns <- c("observed","missing","pc.missing",
                        "mean","mean.lower","mean.upper","predict.lower","predict.upper",
                        "sd","sd.lower","sd.upper", "sd0","sd0.lower","sd0.upper",
@@ -166,14 +170,8 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
     }
     columns <- match.arg(newcolumns, choices = valid.columns, several.ok = TRUE)
 
-    
-    ## filter
-    name.all <- setdiff(c(all.vars(formula),all.vars(repetition)), ".")
-    if(!is.null(filter)){
-        data <- data[union(name.all,grep(filter,names(data),value=TRUE))]
-    }
-
-    ## data (column names)
+    ## *** data (column names)
+    name.all <- names(data)
     if(any(name.all %in% c("XXn.clusterXX","XXindexXX"))){
         invalid <- name.all[name.all %in% c("XXn.clusterXX","XXindexXX")]
         stop("Name(s) \"",paste(invalid, collapse = "\" \""),"\" are used internally. \n",
@@ -187,14 +185,14 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
              sep = "")
     }
 
-    ## formula & repetition
-    ls.init <- formula2repetition(formula = formula, data = data, repetition = repetition, keep.time = TRUE)
+    ## *** formula & repetition
+    ls.init <- formula2repetition(formula = formula, data = data, repetition = repetition, keep.time = TRUE, filter = filter)
     detail.formula <- ls.init$detail.formula
     detail.repetition <- ls.init$detail.repetition
-        
+    name.Y <- detail.formula$var$response
+    name.X <- detail.formula$var$regressor
     name.cluster <- detail.repetition$var$cluster
     name.time <- detail.repetition$var$time
-    
     
     n.Y <- length(name.Y)
     if(n.Y == 0){
@@ -203,7 +201,7 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
     }
     n.X <- length(name.X)
 
-    ## FUN
+    ## *** FUN
     if(!is.null(FUN)){
 
         formals.fun <- formals(FUN)
@@ -240,10 +238,10 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
                 rownames(Mnames.FUN) <- name.Y
             }
             if(is.null(name.X)){
-                try.FUN <- try(do.call(FUN, args = stats::setNames(as.list(data[Mnames.FUN[1,]]),names.FUN)), silent = FALSE)
+                try.FUN <- try(do.call(FUN, args = c(stats::setNames(as.list(data[Mnames.FUN[1,]]),names.FUN),dots)), silent = FALSE)
             }else{
                 strata.X <- interaction(data[name.X],drop=TRUE)
-                try.FUN <- try(do.call(FUN, args = stats::setNames(as.list(data[strata.X==levels(strata.X)[1],Mnames.FUN[1,],drop=FALSE]),names.FUN)), silent = FALSE)
+                try.FUN <- try(do.call(FUN, args = c(stats::setNames(as.list(data[strata.X==levels(strata.X)[1],Mnames.FUN[1,],drop=FALSE]),names.FUN),dots)), silent = FALSE)
             }
                 
         }
@@ -485,10 +483,10 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
         ## *** User defined function
         if(!is.null(FUN)){
             if(length(names.FUN)==0){
-                iOut[,name.outFUN] <- matrix(do.call(FUN, dots), byrow = TRUE, nrow = n.Y, ncol = length(name.outFUN))
+                iOut[,name.outFUN] <- matrix(FUN(), byrow = TRUE, nrow = n.Y, ncol = length(name.outFUN))
             }else{
                 iLS.outfun <- lapply(1:n.Y, FUN = function(iY){
-                    do.call(FUN, args = stats::setNames(as.list(data[iIndex,Mnames.FUN[iY,],drop=FALSE]),names.FUN))
+                    do.call(FUN, args = c(stats::setNames(as.list(data[iIndex,Mnames.FUN[iY,],drop=FALSE]),names.FUN),dots))
                 })
                 iOut[,name.outFUN] <- do.call(rbind,iLS.outfun)
             }                

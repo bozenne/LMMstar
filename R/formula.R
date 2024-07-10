@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:53) 
 ## Version: 
-## Last-Updated: jul  9 2024 (16:55) 
+## Last-Updated: jul 10 2024 (10:30) 
 ##           By: Brice Ozenne
-##     Update #: 281
+##     Update #: 312
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -59,8 +59,11 @@ formula.lmm <- function(x, effects = "mean", ...){
 ##' formula2var(Y+Z~X+(1|id)+(1|region))
 ##' formula2var(Y+Z~s(X1)+X2*X3 + (X1|id:baseline))
 ##'
-##' df <- cbind(Y=1, as.data.frame(matrix(1,ncol = 5, nrow = 1)))
+##' df <- cbind(Y=1, X=0, as.data.frame(matrix(1,ncol = 5, nrow = 1)))
 ##' formula2var(Y ~ ., data = df)
+##' formula2var(Y ~ ., data = df, allowDotAsName = TRUE)
+##' formula2var(Y ~ X + ., data = df)
+##' formula2var(. ~ X, data = df)
 
 ## * formula2var (code)
 formula2var <- function(formula, data = NULL, specials = NULL, name.argument  = "formula",
@@ -81,9 +84,9 @@ formula2var <- function(formula, data = NULL, specials = NULL, name.argument  = 
                 vars = list(), ## X1, X2, X3, time, id
                 terms = list(), ## X1, X2*X3, (time|id)
                 index.terms = list() ## position of the term in the right hand side of the formula
-                )                                   
+                )
     out$vars$all <- all.vars(formula)
-    ff.terms <- stats::terms(formula, specials = specials, data = data)
+    ff.terms <- stats::terms.formula(formula, specials = specials, data = data)
     out$terms$intercept <- as.logical(attr(ff.terms,"intercept"))
 
     ## *** identify response variables
@@ -250,13 +253,44 @@ formula2var <- function(formula, data = NULL, specials = NULL, name.argument  = 
 ##' In particular if repetition is missing but formula contains a cluster variable, it will try to re-create the repetition variable
 ##'
 ##' @param formula [formula]  Y ~ X1 + X2 
-##' @param data [data.frame]
+##' @param data [data.frame] dataset
 ##' @param repetition [formula] ~ time | cluster
 ##' @param keep.time [logical] if formula = Y ~ time|cluster should the new formula be Y ~ time or Y ~ 1
+##' @param filter [logical] filter variable names when using the . in a formula.
+##' Set to \code{NULL} to diseable.
 ##' 
 ##' @noRd
 ##'
 ##' @examples
+##'
+##' #### wide format ####
+##' data(armd.wide, package = "nlmeU")
+##' formula2repetition(formula = visual0+visual4~treat.f, data = armd.wide, repetition = NULL)
+##' formula2repetition(formula = .~treat.f, data = armd.wide, repetition = NULL, filter = "visual")$formula
+##' ## visual0 + visual4 + visual12 + visual24 + visual52 ~ treat.f
+##' formula2repetition(formula = . + lesion~treat.f, data = armd.wide, repetition = NULL, filter = "visual")$formula
+##' ## lesion + visual0 + visual4 + visual12 + visual24 + visual52 ~ treat.f
+##' formula2repetition(formula = lesion ~ . , data = armd.wide, repetition = NULL, filter = "f")$formula
+##' ## lesion ~ treat.f
+##' formula2repetition(formula = visual0 + visual4 ~ lesion + . , data = armd.wide, repetition = NULL, filter = "f")$formula
+##' ## visual0 + visual4 ~ lesion + (lesion + treat.f)
+##'
+##' #### long format ####
+##' armd.long <- reshape(armd.wide, direction = "long",
+##'                      idvar = "subject", varying = paste0("visual",c(0,4,12,24,52)),
+##'                      times = c(0,4,12,42,52), timevar = "week", v.names = "visual")
+##' 
+##' formula2repetition(formula = visual~treat.f, data = armd.long, repetition = ~week|subject)
+##' formula2repetition(formula = visual~., data = armd.long, repetition = ~week|subject, filter = NULL)$formula
+##' ## visual ~ lesion + line0 + treat.f + miss.pat
+##' formula2repetition(formula = visual~treat.f+week|subject, data = armd.long, keep.time = TRUE)[c("formula","repetition")]
+##' ## visual ~ treat.f + week
+##' ## ~week | subject
+##' formula2repetition(formula = visual~treat.f+week|subject, data = armd.long, keep.time = FALSE)[c("formula","repetition")]
+##' ## visual ~ treat.f
+##' ## ~week | subject
+##' formula2repetition(formula = .~treat.f+week|subject, data = armd.long, keep.time = FALSE, filter = "visual")[c("formula","repetition")]
+##' 
 ##' 
 formula2repetition <- function(formula, data, repetition, keep.time, filter){
 
@@ -299,11 +333,12 @@ formula2repetition <- function(formula, data, repetition, keep.time, filter){
                 term.rm <- NULL
                 repetition <- stats::reformulate(attr(stats::delete.response(terms.formula),"term.labels"))
             }
-            
             if(keep.time){
                 formula <- stats::reformulate(termlabels = detail.formula$vars$time, response = paste(detail.formula$vars$response, collapse = " + "))
-            }else{
+            }else if(all(test.duplicated!=0)){
                 formula <- stats::reformulate(termlabels = "1", response = paste(detail.formula$vars$response, collapse = " + "))
+            }else{
+                formula <- stats::reformulate(termlabels = names(test.duplicated)[test.duplicated==0], response = paste(detail.formula$vars$response, collapse = " + "))
             }
             detail.formula <- formula2var(formula, data = data)
         }else{
@@ -355,22 +390,31 @@ formula2repetition <- function(formula, data, repetition, keep.time, filter){
     }
 
     ## ** handle dots (.~Group or Y~.)
-    browser()
-    if(identical(detail.formula$vars$response,".") & identical(detail.formula$vars$regressor,".")){
+    if(("." %in% detail.formula$vars$response) & any(detail.formula$vars$regressor %in% detail.formula$vars$all == FALSE)){
         stop("Argument \'formula\' cannot be .~. as the left or right hand side need to be explicit \n",
              "Consider for instance using .~1. \n",sep = "")
-    }else if(identical(detail.formula$vars$response,".")){
+    }else if("." %in% detail.formula$vars$response){
         name.X <- detail.formula$var$regressor
-        name.Y <- setdiff(names(data),c(name.X,detail.repetition$var$all))
+        if(is.null(filter)){
+            name.Y <- union(setdiff(detail.formula$vars$response,"."),setdiff(names(data),c(name.X,detail.repetition$var$all)))
+        }else{
+            name.Y <- union(setdiff(detail.formula$vars$response,"."),setdiff(grep(filter,names(data), value = TRUE),c(name.X,detail.repetition$var$all)))
+        }
         if(length(name.Y)==0){
             stop("Incorrect argument \'formula\': no variable on the left hand side of the formula. \n")
         }
         termlabels <- ifelse(is.null(detail.formula$vars$regressor),"1",paste(detail.formula$vars$regressor,collapse="+"))
         formula <- stats::reformulate(response = paste0(name.Y,collapse="+"), termlabels = termlabels)
-        detail.formula <- formula2var(formula)$detail.formula
-    }else if(identical(detail.formula$vars$regressor,".")){
+        detail.formula <- formula2var(formula)
+    }else if(any(detail.formula$vars$regressor %in% detail.formula$vars$all == FALSE)){
+        ## identical(detail.formula$vars$regressor,".") does not 'work' as the . has already been replaced by all remaining variables
         name.Y <- detail.formula$var$response
-        formula <- stats::formula(stats::terms(formula, data = data))
+        if(is.null(filter)){
+            name.X <- union(setdiff(detail.formula$var$all,c(".",name.Y)), setdiff(names(data),c(name.Y,detail.repetition$var$all)))
+        }else{
+            name.X <- union(setdiff(detail.formula$var$all,c(".",name.Y)), grep(filter, setdiff(names(data),c(name.Y,detail.repetition$var$all)), value = TRUE))
+        }        
+        formula <- stats::formula(stats::terms(formula, data = data[c(name.Y,name.X)]))
         detail.formula <- formula2var(formula)
     }
     

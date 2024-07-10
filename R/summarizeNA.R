@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: dec  7 2022 (17:13) 
 ## Version: 
-## Last-Updated: jul  9 2024 (16:50) 
+## Last-Updated: jul 10 2024 (14:48) 
 ##           By: Brice Ozenne
-##     Update #: 95
+##     Update #: 125
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,7 +26,10 @@
 ##' When specified the missing data pattern is specific to each variable not present in the formula. 
 ##' @param sep [character] character used to separate the missing data indicator (0/1) when naming the missing data patterns.
 ##' @param newnames [character vector of length 4] additional column containing the variable name (only when argument \code{repetition} is used),
-##' the frequency of the missing data pattern in the dataset, the name of the missing data pattern in the dataset, and the number of missing data per pattern.
+##' variables w.r.t. which missing data patterns are identified,
+##' frequency of the missing data pattern in the dataset,
+##' name of the missing data pattern in the dataset,
+##' and number of missing data per pattern.
 ##' @param keep.data [logical] should the indicator of missing data per variable in the original dataset per pattern be output.
 ##' @param filter [character] a regular expression passed to \code{grep} to filter the columns of the dataset.
 ##' Relevant when using \code{.} to indicate all other variables.
@@ -44,33 +47,44 @@
 ##' e.SNA <- summarizeNA(gastricbypassW)
 ##' e.SNA
 ##' plot(e.SNA)
-##' summarizeNA(gastricbypassW, keep.data = FALSE)
-##' 
-##' summarizeNA(gastricbypassW, filter = "glucagon", keep.data = FALSE)
+##'
+##' ## only focus on some variables
+##' eG.SNA <- summarizeNA(gastricbypassW, filter = "glucagon")
+##' eG.SNA
+##' plot(eG.SNA)
+##' summarizeNA(weight3+glucagonAUC3 ~ 1, data = gastricbypassW)
 ##'
 ##' #### display missing data pattern (long format) ####
-##' ## example 1
+##' ## example 1 (single group)
 ##' data(gastricbypassL, package = "LMMstar")
 ##' e.SNAL <- summarizeNA(gastricbypassL, repetition = ~time|id)
+##' e.SNAL
 ##' plot(e.SNAL, variable = "glucagonAUC")
 ##' 
-##' e.SNAL2 <- summarizeNA(glucagonAUC ~ 1, data = gastricbypassL, repetition = ~time|id)
-##' plot(e.SNAL2)
-##'
-##' ## example 2
+##' ## example 2 (two groups)
 ##' data(calciumL, package = "LMMstar")
+##'
+##' ## over both groups
 ##' mp <- summarizeNA(calciumL, repetition = ~visit|girl)
 ##' plot(mp, variable = "bmd")
+##' plot(mp, variable = "bmd", order.pattern = "frequency")
+##' plot(mp, variable = "bmd", order.pattern = 5:1)
 ##'
-##' mp2 <- summarizeNA(time.obs + bmd ~ grp, data = calciumL, repetition = ~visit|girl)
-##' mp2 <- summarizeNA(time.obs + bmd ~ grp, data = calciumL)
-##' plot(mp, variable = "bmd")
+##' ## per group
+##' mp2 <- summarizeNA(bmd ~ grp, data = calciumL, repetition = ~visit|girl)
+##' mp2
+##' plot(mp2)
+##'
+##' ## artificially create different patterns in each group
+##' calciumL2 <- calciumL[order(calciumL$girl),]
+##' calciumL2[calciumL2$girl == 101,"bmd"] <- c(NA,NA,1,1,1)
+##' calciumL2[calciumL2$girl == 104,"bmd"] <- c(NA,1,NA,1,NA)
+##' mp3 <- summarizeNA(bmd ~ grp, data = calciumL2, repetition = ~visit|girl)
+##' mp3
+##' plot(mp3)
+##' plot(mp3, order.pattern = "n.missing")
+##' plot(mp3, order.pattern = "frequency")
 ##' 
-##' summarizeNA(calciumL[,c("visit","girl","bmd")], repetition = ~visit|girl)
-##'
-##' ## example 3
-##' data(vasscoresW, package = "LMMstar")
-##' summarizeNA(vasscoresW)
 
 ## * summarizeNA (code)
 ##' @export
@@ -79,6 +93,14 @@ summarizeNA <- function(data, formula, repetition = NULL, sep = "",
                         filter = NULL, keep.data = TRUE){
 
     ## ** check and normalize user input
+
+    ## *** newnames
+    if(!is.character(newnames) || length(newnames) !=4){
+        stop("Argument \'newnames\' should be a character vector of length 4. \n")
+    }
+    if(any(duplicated(newnames))){
+        stop("Argument \'newnames\' should not contain duplicated values. \n")
+    }
 
     ## *** check data
     data <- as.data.frame(data)
@@ -89,26 +111,24 @@ summarizeNA <- function(data, formula, repetition = NULL, sep = "",
              "Consider renaming the variables in the dataset. \n",
              sep = "")
     }
-    if("XXtimeXX" %in% name.all){
-        stop("Incorrect argument \'data\': name \"XXtimeXX\" is used internally. \n",
+    internal.name <- c("XXtimeXX") 
+    if(any(internal.name %in% name.all)){
+        stop("Incorrect argument \'data\': name \"",paste(intersect(internal.name,name.all),collapse = "\", \""),"\" is used internally. \n",
              "Consider renaming the variables in the dataset. \n",
              sep = "")
     }
+
     ## *** check formula & repetition
     if(missing(formula)){
-        if(is.null(filter)){
-            formula <- stats::reformulate(termlabels = "1", response = paste(names(data), collapse = "+"))
-        }else{
-            formula <- stats::reformulate(termlabels = "1", response = paste(grep(filter,names(data),value=TRUE), collapse = "+"))
-        }
-    }else{
-        name.all <- setdiff(c(all.vars(formula),all.vars(repetition)), ".")
+        
+        name.Y0 <- setdiff(names(data), all.vars(repetition))
         if(!is.null(filter)){
-            data <- data[union(name.all,grep(filter,names(data),value=TRUE))]
+            name.Y0 <- grep(filter, name.Y0, value = TRUE)
         }
+        formula <- stats::reformulate(termlabels = "1", response = paste(name.Y0, collapse = "+"))
     }
     
-    ls.init <- formula2repetition(formula = formula, data = data, repetition = repetition, keep.time = TRUE)
+    ls.init <- formula2repetition(formula = formula, data = data, repetition = repetition, keep.time = TRUE, filter = filter)
     detail.formula <- ls.init$detail.formula
     detail.repetition <- ls.init$detail.repetition
         
@@ -155,18 +175,20 @@ summarizeNA <- function(data, formula, repetition = NULL, sep = "",
             
         }else if(!is.null(name.time)){
             ls0.data <- split(cbind(data[c(name.cluster,name.Y)], XXtimeXX = data.time), f = data.UX)
-            grid2 <- expand.grid(outcome = name.Y, group = names(ls0.data), stringsAsFactors = FALSE)
-            grid <- cbind(grid2["outcome"], Mlevel.UX[grid2$group,,drop=FALSE])
+            grid2 <- expand.grid(name.Y, names(ls0.data), stringsAsFactors = FALSE)
+            names(grid2) <- c(newnames[1],"group")
+            grid <- cbind(grid2[newnames[1]], Mlevel.UX[grid2$group,,drop=FALSE])
 
             ls.data <- stats::setNames(lapply(1:NROW(grid2), function(iG){ ## iG <- 1
-                iData <- stats::reshape(ls0.data[[grid2[iG,"group"]]][c(name.cluster,"XXtimeXX",grid2[iG,"outcome"])],
+                iData <- stats::reshape(ls0.data[[grid2[iG,"group"]]][c(name.cluster,"XXtimeXX",grid2[iG,newnames[1]])],
                                         direction = "wide", timevar = "XXtimeXX", idvar = name.cluster, varying = Utime)
                 iData[[name.cluster]] <- NULL
                 return(iData)
-            }), paste(grid2$outcome,grid2$group,sep=":"))
+            }), paste(grid2[[newnames[1]]],grid2$group,sep=":"))
         }
     }else if(!is.null(name.time)){
-        grid <- expand.grid(outcome = name.Y)
+        grid <- expand.grid(name.Y, stringsAsFactors = FALSE)
+        names(grid) <- newnames[1]
         ls.data <- stats::setNames(lapply(name.Y, function(iY){ ## iY <- name.Y[1]
             iData <- stats::reshape(cbind(data[c(name.cluster,iY)], XXtimeXX = data.time), direction = "wide", timevar = "XXtimeXX", idvar = name.cluster, varying = Utime)
             iData[[name.cluster]] <- NULL
@@ -174,9 +196,8 @@ summarizeNA <- function(data, formula, repetition = NULL, sep = "",
         }), name.Y)
     }else{
         grid <- NULL
-        ls.data <- list(data[name.Y])
     }
-    
+
     ## ** warper
     warper.pattern <- function(iData, sep){ ## iData <- ls.data[[1]]
         iMtest <- is.na(iData)*1.0
@@ -201,7 +222,7 @@ summarizeNA <- function(data, formula, repetition = NULL, sep = "",
     
     ## ** identify patterns
     if(is.null(grid)){
-        df.pattern <- warper.pattern(data, sep = sep)
+        df.pattern <- warper.pattern(data[name.Y], sep = sep)
     }else{
         ls.df.pattern <- lapply(1:NROW(grid), function(iG){ ## iG <- 1
             iOut <- warper.pattern(ls.data[[iG]], sep = sep)
@@ -211,9 +232,10 @@ summarizeNA <- function(data, formula, repetition = NULL, sep = "",
         df.pattern <- do.call(rbind,ls.df.pattern)
         rownames(df.pattern) <- NULL
     }
-    
+
     ## ** export
-    attr(df.pattern,"args") <- list(newnames = newnames, keep.data = keep.data, formula = formula, repetition = repetition, sep = sep)
+    attr(df.pattern,"args") <- list(newnames = newnames, keep.data = keep.data, formula = formula, repetition = repetition, sep = sep,
+                                    name.Y = name.Y, name.X = name.X, name.cluster = name.cluster, name.time = name.time)
 
     class(df.pattern) <- append("summarizeNA", class(df.pattern))
     return(df.pattern)
