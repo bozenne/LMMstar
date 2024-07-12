@@ -6,9 +6,9 @@
 \usage{
 lmm(
   formula,
+  data,
   repetition,
   structure,
-  data,
   weights = NULL,
   scale.Omega = NULL,
   method.fit = NULL,
@@ -23,11 +23,11 @@ lmm(
 On the left hand side the outcome and on the right hand side the covariates affecting the mean value.
 E.g. Y ~ Gender + Gene.}
 
+\item{data}{[data.frame] dataset (in the long format) containing the observations.}
+
 \item{repetition}{[formula] Specify the structure of the data: the time/repetition variable and the grouping variable, e.g. ~ time|id.}
 
 \item{structure}{[character] type of covariance structure, either \code{"CS"} (compound symmetry) or \code{"UN"} (unstructured).}
-
-\item{data}{[data.frame] dataset (in the long format) containing the observations.}
 
 \item{weights}{[formula or character] variable in the dataset used to weight the log-likelihood and its derivative. Should be constant within cluster.}
 
@@ -159,6 +159,7 @@ model.tables(e.lmm0, effects = "all")
 \code{\link{effects.lmm}} for evaluating average marginal or counterfactual effects \cr
 \code{\link{sigma.lmm}} for extracting estimated residual variance-covariance matrices. \cr
 \code{\link{residuals.lmm}} for extracting residuals or creating residual plots (e.g. qqplots). \cr
-\code{\link{predict.lmm}} for evaluating mean and variance of the outcome conditional on covariates or other outcome values.
+\code{\link{predict.lmm}} for evaluating mean and variance of the outcome conditional on covariates or other outcome values. \cr
+\code{\link{ranef.lmm}} for evaluating random effects and variance components in random effects models.
 }
 \keyword{models}

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: jul 10 2024 (17:28) 
+## Last-Updated: jul 11 2024 (10:08) 
 ##           By: Brice Ozenne
-##     Update #: 1388
+##     Update #: 1398
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -676,21 +676,63 @@ residuals.clmm <- function(object, ...){
 ## * residuals.mlmm (code)
 ##' @export
 ##' @rdname residuals
-residuals.mlmm <- function(object, simplify = TRUE, ...){
+residuals.mlmm <- function(object, p = NULL, newdata = NULL, keep.data = FALSE, simplify = TRUE, ...){
+
+    ## ** normalize user input
+
+    ## p
+    if(!is.null(p)){
+        if(!is.list(p)){
+            stop("Argument \'p\' should either be NULL or a list. \n")
+        }
+        if(is.null(names(p))){
+            stop("Argument \'p\' should either be NULL or a named list. \n")
+        }
+        if(any(names(p) %in% names(object$model) == FALSE)){
+            stop("Incorrect names for argument \'p\': \"",paste(setdiff(names(p),names(object$model)), collapse = "\", \""),"\". \n", 
+                 "Should be among \"",paste(names(object$model), collapse = "\", \""),"\". \n")
+        }
+        ls.init <- lapply(names(object$model),function(iM){ ## iM <- names(object$model)[1]
+            .init_transform(p = p[[iM]], transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
+                            x.transform.sigma = object$args$transform.sigma, x.transform.k = object$args$transform.k, x.transform.rho = object$args$transform.rho,
+                            table.param = object$model[[iM]]$design$param)
+        })
+        theta <- setNames(lapply(ls.init, "[[","p"),names(object$model))
+    }else{
+        theta <- stats::setNames(vector(mode = "list", length = length(object$model)), names(object$model))
+    }
+
+    ## newdata
+    if(!is.null(newdata)){
+        by <- object$object$by
+        if("by" %in% names(newdata)){
+            stop("The by variable (here \"",by,"\") could not be found in argument \'newdata\'. \n")
+        }else if(any(newdata[[by]] %in% names(object$model) == FALSE)){
+            stop("Incorrect value for the by variable (here \"",by,"\"): \"",paste(setdiff(newdata[[by]], names(object$model)), collapse = "\", \""),"\". \n",
+                 "Valid values: \"",paste(names(object$model), collapse = "\", \""),"\". \n")
+        }
+        ls.newdata <- split(newdata, newdata[[by]])
+    }else{
+        ls.newdata <- stats::setNames(vector(mode = "list", length = length(object$model)), names(object$model))
+    }
 
     ## ** extract
-    ls.out <- lapply(names(object$model), function(iBy){ ## iBy <- "A"
-        residuals(object$model[[iBy]], simplify = simplify, ...)
+    ls.out <- lapply(names(ls.newdata), function(iBy){ ## iBy <- "A"
+        residuals(object$model[[iBy]], p = theta[[iBy]], newdata = ls.newdata[[iBy]], keep.data = keep.data, simplify = simplify, ...)
     })
 
     ## ** reshape
     test.2D <- any(sapply(ls.out, inherits, "data.frame")) || any(sapply(ls.out, inherits, "matrix"))
     if(test.2D){
         out <- do.call(rbind,ls.out)
-        if(simplify && is.data.frame(out)){
+        if(!keep.data && simplify && is.data.frame(out)){
             object.manifest <- stats::variable.names(object)
-            rm.manifest <- attributes(object.manifest)[setdiff(names(attributes(object.manifest)),c("by","cluster","time"))]
-            out[unique(unlist(rm.manifest))] <- NULL
+            out[c(object.manifest,"fitted")] <- NULL
+            if(NCOL(out)==1){
+                out <- out[[1]]
+            }else{
+                out <- as.matrix(out)
+            }
         }
     }else{
         out <- do.call(c,ls.out)

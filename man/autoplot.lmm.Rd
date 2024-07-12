@@ -37,15 +37,16 @@
 \item{type}{[character] the type of plot \itemize{
 \item \code{"fit"}: fitted values over repetitions.
 \item \code{"qqplot"}: quantile quantile plot of the normalized residuals
-\item \code{"correlation"}: residual correlation over repetitions
+\item \code{"covariance"}: model (when \code{type.residual=NULL}) or residual correlation over repetitions
+\item \code{"correlation"}: model (when \code{type.residual=NULL}) or residual correlation over repetitions
 \item \code{"scatterplot"}: normalized residuals vs. fitted values (diagnostic for missing non-linear effects),
 \item \code{"scatterplot2"}: square root of the normalized residuals vs. fitted values (diagnostic for heteroschedasticity),
 \item \code{"partial"}: partial residual plot.
 }}
 
-\item{type.residual}{[character] the type of residual to be used. Not relevant for \code{type="fit"}.
-By default, normalized residuals are used except when requesting a partial residual plot
-where this argument specify the variable relative to which the partial residuals are computed (argument \code{variable} in \code{\link{residuals.lmm}}).}
+\item{type.residual}{[character] the type of residual to be used or,
+when \code{type="partial"}, variable relative to which the partial residuals are computed (argument \code{variable} in \code{\link{residuals.lmm}}).
+Not relevant for \code{type="fit"}.}
 
 \item{obs.alpha}{[numeric, 0-1] When not NA, transparency parameter used to display the original data by cluster.}
 
@@ -72,7 +73,7 @@ Internally it calls \code{ggplot2::facet_wrap} or \code{ggplot2::facet_grid} dep
 
 \item{ci.alpha}{[numeric, 0-1] When not NA, transparency parameter used to display the confidence intervals.}
 
-\item{ylim}{[numeric vector of length 2] the lower and higher value of the vertical axis.}
+\item{ylim}{[numeric vector of length 2] the lower and higher value of the vertical axis, or the range of the color scale for correlation or covariance plot.}
 
 \item{mean.size}{[numeric vector of length 2] size of the point and line for the mean trajectory.}
 
@@ -80,7 +81,7 @@ Internally it calls \code{ggplot2::facet_wrap} or \code{ggplot2::facet_grid} dep
 
 \item{position.errorbar}{[character] relative position of the errorbars.}
 
-\item{...}{arguments passed to the \code{predict.lmm} or \code{autoplot.residual_lmm} functions.}
+\item{...}{arguments passed to the \code{.autofit}, \code{.ggHeatmap} or \code{autoplot.residual_lmm} functions.}
 }
 \value{
 A list with two elements \itemize{

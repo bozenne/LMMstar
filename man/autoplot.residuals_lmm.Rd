@@ -13,6 +13,8 @@
   facet = NULL,
   facet_nrow = NULL,
   facet_ncol = NULL,
+  scales = "fixed",
+  labeller = "label_value",
   engine.qqplot = "ggplot2",
   add.smooth = TRUE,
   digits.cor = 2,
@@ -21,9 +23,8 @@
   obs.size = NULL,
   mean.size = c(3, 1),
   ci.alpha = 0.25,
+  ylim = NULL,
   position = NULL,
-  scales = "fixed",
-  labeller = "label_value",
   ...
 )
 
@@ -36,7 +37,8 @@
 
 \item{type.residual}{[character] Type of residual for which the graphical representation should be made.}
 
-\item{time.var}{[character] x-axis variable for the plot. Only relevant when argument type is one of \code{"scatterplot"}, \code{"scatterplot2"}, \code{"partial"}, \code{"partial-center"},}
+\item{time.var}{[character] x-axis variable for the plot.
+Only relevant when argument type is one of \code{"scatterplot"}, \code{"scatterplot2"}, \code{"partial"}, \code{"partial-center"},}
 
 \item{facet}{[formula] split the plot into a matrix of panels defined by the variables in the formula.
 Internally it calls \code{ggplot2::facet_wrap} or \code{ggplot2::facet_grid} depending on whether the formula contains a variable on the left hand side.}
@@ -44,6 +46,8 @@ Internally it calls \code{ggplot2::facet_wrap} or \code{ggplot2::facet_grid} dep
 \item{facet_nrow}{[integer] number of rows of panels in the graphical display.}
 
 \item{facet_ncol}{[integer] number of columns of panels  in the graphical display.}
+
+\item{scales, labeller}{[character] Passed to \code{ggplot2::facet_wrap}.}
 
 \item{engine.qqplot}{[character] Should ggplot2 or qqtest be used to display quantile-quantile plots?
 Only used when argument \code{type} is \code{"qqplot"}.}
@@ -65,9 +69,9 @@ When displaying partial residuals, should contain a second color indicating how 
 
 \item{ci.alpha}{[numeric, 0-1] When not NA, transparency parameter used to display the confidence intervals.}
 
-\item{position}{[character] relative position of the points when colored according to a variable.}
+\item{ylim}{[numeric vector of length 2] the lower and higher value of the vertical axis, or the range of the color scale for correlation or covariance plot.}
 
-\item{scales, labeller}{[character] Passed to \code{ggplot2::facet_wrap}.}
+\item{position}{[character] relative position of the points when colored according to a variable.}
 
 \item{...}{Not used. For compatibility with the generic method.}
 }

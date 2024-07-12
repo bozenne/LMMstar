@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jul  4 2024 (16:06) 
+## Last-Updated: jul 11 2024 (10:35) 
 ##           By: Brice Ozenne
-##     Update #: 1447
+##     Update #: 1473
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -175,18 +175,14 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
             }
         }                
     }
-       
-    ## dataset
-    if(is.null(newdata)){
-        index.na <- object$index.na
-        newdata.index.cluster <- attr(object$design$index.cluster,"vectorwise")
-        newdata.index.time <- attr(object$design$index.clusterTime,"vectorwise")
-        if(is.null(keep.data)){
-            keep.data <- FALSE
-        }
-    }else{
-        index.na <- NULL
 
+    ## keep.data
+    if(is.null(keep.data)){
+        keep.data <- FALSE
+    }
+    
+    ## dataset
+    if(!is.null(newdata)){
         if(is.matrix(newdata)){
             if(type %in% c("dynamic","change","auc","auc-b")){
                 stop("Argument \'newdata\' cannot be a matrix when asking for dynamic predictions. \n",
@@ -203,11 +199,11 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
                 stop("Argument \'se\' should be have length 1 or its second element should be FALSE when argument \'newdata\' is a matrix. \n",
                      "(cannot associate observation to the repetition structure with matrix input - consider using data.frame) \n")
             }
-            if(is.null(keep.data)){
-                keep.data <- FALSE
-            }
             ## used by residuals for type = partial-center
         }else{
+            if(length(newdata)==1 && is.character(newdata)){
+                stop("Argument \'newdata\' should be a data.drame, matrix, or list. \n")
+            }
             newdata <- as.data.frame(newdata)
             if(type.prediction %in% c("dynamic","change","auc","auc-b") == FALSE && (length(se)==2 && se[2] && export.vcov==FALSE) && name.cluster %in% names(newdata) == FALSE ){
                 ## add cluster variable if missing and no duplicated time
@@ -217,15 +213,7 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
                     stop("Incorrect argument 'newdata': missing cluster variable \"",name.cluster,"\". \n")
                 }
             }
-            if(is.null(keep.data)){
-                keep.data <- FALSE
-            }
-        }
-        if(format == "wide"){            
-            newdata.design <- stats::model.matrix(object, newdata = newdata, effects = "index", na.rm = FALSE)
-            newdata.index.cluster <- attr(newdata.design$index.cluster, "vectorwise")
-            newdata.index.time <- attr(newdata.design$index.clusterTime, "vectorwise")        
-        }
+        }        
     }
 
     ## standard error
@@ -629,16 +617,8 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
         prediction.df <- rep(Inf, length(prediction))
     }
 
-    ## ** restaure NA
-    prediction <- restaureNA(unname(prediction), index.na = index.na,
-                             level = "obs", cluster = object$cluster)
-
     if(format == "long" && sum(se)>0){
-        prediction.se <- sqrt(restaureNA(unname(prediction.var), index.na = index.na,
-                                         level = "obs", cluster = object$cluster))
-        prediction.df <- restaureNA(unname(prediction.df), index.na = index.na,
-                                    level = "obs", cluster = object$cluster)
-    
+        prediction.se <- sqrt(prediction.var)
         alpha <- 1-level
         M.pred <- cbind(estimate = prediction, se = prediction.se, df = prediction.df,
                         lower = prediction + stats::qt(alpha/2, df = prediction.df) * prediction.se,
@@ -652,6 +632,12 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
         ## even when no NA, use the initial dataset instead of the augmented one
         newdata <- object$data.original
     }
+    if(format == "wide"){            
+        newdata.design <- stats::model.matrix(object, newdata = newdata, effects = "index", na.rm = FALSE)
+        newdata.index.cluster <- attr(newdata.design$index.cluster, "vectorwise")
+        newdata.index.time <- attr(newdata.design$index.clusterTime, "vectorwise")        
+    }
+
     out <- .reformat(M.pred, name = names(format), format = format, simplify = simplify,
                      keep.data = keep.data, data = newdata, index.na = index.na,
                      object.cluster = object$cluster, index.cluster = newdata.index.cluster,
@@ -671,8 +657,71 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
 
 ## * predict.mlmm (code)
 ##' @export
-predict.mlmm <- function(object, ...){
-    stop("No \'predict\' method for mlmm objects, consider using lmm instead of mlmm. \n")
+predict.mlmm <- function(object, p = NULL, newdata = NULL, keep.data = FALSE, simplify = TRUE, ...){
+
+    ## ** normalize user input
+
+    ## p
+    if(!is.null(p)){
+        if(!is.list(p)){
+            stop("Argument \'p\' should either be NULL or a list. \n")
+        }
+        if(is.null(names(p))){
+            stop("Argument \'p\' should either be NULL or a named list. \n")
+        }
+        if(any(names(p) %in% names(object$model) == FALSE)){
+            stop("Incorrect names for argument \'p\': \"",paste(setdiff(names(p),names(object$model)), collapse = "\", \""),"\". \n", 
+                 "Should be among \"",paste(names(object$model), collapse = "\", \""),"\". \n")
+        }
+        ls.init <- lapply(names(object$model),function(iM){ ## iM <- names(object$model)[1]
+            .init_transform(p = p[[iM]], transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
+                            x.transform.sigma = object$args$transform.sigma, x.transform.k = object$args$transform.k, x.transform.rho = object$args$transform.rho,
+                            table.param = object$model[[iM]]$design$param)
+        })
+        theta <- setNames(lapply(ls.init, "[[","p"),names(object$model))
+    }else{
+        theta <- stats::setNames(vector(mode = "list", length = length(object$model)), names(object$model))
+    }
+
+    ## newdata
+    if(!is.null(newdata)){
+        by <- object$object$by
+        if("by" %in% names(newdata)){
+            stop("The by variable (here \"",by,"\") could not be found in argument \'newdata\'. \n")
+        }else if(any(newdata[[by]] %in% names(object$model) == FALSE)){
+            stop("Incorrect value for the by variable (here \"",by,"\"): \"",paste(setdiff(newdata[[by]], names(object$model)), collapse = "\", \""),"\". \n",
+                 "Valid values: \"",paste(names(object$model), collapse = "\", \""),"\". \n")
+        }
+        ls.newdata <- split(newdata, newdata[[by]])
+    }else{
+        ls.newdata <- stats::setNames(vector(mode = "list", length = length(object$model)), names(object$model))
+    }
+
+    ## ** extract
+    ls.out <- lapply(names(ls.newdata), function(iBy){ ## iBy <- "glucagonAUC"
+        predict(object$model[[iBy]], p = theta[[iBy]], newdata = ls.newdata[[iBy]], keep.data = keep.data, simplify = simplify, ...)
+    })
+
+    ## ** reshape
+    test.2D <- any(sapply(ls.out, inherits, "data.frame")) || any(sapply(ls.out, inherits, "matrix"))
+    if(test.2D){
+        out <- do.call(rbind,ls.out)
+        if(!keep.data && simplify && is.data.frame(out)){
+            object.manifest <- stats::variable.names(object)
+            out[object.manifest] <- NULL
+            if(NCOL(out)==1){
+                out <- out[[1]]
+            }else{
+                out <- as.matrix(out)
+            }
+        }
+    }else{
+        out <- do.call(c,ls.out)
+    }
+
+    ## ** export
+    return(out)
+
 }
 
 ## * .dfX

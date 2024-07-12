@@ -28,7 +28,8 @@ or only for coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 or only for coefficients relative to the variance structure (\code{"variance"}),
 or only for coefficients relative to the correlation structure (\code{"correlation"}).}
 
-\item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. Not feasible for variance or correlation coefficients estimated by REML.}
+\item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
+Not feasible for variance or correlation coefficients estimated by REML.}
 
 \item{df}{[logical] Should degree of freedom, computed using Satterthwaite approximation, for the model parameters be output.}
 
@@ -36,7 +37,7 @@ or only for coefficients relative to the correlation structure (\code{"correlati
 
 \item{newdata}{[data.frame] dataset relative to which the information should be computed. Only relevant if differs from the dataset used to fit the model.}
 
-\item{p}{[numeric vector] value of the model coefficients at which to evaluate the information. Only relevant if differs from the fitted values.}
+\item{p}{[numeric vector] value of the model coefficients at which to evaluate the variance-covariance matrix. Only relevant if differs from the fitted values.}
 
 \item{type.information}{[character] Should the expected information be used  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).}
 

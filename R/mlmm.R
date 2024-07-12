@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: jul  4 2024 (16:41) 
+## Last-Updated: jul 12 2024 (15:15) 
 ##           By: Brice Ozenne
-##     Update #: 396
+##     Update #: 415
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -131,19 +131,26 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
     
     ## ** fit mixed models
     repetition <- list(...)$repetition
-    if(!is.null(repetition)){
-        res.split <- strsplit(deparse(repetition),"|", fixed = TRUE)[[1]]
-        if(length(res.split)==2){
-            var.cluster <- trimws(res.split[2], which = "both")
+    if(is.null(repetition)){
+        ## add cluster variable so that each individual is in a different cluster
+        ## other the first from each split may be considered from the same cluster
+        data$XXclusterXX <- addLeading0(1:NROW(data), as.factor = FALSE, code = NULL)
+    }else if(!is.null(repetition)){
+        ## avoid that cluster variable is transformed differently across linear mixed models
+        ## 1 --> "01" (when 10+ but 100- individuals) vs. 1 --> "001" (when 100+ but 1000- individuals)
+        detail.repetition <- formula2var(repetition)
+        if(detail.repetition$special=="repetition"){
+            var.cluster <- detail.repetition$var$cluster
             if(var.cluster %in% names(data) && is.numeric(data[[var.cluster]])){
                 if(all(data[[var.cluster]]>0) && all(data[[var.cluster]] %% 1 == 0)){
-                    data[[var.cluster]] <- as.factor(sprintf(paste0("%0",ceiling(log10(max(data[[var.cluster]]))+0.1),"d"), data[[var.cluster]]))
+                    data[[var.cluster]] <- addLeading0(data[[var.cluster]], as.factor = FALSE, code = attr(var.cluster,"code"))
                 }else{
-                    data[[var.cluster]] <- as.factor(data[[var.cluster]])
+                    data[[var.cluster]] <- as.character(data[[var.cluster]])
                 }
             }
         }
     }
+
     ls.data <- by(data, data[[by]], function(iDF){
         if(is.factor(iDF[[by]])){ ## ensure that by variable is a character and no a factor
             iDF[[by]] <- as.character(iDF[[by]])

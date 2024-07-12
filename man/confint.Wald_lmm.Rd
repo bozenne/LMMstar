@@ -8,6 +8,7 @@
   object,
   parm,
   level = 0.95,
+  df = NULL,
   method = NULL,
   columns = NULL,
   backtransform = NULL,
@@ -20,6 +21,8 @@
 \item{parm}{Not used. For compatibility with the generic method.}
 
 \item{level}{[numeric, 0-1] nominal coverage of the confidence intervals.}
+
+\item{df}{[logical] Should a Student's t-distribution be used to model the distribution of the Wald statistic. Otherwise a normal distribution is used.}
 
 \item{method}{[character] type of adjustment for multiple comparisons, one of \code{"none"}, \code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}.
 Alternatively, a method for combining the estimates, one of \code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.gls1"}, \code{"pool.rubin"}.}

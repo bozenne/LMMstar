@@ -7,6 +7,7 @@
 \method{iid}{lmm}(
   x,
   effects = "mean",
+  p = NULL,
   robust = TRUE,
   type.information = NULL,
   transform.sigma = NULL,
@@ -23,6 +24,8 @@
 or only for coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 or only for coefficients relative to the variance structure (\code{"variance"}),
 or only for coefficients relative to the correlation structure (\code{"correlation"}).}
+
+\item{p}{[numeric vector] value of the model coefficients at which to evaluate the influence function. Only relevant if differs from the fitted values.}
 
 \item{robust}{[logical] If \code{FALSE} the influence function is rescaled to match the model-based standard errors.
 The correlation however will not (necessarily) match the model-based correlation.}

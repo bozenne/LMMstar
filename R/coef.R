@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: jul  5 2024 (10:58) 
+## Last-Updated: jul 11 2024 (16:36) 
 ##           By: Brice Ozenne
-##     Update #: 765
+##     Update #: 828
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -135,6 +135,7 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
     transform.rho <- init$transform.rho
+
     if(transform.rho=="cov"){
         if("transform.k" %in% names(mycall) == FALSE){
             transform.k <- "var"
@@ -350,15 +351,52 @@ coef.Wald_lmm <- function(object, type = "coef", method = "none", backtransform 
 
     options <- LMMstar.options()
     pool.method <- options$pool.method
+    adj.method <- options$adj.method
     table.univariate <- object$univariate
-
+    
     ## ** normalize user input
     dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
-    type <- match.arg(type, c("coef","contrast","ls.contrast"))
 
+    ## *** type
+    type <- match.arg(type, c("coef","contrast","ls.contrast"))
+    
+    ## *** method
+    if(any(method %in% c(adj.method,pool.method)==FALSE)){
+        stop("Unknown value for argument \'type\': \"",paste(setdiff(method, c(adj.method,pool.method)),collapse = "\", \""),"\". \n",
+             "Possible values: \"",paste(c(adj.method,pool.method), collapse = "\", \""),"\". \n")
+    }
+
+
+    if(length(method)>1){
+        ##  handle multiple pooling technics
+        if(type != "coef"){
+            message("Argument \'type\' ignored when argument \"method\" is a vector. \n")
+        }
+        if(sum(method %in% adj.method)>1){
+            stop("Incorrect argument \'method\' \n",
+                 "coef.Wald_lmm cannot handle several methods to adjust for multiple comparisons.")
+        }
+        if("p.rejection" %in% method & is.null(attr(method,"method")) & sum(method %in% adj.method)==1){
+            attr(method,"method") <- intersect(method, adj.method)
+        }
+
+        ls.coef <- lapply(method, function(iMethod){
+            if(iMethod == "p.rejection"){
+                attr(iMethod,"method") <- attr(method,"method")
+                attr(iMethod,"qt") <- attr(method,"qt")
+            }
+            iOut <- coef.Wald_lmm(object = object, type = "coef", method = iMethod, backtransform = backtransform, ...)
+            return(iOut)
+        })
+        out <- do.call(c, ls.coef)
+        return(out)
+    }else{
+        name.method <- names(method)
+    }
+    
     ## ** extract from object
     if(type %in% c("contrast","ls.contrast")){
         out <- lapply(object$glht, function(iGlht){lapply(iGlht,"[[","linfct")})
@@ -385,8 +423,15 @@ coef.Wald_lmm <- function(object, type = "coef", method = "none", backtransform 
                 }else{
                     iIndex.table <- 1:NROW(table.univariate)
                 }
-
-                contrastWald_pool(object = object, index = iIndex.table, method = method, name.method = NULL, ci = FALSE, df = FALSE, alpha = NA)
+                if(method == "p.rejection"){
+                    iOut <- proportion.mlmm(object = object, index = iIndex.table,
+                                            name.method = name.method, method = attr(method,"method"), qt = attr(method,"qt"),
+                                            null = NA, ci = FALSE, df = FALSE, alpha = NA)
+                }else{
+                    iOut <- poolWald.mlmm(object = object, index = iIndex.table,
+                                          method = method, name.method = name.method,
+                                          ci = FALSE, df = FALSE, alpha = NA)
+                }
             }))
             out <- stats::setNames(table.out[,"estimate"],rownames(table.out))
             

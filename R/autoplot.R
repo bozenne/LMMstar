@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: jul 10 2024 (17:57) 
+## Last-Updated: jul 11 2024 (11:18) 
 ##           By: Brice Ozenne
-##     Update #: 1548
+##     Update #: 1556
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -283,7 +283,7 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
         }
         out <- list(data = object.sigma,
                     plot = .ggHeatmap(object.sigma, name.time = name.time, name.legend = name.legend, name.facet = name.facet,
-                                      size.text = size.text, labeller = labeller, limits = ylim, ...))
+                                      size.text = size.text, labeller = labeller, limits = ylim, title = "Modeled", ...))
         
     }else { ## residual plot
         test <- c(obs.alpha = !is.null(obs.alpha) & abs(obs.alpha)>0,
@@ -642,6 +642,42 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
     return(list(data = preddata, plot = gg))    
 }
 
+
+## * autoplot.mlmm (documentation)
+##' @title Graphical Display For Multiple Linear Mixed Model
+
+## * autoplot.mlmm (code)
+##' @export
+autoplot.mlmm <- function(object, type = "forest", ...){
+
+    ## ** normalize user input
+    valid.type <- list(lmm = c("fit",
+                               "partial","partial-center",
+                               "qqplot","covariance","correlation","scatterplot","scatterplot2"),
+                       Wald = c("forest","heat"))
+    type <- match.arg(type, c(valid.type$lmm,valid.type$Wald))
+
+    ## ** generate plot
+    if(type %in% valid.type$Wald){
+        out <- autoplot.Wald_lmm(object, type = type, ...)
+    }else{
+        by <- object$object$by
+        
+        ls.autoplot <- lapply(names(object$model), function(iBy){ ## iBy
+            iOut <- autoplot(object$model[[iBy]], type = type, ...)
+            iOut$data <- cbind(iBy, iOut$data)
+            names(iOut$data)[1] <- by
+            return(iOut)
+        })
+
+        out <- list(plot = stats::setNames(lapply(ls.autoplot, "[[", "plot"), names(object$model)),
+                    data = stats::setNames(lapply(ls.autoplot, "[[", "data"), names(object$model)))
+
+    }
+
+    ## ** export
+    return(out)
+}
 
 ## * autoplot.partialCor (documentation)
 ##' @title Graphical Display For Partial Correlation

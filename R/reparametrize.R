@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: maj  7 2024 (11:27) 
+## Last-Updated: jul 11 2024 (16:55) 
 ##           By: Brice Ozenne
-##     Update #: 791
+##     Update #: 800
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -963,13 +963,13 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
     ## ** normalize input
     ## several way to say no transform
     ## do not use identical(,) because transform.sigma/k/rho may contain an attribute
-    if(length(transform.sigma==1) && ((transform.sigma == "") || (transform.sigma == "no") || (transform.sigma == FALSE))){
+    if(length(transform.sigma==1) && !is.na(transform.sigma) && ((transform.sigma == "") || (transform.sigma == "no") || (transform.sigma == FALSE))){
         transform.sigma <- "none"
     }
-    if(length(transform.k==1) && ((transform.k == "") || (transform.k == "no") || (transform.k == FALSE))){
+    if(length(transform.k==1) && !is.na(transform.k) && ((transform.k == "") || (transform.k == "no") || (transform.k == FALSE))){
         transform.k <- "none"
     }
-    if(length(transform.rho==1) && ((transform.rho == "") || (transform.rho == "no") || (transform.rho == FALSE))){
+    if(length(transform.rho==1) && !is.na(transform.rho) && ((transform.rho == "") || (transform.rho == "no") || (transform.rho == FALSE))){
         transform.rho <- "none"
     }
 
@@ -977,10 +977,10 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
     p.transform.sigma <- attr(p,"transform.sigma")
     p.transform.k <- attr(p,"transform.k")
     p.transform.rho <- attr(p,"transform.rho")
-        
+
     ## ** transform
     ## transformation attribute given to p by the estimate function overrule object transformation
-    if(is.null(transform.rho)){
+    if(is.null(transform.rho) || (length(transform.rho)==1 && is.na(transform.rho))){
         if(!is.null(p.transform.rho)){
             transform.rho <- p.transform.rho
         }else{
@@ -994,7 +994,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
         attr(transform.rho,"arg") <- transform.rho.save
     }
 
-    if(is.null(transform.k)){
+    if(is.null(transform.k) || (length(transform.k)==1 && is.na(transform.k))){
         if(!is.null(p.transform.k)){
             transform.k <- p.transform.k
         }else if(transform.rho == "cov"){
@@ -1010,7 +1010,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
         attr(transform.k,"arg") <- transform.k.save
     }
     
-    if(is.null(transform.sigma)){
+    if(is.null(transform.sigma) || (length(transform.sigma)==1 && is.na(transform.sigma))){
         if(!is.null(p.transform.sigma)){
             transform.sigma <- p.transform.sigma
         }else if(transform.k %in% c("sd","logsd","var","logvar")){

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: jul  5 2024 (19:08) 
+## Last-Updated: jul 12 2024 (17:15) 
 ##           By: Brice Ozenne
-##     Update #: 599
+##     Update #: 643
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -176,18 +176,19 @@ vcov.Wald_lmm <- function(object, ...){
 ##' or only coefficients relative to the correlation structure (\code{"correlation"}).
 ##' @param p [list of numeric vector] list of model coefficients to be used. Only relevant if differs from the fitted values.
 ##' @param newdata [NULL] Not used. For compatibility with the generic method.
+##' @param type.information [character] Should the expected information be used  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
 ##' Not feasible for variance or correlation coefficients estimated by REML.
 ##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
 ##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
 ##' @param transform.rho [character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"} - see details.
-##' @param ... passed to \code{vcov.lmm}.
+##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
+##' @param ... Not used. For compatibility with the generic method.
 
 ## * vcov.mlmm (code)
 ##' @export
-vcov.mlmm <- function(object, effects = "contrast", method = "none", robust = object$args$robust,
-                      newdata = NULL, p = NULL,
-                      type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, ...){
+vcov.mlmm <- function(object, effects = "contrast", method = "none", robust = object$args$robust, type.information = object$object$type.information, 
+                      newdata = NULL, p = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, simplify = TRUE, ...){
 
     options <- LMMstar.options()
     pool.method <- options$pool.method
@@ -195,6 +196,13 @@ vcov.mlmm <- function(object, effects = "contrast", method = "none", robust = ob
 
     ## ** normalize use input
 
+    ## dots
+    dots <- list(...)
+    dots$complete <- NULL ## for multcomp which passes an argument complete when calling vcov
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+    
     ## effects
     if(!is.null(effects)){
         effects <- match.arg(effects, c("contrast","mean","fixed","variance","correlation","all"), several.ok = TRUE)
@@ -221,15 +229,23 @@ vcov.mlmm <- function(object, effects = "contrast", method = "none", robust = ob
             stop("Incorrect names for argument \'p\': \"",paste(setdiff(names(p),names(object$model)), collapse = "\", \""),"\". \n", 
                  "Should be among \"",paste(names(object$model), collapse = "\", \""),"\". \n")
         }
-        ls.init <- lapply(names(object$model),function(iM){ ## iM <- names(object$model)[1]
-            .init_transform(p = p[[iM]], transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
-                            x.transform.sigma = object$args$transform.sigma, x.transform.k = object$args$transform.k, x.transform.rho = object$args$transform.rho,
-                            table.param = object$model[[iM]]$design$param)
-        })
-        theta <- setNames(lapply(ls.init, "[[","p"),names(object$model))
     }else{
-        effects2 <- effects
-        theta <- stats::setNames(vector(mode = "list", length = length(object$model)), names(object$model))
+        p <- stats::setNames(vector(mode = "list", length = length(object$model)), names(object$model))
+    }
+
+    ls.init <- lapply(names(object$model),function(iM){ ## iM <- names(object$model)[1]
+        .init_transform(p = p[[iM]], transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
+                        x.transform.sigma = object$args$transform.sigma, x.transform.k = object$args$transform.k, x.transform.rho = object$args$transform.rho,
+                        table.param = object$model[[iM]]$design$param)
+    })    
+    theta <- setNames(lapply(ls.init, "[[","p"),names(object$model))
+    test.notransform <- unique(sapply(ls.init,"[[","test.notransform"))
+    transform.sigma <- unique(sapply(ls.init,"[[","transform.sigma"))
+    transform.k <- unique(sapply(ls.init,"[[","transform.k"))
+    transform.rho <- unique(sapply(ls.init,"[[","transform.rho"))
+    if(length(test.notransform)>1 || length(transform.sigma)>1 || length(transform.k)>1 || length(transform.rho)>1){
+        stop("Something went wrong when initializing the transformation parameters. \n",
+             "Not the same transformation for all models. \n")
     }
     
     ## newdata
@@ -239,31 +255,43 @@ vcov.mlmm <- function(object, effects = "contrast", method = "none", robust = ob
 
     ## ** extract
     if(!is.null(effects) && length(effects)==1 && effects=="contrast"){
-        if(is.null(p) && (robust == object$args$robust) && method %in% adj.method){
+        if((length(unlist(p))==0) && (robust == object$args$robust) && (type.information == object$object$type.information) && test.notransform && (method %in% adj.method)){
+
             out <- object$vcov
+
         }else if(method %in% adj.method){
 
-            out <- crossprod(iid.mlmm(object, effects = effects, robust = robust, p = theta))
+            e.iid <- iid.mlmm(object, effects = effects, p = theta, robust = robust, type.information = type.information,
+                              transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
+            out <- crossprod(e.iid)
+            attr(out,"original.name") <- attr(e.iid,"original.name")
+            attr(out,"by") <- attr(e.iid,"by")
+            attr(out,"message") <- attr(e.iid,"message")
             
         }else if(method %in% pool.method){
 
-                table.univariate <- object$univariate
+            stop("Cannot extract the variance-covariance matrix for method=\"",method,"\".\n",
+                 "Consider calling model.tables instead to get the standard error and square it to recover the variance. \n")
 
-                grid <- unique(table.univariate[,c("type","test"),drop=FALSE])
-                n.grid <- NROW(grid)
-                table.out <- do.call(rbind,lapply(1:n.grid , function(iGrid){
-                    if(n.grid>1){
-                        iIndex.table <- intersect(which(table.univariate$type==grid$type[iGrid]),
-                                                  which(table.univariate$test==grid$test[iGrid]))
-                    }else{
-                        iIndex.table <- 1:NROW(table.univariate)
-                    }
-
-                    contrastWald_pool(object = object, index = iIndex.table, method = method, name.method = NULL, ci = TRUE, df = FALSE, alpha = 0.05)
-                }))
         }
     }else{
-        out <- mapply(object = object$model, p = theta, FUN = vcov, effects = effects, robust = robust, ..., SIMPLIFY = FALSE)
+
+        e.iid <- iid.mlmm(object, effects = effects, p = theta, robust = robust, type.information = type.information,
+                          transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names, simplify = simplify)
+        if(is.matrix(e.iid)){
+            out <- crossprod(e.iid)
+            attr(out,"original.name") <- attr(e.iid,"original.name")
+            attr(out,"by") <- attr(e.iid,"by")
+            attr(out,"message") <- attr(e.iid,"message")
+        }else if(is.list(e.iid)){
+
+            out <- lapply(e.iid, function(iIID){
+                iOut <- crossprod(iIID)
+                attr(iOut,"message") <- attr(iIID,"message")
+                return(iOut)
+            })
+        }
+        
     }
 
     ## ** export

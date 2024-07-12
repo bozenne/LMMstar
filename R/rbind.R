@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul  4 2024 (15:34) 
+## Last-Updated: jul 12 2024 (17:36) 
 ##           By: Brice Ozenne
-##     Update #: 519
+##     Update #: 533
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -282,12 +282,20 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
     attr(table.univariate, "backtransform") <- unlist(lapply(ls.univariate,attr,"backtransform"))
 
     ## *** cluster
-    ls.cluster <- lapply(ls.object, function(iO){iO$object$cluster})
+    ls.cluster <- lapply(ls.object, function(iO){iO$object[["cluster"]]}) ## prefer [[ to $ to avoid partial matching (i.e. not output cluster.var if cluster is missing)
     seq.cluster <- unique(unlist(ls.cluster))
     n.cluster <- length(seq.cluster)
     newobject$cluster <- seq.cluster
 
-    independence <- (cluster.var=="XXclusterXX" || all(duplicated(unlist(ls.cluster))==FALSE)) ## each individual only appear once
+    if(any(duplicated(unlist(ls.cluster)))){
+        if(cluster.var=="XXclusterXX"){
+            stop("Unable to decided whether observations from different models are matched or independent. \n",
+                 "Consider specifying the \'repetition\' argument fitting the linear mixed model. \n")
+        }
+        independence <- FALSE
+    }else{
+        independence <- TRUE
+    }
     if(all(sapply(ls.object, function(iO){attr(iO$args$robust,"call")})==FALSE)){
         newtable.args$robust <- independence==FALSE
     }
@@ -298,13 +306,6 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
     if(independence){
         
         beta.vcov <- as.matrix(do.call(Matrix::bdiag,lapply(ls.object, "[[", "vcov")))
-        
-        if(all(diag(contrast)==1) && all(contrast[upper.tri(contrast, diag = FALSE)] == 0) && all(contrast[lower.tri(contrast, diag = FALSE)] == 0)){
-            beta.df <- table.univariate$df
-        }else{
-            beta.df <- rep(Inf, length(beta.estimate))
-            newtable.args$df <- FALSE
-        }
         
     }else{
         if(any(sapply(ls.object, function(iO){is.null(iO$iid)}))){
@@ -327,16 +328,8 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
         }else{
             beta.vcov <- crossprod(M.iid)
         }
-        if(any(!is.infinite(table.univariate$df)) && any(!is.na(table.univariate$df)) && abs(diff(range(table.univariate$df, na.rm = TRUE)))<0.1){
-            beta.df <- rep(mean(table.univariate$df), length(beta.estimate))
-            newtable.args$df <- TRUE
-        }else{
-            beta.df <- rep(Inf, length(beta.estimate))
-            newtable.args$df <- FALSE
-        }
     }
     dimnames(beta.vcov) <- list(name.modelparam,name.modelparam)
-    names(beta.df) <- name.modelparam
 
     ## ** Combine elements
 

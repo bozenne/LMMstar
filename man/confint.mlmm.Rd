@@ -23,7 +23,7 @@
 \item{method}{[character] type of adjustment for multiple comparisons: one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}, \code{"single-step2"}, or \code{"pool"}.}
 
 \item{ordering}{[character] should the output be ordered by type of parameter (\code{parameter}) or by model (\code{by}).
-Only relevant for \code{mlmm} objects.}
+Only relevant for \code{mlmm} objects.n}
 
 \item{...}{other arguments are passed to \code{\link{confint.Wald_lmm}}.}
 }

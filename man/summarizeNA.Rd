@@ -6,14 +6,19 @@
 \usage{
 summarizeNA(
   data,
+  formula,
   repetition = NULL,
   sep = "",
   newnames = c("variable", "frequency", "missing.pattern", "n.missing"),
+  filter = NULL,
   keep.data = TRUE
 )
 }
 \arguments{
 \item{data}{[data.frame] dataset containing the observations.}
+
+\item{formula}{[formula] On the left hand side the variable(s) for which the missing data patterns should be evaluated and on the right hand side the grouping variables.
+E.g. Y1 ~ Gender will compute missing data pattern w.r.t Y1 for each gender.}
 
 \item{repetition}{[formula] Specify the structure of the data when in the long format: the time/repetition variable and the grouping variable, e.g. ~ time|id.
 When specified the missing data pattern is specific to each variable not present in the formula.}
@@ -21,7 +26,13 @@ When specified the missing data pattern is specific to each variable not present
 \item{sep}{[character] character used to separate the missing data indicator (0/1) when naming the missing data patterns.}
 
 \item{newnames}{[character vector of length 4] additional column containing the variable name (only when argument \code{repetition} is used),
-the frequency of the missing data pattern in the dataset, the name of the missing data pattern in the dataset, and the number of missing data per pattern.}
+variables w.r.t. which missing data patterns are identified,
+frequency of the missing data pattern in the dataset,
+name of the missing data pattern in the dataset,
+and number of missing data per pattern.}
+
+\item{filter}{[character] a regular expression passed to \code{grep} to filter the columns of the dataset.
+Relevant when using \code{.} to indicate all other variables.}
 
 \item{keep.data}{[logical] should the indicator of missing data per variable in the original dataset per pattern be output.}
 }
@@ -34,25 +45,47 @@ Summarize missing data patterns.
 \examples{
 #### display missing data pattern (wide format) ####
 data(gastricbypassW, package = "LMMstar")
-e.SNA <- summarizeNA(gastricbypassW) 
+e.SNA <- summarizeNA(gastricbypassW)
+e.SNA
 plot(e.SNA)
-summarizeNA(gastricbypassW, keep.data = FALSE)
+
+## only focus on some variables
+eG.SNA <- summarizeNA(gastricbypassW, filter = "glucagon")
+eG.SNA
+plot(eG.SNA)
+summarizeNA(weight3+glucagonAUC3 ~ 1, data = gastricbypassW)
 
 #### display missing data pattern (long format) ####
-## example 1
+## example 1 (single group)
 data(gastricbypassL, package = "LMMstar")
 e.SNAL <- summarizeNA(gastricbypassL, repetition = ~time|id)
+e.SNAL
 plot(e.SNAL, variable = "glucagonAUC")
 
-## example 2
+## example 2 (two groups)
 data(calciumL, package = "LMMstar")
+
+## over both groups
 mp <- summarizeNA(calciumL, repetition = ~visit|girl)
 plot(mp, variable = "bmd")
-summarizeNA(calciumL[,c("visit","girl","bmd")], repetition = ~visit|girl)
+plot(mp, variable = "bmd", order.pattern = "frequency")
+plot(mp, variable = "bmd", order.pattern = 5:1)
 
-## example 3
-data(vasscoresW, package = "LMMstar")
-summarizeNA(vasscoresW)
+## per group
+mp2 <- summarizeNA(bmd ~ grp, data = calciumL, repetition = ~visit|girl)
+mp2
+plot(mp2)
+
+## artificially create different patterns in each group
+calciumL2 <- calciumL[order(calciumL$girl),]
+calciumL2[calciumL2$girl == 101,"bmd"] <- c(NA,NA,1,1,1)
+calciumL2[calciumL2$girl == 104,"bmd"] <- c(NA,1,NA,1,NA)
+mp3 <- summarizeNA(bmd ~ grp, data = calciumL2, repetition = ~visit|girl)
+mp3
+plot(mp3)
+plot(mp3, order.pattern = "n.missing")
+plot(mp3, order.pattern = "frequency")
+
 }
 \seealso{
 \code{\link{autoplot.summarizeNA}} for a graphical display.

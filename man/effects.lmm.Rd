@@ -39,7 +39,8 @@ Alternatively can be a numeric vector indicating how to weight each timepoint.}
 
 \item{repetition}{[character vector] repetition at which the effect should be assessed. By default it will be assessed at all repetitions.}
 
-\item{conditional}{[character] variable conditional to which the average conterfactual outcome or treatment effect should be computed.}
+\item{conditional}{[character/data.frame] variable(s) conditional to which the average conterfactual outcome or treatment effect should be computed.
+Alternatively can also be a data.frame where each column correspond to a variable and the rows to the level of the variable(s).}
 
 \item{ref.repetition}{[numeric or character] index or value of the reference level for the repetition variable.
 Only relevant when \code{type} equal to \code{"change"}.
@@ -68,6 +69,10 @@ Only relevant when \code{type = "aoc"} or \code{type = "ate"}.}
 \description{
 Estimate average counterfactual outcome or contrast of outcome from linear mixed models.
 }
+\details{
+The uncertainty is quantified assuming the contrast matrix to be a-priori known.
+Said otherwise the standard error does not account for the uncertainty about the covariate distribution.
+}
 \examples{
 #### simulate data in the long format ####
 set.seed(10)
@@ -78,7 +83,11 @@ eUN.lmm <- lmm(Y ~ visit + X1 + X2 + X5,
                repetition = ~visit|id, structure = "UN", data = dL)
 
 ## outcome
-effects(eUN.lmm, variable = "X1")
+e.YbyX1 <- effects(eUN.lmm, variable = "X1")
+e.YbyX1
+summary(e.YbyX1)
+model.tables(e.YbyX1)
+coef(e.YbyX1, type = "contrast")
 effects(eUN.lmm, effects = "difference", variable = "X1")
 effects(eUN.lmm, effects = "difference", variable = "X1", repetition = "3")
 
@@ -115,8 +124,8 @@ effects(eUN.lmmI, effects = "difference", type = "auc", variable = "X1.factor",
 
 ## average difference in counterfactual conditional to a covariate
 effects(eUN.lmmI, effect = "difference", variable = "X1.factor",
-        conditional = list(X5=0:2), repetition = "3")
+        conditional = data.frame(X5=0:2), repetition = "3")
 effects(eUN.lmmI, effect = "difference", type = "change", variable = "X1.factor",
-        conditional = list(X5=0:2))
+        conditional = data.frame(X5=0:2))
 }
 \keyword{htest}

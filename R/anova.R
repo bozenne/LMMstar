@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jul  4 2024 (15:49) 
+## Last-Updated: jul 12 2024 (17:11) 
 ##           By: Brice Ozenne
-##     Update #: 1469
+##     Update #: 1492
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -561,11 +561,9 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, multivariate = TRU
                            method.fit = object$args$method.fit,
                            type.information = type.information,
                            cluster.var = object$cluster$var,
+                           cluster = object$cluster$levels,
                            structure = c(type = object$design$vcov$type, class = object$design$vcov$class))
-        if(!is.na(attr(object$cluster$var,"original"))){
-            out$object$cluster <- object$cluster$levels
-        }
-                           
+
         globalC <- do.call(rbind,lapply(unlist(out$glht, recursive=FALSE),"[[","linfct"))
 
         ## default: non-robust vcov and robust for iid
@@ -579,11 +577,11 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, multivariate = TRU
         }
         if(object$args$method.fit == "ML"){
             out$iid <- iid(object, effects = effects, robust = robust2, 
-                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names) %*% t(globalC)
+                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE) %*% t(globalC)
         }else if(object$args$method.fit == "REML" && all(type.param[which(colSums(globalC!=0)>0)]=="mu")){
             globalC <- globalC[,name.param[type.param=="mu"],drop=FALSE]
             out$iid <- iid(object, effects = "mean", robust = robust2, 
-                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names) %*% t(globalC)
+                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE) %*% t(globalC)
         }
    }
 
@@ -593,24 +591,30 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, multivariate = TRU
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                            transform.names = transform.names)
 
-    active.param <- unlist(lapply(ls.contrast, function(iC){colnames(iC)[colSums(iC!=0)>0]}))
-    if(any(name.paramSigma %in% active.param)){
-        out$args$transform.sigma <- NA
+    active.param <- unlist(lapply(unlist(out$glht, recursive = FALSE), function(iGlht){colnames(iGlht$linfct)[colSums(iGlht$linfct!=0)>0]}))
+    if(all(name.paramSigma %in% active.param == FALSE)){
+        active.transform.sigma <- NA
+    }else{
+        active.transform.sigma <- out$args$transform.sigma
     }
-    if(any(name.paramK %in% active.param)){
-        out$args$transform.k <- NA
+    if(all(name.paramK %in% active.param == FALSE)){
+        active.transform.k <- NA
+    }else{
+        active.transform.k <- out$args$transform.k
     }
-    if(any(name.paramRho %in% active.param)){
-        out$args$transform.rho <- NA
+    if(all(name.paramRho %in% active.param == FALSE)){
+        active.transform.rho <- NA
+    }else{
+        active.transform.rho <- out$args$transform.rho
     }
 
     test.original <- is.null(original.transform.sigma) && is.null(original.transform.k) && is.null(original.transform.rho)
-    test.backtransform <- stats::na.omit(c(sigma = out$args$transform.sigma, k = out$args$transform.k, rho = out$args$transform.rho))
+    test.backtransform <- stats::na.omit(c(sigma = active.transform.sigma, k = active.transform.k, rho = active.transform.rho))
     ## should back transformation be performed when latter calling coef/confint?
     ## - no if no sigma/k/rho parameters in the linear hypotheses
     ## - no for the p-value, yes for the estimate, and NA for CI when evaluating a contrast on a tranformed scaled
     out$args$backtransform <- length(test.backtransform[test.backtransform != "none"])>0
-    
+
     if(test.original && out$args$backtransform){ 
 
         ## find parameters subject to backtransformation

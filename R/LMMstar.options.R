@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: jul  5 2024 (16:38) 
+## Last-Updated: jul 11 2024 (14:35) 
 ##           By: Brice Ozenne
-##     Update #: 153
+##     Update #: 155
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -74,7 +74,7 @@ LMMstar.options <- function(..., reinitialise = FALSE){
                     n.sampleCopula = 1e5,
                     optimizer = "FS",
                     param.optimizer = c(n.iter = 100, tol.score = 1e-4, tol.param = 1e-5, n.backtracking = 10),
-                    pool.method = c("average","pool.fixse","pool.se","pool.gls","pool.gls1","pool.rubin"),
+                    pool.method = c("average","pool.fixse","pool.se","pool.gls","pool.gls1","pool.rubin","p.rejection"),
                     precompute.moments = TRUE,
                     sep = c(lp = ":", ## (.vcov.matrix.lmm) separator between the linear predictor when aggregated across repetitions
                             k.cov = ".", ## (.skeletonK) separator between the letter k and the covariate levels, e.g. k?2.1 

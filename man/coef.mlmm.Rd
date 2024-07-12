@@ -2,23 +2,37 @@
 % Please edit documentation in R/coef.R
 \name{coef.mlmm}
 \alias{coef.mlmm}
-\title{Extract Coefficients From a Linear Mixed Model}
+\title{Extract Coefficients From Multiple Linear Mixed Models}
 \usage{
-\method{coef}{mlmm}(object, effects = "contrast", ordering = "parameter", ...)
+\method{coef}{mlmm}(
+  object,
+  effects = "contrast",
+  p = NULL,
+  type = "coef",
+  ordering = "parameter",
+  ...
+)
 }
 \arguments{
 \item{object}{a \code{mlmm} object.}
 
-\item{effects}{[character] By default will output the estimate for the hypothesis being tests.
+\item{effects}{[character] By default will output the estimates relative to the hypotheses being tested (\code{"contrast"}).
 But can also output all model coefficients (\code{"all"}),
 or only coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 or only coefficients relative to the variance structure (\code{"variance"}),
-or only coefficients relative to the correlation structure (\code{"correlation"}).}
+or only coefficients relative to the correlation structure (\code{"correlation"}).
+Not relevant when \code{type="contrast"} or \code{type="ls.contrast"}.}
+
+\item{p}{[list of numeric vector] list of model coefficients to be used. Only relevant if differs from the fitted values.}
+
+\item{type}{[character] Should the coefficients be extracted (\code{"coef"}) or the contrast matrix (\code{"contrast"} or \code{"ls.contrast"}).
+\code{"contrast"} will extract the contrast matrix acrossed models (typically identity when testing an exposure effect in each model separately)
+whereas \code{"ls.contrast"} will extract the contrast matrix applied to each model as a list.}
 
 \item{ordering}{[character] should the output be ordered by type of parameter (\code{parameter}) or by model (\code{by}).}
 
 \item{...}{passed to \code{coef.Wald_lmm}.}
 }
 \description{
-Extract coefficients from a linear mixed model.
+Extract coefficient or constrast coefficients from multiple linear mixed models.
 }

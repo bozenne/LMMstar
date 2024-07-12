@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (15:05) 
 ## Version: 
-## Last-Updated: jun 27 2024 (11:40) 
+## Last-Updated: jul 11 2024 (09:39) 
 ##           By: Brice Ozenne
-##     Update #: 98
+##     Update #: 99
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -132,7 +132,7 @@ variable.names.lmm <- function(object, effects = "all", original = TRUE, simplif
 ## * manifest.mlmm 
 ##' @export
 variable.names.mlmm <- function(object, ...){
-    ls.manifest <- lapply(object$model, manifest, ...)
+    ls.manifest <- lapply(object$model, stats::variable.names, ...)
 
     if(any(sapply(ls.manifest,identical,ls.manifest[[1]])==FALSE)){
         stop("Difference in manifest variables between the LMM. \n",

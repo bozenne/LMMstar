@@ -7,13 +7,13 @@
 summarize(
   formula,
   data,
+  repetition = NULL,
+  columns = NULL,
+  FUN = NULL,
   na.action = stats::na.pass,
   na.rm = FALSE,
   level = 0.95,
-  columns = c("observed", "missing", "pc.missing", "mean", "sd", "min", "q1", "median",
-    "q3", "max", "correlation"),
-  FUN = NULL,
-  skip.reference = TRUE,
+  skip.reference = FALSE,
   digits = NULL,
   filter = NULL,
   ...
@@ -21,17 +21,12 @@ summarize(
 }
 \arguments{
 \item{formula}{[formula] on the left hand side the outcome(s) and on the right hand side the grouping variables.
-E.g. Y1+Y2 ~ Gender + Gene will compute for each gender and gene the summary statistics for Y1 and for Y2.
-Passed to the \code{stats::aggregate} function.}
+E.g. Y1+Y2 ~ Gender + Gene will compute for each gender and gene the summary statistics for Y1 and for Y2.}
 
 \item{data}{[data.frame] dataset containing the observations.}
 
-\item{na.action}{[function] a function which indicates what should happen when the data contain 'NA' values.
-Passed to the \code{stats::aggregate} function.}
-
-\item{na.rm}{[logical] Should the summary statistics be computed by omitting the missing values.}
-
-\item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
+\item{repetition}{[formula] Specify the structure of the data: the time/repetition variable and the grouping variable, e.g. ~ time|id.
+Used in the long format to count the number of missing values (i.e. add the number of missing rows) and evaluate the correlation.}
 
 \item{columns}{[character vector] name of the summary statistics to kept in the output.
 Can be any of, or a combination of:\itemize{
@@ -41,7 +36,10 @@ When specifying a grouping variable, it will also attempt to count missing rows 
 \item \code{"pc.missing"}: percentage missing observations.
 \item \code{"mean"}, \code{"mean.lower"} \code{"mean.upper"}: mean with its confidence interval.
 \item \code{"median"}, \code{"median.lower"} \code{"median.upper"}: median with its confidence interval.
-\item \code{"sd"}: standard deviation.
+\item \code{"sd"}, \code{"sd.lower"}, \code{"sd.upper"}: standard deviation around the mean with its confidence interval.
+\item \code{"sd0"}, \code{"sd0.lower"}, \code{"sd0.upper"}: standard deviation around 0 with its confidence interval.
+\item \code{"skewness"}: skewness, as the third standardized moment.
+\item \code{"kurtosis"}: kurtosis, as the fourth standardized moment.
 \item \code{"q1"}, \code{"q3"}, \code{"IQR"}: 1st and 3rd quartile, interquartile range.
 \item \code{"min"}, \code{"max"}: minimum and maximum observation.
 \item \code{"predict.lower"}, \code{"predict.upper"}: prediction interval for normally distributed outcome.
@@ -50,6 +48,13 @@ When specifying a grouping variable, it will also attempt to count missing rows 
 
 \item{FUN}{[function] user-defined function for computing summary statistics.
 It should take a vector as an argument and output a named single value or a named vector.}
+
+\item{na.action}{[function] a function which indicates what should happen when the data contain 'NA' values.
+Passed to the \code{stats::aggregate} function.}
+
+\item{na.rm}{[logical] Should the summary statistics be computed by omitting the missing values.}
+
+\item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
 
 \item{skip.reference}{[logical] should the summary statistics for the reference level of categorical variables be omitted?}
 
@@ -71,9 +76,8 @@ This function is essentially an interface to the \code{stats::aggregate} functio
 \bold{WARNING:} it has the same name as a function from the dplyr package. If you have loaded dplyr already, you should use \code{:::} to call summarize i.e. use \code{LMMstar:::summarize}.
 
 Confidence intervals (CI) and prediction intervals (PI) for the mean are computed via \code{stats::t.test}.
+Confidence intervals (CI) for the standard deviation are computed using a chi-squared approximation.
 Confidence intervals (CI) for the median are computed via \code{asht::medianTest}.
-
-Correlation can be assessed when a grouping and ordering variable are given in the formula interface , e.g. Y ~ time|id.
 }
 \examples{
 #### simulate data (wide format) ####
@@ -86,32 +90,53 @@ d2 <- d
 d2[1,"Y2"] <- NA
 
 #### summarize (wide format) ####
-summarize(Y1 ~ 1, data = d)
-summarize(Y1 ~ 1, data = d, FUN = quantile, p = c(0.25,0.75))
-summarize(Y1+Y2 ~ X1, data = d)
-summarize(treat ~ 1, data = d)
-summarize(treat ~ 1, skip.reference = FALSE, data = d)
 
+## summary statistic (single variable)
+summarize(Y1 ~ 1, data = d)
+## stratified summary statistic (single variable)
 summarize(Y1 ~ X1, data = d2)
+## stratified summary statistic (multiple variable)
+summarize(Y1+Y2 ~ X1, data = d)
+## categorical variable
+summarize(treat ~ 1, data = d)
+summarize(treat ~ 1, skip.reference = TRUE, data = d)
+## aggregate data
+summarize( ~ X1 + treat, data = d)
+## user defined summary statistic
+summarize(Y1 ~ 1, data = d, FUN = quantile)
+summarize(Y1 ~ 1, data = d, FUN = quantile, p = c(0.25,0.75))
+## complete case summary statistic
 summarize(Y1+Y2 ~ X1, data = d2, na.rm = TRUE)
+## shortcut to consider all outcomes with common naming 
 summarize(. ~ treat, data = d2, na.rm = TRUE, filter = "Y")
 
 #### summarize (long format) ####
-dL <- reshape(d, idvar = "id", direction = "long",
+dL <- reshape(d2, idvar = "id", direction = "long",
              v.names = "Y", varying = c("Y1","Y2","Y3"))
-summarize(Y ~ time + X1, data = dL)
+summarize(Y ~ time + X1, data = dL, na.rm  = TRUE)
 
-## compute correlations (single time variable)
-e.S <- summarize(Y ~ time + X1 | id, data = dL, na.rm = TRUE)
+## user defined summary statistic (outlier)
+summarize(Y ~ time + X1, data = dL, FUN = function(x){
+   c(outlier.down = sum(x<mean(x,na.rm=TRUE)-2*sd(x,na.rm=TRUE), na.rm=TRUE),
+     outlier.up = sum(x>mean(x,na.rm=TRUE)+2*sd(x,na.rm=TRUE), na.rm=TRUE))
+}, na.rm = TRUE)
+
+## user defined summary statistic (auc)
+myAUC <- function(Y,time){approxAUC(x = time, y = Y, from = 1, to = 3)}
+myAUC(Y = dL[dL$id==1,"Y"], time = dL[dL$id==1,"time"])
+summarize(Y ~ id, data = dL, FUN = myAUC, na.rm = TRUE)
+
+## add correlation (see correlate function)
+e.S <- summarize(Y ~ time + X1, data = dL, repetition = ~time|id,
+                 na.rm = TRUE, columns = add("correlation"), na.rm = TRUE)
 e.S
-attr(e.S, "correlation")
 
-## compute correlations (composite time variable)
-dL$time2 <- dL$time == 2
-dL$time3 <- dL$time == 3
-e.S <- summarize(Y ~ time2 + time3 + X1 | id, data = dL, na.rm = TRUE)
-e.S
-attr(e.S, "correlation")
-
+#### summarize (long format, missing lines) ####
+## use repetition argument to count missing lines in the number of missing values
+dL.NNA <- dL[rowSums(is.na(dL))==0,]
+summarize(Y ~ time + X1, data = dL.NNA, repetition =~time|id, na.rm  = TRUE)
+}
+\seealso{
+\code{\link{correlate}} for correlation matrix.
 }
 \keyword{utilities}

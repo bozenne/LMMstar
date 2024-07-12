@@ -2,7 +2,7 @@
 % Please edit documentation in R/confint.R
 \name{confint.lmm}
 \alias{confint.lmm}
-\title{Statistical Inference for Linear Mixed Model}
+\title{Confidence Intervals for Linear Mixed Model}
 \usage{
 \method{confint}{lmm}(
   object,

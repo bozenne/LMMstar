@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (10:48) 
 ## Version: 
-## Last-Updated: jul  5 2024 (10:24) 
+## Last-Updated: jul 11 2024 (16:04) 
 ##           By: Brice Ozenne
-##     Update #: 83
+##     Update #: 87
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -119,6 +119,7 @@ model.tables.mlmm <- function(x, columns, method = NULL, ...){
     attr(out, "backtransform") <- NULL
     class(out) <- "data.frame"
     if(rm.rownames){
+        out$parameter <- rownames(out)
         rownames(out) <- NULL
     }
     return(out)

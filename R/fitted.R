@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul  8 2021 (17:09) 
 ## Version: 
-## Last-Updated: May 12 2024 (18:55) 
+## Last-Updated: jul 11 2024 (10:03) 
 ##           By: Brice Ozenne
-##     Update #: 405
+##     Update #: 411
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -356,8 +356,49 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
 
 ## * fitted.mlmm (code)
 ##' @export
-fitted.mlmm <- function(object, ...){
-    stop("No \'fitted\' method for mlmm objects, consider using lmm instead of mlmm. \n")
+fitted.mlmm <- function(object, newdata = NULL, simplify = TRUE, ...){
+
+    ## ** normalize user input
+
+    ## newdata
+    if(!is.null(newdata)){
+        if(identical(newdata,"unique")){
+            ls.newdata <- stats::setNames(lapply(names(object$model), function(iM){"unique"}), names(object$model))
+        }else{
+            by <- object$object$by
+            if("by" %in% names(newdata)){
+                stop("The by variable (here \"",by,"\") could not be found in argument \'newdata\'. \n")
+            }else if(any(newdata[[by]] %in% names(object$model) == FALSE)){
+                stop("Incorrect value for the by variable (here \"",by,"\"): \"",paste(setdiff(newdata[[by]], names(object$model)), collapse = "\", \""),"\". \n",
+                     "Valid values: \"",paste(names(object$model), collapse = "\", \""),"\". \n")
+            }
+            ls.newdata <- split(newdata, newdata[[by]])
+        }
+    }else{
+        ls.newdata <- stats::setNames(vector(mode = "list", length = length(object$model)), names(object$model))
+    }
+
+    ## ** extract
+    ls.out <- lapply(names(ls.newdata), function(iBy){ ## iBy <- "A"
+        fitted(object$model[[iBy]], newdata = ls.newdata[[iBy]], simplify = simplify, ...)
+    })
+
+    ## ** reshape
+    test.2D <- any(sapply(ls.out, inherits, "data.frame")) || any(sapply(ls.out, inherits, "matrix"))
+    if(test.2D){
+        out <- do.call(rbind,ls.out)
+        if(simplify && is.data.frame(out)){
+            object.manifest <- stats::variable.names(object)
+            rm.manifest <- attributes(object.manifest)[setdiff(names(attributes(object.manifest)),c("by","cluster","time"))]
+            out[unique(unlist(rm.manifest))] <- NULL
+        }
+    }else{
+        out <- do.call(c,ls.out)
+    }
+
+    ## ** export
+    return(out)
+
 }
 
 ##----------------------------------------------------------------------

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: jul  4 2024 (12:25) 
+## Last-Updated: jul 12 2024 (12:01) 
 ##           By: Brice Ozenne
-##     Update #: 637
+##     Update #: 654
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -196,12 +196,14 @@ score.mlmm <- function(object, effects = "contrast", p = NULL, newdata = NULL, o
 
     ## ** reshape
     ## vector when indiv = FALSE or matrix when indiv = TRUE
-    cluster <- object$object$cluster
-    n.cluster <- length(cluster)
-            
+    if(indiv){
+        cluster <- object$object$cluster
+        n.cluster <- length(cluster)
+    }
+
     if(ordering == "by"){
         if(indiv){
-            out <- lapply(ls.out, function(iOut){
+            out <- lapply(ls.out, function(iOut){ ## iOut <- ls.out[[1]]
                 iM <- matrix(0, nrow = n.cluster, ncol = NCOL(iOut), dimnames = list(cluster, colnames(iOut)))
                 iM[rownames(iOut),] <- iOut
                 return(iM)

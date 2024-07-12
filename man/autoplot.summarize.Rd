@@ -39,7 +39,11 @@ Only relevant when multiple variables have been used on the left hand side of th
 \item scale [function] color scale used for the correlation.
 \item type.cor [character] should the whole correlation matrix be displayed (\code{"both"}),
 or only the element in the lower or upper triangle (\code{"lower"}, \code{"upper"}).
-\item args.scale [list] arguments to be passed to the color scale.
+\item low [character] color used to represent low correlation.
+\item mid [character] color used to represent moderate correlation.
+\item high [character] color used to represent high correlation.
+\item midpoint [numeric] value defining a modereate correlation.
+\item limits [numeric vector of length 2] values defining a low and high correlation.
 }}
 }
 \value{

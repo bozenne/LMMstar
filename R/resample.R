@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: jul  5 2024 (11:00) 
+## Last-Updated: jul 12 2024 (15:07) 
 ##           By: Brice Ozenne
-##     Update #: 723
+##     Update #: 783
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -95,7 +95,7 @@
 ## * resample.lmm (code)
 ##' @export
 ##' @rdname resample
-resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TRUE,
+resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TRUE, 
                          trace = TRUE, seed = NULL, cpus = 1, export.cpus = NULL,
                          ...){
 
@@ -219,17 +219,22 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
                 effects.fct <- TRUE
             }
             
-            }else{
-                if(any(is.character(effects)==FALSE)){
-                    stop("Argument \'effects\' should be a function or a character strings refering to model parameters. \n")
-                }
-                if(any(effects %in% name.coef == FALSE)){
+        }else{
+            if(any(is.character(effects)==FALSE)){
+                stop("Argument \'effects\' should be a function or a character strings refering to model parameters. \n")
+            }
+            if(any(effects %in% name.coef == FALSE)){
+                if(grepl("=",effects)){
+                    stop("Argument \'effects\': \"",paste(effects[effects %in% name.coef == FALSE], collapse = "\", \""),"\" refer to model parameter(s) not to an equation. \n",
+                         "Consider removing: =",strsplit(effects,split = "=")[[1]][2],"\n")
+                }else{
                     stop("Incorrect argument \'effects\': \"",paste(effects[effects %in% name.coef == FALSE], collapse = "\", \""),"\" does not match any model parameter. \n")
                 }
-                name.keepcoef <- effects
-                effects.fct <- FALSE
             }
-            effects.vcov <- TRUE
+            name.keepcoef <- effects
+            effects.fct <- FALSE
+        }
+        effects.vcov <- TRUE
         
     }
 
@@ -251,6 +256,22 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
         stop("Argument \'n.sample\' should be a positive integer. \n")
     }
 
+    ## null
+    if(type == "boot"){
+        all.null <- model.tables(object, effects = "all", columns = "null", transform.k = "none", transform.rho = "none")
+        if(is.function(effects)){
+            null <- try(effects(all.null$null), silent = TRUE)
+            if(inherits(null, "try-error")){
+                null <- stats::setNames(rep(NA, length(name.keepcoef)),name.keepcoef)
+            }
+        }else{
+            null <- stats::setNames(all.null[name.keepcoef,],name.keepcoef)
+        }
+    }else if(type %in% c("perm-var","perm-res")){
+        null <- NULL
+    }
+    
+    
     ## ** initialize
     ## *** data
     data <- object$data
@@ -475,7 +496,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
                                    tol.score = object$opt$control["tol.score"],
                                    tol.param = object$opt$control["tol.param"],
                                    n.backtracking = object$opt$control["n.backtracking"],
-                                   trace = FALSE))
+                                   trace = FALSE), silent = TRUE)
 
         if(!inherits(iEstimate,"try-error") && studentized){
             iVcov <- .moments.lmm(value = iEstimate$estimate,
@@ -551,7 +572,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
                                          FUN = function(iX){
                                              if(test.seed){set.seed(seqSeed[iX])}
                                              iOut <- warperResample(iX)
-                                             if(!is.null(seed)){
+                                             if(!is.null(seed) && !inherits(iOut,"try-error")){
                                                  return(c(sample = iX, seed = seqSeed[iX],iOut))
                                              }else{
                                                  return(c(sample = iX, iOut))
@@ -634,9 +655,11 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
                 args = list(type = type, effects = effects, n.sample = n.sample, studentized = studentized, seed = seed))
 
     if(effects.fct){
-        out$estimate <- effects.estimate[1,]
         if(studentized){
+            out$estimate <- effects.estimate[1,]
             out$se <- effects.estimate[2,]
+        }else{
+            out$estimate <- effects.estimate
         }
     }else{
         out$estimate <- value.meancoef[name.keepcoef]
@@ -646,6 +669,8 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
     out$sample.estimate <- matrix(NA, nrow = n.sample, ncol = length(name.keepcoef),
                                   dimnames = list(NULL,name.keepcoef))
     out$sample.estimate[M.sample[,"sample"],] <- M.sample[,name.keepcoef,drop=FALSE]
+
+    out$null <- null
 
     if(studentized){
         out$sample.se <- matrix(NA, nrow = n.sample, ncol = length(name.keepcoef),
@@ -659,8 +684,6 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
     if(!is.null(seqSeed)){
         out$seed <- seqSeed
     }
-    
-    
 
     ## ** export
     class(out) <- append("resample",class(out))
@@ -670,8 +693,8 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 ## * resample.mlmm
 ##' @export
 ##' @rdname resample
-resample.mlmm <- function(object, type, method = NULL, cluster = NULL, n.sample = 1e3,
-                          trace = TRUE, seed = NULL, cpus = 1,
+resample.mlmm <- function(object, type, method = NULL, cluster = NULL, n.sample = 1e3, studentized = TRUE,
+                          trace = TRUE, seed = NULL, cpus = 1, export.cpus = NULL,
                           ...){
 
     options <- LMMstar.options()
@@ -835,11 +858,7 @@ resample.mlmm <- function(object, type, method = NULL, cluster = NULL, n.sample 
         
     Ucluster <- sort(unique(unlist(data[[cluster]])))
     n.cluster <- length(Ucluster)
-    index.cluster <- split(1:NROW(data), data[[cluster]], identity)
-    template <- list(multivariate = object$multivariate,
-                     univariate = object$univariate)
-    template$multivariate[,c("statistic","df.num","df.denom","p.value")] <- NULL
-    template$univariate[,c("estimate","se","df","statistic","lower","upper","p.value")] <- NULL
+    index.cluster <- tapply(1:NROW(data), data[[cluster]], identity)
 
     ## ** function
     warperResample <- function(iSample){
@@ -866,18 +885,25 @@ resample.mlmm <- function(object, type, method = NULL, cluster = NULL, n.sample 
         iCall <- object.call
         iCall$trace <- 0
         iCall$data <- iData
-        iEstimate <- eval(iCall)
+        if(all(method %in% "p.rejection" == FALSE)){
+            iCall$df <- FALSE
+        }
+        iEstimate <- try(eval(iCall), silent = TRUE)
 
         ## *** export
         ## use merge in case effects for some categories are not estimated
-        iEstimate$univariate2 <- model.tables(iEstimate, columns = keep.cols, method = method)
-browser()
-        iOut <- template
-        if(is.null(method) || all(method %in% pool.method == FALSE)){
-            iOut$multivariate <- merge(iOut$multivariate, iEstimate$multivariate, by = c("type","test","null"), all = TRUE)
-            iOut$univariate <- merge(iOut$univariate, iEstimate$univariate2, by = c("by","parameter"), all = TRUE)
+        if(inherits(iEstimate,"try-error")){
+            iOut <- iEstimate
         }else{
-            iOut$univariate <- iEstimate$univariate2
+            mean.cv <- mean(sapply(iEstimate$model,function(iM){iM$opt$cv}))
+            if(studentized){
+                iTable <- model.tables(iEstimate, columns = keep.cols, method = method, df = FALSE)
+                iOut <- c(convergence =  mean.cv, iTable$estimate, iTable$se)
+                names(iOut)[-1] <- paste(rownames(iTable),paste0("se.",rownames(iTable)))
+            }else{
+                iCoef <- coef(iEstimate, method = method)
+                iOut <- c(convergence =  mean.cv, iCoef)
+            }
         }
         return(iOut)
     }
@@ -906,10 +932,10 @@ browser()
                                          FUN = function(iX){ ## iX <- 1
                                              if(test.seed){set.seed(seqSeed[iX])}
                                              iOut <- warperResample(iX)
-                                             if(!is.null(seed)){
-                                                 return(c(list(sample = iX, seed = seqSeed[iX]),iOut))
+                                             if(!is.null(seed) && !inherits(iOut,"try-error")){
+                                                 return(c(sample = iX, seed = seqSeed[iX],iOut))
                                              }else{
-                                                 return(c(list(sample = iX), iOut))
+                                                 return(c(sample = iX, iOut))
                                              }
                                          })
                              )
@@ -953,7 +979,7 @@ browser()
 
                                                        iOut <- lapply(split.resampling[[iBlock]], function(iSplit){
                                                            if(!is.null(seed)){set.seed(seqSeed[iSplit])}
-                                                           iOut <- warperResample(iSplit)                                                       
+                                                           iOut <- warperResample(iSplit)
                                                            if(!is.null(seed) && !inherits(iOut,"try-error")){
                                                                return(c(sample = iSplit, seed = seqSeed[iSplit],iOut))
                                                            }else{
@@ -971,19 +997,41 @@ browser()
     }
     
     ## ** post process
-    out <- list(call =  match.call(),
-                args = list(type = type,
-                            method = method,
-                            n.sample = n.sample,
-                            studentized = FALSE,
-                            seed = seed),
-                estimate = coef(object, method = method),
-                se = sqrt(diag(vcov(object, method = method))),
-                sample.estimate = )
-    
+    index.noerror <- which(sapply(ls.sample, inherits, "try-error")==FALSE)
+    M.sample <- do.call(rbind,ls.sample[index.noerror])
 
-    browser()
-    
+    out <- list(call = match.call(),
+                args = list(type = type, method = method, n.sample = n.sample, studentized = studentized, seed = seed))
+
+    if(studentized){
+        object.table <- model.tables(object, columns = c("estimate","se","null"), method = method, df = FALSE)
+        out$estimate <- stats::setNames(object.table$estimate, object.table$parameter)
+        out$se <- stats::setNames(object.table$se, object.table$parameter)
+        out$null <- stats::setNames(object.table$null, object.table$parameter)
+    }else{
+        object.table <- model.tables(object, columns = c("estimate","null"), method = method, df = FALSE)
+        out$estimate <- stats::setNames(object.table$estimate, object.table$parameter)
+        out$null <- stats::setNames(object.table$null, object.table$parameter)
+    }
+
+    name.keepcoef <- names(out$estimate)
+    out$sample.estimate <- matrix(NA, nrow = n.sample, ncol = length(name.keepcoef),
+                                  dimnames = list(NULL,name.keepcoef))
+    out$sample.estimate[M.sample[,"sample"],] <- M.sample[,name.keepcoef,drop=FALSE]
+
+    if(studentized){
+        out$sample.se <- matrix(NA, nrow = n.sample, ncol = length(name.keepcoef),
+                                dimnames = list(NULL,name.keepcoef))
+        out$sample.se[M.sample[,"sample"],] <- M.sample[,paste0("se.",name.keepcoef),drop=FALSE]
+    }
+
+    out$cv <- rep(FALSE, length = n.sample)
+    out$cv[M.sample[,"sample"]] <- M.sample[,"convergence"]
+
+    if(!is.null(seqSeed)){
+        out$seed <- seqSeed
+    }
+
     ## ** export
     class(out) <- append("resample",class(out))
     return(out)

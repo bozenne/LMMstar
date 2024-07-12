@@ -2,7 +2,7 @@ Package: LMMstar
 Type: Package
 Title: Repeated Measurement Models for Discrete Times
 Version: 1.1.2
-Date: 2024-06-28
+Date: 2024-07-11
 Authors@R: c(
     person("Brice", "Ozenne", role = c("aut", "cre"), email = "brice.mh.ozenne@gmail.com", comment = c(ORCID = "0000-0001-9694-2956")),
     person("Julie", "Forman", role = "aut", email = "jufo@sund.ku.dk", comment = c(ORCID = "0000-0001-7368-0869"))
@@ -63,6 +63,8 @@ Collate:
     'LMMstar.options.R'
     'add.R'
     'anova.R'
+    'as.array.R'
+    'as.matrix.R'
     'autoplot.R'
     'backtransform.R'
     'baselineAdjustment.R'
@@ -70,6 +72,7 @@ Collate:
     'collapse.R'
     'confint.R'
     'constrain.R'
+    'correlate.R'
     'df.R'
     'discreteRoot.R'
     'doc-data.R'
@@ -80,6 +83,7 @@ Collate:
     'fitted.R'
     'formula.R'
     'iid.R'
+    'influence.R'
     'information.R'
     'levels.R'
     'lmm.R'
@@ -98,6 +102,7 @@ Collate:
     'operator.R'
     'partialCor.R'
     'plot.R'
+    'poolWald.R'
     'precompute.R'
     'predict.R'
     'print.R'

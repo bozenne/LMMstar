@@ -19,9 +19,11 @@ Update or select global options for the LMMstar package.
 }
 \details{
 The options are: \itemize{
+\item adj.method [character vector]: possible methods to adjust for multiple comparisons. NOT MEANT TO BE CHANGED BY THE USER.
 \item backtransform.confint [logical]: should variance/covariance/correlation estimates be back-transformed when they are transformed on the log or atanh scale. Used by \code{confint}.
 \item columns.anova [character vector]: columns to ouput when using \code{anova} with argument \code{ci=TRUE}.
 \item columns.confint [character vector]: columns to ouput when using \code{confint}.
+\item columns.summarize [character vector]: columns to ouput when displaying descriptive statistics using \code{summarize}.
 \item columns.summary [character vector]: columns to ouput when displaying the model coefficients using \code{summary}.
 \item df [logical]: should approximate degrees of freedom be computed for Wald and F-tests. Used by \code{lmm}, \code{anova}, \code{predict}, and \code{confint}.
 \item drop.X [logical]: should columns causing non-identifiability of the model coefficients be dropped from the design matrix. Used by \code{lmm}.
@@ -32,6 +34,7 @@ The options are: \itemize{
 \item n.sampleCopula [integer]: number of samples used to compute confidence intervals and p-values adjusted for multiple comparisons via \code{"single-step2"}. Used by \code{confint.Wald_lmm}.
 \item optimizer [character]: method used to estimate the model parameters. Either \code{"FS"}, an home-made fisher scoring algorithm, or a method from \code{optimx:optimx} like \code{"BFGS"}or \code{Nelder-Mead}.
 \item param.optimizer [numeric vector]: default option for the \code{FS} optimization routine: maximum number of gradient descent iterations (\code{n.iter}), maximum acceptable score value (\code{tol.score}), maximum acceptable change in parameter value (\code{tol.param}).
+\item pool.method [character vector]: possible methods to pool estimates. NOT MEANT TO BE CHANGED BY THE USER.
 \item precompute.moments [logical]: Should the cross terms between the residuals and design matrix be pre-computed. Useful when the number of subject is substantially larger than the number of mean paramters.
 \item sep [character vector]: character used to combined two strings of characters in various functions (lp: .vcov.model.matrix, k.cov/k.strata: .skeletonK, pattern: .findUpatterns, rho.name/rho.strata: .skeletonRho, reformat: .reformat ).
 \item trace [logical]: Should the progress of the execution of the \code{lmm} function be displayed?

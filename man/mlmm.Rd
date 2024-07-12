@@ -11,7 +11,7 @@ mlmm(
   contrast.rbind = NULL,
   effects = NULL,
   robust = FALSE,
-  df = TRUE,
+  df = NULL,
   ci = TRUE,
   name.short = c(TRUE, TRUE),
   transform.sigma = NULL,

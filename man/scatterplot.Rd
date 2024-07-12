@@ -11,9 +11,9 @@ scatterplot(
   format = NULL,
   group = NULL,
   transform = NULL,
-  facet = "grid",
+  facet = "grid_both",
   alpha.point = 1,
-  type.diag = "boxplot",
+  type.diag = "histogram",
   bins = NULL,
   position.bar = "identity",
   linewidth.density = NULL,
@@ -80,9 +80,11 @@ When \code{NA}, the correlation is not displayed.}
 
 \item{size.axis}{[numeric,>0] size of the font used to display the tick labels.}
 
-\item{size.legend}{[numeric,>0] size of the font used to display the legend. Can have a second element to control the size of the legend key.}
+\item{size.legend}{[numeric,>0] size of the font used to display the legend.
+When argument \code{facet="grid"}, can have a second element to control the size of the legend key and a third to control the width of the legend.}
 
-\item{size.facet}{[numeric,>0] size of the font used to display the facets (row and column names).}
+\item{size.facet}{[numeric,>0] size of the font used to display the facets (row and column names).
+When argument \code{facet="grid"}, can have a second and third elements to control the width and height of the facets.}
 }
 \value{
 a list of ggplot objects (\code{facet="grid"}) or a ggplot object (\code{facet="grid2"})
@@ -106,9 +108,14 @@ scatterplot(gastricbypassL, formula = weight~time|id)
 scatterplot(gastricbypassW, columns = paste0("weight",1:4))
 
 \dontrun{
-## use histogram instead of boxplot
-scatterplot(gastricbypassL, formula = weight~time|id, type.diag = "hist")
+## change the number of bins
 scatterplot(gastricbypassL, formula = weight~time|id, type.diag = "hist", bins = 15)
+
+## remove variable name in facet
+scatterplot(gastricbypassL, formula = weight~time|id, facet = "grid")
+
+## use boxplot instead of histogram
+scatterplot(gastricbypassL, formula = weight~time|id, type.diag = "boxplot")
 
 ## same scale
 scatterplot(gastricbypassL, formula = weight~time|id,
@@ -126,8 +133,10 @@ scatterplot(gastricbypassL, formula = weight~time|id, group = "group")
 ## only display NAs
 scatterplot(gastricbypassL, formula = glucagonAUC~time|id,
             display.NA = "only", group = "group")
+
+## increase size of the legend (text, symbol, width)
 scatterplot(gastricbypassL, formula = glucagonAUC~time|id,
-            display.NA = "only", group = "group", size.legend = c(15,2))
+            display.NA = "only", group = "group", size.legend = c(20,3,0.5))
 }
 }
 \keyword{utilities}

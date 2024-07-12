@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 15 2022 (10:04) 
 ## Version: 
-## Last-Updated: mar 12 2024 (16:56) 
+## Last-Updated: jul 11 2024 (17:11) 
 ##           By: Brice Ozenne
-##     Update #: 54
+##     Update #: 55
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -50,7 +50,7 @@
         transform <- transform[intersect(names(transform),c("mu","sigma","k","rho")[which(backtransform)])]
     }
 
-    todo <- intersect(c("estimate","se", "lower", "upper"), names(object))
+    todo <- intersect(c("estimate","se", "lower", "upper", "null"), names(object))
     message <- data.frame(matrix(nrow = NROW(transform), ncol = length(todo)+1, dimnames = list(names(transform), c(todo,"FUN"))))
 
     ## ** backtransform
@@ -115,6 +115,10 @@
         if("estimate" %in% names(object)){
             object$estimate[iIndex.type] <- iBacktransform(object$estimate[iIndex.type])
             message[iType,"estimate"] <- TRUE
+        }
+        if("null" %in% names(object)){
+            object$null[iIndex.type] <- iBacktransform(object$null[iIndex.type])
+            message[iType,"null"] <- TRUE
         }
         if("lower" %in% names(object)){
             object$lower[iIndex.type] <- iBacktransform(object$lower[iIndex.type])

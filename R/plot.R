@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (11:00) 
 ## Version: 
-## Last-Updated: jul 10 2024 (17:56) 
+## Last-Updated: jul 11 2024 (11:21) 
 ##           By: Brice Ozenne
-##     Update #: 124
+##     Update #: 141
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -43,6 +43,63 @@ plot.lmm <- function(x, ...){
 
 }
 
+## * plot.mlmm (code)
+##' @describeIn autoplot.mlmm Graphical Display For Multiple Linear Mixed Model
+##' @export
+plot.mlmm <- function(x, facet_nrow = NULL, facet_ncol = NULL, labeller = "label_value", ...){
+
+    out <- autoplot.mlmm(x, ...)
+
+    if(inherits(out$plot,"ggplot")){
+        print(out$plot)
+    }else if(is.list(out$plot) && all(sapply(out$plot, function(iP){inherits(iP,"ggplot")}))){
+
+        if(!is.character(labeller) || length(labeller)>1){
+            stop("Argument \'labeller\' should be a character (with length 1). \n")
+        }
+        labeller <- match.arg(labeller, c("label_value","label_both"))
+
+        ## count plots
+        n.plot <- length(out$plot)
+        if(labeller == "label_value"){
+            names.plot <- names(out$plot)
+        }else if(labeller == "label_both"){
+            names.plot <- paste0(x$object$by,": ", names(out$plot))
+        }
+
+        ## Set up the page
+        grid::grid.newpage()
+        
+        ## Define the layout
+        if(!is.null(facet_nrow) & !is.null(facet_ncol)){
+            panelVP <- grid::grid.layout(nrow = facet_nrow,
+                                         ncol = facet_ncol)
+        }else if(!is.null(facet_nrow)){
+            panelVP <- grid::grid.layout(nrow = facet_nrow,
+                                         ncol = ceiling(n.plot/facet_nrow))
+        }else if(!is.null(facet_ncol)){
+            panelVP <- grid::grid.layout(nrow = ceiling(n.plot/facet_ncol),
+                                         ncol = facet_ncol)
+        }else{
+            facet_nrow <- round(sqrt(n.plot))
+            panelVP <- grid::grid.layout(nrow = facet_nrow,
+                                         ncol = ceiling(n.plot/facet_nrow))
+        }
+        grid.plot <- expand.grid(row = 1:panelVP$nrow, col =  1:panelVP$ncol)
+
+        grid::pushViewport(grid::viewport(layout = panelVP))
+        ## grid::showViewport()
+
+        ## Display the plot in the layout
+        for(iPlot in 1:n.plot){ ## iPlot <- 1
+            print(out$plot[[iPlot]] + ggplot2::ggtitle(names.plot[[iPlot]]), vp = grid::viewport(layout.pos.row = grid.plot[iPlot,"row"], layout.pos.col = grid.plot[iPlot,"col"]))
+        }
+    
+    
+    }
+    
+    return(invisible(out))
+}
 ## * plot.partialCor (code)
 ##' @describeIn autoplot.partialCor Graphical Display For Partial Correlation
 ##' @export

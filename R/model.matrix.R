@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: jun 28 2024 (09:41) 
+## Last-Updated: jul 11 2024 (10:37) 
 ##           By: Brice Ozenne
-##     Update #: 3164
+##     Update #: 3167
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -996,14 +996,14 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
 .updateFactor <- function(data, xfactor){
 
     if(length(xfactor)==0){return(data)}
-    
+
     ## convert to factor with the right levels
     ff.factor <- names(xfactor)
     if(length(ff.factor)>0){
         for(iVar in ff.factor){ ## iVar <- ff.factor[1]
             iLevel <- xfactor[[iVar]]
-            if(any(data[[iVar]] %in% iLevel == FALSE)){
-                Wf <- setdiff(unique(data[[iVar]]), iLevel)
+            if(any(data[[iVar]] %in% c(iLevel,NA) == FALSE)){
+                Wf <- setdiff(unique(data[[iVar]]), c(iLevel,NA))
                 stop("Unknown factor(s) \"",paste0(Wf,collapse="\" \""),"\" for variable \"",iVar,"\".\n",
                      "Valid factors: \"",paste0(iLevel, collapse="\" \""),"\".\n")
             }

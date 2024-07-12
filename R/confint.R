@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul  5 2024 (11:03) 
+## Last-Updated: jul 12 2024 (17:33) 
 ##           By: Brice Ozenne
-##     Update #: 926
+##     Update #: 987
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -341,7 +341,7 @@ confint.mlmm <- function(object, parm = NULL, level = 0.95, method = NULL, order
     }else{
         out <- out.confint
     }
-
+    
     ## ** export
     return(out)
 }
@@ -387,7 +387,7 @@ confint.LRT_lmm <- function(object, parm, level = 0.95, ...){
 
 ## * confint.resample (code)
 ## '@export
-confint.resample <-  function(object, parm = NULL, null = 0, level = 0.95, method = NULL, columns = NULL, correction = TRUE, ...){
+confint.resample <-  function(object, parm = NULL, null = NULL, level = 0.95, method = NULL, columns = NULL, correction = TRUE, ...){
 
     ## ** normalize user input
     if(!missing(parm) && !is.null(parm)){
@@ -413,10 +413,14 @@ confint.resample <-  function(object, parm = NULL, null = 0, level = 0.95, metho
     }
     param <- names(object$estimate)
     n.param <- length(param)
+
     if(type %in% c("perm-res","perm-var")){
         if(!is.null(null) && "null" %in% names(match.call())){
             message("Argument \'null\' is disregarded when performing a permutation test. \n")
         }
+    }else if(is.null(null)){
+        ## default based on propagating the null from each parameter
+        null <- object$null 
     }else if(length(null)==1){
         null <- stats::setNames(rep(null,n.param), param)
     }else if(length(null)!=n.param){
@@ -449,7 +453,7 @@ confint.resample <-  function(object, parm = NULL, null = 0, level = 0.95, metho
     ## ** extract information from object 
     sample.estimate <- object$sample.estimate
     sample.se <- object$sample.se
-    
+
     ## ** point estimate
     out <- data.frame(estimate = unname(object$estimate),
                       sample.estimate = NA,
@@ -583,32 +587,46 @@ confint.resample <-  function(object, parm = NULL, null = 0, level = 0.95, metho
 ##' @export
 confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NULL, columns = NULL, backtransform = NULL, ...){
 
-    ## ** normalize user input
-    if(!missing(parm) && !is.null(parm)){
-        stop("Argument \'parm\' is not used - only there for compatibility with the generic method. \n")
-    }
-    dots <- list(...)
     options <- LMMstar.options()
-    if(length(dots)>0){
-        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
-    }
-    alpha <- 1-level
     pool.method <- options$pool.method
     adj.method <- options$adj.method
 
-    ## handle multiple types of adjustment for multiplicty
+    ## ** normalize user input
+    ## *** parm
+    if(!missing(parm) && !is.null(parm)){
+        stop("Argument \'parm\' is not used - only there for compatibility with the generic method. \n")
+    }
+
+    ## *** dots
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
+    ## *** level
+    alpha <- 1-level
+
+    ## *** method
+    if(any(method %in% c(adj.method,pool.method)==FALSE)){
+        stop("Unknown value for argument \'type\': \"",paste(setdiff(method, c(adj.method,pool.method)),collapse = "\", \""),"\". \n",
+             "Possible values: \"",paste(c(adj.method,pool.method), collapse = "\", \""),"\". \n")
+    }
+    ## handle multiple pooling technics
     if(!is.null(method)){
         if(length(method)>1){
-            method <- match.arg(method, c(pool.method,adj.method), several.ok = TRUE)
             if(sum(method %in% adj.method)>1){
                 stop("Incorrect argument \'method\' \n",
                      "confint.Wald_lmm cannot handle several methods to adjust for multiple comparisons.")
             }
+            if("p.rejection" %in% method & is.null(attr(method,"method")) & sum(method %in% adj.method)==1){
+                attr(method,"method") <- intersect(method, adj.method)
+            }
             ls.confint <- lapply(method, function(iMethod){
+                if(iMethod == "p.rejection"){
+                    attr(iMethod,"method") <- attr(method,"method")
+                    attr(iMethod,"qt") <- attr(method,"qt")
+                }            
                 iOut <- confint.Wald_lmm(object = object, method = iMethod, level = level, columns = columns, ...)
-                if(iMethod %in% pool.method){
-                    rownames(iOut) <- iMethod
-                }
                 return(iOut)
             })
             out <- do.call(rbind, ls.confint)
@@ -619,7 +637,6 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
             return(out)
         }else{
             name.method <- names(method)
-            method <- match.arg(method, c(pool.method,adj.method))
         }
     }else{
         name.method <- NULL
@@ -693,12 +710,28 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
     }
     out$statistic <- (out$estimate-out$null) / out$se
 
+    ## ** what to compute
+    ## to enable to 'just' compute the null for p.reject without variance/ci/p-value
+    if("null" %in% columns || "p.value" %in% columns){
+        compute.null <- NULL ## compute the null
+    }else{
+        compute.null <- NA ## do not compute the null
+    }
+    if(any(c("se","lower","upper","p.value") %in%  columns)){
+        compute.ci <- TRUE
+    }else{
+        compute.ci <- FALSE
+    }
+            
     ## ** extract info and compute CI
     n.sample <- options$n.sampleCopula
     grid <- unique(object$univariate[,c("type","test"),drop=FALSE])
     grid$type.original <- object$args$type[[1]]
     n.grid <- NROW(grid)
     attr(out,"error") <- rep(NA,n.grid)
+    if(is.null(method) || any(c("none","bonferroni","single-step","single-step2") %in% method)){
+        attr(out,"quantile") <- vector(mode = "list", length = n.grid)
+    }
 
     for(iGrid in 1:n.grid){ ## iGrid <- 1
 
@@ -734,22 +767,31 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
             ## may happen when df=FALSE and all df in the table have been set to Inf
         }
         out[iIndex.table,"method"] <-  iMethod
-   
+
         ## *** evaluation
         if(iMethod == "none"){
             
             out[iIndex.table,"lower"] <- iTable$estimate + iTable$se * stats::qt(alpha/2, df = iTable$df)
             out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * stats::qt(1-alpha/2, df = iTable$df)
             out[iIndex.table,"p.value"] <- 2*(1-stats::pt(abs(iTable$statistic), df = iTable$df))
-            
-        }else if(iMethod %in% pool.method){
 
-            outPool <- contrastWald_pool(object = object, index = iIndex.table, 
-                                         method = method, name.method = name.method, ci = !is.na(level), df = df, alpha = alpha)
+            attr(out, "quantile")[[iGrid]] <-  stats::qt(p = 1-alpha/2, df = iTable$df)
+            
+        }else if(iMethod == "p.rejection"){
+            outPool <- proportion.mlmm(object = object, index = iIndex.table,
+                                       name.method = name.method, method = attr(method,"method"), qt = attr(method,"qt"),
+                                       null = compute.null, ci = compute.ci & !is.na(level), df = df2, alpha = alpha)
+            out <- rbind(outPool,out[-iIndex.table,,drop=FALSE])
+
+        }else if(iMethod %in% setdiff(pool.method,"p.rejection")){
+
+            outPool <- poolWald.mlmm(object = object, index = iIndex.table, 
+                                     method = method, name.method = name.method, ci = compute.ci & !is.na(level), df = df2, alpha = alpha)
             out <- rbind(outPool,out[-iIndex.table,,drop=FALSE])
 
         }else if(iMethod == "single-step"){
 
+            iGlht$df <- round(iGlht$df)
             iCi <- confint(iGlht)
             iP <- summary(iGlht, test = multcomp::adjusted("single-step"))
 
@@ -761,7 +803,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
                 out[iIndex.table,"df"] <- iGlht$df
             }
             attr(out, "error")[iGrid] <-  attr(iP$test$pvalues,"error")
-            attr(out, "quantile")[iGrid] <-  attr(iCi$confint,"calpha")
+            attr(out, "quantile")[[iGrid]] <-  rep(attr(iCi$confint,"calpha"), length(iIndex.table))
 
         }else if(iMethod %in% c("Westfall","Shaffer","free")){
 
@@ -798,7 +840,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
             out[iIndex.table,"lower"] <- iTable$estimate - iTable$se * cH0
             out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * cH0                
             attr(out, "n.sample") <-  n.sample
-            attr(out, "quantile")[iGrid] <-  cH0
+            attr(out, "quantile")[[iGrid]] <-  rep(cH0, length(iIndex.table))
                 
         }else if(iMethod == "bonferroni"){
                 
@@ -806,6 +848,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
             out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * stats::qt(1-alpha/(2*iN.test), df = iTable$df)
             out[iIndex.table,"p.value"] <- pmin(1,iN.test*(2*(1-stats::pt(abs(iTable$statistic), df = iTable$df))))
                 
+            attr(out, "quantile")[[iGrid]] <-  stats::qt(p = 1-alpha/(2*iN.test), df = iTable$df)
         }else{
                 
             out[iIndex.table,"lower"] <- NA
@@ -857,239 +900,15 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
         Umethod <- setdiff(Umethod,"none")
     }
     out[names(out)[names(out) %in% columns == FALSE]] <- NULL
+    if(n.grid==1){
+        attr(out, "quantile") <- attr(out, "quantile")[[1]]
+    }
     attr(out, "level") <- 0.95
     attr(out, "method") <- Umethod
     class(out) <- append("confint_lmm", class(out))
     return(out)
 }
 
-## * helper
-## ** contrastWald_pool
-contrastWald_pool <- function(object, index, method, name.method, ci, df, alpha){
-
-    ## *** extract information
-    table <- object$univariate[index,,drop=FALSE]
-
-    if(ci){
-        transform.sigma <-  object$args$transform.sigma
-        transform.k <-  object$args$transform.k
-        transform.rho <-  object$args$transform.rho
-
-        Sigma <- vcov(object, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)[index,index,drop=FALSE]
-        independence <- attr(object$object,"independence")
-
-        if(is.null(df)){
-            if(method %in% "pool.rubin"){
-                df <- TRUE
-            }else if(independence & any(is.infinite(table$df)==FALSE) & method %in% c("average","pool.fixse")){
-                df <- TRUE
-            }else{
-                df <- FALSE
-            }
-        }
-    }
-
-    ## *** name for the pooled estimator
-    Wald.name <- rownames(table)
-    sep <- object$args$sep
-    pool.splitname <- strsplit(Wald.name, split = sep, fixed = TRUE)
-    if(!is.null(name.method)){
-        pool.name <- name.method
-    }else if(all(lengths(pool.splitname)==2)){
-        ## ??
-        Mpool.splitname <- do.call(rbind,pool.splitname)
-        pool.splitname2 <- strsplit(Mpool.splitname[,1],split="=", fixed = TRUE)
-        if(all(lengths(pool.splitname2)==2)){
-            Mpool.splitname2 <- do.call(rbind,pool.splitname2)
-            if(length(unique(Mpool.splitname2[,1]))==1){
-                pool.name <- paste0(Mpool.splitname2[1,1],"=<",paste(Mpool.splitname2[1,2],Mpool.splitname2[NROW(Mpool.splitname2),2],sep=":"),">",sep,Mpool.splitname[1,2])                   
-            }else{
-                pool.name <- paste0("<",paste(Mpool.splitname[1,1],Mpool.splitname[NROW(Mpool.splitname),1],sep=":"),">",sep,Mpool.splitname[1,2])                   
-            }
-        }else if(length(unique(Mpool.splitname[,2]))==1){
-            pool.name <- paste0("<",paste(Mpool.splitname[1,1],Mpool.splitname[NROW(Mpool.splitname),1],sep=":"),">",sep,Mpool.splitname[1,2])                   
-        }else{
-            pool.name <- paste0("<",paste(Wald.name[1],Wald.name[length(Wald.name)],collapse=":"),">")                   
-        }
-    }else{
-        ## <first test, last test>
-        pool.name <- paste0("<",paste(Wald.name[1],Wald.name[length(Wald.name)],sep=", "),">")
-    }
-
-    ## *** Point estimate
-    n.test <- NROW(table)
-    if(method %in% c("average","pool.rubin")){
-
-        pool.contrast <- matrix(1/n.test, nrow = 1, ncol = n.test)
-
-    }else if(method %in% c("pool.fixse","pool.se")){
-
-        pool.contrast <- matrix(1/diag(Sigma)/sum(1/diag(Sigma)), nrow = 1, ncol = n.test)
-
-    }else if(method %in% c("pool.gls","pool.gls1")){
-
-        poolGLS <- function(Sigma, method, tol = 1e-10){
-            ## Note: without tuncation the weights can be computed as
-            ## rowSums(solve(Sigma))/sum(solve(Sigma))
-
-            ## **** truncate eigen value decomposition
-            Sigma.eigen <- eigen(Sigma)
-            index.subset <- which(abs(Sigma.eigen$values) > tol)
-
-            if(length(index.subset)==0){
-                stop("All eigenvalues  of the variance-covariance matrix are close to 0 (<",tol,"). \n",sep="")
-            }else if(any(abs(Sigma.eigen$values) <= tol)){
-                error <-  length(Sigma.eigen$values)-length(index.subset)
-            }else{
-                error <- NULL
-            }
-
-            lambda.k <- Sigma.eigen$values[index.subset]
-            q.kj <- Sigma.eigen$vector[,index.subset,drop=FALSE]
-
-            ## **** evaluate weigths
-            qbar.k <- colSums(q.kj)
-            w.k <- qbar.k^2/lambda.k
-            out <- rbind(rowSums(sweep(q.kj, FUN = "*", MARGIN = 2, STATS = w.k/qbar.k))/sum(w.k))
-            ## shortcut for
-            ## out <- rbind(colSums(sweep(t(q.kj), FUN = "*", MARGIN = 1, STATS = w.k/qbar.k))/sum(w.k))
-
-            if(method == "pool.gls1" && max(abs(out))>1){
-                ## ensure no weight greater than 1
-                iIndex.max <- which.max(abs(out))
-                iMax <- abs(out)[iIndex.max]
-                iMaxC <- max((1-iN.test*out)/(1-sign(out)*iN.test))
-                out <- rbind(rep((1-1/iMaxC)/iN.test,iN.test) + out[1,]/iMaxC)
-            }
-
-            ## **** export
-            attr(out,"error") <- error
-            return(out)
-        }
-
-        pool.contrast <- poolGLS(Sigma = Sigma, method = method)        
-    } 
-
-    ## *** Variance
-    if(!ci){
-
-        pool.se  <- NA
-
-    }else if(method %in% c("average","pool.fixse")){
-        
-        pool.se <- sqrt(as.double(pool.contrast %*% Sigma %*% t(pool.contrast)))
-        
-    }else if(independence && method == "pool.se"){
-        ## \Var[\hat{pool}] = d\hat{pool}/d\Theta \Var[\Theta] t(d\hat{pool}/d\Theta)
-        ##                  = [C1,C2] [A 0; 0 B] [C1;C2] = C1 A t(C1) + C2 B t(C2)
-        browser()
-        theta <- lapply(coef(object, effects = "all", ordering = "by", transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE),
-                        function(iCoef){
-                            attr(iCoef,"transform.sigma") <- transform.sigma
-                            attr(iCoef,"transform.k") <- transform.k
-                            attr(iCoef,"transform.rho") <- transform.rho
-                            return(iCoef)
-                        })
-        
-        ls.estimate <- lapply(names(object$model), FUN = function(iM){ ## iM <- "A"
-            lava::estimate(object$model[[iM]], f = function(p){ 
-                iTheta <- theta
-                iTheta[[iM]] <- p
-                iSigma <- vcov(object, p = iTheta, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)[index,index,drop=FALSE]
-                sum(table$estimate/diag(iSigma))/sum(1/diag(iSigma))
-            }, df = FALSE, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
-        })
-        pool.se <- sqrt(sum(sapply(ls.estimate,"[[","se")^2))
-
-    }else if((!independence && method == "pool.se") || (method %in% c("pool.gls","pool.gls1"))){
-
-        browser()
-        
-    }else if(method == "pool.rubin"){
-        pool.U <- mean(diag(Sigma))
-        pool.B <- sum((table$estimate - mean(table$estimate))^2)/(n.test-1)
-        pool.se <- sqrt(pool.U + (1 + 1/n.test) * pool.B)
-    }
-
-    ## *** Degrees of freedom
-    if(!ci || df == FALSE){
-
-        pool.df <- Inf
-
-    }else if(method == "pool.rubin"){
-
-        ## MICE's approach: https://stefvanbuuren.name/fimd/sec-whyandwhen.html
-        pool.lambda <- (1+1/n.test)*pool.B / out$se
-        pool.nu_old <- (n.test-1)/pool.lambda^2 ## formula 2.30 (Rubin 1987b eq 3.1.6)
-        pool.nu_obs <- (estimate.df+1)/(estimate.df+3)*estimate.df*(1-pool.lambda) ## formula 2.31 (Barnard and Rubin (1999) )
-        pool.df <- mean(pool.nu_old*pool.nu_obs/(pool.nu_old+pool.nu_obs)) ## formula 2.32
-
-    }else if(abs(diff(range(table$df)))<0.1){
-
-        pool.df <- mean(table$df)
-
-    }else if(independence && method %in% c("average","pool.fixse")){
-
-            ## \hat{pool} = \sum_k w_k \hat{beta}_k
-            ## \sigma^2_{\hat{pool}} = \Var[\hat{pool}] = \sum_k w^2_k \Var[\hat{beta}_k] = \sum_k w^2_k \sigma^2_{\hat{beta}_k} by independence
-            ## \Var[\sigma^2_{\hat{pool}}] = \sum_k w^4_k \Var[\sigma^2_{\hat{beta}_k}] by independence
-
-            ## retrieve each denominator: \Var[\sigma^2_{\hat{beta}_k}]
-            lmm.contrast <- coef(object, type = "ls.contrast",
-                                 transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
-            lmm.vcov <- vcov(object, effects = "all", df = 2,
-                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
-            lmm.df <- mapply(iC = lmm.contrast, iVcov = lmm.vcov, FUN = function(iC,iVcov){
-                iDf <- .dfX(X.beta = iC, vcov.param = iVcov, dVcov.param = attr(iVcov,"dVcov"), return.vcov = TRUE)
-                return(iDf)
-            }, SIMPLIFY = FALSE)
-
-            Vdenum.df <- sapply(lmm.df, attr, "denum")
-
-            if(pool.contrast^4 %*% Vdenum.df <= 0){
-                pool.df <- Inf
-            }else{
-                pool.df <- as.double(2*pool.se^4 / (pool.contrast^4 %*% Vdenum.df))
-            }
-
-    }else{ ## average (non-independence), pool.se, pool.gls, pool.gls1
-
-        ## ADD-HOC APPROXIMATION (ignores correlation and uncertainty about the weights)
-        lmm.contrast <- coef(object, type = "ls.contrast",
-                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
-        lmm.vcov <- vcov(object, effects = "all", df = 2,
-                         transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
-        lmm.df <- mapply(iC = lmm.contrast, iVcov = lmm.vcov, FUN = function(iC,iVcov){
-            iDf <- .dfX(X.beta = iC, vcov.param = iVcov, dVcov.param = attr(iVcov,"dVcov"), return.vcov = TRUE)
-            return(iDf)
-        }, SIMPLIFY = FALSE)
-        Vdenum.df <- sapply(lmm.df, attr, "denum")
-
-        if(pool.contrast^4 %*% Vdenum.df <= 0){
-            pool.df <- Inf
-        }else{
-            pool.df <- as.double(2*pool.se^4 / (pool.contrast^4 %*% Vdenum.df))
-        }
-
-    }
-
-    ## *** export
-    out <- table[1,,drop=FALSE]
-    out[setdiff(names(out),c("parameter","type","test","estimate","se","df","statistic","lower","upper","null","p.value"))] <- NA
-    if(length(unique(out$parameter))!=1){
-        out$parameter <- NA
-    }
-    out$estimate <- as.double(pool.contrast %*% table$estimate)
-    out$se <- pool.se
-    out$df <- pool.df
-    out$statistic <- as.double(pool.contrast %*% (table$estimate-table$null)/out$se)
-    out$lower <- out$estimate + out$se * stats::qt(alpha/2, df = out$df)
-    out$upper <- out$estimate + out$se * stats::qt(1-alpha/2, df = out$df)
-    out$p.value = 2*(1-stats::pt(abs(out$statistic), df = out$df))
-    rownames(out) <- pool.name
-    attr(out,"contrast") <- pool.contrast
-    return(out)
-}
 
 
 ##----------------------------------------------------------------------

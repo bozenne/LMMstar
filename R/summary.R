@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jul  5 2024 (10:25) 
+## Last-Updated: jul 11 2024 (17:14) 
 ##           By: Brice Ozenne
-##     Update #: 1500
+##     Update #: 1505
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -629,7 +629,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
             digits.p.value2 <- digits.p.value
         }
         .printStatTable(table = table.univariate, robust = robust, df = df, level = level, type.information = type.information,
-                        method.p.adjust = method.p.adjust, factor.p.adjust = factor.p.adjust, error.p.adjust = error, seed = seed, n.sample = n.sample,
+                        method.p.adjust = method.p.adjust, factor.p.adjust = factor.p.adjust, error.p.adjust = error, pool.method = pool.method, seed = seed, n.sample = n.sample,
                         backtransform = backtransform, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                         columns = setdiff(columns.univariate,"type"), col.df = c("df"), name.statistic = c("t-statistic","z-statistic"),
                         digits = digits, digits.df = digits.df, digits.p.value = digits.p.value2,
@@ -1028,6 +1028,7 @@ summary.resample <- function(object, digits = 3, ...){
 ##' \code{"none"} corresponds to no adjustment.
 ##' @param factor.p.adjust [character or NULL] Are p-values adjusted within a certain factor?
 ##' @param error.p.adjust [numeric or NULL] Numeric error performed when adjusting for multiple comparisons.
+##' @param pool.method [character vector] adjustment method for multiple comparisons consisting in pooling.
 ##' @param seed [integer, >0] Random number generator (RNG) state used when adjusting for multiple comparisons.
 ##' @param n.sample [integer, >0] Number of samples used  when adjusting for multiple comparisons.
 ##' @param backtransform [data.frame or NULL] Should estimates and their uncertainty be back-transformed?
@@ -1047,7 +1048,7 @@ summary.resample <- function(object, digits = 3, ...){
 ## * .printStatTable (code)
 ##' @noRd
 .printStatTable <- function(table, robust, df, level, type.information,
-                            method.p.adjust = NULL, factor.p.adjust, error.p.adjust, seed, n.sample,
+                            method.p.adjust = NULL, factor.p.adjust, error.p.adjust, pool.method, seed, n.sample,
                             backtransform = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL,
                             columns, col.df, name.statistic,
                             digits, digits.df, digits.p.value,
@@ -1273,10 +1274,10 @@ summary.resample <- function(object, digits = 3, ...){
                 warning("Could not back-transform everything.\n")
             }
             if(NROW(table)==1){
-                short2text <- stats::setNames(c("estimate","standard error","confidence interval","confidence interval"),c("estimate","se","lower","upper"))
+                short2text <- stats::setNames(c("estimate","standard error","confidence interval","confidence interval","null hypothesis"),c("estimate","se","lower","upper","null"))
                 txt <- unique(short2text[intersect(names(short2text),intersect(columns,names(message.backtransform)))])
             }else{
-                short2text <- stats::setNames(c("estimates","standard errors","confidence intervals","confidence intervals"),c("estimate","se","lower","upper"))
+                short2text <- stats::setNames(c("estimates","standard errors","confidence intervals","confidence intervals","null hypotheses"),c("estimate","se","lower","upper","null"))
                 txt <- unique(short2text[intersect(names(short2text),intersect(columns,names(message.backtransform)))])
             }
             substr(txt[1], 1, 1) <- toupper(substr(txt[1], 1, 1))

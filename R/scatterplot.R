@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb 16 2023 (09:39) 
 ## Version: 
-## Last-Updated: jul  5 2024 (14:25) 
+## Last-Updated: jul 11 2024 (11:05) 
 ##           By: Brice Ozenne
-##     Update #: 753
+##     Update #: 754
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -576,18 +576,18 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
     ## Set up the page
     grid::grid.newpage()
     if(!is.null(group)){
-        panelVP <- grid::viewport(layout = grid::grid.layout(nrow = n.time+1,
-                                                             ncol = n.time+2,
-                                                             width = ggplot2::unit(c(ratio.facet[2],rep(1, n.time),ratio.legend), "null"),
-                                                             height = ggplot2::unit(c(ratio.facet[1],rep(1, n.time)), "null")))
+        panelVP <- grid::grid.layout(nrow = n.time+1,
+                                     ncol = n.time+2,
+                                     width = ggplot2::unit(c(ratio.facet[2],rep(1, n.time),ratio.legend), "null"),
+                                     height = ggplot2::unit(c(ratio.facet[1],rep(1, n.time)), "null"))
         
     }else{
-        panelVP <- grid::viewport(layout = grid::grid.layout(nrow = n.time+1,
-                                                             ncol = n.time+1,
-                                                             width = ggplot2::unit(c(ratio.facet[1],rep(1, n.time)), "null"),
-                                                             height = ggplot2::unit(c(ratio.facet[2],rep(1, n.time)), "null")))
+        panelVP <- grid::grid.layout(nrow = n.time+1,
+                                     ncol = n.time+1,
+                                     width = ggplot2::unit(c(ratio.facet[1],rep(1, n.time)), "null"),
+                                     height = ggplot2::unit(c(ratio.facet[2],rep(1, n.time)), "null"))
     }
-    grid::pushViewport(panelVP)
+    grid::pushViewport(grid::viewport(layout = panelVP))
     ## grid::showViewport()
 
     for(iTime in 1:n.time){

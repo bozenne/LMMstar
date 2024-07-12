@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jul  9 2024 (15:19) 
+## Last-Updated: jul 12 2024 (12:00) 
 ##           By: Brice Ozenne
-##     Update #: 3074
+##     Update #: 3092
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -199,10 +199,16 @@ lmm <- function(formula, data, repetition, structure,
     if(trace>=2){cat("\n")}
 
     ## *** initialize data, e.g. add integer version of cluster/time/strata (XXcluster.indexXX, XXtime.indexXX, ...)
-    if(trace>=2){cat("- normalize data")}
+    if(trace>=2){cat("- normalize data")}    
     var.all <- c(var.outcome,outArgs$var.X,outArgs$var.cluster,outArgs$var.time,outArgs$var.strata,outArgs$ranef$var,outArgs$var.weights,outArgs$var.scale.Omega)
     if(!missing(structure) && inherits(structure,"structure")){
         var.all <- c(var.all, unlist(structure$name))
+    }
+    if(is.null(outArgs$ranef$crossed) && is.na(outArgs$var.cluster) && ("XXclusterXX" %in% names(data)) && all(!duplicated(data$XXclusterXX))){
+        ## for mlmm: no cluster variable but still want to have distinct values over lmm
+        initialize.cluster <- data$XXclusterXX
+    }else{
+        initialize.cluster <- outArgs$ranef$crossed
     }
     outData <- .lmmNormalizeData(as.data.frame(data)[unique(stats::na.omit(var.all))],
                                  var.outcome = var.outcome, 
@@ -210,7 +216,7 @@ lmm <- function(formula, data, repetition, structure,
                                  var.time = outArgs$var.time,
                                  var.strata = outArgs$var.strata,                         
                                  droplevels = TRUE,
-                                 initialize.cluster = outArgs$ranef$crossed,
+                                 initialize.cluster = initialize.cluster,
                                  initialize.time = setdiff(outArgs$ranef$vars, outArgs$var.cluster),
                                  na.rm = TRUE)
     data <- outData$data    
@@ -719,7 +725,6 @@ lmm <- function(formula, data, repetition, structure,
                               var.cluster, var.time, var.strata, droplevels,
                               initialize.cluster, initialize.time, na.rm){
 
-
     ## ** normalize
     if(is.null(var.outcome)){var.outcome <- NA}
     if(is.null(var.cluster)){var.cluster <- NA}
@@ -802,7 +807,9 @@ lmm <- function(formula, data, repetition, structure,
 
     ## ** cluster
     if(is.na(var.cluster)){
-        if(!is.null(initialize.cluster) && initialize.cluster==1){
+        if(!is.null(initialize.cluster) && length(initialize.cluster)==NROW(data)){
+            data$XXclusterXX <- as.factor(initialize.cluster)
+        }else if(!is.null(initialize.cluster)  && initialize.cluster==1){
             if(any(duplicated(data[,var.time]))){
                 stop("Incorrect specification of argument \'repetition\': missing cluster variable. \n",
                      "Cannot guess the cluster variable with non-unique levels for the cross random effects. \n")
@@ -811,7 +818,6 @@ lmm <- function(formula, data, repetition, structure,
         }else{
             data$XXclusterXX <- addLeading0(1:NROW(data), as.factor = TRUE, code = attr(var.cluster,"code"))
         }
-
         out$var.cluster <- "XXclusterXX"
         attr(out$var.cluster, "original") <- NA
     }else{

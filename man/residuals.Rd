@@ -24,7 +24,14 @@
 
 \method{residuals}{clmm}(object, ...)
 
-\method{residuals}{mlmm}(object, simplify = TRUE, ...)
+\method{residuals}{mlmm}(
+  object,
+  p = NULL,
+  newdata = NULL,
+  keep.data = FALSE,
+  simplify = TRUE,
+  ...
+)
 }
 \arguments{
 \item{object}{a \code{lmm} object.}

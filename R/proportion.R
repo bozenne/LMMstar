@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 15 2022 (14:09) 
 ## Version: 
-## Last-Updated: nov  8 2023 (16:02) 
+## Last-Updated: jul 11 2024 (15:50) 
 ##           By: Brice Ozenne
-##     Update #: 36
+##     Update #: 82
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,106 +15,103 @@
 ## 
 ### Code:
 
-## * proportion
-#' @title Proportion of Significant Findings
-#' @description Evaluate the proportion of test above the statistical significance level
-#' 
-#' @param object \code{Wald_lmm} object
-#' @param n.sample [numeric,>=0] number of bootstrap sample used to assess the uncertainty.
-#' If 0, then only the point estimate is computed.
-#' @param trace [logical] shoudl the execution of the boostrap be trace.
-#' @param ... additional arguments passed to \code{confint.Wald_lmm}
-#'
-#' @return a data.frame with the estimated proportion (estimate column), standard error and confidence interval (when boostrap is used).
-#' 
-#' @keywords utilities
-#' 
-#' @export
-`proportion` <-
-  function(object, n.sample, trace, ...) UseMethod("proportion")
-
 ## * proportion.mlmm
-#' @export
-proportion.mlmm <- function(object, n.sample = 100, trace = TRUE, ...){
+proportion.mlmm <- function(object, index, name.method, method, qt = NULL, null, ci, df, alpha){
 
-    ## ** prepare
-    if(n.sample>0){
-        call <- attr(object,"call")
-        data <- try(as.data.frame(eval(call$data)), silent = TRUE)
-        if(inherits(data,"try-error")){
-            stop("Could not extract the data from the call. \n",
-                 data)
+    options <- LMMstar.options()
+    
+    ## ** normalize user input
+    if(!is.null(qt)){
+        if(s.numeric(qt) || length(qt)!=1){
+            stop("Argument \'qt\' should be a numeric value (with length 1). \n")
         }
-        cluster.var <- attr(object$object$cluster.var,"original")
-        cluster <- object$object$cluster
-        n.cluster <- length(cluster)
-        index.cluster <- split(1:NROW(data),data[[cluster.var]])
-    }else if(n.sample < 0){
-        stop("Argument \'n.sample\' must be a non-negative integer. \n")
+        critical.threshold <- qt
     }else{
-        trace <- FALSE
+        critical.threshold <- NULL
     }
-    alpha <- attr(object,"level")
-    
 
-    ## ** warper
-    warper <- function(iSample){ ## iSample <- 1
-        if(iSample==0){
-            iO <- object
+    ## ** name for the pooled estimator
+    if(!is.null(name.method)){
+        pool.name <- name.method
+    }else{
+        pool.name <- poolName.mlmm(object, index = index, method = "p.rejection")
+    }
+
+    ## ** estimate proportion
+    object.ci <- confint(object, method = method, columns = c("estimate","se","df","lower","upper","statistic","null","p.value"))
+    if(is.null(critical.threshold)){
+        if(!is.null(attr(object.ci, "quantile"))){
+            critical.threshold <- attr(object.ci, "quantile")
+            if(is.list(critical.threshold)){
+                critical.threshold <- critical.threshold[[object$univariate[index,"test"][1]]]
+            }
         }else{
-            iCluster <- cluster[sample.int(n.cluster, replace = TRUE)]
-            iLs.indexCluster <- index.cluster[iCluster]
-            iData <- data[unlist(iLs.indexCluster),,drop=FALSE]
-            iData[[cluster.var]] <- unlist(lapply(1:n.cluster, function(iC){rep(paste0("C",iC), times =  length(iLs.indexCluster[[iC]]))}))
-            iCall <- call
-            iCall$data <- iData
-            iO <- eval(iCall)
-        }
-        iCI <- confint(iO, columns = c("estimate","se","df","lower","upper","statistic","null","p.value"), ...)
-        iTc <- attr(iCI, "quantile")
-        iWald <- iCI$statistic
-        iDf <- iCI$df
-        iIntegral <- sapply(1:NROW(iCI), function(iStat){stats::pt(iTc - iWald[iStat], df = iDf[iStat]) - stats::pt(-iTc - iWald[iStat], df = iDf[iStat])})
-        iOut <- 1-mean(iIntegral)
-        if(iSample==0){
-            attr(iOut,"level") <- attr(iCI, "level")
-        }
-        return(iOut)
-    }
-    
-    ## ** iterate
-    out.estimate <- rep(NA, n.sample+1)
-    out.boot <- rep(NA, n.sample)
-
-    if(trace){
-        pb <- utils::txtProgressBar(max = n.sample+1, style =  3)
-    }
-
-    for(iSample in 0:n.sample){
-        if(iSample==0){
-            out.estimate <- warper(iSample)
-        }else{
-            out.boot[iSample] <- warper(iSample)
-        }
-        if(trace){
-            utils::setTxtProgressBar(pb,iSample+1)
+            stop("Unknown critical threshold: consider specifying argument \'qt\' or changing argument \'method\'. \n")
         }
     }
 
-    if(trace){
-        close(pb)
+    integral <- stats::pt(critical.threshold - object.ci$statistic, df = object.ci$df) - stats::pt(-critical.threshold - object.ci$statistic, df = object.ci$df)
+    estimate <- 1 - mean(integral)
+
+    ## ** null
+    if(is.null(null)){
+        method <- attr(object.ci,"method")
+        rho.linfct <- stats::cov2cor(vcov(object))
+        n.test <- NROW(object.ci)
+
+        n.sample <- options$n.sampleCopula
+        myMvd <- copula::mvdc(copula = copula::normalCopula(param=rho.linfct[lower.tri(rho.linfct)], dim = NROW(rho.linfct), dispstr = "un"),
+                              margins = rep("t", NROW(rho.linfct)),
+                              paramMargins = as.list(stats::setNames(object.ci$df,rep("df",NROW(rho.linfct)))))
+        sample.copula <- copula::rMvdc(n.sample, myMvd)
+
+        null.integral <- do.call(cbind, lapply(1:n.test, function(iTest){
+            stats::pt(critical.threshold[iTest] - sample.copula[,iTest], df = object.ci$df[iTest]) - stats::pt(-critical.threshold[iTest] - sample.copula[,iTest], df = object.ci$df[iTest])
+        }))
+        null <- mean(1 - rowMeans(null.integral))
+    }
+
+    ## ** variance
+    if(!ci){
+
+        integral.se  <- NA
+
+    }else{
+
+        browser()
+
+    }
+
+    ## ** degree of freedom
+    if(!ci || df == FALSE){
+
+        integral.df <- Inf
+
+    }else{
+
+        browser()
+
     }
 
     ## ** post process
-    ## e.boot <- lapply(0:n.sample, warper)
-    alpha <- 1-attr(out.estimate,"level")
-    out <- data.frame(estimate = as.double(out.estimate),
-                      se = stats::sd(out.boot, na.rm = TRUE),
-                      df = NA,
-                      lower = as.double(stats::quantile(out.boot,alpha/2, na.rm = TRUE)),
-                      upper = as.double(stats::quantile(out.boot,1-alpha/2, na.rm = TRUE)),
+    alpha <- 1-attr(object.ci, "level")
+
+    out <- data.frame(estimate = as.double(estimate),
+                      se = integral.se,
+                      df = integral.df,
+                      stratistic = NA,
+                      lower = NA,
+                      upper = NA,
+                      null = null,
                       p.value = NA)
-    rownames(out) <- "proportion"
+    out$statistic <- as.double((out$estimate-out$null)/out$se)
+    out$lower <- out$estimate + out$se * stats::qt(alpha/2, df = out$df)
+    out$upper <- out$estimate + out$se * stats::qt(1-alpha/2, df = out$df)
+    out$p.value = 2*(1-stats::pt(abs(out$statistic), df = out$df))
+
+    rownames(out) <- pool.name
+    attr(out,"method") <- method
+    attr(out,"quantile") <- critical.threshold
     return(out)
 }
 
