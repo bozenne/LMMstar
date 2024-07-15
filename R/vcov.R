@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: jul 12 2024 (17:15) 
+## Last-Updated: jul 15 2024 (16:49) 
 ##           By: Brice Ozenne
-##     Update #: 643
+##     Update #: 658
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -183,11 +183,13 @@ vcov.Wald_lmm <- function(object, ...){
 ##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
 ##' @param transform.rho [character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"} - see details.
 ##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
+##' @param simplify [logical] Should the column names contain the level of the by variable?
+##' Not relevant when \code{effects=\"contrast\"}.
 ##' @param ... Not used. For compatibility with the generic method.
 
 ## * vcov.mlmm (code)
 ##' @export
-vcov.mlmm <- function(object, effects = "contrast", method = "none", robust = object$args$robust, type.information = object$object$type.information, 
+vcov.mlmm <- function(object, effects = "contrast", robust = object$args$robust, type.information = object$object$type.information, 
                       newdata = NULL, p = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, simplify = TRUE, ...){
 
     options <- LMMstar.options()
@@ -196,87 +198,59 @@ vcov.mlmm <- function(object, effects = "contrast", method = "none", robust = ob
 
     ## ** normalize use input
 
-    ## dots
+    ## *** dots
     dots <- list(...)
     dots$complete <- NULL ## for multcomp which passes an argument complete when calling vcov
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
     
-    ## effects
-    if(!is.null(effects)){
-        effects <- match.arg(effects, c("contrast","mean","fixed","variance","correlation","all"), several.ok = TRUE)
+    ## *** effects
+    if(!is.character(effects) || !is.vector(effects)){
+        stop("Argument \'effects\' must be a character vector")
+    }
+    valid.effects <- c("contrast","mean","fixed","variance","correlation","all")
+    if(any(effects %in% valid.effects == FALSE)){
+        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+    }    
+    if("contrast" %in% effects && length(effects)>1){
+        stop("Argument \'effects\' must have length 1 when containing the element \'effects\'. \n")
+    }
+    if("all" %in% effects && length(effects)>1){
+        stop("Argument \'effects\' must have length 1 when containing the element \'all\'. \n")
     }
 
-    ## method
-    if(method != "none"){
-        if(!is.null(effects) && length(effects)==1 && effects=="contrast"){
-            method <- match.arg(method, c(adj.method,pool.method), several.ok = TRUE)
-        }else{
-            message("Argument \'method\' is ignored when argument \'effects\' differs from contrast. \n")
-        }
-    }
+    ## *** transformation
+    test.sigma <- (is.null(transform.sigma) || transform.sigma == object$args$transform.sigma)
+    test.k <- (is.null(transform.k) || transform.k == object$args$transform.k)
+    test.rho <- (is.null(transform.rho) || transform.rho == object$args$transform.rho)
+    test.notransform <- test.sigma & test.k & test.rho
 
-    ## p
-    if(!is.null(p)){
-        if(!is.list(p)){
-            stop("Argument \'p\' should either be NULL or a list. \n")
-        }
-        if(is.null(names(p))){
-            stop("Argument \'p\' should either be NULL or a named list. \n")
-        }
-        if(any(names(p) %in% names(object$model) == FALSE)){
-            stop("Incorrect names for argument \'p\': \"",paste(setdiff(names(p),names(object$model)), collapse = "\", \""),"\". \n", 
-                 "Should be among \"",paste(names(object$model), collapse = "\", \""),"\". \n")
-        }
-    }else{
-        p <- stats::setNames(vector(mode = "list", length = length(object$model)), names(object$model))
-    }
-
-    ls.init <- lapply(names(object$model),function(iM){ ## iM <- names(object$model)[1]
-        .init_transform(p = p[[iM]], transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
-                        x.transform.sigma = object$args$transform.sigma, x.transform.k = object$args$transform.k, x.transform.rho = object$args$transform.rho,
-                        table.param = object$model[[iM]]$design$param)
-    })    
-    theta <- setNames(lapply(ls.init, "[[","p"),names(object$model))
-    test.notransform <- unique(sapply(ls.init,"[[","test.notransform"))
-    transform.sigma <- unique(sapply(ls.init,"[[","transform.sigma"))
-    transform.k <- unique(sapply(ls.init,"[[","transform.k"))
-    transform.rho <- unique(sapply(ls.init,"[[","transform.rho"))
-    if(length(test.notransform)>1 || length(transform.sigma)>1 || length(transform.k)>1 || length(transform.rho)>1){
-        stop("Something went wrong when initializing the transformation parameters. \n",
-             "Not the same transformation for all models. \n")
-    }
-    
-    ## newdata
+    ## *** newdata
     if(!is.null(newdata)){
         message("Argument \'newdata\' is being ignored. \n")
     }
 
     ## ** extract
-    if(!is.null(effects) && length(effects)==1 && effects=="contrast"){
-        if((length(unlist(p))==0) && (robust == object$args$robust) && (type.information == object$object$type.information) && test.notransform && (method %in% adj.method)){
+    if(all(effects=="contrast")){
+        if((length(unlist(p))==0) && (robust == object$args$robust) && (type.information == object$object$type.information) && test.notransform){
 
             out <- object$vcov
 
-        }else if(method %in% adj.method){
+        }else{
 
-            e.iid <- iid.mlmm(object, effects = effects, p = theta, robust = robust, type.information = type.information,
+            e.iid <- iid.mlmm(object, effects = "contrast", p = p, robust = robust, type.information = type.information,
                               transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
             out <- crossprod(e.iid)
             attr(out,"original.name") <- attr(e.iid,"original.name")
             attr(out,"by") <- attr(e.iid,"by")
             attr(out,"message") <- attr(e.iid,"message")
             
-        }else if(method %in% pool.method){
-
-            stop("Cannot extract the variance-covariance matrix for method=\"",method,"\".\n",
-                 "Consider calling model.tables instead to get the standard error and square it to recover the variance. \n")
-
         }
     }else{
 
-        e.iid <- iid.mlmm(object, effects = effects, p = theta, robust = robust, type.information = type.information,
+        e.iid <- iid.mlmm(object, effects = effects, p = p, robust = robust, type.information = type.information,
                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names, simplify = simplify)
         if(is.matrix(e.iid)){
             out <- crossprod(e.iid)

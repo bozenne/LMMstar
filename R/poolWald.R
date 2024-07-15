@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 11 2024 (11:56) 
 ## Version: 
-## Last-Updated: jul 12 2024 (17:40) 
+## Last-Updated: jul 15 2024 (16:35) 
 ##           By: Brice Ozenne
-##     Update #: 85
+##     Update #: 93
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,10 +16,10 @@
 ### Code:
 
 ## * poolWald.mlmm
-poolWald.mlmm <- function(object, index, method, name.method, ci, df, alpha){
+poolWald.mlmm <- function(object, p, index, method, name.method, ci, df, alpha){
 
     ## ** extract information
-    table <- object$univariate[index,,drop=FALSE]
+    table <- model.tables(object, p = p, columns = c("estimate","df","null"))[index,,drop=FALSE]
 
     if(ci || method %in% c("pool.se","pool.gls","pool.gls1")){
         transform.sigma <-  object$args$transform.sigma
@@ -28,7 +28,7 @@ poolWald.mlmm <- function(object, index, method, name.method, ci, df, alpha){
         type.information <-  object$object$type.information
         robust <-  object$args$robust
 
-        Sigma <- vcov(object, type.information = type.information, robust = robust,
+        Sigma <- vcov(object, p = p, type.information = type.information, robust = robust,
                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)[index,index,drop=FALSE]
         independence <- attr(object$object,"independence")
 
@@ -155,10 +155,8 @@ poolWald.mlmm <- function(object, index, method, name.method, ci, df, alpha){
         ls.gradVcov <- lapply(names(object$model), FUN = function(iM){ ## iM <- "A"
 
             iGrad <- numDeriv::jacobian(func = function(x){
-                iLS.theta <- ls.theta
-                iLS.theta[[iM]] <- x
-                iSigma <- vcov(object, p = iLS.theta, type.information = type.information, robust = robust,
-                               transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)[index,index]
+                iSigma <- vcov(object, p = stats::setNames(list(x), iM), type.information = type.information, robust = robust,
+                               transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
                 if(method=="pool.se"){
                     iOut <- (1/diag(iSigma))/(sum(1/diag(iSigma)))
                 }else{

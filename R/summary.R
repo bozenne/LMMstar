@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jul 11 2024 (17:14) 
+## Last-Updated: jul 15 2024 (15:03) 
 ##           By: Brice Ozenne
-##     Update #: 1505
+##     Update #: 1584
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -557,7 +557,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
     ## *** local tests
     if(print.univariate>0 && ci){
 
-        table.univariate <- confint(object, columns = union(setdiff(columns.univariate,""),"type"), ...)
+        table.univariate <- confint(object, columns = union(setdiff(columns.univariate,""),c("type","test")), ...)
         if(is.null(columns) && all(is.na(table.univariate$lower)) && all(is.na(table.univariate$upper))){
             columns.univariate <- setdiff(columns.univariate, c("lower","upper"))
         }
@@ -603,26 +603,26 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
                     paste(paste(rep(" ", maxchar.type+nchar(sep)), collapse = ""),rownames(table.univariate)[iIndex],sep="")
                 }
             })
+            table.univariate$type <- NULL
         }
-        table.univariate$type <- NULL
+        ## incorporate test
+        attr(table.univariate,"test") <- table.univariate$test
+        if("test" %in% columns.univariate){
+            table.univariate$test <- NULL
+        }
+        
         if(inherits(object,"rbindWald_lmm") && length(unique(setdiff(object$univariate$method,"none"))>1)){
             warning("Different methods have been used to adjust for multiple comparisons - text describing the adjustment will not be accurate.")
         }
         if(print.univariate>0.5){
             cat("\t\tUnivariate Wald test \n\n")
         }
-        if(attr(object$object,"independence")==FALSE && method.p.adjust == "pool.se"){
-            attr(method.p.adjust,"warning") <- "WARNING: uncertainty about the weights assumes independence between parameters from different models.\n"
-        }else if(method.p.adjust == "pool.fixse"){
-            attr(method.p.adjust,"warning") <- "WARNING: uncertainty about the weights has been ignored.\n"
-        }else if(method.p.adjust %in% c("pool.gls","pool.gls1")){
-            attr(method.p.adjust,"warning") <- "WARNING: uncertainty about the weights has been ignored.\n"
+        if(method.p.adjust %in% c("pool.gls","pool.gls1")){
             if(!is.null(error) && any(!is.na(error))){
                 attr(method.p.adjust,"warning") <- paste0(attr(method.p.adjust,"warning"),
                                                           "           ",error," principal components have been ignored when pooling (singular vcov).\n")
             }
         }
-
         if("single-step2" %in% method.p.adjust){
             digits.p.value2 <- c(digits.p.value,1/n.sample)
         }else{
@@ -1048,7 +1048,7 @@ summary.resample <- function(object, digits = 3, ...){
 ## * .printStatTable (code)
 ##' @noRd
 .printStatTable <- function(table, robust, df, level, type.information,
-                            method.p.adjust = NULL, factor.p.adjust, error.p.adjust, pool.method, seed, n.sample,
+                            method.p.adjust = NULL, factor.p.adjust, error.p.adjust, pool.method = NULL, seed, n.sample,
                             backtransform = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL,
                             columns, col.df, name.statistic,
                             digits, digits.df, digits.p.value,
@@ -1157,144 +1157,117 @@ summary.resample <- function(object, digits = 3, ...){
 
         ## *** significance level
         if("" %in% columns){
-            cat(space,"Signif. codes:  0 \'***\' 0.001 \'**\' 0.01 \'*\' 0.05 \'.\' 0.1 \' \' 1.\n",sep="")
-        }
-
-        if(!is.null(level) && is.null(method.p.adjust) && any(c("lower", "upper") %in% columns)){
-            ## *** ci 
-            if(NROW(table)==1){
-                txt.ci <- paste0("the ",100*level,"% confidence intervals of the coefficient")
-            }else{
-                txt.ci <- paste0(100*level,"% pointwise confidence intervals for each coefficient")
-            }
-            if("lower" %in% columns && "upper" %in% columns){
-                cat(space,"Columns lower and upper contain ",txt.ci,".\n", sep = "")
-            }else if("lower" %in% columns){
-                cat(space,"Column lower contains ",txt.ci,".\n", sep = "")
-            }else if("upper" %in% columns){
-                cat(space,"Column upper contains ",100*level,"% ",txt.ci,".\n", sep = "")
-            }
-        }else if(!is.null(method.p.adjust) && method.p.adjust %in% pool.method){
-
-            if(method.p.adjust == "average"){
-                if(NROW(table)>1){
-                    cat(space,"Estimates have been averaged within ",factor.p.adjust,".\n", sep="")
-                }else{
-                    cat(space,"Estimates have been averaged.\n", sep="")
-                }
-            }else if(method.p.adjust %in% c("pool.se","pool.fixse")){
-                if(NROW(table)>1){
-                    cat(space,"Estimates have been averaged, weighted by the inverse of their variance, within ",factor.p.adjust,".\n", sep="")
-                }else{
-                    cat(space,"Estimates have been averaged, weighted by the inverse of their variance.\n", sep="")
-                }
-                if(any(c("se","lower","upper","p.value") %in% columns) && !is.null(attr(method.p.adjust,"warning"))){
-                    cat(space,attr(method.p.adjust,"warning"),sep="")
-                }
-            }else if(method.p.adjust %in% c("pool.gls","pool.gls1")){
-                if(NROW(table)>1){
-                    cat(space,"Estimates have been averaged, weighted via GLS ",factor.p.adjust,".\n", sep="")
-                }else{
-                    cat(space,"Estimates have been averaged, weighted via GLS.\n", sep="")
-                }
-                if(any(c("se","lower","upper","p.value") %in% columns) && !is.null(attr(method.p.adjust,"warning"))){
-                    cat(space,attr(method.p.adjust,"warning"),sep="")
-                }
-            }else if(method.p.adjust == "pool.rubin"){
-                if(NROW(table)>1){
-                    cat(space,"Estimates have been pooled within ",factor.p.adjust," using Rubin's rule.\n", sep="")
-                }else{
-                    cat(space,"Estimates have been pooled using Rubin's rule.\n", sep="")
-                }
-            }
-        }else if(!is.null(level) && !is.null(method.p.adjust) && any(c("p.value","lower", "upper") %in% columns) && NROW(table)>1){
-
-            ## *** adjustment for multiple comparisons 
-            txt.cip <- paste("Columns",paste(intersect(c("lower","upper","p.value"),columns),collapse="/"))
-
-            if(method.p.adjust == "none"){ ## 
-                ## cat(space,txt.cip," not adjusted for multiple comparisons.\n", sep="")
-            }else{
-                if(!is.null(attr(table,"Madjust-within")) && attr(table,"Madjust-within")){
-                    if(method.p.adjust %in% c("single-step", "single-step2")){
-                        cat(space,txt.cip," adjusted for multiple comparisons (within coefficient) -- max-test.\n", sep="")
-                    }else{
-                        cat(paste0(space,txt.cip," adjusted for multiple comparisons (within coefficient) -- ",method.p.adjust,".\n", sep=""),sep="")
-                    }
-                }else{
-                    if(method.p.adjust %in% c("single-step", "single-step2")){
-                        cat(space,txt.cip," adjusted for multiple comparisons -- max-test.\n", sep="")
-                    }else{
-                        cat(paste0(space,txt.cip," adjusted for multiple comparisons -- ",method.p.adjust,".\n", sep=""),sep="")
-                    }
-                }
-            }
-
-            if(method.p.adjust != "none" && !is.null(factor.p.adjust)){
-                cat(space,"(adjustment within ",factor.p.adjust,"). \n",sep="")
-            }
-            if(method.p.adjust == "single-step"){
-                if(!is.null(error.p.adjust) && any(!is.na(error.p.adjust)) && any(abs(stats::na.omit(error.p.adjust))>1e-12)){
-                    if(!is.null(seed)){
-                        cat(space,"(error when computing the adjusted ",tolower(txt.cip)," by numerical integration: ", signif(max(error.p.adjust, na.rm=TRUE), digits = digits.p.value[1])," with seed for the RNG: ",seed,")\n",sep="")
-                    }else{
-                        cat(space,"(error when computing the adjusted ",tolower(txt.cip)," by numerical integration: ", signif(max(error.p.adjust, na.rm=TRUE), digits = digits.p.value[1]),")\n",sep="")
-                    }
-                }else if(!is.null(seed)){
-                    cat(space,"(seed for the RNG: ",seed,")\n",sep="")
-                }
-            }else if(method.p.adjust == "single-step2"){
-                if(!is.null(seed)){
-                    cat(space,"(",n.sample," samples have been used with seed for the RNG",seed,")\n",sep="")
-                }else{
-                    cat(space,"(",n.sample," samples have been used)\n",sep="")
-                }
-            }
-        }
-
-        ## *** type of standard error 
-        if(!is.null(robust) && !is.null(type.information)){
-            if(robust && "se" %in% columns){
-                cat(space,"Robust standard errors are derived from the ",type.information," information (column se). \n", sep = "")
-            }else if("se" %in% columns){
-                cat(space,"Model-based standard errors are derived from the ",type.information," information (column se). \n", sep = "")
-            }
+            cat(space,"  :  0 \'***\' 0.001 \'**\' 0.01 \'*\' 0.05 \'.\' 0.1 \' \' 1.\n",sep="")
         }
 
         ## *** type of degree of freeedom 
         if(identical(df,TRUE) && "df" %in% columns){
-            cat(space,"Degrees of freedom were computed using a Satterthwaite approximation (column df). \n", sep = "")
+            cat(space,"df: Degrees of freedom were computed using a Satterthwaite approximation. \n", sep = "")
+        }
+
+        ## *** type of standard error 
+        if("se" %in% columns){
+            if(robust){
+                cat(space,"se: robust standard errors are derived from the ",type.information," information. \n", sep = "")
+            }else{
+                cat(space,"se: Model-based standard errors are derived from the ",type.information," information. \n", sep = "")
+            }
+        }
+
+        ## *** estimate
+        if(length(method.p.adjust)==1 && method.p.adjust %in% pool.method && "estimate" %in% columns){
+
+            if(NROW(table)>1){
+                txt.strata <- paste("within ",factor.p.adjust," ",sep = "")
+            }else{
+                txt.strata <- ""
+            }
+            txt.estimate <- switch(method.p.adjust,
+                                   "average" = paste0("averaged estimates",txt.strata),
+                                   "pool.fixse" = paste0("pooled estimates",txt.strata," using inverse variance weights"),
+                                   "pool.se" = paste0("pooled estimates",txt.strata," using inverse variance weights"),
+                                   "pool.gls" = paste0("pooled estimates",txt.strata," using GLS weights"),
+                                   "pool.gls1"= paste0("pooled estimates",txt.strata," using constrained GLS weights"),
+                                   "pool.rubin" = paste0("pooled estimates",txt.strata," using Rubin's rule")
+                                   )
+            cat(space,"estimate: ",txt.estimate)
+
+        }
+
+        ## *** Adjustment for multiple testing
+        method.p.adjust2 <- setdiff(method.p.adjust, pool.method)
+
+        if(!is.null(level) && !is.na(level)){
+            display.cip <- intersect(c("lower","upper","p.value"),columns)
+        }else{
+            display.cip <- intersect(c("p.value"),columns)
+
+        }
+        
+        if((is.null(method.p.adjust) || (length(method.p.adjust2)==1 && method.p.adjust2 == "none")) && length(display.cip)>0 && NROW(table)>1){ ## no adjustment
+
+            if((df && name.statistic[2] == "F-statistic") || (!df && name.statistic[1] == "Chi2-statistic")){
+                ## joint test
+                cat(space,"Multiple testing adjustment: within variable using a joint test.\n", sep = "")
+            }else{
+                ## none
+                cat(space,"No adjustment for multiple testing.\n", sep = "")
+            }
+            
+
+        }else if(length(method.p.adjust2)==1 && length(display.cip)>0 && NROW(table)>1){ ## adjustment
+
+            ## adjustment
+            if(method.p.adjust %in% c("single-step", "single-step2")){
+                if(df){
+                    name.adjmethod <- "max-t test"
+                }else{
+                    name.adjmethod <- "max-z test"
+                }
+
+                txt.adjustment2 <- NULL ## paste(display.cip, collapse = "/")
+                if(!is.null(seed)){
+                    txt.adjustment2 <- paste(c(txt.adjustment2,paste0("RNG seed ",seed)), collapse=", ")
+                }
+                if(method.p.adjust == "single-step" && !is.null(error.p.adjust) && any(!is.na(error.p.adjust)) && any(abs(stats::na.omit(error.p.adjust))>1e-12)){
+                    txt.adjustment2 <- paste(c(txt.adjustment2, paste0("numerical intergration error ", signif(max(error.p.adjust, na.rm=TRUE), digits = digits.p.value[1]))), collapse=", ")
+                }else if(method.p.adjust == "single-step2"){
+                    txt.adjustment2 <- paste(c(txt.adjustment2, paste0(n.sample," samples")), collapse=", ")
+                }
+                if(nchar(txt.adjustment2)>0){
+                    txt.adjustment2 <- paste0(" (",txt.adjustment2,")")
+                }
+                
+            }else{
+                name.adjmethod <- method.p.adjust
+                txt.adjustment2 <- ""
+            }
+
+            if(!is.null(attr(table,"test")) && length(unique(attr(table,"test")))>1){
+                txt.adjstrata <- "within variable "
+            }else{
+                txt.adjstrata <- ""
+            }
+
+            txt.adjustment <- paste0("Multiple testing adjustment: ",txt.adjstrata,"using ",name.adjmethod,txt.adjustment2,sep="")
+
+            if(!is.null(txt.adjustment)){
+                cat(space,txt.adjustment,".\n",sep="")
+            }
+
         }
 
         ## *** backtransformation
         if(!is.null(backtransform)){
-            message.backtransform <- backtransform[!is.na(backtransform$FUN),,drop=FALSE]
 
-            if(any(message.backtransform[,setdiff(names(message.backtransform), "FUN")] == FALSE)){
-                warning("Could not back-transform everything.\n")
-            }
-            if(NROW(table)==1){
-                short2text <- stats::setNames(c("estimate","standard error","confidence interval","confidence interval","null hypothesis"),c("estimate","se","lower","upper","null"))
-                txt <- unique(short2text[intersect(names(short2text),intersect(columns,names(message.backtransform)))])
-            }else{
-                short2text <- stats::setNames(c("estimates","standard errors","confidence intervals","confidence intervals","null hypotheses"),c("estimate","se","lower","upper","null"))
-                txt <- unique(short2text[intersect(names(short2text),intersect(columns,names(message.backtransform)))])
-            }
-            substr(txt[1], 1, 1) <- toupper(substr(txt[1], 1, 1))
-            cat("  ",paste(txt,collapse = ", ")," have been back-transformed",sep="")
-            cat(" (",paste0(paste(rownames(message.backtransform),collapse = "/")," parameters with ",paste(message.backtransform$FUN,collapse="/")),"). \n", sep ="")
-        }else if(any(!is.na(c(transform.sigma,transform.k,transform.rho)))){
-            vec.transform <- stats::na.omit(c(sigma=transform.sigma,k=transform.k,rho=transform.rho))
-            if(NROW(table)==1){
-                short2text <- stats::setNames(c("estimate","standard error","confidence interval","confidence interval"),c("estimate","se","lower","upper"))
-                txt <- unique(short2text[intersect(names(short2text),columns)])
-            }else{
-                short2text <- stats::setNames(c("estimates","standard errors","confidence intervals","confidence intervals"),c("estimate","se","lower","upper"))
-                txt <- unique(short2text[intersect(names(short2text),columns)])
-            }
-            substr(txt[1], 1, 1) <- toupper(substr(txt[1], 1, 1))
-            cat("  ",paste(txt,collapse = ", ")," have been transformed (",paste0(paste(names(vec.transform),collapse = "/")," parameters with ",paste(vec.transform,collapse="/")),"). \n", sep ="")
+            vec.transform <- c(sigma=transform.sigma,k=transform.k,rho=transform.rho)[rownames(backtransform)]
+            
+            cat(space,"Back-transformation: ",paste0(paste(names(vec.transform),collapse = "/")," parameters with ",paste(vec.transform,collapse="/")),".",
+                ## " (",paste(intersect(c("estimate","se","lower","upper"),columns),collapse = "/"),"). \n",
+                sep ="")
+
         }
+
     }
 
     ## ** export

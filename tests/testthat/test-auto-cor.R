@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 20 2022 (12:12) 
 ## Version: 
-## Last-Updated: May 18 2024 (12:47) 
+## Last-Updated: jul 15 2024 (10:11) 
 ##           By: Brice Ozenne
-##     Update #: 73
+##     Update #: 74
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -31,18 +31,20 @@ LMMstar.options(optimizer = "FS", method.numDeriv = "simple", precompute.moments
 
 ## simulate data
 set.seed(10)
-Y <- mvtnorm::rmvnorm(100, mean = 0:1, sigma = 0.5 + diag(0.5,2,2))
-dfL <- reshape2::melt(Y)
+df.Y <- as.data.frame(mvtnorm::rmvnorm(100, mean = 0:1, sigma = 0.5 + diag(0.5,2,2)))
+dfL <- reshape(df.Y, direction = "long", 
+               timevar = "time", times = c("1","2"), varying = c("V1","V2"), 
+               v.names = "value")
 
 test_that("estimate correlation via lmm", {
-    e0.lmm <- lmm(value ~ Var2,
-                  repetition =~ Var2|Var1,
+    e0.lmm <- lmm(value ~ time,
+                  repetition =~ time|id,
                   type.information = "observed",
                   data = dfL, structure = "UN")
     test <- model.tables(e0.lmm, effects = "correlation")[,c("estimate","lower","upper")]
     GS <- unlist(cor.test(Y[,1],Y[,2])[c("estimate","conf.int")])
 
-    test2 <- partialCor(c(V1,V2)~1, data = data.frame(V1 = Y[,1], V2= Y[,2]))
+    test2 <- partialCor(c(V1,V2)~1, data = df.Y)
     
     ## same point estimate
     expect_equal(as.double(test[,"estimate"]),as.double(GS["estimate.cor"]), tol = 1e-5)
@@ -136,8 +138,9 @@ df.W <- data.frame(id = unlist(lapply(1:n.id, rep, n.time)),
 ## df.W$time2 <- as.factor(df.W$time)
 df.W$X2 <- df.W$X2 + rnorm(n.id, sd = sd.id)[df.W$id]
 df.W$id <- as.factor(df.W$id)
-df.L <- reshape2::melt(df.W, id.vars = c("id","time")) 
-df.L$time2 <- as.factor(as.numeric(as.factor(paste(df.L$variable,df.L$time,sep="."))))
+df.L <- reshape(df.W, direction = "long", idvar = c("id","time"),
+                timevar = "variable", times = c("1","2"), varying = c("X1","X2"), 
+                v.names = "value") 
 
 Sigma.GS <- as.matrix(bdiag(Sigma,Sigma,Sigma))[c(1,3,5,2,4,6),c(1,3,5,2,4,6)]
 Sigma.GS[4:6,4:6] <- Sigma.GS[4:6,4:6] + sd.id^2

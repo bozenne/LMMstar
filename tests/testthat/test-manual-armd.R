@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Dec 19 2021 (17:07) 
 ## Version: 
-## Last-Updated: Mar 26 2024 (09:54) 
+## Last-Updated: jul 15 2024 (10:24) 
 ##           By: Brice Ozenne
-##     Update #: 42
+##     Update #: 45
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -33,16 +33,10 @@ test.practical <- FALSE
 data(armd.wide, package = "nlmeU")
 
 ## and move to long format
-library(reshape2)
-armd.long <- reshape2::melt(armd.wide,
-                            measure.vars = paste0("visual",c(0,4,12,24,52)),
-                            id.var = c("subject","lesion","treat.f","miss.pat"),
-                            variable.name = "week",
-                            value.name = "visual")
-
-armd.long$week <- factor(armd.long$week, 
-                         level = paste0("visual",c(0,4,12,24,52)),
-                         labels = c(0,4,12,24,52))
+armd.long <- reshape(armd.wide, direction = "long", idvar = "subject",
+                     timevar = "week.num", times = c(0,4,12,24,52), varying = paste0("visual",c(0,4,12,24,52)), 
+                     v.names = "visual")
+armd.long$week <- as.factor(armd.long$week.num)
 
 ## * summarize
 test_that("summarize", {
@@ -50,7 +44,10 @@ test_that("summarize", {
     armd.sum <- summarize(visual ~ week * treat.f | subject, ## value ~ group
                           data = armd.long, ## dataset
                           na.rm = TRUE) ## additional argument
-    expect_equivalent(attr(armd.sum,"correlation")$visual$Placebo,
+    armd.cor <- correlate(visual ~ week * treat.f | subject, ## value ~ group
+                          data = armd.long, ## dataset
+                          use = "pairwise.complete.obs") ## additional argument
+    expect_equivalent(armd.cor[,,"visual.treat.f=Placebo"],
                       cor(armd.wide[armd.wide$treat.f=="Placebo",paste0("visual",c(0,4,12,24,52))], use = "pairwise"),
                       tol = 1e-4)
 

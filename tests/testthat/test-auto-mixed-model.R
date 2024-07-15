@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: maj  7 2024 (12:20) 
+## Last-Updated: jul 15 2024 (10:21) 
 ##           By: Brice Ozenne
-##     Update #: 217
+##     Update #: 220
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -155,10 +155,9 @@ Sigma.CRI3[1,6] <- Sigma.CRI3[2,4] <- Sigma.CRI3[3,5] <- Sigma.CRI3[6,1] <- Sigm
 diag(Sigma.CRI3) <- 1
 
 n <- 25
-dfL.CRI3 <- reshape2::melt(data.frame(sample = 1:n,
-                                      mvtnorm::rmvnorm(n, mean = 1:6, sigma = Sigma.CRI3)
-                                      ),
-                           id.vars = "sample")
+dfL.CRI3 <- reshape(data.frame(sample = 1:n, mvtnorm::rmvnorm(n, mean = 1:6, sigma = Sigma.CRI3)), direction = "long", idvar = "sample",
+                    timevar = "variable", times = paste0("X",1:6), varying = paste0("X",1:6), 
+                    v.names = "value")
 dfL.CRI3$patient <- paste(dfL.CRI3$sample,dfL.CRI3$variable %in% paste0("X",4:6)+1, sep = ".")
 dfL.CRI3$day <- paste(dfL.CRI3$sample, sapply(as.character(dfL.CRI3$variable), switch, "X1" = 1, "X2" = 2, "X3" = 3, "X4" = 1, "X5" = 2, "X6" = 3),sep=".")
 dfL.CRI3$batch <- paste(dfL.CRI3$sample, sapply(as.character(dfL.CRI3$variable), switch, "X1" = 1, "X2" = 2, "X3" = 3, "X4" = 2, "X5" = 3, "X6" = 1),sep=".")
@@ -279,10 +278,10 @@ diag(Sigma.NRI3) <- 1
 ## c(sqrt(0.25^2), sqrt(0.5^2-0.25^2), sqrt(0.8^2-0.5^2-0.25^2))
 n <- 1000
 set.seed(10)
-dfL.NRI3 <- reshape2::melt(data.frame(patient = 1:n,
-                                      mvtnorm::rmvnorm(n, mean = 1:8, sigma = Sigma.NRI3)
-                                      ),
-                           id.vars = "patient")
+dfL.NRI3 <- reshape(data.frame(patient = 1:n, mvtnorm::rmvnorm(n, mean = 1:8, sigma = Sigma.NRI3)), direction = "long", idvar = "patient",
+                    timevar = "variable", times = paste0("X",1:8), varying = paste0("X",1:8), 
+                    v.names = "value")
+
 dfL.NRI3$day <- dfL.NRI3$variable %in% paste0("X",5:8)+1
 dfL.NRI3$session <- paste(dfL.NRI3$day,dfL.NRI3$variable %in% c(paste0("X",c(3:4,7:8)))+1,sep=".")
 dfL.NRI3 <- dfL.NRI3[order(dfL.NRI3$patient),]

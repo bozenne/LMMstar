@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 12 2024 (17:33) 
+## Last-Updated: jul 15 2024 (12:26) 
 ##           By: Brice Ozenne
-##     Update #: 987
+##     Update #: 1004
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -308,6 +308,15 @@ confint.lmmCC <- function(object, parm = NULL, level = 0.95, effects = NULL, col
 ##' @param ... other arguments are passed to \code{\link{confint.Wald_lmm}}.
 ##'
 ##' @details Statistical inference following pooling is performed according to Rubin's rule whose validity requires the congeniality condition of Meng (1994).
+##'  \bold{Pooling estimates}: available methods are:
+##' \itemize{
+##'  \item \code{"average"}: average estimates
+##'  \item \code{"pool.fixse"}: weighted average of the estimates, with weights being the inverse of the squared standard error. The uncertainty about the weights is neglected.
+##'  \item \code{"pool.se"}: weighted average of the estimates, with weights being the inverse of the squared standard error. The uncertainty about the weights is computed under independence of the variance parameters between models. 
+##'  \item \code{"pool.gls"}: weighted average of the estimates, with weights being based on the variance-covariance matrix of the estimates. When this matrix is singular, its spectral decomposition is truncated when the correspodning eigenvalues are below \eqn{10^{-12}}. The uncertainty about the weights is neglected. 
+##'  \item \code{"pool.gls1"}: similar to \code{"pool.gls"} but ensure that the weights are at most 1 in absolute value by shrinking toward the average.
+##'  \item \code{"pool.rubin"}: average of the estimates and compute the uncertainty according to Rubin's rule (Barnard et al. 1999).
+##' }
 ##'
 ##' @references
 ##' Meng X. L.(1994). Multiple-imputation inferences with uncongenial sources of input. Statist. Sci.9, 538–58.
@@ -328,7 +337,336 @@ confint.mlmm <- function(object, parm = NULL, level = 0.95, method = NULL, order
     pool.method <- options$pool.method
 
     ## ** extract confidence intervals
-    out.confint <- confint.Wald_lmm(object, parm = parm, level = level, method = method, backtransform = object$args$backtransform, ...)
+    options <- LMMstar.options()
+    pool.method <- options$pool.method
+    adj.method <- options$adj.method
+
+    ## ** normalize user input
+    ##  *** dots
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
+    ## *** parm
+    if(!missing(parm) && !is.null(parm)){
+        stop("Argument \'parm\' is not used - only there for compatibility with the generic method. \n")
+    }
+
+    ## *** dots
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
+    ## *** level
+    alpha <- 1-level
+
+    ## *** method
+    if(any(method %in% c(adj.method,pool.method)==FALSE)){
+        stop("Unknown value for argument \'type\': \"",paste(setdiff(method, c(adj.method,pool.method)),collapse = "\", \""),"\". \n",
+             "Possible values: \"",paste(c(adj.method,pool.method), collapse = "\", \""),"\". \n")
+    }
+
+    ## handle multiple pooling technics
+    if(!is.null(method)){
+        if(length(method)>1){
+            if(sum(method %in% adj.method)>1){
+                stop("Incorrect argument \'method\' \n",
+                     "confint.Wald_lmm cannot handle several methods to adjust for multiple comparisons.")
+            }
+            if("p.rejection" %in% method & is.null(attr(method,"method")) & sum(method %in% adj.method)==1){
+                attr(method,"method") <- intersect(method, adj.method)
+            }
+            ls.confint <- lapply(method, function(iMethod){
+                if(iMethod == "p.rejection"){
+                    attr(iMethod,"method") <- attr(method,"method")
+                    attr(iMethod,"qt") <- attr(method,"qt")
+                }
+                iOut <- confint.Wald_lmm(object = object, method = iMethod, level = level, columns = columns, ...)
+                return(iOut)
+            })
+            out <- do.call(rbind, ls.confint)
+            attr(out,"level") <- level
+            attr(out,"method") <- method
+            attr(out,"contrast") <- stats::setNames(lapply(ls.confint,attr,"contrast"), method)
+            attr(out,"error") <- stats::setNames(lapply(ls.confint,attr,"error"), method)
+            return(out)
+        }else{
+            name.method <- names(method)
+        }
+    }else{
+        name.method <- NULL
+    }
+
+    if(identical(method,"pool.se") && !inherits(object,"rbindWald_lmm")){
+        method <- "pool.fixse"
+        message("Argument \'method\' has been changed from \"pool.se\" to \"pool.fixse\". \n",
+                "Consider using the estimate() function to account for the uncertainty of the weights. \n")
+    }
+    valid.columns <- names(object$univariate)
+    if(identical(columns,"all")){
+        columns <- valid.columns
+    }else if(!is.null(columns)){
+        columns <- tolower(columns)
+        if(any(columns %in% valid.columns == FALSE)){
+            stop("Incorrect value(s) \"",paste(columns[columns %in% valid.columns == FALSE], collapse = "\" \""),"\" for argument \'columns\'. \n",
+                 "Valid values: \"",paste(setdiff(valid.columns, columns), collapse = "\" \""),"\"\n")
+        }
+        if(!is.null(names(columns)) && all(names(columns)=="add")){
+            columns <- union(options$columns.confint, unname(columns))
+        }
+        if(!is.null(names(columns)) && all(names(columns)=="remove")){
+            columns <- setdiff(options$columns.confint, unname(columns))
+        }
+    }else{
+        columns <- options$columns.confint
+    } 
+
+    type <- unique(object$multivariate$type)
+    if(is.null(df)){
+        df2 <- object$args$df
+    }else{
+        df2 <- df
+    }
+    if(object$args$ci==FALSE){
+        level <- NA
+        if(method %in% adj.method){
+            method <- "none"
+        }
+    }
+
+    transform.sigma <- object$args$transform.sigma
+    transform.k <- object$args$transform.k
+    transform.rho <- object$args$transform.rho
+
+    if(is.character(backtransform)){
+        backtransform <-  eval(parse(text=backtransform))
+    }else if(is.numeric(backtransform)){
+        backtransform <- as.logical(backtransform)
+    }
+
+    test.backtransform <- stats::na.omit(c(sigma = transform.sigma, k = transform.k, rho = transform.rho))    
+    if(is.null(backtransform)){            
+        if(options$backtransform.confint==FALSE || length(test.backtransform[test.backtransform != "none"])==0){
+            backtransform <- FALSE
+        }else{
+            backtransform <- object$args$backtransform
+        }
+    }else if(is.logical(backtransform) && length(test.backtransform[test.backtransform != "none"])==0){
+        backtransform <- FALSE
+    }
+    n.model <- length(object$model)
+
+    ## ** normalize df
+    out <- object$univariate
+    out$method <- "NA"
+    if(df2){
+        out$df <- pmax(out$df, options$min.df)
+    }else{
+        out$df <- Inf
+    }
+    out$statistic <- (out$estimate-out$null) / out$se
+
+    ## ** what to compute
+    ## to enable to 'just' compute the null for p.reject without variance/ci/p-value
+    if("null" %in% columns || "p.value" %in% columns){
+        compute.null <- NULL ## compute the null
+    }else{
+        compute.null <- NA ## do not compute the null
+    }
+    if(any(c("se","lower","upper","p.value") %in%  columns)){
+        compute.ci <- TRUE
+    }else{
+        compute.ci <- FALSE
+    }
+            
+    ## ** extract info and compute CI
+    n.sample <- options$n.sampleCopula
+    grid <- unique(object$univariate[,c("type","test"),drop=FALSE])
+    grid$type.original <- object$args$type[[1]]
+    n.grid <- NROW(grid)
+    attr(out,"error") <- rep(NA,n.grid)
+    if(is.null(method) || any(c("none","bonferroni","single-step","single-step2") %in% method)){
+        attr(out,"quantile") <- vector(mode = "list", length = n.grid)
+    }
+
+    for(iGrid in 1:n.grid){ ## iGrid <- 1
+
+        if(n.grid>1){
+            iIndex.table <- intersect(which(out$type==grid$type[iGrid]),
+                                      which(out$test==grid$test[iGrid]))
+        }else{
+            iIndex.table <- 1:NROW(out)
+        }
+        iTable <- out[iIndex.table,,drop=FALSE]
+        iN.test <- NROW(iTable)
+
+        ## *** method for multiple comparisons adjustment
+        if(is.null(method)){
+            if(NROW(iTable$df)==1 || all(is.na(iTable$statistic))){
+                iMethod  <- "none"
+            }else if(df2 == FALSE || all(is.infinite(iTable$df)) || all(abs(iTable$df - round(mean(iTable$df)))<0.1)){
+                iMethod <- "single-step"
+            }else{
+                iMethod <- "single-step2"
+            }
+        }else{
+            if(NROW(iTable$df)==1){
+                iMethod  <- "none"
+            }else{
+                iMethod <- method
+            }
+        }
+
+        if(iMethod %in% c("Westfall","Shaffer","free","single-step","single-step2")){
+            iGlht <- object$glht[[grid[iGrid,"type.original"]]][[grid[iGrid,"test"]]]
+            iGlht$df <- max(iGlht$df, min(out$df)) ## update df: cannot be smaller than the smaller df in the table
+            ## may happen when df=FALSE and all df in the table have been set to Inf
+        }
+        out[iIndex.table,"method"] <-  iMethod
+
+        ## *** evaluation
+        if(iMethod == "none"){
+            
+            out[iIndex.table,"lower"] <- iTable$estimate + iTable$se * stats::qt(alpha/2, df = iTable$df)
+            out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * stats::qt(1-alpha/2, df = iTable$df)
+            out[iIndex.table,"p.value"] <- 2*(1-stats::pt(abs(iTable$statistic), df = iTable$df))
+
+            attr(out, "quantile")[[iGrid]] <-  stats::qt(p = 1-alpha/2, df = iTable$df)
+            
+        }else if(iMethod == "p.rejection"){
+            outPool <- proportion(object = object, index = iIndex.table,
+                                  name.method = name.method, method = attr(method,"method"), qt = attr(method,"qt"),
+                                  null = compute.null, ci = compute.ci & !is.na(level), df = df2, alpha = alpha)
+            out <- rbind(outPool,out[-iIndex.table,,drop=FALSE])
+
+        }else if(iMethod %in% setdiff(pool.method,"p.rejection")){
+
+            outPool <- poolWald(object = object, index = iIndex.table, 
+                                method = method, name.method = name.method, ci = compute.ci & !is.na(level), df = df2, alpha = alpha)
+            out <- rbind(outPool,out[-iIndex.table,,drop=FALSE])
+
+        }else if(iMethod == "single-step"){
+
+            iGlht$df <- round(iGlht$df)
+            iCi <- confint(iGlht)
+            iP <- summary(iGlht, test = multcomp::adjusted("single-step"))
+
+            out[iIndex.table,"lower"] <- iCi$confint[,"lwr"]
+            out[iIndex.table,"upper"] <- iCi$confint[,"upr"]
+            out[iIndex.table,"p.value"] <- as.double(iP$test$pvalues)
+            
+            if(df2){
+                out[iIndex.table,"df"] <- iGlht$df
+            }
+            attr(out, "error")[iGrid] <-  attr(iP$test$pvalues,"error")
+            attr(out, "quantile")[[iGrid]] <-  rep(attr(iCi$confint,"calpha"), length(iIndex.table))
+
+        }else if(iMethod %in% c("Westfall","Shaffer","free")){
+
+            iP <- summary(iGlht, test = multcomp::adjusted(iMethod))
+            out[iIndex.table,"p.value"] <- as.double(iP$test$pvalues)
+            
+            out[iIndex.table,"lower"] <- NA
+            out[iIndex.table,"upper"] <- NA
+            if(df2){
+                out[iIndex.table,"df"] <- iGlht$df
+            }
+
+            if(!is.null(attr(iP$test$pvalues,"error"))){
+                attr(out, "error")[iGrid] <-  attr(iP$test$pvalues,"error")
+            }
+
+        }else if(iMethod == "single-step2"){
+
+            sigma.linfct <- iGlht$linfct %*% iGlht$vcov %*% t(iGlht$linfct)
+            index.n0sigma <- which(diag(sigma.linfct)>0) ## handles no variance (e.g. no treatment effect at baseline)
+            rho.linfct <- stats::cov2cor(sigma.linfct[index.n0sigma,index.n0sigma,drop=FALSE])
+
+            if(all(rho.linfct>=(1-1e-6))){ ## handles perfectly colinear case (e.g. same treatment effect at all timepoints)
+                maxH0 <- abs(stats::rt(n.sample, df = mean(iTable$df[index.n0sigma])))
+            }else{
+                myMvd <- copula::mvdc(copula = copula::normalCopula(param=rho.linfct[lower.tri(rho.linfct)], dim = NROW(rho.linfct), dispstr = "un"),
+                                      margins = rep("t", NROW(rho.linfct)),
+                                      paramMargins = as.list(stats::setNames(iTable$df[index.n0sigma],rep("df",NROW(rho.linfct)))))
+                maxH0 <- apply(abs(copula::rMvdc(n.sample, myMvd)), 1, max)
+            }
+            cH0 <- stats::quantile(maxH0, 1-alpha) 
+
+            out[iIndex.table,"p.value"] <- sapply(abs(iTable$statistic), function(iT){(sum(iT <= maxH0)+1)/(n.sample+1)})
+            out[iIndex.table,"lower"] <- iTable$estimate - iTable$se * cH0
+            out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * cH0                
+            attr(out, "n.sample") <-  n.sample
+            attr(out, "quantile")[[iGrid]] <-  rep(cH0, length(iIndex.table))
+                
+        }else if(iMethod == "bonferroni"){
+                
+            out[iIndex.table,"lower"] <- iTable$estimate + iTable$se * stats::qt(alpha/(2*iN.test), df = iTable$df)
+            out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * stats::qt(1-alpha/(2*iN.test), df = iTable$df)
+            out[iIndex.table,"p.value"] <- pmin(1,iN.test*(2*(1-stats::pt(abs(iTable$statistic), df = iTable$df))))
+                
+            attr(out, "quantile")[[iGrid]] <-  stats::qt(p = 1-alpha/(2*iN.test), df = iTable$df)
+        }else{
+                
+            out[iIndex.table,"lower"] <- NA
+            out[iIndex.table,"upper"] <- NA
+            out[iIndex.table,"p.value"] <- stats::p.adjust(2*(1-stats::pt(abs(iTable$statistic), df = iTable$df)), method = iMethod)
+                
+        }
+    }
+
+    ## ** back-transformation
+    if(is.function(backtransform) || identical(backtransform,TRUE)){
+
+        if(is.function(backtransform)){
+
+            out <- .backtransform(out, type.param = out$type,
+                                  backtransform = TRUE, backtransform.names = NULL,
+                                  transform.mu = backtransform,
+                                  transform.sigma = backtransform,
+                                  transform.k = backtransform,
+                                  transform.rho = backtransform)
+
+        }else{
+
+            out <- .backtransform(out, type.param = out$type,  
+                                  backtransform = TRUE, backtransform.names = object$args$backtransform.names[[1]],
+                                  transform.mu = "none",
+                                  transform.sigma = object$args$transform.sigma,
+                                  transform.k = object$args$transform.k,
+                                  transform.rho = object$args$transform.rho)
+
+            vec.backtransform <- attr(object$univariate,"backtransform")
+            if(!is.null(vec.backtransform)){
+                ## case where a contrast is performed on transformed coefficients (e.g. sigma:male vs sigma:female)
+                ## the back transformed version exp(log(sigma:male) - log(sigma:female)) differs from the original version sigma:male - sigma:female
+                ## thus without further indication the original version is output
+                out[names(vec.backtransform),"estimate"] <- unname(vec.backtransform)
+                out[names(vec.backtransform),"se"] <- NA
+                out[names(vec.backtransform),"df"] <- NA
+                out[names(vec.backtransform),"lower"] <- NA
+                out[names(vec.backtransform),"upper"] <- NA
+            }
+
+        }
+    }
+
+    ## ** export
+    Umethod <- unique(out$method)
+    if(length(Umethod)>1){
+        Umethod <- setdiff(Umethod,"none")
+    }
+    out[names(out)[names(out) %in% columns == FALSE]] <- NULL
+    if(n.grid==1){
+        attr(out, "quantile") <- attr(out, "quantile")[[1]]
+    }
+    attr(out, "level") <- 0.95
+    attr(out, "method") <- Umethod
+    class(out) <- append("confint_lmm", class(out))
+    return(out)
+
+    ## ** re-order
     if(all(method %in% pool.method == FALSE)){
         if(ordering=="by"){
             reorder <- order(object$univariate$by)
@@ -551,14 +889,13 @@ confint.resample <-  function(object, parm = NULL, null = NULL, level = 0.95, me
 ##' @param parm Not used. For compatibility with the generic method.
 ##' @param level [numeric, 0-1] nominal coverage of the confidence intervals.
 ##' @param method [character] type of adjustment for multiple comparisons, one of \code{"none"}, \code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}.
-##' Alternatively, a method for combining the estimates, one of \code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.gls1"}, \code{"pool.rubin"}.
 ##' @param columns [character vector] Columns to be output.
 ##' Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
 ##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the Wald statistic. Otherwise a normal distribution is used.
 ##' @param backtransform [logical] should the estimates, standard errors, and confidence intervals be backtransformed?
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
-##' @details \bold{Adjustment for multiple comparisons}: available methods are:
+##' @details Available \bold{methods} are:
 ##' \itemize{
 ##'  \item \code{"none"}, \code{"bonferroni"}, \code{"single-step2"}
 ##'  \item \code{"holm"}, \code{"hochberg"}, \code{"hommel"}, \code{"BH"}, \code{"BY"}, \code{"fdr"}: adjustment performed by [stats::p.adjust()], no confidence interval is computed.
@@ -566,16 +903,6 @@ confint.resample <-  function(object, parm = NULL, null = NULL, level = 0.95, me
 ##' }
 ##' Note: method \code{"single-step"} adjusts for multiple comparisons using equicoordinate quantiles of the multivariate Student's t-distribution over all tests, instead of the univariate quantiles. It assumes equal degrees of freedom in the marginal and is described in section 7.1 of Dmitrienko et al. (2013) under the name single-step Dunnett procedure. The name \code{"single-step"} is borrowed from the multcomp package. In the book Bretz et al. (2010) written by the authors of the package, the procedure is refered to as max-t tests which is the terminology adopted in the LMMstar package.  \cr
 ##' When degrees of freedom differs between individual hypotheses, method \code{"single-step2"} is recommended. It simulates data using copula whose marginal distributions are Student's t-distribution (with possibly different degrees of freedom) and elliptical copula with parameters the estimated correlation between the test statistics (via the copula package). It then computes the frequency at which the simulated maximum exceed the observed maximum and appropriate quantile of simulated maximum for the confidence interval.
-##'
-##'  \bold{Pooling estimates}: available methods are:
-##' \itemize{
-##'  \item \code{"average"}: average estimates
-##'  \item \code{"pool.fixse"}: weighted average of the estimates, with weights being the inverse of the squared standard error. The uncertainty about the weights is neglected.
-##'  \item \code{"pool.se"}: weighted average of the estimates, with weights being the inverse of the squared standard error. The uncertainty about the weights is computed under independence of the variance parameters between models. 
-##'  \item \code{"pool.gls"}: weighted average of the estimates, with weights being based on the variance-covariance matrix of the estimates. When this matrix is singular, its spectral decomposition is truncated when the correspodning eigenvalues are below \eqn{10^{-12}}. The uncertainty about the weights is neglected. 
-##'  \item \code{"pool.gls1"}: similar to \code{"pool.gls"} but ensure that the weights are at most 1 in absolute value by shrinking toward the average.
-##'  \item \code{"pool.rubin"}: average of the estimates and compute the uncertainty according to Rubin's rule (Barnard et al. 1999).
-##' }
 ##'
 ##' @references Barnard and Rubin, \bold{Small-sample degrees of freedom with multiple imputation}. \emph{Biometrika} (1999), 86(4):948-955. \cr
 ##' Dmitrienko, A. and D'Agostino, R., Sr (2013), \bold{Traditional multiplicity adjustment methods in clinical trials}. \emph{Statist. Med.}, 32: 5172-5218.
@@ -592,6 +919,12 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
     adj.method <- options$adj.method
 
     ## ** normalize user input
+    ##  *** dots
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
     ## *** parm
     if(!missing(parm) && !is.null(parm)){
         stop("Argument \'parm\' is not used - only there for compatibility with the generic method. \n")
@@ -607,45 +940,15 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
     alpha <- 1-level
 
     ## *** method
-    if(any(method %in% c(adj.method,pool.method)==FALSE)){
-        stop("Unknown value for argument \'type\': \"",paste(setdiff(method, c(adj.method,pool.method)),collapse = "\", \""),"\". \n",
-             "Possible values: \"",paste(c(adj.method,pool.method), collapse = "\", \""),"\". \n")
+    if(any(method %in% adj.method == FALSE)){
+        stop("Unknown value for argument \'type\': \"",paste(setdiff(method, adj.method),collapse = "\", \""),"\". \n",
+             "Possible values: \"",paste(adj.method, collapse = "\", \""),"\". \n")
     }
-    ## handle multiple pooling technics
-    if(!is.null(method)){
-        if(length(method)>1){
-            if(sum(method %in% adj.method)>1){
-                stop("Incorrect argument \'method\' \n",
-                     "confint.Wald_lmm cannot handle several methods to adjust for multiple comparisons.")
-            }
-            if("p.rejection" %in% method & is.null(attr(method,"method")) & sum(method %in% adj.method)==1){
-                attr(method,"method") <- intersect(method, adj.method)
-            }
-            ls.confint <- lapply(method, function(iMethod){
-                if(iMethod == "p.rejection"){
-                    attr(iMethod,"method") <- attr(method,"method")
-                    attr(iMethod,"qt") <- attr(method,"qt")
-                }            
-                iOut <- confint.Wald_lmm(object = object, method = iMethod, level = level, columns = columns, ...)
-                return(iOut)
-            })
-            out <- do.call(rbind, ls.confint)
-            attr(out,"level") <- level
-            attr(out,"method") <- method
-            attr(out,"contrast") <- stats::setNames(lapply(ls.confint,attr,"contrast"), method)
-            attr(out,"error") <- stats::setNames(lapply(ls.confint,attr,"error"), method)
-            return(out)
-        }else{
-            name.method <- names(method)
-        }
-    }else{
-        name.method <- NULL
+    if(length(method)>1){
+        stop("Argument \'method\' should have length 1. \n")
     }
-    if(identical(method,"pool.se") && !inherits(object,"rbindWald_lmm")){
-        method <- "pool.fixse"
-        message("Argument \'method\' has been changed from \"pool.se\" to \"pool.fixse\". \n",
-                "Consider using the estimate() function to account for the uncertainty of the weights. \n")
-    }
+
+    ## *** columns
     valid.columns <- names(object$univariate)
     if(identical(columns,"all")){
         columns <- valid.columns
@@ -666,11 +969,15 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
     } 
 
     type <- unique(object$multivariate$type)
+
+    ## *** df
     if(is.null(df)){
         df2 <- object$args$df
     }else{
         df2 <- df
     }
+
+    ## *** level
     if(object$args$ci==FALSE){
         level <- NA
         if(method %in% adj.method){
@@ -678,6 +985,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
         }
     }
 
+    ## *** backtransform
     transform.sigma <- object$args$transform.sigma
     transform.k <- object$args$transform.k
     transform.rho <- object$args$transform.rho
@@ -709,19 +1017,6 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
         out$df <- Inf
     }
     out$statistic <- (out$estimate-out$null) / out$se
-
-    ## ** what to compute
-    ## to enable to 'just' compute the null for p.reject without variance/ci/p-value
-    if("null" %in% columns || "p.value" %in% columns){
-        compute.null <- NULL ## compute the null
-    }else{
-        compute.null <- NA ## do not compute the null
-    }
-    if(any(c("se","lower","upper","p.value") %in%  columns)){
-        compute.ci <- TRUE
-    }else{
-        compute.ci <- FALSE
-    }
             
     ## ** extract info and compute CI
     n.sample <- options$n.sampleCopula
@@ -777,18 +1072,6 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
 
             attr(out, "quantile")[[iGrid]] <-  stats::qt(p = 1-alpha/2, df = iTable$df)
             
-        }else if(iMethod == "p.rejection"){
-            outPool <- proportion.mlmm(object = object, index = iIndex.table,
-                                       name.method = name.method, method = attr(method,"method"), qt = attr(method,"qt"),
-                                       null = compute.null, ci = compute.ci & !is.na(level), df = df2, alpha = alpha)
-            out <- rbind(outPool,out[-iIndex.table,,drop=FALSE])
-
-        }else if(iMethod %in% setdiff(pool.method,"p.rejection")){
-
-            outPool <- poolWald.mlmm(object = object, index = iIndex.table, 
-                                     method = method, name.method = name.method, ci = compute.ci & !is.na(level), df = df2, alpha = alpha)
-            out <- rbind(outPool,out[-iIndex.table,,drop=FALSE])
-
         }else if(iMethod == "single-step"){
 
             iGlht$df <- round(iGlht$df)

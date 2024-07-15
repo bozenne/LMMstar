@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: jul 11 2024 (16:36) 
+## Last-Updated: jul 15 2024 (19:45) 
 ##           By: Brice Ozenne
-##     Update #: 828
+##     Update #: 927
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,8 +25,8 @@
 ##' or only coefficients relative to the variance structure (\code{"variance"}),
 ##' or only coefficients relative to the correlation structure (\code{"correlation"}).
 ##' Can also be \code{"ranef"} to output random effect (only for \code{CS} structure).
-##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
 ##' @param p [numeric vector] value of the model coefficients to be used. Only relevant if differs from the fitted values.
+##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
 ##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
 ##' @param transform.rho [character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"} - see details.
 ##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
@@ -256,23 +256,53 @@ coef.LRT_lmm <- function(object, ...){
 ##' @param p [list of numeric vector] list of model coefficients to be used. Only relevant if differs from the fitted values.
 ##' @param type [character] Should the coefficients be extracted (\code{"coef"}) or the contrast matrix (\code{"contrast"} or \code{"ls.contrast"}).
 ##' \code{"contrast"} will extract the contrast matrix acrossed models (typically identity when testing an exposure effect in each model separately)
-##' whereas \code{"ls.contrast"} will extract the contrast matrix applied to each model as a list.
+##' whereas \code{"ls.contrast"} will extract the contrast matrix applied to each model as a list.##' 
+##' @param method [character] type of adjustment for multiple comparisons, one of \code{"none"}, \code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}.
+##' Alternatively, a method for combining the estimates, one of \code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.gls1"}, \code{"pool.rubin"}.
+##' Ignored if \code{type="contrast"} or \code{type="ls.contrast"}.
 ##' @param ordering [character] should the output be ordered by type of parameter (\code{parameter}) or by model (\code{by}).
-##' @param ... passed to \code{coef.Wald_lmm}.
+##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
+##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
+##' @param transform.rho [character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"} - see details.
+##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
+##' @param ... Not used. For compatibility with the generic method.
 
 ## * coef.mlmm (code)
 ##' @export
-coef.mlmm <- function(object, effects = "contrast", p = NULL, type = "coef", ordering = "parameter", ...){
+coef.mlmm <- function(object, effects = "contrast", p = NULL, type = "coef", method = "none", ordering = "parameter",
+                      transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE, ...){
+
+    options <- LMMstar.options()
+    pool.method <- options$pool.method
+    adj.method <- options$adj.method
 
     ## ** normalize user input
 
-    ## effects
-    if(!is.null(effects)){
-        effects <- match.arg(effects, c("contrast","mean","fixed","variance","correlation","all"), several.ok = TRUE)
+    ## *** dots
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
 
-    ## p
+    ## *** effects
+    if(!is.character(effects) || !is.vector(effects)){
+        stop("Argument \'effects\' must be a character vector")
+    }
+    valid.effects <- c("contrast","mean","fixed","variance","correlation","all")
+    if(any(effects %in% valid.effects == FALSE)){
+        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+    }    
+    if("effects" %in% effects && length(effects)>1){
+        stop("Argument \'effects\' must have length 1 when containing the element \'effects\'. \n")
+    }
+    if("all" %in% effects && length(effects)>1){
+        stop("Argument \'effects\' must have length 1 when containing the element \'all\'. \n")
+    }
+    
+    ## *** p
     if(!is.null(p)){
+        
         if(!is.list(p)){
             stop("Argument \'p\' should either be NULL or a list. \n")
         }
@@ -283,18 +313,37 @@ coef.mlmm <- function(object, effects = "contrast", p = NULL, type = "coef", ord
             stop("Incorrect names for argument \'p\': \"",paste(setdiff(names(p),names(object$model)), collapse = "\", \""),"\". \n", 
                  "Should be among \"",paste(names(object$model), collapse = "\", \""),"\". \n")
         }
-        if(!is.null(object$univariate) & all(object$univariate$type=="mu")){
-            effects2 <- "mean"
-        }else{
-            effects2 <- "all"
-        }
-    }else{
-        effects2 <- effects
+
     }
 
-    ordering <- match.arg(ordering, c("by","parameter"))
+    ## *** type
     type <- match.arg(type, c("coef","contrast","ls.contrast"))
-    
+
+    ## *** method
+    if(any(method %in% c(adj.method,pool.method)==FALSE)){
+        stop("Unknown value for argument \'type\': \"",paste(setdiff(method, c(adj.method,pool.method)),collapse = "\", \""),"\". \n",
+             "Possible values: \"",paste(c(adj.method,pool.method), collapse = "\", \""),"\". \n")
+    }
+    if(length(method)>1){
+        ##  handle multiple pooling technics
+        if(type != "coef"){
+            stop("Argument \'type\' must be equal to \"coef\" when the length of argument \"method\" is strictly greater than one. \n")
+        }
+        if(any(effects != "contrast")){
+            stop("Argument \'effects\' must be equal to \"coef\" when the length of argument \"method\" is strictly greater than one. \n")
+        }
+        if(sum(method %in% adj.method)>1){
+            stop("Incorrect argument \'method\': cannot handle several methods to adjust for multiple comparisons. \n")
+        }
+        if("p.rejection" %in% method & is.null(attr(method,"method")) & sum(method %in% adj.method)==1){
+            attr(method,"method") <- intersect(method, adj.method)
+        }
+    }else{
+        name.method <- names(method)
+    }
+
+    ## *** ordering
+    ordering <- match.arg(ordering, c("by","parameter"))
 
     ## ** extract
     if(type == "contrast"){
@@ -302,35 +351,72 @@ coef.mlmm <- function(object, effects = "contrast", p = NULL, type = "coef", ord
     }else if(type == "ls.contrast"){
         out <- object$glht$all[[1]]$linfct.original
         names(out) <- names(object$model)
-    }else if(!is.null(effects) && length(effects)==1 && effects=="contrast" && is.null(p)){
-        out <- coef.Wald_lmm(object, backtransform = object$args$backtransform, ...)
-        if(length(out) == NROW(object$univariate)){
-            ## only reorder when no pooling
-            if(ordering=="by"){
-                out <- out[order(object$univariate[["by"]])]
-            }else if(is.list(object$univariate$parameter)){
-                out <- out[order(object$univariate$type,sapply(object$univariate$parameter, paste, collapse=";"))]
-            }else{
-                out <- out[order(object$univariate$type,object$univariate$parameter)]
+    }else if(all(effects=="contrast")){ ## contrast of mean/variance/correlation parameters
+        
+        ls.out <- lapply(method, function(iMethod){ ## iMethod <- method[1]
+            
+            if(iMethod %in% pool.method){
+
+                if(method == "p.rejection"){
+                    iOut <- proportion.mlmm(object = object, p = p, index = iIndex.table,
+                                            name.method = name.method, method = attr(method,"method"), qt = attr(method,"qt"),
+                                            null = NA, ci = FALSE, df = FALSE, alpha = NA)
+                }else{
+                    iOut <- poolWald.mlmm(object = object, p = p, index = iIndex.table,
+                                          method = method, name.method = name.method,
+                                          ci = FALSE, df = FALSE, alpha = NA)
+                }
+            
+                iOut <- stats::setNames(table.out[,"estimate"],rownames(table.out))
+            
+            }else{ 
+                if(is.null(p)){
+                    iOut <- coef.Wald_lmm(object, type = "coef")
+                }else{
+                    contrast <- coef(object, type = "contrast") ## extract linear combination from each model
+                    ls.contrast <- coef(object, type = "ls.contrast") ## contrast combinations across models
+                    iCoef <- coef(object, p = p, effects = "all", ordering = "by",
+                                 transform.sigma = object$args$transform.sigma, transform.k = object$args$transform.k, transform.rho = object$args$transform.rho, transform.names = FALSE)
+                    iCCoef <- do.call(rbind,mapply(iC = ls.contrast, iTheta = iCoef, function(iC,iTheta){iC %*% iTheta}, SIMPLIFY = FALSE))
+                    iOut <- (contrast %*% iCCoef)[,1]
+                }
+                if(ordering=="by"){
+                    iOut <- iOut[order(object$univariate[["by"]])]
+                }else{ ## parameter may contain a list when multiple group variables
+                    iOut <- iOut[order(object$univariate$parameter)]
+                }
+             
             }
-        }
-    }else{
-        if(is.null(p)){
-            ls.out <- lapply(object$model, coef, effects = effects, ...)
+            return(iOut)
+        })
+
+        if(length(method)==1){
+            out <- ls.out[[1]]
         }else{
-            ls.out <- mapply(object = object$model, p = p, FUN = coef, effects = effects2, ..., SIMPLIFY = FALSE)
+            out <- do.call(rbind, ls.out)
         }
-        if(!is.null(effects) && length(effects)==1 && effects=="contrast"){
-            out <- mapply(iC = coef(object, type = "ls.contrast"), iMu = ls.out, FUN = function(iC,iMu){iC[,names(iMu),drop=FALSE] %*% cbind(iMu)})
-        }else if(ordering == "by"){
-            out <- ls.out
-        }else if(ordering == "parameter"){
-            Uname <- unique(unlist(lapply(ls.out,names)))
-            ls.out2 <- stats::setNames(lapply(Uname, function(iName){ ## iName <- "X1"
-                unlist(lapply(ls.out,function(iVec){unname(iVec[iName])}))
-            }), Uname)
-            out <- ls.out2
+
+    }else{ ## mean/variance/correlation/all parameters
+        if(is.null(p)){
+            out <- lapply(object$model, coef, effects = effects,
+                          transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+        }else{
+            out <- lapply(names(object$model), function(iBy){
+                coef(object$model[[iBy]], p = p[[iBy]], effects = effects,
+                     transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+                })
         }
+
+        ## only reorder when no pooling
+        if(ordering=="by"){
+            ## nothing to do
+        }else if(ordering=="parameter"){
+            all.parameters <- unique(unlist(lapply(out,names)))
+            out <- stats::setNames(lapply(all.parameters, function(iParam){
+                sapply(out,"[[",iParam)
+            }), all.parameters)
+        }
+        
     }
 
     ## ** export
@@ -347,14 +433,13 @@ coef.mlmm <- function(object, effects = "contrast", p = NULL, type = "coef", ord
 ##' @param ... Not used. For compatibility with the generic method.
 ##' 
 ##' @export
-coef.Wald_lmm <- function(object, type = "coef", method = "none", backtransform = object$args$backtransform, ...){
+coef.Wald_lmm <- function(object, type = "coef", backtransform = object$args$backtransform, ...){
 
     options <- LMMstar.options()
-    pool.method <- options$pool.method
-    adj.method <- options$adj.method
     table.univariate <- object$univariate
     
     ## ** normalize user input
+    ## *** dots
     dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
@@ -362,40 +447,6 @@ coef.Wald_lmm <- function(object, type = "coef", method = "none", backtransform 
 
     ## *** type
     type <- match.arg(type, c("coef","contrast","ls.contrast"))
-    
-    ## *** method
-    if(any(method %in% c(adj.method,pool.method)==FALSE)){
-        stop("Unknown value for argument \'type\': \"",paste(setdiff(method, c(adj.method,pool.method)),collapse = "\", \""),"\". \n",
-             "Possible values: \"",paste(c(adj.method,pool.method), collapse = "\", \""),"\". \n")
-    }
-
-
-    if(length(method)>1){
-        ##  handle multiple pooling technics
-        if(type != "coef"){
-            message("Argument \'type\' ignored when argument \"method\" is a vector. \n")
-        }
-        if(sum(method %in% adj.method)>1){
-            stop("Incorrect argument \'method\' \n",
-                 "coef.Wald_lmm cannot handle several methods to adjust for multiple comparisons.")
-        }
-        if("p.rejection" %in% method & is.null(attr(method,"method")) & sum(method %in% adj.method)==1){
-            attr(method,"method") <- intersect(method, adj.method)
-        }
-
-        ls.coef <- lapply(method, function(iMethod){
-            if(iMethod == "p.rejection"){
-                attr(iMethod,"method") <- attr(method,"method")
-                attr(iMethod,"qt") <- attr(method,"qt")
-            }
-            iOut <- coef.Wald_lmm(object = object, type = "coef", method = iMethod, backtransform = backtransform, ...)
-            return(iOut)
-        })
-        out <- do.call(c, ls.coef)
-        return(out)
-    }else{
-        name.method <- names(method)
-    }
     
     ## ** extract from object
     if(type %in% c("contrast","ls.contrast")){
@@ -411,31 +462,6 @@ coef.Wald_lmm <- function(object, type = "coef", method = "none", backtransform 
             }
         }
     }else if(type == "coef"){
-
-        if(method %in% pool.method){
-
-            grid <- unique(table.univariate[,c("type","test"),drop=FALSE])
-            n.grid <- NROW(grid)
-            table.out <- do.call(rbind,lapply(1:n.grid , function(iGrid){
-                if(n.grid>1){
-                    iIndex.table <- intersect(which(table.univariate$type==grid$type[iGrid]),
-                                              which(table.univariate$test==grid$test[iGrid]))
-                }else{
-                    iIndex.table <- 1:NROW(table.univariate)
-                }
-                if(method == "p.rejection"){
-                    iOut <- proportion.mlmm(object = object, index = iIndex.table,
-                                            name.method = name.method, method = attr(method,"method"), qt = attr(method,"qt"),
-                                            null = NA, ci = FALSE, df = FALSE, alpha = NA)
-                }else{
-                    iOut <- poolWald.mlmm(object = object, index = iIndex.table,
-                                          method = method, name.method = name.method,
-                                          ci = FALSE, df = FALSE, alpha = NA)
-                }
-            }))
-            out <- stats::setNames(table.out[,"estimate"],rownames(table.out))
-            
-        }else{
 
             if(is.null(table.univariate)){
                 out <- NULL
@@ -458,7 +484,6 @@ coef.Wald_lmm <- function(object, type = "coef", method = "none", backtransform 
                 }
                 out <- stats::setNames(tableBack.univariate$estimate, rownames(tableBack.univariate))
             }
-        }
     }
 
     ## ** export

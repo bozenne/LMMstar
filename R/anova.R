@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jul 12 2024 (17:11) 
+## Last-Updated: jul 15 2024 (13:19) 
 ##           By: Brice Ozenne
-##     Update #: 1492
+##     Update #: 1497
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -173,6 +173,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, multivariate = TRU
         ls.contrast$all[,colnames(out.glht$linfct)] <- out.glht$linfct
         ls.null  <- list(all = out.glht$rhs)
         name.effects <- NULL
+        simplify <- FALSE ## keep vcov and iid
        
     }else if(is.matrix(effects)){
         ## try to re-size the matrix if necessary
@@ -208,6 +209,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, multivariate = TRU
         ls.null  <- list(all = out.glht$rhs)        
         name.effects <- rownames(effects)
         type <- "all"
+        simplify <- FALSE ## keep vcov and iid
 
     }else if(all(tolower(effects) %in% c("all","mean","fixed","variance","correlation"))){
 
@@ -267,9 +269,9 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, multivariate = TRU
             ls.null$correlation <- rep(null.correlation,length(ls.nameTerms$correlation))
         }
         ls.nameTerms.num <- lapply(ls.nameTerms, function(iName){as.numeric(factor(iName, levels = iName))})
+        simplify <- TRUE ## do not keep vcov and iid
         
     }else{
-
         if(all(grepl("=",effects)==FALSE)){
             X <- object$design$mean
             if(all(effects %in% attr(X,"variable"))){
@@ -358,6 +360,8 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, multivariate = TRU
             ls.nameTerms <- list(all = NULL)
         }
         ls.nameTerms.num <- list(all = 1)
+
+        simplify <- FALSE ## keep vcov and iid
     }
 
     ## ** prepare
@@ -556,15 +560,15 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, multivariate = TRU
     }
 
     ## ** save some of the objects for possible use of rbind.Wald_lmm
-    if(ci > 0.5){
-        out$object <- list(outcome = object$outcome$var,
-                           method.fit = object$args$method.fit,
-                           type.information = type.information,
-                           cluster.var = object$cluster$var,
-                           cluster = object$cluster$levels,
-                           structure = c(type = object$design$vcov$type, class = object$design$vcov$class))
+    out$object <- list(outcome = object$outcome$var,
+                       method.fit = object$args$method.fit,
+                       type.information = type.information,
+                       cluster.var = object$cluster$var,
+                       cluster = object$cluster$levels,
+                       structure = c(type = object$design$vcov$type, class = object$design$vcov$class))
 
-        globalC <- do.call(rbind,lapply(unlist(out$glht, recursive=FALSE),"[[","linfct"))
+    if(!simplify){
+        globalC <- do.call(rbind, lapply(unlist(out$glht, recursive = FALSE), "[[", "linfct"))
 
         ## default: non-robust vcov and robust for iid
         if(attr(robust,"call")){
@@ -583,8 +587,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, multivariate = TRU
             out$iid <- iid(object, effects = "mean", robust = robust2, 
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE) %*% t(globalC)
         }
-   }
-
+    }
 
     ## ** prepare for back-transformation
     out$args <- data.frame(type = NA, robust = robust, df = df, ci = ci,

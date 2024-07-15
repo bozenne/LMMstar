@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: maj  7 2024 (15:33) 
+## Last-Updated: jul 15 2024 (10:28) 
 ##           By: Brice Ozenne
-##     Update #: 166
+##     Update #: 168
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -289,15 +289,11 @@ test_that("glht - number of parameters",{
 test_that("lmm - estimation with missing data",{
     data(armd.wide, package = "nlmeU")
 
-    armd.long <- reshape2::melt(armd.wide, 
-                                id.var = c("subject","treat.f","lesion","miss.pat"),
-                                measure.vars = c("visual0","visual4","visual12","visual24","visual52"),
-                                variable.name = "week", 
-                                value.name = "visual")
+    armd.long <- reshape(armd.wide, direction = "long", idvar = "subject",
+                         timevar = "week.num", times = c(0,4,12,24,52), varying = paste0("visual",c(0,4,12,24,52)), 
+                         v.names = "visual")
+    armd.long$week <- as.factor(armd.long$week.num)
     armd.long <- armd.long[order(armd.long$subject),]
-    armd.long$week <- factor(armd.long$week, 
-                             level = c("visual0","visual4","visual12","visual24","visual52"), 
-                             labels = c(0,4,12,24,52))
     rownames(armd.long) <- NULL
 
     e.lmm <- lmm(visual ~ week + week:treat.f,
@@ -483,7 +479,10 @@ test_that("Incorrect ordering of the coefficient in mlmm", {
                  data.table(id = paste0("C",formatC(1:n, width = 3, format = "d", flag = "0")),
                             group = "G2",
                             Y_G2))
-    dtL <- melt(dtW, id.vars = c("id","group"), variable.name = "pipeline")
+    dtL <- reshape(dtW, direction = "long", idvar = "id",
+                   timevar = "pipeline", times = paste0("V",1:10), varying = paste0("V",1:10),
+                   v.name = "value")
+    dtL$pipeline <- factor(dtL$pipeline, levels = paste0("V",1:10))
     dtLS <- summarize(value ~ group+pipeline, dtL)
 
     e.mlmm <- mlmm(value~group, repetition = ~1|id, data = dtL, df = FALSE, robust = TRUE,

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: jul 12 2024 (15:15) 
+## Last-Updated: jul 15 2024 (17:40) 
 ##           By: Brice Ozenne
-##     Update #: 415
+##     Update #: 443
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -197,7 +197,7 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
             effects <- paste0(effects,"=0")
         }
     }
-    
+
     if(is.null(effects)){
 
         name.contrastCoef <- lapply(ls.lmm, function(iLMM){names(coef(iLMM, effects = options$effects))})
@@ -243,37 +243,36 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
             rhs <- NULL
         }
 
-    }else if(length(effects)==1 && is.character(effects) && grepl("=",effects,fixed=TRUE)){
-
-        ls.Cmat <- stats::setNames(lapply(1:n.lmm, function(iI){effects}), name.lmm)
-        rhs <- NULL
-
     }else if(all(is.character(effects))){
+
         valid.effects <- c("mean","fixed","variance","correlation","all")
-        if(any(effects %in% valid.effects== FALSE)){
+
+        if(all(grepl("=",effects,fixed=TRUE))){
+            ls.Cmat <- stats::setNames(lapply(1:n.lmm, function(iI){effects}), name.lmm)
+            rhs <- NULL
+        }else if(all(effects %in% valid.effects== FALSE)){
+            
+            name.contrastCoef <- lapply(ls.lmm, function(iLMM){names(coef(iLMM, effects = effects))})
+
+            for(iName in name.lmm){
+                iNameCoef <- name.contrastCoef[[iName]]
+                if(length(iNameCoef)==1){
+                    ls.Cmat[[iName]][iNameCoef,iNameCoef] <- 1
+                }else{
+                    diag(ls.Cmat[[iName]][iNameCoef,iNameCoef]) <- 1
+                }
+                ls.Cmat[[iName]] <- ls.Cmat[[iName]][rowSums(ls.Cmat[[iName]]!=0)>0,,drop=FALSE] 
+            }
+        
+            rhs <- NULL
+        }else{
             stop("Incorrect value for argument \'effects\'. \n",
-                 "When a character should either be a contrast (i.e. contrain the symbol = and have length one), \n",
+                 "When a character should either be a contrast like \"",utils::tail(names(coef(ls.lmm[[1]])),1),"=0\", \n",
                  "Or be among: \"",paste(valid.effects,collapse="\" \""),"\"\n")
         }
-
-        name.contrastCoef <- lapply(ls.lmm, function(iLMM){names(coef(iLMM, effects = effects))})
-
-        for(iName in name.lmm){
-            iNameCoef <- name.contrastCoef[[iName]]
-            if(length(iNameCoef)==1){
-                ls.Cmat[[iName]][iNameCoef,iNameCoef] <- 1
-            }else{
-                diag(ls.Cmat[[iName]][iNameCoef,iNameCoef]) <- 1
-            }
-            ls.Cmat[[iName]] <- ls.Cmat[[iName]][rowSums(ls.Cmat[[iName]]!=0)>0,,drop=FALSE] 
-        }
-
-        
-        rhs <- NULL
-
     }else{
         stop("Unknown value for argument \'effects\'. \n",
-             "Can be a matrix, or a character encoding the contrast, or \"mean\", \"variance\", \"correlation\", \"all\".\n")
+             "Can be a matrix, or a character encoding the contrast like \"",utils::tail(names(coef(ls.lmm[[1]])),1),"=0\", or \"mean\", \"variance\", \"correlation\", \"all\".\n")
     }
     ## *** run
     if(trace>0.5){
@@ -323,12 +322,20 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
         rhs.by <- NULL
         sep <- ": "
     }
+
     out <- do.call("rbind.Wald_lmm",
                    args = c(list(model = ls.anova[[1]], effects = contrast.rbind, rhs = rhs.by, name = name.model, sep = sep), unname(ls.anova[-1]))
                    )
     out$model <- ls.lmm
     names(out$univariate)[1] <- "by"
 
+    ## re-order cluster (order may be lost when spliting the dataset per by)
+    if(is.null(repetition)){
+        out$object$cluster <- out$object$cluster[order(factor(out$object$cluster, levels = data$XXclusterXX))]
+    }else{
+        out$object$cluster <- out$object$cluster[order(factor(out$object$cluster, levels = data[[var.cluster]]))]
+    }
+    
     ## add covariate values
     keep.rowname <- rownames(out$univariate)
     if(is.null(contrast.rbind)){

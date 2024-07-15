@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: jul 11 2024 (14:35) 
+## Last-Updated: jul 15 2024 (19:43) 
 ##           By: Brice Ozenne
-##     Update #: 155
+##     Update #: 156
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -42,6 +42,7 @@
 #' \item param.optimizer [numeric vector]: default option for the \code{FS} optimization routine: maximum number of gradient descent iterations (\code{n.iter}), maximum acceptable score value (\code{tol.score}), maximum acceptable change in parameter value (\code{tol.param}).
 #' \item pool.method [character vector]: possible methods to pool estimates. NOT MEANT TO BE CHANGED BY THE USER.
 #' \item precompute.moments [logical]: Should the cross terms between the residuals and design matrix be pre-computed. Useful when the number of subject is substantially larger than the number of mean paramters.
+#' \item REML2ML [logical]: approximation used to evaluate the influence function under REML (see \code{\link{iid.lmm}} for details).
 #' \item sep [character vector]: character used to combined two strings of characters in various functions (lp: .vcov.model.matrix, k.cov/k.strata: .skeletonK, pattern: .findUpatterns, rho.name/rho.strata: .skeletonRho, reformat: .reformat ).
 #' \item trace [logical]: Should the progress of the execution of the \code{lmm} function be displayed?
 #' \item tranform.sigma, tranform.k, tranform.rho: transformation used to compute the confidence intervals/p-values for the variance and correlation parameters. See the detail section of the coef function for more information.
@@ -76,6 +77,7 @@ LMMstar.options <- function(..., reinitialise = FALSE){
                     param.optimizer = c(n.iter = 100, tol.score = 1e-4, tol.param = 1e-5, n.backtracking = 10),
                     pool.method = c("average","pool.fixse","pool.se","pool.gls","pool.gls1","pool.rubin","p.rejection"),
                     precompute.moments = TRUE,
+                    REML2ML = TRUE,
                     sep = c(lp = ":", ## (.vcov.matrix.lmm) separator between the linear predictor when aggregated across repetitions
                             k.cov = ".", ## (.skeletonK) separator between the letter k and the covariate levels, e.g. k?2.1 
                             k.strata = ":", ## (.skeletonK) separtor between the covariate level(s), e.g. k.2?1
@@ -178,6 +180,9 @@ LMMstar.options <- function(..., reinitialise = FALSE){
           }
           if("method.numDeriv" %in% names(args)){
               args$method.numDeriv <- match.arg(args$method.numDeriv, c("simple","Richardson","complex"))
+          }
+          if("REML2ML" %in% names(args) && !is.logical(args$REML2ML)){
+              stop("Argument \'REML2ML\' must be of type logical. \n")
           }
           if("sep" %in% names(args)){
               sep.save <- args$sep

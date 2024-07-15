@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 12 2024 (17:36) 
+## Last-Updated: jul 15 2024 (17:36) 
 ##           By: Brice Ozenne
-##     Update #: 533
+##     Update #: 565
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -67,10 +67,26 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
 
     default <- LMMstar.options()
     call <- match.call()
-    
+
     ## ** Check user input
+    ## *** dots
     dots <- list(...)
+
+    ## special case of single lmm
     if(length(dots)==0){
+        if(NROW(model$multivariate)!=1){
+            stop("Cannot handle multiple Multivariate Wald test in a single object. \n")
+        }
+        if(is.null(model$iid) || is.null(model$vcov)){ ## stop if effects is mean, variance, covariance, all
+            stop("No iid or variance covariance matrix was stored in the Wald_lmm object. \n")
+        }
+        if(!is.null(name) && length(name)==1){
+            model$univariate <- cbind(outcome = name, parameter = rownames(model$univariate), model$univariate)
+            M.contrast <- model$glht[[1]][[1]]$linfct
+            model$glht[[1]][[1]]$linfct.original <- list(M.contrast)
+            model$glht[[1]][[1]]$linfct <- diag(1, nrow = NROW(M.contrast))
+            dimnames(model$glht[[1]][[1]]$linfct) <- list(rownames(M.contrast),rownames(M.contrast))
+        }
         return(model) ## nothing to combine
     }else if(any(sapply(dots,inherits,"Wald_lmm")==FALSE)){
         stop("Extra arguments should inherit from Wald_lmm. \n")
@@ -82,6 +98,9 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
     }
     if(any(sapply(ls.object, function(iO){NROW(iO$multivariate)})!=1)){
         stop("Cannot handle multiple Multivariate Wald test in a single object. \n")
+    }
+    if(any(sapply(ls.object, function(iO){is.null(iO$iid) || is.null(iO$vcov)}))){ ## stop if effects is mean, variance, covariance, all
+        stop("No iid or variance covariance matrix was stored in the Wald_lmm objects. \n")
     }
 
     table.args <- cbind(do.call(rbind,lapply(ls.object,"[[","args")),
@@ -289,7 +308,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL, name = NULL, 
 
     if(any(duplicated(unlist(ls.cluster)))){
         if(cluster.var=="XXclusterXX"){
-            stop("Unable to decided whether observations from different models are matched or independent. \n",
+            stop("Unable to decide whether observations from different models are matched or independent. \n",
                  "Consider specifying the \'repetition\' argument fitting the linear mixed model. \n")
         }
         independence <- FALSE

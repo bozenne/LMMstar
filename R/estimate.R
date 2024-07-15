@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: jul  4 2024 (09:36) 
+## Last-Updated: jul 15 2024 (10:32) 
 ##           By: Brice Ozenne
-##     Update #: 1082
+##     Update #: 1119
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -38,6 +38,7 @@
 ##' @keywords mhtest
 ##' 
 ##' @examples
+##' 
 ##' if(require(lava) && require(nlme)){
 ##' 
 ##' #### Random effect ####
@@ -45,7 +46,7 @@
 ##' dL <- sampleRem(1e2, n.times = 3, format = "long")
 ##' e.lmm1 <- lmm(Y ~ X1+X2+X3 + (1|id), repetition = ~visit|id, data = dL)
 ##' nlme::ranef(e.lmm1, se = TRUE)
-##' e.ranef <- estimate(e.lmm1, f  = function(p){nlme::ranef(e.lmm1, p = p)})
+##' e.ranef <- estimate(e.lmm1, f  = function(object, p){nlme::ranef(object, p = p)})
 ##' e.ranef
 ##'
 ##' if(require(ggplot2)){
@@ -59,31 +60,28 @@
 ##' d <- sampleRem(1e2, n.time = 2)
 ##' e.ANCOVA1 <- lm(Y2~Y1+X1, data = d)
 ##'
-##' if(require(reshape2)){
-##'    dL2 <- melt(d, id.vars = c("id","X1"),  measure.vars = c("Y1","Y2"),
-##'                value.name = "Y", variable.name = "time")
-##'    dL2$time <- factor(dL2$time, levels = c("Y1","Y2"), labels = c("1","2"))
+##' dL2 <- reshape(d, direction = "long", idvar = c("id","X1"), 
+##'                timevar = "time", times = c("1","2"), varying = c("Y1","Y2"), 
+##'                v.names = "Y")
 ##'
-##'    ## estimated treatment effect (no baseline constraint)
-##'    e.lmm <- lmm(Y ~ time + time:X1, data = dL2, repetition = ~time|id)
+##' ## estimated treatment effect (no baseline constraint)
+##' e.lmm <- lmm(Y ~ time + time:X1, data = dL2, repetition = ~time|id)
 ##' 
-##'    e.delta <- estimate(e.lmm, function(p){
-##'        c(Y1 = p["rho(1,2)"]*p["k.2"],
-##'          X1 = p["time2:X1"]-p["k.2"]*p["rho(1,2)"]*p["time1:X1"])
-##'    }) ## same estimate and similar standard errors. 
-##'    e.delta ## Degrees of freedom are a bit off though
-##'    cbind(summary(e.ANCOVA1)$coef, df = df.residual(e.ANCOVA1))
+##' e.delta <- estimate(e.lmm, function(p){
+##'      c(Y1 = p["rho(1,2)"]*p["k.2"],
+##'       X1 = p["time2:X1"]-p["k.2"]*p["rho(1,2)"]*p["time1:X1"])
+##' }) ## same estimate and similar standard errors. 
+##' e.delta ## Degrees of freedom are a bit off though
+##' cbind(summary(e.ANCOVA1)$coef, df = df.residual(e.ANCOVA1))
 ##'
-##'    ## estimated treatment effect (baseline constraint)
-##'    dL2$time2 <- as.numeric(dL2$time=="2")
-##'    e.lmmC <- lmm(Y ~ time2 + time2:X1, data = dL2, repetition = ~time|id)
-##'    e.deltaC <- estimate(e.lmmC, function(p){
+##' ## estimated treatment effect (baseline constraint)
+##' dL2$time2 <- as.numeric(dL2$time=="2")
+##' e.lmmC <- lmm(Y ~ time2 + time2:X1, data = dL2, repetition = ~time|id)
+##' e.deltaC <- estimate(e.lmmC, function(p){
 ##'        c(Y1 = p["rho(1,2)"]*p["k.2"],
 ##'          X1 = p["time2:X1"])
-##'    })
-##'    e.deltaC ## Degrees of freedom are a bit more accurate
-##' }
-##'
+##' })
+##' e.deltaC ## Degrees of freedom are a bit more accurate
 ##' }
 
 
@@ -94,10 +92,54 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
                          transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, ...){
 
 
+    options <- LMMstar.options()
+    
     ## ** normalize arguments
-    if(is.null(method.numDeriv)){
-        method.numDeriv <- LMMstar.options()$method.numDeriv
+    dots <- list(...)
+
+    ## *** function
+    f.formals <- formals(f)
+    names.formals <- names(f.formals)
+    is.empty <- sapply(f.formals,inherits,"name")
+    if("p" %in% names.formals == FALSE){
+        stop("Incorrect argument \'f\': the function should take \'p\' as argument. \n",
+             "It refers to the model parameters, coef(object, effects = \"all\"), that will be varied to assess uncertainty. \n")
     }
+    if(any(names(dots) %in% names.formals == FALSE)){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+    ls.args <- stats::setNames(vector(mode = "list", length = length(names.formals)-1), setdiff(names.formals,"p"))
+    ls.args[names(which(!is.empty))] <- f.formals[names(which(!is.empty))]
+    ls.args[names(dots)] <- dots
+    if("object" %in% names(ls.args) && is.null(ls.args$object) || "x" %in% names(ls.args) && is.null(ls.args$x)){
+        ls.args <- c(list(x),ls.args[setdiff(names(ls.args),c("object","x"))])
+    }
+
+    ## *** df
+    if(is.numeric(df)){
+        e.df <- df
+        df <- FALSE
+    }else if(is.logical(df) && length(df)==1){
+        e.df <- NULL
+    }else{
+        stop("Argument \'df\' must be a logical value or a numeric vector. \n")
+    }
+
+    ## *** average
+    if(!is.logical(average)){
+        stop("Argument \'average\' must be TRUE or FALSE. \n")
+    }
+    if(average){
+        ff <- function(x){
+            mean(do.call(f, args = c(list(p = x),ls.args)))
+        }
+    }else{
+        ff <- function(x){
+            do.call(f, args = c(list(p = x),ls.args))
+        }
+    }
+    
+    ## *** transform
     if(is.null(transform.sigma)){
         transform2.sigma <- "none"
     }else{
@@ -113,13 +155,10 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
     }else{
         transform2.rho <- transform.rho
     }
-    if(is.numeric(df)){
-        e.df <- df
-        df <- FALSE
-    }else if(is.logical(df) && length(df)==1){
-        e.df <- NULL
-    }else{
-        stop("Argument \'df\' must be a logical value or a numeric vector. \n")
+
+    ### *** derivative approximation
+    if(is.null(method.numDeriv)){
+        method.numDeriv <- options$method.numDeriv
     }
 
     ## ** estimate
@@ -130,45 +169,20 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
     type.beta <- stats::setNames(x$design$param$type,x$design$param$name)[names(beta)]
 
     ## ** partial derivative
-    f.formals <- names(formals(f))
-    if(length(f.formals)==1){
-        if(average){
-            fbeta.indiv <- f(beta) 
-            if(!is.vector(fbeta.indiv) || (!is.numeric(fbeta.indiv) && !is.logical(fbeta.indiv))){
-                stop("The output of the function defined in the argument \'FUN\' must be a numeric vector. \n")
-            }
-            fbeta <- mean(fbeta.indiv)
-            grad <- numDeriv::jacobian(func = function(x){mean(f(x))}, x = beta, method = method.numDeriv)
-        }else{
-            fbeta <- f(beta)
-            if(!is.vector(fbeta) || (!is.numeric(fbeta) && !is.logical(fbeta))){
-                stop("The output of the function defined in the argument \'FUN\' must be a numeric vector. \n")
-            }
-            if(!is.null(names(fbeta)) && any(duplicated(names(fbeta)))){
-                stop("The output of the function defined in the argument \'FUN\' should not contain duplicated names. \n")
-            }
-            grad <- numDeriv::jacobian(func = f, x = beta, method = method.numDeriv)
-        }
-        
-    }else{
-        if(average){
-            fbeta.indiv <- f(beta, ...)
-            if(!is.vector(fbeta.indiv) || (!is.numeric(fbeta.indiv) && !is.logical(fbeta.indiv))){
-                stop("The output of the function defined in the argument \'FUN\' must be a numeric vector. \n")
-            }
-            fbeta <- mean(fbeta.indiv)
-            grad <- numDeriv::jacobian(func = function(x, ...){mean(f(x, ...))}, x = beta, method = method.numDeriv)
-        }else{
-            fbeta <- f(beta, ...)
-            if(!is.vector(fbeta) || (!is.numeric(fbeta) && !is.logical(fbeta))){
-                stop("The output of the function defined in the argument \'FUN\' must be a numeric vector. \n")
-            }
-            if(!is.null(names(fbeta)) && any(duplicated(names(fbeta)))){
-                stop("The output of the function defined in the argument \'FUN\' should not contain duplicated names. \n")
-            }
-            grad <- numDeriv::jacobian(func = f, x = beta, method = method.numDeriv, ...)
-        }
+    fbeta <- ff(beta)
+    ## remove attributes otherwise is.vector(fbeta) is FALSE
+    if(!is.null(attr(fbeta,"transform.sigma"))){attr(fbeta,"transform.sigma") <- NULL}
+    if(!is.null(attr(fbeta,"transform.k"))){attr(fbeta,"transform.k") <- NULL}
+    if(!is.null(attr(fbeta,"transform.rho"))){attr(fbeta,"transform.rho") <- NULL}
+
+    if(!is.vector(fbeta) || (!is.numeric(fbeta) && !is.logical(fbeta))){
+        stop("The output of the function defined in the argument \'FUN\' must be a numeric vector. \n")
     }
+    if(!is.null(names(fbeta)) && any(duplicated(names(fbeta)))){
+        stop("The output of the function defined in the argument \'FUN\' should not contain duplicated names. \n")
+    }
+
+    grad <- numDeriv::jacobian(func = ff, x = beta, method = method.numDeriv)
     colnames(grad) <- names(beta)
 
     ## revert back to usual transformation if vcov parameter not used
@@ -183,7 +197,7 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
             transform2.rho <- x$reparametrize$transform.rho
         }
     }
-    
+
     ## ** extract variance-covariance
     Sigma <- vcov(x, df = 2*(df>0), effects = "all", robust = robust, type.information = type.information, ## 2*df is needed to return dVcov
                   transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho)
@@ -237,63 +251,163 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
     return(out)
 }
 
-## * estimate.rbindWald_lmm (code)
+## * estimate.mlmm (code)
 ##' @export
-estimate.rbindWald_lmm <- function(x, f, robust = FALSE, level = 0.95,
-                                   method.numDeriv = NULL, average = FALSE, allparam = FALSE, ...){
+estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = NULL, level = 0.95,
+                         method.numDeriv = NULL, average = FALSE,
+                         transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, ...){
 
+
+    options <- LMMstar.options()
+    
     ## ** normalize arguments
+    dots <- list(...)
+
+    ## *** function
+    f.formals <- formals(f)
+    names.formals <- names(f.formals)
+    is.empty <- sapply(f.formals,inherits,"name")
+    if("p" %in% names.formals == FALSE){
+        stop("Incorrect argument \'f\': the function should take \'p\' as argument. \n",
+             "It refers to the model parameters, coef(object, effects = \"all\"), that will be varied to assess uncertainty. \n")
+    }
+    if(any(names(dots) %in% names.formals == FALSE)){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+    ls.args <- stats::setNames(vector(mode = "list", length = length(names.formals)-1), setdiff(names.formals,"p"))
+    ls.args[names(which(!is.empty))] <- f.formals[names(which(!is.empty))]
+    ls.args[names(dots)] <- dots
+    if("object" %in% names(ls.args) && is.null(ls.args$object) || "x" %in% names(ls.args) && is.null(ls.args$x)){
+        ls.args <- c(list(x),ls.args[setdiff(names(ls.args),c("object","x"))])
+    }
+
+    ## *** df
+    if(is.numeric(df)){
+        e.df <- df
+        df <- FALSE
+    }else if(is.logical(df) && length(df)==1){
+        e.df <- NULL
+    }else{
+        stop("Argument \'df\' must be a logical value or a numeric vector. \n")
+    }
+
+    ## *** average
+    if(!is.logical(average)){
+        stop("Argument \'average\' must be TRUE or FALSE. \n")
+    }
+    if(average){
+        ff <- function(x){
+            mean(do.call(f, args = c(list(p = x),ls.args)))
+        }
+    }else{
+        ff <- function(x){
+            do.call(f, args = c(list(p = x),ls.args))
+        }
+    }
+    
+    ## *** transform
+    if(is.null(transform.sigma)){
+        transform2.sigma <- "none"
+    }else{
+        transform2.sigma <- transform.sigma
+    }
+    if(is.null(transform.k)){
+        transform2.k <- "none"
+    }else{
+        transform2.k <- transform.k
+    }
+    if(is.null(transform.rho)){
+        transform2.rho <- "none"
+    }else{
+        transform2.rho <- transform.rho
+    }
+
+    ### *** derivative approximation
     if(is.null(method.numDeriv)){
-        method.numDeriv <- LMMstar.options()$method.numDeriv
+        method.numDeriv <- options$method.numDeriv
+    }
+
+    ## ** estimate
+    beta <- coef(x, effects = "all", transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho, transform.names = FALSE, order = "by")
+    attr(beta, "transform.sigma") <- transform2.sigma
+    attr(beta, "transform.k") <- transform2.k
+    attr(beta, "transform.rho") <- transform2.rho
+    type.beta <- stats::setNames(x$design$param$type,x$design$param$name)[names(beta)]
+
+    ## ** partial derivative
+    fbeta <- ff(beta)
+    ## remove attributes otherwise is.vector(fbeta) is FALSE
+    if(!is.null(attr(fbeta,"transform.sigma"))){attr(fbeta,"transform.sigma") <- NULL}
+    if(!is.null(attr(fbeta,"transform.k"))){attr(fbeta,"transform.k") <- NULL}
+    if(!is.null(attr(fbeta,"transform.rho"))){attr(fbeta,"transform.rho") <- NULL}
+
+    if(!is.vector(fbeta) || (!is.numeric(fbeta) && !is.logical(fbeta))){
+        stop("The output of the function defined in the argument \'FUN\' must be a numeric vector. \n")
+    }
+    if(!is.null(names(fbeta)) && any(duplicated(names(fbeta)))){
+        stop("The output of the function defined in the argument \'FUN\' should not contain duplicated names. \n")
+    }
+
+    grad <- numDeriv::jacobian(func = ff, x = beta, method = method.numDeriv)
+    colnames(grad) <- names(beta)
+
+    ## revert back to usual transformation if vcov parameter not used
+    if(all(!is.na(grad))){
+        if(all(colSums(grad[,type.beta=="sigma",drop=FALSE]!=0)==0) && is.null(transform.sigma)){
+            transform2.sigma <- x$reparametrize$transform.sigma
+        }
+        if(all(colSums(grad[,type.beta=="k",drop=FALSE]!=0)==0) && is.null(transform.k)){
+            transform2.k <- x$reparametrize$transform.k
+        }
+        if(all(colSums(grad[,type.beta=="rho",drop=FALSE]!=0)==0) && is.null(transform.rho)){
+            transform2.rho <- x$reparametrize$transform.rho
+        }
     }
 browser()
-    ## ** estimate
-    beta <- coef(x)
-    
-    ## ** partial derivative
-    f.formals <- names(formals(f))
-    if(length(f.formals)==1){
-        if(average){
-            fbeta.indiv <- f(beta) 
-            fbeta <- mean(fbeta.indiv)
-            grad <- numDeriv::jacobian(func = function(x){mean(f(x))}, x = beta, method = method.numDeriv)
-        }else{
-            fbeta <- f(beta)
-            grad <- numDeriv::jacobian(func = f, x = beta, method = method.numDeriv)
-        }
-        
-    }else{
-        if(average){
-            fbeta.indiv <- f(beta, ...)
-            fbeta <- mean(fbeta.indiv)
-            grad <- numDeriv::jacobian(func = function(x, ...){mean(f(x, ...))}, x = beta, method = method.numDeriv)
-        }else{
-            fbeta <- f(beta, ...)
-            grad <- numDeriv::jacobian(func = f, x = beta, method = method.numDeriv, ...)
-        }
-    }
-    colnames(grad) <- names(beta)
-    
     ## ** extract variance-covariance
-    Sigma <- vcov(x)
+    Sigma <- vcov(x, df = 2*(df>0), effects = "all", robust = robust, type.information = type.information, ## 2*df is needed to return dVcov
+                  transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho)
 
     ## ** delta-method
     C.Sigma.C <- grad %*% Sigma %*% t(grad)
 
+    ## second order?
+    ## g(\thetahat) = g(\theta) + (\thetahat-\theta)grad + 0.5(\thetahat-\theta)lap(\thetahat-\theta) + ...
+    ## Var[g(\thetahat)] = grad\Var[\thetahat-\theta]grad + 0.25\Var[(\thetahat-\theta)lap(\thetahat-\theta)] + \Cov((\thetahat-\theta)grad,(\thetahat-\theta)lap(\thetahat-\theta)) + ...
+    ## https://stats.stackexchange.com/questions/427332/variance-of-quadratic-form-for-multivariate-normal-distribution
+    ## Var[g(\thetahat)] = grad\Var[\thetahat-\theta]grad + 0.25*2*tr((lap\Var[\thetahat-\theta])^2) + 0 + ...
+    
+    ## lap <- numDeriv::hessian(func = f, x = beta) ## laplacian
+    ## 2 * sum(diag(Sigma %*% lap %*% Sigma %*% lap))
     if(average){
         C.sigma.C <- sqrt(diag(C.Sigma.C) + sum((fbeta.indiv - fbeta)^2)/(length(fbeta.indiv)-1))
     }else{
         C.sigma.C <- sqrt(diag(C.Sigma.C))
     }
     
+    ## ** df
+    if(!is.null(e.df)){
+        if(length(e.df)==1 & length(fbeta)>1){
+            e.df <- rep(e.df,length(fbeta))
+        }else if(length(e.df) != length(fbeta)){
+            stop("Incorrect length of argument \'df\': when a numeric vector it should have same length as the number of estimates. \n",
+                 "Valid length: ",length(fbeta),". \n")
+        }
+    }else if(!is.null(attr(Sigma, "dVcov"))){
+        colnames(grad) <- colnames(Sigma)
+        e.df <- .dfX(X.beta = grad, vcov.param = Sigma, dVcov.param = attr(Sigma, "dVcov"))
+    }else{
+        e.df <- rep(Inf, NROW(grad))
+    }
+
     ## ** export
     alpha <- 1-level
     out <- data.frame(estimate = as.double(fbeta),
                       se = as.double(C.sigma.C),
-                      df = Inf,
-                      lower = as.double(fbeta + stats::qnorm(alpha/2) * C.sigma.C),
-                      upper = as.double(fbeta + stats::qnorm(1-alpha/2) * C.sigma.C),
-                      p.value = as.double(2*(1-stats::pnorm(abs(fbeta/C.sigma.C)))))
+                      df = as.double(e.df),
+                      lower = as.double(fbeta + stats::qt(alpha/2, df = e.df) * C.sigma.C),
+                      upper = as.double(fbeta + stats::qt(1-alpha/2, df = e.df) * C.sigma.C),
+                      p.value = as.double(2*(1-stats::pt(abs(fbeta/C.sigma.C), df = e.df))))
     attr(out,"gradient") <- grad
     if(!is.null(names(fbeta))){
         rownames(out) <- names(fbeta)
@@ -302,6 +416,7 @@ browser()
     colnames(attr(out,"gradient")) <- names(beta)
     return(out)
 }
+
 
 ## * .estimate (documentation)
 ##' @title Optimizer for mixed models

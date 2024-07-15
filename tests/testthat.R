@@ -11,7 +11,6 @@ library(mice)
 library(multcomp)
 library(nlme)
 library(numDeriv)
-library(reshape2)
 library(qqtest)
 
 ## * run tests

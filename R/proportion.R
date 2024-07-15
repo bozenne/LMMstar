@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 15 2022 (14:09) 
 ## Version: 
-## Last-Updated: jul 11 2024 (15:50) 
+## Last-Updated: jul 15 2024 (12:02) 
 ##           By: Brice Ozenne
-##     Update #: 82
+##     Update #: 85
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,7 +16,7 @@
 ### Code:
 
 ## * proportion.mlmm
-proportion.mlmm <- function(object, index, name.method, method, qt = NULL, null, ci, df, alpha){
+proportion.mlmm <- function(object, p, index, name.method, method, qt = NULL, null, ci, df, alpha){
 
     options <- LMMstar.options()
     
@@ -38,7 +38,7 @@ proportion.mlmm <- function(object, index, name.method, method, qt = NULL, null,
     }
 
     ## ** estimate proportion
-    object.ci <- confint(object, method = method, columns = c("estimate","se","df","lower","upper","statistic","null","p.value"))
+    object.ci <- confint(object, p = p, method = method, columns = c("estimate","se","df","lower","upper","statistic","null","p.value"))
     if(is.null(critical.threshold)){
         if(!is.null(attr(object.ci, "quantile"))){
             critical.threshold <- attr(object.ci, "quantile")

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb 22 2024 (10:15) 
 ## Version: 
-## Last-Updated: maj  7 2024 (14:53) 
+## Last-Updated: jul 15 2024 (10:21) 
 ##           By: Brice Ozenne
-##     Update #: 32
+##     Update #: 34
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,7 +18,6 @@
 if(FALSE){
     ## library(pracma) ## trapz
     library(nlmeU)
-    library(reshape2)
     library(testthat)
 
     library(LMMstar)
@@ -30,15 +29,10 @@ LMMstar.options(optimizer = "FS", precompute.moments = TRUE,
 
 ## * load and reshape data
 data("armd.wide", package = "nlmeU")
-armd.long <- reshape2::melt(armd.wide,
-                            measure.vars = paste0("visual",c(0,4,12,24,52)),
-                            id.var = c("subject","lesion","treat.f","miss.pat"),
-                            variable.name = "week",
-                            value.name = "visual")
-
-armd.long$week <- factor(armd.long$week, 
-                         level = paste0("visual",c(0,4,12,24,52)),
-                         labels = c(0,4,12,24,52))
+armd.long <- reshape(armd.wide, direction = "long", idvar = "subject",
+                     timevar = "week.num", times = c(0,4,12,24,52), varying = paste0("visual",c(0,4,12,24,52)), 
+                     v.names = "visual")
+armd.long$week <- as.factor(armd.long$week.num)
 armd.long$lesion[is.na(armd.long$lesion)] <- 1
 armd.long$week2 <- armd.long$week
 

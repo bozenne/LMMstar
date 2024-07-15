@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: jul 31 2023 (18:07) 
+## Last-Updated: jul 15 2024 (10:29) 
 ##           By: Brice Ozenne
-##     Update #: 56
+##     Update #: 57
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -73,14 +73,10 @@ test_that("single t-test",{
 data(armd.wide, package = "nlmeU")
 subjCC <- armd.wide[!is.na(armd.wide$visual0) & !is.na(armd.wide$visual52),"subject"]
 armd.wideCC <- armd.wide[armd.wide$subject %in% subjCC,]
-armd.longCC <- reshape2::melt(armd.wideCC, 
-                              id.var = c("subject","treat.f","lesion","miss.pat"),
-                              measure.vars = c("visual0","visual4","visual12","visual24","visual52"),
-                              variable.name = "week", 
-                              value.name = "visual")
-armd.longCC$week <- factor(armd.longCC$week, 
-                         level = c("visual0","visual4","visual12","visual24","visual52"), 
-                         labels = c(0,4,12,24,52))
+armd.longCC <- reshape(armd.wideCC, direction = "long", idvar = "subject",
+                       timevar = "week.num", times = c(0,4,12,24,52), varying = paste0("visual",c(0,4,12,24,52)), 
+                       v.names = "visual")
+armd.longCC$week <- as.factor(armd.longCC$week.num)
 rownames(armd.longCC) <- NULL
 
 test_that("paired t-test",{

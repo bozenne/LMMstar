@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 31 2022 (11:36) 
 ## Version: 
-## Last-Updated: maj  7 2024 (10:35) 
+## Last-Updated: jul 15 2024 (10:21) 
 ##           By: Brice Ozenne
-##     Update #: 81
+##     Update #: 84
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,7 +17,6 @@
 
 if(FALSE){
     library(lava)
-    library(reshape2)
     library(testthat)
     library(lme4)
 
@@ -41,7 +40,9 @@ e.ANCOVA2 <- lm(dY~Y1+X1, data = d)
 
 test_that("delta method for association based on residual variance", {
 
-    dL2 <- reshape2::melt(d, id.vars = c("id","Y1","X1"),  measure.vars = c("Y1","Y2"))
+    dL2 <- reshape(d, direction = "long", idvar = "id",
+                   timevar = "variable", times = c("Y1","Y2"), varying = c("Y1","Y2"), 
+                   v.names = "value")
 
     ## ANCOVA1
     e.lmmANCOVA1 <- lmm(value ~ variable + variable:X1, data = dL2, repetition = ~variable|id)
@@ -132,7 +133,9 @@ summary(e.lm)$coef["dX",]
 
 test_that("delta method for association based on residual variance", {
 
-    dL2 <- reshape2::melt(d, id.vars = c("id","X5"),  measure.vars = c("dX","dY"))
+    dL2 <- reshape(d, direction = "long", idvar = "id",
+                   timevar = "variable", times = c("dX","dY"), varying = c("dX","dY"), 
+                   v.names = "value")
 
     ## bivariate mixed model estimating the association between the changes
     e.lmm2 <- lmm(value ~ variable, data = dL2, repetition = ~variable|id)
@@ -165,7 +168,9 @@ test_that("delta method for association based on residual variance", {
     expect_equal(as.double(unlist(e.delta2)), as.double(unlist(test)), tol = 1e-5)
     
     ## quadrivariate mixed model estimating the association between the changes
-    dL4 <- reshape2::melt(d, id.vars = c("id","X5"),  measure.vars = c("X1","X2","Y1","Y2"))
+    dL4 <- reshape(d, direction = "long", idvar = "id",
+                   timevar = "variable", times = c("X1","X2","Y1","Y2"), varying = c("X1","X2","Y1","Y2"), 
+                   v.names = "value")
     e.lmm4 <- lmm(value ~ variable, data = dL4, repetition = ~variable|id)
 
     Omega4 <- sigma(e.lmm4)

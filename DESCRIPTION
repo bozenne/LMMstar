@@ -50,7 +50,6 @@ Suggests:
     Publish,
     qqtest,
     R.rsp,
-    reshape2,
     rmcorr,
     scales,
     testthat
