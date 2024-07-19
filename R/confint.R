@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 15 2024 (12:26) 
+## Last-Updated: jul 16 2024 (14:29) 
 ##           By: Brice Ozenne
-##     Update #: 1004
+##     Update #: 1013
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -325,7 +325,12 @@ confint.lmmCC <- function(object, parm = NULL, level = 0.95, effects = NULL, col
 
 ## * confint.mlmm (code)
 ##' @export
-confint.mlmm <- function(object, parm = NULL, level = 0.95, method = NULL, ordering = "parameter", ...){
+confint.mlmm <- function(object, parm = NULL, level = 0.95, method = NULL, df = NULL,
+                         columns = NULL,
+                         backtransform = NULL,
+                         ordering = "parameter", ...){
+    ## robust = FALSE, null = NULL, type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE,
+    n.model <- length(object$model)
 
     ## ** normalize user input
     if(is.null(method)){
@@ -404,6 +409,8 @@ confint.mlmm <- function(object, parm = NULL, level = 0.95, method = NULL, order
         message("Argument \'method\' has been changed from \"pool.se\" to \"pool.fixse\". \n",
                 "Consider using the estimate() function to account for the uncertainty of the weights. \n")
     }
+
+    ## *** columns
     valid.columns <- names(object$univariate)
     if(identical(columns,"all")){
         columns <- valid.columns
@@ -436,10 +443,12 @@ confint.mlmm <- function(object, parm = NULL, level = 0.95, method = NULL, order
         }
     }
 
+    
     transform.sigma <- object$args$transform.sigma
     transform.k <- object$args$transform.k
     transform.rho <- object$args$transform.rho
 
+    ## *** backtransform
     if(is.character(backtransform)){
         backtransform <-  eval(parse(text=backtransform))
     }else if(is.numeric(backtransform)){
@@ -456,7 +465,6 @@ confint.mlmm <- function(object, parm = NULL, level = 0.95, method = NULL, order
     }else if(is.logical(backtransform) && length(test.backtransform[test.backtransform != "none"])==0){
         backtransform <- FALSE
     }
-    n.model <- length(object$model)
 
     ## ** normalize df
     out <- object$univariate

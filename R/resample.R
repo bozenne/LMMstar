@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: jul 12 2024 (15:07) 
+## Last-Updated: jul 18 2024 (16:25) 
 ##           By: Brice Ozenne
-##     Update #: 783
+##     Update #: 784
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -238,14 +238,17 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
         
     }
 
+    ## cpus
+    max.cpus <- parallel::detectCores()
     if(length(cpus)!=1){
         stop("Argument \'cpus\' should have length 1.\n ")
     }else if(identical(cpus,"all")){
-        cpus <- parallel::detectCores()
+        cpus <- max.cpus
     }else if(!is.numeric(cpus) || cpus <=0 || cpus %% 1 != 0){
-        stop("Argument \'cpus\' should be a positive integer or \'all\'.\n ")
+        stop("Argument \'cpus\' should be an integer between 1 and ",max.cpus," or \'all\'.\n ")
     }else if(cpus>1 && cpus>parallel::detectCores()){
-        stop("Only ",parallel::detectCores()," CPU cores are available. \n")
+        stop("Argument \'cpus\' exceeds the number of available CPUs.\n ",
+             "It should be an integer between 1 and ",max.cpus," or \'all\'.\n ")
     }
 
     ## n.sample
@@ -799,14 +802,16 @@ resample.mlmm <- function(object, type, method = NULL, cluster = NULL, n.sample 
     }
 
     ## cpus
+    max.cpus <- parallel::detectCores()
     if(length(cpus)!=1){
         stop("Argument \'cpus\' should have length 1.\n ")
     }else if(identical(cpus,"all")){
-        cpus <- parallel::detectCores()
+        cpus <- max.cpus
     }else if(!is.numeric(cpus) || cpus <=0 || cpus %% 1 != 0){
-        stop("Argument \'cpus\' should be a positive integer or \'all\'.\n ")
+        stop("Argument \'cpus\' should be an integer between 1 and ",max.cpus," or \'all\'.\n ")
     }else if(cpus>1 && cpus>parallel::detectCores()){
-        stop("Only ",parallel::detectCores()," CPU cores are available. \n")
+        stop("Argument \'cpus\' exceeds the number of available CPUs.\n ",
+             "It should be an integer between 1 and ",max.cpus," or \'all\'.\n ")
     }
 
     ## dots

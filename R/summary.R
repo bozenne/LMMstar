@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jul 15 2024 (15:03) 
+## Last-Updated: jul 16 2024 (18:19) 
 ##           By: Brice Ozenne
-##     Update #: 1584
+##     Update #: 1607
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -607,9 +607,6 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         }
         ## incorporate test
         attr(table.univariate,"test") <- table.univariate$test
-        if("test" %in% columns.univariate){
-            table.univariate$test <- NULL
-        }
         
         if(inherits(object,"rbindWald_lmm") && length(unique(setdiff(object$univariate$method,"none"))>1)){
             warning("Different methods have been used to adjust for multiple comparisons - text describing the adjustment will not be accurate.")
@@ -871,7 +868,7 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
 
     ## ** extract test
     if(any(print>0)){
-        name.param <- unique(object$univariate$parameter)
+        name.param <- unique(unlist(object$univariate$parameter))
         if(length(name.param)==1){
             cat("Statistical inference for ",name.param," \n\n",sep="")
         }else{
@@ -1092,7 +1089,7 @@ summary.resample <- function(object, digits = 3, ...){
     
 
     ## ** round
-    columns.num <- intersect(setdiff(columns,c(col.df,"null","p.value")), names(table))
+    columns.num <- setdiff(names(table)[sapply(table,is.numeric)],c("p.value",col.df))
     for(iCol in columns.num){ 
         table.print[[iCol]] <- as.character(round(table[[iCol]], digits = digits))
         if(any(!is.na(table[[iCol]])) && any(table[[iCol]]!=0 & table.print[[iCol]] == "0")){
@@ -1220,9 +1217,9 @@ summary.resample <- function(object, digits = 3, ...){
             ## adjustment
             if(method.p.adjust %in% c("single-step", "single-step2")){
                 if(df){
-                    name.adjmethod <- "max-t test"
+                    name.adjmethod <- "max test"
                 }else{
-                    name.adjmethod <- "max-z test"
+                    name.adjmethod <- "max test"
                 }
 
                 txt.adjustment2 <- NULL ## paste(display.cip, collapse = "/")
@@ -1234,7 +1231,7 @@ summary.resample <- function(object, digits = 3, ...){
                 }else if(method.p.adjust == "single-step2"){
                     txt.adjustment2 <- paste(c(txt.adjustment2, paste0(n.sample," samples")), collapse=", ")
                 }
-                if(nchar(txt.adjustment2)>0){
+                if(!is.null(txt.adjustment2) && nchar(txt.adjustment2)>0){
                     txt.adjustment2 <- paste0(" (",txt.adjustment2,")")
                 }
                 
@@ -1258,18 +1255,18 @@ summary.resample <- function(object, digits = 3, ...){
         }
 
         ## *** backtransformation
-        if(!is.null(backtransform)){
+        if(!is.null(backtransform) && any(!is.na(backtransform$FUN))){
 
-            vec.transform <- c(sigma=transform.sigma,k=transform.k,rho=transform.rho)[rownames(backtransform)]
-            
-            cat(space,"Back-transformation: ",paste0(paste(names(vec.transform),collapse = "/")," parameters with ",paste(vec.transform,collapse="/")),".",
+            vec.backtransform <- backtransform[!is.na(backtransform$FUN),]
+         
+            cat(space,"Back-transformation: ",paste0(paste(rownames(vec.backtransform),collapse = "/")," parameters with ",paste(vec.backtransform$FUN,collapse="/")),".\n",
                 ## " (",paste(intersect(c("estimate","se","lower","upper"),columns),collapse = "/"),"). \n",
                 sep ="")
 
         }
 
     }
-
+    
     ## ** export
     return(invisible(NULL))
 

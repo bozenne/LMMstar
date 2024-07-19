@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  4 2021 (10:04) 
 ## Version: 
-## Last-Updated: jul 15 2024 (19:45) 
+## Last-Updated: jul 16 2024 (17:20) 
 ##           By: Brice Ozenne
-##     Update #: 142
+##     Update #: 157
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -156,6 +156,11 @@ iid.lmm <- function(x,
         x.vcov <- vcov.lmm(x, effects = effects, p = p, robust = FALSE, type.information = type.information, df = FALSE,
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
         out <- x.score %*% x.vcov
+        if(x$args$method.fit=="ML"){
+            message <- NULL
+        }else{
+            message <- "neglecting information cross-terms"
+        }
     }else{
         keep.names <- names(coef.lmm(x, effects = effects,
                                      transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names))
@@ -166,6 +171,7 @@ iid.lmm <- function(x,
         x.vcov <- x.vcovALL[keep.names,keep.names,drop=FALSE]
 
         out <- x.scoreALL %*% x.vcovALL[,keep.names,drop=FALSE]
+        message <- "neglecting product REML score with vcov cross-terms"
     }
 
     if(robust==FALSE){
@@ -173,6 +179,7 @@ iid.lmm <- function(x,
     }
 
     ## ** export
+    attr(out,"message") <- message
     return(out)
 }
 
@@ -192,8 +199,7 @@ iid.Wald_lmm <- function(x, ...){
 
 ## * iid.mlmm (code)
 ##' @export
-iid.mlmm <- function(x, effects = "contrast", p = NULL, ordering = "parameter",
-                     robust = TRUE, REML2ML = FALSE, simplify = TRUE, ...){
+iid.mlmm <- function(x, effects = "contrast", p = NULL, ordering = "by", simplify = TRUE, ...){
 
     ## ** normalize use input
 
@@ -240,32 +246,22 @@ iid.mlmm <- function(x, effects = "contrast", p = NULL, ordering = "parameter",
     ordering <- match.arg(ordering, c("by","parameter"))
         
     ## ** extract iid
+    cluster <- x$object$cluster
+    n.cluster <- length(cluster)
+
     if(all(effects=="contrast")){
-        ls.contrast <- stats::coef(object, type = "ls.contrast") ## extract linear combination from each model
-        contrast <- coef(object, type = "contrast") ## contrast combinations across models
-
-        ls.score <- lapply(names(x$model), function(iBy){score(x$model[[iBy]], p = p[[iBy]], effects = effects2, ...)})
-        indiv <- is.matrix(ls.score[[1]])
-    
-        ls.out <- mapply(iScore = ls.score, iC = ls.contrast, FUN = function(iScore,iC){ ## iScore <- ls.score[[1]] ; iC <- ls.contrast[[1]]
-            if(indiv){
-                iOut <- iScore %*% t(iC[,colnames(iScore), drop = FALSE])
-                return(iOut)
-            }else{
-                iOut <- iScore %*% t(iC[,names(iScore), drop = FALSE])
-                return(iOut[1,])
-            }
+        ls.contrast <- stats::coef(x, type = "ls.contrast") ## extract linear combination from each model
+        contrast <- coef(x, type = "contrast") ## contrast combinations across models
+        ls.iid <- lapply(names(x$model), function(iBy){
+            iid(x$model[[iBy]], effects = effects2, p = p[[iBy]], ...)
+        })
+        ls.out <- mapply(iIID = ls.iid, iC = ls.contrast, FUN = function(iIID,iC){ ## iIID <- ls.iid[[1]] ; iC <- ls.contrast[[1]]
+            iOut <- matrix(0, nrow = n.cluster, ncol = NROW(iC), dimnames = list(cluster, rownames(iC)))
+            iOut[rownames(iIID),] <- iIID %*% t(iC[,colnames(iIID), drop = FALSE])
+            return(iOut)
         }, SIMPLIFY = FALSE)
-
-        if(indiv){
-            out <- (do.call("cbind",ls.out) %*% t(contrast))
-        }else{
-            out <- (do.call("c",ls.out) %*% t(contrast))
-        }
-        attr(out,"message") <- unique(unlist(lapply(ls.out,attr,"message")))
-
+        out <- (do.call("cbind",ls.out) %*% t(contrast))        
     }else{
-
         cluster <- x$object$cluster
         n.cluster <- length(cluster)
 
@@ -281,7 +277,7 @@ iid.mlmm <- function(x, effects = "contrast", p = NULL, ordering = "parameter",
                 iOut <- matrix(0, nrow = n.cluster, ncol = NCOL(iIID), dimnames = list(cluster, colnames(iIID)))
             }
             iOut[rownames(iIID),] <- iIID
-            attr(iOut,"message") <- message
+            attr(iOut,"message") <- attr(iIID,"message")
             return(iOut)
         })
         names(ls.out) <- names(x$model)
@@ -290,8 +286,9 @@ iid.mlmm <- function(x, effects = "contrast", p = NULL, ordering = "parameter",
 
     ## ** re-order
     if(all(effects=="contrast")){
-        name.order <- names(coef(object, effects = "contrast", ordering = ordering))        
+        name.order <- names(coef(x, effects = "contrast", ordering = ordering))        
         out <- out[,name.order,drop=FALSE]
+        attr(out,"message") <- unique(unlist(lapply(ls.iid,attr,"message")))
     }else if(simplify){
         out <- do.call("cbind",unname(ls.out))
         attr(out,"original.name") <- unname(unlist(lapply(ls.out,attr,"name")))
@@ -330,146 +327,6 @@ iid.mlmm <- function(x, effects = "contrast", p = NULL, ordering = "parameter",
     return(out)
 }
 
-## ## * iid.mlmm (code)
-## ##' @export
-## iid.mlmm <- function(x,
-##                      effects = "contrast",
-##                      p = NULL,
-##                      robust = TRUE,
-##                      type.information = NULL,
-##                      transform.sigma = NULL,
-##                      transform.k = NULL,
-##                      transform.rho = NULL,
-##                      transform.names = TRUE,
-##                      simplify = TRUE,
-##                      ...){
-
-##     ## ** normalize use input
-##     dots <- list(...)
-##     dots$complete <- NULL ## for multcomp which passes an argument complete when calling vcov
-##     if(length(dots)>0){
-##         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
-##     }
-
-##     ## *** effects
-##     if(!is.character(effects) || !is.vector(effects)){
-##         stop("Argument \'effects\' must be a character vector")
-##     }
-##     valid.effects <- c("contrast","mean","fixed","variance","correlation","all")
-##     if(any(effects %in% valid.effects == FALSE)){
-##         stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
-##              "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
-##     }    
-##     if("contrast" %in% effects){
-##         if(length(effects)>1){
-##             stop("Argument \'effects\' must have length 1 when containing the element \'effects\'. \n")
-##         }
-##         if(!is.null(object$univariate) & all(object$univariate$type=="mu")){
-##             effects2 <- "mean"
-##         }else{
-##             effects2 <- "all"
-##         }
-##     }else{
-##         effects2 <- effects
-##     }
-##     if("all" %in% effects && length(effects)>1){
-##         stop("Argument \'effects\' must have length 1 when containing the element \'all\'. \n")
-##     }
-
-##     ## *** type.information
-##     if(is.null(type.information)){
-##         type.information <- x$args$type.information
-##     }else{
-##         type.information <- match.arg(type.information, c("expected","observed"))
-##     }
-
-##     ## *** p and transform
-##     if(!is.null(p)){
-##         if(!is.list(p)){
-##             stop("Argument \'p\' should either be NULL or a list. \n")
-##         }
-##         if(is.null(names(p))){
-##             stop("Argument \'p\' should either be NULL or a named list. \n")
-##         }
-##         if(any(names(p) %in% names(x$model) == FALSE)){
-##             stop("Incorrect names for argument \'p\': \"",paste(setdiff(names(p),names(x$model)), collapse = "\", \""),"\". \n", 
-##                  "Should be among \"",paste(names(x$model), collapse = "\", \""),"\". \n")
-##         }
-##     }else{
-##         p <- stats::setNames(vector(mode = "list", length = length(x$model)), names(x$model))
-##     }
-
-##     ls.init <- lapply(names(x$model),function(iM){ ## iM <- names(x$model)[1]
-##         .init_transform(p = p[[iM]], transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
-##                         x.transform.sigma = x$args$transform.sigma, x.transform.k = x$args$transform.k, x.transform.rho = x$args$transform.rho,
-##                         table.param = x$model[[iM]]$design$param)
-##     })    
-##     theta <- setNames(lapply(ls.init, "[[","p"),names(x$model))
-##     test.notransform <- unique(sapply(ls.init,"[[","test.notransform"))
-##     transform.sigma <- unique(sapply(ls.init,"[[","transform.sigma"))
-##     transform.k <- unique(sapply(ls.init,"[[","transform.k"))
-##     transform.rho <- unique(sapply(ls.init,"[[","transform.rho"))
-##     if(length(test.notransform)>1 || length(transform.sigma)>1 || length(transform.k)>1 || length(transform.rho)>1){
-##         stop("Something went wrong when initializing the transformation parameters. \n",
-##              "Not the same transformation for all models. \n")
-##     }
-
-##     ## ** prepare
-##     if(all(effects=="contrast")){
-
-##         M.contrast <- stats::coef(x, type = "contrast")
-##         lsM.contrast <- stats::coef(x, type = "ls.contrast")
-
-##     }
-
-##     ## ** get iid from each model
-##     cluster <- x$object$cluster
-##     n.cluster <- length(cluster)
-    
-##     ls.iid <- lapply(names(x$model), FUN = function(iBy){ ## iBy <- names(x$model)[[1]]
-##         iO <- x$model[[iBy]]
-##         if(iO$args$method.fit == "REML" && any(c("variance", "correlation", "all") %in% effects2)){
-##             iO$args$method.fit <- "ML"
-##             message <- "iid.REML2ML" ## the influence function is computed under the ML loss function plugging in the REML estimates
-##         }else{
-##             message <- NULL
-##         }
-##         iIID <- iid(iO, p = p[[iBy]], effects = effects2, robust = robust, type.information = type.information,
-##                     transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
-##         if(!is.null(effects) && length(effects)==1 && effects=="contrast"){
-##             iIID <- iIID %*% t(lsM.contrast[[iBy]][,colnames(iIID),drop=FALSE])
-
-##         }
-##         if(simplify){        
-##             iOut <- matrix(0, nrow = n.cluster, ncol = NCOL(iIID), dimnames = list(cluster, paste0(iBy,": ", colnames(iIID))))
-##         }else{
-##             iOut <- matrix(0, nrow = n.cluster, ncol = NCOL(iIID), dimnames = list(cluster, colnames(iIID)))
-##         }
-##         iOut[rownames(iIID),] <- iIID
-##         if(simplify){       
-##             attr(iOut,"name") <- colnames(iIID)
-##             attr(iOut,"by") <- rep(iBy, NCOL(iIID))
-##         }
-##         attr(iOut,"message") <- message
-##         return(iOut)
-##     })
-
-##     if(!is.null(effects) && length(effects)==1 && effects=="contrast"){
-##         out <- do.call(cbind,ls.iid) %*% M.contrast
-##         attr(out,"message") <- unique(unlist(lapply(ls.iid,attr,"message")))
-##     }else if(simplify){        
-##         out <- do.call(cbind,ls.iid)
-##         attr(out,"original.name") <- unlist(lapply(ls.iid,attr,"name"))
-##         attr(out,"by") <- unlist(lapply(ls.iid,attr,"by"))
-##         attr(out,"message") <- unique(unlist(lapply(ls.iid,attr,"message")))
-##     }else{
-##         out <- ls.iid
-##     }
-
-##     ## ** export
-##     return(out)
-    
-## }
 
 ##----------------------------------------------------------------------
 ### iid.R ends here

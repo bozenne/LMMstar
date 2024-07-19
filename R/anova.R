@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jul 15 2024 (13:19) 
+## Last-Updated: jul 18 2024 (19:14) 
 ##           By: Brice Ozenne
-##     Update #: 1497
+##     Update #: 1562
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -24,15 +24,13 @@
 ##' or only variables relative to the mean (\code{"mean"} or \code{"fixed"}),
 ##' or only variables relative to the variance structure (\code{"variance"}),
 ##' or only variables relative to the correlation structure (\code{"correlation"}).
-##' or average counterfactual outcome with respect to the value of a covariate X at each repetition  (\code{"ACO_X"}),
-##' or the contrast between average counterfactual outcome for any pair of value of a covariate X (\code{"ATE_X"}).
 ##' Can also be use to specify linear combinations of coefficients or a contrast matrix, similarly to the \code{linfct} argument of the \code{multcomp::glht} function.
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
 ##' @param multivariate [logical] Should all hypotheses be simultaneously tested using a multivariate Wald test?
 ##' @param rhs [numeric vector] the right hand side of the hypothesis. Only used when the argument effects is a matrix.
 ##' @param df [logical] Should a F-distribution be used to model the distribution of the Wald statistic. Otherwise a chi-squared distribution is used.
 ##' @param ci [logical] Should an estimate, standard error, confidence interval, and p-value be output for each hypothesis?
-##' @param transform.sigma,transform.k,transform.rho,transform.names are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.
+##' @param transform.sigma,transform.k,transform.rho are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @return A data.frame (LRT) or a list of containing the following elements (Wald):\itemize{
@@ -100,7 +98,7 @@
 ## * anova.lmm (code)
 ##' @export
 anova.lmm <- function(object, effects = NULL, robust = FALSE, multivariate = TRUE, rhs = NULL, df = !is.null(object$df), ci = TRUE, 
-                      transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
+                      transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, ...){
 
     call <- match.call()
 
@@ -123,7 +121,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, multivariate = TRU
     }else{ ## Wald test
         attr(robust, "call") <- "robust" %in% names(call)
         out <- .anova_Wald(object, effects = effects, robust = robust, multivariate = multivariate, rhs = rhs, df = df, ci = ci, 
-                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
         attr(out,"call") <- call
         class(out) <- append("Wald_lmm",class(out))
     }
@@ -133,7 +131,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, multivariate = TRU
 
 ## * .anova_Wald
 .anova_Wald <- function(object, effects, robust, multivariate, rhs, df, ci, 
-                        transform.sigma, transform.k, transform.rho, transform.names){
+                        transform.sigma, transform.k, transform.rho){
 
     options <- LMMstar.options()
     type.information <- object$args$type.information
@@ -154,6 +152,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, multivariate = TRU
 
     name.coef <- names(stats::coef(object, effects = "all"))
     out <- list(multivariate = NULL, univariate = NULL, glht = NULL)
+    backtransform <- TRUE
 
     if(inherits(effects,"mcp")){
         out.glht <- try(multcomp::glht(object, linfct = effects), ## only used for generating contrast matrix
@@ -271,97 +270,49 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, multivariate = TRU
         ls.nameTerms.num <- lapply(ls.nameTerms, function(iName){as.numeric(factor(iName, levels = iName))})
         simplify <- TRUE ## do not keep vcov and iid
         
-    }else{
-        if(all(grepl("=",effects)==FALSE)){
-            X <- object$design$mean
-            if(all(effects %in% attr(X,"variable"))){
-                assign <- which(attr(X,"variable") %in% effects)
-                labels <- colnames(X)[attr(X,"assign") %in% assign]
-                if(is.null(rhs)){
-                    rhs <- rep(0, NROW(effects))
-                }
-                effects <- paste0(labels,"=",rhs)
-            }else{
-                stop("Incorrect argument \'effects\': can be \"mean\", \"variance\", \"correlation\", \"all\", \n",
-                     "or an equation such compatible with the argument \'linfct\' of multcomp::glht \n ",
-                     "or a contrast matrix. \n",
-                     "or covariate names \n ")
-            }
-        }
+    }else if(is.character(effects)){
 
-        ## run glht
-        out.glht <- try(multcomp::glht(object, linfct = effects,  ## only used for generating contrast matrix
-                                       coef. = function(iX){coef.lmm(iX, effects = "all")},
-                                       vcov. = function(iX){vcov.lmm(iX, robust = FALSE, effects = "all")}),
-                        silent = TRUE)
-        newname.coef <- names(stats::coef(object, effects = "all"))
+        object.X <- model.matrix(object, effects = "all", simplify = FALSE)
+        object.coef <- names(coef(object, effects = "all", transform.names = FALSE))
+        attr(object.coef, "rescue") <- names(coef(object, effects = "all",
+                                                  transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = TRUE))
         
-        if(inherits(out.glht,"try-error")){
-
-            ## maybe the error is due to white space in the name of the coefficients
-            if(any(grepl(" ",effects))){
-                lhs <- sapply(strsplit(effects, split = "=",fixed = TRUE),"[",1)
-                lhs.term <- unlist(strsplit(unlist(strsplit(lhs, split = "+", fixed = TRUE)), split = "-", fixed = TRUE))
-                lhs.variable <- trimws(lapply(strsplit(lhs.term, split = "*", fixed = TRUE), utils::tail, 1), which = "both")
-                if(any(grepl(" ",lhs.variable))){
-                    stop("Possible mispecification of the argument \'effects\' as running mulcomp::glht lead to the following error: \n",
-                         out.glht,
-                         "There seems to be whitespace(s) in the name of certain coefficients which is likely to be the cause of the error. \n",
-                         "Consider using a contrast matrix to specific the argument \'effects\' \n or renaming the values of categorical variables without whitespace and refiting the lmm object. \n"
-                         )
-                }
-            }
-            test.reparametrize <- any(grepl("log", c(object$reparametrize$transform.sigma,object$reparametrize$transform.k))) || grep("atanh", object$reparametrize$transform.rho)
-            
-            ## restaure untransformed parametrization (glht does not handle log(k). or atanh(cor))
-            if(test.reparametrize){
-                object2 <- object
-                index.var <- which(object$design$param$type %in% c("sigma","k","rho"))
-                object2$reparametrize <- .reparametrize(p = object$param[index.var],
-                                                        type = object$design$param$type[index.var], 
-                                                        level = object$design$param$level[index.var], 
-                                                        sigma = object$design$param$sigma[index.var], 
-                                                        k.x = object$design$param$k.x[index.var], 
-                                                        k.y = object$design$param$k.y[index.var], 
-                                                        Jacobian = FALSE, dJacobian = FALSE, inverse = FALSE,
-                                                        transform.sigma = "none",
-                                                        transform.k = "none",
-                                                        transform.rho = "none",
-                                                        transform.names = TRUE)
-                out.glht <- try(multcomp::glht(object2, linfct = effects,  ## only used for generating contrast matrix
-                                               coef. = function(iX){coef.lmm(iX, effects = "all")},
-                                               vcov. = function(iX){vcov.lmm(iX, robust = robust, effects = "all")}), silent = TRUE)
-                if(inherits(out.glht,"try-error")){
-                    stop("Possible mispecification of the argument \'effects\' as running mulcomp::glht lead to the following error: \n",
-                         out.glht)
-                }
-                oldname.coef <- colnames(out.glht$linfct)
-                newname.hypo <- rownames(out.glht$linfct)
-                for(iSub in 1:length(oldname.coef)){
-                    newname.hypo <- gsub(pattern = oldname.coef[iSub], replacement = newname.coef[iSub], x = newname.hypo, fixed = TRUE)
-                }
-                dimnames(out.glht$linfct) <- list(newname.hypo,newname.coef)
-                message("The coefficient names have been transformed but not the null hypotheses. \n")
-            }else{
-                stop("Possible mispecification of the argument \'effects\' as running mulcomp::glht lead to the following error: \n",
-                     out.glht)
-            }
+        out.eq2c <- equation2contrast(effects,
+                                     name.coef = object.coef,
+                                     X = list(mean = object.X$mean, var = object.X$vcov$var$X),
+                                     name.arg = "effects")
+browser()
+        if("rescue" %in% names(out.eq2c) && out.eq2c$rescue==TRUE && (!is.null(original.transform.sigma) || !is.null(original.transform.k) || !is.null(original.transform.rho))){
+            ## the user specifically requests the transformed scale
+            backtransform <- FALSE 
         }
+
         type <- "all"
-        ls.contrast <- list(all = out.glht$linfct)
-        ls.null  <- list(all = out.glht$rhs)
+        ls.contrast <- list(all = out.eq2c$contrast)
+        ls.null  <- list(all = out.eq2c$rhs)
         name.effects <- names(effects)
         if(!is.null(name.effects)){
-            rownames(ls.contrast$all) <- name.effects            
+            if(any(name.effects == "")){
+                stop("Missing name for linear hypothesis \"",paste(effects[names(effects)==""], collapse = "\", \""),"\". \n",
+                     "All or none of the linear hypotheses should be named. \n")
+            }else{
+                rownames(ls.contrast$all) <- name.effects
+            }
         }
-        if(length(effects)==1){
+        if(is.null(name.effects)){
+            ls.nameTerms <- list(all = "1")
+        }else if(length(effects)==1){
             ls.nameTerms <- list(all = name.effects)
         }else{
-            ls.nameTerms <- list(all = NULL)
+            ls.nameTerms <- list(all = paste(name.effects, collapse = ", "))
         }
         ls.nameTerms.num <- list(all = 1)
 
         simplify <- FALSE ## keep vcov and iid
+    }else{
+        stop("Incorrect argument 'effects': can be \"mean\", \"variance\", \"correlation\", \"all\", \n", 
+             "or an equation such compatible with the argument 'linfct' of multcomp::glht \n ", 
+             "or a contrast matrix. \n", "or covariate names \n ")
     }
 
     ## ** prepare
@@ -384,9 +335,6 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, multivariate = TRU
     type.param <- stats::setNames(object$design$param$type,object$design$param$name)
     param <- coef(object, effects = effects,
                   transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
-    newparam <- coef(object, effects = effects,
-                     transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
-    newname <- names(newparam)
     name.param <- names(param)
     name.paramSigma <- names(type.param)[type.param=="sigma"]
     name.paramK <- names(type.param)[type.param=="k"]
@@ -447,7 +395,7 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, multivariate = TRU
 
             ## *** statistic
             if(multivariate){
-                outSimp <- .simplifyContrast(iC, iNull) ## remove extra lines
+                outSimp <- simplifyContrast(iC, iNull) ## remove extra lines
                 iC.vcov.C_M1 <- try(solve(outSimp$C %*% vcov.param %*% t(outSimp$C)), silent = TRUE)
                 if(inherits(iC.vcov.C_M1,"try-error")){
                     iStat <- NA
@@ -569,87 +517,86 @@ anova.lmm <- function(object, effects = NULL, robust = FALSE, multivariate = TRU
 
     if(!simplify){
         globalC <- do.call(rbind, lapply(unlist(out$glht, recursive = FALSE), "[[", "linfct"))
-
-        ## default: non-robust vcov and robust for iid
+        
         if(attr(robust,"call")){
             out$vcov <- globalC %*% vcov.param %*% t(globalC)
             robust2 <- robust
         }else{
-            out$vcov <- globalC %*% vcov(object, df = FALSE, effects = "all", robust = FALSE,
-                                         transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE) %*% t(globalC)
+            ## default: non-robust vcov and robust for iid
+            if(robust){
+                out$vcov <- globalC %*% vcov(object, df = FALSE, effects = "all", robust = FALSE,
+                                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE) %*% t(globalC)
+            }else{
+                out$vcov <- globalC %*% vcov.param %*% t(globalC)
+            }
             robust2 <- TRUE
         }
-        if(object$args$method.fit == "ML"){
-            out$iid <- iid(object, effects = effects, robust = robust2, 
-                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE) %*% t(globalC)
-        }else if(object$args$method.fit == "REML" && all(type.param[which(colSums(globalC!=0)>0)]=="mu")){
-            globalC <- globalC[,name.param[type.param=="mu"],drop=FALSE]
-            out$iid <- iid(object, effects = "mean", robust = robust2, 
-                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE) %*% t(globalC)
-        }
+        out$iid <- iid(object, effects = effects, robust = robust2, 
+                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE) %*% t(globalC)
     }
 
     ## ** prepare for back-transformation
     out$args <- data.frame(type = NA, robust = robust, df = df, ci = ci,
-                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                           transform.names = transform.names)
+                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = !backtransform)
 
     active.param <- unlist(lapply(unlist(out$glht, recursive = FALSE), function(iGlht){colnames(iGlht$linfct)[colSums(iGlht$linfct!=0)>0]}))
-    if(all(name.paramSigma %in% active.param == FALSE)){
+    if(all(name.paramSigma %in% active.param == FALSE) || !backtransform){
         active.transform.sigma <- NA
     }else{
         active.transform.sigma <- out$args$transform.sigma
     }
-    if(all(name.paramK %in% active.param == FALSE)){
+    if(all(name.paramK %in% active.param == FALSE) || !backtransform){
         active.transform.k <- NA
     }else{
         active.transform.k <- out$args$transform.k
     }
-    if(all(name.paramRho %in% active.param == FALSE)){
+    if(all(name.paramRho %in% active.param == FALSE) || !backtransform){
         active.transform.rho <- NA
     }else{
         active.transform.rho <- out$args$transform.rho
     }
 
-    test.original <- is.null(original.transform.sigma) && is.null(original.transform.k) && is.null(original.transform.rho)
-    test.backtransform <- stats::na.omit(c(sigma = active.transform.sigma, k = active.transform.k, rho = active.transform.rho))
+    test.backtransform <- c(mu = NA, sigma = active.transform.sigma, k = active.transform.k, rho = active.transform.rho)
     ## should back transformation be performed when latter calling coef/confint?
-    ## - no if no sigma/k/rho parameters in the linear hypotheses
-    ## - no for the p-value, yes for the estimate, and NA for CI when evaluating a contrast on a tranformed scaled
-    out$args$backtransform <- length(test.backtransform[test.backtransform != "none"])>0
-
-    if(test.original && out$args$backtransform){ 
+    out$args$backtransform <- any(!is.na(test.backtransform))
+    ## it the transformation and back transformation equivalent to no transformation?
+    ## always the case when effects = "variance", "correlation", ...  (lengths(ls.contrast)==0)
+    ## but may not always be the case with user defined contrasts, e.g. exp(log(A)+log(B)) = A*B != A+B
+    if(out$args$backtransform && any(lengths(ls.contrast)>0)){ 
 
         ## find parameters subject to backtransformation
-        param.with.backtransform <- object$design$param[object$design$param$type %in% names(test.backtransform)[test.backtransform!="none"],"name"]
+        param2backtransform <- stats::setNames(test.backtransform[object$design$param$type],object$design$param$name)
 
-        ## restrict contrast matrix to hypotheses with backtransformation
-        M.allContrast <- do.call(rbind,lapply(out$glht[lengths(out$glht)>0], function(iLs){do.call(rbind,lapply(iLs,"[[","linfct"))}))
-        col.with.backtransform <- intersect(colnames(M.allContrast),param.with.backtransform)
-        row.with.backtransform <- rowSums(M.allContrast[,col.with.backtransform,drop=FALSE]!=0)>0
-        Mback.allContrast <- M.allContrast[row.with.backtransform,,drop=FALSE]
-
-        ## sanity check
-        if(any(rowSums(M.allContrast[row.with.backtransform,setdiff(colnames(M.allContrast),param.with.backtransform),drop=FALSE]!=0)>0)){
-            warning("Hypothesis with mean and variance-covariance parameter(s): possible misleading results due to transformation of the variance-covariance parameter(s). \n")
+        ## for each contrast what are the backtransformation performed?
+        ls.contrastback <-  unlist(lapply(ls.contrast, function(iC){
+            apply(iC, MARGIN = 1, FUN = function(iRow){param2backtransform[iRow!=0]}, simplify = FALSE)
+        }), recursive = FALSE)
+        
+        if(any(lengths(lapply(ls.contrastback,unique))>1)){ ## check same transformation within contrast
+            warning("Results may be misleading with contrasts mixing parameters using distinct transformations. \n",
+                    "Consider setting the arguments \'transform.sigma\', \'transform.k\', and \'transform.rho\' to \"none\". \n")
+            attr(out$args,"backtransform") <- "contrasts mixing parameters using distinct transformations"
+        }else if(any(lengths(ls.contrastback)>1)){ ## check single transformation
+            
+            Ubacktransform <- unique(unlist(ls.contrastback))
+            if(length(Ubacktransform)==1 && Ubacktransform == "log"){
+                attr(out$args,"backtransform") <- "test multiplicative instead of additive combinations due to log-transformation"
+            }else{
+                
+            }
         }
-
-        ## evaluate un-transformed value
-        paramMback.allContrast <- rowSums(Mback.allContrast!=0)
-        if(any(paramMback.allContrast>1)){
-            param.untransformed <- coef(object, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none")
-            attr(out$univariate,"backtransform") <- (Mback.allContrast[paramMback.allContrast>1,,drop=FALSE] %*% param.untransformed)[,1]
-        }        
     }
-
     ## nice naming
-    if(transform.names && is.null(names(effects))){
+    if(backtransform && is.null(names(effects))){
         backtransform.names <- names(coef(object,
-                                          effects = effects, 
+                                          effects = "all", 
                                           transform.sigma = gsub("log","",transform.sigma),
                                           transform.k = gsub("log","",transform.k),
                                           transform.rho = gsub("atanh","",transform.rho),
-                                          transform.names = transform.names))
+                                          transform.names = TRUE))
+        newname <- names(coef(object, effects = effects, transform.sigma = transform.sigma, 
+                               transform.k = transform.k, transform.rho = transform.rho, 
+                               transform.names = TRUE))
         out$args$backtransform.names <- list(stats::setNames(rownames(out$univariate),rownames(out$univariate)))
         index <- match(newname,out$args$backtransform.names[[1]])
         out$args$backtransform.names[[1]][stats::na.omit(index)] <- backtransform.names[which(!is.na(index))]
@@ -811,41 +758,6 @@ dfSigma <- function(contrast, vcov, dVcov, keep.param){
     return(df)
 }
 
-## * .simplifyContrast
-## remove contrasts making the contrast matrix singular
-.simplifyContrast <- function(object, rhs, tol = 1e-10, trace = TRUE){
-    object.eigen <- eigen(tcrossprod(object))
-    n.zero <- sum(abs(object.eigen$values) < tol)
-    if(length(rhs)==1 && NROW(object)>1){
-        rhs <- rep(rhs, NROW(object))
-    }
-
-    if(n.zero==0){return(list(C = object, rhs = rhs, dim = NROW(object), rm = 0))}
-    
-    keep.lines <- 1:NROW(object)
-    for(iLine in NROW(object):1){ ## iLine <- 3
-        iN.zero <- sum(abs(eigen(tcrossprod(object[setdiff(keep.lines,iLine),,drop=FALSE]))$values) < tol)
-        if(iN.zero<n.zero){
-            keep.lines <- setdiff(keep.lines,iLine)
-            n.zero <- iN.zero
-        }
-        if(n.zero==0){
-            
-            if(trace){
-                name.rm <- rownames(object)[-keep.lines]
-                if(length(name.rm)==1){
-                    message("Singular contrast matrix: contrast \"",name.rm,"\" has been removed. \n")
-                }else{
-                    message("Singular contrast matrix: contrasts \"",paste(name.rm,collapse= "\" \""),"\" have been removed. \n")
-                }
-            }
-            return(list(C = object[keep.lines,,drop=FALSE], rhs = rhs[keep.lines], dim = length(keep.lines), rm = NROW(object)-length(keep.lines)))
-        }
-    }
-
-    ## n.zero>0 so failure
-    return(NULL)
-}
 
 ##----------------------------------------------------------------------
 ### anova.R ends here

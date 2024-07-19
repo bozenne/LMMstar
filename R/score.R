@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: jul 15 2024 (18:36) 
+## Last-Updated: jul 16 2024 (17:20) 
 ##           By: Brice Ozenne
-##     Update #: 752
+##     Update #: 765
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -147,7 +147,7 @@ score.lmm <- function(x, effects = "mean", indiv = FALSE, newdata = NULL, p = NU
 
 ## * score.mlmm (code)
 ##' @export
-score.mlmm <- function(x, effects = "contrast", indiv = FALSE, p = NULL, newdata = NULL, ordering = "parameter", simplify = TRUE, ...){
+score.mlmm <- function(x, effects = "contrast", indiv = FALSE, p = NULL, newdata = NULL, ordering = "by", simplify = TRUE, ...){
 
     level.by <- names(x$model)
 
@@ -207,15 +207,22 @@ score.mlmm <- function(x, effects = "contrast", indiv = FALSE, p = NULL, newdata
     ordering <- match.arg(ordering, c("by","parameter"))
 
     ## ** extract score
-    if(all(effects=="contrast")){
-        ls.contrast <- stats::coef(object, type = "ls.contrast") ## extract linear combination from each model
-        contrast <- coef(object, type = "contrast") ## contrast combinations across models
+    if(indiv){
+        cluster <- x$object$cluster
+        n.cluster <- length(cluster)
+    }
 
-        ls.score <- lapply(level.by, function(iBy){score(x$model[[iBy]], effects = effects2, indiv = indiv, p = p[[iBy]], ...)})
-        
+    if(all(effects=="contrast")){
+        ls.contrast <- stats::coef(x, type = "ls.contrast") ## extract linear combination from each model
+        contrast <- coef(x, type = "contrast") ## contrast combinations across models
+        ls.score <- lapply(level.by, function(iBy){
+            score(x$model[[iBy]], effects = effects2, indiv = indiv, p = p[[iBy]], transform.names = FALSE, ...)            
+        })
+
         ls.out <- mapply(iScore = ls.score, iC = ls.contrast, FUN = function(iScore,iC){ ## iScore <- ls.score[[1]] ; iC <- ls.contrast[[1]]
             if(indiv){
-                iOut <- iScore %*% t(iC[,colnames(iScore), drop = FALSE])
+                iOut <- matrix(0, nrow = n.cluster, ncol = NROW(iC), dimnames = list(cluster, rownames(iC)))
+                iOut[rownames(iScore),] <- iScore %*% t(iC[,colnames(iScore), drop = FALSE])
                 return(iOut)
             }else{
                 iOut <- iScore %*% t(iC[,names(iScore), drop = FALSE])
@@ -232,13 +239,10 @@ score.mlmm <- function(x, effects = "contrast", indiv = FALSE, p = NULL, newdata
 
     }else{
 
-        cluster <- x$object$cluster
-        n.cluster <- length(cluster)
-
         ls.out <- lapply(level.by, function(iBy){
             iO <- x$model[[iBy]]
 
-            iScore <- score(iO, effects = effects, indiv = indiv, p = p[[iBy]], ...)
+            iScore <- score(iO, effects = effects, indiv = indiv, p = p[[iBy]], transform.names = FALSE, ...)
             if(indiv){
                 if(simplify){
                     iOut <- matrix(0, nrow = n.cluster, ncol = NCOL(iScore), dimnames = list(cluster, paste0(iBy,": ", colnames(iScore))))
@@ -264,7 +268,7 @@ score.mlmm <- function(x, effects = "contrast", indiv = FALSE, p = NULL, newdata
 
     ## ** re-order
     if(all(effects=="contrast")){
-        name.order <- names(coef(object, effects = "contrast", ordering = ordering))        
+        name.order <- names(coef(x, effects = "contrast", ordering = ordering))        
         if(indiv){
             out <- out[,name.order,drop=FALSE]
         }else{

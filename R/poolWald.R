@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 11 2024 (11:56) 
 ## Version: 
-## Last-Updated: jul 15 2024 (16:35) 
+## Last-Updated: jul 16 2024 (15:00) 
 ##           By: Brice Ozenne
-##     Update #: 93
+##     Update #: 95
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -192,7 +192,7 @@ poolWald.mlmm <- function(object, p, index, method, name.method, ci, df, alpha){
         pool.nu_obs <- (estimate.df+1)/(estimate.df+3)*estimate.df*(1-pool.lambda) ## formula 2.31 (Barnard and Rubin (1999) )
         pool.df <- mean(pool.nu_old*pool.nu_obs/(pool.nu_old+pool.nu_obs)) ## formula 2.32
 
-    }else if(abs(diff(range(table$df)))<0.1){
+    }else if(diff(range(table$df))<0.1){
 
         pool.df <- mean(table$df)
 

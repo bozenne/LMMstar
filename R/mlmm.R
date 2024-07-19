@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: jul 15 2024 (17:40) 
+## Last-Updated: jul 16 2024 (16:48) 
 ##           By: Brice Ozenne
-##     Update #: 443
+##     Update #: 483
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -278,16 +278,24 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
     if(trace>0.5){
         cat(" - univariate test\n")
     }
+
     ls.anova <- stats::setNames(lapply(name.lmm, function(iName){ ## iName <- name.lmm[1]
 
         if(is.null(robust)){
-            anova(ls.lmm[[iName]], effects = ls.Cmat[[iName]], rhs = rhs[[iName]], ci = ci, df = df, 
-                  transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+            iWald <- anova(ls.lmm[[iName]], effects = ls.Cmat[[iName]], rhs = rhs[[iName]], ci = ci, df = df, 
+                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
         }else{
-            anova(ls.lmm[[iName]], effects = ls.Cmat[[iName]], rhs = rhs[[iName]], robust = robust, ci = ci, df = df, 
-                  transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+            iWald <- anova(ls.lmm[[iName]], effects = ls.Cmat[[iName]], rhs = rhs[[iName]], robust = robust, ci = ci, df = df, 
+                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
         }
 
+        if(!is.null(contrast.rbind) && identical(df,TRUE)){
+            iWald$dVcov <- attr(vcov(ls.lmm[[iName]], effects = "all", df = 2, robust = robust, 
+                                     transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names), "dVcov")
+            attr(iWald$dVcov, "iid") <- iid(ls.lmm[[iName]], effects = "all", robust = robust, 
+                                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+        }
+        return(iWald)
     }), name.lmm)
 
     ## ** joint inference
@@ -300,7 +308,7 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
         }else{
             name.model <- paste0(by,"=",name.lmm)
         }
-        keep.by.level <- matrix(name.lmm, ncol = 1, dimnames = list(NULL, by))
+        
     }else{
         name.model <- unlist(lapply(ls.data, function(iData){
             if(name.short[1]){
@@ -309,9 +317,7 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
                 return(paste(paste0(by.keep,"=",iData[1,by.keep]),collapse=","))
             }
         }))
-        keep.by.level <- do.call(rbind,lapply(ls.data, function(iData){
-            iData[1,by.keep]
-        }))
+        
     }
 
     if(!is.null(contrast.rbind)){
@@ -327,42 +333,25 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
                    args = c(list(model = ls.anova[[1]], effects = contrast.rbind, rhs = rhs.by, name = name.model, sep = sep), unname(ls.anova[-1]))
                    )
     out$model <- ls.lmm
-    names(out$univariate)[1] <- "by"
+    names(out$univariate)[names(out$univariate)=="model"] <- "by"
 
-    ## re-order cluster (order may be lost when spliting the dataset per by)
+    ## *** re-order cluster (order may be lost when spliting the dataset per by)
     if(is.null(repetition)){
-        out$object$cluster <- out$object$cluster[order(factor(out$object$cluster, levels = data$XXclusterXX))]
+        var.cluster <- "XXclusterXX"
+    }
+    if(is.factor(data[[var.cluster]])){
+        level.cluster <- levels(data[[var.cluster]])
     }else{
-        out$object$cluster <- out$object$cluster[order(factor(out$object$cluster, levels = data[[var.cluster]]))]
+        level.cluster <- sort(unique(data[[var.cluster]]))
     }
-    
-    ## add covariate values
-    keep.rowname <- rownames(out$univariate)
-    if(is.null(contrast.rbind)){
-        rownames(keep.by.level) <- name.model
-        out$univariate[colnames(keep.by.level)] <- keep.by.level[out$univariate$by,,drop=FALSE]
+    out$object$cluster <- out$object$cluster[order(factor(out$object$cluster, levels = level.cluster))]
 
-        if(name.short[2]){
-            if(all(duplicated(out$univariate$by)==FALSE)){ ## by uniquely identify the hypotheses
-                rownames(out$univariate) <- out$univariate$by
-                dimnames(out$vcov) <- list(out$univariate$by,out$univariate$by)
-                if(!is.null(attr(out$univariate,"backtransform"))){
-                    names(attr(out$univariate,"backtransform")) <- out$univariate$by
-                }                
-            }
-            test.global <- unique(paste0(out$univariate$parameter,"=",out$univariate$null))
-            if(length(test.global)==1 && NROW(out$multivariate)){
-                out$multivariate$null <- test.global
-            }
-        }
-    }else if(name.short[2] && length(contrast.rbind)==1 && contrast.rbind %in% c("Dunnett","Tukey","Sequen") && !is.list(out$univariate$parameter) && length(unique(out$univariate$parameter))==1){
-        M.by <- do.call(rbind, out$univariate$by)
-        rownames(out$univariate) <- paste(M.by[,2],"-",M.by[,1])
-        if(!is.null(attr(out$univariate,"backtransform"))){
-            names(attr(out$univariate,"backtransform")) <- rownames(out$univariate)
-        }
+    ## *** add covariate values
+    if(is.null(contrast.rbind)){
+        keep.by.level <- do.call(rbind,lapply(ls.data, function(iData){iData[1,by.keep,drop=FALSE]}))
+        rownames(keep.by.level) <- name.model
+        out$univariate[colnames(keep.by.level)] <- keep.by.level[unlist(out$univariate$by),,drop=FALSE]
     }
-    
 
     ## ** export
     if(trace>0){

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: jul 15 2024 (19:45) 
+## Last-Updated: jul 16 2024 (17:56) 
 ##           By: Brice Ozenne
-##     Update #: 927
+##     Update #: 959
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -260,16 +260,22 @@ coef.LRT_lmm <- function(object, ...){
 ##' @param method [character] type of adjustment for multiple comparisons, one of \code{"none"}, \code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}.
 ##' Alternatively, a method for combining the estimates, one of \code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.gls1"}, \code{"pool.rubin"}.
 ##' Ignored if \code{type="contrast"} or \code{type="ls.contrast"}.
-##' @param ordering [character] should the output be ordered by type of parameter (\code{parameter}) or by model (\code{by}).
-##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
-##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
-##' @param transform.rho [character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"} - see details.
+##' @param ordering [character] should the output be ordered by type of parameter (\code{"parameter"}) or by model (\code{"by"}).
+##' Not relevant when \code{effects="contrast"}.
+##' @param backtransform [logical] should the estimate, standard error, and confidence interval be back-transformed?
+##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}.
+##' Ignored if \code{type="contrast"}, \code{type="ls.contrast"}, or \code{effects="contrast"}.
+##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"}.
+##' Ignored if \code{type="contrast"}, \code{type="ls.contrast"}, or \code{effects="contrast"}.
+##' @param transform.rho [character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"}.
+##' Ignored if \code{type="contrast"}, \code{type="ls.contrast"}, or \code{effects="contrast"}.
 ##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
+##' Ignored if \code{type="contrast"}, \code{type="ls.contrast"}, or \code{effects="contrast"}.
 ##' @param ... Not used. For compatibility with the generic method.
 
 ## * coef.mlmm (code)
 ##' @export
-coef.mlmm <- function(object, effects = "contrast", p = NULL, type = "coef", method = "none", ordering = "parameter",
+coef.mlmm <- function(object, effects = "contrast", p = NULL, type = "coef", method = "none", ordering = "by", backtransform = object$args$backtransform,
                       transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE, ...){
 
     options <- LMMstar.options()
@@ -290,8 +296,14 @@ coef.mlmm <- function(object, effects = "contrast", p = NULL, type = "coef", met
     }
     valid.effects <- c("contrast","mean","fixed","variance","correlation","all")
     if(any(effects %in% valid.effects == FALSE)){
-        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
-             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+        if(all(effects == "ls.contrast")){
+            stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+                 "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n",
+                 "Consider to pass the value \"ls.effects\" to the argument \'type\'. \n")
+        }else{
+            stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+                 "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+        }
     }    
     if("effects" %in% effects && length(effects)>1){
         stop("Argument \'effects\' must have length 1 when containing the element \'effects\'. \n")
@@ -354,15 +366,15 @@ coef.mlmm <- function(object, effects = "contrast", p = NULL, type = "coef", met
     }else if(all(effects=="contrast")){ ## contrast of mean/variance/correlation parameters
         
         ls.out <- lapply(method, function(iMethod){ ## iMethod <- method[1]
-            
+    
             if(iMethod %in% pool.method){
 
                 if(method == "p.rejection"){
-                    iOut <- proportion.mlmm(object = object, p = p, index = iIndex.table,
+                    iOut <- proportion.mlmm(object = object, p = p, 
                                             name.method = name.method, method = attr(method,"method"), qt = attr(method,"qt"),
                                             null = NA, ci = FALSE, df = FALSE, alpha = NA)
                 }else{
-                    iOut <- poolWald.mlmm(object = object, p = p, index = iIndex.table,
+                    iOut <- poolWald.mlmm(object = object, p = p, 
                                           method = method, name.method = name.method,
                                           ci = FALSE, df = FALSE, alpha = NA)
                 }
@@ -371,19 +383,36 @@ coef.mlmm <- function(object, effects = "contrast", p = NULL, type = "coef", met
             
             }else{ 
                 if(is.null(p)){
-                    iOut <- coef.Wald_lmm(object, type = "coef")
+                    iOut <- coef.Wald_lmm(object, type = "coef", backtransform = backtransform)
                 }else{
                     contrast <- coef(object, type = "contrast") ## extract linear combination from each model
                     ls.contrast <- coef(object, type = "ls.contrast") ## contrast combinations across models
                     iCoef <- coef(object, p = p, effects = "all", ordering = "by",
-                                 transform.sigma = object$args$transform.sigma, transform.k = object$args$transform.k, transform.rho = object$args$transform.rho, transform.names = FALSE)
+                                  transform.sigma = object$args$transform.sigma, transform.k = object$args$transform.k,
+                                  transform.rho = object$args$transform.rho, transform.names = FALSE)
                     iCCoef <- do.call(rbind,mapply(iC = ls.contrast, iTheta = iCoef, function(iC,iTheta){iC %*% iTheta}, SIMPLIFY = FALSE))
                     iOut <- (contrast %*% iCCoef)[,1]
+                    
+                    if(backtransform && object$args$backtransform){
+                        iOut[] <- .backtransform(data.frame(estimate = iOut), type.param = object$univariate$type,  
+                                                               backtransform = TRUE, backtransform.names = object$args$backtransform.names[[1]],
+                                                               transform.mu = "none",
+                                                               transform.sigma = object$args$transform.sigma,
+                                                               transform.k = object$args$transform.k,
+                                                               transform.rho = object$args$transform.rho)$estimate
+                    }
                 }
+
                 if(ordering=="by"){
-                    iOut <- iOut[order(object$univariate[["by"]])]
-                }else{ ## parameter may contain a list when multiple group variables
-                    iOut <- iOut[order(object$univariate$parameter)]
+                    ## nothing to do
+                }else if(ordering=="parameter"){
+                    if(all(lengths(object$univariate$parameter)==1)){ ## single variable
+                        iLevel <- unique(unlist(object$univariate$parameter)) ## keep ordering univariate table that should remember how factors are ordered.
+                        iOut <- iOut[order(factor(unlist(object$univariate$parameter), levels = iLevel))]
+                    }else{ ## multiple variables, e.g. when a contrast is based on two model parameters X1 + 2*X2
+                        iLevel <- unique(sapply(object$univariate$parameter, paste, sep = "XX_XX"))
+                        iOut <- iOut[order(factor(sapply(object$univariate$parameter, paste, sep = "XX_XX"),iLevel))]
+                    }
                 }
              
             }
@@ -404,7 +433,7 @@ coef.mlmm <- function(object, effects = "contrast", p = NULL, type = "coef", met
             out <- lapply(names(object$model), function(iBy){
                 coef(object$model[[iBy]], p = p[[iBy]], effects = effects,
                      transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
-                })
+            })
         }
 
         ## only reorder when no pooling

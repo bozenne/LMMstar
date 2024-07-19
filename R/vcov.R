@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: jul 15 2024 (16:49) 
+## Last-Updated: jul 16 2024 (17:27) 
 ##           By: Brice Ozenne
-##     Update #: 658
+##     Update #: 668
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -176,6 +176,8 @@ vcov.Wald_lmm <- function(object, ...){
 ##' or only coefficients relative to the correlation structure (\code{"correlation"}).
 ##' @param p [list of numeric vector] list of model coefficients to be used. Only relevant if differs from the fitted values.
 ##' @param newdata [NULL] Not used. For compatibility with the generic method.
+##' @param ordering [character] should the output be ordered by type of parameter (\code{"parameter"}) or by model (\code{"by"}).
+##' Not relevant when \code{effects="contrast"}.
 ##' @param type.information [character] Should the expected information be used  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
 ##' Not feasible for variance or correlation coefficients estimated by REML.
@@ -189,8 +191,9 @@ vcov.Wald_lmm <- function(object, ...){
 
 ## * vcov.mlmm (code)
 ##' @export
-vcov.mlmm <- function(object, effects = "contrast", robust = object$args$robust, type.information = object$object$type.information, 
-                      newdata = NULL, p = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, simplify = TRUE, ...){
+vcov.mlmm <- function(object, effects = "contrast", p = NULL, newdata = NULL, ordering = "by",
+                      robust = object$args$robust, type.information = object$object$type.information, 
+                      transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, simplify = TRUE, ...){
 
     options <- LMMstar.options()
     pool.method <- options$pool.method
@@ -232,6 +235,9 @@ vcov.mlmm <- function(object, effects = "contrast", robust = object$args$robust,
         message("Argument \'newdata\' is being ignored. \n")
     }
 
+    ## *** type.information
+    REML2ML <- attr(type.information,"REML2ML")
+
     ## ** extract
     if(all(effects=="contrast")){
         if((length(unlist(p))==0) && (robust == object$args$robust) && (type.information == object$object$type.information) && test.notransform){
@@ -240,7 +246,7 @@ vcov.mlmm <- function(object, effects = "contrast", robust = object$args$robust,
 
         }else{
 
-            e.iid <- iid.mlmm(object, effects = "contrast", p = p, robust = robust, type.information = type.information,
+            e.iid <- iid.mlmm(object, effects = "contrast", p = p, REML2ML = REML2ML, robust = robust, type.information = type.information,
                               transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
             out <- crossprod(e.iid)
             attr(out,"original.name") <- attr(e.iid,"original.name")
@@ -248,9 +254,11 @@ vcov.mlmm <- function(object, effects = "contrast", robust = object$args$robust,
             attr(out,"message") <- attr(e.iid,"message")
             
         }
+    }else if(ordering == "by" && !simplify){
+        out <- lapply(object$model, FUN = vcov, effects = effects, p = p, robust = robust, type.information = type.information,
+                      transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
     }else{
-
-        e.iid <- iid.mlmm(object, effects = effects, p = p, robust = robust, type.information = type.information,
+        e.iid <- iid.mlmm(object, effects = effects, p = p, REML2ML = REML2ML, ordering = ordering, robust = robust, type.information = type.information,
                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names, simplify = simplify)
         if(is.matrix(e.iid)){
             out <- crossprod(e.iid)
@@ -258,7 +266,6 @@ vcov.mlmm <- function(object, effects = "contrast", robust = object$args$robust,
             attr(out,"by") <- attr(e.iid,"by")
             attr(out,"message") <- attr(e.iid,"message")
         }else if(is.list(e.iid)){
-
             out <- lapply(e.iid, function(iIID){
                 iOut <- crossprod(iIID)
                 attr(iOut,"message") <- attr(iIID,"message")
