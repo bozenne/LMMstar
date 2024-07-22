@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: jul 16 2024 (17:56) 
+## Last-Updated: jul 22 2024 (11:50) 
 ##           By: Brice Ozenne
-##     Update #: 959
+##     Update #: 971
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -24,12 +24,12 @@
 ##' or only coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 ##' or only coefficients relative to the variance structure (\code{"variance"}),
 ##' or only coefficients relative to the correlation structure (\code{"correlation"}).
-##' Can also be \code{"ranef"} to output random effect (only for \code{CS} structure).
+##' or the random effects (\code{"ranef"}) when using a random effect model.
 ##' @param p [numeric vector] value of the model coefficients to be used. Only relevant if differs from the fitted values.
-##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
-##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
+##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see detail##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
 ##' @param transform.rho [character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"} - see details.
 ##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
+##' @param simplify [logical] Should the type of each parameter (mu/sigma/k/rho) and the corresponding variance parameters (sigma/k.x/k.y) be output as attributes?
 ##' @param ... Not used. For compatibility with the generic method.
 ##' 
 ##'
@@ -60,10 +60,17 @@
 ##' \item \code{"cov"} ouput covariance coefficient.
 ##' }
 ##'
-##' When using a (pure) compound symmetry covariance structure (\code{structure = "CS"}),
-##' estimated random effects can be extracted by setting argument \code{effects} to \code{"ranef"}.
-##'
-##' @return A vector with the value of the model coefficients.
+##' @return A vector with the value of the model coefficients. \cr
+##' When using \code{simplify=FALSE} the character strings in attribute \code{"type"} refer to:
+##' \itemize{
+##' \item \code{"mu"}: mean parameters.
+##' \item \code{"sigma"}: standard deviation parameters,
+##' \item \code{"k"}: ratio between standard deviation,
+##' \item \code{"rho"}: correlation parameter
+##' }
+##' The character strings in attribute \code{"sigma"} refer, for each parameter, to a possible corresponding standard deviation parameter.
+##' Those in attribute \code{"k.x"} and \code{"k.y"} refer to the ratio parameter.
+##' \code{NA} indicates no corresponding standard deviation or ratio parameter.
 ##' 
 ##' @seealso
 ##' \code{\link{confint.lmm}} or \code{\link{model.tables.lmm}} for a data.frame containing estimates with their uncertainty. \cr
@@ -80,13 +87,14 @@
 ##'
 ##' ## output coefficients
 ##' coef(eUN.lmm)
-##' coef(eUN.lmm, effects = "mean")
-##' coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none")
+##' coef(eUN.lmm, effects = "variance", transform.k = "sd")
+##' coef(eUN.lmm, effects = "all", simplify = FALSE)
 
 ## * coef.lmm (code)
 ##' @export
 coef.lmm <- function(object, effects = NULL, p = NULL,
-                     transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE, ...){
+                     transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE,
+                     simplify = TRUE, ...){
 
     mycall <- match.call()
     
@@ -122,7 +130,7 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
         if(length(effects)>1){
             stop("Argument \'effects\' should be of length 1 when it contains \"ranef\". \n")
         }
-        return(ranef(object, p = p))
+        return(nlme::ranef(object, p = p))
     }
     effects <- match.arg(effects, c("mean","fixed","variance","correlation","ranef"), several.ok = TRUE)
     effects[effects== "fixed"] <- "mean"
@@ -204,6 +212,12 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
     out <- theta.trans[param.type %in% keep.type]
 
     ## ** export
+    if(!simplify){
+        attr(out,"type") <- unname(param.type[param.type %in% keep.type])
+        attr(out,"sigma") <- unname(param.sigma[param.type %in% keep.type])
+        attr(out,"k.x") <- unname(param.k.x[param.type %in% keep.type])
+        attr(out,"k.y") <- unname(param.k.y[param.type %in% keep.type])
+    }    
     return(out)
 }
 

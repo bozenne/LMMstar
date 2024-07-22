@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: jul 11 2024 (16:55) 
+## Last-Updated: jul 22 2024 (11:50) 
 ##           By: Brice Ozenne
-##     Update #: 800
+##     Update #: 802
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -955,11 +955,19 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
 ##' @param transform.sigma,transform.k,transform.rho [character] user input for the transformations
 ##' @param x.transform.sigma,x.transform.k,x.transform.rho [character] transformations used when fitting the object
 ##' @param normalize.p [logical] should the model parameter be re-parametrized to no transformation
+##' @param simplify [logical] should the attribute containing the input transformation be discarded?
 ##' @noRd
 .init_transform <- function(p, transform.sigma, transform.k, transform.rho, 
                             x.transform.sigma, x.transform.k, x.transform.rho,
-                            table.param){
+                            table.param, simplify = TRUE){
 
+    ## ** save input
+    if(!simplify){
+        transform.sigma.save <- transform.sigma
+        transform.k.save <- transform.k
+        transform.rho.save <- transform.rho
+    }
+    
     ## ** normalize input
     ## several way to say no transform
     ## do not use identical(,) because transform.sigma/k/rho may contain an attribute
@@ -1069,11 +1077,17 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
     }
     
     ## ** export
-    return(list(p = p,
+    out <- list(p = p,
                 transform.sigma = transform.sigma,
                 transform.k = transform.k,
                 transform.rho = transform.rho,
-                test.notransform = test.notransform))
+                test.notransform = test.notransform)
+    if(!simplify){
+        attr(out$transform.sigma,"call") <- transform.sigma.save
+        attr(out$transform.k,"call") <- transform.k.save
+        attr(out$transform.rho,"call") <- transform.rho.save
+    }
+    return(out)
 }
 ##----------------------------------------------------------------------
 ### reparametrize.R ends here

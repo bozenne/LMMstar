@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jul 12 2024 (12:00) 
+## Last-Updated: jul 22 2024 (11:26) 
 ##           By: Brice Ozenne
-##     Update #: 3092
+##     Update #: 3094
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -771,6 +771,10 @@ lmm <- function(formula, data, repetition, structure,
         stop("Argument \'data\' should not contain a column named \"XXstrata.indexXX\" as this name is used internally by the lmm function. \n")
     }
  
+    if(length(var.cluster)>1){
+        stop("Incorrect specification of argument \'repetition\': too many cluster variables. \n",
+             "There should be exactly one variable after the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n", sep = "")
+    }
     if(any(!is.na(var.cluster)) && any(var.cluster %in% names.data == FALSE)){
         stop("Argument \'repetition\' is inconsistent with argument \'data\'. \n",
              "Could not find column \"",paste(var.cluster, collapse = "\" \""),"\" indicating the cluster in argument \'data\'. \n", sep="")
@@ -779,13 +783,13 @@ lmm <- function(formula, data, repetition, structure,
         stop("Argument \'repetition\' is inconsistent with argument \'data\'. \n",
              "Could not find column \"",paste(var.time, collapse = "\" \""),"\" indicating the time in argument \'data\'. \n", sep="")
     }
+    if(length(var.strata)>1){
+        stop("Incorrect specification of argument \'structure\': too many strata variables. \n",
+             "There should be at most one strata variable. \n", sep = "")
+    }
     if(any(!is.na(var.strata)) && any(var.strata %in% names.data == FALSE)){
         stop("Argument \'structure\' is inconsistent with argument \'data\'. \n",
              "Could not find column \"",paste(var.strata, collapse = "\" \""),"\" indicating the strata in argument \'data\'. \n",sep="")
-    }
-    if(length(var.cluster)>1){
-        stop("Incorrect specification of argument \'repetition\': too many cluster variables. \n",
-             "There should be exactly one variable after the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n", sep = "")
     }
 
     ## ** convert logical into factor
@@ -877,7 +881,6 @@ lmm <- function(formula, data, repetition, structure,
     }
 
     ## ** strata
-    ## NOTE: .formulaStructure makes sure that there is at most 1 strata variable
     if(is.na(var.strata)){
         data$XXstrataXX <- factor(1)
 
