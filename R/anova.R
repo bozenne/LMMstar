@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jul 22 2024 (16:40) 
+## Last-Updated: Jul 22 2024 (20:22) 
 ##           By: Brice Ozenne
-##     Update #: 1668
+##     Update #: 1676
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -126,11 +126,11 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = FALSE, df = !
     }else{  
         ## *** Wald test
 
-        ## extract from object
-        object.coef <- stats::coef(object, effects = "all", simplify = FALSE)
-        name.coef <- names(object.coef)
+        #n# extract from object
+        object.coef <- stats::model.tables(object, effects = "param")
+        name.coef <- object.coef$name
         n.coef <- length(name.coef)
-        type.coef <- attr(object.coef,"type")
+        type.coef <- stats::setNames(object.coef$type, name.coef)
 
         ## initialize tranformation
         init <- .init_transform(p = NULL, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
@@ -149,7 +149,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = FALSE, df = !
         if(all(tolower(effects) %in% c("all","mean","fixed","variance","correlation"))){
 
             ## further extract from object
-            object.X <- model.matrix(object, simplify = FALSE)
+            object.X <- model.matrix(object, effects = "all", simplify = 0.5)
 
             ## further normalize input
             effects <- tolower(effects)
@@ -166,7 +166,21 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = FALSE, df = !
                 stop("Cannot use \'transform.rho\' equal \"sd\", \"var\", \"logsd\", or \"logvar\". \n",
                      "anova does not handle tests where the null hypothesis is at a boundary of the support of a random variable. \n")
             }
-            
+            if(all(attr(object.X$mean,"assign")>0)){
+                effects <- setdiff(effects,"mean")
+            }
+            if("k" %in% type.coef == FALSE){
+                effects <- setdiff(effects,"variance")
+            }
+            if("rho" %in% type.coef == FALSE){
+                effects <- setdiff(effects,"correlation")
+            }
+
+            ## name of the sigma coefficient
+            if("variance" %in% effects || "correlation" %in% effects){
+                name.coef.sigma <- name.coef[type.coef == "sigma"]
+                name.strata.sigma <- names(attr(object.X$var,"ls.level"))[match(name.coef.sigma,colnames(object.X$vcov$var$X))]
+
             if("mean" %in% effects & any(attr(object.X$mean,"assign")>0)){
            
                 ## names of the terms in the design matrix
@@ -186,12 +200,18 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = FALSE, df = !
             if("variance" %in% effects & any("k" %in% type.coef)){
                 ## name of the sigma coefficient
                 name.coef.sigma <- name.coef[type.coef == "sigma"]
-                name.strata.sigma <- names(attr(object.X$vcov$var$X,"ls.level"))[match(name.coef.sigma,colnames(object.X$vcov$var$X))]
 
                 ## names of the k coefficients
                 name.coef.k <- name.coef[type.coef == "k"]
                 n.coef.k <- length(name.coef.k)
-                terms.var <-  paste(name.strata.sigma,paste(object.X$vcov$name$var[[1]],collapse=":"),sep=":")
+
+                ## terms
+                if(object$strata$n==1){
+                    terms.var <- unique(attr(object.X$var,"term.labels") [match(name.coef.k, colnames(object.X$var))])
+                }else{
+                    terms.var <- paste(names(attr(object.X$var,"ls.level")[match(name.coef.sigma, colnames(object.X$var))]),
+                                       paste(attr(object.X$var,"variable")[-1],collapse = ":"), sep = ":")
+                }
 
                 ## null hypothesis
                 null.variance <- switch(init$transform.k,
@@ -210,12 +230,9 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = FALSE, df = !
                 }),terms.var)
                 ls.null$k <- lapply(ls.contrast$k, function(iC){stats::setNames(rep(null.variance, NROW(iC)),rownames(iC))})
             }
-            if("correlation" %in% effects & NCOL(object.X$vcov$cor$X)>0){
+            if("correlation" %in% effects & NCOL(object.X$cor)>0){
 
-                ## name of the sigma coefficient
-                name.coef.sigma <- name.coef[type.coef == "sigma"]
-                name.strata.sigma <- names(attr(object.X$vcov$var$X,"ls.level"))[match(name.coef.sigma,colnames(object.X$vcov$var$X))]
-
+                
                 ## names of the rho coefficients
                 name.coef.rho <- name.coef[type.coef == "rho"]
                 n.coef.rho <- length(name.coef.rho)

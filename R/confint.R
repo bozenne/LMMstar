@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 16 2024 (14:29) 
+## Last-Updated: Jul 22 2024 (19:32) 
 ##           By: Brice Ozenne
-##     Update #: 1013
+##     Update #: 1017
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -88,32 +88,45 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
                          df = NULL, type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE,
                          backtransform = NULL, ...){
 
+    options <- LMMstar.options()
 
     ## ** extract from object
-    name.param <- object$design$param$name
-    type.param <- stats::setNames(object$design$param$type, name.param)
+    object.param <- model.tables(object, effects = "param")
+    name.param <- object.param$name
+    type.param <- stats::setNames(object.param$type, name.param)
 
     ## ** normalize user imput
+    ## *** dots
     dots <- list(...)
-    options <- LMMstar.options()
-    
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
+
+    ## *** parm
     if(!is.null(parm)){
         stop("Argument \'parm\' should not be used. It is here for compatibility with the generic method. \n",
              "Use \'effects\' instead. \n")
     }
+
+    ## *** effects
     if(is.null(effects)){
         effects <- options$effects
     }else if(identical(effects,"all")){
         effects <- c("mean","variance","correlation")
     }
-    effects <- match.arg(effects, c("mean","fixed","variance","correlation"), several.ok = TRUE)
+    valid.effects <- c("mean","fixed","variance","correlation")
+    if(any(effects %in% valid.effects == FALSE)){
+        stop("Incorrect value for argument \'effects\'. \n",
+             "Possible values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+    }
     effects[effects== "fixed"] <- "mean"
+
+    ## *** df
     if(is.null(df)){
         df <- (!is.null(object$df)) && (robust==FALSE)
     }
+
+    ## *** backtransform
     if(is.null(backtransform)){
         backtransform <- rep(as.logical(options$backtransform.confint),4)
         if(!is.null(transform.sigma)){
@@ -131,6 +144,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
         backtransform <- as.logical(backtransform)
     }
 
+    ## *** transform
     ## used to decide on the null hypothesis of k parameters
     init <- .init_transform(p = NULL, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
                             x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho)
@@ -140,11 +154,14 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     transform.rho <- init$transform.rho
     transform <- init$transform
 
+    ## *** type.information
     if(is.null(type.information)){
         type.information <- object$args$type.information
     }else{
         type.information <- match.arg(type.information, c("expected","observed"))
     }
+
+    ## *** columns
     valid.columns <- c("estimate","se","statistic","df","lower","upper","null","p.value")
     if(identical(columns,"all")){
         columns <- valid.columns
