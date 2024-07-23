@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 17 2024 (09:37) 
 ## Version: 
-## Last-Updated: jul 18 2024 (19:15) 
+## Last-Updated: Jul 23 2024 (10:00) 
 ##           By: Brice Ozenne
-##     Update #: 251
+##     Update #: 256
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -285,7 +285,8 @@ equation2contrast <- function(object, name.coef, X,
         ## standardize equation
         equationStd.lhs <- sapply(equationComplex.lhs, FUN = function(iEq){ ## iEq <- equation.lhs[2]
             iCoef.all <- names(which(Mcoef.test[,iEq]))
-            for(iCoef in iCoef.all){ ## iCoef <- iCoef.all[2]
+            iCoef.all.order <- iCoef.all[order(nchar(iCoef.all), decreasing = TRUE)] ## substitute longer string first to avoid confusion, e.g. between sigma.12 and sigma.1
+            for(iCoef in iCoef.all.order){ ## iCoef <- iCoef.all[2]
                 iEq <- gsub(pattern = iCoef, replacement = stdname.coef[iCoef], x = iEq, fixed = TRUE)
             }
             return(iEq)

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: jul 22 2024 (11:50) 
+## Last-Updated: Jul 23 2024 (09:53) 
 ##           By: Brice Ozenne
-##     Update #: 802
+##     Update #: 805
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -959,15 +959,8 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
 ##' @noRd
 .init_transform <- function(p, transform.sigma, transform.k, transform.rho, 
                             x.transform.sigma, x.transform.k, x.transform.rho,
-                            table.param, simplify = TRUE){
+                            table.param, simplify = FALSE){
 
-    ## ** save input
-    if(!simplify){
-        transform.sigma.save <- transform.sigma
-        transform.k.save <- transform.k
-        transform.rho.save <- transform.rho
-    }
-    
     ## ** normalize input
     ## several way to say no transform
     ## do not use identical(,) because transform.sigma/k/rho may contain an attribute
@@ -980,6 +973,17 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
     if(length(transform.rho==1) && !is.na(transform.rho) && ((transform.rho == "") || (transform.rho == "no") || (transform.rho == FALSE))){
         transform.rho <- "none"
     }
+    if(simplify == FALSE){
+        transform.sigma.save <- transform.sigma
+        attr(transform.sigma.save,"arg") <- NULL
+        transform.k.save <- transform.k
+        attr(transform.k.save,"arg") <- NULL
+        transform.rho.save <- transform.rho
+        attr(transform.rho.save,"arg") <- NULL
+    }
+    attr(transform.sigma,"arg") <- NULL
+    attr(transform.k,"arg") <- NULL
+    attr(transform.rho,"arg") <- NULL
 
     ## get attributes
     p.transform.sigma <- attr(p,"transform.sigma")
@@ -994,12 +998,11 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
         }else{
             transform.rho <- x.transform.rho
         }
-        attr(transform.rho,"arg") <- NULL
     }else{
-        transform.rho.save <- transform.rho
-        attr(transform.rho.save,"arg") <- NULL
         transform.rho <- match.arg(transform.rho, c("none","atanh", "cov"))
-        attr(transform.rho,"arg") <- transform.rho.save
+        if(simplify == FALSE){
+            attr(transform.rho,"arg") <- transform.rho.save
+        }
     }
 
     if(is.null(transform.k) || (length(transform.k)==1 && is.na(transform.k))){
@@ -1010,12 +1013,11 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
         }else{
             transform.k <- x.transform.k
         }
-        attr(transform.k,"arg") <- NULL
     }else{
-        transform.k.save <- transform.k
-        attr(transform.k.save,"arg") <- NULL
         transform.k <- match.arg(transform.k, c("none","log","square","logsquare","sd","logsd","var","logvar"))
-        attr(transform.k,"arg") <- transform.k.save
+        if(simplify == FALSE){
+            attr(transform.k,"arg") <- transform.k.save
+        }
     }
     
     if(is.null(transform.sigma) || (length(transform.sigma)==1 && is.na(transform.sigma))){
@@ -1030,15 +1032,14 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
         }else{
             transform.sigma <- x.transform.sigma
         }
-        attr(transform.sigma,"arg") <- NULL 
     }else{
-        transform.sigma.save <- transform.sigma
-        attr(transform.sigma.save,"arg") <- NULL
         transform.sigma <- match.arg(transform.sigma, c("none","one","log","square","logsquare"))
-        attr(transform.sigma,"arg") <- transform.sigma.save
+        if(simplify == FALSE){
+            attr(transform.sigma,"arg") <- transform.sigma.save
+        }
     }
 
-    ## ** x.transform
+    ## ** test transform
     if(!is.null(x.transform.sigma) && !is.null(x.transform.k) && !is.null(x.transform.rho)){
         if(is.function(transform.sigma) || is.function(transform.k) || is.function(transform.rho)){
             test.notransform <- FALSE
@@ -1082,11 +1083,6 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
                 transform.k = transform.k,
                 transform.rho = transform.rho,
                 test.notransform = test.notransform)
-    if(!simplify){
-        attr(out$transform.sigma,"call") <- transform.sigma.save
-        attr(out$transform.k,"call") <- transform.k.save
-        attr(out$transform.rho,"call") <- transform.rho.save
-    }
     return(out)
 }
 ##----------------------------------------------------------------------
