@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 17 2024 (09:41) 
+## Last-Updated: jul 24 2024 (15:22) 
 ##           By: Brice Ozenne
-##     Update #: 770
+##     Update #: 799
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -76,14 +76,18 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
 
     ## special case of single lmm
     if(length(dots)==0){
-        if(NROW(model$multivariate)!=1){
-            stop("Cannot handle multiple Multivariate Wald test in a single object. \n")
+        if(model$args$univariate==FALSE){
+            stop("Cannot combine univariate Wald tests when they have not been stored. \n",
+                 "Consider setting the argument \'univariate\' to TRUE when calling anova. \n")
+        }
+        if(length(unique(model$univariate$name))>1){
+            stop("Cannot handle multiple multivariate Wald tests in a single object. \n")
         }
         if(is.null(model$iid) || is.null(model$vcov)){ ## stop if effects is mean, variance, covariance, all
             stop("No iid or variance covariance matrix was stored in the Wald_lmm object. \n")
         }
-        ls.contrast <- list(model$glht[[1]][[1]]$linfct)
-        M.contrast <- diag(1, nrow = NROW(model$glht[[1]][[1]]$linfct))
+        ls.contrast <- list(model.tables(model, effects = "contrast"))
+        M.contrast <- diag(1, nrow = NROW(ls.contrast[[1]]))
         dimnames(M.contrast) <- list(rownames(M.contrast),rownames(M.contrast))
 
         if(is.null(name)){
@@ -91,8 +95,8 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
         }else{
             model$univariate <- cbind(model = name, parameter = rownames(model$univariate), model$univariate)
         }
-        model$glht[[1]][[1]]$linfct.original <- ls.contrast
-        model$glht[[1]][[1]]$linfct <- M.contrast
+        model$glht[[1]]$linfct.original <- ls.contrast
+        model$glht[[1]]$linfct <- M.contrast
 
         return(model) ## nothing to combine
     }else if(any(sapply(dots,inherits,"Wald_lmm")==FALSE)){
@@ -101,10 +105,12 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
         ## combine input
         ls.object <- c(list(model),dots)
         n.object <- length(ls.object)
-        ls.glht <- lapply(ls.object, function(iO){iO$glht[[1]][[1]]})
+        ls.glht <- lapply(ls.object, function(iO){iO$glht[[1]]})
+        ls.contrast <- lapply(ls.object, model.tables, effects = "contrast")
         all.coefnames <- names(unlist(lapply(ls.object,coef)))
         all.coefmodel <- unlist(lapply(1:n.object, function(iO){rep(iO, length(coef(ls.object[[iO]])))}))
         all.coeflabels <- unlist(lapply(ls.object, function(iO){rownames(iO$univariate)}))
+
         table.args <- cbind(do.call(rbind,lapply(ls.object,"[[","args")),
                             do.call(rbind,lapply(ls.object, function(iO){data.frame(n.univariate = NROW(iO$univariate),
                                                                                     iO$object[c("outcome","method.fit","type.information")])
@@ -113,18 +119,19 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
     }
 
     ## *** content and available information in model and dots
-    if(any(sapply(ls.object, function(iO){NROW(iO$multivariate)})!=1)){
-        stop("Cannot handle multiple Multivariate Wald test in a single object. \n")
+    if(any(sapply(ls.object, function(iO){iO$args$univariate})==FALSE)){
+        stop("Cannot combine univariate Wald tests when they have not been stored. \n",
+             "Consider setting the argument \'univariate\' to TRUE when calling anova. \n")
+    }
+    if(any(sapply(ls.object, function(iO){length(unique(iO$univariate$name))})!=1)){
+        stop("Cannot handle multiple multivariate Wald tests in a single object. \n")
     }
     if(any(sapply(ls.object, function(iO){is.null(iO$iid) || is.null(iO$vcov)}))){ ## stop if effects is mean, variance, covariance, all
         stop("No iid or variance covariance matrix was stored in the Wald_lmm objects. \n")
     }
-    if(any(sapply(ls.object, function(iO){iO$args$ci})==FALSE)){
-        stop("All argument should contain a \"glht\" object, i.e. call anova with argument ci=TRUE. \n")
-    }
 
     ## *** compatibility between model and dots
-    test.compatibility <- c("ci","robust","df","transform.sigma","transform.k","transform.rho","backtransform","method.fit","type.information")
+    test.compatibility <- c("robust","df","transform.sigma","transform.k","transform.rho","transform.all","method.fit","type.information", "univariate", "multivariate")
     if(NROW(unique(table.args[test.compatibility]))>1){
         pb <- names(which(lengths(apply(table.args[test.compatibility], MARGIN = 2, unique, simplify = FALSE))>1))
         stop("Element(s) \"",paste(pb, collapse = "\", \""),"\" should take the same value for all objects. \n")
@@ -256,9 +263,8 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
         names(rhs) <- rownames(contrast)
     }
 
-    
     ## ** merge information from all objects
-    newtable.args <- cbind(type = ifelse(length(unique(unlist(table.args$type))>1), "all", table.args$type[[1]]),
+    newtable.args <- cbind(type = "user",
                            sep = sep,
                            table.args[1,setdiff(test.compatibility, c("method.fit","type.information"))])
 
@@ -272,25 +278,23 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
 
     ## all parameter names (newname, oldname)
     if(!is.null(name) && length(name)==n.object){
-        ls.theta.name <- lapply(1:n.object, function(iO){
-            stats::setNames(paste(name[iO], sep[1], colnames(ls.object[[iO]]$glht[[1]][[1]]$linfct),sep=""), colnames(ls.object[[iO]]$glht[[1]][[1]]$linfct))
-        })
+        prefix <- name
     }else{
-        ls.theta.name <- lapply(1:n.object, function(iO){
-            stats::setNames(paste(iO, sep[1], colnames(ls.object[[iO]]$glht[[1]][[1]]$linfct),sep=""),colnames(ls.object[[iO]]$glht[[1]][[1]]$linfct))
-        })
+        prefix <- 1:n.object
     }
+
+    ls.theta.name <- lapply(1:n.object, function(iO){ ## iO <- 1
+        stats::setNames(paste(prefix[iO], sep[1], colnames(ls.contrast[[iO]]),sep=""), colnames(ls.contrast[[iO]]))
+    })
     theta.name <- unlist(ls.theta.name)
 
     ## all contrast
-    theta.contrast <- contrast %*% as.matrix(Matrix::bdiag(lapply(ls.object, function(iO){iO$glht[[1]][[1]]$linfct})))
+    theta.contrast <- contrast %*% as.matrix(Matrix::bdiag(ls.contrast))
     colnames(theta.contrast)  <- theta.name
 
     ## ** Extract elements from anova object
     ## *** univariate Wald test
     table.univariate <- do.call(rbind,lapply(ls.object, "[[", "univariate"))
-    ## combine back-transformed estimates when a combination e.g. k\sigma^2\rho as each element should be transformed separately
-    attr(table.univariate, "backtransform") <- unlist(lapply(ls.object, function(iO){attr(iO$univariate,"backtransform")}))
 
     ## *** cluster
     ls.cluster <- lapply(ls.object, function(iO){iO$object[["cluster"]]}) ## prefer [[ to $ to avoid partial matching (i.e. not output cluster.var if cluster is missing)
@@ -307,13 +311,19 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
     }else{
         independence <- TRUE
     }
-    if(all(sapply(ls.object, function(iO){attr(iO$args$robust,"call")})==FALSE)){
-        newtable.args$robust <- independence==FALSE
-    }
     
     ## *** estimate
     beta.estimate <- stats::setNames(table.univariate$estimate, name.modelparam)
+    browser()
 
+    ## *** iid
+    M.iid <- matrix(0, nrow = n.cluster, ncol = length(beta.estimate),
+                    dimnames = list(seq.cluster, names(beta.estimate)))
+    for(iO in 1:n.object){ ## iO <- 1            
+        M.iid[ls.cluster[[iO]],which(all.coefmodel == iO)] <- ls.object[[iO]]$iid[,all.coefnames[which(all.coefmodel == iO)],drop=FALSE]
+    }
+
+    ## *** vcov
     if(independence){
         
         beta.vcov <- as.matrix(do.call(Matrix::bdiag,lapply(ls.object, "[[", "vcov")))
@@ -322,11 +332,6 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
         if(any(sapply(ls.object, function(iO){is.null(iO$iid)}))){
             stop("Cannot evaluate the joint influence function of the variance-covariance parameters. \n",
                  "Consider using method.fit=\"ML\" when calling lmm. \n")
-        }
-        M.iid <- matrix(0, nrow = n.cluster, ncol = length(beta.estimate),
-                        dimnames = list(seq.cluster, names(beta.estimate)))
-        for(iO in 1:n.object){ ## iO <- 1            
-            M.iid[ls.cluster[[iO]],which(all.coefmodel == iO)] <- ls.object[[iO]]$iid[,all.coefnames[which(all.coefmodel == iO)],drop=FALSE]
         }
         
         if(any(is.na(M.iid))){
@@ -343,6 +348,24 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
     dimnames(beta.vcov) <- list(name.modelparam,name.modelparam)
 
     ## ** Combine elements
+    out <- .anova_Wald(param = beta.estimate,
+                       param.notrans = NULL,
+                       vcov.param = beta.vcov,
+                       dVcov.param = NULL,
+                       iid.param = M.iid,
+                       type.param = table.univariate$type,
+                       contrast = theta.contrast,
+                       null = rhs,
+                       robust = newtable.args$robust,
+                       df = FALSE,
+                       multivariate = newtable.args$multivariate,
+                       univariate = newtable.args$univariate, 
+                       transform.sigma = newtable.args$transform.sigma,
+                       transform.k = newtable.args$transform.k,
+                       transform.rho = newtable.args$transform.rho,
+                       backtransform = ls.e2c$backtransform)
+
+
 
     ## *** multivariate tests
     outSimp <- simplifyContrast(contrast, rhs = rhs) ## remove extra lines
@@ -363,12 +386,13 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
         Utype <- "all"
     }
     newtable.multivariate <- data.frame(type = Utype,
-                                        test = 1,
+                                        term = "user",
                                         null = paste(vec.null, collapse = ", "),
                                         statistic = multistat,
                                         df.num = outSimp$dim,
                                         df.denom = Inf,
-                                        p.value = 1 - stats::pf(multistat, df1 = n.test, df2 = Inf))
+                                        p.value = 1 - stats::pf(multistat, df1 = n.test, df2 = Inf),
+                                        message = NA)
 
     ## *** univariate
     C.vcov.C <- contrast %*% beta.vcov %*% t(contrast)
@@ -444,7 +468,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
     e.glht$linfct.original <- lapply(ls.glht, "[[", "linfct")
     out <- list(multivariate = newtable.multivariate[,names(model$multivariate),drop=FALSE],
                 univariate = newtable.univariate[,c("model","parameter",names(model$univariate)),drop=FALSE],
-                glht = list(all = list("1" = e.glht)),
+                glht = list(user = e.glht),
                 object = newobject,
                 args = newtable.args,
                 vcov = C.vcov.C)

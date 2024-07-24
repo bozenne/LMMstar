@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  4 2021 (10:04) 
 ## Version: 
-## Last-Updated: jul 16 2024 (17:20) 
+## Last-Updated: jul 24 2024 (16:00) 
 ##           By: Brice Ozenne
-##     Update #: 157
+##     Update #: 162
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -185,16 +185,39 @@ iid.lmm <- function(x,
 
 ## * iid.Wald_lmm (code)
 ##' @export
-iid.Wald_lmm <- function(x, ...){
+iid.Wald_lmm <- function(x, effects = "contrast", ...){
 
-    ## ** normalize user imput
+    ## ** normalize user input
+    ## *** dots
     dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
 
+    ## *** effects
+    if(!is.character(effects) || !is.vector(effects)){
+        stop("Argument \'effects\' must be a character.")
+    }
+    if(length(effects)!=1){
+        stop("Argument \'effects\' must have length 1.")
+    }    
+    valid.effects <- c("contrast","all")
+
+    ## ** extract
+    if(x$args$type=="auto"){
+        message("The influence function has not been stored. \n",
+                "Consider specifying the argument \'effects\' when calling anova with explicit contrast (e.g. via a matrix or equations). \n")
+        return(NULL)
+
+    }
+    out <- x$glht[[1]]$iid
+    if(effects=="contrast"){
+        contrast <- model.tables(x, effects = "contrast")
+        out <- out[,colnames(contrast),drop=FALSE] %*% t(contrast)
+    }
+
     ## ** export
-    return(x$iid)
+    return(out)
 }
 
 ## * iid.mlmm (code)

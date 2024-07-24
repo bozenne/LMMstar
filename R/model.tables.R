@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (10:48) 
 ## Version: 
-## Last-Updated: Jul 23 2024 (09:42) 
+## Last-Updated: jul 24 2024 (12:02) 
 ##           By: Brice Ozenne
-##     Update #: 97
+##     Update #: 125
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -55,8 +55,9 @@ model.tables.effect_lmm <- function(x, columns, ...){
     return(out)
 }
 ## * model.tables.lmm
-##' @title Statistical Inference for Linear Mixed Model
-##' @description Export estimates, standard errors, degrees of freedom, confidence intervals (CIs) and p-values for the mean coefficients of a linear mixed model. 
+##' @title Statistical Inference and parametrization of Linear Mixed Models
+##' @description Export estimated parameters with their uncertainty (standard errors, degrees of freedom, confidence intervals and p-values) from a linear mixed model
+##' or a table describing each parameter (type, associated sigma or k parameter, ...).
 ##'
 ##' @param x a \code{lmm} object.
 ##' @param effects [character] Should the CIs/p-values for all coefficients be output (\code{"all"}),
@@ -70,7 +71,7 @@ model.tables.effect_lmm <- function(x, columns, ...){
 ##' Alternatively, method for combining the estimates, one of \code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.rubin"}.
 ##' @param ... arguments to be passed to the \code{confint} method. Should not contain the argument \code{column}.
 ##' 
-##' @details This function simply calls \code{\link{confint}} with a specific value for the argument \code{column}.
+##' @details When \code{effects} is not \code{"param"}, this function simply calls \code{\link{confint}} with a specific value for the argument \code{column}.
 ##' 
 ##' @keywords methods
 ##' 
@@ -177,9 +178,31 @@ model.tables.resample <- function(x, columns, ...){
 }
 
 ## * model.tables.Wald_lmm
+##' @title Statistical Inference for Wald test
+##' @description Export estimates, standard errors, degrees of freedom, confidence intervals (CIs) and p-values for the mean coefficients of a linear mixed model. 
+##'
+##' @param x a \code{lmm} object.
+##' @param effects [character] Should the coefficients be extracted (\code{"all"}) or the contrast matrix (\code{"contrast"} or \code{"ls.contrast"}).
+##' \code{"contrast"} will try to simplify the output into a matrix whereas \code{"ls.contrast"} will keep the original format (list of list of matrix).
+##' @param columns [character vector] Columns to be output.
+##' Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
+##' @param ... arguments to be passed to the \code{confint} method. Should not contain the argument \code{column}.
+##' 
+##' @details When argument \code{effects="all"}, this function simply calls \code{\link{confint}} with a specific value for the argument \code{column}.
+##' 
+##' @keywords methods
+##' 
+##' @return A \code{data.frame} object or (list of) contrast matrices.
+##' 
 ##' @export
-model.tables.Wald_lmm <- function(x, columns, ...){
+model.tables.Wald_lmm <- function(x, effects = "all", columns, ...){
 
+    ## ** normalize user input
+
+    ## *** effects
+    effects <- match.arg(effects, c("all","contrast","ls.contrast"))
+
+    ## *** columns
     newcolumns <- c("estimate","se","df","lower","upper","p.value")
 
     if(!missing(columns)){
@@ -192,12 +215,34 @@ model.tables.Wald_lmm <- function(x, columns, ...){
         }
     }
 
-    out <- confint(x, ..., columns = newcolumns)
-    attr(out, "backtransform") <- NULL
-    attr(out, "error") <- NULL
-    attr(out, "level") <- NULL
-    attr(out, "method") <- NULL
-    class(out) <- "data.frame"
+    ## ** extract from object
+    if(effects %in% c("contrast","ls.contrast")){
+        ls.out <- lapply(x$glht, "[[","linfct")
+        if(effects == "contrast"){
+            if(x$args$type=="auto"){
+                ## combine matrices that are type specific
+                out <- as.matrix(Matrix::bdiag(ls.out))
+                rownames(out) <- do.call(base::c,lapply(ls.out,rownames))
+                colnames(out) <- do.call(base::c,lapply(ls.out,colnames))
+            }else{
+                ## remove columns with only 0
+                out <- ls.out[[1]][,colSums(ls.out[[1]]!=0)>0,drop=FALSE]
+            }            
+        }else{
+            out <- ls.out
+        }
+
+    }else if(effects == "all"){
+        out <- confint(x, ..., columns = newcolumns)
+        attr(out, "backtransform") <- NULL
+        attr(out, "error") <- NULL
+        attr(out, "level") <- NULL
+        attr(out, "method") <- NULL
+        class(out) <- "data.frame"
+
+    }
+
+    ## ** export
     return(out)
 }
 

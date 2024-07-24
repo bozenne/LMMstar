@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: jul 16 2024 (17:27) 
+## Last-Updated: jul 24 2024 (17:51) 
 ##           By: Brice Ozenne
-##     Update #: 668
+##     Update #: 681
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -153,14 +153,45 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strat
 
 ## * vcov.mlmm
 ##' @export
-vcov.Wald_lmm <- function(object, ...){
+vcov.Wald_lmm <- function(object, effects = "contrast", df = FALSE, ...){
 
+    ## ** normalize user input
+    ## *** dots
     dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
 
-    return(object$vcov)
+    ## *** effects
+    if(!is.character(effects) || !is.vector(effects)){
+        stop("Argument \'effects\' must be a character.")
+    }
+    if(length(effects)!=1){
+        stop("Argument \'effects\' must have length 1.")
+    }    
+    valid.effects <- c("contrast","all")
+
+    ## ** extract
+    out <- lapply(object$glht,"[[","vcov")
+    if(effects=="contrast"){
+        ls.contrast <- model.tables(object, effects = "ls.contrast")
+        out <- mapply(iVcov = out, iC = ls.contrast, FUN = function(iVcov,iC){iC %*% iVcov %*% t(iC)},
+                      SIMPLIFY = FALSE)
+    }
+    if(df>0){
+        for(iName in names(out)){ ## iName <- names(out)[1]
+            attr(out[[iName]], "df") <- setNames(object$univariate[object$univariate$name==iName,"df"],rownames(object$univariate)[object$univariate$name==iName])
+            if(df>1 && !is.null(object$glht[[iName]]$dVcov)){
+                attr(out[[iName]], "dVcov") <- object$glht[[iName]]$dVcov
+            }
+        }        
+    }
+    if(object$args$type=="user"){
+        out <- out[[1]]
+    }
+
+    ## ** export
+    return(out)
     
 }
 

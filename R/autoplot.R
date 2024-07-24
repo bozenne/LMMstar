@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: jul 11 2024 (11:18) 
+## Last-Updated: jul 24 2024 (13:26) 
 ##           By: Brice Ozenne
-##     Update #: 1556
+##     Update #: 1569
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -1901,20 +1901,19 @@ autoplot.Wald_lmm <- function(object, type = "forest", size.text = 16, add.args 
         size.ci <- add.args$size.ci
         width.ci <- add.args$width.ci
         size.null <- add.args$size.null
-        rhs <- unique(object$univariate$null)
-
+        
         if(ci){
-            table <- confint(object, columns = c("estimate","test","lower","upper"), ...)
+            table <- model.tables(object, columns = c("estimate","type","term","null","lower","upper"), ...)
         }else{
-            table <- object$univariate
+            table <- model.tables(object, columns = c("estimate","type","term","null"), ...)
         }
         table <- cbind(names = rownames(table), table)
         if(is.null(color)){
-            if(length(unique(table$test))==1 || all(duplicated(table$test)==FALSE)){
+            if(length(unique(table$term))==1 || all(duplicated(table$term)==FALSE)){
                 color <- FALSE
                 color.legend <- FALSE
             }else{
-                table$color <- table$test
+                table$color <- table$term
                 color <- TRUE
                 color.legend <- FALSE
             }
@@ -1931,11 +1930,11 @@ autoplot.Wald_lmm <- function(object, type = "forest", size.text = 16, add.args 
             }
         }
         if(is.null(shape)){
-            if(length(unique(table$test))==1 || all(duplicated(table$test)==FALSE)){
+            if(length(unique(table$term))==1 || all(duplicated(table$term)==FALSE)){
                 shape <- FALSE
                 shape.legend <- FALSE
             }else{
-                table$shape <- table$test
+                table$shape <- table$term
                 shape <- TRUE
                 shape.legend <- FALSE
             }
@@ -1952,8 +1951,7 @@ autoplot.Wald_lmm <- function(object, type = "forest", size.text = 16, add.args 
             }
         }
 
-        table$test <- as.factor(table$test)
-        table$names <- factor(table$names, levels = unique(table$names)) ## ensure same ordering as in the object (instead of alphabetical ordering)
+        table$term <- factor(table$term, levels = unique(table$term)) ## ensure same ordering as in the object (instead of alphabetical ordering)
         if(color & shape){
             gg <- ggplot2::ggplot(table, ggplot2::aes(x = .data$names, y = .data$estimate, color = .data$color, shape = .data$shape)) + ggplot2::labs(color = "", shape = "")
         }else if(color){
@@ -1963,21 +1961,23 @@ autoplot.Wald_lmm <- function(object, type = "forest", size.text = 16, add.args 
         }else{
             gg <- ggplot2::ggplot(table, ggplot2::aes(x = .data$names, y = .data$estimate))
         }
-    
-    if(shape.legend){
-        gg <- gg + ggplot2::scale_shape_manual(values = as.numeric(unique(table$shape)), breaks = unique(table$shape)) + ggplot2::guides(shape = "none")
-    }
-    if(color.legend){
-        gg <- gg + ggplot2::scale_color_manual(values = unique(table$color), breaks = unique(table$color)) + ggplot2::guides(color = "none")
-    }
-    gg <- gg + ggplot2::geom_point(size = size.estimate) + ggplot2::labs(x = "", y = "")
-    if(ci){
-        gg <- gg + ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$lower, ymax = .data$upper), linewidth = size.ci, width = width.ci)
-    }
-    if(size.null>0 && length(rhs)==1){
-        gg <- gg + ggplot2::geom_hline(yintercept=rhs, lty=2, linewidth = size.null)
-    }
-    gg <- gg + ggplot2::coord_flip()
+        if(shape.legend){
+            gg <- gg + ggplot2::scale_shape_manual(values = as.numeric(unique(table$shape)), breaks = unique(table$shape)) + ggplot2::guides(shape = "none")
+        }
+        if(color.legend){
+            gg <- gg + ggplot2::scale_color_manual(values = unique(table$color), breaks = unique(table$color)) + ggplot2::guides(color = "none")
+        }
+        gg <- gg + ggplot2::geom_point(size = size.estimate) + ggplot2::labs(x = "", y = "")
+        if(ci){
+            gg <- gg + ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$lower, ymax = .data$upper), linewidth = size.ci, width = width.ci)
+        }
+        if(size.null>0){
+            gg <- gg + ggplot2::geom_hline(ggplot2::aes(yintercept=null), lty=2, linewidth = size.null)
+        }
+        if((object$args$type=="auto") && length(unique(table$type))>1){
+            gg <- gg + ggplot2::facet_wrap(~type, scales = "free")
+        }
+        gg <- gg + ggplot2::coord_flip()
 
     }else if(type=="heat"){
 

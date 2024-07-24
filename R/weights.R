@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Oct 11 2022 (10:56) 
 ## Version: 
-## Last-Updated: jul  5 2024 (10:25) 
+## Last-Updated: jul 24 2024 (13:28) 
 ##           By: Brice Ozenne
-##     Update #: 20
+##     Update #: 21
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,7 +15,7 @@
 ## 
 ### Code:
 
-## * weights.Wald_lmm (documentation)
+## * weights.mlmm (documentation)
 ##' @title Extract Weights Used to Pool Estimates
 ##' @description Extract weights used to pool estimates.
 ##' 
@@ -38,9 +38,9 @@
 ##' weights(e.mlmm, method = "pool.se")
 ##' weights(e.mlmm, method = "pool.gls")
 
-## * weights.Wald_lmm (code)
+## * weights.mlmm (code)
 ##' @export
-weights.Wald_lmm <- function(object, method, ...){
+weights.mlmm <- function(object, method, ...){
 
     options <- LMMstar.options()
     pool.method <- options$pool.method

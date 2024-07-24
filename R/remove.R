@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 23 2022 (16:59) 
 ## Version: 
-## Last-Updated: maj 13 2024 (17:21) 
+## Last-Updated: jul 24 2024 (11:39) 
 ##           By: Brice Ozenne
-##     Update #: 5
+##     Update #: 7
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,6 +17,7 @@
 
 ##' @title Remove Columns from Output
 ##' @description Auxiliary function that can be used when specifying the argument \code{columns} (e.g. calling \code{confint.lmm}) to remove columns.
+##' Not called remove to avoid confusion with \code{base::remove}
 ##'
 ##' @param ... [character vector] name of the columns to be removed to the default output.
 ##'
@@ -29,10 +30,10 @@
 ##' dW <- sampleRem(25, n.times = 1, format = "long")
 ##' e.lmm <- lmm(Y~X1, data = dW)
 ##'
-##' confint(e.lmm, columns = remove("estimate"))
+##' confint(e.lmm, columns = rem("estimate"))
 ##' 
 ##' @export
-remove <- function(...){
+rem <- function(...){
     dots <- list(...)
     return(stats::setNames(unlist(dots),rep("remove",length(unlist(dots)))))
 }

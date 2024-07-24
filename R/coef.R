@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: jul 22 2024 (11:50) 
+## Last-Updated: jul 24 2024 (11:47) 
 ##           By: Brice Ozenne
-##     Update #: 971
+##     Update #: 985
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -470,16 +470,13 @@ coef.mlmm <- function(object, effects = "contrast", p = NULL, type = "coef", met
 ##' @description Extract coefficients from Wald tests applied to a linear mixed model.
 ##'
 ##' @param object a \code{Wald_lmm} object.
-##' @param type [character] Should the coefficients be extracted (\code{"coef"}) or the contrast matrix (\code{"contrast"} or \code{"ls.contrast"}).
-##' \code{"contrast"} will try to simplify the output into a matrix whereas \code{"ls.contrast"} will keep the original format (list of list of matrix).
 ##' @param backtransform [logical] should the estimate, standard error, and confidence interval be back-transformed?
 ##' @param ... Not used. For compatibility with the generic method.
 ##' 
 ##' @export
-coef.Wald_lmm <- function(object, type = "coef", backtransform = object$args$backtransform, ...){
+coef.Wald_lmm <- function(object, backtransform = NULL, ...){
 
     options <- LMMstar.options()
-    table.univariate <- object$univariate
     
     ## ** normalize user input
     ## *** dots
@@ -488,46 +485,49 @@ coef.Wald_lmm <- function(object, type = "coef", backtransform = object$args$bac
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
 
-    ## *** type
-    type <- match.arg(type, c("coef","contrast","ls.contrast"))
+    ## *** backtransform
+    if(is.null(backtransform)){
+        backtransform <- any(object$univariate$tobacktransform)
+    }else if(is.character(backtransform)){
+        backtransform <-  eval(parse(text=backtransform))
+    }else if(is.numeric(backtransform)){
+        backtransform <- as.logical(backtransform)
+    }
     
     ## ** extract from object
-    if(type %in% c("contrast","ls.contrast")){
-        out <- lapply(object$glht, function(iGlht){lapply(iGlht,"[[","linfct")})
-        if(type == "contrast"){
-            if(length(out)==1){
-                out <- out[[1]]
-                if(length(out)==1){
-                    out <- out[[1]]
-                }
+    table.univariate <- object$univariate
+    
+    if(object$args$univariate == FALSE){
+        message("Nothing to return: consider setting argument \'univariate\' to TRUE when calling anova. \n")
+        out <- NULL
+    }else if(is.function(backtransform) || identical(backtransform,TRUE)){
+
+            if(is.function(backtransform)){
+
+                df.out <- .backtransform(table.univariate[,"estimate",drop=FALSE], type.param = table.univariate$type,
+                                         backtransform = TRUE, backtransform.names = NULL,
+                                         transform.mu = backtransform,
+                                         transform.sigma = backtransform,
+                                         transform.k = backtransform,
+                                         transform.rho = backtransform)
+
             }else{
-                out <- lapply(out, function(iOut){if(length(iOut)==1){iOut[[1]]}else{iOut}})
-            }
-        }
-    }else if(type == "coef"){
 
-            if(is.null(table.univariate)){
-                out <- NULL
-            }else if(!backtransform){
-                out <- stats::setNames(table.univariate$estimate, rownames(table.univariate))
-            }else{ ## backtransformation
-                tableBack.univariate <- .backtransform(table.univariate, type.param = table.univariate$type,  
-                                                       backtransform = TRUE, backtransform.names = object$args$backtransform.names[[1]],
-                                                       transform.mu = "none",
-                                                       transform.sigma = object$args$transform.sigma,
-                                                       transform.k = object$args$transform.k,
-                                                       transform.rho = object$args$transform.rho)
-
-                vec.backtransform <- attr(table.univariate,"backtransform")
-                if(!is.null(vec.backtransform)){
-                    ## case where a contrast is performed on transformed coefficients (e.g. sigma:male vs sigma:female)
-                    ## the back transformed version exp(log(sigma:male) - log(sigma:female)) differs from the original version sigma:male - sigma:female
-                    ## thus without further indication the original version is output
-                    tableBack.univariate[names(vec.backtransform),"estimate"] <- unname(vec.backtransform)
-                }
-                out <- stats::setNames(tableBack.univariate$estimate, rownames(tableBack.univariate))
+                ## force no back-transform, e.g. when comparing two correlation coefficients
+                df.out <- .backtransform(table.univariate[,"estimate",drop=FALSE], type.param = ifelse(table.univariate$tobacktransform,table.univariate$type,"mu"),  
+                                         backtransform = TRUE, backtransform.names = NULL,
+                                         transform.mu = "none",
+                                         transform.sigma = object$args$transform.sigma,
+                                         transform.k = object$args$transform.k,
+                                         transform.rho = object$args$transform.rho)
+            
             }
+        out <- stats::setNames(df.out$estimate,rownames(df.out))
+    }else{
+        df.out <- table.univariate[,"estimate",drop = FALSE]
+        out <- stats::setNames(df.out$estimate,rownames(df.out))
     }
+
 
     ## ** export
     return(out)

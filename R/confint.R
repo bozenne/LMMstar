@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: Jul 22 2024 (19:32) 
+## Last-Updated: jul 24 2024 (12:59) 
 ##           By: Brice Ozenne
-##     Update #: 1017
+##     Update #: 1040
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -347,7 +347,6 @@ confint.mlmm <- function(object, parm = NULL, level = 0.95, method = NULL, df = 
                          backtransform = NULL,
                          ordering = "parameter", ...){
     ## robust = FALSE, null = NULL, type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE,
-    n.model <- length(object$model)
 
     ## ** normalize user input
     if(is.null(method)){
@@ -942,9 +941,14 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
     options <- LMMstar.options()
     pool.method <- options$pool.method
     adj.method <- options$adj.method
+    n.sample <- options$n.sampleCopula
+    if(object$args$univariate==FALSE){
+        message("Nothing to return: consider setting argument \'univariate\' to TRUE when calling anova. \n")
+        return(invisible(NULL))
+    }
 
     ## ** normalize user input
-    ##  *** dots
+    ## *** dots
     dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
@@ -955,14 +959,19 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
         stop("Argument \'parm\' is not used - only there for compatibility with the generic method. \n")
     }
 
-    ## *** dots
-    dots <- list(...)
-    if(length(dots)>0){
-        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
-    }
-
     ## *** level
+    if(object$args$univariate==FALSE){
+        level <- NA
+        if(method %in% adj.method){
+            method <- "none"
+        }
+    }
     alpha <- 1-level
+
+    ## *** df
+    if(is.null(df)){
+        df <- object$args$df
+    }
 
     ## *** method
     if(any(method %in% adj.method == FALSE)){
@@ -991,23 +1000,9 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
         }
     }else{
         columns <- options$columns.confint
-    } 
-
-    type <- unique(object$multivariate$type)
-
-    ## *** df
-    if(is.null(df)){
-        df2 <- object$args$df
-    }else{
-        df2 <- df
     }
-
-    ## *** level
-    if(object$args$ci==FALSE){
-        level <- NA
-        if(method %in% adj.method){
-            method <- "none"
-        }
+    if(all(c("lower","upper","p.value") %in% columns == FALSE)){
+        method <- "none"
     }
 
     ## *** backtransform
@@ -1015,39 +1010,26 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
     transform.k <- object$args$transform.k
     transform.rho <- object$args$transform.rho
 
-    if(is.character(backtransform)){
+    if(is.null(backtransform)){
+        backtransform <- any(object$univariate$tobacktransform)
+    }else if(is.character(backtransform)){
         backtransform <-  eval(parse(text=backtransform))
     }else if(is.numeric(backtransform)){
         backtransform <- as.logical(backtransform)
     }
 
-    test.backtransform <- stats::na.omit(c(sigma = transform.sigma, k = transform.k, rho = transform.rho))    
-    if(is.null(backtransform)){            
-        if(options$backtransform.confint==FALSE || length(test.backtransform[test.backtransform != "none"])==0){
-            backtransform <- FALSE
-        }else{
-            backtransform <- object$args$backtransform
-        }
-    }else if(is.logical(backtransform) && length(test.backtransform[test.backtransform != "none"])==0){
-        backtransform <- FALSE
-    }
-    n.model <- length(object$model)
-
     ## ** normalize df
     out <- object$univariate
     out$method <- "NA"
-    if(df2){
+    if(df){
         out$df <- pmax(out$df, options$min.df)
     }else{
         out$df <- Inf
     }
-    out$statistic <- (out$estimate-out$null) / out$se
             
     ## ** extract info and compute CI
-    n.sample <- options$n.sampleCopula
-    grid <- unique(object$univariate[,c("type","test"),drop=FALSE])
-    grid$type.original <- object$args$type[[1]]
-    n.grid <- NROW(grid)
+    grid <- unique(object$univariate$name)
+    n.grid <- length(grid)
     attr(out,"error") <- rep(NA,n.grid)
     if(is.null(method) || any(c("none","bonferroni","single-step","single-step2") %in% method)){
         attr(out,"quantile") <- vector(mode = "list", length = n.grid)
@@ -1055,12 +1037,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
 
     for(iGrid in 1:n.grid){ ## iGrid <- 1
 
-        if(n.grid>1){
-            iIndex.table <- intersect(which(out$type==grid$type[iGrid]),
-                                      which(out$test==grid$test[iGrid]))
-        }else{
-            iIndex.table <- 1:NROW(out)
-        }
+        iIndex.table <- which(out$name == grid[iGrid])
         iTable <- out[iIndex.table,,drop=FALSE]
         iN.test <- NROW(iTable)
 
@@ -1068,7 +1045,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
         if(is.null(method)){
             if(NROW(iTable$df)==1 || all(is.na(iTable$statistic))){
                 iMethod  <- "none"
-            }else if(df2 == FALSE || all(is.infinite(iTable$df)) || all(abs(iTable$df - round(mean(iTable$df)))<0.1)){
+            }else if(df == FALSE || all(is.infinite(iTable$df)) || all(abs(iTable$df - round(mean(iTable$df)))<0.1)){
                 iMethod <- "single-step"
             }else{
                 iMethod <- "single-step2"
@@ -1082,7 +1059,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
         }
 
         if(iMethod %in% c("Westfall","Shaffer","free","single-step","single-step2")){
-            iGlht <- object$glht[[grid[iGrid,"type.original"]]][[grid[iGrid,"test"]]]
+            iGlht <- object$glht[[grid[iGrid]]]
             iGlht$df <- max(iGlht$df, min(out$df)) ## update df: cannot be smaller than the smaller df in the table
             ## may happen when df=FALSE and all df in the table have been set to Inf
         }
@@ -1107,7 +1084,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
             out[iIndex.table,"upper"] <- iCi$confint[,"upr"]
             out[iIndex.table,"p.value"] <- as.double(iP$test$pvalues)
             
-            if(df2){
+            if(df){
                 out[iIndex.table,"df"] <- iGlht$df
             }
             attr(out, "error")[iGrid] <-  attr(iP$test$pvalues,"error")
@@ -1120,7 +1097,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
             
             out[iIndex.table,"lower"] <- NA
             out[iIndex.table,"upper"] <- NA
-            if(df2){
+            if(df){
                 out[iIndex.table,"df"] <- iGlht$df
             }
 
@@ -1180,23 +1157,22 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
 
         }else{
 
-            out <- .backtransform(out, type.param = out$type,  
-                                  backtransform = TRUE, backtransform.names = object$args$backtransform.names[[1]],
+            ## force no back-transform, e.g. when comparing two correlation coefficients
+            out <- .backtransform(out,
+                                  type.param = ifelse(out$tobacktransform,out$type,"mu"),  
+                                  backtransform = TRUE, backtransform.names = NULL,
                                   transform.mu = "none",
                                   transform.sigma = object$args$transform.sigma,
                                   transform.k = object$args$transform.k,
                                   transform.rho = object$args$transform.rho)
 
-            vec.backtransform <- attr(object$univariate,"backtransform")
-            if(!is.null(vec.backtransform)){
-                ## case where a contrast is performed on transformed coefficients (e.g. sigma:male vs sigma:female)
-                ## the back transformed version exp(log(sigma:male) - log(sigma:female)) differs from the original version sigma:male - sigma:female
+            if(object$args$transform.rho=="atanh" && any(out$type=="rho" & out$n.param > 1 & out$tobacktransform==FALSE)){
+                ## case where a contrast is performed on transformed coefficients (e.g. rho:male vs rho:female)
+                ## the back transformed version tanh(atanh(rho:male) - atanh(rho:female)) differs from the original version rho:male - rho:female
                 ## thus without further indication the original version is output
-                out[names(vec.backtransform),"estimate"] <- unname(vec.backtransform)
-                out[names(vec.backtransform),"se"] <- NA
-                out[names(vec.backtransform),"df"] <- NA
-                out[names(vec.backtransform),"lower"] <- NA
-                out[names(vec.backtransform),"upper"] <- NA
+                out[out$type=="rho" & out$n.param > 1 & out$tobacktransform==FALSE,"se"] <- NA
+                out[out$type=="rho" & out$n.param > 1 & out$tobacktransform==FALSE,"lower"] <- NA
+                out[out$type=="rho" & out$n.param > 1 & out$tobacktransform==FALSE,"upper"] <- NA
             }
 
         }

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 17 2024 (09:37) 
 ## Version: 
-## Last-Updated: Jul 23 2024 (10:00) 
+## Last-Updated: jul 24 2024 (14:56) 
 ##           By: Brice Ozenne
-##     Update #: 256
+##     Update #: 277
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -28,9 +28,9 @@ simplifyContrast <- function(object, rhs, tol = 1e-10, trace = TRUE){
     }
 
     if(n.zero==0){return(list(C = object, rhs = rhs, dim = NROW(object), rm = 0))}
-    
+
     keep.lines <- 1:NROW(object)
-    for(iLine in NROW(object):1){ ## iLine <- 3
+    for(iLine in NROW(object):1){ ## iLine <- 1
         iN.zero <- sum(abs(eigen(tcrossprod(object[setdiff(keep.lines,iLine),,drop=FALSE]))$values) < tol)
         if(iN.zero<n.zero){
             keep.lines <- setdiff(keep.lines,iLine)
@@ -95,6 +95,9 @@ simplifyContrast <- function(object, rhs, tol = 1e-10, trace = TRUE){
 
 
 ## * equation2contrast (code)
+##' @description Find the contrast matrix corresponding to an equation
+##' Used by anova.lmm.
+##' @noRd
 equation2contrast <- function(object, name.coef, X, 
                               name.arg){
 
@@ -414,6 +417,9 @@ equation2contrast <- function(object, name.coef, X,
                 return(iOut)
             })
             ## update contrast matrix
+            if(all(iFactor.split==0)){
+                stop("Incorrect value for argument \'",name.arg,"\': cannot have an equation where all coefficients equal 0. \n")
+            }
             object.contrast[[equationComplex[[iE]]]][1,iCoef.split] <- as.double(iFactor.split)
         }
     }
@@ -425,6 +431,289 @@ equation2contrast <- function(object, name.coef, X,
     return(out)
 }
 
+## * effects2contrast
+##' @description Generate a contrast matrix and a right-hand side based on the effects argument
+##' Used by anova.lmm.
+##' @noRd
+effects2contrast <- function(object, effects, rhs,
+                             transform.sigma, transform.k, transform.rho){
+
+    effects.ref <- c("all","mean","fixed","variance","correlation")
+    
+    ## ** extract from object
+    object.coef <- stats::model.tables(object, effects = "param")
+    name.coef <- object.coef$name
+    n.coef <- length(name.coef)
+    type.coef <- stats::setNames(object.coef$type, name.coef)
+
+    name.coef.rescue <- name.coef
+    attr(name.coef.rescue, "rescue") <- names(coef(object, effects = "all",
+                                                   transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = TRUE))
+
+    if(is.character(effects)){
+        object.X <- model.matrix(object, effects = "all", simplify = 0.5)
+        
+        strata.var <- object$strata$var
+        strata.levels <- object$strata$levels        
+        name.coef.sigma <- object.coef$name[object.coef$type == "sigma"]
+        if(all(is.na(attr(strata.var,"original")))){
+            name.strata.sigma <- NULL
+        }else{
+            name.strata.sigma <- paste0(strata.var, strata.levels[object.coef[match(name.coef.sigma,object.coef$name),"index.strata"]])
+        }
+    }
+
+    ## ** normalize input
+    if(is.character(effects)){
+
+        if(all(tolower(effects) %in% effects.ref)){
+            effects <- tolower(effects)
+
+            if("all" %in% effects){
+                if(length(effects) == 1){
+                    effects <- c("mean","variance","correlation")
+                }else{
+                    stop("When argument \'effect\' contains \"all\" it should be of length 1. \n")
+                }
+            }else if("fixed" %in% effects){
+                effects[effects=="fixed"] <- "mean"
+            }
+            if(transform.k %in% c("sd","var","logsd","logvar")){
+                stop("Cannot use \'transform.k\' equals \"sd\", \"var\", \"logsd\", or \"logvar\". \n",
+                     "anova does not handle tests where the null hypothesis is at a boundary of the support of a random variable. \n")
+            }
+            if(all(attr(object.X$mean,"assign")==0)){
+                effects <- setdiff(effects,"mean")
+            }
+            if("k" %in% type.coef == FALSE){
+                effects <- setdiff(effects,"variance")
+            }
+            if("rho" %in% type.coef == FALSE){
+                effects <- setdiff(effects,"correlation")
+            }
+            if(length(effects)==0){
+                message("No variable relative to which model parameters should be tested. \n")
+                return(invisible(NULL))
+            }
+        }
+
+    }else if(is.matrix(effects)){
+
+        ## effects
+        if(any(is.na(effects))){
+            stop("When a matrix, argument \'effect\' should no contain NA values. \n")
+        }
+        if(any(rowSums(effects!=0)==0)){
+            stop("When a matrix, argument \'effect\' should no contain rows with only 0. \n")
+        }
+        if(is.null(rownames(effects))){
+            stop("When a matrix, argument \'effect\' should have row names. \n")
+        }
+        if(any(duplicated(rownames(effects)))){
+            stop("When a matrix, argument \'effect\' should not have duplicated row names. \n")
+        }
+        if(is.null(colnames(effects))){
+            if(NCOL(effects)!=n.coef){
+                stop("When a matrix, argument \'effect\' should have column names or as many columns as model parameters (here ",n.coef,"). \n")
+            }
+        }else{
+            if(any(duplicated(colnames(effects)))){
+                stop("When a matrix, argument \'effect\' should not have duplicated column names. \n")
+            }
+            if(any(colnames(effects) %in% name.coef == FALSE) && any(colnames(effects) %in% attr(name.coef,"rescue") == FALSE)){
+                stop("When a matrix, argument \'effect\' should have column names matching the names of the model parameters. \n",
+                     "Valid names: \"",paste(name.coef, collapse = "\", \""),"\". \n")
+            }            
+        }
+
+        ## rhs
+        if(is.null(rhs)){
+            effects.type <- do.call(rbind,apply(effects, MARGIN = 1, function(iRow){tapply(iRow!=0,type.coef,sum)}, simplify=FALSE))
+            if(any(effects.type[,"sigma"]!=0) || (any(effects.type[,"k"]!=0) && transform.k %in% c("sd","var","logsd","logvar"))){
+                stop("Unable to decide on a value for the right-hand side of the null hypothesis\n",
+                     "due to the presence of parameters of type \"sigma\" in the same null hypothesis. \n",
+                     "Consider specifying the argument \'rhs\'. \n")
+            }
+            if(any(rowSums(effects.type>0)>1)){
+                stop("Unable to decide on a value for the right-hand side of the null hypothesis\n",
+                     "due to multiple types of parameters in the same null hypothesis. \n",
+                     "Consider specifying the argument \'rhs\'. \n")
+            }
+        }else if(!is.numeric(rhs) || !is.vector(rhs)){
+            stop("Argument \'rhs\' should be a numeric vector. \n")
+        }else if(!is.null(names(rhs)) && any(rownames(effects) %in% names(rhs) == FALSE)){
+            stop("Argument \'rhs\' should have the same names as the row names of argument \'effects\'. \n")
+        }else if(length(rhs)!=1 && length(rhs)!=NROW(effects)){
+            stop("Incorrect length for argument \'rhs\': should have length the number of rows of the contrast matrix (here ",NROW(effects),"). \n")
+        }
+
+    }else if(!inherits(effects,"mcp")){
+        stop("Incorrect argument 'effects': can be \"mean\", \"variance\", \"correlation\", \"all\", \n", 
+             "or an equation such compatible with the argument 'linfct' of multcomp::glht \n ", 
+             "or a contrast matrix. \n", "or covariate names \n ")
+    }
+
+
+    ## ** Generate contrast matrix
+    if(all(effects %in% effects.ref)){
+        ## *** Case 1: effects refer to a type of parameter
+
+        ls.contrast <- list()
+        ls.null <- list()
+
+        if("mean" %in% effects){
+     
+            ## names of the terms in the design matrix
+            terms.mean <- attr(object.X$mean,"term.labels")
+
+            ## contrast matrix
+            ls.contrast$mu <- stats::setNames(lapply(1:length(terms.mean), function(iT){ ## iT <- 1
+                iIndex <- which(attr(object.X$mean,"assign")==iT)
+                iCoef <- colnames(object.X$mean)[iIndex]
+                iC <- matrix(0, nrow = length(iIndex), ncol = n.coef,
+                             dimnames = list(paste0(iCoef,"=0"), name.coef))
+                iC[,iCoef] <- diag(1, nrow = length(iIndex))
+                return(iC)                
+            }), terms.mean)
+            ls.null$mu <- lapply(ls.contrast$mu, function(iC){stats::setNames(rep(0, NROW(iC)),rownames(iC))})
+        }
+
+        if("variance" %in% effects){
+             
+            ## names of the k coefficients
+            name.coef.k <- name.coef[type.coef == "k"]
+            n.coef.k <- length(name.coef.k)
+
+            ## terms
+            if(is.null(name.strata.sigma)){
+                terms.var <- unique(attr(object.X$var,"term.labels") [match(name.coef.k, colnames(object.X$var))])
+            }else{
+                terms.var <- paste(c(name.strata.sigma,setdiff(attr(object.X$var,"variable"), strata.var)), collapse = ":")
+            }
+
+            ## contrast matrix 
+            ls.contrast$k <- stats::setNames(lapply(name.coef.sigma, function(iSigma){ ## iSigma <- name.coef.sigma[1]
+                iCoef <- intersect(name.coef.k, object.coef[object.coef$sigma == iSigma,"name"])
+                iC <- matrix(0, nrow = length(iCoef), ncol = n.coef,
+                             dimnames = list(paste0(iCoef,"=1"), name.coef))
+                iC[,iCoef] <- diag(1, nrow = length(iCoef))
+                return(iC)                
+            }),terms.var)
+            ls.null$k <- lapply(ls.contrast$k, function(iC){stats::setNames(rep(1, NROW(iC)),rownames(iC))})
+        }
+
+        if("correlation" %in% effects){
+                
+            ## names of the rho coefficients
+            name.coef.rho <- name.coef[type.coef == "rho"]
+            n.coef.rho <- length(name.coef.rho)
+            if(is.null(name.strata.sigma)){
+                terms.cor <- unique(attr(object.X$cor,"term.labels"))
+            }else{
+                terms.cor <- paste(c(name.strata.sigma,setdiff(attr(object.X$cor,"variable"), strata.var)), collapse = ":")
+            }
+
+            ## contrast matrix 
+            ls.contrast$rho <- stats::setNames(lapply(name.coef.sigma, function(iSigma){ ## iSigma <- name.coef[type.coef=="sigma"][1]
+                iCoef <- intersect(name.coef.rho, object.coef[object.coef$sigma == iSigma,"name"])
+                iC <- matrix(0, nrow = length(iCoef), ncol = n.coef,
+                             dimnames = list(paste0(iCoef,"=0"), name.coef))
+                iC[,iCoef] <- diag(1, nrow = length(iCoef))
+                return(iC)                
+            }),terms.cor)
+            ls.null$rho <- lapply(ls.contrast$rho, function(iC){stats::setNames(rep(0, NROW(iC)),rownames(iC))})
+        }
+        
+        backtransform <- TRUE
+
+    }else if(inherits(effects,"mcp")){
+        ## *** Case 2: effects refer to a mcp object (multcomp package)
+
+        out.m2c <- try(multcomp::glht(object, linfct = effects), silent = TRUE)
+            
+        if(inherits(out.m2c,"try-error")){
+            valid.type <- eval(formals(multcomp::contrMat)$type)
+            if(length(effects)==1 && length(effects[[1]])==1 && is.character(effects[[1]]) && effects[[1]] %in% valid.type == FALSE){
+                stop("Incorrect argument \'effects\': running the mcp2matrix function from the mulcomp package lead to the following error: \n",
+                     out.m2c,
+                     "Valid contrast: \"",paste(valid.type, collapse ="\", \""),"\". \n")
+            }else{
+                stop("Incorrect argument \'effects\': running the mcp2matrix function from the mulcomp package lead to the following error: \n",
+                     out.m2c)
+            }
+        }
+        out.m2c$contrast <- matrix(0, nrow = NROW(out.m2c$linfct), ncol = n.coef,
+                                   dimnames = list(rownames(out.m2c$linfct), name.coef))
+        out.m2c$contrast[,colnames(out.m2c$linfct)] <- out.m2c$linfct
+
+        ls.contrast <- list(user = list(user = out.m2c$linfct))
+        ls.null  <- list(user = list(user = stats::setNames(out.m2c$rhs, rownames(out.m2c$linfct))))
+        backtransform <- TRUE
+   
+    }else if(is.matrix(effects)){
+        ## *** Case 3: effects refer to contrast matrix
+            
+        if(is.null(colnames(effects))){
+            colnames(effects) <- name.coef
+            rescue <- FALSE
+        }else{
+            ## it has been checked before that when some names dot not belong to the untransformed names, all names belong to the transformed names
+            rescue <- any(colnames(effects) %in% name.coef == FALSE)
+
+            effects.save <- effects
+            effects <- matrix(0, nrow = NROW(effects.save), ncol = length(name.coef), dimnames = list(rownames(effects.save),name.coef))
+            effects[,colnames(effects.save)] <- effects.save
+        }
+
+        ## normalize rhs
+        if(is.null(rhs)){
+            effects.type2 <- colnames(effects.type)[apply(effects.type!=0,1,which)]
+            default.null <- c("mu" = 0,
+                              "k" = ifelse(transform.k %in% c("log","logsquare"), 0, 1),
+                              "rho" = 0)
+            rhs <- stats::setNames(default.null[effects.type2], rownames(effects))
+        }else if(length(rhs)==1){
+            rhs <- stats::setNames(rep(rhs, NROW(effects)), rownames(effects))
+        }else if(is.null(names(rhs))){
+            names(rhs) <- rownames(effects)
+        }else{
+            rhs <- rhs[rownames(effects)]
+        }
+
+        ## collect
+        if(rescue==TRUE && (!is.null(transform.sigma) || !is.null(transform.k) || !is.null(transform.rho))){ ## the user specifically requests the transformed scale
+            backtransform <- FALSE
+        }else{
+            backtransform <- TRUE
+        }
+        ls.contrast <- list(user = list(user = effects))
+        ls.null  <- list(user = list(user = rhs))
+            
+    }else if(is.character(effects)){
+        ## *** Case 4: effects refer to variable names or equations
+        out.eq2c <- equation2contrast(effects,
+                                      name.coef = name.coef.rescue,
+                                      X = list(mean = object.X$mean, var = object.X$var),
+                                      name.arg = "effects")
+
+        if(out.eq2c$rescue==TRUE){
+            colnames(out.eq2c$contrast) <- object.coef
+            if(!is.null(transform.sigma) || !is.null(transform.k) || !is.null(transform.rho)){ ## the user specifically requests the transformed scale
+                backtransform <- FALSE
+            }else{
+                backtransform <- TRUE
+            }
+        }else{
+            backtransform <- TRUE
+        }
+        ls.contrast <- list(user = list(user = out.eq2c$contrast))
+        ls.null  <- list(user = list(user = out.eq2c$rhs))
+
+    }
+
+    ## ** export
+    return(list(contrast = ls.contrast, null = ls.null, backtransform = backtransform))
+}
 
 ## * contrast2name
 ##' @description Find a name corresponding to each contrast.

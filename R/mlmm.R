@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: jul 16 2024 (16:48) 
+## Last-Updated: jul 24 2024 (13:38) 
 ##           By: Brice Ozenne
-##     Update #: 483
+##     Update #: 489
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -281,13 +281,9 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
 
     ls.anova <- stats::setNames(lapply(name.lmm, function(iName){ ## iName <- name.lmm[1]
 
-        if(is.null(robust)){
-            iWald <- anova(ls.lmm[[iName]], effects = ls.Cmat[[iName]], rhs = rhs[[iName]], ci = ci, df = df, 
-                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
-        }else{
-            iWald <- anova(ls.lmm[[iName]], effects = ls.Cmat[[iName]], rhs = rhs[[iName]], robust = robust, ci = ci, df = df, 
-                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
-        }
+        iWald <- anova(ls.lmm[[iName]], effects = ls.Cmat[[iName]], rhs = rhs[[iName]], robust = robust, df = df,
+                       univariate = TRUE, multivariate = FALSE,
+                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
 
         if(!is.null(contrast.rbind) && identical(df,TRUE)){
             iWald$dVcov <- attr(vcov(ls.lmm[[iName]], effects = "all", df = 2, robust = robust, 

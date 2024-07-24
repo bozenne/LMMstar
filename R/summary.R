@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jul 16 2024 (18:19) 
+## Last-Updated: jul 24 2024 (13:49) 
 ##           By: Brice Ozenne
-##     Update #: 1607
+##     Update #: 1649
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -440,10 +440,19 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
                              digits = 3, digits.df = 1, digits.p.value = 3, sep = ": ",
                              ...){
 
+    ## ** extract from object
     options <- LMMstar.options()
     pool.method <- options$pool.method
+    type.information <- object$object$type.information
+    df <- object$args$df
+    robust <- object$args$robust
+
+    transform.sigma <- object$args$transform.sigma
+    transform.k <- object$args$transform.k
+    transform.rho <- object$args$transform.rho
 
     ## ** normalize input
+    ## *** print
     if(length(print)==1){
         print.univariate <- print
         print.multivariate <- print
@@ -455,6 +464,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         print.univariate <- print[2]
     }
 
+    ## *** columns
     valid.columns <- c("null","estimate","se","statistic","df","lower","upper","p.value","","type")
     if(identical(columns,"all")){
         columns.multivariate <- setdiff(valid.columns, c("estimate", "se", "lower", "upper"))
@@ -482,11 +492,15 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
             columns.multivariate <- setdiff(columns.univariate, c("estimate", "se", "lower", "upper"))
         }
     }
-    if(length(columns.univariate)==0){
+
+    if(length(columns.univariate)==0 || !object$args$univariate){
         print.univariate <- FALSE
     }
-    if(length(columns.multivariate)==0){
+    if(length(columns.multivariate)==0 || !object$args$multivariate){
         print.multivariate <- FALSE
+    }
+    if(print.multivariate == FALSE && print.univariate == FALSE){
+        stop("Nothing to print. \n")
     }
 
     if("df" %in% columns.multivariate){
@@ -499,14 +513,6 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
             columns.multivariate <- c(columns.multivariate[1:(index.df-1)], "df.num", "df.denom", columns.multivariate[(index.df+1):length(columns.multivariate)])
         }
     }
-    type.information <- object$object$type.information
-    df <- object$args$df
-    robust <- object$args$robust
-    ci <- object$args$ci
-
-    transform.sigma <- object$args$transform.sigma
-    transform.k <- object$args$transform.k
-    transform.rho <- object$args$transform.rho
 
     ## ** ensure reproducibility
     if(!is.null(seed)){
@@ -516,30 +522,39 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
     }
 
     ## ** extract information
+
     ## *** multivariate tests
-    if(print.multivariate>0 && any(!is.na(object$multivariate$df.num))){
+    if(print.multivariate>0){
+
+        ## add type
         table.multivariate <- object$multivariate[,setdiff(columns.multivariate,c("type","")),drop=FALSE]
-        nchar.type <- nchar(object$args$type[[1]])
-        maxchar.type <- max(nchar.type)
-        if("type" %in% columns.multivariate){
-            vec.white <- sapply(maxchar.type-nchar.type, function(iN){paste(rep(" ", iN), collapse = "")})
-            sparsetype <- object$args$type[[1]]            
-            sparsetype[duplicated(sparsetype)] <- sapply(sparsetype[duplicated(sparsetype)], function(iWord){paste(rep(" ", times = nchar(iWord)), collapse="")})
-            rownames(table.multivariate) <- paste(vec.white,sparsetype,sep,object$multivariate$test,sep="")
-        }else if(any(duplicated(object$multivariate$test))){
-            test.nduplicated <- !duplicated(object$args$type[[1]])
-            rownames(table.multivariate) <- sapply(1:NROW(table.multivariate), function(iIndex){
-                if(test.nduplicated[iIndex]){
-                    paste(paste(rep(" ", maxchar.type-nchar.type[iIndex]), collapse = ""),object$args$type[[1]][iIndex],sep,object$multivariate$test[iIndex],sep="")
-                }else{
-                    paste(paste(rep(" ", maxchar.type+nchar(sep)), collapse = ""),object$multivariate$test[iIndex],sep="")
-                }
-            })
-        }else if(any(!identical(object$args$type[[1]],"all"))){
-            rownames(table.multivariate) <- object$multivariate$test
+        if(object$args$type=="auto"){
+            if("type" %in% columns.multivariate){
+                name.type <- sapply(object$multivariate$type, switch,
+                                    "mu" = "mean",
+                                    "k" = "variance",
+                                    "rho" = "correlation")
+                rownames(table.multivariate) <- paste0(name.type,": ",object$multivariate$term)
+                nchar.type <- nchar(rownames(table.multivariate))
+                maxchar.type <- max(nchar.type)
+                vec.white <- sapply(maxchar.type-nchar.type, function(iN){paste(rep(" ", iN), collapse = "")})
+                rownames(table.multivariate) <- paste(vec.white,rownames(table.multivariate),sep="")                                
+            }else{
+                rownames(table.multivariate) <- object$multivariate$term
+            }
+        }else{
+            if("type" %in% columns.multivariate){
+                rownames(table.multivariate) <- "all: "
+            }else{
+                rownames(table.multivariate) <- NULL
+            }
         }
         if(print.multivariate>0.5){
-            cat("\t\tMultivariate Wald test \n\n")
+            if(NROW(table.multivariate)==1){
+                cat("\t\tMultivariate Wald test \n\n")
+            }else{
+                cat("\t\tMultivariate Wald tests \n\n")
+            }
         }
 
         .printStatTable(table = table.multivariate, robust = robust, df = df, level = NULL, type.information = type.information,
@@ -548,16 +563,16 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
                         columns = setdiff(columns.multivariate,"type"), col.df = c("df.num","df.denom"), name.statistic = c("Chi2-statistic","F-statistic"),
                         digits = digits, digits.df = c(df.num = 0, df.denom = digits.df), digits.p.value = digits.p.value,
                         decoration = legend, legend = legend)
-        if(!is.null(attr(print,"message")) && !(print.univariate>0 && ci)){
-            cat(attr(print,"message"))
+        if(any(!is.na(object$multivariate$message))){
+            cat(paste(unique(stats::na.omit(object$multivariate$message)), collapse = "\n"))
         }
         cat("\n")
     }
 
-    ## *** local tests
-    if(print.univariate>0 && ci){
-
-        table.univariate <- confint(object, columns = union(setdiff(columns.univariate,""),c("type","test")), ...)
+    ## *** univariate tests
+    if(print.univariate>0){
+        
+        table.univariate <- confint(object, columns = union(setdiff(columns.univariate,""),c("type","term","name")), ...)
         if(is.null(columns) && all(is.na(table.univariate$lower)) && all(is.na(table.univariate$upper))){
             columns.univariate <- setdiff(columns.univariate, c("lower","upper"))
         }
@@ -565,18 +580,14 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         error <- attr(table.univariate,"error")
         n.sample <- attr(table.univariate,"n.sample")
         method.p.adjust <- attr(table.univariate,"method")
-        if(length(method.p.adjust)>1){
-            method.p.adjust <- method.p.adjust[1]
-            message("Different adjustment for multiple comparisons were used but only the first is described. \n")
-        }
         level <- attr(table.univariate,"level")
         backtransform <- attr(table.univariate,"backtransform")
 
-        ## type of adjustment
-        if(length(object$args$type[[1]])>1){
-            if(length(unique(object$args$type[[1]]))==1){
+        ## group of test relative to which multiple comparison adjustment is performed
+        if(object$args$type=="auto" && length(unique(table.univariate$name))>1){
+            if(length(unique(table.univariate$type))==1){
                 factor.p.adjust <- "covariate name"
-            }else if(all(duplicated(object$args$type[[1]])==FALSE)){
+            }else if(length(unique(table.univariate$term))==1){
                 factor.p.adjust <- "type of parameter"
             }else{
                 factor.p.adjust <- "covariate name and type of parameter"
@@ -585,36 +596,32 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
             factor.p.adjust <- NULL
         }
 
-        ## incorporate type
-        if(method.p.adjust %in% pool.method == FALSE){
-            table.univariate$type <-  c("mu" = "mean", "sigma" = "variance", "k" = "variance", "rho" = "correlation")[object$univariate$type]
-        }
-        nchar.type <- nchar(table.univariate$type)
-        maxchar.type <- max(nchar.type)
-        if("type" %in% columns.univariate){
+        ## type of parameter: mean/variance/correlation
+        if(object$args$type=="auto" && "type" %in% columns.univariate == FALSE){
+            nchar.type <- nchar(rownames(table.univariate))
+            maxchar.type <- max(nchar.type)
             vec.white <- sapply(maxchar.type-nchar.type, function(iN){paste(rep(" ", iN), collapse = "")})
-            rownames(table.univariate) <- paste(vec.white,table.univariate$type,sep,rownames(table.univariate),sep="")
-        }else if(length(unique(table.univariate$type))>1){
-            test.nduplicated <- !duplicated(table.univariate$type)            
-            rownames(table.univariate) <- sapply(1:NROW(table.univariate), function(iIndex){ ## iIndex <- 1
-                if(test.nduplicated[iIndex]){
-                    paste(paste(rep(" ", maxchar.type-nchar.type[iIndex]), collapse = ""),table.univariate$type[iIndex],sep,rownames(table.univariate)[iIndex],sep="")
-                }else{
-                    paste(paste(rep(" ", maxchar.type+nchar(sep)), collapse = ""),rownames(table.univariate)[iIndex],sep="")
-                }
-            })
-            table.univariate$type <- NULL
+            rownames(table.univariate) <- paste(rownames(table.univariate),vec.white,sep="")                                
+
+            name.type <- sapply(table.univariate$type, switch,
+                                "mu" = "mean",
+                                "k" = "variance",
+                                "rho" = "correlation")
+            rownames(table.univariate) <- paste0(ifelse(duplicated(name.type),"",paste0(name.type,": ")),rownames(table.univariate))
+            nchar.type <- nchar(rownames(table.univariate))
+            maxchar.type <- max(nchar.type)
+            vec.white <- sapply(maxchar.type-nchar.type, function(iN){paste(rep(" ", iN), collapse = "")})
+            rownames(table.univariate) <- paste(vec.white,rownames(table.univariate),sep="")                                
         }
-        ## incorporate test
-        attr(table.univariate,"test") <- table.univariate$test
-        
-        if(inherits(object,"rbindWald_lmm") && length(unique(setdiff(object$univariate$method,"none"))>1)){
-            warning("Different methods have been used to adjust for multiple comparisons - text describing the adjustment will not be accurate.")
-        }
+
         if(print.univariate>0.5){
-            cat("\t\tUnivariate Wald test \n\n")
+            if(NROW(table.univariate)==1){
+                cat("\t\tUnivariate Wald test \n\n")
+            }else{
+                cat("\t\tUnivariate Wald tests \n\n")
+            }
         }
-        if(method.p.adjust %in% c("pool.gls","pool.gls1")){
+        if(any(c("pool.gls","pool.gls1") %in% method.p.adjust)){
             if(!is.null(error) && any(!is.na(error))){
                 attr(method.p.adjust,"warning") <- paste0(attr(method.p.adjust,"warning"),
                                                           "           ",error," principal components have been ignored when pooling (singular vcov).\n")
@@ -1092,8 +1099,10 @@ summary.resample <- function(object, digits = 3, ...){
     columns.num <- setdiff(names(table)[sapply(table,is.numeric)],c("p.value",col.df))
     for(iCol in columns.num){ 
         table.print[[iCol]] <- as.character(round(table[[iCol]], digits = digits))
-        if(any(!is.na(table[[iCol]])) && any(table[[iCol]]!=0 & table.print[[iCol]] == "0")){
-            table.print[[iCol]][table[[iCol]]!=0 & table.print[[iCol]] == "0"] <- paste0("<0.",paste0(rep(0,digits-1),collapse=""),"1")
+        iIndex.NNA <- which(!is.na(table.print[[iCol]]))
+        if(any(table[iIndex.NNA,iCol]!=0 & table.print[iIndex.NNA,iCol] == "0")){
+            iIndex.0 <- iIndex.NNA[which(table[iIndex.NNA,iCol]!=0 & table.print[iIndex.NNA,iCol] == "0")]
+            table.print[iIndex.0,iCol] <- paste0("<0.",paste0(rep(0,digits-1),collapse=""),"1")
         }
     }
     if("p.value" %in% names(table.print)){
@@ -1212,44 +1221,40 @@ summary.resample <- function(object, digits = 3, ...){
             }
             
 
-        }else if(length(method.p.adjust2)==1 && length(display.cip)>0 && NROW(table)>1){ ## adjustment
+        }else if(length(method.p.adjust2)>=1 && length(display.cip)>0 && NROW(table)>1){ ## adjustment
 
             ## adjustment
-            if(method.p.adjust %in% c("single-step", "single-step2")){
-                if(df){
-                    name.adjmethod <- "max test"
-                }else{
-                    name.adjmethod <- "max test"
-                }
+            if(any(c("single-step", "single-step2") %in% method.p.adjust)){
 
-                txt.adjustment2 <- NULL ## paste(display.cip, collapse = "/")
+                name.adjmethod <- "max test"
+
+                txt.adjustment <- NULL ## paste(display.cip, collapse = "/")
                 if(!is.null(seed)){
-                    txt.adjustment2 <- paste(c(txt.adjustment2,paste0("RNG seed ",seed)), collapse=", ")
+                    txt.adjustment <- paste(c(txt.adjustment,paste0("RNG seed ",seed)), collapse=", ")
                 }
-                if(method.p.adjust == "single-step" && !is.null(error.p.adjust) && any(!is.na(error.p.adjust)) && any(abs(stats::na.omit(error.p.adjust))>1e-12)){
-                    txt.adjustment2 <- paste(c(txt.adjustment2, paste0("numerical intergration error ", signif(max(error.p.adjust, na.rm=TRUE), digits = digits.p.value[1]))), collapse=", ")
-                }else if(method.p.adjust == "single-step2"){
-                    txt.adjustment2 <- paste(c(txt.adjustment2, paste0(n.sample," samples")), collapse=", ")
+                if("single-step" %in% method.p.adjust && !is.null(error.p.adjust) && any(!is.na(error.p.adjust)) && any(abs(stats::na.omit(error.p.adjust))>1e-12)){
+                    txt.adjustment <- paste(c(txt.adjustment, paste0("numerical intergration error ", signif(max(error.p.adjust, na.rm=TRUE), digits = digits.p.value[1]))), collapse=", ")
                 }
-                if(!is.null(txt.adjustment2) && nchar(txt.adjustment2)>0){
-                    txt.adjustment2 <- paste0(" (",txt.adjustment2,")")
+                if("single-step2" %in% method.p.adjust){
+                    txt.adjustment <- paste(c(txt.adjustment, paste0(n.sample," samples")), collapse=", ")
+                }
+                if(!is.null(txt.adjustment) && nchar(txt.adjustment)>0){
+                    txt.adjustment <- paste0(" (",txt.adjustment,")")
                 }
                 
             }else{
                 name.adjmethod <- method.p.adjust
-                txt.adjustment2 <- ""
+                txt.adjustment <- ""
             }
 
-            if(!is.null(attr(table,"test")) && length(unique(attr(table,"test")))>1){
-                txt.adjstrata <- "within variable "
+            if(!is.null(factor.p.adjust) && nchar(factor.p.adjust)>0){
+                txt.adjustment <- paste0("within each ", factor.p.adjust," using ",name.adjmethod,"\n",txt.adjustment)
             }else{
-                txt.adjstrata <- ""
+                txt.adjustment <- paste0("using ",name.adjmethod,txt.adjustment)
             }
-
-            txt.adjustment <- paste0("Multiple testing adjustment: ",txt.adjstrata,"using ",name.adjmethod,txt.adjustment2,sep="")
 
             if(!is.null(txt.adjustment)){
-                cat(space,txt.adjustment,".\n",sep="")
+                cat(space,"Multiple testing adjustment: ",txt.adjustment,".\n",sep="")
             }
 
         }

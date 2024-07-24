@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: Jul 23 2024 (09:53) 
+## Last-Updated: jul 24 2024 (11:16) 
 ##           By: Brice Ozenne
-##     Update #: 805
+##     Update #: 817
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -1084,6 +1084,61 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
                 transform.rho = transform.rho,
                 test.notransform = test.notransform)
     return(out)
+}
+
+## * .null_transform
+##' @description Apply a transformation to the right hand side of the null hypothesis
+##' Used by anova.lmm
+##' @param contrast [matrix] contrast matrix
+##' @param null [numeric vector] right-hand side. Same length as the number of row of contrast.
+##' @param transformation [character] name of the transformation (atanh or log)
+##' @param n.param [integer vector] number of non-0 element in each row of contrast. Same length as the number of row of contrast.
+##' @param message.error [character vector] can be displayed in the error message to make it more informative.
+##' @param arg.rhs [character] can be displayed in the error message to make it more informative.
+##' @noRd
+.null_transform <- function(contrast, null, transformation, n.param,
+                            message.error = NULL, arg.rhs = NULL){
+
+    ## ** simple case: a*param = b <=> f(param) = f(b/a)
+    if(any(n.param == 1)){
+        index.1 <- which(n.param == 1)
+        if(any(contrast[index.1,] %in% 0:1 == FALSE)){
+            normalization <- rowSums(contrast[index.1,,drop=FALSE]) ## sum works because single non-0 coefficient
+            null[index.1] <- do.call(transformation, args = list(null[index.1]/normalization))
+            contrast[index.1,] <- sweep(contrast[index.1,,drop=FALSE], MARGIN = 1, FUN = "/", STATS = normalization)
+        }else{
+            null[index.1] <- do.call(transformation, arg = list(null[index.1]))
+        }
+        
+    }
+
+    ## ** simple case: param1 - param2 = 0 <=> f(param1) = f(param2) <=> f(param1) - f(param2) = 0
+    if(any(n.param == 2)){
+        index.2 <- which(n.param == 2)
+        if(any(null[index.2]!=0)){
+            if(is.null(arg.rhs)){
+                stop("Can only move from the original scale to the transformed scale when testing linear hypothesis with 2 parameters if the right hand side is 0. \n")
+            }else{
+                stop("Can only move from the original scale to the transformed scale when testing linear hypothesis with 2 parameters if the right hand side is 0. \n",
+                     "Consider setting the argument \'rhs\' to 0. \n")
+            }
+        }else if(any(apply(contrast[index.2,,drop=FALSE], MARGIN = 1, function(iRow){all(iRow %in% c(-1,0,1)) & (sum(iRow==1)==1) & (sum(iRow==-1)==1)})==FALSE)){
+            stop("Can only move from the original scale to the transformed scale when testing linear hypothesis with 2 parameters if contrasting two model parameters (param2-param1=0). \n",
+                 message.error)
+        }else{
+            ## do nothing
+        }
+    }
+
+    ## ** infeasible case: more than 2 parameters
+    if(any(n.param > 2)){
+        stop("Cannot move from the original scale to the transformed scale when testing linear hypothesis with more than 2 parameters. \n",
+             message.error)
+    }
+
+    ## ** export
+
+    return(list(contrast = contrast, null = null))
 }
 ##----------------------------------------------------------------------
 ### reparametrize.R ends here
