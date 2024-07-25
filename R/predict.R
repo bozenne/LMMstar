@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jul 11 2024 (10:35) 
+## Last-Updated: jul 25 2024 (11:06) 
 ##           By: Brice Ozenne
-##     Update #: 1473
+##     Update #: 1478
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -727,17 +727,26 @@ predict.mlmm <- function(object, p = NULL, newdata = NULL, keep.data = FALSE, si
 ## * .dfX
 .dfX <- function(X.beta, vcov.param, dVcov.param, return.vcov = FALSE){
 
-    if(!is.matrix(X.beta) && is.vector(X.beta)){
-        X.beta <- rbind(X.beta)
-    }
-    n.obs <- NROW(X.beta)
-    name.beta <- colnames(X.beta)
-    n.beta <- length(name.beta)
-
-    vcov.beta <- vcov.param[name.beta,name.beta,drop=FALSE]
     n.param <- NCOL(vcov.param)
     name.param <- colnames(vcov.param)
-    prediction.vcov <- X.beta %*% vcov.beta %*% t(X.beta)
+
+    if(is.null(X.beta)){
+        n.obs <- n.param
+        name.beta <- name.param
+        n.beta <- n.param
+
+        prediction.vcov <- vcov.param
+    }else{
+        if(!is.matrix(X.beta) && is.vector(X.beta)){
+            X.beta <- rbind(X.beta)
+        }
+        n.obs <- NROW(X.beta)
+        name.beta <- colnames(X.beta)
+        n.beta <- length(name.beta)
+
+        prediction.vcov <- X.beta %*% vcov.param[name.beta,name.beta,drop=FALSE] %*% t(X.beta)
+    }
+
     
     ## ** variance covariance matrix of the variance of the mean parameters
     ## delta method:
@@ -766,21 +775,24 @@ predict.mlmm <- function(object, p = NULL, newdata = NULL, keep.data = FALSE, si
 
     ## ** gradient of the variance of the predictions relative to the variance of the mean parameters
     ## d(X\Sigma t(X))_ij is computed by X\delta_ij t(X)
-    dXTX.dT <- matrix(NA, nrow = n.obs, ncol = n.beta2, dimnames = list(NULL,name.beta2))
+    dXTX.dT <- matrix(0, nrow = n.obs, ncol = n.beta2, dimnames = list(NULL,name.beta2))
 
     ## matrix cookbook: A_ki B_lj = (A \delta_ij \trans{B})_kl
     ## so               A_ki A_kj = (A \delta_ij \trans{A})_kk
     ## so               t(A)_ik A_kj = (A \delta_ij \trans{A})_kk
-    
-    for(iP in 1:n.beta2){ ## iP <- 35
-        ## iDelta <- matrix(0, nrow = n.beta, ncol = n.beta, dimnames = list(name.beta,name.beta))
-        ## iDelta[Mname.beta2[iP,1],Mname.beta2[iP,2]] <- 1
-        ## dXTX.dT[,iP] <- diag(X.beta %*% iDelta %*% t(X.beta))
-        dXTX.dT[,iP] <- (X.beta[,Mname.beta2[iP,1]] * X.beta[,Mname.beta2[iP,2]])
-    }
 
+    if(is.null(X.beta)){
+        dXTX.dT[,which(Mname.beta2[,1] == Mname.beta2[,2])] <- diag(1, nrow = n.beta, ncol = n.beta)
+    }else{
+        for(iP in 1:n.beta2){ ## iP <- 35
+            ## iDelta <- matrix(0, nrow = n.beta, ncol = n.beta, dimnames = list(name.beta,name.beta))
+            ## iDelta[Mname.beta2[iP,1],Mname.beta2[iP,2]] <- 1
+            ## dXTX.dT[,iP] <- diag(X.beta %*% iDelta %*% t(X.beta))
+            dXTX.dT[,iP] <- (X.beta[,Mname.beta2[iP,1]] * X.beta[,Mname.beta2[iP,2]])
+        }
+    }
     ## ** Satterthwaite approximation of the degrees of freedom
-    ## NOTE: df(beta) is 2*diag(vcov.beta)^2 / diag(vcov.vcovbeta[Mname.beta2[,1]==Mname.beta2[,2],Mname.beta2[,1]==Mname.beta2[,2]])
+    ## NOTE: df(beta) is 2*diag(vcov.param[name.beta,name.beta,drop=FALSE])^2 / diag(vcov.vcovbeta[Mname.beta2[,1]==Mname.beta2[,2],Mname.beta2[,1]==Mname.beta2[,2]])
     denum <- rowSums((dXTX.dT %*% vcov.vcovbeta) * dXTX.dT)
     out <- 2*diag(prediction.vcov)^2 / denum
     out[denum==0] <- Inf

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jul 24 2024 (15:27) 
+## Last-Updated: jul 25 2024 (15:45) 
 ##           By: Brice Ozenne
-##     Update #: 1876
+##     Update #: 1915
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -161,11 +161,11 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
         object.param <- model.tables(object, effects = "param")
         type.param <- stats::setNames(object.param$type,object.param$name)
         if(transform.k %in% c("sd","logsd","var","logvar")){
-            type.param[type.param=="k"] <- "sigma"
+            type.param[type.param=="sigma"] <- "k"
         }
 
         param <- coef(object, effects = "all",
-                      transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
+                      transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = TRUE)
         param.notrans <- coef(object, effects = "all",
                               transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = FALSE)
         vcov.param <- vcov(object, df = df*2, effects = "all", robust = robust,
@@ -338,7 +338,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
 
         }
         if(backtransform && transform2.k=="log" && any(table.type$overall=="k")){
-    
+
             nt.k <- .null_transform(contrast = contrast[[1]]$user[table.type$overall=="k",,drop=FALSE],
                                     null = null[[1]]$user[table.type$overall=="k"],
                                     transformation = "log",
@@ -408,8 +408,8 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
                 )
 
     if(multivariate){
-        out$multivariate <- data.frame(matrix(NA, nrow = n.grid, ncol = 8,
-                                              dimnames = list(NULL,c("type","term","null","statistic","df.num","df.denom","p.value","message"))))
+        out$multivariate <- data.frame(matrix(NA, nrow = n.grid, ncol = 7,
+                                              dimnames = list(NULL,c("type","term","null","statistic","df.num","df.denom","p.value"))))
         out$multivariate$type <- grid$type
         out$multivariate$term <- grid$term
         out$multivariate$null <- unname(sapply(unlist(contrast, recursive = FALSE), FUN = function(iRow){paste(rownames(iRow), collapse = ", ")}))
@@ -437,18 +437,18 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
                                                         by = c("type","term"), sort = FALSE)$index]
         }
         rownames(out$univariate) <- unname(unlist(sapply(unlist(contrast, recursive = FALSE), rownames)))
-        
+
         ## back-transformation
         ## no need when mean parameters
         out$univariate[out$univariate$type == "mu",c("transformed","tobacktransform")] <- FALSE
         ## potential log-transformation/exp-backtransform for linear combinations including only sigma parameters
-        out$univariate[out$univariate$type == "sigma", "transformed"] <- (transform2.sigma=="log")
+        out$univariate[out$univariate$type == "sigma", "transformed"] <- (transform.sigma!="none")
         out$univariate[out$univariate$type == "sigma", "tobacktransform"] <- backtransform & (transform2.sigma=="log")
         ## potential log-transformation/exp-backtransform for linear combinations including only k parameters
-        out$univariate[out$univariate$type == "k", "transformed"] <- (transform2.k=="log")
+        out$univariate[out$univariate$type == "k", "transformed"] <- (transform.k!="none")
         out$univariate[out$univariate$type == "k", "tobacktransform"] <- backtransform & (transform2.k=="log")
         ## potential atanh-transformation/tanh-backtransform for linear combinations including only rho parameters
-        out$univariate[out$univariate$type == "rho","transformed"] <- ((out$univariate[out$univariate$type == "rho","n.param"] == 1) | !backtransform) & (transform2.rho=="atanh")
+        out$univariate[out$univariate$type == "rho","transformed"] <- ((out$univariate[out$univariate$type == "rho","n.param"] == 1) | !backtransform) & (transform.rho!="none")
         out$univariate[out$univariate$type == "rho","tobacktransform"] <- (out$univariate[out$univariate$type == "rho","n.param"] == 1) & backtransform & (transform2.rho=="atanh")
         ## it is checked previously that all transformations are the same (i.e. k sigma parameters)
         out$univariate[out$univariate$type == "all","transformed"] <- (transform2.all!="none")
@@ -474,7 +474,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
                 
             if(inherits(iC.vcov.C_M1,"try-error")){
                 
-                out$multivariate[iG,"message"] <- "Could not invert the covariance matrix for the proposed contrast."
+                attr(out$multivariate,"statistic") <- "Could not invert the covariance matrix for the proposed contrast."
                 
             }else{
                 
@@ -496,6 +496,9 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
                     iEQ <- sum(iNu_m/(iNu_m - 2))
                     out$multivariate[iG,"df.denom"] <- 2 * iEQ/(iEQ - iSimplify$dim)
                     
+                }else{
+                
+                    out$multivariate[iG,"df.denom"] <- Inf
                 }
 
             }
@@ -508,6 +511,12 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
 
             if(df>0){
                 out$univariate[iG.univariate,"df"] <- as.double(.dfX(X.beta = iContrast, vcov.param = vcov.param, dVcov.param = dVcov.param))
+                if(multivariate & (out$multivariate[iG,"df.denom"]<1)){
+                    warning("Suspicious degree of freedom was found for the F-statistic (",out$multivariate[iG,"df.denom"],"). \n",
+                            "It has been set to the average degree of freedom of the univariate Wald tests (",mean(out$univariate[iG.univariate,"df"]),") instead. \n")
+                    attr(out$multivariate,"df") <- "average degree of freedom of the univariate Wald tests. \n"
+                    out$multivariate[iG,"df.denom"] <- mean(out$univariate[iG.univariate,"df"])
+                }
             }else{
                 out$univariate[iG.univariate,"df"] <- rep(Inf, length(iG.univariate))
             }
@@ -516,7 +525,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
             names(iTrans.univariate) <- rownames(out$univariate)[iTrans.univariate]
             iNtrans.univariate <- intersect(which(!out$univariate$transformed),iG.univariate)
             names(iNtrans.univariate) <- rownames(out$univariate)[iNtrans.univariate]
-            
+
             out$univariate[iTrans.univariate,"estimate"] <- as.double(iContrast[names(iTrans.univariate),,drop=FALSE] %*% param)
             out$univariate[iNtrans.univariate,"estimate"] <- as.double(iContrast[names(iNtrans.univariate),,drop=FALSE] %*% param.notrans)
             out$univariate[iG.univariate,"se"] <- sqrt(diag(iContrast %*% vcov.param %*% t(iContrast)))
@@ -526,11 +535,12 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
             out$glht[[iG]] <- list(model = NULL,
                                    linfct = iContrast,
                                    rhs = iNull,
-                                   coef = param,
+                                   coef = stats::setNames(param, names(param.notrans)),
                                    vcov = vcov.param,
                                    df = ceiling(stats::median(out$univariate[iG.univariate,"df"])),
                                    alternative = "two.sided")
             if(all(grid$type.original=="user")){ ## extra-element for rbind
+                out$glht[[iG]]$coef.name <- names(param)
                 out$glht[[iG]]$coef.notrans <- param.notrans
                 out$glht[[iG]]$coef.type <- type.param
                 out$glht[[iG]]$dVcov <- dVcov.param

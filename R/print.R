@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jul 10 2024 (11:03) 
+## Last-Updated: jul 25 2024 (09:25) 
 ##           By: Brice Ozenne
-##     Update #: 306
+##     Update #: 309
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -294,7 +294,13 @@ print.confint_lmm <- function(x, digits = 3, detail = FALSE, ...){
 ##' @export
 print.Wald_lmm <- function(x, ...){
     dots <- list(...)
-    dots$print <- c(1,0)
+
+    if(x$args$multivariate){
+        dots$print <- c(1,0)
+    }else{
+        dots$print <- c(0,1)
+    }
+
     return(do.call(summary, c(list(object = x, legend = FALSE), dots)))
 }
 

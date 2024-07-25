@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jul 24 2024 (13:49) 
+## Last-Updated: jul 25 2024 (15:27) 
 ##           By: Brice Ozenne
-##     Update #: 1649
+##     Update #: 1669
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -549,6 +549,11 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
                 rownames(table.multivariate) <- NULL
             }
         }
+
+        ## restaure attributes (i.e. message)
+        attr(table.multivariate,"se") <- attr(object$multivariate,"se")
+        attr(table.multivariate,"df") <- attr(object$multivariate,"df")
+        
         if(print.multivariate>0.5){
             if(NROW(table.multivariate)==1){
                 cat("\t\tMultivariate Wald test \n\n")
@@ -1112,9 +1117,13 @@ summary.resample <- function(object, digits = 3, ...){
         if(identical(col.df,"df")){
             table.print$df <- as.character(round(table.print$df, digits = digits.df))
         }else{
-            table.print[[col.df[1]]] <- paste0("(",apply(do.call(cbind,lapply(col.df, function(iCol){
-                iDF <- formatC(table.print[[iCol]], digits = digits.df[[iCol]], format = "f")
-                nchar.iDF <- nchar(iDF)
+            table.print[[col.df[1]]] <- paste0("(",apply(do.call(cbind,lapply(col.df, function(iCol){ ## iCol <- col.df[2]
+                if(all(is.na(table.print[[iCol]]))){
+                    iDF <- as.character(table.print[[iCol]])
+                }else{
+                    iDF <- formatC(table.print[[iCol]], digits = digits.df[[iCol]], format = "f")
+                }
+                nchar.iDF <- nchar(iDF, allowNA = TRUE, keepNA = FALSE)
                 maxchar.iDF <- max(nchar.iDF)
                 if(all(nchar.iDF==maxchar.iDF)){
                     return(iDF)
@@ -1168,16 +1177,25 @@ summary.resample <- function(object, digits = 3, ...){
 
         ## *** type of degree of freeedom 
         if(identical(df,TRUE) && "df" %in% columns){
-            cat(space,"df: Degrees of freedom were computed using a Satterthwaite approximation. \n", sep = "")
+            if(!is.null(attr(table,"df"))){
+                cat(space,"df: ",attr(table,"df"),". \n", sep = "")
+            }else{
+                cat(space,"df: Satterthwaite approximation of the degrees of freedom. \n", sep = "")
+            }
         }
 
         ## *** type of standard error 
         if("se" %in% columns){
+            
             if(robust){
-                cat(space,"se: robust standard errors are derived from the ",type.information," information. \n", sep = "")
+                txt.se <- paste0("Robust standard errors based on the ",type.information," information")
             }else{
-                cat(space,"se: Model-based standard errors are derived from the ",type.information," information. \n", sep = "")
+                txt.se <- paste0("Model-based standard errors based on the ",type.information," information")
             }
+            if(!is.null(attr(table,"se"))){
+                txt.se <- paste0(txt.se,attr(table,"se"))
+            }
+            cat(space,"se: ",txt.se,". \n", sep = "")
         }
 
         ## *** estimate

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: jul 24 2024 (17:51) 
+## Last-Updated: jul 25 2024 (11:29) 
 ##           By: Brice Ozenne
-##     Update #: 681
+##     Update #: 712
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -27,6 +27,7 @@
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
 ##' Not feasible for variance or correlation coefficients estimated by REML.
 ##' @param df [logical] Should degree of freedom, computed using Satterthwaite approximation, for the model parameters be output.
+##' Also output the first derivative of the variance-covariance matrix whenever the argument is stricly greater than 1.
 ##' @param newdata [data.frame] dataset relative to which the information should be computed. Only relevant if differs from the dataset used to fit the model.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the variance-covariance matrix. Only relevant if differs from the fitted values.
 ##' @param strata [character vector] When not \code{NULL}, only output the variance-covariance matrix for the estimated parameters relative to specific levels of the variable used to stratify the mean and covariance structure.
@@ -39,26 +40,35 @@
 ##'
 ##' @details For details about the arguments \bold{transform.sigma}, \bold{transform.k}, \bold{transform.rho}, see the documentation of the \link[LMMstar]{coef.lmm} function.
 ##'
-##' @return A matrix with an attribute \code{"df"} when argument df is set to \code{TRUE}.
+##' @return A matrix with one column and column per parameter.
+##' An attribute \code{"df"} is added when argument df is set to \code{TRUE}, containing a numeric vector with one element per parameter.
+##' An attribute \code{"dVcov"} is added when argument df is greater than 1, containing a 3 dimensional array with with dimension being the number of parameters.
 ##'
 ##' @keywords methods 
 
 ## * vcov.lmm (code)
 ##' @export
-vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strata = NULL,
+vcov.lmm <- function(object, effects = NULL, robust = FALSE, df = FALSE, strata = NULL,
                      newdata = NULL, p = NULL,
                      type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
     
     options <- LMMstar.options()
 
     ## ** normalize user imput
+    ## *** dots
     dots <- list(...)
     dots$complete <- NULL ## for multcomp which passes an argument complete when calling vcov
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
+
+    ## *** effects
     if(is.null(effects)){
-        effects <- options$effects
+        if(transform.sigma == "none" && transform.k == "none" && transform.rho == "none"){
+            effects <- options$effects
+        }else{
+            effects <- c("mean","variance","correlation")
+        }
     }else if(identical(effects,"all")){
         effects <- c("mean","variance","correlation")
     }
@@ -80,6 +90,7 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strat
              " \n or using ML estimation by setting the argument method.fit=\"ML\" when calling lmm.")
     }
 
+    ## *** transformation & p
     init <- .init_transform(p = p, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
                             x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
                             table.param = object$design$param)
@@ -151,7 +162,21 @@ vcov.lmm <- function(object, effects = "mean", robust = FALSE, df = FALSE, strat
     return(vcov)    
 }
 
-## * vcov.mlmm
+## * vcov.Wald_lmm
+##' @title Extract the Variance-Covariance Matrix from Wald Tests
+##' @description Extract the variance-covariance matrix of the linear contrasts involved in the Wald test.
+##'
+##' @param object a \code{Wald_lmm} object.
+##' @param effects [character] should the variance-covariance relative to all the linear mixed model parameters be output (\code{"all"})
+##' or relative to the linear contrasts involved in the Wald test (\code{"contrast"})?
+##' @param df [logical] Should degree of freedom, computed using Satterthwaite approximation, for the model parameters be output.
+##' Also output the first derivative of the variance-covariance matrix whenever the argument is stricly greater than 1.
+##' @param ... Not used. For compatibility with the generic method.
+##' 
+##' @return A matrix with one column and column per parameter.
+##' An attribute \code{"df"} is added when argument df is set to \code{TRUE}, containing a numeric vector with one element per parameter.
+##' An attribute \code{"dVcov"} is added when argument df is greater than 1, containing a 3 dimensional array with with dimension being the number of parameters.
+##' 
 ##' @export
 vcov.Wald_lmm <- function(object, effects = "contrast", df = FALSE, ...){
 
@@ -169,7 +194,15 @@ vcov.Wald_lmm <- function(object, effects = "contrast", df = FALSE, ...){
     if(length(effects)!=1){
         stop("Argument \'effects\' must have length 1.")
     }    
-    valid.effects <- c("contrast","all")
+    if(object$args$type=="auto"){
+        valid.effects <- c("contrast")
+    }else{
+        valid.effects <- c("all","contrast")
+    }
+    if(any(effects %in% valid.effects == FALSE)){
+        stop("Incorrect value for argument \'effects\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+    }    
 
     ## ** extract
     out <- lapply(object$glht,"[[","vcov")
@@ -177,17 +210,36 @@ vcov.Wald_lmm <- function(object, effects = "contrast", df = FALSE, ...){
         ls.contrast <- model.tables(object, effects = "ls.contrast")
         out <- mapply(iVcov = out, iC = ls.contrast, FUN = function(iVcov,iC){iC %*% iVcov %*% t(iC)},
                       SIMPLIFY = FALSE)
+    }else if(effects == "all"){
+        trans.names <- names(coef(object, effects = "all"))
+        dimnames(out[[1]]) <- list(trans.names,trans.names)
     }
-    if(df>0){
-        for(iName in names(out)){ ## iName <- names(out)[1]
-            attr(out[[iName]], "df") <- setNames(object$univariate[object$univariate$name==iName,"df"],rownames(object$univariate)[object$univariate$name==iName])
-            if(df>1 && !is.null(object$glht[[iName]]$dVcov)){
-                attr(out[[iName]], "dVcov") <- object$glht[[iName]]$dVcov
-            }
-        }        
-    }
+
     if(object$args$type=="user"){
         out <- out[[1]]
+    }
+
+    ## ** add degrees of freedom
+    if(df>0){
+        if(object$args$type=="user"){
+
+            if(effects == "all"){
+                dVcov <- object$glht[[1]]$dVcov
+                dimnames(dVcov) <- list(trans.names, trans.names, trans.names)
+                
+                attr(out,"df") <- .dfX(X.beta = NULL, vcov = out, dVcov.param = dVcov)
+                if(df>1){
+                    attr(out, "dVcov") <- dVcov
+                    
+                }
+            }else if(effects == "contrast"){                
+                attr(out, "df") <- setNames(object$univariate$df,rownames(object$univariate))
+            }
+        }else{
+            for(iName in names(out)){ ## iName <- names(out)[1]
+                attr(out[[iName]], "df") <- setNames(object$univariate[object$univariate$name==iName,"df"],rownames(object$univariate)[object$univariate$name==iName])
+            }        
+        }
     }
 
     ## ** export

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (10:48) 
 ## Version: 
-## Last-Updated: jul 24 2024 (12:02) 
+## Last-Updated: jul 25 2024 (10:38) 
 ##           By: Brice Ozenne
-##     Update #: 125
+##     Update #: 130
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -80,22 +80,25 @@ model.tables.effect_lmm <- function(x, columns, ...){
 ##' @export
 model.tables.lmm <- function(x, effects = NULL, columns, ...){
 
+    options <- LMMstar.options()
+
     ## ** normalize user input
     ## *** effects
     if(is.null(effects)){
         effects <- options$effects
     }else if(identical(effects,"all")){
         effects <- c("mean","variance","correlation")
+    }else{
+        valid.effects <- c("param","mean","fixed","variance","correlation")
+        if(any(effects %in% valid.effects == FALSE)){
+            stop("Incorrect value for argument \'effects\'. \n",
+                 "Possible values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+        }else if("param" %in% effects & length(effects)>1){
+            stop("When argument \'effects\' contains \"param\" it should have length 1. \n")
+        }
+        effects[effects== "fixed"] <- "mean"
     }
-    valid.effects <- c("param","mean","fixed","variance","correlation")
-    if(any(effects %in% valid.effects == FALSE)){
-        stop("Incorrect value for argument \'effects\'. \n",
-             "Possible values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
-    }else if("param" %in% effects & length(effects)>1){
-        stop("When argument \'effects\' contains \"param\" it should have length 1. \n")
-    }
-    effects[effects== "fixed"] <- "mean"
-    
+
     ## *** columns
     newcolumns <- c("estimate","se","df","lower","upper","p.value")
     if(!missing(columns)){

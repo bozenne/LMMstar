@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 17 2024 (09:37) 
 ## Version: 
-## Last-Updated: jul 24 2024 (14:56) 
+## Last-Updated: jul 25 2024 (12:14) 
 ##           By: Brice Ozenne
-##     Update #: 277
+##     Update #: 290
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -195,8 +195,11 @@ equation2contrast <- function(object, name.coef, X,
     if(n.equation>0){
 
         ## *** initialize contrast matrix
-        equation.contrast <- matrix(0, nrow = n.equation, ncol = n.coef, dimnames = list(equation, name.coef))
-        object.contrast[equation] <- lapply(equation, function(iE){equation.contrast[iE,,drop=FALSE]})
+        if(is.null(names(equation))){
+            names(equation) <- equation
+        }
+        equation.contrast <- matrix(0, nrow = n.equation, ncol = n.coef, dimnames = list(names(equation), name.coef))
+        object.contrast[equation] <- lapply(names(equation), function(iE){equation.contrast[iE,,drop=FALSE]})
 
         ## *** split based on the equal sign
         splitEquation.equal <- strsplit(equation, split = "=", fixed = TRUE)
@@ -219,8 +222,10 @@ equation2contrast <- function(object, name.coef, X,
                 rescue <- TRUE
                 name.coef <- attr(name.coef,"rescue")
                 index.coef <- which(equation.lhs %in% name.coef)
-                equation.contrast <- matrix(0, nrow = n.equation, ncol = n.coef, dimnames = list(equation, name.coef))
-                object.contrast[equation] <- lapply(equation, function(iE){equation.contrast[iE,,drop=FALSE]})
+                equation.contrast <- matrix(0, nrow = n.equation, ncol = n.coef, dimnames = list(names(equation), name.coef))
+                for(iE in equation){
+                    colnames(object.contrast[equation]) <- name.coef
+                }
             }else{
                 stop("Incorrect argument \'",name.arg,"\': contains untransformed and transformed parameter names. \n",
                      "Problematic example: \"",intersect(equation.lhs %in% attr(name.coef,"originalOnly"))[1],"\" and \"",intersect(equation.lhs %in% attr(name.coef,"rescueOnly"))[1],"\". \n")
@@ -266,8 +271,9 @@ equation2contrast <- function(object, name.coef, X,
             }else if(all(colSums(Mrescue.test) >= colSums(Moriginal.test))){
                 rescue <- TRUE
                 name.coef <- attr(name.coef,"rescue")
-                equation.contrast <- matrix(0, nrow = n.equation, ncol = n.coef, dimnames = list(equation, name.coef))
-                object.contrast[equation] <- lapply(equation, function(iE){equation.contrast[iE,,drop=FALSE]})       
+                for(iE in equation){
+                    colnames(object.contrast[equation]) <- name.coef
+                }
                 names(stdname.coef) <- name.coef
                 Mcoef.test <- do.call(rbind,lapply(name.coef, function(iCoef){sapply(equationComplex.lhs, grepl, pattern = iCoef, fixed = TRUE)}))
                 rownames(Mcoef.test) <- name.coef
@@ -697,7 +703,7 @@ effects2contrast <- function(object, effects, rhs,
                                       name.arg = "effects")
 
         if(out.eq2c$rescue==TRUE){
-            colnames(out.eq2c$contrast) <- object.coef
+            colnames(out.eq2c$contrast) <- name.coef
             if(!is.null(transform.sigma) || !is.null(transform.k) || !is.null(transform.rho)){ ## the user specifically requests the transformed scale
                 backtransform <- FALSE
             }else{

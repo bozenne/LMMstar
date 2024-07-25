@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  4 2021 (10:04) 
 ## Version: 
-## Last-Updated: jul 24 2024 (16:00) 
+## Last-Updated: jul 25 2024 (15:40) 
 ##           By: Brice Ozenne
-##     Update #: 162
+##     Update #: 184
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,7 +17,7 @@
 
 ## * iid.lmm (documentation)
 ##' @title Extract the Influence Function From a Linear Mixed Model
-##' @description Extract the influence function from a linear mixed model.
+##' @description Extract the influence function of linear mixed model parameters.
 ##' @rdname iid.lmm
 ##' @rdname influence.lmm
 ##' 
@@ -49,6 +49,7 @@
 ##' }
 ##'
 ##' @keywords methods
+##' @return A matrix with one row per observation and one column per parameter.
 ##'
 ##' @examples
 ##' data(gastricbypassL)
@@ -141,17 +142,13 @@ iid.lmm <- function(x,
     test.notransform <- init$test.notransform
 
     ## *** REML2ML
-    indiv <- TRUE
     if(is.null(REML2ML)){
         REML2ML <- options$REML2ML
-    }
-    if(REML2ML){
-        attr(indiv,"REML2ML") <- TRUE
     }
 
     ## ** get inverse information, score, and compute iid
     if((x$args$type.information == "expected" && x$args$method.fit == "ML") || (!REML2ML && x$args$method.fit == "REML")){
-        x.score <- score.lmm(x, effects = effects, p = p, indiv = indiv, 
+        x.score <- score.lmm(x, effects = effects, p = p, indiv = TRUE, 
                              transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
         x.vcov <- vcov.lmm(x, effects = effects, p = p, robust = FALSE, type.information = type.information, df = FALSE,
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
@@ -162,6 +159,14 @@ iid.lmm <- function(x,
             message <- "neglecting information cross-terms"
         }
     }else{
+        indiv <- TRUE
+        if(REML2ML){
+            attr(indiv,"REML2ML") <- TRUE
+            message <- "neglecting score REML terms"
+        }else{
+            message <- NULL
+        }
+
         keep.names <- names(coef.lmm(x, effects = effects,
                                      transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names))
         x.scoreALL <- score.lmm(x, effects = "all", p = p, indiv = indiv, 
@@ -171,7 +176,6 @@ iid.lmm <- function(x,
         x.vcov <- x.vcovALL[keep.names,keep.names,drop=FALSE]
 
         out <- x.scoreALL %*% x.vcovALL[,keep.names,drop=FALSE]
-        message <- "neglecting product REML score with vcov cross-terms"
     }
 
     if(robust==FALSE){
@@ -183,7 +187,20 @@ iid.lmm <- function(x,
     return(out)
 }
 
-## * iid.Wald_lmm (code)
+## * iid.Wald_lmm
+##' @title Extract the Influence Function from Wald Tests
+##' @description Extract the influence function of linear mixed model parameters involved in the Wald test.
+##' @rdname iid.Wald_lmm
+##' @rdname influence.Wald_lmm
+##'
+##' @param object a \code{Wald_lmm} object.
+##' @param effects [character] should the influence function relative to all the linear mixed model parameters be output (\code{"all"})
+##' or relative to the linear contrasts involved in the Wald test (\code{"contrast"})?
+##' Can also be \code{"test"} to test whether the influence function has been stored.
+##' @param ... Not used. For compatibility with the generic method.
+##' 
+##' @return A matrix with one row per observation and one column per parameter (\code{effects="all"} or \code{effects="contrast"}) or a logical value (\code{effects="test"}).
+##' 
 ##' @export
 iid.Wald_lmm <- function(x, effects = "contrast", ...){
 
@@ -201,19 +218,29 @@ iid.Wald_lmm <- function(x, effects = "contrast", ...){
     if(length(effects)!=1){
         stop("Argument \'effects\' must have length 1.")
     }    
-    valid.effects <- c("contrast","all")
-
+    valid.effects <- c("contrast","all","test")
+    if(any(effects %in% valid.effects == FALSE)){
+        stop("Incorrect value for argument \'effects\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+    }    
+    
     ## ** extract
-    if(x$args$type=="auto"){
+    if(effects == "test"){
+        return(!is.null(x$glht[[1]]$iid))
+    }else if(x$args$type=="auto"){
         message("The influence function has not been stored. \n",
                 "Consider specifying the argument \'effects\' when calling anova with explicit contrast (e.g. via a matrix or equations). \n")
         return(NULL)
 
     }
+
     out <- x$glht[[1]]$iid
     if(effects=="contrast"){
         contrast <- model.tables(x, effects = "contrast")
         out <- out[,colnames(contrast),drop=FALSE] %*% t(contrast)
+        attr(out,"message") <- attr(x$glht[[1]]$iid,"message")
+    }else{ ## restaure transformed names
+        colnames(out) <- names(coef(x, effects = "all"))
     }
 
     ## ** export

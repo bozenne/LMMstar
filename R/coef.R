@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: jul 24 2024 (11:47) 
+## Last-Updated: jul 25 2024 (10:39) 
 ##           By: Brice Ozenne
-##     Update #: 985
+##     Update #: 1008
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -111,12 +111,14 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
     object.reparametrize.newname <- object$reparametrize$newname
 
     ## ** normalize user imput
+    ## *** dots
     dots <- list(...)
     options <- LMMstar.options()
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
     
+    ## *** effects
     if(is.null(effects)){
         if(transform.sigma == "none" && transform.k == "none" && transform.rho == "none"){
             effects <- options$effects
@@ -125,17 +127,17 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
         }
     }else if(identical(effects,"all")){
         effects <- c("mean","variance","correlation")
-    }
-    if("ranef" %in% effects){
+    }else if("ranef" %in% effects){
         if(length(effects)>1){
             stop("Argument \'effects\' should be of length 1 when it contains \"ranef\". \n")
         }
         return(nlme::ranef(object, p = p))
+    }else{
+        effects <- match.arg(effects, c("mean","fixed","variance","correlation","ranef"), several.ok = TRUE)
+        effects[effects== "fixed"] <- "mean"
     }
-    effects <- match.arg(effects, c("mean","fixed","variance","correlation","ranef"), several.ok = TRUE)
-    effects[effects== "fixed"] <- "mean"
 
-    ## initialize parameter values
+    ## *** transformation & initialize parameter value
     init <- .init_transform(p = p, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
                             x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
                             table.param = object$design$param)
@@ -143,23 +145,6 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
     transform.rho <- init$transform.rho
-
-    if(transform.rho=="cov"){
-        if("transform.k" %in% names(mycall) == FALSE){
-            transform.k <- "var"
-        }
-        if("transform.sigma" %in% names(mycall) == FALSE){
-            transform.sigma <- "square"
-        }
-    }
-    if(transform.k %in% c("logsd","var","logvar") && "transform.sigma" %in% names(mycall) == FALSE){
-        transform.sigma <- switch(transform.k,
-                                  "logsd" = "log",
-                                  "var" = "square",
-                                  "logvar" = "logsquare")
-                                      
-    }
-    transform <- init$transform
     if(!is.null(p)){
         theta <- init$p
     }else{
@@ -176,7 +161,7 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
         }
     }
 
-    ## apply transformation request by the user
+    ## ** apply transformation request by the user
     if(is.null(p) && test.notransform){
         theta.trans <- theta
         theta.trans[match(object.reparametrize.name, names(theta))] <- object.reparametrize.value
@@ -470,11 +455,15 @@ coef.mlmm <- function(object, effects = "contrast", p = NULL, type = "coef", met
 ##' @description Extract coefficients from Wald tests applied to a linear mixed model.
 ##'
 ##' @param object a \code{Wald_lmm} object.
+##' @param effects [character] should all the linear mixed model parameters after a possible transformation be output (\code{"all"})
+##' or the linear contrasts involved in the Wald test (\code{"contrast"})?
+##' Can also output the type of linear mixed model parameters (\code{"all.type"}) or
+##' the linear mixed model parameters without transformation (\code{"all.original"}).
 ##' @param backtransform [logical] should the estimate, standard error, and confidence interval be back-transformed?
 ##' @param ... Not used. For compatibility with the generic method.
 ##' 
 ##' @export
-coef.Wald_lmm <- function(object, backtransform = NULL, ...){
+coef.Wald_lmm <- function(object, effects = "contrast", backtransform = NULL, ...){
 
     options <- LMMstar.options()
     
@@ -484,6 +473,23 @@ coef.Wald_lmm <- function(object, backtransform = NULL, ...){
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
+
+    ## *** effects
+    if(!is.character(effects) || !is.vector(effects)){
+        stop("Argument \'effects\' must be a character.")
+    }
+    if(length(effects)!=1){
+        stop("Argument \'effects\' must have length 1.")
+    }
+    if(object$args$type=="auto"){
+        valid.effects <- c("contrast")
+    }else{
+        valid.effects <- c("all","all.type","all.original","contrast")
+    }
+    if(any(effects %in% valid.effects == FALSE)){
+        stop("Incorrect value for argument \'effects\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+    }    
 
     ## *** backtransform
     if(is.null(backtransform)){
@@ -495,12 +501,19 @@ coef.Wald_lmm <- function(object, backtransform = NULL, ...){
     }
     
     ## ** extract from object
-    table.univariate <- object$univariate
+    if(effects == "all"){
+        out <- stats::setNames(object$glht[[1]]$coef,object$glht[[1]]$coef.name)
+    }else if(effects == "all.type"){
+        out <- object$glht[[1]]$coef.type
+    }else if(effects == "all.original"){
+        out <- object$glht[[1]]$coef.notrans
+    }else if(effects == "contrast"){
+        table.univariate <- object$univariate
     
-    if(object$args$univariate == FALSE){
-        message("Nothing to return: consider setting argument \'univariate\' to TRUE when calling anova. \n")
-        out <- NULL
-    }else if(is.function(backtransform) || identical(backtransform,TRUE)){
+        if(object$args$univariate == FALSE){
+            message("Nothing to return: consider setting argument \'univariate\' to TRUE when calling anova. \n")
+            out <- NULL
+        }else if(is.function(backtransform) || identical(backtransform,TRUE)){
 
             if(is.function(backtransform)){
 
@@ -522,12 +535,12 @@ coef.Wald_lmm <- function(object, backtransform = NULL, ...){
                                          transform.rho = object$args$transform.rho)
             
             }
-        out <- stats::setNames(df.out$estimate,rownames(df.out))
-    }else{
-        df.out <- table.univariate[,"estimate",drop = FALSE]
-        out <- stats::setNames(df.out$estimate,rownames(df.out))
+            out <- stats::setNames(df.out$estimate,rownames(df.out))
+        }else{
+            df.out <- table.univariate[,"estimate",drop = FALSE]
+            out <- stats::setNames(df.out$estimate,rownames(df.out))
+        }
     }
-
 
     ## ** export
     return(out)

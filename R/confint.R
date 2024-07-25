@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 24 2024 (12:59) 
+## Last-Updated: jul 25 2024 (14:37) 
 ##           By: Brice Ozenne
-##     Update #: 1040
+##     Update #: 1044
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -418,12 +418,6 @@ confint.mlmm <- function(object, parm = NULL, level = 0.95, method = NULL, df = 
         }
     }else{
         name.method <- NULL
-    }
-
-    if(identical(method,"pool.se") && !inherits(object,"rbindWald_lmm")){
-        method <- "pool.fixse"
-        message("Argument \'method\' has been changed from \"pool.se\" to \"pool.fixse\". \n",
-                "Consider using the estimate() function to account for the uncertainty of the weights. \n")
     }
 
     ## *** columns

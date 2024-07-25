@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: jul 24 2024 (13:38) 
+## Last-Updated: jul 25 2024 (09:26) 
 ##           By: Brice Ozenne
-##     Update #: 489
+##     Update #: 491
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -285,12 +285,6 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
                        univariate = TRUE, multivariate = FALSE,
                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
 
-        if(!is.null(contrast.rbind) && identical(df,TRUE)){
-            iWald$dVcov <- attr(vcov(ls.lmm[[iName]], effects = "all", df = 2, robust = robust, 
-                                     transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names), "dVcov")
-            attr(iWald$dVcov, "iid") <- iid(ls.lmm[[iName]], effects = "all", robust = robust, 
-                                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
-        }
         return(iWald)
     }), name.lmm)
 
