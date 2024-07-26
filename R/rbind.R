@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 25 2024 (18:46) 
+## Last-Updated: jul 26 2024 (18:30) 
 ##           By: Brice Ozenne
-##     Update #: 905
+##     Update #: 943
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -48,20 +48,24 @@
 ##' e.lmm2 <- lmm(Y ~ X1+X8+X9, repetition = ~visit|id, data = dL,
 ##'               structure = "CS", df = FALSE)
 ##' 
-##' model.tables(e.lmm1) ## model-based standard errors
-##' model.tables(e.lmm1, robust = TRUE) ## robust standard errors
 ##' 
-##' ## select null hypotheses
+##' ## combine null hypotheses
+##' ## - model-based standard errors
 ##' AAA <- anova(e.lmm1, effect = c("X1|X2,X3"="X1=0","X2|X1,X3"="X2=0"))
 ##' BBB <- anova(e.lmm2, effect = c("X1|X8,X9"="X1=0"))
 ##' ZZZ <- rbind(AAA,BBB)
+##' summary(ZZZ) ## adjusted for multiple testing
+##' rbind(model.tables(e.lmm1)[2:3,], model.tables(e.lmm2)[2,,drop=FALSE])
 ##'
 ##' ## select null hypotheses & combine (model-based like standard errors)
 ##' AA <- anova(e.lmm1, effect = c("X1|X2,X3"="X1=0","X2|X1,X3"="X2=0"),
-##'              robust = FALSE)
+##'              robust = TRUE)
 ##' BB <- anova(e.lmm2, effect = c("X1|X8,X9"="X1=0"),
-##'              robust = FALSE)
+##'              robust = TRUE)
 ##' ZZ <- rbind(AA,BB)
+##' summary(ZZ)  ## adjusted for multiple testing
+##' rbind(model.tables(e.lmm1, robust = TRUE)[2:3,],
+##'       model.tables(e.lmm2, robust = TRUE)[2,,drop=FALSE])
 
 ## * rbind.Wald_lmm (code)
 ##' @export
@@ -88,6 +92,12 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
 
         ## add model to object
         if(!is.null(name)){
+            if(length(name) != 1){
+                stop("Argument \'name\' should have length 1, i.e., as many elements as Wald_lmm objects. \n")
+            }
+            if(any(name=="all")){
+                stop("Argument \'name\' should not contain the value \"all\". \n")
+            }
             model$object$model <- name        
             rownames(model$glht[[1]]$linfct) <- paste(name, rownames(model$glht[[1]]$linfct), sep = sep)
         }else{
@@ -102,7 +112,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
         ## combine input
         ls.object <- c(list(model),dots)
         n.object <- length(ls.object)
-        ls.contrast <- lapply(ls.object, function(iO){model.tables(iO, effects = "ls.contrast")[[1]]})
+        ls.contrast <- lapply(ls.object, function(iO){model.tables(iO, method = "contrast", simplify = FALSE)[[1]]})
         all.coefnames <- names(unlist(lapply(ls.object,coef)))
         all.coefmodel <- unlist(lapply(1:n.object, function(iO){rep(iO, length(coef(ls.object[[iO]])))}))
         all.coeflabels <- unlist(lapply(ls.object, function(iO){rownames(iO$univariate)}))
@@ -123,7 +133,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
         stop("Cannot handle multiple multivariate Wald tests in a single object. \n")
     }
 
-    if(any(sapply(ls.object, iid, effects = "test") == FALSE)){ ## stop if effects is mean, variance, covariance, all
+    if(any(sapply(ls.object, iid, method = "test") == FALSE)){ ## stop if effects is mean, variance, covariance, all
         stop("Influence function was not stored in the Wald_lmm objects. \n",
              "Consider providing explicit contrasts (via an equation or a matrix) in the argument \'effects\' when calling anova. \n")
     }
@@ -144,21 +154,22 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
     }
     cluster.var <- ls.object[[1]]$object$cluster.var
 
-
     ## *** name (object)
     if(is.null(name)){
-        duplicated.allparam <- duplicated(unlist(lapply(1:n.object, function(iO){paste(table.args$outcome[iO], names(coef(ls.object[[iO]], effects = "all")), sep = sep)})))
+        duplicated.allparam <- duplicated(unlist(lapply(1:n.object, function(iO){paste(table.args$outcome[iO], names(coef(ls.object[[iO]], method = "all")), sep = sep)})))
         duplicated.hypo <- duplicated(paste(table.args$outcome, all.coeflabels, sep = sep))
         if(any(duplicated.hypo) || any(duplicated.allparam)){
             name <- 1:n.object
         }else{
             name <- table.args$outcome     
         }
-    }else{
+    }else{        
         if(length(name) != n.object){
             stop("Argument \'name\' should have length ",n.object,", i.e., as many elements as Wald_lmm objects. \n")
         }else if(any(duplicated(paste(name, all.coefnames, sep = sep)))){
             stop("Argument \'name\' should not contain duplicated values. \n")
+        }else if(any(name=="all")){
+            stop("Argument \'name\' should not contain the value \"all\". \n")
         }
     }
 
@@ -227,7 +238,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
             if(effects %in% valid.contrast == FALSE){
                 stop("When a character, argument \'effects\' should be one of \"",paste(valid.contrast, collapse = "\" \""),"\". \n")
             }
-            contrast <- multcomp::contrMat(stats::setNames(rep(1,length(all.modelparam)),hypo.name), type = effects)
+            contrast <- multcomp::contrMat(stats::setNames(rep(1,length(all.coefnames)),hypo.name), type = effects)
             colnames(contrast) <- NULL
         }
     }else{
@@ -270,16 +281,18 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
 
     ## *** param
     ls.allparam <- lapply(1:length(ls.object), function(iO){
-        iCoef <- coef(ls.object[[iO]], effects = "all")
+        iCoef <- coef(ls.object[[iO]], method = "all")
         attr(iCoef,"model") <- rep(iO, length(iCoef))
+        attr(iCoef,"name") <- names(iCoef)
         names(iCoef) <- paste(name[iO], sep[1], names(iCoef))
         return(iCoef)
     })
     allparam <- do.call(base::c,ls.allparam)
     allparam.model <- do.call(base::c,lapply(ls.allparam,attr,"model"))
+    allparam.original.name <- do.call(base::c,lapply(ls.allparam,attr,"name"))
     
     allparam.notrans <- do.call(base::c,lapply(1:length(ls.object), function(iO){
-        iCoef <- coef(ls.object[[iO]], effects = "all.original")
+        iCoef <- coef(ls.object[[iO]], method = "all.original")
         names(iCoef) <- paste(name[iO], sep[1], names(iCoef))
         return(iCoef)
     }))
@@ -296,8 +309,8 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
     allparam.iid <- matrix(0, nrow = n.cluster, ncol = length(allparam.name),
                            dimnames = list(seq.cluster, allparam.name))
     for(iO in 1:n.object){ ## iO <- 1
-        iIID <- iid(ls.object[[iO]], effects = "all")
-        allparam.iid[ls.cluster[[iO]],allparam.model==iO] <- iid(ls.object[[iO]], effects = "all")
+        iIID <- iid(ls.object[[iO]], method = "all")
+        allparam.iid[ls.cluster[[iO]],allparam.model==iO] <- iIID
         attr(allparam.iid,"message") <- union(attr(allparam.iid,"message"), attr(iIID,"message"))
     }
 
@@ -349,13 +362,33 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
                        transform.k = table.args$transform.k[1],
                        transform.rho = table.args$transform.rho[1],
                        backtransform = any(do.call(rbind,lapply(ls.object,"[[","univariate"))$tobacktransform))
-    
-    ## add model to glht
-    out$glht$coef.model <- name[all.coefmodel]
+
+    ## update term in univariate
+    out$univariate$term <- apply(contrast, MARGIN = 1, function(iRow){
+        iOut <- which(iRow!=0)
+        if(length(iOut)>1){
+            return("user")
+        }else{
+            return(all.coeflabels[iOut])
+        }
+    })
+
+    ## add model to object
+    univariate.model <- apply(contrast, MARGIN = 1, function(iRow){
+        iOut <- unique(all.coefmodel[iRow!=0])
+        if(length(iOut)>1){
+            return("all")
+        }else{
+            return(as.character(iOut))
+        }
+    })
+    out$univariate <- cbind(model = univariate.model, out$univariate)
+    out$glht[[1]]$model <- as.character(allparam.model)
+    out$glht[[1]]$term <- allparam.original.name
 
     ## add extra information to object that may be using by rbind
     out$object <- list(outcome =  table.args$outcome,
-                       model = name,
+                       model = as.character(name),
                        method.fit = table.args$method.fit[1],
                        type.information = table.args$type.information[1],
                        cluster.var = cluster.var,

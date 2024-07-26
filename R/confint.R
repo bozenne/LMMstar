@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 25 2024 (14:37) 
+## Last-Updated: jul 26 2024 (17:54) 
 ##           By: Brice Ozenne
-##     Update #: 1044
+##     Update #: 1048
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -933,19 +933,20 @@ confint.resample <-  function(object, parm = NULL, null = NULL, level = 0.95, me
 confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NULL, columns = NULL, backtransform = NULL, ...){
 
     options <- LMMstar.options()
-    pool.method <- options$pool.method
     adj.method <- options$adj.method
     n.sample <- options$n.sampleCopula
-    if(object$args$univariate==FALSE){
-        message("Nothing to return: consider setting argument \'univariate\' to TRUE when calling anova. \n")
-        return(invisible(NULL))
-    }
 
     ## ** normalize user input
     ## *** dots
     dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
+    ## *** object
+    if(object$args$univariate == FALSE){
+        message("Nothing to return: consider setting argument \'univariate\' to TRUE when calling rbind.Wald_lmm. \n")
+        return(invisible(NULL))
     }
 
     ## *** parm
@@ -968,12 +969,16 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
     }
 
     ## *** method
-    if(any(method %in% adj.method == FALSE)){
-        stop("Unknown value for argument \'type\': \"",paste(setdiff(method, adj.method),collapse = "\", \""),"\". \n",
-             "Possible values: \"",paste(adj.method, collapse = "\", \""),"\". \n")
+    if(!is.character(method) || !is.vector(method)){
+        stop("Argument \'method\' must be a character.")
     }
-    if(length(method)>1){
-        stop("Argument \'method\' should have length 1. \n")
+    if(length(method)!=1){
+        stop("Argument \'method\' must have length 1.")
+    }    
+    valid.method <- c("none",adj.method)
+    if(any(method %in% valid.method == FALSE)){
+        stop("Unknown value for argument \'type\': \"",paste(setdiff(method, valid.method),collapse = "\", \""),"\". \n",
+             "Possible values: \"",paste(valid.method, collapse = "\", \""),"\". \n")
     }
 
     ## *** columns

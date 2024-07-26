@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (10:48) 
 ## Version: 
-## Last-Updated: jul 25 2024 (10:38) 
+## Last-Updated: jul 26 2024 (17:55) 
 ##           By: Brice Ozenne
-##     Update #: 130
+##     Update #: 147
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -185,25 +185,47 @@ model.tables.resample <- function(x, columns, ...){
 ##' @description Export estimates, standard errors, degrees of freedom, confidence intervals (CIs) and p-values for the mean coefficients of a linear mixed model. 
 ##'
 ##' @param x a \code{lmm} object.
-##' @param effects [character] Should the coefficients be extracted (\code{"all"}) or the contrast matrix (\code{"contrast"} or \code{"ls.contrast"}).
-##' \code{"contrast"} will try to simplify the output into a matrix whereas \code{"ls.contrast"} will keep the original format (list of list of matrix).
+##' @param method [character] type of adjustment for multiple comparisons, one of \code{"none"}, \code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"} (see \code{\link{confint.Wald_lmm}} for details).
+##' Can also be \code{"contrast"} to output the contrast matrix.
 ##' @param columns [character vector] Columns to be output.
 ##' Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
-##' @param ... arguments to be passed to the \code{confint} method. Should not contain the argument \code{column}.
-##' 
-##' @details When argument \code{effects="all"}, this function simply calls \code{\link{confint}} with a specific value for the argument \code{column}.
+##' @param simplify [logical] 
+##' @param ... arguments to be passed to the \code{confint} method. 
 ##' 
 ##' @keywords methods
-##' 
+##'
+##' @details Argument \bold{simplify}: \itemize{
+##' \item \code{method="none"}: attributes (backtransform, error, level, method) are removed from the data.frame.
+##' \item \code{method="method"}: the output will be converted into a matrix (instead of a list of matrix) whenever possible.
+##' }
 ##' @return A \code{data.frame} object or (list of) contrast matrices.
 ##' 
 ##' @export
-model.tables.Wald_lmm <- function(x, effects = "all", columns, ...){
+model.tables.Wald_lmm <- function(x, method = "none", columns, simplify = TRUE, ...){
+
+    options <- LMMstar.options()
+    adj.method <- options$adj.method
 
     ## ** normalize user input
 
-    ## *** effects
-    effects <- match.arg(effects, c("all","contrast","ls.contrast"))
+    ## *** object
+    if(x$args$univariate == FALSE){
+        message("Nothing to return: consider setting argument \'univariate\' to TRUE when calling rbind.Wald_lmm. \n")
+        return(invisible(NULL))
+    }
+
+    ## *** method
+    if(!is.character(method) || !is.vector(method)){
+        stop("Argument \'method\' must be a character.")
+    }
+    if(length(method)!=1){
+        stop("Argument \'method\' must have length 1.")
+    }    
+    valid.method <- c("none","contrast",adj.method)
+    if(any(method %in% valid.method == FALSE)){
+        stop("Unknown value for argument \'type\': \"",paste(setdiff(method, valid.method),collapse = "\", \""),"\". \n",
+             "Possible values: \"",paste(valid.method, collapse = "\", \""),"\". \n")
+    }
 
     ## *** columns
     newcolumns <- c("estimate","se","df","lower","upper","p.value")
@@ -219,9 +241,9 @@ model.tables.Wald_lmm <- function(x, effects = "all", columns, ...){
     }
 
     ## ** extract from object
-    if(effects %in% c("contrast","ls.contrast")){
+    if(method == "contrast"){
         ls.out <- lapply(x$glht, "[[","linfct")
-        if(effects == "contrast"){
+        if(simplify){
             if(x$args$type=="auto"){
                 ## combine matrices that are type specific
                 out <- as.matrix(Matrix::bdiag(ls.out))
@@ -235,14 +257,15 @@ model.tables.Wald_lmm <- function(x, effects = "all", columns, ...){
             out <- ls.out
         }
 
-    }else if(effects == "all"){
-        out <- confint(x, ..., columns = newcolumns)
-        attr(out, "backtransform") <- NULL
-        attr(out, "error") <- NULL
-        attr(out, "level") <- NULL
-        attr(out, "method") <- NULL
+    }else{
+        out <- confint(x, method = method, columns = newcolumns, ...)
+        if(simplify){
+            attr(out, "backtransform") <- NULL
+            attr(out, "error") <- NULL
+            attr(out, "level") <- NULL
+            attr(out, "method") <- NULL
+        }
         class(out) <- "data.frame"
-
     }
 
     ## ** export
@@ -252,3 +275,4 @@ model.tables.Wald_lmm <- function(x, effects = "all", columns, ...){
 
 ##----------------------------------------------------------------------
 ### model.tables.R ends here
+

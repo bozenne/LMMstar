@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  4 2021 (10:04) 
 ## Version: 
-## Last-Updated: jul 25 2024 (15:40) 
+## Last-Updated: jul 26 2024 (17:57) 
 ##           By: Brice Ozenne
-##     Update #: 184
+##     Update #: 211
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -34,19 +34,14 @@
 ##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
 ##' @param transform.rho [character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"} - see details.
 ##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
-##' @param REML2ML [logical] Should the individual score contributions be calculated based on the Maximum Likelihood (ML) equations even when the model was fitted using Restricted Maximum Likelihood (REML)?
 ##' 
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @details The influence function equals the individual score rescaled by the (inverse) information.
 ##' With the expected information and for a lmm fitted using ML, the information is block diagonal so the influence function for the mean and variance parameters can be computed separately.
-##' Otherwise the information and individual score relative to all model parameters should be considered. The later is probablematic when using REML and two add-hoc solutions are considered:
-##' \itemize{
-##' \item \code{REML2ML=TRUE}: evaluate the individual score for the variance parameters using ML score equations instead of REML,
-##' e.g., neglecting the product of the REML score contribution for the covariance parameters with the cross terms between mean and variance parameters in the inverse information. 
-##' \item \code{REML2ML=FALSE}: only use the information and individual score relative to the mean parameters,
-##' e.g., neglecting the cross-terms between mean and variance parameters in the information. 
-##' }
+##' Otherwise the information and individual score relative to all model parameters should be considered.
+##' The later is probablematic when using REML as the REML term is the ratio of two term linear in the individual contributions which is not itself linear in the individual contributions.
+##' As an add-hoc solution, the denominator is treated as fixed so the ratio is decomposed w.r.t. its numerator.
 ##'
 ##' @keywords methods
 ##' @return A matrix with one row per observation and one column per parameter.
@@ -121,10 +116,18 @@ iid.lmm <- function(x,
     }
 
     ## *** effects
-    if(identical(effects,"all")){
+    if(is.null(effects)){
+        if((is.null(transform.sigma) || identical(transform.sigma,"none")) && (is.null(transform.k) || identical(transform.k,"none")) && (is.null(transform.rho) || identical(transform.rho,"none"))){
+            effects <- options$effects
+        }else{
+            effects <- c("mean","variance","correlation")
+        }
+    }else if(identical(effects,"all")){
         effects <- c("mean","variance","correlation")
+    }else{
+        effects <- match.arg(effects, c("mean","fixed","variance","correlation","ranef"), several.ok = TRUE)
+        effects[effects== "fixed"] <- "mean"
     }
-    effects <- match.arg(effects, c("mean","variance","correlation"), several.ok = TRUE)
 
     ## *** type.information
     if(is.null(type.information)){
@@ -140,50 +143,40 @@ iid.lmm <- function(x,
     transform.k <- init$transform.k
     transform.rho <- init$transform.rho
     test.notransform <- init$test.notransform
-
-    ## *** REML2ML
-    if(is.null(REML2ML)){
-        REML2ML <- options$REML2ML
-    }
+    if(is.null(p)){
+        theta <- x$param
+    }else{
+        theta <- init$p
+    }    
 
     ## ** get inverse information, score, and compute iid
-    if((x$args$type.information == "expected" && x$args$method.fit == "ML") || (!REML2ML && x$args$method.fit == "REML")){
-        x.score <- score.lmm(x, effects = effects, p = p, indiv = TRUE, 
-                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
-        x.vcov <- vcov.lmm(x, effects = effects, p = p, robust = FALSE, type.information = type.information, df = FALSE,
-                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
-        out <- x.score %*% x.vcov
-        if(x$args$method.fit=="ML"){
-            message <- NULL
-        }else{
-            message <- "neglecting information cross-terms"
-        }
+    if(x$args$type.information == "expected" && x$args$method.fit == "ML"){
+        effects2 <- effects
     }else{
-        indiv <- TRUE
-        if(REML2ML){
-            attr(indiv,"REML2ML") <- TRUE
-            message <- "neglecting score REML terms"
-        }else{
-            message <- NULL
-        }
+        ## get the score and the vcov for all 
+        effects2 <- c("mean","variance","correlation")
+    }
 
+    outMoments <- .moments.lmm(value = theta, design = x$design, time = x$time, method.fit = x$args$method.fit, type.information = type.information,
+                               transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                               logLik = FALSE, score = TRUE, information = FALSE, vcov = TRUE, df = FALSE, indiv = TRUE, effects = effects2, robust = FALSE,
+                               trace = FALSE, precompute.moments = !is.null(x$design$precompute.XX), transform.names = transform.names)
+    x.score <- outMoments$score
+    x.vcov <- outMoments$vcov
+    if(x$args$type.information == "expected" && x$args$method.fit == "ML"){
+        keep.names <- colnames(outMoments$score)
+    }else{
         keep.names <- names(coef.lmm(x, effects = effects,
                                      transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names))
-        x.scoreALL <- score.lmm(x, effects = "all", p = p, indiv = indiv, 
-                                transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
-        x.vcovALL <- vcov.lmm(x, effects = "all", p = p, robust = FALSE, type.information = type.information, df = FALSE,
-                              transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
-        x.vcov <- x.vcovALL[keep.names,keep.names,drop=FALSE]
-
-        out <- x.scoreALL %*% x.vcovALL[,keep.names,drop=FALSE]
     }
-
+    out <- x.score %*% x.vcov[,keep.names,drop=FALSE]
     if(robust==FALSE){
-        out <- sweep(out, MARGIN = 2, FUN = "*", STATS = sqrt(diag(x.vcov))/sqrt(colSums(out^2, na.rm = TRUE)))
+        out <- sweep(out, MARGIN = 2, FUN = "*", STATS = sqrt(diag(x.vcov[keep.names,keep.names,drop=FALSE]))/sqrt(colSums(out^2, na.rm = TRUE)))
     }
+    attr(out, "message") <- attr(x.score,"message")
+
 
     ## ** export
-    attr(out,"message") <- message
     return(out)
 }
 
@@ -194,15 +187,18 @@ iid.lmm <- function(x,
 ##' @rdname influence.Wald_lmm
 ##'
 ##' @param object a \code{Wald_lmm} object.
-##' @param effects [character] should the influence function relative to all the linear mixed model parameters be output (\code{"all"})
-##' or relative to the linear contrasts involved in the Wald test (\code{"contrast"})?
+##' @param method [character] should the influence function of the linear contrasts involved in the Wald test (\code{"none"})
+##' or of the linear mixed model parameters (\code{"all"}) be output?
 ##' Can also be \code{"test"} to test whether the influence function has been stored.
 ##' @param ... Not used. For compatibility with the generic method.
 ##' 
-##' @return A matrix with one row per observation and one column per parameter (\code{effects="all"} or \code{effects="contrast"}) or a logical value (\code{effects="test"}).
+##' @return A matrix with one row per observation and one column per parameter (\code{method="all"} or \code{method="contrast"}) or a logical value (\code{method="test"}).
 ##' 
 ##' @export
-iid.Wald_lmm <- function(x, effects = "contrast", ...){
+iid.Wald_lmm <- function(x, method = "none", ...){
+
+    options <- LMMstar.options()
+    adj.method <- options$adj.method
 
     ## ** normalize user input
     ## *** dots
@@ -211,36 +207,45 @@ iid.Wald_lmm <- function(x, effects = "contrast", ...){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
 
-    ## *** effects
-    if(!is.character(effects) || !is.vector(effects)){
-        stop("Argument \'effects\' must be a character.")
+    ## *** object
+    if(x$args$univariate == FALSE){
+        message("Nothing to return: consider setting argument \'univariate\' to TRUE when calling rbind.Wald_lmm. \n")
+        return(invisible(NULL))
     }
-    if(length(effects)!=1){
-        stop("Argument \'effects\' must have length 1.")
+
+    ## *** method
+    if(!is.character(method) || !is.vector(method)){
+        stop("Argument \'method\' must be a character.")
+    }
+    if(length(method)!=1){
+        stop("Argument \'method\' must have length 1.")
     }    
-    valid.effects <- c("contrast","all","test")
-    if(any(effects %in% valid.effects == FALSE)){
-        stop("Incorrect value for argument \'effects\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
-             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+    valid.method <- c("none","all","test",adj.method)
+    if(any(method %in% valid.method == FALSE)){
+        stop("Incorrect value for argument \'method\': \"",paste(setdiff(method,valid.method), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(valid.method, collapse ="\", \""),"\". \n")
     }    
-    
+    if(method %in% adj.method){
+        method <- "none"
+    }
+ 
     ## ** extract
-    if(effects == "test"){
+    if(method == "test"){
         return(!is.null(x$glht[[1]]$iid))
     }else if(x$args$type=="auto"){
         message("The influence function has not been stored. \n",
-                "Consider specifying the argument \'effects\' when calling anova with explicit contrast (e.g. via a matrix or equations). \n")
+                "Consider specifying the argument \'method\' when calling anova with explicit contrast (e.g. via a matrix or equations). \n")
         return(NULL)
 
     }
 
     out <- x$glht[[1]]$iid
-    if(effects=="contrast"){
-        contrast <- model.tables(x, effects = "contrast")
+    if(method=="none"){
+        contrast <- model.tables(x, method = "contrast")
         out <- out[,colnames(contrast),drop=FALSE] %*% t(contrast)
         attr(out,"message") <- attr(x$glht[[1]]$iid,"message")
     }else{ ## restaure transformed names
-        colnames(out) <- names(coef(x, effects = "all"))
+        colnames(out) <- names(coef(x, method = "all"))
     }
 
     ## ** export

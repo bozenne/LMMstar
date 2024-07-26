@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: jul 18 2024 (16:25) 
+## Last-Updated: jul 26 2024 (11:32) 
 ##           By: Brice Ozenne
-##     Update #: 784
+##     Update #: 786
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -505,7 +505,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
             iVcov <- .moments.lmm(value = iEstimate$estimate,
                                   design = iDesign,
                                   time = object$time,
-                                  method.fit = object$args$method.fit,
+                                  method.fit = object$args$method.fit, 
                                   type.information = object$args$type.information,
                                   transform.sigma = "none", ## object$reparametrize$transform.sigma,
                                   transform.k = "none", ## object$reparametrize$transform.k,

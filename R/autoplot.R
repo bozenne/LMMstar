@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: jul 24 2024 (13:26) 
+## Last-Updated: jul 26 2024 (17:32) 
 ##           By: Brice Ozenne
-##     Update #: 1569
+##     Update #: 1570
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -1838,7 +1838,15 @@ autoplot.summarizeNA <- function(object, variable = NULL, size.text = 16,
 ##' @export
 autoplot.Wald_lmm <- function(object, type = "forest", size.text = 16, add.args = NULL, ...){
 
+
     ## ** check user input
+    ## *** object
+    if(object$args$univariate == FALSE){
+        message("Nothing to return: consider setting argument \'univariate\' to TRUE when calling anova. \n")
+        return(invisible(NULL))
+    }
+
+    ## *** type
     type <- match.arg(type, c("forest","heat"))
     if(!is.null(add.args) && !is.list(add.args)){
         stop("Argument \'add.args\' should be a list. \n")

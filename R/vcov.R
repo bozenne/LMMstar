@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: jul 25 2024 (11:29) 
+## Last-Updated: jul 26 2024 (17:59) 
 ##           By: Brice Ozenne
-##     Update #: 712
+##     Update #: 754
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -38,8 +38,8 @@
 ##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
-##' @details For details about the arguments \bold{transform.sigma}, \bold{transform.k}, \bold{transform.rho}, see the documentation of the \link[LMMstar]{coef.lmm} function.
-##'
+##' @details For details about the arguments \bold{transform.sigma}, \bold{transform.k}, \bold{transform.rho}, see the documentation of the \link[LMMstar]{coef.lmm} function. \cr
+##' 
 ##' @return A matrix with one column and column per parameter.
 ##' An attribute \code{"df"} is added when argument df is set to \code{TRUE}, containing a numeric vector with one element per parameter.
 ##' An attribute \code{"dVcov"} is added when argument df is greater than 1, containing a 3 dimensional array with with dimension being the number of parameters.
@@ -64,30 +64,28 @@ vcov.lmm <- function(object, effects = NULL, robust = FALSE, df = FALSE, strata 
 
     ## *** effects
     if(is.null(effects)){
-        if(transform.sigma == "none" && transform.k == "none" && transform.rho == "none"){
+        if((is.null(transform.sigma) || identical(transform.sigma,"none")) && (is.null(transform.k) || identical(transform.k,"none")) && (is.null(transform.rho) || identical(transform.rho,"none"))){
             effects <- options$effects
         }else{
             effects <- c("mean","variance","correlation")
         }
     }else if(identical(effects,"all")){
         effects <- c("mean","variance","correlation")
+    }else{
+        effects <- match.arg(effects, c("mean","fixed","variance","correlation","ranef"), several.ok = TRUE)
+        effects[effects== "fixed"] <- "mean"
     }
-    effects <- match.arg(effects, c("mean","fixed","variance","correlation"), several.ok = TRUE)
-    effects[effects== "fixed"] <- "mean"
 
+    ## *** strata
     if(!is.null(strata)){
         strata <- match.arg(strata, object$strata$levels, several.ok = TRUE)
     }
 
+    ## *** type information
     if(is.null(type.information)){
         type.information <- object$args$type.information
     }else{
         type.information <- match.arg(type.information, c("expected","observed"))
-    }
-    if(df && robust && object$args$method.fit == "REML"){
-        stop("Cannot compute degrees of freedom under REML for robust standard errors. \n",
-             "Consider setting the argument df to FALSE",
-             " \n or using ML estimation by setting the argument method.fit=\"ML\" when calling lmm.")
     }
 
     ## *** transformation & p
@@ -125,8 +123,8 @@ vcov.lmm <- function(object, effects = NULL, robust = FALSE, df = FALSE, strata 
                 dimnames(attr(vcov,"dVcov")) <- list(names(keep.name),names(keep.name),names(keep.name))
             }
         }
+
     }else{
-        test.precompute <- !is.null(object$design$precompute.XX)
          
         if(!is.null(newdata)){
             design <- stats::model.matrix(object, newdata = newdata, effects = "all", simplify = FALSE)
@@ -137,7 +135,7 @@ vcov.lmm <- function(object, effects = NULL, robust = FALSE, df = FALSE, strata 
         outMoments <- .moments.lmm(value = theta, design = design, time = object$time, method.fit = object$args$method.fit, type.information = type.information,
                                    transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                    logLik = FALSE, score = FALSE, information = FALSE, vcov = TRUE, df = df, indiv = FALSE, effects = effects, robust = robust,
-                                   trace = FALSE, precompute.moments = test.precompute, method.numDeriv = options$method.numDeriv, transform.names = transform.names)
+                                   trace = FALSE, precompute.moments = !is.null(object$design$precompute.XX), method.numDeriv = options$method.numDeriv, transform.names = transform.names)
 
         if("variance" %in% effects && transform.k %in% c("sd","var","logsd","logvar") && object$strata$n>1 && transform.names){
             ## re-order values when converting to sd with strata (avoid sd0:0 sd0:1 sd1:0 sd1:1 sd2:0 sd2:1 ...)
@@ -158,7 +156,10 @@ vcov.lmm <- function(object, effects = NULL, robust = FALSE, df = FALSE, strata 
                 attr(vcov,"dVcov") <- outMoments$dVcov
             }
         }
+
     }
+
+    ## ** export
     return(vcov)    
 }
 
@@ -167,8 +168,8 @@ vcov.lmm <- function(object, effects = NULL, robust = FALSE, df = FALSE, strata 
 ##' @description Extract the variance-covariance matrix of the linear contrasts involved in the Wald test.
 ##'
 ##' @param object a \code{Wald_lmm} object.
-##' @param effects [character] should the variance-covariance relative to all the linear mixed model parameters be output (\code{"all"})
-##' or relative to the linear contrasts involved in the Wald test (\code{"contrast"})?
+##' @param method [character] should the variance-covariance of the linear contrasts involved in the Wald test (\code{"none"})
+##' or of the linear mixed model parameters (\code{"all"}) be output?
 ##' @param df [logical] Should degree of freedom, computed using Satterthwaite approximation, for the model parameters be output.
 ##' Also output the first derivative of the variance-covariance matrix whenever the argument is stricly greater than 1.
 ##' @param ... Not used. For compatibility with the generic method.
@@ -178,7 +179,10 @@ vcov.lmm <- function(object, effects = NULL, robust = FALSE, df = FALSE, strata 
 ##' An attribute \code{"dVcov"} is added when argument df is greater than 1, containing a 3 dimensional array with with dimension being the number of parameters.
 ##' 
 ##' @export
-vcov.Wald_lmm <- function(object, effects = "contrast", df = FALSE, ...){
+vcov.Wald_lmm <- function(object, method = "none", df = FALSE, ...){
+
+    options <- LMMstar.options()
+    adj.method <- options$adj.method
 
     ## ** normalize user input
     ## *** dots
@@ -187,31 +191,40 @@ vcov.Wald_lmm <- function(object, effects = "contrast", df = FALSE, ...){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
 
-    ## *** effects
-    if(!is.character(effects) || !is.vector(effects)){
-        stop("Argument \'effects\' must be a character.")
+    ## *** object
+    if(object$args$univariate == FALSE){
+        message("Nothing to return: consider setting argument \'univariate\' to TRUE when calling rbind.Wald_lmm. \n")
+        return(invisible(NULL))
     }
-    if(length(effects)!=1){
-        stop("Argument \'effects\' must have length 1.")
+
+    ## *** method
+    if(!is.character(method) || !is.vector(method)){
+        stop("Argument \'method\' must be a character.")
+    }
+    if(length(method)!=1){
+        stop("Argument \'method\' must have length 1.")
     }    
     if(object$args$type=="auto"){
-        valid.effects <- c("contrast")
+        valid.method <- c("none")
     }else{
-        valid.effects <- c("all","contrast")
+        valid.method <- c("none","all",adj.method)
     }
-    if(any(effects %in% valid.effects == FALSE)){
-        stop("Incorrect value for argument \'effects\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
-             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
-    }    
+    if(any(method %in% valid.method == FALSE)){
+        stop("Incorrect value for argument \'method\': \"",paste(setdiff(method,valid.method), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(valid.method, collapse ="\", \""),"\". \n")
+    }
+    if(method %in% adj.method){
+        method <- "none"
+    }
 
     ## ** extract
     out <- lapply(object$glht,"[[","vcov")
-    if(effects=="contrast"){
-        ls.contrast <- model.tables(object, effects = "ls.contrast")
+    if(method=="none"){
+        ls.contrast <- model.tables(object, method = "contrast", simplify = FALSE)
         out <- mapply(iVcov = out, iC = ls.contrast, FUN = function(iVcov,iC){iC %*% iVcov %*% t(iC)},
                       SIMPLIFY = FALSE)
-    }else if(effects == "all"){
-        trans.names <- names(coef(object, effects = "all"))
+    }else if(method == "all"){
+        trans.names <- names(coef(object, method = "all"))
         dimnames(out[[1]]) <- list(trans.names,trans.names)
     }
 
@@ -223,7 +236,7 @@ vcov.Wald_lmm <- function(object, effects = "contrast", df = FALSE, ...){
     if(df>0){
         if(object$args$type=="user"){
 
-            if(effects == "all"){
+            if(method == "all"){
                 dVcov <- object$glht[[1]]$dVcov
                 dimnames(dVcov) <- list(trans.names, trans.names, trans.names)
                 
@@ -232,7 +245,7 @@ vcov.Wald_lmm <- function(object, effects = "contrast", df = FALSE, ...){
                     attr(out, "dVcov") <- dVcov
                     
                 }
-            }else if(effects == "contrast"){                
+            }else if(method == "none"){                
                 attr(out, "df") <- setNames(object$univariate$df,rownames(object$univariate))
             }
         }else{
@@ -318,9 +331,6 @@ vcov.mlmm <- function(object, effects = "contrast", p = NULL, newdata = NULL, or
         message("Argument \'newdata\' is being ignored. \n")
     }
 
-    ## *** type.information
-    REML2ML <- attr(type.information,"REML2ML")
-
     ## ** extract
     if(all(effects=="contrast")){
         if((length(unlist(p))==0) && (robust == object$args$robust) && (type.information == object$object$type.information) && test.notransform){
@@ -341,7 +351,7 @@ vcov.mlmm <- function(object, effects = "contrast", p = NULL, newdata = NULL, or
         out <- lapply(object$model, FUN = vcov, effects = effects, p = p, robust = robust, type.information = type.information,
                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
     }else{
-        e.iid <- iid.mlmm(object, effects = effects, p = p, REML2ML = REML2ML, ordering = ordering, robust = robust, type.information = type.information,
+        e.iid <- iid.mlmm(object, effects = effects, p = p, ordering = ordering, robust = robust, type.information = type.information,
                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names, simplify = simplify)
         if(is.matrix(e.iid)){
             out <- crossprod(e.iid)
@@ -361,7 +371,6 @@ vcov.mlmm <- function(object, effects = "contrast", p = NULL, newdata = NULL, or
     ## ** export
     return(out)
 }
-
 
 ##----------------------------------------------------------------------
 ### vcov.R ends here

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (10:34) 
 ## Version: 
-## Last-Updated: aug  1 2023 (16:45) 
+## Last-Updated: jul 26 2024 (12:06) 
 ##           By: Brice Ozenne
-##     Update #: 211
+##     Update #: 214
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -166,10 +166,11 @@ df.residual.lmm <- function(object, ...){
     return(df)    
 }
 ## * .df_numDeriv
-.df_numDeriv <- function(value, reparametrize,
-                         design, time, method.fit, type.information,
-                         transform.sigma, transform.k, transform.rho, effects, robust, diag,
-                         precompute.moments = precompute.moments, method.numDeriv = method.numDeriv){
+.df_numDeriv <- function(diag, reparametrize,
+                         value,  design, time, method.fit, type.information,
+                         transform.sigma, transform.k, transform.rho,
+                         effects, robust, 
+                         precompute.moments, method.numDeriv){
 
     ## ** prepare vector of parameters
     param.value <- value

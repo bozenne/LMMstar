@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: Mar 26 2024 (09:40) 
+## Last-Updated: jul 26 2024 (12:05) 
 ##           By: Brice Ozenne
-##     Update #: 357
+##     Update #: 372
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -37,10 +37,11 @@ logLik.lmm <- function(object, newdata = NULL, p = NULL, indiv = FALSE, ...){
 
     ## ** extract or recompute log-likelihood
     if(is.null(newdata) && is.null(p) && indiv == FALSE){
+
         design <- object$design ## useful in case of NA
         out <- object$logLik
+
     }else{
-        test.precompute <- !is.null(object$design$precompute.XX) && !indiv
 
         ## normalize newdata argument
         if(!is.null(newdata)){
@@ -60,10 +61,11 @@ logLik.lmm <- function(object, newdata = NULL, p = NULL, indiv = FALSE, ...){
         }
 
         ## evaluate log-lik
-        out <- .moments.lmm(value = theta, design = design, time = object$time, method.fit = object$args$method.fit,
+        out <- .moments.lmm(value = theta, design = design, time = object$time, method.fit = object$args$method.fit, type.information = object$args$type.information,
                             transform.sigma = "none", transform.k = "none", transform.rho = "none",
                             logLik = TRUE, score = FALSE, information = FALSE, vcov = FALSE, df = FALSE, indiv = indiv, 
-                            trace = FALSE, precompute.moments = test.precompute)$logLik
+                            trace = FALSE, precompute.moments = !is.null(object$design$precompute.XX))$logLik
+
     } 
 
     ## ** name and restaure NAs
@@ -76,6 +78,7 @@ logLik.lmm <- function(object, newdata = NULL, p = NULL, indiv = FALSE, ...){
                           level = "cluster", cluster = object$cluster)        
 
     }
+
 
     ## ** export
     return(out)
@@ -97,16 +100,13 @@ logLik.mlmm <- function(object, ...){
     if(indiv && REML){##  https://towardsdatascience.com/maximum-likelihood-ml-vs-reml-78cf79bef2cf
         stop("Cannot compute individual likelihood contribution with REML. \n")
     }
-    test.loopIndiv <- indiv || is.null(precompute)
+    test.loopIndiv <- indiv || is.null(precompute) || !is.null(weights) || !is.null(scale.Omega)
 
     n.obs <- length(index.cluster)
     n.cluster <- length(pattern) ## number of clusters, may different from Upattern.ncluster which is the weight of each cluster
     n.mucoef <- NCOL(X)
     name.mucoef <- colnames(X)
     log2pi <- log(2*pi)
-    if(REML){
-        REML.det <- matrix(0, nrow = n.mucoef, ncol = n.mucoef, dimnames = list(name.mucoef, name.mucoef))
-    }
     logdet.precision <- attr(precision, "logdet")
 
     ## ** prepare output
@@ -115,7 +115,7 @@ logLik.mlmm <- function(object, ...){
     }else{
         ll <- 0
     }
-    if(any(is.na(logdet.precision))){ ## non positive definite residual variance covariance
+    if(any(is.na(logdet.precision))){ ## non-positive definite residual variance covariance
         if(indiv){
             return(ll*NA)
         }else{
@@ -123,9 +123,17 @@ logLik.mlmm <- function(object, ...){
         }
     }
 
+    ## ** prepare REML term
+    if(REML){
+        REML.det <- matrix(0, nrow = n.mucoef, ncol = n.mucoef, dimnames = list(name.mucoef, name.mucoef))
+    }
+
     ## ** compute log-likelihood
     ## *** looping over individuals
     if(test.loopIndiv){
+        if(is.null(weights)){weights <- rep(1,n.cluster)}
+        if(is.null(scale.Omega)){scale.Omega <- rep(1,n.cluster)}
+            
         ## loop
         for (iId in 1:n.cluster) { ## iId <- 1
             iIndex <- index.cluster[[iId]]
@@ -166,10 +174,12 @@ logLik.mlmm <- function(object, ...){
         }
     }
 
-    ## ** export
+    ## ** add REML contribution
     if(REML){
         ll <- ll - log(det(REML.det))/2 + n.mucoef * log2pi/2
     }
+
+    ## ** export
     return(ll)
 }
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: jul 15 2024 (10:32) 
+## Last-Updated: jul 26 2024 (11:28) 
 ##           By: Brice Ozenne
-##     Update #: 1119
+##     Update #: 1127
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -790,7 +790,7 @@ browser()
                                          Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
                                          transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                          transform.names = FALSE)$p
-            -.moments.lmm(value = p.original, design = design, time = time, method.fit = method.fit, 
+            -.moments.lmm(value = p.original, design = design, time = time, method.fit = method.fit, type.information = "observed",
                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                           logLik = TRUE, score = FALSE, information = FALSE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
                           trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)$logLik
@@ -804,7 +804,7 @@ browser()
                                          Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
                                          transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                          transform.names = FALSE)$p
-            -.moments.lmm(value = p.original, design = design, time = time, method.fit = method.fit, 
+            -.moments.lmm(value = p.original, design = design, time = time, method.fit = method.fit, type.information = "observed",
                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                           logLik = FALSE, score = TRUE, information = FALSE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
                           trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)$score
@@ -818,8 +818,8 @@ browser()
                                          Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
                                          transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                          transform.names = FALSE)$p
-            .moments.lmm(value = p.original, design = design, time = time, method.fit = method.fit,
-                         transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, type.information = "observed",
+            .moments.lmm(value = p.original, design = design, time = time, method.fit = method.fit, type.information = "observed",
+                         transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                          logLik = FALSE, score = FALSE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
                          trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)$information
         }

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: jul 15 2024 (19:16) 
+## Last-Updated: jul 26 2024 (13:21) 
 ##           By: Brice Ozenne
-##     Update #: 1130
+##     Update #: 1145
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -46,27 +46,37 @@
 information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv = FALSE, type.information = NULL,
                             transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
 
-    ## ** normalize user input
-    dots <- list(...)
     options <- LMMstar.options()
+
+    ## ** normalize user input
+    ## *** dots
+    dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
-    if(is.null(type.information)){
-        robust <- FALSE
-        type.information <- x$args$type.information
-    }else{
-        robust <- identical(attr(type.information,"robust"),TRUE)
-        type.information <- match.arg(type.information, c("expected","observed"))
-    }
+
+    ## *** effects
     if(is.null(effects)){
-        effects <- options$effects
+        if(transform.sigma == "none" && transform.k == "none" && transform.rho == "none"){
+            effects <- options$effects
+        }else{
+            effects <- c("mean","variance","correlation")
+        }
     }else if(identical(effects,"all")){
         effects <- c("mean","variance","correlation")
+    }else{
+        effects <- match.arg(effects, c("mean","fixed","variance","correlation","ranef"), several.ok = TRUE)
+        effects[effects== "fixed"] <- "mean"
     }
-    effects <- match.arg(effects, c("mean","fixed","variance","correlation"), several.ok = TRUE)
-    effects[effects== "fixed"] <- "mean"
 
+    ## *** type.information
+    if(is.null(type.information)){
+        type.information <- x$args$type.information
+    }else{
+        type.information <- match.arg(type.information, c("expected","observed"))
+    }
+
+    ## *** transformation & p
     init <- .init_transform(p = p, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
                             x.transform.sigma = x$reparametrize$transform.sigma, x.transform.k = x$reparametrize$transform.k, x.transform.rho = x$reparametrize$transform.rho,
                             table.param = x$design$param)
@@ -81,7 +91,7 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
     }
     
     ## ** extract or recompute information
-    if(is.null(newdata) && is.null(p) && (indiv == FALSE) && test.notransform && (robust==FALSE) && x$args$type.information==type.information){
+    if(is.null(newdata) && is.null(p) && (indiv == FALSE) && test.notransform && x$args$type.information==type.information){
         keep.name <- stats::setNames(names(coef(x, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE)),
                                      names(coef(x, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)))    
 
@@ -91,7 +101,6 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
             dimnames(out) <- list(names(keep.name),names(keep.name))
         }
     }else{
-        test.precompute <- !is.null(x$design$precompute.XX) && !indiv
          
         if(!is.null(newdata)){
             design <- stats::model.matrix(x, newdata = newdata, effects = "all", simplify = FALSE)
@@ -101,8 +110,8 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
 
         out <- .moments.lmm(value = theta, design = design, time = x$time, method.fit = x$args$method.fit, type.information = type.information,
                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                            logLik = FALSE, score = FALSE, information = TRUE, vcov = FALSE, df = FALSE, indiv = indiv, effects = effects, robust = robust,
-                            trace = FALSE, precompute.moments = test.precompute, transform.names = transform.names)$information
+                            logLik = FALSE, score = FALSE, information = TRUE, vcov = FALSE, df = FALSE, indiv = indiv, effects = effects, robust = FALSE,
+                            trace = FALSE, precompute.moments = !is.null(x$design$precompute.XX), transform.names = transform.names)$information
     }
 
     ## ** restaure NAs and name
@@ -144,7 +153,8 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
                          precompute){
 
     ## ** extract information
-    test.loopIndiv <- indiv || is.null(precompute)
+    test.loopIndiv <- indiv || is.null(precompute) || !is.null(weights) || !is.null(scale.Omega)
+
     n.obs <- length(index.cluster)
     n.cluster <- length(pattern)
     name.mucoef <- colnames(X)
@@ -159,22 +169,7 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
     npair.meanvcov <- lapply(pair.meanvcov, NCOL)
     npair.vcov <- lapply(pair.vcov, NCOL)
 
-    ## ** prepare output
-    name.effects <- attr(effects,"original.names")
-    n.effects <- length(name.effects)
-    if(test.loopIndiv && indiv){
-        info <- array(0, dim = c(n.cluster, n.effects, n.effects),
-                      dimnames = list(NULL, name.effects, name.effects))
-    }else{
-        info <- matrix(0, nrow = n.effects, ncol = n.effects,
-                       dimnames = list(name.effects, name.effects)
-                       )
-    }    
-    if(any(is.na(attr(precision,"logdet")))){ ## non positive definite residual variance covariance
-        return(info*NA)
-    }
-
-    ## restrict to relevant parameters
+    ## ** restrict to relevant parameters
     if(("variance" %in% effects == FALSE) && ("correlation" %in% effects == FALSE)){ ## compute hessian only for mean parameters
         test.vcov <- FALSE
         test.mean <- n.mucoef>0
@@ -213,9 +208,6 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
             npair.vcov <- lapply(pair.vcov, NCOL)
         }
         if("mean" %in% effects == FALSE){ ## compute hessian only for variance and/or correlation parameters
-            if(REML && indiv){
-                stop("Not possible to compute individual hessian for variance and/or correlation coefficients when using REML.\n")
-            }
 
             test.vcov <- any(n.varcoef>0)
             test.mean <- FALSE
@@ -227,7 +219,23 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
         }
     }
 
-    ## prepare REML term
+    ## ** prepare output
+    name.effects <- attr(effects,"original.names")
+    n.effects <- length(name.effects)
+    if(test.loopIndiv && indiv){
+        info <- array(0, dim = c(n.cluster, n.effects, n.effects),
+                      dimnames = list(NULL, name.effects, name.effects))
+    }else{
+        info <- matrix(0, nrow = n.effects, ncol = n.effects,
+                       dimnames = list(name.effects, name.effects)
+                       )
+    }    
+    if(any(is.na(attr(precision,"logdet")))){ ## non positive definite residual variance covariance
+        return(info*NA)
+    }
+
+
+    ## ** prepare REML term
     if(test.vcov){
 
         ls.dOmega_OmegaM1 <- attr(dOmega,"ls.dOmega_OmegaM1")
@@ -282,6 +290,8 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
                 }
             }
         }
+        if(is.null(weights)){weights <- rep(1,n.cluster)}
+        if(is.null(scale.Omega)){scale.Omega <- rep(1,n.cluster)}
         
         ## loop
         for(iId in 1:n.cluster){ ## iId <- 7
@@ -451,7 +461,7 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
 
     }
 
-    ## ** export
+    ## ** add REML contribution
     if(REML && test.vcov){
         
         REML.denomM1 <- solve(REML.denom)
@@ -468,39 +478,7 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
         
     }
 
-    if(robust){
-        if(REML){
-            effects2 <- "mean"
-            attr(effects2,"original.names") <- attr(effects,"original.names")
-            attr(effects2,"reparametrize.names") <- attr(effects,"reparametrize.names")
-        }else{
-            effects2 <- effects
-        }
-        if(is.null(weights)){
-            weights <- rep(1, length(pattern))
-        }
-        if(is.null(scale.Omega)){
-            scale.Omega <- rep(1, length(pattern))
-        }
-        attr.info <- info
-        attr.bread <- crossprod(.score(X = X, residuals = residuals, precision = precision, dOmega = dOmega,
-                                       weights = weights, scale.Omega = scale.Omega, pattern = pattern, 
-                                       index.cluster = index.cluster, name.allcoef = name.allcoef, indiv = TRUE, REML = REML, effects = effects2,
-                                       precompute = precompute) )
-
-        
-        
-        if(any(c("mean","variance","correlation") %in% effects2 == FALSE)){
-            keep.cols <- intersect(names(which(rowSums(abs(attr.bread))!=0)),names(which(rowSums(abs(attr.bread))!=0)))
-            info <- NA*attr.info
-
-            attr.infoM1 <- solve(attr.info)
-            info[keep.cols,keep.cols] <- solve(attr.infoM1[keep.cols,keep.cols] %*% attr.bread[keep.cols,keep.cols,drop=FALSE] %*% attr.infoM1[keep.cols,keep.cols])
-        }else{
-            attr.infoM1 <- solve(attr.info)
-            info <- solve(attr.infoM1 %*% attr.bread %*% attr.infoM1)
-        }
-    }
+    ## ** export
     return(info)
 }
 

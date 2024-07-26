@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jul 25 2024 (15:45) 
+## Last-Updated: jul 26 2024 (17:29) 
 ##           By: Brice Ozenne
-##     Update #: 1915
+##     Update #: 1919
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -398,11 +398,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
     }
 
     ## *** output
-    out <- list(multivariate = NULL,
-                univariate = NULL,
-                glht = NULL,
-                vcov = NULL,
-                args = data.frame(type = ifelse(all(grid$type.original=="user"),"user","auto"), robust = robust, df = df,
+    out <- list(args = data.frame(type = ifelse(all(grid$type.original=="user"),"user","auto"), robust = robust, df = df,
                                   transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.all = transform2.all,
                                   univariate = univariate, multivariate = multivariate)
                 )
@@ -540,8 +536,8 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
                                    df = ceiling(stats::median(out$univariate[iG.univariate,"df"])),
                                    alternative = "two.sided")
             if(all(grid$type.original=="user")){ ## extra-element for rbind
-                out$glht[[iG]]$coef.name <- names(param)
-                out$glht[[iG]]$coef.notrans <- param.notrans
+                out$glht[[iG]]$coef.name <- names(param) ## possibly transformed named (coef will always be named without transformed names)
+                out$glht[[iG]]$coef.notrans <- param.notrans ## values without transformation
                 out$glht[[iG]]$coef.type <- type.param
                 out$glht[[iG]]$dVcov <- dVcov.param
                 out$glht[[iG]]$iid <- iid.param
