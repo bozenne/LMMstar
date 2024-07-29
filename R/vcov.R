@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: jul 26 2024 (17:59) 
+## Last-Updated: Jul 28 2024 (23:22) 
 ##           By: Brice Ozenne
-##     Update #: 754
+##     Update #: 785
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -163,102 +163,6 @@ vcov.lmm <- function(object, effects = NULL, robust = FALSE, df = FALSE, strata 
     return(vcov)    
 }
 
-## * vcov.Wald_lmm
-##' @title Extract the Variance-Covariance Matrix from Wald Tests
-##' @description Extract the variance-covariance matrix of the linear contrasts involved in the Wald test.
-##'
-##' @param object a \code{Wald_lmm} object.
-##' @param method [character] should the variance-covariance of the linear contrasts involved in the Wald test (\code{"none"})
-##' or of the linear mixed model parameters (\code{"all"}) be output?
-##' @param df [logical] Should degree of freedom, computed using Satterthwaite approximation, for the model parameters be output.
-##' Also output the first derivative of the variance-covariance matrix whenever the argument is stricly greater than 1.
-##' @param ... Not used. For compatibility with the generic method.
-##' 
-##' @return A matrix with one column and column per parameter.
-##' An attribute \code{"df"} is added when argument df is set to \code{TRUE}, containing a numeric vector with one element per parameter.
-##' An attribute \code{"dVcov"} is added when argument df is greater than 1, containing a 3 dimensional array with with dimension being the number of parameters.
-##' 
-##' @export
-vcov.Wald_lmm <- function(object, method = "none", df = FALSE, ...){
-
-    options <- LMMstar.options()
-    adj.method <- options$adj.method
-
-    ## ** normalize user input
-    ## *** dots
-    dots <- list(...)
-    if(length(dots)>0){
-        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
-    }
-
-    ## *** object
-    if(object$args$univariate == FALSE){
-        message("Nothing to return: consider setting argument \'univariate\' to TRUE when calling rbind.Wald_lmm. \n")
-        return(invisible(NULL))
-    }
-
-    ## *** method
-    if(!is.character(method) || !is.vector(method)){
-        stop("Argument \'method\' must be a character.")
-    }
-    if(length(method)!=1){
-        stop("Argument \'method\' must have length 1.")
-    }    
-    if(object$args$type=="auto"){
-        valid.method <- c("none")
-    }else{
-        valid.method <- c("none","all",adj.method)
-    }
-    if(any(method %in% valid.method == FALSE)){
-        stop("Incorrect value for argument \'method\': \"",paste(setdiff(method,valid.method), collapse ="\", \""),"\". \n",
-             "Valid values: \"",paste(valid.method, collapse ="\", \""),"\". \n")
-    }
-    if(method %in% adj.method){
-        method <- "none"
-    }
-
-    ## ** extract
-    out <- lapply(object$glht,"[[","vcov")
-    if(method=="none"){
-        ls.contrast <- model.tables(object, method = "contrast", simplify = FALSE)
-        out <- mapply(iVcov = out, iC = ls.contrast, FUN = function(iVcov,iC){iC %*% iVcov %*% t(iC)},
-                      SIMPLIFY = FALSE)
-    }else if(method == "all"){
-        trans.names <- names(coef(object, method = "all"))
-        dimnames(out[[1]]) <- list(trans.names,trans.names)
-    }
-
-    if(object$args$type=="user"){
-        out <- out[[1]]
-    }
-
-    ## ** add degrees of freedom
-    if(df>0){
-        if(object$args$type=="user"){
-
-            if(method == "all"){
-                dVcov <- object$glht[[1]]$dVcov
-                dimnames(dVcov) <- list(trans.names, trans.names, trans.names)
-                
-                attr(out,"df") <- .dfX(X.beta = NULL, vcov = out, dVcov.param = dVcov)
-                if(df>1){
-                    attr(out, "dVcov") <- dVcov
-                    
-                }
-            }else if(method == "none"){                
-                attr(out, "df") <- setNames(object$univariate$df,rownames(object$univariate))
-            }
-        }else{
-            for(iName in names(out)){ ## iName <- names(out)[1]
-                attr(out[[iName]], "df") <- setNames(object$univariate[object$univariate$name==iName,"df"],rownames(object$univariate)[object$univariate$name==iName])
-            }        
-        }
-    }
-
-    ## ** export
-    return(out)
-    
-}
 
 ## * vcov.mlmm (documentation)
 ##' @title Extract The Variance-Covariance Matrix From Multiple Linear Mixed Models
@@ -370,6 +274,190 @@ vcov.mlmm <- function(object, effects = "contrast", p = NULL, newdata = NULL, or
 
     ## ** export
     return(out)
+}
+
+
+## * vcov.rbindWald_lmm
+##' @title Extract  the Variance-Covariance From Wald Tests for Linear Mixed Models
+##' @description Extract  the variance-covariance matrix from Wald tests applied to a linear mixed models.
+##'
+##' @param object a \code{rbindWald_lmm} object.
+##' @param effects [character] should the variance-covariance matrix involved in the Wald tests be output (\code{"contrast"}),
+##' or the variance-covariance matrix of the linear mixed model parameters (\code{"all"})?
+##' @param method [character vector] type of adjustment for multiple comparisons across the linear contrasts (one of \code{"none"}, \code{"bonferroni"}, ..., \code{"single-step2"}).
+##' Only relevant when \code{effects = "contrast"}.
+##' @param df [logical] Should degree of freedom, computed using Satterthwaite approximation, for the model parameters be output.
+##' Also output the first derivative of the variance-covariance matrix whenever the argument is stricly greater than 1.
+##' @param ordering [character] should the output be ordered by name of the linear contrast (\code{"contrast"}) or by model (\code{"model"}).
+##' Only relevant when \code{effects="contrast"}, \code{effects="all"}, or \code{effects="all.original"}.
+##' @param simplify [logical] should the output be a vector or a list with one element specific to each possible ordering (i.e. contrast or model).
+##' @param ... Not used. For compatibility with the generic method.
+##' 
+##' @return A matrix with one column and column per parameter.
+##' An attribute \code{"df"} is added when argument df is set to \code{TRUE}, containing a numeric vector with one element per parameter.
+##' An attribute \code{"dVcov"} is added when argument df is greater than 1, containing a 3 dimensional array with with dimension being the number of parameters.
+##'
+##' @export
+vcov.rbindWald_lmm <- function(object, effects = "Wald", method = "none", df = FALSE, ordering = NULL, simplify = TRUE, ...){
+
+    options <- LMMstar.options()
+    adj.method <- options$adj.method
+
+    ## ** normalize user input
+    ## *** dots
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
+    ## *** object
+    if(object$args$univariate == FALSE){
+        message("Nothing to return: consider setting argument \'univariate\' to TRUE when calling rbind.Wald_lmm. \n")
+        return(invisible(NULL))
+    }
+
+    ## *** effects
+    if(!is.character(effects) || !is.vector(effects)){
+        stop("Argument \'effects\' must be a character.")
+    }
+    if(length(effects)!=1){
+        stop("Argument \'effects\' must have length 1.")
+    }
+    effects <- match.arg(effects, c("Wald","all"))
+
+    ## *** method
+    if(!is.character(method) || !is.vector(method)){
+        stop("Argument \'method\' must be a character.")
+    }
+    if(length(method)!=1){
+        stop("Argument \'method\' must have length 1.")
+    }
+    valid.method <- c("none",adj.method)
+    if(any(method %in% valid.method == FALSE)){
+        stop("Incorrect value for argument \'method\': \"",paste(setdiff(method,valid.method), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(valid.method, collapse ="\", \""),"\". \n")
+    }
+
+    ## *** ordering
+    if(!is.null(ordering)){
+        ordering <- match.arg(ordering, c("contrast","model"))
+    }
+
+    ## ** extract
+    out <- vcov.Wald_lmm(object, effects = effects, df = df)
+
+    if(!is.null(ordering)){
+        if(effects=="Wald"){
+            ordering.out <- object$univariate[[c(model = "model", contrast = "term")[ordering]]]
+        }else if(effects=="all"){
+            ordering.out <- object$glht[[1]][[c(model = "model", contrast = "term")[ordering]]]
+        }
+    }else if(simplify == FALSE){
+        if(effects=="Wald"){
+            attr(out,"parameter") <- object$univariate$term
+            attr(out,"model") <- object$univariate$model
+        }else if(effects=="all"){
+            attr(out,"parameter") <- object$glht[[1]]$term
+            attr(out,"model") <- object$glht[[1]]$model
+        }
+    }
+
+    ## ** export
+    if(simplify == FALSE && !is.null(ordering)){
+        out <- tapply(1:length(ordering.out), factor(ordering.out, levels = unique(ordering.out)), FUN = function(iIndex){
+            return(out[iIndex,iIndex,drop=FALSE])
+        }, simplify = FALSE)
+    }else if(!is.null(ordering)){
+        neworder <- unlist(tapply(1:length(ordering.out), factor(ordering.out, levels = unique(ordering.out)), base::identity, simplify = FALSE))
+        out <- out[neworder,neworder,drop=FALSE]
+    }
+    return(out)
+}
+
+## * vcov.Wald_lmm
+##' @title Extract the Variance-Covariance Matrix from Wald Tests
+##' @description Extract the variance-covariance matrix of the linear contrasts involved in the Wald test.
+##'
+##' @param object a \code{Wald_lmm} object.
+##' @param effects [character] should the variance-covariance of the linear contrasts involved in the Wald test be output (\code{"Wald"}),
+##' or of the linear mixed model parameters (\code{"all"})?
+##' @param df [logical] Should degree of freedom, computed using Satterthwaite approximation, for the model parameters be output.
+##' Also output the first derivative of the variance-covariance matrix whenever the argument is stricly greater than 1.
+##' @param ... Not used. For compatibility with the generic method.
+##' 
+##' @return A matrix with one column and column per parameter.
+##' An attribute \code{"df"} is added when argument df is set to \code{TRUE}, containing a numeric vector with one element per parameter.
+##' An attribute \code{"dVcov"} is added when argument df is greater than 1, containing a 3 dimensional array with with dimension being the number of parameters.
+##' 
+##' @export
+vcov.Wald_lmm <- function(object, effects = "Wald", df = FALSE, ...){
+
+    options <- LMMstar.options()
+    adj.method <- options$adj.method
+
+    ## ** normalize user input
+    ## *** dots
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
+    ## *** object
+    if(object$args$univariate == FALSE){
+        message("Nothing to return: consider setting argument \'univariate\' to TRUE when calling rbind.Wald_lmm. \n")
+        return(invisible(NULL))
+    }
+
+    ## *** effects
+    if(!is.character(effects) || !is.vector(effects)){
+        stop("Argument \'effects\' must be a character.")
+    }
+    if(length(effects)!=1){
+        stop("Argument \'effects\' must have length 1.")
+    }
+    effects <- match.arg(effects, c("Wald","all"))
+
+    ## ** extract
+    out <- lapply(object$glht,"[[","vcov")
+    if(effects=="Wald"){
+        ls.contrast <- model.tables(object, effects = "contrast", simplify = FALSE)
+        out <- mapply(iVcov = out, iC = ls.contrast, FUN = function(iVcov,iC){iC %*% iVcov %*% t(iC)},
+                      SIMPLIFY = FALSE)
+    }else if(effects == "all"){
+        trans.names <- names(coef(object, effects = "all"))
+        dimnames(out[[1]]) <- list(trans.names,trans.names)
+    }
+
+    if(object$args$type=="user"){
+        out <- out[[1]]
+    }
+
+    ## ** add degrees of freedom
+    if(df>0){
+        if(object$args$type=="user"){
+
+            if(method == "all"){
+                dVcov <- object$glht[[1]]$dVcov
+                dimnames(dVcov) <- list(trans.names, trans.names, trans.names)
+                
+                attr(out,"df") <- .dfX(X.beta = NULL, vcov = out, dVcov.param = dVcov)
+                if(df>1){
+                    attr(out, "dVcov") <- dVcov
+                    
+                }
+            }else if(method == "none"){                
+                attr(out, "df") <- setNames(object$univariate$df,rownames(object$univariate))
+            }
+        }else{
+            for(iName in names(out)){ ## iName <- names(out)[1]
+                attr(out[[iName]], "df") <- setNames(object$univariate[object$univariate$name==iName,"df"],rownames(object$univariate)[object$univariate$name==iName])
+            }        
+        }
+    }
+
+    ## ** export
+    return(out)
+    
 }
 
 ##----------------------------------------------------------------------

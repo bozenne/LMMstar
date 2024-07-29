@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  4 2021 (10:04) 
 ## Version: 
-## Last-Updated: jul 26 2024 (17:57) 
+## Last-Updated: Jul 28 2024 (16:23) 
 ##           By: Brice Ozenne
-##     Update #: 211
+##     Update #: 220
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -187,15 +187,15 @@ iid.lmm <- function(x,
 ##' @rdname influence.Wald_lmm
 ##'
 ##' @param object a \code{Wald_lmm} object.
-##' @param method [character] should the influence function of the linear contrasts involved in the Wald test (\code{"none"})
-##' or of the linear mixed model parameters (\code{"all"}) be output?
-##' Can also be \code{"test"} to test whether the influence function has been stored.
+##' @param effects [character] should the influence function for the linear contrasts involved in the Wald test be output (\code{"Wald"}),
+##' or for the linear mixed model parameters (\code{"all"}),
+##' or a logical value indicating whether the influence function has been stored?
 ##' @param ... Not used. For compatibility with the generic method.
 ##' 
-##' @return A matrix with one row per observation and one column per parameter (\code{method="all"} or \code{method="contrast"}) or a logical value (\code{method="test"}).
+##' @return A matrix with one row per observation and one column per parameter (\code{effects="Wald"} or \code{effects="all"}) or a logical value (\code{effects="test"}).
 ##' 
 ##' @export
-iid.Wald_lmm <- function(x, method = "none", ...){
+iid.Wald_lmm <- function(x, effects = "Wald", ...){
 
     options <- LMMstar.options()
     adj.method <- options$adj.method
@@ -213,24 +213,17 @@ iid.Wald_lmm <- function(x, method = "none", ...){
         return(invisible(NULL))
     }
 
-    ## *** method
-    if(!is.character(method) || !is.vector(method)){
-        stop("Argument \'method\' must be a character.")
+    ## *** effects
+    if(!is.character(effects) || !is.vector(effects)){
+        stop("Argument \'effects\' must be a character.")
     }
-    if(length(method)!=1){
-        stop("Argument \'method\' must have length 1.")
-    }    
-    valid.method <- c("none","all","test",adj.method)
-    if(any(method %in% valid.method == FALSE)){
-        stop("Incorrect value for argument \'method\': \"",paste(setdiff(method,valid.method), collapse ="\", \""),"\". \n",
-             "Valid values: \"",paste(valid.method, collapse ="\", \""),"\". \n")
-    }    
-    if(method %in% adj.method){
-        method <- "none"
+    if(length(effects)!=1){
+        stop("Argument \'effects\' must have length 1.")
     }
- 
+    effects <- match.arg(effects, c("Wald","all","test"))
+
     ## ** extract
-    if(method == "test"){
+    if(effects == "test"){
         return(!is.null(x$glht[[1]]$iid))
     }else if(x$args$type=="auto"){
         message("The influence function has not been stored. \n",
@@ -240,12 +233,12 @@ iid.Wald_lmm <- function(x, method = "none", ...){
     }
 
     out <- x$glht[[1]]$iid
-    if(method=="none"){
-        contrast <- model.tables(x, method = "contrast")
+    if(effects=="Wald"){
+        contrast <- model.tables(x, effects = "contrast")
         out <- out[,colnames(contrast),drop=FALSE] %*% t(contrast)
         attr(out,"message") <- attr(x$glht[[1]]$iid,"message")
-    }else{ ## restaure transformed names
-        colnames(out) <- names(coef(x, method = "all"))
+    }else if(effects=="all"){ ## restaure transformed names
+        colnames(out) <- names(coef(x, effects = "all"))
     }
 
     ## ** export

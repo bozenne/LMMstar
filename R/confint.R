@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 26 2024 (17:54) 
+## Last-Updated: Jul 28 2024 (21:19) 
 ##           By: Brice Ozenne
-##     Update #: 1048
+##     Update #: 1074
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -906,7 +906,8 @@ confint.resample <-  function(object, parm = NULL, null = NULL, level = 0.95, me
 ##' @param object a \code{Wald_lmm} object
 ##' @param parm Not used. For compatibility with the generic method.
 ##' @param level [numeric, 0-1] nominal coverage of the confidence intervals.
-##' @param method [character] type of adjustment for multiple comparisons, one of \code{"none"}, \code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}.
+##' @param method [character] type of adjustment for multiple comparisons across the linear contrasts:
+##' one of \code{"none"}, \code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}.
 ##' @param columns [character vector] Columns to be output.
 ##' Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
 ##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the Wald statistic. Otherwise a normal distribution is used.
@@ -957,9 +958,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
     ## *** level
     if(object$args$univariate==FALSE){
         level <- NA
-        if(method %in% adj.method){
-            method <- "none"
-        }
+        method <- "none"
     }
     alpha <- 1-level
 
@@ -969,16 +968,18 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
     }
 
     ## *** method
-    if(!is.character(method) || !is.vector(method)){
-        stop("Argument \'method\' must be a character.")
-    }
-    if(length(method)!=1){
-        stop("Argument \'method\' must have length 1.")
-    }    
-    valid.method <- c("none",adj.method)
-    if(any(method %in% valid.method == FALSE)){
-        stop("Unknown value for argument \'type\': \"",paste(setdiff(method, valid.method),collapse = "\", \""),"\". \n",
-             "Possible values: \"",paste(valid.method, collapse = "\", \""),"\". \n")
+    if(!is.null(method)){
+        if(!is.character(method) || !is.vector(method)){
+            stop("Argument \'method\' must be a character.")
+        }
+        if(length(method)!=1){
+            stop("Argument \'method\' must have length 1.")
+        }    
+        valid.method <- c("none",adj.method)
+        if(any(method %in% valid.method == FALSE)){
+            stop("Unknown value for argument \'type\': \"",paste(setdiff(method, valid.method),collapse = "\", \""),"\". \n",
+                 "Possible values: \"",paste(valid.method, collapse = "\", \""),"\". \n")
+        }
     }
 
     ## *** columns
@@ -1000,7 +1001,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
     }else{
         columns <- options$columns.confint
     }
-    if(all(c("lower","upper","p.value") %in% columns == FALSE)){
+    if(all(c("lower","upper","quantile","p.value") %in% columns == FALSE) || (!is.null(method) && method %in% c("Westfall","Shaffer","free") && "p.value" %in% columns == FALSE)){
         method <- "none"
     }
 
@@ -1030,9 +1031,6 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
     grid <- unique(object$univariate$name)
     n.grid <- length(grid)
     attr(out,"error") <- rep(NA,n.grid)
-    if(is.null(method) || any(c("none","bonferroni","single-step","single-step2") %in% method)){
-        attr(out,"quantile") <- vector(mode = "list", length = n.grid)
-    }
 
     for(iGrid in 1:n.grid){ ## iGrid <- 1
 
@@ -1065,37 +1063,31 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
         out[iIndex.table,"method"] <-  iMethod
 
         ## *** evaluation
-        if(iMethod == "none"){
-            
-            out[iIndex.table,"lower"] <- iTable$estimate + iTable$se * stats::qt(alpha/2, df = iTable$df)
-            out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * stats::qt(1-alpha/2, df = iTable$df)
-            out[iIndex.table,"p.value"] <- 2*(1-stats::pt(abs(iTable$statistic), df = iTable$df))
+        if(iMethod == "single-step"){
 
-            attr(out, "quantile")[[iGrid]] <-  stats::qt(p = 1-alpha/2, df = iTable$df)
-            
-        }else if(iMethod == "single-step"){
-
-            iGlht$df <- round(iGlht$df)
-            iCi <- confint(iGlht)
-            iP <- summary(iGlht, test = multcomp::adjusted("single-step"))
-
-            out[iIndex.table,"lower"] <- iCi$confint[,"lwr"]
-            out[iIndex.table,"upper"] <- iCi$confint[,"upr"]
-            out[iIndex.table,"p.value"] <- as.double(iP$test$pvalues)
-            
             if(df){
                 out[iIndex.table,"df"] <- iGlht$df
+                iGlht$df <- round(iGlht$df)
             }
-            attr(out, "error")[iGrid] <-  attr(iP$test$pvalues,"error")
-            attr(out, "quantile")[[iGrid]] <-  rep(attr(iCi$confint,"calpha"), length(iIndex.table))
+
+            if("p.value" %in% columns){
+                iP <- summary(iGlht, test = multcomp::adjusted("single-step"))
+                out[iIndex.table,"p.value"] <- as.double(iP$test$pvalues)
+                attr(out, "error")[iGrid] <-  attr(iP$test$pvalues,"error")
+            }
+            
+            if(any(c("lower","upper","quantile") %in% columns)){
+                iCi <- confint(iGlht)
+                out[iIndex.table,"lower"] <- iCi$confint[,"lwr"]
+                out[iIndex.table,"upper"] <- iCi$confint[,"upr"]
+                out[iIndex.table,"quantile"] <-  attr(iCi$confint,"calpha")
+            }
 
         }else if(iMethod %in% c("Westfall","Shaffer","free")){
 
             iP <- summary(iGlht, test = multcomp::adjusted(iMethod))
             out[iIndex.table,"p.value"] <- as.double(iP$test$pvalues)
             
-            out[iIndex.table,"lower"] <- NA
-            out[iIndex.table,"upper"] <- NA
             if(df){
                 out[iIndex.table,"df"] <- iGlht$df
             }
@@ -1118,27 +1110,41 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
                                       paramMargins = as.list(stats::setNames(iTable$df[index.n0sigma],rep("df",NROW(rho.linfct)))))
                 maxH0 <- apply(abs(copula::rMvdc(n.sample, myMvd)), 1, max)
             }
-            cH0 <- stats::quantile(maxH0, 1-alpha) 
 
-            out[iIndex.table,"p.value"] <- sapply(abs(iTable$statistic), function(iT){(sum(iT <= maxH0)+1)/(n.sample+1)})
-            out[iIndex.table,"lower"] <- iTable$estimate - iTable$se * cH0
-            out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * cH0                
+            if("p.value" %in% columns){
+                out[iIndex.table,"p.value"] <- sapply(abs(iTable$statistic), function(iT){(sum(iT <= maxH0)+1)/(n.sample+1)})
+            }
+
+             if(any(c("lower","upper","quantile") %in% columns)){
+                cH0 <- stats::quantile(maxH0, 1-alpha) 
+                out[iIndex.table,"lower"] <- iTable$estimate - iTable$se * cH0
+                out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * cH0                
+                out[iIndex.table,"quantile"] <- cH0
+            }
+
             attr(out, "n.sample") <-  n.sample
-            attr(out, "quantile")[[iGrid]] <-  rep(cH0, length(iIndex.table))
                 
-        }else if(iMethod == "bonferroni"){
-                
-            out[iIndex.table,"lower"] <- iTable$estimate + iTable$se * stats::qt(alpha/(2*iN.test), df = iTable$df)
-            out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * stats::qt(1-alpha/(2*iN.test), df = iTable$df)
-            out[iIndex.table,"p.value"] <- pmin(1,iN.test*(2*(1-stats::pt(abs(iTable$statistic), df = iTable$df))))
-                
-            attr(out, "quantile")[[iGrid]] <-  stats::qt(p = 1-alpha/(2*iN.test), df = iTable$df)
-        }else{
-                
-            out[iIndex.table,"lower"] <- NA
-            out[iIndex.table,"upper"] <- NA
-            out[iIndex.table,"p.value"] <- stats::p.adjust(2*(1-stats::pt(abs(iTable$statistic), df = iTable$df)), method = iMethod)
-                
+        }else if(iMethod %in% c("none",p.adjust.methods)){
+            
+            if("p.value" %in% columns){
+                out[iIndex.table,"p.value"] <- 2*(1-stats::pt(abs(iTable$statistic), df = iTable$df))
+                if(iMethod %in% p.adjust.methods){
+                    out[iIndex.table,"p.value"] <- stats::p.adjust(out[iIndex.table,"p.value"], method = iMethod)
+                }
+            }
+
+            if(any(c("lower","upper","quantile") %in% columns)){
+                if(iMethod == "none"){
+                    cH0 <- stats::qt(p = 1-alpha/2, df = iTable$df)
+                }else if(iMethod == "bonferroni"){
+                    cH0 <- stats::qt(p = 1-alpha/(2*iN.test), df = iTable$df)
+                }else{
+                    cH0 <- as.numeric(NA)
+                }
+                out[iIndex.table,"lower"] <- iTable$estimate - iTable$se * cH0
+                out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * cH0
+                out[iIndex.table,"quantile"] <- cH0
+            }
         }
     }
 
@@ -1182,10 +1188,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
     if(length(Umethod)>1){
         Umethod <- setdiff(Umethod,"none")
     }
-    out[names(out)[names(out) %in% columns == FALSE]] <- NULL
-    if(n.grid==1){
-        attr(out, "quantile") <- attr(out, "quantile")[[1]]
-    }
+    out <- out[columns]
     attr(out, "level") <- 0.95
     attr(out, "method") <- Umethod
     class(out) <- append("confint_lmm", class(out))

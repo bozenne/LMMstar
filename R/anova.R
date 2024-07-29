@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jul 26 2024 (17:29) 
+## Last-Updated: Jul 28 2024 (19:51) 
 ##           By: Brice Ozenne
-##     Update #: 1919
+##     Update #: 1923
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -303,7 +303,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
 
     if(all(grid$type.original=="user")){
         ## single contrast matrix
-        M.type <- do.call(rbind,apply(contrast[[1]][[1]], MARGIN = 1, FUN = function(iRow){
+        M.type <- do.call(rbind,apply(contrast[[1]][[1]], MARGIN = 1, FUN = function(iRow){ ## iRow <- contrast[[1]][[1]][1,]
             table(factor(type.param[names(which(iRow!=0))], levels = c("mu","sigma","k","rho")))
         }, simplify = FALSE))
         table.type <- cbind(as.data.frame(M.type), overall = apply(M.type, MARGIN = 1, function(iRow){ifelse(sum(iRow!=0)==1,names(which(iRow!=0)),"all")}))
@@ -415,8 +415,8 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
 
         out$glht <- stats::setNames(vector(mode = "list", length = n.grid), rownames(grid))
         ## name (e.g. mean_visit, var_visit) may differ from term (visit, visit) when testing mean, variance, and correlation parameters which may all refer to the same variable, say time
-        out$univariate <- data.frame(matrix(NA, nrow = sum(grid$n.test), ncol = 14,
-                                            dimnames = list(NULL,c("type","term","name","n.param","estimate","se","df","statistic","lower","upper","null","p.value",
+        out$univariate <- data.frame(matrix(NA, nrow = sum(grid$n.test), ncol = 15,
+                                            dimnames = list(NULL,c("type","term","name","n.param","estimate","se","df","statistic","null","p.value","quantile","lower","upper",
                                                                    "transformed","tobacktransform"))))
 
         out$univariate$term <- unname(unlist(mapply(iTerm = grid$term, iN = grid$n.test, FUN = function(iTerm,iN){rep(iTerm,iN)}, SIMPLIFY = FALSE)))

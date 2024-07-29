@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jul 25 2024 (15:27) 
+## Last-Updated: Jul 28 2024 (20:57) 
 ##           By: Brice Ozenne
-##     Update #: 1669
+##     Update #: 1688
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -465,33 +465,42 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
     }
 
     ## *** columns
-    valid.columns <- c("null","estimate","se","statistic","df","lower","upper","p.value","","type")
+    valid.columns <- c("null","type","estimate","se","statistic","df","quantile","lower","upper","p.value","")
     if(identical(columns,"all")){
-        columns.multivariate <- setdiff(valid.columns, c("estimate", "se", "lower", "upper"))
+        columns.multivariate <- valid.columns
         columns.univariate <- valid.columns
-    }else  if(is.null(columns)){
-        columns.univariate <- options$columns.anova
-        if(any(object$multivariate$type!="all")){
-            columns.multivariate <- union(c("type","statistic"), setdiff(options$columns.anova, c("estimate", "se", "lower", "upper")))
-        }else{
-            columns.multivariate <- union(c("statistic"), setdiff(options$columns.anova, c("estimate", "se", "lower", "upper")))
-        }
     }else{
-        columns.univariate <- tolower(columns)
-        if(any(columns.univariate %in% valid.columns == FALSE) && any(columns.univariate %in% names(object$univariate) == FALSE)){
-            stop("Incorrect value(s) \"",paste(columns.univariate[columns.univariate %in% valid.columns == FALSE], collapse ="\" \""),"\" for argument \'columns\'. \n",
-                 "Valid values: \"",paste(setdiff(valid.columns, columns.univariate), collapse ="\" \""),"\".\n")
-        }
-        if(!is.null(names(columns.univariate)) && all(names(columns.univariate)=="add")){
-            columns.univariate <- union(options$columns.anova, unname(columns.univariate))
-            columns.multivariate <- setdiff(union("statistic",columns.univariate), c("estimate", "se", "lower", "upper"))
-        }else if(!is.null(names(columns.univariate)) && all(names(columns.univariate)=="remove")){
-            columns.univariate <- setdiff(options$columns.anova, unname(columns.univariate))
-            columns.multivariate <- setdiff(setdiff(union(options$columns.anova,"statistic"), unname(columns.univariate)), c("estimate", "se", "lower", "upper"))
+        if(is.null(columns) || !is.null(names(columns))){
+            columns.univariate <- options$columns.anova
+            if(any(object$multivariate$type!="all")){
+                columns.multivariate <- union(c("type","statistic"), options$columns.anova)
+            }else{
+                columns.multivariate <- union(c("statistic"), options$columns.anova)
+            }
         }else{
-            columns.multivariate <- setdiff(columns.univariate, c("estimate", "se", "lower", "upper"))
+            columns <- tolower(columns)
+            if(any(columns %in% valid.columns == FALSE) && any(columns %in% names(object$univariate) == FALSE)){
+                stop("Incorrect value(s) \"",paste(columns[columns %in% valid.columns == FALSE], collapse ="\" \""),"\" for argument \'columns\'. \n",
+                     "Valid values: \"",paste(setdiff(valid.columns, columns), collapse ="\" \""),"\".\n")
+            }
+            if(!is.null(columns) && any(names(columns) %in% c("add","remove") == FALSE)){
+                stop("Incorrect names for argument \'columns\': should be \"add\" or \"remove\". \n")
+            }
+        }
+
+        if(!is.null(columns)){
+            if(is.null(names(columns))){
+                columns.univariate <- columns
+                columns.multivariate <- columns
+            }else{
+                columns.univariate <- setdiff(union(columns.univariate, unname(columns[names(columns)=="add"])),
+                                              unname(columns[names(columns)=="remove"]))
+                columns.multivariate <- setdiff(union(columns.multivariate, unname(columns[names(columns)=="add"])),
+                                                unname(columns[names(columns)=="remove"]))
+            }
         }
     }
+    columns.multivariate <- setdiff(columns.multivariate, c("estimate", "se", "quantile", "lower", "upper"))
 
     if(length(columns.univariate)==0 || !object$args$univariate){
         print.univariate <- FALSE
@@ -1136,17 +1145,6 @@ summary.resample <- function(object, digits = 3, ...){
             names(table.print)[names(table.print)== col.df[1]] <- "df"
             columns[columns==col.df[1]] <- "df"
             columns <- setdiff(columns,col.df[-1])
-        }
-    }
-
-    ## ** rename statistic
-    if(!is.null(name.statistic) && ("df" %in% names(table.print)) && ("statistic" %in% names(table.print))){
-        if(df){
-            columns[columns=="statistic"] <- name.statistic[2]
-            names(table.print)[names(table.print)=="statistic"] <- name.statistic[2]
-        }else{
-            columns[columns=="statistic"] <- name.statistic[1]
-            names(table.print)[names(table.print)=="statistic"] <- name.statistic[1]
         }
     }
 

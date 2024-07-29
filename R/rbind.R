@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 26 2024 (18:30) 
+## Last-Updated: Jul 28 2024 (23:08) 
 ##           By: Brice Ozenne
-##     Update #: 943
+##     Update #: 957
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,7 +17,7 @@
 
 ## * rbind.Wald_lmm (documentation)
 ##' @title Linear Hypothesis Testing Across Linear Mixed Models
-##' @description Linear hypothesis testing accross linear mixed model.
+##' @description Combine linear hypothesis tests from different linear mixed models.
 ##'
 ##' @param model a \code{Wald_lmm} object (output of \code{anova} applied to a \code{lmm} object)
 ##' @param ...  possibly other \code{Wald_lmm} objects
@@ -112,7 +112,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
         ## combine input
         ls.object <- c(list(model),dots)
         n.object <- length(ls.object)
-        ls.contrast <- lapply(ls.object, function(iO){model.tables(iO, method = "contrast", simplify = FALSE)[[1]]})
+        ls.contrast <- lapply(ls.object, function(iO){model.tables(iO, effects = "contrast", simplify = FALSE)[[1]]})
         all.coefnames <- names(unlist(lapply(ls.object,coef)))
         all.coefmodel <- unlist(lapply(1:n.object, function(iO){rep(iO, length(coef(ls.object[[iO]])))}))
         all.coeflabels <- unlist(lapply(ls.object, function(iO){rownames(iO$univariate)}))
@@ -133,7 +133,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
         stop("Cannot handle multiple multivariate Wald tests in a single object. \n")
     }
 
-    if(any(sapply(ls.object, iid, method = "test") == FALSE)){ ## stop if effects is mean, variance, covariance, all
+    if(any(sapply(ls.object, iid, effects = "test") == FALSE)){ ## stop if effects is mean, variance, covariance, all
         stop("Influence function was not stored in the Wald_lmm objects. \n",
              "Consider providing explicit contrasts (via an equation or a matrix) in the argument \'effects\' when calling anova. \n")
     }
@@ -156,7 +156,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
 
     ## *** name (object)
     if(is.null(name)){
-        duplicated.allparam <- duplicated(unlist(lapply(1:n.object, function(iO){paste(table.args$outcome[iO], names(coef(ls.object[[iO]], method = "all")), sep = sep)})))
+        duplicated.allparam <- duplicated(unlist(lapply(1:n.object, function(iO){paste(table.args$outcome[iO], names(coef(ls.object[[iO]], effects = "all")), sep = sep)})))
         duplicated.hypo <- duplicated(paste(table.args$outcome, all.coeflabels, sep = sep))
         if(any(duplicated.hypo) || any(duplicated.allparam)){
             name <- 1:n.object
@@ -281,10 +281,10 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
 
     ## *** param
     ls.allparam <- lapply(1:length(ls.object), function(iO){
-        iCoef <- coef(ls.object[[iO]], method = "all")
+        iCoef <- coef(ls.object[[iO]], effects = "all", backtransform = FALSE, simplify = FALSE)
         attr(iCoef,"model") <- rep(iO, length(iCoef))
         attr(iCoef,"name") <- names(iCoef)
-        names(iCoef) <- paste(name[iO], sep[1], names(iCoef))
+        names(iCoef) <- paste(name[iO], names(iCoef), sep = sep[1])
         return(iCoef)
     })
     allparam <- do.call(base::c,ls.allparam)
@@ -292,15 +292,13 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
     allparam.original.name <- do.call(base::c,lapply(ls.allparam,attr,"name"))
     
     allparam.notrans <- do.call(base::c,lapply(1:length(ls.object), function(iO){
-        iCoef <- coef(ls.object[[iO]], method = "all.original")
-        names(iCoef) <- paste(name[iO], sep[1], names(iCoef))
+        iCoef <- coef(ls.object[[iO]], effects = "all", backtransform = TRUE)
+        names(iCoef) <- paste(name[iO], names(iCoef), sep = sep[1])
         return(iCoef)
     }))
     allparam.name <- names(allparam.notrans)
-
-    ## *** type
-    allparam.type <- stats::setNames(do.call(base::c,lapply(ls.object,coef,"all.type")), allparam.name)
-
+    allparam.type <- stats::setNames(do.call(base::c,lapply(ls.allparam,attr,"type")), allparam.name)
+    
     ## *** contrast
     allparam.contrast <- contrast %*% as.matrix(Matrix::bdiag(ls.contrast))
     colnames(allparam.contrast)  <- allparam.name
@@ -309,7 +307,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
     allparam.iid <- matrix(0, nrow = n.cluster, ncol = length(allparam.name),
                            dimnames = list(seq.cluster, allparam.name))
     for(iO in 1:n.object){ ## iO <- 1
-        iIID <- iid(ls.object[[iO]], method = "all")
+        iIID <- iid(ls.object[[iO]], effects = "all")
         allparam.iid[ls.cluster[[iO]],allparam.model==iO] <- iIID
         attr(allparam.iid,"message") <- union(attr(allparam.iid,"message"), attr(iIID,"message"))
     }

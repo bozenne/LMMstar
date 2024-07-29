@@ -1,11 +1,11 @@
-### poolWald.R --- 
+### pool.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
-## Created: jul 11 2024 (11:56) 
+## Created: Jul 28 2024 (19:14) 
 ## Version: 
-## Last-Updated: jul 16 2024 (15:00) 
+## Last-Updated: Jul 28 2024 (21:39) 
 ##           By: Brice Ozenne
-##     Update #: 95
+##     Update #: 33
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,39 +15,63 @@
 ## 
 ### Code:
 
-## * poolWald.mlmm
-poolWald.mlmm <- function(object, p, index, method, name.method, ci, df, alpha){
+## * pool.rbindWald_lmm
+pool.rbindWald_lmm <- function(object, method, qt = NULL,
+                               null, level, df){
+
+    options <- LMMstar.options()
+    pool.method <- options$pool.method
+    adj.method <- options$adj.method
+
+    ## ** normalize user input
+
+    ## *** qt (critical quantile)
+    if("p.rejection" %in% method){
+        if(!is.null(qt)){
+            if(length(qt)!=1){
+                stop("Argument \'qt\' should be have length 1. \n")
+            }
+            if(!is.numeric(qt) && (!is.character(qt) || (qt %in% c("none","bonferroni","single-step","single-step2")==FALSE))){
+                stop("Argument \'qt\' should either be numeric or one of \"none\", \"bonferroni\", \"single-step\", \"single-step2\". \n")
+            }
+            if(is.numeric(qt)){
+                critical.threshold <- qt
+            }else{
+                critical.threshold <- confint(object, method = qt, columns = "quantile")$quantile[1]
+            }
+        }else{
+            critical.threshold <- confint(object, columns = "quantile")$quantile[1]
+        }
+    }
+
+    ## *** df
+    if(df && (object$args$df == FALSE)){
+        df <- FALSE        
+    }
+
+    ## ** name for the pooled estimator
+    if(!is.null(names(method))){
+        pool.name <- names(method)
+    }else{
+        pool.name <- poolName.rbindWald_lmm(object, method = method)
+    }
 
     ## ** extract information
-    table <- model.tables(object, p = p, columns = c("estimate","df","null"))[index,,drop=FALSE]
+    ## estimates
+    table.univariate <- model.tables(object, columns = c("estimate","se"))
 
-    if(ci || method %in% c("pool.se","pool.gls","pool.gls1")){
+    ## variance
+    if(!is.na(level) || any(method %in% c("pool.se","pool.gls","pool.gls1"))){
         transform.sigma <-  object$args$transform.sigma
         transform.k <-  object$args$transform.k
         transform.rho <-  object$args$transform.rho
         type.information <-  object$object$type.information
         robust <-  object$args$robust
-
-        Sigma <- vcov(object, p = p, type.information = type.information, robust = robust,
-                      transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)[index,index,drop=FALSE]
+browser()
+        Sigma <- vcov(object, type.information = type.information, robust = robust,
+                      transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
         independence <- attr(object$object,"independence")
 
-        if(ci && is.null(df)){
-            if(method %in% "pool.rubin"){
-                df <- TRUE
-            }else if(independence & any(is.infinite(table$df)==FALSE) & method %in% c("average","pool.fixse")){
-                df <- TRUE
-            }else{
-                df <- FALSE
-            }
-        }
-    }
-
-    ## ** name for the pooled estimator
-    if(!is.null(name.method)){
-        pool.name <- name.method
-    }else{
-        pool.name <- poolName.mlmm(object, index = index, method = method)
     }
 
     ## ** point estimate
@@ -254,11 +278,92 @@ poolWald.mlmm <- function(object, p, index, method, name.method, ci, df, alpha){
     return(out)
 }
 
-## * poolName.mlmm
-poolName.mlmm <- function(object, index, method){
+## * proportion.Wald_lmm
+proportion.rbindWald_lmm <- function(object, name.method, method, qt = NULL, null, ci, df, alpha){
+
+    
+
+
+    ## ** estimate proportion
+    object.ci <- confint(object, method = method, columns = c("estimate","se","df","lower","upper","statistic","null","p.value"))
+    if(is.null(critical.threshold)){
+        if(!is.null(attr(object.ci, "quantile"))){
+            critical.threshold <- attr(object.ci, "quantile")
+        }else{
+            stop("Unknown critical threshold: consider specifying argument \'qt\' or changing argument \'method\'. \n")
+        }
+    }
+
+    integral <- stats::pt(critical.threshold - object.ci$statistic, df = object.ci$df) - stats::pt(-critical.threshold - object.ci$statistic, df = object.ci$df)
+    estimate <- 1 - mean(integral)
+
+    ## ** null
+    if(is.null(null)){
+        method <- attr(object.ci,"method")
+        rho.linfct <- stats::cov2cor(vcov(object))
+        n.test <- NROW(object.ci)
+
+        n.sample <- options$n.sampleCopula
+        myMvd <- copula::mvdc(copula = copula::normalCopula(param=rho.linfct[lower.tri(rho.linfct)], dim = NROW(rho.linfct), dispstr = "un"),
+                              margins = rep("t", NROW(rho.linfct)),
+                              paramMargins = as.list(stats::setNames(object.ci$df,rep("df",NROW(rho.linfct)))))
+        sample.copula <- copula::rMvdc(n.sample, myMvd)
+
+        null.integral <- do.call(cbind, lapply(1:n.test, function(iTest){
+            stats::pt(critical.threshold[iTest] - sample.copula[,iTest], df = object.ci$df[iTest]) - stats::pt(-critical.threshold[iTest] - sample.copula[,iTest], df = object.ci$df[iTest])
+        }))
+        null <- mean(1 - rowMeans(null.integral))
+    }
+
+    ## ** variance
+    if(!ci){
+
+        integral.se  <- NA
+
+    }else{
+
+        browser()
+
+    }
+
+    ## ** degree of freedom
+    if(!ci || df == FALSE){
+
+        integral.df <- Inf
+
+    }else{
+
+        browser()
+
+    }
+
+    ## ** post process
+    alpha <- 1-attr(object.ci, "level")
+
+    out <- data.frame(estimate = as.double(estimate),
+                      se = integral.se,
+                      df = integral.df,
+                      stratistic = NA,
+                      lower = NA,
+                      upper = NA,
+                      null = null,
+                      p.value = NA)
+    out$statistic <- as.double((out$estimate-out$null)/out$se)
+    out$lower <- out$estimate + out$se * stats::qt(alpha/2, df = out$df)
+    out$upper <- out$estimate + out$se * stats::qt(1-alpha/2, df = out$df)
+    out$p.value = 2*(1-stats::pt(abs(out$statistic), df = out$df))
+
+    rownames(out) <- pool.name
+    attr(out,"method") <- method
+    attr(out,"quantile") <- critical.threshold
+    return(out)
+}
+
+## * poolName.rbindWald_lmm
+poolName.rbindWald_lmm <- function(object, method){
 
     ## ** extract
-    table <- object$univariate[index,,drop=FALSE]
+    table <- object$univariate
 
     ## ** build name
     Wald.name <- rownames(table)
@@ -290,5 +395,6 @@ poolName.mlmm <- function(object, index, method){
     return(paste0(method,pool.name))
 }
 
+
 ##----------------------------------------------------------------------
-### poolWald.R ends here
+### pool.R ends here
