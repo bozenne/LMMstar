@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jul 26 2024 (11:32) 
+## Last-Updated: jul 29 2024 (13:27) 
 ##           By: Brice Ozenne
-##     Update #: 3096
+##     Update #: 3100
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,7 +29,6 @@
 ##' @param type.information [character] Should the expected information be computed  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
 ##' @param df [logical] Should the degree of freedom be computed using a Satterthwaite approximation?
 ##' @param weights [formula or character] variable in the dataset used to weight the log-likelihood and its derivative. Should be constant within cluster.
-##' @param scale.Omega [formula or character] variable in the dataset used to rescale the residual variance-covariance matrix. Should be constant within cluster.
 ##' @param trace [interger, >0] Show the progress of the execution of the function.
 ##' @param control [list] Control values for the optimization method.
 ##' The element \code{optimizer} indicates which optimizer to use and additional argument will be pass to the optimizer.
@@ -142,7 +141,7 @@
 ##' dfW <- rbind(data.frame(id = 1:n, rep = 5, Y = rowMeans(rmvnorm(n, sigma = Sigma5))),
 ##'              data.frame(id = (n+1):(2*n), rep = 1, Y = rmvnorm(n, sigma = Sigma1)))
 ##' 
-##' e.lmmW <- lmm(Y~1, data = dfW, scale.Omega=~rep, control = list(optimizer = "FS"))
+##' e.lmmW <- lmm(Y~1, data = dfW, weigths=~rep, control = list(optimizer = "FS"))
 ##' e.lmm0 <- lmm(Y~1, data = dfW, control = list(optimizer = "FS"))
 ##' model.tables(e.lmmW, effects = "all")
 ##' model.tables(e.lmm0, effects = "all")
@@ -153,8 +152,7 @@
 
 ## * lmm (code)
 ##' @export
-lmm <- function(formula, data, repetition, structure, 
-                weights = NULL, scale.Omega = NULL,
+lmm <- function(formula, data, repetition, structure, weights = NULL, 
                 method.fit = NULL, df = NULL, type.information = NULL, trace = NULL, control = NULL){
 
     name.out <- c("args", "call", "cluster", "df", "d2Omega", "data", "data.original", 
@@ -191,8 +189,7 @@ lmm <- function(formula, data, repetition, structure,
 
     ## *** Check all arguments, initialize all arguments but data and structure
     if(trace>=2){cat("\n- normalize argument")}
-    outArgs <- .lmmNormalizeArgs(formula = formula, repetition = repetition, structure = structure, data = data,
-                                 weights = weights, scale.Omega = scale.Omega,
+    outArgs <- .lmmNormalizeArgs(formula = formula, repetition = repetition, structure = structure, data = data, weights = weights, 
                                  method.fit = method.fit, df = df, type.information = type.information, trace = trace, control = control,
                                  options = options)    
     var.outcome <- outArgs$var.outcome
@@ -200,7 +197,7 @@ lmm <- function(formula, data, repetition, structure,
 
     ## *** initialize data, e.g. add integer version of cluster/time/strata (XXcluster.indexXX, XXtime.indexXX, ...)
     if(trace>=2){cat("- normalize data")}    
-    var.all <- c(var.outcome,outArgs$var.X,outArgs$var.cluster,outArgs$var.time,outArgs$var.strata,outArgs$ranef$var,outArgs$var.weights,outArgs$var.scale.Omega)
+    var.all <- c(var.outcome,outArgs$var.X,outArgs$var.cluster,outArgs$var.time,outArgs$var.strata,outArgs$ranef$var,outArgs$var.weights)
     if(!missing(structure) && inherits(structure,"structure")){
         var.all <- c(var.all, unlist(structure$name))
     }
@@ -283,7 +280,7 @@ lmm <- function(formula, data, repetition, structure,
 
     out$index.na <- index.na
     out$data <- data ## possible missing data have been removed
-    out$weights <-  list(var = c("logLik" = outArgs$var.weights, "Omega" = outArgs$var.scale.Omega))
+    out$weights <-  list(var = outArgs$var.weights)
     out$args <- list(method.fit = outArgs$method.fit,
                      type.information = outArgs$type.information,
                      df = outArgs$df,
@@ -334,9 +331,9 @@ lmm <- function(formula, data, repetition, structure,
     }
     if(identical(out$args$control$init,"lmer")){
         out$args$control$init <- .initializeLMER(formula = out$formula$mean, structure = out$design$vcov, data = data,
-                                                 param = out$design$param, method.fit = out$args$method.fit, weights = out$design$weights, scale.Omega = out$design$scale.Omega)
+                                                 param = out$design$param, method.fit = out$args$method.fit, weights = out$design$weights)
     }else if(inherits(out$design$vcov,"CUSTOM")){
-        init.Omega <- .calc_Omega(out$design$vcov, param = c(out$design$vcov$init.sigma,out$design$vcov$init.rho), keep.interim = FALSE)
+        init.Omega <- .calc_Omega(out$design$vcov, param = c(out$design$vcov$init.sigma,out$design$vcov$init.rho), simplify = TRUE)
         out$args$control$init <- init.Omega[[which.max(out$design$vcov$Upattern$n.time)]]
         
     }
@@ -383,8 +380,7 @@ lmm <- function(formula, data, repetition, structure,
 ## * .lmmNormalizeArgs 
 ##' @description Normalize all arguments for lmm
 ##' @noRd
-.lmmNormalizeArgs <- function(formula, repetition, structure, data,
-                              weights, scale.Omega,
+.lmmNormalizeArgs <- function(formula, repetition, structure, data,weights, 
                               method.fit, df, type.information, trace, control,
                               options){
 
@@ -627,35 +623,6 @@ lmm <- function(formula, data, repetition, structure,
         var.weights <- NA
     }
 
-    ## ** scale.Omega
-    if(!is.null(scale.Omega)){
-        if(is.character(scale.Omega)){
-            var.scale.Omega <- scale.Omega
-        }else if(inherits(scale.Omega,"formula")){
-            var.scale.Omega <- all.vars(scale.Omega)
-        }else {
-            stop("Argument \'scale.Omega\' should be a character or a formula. \n")
-        }
-        if(length(var.scale.Omega)>1){
-            stop("Can only handle a single scale.Omega variable. \n")
-        }
-        if(var.scale.Omega %in% names(data)==FALSE){
-            stop("Argument \'scale.Omega\' is inconsistent with argument \'data\'. \n",
-                 "Variable \"",var.scale.Omega,"\" could not be found in the dataset. \n",
-                 sep = "")
-        }
-        if(any(data[[var.scale.Omega]]<=0)){
-            stop("Scale.Omega should be strictly positives. \n")
-        }
-        if(!is.na(var.cluster)){
-            if(any(tapply(data[[var.scale.Omega]], data[[var.cluster]], function(iW){sum(!duplicated(iW))})>1)){
-                stop("Invalid argument \'scale.Omega\': scale.Omega should be constant within clusters. \n")
-            }
-        }
-    }else{
-        var.scale.Omega <- NA
-    }
-
     ## ** method.fit
     if(is.null(method.fit)){
         if(length(var.X)==0 && detail.formula$terms$intercept == FALSE){
@@ -699,8 +666,7 @@ lmm <- function(formula, data, repetition, structure,
 
     ## ** export
     return(list(formula = formula, formula.outcome = stats::update(formula,.~1), formula.design = detail.formula$formula$design, ranef = detail.ranef,
-                var.outcome = var.outcome, var.X = var.X, var.cluster = var.cluster, var.time = var.time, var.strata = var.strata,
-                var.weights = var.weights, var.scale.Omega = var.scale.Omega,
+                var.outcome = var.outcome, var.X = var.X, var.cluster = var.cluster, var.time = var.time, var.strata = var.strata, var.weights = var.weights, 
                 method.fit = method.fit,
                 df = df,
                 type.information = type.information,

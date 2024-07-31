@@ -51,6 +51,7 @@ Otherwise consider each individual output of argument \code{f}.}
 Perform a first order delta method
 }
 \examples{
+
 if(require(lava) && require(nlme)){
 
 #### Random effect ####
@@ -58,7 +59,7 @@ set.seed(10)
 dL <- sampleRem(1e2, n.times = 3, format = "long")
 e.lmm1 <- lmm(Y ~ X1+X2+X3 + (1|id), repetition = ~visit|id, data = dL)
 nlme::ranef(e.lmm1, se = TRUE)
-e.ranef <- estimate(e.lmm1, f  = function(p){nlme::ranef(e.lmm1, p = p)})
+e.ranef <- estimate(e.lmm1, f  = function(object, p){nlme::ranef(object, p = p)})
 e.ranef
 
 if(require(ggplot2)){
@@ -72,31 +73,28 @@ set.seed(10)
 d <- sampleRem(1e2, n.time = 2)
 e.ANCOVA1 <- lm(Y2~Y1+X1, data = d)
 
-if(require(reshape2)){
-   dL2 <- melt(d, id.vars = c("id","X1"),  measure.vars = c("Y1","Y2"),
-               value.name = "Y", variable.name = "time")
-   dL2$time <- factor(dL2$time, levels = c("Y1","Y2"), labels = c("1","2"))
+dL2 <- reshape(d, direction = "long", idvar = c("id","X1"), 
+               timevar = "time", times = c("1","2"), varying = c("Y1","Y2"), 
+               v.names = "Y")
 
-   ## estimated treatment effect (no baseline constraint)
-   e.lmm <- lmm(Y ~ time + time:X1, data = dL2, repetition = ~time|id)
+## estimated treatment effect (no baseline constraint)
+e.lmm <- lmm(Y ~ time + time:X1, data = dL2, repetition = ~time|id)
 
-   e.delta <- estimate(e.lmm, function(p){
-       c(Y1 = p["rho(1,2)"]*p["k.2"],
-         X1 = p["time2:X1"]-p["k.2"]*p["rho(1,2)"]*p["time1:X1"])
-   }) ## same estimate and similar standard errors. 
-   e.delta ## Degrees of freedom are a bit off though
-   cbind(summary(e.ANCOVA1)$coef, df = df.residual(e.ANCOVA1))
+e.delta <- estimate(e.lmm, function(p){
+     c(Y1 = p["rho(1,2)"]*p["k.2"],
+      X1 = p["time2:X1"]-p["k.2"]*p["rho(1,2)"]*p["time1:X1"])
+}) ## same estimate and similar standard errors. 
+e.delta ## Degrees of freedom are a bit off though
+cbind(summary(e.ANCOVA1)$coef, df = df.residual(e.ANCOVA1))
 
-   ## estimated treatment effect (baseline constraint)
-   dL2$time2 <- as.numeric(dL2$time=="2")
-   e.lmmC <- lmm(Y ~ time2 + time2:X1, data = dL2, repetition = ~time|id)
-   e.deltaC <- estimate(e.lmmC, function(p){
+## estimated treatment effect (baseline constraint)
+dL2$time2 <- as.numeric(dL2$time=="2")
+e.lmmC <- lmm(Y ~ time2 + time2:X1, data = dL2, repetition = ~time|id)
+e.deltaC <- estimate(e.lmmC, function(p){
        c(Y1 = p["rho(1,2)"]*p["k.2"],
          X1 = p["time2:X1"])
-   })
-   e.deltaC ## Degrees of freedom are a bit more accurate
-}
-
+})
+e.deltaC ## Degrees of freedom are a bit more accurate
 }
 }
 \keyword{mhtest}

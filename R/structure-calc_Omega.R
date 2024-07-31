@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: feb 28 2024 (13:55) 
+## Last-Updated: jul 29 2024 (09:58) 
 ##           By: Brice Ozenne
-##     Update #: 613
+##     Update #: 616
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -22,9 +22,9 @@
 ##'
 ##' @param structure [structure]
 ##' @param param [named numeric vector] values of the parameters.
-##' @param keep.interim [logical] should the correlation matrix and variance matrix be output
 ##' @param Upattern [data.frame] Optional, used to only evaluate the residual variance-covariance with respect to a subset of patterns.
 ##' Should contain the name of the pattern, the index of the variance pattern, the index of the correlation pattern.
+##' @param simplify [logical] should the correlation matrix and the vector of standard deviations be add to the output as attributes.
 ##' 
 ##' @keywords internal
 ##'
@@ -63,13 +63,13 @@
 ##' param24 <- setNames(c(param4,param4*1.1),Sun24$param$name)
 ##' 
 ##' .calc_Omega(Sun4, param = param4)
-##' .calc_Omega(Sun24, param = param24, keep.interim = TRUE)
+##' .calc_Omega(Sun24, param = param24, simplify = FALSE)
 `.calc_Omega` <-
-    function(object, param, keep.interim, Upattern) UseMethod(".calc_Omega")
+    function(object, param, Upattern, simplify) UseMethod(".calc_Omega")
 
 
 ## * calc_Omega.ID
-.calc_Omega.ID <- function(object, param, keep.interim = FALSE, Upattern = NULL){
+.calc_Omega.ID <- function(object, param, Upattern = NULL, simplify = TRUE){
 
     if(is.null(Upattern)){
         Upattern <- object$Upattern
@@ -99,7 +99,7 @@
             Omega.cor <- NULL            
             Omega <- diag(as.double(Omega.sd)^2, nrow = iNtime, ncol = iNtime)
         }
-        if(keep.interim){
+        if(simplify == FALSE){
             attr(Omega,"sd") <- Omega.sd
             attr(Omega,"cor") <- Omega.cor
             attr(Omega,"time") <- attr(X.var[[iPattern.var]], "index.time")
@@ -127,7 +127,7 @@
 .calc_Omega.UN <- .calc_Omega.ID
 
 ## * calc_Omega.EXP
-.calc_Omega.EXP <- function(object, param, keep.interim = FALSE, Upattern = NULL){
+.calc_Omega.EXP <- function(object, param, Upattern = NULL, simplify = TRUE){
 
     if(is.null(Upattern)){
         Upattern <- object$Upattern
@@ -156,7 +156,7 @@
         }
         Omega <- diag(as.double(Omega.sd)^2, nrow = iNtime, ncol = iNtime) + Omega.cor * tcrossprod(Omega.sd)
         
-        if(keep.interim){
+        if(simplify == FALSE){
             attr(Omega,"sd") <- Omega.sd
             attr(Omega,"cor") <- Omega.cor
             attr(Omega,"time") <- attr(X.var[[iPattern.var]], "index.time")
@@ -170,7 +170,7 @@
     return(1)
 }
 ## * calc_Omega.CUSTOM
-.calc_Omega.CUSTOM <- function(object, param, keep.interim = FALSE, Upattern = NULL){
+.calc_Omega.CUSTOM <- function(object, param, Upattern = NULL, simplify = TRUE){
 
     if(is.null(Upattern)){
         Upattern <- object$Upattern
@@ -201,7 +201,7 @@
             iOmega <- diag(as.double(iOmega.sd)^2, nrow = iNtime, ncol = iNtime)
         }
         
-        if(keep.interim){
+        if(simplify == FALSE){
             attr(iOmega,"sd") <- iOmega.sd
             attr(iOmega,"cor") <- iOmega.cor
         }

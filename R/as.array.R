@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul  9 2024 (10:48) 
 ## Version: 
-## Last-Updated: jul  9 2024 (15:13) 
+## Last-Updated: jul 31 2024 (11:28) 
 ##           By: Brice Ozenne
-##     Update #: 8
+##     Update #: 9
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,7 +16,7 @@
 ### Code:
 
 ## * as.array.correlate
-## ' @export
+##' @export
 as.array.correlate <- function(x, ...){
 
     ## ** check and normalize user imput

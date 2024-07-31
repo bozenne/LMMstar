@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 29 2024 (09:47) 
 ## Version: 
-## Last-Updated: jul  4 2024 (10:24) 
+## Last-Updated: jul 31 2024 (10:40) 
 ##           By: Brice Ozenne
-##     Update #: 1118
+##     Update #: 1124
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -121,6 +121,7 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
     alltime.var <- attr(time.var,"original")
 
     ## ** check arguments
+    ## *** type
     if(inherits(type,"data.frame")){
         stop("Argument \'type\' should be a character, numeric vector, or numeric matrix. \n")
     }else if(is.numeric(type)){
@@ -137,17 +138,31 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
         type <- "user"
     }else{
         weight.type <- NULL
+        if(!is.character(type)){
+            stop("Argument \'type\' should be a character or a numeric vector.")
+        }
+        if(length(type)>1){
+            stop("When a character, argument \'type\' should have length 1. \n")
+        }
+        valid.type <- c("outcome","change","auc","auc-b","user")
+        if(any(type %in% valid.type == FALSE)){
+            stop("Incorrect value for argument \'type\': \"",paste(setdiff(type,valid.type), collapse ="\", \""),"\". \n",
+                 "Valid values: \"",paste(valid.type, collapse ="\", \""),"\". \n")
+        }
     }
-    if(!is.character(type)){
-        stop("Argument \'type\' should be a character or a numeric vector.")
+    
+    ## *** effects
+    if(!is.character(effects) || !is.vector(effects)){
+        stop("Argument \'effects\' must be a character vector. \n")
+    }
+    if(length(effects)!=1){
+        stop("Argument \'effects\' must have length 1. \n")
     }
     valid.effects <- c("identity","difference")
-    effects <- match.arg(effects, valid.effects)
-    if(length(type)>1){
-        stop("When a character, argument \'type\' should have length 1. \n")
+    if(effects %in% valid.effects == FALSE){
+        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
     }
-    valid.type <- c("outcome","change","auc","auc-b","user")
-    type <- match.arg(type, valid.type)
     
     if(!is.null(variable)){
         if(is.list(variable)){

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (15:05) 
 ## Version: 
-## Last-Updated: jul 11 2024 (09:39) 
+## Last-Updated: jul 31 2024 (10:50) 
 ##           By: Brice Ozenne
-##     Update #: 99
+##     Update #: 107
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -43,6 +43,41 @@ variable.names.lmm <- function(object, effects = "all", original = TRUE, simplif
     var.strata <- object$strata$var
     n.time <- object$time$n
 
+    ## ** check user input
+    ## *** dots
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
+    ## *** effects
+    if(!is.character(effects) || !is.vector(effects)){
+        stop("Argument \'effects\' must be a character vector. \n")
+    }
+    valid.effects <- c("outcome","mean","variance","correlation","time","cluster","strata",
+                       "all","mean.type")
+    if(any(effects %in% valid.effects == FALSE)){
+        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+    }
+    if(all("all" %in% effects)){
+        if(length(effects)>1){
+            stop("Argument \'effects\' must have length 1 when containing the element \"all\". \n")
+        }
+    }
+
+    ## *** simplify
+    if(!is.numeric(simplify) && !is.logical(simplify)){
+        stop("Argument \'simplify\' must be numeric or logical. \n")
+    }
+    if(length(simplify)!=1){
+        stop("Argument \'simplify\' must have length 1. \n")
+    }
+    if(simplify %in% c(0,1) == FALSE){
+        stop("Argument \'simplify\' must be TRUE/1 or FALSE/0. \n")
+    }
+
+    ## ** prepare output
     ls.out <- list(outcome = var.outcome,
                    mean = attr(object$design$mean, "variable"),
                    variance = all.vars(object$design$vcov$formula$var),
@@ -55,7 +90,6 @@ variable.names.lmm <- function(object, effects = "all", original = TRUE, simplif
         ls.out$cluster <- attr(ls.out$cluster,"original")
         ls.out$strata <- attr(ls.out$strata,"original")
     }
-    valid.effects <- c(names(ls.out),"mean.type")
     ## normalize numeric(0) and NA into NULL
     ls.out[sapply(ls.out, function(iE){sum(!is.na(iE))==0})] <- list(NULL)
 
@@ -108,13 +142,7 @@ variable.names.lmm <- function(object, effects = "all", original = TRUE, simplif
         }
     }
     
-    ## ** check user input
-    dots <- list(...)
-    if(length(dots)>0){
-        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
-    }
-    effects <-  match.arg(effects, c("all",valid.effects), several.ok = TRUE)
-        
+    ## ** export        
     if(simplify && length(effects)==1){
         if(effects=="all"){
             out <- unname(sort(unique(unlist(ls.out))))

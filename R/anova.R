@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: Jul 28 2024 (19:51) 
+## Last-Updated: jul 31 2024 (17:58) 
 ##           By: Brice Ozenne
-##     Update #: 1923
+##     Update #: 1977
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -33,6 +33,9 @@
 ##' @param univariate [logical] Should an estimate, standard error, confidence interval, and p-value be output for each hypothesis?
 ##' @param multivariate [logical] Should all hypotheses be simultaneously tested using a multivariate Wald test?
 ##' @param transform.sigma,transform.k,transform.rho are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.
+##' @param simplify [logical] should only the estimates, variance-covariance with its gradient, and degrees of freedom relative to the parameters involved in the Wald test be stored (TRUE)
+##' or relative to all model parameters (0.5) along with their iid decomposition (FALSE).
+##' 
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @return A data.frame (LRT) or a list of containing the following elements (Wald):\itemize{
@@ -42,8 +45,6 @@
 ##' \item \code{univariate}: data.frame containing each univariate Wald test.
 ##' \item \code{glht}: used internally to call functions from the multcomp package.
 ##' \item \code{object}: list containing key information about the linear mixed model.
-##' \item \code{vcov}: variance-covariance matrix associated to each parameter of interest (i.e. hypothesis).
-##' \item \code{iid}: matrix containing the influence function relative to each parameter of interest (i.e. hypothesis).
 ##' \item \code{args}: list containing argument values from the function call.
 ##' }
 ##' 
@@ -101,7 +102,8 @@
 ##' @export
 anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NULL,
                       univariate = TRUE, multivariate = TRUE, 
-                      transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, ...){
+                      transform.sigma = NULL, transform.k = NULL, transform.rho = NULL,
+                      simplify = NULL, ...){
 
     call <- match.call()
     options <- LMMstar.options()
@@ -144,7 +146,31 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
         if(is.null(df)){
             df <- !is.null(object$df)
         }
+        if(df){
+            all2 <- c("all","gradient")
+        }else{
+            all2 <- "all"
+        }
 
+        ## initialize simplify
+        if(is.null(simplify)){
+            if((df == FALSE) || (is.character(effects) && all(effects %in% c("all","mean","fixed","variance","correlation")))){
+                simplify <- TRUE
+            }else{
+                simplify <- 0.5
+            }
+        }else{
+            if(!is.numeric(simplify) && !is.logical(simplify)){
+                stop("Argument \'simplify\' must be numeric or logical. \n")
+            }
+            if(length(simplify)!=1){
+                stop("Argument \'simplify\' must have length 1. \n")
+            }
+            if(simplify %in% c(0,0.5,1) == FALSE){
+                stop("Argument \'simplify\' must be TRUE/1, 0.5, or FALSE/0. \n")
+            }
+        }
+        
         ## initialize tranformation
         init <- .init_transform(p = NULL, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
                                 x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
@@ -163,25 +189,29 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
         if(transform.k %in% c("sd","logsd","var","logvar")){
             type.param[type.param=="sigma"] <- "k"
         }
-
         param <- coef(object, effects = "all",
                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = TRUE)
         param.notrans <- coef(object, effects = "all",
                               transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = FALSE)
-        vcov.param <- vcov(object, df = df*2, effects = "all", robust = robust,
+        vcov.param <- vcov(object, df = df, effects = all2, robust = robust,
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
+
         dVcov.param <- attr(vcov.param,"dVcov")
         attr(vcov.param,"dVcov") <- NULL
         attr(vcov.param,"df") <- NULL
-
-        iid.param <- iid(object, effects = "all", robust = robust, 
-                         transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE) 
+        if(simplify == FALSE){
+            iid.param <- iid(object, effects = "all", robust = robust, 
+                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
+        }else{
+            iid.param <- NULL
+        }
 
         ## call Wald test
         out <- .anova_Wald(param = param, param.notrans = param.notrans, vcov.param = vcov.param, dVcov.param = dVcov.param, iid.param = iid.param, type.param = type.param,
                            contrast = ls.e2c$contrast, null = ls.e2c$null, robust = robust, df = df,
                            multivariate = multivariate, univariate = univariate, 
-                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, backtransform = ls.e2c$backtransform)
+                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, backtransform = ls.e2c$backtransform,
+                           simplify = simplify)
 
         ## add extra information to object that may be using by rbind
         out$object <- list(outcome = object$outcome$var,
@@ -270,7 +300,8 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
 .anova_Wald <- function(param, param.notrans, vcov.param, iid.param, dVcov.param, type.param,
                         contrast, null, robust, df,
                         univariate, multivariate, 
-                        transform.sigma, transform.k, transform.rho, backtransform){
+                        transform.sigma, transform.k, transform.rho, backtransform,
+                        simplify){
 
     ## ** prepare
     ## *** transformation (ignore sd->var or cor->cov)
@@ -400,7 +431,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
     ## *** output
     out <- list(args = data.frame(type = ifelse(all(grid$type.original=="user"),"user","auto"), robust = robust, df = df,
                                   transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.all = transform2.all,
-                                  univariate = univariate, multivariate = multivariate)
+                                  univariate = univariate, multivariate = multivariate, simplify = as.numeric(simplify))
                 )
 
     if(multivariate){
@@ -484,10 +515,9 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
                     iSVD.contrast <- sqrt(iSVD.D) %*% t(iSVD.P) %*% iSimplify$C
                     colnames(iSVD.contrast) <- colnames(iSimplify$C)
 
-                    iNu_m <- dfSigma(contrast = iSVD.contrast,
-                                     vcov = vcov.param,
-                                     dVcov = dVcov.param,
-                                     keep.param = colnames(iSimplify$C))
+                    iNu_m <- .dfX(X.beta = iSVD.contrast[,dimnames(dVcov.param)[[1]],drop=FALSE], ## subset for rbind when dVcov.param is not full in the first 2 dimensions
+                                  vcov.param = vcov.param,
+                                  dVcov.param = dVcov.param)
                 
                     iEQ <- sum(iNu_m/(iNu_m - 2))
                     out$multivariate[iG,"df.denom"] <- 2 * iEQ/(iEQ - iSimplify$dim)
@@ -506,12 +536,16 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
             iG.univariate <- which(out$univariate$name == rownames(grid)[iG])
 
             if(df>0){
-                out$univariate[iG.univariate,"df"] <- as.double(.dfX(X.beta = iContrast, vcov.param = vcov.param, dVcov.param = dVcov.param))
-                if(multivariate & (out$multivariate[iG,"df.denom"]<1)){
-                    warning("Suspicious degree of freedom was found for the F-statistic (",out$multivariate[iG,"df.denom"],"). \n",
-                            "It has been set to the average degree of freedom of the univariate Wald tests (",mean(out$univariate[iG.univariate,"df"]),") instead. \n")
-                    attr(out$multivariate,"df") <- "average degree of freedom of the univariate Wald tests. \n"
-                    out$multivariate[iG,"df.denom"] <- mean(out$univariate[iG.univariate,"df"])
+                out$univariate[iG.univariate,"df"] <- as.double(.dfX(X.beta = iContrast[,dimnames(dVcov.param)[[1]],drop=FALSE], ## subset for rbind when dVcov.param is not full
+                                                                     vcov.param = vcov.param,
+                                                                     dVcov.param = dVcov.param))
+                if(multivariate){
+                    if(out$multivariate[iG,"df.denom"]<1){
+                        warning("Suspicious degree of freedom was found for the F-statistic (",out$multivariate[iG,"df.denom"],"). \n",
+                                "It has been set to the average degree of freedom of the univariate Wald tests (",mean(out$univariate[iG.univariate,"df"]),") instead. \n")
+                        attr(out$multivariate,"df") <- "average degree of freedom of the univariate Wald tests. \n"
+                        out$multivariate[iG,"df.denom"] <- mean(out$univariate[iG.univariate,"df"])
+                    }
                 }
             }else{
                 out$univariate[iG.univariate,"df"] <- rep(Inf, length(iG.univariate))
@@ -527,21 +561,39 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
             out$univariate[iG.univariate,"se"] <- sqrt(diag(iContrast %*% vcov.param %*% t(iContrast)))
             out$univariate[iG.univariate,"null"] <- iNull
 
-            ## create glht object            
+            ## create glht object
             out$glht[[iG]] <- list(model = NULL,
                                    linfct = iContrast,
                                    rhs = iNull,
                                    coef = stats::setNames(param, names(param.notrans)),
                                    vcov = vcov.param,
                                    df = ceiling(stats::median(out$univariate[iG.univariate,"df"])),
-                                   alternative = "two.sided")
-            if(all(grid$type.original=="user")){ ## extra-element for rbind
-                out$glht[[iG]]$coef.name <- names(param) ## possibly transformed named (coef will always be named without transformed names)
-                out$glht[[iG]]$coef.notrans <- param.notrans ## values without transformation
-                out$glht[[iG]]$coef.type <- type.param
-                out$glht[[iG]]$dVcov <- dVcov.param
-                out$glht[[iG]]$iid <- iid.param
+                                   alternative = "two.sided",
+                                   coef.name = names(param), ## possibly transformed named (coef will always be named without transformed names)
+                                   coef.notrans = param.notrans, ## values without transformation
+                                   coef.type = type.param,
+                                   dVcov = dVcov.param,
+                                   iid = iid.param)
+
+            if(simplify == TRUE){  
+                
+                index.simplify <- which(colSums(iContrast!=0)>0)
+                out$glht[[iG]]$linfct <- out$glht[[iG]]$linfct[,index.simplify,drop=FALSE]
+                out$glht[[iG]]$coef <- out$glht[[iG]]$coef[index.simplify] ## transformation.name = FALSE (use transformed values but not transformed name)
+                out$glht[[iG]]$vcov <- out$glht[[iG]]$vcov[index.simplify,index.simplify,drop=FALSE]
+                out$glht[[iG]]$coef.name <- out$glht[[iG]]$coef.name[index.simplify] ## transformation.name = TRUE (use transformed values and transformed name)
+                out$glht[[iG]]$coef.notrans <- out$glht[[iG]]$coef.notrans[index.simplify] ## transformation.sigma = "none", ... (use original value and original name)
+                out$glht[[iG]]$coef.type <- out$glht[[iG]]$coef.type[index.simplify]
+                out$glht[[iG]]$dVcov <- NULL ## useless to have dVcov if we do not have the full vcov for df computation
+                out$glht[[iG]]$iid <- out$glht[[iG]]$iid[,index.simplify,drop=FALSE]
+
+            }else if(simplify == 0.5){
+
+                name.simplify <- names(which(colSums(iContrast!=0)>0))
+                out$glht[[iG]]$dVcov <- out$glht[[iG]]$dVcov[name.simplify,name.simplify,,drop=FALSE]
+
             }
+
             class(out$glht[[iG]]) <- "glht"
         }
     }
@@ -608,36 +660,6 @@ anova.mlmm <- function(object, effects = NULL, rhs = NULL, ...){
     return(out)
     
 }
-
-
-## * dfSigma
-##' @title Degree of Freedom for the Chi-Square Test
-##' @description Computation of the degrees of freedom of the chi-squared distribution
-##' relative to the model-based variance. Copied of lavaSearch2:::dfSigmaRobust.
-##' @noRd
-##' 
-##' @param contrast [numeric vector] the linear combination of parameters to test
-##' @param vcov [numeric matrix] the variance-covariance matrix of the parameters.
-##' @param dVcov [numeric array] the first derivative of the variance-covariance matrix of the parameters.
-##' @param keep.param [character vector] the name of the parameters with non-zero first derivative of their variance parameter.
-##' 
-dfSigma <- function(contrast, vcov, dVcov, keep.param){
-    ## iLink <- "LogCau~eta"
-    C.vcov.C <- rowSums(contrast %*% vcov * contrast) ## variance matrix of the linear combination
-    ## C.vcov.C - vcov[iLink,iLink]
-
-    C.dVcov.C <- sapply(keep.param, function(x){
-        rowSums(contrast %*% dVcov[,,x] * contrast)
-    })
-    ## C.dVcov.C - dVcov[iLink,iLink,]
-    numerator <- 2 *(C.vcov.C)^2
-    ## numerator - 2*vcov[iLink,iLink]^2
-    denom <- rowSums(C.dVcov.C %*% vcov[keep.param,keep.param,drop=FALSE] * C.dVcov.C)
-    ## denom - t(dVcov[iLink,iLink,]) %*% vcov[keep.param,keep.param,drop=FALSE] %*% dVcov[iLink,iLink,]
-    df <- numerator/denom
-    return(df)
-}
-
 
 ##----------------------------------------------------------------------
 ### anova.R ends here

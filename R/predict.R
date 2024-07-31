@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jul 25 2024 (11:06) 
+## Last-Updated: jul 31 2024 (17:42) 
 ##           By: Brice Ozenne
-##     Update #: 1478
+##     Update #: 1503
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -109,6 +109,7 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
 
 
     ## ** normalize user imput
+    ## *** dots
     dots <- list(...)
 
     ## hidden arguments
@@ -134,7 +135,8 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
-    ## type of prediction
+
+    ## *** type
     type.prediction <- match.arg(type, c("static0","static","terms","dynamic","change","auc","auc-b")) ## static0: no intercept
     if((type.prediction == "dynamic") && ("rho" %in% table.param$type == FALSE)){
         type.prediction <- "static"
@@ -176,12 +178,12 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
         }                
     }
 
-    ## keep.data
+    ## *** keep.data
     if(is.null(keep.data)){
         keep.data <- FALSE
     }
     
-    ## dataset
+    ## *** newdata
     if(!is.null(newdata)){
         if(is.matrix(newdata)){
             if(type %in% c("dynamic","change","auc","auc-b")){
@@ -216,7 +218,7 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
         }        
     }
 
-    ## standard error
+    ## *** se: standard error
     if(is.null(se)){
         se <- c((!simplify || keep.data) && !(format == "wide") && is.null(p), FALSE)
     }else{
@@ -233,7 +235,7 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
         }    
     }
 
-    ## parameter value and transformation
+    ## *** p: parameter value and transformation
     init <- .init_transform(p = p, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
                             x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
                             table.param = object$design$param)
@@ -248,7 +250,7 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
     }    
     mu <- theta[name.mu]
 
-    ## degrees of freedom
+    ## *** df: degrees of freedom
     if(is.null(df)){
         df <- !is.null(object$df) & se[1]
     }else if(!is.logical(df) & !is.numeric(df)){
@@ -262,7 +264,7 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
         }
     }
         
-    ## check format
+    ## *** format: check format
     format[] <- match.arg(format, c("wide","long"))  ## use 'format[] <-' instead of 'format <-' to keep the name that will be transferd to .reformat(
     if(keep.data && format == "wide" && is.null(attr(keep.data, "var"))){
         mean.type <- stats::variable.names(object, effects = "mean.type")
@@ -277,6 +279,7 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
         se <- c(FALSE, FALSE)
     }
 
+    ## *** newdata
     ## impute cluster when missing (if static) and unambiguous, i.e. no repeated times (id dynamic)
     if(inherits(newdata,"data.frame") && !is.na(name.cluster)){
         if(type.prediction %in% c("dynamic","change","auc","auc-b") && is.null(newdata[[name.cluster]]) && all(!is.na(name.time)) && all(name.time %in% names(newdata))){
@@ -330,8 +333,20 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
 
     }
 
+    ## *** keep.data
     if(keep.data && any(c("estimate","se","df","lower","upper") %in% names(newdata))){
         stop("Argument \'newdata\' should not contain a column named \"estimate\", \"se\", \"lower\", \"upper\", or \"df\" as those names are used internally. \n")
+    }
+
+    ## *** simplify
+    if(!is.numeric(simplify) && !is.logical(simplify)){
+        stop("Argument \'simplify\' must be numeric or logical. \n")
+    }
+    if(length(simplify)!=1){
+        stop("Argument \'simplify\' must have length 1. \n")
+    }
+    if(simplify %in% c(0,1) == FALSE){
+        stop("Argument \'simplify\' must be TRUE/1 or FALSE/0. \n")
     }
 
     ## ** parameters
@@ -404,7 +419,7 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
         index.clusterTime <- newdesign$index.clusterTime
         n.cluster <- length(index.cluster)
 
-        Omega <- .calc_Omega(newdesign$vcov, param = theta, keep.interim = TRUE)
+        Omega <- .calc_Omega(newdesign$vcov, param = theta, simplify = FALSE)
         if(se[1]){
             dOmega <- .calc_dOmega(newdesign$vcov, param = theta, Omega = Omega,
                                    Jacobian = reparametrize$Jacobian,
@@ -724,89 +739,6 @@ predict.mlmm <- function(object, p = NULL, newdata = NULL, keep.data = FALSE, si
 
 }
 
-## * .dfX
-.dfX <- function(X.beta, vcov.param, dVcov.param, return.vcov = FALSE){
-
-    n.param <- NCOL(vcov.param)
-    name.param <- colnames(vcov.param)
-
-    if(is.null(X.beta)){
-        n.obs <- n.param
-        name.beta <- name.param
-        n.beta <- n.param
-
-        prediction.vcov <- vcov.param
-    }else{
-        if(!is.matrix(X.beta) && is.vector(X.beta)){
-            X.beta <- rbind(X.beta)
-        }
-        n.obs <- NROW(X.beta)
-        name.beta <- colnames(X.beta)
-        n.beta <- length(name.beta)
-
-        prediction.vcov <- X.beta %*% vcov.param[name.beta,name.beta,drop=FALSE] %*% t(X.beta)
-    }
-
-    
-    ## ** variance covariance matrix of the variance of the mean parameters
-    ## delta method:
-    ## Cov[Sigma_\beta,Sigma_\beta'] = [dSigma_\beta/d\beta] [Sigma_\theta] [dSigma_\beta'/d\beta']
-    n.beta2 <- n.beta^2
-    Mname.beta2 <- expand.grid(name.beta,name.beta)
-    name.beta2 <- nlme::collapse(Mname.beta2, as.factor = TRUE)
-    
-    Mpair_dVcov.param <- do.call(rbind,lapply(1:n.beta2, function(iIndex){dVcov.param[Mname.beta2[iIndex,1],Mname.beta2[iIndex,2],]})) ## iIndex <- 240
-    vcov.vcovbeta <- Mpair_dVcov.param %*% vcov.param %*% t(Mpair_dVcov.param)
-    rownames(vcov.vcovbeta)  <-  name.beta2
-    colnames(vcov.vcovbeta)  <-  name.beta2
-    
-    ## GS <- matrix(0, nrow = n.beta2, ncol = n.beta2, dimnames = list(name.beta2,name.beta2))
-    ## for(iP in 1:n.beta2){ ## iP <- 15
-    ##     for(iiP in 1:iP){ ## iiP <- 29
-    ##         iParam <-  name.beta2[iP]
-    ##         iiParam <-  name.beta2[iiP]
-    ##         GS[iParam,iiParam] <- dVcov.param[Mname.beta2[iP,1],Mname.beta2[iP,2],] %*% vcov.param %*% dVcov.param[Mname.beta2[iiP,1],Mname.beta2[iiP,2],]
-    ##         if(iParam != iiParam){
-    ##             GS[iiParam,iParam] <- vcov.vcovbeta[iParam,iiParam]
-    ##         }
-    ##     }
-    ## }
-    ## GS[iP,iiP] - vcov.vcovbeta[iP,iiP]
-
-    ## ** gradient of the variance of the predictions relative to the variance of the mean parameters
-    ## d(X\Sigma t(X))_ij is computed by X\delta_ij t(X)
-    dXTX.dT <- matrix(0, nrow = n.obs, ncol = n.beta2, dimnames = list(NULL,name.beta2))
-
-    ## matrix cookbook: A_ki B_lj = (A \delta_ij \trans{B})_kl
-    ## so               A_ki A_kj = (A \delta_ij \trans{A})_kk
-    ## so               t(A)_ik A_kj = (A \delta_ij \trans{A})_kk
-
-    if(is.null(X.beta)){
-        dXTX.dT[,which(Mname.beta2[,1] == Mname.beta2[,2])] <- diag(1, nrow = n.beta, ncol = n.beta)
-    }else{
-        for(iP in 1:n.beta2){ ## iP <- 35
-            ## iDelta <- matrix(0, nrow = n.beta, ncol = n.beta, dimnames = list(name.beta,name.beta))
-            ## iDelta[Mname.beta2[iP,1],Mname.beta2[iP,2]] <- 1
-            ## dXTX.dT[,iP] <- diag(X.beta %*% iDelta %*% t(X.beta))
-            dXTX.dT[,iP] <- (X.beta[,Mname.beta2[iP,1]] * X.beta[,Mname.beta2[iP,2]])
-        }
-    }
-    ## ** Satterthwaite approximation of the degrees of freedom
-    ## NOTE: df(beta) is 2*diag(vcov.param[name.beta,name.beta,drop=FALSE])^2 / diag(vcov.vcovbeta[Mname.beta2[,1]==Mname.beta2[,2],Mname.beta2[,1]==Mname.beta2[,2]])
-    denum <- rowSums((dXTX.dT %*% vcov.vcovbeta) * dXTX.dT)
-    out <- 2*diag(prediction.vcov)^2 / denum
-    out[denum==0] <- Inf
-    ## out <- sapply(1:n.obs, function(iObs){
-    ##     2 * prediction.vcov[iObs,iObs]^2 / (dXTX.dT[iObs,] %*% vcov.vcovbeta %*% dXTX.dT[iObs,])
-    ## })
-
-    ## ** export
-    if(return.vcov){
-        attr(out,"vcov") <- vcov.vcovbeta
-        attr(out,"denum") <- denum
-    }
-    return(out)
-}
 
 
 ##----------------------------------------------------------------------

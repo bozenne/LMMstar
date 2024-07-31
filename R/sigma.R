@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: May  9 2024 (15:20) 
+## Last-Updated: jul 31 2024 (10:50) 
 ##           By: Brice Ozenne
-##     Update #: 764
+##     Update #: 771
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -103,14 +103,13 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
                                     Upattern$name)
 
     ## ** normalize user imput
-
-    ## dots
+    ## *** dots
     dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
     
-    ## p
+    ## *** p
     if(!is.null(p)){
         init <- .init_transform(p = p, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, 
                                 x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
@@ -120,7 +119,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
         theta <- object$param
     }
 
-    ## cluster    
+    ## *** cluster    
     if(!is.null(cluster)){
         test.clusterDF <- inherits(cluster, "data.frame")
         if(test.clusterDF){
@@ -161,6 +160,16 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
         test.clusterDF <- FALSE
     }
 
+    ## *** simplify
+    if(!is.numeric(simplify) && !is.logical(simplify)){
+        stop("Argument \'simplify\' must be numeric or logical. \n")
+    }
+    if(length(simplify)!=1){
+        stop("Argument \'simplify\' must have length 1. \n")
+    }
+    if(simplify %in% c(0,1) == FALSE){
+        stop("Argument \'simplify\' must be TRUE/1 or FALSE/0. \n")
+    }
 
     ## ** rebuild residual variance-covariance matrix
     if(is.null(cluster)){ ## representative covariance patterns
@@ -172,7 +181,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
             if(!is.null(p)){
                 Omega <- .calc_Omega(object = object.structure,
                                      param = theta,
-                                     keep.interim = FALSE)
+                                     simplify = TRUE)
             }else{
                 Omega <- object.Omega
                 for(iO in 1:length(Omega)){
@@ -209,7 +218,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
             ## evaluate residual varince covariance matrix
             Omega <- .calc_Omega(object = object$design$vcov,
                                  param = theta,
-                                 keep.interim = FALSE)
+                                 simplify = TRUE)
             ## identify timepoints
             Upattern <- object$design$vcov$Upattern
             object.index.clusterTime <- object$design$index.clusterTime
@@ -227,7 +236,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
 
         Omega <- .calc_Omega(object = newdesign$vcov,
                              param = theta,
-                             keep.interim = FALSE)
+                             simplify = TRUE)
         ## identify timepoints
         Unewpattern <- newdesign$vcov$Upattern
         newdesign.index.clusterTime <- newdesign$index.clusterTime
@@ -245,7 +254,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
         if(!is.null(p)){
             Omega <- .calc_Omega(object = object.structure,
                                  param = theta,
-                                 keep.interim = FALSE)
+                                 simplify = TRUE)
         }else{
             Omega <- object.Omega
             for(iO in 1:length(Omega)){
@@ -322,7 +331,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
 ##' @export
 sigma.clmm <- function(object, ...){
 
-    object$Omega <- .calc_Omega(object$design$vcov, param = object$param, keep.interim = FALSE)
+    object$Omega <- .calc_Omega(object$design$vcov, param = object$param, simplify = TRUE)
     out <- sigma.lmm(object, ...)
     return(out)
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jun 16 2022 (15:19) 
 ## Version: 
-## Last-Updated: maj 10 2024 (19:46) 
+## Last-Updated: jul 31 2024 (10:37) 
 ##           By: Brice Ozenne
-##     Update #: 319
+##     Update #: 322
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -70,19 +70,23 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
                         maxpts = NULL, conf.level = 0.95, trace = FALSE,                        
                         transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
 
-    ## ** normalize user input
     call <- match.call()
-    dots <- list(...)
     options <- LMMstar.options()
+
+    ## ** normalize user input
+    ## *** dots
+    dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
-    
+
+    ## *** conf.level
     p <- confint(fitted, effects = "all", level = conf.level,
                  transform.sigma = "none", transform.k = "none", transform.rho = "none")
     name.p <- rownames(p)
     type.p <- stats::setNames(fitted$design$param$type, name.p)
 
+    ## *** transformations
     init <- .init_transform(p = NULL, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
                             x.transform.sigma = fitted$reparametrize$transform.sigma, x.transform.k = fitted$reparametrize$transform.k, x.transform.rho = fitted$reparametrize$transform.rho)
     transform.sigma <- init$transform.sigma
@@ -96,27 +100,45 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
     name.p.trans <- rownames(p.trans)
     rownames(p.trans) <- name.p
 
+    ## *** effects
     if(is.null(effects)){
-        effects <- options$effects
-    }else if(identical(effects,"all")){
-        effects <- c("mean","variance","correlation")
-    }
-    valid.effects <- c("mean","fixed","variance","correlation",name.p)
-    if(any(effects %in% valid.effects == FALSE)){
-        stop("Argument \'effects\' contains incorrect values. \n",
-             "Incorrect value: \"",paste(setdiff(effects,valid.effects), collapse = "\", \""),"\"\n",
-             "Possible value: \"",paste(setdiff(name.p,effects), collapse = "\", \""),"\"\n")
-    }
-    if(any(effects %in% name.p == FALSE)){
-        effects <- names(coef(fitted, effects = effects))
+        if((is.null(transform.sigma) || identical(transform.sigma,"none")) && (is.null(transform.k) || identical(transform.k,"none")) && (is.null(transform.rho) || identical(transform.rho,"none"))){
+            effects <- options$effects
+        }else{
+            effects <- c("mean","variance","correlation")
+        }
+    }else{
+        if(!is.character(effects) || !is.vector(effects)){
+            stop("Argument \'effects\' must be a character vector. \n")
+        }
+        valid.effects <- c("mean","fixed","variance","correlation","all",name.p)
+        if(any(effects %in% valid.effects == FALSE)){
+            stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+                 "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+        }
+        if(all("all" %in% effects)){
+            if(length(effects)>1){
+                stop("Argument \'effects\' must have length 1 when containing the element \"all\". \n")
+            }else{
+                effects <- c("mean","variance","correlation")
+            }
+        }else{
+            effects[effects == "fixed"] <- "mean"
+        }
+        if(any(effects %in% name.p == FALSE)){
+            effects <- names(coef(fitted, effects = effects))
+        }
+    
     }
     n.effects <- length(effects)
 
+    ## *** profile.likelihood
     if(fitted$args$control$optimizer!="FS" && profile.likelihood>0){
         stop("Argument \'profile.likelihood\' can only be TRUE when \"FS\" optimizer is used. \n",
              "Consider adding the argument control = list(optimizer = \"FS\") when fitting the mixed model with lmm. \n")
     }
 
+    ## *** maxpt
     if(is.null(maxpts)){
         if(profile.likelihood>0){
             maxpts <- 15
@@ -130,7 +152,6 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
         grid <- maxpts
         maxpts <- length(maxpts)/2
     }
-
 
     ## ** profile likelihood
     if(trace>1){cat("Profile likelihood (",round(2*maxpts)," points):\n",sep="")}

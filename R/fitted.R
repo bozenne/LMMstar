@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul  8 2021 (17:09) 
 ## Version: 
-## Last-Updated: jul 11 2024 (10:03) 
+## Last-Updated: jul 31 2024 (10:50) 
 ##           By: Brice Ozenne
-##     Update #: 411
+##     Update #: 413
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -166,6 +166,8 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
     object.data.original <- object$data.original 
 
     ## ** normalize user input
+
+    ## *** type
     type <- match.arg(type, c("mean","outcome","impute","change","auc","auc-b"))
     type.prediction <- switch(type,
                               mean = "static",
@@ -175,6 +177,7 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
                               auc = "auc",
                               auc = "auc-b")
 
+    ## *** newdata
     if(identical(newdata,"unique")){        
         if(format == "wide"){
             stop("Argument \'newdata\' equals \"unique\" is only valid when argument \'format\' equals \"long\". \n")
@@ -201,6 +204,7 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
         newdata.index.time <- attr(newdata.design$index.clusterTime, "vectorwise")        
     }
 
+    ## *** keep.data
     if(is.null(keep.data)){
         keep.data <- FALSE
     }
@@ -228,7 +232,8 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
             return(out)
         }
     }
-    
+
+    ## *** se and df
     if(type == "impute"){
         if(is.null(se)){
             se <- TRUE
@@ -248,6 +253,7 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
         df <- se[1]
     }
 
+    ## *** format
     if(format == "wide" && sum(se)>0 && type != "impute"){
         stop("Cannot export standard errors, confidence intervals, and p-values in the wide format. \n",
              "Consider setting the argument \'format\' to \"long\". \n")
@@ -256,6 +262,17 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
         stop("Argument \'newdata\' should not contain a column called \"imputed\". \n")
     }
     format[] <- match.arg(format, c("wide","long")) ## use 'format[] <-' instead of 'format <-' to keep the name that will be transferd to .reformat(
+
+    ## *** simplify
+    if(!is.numeric(simplify) && !is.logical(simplify)){
+        stop("Argument \'simplify\' must be numeric or logical. \n")
+    }
+    if(length(simplify)!=1){
+        stop("Argument \'simplify\' must have length 1. \n")
+    }
+    if(simplify %in% c(0,1) == FALSE){
+        stop("Argument \'simplify\' must be TRUE/1 or FALSE/0. \n")
+    }
 
     ## ** extract fitted values
     e.pred <- stats::predict(object,

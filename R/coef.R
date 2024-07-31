@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: Jul 28 2024 (23:10) 
+## Last-Updated: jul 31 2024 (14:57) 
 ##           By: Brice Ozenne
-##     Update #: 1115
+##     Update #: 1136
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -125,16 +125,28 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
         }else{
             effects <- c("mean","variance","correlation")
         }
-    }else if(identical(effects,"all")){
-        effects <- c("mean","variance","correlation")
-    }else if("ranef" %in% effects){
-        if(length(effects)>1){
-            stop("Argument \'effects\' should be of length 1 when it contains \"ranef\". \n")
-        }
-        return(nlme::ranef(object, p = p))
     }else{
-        effects <- match.arg(effects, c("mean","fixed","variance","correlation","ranef"), several.ok = TRUE)
-        effects[effects== "fixed"] <- "mean"
+        if(!is.character(effects) || !is.vector(effects)){
+            stop("Argument \'effects\' must be a character vector. \n")
+        }
+        valid.effects <- c("ranef","mean","fixed","variance","correlation","all")
+        if(any(effects %in% valid.effects == FALSE)){
+            stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+                 "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+        }
+        if(all("ranef" %in% effects)){
+            if(length(effects)>1){
+                stop("Argument \'effects\' must have length 1 when containing the element \"ranef\". \n")
+            }
+        }else if(all("all" %in% effects)){
+            if(length(effects)>1){
+                stop("Argument \'effects\' must have length 1 when containing the element \"all\". \n")
+            }else{
+                effects <- c("mean","variance","correlation")
+            }
+        }else{
+            effects[effects == "fixed"] <- "mean"
+        }
     }
 
     ## *** transformation & initialize parameter value
@@ -159,6 +171,22 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
         if(all("variance" %in% effects == FALSE)){
             effects2 <- c("variance",effects2)
         }
+    }
+
+    ## *** simplify
+    if(!is.numeric(simplify) && !is.logical(simplify)){
+        stop("Argument \'simplify\' must be numeric or logical. \n")
+    }
+    if(length(simplify)!=1){
+        stop("Argument \'simplify\' must have length 1. \n")
+    }
+    if(simplify %in% c(0,1) == FALSE){
+        stop("Argument \'simplify\' must be TRUE/1 or FALSE/0. \n")
+    }
+
+    ## ** special case
+    if(all(effects %in% "ranef")){
+        return(nlme::ranef(object, p = p, simplify = simplify))
     }
 
     ## ** apply transformation request by the user
@@ -494,16 +522,20 @@ coef.rbindWald_lmm <- function(object, effects = "contrast", method = "none", or
 
     ## *** effects
     if(!is.character(effects) || !is.vector(effects)){
-        stop("Argument \'effects\' must be a character.")
+        stop("Argument \'effects\' must be a character. \n")
     }
     if(length(effects)!=1){
-        stop("Argument \'effects\' must have length 1.")
+        stop("Argument \'effects\' must have length 1. \n")
     }
-    effects <- match.arg(effects, c("Wald","all"))
+    valid.effects <- c("Wald","all")
+    if(effects %in% valid.effects == FALSE){
+        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+    }
 
     ## *** method
     if(!is.character(method) || !is.vector(method)){
-        stop("Argument \'method\' must be a character.")
+        stop("Argument \'method\' must be a character. \n")
     }
     valid.method <- c("none",pool.method,adj.method)
     if(any(method %in% valid.method == FALSE)){
@@ -640,12 +672,16 @@ coef.Wald_lmm <- function(object, effects = "Wald", backtransform = NULL, simpli
 
     ## *** effects
     if(!is.character(effects) || !is.vector(effects)){
-        stop("Argument \'effects\' must be a character.")
+        stop("Argument \'effects\' must be a character value. \n")
     }
     if(length(effects)!=1){
-        stop("Argument \'effects\' must have length 1.")
+        stop("Argument \'effects\' must have length 1. \n")
     }
-    effects <- match.arg(effects, c("Wald","all"))
+    valid.effects <- c("Wald","all")
+    if(any(effects %in% valid.effects == FALSE)){
+        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+    }        
 
     ## *** backtransform
     if(effects == "all"){
@@ -663,14 +699,21 @@ coef.Wald_lmm <- function(object, effects = "Wald", backtransform = NULL, simpli
             backtransform <- as.logical(backtransform)
         }
     }
+
+    ## *** simplify
+    if(!is.numeric(simplify) && !is.logical(simplify)){
+        stop("Argument \'simplify\' must be numeric or logical. \n")
+    }
+    if(length(simplify)!=1){
+        stop("Argument \'simplify\' must have length 1. \n")
+    }
+    if(simplify %in% c(0,1) == FALSE){
+        stop("Argument \'simplify\' must be TRUE/1 or FALSE/0. \n")
+    }
     
     ## ** extract from object
     if(effects == "all"){
-        if(object$args$type=="auto"){
-            message("The linear mixed model parameters have not been stored. \n",
-                    "Consider specifying the argument \'method\' when calling anova with explicit contrast (e.g. via a matrix or equations). \n")
-            return(NULL)
-        }else if(backtransform){
+        if(backtransform){
             out <- object$glht[[1]]$coef.notrans
         }else{
             out <- stats::setNames(object$glht[[1]]$coef,object$glht[[1]]$coef.name)

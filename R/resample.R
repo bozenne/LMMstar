@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: jul 26 2024 (11:32) 
+## Last-Updated: jul 31 2024 (10:37) 
 ##           By: Brice Ozenne
-##     Update #: 786
+##     Update #: 787
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -102,13 +102,13 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
     options <- LMMstar.options()
 
     ## ** check user input
-    ## dots
+    ## *** dots
     dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
 
-    ## type
+    ## *** type
     if(type=="bootstrap"){
         type <- "boot"
     }
@@ -238,7 +238,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
         
     }
 
-    ## cpus
+    ## *** cpus
     max.cpus <- parallel::detectCores()
     if(length(cpus)!=1){
         stop("Argument \'cpus\' should have length 1.\n ")
@@ -251,7 +251,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
              "It should be an integer between 1 and ",max.cpus," or \'all\'.\n ")
     }
 
-    ## n.sample
+    ## *** n.sample
     if(length(n.sample)!=1){
         stop("Argument \'n.sample\' should have lenght 1. \n")
     }
@@ -259,7 +259,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
         stop("Argument \'n.sample\' should be a positive integer. \n")
     }
 
-    ## null
+    ## *** null
     if(type == "boot"){
         all.null <- model.tables(object, effects = "all", columns = "null", transform.k = "none", transform.rho = "none")
         if(is.function(effects)){

@@ -4,7 +4,17 @@
 \alias{rbind.Wald_lmm}
 \title{Linear Hypothesis Testing Across Linear Mixed Models}
 \usage{
-\method{rbind}{Wald_lmm}(model, ..., effects = NULL, rhs = NULL, name = NULL, sep = ": ")
+\method{rbind}{Wald_lmm}(
+  model,
+  ...,
+  effects = NULL,
+  rhs = NULL,
+  univariate = TRUE,
+  multivariate = TRUE,
+  name = NULL,
+  name.short = TRUE,
+  sep = ": "
+)
 }
 \arguments{
 \item{model}{a \code{Wald_lmm} object (output of \code{anova} applied to a \code{lmm} object)}
@@ -16,16 +26,22 @@ By default identity matrix but can also be \code{"Dunnett"},  \code{"Tukey"}, or
 
 \item{rhs}{[numeric vector] the right hand side of the hypothesis. Should have the same length as the number of row of argument \code{effects}.}
 
+\item{univariate}{[logical] Should an estimate, standard error, confidence interval, and p-value be output for each hypothesis?}
+
+\item{multivariate}{[logical] Should all hypotheses be simultaneously tested using a multivariate Wald test?}
+
 \item{name}{[character vector or NULL] character used to identify each model in the output.
 By default, use the name of the outcome of the model.}
 
-\item{sep}{[character] character used to separate the outcome and the covariate when naming the tests.}
+\item{name.short}{[logical] use short names for the output coefficients, e.g., omit the regression variable name when the same regression variable is used in all models.}
+
+\item{sep}{[character] character used to separate the name/outcome and the covariate when identifying the linear hypotheses.}
 }
 \description{
-Linear hypothesis testing accross linear mixed model.
+Combine linear hypothesis tests from different linear mixed models.
 }
 \details{
-WARNING: in presence of measurements from the same cluster across several models,
+In presence of measurements from the same cluster across several models,
 the influence function is used to estimate the covariance between the model parameters.
 This is why the (robust) standard errors may not match the (model-based) standard error from the linear mixed
 Setting the argument \code{robust} to \code{FALSE} when calling \code{anova.lmm} will rescale the (robust) standard errors to mimic the original model-based standard errors.
@@ -41,20 +57,23 @@ e.lmm1 <- lmm(Y ~ X1+X2+X3, repetition = ~visit|id, data = dL,
 e.lmm2 <- lmm(Y ~ X1+X8+X9, repetition = ~visit|id, data = dL,
               structure = "CS", df = FALSE)
 
-model.tables(e.lmm1) ## model-based standard errors
-model.tables(e.lmm1, robust = TRUE) ## robust standard errors
 
-## select null hypotheses & combine (robust standard errors)
-AAA <- anova(e.lmm1, ci = TRUE, effect = c("X1|X2,X3"="X1=0","X2|X1,X3"="X2=0"))
-BBB <- anova(e.lmm2, ci = TRUE, effect = c("X1|X8,X9"="X1=0"))
-
+## combine null hypotheses
+## - model-based standard errors
+AAA <- anova(e.lmm1, effect = c("X1|X2,X3"="X1=0","X2|X1,X3"="X2=0"))
+BBB <- anova(e.lmm2, effect = c("X1|X8,X9"="X1=0"))
 ZZZ <- rbind(AAA,BBB)
+summary(ZZZ) ## adjusted for multiple testing
+rbind(model.tables(e.lmm1)[2:3,], model.tables(e.lmm2)[2,,drop=FALSE])
 
 ## select null hypotheses & combine (model-based like standard errors)
-AA <- anova(e.lmm1, ci = TRUE, effect = c("X1|X2,X3"="X1=0","X2|X1,X3"="X2=0"),
-             robust = FALSE)
-BB <- anova(e.lmm2, ci = TRUE, effect = c("X1|X8,X9"="X1=0"),
-             robust = FALSE)
+AA <- anova(e.lmm1, effect = c("X1|X2,X3"="X1=0","X2|X1,X3"="X2=0"),
+             robust = TRUE)
+BB <- anova(e.lmm2, effect = c("X1|X8,X9"="X1=0"),
+             robust = TRUE)
 ZZ <- rbind(AA,BB)
+summary(ZZ)  ## adjusted for multiple testing
+rbind(model.tables(e.lmm1, robust = TRUE)[2:3,],
+      model.tables(e.lmm2, robust = TRUE)[2,,drop=FALSE])
 }
 \keyword{methods}

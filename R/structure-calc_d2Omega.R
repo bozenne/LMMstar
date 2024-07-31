@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: jul 26 2023 (14:27) 
+## Last-Updated: jul 30 2024 (18:08) 
 ##           By: Brice Ozenne
-##     Update #: 217
+##     Update #: 227
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -84,7 +84,7 @@
     param <- param[name.paramVar]
     name.param <- names(param)
     if(missing(Omega)){
-        Omega <- .calc_Omega(object, param = param, keep.interim = TRUE)
+        Omega <- .calc_Omega(object, param = param, simplify = FALSE)
     }
     if(missing(dOmega)){
         dOmega <- .calc_dOmega(object, param = param, Omega = Omega, Jacobian = Jacobian,
@@ -135,6 +135,7 @@
         n.iPair <- NCOL(iPair)
 
         iHess <- lapply(1:n.iPair, function(iPair){matrix(0, nrow = iNtime, ncol = iNtime)})
+        names(iHess) <- colnames(iPair)
 
         for(iiPair in 1:n.iPair){ ## iiPair <- 2
 
@@ -210,7 +211,7 @@
             }
             M.iScore <- do.call(cbind,lapply(dOmega[[iPattern]],as.double)) %*% JacobianM1[iParamVar,iParamVar,drop=FALSE]
             iHess2 <- vector(mode = "list", length = n.iPair)
-
+            names(iHess2) <- names(iHess)
             for(iP in 1:n.iParamVar){ ## iP <- 2
                 ## d/d theta_1 = 
                 ##  [dOmega_[11]/d2 theta_1] ... [dOmega_[11]/d theta_1 d theta_p] %*% Jacobian + [dOmega_[11]/d theta_1] ... [dOmega_[11]/d theta_p] %*% dJacobian/d theta_1
@@ -233,7 +234,6 @@
                 ## convert back to time format
                 iHess2[iIndex.pair] <- lapply(1:NCOL(M.iScore), function(iCol){matrix(M.iHess2[,iCol], nrow = iNtime, ncol = iNtime, byrow = FALSE)})
             }
-            iHess <- iHess2
         }
 
         return(iHess)        

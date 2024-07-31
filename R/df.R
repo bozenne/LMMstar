@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (10:34) 
 ## Version: 
-## Last-Updated: jul 26 2024 (12:06) 
+## Last-Updated: jul 31 2024 (17:42) 
 ##           By: Brice Ozenne
-##     Update #: 214
+##     Update #: 215
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -280,6 +280,69 @@ df.residual.lmm <- function(object, ...){
     ## ** export
     attr(df,"dVcov") <- A.dVcov
     return(df)
+}
+
+## * .dfX
+##' @description Evaluate degrees of freedom for a linear combination of parameters
+##' @param X.beta [matrix] contrast matrix (n,p)
+##' @param vcov.param [matrix] matrix (p,p)
+##' @param dVcov.param [array] array (p,p,p) or (n,n,p)
+##' @param return.vcov [logical] 
+##' @noRd
+.dfX <- function(X.beta, vcov.param, dVcov.param, return.vcov = FALSE){
+
+    ## ** normalize user input
+    ## *** p: name and number of parameters
+    n.param <- NCOL(vcov.param)
+    name.param <- colnames(vcov.param)
+
+    ## *** n: name and number of linear combinations
+    if(is.null(X.beta)){        
+        n.contrast <- dim(dVcov.param)[1]
+        name.contrast <- dimnames(dVcov.param)[[1]]
+    }else if(!is.matrix(X.beta) && is.vector(X.beta)){
+        X.beta <- rbind(X.beta)
+        n.contrast <- 1
+        name.contrast <- NULL
+    }else{
+        n.contrast <- NROW(X.beta)
+        name.contrast <- rownames(X.beta)
+    }
+    
+
+    ## ** variance of the contrast (Sigma_beta)
+    if(is.null(X.beta)){
+        sigma2.contrast <- diag(vcov.param)[name.contrast]
+    }else{
+        sigma2.contrast <- rowSums((X.beta %*% vcov.param[colnames(X.beta),colnames(X.beta),drop=FALSE]) * X.beta)
+        ## diag(X.beta %*% vcov.param[colnames(X.beta),colnames(X.beta),drop=FALSE] %*% t(X.beta))
+    }
+
+    ## ** Gradient of the variance of the contrast w.r.t. the original parameters (dSigma_\beta/d\theta)
+    if(is.null(X.beta)){
+        Mpair_dVcov.beta <- do.call(rbind,lapply(1:n.contrast, function(iContrast){dVcov.param[iContrast,iContrast,]}))
+    }else{
+        index.red <- which(colSums(X.beta!=0)>0)
+        X.beta_red <- X.beta[,index.red,drop=FALSE]
+        dVcov.param_red <- dVcov.param[index.red,index.red,,drop=FALSE]
+        Mpair_dVcov.beta <- do.call(cbind,lapply(1:n.param, function(iParam){rowSums((X.beta_red %*% dVcov.param_red[,,iParam]) * X.beta_red)}))
+    }
+
+    ## ** Satterthwaite approximation of the degrees of freedom
+    ## delta method on \beta = C\theta:  Var[Sigma_\beta] = [dSigma_\beta/d\theta] [Sigma_\theta] [dSigma_\beta/dtheta]'
+    denum <- rowSums((Mpair_dVcov.beta %*% vcov.param) * Mpair_dVcov.beta)
+    ## same as diag(Mpair_dVcov.beta %*% vcov.param %*% t(Mpair_dVcov.beta))
+    out <- 2*sigma2.contrast^2 / denum
+    out[denum==0] <- Inf
+
+    ## ** export
+    if(is.null(name.contrast)){
+        names(out) <- name.contrast
+    }
+    if(return.vcov){
+        attr(out,"vcov") <- Mpair_dVcov.beta %*% vcov.param %*% t(Mpair_dVcov.beta)
+    }
+    return(out)
 }
 
 ## * .unorderedTriplet

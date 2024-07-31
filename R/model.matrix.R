@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Jul 22 2024 (19:38) 
+## Last-Updated: jul 31 2024 (10:56) 
 ##           By: Brice Ozenne
-##     Update #: 3173
+##     Update #: 3226
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -57,18 +57,49 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
     options <- LMMstar.options()
 
     ## ** normalize user input
-    if(identical(effects,"all")){
-        effects <- c("mean","variance","correlation")
-    }
-    if(is.null(drop.X)){
-        drop.X <- options$drop.X
-    }
-    if(!identical(effects,"index")){
-        effects <- match.arg(effects, c("mean","variance","correlation"), several.ok = TRUE)
-    }
+    ## *** dots
     dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
+    ## *** effects
+    if(!is.character(effects) || !is.vector(effects)){
+        stop("Argument \'effects\' must be a character vector. \n")
+    }
+    valid.effects <- c("index","mean","fixed","variance","correlation","all")
+    if(any(effects %in% valid.effects == FALSE)){
+        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+    }
+    if(all("index" %in% effects)){
+        if(length(effects)>1){
+            stop("Argument \'effects\' must have length 1 when containing the element \"index\". \n")
+        }
+    }else if(all("all" %in% effects)){
+        if(length(effects)>1){
+            stop("Argument \'effects\' must have length 1 when containing the element \"all\". \n")
+        }else{
+            effects <- c("mean","variance","correlation")
+        }
+    }else{    
+        effects[effects== "fixed"] <- "mean"
+    }
+
+    ## *** drop.X
+    if(is.null(drop.X)){
+        drop.X <- options$drop.X
+    }
+    
+    ## *** simplify
+    if(!is.numeric(simplify) && !is.logical(simplify)){
+        stop("Argument \'simplify\' must be numeric or logical. \n")
+    }
+    if(length(simplify)!=1){
+        stop("Argument \'simplify\' must have length 1. \n")
+    }
+    if(simplify %in% c(0,0.5,1) == FALSE){
+        stop("Argument \'simplify\' must be TRUE/1, 0.5, or FALSE/0. \n")
     }
 
     ## ** update design matrix with new dataset
@@ -194,9 +225,6 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
         ## *** weights
         if(!simplify && !is.na(object$weight$var[1]) && object$weight$var[1] %in% names(newdata)){ 
             design$weight <- newdata[[object$weight$var[1]]]
-        }
-        if(!simplify && !is.na(object$weight$var[1]) && object$weight$var[2] %in% names(newdata)){ 
-            design$scale.Omega <- newdata[[object$weight$var[2]]]         
         }
         
         ## *** mean
@@ -554,23 +582,39 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
                                 index.clusterStrata = outInit$index.clusterStrata, U.strata = U.strata)
 
     ## ** prepare calculation of the score
-    if(precompute.moments && NCOL(X.mean)>0){
-        if(is.na(var.weights[1])){
-            wX.mean <- X.mean
-            wY <- cbind(data[[var.outcome]])
+    if(precompute.moments){
+        if(is.na(var.weights)){
+            precompute.weights <- stats::setNames(structure$Upattern$n.cluster, structure$Upattern$name)
         }else{
-            wX.mean <- sweep(X.mean, FUN = "*", MARGIN = 1, STATS = sqrt(data[[var.weights[1]]]))
-            wY <- cbind(data[[var.outcome]]*sqrt(data[[var.weights[1]]]))
+            precompute.weights <- stats::setNames(sapply(structure$Upattern$name, function(iPattern){
+                iCluster <- attr(structure$pattern,"list")[[iPattern]] ## cluster corresponding to the pattern
+                iIndex <- sapply(index.cluster[iCluster],"[[",1)  ##  first occurence of the cluster corresponding to the pattern (as the weights are duplicated within individuals)n
+                return(sum(data[iIndex,var.weights])) ## sum weights 
+            }), structure$Upattern$name)
+        }
+        if(NCOL(X.mean)>0){
+            if(is.na(var.weights)){
+                wX.mean <- X.mean
+                wY <- cbind(data[[var.outcome]])
+            }else{
+                wX.mean <- sweep(X.mean, FUN = "*", MARGIN = 1, STATS = sqrt(data[[var.weights]]))
+                wY <- cbind(data[[var.outcome]]*sqrt(data[[var.weights]]))
+            }
+
+            precompute.XX <-  .precomputeXX(X = wX.mean, pattern = structure$Upattern$name, 
+                                            pattern.ntime = stats::setNames(structure$Upattern$n.time, structure$Upattern$name),
+                                            pattern.cluster = attr(structure$pattern,"list"), index.cluster = index.cluster)
+            ## XY: for the numerator of the GLS estimator
+            precompute.XY <-  .precomputeXR(X = wX.mean, residuals = wY, pattern = structure$Upattern$name,
+                                            pattern.ntime = stats::setNames(structure$Upattern$n.time, structure$Upattern$name),
+                                            pattern.cluster = attr(structure$pattern,"list"), index.cluster = index.cluster)
+        }else{
+            precompute.XX <- NULL
+            precompute.XY <- NULL
         }
 
-        precompute.XX <-  .precomputeXX(X = wX.mean, pattern = structure$Upattern$name, 
-                                        pattern.ntime = stats::setNames(structure$Upattern$n.time, structure$Upattern$name),
-                                        pattern.cluster = attr(structure$pattern,"list"), index.cluster = index.cluster)
-
-        precompute.XY <-  .precomputeXR(X = precompute.XX$Xpattern, residuals = wY, pattern = structure$Upattern$name,
-                                        pattern.ntime = stats::setNames(structure$Upattern$n.time, structure$Upattern$name),
-                                        pattern.cluster = attr(structure$pattern,"list"), index.cluster = index.cluster)
     }else{
+        precompute.weights <- NULL
         precompute.XX <- NULL
         precompute.XY <- NULL
     }
@@ -579,8 +623,8 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
     structure$pair.vcov <- stats::setNames(lapply(structure$Upattern$name, function(iName){## iName <- structure$Upattern$name[1]
         iParamVcov <- structure$Upattern[structure$Upattern$name == iName,"param"][[1]]
         if(length(iParamVcov)==0){return(NULL)}
-
         iOut <- unorderedPairs(iParamVcov)
+        colnames(iOut) <- paste(iOut[1,],iOut[2,],sep = ";")
         attr(iOut, "key") <- matrix(NA, nrow = length(iParamVcov), ncol = length(iParamVcov), dimnames = list(iParamVcov,iParamVcov))
         for(iCol in 1:NCOL(iOut)){
             attr(iOut, "key")[iOut[1,iCol],iOut[2,iCol]] <- iCol
@@ -588,12 +632,16 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
         }
         return(iOut)
     }),structure$Upattern$name)
+    ## global necessary for REML (as all patterns may be incomplete)
+    ## (only contains observed pairs of parameters, e.g., not pairs of parameters from different strata)
+    attr(structure$pair.vcov,"global") <- do.call(cbind,structure$pair.vcov)[,!duplicated(unlist(lapply(structure$pair.vcov,colnames))),drop=FALSE] 
 
     structure$pair.meanvcov <- stats::setNames(lapply(structure$Upattern$name, function(iName){ ## iName <- structure$Upattern$name[1]
         iPattern <- structure$Upattern[structure$Upattern$name == iName,,drop=FALSE]
         if(length(iPattern$param[[1]])==0){return(NULL)}
         iParamMu <- c(skeleton.mu$name[which(skeleton.mu$index.strata == iPattern$index.strata)],skeleton.mu$name[is.na(skeleton.mu$index.strata)>0])
         iOut <- unname(t(expand.grid(iParamMu, iPattern$param[[1]])))
+        colnames(iOut) <- paste(iOut[1,],iOut[2,],sep = ";")
         return(iOut)
     }), structure$Upattern$name)
 
@@ -614,6 +662,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
                 Y = data[[var.outcome]],
                 precompute.XX = precompute.XX,
                 precompute.XY = precompute.XY,
+                precompute.weights = precompute.weights,
                 index.cluster = index.cluster,
                 index.clusterTime = index.clusterTime,
                 index.clusterStrata = index.clusterStrata,
@@ -621,17 +670,16 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
                 drop.X = drop.X
                 )
 
+    ## ** weights
+    if(!is.na(var.weights)){
+        ## NOTE: only take first weight for each cluster as weights should be constant within cluster
+        out$weights <- sapply(index.cluster, function(iIndex){data[iIndex[1],var.weights]})
+        attr(out$weights, "user-defined") <- TRUE ## user-defined
+    }else{
+        out$weights <- rep(1, length(U.cluster))
+        attr(out$weights, "user-defined") <- FALSE ## automatically-generative
+    }
 
-    if(!is.na(var.weights[1])){
-        out$weights <- data[[var.weights[1]]]
-        ## NOTE: only take first weight for each cluster as weights should be constant within cluster
-        ## out$weights <- sapply(index.cluster, function(iIndex){data[iIndex[1],var.weights[1]]})
-    }
-    if(!is.na(var.weights[2])){
-        out$scale.Omega <- data[[var.weights[2]]]
-        ## NOTE: only take first weight for each cluster as weights should be constant within cluster
-        ## out$scale.Omega <- sapply(index.cluster, function(iIndex){data[iIndex[1],var.weights[2]]})
-    }
     return(out)
 }
 

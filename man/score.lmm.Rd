@@ -7,9 +7,9 @@
 \method{score}{lmm}(
   x,
   effects = "mean",
+  indiv = FALSE,
   newdata = NULL,
   p = NULL,
-  indiv = FALSE,
   transform.sigma = NULL,
   transform.k = NULL,
   transform.rho = NULL,
@@ -20,15 +20,15 @@
 \arguments{
 \item{x}{a \code{lmm} object.}
 
-\item{effects}{[character] Should the score relative to all coefficients be output (\code{"all"}),
+\item{effects}{[character] Should the score relative to all coefficients be output (\code{"all"}),}
+
+\item{indiv}{[logical] Should the contribution of each cluster to the score be output? Otherwise output the sum of all clusters of the derivatives.
 or only coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 or only coefficients relative to the variance and correlation structure (\code{"variance"} or \code{"correlation"}).}
 
 \item{newdata}{[data.frame] dataset relative to which the score should be computed. Only relevant if differs from the dataset used to fit the model.}
 
 \item{p}{[numeric vector] value of the model coefficients at which to evaluate the score. Only relevant if differs from the fitted values.}
-
-\item{indiv}{[logical] Should the contribution of each cluster to the score be output? Otherwise output the sum of all clusters of the derivatives.}
 
 \item{transform.sigma}{[character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.}
 

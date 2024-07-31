@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (10:48) 
 ## Version: 
-## Last-Updated: Jul 28 2024 (20:04) 
+## Last-Updated: jul 31 2024 (11:11) 
 ##           By: Brice Ozenne
-##     Update #: 165
+##     Update #: 176
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -78,25 +78,28 @@ model.tables.effect_lmm <- function(x, columns, ...){
 ##' @return A \code{data.frame} object.
 ##' 
 ##' @export
-model.tables.lmm <- function(x, effects = NULL, columns, ...){
+model.tables.lmm <- function(x, effects = NULL, columns, simplify = TRUE, ...){
 
     options <- LMMstar.options()
 
     ## ** normalize user input
     ## *** effects
     if(is.null(effects)){
-        effects <- options$effects
-    }else if(identical(effects,"all")){
-        effects <- c("mean","variance","correlation")
-    }else{
-        valid.effects <- c("param","mean","fixed","variance","correlation")
-        if(any(effects %in% valid.effects == FALSE)){
-            stop("Incorrect value for argument \'effects\'. \n",
-                 "Possible values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
-        }else if("param" %in% effects & length(effects)>1){
-            stop("When argument \'effects\' contains \"param\" it should have length 1. \n")
+        ## do nothing, let confint initialize
+    }else{ 
+        if(!is.character(effects) || !is.vector(effects)){
+            stop("Argument \'effects\' must be a character vector. \n")
         }
-        effects[effects== "fixed"] <- "mean"
+        valid.effects <- c("param","mean","fixed","variance","correlation","all")
+        if(any(effects %in% valid.effects == FALSE)){
+            stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+                 "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+        }
+        if(all("param" %in% effects)){
+            if(length(effects)>1){
+                stop("Argument \'effects\' must have length 1 when containing the element \"param\". \n")
+            }
+        } ## otherwise let anova initialize, e.g. all or fixed
     }
 
     ## *** columns
@@ -110,13 +113,24 @@ model.tables.lmm <- function(x, effects = NULL, columns, ...){
             newcolumns <- columns
         }
     }
-        
+
+    ## *** simplify
+    if(!is.numeric(simplify) && !is.logical(simplify)){
+        stop("Argument \'simplify\' must be numeric or logical. \n")
+    }
+    if(length(simplify)!=1){
+        stop("Argument \'simplify\' must have length 1. \n")
+    }
+    if(simplify %in% c(0,1) == FALSE){
+        stop("Argument \'simplify\' must be TRUE/1 or FALSE/0. \n")
+    }
+
     ## ** extract
-    if(identical(effects,"param")){
+    if(!is.null(effects) && all(effects == "param")){
         out <- x$design$param
     }else{
         out <- confint(x, effects = effects, ..., columns = newcolumns)
-        if(simply){
+        if(simplify){
             attr(out, "backtransform") <- NULL
         }
         class(out) <- "data.frame"
@@ -210,13 +224,17 @@ model.tables.Wald_lmm <- function(x, effects = "Wald", columns, simplify = TRUE,
 
     ## *** effects
     if(!is.character(effects) || !is.vector(effects)){
-        stop("Argument \'effects\' must be a character.")
+        stop("Argument \'effects\' must be a character. \n")
     }
     if(length(effects)!=1){
-        stop("Argument \'effects\' must have length 1.")
+        stop("Argument \'effects\' must have length 1. \n")
     }
-    effects <- match.arg(effects, c("Wald","contrast"))
-    
+    valid.effects <- c("Wald","contrast")
+    if(effects %in% valid.effects == FALSE){
+        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+    }
+
     ## *** columns
     newcolumns <- c("estimate","se","df","lower","upper","p.value")
 
@@ -228,6 +246,17 @@ model.tables.Wald_lmm <- function(x, effects = "Wald", columns, simplify = TRUE,
         }else{
             newcolumns <- columns
         }
+    }
+
+    ## *** simplify
+    if(!is.numeric(simplify) && !is.logical(simplify)){
+        stop("Argument \'simplify\' must be numeric or logical. \n")
+    }
+    if(length(simplify)!=1){
+        stop("Argument \'simplify\' must have length 1. \n")
+    }
+    if(simplify %in% c(0,1) == FALSE){
+        stop("Argument \'simplify\' must be TRUE/1 or FALSE/0. \n")
     }
 
     ## ** extract from object

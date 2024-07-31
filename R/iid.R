@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  4 2021 (10:04) 
 ## Version: 
-## Last-Updated: Jul 28 2024 (16:23) 
+## Last-Updated: jul 31 2024 (14:47) 
 ##           By: Brice Ozenne
-##     Update #: 220
+##     Update #: 243
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,8 +18,6 @@
 ## * iid.lmm (documentation)
 ##' @title Extract the Influence Function From a Linear Mixed Model
 ##' @description Extract the influence function of linear mixed model parameters.
-##' @rdname iid.lmm
-##' @rdname influence.lmm
 ##' 
 ##' @param x a \code{lmm} object.
 ##' @param effects [character] Should the influence function for all coefficients be output (\code{"all"}),
@@ -122,11 +120,24 @@ iid.lmm <- function(x,
         }else{
             effects <- c("mean","variance","correlation")
         }
-    }else if(identical(effects,"all")){
-        effects <- c("mean","variance","correlation")
     }else{
-        effects <- match.arg(effects, c("mean","fixed","variance","correlation","ranef"), several.ok = TRUE)
-        effects[effects== "fixed"] <- "mean"
+        if(!is.character(effects) || !is.vector(effects)){
+            stop("Argument \'effects\' must be a character vector. \n")
+        }
+        valid.effects <- c("mean","fixed","variance","correlation","all")
+        if(any(effects %in% valid.effects == FALSE)){
+            stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+                 "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+        }
+        if(all("all" %in% effects)){
+            if(length(effects)>1){
+                stop("Argument \'effects\' must have length 1 when containing the element \"all\". \n")
+            }else{
+                effects <- c("mean","variance","correlation")
+            }
+        }else{
+            effects[effects == "fixed"] <- "mean"
+        }
     }
 
     ## *** type.information
@@ -180,11 +191,9 @@ iid.lmm <- function(x,
     return(out)
 }
 
-## * iid.Wald_lmm
+## * iid.Wald_lmm (documentation)
 ##' @title Extract the Influence Function from Wald Tests
 ##' @description Extract the influence function of linear mixed model parameters involved in the Wald test.
-##' @rdname iid.Wald_lmm
-##' @rdname influence.Wald_lmm
 ##'
 ##' @param object a \code{Wald_lmm} object.
 ##' @param effects [character] should the influence function for the linear contrasts involved in the Wald test be output (\code{"Wald"}),
@@ -193,7 +202,8 @@ iid.lmm <- function(x,
 ##' @param ... Not used. For compatibility with the generic method.
 ##' 
 ##' @return A matrix with one row per observation and one column per parameter (\code{effects="Wald"} or \code{effects="all"}) or a logical value (\code{effects="test"}).
-##' 
+
+## * iid.Wald_lmm (code)
 ##' @export
 iid.Wald_lmm <- function(x, effects = "Wald", ...){
 
@@ -215,12 +225,20 @@ iid.Wald_lmm <- function(x, effects = "Wald", ...){
 
     ## *** effects
     if(!is.character(effects) || !is.vector(effects)){
-        stop("Argument \'effects\' must be a character.")
+        stop("Argument \'effects\' must be a character. \n")
     }
     if(length(effects)!=1){
-        stop("Argument \'effects\' must have length 1.")
+        stop("Argument \'effects\' must have length 1. \n")
     }
-    effects <- match.arg(effects, c("Wald","all","test"))
+    valid.effects <- c("Wald","all","test")
+    if(effects %in% valid.effects == FALSE){
+        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+    }
+    if(x$args$simplify!=0){
+        stop("Cannot extract the influence function when it has not be stored. \n",
+             "Consider setting the argument \'simplify\' to 0 or FALSE when calling anova. \n")
+    }
 
     ## ** extract
     if(effects == "test"){

@@ -12,6 +12,7 @@
   transform.k = "none",
   transform.rho = "none",
   transform.names = TRUE,
+  simplify = TRUE,
   ...
 )
 }
@@ -22,22 +23,32 @@
 or only coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 or only coefficients relative to the variance structure (\code{"variance"}),
 or only coefficients relative to the correlation structure (\code{"correlation"}).
-Can also be \code{"ranef"} to output random effect (only for \code{CS} structure).}
+or the random effects (\code{"ranef"}) when using a random effect model.}
 
 \item{p}{[numeric vector] value of the model coefficients to be used. Only relevant if differs from the fitted values.}
 
-\item{transform.sigma}{[character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.}
-
-\item{transform.k}{[character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.}
+\item{transform.sigma}{[character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see detail##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.}
 
 \item{transform.rho}{[character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"} - see details.}
 
 \item{transform.names}{[logical] Should the name of the coefficients be updated to reflect the transformation that has been used?}
 
+\item{simplify}{[logical] Omit from the output the attribute containing the type of each parameter (mu/sigma/k/rho) and the corresponding variance parameters (sigma/k.x/k.y).}
+
 \item{...}{Not used. For compatibility with the generic method.}
 }
 \value{
-A vector with the value of the model coefficients.
+A vector with the value of the model coefficients. \cr
+When using \code{simplify=FALSE} the character strings in attribute \code{"type"} refer to:
+\itemize{
+\item \code{"mu"}: mean parameters.
+\item \code{"sigma"}: standard deviation parameters,
+\item \code{"k"}: ratio between standard deviation,
+\item \code{"rho"}: correlation parameter
+}
+The character strings in attribute \code{"sigma"} refer, for each parameter, to a possible corresponding standard deviation parameter.
+Those in attribute \code{"k.x"} and \code{"k.y"} refer to the ratio parameter.
+\code{NA} indicates no corresponding standard deviation or ratio parameter.
 }
 \description{
 Extract coefficients from a linear mixed model.
@@ -69,9 +80,6 @@ Extract coefficients from a linear mixed model.
 \item \code{"atanh"} ouput correlation coefficient after tangent hyperbolic transformation.
 \item \code{"cov"} ouput covariance coefficient.
 }
-
-When using a (pure) compound symmetry covariance structure (\code{structure = "CS"}),
-estimated random effects can be extracted by setting argument \code{effects} to \code{"ranef"}.
 }
 \examples{
 ## simulate data in the long format
@@ -83,8 +91,8 @@ eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data 
 
 ## output coefficients
 coef(eUN.lmm)
-coef(eUN.lmm, effects = "mean")
-coef(eUN.lmm, transform.sigma = "none", transform.k = "none", transform.rho = "none")
+coef(eUN.lmm, effects = "variance", transform.k = "sd")
+coef(eUN.lmm, effects = "all", simplify = FALSE)
 }
 \seealso{
 \code{\link{confint.lmm}} or \code{\link{model.tables.lmm}} for a data.frame containing estimates with their uncertainty. \cr

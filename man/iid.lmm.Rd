@@ -14,13 +14,14 @@
   transform.k = NULL,
   transform.rho = NULL,
   transform.names = TRUE,
+  REML2ML = NULL,
   ...
 )
 }
 \arguments{
 \item{x}{a \code{lmm} object.}
 
-\item{effects}{[character] Should the variance-covariance matrix for all coefficients be output (\code{"all"}),
+\item{effects}{[character] Should the influence function for all coefficients be output (\code{"all"}),
 or only for coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 or only for coefficients relative to the variance structure (\code{"variance"}),
 or only for coefficients relative to the correlation structure (\code{"correlation"}).}
@@ -42,7 +43,61 @@ The correlation however will not (necessarily) match the model-based correlation
 
 \item{...}{Not used. For compatibility with the generic method.}
 }
+\value{
+A matrix with one row per observation and one column per parameter.
+}
 \description{
-Extract the influence function from a linear mixed model.
+Extract the influence function of linear mixed model parameters.
+}
+\details{
+The influence function equals the individual score rescaled by the (inverse) information.
+With the expected information and for a lmm fitted using ML, the information is block diagonal so the influence function for the mean and variance parameters can be computed separately.
+Otherwise the information and individual score relative to all model parameters should be considered.
+The later is probablematic when using REML as the REML term is the ratio of two term linear in the individual contributions which is not itself linear in the individual contributions.
+As an add-hoc solution, the denominator is treated as fixed so the ratio is decomposed w.r.t. its numerator.
+}
+\examples{
+data(gastricbypassL)
+
+#### Case WITHOUT cross terms ####
+e.lmmREML <- lmm(weight ~ visit, method.fit = "REML", df = FALSE,
+                 repetition = ~ visit|id, data = gastricbypassL)
+e.lmmML <- lmm(weight ~ visit, method.fit = "ML", df = FALSE,
+              repetition = ~ visit|id, data = gastricbypassL)
+
+name.mu <- names(coef(e.lmmREML, effects = "mean"))
+name.sigmakrho <- names(coef(e.lmmREML, effects = c("variance","correlation")))
+info.REML <- information(e.lmmREML, effects = "all", transform.names = FALSE)
+info.ML <- information(e.lmmML, effects = "all", transform.names = FALSE)
+info.REML2ML <- information(e.lmmML, p = coef(e.lmmREML, effects = "all"),
+                            effects = "all", transform.names = FALSE)
+
+range(info.REML[name.mu,name.sigmakrho])
+range(info.ML[name.mu,name.sigmakrho])
+range(info.REML[name.mu,]-info.REML2ML[name.mu,])
+range(iid(e.lmmREML, REML2ML = TRUE) - iid(e.lmmREML, REML2ML = FALSE))
+## neglectable differences
+
+#### Case WITH cross terms ####
+e2.lmmREML <- lmm(glucagonAUC ~ visit + weight, method.fit = "REML", df = FALSE,
+                 repetition = ~ visit|id, data = gastricbypassL)
+e2.lmmML <- lmm(glucagonAUC ~ visit + weight, method.fit = "ML", df = FALSE,
+              repetition = ~ visit|id, data = gastricbypassL)
+
+name2.mu <- names(coef(e2.lmmREML, effects = "mean"))
+name2.sigmakrho <- names(coef(e2.lmmREML, effects = c("variance","correlation")))
+info2.REML <- information(e2.lmmREML, effects = "all", transform.names = FALSE)
+info2.ML <- information(e2.lmmML, effects = "all", transform.names = FALSE)
+info2.REML2ML <- information(e2.lmmML, p = coef(e2.lmmREML, effects = "all"),
+                            effects = "all", transform.names = FALSE)
+
+range(info2.REML[name.mu,]-info2.REML2ML[name.mu,])
+## neglectable difference
+range(info2.REML[name.mu,name.sigmakrho])
+range(info2.ML[name.mu,name.sigmakrho])
+range(iid(e2.lmmREML, REML2ML = TRUE) - iid(e2.lmmREML, REML2ML = FALSE))
+## non-neglectable differences
+diag(crossprod(iid(e2.lmmREML, REML2ML = TRUE)))/diag(vcov(e2.lmmREML))
+diag(crossprod(iid(e2.lmmREML, REML2ML = FALSE)))/diag(vcov(e2.lmmREML))
 }
 \keyword{methods}

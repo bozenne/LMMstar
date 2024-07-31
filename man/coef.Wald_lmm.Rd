@@ -4,21 +4,17 @@
 \alias{coef.Wald_lmm}
 \title{Extract Coefficients From Wald Tests for Linear Mixed Model}
 \usage{
-\method{coef}{Wald_lmm}(
-  object,
-  type = "coef",
-  method = "none",
-  backtransform = object$args$backtransform,
-  ...
-)
+\method{coef}{Wald_lmm}(object, effects = "Wald", backtransform = NULL, simplify = TRUE, ...)
 }
 \arguments{
 \item{object}{a \code{Wald_lmm} object.}
 
-\item{type}{[character] Should the coefficients be extracted (\code{"coef"}) or the contrast matrix (\code{"contrast"} or \code{"ls.contrast"}).
-\code{"contrast"} will try to simplify the output into a matrix whereas \code{"ls.contrast"} will keep the original format (list of list of matrix).}
+\item{effects}{[character] should the linear contrasts involved in the Wald test be output (\code{"Wald"}),
+or the value of the linear mixed model parameters (\code{"all"})?}
 
-\item{backtransform}{[logical] should the estimate, standard error, and confidence interval be back-transformed?}
+\item{backtransform}{[logical] should the estimates be back-transformed?}
+
+\item{simplify}{[logical] omit from the output the attribute containing the type of each parameter or contrast (mu/sigma/k/rho).}
 
 \item{...}{Not used. For compatibility with the generic method.}
 }

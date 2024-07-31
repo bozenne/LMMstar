@@ -10,7 +10,6 @@ lmm(
   repetition,
   structure,
   weights = NULL,
-  scale.Omega = NULL,
   method.fit = NULL,
   df = NULL,
   type.information = NULL,
@@ -30,8 +29,6 @@ E.g. Y ~ Gender + Gene.}
 \item{structure}{[character] type of covariance structure, either \code{"CS"} (compound symmetry) or \code{"UN"} (unstructured).}
 
 \item{weights}{[formula or character] variable in the dataset used to weight the log-likelihood and its derivative. Should be constant within cluster.}
-
-\item{scale.Omega}{[formula or character] variable in the dataset used to rescale the residual variance-covariance matrix. Should be constant within cluster.}
 
 \item{method.fit}{[character] Should Restricted Maximum Likelihoood (\code{"REML"}) or Maximum Likelihoood (\code{"ML"}) be used to estimate the model parameters?}
 
@@ -141,7 +138,7 @@ n <- 100
 dfW <- rbind(data.frame(id = 1:n, rep = 5, Y = rowMeans(rmvnorm(n, sigma = Sigma5))),
              data.frame(id = (n+1):(2*n), rep = 1, Y = rmvnorm(n, sigma = Sigma1)))
 
-e.lmmW <- lmm(Y~1, data = dfW, scale.Omega=~rep, control = list(optimizer = "FS"))
+e.lmmW <- lmm(Y~1, data = dfW, weigths=~rep, control = list(optimizer = "FS"))
 e.lmm0 <- lmm(Y~1, data = dfW, control = list(optimizer = "FS"))
 model.tables(e.lmmW, effects = "all")
 model.tables(e.lmm0, effects = "all")

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: Mar 10 2024 (15:59) 
+## Last-Updated: jul 31 2024 (10:40) 
 ##           By: Brice Ozenne
-##     Update #: 528
+##     Update #: 532
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -214,11 +214,17 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
     }
 
     ## *** contrast
-    valid.contrMat <- c("Dunnett", "Tukey", "Sequen")
-    if(length(effects)==1 && (effects %in% valid.contrMat == FALSE)){
-        stop("When character, argument \'effects\' should be one of \"",paste(valid.contrMat,collapse="\" \""),"\".\n")
+    if(!is.character(effects) || !is.vector(effects)){
+        stop("Argument \'effects\' must be a character. \n")
     }
-
+    if(length(effects)!=1){
+        stop("Argument \'effects\' must have length 1. \n")
+    }
+    valid.effects <- c("Dunnett", "Tukey", "Sequen") ## from multcomp:::contrMat
+    if(effects %in% valid.effects == FALSE){
+        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+    }
     ## *** df
     options <- LMMstar.options()
     if(is.null(df)){

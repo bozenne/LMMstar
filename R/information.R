@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: jul 26 2024 (13:21) 
+## Last-Updated: jul 31 2024 (10:34) 
 ##           By: Brice Ozenne
-##     Update #: 1145
+##     Update #: 1224
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -57,17 +57,31 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
 
     ## *** effects
     if(is.null(effects)){
-        if(transform.sigma == "none" && transform.k == "none" && transform.rho == "none"){
+        if((is.null(transform.sigma) || identical(transform.sigma,"none")) && (is.null(transform.k) || identical(transform.k,"none")) && (is.null(transform.rho) || identical(transform.rho,"none"))){
             effects <- options$effects
         }else{
             effects <- c("mean","variance","correlation")
         }
-    }else if(identical(effects,"all")){
-        effects <- c("mean","variance","correlation")
     }else{
-        effects <- match.arg(effects, c("mean","fixed","variance","correlation","ranef"), several.ok = TRUE)
-        effects[effects== "fixed"] <- "mean"
+        if(!is.character(effects) || !is.vector(effects)){
+            stop("Argument \'effects\' must be a character vector. \n")
+        }
+        valid.effects <- c("mean","fixed","variance","correlation","all")
+        if(any(effects %in% valid.effects == FALSE)){
+            stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+                 "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+        }
+        if(all("all" %in% effects)){
+            if(length(effects)>1){
+                stop("Argument \'effects\' must have length 1 when containing the element \"all\". \n")
+            }else{
+                effects <- c("mean","variance","correlation")
+            }
+        }else{
+            effects[effects == "fixed"] <- "mean"
+        }
     }
+
 
     ## *** type.information
     if(is.null(type.information)){
@@ -146,83 +160,26 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
 ## d 0.5 tr[(X \OmegaM1 X)^{-1} (X \OmegaM1 d\Omega \OmegaM1 X)] = 0.5 tr[ (X \OmegaM1 d'\Omega \OmegaM1 X) (X \OmegaM1 X)^{-2} (X \OmegaM1 d\Omega \OmegaM1 X) ]
 ##                                                                 - 0.5 tr[ (X \OmegaM1 X)^{-1} (X \OmegaM1 d'\Omega \OmegaM1 d\Omega \OmegaM1 X) + (X \OmegaM1 X)^{-1} (X \OmegaM1 d\Omega \OmegaM1 d'\Omega \OmegaM1 X) ]
 ##                                                                 + 0.5 tr[ (X \OmegaM1 X)^{-1} (X \OmegaM1 d2\Omega \OmegaM1 X) ]
-.information <- function(X, residuals, precision, dOmega, d2Omega,
-                         Upattern.ncluster, weights, scale.Omega,
+.information <- function(X, residuals, precision, dOmega, d2Omega, weights, 
                          pattern, index.cluster, name.allcoef,
                          pair.meanvcov, pair.vcov, indiv, REML, type.information, effects, robust,
                          precompute){
 
     ## ** extract information
-    test.loopIndiv <- indiv || is.null(precompute) || !is.null(weights) || !is.null(scale.Omega)
-
-    n.obs <- length(index.cluster)
     n.cluster <- length(pattern)
     name.mucoef <- colnames(X)
     n.mucoef <- length(name.mucoef)
-    name.varcoef <- lapply(dOmega, names)
-    n.varcoef <- lengths(name.varcoef)
-    n.allcoef <- length(name.allcoef)
-    name.allvarcoef <- name.allcoef[name.allcoef %in% unique(unlist(name.varcoef))] ## make sure the ordering is correct
-    n.allvarcoef <- length(name.allvarcoef)
-    U.pattern <- names(Upattern.ncluster)
-    n.pattern <- length(U.pattern)
-    npair.meanvcov <- lapply(pair.meanvcov, NCOL)
-    npair.vcov <- lapply(pair.vcov, NCOL)
-
-    ## ** restrict to relevant parameters
-    if(("variance" %in% effects == FALSE) && ("correlation" %in% effects == FALSE)){ ## compute hessian only for mean parameters
-        test.vcov <- FALSE
-        test.mean <- n.mucoef>0
-    }else{
-        if(REML && indiv){
-            stop("Not possible to compute individual hessian for variance and/or correlation coefficients when using REML.\n")
-        }
-        if(("variance" %in% effects == FALSE) || ("correlation" %in% effects == FALSE)){ ## subset variance parameters
-            name.varcoef <- stats::setNames(lapply(U.pattern,function(iPattern){intersect(name.effects,name.varcoef[[iPattern]])}),
-                                     U.pattern)
-
-            pair.meanvcov <- stats::setNames(lapply(U.pattern,function(iPattern){
-                test.in <- (pair.meanvcov[[iPattern]][1,] %in% name.effects)+(pair.meanvcov[[iPattern]][2,] %in% name.effects)
-                return(pair.meanvcov[[iPattern]][,test.in==2,drop=FALSE])
-            }), U.pattern)
-
-            pair.vcov <- stats::setNames(lapply(U.pattern,function(iPattern){## iPattern <- 1
-                test.in <- (pair.vcov[[iPattern]][1,] %in% name.effects)+(pair.vcov[[iPattern]][2,] %in% name.effects)
-                iOut <- pair.vcov[[iPattern]][,test.in==2,drop=FALSE]
-                attr(iOut,"subset") <- which(test.in==2)
-                attr(iOut,"key") <- matrix(NA, nrow = length(name.varcoef[[iPattern]]), ncol = length(name.varcoef[[iPattern]]), dimnames = list(name.varcoef[[iPattern]],name.varcoef[[iPattern]]))
-                for(iCol in 1:NCOL(iOut)){
-                    attr(iOut, "key")[iOut[1,iCol],iOut[2,iCol]] <- iCol
-                    attr(iOut, "key")[iOut[2,iCol],iOut[1,iCol]] <- iCol
-                }
-                return(iOut)
-            }), U.pattern)
-            d2Omega <- stats::setNames(lapply(U.pattern,function(iPattern){                
-                return(d2Omega[[iPattern]][attr(pair.vcov[[iPattern]],"subset")])
-            }), U.pattern)
-
-            n.varcoef <- lengths(name.varcoef)
-            name.allvarcoef <- unique(unlist(name.varcoef))
-            n.allvarcoef <- length(name.allvarcoef)
-            npair.meanvcov <- lapply(pair.meanvcov, NCOL)
-            npair.vcov <- lapply(pair.vcov, NCOL)
-        }
-        if("mean" %in% effects == FALSE){ ## compute hessian only for variance and/or correlation parameters
-
-            test.vcov <- any(n.varcoef>0)
-            test.mean <- FALSE
-
-        }else{ ## compute hessian all parameters
-     
-            test.vcov <- any(n.varcoef>0)
-            test.mean <- n.mucoef>0
-        }
-    }
+    name.varcoef <- unique(unlist(lapply(dOmega,names)))
+    n.varcoef <- length(name.varcoef)    
+    name.varcoef2 <- colnames(attr(pair.vcov,"global"))
+    n.varcoef2 <- length(name.varcoef2)
+    U.pattern <- names(dOmega)
 
     ## ** prepare output
+    compute.indiv <- indiv || is.null(precompute$weights) || is.null(precompute$XR) || is.null(precompute$RR)
     name.effects <- attr(effects,"original.names")
     n.effects <- length(name.effects)
-    if(test.loopIndiv && indiv){
+    if(compute.indiv){
         info <- array(0, dim = c(n.cluster, n.effects, n.effects),
                       dimnames = list(NULL, name.effects, name.effects))
     }else{
@@ -230,126 +187,127 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
                        dimnames = list(name.effects, name.effects)
                        )
     }    
-    if(any(is.na(attr(precision,"logdet")))){ ## non positive definite residual variance covariance
-        return(info*NA)
+
+    ## ** restrict to relevant parameters
+    test.mean <- (n.mucoef>0) && ("mean" %in% effects)
+    test.vcov <- (n.varcoef>0) && (("variance" %in% effects) || ("correlation" %in% effects))
+
+    if(test.vcov){
+        if(REML && indiv){
+            message <- "approximate individual REML information"
+        }else{
+            message <- NULL
+        }
+
+        if(("variance" %in% effects == FALSE) || ("correlation" %in% effects == FALSE)){## restrict to requested coefficients
+            name.varcoef <- intersect(name.varcoef,name.effects)
+            n.varcoef <- length(name.varcoef)
+            precompute$Omega$tr.OmegaM1.dOmega <- lapply(precompute$Omega$tr.OmegaM1.dOmega, function(iO){iO[intersect(names(iO),name.varcoef)]})
+            precompute$Omega$OmegaM1.dOmega.OmegaM1 <- lapply(precompute$Omega$OmegaM1.dOmega.OmegaM1, function(iO){iO[,intersect(colnames(iO),name.varcoef),drop=FALSE]})
+            test.vcov <- n.varcoef>0
+
+            cbindpair.vcov <- attr(pair.vcov,"global")
+            cbindpair.vcov[] <- cbindpair.vcov %in% name.varcoef
+            name.varcoef2 <- names(which(colSums(cbindpair.vcov==TRUE)==2))
+            n.varcoef2 <- length(name.varcoef2)
+            precompute$Omega$tr.OmegaM1.dOmega.OmegaM1.dOmega <- lapply(precompute$Omega$tr.OmegaM1.dOmega.OmegaM1.dOmega, function(iO){iO[,intersect(colnames(iO),name.varcoef2),drop=FALSE]})
+            if(type.information == "observed"){
+                precompute$Omega$OmegaM1.d2OmegaAndCo.OmegaM1 <- lapply(precompute$Omega$OmegaM1.d2OmegaAndCo.OmegaM1, function(iO){iO[,intersect(colnames(iO),name.varcoef2),drop=FALSE]})
+                precompute$Omega$Omega$tr.OmegaM1.d2Omega <- lapply(precompute$Omega$Omega$tr.OmegaM1.d2Omega, function(iO){iO[,intersect(colnames(iO),name.varcoef2),drop=FALSE]})
+            }
+        }
     }
 
-
     ## ** prepare REML term
-    if(test.vcov){
-
-        ls.dOmega_OmegaM1 <- attr(dOmega,"ls.dOmega_OmegaM1")
-        ls.OmegaM1_dOmega_OmegaM1 <- attr(dOmega,"ls.OmegaM1_dOmega_OmegaM1")
-        dOmega_OmegaM1 <- attr(dOmega,"dOmega_OmegaM1")
-        OmegaM1_dOmega_OmegaM1 <- attr(dOmega,"OmegaM1_dOmega_OmegaM1")
-
-        if(REML){
-            REML.key <- matrix(NA, nrow = n.allvarcoef, ncol = n.allvarcoef, dimnames = list(name.allvarcoef, name.allvarcoef))
-            maxkey <- sum(lower.tri(REML.key, diag = TRUE))
-            REML.key[lower.tri(REML.key, diag = TRUE)] <- 1:maxkey
-            REML.key[upper.tri(REML.key)] <- t(REML.key)[upper.tri(REML.key)]
-
-        REML.denom <- matrix(0, nrow = n.mucoef, ncol = n.mucoef, dimnames = list(name.mucoef, name.mucoef))
-        ## REML.numerator1 <- stats::setNames(lapply(U.pattern, function(iPattern) { array(0, dim = c(n.mucoef, n.mucoef, n.varcoef[[iPattern]]), dimnames = list(name.mucoef, name.mucoef, name.varcoef[[iPattern]])) }), U.pattern)
-        REML.numerator1 <- array(0, dim = c(n.mucoef, n.mucoef, n.allvarcoef), dimnames = list(name.mucoef, name.mucoef, name.allvarcoef))
-        REML.numerator2 <- array(0, dim = c(n.mucoef, n.mucoef, maxkey), dimnames = list(name.mucoef, name.mucoef, NULL))
-        }
-    }  
-
-    ## ** compute information
-    ## *** looping over individuals
-    if(test.loopIndiv){
-        
-        ## ** precompute 
-        if(test.vcov){
-            tr_OmegaM1_d2OmegaAndCo <- stats::setNames(lapply(1:n.pattern, function(iPattern){rep(NA, npair.vcov[[iPattern]])}), U.pattern)
-            if(REML || type.information == "observed"){
-                OmegaM1_d2OmegaAndCo_OmegaM1 <- stats::setNames(lapply(1:n.pattern, function(iPattern){array(NA, dim = c(NCOL(precision[[iPattern]]),NCOL(precision[[iPattern]]), npair.vcov[[iPattern]]))}), U.pattern)
-            }
-
-            for(iPattern in 1:n.pattern){ ## iPattern <- 2
-                iOmegaM1 <- precision[[iPattern]]
-                idOmega <- dOmega[[iPattern]]
-
-                ## loop over all pairs
-                for(iPair in 1:npair.vcov[[iPattern]]){ ## iPair <- 4
-                    iCoef1 <- pair.vcov[[iPattern]][1,iPair]
-                    iCoef2 <- pair.vcov[[iPattern]][2,iPair]
-                    iTerm21 <- ls.OmegaM1_dOmega_OmegaM1[[iPattern]][[iCoef2]] %*% idOmega[[iCoef1]]
-                    
-                    ## trace
-                    if(type.information == "expected"){
-                        tr_OmegaM1_d2OmegaAndCo[[iPattern]][iPair] <- tr(iTerm21)
-                    }else if(type.information == "observed"){
-                        tr_OmegaM1_d2OmegaAndCo[[iPattern]][iPair] <- - tr(iTerm21 - iOmegaM1 %*% d2Omega[[iPattern]][[iPair]])
-                    }
-                    if(REML || type.information == "observed"){
-                        iTerm12 <- ls.OmegaM1_dOmega_OmegaM1[[iPattern]][[iCoef1]] %*% idOmega[[iCoef2]]
-                        OmegaM1_d2OmegaAndCo_OmegaM1[[iPattern]][,,iPair] <- iOmegaM1 %*% d2Omega[[iPattern]][[iPair]] %*% iOmegaM1 - (iTerm12 + iTerm21) %*% iOmegaM1
-                    }
+    if(REML && test.vcov){
+        if(is.null(precompute$REML)){
+            X.OmegaM1.X <- matrix(0, nrow = n.mucoef, ncol = n.mucoef)
+            REML.num1 <- stats::setNames(replicate(n.varcoef, matrix(0, nrow = n.mucoef, ncol = n.mucoef), simplify = FALSE), name.varcoef)
+            REML.num2 <- stats::setNames(replicate(n.varcoef2, matrix(0, nrow = n.mucoef, ncol = n.mucoef), simplify = FALSE), name.varcoef2)
+            for(iId in 1:n.cluster){ ## iId <- 1
+                iX <- X[index.cluster[[iId]],,drop=FALSE]
+                iOmegaM1 <- precision[[pattern[iId]]]
+                iOmegaM1.dOmega.OmegaM1 <- precompute$Omega$OmegaM1.dOmega.OmegaM1[[pattern[iId]]]
+                iOmegaM1.d2OmegaAndCo.OmegaM1 <- precompute$Omega$OmegaM1.d2OmegaAndCo.OmegaM1[[pattern[iId]]]
+                iWeights <- weights[iId]
+                X.OmegaM1.X <- X.OmegaM1.X + iWeights * t(iX) %*% iOmegaM1 %*% iX
+                for(iParam in intersect(names(idOmega), name.varcoef)){ ## intersect to handle when argument effects is only "variance" or "correlation"
+                    REML.num1[[iParam]] <- REML.num1[[iParam]] + iWeights * t(iX) %*% iOmegaM1.dOmega.OmegaM1[[iParam]] %*% iX
+                }
+                for(iParam2 in intersect(names(id2Omega), name.varcoef2)){ ## intersect to handle when argument effects is only "variance" or "correlation"
+                    REML.num2[[iParam2]] <- REML.num2[[iParam2]] + iWeights * t(iX) %*% iOmegaM1.d2OmegaAndCo.OmegaM1[[iParam2]] %*% iX
                 }
             }
+            REML.denom <- solve(X.OmegaM1.X)
+        }else{
+            REML.num2 <- precompute$REML$X.OmegaM1.d2OmegaAndCo.OmegaM1.X
+            REML.num1 <- precompute$REML$X.OmegaM1.dOmega.OmegaM1.X
+            REML.denom <- precompute$REML$X.OmegaM1.X_M1
         }
-        if(is.null(weights)){weights <- rep(1,n.cluster)}
-        if(is.null(scale.Omega)){scale.Omega <- rep(1,n.cluster)}
-        
-        ## loop
-        for(iId in 1:n.cluster){ ## iId <- 7
-            iPattern <- pattern[iId]
-            iIndex <- index.cluster[[iId]]
-            iWeight <- weights[iId]
+    }
 
-            iX <- X[iIndex,,drop=FALSE]
-            tiX <- t(iX)
-            iOmegaM1 <- precision[[iPattern]] * scale.Omega[iId]
+    ## ** compute information
+    if(compute.indiv){
+        
+        ## *** looping over individuals
+        if(REML && test.vcov){
+            OmegaM1.dOmega.OmegaM1 <- lapply(precompute$Omega$OmegaM1.dOmega.OmegaM1, function(iO){
+                array(iO, dim = c(sqrt(NROW(iO)),sqrt(NROW(iO)),NCOL(iO)), dimnames = list(NULL,NULL,colnames(iO)))
+            })
+            OmegaM1.d2OmegaAndCo.OmegaM1 <- lapply(precompute$Omega$OmegaM1.d2OmegaAndCo.OmegaM1, function(iO){
+                array(iO, dim = c(sqrt(NROW(iO)),sqrt(NROW(iO)),NCOL(iO)), dimnames = list(NULL,NULL,colnames(iO)))
+            })
+        }
+        
+        for(iId in 1:n.cluster){ ## iId <- 7
+            iIndex <- index.cluster[[iId]]
+            iPattern <- pattern[iId]
+            iWeights <- weights[iId]
             if(type.information == "observed"){
                 iResidual <- residuals[iIndex,,drop=FALSE]
             }
+            iX <- t(X[iIndex,,drop=FALSE])
+            iOmegaM1 <- precision[[iPattern]]
         
             ## **** mean,mean
-            iValue <-  iWeight * (tiX %*% iOmegaM1 %*% iX)
             if(test.mean){
-                if(indiv){
-                    info[iId,name.mucoef,name.mucoef] <- iValue
-                }else{
-                    info[name.mucoef,name.mucoef] <- info[name.mucoef,name.mucoef] + iValue
-                }
+                info[iId,name.mucoef,name.mucoef] <- iWeights * (iX %*% iOmegaM1 %*% t(iX))
             }
-            if(REML && test.vcov){
-                REML.denom <- REML.denom + iValue
-                for(iVarcoef in name.varcoef[[iPattern]]){ ## iVarcoef <- 1
-                    REML.numerator1[,,iVarcoef] <- REML.numerator1[,,iVarcoef] + iWeight * (tiX %*% ls.OmegaM1_dOmega_OmegaM1[[iPattern]][[iVarcoef]] %*% iX) * scale.Omega[iId]
-                }
-            }
-
+            
             ## **** var,var
             if(test.vcov){
+                ## subset in case effects is only variance or correlation
+                iName.varcoef <- intersect(names(dOmega[[iPattern]]), name.varcoef)
 
-                for(iPair in 1:npair.vcov[[iPattern]]){ ## iPair <- 1
-                    iCoef1 <- pair.vcov[[iPattern]][1,iPair]
-                    iCoef2 <- pair.vcov[[iPattern]][2,iPair]
+                ## compute and store contribution
+                if(type.information == "expected"){
+                    iValue <- 0.5 * iWeights * precompute$Omega$tr.OmegaM1.dOmega.OmegaM1.dOmega[[iPattern]]
+                }else if(type.information == "observed"){
+                    iValue <- - 0.5 * iWeights * (precompute$Omega$tr.OmegaM1.dOmega.OmegaM1.dOmega[[iPattern]] - precompute$Omega$tr.OmegaM1.d2Omega[[iPattern]])
+                    iValue <- iValue - 0.5 * (as.vector(tcrossprod(iResidual)) %*% precompute$Omega$OmegaM1.d2OmegaAndCo.OmegaM1[[iPattern]])[1,]
+                    ## same as iResidual[,1] %*% matrix(precompute$Omega$OmegaM1.d2OmegaAndCo.OmegaM1[[iPattern]][,2], nrow = length(iIndex), ncol = length(iIndex)) %*% iResidual 
+                }
+                info[iId,iName.varcoef,iName.varcoef]  <- info[iId,iName.varcoef,iName.varcoef] + iValue[as.vector(attr(pair.vcov[[iPattern]],"key"))]
 
-                    iValue <- 0.5 * iWeight * tr_OmegaM1_d2OmegaAndCo[[iPattern]][iPair]
-                    ## 0.5 * ntr(iOmegaM1 %*% idOmega$sigma %*% iOmegaM1 %*% idOmega$sigma)
+                if(REML){
+                    ## APPROXIMATION: the REML score w.r.t. variance parameter is not linear in the individual contribution
+                    for(iParam2 in name.varcoef2){ ## iParam2 <- name.varcoef2[1]
+                        iParam2.1 <- attr(pair.vcov,"global")[1,iParam2]
+                        iParam2.2 <- attr(pair.vcov,"global")[2,iParam2]
+                        
+                        iREML.num1.1 <- iWeights * iX %*% OmegaM1.dOmega.OmegaM1[[iPattern]][,,iParam2.1] %*% t(iX)
+                        ## shortcut for iOmegaM1 %*% dOmega[[iPattern]][[iParam2.1]] %*% iOmegaM1
+                        iREML.num1.2 <- iWeights * iX %*% OmegaM1.dOmega.OmegaM1[[iPattern]][,,iParam2.2] %*% t(iX)
+                        ## shortcut for iOmegaM1 %*% dOmega[[iPattern]][[iParam2.2]] %*% iOmegaM1
+                        iREML.num2 <- iWeights * iX %*% OmegaM1.d2OmegaAndCo.OmegaM1[[iPattern]][,,iParam2] %*% t(iX)
+                        ## shortcut for iOmegaM1 %*% (d2Omega[[iPattern]][[iParam2]] - 2 * dOmega[[iPattern]][[iParam2.1]] %*% iOmegaM1 %*% dOmega[[iPattern]][[iParam2.2]]) %*% iOmegaM1
+                        
+                        iValue <- 0.5 * sum(REML.denom * (iREML.num2 + 0.5 * iREML.num1.1 %*% REML.denom %*% REML.num1[[iParam2.2]] + 0.5 * REML.num1[[iParam2.1]] %*% REML.denom %*% iREML.num1.2))
 
-                    if(type.information == "observed"){
-                        iValue <- iValue - 0.5 * iWeight * (t(iResidual) %*% OmegaM1_d2OmegaAndCo_OmegaM1[[iPattern]][,,iPair] %*% iResidual) * scale.Omega[iId]
-                    }
-                    if(indiv){
-                        info[iId,iCoef1,iCoef2] <- iValue
-                        if(iCoef1 != iCoef2){
-                            info[iId,iCoef2,iCoef1] <- iValue
+                        info[iId,iParam2.1,iParam2.2] <- info[iId,iParam2.1,iParam2.2] - iValue
+                        if(iParam2.1 != iParam2.2){
+                            info[iId,iParam2.1,iParam2.2] <- info[iId,iParam2.2,iParam2.1] - iValue
                         }
-                    }else{
-                        info[iCoef1,iCoef2] <- info[iCoef1,iCoef2] + iValue
-                        if(iCoef1 != iCoef2){
-                            info[iCoef2,iCoef1] <- info[iCoef2,iCoef1] + iValue
-                        }
-                    }
-
-                    if(REML){
-                        iKey <- REML.key[iCoef1,iCoef2]
-                        REML.numerator2[,,iKey] <- REML.numerator2[,,iKey] + iWeight * (tiX %*% OmegaM1_d2OmegaAndCo_OmegaM1[[iPattern]][,,iPair] %*% iX) * scale.Omega[iId]
                     }
                 }
             }
@@ -357,93 +315,39 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
             ## **** mean,var
             if(type.information == "observed" && test.mean && test.vcov){
 
-                for(iPair in 1:npair.meanvcov[[iPattern]]){ ## iPair <- 1
-                    iCoef1 <- pair.meanvcov[[iPattern]][1,iPair]
-                    iCoef2 <- pair.meanvcov[[iPattern]][2,iPair]
-
-                    iValue <- iWeight * (tiX[iCoef1,,drop=FALSE] %*% ls.OmegaM1_dOmega_OmegaM1[[iPattern]][[iCoef2]] %*% iResidual) * scale.Omega[iId]
-
-                    if(indiv){
-                        info[iId,iCoef1,iCoef2] <- iValue
-                        info[iId,iCoef2,iCoef1] <- iValue
-                    }else{
-                        info[iCoef1,iCoef2] <- info[iCoef1,iCoef2] + iValue
-                        info[iCoef2,iCoef1] <- info[iCoef2,iCoef1] + iValue
-                    }
-                }
+                ## compute
+                iValue <- t(iResidual %x% t(iX)) %*% precompute$Omega$OmegaM1.dOmega.OmegaM1[[iPattern]][,iName.varcoef,drop=FALSE]
+                ## kronecker product is the same as apply(iX, MARGIN = 1, FUN = function(iCol){as.double(tcrossprod(iCol,iResidual))})
+                
+                ## store
+                info[iId,name.mucoef,iName.varcoef] <- iValue
+                info[iId,iName.varcoef,name.mucoef] <- t(iValue)
 
             }
         }
-    }
-
-    ## *** looping over covariance patterns
-    if(!test.loopIndiv){
-    
-        ## loop
+    }else{
+        ## *** looping over covariance patterns
         for (iPattern in U.pattern) { ## iPattern <- name.pattern[1]
+            
             iOmegaM1 <- precision[[iPattern]]
-            iTime <- NCOL(iOmegaM1)
             iTime2 <- length(iOmegaM1)
-            iName.varcoef <- name.varcoef[[iPattern]]
-            iN.varcoef <- length(iName.varcoef)
-            iX <- precompute$XX$pattern[[iPattern]]
+            iName.varcoef <- names(dOmega[[iPattern]])
 
             ## **** mean,mean
             if(test.mean){
-                info[name.mucoef,name.mucoef] <- info[name.mucoef,name.mucoef] + (as.double(iOmegaM1) %*% iX)[as.double(precompute$XX$key)]                
+                info[name.mucoef,name.mucoef] <- info[name.mucoef,name.mucoef] + (attr(iOmegaM1,"vectorize") %*% precompute$XX$pattern[[iPattern]])[as.double(precompute$XX$key)]                
             }
 
             ## **** var,var
             if(test.vcov){
-                
-                ## precompute
-                iLs.tdOmega_OmegaM1 <- lapply(ls.dOmega_OmegaM1[[iPattern]], FUN = base::t)
-                tdOmega_OmegaM1 <- do.call(cbind,lapply(iLs.tdOmega_OmegaM1, as.numeric))
-                iTrace_O_dO_O_dO <- colSums(dOmega_OmegaM1[[iPattern]][,pair.vcov[[iPattern]][1,],drop=FALSE] * tdOmega_OmegaM1[,pair.vcov[[iPattern]][2,],drop=FALSE])
-                
-                if(REML || type.information == "observed"){
-                    iOmegaM1_d2Omega_OmegaM1 <- do.call(cbind,lapply(d2Omega[[iPattern]], function(iM){as.numeric(iOmegaM1 %*% iM %*% iOmegaM1)}))
-
-                    iOmegaM1_dOmega1_OmegaM1_dOmega2_OmegaM1 <- do.call(cbind,lapply(1:npair.vcov[[iPattern]], function(iPair){ ## iPair <- 4
-                        out <- iLs.tdOmega_OmegaM1[[pair.vcov[[iPattern]][1,iPair]]] %*% ls.OmegaM1_dOmega_OmegaM1[[iPattern]][[pair.vcov[[iPattern]][2,iPair]]]
-                        return(as.double(out + t(out)))
-                    }))
-                    iOmegaM1_d2OmegaAndCo_OmegaM1 <- iOmegaM1_d2Omega_OmegaM1 - iOmegaM1_dOmega1_OmegaM1_dOmega2_OmegaM1
-                }
-
                 ## compute and store contribution
                 if(type.information == "expected"){
-                    iValue <- 0.5 * Upattern.ncluster[iPattern] * iTrace_O_dO_O_dO
+                    iValue <- 0.5 * precompute$weights[iPattern] * precompute$Omega$tr.OmegaM1.dOmega.OmegaM1.dOmega[[iPattern]]
                 }else if(type.information == "observed"){
-                    id2Omega <- matrix(unlist(d2Omega[[iPattern]]), nrow = iTime2, ncol = npair.vcov[[iPattern]])
-                    iTrace_d2Omega <- colSums(sweep(id2Omega, MARGIN = 1, FUN = "*", STATS = as.double(precision[[iPattern]])))
-                    iValue <- - 0.5 * Upattern.ncluster[iPattern] * (iTrace_O_dO_O_dO - iTrace_d2Omega) - 0.5 * as.double(as.double(precompute$RR[[iPattern]]) %*% iOmegaM1_d2OmegaAndCo_OmegaM1)
+                    iValue <- - 0.5 * precompute$weights[iPattern] * (precompute$Omega$tr.OmegaM1.dOmega.OmegaM1.dOmega[[iPattern]] - precompute$Omega$tr.OmegaM1.d2Omega[[iPattern]])
+                    iValue <- iValue - 0.5 * (precompute$RR[[iPattern]] %*% precompute$Omega$OmegaM1.d2OmegaAndCo.OmegaM1[[iPattern]])[1,]
                 }
-                info[iName.varcoef,iName.varcoef]  <- info[iName.varcoef,iName.varcoef] + iValue[as.double(attr(pair.vcov[[iPattern]],"key"))]
-
-                ## determinant
-                if(REML){                    
-                    iDouble2Mat <- as.vector(precompute$XX$key)
-                    ## denominator
-                    if(is.null(precompute$X.OmegaM1.X)){
-                        REML.denom <- REML.denom + (as.double(iOmegaM1) %*% iX)[iDouble2Mat]
-                    }else{
-                        REML.denom <- REML.denom + precompute$X.OmegaM1.X[[iPattern]][iDouble2Mat]
-                    }
-                    ## numerator 1
-                    iX_OmegaM1_dOmega_OmegaM1_X <- t(iX) %*% OmegaM1_dOmega_OmegaM1[[iPattern]]
-                    for(iVarcoef in iName.varcoef){ ## iVarcoef <- iName.varcoef[1]
-                        REML.numerator1[,,iVarcoef] <- REML.numerator1[,,iVarcoef] + iX_OmegaM1_dOmega_OmegaM1_X[iDouble2Mat,iVarcoef]
-                    }
-                    ## numerator 2
-                    iX_OmegaM1_d2OmegaAndCo_OmegaM1_X <- t(iX) %*% iOmegaM1_d2OmegaAndCo_OmegaM1
-                    for(iPair in 1:npair.vcov[[iPattern]]){ ## iPair <- 1
-                        iCoef1 <- pair.vcov[[iPattern]][1,iPair]
-                        iCoef2 <- pair.vcov[[iPattern]][2,iPair]
-                        REML.numerator2[,,REML.key[iCoef1,iCoef2]] <- REML.numerator2[,,REML.key[iCoef1,iCoef2]] + iX_OmegaM1_d2OmegaAndCo_OmegaM1_X[iDouble2Mat,iPair]
-                    }
-                    
-                }
+                info[iName.varcoef,iName.varcoef]  <- info[iName.varcoef,iName.varcoef] + iValue[as.vector(attr(pair.vcov[[iPattern]],"key"))]
 
             }
 
@@ -451,7 +355,7 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
             if(type.information == "observed" && test.mean && test.vcov){
 
                 ## compute
-                iValue <- t(OmegaM1_dOmega_OmegaM1[[iPattern]]) %*% matrix(precompute$XR[[iPattern]], nrow = iTime2, ncol = n.mucoef, dimnames = list(NULL,name.mucoef))
+                iValue <- t(precompute$Omega$OmegaM1.dOmega.OmegaM1[[iPattern]]) %*% precompute$XR[[iPattern]]
 
                 ## store
                 info[iName.varcoef,name.mucoef] <- info[iName.varcoef,name.mucoef] + iValue
@@ -459,26 +363,28 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
             }
         }
 
-    }
+        ## *** REML contribution
+        if(REML && test.vcov){
 
-    ## ** add REML contribution
-    if(REML && test.vcov){
-        
-        REML.denomM1 <- solve(REML.denom)
-        REML.numerator2.bis <- array(NA, dim = dim(REML.numerator2), dimnames = dimnames(REML.numerator2))
-        ls.REML.numerator1.denomM1 <- stats::setNames(lapply(1:dim(REML.numerator1)[3], FUN = function(iDim){REML.numerator1[,,iDim] %*% REML.denomM1}), dimnames(REML.numerator1)[[3]])
-        ## ls.REML.numerator1.denomM1 <- apply(REML.numerator1, MARGIN = 3, FUN = function(iM){iM %*% REML.denomM1}, simplify = FALSE) ## only work on recent R versions
-        for(iKey in 1:maxkey){ ## iKey <- 1
-            iIndex <- which(REML.key == iKey, arr.ind = TRUE)
-            REML.numerator2.bis[,,iKey] <-  ls.REML.numerator1.denomM1[[name.allvarcoef[iIndex[1,1]]]] %*% REML.numerator1[,,name.allvarcoef[iIndex[1,2]]]
+            for(iParam2 in name.varcoef2){ ## iParam2 <- name.varcoef2[1]
+                iParam2.1 <- attr(pair.vcov,"global")[1,iParam2]
+                iParam2.2 <- attr(pair.vcov,"global")[2,iParam2]
+                
+                ## same at 0.5 * tr(REML.denom %*% (REML.num2[[iParam2]] + REML.num1[[iParam2.1]] %*% REML.denom %*% REML.num1[[iParam2.2]]))
+                iValue <- 0.5 * sum(REML.denom * (REML.num2[[iParam2]] + REML.num1[[iParam2.1]] %*% REML.denom %*% REML.num1[[iParam2.2]]))
+                info[iParam2.1,iParam2.2] <- info[iParam2.1,iParam2.2] - iValue
+                if(iParam2.1 != iParam2.2){
+                    info[iParam2.2,iParam2.1] <- info[iParam2.2,iParam2.1] - iValue
+                }
+            }
+            
         }
 
-        REML.all <- as.double(REML.denomM1) %*% matrix(REML.numerator2.bis + REML.numerator2, nrow = prod(dim(REML.numerator2)[1:2]), ncol = dim(REML.numerator2)[3], byrow = FALSE)
-        info[name.allvarcoef,name.allvarcoef] <- info[name.allvarcoef,name.allvarcoef] - 0.5 * REML.all[as.double(REML.key)]
-        
     }
 
+ 
     ## ** export
+    attr(info,"message") <- message
     return(info)
 }
 

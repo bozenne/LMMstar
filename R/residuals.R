@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: jul 11 2024 (10:08) 
+## Last-Updated: jul 31 2024 (10:50) 
 ##           By: Brice Ozenne
-##     Update #: 1398
+##     Update #: 1401
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -120,15 +120,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
     options <- LMMstar.options()
     type.residual <- type
     sep <- options$sep["residuals"]
-    if (!missing(var)) {
-        if(is.null(variable)){
-            warning("Deprecated argument 'var': use instead argument 'variable'. \n")
-            variable <- var
-        }else{
-            stop("Deprecated argument 'var': use instead argument 'variable'. \n")
-        }
-    }
-
+    
     ## ** extract from object
     xfactorMu <- object$xfactor$mean
     variableMu.name <- attr(object$design$mean,"variable")
@@ -150,11 +142,13 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
     name.time <- object$time$var
     
     ## ** normalize user imput
+
+    ## *** dots
     dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
-    ## p
+    ## *** p
     if(!is.null(p)){
         init <- .init_transform(p = p, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, 
                                 x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
@@ -168,7 +162,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         theta <- object$param
     }
 
-    ## check format
+    ## *** format
     format[] <- match.arg(sort(unique(format)), c("wide","long"), several.ok = TRUE)  ## use 'format[] <-' instead of 'format <-' to keep the name that will be transferd to .reformat(
     if(length(format)>1){
         format <- format[1]
@@ -179,13 +173,20 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         format <- "long"
     }
 
-    ## check type.residuals
+    ## *** type
     if(identical("all",tolower(type.residual))){        
         type.residual <- c("response","studentized","pearson","normalized")
     }
     valid.normresiduals  <- c("studentized","pearson","normalized","normalized2","normastudentized","scaled")
     valid.residuals <- c("response",valid.normresiduals,"partial","partial-center")
-    type.residual <- match.arg(type.residual, valid.residuals, several.ok = (format=="long"))
+    if(any(type.residual %in% valid.residuals == FALSE)){
+        stop("Incorrect value for argument \'type\': \"",paste(setdiff(type.residual,valid.residuals), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(valid.residuals, collapse ="\", \""),"\". \n")
+    }
+    if((format=="wide") && length(type.residual)>1){
+        stop("Argument \'type\' must have length 1 when argument \'format\' equals \"wide\". \n",
+             "Consider argument \'format\' to \"long\". \n")
+    }
     if(any(type.residual %in% valid.normresiduals)){
         effects <- c("mean","variance")
     }else{
@@ -193,7 +194,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
     }    
     name.residual <- paste0("r.",gsub("-center","",type.residual,fixed = TRUE))
 
-    ## special checks for partial residuals
+    ## *** special checks for partial residuals
     if("partial" %in% type.residual || "partial-center" %in% type.residual){
         if((length(type.residual)>2) || (length(type.residual) == 2 && "response" %in% type.residual == FALSE)){
             stop("Argument \'type.residual\' should have length 1 when it contains \"partial\" or  \"partial-center\". \n",
@@ -236,12 +237,12 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         type.fit <- "static"
     }
 
-    ## check agreement plot, format, type.residual
+    ## *** check agreement plot, format, type.residual
     if(length(type.residual)>1 && format == "wide"){
         stop("Argument \'format\' must be \"long\" when exporting several types of residuals. \n")
     }
 
-    ## check data and create data.reference used for export and for partial residuals 
+    ## *** check data and create data.reference used for export and for partial residuals 
     if(!is.null(newdata)){
         data.reference <- as.data.frame(newdata)
         if(keep.data && any(colnames(data.reference) %in% name.residual)){
@@ -252,10 +253,31 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         data.reference <- object$data.original
     }
 
-    ## partial derivative w.r.t. each model parameter
+    ## *** simplify
+    if(!is.numeric(simplify) && !is.logical(simplify)){
+        stop("Argument \'simplify\' must be numeric or logical. \n")
+    }
+    if(length(simplify)!=1){
+        stop("Argument \'simplify\' must have length 1. \n")
+    }
+    if(simplify %in% c(0,1) == FALSE){
+        stop("Argument \'simplify\' must be TRUE/1 or FALSE/0. \n")
+    }
+
+    ## *** partial derivative w.r.t. each model parameter
     keep.grad <- fitted.ci && (simplify<=0 & format=="long")
     if(keep.grad && ("scaled" %in% type.residual)){
         message("Gradient for scaled residuals not implemented. Consider using normalized residuals instead. \n")
+    }
+
+    ## *** var [old argument]
+    if (!missing(var)) {
+        if(is.null(variable)){
+            warning("Deprecated argument \'var\': use instead argument \'variable\'. \n")
+            variable <- var
+        }else{
+            stop("Deprecated argument \'var\': use instead argument \'variable\'. \n")
+        }
     }
 
     ## ** update design
@@ -375,7 +397,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
     beta <- theta[paramMu.name]
     if(any(type.residual %in% valid.normresiduals)){
         if(!is.null(p) || !is.null(newdata)){
-            Omega <- .calc_Omega(object = design$vcov, param = theta, keep.interim = keep.grad)
+            Omega <- .calc_Omega(object = design$vcov, param = theta, simplify = !keep.grad)
             if(keep.grad){
                 dOmega <- .calc_dOmega(object = design$vcov, param = theta, Omega = Omega,
                                        ## Jacobian = object$reparametrize$Jacobian, ## not needed
@@ -666,7 +688,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
 residuals.clmm <- function(object, ...){
 
     object$residuals <- object$design$Y - stats::predict(object, newdata = object$data.original, se = FALSE)$estimate
-    object$Omega <- .calc_Omega(object$design$vcov, param = object$param, keep.interim = FALSE)
+    object$Omega <- .calc_Omega(object$design$vcov, param = object$param, simplify = TRUE)
     object$OmegaM1 <- lapply(object$Omega, solve)
     out <- residuals.lmm(object, ...)
     return(out)

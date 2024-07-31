@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: Mar 24 2024 (14:58) 
+## Last-Updated: jul 31 2024 (11:19) 
 ##           By: Brice Ozenne
-##     Update #: 222
+##     Update #: 251
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,43 +26,9 @@
 ##' @param Jacobian [matrix] Jacobian of the reparametrisation.
 ##' @param transform.sigma,transform.k,transform.rho [character] Transformation used on the variance/correlation coefficients.
 ##' Only active if \code{"log"}, \code{"log"}, \code{"atanh"}: then the derivative is directly computed on the transformation scale instead of using the Jacobian.
+##' 
 ##' @keywords internal
 ##' 
-##' @examples
-##' data(gastricbypassL, package = "LMMstar")
-##' gastricbypassL$gender <- c("M","F")[as.numeric(gastricbypassL$id) %% 2+1]
-##' dd <- gastricbypassL[!duplicated(gastricbypassL[,c("time","gender")]),]
-##' 
-##' ## independence
-##' Sid1 <- .skeleton(IND(~1, var.time = "time"), data = dd)
-##' Sid4 <- .skeleton(IND(~1|id, var.time = "time"), data = dd)
-##' Sdiag1 <- .skeleton(IND(~visit), data = dd)
-##' Sdiag4 <- .skeleton(IND(~visit|id), data = dd)
-##' Sdiag24 <- .skeleton(IND(~visit+gender|id, var.time = "time"), data = dd)
-##' param24 <- setNames(c(1,2,2,3,3,3,5,3),Sdiag24$param$name)
-##'
-##' .calc_dOmega(Sid4, param = c(sigma = 2))
-##' .calc_dOmega(Sdiag1, param = c(sigma = 1, k.visit2 = 2, k.visit3 = 3, k.visit4 = 4))
-##' .calc_dOmega(Sdiag4, param = c(sigma = 1, k.visit2 = 2, k.visit3 = 3, k.visit4 = 4))
-##' .calc_dOmega(Sdiag24, param = param24)
-##' 
-##' ## compound symmetry
-##' Scs4 <- .skeleton(CS(~1|id, var.time = "time"), data = gastricbypassL)
-##' Scs24 <- .skeleton(CS(gender~time|id), data = gastricbypassL)
-##' 
-##' .calc_dOmega(Scs4, param = c(sigma = 1,rho=0.5))
-##' .calc_dOmega(Scs4, param = c(sigma = 2,rho=0.5))
-##' .calc_dOmega(Scs24, param = c("sigma:F" = 2, "sigma:M" = 1,
-##'                             "rho:F"=0.5, "rho:M"=0.25))
-##' 
-##' ## unstructured
-##' Sun4 <- .skeleton(UN(~visit|id), data = gastricbypassL)
-##' param4 <- setNames(c(1,1.1,1.2,1.3,0.5,0.45,0.55,0.7,0.1,0.2),Sun4$param$name)
-##' Sun24 <- .skeleton(UN(gender~visit|id), data = gastricbypassL)
-##' param24 <- setNames(c(param4,param4*1.1),Sun24$param$name)
-##' 
-##' .calc_dOmega(Sun4, param = param4)
-##' .calc_dOmega(Sun24, param = param24)
 `.calc_dOmega` <-
     function(object, param, Omega, Jacobian, transform.sigma, transform.k, transform.rho) UseMethod(".calc_dOmega")
 
@@ -79,7 +45,7 @@
     param <- param[name.paramVar]
     name.param <- names(param)
     if(missing(Omega)){
-        Omega <- .calc_Omega(object, param = param, keep.interim = TRUE)
+        Omega <- .calc_Omega(object, param = param, simplify = FALSE)
     }
     
     Upattern <- object$Upattern
@@ -188,6 +154,7 @@
 .calc_dOmega.CUSTOM <- function(object, param, Omega, Jacobian = NULL,
                                 transform.sigma = NULL, transform.k = NULL, transform.rho = NULL){
 
+    ## ** prepare
     Upattern <- object$Upattern
     n.Upattern <- NROW(Upattern)
     X.var <- object$var$Xpattern
@@ -199,11 +166,12 @@
     name.sigma <- object$param[object$param$type=="sigma","name"]
     name.rho <- object$param[object$param$type=="rho","name"]
 
+    ## ** Score
     if(!is.null(FCT.sigma) && is.null(dFCT.sigma) || !is.null(FCT.rho) && is.null(dFCT.rho) ){
 
-        ## unlist(.calc_Omega.CUSTOM(object, param = param, keep.interim = FALSE))
+        ## unlist(.calc_Omega.CUSTOM(object, param = param, simplify = TRUE))
         vec.dOmega <- numDeriv::jacobian(func = function(x){
-            unlist(.calc_Omega.CUSTOM(object, param = x, keep.interim = FALSE))
+            unlist(.calc_Omega.CUSTOM(object, param = x, simplify = TRUE))
         }, x = param[c(name.sigma,name.rho)])
 
         vec.pattern <- unlist(lapply(names(Omega), function(iName){
@@ -262,7 +230,8 @@
             return(iOut)
         }), Upattern$name)
     }
-    
+
+    ## ** Jacobian: reparametrize derivative
     if(!is.null(Jacobian)){
         type <- object$param$type
         name.sigma <- object$param$name[type=="sigma"]
@@ -291,9 +260,10 @@
         
         out <- stats::setNames(out,Upattern$name)
     }
+
+    ## ** export
     return(out)
 }
-
 
 ##----------------------------------------------------------------------
 ### calc_dOmega.R ends here

@@ -5,16 +5,18 @@
 \title{Extract The Score From Multiple Linear Mixed Models}
 \usage{
 \method{score}{mlmm}(
-  object,
+  x,
   effects = "contrast",
+  indiv = FALSE,
   p = NULL,
   newdata = NULL,
-  ordering = "parameter",
+  ordering = "by",
+  simplify = TRUE,
   ...
 )
 }
 \arguments{
-\item{object}{a \code{mlmm} object.}
+\item{x}{a \code{mlmm} object.}
 
 \item{effects}{[character] By default will output the estimates relative to the hypotheses being tested (\code{"contrast"}).
 But can also output all model coefficients (\code{"all"}),
@@ -22,13 +24,22 @@ or only coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 or only coefficients relative to the variance structure (\code{"variance"}),
 or only coefficients relative to the correlation structure (\code{"correlation"}).}
 
+\item{indiv}{[logical] Should the contribution of each cluster to the score be output? Otherwise output the sum of all clusters of the derivatives.}
+
 \item{p}{[list of numeric vector] list of model coefficients to be used. Only relevant if differs from the fitted values.}
 
 \item{newdata}{[NULL] Not used. For compatibility with the generic method.}
 
 \item{ordering}{[character] should the output be ordered by type of parameter (\code{parameter}) or by model (\code{by}).}
 
+\item{simplify}{[logical] should the score be combined across models into a single vector (\code{indiv=FALSE}) or matrix (\code{indiv=TRUE})?}
+
 \item{...}{passed to \code{score.lmm}.}
+}
+\value{
+When argument indiv is \code{FALSE}, a vector with the value of the score relative to each coefficient.
+When argument indiv is \code{TRUE}, a matrix with the value of the score relative to each coefficient (in columns) and each cluster (in rows).
+When \code{effects} differs from \code{"contrast"} and \code{simplify=FALSE}, it will store the score in a list with an element relative to each parameter or model (argument \code{ordering}).
 }
 \description{
 Extract or compute the first derivative of the log-likelihood of each linear mixed model.

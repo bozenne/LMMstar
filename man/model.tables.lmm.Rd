@@ -2,25 +2,35 @@
 % Please edit documentation in R/model.tables.R
 \name{model.tables.lmm}
 \alias{model.tables.lmm}
-\title{Statistical Inference for Linear Mixed Model}
+\title{Statistical Inference and parametrization of Linear Mixed Models}
 \usage{
-\method{model.tables}{lmm}(x, columns, ...)
+\method{model.tables}{lmm}(x, effects = NULL, columns, simplify = TRUE, ...)
 }
 \arguments{
 \item{x}{a \code{lmm} object.}
 
-\item{columns}{[character vector] Columns to be output.
-Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.}
+\item{effects}{[character] Should the CIs/p-values for all coefficients be output (\code{"all"}),
+or only for mean coefficients (\code{"mean"} or \code{"fixed"}),
+or only for variance coefficients (\code{"variance"}),
+or only for correlation coefficients (\code{"correlation"}).
+Alternatively can be \code{"param"} to output the name and characteristics of each parameter (type, strata, ...).}
 
-\item{...}{arguments to be passed to the \code{confint} method. Should not contain the argument \code{column}.}
+\item{simplify}{[logical] omit from the output the backtransform attribute.
+Not relevant when the argument \code{effects="param"},}
+
+\item{...}{arguments to be passed to \code{\link{confint.lmm}}.}
 
 \item{method}{[character] type of adjustment for multiple comparisons, one of \code{"none"}, \code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}.
 Alternatively, method for combining the estimates, one of \code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.rubin"}.}
 }
+\value{
+A \code{data.frame} object.
+}
 \description{
-Export estimates, standard errors, degrees of freedom, confidence intervals (CIs) and p-values for the mean coefficients of a linear mixed model.
+Export estimated parameters with their uncertainty (standard errors, degrees of freedom, confidence intervals and p-values) from a linear mixed model
+or a table describing each parameter (type, associated sigma or k parameter, ...).
 }
 \details{
-This function simply calls \code{\link{confint}} with a specific value for the argument \code{column}.
+When \code{effects} is not \code{"param"}, this function simply calls \code{\link{confint}} with a specific value for the argument \code{column}.
 }
 \keyword{methods}

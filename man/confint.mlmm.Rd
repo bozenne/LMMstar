@@ -9,6 +9,9 @@
   parm = NULL,
   level = 0.95,
   method = NULL,
+  df = NULL,
+  columns = NULL,
+  backtransform = NULL,
   ordering = "parameter",
   ...
 )
@@ -32,6 +35,15 @@ Compute confidence intervals for several linear mixed models.
 }
 \details{
 Statistical inference following pooling is performed according to Rubin's rule whose validity requires the congeniality condition of Meng (1994).
+ \bold{Pooling estimates}: available methods are:
+\itemize{
+ \item \code{"average"}: average estimates
+ \item \code{"pool.fixse"}: weighted average of the estimates, with weights being the inverse of the squared standard error. The uncertainty about the weights is neglected.
+ \item \code{"pool.se"}: weighted average of the estimates, with weights being the inverse of the squared standard error. The uncertainty about the weights is computed under independence of the variance parameters between models. 
+ \item \code{"pool.gls"}: weighted average of the estimates, with weights being based on the variance-covariance matrix of the estimates. When this matrix is singular, its spectral decomposition is truncated when the correspodning eigenvalues are below \eqn{10^{-12}}. The uncertainty about the weights is neglected. 
+ \item \code{"pool.gls1"}: similar to \code{"pool.gls"} but ensure that the weights are at most 1 in absolute value by shrinking toward the average.
+ \item \code{"pool.rubin"}: average of the estimates and compute the uncertainty according to Rubin's rule (Barnard et al. 1999).
+}
 }
 \references{
 Meng X. L.(1994). Multiple-imputation inferences with uncongenial sources of input. Statist. Sci.9, 538–58.

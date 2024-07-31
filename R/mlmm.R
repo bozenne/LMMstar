@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: jul 25 2024 (09:26) 
+## Last-Updated: jul 31 2024 (10:39) 
 ##           By: Brice Ozenne
-##     Update #: 491
+##     Update #: 492
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -94,9 +94,10 @@
 mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = FALSE, df = NULL, ci = TRUE,
                  name.short = c(TRUE,TRUE), transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, trace = TRUE){
 
-    ## ** normalizer user input
     options <- LMMstar.options()
 
+    ## ** normalizer user input
+    ## *** data
     if(!inherits(data,"data.frame")){
         stop("Argument \'data\' must inherit from \"data.frame\". \n")
     }
@@ -109,6 +110,8 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
         stop("Argument \'data\' should not contain a column named \"",paste(names(data)[names(data) %in% reserved.names], collapse = "\" \""),
              "\" as this name is used internally by the mlmm function. \n")
     }
+
+    ## *** by
     if(length(by)>1){
         by.keep <- by
         by <- paste(by.keep,collapse=",")            
@@ -122,9 +125,13 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
             data[[by]] <- droplevels(data[[by]])
         }
     }
+
+    ## *** name.short
     if(length(name.short)==1){
         name.short <- c(name.short, name.short)
     }
+
+    ## *** df
     if(is.null(df)){
         df <- options$df
     }

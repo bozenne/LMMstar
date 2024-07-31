@@ -7,15 +7,15 @@
 \method{anova}{lmm}(
   object,
   effects = NULL,
-  robust = FALSE,
-  multivariate = TRUE,
   rhs = NULL,
-  df = !is.null(object$df),
-  ci = TRUE,
+  robust = NULL,
+  df = NULL,
+  univariate = TRUE,
+  multivariate = TRUE,
   transform.sigma = NULL,
   transform.k = NULL,
   transform.rho = NULL,
-  transform.names = TRUE,
+  simplify = NULL,
   ...
 )
 }
@@ -26,21 +26,24 @@
 or only variables relative to the mean (\code{"mean"} or \code{"fixed"}),
 or only variables relative to the variance structure (\code{"variance"}),
 or only variables relative to the correlation structure (\code{"correlation"}).
-or average counterfactual outcome with respect to the value of a covariate X at each repetition  (\code{"ACO_X"}),
-or the contrast between average counterfactual outcome for any pair of value of a covariate X (\code{"ATE_X"}).
 Can also be use to specify linear combinations of coefficients or a contrast matrix, similarly to the \code{linfct} argument of the \code{multcomp::glht} function.}
+
+\item{rhs}{[numeric vector] the right hand side of the hypothesis. Only used when the argument \code{effects} is a matrix.}
 
 \item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.}
 
+\item{df}{[logical] Should degrees of freedom be estimated using a Satterthwaite approximation?
+If yes F-distribution (multivariate) and Student's t-distribution (univariate) are used.
+Other chi-squared distribution and normal distribution are used.}
+
+\item{univariate}{[logical] Should an estimate, standard error, confidence interval, and p-value be output for each hypothesis?}
+
 \item{multivariate}{[logical] Should all hypotheses be simultaneously tested using a multivariate Wald test?}
 
-\item{rhs}{[numeric vector] the right hand side of the hypothesis. Only used when the argument effects is a matrix.}
+\item{transform.sigma, transform.k, transform.rho}{are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.}
 
-\item{df}{[logical] Should a F-distribution be used to model the distribution of the Wald statistic. Otherwise a chi-squared distribution is used.}
-
-\item{ci}{[logical] Should an estimate, standard error, confidence interval, and p-value be output for each hypothesis?}
-
-\item{transform.sigma, transform.k, transform.rho, transform.names}{are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.}
+\item{simplify}{[logical] should only the estimates, variance-covariance with its gradient, and degrees of freedom relative to the parameters involved in the Wald test be stored (TRUE)
+or relative to all model parameters (0.5) along with their iid decomposition (FALSE).}
 
 \item{...}{Not used. For compatibility with the generic method.}
 }
@@ -52,8 +55,6 @@ wherease the column \code{df.denum} refers to the degrees of freedom for the den
 \item \code{univariate}: data.frame containing each univariate Wald test.
 \item \code{glht}: used internally to call functions from the multcomp package.
 \item \code{object}: list containing key information about the linear mixed model.
-\item \code{vcov}: variance-covariance matrix associated to each parameter of interest (i.e. hypothesis).
-\item \code{iid}: matrix containing the influence function relative to each parameter of interest (i.e. hypothesis).
 \item \code{args}: list containing argument values from the function call.
 }
 }

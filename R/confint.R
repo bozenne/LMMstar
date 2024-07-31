@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: Jul 28 2024 (21:19) 
+## Last-Updated: jul 31 2024 (10:33) 
 ##           By: Brice Ozenne
-##     Update #: 1074
+##     Update #: 1081
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -110,16 +110,30 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
 
     ## *** effects
     if(is.null(effects)){
-        effects <- options$effects
-    }else if(identical(effects,"all")){
-        effects <- c("mean","variance","correlation")
+        if((is.null(transform.sigma) || identical(transform.sigma,"none")) && (is.null(transform.k) || identical(transform.k,"none")) && (is.null(transform.rho) || identical(transform.rho,"none"))){
+            effects <- options$effects
+        }else{
+            effects <- c("mean","variance","correlation")
+        }
+    }else{
+        if(!is.character(effects) || !is.vector(effects)){
+            stop("Argument \'effects\' must be a character vector. \n")
+        }
+        valid.effects <- c("mean","fixed","variance","correlation","all")
+        if(any(effects %in% valid.effects == FALSE)){
+            stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+                 "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+        }
+        if(all("all" %in% effects)){
+            if(length(effects)>1){
+                stop("Argument \'effects\' must have length 1 when containing the element \"all\". \n")
+            }else{
+                effects <- c("mean","variance","correlation")
+            }
+        }else{
+            effects[effects== "fixed"] <- "mean"
+        }
     }
-    valid.effects <- c("mean","fixed","variance","correlation")
-    if(any(effects %in% valid.effects == FALSE)){
-        stop("Incorrect value for argument \'effects\'. \n",
-             "Possible values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
-    }
-    effects[effects== "fixed"] <- "mean"
 
     ## *** df
     if(is.null(df)){
@@ -1188,7 +1202,9 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
     if(length(Umethod)>1){
         Umethod <- setdiff(Umethod,"none")
     }
+    keep.attr <- attributes(out)[setdiff(names(attributes(out)),c("names","row.names","class"))]
     out <- out[columns]
+    attributes(out) <- c(attributes(out), keep.attr)
     attr(out, "level") <- 0.95
     attr(out, "method") <- Umethod
     class(out) <- append("confint_lmm", class(out))

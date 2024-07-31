@@ -9,7 +9,13 @@
   effects = "contrast",
   p = NULL,
   type = "coef",
-  ordering = "parameter",
+  method = "none",
+  ordering = "by",
+  backtransform = object$args$backtransform,
+  transform.sigma = "none",
+  transform.k = "none",
+  transform.rho = "none",
+  transform.names = TRUE,
   ...
 )
 }
@@ -27,11 +33,30 @@ Not relevant when \code{type="contrast"} or \code{type="ls.contrast"}.}
 
 \item{type}{[character] Should the coefficients be extracted (\code{"coef"}) or the contrast matrix (\code{"contrast"} or \code{"ls.contrast"}).
 \code{"contrast"} will extract the contrast matrix acrossed models (typically identity when testing an exposure effect in each model separately)
-whereas \code{"ls.contrast"} will extract the contrast matrix applied to each model as a list.}
+whereas \code{"ls.contrast"} will extract the contrast matrix applied to each model as a list.##'}
 
-\item{ordering}{[character] should the output be ordered by type of parameter (\code{parameter}) or by model (\code{by}).}
+\item{method}{[character] type of adjustment for multiple comparisons, one of \code{"none"}, \code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}.
+Alternatively, a method for combining the estimates, one of \code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.gls1"}, \code{"pool.rubin"}.
+Ignored if \code{type="contrast"} or \code{type="ls.contrast"}.}
 
-\item{...}{passed to \code{coef.Wald_lmm}.}
+\item{ordering}{[character] should the output be ordered by type of parameter (\code{"parameter"}) or by model (\code{"by"}).
+Not relevant when \code{effects="contrast"}.}
+
+\item{backtransform}{[logical] should the estimate, standard error, and confidence interval be back-transformed?}
+
+\item{transform.sigma}{[character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}.
+Ignored if \code{type="contrast"}, \code{type="ls.contrast"}, or \code{effects="contrast"}.}
+
+\item{transform.k}{[character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"}.
+Ignored if \code{type="contrast"}, \code{type="ls.contrast"}, or \code{effects="contrast"}.}
+
+\item{transform.rho}{[character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"}.
+Ignored if \code{type="contrast"}, \code{type="ls.contrast"}, or \code{effects="contrast"}.}
+
+\item{transform.names}{[logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
+Ignored if \code{type="contrast"}, \code{type="ls.contrast"}, or \code{effects="contrast"}.}
+
+\item{...}{Not used. For compatibility with the generic method.}
 }
 \description{
 Extract coefficient or constrast coefficients from multiple linear mixed models.

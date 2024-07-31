@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: maj 10 2024 (11:47) 
+## Last-Updated: jul 29 2024 (13:29) 
 ##           By: Brice Ozenne
-##     Update #: 427
+##     Update #: 428
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -553,7 +553,7 @@
 
 ## * initializeLMER
 .initializeLMER <- function(formula, structure, data,
-                            param, method.fit, weights, scale.Omega){
+                            param, method.fit, weights){
 
     ## ** check feasibility
     requireNamespace("lme4")
@@ -562,10 +562,6 @@
     }
     if(!is.na(structure$name$strata)){
         stop("Initializer \"lmer\" cannot handle multiple strata.")
-    }
-
-    if(!is.null(scale.Omega)){
-        stop("Initializer \"lmer\" cannot handle weighted residual variance-covariance matrix (argument \'scale.Omega\'). \n")
     }
 
     ## ** estimation via lmer

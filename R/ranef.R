@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 26 2022 (11:18) 
 ## Version: 
-## Last-Updated: jun 28 2024 (09:59) 
+## Last-Updated: jul 31 2024 (10:50) 
 ##           By: Brice Ozenne
-##     Update #: 705
+##     Update #: 714
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -63,23 +63,59 @@
 ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, df = NULL, transform = (effects %in% c("std","variance")),
                       p = NULL, newdata = NULL, format = "long", simplify = TRUE, ...){
 
+    mycall <- match.call()
+    table.param <- object$design$param
+    param.name <- table.param$name
+
     ## ** normalize user input
+    ## *** dots
     dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
 
-    mycall <- match.call()
+    ## *** object
     if(!inherits(object$design$vcov,"RE")){
         stop("Cannot estimate random effects linear mixed models defined by covariance structure (argument \'structure\'). \n",
              "Consider adding random effects in the argument \'formula\' instead. \n")
     }
-    effects <- match.arg(effects, c("mean","std","variance"))
-    if(length(scale)==1 && scale == "all"){
+    if(any(object$design$vcov$name$cor[[1]] %in% c("total","relative"))){
+        stop("The ranef function cannot be used when the variable(s) w.r.t. which the random are defined are called \"total\" or \"relative\". \n")
+    }
+
+    ## *** effects
+    if(!is.character(effects) || !is.vector(effects)){
+        stop("Argument \'effects\' must be a character. \n")
+    }
+    if(length(effects)!=1){
+        stop("Argument \'effects\' must have length 1. \n")
+    }
+    valid.effects <- c("mean","std","variance")
+    if(effects %in% valid.effects == FALSE){
+        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+    }
+
+    ## *** scale
+    if(!is.character(scale) || !is.vector(scale)){
+        stop("Argument \'scale\' must be a character.")
+    }
+    if(length(scale) %in% 1:2 == FALSE){
+        stop("Argument \'scale\' must have length 1 or 2.")
+    }
+    valid.scale <- c("absolute","relative","all")
+    if(any(scale %in% valid.scale == FALSE)){
+        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(scale,valid.scale), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(valid.scale, collapse ="\", \""),"\". \n")
+    }
+    if(all(scale == "all")){
         scale <- c("absolute","relative")
     }
-    scale <- match.arg(scale, c("absolute","relative"), several.ok = TRUE)
+
+    ## *** format
     format <- match.arg(format, c("wide","long"))
+
+    ## *** se
     if(!is.null(se)){        
         if(length(se)!=1 || (!is.numeric(se) && !is.logical(se))){
             stop("Argument \'se\' must be a logical value. \n")
@@ -93,6 +129,8 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
             stop("Cannot evaluate the uncertainty when the argument \'p\' is specified")
         }
     }
+
+    ## *** df
     if(is.null(df)){
         df <- se & (effects == "mean")
     }else{
@@ -105,17 +143,20 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
                     "Considering setting argument \'se\' to TRUE. \n")
         }
     }
+
+    ## *** transform
     if(length(transform)!=1 || (!is.numeric(transform) && !is.logical(transform))){
         stop("Argument \'transform\' must be a logical value. \n")
     }
     if(!is.null(mycall$scale) && effects == "mean"){
         message("Argument \'scale\' ignored when argument \'effects\' is set to \"mean\". \n")
     }
+    if(transform && se && effects == "mean"){
+        transform <- FALSE
+        message("Argument \'transform\' is ignored when evaluating confidence intervals for the random effects. \n")
+    }
 
-    table.param <- object$design$param
-    param.name <- table.param$name
-
-    ## p
+    ## *** p
     if(!is.null(p)){
         init <- .init_transform(p = p, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, 
                                 x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
@@ -127,13 +168,15 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
         cumTau <- coef(object, effects = c("variance","correlation"), transform.sigma = "square", transform.rho = "cov", transform.names = FALSE)
     }
 
-    if(transform && se && effects == "mean"){
-        transform <- FALSE
-        message("Argument \'transform\' is ignore when evaluating confidence intervals for the random effects. \n")
+    ## *** simplify
+    if(!is.numeric(simplify) && !is.logical(simplify)){
+        stop("Argument \'simplify\' must be numeric or logical. \n")
     }
-
-    if(any(object$design$vcov$name$cor[[1]] %in% c("total","relative"))){
-        stop("The ranef function cannot be used when the variable(s) w.r.t. which the random are defined are called \"total\" or \"relative\". \n")
+    if(length(simplify)!=1){
+        stop("Argument \'simplify\' must have length 1. \n")
+    }
+    if(simplify %in% c(0,1) == FALSE){
+        stop("Argument \'simplify\' must be TRUE/1 or FALSE/0. \n")
     }
     
     ## ** extract from object    

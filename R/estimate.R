@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: jul 26 2024 (11:28) 
+## Last-Updated: jul 30 2024 (16:10) 
 ##           By: Brice Ozenne
-##     Update #: 1127
+##     Update #: 1144
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -602,7 +602,7 @@ browser()
         }
 
         ## check initialization leads to a positive definite matrix 
-        initOmega <- .calc_Omega(object = design$vcov, param = outInit, keep.interim = TRUE)        
+        initOmega <- .calc_Omega(object = design$vcov, param = outInit, simplify = FALSE)        
         test.npd <- sapply(initOmega,function(iOmega){any(eigen(iOmega)$values<0)})
         if(any(test.npd)){ ## otherwise initialize as compound symmetry
             param.value[setdiff(param.sigma,param.fixed)] <- outInit[setdiff(param.sigma,param.fixed)]
@@ -718,7 +718,7 @@ browser()
             }
             ## *** update mean estimate
             if(length(param.mu2)>0){
-                iOmega <- .calc_Omega(object = design$vcov, param = param.value, keep.interim = TRUE)
+                iOmega <- .calc_Omega(object = design$vcov, param = param.value, simplify = FALSE)
                 ## eigen(iOmega[[1]])
                 param.value[param.mu2] <- .estimateGLS(OmegaM1 = stats::setNames(lapply(iOmega, solve), names(iOmega)),
                                                        pattern = Upattern$name, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX,
@@ -899,27 +899,17 @@ browser()
         if(!is.null(precompute.XX) && !is.null(precompute.XY)){
             iVec.Omega <- as.double(OmegaM1[[iPattern]])
             iTime2 <- length(iVec.Omega)
-            numerator  <- numerator + t(iVec.Omega %*%  matrix(precompute.XY[[iPattern]], nrow = iTime2, ncol = n.param))
-            denominator  <- denominator + as.double(iVec.Omega %*%  matrix(precompute.XX[[iPattern]], nrow = iTime2, ncol = max.key))[key.XX]
+            numerator <- numerator + t(iVec.Omega %*%  precompute.XY[[iPattern]])
+            denominator <- denominator + as.double(iVec.Omega %*%  precompute.XX[[iPattern]])[key.XX]
         }else{
-            iOmegaM1 <- OmegaM1[[iPattern]]
             iIndexCluster <- design$index.cluster[design$vcov$pattern == which(pattern==iPattern)]
             for(iId in 1:length(iIndexCluster)){ ## iId <- 2
                 iX <- design$mean[iIndexCluster[[iId]],param.mu,drop=FALSE]
-                if(is.null(design$weight)){
-                    iWeight <- 1
-                }else{
-                    iWeight <- design$weights[iId]
-                }
-                if(!is.null(design$scale.Omega)){
-                    iWeight <- iWeight * design$scale.Omega[iId]
-                }
-                numerator  <- numerator + iWeight * (t(iX) %*% iOmegaM1 %*% Y[iIndexCluster[[iId]]])
-                denominator  <- denominator + iWeight * (t(iX) %*% iOmegaM1 %*% iX)
+                numerator  <- numerator + design$weights[iId] * (t(iX) %*% OmegaM1[[iPattern]] %*% Y[iIndexCluster[[iId]]])
+                denominator  <- denominator + design$weights[iId] * (t(iX) %*% OmegaM1[[iPattern]] %*% iX)
             }
 
         }
-
     }
 
     out <- solve(denominator, numerator)    
@@ -988,7 +978,7 @@ browser()
                                                 transform.names = FALSE)$p
 
         ## estimate residual variance-covariance matrix
-        iOmega <- .calc_Omega(object = design$vcov, param = valueNEW, keep.interim = TRUE)
+        iOmega <- .calc_Omega(object = design$vcov, param = valueNEW, simplify = FALSE)
         if(any(sapply(iOmega,det)<0)){
             alpha <- alpha/2
             next
