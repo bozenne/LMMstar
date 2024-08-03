@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: jul 30 2024 (18:07) 
+## Last-Updated: aug  2 2024 (16:38) 
 ##           By: Brice Ozenne
-##     Update #: 638
+##     Update #: 675
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -14,6 +14,11 @@
 ##----------------------------------------------------------------------
 ## 
 ### Code:
+
+##' @param robust [0,1,2] 0: model-based s.e. are computed and df are relative to model-based s.e.
+##'                       1: robust s.e. are computed but df are relative to model-based s.e.
+##'                       2: robust s.e. are computed and df are relative to robust s.e.
+##' @noRd
 
 ## * moment.lmm
 .moments.lmm <- function(value, design, time, method.fit, type.information,
@@ -139,7 +144,7 @@
 
     ## ** 3- precompute
     ## *** require the full information whenever the information is not block diagonal
-    ## (all the matrix is need in order to get the inverse (vcov) 
+    ## all the matrix is need in order to get the inverse (vcov) 
     if((vcov && (method.fit=="REML"||type.information=="observed"))  || df.analytic){
         effects2 <- c("mean","variance","correlation")
         attr(effects2, "original.names") <- names(newname.allcoef)
@@ -197,15 +202,14 @@
             attr(out$score,"message") <- attr(Mscore,"message")
         }
     }
-    
 
     ## *** information
     if(information || vcov){
-        if(trace>=1){cat("- information \n")}        
+        if(trace>=1){cat("- information \n")}
         Minfo <- .information(X = design$mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega, weights = design$weights, 
                               pattern = design$vcov$pattern, index.cluster = design$index.cluster, name.allcoef = name.allcoef,
                               pair.meanvcov = design$vcov$pair.meanvcov, pair.vcov = design$vcov$pair.vcov,
-                              indiv = indiv && information, REML = (method.fit=="REML"), type.information = type.information, effects = effects2, robust = robust,
+                              indiv = indiv && information, REML = (method.fit=="REML"), type.information = type.information, effects = effects2, 
                               precompute = precompute)
 
         if(information){
@@ -215,6 +219,7 @@
                 out$information <- Minfo[attr(effects, "original.names"),attr(effects, "original.names"),drop=FALSE]
             }
             attr(out$information, "type.information") <- type.information
+            attr(out$information,"message") <- attr(Minfo,"message")
             if(transform.names && length(out$reparametrize$newname)>0){
                 if(indiv){
                     dimnames(out$information) <- list(NULL, attr(effects, "reparametrize.names"),attr(effects, "reparametrize.names"))
@@ -228,6 +233,10 @@
     ## *** variance-covariance
     if(vcov){
         if(trace>=1){cat("- variance-covariance \n")}
+
+        if(indiv){
+            Minfo <- apply(Minfo, MARGIN = 2:3, sum)
+        }
 
         if(is.invertible(Minfo, cov2cor = TRUE)){
             Mvcov <- solve(Minfo)
@@ -246,7 +255,7 @@
         if(vcov){
             out$vcov <- Mvcov[attr(effects, "original.names"),attr(effects, "original.names"),drop=FALSE]
             attr(out$vcov, "type.information") <- type.information
-            attr(out$vcov, "robust") <- robust
+            attr(out$vcov, "robust") <- robust>0
             attr(out$vcov, "message") <- attr(Mvcov,"message")
             if(transform.names && length(out$reparametrize$newname)>0){
                 dimnames(out$vcov) <- list(attr(effects, "reparametrize.names"),attr(effects, "reparametrize.names"))
@@ -257,17 +266,24 @@
     if(df){
         if(trace>=1){cat("- degrees of freedom \n")}
         if(df.analytic){
-        ## out$df2 <- .df_analytic(residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega, Upattern.ncluster = Upattern.ncluster, vcov = out$vcov,
-        ##                         pattern = design$vcov$pattern, index.clusterTime = design$index.time, index.cluster = design$index.cluster,
-        ##                         name.varcoef = design$vcov$Upattern$param, name.allcoef = name.allcoef,
-        ##                         pair.meanvarcoef = design$param$pair.meanvarcoef, pair.varcoef = design$vcov$pair.varcoef,
-        ##                         indiv = indiv, REML = (method.fit=="REML"), type.information = type.information, name.effects = name.effects, robust = robust, diag = TRUE,
-        ##                         precompute = precompute)
+            ## out$df2 <- .df_analytic(residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega, Upattern.ncluster = Upattern.ncluster, vcov = out$vcov,
+            ##                         pattern = design$vcov$pattern, index.clusterTime = design$index.time, index.cluster = design$index.cluster,
+            ##                         name.varcoef = design$vcov$Upattern$param, name.allcoef = name.allcoef,
+            ##                         pair.meanvarcoef = design$param$pair.meanvarcoef, pair.varcoef = design$vcov$pair.varcoef,
+            ##                         indiv = indiv, REML = (method.fit=="REML"), type.information = type.information, name.effects = name.effects, robust = robust, diag = TRUE,
+            ##                         precompute = precompute)
         }else if(df.numeric){
-            out$df <- .df_numDeriv(diag = TRUE, reparametrize = out$reparametrize,
+            ## require vcov for all parameters to compute df
+            effects.all <- c("mean", "variance", "correlation")
+            attr(effects.all, "original.names") <- names(newname.allcoef)
+            attr(effects.all, "original.output") <- attr(effects, "original.names")
+            attr(effects.all, "reparametrize.names") <- as.character(newname.allcoef)
+            attr(effects.all, "reparametrize.output") <- attr(effects, "reparametrize.names")
+
+            out$df <- .df_numDeriv(reparametrize = out$reparametrize,
                                    value = param.value, design = design, time = time, method.fit = method.fit, type.information = type.information,
                                    transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                   effects = effects, robust = robust, 
+                                   effects = effects.all, robust = (robust==2), ## if robust is 1 then robust s.e. are computed but df are relative to model-based s.e.
                                    precompute.moments = precompute.moments, method.numDeriv = method.numDeriv)
         }
         ## range(pmin(out$df2,10000)-pmin(out$df,10000))

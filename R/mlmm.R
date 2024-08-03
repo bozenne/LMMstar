@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: jul 31 2024 (10:39) 
+## Last-Updated: aug  2 2024 (10:12) 
 ##           By: Brice Ozenne
-##     Update #: 492
+##     Update #: 493
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,6 +29,7 @@
 ##' Argument passed to the argument \code{effects} of \code{\link{rbind.Wald_lmm}}.
 ##' Right hand side can be specified via an attribute \code{"rhs"}.
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
+##' Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
 ##' Argument passed to \code{\link{anova.lmm}}.
 ##' @param df [logical] Should the degree of freedom be computed using a Satterthwaite approximation?
 ##' Argument passed to \code{\link{anova.lmm}}.

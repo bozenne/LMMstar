@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 22 2021 (13:47) 
 ## Version: 
-## Last-Updated: jul 30 2024 (18:06) 
+## Last-Updated: aug  2 2024 (13:48) 
 ##           By: Brice Ozenne
-##     Update #: 201
+##     Update #: 202
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -223,7 +223,7 @@
         iXX <- t(precompute$XX$pattern[[iPattern]])
 
         out$X.OmegaM1.X <- out$X.OmegaM1.X + (iXX %*% cbind(attr(precision[[iPattern]], "vectorize")))[,1]
-        if(score || information){
+        if(score || information || vcov){
             iName.varcoef <- colnames(precompute$Omega$OmegaM1.dOmega.OmegaM1[[iPattern]])
             out$X.OmegaM1.dOmega.OmegaM1.X[,iName.varcoef] <- out$X.OmegaM1.dOmega.OmegaM1.X[,iName.varcoef,drop=FALSE] + iXX %*% precompute$Omega$OmegaM1.dOmega.OmegaM1[[iPattern]]
         }

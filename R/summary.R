@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jul 31 2024 (11:13) 
+## Last-Updated: aug  2 2024 (10:42) 
 ##           By: Brice Ozenne
-##     Update #: 1705
+##     Update #: 1729
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -105,6 +105,8 @@ summary.effect_lmm <- function(object, columns = NULL, print = TRUE, ...){
 ##' @param object [lmm] output of the \code{lmm} function.
 ##' @param level [numeric,0-1] confidence level for the confidence intervals.
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
+##' Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
+##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.
 ##' @param print [logical] should the output be printed in the console.
 ##' @param columns [character vector] Columns to be output for the fixed effects.
 ##' Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
@@ -132,7 +134,7 @@ summary.effect_lmm <- function(object, columns = NULL, print = TRUE, ...){
 
 ## * summary.lmm (code)
 ##' @export
-summary.lmm <- function(object, level = 0.95, robust = FALSE,
+summary.lmm <- function(object, level = 0.95, robust = FALSE, df = NULL,
                         print = TRUE, columns = NULL, digits = 3, digits.df = 1, digits.p.value = 3, 
                         hide.data = FALSE, hide.fit = FALSE, hide.cor = NULL, type.cor = NULL, hide.var = NULL, hide.sd = NULL, hide.re = NULL, hide.mean = FALSE, ...){
 
@@ -155,18 +157,24 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
     type.information <- object$args$type.information
     nobsByCluster <- lengths(object$design$index.cluster)
     formula <- object$formula
-    df <- !is.null(object$df)
     options <- LMMstar.options()
 
     n.strata <- object$strata$n
     U.strata <- object$strata$levels
     
     ## ** normalize user input
+    ## *** dots
     dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
 
+    ## *** df
+    if(is.null(df)){
+        df <- !is.null(object$df)
+    }
+    
+    ## *** columns
     valid.columns <- c("estimate","se","df","lower","upper","null","statistic","p.value","")
     if(identical(columns,"all")){
         columns <- valid.columns
@@ -184,12 +192,14 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
         }
     }else{
         columns <- options$columns.summary
-    }    
-
+    }
+    
+    ## *** type.cor
     if(!is.null(type.cor)){
         type.cor <- match.arg(type.cor, c("matrix","param"))
     }
 
+    ## *** hide
     if(inherits(structure,"RE")){
         if(is.null(hide.cor)){hide.cor <- TRUE}
         if(is.null(hide.sd)){hide.sd <- TRUE}
@@ -456,6 +466,7 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE,
         table.mean <- confint(object,
                               level = level,
                               robust = robust,
+                              df = df,
                               effects = "mean",
                               columns = c("estimate","se","df","lower","upper","statistic","null","p.value"))
 
@@ -961,11 +972,11 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         ## group of test relative to which multiple comparison adjustment is performed
         if(object$args$type=="auto" && length(unique(table.univariate$name))>1){
             if(length(unique(table.univariate$type))==1){
-                factor.p.adjust <- "covariate name"
+                factor.p.adjust <- "covariate"
             }else if(length(unique(table.univariate$term))==1){
-                factor.p.adjust <- "type of parameter"
+                factor.p.adjust <- "parameter type"
             }else{
-                factor.p.adjust <- "covariate name and type of parameter"
+                factor.p.adjust <- "covariate and parameter type"
             }
         }else{
             factor.p.adjust <- NULL
@@ -1172,18 +1183,19 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         if(identical(df,TRUE) && "df" %in% columns){
             if(!is.null(attr(table,"df"))){
                 cat(space,"df: ",attr(table,"df"),". \n", sep = "")
-            }else{
-                cat(space,"df: Satterthwaite approximation of the degrees of freedom. \n", sep = "")
+            }else if(robust %in% 0:1){
+                cat(space,"df: Satterthwaite approximation w.r.t. model-based se. \n", sep = "")
+            }else if(robust == 2){
+                cat(space,"df: Satterthwaite approximation w.r.t. robust se. \n", sep = "")
             }
         }
 
         ## *** type of standard error 
         if("se" %in% columns){
-            
-            if(robust){
-                txt.se <- paste0("Robust standard errors based on the ",type.information," information")
-            }else{
-                txt.se <- paste0("Model-based standard errors based on the ",type.information," information")
+            if(robust>0){
+                txt.se <- paste0("Robust based on the ",type.information," information")
+            }else if(robust==0){
+                txt.se <- paste0("Model-based based on the ",type.information," information")
             }
             if(!is.null(attr(table,"se"))){
                 txt.se <- paste0(txt.se,attr(table,"se"))
@@ -1220,19 +1232,32 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
             display.cip <- intersect(c("p.value"),columns)
 
         }
-        
-        if((is.null(method.p.adjust) || (length(method.p.adjust2)==1 && method.p.adjust2 == "none")) && length(display.cip)>0 && NROW(table)>1){ ## no adjustment
 
-            if((df && name.statistic[2] == "F-statistic") || (!df && name.statistic[1] == "Chi2-statistic")){
-                ## joint test
-                cat(space,"Multiple testing adjustment: within variable using a joint test.\n", sep = "")
-            }else{
-                ## none
+
+        if((df && name.statistic[2] == "F-statistic") || (!df && name.statistic[1] == "Chi2-statistic")){
+
+            if("df.num" %in% names(table) == FALSE){
+                ## nothing: cannot say what is going without the df.num column
+            }else if(NROW(table)==1 && table$df.num==1){
+                ## nothing: no need for adjustment
+            }else if(NROW(table)==1 && table$df.num>1){
+                cat(space,"Multiple testing adjustment: joint test.\n", sep = "")
+            }else if(NROW(table)>1 && all(table$df.num==1)){
                 cat(space,"No adjustment for multiple testing.\n", sep = "")
+            }else if(NROW(table)>1 && any(table$df.num>1)){
+                test.type <- grepl("mean:",rownames(table),fixed=TRUE) + grepl("variance:",rownames(table),fixed=TRUE) + grepl("correlation:",rownames(table),fixed=TRUE)
+                if(sum(test.type)>1 && sum(test.type)==NROW(table)){
+                    cat(space,"Multiple testing adjustment: within parameter type using joint test.\n", sep = "")
+                }else if(sum(test.type)>1){
+                    cat(space,"Multiple testing adjustment: within covariate and parameter type using joint test.\n", sep = "")
+                }else{
+                    cat(space,"Multiple testing adjustment: within covariate using joint test.\n", sep = "")
+                }
             }
-            
-
-        }else if(length(method.p.adjust2)>=1 && length(display.cip)>0 && NROW(table)>1){ ## adjustment
+        }else if((is.null(method.p.adjust) || (length(method.p.adjust2)==1 && method.p.adjust2 == "none")) && length(display.cip)>0 && NROW(table)>1){
+            ## no adjustment
+            cat(space,"No adjustment for multiple testing.\n", sep = "")
+        }else if(length(method.p.adjust2)>=1 && length(display.cip)>0 && NROW(table)>1){
 
             ## adjustment
             if(any(c("single-step", "single-step2") %in% method.p.adjust)){
@@ -1259,7 +1284,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
             }
 
             if(!is.null(factor.p.adjust) && nchar(factor.p.adjust)>0){
-                txt.adjustment <- paste0("within each ", factor.p.adjust," using ",name.adjmethod,"\n",txt.adjustment)
+                txt.adjustment <- paste0("within ", factor.p.adjust," using ",name.adjmethod,txt.adjustment)
             }else{
                 txt.adjustment <- paste0("using ",name.adjmethod,txt.adjustment)
             }

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  4 2021 (10:04) 
 ## Version: 
-## Last-Updated: jul 31 2024 (14:47) 
+## Last-Updated: aug  2 2024 (16:43) 
 ##           By: Brice Ozenne
-##     Update #: 243
+##     Update #: 303
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -24,6 +24,7 @@
 ##' or only for coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 ##' or only for coefficients relative to the variance structure (\code{"variance"}),
 ##' or only for coefficients relative to the correlation structure (\code{"correlation"}).
+##' Can also contain \code{"gradient"} to also output the gradient of the influence function.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the influence function. Only relevant if differs from the fitted values.
 ##' @param robust [logical] If \code{FALSE} the influence function is rescaled to match the model-based standard errors.
 ##' The correlation however will not (necessarily) match the model-based correlation.
@@ -42,8 +43,11 @@
 ##' As an add-hoc solution, the denominator is treated as fixed so the ratio is decomposed w.r.t. its numerator.
 ##'
 ##' @keywords methods
-##' @return A matrix with one row per observation and one column per parameter.
-##'
+##' @return A matrix with one row per observation and one column per parameter. \itemize{
+##' \item \code{df=TRUE}: with an attribute \code{"df"} containing a numeric vector with one element per parameter. \cr
+##' \item \code{effects} includes \code{"gradient"}: with an attribute \code{"gradient"} containing a 3 dimensional array with dimension the number of parameters.
+##' }
+##' 
 ##' @examples
 ##' data(gastricbypassL)
 ##' 
@@ -124,10 +128,30 @@ iid.lmm <- function(x,
         if(!is.character(effects) || !is.vector(effects)){
             stop("Argument \'effects\' must be a character vector. \n")
         }
-        valid.effects <- c("mean","fixed","variance","correlation","all")
+        valid.effects <- c("mean","fixed","variance","correlation","all","gradient","dVcov")
         if(any(effects %in% valid.effects == FALSE)){
             stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
-                 "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+                 "Valid values: \"",paste(setdiff(valid.effects,"dVcov"), collapse ="\", \""),"\". \n")
+        }
+        if("dVcov" %in% effects){
+            iid.dVcov <- TRUE
+            effects <- setdiff(effects, "dVcov")
+        }else{
+            iid.dVcov <- FALSE
+        }
+        if("gradient" %in% effects){
+            keep.grad <- TRUE
+            effects <- setdiff(effects, "gradient")
+            if(x$args$df==0){
+                stop("Argument \'effects\' cannot contain \"gradient\" when no degrees of freedom have been stored. \n",
+                     "Consider setting the argument \'df\' to TRUE when calling lmm. \n")
+            }
+            if(length(effects)==0){
+                stop("Argument \'effects\' cannot only contain \"gradient\". \n",
+                     "Consider setting adding \"mean\" or \"all\". \n")
+            }
+        }else{
+            keep.grad <- FALSE
         }
         if(all("all" %in% effects)){
             if(length(effects)>1){
@@ -160,106 +184,94 @@ iid.lmm <- function(x,
         theta <- init$p
     }    
 
-    ## ** get inverse information, score, and compute iid
-    if(x$args$type.information == "expected" && x$args$method.fit == "ML"){
+    if(is.null(p) && test.notransform && x$args$type.information==type.information){
+        recompute.vcov <- FALSE
+    }else{
+        recompute.vcov <- TRUE
+    }
+
+    ## ** get moments
+    if(x$args$type.information == "expected" && x$args$method.fit == "ML" && !keep.grad && !iid.dVcov){
         effects2 <- effects
     }else{
         ## get the score and the vcov for all 
         effects2 <- c("mean","variance","correlation")
     }
-
     outMoments <- .moments.lmm(value = theta, design = x$design, time = x$time, method.fit = x$args$method.fit, type.information = type.information,
                                transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                               logLik = FALSE, score = TRUE, information = FALSE, vcov = TRUE, df = FALSE, indiv = TRUE, effects = effects2, robust = FALSE,
-                               trace = FALSE, precompute.moments = !is.null(x$design$precompute.XX), transform.names = transform.names)
+                               logLik = FALSE, score = TRUE, information = keep.grad || iid.dVcov, vcov = recompute.vcov, df = recompute.vcov && (keep.grad || iid.dVcov),
+                               indiv = TRUE, effects = effects2, robust = FALSE,
+                               trace = FALSE, precompute.moments = !is.null(x$design$precompute.XX), method.numDeriv = options$method.numDeriv, transform.names = transform.names)
     x.score <- outMoments$score
-    x.vcov <- outMoments$vcov
+    if(recompute.vcov){
+        x.vcov <- outMoments$vcov
+    }else{ ## must be all effects, i.e. keep all columns
+        x.vcov <- x$vcov
+        dimnames(x.vcov) <- list(colnames(x.score),colnames(x.score))
+    }
     if(x$args$type.information == "expected" && x$args$method.fit == "ML"){
         keep.names <- colnames(outMoments$score)
     }else{
         keep.names <- names(coef.lmm(x, effects = effects,
                                      transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names))
     }
+
+    ## ** compute iid
     out <- x.score %*% x.vcov[,keep.names,drop=FALSE]
     if(robust==FALSE){
         out <- sweep(out, MARGIN = 2, FUN = "*", STATS = sqrt(diag(x.vcov[keep.names,keep.names,drop=FALSE]))/sqrt(colSums(out^2, na.rm = TRUE)))
     }
+
+    ## ** compute gradient
+    if(keep.grad || iid.dVcov){
+        x.hessian <- -outMoments$information
+        if(recompute.vcov){
+            x.dVcov <- outMoments$dVcov
+        }else{  ## must be all effects, i.e. keep all columns
+            x.dVcov <- x$dVcov
+            dimnames(x.dVcov) <- list(colnames(x.score),colnames(x.score),colnames(x.score))
+        }
+
+        if(keep.grad){
+            attr(out,"gradient") <- array(NA, dim = c(NROW(out),length(keep.names),NCOL(x.score)), dimnames = list(NULL,keep.names,colnames(x.score)))
+            for(iParam in colnames(x.score)){ ## iParam <- colnames(x.score)[1]
+                attr(out,"gradient")[,,iParam] <- x.hessian[,,iParam] %*% x.vcov[,keep.names,drop=FALSE] + x.score %*% x.dVcov[,keep.names,iParam]
+            }
+        }
+        if(iid.dVcov){
+            attr(out,"dVcov") <- array(NA, dim = c(NROW(out),length(keep.names),NCOL(x.score)), dimnames = list(NULL,keep.names,colnames(x.score)))
+            for(iParam in colnames(x.score)){ ## iParam <- colnames(x.score)[1]
+                attr(out,"dVcov")[,,iParam] <- x.hessian[,,iParam] %*% x.dVcov[,keep.names,iParam]
+            }
+        }
+    }
+
+    
+    ## ** name and restaure NAs
+    if(!is.numeric(x$cluster$levels)){
+        rownames(out) <- x$cluster$levels[match(1:NROW(out),x$cluster$index)]
+    } 
+    out <- restaureNA(out, index.na = x$index.na,
+                      level = "cluster", cluster = x$cluster)        
+    if(keep.grad){
+        if(!is.numeric(x$cluster$levels)){
+            dimnames(attr(out,"gradient"))[[1]] <- x$cluster$levels[match(1:dim(attr(out,"gradient"))[[1]],x$cluster$index)]
+
+        } 
+        attr(out,"gradient") <- restaureNA(attr(out,"gradient"), index.na = x$index.na,
+                                           level = "cluster", cluster = x$cluster)
+    }
+    if(iid.dVcov){
+        if(!is.numeric(x$cluster$levels)){
+            dimnames(attr(out,"dVcov"))[[1]] <- x$cluster$levels[match(1:dim(attr(out,"dVcov"))[[1]],x$cluster$index)]
+
+        } 
+        attr(out,"dVcov") <- restaureNA(attr(out,"dVcov"), index.na = x$index.na,
+                                        level = "cluster", cluster = x$cluster)
+    }
+
+    ## ** export
     attr(out, "message") <- attr(x.score,"message")
-
-
-    ## ** export
-    return(out)
-}
-
-## * iid.Wald_lmm (documentation)
-##' @title Extract the Influence Function from Wald Tests
-##' @description Extract the influence function of linear mixed model parameters involved in the Wald test.
-##'
-##' @param object a \code{Wald_lmm} object.
-##' @param effects [character] should the influence function for the linear contrasts involved in the Wald test be output (\code{"Wald"}),
-##' or for the linear mixed model parameters (\code{"all"}),
-##' or a logical value indicating whether the influence function has been stored?
-##' @param ... Not used. For compatibility with the generic method.
-##' 
-##' @return A matrix with one row per observation and one column per parameter (\code{effects="Wald"} or \code{effects="all"}) or a logical value (\code{effects="test"}).
-
-## * iid.Wald_lmm (code)
-##' @export
-iid.Wald_lmm <- function(x, effects = "Wald", ...){
-
-    options <- LMMstar.options()
-    adj.method <- options$adj.method
-
-    ## ** normalize user input
-    ## *** dots
-    dots <- list(...)
-    if(length(dots)>0){
-        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
-    }
-
-    ## *** object
-    if(x$args$univariate == FALSE){
-        message("Nothing to return: consider setting argument \'univariate\' to TRUE when calling rbind.Wald_lmm. \n")
-        return(invisible(NULL))
-    }
-
-    ## *** effects
-    if(!is.character(effects) || !is.vector(effects)){
-        stop("Argument \'effects\' must be a character. \n")
-    }
-    if(length(effects)!=1){
-        stop("Argument \'effects\' must have length 1. \n")
-    }
-    valid.effects <- c("Wald","all","test")
-    if(effects %in% valid.effects == FALSE){
-        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
-             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
-    }
-    if(x$args$simplify!=0){
-        stop("Cannot extract the influence function when it has not be stored. \n",
-             "Consider setting the argument \'simplify\' to 0 or FALSE when calling anova. \n")
-    }
-
-    ## ** extract
-    if(effects == "test"){
-        return(!is.null(x$glht[[1]]$iid))
-    }else if(x$args$type=="auto"){
-        message("The influence function has not been stored. \n",
-                "Consider specifying the argument \'method\' when calling anova with explicit contrast (e.g. via a matrix or equations). \n")
-        return(NULL)
-
-    }
-
-    out <- x$glht[[1]]$iid
-    if(effects=="Wald"){
-        contrast <- model.tables(x, effects = "contrast")
-        out <- out[,colnames(contrast),drop=FALSE] %*% t(contrast)
-        attr(out,"message") <- attr(x$glht[[1]]$iid,"message")
-    }else if(effects=="all"){ ## restaure transformed names
-        colnames(out) <- names(coef(x, effects = "all"))
-    }
-
-    ## ** export
     return(out)
 }
 
@@ -392,6 +404,96 @@ iid.mlmm <- function(x, effects = "contrast", p = NULL, ordering = "by", simplif
     ## ** export
     return(out)
 }
+
+## * iid.Wald_lmm (documentation)
+##' @title Extract the Influence Function from Wald Tests
+##' @description Extract the influence function of linear mixed model parameters involved in the Wald test.
+##'
+##' @param object a \code{Wald_lmm} object.
+##' @param effects [character] should the influence function for the linear contrasts involved in the Wald test be output (\code{"Wald"}),
+##' or for the linear mixed model parameters (\code{"all"})?
+##' @param ... Not used. For compatibility with the generic method.
+##' 
+##' @return A matrix with one row per observation and one column per parameter (\code{effects="Wald"} or \code{effects="all"}) or a logical value (\code{effects="test"}).
+
+## * iid.Wald_lmm (code)
+##' @export
+iid.Wald_lmm <- function(x, effects = "Wald", ...){
+
+    options <- LMMstar.options()
+    adj.method <- options$adj.method
+
+    ## ** normalize user input
+    ## *** dots
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
+    ## *** object
+    if(x$args$univariate == FALSE){
+        message("Nothing to return: consider setting argument \'univariate\' to TRUE when calling rbind.Wald_lmm. \n")
+        return(invisible(NULL))
+    }
+
+    ## *** effects
+    if(!is.character(effects) || !is.vector(effects)){
+        stop("Argument \'effects\' must be a character. \n")
+    }
+    valid.effects <- c("Wald","all","test","dVcov")
+    if(any(effects %in% valid.effects == FALSE)){
+        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(setdiff(valid.effects,c("test","dVcov")), collapse ="\", \""),"\". \n")
+    }
+    if("dVcov" %in% effects){
+        iid.dVcov <- TRUE
+        effects <- setdiff(effects, "dVcov")
+        trans.names <- names(coef(x, effects = "all"))        
+    }else{
+        iid.dVcov <- FALSE
+    }
+    if(length(effects)!=1){
+        stop("Argument \'effects\' can only contain one of \"Wald\", \"all\",  \"test\". \n")
+    }
+
+    ## ** extract
+    if(effects == "test"){
+        return(!is.null(x$glht[[1]]$iid))
+    }else if(x$args$simplify!=0){
+        stop("Cannot extract the influence function when it has not be stored. \n",
+             "Consider setting the argument \'simplify\' to 0 or FALSE when calling anova. \n")
+    }
+
+
+    out <- x$glht[[1]]$iid
+
+    if(effects=="Wald"){
+        contrast <- model.tables(x, effects = "contrast")
+        if(iid.dVcov){
+            dVcov.out <- array(NA, dim = c(NROW(out), NROW(contrast), dim(attr(out,"dVcov"))[3]),
+                              dimnames = list(rownames(out), rownames(contrast), trans.names))
+            for(iParam in 1:length(trans.names)){ 
+                dVcov.out[,,iParam] <- attr(out,"dVcov")[,colnames(contrast),iParam] %*% t(contrast)
+            }
+        }
+        out <- out[,colnames(contrast),drop=FALSE] %*% t(contrast)
+        if(iid.dVcov){
+            attr(out,"dVcov") <- dVcov.out
+        } ## otherwise already removed by subsetting
+        attr(out,"message") <- attr(x$glht[[1]]$iid,"message")
+    }else if(effects=="all"){ ## restaure transformed names
+        colnames(out) <- names(coef(x, effects = "all"))
+        if(iid.dVcov==FALSE){
+            attr(out,"dVcov") <- NULL
+        }else{
+            dimnames(attr(out,"dVcov")) <- list(dimnames(attr(out,"dVcov"))[[1]],trans.names,trans.names)
+        }
+    }
+
+    ## ** export
+    return(out)
+}
+
 
 
 ##----------------------------------------------------------------------

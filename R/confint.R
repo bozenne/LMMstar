@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 31 2024 (10:33) 
+## Last-Updated: aug  2 2024 (13:51) 
 ##           By: Brice Ozenne
-##     Update #: 1081
+##     Update #: 1087
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -33,7 +33,8 @@ confint.effect_lmm <- function(object, parm, level = 0.95, method = "none", ...)
 ##' or only for mean coefficients (\code{"mean"} or \code{"fixed"}),
 ##' or only for variance coefficients (\code{"variance"}),
 ##' or only for correlation coefficients (\code{"correlation"}).
-##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. Not feasible for variance or correlation coefficients estimated by REML.
+##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
+##' Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
 ##' @param null [numeric vector] the value of the null hypothesis relative to each coefficient.
 ##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.
 ##' @param columns [character vector] Columns to be output.
@@ -137,7 +138,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
 
     ## *** df
     if(is.null(df)){
-        df <- (!is.null(object$df)) && (robust==FALSE)
+        df <- !is.null(object$df)
     }
 
     ## *** backtransform
@@ -588,7 +589,7 @@ confint.mlmm <- function(object, parm = NULL, level = 0.95, method = NULL, df = 
             out[iIndex.table,"lower"] <- iCi$confint[,"lwr"]
             out[iIndex.table,"upper"] <- iCi$confint[,"upr"]
             out[iIndex.table,"p.value"] <- as.double(iP$test$pvalues)
-            
+            browser()
             if(df2){
                 out[iIndex.table,"df"] <- iGlht$df
             }
@@ -1080,8 +1081,8 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
         if(iMethod == "single-step"){
 
             if(df){
-                out[iIndex.table,"df"] <- iGlht$df
                 iGlht$df <- round(iGlht$df)
+                out[iIndex.table,"df"] <- iGlht$df
             }
 
             if("p.value" %in% columns){

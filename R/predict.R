@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jul 31 2024 (17:42) 
+## Last-Updated: aug  2 2024 (10:12) 
 ##           By: Brice Ozenne
-##     Update #: 1503
+##     Update #: 1510
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -28,7 +28,7 @@
 ##' It can also be a logical vector of length 2 to indicate the type of uncertainty to be accounted for: estimation and residual variance.
 ##' In particular \code{c(TRUE,TRUE)} provides prediction intervals.
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
-##' Not feasible for dynamic predictions when using REML.
+##' Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
 ##' @param vcov [logical] should the variance-covariance matrix of the predictions be output as an attribute.
 ##' @param df [logical] should a Student's t-distribution be used to model the distribution of the predicted mean. Otherwise a normal distribution is used.
 ##' @param type [character] evaluate the expected outcome conditional on covariates only (\code{"static"}),
@@ -369,12 +369,12 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
         vcov.mu <- vcov(object, effects = "mean", p = p, robust = robust)
     }
     if(df || se[2]>0 || type.prediction %in% c("dynamic","change","auc","auc-b")){
-        vcov.theta <- vcov(object, effects = "all", p = p, robust = robust, df = 2*df, ## 2* to extract dVcov and no only df
+        vcov.theta <- vcov(object, effects = list("all",c("all","gradient"))[[df+1]], p = p, robust = robust, df = df, 
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
         if(df){
-            dVcov.theta <- attr(vcov.theta,"dVcov")
+            dVcov.theta <- attr(vcov.theta,"gradient")
             attr(vcov.theta, "df") <- NULL
-            attr(vcov.theta, "dVcov") <- NULL
+            attr(vcov.theta, "gradient") <- NULL
         }        
     }
 
@@ -626,7 +626,7 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
 
     ## ** df
     if(df){
-        prediction.df <- pmax(.dfX(X.beta = grad.var, vcov.param = vcov.theta, dVcov.param = dVcov.theta), options$min.df)
+        prediction.df <- pmax(.df_contrast(contrast = grad.var, vcov.param = vcov.theta, dVcov.param = dVcov.theta), options$min.df)
         prediction.df[is.na(prediction) | is.na(prediction.var)] <- NA        
     }else{
         prediction.df <- rep(Inf, length(prediction))

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jul 31 2024 (17:58) 
+## Last-Updated: aug  3 2024 (17:15) 
 ##           By: Brice Ozenne
-##     Update #: 1977
+##     Update #: 2023
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -27,6 +27,7 @@
 ##' Can also be use to specify linear combinations of coefficients or a contrast matrix, similarly to the \code{linfct} argument of the \code{multcomp::glht} function.
 ##' @param rhs [numeric vector] the right hand side of the hypothesis. Only used when the argument \code{effects} is a matrix.
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
+##' Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
 ##' @param df [logical] Should degrees of freedom be estimated using a Satterthwaite approximation?
 ##' If yes F-distribution (multivariate) and Student's t-distribution (univariate) are used.
 ##' Other chi-squared distribution and normal distribution are used.
@@ -146,11 +147,6 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
         if(is.null(df)){
             df <- !is.null(object$df)
         }
-        if(df){
-            all2 <- c("all","gradient")
-        }else{
-            all2 <- "all"
-        }
 
         ## initialize simplify
         if(is.null(simplify)){
@@ -193,11 +189,10 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = TRUE)
         param.notrans <- coef(object, effects = "all",
                               transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = FALSE)
-        vcov.param <- vcov(object, df = df, effects = all2, robust = robust,
+        vcov.param <- vcov(object, df = df, effects = list("all",c("all","gradient"))[[df+1]], robust = robust,
                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
-
-        dVcov.param <- attr(vcov.param,"dVcov")
-        attr(vcov.param,"dVcov") <- NULL
+        dVcov.param <- attr(vcov.param,"gradient")
+        attr(vcov.param,"gradient") <- NULL
         attr(vcov.param,"df") <- NULL
         if(simplify == FALSE){
             iid.param <- iid(object, effects = "all", robust = robust, 
@@ -304,6 +299,13 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
                         simplify){
 
     ## ** prepare
+    ## *** robust not equal to 1: use current vcov matrix (when =1: vcov.param robust whereas attr(.,"vcov") model based)
+    if(df && is.null(attr(dVcov.param,"vcov"))){
+        df_vcov.param <- vcov.param
+    }else{
+        df_vcov.param <- attr(dVcov.param,"vcov")
+    }
+
     ## *** transformation (ignore sd->var or cor->cov)
     transform2.sigma <- switch(transform.sigma,
                               "log" = "log",
@@ -500,33 +502,34 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
             iC.vcov.C_M1 <- try(solve(iSimplify$C %*% vcov.param %*% t(iSimplify$C)), silent = TRUE)
                 
             if(inherits(iC.vcov.C_M1,"try-error")){
-                
                 attr(out$multivariate,"statistic") <- "Could not invert the covariance matrix for the proposed contrast."
-                
             }else{
-                
-                out$multivariate[iG,"statistic"] <- as.double(t(iSimplify$C %*% param - iSimplify$rhs) %*% iC.vcov.C_M1 %*% (iSimplify$C %*% param - iSimplify$rhs))/iSimplify$dim 
-                ## degree of freedom
-                if(df>0){
+                out$multivariate[iG,"statistic"] <- as.double(t(iSimplify$C %*% param - iSimplify$rhs) %*% iC.vcov.C_M1 %*% (iSimplify$C %*% param - iSimplify$rhs))/iSimplify$dim
+            }
 
-                    iSVD <- eigen(iC.vcov.C_M1)
-                    iSVD.D <- diag(iSVD$values, nrow = iSimplify$dim, ncol = iSimplify$dim)
-                    iSVD.P <- iSVD$vectors
-                    iSVD.contrast <- sqrt(iSVD.D) %*% t(iSVD.P) %*% iSimplify$C
-                    colnames(iSVD.contrast) <- colnames(iSimplify$C)
+            ## degree of freedom
+            if(df>0 && is.null(attr(dVcov.param,"vcov"))){
+                df_iC.vcov.C_M1 <- iC.vcov.C_M1
+            }else if(df>0 && !is.null(attr(dVcov.param,"vcov"))){
+                ## case of robust s.e. but df evaluated on model-based s.e.
+                df_iC.vcov.C_M1 <- try(solve(iSimplify$C %*% df_vcov.param %*% t(iSimplify$C)), silent = TRUE)
+            }
 
-                    iNu_m <- .dfX(X.beta = iSVD.contrast[,dimnames(dVcov.param)[[1]],drop=FALSE], ## subset for rbind when dVcov.param is not full in the first 2 dimensions
-                                  vcov.param = vcov.param,
-                                  dVcov.param = dVcov.param)
+            if(df==0 || inherits(df_iC.vcov.C_M1,"try-error")){
+                out$multivariate[iG,"df.denom"] <- Inf
+            }else{
+                iSVD <- eigen(df_iC.vcov.C_M1)
+                iSVD.D <- diag(iSVD$values, nrow = iSimplify$dim, ncol = iSimplify$dim)
+                iSVD.P <- iSVD$vectors
+                iSVD.contrast <- sqrt(iSVD.D) %*% t(iSVD.P) %*% iSimplify$C
+                colnames(iSVD.contrast) <- colnames(iSimplify$C)
+
+                iNu_m <- .df_contrast(contrast = iSVD.contrast[,dimnames(dVcov.param)[[1]],drop=FALSE], ## subset for rbind when dVcov.param is not full in the first 2 dimensions
+                                      vcov.param = df_vcov.param,
+                                      dVcov.param = dVcov.param)
                 
                     iEQ <- sum(iNu_m/(iNu_m - 2))
                     out$multivariate[iG,"df.denom"] <- 2 * iEQ/(iEQ - iSimplify$dim)
-                    
-                }else{
-                
-                    out$multivariate[iG,"df.denom"] <- Inf
-                }
-
             }
         }
 
@@ -536,14 +539,15 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
             iG.univariate <- which(out$univariate$name == rownames(grid)[iG])
 
             if(df>0){
-                out$univariate[iG.univariate,"df"] <- as.double(.dfX(X.beta = iContrast[,dimnames(dVcov.param)[[1]],drop=FALSE], ## subset for rbind when dVcov.param is not full
-                                                                     vcov.param = vcov.param,
-                                                                     dVcov.param = dVcov.param))
+                
+                out$univariate[iG.univariate,"df"] <- as.double(.df_contrast(contrast = iContrast[,dimnames(dVcov.param)[[1]],drop=FALSE], ## subset for rbind when dVcov.param is not full
+                                                                             vcov.param = df_vcov.param,
+                                                                             dVcov.param = dVcov.param))
                 if(multivariate){
                     if(out$multivariate[iG,"df.denom"]<1){
-                        warning("Suspicious degree of freedom was found for the F-statistic (",out$multivariate[iG,"df.denom"],"). \n",
-                                "It has been set to the average degree of freedom of the univariate Wald tests (",mean(out$univariate[iG.univariate,"df"]),") instead. \n")
-                        attr(out$multivariate,"df") <- "average degree of freedom of the univariate Wald tests. \n"
+                        ## warning("Suspicious degree of freedom was found for the F-statistic (",out$multivariate[iG,"df.denom"],"). \n",
+                        ##         "It has been set to the average degree of freedom of the univariate Wald tests (",mean(out$univariate[iG.univariate,"df"]),") instead. \n")
+                        attr(out$multivariate,"df") <- "average degree of freedom of the univariate Wald tests"
                         out$multivariate[iG,"df.denom"] <- mean(out$univariate[iG.univariate,"df"])
                     }
                 }
@@ -567,7 +571,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
                                    rhs = iNull,
                                    coef = stats::setNames(param, names(param.notrans)),
                                    vcov = vcov.param,
-                                   df = ceiling(stats::median(out$univariate[iG.univariate,"df"])),
+                                   df = round(stats::median(out$univariate[iG.univariate,"df"])),
                                    alternative = "two.sided",
                                    coef.name = names(param), ## possibly transformed named (coef will always be named without transformed names)
                                    coef.notrans = param.notrans, ## values without transformation

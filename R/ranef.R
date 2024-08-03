@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 26 2022 (11:18) 
 ## Version: 
-## Last-Updated: jul 31 2024 (10:50) 
+## Last-Updated: aug  1 2024 (10:39) 
 ##           By: Brice Ozenne
-##     Update #: 714
+##     Update #: 716
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -377,7 +377,7 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
         keep.datacol <- stats::na.omit(unique(c(attr(var.strata,"original"), df.hierarchy$variable)))
         if(se>0){
             options <- LMMstar.options()
-            vcov.theta <- vcov(object, effects = "all", df = 2*df, transform.names = FALSE)                
+            vcov.theta <- vcov(object, effects = list("all",c("all","gradient"))[[df+1]], transform.names = FALSE)                
         }
 
         for(iRE in 1:n.RE){ ## iRE <- 1
@@ -435,7 +435,7 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
 
                 ls.out[[iRE]]$se <- sqrt(rowSums(iGrad %*% vcov.theta * iGrad))
                 if(df){
-                    ls.out[[iRE]]$df <- pmax(.dfX(X.beta = iGrad, vcov.param = vcov.theta, dVcov.param = attr(vcov.theta,"dVcov")), options$min.df)
+                    ls.out[[iRE]]$df <- pmax(.df_contrast(contrast = iGrad, vcov.param = vcov.theta, dVcov.param = attr(vcov.theta,"gradient")), options$min.df)
                     ls.out[[iRE]]$df[is.na(ls.out[[iRE]]$estimate) | is.na(ls.out[[iRE]]$se)] <- NA        
                 }else{
                     ls.out[[iRE]]$df <- Inf

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (10:34) 
 ## Version: 
-## Last-Updated: jul 31 2024 (17:42) 
+## Last-Updated: aug  1 2024 (11:59) 
 ##           By: Brice Ozenne
-##     Update #: 215
+##     Update #: 250
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -166,7 +166,7 @@ df.residual.lmm <- function(object, ...){
     return(df)    
 }
 ## * .df_numDeriv
-.df_numDeriv <- function(diag, reparametrize,
+.df_numDeriv <- function(reparametrize,
                          value,  design, time, method.fit, type.information,
                          transform.sigma, transform.k, transform.rho,
                          effects, robust, 
@@ -187,9 +187,12 @@ df.residual.lmm <- function(object, ...){
     test.transform <- (transform.sigma != "none") || (transform.k != "none") || (transform.rho != "none")
 
     param.trans.value <- c(param.value[param.nameMean],reparametrize$p)[name.allcoef]
+    name.effects <- attr(effects,"original.output")
+    n.effects <- length(name.effects)
 
     ## ** warper for computing information
-    FUN_information <- function(p, as.double){
+    get.element <- ifelse(robust,"vcov","information")
+    FUN_element <- function(p, as.double){
 
         if(test.transform){ ## back-transform
             backp <- .reparametrize(p = p[param.nameVar],
@@ -204,92 +207,57 @@ df.residual.lmm <- function(object, ...){
                                     transform.names = FALSE)
             p[param.nameVar] <- backp$p
         }
+
         iMoment <- .moments.lmm(value = p, design = design, time = time, method.fit = method.fit, type.information = type.information,
                                 transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                logLik = FALSE, score = FALSE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = effects, robust = robust,
+                                logLik = FALSE, score = FALSE, information = !robust, vcov = robust, df = FALSE, indiv = FALSE, effects = effects, robust = robust,
                                 trace = FALSE, precompute.moments = precompute.moments, method.numDeriv = method.numDeriv, transform.names = FALSE)
 
         if(as.double){
-            return(as.double(iMoment$information))
+            return(as.double(iMoment[[get.element]]))
         }else{
-            return(iMoment$information)
+            return(iMoment[[get.element]])
         }
     }
 
     ## ** variance-covariance matrix
-    ## full variance covariance matrix
-    info <- FUN_information(param.trans.value, as.double = FALSE)
-    if(robust && method.fit=="REML"){
-        keep.cols <- intersect(names(which(rowSums(!is.na(info))>0)),names(which(rowSums(!is.na(info))>0)))
-        vcov <- NA*info
-        vcov[keep.cols,keep.cols] <- solve(info[keep.cols,keep.cols,drop=FALSE])
+    if(robust){
+        vcov.all <- FUN_element(param.trans.value, as.double = FALSE)
     }else{
-        vcov <- solve(info)
+        vcov.all <- solve(FUN_element(param.trans.value, as.double = FALSE))
     }
-    ## ** derivative of the information using numerical derivative
-    if(type.information == "observed"){
-        M.dInfo <- numDeriv::jacobian(func = function(p){FUN_information(p, as.double = TRUE)}, x = param.trans.value, method = method.numDeriv)
-        colnames(M.dInfo) <- name.allcoef
-    }else{
-        M.dInfo <- numDeriv::jacobian(func = function(p){FUN_information(c(param.value[param.nameMean],p)[name.allcoef], as.double = TRUE)}, x = param.trans.value[param.nameVar], method = method.numDeriv)
-        colnames(M.dInfo) <- param.nameVar
-    }
-    ## A.print <- array(0, dim = c(n.allcoef,n.allcoef,n.allcoef), dimnames = list(name.allcoef,name.allcoef,name.allcoef))
-    ## for(iParam in 1:NCOL(M.dInfo)){ ## iParam <- 1
-    ##     iName <- colnames(M.dInfo)[iParam]
-    ##     A.print[,,iName] <- - matrix(M.dInfo[,iName], nrow = n.allcoef, ncol = n.allcoef, dimnames = list(name.allcoef,name.allcoef))
-    ## }
+    vcov <- vcov.all[name.effects,name.effects,drop=TRUE]
 
-    ## ** derivative of the variance covariance matrix
-    name.effects <- attr(effects,"original.names")
-    n.effects <- length(name.effects)
+    ## ** derivative of the information using numerical derivative
+    M.dElement <- numDeriv::jacobian(func = function(p){FUN_element(p, as.double = TRUE)}, x = param.trans.value, method = method.numDeriv)
+    colnames(M.dElement) <- name.allcoef
+    
+    ## ** reshape into an array (model-based vcov: chain rule with inversion)
     A.dVcov <- array(NA, dim = c(n.effects,n.effects,n.allcoef), dimnames = list(name.effects,name.effects,name.allcoef))
-    for(iParam in 1:n.effects){ ## iParam <- 1
-                
-        iName <- name.effects[iParam]
-        if(iName %in% colnames(M.dInfo)){
-            if(robust && method.fit=="REML"){
-                A.dVcov[keep.cols,keep.cols,iName] <- - (vcov[keep.cols,keep.cols,drop=FALSE] %*% matrix(M.dInfo[,iName], nrow = n.allcoef, ncol = n.allcoef, dimnames = dimnames(vcov))[keep.cols,keep.cols,drop=FALSE] %*% vcov[keep.cols,keep.cols,drop=FALSE])
-            }else{
-                A.dVcov[,,iName] <- - (vcov %*% matrix(M.dInfo[,iName], nrow = n.allcoef, ncol = n.allcoef) %*% vcov)[name.effects,name.effects,drop=FALSE]
-            }
+    for(iParam in name.allcoef){ ## iParam <- name.allcoef[1]
+        if(robust){
+            A.dVcov[,,iParam] <- matrix(M.dElement[,iParam], nrow = n.allcoef, ncol = n.allcoef, dimnames = list(name.allcoef,name.allcoef))[name.effects,name.effects,drop=FALSE]
         }else{
-            A.dVcov[,,iName] <- 0
+            A.dVcov[,,iParam] <- - (vcov.all %*% matrix(M.dElement[,iParam], nrow = n.allcoef, ncol = n.allcoef) %*% vcov.all)[name.effects,name.effects,drop=FALSE]
         }
     }
-    ## solve(crossprod(model.matrix(e.lmm, effects = "mean")))
-    ## 4*coef(e.lmm)["sigma"]^2/stats::nobs(e.lmm)[1]
+
     ## ** degrees of freedom
-    if(diag){
-        df <- stats::setNames(sapply(name.effects, function(iP){
-            ## print(data.frame(name = as.character(iP),num = as.double(2 * vcov[iP,iP]^2),denum = as.double((A.dVcov[iP,iP,] %*% vcov %*% A.dVcov[iP,iP,]))))
-            2 * vcov[iP,iP]^2 / (A.dVcov[iP,iP,] %*% vcov %*% A.dVcov[iP,iP,])
-        }), name.effects)
-    }else{
-        df <- matrix(NA, nrow = n.effects, ncol = n.effects, dimnames = list(name.effects, name.effects))
-        for(iParam in name.effects){
-            for(iiParam in name.effects[1:which(iParam==name.effects)]){
-                df[iParam,iiParam] <- 2 * vcov[iParam,iiParam]^2 / (A.dVcov[iParam,iiParam,] %*% vcov %*% A.dVcov[iiParam,iParam,])
-                if(iParam != iiParam){
-                    df[iiParam,iParam] <- df[iParam,iiParam]
-                }
-            }
-        }
-    }
+    df <- .df_contrast(contrast = NULL, vcov.param = vcov.all, dVcov.param = A.dVcov)
     
     ## ** export
     attr(df,"dVcov") <- A.dVcov
     return(df)
 }
 
-## * .dfX
+## * .df_contrast
 ##' @description Evaluate degrees of freedom for a linear combination of parameters
-##' @param X.beta [matrix] contrast matrix (n,p)
+##' @param contrast [matrix] contrast matrix (n,p)
 ##' @param vcov.param [matrix] matrix (p,p)
 ##' @param dVcov.param [array] array (p,p,p) or (n,n,p)
 ##' @param return.vcov [logical] 
 ##' @noRd
-.dfX <- function(X.beta, vcov.param, dVcov.param, return.vcov = FALSE){
+.df_contrast <- function(contrast, vcov.param, dVcov.param, return.vcov = FALSE){
 
     ## ** normalize user input
     ## *** p: name and number of parameters
@@ -297,35 +265,34 @@ df.residual.lmm <- function(object, ...){
     name.param <- colnames(vcov.param)
 
     ## *** n: name and number of linear combinations
-    if(is.null(X.beta)){        
+    if(is.null(contrast)){        
         n.contrast <- dim(dVcov.param)[1]
         name.contrast <- dimnames(dVcov.param)[[1]]
-    }else if(!is.matrix(X.beta) && is.vector(X.beta)){
-        X.beta <- rbind(X.beta)
+    }else if(!is.matrix(contrast) && is.vector(contrast)){
+        contrast <- rbind(contrast)
         n.contrast <- 1
         name.contrast <- NULL
     }else{
-        n.contrast <- NROW(X.beta)
-        name.contrast <- rownames(X.beta)
+        n.contrast <- NROW(contrast)
+        name.contrast <- rownames(contrast)
     }
     
 
     ## ** variance of the contrast (Sigma_beta)
-    if(is.null(X.beta)){
+    if(is.null(contrast)){
         sigma2.contrast <- diag(vcov.param)[name.contrast]
     }else{
-        sigma2.contrast <- rowSums((X.beta %*% vcov.param[colnames(X.beta),colnames(X.beta),drop=FALSE]) * X.beta)
-        ## diag(X.beta %*% vcov.param[colnames(X.beta),colnames(X.beta),drop=FALSE] %*% t(X.beta))
+        sigma2.contrast <- rowSums((contrast %*% vcov.param[colnames(contrast),colnames(contrast),drop=FALSE]) * contrast)
+        ## diag(contrast %*% vcov.param[colnames(contrast),colnames(contrast),drop=FALSE] %*% t(contrast))
     }
 
     ## ** Gradient of the variance of the contrast w.r.t. the original parameters (dSigma_\beta/d\theta)
-    if(is.null(X.beta)){
+    if(is.null(contrast)){
         Mpair_dVcov.beta <- do.call(rbind,lapply(1:n.contrast, function(iContrast){dVcov.param[iContrast,iContrast,]}))
     }else{
-        index.red <- which(colSums(X.beta!=0)>0)
-        X.beta_red <- X.beta[,index.red,drop=FALSE]
-        dVcov.param_red <- dVcov.param[index.red,index.red,,drop=FALSE]
-        Mpair_dVcov.beta <- do.call(cbind,lapply(1:n.param, function(iParam){rowSums((X.beta_red %*% dVcov.param_red[,,iParam]) * X.beta_red)}))
+        index.red <- which(colSums(contrast!=0)>0)
+        contrast_red <- contrast[,index.red,drop=FALSE]
+        Mpair_dVcov.beta <- do.call(cbind,lapply(1:n.param, function(iParam){rowSums((contrast_red %*% dVcov.param[index.red,index.red,iParam]) * contrast_red)}))
     }
 
     ## ** Satterthwaite approximation of the degrees of freedom

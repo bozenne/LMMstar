@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: jul 31 2024 (10:50) 
+## Last-Updated: aug  2 2024 (15:58) 
 ##           By: Brice Ozenne
-##     Update #: 923
+##     Update #: 928
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -388,6 +388,8 @@ score.mlmm <- function(x, effects = "contrast", indiv = FALSE, p = NULL, newdata
             precompute$Omega$OmegaM1.dOmega.OmegaM1 <- lapply(precompute$Omega$OmegaM1.dOmega.OmegaM1, function(iO){iO[,intersect(colnames(iO),name.effects),drop=FALSE]})
             test.vcov <- n.varcoef>0
         }
+    }else{
+        message <- NULL
     }
 
     ## ** prepare REML term

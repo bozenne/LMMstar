@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 28 2024 (19:14) 
 ## Version: 
-## Last-Updated: Jul 28 2024 (21:39) 
+## Last-Updated: aug  1 2024 (10:37) 
 ##           By: Brice Ozenne
-##     Update #: 33
+##     Update #: 38
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -231,11 +231,11 @@ browser()
         lmm.ls.vcov <- vcov(object, effects = "all", 
                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE, simplify = FALSE)
         lmm.ls.dVcov <- lapply(object$model, function(iM){
-            attr(vcov(iM, effects = "all", df = 2,
-                 transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE),"dVcov")
+            attr(vcov(iM, effects = c("all","gradient"), 
+                 transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE),"gradient")
         })
         lmm.df <- mapply(iC = lmm.ls.contrast, iVcov = lmm.ls.vcov, iDvcov = lmm.ls.dVcov, FUN = function(iC,iVcov,iDvcov){
-            iDf <- .dfX(X.beta = iC, vcov.param = iVcov, dVcov.param = iDvcov, return.vcov = TRUE)
+            iDf <- .df_contrast(contrast = iC, vcov.param = iVcov, dVcov.param = iDvcov, return.vcov = TRUE)
             return(iDf)
         }, SIMPLIFY = FALSE)
 
@@ -252,11 +252,11 @@ browser()
         ## ADD-HOC APPROXIMATION (ignores correlation in dVcov across models)
         theta.dVcov <- array(0, dim = rep(length(theta.grad),3), dimnames = list(colnames(theta.grad),colnames(theta.grad),colnames(theta.grad)))
         for(iBy in names(object$model)){ ## iBy <- "A"
-            iDvcov <- attr(vcov(object$model[[iBy]], effects = "all", df = 2,
-                                transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE),"dVcov")
+            iDvcov <- attr(vcov(object$model[[iBy]], effects = c("all","gradient"),
+                                transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE),"gradient")
             theta.dVcov[attr(theta.Sigma,"by")==iBy,attr(theta.Sigma,"by")==iBy,attr(theta.Sigma,"by")==iBy] <- iDvcov
         }
-        pool.df <- .dfX(X.beta = theta.grad, vcov.param = theta.Sigma, dVcov.param = theta.dVcov)
+        pool.df <- .df_contrast(contrast = theta.grad, vcov.param = theta.Sigma, dVcov.param = theta.dVcov)
     }
 
     ## ** export

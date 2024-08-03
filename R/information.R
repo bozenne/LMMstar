@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: jul 31 2024 (10:34) 
+## Last-Updated: aug  2 2024 (16:00) 
 ##           By: Brice Ozenne
-##     Update #: 1224
+##     Update #: 1233
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -140,7 +140,6 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
         
     }
 
-
     ## ** re-order values when converting to sd with strata (avoid sd0:0 sd0:1 sd1:0 sd1:1 sd2:0 sd2:1 ...)
     if("variance" %in% effects && transform.k %in% c("sd","var","logsd","logvar") && x$strata$n>1 && transform.names){
         out.name <- names(stats::coef(x, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = TRUE))
@@ -162,7 +161,7 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
 ##                                                                 + 0.5 tr[ (X \OmegaM1 X)^{-1} (X \OmegaM1 d2\Omega \OmegaM1 X) ]
 .information <- function(X, residuals, precision, dOmega, d2Omega, weights, 
                          pattern, index.cluster, name.allcoef,
-                         pair.meanvcov, pair.vcov, indiv, REML, type.information, effects, robust,
+                         pair.meanvcov, pair.vcov, indiv, REML, type.information, effects, 
                          precompute){
 
     ## ** extract information
@@ -216,6 +215,8 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
                 precompute$Omega$Omega$tr.OmegaM1.d2Omega <- lapply(precompute$Omega$Omega$tr.OmegaM1.d2Omega, function(iO){iO[,intersect(colnames(iO),name.varcoef2),drop=FALSE]})
             }
         }
+    }else{
+        message <- NULL
     }
 
     ## ** prepare REML term
@@ -381,7 +382,6 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
         }
 
     }
-
  
     ## ** export
     attr(info,"message") <- message

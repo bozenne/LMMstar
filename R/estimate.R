@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: jul 30 2024 (16:10) 
+## Last-Updated: aug  2 2024 (10:11) 
 ##           By: Brice Ozenne
-##     Update #: 1144
+##     Update #: 1176
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -22,6 +22,7 @@
 ##' @param x  a \code{lmm} object.
 ##' @param f [function] function of the model coefficient computing the parameter(s) of interest. Can accept extra-arguments.
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
+##' Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
 ##' @param df [logical] Should degree of freedom, computed using Satterthwaite approximation, for the parameter of interest be output.
 ##' Can also be a numeric vector providing providing the degrees of freedom relative to each estimate.
 ##' @param type.information [character] Should the expected information be used  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
@@ -36,6 +37,8 @@
 ##' @param ... extra arguments passed to \code{f}.
 ##'
 ##' @keywords mhtest
+##' 
+##' @details Argument \bold{robust}: degrees of freedom estimation does not seem reliable when \code{TRUE}.
 ##' 
 ##' @examples
 ##' 
@@ -87,7 +90,7 @@
 
 ## * estimate.lmm (code)
 ##' @export
-estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.information = NULL, level = 0.95,
+estimate.lmm <- function(x, f, df = !is.null(x$df) & !robust, robust = FALSE, type.information = NULL, level = 0.95,
                          method.numDeriv = NULL, average = FALSE,
                          transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, ...){
 
@@ -103,7 +106,7 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
     is.empty <- sapply(f.formals,inherits,"name")
     if("p" %in% names.formals == FALSE){
         stop("Incorrect argument \'f\': the function should take \'p\' as argument. \n",
-             "It refers to the model parameters, coef(object, effects = \"all\"), that will be varied to assess uncertainty. \n")
+             "It refers to the model parameters, coef(x, effects = \"all\"), that will be varied to assess uncertainty. \n")
     }
     if(any(names(dots) %in% names.formals == FALSE)){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
@@ -116,14 +119,33 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
     }
 
     ## *** df
+    ## e.df: [numeric] value for the degrees of freedom (estimated or given by the user)
+    ## df: [logical] whether degrees of freedom should be estimated
+    if(length(df)>1){
+        stop("Argument \'df\' must have length 1. \n")
+    }
+    if((!is.numeric(df) && !is.logical(df)) || !is.vector(df)){
+        stop("Argument \'df\' must be a numeric or logical value. \n")
+    }
+    if(is.numeric(df) && df %in% 0:1){
+        df <- as.logical(df)
+    }
     if(is.numeric(df)){
         e.df <- df
-        df <- FALSE
-    }else if(is.logical(df) && length(df)==1){
-        e.df <- NULL
-    }else{
-        stop("Argument \'df\' must be a logical value or a numeric vector. \n")
+        df <- FALSE ## no need to estimate the degrees of freedom
+    }else if(is.logical(df)){
+        if(df==TRUE){
+            if(x$args$df==0){
+                stop("Argument \'df\' cannot be TRUE when no degrees of freedom have been stored. \n",
+                     "Consider setting the argument \'df\' to TRUE when calling lmm. \n")
+            }
+            e.df <- NULL
+        }else{
+            e.df <- Inf
+        }
     }
+    
+    
 
     ## *** average
     if(!is.logical(average)){
@@ -199,7 +221,8 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
     }
 
     ## ** extract variance-covariance
-    Sigma <- vcov(x, df = 2*(df>0), effects = "all", robust = robust, type.information = type.information, ## 2*df is needed to return dVcov
+    Sigma <- vcov(x, effects = list("all",c("all","gradient"))[[df+1]],
+                  robust = robust, type.information = type.information, 
                   transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho)
 
     ## ** delta-method
@@ -218,20 +241,18 @@ estimate.lmm <- function(x, f, df = !is.null(x$df), robust = FALSE, type.informa
     }else{
         C.sigma.C <- sqrt(diag(C.Sigma.C))
     }
-    
+ 
     ## ** df
-    if(!is.null(e.df)){
+    if(df){
+        colnames(grad) <- colnames(Sigma)
+        e.df <- .df_contrast(contrast = grad, vcov.param = Sigma, dVcov.param = attr(Sigma, "gradient"))
+    }else{
         if(length(e.df)==1 & length(fbeta)>1){
             e.df <- rep(e.df,length(fbeta))
         }else if(length(e.df) != length(fbeta)){
-            stop("Incorrect length of argument \'df\': when a numeric vector it should have same length as the number of estimates. \n",
+            stop("Incorrect length of argument \'df\': when a numeric vector it should have lenght either 1 or the output of argument \'f\'. \n",
                  "Valid length: ",length(fbeta),". \n")
         }
-    }else if(!is.null(attr(Sigma, "dVcov"))){
-        colnames(grad) <- colnames(Sigma)
-        e.df <- .dfX(X.beta = grad, vcov.param = Sigma, dVcov.param = attr(Sigma, "dVcov"))
-    }else{
-        e.df <- rep(Inf, NROW(grad))
     }
 
     ## ** export
@@ -269,7 +290,7 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
     is.empty <- sapply(f.formals,inherits,"name")
     if("p" %in% names.formals == FALSE){
         stop("Incorrect argument \'f\': the function should take \'p\' as argument. \n",
-             "It refers to the model parameters, coef(object, effects = \"all\"), that will be varied to assess uncertainty. \n")
+             "It refers to the model parameters, coef(x, effects = \"all\"), that will be varied to assess uncertainty. \n")
     }
     if(any(names(dots) %in% names.formals == FALSE)){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
@@ -363,9 +384,9 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
             transform2.rho <- x$reparametrize$transform.rho
         }
     }
-browser()
+
     ## ** extract variance-covariance
-    Sigma <- vcov(x, df = 2*(df>0), effects = "all", robust = robust, type.information = type.information, ## 2*df is needed to return dVcov
+    Sigma <- vcov(x, effects = list("all",c("all","gradient"))[[df+1]], robust = robust, type.information = type.information, 
                   transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho)
 
     ## ** delta-method
@@ -393,9 +414,9 @@ browser()
             stop("Incorrect length of argument \'df\': when a numeric vector it should have same length as the number of estimates. \n",
                  "Valid length: ",length(fbeta),". \n")
         }
-    }else if(!is.null(attr(Sigma, "dVcov"))){
+    }else if(!is.null(attr(Sigma, "gradient"))){
         colnames(grad) <- colnames(Sigma)
-        e.df <- .dfX(X.beta = grad, vcov.param = Sigma, dVcov.param = attr(Sigma, "dVcov"))
+        e.df <- .df_contrast(contrast = grad, vcov.param = Sigma, dVcov.param = attr(Sigma, "gradient"))
     }else{
         e.df <- rep(Inf, NROW(grad))
     }

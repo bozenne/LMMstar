@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 31 2024 (18:00) 
+## Last-Updated: aug  3 2024 (17:17) 
 ##           By: Brice Ozenne
-##     Update #: 1023
+##     Update #: 1081
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -122,13 +122,13 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
         ls.contrast <- lapply(ls.object, function(iO){model.tables(iO, effects = "contrast", simplify = FALSE)[[1]]})
         all.coefnames <- names(unlist(lapply(ls.object, coef, effects = "all", backtransform = FALSE)))
         all.ncoef <- length(all.coefnames)
-        all.coefmodel <- unlist(lapply(1:n.object, function(iO){rep(iO, length(coef(ls.object[[iO]], effects = "all")))}))
+        all.model <- unlist(lapply(1:n.object, function(iO){rep(iO, length(coef(ls.object[[iO]], effects = "all")))}))
         all.coeftype <- unlist(lapply(1:n.object, function(iO){attr(coef(ls.object[[iO]], effects = "all", simplify = FALSE), "type")}))
         all.coeflabels <- unlist(lapply(ls.object, function(iO){rownames(iO$univariate)}))
 
         Wald.coefnames <- names(unlist(lapply(ls.object, coef, effects = "Wald")))
         Wald.ncoef <- length(Wald.coefnames)
-        Wald.coefmodel <- unlist(lapply(1:n.object, function(iO){rep(iO, length(coef(ls.object[[iO]], effects = "Wald")))}))
+        Wald.model <- unlist(lapply(1:n.object, function(iO){rep(iO, length(coef(ls.object[[iO]], effects = "Wald")))}))
         
     }
 
@@ -159,7 +159,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
 
     ## *** name (object)
     if(is.null(name)){
-        duplicated.coefnames <- duplicated(paste(table.args$outcome[all.coefmodel], all.coefnames, sep = sep))
+        duplicated.coefnames <- duplicated(paste(table.args$outcome[all.model], all.coefnames, sep = sep))
         duplicated.hypo <- duplicated(paste(table.args$outcome, Wald.coefnames, sep = sep))
         if(any(duplicated.hypo) || any(duplicated.coefnames)){
             name <- 1:n.object
@@ -169,20 +169,20 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
     }else{        
         if(length(name) != n.object){
             stop("Argument \'name\' should have length ",n.object,", i.e., as many elements as Wald_lmm objects. \n")
-        }else if(any(duplicated(paste(name[all.coefmodel], all.coefnames, sep = sep))) || any(duplicated(paste(name[all.coefmodel], Wald.coefnames, sep = sep)))){
+        }else if(any(duplicated(paste(name[all.model], all.coefnames, sep = sep))) || any(duplicated(paste(name[all.model], Wald.coefnames, sep = sep)))){
             stop("Argument \'name\' should not contain duplicated values. \n")
         }else if(any(name=="all")){
             stop("Argument \'name\' should not contain the value \"all\". \n")
         }
     }
-    all.coefUnames <- paste(name[all.coefmodel], all.coefnames, sep = sep) ## no more duplicates if same param in different models (e.g. (Intercept), age, or sigma)
+    all.coefUnames <- paste(name[all.model], all.coefnames, sep = sep) ## no more duplicates if same param in different models (e.g. (Intercept), age, or sigma)
     
     if(name.short && all(duplicated(Wald.coefnames)==FALSE)){  
         hypo.name <- Wald.coefnames
-    }else if(name.short && all(duplicated(name[Wald.coefmodel])==FALSE)){
-        hypo.name <- name[Wald.coefmodel]
+    }else if(name.short && all(duplicated(name[Wald.model])==FALSE)){
+        hypo.name <- name[Wald.model]
     }else{
-        hypo.name <- paste(name[Wald.coefmodel], Wald.coefnames, sep = sep)
+        hypo.name <- paste(name[Wald.model], Wald.coefnames, sep = sep)
     }
 
     ## *** effects
@@ -210,11 +210,11 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
                 }else if(all(colnames(contrast) %in% hypo.name)){
                     contrast <- contrast[,hypo.name,drop=FALSE]
                 }else if(all(colnames(contrast) %in% paste(name, Wald.coefnames, sep = sep))){
-                    contrast <- contrast[,paste(name[Wald.coefmodel], Wald.coefnames, sep = sep),drop=FALSE]
+                    contrast <- contrast[,paste(name[Wald.model], Wald.coefnames, sep = sep),drop=FALSE]
                 }else{
                     if(is.null(call$name)){
                         stop("Incorrect column names for argument \'effects\'.\n",
-                             "Should match \"",paste(paste(name[Wald.coefmodel], Wald.coefnames, sep = sep), collapse="\" \""),"\".\n")
+                             "Should match \"",paste(paste(name[Wald.model], Wald.coefnames, sep = sep), collapse="\" \""),"\".\n")
                     }else{
                         stop("Incorrect column names for argument \'effects\'.\n",
                              "Should match \"",paste(Wald.coefnames, collapse="\" \""),"\".\n")
@@ -292,7 +292,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
     names(all.coefvalues) <- all.coefUnames
     all.coefvaluesO <- unlist(lapply(ls.object, coef, effects = "all", backtransform = TRUE))
     all.coefnamesO <- names(all.coefvaluesO)
-    all.coefUnamesO <- paste(name[all.coefmodel], all.coefnamesO, sep = sep)
+    all.coefUnamesO <- paste(name[all.model], all.coefnamesO, sep = sep)
     names(all.coefvaluesO) <- all.coefUnamesO
 
     ## *** contrast
@@ -310,11 +310,14 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
     }else{
         
         all.iid <- matrix(0, nrow = n.cluster, ncol = all.ncoef,
-                               dimnames = list(seq.cluster, all.coefUnamesO))
+                          dimnames = list(seq.cluster, all.coefUnamesO))
+        
         for(iO in 1:n.object){ ## iO <- 1
-            iIID <- iid(ls.object[[iO]], effects = "all")
-            all.iid[ls.cluster[[iO]],match(paste(name[iO], colnames(iIID), sep = sep),all.coefUnames)] <- iIID
-            attr(all.iid,"message") <- union(attr(all.iid,"message"), attr(iIID,"message"))
+            ## iid
+            iAll.iid <- iid(ls.object[[iO]], effects = "all")
+            iAll.coefindex <- match(paste(name[iO], colnames(iAll.iid), sep = sep), all.coefUnames) ## handle the transformation of the names
+            all.iid[rownames(iAll.iid),iAll.coefindex] <- iAll.iid
+            attr(all.iid,"message") <- union(attr(all.iid,"message"), attr(iAll.iid,"message"))
         }
 
         if(any(is.na(all.iid))){
@@ -327,25 +330,29 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
         }else{
             all.vcov <- crossprod(all.iid)
         }
+        
     }
 
     ## *** dVcov
     if(table.args$df[1]){
-        dVcov.baseline <- ifelse(independence,0,NA)
-        if(table.args$simplify[1]==FALSE){
-            all.dVcov <- array(dVcov.baseline, dim = rep(all.ncoef,3), dimnames = list(all.coefUnamesO,all.coefUnamesO,all.coefUnamesO))
-        }else{
-            red.coefUnamesO <- unlist(lapply(1:n.object, function(iO){paste(name[iO],names(which(colSums(ls.contrast[[iO]]!=0)>0)), sep = sep)}))
-            all.dVcov <- array(dVcov.baseline, dim = c(rep(length(red.coefUnamesO),2),all.ncoef),
-                               dimnames = list(red.coefUnamesO,red.coefUnamesO,all.coefUnamesO))
-        }
+
+        red.coefUnamesO <- unlist(lapply(1:n.object, function(iO){paste(name[iO],names(which(colSums(ls.contrast[[iO]]!=0)>0)), sep = sep)}))
+        all.dVcov <- array(0, dim = c(rep(length(red.coefUnamesO),2),all.ncoef),
+                           dimnames = list(red.coefUnamesO,red.coefUnamesO,all.coefUnamesO))
+        
         for(iO in 1:n.object){ ## iO <- 1
-            idVcov <- attr(vcov(ls.object[[iO]], effects = c("all","gradient")),"dVcov")
+            idVcov <- attr(vcov(ls.object[[iO]], effects = c("all","gradient")),"gradient")
             iNewnames <- all.coefUnamesO[match(paste(name[iO], dimnames(idVcov)[[1]], sep = sep), all.coefUnames)]
             dimnames(idVcov) <- list(iNewnames, iNewnames, all.coefUnamesO[match(paste(name[iO], dimnames(idVcov)[[3]], sep = sep), all.coefUnames)])
-            iDimnames <- lapply(1:3, function(iD){intersect(dimnames(all.dVcov)[[iD]],dimnames(idVcov)[[iD]])})
             
+            iDimnames <- lapply(1:3, function(iD){intersect(dimnames(all.dVcov)[[iD]],dimnames(idVcov)[[iD]])})           
             all.dVcov[iDimnames[[1]],iDimnames[[2]],iDimnames[[3]]] <- idVcov[iDimnames[[1]],iDimnames[[2]],iDimnames[[3]]]
+        }
+
+        ## add model-based vcov when robust=1, i.e., compute df from model-based vcov even though one uses robust vcov
+        if(table.args$robust[1]==1){
+            original.se <- sqrt(unlist(lapply(ls.object, function(iO){diag(attr(attr(vcov(iO, effects = c("all","gradient")),"gradient"),"vcov"))})))
+            attr(all.dVcov,"vcov") <- tcrossprod(original.se) * all.vcov / tcrossprod(sqrt(diag(all.vcov)))
         }
 
     }else{
@@ -383,7 +390,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
 
     ## add model to object
     univariate.model <- apply(contrast, MARGIN = 1, function(iRow){
-        iOut <- unique(all.coefmodel[iRow!=0])
+        iOut <- unique(all.model[iRow!=0])
         if(length(iOut)>1){
             return("all")
         }else{
@@ -391,7 +398,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
         }
     })
     out$univariate <- cbind(model = univariate.model, out$univariate)
-    out$glht[[1]]$model <- as.character(all.coefmodel)
+    out$glht[[1]]$model <- as.character(all.model)
     out$glht[[1]]$term <- all.coefnamesO
 
     ## add extra information to object that may be using by rbind
@@ -404,7 +411,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
                        independence = independence)
 
     ## check wheter parameters from different hypotheses are combined
-    test.hypoCross <- apply(contrast, MARGIN = 1, function(iRow){length(unique(Wald.coefmodel[iRow!=0]))})>1
+    test.hypoCross <- apply(contrast, MARGIN = 1, function(iRow){length(unique(Wald.model[iRow!=0]))})>1
     if(any(test.hypoCross)){
         attr(out$univariate,"message.se") <- "and the influence function"
         if(!is.null(attr(all.iid,"message"))){
@@ -413,10 +420,10 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
     }else if(table.args$df[1]>0){
         if(!independence){
             if(!is.null(attr(all.iid,"message")) && all(test.hypoCross==FALSE)){
-                attr(out$univariate,"df") <- paste0("Satterthwaite approximation of the degrees of freedom \n  (",attr(all.iid,"message")," and parameter correlation between models in dVcov)")
+                attr(out$univariate,"df") <- paste0("Satterthwaite approximation of the degrees of freedom \n  (",attr(all.iid,"message")," and no correlation between models in dVcov)")
             }else{
                 attr(out$univariate,"df") <- "Satterthwaite approximation of the degrees of freedom \n  (neglecting parameter correlation between models in dVcov)"
-            }
+cs            }
         }else if(!is.null(attr(all.iid,"message")) && all(test.hypoCross==FALSE)){
             attr(out$univariate,"df") <- paste0("Satterthwaite approximation of the degrees of freedom \n  (",attr(all.iid,"message"),")")
         }
