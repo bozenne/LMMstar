@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 17 2024 (09:37) 
 ## Version: 
-## Last-Updated: jul 25 2024 (12:14) 
+## Last-Updated: Aug  4 2024 (22:04) 
 ##           By: Brice Ozenne
-##     Update #: 290
+##     Update #: 291
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,7 +21,7 @@
 ##' 
 ##' @noRd
 simplifyContrast <- function(object, rhs, tol = 1e-10, trace = TRUE){
-    object.eigen <- eigen(tcrossprod(object))
+    object.eigen <- eigen(tcrossprod(object), symmetric = TRUE)
     n.zero <- sum(abs(object.eigen$values) < tol)
     if(length(rhs)==1 && NROW(object)>1){
         rhs <- rep(rhs, NROW(object))
@@ -31,7 +31,7 @@ simplifyContrast <- function(object, rhs, tol = 1e-10, trace = TRUE){
 
     keep.lines <- 1:NROW(object)
     for(iLine in NROW(object):1){ ## iLine <- 1
-        iN.zero <- sum(abs(eigen(tcrossprod(object[setdiff(keep.lines,iLine),,drop=FALSE]))$values) < tol)
+        iN.zero <- sum(abs(eigen(tcrossprod(object[setdiff(keep.lines,iLine),,drop=FALSE]), symmetric = TRUE)$values) < tol)
         if(iN.zero<n.zero){
             keep.lines <- setdiff(keep.lines,iLine)
             n.zero <- iN.zero

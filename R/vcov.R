@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: aug  3 2024 (17:04) 
+## Last-Updated: Aug  4 2024 (22:04) 
 ##           By: Brice Ozenne
-##     Update #: 923
+##     Update #: 933
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -377,14 +377,13 @@ vcov.mlmm <- function(object, effects = "contrast", p = NULL, newdata = NULL, or
 ##' @description Extract  the variance-covariance matrix from Wald tests applied to a linear mixed models.
 ##'
 ##' @param object a \code{rbindWald_lmm} object.
-##' @param effects [character] should the variance-covariance matrix involved in the Wald tests be output (\code{"contrast"}),
-##' or the variance-covariance matrix of the linear mixed model parameters (\code{"all"})?
+##' @param effects [character] should the linear contrasts involved in the Wald test be output (\code{"Wald"}),
+##' or the value of the linear mixed model parameters (\code{"all"})?
+##' Can also contain \code{"gradient"} to also output the gradient of the Variance-Covariance matrix.
 ##' @param method [character vector] type of adjustment for multiple comparisons across the linear contrasts (one of \code{"none"}, \code{"bonferroni"}, ..., \code{"single-step2"}).
-##' Only relevant when \code{effects = "contrast"}.
+##' Only relevant when \code{effects = "Wald"}.
 ##' @param df [logical] Should degree of freedom, computed using Satterthwaite approximation, for the model parameters be output.
-##' Also output the first derivative of the variance-covariance matrix whenever the argument is stricly greater than 1.
 ##' @param ordering [character] should the output be ordered by name of the linear contrast (\code{"contrast"}) or by model (\code{"model"}).
-##' Only relevant when \code{effects="contrast"}, \code{effects="all"}, or \code{effects="all.original"}.
 ##' @param simplify [logical] should the output be a vector or a list with one element specific to each possible ordering (i.e. contrast or model).
 ##' @param ... Not used. For compatibility with the generic method.
 ##' 
@@ -410,17 +409,7 @@ vcov.rbindWald_lmm <- function(object, effects = "Wald", method = "none", df = F
     }
 
     ## *** effects
-    if(!is.character(effects) || !is.vector(effects)){
-        stop("Argument \'effects\' must be a character.")
-    }
-    if(length(effects)!=1){
-        stop("Argument \'effects\' must have length 1.")
-    }
-    valid.effects <- c("Wald","all")
-    if(effects %in% valid.effects == FALSE){
-        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
-             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
-    }
+    ## initialized in vcov.Wald_lmm
 
     ## *** method
     if(!is.character(method) || !is.vector(method)){
@@ -444,16 +433,16 @@ vcov.rbindWald_lmm <- function(object, effects = "Wald", method = "none", df = F
     out <- vcov.Wald_lmm(object, effects = effects, df = df)
 
     if(!is.null(ordering)){
-        if(effects=="Wald"){
+        if("Wald" %in% effects){ ## effects can have an extra element "gradient", i.e. be a vector
             ordering.out <- object$univariate[[c(model = "model", contrast = "term")[ordering]]]
-        }else if(effects=="all"){
+        }else if("all" %in% effects){
             ordering.out <- object$glht[[1]][[c(model = "model", contrast = "term")[ordering]]]
         }
     }else if(simplify == FALSE){
-        if(effects=="Wald"){
+        if("Wald" %in% effects){
             attr(out,"parameter") <- object$univariate$term
             attr(out,"model") <- object$univariate$model
-        }else if(effects=="all"){
+        }else if("all" %in% effects){
             attr(out,"parameter") <- object$glht[[1]]$term
             attr(out,"model") <- object$glht[[1]]$model
         }
@@ -461,12 +450,21 @@ vcov.rbindWald_lmm <- function(object, effects = "Wald", method = "none", df = F
 
     ## ** export
     if(simplify == FALSE && !is.null(ordering)){
-        out <- tapply(1:length(ordering.out), factor(ordering.out, levels = unique(ordering.out)), FUN = function(iIndex){
-            return(out[iIndex,iIndex,drop=FALSE])
+        out <- tapply(1:length(ordering.out), factor(ordering.out, levels = unique(ordering.out)), FUN = function(iIndex){ ## iIndex <- 1:2
+            iOut.grad <- attr(out,"gradient")
+            iOut <- out[iIndex,iIndex,drop=FALSE]
+            if("gradient" %in% effects){
+                attr(iOut,"gradient") <- iOut.grad[,,iIndex,drop=FALSE]
+            }
+            return(iOut)
         }, simplify = FALSE)
     }else if(!is.null(ordering)){
         neworder <- unlist(tapply(1:length(ordering.out), factor(ordering.out, levels = unique(ordering.out)), base::identity, simplify = FALSE))
+        out.grad <- attr(out,"gradient")
         out <- out[neworder,neworder,drop=FALSE]
+        if("gradient" %in% effects){
+            attr(out,"gradient") <- out.grad[,,neworder,drop=FALSE]
+        }
     }
     return(out)
 }

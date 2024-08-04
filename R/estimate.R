@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: aug  2 2024 (10:11) 
+## Last-Updated: Aug  4 2024 (16:41) 
 ##           By: Brice Ozenne
-##     Update #: 1176
+##     Update #: 1178
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -624,7 +624,7 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
 
         ## check initialization leads to a positive definite matrix 
         initOmega <- .calc_Omega(object = design$vcov, param = outInit, simplify = FALSE)        
-        test.npd <- sapply(initOmega,function(iOmega){any(eigen(iOmega)$values<0)})
+        test.npd <- sapply(initOmega,function(iOmega){any(eigen(iOmega, symmetric = TRUE)$values<0)})
         if(any(test.npd)){ ## otherwise initialize as compound symmetry
             param.value[setdiff(param.sigma,param.fixed)] <- outInit[setdiff(param.sigma,param.fixed)]
             param.value[setdiff(param.k,param.fixed)] <- outInit[setdiff(param.k,param.fixed)]
@@ -740,7 +740,6 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
             ## *** update mean estimate
             if(length(param.mu2)>0){
                 iOmega <- .calc_Omega(object = design$vcov, param = param.value, simplify = FALSE)
-                ## eigen(iOmega[[1]])
                 param.value[param.mu2] <- .estimateGLS(OmegaM1 = stats::setNames(lapply(iOmega, solve), names(iOmega)),
                                                        pattern = Upattern$name, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX,
                                                        Y = partialY, design = design,

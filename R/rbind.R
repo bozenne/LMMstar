@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: aug  3 2024 (17:17) 
+## Last-Updated: Aug  4 2024 (21:54) 
 ##           By: Brice Ozenne
-##     Update #: 1081
+##     Update #: 1084
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -423,7 +423,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
                 attr(out$univariate,"df") <- paste0("Satterthwaite approximation of the degrees of freedom \n  (",attr(all.iid,"message")," and no correlation between models in dVcov)")
             }else{
                 attr(out$univariate,"df") <- "Satterthwaite approximation of the degrees of freedom \n  (neglecting parameter correlation between models in dVcov)"
-cs            }
+            }
         }else if(!is.null(attr(all.iid,"message")) && all(test.hypoCross==FALSE)){
             attr(out$univariate,"df") <- paste0("Satterthwaite approximation of the degrees of freedom \n  (",attr(all.iid,"message"),")")
         }

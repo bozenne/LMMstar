@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  4 2021 (10:04) 
 ## Version: 
-## Last-Updated: aug  2 2024 (16:43) 
+## Last-Updated: Aug  4 2024 (14:32) 
 ##           By: Brice Ozenne
-##     Update #: 303
+##     Update #: 304
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -404,6 +404,17 @@ iid.mlmm <- function(x, effects = "contrast", p = NULL, ordering = "by", simplif
     ## ** export
     return(out)
 }
+
+## * iid.rbindWald_lmm (code)
+##' @export
+iid.rbindWald_lmm <- function(x, ...){
+
+    message("The influence function is not stored when combining Wald tests. \n",
+            "Nothing to return. \n")
+
+    return(invisible(NULL))
+}
+
 
 ## * iid.Wald_lmm (documentation)
 ##' @title Extract the Influence Function from Wald Tests

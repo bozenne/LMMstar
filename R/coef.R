@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: jul 31 2024 (14:57) 
+## Last-Updated: Aug  4 2024 (15:00) 
 ##           By: Brice Ozenne
-##     Update #: 1136
+##     Update #: 1142
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -484,14 +484,13 @@ coef.mlmm <- function(object, effects = "contrast", p = NULL, type = "coef", met
 ##' @description Extract coefficients from combined Wald tests applied to a linear mixed models.
 ##'
 ##' @param object a \code{rbindWald_lmm} object.
-##' @param effects [character] should the linear contrasts involved in the Wald test be output (\code{"contrast"}),
+##' @param effects [character] should the linear contrasts involved in the Wald test be output (\code{"Wald"}),
 ##' or the value of the linear mixed model parameters (\code{"all"})?
 ##' @param method [character vector] type of adjustment for multiple comparisons across the linear contrasts (one of \code{"none"}, \code{"bonferroni"}, ..., \code{"single-step2"})
 ##' and/or pooling methods (\code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.gls1"}, \code{"pool.rubin"}, \code{"p.rejection"})?
-##' Only relevant when \code{effects = "contrast"}.
+##' Only relevant when \code{effects = "Wald"}.
 ##' @param ordering [character] should the output be ordered by name of the linear contrast (\code{"contrast"}) or by model (\code{"model"}).
-##' Only relevant when \code{effects="contrast"}, \code{effects="all"}, or \code{effects="all.original"}.
-##' @param backtransform [logical] should the estimate be back-transformed?
+##' @param backtransform [logical] should the estimates be back-transformed?
 ##' @param simplify [logical] should the output be a vector or a list with one element specific to each possible ordering (i.e. contrast or model).
 ##' Only relevant when argument \code{method} refers to multiple comparisons and not to a pooling method.
 ##' @param ... Not used. For compatibility with the generic method.
@@ -501,7 +500,7 @@ coef.mlmm <- function(object, effects = "contrast", p = NULL, type = "coef", met
 ##' This can be changed by adding adjustment method, e.g. \code{effects=c("bonferronin","p.rejection"}, in the argument.
 ##' 
 ##' @export
-coef.rbindWald_lmm <- function(object, effects = "contrast", method = "none", ordering = NULL, backtransform = NULL, simplify = TRUE, ...){
+coef.rbindWald_lmm <- function(object, effects = "Wald", method = "none", ordering = NULL, backtransform = NULL, simplify = TRUE, ...){
 
     options <- LMMstar.options()
     pool.method <- options$pool.method
@@ -607,6 +606,7 @@ coef.rbindWald_lmm <- function(object, effects = "contrast", method = "none", or
         
         table.univariate <- object$univariate
 
+        ## *** adjustment for multiple comparisons
         if(any(method %in% c("none",adj.method))){
 
             value.out <- coef.Wald_lmm(object, effects = effects, backtransform = backtransform, simplify = simplify)
@@ -620,7 +620,8 @@ coef.rbindWald_lmm <- function(object, effects = "contrast", method = "none", or
         }else{
             value.out <- NULL
         }
-        
+
+        ## *** pooling
         if(any(method %in% pool.method)){
             value.out <- c(value.out,
                            pool.rbindWald_lmm(object, method = method, qt = qt,

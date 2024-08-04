@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: aug  3 2024 (17:15) 
+## Last-Updated: Aug  4 2024 (16:40) 
 ##           By: Brice Ozenne
-##     Update #: 2023
+##     Update #: 2024
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -518,7 +518,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
             if(df==0 || inherits(df_iC.vcov.C_M1,"try-error")){
                 out$multivariate[iG,"df.denom"] <- Inf
             }else{
-                iSVD <- eigen(df_iC.vcov.C_M1)
+                iSVD <- eigen(df_iC.vcov.C_M1, symmetric = TRUE)
                 iSVD.D <- diag(iSVD$values, nrow = iSimplify$dim, ncol = iSimplify$dim)
                 iSVD.P <- iSVD$vectors
                 iSVD.contrast <- sqrt(iSVD.D) %*% t(iSVD.P) %*% iSimplify$C

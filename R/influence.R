@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul  4 2024 (11:53) 
 ## Version: 
-## Last-Updated: jul 11 2024 (11:55) 
+## Last-Updated: Aug  4 2024 (14:33) 
 ##           By: Brice Ozenne
-##     Update #: 3
+##     Update #: 4
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,16 +21,23 @@ influence.lmm <- function(model, ...){
     iid.lmm(x = model, ...)
 }
 
+## * influence.mlmm (code)
+##' @export
+influence.mlmm <- function(model, ...){
+    iid.mlmm(x = model, ...)
+}
+
+## * influence.rbindWald_lmm (code)
+##' @export
+influence.rbindWald_lmm <- function(model, ...){
+    iid.rbindWald_lmm(x = model, ...)
+}
+
 ## * influence.Wald_lmm (code)
 ##' @export
 influence.Wald_lmm <- function(model, ...){
     iid.Wald_lmm(x = model, ...)
 }
 
-## * influence.mlmm (code)
-##' @export
-influence.mlmm <- function(model, ...){
-    iid.mlmm(x = model, ...)
-}
 ##----------------------------------------------------------------------
 ### influence.R ends here

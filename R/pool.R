@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 28 2024 (19:14) 
 ## Version: 
-## Last-Updated: aug  1 2024 (10:37) 
+## Last-Updated: Aug  4 2024 (22:04) 
 ##           By: Brice Ozenne
-##     Update #: 38
+##     Update #: 74
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,7 +17,7 @@
 
 ## * pool.rbindWald_lmm
 pool.rbindWald_lmm <- function(object, method, qt = NULL,
-                               null, level, df){
+                               null, level, df, tol = 1e-10){
 
     options <- LMMstar.options()
     pool.method <- options$pool.method
@@ -44,100 +44,96 @@ pool.rbindWald_lmm <- function(object, method, qt = NULL,
         }
     }
 
-    ## *** df
-    if(df && (object$args$df == FALSE)){
-        df <- FALSE        
-    }
-
-    ## ** name for the pooled estimator
+    ## ** prepare output
     if(!is.null(names(method))){
         pool.name <- names(method)
     }else{
         pool.name <- poolName.rbindWald_lmm(object, method = method)
     }
+    out <- as.data.frame(matrix(NA, nrow = length(pool.name), ncol = NCOL(object$univariate),
+                                dimnames = list(pool.name,  colnames(object$univariate))))
+    out$model <- "all"
+    out$type <- ifelse(length(unique(object$univariate$type))==1, object$univariate$type[1], "all")
+    out$name <- method
+    out$term <- "pool"
+    out$n.param <- sum(object$univariate$n.param)
+    out$transformed <- out$transformed[1]
+    out$backtransformed <- out$transformed[1]
 
     ## ** extract information
     ## estimates
-    table.univariate <- model.tables(object, columns = c("estimate","se"))
+    tableUni <- model.tables(object, method = "none", columns = c("estimate","se","statistic","df"))
 
     ## variance
     if(!is.na(level) || any(method %in% c("pool.se","pool.gls","pool.gls1"))){
-        transform.sigma <-  object$args$transform.sigma
-        transform.k <-  object$args$transform.k
-        transform.rho <-  object$args$transform.rho
-        type.information <-  object$object$type.information
-        robust <-  object$args$robust
-browser()
-        Sigma <- vcov(object, type.information = type.information, robust = robust,
-                      transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
-        independence <- attr(object$object,"independence")
+
+        Sigma <- vcov(object, effects = "Wald", method = "none")
+        independence <- object$object$independence
 
     }
 
     ## ** point estimate
-    n.test <- NROW(table)
-    if(method %in% c("average","pool.rubin")){
-
-        pool.contrast <- matrix(1/n.test, nrow = 1, ncol = n.test)
-
-    }else if(method %in% c("pool.fixse","pool.se")){
-
+    n.test <- NROW(tableUni)
+    name.test <- rownames(tableUni)
+    method.contrast <- method[method != "p.rejection"]
+    pool.contrast <- matrix(NA, nrow = length(method.contrast), ncol = n.test, dimnames = list(pool.name[match(method.contrast, method)],name.test))
+    
+    if("average" %in% method.contrast || "pool.rubin" %in% method.contrast){
+        pool.contrast[method.contrast %in% c("average","pool.rubin"),] <- 1/n.test
+    }
+    if("pool.se" %in% method){
         iSigma.diag <- 1/diag(Sigma)
-        pool.contrast <- matrix(iSigma.diag/sum(iSigma.diag), nrow = 1, ncol = n.test)
-
-    }else if(method %in% c("pool.gls","pool.gls1")){
-
-        poolGLS <- function(Sigma, method, tol = 1e-10){
-            ## Note: without tuncation the weights can be computed as
-            ## rowSums(solve(Sigma))/sum(solve(Sigma))
-
-            ## **** truncate eigen value decomposition
-            Sigma.eigen <- eigen(Sigma)
+        pool.contrast[method.contrast == "pool.se",] <- iSigma.diag/sum(iSigma.diag)
+    }
+    if("pool.gls" %in% method.contrast || "pool.gls1" %in% method.contrast){
+        if(is.invertible(Sigma, cov2cor = FALSE)){
+            SigmaM1 <- solve(Sigma)
+            gls.contrast  <- rowSums(SigmaM1)/sum(SigmaM1)
+            message <- NULL
+        }else{
+            Sigma.eigen <- eigen(Sigma, symmetric = TRUE)
             index.subset <- which(abs(Sigma.eigen$values) > tol)
 
+            ## truncate eigen value decomposition
             if(length(index.subset)==0){
-                stop("All eigenvalues  of the variance-covariance matrix are close to 0 (<",tol,"). \n",sep="")
-            }else if(any(abs(Sigma.eigen$values) <= tol)){
-                error <-  length(Sigma.eigen$values)-length(index.subset)
-            }else{
-                error <- NULL
+                stop("All eigenvalues of the variance-covariance matrix are close to 0 (<",tol,"). \n",sep="")
             }
+            message <-  length(Sigma.eigen$values)-length(index.subset)
 
             lambda.k <- Sigma.eigen$values[index.subset]
             q.kj <- Sigma.eigen$vector[,index.subset,drop=FALSE]
 
-            ## **** evaluate weigths
+            ##  evaluate weigths
             qbar.k <- colSums(q.kj)
             w.k <- qbar.k^2/lambda.k
-            out <- rbind(rowSums(sweep(q.kj, FUN = "*", MARGIN = 2, STATS = w.k/qbar.k))/sum(w.k))
-            ## shortcut for
-            ## out <- rbind(colSums(sweep(t(q.kj), FUN = "*", MARGIN = 1, STATS = w.k/qbar.k))/sum(w.k))
-
-            if(method == "pool.gls1" && max(abs(out))>1){
-                ## ensure no weight greater than 1
-                index.max <- which.max(abs(out))
-                kappaPwmax <- max((1-n.test*out)/(1-sign(out)*n.test))
-                out <- rbind(rep((1-1/kappaPwmax)/n.test,n.test) + out[1,]/kappaPwmax)
-            }
-
-            ## **** export
-            attr(out,"error") <- error
-            return(out)
+            gls.contrast <- out <- rowSums(sweep(q.kj, FUN = "*", MARGIN = 2, STATS = w.k/qbar.k))/sum(w.k)
         }
 
-        pool.contrast <- poolGLS(Sigma = Sigma, method = method)        
-    } 
+        if("pool.gls" %in% method.contrast){
+            pool.contrast[method.contrast == "pool.gls",] <- gls.contrast
+        }
+    }else{
+        message <- NULL
+    }       
+    if("pool.gls1" %in% method.contrast){ ## ensure no weight greater than 1
+        index.max <- which.max(abs(gls.contrast))
+        kappaPwmax <- max(c(1,(1-n.test*gls.contrast)/(1-sign(gls.contrast)*n.test))) 
+        pool.contrast[method.contrast == "pool.gls1",] <- (1-1/kappaPwmax)/n.test + gls.contrast/kappaPwmax
+    }
+    out$estimate[match(rownames(pool.contrast), rownames(out))] <- pool.contrast %*% tableUni$estimate
 
+    if("p.rejection" %in% method){
+        out[method == "p.rejection","estimate"] <- 1 - mean(stats::pt(critical.threshold - tableUni$statistic, df = tableUni$df) - stats::pt(-critical.threshold - tableUni$statistic, df = tableUni$df))
+    }
+browser()
+    
     ## ** variance
-    if(!ci){
+    if(!is.na(level) && "average" %in% method){
 
-        pool.se  <- NA
+        out[method == "average","se"] <- sqrt(as.double( pool.contrast[method.contrast=="average",,drop=FALSE] %*% Sigma %*% t(pool.contrast[method.contrast=="average",,drop=FALSE]) ))
 
-    }else if(method %in% c("average","pool.fixse")){
-        
-        pool.se <- sqrt(as.double(pool.contrast %*% Sigma %*% t(pool.contrast)))
-
-    }else if(method %in% c("pool.se","pool.gls","pool.gls1")){
+    }
+    if(method %in% c("pool.se","pool.gls","pool.gls1")){
 
         
         ## *** all model parameters
@@ -197,10 +193,27 @@ browser()
         theta.grad <- theta.grad + table$estimate %*% do.call(cbind,ls.gradVcov)
         pool.se <- sqrt(theta.grad %*% theta.Sigma %*% t(theta.grad))
         
-    }else if(method == "pool.rubin"){
+    }
+
+    if(!is.na(level) && "pool.rubin" %in% method){
         pool.U <- mean(diag(Sigma))
-        pool.B <- sum((table$estimate - mean(table$estimate))^2)/(n.test-1)
-        pool.se <- sqrt(pool.U + (1 + 1/n.test) * pool.B)
+        pool.B <- sum((tableUni$estimate - mean(tableUni$estimate))^2)/(n.test-1)
+        out[method == "pool.rubin","se"] <- sqrt(pool.U + (1 + 1/n.test) * pool.B)
+    }
+
+    if(!is.na(level) && "p.rejection" %in% method){
+        ## Approximation: no variability of the degrees of freedom nor critical threshold
+
+        contrast <- model.tables(object, effects = "contrast", simplify = FALSE)[[1]]
+        vcov(object, effects = c("all","gradient"))
+        object$glht[[1]]$vcov
+        dstat <- contrast * tableUni$se - tableUni$estimate / (2*tableUni$se^3)
+
+        term1 <- - coef(e.lmm1)["X1"] * attr(vcov(e.lmm1, effects = c("all","gradient")), "gradient")["X1","X1",]  / (2 * vcov(e.lmm1)["X1","X1"]^(3/2))
+        term2 <- stats::setNames( (names(coef(e.lmm1, effects = "all"))=="X1") / sqrt(vcov(e.lmm1)["X1","X1"]) , names(coef(e.lmm1, effects = "all")))  
+
+
+        out[method == "p.rejection","se"] <- 1 - mean(stats::pt(critical.threshold - tableUni$statistic, df = tableUni$df) - stats::pt(-critical.threshold - tableUni$statistic, df = tableUni$df))
     }
 
     ## ** degrees of freedom
@@ -260,8 +273,6 @@ browser()
     }
 
     ## ** export
-    out <- table[1,,drop=FALSE]
-    out[setdiff(names(out),c("parameter","type","test","estimate","se","df","statistic","lower","upper","null","p.value"))] <- NA
     if(length(unique(out$parameter))!=1){
         out$parameter <- NA
     }

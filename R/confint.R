@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: aug  2 2024 (13:51) 
+## Last-Updated: Aug  4 2024 (20:09) 
 ##           By: Brice Ozenne
-##     Update #: 1087
+##     Update #: 1112
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -911,6 +911,160 @@ confint.resample <-  function(object, parm = NULL, null = NULL, level = 0.95, me
     ## ** export
     out <- out[,columns,drop=FALSE]
     attr(out,"method") <- method
+    return(out)
+}
+
+
+## * confint.rbindWald_lmm
+##' @title Confidence Intervals From Combined Wald Tests
+##' @description Compute confidence intervals from combined Wald tests applied to a linear mixed models.
+##'
+##' @param object a \code{rbindWald_lmm} object.
+##' @param parm Not used. For compatibility with the generic method.
+##' @param level [numeric, 0-1] nominal coverage of the confidence intervals.
+##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the Wald statistic. Otherwise a normal distribution is used.
+##' @param method [character vector] type of adjustment for multiple comparisons across the linear contrasts (one of \code{"none"}, \code{"bonferroni"}, ..., \code{"single-step2"})
+##' and/or pooling methods (\code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.gls1"}, \code{"pool.rubin"}, \code{"p.rejection"})?
+##' Only relevant when \code{effects = "Wald"}.
+##' @param columns [character vector] Columns to be output.
+##' Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
+##' @param ordering [character] should the output be ordered by name of the linear contrast (\code{"contrast"}) or by model (\code{"model"}).
+##' @param backtransform [logical] should the estimates be back-transformed?
+##' @param ... Not used. For compatibility with the generic method.
+##'
+##' @details Argument \bold{effects}: when evaluating the proportion of rejected hypotheses (\code{effects="p.rejection"})
+##' a \code{"single-step"} method will be used by default to evaluate the critical quantile.
+##' This can be changed by adding adjustment method, e.g. \code{effects=c("bonferronin","p.rejection"}, in the argument.
+##' 
+##' @export
+confint.rbindWald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NULL, columns = NULL, ordering = NULL, backtransform = NULL, ...){
+
+    options <- LMMstar.options()
+    pool.method <- options$pool.method
+    adj.method <- options$adj.method
+
+    ## ** normalize user input
+    ## *** dots
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
+    ## *** object
+    if(object$args$univariate == FALSE){
+        message("Nothing to return: consider setting argument \'univariate\' to TRUE when calling rbind.Wald_lmm. \n")
+        return(invisible(NULL))
+    }
+
+    ## *** parm
+    if(!missing(parm) && !is.null(parm)){
+        stop("Argument \'parm\' is not used - only there for compatibility with the generic method. \n")
+    }
+
+    ## *** method
+    if(!is.character(method) || !is.vector(method)){
+        stop("Argument \'method\' must be a character. \n")
+    }
+    valid.method <- c("none",pool.method,adj.method)
+    if(any(method %in% valid.method == FALSE)){
+        stop("Incorrect value for argument \'method\': \"",paste(setdiff(method,valid.method), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(valid.method, collapse ="\", \""),"\". \n")
+    }
+    if(sum(method %in% c("none",adj.method))>1){
+        stop("Argument \'method\' must refer no more than one adjustment for multiple comparisons. \n",
+             "Proposed adjustments: \"",paste(intersect(method, c("none",adj.method)), collapse ="\", \""),"\". \n")
+    }
+    if(any(method %in% pool.method) && any(object$univariate$tobacktransform)){
+        stop("Cannot pool estimates from linear hypothesis involving parameters with different transformations. \n",
+             "Consider setting arguments \'transform.sigma\', \'transform.k\', \'transform.rho\' to specific values \n",
+             "and using the transformed named of the corresponding model parameters in argument \'effects\'. \n")        
+    }
+
+    ## *** ordering
+    if(!is.null(ordering)){
+        ordering <- match.arg(ordering, c("contrast","model"))
+        if(any(method %in% pool.method)){
+            message("Argument \'ordering\' is ignored when argument \'method\' is \"",intersect(pool.method,method)[1],"\". \n")
+            ordering <- NULL
+        }
+    }
+    
+    ## *** backtransform
+    if(is.null(backtransform)){
+        backtransform <- any(object$univariate$tobacktransform)
+    }else if(is.character(backtransform)){
+        backtransform <-  eval(parse(text=backtransform))
+    }else if(is.numeric(backtransform)){
+        backtransform <- as.logical(backtransform)
+    }
+
+    ## *** df
+    if(is.null(df)){
+        df <- object$args$df
+    }else if(df && !object$args$df){
+        stop("Argument \'df\' cannot be set to TRUE when no degrees of freedom have been stored. \n",
+             "Consider setting the argument \'df\' to TRUE when calling lmm and anova. \n")
+    }
+
+
+    ## *** qt (hidden argument)
+    if("p.rejection" %in% method){
+        if(!is.null(attr(method,"qt"))){
+            qt <- qt
+            if(is.character(qt) && (qt %in% c("none","bonferroni","single-step","single-step2")==FALSE)){
+                stop("Invalid \"qt\" attribe for argument \'method\'. \n",
+                     "Should be one of \"none\", \"bonferroni\", \"single-step\", \"single-step2\". \n")
+            }
+        }else if(any(method %in% c("none",adj.method))){
+            qt <- intersect(method, c("none",adj.method))
+            if(is.character(qt) && (qt %in% c("none","bonferroni","single-step","single-step2")==FALSE)){
+                stop("Incompatible values for argument \'method\': \"p.rejection\" and \"",qt,"\" \n",
+                     "Consider using \"p.rejection\" and one of \"none\", \"bonferroni\", \"single-step\", \"single-step2\". \n")
+            }
+        }else{
+            qt <- NULL
+        }
+    }else{
+        qt <- NULL
+    }
+    
+    ## ** adjustment for multiple comparisons
+    if(is.null(method) || any(method %in% c("none",adj.method))){
+
+        method2 <- intersect(method,c("none",adj.method))
+        if(is.character(qt)){
+            if(is.null(columns)){
+                columns2 <- add("quantile")
+            }else{
+                columns2 <- union(columns,"quantile")
+            }
+        }else{
+            columns2 <- columns
+        }
+        value.out <- confint.Wald_lmm(object, level = level, df = df, method = method2, columns = columns2, backtransform = backtransform)
+        if(is.character(qt)){
+            qt <- value.out$quantile[1]
+            if("quantile" %in% columns == FALSE){
+                value.out$quantile <- NULL
+            }
+        }
+            
+    }else{
+        value.out <- NULL
+    }
+    
+    ## ** pooling
+    if(any(method %in% pool.method)){
+        pool.out <- pool.rbindWald_lmm(object, method = setdiff(method, c("none",adj.method)), qt = qt,
+                                       null = "null" %in% columns, level = level, df = df)
+        out <- rbind(value.out,
+                     pool.out[,colnames(value.out),drop=FALSE])
+    }else{
+        out <- value.out
+    }
+
+    
+    ## ** export
     return(out)
 }
 
