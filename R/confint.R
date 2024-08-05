@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: Aug  4 2024 (20:09) 
+## Last-Updated: aug  5 2024 (13:33) 
 ##           By: Brice Ozenne
-##     Update #: 1112
+##     Update #: 1116
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -962,22 +962,24 @@ confint.rbindWald_lmm <- function(object, parm, level = 0.95, df = NULL, method 
     }
 
     ## *** method
-    if(!is.character(method) || !is.vector(method)){
-        stop("Argument \'method\' must be a character. \n")
-    }
-    valid.method <- c("none",pool.method,adj.method)
-    if(any(method %in% valid.method == FALSE)){
-        stop("Incorrect value for argument \'method\': \"",paste(setdiff(method,valid.method), collapse ="\", \""),"\". \n",
-             "Valid values: \"",paste(valid.method, collapse ="\", \""),"\". \n")
-    }
-    if(sum(method %in% c("none",adj.method))>1){
-        stop("Argument \'method\' must refer no more than one adjustment for multiple comparisons. \n",
-             "Proposed adjustments: \"",paste(intersect(method, c("none",adj.method)), collapse ="\", \""),"\". \n")
-    }
-    if(any(method %in% pool.method) && any(object$univariate$tobacktransform)){
-        stop("Cannot pool estimates from linear hypothesis involving parameters with different transformations. \n",
-             "Consider setting arguments \'transform.sigma\', \'transform.k\', \'transform.rho\' to specific values \n",
-             "and using the transformed named of the corresponding model parameters in argument \'effects\'. \n")        
+    if(!is.null(method)){
+        if(!is.character(method) || !is.vector(method)){
+            stop("Argument \'method\' must be a character. \n")
+        }
+        valid.method <- c("none",pool.method,adj.method)
+        if(any(method %in% valid.method == FALSE)){
+            stop("Incorrect value for argument \'method\': \"",paste(setdiff(method,valid.method), collapse ="\", \""),"\". \n",
+                 "Valid values: \"",paste(valid.method, collapse ="\", \""),"\". \n")
+        }
+        if(sum(method %in% c("none",adj.method))>1){
+            stop("Argument \'method\' must refer no more than one adjustment for multiple comparisons. \n",
+                 "Proposed adjustments: \"",paste(intersect(method, c("none",adj.method)), collapse ="\", \""),"\". \n")
+        }
+        if(any(method %in% pool.method) && any(object$univariate$tobacktransform)){
+            stop("Cannot pool estimates from linear hypothesis involving parameters with different transformations. \n",
+                 "Consider setting arguments \'transform.sigma\', \'transform.k\', \'transform.rho\' to specific values \n",
+                 "and using the transformed named of the corresponding model parameters in argument \'effects\'. \n")        
+        }
     }
 
     ## *** ordering
@@ -1043,7 +1045,7 @@ confint.rbindWald_lmm <- function(object, parm, level = 0.95, df = NULL, method 
         }
         value.out <- confint.Wald_lmm(object, level = level, df = df, method = method2, columns = columns2, backtransform = backtransform)
         if(is.character(qt)){
-            qt <- value.out$quantile[1]
+            qt <- value.out$quantile
             if("quantile" %in% columns == FALSE){
                 value.out$quantile <- NULL
             }

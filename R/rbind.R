@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: Aug  4 2024 (21:54) 
+## Last-Updated: aug  5 2024 (11:25) 
 ##           By: Brice Ozenne
-##     Update #: 1084
+##     Update #: 1085
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -105,6 +105,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
         }
         model$glht[[1]]$coef.model <- rep(model$object$model, length(model$glht[[1]]$coef))
         
+        class(model) <- append(c("rbindWald_lmm","Wald_lmm"),class(model))
         return(model) 
     }else if(any(sapply(dots,inherits,"Wald_lmm")==FALSE)){
         stop("Extra arguments should inherit from Wald_lmm. \n")

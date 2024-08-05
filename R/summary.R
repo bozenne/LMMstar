@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: aug  2 2024 (10:42) 
+## Last-Updated: aug  5 2024 (11:55) 
 ##           By: Brice Ozenne
-##     Update #: 1729
+##     Update #: 1734
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -1195,7 +1195,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
             if(robust>0){
                 txt.se <- paste0("Robust based on the ",type.information," information")
             }else if(robust==0){
-                txt.se <- paste0("Model-based based on the ",type.information," information")
+                txt.se <- paste0("Modeled based on the ",type.information," information")
             }
             if(!is.null(attr(table,"se"))){
                 txt.se <- paste0(txt.se,attr(table,"se"))
@@ -1247,11 +1247,11 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
             }else if(NROW(table)>1 && any(table$df.num>1)){
                 test.type <- grepl("mean:",rownames(table),fixed=TRUE) + grepl("variance:",rownames(table),fixed=TRUE) + grepl("correlation:",rownames(table),fixed=TRUE)
                 if(sum(test.type)>1 && sum(test.type)==NROW(table)){
-                    cat(space,"Multiple testing adjustment: within parameter type using joint test.\n", sep = "")
+                    cat(space,"Multiple testing adjustment: joint test (within parameter type) .\n", sep = "")
                 }else if(sum(test.type)>1){
-                    cat(space,"Multiple testing adjustment: within covariate and parameter type using joint test.\n", sep = "")
+                    cat(space,"Multiple testing adjustment: joint test (within covariate and parameter type) .\n", sep = "")
                 }else{
-                    cat(space,"Multiple testing adjustment: within covariate using joint test.\n", sep = "")
+                    cat(space,"Multiple testing adjustment: joint test (within covariate) .\n", sep = "")
                 }
             }
         }else if((is.null(method.p.adjust) || (length(method.p.adjust2)==1 && method.p.adjust2 == "none")) && length(display.cip)>0 && NROW(table)>1){
@@ -1283,10 +1283,9 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
                 txt.adjustment <- ""
             }
 
+            txt.adjustment <- paste0(name.adjmethod,txt.adjustment)
             if(!is.null(factor.p.adjust) && nchar(factor.p.adjust)>0){
-                txt.adjustment <- paste0("within ", factor.p.adjust," using ",name.adjmethod,txt.adjustment)
-            }else{
-                txt.adjustment <- paste0("using ",name.adjmethod,txt.adjustment)
+                txt.adjustment <- paste0(txt.adjustment," (within ", factor.p.adjust,")")
             }
 
             if(!is.null(txt.adjustment)){

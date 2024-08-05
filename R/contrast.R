@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 17 2024 (09:37) 
 ## Version: 
-## Last-Updated: Aug  4 2024 (22:04) 
+## Last-Updated: aug  5 2024 (11:52) 
 ##           By: Brice Ozenne
-##     Update #: 291
+##     Update #: 314
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -257,7 +257,7 @@ equation2contrast <- function(object, name.coef, X,
             stdname.coef <- paste0(rep("param",max(lengths(strsplit(name.coef, split = "param",fixed = TRUE)))-1), stdname.coef)
         }
         names(stdname.coef) <- name.coef
-        
+
         ## find which parameter appear in which equation     
         Mcoef.test <- do.call(rbind,lapply(name.coef, function(iCoef){sapply(equationComplex.lhs, grepl, pattern = iCoef, fixed = TRUE)}))
         rownames(Mcoef.test) <- name.coef
@@ -268,7 +268,7 @@ equation2contrast <- function(object, name.coef, X,
             if(any(Mrescue.test) && length(index.keep)>0 && any(equation.lhs[index.coef] %in% attr(name.coef,"rescue") == FALSE)){
                 stop("Incorrect argument \'",name.arg,"\': contains untransformed and transformed parameter names. \n",
                      "Problematic example: \"",equation[index.coef][1],"\" and \"",equation[colSums(Mrescue.test)>0][1],"\". \n")
-            }else if(all(colSums(Mrescue.test) >= colSums(Moriginal.test))){
+            }else if(any(Mrescue.test) && all(colSums(Mrescue.test) >= colSums(Moriginal.test))){
                 rescue <- TRUE
                 name.coef <- attr(name.coef,"rescue")
                 for(iE in equation){
@@ -292,13 +292,14 @@ equation2contrast <- function(object, name.coef, X,
         }
 
         ## standardize equation
-        equationStd.lhs <- sapply(equationComplex.lhs, FUN = function(iEq){ ## iEq <- equation.lhs[2]
+        equationStd.lhs <- sapply(equationComplex, FUN = function(iEq){ ## iEq <- equationComplex[1]
             iCoef.all <- names(which(Mcoef.test[,iEq]))
             iCoef.all.order <- iCoef.all[order(nchar(iCoef.all), decreasing = TRUE)] ## substitute longer string first to avoid confusion, e.g. between sigma.12 and sigma.1
+            iEq.lhs <- equationComplex.lhs[iEq]
             for(iCoef in iCoef.all.order){ ## iCoef <- iCoef.all[2]
-                iEq <- gsub(pattern = iCoef, replacement = stdname.coef[iCoef], x = iEq, fixed = TRUE)
+                iEq.lhs <- gsub(pattern = iCoef, replacement = stdname.coef[iCoef], x = iEq.lhs, fixed = TRUE)
             }
-            return(iEq)
+            return(iEq.lhs)
         })
 
         ## **** option 1: via multcomp
@@ -315,7 +316,7 @@ equation2contrast <- function(object, name.coef, X,
         ## futher standardize equation ... + ... + ...
         equationStd2.lhs <- sapply(1:n.equationComplex, function(iE){ ## iE <- 1
             iEq <- equationStd.lhs[iE]
-            iCoef.all <- names(which(Mcoef.test[,equationComplex.lhs[iE]]))
+            iCoef.all <- names(which(Mcoef.test[,equationComplex[iE]]))
             ## add missing 1*
             for(iCoef in iCoef.all){ ## iCoef <- "paramBD"
                 ## if leading without multiplier add *1, e.g. age+... -> 1*age+... or age-... -> 1*age+-...
@@ -342,7 +343,7 @@ equation2contrast <- function(object, name.coef, X,
             ## identify sign (TRUE -, FALSE +)
             iMinus.split <- sapply(iEq.split,grepl, pattern = "-")
             ## identify coefficient
-            iCoef.all <- names(which(Mcoef.test[,equationComplex.lhs[iE]]))
+            iCoef.all <- names(which(Mcoef.test[,equationComplex[iE]]))
             iLs.termcoef <- lapply(iEq.split, function(iEq){
                 iCoef.all[sapply(stdname.coef[iCoef.all], grepl, x = iEq, fixed = TRUE)]
             })

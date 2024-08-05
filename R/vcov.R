@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: Aug  4 2024 (22:04) 
+## Last-Updated: aug  5 2024 (12:17) 
 ##           By: Brice Ozenne
-##     Update #: 933
+##     Update #: 937
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -567,10 +567,11 @@ vcov.Wald_lmm <- function(object, effects = "Wald", df = FALSE, ...){
             trans.names <- names(coef(object, effects = "all"))
             n.contrast <- NROW(ls.contrast[[1]])
             name.contrast <- rownames(ls.contrast[[1]])
-            
+
             dVcov <- array(NA, dim = c(n.contrast,n.contrast,length(trans.names)), dimnames = list(name.contrast,name.contrast,trans.names))
-            for(iParam in 1:length(trans.names)){
-                dVcov[,,iParam] <- ls.contrast[[1]] %*% object$glht[[1]]$dVcov[,,iParam] %*% t(contrast[[1]])
+            contrast <- ls.contrast[[1]][,rownames(object$glht[[1]]$dVcov),drop=FALSE] ## need to subset in the case dVcov is only partially stored (only first two dimension relevant to the contrast)
+            for(iParam in 1:length(trans.names)){ ## iParam <- 1
+                dVcov[,,iParam] <- contrast %*% object$glht[[1]]$dVcov[,,iParam] %*% t(contrast)
             }
         }
 
