@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: jul 31 2024 (10:56) 
+## Last-Updated: aug  6 2024 (11:59) 
 ##           By: Brice Ozenne
-##     Update #: 3226
+##     Update #: 3243
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -261,16 +261,15 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
             if(any(ff.allvars %in% names(newdata) == FALSE)){
                 stop("Incorrect argument \'newdata\': missing variable(s) for the variance-covariance structure \"",paste(ff.allvars[ff.allvars %in% names(newdata) == FALSE], collapse = "\" \""),"\".\n")
             }
-
             ## update levels
-            design$vcov$var <- list(data = .updateFactor(newdata, xfactor = object$xfactor$var),
-                                    lp2X = object$design$vcov$var$lp2X,
+            design$vcov$var <- list(lp2X = object$design$vcov$var$lp2X,
                                     lp2data = object$design$vcov$var$lp2data,
-                                    X.attr = attributes(object$design$vcov$var$X))
-            design$vcov$cor <- list(data = .updateFactor(newdata, xfactor = object$xfactor$cor),
-                                    lp2X = object$design$vcov$cor$lp2X,
+                                    X.attr = attributes(object$design$vcov$var$X),
+                                    xfactor = object$xfactor$var)
+            design$vcov$cor <- list(lp2X = object$design$vcov$cor$lp2X,
                                     lp2data = object$design$vcov$cor$lp2data,
-                                    X.attr = attributes(object$design$vcov$cor$X))
+                                    X.attr = attributes(object$design$vcov$cor$X),
+                                    xfactor = object$xfactor$cor)
 
             ## form design matrix
             outDesign <- .vcov.matrix.lmm(structure = design$vcov, data = newdata, index.cluster = outInit$index.cluster, drop.X = drop.X, sep = options$sep["lp"])
@@ -338,55 +337,54 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
     out$cor$formula <- structure$formula$cor
 
     ## *** variance: convert variable to numeric/factor according to the structure
-    if(is.null(structure$var$data)){ ## from .model.matrix
+    if("xfactor" %in% names(structure$var)){ ## from model.matrix.lmm
+        out$var$data <- .updateFactor(data, xfactor = structure$var$xfactor)
+    }else{ ## from .model.matrix
         out$var$data <- data
+    }
 
-        if(structure.class %in% c("ID","IND","CS","RE","UN","TOEPLITZ")){
-            col2factor.var <- all.vars(structure$formula$var)
-        }else if(!is.na(structure$name$strata)){
-            col2factor.var <- structure$name$strata
-        }else{
-            col2factor.var <- NULL
-        }
-        for(iVar in col2factor.var){
-            out$var$data[[iVar]] <- as.factor(data[[iVar]])
-        }
-    }else{ ## from model.matrix.lmm
-        out$var$data <- structure$var$data
+    if(structure.class %in% c("ID","IND","CS","RE","UN","TOEPLITZ")){
+        col2factor.var <- all.vars(structure$formula$var)
+    }else if(!is.na(structure$name$strata)){
+        col2factor.var <- structure$name$strata
+    }else{
+        col2factor.var <- NULL
+    }
+    for(iVar in col2factor.var){
+        out$var$data[[iVar]] <- as.factor(data[[iVar]])
     }
 
     ## *** correlation: convert variable to numeric/factor according to the structure
-    if(is.null(structure$cor$data)){ ## from .model.matrix
+    if("xfactor" %in% names(structure$cor)){ ## from model.matrix.lmm
+        out$cor$data <- .updateFactor(data, xfactor = structure$cor$xfactor)
+    }else{ ## from .model.matrix
         out$cor$data <- data
+    }
 
-        if(structure.class == "UN" || (structure.class == "CS" && structure.type %in% "heterogeneous")){
-            col2factor.cor <- all.vars(structure$formula$cor)
-        }else if(!is.na(structure$name$strata)){
-            col2factor.cor <- structure$name$strata
-        }else{
-            col2factor.cor <- NULL
-        }
-        for(iVar in col2factor.cor){
-            out$cor$data[[iVar]] <- as.factor(data[[iVar]])
-        }
+    if(structure.class == "UN" || (structure.class == "CS" && structure.type %in% "heterogeneous")){
+        col2factor.cor <- all.vars(structure$formula$cor)
+    }else if(!is.na(structure$name$strata)){
+        col2factor.cor <- structure$name$strata
+    }else{
+        col2factor.cor <- NULL
+    }
+    for(iVar in col2factor.cor){
+        out$cor$data[[iVar]] <- as.factor(data[[iVar]])
+    }
 
-        if(structure.class %in% c("RE","TOEPLITZ") || (structure.class == "CS" && structure.type %in% "homogeneous")){
-            col2num.cor <- setdiff(all.vars(structure$formula$cor), col2factor.cor)
-        }else{
-            col2num.cor <- NULL
+    if(structure.class %in% c("RE","TOEPLITZ") || (structure.class == "CS" && structure.type %in% "homogeneous")){
+        col2num.cor <- setdiff(all.vars(structure$formula$cor), col2factor.cor)
+    }else{
+        col2num.cor <- NULL
+    }
+    for(iVar in col2num.cor){
+        if(is.logical(data[[iVar]])){ 
+            out$cor$data[[iVar]] <- as.numeric(data[[iVar]]) + 1
+        }else if(!is.numeric(data[[iVar]])){ 
+            out$cor$data[[iVar]] <- as.numeric(as.factor(data[[iVar]]))
+        }else if(is.numeric(data[[iVar]])){ 
+            out$cor$data[[iVar]] <- data[[iVar]] - min(data[[iVar]]) + 1
         }
-
-        for(iVar in col2num.cor){
-            if(is.logical(data[[iVar]])){ 
-                out$cor$data[[iVar]] <- as.numeric(data[[iVar]]) + 1
-            }else if(!is.numeric(data[[iVar]])){ 
-                out$cor$data[[iVar]] <- as.numeric(as.factor(data[[iVar]]))
-            }else if(is.numeric(data[[iVar]])){ 
-                out$cor$data[[iVar]] <- data[[iVar]] - min(data[[iVar]]) + 1
-            }
-        }
-    }else{ ## from model.matrix.lmm
-        out$cor$data <- structure$cor$data
     }
 
     ## ** variance and correlation design lists
@@ -620,7 +618,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
     }
 
     ## ** find all pairs of coefficients
-    structure$pair.vcov <- stats::setNames(lapply(structure$Upattern$name, function(iName){## iName <- structure$Upattern$name[1]
+    structure$pair.vcov <- stats::setNames(lapply(structure$Upattern$name, function(iName){## iName <- structure$Upattern$name[3]
         iParamVcov <- structure$Upattern[structure$Upattern$name == iName,"param"][[1]]
         if(length(iParamVcov)==0){return(NULL)}
         iOut <- unorderedPairs(iParamVcov)

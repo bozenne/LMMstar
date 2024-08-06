@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: jul 31 2024 (10:50) 
+## Last-Updated: aug  6 2024 (11:16) 
 ##           By: Brice Ozenne
-##     Update #: 771
+##     Update #: 776
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -202,16 +202,21 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
                                                 object$design$vcov$name$cor[[1]])))
             
             
-            ## Create artifical clusters agregating patterns
-            ## (typically usefull in presence of missing values, e.g. only observe time A-B or time A-C but not A-B-C together)
+            ## Create artifical clusters containing all timepoints
+            ## --> agregating patterns
+            ## --> typically usefull in presence of missing values, e.g. only observe time A-B or time A-C but not A-B-C together
             df.fulltime <- do.call(rbind,lapply(Ugroup, function(iGroup){ ## iGroup <- Ugroup[1]
                 iPattern <- Upattern[Upattern$group==iGroup,c("name","n.time")]
                 iCluster <- unlist(attr(object$design$vcov$pattern,"list")[iPattern$name])
-                iDF <- object$data[object$data$XXcluster.indexXX %in% iCluster,c("XXtime.indexXX",vcov.var),drop=FALSE]
-                if(!is.na(cluster.var)){
-                    iDF[[cluster.var]] <- iGroup
+                iDF <- object$data[,c("XXcluster.indexXX","XXtime.indexXX",vcov.var),drop=FALSE]
+                iUDF <- iDF[!duplicated(iDF[c("XXtime.indexXX",vcov.var)]),,drop=FALSE]
+                if(any(duplicated(iUDF$rep))){ ## no obvious way to aggregate, e.g., when different sets of covariate are possible for the covariance pattern
+                    ## e.g. CS(~day) some individual got Baseline + Day1 and other Baseline + Day2
+                    iUDF <- iUDF[!duplicated(iUDF$rep),]
                 }
-                return(unique(iDF)[c(cluster.var,vcov.var)])
+                iUDF[[cluster.var]] <- iGroup
+                iOut <- iUDF[c(cluster.var,vcov.var)]
+                return(iOut)
             }))
             ## update structure
             object$design <- stats::model.matrix(object, newdata = df.fulltime, effects = "variance", simplify = FALSE)

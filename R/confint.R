@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: aug  5 2024 (13:33) 
+## Last-Updated: aug  6 2024 (17:41) 
 ##           By: Brice Ozenne
-##     Update #: 1116
+##     Update #: 1133
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -256,7 +256,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     ## ** combine
     name.beta <- names(beta)
     out <- data.frame(estimate = beta, se = sqrt(diag(vcov.beta[name.beta,name.beta,drop=FALSE])),
-                      statistic = as.numeric(NA), df = df[name.beta], lower = as.numeric(NA), upper = as.numeric(NA), null = null, p.value = as.numeric(NA),
+                      df = df[name.beta], lower = as.numeric(NA), upper = as.numeric(NA), statistic = as.numeric(NA), null = null, p.value = as.numeric(NA),
                       stringsAsFactors = FALSE)
 
     out$statistic <- (out$estimate-null)/out$se
@@ -1037,8 +1037,8 @@ confint.rbindWald_lmm <- function(object, parm, level = 0.95, df = NULL, method 
         if(is.character(qt)){
             if(is.null(columns)){
                 columns2 <- add("quantile")
-            }else{
-                columns2 <- union(columns,"quantile")
+            }else{ ## take care of potential add or remove
+                columns2 <- c(columns[columns!="quantile"], add = "quantile")
             }
         }else{
             columns2 <- columns
@@ -1046,21 +1046,28 @@ confint.rbindWald_lmm <- function(object, parm, level = 0.95, df = NULL, method 
         value.out <- confint.Wald_lmm(object, level = level, df = df, method = method2, columns = columns2, backtransform = backtransform)
         if(is.character(qt)){
             qt <- value.out$quantile
-            if("quantile" %in% columns == FALSE){
+            if("quantile" %in% columns == FALSE || (!is.null(names(columns)) && names(columns)[columns=="quantile"]=="remove")){
                 value.out$quantile <- NULL
             }
         }
-            
+        colnames.out <- colnames(value.out)            
     }else{
         value.out <- NULL
+        colnames.out <- colnames(confint.Wald_lmm(object, level = NA, df = FALSE, method = "none", columns = columns, backtransform = backtransform))
     }
-    
+
     ## ** pooling
     if(any(method %in% pool.method)){
+
+        if(all(columns %in% c("se","df","quantile","lower","upper","statistic","p.value") == FALSE)){
+            level2 <- NA ## do not evaluate uncertainty unless it is useful
+        }else{
+            level2 <- level
+        }
         pool.out <- pool.rbindWald_lmm(object, method = setdiff(method, c("none",adj.method)), qt = qt,
-                                       null = "null" %in% columns, level = level, df = df)
-        out <- rbind(value.out,
-                     pool.out[,colnames(value.out),drop=FALSE])
+                                       null = "null" %in% columns || "p.value" %in% colnames(value.out), level = level2, df = df)
+        out <- rbind(value.out, pool.out[,colnames.out,drop=FALSE])
+        attr(out,"message.df") <- c(attr(out,"message.df"),attr(pool.out,"message.df"))
     }else{
         out <- value.out
     }
@@ -1359,9 +1366,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
     if(length(Umethod)>1){
         Umethod <- setdiff(Umethod,"none")
     }
-    keep.attr <- attributes(out)[setdiff(names(attributes(out)),c("names","row.names","class"))]
-    out <- out[columns]
-    attributes(out) <- c(attributes(out), keep.attr)
+    out[names(out)[names(out) %in% columns == FALSE]] <- NULL
     attr(out, "level") <- 0.95
     attr(out, "method") <- Umethod
     class(out) <- append("confint_lmm", class(out))

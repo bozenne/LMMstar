@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: aug  2 2024 (16:00) 
+## Last-Updated: aug  6 2024 (12:00) 
 ##           By: Brice Ozenne
-##     Update #: 1233
+##     Update #: 1241
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -367,10 +367,9 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
         ## *** REML contribution
         if(REML && test.vcov){
 
-            for(iParam2 in name.varcoef2){ ## iParam2 <- name.varcoef2[1]
+            for(iParam2 in name.varcoef2){ ## iParam2 <- name.varcoef2[4]
                 iParam2.1 <- attr(pair.vcov,"global")[1,iParam2]
                 iParam2.2 <- attr(pair.vcov,"global")[2,iParam2]
-                
                 ## same at 0.5 * tr(REML.denom %*% (REML.num2[[iParam2]] + REML.num1[[iParam2.1]] %*% REML.denom %*% REML.num1[[iParam2.2]]))
                 iValue <- 0.5 * sum(REML.denom * (REML.num2[[iParam2]] + REML.num1[[iParam2.1]] %*% REML.denom %*% REML.num1[[iParam2.2]]))
                 info[iParam2.1,iParam2.2] <- info[iParam2.1,iParam2.2] - iValue
@@ -378,7 +377,6 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
                     info[iParam2.2,iParam2.1] <- info[iParam2.2,iParam2.1] - iValue
                 }
             }
-            
         }
 
     }

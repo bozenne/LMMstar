@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: aug  5 2024 (11:25) 
+## Last-Updated: aug  6 2024 (16:47) 
 ##           By: Brice Ozenne
-##     Update #: 1085
+##     Update #: 1087
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -103,6 +103,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
         }else{
             model$object$model <- model$object$outcome
         }
+        model$object$sep <- sep
         model$glht[[1]]$coef.model <- rep(model$object$model, length(model$glht[[1]]$coef))
         
         class(model) <- append(c("rbindWald_lmm","Wald_lmm"),class(model))
@@ -409,7 +410,8 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
                        type.information = table.args$type.information[1],
                        cluster.var = cluster.var,
                        cluster = seq.cluster,
-                       independence = independence)
+                       independence = independence,
+                       sep = sep)
 
     ## check wheter parameters from different hypotheses are combined
     test.hypoCross <- apply(contrast, MARGIN = 1, function(iRow){length(unique(Wald.model[iRow!=0]))})>1

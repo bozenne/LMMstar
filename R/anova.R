@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: Aug  4 2024 (16:40) 
+## Last-Updated: aug  6 2024 (17:27) 
 ##           By: Brice Ozenne
-##     Update #: 2024
+##     Update #: 2030
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -150,10 +150,10 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
 
         ## initialize simplify
         if(is.null(simplify)){
-            if((df == FALSE) || (is.character(effects) && all(effects %in% c("all","mean","fixed","variance","correlation")))){
+            if((is.character(effects) && all(effects %in% c("all","mean","fixed","variance","correlation")))){ ## automatic contrast
                 simplify <- TRUE
-            }else{
-                simplify <- 0.5
+            }else{ ## default may change in the future?
+                simplify <- TRUE
             }
         }else{
             if(!is.numeric(simplify) && !is.logical(simplify)){
@@ -449,7 +449,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
         out$glht <- stats::setNames(vector(mode = "list", length = n.grid), rownames(grid))
         ## name (e.g. mean_visit, var_visit) may differ from term (visit, visit) when testing mean, variance, and correlation parameters which may all refer to the same variable, say time
         out$univariate <- data.frame(matrix(NA, nrow = sum(grid$n.test), ncol = 15,
-                                            dimnames = list(NULL,c("type","term","name","n.param","estimate","se","df","statistic","null","p.value","quantile","lower","upper",
+                                            dimnames = list(NULL,c("type","term","name","n.param","estimate","se","df","quantile","lower","upper","statistic","null","p.value",
                                                                    "transformed","tobacktransform"))))
 
         out$univariate$term <- unname(unlist(mapply(iTerm = grid$term, iN = grid$n.test, FUN = function(iTerm,iN){rep(iTerm,iN)}, SIMPLIFY = FALSE)))

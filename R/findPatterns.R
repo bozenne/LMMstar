@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: maj 15 2024 (17:03) 
+## Last-Updated: aug  6 2024 (11:59) 
 ##           By: Brice Ozenne
-##     Update #: 918
+##     Update #: 921
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -192,7 +192,10 @@
                               n.time = unname(nobs.Upattern.cor),
                               n.cluster = unname(lengths(ls.indexPatternCluster.cor)),
                               param = NA)
-    UpatternCor$param <- tapply(pattern.pairwise$name,factor(pattern.pairwise$pattern,Upattern.cor),unique,simplify=FALSE)
+
+    ## use intersect instead of unique to keep common ordering of the model parameters, i.e. avoid to have rho1, rho2 in one pattern and rho2, rho1 in the other
+    UpatternCor$param <- tapply(pattern.pairwise$name, INDEX = factor(pattern.pairwise$pattern,Upattern.cor),
+                                FUN = function(iVec){intersect(structure.param$name,iVec)},simplify=FALSE) 
     
     ## *** characterize each correlation pattern
     Xpattern.cor <- lapply(Upattern.cor, function(iPattern){ ## iPattern <- Upattern.cor[1]

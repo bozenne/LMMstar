@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 26 2022 (11:18) 
 ## Version: 
-## Last-Updated: aug  1 2024 (10:39) 
+## Last-Updated: aug  6 2024 (12:08) 
 ##           By: Brice Ozenne
-##     Update #: 716
+##     Update #: 717
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -162,10 +162,10 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
                                 x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
                                 table.param = object$design$param)
         theta <- init$p
-        cumTau <- coef(object, p = theta, effects = c("variance","correlation"), transform.sigma = "square", transform.rho = "cov", transform.names = FALSE)
+        cumTau <- coef(object, p = theta, effects = c("variance","correlation"), transform.sigma = "square", transform.k = "var", transform.rho = "cov", transform.names = FALSE)
     }else{
         theta <- object$param
-        cumTau <- coef(object, effects = c("variance","correlation"), transform.sigma = "square", transform.rho = "cov", transform.names = FALSE)
+        cumTau <- coef(object, effects = c("variance","correlation"), transform.sigma = "square", transform.k = "var", transform.rho = "cov", transform.names = FALSE)
     }
 
     ## *** simplify

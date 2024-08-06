@@ -1,11 +1,11 @@
- ### summary.R --- 
+### summary.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: aug  5 2024 (11:55) 
+## Last-Updated: aug  6 2024 (17:24) 
 ##           By: Brice Ozenne
-##     Update #: 1734
+##     Update #: 1753
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -1183,10 +1183,17 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         if(identical(df,TRUE) && "df" %in% columns){
             if(!is.null(attr(table,"df"))){
                 cat(space,"df: ",attr(table,"df"),". \n", sep = "")
-            }else if(robust %in% 0:1){
-                cat(space,"df: Satterthwaite approximation w.r.t. model-based se. \n", sep = "")
-            }else if(robust == 2){
-                cat(space,"df: Satterthwaite approximation w.r.t. robust se. \n", sep = "")
+            }else{
+                if(!is.null(attr(table,"message.df"))){
+                    message.df <- paste(" (",paste(attr(table,"message.df"),collapse = ", "),")",sep="")
+                }else{
+                    message.df <- ""
+                }
+                if(robust %in% 0:1){
+                    cat(space,"df: Satterthwaite approximation w.r.t. model-based se",message.df,". \n", sep = "")
+                }else if(robust == 2){
+                    cat(space,"df: Satterthwaite approximation w.r.t. robust se",message.df,". \n", sep = "")
+                }
             }
         }
 
@@ -1233,7 +1240,6 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
 
         }
 
-
         if((df && name.statistic[2] == "F-statistic") || (!df && name.statistic[1] == "Chi2-statistic")){
 
             if("df.num" %in% names(table) == FALSE){
@@ -1254,6 +1260,8 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
                     cat(space,"Multiple testing adjustment: joint test (within covariate) .\n", sep = "")
                 }
             }
+        }else if(all(table$term=="pool") && all(table$name!="p.rejection")){
+            ## display nothing
         }else if((is.null(method.p.adjust) || (length(method.p.adjust2)==1 && method.p.adjust2 == "none")) && length(display.cip)>0 && NROW(table)>1){
             ## no adjustment
             cat(space,"No adjustment for multiple testing.\n", sep = "")

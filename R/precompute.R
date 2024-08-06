@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 22 2021 (13:47) 
 ## Version: 
-## Last-Updated: aug  2 2024 (13:48) 
+## Last-Updated: aug  6 2024 (11:33) 
 ##           By: Brice Ozenne
-##     Update #: 202
+##     Update #: 204
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -69,15 +69,16 @@
 
     for(iPattern in pattern){ ## iPattern <- pattern[1]
         iN.time <- pattern.ntime[iPattern]
+        iIndex.cluster <- index.cluster[pattern.cluster[[iPattern]]]
 
         if(iN.time == 1){
-            out[[iPattern]][] <- crossprod(X, residuals)[,1]
+            out[[iPattern]][] <- crossprod(X[unlist(iIndex.cluster),,drop=FALSE], residuals[unlist(iIndex.cluster)])[,1]
         }else{
-            iResiduals <- do.call(cbind, lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){residuals[iIndex,,drop=FALSE]}))
-            iX <- array(unlist(lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){X[iIndex,,drop=FALSE]})),
+            iResiduals <- do.call(cbind, lapply(iIndex.cluster, function(iIndex){residuals[iIndex,,drop=FALSE]}))
+            iX <- array(unlist(lapply(iIndex.cluster, function(iIndex){X[iIndex,,drop=FALSE]})),
                         dim = c(iN.time,NCOL(X),length(index.cluster[pattern.cluster[[iPattern]]])),
                         dimnames = list(NULL,colnames(X),NULL))
-            for(iCol in 1:p){ ## iCol <- 1
+            for(iCol in 1:p){ ## iCol <- 3
                 out[[iPattern]][,iCol] <- as.vector(tcrossprod(iX[,iCol,], iResiduals))
             }    
         }

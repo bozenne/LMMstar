@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: Aug  4 2024 (15:00) 
+## Last-Updated: aug  6 2024 (17:29) 
 ##           By: Brice Ozenne
-##     Update #: 1142
+##     Update #: 1148
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -93,7 +93,7 @@
 ## * coef.lmm (code)
 ##' @export
 coef.lmm <- function(object, effects = NULL, p = NULL,
-                     transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE,
+                     transform.sigma = NULL, transform.k = NULL, transform.rho = "none", transform.names = TRUE,
                      simplify = TRUE, ...){
 
     mycall <- match.call()
@@ -150,6 +150,12 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
     }
 
     ## *** transformation & initialize parameter value
+    if(is.null(transform.k) && (!is.null(transform.rho) && transform.rho == "none")){
+        transform.k <- "none"
+    }
+    if(is.null(transform.sigma) && (!is.null(transform.k) && transform.k == "none") && (!is.null(transform.rho) && transform.rho == "none")){
+        transform.sigma <- "none"
+    } 
     init <- .init_transform(p = p, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
                             x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
                             table.param = object$design$param)
@@ -623,9 +629,9 @@ coef.rbindWald_lmm <- function(object, effects = "Wald", method = "none", orderi
 
         ## *** pooling
         if(any(method %in% pool.method)){
+            table.pool <- pool.rbindWald_lmm(object, method = method, qt = qt, null = FALSE, level = NA, df = FALSE)
             value.out <- c(value.out,
-                           pool.rbindWald_lmm(object, method = method, qt = qt,
-                                              null = NA, level = NA, df = FALSE)
+                           stats::setNames(table.pool$estimate,rownames(table.pool))
                            )
         }
     }

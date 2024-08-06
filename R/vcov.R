@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: aug  5 2024 (12:17) 
+## Last-Updated: aug  6 2024 (15:50) 
 ##           By: Brice Ozenne
-##     Update #: 937
+##     Update #: 942
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -384,13 +384,14 @@ vcov.mlmm <- function(object, effects = "contrast", p = NULL, newdata = NULL, or
 ##' Only relevant when \code{effects = "Wald"}.
 ##' @param df [logical] Should degree of freedom, computed using Satterthwaite approximation, for the model parameters be output.
 ##' @param ordering [character] should the output be ordered by name of the linear contrast (\code{"contrast"}) or by model (\code{"model"}).
+##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
 ##' @param simplify [logical] should the output be a vector or a list with one element specific to each possible ordering (i.e. contrast or model).
 ##' @param ... Not used. For compatibility with the generic method.
 ##' 
 ##' @return A matrix with one column and column per parameter. 
 ##' 
 ##' @export
-vcov.rbindWald_lmm <- function(object, effects = "Wald", method = "none", df = FALSE, ordering = NULL, simplify = TRUE, ...){
+vcov.rbindWald_lmm <- function(object, effects = "Wald", method = "none", df = FALSE, ordering = NULL, transform.names = TRUE, simplify = TRUE, ...){
 
     options <- LMMstar.options()
     adj.method <- options$adj.method
@@ -430,7 +431,7 @@ vcov.rbindWald_lmm <- function(object, effects = "Wald", method = "none", df = F
     }
 
     ## ** extract
-    out <- vcov.Wald_lmm(object, effects = effects, df = df)
+    out <- vcov.Wald_lmm(object, effects = effects, df = df, transform.names = transform.names)
 
     if(!is.null(ordering)){
         if("Wald" %in% effects){ ## effects can have an extra element "gradient", i.e. be a vector
@@ -479,6 +480,7 @@ vcov.rbindWald_lmm <- function(object, effects = "Wald", method = "none", df = F
 ##' Can also contain \code{"gradient"} to also output the gradient of the Variance-Covariance matrix.
 ##' @param df [logical] Should degree of freedom, computed using Satterthwaite approximation, for the model parameters be output.
 ##' Also output the first derivative of the variance-covariance matrix whenever the argument is stricly greater than 1.
+##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
 ##' @param ... Not used. For compatibility with the generic method.
 ##' 
 ##' @return A matrix with one column and column per parameter. \itemize{
@@ -487,7 +489,7 @@ vcov.rbindWald_lmm <- function(object, effects = "Wald", method = "none", df = F
 ##' }
 ##' 
 ##' @export
-vcov.Wald_lmm <- function(object, effects = "Wald", df = FALSE, ...){
+vcov.Wald_lmm <- function(object, effects = "Wald", df = FALSE, transform.names = TRUE, ...){
 
     ## ** normalize user input
     ## *** dots
@@ -549,7 +551,9 @@ vcov.Wald_lmm <- function(object, effects = "Wald", df = FALSE, ...){
                       SIMPLIFY = FALSE)
     }else if(effects == "all"){
         trans.names <- names(coef(object, effects = "all"))
-        dimnames(out[[1]]) <- list(trans.names,trans.names)
+        if(transform.names){
+            dimnames(out[[1]]) <- list(trans.names,trans.names)
+        }
     }
 
     if(object$args$type=="user"){
@@ -562,9 +566,11 @@ vcov.Wald_lmm <- function(object, effects = "Wald", df = FALSE, ...){
         if(effects == "all"){
             original.names <- names(coef(object, effects = "all", backtransform = TRUE))
             dVcov <- object$glht[[1]]$dVcov
-            dimnames(dVcov) <- list(trans.names[match(dimnames(dVcov)[[1]], original.names)], trans.names[match(dimnames(dVcov)[[1]], original.names)], trans.names)
+            if(transform.names){
+                dimnames(dVcov) <- list(trans.names[match(dimnames(dVcov)[[1]], original.names)], trans.names[match(dimnames(dVcov)[[1]], original.names)], trans.names)
+            }
         }else if(effects == "Wald"){
-            trans.names <- names(coef(object, effects = "all"))
+            trans.names <- names(coef(object, effects = "all", backtransform = !transform.names))
             n.contrast <- NROW(ls.contrast[[1]])
             name.contrast <- rownames(ls.contrast[[1]])
 
