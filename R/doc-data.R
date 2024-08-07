@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: jul  1 2024 (13:53) 
+## Last-Updated: aug  7 2024 (09:54) 
 ##           By: Brice Ozenne
-##     Update #: 149
+##     Update #: 155
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -575,6 +575,40 @@ NULL
 #' @usage data(schoolL)
 #' @keywords datasets
 NULL
+
+## * sleep
+## ** sleepL
+#' @title MREG Data from a sleep deprivation experiment 
+#' @name sleepL
+#' @rdname data-sleepL
+#' 
+#' @description  Data from sleep deprivation cross-over study where all subjects have scan at baseline and two follow-up.
+#' They received placebo at one follow-up and carvedilol at the other.
+#' Sequence (Baseline-Placebo-Carvedilol or Baseline-Placebo-Carvedilol) is randomized and the current dataset do not contain the Carvedilol measurement.
+#' At each follow-up they under-go two scans: one awake and one asleep. This was not always possible leading to missing data.
+#' The signal measured relates to spectral characteristics of magnetic resonance encephalography (MREG) and has been modified compared to the real data.
+#'
+#' \itemize{
+#' \item \code{id}: patient identifier.
+#' \item \code{deprivation}: is the patient sleep deprived?
+#' \item \code{condition}: treatment received: none at baseline and then placebo or carvedilol.
+#' \item \code{vigilance}: is the patient awake or sleeping?
+#' \item \code{signal.34} and \code{signal.98}: modified MREG signal.
+#' }
+#' 
+#' @docType data
+#' @usage data(sleepL)
+#' @keywords datasets
+NULL
+
+## df.sleep <- read.table(file = "LMMstar/inst/dataTXT/sleep.txt")
+## sleepL <- data.frame(id = LMMstar:::addLeading0(as.numeric(as.factor(df.sleep$CIMBI))),
+##                        deprivation = as.logical(df.sleep$SleepDeprivation==1),
+##                        condition = df.sleep$Condition,
+##                        vigilance = df.sleep$Vigilance,
+##                        signal.34 = round(1 + df.sleep$LogSlowOsc_00122_0034*2,2),
+##                        signal.98 = round(1 + df.sleep$LogSlowOsc_0122_098*2,2))
+## save(calciumW, file = "data/calciumW.rda")
 
 ## * swabs
 ## ** swabsW
