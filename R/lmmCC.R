@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 27 2023 (17:33) 
 ## Version: 
-## Last-Updated: jul 26 2023 (11:07) 
+## Last-Updated: aug  8 2024 (10:04) 
 ##           By: Brice Ozenne
-##     Update #: 184
+##     Update #: 186
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,7 +29,7 @@
 ##' @param lm.change [logical] Should a linear model on the change in outcome be estimated. Only possible with two repetitions.
 ##' Will match the mixed model if the later includes repetition-dependent effects for all covariates. 
 ##' @param name.time [character] name of the time variable.
-##' @param df [logical] Should the degree of freedom be computed using a Satterthwaite approximation?
+##' @param df [logical] Should the degrees-of-freedom be computed using a Satterthwaite approximation?
 ##' @param trace [interger, >0] Show the progress of the execution of the function.
 ##' @param control [list] Control values for the optimization method.
 ##' The element \code{optimizer} indicates which optimizer to use and additional argument will be pass to the optimizer.
@@ -85,7 +85,7 @@ lmmCC.formula <- function(object, repetition, data,
                           df = NULL, trace = TRUE, control = NULL, ...){
 
     ## ** normalize arguments
-    ## repetition
+    ## *** repetition
     if(!inherits(repetition,"formula")){
         stop("Argument \'repetition\' must be of class formula, something like: ~ time|cluster or strata ~ time|cluster. \n")
     }
@@ -104,7 +104,7 @@ lmmCC.formula <- function(object, repetition, data,
         stop("Argument \'repetition\' incompatible with argument \'data\'. \n",
              "Could not find the time variable \"",var.time,"\" in argument \'data\'. \n")
     }
-    ## data
+    ## *** data
     data <- as.data.frame(data)
     if(is.factor(data[[var.time]])){
         data[[var.time]] <- droplevels(data[[var.time]])
@@ -113,7 +113,7 @@ lmmCC.formula <- function(object, repetition, data,
         data[[var.cluster]] <- droplevels(data[[var.cluster]])
     }
 
-    ## dots
+    ## *** dots
     dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")

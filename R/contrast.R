@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 17 2024 (09:37) 
 ## Version: 
-## Last-Updated: aug  5 2024 (11:52) 
+## Last-Updated: aug  8 2024 (13:00) 
 ##           By: Brice Ozenne
-##     Update #: 314
+##     Update #: 317
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -438,27 +438,28 @@ equation2contrast <- function(object, name.coef, X,
     return(out)
 }
 
-## * effects2contrast
+## * effects2contrast 
 ##' @description Generate a contrast matrix and a right-hand side based on the effects argument
 ##' Used by anova.lmm.
 ##' @noRd
 effects2contrast <- function(object, effects, rhs,
-                             transform.sigma, transform.k, transform.rho){
+                             transform.sigma, transform.k, transform.rho,
+                             options){
 
     effects.ref <- c("all","mean","fixed","variance","correlation")
     
     ## ** extract from object
-    object.coef <- stats::model.tables(object, effects = "param")
+    object.coef <- stats::model.tables(object, effects = "param",
+                                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = TRUE)
     name.coef <- object.coef$name
     n.coef <- length(name.coef)
     type.coef <- stats::setNames(object.coef$type, name.coef)
 
     name.coef.rescue <- name.coef
-    attr(name.coef.rescue, "rescue") <- names(coef(object, effects = "all",
-                                                   transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = TRUE))
+    attr(name.coef.rescue, "rescue") <- object.coef$trans.name
 
     if(is.character(effects)){
-        object.X <- model.matrix(object, effects = "all", simplify = 0.5)
+        object.X <- stats::model.matrix(object, effects = "all", simplify = 0.5, options = options)
         
         strata.var <- object$strata$var
         strata.levels <- object$strata$levels        

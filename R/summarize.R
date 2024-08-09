@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jul 10 2024 (10:44) 
+## Last-Updated: aug  7 2024 (12:01) 
 ##           By: Brice Ozenne
-##     Update #: 765
+##     Update #: 766
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,7 +16,7 @@
 ### Code:
 
 ## * summarize (documentation)
-##' @title Compute summary statistics
+##' @title Summary Statistics
 ##' @description Compute summary statistics for multiple variables and/or multiple groups and save them in a data frame.
 ##'
 ##' @param formula [formula] on the left hand side the outcome(s) and on the right hand side the grouping variables.

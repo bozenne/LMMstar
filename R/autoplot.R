@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: jul 26 2024 (17:32) 
+## Last-Updated: aug  8 2024 (10:05) 
 ##           By: Brice Ozenne
-##     Update #: 1570
+##     Update #: 1587
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -99,7 +99,7 @@ autoplot.correlate <- function(object, index,
 }
 
 ## * autoplot.lmm (documentation)
-##' @title Graphical Display For Linear Mixed Models
+##' @title Graphical Display For a Linear Mixed Model
 ##' @description Display fitted values or residual plot for the mean, variance, and correlation structure.
 ##' Can also display quantile-quantile plot relative to the normal distribution.
 ##'
@@ -254,7 +254,7 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
 
     }else if(type %in% c("covariance","correlation") && (is.null(type.residual) || is.na(type.residual) || identical(type.residual,FALSE))){
         
-        object.sigma <- sigma(object)        
+        object.sigma <- stats::sigma(object)        
         if(type == "correlation"){
             name.legend <- "Correlation"
             if(is.matrix(object.sigma)){
@@ -295,7 +295,7 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
             type.residual <- "normalized"
         }
 
-        outRes <- residuals(object, type = type.residual, format = c("wide","long"), keep.data = TRUE, simplify = FALSE)
+        outRes <- stats::residuals(object, type = type.residual, format = c("wide","long"), keep.data = TRUE, simplify = FALSE)
         out <- autoplot.residuals_lmm(outRes,
                                       type = type,
                                       time.var = time.var,
@@ -644,7 +644,8 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
 
 
 ## * autoplot.mlmm (documentation)
-##' @title Graphical Display For Multiple Linear Mixed Model
+##' @title Graphical Display of Wald Tests For Multiple Linear Mixed Models.
+##' @description Display estimated linear contrasts applied on parameters from subgroup-specific linear mixed models.
 
 ## * autoplot.mlmm (code)
 ##' @export
@@ -713,7 +714,7 @@ autoplot.partialCor <- function(object, size.text = 16,
                                 limits = c(-1,1.00001), low = "blue", mid = "white", high = "red", midpoint = 0, ...){
 
     object.lmm <- attr(object,"lmm")
-    Sigma_t <- sigma(object.lmm)
+    Sigma_t <- stats::sigma(object.lmm)
     name.time <- object.lmm$time$levels
     if(!is.matrix(Sigma_t)){
         stop("Could not extract a unique covariance matrix. \n")
@@ -914,15 +915,13 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, ti
                                    ylim = NULL, position = NULL, ...){
 
     ## ** check arguments
-    call <- match.call()
-
-    ## dots
+    ## *** dots
     dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
 
-    ## args
+    ## *** args
     args <- attr(object,"args")
     if(is.null(args)){
         stop("The argument \'simplify\' must be to FALSE when calling residuals() to obtain a graphical display. \n")
@@ -934,7 +933,7 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, ti
     n.type <- length(args.type)
     index.time <- attr(object,"index.time") ## save in case no missing time variable in the long format
 
-    ## type of residual
+    ## *** type of residual
     if(is.null(type.residual) && is.null(type) && "partial" %in% args.type){
         type <- "partial"
         type.residual <- "partial"
@@ -962,7 +961,7 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, ti
         stop("Can only display one type of residual. \n")
     }
 
-    ## type of plot
+    ## *** type of plot
     if(is.null(type)){
         type <- "qqplot"
     }else{
@@ -972,7 +971,7 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, ti
         add.smooth <- rep(add.smooth,2)
     }
 
-    ## time.var
+    ## *** time.var
     if(!is.null(time.var) && type %in% c("qqplot","correlation","covariance")){
         message("Argument \'time.var\' is ignored when type is ",type,". \n")
     }
@@ -984,14 +983,14 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, ti
              "Available variables: \"",paste(names(object), collapse="\", \""),"\"\n")
     }
 
-    ## number of timepoints
+    ## *** number of timepoints
     n.time <- args$n.time
     name.time <- args$name.time
 
-    ## cluster var
+    ## *** cluster var
     name.cluster <- args$name.cluster
 
-    ## facet
+    ## *** facet
     var.facet <- all.vars(facet)
     if(!is.null(facet)){
         if(!inherits(facet,"formula")){
@@ -1014,7 +1013,7 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, ti
         facet <- NULL
     }
 
-    ## format    
+    ## *** format    
     format <- args$format
     if(is.null(attr(format,"original"))){
         original.format <- format
@@ -1783,7 +1782,8 @@ autoplot.summarizeNA <- function(object, variable = NULL, size.text = 16,
 }
 
 ## * autoplot.Wald_lmm (documentation)
-##' @title Graphical Display For Linear Hypothesis Test
+##' @title Graphical Display For Wald Tests Applied to a Linear Mixed Model
+##' @description Display estimated linear contrast applied on parameters from a linear mixed model. 
 ##'
 ##' @param object,x a \code{Wald_lmm} object.
 ##' @param type [character] what to display: a forest plot (\code{"forest"}) or a heatmap (\code{"heat"}).
@@ -1911,9 +1911,9 @@ autoplot.Wald_lmm <- function(object, type = "forest", size.text = 16, add.args 
         size.null <- add.args$size.null
         
         if(ci){
-            table <- model.tables(object, columns = c("estimate","type","term","null","lower","upper"), ...)
+            table <- stats::model.tables(object, columns = c("estimate","type","term","null","lower","upper"), ...)
         }else{
-            table <- model.tables(object, columns = c("estimate","type","term","null"), ...)
+            table <- stats::model.tables(object, columns = c("estimate","type","term","null"), ...)
         }
         table <- cbind(names = rownames(table), table)
         if(is.null(color)){

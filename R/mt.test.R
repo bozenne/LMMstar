@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 17 2023 (17:11) 
 ## Version: 
-## Last-Updated: May  9 2024 (12:54) 
+## Last-Updated: aug  8 2024 (09:29) 
 ##           By: Brice Ozenne
-##     Update #: 44
+##     Update #: 46
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -28,7 +28,7 @@
 ##' @param data dataset in the wide format. Should inherit from data.frame.
 ##' @param method [character] type of adjustment for multiple comparisons, one of \code{"none"}, \code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}.
 ##' See \code{\link{confint.Wald_lmm}} for more details.
-##' By default \code{"single-step"} when the test statistics have equal degrees of freedom and otherwise \code{"single-step2"}.
+##' By default \code{"single-step"} when the test statistics have equal degrees-of-freedom and otherwise \code{"single-step2"}.
 ##' @param level [numeric,0-1] the confidence level of the confidence intervals.
 ##' @param trace [logical] should a message be displayed in the console when there are missing data.
 ##'
@@ -148,7 +148,7 @@ mt.test <- function(formula, data, method = NULL, level = 0.95, trace = TRUE){
             method <- "single-step2"
         }            
     }
-    out <- model.tables(out.mlmm, method = method, level = level)
+    out <- stats::model.tables(out.mlmm, method = method, level = level)
     
     ## ** export
     attr(out, "mlmm") <- out.mlmm

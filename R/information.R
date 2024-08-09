@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: aug  6 2024 (12:00) 
+## Last-Updated: aug  8 2024 (13:30) 
 ##           By: Brice Ozenne
-##     Update #: 1241
+##     Update #: 1250
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,7 +17,7 @@
 
 ## * information.lmm (documentation)
 ##' @title Extract The Information From a Linear Mixed Model
-##' @description Extract or compute the (expected) second derivative of the log-likelihood of a linear mixed model.
+##' @description Extract or compute minus the second derivative of the log-likelihood of a linear mixed model.
 ##' 
 ##' @param x a \code{lmm} object.
 ##' @param newdata [data.frame] dataset relative to which the information should be computed. Only relevant if differs from the dataset used to fit the model.
@@ -26,7 +26,7 @@
 ##' @param effects [character] Should the information relative to all coefficients be output (\code{"all"} or \code{"fixed"}),
 ##' or only coefficients relative to the mean (\code{"mean"}),
 ##' or only coefficients relative to the variance and correlation structure (\code{"variance"} or \code{"correlation"}).
-##' @param type.information [character] Should the expected information be computed  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
+##' @param type.information [character] Should the expected information be computed (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
 ##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
 ##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
 ##' @param transform.rho [character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"} - see details.
@@ -46,11 +46,15 @@
 information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv = FALSE, type.information = NULL,
                             transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
 
-    options <- LMMstar.options()
-
     ## ** normalize user input
     ## *** dots
     dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+    dots$options <- NULL
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
@@ -82,6 +86,7 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
         }
     }
 
+    x.param <- stats::model.tables(x, effects = c("param",effects), transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
 
     ## *** type.information
     if(is.null(type.information)){
@@ -106,8 +111,7 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
     
     ## ** extract or recompute information
     if(is.null(newdata) && is.null(p) && (indiv == FALSE) && test.notransform && x$args$type.information==type.information){
-        keep.name <- stats::setNames(names(coef(x, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE)),
-                                     names(coef(x, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)))    
+        keep.name <- stats::setNames(x.param$name, x.param$trans.name)    
 
         design <- x$design ## useful in case of NA
         out <- x$information[keep.name,keep.name,drop=FALSE]
@@ -142,11 +146,10 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
 
     ## ** re-order values when converting to sd with strata (avoid sd0:0 sd0:1 sd1:0 sd1:1 sd2:0 sd2:1 ...)
     if("variance" %in% effects && transform.k %in% c("sd","var","logsd","logvar") && x$strata$n>1 && transform.names){
-        out.name <- names(stats::coef(x, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = TRUE))
         if(indiv){
-            out <- out[,out.name,out.name,drop=FALSE]
+            out <- out[,x.param$trans.name,x.param$trans.name,drop=FALSE]
         }else{
-            out <- out[out.name,out.name,drop=FALSE]
+            out <- out[x.param$trans.name,x.param$trans.name,drop=FALSE]
         }
     }
 

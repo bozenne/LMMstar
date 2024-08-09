@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: jul 31 2024 (10:50) 
+## Last-Updated: aug  8 2024 (13:32) 
 ##           By: Brice Ozenne
-##     Update #: 1401
+##     Update #: 1409
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -117,9 +117,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
                           newdata = NULL, p = NULL, format = "long", keep.data = FALSE, fitted.ci = FALSE, simplify = TRUE, var, ...){
 
     mycall <- match.call()
-    options <- LMMstar.options()
     type.residual <- type
-    sep <- options$sep["residuals"]
     
     ## ** extract from object
     xfactorMu <- object$xfactor$mean
@@ -145,9 +143,17 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
 
     ## *** dots
     dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+    dots$options <- NULL
+    sep <- options$sep["residuals"]
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
+
     ## *** p
     if(!is.null(p)){
         init <- .init_transform(p = p, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, 
@@ -282,7 +288,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
 
     ## ** update design
     if(is.null(newdata)){
-        design <- stats::model.matrix(object, effects = effects, simplify = FALSE)
+        design <- stats::model.matrix(object, effects = effects, simplify = FALSE, options = options)
         index.na <- object$index.na
     }else{
         ## rm.na
@@ -290,16 +296,16 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         df.newdata <- as.data.frame(newdata)
         index.NNA <- which(rowSums(is.na(df.newdata[intersect(names(df.newdata),object.manifest)]))==0)
 
-        design <- stats::model.matrix(object, newdata = df.newdata[index.NNA,,drop = FALSE], effects = effects, simplify = FALSE)
+        design <- stats::model.matrix(object, newdata = df.newdata[index.NNA,,drop = FALSE], effects = effects, simplify = FALSE, options = options)
         index.na <- setdiff(1:NROW(df.newdata),index.NNA)
     }
 
     if("partial" %in% type.residual || "partial-center" %in% type.residual){
         ## extract data and design matrix
         if(is.null(newdata)){
-            design <- stats::model.matrix(object, effects = effects, simplify = FALSE)
+            design <- stats::model.matrix(object, effects = effects, simplify = FALSE, options = options)
         }else{
-            design <- stats::model.matrix(object, newdata = newdata, effects = effects, simplify = FALSE, rm.na = TRUE)
+            design <- stats::model.matrix(object, newdata = newdata, effects = effects, simplify = FALSE, rm.na = TRUE, options = options)
         }
 
         ## *** design matrix relative to a reference value
@@ -356,7 +362,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         }
 
         ## build design matrix
-        design.reference <- stats::model.matrix(object, newdata = data.reference, effects = effects, simplify = TRUE, na.rm = FALSE)
+        design.reference <- stats::model.matrix(object, newdata = data.reference, effects = effects, simplify = TRUE, na.rm = FALSE, options = options)
         if(length(object$index.na)>0){ ## handle missing values
             design.reference <- design.reference[-object$index.na,,drop=FALSE]
         }
@@ -370,12 +376,12 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         outcome.var <- attr(object.manifest,"outcome")
 
         if(is.null(newdata)){
-            design <- stats::model.matrix(object, effects = effects, simplify = FALSE)
+            design <- stats::model.matrix(object, effects = effects, simplify = FALSE, options = options)
         }else{
             df.newdata <- as.data.frame(newdata)
 
             index.NNA <- which(rowSums(is.na(df.newdata[intersect(names(df.newdata),object.manifest)]))==0)
-            design <- stats::model.matrix(object, newdata = df.newdata[index.NNA,,drop = FALSE], effects = effects, simplify = FALSE)
+            design <- stats::model.matrix(object, newdata = df.newdata[index.NNA,,drop = FALSE], effects = effects, simplify = FALSE, options = options)
             index.na <- setdiff(1:NROW(df.newdata),index.NNA)
         }
         design.reference <- design$mean
@@ -497,7 +503,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
     ## ** (partially) fitted values
     if(fitted.ci || "partial" %in% type.residual || "partial-center" %in% type.residual){
         df.fitted <- stats::predict(object, p = p, newdata = design.reference, type = type.fit, se = fitted.ci,
-                                    keep.data = FALSE, format = "long", simplify = FALSE)
+                                    keep.data = FALSE, format = "long", simplify = FALSE, options = options)
 
         if(fitted.ci){
             fitted <- cbind(fitted = df.fitted$estimate,
@@ -702,7 +708,19 @@ residuals.mlmm <- function(object, p = NULL, newdata = NULL, keep.data = FALSE, 
 
     ## ** normalize user input
 
-    ## p
+    ## *** dots
+    dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+    dots$options <- NULL
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
+    ## *** p
     if(!is.null(p)){
         if(!is.list(p)){
             stop("Argument \'p\' should either be NULL or a list. \n")
@@ -740,7 +758,7 @@ residuals.mlmm <- function(object, p = NULL, newdata = NULL, keep.data = FALSE, 
 
     ## ** extract
     ls.out <- lapply(names(ls.newdata), function(iBy){ ## iBy <- "A"
-        residuals(object$model[[iBy]], p = theta[[iBy]], newdata = ls.newdata[[iBy]], keep.data = keep.data, simplify = simplify, ...)
+        stats::residuals(object$model[[iBy]], p = theta[[iBy]], newdata = ls.newdata[[iBy]], keep.data = keep.data, simplify = simplify, options = options, ...)
     })
 
     ## ** reshape

@@ -23,16 +23,16 @@
 \arguments{
 \item{object}{a \code{lmm} object.}
 
-\item{effects}{[character] Should the variance-covariance matrix for all coefficients be output (\code{"all"}),
+\item{effects}{[character vector] Should the variance-covariance matrix for all coefficients be output (\code{"all"}),
 or only for coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 or only for coefficients relative to the variance structure (\code{"variance"}),
-or only for coefficients relative to the correlation structure (\code{"correlation"}).}
+or only for coefficients relative to the correlation structure (\code{"correlation"}).
+Can also contain \code{"gradient"} to also output the gradient of the Variance-Covariance matrix .}
 
 \item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
-Not feasible for variance or correlation coefficients estimated by REML.}
+Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.}
 
-\item{df}{[logical] Should degree of freedom, computed using Satterthwaite approximation, for the model parameters be output.
-Also output the first derivative of the variance-covariance matrix whenever the argument is stricly greater than 1.}
+\item{df}{[logical] Should degrees of freedom, computed using Satterthwaite approximation, for the model parameters be output.}
 
 \item{strata}{[character vector] When not \code{NULL}, only output the variance-covariance matrix for the estimated parameters relative to specific levels of the variable used to stratify the mean and covariance structure.}
 
@@ -53,9 +53,10 @@ Also output the first derivative of the variance-covariance matrix whenever the 
 \item{...}{Not used. For compatibility with the generic method.}
 }
 \value{
-A matrix with one column and column per parameter.
-An attribute \code{"df"} is added when argument df is set to \code{TRUE}, containing a numeric vector with one element per parameter.
-An attribute \code{"dVcov"} is added when argument df is greater than 1, containing a 3 dimensional array with with dimension being the number of parameters.
+A matrix with one column and column per parameter. \itemize{
+\item \code{df=TRUE}: with an attribute \code{"df"} containing a numeric vector with one element per parameter. \cr
+\item \code{effects} includes \code{"gradient"}: with an attribute \code{"gradient"} containing a 3 dimensional array with dimension the number of parameters.
+}
 }
 \description{
 Extract the variance-covariance matrix of the model coefficients of a linear mixed model.

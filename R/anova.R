@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: aug  6 2024 (17:27) 
+## Last-Updated: aug  9 2024 (10:48) 
 ##           By: Brice Ozenne
-##     Update #: 2030
+##     Update #: 2065
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,8 +16,9 @@
 ### Code:
 
 ## * anova.lmm (documentation)
-##' @title Multivariate Tests For Linear Mixed Model
-##' @description Simultaneous tests of linear combinations of the model paramaters using Wald tests or Likelihood Ratio Test (LRT). 
+##' @title Multivariate Tests For a Linear Mixed Model
+##' @description Test linear combinations of parameters from a linear mixed model
+##' using Wald test or Likelihood Ratio Test (LRT). 
 ##' 
 ##' @param object a \code{lmm} object. Only relevant for the anova function.
 ##' @param effects [character or numeric matrix] Should the Wald test be computed for all variables (\code{"all"}),
@@ -27,22 +28,22 @@
 ##' Can also be use to specify linear combinations of coefficients or a contrast matrix, similarly to the \code{linfct} argument of the \code{multcomp::glht} function.
 ##' @param rhs [numeric vector] the right hand side of the hypothesis. Only used when the argument \code{effects} is a matrix.
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
-##' Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
-##' @param df [logical] Should degrees of freedom be estimated using a Satterthwaite approximation?
+##' Can also be \code{2} compute the degrees-of-freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
+##' @param df [logical] Should degrees-of-freedom be estimated using a Satterthwaite approximation?
 ##' If yes F-distribution (multivariate) and Student's t-distribution (univariate) are used.
 ##' Other chi-squared distribution and normal distribution are used.
 ##' @param univariate [logical] Should an estimate, standard error, confidence interval, and p-value be output for each hypothesis?
 ##' @param multivariate [logical] Should all hypotheses be simultaneously tested using a multivariate Wald test?
 ##' @param transform.sigma,transform.k,transform.rho are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.
-##' @param simplify [logical] should only the estimates, variance-covariance with its gradient, and degrees of freedom relative to the parameters involved in the Wald test be stored (TRUE)
+##' @param simplify [logical] should only the estimates, variance-covariance with its gradient, and degrees-of-freedom relative to the parameters involved in the Wald test be stored (TRUE)
 ##' or relative to all model parameters (0.5) along with their iid decomposition (FALSE).
 ##' 
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @return A data.frame (LRT) or a list of containing the following elements (Wald):\itemize{
 ##' \item \code{multivariate}: data.frame containing the multivariate Wald test.
-##' The column \code{df.num} refers to the degrees of freedom for the numerator (i.e. number of hypotheses)
-##' wherease the column \code{df.denum} refers to the degrees of freedom for the denominator (i.e. Satterthwaite approximation).
+##' The column \code{df.num} refers to the degrees-of-freedom for the numerator (i.e. number of hypotheses)
+##' wherease the column \code{df.denum} refers to the degrees-of-freedom for the denominator (i.e. Satterthwaite approximation).
 ##' \item \code{univariate}: data.frame containing each univariate Wald test.
 ##' \item \code{glht}: used internally to call functions from the multcomp package.
 ##' \item \code{object}: list containing key information about the linear mixed model.
@@ -51,8 +52,8 @@
 ##' 
 ##' @details By default adjustment of confidence intervals and p-values for multiple comparisons is based on the distribution of the maximum-statistic.
 ##' This is refered to as a single-step Dunnett multiple testing procedures in table II of Dmitrienko et al. (2013).
-##' It is performed using the multcomp package with the option \code{test = adjusted("single-step")} with equal degrees of freedom
-##' or by simulation using a Student's t copula with unequal degrees of freedom (more in the note of the details section of \code{\link{confint.Wald_lmm}}).
+##' It is performed using the multcomp package with the option \code{test = adjusted("single-step")} with equal degrees-of-freedom
+##' or by simulation using a Student's t copula with unequal degrees-of-freedom (more in the note of the details section of \code{\link{confint.Wald_lmm}}).
 ##' 
 ##' @seealso
 ##' \code{\link{summary.Wald_lmm}} or \code{\link{confint.Wald_lmm}} for a summary of the results. \cr
@@ -106,130 +107,132 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
                       transform.sigma = NULL, transform.k = NULL, transform.rho = NULL,
                       simplify = NULL, ...){
 
-    call <- match.call()
-    options <- LMMstar.options()
+    mycall <- match.call()
 
-    ## ** normalized user input    
+    ## ** special case (Likelihood Ratio Test - LRT)
+    if(inherits(effects,"lmm")){
+        out <- .anova_LRT(object1 = object, object2 = effects)
+        attr(out,"call") <- mycall
+        return(out)
+    }        
+
+    ## ** normalize user input
     ## *** dots
     dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+    dots$options <- NULL
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
 
-    if(!is.matrix(effects) && !is.null(rhs)){
+    ## *** effects
+    if(is.null(effects)){
+        effects <- options$effects
+    }else if(!is.matrix(effects) && !is.null(rhs)){
         message("Argument \'rhs\' is ignored unless argument \"effect\" is a contrast matrix. \n")
     }
 
-    ## ** run test
-    if(inherits(effects,"lmm")){
+    ## ***  robust
+    if(is.null(robust)){
+        robust <- FALSE
+    }
         
-        ## *** Likelihood Ratio Test (LRT)
-        out <- .anova_LRT(object1 = object, object2 = effects)
-        
-    }else{
-        
-        ## *** Wald test
-        if(!univariate & !multivariate){
-            stop("Argument \'univariate\' and \'multivariate\' should not be both FALSE. \n")
-        }
-
-        ## initialize effects
-        if(is.null(effects)){
-            effects <- options$effects
-        }
-
-        ## initialize robust
-        if(is.null(robust)){
-            robust <- FALSE
-        }
-        
-        ## initialize df
-        if(is.null(df)){
-            df <- !is.null(object$df)
-        }
-
-        ## initialize simplify
-        if(is.null(simplify)){
-            if((is.character(effects) && all(effects %in% c("all","mean","fixed","variance","correlation")))){ ## automatic contrast
-                simplify <- TRUE
-            }else{ ## default may change in the future?
-                simplify <- TRUE
-            }
-        }else{
-            if(!is.numeric(simplify) && !is.logical(simplify)){
-                stop("Argument \'simplify\' must be numeric or logical. \n")
-            }
-            if(length(simplify)!=1){
-                stop("Argument \'simplify\' must have length 1. \n")
-            }
-            if(simplify %in% c(0,0.5,1) == FALSE){
-                stop("Argument \'simplify\' must be TRUE/1, 0.5, or FALSE/0. \n")
-            }
-        }
-        
-        ## initialize tranformation
-        init <- .init_transform(p = NULL, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
-                                x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
-                                simplify = FALSE)
-        transform.sigma <- init$transform.sigma
-        transform.k <- init$transform.k
-        transform.rho <- init$transform.rho
-        
-        ## generate contrast matrix
-        ls.e2c <- effects2contrast(object, effects = effects, rhs = rhs,
-                                   transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
-
-        ## extract model coefficient and uncertainty
-        object.param <- model.tables(object, effects = "param")
-        type.param <- stats::setNames(object.param$type,object.param$name)
-        if(transform.k %in% c("sd","logsd","var","logvar")){
-            type.param[type.param=="sigma"] <- "k"
-        }
-        param <- coef(object, effects = "all",
-                      transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = TRUE)
-        param.notrans <- coef(object, effects = "all",
-                              transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = FALSE)
-        vcov.param <- vcov(object, df = df, effects = list("all",c("all","gradient"))[[df+1]], robust = robust,
-                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
-        dVcov.param <- attr(vcov.param,"gradient")
-        attr(vcov.param,"gradient") <- NULL
-        attr(vcov.param,"df") <- NULL
-        if(simplify == FALSE){
-            iid.param <- iid(object, effects = "all", robust = robust, 
-                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
-        }else{
-            iid.param <- NULL
-        }
-
-        ## call Wald test
-        out <- .anova_Wald(param = param, param.notrans = param.notrans, vcov.param = vcov.param, dVcov.param = dVcov.param, iid.param = iid.param, type.param = type.param,
-                           contrast = ls.e2c$contrast, null = ls.e2c$null, robust = robust, df = df,
-                           multivariate = multivariate, univariate = univariate, 
-                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, backtransform = ls.e2c$backtransform,
-                           simplify = simplify)
-
-        ## add extra information to object that may be using by rbind
-        out$object <- list(outcome = object$outcome$var,
-                           method.fit = object$args$method.fit,
-                           type.information = object$args$type.information,
-                           cluster.var = object$cluster$var,
-                           cluster = object$cluster$levels)
-
+    ## ***  df
+    if(is.null(df)){
+        df <- !is.null(object$df)
     }
 
+    ## *** univariate and multivariate
+    if(!univariate & !multivariate){
+        stop("Argument \'univariate\' and \'multivariate\' should not be both FALSE. \n")
+    }
+
+    ## *** simplify
+    if(is.null(simplify)){
+        if((is.character(effects) && all(effects %in% c("all","mean","fixed","variance","correlation")))){ ## automatic contrast
+            simplify <- TRUE
+        }else{ ## default may change in the future?
+            simplify <- TRUE
+        }
+    }else{
+        if(!is.numeric(simplify) && !is.logical(simplify)){
+            stop("Argument \'simplify\' must be numeric or logical. \n")
+        }
+        if(length(simplify)!=1){
+            stop("Argument \'simplify\' must have length 1. \n")
+        }
+        if(simplify %in% c(0,0.5,1) == FALSE){
+            stop("Argument \'simplify\' must be TRUE/1, 0.5, or FALSE/0. \n")
+        }
+    }
+        
+    ## *** tranformation
+    init <- .init_transform(p = NULL, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
+                            x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
+                            simplify = FALSE)
+    transform.sigma <- init$transform.sigma
+    transform.k <- init$transform.k
+    transform.rho <- init$transform.rho
+        
+    ## ** generate contrast matrix
+    ls.e2c <- effects2contrast(object, effects = effects, rhs = rhs,
+                               transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options)
+
+    ## ** extract model coefficient and uncertainty
+    table.param <- stats::model.tables(object, effects = "param", options = options)
+    type.param <- stats::setNames(table.param$type,table.param$name)
+    if(transform.k %in% c("sd","logsd","var","logvar")){
+        type.param[type.param=="sigma"] <- "k"
+    }
+    param <- stats::coef(object, effects = "all",
+                         transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = TRUE, options = options)
+    param.notrans <- stats::coef(object, effects = "all",
+                                 transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = FALSE, options = options)
+    vcov.param <- stats::vcov(object, df = df, effects = list("all",c("all","gradient"))[[df+1]], robust = robust,
+                              transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE, options = options)
+    dVcov.param <- attr(vcov.param,"gradient")
+    attr(vcov.param,"gradient") <- NULL
+    attr(vcov.param,"df") <- NULL
+    if(simplify == FALSE){
+        iid.param <- lava::iid(object, effects = "all", robust = robust, 
+                               transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE, options = options)
+    }else{
+        iid.param <- NULL
+    }
+
+    ## ** run Wald test
+    out <- .anova_Wald(param = param, param.notrans = param.notrans, vcov.param = vcov.param, dVcov.param = dVcov.param, iid.param = iid.param, type.param = type.param,
+                       contrast = ls.e2c$contrast, null = ls.e2c$null, robust = robust, df = df,
+                       multivariate = multivariate, univariate = univariate, 
+                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, backtransform = ls.e2c$backtransform,
+                       simplify = simplify)
+
+    ## ** add extra information to object that may be using by rbind
+    out$object <- list(outcome = object$outcome$var,
+                       method.fit = object$args$method.fit,
+                       type.information = object$args$type.information,
+                       cluster.var = object$cluster$var,
+                       cluster = object$cluster$levels,
+                       param = cbind(trans.value = param, value = param.notrans, table.param[c("trans.name","name","type")]))
+    rownames(out$object$param) <- NULL
+
     ## ** export
-    attr(out,"call") <- call
+    attr(out,"call") <- mycall
     return(out)
 }
 
 ## * .anova_LRT
-.anova_LRT <- function(object1,object2){
+.anova_LRT <- function(object1, object2){
     tol <- 1e-10
     
     ## ** normalize user input
     ## *** re-order models
-    logLik1 <- logLik(object1)
-    logLik2 <- logLik(object2)
+    logLik1 <- stats::logLik(object1)
+    logLik2 <- stats::logLik(object2)
     if(is.na(logLik1) || is.na(logLik2)){
         stop("Cannot perform a likelihood ratio test when the log-likelihood is NA for one of the models.\n")
     }else if(logLik2>=logLik1){
@@ -266,8 +269,8 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
     }
 
     ## ** LRT
-    name.paramH0 <- names(coef(objectH0, effects = "all"))   
-    name.paramH1 <- names(coef(objectH1, effects = "all"))
+    name.paramH0 <- stats::model.tables(objectH0, effects = "param")$name   
+    name.paramH1 <- stats::model.tables(objectH1, effects = "param")$name
     n.paramTest <- length(name.paramH1)-length(name.paramH0)
 
     if(is.null(rhs)){
@@ -507,7 +510,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
                 out$multivariate[iG,"statistic"] <- as.double(t(iSimplify$C %*% param - iSimplify$rhs) %*% iC.vcov.C_M1 %*% (iSimplify$C %*% param - iSimplify$rhs))/iSimplify$dim
             }
 
-            ## degree of freedom
+            ## degree-of-freedom
             if(df>0 && is.null(attr(dVcov.param,"vcov"))){
                 df_iC.vcov.C_M1 <- iC.vcov.C_M1
             }else if(df>0 && !is.null(attr(dVcov.param,"vcov"))){
@@ -545,9 +548,9 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
                                                                              dVcov.param = dVcov.param))
                 if(multivariate){
                     if(out$multivariate[iG,"df.denom"]<1){
-                        ## warning("Suspicious degree of freedom was found for the F-statistic (",out$multivariate[iG,"df.denom"],"). \n",
-                        ##         "It has been set to the average degree of freedom of the univariate Wald tests (",mean(out$univariate[iG.univariate,"df"]),") instead. \n")
-                        attr(out$multivariate,"df") <- "average degree of freedom of the univariate Wald tests"
+                        ## warning("Suspicious degrees-of-freedom was found for the F-statistic (",out$multivariate[iG,"df.denom"],"). \n",
+                        ##         "It has been set to the average degree-of-freedom of the univariate Wald tests (",mean(out$univariate[iG.univariate,"df"]),") instead. \n")
+                        attr(out$multivariate,"df") <- "average degree-of-freedom of the univariate Wald tests"
                         out$multivariate[iG,"df.denom"] <- mean(out$univariate[iG.univariate,"df"])
                     }
                 }
@@ -573,9 +576,6 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
                                    vcov = vcov.param,
                                    df = round(stats::median(out$univariate[iG.univariate,"df"])),
                                    alternative = "two.sided",
-                                   coef.name = names(param), ## possibly transformed named (coef will always be named without transformed names)
-                                   coef.notrans = param.notrans, ## values without transformation
-                                   coef.type = type.param,
                                    dVcov = dVcov.param,
                                    iid = iid.param)
 
@@ -585,9 +585,6 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, robust = NULL, df = NU
                 out$glht[[iG]]$linfct <- out$glht[[iG]]$linfct[,index.simplify,drop=FALSE]
                 out$glht[[iG]]$coef <- out$glht[[iG]]$coef[index.simplify] ## transformation.name = FALSE (use transformed values but not transformed name)
                 out$glht[[iG]]$vcov <- out$glht[[iG]]$vcov[index.simplify,index.simplify,drop=FALSE]
-                out$glht[[iG]]$coef.name <- out$glht[[iG]]$coef.name[index.simplify] ## transformation.name = TRUE (use transformed values and transformed name)
-                out$glht[[iG]]$coef.notrans <- out$glht[[iG]]$coef.notrans[index.simplify] ## transformation.sigma = "none", ... (use original value and original name)
-                out$glht[[iG]]$coef.type <- out$glht[[iG]]$coef.type[index.simplify]
                 out$glht[[iG]]$dVcov <- NULL ## useless to have dVcov if we do not have the full vcov for df computation
                 out$glht[[iG]]$iid <- out$glht[[iG]]$iid[,index.simplify,drop=FALSE]
 

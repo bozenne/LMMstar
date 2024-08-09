@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 29 2024 (09:47) 
 ## Version: 
-## Last-Updated: jul 31 2024 (10:40) 
+## Last-Updated: aug  8 2024 (13:32) 
 ##           By: Brice Ozenne
-##     Update #: 1124
+##     Update #: 1133
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,8 +16,8 @@
 ### Code:
 
 ## * effects.lmm (documentation)
-##' @title Effects Derived For Linear Mixed Model
-##' @description Estimate average counterfactual outcome or contrast of outcome from linear mixed models.
+##' @title Effects Derived For a Linear Mixed Model
+##' @description Estimate average counterfactual outcome or contrast of outcome based on a linear mixed model.
 ##' 
 ##' @param object a \code{lmm} object. 
 ##' @param variable [character/list] exposure variable relative to which the effect should be computed.
@@ -116,11 +116,23 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
                         newdata = NULL, rhs = NULL, multivariate = FALSE,
                         prefix.time = NULL, prefix.var = TRUE, sep.var = ",", ...){
 
-    call <- match.call()
+    mycall <- match.call()
     time.var <- object$time$var
     alltime.var <- attr(time.var,"original")
 
     ## ** check arguments
+    ## *** dots
+    dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+    dots$options <- NULL
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
     ## *** type
     if(inherits(type,"data.frame")){
         stop("Argument \'type\' should be a character, numeric vector, or numeric matrix. \n")
@@ -255,14 +267,14 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
     U.time <- object$time$levels
     n.time <- length(U.time)
     if(is.null(newdata)){
-        data.augmented <- stats::model.frame(object, type = "add.NA", add.index = TRUE)
+        data.augmented <- stats::model.frame(object, type = "add.NA", add.index = TRUE, options = options)
         if(any(is.na(data.augmented[stats::variable.names(object, effects = "mean")]))){
             warning("Missing value(s) among covariates used to estimate the average effects. \n",
                     "Corresponding lines in the dataset will be removed. \n",
                     "Consider specifying the argument \'newdata\' to specifying the marginal covariate distribution. \n")
         }
     }else{
-        data.augmented <- stats::model.frame(object, newdata = newdata, add.index = TRUE, na.rm = FALSE)
+        data.augmented <- stats::model.frame(object, newdata = newdata, add.index = TRUE, na.rm = FALSE, options = options)
     }
     data.augmented$XXstrataXX <- 1
 
@@ -300,7 +312,7 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
     }
 
     ## define conditioning set (normalize user input)
-    if("conditional" %in% names(call) == FALSE){
+    if("conditional" %in% names(mycall) == FALSE){
         if(type %in% c("outcome","change")){
             conditional <- alltime.var
         }else{
@@ -496,7 +508,7 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
                 
             }
 
-            iX <- stats::model.matrix(object$formula$mean.design, iData)[,colnames(object$design$mean),drop=FALSE] ## remove uncessary columns in case of (baseline) constraint
+            iX <- stats::model.matrix(object$formula$mean.design, newdata = iData, options = options)[,colnames(object$design$mean),drop=FALSE] ## remove uncessary columns in case of (baseline) constraint
 
             if(length(grid.conditional)==0){
                 iStrata <- droplevels(factor(iData$XXtimeXX, 
@@ -562,8 +574,8 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
                 iData2[[variable]] <- Upair.variable[2,iPair]
             }
 
-            iX1 <- stats::model.matrix(object$formula$mean.design, iData1)[,colnames(object$design$mean),drop=FALSE] ## remove uncessary columns in case of (baseline) constraint
-            iX2 <- stats::model.matrix(object$formula$mean.design, iData2)[,colnames(object$design$mean),drop=FALSE] ## remove uncessary columns in case of (baseline) constraint
+            iX1 <- stats::model.matrix(object$formula$mean.design, newdata = iData1, options = options)[,colnames(object$design$mean),drop=FALSE] ## remove uncessary columns in case of (baseline) constraint
+            iX2 <- stats::model.matrix(object$formula$mean.design, newdata = iData2, options = options)[,colnames(object$design$mean),drop=FALSE] ## remove uncessary columns in case of (baseline) constraint
             
             if(length(grid.conditional)==0){
                 iStrata <- droplevels(factor(iData1$XXtimeXX,
@@ -621,7 +633,7 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
     }
 
     ## ** test linear hypotheses
-    out <- anova(object, effect = M.effect, multivariate = multivariate, ...)
+    out <- anova(object, effect = M.effect, multivariate = multivariate)
     out$args$effect <- effects
     out$args$type <- type
     out$args$variable <- variable

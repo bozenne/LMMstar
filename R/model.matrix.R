@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: aug  6 2024 (11:59) 
+## Last-Updated: aug  8 2024 (13:32) 
 ##           By: Brice Ozenne
-##     Update #: 3243
+##     Update #: 3252
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,10 +16,10 @@
 ### Code:
 
 ## * model.matrix.lmm (documentation)
-##' @title Design Matrix for Linear Mixed Model
-##' @description Extract or construct design matrices for Linear Mixed Model.
+##' @title Design Matrix for a Linear Mixed Model
+##' @description Extract or construct design matrices for a linear mixed model.
 ##'
-##' @param object an lmm object
+##' @param object an \code{lmm} object
 ##' @param newdata [data.frame] dataset relative to which the design matrix should be constructed.
 ##' @param effects [character] design matrix relative to the mean model (\code{"mean"}), variance model (\code{"variance"}), correlation model (\code{"correlation"}),
 ##' or all the previous (\code{"all"}).
@@ -54,11 +54,15 @@
 ##' @export
 model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify = TRUE, drop.X = NULL, na.rm = TRUE, ...){
 
-    options <- LMMstar.options()
-
     ## ** normalize user input
     ## *** dots
     dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+    dots$options <- NULL
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
@@ -286,7 +290,8 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
             design$vcov <- .findUpatterns(design$vcov,
                                           index.clusterTime = outInit$index.clusterTime, U.time = outInit$U.time,
                                           index.cluster = outInit$index.cluster, U.cluster = outInit$U.cluster,
-                                          index.clusterStrata = outInit$index.clusterStrata, U.strata = outInit$U.strata)
+                                          index.clusterStrata = outInit$index.clusterStrata, U.strata = outInit$U.strata,
+                                          sep = options$sep["pattern"])
         }
     }
 
@@ -577,7 +582,8 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
     structure <- .findUpatterns(structure, 
                                 index.clusterTime = outInit$index.clusterTime, U.time = U.time,
                                 index.cluster = outInit$index.cluster, U.cluster = U.cluster,
-                                index.clusterStrata = outInit$index.clusterStrata, U.strata = U.strata)
+                                index.clusterStrata = outInit$index.clusterStrata, U.strata = U.strata,
+                                sep = options$sep["pattern"])
 
     ## ** prepare calculation of the score
     if(precompute.moments){

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: aug  2 2024 (10:12) 
+## Last-Updated: aug  8 2024 (11:28) 
 ##           By: Brice Ozenne
-##     Update #: 493
+##     Update #: 505
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,14 +29,11 @@
 ##' Argument passed to the argument \code{effects} of \code{\link{rbind.Wald_lmm}}.
 ##' Right hand side can be specified via an attribute \code{"rhs"}.
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
-##' Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
+##' Can also be \code{2} compute the degrees-of-freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
 ##' Argument passed to \code{\link{anova.lmm}}.
-##' @param df [logical] Should the degree of freedom be computed using a Satterthwaite approximation?
+##' @param df [logical] Should the degrees-of-freedom be computed using a Satterthwaite approximation?
 ##' Argument passed to \code{\link{anova.lmm}}.
-##' @param ci [logical] Should a confidence interval be output for each hypothesis?
-##' Argument passed to \code{\link{anova.lmm}}.
-##' @param name.short [logical vector of length 2] use short names for the output coefficients:
-##' omit the name of the by variable, omit the regression variable name when the same regression variable is used in all models.
+##' @param name.short [logical] use short names for the output coefficients (omit the name of the by variable).
 ##' @param trace [interger, >0] Show the progress of the execution of the function.
 ##' @param transform.sigma,transform.k,transform.rho,transform.names [character] transformation used on certain type of parameters.
 ##' 
@@ -92,8 +89,8 @@
 
 ## * mlmm (code)
 ##' @export
-mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = FALSE, df = NULL, ci = TRUE,
-                 name.short = c(TRUE,TRUE), transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, trace = TRUE){
+mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = FALSE, df = NULL, 
+                 name.short = TRUE, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, trace = TRUE){
 
     options <- LMMstar.options()
 
@@ -128,9 +125,6 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
     }
 
     ## *** name.short
-    if(length(name.short)==1){
-        name.short <- c(name.short, name.short)
-    }
 
     ## *** df
     if(is.null(df)){
@@ -177,13 +171,13 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
     })
     name.lmm <- names(ls.lmm)
     n.lmm <- length(name.lmm)
-    variable.lmm <- variable.names(ls.lmm[[1]])
+    variable.lmm <- stats::variable.names(ls.lmm[[1]])
 
     ## ** test linear combinations
     if(trace>0){
         cat("\nHypothesis test:\n")
     }
-    ls.name.allCoef <- lapply(ls.lmm, function(iLMM){names(coef(iLMM, effects = "all"))})
+    ls.name.allCoef <- lapply(ls.lmm, function(iLMM){stats::model.tables(iLMM, effects = "param")$trans.name})
     ls.Cmat <- lapply(ls.name.allCoef, function(iName){matrix(0, nrow = length(iName), ncol = length(iName), dimnames = list(iName,iName))})
 
     ## *** identify contrast
@@ -208,7 +202,7 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
 
     if(is.null(effects)){
 
-        name.contrastCoef <- lapply(ls.lmm, function(iLMM){names(coef(iLMM, effects = options$effects))})
+        name.contrastCoef <- lapply(ls.lmm, function(iLMM){stats::model.tables(iLMM, effects = c("param",options$effects))$trans.name})
 
         for(iName in name.lmm){
             iNameCoef <- name.contrastCoef[[iName]]
@@ -260,7 +254,7 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
             rhs <- NULL
         }else if(all(effects %in% valid.effects== FALSE)){
             
-            name.contrastCoef <- lapply(ls.lmm, function(iLMM){names(coef(iLMM, effects = effects))})
+            name.contrastCoef <- lapply(ls.lmm, function(iLMM){stats::model.tables(iLMM, effects = c("param",effects))$trans.name})
 
             for(iName in name.lmm){
                 iNameCoef <- name.contrastCoef[[iName]]
@@ -275,12 +269,12 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
             rhs <- NULL
         }else{
             stop("Incorrect value for argument \'effects\'. \n",
-                 "When a character should either be a contrast like \"",utils::tail(names(coef(ls.lmm[[1]])),1),"=0\", \n",
+                 "When a character should either be a contrast like \"",stats::model.tables(ls.lmm[[1]], effects = "param")$name[1],"=0\", \n",
                  "Or be among: \"",paste(valid.effects,collapse="\" \""),"\"\n")
         }
     }else{
         stop("Unknown value for argument \'effects\'. \n",
-             "Can be a matrix, or a character encoding the contrast like \"",utils::tail(names(coef(ls.lmm[[1]])),1),"=0\", or \"mean\", \"variance\", \"correlation\", \"all\".\n")
+             "Can be a matrix, or a character encoding the contrast like \"",stats::model.tables(ls.lmm[[1]], effects = "param")$name[1],"=0\", or \"mean\", \"variance\", \"correlation\", \"all\".\n")
     }
     ## *** run
     if(trace>0.5){
@@ -289,9 +283,10 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
 
     ls.anova <- stats::setNames(lapply(name.lmm, function(iName){ ## iName <- name.lmm[1]
 
-        iWald <- anova(ls.lmm[[iName]], effects = ls.Cmat[[iName]], rhs = rhs[[iName]], robust = robust, df = df,
-                       univariate = TRUE, multivariate = FALSE,
-                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
+        iWald <- stats::anova(ls.lmm[[iName]], effects = ls.Cmat[[iName]], rhs = rhs[[iName]], robust = robust, df = df,
+                              univariate = TRUE, multivariate = FALSE,
+                              transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                              simplify = FALSE)
 
         return(iWald)
     }), name.lmm)

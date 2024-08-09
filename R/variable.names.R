@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (15:05) 
 ## Version: 
-## Last-Updated: jul 31 2024 (10:50) 
+## Last-Updated: aug  8 2024 (13:32) 
 ##           By: Brice Ozenne
-##     Update #: 107
+##     Update #: 128
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,7 +15,7 @@
 ## 
 ### Code:
 
-## * variable.names (documentation)
+## * variable.names.lmm (documentation)
 ##' @title Variables Involved in a Linear Mixed Model
 ##' @description Extract the variables used by the linear mixed model.
 ##'
@@ -46,6 +46,10 @@ variable.names.lmm <- function(object, effects = "all", original = TRUE, simplif
     ## ** check user input
     ## *** dots
     dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }
+    dots$options <- NULL
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
@@ -141,7 +145,7 @@ variable.names.lmm <- function(object, effects = "all", original = TRUE, simplif
             }
         }
     }
-    
+
     ## ** export        
     if(simplify && length(effects)==1){
         if(effects=="all"){
@@ -152,22 +156,97 @@ variable.names.lmm <- function(object, effects = "all", original = TRUE, simplif
         }
         
     }else{
-        out <- ls.out[effects]
+        if(effects=="all"){
+            out <- ls.out
+        }else{
+            out <- ls.out[effects]
+        }
     }
     return(out)
 }
 
+## * variable.names.mlmm (documentation)
+##' @title Variables Involved in Multiple Linear Mixed Models
+##' @description Extract the variables used to obtain multiple linear mixed models.
+##'
+##' @param object a \code{mlmm} object.
+##' @param effects [character] Should all variable be output (\code{"all"}),
+##' or only those related to the outcome (\code{"outcome"}), mean (\code{"mean"}), variance (\code{"variance"}),
+##' correlation (\code{"correlation"}), time (\code{"time"}), cluster (\code{"cluster"}), strata (\code{"strata"}),
+##' or variable defining the split of the dataset on which a separate linear mixed model is fit (\code{"by"})?
+##' @param original [logical] Should only the variables present in the original data be output?
+##' When \code{FALSE}, variables internally created are output instead of the original variable for time, cluster, and strata.
+##' @param simplify [logical] Should the list be converted into a vector if a single \code{effects} is requested?
+##' @param ... not used. For compatibility with the generic function
+##'
+##' @return A list of character vectors or a character vector.
+##' 
+##' @keywords methods
+
 ## * manifest.mlmm 
 ##' @export
-variable.names.mlmm <- function(object, ...){
-    ls.manifest <- lapply(object$model, stats::variable.names, ...)
+variable.names.mlmm <- function(object, effects = "all", original = TRUE, simplify = TRUE, ...){
 
-    if(any(sapply(ls.manifest,identical,ls.manifest[[1]])==FALSE)){
-        stop("Difference in manifest variables between the LMM. \n",
-             "Cannot provide a single output for all models.")
+    ## ** check user input
+    ## *** dots
+    dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
     }
-    out <- union(ls.manifest[[1]], object$object$by)
-    attributes(out) <- c(attributes(ls.manifest[[1]]), list(by = object$object$by))
+    dots$options <- NULL
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
+    ## *** effects
+    if(!is.character(effects) || !is.vector(effects)){
+        stop("Argument \'effects\' must be a character vector. \n")
+    }
+    valid.effects <- c("outcome","mean","variance","correlation","time","cluster","strata",
+                       "all","mean.type","by")
+    if(any(effects %in% valid.effects == FALSE)){
+        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+    }
+    if(all("all" %in% effects)){
+        if(length(effects)>1){
+            stop("Argument \'effects\' must have length 1 when containing the element \"all\". \n")
+        }
+    }
+
+    ## *** simplify
+    if(!is.numeric(simplify) && !is.logical(simplify)){
+        stop("Argument \'simplify\' must be numeric or logical. \n")
+    }
+    if(length(simplify)!=1){
+        stop("Argument \'simplify\' must have length 1. \n")
+    }
+    if(simplify %in% c(0,1) == FALSE){
+        stop("Argument \'simplify\' must be TRUE/1 or FALSE/0. \n")
+    }
+
+    ## ** extract lmm specific variables
+    ls.manifest <- lapply(object$model, variable.names.lmm, effects = setdiff(effects,"by"), original = original, simplify = simplify)
+    
+    if(simplify){
+        if(any(sapply(ls.manifest,identical,ls.manifest[[1]])==FALSE)){
+            stop("Difference in manifest variables between the LMM. \n",
+                 "Cannot provide a single output for all models.")
+        }
+        if(any(c("all","by") %in% effects)){
+            out <- union(ls.manifest[[1]], object$object$by)
+            attributes(out) <- c(attributes(ls.manifest[[1]]), list(by = object$object$by))
+        }else{
+            out <- ls.manifest[[1]]
+        }
+    }else{
+        out <- ls.manifest
+        if(any(c("all","by") %in% effects)){
+            attr(out,"by") <- object$object$by
+        }
+    }
+
+    ## ** export
     return(out)
 }
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: jul 29 2024 (13:29) 
+## Last-Updated: aug  8 2024 (09:36) 
 ##           By: Brice Ozenne
-##     Update #: 428
+##     Update #: 430
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -22,7 +22,7 @@
 ##'
 ##' @param structure [structure]
 ##' @param residuals [vector] vector of residuals.
-##' @param Xmean [matrix] design matrix for the mean effects used to estimate the residual degrees of freedom for variance calculation.
+##' @param Xmean [matrix] design matrix for the mean effects used to estimate the residual degrees-of-freedom for variance calculation.
 ##' @param index.cluster [list of numeric vectors] position of the observations of each cluster.
 ##'
 ##' @keywords internal
@@ -223,7 +223,7 @@
     e.lm <- stats::lm(stats::as.formula(form.txt),
                       data = data.frame(Y = logY.Omega, X.Omega),
                       weights = n.Omega)
-    out <- stats::setNames(sqrt(exp(coef(e.lm))), colnames(X.Omega))
+    out <- stats::setNames(sqrt(exp(stats::coef(e.lm))), colnames(X.Omega))
     
     ## ** check values
     param.sigma <- names(param.type)[param.type=="sigma"]
@@ -388,7 +388,7 @@
         e.lm <- stats::lm(Y~0+param,
                           data = df.data,
                           weights = n.Omega)
-        out[levels(df.data$param)] <- as.numeric(tanh(coef(e.lm)))
+        out[levels(df.data$param)] <- as.numeric(tanh(stats::coef(e.lm)))
     }
     
     ## ** export    

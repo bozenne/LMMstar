@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul  5 2024 (18:56) 
 ## Version: 
-## Last-Updated: jul 31 2024 (11:28) 
+## Last-Updated: aug  8 2024 (09:54) 
 ##           By: Brice Ozenne
-##     Update #: 15
+##     Update #: 16
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,7 +20,7 @@
 as.matrix.correlate <- function(x, index, ...){
 
     ## ** check and normalize user imput
-    ## dots
+    ## *** dots
     dots <- list(...)
     if(length(dots)>0){
         stop("Unknown arguments \'",paste(names(dots), collapse = "\' \'"),"\'. \n")

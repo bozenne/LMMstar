@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: aug  6 2024 (11:59) 
+## Last-Updated: aug  8 2024 (11:56) 
 ##           By: Brice Ozenne
-##     Update #: 921
+##     Update #: 923
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,7 +18,8 @@
 `.findUpatterns` <-function(structure, 
                             index.clusterTime, U.time,
                             index.cluster, U.cluster,
-                            index.clusterStrata, U.strata){
+                            index.clusterStrata, U.strata,
+                            sep){
     UseMethod(".findUpatterns")
 }
 
@@ -26,7 +27,8 @@
 .findUpatterns.ID <- function(structure, 
                               index.clusterTime, U.time,
                               index.cluster, U.cluster,
-                              index.clusterStrata, U.strata){
+                              index.clusterStrata, U.strata,
+                              sep){
 
     ## ** extract from object
     X.var <- structure$var$X
@@ -113,9 +115,8 @@
 .findUpatterns.UN <- function(structure, 
                               index.clusterTime, U.time,
                               index.cluster, U.cluster,
-                              index.clusterStrata, U.strata){
-
-    sep <- LMMstar.options()$sep["pattern"]
+                              index.clusterStrata, U.strata,
+                              sep){
 
     ## ** identify unique var patterns
     Upatterns.init <- .findUpatterns.IND(structure = structure, 
@@ -287,12 +288,12 @@
 .findUpatterns.CUSTOM <- function(structure, 
                                   index.clusterTime, U.time,
                                   index.cluster, U.cluster,
-                                  index.clusterStrata, U.strata){
+                                  index.clusterStrata, U.strata,
+                                  sep){
 
     X.var <- structure$var$X
     X.cor <- structure$cor$X
     param <- structure$param
-    sep <- LMMstar.options()$sep["pattern"]
 
     ## ** identify unique patterns
     cluster.pattern.var <- structure$var$pattern

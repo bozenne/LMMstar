@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (11:00) 
 ## Version: 
-## Last-Updated: jul 11 2024 (11:21) 
+## Last-Updated: aug  7 2024 (18:43) 
 ##           By: Brice Ozenne
-##     Update #: 141
+##     Update #: 142
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -30,7 +30,7 @@ plot.correlate <- function(x, ...){
 }
 
 ## * plot.lmm (code)
-##' @describeIn autoplot.lmm Graphical Display For Linear Mixed Models
+##' @describeIn autoplot.lmm Graphical Display For a Linear Mixed Model
 ##' @export
 plot.lmm <- function(x, ...){
     out <- autoplot.lmm(x, ...)
@@ -44,7 +44,7 @@ plot.lmm <- function(x, ...){
 }
 
 ## * plot.mlmm (code)
-##' @describeIn autoplot.mlmm Graphical Display For Multiple Linear Mixed Model
+##' @describeIn autoplot.mlmm Graphical Display For Multiple Linear Mixed Models
 ##' @export
 plot.mlmm <- function(x, facet_nrow = NULL, facet_ncol = NULL, labeller = "label_value", ...){
 
@@ -149,7 +149,7 @@ plot.summarizeNA <- function(x, ...){
 }
 
 ## * plot.Wald_lmm (code)
-##' @describeIn autoplot.Wald_lmm Graphical Display For Linear Hypothesis Test
+##' @describeIn autoplot.Wald_lmm Graphical Display For Wald Tests Applied to a Linear Mixed Model
 ##' @export
 plot.Wald_lmm <- function(x, ...){
     out <- autoplot.Wald_lmm(x, ...)

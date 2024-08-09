@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (11:55) 
 ## Version: 
-## Last-Updated: jul 20 2023 (17:16) 
+## Last-Updated: aug  8 2024 (11:52) 
 ##           By: Brice Ozenne
-##     Update #: 73
+##     Update #: 75
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,10 +29,10 @@
 ##' @keywords internal
 
 `.skeletonK` <-
-    function(structure, U.strata) UseMethod(".skeletonK")
+    function(structure, U.strata, sep) UseMethod(".skeletonK")
 
 ## * .skeletonK.ID
-.skeletonK.ID <- function(structure, U.strata){
+.skeletonK.ID <- function(structure, U.strata, sep){
 
     ## no variance multipler
     return(structure)
@@ -40,7 +40,7 @@
 }
 
 ## * .skeletonK.IND
-.skeletonK.IND <- function(structure, U.strata){
+.skeletonK.IND <- function(structure, U.strata, sep){
 
     ## ** extract information
     strata.var <- structure$name$strata
@@ -53,8 +53,6 @@
     }
     param.sigma <- structure$param[structure$param$type=="sigma","name"]
     strata.sigma <- structure$param[structure$param$type=="sigma","index.strata"]
-    
-    sep <- LMMstar.options()$sep[c("k.cov","k.strata")]
 
     ## ** identify and name parameters
     index.k <- which(attr(X.var,"assign")>(n.strata>1)) ## complement with structure$param$index.level

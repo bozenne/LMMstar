@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: aug  2 2024 (10:12) 
+## Last-Updated: aug  8 2024 (13:32) 
 ##           By: Brice Ozenne
-##     Update #: 1510
+##     Update #: 1523
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,9 +16,9 @@
 ### Code:
 
 ## * predict.lmm (documentation)
-##' @title Predicted Mean Value With Uncertainty For Linear Mixed Model
-##' @description Predicted mean value conditional on covariates or on covariates and other outcome values.
-##'
+##' @title Predicted Outcome Value by a Linear Mixed Model.
+##' @description Estimate the expected outcome conditional on covariates and possibly on other outcomes based on a linear mixed model.
+##' 
 ##' @param object a \code{lmm} object.
 ##' @param newdata [data.frame] a dataset containing covariate values to condition on.
 ##' When setting the argument 'dynamic' predictions should also contain cluster, timepoint, and outcome values.
@@ -28,7 +28,7 @@
 ##' It can also be a logical vector of length 2 to indicate the type of uncertainty to be accounted for: estimation and residual variance.
 ##' In particular \code{c(TRUE,TRUE)} provides prediction intervals.
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
-##' Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
+##' Can also be \code{2} compute the degrees-of-freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
 ##' @param vcov [logical] should the variance-covariance matrix of the predictions be output as an attribute.
 ##' @param df [logical] should a Student's t-distribution be used to model the distribution of the predicted mean. Otherwise a normal distribution is used.
 ##' @param type [character] evaluate the expected outcome conditional on covariates only (\code{"static"}),
@@ -53,7 +53,7 @@
 ##' @return When \code{format="long"}, a data.frame containing the following columns:\itemize{
 ##' \item \code{estimate}: predicted mean.
 ##' \item \code{se}: uncertainty about the predicted mean.
-##' \item \code{df}: degree of freedom
+##' \item \code{df}: degrees-of-freedom
 ##' \item \code{lower}: lower bound of the confidence interval of the predicted mean
 ##' \item \code{upper}: upper bound of the confidence interval of the predicted mean
 ##' }
@@ -94,7 +94,6 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
 
     ## ** extract from object
     mycall <- match.call()
-    options <- LMMstar.options()
     name.Y <- object$outcome$var
     U.time <- object$time$levels
     name.time <- attr(object$time$var,"original")
@@ -111,7 +110,13 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
     ## ** normalize user imput
     ## *** dots
     dots <- list(...)
-
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+    dots$options <- NULL
+    
     ## hidden arguments
     if("transform.sigma" %in% names(dots)){
         transform.sigma <- dots$transform.sigma
@@ -250,7 +255,7 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
     }    
     mu <- theta[name.mu]
 
-    ## *** df: degrees of freedom
+    ## *** df: degrees-of-freedom
     if(is.null(df)){
         df <- !is.null(object$df) & se[1]
     }else if(!is.logical(df) & !is.numeric(df)){
@@ -259,7 +264,7 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
         df <- as.logical(df)
         if(se[1]==FALSE && df){
             message("Argument \'df\' ignored when the first element of argument \'se\' is FALSE. \n",
-                    "(can only evaluate degrees of freedom relative to the estimation error)\n")
+                    "(can only evaluate degrees-of-freedom relative to the estimation error)\n")
             df <- FALSE
         }
     }
@@ -366,11 +371,11 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
 
     ## vcov of the estimates
     if(se[1]>0 && type.prediction == "static"){
-        vcov.mu <- vcov(object, effects = "mean", p = p, robust = robust)
+        vcov.mu <- stats::vcov(object, effects = "mean", p = p, robust = robust, options = options)
     }
     if(df || se[2]>0 || type.prediction %in% c("dynamic","change","auc","auc-b")){
-        vcov.theta <- vcov(object, effects = list("all",c("all","gradient"))[[df+1]], p = p, robust = robust, df = df, 
-                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
+        vcov.theta <- stats::vcov(object, effects = list("all",c("all","gradient"))[[df+1]], p = p, robust = robust, df = df, 
+                                  transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE, options = options)
         if(df){
             dVcov.theta <- attr(vcov.theta,"gradient")
             attr(vcov.theta, "df") <- NULL
@@ -382,7 +387,7 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
     if(is.matrix(newdata)){
         X <- newdata
     }else{
-        X <- stats::model.matrix(object, newdata = newdata, effects = "mean", na.rm = FALSE)
+        X <- stats::model.matrix(object, newdata = newdata, effects = "mean", na.rm = FALSE, options = options)
     }
     if(!keep.intercept && "(Intercept)" %in% colnames(X)){
         X[,"(Intercept)"] <- 0
@@ -414,7 +419,7 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
     ## ** identify variance patterns
     if(type.prediction %in% c("dynamic","change","auc","auc-b") || se[2]){
 
-        newdesign <- stats::model.matrix(object, newdata = newdata, effect = "variance", simplify = FALSE, na.rm = FALSE)
+        newdesign <- stats::model.matrix(object, newdata = newdata, effect = "variance", simplify = FALSE, na.rm = FALSE, options = options)
         index.cluster <- newdesign$index.cluster
         index.clusterTime <- newdesign$index.clusterTime
         n.cluster <- length(index.cluster)
@@ -648,7 +653,7 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
         newdata <- object$data.original
     }
     if(format == "wide"){            
-        newdata.design <- stats::model.matrix(object, newdata = newdata, effects = "index", na.rm = FALSE)
+        newdata.design <- stats::model.matrix(object, newdata = newdata, effects = "index", na.rm = FALSE, options = options)
         newdata.index.cluster <- attr(newdata.design$index.cluster, "vectorwise")
         newdata.index.time <- attr(newdata.design$index.clusterTime, "vectorwise")        
     }
@@ -669,6 +674,10 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
 
     return(out)
 }
+
+## * predict.mlmm (documentation)
+##' @title Predicted Outcome Value by Muliple Linear Mixed Model.
+##' @description Estimate the expected outcome conditional on covariates and possibly on other outcomes based on group-specific linear mixed models.
 
 ## * predict.mlmm (code)
 ##' @export
@@ -714,7 +723,7 @@ predict.mlmm <- function(object, p = NULL, newdata = NULL, keep.data = FALSE, si
 
     ## ** extract
     ls.out <- lapply(names(ls.newdata), function(iBy){ ## iBy <- "glucagonAUC"
-        predict(object$model[[iBy]], p = theta[[iBy]], newdata = ls.newdata[[iBy]], keep.data = keep.data, simplify = simplify, ...)
+        stats::predict(object$model[[iBy]], p = theta[[iBy]], newdata = ls.newdata[[iBy]], keep.data = keep.data, simplify = simplify, options = options, ...)
     })
 
     ## ** reshape

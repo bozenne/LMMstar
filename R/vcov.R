@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: aug  6 2024 (15:50) 
+## Last-Updated: aug  9 2024 (17:39) 
 ##           By: Brice Ozenne
-##     Update #: 942
+##     Update #: 1037
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,8 +26,8 @@
 ##' or only for coefficients relative to the correlation structure (\code{"correlation"}).
 ##' Can also contain \code{"gradient"} to also output the gradient of the Variance-Covariance matrix .
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
-##' Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
-##' @param df [logical] Should degrees of freedom, computed using Satterthwaite approximation, for the model parameters be output.
+##' Can also be \code{2} compute the degrees-of-freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
+##' @param df [logical] Should degrees-of-freedom, computed using Satterthwaite approximation, for the model parameters be output.
 ##' @param newdata [data.frame] dataset relative to which the information should be computed. Only relevant if differs from the dataset used to fit the model.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the variance-covariance matrix. Only relevant if differs from the fitted values.
 ##' @param strata [character vector] When not \code{NULL}, only output the variance-covariance matrix for the estimated parameters relative to specific levels of the variable used to stratify the mean and covariance structure.
@@ -54,11 +54,15 @@ vcov.lmm <- function(object, effects = NULL, robust = FALSE, df = FALSE, strata 
                      newdata = NULL, p = NULL,
                      type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
     
-    options <- LMMstar.options()
-
     ## ** normalize user imput
     ## *** dots
     dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+    dots$options <- NULL
     dots$complete <- NULL ## for multcomp which passes an argument complete when calling vcov
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
@@ -85,7 +89,7 @@ vcov.lmm <- function(object, effects = NULL, robust = FALSE, df = FALSE, strata 
             keep.grad <- TRUE
             effects <- setdiff(effects, "gradient")
             if(object$args$df==0){
-                stop("Argument \'effects\' cannot contain \"gradient\" when no degrees of freedom have been stored. \n",
+                stop("Argument \'effects\' cannot contain \"gradient\" when no degrees-of-freedom have been stored. \n",
                      "Consider setting the argument \'df\' to TRUE when calling lmm. \n")
             }
             if(length(effects)==0){
@@ -105,6 +109,8 @@ vcov.lmm <- function(object, effects = NULL, robust = FALSE, df = FALSE, strata 
             effects[effects == "fixed"] <- "mean"
         }
     }
+    table.param <- stats::model.tables(object, effects = c("param",effects),
+                                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
 
     ## *** strata
     if(!is.null(strata)){
@@ -148,7 +154,7 @@ vcov.lmm <- function(object, effects = NULL, robust = FALSE, df = FALSE, strata 
         stop("Argument \'df\' must be a logical value. \n")
     }
     if(df && object$args$df==0){
-        stop("Argument \'df\' cannot be TRUE when no degrees of freedom have been stored. \n",
+        stop("Argument \'df\' cannot be TRUE when no degrees-of-freedom have been stored. \n",
              "Consider setting the argument \'df\' to TRUE when calling lmm. \n")
     }
 
@@ -156,8 +162,7 @@ vcov.lmm <- function(object, effects = NULL, robust = FALSE, df = FALSE, strata 
     test.new <- !is.null(newdata) || !is.null(p) || !test.notransform || object$args$type.information!=type.information || (df == TRUE && !object$args$df) || (robust == 2)
     ## need for new computation if: new dataset, param, transform, information, or df not computed before, or robust df instead of model-based df 
     if((test.new == FALSE) && (robust == FALSE)){
-        keep.name <- stats::setNames(names(coef(object, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE)),
-                                     names(coef(object, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)))    
+        keep.name <- stats::setNames(table.param$name, table.param$trans.name)
 
         vcov <- object$vcov[keep.name,keep.name,drop=FALSE]
         if(transform.names){
@@ -182,7 +187,7 @@ vcov.lmm <- function(object, effects = NULL, robust = FALSE, df = FALSE, strata 
 
         ## *** re-compute variance (and possibly df and gradient)
         if(!is.null(newdata)){
-            design <- stats::model.matrix(object, newdata = newdata, effects = "all", simplify = FALSE)
+            design <- stats::model.matrix(object, newdata = newdata, effects = "all", simplify = FALSE, options = options)
         }else{
             design <- object$design
         }
@@ -208,13 +213,12 @@ vcov.lmm <- function(object, effects = NULL, robust = FALSE, df = FALSE, strata 
         ## *** re-order and prepare export
         if("variance" %in% effects && transform.k %in% c("sd","var","logsd","logvar") && object$strata$n>1 && transform.names){
             ## re-order values when converting to sd with strata (avoid sd0:0 sd0:1 sd1:0 sd1:1 sd2:0 sd2:1 ...)a
-            out.name <- names(stats::coef(object, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = TRUE))
-            vcov <- outMoments$vcov[out.name,out.name,drop=FALSE]
+            vcov <- outMoments$vcov[table.param$trans.name,table.param$trans.name,drop=FALSE]
             if(df){
-                attr(vcov,"df") <- outMoments$df[out.name]
+                attr(vcov,"df") <- outMoments$df[table.param$trans.name]
             }
             if(keep.grad){
-                attr(vcov,"gradient") <- outMoments$dVcov[out.name,out.name,out.name,drop=FALSE]
+                attr(vcov,"gradient") <- outMoments$dVcov[table.param$trans.name,table.param$trans.name,table.param$trans.name,drop=FALSE]
             }
         }else{
             vcov <- outMoments$vcov
@@ -264,7 +268,7 @@ vcov.lmm <- function(object, effects = NULL, robust = FALSE, df = FALSE, strata 
 ##' Not relevant when \code{effects="contrast"}.
 ##' @param type.information [character] Should the expected information be used  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
-##' Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
+##' Can also be \code{2} compute the degrees-of-freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
 ##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
 ##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
 ##' @param transform.rho [character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"} - see details.
@@ -279,18 +283,23 @@ vcov.mlmm <- function(object, effects = "contrast", p = NULL, newdata = NULL, or
                       robust = object$args$robust, type.information = object$object$type.information, 
                       transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, simplify = TRUE, ...){
 
-    options <- LMMstar.options()
-    pool.method <- options$pool.method
-    adj.method <- options$adj.method
 
     ## ** normalize use input
 
     ## *** dots
     dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+    dots$options <- NULL
     dots$complete <- NULL ## for multcomp which passes an argument complete when calling vcov
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
+    pool.method <- options$pool.method
+    adj.method <- options$adj.method
     
     ## *** effects
     if(!is.character(effects) || !is.vector(effects)){
@@ -373,8 +382,8 @@ vcov.mlmm <- function(object, effects = "contrast", p = NULL, newdata = NULL, or
 
 
 ## * vcov.rbindWald_lmm
-##' @title Extract  the Variance-Covariance From Wald Tests for Linear Mixed Models
-##' @description Extract  the variance-covariance matrix from Wald tests applied to a linear mixed models.
+##' @title Extract the Variance-Covariance From Wald Tests For Linear Mixed Models
+##' @description Extract the variance-covariance matrix from Wald tests applied to a linear mixed models.
 ##'
 ##' @param object a \code{rbindWald_lmm} object.
 ##' @param effects [character] should the linear contrasts involved in the Wald test be output (\code{"Wald"}),
@@ -382,9 +391,10 @@ vcov.mlmm <- function(object, effects = "contrast", p = NULL, newdata = NULL, or
 ##' Can also contain \code{"gradient"} to also output the gradient of the Variance-Covariance matrix.
 ##' @param method [character vector] type of adjustment for multiple comparisons across the linear contrasts (one of \code{"none"}, \code{"bonferroni"}, ..., \code{"single-step2"}).
 ##' Only relevant when \code{effects = "Wald"}.
-##' @param df [logical] Should degree of freedom, computed using Satterthwaite approximation, for the model parameters be output.
+##' @param df [logical] Should degrees-of-freedom, computed using Satterthwaite approximation, for the model parameters be output.
 ##' @param ordering [character] should the output be ordered by name of the linear contrast (\code{"contrast"}) or by model (\code{"model"}).
 ##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
+##' Only relevant when \code{effects="all"}.
 ##' @param simplify [logical] should the output be a vector or a list with one element specific to each possible ordering (i.e. contrast or model).
 ##' @param ... Not used. For compatibility with the generic method.
 ##' 
@@ -393,15 +403,22 @@ vcov.mlmm <- function(object, effects = "contrast", p = NULL, newdata = NULL, or
 ##' @export
 vcov.rbindWald_lmm <- function(object, effects = "Wald", method = "none", df = FALSE, ordering = NULL, transform.names = TRUE, simplify = TRUE, ...){
 
-    options <- LMMstar.options()
-    adj.method <- options$adj.method
+    table.param <- stats::model.tables(object, effects = "param")
+    user.call <- match.call()
 
     ## ** normalize user input
     ## *** dots
     dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+    dots$options <- NULL
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
+    adj.method <- options$adj.method
 
     ## *** object
     if(object$args$univariate == FALSE){
@@ -430,55 +447,114 @@ vcov.rbindWald_lmm <- function(object, effects = "Wald", method = "none", df = F
         ordering <- match.arg(ordering, c("contrast","model"))
     }
 
-    ## ** extract
-    out <- vcov.Wald_lmm(object, effects = effects, df = df, transform.names = transform.names)
+    ## *** transform.names
+    if(!is.numeric(transform.names) && !is.logical(transform.names)){
+        stop("Argument \'transform.names\' must be numeric or logical. \n")
+    }
+    if(length(transform.names)!=1){
+        stop("Argument \'transform.names\' must have length 1. \n")
+    }
+    if(transform.names %in% c(0,1) == FALSE){
+        stop("Argument \'transform.names\' must be TRUE/1, 0.5, or FALSE/0. \n")
+    }
 
-    if(!is.null(ordering)){
+    ## ** extract
+
+    ## *** select value 
+    value.out <- vcov.Wald_lmm(object, effects = effects, df = df, transform.names = FALSE)
+    
+    ## *** rename
+    if(transform.names == FALSE){
+        if(simplify==FALSE && !is.null(ordering)){
+            newname <- table.param[[switch(ordering, "model" = "name", "contrast" = "model")]]                
+        }else{
+            newname <- table.param$Uname
+        }
+    }else{
+        if(simplify==FALSE && !is.null(ordering)){
+            newname <- table.param[[switch(ordering, "model" = "trans.name", "contrast" = "model")]]
+        }else{
+            newname <- table.param$trans.Uname
+        }
+    }
+       
+    ## vcov
+    if("all" %in% effects){
+        dimnames(value.out) <- list(newname,newname)
+    }
+
+    ## gradient
+    if("gradient" %in% effects){
+        index.name3 <- match(dimnames(attr(iOut,"gradient"))[[3]], table.param$Uname)
+
+        if("all" %in% effects){
+            index.name12 <- match(dimnames(attr(iOut,"gradient"))[[1]], table.param$Uname)
+            dimnames(attr(value.out,"gradient")) <- list(newname[[index.name12]],newname[[index.name12]],newname[[index.name3]])
+        }else if("Wald" %in% effects){
+            dimnames(attr(value.out,"gradient")) <- c(dimnames(attr(value.out,"gradient"))[1:2],list(newname[[index.name3]]))
+        }       
+    }
+            
+    ## *** ordering
+    if(!is.null(ordering)){        
         if("Wald" %in% effects){ ## effects can have an extra element "gradient", i.e. be a vector
-            ordering.out <- object$univariate[[c(model = "model", contrast = "term")[ordering]]]
+            table.univariate <- object$univariate
+            ordering.var <- switch(ordering, "model" = "model", "contrast" = "term")
+            ordering.out <- factor(table.univariate[[ordering.var]], unique(table.univariate[[ordering.var]])) 
         }else if("all" %in% effects){
-            ordering.out <- object$glht[[1]][[c(model = "model", contrast = "term")[ordering]]]
+            if(transform.names && simplify){
+                ordering.var <- switch(ordering, "model" = "model", "contrast" = "trans.name")
+            }else{
+                ordering.var <- switch(ordering, "model" = "model", "contrast" = "name")
+            }
+            ordering.out <- factor(table.param[[ordering.var]], unique(table.param[[ordering.var]]))
         }
     }else if(simplify == FALSE){
         if("Wald" %in% effects){
-            attr(out,"parameter") <- object$univariate$term
-            attr(out,"model") <- object$univariate$model
+            attr(value.out,"parameter") <- object$univariate$term
+            attr(value.out,"model") <- object$univariate$model
         }else if("all" %in% effects){
-            attr(out,"parameter") <- object$glht[[1]]$term
-            attr(out,"model") <- object$glht[[1]]$model
+            attr(value.out,"parameter") <- table.param$name
+            attr(value.out,"model") <- table.param$model
         }
     }
 
-    ## ** export
+    ## ** split
     if(simplify == FALSE && !is.null(ordering)){
-        out <- tapply(1:length(ordering.out), factor(ordering.out, levels = unique(ordering.out)), FUN = function(iIndex){ ## iIndex <- 1:2
-            iOut.grad <- attr(out,"gradient")
-            iOut <- out[iIndex,iIndex,drop=FALSE]
+        out <- tapply(1:length(ordering.out), ordering.out, FUN = function(iIndex){ ## iIndex <- 1:2
+            iOut.grad <- attr(value.out,"gradient")
+            iOut <- value.out[iIndex,iIndex,drop=FALSE]
             if("gradient" %in% effects){
                 attr(iOut,"gradient") <- iOut.grad[,,iIndex,drop=FALSE]
             }
             return(iOut)
         }, simplify = FALSE)
-    }else if(!is.null(ordering)){
-        neworder <- unlist(tapply(1:length(ordering.out), factor(ordering.out, levels = unique(ordering.out)), base::identity, simplify = FALSE))
-        out.grad <- attr(out,"gradient")
-        out <- out[neworder,neworder,drop=FALSE]
-        if("gradient" %in% effects){
-            attr(out,"gradient") <- out.grad[,,neworder,drop=FALSE]
+    }else{
+        if(!is.null(ordering)){
+            neworder <- order(ordering.out)
+            out <- value.out[neworder,neworder,drop=FALSE]
+            if("gradient" %in% effects){
+                attr(out,"gradient") <- attr(value.out,"gradient")[,,neworder,drop=FALSE]
+            }
+        }else{
+            out <- value.out
+
         }
     }
+
+    ## ** export
     return(out)
 }
 
 ## * vcov.Wald_lmm
-##' @title Extract the Variance-Covariance Matrix from Wald Tests
+##' @title Extract the Variance-Covariance Matrix From Wald Tests For Linear Mixed Model
 ##' @description Extract the variance-covariance matrix of the linear contrasts involved in the Wald test.
 ##'
 ##' @param object a \code{Wald_lmm} object.
 ##' @param effects [character vector] should the variance-covariance of the linear contrasts involved in the Wald test be output (\code{"Wald"}),
 ##' or of the linear mixed model parameters (\code{"all"})?
 ##' Can also contain \code{"gradient"} to also output the gradient of the Variance-Covariance matrix.
-##' @param df [logical] Should degree of freedom, computed using Satterthwaite approximation, for the model parameters be output.
+##' @param df [logical] Should degrees-of-freedom, computed using Satterthwaite approximation, for the model parameters be output.
 ##' Also output the first derivative of the variance-covariance matrix whenever the argument is stricly greater than 1.
 ##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
 ##' @param ... Not used. For compatibility with the generic method.
@@ -491,9 +567,17 @@ vcov.rbindWald_lmm <- function(object, effects = "Wald", method = "none", df = F
 ##' @export
 vcov.Wald_lmm <- function(object, effects = "Wald", df = FALSE, transform.names = TRUE, ...){
 
+    table.param <- stats::model.tables(object, effects = "param")
+
     ## ** normalize user input
     ## *** dots
     dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- NULL
+    }
+    dots$options <- NULL
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
@@ -517,7 +601,7 @@ vcov.Wald_lmm <- function(object, effects = "Wald", df = FALSE, transform.names 
         keep.grad <- TRUE
         effects <- setdiff(effects, "gradient")
         if(object$args$df==0){
-            stop("Argument \'effects\' cannot contain \"gradient\" when no degrees of freedom have been stored. \n",
+            stop("Argument \'effects\' cannot contain \"gradient\" when no degrees-of-freedom have been stored. \n",
                  "Consider setting the argument \'df\' to TRUE when calling lmm and anova. \n")
         }            
         if(length(effects)==0){
@@ -539,45 +623,51 @@ vcov.Wald_lmm <- function(object, effects = "Wald", df = FALSE, transform.names 
         stop("Argument \'df\' must be a logical value. \n")
     }
     if(df && object$args$df==0){
-        stop("Argument \'df\' cannot be TRUE when no degrees of freedom have been stored. \n",
+        stop("Argument \'df\' cannot be TRUE when no degrees-of-freedom have been stored. \n",
              "Consider setting the argument \'df\' to TRUE when calling lmm and anova. \n")
     }
-    
-    ## ** extract
-    out <- lapply(object$glht,"[[","vcov")
-    if(effects=="Wald"){
-        ls.contrast <- model.tables(object, effects = "contrast", simplify = FALSE)
-        out <- mapply(iVcov = out, iC = ls.contrast, FUN = function(iVcov,iC){iC %*% iVcov %*% t(iC)},
-                      SIMPLIFY = FALSE)
-    }else if(effects == "all"){
-        trans.names <- names(coef(object, effects = "all"))
-        if(transform.names){
-            dimnames(out[[1]]) <- list(trans.names,trans.names)
-        }
-    }
 
-    if(object$args$type=="user"){
-        out <- out[[1]]
+    ## ** extract
+    if(effects=="Wald"){
+        out <- lapply(object$glht,function(iGlht){
+            iGlht$linfct %*% iGlht$vcov %*% t(iGlht$linfct)
+        })
+        if(object$args$type=="user"){
+            out <- out[[1]]
+        }
+    }else if(effects == "all"){
+        out <- object$glht[[1]]$vcov
+        if(transform.names){
+            trans.names <- table.param$trans.name[match(rownames(out),table.param$name)]
+            dimnames(out) <- list(trans.names,trans.names)
+        }
     }
 
     ## ** add keep.grad
     if(keep.grad || (df && effects == "all")){
         
-        if(effects == "all"){
-            original.names <- names(coef(object, effects = "all", backtransform = TRUE))
-            dVcov <- object$glht[[1]]$dVcov
-            if(transform.names){
-                dimnames(dVcov) <- list(trans.names[match(dimnames(dVcov)[[1]], original.names)], trans.names[match(dimnames(dVcov)[[1]], original.names)], trans.names)
-            }
+        if(transform.names){
+            dparam.names <- table.param$trans.name[match(dimnames(object$glht[[1]]$dVcov)[[3]],table.param$name)]
         }else if(effects == "Wald"){
-            trans.names <- names(coef(object, effects = "all", backtransform = !transform.names))
+            dparam.names <- table.param$name[match(dimnames(object$glht[[1]]$dVcov)[[3]],table.param$name)]
+        }
+
+        if(effects == "Wald"){
             n.contrast <- NROW(ls.contrast[[1]])
             name.contrast <- rownames(ls.contrast[[1]])
-
-            dVcov <- array(NA, dim = c(n.contrast,n.contrast,length(trans.names)), dimnames = list(name.contrast,name.contrast,trans.names))
+            dVcov <- array(NA, dim = c(n.contrast,n.contrast,length(dparam.names)),
+                           dimnames = list(name.contrast,name.contrast,dparam.names))
             contrast <- ls.contrast[[1]][,rownames(object$glht[[1]]$dVcov),drop=FALSE] ## need to subset in the case dVcov is only partially stored (only first two dimension relevant to the contrast)
-            for(iParam in 1:length(trans.names)){ ## iParam <- 1
+            for(iParam in 1:length(dparam.names)){ ## iParam <- 1
                 dVcov[,,iParam] <- contrast %*% object$glht[[1]]$dVcov[,,iParam] %*% t(contrast)
+            }
+        }else if(effects == "all"){
+            dVcov <- object$glht[[1]]$dVcov
+            if(transform.names){
+                ## trans.names[match(dimnames(dVcov)[[1]], table.param$name)] may differ from trans.names when only a subset of dVcov is exported (simplify = 0.5) 
+                dimnames(dVcov) <- list(table.param$trans.name[match(dimnames(dVcov)[[1]], table.param$name)],
+                                        table.param$trans.name[match(dimnames(dVcov)[[2]], table.param$name)],
+                                        dparam.names)
             }
         }
 
@@ -586,21 +676,22 @@ vcov.Wald_lmm <- function(object, effects = "Wald", df = FALSE, transform.names 
         }
     }
     
-    ## ** add degrees of freedom
+    ## ** add degrees-of-freedom
     if(df){
-        if(object$args$type=="user"){
-            if(effects == "all"){
-                iDF <- .df_contrast(contrast = NULL, vcov = out, dVcov.param = dVcov)
-                attr(out,"df") <- stats::setNames(rep(NA, length(trans.names)), trans.names) ## handle the case where simplify is used, i.e., not all dVcov is stored
-                attr(out,"df")[names(iDF)] <- iDF
-            }else if(effects == "Wald"){
+        if(effects == "Wald"){
+            if(object$args$type=="user"){
                 attr(out, "df") <- setNames(object$univariate$df,rownames(object$univariate))
+            }else{
+                for(iName in names(out)){ ## iName <- names(out)[1]
+                    attr(out[[iName]], "df") <- setNames(object$univariate[object$univariate$name==iName,"df"],rownames(object$univariate)[object$univariate$name==iName])
+                }        
             }
-        }else{
-            for(iName in names(out)){ ## iName <- names(out)[1]
-                attr(out[[iName]], "df") <- setNames(object$univariate[object$univariate$name==iName,"df"],rownames(object$univariate)[object$univariate$name==iName])
-            }        
+        }else if(effects == "all"){
+            iDF <- .df_contrast(contrast = NULL, vcov = out, dVcov.param = dVcov)
+            attr(out,"df") <- stats::setNames(rep(NA, NCOL(out)), colnames(out)) ## handle the case where simplify is used, i.e., not all dVcov is storeda
+            attr(out,"df")[names(iDF)] <- iDF
         }
+        
     }
 
     ## ** export

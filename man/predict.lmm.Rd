@@ -39,7 +39,7 @@ It can also be a logical vector of length 2 to indicate the type of uncertainty 
 In particular \code{c(TRUE,TRUE)} provides prediction intervals.}
 
 \item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
-Not feasible for dynamic predictions when using REML.}
+Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.}
 
 \item{df}{[logical] should a Student's t-distribution be used to model the distribution of the predicted mean. Otherwise a normal distribution is used.}
 

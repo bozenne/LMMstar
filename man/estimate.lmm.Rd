@@ -7,7 +7,7 @@
 \method{estimate}{lmm}(
   x,
   f,
-  df = !is.null(x$df),
+  df = !is.null(x$df) & !robust,
   robust = FALSE,
   type.information = NULL,
   level = 0.95,
@@ -27,7 +27,8 @@
 \item{df}{[logical] Should degree of freedom, computed using Satterthwaite approximation, for the parameter of interest be output.
 Can also be a numeric vector providing providing the degrees of freedom relative to each estimate.}
 
-\item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.}
+\item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
+Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.}
 
 \item{type.information}{[character] Should the expected information be used  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).}
 
@@ -49,6 +50,9 @@ Otherwise consider each individual output of argument \code{f}.}
 }
 \description{
 Perform a first order delta method
+}
+\details{
+Argument \bold{robust}: degrees of freedom estimation does not seem reliable when \code{TRUE}.
 }
 \examples{
 

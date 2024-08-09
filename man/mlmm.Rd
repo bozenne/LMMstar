@@ -37,6 +37,7 @@ Argument passed to \code{\link{anova.lmm}}.
 Right hand side can be specified via an attribute \code{"rhs"}.}
 
 \item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
+Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
 Argument passed to \code{\link{anova.lmm}}.}
 
 \item{df}{[logical] Should the degree of freedom be computed using a Satterthwaite approximation?

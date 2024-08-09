@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: jul 15 2024 (10:28) 
+## Last-Updated: aug  7 2024 (13:28) 
 ##           By: Brice Ozenne
-##     Update #: 168
+##     Update #: 175
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -587,6 +587,54 @@ test_that("lmm with missing values", {
     ## identify a unique covariance pattern despite missing values
     expect_true(is.matrix(sigma(xxx)))
     expect_true(is.matrix(sigma(yyy)))
+})
+
+## * from: Sara Friday 02-08-24 at 17:02
+test_that("sigma with block CS", {
+
+    data(sleepL, package = "LMMstar")
+    sleepL$rep <- repetition(~1|id, data = sleepL)
+    sleepL$repDay <- repetition(~day|id, data = sleepL)
+    
+    ## summarize( ~ deprivation + vigilance + day, data = sleepL)
+    ## summarize(signal.34 ~ deprivation + vigilance + day, data = sleepL)
+    ## plot(summarizeNA(data = sleepL[!duplicated(paste(sleepL$id,sleepL$day,sleepL$vigilance)),], repetition = ~day+vigilance|id), variable = "signal.34")
+    
+    e.lmmRe <- lmm(formula = signal.34 ~ deprivation + vigilance + (1|id/day), 
+                   data = sleepL)
+    expect_equal(logLik(e.lmmRe),-109.7932, tol = 1e-4)
+    sigma(e.lmmRe) ## check there is no error
+    
+    table.GS <- data.frame("estimate" = c(14.10337261, 0.70568033, 0.37322257), 
+                           "se" = c(0.33844564, 0.3058606, 0.27497743), 
+                           "df" = c(65.62811806, 33.46714197, 63.85110742), 
+                           "lower" = c(13.42757262, 0.08373206, -0.17613267), 
+                           "upper" = c(14.7791726, 1.3276286, 0.9225778), 
+                           "p.value" = c(0, 0.02736532, 0.17946925))
+    expect_equivalent(model.tables(e.lmmRe),table.GS, tol = 1e-4)
+    
+
+    e.lmmCS <- lmm(formula = signal.34 ~ deprivation + vigilance, structure = CS(~day, type = "homogeneous"), 
+                   repetition = ~1|id, data = sleepL)
+    expect_equal(logLik(e.lmmCS),-109.7932, tol = 1e-4)
+    sigma(e.lmmCS) ## check there is no error
+    expect_equivalent(model.tables(e.lmmCS),table.GS, tol = 1e-4)
+
+    e.lmmCS.rep <- lmm(formula = signal.34 ~ deprivation + vigilance, structure = CS(~day, type = "homogeneous"), 
+                       repetition = ~rep|id, data = sleepL)
+    expect_equal(logLik(e.lmmCS.rep),-109.7932, tol = 1e-4)
+    sigma(e.lmmCS.rep) ## check there is no error
+    expect_equivalent(model.tables(e.lmmCS.rep),table.GS, tol = 1e-4)
+
+    e.lmmCS.repDay <- lmm(formula = signal.34 ~ deprivation + vigilance, structure = CS(~day, type = "homogeneous"), 
+                          repetition = ~repDay|id, data = sleepL)
+    expect_equal(logLik(e.lmmCS.repDay),-109.7932, tol = 1e-4)
+    sigma(e.lmmCS.repDay) ## check there is no error
+    expect_equivalent(model.tables(e.lmmCS.repDay),table.GS, tol = 1e-4)
+    
+    
+    
+
 })
 
 ######################################################################

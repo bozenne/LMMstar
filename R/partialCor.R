@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: jul 31 2024 (10:40) 
+## Last-Updated: aug  8 2024 (11:37) 
 ##           By: Brice Ozenne
-##     Update #: 532
+##     Update #: 543
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -53,7 +53,7 @@
 ##'       \item \code{"CS"}: compound symmetry by block. It assumes constant variance and correlation over repetitions.
 ##' }}
 ##'
-##' @return A data.frame with the estimate partial correlation (rho), standard error, degree of freedom, confidence interval, and p-value (test of no correlation).
+##' @return A data.frame with the estimate partial correlation (rho), standard error, degrees-of-freedom, confidence interval, and p-value (test of no correlation).
 ##' When \code{structure="CS"} or \code{structure="HCS"} is used with repeated measurements, a second correlation coefficient (r) is output where the between subject variance has been removed (similar to Bland et al. 1995).
 ##'
 ##' @references
@@ -323,7 +323,7 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
             e.lmm <- lmm(formula.mean, df = df, repetition = formula.repetition,
                          data = dataL, structure = structure2,
                          control = list(optimizer = "FS"))
-            out.confint <- confint(e.lmm, df = df, columns = c("estimate","se","df","lower","upper","p.value"), effects = "correlation", transform.rho = transform.rho, ...)
+            out.confint <- stats::confint(e.lmm, df = df, columns = c("estimate","se","df","lower","upper","p.value"), effects = "correlation", transform.rho = transform.rho, ...)
 
             ## identify the marginal correlation coefficient
             name.rho <- e.lmm$design$param[e.lmm$design$param$type=="rho","name"]
@@ -337,7 +337,7 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
                 name.rhoWithinBlock <- name.rho[grepl("R.",code.rho)]
                 name.rhoAcrossBlock <- setdiff(name.rho, c(name.rhoWithinBlock, name.rho.marginal))
                 test.atanh <- identical(attr(out,"backtransform")$FUN,"tanh")
-                out2 <- estimate(e.lmm, df = df, f = function(p){ ## p <- coef(e.lmm, effects = "all")
+                out2 <- lava::estimate(e.lmm, df = df, f = function(p){ ## p <- coef(e.lmm, effects = "all")
                     if(any(p[name.rhoWithinBlock]<0)){
                         iOut <- c(NA,NA)
                     }else{
@@ -361,7 +361,7 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
         }else{
             e.lmm <- mlmm(formula.mean, df = df, repetition = formula.repetition, data = dataL, structure = structure2, transform.rho = transform.rho, 
                           by = by, effects = "correlation", contrast.rbind = effects, control = list(optimizer = "FS"), trace = FALSE)
-            out <- confint(e.lmm, df = df, columns = c("estimate","se","df","lower","upper","p.value"), ...)
+            out <- stats::confint(e.lmm, df = df, columns = c("estimate","se","df","lower","upper","p.value"), ...)
 
         }
 
@@ -406,13 +406,13 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
 
             ## run test linear hypothesis
             if(all(rowSums(Cmat!=0)==1) || !is.null(transform.rho)){
-                out <- confint(anova(e.lmm, effects = Cmat, transform.rho = transform.rho),
-                               method = method, columns = c("estimate","se","df","lower","upper","p.value"), ...)
+                out <- stats::confint(stats::anova(e.lmm, effects = Cmat, transform.rho = transform.rho),
+                                      method = method, columns = c("estimate","se","df","lower","upper","p.value"), ...)
             }else{
-                out0 <- confint(anova(e.lmm, effects = Cmat, transform.rho = "none"),
-                                method = "none", columns = c("estimate","se","df","p.value"), ...)
-                out <- confint(anova(e.lmm, effects = Cmat, transform.rho = "atanh"),
-                               method = method, columns = c("estimate","se","df","p.value"), ...)
+                out0 <- stats::confint(stats::anova(e.lmm, effects = Cmat, transform.rho = "none"),
+                                       method = "none", columns = c("estimate","se","df","p.value"), ...)
+                out <- stats::confint(stats::anova(e.lmm, effects = Cmat, transform.rho = "atanh"),
+                                      method = method, columns = c("estimate","se","df","p.value"), ...)
                 out$estimate <- out0$estimate
                 out$se <- out0$se
                 out$df <- out0$df
@@ -421,7 +421,7 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
         }else{
             e.lmm <- mlmm(formula.mean, df = df, repetition = formula.repetition, data = dataL, structure = structure, transform.rho = transform.rho,
                           by = by, effects = "correlation", contrast.rbind = effects, name.short = name.short, trace = FALSE)
-            out <- confint(e.lmm, columns = c("estimate","se","df","lower","upper","p.value"))
+            out <- stats::confint(e.lmm, columns = c("estimate","se","df","lower","upper","p.value"))
         }
     }
 
@@ -457,12 +457,24 @@ partialCor.formula <- function(object, repetition, ...){
 partialCor.lmm <- function(object, level = 0.95, R2 = FALSE, se = TRUE, df = TRUE, ...){
 
     ## ** normalize input
+
+    ## *** dots
+    dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+        dots$options <- NULL
+    }    
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
+    ## *** df
     object.df <- object$df
     if(is.null(object.df)){
-        stop("Cannot compute the partial correlation when the degrees of freedom are not computed. \n",
+        stop("Cannot compute the partial correlation when the degrees-of-freedom are not computed. \n",
              "Consider calling \'lmm\' with the argument df=TRUE. \n")
     }
-    mytable <- model.tables(object, columns = c("estimate","statistic","df"))
+    mytable <- stats::model.tables(object, columns = c("estimate","statistic","df"))
 
     name.param <- setdiff(rownames(mytable),"(Intercept)")
     n.param <- length(name.param)
@@ -470,26 +482,22 @@ partialCor.lmm <- function(object, level = 0.95, R2 = FALSE, se = TRUE, df = TRU
     out <- matrix(NA, nrow = n.param, ncol = 6,
                   dimnames = list(name.param, c("estimate","se","df","lower","upper","p.value")))
 
-    dots <- list(...)
-    if(length(dots)>0){
-        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
-    }
 
     ## ** partial correlation
-    value.meancoef <- coef(object, effects = "mean")
+    value.meancoef <- stats::coef(object, effects = "mean")
     name.meancoef <- names(value.meancoef)
     keep.meancoef <- setdiff(name.meancoef, "(Intercept)")
 
     if(se == FALSE){
         SSEstar <- stats::df.residual(object)
-        Einfo <- vcov(object, type.information = "expected", effects = "mean")
+        Einfo <- stats::vcov(object, type.information = "expected", effects = "mean")
         SSRstar.indiv <- value.meancoef[keep.meancoef]^2 / diag(Einfo)[keep.meancoef]
         out[,"estimate"] <- sign(value.meancoef[keep.meancoef])*sqrt(abs(SSRstar.indiv) / (SSRstar.indiv + SSEstar))
     }else{
         out <- lava::estimate(object, df = df, level = level, function(p){ ## p <- coef(object, effects = "all")
 
             iSSEstar <- stats::df.residual(object, p = p)
-            iEinfo <- vcov(object, p = p, type.information = "expected", effects = "mean")
+            iEinfo <- stats::vcov(object, p = p, type.information = "expected", effects = "mean")
             iSSRstar.indiv <- p[keep.meancoef]^2 / diag(iEinfo)[keep.meancoef]
             return(sign(p[keep.meancoef])*sqrt(abs(iSSRstar.indiv) / (iSSRstar.indiv + iSSEstar)))
 
@@ -499,7 +507,7 @@ partialCor.lmm <- function(object, level = 0.95, R2 = FALSE, se = TRUE, df = TRU
     ## via another formula
     ## out[,"estimate"] <- sign(mytable[name.param,"statistic"])*sqrt(mytable[name.param,"statistic"]^2/(mytable[name.param,"df"]+mytable[name.param,"statistic"]^2))
     ## out <- estimate(object, df = df, level = level, function(p){ ## p <- coef(object, effects = "all")
-    ##     newSigma <- vcov(object, p = p, df = TRUE)
+    ##     newSigma <- stats::vcov(object, p = p, df = TRUE)
     ##     newStat <- p[name.param]/sqrt(diag(newSigma[name.param,name.param,drop=FALSE]))
     ##     newDf <- attr(newSigma,"df")[name.param]
     ##     return(sign(newStat)*sqrt(newStat^2/(newDf + newStat^2)))
@@ -508,7 +516,7 @@ partialCor.lmm <- function(object, level = 0.95, R2 = FALSE, se = TRUE, df = TRU
     ## ** R2
     if(R2){
         ## linear contrasts
-        ls.C <- lapply(anova(object, effects = "mean", df = FALSE, ci = TRUE)$glht[[1]], function(iAOV){
+        ls.C <- lapply(stats::anova(object, effects = "mean", df = FALSE, ci = TRUE)$glht[[1]], function(iAOV){
             iAOV$linfct[,name.meancoef,drop=FALSE]
         })
         ls.C[[length(ls.C)+1]] <- matrix(0, nrow = length(keep.meancoef), ncol = NCOL(ls.C[[1]]),
@@ -526,15 +534,15 @@ partialCor.lmm <- function(object, level = 0.95, R2 = FALSE, se = TRUE, df = TRU
         if(se == FALSE){
 
             SSEstar <- stats::df.residual(object)
-            Einfo <- vcov(object, type.information = "expected", effects = "mean")
+            Einfo <- stats::vcov(object, type.information = "expected", effects = "mean")
             SSRstar.indiv <- sapply(ls.C, function(iC){t(iC %*% cbind(value.meancoef)) %*% solve(iC %*% Einfo %*% t(iC)) %*% (iC %*% cbind(value.meancoef))})
             out2[,"estimate"] <- SSRstar.indiv / (SSRstar.indiv + SSEstar)
 
         }else{
-            out2 <- estimate(object, df = df, level = level, function(p){ ## p <- coef(object, effects = "all")
+            out2 <- lava::estimate(object, df = df, level = level, function(p){ ## p <- coef(object, effects = "all")
 
                 iSSEstar <- stats::df.residual(object, p = p)
-                iEinfo <- vcov(object, p = p, type.information = "expected", effects = "mean")
+                iEinfo <- stats::vcov(object, p = p, type.information = "expected", effects = "mean")
                 iSSRstar.indiv <- sapply(ls.C, function(iC){t(iC %*% cbind(p[name.meancoef])) %*% solve(iC %*% iEinfo %*% t(iC)) %*% (iC %*% cbind(p[name.meancoef]))})
                 return(iSSRstar.indiv / (iSSRstar.indiv + iSSEstar))
 

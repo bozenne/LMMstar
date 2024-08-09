@@ -24,7 +24,8 @@
 \item{effects}{[character] Should the influence function for all coefficients be output (\code{"all"}),
 or only for coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 or only for coefficients relative to the variance structure (\code{"variance"}),
-or only for coefficients relative to the correlation structure (\code{"correlation"}).}
+or only for coefficients relative to the correlation structure (\code{"correlation"}).
+Can also contain \code{"gradient"} to also output the gradient of the influence function.}
 
 \item{p}{[numeric vector] value of the model coefficients at which to evaluate the influence function. Only relevant if differs from the fitted values.}
 
@@ -44,7 +45,10 @@ The correlation however will not (necessarily) match the model-based correlation
 \item{...}{Not used. For compatibility with the generic method.}
 }
 \value{
-A matrix with one row per observation and one column per parameter.
+A matrix with one row per observation and one column per parameter. \itemize{
+\item \code{df=TRUE}: with an attribute \code{"df"} containing a numeric vector with one element per parameter. \cr
+\item \code{effects} includes \code{"gradient"}: with an attribute \code{"gradient"} containing a 3 dimensional array with dimension the number of parameters.
+}
 }
 \description{
 Extract the influence function of linear mixed model parameters.

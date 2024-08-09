@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 28 2024 (19:14) 
 ## Version: 
-## Last-Updated: aug  6 2024 (17:41) 
+## Last-Updated: aug  8 2024 (16:03) 
 ##           By: Brice Ozenne
-##     Update #: 179
+##     Update #: 197
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,9 +17,12 @@
 
 ## * pool.rbindWald_lmm
 pool.rbindWald_lmm <- function(object, method, qt = NULL,
-                               null, level, df, tol = 1e-10){
+                               null, level, df, tol = 1e-10, options){
 
-    options <- LMMstar.options()
+    if(is.null(options)){
+        options <- LMMstar.options()
+    }
+    
     pool.method <- options$pool.method
     adj.method <- options$adj.method
     n.sample <- options$n.sampleCopula
@@ -32,7 +35,11 @@ pool.rbindWald_lmm <- function(object, method, qt = NULL,
         stop("Cannot evaluate the uncertainty of pooling estimator without the full variance-covariance matrix. \n",
              "Consider setting the argument \'simplify\' to FALSE when calling anova. \n")
     }
-    
+    if(!is.na(level) && object$args$df==FALSE && any(method %in% c("pool.se","pool.gls","pool.gls1","p.rejection"))){
+        stop("Cannot evaluate the uncertainty of pooling estimator without the derivative of the variance-covariance matrix. \n",
+             "Consider setting the argument \'df\' to TRUE when calling lmm and anova. \n")
+    }
+
     ## *** qt (critical quantile)
     if("p.rejection" %in% method){
         if(!is.null(qt)){
@@ -47,10 +54,10 @@ pool.rbindWald_lmm <- function(object, method, qt = NULL,
             if(is.numeric(qt)){
                 critical.threshold <- qt
             }else{
-                critical.threshold <- confint(object, method = qt, columns = "quantile")$quantile
+                critical.threshold <- stats::confint(object, method = qt, columns = "quantile", options = options)$quantile
             }
         }else{
-            critical.threshold <- confint(object, columns = "quantile")$quantile
+            critical.threshold <- stats::confint(object, columns = "quantile", options = options)$quantile
         }
     }
 
@@ -80,29 +87,28 @@ pool.rbindWald_lmm <- function(object, method, qt = NULL,
     independence <- object$object$independence
     
     ## estimates
-    tableUni <- model.tables(object, method = "none", columns = c("estimate","se","statistic","df","null"))
+    tableUni <- stats::model.tables(object, method = "none", columns = c("estimate","se","statistic","df","null"), options = options)
     n.test <- NROW(tableUni)
     name.test <- rownames(tableUni)
 
     ## variance
     if(any(method %in% c("pool.se","pool.gls","pool.gls1")) || ((!is.na(level) || null) && "p.rejection" %in% method)){
-        Wald.Sigma <- vcov(object, effects = list("Wald",c("Wald","gradient"))[[(!is.na(level))+1]],
-                           method = "none", transform.names = FALSE)
+        Wald.Sigma <- stats::vcov(object, effects = list("Wald",c("Wald","gradient"))[[(!is.na(level))+1]],
+                                  method = "none", transform.names = FALSE, options = options)
         Wald.dSigma <- attr(Wald.Sigma,"gradient")
         attr(Wald.dSigma,"gradient") <- NULL
         
     }
     if(!is.na(level) && any(method %in% c("average", "pool.se","pool.gls","pool.gls1","p.rejection"))){
-        contrast <- model.tables(object, effects = "contrast", simplify = FALSE)[[1]]
-        All.Sigma <- vcov(object, effects = list("all",c("all","gradient"))[[df+1]],
-                          method = "none", transform.names = FALSE)
+        contrast <- stats::model.tables(object, effects = "contrast", transform.names = FALSE, simplify = FALSE, options = options)
+        All.Sigma <- stats::vcov(object, effects = list("all",c("all","gradient"))[[df+1]],
+                                 method = "none", transform.names = FALSE, options = options)
         All.dSigma <- attr(All.Sigma,"gradient")
         attr(All.Sigma,"gradient") <- NULL
     }
 
 
     ## ** point estimate
-    message <- NULL
     if("p.rejection" %in% method){
         out[pool.name["p.rejection"],"estimate"] <- 1 - mean(stats::pt(critical.threshold - tableUni$statistic, df = tableUni$df) - stats::pt(-critical.threshold - tableUni$statistic, df = tableUni$df))
     }
@@ -129,7 +135,7 @@ pool.rbindWald_lmm <- function(object, method, qt = NULL,
                 if(length(index.subset)==0){
                     stop("All eigenvalues of the variance-covariance matrix are close to 0 (<",tol,"). \n",sep="")
                 }
-                message <-  length(Wald.Sigma.eigen$values)-length(index.subset)
+                attr(out,"message.estimate") <-  paste(length(Wald.Sigma.eigen$values)-length(index.subset), " eigenvalues have been removed in the pseudo inverse")
                 lambda.k <- Wald.Sigma.eigen$values[index.subset]
                 q.kj <- Wald.Sigma.eigen$vector[,index.subset,drop=FALSE]
 
@@ -174,7 +180,7 @@ pool.rbindWald_lmm <- function(object, method, qt = NULL,
     if(!is.na(level) && any(method != "pool.rubin")){
 
         grad.pool <- matrix(0, nrow = sum(method!="pool.rubin"), ncol = NCOL(All.Sigma), dimnames = list(setdiff(method,"pool.rubin"), colnames(contrast)))
-        
+
         if("average" %in% method){
             grad.pool["average",] <- pool.contrast[rownames(pool.contrast)=="average",,drop=FALSE] %*% contrast
         }
@@ -231,7 +237,7 @@ pool.rbindWald_lmm <- function(object, method, qt = NULL,
         }
 
         if("p.rejection" %in% method){
-            ## Approximation: no variability of the degrees of freedom nor critical threshold
+            ## Approximation: no variability of the degrees-of-freedom nor critical threshold
             grad.statistic <- contrast / tableUni$se - (tableUni$estimate - tableUni$null) * apply(Wald.dSigma, MARGIN = 3, FUN = diag)  / (2 * tableUni$se^3)
             partial.integral <- stats::dt(critical.threshold - tableUni$statistic, df = tableUni$df) - stats::dt(-critical.threshold - tableUni$statistic, df = tableUni$df)
             grad.pool[method == "p.rejection",] <- colMeans(grad.statistic * partial.integral)
@@ -260,7 +266,7 @@ pool.rbindWald_lmm <- function(object, method, qt = NULL,
     }
 
 
-    ## ** degrees of freedom
+    ## ** degrees-of-freedom
     if(df == FALSE){
 
         out$df <- Inf

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 18 2021 (10:32) 
 ## Version: 
-## Last-Updated: jun 14 2023 (15:05) 
+## Last-Updated: aug  7 2024 (18:42) 
 ##           By: Brice Ozenne
-##     Update #: 13
+##     Update #: 16
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,10 +15,10 @@
 ## 
 ### Code:
 
-##' @title Contrasts and Reference Level 
+##' @title Contrasts and Reference Level in a Linear Mixed Model
 ##' @description Contrasts and reference level used when modeling the mean in a linear mixed modek.
 ##' 
-##' @param x an \code{lmm} object
+##' @param x an \code{lmm} object.
 ##' 
 ##' @return a list with two elements \itemize{
 ##' \item all: contrast matrix for each categorical or factor variable

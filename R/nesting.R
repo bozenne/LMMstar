@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 15 2024 (11:57) 
 ## Version: 
-## Last-Updated: May 18 2024 (12:22) 
+## Last-Updated: aug  8 2024 (11:24) 
 ##           By: Brice Ozenne
-##     Update #: 144
+##     Update #: 149
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -28,8 +28,8 @@
 .checkNesting <- function(objectH0, objectH1, sep = ".", tol = 1e-8){
    
     ## ** number of observations
-    nobsH0 <- nobs(objectH0)
-    nobsH1 <- nobs(objectH1)
+    nobsH0 <- stats::nobs(objectH0)
+    nobsH1 <- stats::nobs(objectH1)
     if(any(nobsH0 != nobsH1)){
         if(nobsH0["missing"]!=nobsH1["missing"]){
             stop("Mismatch between the number of observations between the two models - could be due to missing data. \n",
@@ -48,13 +48,13 @@
     }
 
     ## ** extract parameters
-    name.paramH0 <- names(coef(objectH0, effects = "all"))   
-    name.paramH1 <- names(coef(objectH1, effects = "all"))
-
-    table.paramH0 <- objectH0$design$param
-    table.paramH1 <- objectH1$design$param
-    type.paramH0 <- stats::setNames(table.paramH0[match(name.paramH0, table.paramH0$name),"type"], name.paramH0)
-    type.paramH1 <- stats::setNames(table.paramH1[match(name.paramH1, table.paramH1$name),"type"], name.paramH1)
+    table.paramH0 <- stats::model.tables(objectH0, effects = "param")
+    table.paramH1 <- stats::model.tables(objectH1, effects = "param")
+    
+    name.paramH0 <- table.paramH0$trans.name
+    name.paramH1 <- table.paramH1$trans.name
+    type.paramH0 <- table.paramH0$type
+    type.paramH1 <- table.paramH1$type
     if(any(table(factor(type.paramH1, levels = c("mu","sigma","k","rho"))) < table(factor(type.paramH0, levels = c("mu","sigma","k","rho"))))){
         ## table check
         tableType.paramH0 <- table(factor(type.paramH0, levels = c("mu","sigma","k","rho")))
@@ -346,12 +346,13 @@
 .corH02H1  <- function(objectH0, objectH1){
 
     ## ** extract from object
-    name.paramH0 <- names(coef(objectH0, effects = "all"))   
-    name.paramH1 <- names(coef(objectH1, effects = "all"))
-    table.paramH0 <- objectH0$design$param
-    table.paramH1 <- objectH1$design$param
-    type.paramH0 <- stats::setNames(table.paramH0[match(name.paramH0, table.paramH0$name),"type"], name.paramH0)
-    type.paramH1 <- stats::setNames(table.paramH1[match(name.paramH1, table.paramH1$name),"type"], name.paramH1)
+    table.paramH0 <- stats::model.tables(objectH0, effects = "param")
+    table.paramH1 <- stats::model.tables(objectH1, effects = "param")
+    
+    name.paramH0 <- table.paramH0$trans.name
+    name.paramH1 <- table.paramH1$trans.name
+    type.paramH0 <- table.paramH0$type
+    type.paramH1 <- table.paramH1$type
     rho.paramH0 <- name.paramH0[type.paramH0 %in% "rho"]
     rho.paramH1 <- name.paramH1[type.paramH1 %in% "rho"]
 

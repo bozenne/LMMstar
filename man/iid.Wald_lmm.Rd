@@ -8,8 +8,7 @@
 }
 \arguments{
 \item{effects}{[character] should the influence function for the linear contrasts involved in the Wald test be output (\code{"Wald"}),
-or for the linear mixed model parameters (\code{"all"}),
-or a logical value indicating whether the influence function has been stored?}
+or for the linear mixed model parameters (\code{"all"})?}
 
 \item{...}{Not used. For compatibility with the generic method.}
 

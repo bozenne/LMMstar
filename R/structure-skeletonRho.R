@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (13:27) 
 ## Version: 
-## Last-Updated: May 18 2024 (12:47) 
+## Last-Updated: aug  8 2024 (11:54) 
 ##           By: Brice Ozenne
-##     Update #: 1132
+##     Update #: 1133
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -38,13 +38,15 @@
     function(structure, data, 
              U.cluster, index.cluster,
              U.time, index.clusterTime, 
-             U.strata, index.clusterStrata) UseMethod(".skeletonRho")
+             U.strata, index.clusterStrata,
+             sep) UseMethod(".skeletonRho")
 
 ## * .skeletonRho.ID
 .skeletonRho.ID <- function(structure, data, 
                             U.cluster, index.cluster,
                             U.time, index.clusterTime, 
-                            U.strata, index.clusterStrata){
+                            U.strata, index.clusterStrata,
+                            sep){
 
     ## no correlation parameter
     return(structure)
@@ -58,7 +60,8 @@
 .skeletonRho.CS <- function(structure, data, 
                             U.cluster, index.cluster,
                             U.time, index.clusterTime, 
-                            U.strata, index.clusterStrata){
+                            U.strata, index.clusterStrata,
+                            sep){
 
     ## ** handle special case (no repetition)
     if(all(lengths(index.cluster)==1)){return(structure)}
@@ -98,10 +101,6 @@
     lp2X.cor <- structure$cor$lp2X
     lp2data.cor <- structure$cor$lp2data
     
-    ## sep
-    sep <- LMMstar.options()$sep[c("rho.name","rho.strata")]
-    
-
     ## ** special case (no covariate, only strata)
     if(length(reg.var)==0){
         vec.strataRho <- which(lengths(XpairPattern$LpU.strata)>0)
@@ -302,7 +301,8 @@
 .skeletonRho.RE <- function(structure, data, 
                             U.cluster, index.cluster,
                             U.time, index.clusterTime, 
-                            U.strata, index.clusterStrata){
+                            U.strata, index.clusterStrata,
+                            sep){
 
     ## ** handle special case (no repetition)
     if(all(lengths(index.cluster)==1)){return(structure)}
@@ -311,7 +311,8 @@
     structure <- .skeletonRho.CS(structure = structure, data = data, 
                                  U.cluster = U.cluster, index.cluster = index.cluster,
                                  U.time = U.time, index.clusterTime = index.clusterTime, 
-                                 U.strata = U.strata, index.clusterStrata = index.clusterStrata)
+                                 U.strata = U.strata, index.clusterStrata = index.clusterStrata,
+                                 sep = sep)
 
     ## ** relate correlation parameters to random effects
     n.strata <- length(U.strata)
@@ -386,7 +387,8 @@
 .skeletonRho.TOEPLITZ <- function(structure, data, 
                                   U.cluster, index.cluster,
                                   U.time, index.clusterTime, 
-                                  U.strata, index.clusterStrata){
+                                  U.strata, index.clusterStrata,
+                                  sep){
 
     ## ** handle special case (no repetition)
     if(all(lengths(index.cluster)==1)){return(structure)}
@@ -418,9 +420,6 @@
     lp2X.cor <- structure$cor$lp2X
     lp2data.cor <- structure$cor$lp2data
     
-    ## sep
-    sep <- LMMstar.options()$sep[c("rho.name","rho.strata")]
-
     ## type
     type <- structure$type
     
@@ -582,7 +581,8 @@
 .skeletonRho.UN <- function(structure, data, 
                             U.cluster, index.cluster,
                             U.time, index.clusterTime, 
-                            U.strata, index.clusterStrata){
+                            U.strata, index.clusterStrata,
+                            sep){
 
     ## ** handle special case (no repetition)
     if(all(lengths(index.cluster)==1)){return(structure)}
@@ -610,9 +610,6 @@
 
     ## levels
     M.level <- structure$cor$lp2data
-
-    ## sep
-    sep <- LMMstar.options()$sep[c("rho.name","rho.strata")]
 
     ## ** identify and name parameters
     ## name parameters

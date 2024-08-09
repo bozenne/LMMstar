@@ -37,7 +37,7 @@ or only coefficients relative to the correlation structure (\code{"correlation"}
 Not relevant when \code{effects="contrast"}.}
 
 \item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
-Not feasible for variance or correlation coefficients estimated by REML.}
+Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.}
 
 \item{type.information}{[character] Should the expected information be used  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).}
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 26 2022 (11:18) 
 ## Version: 
-## Last-Updated: aug  6 2024 (12:08) 
+## Last-Updated: aug  8 2024 (13:32) 
 ##           By: Brice Ozenne
-##     Update #: 717
+##     Update #: 727
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,14 +17,14 @@
 
 ## * ranef.lmm (documentation)
 ##' @title Estimate Random Effect From a Linear Mixed Model
-##' @description Recover the random effects from the variance-covariance parameter of a linear mixed model.
+##' @description Recover the random effects from the variance-covariance parameters of a linear mixed model.
 ##' @param object a \code{lmm} object.
 ##' @param effects [character] should the estimated random effects (\code{"mean"}) or the estimated variance/standard deviation of the random effects (\code{"variance"},\code{"std"}) be output?
 ##' @param scale [character] should the total variance, variance relative to each random effect, and residual variance be output (\code{"absolute"}).
 ##' Or the ratio of these variances relative to the total variance (\code{"relative"}).
 ##' @param se [logical] should standard error and confidence intervals be evaluated using a delta method?
 ##' Will slow down the execution of the function.
-##' @param df [logical] Should degrees of freedom, computed using Satterthwaite approximation, be output.
+##' @param df [logical] Should degrees-of-freedom, computed using Satterthwaite approximation, be output.
 ##' @param p [numeric vector] value of the model coefficients to be used. Only relevant if differs from the fitted values.
 ##' @param newdata [data.frame] dataset relative to which the random effects should be computed. Only relevant if differs from the dataset used to fit the model.
 ##' @param format [character] should each type of random effect be output in a data.frame (\code{format="long"})
@@ -70,6 +70,12 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
     ## ** normalize user input
     ## *** dots
     dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+    dots$options <- NULL
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
@@ -162,10 +168,10 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
                                 x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
                                 table.param = object$design$param)
         theta <- init$p
-        cumTau <- coef(object, p = theta, effects = c("variance","correlation"), transform.sigma = "square", transform.k = "var", transform.rho = "cov", transform.names = FALSE)
+        cumTau <- stats::coef(object, p = theta, effects = c("variance","correlation"), transform.sigma = "square", transform.k = "var", transform.rho = "cov", transform.names = FALSE, options = options)
     }else{
         theta <- object$param
-        cumTau <- coef(object, effects = c("variance","correlation"), transform.sigma = "square", transform.k = "var", transform.rho = "cov", transform.names = FALSE)
+        cumTau <- stats::coef(object, effects = c("variance","correlation"), transform.sigma = "square", transform.k = "var", transform.rho = "cov", transform.names = FALSE, options = options)
     }
 
     ## *** simplify
@@ -261,7 +267,7 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
 
         ## absolute
         if(se){
-            cumTau.var <- vcov(object, p = p, effects = c("variance","correlation"), transform.sigma = "square", transform.rho = "cov", transform.names = FALSE)
+            cumTau.var <- stats::vcov(object, p = p, effects = c("variance","correlation"), transform.sigma = "square", transform.rho = "cov", transform.names = FALSE, options = options)
             varDecomp.vcov <- apply(contrastRE, MARGIN = 3, FUN = function(iM){iM %*% cumTau.var %*% t(iM)}, simplify = FALSE)
             varDecomp.var <- do.call(cbind,lapply(varDecomp.vcov,diag))
         }else{
@@ -342,7 +348,7 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
 
         ## extract normalized residuals
         df.epsilon <- stats::residuals(object, newdata = newdata, p = p, keep.data = TRUE, type = "normalized2", format = "long",
-                                       simplify = (se==FALSE), fitted.ci = se) ## obtain gradient
+                                       simplify = (se==FALSE), fitted.ci = se, options = options) ## obtain gradient
         if (n.strata == 1) {
             df.epsilon$XXstrata.indexXX <- U.strata
         }
@@ -376,8 +382,7 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
         ls.out <- vector(mode = "list", length = n.RE)
         keep.datacol <- stats::na.omit(unique(c(attr(var.strata,"original"), df.hierarchy$variable)))
         if(se>0){
-            options <- LMMstar.options()
-            vcov.theta <- vcov(object, effects = list("all",c("all","gradient"))[[df+1]], transform.names = FALSE)                
+            vcov.theta <- stats::vcov(object, effects = list("all",c("all","gradient"))[[df+1]], transform.names = FALSE, options = options)                
         }
 
         for(iRE in 1:n.RE){ ## iRE <- 1
@@ -388,9 +393,9 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
 
             iSplit <- nlme::collapse(as.data.frame(df.epsilon[iHvar]), as.factor = FALSE)
             if(length(unique(iSplit))==1){
-                iSplit.Mdummy <- model.matrix(~1, data.frame(split = iSplit))
+                iSplit.Mdummy <- stats::model.matrix(~1, data.frame(split = iSplit))
             }else{
-                iSplit.Mdummy <- model.matrix(~0+split, data.frame(split = iSplit))
+                iSplit.Mdummy <- stats::model.matrix(~0+split, data.frame(split = iSplit))
             }
             iData <- as.data.frame(matrix(NA, nrow = NCOL(iSplit.Mdummy), ncol = length(keep.datacol),
                                           dimnames = list(NULL,keep.datacol)))
@@ -409,7 +414,7 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
                 iTau.strata <- varDecomp[iVar,]
             }else{
                 iStrata <- tapply(df.epsilon[[var.strata]], INDEX = iSplit, FUN = unique, simplify = TRUE)
-                iStrata.Mdummy <- model.matrix(~0+strata, data.frame(strata = as.factor(iStrata)))
+                iStrata.Mdummy <- stats::model.matrix(~0+strata, data.frame(strata = as.factor(iStrata)))
                 iTau.strata <- as.double(iStrata.Mdummy %*% cbind(varDecomp[iVar,]))
                 iData[attr(var.strata,"original")] <- iStrata ## attr(U.strata,"original")[iStrata,,drop=FALSE]
             }

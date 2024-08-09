@@ -30,7 +30,8 @@ Can also be use to specify linear combinations of coefficients or a contrast mat
 
 \item{rhs}{[numeric vector] the right hand side of the hypothesis. Only used when the argument \code{effects} is a matrix.}
 
-\item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.}
+\item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
+Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.}
 
 \item{df}{[logical] Should degrees of freedom be estimated using a Satterthwaite approximation?
 If yes F-distribution (multivariate) and Student's t-distribution (univariate) are used.

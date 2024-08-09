@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jun 27 2024 (11:48) 
 ## Version: 
-## Last-Updated: jun 28 2024 (11:12) 
+## Last-Updated: aug  8 2024 (10:01) 
 ##           By: Brice Ozenne
-##     Update #: 66
+##     Update #: 69
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,7 +16,7 @@
 ### Code:
 
 ## * dummy.coef.lmm (documentation)
-##' @title Extract Mean Coefficients in Original Coding from a Linear Mixed Model
+##' @title Extract Mean Coefficients in Original Coding From a Linear Mixed Model
 ##' @description This expands the mean coefficients of the linear mixed model into one coefficient per level of the original variable,
 ##' i.e., including the reference level(s) where the fitted coefficients are 0.
 ##'
@@ -50,6 +50,8 @@
 ##' @export
 dummy.coef.lmm <- function(object, use.na = FALSE, ...){
 
+    ## ** normalize user input
+    ## *** dots
     dots <- list(...)
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
@@ -63,7 +65,7 @@ dummy.coef.lmm <- function(object, use.na = FALSE, ...){
     design.mean <- object$design$mean
     dataClasses <- attr(attr(object$design$mean, "terms"),"dataClasses")
     if(is.null(attr(design.mean, "M.level"))){
-        design.mean <- .model.matrix_regularize(formula = formula(object), data = stats::model.frame(object), augmodel = TRUE, type = "mean", drop.X = object$design$drop.X)
+        design.mean <- .model.matrix_regularize(formula = stats::formula(object), data = stats::model.frame(object), augmodel = TRUE, type = "mean", drop.X = object$design$drop.X)
         term.labels <- attr(design.mean,"term.labels")
     }else{
         term.labels <- c("(Intercept)",attr(design.mean,"term.labels"))[attr(design.mean,"assign")+1]

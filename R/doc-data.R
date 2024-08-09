@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: aug  7 2024 (09:54) 
+## Last-Updated: aug  7 2024 (10:31) 
 ##           By: Brice Ozenne
-##     Update #: 155
+##     Update #: 158
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -177,12 +177,6 @@ NULL
 #' @references Vonesh and Chinchilli 1997. Linear and Nonlinear models for the analysis of repeated measurement (Table 5.4.1 on page 228). New York: Marcel Dekker.
 #' @keywords datasets
 NULL
-## calciumW <- read.table("inst/dataTXT/calcium1.txt", header = TRUE, na.string = ".")
-## calciumW$obstime1 <- as.numeric(calciumW$obstime1)
-## calciumW$dropout <- NULL
-## calciumW$girl <- as.factor(calciumW$girl)
-## calciumW$grp <- as.factor(calciumW$grp)
-## save(calciumW, file = "data/calciumW.rda")
 
 ## ** calciumL
 #' @title Data From The Calcium Supplements Study (Long Format)
@@ -208,22 +202,6 @@ NULL
 #' @references TO ADD
 #' @keywords datasets
 NULL
-## data("calciumW", package = "LMMstar")
-## dtW <- data.table::as.data.table(calciumW)
-## dtL <- data.table::melt(dtW, id.vars = c("girl","grp","dropout","dropvisit"),
-##                         measure.vars = patterns("time.obs","bmd"),
-##                         value.name = c("time.obs","bmd"), variable.name = "visit")
-## calciumL <- as.data.frame(dtL)
-## calciumL$time <- sapply(as.character(calciumL$visit), switch,
-##                          "1" = 0.0,
-##                          "2" = 0.5,
-##                          "3" = 1.0,
-##                          "4" = 1.5,
-##                          "5" = 2.0)
-## rownames(calciumL) <- NULL
-## save(calciumL, file = "data/calciumL.rda")
-##
-## str(calciumL)
 
 ## * ckd
 ## ** ckdW
@@ -277,11 +255,6 @@ NULL
 #' @keywords datasets
 NULL
 
-## data("ckdL", package = "LMMstar")
-## ckdL$visit <- as.factor(ckdL$visit)
-## ckdL$time <- as.numeric(as.character(ckdL$time))
-## save(ckdL, file = "data/ckdL.rda")
-
 ## * gastricbypass
 ## ** gastricbypassW
 #' @title Data From The Gastric Bypass Study (Wide Format)
@@ -332,20 +305,6 @@ NULL
 #' @references The effect of Roux-en-Y gastric bypass surgery on the gut mucosal gene expression profile and circulating gut hormones. \url{https://easddistribute.m-anage.com/from.storage?image=4iBH9mRQm1kfeEHULC2CxovdlyCtA1EHeVDdoffnZrAUGG9SHTO-U4ItnLU078eVkF1ZUZgYTy7THlTW3KSgFA2}
 #' @keywords datasets
 NULL
-## data("gastricbypassW")
-## dtW <- data.table::as.data.table(gastricbypassW)
-## dtL <- data.table::melt(dtW, id.vars = "id",
-##                         measure.vars = patterns("weight","glucagonAUC"),
-##                         value.name = c("weight","glucagonAUC"), variable.name = "time")
-## gastricbypassL <- as.data.frame(dtL)
-## gastricbypassL$visit <- gastricbypassL$time
-## gastricbypassL$time <- factor(gastricbypassL$visit, levels = 1:4,
-##                               labels = c("3monthsBefore","1weekBefore",
-##                                          "1weekAfter","3monthsAfter"))
-## gastricbypassL <- gastricbypassL[,c("id","visit","time","weight","glucagonAUC")]
-## save(gastricbypassL, file = "data/gastricbypassL.rda")
-
-## str(gastricbypassL)
 
 ## * ncgs
 ## ** ncgsW
@@ -372,12 +331,6 @@ NULL
 #' @references Grundy SM, Lan SP, Lachin J. The effects of chenodiol on biliary lipids and their association with gallstone dissolution in the National Cooperative Gallstone Study (NCGS). J Clin Invest. 1984 Apr;73(4):1156-66. doi: 10.1172/JCI111301.  
 #' @keywords datasets
 NULL
-## ncgsW <- read.table("inst/dataTXT/ncgs.txt", header = TRUE, na.string = ".")
-## ncgsW$group <- as.factor(ncgsW$group)
-## ncgsW$id <- as.factor(ncgsW$id)
-## save(ncgsW, file = "data/ncgsW.rda")
-##
-## str(ncgsW)
 
 ## ** ncgsL
 #' @title Data From National Cooperative Gallstone Study (Long Format)
@@ -401,23 +354,6 @@ NULL
 #' @references Grundy SM, Lan SP, Lachin J. The effects of chenodiol on biliary lipids and their association with gallstone dissolution in the National Cooperative Gallstone Study (NCGS). J Clin Invest. 1984 Apr;73(4):1156-66. doi: 10.1172/JCI111301.  
 #' @keywords datasets
 NULL
-## data("ncgsW")
-## ncgsL <- stats::reshape(ncgsW, direction  = "long",
-##                         idvar = "id",
-##                         varying = paste0("cholest",1:5),
-##                         v.names = "cholest",
-##                         timevar = "visit")
-## ncgsL$visit <- as.factor(ncgsL$visit)
-## rownames(ncgsL) <- NULL
-## ncgsL$time <- sapply(as.character(ncgsL$visit), switch,
-##                             "1" = 0,
-##                             "2" = 6,
-##                             "3" = 12,
-##                             "4" = 20,
-##                             "5" = 24)
-## save(ncgsL, file = "data/ncgsL.rda")
-##
-## str(ncgsL)
 
 ## * onycholysis
 ## ** onycholysisW
@@ -442,14 +378,6 @@ NULL
 #' @keywords datasets
 NULL
 
-## data(onycholysisW)
-## onycholysisL <- reshape(onycholysisW, direction = "long", idvar = "id", varying = list(paste0("response",1:7),paste0("time",1:7)), v.names = c("response","obstime"), times = c(0,4,8,12,24,36,48))
-## onycholysisL$treatment <- factor(onycholysisL$group, levels = c("none",levels(onycholysisL$group)))
-## onycholysisL$treatment[onycholysisL$time==0] <- "none"
-## onycholysisL$visit <- as.factor(as.numeric(as.factor(onycholysisL$time)))
-## rownames(onycholysisL) <- NULL
-## onycholysisL <- onycholysisL[,c("id","group","treatment","visit","time","obstime","response")]
-## save(onycholysisL, file = "data/onycholysisL.rda")
 
 ## ** onycholysisL
 #' @title Data From The toenail onycholysis Study (Long Format)
@@ -601,15 +529,6 @@ NULL
 #' @keywords datasets
 NULL
 
-## df.sleep <- read.table(file = "LMMstar/inst/dataTXT/sleep.txt")
-## sleepL <- data.frame(id = LMMstar:::addLeading0(as.numeric(as.factor(df.sleep$CIMBI))),
-##                        deprivation = as.logical(df.sleep$SleepDeprivation==1),
-##                        condition = df.sleep$Condition,
-##                        vigilance = df.sleep$Vigilance,
-##                        signal.34 = round(1 + df.sleep$LogSlowOsc_00122_0034*2,2),
-##                        signal.98 = round(1 + df.sleep$LogSlowOsc_0122_098*2,2))
-## save(calciumW, file = "data/calciumW.rda")
-
 ## * swabs
 ## ** swabsW
 #' @title Data From The SWABS Study (Wide Format)
@@ -635,11 +554,6 @@ NULL
 #' @references Grundy SM, Lan SP, Lachin J. The effects of chenodiol on biliary lipids and their association with gallstone dissolution in the National Cooperative Gallstone Study (SWABS). J Clin Invest. 1984 Apr;73(4):1156-66. doi: 10.1172/JCI111301.  
 #' @keywords datasets
 NULL
-## library(reshape2)
-## data(swabsL)
-## swabsW <- dcast(swabsL, formula = crowding+family~name, value.var = "swabs")
-## save(swabsW, file = "data/swabsW.rda")
-## str(swabsW)
 
 ## ** swabsL
 #' @title Data From The SWABS Study (Long Format)
@@ -662,15 +576,6 @@ NULL
 #' @references TODO
 #' @keywords datasets
 NULL
-## swabsL <- read.table("inst/dataTXT/swabs.txt", header = TRUE, na.string = ".")
-## swabsL$family <- as.factor(swabsL$family)
-## swabsL$crowding <- factor(swabsL$crowding, 
-##             levels = c("uncrow","crow","overcrow"))
-## swabsL$name <- factor(swabsL$name,
-##    levels = c("mother","father", "child1","child2","child3"))
-## swabsL <- swabsL[order(swabsL$crowding,swabsL$family,swabsL$name),]
-## save(swabsL, file = "data/swabsL.rda")
-## str(swabsL)
 
 
 ## * vasscores
@@ -698,10 +603,6 @@ NULL
 #' @references TODO
 #' @keywords datasets
 NULL
-## vasscoresW <- read.table("inst/dataTXT/vasscores.txt", header = TRUE, na.string = ".")
-## vasscoresW$id <- factor(vasscoresW$id)
-## vasscoresW$group <- factor(vasscoresW$group)
-## save(vasscoresW, file = "data/vasscoresW.rda")
 
 ## ** vasscoresL
 #' @title Data From The VAS Study (Long Format)
@@ -730,23 +631,6 @@ NULL
 #' @references TODO
 #' @keywords datasets
 NULL
-## data("vasscoresW")
-## ## transform to long format:
-## vasscoresL <- reshape(vasscoresW, 
-##                direction="long", 
-##                idvar=c("id","group"), 
-##                varying=c("vasA","vasB","vasC"),
-##                v.names=c("vas"),
-##                timevar="treat.num")
-##
-## ## Make a categorical version of the treatment variable:
-## vasscoresL$treatment <- factor(vasscoresL$treat.num, labels=c('A','B','C'))
-## ## Fix attributes
-## rownames(vasscoresL) <- NULL
-## attr(vasscoresL, "reshapeLong") <- NULL
-## ## Export
-## save(vasscoresL, file="data/vasscoresL.rda")
-## str(vasscoresL)
 
 ## * vitamin
 ## ** vitaminW
@@ -775,10 +659,6 @@ NULL
 #' @references TODO
 #' @keywords datasets
 NULL
-## vitaminW <- read.table("inst/dataTXT/vitamin.txt", header = TRUE, na.string = ".")
-## vitaminW$group <- as.factor(vitaminW$group)
-## vitaminW$animal <- as.factor(vitaminW$animal)
-## save(vitaminW, file = "data/vitaminW.rda")
 
 ## ** vitaminL
 #' @title Data From The Vitamin Study (Long Format)
@@ -806,20 +686,6 @@ NULL
 #' @references Crowder and Hand (1990, p. 27) Analysis of Repeated Measures.
 #' @keywords datasets
 NULL
-## data("vitaminW")
-## vitaminL <- reshape2::melt(vitaminW, id.vars = c("group","animal"),
-##                         measure.vars = paste0("weight",c(1,3:7)),
-##                         value.name = c("weight"), variable.name = "visit")
-## vitaminL$visit <- as.factor(as.numeric(as.factor(sapply(vitaminL$visit, gsub,
-##                              pattern = "weight", replacement = ""))))
-## vitaminL$time <- sapply(as.character(vitaminL$visit), switch,
-##                             "1" = 1,
-##                             "2" = 3,
-##                             "3" = 4,
-##                             "4" = 5,
-##                             "5" = 6,
-##                             "6" = 7)
-## save(vitaminL, file = "data/vitaminL.rda")
 
 
 ######################################################################

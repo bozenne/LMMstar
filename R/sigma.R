@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: aug  6 2024 (11:16) 
+## Last-Updated: aug  8 2024 (13:32) 
 ##           By: Brice Ozenne
-##     Update #: 776
+##     Update #: 780
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -105,6 +105,12 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
     ## ** normalize user imput
     ## *** dots
     dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+    dots$options <- NULL
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
@@ -126,7 +132,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
             if(outcome.var %in% names(cluster) == FALSE){
                 cluster[[outcome.var]] <- NA
             }
-            newdesign <- stats::model.matrix(object, newdata = cluster, effect = "variance", simplify = FALSE, na.rm = FALSE)            
+            newdesign <- stats::model.matrix(object, newdata = cluster, effect = "variance", simplify = FALSE, na.rm = FALSE, options = options)            
             cluster.num <- 1:length(newdesign$index.cluster)
             if(!is.null(attr(object$cluster$var,"original"))){
                 cluster.level <- cluster[sapply(newdesign$index.cluster, "[", 1), attr(object$cluster$var,"original")]                
@@ -193,7 +199,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
 
         }else{
             ## find group pattern (ignoring the time variable)
-            Upattern$group <- .nameUpatterns(object$design$vcov, xfactor = object$xfactor, ignore.time = TRUE, sep = LMMstar.options()$sep[c("Gpattern.var","Gpattern.level")])
+            Upattern$group <- .nameUpatterns(object$design$vcov, xfactor = object$xfactor, ignore.time = TRUE, sep = options$sep[c("Gpattern.var","Gpattern.level")])
             Ugroup <- unique(Upattern$group)
             cluster.var <- attr(object$design$vcov$name$cluster,"original")
             vcov.var <- unique(stats::na.omit(c(attr(object$design$vcov$name$time,"original"),
@@ -219,7 +225,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
                 return(iOut)
             }))
             ## update structure
-            object$design <- stats::model.matrix(object, newdata = df.fulltime, effects = "variance", simplify = FALSE)
+            object$design <- stats::model.matrix(object, newdata = df.fulltime, effects = "variance", simplify = FALSE, options = options)
             ## evaluate residual varince covariance matrix
             Omega <- .calc_Omega(object = object$design$vcov,
                                  param = theta,
@@ -235,7 +241,7 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
 
         ## add groups
         Upattern$group <- .nameUpatterns(object$design$vcov, xfactor = object$xfactor, ignore.time = FALSE,
-                                         sep = LMMstar.options()$sep[c("Gpattern.var","Gpattern.level")])
+                                         sep = options$sep[c("Gpattern.var","Gpattern.level")])
 
     }else if(test.clusterDF){ ## for new clusters/times
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: aug  2 2024 (16:38) 
+## Last-Updated: aug  7 2024 (17:30) 
 ##           By: Brice Ozenne
-##     Update #: 675
+##     Update #: 676
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -264,7 +264,7 @@
     }
 
     if(df){
-        if(trace>=1){cat("- degrees of freedom \n")}
+        if(trace>=1){cat("- degrees-of-freedom \n")}
         if(df.analytic){
             ## out$df2 <- .df_analytic(residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega, Upattern.ncluster = Upattern.ncluster, vcov = out$vcov,
             ##                         pattern = design$vcov$pattern, index.clusterTime = design$index.time, index.cluster = design$index.cluster,

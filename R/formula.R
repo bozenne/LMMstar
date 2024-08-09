@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:53) 
 ## Version: 
-## Last-Updated: jul 10 2024 (10:30) 
+## Last-Updated: aug  8 2024 (11:40) 
 ##           By: Brice Ozenne
-##     Update #: 312
+##     Update #: 319
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -106,7 +106,7 @@ formula2var <- function(formula, data = NULL, specials = NULL, name.argument  = 
     ## *** restrict to the right hand side
     ff.termsRHS <- stats::delete.response(ff.terms)
     txt.termsRHS <- deparse(ff.termsRHS[[2]])
-    ff.formulaRHS <- formula(ff.termsRHS)
+    ff.formulaRHS <- stats::formula(ff.termsRHS)
     ff.varRHS <- all.vars(ff.termsRHS)
 
     ## *** identify regressor variables from variables involved in the structure/random effects based on |
@@ -179,7 +179,7 @@ formula2var <- function(formula, data = NULL, specials = NULL, name.argument  = 
         out$formula$design <- ff.formulaRHS        
 
     }else if(type.special == "ranef"){
-        out$index.terms$regressor <- which(split.termsRHS %in% paste0("(",ff.varSPECIAL,")") == FALSE)
+        nout$index.terms$regressor <- which(split.termsRHS %in% paste0("(",ff.varSPECIAL,")") == FALSE)
         out$terms$regressor <- out$terms$all[out$index.terms$regressor]
         out$formula$regressor <- updateFormula(formula, drop.x = out$terms$all[-out$index.terms$regressor])
         if(n.outcome>0){
@@ -376,12 +376,12 @@ formula2repetition <- function(formula, data, repetition, keep.time, filter){
         if(length(detail.repetition$vars$time)==1){
             if(any(unlist(tapply(data[[detail.repetition$vars$time]],data[[detail.repetition$vars$cluster]],duplicated, simplify = FALSE)))){
                 stop("Mismatch between argument \'repetition\' and argument \'data\'. \n",
-                     "There should no duplicated \"",detail.repetition$vars$time,"\" value (timepoint) within observations with the same \"",detail.repetition$vars$cluster,"\" value (cluster). \n")
+                     "There should not be duplicated \"",detail.repetition$vars$time,"\" value (timepoint) within observations with the same \"",detail.repetition$vars$cluster,"\" value (cluster). \n")
             }
         }else{
             if(any(unlist(tapply(interaction(data[,detail.repetition$vars$time,drop=FALSE],drop=TRUE),data[[detail.repetition$vars$cluster]],duplicated, simplify = FALSE)))){
                 stop("Mismatch between argument \'repetition\' and argument \'data\'. \n",
-                     "There should no duplicated \"",detail.repetition$vars$time,"\" value (timepoint) within observations with the same \"",detail.repetition$vars$cluster,"\" value (cluster). \n")
+                     "There should not be duplicated paste(\"",paste(detail.repetition$vars$time, collapse="\",\""),"\") value (timepoint) within observations with the same \"",detail.repetition$vars$cluster,"\" value (cluster). \n")
             }
         }
 

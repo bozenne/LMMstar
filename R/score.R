@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: aug  2 2024 (15:58) 
+## Last-Updated: aug  8 2024 (13:32) 
 ##           By: Brice Ozenne
-##     Update #: 928
+##     Update #: 937
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -45,12 +45,16 @@
 score.lmm <- function(x, effects = "mean", indiv = FALSE, newdata = NULL, p = NULL,
                       transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
 
-    options <- LMMstar.options()
-
     ## ** normalize user input
 
     ## *** dots
     dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+    dots$options <- NULL
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
@@ -82,6 +86,8 @@ score.lmm <- function(x, effects = "mean", indiv = FALSE, newdata = NULL, p = NU
         }
     }
 
+    x.param <- stats::model.tables(x, effects = c("param",effects), transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+    
     ## *** p and transform
     init <- .init_transform(p = p, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
                             x.transform.sigma = x$reparametrize$transform.sigma, x.transform.k = x$reparametrize$transform.k, x.transform.rho = x$reparametrize$transform.rho,
@@ -98,9 +104,7 @@ score.lmm <- function(x, effects = "mean", indiv = FALSE, newdata = NULL, p = NU
 
     ## ** extract or recompute score
     if(is.null(newdata) && is.null(p) && (indiv == FALSE) && test.notransform){
-        keep.name <- stats::setNames(names(coef(x, effects = effects, transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = TRUE)),
-                                     names(coef(x, effects = effects, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)))    
-
+        keep.name <- stats::setNames(x.param$name, x.param$trans.name)
         design <- x$design ## useful in case of NA
         out <- x$score[keep.name]
         if(transform.names){
@@ -109,7 +113,7 @@ score.lmm <- function(x, effects = "mean", indiv = FALSE, newdata = NULL, p = NU
 
     }else{
         if(!is.null(newdata)){
-            design <- stats::model.matrix(x, newdata = newdata, effects = "all", simplify = FALSE)
+            design <- stats::model.matrix(x, newdata = newdata, effects = "all", simplify = FALSE, options = options)
         }else{
             design <- x$design
         }
@@ -230,9 +234,9 @@ score.mlmm <- function(x, effects = "contrast", indiv = FALSE, p = NULL, newdata
 
     if(all(effects=="contrast")){
         ls.contrast <- stats::coef(x, type = "ls.contrast") ## extract linear combination from each model
-        contrast <- coef(x, type = "contrast") ## contrast combinations across models
+        contrast <- stats::coef(x, type = "contrast") ## contrast combinations across models
         ls.score <- lapply(level.by, function(iBy){
-            score(x$model[[iBy]], effects = effects2, indiv = indiv, p = p[[iBy]], transform.names = FALSE, ...)            
+            lava::score(x$model[[iBy]], effects = effects2, indiv = indiv, p = p[[iBy]], transform.names = FALSE, ...)            
         })
 
         ls.out <- mapply(iScore = ls.score, iC = ls.contrast, FUN = function(iScore,iC){ ## iScore <- ls.score[[1]] ; iC <- ls.contrast[[1]]
@@ -258,7 +262,7 @@ score.mlmm <- function(x, effects = "contrast", indiv = FALSE, p = NULL, newdata
         ls.out <- lapply(level.by, function(iBy){
             iO <- x$model[[iBy]]
 
-            iScore <- score(iO, effects = effects, indiv = indiv, p = p[[iBy]], transform.names = FALSE, ...)
+            iScore <- lava::score(iO, effects = effects, indiv = indiv, p = p[[iBy]], transform.names = FALSE, ...)
             if(indiv){
                 if(simplify){
                     iOut <- matrix(0, nrow = n.cluster, ncol = NCOL(iScore), dimnames = list(cluster, paste0(iBy,": ", colnames(iScore))))
@@ -284,7 +288,7 @@ score.mlmm <- function(x, effects = "contrast", indiv = FALSE, p = NULL, newdata
 
     ## ** re-order
     if(all(effects=="contrast")){
-        name.order <- names(coef(x, effects = "contrast", ordering = ordering))        
+        name.order <- names(stats::coef(x, effects = "contrast", ordering = ordering))        
         if(indiv){
             out <- out[,name.order,drop=FALSE]
         }else{

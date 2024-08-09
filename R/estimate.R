@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: aug  6 2024 (11:29) 
+## Last-Updated: aug  8 2024 (13:32) 
 ##           By: Brice Ozenne
-##     Update #: 1182
+##     Update #: 1209
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,15 +16,16 @@
 ### Code:
 
 ## * estimate.lmm (documentation)
-##' @title Delta Method for Mixed Models
-##' @description Perform a first order delta method
+##' @title Delta Method for a Linear Mixed Model
+##' @description Estimate standard errors, confidence intervals, and p-values for a smooth transformation of parameters from a linear mixed model.
 ##'
 ##' @param x  a \code{lmm} object.
-##' @param f [function] function of the model coefficient computing the parameter(s) of interest. Can accept extra-arguments.
+##' @param f [function] function taking as input \code{p}, the linear mixed model parameters, which outputs the parameter(s) of interest.
+##' Can accept extra-arguments.
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
-##' Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
-##' @param df [logical] Should degree of freedom, computed using Satterthwaite approximation, for the parameter of interest be output.
-##' Can also be a numeric vector providing providing the degrees of freedom relative to each estimate.
+##' Can also be \code{2} compute the degrees-of-freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
+##' @param df [logical] Should degree-of-freedom, computed using Satterthwaite approximation, for the parameter of interest be output.
+##' Can also be a numeric vector providing providing the degrees-of-freedom relative to each estimate.
 ##' @param type.information [character] Should the expected information be used  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
 ##' @param level [numeric,0-1] the confidence level of the confidence intervals.
 ##' @param average [logical] is the estimand the average output of argument \code{f}?
@@ -38,7 +39,10 @@
 ##'
 ##' @keywords mhtest
 ##' 
-##' @details Argument \bold{robust}: degrees of freedom estimation does not seem reliable when \code{TRUE}.
+##' @details Based a first order delta method to evaluate the variance of the estimate.
+##' The derivative of the transformation is evaluated using numerical differentiation (\code{numDeriv::jacobian}). \cr \cr
+##' 
+##' Argument \bold{robust}: the Satterhwaite approximation for the degrees-of-freedom of robust standard errors is often unreliable. This is why the default is to use the degrees-of-freedom of the modeled based standard error instead.
 ##' 
 ##' @examples
 ##' 
@@ -74,7 +78,7 @@
 ##'      c(Y1 = p["rho(1,2)"]*p["k.2"],
 ##'       X1 = p["time2:X1"]-p["k.2"]*p["rho(1,2)"]*p["time1:X1"])
 ##' }) ## same estimate and similar standard errors. 
-##' e.delta ## Degrees of freedom are a bit off though
+##' e.delta ## Degrees-of-freedom are a bit off though
 ##' cbind(summary(e.ANCOVA1)$coef, df = df.residual(e.ANCOVA1))
 ##'
 ##' ## estimated treatment effect (baseline constraint)
@@ -84,7 +88,7 @@
 ##'        c(Y1 = p["rho(1,2)"]*p["k.2"],
 ##'          X1 = p["time2:X1"])
 ##' })
-##' e.deltaC ## Degrees of freedom are a bit more accurate
+##' e.deltaC ## Degrees-of-freedom are a bit more accurate
 ##' }
 
 
@@ -95,11 +99,16 @@ estimate.lmm <- function(x, f, df = !is.null(x$df) & !robust, robust = FALSE, ty
                          transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, ...){
 
 
-    options <- LMMstar.options()
-    
     ## ** normalize arguments
+    ## *** dots
     dots <- list(...)
-
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+    dots$options <- NULL
+    
     ## *** function
     f.formals <- formals(f)
     names.formals <- names(f.formals)
@@ -119,8 +128,8 @@ estimate.lmm <- function(x, f, df = !is.null(x$df) & !robust, robust = FALSE, ty
     }
 
     ## *** df
-    ## e.df: [numeric] value for the degrees of freedom (estimated or given by the user)
-    ## df: [logical] whether degrees of freedom should be estimated
+    ## e.df: [numeric] value for the degrees-of-freedom (estimated or given by the user)
+    ## df: [logical] whether degrees-of-freedom should be estimated
     if(length(df)>1){
         stop("Argument \'df\' must have length 1. \n")
     }
@@ -132,11 +141,11 @@ estimate.lmm <- function(x, f, df = !is.null(x$df) & !robust, robust = FALSE, ty
     }
     if(is.numeric(df)){
         e.df <- df
-        df <- FALSE ## no need to estimate the degrees of freedom
+        df <- FALSE ## no need to estimate the degrees-of-freedom
     }else if(is.logical(df)){
         if(df==TRUE){
             if(x$args$df==0){
-                stop("Argument \'df\' cannot be TRUE when no degrees of freedom have been stored. \n",
+                stop("Argument \'df\' cannot be TRUE when no degrees-of-freedom have been stored. \n",
                      "Consider setting the argument \'df\' to TRUE when calling lmm. \n")
             }
             e.df <- NULL
@@ -184,7 +193,7 @@ estimate.lmm <- function(x, f, df = !is.null(x$df) & !robust, robust = FALSE, ty
     }
 
     ## ** estimate
-    beta <- coef(x, effects = "all", transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho, transform.names = FALSE)
+    beta <- stats::coef(x, effects = "all", transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho, transform.names = FALSE, options = options)
     attr(beta, "transform.sigma") <- transform2.sigma
     attr(beta, "transform.k") <- transform2.k
     attr(beta, "transform.rho") <- transform2.rho
@@ -221,9 +230,9 @@ estimate.lmm <- function(x, f, df = !is.null(x$df) & !robust, robust = FALSE, ty
     }
 
     ## ** extract variance-covariance
-    Sigma <- vcov(x, effects = list("all",c("all","gradient"))[[df+1]],
-                  robust = robust, type.information = type.information, 
-                  transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho)
+    Sigma <- stats::vcov(x, effects = list("all",c("all","gradient"))[[df+1]],
+                         robust = robust, type.information = type.information, 
+                         transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho, options = options)
 
     ## ** delta-method
     C.Sigma.C <- grad %*% Sigma %*% t(grad)
@@ -272,18 +281,45 @@ estimate.lmm <- function(x, f, df = !is.null(x$df) & !robust, robust = FALSE, ty
     return(out)
 }
 
+## * estimate.mlmm (documentation)
+##' @title Delta Method for Multiple Linear Mixed Models
+##' @description Estimate standard errors, confidence intervals, and p-values for a smooth transformation of parameters from group-specific linear mixed models.
+##' 
+##' @param x  a \code{mlmm} object.
+##' @param f [function] function taking as input \code{p}, a vector containing the group-specific linear mixed model parameters, which outputs the parameter(s) of interest.
+##' Can accept extra-arguments.
+##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
+##' Can also be \code{2} compute the degrees-of-freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
+##' @param df [logical] Should degree-of-freedom, computed using Satterthwaite approximation, for the parameter of interest be output.
+##' Can also be a numeric vector providing providing the degrees-of-freedom relative to each estimate.
+##' @param type.information [character] Should the expected information be used  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
+##' @param level [numeric,0-1] the confidence level of the confidence intervals.
+##' @param average [logical] is the estimand the average output of argument \code{f}?
+##' Otherwise consider each individual output of argument \code{f}.
+##' @param method.numDeriv [character] method used to approximate the gradient: either \code{"simple"} or \code{"Richardson"}.
+##' Passed to \code{numDeriv::jacobian}.
+##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
+##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
+##' @param transform.rho [character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"} - see details.
+##' @param ... extra arguments passed to \code{f}.
+
 ## * estimate.mlmm (code)
 ##' @export
 estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = NULL, level = 0.95,
-                         method.numDeriv = NULL, average = FALSE,
-                         transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, ...){
+                          method.numDeriv = NULL, average = FALSE,
+                          transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, ...){
 
 
-    options <- LMMstar.options()
-    
     ## ** normalize arguments
+    ## *** dots
     dots <- list(...)
-
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+    dots$options <- NULL
+    
     ## *** function
     f.formals <- formals(f)
     names.formals <- names(f.formals)
@@ -349,7 +385,7 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
     }
 
     ## ** estimate
-    beta <- coef(x, effects = "all", transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho, transform.names = FALSE, order = "by")
+    beta <- stats::coef(x, effects = "all", transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho, transform.names = FALSE, order = "by", options = options)
     attr(beta, "transform.sigma") <- transform2.sigma
     attr(beta, "transform.k") <- transform2.k
     attr(beta, "transform.rho") <- transform2.rho
@@ -386,8 +422,8 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
     }
 
     ## ** extract variance-covariance
-    Sigma <- vcov(x, effects = list("all",c("all","gradient"))[[df+1]], robust = robust, type.information = type.information, 
-                  transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho)
+    Sigma <- stats::vcov(x, effects = list("all",c("all","gradient"))[[df+1]], robust = robust, type.information = type.information, 
+                         transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho, options = options)
 
     ## ** delta-method
     C.Sigma.C <- grad %*% Sigma %*% t(grad)
@@ -475,28 +511,13 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
 ## * .estimate (code)
 .estimate <- function(design, time, method.fit, type.information, 
                       transform.sigma, transform.k, transform.rho,
-                      precompute.moments, optimizer, init, n.iter, tol.score, tol.param, n.backtracking = NULL, trace){
+                      precompute.moments, optimizer, init, n.iter, tol.score, tol.param, n.backtracking, trace){
 
     ## ** apply default values
-    if(is.null(n.iter) || is.null(tol.score) || is.null(tol.param) || is.null(n.backtracking)){
-        options <- LMMstar.options()
-    }
-    if(is.null(n.iter)){
-        n.iter <- as.double(options$param.optimizer["n.iter"])
-    }
-    if(is.null(tol.score)){
-        tol.score <- as.double(options$param.optimizer["tol.score"])
-    }
-    if(is.null(tol.param)){
-        tol.param <- as.double(options$param.optimizer["tol.param"])
-    }
-    if(is.null(n.backtracking)){
-        n.backtracking <- as.double(options$param.optimizer["n.backtracking"])
-    }
     if(is.null(trace)){
         trace <- FALSE
     }
-    
+
     ## ** prepare
     index.cluster <- design$index.cluster
 
@@ -702,7 +723,7 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
             }else if(iiIter == 0 && is.na(logLik.value)){
                 cv <- -2
                 break
-            }else if(is.na(logLik.value) || (logLik.value < logLik.valueM1)){ ## decrease in likelihood - try partial update                
+            }else if(is.na(logLik.value) || (logLik.value < logLik.valueM1)){ ## decrease in likelihood - try partial update
                 outMoments <- .backtracking(valueM1 = param.valueM1, update = update.value, n.iter = n.backtracking,
                                             design = design, time = time, method.fit = method.fit, type.information = type.information,
                                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,

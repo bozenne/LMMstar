@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: jul 30 2024 (13:43) 
+## Last-Updated: aug  8 2024 (13:32) 
 ##           By: Brice Ozenne
-##     Update #: 407
+##     Update #: 428
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,7 +16,7 @@
 ### Code:
 
 ## * logLik.lmm (documentation)
-##' @title Extract The Log-Likelihood From a Linear Mixed Model
+##' @title Log-Likelihood From a Linear Mixed Model
 ##' @description Extract or compute the log-likelihood of a linear mixed model.
 ##' 
 ##' @param object a \code{lmm} object.
@@ -35,6 +35,19 @@
 ##' @export
 logLik.lmm <- function(object, newdata = NULL, p = NULL, indiv = FALSE, ...){
 
+
+    ## ** normalize user input
+
+    ## *** dots
+    dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+    dots$options <- NULL
+    
     ## ** extract or recompute log-likelihood
     if(is.null(newdata) && is.null(p) && indiv == FALSE){
 
@@ -84,12 +97,69 @@ logLik.lmm <- function(object, newdata = NULL, p = NULL, indiv = FALSE, ...){
     return(out)
 }
 
+## * logLik.mlmm (documentation)
+##' @title Log-Likelihood From Multiple Linear Mixed Models
+##' @description Extract or compute the log-likelihood from each group-specific Linear Mixed Model.
+##' 
+##' @param object a \code{mlmm} object.
+##' @param newdata [data.frame] dataset relative to which the log-likelihood should be computed. Only relevant if differs from the dataset used to fit the model.
+##' @param indiv [logical] Should the contribution of each cluster to the log-likelihood be output? Otherwise output the sum of all clusters of the derivatives. 
+##' @param p [list of numeric vector] values for the model parameters at which to evaluate the log-likelihood.
+##' Only relevant if differs from the fitted values.
+##' @param ... Not used. For compatibility with the generic method.
+##'
+##' @details \bold{indiv}: only relevant when using maximum likelihood. Must be \code{FALSE} when using restricted maximum likelihood.
+##' 
+##' @return A numeric vector when \code{indiv=FALSE} (log-likelihood per model)
+##' or a matrix of numeric values when when \code{indiv=TRUE} with one line for each cluster and one column for each model.
+##' 
+##' @keywords methods
+
 ## * logLik.mlmm (code)
 ##' @export
-logLik.mlmm <- function(object, ...){
+logLik.mlmm <- function(object, newdata = NULL, p = NULL, indiv = FALSE, ...){
 
-    return(lapply(object$model, logLik, ...))
+    ## ** normalize user input
 
+    ## *** dots
+    dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+    dots$options <- NULL
+    
+    ## *** p
+    if(!is.null(p)){
+        
+        if(!is.list(p)){
+            stop("Argument \'p\' should either be NULL or a list. \n")
+        }
+        if(is.null(names(p))){
+            stop("Argument \'p\' should either be NULL or a named list. \n")
+        }
+        if(any(names(p) %in% names(object$model) == FALSE)){
+            stop("Incorrect names for argument \'p\': \"",paste(setdiff(names(p),names(object$model)), collapse = "\", \""),"\". \n", 
+                 "Should be among \"",paste(names(object$model), collapse = "\", \""),"\". \n")
+        }
+
+    }
+
+    ## ** extract log-likelihood
+    if(indiv){
+        out <- do.call(cbind,lapply(names(object$model), function(iBy){
+            stats::logLik(object$model[[iBy]], indiv = TRUE, p = p[[iBy]], newdata = newdata)
+        }))
+    }else{
+        out <- sapply(names(object$model), function(iBy){
+            stats::logLik(object$model[[iBy]], indiv = FALSE, p = p[[iBy]], newdata = newdata)
+        })
+    }
+
+    ## ** export
+    return(out)
 }
 
 ## * .logLik

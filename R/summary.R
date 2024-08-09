@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: aug  6 2024 (17:24) 
+## Last-Updated: aug  8 2024 (13:34) 
 ##           By: Brice Ozenne
-##     Update #: 1753
+##     Update #: 1780
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -65,7 +65,7 @@ summary.effect_lmm <- function(object, columns = NULL, print = TRUE, ...){
     }
 
     ## ** contrast
-    contrast <- coef(object, type = "contrast")
+    contrast <- stats::coef(object, type = "contrast")
     if(max(print)>=1){
         cat("\tPlanned contrast: \n")
         contrast.print <- contrast
@@ -105,13 +105,13 @@ summary.effect_lmm <- function(object, columns = NULL, print = TRUE, ...){
 ##' @param object [lmm] output of the \code{lmm} function.
 ##' @param level [numeric,0-1] confidence level for the confidence intervals.
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
-##' Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
+##' Can also be \code{2} compute the degrees-of-freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
 ##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.
 ##' @param print [logical] should the output be printed in the console.
 ##' @param columns [character vector] Columns to be output for the fixed effects.
 ##' Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
 ##' @param digits [interger, >0] number of digits used to display estimates.
-##' @param digits.df [interger, >0] number of digits used to display degrees of freedom.
+##' @param digits.df [interger, >0] number of digits used to display degrees-of-freedom.
 ##' @param digits.p.value [interger, >0] number of digits used to display p-values.
 ##' @param hide.data [logical] should information about the dataset not be printed.
 ##' @param hide.fit [logical] should information about the model fit not be printed.
@@ -147,7 +147,7 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE, df = NULL,
     param.k <- param.value[names(which(param.type=="k"))]
     param.rho <- param.value[names(which(param.type=="rho"))]
     data <- object$data
-    call <- object$call
+    object.call <- object$call
     structure <- object$design$vcov
     structure.ranef <- structure$ranef
 
@@ -157,7 +157,6 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE, df = NULL,
     type.information <- object$args$type.information
     nobsByCluster <- lengths(object$design$index.cluster)
     formula <- object$formula
-    options <- LMMstar.options()
 
     n.strata <- object$strata$n
     U.strata <- object$strata$levels
@@ -165,6 +164,12 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE, df = NULL,
     ## ** normalize user input
     ## *** dots
     dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+        dots$options <- NULL
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
@@ -225,8 +230,8 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE, df = NULL,
     
     ## ** data message    
     if(print && !hide.data){
-        if(inherits(call$data,"call") || inherits(call$data,"name")){
-            cat("Dataset:", deparse(call$data), "\n\n")
+        if(inherits(object.call$data,"call") || inherits(object.call$data,"name")){
+            cat("Dataset:", deparse(object.call$data), "\n\n")
         }else{
             cat("Dataset:\n\n")
         }
@@ -253,7 +258,7 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE, df = NULL,
         str.XY[1] <- paste0(" ",str.XY[1])
         cat(paste0("  ",str.XY,"\n"))
 
-        reference.level <- levels(object)$reference
+        reference.level <- base::levels(object)$reference
         if(!is.null(reference.level)){
             cat("    reference level: ",paste(paste(names(reference.level),reference.level,sep="="),collapse=";")," \n", sep = "")
         }
@@ -348,9 +353,9 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE, df = NULL,
 
         ## find unique correlation patterns
         if(identical(type.cor,"param") || (is.null(type.cor) && object$time$n>10)){
-            table.cor <- rbind(coef(object,effect="correlation"))
+            table.cor <- rbind(stats::coef(object, effect = "correlation", options = options))
         }else{
-            table.cor <- lapply(stats::sigma(object, simplify = FALSE), stats::cov2cor)
+            table.cor <- lapply(stats::sigma(object, simplify = FALSE, options = options), stats::cov2cor)
         }
         if(print){
             if(identical(type.cor,"param") || (is.null(type.cor) && object$time$n>10)){
@@ -385,19 +390,20 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE, df = NULL,
     }else{
         table.cor <- NULL
     }
-    
+
     ## *** variance
     if(!hide.var || !hide.sd){
-        name.sigma <- names(coef(object, transform.k = "sd", effects = "variance"))
-        index.ref <- which(names(coef(object, effects = "variance", transform.names = FALSE)) %in% names(param.sigma))
+        tableParam.var <- stats::model.tables(object, transform.k = "sd", effects = c("param","variance"), options = options)
+        name.sigma <- tableParam.var$trans.name
+        index.ref <- which(tableParam.var$type == "sigma")
         if(print){
             cat("  - variance structure:",deparse(formula$var),"\n")
         }
     }
 
     if(!hide.var){
-        table.var <- cbind(estimate = coef(object, transform.k = "var", effects = "variance"),
-                           estimate.ratio = coef(object, transform.sigma = "none", transform.k = "square", effects = "variance", transform.names = FALSE))
+        table.var <- cbind(estimate = stats::coef(object, transform.k = "var", effects = "variance", options = options),
+                           estimate.ratio = stats::coef(object, transform.sigma = "none", transform.k = "square", effects = "variance", transform.names = FALSE, options = options))
         table.var[index.ref,"estimate.ratio"] <- 1
         test.k <- NROW(table.var) > length(index.ref)
         rownames(table.var) <- name.sigma
@@ -405,8 +411,8 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE, df = NULL,
         table.var <- NULL
     }
     if(!hide.sd){
-        table.sd <- cbind(estimate = coef(object, transform.k = "sd", effects = "variance"),
-                          estimate.ratio = coef(object, transform.sigma = "none", transform.k = "none", effects = "variance", transform.names = FALSE))
+        table.sd <- cbind(estimate = stats::coef(object, transform.k = "sd", effects = "variance", options = options),
+                          estimate.ratio = stats::coef(object, transform.sigma = "none", transform.k = "none", effects = "variance", transform.names = FALSE, options = options))
         table.sd[index.ref,"estimate.ratio"] <- 1
         test.k <- NROW(table.sd) > length(index.ref)
         rownames(table.sd) <- name.sigma
@@ -463,12 +469,13 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE, df = NULL,
 
     ## ** mean structure
     if(!hide.mean && length(param.mu)>0){
-        table.mean <- confint(object,
-                              level = level,
-                              robust = robust,
-                              df = df,
-                              effects = "mean",
-                              columns = c("estimate","se","df","lower","upper","statistic","null","p.value"))
+        table.mean <- stats::confint(object,
+                                     level = level,
+                                     robust = robust,
+                                     df = df,
+                                     effects = "mean",
+                                     columns = c("estimate","se","df","lower","upper","statistic","null","p.value"),
+                                     options = options)
 
         if(print){
             cat("Fixed effects:",deparse(formula$mean),"\n\n")
@@ -553,7 +560,8 @@ summary.LRT_lmm <- function(object, digits = 3, digits.df = 1, digits.p.value = 
 ##' 
 ##' @param object an \code{mlmm} object, output of \code{mlmm}.
 ##' @param digits [integer,>0] number of digits used to display numeric values.
-##' @param method [character] type of adjustment for multiple comparisons: one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}, \code{"single-step2"}.
+##' @param method [character] type of adjustment for multiple comparisons, one of \code{"none"}, \code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}.
+##' and/or method(s) to pool the estimates, one of \code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.gls1"}, \code{"pool.rubin"}.
 ##' @param print [logical] should the output be printed in the console.
 ##' Can be a vector of length 2 where the first element refer to the global tests and the second to the individual tests.
 ##' @param hide.data [logical] should information about the dataset not be printed.
@@ -566,23 +574,37 @@ summary.LRT_lmm <- function(object, digits = 3, digits.df = 1, digits.p.value = 
 ##' @export
 summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.data = FALSE, hide.fit = FALSE, ...){
 
-    options <- LMMstar.options()
+    ## ** normalize user input
+    ## *** dots
+    dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+    dots$options <- NULL
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
 
+    ## *** method
     if(is.null(method)){
         method <- "none"
     }
+
+    ## *** print
     if(is.null(print)){
         print <- c(0,1/2)
     }
 
-    ## extract models
+    ## ** extract models
     ls.model <- object$model
     method.fit <- object$object$method.fit
     optimizer <- ls.model[[1]]$args$control$optimizer
     logLik <- sapply(ls.model, logLik)
     cv <- sapply(ls.model, function(iM){iM$opt$cv})
     n.iter <- sapply(ls.model, function(iM){iM$opt$n.iter})
-    param.value <- coef(object, effects = "all")
+    param.value <- stats::coef(object, effects = "all", options = options)
 
     nparam.mu  <- sapply(ls.model, function(iM){sum(iM$design$param$type=="mu")})
     nparam.sigma  <- sapply(ls.model, function(iM){sum(iM$design$param$type=="sigma")})
@@ -590,17 +612,17 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
     nparam.rho  <- sapply(ls.model, function(iM){sum(iM$design$param$type=="rho")})
 
     M.nobs <- stats::nobs(object)
-    call <- attr(object,"call")
+    object.call <- attr(object,"call")
 
     ## ** welcome message
     if(any(print>0)){
-        cat("	Linear Mixed Models stratified according to \"",eval(call$by),"\" \n\n",sep="")
+        cat("	Linear Mixed Models stratified according to \"",eval(object.call$by),"\" \n\n",sep="")
     }
 
     ## ** data message    
     if(!hide.data){
-        if(inherits(call$data,"call")){
-            cat("Dataset:", deparse(call$data), "\n")
+        if(inherits(object.call$data,"call")){
+            cat("Dataset:", deparse(object.call$data), "\n")
         }
         cat("Strata : \"",paste(names(ls.model),collapse = "\", \""),"\"\n\n",sep="")
         if(any(M.nobs[,"missing.obs"]>0)){
@@ -738,12 +760,25 @@ summary.resample <- function(object, digits = 3, ...){
 
     object.type <- object$args$type
     n.sample <- object$args$n.sample
+
+    ## ** normalize user input
+    ## *** dots
+    dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+    dots$options <- NULL
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
     
     ## ** check cv
     n.cv <- sum(object$cv)
 
     ## ** compute CI/pvalue
-    table.object <- model.tables(object, ...)
+    table.object <- stats::model.tables(object, options = options, ...)
 
     txt.type <- switch(object.type,
                        "perm-var" = "permutation",
@@ -792,17 +827,19 @@ summary.resample <- function(object, digits = 3, ...){
 ##' Can be any of \code{"type"}, \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.##' 
 ##' @param legend [logical] should explanations about the content of the table be displayed.
 ##' @param digits [interger, >0] number of digits used to display estimates.
-##' @param digits.df [interger, >0] number of digits used to display degrees of freedom.
+##' @param digits.df [interger, >0] number of digits used to display degrees-of-freedom.
 ##' @param digits.p.value [interger, >0] number of digits used to display p-values.
 ##' @param sep [character] character string used to separate the type of test (e.g. mean, variance) and the name of the test.
 ##' @param ... arguments \code{method}, \code{level}, and \code{backtransform} passed to \code{\link{confint.Wald_lmm}}
 ##'
 ##'
-##' @details By default adjustment for multiple comparisons via a single step max-test adjustment,
-##'  either using the multcomp package (equal degrees of freedom, \code{method="single-step"}) or the copula package (unequal degrees of freedom, \code{method="single-step2"}).
+##' @details By default a single step max-test adjustment adjustment is performed in presence of multiple comparisons.
+##' It is carried out either using the multcomp package (equal degrees-of-freedom, \code{method="single-step"})
+##' or using the copula package (unequal degrees-of-freedom, \code{method="single-step2"}).
 ##' See the argument \code{method} of \code{\link{confint.Wald_lmm}} for other adjustments for multiple comparisons. \cr
-##' When multiple multivariate Wald tests are performed, adjustment for multiple comparisons for the univariate Wald tests is performed within each multivariate Wald test.
-##' The number of tests ajusted for equal the first degree of freedom of the multivariate Wald statistic. \cr
+##' 
+##' When considering multiple multivariate Wald tests, adjustment for multiple comparisons for the univariate Wald tests is performed within each multivariate Wald test.
+##' The number of tests ajusted for equal the first degree-of-freedom of the multivariate Wald statistic. \cr
 ##'
 ##' Adding the value \code{"type"} in argument \code{"columns"} ensures that the type of parameter that is being test (mean, variance, correlation) is output.
 ##'
@@ -959,7 +996,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
     ## *** univariate tests
     if(print.univariate>0){
         
-        table.univariate <- confint(object, columns = union(setdiff(columns.univariate,""),c("type","term","name")), ...)
+        table.univariate <- stats::confint(object, columns = union(setdiff(columns.univariate,""),c("type","term","name")), options = options, ...)
         if(is.null(columns) && all(is.na(table.univariate$lower)) && all(is.na(table.univariate$upper))){
             columns.univariate <- setdiff(columns.univariate, c("lower","upper"))
         }
@@ -1045,7 +1082,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
 ##'
 ##' @param table [data.frame] table containing the coefficients to be displayed.
 ##' @param robust [logical or NULL] are robust standard error used?
-##' @param df [logical or NULL] are degrees of freedom calculated by Satterthwaite approximation?
+##' @param df [logical or NULL] are degrees-of-freedom calculated by Satterthwaite approximation?
 ##' @param level [numeric or NULL] confidence level.
 ##' @param type.information [character] type of information matrix.
 ##' @param method.p.adjust [character or NULL] adjustment method for multiple comparisons.
@@ -1059,10 +1096,10 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
 ##' @param transform.sigma,transform.k,transform.rho [character or NULL] Transformation used on certain type of parameters.
 ##' @param decoration [logical] should a decoration be displayed between the table and the legend?
 ##' @param columns [character vector] columns from argument \code{table} to be displayed.
-##' @param col.df [character vector] columns containing the degrees of freedom. If several, they will be merged.
-##' @param name.statistic [character vector] how to rename the statistic depending on whether degrees of freedom have been computed.
+##' @param col.df [character vector] columns containing the degrees-of-freedom. If several, they will be merged.
+##' @param name.statistic [character vector] how to rename the statistic depending on whether degrees-of-freedom have been computed.
 ##' @param digits [interger, >0] number of digits used to display estimates.
-##' @param digits.df [interger, >0] number of digits used to display degrees of freedom.
+##' @param digits.df [interger, >0] number of digits used to display degrees-of-freedom.
 ##' @param digits.p.value [interger, >0] number of digits used to display p-values.
 ##' @param decoration [logical] should an horizontal bar be displayed just after the table.
 ##' @param legend [logical] should explanations about the content of the table be displayed.

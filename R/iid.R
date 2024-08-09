@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  4 2021 (10:04) 
 ## Version: 
-## Last-Updated: Aug  4 2024 (14:32) 
+## Last-Updated: aug  8 2024 (15:17) 
 ##           By: Brice Ozenne
-##     Update #: 304
+##     Update #: 339
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,7 +17,7 @@
 
 ## * iid.lmm (documentation)
 ##' @title Extract the Influence Function From a Linear Mixed Model
-##' @description Extract the influence function of linear mixed model parameters.
+##' @description Extract the influence function for an ML or REML estimator of parameters from a linear mixed model.
 ##' 
 ##' @param x a \code{lmm} object.
 ##' @param effects [character] Should the influence function for all coefficients be output (\code{"all"}),
@@ -106,12 +106,16 @@ iid.lmm <- function(x,
                     REML2ML = NULL,
                     ...){
 
-    options <- LMMstar.options()
-
     ## ** normalize user imput
 
     ## *** dots
     dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+    dots$options <- NULL
     dots$complete <- NULL ## for multcomp which passes an argument complete when calling vcov
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
@@ -143,7 +147,7 @@ iid.lmm <- function(x,
             keep.grad <- TRUE
             effects <- setdiff(effects, "gradient")
             if(x$args$df==0){
-                stop("Argument \'effects\' cannot contain \"gradient\" when no degrees of freedom have been stored. \n",
+                stop("Argument \'effects\' cannot contain \"gradient\" when no degrees-of-freedom have been stored. \n",
                      "Consider setting the argument \'df\' to TRUE when calling lmm. \n")
             }
             if(length(effects)==0){
@@ -212,9 +216,9 @@ iid.lmm <- function(x,
     if(x$args$type.information == "expected" && x$args$method.fit == "ML"){
         keep.names <- colnames(outMoments$score)
     }else{
-        keep.names <- names(coef.lmm(x, effects = effects,
-                                     transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names))
-    }
+        keep.names <- stats::model.tables(x, effects = c("param",effects),
+                                          transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)$trans.name
+}
 
     ## ** compute iid
     out <- x.score %*% x.vcov[,keep.names,drop=FALSE]
@@ -275,6 +279,10 @@ iid.lmm <- function(x,
     return(out)
 }
 
+## * iid.lmm (documentation)
+##' @title Extract the Influence Function From Multiple Linear Mixed Models
+##' @description Extract the influence function for ML or REML estimators of parameters from group-specific linear mixed models.
+
 ## * iid.mlmm (code)
 ##' @export
 iid.mlmm <- function(x, effects = "contrast", p = NULL, ordering = "by", simplify = TRUE, ...){
@@ -329,9 +337,9 @@ iid.mlmm <- function(x, effects = "contrast", p = NULL, ordering = "by", simplif
 
     if(all(effects=="contrast")){
         ls.contrast <- stats::coef(x, type = "ls.contrast") ## extract linear combination from each model
-        contrast <- coef(x, type = "contrast") ## contrast combinations across models
+        contrast <- stats::coef(x, type = "contrast") ## contrast combinations across models
         ls.iid <- lapply(names(x$model), function(iBy){
-            iid(x$model[[iBy]], effects = effects2, p = p[[iBy]], ...)
+            lava::iid(x$model[[iBy]], effects = effects2, p = p[[iBy]], ...)
         })
         ls.out <- mapply(iIID = ls.iid, iC = ls.contrast, FUN = function(iIID,iC){ ## iIID <- ls.iid[[1]] ; iC <- ls.contrast[[1]]
             iOut <- matrix(0, nrow = n.cluster, ncol = NROW(iC), dimnames = list(cluster, rownames(iC)))
@@ -345,7 +353,7 @@ iid.mlmm <- function(x, effects = "contrast", p = NULL, ordering = "by", simplif
 
         ls.out <- lapply(names(x$model), function(iBy){
             iO <- x$model[[iBy]]
-            iIID <- iid(iO, p = p[[iBy]], effects = effects, ...)
+            iIID <- lava::iid(iO, p = p[[iBy]], effects = effects, ...)
 
             if(simplify){
                 iOut <- matrix(0, nrow = n.cluster, ncol = NCOL(iIID), dimnames = list(cluster, paste0(iBy,": ", colnames(iIID))))
@@ -364,7 +372,7 @@ iid.mlmm <- function(x, effects = "contrast", p = NULL, ordering = "by", simplif
 
     ## ** re-order
     if(all(effects=="contrast")){
-        name.order <- names(coef(x, effects = "contrast", ordering = ordering))        
+        name.order <- names(stats::coef(x, effects = "contrast", ordering = ordering))        
         out <- out[,name.order,drop=FALSE]
         attr(out,"message") <- unique(unlist(lapply(ls.iid,attr,"message")))
     }else if(simplify){
@@ -417,26 +425,33 @@ iid.rbindWald_lmm <- function(x, ...){
 
 
 ## * iid.Wald_lmm (documentation)
-##' @title Extract the Influence Function from Wald Tests
-##' @description Extract the influence function of linear mixed model parameters involved in the Wald test.
+##' @title Extract the Influence Function From Wald Tests Applied to a Linear Mixed Model
+##' @description Extract the influence function of linear contrasts applied to an ML or REML estimator of parameters from a linear mixed model.
 ##'
 ##' @param object a \code{Wald_lmm} object.
 ##' @param effects [character] should the influence function for the linear contrasts involved in the Wald test be output (\code{"Wald"}),
 ##' or for the linear mixed model parameters (\code{"all"})?
+##' @param transform.names [logical] should the name of the coefficients be updated to reflect the transformation that has been used?
+##' Only relevant when \code{effects="all"}.
 ##' @param ... Not used. For compatibility with the generic method.
 ##' 
 ##' @return A matrix with one row per observation and one column per parameter (\code{effects="Wald"} or \code{effects="all"}) or a logical value (\code{effects="test"}).
 
 ## * iid.Wald_lmm (code)
 ##' @export
-iid.Wald_lmm <- function(x, effects = "Wald", ...){
+iid.Wald_lmm <- function(x, effects = "Wald", transform.names = TRUE, ...){
 
-    options <- LMMstar.options()
-    adj.method <- options$adj.method
-
+    table.param <- stats::model.tables(x, effects = "param")
+    
     ## ** normalize user input
     ## *** dots
     dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- NULL
+    }
+    dots$options <- NULL
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
@@ -446,12 +461,12 @@ iid.Wald_lmm <- function(x, effects = "Wald", ...){
         message("Nothing to return: consider setting argument \'univariate\' to TRUE when calling rbind.Wald_lmm. \n")
         return(invisible(NULL))
     }
-
+    
     ## *** effects
     if(!is.character(effects) || !is.vector(effects)){
         stop("Argument \'effects\' must be a character. \n")
     }
-    valid.effects <- c("Wald","all","test","dVcov")
+    valid.effects <- c("Wald","all","test",setdiff(names(attributes(x$glht[[1]]$iid)),c("dim","dimnames","message"))) ## add dVcov if it is there    
     if(any(effects %in% valid.effects == FALSE)){
         stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
              "Valid values: \"",paste(setdiff(valid.effects,c("test","dVcov")), collapse ="\", \""),"\". \n")
@@ -459,7 +474,6 @@ iid.Wald_lmm <- function(x, effects = "Wald", ...){
     if("dVcov" %in% effects){
         iid.dVcov <- TRUE
         effects <- setdiff(effects, "dVcov")
-        trans.names <- names(coef(x, effects = "all"))        
     }else{
         iid.dVcov <- FALSE
     }
@@ -467,7 +481,7 @@ iid.Wald_lmm <- function(x, effects = "Wald", ...){
         stop("Argument \'effects\' can only contain one of \"Wald\", \"all\",  \"test\". \n")
     }
 
-    ## ** extract
+    ## ** special case: test whether there is an iid
     if(effects == "test"){
         return(!is.null(x$glht[[1]]$iid))
     }else if(x$args$simplify!=0){
@@ -475,15 +489,16 @@ iid.Wald_lmm <- function(x, effects = "Wald", ...){
              "Consider setting the argument \'simplify\' to 0 or FALSE when calling anova. \n")
     }
 
-
+    ## ** extract iid
     out <- x$glht[[1]]$iid
 
     if(effects=="Wald"){
-        contrast <- model.tables(x, effects = "contrast")
+
+        contrast <- stats::model.tables(x, effects = "contrast", transform.names = FALSE)
         if(iid.dVcov){
             dVcov.out <- array(NA, dim = c(NROW(out), NROW(contrast), dim(attr(out,"dVcov"))[3]),
-                              dimnames = list(rownames(out), rownames(contrast), trans.names))
-            for(iParam in 1:length(trans.names)){ 
+                              dimnames = list(rownames(out), rownames(contrast), dimnames(attr(out,"dVcov"))[[3]]))
+            for(iParam in 1:NCOL(contrast)){ 
                 dVcov.out[,,iParam] <- attr(out,"dVcov")[,colnames(contrast),iParam] %*% t(contrast)
             }
         }
@@ -492,12 +507,17 @@ iid.Wald_lmm <- function(x, effects = "Wald", ...){
             attr(out,"dVcov") <- dVcov.out
         } ## otherwise already removed by subsetting
         attr(out,"message") <- attr(x$glht[[1]]$iid,"message")
-    }else if(effects=="all"){ ## restaure transformed names
-        colnames(out) <- names(coef(x, effects = "all"))
+    }
+
+    ## ** rename
+    if(transform.names && effects == "all"){ ## when effects=="Wald" the column names reflect the linear hypothesis not the model parameters
+        colnames(out) <- table.param[match(colnames(out), table.param$name),"trans.name"]
         if(iid.dVcov==FALSE){
             attr(out,"dVcov") <- NULL
         }else{
-            dimnames(attr(out,"dVcov")) <- list(dimnames(attr(out,"dVcov"))[[1]],trans.names,trans.names)
+            dimnames(attr(out,"dVcov")) <- list(dimnames(attr(out,"dVcov"))[[1]],
+                                                table.param[match(dimnames(attr(out,"dVcov"))[[2]], table.param$name),"trans.name"],
+                                                table.param[match(dimnames(attr(out,"dVcov"))[[3]], table.param$name),"trans.name"])
         }
     }
 

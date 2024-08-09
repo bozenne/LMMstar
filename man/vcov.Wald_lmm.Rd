@@ -4,23 +4,27 @@
 \alias{vcov.Wald_lmm}
 \title{Extract the Variance-Covariance Matrix from Wald Tests}
 \usage{
-\method{vcov}{Wald_lmm}(object, effects = "Wald", df = FALSE, ...)
+\method{vcov}{Wald_lmm}(object, effects = "Wald", df = FALSE, transform.names = TRUE, ...)
 }
 \arguments{
 \item{object}{a \code{Wald_lmm} object.}
 
-\item{effects}{[character] should the variance-covariance of the linear contrasts involved in the Wald test be output (\code{"Wald"}),
-or of the linear mixed model parameters (\code{"all"})?}
+\item{effects}{[character vector] should the variance-covariance of the linear contrasts involved in the Wald test be output (\code{"Wald"}),
+or of the linear mixed model parameters (\code{"all"})?
+Can also contain \code{"gradient"} to also output the gradient of the Variance-Covariance matrix.}
 
 \item{df}{[logical] Should degree of freedom, computed using Satterthwaite approximation, for the model parameters be output.
 Also output the first derivative of the variance-covariance matrix whenever the argument is stricly greater than 1.}
 
+\item{transform.names}{[logical] Should the name of the coefficients be updated to reflect the transformation that has been used?}
+
 \item{...}{Not used. For compatibility with the generic method.}
 }
 \value{
-A matrix with one column and column per parameter.
-An attribute \code{"df"} is added when argument df is set to \code{TRUE}, containing a numeric vector with one element per parameter.
-An attribute \code{"dVcov"} is added when argument df is greater than 1, containing a 3 dimensional array with with dimension being the number of parameters.
+A matrix with one column and column per parameter. \itemize{
+\item \code{df=TRUE}: with an attribute \code{"df"} containing a numeric vector with one element per parameter. \cr
+\item \code{effects} includes \code{"gradient"}: with an attribute \code{"gradient"} containing a 3 dimensional array with dimension the number of parameters.
+}
 }
 \description{
 Extract the variance-covariance matrix of the linear contrasts involved in the Wald test.

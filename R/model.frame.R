@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (14:57) 
 ## Version: 
-## Last-Updated: jun 28 2024 (09:59) 
+## Last-Updated: aug  8 2024 (13:32) 
 ##           By: Brice Ozenne
-##     Update #: 244
+##     Update #: 253
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,17 +17,17 @@
 
 ## * model.frame.lmm (documentation)
 ##' @title Extracting the Model Frame from a Linear Mixed Model
-##' @description Variables needed to fit the Linear Mixed Model.
-##' @param formula [lmm] linear mixed model object
+##' @description Contruct a data frame containing all the variables involved in a Linear Mixed Model.
+##' @param formula a \code{lmm} object.
 ##' @param newdata [data.frame] dataset relative to which the model frame should be constructed.
-##' @param type [character] By default returns the processed dataset used to fit the Linear Mixed Model (\code{NULL}).
+##' @param type [character] by default returns the processed dataset used to fit the Linear Mixed Model (\code{NULL}).
 ##' Can be used to add rows relative to missing repetitions (\code{"add.NA"})
 ##' or obtain a dataset with unique sets of covariates (\code{"unique"}) with respect to the mean structure.
-##' @param add.index [logical] Should columns indexing the row number from the original dataset, time variable, cluster variable, strata variable
+##' @param add.index [logical] should columns indexing the row number from the original dataset, time variable, cluster variable, strata variable
 ##' be added to the output?
-##' @param na.rm [logical] Should rows containing missing values for the variables used in the linear mixed model be removed?
+##' @param na.rm [logical] should rows containing missing values for the variables used in the linear mixed model be removed?
 ##' Not relevant when argument type is \code{"unique"}.
-##' @param ... Not used. For compatibility with the generic method.
+##' @param ... not used. For compatibility with the generic method.
 ##'
 ##' @details Column \code{"XXindexXX"} refers to the row of the original dataset (i.e. passed to argument \code{data} when calling \code{\link{lmm}}).
 ##' When adding rows relative to missing repetitions, since there is no row in the original dataset, a negative sign is used.
@@ -64,7 +64,13 @@ model.frame.lmm <- function(formula, newdata = NULL, type = NULL, add.index = FA
     var.strata <- formula$strata$var
 
     ## ** normalize user imput
-    dots <- list(...)    
+    dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }    
+    dots$options <- NULL
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
@@ -94,7 +100,7 @@ model.frame.lmm <- function(formula, newdata = NULL, type = NULL, add.index = FA
                 missing.col <- setdiff(var.manifest,var.outcome)[setdiff(var.manifest,var.outcome) %in% names(newdata)]
                 stop("Incorrect argument \'newdata\' due to missing column(s): \"",paste(missing.col, collapse = "\", \""),"\". \n")
             }
-            index.data <- model.matrix(formula, newdata = newdata, effects = "index", na.rm = na.rm, simplify = FALSE)
+            index.data <- stats::model.matrix(formula, newdata = newdata, effects = "index", na.rm = na.rm, simplify = FALSE)
             out <- index.data$data
             if(na.rm){
                 index.na <- index.data$index.na
@@ -119,7 +125,7 @@ model.frame.lmm <- function(formula, newdata = NULL, type = NULL, add.index = FA
         if(is.null(newdata)){
             design <- formula$design
         }else{
-            design <- model.matrix(formula, newdata = newdata, effects = "index")
+            design <- stats::model.matrix(formula, newdata = newdata, effects = "index")
         }
         var.cluster <- formula$cluster$var
         var.time <- formula$time$var

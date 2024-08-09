@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul  8 2021 (17:09) 
 ## Version: 
-## Last-Updated: jul 31 2024 (10:50) 
+## Last-Updated: aug  8 2024 (13:32) 
 ##           By: Brice Ozenne
-##     Update #: 413
+##     Update #: 434
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,27 +16,30 @@
 ### Code:
 
 ## * fitted.lmm (documentation)
-##' @title Predicted Mean Value For Linear Mixed Model.
-##' @description Evaluate the expected mean conditional to covariates or the expected outcome values when missing conditional to observed outcome and covariates.
-##' Similar to \code{\link{predict.lmm}} where the values to condition on are, by default, taking from the dataset used to fit the Linear Mixed Model.
+##' @title Fitted Outcome Value by a Linear Mixed Model.
+##' @description Evaluate the expected outcome conditional on covariates
+##' or the expected missing outcome value conditional on observed outcomes and covariates
+##' based on a linear mixed model. 
 ##'
 ##' @param object a \code{lmm} object.
 ##' @param newdata [data.frame] the covariate values for each cluster.
-##' @param type [character] By default fitted values are output (\code{NULL}).
+##' @param type [character] by default fitted values are output (\code{NULL}).
 ##' Can also output the expected outcome (for missing outcomes) based on covariates and other outcome values from the same cluster (\code{"impute"}),
 ##' the change or expected change between baseline and each follow-up (\code{"change"}),
 ##' or the area under the curve of the outcome (\code{"auc"}, require a numeric repetition variable).
 ##' @param se [character] passed to \code{predict.lmm} to evaluate the standard error of the fitted value, expected outcome, change in expected outcome, or area under the curve.
 ##' @param df [logical] should a Student's t-distribution be used to model the distribution of the predicted mean. Otherwise a normal distribution is used.
-##' @param format [character] Should the prediction be output
+##' @param format [character] should the prediction be output
 ##' in a matrix format with clusters in row and timepoints in columns (\code{"wide"}),
 ##' or in a data.frame/vector with as many rows as observations (\code{"long"})
-##' @param keep.data [logical] Should the dataset relative to which the predictions are evaluated be output along side the predicted values?
+##' @param keep.data [logical] should the dataset relative to which the predictions are evaluated be output along side the predicted values?
 ##' Only possible in the long format.
-##' @param seed [integer, >0] Random number generator (RNG) state used when starting imputation. If NULL no state is set.
-##' @param simplify [logical] Simplify the data format (vector instead of data.frame) and column names (no mention of the time variable) when possible.
-##' @param ... Additional argument passed the \code{\link{predict.lmm}}.
+##' @param seed [integer, >0] random number generator (RNG) state used when starting imputation. If NULL no state is set.
+##' @param simplify [logical] simplify the data format (vector instead of data.frame) and column names (no mention of the time variable) when possible.
+##' @param ... additional argument passed the \code{\link{predict.lmm}}.
 ##'
+##' @details Essentially a wrapper function of \code{\link{predict.lmm}} where the fitted value are stored in the outcome column of the dataset instead of in a separate column.
+##' 
 ##' @return When \code{format="wide"}, a data.frame with as many rows as clusters.
 ##' When \code{format="long"}, a data.frame with as many rows as observations (\code{keep.data==TRUE})
 ##' or a vector of length the number of observations (\code{keep.data==TRUE}).
@@ -157,8 +160,9 @@
 fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NULL,
                        keep.data = NULL, format = "long", seed = NULL, simplify = TRUE, ...){
 
-    ## ** extract from object
     mycall <- match.call()
+
+    ## ** extract from object
     outcome.var <- object$outcome$var
     cluster.var <- object$cluster$var
     time.var <- object$time$var
@@ -166,7 +170,15 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
     object.data.original <- object$data.original 
 
     ## ** normalize user input
-
+    ## *** dots
+    dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+    dots$options <- NULL
+    
     ## *** type
     type <- match.arg(type, c("mean","outcome","impute","change","auc","auc-b"))
     type.prediction <- switch(type,
@@ -191,7 +203,7 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
         if(is.null(se)){
             se <- FALSE
         }
-        newdata <- stats::model.frame(object, type = c("unique","mean"))
+        newdata <- stats::model.frame(object, type = c("unique","mean"), options = options)
     }else if(is.null(newdata)){
         newdata <- object$data.original
         index.na <- object$index.na
@@ -199,7 +211,7 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
         newdata.index.time <- attr(object$design$index.clusterTime,"vectorwise")                    
     }else if(format == "wide"){
         index.na <- NULL
-        newdata.design <- stats::model.matrix(object, newdata = newdata, effects = "index", na.rm = FALSE)
+        newdata.design <- stats::model.matrix(object, newdata = newdata, effects = "index", na.rm = FALSE, options = options)
         newdata.index.cluster <- attr(newdata.design$index.cluster, "vectorwise")
         newdata.index.time <- attr(newdata.design$index.clusterTime, "vectorwise")        
     }
@@ -275,15 +287,8 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
     }
 
     ## ** extract fitted values
-    e.pred <- stats::predict(object,
-                             newdata = newdata,
-                             se = se,
-                             type = type.prediction,
-                             df = df,
-                             keep.data = TRUE,
-                             format = "long",
-                             simplify = FALSE,
-                             ...)
+    e.pred <- do.call(stats::predict,
+                      args = c(list(object,newdata = newdata,se = se,type = type.prediction,df = df,keep.data = TRUE,format = "long",simplify = FALSE,options = options), dots))
 
     ## ** evaluate the different types
     if(type == "mean"){
@@ -371,13 +376,34 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
 }
 
 
+## * fitted.mlmm (documentation)
+##' @title Fitted Outcome Value by Multiple Linear Mixed Models.
+##' @description Evaluate the expected mean conditional to covariates
+##' or the expected missing outcome values conditional to observed outcome values and covariates.
+##' based on group-specific linear mixed models.
+##'
+##' @param object a \code{mlmm} object.
+##' @param newdata [data.frame] the covariate values for each cluster along with the \code{by} variable indicating which linear mixed model should be used.
+##' @param simplify [logical] simplify the column names (no mention of the time variable) and remove the cluster, by, and time column when possible.
+##' @param ... additional argument passed the \code{\link{predict.lmm}}.
+##' 
+
 ## * fitted.mlmm (code)
 ##' @export
 fitted.mlmm <- function(object, newdata = NULL, simplify = TRUE, ...){
 
     ## ** normalize user input
 
-    ## newdata
+    ## *** dots
+    dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+    dots$options <- NULL
+    
+    ## *** newdata
     if(!is.null(newdata)){
         if(identical(newdata,"unique")){
             ls.newdata <- stats::setNames(lapply(names(object$model), function(iM){"unique"}), names(object$model))
@@ -397,7 +423,7 @@ fitted.mlmm <- function(object, newdata = NULL, simplify = TRUE, ...){
 
     ## ** extract
     ls.out <- lapply(names(ls.newdata), function(iBy){ ## iBy <- "A"
-        fitted(object$model[[iBy]], newdata = ls.newdata[[iBy]], simplify = simplify, ...)
+        do.call(stats::fitted, args = c(list(object$model[[iBy]], newdata = ls.newdata[[iBy]], options = options, simplify = simplify), dots))
     })
 
     ## ** reshape

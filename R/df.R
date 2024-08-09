@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (10:34) 
 ## Version: 
-## Last-Updated: aug  6 2024 (15:42) 
+## Last-Updated: aug  7 2024 (18:42) 
 ##           By: Brice Ozenne
-##     Update #: 254
+##     Update #: 259
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,13 +15,15 @@
 ## 
 ### Code:
 
-## * df.residual
-##' @title Residuals Degrees of Freedom
-##' @description Residuals degrees of freedom. Computed as the sum of squared normalized residuals
+## * df.residual.lmm
+##' @title Residual Degrees-of-Freedom From a Linear Mixed Model.
+##' @description Estimate the residual degrees-of-freedom from a linear mixed model.
 ##' 
 ##' @param object a \code{lmm} object.
 ##' @param ... Passed to \code{residuals.lmm}.
 ##'
+##' @details The residual degrees-of-freedom is estimated using the sum of squared normalized residuals.
+##' 
 ##' @return A numeric value
 ##' 
 ##' @keywords methods
@@ -29,7 +31,28 @@
 df.residual.lmm <- function(object, ...){
 
     epsilonN <- stats::residuals(object, type = "normalized", ...)
-    as.double(crossprod(stats::na.omit(epsilonN)))
+    out <- as.double(crossprod(stats::na.omit(epsilonN)))
+    return(out)
+    
+}
+
+## * df.residual.mlmm
+##' @title Residuals Degrees-of-Freedom From From Multiple Linear Mixed Model.
+##' @description Combine the residuals degrees-of-freedom from group-specific linear mixed models.
+##' 
+##' @param object a \code{lmm} object.
+##' @param ... Passed to \code{residuals.lmm}.
+##'
+##' @details The residual degrees-of-freedom is estimated separately for each model using the sum of squared normalized residuals.
+##' 
+##' @return A numeric vector with one element for each model.
+##' 
+##' @keywords methods
+##' @export
+df.residual.mlmm <- function(object, ...){
+
+    out <- sapply(object$model,df.residual)
+    return(out)
     
 }
 
@@ -41,7 +64,7 @@ df.residual.lmm <- function(object, ...){
     
     ## ** extract information
     if(is.null(precompute)){
-        stop("Cannot compute degrees of freedom analytically when \'precompute.moments\' is set to FALSE. \n",
+        stop("Cannot compute degrees-of-freedom analytically when \'precompute.moments\' is set to FALSE. \n",
              "Use the function LMMstar.options to update \'precompute.moments\'. \n")
     }
     n.obs <- length(index.cluster)
@@ -144,7 +167,7 @@ df.residual.lmm <- function(object, ...){
 
     ## solve(crossprod(model.matrix(e.lmm, effects = "mean")))
     ## 4*coef(e.lmm)["sigma"]^2/stats::nobs(e.lmm)[1]
-    ## ** degrees of freedom
+    ## ** degrees-of-freedom
     if(diag){
         df <- stats::setNames(sapply(1:n.effects, function(iP){
             2 * vcov.effects[iP,iP]^2 / (A.dVcov[iP,iP,] %*% vcov %*% A.dVcov[iP,iP,])
@@ -242,7 +265,7 @@ df.residual.lmm <- function(object, ...){
         }
     }
 
-    ## ** degrees of freedom
+    ## ** degrees-of-freedom
     df <- .df_contrast(contrast = NULL, vcov.param = vcov.all, dVcov.param = A.dVcov)
     
     ## ** export
@@ -251,7 +274,7 @@ df.residual.lmm <- function(object, ...){
 }
 
 ## * .df_contrast
-##' @description Evaluate degrees of freedom for a linear combination of parameters
+##' @description Evaluate degrees-of-freedom for a linear combination of parameters
 ##' @param contrast [matrix] contrast matrix (n,p)
 ##' @param vcov.param [matrix] matrix (p,p)
 ##' @param dVcov.param [array] array (p,p,p) or (n,n,p)
@@ -295,7 +318,7 @@ df.residual.lmm <- function(object, ...){
         Mpair_dVcov.beta <- do.call(cbind,lapply(1:n.param, function(iParam){rowSums((contrast_red %*% dVcov.param[index.red,index.red,iParam]) * contrast_red)}))
     }
 
-    ## ** Satterthwaite approximation of the degrees of freedom
+    ## ** Satterthwaite approximation of the degrees-of-freedom
     ## delta method on \beta = C\theta:  Var[Sigma_\beta] = [dSigma_\beta/d\theta] [Sigma_\theta] [dSigma_\beta/dtheta]'
     denum <- rowSums((Mpair_dVcov.beta %*% vcov.param) * Mpair_dVcov.beta)
     ## same as diag(Mpair_dVcov.beta %*% vcov.param %*% t(Mpair_dVcov.beta))

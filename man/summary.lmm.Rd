@@ -8,6 +8,7 @@
   object,
   level = 0.95,
   robust = FALSE,
+  df = NULL,
   print = TRUE,
   columns = NULL,
   digits = 3,
@@ -29,7 +30,10 @@
 
 \item{level}{[numeric,0-1] confidence level for the confidence intervals.}
 
-\item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.}
+\item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
+Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.}
+
+\item{df}{[logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.}
 
 \item{print}{[logical] should the output be printed in the console.}
 

@@ -6,7 +6,7 @@
 ##' researchers" taught by the section of Biostatistics of the University
 ##' of Copenhagen. It implements linear mixed models where the model for the variance-covariance of the residuals
 ##' is specified via patterns (compound symmetry, toeplitz, unstructured, ...). Statistical inference for mean, variance, and correlation parameters
-##' is performed based on the observed information and a Satterthwaite approximation of the degrees of freedom.
+##' is performed based on the observed information and a Satterthwaite approximation of the degrees-of-freedom.
 ##' Normalized residuals are provided to assess model misspecification.
 ##' Statistical inference can be performed for arbitrary linear or non-linear combination(s) of model coefficients.
 ##' Predictions can be computed conditional to covariates only or also to outcome values. \cr \cr

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: jul 31 2024 (10:37) 
+## Last-Updated: aug  8 2024 (13:32) 
 ##           By: Brice Ozenne
-##     Update #: 787
+##     Update #: 807
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,10 +15,9 @@
 ## 
 ### Code:
 
-## * resample (documentation)
-##' @title Inference via Resampling for Linear Mixed Model
-##' @description Non-parametric bootstrap or permutation test for Linear Mixed Models.
-##' @name resample
+## * resample.lmm (documentation)
+##' @title Inference via Resampling for a Linear Mixed Model
+##' @description Non-parametric bootstrap or permutation test for a linear mixed model.
 ##'
 ##' @param object a \code{lmm} object.
 ##' @param type [character] should permutation test (\code{"perm-var"} or \code{"perm-res"}) or non-parametric bootstrap (\code{"boot"}) be used?
@@ -99,11 +98,15 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
                          trace = TRUE, seed = NULL, cpus = 1, export.cpus = NULL,
                          ...){
 
-    options <- LMMstar.options()
-
     ## ** check user input
     ## *** dots
     dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+        dots$options <- NULL
+    }else{
+        options <- LMMstar.options()
+    }
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
@@ -118,11 +121,11 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
     ## perm-res: outcome becomes permuted normalized residuals under the null to which the (permuted) fixed effect under the null are added.
 
     name.meanvar <- attr(object$design$mean,"variable")
-    value.meancoef <- coef(object, effects = "mean")
-    sd.meancoef <- sqrt(diag(vcov(object, effects = "mean")))
+    value.meancoef <- stats::coef(object, effects = "mean", options = options)
+    sd.meancoef <- sqrt(diag(vcov(object, effects = "mean", options = options)))
 
     name.meancoef <- names(value.meancoef)
-    name.coef <- names(coef(object, effects = "all", transform.sigma = FALSE, transform.k = FALSE, transform.rho = FALSE))
+    name.coef <- stats::model.tables(object, effects = "param")$name
     if(type == "perm-var"){
         if(is.function(effects)){
             stop("Argument \'effects\' cannot be a function when using permutation. \n",
@@ -192,8 +195,8 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
                     stop("When a function, argument \'effects\' should have two arguments (studentized bootstrap) \n",
                          "The first argument refers to the estimates and the second to thevariance-covariance matrix of the estimates \n")
                 }
-                effects.estimate <- effects(coef(object, effects = "all", transform.sigma = FALSE, transform.k = FALSE, transform.rho = FALSE),
-                                            vcov(object, effects = "all", transform.sigma = FALSE, transform.k = FALSE, transform.rho = FALSE))
+                effects.estimate <- stats::effects(stats::coef(object, effects = "all", transform.sigma = FALSE, transform.k = FALSE, transform.rho = FALSE),
+                                                   stats::vcov(object, effects = "all", transform.sigma = FALSE, transform.k = FALSE, transform.rho = FALSE))
                 if(!is.matrix(effects.estimate) || !is.numeric(effects.estimate) || NROW(effects.estimate)!=2){
                     stop("The output of the function defined in the argument \'effects\' must be a numeric matrix with two rows (studentized bootstrap). \n",
                          "The first row should contain estimates and the second row corresponding standard errors.")
@@ -208,7 +211,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
                     stop("When a function, argument \'effects\' should have one or two arguments (non-studentized bootstrap) \n",
                          "The argument refers to the estimates. \n")
                 }
-                effects.estimate <- effects(coef(object, effects = "all", transform.sigma = FALSE, transform.k = FALSE, transform.rho = FALSE))
+                effects.estimate <- stats::effects(stats::coef(object, effects = "all", transform.sigma = FALSE, transform.k = FALSE, transform.rho = FALSE))
                 if(!is.vector(effects.estimate) || !is.numeric(effects.estimate)){
                     stop("The output of the function defined in the argument \'effects\' must be a numeric vector (non-studentized bootstrap). \n")
                 }
@@ -261,7 +264,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
 
     ## *** null
     if(type == "boot"){
-        all.null <- model.tables(object, effects = "all", columns = "null", transform.k = "none", transform.rho = "none")
+        all.null <- stats::model.tables(object, effects = "all", columns = "null", transform.k = "none", transform.rho = "none", options = options)
         if(is.function(effects)){
             null <- try(effects(all.null$null), silent = TRUE)
             if(inherits(null, "try-error")){
@@ -330,9 +333,9 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
             call0$data <- object$data.original[-object$index.na,,drop=FALSE]
         }
         object0 <- eval(call0)
-        Xbeta0 <- stats::predict(object0, newdata = data[var.mean], se = FALSE, df = FALSE, simplify = TRUE)
-        epsilon0.norm <- stats::residuals(object0, type = "normalized")
-        OmegaChol0 <- lapply(stats::sigma(object0, chol = TRUE, cluster = as.character(vec.Uid)), FUN = base::t)
+        Xbeta0 <- stats::predict(object0, newdata = data[var.mean], se = FALSE, df = FALSE, simplify = TRUE, options = options)
+        epsilon0.norm <- stats::residuals(object0, type = "normalized", options = options)
+        OmegaChol0 <- lapply(stats::sigma(object0, chol = TRUE, cluster = as.character(vec.Uid), options = options), FUN = base::t)
     }
 
     ## *** seed
@@ -459,7 +462,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
         }else{ ## change in the X values
             ## update design matrix according to the permutation (only mean)
             iDesign <- object$design
-            iDesign$mean <- stats::model.matrix(object, newdata = iData[,var.mean,drop=FALSE])
+            iDesign$mean <- stats::model.matrix(object, newdata = iData[,var.mean,drop=FALSE], options = options)
             attr(iDesign$mean, "assign") <- attr(object$design$mean, "assign")
             attr(iDesign$mean, "contrasts") <- attr(object$design$mean, "contrasts")
             attr(iDesign$mean, "variable") <- attr(object$design$mean, "variable")
@@ -521,13 +524,13 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
             return(iEstimate)
         }else if(!studentized){
             if(effects.fct){
-                return(c(convergence = iEstimate$cv, effects(iEstimate$estimate)))
+                return(c(convergence = iEstimate$cv, stats::effects(iEstimate$estimate)))
             }else{
                 return(c(convergence = iEstimate$cv, iEstimate$estimate[name.keepcoef]))
             }
         }else if(studentized){
             if(effects.fct){
-                iRes <- effects(iEstimate$estimate, iVcov)
+                iRes <- stats::effects(iEstimate$estimate, iVcov)
                 return(c(convergence = iEstimate$cv, iRes[1,], se = iRes[2,]))
             }else{
                 return(c(convergence = iEstimate$cv, iEstimate$estimate[name.keepcoef], se = sqrt(diag(iVcov)[name.keepcoef])))
@@ -693,23 +696,56 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
     return(out)
 }
 
+## * resample.mlmm (documentation)
+##' @title Inference via Resampling for Multiple Linear Mixed Models
+##' @description Non-parametric bootstrap or permutation test for group-specific linear mixed models.
+##' @name resample
+##'
+##' @param object a \code{mlmm} object.
+##' @param type [character] should permutation test (\code{"perm-var"} or \code{"perm-res"}) or non-parametric bootstrap (\code{"boot"}) be used?
+##' @param method [character] type of adjustment for multiple comparisons, one of \code{"none"}, \code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}.
+##' and/or method(s) to pool the estimates, one of \code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.gls1"}, \code{"pool.rubin"}.
+##' @param n.sample [integer] the number of samples used.
+##' @param studentized [logical] should a studentized boostrap or permutation test be used?
+##' @param trace [logical] should the execution of the resampling be traced?
+##' @param seed [integer, >0] Random number generator (RNG) state used when starting resampling.
+##' @param cpus [integer, >0] number of child-processes for parallel evaluation.
+##' If \code{NULL} no state is set.
+##' @param export.cpus [character vector] name of the variables to export to each cluster.
+##' @param ... Not used. For compatibility with the generic method.
+##'
+##' @keywords htest
+##' 
+
 ## * resample.mlmm
 ##' @export
 ##' @rdname resample
-resample.mlmm <- function(object, type, method = NULL, cluster = NULL, n.sample = 1e3, studentized = TRUE,
+resample.mlmm <- function(object, type, method = NULL, n.sample = 1e3, studentized = TRUE,
                           trace = TRUE, seed = NULL, cpus = 1, export.cpus = NULL,
                           ...){
 
-    options <- LMMstar.options()
-    pool.method <- options$pool.method
+    cluster <- object$object$cluster.var
 
     ## ** normalize arguments
-    ## alternative
+    ## *** dots    
+    dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+    dots$options <- NULL
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+    pool.method <- options$pool.method
+
+    ## *** alternative
     if(object$glht[[1]][[1]]$alternative!="two.sided"){
         stop("Can only perform two sided tests. \n")
     }
     
-    ## n.sample
+    ## *** n.sample
     if(length(n.sample)!=1){
         stop("Argument \'n.sample\' should have lenght 1. \n")
     }
@@ -717,24 +753,7 @@ resample.mlmm <- function(object, type, method = NULL, cluster = NULL, n.sample 
         stop("Argument \'n.sample\' should be a positive integer. \n")
     }
     
-    ## cluster
-    if(is.null(cluster)){
-        ls.nameCluster <- lapply(object$model, function(iModel){attr(variable.names(iModel),"cluster")})
-        if(length(unique(unlist(ls.nameCluster)))==1 && all(lengths(ls.nameCluster)==1)){
-            cluster <- unname(ls.nameCluster[[1]])
-        }else{
-            stop("Argument \'cluster\' cannot be guessed from the object. \n")
-        }
-        
-    }
-    if(length(cluster)!=1){
-        stop("Argument \'cluster\' should have lenght 1. \n")
-    }
-    if(!is.character(cluster)){
-        stop("Argument \'cluster\' should be a character. \n")
-    }
-
-    ## data    
+    ## *** data    
     object.call <- attr(object, "call")
     by <- object.call$by
     level.by <- names(object$model)
@@ -769,7 +788,7 @@ resample.mlmm <- function(object, type, method = NULL, cluster = NULL, n.sample 
     }
     data <- as.data.frame(data)
 
-    ## type
+    ## *** type
     if(tolower(type) == "permutation"){
         type <- "perm"
     }else if(tolower(type) == "bootstrap"){
@@ -801,7 +820,7 @@ resample.mlmm <- function(object, type, method = NULL, cluster = NULL, n.sample 
         Uvar <- by(data[[variable.perm]], data[[cluster]], function(iData){iData[1]}, simplify = FALSE)
     }
 
-    ## cpus
+    ## *** cpus
     max.cpus <- parallel::detectCores()
     if(length(cpus)!=1){
         stop("Argument \'cpus\' should have length 1.\n ")
@@ -813,13 +832,7 @@ resample.mlmm <- function(object, type, method = NULL, cluster = NULL, n.sample 
         stop("Argument \'cpus\' exceeds the number of available CPUs.\n ",
              "It should be an integer between 1 and ",max.cpus," or \'all\'.\n ")
     }
-
-    ## dots
-    dots <- list(...)
-    if(length(dots)>0){
-        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
-    }
-
+    
     ## ** prepare
     ## *** seed
     if(!is.null(seed)){
@@ -902,11 +915,11 @@ resample.mlmm <- function(object, type, method = NULL, cluster = NULL, n.sample 
         }else{
             mean.cv <- mean(sapply(iEstimate$model,function(iM){iM$opt$cv}))
             if(studentized){
-                iTable <- model.tables(iEstimate, columns = keep.cols, method = method, df = FALSE)
+                iTable <- stats::model.tables(iEstimate, columns = keep.cols, method = method, df = FALSE)
                 iOut <- c(convergence =  mean.cv, iTable$estimate, iTable$se)
                 names(iOut)[-1] <- paste(rownames(iTable),paste0("se.",rownames(iTable)))
             }else{
-                iCoef <- coef(iEstimate, method = method)
+                iCoef <- stats::coef(iEstimate, method = method)
                 iOut <- c(convergence =  mean.cv, iCoef)
             }
         }
@@ -1009,12 +1022,12 @@ resample.mlmm <- function(object, type, method = NULL, cluster = NULL, n.sample 
                 args = list(type = type, method = method, n.sample = n.sample, studentized = studentized, seed = seed))
 
     if(studentized){
-        object.table <- model.tables(object, columns = c("estimate","se","null"), method = method, df = FALSE)
+        object.table <- stats::model.tables(object, columns = c("estimate","se","null"), method = method, df = FALSE)
         out$estimate <- stats::setNames(object.table$estimate, object.table$parameter)
         out$se <- stats::setNames(object.table$se, object.table$parameter)
         out$null <- stats::setNames(object.table$null, object.table$parameter)
     }else{
-        object.table <- model.tables(object, columns = c("estimate","null"), method = method, df = FALSE)
+        object.table <- stats::model.tables(object, columns = c("estimate","null"), method = method, df = FALSE)
         out$estimate <- stats::setNames(object.table$estimate, object.table$parameter)
         out$null <- stats::setNames(object.table$null, object.table$parameter)
     }

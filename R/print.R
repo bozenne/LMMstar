@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jul 25 2024 (09:25) 
+## Last-Updated: aug  8 2024 (10:11) 
 ##           By: Brice Ozenne
-##     Update #: 309
+##     Update #: 312
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -293,14 +293,17 @@ print.confint_lmm <- function(x, digits = 3, detail = FALSE, ...){
 ## * print.Wald_lmm
 ##' @export
 print.Wald_lmm <- function(x, ...){
-    dots <- list(...)
 
+    ## ** normalize user input
+    dots <- list(...)
+    
     if(x$args$multivariate){
         dots$print <- c(1,0)
     }else{
         dots$print <- c(0,1)
     }
 
+    ## ** print
     return(do.call(summary, c(list(object = x, legend = FALSE), dots)))
 }
 
@@ -324,6 +327,8 @@ print.LRT_lmm <- function(x, ...){
 ## * print.Wald_lmm
 ##' @export
 print.effect_lmm <- function(x, ...){
+
+    ## ** normalize user input
     dots <- list(...)
     dots$print <- c(0,0.5)
     if(x$args$type=="outcome"){
@@ -331,6 +336,8 @@ print.effect_lmm <- function(x, ...){
     }else{
         columns <- c("estimate","se","df","lower","upper","p.value")
     }
+
+    ## ** print
     return(do.call(summary, c(list(object = x, columns = columns, legend = FALSE), dots)))
 }
 
@@ -360,7 +367,7 @@ print.resample <- function(x, digits = 3, ...){
     n.cv <- sum(x$cv)
 
     ## ** compute CI/pvalue
-    table.x <- model.tables(x, ...)
+    table.x <- stats::model.tables(x, ...)
 
     ## ** display
     base::print.data.frame(table.x, digits = digits)

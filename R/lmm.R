@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: aug  1 2024 (14:48) 
+## Last-Updated: aug  8 2024 (12:05) 
 ##           By: Brice Ozenne
-##     Update #: 3101
+##     Update #: 3112
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -27,14 +27,14 @@
 ##' @param data [data.frame] dataset (in the long format) containing the observations.
 ##' @param method.fit [character] Should Restricted Maximum Likelihoood (\code{"REML"}) or Maximum Likelihoood (\code{"ML"}) be used to estimate the model parameters?
 ##' @param type.information [character] Should the expected information be computed  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
-##' @param df [logical] Should the degree of freedom be computed using a Satterthwaite approximation?
+##' @param df [logical] Should the degrees-of-freedom be computed using a Satterthwaite approximation?
 ##' @param weights [formula or character] variable in the dataset used to weight the log-likelihood and its derivative. Should be constant within cluster.
 ##' @param trace [interger, >0] Show the progress of the execution of the function.
 ##' @param control [list] Control values for the optimization method.
 ##' The element \code{optimizer} indicates which optimizer to use and additional argument will be pass to the optimizer.
 ##' 
 ##'
-##' @details \bold{Computation time} the \code{lmm} has not been developped to be a fast function as, by default, it uses REML estimation with the observed information matrix and uses a Satterthwaite approximation to compute degrees of freedom (this require to compute the third derivative of the log-likelihood which is done by numerical differentiation). The computation time can be substantially reduced by using ML estimation with the expected information matrix and no calculation of degrees of freedom: arguments \code{method.fit="ML"}, \code{type.information="expected"}, \code{df=FALSE}. This will, however, lead to less accurate p-values and confidence intervals in small samples.
+##' @details \bold{Computation time} the \code{lmm} has not been developped to be a fast function as, by default, it uses REML estimation with the observed information matrix and uses a Satterthwaite approximation to compute degrees-of-freedom (this require to compute the third derivative of the log-likelihood which is done by numerical differentiation). The computation time can be substantially reduced by using ML estimation with the expected information matrix and no calculation of degrees-of-freedom: arguments \code{method.fit="ML"}, \code{type.information="expected"}, \code{df=FALSE}. This will, however, lead to less accurate p-values and confidence intervals in small samples.
 ##'
 ##' By default, the estimation of the model parameters will be made using a Newton Raphson algorithm.
 ##' This algorithm does not ensure that the residual covariance matrix is positive definite and therefore may sometimes fail.
@@ -335,7 +335,18 @@ lmm <- function(formula, data, repetition, structure, weights = NULL,
     }else if(inherits(out$design$vcov,"CUSTOM")){
         init.Omega <- .calc_Omega(out$design$vcov, param = c(out$design$vcov$init.sigma,out$design$vcov$init.rho), simplify = TRUE)
         out$args$control$init <- init.Omega[[which.max(out$design$vcov$Upattern$n.time)]]
-        
+    }
+    if(is.null(out$args$control$n.iter)){
+        out$args$control$n.iter <- as.double(options$param.optimizer["n.iter"])
+    }
+    if(is.null(out$args$control$tol.score)){
+        out$args$control$tol.score <- as.double(options$param.optimizer["tol.score"])
+    }
+    if(is.null(out$args$control$tol.param)){
+        out$args$control$tol.param <- as.double(options$param.optimizer["tol.param"])
+    }
+    if(is.null(out$args$control$n.backtracking)){
+        out$args$control$n.backtracking <- as.double(options$param.optimizer["n.backtracking"])
     }
 
     if(trace>0){
@@ -345,7 +356,7 @@ lmm <- function(formula, data, repetition, structure, weights = NULL,
     outEstimate <- .estimate(design = out$design, time = out$time, method.fit = out$args$method.fit, type.information = out$args$type.information,
                              transform.sigma = options$transform.sigma, transform.k = options$transform.k, transform.rho = options$transform.rho,
                              precompute.moments = precompute.moments, 
-                             optimizer = out$args$control$optimizer, init = out$args$control$init, n.iter = out$args$control$n.iter,
+                             optimizer = out$args$control$optimizer, init = out$args$control$init, n.iter = out$args$control$n.iter, n.backtracking = out$args$control$n.backtracking,
                              tol.score = out$args$control$tol.score, tol.param = out$args$control$tol.param, trace = out$args$control$trace)
     param.value <- outEstimate$estimate
     out$opt <- outEstimate[c("cv","n.iter","score","previous.estimate","previous.logLik","control")]
@@ -638,7 +649,7 @@ lmm <- function(formula, data, repetition, structure, weights = NULL,
         }
     }
     
-    ## ** degrees of freedom
+    ## ** degrees-of-freedom
     if(is.null(df)){
         df <- options$df
     }else if(!is.logical(df)){

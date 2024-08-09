@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jun 16 2022 (15:19) 
 ## Version: 
-## Last-Updated: jul 31 2024 (10:37) 
+## Last-Updated: aug  8 2024 (13:32) 
 ##           By: Brice Ozenne
-##     Update #: 322
+##     Update #: 340
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,15 +16,18 @@
 ### Code:
 
 ## * profile.lmm (documentation)
-##' @title Evaluate Contour of the Log-Likelihood
-##' @description Display the (restricted) log-likelihood around Maximum Likelihood Estimate (MLE) under specific constrains.
-##'
+##' @title Log-Likelihood Contour For a Linear Mixed Model
+##' @description Evaluate the (restricted) log-likelihood around Maximum Likelihood Estimate (MLE) of a linear mixed model.
+##' It will vary one parameter and either keep the other parameters constant or set the other parameters at their MLE (profile likelihood).
+##' Since a locally quadratic log-likelihood with an Hessian equivariant in law implies normally distributed estimates (Geyer 2013)
+##' it can help trusting confidence intervals and p-values in small samples with a non-normally distributed outcome.
+##' 
 ##' @param fitted a \code{lmm} object.
 ##' @param effects [character vector] name of the parameters who will be constrained.
 ##' Alternatively can be the type of parameters, e.g. \code{"mean"}, \code{"variance"}, \code{"correlation"}, or \code{"all"}.
-##' @param profile.likelihood [logical] should profile likelihood be performed? Otherwise varying one parameter at a time around the MLE while keeping the other constant).
+##' @param profile.likelihood [logical] should the other parameters be set to the value maximizing the constrained likelihood or stay at their MLE value? 
 ##' @param maxpts [integer, >0] number of points use to discretize the likelihood, \code{maxpts} points smaller than the MLE and \code{maxpts} points higher than the MLE.
-##' @param conf.level [numeric, 0-1] the confidence level of the confidence intervals used to decide about the range of values for each parameter.
+##' @param level [numeric, 0-1] the confidence level of the confidence intervals used to decide about the range of values for each parameter.
 ##' @param trace [logical] Show the progress of the execution of the function.
 ##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
 ##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
@@ -35,14 +38,15 @@
 ##' 
 ##' @details Each parameter defined by the argument \code{effets} is treated separately:\itemize{
 ##' \item the confidence interval of a parameter is discretized with \code{maxpt} points,
-##' \item this parameter is set to a discretization value.
+##' \item this parameter is set to each discretization value.
 ##' \item the other parameters are either set to the (unconstrained) MLE (\code{profile.likelihood=FALSE})
-##' or to constrained MLE  (\code{profile.likelihood=TRUE}). The latter case is much more computer intensive as it implies re-running the estimation procedure.
+##' or to constrained MLE (\code{profile.likelihood=TRUE}). The latter case is much more computer intensive as it implies re-running the estimation procedure.
 ##' \item the (restricted) log-likelihood is evaluated.
 ##' }
 ##'
 ##' @return A data.frame object containing the log-likelihood for various parameter values.
-##' 
+##'
+##' @references Geyer, C. J. (2013). Asymptotics of maximum likelihood without the lln or clt or sample size going to infinity. In Advances in Modern Statistical Theory and Applications: A Festschrift in honor of Morris L. Eaton, pages 1–24. Institute of Mathematical Statistics.
 ##' @keywords htest
 ##' 
 ##' @examples
@@ -67,24 +71,25 @@
 ## * profile.lmm (code)
 ##' @export
 profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
-                        maxpts = NULL, conf.level = 0.95, trace = FALSE,                        
+                        maxpts = NULL, level = 0.95, trace = FALSE,                        
                         transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
 
-    call <- match.call()
-    options <- LMMstar.options()
+    table.param <- stats::model.tables(fitted, effects = "param")
+    name.p <- table.param$name
+    type.p <- stats::setNames(table.param$type, name.p)
 
     ## ** normalize user input
     ## *** dots
     dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+    dots$options <- NULL
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
-
-    ## *** conf.level
-    p <- confint(fitted, effects = "all", level = conf.level,
-                 transform.sigma = "none", transform.k = "none", transform.rho = "none")
-    name.p <- rownames(p)
-    type.p <- stats::setNames(fitted$design$param$type, name.p)
 
     ## *** transformations
     init <- .init_transform(p = NULL, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
@@ -94,9 +99,10 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
     transform.rho <- init$transform.rho
     test.notransform <- init$test.notransform
 
-    p.trans <- confint(fitted, effects = "all", level = conf.level,
-                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                       transform.names = transform.names, backtransform = FALSE)
+    ## *** level
+    p.trans <- stats::confint(fitted, effects = "all", level = level,
+                              transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                              transform.names = transform.names, backtransform = FALSE, options = options)
     name.p.trans <- rownames(p.trans)
     rownames(p.trans) <- name.p
 
@@ -126,7 +132,7 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
             effects[effects == "fixed"] <- "mean"
         }
         if(any(effects %in% name.p == FALSE)){
-            effects <- names(coef(fitted, effects = effects))
+            effects <- stats::model.tables(fitted, effects = c("param",effects))$name
         }
     
     }
@@ -259,7 +265,7 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
                                      maxpts = maxpts,
                                      name.p = name.p,
                                      effects = effects,
-                                     conf.level = conf.level,
+                                     conf.level = level,
                                      ci = p.trans,
                                      transform.sigma = transform.sigma,
                                      transform.k = transform.k,
