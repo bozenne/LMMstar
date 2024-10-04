@@ -2,7 +2,7 @@
 % Please edit documentation in R/model.matrix.R
 \name{model.matrix.lmm}
 \alias{model.matrix.lmm}
-\title{Design Matrix for Linear Mixed Model}
+\title{Design Matrix for a Linear Mixed Model}
 \usage{
 \method{model.matrix}{lmm}(
   object,
@@ -15,7 +15,7 @@
 )
 }
 \arguments{
-\item{object}{an lmm object}
+\item{object}{an \code{lmm} object}
 
 \item{newdata}{[data.frame] dataset relative to which the design matrix should be constructed.}
 
@@ -52,6 +52,6 @@ When \code{simplify} is \code{TRUE}, this list will be simplified into a list wi
 or a single design matrixx.
 }
 \description{
-Extract or construct design matrices for Linear Mixed Model.
+Extract or construct design matrices for a linear mixed model.
 }
 \keyword{methods}

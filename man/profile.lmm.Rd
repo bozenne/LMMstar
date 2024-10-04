@@ -2,14 +2,14 @@
 % Please edit documentation in R/profile.R
 \name{profile.lmm}
 \alias{profile.lmm}
-\title{Evaluate Contour of the Log-Likelihood}
+\title{Log-Likelihood Contour For a Linear Mixed Model}
 \usage{
 \method{profile}{lmm}(
   fitted,
   effects = NULL,
   profile.likelihood = FALSE,
   maxpts = NULL,
-  conf.level = 0.95,
+  level = 0.95,
   trace = FALSE,
   transform.sigma = NULL,
   transform.k = NULL,
@@ -24,11 +24,11 @@
 \item{effects}{[character vector] name of the parameters who will be constrained.
 Alternatively can be the type of parameters, e.g. \code{"mean"}, \code{"variance"}, \code{"correlation"}, or \code{"all"}.}
 
-\item{profile.likelihood}{[logical] should profile likelihood be performed? Otherwise varying one parameter at a time around the MLE while keeping the other constant).}
+\item{profile.likelihood}{[logical] should the other parameters be set to the value maximizing the constrained likelihood or stay at their MLE value?}
 
 \item{maxpts}{[integer, >0] number of points use to discretize the likelihood, \code{maxpts} points smaller than the MLE and \code{maxpts} points higher than the MLE.}
 
-\item{conf.level}{[numeric, 0-1] the confidence level of the confidence intervals used to decide about the range of values for each parameter.}
+\item{level}{[numeric, 0-1] the confidence level of the confidence intervals used to decide about the range of values for each parameter.}
 
 \item{trace}{[logical] Show the progress of the execution of the function.}
 
@@ -46,14 +46,17 @@ Alternatively can be the type of parameters, e.g. \code{"mean"}, \code{"variance
 A data.frame object containing the log-likelihood for various parameter values.
 }
 \description{
-Display the (restricted) log-likelihood around Maximum Likelihood Estimate (MLE) under specific constrains.
+Evaluate the (restricted) log-likelihood around Maximum Likelihood Estimate (MLE) of a linear mixed model.
+It will vary one parameter and either keep the other parameters constant or set the other parameters at their MLE (profile likelihood).
+Since a locally quadratic log-likelihood with an Hessian equivariant in law implies normally distributed estimates (Geyer 2013)
+it can help trusting confidence intervals and p-values in small samples with a non-normally distributed outcome.
 }
 \details{
 Each parameter defined by the argument \code{effets} is treated separately:\itemize{
 \item the confidence interval of a parameter is discretized with \code{maxpt} points,
-\item this parameter is set to a discretization value.
+\item this parameter is set to each discretization value.
 \item the other parameters are either set to the (unconstrained) MLE (\code{profile.likelihood=FALSE})
-or to constrained MLE  (\code{profile.likelihood=TRUE}). The latter case is much more computer intensive as it implies re-running the estimation procedure.
+or to constrained MLE (\code{profile.likelihood=TRUE}). The latter case is much more computer intensive as it implies re-running the estimation procedure.
 \item the (restricted) log-likelihood is evaluated.
 }
 }
@@ -75,5 +78,8 @@ plot(e.sliceNone)
 e.sliceLog <- profile(e.lmm, effects = "all", maxpts = 10, transform.sigma = "log")
 plot(e.sliceLog)
 
+}
+\references{
+Geyer, C. J. (2013). Asymptotics of maximum likelihood without the lln or clt or sample size going to infinity. In Advances in Modern Statistical Theory and Applications: A Festschrift in honor of Morris L. Eaton, pages 1–24. Institute of Mathematical Statistics.
 }
 \keyword{htest}

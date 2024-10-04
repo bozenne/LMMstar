@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 28 2024 (19:14) 
 ## Version: 
-## Last-Updated: aug  8 2024 (16:03) 
+## Last-Updated: sep 30 2024 (14:26) 
 ##           By: Brice Ozenne
-##     Update #: 197
+##     Update #: 203
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -173,7 +173,7 @@ pool.rbindWald_lmm <- function(object, method, qt = NULL,
 
     ## ** variance
     if(!is.na(level) && "pool.rubin" %in% method){
-        pool.U <- mean(diag(Sigma))
+        pool.U <- mean(diag(Wald.Sigma))
         pool.B <- sum((tableUni$estimate - mean(tableUni$estimate))^2)/(n.test-1)
         out[pool.name["pool.rubin"],"se"] <- sqrt(pool.U + (1 + 1/n.test) * pool.B)
     }
@@ -264,7 +264,6 @@ pool.rbindWald_lmm <- function(object, method, qt = NULL,
             out[setdiff(pool.name, pool.name["p.rejection"]),"null"] <- (pool.contrast %*% tableUni$null)[,1]
         }
     }
-
 
     ## ** degrees-of-freedom
     if(df == FALSE){

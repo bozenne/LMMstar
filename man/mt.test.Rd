@@ -17,7 +17,7 @@ mt.test(formula, data, method = NULL, level = 0.95, trace = TRUE)
 
 \item{method}{[character] type of adjustment for multiple comparisons, one of \code{"none"}, \code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}.
 See \code{\link{confint.Wald_lmm}} for more details.
-By default \code{"single-step"} when the test statistics have equal degrees of freedom and otherwise \code{"single-step2"}.}
+By default \code{"single-step"} when the test statistics have equal degrees-of-freedom and otherwise \code{"single-step2"}.}
 
 \item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
 

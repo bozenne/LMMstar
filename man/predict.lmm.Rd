@@ -2,7 +2,7 @@
 % Please edit documentation in R/predict.R
 \name{predict.lmm}
 \alias{predict.lmm}
-\title{Predicted Mean Value With Uncertainty For Linear Mixed Model}
+\title{Predicted Outcome Value by a Linear Mixed Model.}
 \usage{
 \method{predict}{lmm}(
   object,
@@ -39,7 +39,7 @@ It can also be a logical vector of length 2 to indicate the type of uncertainty 
 In particular \code{c(TRUE,TRUE)} provides prediction intervals.}
 
 \item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
-Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.}
+Can also be \code{2} compute the degrees-of-freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.}
 
 \item{df}{[logical] should a Student's t-distribution be used to model the distribution of the predicted mean. Otherwise a normal distribution is used.}
 
@@ -64,14 +64,14 @@ or in a data.frame/vector with as many rows as observations (\code{"long"})}
 When \code{format="long"}, a data.frame containing the following columns:\itemize{
 \item \code{estimate}: predicted mean.
 \item \code{se}: uncertainty about the predicted mean.
-\item \code{df}: degree of freedom
+\item \code{df}: degrees-of-freedom
 \item \code{lower}: lower bound of the confidence interval of the predicted mean
 \item \code{upper}: upper bound of the confidence interval of the predicted mean
 }
 When \code{format="wide"}, a matrix containing the predict means (one line per cluster, one column per timepoint).
 }
 \description{
-Predicted mean value conditional on covariates or on covariates and other outcome values.
+Estimate the expected outcome conditional on covariates and possibly on other outcomes based on a linear mixed model.
 }
 \details{
 Static prediction are made using the linear predictor \eqn{X\beta} while dynamic prediction uses the conditional normal distribution of the missing outcome given the observed outcomes. So if outcome 1 is observed but not 2, prediction for outcome 2 is obtain by \eqn{X_2\beta + \sigma_{21}\sigma^{-1}_{22}(Y_1-X_1\beta)}. In that case, the uncertainty is computed as the sum of the conditional variance \eqn{\sigma_{22}-\sigma_{21}\sigma^{-1}_{22}\sigma_{12}} plus the uncertainty about the estimated conditional mean (obtained via delta method using numerical derivatives).

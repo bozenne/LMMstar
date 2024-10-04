@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: aug  7 2024 (12:01) 
+## Last-Updated: sep 30 2024 (15:01) 
 ##           By: Brice Ozenne
-##     Update #: 766
+##     Update #: 768
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -414,10 +414,10 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
                 iOut$sd[type.Y=="continuous"] <- iSD
             }
             if("sd.lower" %in% columns){
-                iOut$sd.lower[type.Y=="continuous"] <- iSD * sqrt((iN.obs-1)/qchisq(level.int[2], iN.obs-1))
+                iOut$sd.lower[type.Y=="continuous"] <- iSD * sqrt((iN.obs-1)/stats::qchisq(level.int[2], iN.obs-1))
             }
             if("sd.upper" %in% columns){
-                iOut$sd.upper[type.Y=="continuous"] <- iSD * sqrt((iN.obs-1)/qchisq(level.int[1], iN.obs-1))
+                iOut$sd.upper[type.Y=="continuous"] <- iSD * sqrt((iN.obs-1)/stats::qchisq(level.int[1], iN.obs-1))
             }
         }
 
@@ -428,10 +428,10 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
                 iOut$sd[type.Y=="continuous"] <- iSD0
             }
             if("sd0.lower" %in% columns){
-                iOut$sd0.lower[type.Y=="continuous"] <- iSD0 * sqrt(iN.obs/qchisq(level.int[2], iN.obs))
+                iOut$sd0.lower[type.Y=="continuous"] <- iSD0 * sqrt(iN.obs/stats::qchisq(level.int[2], iN.obs))
             }
             if("sd0.upper" %in% columns){
-                iOut$sd0.upper[type.Y=="continuous"] <- iSD0 * sqrt(iN.obs/qchisq(level.int[1], iN.obs))
+                iOut$sd0.upper[type.Y=="continuous"] <- iSD0 * sqrt(iN.obs/stats::qchisq(level.int[1], iN.obs))
             }
         }
 
@@ -509,7 +509,7 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
             ls.init$formula <- stats::reformulate("1", response = name.Y)
         }else if(any(ls.init$detail.formula$var$regressor %in% ls.init$detail.repetition$var$time)){
             terms.rm <- intersect(ls.init$detail.formula$var$regressor, ls.init$detail.repetition$var$time)
-            formula.terms <- terms(ls.init$formula)            
+            formula.terms <- stats::terms(ls.init$formula)            
             ls.init$formula <- stats::drop.terms(formula.terms, dropx = which(attr(formula.terms,"term.labels") %in% terms.rm), keep.response = TRUE)
         }
         use <- ifelse(na.rm, "pairwise.complete.obs", "everything")

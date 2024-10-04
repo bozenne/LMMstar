@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: aug  9 2024 (10:49) 
+## Last-Updated: okt  3 2024 (14:00) 
 ##           By: Brice Ozenne
-##     Update #: 1209
+##     Update #: 1228
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -36,7 +36,7 @@ confint.effect_lmm <- function(object, parm, level = 0.95, method = "none", ...)
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
 ##' Can also be \code{2} compute the degrees-of-freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
 ##' @param null [numeric vector] the value of the null hypothesis relative to each coefficient.
-##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.
+##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the coefficients. Otherwise a normal distribution is used.
 ##' @param columns [character vector] Columns to be output.
 ##' Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.
 ##' @param type.information,transform.sigma,transform.k,transform.rho,transform.names are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.
@@ -883,13 +883,13 @@ confint.resample <-  function(object, parm = NULL, null = NULL, level = 0.95, me
 
         }else if(method == "gaussian"){
          
-            out$p.value <- 2*(1 - pnorm(abs(out$estimate-out$null)/out$sample.se))
+            out$p.value <- 2*(1 - stats::pnorm(abs(out$estimate-out$null)/out$sample.se))
             
         }else if(method == "studentized"){
             
             statistic  <- (out$estimate-null)/out$se
             sample.statistic <- sweep(sample.estimate, MARGIN = 1, FUN = "-", STATS = null)/sample.se
-            outTable[index.var,"p.value"] <- sapply(param, function(iParam){
+            outTable[,"p.value"] <- sapply(param, function(iParam){
                 iTest <- abs(sample.statistic[,iParam]) > abs(statistic[iParam])
                 iP <- (correction + sum(iTest, na.rm = TRUE)) / (correction + sum(!is.na(iTest), na.rm = TRUE))
                 return(iP)
@@ -913,9 +913,9 @@ confint.resample <-  function(object, parm = NULL, null = NULL, level = 0.95, me
 
         }else if(method == "gaussian"){
 
-            out$lower <- out$estimate + qnorm(alpha/2) * out$se
-            out$upper <- out$estimate + qnorm(1-alpha/2) * out$se
-            out$p.value <- 2*(1 - pnorm(abs(out$estimate-out$null)/out$se))
+            out$lower <- out$estimate + stats::qnorm(alpha/2) * out$se
+            out$upper <- out$estimate + stats::qnorm(1-alpha/2) * out$se
+            out$p.value <- 2*(1 - stats::pnorm(abs(out$estimate-out$null)/out$se))
             
         }else if(method == "studentized"){
 

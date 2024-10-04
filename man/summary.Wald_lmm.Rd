@@ -33,7 +33,7 @@ Can be any of \code{"type"}, \code{"estimate"}, \code{"se"}, \code{"statistic"},
 
 \item{digits}{[interger, >0] number of digits used to display estimates.}
 
-\item{digits.df}{[interger, >0] number of digits used to display degrees of freedom.}
+\item{digits.df}{[interger, >0] number of digits used to display degrees-of-freedom.}
 
 \item{digits.p.value}{[interger, >0] number of digits used to display p-values.}
 
@@ -48,11 +48,13 @@ Can be any of \code{"type"}, \code{"estimate"}, \code{"se"}, \code{"statistic"},
 Estimates, p-values, and confidence intevals for linear hypothesis testing, possibly adjusted for multiple comparisons.
 }
 \details{
-By default adjustment for multiple comparisons via a single step max-test adjustment,
- either using the multcomp package (equal degrees of freedom, \code{method="single-step"}) or the copula package (unequal degrees of freedom, \code{method="single-step2"}).
+By default a single step max-test adjustment adjustment is performed in presence of multiple comparisons.
+It is carried out either using the multcomp package (equal degrees-of-freedom, \code{method="single-step"})
+or using the copula package (unequal degrees-of-freedom, \code{method="single-step2"}).
 See the argument \code{method} of \code{\link{confint.Wald_lmm}} for other adjustments for multiple comparisons. \cr
-When multiple multivariate Wald tests are performed, adjustment for multiple comparisons for the univariate Wald tests is performed within each multivariate Wald test.
-The number of tests ajusted for equal the first degree of freedom of the multivariate Wald statistic. \cr
+
+When considering multiple multivariate Wald tests, adjustment for multiple comparisons for the univariate Wald tests is performed within each multivariate Wald test.
+The number of tests ajusted for equal the first degree-of-freedom of the multivariate Wald statistic. \cr
 
 Adding the value \code{"type"} in argument \code{"columns"} ensures that the type of parameter that is being test (mean, variance, correlation) is output.
 }

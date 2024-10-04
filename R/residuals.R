@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: aug  8 2024 (13:32) 
+## Last-Updated: sep 30 2024 (14:59) 
 ##           By: Brice Ozenne
-##     Update #: 1409
+##     Update #: 1410
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -737,7 +737,7 @@ residuals.mlmm <- function(object, p = NULL, newdata = NULL, keep.data = FALSE, 
                             x.transform.sigma = object$args$transform.sigma, x.transform.k = object$args$transform.k, x.transform.rho = object$args$transform.rho,
                             table.param = object$model[[iM]]$design$param)
         })
-        theta <- setNames(lapply(ls.init, "[[","p"),names(object$model))
+        theta <- stats::setNames(lapply(ls.init, "[[","p"),names(object$model))
     }else{
         theta <- stats::setNames(vector(mode = "list", length = length(object$model)), names(object$model))
     }

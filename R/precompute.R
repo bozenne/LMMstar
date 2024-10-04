@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 22 2021 (13:47) 
 ## Version: 
-## Last-Updated: aug  6 2024 (11:33) 
+## Last-Updated: okt  3 2024 (11:19) 
 ##           By: Brice Ozenne
-##     Update #: 204
+##     Update #: 211
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -185,9 +185,9 @@
 
 ## * .precomputeREML
 ## Precompute REML terms
+## Note: possible weights are already included in precompute$XX
 .precomputeREML <- function(precision, dOmega, d2Omega, precompute, effects,
-                            logLik, score, information, vcov, df,
-                            weights){
+                            logLik, score, information, vcov, df){
 
     ## ** normalize user input
     if((score || information || vcov) && ("variance" %in% effects == FALSE) && ("correlation" %in% effects == FALSE)){
@@ -238,7 +238,12 @@
     ## ** global operations and reshape
     out$X.OmegaM1.X <- matrix(out$X.OmegaM1.X[XX.key], nrow = p, ncol = p, dimnames = list(name.meancoef,name.meancoef))
     if(logLik){
-        out$logdet_X.OmegaM1.X <- log(det(out$X.OmegaM1.X))
+        X.OmegaM1.X_det <- det(out$X.OmegaM1.X)
+        if(!is.na(X.OmegaM1.X_det) && X.OmegaM1.X_det>0){
+            out$logdet_X.OmegaM1.X <- log(X.OmegaM1.X_det)
+        }else{
+            out$logdet_X.OmegaM1.X <- NA
+        }
     }
     if(score || information || vcov){
         out$X.OmegaM1.X_M1 <- solve(out$X.OmegaM1.X)

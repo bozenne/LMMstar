@@ -44,7 +44,7 @@ E.g. Y ~ Gender + Gene.}
 \item{lm.change}{[logical] Should a linear model on the change in outcome be estimated. Only possible with two repetitions.
 Will match the mixed model if the later includes repetition-dependent effects for all covariates.}
 
-\item{df}{[logical] Should the degree of freedom be computed using a Satterthwaite approximation?}
+\item{df}{[logical] Should the degrees-of-freedom be computed using a Satterthwaite approximation?}
 
 \item{trace}{[interger, >0] Show the progress of the execution of the function.}
 

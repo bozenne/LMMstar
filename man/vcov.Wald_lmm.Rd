@@ -2,7 +2,7 @@
 % Please edit documentation in R/vcov.R
 \name{vcov.Wald_lmm}
 \alias{vcov.Wald_lmm}
-\title{Extract the Variance-Covariance Matrix from Wald Tests}
+\title{Extract the Variance-Covariance Matrix From Wald Tests For Linear Mixed Model}
 \usage{
 \method{vcov}{Wald_lmm}(object, effects = "Wald", df = FALSE, transform.names = TRUE, ...)
 }
@@ -13,8 +13,7 @@
 or of the linear mixed model parameters (\code{"all"})?
 Can also contain \code{"gradient"} to also output the gradient of the Variance-Covariance matrix.}
 
-\item{df}{[logical] Should degree of freedom, computed using Satterthwaite approximation, for the model parameters be output.
-Also output the first derivative of the variance-covariance matrix whenever the argument is stricly greater than 1.}
+\item{df}{[logical] Should degrees-of-freedom, computed using Satterthwaite approximation, for the model parameters be output?}
 
 \item{transform.names}{[logical] Should the name of the coefficients be updated to reflect the transformation that has been used?}
 

@@ -2,7 +2,7 @@
 % Please edit documentation in R/summarize.R
 \name{summarize}
 \alias{summarize}
-\title{Compute summary statistics}
+\title{Summary Statistics}
 \usage{
 summarize(
   formula,

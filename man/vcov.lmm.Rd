@@ -30,9 +30,9 @@ or only for coefficients relative to the correlation structure (\code{"correlati
 Can also contain \code{"gradient"} to also output the gradient of the Variance-Covariance matrix .}
 
 \item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
-Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.}
+Can also be \code{2} compute the degrees-of-freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.}
 
-\item{df}{[logical] Should degrees of freedom, computed using Satterthwaite approximation, for the model parameters be output.}
+\item{df}{[logical] Should degrees-of-freedom, computed using Satterthwaite approximation, for the model parameters be output.}
 
 \item{strata}{[character vector] When not \code{NULL}, only output the variance-covariance matrix for the estimated parameters relative to specific levels of the variable used to stratify the mean and covariance structure.}
 

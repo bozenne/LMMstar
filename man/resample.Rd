@@ -4,7 +4,7 @@
 \alias{resample}
 \alias{resample.lmm}
 \alias{resample.mlmm}
-\title{Inference via Resampling for Linear Mixed Model}
+\title{Inference via Resampling for a Linear Mixed Model}
 \usage{
 resample(object, type, ...)
 
@@ -25,7 +25,6 @@ resample(object, type, ...)
   object,
   type,
   method = NULL,
-  cluster = NULL,
   n.sample = 1000,
   studentized = TRUE,
   trace = TRUE,
@@ -36,7 +35,7 @@ resample(object, type, ...)
 )
 }
 \arguments{
-\item{object}{a \code{lmm} object.}
+\item{object}{a \code{mlmm} object.}
 
 \item{type}{[character] should permutation test (\code{"perm-var"} or \code{"perm-res"}) or non-parametric bootstrap (\code{"boot"}) be used?}
 
@@ -57,9 +56,14 @@ Can also be a function of the model parameters when performing non-parametric bo
 If \code{NULL} no state is set.}
 
 \item{export.cpus}{[character vector] name of the variables to export to each cluster.}
+
+\item{method}{[character] type of adjustment for multiple comparisons, one of \code{"none"}, \code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}.
+and/or method(s) to pool the estimates, one of \code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.gls1"}, \code{"pool.rubin"}.}
 }
 \description{
-Non-parametric bootstrap or permutation test for Linear Mixed Models.
+Non-parametric bootstrap or permutation test for a linear mixed model.
+
+Non-parametric bootstrap or permutation test for group-specific linear mixed models.
 }
 \details{
 All approach are carried at the cluster level: \itemize{

@@ -2,13 +2,16 @@
 % Please edit documentation in R/iid.R
 \name{iid.Wald_lmm}
 \alias{iid.Wald_lmm}
-\title{Extract the Influence Function from Wald Tests}
+\title{Extract the Influence Function From Wald Tests Applied to a Linear Mixed Model}
 \usage{
-\method{iid}{Wald_lmm}(x, effects = "Wald", ...)
+\method{iid}{Wald_lmm}(x, effects = "Wald", transform.names = TRUE, ...)
 }
 \arguments{
 \item{effects}{[character] should the influence function for the linear contrasts involved in the Wald test be output (\code{"Wald"}),
 or for the linear mixed model parameters (\code{"all"})?}
+
+\item{transform.names}{[logical] should the name of the coefficients be updated to reflect the transformation that has been used?
+Only relevant when \code{effects="all"}.}
 
 \item{...}{Not used. For compatibility with the generic method.}
 
@@ -18,5 +21,5 @@ or for the linear mixed model parameters (\code{"all"})?}
 A matrix with one row per observation and one column per parameter (\code{effects="Wald"} or \code{effects="all"}) or a logical value (\code{effects="test"}).
 }
 \description{
-Extract the influence function of linear mixed model parameters involved in the Wald test.
+Extract the influence function of linear contrasts applied to an ML or REML estimator of parameters from a linear mixed model.
 }

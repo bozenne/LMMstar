@@ -2,7 +2,7 @@
 % Please edit documentation in R/effects.R
 \name{effects.lmm}
 \alias{effects.lmm}
-\title{Effects Derived For Linear Mixed Model}
+\title{Effects Derived For a Linear Mixed Model}
 \usage{
 \method{effects}{lmm}(
   object,
@@ -67,7 +67,7 @@ Only relevant when \code{type = "aoc"} or \code{type = "ate"}.}
 \item{...}{Arguments passed to \code{\link{anova.lmm}}.}
 }
 \description{
-Estimate average counterfactual outcome or contrast of outcome from linear mixed models.
+Estimate average counterfactual outcome or contrast of outcome based on a linear mixed model.
 }
 \details{
 The uncertainty is quantified assuming the contrast matrix to be a-priori known.

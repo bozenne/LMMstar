@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: aug  8 2024 (10:05) 
+## Last-Updated: sep 30 2024 (14:12) 
 ##           By: Brice Ozenne
-##     Update #: 1587
+##     Update #: 1590
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -258,10 +258,10 @@ autoplot.lmm <- function(object, type = "fit", type.residual = NULL,
         if(type == "correlation"){
             name.legend <- "Correlation"
             if(is.matrix(object.sigma)){
-                object.sigma <- cov2cor(object.sigma)
+                object.sigma <- stats::cov2cor(object.sigma)
             }else{
                 name.sigma <- names(object.sigma)
-                object.sigma <- lapply(object.sigma, cov2cor)
+                object.sigma <- lapply(object.sigma, stats::cov2cor)
                 names(object.sigma) <- name.sigma
             }
             if(is.null(ylim)){
@@ -1750,7 +1750,7 @@ autoplot.summarizeNA <- function(object, variable = NULL, size.text = 16,
     
 
     ## ** graphical display
-    gg.NA <- ggplot2::ggplot(dataL, ggplot2::aes(y = missing.pattern.strata, x = variable.strata, fill = indicator))
+    gg.NA <- ggplot2::ggplot(dataL, ggplot2::aes(y = .data$missing.pattern.strata, x = .data$variable.strata, fill = .data$indicator))
     gg.NA <- gg.NA + ggplot2::geom_tile(color = "black")
         
     if(!is.null(name.X)){
@@ -1980,7 +1980,7 @@ autoplot.Wald_lmm <- function(object, type = "forest", size.text = 16, add.args 
             gg <- gg + ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$lower, ymax = .data$upper), linewidth = size.ci, width = width.ci)
         }
         if(size.null>0){
-            gg <- gg + ggplot2::geom_hline(ggplot2::aes(yintercept=null), lty=2, linewidth = size.null)
+            gg <- gg + ggplot2::geom_hline(ggplot2::aes(yintercept = .data$null), lty=2, linewidth = size.null)
         }
         if((object$args$type=="auto") && length(unique(table$type))>1){
             gg <- gg + ggplot2::facet_wrap(~type, scales = "free")

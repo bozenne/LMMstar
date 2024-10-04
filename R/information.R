@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: aug  8 2024 (13:30) 
+## Last-Updated: okt  3 2024 (10:55) 
 ##           By: Brice Ozenne
-##     Update #: 1250
+##     Update #: 1254
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -184,6 +184,10 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
     if(compute.indiv){
         info <- array(0, dim = c(n.cluster, n.effects, n.effects),
                       dimnames = list(NULL, name.effects, name.effects))
+    }else if(any(sapply(precision, inherits, "try-error"))){ ## when evaluating score at parameter values where the residual variance-covariance matrix is singular
+        return(matrix(NA, nrow = n.effects, ncol = n.effects,
+                      dimnames = list(name.effects, name.effects)
+                      ))
     }else{
         info <- matrix(0, nrow = n.effects, ncol = n.effects,
                        dimnames = list(name.effects, name.effects)
@@ -235,10 +239,10 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
                 iOmegaM1.d2OmegaAndCo.OmegaM1 <- precompute$Omega$OmegaM1.d2OmegaAndCo.OmegaM1[[pattern[iId]]]
                 iWeights <- weights[iId]
                 X.OmegaM1.X <- X.OmegaM1.X + iWeights * t(iX) %*% iOmegaM1 %*% iX
-                for(iParam in intersect(names(idOmega), name.varcoef)){ ## intersect to handle when argument effects is only "variance" or "correlation"
+                for(iParam in intersect(names(dOmega[[pattern[iId]]]), name.varcoef)){ ## intersect to handle when argument effects is only "variance" or "correlation"
                     REML.num1[[iParam]] <- REML.num1[[iParam]] + iWeights * t(iX) %*% iOmegaM1.dOmega.OmegaM1[[iParam]] %*% iX
                 }
-                for(iParam2 in intersect(names(id2Omega), name.varcoef2)){ ## intersect to handle when argument effects is only "variance" or "correlation"
+                for(iParam2 in intersect(names(d2Omega[[pattern[iId]]]), name.varcoef2)){ ## intersect to handle when argument effects is only "variance" or "correlation"
                     REML.num2[[iParam2]] <- REML.num2[[iParam2]] + iWeights * t(iX) %*% iOmegaM1.d2OmegaAndCo.OmegaM1[[iParam2]] %*% iX
                 }
             }

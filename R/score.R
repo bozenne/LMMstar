@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: aug  8 2024 (13:32) 
+## Last-Updated: okt  3 2024 (10:54) 
 ##           By: Brice Ozenne
-##     Update #: 937
+##     Update #: 939
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -370,6 +370,8 @@ score.mlmm <- function(x, effects = "contrast", indiv = FALSE, p = NULL, newdata
     if(compute.indiv){
         Score <- matrix(NA, nrow = n.cluster, ncol = n.effects,
                         dimnames = list(NULL, name.effects))
+    }else if(any(sapply(precision, inherits, "try-error"))){ ## when evaluating score at parameter values where the residual variance-covariance matrix is singular
+        return(stats::setNames(rep(NA, n.effects), name.effects))
     }else{
         Score <- stats::setNames(rep(0, n.effects), name.effects)
     }

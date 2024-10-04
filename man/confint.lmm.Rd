@@ -2,7 +2,7 @@
 % Please edit documentation in R/confint.R
 \name{confint.lmm}
 \alias{confint.lmm}
-\title{Confidence Intervals for Linear Mixed Model}
+\title{Confidence Intervals for a Linear Mixed Model}
 \usage{
 \method{confint}{lmm}(
   object,
@@ -35,7 +35,7 @@ or only for variance coefficients (\code{"variance"}),
 or only for correlation coefficients (\code{"correlation"}).}
 
 \item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
-Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.}
+Can also be \code{2} compute the degrees-of-freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.}
 
 \item{null}{[numeric vector] the value of the null hypothesis relative to each coefficient.}
 
@@ -55,7 +55,7 @@ A data.frame containing some of the following coefficient (in rows): \itemize{
 \item column estimate: the estimate.
 \item column se: the standard error.
 \item column statistic: the test statistic.
-\item column df: the degree of freedom.
+\item column df: the degrees-of-freedom.
 \item column lower: the lower bound of the confidence interval.
 \item column upper: the upper bound of the confidence interval.
 \item column null: the null hypothesis.
@@ -63,7 +63,7 @@ A data.frame containing some of the following coefficient (in rows): \itemize{
 }
 }
 \description{
-Compute confidence intervals (CIs) and p-values for the coefficients of a linear mixed model.
+Compute confidence intervals (CIs) relative to parameters from a linear mixed model.
 }
 \examples{
 #### simulate data in the long format ####

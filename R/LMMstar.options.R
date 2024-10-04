@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: aug  8 2024 (14:43) 
+## Last-Updated: sep 30 2024 (13:37) 
 ##           By: Brice Ozenne
-##     Update #: 177
+##     Update #: 180
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -59,9 +59,9 @@
 #' @export
 LMMstar.options <- function(..., reinitialise = FALSE){
     
-    print("start")
-    print(sys.calls())
-    print("stop")
+    ## print("start")
+    ## print(sys.calls())
+    ## print("stop")
     
     ## ** load current options (if necessary)
     if(reinitialise == FALSE){

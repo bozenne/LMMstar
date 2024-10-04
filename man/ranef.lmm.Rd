@@ -29,7 +29,7 @@ Or the ratio of these variances relative to the total variance (\code{"relative"
 \item{se}{[logical] should standard error and confidence intervals be evaluated using a delta method?
 Will slow down the execution of the function.}
 
-\item{df}{[logical] Should degrees of freedom, computed using Satterthwaite approximation, be output.}
+\item{df}{[logical] Should degrees-of-freedom, computed using Satterthwaite approximation, be output.}
 
 \item{transform}{[logical] should confidence intervals for the variance estimates (resp. relative variance estimates) be evaluated using a log-transform (resp. atanh transformation)?}
 
@@ -47,7 +47,7 @@ Will slow down the execution of the function.}
 A data.frame or a list depending on the argument \code{format}.
 }
 \description{
-Recover the random effects from the variance-covariance parameter of a linear mixed model.
+Recover the random effects from the variance-covariance parameters of a linear mixed model.
 }
 \details{
 Consider the following mixed model:

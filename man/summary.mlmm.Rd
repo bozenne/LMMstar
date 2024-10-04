@@ -19,7 +19,8 @@
 
 \item{digits}{[integer,>0] number of digits used to display numeric values.}
 
-\item{method}{[character] type of adjustment for multiple comparisons: one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}, \code{"single-step2"}.}
+\item{method}{[character] type of adjustment for multiple comparisons, one of \code{"none"}, \code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}.
+and/or method(s) to pool the estimates, one of \code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.gls1"}, \code{"pool.rubin"}.}
 
 \item{print}{[logical] should the output be printed in the console.
 Can be a vector of length 2 where the first element refer to the global tests and the second to the individual tests.}

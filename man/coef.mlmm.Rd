@@ -6,58 +6,57 @@
 \usage{
 \method{coef}{mlmm}(
   object,
-  effects = "contrast",
-  p = NULL,
-  type = "coef",
+  effects = "Wald",
   method = "none",
-  ordering = "by",
+  p = NULL,
+  ordering = "model",
   backtransform = object$args$backtransform,
   transform.sigma = "none",
   transform.k = "none",
   transform.rho = "none",
   transform.names = TRUE,
+  simplify = TRUE,
   ...
 )
 }
 \arguments{
 \item{object}{a \code{mlmm} object.}
 
-\item{effects}{[character] By default will output the estimates relative to the hypotheses being tested (\code{"contrast"}).
+\item{effects}{[character] By default will output the estimates relative to the hypotheses being tested (\code{"Wald"}).
 But can also output all model coefficients (\code{"all"}),
 or only coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
 or only coefficients relative to the variance structure (\code{"variance"}),
-or only coefficients relative to the correlation structure (\code{"correlation"}).
-Not relevant when \code{type="contrast"} or \code{type="ls.contrast"}.}
+or only coefficients relative to the correlation structure (\code{"correlation"}).}
 
-\item{p}{[list of numeric vector] list of model coefficients to be used. Only relevant if differs from the fitted values.}
+\item{method}{[character vector] should the estimated value for the linear contrasts be output (one of \code{"none"}, \code{"bonferroni"}, ..., \code{"single-step2"})
+and/or pooled linear contrast estimate(s) (\code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.gls1"}, \code{"pool.rubin"}, \code{"p.rejection"})?
+Only relevant when \code{effects = "Wald"}.}
 
-\item{type}{[character] Should the coefficients be extracted (\code{"coef"}) or the contrast matrix (\code{"contrast"} or \code{"ls.contrast"}).
-\code{"contrast"} will extract the contrast matrix acrossed models (typically identity when testing an exposure effect in each model separately)
-whereas \code{"ls.contrast"} will extract the contrast matrix applied to each model as a list.##'}
+\item{p}{[list of numeric vector] values for the model parameters to be used to evaluate the estimates relative to the hypotheses being tested.
+Only relevant if differs from the fitted values.}
 
-\item{method}{[character] type of adjustment for multiple comparisons, one of \code{"none"}, \code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}.
-Alternatively, a method for combining the estimates, one of \code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.gls1"}, \code{"pool.rubin"}.
-Ignored if \code{type="contrast"} or \code{type="ls.contrast"}.}
+\item{ordering}{[character] should the output be ordered by name of the linear contrast (\code{"contrast"}) or by model (\code{"model"}).}
 
-\item{ordering}{[character] should the output be ordered by type of parameter (\code{"parameter"}) or by model (\code{"by"}).
-Not relevant when \code{effects="contrast"}.}
-
-\item{backtransform}{[logical] should the estimate, standard error, and confidence interval be back-transformed?}
+\item{backtransform}{[logical] should the estimate be back-transformed?
+Only relevant when \code{effects="Wald"}.}
 
 \item{transform.sigma}{[character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}.
-Ignored if \code{type="contrast"}, \code{type="ls.contrast"}, or \code{effects="contrast"}.}
+Ignored when \code{effects="Wald"}.}
 
 \item{transform.k}{[character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"}.
-Ignored if \code{type="contrast"}, \code{type="ls.contrast"}, or \code{effects="contrast"}.}
+Ignored when \code{effects="Wald"}.}
 
 \item{transform.rho}{[character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"}.
-Ignored if \code{type="contrast"}, \code{type="ls.contrast"}, or \code{effects="contrast"}.}
+Ignored when \code{effects="Wald"}.}
 
 \item{transform.names}{[logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
-Ignored if \code{type="contrast"}, \code{type="ls.contrast"}, or \code{effects="contrast"}.}
+Ignored when \code{effects="Wald"}.}
+
+\item{simplify}{[logical] should the output be a vector or a list with one element specific to each possible ordering (i.e. contrast or model).
+Only relevant when argument \code{method} refers to multiple comparisons and not to a pooling method.}
 
 \item{...}{Not used. For compatibility with the generic method.}
 }
 \description{
-Extract coefficient or constrast coefficients from multiple linear mixed models.
+Combine estimated parameters or linear contrasts applied on parameters from group-specific linear mixed models.
 }

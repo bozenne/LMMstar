@@ -2,7 +2,7 @@
 % Please edit documentation in R/fitted.R
 \name{fitted.lmm}
 \alias{fitted.lmm}
-\title{Predicted Mean Value For Linear Mixed Model.}
+\title{Fitted Outcome Value by a Linear Mixed Model.}
 \usage{
 \method{fitted}{lmm}(
   object,
@@ -22,7 +22,7 @@
 
 \item{newdata}{[data.frame] the covariate values for each cluster.}
 
-\item{type}{[character] By default fitted values are output (\code{NULL}).
+\item{type}{[character] by default fitted values are output (\code{NULL}).
 Can also output the expected outcome (for missing outcomes) based on covariates and other outcome values from the same cluster (\code{"impute"}),
 the change or expected change between baseline and each follow-up (\code{"change"}),
 or the area under the curve of the outcome (\code{"auc"}, require a numeric repetition variable).}
@@ -31,18 +31,18 @@ or the area under the curve of the outcome (\code{"auc"}, require a numeric repe
 
 \item{df}{[logical] should a Student's t-distribution be used to model the distribution of the predicted mean. Otherwise a normal distribution is used.}
 
-\item{keep.data}{[logical] Should the dataset relative to which the predictions are evaluated be output along side the predicted values?
+\item{keep.data}{[logical] should the dataset relative to which the predictions are evaluated be output along side the predicted values?
 Only possible in the long format.}
 
-\item{format}{[character] Should the prediction be output
+\item{format}{[character] should the prediction be output
 in a matrix format with clusters in row and timepoints in columns (\code{"wide"}),
 or in a data.frame/vector with as many rows as observations (\code{"long"})}
 
-\item{seed}{[integer, >0] Random number generator (RNG) state used when starting imputation. If NULL no state is set.}
+\item{seed}{[integer, >0] random number generator (RNG) state used when starting imputation. If NULL no state is set.}
 
-\item{simplify}{[logical] Simplify the data format (vector instead of data.frame) and column names (no mention of the time variable) when possible.}
+\item{simplify}{[logical] simplify the data format (vector instead of data.frame) and column names (no mention of the time variable) when possible.}
 
-\item{...}{Additional argument passed the \code{\link{predict.lmm}}.}
+\item{...}{additional argument passed the \code{\link{predict.lmm}}.}
 }
 \value{
 When \code{format="wide"}, a data.frame with as many rows as clusters.
@@ -50,8 +50,12 @@ When \code{format="long"}, a data.frame with as many rows as observations (\code
 or a vector of length the number of observations (\code{keep.data==TRUE}).
 }
 \description{
-Evaluate the expected mean conditional to covariates or the expected outcome values when missing conditional to observed outcome and covariates.
-Similar to \code{\link{predict.lmm}} where the values to condition on are, by default, taking from the dataset used to fit the Linear Mixed Model.
+Evaluate the expected outcome conditional on covariates
+or the expected missing outcome value conditional on observed outcomes and covariates
+based on a linear mixed model.
+}
+\details{
+Essentially a wrapper function of \code{\link{predict.lmm}} where the fitted value are stored in the outcome column of the dataset instead of in a separate column.
 }
 \examples{
 #### single arm trial ####

@@ -51,7 +51,7 @@ Those in attribute \code{"k.x"} and \code{"k.y"} refer to the ratio parameter.
 \code{NA} indicates no corresponding standard deviation or ratio parameter.
 }
 \description{
-Extract coefficients from a linear mixed model.
+Extract estimated parameters from a linear mixed model.
 }
 \details{
 \bold{transform.sigma}: \cr

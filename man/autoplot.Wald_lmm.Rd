@@ -3,7 +3,7 @@
 \name{autoplot.Wald_lmm}
 \alias{autoplot.Wald_lmm}
 \alias{plot.Wald_lmm}
-\title{Graphical Display For Linear Hypothesis Test}
+\title{Graphical Display For Wald Tests Applied to a Linear Mixed Model}
 \usage{
 \method{autoplot}{Wald_lmm}(object, type = "forest", size.text = 16, add.args = NULL, ...)
 
@@ -28,7 +28,7 @@ A list with two elements \itemize{
 }
 }
 \description{
-Graphical Display For Linear Hypothesis Test
+Display estimated linear contrast applied on parameters from a linear mixed model.
 }
 \details{
 Argument \strong{add.args}: parameters specific to the forest plot: \itemize{
@@ -48,7 +48,7 @@ Parameters specific to the heatmap plot: \itemize{
 }
 \section{Functions}{
 \itemize{
-\item \code{plot(Wald_lmm)}: Graphical Display For Linear Hypothesis Test
+\item \code{plot(Wald_lmm)}: Graphical Display For Wald Tests Applied to a Linear Mixed Model
 
 }}
 \examples{

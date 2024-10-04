@@ -14,24 +14,24 @@
 )
 }
 \arguments{
-\item{formula}{[lmm] linear mixed model object}
+\item{formula}{a \code{lmm} object.}
 
 \item{newdata}{[data.frame] dataset relative to which the model frame should be constructed.}
 
-\item{type}{[character] By default returns the processed dataset used to fit the Linear Mixed Model (\code{NULL}).
+\item{type}{[character] by default returns the processed dataset used to fit the Linear Mixed Model (\code{NULL}).
 Can be used to add rows relative to missing repetitions (\code{"add.NA"})
 or obtain a dataset with unique sets of covariates (\code{"unique"}) with respect to the mean structure.}
 
-\item{add.index}{[logical] Should columns indexing the row number from the original dataset, time variable, cluster variable, strata variable
+\item{add.index}{[logical] should columns indexing the row number from the original dataset, time variable, cluster variable, strata variable
 be added to the output?}
 
-\item{na.rm}{[logical] Should rows containing missing values for the variables used in the linear mixed model be removed?
+\item{na.rm}{[logical] should rows containing missing values for the variables used in the linear mixed model be removed?
 Not relevant when argument type is \code{"unique"}.}
 
-\item{...}{Not used. For compatibility with the generic method.}
+\item{...}{not used. For compatibility with the generic method.}
 }
 \description{
-Variables needed to fit the Linear Mixed Model.
+Contruct a data frame containing all the variables involved in a Linear Mixed Model.
 }
 \details{
 Column \code{"XXindexXX"} refers to the row of the original dataset (i.e. passed to argument \code{data} when calling \code{\link{lmm}}).

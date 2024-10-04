@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: aug  8 2024 (13:32) 
+## Last-Updated: okt  3 2024 (14:53) 
 ##           By: Brice Ozenne
-##     Update #: 3252
+##     Update #: 3258
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -546,6 +546,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
                                   index.strata = NA,
                                   type = "mu",
                                   constraint = NA,
+                                  constraint.transform = FALSE, ## constraint to be applied before (FALSE) or after transformation (TRUE)
                                   level = gsub("^:","",gsub(":$","",mu.level)),
                                   code = NA,
                                   sigma = NA,

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jun 27 2024 (11:48) 
 ## Version: 
-## Last-Updated: aug  8 2024 (10:01) 
+## Last-Updated: sep 30 2024 (14:15) 
 ##           By: Brice Ozenne
-##     Update #: 69
+##     Update #: 70
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -97,7 +97,7 @@ dummy.coef.lmm <- function(object, use.na = FALSE, ...){
         }
         iName <- iGridA[,colnames(iGridA) %in% setdiff(colnames(iGrid),numeric.variable),drop=FALSE]
         if(length(iName)>0){
-            return(setNames(iGridA$value, interaction(iName)))
+            return(stats::setNames(iGridA$value, interaction(iName)))
         }else{
             return(unname(iGridA$value))
         }

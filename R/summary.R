@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: aug  8 2024 (13:34) 
+## Last-Updated: sep 30 2024 (14:57) 
 ##           By: Brice Ozenne
-##     Update #: 1780
+##     Update #: 1781
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -89,7 +89,7 @@ summary.effect_lmm <- function(object, columns = NULL, print = TRUE, ...){
         cat("\n")
     }else{
         if(!is.null(reference.txt)){
-            attr(print,"message") <- reference
+            attr(print,"message") <- reference.txt
         }
         out <- summary.Wald_lmm(object, print = print, columns = columns, ...)
     }

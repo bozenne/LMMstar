@@ -2,7 +2,7 @@
 % Please edit documentation in R/confint.R
 \name{confint.mlmm}
 \alias{confint.mlmm}
-\title{Confidence Intervals for Multiple Linear Mixed Model.}
+\title{Confidence Intervals for Multiple Linear Mixed Models}
 \usage{
 \method{confint}{mlmm}(
   object,
@@ -23,7 +23,7 @@
 
 \item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
 
-\item{method}{[character] type of adjustment for multiple comparisons: one of \code{"none"}, \code{"bonferroni"}, \code{"single-step"}, \code{"single-step2"}, or \code{"pool"}.}
+\item{method}{[character] Should pointwise confidence intervals be output (\code{"none"}) or simultaneous confidence intervals (\code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}) and/or confidence intervals for pooled linear contrast estimates (\code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.gls1"}, \code{"pool.rubin"}, \code{"p.rejection"})?}
 
 \item{ordering}{[character] should the output be ordered by type of parameter (\code{parameter}) or by model (\code{by}).
 Only relevant for \code{mlmm} objects.n}
@@ -31,7 +31,8 @@ Only relevant for \code{mlmm} objects.n}
 \item{...}{other arguments are passed to \code{\link{confint.Wald_lmm}}.}
 }
 \description{
-Compute confidence intervals for several linear mixed models.
+Compute pointwise or simultaneous confidence intervals relative to parameter or linear contrasts of parameters from group-specific linear mixed models.
+Can also output p-values (corresponding to pointwise confidence intervals) or adjusted p-values (corresponding to simultaneous confidence intervals).
 }
 \details{
 Statistical inference following pooling is performed according to Rubin's rule whose validity requires the congeniality condition of Meng (1994).

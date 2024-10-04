@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: aug  8 2024 (13:32) 
+## Last-Updated: okt  3 2024 (11:05) 
 ##           By: Brice Ozenne
-##     Update #: 428
+##     Update #: 439
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -178,6 +178,8 @@ logLik.mlmm <- function(object, newdata = NULL, p = NULL, indiv = FALSE, ...){
     compute.indiv <- indiv || is.null(precompute$weights) || is.null(precompute$RR)
     if(compute.indiv){
         ll <- rep(NA, n.cluster)
+    }else if(any(sapply(precision, inherits, "try-error"))){ ## when evaluating log-likelihood at parameter values where the residual variance-covariance matrix is singular
+        return(NA)
     }else{
         ll <- 0
     }
@@ -220,7 +222,6 @@ logLik.mlmm <- function(object, newdata = NULL, p = NULL, indiv = FALSE, ...){
         }
 
     }
-
 
     ## ** export
     return(ll)

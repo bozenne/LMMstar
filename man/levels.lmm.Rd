@@ -2,12 +2,12 @@
 % Please edit documentation in R/levels.R
 \name{levels.lmm}
 \alias{levels.lmm}
-\title{Contrasts and Reference Level}
+\title{Contrasts and Reference Level in a Linear Mixed Model}
 \usage{
 \method{levels}{lmm}(x)
 }
 \arguments{
-\item{x}{an \code{lmm} object}
+\item{x}{an \code{lmm} object.}
 }
 \value{
 a list with two elements \itemize{

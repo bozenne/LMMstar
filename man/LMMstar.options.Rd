@@ -25,12 +25,12 @@ The options are: \itemize{
 \item columns.confint [character vector]: columns to ouput when using \code{confint}.
 \item columns.summarize [character vector]: columns to ouput when displaying descriptive statistics using \code{summarize}.
 \item columns.summary [character vector]: columns to ouput when displaying the model coefficients using \code{summary}.
-\item df [logical]: should approximate degrees of freedom be computed for Wald and F-tests. Used by \code{lmm}, \code{anova}, \code{predict}, and \code{confint}.
+\item df [logical]: should approximate degrees-of-freedom be computed for Wald and F-tests. Used by \code{lmm}, \code{anova}, \code{predict}, and \code{confint}.
 \item drop.X [logical]: should columns causing non-identifiability of the model coefficients be dropped from the design matrix. Used by \code{lmm}.
 \item effects [character]: parameters relative to which estimates, score, information should be output.
-\item min.df [integer]: minimum possible degree of freedom. Used by \code{confint}.
+\item min.df [integer]: minimum possible degree-of-freedom. Used by \code{confint}.
 \item method.fit [character]: objective function when fitting the Linear Mixed Model (REML or ML). Used by \code{lmm}.
-\item method.numDeriv [character]: type used to approximate the third derivative of the log-likelihood (when computing the degrees of freedom). Can be \code{"simple"} or \code{"Richardson"}. See \code{numDeriv::jacobian} for more details. Used by \code{lmm}.
+\item method.numDeriv [character]: type used to approximate the third derivative of the log-likelihood (when computing the degrees-of-freedom). Can be \code{"simple"} or \code{"Richardson"}. See \code{numDeriv::jacobian} for more details. Used by \code{lmm}.
 \item n.sampleCopula [integer]: number of samples used to compute confidence intervals and p-values adjusted for multiple comparisons via \code{"single-step2"}. Used by \code{confint.Wald_lmm}.
 \item optimizer [character]: method used to estimate the model parameters. Either \code{"FS"}, an home-made fisher scoring algorithm, or a method from \code{optimx:optimx} like \code{"BFGS"}or \code{Nelder-Mead}.
 \item param.optimizer [numeric vector]: default option for the \code{FS} optimization routine: maximum number of gradient descent iterations (\code{n.iter}), maximum acceptable score value (\code{tol.score}), maximum acceptable change in parameter value (\code{tol.param}).

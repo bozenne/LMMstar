@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: aug  7 2024 (10:55) 
 ## Version: 
-## Last-Updated: aug  7 2024 (13:18) 
+## Last-Updated: sep 30 2024 (14:56) 
 ##           By: Brice Ozenne
-##     Update #: 34
+##     Update #: 35
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -93,7 +93,7 @@ repetition <- function(formula, data,
     var.time <- all.vars(formula[[2]][[2]])
     var.id <- all.vars(formula[[2]][[3]])
     if(length(var.id)==0){
-        if(length(time)==0){
+        if(length(var.time)==0){
             stop("Argument \'formula\' must contain exactly one cluster variable. \n",
                  "Should be a formula like ~1|cluster. \n")
         }else{
@@ -101,7 +101,7 @@ repetition <- function(formula, data,
                  "Should be a formula like ~",paste(var.time, collapse="+"),"|cluster. \n")
         }
     }else if(length(var.id)>1){
-        if(length(time)==0){
+        if(length(var.time)==0){
             stop("Argument \'formula\' must contain exactly one cluster variable. \n",
                  "Should be a formula like ~1|",var.id[1],". \n")
         }else{

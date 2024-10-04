@@ -2,7 +2,7 @@
 % Please edit documentation in R/anova.R
 \name{anova.lmm}
 \alias{anova.lmm}
-\title{Multivariate Tests For Linear Mixed Model}
+\title{Multivariate Tests For a Linear Mixed Model}
 \usage{
 \method{anova}{lmm}(
   object,
@@ -31,9 +31,9 @@ Can also be use to specify linear combinations of coefficients or a contrast mat
 \item{rhs}{[numeric vector] the right hand side of the hypothesis. Only used when the argument \code{effects} is a matrix.}
 
 \item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
-Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.}
+Can also be \code{2} compute the degrees-of-freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.}
 
-\item{df}{[logical] Should degrees of freedom be estimated using a Satterthwaite approximation?
+\item{df}{[logical] Should degrees-of-freedom be estimated using a Satterthwaite approximation?
 If yes F-distribution (multivariate) and Student's t-distribution (univariate) are used.
 Other chi-squared distribution and normal distribution are used.}
 
@@ -43,7 +43,7 @@ Other chi-squared distribution and normal distribution are used.}
 
 \item{transform.sigma, transform.k, transform.rho}{are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.}
 
-\item{simplify}{[logical] should only the estimates, variance-covariance with its gradient, and degrees of freedom relative to the parameters involved in the Wald test be stored (TRUE)
+\item{simplify}{[logical] should only the estimates, variance-covariance with its gradient, and degrees-of-freedom relative to the parameters involved in the Wald test be stored (TRUE)
 or relative to all model parameters (0.5) along with their iid decomposition (FALSE).}
 
 \item{...}{Not used. For compatibility with the generic method.}
@@ -51,8 +51,8 @@ or relative to all model parameters (0.5) along with their iid decomposition (FA
 \value{
 A data.frame (LRT) or a list of containing the following elements (Wald):\itemize{
 \item \code{multivariate}: data.frame containing the multivariate Wald test.
-The column \code{df.num} refers to the degrees of freedom for the numerator (i.e. number of hypotheses)
-wherease the column \code{df.denum} refers to the degrees of freedom for the denominator (i.e. Satterthwaite approximation).
+The column \code{df.num} refers to the degrees-of-freedom for the numerator (i.e. number of hypotheses)
+wherease the column \code{df.denum} refers to the degrees-of-freedom for the denominator (i.e. Satterthwaite approximation).
 \item \code{univariate}: data.frame containing each univariate Wald test.
 \item \code{glht}: used internally to call functions from the multcomp package.
 \item \code{object}: list containing key information about the linear mixed model.
@@ -60,13 +60,14 @@ wherease the column \code{df.denum} refers to the degrees of freedom for the den
 }
 }
 \description{
-Simultaneous tests of linear combinations of the model paramaters using Wald tests or Likelihood Ratio Test (LRT).
+Test linear combinations of parameters from a linear mixed model
+using Wald test or Likelihood Ratio Test (LRT).
 }
 \details{
 By default adjustment of confidence intervals and p-values for multiple comparisons is based on the distribution of the maximum-statistic.
 This is refered to as a single-step Dunnett multiple testing procedures in table II of Dmitrienko et al. (2013).
-It is performed using the multcomp package with the option \code{test = adjusted("single-step")} with equal degrees of freedom
-or by simulation using a Student's t copula with unequal degrees of freedom (more in the note of the details section of \code{\link{confint.Wald_lmm}}).
+It is performed using the multcomp package with the option \code{test = adjusted("single-step")} with equal degrees-of-freedom
+or by simulation using a Student's t copula with unequal degrees-of-freedom (more in the note of the details section of \code{\link{confint.Wald_lmm}}).
 }
 \examples{
 #### simulate data in the long format ####

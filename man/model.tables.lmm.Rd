@@ -2,12 +2,30 @@
 % Please edit documentation in R/model.tables.R
 \name{model.tables.lmm}
 \alias{model.tables.lmm}
-\title{Statistical Inference and parametrization of Linear Mixed Models}
+\title{Statistical Inference and parametrization of a Linear Mixed Model}
 \usage{
-\method{model.tables}{lmm}(x, effects = NULL, columns, simplify = TRUE, ...)
+\method{model.tables}{lmm}(
+  x,
+  level = 0.95,
+  effects = NULL,
+  robust = FALSE,
+  null = NULL,
+  columns = NULL,
+  df = NULL,
+  type.information = NULL,
+  transform.sigma = NULL,
+  transform.k = NULL,
+  transform.rho = NULL,
+  transform.names = TRUE,
+  backtransform = NULL,
+  simplify = TRUE,
+  ...
+)
 }
 \arguments{
 \item{x}{a \code{lmm} object.}
+
+\item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
 
 \item{effects}{[character] Should the CIs/p-values for all coefficients be output (\code{"all"}),
 or only for mean coefficients (\code{"mean"} or \code{"fixed"}),
@@ -15,22 +33,33 @@ or only for variance coefficients (\code{"variance"}),
 or only for correlation coefficients (\code{"correlation"}).
 Alternatively can be \code{"param"} to output the name and characteristics of each parameter (type, strata, ...).}
 
+\item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
+Can also be \code{2} compute the degrees-of-freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.}
+
+\item{null}{[numeric vector] the value of the null hypothesis relative to each coefficient.}
+
+\item{columns}{[character vector] Columns to be output.
+Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.}
+
+\item{df}{[logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.}
+
+\item{type.information, transform.sigma, transform.k, transform.rho, transform.names}{are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.}
+
+\item{backtransform}{[logical] should the variance/covariance/correlation coefficient be backtransformed?}
+
 \item{simplify}{[logical] omit from the output the backtransform attribute.
 Not relevant when the argument \code{effects="param"},}
 
-\item{...}{arguments to be passed to \code{\link{confint.lmm}}.}
-
-\item{method}{[character] type of adjustment for multiple comparisons, one of \code{"none"}, \code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}.
-Alternatively, method for combining the estimates, one of \code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.rubin"}.}
+\item{...}{Not used. For compatibility with the generic method.}
 }
 \value{
 A \code{data.frame} object.
 }
 \description{
-Export estimated parameters with their uncertainty (standard errors, degrees of freedom, confidence intervals and p-values) from a linear mixed model
+Export estimated parameters with their uncertainty (standard errors, degrees-of-freedom, confidence intervals and p-values) from a linear mixed model
 or a table describing each parameter (type, associated sigma or k parameter, ...).
 }
 \details{
-When \code{effects} is not \code{"param"}, this function simply calls \code{\link{confint}} with a specific value for the argument \code{column}.
+When \code{effects} differs from \code{"param"}, this function is a wrapper for \code{\link{confint}} with different default value for the argument \code{column}.
 }
 \keyword{methods}

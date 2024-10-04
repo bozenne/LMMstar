@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: aug  8 2024 (13:32) 
+## Last-Updated: okt  3 2024 (18:02) 
 ##           By: Brice Ozenne
-##     Update #: 1209
+##     Update #: 1273
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -161,11 +161,16 @@ estimate.lmm <- function(x, f, df = !is.null(x$df) & !robust, robust = FALSE, ty
         stop("Argument \'average\' must be TRUE or FALSE. \n")
     }
     if(average){
-        ff <- function(x){
-            mean(do.call(f, args = c(list(p = x),ls.args)))
+        ff <- function(x, keep.indiv = FALSE){
+            iRes <- do.call(f, args = c(list(p = x),ls.args))
+            iOut <- mean(iRes)
+            if(keep.indiv){
+                attr(iOut,"indiv") <- iRes
+            }
+            return(iOut)
         }
     }else{
-        ff <- function(x){
+        ff <- function(x, keep.indiv){
             do.call(f, args = c(list(p = x),ls.args))
         }
     }
@@ -200,7 +205,11 @@ estimate.lmm <- function(x, f, df = !is.null(x$df) & !robust, robust = FALSE, ty
     type.beta <- stats::setNames(x$design$param$type,x$design$param$name)[names(beta)]
 
     ## ** partial derivative
-    fbeta <- ff(beta)
+    fbeta <- ff(beta, keep.indiv = TRUE)
+    if(average){
+        fbeta.indiv <- attr(fbeta,"indiv")
+        attr(fbeta,"indiv") <- NULL
+    }
     ## remove attributes otherwise is.vector(fbeta) is FALSE
     if(!is.null(attr(fbeta,"transform.sigma"))){attr(fbeta,"transform.sigma") <- NULL}
     if(!is.null(attr(fbeta,"transform.k"))){attr(fbeta,"transform.k") <- NULL}
@@ -353,11 +362,16 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
         stop("Argument \'average\' must be TRUE or FALSE. \n")
     }
     if(average){
-        ff <- function(x){
-            mean(do.call(f, args = c(list(p = x),ls.args)))
+        ff <- function(x, keep.indiv = FALSE){
+            iRes <- do.call(f, args = c(list(p = x),ls.args))
+            iOut <- mean(iRes)
+            if(keep.indiv){
+                attr(iOut,"indiv") <- iRes
+            }
+            return(iOut)
         }
     }else{
-        ff <- function(x){
+        ff <- function(x, keep.indiv = FALSE){
             do.call(f, args = c(list(p = x),ls.args))
         }
     }
@@ -392,7 +406,11 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
     type.beta <- stats::setNames(x$design$param$type,x$design$param$name)[names(beta)]
 
     ## ** partial derivative
-    fbeta <- ff(beta)
+    fbeta <- ff(beta, keep.indiv = TRUE)
+    if(average){
+        fbeta.indiv <- attr(fbeta,"indiv")
+        attr(fbeta,"indiv") <- NULL
+    }
     ## remove attributes otherwise is.vector(fbeta) is FALSE
     if(!is.null(attr(fbeta,"transform.sigma"))){attr(fbeta,"transform.sigma") <- NULL}
     if(!is.null(attr(fbeta,"transform.k"))){attr(fbeta,"transform.k") <- NULL}
@@ -532,7 +550,7 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
     param.Omega2 <- setdiff(param.Omega,param.fixed)
     param.mu2 <- setdiff(param.mu,param.fixed)
     param.fixed.mu <- setdiff(param.mu,param.mu2)
-    design.param2 <- design$param[match(param.Omega2, design$param$name),,drop=FALSE]
+    design.param2 <- design$param[match(param.Omega, design$param$name),,drop=FALSE]
     
     n.param <- length(param.name)
     Upattern <- design$vcov$Upattern
@@ -542,27 +560,28 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
         partialHat <- design$mean[,param.fixed.mu,drop=FALSE] %*% init[param.fixed.mu]
         partialY <- design$Y - partialHat
             
-        if(!is.null(design$precompute.XX) && !is.null(design$precompute.XY)){
+        if(!is.null(design$precompute.XX) && !is.null(design$precompute.XY) && length(param.mu2)>0){
             ## remove XX involving fixed parameters
             key.XX <- design$precompute.XX$key[param.mu2,param.mu2,drop=FALSE]
             index.precompute <- unique(as.double(design$precompute.XX$key[param.mu2,param.mu2]))
             key.XX[] <- stats::setNames(1:length(index.precompute),index.precompute)[as.character(design$precompute.XX$key[param.mu2,param.mu2])]        
             precompute.XX <- lapply(design$precompute.XX$pattern, function(iX){iX[,index.precompute,drop=FALSE]})
 
-            precompute.XXpattern <- lapply(design$precompute.XX$Xpattern, function(iM){
-                if(length(dim(iM))==2){
-                    return(iM[,param.mu2,drop=FALSE])
-                }else{
-                    return(iM[,param.mu2,,drop=FALSE])
-                }
-            })
+
             ## update XY with X(Y-Xb(fixed))
-            precompute.Xfixed <- .precomputeXR(X = precompute.XXpattern,
-                                               residuals = partialHat,
-                                               pattern = design$vcov$Upattern$name,
-                                               pattern.ntime = stats::setNames(design$vcov$Upattern$n.time, design$vcov$Upattern$name),
-                                               pattern.cluster = attr(design$vcov$pattern,"list"), index.cluster = design$index.cluster)
-            precompute.XY <- mapply(x = design$precompute.XY, y = precompute.Xfixed, FUN = function(x,y){x[,,param.mu2,drop=FALSE]-y}, SIMPLIFY = FALSE)
+            if(attr(design$weights,"user-defined")){
+                wX.mean <- sweep(design$mean[,param.mu2,drop=FALSE], FUN = "*", MARGIN = 1, STATS = sqrt(design$weights[attr(index.cluster,"vectorwise")]))
+                wY <- cbind(partialY*sqrt(design$weights[attr(index.cluster,"vectorwise")]))
+            }else{
+                wX.mean <- design$mean[,param.mu2,drop=FALSE]
+                wY <- partialY
+            }
+            precompute.XY <- .precomputeXR(X = wX.mean,
+                                           residuals = wY,
+                                           pattern = design$vcov$Upattern$name,
+                                           pattern.ntime = stats::setNames(design$vcov$Upattern$n.time, design$vcov$Upattern$name),
+                                           pattern.cluster = attr(design$vcov$pattern,"list"), index.cluster = design$index.cluster)
+
         }else{
             precompute.XY <- NULL
             precompute.XX <- NULL
@@ -662,6 +681,8 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
     }
 
     ## ** loop
+    update.param.Omega <- stats::setNames(rep(0, length(param.Omega)), param.Omega)
+
     if(n.iter==0 || length(param.Omega2)==0){
         cv <- as.numeric(length(param.Omega2)==0)
         param.valueM1 <- NULL
@@ -724,7 +745,7 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
                 cv <- -2
                 break
             }else if(is.na(logLik.value) || (logLik.value < logLik.valueM1)){ ## decrease in likelihood - try partial update
-                outMoments <- .backtracking(valueM1 = param.valueM1, update = update.value, n.iter = n.backtracking,
+                outMoments <- .backtracking(valueM1 = param.valueM1, update = update.param.Omega, n.iter = n.backtracking,
                                             design = design, time = time, method.fit = method.fit, type.information = type.information,
                                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                             logLikM1 = logLik.valueM1, scoreM1 = score.valueM1, informationM1 = information.valueM1, effects = effects, precompute.moments = precompute.moments,
@@ -745,18 +766,19 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
             ## *** update variance-covariance estimate
             param.valueM1 <- param.value
             if(length(param.Omega2)>0){
+                
                 ## update variance-covariance parameters (transform scale)
-                update.value <- stats::setNames(as.double(score.value[param.Omega2] %*% solve(information.value[param.Omega2,param.Omega2,drop=FALSE])), param.Omega2)
-                param.newvalue.trans <- outMoments$reparametrize$p[param.Omega2] + update.value
+                update.param.Omega[param.Omega2] <- stats::setNames(as.double(score.value[param.Omega2] %*% solve(information.value[param.Omega2,param.Omega2,drop=FALSE])), param.Omega2)
+                param.newvalue.trans <- outMoments$reparametrize$p + update.param.Omega
                 ## back to original (transform scale)
-                param.value[param.Omega2] <- .reparametrize(param.newvalue.trans,
-                                                            type = design.param2$type,
-                                                            sigma = design.param2$sigma,
-                                                            k.x = design.param2$k.x,
-                                                            k.y = design.param2$k.y,
-                                                            Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
-                                                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                                            transform.names = FALSE)$p
+                param.value[param.Omega] <- .reparametrize(param.newvalue.trans,
+                                                           type = design.param2$type,
+                                                           sigma = design.param2$sigma,
+                                                           k.x = design.param2$k.x,
+                                                           k.y = design.param2$k.y,
+                                                           Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
+                                                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                                                           transform.names = FALSE)$p
             }
             ## *** update mean estimate
             if(length(param.mu2)>0){
@@ -991,6 +1013,7 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
     alpha <- 1/2
     design.param <- design$param[match(param.Omega, design$param$name),,drop=FALSE]                                                
     valueNEW <- valueM1
+    momentNEW <- NULL
     cv <- FALSE
 
     ## move param to transform scale
@@ -1020,7 +1043,8 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
 
         ## estimate residual variance-covariance matrix
         iOmega <- .calc_Omega(object = design$vcov, param = valueNEW, simplify = FALSE)
-        if(any(sapply(iOmega,det)<0)){
+        iDet <- sapply(iOmega,det) 
+        if(any(is.na(iDet)) || any(iDet<0)){
             alpha <- alpha/2
             next
         }
@@ -1057,9 +1081,19 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
         }
 
     }
+
+    ## ** export
+    if(is.null(momentNEW)){
+        browser()
+        momentNEW <- .moments.lmm(value = valueNEW, design = design, time = time, method.fit = method.fit, type.information = type.information,
+                                  transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                                  logLik = TRUE, score = TRUE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = effects, robust = FALSE,
+                                  trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)
+    }
     attr(momentNEW,"value") <- valueNEW
     attr(momentNEW,"cv") <- cv
     attr(momentNEW,"n.backtrack") <- iIter
+    
     return(momentNEW)
 }
                 

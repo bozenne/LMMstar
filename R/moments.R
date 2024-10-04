@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: aug  7 2024 (17:30) 
+## Last-Updated: okt  3 2024 (14:55) 
 ##           By: Brice Ozenne
-##     Update #: 676
+##     Update #: 693
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -112,16 +112,24 @@
                                unique(unlist(Omega.chol[index.error])))
     }
     ## inverse
-    out$OmegaM1 <- lapply(Omega.chol,function(iChol){ ## iChol <- Omega.chol[[1]]
-        if(inherits(iChol,"try-error")){
-            iOut <- iChol
-        }else{
-            iOut <- chol2inv(iChol)
+    out$OmegaM1 <- lapply(1:length(out$Omega),function(iP){ ## iP <- 1
+        if(inherits(Omega.chol[[iP]],"try-error")){
+            iOut <- try(solve(out$Omega[[iP]],silent=FALSE)) ## matrix may be negative definite, i.e., invertible but with negative eigenvalues
             attr(iOut,"vectorize") <- as.vector(iOut)
-            attr(iOut,"logdet") <- -2*sum(log(diag(iChol)))
+            iDet <- det(iOut)
+            if(!is.na(iDet) & iDet>0){ ## handle negative determinant
+                attr(iOut,"logdet") <- log(iDet)
+            }else{
+                attr(iOut,"logdet") <- NA
+            }
+        }else{
+            iOut <- chol2inv(Omega.chol[[iP]])
+            attr(iOut,"vectorize") <- as.vector(iOut)
+            attr(iOut,"logdet") <- -2*sum(log(diag(Omega.chol[[iP]])))
         }
         return(iOut)
     })
+    names(out$OmegaM1) <- names(out$Omega)
 
     ## log(sapply(out$OmegaM1,det))
     if(score || information || vcov || df.analytic){
@@ -161,8 +169,7 @@
 
     if(method.fit == "REML" && !is.null(precompute$XX)){
         precompute$REML <- .precomputeREML(precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega, precompute = precompute, effects = effects2,
-                                           logLik = logLik, score = (score || (vcov && robust)), information = information, vcov = vcov, df = df.analytic,
-                                           weights = weights.cluster)
+                                           logLik = logLik, score = (score || (vcov && robust)), information = information, vcov = vcov, df = df.analytic)
     }
 
     ## ** 4- compute likelihood derivatives
@@ -174,7 +181,7 @@
                               pattern = design$vcov$pattern, index.cluster = design$index.cluster, 
                               indiv = indiv, REML = method.fit=="REML", precompute = precompute)
     }
-
+    
     ## *** score
     if(score || (vcov && robust)){ 
         if(trace>=1){cat("- score \n")}

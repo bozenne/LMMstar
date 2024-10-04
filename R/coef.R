@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: aug  9 2024 (17:34) 
+## Last-Updated: okt  3 2024 (17:11) 
 ##           By: Brice Ozenne
-##     Update #: 1244
+##     Update #: 1260
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -168,6 +168,7 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
     transform.rho <- init$transform.rho
+
     if(!is.null(p)){
         theta <- init$p
     }else{
@@ -204,7 +205,7 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
     if(is.null(p) && test.notransform){
         theta.trans <- theta
         theta.trans[match(object.reparametrize.name, names(theta))] <- object.reparametrize.value
-        if(transform.names){
+        if(transform.names && !is.null(object.reparametrize.newname)){
             names(theta.trans)[match(object.reparametrize.name, names(theta))] <- object.reparametrize.newname
         }        
     }else if((transform.sigma == "none" || "variance" %in% effects2 == FALSE) && (transform.k == "none" || "variance" %in% effects2 == FALSE) && (transform.rho == "none" || "correlation" %in% effects2 == FALSE)){
@@ -392,7 +393,8 @@ coef.mlmm <- function(object, effects = "Wald", method = "none", p = NULL, order
             message("Arguments \'",paste(message, collapse = "\', \'"),"\' are ignored when argument \"effects\" is \"Wald\". \n")
         }
         if(!is.null(p)){
-            name.lmm <- names(object$model)
+            ls.lmm <- object$model
+            name.lmm <- names(ls.lmm)
             ls.Cmat <- model.tables(object, effects = "contrast", transform.names = FALSE, simplify = FALSE)
             ls.anova <- stats::setNames(lapply(name.lmm, function(iName){ ## iName <- name.lmm[1]
 
@@ -408,7 +410,6 @@ coef.mlmm <- function(object, effects = "Wald", method = "none", p = NULL, order
                    )
     
         }
-        browser()
         out <- coef.rbindWald_lmm(object, effects = "Wald", method = method, ordering = ordering, backtransform = backtransform, simplify = simplify)
     }else{
         message <- NULL

@@ -63,7 +63,7 @@ With repetitions, one of \code{"UN"}, \code{"PEARSON"}, \code{"HLAG"}, \code{"LA
 \item{se}{[logical] Should the uncertainty about the partial correlation be evaluated? Only relevant for \code{partialCor.lmm}.}
 }
 \value{
-A data.frame with the estimate partial correlation (rho), standard error, degree of freedom, confidence interval, and p-value (test of no correlation).
+A data.frame with the estimate partial correlation (rho), standard error, degrees-of-freedom, confidence interval, and p-value (test of no correlation).
 When \code{structure="CS"} or \code{structure="HCS"} is used with repeated measurements, a second correlation coefficient (r) is output where the between subject variance has been removed (similar to Bland et al. 1995).
 }
 \description{

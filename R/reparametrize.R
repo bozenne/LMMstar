@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: jul 24 2024 (11:16) 
+## Last-Updated: okt  3 2024 (16:43) 
 ##           By: Brice Ozenne
-##     Update #: 817
+##     Update #: 838
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -1107,7 +1107,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
             null[index.1] <- do.call(transformation, args = list(null[index.1]/normalization))
             contrast[index.1,] <- sweep(contrast[index.1,,drop=FALSE], MARGIN = 1, FUN = "/", STATS = normalization)
         }else{
-            null[index.1] <- do.call(transformation, arg = list(null[index.1]))
+            null[index.1] <- do.call(transformation, args = list(null[index.1]))
         }
         
     }

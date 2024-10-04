@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: aug  7 2024 (13:28) 
+## Last-Updated: sep 30 2024 (13:52) 
 ##           By: Brice Ozenne
-##     Update #: 175
+##     Update #: 176
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -632,9 +632,6 @@ test_that("sigma with block CS", {
     sigma(e.lmmCS.repDay) ## check there is no error
     expect_equivalent(model.tables(e.lmmCS.repDay),table.GS, tol = 1e-4)
     
-    
-    
-
 })
 
 ######################################################################

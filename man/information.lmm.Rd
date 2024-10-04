@@ -31,7 +31,7 @@ or only coefficients relative to the variance and correlation structure (\code{"
 
 \item{indiv}{[logical] Should the contribution of each cluster to the information be output? Otherwise output the sum of all clusters of the derivatives.}
 
-\item{type.information}{[character] Should the expected information be computed  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).}
+\item{type.information}{[character] Should the expected information be computed (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).}
 
 \item{transform.sigma}{[character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.}
 
@@ -48,7 +48,7 @@ When argument indiv is \code{FALSE}, a matrix with the value of the infroamtion 
 When argument indiv is \code{TRUE}, a 3-dimensional array with the value of the information relative to each pair of coefficient (dimension 2 and 3) and each cluster (dimension 1).
 }
 \description{
-Extract or compute the (expected) second derivative of the log-likelihood of a linear mixed model.
+Extract or compute minus the second derivative of the log-likelihood of a linear mixed model.
 }
 \details{
 For details about the arguments \bold{transform.sigma}, \bold{transform.k}, \bold{transform.rho}, see the documentation of the \link[LMMstar]{coef.lmm} function.

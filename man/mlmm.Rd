@@ -12,8 +12,7 @@ mlmm(
   effects = NULL,
   robust = FALSE,
   df = NULL,
-  ci = TRUE,
-  name.short = c(TRUE, TRUE),
+  name.short = TRUE,
   transform.sigma = NULL,
   transform.k = NULL,
   transform.rho = NULL,
@@ -37,17 +36,13 @@ Argument passed to \code{\link{anova.lmm}}.
 Right hand side can be specified via an attribute \code{"rhs"}.}
 
 \item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
-Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
+Can also be \code{2} compute the degrees-of-freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
 Argument passed to \code{\link{anova.lmm}}.}
 
-\item{df}{[logical] Should the degree of freedom be computed using a Satterthwaite approximation?
+\item{df}{[logical] Should the degrees-of-freedom be computed using a Satterthwaite approximation?
 Argument passed to \code{\link{anova.lmm}}.}
 
-\item{ci}{[logical] Should a confidence interval be output for each hypothesis?
-Argument passed to \code{\link{anova.lmm}}.}
-
-\item{name.short}{[logical vector of length 2] use short names for the output coefficients:
-omit the name of the by variable, omit the regression variable name when the same regression variable is used in all models.}
+\item{name.short}{[logical] use short names for the output coefficients (omit the name of the by variable).}
 
 \item{transform.sigma, transform.k, transform.rho, transform.names}{[character] transformation used on certain type of parameters.}
 

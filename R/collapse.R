@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 18 2024 (12:17) 
 ## Version: 
-## Last-Updated: May 18 2024 (12:18) 
+## Last-Updated: sep 30 2024 (13:44) 
 ##           By: Brice Ozenne
-##     Update #: 1
+##     Update #: 10
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,9 +16,17 @@
 ### Code:
 
 ## * collapse (documentation)
-##' @description Aggregate columns.
-##' Alternative to interaction which can be quite slow 
-##' @noRd
+##' @title Aggregate Dataset by Columns
+##' @description Alternative to \code{\link{interaction}} (which can be quite slow) to aggregate columns of a dataset. 
+##' @name collapse
+##'
+##' @param object dataset
+##' @param sep [character] character strings used to concatenate values from different columns.
+##' @param as.factor [logical] should the result be converted into a factor or be numeric or character.
+##' @param ... Not used. For compatibility with the generic method.½ 
+##' 
+##' @keywords internal
+##' 
 ##' @examples
 ##' df1 <- data.frame(var1 = 1:10)
 ##' nlme::collapse(df1)
@@ -32,21 +40,22 @@
 ##' GS <- interaction(df3, sep = ".", drop = TRUE)
 
 ## * collapse.data.frame (code)
-collapse.data.frame <- function(value, sep = ".", as.factor = TRUE, ...){
+##' @rdname collapse
+collapse.data.frame <- function(object, sep = ".", as.factor = TRUE, ...){
 
     ## case of single column (fast)
-    if(length(value)==1){
+    if(length(object)==1){
         if(is.character(as.factor)){
-            return(factor(value[[1]], as.factor))
+            return(factor(object[[1]], as.factor))
         }else if(as.factor){
-            return(as.factor(value[[1]]))
+            return(as.factor(object[[1]]))
         }else{
-            return(as.character(value[[1]]))
+            return(as.character(object[[1]]))
         }
     }
 
     ## case of multiple columns    
-    out <- do.call(paste, c(value, sep = unname(sep)))
+    out <- do.call(paste, c(object, sep = unname(sep)))
     if(is.character(as.factor)){
         return(factor(out, as.factor))
     }else if(as.factor){
@@ -57,11 +66,13 @@ collapse.data.frame <- function(value, sep = ".", as.factor = TRUE, ...){
 }
 
 ## * collapse.list (code)
+##' @rdname collapse
 collapse.list <- collapse.data.frame
 
 ## * collapse.matrix (code)
-collapse.matrix <- function(value, ...){
-    return(nlme::collapse(as.data.frame(value), ...))
+##' @rdname collapse
+collapse.matrix <- function(object, ...){
+    return(nlme::collapse(as.data.frame(object), ...))
 }
 
 

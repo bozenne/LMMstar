@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: aug  8 2024 (12:05) 
+## Last-Updated: okt  3 2024 (14:13) 
 ##           By: Brice Ozenne
-##     Update #: 3112
+##     Update #: 3127
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -46,6 +46,7 @@
 ##' \item \code{n.iter}: maximum number of interations of the optimization algorithm.
 ##' \item \code{tol.score}: score value below which convergence has been reached.
 ##' \item \code{tol.param}: difference in estimated parameters from two successive iterations below which convergence has been reached.
+##' \item \code{transform.sigma}, \code{transform.k}, \code{transform.rho}: transformation used for the variance and correlation parameters in the optimization procedure. 
 ##' \item \code{trace}: display progress of the optimization procedure.
 ##' }
 ##' 
@@ -296,9 +297,9 @@ lmm <- function(formula, data, repetition, structure, weights = NULL,
         precompute.moments <- FALSE
         if((is.null(structure$d2FCT.sigma) || is.null(structure$d2FCT.rho)) && (outArgs$df || outArgs$method.fit=="REML" || outArgs$type.information=="observed")){
             ## need second derivative but transformation based on dJacobian not implemented!
-            options$transform.sigma <- "none"
-            options$transform.k <- "none"
-            options$transform.rho <- "none"
+            control$transform.sigma <- "none"
+            control$transform.k <- "none"
+            control$transform.rho <- "none"
         }
     }else{
         precompute.moments <- is.na(out$weights$var["Omega"]) && options$precompute.moments        
@@ -324,7 +325,7 @@ lmm <- function(formula, data, repetition, structure, weights = NULL,
     ## ** 3. Estimate model parameters
     if(trace>=1){cat("3. Estimate model parameters")}
 
-    valid.control <- c("init","n.iter","optimizer","tol.score","tol.param","trace")
+    valid.control <- c("init","n.iter","optimizer","tol.score","tol.param","transform.sigma","transform.k","transform.rho","trace")
     if(any(names(out$args$control) %in% valid.control  == FALSE)){
         stop("Incorrect elements in argument \'control\': \"",paste(names(out$args$control)[names(out$args$control) %in% valid.control  == FALSE], collapse = "\" \""),"\". \n",
              "Valid elements: \"",paste(valid.control, collapse = "\" \""),"\".\n")
@@ -348,13 +349,22 @@ lmm <- function(formula, data, repetition, structure, weights = NULL,
     if(is.null(out$args$control$n.backtracking)){
         out$args$control$n.backtracking <- as.double(options$param.optimizer["n.backtracking"])
     }
+    if(is.null(out$args$control$transform.sigma)){
+        out$args$control$transform.sigma <- options$transform.sigma
+    }
+    if(is.null(out$args$control$transform.k)){
+        out$args$control$transform.k <- options$transform.k
+    }
+    if(is.null(out$args$control$transform.rho)){
+        out$args$control$transform.rho <- options$transform.rho
+    }
 
     if(trace>0){
         if(out$args$control$trace>0){cat("\n")}
         if(out$args$control$trace>1){cat("\n")}
     }
     outEstimate <- .estimate(design = out$design, time = out$time, method.fit = out$args$method.fit, type.information = out$args$type.information,
-                             transform.sigma = options$transform.sigma, transform.k = options$transform.k, transform.rho = options$transform.rho,
+                             transform.sigma = out$args$control$transform.sigma, transform.k = out$args$control$transform.k, transform.rho = out$args$control$transform.rho,
                              precompute.moments = precompute.moments, 
                              optimizer = out$args$control$optimizer, init = out$args$control$init, n.iter = out$args$control$n.iter, n.backtracking = out$args$control$n.backtracking,
                              tol.score = out$args$control$tol.score, tol.param = out$args$control$tol.param, trace = out$args$control$trace)
@@ -366,7 +376,6 @@ lmm <- function(formula, data, repetition, structure, weights = NULL,
     if(out$opt$cv<=0){
         warning("Convergence issue: no stable solution has been found. \n")
     }
-        
     out$param <- param.value
 
     if(trace>=1){cat("\n")}
@@ -374,7 +383,7 @@ lmm <- function(formula, data, repetition, structure, weights = NULL,
     ## ** 4. Compute likelihood derivatives
     if(trace>=1){cat("4. Compute likelihood derivatives \n")}
     outMoments <- .moments.lmm(value = out$param, design = out$design, time = out$time, method.fit = out$args$method.fit, type.information = out$args$type.information,
-                               transform.sigma = options$transform.sigma, transform.k = options$transform.k, transform.rho = options$transform.rho,
+                               transform.sigma = out$args$control$transform.sigma, transform.k = out$args$control$transform.k, transform.rho = out$args$control$transform.rho,
                                logLik = TRUE, score = TRUE, information = TRUE, vcov = TRUE, df = out$args$df, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
                                trace = trace>=2, precompute.moments = precompute.moments, method.numDeriv = options$method.numDeriv, transform.names = FALSE)
     out[names(outMoments)] <- outMoments

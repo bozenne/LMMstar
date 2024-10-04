@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: aug  7 2024 (10:31) 
+## Last-Updated: sep 30 2024 (13:59) 
 ##           By: Brice Ozenne
-##     Update #: 158
+##     Update #: 160
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -504,30 +504,51 @@ NULL
 #' @keywords datasets
 NULL
 
+
 ## * sleep
-## ** sleepL
-#' @title MREG Data from a sleep deprivation experiment 
+## ** sleepL (embargo)
+#' @title Data from a sleep study 
 #' @name sleepL
 #' @rdname data-sleepL
 #' 
-#' @description  Data from sleep deprivation cross-over study where all subjects have scan at baseline and two follow-up.
-#' They received placebo at one follow-up and carvedilol at the other.
-#' Sequence (Baseline-Placebo-Carvedilol or Baseline-Placebo-Carvedilol) is randomized and the current dataset do not contain the Carvedilol measurement.
-#' At each follow-up they under-go two scans: one awake and one asleep. This was not always possible leading to missing data.
-#' The signal measured relates to spectral characteristics of magnetic resonance encephalography (MREG) and has been modified compared to the real data.
+#' @description  
 #'
 #' \itemize{
 #' \item \code{id}: patient identifier.
-#' \item \code{deprivation}: is the patient sleep deprived?
-#' \item \code{condition}: treatment received: none at baseline and then placebo or carvedilol.
-#' \item \code{vigilance}: is the patient awake or sleeping?
-#' \item \code{signal.34} and \code{signal.98}: modified MREG signal.
+#' \item \code{deprivation}: 
+#' \item \code{condition}: 
+#' \item \code{vigilance}: 
+#' \item \code{signal.34} and \code{signal.98}: outcome.
 #' }
 #' 
 #' @docType data
 #' @usage data(sleepL)
 #' @keywords datasets
 NULL
+
+## ## ** sleepL (embargo)
+## #' @title MREG Data from a sleep deprivation experiment 
+## #' @name sleepL
+## #' @rdname data-sleepL
+## #' 
+## #' @description  Data from sleep deprivation cross-over study where all subjects have scan at baseline and two follow-up.
+## #' They received placebo at one follow-up and carvedilol at the other.
+## #' Sequence (Baseline-Placebo-Carvedilol or Baseline-Placebo-Carvedilol) is randomized and the current dataset do not contain the Carvedilol measurement.
+## #' At each follow-up they under-go two scans: one awake and one asleep. This was not always possible leading to missing data.
+## #' The signal measured relates to spectral characteristics of magnetic resonance encephalography (MREG) and has been modified compared to the real data.
+## #'
+## #' \itemize{
+## #' \item \code{id}: patient identifier.
+## #' \item \code{deprivation}: is the patient sleep deprived?
+## #' \item \code{condition}: treatment received: none at baseline and then placebo or carvedilol.
+## #' \item \code{vigilance}: is the patient awake or sleeping?
+## #' \item \code{signal.34} and \code{signal.98}: modified MREG signal.
+## #' }
+## #' 
+## #' @docType data
+## #' @usage data(sleepL)
+## #' @keywords datasets
+## NULL
 
 ## * swabs
 ## ** swabsW

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: aug  8 2024 (17:17) 
+## Last-Updated: sep 30 2024 (12:31) 
 ##           By: Brice Ozenne
-##     Update #: 1150
+##     Update #: 1151
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -51,17 +51,17 @@
 ##' 
 ##' ## combine null hypotheses
 ##' ## - model-based standard errors
-##' AAA <- anova(e.lmm1, effect = c("X1|X2,X3"="X1=0","X2|X1,X3"="X2=0"))
-##' BBB <- anova(e.lmm2, effect = c("X1|X8,X9"="X1=0"))
+##' AAA <- anova(e.lmm1, effect = c("X1|X2,X3"="X1=0","X2|X1,X3"="X2=0"), simplify = FALSE)
+##' BBB <- anova(e.lmm2, effect = c("X1|X8,X9"="X1=0"), simplify = FALSE)
 ##' ZZZ <- rbind(AAA,BBB)
 ##' summary(ZZZ) ## adjusted for multiple testing
 ##' rbind(model.tables(e.lmm1)[2:3,], model.tables(e.lmm2)[2,,drop=FALSE])
 ##'
 ##' ## select null hypotheses & combine (model-based like standard errors)
 ##' AA <- anova(e.lmm1, effect = c("X1|X2,X3"="X1=0","X2|X1,X3"="X2=0"),
-##'              robust = TRUE)
+##'              robust = TRUE, simplify = FALSE)
 ##' BB <- anova(e.lmm2, effect = c("X1|X8,X9"="X1=0"),
-##'              robust = TRUE)
+##'              robust = TRUE, simplify = FALSE)
 ##' ZZ <- rbind(AA,BB)
 ##' summary(ZZ)  ## adjusted for multiple testing
 ##' rbind(model.tables(e.lmm1, robust = TRUE)[2:3,],

@@ -2,7 +2,7 @@
 % Please edit documentation in R/df.R
 \name{df.residual.lmm}
 \alias{df.residual.lmm}
-\title{Residuals Degrees of Freedom}
+\title{Residual Degrees-of-Freedom From a Linear Mixed Model.}
 \usage{
 \method{df.residual}{lmm}(object, ...)
 }
@@ -15,6 +15,9 @@
 A numeric value
 }
 \description{
-Residuals degrees of freedom. Computed as the sum of squared normalized residuals
+Estimate the residual degrees-of-freedom from a linear mixed model.
+}
+\details{
+The residual degrees-of-freedom is estimated using the sum of squared normalized residuals.
 }
 \keyword{methods}

@@ -31,7 +31,7 @@
 \item{level}{[numeric,0-1] confidence level for the confidence intervals.}
 
 \item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
-Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.}
+Can also be \code{2} compute the degrees-of-freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.}
 
 \item{df}{[logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.}
 
@@ -42,7 +42,7 @@ Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \
 
 \item{digits}{[interger, >0] number of digits used to display estimates.}
 
-\item{digits.df}{[interger, >0] number of digits used to display degrees of freedom.}
+\item{digits.df}{[interger, >0] number of digits used to display degrees-of-freedom.}
 
 \item{digits.p.value}{[interger, >0] number of digits used to display p-values.}
 

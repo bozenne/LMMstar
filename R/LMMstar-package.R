@@ -52,7 +52,7 @@
 ##' @importFrom ggplot2 autoplot
 ##' @importFrom rlang .data
 ##' @importFrom nlme ranef
-##' @importFrom stats anova coef confint df dummy.coef effects fitted logLik model.matrix model.tables nobs profile residuals sigma variable.names vcov weights
+##' @importFrom stats anova coef confint df df.residual dummy.coef effects fitted influence logLik model.matrix model.tables nobs profile residuals sigma variable.names vcov weights
 ##' @importFrom lava bootstrap estimate iid information score
 ##' @keywords internal 
 "_PACKAGE"

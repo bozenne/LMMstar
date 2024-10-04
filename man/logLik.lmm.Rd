@@ -2,7 +2,7 @@
 % Please edit documentation in R/logLik.R
 \name{logLik.lmm}
 \alias{logLik.lmm}
-\title{Extract The Log-Likelihood From a Linear Mixed Model}
+\title{Log-Likelihood From a Linear Mixed Model}
 \usage{
 \method{logLik}{lmm}(object, newdata = NULL, p = NULL, indiv = FALSE, ...)
 }

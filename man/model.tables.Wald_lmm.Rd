@@ -2,25 +2,49 @@
 % Please edit documentation in R/model.tables.R
 \name{model.tables.Wald_lmm}
 \alias{model.tables.Wald_lmm}
-\title{Statistical Inference for Wald test}
+\title{Statistical Inference for Wald tests Applied to a Linear Mixed Model}
 \usage{
-\method{model.tables}{Wald_lmm}(x, effects = "Wald", columns, simplify = TRUE, ...)
+\method{model.tables}{Wald_lmm}(
+  x,
+  effects = "Wald",
+  level = 0.95,
+  df = NULL,
+  method = NULL,
+  columns = NULL,
+  backtransform = NULL,
+  transform.names = TRUE,
+  simplify = TRUE,
+  ...
+)
 }
 \arguments{
-\item{x}{a \code{lmm} object.}
+\item{x}{a \code{Wald_lmm} object.}
 
 \item{effects}{[character] should the linear contrasts involved in the Wald test be output (\code{"Wald"}),
-or the contrast matrix (\code{"contrast"})?}
+the contrast matrix (\code{"contrast"}),
+or the name/value/type of the underlying mixed model parameters (\code{"param"})?}
+
+\item{level}{[numeric, 0-1] nominal coverage of the confidence intervals.}
+
+\item{df}{[logical] Should a Student's t-distribution be used to model the distribution of the Wald statistic. Otherwise a normal distribution is used.}
+
+\item{method}{[character] Should pointwise confidence intervals be output (\code{"none"}) or simultaneous confidence intervals (\code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"})?}
 
 \item{columns}{[character vector] Columns to be output.
-Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.}
+Can be any of \code{"estimate"}, \code{"se"}, \code{"df"}, \code{"quantile"}, \code{"lower"}, \code{"upper"}, \code{"statistic"}, \code{"null"}, \code{"p.value"}.}
+
+\item{backtransform}{[logical] should the estimates, standard errors, and confidence intervals be backtransformed?}
+
+\item{transform.names}{[logical] should the name of the coefficients be updated to reflect the transformation that has been used?
+Only relevant when \code{effects="contrast"}.}
 
 \item{simplify}{[logical] with argument \code{effects="Wald"}, omit from the output attributes containing additional information (e.g. approximation error made when adjusting p-values).
 with argument \code{effects="contrast"} the output will be converted into a matrix (instead of a list of matrix) whenever possible.}
 
-\item{...}{arguments to be passed to \code{\link{confint.Wald_lmm}}.}
+\item{...}{Not used. For compatibility with the generic method.}
 }
 \description{
-Export estimates, standard errors, degrees of freedom, confidence intervals (CIs) and p-values for the mean coefficients of a linear mixed model.
+Export estimates, standard errors, degrees-of-freedom, confidence intervals (CIs) and p-values
+relative to linear contrasts of parameters from a linear mixed model.
 }
 \keyword{methods}

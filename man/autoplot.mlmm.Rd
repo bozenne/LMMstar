@@ -3,17 +3,17 @@
 \name{autoplot.mlmm}
 \alias{autoplot.mlmm}
 \alias{plot.mlmm}
-\title{Graphical Display For Multiple Linear Mixed Model}
+\title{Graphical Display of Wald Tests For Multiple Linear Mixed Models.}
 \usage{
 \method{autoplot}{mlmm}(object, type = "forest", ...)
 
 \method{plot}{mlmm}(x, facet_nrow = NULL, facet_ncol = NULL, labeller = "label_value", ...)
 }
 \description{
-Graphical Display For Multiple Linear Mixed Model
+Display estimated linear contrasts applied on parameters from subgroup-specific linear mixed models.
 }
 \section{Functions}{
 \itemize{
-\item \code{plot(mlmm)}: Graphical Display For Multiple Linear Mixed Model
+\item \code{plot(mlmm)}: Graphical Display For Multiple Linear Mixed Models
 
 }}

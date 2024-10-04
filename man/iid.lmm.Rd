@@ -51,7 +51,7 @@ A matrix with one row per observation and one column per parameter. \itemize{
 }
 }
 \description{
-Extract the influence function of linear mixed model parameters.
+Extract the influence function for an ML or REML estimator of parameters from a linear mixed model.
 }
 \details{
 The influence function equals the individual score rescaled by the (inverse) information.

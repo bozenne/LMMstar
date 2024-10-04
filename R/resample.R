@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: aug  8 2024 (13:32) 
+## Last-Updated: sep 30 2024 (15:00) 
 ##           By: Brice Ozenne
-##     Update #: 807
+##     Update #: 808
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -762,7 +762,7 @@ resample.mlmm <- function(object, type, method = NULL, n.sample = 1e3, studentiz
     if(inherits(data, "try-error")){ ## reconstruct dataset based on what was stored in the object
         object.model <- object$model
         n.model <- length(object.model)
-        object.manifest <- lapply(object.model, manifest)
+        object.manifest <- lapply(object.model, variable.names)
         object.data <- lapply(object.model, "[[", "data")
 
         if(any(sapply(object.data, function(iData){cluster %in% names(iData)})==FALSE)){

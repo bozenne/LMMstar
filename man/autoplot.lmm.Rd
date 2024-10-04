@@ -3,7 +3,7 @@
 \name{autoplot.lmm}
 \alias{autoplot.lmm}
 \alias{plot.lmm}
-\title{Graphical Display For Linear Mixed Models}
+\title{Graphical Display For a Linear Mixed Model}
 \usage{
 \method{autoplot}{lmm}(
   object,
@@ -95,7 +95,7 @@ Can also display quantile-quantile plot relative to the normal distribution.
 }
 \section{Functions}{
 \itemize{
-\item \code{plot(lmm)}: Graphical Display For Linear Mixed Models
+\item \code{plot(lmm)}: Graphical Display For a Linear Mixed Model
 
 }}
 \examples{

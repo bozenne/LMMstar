@@ -2,7 +2,7 @@
 % Please edit documentation in R/dummy.coef.R
 \name{dummy.coef.lmm}
 \alias{dummy.coef.lmm}
-\title{Extract Mean Coefficients in Original Coding from a Linear Mixed Model}
+\title{Extract Mean Coefficients in Original Coding From a Linear Mixed Model}
 \usage{
 \method{dummy.coef}{lmm}(object, use.na = FALSE, ...)
 }

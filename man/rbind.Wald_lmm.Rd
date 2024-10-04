@@ -2,7 +2,7 @@
 % Please edit documentation in R/rbind.R
 \name{rbind.Wald_lmm}
 \alias{rbind.Wald_lmm}
-\title{Linear Hypothesis Testing Across Linear Mixed Models}
+\title{Combine Wald Tests From Linear Mixed Models}
 \usage{
 \method{rbind}{Wald_lmm}(
   model,
@@ -38,7 +38,7 @@ By default, use the name of the outcome of the model.}
 \item{sep}{[character] character used to separate the name/outcome and the covariate when identifying the linear hypotheses.}
 }
 \description{
-Combine linear hypothesis tests from different linear mixed models.
+Combine linear hypothesis tests from possibly different linear mixed models.
 }
 \details{
 In presence of measurements from the same cluster across several models,
@@ -60,17 +60,17 @@ e.lmm2 <- lmm(Y ~ X1+X8+X9, repetition = ~visit|id, data = dL,
 
 ## combine null hypotheses
 ## - model-based standard errors
-AAA <- anova(e.lmm1, effect = c("X1|X2,X3"="X1=0","X2|X1,X3"="X2=0"))
-BBB <- anova(e.lmm2, effect = c("X1|X8,X9"="X1=0"))
+AAA <- anova(e.lmm1, effect = c("X1|X2,X3"="X1=0","X2|X1,X3"="X2=0"), simplify = FALSE)
+BBB <- anova(e.lmm2, effect = c("X1|X8,X9"="X1=0"), simplify = FALSE)
 ZZZ <- rbind(AAA,BBB)
 summary(ZZZ) ## adjusted for multiple testing
 rbind(model.tables(e.lmm1)[2:3,], model.tables(e.lmm2)[2,,drop=FALSE])
 
 ## select null hypotheses & combine (model-based like standard errors)
 AA <- anova(e.lmm1, effect = c("X1|X2,X3"="X1=0","X2|X1,X3"="X2=0"),
-             robust = TRUE)
+             robust = TRUE, simplify = FALSE)
 BB <- anova(e.lmm2, effect = c("X1|X8,X9"="X1=0"),
-             robust = TRUE)
+             robust = TRUE, simplify = FALSE)
 ZZ <- rbind(AA,BB)
 summary(ZZ)  ## adjusted for multiple testing
 rbind(model.tables(e.lmm1, robust = TRUE)[2:3,],

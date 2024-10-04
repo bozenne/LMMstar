@@ -2,7 +2,7 @@
 % Please edit documentation in R/estimate.R
 \name{estimate.lmm}
 \alias{estimate.lmm}
-\title{Delta Method for Mixed Models}
+\title{Delta Method for a Linear Mixed Model}
 \usage{
 \method{estimate}{lmm}(
   x,
@@ -22,13 +22,14 @@
 \arguments{
 \item{x}{a \code{lmm} object.}
 
-\item{f}{[function] function of the model coefficient computing the parameter(s) of interest. Can accept extra-arguments.}
+\item{f}{[function] function taking as input \code{p}, the linear mixed model parameters, which outputs the parameter(s) of interest.
+Can accept extra-arguments.}
 
-\item{df}{[logical] Should degree of freedom, computed using Satterthwaite approximation, for the parameter of interest be output.
-Can also be a numeric vector providing providing the degrees of freedom relative to each estimate.}
+\item{df}{[logical] Should degree-of-freedom, computed using Satterthwaite approximation, for the parameter of interest be output.
+Can also be a numeric vector providing providing the degrees-of-freedom relative to each estimate.}
 
 \item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
-Can also be \code{2} compute the degrees of freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.}
+Can also be \code{2} compute the degrees-of-freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.}
 
 \item{type.information}{[character] Should the expected information be used  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).}
 
@@ -49,10 +50,13 @@ Otherwise consider each individual output of argument \code{f}.}
 \item{...}{extra arguments passed to \code{f}.}
 }
 \description{
-Perform a first order delta method
+Estimate standard errors, confidence intervals, and p-values for a smooth transformation of parameters from a linear mixed model.
 }
 \details{
-Argument \bold{robust}: degrees of freedom estimation does not seem reliable when \code{TRUE}.
+Based a first order delta method to evaluate the variance of the estimate.
+The derivative of the transformation is evaluated using numerical differentiation (\code{numDeriv::jacobian}). \cr \cr
+
+Argument \bold{robust}: the Satterhwaite approximation for the degrees-of-freedom of robust standard errors is often unreliable. This is why the default is to use the degrees-of-freedom of the modeled based standard error instead.
 }
 \examples{
 
@@ -88,7 +92,7 @@ e.delta <- estimate(e.lmm, function(p){
      c(Y1 = p["rho(1,2)"]*p["k.2"],
       X1 = p["time2:X1"]-p["k.2"]*p["rho(1,2)"]*p["time1:X1"])
 }) ## same estimate and similar standard errors. 
-e.delta ## Degrees of freedom are a bit off though
+e.delta ## Degrees-of-freedom are a bit off though
 cbind(summary(e.ANCOVA1)$coef, df = df.residual(e.ANCOVA1))
 
 ## estimated treatment effect (baseline constraint)
@@ -98,7 +102,7 @@ e.deltaC <- estimate(e.lmmC, function(p){
        c(Y1 = p["rho(1,2)"]*p["k.2"],
          X1 = p["time2:X1"])
 })
-e.deltaC ## Degrees of freedom are a bit more accurate
+e.deltaC ## Degrees-of-freedom are a bit more accurate
 }
 }
 \keyword{mhtest}

@@ -7,7 +7,7 @@
 \method{nobs}{lmm}(object, ...)
 }
 \arguments{
-\item{object}{an lmm object.}
+\item{object}{a \code{lmm} object.}
 
 \item{...}{Not used. For compatibility with the generic method.}
 }
@@ -20,6 +20,6 @@ A vector with 4 elements: \itemize{
 }
 }
 \description{
-Extract the number of observations from a Linear Mixed Model
+Extract the number of observations from a Linear Mixed Model.
 }
 \keyword{methods}
