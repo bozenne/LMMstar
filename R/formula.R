@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:53) 
 ## Version: 
-## Last-Updated: aug  8 2024 (11:40) 
+## Last-Updated: okt 14 2024 (18:45) 
 ##           By: Brice Ozenne
-##     Update #: 319
+##     Update #: 320
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -179,7 +179,7 @@ formula2var <- function(formula, data = NULL, specials = NULL, name.argument  = 
         out$formula$design <- ff.formulaRHS        
 
     }else if(type.special == "ranef"){
-        nout$index.terms$regressor <- which(split.termsRHS %in% paste0("(",ff.varSPECIAL,")") == FALSE)
+        out$index.terms$regressor <- which(split.termsRHS %in% paste0("(",ff.varSPECIAL,")") == FALSE)
         out$terms$regressor <- out$terms$all[out$index.terms$regressor]
         out$formula$regressor <- updateFormula(formula, drop.x = out$terms$all[-out$index.terms$regressor])
         if(n.outcome>0){

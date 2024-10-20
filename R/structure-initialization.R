@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: aug  8 2024 (09:36) 
+## Last-Updated: okt 20 2024 (17:14) 
 ##           By: Brice Ozenne
-##     Update #: 430
+##     Update #: 586
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -24,6 +24,7 @@
 ##' @param residuals [vector] vector of residuals.
 ##' @param Xmean [matrix] design matrix for the mean effects used to estimate the residual degrees-of-freedom for variance calculation.
 ##' @param index.cluster [list of numeric vectors] position of the observations of each cluster.
+##' @param init.cor [1,2] method to initialize the correlation parameters.
 ##'
 ##' @keywords internal
 ##' 
@@ -65,12 +66,12 @@
 ##' .initialize(Sun4, residuals = residuals(eGas.lm))
 ##' .initialize(Sun24, residuals = residuals(eGas.lm))
 `.initialize` <-
-    function(object, method.fit, residuals, Xmean, index.cluster) UseMethod(".initialize")
+    function(object, init.cor, method.fit, residuals, Xmean, index.cluster) UseMethod(".initialize")
 `.initialize2` <-
     function(object, index.clusterTime, Omega) UseMethod(".initialize2")
 
 ## * initialize.ID
-.initialize.ID <- function(object, method.fit, residuals, Xmean, index.cluster){
+.initialize.ID <- function(object, init.cor, method.fit, residuals, Xmean, index.cluster){
 
     structure.param <- object$param[is.na(object$param$constraint),,drop=FALSE]
     param.type <- stats::setNames(structure.param$type,structure.param$name)
@@ -116,6 +117,7 @@
             epsilon2.ssc <- epsilon2 * (n.UX/(n.UX-p))[M.res[,"index.lp"]]
         }
     }else{
+        vec.hat <- NULL
         epsilon2.ssc <- epsilon2
     }
 
@@ -175,6 +177,7 @@
     }
 
     ## export
+    attr(out,"df") <- vec.hat
     return(out)
 }
 
@@ -242,7 +245,7 @@
 .initialize2.IND <- .initialize2.ID
 
 ## * initialize.CS
-.initialize.CS <- function(object, method.fit, residuals, Xmean, index.cluster){
+.initialize.CS <- function(object, init.cor, method.fit, residuals, Xmean, index.cluster){
 
     structure.param <- object$param[is.na(object$param$constraint),,drop=FALSE]
     out <- stats::setNames(rep(NA, NROW(structure.param)), structure.param$name)
@@ -257,7 +260,9 @@
     if("sigma" %in% param.type || "k" %in% param.type){
         sigma <- .initialize.IND(object = object, method.fit = method.fit, residuals = residuals, Xmean = Xmean, index.cluster = index.cluster)
         residuals.studentized <- attr(sigma, "studentized")
+        residuals.df <- attr(sigma, "df")
         attr(sigma, "studentized") <- NULL
+        attr(sigma, "df") <- NULL
         out[names(sigma)] <- sigma
     }else{
         residuals.studentized <- residuals
@@ -276,16 +281,22 @@
         iPair$param <- as.numeric(factor(iPair$param, levels = iParam))
 
         if(NROW(iPair)<=NROW(obs.iPattern)){ ## more individuals than pairs
-            iLs.out <- apply(iPair, 1, function(iRow){
-                iOut <- data.frame(prod = sum(residuals.studentized[obs.iPattern[,iRow[1]]]*residuals.studentized[obs.iPattern[,iRow[2]]]),
-                                   sum1 = sum(residuals.studentized[obs.iPattern[,iRow[1]]]),
-                                   sum2 = sum(residuals.studentized[obs.iPattern[,iRow[2]]]),
-                                   sums1 = sum(residuals.studentized[obs.iPattern[,iRow[1]]]^2),
-                                   sums2 = sum(residuals.studentized[obs.iPattern[,iRow[2]]]^2),
+            iLs.out <- lapply(1:NROW(iPair), function(iP){ ## iP <- 1
+                iRow <- iPair[iP,"row"]
+                iCol <- iPair[iP,"col"]
+                iOut <- data.frame(index = paste0("(t1=",attr(X.iPattern,"index.time")[iRow],",t2=",attr(X.iPattern,"index.time")[iCol],")"),
+                                   pattern = iPattern,
+                                   prod = sum(residuals.studentized[obs.iPattern[,iRow]]*residuals.studentized[obs.iPattern[,iCol]]),
+                                   sum1 = sum(residuals.studentized[obs.iPattern[,iRow]]),
+                                   sum2 = sum(residuals.studentized[obs.iPattern[,iCol]]),
+                                   sums1 = sum(residuals.studentized[obs.iPattern[,iRow]]^2),
+                                   sums2 = sum(residuals.studentized[obs.iPattern[,iCol]]^2),
                                    n = NROW(obs.iPattern),
-                                   param = iRow[3])
+                                   df1 = sum(residuals.df[obs.iPattern[,iRow]]),
+                                   df2 = sum(residuals.df[obs.iPattern[,iCol]]),
+                                   param = iParam[iPair[iP,"param"]])
                 return(iOut)
-            }, simplify = FALSE)
+            })
         }else{ ## more pairs than individuals
             iLs.out <- apply(obs.iPattern, 1, function(iRow){ ## iRow <- obs.iPattern[1,]
                 iLSDF <- split(data.frame(row = residuals.studentized[iRow[iPair[,"row"]]],
@@ -293,18 +304,21 @@
                                           param = iPair[,"param"]),
                                iPair[,"param"])
                 iOut <- lapply(iLSDF, function(iiDF){
-                    data.frame(prod = sum(iiDF[,1]*iiDF[,2]),
+                    data.frame(index = paste0("(t1=",attr(X.iPattern,"index.time")[iPair[,"row"]],",t2=",attr(X.iPattern,"index.time")[iPair[,"col"]],")"),
+                               pattern = iPattern,
+                               prod = sum(iiDF[,1]*iiDF[,2]),
                                sum1 = sum(iiDF[,1]),
                                sum2 = sum(iiDF[,2]),
                                sums1 = sum(iiDF[,1]^2),
                                sums2 = sum(iiDF[,2]^2),
                                n=NROW(iiDF),
-                               param = iiDF[1,3])})
+                               df1 = sum(residuals.df[,1]),
+                               df2 = sum(residuals.df[,2]),
+                               param = iParam[iiDF[1,3]])})
                 return(do.call(rbind,iOut))
             }, simplify = FALSE)
         }
         iDf.out <- do.call(rbind,iLs.out)
-        iDf.out$param <- iParam[iDf.out$param]
         return(iDf.out)
     }))
 
@@ -312,20 +326,34 @@
     param.rho <- names(param.type)[param.type=="rho"]
     if(length(param.rho)==0){return(out)}
 
-    e.rho <- unlist(lapply(split(M.prodres, M.prodres$param), function(iDF){ ## iDF <- split(M.prodres, M.prodres$param)[[3]]
-        iN <- sum(iDF$n)
-        iNum <- sum(iDF$prod)/iN-(sum(iDF$sum1)/iN)*(sum(iDF$sum2)/iN)
-        iDenom1 <- sum(iDF$sums1)/iN-(sum(iDF$sum1)/iN)^2
-        iDenom2 <- sum(iDF$sums2)/iN-(sum(iDF$sum2)/iN)^2
-        return(iNum/sqrt(iDenom1*iDenom2))
+    e.rho <- unlist(lapply(split(M.prodres, M.prodres$param), function(iDF){
+        
+        if(init.cor==1){ 
+            ## *** method 1: average time-specific correlations (exact formula for ML when no missing values)
+            iRho <- iDF$prod/sqrt((iDF$n-iDF$df1)*(iDF$n-iDF$df2))
+         
+            iMeanRho.pattern <- tapply(iRho, iDF$pattern, mean)
+            iNobs.pattern <- tapply(iDF$n, iDF$pattern, sum)
+            iHeterochedastic.pattern <- (tapply(iDF$sums1, iDF$pattern, sum)+tapply(iDF$sums2, iDF$pattern, sum))/(2*iNobs.pattern)
+            iP.pattern <- tapply(iRho, iDF$pattern, length) ## p(p-1)/2
+            iN.pattern <- tapply(iDF$n, iDF$pattern, unique)
+
+            iOut <- sum(iN.pattern*iP.pattern*iMeanRho.pattern/sum(iN.pattern*iP.pattern*iHeterochedastic.pattern))
+            
+        }else if(init.cor==2){
+            ## *** method 2: compute overall correlation
+            iNobs <- sum(iDF$n)
+            iNum <- sum(iDF$prod)/iNobs-(sum(iDF$sum1)/iNobs)*(sum(iDF$sum2)/iNobs)
+            iDenom1 <- sum(iDF$sums1)/iNobs-(sum(iDF$sum1)/iNobs)^2
+            iDenom2 <- sum(iDF$sums2)/iNobs-(sum(iDF$sum2)/iNobs)^2
+
+            iOut <- iNum/sqrt(iDenom1*iDenom2)
+        }
+        return(iOut)
     }))
 
-    ## ** take care of extreme cases, e.g. 0 variability
-    if(any(is.na(e.rho))){
-        e.rho[is.na(e.rho)] <- 0
-    }
-    if(any(is.infinite(e.rho))){
-        e.rho[is.infinite(e.rho)] <- 0
+    if(any(is.na(e.rho)) || any(is.infinite(e.rho))){ ## take care of extreme cases, e.g. 0 variability
+        e.rho[is.na(e.rho) | is.infinite(e.rho)] <- 0
     }
     out[names(e.rho)] <- e.rho
 
@@ -350,6 +378,7 @@
     out[names(sigma)] <- sigma
 
     ## ** correlation
+    ## method.fit == "REML"
     Rho <- stats::cov2cor(Omega)
 
     ls.XY <- stats::setNames(lapply(Upattern.name, function(iPattern){ ## iPattern <- Upattern.name[2]

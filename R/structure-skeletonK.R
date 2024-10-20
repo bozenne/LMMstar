@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (11:55) 
 ## Version: 
-## Last-Updated: okt  3 2024 (14:52) 
+## Last-Updated: okt 16 2024 (15:03) 
 ##           By: Brice Ozenne
-##     Update #: 76
+##     Update #: 77
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -100,7 +100,6 @@
                               index.strata = strata.k,
                               type = rep("k",length=n.k),
                               constraint = as.numeric(NA),
-                              constraint.transform = FALSE, ## constraint to be applied before (FALSE) or after transformation (TRUE)
                               level = level.k,
                               code = code.k,
                               lp.x = as.numeric(NA),

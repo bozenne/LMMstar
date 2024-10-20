@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (13:27) 
 ## Version: 
-## Last-Updated: okt  3 2024 (14:53) 
+## Last-Updated: okt 20 2024 (16:23) 
 ##           By: Brice Ozenne
-##     Update #: 1134
+##     Update #: 1140
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -113,7 +113,6 @@
                                     index.strata = vec.strataRho,
                                     type = "rho",
                                     constraint = as.numeric(NA),
-                                    constraint.transform = FALSE, ## constraint to be applied before (FALSE) or after transformation (TRUE)
                                     level = paste0(cluster.varPNULL,level.strataRho),
                                     code = paste0("R.",vec.strataRho,".",vec.strataRho),
                                     lp.x = NA,
@@ -271,7 +270,6 @@
                                 index.strata = strata.Urho,
                                 type = rep("rho",length=length(level.Urho)),
                                 constraint = as.numeric(NA),
-                                constraint.transform = FALSE, ## constraint to be applied before (FALSE) or after transformation (TRUE)
                                 level = level.Urho,
                                 code = code.Urho,
                                 lp.x = NA,

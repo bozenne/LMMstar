@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: aug  8 2024 (11:37) 
+## Last-Updated: okt 18 2024 (15:30) 
 ##           By: Brice Ozenne
-##     Update #: 543
+##     Update #: 551
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -214,17 +214,20 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
     }
 
     ## *** contrast
-    if(!is.character(effects) || !is.vector(effects)){
-        stop("Argument \'effects\' must be a character. \n")
+    if(!is.null(effects)){
+        if(!is.character(effects) || !is.vector(effects)){
+            stop("Argument \'effects\' must be a character. \n")
+        }
+        if(length(effects)!=1){
+            stop("Argument \'effects\' must have length 1. \n")
+        }
+        valid.effects <- c("Dunnett", "Tukey", "Sequen") ## from multcomp:::contrMat
+        if(effects %in% valid.effects == FALSE){
+            stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+                 "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+        }
     }
-    if(length(effects)!=1){
-        stop("Argument \'effects\' must have length 1. \n")
-    }
-    valid.effects <- c("Dunnett", "Tukey", "Sequen") ## from multcomp:::contrMat
-    if(effects %in% valid.effects == FALSE){
-        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
-             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
-    }
+
     ## *** df
     options <- LMMstar.options()
     if(is.null(df)){
@@ -246,7 +249,7 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
                             timevar = "CCvariableCC")
     dataL$CCvariableCC <- factor(dataL$CCvariableCC, labels = name.Y)
     rownames(dataL) <- NULL
-    
+
     ## ** prepare for mixed model
     index.interaction <- which(colSums(1-do.call(rbind,lapply(ls.name.X, function(iX){name.X %in% iX})))==0)
 
@@ -447,7 +450,7 @@ partialCor.formula <- function(object, repetition, ...){
         stop("Argument \'object\' should contain exactly two variables on the left hand side of the formula. \n")
     }
     ls.object <- lapply(response, function(iY){stats::as.formula(paste(iY,deparse(formula.rhs)))}) ## iY <- response[1]        
-    
+
     return(partialCor.list(ls.object, repetition = repetition, ...))
 }
 

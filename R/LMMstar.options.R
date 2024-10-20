@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: sep 30 2024 (13:37) 
+## Last-Updated: okt 20 2024 (16:42) 
 ##           By: Brice Ozenne
-##     Update #: 180
+##     Update #: 186
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -39,7 +39,7 @@
 #' \item method.numDeriv [character]: type used to approximate the third derivative of the log-likelihood (when computing the degrees-of-freedom). Can be \code{"simple"} or \code{"Richardson"}. See \code{numDeriv::jacobian} for more details. Used by \code{lmm}.
 #' \item n.sampleCopula [integer]: number of samples used to compute confidence intervals and p-values adjusted for multiple comparisons via \code{"single-step2"}. Used by \code{confint.Wald_lmm}.
 #' \item optimizer [character]: method used to estimate the model parameters. Either \code{"FS"}, an home-made fisher scoring algorithm, or a method from \code{optimx:optimx} like \code{"BFGS"}or \code{Nelder-Mead}.
-#' \item param.optimizer [numeric vector]: default option for the \code{FS} optimization routine: maximum number of gradient descent iterations (\code{n.iter}), maximum acceptable score value (\code{tol.score}), maximum acceptable change in parameter value (\code{tol.param}).
+#' \item param.optimizer [numeric vector]: default option for the \code{FS} optimization routine: maximum number of gradient descent iterations (\code{n.iter}), maximum acceptable score value (\code{tol.score}), maximum acceptable change in parameter value (\code{tol.param}), method to initialize the correlation parameters (\code{init.cor}).
 #' \item pool.method [character vector]: possible methods to pool estimates. NOT MEANT TO BE CHANGED BY THE USER.
 #' \item precompute.moments [logical]: Should the cross terms between the residuals and design matrix be pre-computed. Useful when the number of subject is substantially larger than the number of mean paramters.
 #' \item sep [character vector]: character used to combined two strings of characters in various functions (lp: .vcov.model.matrix, k.cov/k.strata: .skeletonK, pattern: .findUpatterns, rho.name/rho.strata: .skeletonRho, reformat: .reformat ).
@@ -88,7 +88,7 @@ LMMstar.options <- function(..., reinitialise = FALSE){
                     method.numDeriv = "simple",
                     n.sampleCopula = 1e5,
                     optimizer = "FS",
-                    param.optimizer = c(n.iter = 100, tol.score = 1e-4, tol.param = 1e-5, n.backtracking = 10),
+                    param.optimizer = c(n.iter = 100, tol.score = 1e-4, tol.param = 1e-5, n.backtracking = 10, init.cor = 1),
                     pool.method = c("average","pool.se","pool.gls","pool.gls1","pool.rubin","p.rejection"),
                     precompute.moments = TRUE,
                     sep = c(lp = ":", ## (.vcov.matrix.lmm) separator between the linear predictor when aggregated across repetitions
@@ -191,6 +191,21 @@ LMMstar.options <- function(..., reinitialise = FALSE){
                 }
                 if(("tol.param" %in% names(args$param.optimizer)) && (args$param.optimizer["tol.param"]<=0)){
                     stop("Element \"tol.param\" in argument \'param.optimizer\' should be strictly positive. \n")
+                }                
+                if(("init.cor" %in% names(args$param.optimizer))){
+                    if(is.numeric(init.cor)){
+                        if(args$param.optimizer["init.cor"] %in% 1:2 == FALSE){
+                            stop("Element \"init.cor\" in argument \'param.optimizer\' should either be 1 (i.e. \"average\") or 2 (i.e. \"overall\"). \n")
+                        }
+                    }else{
+                        if(is.factor(init.cor)){
+                            args$param.optimizer["init.cor"] <- as.character(args$param.optimizer["init.cor"])
+                        }
+                        if(args$param.optimizer["init.cor"] %in% c("average","overall") == FALSE){
+                            stop("Element \"init.cor\" in argument \'param.optimizer\' should either be \"average\" or \"overall\". \n")
+                        }
+                        args$param.optimizer["init.cor"] <- as.numeric(factor(args$param.optimizer["init.cor"], levels = c("average","overall")))
+                    }
                 }
                 param.optimizer.save <- args$param.optimizer
                 args$param.optimizer <- get(".LMMstar-options", envir = LMMstar.env)$param.optimizer

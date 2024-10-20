@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: okt  3 2024 (14:13) 
+## Last-Updated: okt 20 2024 (16:45) 
 ##           By: Brice Ozenne
-##     Update #: 3127
+##     Update #: 3144
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -46,6 +46,8 @@
 ##' \item \code{n.iter}: maximum number of interations of the optimization algorithm.
 ##' \item \code{tol.score}: score value below which convergence has been reached.
 ##' \item \code{tol.param}: difference in estimated parameters from two successive iterations below which convergence has been reached.
+##' \item \code{init.cor}: method to initialize the correlation parameters, either proportional to the average squared studentized residual pooled over missing data patterns (\code{"average"})
+##' or correlation coefficient over all residuals (\code{"overall"}).
 ##' \item \code{transform.sigma}, \code{transform.k}, \code{transform.rho}: transformation used for the variance and correlation parameters in the optimization procedure. 
 ##' \item \code{trace}: display progress of the optimization procedure.
 ##' }
@@ -325,7 +327,7 @@ lmm <- function(formula, data, repetition, structure, weights = NULL,
     ## ** 3. Estimate model parameters
     if(trace>=1){cat("3. Estimate model parameters")}
 
-    valid.control <- c("init","n.iter","optimizer","tol.score","tol.param","transform.sigma","transform.k","transform.rho","trace")
+    valid.control <- c("init","optimizer", names(options$param.optimizer),"transform.sigma","transform.k","transform.rho","trace")
     if(any(names(out$args$control) %in% valid.control  == FALSE)){
         stop("Incorrect elements in argument \'control\': \"",paste(names(out$args$control)[names(out$args$control) %in% valid.control  == FALSE], collapse = "\" \""),"\". \n",
              "Valid elements: \"",paste(valid.control, collapse = "\" \""),"\".\n")
@@ -337,18 +339,7 @@ lmm <- function(formula, data, repetition, structure, weights = NULL,
         init.Omega <- .calc_Omega(out$design$vcov, param = c(out$design$vcov$init.sigma,out$design$vcov$init.rho), simplify = TRUE)
         out$args$control$init <- init.Omega[[which.max(out$design$vcov$Upattern$n.time)]]
     }
-    if(is.null(out$args$control$n.iter)){
-        out$args$control$n.iter <- as.double(options$param.optimizer["n.iter"])
-    }
-    if(is.null(out$args$control$tol.score)){
-        out$args$control$tol.score <- as.double(options$param.optimizer["tol.score"])
-    }
-    if(is.null(out$args$control$tol.param)){
-        out$args$control$tol.param <- as.double(options$param.optimizer["tol.param"])
-    }
-    if(is.null(out$args$control$n.backtracking)){
-        out$args$control$n.backtracking <- as.double(options$param.optimizer["n.backtracking"])
-    }
+    out$args$control[setdiff(names(options$param.optimizer),names(out$args$control))] <- options$param.optimizer[setdiff(names(options$param.optimizer),names(out$args$control))]
     if(is.null(out$args$control$transform.sigma)){
         out$args$control$transform.sigma <- options$transform.sigma
     }
@@ -363,11 +354,12 @@ lmm <- function(formula, data, repetition, structure, weights = NULL,
         if(out$args$control$trace>0){cat("\n")}
         if(out$args$control$trace>1){cat("\n")}
     }
+    ## [[""]] instead of $ to avoid partial matching, i.e., confusion between init and init.cor
     outEstimate <- .estimate(design = out$design, time = out$time, method.fit = out$args$method.fit, type.information = out$args$type.information,
                              transform.sigma = out$args$control$transform.sigma, transform.k = out$args$control$transform.k, transform.rho = out$args$control$transform.rho,
                              precompute.moments = precompute.moments, 
-                             optimizer = out$args$control$optimizer, init = out$args$control$init, n.iter = out$args$control$n.iter, n.backtracking = out$args$control$n.backtracking,
-                             tol.score = out$args$control$tol.score, tol.param = out$args$control$tol.param, trace = out$args$control$trace)
+                             optimizer = out$args$control[["optimizer"]], init = out$args$control[["init"]], n.iter = out$args$control[["n.iter"]], n.backtracking = out$args$control[["n.backtracking"]],
+                             tol.score = out$args$control[["tol.score"]], tol.param = out$args$control[["tol.param"]], init.cor = out$args$control[["init.cor"]], trace = out$args$control[["trace"]])
     param.value <- outEstimate$estimate
     out$opt <- outEstimate[c("cv","n.iter","score","previous.estimate","previous.logLik","control")]
     if((trace==0 && out$args$control$trace>0)){
@@ -683,7 +675,22 @@ lmm <- function(formula, data, repetition, structure, weights = NULL,
         control$trace <- trace-1
     }else{
     }
-
+    if(!is.null(control$init.cor)){
+        if(is.numeric(control$init.cor)){
+            if(control$init.cor %in% 1:2 == FALSE){
+                stop("Element \"init.cor\" in argument \'control\' should either be 1 (i.e. \"average\") or 2 (i.e. \"overall\"). \n")
+            }
+        }else{
+            if(is.factor(control$init.cor)){
+                control$init.cor["init.cor"] <- as.character(control$init.cor["init.cor"])
+            }
+            if(control$init.cor %in% c("average","overall") == FALSE){
+                stop("Element \"init.cor\" in argument \'control\' should either be \"average\" or \"overall\". \n")
+            }
+            control$init.cor <- as.numeric(factor(control$init.cor, levels = c("average","overall")))
+        }
+    }
+    
     ## ** export
     return(list(formula = formula, formula.outcome = stats::update(formula,.~1), formula.design = detail.formula$formula$design, ranef = detail.ranef,
                 var.outcome = var.outcome, var.X = var.X, var.cluster = var.cluster, var.time = var.time, var.strata = var.strata, var.weights = var.weights, 

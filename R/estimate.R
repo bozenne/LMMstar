@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: okt  3 2024 (18:02) 
+## Last-Updated: okt 20 2024 (16:41) 
 ##           By: Brice Ozenne
-##     Update #: 1273
+##     Update #: 1283
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -510,6 +510,7 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
 ##' @param n.iter [integer,>0] maximum number of iterations.
 ##' @param tol.score [double,>0] convergence is not reached unless each element of the score is smaller (in absolute value) than this value. 
 ##' @param tol.param [double,>0] convergence is not reached unless the change in parameter values between two iterations is smaller (in absolute value) than this value. 
+##' @param init.cor [1,2] method to initialize the correlation parameters.
 ##' @param trace [1, 2, or 3] should each iteration be displayed?
 ##' 
 ##' @examples
@@ -529,7 +530,7 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
 ## * .estimate (code)
 .estimate <- function(design, time, method.fit, type.information, 
                       transform.sigma, transform.k, transform.rho,
-                      precompute.moments, optimizer, init, n.iter, tol.score, tol.param, n.backtracking, trace){
+                      precompute.moments, optimizer, init, n.iter, tol.score, tol.param, n.backtracking, init.cor, trace){
 
     ## ** apply default values
     if(is.null(trace)){
@@ -654,7 +655,7 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
         iResiduals.long <- partialY - design$mean[,param.mu2,drop=FALSE] %*% param.value[param.mu2]
         if(length(param.Omega2)>0){
             if(is.null(init.Omega)){
-                outInit <- .initialize(design$vcov, method.fit = method.fit, residuals = iResiduals.long, Xmean = design$mean, index.cluster = index.cluster)
+                outInit <- .initialize(design$vcov, init.cor = init.cor, method.fit = method.fit, residuals = iResiduals.long, Xmean = design$mean, index.cluster = index.cluster)
             }else{
                 outInit <- .initialize2(design$vcov, index.clusterTime = design$index.clusterTime, Omega = init.Omega)
             }
@@ -942,7 +943,7 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
                 n.iter = iIter,                
                 cv = cv,
                 control = c(n.iter = as.double(n.iter), tol.score = as.double(tol.score), tol.param = as.double(tol.param),
-                            n.backtracking = as.double(n.backtracking))
+                            n.backtracking = as.double(n.backtracking), init.cor = as.double(init.cor))
                 ))
 }
 
@@ -1084,7 +1085,6 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
 
     ## ** export
     if(is.null(momentNEW)){
-        browser()
         momentNEW <- .moments.lmm(value = valueNEW, design = design, time = time, method.fit = method.fit, type.information = type.information,
                                   transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                   logLik = TRUE, score = TRUE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = effects, robust = FALSE,

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 17 2022 (05:36) 
 ## Version: 
-## Last-Updated: okt  3 2024 (17:58) 
+## Last-Updated: okt 20 2024 (16:43) 
 ##           By: Brice Ozenne
-##     Update #: 142
+##     Update #: 145
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -119,7 +119,6 @@
     ## add constrain
     if(constraint.transform){
         x$design$param[match(name.effects,table.param$trans.name),"constraint"] <- effects
-        x$design$param[match(name.effects,table.param$trans.name),"constraint.transform"] <- TRUE
         
         test.k <- any(table.param[table.param$trans.name %in% name.effects,"type"]=="k" && transform.k %in% c("sd","logsd","var","logvar"))
         test.rho <- any(table.param[table.param$trans.name %in% name.effects,"type"]=="rho" && transform.rho %in% "cov")
@@ -130,7 +129,6 @@
         }
     }else{
         x$design$param[match(name.effects,table.param$name),"constraint"] <- effects
-        x$design$param[match(name.effects,table.param$name),"constraint.transform"] <- FALSE
     }
 
     ## refit
@@ -138,10 +136,11 @@
                      transform.sigma = x$reparametrize$transform.sigma, transform.k = x$reparametrize$transform.k, transform.rho = x$reparametrize$transform.rho,
                      precompute.moments = "precompute.XX" %in% names(x$design),
                      optimizer = "FS", init = init,
-                     n.iter = x$opt$control["n.iter"],
-                     tol.score = x$opt$control["tol.score"],
-                     tol.param = x$opt$control["tol.param"],
-                     n.backtracking = x$opt$control["n.backtracking"],
+                     n.iter = x$opt$control[["n.iter"]],
+                     tol.score = x$opt$control[["tol.score"]],
+                     tol.param = x$opt$control[["tol.param"]],
+                     n.backtracking = x$opt$control[["n.backtracking"]],
+                     init.cor = x$opt$control[["init.cor"]],
                      trace = trace)
 
     x$opt[c("cv","n.iter","score","previous.estimate")] <- eee[c("cv","n.iter","score","previous.estimate")]

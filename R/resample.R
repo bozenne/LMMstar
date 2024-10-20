@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: sep 30 2024 (15:00) 
+## Last-Updated: okt 20 2024 (17:03) 
 ##           By: Brice Ozenne
-##     Update #: 808
+##     Update #: 810
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -498,10 +498,11 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
                                    precompute.moments = precompute.moments, 
                                    optimizer = object$args$control$optimizer,
                                    init = param.init,
-                                   n.iter = object$opt$control["n.iter"],
-                                   tol.score = object$opt$control["tol.score"],
-                                   tol.param = object$opt$control["tol.param"],
-                                   n.backtracking = object$opt$control["n.backtracking"],
+                                   n.iter = object$opt$control[["n.iter"]],
+                                   tol.score = object$opt$control[["tol.score"]],
+                                   tol.param = object$opt$control[["tol.param"]],
+                                   n.backtracking = object$opt$control[["n.backtracking"]],
+                                   init.cor = object$opt$control[["init.cor"]],
                                    trace = FALSE), silent = TRUE)
 
         if(!inherits(iEstimate,"try-error") && studentized){
