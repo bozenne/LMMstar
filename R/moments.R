@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: okt  3 2024 (14:55) 
+## Last-Updated: jul  9 2025 (14:35) 
 ##           By: Brice Ozenne
-##     Update #: 693
+##     Update #: 709
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,7 +20,105 @@
 ##'                       2: robust s.e. are computed and df are relative to robust s.e.
 ##' @noRd
 
-## * moment.lmm
+## * moments.lmm
+##' @export
+moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
+                        logLik = TRUE, score = TRUE, information = TRUE, vcov = TRUE, df = TRUE,
+                        indiv = FALSE, type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){
+
+    ## ** normalize user input
+    ## *** dots
+    dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+    dots$options <- NULL
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
+    ## *** effects
+    if(is.null(effects)){
+        if((is.null(transform.sigma) || identical(transform.sigma,"none")) && (is.null(transform.k) || identical(transform.k,"none")) && (is.null(transform.rho) || identical(transform.rho,"none"))){
+            effects <- options$effects
+        }else{
+            effects <- c("mean","variance","correlation")
+        }
+    }else{
+        if(!is.character(effects) || !is.vector(effects)){
+            stop("Argument \'effects\' must be a character vector. \n")
+        }
+        valid.effects <- c("mean","fixed","variance","correlation","all")
+        if(any(effects %in% valid.effects == FALSE)){
+            stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+                 "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+        }
+        if(all("all" %in% effects)){
+            if(length(effects)>1){
+                stop("Argument \'effects\' must have length 1 when containing the element \"all\". \n")
+            }else{
+                effects <- c("mean","variance","correlation")
+            }
+        }else{
+            effects[effects == "fixed"] <- "mean"
+        }
+    }
+
+    x.param <- stats::model.tables(x, effects = c("param",effects), transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
+
+    ## *** type.information
+    if(is.null(type.information)){
+        type.information <- x$args$type.information
+    }else{
+        type.information <- match.arg(type.information, c("expected","observed"))
+    }
+
+    ## *** transformation & p
+    init <- .init_transform(p = p, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
+                            x.transform.sigma = x$reparametrize$transform.sigma, x.transform.k = x$reparametrize$transform.k, x.transform.rho = x$reparametrize$transform.rho,
+                            table.param = x$design$param)
+    transform.sigma <- init$transform.sigma
+    transform.k <- init$transform.k
+    transform.rho <- init$transform.rho
+    test.notransform <- init$test.notransform
+    if(is.null(p)){
+        theta <- x$param
+    }else{
+        theta <- init$p
+    }
+    
+    ## ** extract or recompute information
+    if(is.null(newdata) && is.null(p) && (indiv == FALSE) && test.notransform && x$args$type.information==type.information){
+        keep.name <- stats::setNames(x.param$name, x.param$trans.name)    
+
+        design <- x$design ## useful in case of NA
+        out <- x$information[keep.name,keep.name,drop=FALSE]
+        if(transform.names){
+            dimnames(out) <- list(names(keep.name),names(keep.name))
+        }
+    }else{
+         
+        if(!is.null(newdata)){
+            design <- stats::model.matrix(x, newdata = newdata, effects = "all", simplify = FALSE)
+        }else{
+            design <- x$design
+        }
+
+    }
+
+    ## ** evaluate moments 
+    out <- .moments.lmm(value = theta, design = design, time = x$time, method.fit = x$args$method.fit, type.information = type.information,
+                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                        logLik = logLik, score = score, information = information, vcov = vcov, df = df, indiv = indiv, effects = effects, robust = FALSE,
+                        trace = FALSE, precompute.moments = !is.null(x$design$precompute.XX), method.numDeriv = options$method.numDeriv, transform.names = transform.names)
+
+    ## ** export
+    return(out)
+}
+
+## * .moments.lmm
 .moments.lmm <- function(value, design, time, method.fit, type.information,
                          transform.sigma, transform.k, transform.rho,
                          logLik, score, information, vcov, df, indiv, effects, robust,

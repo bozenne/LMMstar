@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 28 2024 (19:14) 
 ## Version: 
-## Last-Updated: sep 30 2024 (14:26) 
+## Last-Updated: jul 11 2025 (18:41) 
 ##           By: Brice Ozenne
-##     Update #: 203
+##     Update #: 341
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,32 +15,101 @@
 ## 
 ### Code:
 
-## * pool.rbindWald_lmm
-pool.rbindWald_lmm <- function(object, method, qt = NULL,
-                               null, level, df, tol = 1e-10, options){
+## * pool
+##' @description Pool estimates
+##' 
+##' @param method [character] method(s) used to pool the estimates
+##' @param columns [character] column(s) to be exported
+##' @param qt [numeric or character] critical quantile to be considered when evaluating the proportion of rejected hypotheses.
+##' Can also be the name of a multiple testing method from which the quantile should be computed.
+##' @param level [numeric, 0-1] nominal coverage of the confidence intervals.
+##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the summary statistic. Otherwise a normal distribution is used.
+##' @param tol [numeric, >0] threshold below which a pseudo-inverse is used when inverted a matrix, i.e., the eigen-values are truncated.
+##' @param ... Not used. For compatibility with the generic method.
+##' 
+##' @noRd
+`pool` <-
+  function(object, ...) UseMethod("pool")
 
-    if(is.null(options)){
+
+## * pool.lmm
+pool.Wald_lmm <- function(object, method, columns = NULL, qt = NULL, level = 0.95, df = NULL, tol = 1e-10, ...){
+
+    ## ** normalize user input
+    ## *** dots
+    dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
         options <- LMMstar.options()
     }
-    
+    dots$options <- NULL
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
     pool.method <- options$pool.method
-    adj.method <- options$adj.method
-    n.sample <- options$n.sampleCopula
-        
-    ## ** normalize user input
+
+    ## *** method
+    if(any(method %in% pool.method == FALSE)){
+        stop("Incorrect value(s) \"",paste(method[method %in% pool.method == FALSE], collapse = "\" \""),"\" for argument \'method\'. \n",
+             "Valid values: \"",paste(setdiff(pool.method, method), collapse = "\" \""),"\"\n")        
+    }
+    if(is.null(names(method))){
+        names(method) <- method
+    }
+    
+    ## *** columns
+    if(is.null(columns)){
+        columns <- c("estimate", "se", "df", "lower", "upper", "p.value")
+    }else{
+        valid.columns <-  c("estimate", "se", "df", "lower", "upper", "quantile", "null", "statistic", "p.value",
+                            "type", "n.param", "transformed", "tobacktransform", "model", "name", "term", "method")
+        if(any(columns %in% valid.columns == FALSE)){
+            stop("Incorrect value(s) \"",paste(columns[columns %in% valid.columns == FALSE], collapse = "\" \""),"\" for argument \'columns\'. \n",
+                 "Valid values: \"",paste(setdiff(valid.columns, columns), collapse = "\" \""),"\"\n")
+        }
+
+    }
 
     ## *** level
-    alpha <- 1-level
-    if(!is.na(level) && object$args$simplify==TRUE && any(method!="pool.rubin")){
-        stop("Cannot evaluate the uncertainty of pooling estimator without the full variance-covariance matrix. \n",
-             "Consider setting the argument \'simplify\' to FALSE when calling anova. \n")
-    }
-    if(!is.na(level) && object$args$df==FALSE && any(method %in% c("pool.se","pool.gls","pool.gls1","p.rejection"))){
-        stop("Cannot evaluate the uncertainty of pooling estimator without the derivative of the variance-covariance matrix. \n",
-             "Consider setting the argument \'df\' to TRUE when calling lmm and anova. \n")
+    if(all(c("se", "df", "lower", "upper", "quantile", "statistic", "p.value") %in% columns == FALSE)){
+        level <- NA
     }
 
-    ## *** qt (critical quantile)
+    ## *** df
+    if(all(c("df", "lower", "upper", "quantile", "p.value") %in% columns == FALSE)){
+        df <- FALSE
+    }else if(is.null(df)){
+        df <- object$args$df
+    }
+
+    ## ** extract information from object
+
+    ## *** estimates
+    tableUni <- stats::model.tables(object, method = "none", columns = c("type","n.param","name","term","transformed","tobacktransform",
+                                                                         "estimate","se","statistic","df","null"),
+                                    options = options)
+
+    ## *** variance
+    if(any(method %in% c("pool.se","pool.gls","pool.gls1")) || ((!is.na(level) || null) && "p.rejection" %in% method)){
+        Wald.Sigma <- stats::vcov(object, effects = list("Wald",c("Wald","gradient"))[[(is.null(level)||!is.na(level))+1]], transform.names = FALSE, options = options)
+        Wald.dSigma <- attr(Wald.Sigma,"gradient")
+        attr(Wald.dSigma,"gradient") <- NULL        
+    }else{
+        Wald.Sigma <- NULL
+        Wald.dSigma <- NULL
+    }
+    if(!is.na(level) && any(method %in% c("average", "pool.se","pool.gls","pool.gls1","p.rejection"))){
+        contrast <- stats::model.tables(object, effects = "contrast", transform.names = FALSE, simplify = FALSE, options = options)[[1]]
+        All.Sigma <- stats::vcov(object, effects = list("all",c("all","gradient"))[[df+1]], transform.names = FALSE, options = options)
+        All.dSigma <- attr(All.Sigma,"gradient")
+        attr(All.Sigma,"gradient") <- NULL
+    }else{
+        All.Sigma <- NULL
+        All.dSigma <- NULL
+    }
+
+    ## *** critical quantile
     if("p.rejection" %in% method){
         if(!is.null(qt)){
             if(is.character(qt) && length(qt)!=1){
@@ -52,65 +121,90 @@ pool.rbindWald_lmm <- function(object, method, qt = NULL,
                 stop("Argument \'qt\' should either be numeric or one of \"none\", \"bonferroni\", \"single-step\", \"single-step2\". \n")
             }
             if(is.numeric(qt)){
-                critical.threshold <- qt
+                if(length(qt)==1){
+                    critical.threshold <- rep(qt, NROW(object$univariate))
+                }else{
+                    critical.threshold <- qt
+                }
             }else{
                 critical.threshold <- stats::confint(object, method = qt, columns = "quantile", options = options)$quantile
             }
         }else{
             critical.threshold <- stats::confint(object, columns = "quantile", options = options)$quantile
         }
+    }else{
+        critical.threshold <- NULL
     }
 
+    ## ** pool
+    ## null argument for method="p.rejection": evaluating the null and the p-value can be time consuming (done by simulation)
+    outPool <- .pool(table = tableUni, contrast = contrast, null = any(c("null","statistic","p.value") %in% columns), level = level, df = df, threshold = critical.threshold, method = method,
+                     Wald.Sigma = Wald.Sigma, Wald.dSigma = Wald.dSigma,
+                     All.Sigma = All.Sigma, All.dSigma = All.dSigma,
+                     tol = tol, options = options)
+    pool.contrast <- attr(outPool,"contrast")
+    pool.gradient <- attr(outPool,"gradient")
+    
+    ## ** export
+    out <- outPool[,columns,drop=FALSE]
+    attr(out,"contrast") <- pool.contrast
+    attr(out,"gradient") <- pool.gradient
+    return(out)
+
+}
+
+## * pool.rbindWald_lmm
+pool.rbindWald_lmm <- pool.Wald_lmm
+
+## * .pool
+.pool <- function(table, contrast, null, level, df, threshold, method,
+                  Wald.Sigma, Wald.dSigma, All.Sigma, All.dSigma,
+                  tol, options){
+
+    ## ** normalize user input
+    pool.method <- options$pool.method
+    adj.method <- options$adj.method
+    n.sample <- options$n.sampleCopula
+
+    ## *** null
+    if(!is.null(null) & any(!is.na(null))){
+        if(length(null) %in% c(1,NROW(table))){
+            table$null <- null
+        }else{
+            stop("Incorrect length for argument \'null\': should have length 1 or ",NROW(table)," (number of tests). \n")
+        }
+    }
+    
+    ## *** level
+    alpha <- 1-level
+    
     ## *** df
     if(is.na(level)){
         df <- FALSE
     }
 
     ## ** prepare output
-    if(!is.null(names(method))){
+    n.test <- NROW(table)
+    name.test <- rownames(table)
+    if(!is.null(names(method))){    
         pool.name <- stats::setNames(names(method),method)
     }else{
-        pool.name <- stats::setNames(method,method)## stats::setNames(poolName.rbindWald_lmm(object, method = method),method)
+        pool.name <- stats::setNames(method,method)
     }
-    out <- as.data.frame(matrix(NA, nrow = length(pool.name), ncol = NCOL(object$univariate),
-                                dimnames = list(pool.name,  colnames(object$univariate))))
+    out <- as.data.frame(matrix(NA, nrow = length(pool.name), ncol = NCOL(table)+1,
+                                dimnames = list(pool.name,  c(colnames(table),"method"))))
     out$model <- "all"
-    out$type <- ifelse(length(unique(object$univariate$type))==1, object$univariate$type[1], "all")
-    out$name <- method
-    out$term <- "pool"
-    out$n.param <- sum(object$univariate$n.param)
-    out$transformed <- ifelse(length(unique(object$univariate$type))==1, object$univariate$transformed[1], NA)
-    out$tobacktransform <- object$univariate$tobacktransform[1]
-
-    ## ** extract information
-    ## independence between models
-    independence <- object$object$independence
-    
-    ## estimates
-    tableUni <- stats::model.tables(object, method = "none", columns = c("estimate","se","statistic","df","null"), options = options)
-    n.test <- NROW(tableUni)
-    name.test <- rownames(tableUni)
-
-    ## variance
-    if(any(method %in% c("pool.se","pool.gls","pool.gls1")) || ((!is.na(level) || null) && "p.rejection" %in% method)){
-        Wald.Sigma <- stats::vcov(object, effects = list("Wald",c("Wald","gradient"))[[(!is.na(level))+1]],
-                                  method = "none", transform.names = FALSE, options = options)
-        Wald.dSigma <- attr(Wald.Sigma,"gradient")
-        attr(Wald.dSigma,"gradient") <- NULL
-        
-    }
-    if(!is.na(level) && any(method %in% c("average", "pool.se","pool.gls","pool.gls1","p.rejection"))){
-        contrast <- stats::model.tables(object, effects = "contrast", transform.names = FALSE, simplify = FALSE, options = options)
-        All.Sigma <- stats::vcov(object, effects = list("all",c("all","gradient"))[[df+1]],
-                                 method = "none", transform.names = FALSE, options = options)
-        All.dSigma <- attr(All.Sigma,"gradient")
-        attr(All.Sigma,"gradient") <- NULL
-    }
-
+    out$type <- ifelse(length(unique(table$type))==1, table$type[1], "all")
+    out$name <- ifelse(length(unique(table$name)), length(unique(table$name)), NA)
+    out$term <- ifelse(length(unique(table$term)), length(unique(table$term)), NA)
+    out$method <- method
+    out$n.param <- sum(table$n.param)
+    out$transformed <- ifelse(length(unique(table$type))==1, table$transformed[1], NA)
+    out$tobacktransform <- FALSE
 
     ## ** point estimate
     if("p.rejection" %in% method){
-        out[pool.name["p.rejection"],"estimate"] <- 1 - mean(stats::pt(critical.threshold - tableUni$statistic, df = tableUni$df) - stats::pt(-critical.threshold - tableUni$statistic, df = tableUni$df))
+        out[pool.name["p.rejection"],"estimate"] <- 1 - mean(stats::pt(threshold - table$statistic, df = table$df) - stats::pt(-threshold - table$statistic, df = table$df))
     }
     
     if(any(method != "p.rejection")){
@@ -167,14 +261,13 @@ pool.rbindWald_lmm <- function(object, method, qt = NULL,
         if("pool.rubin" %in% method){
             pool.contrast["pool.rubin",] <- 1/n.test
         }
-
-        out[pool.name[rownames(pool.contrast)],"estimate"] <- pool.contrast %*% tableUni$estimate
+        out[pool.name[rownames(pool.contrast)],"estimate"] <- pool.contrast %*% table$estimate
     }
 
     ## ** variance
     if(!is.na(level) && "pool.rubin" %in% method){
         pool.U <- mean(diag(Wald.Sigma))
-        pool.B <- sum((tableUni$estimate - mean(tableUni$estimate))^2)/(n.test-1)
+        pool.B <- sum((table$estimate - mean(table$estimate))^2)/(n.test-1)
         out[pool.name["pool.rubin"],"se"] <- sqrt(pool.U + (1 + 1/n.test) * pool.B)
     }
     if(!is.na(level) && any(method != "pool.rubin")){
@@ -186,8 +279,8 @@ pool.rbindWald_lmm <- function(object, method, qt = NULL,
         }
         if("pool.se" %in% method){
             grad.pool.seA <- pool.contrast[rownames(pool.contrast) == "pool.se",] %*% contrast
-            grad.pool.seB <- - tableUni$estimate %*% apply(Wald.dSigma, MARGIN = 3, FUN = function(iM){diag(iM)/(tableUni$se^4) })/sum(se.contrast)
-            grad.pool.seC <- out[pool.name["pool.se"],"estimate"]/sum(se.contrast) * apply(Wald.dSigma, MARGIN = 3, FUN = function(iM){ sum(diag(iM)/tableUni$se^4) })
+            grad.pool.seB <- - table$estimate %*% apply(Wald.dSigma, MARGIN = 3, FUN = function(iM){diag(iM)/(table$se^4) })/sum(se.contrast)
+            grad.pool.seC <- out[pool.name["pool.se"],"estimate"]/sum(se.contrast) * apply(Wald.dSigma, MARGIN = 3, FUN = function(iM){ sum(diag(iM)/table$se^4) })
             grad.pool["pool.se",] <- grad.pool.seA[1,] + grad.pool.seB[1,] + grad.pool.seC
         }
 
@@ -196,7 +289,8 @@ pool.rbindWald_lmm <- function(object, method, qt = NULL,
             if(is.invertible(Wald.Sigma, cov2cor = FALSE)){
                 Wald.dSigmaM1 <- - apply(Wald.dSigma, MARGIN = 3, FUN = function(iM){rowSums(Wald.SigmaM1 %*% iM %*% Wald.SigmaM1)})
             }else{
-                ## The Differentiation of Pseudo-Inverses and Nonlinear Least Squares Problems Whose Variables Separate. Author(s): G. H. Golub and V. Pereyra. Source: SIAM Journal on Numerical Analysis, Vol. 10, No. 2 (Apr., 1973), pp. 413-432 (formula 4.12)
+                ## The Differentiation of Pseudo-Inverses and Nonlinear Least Squares Problems Whose Variables Separate.
+                ## Author(s): G. H. Golub and V. Pereyra. Source: SIAM Journal on Numerical Analysis, Vol. 10, No. 2 (Apr., 1973), pp. 413-432 (formula 4.12)
                 ## with simplification for symmetric matrix
                 Wald.SigmaM1.SigmaM1 <- Wald.SigmaM1 %*% Wald.SigmaM1
                 Wald.Im.Sigma.SigmaM1 <- diag(1, n.test) - Wald.Sigma %*% Wald.SigmaM1
@@ -209,7 +303,7 @@ pool.rbindWald_lmm <- function(object, method, qt = NULL,
             ## d\psi/d\theta = d (w/sum(x) \beta) /d\theta = w/sum(w) d\beta/d\theta +  (dw/d\theta)/sum(x) \beta +  w/(dsum(x)/d\theta) \beta
             ##                                             = w/sum(w) d\beta/d\theta +  (dw/d\theta)/sum(x) \beta -  sum(dx/d\theta) \gamma/sum(x)
             grad.pool.glsA <- pool.contrast[rownames(pool.contrast) == "pool.gls",] %*% contrast
-            grad.pool.glsB <- tableUni$estimate %*% Wald.dSigmaM1 /sum(Wald.SigmaM1)
+            grad.pool.glsB <- table$estimate %*% Wald.dSigmaM1 /sum(Wald.SigmaM1)
             grad.pool.glsC <- - out[pool.name["pool.gls"],"estimate"]/sum(Wald.SigmaM1) * colSums(Wald.dSigmaM1)
             grad.pool.gls <- grad.pool.glsA[1,] + grad.pool.glsB[1,] + grad.pool.glsC                
 
@@ -220,14 +314,14 @@ pool.rbindWald_lmm <- function(object, method, qt = NULL,
                 if(kappaPwmax > 1){
                     ## condense previous derivatives
                     grad.contrast.gls <- Wald.dSigmaM1/sum(Wald.SigmaM1) - cbind(rowSums(Wald.SigmaM1)) %*% rbind(colSums(Wald.dSigmaM1))/sum(Wald.SigmaM1)^2
-                    ## range(tableUni$estimate %*% grad.contrast.gls - grad.pool.glsB - grad.pool.glsC)
+                    ## range(table$estimate %*% grad.contrast.gls - grad.pool.glsB - grad.pool.glsC)
 
                     ## d\psi/d\theta = d (w\beta) /d\theta = w d\beta /d\theta + \beta dw/d\beta
                     ## where w =  (1-1/kappaPwmax)/n.test + gls.contrast/kappaPwmax i.e. dw =  d(gls.contrast)/kappaPwmax - gls.contrast d(kappaPwmax)/kappaPwmax^2 + d(kappaPwmax)/(kappaPwmax^2*n.test)
                     grad.pool.gls1A <- pool.contrast[rownames(pool.contrast) == "pool.gls1",] %*% contrast
                     grad.kappaPwmax <- -n.test*xi.contrastMax*grad.contrast.gls[index.contrastMAX,]/(1-xi.contrastMax*n.test)
-                    grad.pool.gls1B <-  tableUni$estimate %*%  (grad.contrast.gls/kappaPwmax - cbind(gls.contrast) %*% rbind(grad.kappaPwmax)/kappaPwmax^2)
-                    grad.pool.gls1C <- sum(tableUni$estimate) * grad.kappaPwmax/(kappaPwmax^2*n.test)
+                    grad.pool.gls1B <-  table$estimate %*%  (grad.contrast.gls/kappaPwmax - cbind(gls.contrast) %*% rbind(grad.kappaPwmax)/kappaPwmax^2)
+                    grad.pool.gls1C <- sum(table$estimate) * grad.kappaPwmax/(kappaPwmax^2*n.test)
 
                     grad.pool["pool.gls1",] <- grad.pool.gls1A[1,] + grad.pool.gls1B[1,] + grad.pool.gls1C                
                 }else{
@@ -238,31 +332,31 @@ pool.rbindWald_lmm <- function(object, method, qt = NULL,
 
         if("p.rejection" %in% method){
             ## Approximation: no variability of the degrees-of-freedom nor critical threshold
-            grad.statistic <- contrast / tableUni$se - (tableUni$estimate - tableUni$null) * apply(Wald.dSigma, MARGIN = 3, FUN = diag)  / (2 * tableUni$se^3)
-            partial.integral <- stats::dt(critical.threshold - tableUni$statistic, df = tableUni$df) - stats::dt(-critical.threshold - tableUni$statistic, df = tableUni$df)
+            grad.statistic <- contrast / table$se - (table$estimate - table$null) * apply(Wald.dSigma, MARGIN = 3, FUN = diag)  / (2 * table$se^3)
+            partial.integral <- stats::dt(threshold - table$statistic, df = table$df) - stats::dt(-threshold - table$statistic, df = table$df)
             grad.pool[method == "p.rejection",] <- colMeans(grad.statistic * partial.integral)
         }
         out[pool.name[rownames(grad.pool)],"se"] <- sqrt(rowSums( (grad.pool %*% All.Sigma) * grad.pool))
     }
 
     ## ** null hypothesis
-    if(null){
-        if("p.rejection" %in% method){
-            rho.linfct <- stats::cov2cor(Wald.Sigma)
+    if("p.rejection" %in% method && null){
+        rho.linfct <- stats::cov2cor(Wald.Sigma)
         
-            myMvd <- copula::mvdc(copula = copula::normalCopula(param=rho.linfct[lower.tri(rho.linfct)], dim = NROW(rho.linfct), dispstr = "un"),
-                                  margins = rep("t", NROW(rho.linfct)),
-                                  paramMargins = as.list(stats::setNames(tableUni$df,rep("df",NROW(rho.linfct)))))
-            sample.copula <- copula::rMvdc(n.sample, myMvd)
+        myMvd <- copula::mvdc(copula = copula::normalCopula(param=rho.linfct[lower.tri(rho.linfct)], dim = NROW(rho.linfct), dispstr = "un"),
+                              margins = rep("t", NROW(rho.linfct)),
+                              paramMargins = as.list(stats::setNames(table$df,rep("df",NROW(rho.linfct)))))
+        sample.copula <- copula::rMvdc(n.sample, myMvd)
 
-            null.integral <- do.call(cbind, lapply(1:n.test, function(iTest){
-                stats::pt(critical.threshold - sample.copula[,iTest], df = tableUni$df[iTest]) - stats::pt(-critical.threshold - sample.copula[,iTest], df = tableUni$df[iTest])
-            }))
-            out[pool.name["p.rejection"],"null"] <- mean(1 - rowMeans(null.integral))
-        }
-        if(any(method != "p.rejection")){
-            out[setdiff(pool.name, pool.name["p.rejection"]),"null"] <- (pool.contrast %*% tableUni$null)[,1]
-        }
+        null.integral <- do.call(cbind, lapply(1:n.test, function(iTest){
+            stats::pt(threshold[iTest] - sample.copula[,iTest], df = table$df[iTest]) - stats::pt(-threshold[iTest] - sample.copula[,iTest], df = table$df[iTest])
+        }))
+        null.rejection <- 1 - rowMeans(null.integral)
+        out[pool.name["p.rejection"],"null"] <- mean(null.rejection)
+        out[pool.name["p.rejection"],"p.value"] <- mean(null.rejection>out[pool.name["p.rejection"],"estimate"])
+    }
+    if(any(method != "p.rejection") && null){
+        out[setdiff(pool.name, pool.name["p.rejection"]),"null"] <- (pool.contrast %*% table$null)[,1]
     }
 
     ## ** degrees-of-freedom
@@ -275,20 +369,12 @@ pool.rbindWald_lmm <- function(object, method, qt = NULL,
             ## MICE's approach: https://stefvanbuuren.name/fimd/sec-whyandwhen.html
             pool.lambda <- (1+1/n.test)*pool.B / out[pool.name["pool.rubin"],"se"]^2 ## formula 2.24
             pool.nu_old <- (n.test-1)/pool.lambda^2 ## formula 2.30 (Rubin 1987b eq 3.1.6)
-            pool.nu_obs <- (tableUni$df+1)/(tableUni$df+3)*tableUni$df*(1-pool.lambda) ## formula 2.31 (Barnard and Rubin (1999) )
+            pool.nu_obs <- (table$df+1)/(table$df+3)*table$df*(1-pool.lambda) ## formula 2.31 (Barnard and Rubin (1999) )
             out[pool.name["pool.rubin"],"df"] <- mean(pool.nu_old*pool.nu_obs/(pool.nu_old+pool.nu_obs)) ## formula 2.32
         }
 
         if(any(c("average","pool.se","pool.gls","pool.gls1","p.rejection") %in% method)){
-            out[pool.name[rownames(grad.pool)],"df"] <- .df_contrast(contrast = grad.pool[,rownames(All.dSigma),drop=FALSE], vcov.param = All.Sigma, dVcov.param = All.dSigma)
-            if(object$args$simplify!=FALSE){
-                if(all(out$type=="mu")){
-                    attr(out,"message.df") <- "ignoring variability of the variance parameters"
-                }else{
-                    attr(out,"message.df") <- "ignoring variability of some parameters"
-                }
-            }
-            ## approximate df calculation 
+            out[pool.name[rownames(grad.pool)],"df"] <- .df_contrast(contrast = grad.pool[,rownames(All.dSigma),drop=FALSE], vcov.param = All.Sigma, dVcov.param = All.dSigma)            
         }
     }
 
@@ -297,54 +383,14 @@ pool.rbindWald_lmm <- function(object, method, qt = NULL,
     out$lower <- out$estimate + out$se * stats::qt(alpha/2, df = out$df)
     out$upper <- out$estimate + out$se * stats::qt(1-alpha/2, df = out$df)
     out$quantile <- stats::qt(1-alpha/2, df = out$df)
-    out$p.value = 2*(1-stats::pt(abs(out$statistic), df = out$df))
     if(any(method != "p.rejection")){
+        out[method != "p.rejection","p.value"] = 2*(1-stats::pt(abs(out[method != "p.rejection","statistic"]), df = out[method != "p.rejection","df"]))
         attr(out,"contrast") <- pool.contrast
     }
     if(!is.na(level) && any(method != "pool.rubin")){
         attr(out,"gradient") <- grad.pool
     }
     return(out)
-}
-
-## * poolName.rbindWald_lmm
-poolName.rbindWald_lmm <- function(object, method){
-
-    ## ** extract
-    table <- object$univariate
-
-    ## ** build name
-    Wald.name <- rownames(table)
-    sep <- object$object$sep
-    pool.splitname <- strsplit(Wald.name, split = sep, fixed = TRUE)
-
-    if(length(Wald.name)==1){
-        pool.name <- paste0("<",Wald.name,">")
-    }else if(all(lengths(pool.splitname)==2)){
-        ## ??
-        Mpool.splitname <- do.call(rbind,pool.splitname)
-        pool.splitname2 <- strsplit(Mpool.splitname[,1],split="=", fixed = TRUE)
-        if(all(lengths(pool.splitname2)==2)){
-            Mpool.splitname2 <- do.call(rbind,pool.splitname2)
-            if(length(unique(Mpool.splitname2[,1]))==1){
-                pool.name <- paste0(Mpool.splitname2[1,1],"=<",paste(Mpool.splitname2[1,2],Mpool.splitname2[NROW(Mpool.splitname2),2],sep=":"),">",sep,Mpool.splitname[1,2])                   
-            }else{
-                pool.name <- paste0("<",paste(Mpool.splitname[1,1],Mpool.splitname[NROW(Mpool.splitname),1],sep=":"),">",sep,Mpool.splitname[1,2])                   
-            }
-        }else if(length(unique(Mpool.splitname[,2]))==1){
-            pool.name <- paste0("<",paste(Mpool.splitname[1,1],Mpool.splitname[NROW(Mpool.splitname),1],sep=":"),">",sep,Mpool.splitname[1,2])                   
-        }else{
-            pool.name <- paste0("<",paste(Wald.name[1],Wald.name[length(Wald.name)],collapse=":"),">")                   
-        }
-    }else if(length(Wald.name)==2){
-        pool.name <- paste0("<",paste(Wald.name,collapse=", "),">")
-    }else{
-        ## <first test, last test>
-        pool.name <- paste0("<",paste(Wald.name[1],"...",Wald.name[length(Wald.name)],sep=", "),">")
-    }
-
-    ## **  export
-    return(paste0(method,pool.name))
 }
 
 

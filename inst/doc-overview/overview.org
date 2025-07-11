@@ -4074,8 +4074,9 @@ the same definition for the sum of squares is used except that
 We can also define the "normalized" regression sum of squares:
 #+BEGIN_EXPORT latex
 \begin{align*}
-SSR^* = \trans{(X^*\beta)}X^*\beta &= \trans{\left(H^* Y^*\right)} H^* Y^* = \trans{Y^*} H^* Y^* \\
-&= \trans{Y} \trans{H} \Omega^{-1} Y^* = \trans{Y} \trans{H} \trans{H} \Omega^{-1} Y^* = \trans{Y} \trans{H} \Omega^{-1} H Y^* \\
+SSR^* = \trans{(X^*\beta)}X^*\beta &= \trans{\left(H^* Y^*\right)} H^* Y^* = \trans{Y^*} H^* Y^* = \trans{Y^*} \trans{H^*} H^* Y^* \\
+&= \trans{Y} \Omega^{-1/2} \Omega^{-1/2} X (\trans{X}\Omega^{-1}X)^{-1} \trans{X} \Omega^{-1/2} \Omega^{-1/2} X (\trans{X}\Omega^{-1}X)^{-1} \trans{X} \Omega^{-1/2} \Omega^{-1/2} Y \\
+&= \trans{\left((\trans{X}\Omega^{-1}X)^{-1} \trans{X} \Omega^{-1} Y\right)} \trans{X} \Omega^{-1} X \left((\trans{X}\Omega^{-1}X)^{-1} \trans{X} \Omega^{-1} Y\right) \\
 &= \widehat{\beta} \trans{X} \Omega^{-1} X \widehat{\beta}
 \end{align*}
 #+END_EXPORT

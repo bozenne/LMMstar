@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: jul 15 2024 (10:21) 
+## Last-Updated: jul 10 2025 (09:11) 
 ##           By: Brice Ozenne
-##     Update #: 220
+##     Update #: 221
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -45,7 +45,7 @@ test_that("Random intercept model",{
 
     ## ** iteration
     ## expect_equal(eRI.lmm$opt$n.iter,0)
-    expect_equal(eRI2.lmm$opt$n.iter,4)
+    expect_equal(eRI2.lmm$opt$n.iter,3)
 
     ## ** likelihood
     ## expect_equal(as.double(logLik(eRI.lmer)), as.double(logLik(eRI.lmm)), tol = 1e-6)
@@ -85,7 +85,7 @@ test_that("Stratified random intercept model",{
     eSRI.lmm <- lmm(distance ~ nsex + (1|Subject), repetition = nsex~1|Subject, data = Orthodont)
     
     ## ** iteration
-    expect_equal(eSRI.lmm$opt$n.iter,7)
+    expect_equal(eSRI.lmm$opt$n.iter,5)
 
     ## ** likelihood
     expect_equal(as.double(sum(unlist(logLik(eRI.mlmm)))), as.double(logLik(eSRI.lmm)), tol = 1e-6)

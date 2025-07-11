@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: sep 30 2024 (14:57) 
+## Last-Updated: jul 10 2025 (14:55) 
 ##           By: Brice Ozenne
-##     Update #: 1781
+##     Update #: 1801
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -65,7 +65,7 @@ summary.effect_lmm <- function(object, columns = NULL, print = TRUE, ...){
     }
 
     ## ** contrast
-    contrast <- stats::coef(object, type = "contrast")
+    contrast <- stats::coef(object, effects = "Wald")
     if(max(print)>=1){
         cat("\tPlanned contrast: \n")
         contrast.print <- contrast
@@ -616,7 +616,11 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
 
     ## ** welcome message
     if(any(print>0)){
-        cat("	Linear Mixed Models stratified according to \"",eval(object.call$by),"\" \n\n",sep="")
+        if("rho" %in% do.call(rbind,lapply(ls.model, model.tables, effects = "param"))$type){
+            cat("	Linear Mixed Models stratified according to \"",eval(object.call$by),"\" \n\n",sep="")
+        }else{
+            cat("	Linear regressions stratified according to \"",eval(object.call$by),"\" \n\n",sep="")
+        }
     }
 
     ## ** data message    
@@ -856,7 +860,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
     ## ** extract from object
     options <- LMMstar.options()
     pool.method <- options$pool.method
-    type.information <- object$object$type.information
+    type.information <- object$args$type.information
     df <- object$args$df
     robust <- object$args$robust
 
@@ -995,7 +999,6 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
 
     ## *** univariate tests
     if(print.univariate>0){
-        
         table.univariate <- stats::confint(object, columns = union(setdiff(columns.univariate,""),c("type","term","name")), options = options, ...)
         if(is.null(columns) && all(is.na(table.univariate$lower)) && all(is.na(table.univariate$upper))){
             columns.univariate <- setdiff(columns.univariate, c("lower","upper"))

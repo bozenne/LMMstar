@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 18 2021 (10:32) 
 ## Version: 
-## Last-Updated: aug  7 2024 (18:42) 
+## Last-Updated: jul  9 2025 (10:04) 
 ##           By: Brice Ozenne
-##     Update #: 16
+##     Update #: 18
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,13 +29,17 @@
 ##' 
 ##' @export
 levels.lmm <- function(x){
+
+    ## check if intercept
+
+
     data.X <- x$data[all.vars(stats::delete.response(stats::terms(x$formula$mean)))]
     C <- lapply(data.X, function(iCol){
         if(inherits(iCol,"factor")){stats::contrasts(iCol)}else if(inherits(iCol,"character")){stats::contrasts(as.factor(iCol))}
     })
     if(length(C)>0){
         C <- C[!unlist(lapply(C, is.null))]
-        if(length(C)>0){
+        if(length(C)>0 && "(Intercept)" %in% x$design$param$name){
             ref.level <- unlist(lapply(names(C), function(iC){
                 stats::setNames(rownames(C[[iC]])[1],iC)
             }))  

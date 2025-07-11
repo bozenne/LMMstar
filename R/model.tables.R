@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (10:48) 
 ## Version: 
-## Last-Updated: okt  3 2024 (14:08) 
+## Last-Updated: jul 11 2025 (17:33) 
 ##           By: Brice Ozenne
-##     Update #: 306
+##     Update #: 355
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,11 +17,28 @@
 
 ## * model.tables.effect_lmm
 ##' @export
-model.tables.effect_lmm <- function(x, columns, ...){
+model.tables.effect_lmm <- function(x, effects = "Wald", columns, ...){
 
-    extra.var <- c(x$args$variable,unlist(x$args$time),x$args$strata)
+    ## ** normalize user input
+    ## *** effects
+    if(!is.character(effects) || !is.vector(effects)){
+        stop("Argument \'effects\' must be a character. \n")
+    }
+    if(length(effects)!=1){
+        stop("Argument \'effects\' must have length 1. \n")
+    }
+    valid.effects <- c("Wald","contrast","param")
+    if(effects %in% valid.effects == FALSE){
+        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+    }
+    if(effects %in% c("contrast","param")){
+        return(model.tables.Wald_lmm(x, ...))
+    }
     
     ## ** usual model.tables
+    extra.var <- c(x$args$variable,unlist(x$args$time),x$args$strata)
+
     newcolumns <- c("estimate","se","df","lower","upper")
     if(x$args$effect[[1]][1]=="difference"){
         newcolumns <- c(newcolumns,"p.value")
@@ -280,7 +297,7 @@ model.tables.resample <- function(x, columns, ...){
 }
 
 ## * model.tables.rbindWald_lmm
-##' @title Statistical Inference From Combined Wald Tests Applied to Linear Mixed Models
+##' @title Statistical Inference From Combined Wald Tests
 ##' @description Combine estimates, standard errors, degrees-of-freedom, confidence intervals (CIs) and p-values
 ##' relative to linear contrasts of parameters from different linear mixed models. 
 ##'
@@ -355,8 +372,11 @@ model.tables.rbindWald_lmm <- function(x, effects = "Wald",
     }
 
     ## *** ordering
+    table.param <- x$param
     if(!is.null(ordering)){
         ordering <- match.arg(ordering, c("contrast","model"))
+        ordering.var <- switch(ordering, "model" = "model", "contrast" = "name")
+        table.param.order <- table.param[order(table.param[[ordering.var]]),,drop=FALSE]            
     }
     
     ## *** simplify
@@ -373,58 +393,65 @@ model.tables.rbindWald_lmm <- function(x, effects = "Wald",
     ## ** extract from object
     if(effects == "param"){
 
-        value.out <- x$object$param
-        if(!is.null(ordering)){
-            ordering.var <- switch(ordering, "model" = "model", "contrast" = "name")
-            ordering.out <- factor(value.out[[ordering.var]], unique(value.out[[ordering.var]]))
+        if(is.null(ordering)){
+            out <- table.param
+        }else{
+            out <- table.param.order
         }
 
+        
     }else if(effects == "contrast"){
+        glht.linfct <- x$glht[[1]]$linfct ## by design single glht when rbindWald object
 
-        table.param <- stats::model.tables(x, effects = "param")
-         
-        value.out <- x$glht[[1]]$linfct ## by design single glht when rbindWald object
-        if(transform.names){
-            colnames(value.out) <- table.param[match(colnames(value.out), table.param$name),"trans.name"]
-        }
-        if(simplify){
-            ## remove columns with only 0
-            value.out <- value.out[,colSums(value.out!=0)>0,drop=FALSE]
+        if(simplify){ ## remove columns with only 0
+            if(transform.names){
+                colnames(glht.linfct) <- table.param[match(colnames(glht.linfct), table.param$Uname),"trans.Uname"]
+            }
+            out <- glht.linfct[,colSums(value.out!=0)>0,drop=FALSE]
+        }else{
+            out <- matrix(0, nrow =  NROW(glht.linfct), ncol = NROW(table.param),
+                          dimnames = list(rownames(glht.linfct),table.param$Uname))
+            out[,colnames(glht.linfct)] <- glht.linfct
+            if(transform.names){
+                colnames(out) <- table.param$trans.Uname
+            }
         }
 
         if(!is.null(ordering)){
-            ordering.var <- switch(ordering, "model" = "model", "contrast" = "term")
-            ordering.out <- factor(x$univariate[[ordering.var]], unique(x$univariate[[ordering.var]]))
+            ordering.var2 <- switch(ordering, "model" = "model", "contrast" = "term")
+            ordering.row <- rownames(x$univariate)[order(x$univariate[[ordering.var2]])]
+            if(transform.names){                
+                out <- out[ordering.row,intersect(table.param.order$trans.Uname,colnames(out)),drop=FALSE]
+            }else{
+                out <- out[ordering.row,intersect(table.param.order$Uname,colnames(out))]
+            }
+        }
+
+        if(!simplify){
+            out <- list(user = out)
         }
 
 
     }else if(effects == "Wald"){
 
-        value.out <- stats::confint(x, level = level, df = df, method = method, columns = newcolumns, ordering = ordering, backtransform = backtransform, options = options)
+        out <- stats::confint(x, level = level, df = df, method = method, columns = newcolumns, ordering = ordering, backtransform = backtransform, options = options)
         if(simplify){
-            attr(value.out, "backtransform") <- NULL
-            attr(value.out, "error") <- NULL
-            attr(value.out, "level") <- NULL
-            attr(value.out, "method") <- NULL
+            attr(out, "backtransform") <- NULL
+            attr(out, "error") <- NULL
+            attr(out, "level") <- NULL
+            attr(out, "method") <- NULL
         }
-        class(value.out) <- "data.frame"
-        ordering <- NULL ## confint has already re-ordered
+        class(out) <- "data.frame"
+
     }
 
     ## ** export
-    if(!is.null(ordering)){
-        out <- value.out[order(ordering.out),,drop=FALSE]
-        if(effects == "param"){
-            rownames(out) <- NULL
-        }
-    }else{
-        out <- value.out
-    }
+    
     return(out)
 }
 
 ## * model.tables.Wald_lmm
-##' @title Statistical Inference for Wald tests Applied to a Linear Mixed Model
+##' @title Statistical Inference for Wald tests
 ##' @description Export estimates, standard errors, degrees-of-freedom, confidence intervals (CIs) and p-values
 ##' relative to linear contrasts of parameters from a linear mixed model. 
 ##'
@@ -484,14 +511,16 @@ model.tables.Wald_lmm <- function(x, effects = "Wald",
     }
 
     ## *** columns
-    newcolumns <- c("estimate","se","df","lower","upper","p.value")
-    if(!is.null(columns)){
-        if(!is.null(names(columns)) && all(names(columns)=="add")){
-            newcolumns <- union(newcolumns, unname(columns))
-        }else if(!is.null(names(columns)) && all(names(columns)=="remove")){
-            newcolumns <- setdiff(newcolumns, unname(columns))
-        }else{
-            newcolumns <- columns
+    if(effects == "Wald"){
+        newcolumns <- c("estimate","se","df","lower","upper","p.value")
+        if(!is.null(columns)){
+            if(!is.null(names(columns)) && all(names(columns)=="add")){
+                newcolumns <- union(newcolumns, unname(columns))
+            }else if(!is.null(names(columns)) && all(names(columns)=="remove")){
+                newcolumns <- setdiff(newcolumns, unname(columns))
+            }else{
+                newcolumns <- columns
+            }
         }
     }
 
@@ -509,12 +538,18 @@ model.tables.Wald_lmm <- function(x, effects = "Wald",
     ## ** extract from object
     if(effects == "param"){
 
-        out <- x$object$param
+        out <- x$param
 
     }else if(effects == "contrast"){
         table.param <- stats::model.tables(x, effects = "param")
-        ls.out <- lapply(x$glht, function(iGlht){
-            iOut <- iGlht$linfct
+        ls.out <- lapply(x$glht, function(iGlht){ ## iGlht <- x$glht[[1]]
+            if(simplify){
+                iOut <- iGlht$linfct
+            }else{
+                iOut <- matrix(0, nrow = NROW(iGlht$linfct), ncol = NROW(table.param),
+                               dimnames = list(rownames(iGlht$linfct), table.param$name))
+                iOut[,colnames(iGlht$linfct)] <- iGlht$linfct
+            }
             if(transform.names){
                 colnames(iOut) <- table.param[match(colnames(iOut), table.param$name),"trans.name"]
             }
@@ -532,7 +567,7 @@ model.tables.Wald_lmm <- function(x, effects = "Wald",
                 ## remove columns with only 0
                 out <- ls.out[[1]][,colSums(ls.out[[1]]!=0)>0,drop=FALSE]
             }            
-        }else{
+        }else{            
             out <- ls.out
         }
 

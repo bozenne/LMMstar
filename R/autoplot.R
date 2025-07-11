@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: sep 30 2024 (14:12) 
+## Last-Updated: mar  5 2025 (14:47) 
 ##           By: Brice Ozenne
-##     Update #: 1590
+##     Update #: 1593
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -187,15 +187,19 @@ autoplot.correlate <- function(object, index,
 
 ## * autoplot.lmm (code)
 ##' @export
-autoplot.lmm <- function(object, type = "fit", type.residual = NULL, 
+autoplot.lmm <- function(object, type = NULL, type.residual = NULL, 
                          obs.alpha = 0, obs.size = NULL, facet = NULL, facet_nrow = NULL, facet_ncol = NULL, scales = "fixed", labeller = "label_value", 
                          at = NULL, time.var = NULL, color = NULL, position = NULL, ci = TRUE, ci.alpha = NULL, 
                          ylim = NULL, mean.size = c(3, 1), size.text = 16, position.errorbar = "identity", ...){
 
     ## use [] to keep attribute reference for partial residuals
-    type[] <- match.arg(type, c("fit",
-                                "partial","partial-center",
-                                "qqplot","covariance","correlation","scatterplot","scatterplot2")) 
+    if(is.null(type)){
+        type <- ifelse(object$time$n>1,"fit","scatterplot")
+    }else{
+        type[] <- match.arg(type, c("fit",
+                                    "partial","partial-center",
+                                    "qqplot","covariance","correlation","scatterplot","scatterplot2"))
+    }
 
     if(type=="fit"){ ## model fit
         if(is.null(ci.alpha)){ci.alpha <- 0.25}

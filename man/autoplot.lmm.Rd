@@ -7,7 +7,7 @@
 \usage{
 \method{autoplot}{lmm}(
   object,
-  type = "fit",
+  type = NULL,
   type.residual = NULL,
   obs.alpha = 0,
   obs.size = NULL,

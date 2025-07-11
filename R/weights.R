@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Oct 11 2022 (10:56) 
 ## Version: 
-## Last-Updated: aug  8 2024 (15:26) 
+## Last-Updated: jul 10 2025 (14:40) 
 ##           By: Brice Ozenne
-##     Update #: 46
+##     Update #: 65
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,7 +15,7 @@
 ## 
 ### Code:
 
-## * weights.rbindWald_lmm (documentation)
+## * weights (documentation)
 ##' @title Extract Weights Used to Pool Estimates
 ##' @description Extract weights used to pool estimates.
 ##' 
@@ -31,6 +31,16 @@
 ##' @keywords methods
 ##'
 ##' @examples
+##'
+##' data(gastricbypassL)
+##'
+##' #### linear mixed model ####
+##' e.lmm <- lmm(formula = glucagonAUC ~ 0 + weight + visit, data = gastricbypassL, repetition = ~visit | id)
+##' Wald_mu <- anova(e.lmm, effects = c("visit4 - visit1 = 0", "visit2 - visit1 = 0", "visit3 - visit1 = 0"))
+##' weights(Wald_mu, method = c("average","pool.se"))
+##' weights(Wald_mu, method = c("average","pool.se"), effects = "all")
+##'
+##' #### multiple linear mixed models ####
 ##' set.seed(10)
 ##' dL <- sampleRem(250, n.times = 3, format = "long")
 ##'
@@ -38,9 +48,9 @@
 ##'                by = "X4", effects = "X1=0", structure = "CS")
 ##' weights(e.mlmm, method = c("average","pool.se","pool.gls"))
 
-## * weights.mlmm (code)
+## * weights.Wald_lmm (code)
 ##' @export
-weights.rbindWald_lmm <- function(object, method, effects = "Wald", transform.names = TRUE, ...){
+weights.Wald_lmm <- function(object, method, effects = "Wald", transform.names = FALSE, ...){
 
     ## ** check and normalize user input
 
@@ -64,7 +74,7 @@ weights.rbindWald_lmm <- function(object, method, effects = "Wald", transform.na
              "Should be one of \"",paste(pool.method, collapse = "\" \""),"\".\n")
     }
     if(any(method %in% pool.method == FALSE)){
-        stop("Argument \'method\' is missing.\n",
+        stop("Unknown value for argument \'method\': ",paste(setdiff(method,pool.method),collapse = "\", \""),"\". \n",
              "Should be one of \"",paste(pool.method, collapse = "\" \""),"\".\n")
     }
 
@@ -83,11 +93,13 @@ weights.rbindWald_lmm <- function(object, method, effects = "Wald", transform.na
 
     
     ## ** Extract contrast
-    object.confint <- stats::confint(object, columns = "estimate", method = method, df = FALSE, options = options)
+    object.confint <- pool(object, method = method, columns = "estimate", df = FALSE, options = options)
+    out <- attr(object.confint,"contrast")
     if(effects == "all"){
-        out <- attr(object.confint,"contrast") %*% stats::model.tables(object, effects = "contrast", transform.names = transform.names, simplify = FALSE)[[1]]
-    }else{
-        out <- attr(object.confint,"contrast")
+        out <- out %*% model.tables(object, effects = "contrast", simplify = FALSE)[[1]]
+        if(transform.names == FALSE){
+            colnames(out) <- object$param$name
+        }
     }
     
     ## ** Export

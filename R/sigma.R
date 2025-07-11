@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: aug  8 2024 (13:32) 
+## Last-Updated: mar 14 2025 (13:37) 
 ##           By: Brice Ozenne
-##     Update #: 780
+##     Update #: 791
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,6 +21,7 @@
 ##' 
 ##' @param object a \code{lmm} object.
 ##' @param cluster [character, data.frame, NULL] identifier of the cluster(s) for which to extract the residual variance-covariance matrix.
+##' For clusters from the dataset used to fit the model, a character vector refering to which cluster(s) to consider or the character string \code{"all"} to consider all clusters.
 ##' For new clusters, a dataset containing the information (cluster, time, strata, ...) to be used to generate the residual variance-covariance matrices.
 ##' When \code{NULL}, will output complete data covariance patterns.
 ##' @param p [numeric vector] value of the model coefficients at which to evaluate the residual variance-covariance matrix. Only relevant if differs from the fitted values.
@@ -153,7 +154,11 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
                 cluster.level <- object.cluster[match(cluster,object.cluster.num)] 
             }else if(is.character(cluster)){
                 if(any(cluster %in% object.cluster == FALSE)){
-                    stop("When character, elements in argument \'cluster\' should refer to clusters used to fit the model \n", sep = "")
+                    if(identical(cluster,"all")){
+                        cluster <- object.cluster                        
+                    }else{
+                        stop("When character, elements in argument \'cluster\' should refer to clusters used to fit the model \n", sep = "")
+                    }
                 }
                 cluster.num <- match(cluster, object.cluster)
                 cluster.level <- object.cluster[cluster.num]               
@@ -334,6 +339,14 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
         attr(out,"design") <- newdesign
     }else if(length(out)==1){
         out <- out[[1]]
+    }else if(!is.null(cluster)){
+        out <- as.matrix(Matrix::bdiag(out))
+        if(test.clusterDF){
+            out.order <- order(unlist(index.cluster[cluster.num]))
+        }else{
+            out.order <- order(unlist(object.index.cluster[cluster.num]))
+        }
+        out <- out[out.order,out.order,drop=FALSE]            
     }
     return(out)
 }

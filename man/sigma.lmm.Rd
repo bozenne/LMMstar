@@ -18,6 +18,7 @@
 \item{object}{a \code{lmm} object.}
 
 \item{cluster}{[character, data.frame, NULL] identifier of the cluster(s) for which to extract the residual variance-covariance matrix.
+For clusters from the dataset used to fit the model, a character vector refering to which cluster(s) to consider or the character string \code{"all"} to consider all clusters.
 For new clusters, a dataset containing the information (cluster, time, strata, ...) to be used to generate the residual variance-covariance matrices.
 When \code{NULL}, will output complete data covariance patterns.}
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: May 12 2024 (20:37) 
+## Last-Updated: jul  9 2025 (15:03) 
 ##           By: Brice Ozenne
-##     Update #: 222
+##     Update #: 223
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -225,9 +225,9 @@ test_that("single variance parameter (ML)",{
     ## summary(test)
     ## summary(anova(e.lmm, effects = "all"))
    
-    expect_equal(prod(test$multivariate[test$multivariate$test=="Gene",c("statistic","df.num")]),
+    expect_equal(prod(test$multivariate[test$multivariate$term=="Gene",c("statistic","df.num")]),
                  unname(lava::compare(e.lava, par = c("Y~GeneLA","Y~GeneAA"))$statistic), tol = 1e-6)
-    expect_equal(test$multivariate[test$multivariate$test=="Gene","df.denom"], NROW(d), tol = 1e-6)
+    expect_equal(test$multivariate[test$multivariate$term=="Gene","df.denom"], NROW(d), tol = 1e-6)
 
     test2 <- anova(e.lmm, effect = c("GeneLA=0","GeneAA=0"))
     ## summary(test2)
@@ -337,7 +337,7 @@ test_that("single variance parameter (REML)",{
     expect_equal(test, rep(n.obs-n.mu,n.param), tol = 1e-6)
 
     ## numerical derivative
-    test <- model.tables(e.lmm, effects = "all", transform.sigma = "log", type.information = "observed")$df
+    test.grad <- vcov(e.lmm, effects = c("all","gradient"), transform.sigma = "log", type.information = "observed", df = TRUE)
     ## FF.bis <- function(p){p["sigma"] <- exp(p["sigma"])   ; diag(vcov(e.lmm, effects = "all", p = p, transform.sigma = "log", type.information = "observed"))}
     ## GG.bis <- jacobian(func = FF.bis, x = coef(e.lmm, effects = "all", transform.sigma = "log", transform.names = FALSE), method = LMMstar.options()$method.numDeriv)
     GG.bis <- cbind(c(0, 0, 0, 0, 0, 0), 
@@ -347,9 +347,10 @@ test_that("single variance parameter (REML)",{
                     c(0, 0, 0, 0, 0, 0), 
                     c(0.10675137, 0.03585414, 0.03740132, 0.18285592, 0.26093029, 0.02222222)
                     )
-    VV.bis <- vcov(e.lmm, effects = "all", transform.sigma = "log", type.information = "observed")
-    GS <- sapply(1:NROW(GG.bis),function(gg){2*VV.bis[gg,gg]^2/ (GG.bis[gg,,drop=FALSE] %*% VV.bis %*% t(GG.bis[gg,,drop=FALSE]))})
-    expect_equal(unname(test), unname(GS), tol = 1e-6)
+    expect_equivalent(apply(attr(test.grad,"grad"), MARGIN = 3, FUN = diag), GG.bis, tol = 1e-6)
+
+    GS <- sapply(1:NROW(GG.bis),function(gg){2*test.grad[gg,gg]^2/ (GG.bis[gg,,drop=FALSE] %*% test.grad %*% t(GG.bis[gg,,drop=FALSE]))})
+    expect_equivalent(attr(test.grad,"df"), unname(GS), tol = 1e-6)
 
     ## test <- vcov(e.lmm, df = 2, transform.sigma = "log", type.information = "observed")
     ## all(abs(test-VV.bis)<1e-10)

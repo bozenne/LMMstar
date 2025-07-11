@@ -60,6 +60,9 @@ See argument optimizer in \code{\link{LMMstar.options}}.
 \item \code{n.iter}: maximum number of interations of the optimization algorithm.
 \item \code{tol.score}: score value below which convergence has been reached.
 \item \code{tol.param}: difference in estimated parameters from two successive iterations below which convergence has been reached.
+\item \code{init.cor}: method to initialize the correlation parameters, either proportional to the average squared studentized residual pooled over missing data patterns (\code{"average"})
+or correlation coefficient over all residuals (\code{"overall"}).
+\item \code{transform.sigma}, \code{transform.k}, \code{transform.rho}: transformation used for the variance and correlation parameters in the optimization procedure. 
 \item \code{trace}: display progress of the optimization procedure.
 }
 

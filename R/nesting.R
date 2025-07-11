@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 15 2024 (11:57) 
 ## Version: 
-## Last-Updated: aug  8 2024 (11:24) 
+## Last-Updated: mar  5 2025 (14:17) 
 ##           By: Brice Ozenne
-##     Update #: 149
+##     Update #: 153
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,19 +26,19 @@
 ##' 
 ##' @noRd
 .checkNesting <- function(objectH0, objectH1, sep = ".", tol = 1e-8){
-   
+  
     ## ** number of observations
     nobsH0 <- stats::nobs(objectH0)
     nobsH1 <- stats::nobs(objectH1)
-    if(any(nobsH0 != nobsH1)){
-        if(nobsH0["missing"]!=nobsH1["missing"]){
-            stop("Mismatch between the number of observations between the two models - could be due to missing data. \n",
+    if(any(nobsH0[c("obs","cluster")] != nobsH1[c("obs","cluster")])){
+        if(nobsH0["missing.obs"]!=nobsH1["missing.obs"]){
+            stop("Different number of observations between the two models - could be due to missing data. \n",
                  "H0: ",paste(paste(names(nobsH0),"=",nobsH0), collapse = ", "),".\n",
-                 "H1: ",paste(paste(names(nobsH1),"=",nobsH0), collapse = ", "),".\n")
+                 "H1: ",paste(paste(names(nobsH1),"=",nobsH1), collapse = ", "),".\n")
         }else{
-            stop("Mismatch between the number of observations between the two models. \n",
+            stop("Different number of observations between the two models. \n",
                  "H0: ",paste(paste(names(nobsH0),"=",nobsH0), collapse = ", "),".\n",
-                 "H1: ",paste(paste(names(nobsH1),"=",nobsH0), collapse = ", "),".\n")
+                 "H1: ",paste(paste(names(nobsH1),"=",nobsH1), collapse = ", "),".\n")
         }
     }
 

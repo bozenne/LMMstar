@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 17 2024 (09:37) 
 ## Version: 
-## Last-Updated: aug  8 2024 (13:00) 
+## Last-Updated: jul  9 2025 (16:24) 
 ##           By: Brice Ozenne
-##     Update #: 317
+##     Update #: 342
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -442,15 +442,19 @@ equation2contrast <- function(object, name.coef, X,
 ##' @description Generate a contrast matrix and a right-hand side based on the effects argument
 ##' Used by anova.lmm.
 ##' @noRd
-effects2contrast <- function(object, effects, rhs,
-                             transform.sigma, transform.k, transform.rho,
-                             options){
+effects2contrast <- function(object, effects, rhs, options){
 
     effects.ref <- c("all","mean","fixed","variance","correlation")
-    
+    transform.sigma <- object$reparametrize$transform.sigma
+    transform.k <- object$reparametrize$transform.k
+    transform.rho <- object$reparametrize$transform.rho
+
     ## ** extract from object
     object.coef <- stats::model.tables(object, effects = "param",
-                                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = TRUE)
+                                       transform.sigma = transform.sigma,
+                                       transform.k = transform.k,
+                                       transform.rho = transform.rho,
+                                       transform.names = TRUE)
     name.coef <- object.coef$name
     n.coef <- length(name.coef)
     type.coef <- stats::setNames(object.coef$type, name.coef)
@@ -509,34 +513,48 @@ effects2contrast <- function(object, effects, rhs,
 
         ## effects
         if(any(is.na(effects))){
-            stop("When a matrix, argument \'effect\' should no contain NA values. \n")
+            stop("When a matrix, argument \'effects\' should no contain NA values. \n")
         }
         if(any(rowSums(effects!=0)==0)){
-            stop("When a matrix, argument \'effect\' should no contain rows with only 0. \n")
+            stop("When a matrix, argument \'effects\' should no contain rows with only 0. \n")
         }
         if(is.null(rownames(effects))){
-            stop("When a matrix, argument \'effect\' should have row names. \n")
+            stop("When a matrix, argument \'effects\' should have row names. \n")
         }
         if(any(duplicated(rownames(effects)))){
-            stop("When a matrix, argument \'effect\' should not have duplicated row names. \n")
+            stop("When a matrix, argument \'effects\' should not have duplicated row names. \n")
         }
         if(is.null(colnames(effects))){
             if(NCOL(effects)!=n.coef){
-                stop("When a matrix, argument \'effect\' should have column names or as many columns as model parameters (here ",n.coef,"). \n")
+                stop("When a matrix, argument \'effects\' should have column names or as many columns as model parameters (here ",n.coef,"). \n")
             }
+            colnames(effects) <- name.coef
         }else{
             if(any(duplicated(colnames(effects)))){
-                stop("When a matrix, argument \'effect\' should not have duplicated column names. \n")
-            }
-            if(any(colnames(effects) %in% name.coef == FALSE) && any(colnames(effects) %in% attr(name.coef,"rescue") == FALSE)){
-                stop("When a matrix, argument \'effect\' should have column names matching the names of the model parameters. \n",
-                     "Valid names: \"",paste(name.coef, collapse = "\", \""),"\". \n")
+                stop("When a matrix, argument \'effects\' should not have duplicated column names. \n")
             }            
+            if(any(colnames(effects) %in% name.coef == FALSE)){
+                if(any(colnames(effects) %in% attr(name.coef.rescue,"rescue") == FALSE)){
+                    stop("When a matrix, argument \'effects\' should have column names matching the names of the model parameters. \n",
+                         "Valid names: \"",paste(name.coef, collapse = "\", \""),"\". \n")
+                }else{
+                    colnames(effects) <- name.coef.rescue[match(colnames(effects), attr(name.coef.rescue,"rescue"))]
+                }
+            }
+            if(NCOL(effects)!=n.coef){
+                effectsSave <- effects
+                effects <- matrix(0, nrow = NROW(effectsSave), ncol = n.coef,
+                                  dimnames = list(rownames(effectsSave),name.coef))
+                effects[,colnames(effectsSave)] <- effectsSave
+            }
+            
         }
 
         ## rhs
         if(is.null(rhs)){
             effects.type <- do.call(rbind,apply(effects, MARGIN = 1, function(iRow){tapply(iRow!=0,type.coef,sum)}, simplify=FALSE))
+            if("k" %in% names(effects.type) == FALSE){effects.type <- cbind(effects.type, k = 0)} ## case of a homoschedastic model
+
             if(any(effects.type[,"sigma"]!=0) || (any(effects.type[,"k"]!=0) && transform.k %in% c("sd","var","logsd","logvar"))){
                 stop("Unable to decide on a value for the right-hand side of the null hypothesis\n",
                      "due to the presence of parameters of type \"sigma\" in the same null hypothesis. \n",

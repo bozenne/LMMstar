@@ -42,7 +42,7 @@ Can also be \code{2} compute the degrees-of-freedom w.r.t. robust standard error
 \item{columns}{[character vector] Columns to be output.
 Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.}
 
-\item{df}{[logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.}
+\item{df}{[logical] Should a Student's t-distribution be used to model the distribution of the coefficients. Otherwise a normal distribution is used.}
 
 \item{type.information, transform.sigma, transform.k, transform.rho, transform.names}{are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.}
 

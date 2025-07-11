@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 21 2020 (13:42) 
 ## Version: 
-## Last-Updated: sep 30 2024 (13:59) 
+## Last-Updated: feb 13 2025 (11:33) 
 ##           By: Brice Ozenne
-##     Update #: 160
+##     Update #: 161
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -41,7 +41,7 @@
 #' 
 #' @docType data
 #' @usage data(abetaW)
-#' @references Pech, Josefine, et al. "The impact of a new affective episode on psychosocial functioning, quality of life and perceived stress in newly diagnosed patients with bipolar disorder: A prospective one-year case-control study."Journal of Affective Disorders 277 (2020): 486-494.
+#' @references Pech, Josefine, et al. "The impact of a new affective episode on psychosocial functioning, quality of life and perceived stress in newly diagnosed patients with bipolar disorder: A prospective one-year case-control study." Journal of Affective Disorders 277 (2020): 486-494.
 #' @keywords datasets
 NULL
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: okt  3 2024 (17:11) 
+## Last-Updated: jul 11 2025 (10:15) 
 ##           By: Brice Ozenne
-##     Update #: 1260
+##     Update #: 1303
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -439,7 +439,7 @@ coef.mlmm <- function(object, effects = "Wald", method = "none", p = NULL, order
 }
 
 ## * coef.rbindWald_lmm
-##' @title Extract Coefficients From Combined Wald Tests Applied to Linear Mixed Models
+##' @title Extract Coefficients From Combined Wald Tests
 ##' @description Combine estimated values across linear contrasts applied on parameters from different linear mixed models. 
 ##'
 ##' @param object a \code{rbindWald_lmm} object.
@@ -452,19 +452,12 @@ coef.mlmm <- function(object, effects = "Wald", method = "none", p = NULL, order
 ##' @param backtransform [logical] should the estimates be back-transformed?
 ##' @param transform.names [logical] should the name of the coefficients be updated to reflect the transformation that has been used?
 ##' Only relevant when \code{effects="all"}.
-##' @param simplify [logical] should the output be a vector or a list with one element specific to each possible ordering (i.e. contrast or model).
-##' Only relevant when argument \code{method} refers to multiple comparisons and not to a pooling method.
+##' @param simplify [logical] omit from the output an attribute containing the parameter type/model or contrast term.
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
-##' @details Argument \bold{effects}: when evaluating the proportion of rejected hypotheses (\code{effects="p.rejection"})
-##' a \code{"single-step"} method will be used by default to evaluate the critical quantile.
-##' This can be changed by adding adjustment method, e.g. \code{effects=c("bonferronin","p.rejection"}, in the argument.
-##' 
 ##' @export
 coef.rbindWald_lmm <- function(object, effects = "Wald", method = "none", ordering = NULL, transform.names = TRUE, backtransform = NULL, simplify = TRUE, ...){
 
-    table.param <- stats::model.tables(object, effects = "param")
-        
     ## ** normalize user input
     ## *** dots
     dots <- list(...)
@@ -500,17 +493,8 @@ coef.rbindWald_lmm <- function(object, effects = "Wald", method = "none", orderi
     }
 
     ## *** method
-    if(!is.character(method) || !is.vector(method)){
-        stop("Argument \'method\' must be a character. \n")
-    }
-    valid.method <- c("none",pool.method,adj.method)
-    if(any(method %in% valid.method == FALSE)){
-        stop("Incorrect value for argument \'method\': \"",paste(setdiff(method,valid.method), collapse ="\", \""),"\". \n",
-             "Valid values: \"",paste(valid.method, collapse ="\", \""),"\". \n")
-    }
-    if(sum(method %in% c("none",adj.method))>1){
-        stop("Argument \'method\' must refer no more than one adjustment for multiple comparisons. \n",
-             "Proposed adjustments: \"",paste(intersect(method, c("none",adj.method)), collapse ="\", \""),"\". \n")
+    if(effects == "all" && !identical(method,"none")){
+        message("Argument \'method\' is ignored when argument \'effects\ is \"all\". \n")
     }
 
     ## *** ordering
@@ -523,171 +507,9 @@ coef.rbindWald_lmm <- function(object, effects = "Wald", method = "none", orderi
     }
     
     ## *** backtransform
-    if(is.null(backtransform)){
-        backtransform <- any(object$univariate$tobacktransform)
-    }else if(is.character(backtransform)){
-        backtransform <-  eval(parse(text=backtransform))
-    }else if(is.numeric(backtransform)){
-        backtransform <- as.logical(backtransform)
-    }
-
-    ## *** simplify
-    if(any(method %in% pool.method)){
-        simplify <- TRUE
-    }
-
-    ## *** qt (hidden argument)
-    if("p.rejection" %in% method){
-        if(!is.null(attr(method,"qt"))){
-            qt <- qt
-            if(is.character(qt) && (qt %in% c("none","bonferroni","single-step","single-step2")==FALSE)){
-                stop("Invalid \"qt\" attribe for argument \'method\'. \n",
-                     "Should be one of \"none\", \"bonferroni\", \"single-step\", \"single-step2\". \n")
-            }
-        }else if(any(method %in% c("none",adj.method))){
-            qt <- intersect(method, c("none",adj.method))
-            if(is.character(qt) && (qt %in% c("none","bonferroni","single-step","single-step2")==FALSE)){
-                stop("Incompatible values for argument \'method\': \"p.rejection\" and \"",qt,"\" \n",
-                     "Consider using \"p.rejection\" and one of \"none\", \"bonferroni\", \"single-step\", \"single-step2\". \n")
-            }
-        }else{
-            qt <- NULL
-        }
-    }else{
-        qt <- NULL
-    }
-    
-    ## ** extract from object
-    if(effects == "all"){
-
-        ## *** select value 
-        if(backtransform){
-            value.out <- table.param$value
-        }else{
-            value.out <- table.param$trans.value
-        }
-
-        ## *** rename
-        if(backtransform || transform.names == FALSE){
-            if(simplify==FALSE && !is.null(ordering)){
-                newname <- table.param[[switch(ordering, "model" = "name", "contrast" = "model")]]                
-            }else{
-                newname <- table.param$Uname
-            }
-        }else{
-            if(simplify==FALSE && !is.null(ordering)){
-                newname <- table.param[[switch(ordering, "model" = "trans.name", "contrast" = "model")]]
-            }else{
-                newname <- table.param$trans.Uname
-            }
-        }
-        names(value.out) <- newname
-
-        ## *** ordering
-        if(!is.null(ordering)){
-            ordering.var <- switch(ordering, "model" = "model", "contrast" = "name")
-            ordering.out <- factor(table.param[[ordering.var]], unique(table.param[[ordering.var]]))            
-        }else if(simplify == FALSE){ ## no need for both as when both the attributes are not kept
-            attr(value.out,"parameter") <- table.param$name
-            attr(value.out,"model") <- table.param$model
-        }
-
-    }else if(effects == "Wald"){
-        
-        table.univariate <- object$univariate
-
-        ## *** adjustment for multiple comparisons
-        if(any(method %in% c("none",adj.method))){
-
-            value.out <- coef.Wald_lmm(object, effects = "Wald", backtransform = backtransform, simplify = simplify, options = options)
-            
-            if(!is.null(ordering)){
-                ordering.var <- switch(ordering, "model" = "model", "contrast" = "term")
-                ordering.out <- factor(table.univariate[[ordering.var]], unique(table.univariate[[ordering.var]])) 
-            }
-            if(simplify == FALSE){
-                attr(value.out,"parameter") <- table.univariate$term
-                attr(value.out,"model") <- table.univariate$model
-            }
-        }else{
-
-            value.out <- NULL
-
-        }
-
-        ## *** pooling
-        if(any(method %in% pool.method)){
-            table.pool <- pool.rbindWald_lmm(object, method = method, qt = qt, null = FALSE, level = NA, df = FALSE)
-            value.out <- c(value.out,
-                           stats::setNames(table.pool$estimate,rownames(table.pool))
-                           )
-        }
-    }
-    
-    ## ** export
-    if(simplify == FALSE && !is.null(ordering)){        
-        out <- tapply(value.out, INDEX = ordering.out, FUN = base::identity, simplify = FALSE)
-    }else if(!is.null(ordering)){
-        out <- value.out[order(ordering.out)]
-    }else{
-        out <- value.out
-    }
-    return(out)
-}
-
-## * coef.Wald_lmm
-##' @title Extract Coefficients From Wald Tests Applied to a Linear Mixed Model
-##' @description Extract estimated value of linear contrasts applied on parameters from a linear mixed model. 
-##'
-##' @param object a \code{Wald_lmm} object.
-##' @param effects [character] should the linear contrasts involved in the Wald test be output (\code{"Wald"}),
-##' or the value of the linear mixed model parameters (\code{"all"})?
-##' @param backtransform [logical] should the estimates be back-transformed?
-##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
-##' Only relevant when \code{effects="all"}.
-##' @param simplify [logical] omit from the output the attribute containing the type of each parameter or contrast (mu/sigma/k/rho).
-##' @param ... Not used. For compatibility with the generic method.
-##' 
-##' @export
-coef.Wald_lmm <- function(object, effects = "Wald", backtransform = NULL, transform.names = TRUE, simplify = TRUE, ...){
-
-    ## ** normalize user input
-    ## *** dots
-    dots <- list(...)
-    if("options" %in% names(dots) && !is.null(dots$options)){
-        options <- dots$options
-    }else{
-        options <- LMMstar.options()
-    }
-    dots$options <- NULL
-    if(length(dots)>0){
-        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
-    }
-    adj.method <- options$adj.method
-
-    ## *** object
-    if(object$args$univariate == FALSE){
-        message("Nothing to return: consider setting argument \'univariate\' to TRUE when calling anova. \n")
-        return(invisible(NULL))
-    }
-
-    ## *** effects
-    if(!is.character(effects) || !is.vector(effects)){
-        stop("Argument \'effects\' must be a character value. \n")
-    }
-    if(length(effects)!=1){
-        stop("Argument \'effects\' must have length 1. \n")
-    }
-    valid.effects <- c("Wald","all")
-    if(any(effects %in% valid.effects == FALSE)){
-        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
-             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
-    }        
-
-    ## *** backtransform
     if(effects == "all"){
         if(is.null(backtransform)){
-            backtransform <- FALSE
+            backtransform <- TRUE
         }else if(!is.logical(backtransform)){
             stop("Argument \'backtransform\' must be TRUE or FALSE when argument \'effects\ is \"all\". \n")
         }
@@ -711,7 +533,125 @@ coef.Wald_lmm <- function(object, effects = "Wald", backtransform = NULL, transf
     if(simplify %in% c(0,1) == FALSE){
         stop("Argument \'simplify\' must be TRUE/1 or FALSE/0. \n")
     }
+
     
+    ## ** extract from object
+    if(effects == "all"){
+
+        table.param <- stats::model.tables(object, effects = "param", ordering  = ordering)
+        if(backtransform){
+            out <- stats::setNames(table.param$value, table.param$name)
+        }else if(transform.names==FALSE){
+            out <- stats::setNames(table.param$trans.value, table.param$name)
+        }else{
+            out <- stats::setNames(table.param$trans.value, table.param$trans.name)
+        }
+
+        if(!simplify){
+            attr(out,"type") <- table.param$type
+            attr(out,"model") <- table.param$model
+        }
+
+    }else if(effects == "Wald"){
+
+        Mout <- confint(object, method = method, ordering = ordering,
+                        backtransform = backtransform, column = c("type","term","model","estimate"))
+        out <- stats::setNames(Mout[,"estimate"], rownames(Mout))
+        if(!simplify){
+            attr(out,"term") <- Mout[,"term"]
+        }
+        
+    }
+    
+    ## ** export
+    return(out)
+}
+
+## * coef.Wald_lmm
+##' @title Extract Coefficients From Wald Tests
+##' @description Extract estimated value of linear contrasts applied on parameters from a linear mixed model. 
+##'
+##' @param object a \code{Wald_lmm} object.
+##' @param effects [character] should the linear contrasts involved in the Wald test be output (\code{"Wald"}),
+##' or the value of the linear mixed model parameters (\code{"all"})?
+##' @param method [character] how linear contrast estimates should be pooled (\code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.gls1"}, \code{"pool.rubin"}, \code{"p.rejection"})?
+##' Only relevant when \code{effects = "Wald"}. See \code{\link{confint.Wald_lmm}} for details.
+##' @param backtransform [logical] should the estimates be back-transformed?
+##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
+##' Only relevant when \code{effects="all"}.
+##' @param simplify [logical] omit from the output an attribute containing the parameter type or contrast term.
+##' @param ... Not used. For compatibility with the generic method.
+##' 
+##' @export
+coef.Wald_lmm <- function(object, effects = "Wald", method = "none", backtransform = NULL, transform.names = TRUE, simplify = TRUE, ...){
+
+    ## ** normalize user input
+    ## *** dots
+    dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+    dots$options <- NULL
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+    pool.method <- options$pool.method
+    adj.method <- options$adj.method
+
+    ## *** object
+    if(object$args$univariate == FALSE){
+        message("Nothing to return: consider setting argument \'univariate\' to TRUE when calling anova. \n")
+        return(invisible(NULL))
+    }
+
+    ## *** effects
+    if(!is.character(effects) || !is.vector(effects)){
+        stop("Argument \'effects\' must be a character value. \n")
+    }
+    if(length(effects)!=1){
+        stop("Argument \'effects\' must have length 1. \n")
+    }
+    valid.effects <- c("Wald","all")
+    if(any(effects %in% valid.effects == FALSE)){
+        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+    }        
+
+    ## *** method
+    if(effects == "all" && !identical(method,"none")){
+        message("Argument \'method\' is ignored when argument \'effects\ is \"all\". \n")
+    }
+
+    ## *** backtransform
+    if(effects == "all"){
+        if(is.null(backtransform)){
+            backtransform <- TRUE
+        }else if(!is.logical(backtransform)){
+            stop("Argument \'backtransform\' must be TRUE or FALSE when argument \'effects\ is \"all\". \n")
+        }
+    }else if(effects == "contrast"){
+        if(is.null(backtransform)){
+            backtransform <- any(object$univariate$tobacktransform)
+        }else if(is.character(backtransform)){
+            backtransform <-  eval(parse(text=backtransform))
+        }else if(is.numeric(backtransform)){
+            backtransform <- as.logical(backtransform)
+        }
+    }
+
+    ## *** simplify
+    if(!is.numeric(simplify) && !is.logical(simplify)){
+        stop("Argument \'simplify\' must be numeric or logical. \n")
+    }
+    if(length(simplify)!=1){
+        stop("Argument \'simplify\' must have length 1. \n")
+    }
+    if(simplify %in% c(0,1) == FALSE){
+        stop("Argument \'simplify\' must be TRUE/1 or FALSE/0. \n")
+    }
+
     ## ** extract from object
     if(effects == "all"){
         table.param <- stats::model.tables(object, effects = "param")
@@ -728,37 +668,11 @@ coef.Wald_lmm <- function(object, effects = "Wald", backtransform = NULL, transf
             attr(out,"type") <- table.param$type
         }
     }else if(effects == "Wald"){
-        table.univariate <- object$univariate
-    
-        if(is.function(backtransform) || identical(backtransform,TRUE)){
 
-            if(is.function(backtransform)){
-
-                df.out <- .backtransform(table.univariate[,"estimate",drop=FALSE], type.param = table.univariate$type,
-                                         backtransform = TRUE, backtransform.names = NULL,
-                                         transform.mu = backtransform,
-                                         transform.sigma = backtransform,
-                                         transform.k = backtransform,
-                                         transform.rho = backtransform)
-
-            }else{
-
-                ## force no back-transform, e.g. when comparing two correlation coefficients
-                df.out <- .backtransform(table.univariate[,"estimate",drop=FALSE], type.param = ifelse(table.univariate$tobacktransform,table.univariate$type,"mu"),  
-                                         backtransform = TRUE, backtransform.names = NULL,
-                                         transform.mu = "none",
-                                         transform.sigma = object$args$transform.sigma,
-                                         transform.k = object$args$transform.k,
-                                         transform.rho = object$args$transform.rho)
-            
-            }
-            out <- stats::setNames(df.out$estimate,rownames(df.out))
-        }else{
-            df.out <- table.univariate[,"estimate",drop = FALSE]
-            out <- stats::setNames(df.out$estimate,rownames(df.out))
-        }
+        Mout <- confint(object, method = method, backtransform = backtransform, column = c("term","estimate"))
+        out <- stats::setNames(Mout[,"estimate"], rownames(Mout))
         if(!simplify){
-            attr(out,"type") <- table.univariate$type
+            attr(out,"term") <- Mout[,"term"]
         }
     }
 

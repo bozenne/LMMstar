@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: aug  8 2024 (10:11) 
+## Last-Updated: jul  9 2025 (14:49) 
 ##           By: Brice Ozenne
-##     Update #: 312
+##     Update #: 317
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -324,7 +324,7 @@ print.LRT_lmm <- function(x, ...){
 }
 
 
-## * print.Wald_lmm
+## * print.effect_lmm
 ##' @export
 print.effect_lmm <- function(x, ...){
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: jul 30 2024 (18:08) 
+## Last-Updated: jul  9 2025 (14:39) 
 ##           By: Brice Ozenne
-##     Update #: 227
+##     Update #: 240
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -72,8 +72,8 @@
 
 ## * calc_d2Omega.ID
 .calc_d2Omega.ID <- function(object, param, Omega, dOmega, Jacobian = NULL, dJacobian = NULL,
-                              transform.sigma = NULL, transform.k = NULL, transform.rho = NULL){
-
+                             transform.sigma = NULL, transform.k = NULL, transform.rho = NULL){
+   
     ## ** prepare
     type <- stats::setNames(object$param$type,object$param$name) 
     name.sigma <- object$param$name[type=="sigma"]
@@ -198,7 +198,7 @@
             }
                  
         }
-
+      
         ## apply transformation
         if(!is.null(Jacobian) || !is.null(dJacobian)){
 
@@ -212,7 +212,7 @@
             M.iScore <- do.call(cbind,lapply(dOmega[[iPattern]],as.double)) %*% JacobianM1[iParamVar,iParamVar,drop=FALSE]
             iHess2 <- vector(mode = "list", length = n.iPair)
             names(iHess2) <- names(iHess)
-            for(iP in 1:n.iParamVar){ ## iP <- 2
+            for(iP in 1:n.iParamVar){ ## iP <- 1
                 ## d/d theta_1 = 
                 ##  [dOmega_[11]/d2 theta_1] ... [dOmega_[11]/d theta_1 d theta_p] %*% Jacobian + [dOmega_[11]/d theta_1] ... [dOmega_[11]/d theta_p] %*% dJacobian/d theta_1
                 ##  [dOmega_[ij]/d2 theta_1] ... [dOmega_[ij]/d theta_1 d theta_p] %*% Jacobian + [dOmega_[ij]/d theta_1] ... [dOmega_[ij]/d theta_p] %*% dJacobian/d theta_1
@@ -234,11 +234,11 @@
                 ## convert back to time format
                 iHess2[iIndex.pair] <- lapply(1:NCOL(M.iScore), function(iCol){matrix(M.iHess2[,iCol], nrow = iNtime, ncol = iNtime, byrow = FALSE)})
             }
+            iHess <- iHess2
         }
-
         return(iHess)        
     })
-    
+
     ## ** export
     out <- stats::setNames(out,Upattern$name)
     return(out)

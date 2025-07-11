@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 29 2024 (09:47) 
 ## Version: 
-## Last-Updated: aug  8 2024 (13:32) 
+## Last-Updated: mar  5 2025 (16:11) 
 ##           By: Brice Ozenne
-##     Update #: 1133
+##     Update #: 1144
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -313,7 +313,7 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
 
     ## define conditioning set (normalize user input)
     if("conditional" %in% names(mycall) == FALSE){
-        if(type %in% c("outcome","change")){
+        if(!is.na(alltime.var) && type %in% c("outcome","change")){
             conditional <- alltime.var
         }else{
             conditional <- NULL
@@ -497,6 +497,7 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
     ## ** contrast matrix 
     if(effects == "identity"){
         ls.C <- lapply(Ulevel.variable, function(iLevel){ ## iLevel <- 1
+            
             iData <- data.augmented
             ## iData <- data.augmented[data.augmented$subject==data.augmented$subject[1],]
             if(!is.null(variable)){
@@ -507,8 +508,7 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
                 }
                 
             }
-
-            iX <- stats::model.matrix(object$formula$mean.design, newdata = iData, options = options)[,colnames(object$design$mean),drop=FALSE] ## remove uncessary columns in case of (baseline) constraint
+            iX <- stats::model.matrix(object, newdata = iData, effects = "mean", options = options)
 
             if(length(grid.conditional)==0){
                 iStrata <- droplevels(factor(iData$XXtimeXX, 
@@ -574,8 +574,8 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
                 iData2[[variable]] <- Upair.variable[2,iPair]
             }
 
-            iX1 <- stats::model.matrix(object$formula$mean.design, newdata = iData1, options = options)[,colnames(object$design$mean),drop=FALSE] ## remove uncessary columns in case of (baseline) constraint
-            iX2 <- stats::model.matrix(object$formula$mean.design, newdata = iData2, options = options)[,colnames(object$design$mean),drop=FALSE] ## remove uncessary columns in case of (baseline) constraint
+            iX1 <- stats::model.matrix(object, newdata = iData1, effects = "mean", options = options)
+            iX2 <- stats::model.matrix(object, newdata = iData2, effects = "mean", options = options)
             
             if(length(grid.conditional)==0){
                 iStrata <- droplevels(factor(iData1$XXtimeXX,

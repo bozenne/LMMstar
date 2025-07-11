@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: okt  3 2024 (10:55) 
+## Last-Updated: jul  9 2025 (14:00) 
 ##           By: Brice Ozenne
-##     Update #: 1254
+##     Update #: 1260
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -351,7 +351,7 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
                 ## compute and store contribution
                 if(type.information == "expected"){
                     iValue <- 0.5 * precompute$weights[iPattern] * precompute$Omega$tr.OmegaM1.dOmega.OmegaM1.dOmega[[iPattern]]
-                }else if(type.information == "observed"){
+                }else if(type.information == "observed"){                    
                     iValue <- - 0.5 * precompute$weights[iPattern] * (precompute$Omega$tr.OmegaM1.dOmega.OmegaM1.dOmega[[iPattern]] - precompute$Omega$tr.OmegaM1.d2Omega[[iPattern]])
                     iValue <- iValue - 0.5 * (precompute$RR[[iPattern]] %*% precompute$Omega$OmegaM1.d2OmegaAndCo.OmegaM1[[iPattern]])[1,]
                 }
@@ -361,7 +361,6 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
 
             ## **** mean,var
             if(type.information == "observed" && test.mean && test.vcov){
-
                 ## compute
                 iValue <- t(precompute$Omega$OmegaM1.dOmega.OmegaM1[[iPattern]]) %*% precompute$XR[[iPattern]]
 

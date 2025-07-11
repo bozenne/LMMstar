@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: aug  8 2024 (11:28) 
+## Last-Updated: jul 11 2025 (13:27) 
 ##           By: Brice Ozenne
-##     Update #: 505
+##     Update #: 513
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -161,7 +161,12 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
     })
 
     if(trace>0){
-        cat("Fitting linear mixed models:\n")
+        dots <- list(...)
+        if("repetition" %in% names(dots) && all.vars(delete.response(stats::terms(dots[["repetition"]])))[1] != by){
+            cat("Fitting linear mixed models:\n")
+        }else{
+            cat("Fitting linear regressions:\n")
+        }
     }
     ls.lmm <- lapply(ls.data, function(iData){ ## iData <- ls.data[[2]]
         if(trace>0.5){
